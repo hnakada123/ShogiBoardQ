@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>詰棋練習 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 詰棋練習指南：從 SFEN 題集選擇題目，以 Hayanagi 為防守方在棋盤上解題。支援分頁瀏覽題目、記錄嘗試與解答歷史、回放解答，並可下載 3～13 手詰題集（共 6000 題）。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsume-play.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsume-play.html">
+    <meta property="og:title" content="詰棋練習 - ShogiBoardQ">
+    <meta property="og:description" content="從題集選擇題目，以 Hayanagi 為防守方解詰棋。儲存歷史並回放解答，反覆練習。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/tsume-play/tsume-play.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="詰棋練習 - ShogiBoardQ">
+    <meta name="twitter:description" content="從題集選擇題目，以 Hayanagi 為防守方解詰棋。儲存歷史並回放解答，反覆練習。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/tsume-play/tsume-play.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsume-play.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsume-play.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsume-play.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsume-play.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsume-play.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/tsume-play.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/tsume-play.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/tsume-play.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="tsume-play.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#problems">選擇題目</a></li>
+            <li><a href="#playing">在棋盤上解題</a></li>
+            <li><a href="#solution">解答</a></li>
+            <li><a href="#history">歷史記錄</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="tsume-play-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>詰棋練習</h1>
+        <p class="hero-subtitle">選擇題目，在棋盤上解題，並回顧解答</p>
+        <div class="hero-badges">
+            <span class="badge">SFEN 題集</span>
+            <span class="badge">防守方為 Hayanagi</span>
+            <span class="badge">嘗試與解答歷史</span>
+            <span class="badge">解答回放</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<section id="problems" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">看著初始局面選擇題目</h2>
+        <p class="section-desc">題目很多時也可以按頁瀏覽</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">開啟題集</h3>
+                </div>
+                <p class="guide-step-text">選擇選單「對局」→「練習詰棋…」，會開啟「詰棋題集」。按一下「開啟題集…」，選擇每行寫有一個 SFEN 局面的文字檔案。</p>
+                <p class="guide-step-text">可以使用<a href="../../en/guide/tsumeshogi-generator.html">詰棋局面生成器（英文）</a>儲存的題集。只含初始局面的檔案和附有參考變化的檔案都可以使用。詰棋手數採用已驗證的分析結果，不會只根據檔名或參考變化的長度來決定。</p>
+                <p class="guide-step-text">所有支援的題集都可以更快地讀取和取得歷史記錄，並重複利用分析結果。公開的 3～13 手詰、各 1000 題的題集，只要內容與應用程式中記錄的已驗證內容一致，首次開啟時也會省略詰棋手數的確認搜尋。改名或移動檔案後仍然有效，編輯內容後會恢復為一般分析。按一下「重新驗證此頁」會重新搜尋。</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">下載題集</h3>
+                </div>
+                <p class="guide-step-text">我們公開了 3、5、7、9、11、13 手詰的題集（各 1000 題，共 6000 題）。Linux 版 ZIP（ShogiBoardQ-linux.zip）的 data/tsumeshogi 資料夾中已附帶。在其他環境中，請以右鍵按一下下面的連結儲存檔案。</p>
+                <table class="info-table">
+                    <thead><tr><th scope="col">手數</th><th scope="col">題數</th><th scope="col">檔案</th></tr></thead>
+                    <tbody>
+                        <tr><td>3 手詰</td><td>1000 題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_3ply_1000_20261001.txt">tsume_3ply_1000_20261001.txt</a>（65 KB）</td></tr>
+                        <tr><td>5 手詰</td><td>1000 題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_5ply_1000_20261001.txt">tsume_5ply_1000_20261001.txt</a>（75 KB）</td></tr>
+                        <tr><td>7 手詰</td><td>1000 題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_7ply_1000_20261001.txt">tsume_7ply_1000_20261001.txt</a>（86 KB）</td></tr>
+                        <tr><td>9 手詰</td><td>1000 題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_9ply_1000_20261001.txt">tsume_9ply_1000_20261001.txt</a>（97 KB）</td></tr>
+                        <tr><td>11 手詰</td><td>1000 題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_11ply_1000_20261001.txt">tsume_11ply_1000_20261001.txt</a>（108 KB）</td></tr>
+                        <tr><td>13 手詰</td><td>1000 題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_13ply_1000_20261001.txt">tsume_13ply_1000_20261001.txt</a>（120 KB）</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">均為 2026 年 10 月 1 日版（增加了持駒剩餘檢查並替換題目的新版），是 UTF-8 文字檔案。製作和驗證的詳情請參閱<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">題集說明（README，日文）</a>。</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">查看初始局面、手數和歷史記錄</h3>
+                </div>
+                <p class="guide-step-text">每道題的卡片上顯示初始棋盤和持駒、題號、詰棋手數以及嘗試狀況。每頁題數可從 10、20、50、100 中選擇。可以用「上一頁」「下一頁」或頁碼移動，即使是 1000 題的題集也能分批挑選。</p>
+                <p class="guide-step-text">可以依「全部」「未嘗試」「已嘗試，未解答」「已解答」篩選，找到想練習的題目。按一下題目的卡片即可進入練習畫面。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/tsume-play/tsume-collection.png" alt="詰棋題集畫面。初始棋盤、詰棋手數、嘗試狀況的卡片，以及每頁題數和翻頁操作欄" width="1100" height="800" loading="lazy">
+                    <p class="screenshot-caption">題集：看著初始局面和詰棋手數選擇要挑戰的題目（5 手詰題集）</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">選擇詰棋引擎和搜尋時間</h3>
+                </div>
+                <p class="guide-step-text">使用內建的 Hayanagi 不需額外註冊引擎。初始局面的詰棋判定最多 31 手。對於長手數的題目，請另行準備 komori-n 開發並公開的詰棋引擎<a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>，在「設定」→「引擎設定…」中註冊，然後在題集畫面的「詰棋引擎」中選擇。註冊方法請參閱<a href="game-play.html#engine-registration">引擎註冊指南</a>。</p>
+                <p class="guide-step-text">即使選擇 KomoringHeights，作為防守方下應手的仍是 Hayanagi。KomoringHeights 用於判定是否能將死。也可以使用 101 手等長手數的題目，但需要在限定時間內完成判定。</p>
+                <p class="guide-step-text">「搜尋時間」可設定為 1～600 秒。如果因逾時等原因顯示「未確定」，請增加時間後按一下「重新驗證此頁」。已確認無詰的題目無法開始練習。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="playing" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">以 Hayanagi 為防守方在棋盤上解題</h2>
+        <p class="section-desc">連續王手，在顯示的手數以內將死</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <h3 class="guide-step-title">移動攻方的棋子</h3>
+                </div>
+                <p class="guide-step-text">由您擔任攻方。依序按一下棋子和目標位置，或拖曳棋子來走子。也可以打入持駒，並選擇升變或不升變。走出正確的王手後，防守方會下應手，然後又輪到您。</p>
+                <p class="guide-step-text">判定的依據不只是是否與參考變化一致，而是能否在顯示的剩餘手數以內將死。成立的其他解法也會被視為正確。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/tsume-play/tsume-play.png" alt="詰棋練習畫面。5 手詰的棋盤與剩餘手數，以及移動到前後題目、棋盤操作、解答、返回題集的按鈕" width="760" height="864" loading="lazy">
+                    <p class="screenshot-caption">練習畫面：您是攻方，Hayanagi 是防守方。一邊確認剩餘手數一邊走子</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <h3 class="guide-step-title">看到防守方的逃脫應手後重新思考</h3>
+                </div>
+                <p class="guide-step-text">如果走出無法將死的王手，防守方會在棋盤上下出防止將死的應手。為了讓您看清應手，約 1 秒後才顯示結果。會區分「完全無法將死」和「剩餘手數以內無法將死」兩種情況。</p>
+                <p class="guide-step-text">按一下「退回一手」可回到自己上一步之前，嘗試別的著法。不是王手的著法和犯規著法不會被接受。搜尋逾時時不會判為錯誤，可以按一下「重試搜尋」重新驗證。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/tsume-play/tsume-refutation.png" alt="顯示防守方的逃脫應手後，提示剩餘手數以內無法將死的畫面" width="760" height="864" loading="lazy">
+                    <p class="screenshot-caption">確認逃脫應手和判定結果，退回一手後再挑戰</p>
+                </div>
+            </div>
+        </div>
+        <table class="info-table">
+            <thead><tr><th scope="col">操作</th><th scope="col">作用</th></tr></thead>
+            <tbody>
+                <tr><td>重新開始此題</td><td>回到初始局面，開始新的嘗試。</td></tr>
+                <tr><td>退回一手</td><td>回到自己上一步之前的局面。</td></tr>
+                <tr><td>停止搜尋・重試搜尋</td><td>搜尋中顯示「停止搜尋」，可以重新判定時顯示「重試搜尋」。也可以增加搜尋時間後再驗證。</td></tr>
+                <tr><td>上一題・下一題</td><td>不返回題集，依篩選後的順序移動到相鄰的題目。在練習畫面中修改的搜尋時間會沿用。</td></tr>
+                <tr><td>返回題集</td><td>回到題集原來的頁面和篩選條件。</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section id="solution" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">逐手回放解答</h2>
+        <p class="section-desc">確認解法後，可以回到中途的練習</p>
+        <p class="guide-step-text">按一下「解答」按鈕，棋盤上方的說明文字會變為棋譜和回放手數，棋盤下方的「重新開始此題」「退回一手」會切換為回放按鈕。按一下與「解答」同一位置的「繼續解題」即可恢復練習。切換前後棋盤和共通按鈕的位置不變。可以從初始局面檢視一種經過驗證的解法，較長的棋譜可以捲動閱讀，也可以複製。</p>
+        <div class="screenshot-gallery">
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/tsume-play/tsume-solution.png" alt="顯示解答棋譜，以及初始局面、後退一手、前進一手、最終將死局面、繼續解題按鈕的練習畫面" width="760" height="864" loading="lazy">
+                    <p class="screenshot-caption">解答：對照棋譜和棋盤，逐手回放攻方和防守方的著法</p>
+                </div>
+        </div>
+        <table class="info-table">
+            <thead><tr><th scope="col">回放按鈕</th><th scope="col">操作</th></tr></thead>
+            <tbody>
+                <tr><td>初始局面</td><td>顯示解答的初始局面。</td></tr>
+                <tr><td>後退一手・前進一手</td><td>逐手後退或前進攻方、防守方的著法。</td></tr>
+                <tr><td>最終將死局面</td><td>顯示解答最後的局面。</td></tr>
+                <tr><td>繼續解題</td><td>隱藏棋譜和回放按鈕，從回放前的練習局面繼續。</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">回放期間只能檢視棋盤，不能走子推進練習。僅回放不會增加嘗試次數和解答次數。取得解答需要時間時，可以用「停止搜尋」或「繼續解題」中斷。</p>
+    </div>
+</section>
+
+<section id="history" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">保留嘗試歷史，反覆練習</h2>
+        <p class="section-desc">未嘗試的題目和以前解過的題目都能找到</p>
+        <div class="guide-step-text">
+            <ul>
+                <li>儲存嘗試次數、解答次數、上次嘗試時間和上次解答時間。關閉應用程式後歷史記錄仍會保留。</li>
+                <li>只是瀏覽題集或等待自動判定不會增加嘗試次數。進入練習畫面並可以走子時，記為一次嘗試。</li>
+                <li>重新挑戰以前解答過的題目時，即使失敗或中斷，過去的已解答狀態也會保留。</li>
+                <li>只要是同一局面，即使檔名或儲存位置改變，歷史記錄也會沿用。</li>
+                <li>按一下題集上方的「重設此題集的歷史記錄…」，可將目前題集的全部題目恢復為未嘗試。與頁面和篩選條件無關，全部題目都是對象。同一局面也出現在其他題集中時，共享的歷史記錄也會被重設。</li>
+                <li>按一下「重設所有題集的歷史記錄…」，可將以前開啟過的所有題集恢復為未嘗試。兩種重設都會顯示確認畫面，並刪除嘗試、解答次數和時間。重設無法復原。</li>
+            </ul>
+        </div>
+        <p class="guide-step-text">歷史記錄儲存在與 ShogiBoardQ 設定檔不同的資料庫中。發布版不需另外安裝 SQLite 即可儲存歷史記錄。</p>
+    </div>
+</section>
+
+<section id="display" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">調整為易於檢視的大小和方向</h2>
+        <p class="section-desc">文字和棋盤的大小可以分別變更</p>
+        <table class="info-table">
+            <thead><tr><th scope="col">操作</th><th scope="col">變更的內容</th></tr></thead>
+            <tbody>
+                <tr><td>A−・A＋</td><td>縮小或放大題集畫面和練習畫面的文字。每個畫面分別儲存。</td></tr>
+                <tr><td>棋盤上方的「−」「＋」</td><td>縮小或放大練習畫面的棋盤。</td></tr>
+                <tr><td>Ctrl＋滑鼠滾輪</td><td>在棋盤上捲動滾輪調整棋盤大小。</td></tr>
+                <tr><td>翻轉棋盤</td><td>將棋盤旋轉 180 度。翻轉後也可以走子和回放解答。</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">棋盤大小和翻轉狀態下次會沿用。</p>
+        <p class="guide-step-text">自己出題的方法請參閱<a href="../../en/guide/tsumeshogi-generator.html">詰棋局面生成器（英文）</a>，從一般對局局面尋找詰棋的方法請參閱<a href="../../en/guide/tsumi-search.html">搜尋詰棋（英文）</a>。</p>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html#tsume" class="back-link">← 返回使用指南（英文）的詰棋</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
