@@ -1,158 +1,203 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Consideration Mode - ShogiBoardQ</title>
-<meta content="A screenshot guide to ShogiBoardQ's Consideration mode: analyze candidate moves from any position and display multiple principal variations at once." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html" property="og:url"/>
-<meta content="Consideration Mode - ShogiBoardQ" property="og:title"/>
-<meta content="Learn to analyze any position with an engine and view multiple principal variations in ShogiBoardQ's Consideration mode." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/consideration/consideration-03-thinking-tab.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Consideration Mode - ShogiBoardQ" name="twitter:title"/>
-<meta content="Learn to analyze any position with an engine and view multiple principal variations in ShogiBoardQ's Consideration mode." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/consideration/consideration-03-thinking-tab.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consideration Mode - ShogiBoardQ</title>
+    <meta name="description" content="A screenshot guide to ShogiBoardQ&#x27;s Consideration mode: analyze candidate moves from any position, view several principal variations at once, and see them as arrows on the board.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html">
+    <meta property="og:title" content="Consideration Mode - ShogiBoardQ">
+    <meta property="og:description" content="Learn to analyze any position with an engine and view multiple principal variations in ShogiBoardQ&#x27;s Consideration mode.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/consideration/consideration-02-running.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Consideration Mode - ShogiBoardQ">
+    <meta name="twitter:description" content="Learn to analyze any position with an engine and view multiple principal variations in ShogiBoardQ&#x27;s Consideration mode.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/consideration/consideration-02-running.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/consideration.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/consideration.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/consideration.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#consideration-setup">Setup</a></li>
-<li><a href="#consideration-running">During Analysis</a></li>
-<li><a href="#continue-consideration">Continue Analysis</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/consideration.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="consideration.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/consideration.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/consideration.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#consideration-setup">Setup</a></li>
+            <li><a href="#consideration-running">During Consideration</a></li>
+            <li><a href="#continue-consideration">Continue</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Consideration Mode</h1>
-<p class="hero-subtitle">Analyze candidate moves from any position with an engine</p>
-<div class="hero-badges">
-<span class="badge">Multiple Candidates</span>
-<span class="badge">Principal Variations</span>
-<span class="badge">Any Position</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Consideration Mode</h1>
+        <p class="hero-subtitle">Analyze candidate moves from any position with an engine</p>
+        <div class="hero-badges">
+            <span class="badge">Multiple Candidates</span>
+            <span class="badge">Principal Variations</span>
+            <span class="badge">Candidate Arrows</span>
+            <span class="badge">Any Position</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: Consideration Setup -->
-<section class="section section--alt" id="consideration-setup">
-<div class="section-inner">
-<h2 class="section-title">Setup</h2>
-<p class="section-desc">Set analysis options in the Consideration tab</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Initial State of the Consideration Tab</span>
-</div>
-<p class="guide-step-text">The Consideration tab lets you set:</p>
-<ul class="guide-step-text">
-<li>The USI engine to use for analysis</li>
-<li>Unlimited time or a specific analysis time</li>
-<li>The number of candidate moves</li>
-</ul>
-<p class="guide-step-text">After configuring the options, click Start Consideration to begin.</p>
-<p class="guide-step-text">Time settings are fixed while consideration is active. Stop consideration before changing them. Changing MultiPV restarts the search, including after the time limit has elapsed. Results remain available at the time limit, and selecting another position resumes consideration.</p>
-<div class="screenshot-item">
-<img alt="Initial state of the Consideration tab" src="../../images/en/consideration/consideration-01-initial.png"/>
-<p class="screenshot-caption">Consideration tab: choose an engine, time limit, and number of candidates</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="consideration-setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Setup</h2>
+        <p class="section-desc">Set the analysis conditions in the Consideration tab</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Consideration Tab</span>
+                </div>
+                <p class="guide-step-text">The Consideration tab has the following settings. They are saved and restored the next time you start ShogiBoardQ.</p>
+                <ul class="guide-step-text">
+                    <li>The engine to use (Engine Settings changes the engine's options)</li>
+                    <li>Unlimited, or an Analysis Time in seconds</li>
+                    <li>Candidate moves (1 to 10)</li>
+                    <li>Show Arrows (draws the candidate moves on the board)</li>
+                </ul>
+                <p class="guide-step-text">Select the position to analyze in the game record and click Start Consideration. ShogiBoardQ analyzes the position shown on the board. The time settings cannot be changed during consideration; click Stop first to change them.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/consideration/consideration-01-initial.png" alt="Initial state of the Consideration tab">
+                    <p class="screenshot-caption">Consideration tab: choose the engine, analysis time, number of candidate moves, and arrows</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: During Consideration -->
-<section class="section" id="consideration-running">
-<div class="section-inner">
-<h2 class="section-title">During Analysis</h2>
-<p class="section-desc">View candidate moves and principal variations in real time</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Viewing Analysis Results</span>
-</div>
-<p class="guide-step-text">Once analysis starts, the Consideration tab displays the engine's candidate moves, evaluation scores, and principal variations in real time.</p>
-<div class="screenshot-item">
-<img alt="Analysis in progress" src="../../images/en/consideration/consideration-02-running.png"/>
-<p class="screenshot-caption">Analysis in progress: live candidate moves, scores, and principal variations</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Candidate Moves on the Board</span>
-</div>
-<p class="guide-step-text">Ranked arrows on the board show the engine's candidate moves, making it easy to see their order and identify the best move.</p>
-<div class="screenshot-item">
-<img alt="Candidate move arrows on the board" src="../../images/en/consideration/consideration-03-thinking-tab.png"/>
-<p class="screenshot-caption">Candidate move arrows: ranked arrows displayed directly on the board</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<span class="guide-step-title">Thinking Tab</span>
-</div>
-<p class="guide-step-text">The Thinking tab shows detailed engine information in real time, including evaluation scores, search depth, node counts, and principal variations.</p>
-<div class="screenshot-item">
-<img alt="Thinking tab" src="../../images/en/consideration/consideration-03-thinking-tab.png"/>
-<p class="screenshot-caption">Thinking tab: detailed engine information updated in real time</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="consideration-running" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">During Consideration</h2>
+        <p class="section-desc">Follow the engine's candidate moves and principal variations in real time</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Consideration Results</span>
+                </div>
+                <p class="guide-step-text">Once consideration starts, the upper table shows the engine's search status (the move being searched, depth, nodes, nodes per second, and hash usage), and the lower table lists the candidate moves from the highest score down. Each row shows the score, depth, nodes, and principal variation (PV); click Show in the Board column to replay the PV on a board.</p>
+                <p class="guide-step-text">You can change the number of candidate moves or the engine during consideration, and the search starts over. When the analysis time runs out, the search stops and the results stay on screen. Select another position or change the number of candidate moves to resume. Click Stop to end consideration.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/consideration/consideration-02-running.png" alt="Consideration in progress">
+                    <p class="screenshot-caption">During consideration: candidate moves, scores, and principal variations update in real time</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Candidate Moves on the Board</span>
+                </div>
+                <p class="guide-step-text">The board shows the candidate moves as arrows numbered by rank. The best move is drawn in dark red and the others in light red. A drop starts from the piece stand. Use the Show Arrows check box to show or hide the arrows; they disappear when you stop consideration.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/consideration/consideration-03-arrows.png" alt="Candidate move arrows on the board">
+                    <p class="screenshot-caption">Candidate move arrows: the number is the rank, and the arrow from the piece stand is a pawn drop</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Thinking Tab</span>
+                </div>
+                <p class="guide-step-text">The Thinking tab lists the information received from the engine as a history, newest first, so you can see how the PV changed as the search deepened. Arrows during consideration are set in the Consideration tab, so the Thinking tab's Show arrows during games and Also show pondering side check boxes are disabled.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/consideration/consideration-03-thinking-tab.png" alt="Thinking tab">
+                    <p class="screenshot-caption">Thinking tab: the engine's search information, newest first</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 3: Continue Consideration -->
-<section class="section section--alt" id="continue-consideration">
-<div class="section-inner">
-<h2 class="section-title">Continue Analysis</h2>
-<p class="section-desc">Select another move in the game record to continue your analysis</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Analyze Another Position</span>
-</div>
-<p class="guide-step-text">Click another move in the move list to switch to that position and continue analysis. You can explore positions of interest one after another.</p>
-<div class="screenshot-item">
-<img alt="Selecting another move for analysis" src="../../images/en/consideration/consideration-04-different-move.png"/>
-<p class="screenshot-caption">Continue analysis: click another move in the game record</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 3 -->
+<section id="continue-consideration" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Continue Consideration</h2>
+        <p class="section-desc">Select another position in the game record to keep analyzing</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Analyze Another Position</span>
+                </div>
+                <p class="guide-step-text">During consideration, click another move in the game record or move with the navigation buttons, and the analysis starts over from that position. The elapsed time also restarts from zero, so you can examine positions of interest one after another.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/consideration/consideration-04-different-move.png" alt="Selecting another move for analysis">
+                    <p class="screenshot-caption">Continue: selecting another move in the game record restarts the analysis from that position</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
