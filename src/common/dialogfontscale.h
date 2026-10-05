@@ -23,6 +23,7 @@ private:
     void applySize(int size);
     void updateLayout();
     bool attachToLayout();
+    void ensureContentFits();
 
     QDialog* m_dialog;
     QString m_settingsId;
