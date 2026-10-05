@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定跡 - ShogiBoardQ</title>
+    <meta name="description" content="圖解 ShogiBoardQ 的定跡功能：讀取 YaneuraOu 格式的定跡檔案，顯示各局面的定跡著法，在對局中執行定跡著法，新增、編輯、刪除定跡著法，以及從棋譜合併。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/joseki.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/joseki.html">
+    <meta property="og:title" content="定跡 - ShogiBoardQ">
+    <meta property="og:description" content="開啟 YaneuraOu 格式的定跡檔案，查看並編輯各局面的定跡著法，對局中可直接執行定跡著法。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/joseki/joseki-01-window.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="定跡 - ShogiBoardQ">
+    <meta name="twitter:description" content="開啟 YaneuraOu 格式的定跡檔案，查看並編輯各局面的定跡著法，對局中可直接執行定跡著法。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/joseki/joseki-01-window.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/joseki.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/joseki.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/joseki.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/joseki.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/joseki.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="joseki.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#joseki-display">查看定跡</a></li>
+            <li><a href="#joseki-play">對局中使用</a></li>
+            <li><a href="#joseki-edit">編輯</a></li>
+            <li><a href="#joseki-merge">合併</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>定跡</h1>
+        <p class="hero-subtitle">查看與編輯 YaneuraOu 格式的定跡檔案</p>
+        <div class="hero-badges">
+            <span class="badge">YaneuraOu 格式（.db）</span>
+            <span class="badge">定跡著法</span>
+            <span class="badge">新增・編輯・刪除</span>
+            <span class="badge">從棋譜合併</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="joseki-display" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">查看定跡</h2>
+        <p class="section-desc">在定跡視窗開啟定跡檔案，查看目前局面的定跡著法</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">開啟定跡視窗</span>
+                </div>
+                <p class="guide-step-text">選擇「檢視」→「定跡」顯示定跡視窗。一開始它位於主視窗下方的分頁中。表格較窄時，可以放大面板或讓它成為獨立視窗（參見面板佈局指南）。</p>
+                <p class="guide-step-text">按一下「開啟」，選擇 YaneuraOu 格式（#YANEURAOU-DB2016）的定跡檔案（.db），例如 YaneuraOu 附帶的 standard_book.db。按一下「新建」可以建立空的定跡，「歷史記錄」可以開啟最近使用的檔案。勾選「自動載入」後，下次顯示定跡視窗時會自動讀取上次的檔案。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-01-window.png" alt="定跡視窗">
+                    <p class="screenshot-caption">定跡視窗：開啟 standard_book.db 時的初始局面</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">表格的內容</span>
+                </div>
+                <p class="guide-step-text">目前局面登記的定跡著法依檔案中的順序排列。</p>
+                <ul class="guide-step-text">
+                    <li>定跡著法・預期應手：登記的著法，以及之後預期的對手應手</li>
+                    <li>評價值・深度・次數：定跡檔案中記錄的評價值、搜尋深度與出現次數</li>
+                    <li>註解：定跡著法的註解</li>
+                    <li>編輯・刪除：編輯或刪除該定跡著法的按鈕（「執行」只在對局中顯示）</li>
+                </ul>
+                <p class="guide-step-text">在棋譜欄選擇著法或對局推進時，會切換為該局面的定跡著法。不區分手數，相同局面總是顯示相同的定跡著法。</p>
+                <p class="guide-step-text">按一下「詳細」可顯示局面與定跡的 SFEN。「■ 停止」暫停定跡顯示，「▶ 恢復」重新顯示。最下方一行顯示檔名、局面數與目前局面的定跡著法數。未開啟定跡檔案或該局面沒有定跡時，表格中會顯示提示。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="joseki-play" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">對局中使用</h2>
+        <p class="section-desc">對局中輪到自己時，可以直接執行定跡著法</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">執行定跡著法</span>
+                </div>
+                <p class="guide-step-text">對局中輪到自己時，「執行」欄會顯示按鈕。按一下按鈕或按兩下該行即可執行該定跡著法（升變與否也依照定跡）。執行的著法與在棋盤上走的著法一樣記錄在棋譜中。</p>
+                <p class="guide-step-text">輪到引擎時、引擎之間的對局中以及未對局時，「執行」欄為空，無法執行定跡著法。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-02-play.png" alt="對局中的定跡視窗">
+                    <p class="screenshot-caption">對局中：輪到自己時可用「執行」按鈕走定跡著法</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="joseki-edit" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">編輯定跡</h2>
+        <p class="section-desc">新增、編輯、刪除定跡著法，並儲存到定跡檔案</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">新增定跡著法</span>
+                </div>
+                <p class="guide-step-text">按一下「＋新增」為目前局面新增定跡著法。選擇「移動盤上棋子」或「打入持駒」，指定起點與終點，並透過預覽確認。預期應手也可以選擇「無」。</p>
+                <p class="guide-step-text">輸入的著法在該局面不能走時，無法按下「新增」。已登記相同著法時，會確認是否覆寫。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-03-add.png" alt="新增定跡著法">
+                    <p class="screenshot-caption">新增定跡著法：透過預覽確認著法後新增</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">編輯定跡著法</span>
+                </div>
+                <p class="guide-step-text">按一下「編輯」可以修改預期應手、評價值、搜尋深度、次數與註解（著法本身不能修改）。在表格的行上按右鍵，還可以使用執行、編輯、刪除與複製著法的選單。</p>
+                <p class="guide-step-text">修改後，檔名右側會顯示「未儲存」與提示儲存的說明。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-04-edit.png" alt="編輯定跡著法">
+                    <p class="screenshot-caption">編輯定跡著法：修改評價值、搜尋深度、次數與註解</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-05-edited.png" alt="編輯後的定跡視窗">
+                    <p class="screenshot-caption">編輯後：顯示註解、「未儲存」與儲存提示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">刪除與儲存</span>
+                </div>
+                <p class="guide-step-text">按一下「刪除」會顯示確認，確認後刪除該定跡著法。</p>
+                <p class="guide-step-text">使用「儲存」（覆寫）或「另存為」把修改寫入定跡檔案。有未儲存的修改時，透過「新建」「開啟」「歷史記錄」切換檔案，或關閉定跡視窗、應用程式時，會確認是否儲存。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-06-delete.png" alt="刪除確認">
+                    <p class="screenshot-caption">刪除確認</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-07-unsaved.png" alt="未儲存修改的確認">
+                    <p class="screenshot-caption">有未儲存修改時的確認</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="joseki-merge" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">從棋譜合併</h2>
+        <p class="section-desc">把棋譜中的著法一併登記到定跡</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">登記棋譜的著法</span>
+                </div>
+                <p class="guide-step-text">選擇「合併 ▼」→「從目前棋譜」或「從棋譜檔案」（KIF 格式），會列出棋譜主線的著法（先手與後手）。「註冊」逐手登記，「全部註冊」一次全部登記。</p>
+                <p class="guide-step-text">新的著法以無預期應手、評價值 0、深度 0、次數 1 登記；已有的著法次數加 1。登記後會立即儲存到定跡檔案（其他未儲存的修改也會一併儲存）。尚未儲存的新定跡需要先指定儲存位置。「✓已註冊」表示開啟該檔案後登記的著法。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-08-merge.png" alt="將棋譜合併到定跡庫">
+                    <p class="screenshot-caption">合併：逐手或一次全部登記棋譜的著法</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
