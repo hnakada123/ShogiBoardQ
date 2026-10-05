@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋譜分析 - ShogiBoardQ</title>
+    <meta name="description" content="介紹 ShogiBoardQ 的棋譜分析：以 USI 引擎分析棋譜的每個局面，透過評價值、候選著法、主要變化與評價值圖表了解形勢的變化。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kifu-analysis.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kifu-analysis.html">
+    <meta property="og:title" content="棋譜分析 - ShogiBoardQ">
+    <meta property="og:description" content="在 ShogiBoardQ 中以 USI 引擎分析棋譜的每個局面，透過評價值、候選著法與評價值圖表了解形勢的變化。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/kifu-analysis/analysis-03-results.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="棋譜分析 - ShogiBoardQ">
+    <meta name="twitter:description" content="在 ShogiBoardQ 中以 USI 引擎分析棋譜的每個局面，透過評價值、候選著法與評價值圖表了解形勢的變化。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/kifu-analysis/analysis-03-results.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-analysis.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kifu-analysis.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/kifu-analysis.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/kifu-analysis.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/kifu-analysis.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="kifu-analysis.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#analysis-setup">分析設定</a></li>
+            <li><a href="#analysis-results">分析結果</a></li>
+            <li><a href="#eval-graph">評價值圖表</a></li>
+            <li><a href="#judgment">形勢判斷</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>棋譜分析</h1>
+        <p class="hero-subtitle">以 USI 引擎分析棋譜，掌握形勢的變化</p>
+        <div class="hero-badges">
+            <span class="badge">評價值圖表</span>
+            <span class="badge">候選著法與一致</span>
+            <span class="badge">在棋盤上檢視主要變化</span>
+            <span class="badge">指定分析範圍</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="analysis-setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">分析設定</h2>
+        <p class="section-desc">在「棋譜分析」對話框中設定分析條件</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">準備要分析的棋譜</span>
+                </div>
+                <p class="guide-step-text">顯示要分析的棋譜。可以在對局結束後直接分析，也可以分析透過「文件」→「打開…」讀取的棋譜（<a href="kifu-management.html">棋譜管理</a>）。顯示變化時，會分析正在顯示的變化。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">「棋譜分析」對話框</span>
+                </div>
+                <p class="guide-step-text">選擇「對局」→「分析棋譜…」（也可以使用工具列按鈕）開啟「棋譜分析」對話框，設定以下項目。</p>
+                <ul class="guide-step-text">
+                    <li>分析使用的引擎（可透過「引擎設置」變更引擎選項）</li>
+                    <li>分析範圍：「從初始局面到最後一手」，或以「自定義範圍」指定從第幾手到第幾手（第 0 手為初始局面，分析走完指定著法後的局面）</li>
+                    <li>每個局面的思考時間（1～3600 秒）</li>
+                </ul>
+                <p class="guide-step-text">對話框下方會顯示要分析的局面數與預計用時。按一下「開始分析」即開始分析。設定會在下次還原。認輸等終局列不會被分析。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/kifu-analysis/analysis-01-dialog.png" alt="「棋譜分析」對話框">
+                    <p class="screenshot-caption">「棋譜分析」對話框：設定引擎、分析範圍與思考時間</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="analysis-results" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">分析中與分析結果</h2>
+        <p class="section-desc">以列表檢視已分析局面的評價值、候選著法與主要變化</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">分析中</span>
+                </div>
+                <p class="guide-step-text">開始分析後，下方會開啟「棋譜分析」面板，每分析完一個局面就增加一列結果。棋盤與棋譜欄會移動到正在分析的局面，評價值圖表也會依序繪製。可以透過進度列與已分析的局面數了解進度。</p>
+                <p class="guide-step-text">要中途停止，請按一下「停止分析」（也可以選擇「對局」→「取消分析」）。已有的結果會保留。分析中無法操作棋譜欄與棋盤。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/kifu-analysis/analysis-02-in-progress.png" alt="棋譜分析中的畫面">
+                    <p class="screenshot-caption">分析中：棋盤移動到正在分析的局面，結果逐列增加</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">分析結果的檢視方式</span>
+                </div>
+                <p class="guide-step-text">分析結束後會顯示「分析完成」。各欄的內容如下。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>欄</th><th>內容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>著法</strong></td><td>棋譜中的著法。分析走完這一手後的局面</td></tr>
+                        <tr><td><strong>候選著法</strong></td><td>引擎在前一個局面認為最好的著法</td></tr>
+                        <tr><td><strong>一致</strong></td><td>著法與候選著法相同時顯示 ◯</td></tr>
+                        <tr><td><strong>評價值</strong></td><td>先手視角的評價值（＋為先手有利，−為後手有利）。將死顯示為「mate 手數」</td></tr>
+                        <tr><td><strong>形勢</strong></td><td>根據評價值判定的形勢（參見下方的「形勢判斷的標準」）</td></tr>
+                        <tr><td><strong>評價值變化</strong></td><td>與前一個局面相比評價值的增減（先手視角）</td></tr>
+                        <tr><td><strong>棋盤</strong></td><td>按一下「顯示」在棋盤上檢視主要變化</td></tr>
+                        <tr><td><strong>主要變化</strong></td><td>引擎預測的後續著法</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">選擇一列後，棋盤、棋譜欄與評價值圖表會移動到該局面。評價值變化較大的列就是形勢大幅變化的一手（本例中為第 45 手▲５六桂打）。結果會保留到開始下一次分析、讀取其他棋譜或開始新對局為止。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/kifu-analysis/analysis-03-results.png" alt="棋譜分析的結果">
+                    <p class="screenshot-caption">分析結果：選擇一列即可移動到該局面</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">在棋盤上檢視主要變化</span>
+                </div>
+                <p class="guide-step-text">按一下「棋盤」欄中的「顯示」（或按 Enter 鍵）會開啟「主要變化顯示」視窗，可以從該局面逐手重播主要變化，也可以「翻轉棋盤」或放大、縮小棋盤。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/kifu-analysis/analysis-04-pv-board.png" alt="「主要變化顯示」視窗">
+                    <p class="screenshot-caption">主要變化顯示：從分析的局面逐手重播主要變化</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="eval-graph" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">評價值圖表</h2>
+        <p class="section-desc">以圖表檢視形勢的變化</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">評價值圖表的顯示</span>
+                </div>
+                <p class="guide-step-text">「評價值圖表」分頁以先手視角的折線顯示分析得到的評價值變化。上方為先手有利，下方為後手有利，將死的局面以標記顯示在圖表的上端或下端。按一下圖表即可移動到該手的局面。</p>
+                <p class="guide-step-text">範圍可以選擇「自動」或「固定」，並可透過「顯示設置…」變更刻度與字型大小。圖表圖片可以透過「文件」→「保存評價值圖表圖片…」保存，或透過「編輯」→「複製評價值圖表圖片」複製。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/kifu-analysis/analysis-05-eval-graph.png" alt="評價值圖表">
+                    <p class="screenshot-caption">評價值圖表：上方顯示所選著法及其評價值</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="judgment" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">形勢判斷的標準</h2>
+        <p class="section-desc">根據評價值將形勢分為 5 個等級</p>
+
+        <table class="judgment-table">
+            <thead>
+                <tr>
+                    <th>評價值</th>
+                    <th>形勢</th>
+                    <th>顯示範例</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>0 ～ 100</td>
+                    <td class="judgment-label">均勢</td>
+                    <td>均勢</td>
+                </tr>
+                <tr>
+                    <td>101 ～ 300</td>
+                    <td class="judgment-label">稍有利</td>
+                    <td>先手：稍有利 / 後手：稍有利</td>
+                </tr>
+                <tr>
+                    <td>301 ～ 600</td>
+                    <td class="judgment-label">有利</td>
+                    <td>先手：有利 / 後手：有利</td>
+                </tr>
+                <tr>
+                    <td>601 ～ 1000</td>
+                    <td class="judgment-label">優勢</td>
+                    <td>先手：優勢 / 後手：優勢</td>
+                </tr>
+                <tr>
+                    <td>1001 以上</td>
+                    <td class="judgment-label">勝勢</td>
+                    <td>先手：勝勢 / 後手：勝勢</td>
+                </tr>
+                <tr>
+                    <td>將死</td>
+                    <td class="judgment-label">勝</td>
+                    <td>先手勝 / 後手勝</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="judgment-note">
+            <ul>
+                <li>評價值為先手視角，正值表示先手有利，負值表示後手有利</li>
+                <li>形勢根據評價值的絕對值判定</li>
+                <li>找到將死時，無論評價值大小，都會顯示「先手勝」或「後手勝」</li>
+            </ul>
+        </div>
+
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
