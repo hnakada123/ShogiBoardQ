@@ -24,6 +24,7 @@
 #include "sfenpositiontracer.h"
 #include "livegamesession.h"
 #include "kifuexportclipboard.h"
+#include "kifuexportmetadata.h"
 #include "kifu_test_helper.h"
 
 static const QString kHirateSfen =
@@ -363,6 +364,18 @@ private slots:
         QCOMPARE(CsaFormatter::convertToCsaTime(QStringLiteral("10:30+30")), QStringLiteral("$TIME:630+30+0"));
         QCOMPARE(CsaFormatter::convertToCsaTime(QStringLiteral("120:00+60")), QStringLiteral("$TIME:7200+60+0"));
         QCOMPARE(CsaFormatter::convertToCsaTime(QStringLiteral("600+30+5")), QStringLiteral("$TIME:600+30+5"));
+        // フィッシャー加算は秒読みと区別して第3項に入れる
+        QCOMPARE(CsaFormatter::convertToCsaTime(QStringLiteral("05:00+10秒加算")), QStringLiteral("$TIME:300+0+10"));
+    }
+
+    /// 対局情報の持ち時間は秒読みと加算を書き分ける
+    void timeControlTextDistinguishesIncrement()
+    {
+        using KifuExportMetadataBuilder::timeControlText;
+        QCOMPARE(timeControlText(600000, 10000, 0), QStringLiteral("10:00+10"));
+        QCOMPARE(timeControlText(300000, 0, 10000), QStringLiteral("05:00+10秒加算"));
+        QCOMPARE(timeControlText(7200000, 0, 0), QStringLiteral("120:00"));
+        QCOMPARE(timeControlText(0, 30000, 0), QStringLiteral("00:00+30"));
     }
 
     void clipboardKeepsTimeMetadata()

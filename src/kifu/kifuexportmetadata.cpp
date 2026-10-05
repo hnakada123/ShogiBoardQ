@@ -37,39 +37,12 @@ QList<KifGameInfoItem> KifuExportMetadataBuilder::collect(const KifuExportMetada
     items.push_back({ QStringLiteral("先手"), black });
     items.push_back({ QStringLiteral("後手"), white });
 
-    const QString sfen = ctx.startSfen.trimmed();
-    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    QString teai = QStringLiteral("平手");
-    if (!sfen.isEmpty()) {
-        const QString pp = sfen.section(QLatin1Char(' '), 0, 0);
-        if (!pp.isEmpty() && pp != initPP) {
-            teai = QStringLiteral("その他");
-        }
-    }
-    items.push_back({ QStringLiteral("手合割"), teai });
+    items.push_back({ QStringLiteral("手合割"), handicapLabel(ctx.startSfen) });
 
     // 持ち時間（時間制御が有効な場合のみ）
     if (ctx.hasTimeControl) {
-        // mm:ss+ss 形式（初期持ち時間:秒読み+加算秒）
-        const int baseMin = ctx.initialTimeMs / 60000;
-        const int baseSec = (ctx.initialTimeMs % 60000) / 1000;
-        const int byoyomiSec = ctx.byoyomiMs / 1000;
-        const int incrementSec = ctx.fischerIncrementMs / 1000;
-
-        QString timeStr;
-        if (baseMin > 0 || baseSec > 0) {
-            timeStr = QStringLiteral("%1:%2")
-                .arg(baseMin, 2, 10, QLatin1Char('0'))
-                .arg(baseSec, 2, 10, QLatin1Char('0'));
-        } else {
-            timeStr = QStringLiteral("00:00");
-        }
-        if (byoyomiSec > 0) {
-            timeStr += QStringLiteral("+%1").arg(byoyomiSec);
-        } else if (incrementSec > 0) {
-            timeStr += QStringLiteral("+%1").arg(incrementSec);
-        }
-        items.push_back({ QStringLiteral("持ち時間"), timeStr });
+        items.push_back({ QStringLiteral("持ち時間"),
+                          timeControlText(ctx.initialTimeMs, ctx.byoyomiMs, ctx.fischerIncrementMs) });
     }
 
     // 終了日時（ctx.gameEndDateTimeが有効な場合のみ）
@@ -117,3 +90,23 @@ void KifuExportMetadataBuilder::resolvePlayerNames(const KifuExportMetadata& ctx
     }
 }
 
+QString KifuExportMetadataBuilder::handicapLabel(const QString& startSfen)
+{
+    const QString pp = startSfen.trimmed().section(QLatin1Char(' '), 0, 0);
+    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+    return (pp.isEmpty() || pp == initPP) ? QStringLiteral("平手") : QStringLiteral("その他");
+}
+
+QString KifuExportMetadataBuilder::timeControlText(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs)
+{
+    const qint64 baseSec = baseMs / 1000;
+    QString text = QStringLiteral("%1:%2")
+        .arg(baseSec / 60, 2, 10, QLatin1Char('0'))
+        .arg(baseSec % 60, 2, 10, QLatin1Char('0'));
+    if (byoyomiMs >= 1000) {
+        text += QStringLiteral("+%1").arg(byoyomiMs / 1000);
+    } else if (incrementMs >= 1000) {
+        text += QStringLiteral("+%1秒加算").arg(incrementMs / 1000);
+    }
+    return text;
+}
