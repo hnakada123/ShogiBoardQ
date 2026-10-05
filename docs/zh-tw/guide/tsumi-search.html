@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>詰棋搜尋 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 詰棋搜尋的指南：讓已註冊的 USI 引擎從棋盤上的局面搜尋連續王手的詰殺手順，並在思考分頁和主要變化顯示的棋盤上確認結果。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumi-search.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumi-search.html">
+    <meta property="og:title" content="詰棋搜尋 - ShogiBoardQ">
+    <meta property="og:description" content="使用 USI 引擎從棋盤上的局面搜尋連續王手的詰殺手順，並在主要變化顯示的棋盤上逐手確認。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/tsumi-search/tsumi-search-thinking.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="詰棋搜尋 - ShogiBoardQ">
+    <meta name="twitter:description" content="使用 USI 引擎從棋盤上的局面搜尋連續王手的詰殺手順，並在主要變化顯示的棋盤上逐手確認。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/tsumi-search/tsumi-search-thinking.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumi-search.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumi-search.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumi-search.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/tsumi-search.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/tsumi-search.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/tsumi-search.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="tsumi-search.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#position">準備局面</a></li>
+            <li><a href="#settings">搜尋設定</a></li>
+            <li><a href="#results">搜尋結果</a></li>
+            <li><a href="#pv-board">主要變化顯示</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="tsumi-search-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>詰棋搜尋</h1>
+        <p class="hero-subtitle">用 USI 引擎調查目前局面是否有詰</p>
+        <div class="hero-badges">
+            <span class="badge">連續王手的詰殺</span>
+            <span class="badge">USI 的 go mate</span>
+            <span class="badge">時間限制・不限時</span>
+            <span class="badge">在棋盤上重播手順</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<section id="position" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">準備局面</h2>
+        <p class="section-desc">在棋盤上顯示要調查的局面</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">顯示要調查的局面</h3>
+                </div>
+                <p class="guide-step-text">詰棋搜尋從棋盤上顯示的局面出發，搜尋行棋方以連續王手將死對方玉的手順。可以直接調查開啟棋譜後選擇的局面或對局結束時的局面。在對局、研究、棋譜分析和局面編輯過程中無法使用。</p>
+                <p class="guide-step-text">如果要像詰棋那樣從頭建立局面，請選擇「編輯」→「開始編輯局面」擺放棋子，再按一下「結束編輯」確定（<a href="board-edit.html">盤面編輯</a>）。請讓進攻方成為行棋方。本指南使用「編輯」→「詰棋佈局」擺出的例題局面。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="settings" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">搜尋設定</h2>
+        <p class="section-desc">在搜尋詰棋對話方塊中選擇引擎和搜尋時間</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">搜尋詰棋對話方塊</h3>
+                </div>
+                <p class="guide-step-text">選擇「對局」→「搜尋詰棋…」開啟對話方塊，選擇引擎和搜尋時間後按一下「開始搜尋」。所選的引擎和搜尋時間下次也會沿用。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/tsumi-search/tsumi-search-dialog.png" alt="搜尋詰棋對話方塊" width="560" height="386" loading="lazy">
+                    <p class="screenshot-caption">搜尋詰棋對話方塊：選擇引擎和搜尋時間後按一下「開始搜尋」</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">項目</th><th scope="col">說明</th></tr></thead>
+                    <tbody>
+                        <tr><td>搜尋引擎</td><td>從「設定」→「引擎設定…」中註冊的 USI 引擎中選擇。按一下「引擎設定…」按鈕可以變更所選引擎的選項。</td></tr>
+                        <tr><td>時間限制</td><td>以秒為單位指定搜尋時間的上限（預設 20 秒）。</td></tr>
+                        <tr><td>不限時</td><td>一直搜尋，直到判明是否有詰。</td></tr>
+                        <tr><td>A− / A+</td><td>變更對話方塊的文字大小。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">詰棋搜尋需要支援 USI 詰棋搜尋（go mate）的引擎。可以註冊 ShogiBoardQ 的 <a href="hayanagi.html">Hayanagi</a>（僅 Linux 版附帶，註冊方法請參閱 <a href="hayanagi.html#setup">Hayanagi 指南</a>），或 komori-n 開發並公開的詰棋引擎 <a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>。引擎的註冊方法請參閱<a href="game-play.html#engine-registration">引擎註冊指南</a>。</p>
+                <p class="guide-step-text">搜尋過程中可以選擇「對局」→「取消詰棋搜尋」停止搜尋。停止後不會顯示結果。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="results" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">搜尋結果</h2>
+        <p class="section-desc">搜尋結束後會顯示結果，詰殺手順保留在思考分頁中</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">結果訊息</h3>
+                </div>
+                <p class="guide-step-text">搜尋結束後，會以訊息顯示結果。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/tsumi-search/tsumi-search-result.png" alt="詰棋搜尋的結果訊息" width="191" height="105" loading="lazy">
+                    <p class="screenshot-caption">結果訊息：找到詰棋（3 手）</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">訊息</th><th scope="col">含義</th></tr></thead>
+                    <tbody>
+                        <tr><td>找到詰棋（N 手）</td><td>找到了詰殺。N 是包括守方應著在內的詰殺手數。</td></tr>
+                        <tr><td>無詰</td><td>已判明連續王手無法將死。</td></tr>
+                        <tr><td>未能在限定時間內判定詰棋</td><td>在指定的時間內未能判明是否有詰。請延長時間，或選擇「不限時」重新搜尋。</td></tr>
+                        <tr><td>（引擎）尚未實現</td><td>所選引擎不支援詰棋搜尋（go mate）。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">思考分頁中的詰殺手順</h3>
+                </div>
+                <p class="guide-step-text">找到詰殺後，「思考」分頁中會增加一列詰殺手順。「評價值」欄顯示「3 手詰」這樣的詰殺手數，「主要變化」欄顯示詰殺手順。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/tsumi-search/tsumi-search-thinking.png" alt="思考分頁中顯示詰殺手順的主視窗" width="1300" height="980" loading="lazy">
+                    <p class="screenshot-caption">思考分頁：評價值為「3 手詰」，主要變化為詰殺手順</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="pv-board" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">主要變化顯示</h2>
+        <p class="section-desc">在棋盤上逐手重播詰殺手順</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <h3 class="guide-step-title">開啟主要變化顯示視窗</h3>
+                </div>
+                <p class="guide-step-text">在思考分頁的詰殺手順列中，按一下「棋盤」欄的「顯示」，即可開啟主要變化顯示視窗。上方顯示詰殺手順，下方顯示搜尋的局面。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/tsumi-search/tsumi-search-pv-start.png" alt="主要變化顯示視窗的初始局面" width="766" height="845" loading="lazy">
+                    <p class="screenshot-caption">主要變化顯示：初始局面（手數 0 / 3）</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <h3 class="guide-step-title">重播詰殺手順</h3>
+                </div>
+                <p class="guide-step-text">按一下「▶」逐手前進，按一下「▶|」前進到詰殺的局面。上一步著法會在棋盤上強調顯示，手數欄顯示目前是第幾手。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/tsumi-search/tsumi-search-pv-mate.png" alt="主要變化顯示視窗的詰殺局面" width="766" height="845" loading="lazy">
+                    <p class="screenshot-caption">主要變化顯示：▲２一飛打將死（手數 3 / 3）</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">按鈕</th><th scope="col">操作</th></tr></thead>
+                    <tbody>
+                        <tr><td>|◀ ／ ▶|</td><td>回到初始局面／前進到最後的局面（詰殺局面）</td></tr>
+                        <tr><td>◀ ／ ▶</td><td>後退一手／前進一手</td></tr>
+                        <tr><td>− ／ ＋</td><td>縮小／放大棋盤（在棋盤上按住 Ctrl 捲動滑鼠滾輪也可以）</td></tr>
+                        <tr><td>翻轉棋盤</td><td>將棋盤旋轉 180 度</td></tr>
+                        <tr><td>A- ／ A+</td><td>變更視窗的文字大小</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html#tsume" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
