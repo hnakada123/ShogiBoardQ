@@ -285,6 +285,27 @@ private slots:
         dialog.reject();
     }
 
+    /// 表示時に文字サイズ操作を足す QInputDialog でも決定ボタンが隠れない（以前の版で保存した小さいサイズを含む）
+    void inputDialogKeepsActionsVisible()
+    {
+        AppSettings::setAuxiliaryDialogSize(QStringLiteral("inputDialogTest"), QSize(250, 130));
+        QInputDialog dialog;
+        dialog.setLabelText(QStringLiteral("レイアウト名:"));
+        dialog.ensurePolished();
+        DialogFontScale::install(&dialog, QStringLiteral("inputDialogTest"), true);
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        QVERIFY(dialog.findChild<QWidget*>(QStringLiteral("dialogFontScale")));
+        auto* box = dialog.findChild<QDialogButtonBox*>();
+        QVERIFY(box);
+        QTest::qWait(50);
+        for (auto* button : box->buttons()) {
+            QVERIFY(dialog.rect().contains(QRect(button->mapTo(&dialog, QPoint()), button->size())));
+            QVERIFY(button->width() >= button->sizeHint().width());
+        }
+        dialog.reject();
+    }
+
     void emptyStatesAndMergeSelection()
     {
         EngineRegistrationDialog registration;

@@ -190,6 +190,19 @@ void DialogFontScale::applySize(int size)
 void DialogFontScale::updateLayout()
 {
     DialogUtils::fitWrappedLabels(m_dialog);
+    ensureContentFits();
+}
+
+void DialogFontScale::ensureContentFits()
+{
+    // 幅が狭いと操作列が二段になるが、ウィンドウの高さは自動では増えないため、決定ボタンが隠れないよう広げる
+    QLayout* layout = m_dialog->layout();
+    if (!layout) return;
+    layout->activate();
+    QSize size = m_dialog->size().expandedTo(m_dialog->minimumSizeHint());
+    if (layout->hasHeightForWidth())
+        size.setHeight(qMax(size.height(), layout->totalHeightForWidth(size.width())));
+    if (size != m_dialog->size()) m_dialog->resize(size);
 }
 
 bool DialogFontScale::eventFilter(QObject* watched, QEvent* event)
@@ -199,6 +212,9 @@ bool DialogFontScale::eventFilter(QObject* watched, QEvent* event)
         DialogUtils::standardizeDialog(m_dialog);
         applySize(AppSettings::dialogFontSize(m_settingsId, m_size));
         if (m_saveSize) DialogUtils::restoreDialogSize(m_dialog, AppSettings::auxiliaryDialogSize(m_settingsId));
+        // 表示時の大きさは操作列を足す前に決まっているので、少なくとも追加後の推奨サイズまで広げる
+        m_dialog->resize(m_dialog->size().expandedTo(m_dialog->sizeHint()));
+        ensureContentFits();
     }
     if (watched == m_dialog && event->type() == QEvent::Hide && m_saveSize)
         AppSettings::setAuxiliaryDialogSize(m_settingsId, m_dialog->size());
