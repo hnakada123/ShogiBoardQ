@@ -1,266 +1,219 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Game Record Display - ShogiBoardQ</title>
-<meta content="Learn to view moves, edit comments and bookmarks, explore variations, and use navigation buttons in ShogiBoardQ's game record dock." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html" property="og:url"/>
-<meta content="Game Record Display - ShogiBoardQ" property="og:title"/>
-<meta content="Learn to display game records, edit comments and bookmarks, and explore variations in ShogiBoardQ." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/kifu-display/moves-time-bookmark-comment.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Game Record Display - ShogiBoardQ" name="twitter:title"/>
-<meta content="Learn to display game records, edit comments and bookmarks, and explore variations in ShogiBoardQ." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/kifu-display/moves-time-bookmark-comment.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Record Display - ShogiBoardQ</title>
+    <meta name="description" content="A screenshot guide to the game record pane in ShogiBoardQ: moves, time, bookmarks and comments, editing comments and bookmarks, and switching variations with the variation list and the branch tree.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html">
+    <meta property="og:title" content="Game Record Display - ShogiBoardQ">
+    <meta property="og:description" content="See moves, time, bookmarks and comments in the game record pane, edit comments and bookmarks, and switch between variations.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/kifu-display/kifu-display-04-branch.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Game Record Display - ShogiBoardQ">
+    <meta name="twitter:description" content="See moves, time, bookmarks and comments in the game record pane, edit comments and bookmarks, and switch between variations.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/kifu-display/kifu-display-04-branch.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-display.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kifu-display.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/kifu-display.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#column-display">Columns</a></li>
-<li><a href="#comment">Comments</a></li>
-<li><a href="#bookmark">Bookmarks</a></li>
-<li><a href="#branch">Variations</a></li>
-<li><a href="#navigation">Navigation</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/kifu-display.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="kifu-display.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/kifu-display.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/kifu-display.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#record">Game Record</a></li>
+            <li><a href="#comment">Comments</a></li>
+            <li><a href="#bookmark">Bookmarks</a></li>
+            <li><a href="#branch">Variations</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Game Record Display</h1>
-<p class="hero-subtitle">View moves, comments, bookmarks, and variations in the game record dock</p>
-<div class="hero-badges">
-<span class="badge">Comment Editing</span>
-<span class="badge">Bookmarks</span>
-<span class="badge">Variations</span>
-<span class="badge">Navigation</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Game Record Display</h1>
+        <p class="hero-subtitle">Moves, comments, bookmarks and variations in the game record pane</p>
+        <div class="hero-badges">
+            <span class="badge">Column Toggles</span>
+            <span class="badge">Comment Editing</span>
+            <span class="badge">Bookmarks</span>
+            <span class="badge">Variations and Branch Tree</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: Column Display -->
-<section class="section section--alt" id="column-display">
-<div class="section-inner">
-<h2 class="section-title">Choose Visible Columns</h2>
-<p class="section-desc">Show only the information you need in the game record dock</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Moves Only</span>
-</div>
-<p class="guide-step-text">The basic game record view shows a list of moves. Use the buttons on the right-hand toolbar to show or hide additional columns.</p>
-<div class="screenshot-item">
-<img alt="Game record dock showing moves only" src="../../images/en/kifu-display/moves-only.png"/>
-<p class="screenshot-caption">Moves only: the basic game record view</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Show Time Spent</span>
-</div>
-<p class="guide-step-text">Click the clock button on the toolbar to show the time column. Each row displays the time spent on that move and the total time spent, in the format Move / Total.</p>
-<div class="screenshot-item">
-<img alt="Game record dock with the time column" src="../../images/en/kifu-display/moves-time.png"/>
-<p class="screenshot-caption">Time column: view the time spent on each move and the cumulative total</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<span class="guide-step-title">Show Bookmarks</span>
-</div>
-<p class="guide-step-text">Click the bookmark button on the toolbar to show the bookmark column, which displays the bookmark name assigned to each move.</p>
-<div class="screenshot-item">
-<img alt="Game record dock with the bookmark column" src="../../images/en/kifu-display/moves-time-bookmark.png"/>
-<p class="screenshot-caption">Bookmark column: view bookmark names alongside time spent</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">4</span>
-<span class="guide-step-title">Show Comments</span>
-</div>
-<p class="guide-step-text">Click the comment button on the toolbar to show the comment column. It displays comments assigned to each move. The time, bookmark, and comment columns can be toggled independently.</p>
-<div class="screenshot-item">
-<img alt="Game record dock with the comment column" src="../../images/en/kifu-display/moves-time-bookmark-comment.png"/>
-<p class="screenshot-caption">All columns: moves, time spent, bookmarks, and comments</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="record" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Game Record Pane</h2>
+        <p class="section-desc">Moves, time, bookmarks and comments at a glance</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Reading the Game Record</span>
+                </div>
+                <p class="guide-step-text">The Game Record pane lists the moves from the starting position with their time (per move / total), bookmark and comment. When you select a move, its position appears on the board, and the Comments and Branch Tree tabs follow the same move. Select a move by clicking its row, with the Up and Down keys, or with the buttons on the right.</p>
+                <ul class="guide-step-text">
+                    <li>A- / A+: change the font size of the game record</li>
+                    <li>Edit Bookmark (pencil button): edit the bookmark of the selected move</li>
+                    <li>Clock, bookmark and speech-bubble buttons: show or hide the Time, Bookmark and Comment columns (shown while pressed)</li>
+                    <li>▲| ▲▲ ▲ ▼ ▼▼ ▼|: go to the start, back 10 moves, back 1 move, forward 1 move, forward 10 moves, and to the last move</li>
+                </ul>
+                <p class="guide-step-text">Moves that have variations get an orange background and “[+]” after the move. The Variations list on the far right shows the alternatives when the selected move has any (click “◂ Variations” to collapse it).</p>
+                <p class="guide-step-text">Switch the notation of moves and board coordinates between Japanese (▲７六歩) and Western (▲P-7f) in Settings → Move notation and board coordinates. By default it follows the UI language (Japanese and Chinese use Japanese notation, English uses Western notation). See the <a href="multilanguage.html">Language Support</a> guide for details.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/kifu-display/kifu-display-01-record.png" alt="Game Record pane">
+                    <p class="screenshot-caption">Game Record: the Time, Bookmark and Comment columns and the variations at move 15</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: Comment -->
-<section class="section" id="comment">
-<div class="section-inner">
-<h2 class="section-title">Game Record Comments</h2>
-<p class="section-desc">Add and edit comments for individual moves</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Edit a Comment</span>
-</div>
-<p class="guide-step-text">Select the move you want to annotate and enter text in the game record comment area at the bottom of the window. Click Update Comment to save it.</p>
-<div class="screenshot-item">
-<img alt="Editing a game record comment" src="../../images/en/kifu-display/comment-editing.png"/>
-<p class="screenshot-caption">Editing a comment: enter text in the comment area and click Update Comment</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">View Comments</span>
-</div>
-<p class="guide-step-text">Saved comments appear in the game record dock's comment column. Selecting a move also shows the full comment in the comment area at the bottom of the window.</p>
-<div class="screenshot-item">
-<img alt="A saved game record comment" src="../../images/en/kifu-display/comment-updated.png"/>
-<p class="screenshot-caption">Saved comment: reflected in both the comment column and the comment area</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="comment" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Comments</h2>
+        <p class="section-desc">Write a comment for the selected move</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Write a Comment</span>
+                </div>
+                <p class="guide-step-text">The Comments tab at the bottom shows the comment of the selected move. When you change it, “Editing” appears; click Update Comment (Ctrl+Enter) to apply it to the game record. Applied comments also appear in the Comment column.</p>
+                <p class="guide-step-text">URLs in comments become links that open with Ctrl+click. The buttons on the left change the font size and provide undo, redo, cut, copy and paste. Comments are saved in KIF, KI2, CSA and JKF files.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/kifu-display/kifu-display-02-comment.png" alt="Editing a comment">
+                    <p class="screenshot-caption">Comments: the comment of move 17 being edited (Editing)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Moving Before Updating</span>
+                </div>
+                <p class="guide-step-text">If you try to move to another move without clicking Update Comment, a confirmation appears. Discard and Move throws away the edit and moves; Cancel stays on the current move. This applies to clicking the game record, the buttons, the Variations list and the branch tree alike.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/kifu-display/kifu-display-05-unsaved.png" alt="Confirmation for an unapplied comment">
+                    <p class="screenshot-caption">Unapplied comment</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 3: Bookmark -->
-<section class="section section--alt" id="bookmark">
-<div class="section-inner">
-<h2 class="section-title">Bookmarks</h2>
-<p class="section-desc">Bookmark important positions for quick access</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Edit a Bookmark</span>
-</div>
-<p class="guide-step-text">Select the move to bookmark and click Edit Bookmark on the toolbar. Enter a name in the dialog and click OK.</p>
-<div class="screenshot-item">
-<img alt="Edit Bookmark dialog" src="../../images/en/kifu-display/bookmark-edit-dialog.png"/>
-<p class="screenshot-caption">Edit Bookmark dialog: enter a bookmark name and save</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">View Bookmarks</span>
-</div>
-<p class="guide-step-text">Bookmark names appear in the game record dock's bookmark column next to their moves. To remove a bookmark, clear its name and save.</p>
-<div class="screenshot-item">
-<img alt="A newly added bookmark" src="../../images/en/kifu-display/bookmark-added.png"/>
-<p class="screenshot-caption">Bookmark added: its name appears in the bookmark column</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 3 -->
+<section id="bookmark" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Bookmarks</h2>
+        <p class="section-desc">Name the moves you want to find again</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Add a Bookmark</span>
+                </div>
+                <p class="guide-step-text">Select a move, click the Edit Bookmark button, enter a name and click OK; it appears in the Bookmark column. Clicking OK with an empty name removes the bookmark.</p>
+                <p class="guide-step-text">Bookmarks are saved in KIF and KI2 files and shown again when the file is loaded.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/kifu-display/kifu-display-03-bookmark.png" alt="Edit Bookmark">
+                    <p class="screenshot-caption">Edit Bookmark</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 4: Branch -->
-<section class="section" id="branch">
-<div class="section-inner">
-<h2 class="section-title">Variations</h2>
-<p class="section-desc">Explore and navigate alternative lines in records with variations</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Overview of Variations</span>
-</div>
-<p class="guide-step-text">When you load a record with variations, the game record dock initially shows the main line. The Branch Tree tab at the bottom presents the main line and variations in a tree.</p>
-<div class="screenshot-item">
-<img alt="Overview of Variations" src="../../images/en/kifu-display/branch-overview.png"/>
-<p class="screenshot-caption">Record with variations: main-line moves and the Branch Tree</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Identify Moves with Variations</span>
-</div>
-<p class="guide-step-text">Moves with variations are shown in orange and prefixed with a + sign, making alternative continuations easy to find. Selecting such a move lists its alternatives in the variation candidates area on the right.</p>
-<div class="screenshot-item">
-<img alt="Moves with variations highlighted in orange" src="../../images/en/kifu-display/branch-moves.png"/>
-<p class="screenshot-caption">Moves with variations: orange text and a + sign, with alternatives listed on the right</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<span class="guide-step-title">Navigate to a Variation</span>
-</div>
-<p class="guide-step-text">Click a move in the variation candidates area to switch to that line. The game record dock displays the selected variation and the board updates accordingly.</p>
-<div class="screenshot-item">
-<img alt="Game record after switching to a variation" src="../../images/en/kifu-display/branch-navigated.png"/>
-<p class="screenshot-caption">Navigate to a variation: click a candidate to explore an alternative line</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 4 -->
+<section id="branch" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Variations</h2>
+        <p class="section-desc">Switch between alternative lines</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Switch Variations</span>
+                </div>
+                <p class="guide-step-text">When you select a move that has variations, the Variations list shows the main-line move and the alternatives. Click one to switch to that line; the game record then shows the variation. While a variation is displayed, Return to Main at the end of the list goes back to the same move number in the main line.</p>
+                <p class="guide-step-text">The Branch Tree tab shows the main line (top row) and every variation. The current move is yellow, and clicking a move goes to that position. When the current move is outside the visible area, the tree scrolls to show it. For the file formats that keep variations, see the <a href="kifu-management.html">Kifu Management</a> guide.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/kifu-display/kifu-display-04-branch.png" alt="Main window with a variation selected">
+                    <p class="screenshot-caption">Variations: ▲P*8g chosen at move 15 with the Branch Tree tab shown</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 5: Navigation -->
-<section class="section section--alt" id="navigation">
-<div class="section-inner">
-<h2 class="section-title">Navigation Buttons</h2>
-<p class="section-desc">Use the buttons on the right of the game record dock to browse moves</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Navigation Button Functions</span>
-</div>
-<p class="guide-step-text">The right side of the game record dock contains the following buttons, from top to bottom.</p>
-<ul class="guide-step-text">
-<li><strong>A+</strong>: Increase the game record font size.</li>
-<li><strong>A-</strong>: Decrease the game record font size.</li>
-<li><strong>Edit Bookmark</strong>: Add or edit a bookmark for the selected move.</li>
-<li><strong>Time Column</strong>: Show or hide the time column.</li>
-<li><strong>Bookmark Column</strong>: Show or hide the bookmark column.</li>
-<li><strong>Comment Column</strong>: Show or hide the comment column.</li>
-</ul>
-<p class="guide-step-text">Below these are the move navigation buttons.</p>
-<ul class="guide-step-text">
-<li><strong>▲|</strong> (First): go to the starting position.</li>
-<li><strong>▲▲</strong> (Back 10): go back 10 moves.</li>
-<li><strong>▲</strong> (Back 1): go back one move.</li>
-<li><strong>▼</strong> (Forward 1): advance one move.</li>
-<li><strong>▼▼</strong> (Forward 10): advance 10 moves.</li>
-<li><strong>▼|</strong> (Last): go to the final move.</li>
-</ul>
-<div class="screenshot-item">
-<img alt="Game record dock navigation buttons" src="../../images/en/kifu-display/moves-only.png"/>
-<p class="screenshot-caption">Navigation buttons: toggle columns and move through the game record</p>
-</div>
-</div>
-</div>
-</div>
-</section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
