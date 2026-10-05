@@ -55,6 +55,7 @@ void JosekiWindow::closeMergeDialogs()
     const auto dialogs = findChildren<JosekiMergeDialog*>();
     for (JosekiMergeDialog *dialog : dialogs) {
         disconnect(dialog, &JosekiMergeDialog::registerMove, this, &JosekiWindow::onMergeRegisterMove);
+        disconnect(dialog, &JosekiMergeDialog::registerAllMoves, this, &JosekiWindow::onMergeRegisterAllMoves);
         disconnect(this, &JosekiWindow::mergeRegistrationFinished, dialog, &JosekiMergeDialog::onRegistrationFinished);
         dialog->setEnabled(false);
         dialog->reject();
@@ -150,6 +151,9 @@ void JosekiWindow::onAsyncLoadFinished()
     m_currentFilePath = filePath;
     m_filePathLabel->setText(m_currentFilePath);
     m_filePathLabel->setStyleSheet(QString());
+    // 読み込めたファイルだけを履歴に入れる
+    addToRecentFiles(filePath);
+    saveSettings();
     setModified(false);
     updateStatusDisplay();
     updateJosekiDisplay();

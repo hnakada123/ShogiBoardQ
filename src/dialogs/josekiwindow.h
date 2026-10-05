@@ -56,6 +56,8 @@ struct JosekiEntry {
  * 定跡データベースの表示・編集を行うウィンドウ。
  * ビジネスロジックは JosekiPresenter、I/O は JosekiRepository に委譲する。
  */
+struct KifuMergeEntry;
+
 class JosekiWindow : public QWidget
 {
     Q_OBJECT
@@ -121,6 +123,8 @@ protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
+    /// マージの「全て登録」：未登録の指し手をまとめて登録し、定跡ファイルへ1回だけ保存する
+    void onMergeRegisterAllMoves(const QList<KifuMergeEntry> &entries);
     void setupUi();
     void updateJosekiDisplay();
     void clearTable();

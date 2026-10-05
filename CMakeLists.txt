@@ -840,6 +840,7 @@ set(SRC_DIALOGS
     src/dialogs/josekiwindow.cpp
     src/dialogs/josekiwindow.h
     src/dialogs/josekiwindowio.cpp
+    src/dialogs/josekiwindowmerge.cpp
     src/dialogs/josekiwindowui.cpp
     src/dialogs/josekiwindowui_status.cpp
     src/dialogs/kifuanalysisdialog.cpp

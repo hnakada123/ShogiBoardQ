@@ -141,7 +141,8 @@ void JosekiWindow::setupUi()
     m_mergeButton->setText(tr("マージ ▼"));
     m_mergeButton->setToolTip(tr("棋譜から定跡をマージ"));
     m_mergeButton->setPopupMode(QToolButton::InstantPopup);
-    m_mergeButton->setStyleSheet(editBtnStyle);
+    // 表示文字に ▼ を含むので、Qt のメニュー矢印は重ねて描かない
+    m_mergeButton->setStyleSheet(editBtnStyle + QStringLiteral("QToolButton::menu-indicator { image: none; width: 0px; }"));
 
     m_mergeMenu = new QMenu(this);
     m_mergeMenu->setObjectName(QStringLiteral("josekiMergeMenu"));
@@ -359,7 +360,8 @@ void JosekiWindow::loadSettings()
 void JosekiWindow::saveSettings()
 {
     DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiWindowSize);
-    JosekiSettings::setJosekiWindowLastFilePath(m_currentFilePath);
+    // 「履歴をクリア」した後は、開き直すか保存して履歴に戻るまで前回のファイルとして記録しない
+    JosekiSettings::setJosekiWindowLastFilePath(m_recentFiles.contains(m_currentFilePath) ? m_currentFilePath : QString());
     JosekiSettings::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
     JosekiSettings::setJosekiWindowRecentFiles(m_recentFiles);
     if (m_tableWidget) {

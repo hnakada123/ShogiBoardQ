@@ -20,6 +20,7 @@ JosekiWindowWiring::JosekiWindowWiring(const Dependencies& deps, QObject* parent
     , m_currentMoveIndex(deps.currentMoveIndex)
     , m_currentSelectedPly(deps.currentSelectedPly)
     , m_playMode(deps.playMode)
+    , m_isHumanTurnNow(deps.isHumanTurnNow)
 {
 }
 
@@ -59,38 +60,8 @@ void JosekiWindowWiring::updateJosekiWindow()
 
 bool JosekiWindowWiring::determineHumanCanPlay() const
 {
-    if (!m_playMode || !m_currentSfenStr) return true;
-
-    // SFENから手番を取得（b=先手、w=後手）
-    bool isBlackTurn = true;  // デフォルト先手
-    const QStringList sfenParts = m_currentSfenStr->split(QChar(' '));
-    if (sfenParts.size() >= 2) {
-        isBlackTurn = (sfenParts.at(1) == QStringLiteral("b"));
-    }
-
-    // PlayModeに応じて人間の手番かどうかを判定
-    switch (*m_playMode) {
-    case PlayMode::HumanVsHuman:
-        return true;
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-        return isBlackTurn;
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::HandicapEngineVsHuman:
-        return !isBlackTurn;
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapEngineVsEngine:
-        return false;
-    case PlayMode::NotStarted:
-    case PlayMode::AnalysisMode:
-    case PlayMode::ConsiderationMode:
-    case PlayMode::TsumiSearchMode:
-        return true;
-    case PlayMode::CsaNetworkMode:
-    case PlayMode::PlayModeError:
-        return false;
-    }
-    return true; // 到達しないが、コンパイラ警告を抑制
+    // 盤面クリックと同じ判定を使う。対局外や終局後に指すと、盤面だけ進んで棋譜欄に残らないため指させない
+    return m_isHumanTurnNow && m_isHumanTurnNow();
 }
 
 void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
@@ -99,6 +70,11 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
 
     if (usiMove.isEmpty()) {
         qCDebug(lcUi) << "onJosekiMoveSelected: empty move";
+        return;
+    }
+    // 最後に表示を更新した後で終局・手番交代していれば、着手ボタンを消して何もしない
+    if (!determineHumanCanPlay()) {
+        if (m_josekiWindow) m_josekiWindow->setHumanCanPlay(false);
         return;
     }
 

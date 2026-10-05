@@ -6,6 +6,7 @@
 
 
 #include <QObject>
+#include <functional>
 #include <QString>
 #include <QStringList>
 #include <QPoint>
@@ -46,6 +47,8 @@ public:
         int* currentMoveIndex = nullptr;
         int* currentSelectedPly = nullptr;
         PlayMode* playMode = nullptr;
+        /// 盤面クリックと同じ「人間が今指せるか」の判定（PlayModePolicyService::isHumanTurnNow）
+        std::function<bool()> isHumanTurnNow;
     };
 
     /**
@@ -157,6 +160,7 @@ private:
     int* m_currentMoveIndex = nullptr;
     int* m_currentSelectedPly = nullptr;
     PlayMode* m_playMode = nullptr;
+    std::function<bool()> m_isHumanTurnNow;
 
     // 内部オブジェクト
     JosekiWindow* m_josekiWindow = nullptr;

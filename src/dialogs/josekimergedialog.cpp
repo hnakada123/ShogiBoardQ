@@ -2,6 +2,7 @@
 /// @brief 定跡統合ダイアログクラスの実装
 
 #include "josekimergedialog.h"
+#include <QSet>
 #include "kifumovedelegate.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
@@ -208,6 +209,8 @@ void JosekiMergeDialog::updateTable()
         }
     }
     m_registerAllButton->setEnabled(hasUnregistered);
+    // 行を入れてから列幅を合わせる（空の表で合わせると指し手が縦に折り返し、登録ボタンの文字が切れる）
+    for (int column = 0; column < 3; ++column) m_tableWidget->resizeColumnToContents(column);
     m_tableWidget->resizeRowsToContents();
 }
 
@@ -235,7 +238,7 @@ void JosekiMergeDialog::onRegistrationFinished(const QString &sfen, const QStrin
     m_lastRegistrationSucceeded = success;
     if (!success) return;
     m_registeredMoves.insert(normalizeSfen(sfen) + QLatin1Char(':') + usiMove);
-    updateTable();
+    if (!m_batchRegistering) updateTable();
 }
 
 void JosekiMergeDialog::onRegisterAllButtonClicked()
@@ -244,19 +247,27 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
         QMessageBox::information(this, tr("情報"), tr("登録する指し手がありません。"));
         return;
     }
-    
-    const int entryCount = static_cast<int>(m_entries.size());
-    int count = 0;
-    for (int i = 0; i < entryCount; ++i) {
-        const KifuMergeEntry &entry = m_entries[i];
-        if (isRegistered(entry.sfen, entry.usiMove)) continue;
-        if (!registerEntry(entry)) return;
-        ++count;
+    if (!isEnabled()) return;
+
+    QList<KifuMergeEntry> pending;
+    QSet<QString> pendingKeys;
+    for (const KifuMergeEntry &entry : std::as_const(m_entries)) {
+        const QString key = normalizeSfen(entry.sfen) + QLatin1Char(':') + entry.usiMove;
+        if (isRegistered(entry.sfen, entry.usiMove) || pendingKeys.contains(key)) continue;
+        pendingKeys.insert(key);
+        pending.append(entry);
     }
-    
-    if (count > 0)
-        QMessageBox::information(this, tr("一括登録完了"),
-            tr("%1件の指し手を定跡に登録しました。").arg(count));
+    if (pending.isEmpty()) return;
+
+    m_lastRegistrationSucceeded = false;
+    m_batchRegistering = true;
+    emit registerAllMoves(pending);
+    m_batchRegistering = false;
+    updateTable();
+    if (!m_lastRegistrationSucceeded) return;
+
+    QMessageBox::information(this, tr("一括登録完了"),
+        tr("%1件の指し手を定跡に登録しました。").arg(pending.size()));
 }
 
 void JosekiMergeDialog::onFontSizeIncrease()

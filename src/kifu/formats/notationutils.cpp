@@ -70,10 +70,12 @@ QString formatSfenDrop(QChar piece, int toFile, int toRank)
     return QStringLiteral("%1*%2%3").arg(piece).arg(toFile).arg(rankNumToLetter(toRank));
 }
 
-QString mapHandicapToSfen(const QString& label)
+namespace {
+struct HandicapPreset { const char* key; const char* sfen; };
+
+const HandicapPreset* handicapPresets(size_t& count)
 {
-    struct Pair { const char* key; const char* sfen; };
-    static const Pair tbl[] = {
+    static const HandicapPreset tbl[] = {
         {"平手",       SfenUtils::kHirateSfen},
         {"香落ち",     "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
         {"右香落ち",   "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
@@ -91,11 +93,32 @@ QString mapHandicapToSfen(const QString& label)
         {"八枚落ち",   "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
         {"十枚落ち",   "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
     };
+    count = sizeof(tbl) / sizeof(tbl[0]);
+    return tbl;
+}
+} // namespace
+
+QString mapHandicapToSfen(const QString& label)
+{
+    size_t count = 0;
+    const HandicapPreset* tbl = handicapPresets(count);
     const QString normalizedLabel = label.trimmed();
-    for (const auto& p : tbl) {
-        if (normalizedLabel == QString::fromUtf8(p.key)) return QString::fromUtf8(p.sfen);
+    for (size_t i = 0; i < count; ++i) {
+        if (normalizedLabel == QString::fromUtf8(tbl[i].key)) return QString::fromUtf8(tbl[i].sfen);
     }
     return SfenUtils::hirateSfen();
+}
+
+QString handicapLabelForSfen(const QString& sfen)
+{
+    const QString board = sfen.trimmed().section(QLatin1Char(' '), 0, 0);
+    if (board.isEmpty()) return {};
+    size_t count = 0;
+    const HandicapPreset* tbl = handicapPresets(count);
+    for (size_t i = 0; i < count; ++i) {
+        if (board == QString::fromUtf8(tbl[i].sfen).section(QLatin1Char(' '), 0, 0)) return QString::fromUtf8(tbl[i].key);
+    }
+    return {};
 }
 
 } // namespace NotationUtils

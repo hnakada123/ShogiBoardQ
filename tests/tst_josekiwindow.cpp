@@ -56,6 +56,11 @@ private slots:
     void testFileSwitchClosesMerge();
     void testMergeSaveFailureAndRetry();
     void testMergeRegisterAllSkipsRegistered();
+    void testMergeRegisterAllSavesAtOnce();
+    void testMergeTableFitsMovesAndButtons();
+    void testPositionSummaryNamesHandicapOrPly();
+    void testHistoryKeepsOnlyLoadedFiles();
+    void testClearHistoryStopsAutoLoad();
     void testDirtyStatusSurvivesRefresh();
     void testConfirmClose_data();
     void testConfirmClose();
@@ -547,6 +552,119 @@ void TestJosekiWindow::testMergeRegisterAllSkipsRegistered()
     QCOMPARE(window.m_currentMoves.size(), 2);
     QCOMPARE(window.m_currentMoves.first().frequency, 2);
     QCOMPARE(window.m_currentMoves.last().frequency, 1);
+}
+
+/// 「全て登録」はまとめて保存する。保存に失敗したら1手も登録せず、再試行で全て登録できる
+void TestJosekiWindow::testMergeRegisterAllSavesAtOnce()
+{
+    JosekiWindow window;
+    const QString directory = m_tempDir.filePath(QStringLiteral("merge-all"));
+    QVERIFY(QDir().mkpath(directory));
+    const QString path = directory + QStringLiteral("/book.db");
+    QVERIFY(seedWindow(window, path));
+    QVERIFY(QFile::remove(path));
+    QVERIFY(QDir().rmdir(directory));
+    window.setKifuDataForMerge({initialSfen(), initialSfen()},
+                              {QStringLiteral("7g7f"), QStringLiteral("2g2f")}, {}, 1);
+    auto *merge = window.findChild<JosekiMergeDialog*>();
+    auto *table = merge->findChild<QTableWidget*>();
+    QSignalSpy results(&window, &JosekiWindow::mergeRegistrationFinished);
+
+    m_messageSeen = false;
+    m_responseRole = QMessageBox::AcceptRole;
+    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
+    QVERIFY(m_messageSeen);
+    QCOMPARE(results.count(), 1);
+    QCOMPARE(results.last().last().toBool(), false);
+    QVERIFY(table->cellWidget(0, 2)->isEnabled());
+    QVERIFY(table->cellWidget(1, 2)->isEnabled());
+
+    QVERIFY(QDir().mkpath(directory));
+    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
+    QCOMPARE(results.count(), 3);
+    QVERIFY(!table->cellWidget(0, 2)->isEnabled());
+    QVERIFY(!table->cellWidget(1, 2)->isEnabled());
+    const auto saved = JosekiRepository::parseFromFile(path);
+    QVERIFY(saved.success);
+    const auto moves = saved.josekiData.value(JosekiPresenter::normalizeSfen(initialSfen()));
+    QCOMPARE(moves.size(), 2);
+    QCOMPARE(moves.first().frequency, 2);
+}
+
+/// マージの表は指し手と登録ボタンが収まる幅になる（指し手が縦に折り返さない）
+void TestJosekiWindow::testMergeTableFitsMovesAndButtons()
+{
+    JosekiWindow window;
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("fit.db"))));
+    window.setKifuDataForMerge({initialSfen()}, {QStringLiteral("7g7f")}, {QStringLiteral("▲７六歩(77)")}, 1);
+    auto *merge = window.findChild<JosekiMergeDialog*>();
+    QVERIFY(merge);
+    auto *table = merge->findChild<QTableWidget*>();
+    QVERIFY(table);
+    QVERIFY(table->columnWidth(1) >= table->fontMetrics().horizontalAdvance(table->item(0, 1)->text()));
+    QVERIFY(table->columnWidth(2) >= table->cellWidget(0, 2)->sizeHint().width());
+    QVERIFY(table->rowHeight(0) < 2 * table->fontMetrics().height() + 20);
+}
+
+/// 1手目の局面は平手・駒落ちなら手合の名前、それ以外は「1手目」と表示する
+void TestJosekiWindow::testPositionSummaryNamesHandicapOrPly()
+{
+    JosekiWindow window;
+    window.setCurrentSfen(initialSfen());
+    QVERIFY(window.m_positionSummaryLabel->text().startsWith(QStringLiteral("初期配置")));
+    window.setCurrentSfen(QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+    QVERIFY2(window.m_positionSummaryLabel->text().startsWith(QStringLiteral("香落ち")),
+             qPrintable(window.m_positionSummaryLabel->text()));
+    window.setCurrentSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1"));
+    QVERIFY2(window.m_positionSummaryLabel->text().startsWith(QStringLiteral("1手目")),
+             qPrintable(window.m_positionSummaryLabel->text()));
+}
+
+/// 読み込めなかったファイルは履歴に入れない
+void TestJosekiWindow::testHistoryKeepsOnlyLoadedFiles()
+{
+    JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+    JosekiWindow window;
+    const QString book = m_tempDir.filePath(QStringLiteral("history.db"));
+    QVERIFY(seedWindow(window, book));
+    window.m_recentFiles.clear();
+    const QString broken = m_tempDir.filePath(QStringLiteral("broken.db"));
+    QFile file(broken);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("not a book\n");
+    file.close();
+
+    // 読み込み失敗の警告は非同期の完了後に出るので、出るまで繰り返し応答する
+    m_responseRole = QMessageBox::AcceptRole;
+    m_messageSeen = false;
+    QTimer responder;
+    connect(&responder, &QTimer::timeout, this, &TestJosekiWindow::respondToMessageBox);
+    responder.start(20);
+    window.loadAndApplyFileAsync(broken);
+    QTRY_VERIFY(!window.isIoBusy() && m_messageSeen);
+    responder.stop();
+    QVERIFY(!window.m_recentFiles.contains(broken));
+
+    window.loadAndApplyFileAsync(book);
+    QTRY_VERIFY(!window.isIoBusy());
+    QCOMPARE(window.m_recentFiles.value(0), book);
+}
+
+/// 「履歴をクリア」の後は、開き直すか保存するまで次回の自動読込の対象にしない
+void TestJosekiWindow::testClearHistoryStopsAutoLoad()
+{
+    JosekiWindow window;
+    const QString book = m_tempDir.filePath(QStringLiteral("clear.db"));
+    QVERIFY(seedWindow(window, book));
+    QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
+    window.onClearRecentFilesClicked();
+    QVERIFY(JosekiSettings::josekiWindowLastFilePath().isEmpty());
+    window.saveSettings();  // ウィンドウを閉じるときの保存でも戻らない
+    QVERIFY(JosekiSettings::josekiWindowLastFilePath().isEmpty());
+    window.applySavedFilePath(book);
+    QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
 }
 
 void TestJosekiWindow::testDirtyStatusSurvivesRefresh()

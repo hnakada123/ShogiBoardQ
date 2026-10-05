@@ -4,6 +4,7 @@
 /// MainWindowServiceRegistry から抽出した Kifu 系メソッドの実装。
 
 #include "kifusubregistry.h"
+#include "playmodepolicyservice.h"
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
@@ -317,6 +318,9 @@ void KifuSubRegistry::ensureJosekiWiring()
     deps.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
     deps.currentSelectedPly = &m_mw.m_kifu.currentSelectedPly;
     deps.playMode = &m_mw.m_state.playMode;
+    deps.isHumanTurnNow = [this]() {
+        return m_mw.m_playModePolicy && m_mw.m_playModePolicy->isHumanTurnNow();
+    };
 
     m_mw.m_josekiWiring = std::make_unique<JosekiWindowWiring>(deps);
 
