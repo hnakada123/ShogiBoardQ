@@ -886,6 +886,7 @@ add_shogi_test(tst_settings_roundtrip
 add_shogi_test(tst_settings_reset
     tst_settings_reset.cpp
     ${SRC}/ui/controllers/settingsresetcontroller.cpp
+    ${SRC}/common/dialogutils.cpp
     ${SRC}/services/settingscommon.cpp
     ${SRC}/services/appsettings.cpp
 )

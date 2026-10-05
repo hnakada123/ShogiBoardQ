@@ -1095,85 +1095,90 @@
 <context>
     <name>CommentEditorPanel</name>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="64"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="65"/>
         <source>この局面のコメントを入力できます</source>
         <translation>輸入此局面的注釋</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="65"/>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="421"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="66"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="420"/>
         <source>リンクは Ctrl+クリックで開きます</source>
         <translation>按住 Ctrl 點擊可打開鏈接</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="143"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="144"/>
         <source>開始局面</source>
         <translation>初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="143"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="144"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="166"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="167"/>
         <source>未保存のコメント</source>
         <translation>未保存的注釋</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="167"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="168"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation>注釋已修改，但尚未保存。
 放棄修改並跳轉嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="348"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="170"/>
+        <source>破棄して移動</source>
+        <translation>放棄並移動</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="347"/>
         <source>フォントサイズを小さくする</source>
         <translation>縮小字號</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="355"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="354"/>
         <source>フォントサイズを大きくする</source>
         <translation>放大字號</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="362"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="361"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>撤銷 (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="369"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="368"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>重做 (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="376"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="375"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>剪切 (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="383"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="382"/>
         <source>コピー (Ctrl+C)</source>
         <translation>複製 (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="390"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="389"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>粘貼 (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="395"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="394"/>
         <source>修正中</source>
         <translation>編輯中</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="399"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="398"/>
         <source>コメント更新</source>
         <translation>更新注釋</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="401"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="400"/>
         <source>編集したコメントを棋譜に反映する (Ctrl+Enter)</source>
         <translation>將編輯後的注釋應用於棋譜 (Ctrl+Enter)</translation>
     </message>
@@ -1771,7 +1776,7 @@
         <translation>CSA 網絡對局開始：%1 對 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="232"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="235"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -1782,22 +1787,22 @@
 原因：%2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="240"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="243"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="244"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="247"/>
         <source>対局終了: %1 (%2)</source>
         <translation>對局結束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="299"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="302"/>
         <source>先手番</source>
         <translation>先手 (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="299"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="302"/>
         <source>後手番</source>
         <translation>後手 (White)</translation>
     </message>
@@ -1834,7 +1839,7 @@
         <translation type="vanished">初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="402"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="407"/>
         <source>通信対局をキャンセルしました</source>
         <translation>網絡對局已取消</translation>
     </message>
@@ -2319,18 +2324,18 @@
 <context>
     <name>DockLayoutManager</name>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="142"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="143"/>
         <source>ドックレイアウトを保存</source>
         <translation>保存面板佈局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="143"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="144"/>
         <source>レイアウト名:</source>
         <translation>佈局名稱：</translation>
     </message>
     <message>
         <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="159"/>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="201"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="199"/>
         <source>確認</source>
         <translation>確認</translation>
     </message>
@@ -2340,70 +2345,80 @@
         <translation>“%1”已存在。覆蓋嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="174"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="161"/>
+        <source>上書きする</source>
+        <translation>覆寫</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="173"/>
         <source>保存完了</source>
         <translation>保存完成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="175"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="174"/>
         <source>レイアウト「%1」を保存しました。</source>
         <translation>已保存佈局“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="184"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="183"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="185"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="184"/>
         <source>レイアウト「%1」が見つかりません。</source>
         <translation>未找到佈局“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="202"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="200"/>
         <source>レイアウト「%1」を削除しますか？</source>
         <translation>刪除佈局“%1”嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="217"/>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="227"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="200"/>
+        <source>削除する</source>
+        <translation>刪除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="212"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="222"/>
         <source>設定完了</source>
         <translation>設置完成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="218"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="213"/>
         <source>レイアウト「%1」を起動時のレイアウトに設定しました。</source>
         <translation>已將佈局“%1”設為啓動佈局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="228"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="223"/>
         <source>起動時のレイアウト設定をクリアしました。
 次回起動時はデフォルトレイアウトが使用されます。</source>
         <translation>已清除啓動佈局設置。
 下次啓動時將使用默認佈局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="258"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="253"/>
         <source>（保存済みレイアウトなし）</source>
         <translation>（無已保存的佈局）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="272"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="267"/>
         <source>復元</source>
         <translation>恢復</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="277"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="272"/>
         <source>起動時のレイアウトに設定</source>
         <translation>設為啓動佈局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="284"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="279"/>
         <source>削除</source>
         <translation>刪除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="292"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="287"/>
         <source>起動時のレイアウトをクリア</source>
         <translation>清除啓動佈局</translation>
     </message>
@@ -2951,59 +2966,60 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameEndHandler</name>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="112"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="113"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="117"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="118"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="112"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="113"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="117"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="118"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="118"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="123"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1認輸。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="120"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="125"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1超時。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="122"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="127"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>已達到最大手數。持將棋（和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="124"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1作出入玉宣言。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="126"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="131"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1犯規。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="128"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="133"/>
         <source>千日手が成立しました。</source>
         <translation>千日手成立（重復局面和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="130"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1連續王手千日手。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="133"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="138"/>
         <source>対局が終了しました。</source>
         <translation>對局已結束。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="136"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="146"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
     </message>
@@ -3011,19 +3027,24 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameInfoPaneController</name>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="52"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="53"/>
         <source>項目</source>
         <translation>項目</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="52"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="53"/>
         <source>内容</source>
         <translation>內容</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="64"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="65"/>
         <source>対局情報</source>
         <translation>對局信息</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="284"/>
+        <source>破棄して続行</source>
+        <translation>放棄並繼續</translation>
     </message>
     <message>
         <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="66"/>
@@ -3127,12 +3148,12 @@ ABC abc 0123456789</translation>
         <translation>更新對局信息</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="280"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="281"/>
         <source>未保存の対局情報</source>
         <translation>未保存的對局信息</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="281"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="282"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
         <translation>對局信息已修改，但尚未保存。
@@ -3834,7 +3855,7 @@ ABC abc 0123456789</translation>
         <translation>局面：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="225"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="226"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="177"/>
         <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="73"/>
         <source>(未設定)</source>
@@ -3931,19 +3952,19 @@ ABC abc 0123456789</translation>
         <translation>請等待文件載入或保存完成。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="108"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="109"/>
         <source>定跡ファイルを開く</source>
         <translation>打開定跡文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="109"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="110"/>
         <location filename="../../src/dialogs/josekiwindowio.cpp" line="35"/>
         <location filename="../../src/dialogs/josekiwindowio.cpp" line="76"/>
         <source>定跡ファイル (*.db);;すべてのファイル (*)</source>
         <translation>定跡文件 (*.db);;所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="203"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="204"/>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="512"/>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="537"/>
         <location filename="../../src/dialogs/josekiwindowio.cpp" line="24"/>
@@ -4021,7 +4042,7 @@ ABC abc 0123456789</translation>
 定跡數據可能存在錯誤。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="124"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="125"/>
         <source>新規ファイル（未保存）</source>
         <translation>新文件（未保存）</translation>
     </message>
@@ -4041,7 +4062,7 @@ ABC abc 0123456789</translation>
         <translation>未保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="341"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="340"/>
         <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="139"/>
         <source>確認</source>
         <translation>確認</translation>
@@ -4064,24 +4085,29 @@ ABC abc 0123456789</translation>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="161"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="162"/>
         <source>（履歴なし）</source>
         <translation>（無歷史記錄）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="172"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="173"/>
         <source>履歴をクリア</source>
         <translation>清除歷史記錄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="188"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="189"/>
         <source>最近使ったファイル履歴をクリアしました</source>
         <translation>已清除最近使用的文件歷史</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="203"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="204"/>
         <source>ファイルが見つかりません: %1</source>
         <translation>未找到文件：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="286"/>
+        <source>削除する</source>
+        <translation>刪除</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="319"/>
@@ -4096,11 +4122,16 @@ ABC abc 0123456789</translation>
 請先在棋盤上顯示局面，再添加定跡著法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="342"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="341"/>
         <source>指し手「%1」は既に登録されています。
 上書きしますか？</source>
         <translation>著法“%1”已注冊。
 覆蓋嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="342"/>
+        <source>上書きする</source>
+        <translation>覆寫</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="285"/>
@@ -5924,17 +5955,17 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>NyugyokuDeclarationHandler</name>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="35"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="57"/>
         <source>○</source>
         <translation>○</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="36"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="58"/>
         <source>×</source>
         <translation>×</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="38"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="60"/>
         <source>【宣言条件の判定】
 ① 玉が敵陣にいる: %1
 ② 敵陣に10枚以上: %2 (%3枚)
@@ -5949,7 +5980,7 @@ OKを選択すると保存先が指定できます。</source>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="50"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="72"/>
         <source>
 【24点法】
 </source>
@@ -5958,7 +5989,7 @@ OKを選択すると保存先が指定できます。</source>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="53"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="75"/>
         <source>
 【27点法】
 </source>
@@ -5967,106 +5998,112 @@ OKを選択すると保存先が指定できます。</source>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="54"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
         <source>必要点数: %1点以上
 </source>
         <translation>所需點數：至少 %1 點
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="71"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="103"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="125"/>
         <source>宣言勝ち</source>
         <translation>宣言勝</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="72"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
         <source>31点以上: 勝ち</source>
         <translation>31 點以上：勝</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="98"/>
         <source>持将棋（引き分け）</source>
         <translation>持將棋（和棋）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="77"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="99"/>
         <source>24〜30点: 引き分け</source>
         <translation>24 至 30 點：和棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="80"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="85"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="102"/>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="107"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="129"/>
         <source>宣言失敗（負け）</source>
         <translation>宣言失敗（負）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="81"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="103"/>
         <source>24点未満: 宣言失敗</source>
         <translation>不足 24 點：宣言失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="86"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="109"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="108"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="131"/>
         <source>条件未達: 宣言失敗</source>
         <translation>條件未滿足：宣言失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="104"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="126"/>
         <source>条件達成: 勝ち</source>
         <translation>條件滿足：勝</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="111"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="133"/>
         <source>点数不足: 宣言失敗</source>
         <translation>點數不足：宣言失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="122"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="137"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="144"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="158"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="167"/>
         <source>入玉宣言</source>
         <translation>入玉宣言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="122"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="144"/>
         <source>対局中ではありません。</source>
         <translation>當前沒有進行中的對局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="128"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="150"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="128"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="150"/>
         <source>盤面データがありません。</source>
         <translation>沒有棋盤數據。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="138"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="158"/>
+        <source>入玉宣言は自分の手番で行います。</source>
+        <translation>請在輪到自己走棋時進行入玉宣言。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="168"/>
         <source>持将棋ルールが「なし」に設定されています。
 対局ダイアログで「24点法」または「27点法」を選択してください。</source>
         <translation>持將棋規則設為“無”。
 請在對局對話框選擇“24 點法”或“27 點法”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="148"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="178"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="148"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="178"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="153"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="183"/>
         <source>入玉宣言確認</source>
         <translation>確認入玉宣言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="154"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="184"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -6077,7 +6114,12 @@ OKを選択すると保存先が指定できます。</source>
 確定宣言嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="206"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="187"/>
+        <source>宣言する</source>
+        <translation>宣言</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="233"/>
         <source>%1の入玉宣言
 
 %2
@@ -6090,7 +6132,7 @@ OKを選択すると保存先が指定できます。</source>
 【結果】%3</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="209"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="236"/>
         <source>入玉宣言結果</source>
         <translation>入玉宣言結果</translation>
     </message>
@@ -7062,12 +7104,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>SettingsResetController</name>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="20"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="21"/>
         <source>設定の初期化</source>
         <translation>重置設置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="21"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="22"/>
         <source>エンジン登録、表示、対局など、すべての設定を初期値に戻して終了します。
 この操作は取り消せません。次回起動時は初期設定が使用されます。
 
@@ -7078,12 +7120,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 重置所有設置並退出嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="41"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="25"/>
+        <source>初期値に戻して終了</source>
+        <translation>還原預設並結束</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="42"/>
         <source>設定の初期化に失敗</source>
         <translation>重置設置失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="42"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="43"/>
         <source>設定ファイルを初期化できませんでした。
 保存先の書き込み権限や空き容量を確認してください。
 

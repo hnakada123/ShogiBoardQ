@@ -2,6 +2,7 @@
 /// @brief 対局情報ペインコントローラクラスの実装
 
 #include "gameinfopanecontroller.h"
+#include "dialogutils.h"
 #include "tablestyles.h"
 #include "gamesettings.h"
 #include "gameinfokeys.h"
@@ -275,16 +276,14 @@ bool GameInfoPaneController::confirmDiscardUnsaved()
         return true;
     }
 
-    QMessageBox::StandardButton reply = QMessageBox::warning(
+    const bool discard = DialogUtils::confirmAction(
         m_container,
         tr("未保存の対局情報"),
         tr("対局情報が編集されていますが、まだ更新されていません。\n"
            "変更を破棄して続行しますか？"),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No
-        );
+        tr("破棄して続行"), QMessageBox::Warning);
 
-    if (reply == QMessageBox::Yes) {
+    if (discard) {
         setGameInfo(m_originalItems, m_beforeMatchStart);
         return true;
     }

@@ -4,6 +4,7 @@
 /// ファイルI/O / 非同期処理は josekiwindowio.cpp に分離
 
 #include "josekiwindow.h"
+#include "dialogutils.h"
 #include "josekirepository.h"
 #include "josekipresenter.h"
 
@@ -281,11 +282,10 @@ void JosekiWindow::deleteMoveAt(int row)
     (void)tracer.setFromSfen(m_currentSfen);
     QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer);
 
-    QMessageBox::StandardButton result = QMessageBox::question(
-        this, tr("削除確認"),
-        tr("定跡手「%1」を削除しますか？").arg(japaneseMoveStr),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-    if (result != QMessageBox::Yes) return;
+    if (!DialogUtils::confirmAction(this, tr("削除確認"),
+                                    tr("定跡手「%1」を削除しますか？").arg(japaneseMoveStr), tr("削除する"))) {
+        return;
+    }
 
     const QList<JosekiMove> &repoMoves = m_repository->movesForPosition(normalizedSfen);
     for (int i = 0; i < repoMoves.size(); ++i) {
@@ -337,11 +337,11 @@ void JosekiWindow::onAddMoveButtonClicked()
     QString normalizedSfen = JosekiPresenter::normalizeSfen(targetSfen);
 
     if (m_presenter->hasDuplicateMove(normalizedSfen, newMove.move)) {
-        QMessageBox::StandardButton result = QMessageBox::question(
-            this, tr("確認"),
-            tr("指し手「%1」は既に登録されています。\n上書きしますか？").arg(newMove.move),
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-        if (result == QMessageBox::No) return;
+        if (!DialogUtils::confirmAction(this, tr("確認"),
+                tr("指し手「%1」は既に登録されています。\n上書きしますか？").arg(newMove.move),
+                tr("上書きする"))) {
+            return;
+        }
         m_repository->removeMoveByUsi(normalizedSfen, newMove.move);
     }
 

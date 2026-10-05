@@ -2,6 +2,7 @@
 /// @brief 入玉宣言ハンドラクラスの実装
 
 #include "nyugyokudeclarationhandler.h"
+#include "dialogutils.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "matchcoordinator.h"
@@ -177,16 +178,13 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     QString declarerName = isSenteTurn ? tr("先手") : tr("後手");
 
     // 確認ダイアログ
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        parentWidget,
-        tr("入玉宣言確認"),
-        tr("%1が入玉宣言を行います。\n\n"
-           "宣言条件を満たさない場合は宣言側の負けとなります。\n"
-           "本当に宣言しますか？").arg(declarerName),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
-
-    if (reply != QMessageBox::Yes) {
+    if (!DialogUtils::confirmAction(
+            parentWidget,
+            tr("入玉宣言確認"),
+            tr("%1が入玉宣言を行います。\n\n"
+               "宣言条件を満たさない場合は宣言側の負けとなります。\n"
+               "本当に宣言しますか？").arg(declarerName),
+            tr("宣言する"))) {
         return false;
     }
 

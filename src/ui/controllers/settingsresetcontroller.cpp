@@ -2,6 +2,7 @@
 /// @brief 全設定の初期化と終了確認の実装
 
 #include "settingsresetcontroller.h"
+#include "dialogutils.h"
 #include "settingscommon.h"
 
 #include <QCoreApplication>
@@ -16,13 +17,13 @@ SettingsResetController::SettingsResetController(QWidget* parentWindow)
 
 void SettingsResetController::confirmAndQuit()
 {
-    const auto answer = QMessageBox::warning(
+    const bool confirmed = DialogUtils::confirmAction(
         m_parentWindow, tr("設定の初期化"),
         tr("エンジン登録、表示、対局など、すべての設定を初期値に戻して終了します。\n"
            "この操作は取り消せません。次回起動時は初期設定が使用されます。\n\n"
            "設定を初期値に戻して終了しますか？"),
-        QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
-    if (answer != QMessageBox::Yes || !m_parentWindow) return;
+        tr("初期値に戻して終了"), QMessageBox::Warning);
+    if (!confirmed || !m_parentWindow) return;
 
     // 棋譜・定跡の未保存確認を含む通常の終了処理を通す。
     // 終了がキャンセルされた場合は設定を初期化しない。
