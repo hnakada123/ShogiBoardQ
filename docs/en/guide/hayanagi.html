@@ -4,41 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hayanagi Shogi Engine - ShogiBoardQ</title>
-    <meta name="description" content="Learn about Hayanagi, the USI shogi engine included as a ShogiBoardQ submodule: playing, analysis, mate search, engine registration, strength and book settings, and building from source.">
+    <meta name="description" content="Learn about Hayanagi, the USI shogi engine developed as a ShogiBoardQ submodule: playing, analysis, mate search, engine registration, strength and book settings, and building from source.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
+    <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html">
     <meta property="og:title" content="Hayanagi Shogi Engine - ShogiBoardQ">
-    <meta property="og:description" content="Play, analyze, and search for mates with Hayanagi. Learn how to register the USI engine and use the built-in tsume shogi defender.">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/screenshot-main.png">
+    <meta property="og:description" content="Play, analyze, and search for mates with the USI engine Hayanagi, and see how ShogiBoardQ uses it built in for Tsume Shogi Play.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/hayanagi/hayanagi-02-settings.png">
     <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Hayanagi Shogi Engine - ShogiBoardQ">
-    <meta name="twitter:description" content="Hayanagi features, engine registration, key settings, mate search, and build instructions.">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/screenshot-main.png">
+    <meta name="twitter:description" content="Play, analyze, and search for mates with the USI engine Hayanagi, and see how ShogiBoardQ uses it built in for Tsume Shogi Play.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/hayanagi/hayanagi-02-settings.png">
     <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/hayanagi.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/hayanagi.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
 </head>
 <body>
 
+<!-- Navigation -->
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../../guide/hayanagi.html" class="language-switch" hreflang="ja" lang="ja" aria-label="日本語">日本語</a>
-        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const open = document.getElementById('guide-nav').classList.toggle('open'); this.setAttribute('aria-expanded', String(open));">
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/hayanagi.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="hayanagi.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/hayanagi.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/hayanagi.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
-        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+        <ul class="nav-links">
             <li><a href="../index.html">Home</a></li>
             <li><a href="index.html">User Guide</a></li>
             <li><a href="#overview">Overview</a></li>
-            <li><a href="#setup">Setup</a></li>
+            <li><a href="#setup">Usage</a></li>
             <li><a href="#options">Settings</a></li>
             <li><a href="#tsume">Mate Search</a></li>
             <li><a href="#build">Build</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
 </nav>
@@ -47,46 +61,47 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>Hayanagi Shogi Engine</h1>
-        <p class="hero-subtitle">Play, analyze, and practice tsume shogi against a defender</p>
+        <p class="hero-subtitle">From games and analysis to defending in tsume shogi</p>
         <div class="hero-badges">
-            <span class="badge">USI Support</span>
+            <span class="badge">USI</span>
             <span class="badge">C++17</span>
-            <span class="badge">Adjustable Strength</span>
+            <span class="badge">Strength Control</span>
             <span class="badge">Mate Search</span>
             <span class="badge">ShogiBoardQ Submodule</span>
         </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
     </div>
 </section>
 
 <section id="overview" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">About Hayanagi</h2>
-        <p class="section-desc">A shogi engine written in C++17 and integrated with ShogiBoardQ</p>
-        <p class="guide-step-text">Hayanagi supports the <strong>USI protocol</strong>, which lets shogi GUIs exchange moves and search results with an engine. It is managed as a Git submodule of ShogiBoardQ. The same source builds both an executable for regular games and an embedded library for tsume shogi.</p>
+        <h2 class="section-title">What Is Hayanagi?</h2>
+        <p class="section-desc">A C++17 shogi engine that works with ShogiBoardQ</p>
+        <p class="guide-step-text">Hayanagi is a shogi engine that supports the <strong>USI protocol</strong>, which shogi GUIs use to exchange moves and search results. It is managed as a Git submodule of ShogiBoardQ, and the same source builds both the executable for regular games and the library embedded for tsume shogi.</p>
         <table class="info-table">
-            <thead><tr><th scope="col">How to use it</th><th scope="col">Features and setup</th></tr></thead>
+            <thead><tr><th scope="col">Use</th><th scope="col">What it does / setup</th></tr></thead>
             <tbody>
-                <tr><td>Register as a USI engine</td><td>Use it for games, game analysis, position analysis, and mate search. Register the executable in Engine Settings.</td></tr>
-                <tr><td>Use the built-in tsume engine</td><td>Check puzzles for mate and generate defensive replies. It is embedded in ShogiBoardQ, so no additional engine registration is needed.</td></tr>
+                <tr><td>Register as a USI engine</td><td>Use it for games, game analysis, consideration, and mate search. Register the executable in Engine Registration.</td></tr>
+                <tr><td>Built into Tsume Shogi Play</td><td>It judges problems and plays the defender's replies. It is built into ShogiBoardQ, so no registration is needed.</td></tr>
             </tbody>
         </table>
-        <p class="guide-step-text">Source code and detailed specifications are available in the <a href="https://github.com/hnakada123/Hayanagi">Hayanagi GitHub repository</a>. This guide describes Hayanagi 1.4.0 from the included submodule.</p>
+        <p class="guide-step-text">The source code and detailed specifications are on <a href="https://github.com/hnakada123/Hayanagi">the Hayanagi GitHub repository</a>. This page describes Hayanagi 1.5.1, the version used as the submodule.</p>
         <div class="features-grid">
             <div class="feature-card">
-                <h3>Games and Adjustable Strength</h3>
-                <p>Supports time controls, byoyomi, increments, and pondering during the opponent's turn. Limit search effort to adjust playing strength.</p>
+                <h3>Games and Strength</h3>
+                <p>Supports main time, byoyomi, increments, and pondering on the opponent's turn. Limit the search to adjust its strength.</p>
             </div>
             <div class="feature-card">
-                <h3>Position and Game Analysis</h3>
-                <p>Reports evaluations, principal variations, search depth, and node counts. Compare several candidate moves with MultiPV.</p>
+                <h3>Consideration and Analysis</h3>
+                <p>Reports scores, principal variations, search depth, and node counts. MultiPV compares several candidate moves.</p>
             </div>
             <div class="feature-card">
-                <h3>Opening Books and Game Rules</h3>
-                <p>Reads YaneuraOu DB2016 opening books and handles repetition, perpetual check, impasse, and entering-king rules.</p>
+                <h3>Book and Game Rules</h3>
+                <p>Reads opening books in YaneuraOu's DB2016 format and uses its own book built from Floodgate games. It also handles repetition, perpetual check, impasse, and entering king rules.</p>
             </div>
             <div class="feature-card">
                 <h3>Dedicated Mate Search</h3>
-                <p>Searches for forced mate through continuous checks, including positions without the attacking king. The defender finds the longest resistance or an escape.</p>
+                <p>Searches for forced mates by consecutive checks. It handles positions without the attacker's king and, as the defender, returns the longest resistance or an escape.</p>
             </div>
         </div>
     </div>
@@ -94,95 +109,121 @@
 
 <section id="setup" class="section">
     <div class="section-inner">
-        <h2 class="section-title">Use Hayanagi in ShogiBoardQ</h2>
-        <p class="section-desc">Register the USI executable for regular games and analysis</p>
+        <h2 class="section-title">Using It in ShogiBoardQ</h2>
+        <p class="section-desc">For regular games and consideration, register the USI engine executable</p>
         <div class="guide-step">
-            <div class="guide-step-header"><span class="guide-step-number">1</span><h3 class="guide-step-title">Locate the Executable</h3></div>
-            <p class="guide-step-text">In the Linux distribution ZIP, use <code>Hayanagi/hayanagi</code> inside the extracted folder. Building ShogiBoardQ from source produces <code>build/Hayanagi/hayanagi</code>. On Windows, the filename ends in <code>.exe</code> and may be placed in a configuration subfolder such as <code>Release</code>.</p>
-            <p class="guide-step-text">To build it yourself, see the <a href="#build">build instructions</a> below. On Linux and macOS, select a file with executable permission.</p>
+            <div class="guide-step-header"><span class="guide-step-number">1</span><h3 class="guide-step-title">Get the Executable</h3></div>
+            <p class="guide-step-text">In the Linux ZIP, use <code>Hayanagi/hayanagi</code> in the extracted folder. For the AppImage, run it with <code>--appimage-extract</code> and choose <code>squashfs-root/usr/bin/hayanagi</code>. The Windows and macOS packages do not include it at present, so build it from source.</p>
+            <p class="guide-step-text">When you build ShogiBoardQ from source, <code>build/Hayanagi/hayanagi</code> is created. On Windows the name ends in <code>.exe</code>, and depending on the build system it may be in a subfolder such as <code>Release</code>. To build only Hayanagi, see <a href="#build">Building from source</a>. On Linux and macOS, choose a file with execute permission.</p>
         </div>
         <div class="guide-step">
-            <div class="guide-step-header"><span class="guide-step-number">2</span><h3 class="guide-step-title">Register in Engine Settings</h3></div>
-            <p class="guide-step-text">Open Settings → Engine Settings, click Add, and select the Hayanagi executable. Registration is complete when Hayanagi appears in the list. Use the Settings button to adjust thread count, playing strength, and other options.</p>
-            <p class="guide-step-text">See the <a href="game-play.html#engine-registration">engine registration guide</a> for instructions with screenshots.</p>
+            <div class="guide-step-header"><span class="guide-step-number">2</span><h3 class="guide-step-title">Register It</h3></div>
+            <p class="guide-step-text">Choose Settings → Engine Settings… to open Engine Registration, click Add, and select the Hayanagi executable. Registration is complete when Hayanagi 1.5.1 appears in the list.</p>
+            <div class="screenshot-item screenshot-item--compact">
+                <img src="../../images/en/hayanagi/hayanagi-01-registration.png" alt="Engine Registration with Hayanagi registered">
+                <p class="screenshot-caption">Engine Registration: Hayanagi 1.5.1 appears in the list</p>
+            </div>
+            <p class="guide-step-text">Click Settings (or double-click the engine) to change options such as threads and strength. For step-by-step screenshots, see <a href="game-play.html#engine-registration">the engine registration guide</a>.</p>
         </div>
         <div class="guide-step">
-            <div class="guide-step-header"><span class="guide-step-number">3</span><h3 class="guide-step-title">Select It for Games or Analysis</h3></div>
-            <p class="guide-step-text">Select Hayanagi as a player in <a href="game-play.html#game-start">game setup</a> for a human vs. engine or engine vs. engine game. You can also select it in <a href="consideration.html">Consideration Mode</a> or <a href="kifu-analysis.html">Game Analysis</a>.</p>
-            <p class="guide-step-text">To solve puzzles on the board, open Game → Tsume Shogi Play. The built-in Hayanagi is ready to use. See the <a href="tsume-play.html">Tsume Shogi Play guide</a> for details.</p>
+            <div class="guide-step-header"><span class="guide-step-number">3</span><h3 class="guide-step-title">Select It for Games and Analysis</h3></div>
+            <p class="guide-step-text">Choose Hayanagi as a player in <a href="game-play.html#game-start">game setup</a> for a human vs. engine or engine vs. engine game. Also select it as the engine in <a href="consideration.html">Consideration Mode</a> and <a href="kifu-analysis.html">Game Analysis</a>.</p>
+            <p class="guide-step-text">To solve tsume shogi on the board, choose Game → Play tsume shogi…. Select Hayanagi (built-in, up to 31 plies) for Mate solver in the problem list to start without registering an engine. See <a href="tsume-play.html">the Tsume Shogi Play guide</a>.</p>
         </div>
     </div>
 </section>
 
 <section id="options" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">Key Engine Settings</h2>
-        <p class="section-desc">Adjust the registered USI engine to suit your needs</p>
+        <h2 class="section-title">Main Engine Options</h2>
+        <p class="section-desc">Adjust the options of a registered USI engine for your purpose</p>
+        <div class="screenshot-item screenshot-item--compact">
+            <img src="../../images/en/hayanagi/hayanagi-02-settings.png" alt="Engine Settings for Hayanagi">
+            <p class="screenshot-caption">Engine Settings: change Pondering and the options Hayanagi reports</p>
+        </div>
         <table class="info-table">
             <thead><tr><th scope="col">Option</th><th scope="col">Description</th></tr></thead>
             <tbody>
-                <tr><td><code>Threads</code></td><td>Search thread count. Default: 1; range: 1–128. Choose a value that suits your CPU and other running tasks.</td></tr>
-                <tr><td><code>Hash</code> / <code>USI_Hash</code></td><td>Memory for storing positions during regular search, in MB. Both names control the same setting. Default: 16 MB.</td></tr>
-                <tr><td><code>MultiPV</code></td><td>Number of candidate lines to report. The engine supports 1–32. ShogiBoardQ's analysis panel uses its own line-count setting.</td></tr>
-                <tr><td><code>USI_Ponder</code></td><td>Ponder during the opponent's turn. Disabled by default. Use the Pondering section in ShogiBoardQ's engine settings.</td></tr>
-                <tr><td><code>USI_LimitStrength</code><br><code>USI_Strength</code></td><td>Enable strength limiting and choose a value from -15 to 6 to cap search depth and nodes. Negative values represent approximate kyu ranks, positive values dan ranks, and 0 is treated as 1 kyu. Limiting is disabled by default.</td></tr>
-                <tr><td><code>USI_AnalyseMode</code></td><td>Disables strength limits, immediate book moves, automatic resignation, and ponder requests for analysis. Unlimited thinking time must be requested separately.</td></tr>
-                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>Control opening book use and its location. Enabled by default, looking for <code>book/standard_book.db</code> relative to the executable. Supply the book file separately.</td></tr>
-                <tr><td><code>EnteringKingRule</code></td><td>Choose entering-king rules, including the 24-point, 27-point, and try rules. Default: <code>CSARule24</code>.</td></tr>
+                <tr><td><code>Threads</code></td><td>Number of search threads. Default 1, range 1–128. Set it according to your CPU and other work.</td></tr>
+                <tr><td><code>Hash</code> / <code>USI_Hash</code></td><td>Memory (MB) for remembering positions in the regular search. Both set the same table; the default is 16 MB.</td></tr>
+                <tr><td><code>MultiPV</code></td><td>Number of candidate moves to output. The engine supports 1–32. ShogiBoardQ's consideration uses its Candidate moves setting.</td></tr>
+                <tr><td><code>USI_Ponder</code></td><td>Thinking on the opponent's turn. Off by default. Switch it with Think during the opponent's turn under Pondering in Engine Settings.</td></tr>
+                <tr><td><code>USI_LimitStrength</code><br><code>USI_Strength</code></td><td>When strength limiting is on, a value from -15 to 6 limits search depth and nodes. Negative values approximate kyu ranks, positive values dan ranks, and 0 is treated as 1-kyu. Strength limiting is off by default.</td></tr>
+                <tr><td><code>USI_AnalyseMode</code></td><td>Analysis mode. Disables strength limiting, instant book moves, automatic resignation, and ponder requests. Specify unlimited search time separately.</td></tr>
+                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>Whether to use an opening book and which file to read. On by default, reading <code>book/hayanagi_book.db</code> next to the executable (set <code>BookFile</code> to <code>no_book</code> to disable it). Building from source places the book in the build folder. The release packages do not include a book, so the engine then plays by search alone.</td></tr>
+                <tr><td><code>EnteringKingRule</code></td><td>When the engine itself declares an entering king win. Choose the 24-point, 27-point, or try rule and others; the default is <code>CSARule24</code>. ShogiBoardQ judges the declaration under the Jishogi rule chosen in the game dialog.</td></tr>
             </tbody>
         </table>
-        <p class="guide-step-text">Strength ranks are approximate and have not been calibrated through games. They are not guaranteed to match human ranks. Hayanagi is a minimal engine with a simple evaluation function considering material, piece activity, king safety, and related factors.</p>
-        <p class="guide-step-text">These options apply to the registered USI engine. For the built-in tsume solver, use the engine and time-limit controls in the puzzle list and play window.</p>
+        <p class="guide-step-text">The dan and kyu levels are rough guides before calibration by games and may not match human ranks. Hayanagi is a minimal engine with a simple evaluation of material, piece activity, king safety, and more.</p>
+        <p class="guide-step-text">This table is for registered USI engines. The built-in judge in Tsume Shogi Play uses Mate solver and Search time in the problem list, and Search time in the play window.</p>
     </div>
 </section>
 
 <section id="tsume" class="section">
     <div class="section-inner">
-        <h2 class="section-title">Mate Search and Tsume Shogi</h2>
-        <p class="section-desc">Distinguish mate, proven no-mate, and unresolved positions</p>
+        <h2 class="section-title">Mate Search and Tsume Shogi Play</h2>
+        <p class="section-desc">Distinguishes mate, no mate, and undetermined, and finds attacking and defending moves</p>
         <table class="info-table">
             <thead><tr><th scope="col">Use</th><th scope="col">Behavior</th></tr></thead>
             <tbody>
-                <tr><td><a href="tsumi-search.html">Mate Search</a></td><td>Requests a search from the registered Hayanagi using standard USI <code>go mate</code>. A mate result includes the full line with the defender's longest resistance.</td></tr>
-                <tr><td><a href="tsume-play.html">Tsume Shogi Play</a></td><td>The built-in Hayanagi checks puzzles and plays defensive replies to your checks. If you miss the mate, it shows an escape.</td></tr>
-                <tr><td><a href="tsumeshogi-generator.html">Tsume Shogi Generation</a></td><td>The built-in Hayanagi screens candidate positions. You can also select the registered Hayanagi as the USI engine that verifies mates.</td></tr>
+                <tr><td><a href="tsumi-search.html">Mate Search</a></td><td>Asks the registered Hayanagi to search with standard USI <code>go mate</code>. When a mate is found, it returns the full line including the defender's longest resistance.</td></tr>
+                <tr><td><a href="tsume-play.html">Tsume Shogi Play</a></td><td>The built-in Hayanagi judges the problem and plays the defender's reply to each of your checks. If you miss the mate, it shows the escape.</td></tr>
+                <tr><td><a href="tsumeshogi-generator.html">Tsume Position Generator</a></td><td>The built-in Hayanagi screens candidate positions in advance. You can also choose a registered Hayanagi as the USI engine that confirms mates.</td></tr>
             </tbody>
         </table>
-        <p class="guide-step-text">Standard USI <code>go mate</code> has a search limit of 63 plies. ShogiBoardQ's <strong>built-in initial-position check in Tsume Shogi Play is limited to 31 plies</strong>. Reaching a time or depth limit is treated separately from proving that no mate exists.</p>
-        <p class="guide-step-text">The depth-first search can take time on long puzzles, roughly 15 plies or more. For longer puzzles, register KomoringHeights and select it as the <a href="tsume-play.html#problems">puzzle list's checking engine</a>. Hayanagi still provides the defensive replies.</p>
+        <p class="guide-step-text">Standard USI <code>go mate</code> searches up to 63 plies; the <strong>built-in check of the starting position in Tsume Shogi Play goes up to 31 plies</strong>. Timeouts and reaching the search limit are distinguished from proving that there is no mate.</p>
+        <p class="guide-step-text">Because the search is depth-first, long problems (roughly 15 plies or more) can take time. For long problems, choose a separately registered KomoringHeights for <a href="tsume-play.html#problems">Mate solver in the problem list</a> (when it is registered, it is selected the first time you open the list). Hayanagi still plays the defender's replies, choosing among them by KomoringHeights' mate lengths.</p>
     </div>
 </section>
 
 <section id="build" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">Build from Source</h2>
-        <p class="section-desc">Build Hayanagi with ShogiBoardQ or on its own</p>
+        <h2 class="section-title">Building from Source</h2>
+        <p class="section-desc">Build it together with ShogiBoardQ, or build Hayanagi alone</p>
         <div class="guide-step">
             <h3 class="guide-step-title">Build with ShogiBoardQ</h3>
-            <p class="guide-step-text">Run these commands from the ShogiBoardQ repository root. After fetching the submodule, the normal build produces both the application and Hayanagi.</p>
+            <p class="guide-step-text">Run these in the root of the ShogiBoardQ repository. After fetching the submodules, a normal build creates both the app and Hayanagi.</p>
             <div class="build-steps"><pre><code>git submodule update --init --recursive
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release</code></pre></div>
-            <p class="guide-step-text">See <a href="../index.html#build">Build &amp; Installation</a> for Qt and other prerequisites. With a typical Linux or macOS build, register <code>build/Hayanagi/hayanagi</code> as the engine.</p>
+            <p class="guide-step-text">For Qt and other prerequisites, see the per-OS guides under <a href="../index.html#build">Build from source</a>. In a typical Linux or macOS build, register <code>build/Hayanagi/hayanagi</code>. The book is placed at <code>build/Hayanagi/book/hayanagi_book.db</code>.</p>
         </div>
         <div class="guide-step">
-            <h3 class="guide-step-title">Build Only Hayanagi</h3>
-            <p class="guide-step-text">After fetching the submodule, run the following from the ShogiBoardQ repository root. Hayanagi itself does not depend on Qt; it requires CMake 3.16 or later and a C++17 compiler.</p>
+            <h3 class="guide-step-title">Build Hayanagi Alone</h3>
+            <p class="guide-step-text">After fetching the submodules, run the following in the root of the ShogiBoardQ repository. Hayanagi alone does not depend on Qt; it needs CMake 3.16 or later and a C++17 compiler.</p>
             <div class="build-steps"><pre><code>cmake -S Hayanagi -B build-hayanagi -DCMAKE_BUILD_TYPE=Release
 cmake --build build-hayanagi --config Release
 ./build-hayanagi/hayanagi --version</code></pre></div>
-            <p class="guide-step-text">The last command is for Linux and macOS. On Windows, run <code>hayanagi.exe</code> from its output directory. For USI commands, search internals, tests, and release history, see the <a href="https://github.com/hnakada123/Hayanagi#readme">Hayanagi README</a>.</p>
+            <p class="guide-step-text">The last command is for Linux and macOS and prints <code>Hayanagi 1.5.1</code>. On Windows, run <code>hayanagi.exe</code> in the output folder. For USI commands, how the search works, tests, and the change history, see <a href="https://github.com/hnakada123/Hayanagi#readme">the Hayanagi README</a> (in Japanese).</p>
         </div>
     </div>
 </section>
 </main>
 
+<!-- Back Link -->
 <div class="back-link-section">
-    <a href="../index.html#features" class="back-link">&larr; Back to Key Features</a>
+    <a href="../index.html#features" class="back-link">← Back to Features</a>
 </div>
+
+<!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>
