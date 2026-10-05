@@ -1,108 +1,219 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Dock Panels - ShogiBoardQ</title>
-<meta content="Learn to customize ShogiBoardQ's layout by docking, floating, and tabbing panels." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html" property="og:url"/>
-<meta content="Dock Panels - ShogiBoardQ" property="og:title"/>
-<meta content="Customize your ShogiBoardQ layout with docked, floating, and tabbed panels." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/dock/dock-02-floating.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Dock Panels - ShogiBoardQ" name="twitter:title"/>
-<meta content="Customize your ShogiBoardQ layout with docked, floating, and tabbed panels." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/dock/dock-02-floating.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docks - ShogiBoardQ</title>
+    <meta name="description" content="A screenshot guide to the docks in ShogiBoardQ: show and hide panels such as the game record, thinking, consideration and evaluation graph, move, tab and float them by dragging, save layouts and choose a startup layout, lock and reset.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html">
+    <meta property="og:title" content="Docks - ShogiBoardQ">
+    <meta property="og:description" content="Arrange the game record, thinking, consideration, evaluation graph and other panels freely, save layouts and restore one at startup.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/dock/dock-04-floating.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Docks - ShogiBoardQ">
+    <meta name="twitter:description" content="Arrange the game record, thinking, consideration, evaluation graph and other panels freely, save layouts and restore one at startup.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/dock/dock-04-floating.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/dock.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/dock.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/dock.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#docked">Docking</a></li>
-<li><a href="#floating">Floating</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/dock.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="dock.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/dock.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/dock.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#panels">Panels</a></li>
+            <li><a href="#arrange">Arranging</a></li>
+            <li><a href="#layouts">Layouts</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Dock Panels</h1>
-<p class="hero-subtitle">Arrange panels freely to customize your layout</p>
-<div class="hero-badges">
-<span class="badge">Docking</span>
-<span class="badge">Floating</span>
-<span class="badge">Tabbed Panels</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Docks</h1>
+        <p class="hero-subtitle">Arrange panels freely to customize the window</p>
+        <div class="hero-badges">
+            <span class="badge">Docking</span>
+            <span class="badge">Tabs</span>
+            <span class="badge">Floating</span>
+            <span class="badge">Saved Layouts</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: Docked Layout -->
-<section class="section section--alt" id="docked">
-<div class="section-inner">
-<h2 class="section-title">Docked Layout</h2>
-<p class="section-desc">Keep all panels together in the main window</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Integrated Layout</span>
-</div>
-<p class="guide-step-text">Dock the game record, engine information, evaluation graph, and other panels inside the main window to view everything at once. Drag a panel's title bar to move it to the top, bottom, left, or right.</p>
-<div class="screenshot-item">
-<img alt="Docked layout with all panels integrated into the main window" src="../../images/en/dock/dock-01-docked.png"/>
-<p class="screenshot-caption">Docked layout: game record, engine information, and evaluation graph in one window</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="panels" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Panels and Their Visibility</h2>
+        <p class="section-desc">The game record, thinking and other parts of the main window are dock panels</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Default Layout</span>
+                </div>
+                <p class="guide-step-text">Game Record sits to the right of the board, and Game Info, Thinking, Consideration, USI Log, CSA Log, Comments, Branch Tree and Evaluation Graph are grouped as tabs below. Click a tab to switch the panel shown.</p>
+                <p class="guide-step-text">Menu and Joseki are hidden at first. Game Analysis appears when you start analyzing a game record.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/dock/dock-01-default.png" alt="Default layout">
+                    <p class="screenshot-caption">Default layout: the game record on the right and tabs such as Thinking and Consideration below (during consideration)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Show and Hide Panels</span>
+                </div>
+                <p class="guide-step-text">The lower part of the View menu lists the panels; check one to show it and uncheck it to hide it. The × at the right of a panel's title bar also closes it. A closed panel can be shown again from the View menu.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/dock/dock-02-view-menu.png" alt="Panel list in the View menu">
+                    <p class="screenshot-caption">View menu: check or uncheck a panel to show or hide it</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: Floating Layout -->
-<section class="section" id="floating">
-<div class="section-inner">
-<h2 class="section-title">Floating Layout</h2>
-<p class="section-desc">Arrange panels as independent windows</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Floating Panels</span>
-</div>
-<p class="guide-step-text">Drag a panel's title bar outside the main window to make it a separate floating window. With multiple monitors, you can place panels on different screens to use the extra workspace.</p>
-<div class="screenshot-item">
-<img alt="Floating layout with panels displayed as independent windows" src="../../images/en/dock/dock-02-floating.png"/>
-<p class="screenshot-caption">Floating layout: arrange each panel as an independent window</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="arrange" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Arranging Panels</h2>
+        <p class="section-desc">Drag panels to another position or out into their own windows</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Move and Tab Panels</span>
+                </div>
+                <p class="guide-step-text">Drag a panel's title bar to move it to the top, bottom, left or right edge of the main window. Drop it on another panel to group the two as tabs. Drag the border between panels to resize them.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/dock/dock-03-custom.png" alt="Window with rearranged panels">
+                    <p class="screenshot-caption">Example: Evaluation Graph moved below the game record, with Game Analysis results at the bottom</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Floating Panels</span>
+                </div>
+                <p class="guide-step-text">Drag the title bar outside the main window, or double-click the title bar (or press ⧉ at its right end), to turn the panel into a separate window. Double-click it again to put it back into the main window.</p>
+                <p class="guide-step-text">With several monitors, you can place Evaluation Graph or Game Analysis on another monitor to see more of it.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/dock/dock-04-floating.png" alt="Panels in separate windows">
+                    <p class="screenshot-caption">Floating: Evaluation Graph and Game Analysis in their own windows</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
+
+<!-- Section 3 -->
+<section id="layouts" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Saving and Managing Layouts</h2>
+        <p class="section-desc">Save the arrangements you use often under a name and recall them at any time</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Save a Layout</span>
+                </div>
+                <p class="guide-step-text">Choose View → Save Dock Layout…, enter a layout name and save. If a layout with the same name exists, you are asked whether to overwrite it.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/dock/dock-05-save-dialog.png" alt="Save Dock Layout dialog">
+                    <p class="screenshot-caption">Save Dock Layout: enter a layout name</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Use Saved Layouts</span>
+                </div>
+                <p class="guide-step-text">View → Saved Layouts lists the saved names, each with Restore, Set as Startup Layout and Delete. The startup layout is marked with ★ and is used from the next start. Clear Startup Layout goes back to starting with the default layout.</p>
+                <p class="guide-step-text">Without a startup layout, the arrangement inside the main window returns to the default at the next start. Whether Game Record, Evaluation Graph, Menu, Joseki and Game Analysis are shown, and their positions as separate windows, are kept.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/dock/dock-06-saved-layouts.png" alt="Saved Layouts menu">
+                    <p class="screenshot-caption">Saved Layouts: ★ marks the startup layout; each layout can be restored or deleted</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">Lock and Reset</span>
+                </div>
+                <p class="guide-step-text">Check View → Lock Docks to stop panels from being moved or floated, so that a stray drag does not break the arrangement. Panels can still be shown and hidden.</p>
+                <p class="guide-step-text">View → Reset Dock Layout puts every panel, including floating ones, back in the default layout.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>

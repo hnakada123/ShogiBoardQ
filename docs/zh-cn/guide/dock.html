@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面板布局 - ShogiBoardQ</title>
+    <meta name="description" content="图解 ShogiBoardQ 的面板（停靠窗口）：棋谱、思考、研究、评价值图表等面板的显示切换，拖动移动、合并为标签页、浮动，保存布局与启动布局，锁定与重置。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/dock.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/dock.html">
+    <meta property="og:title" content="面板布局 - ShogiBoardQ">
+    <meta property="og:description" content="自由排列棋谱、思考、研究、评价值图表等面板，保存布局并在启动时恢复。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/dock/dock-04-floating.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="面板布局 - ShogiBoardQ">
+    <meta name="twitter:description" content="自由排列棋谱、思考、研究、评价值图表等面板，保存布局并在启动时恢复。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/dock/dock-04-floating.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/dock.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/dock.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/dock.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/dock.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="dock.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/dock.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#panels">面板</a></li>
+            <li><a href="#arrange">调整布局</a></li>
+            <li><a href="#layouts">布局</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>面板布局</h1>
+        <p class="hero-subtitle">自由排列面板，定制主窗口</p>
+        <div class="hero-badges">
+            <span class="badge">停靠</span>
+            <span class="badge">标签页</span>
+            <span class="badge">浮动</span>
+            <span class="badge">保存布局</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="panels" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">面板与显示切换</h2>
+        <p class="section-desc">主窗口中的棋谱、思考等都是可停靠的面板</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">默认布局</span>
+                </div>
+                <p class="guide-step-text">棋盘右侧是“棋谱”，下方以标签页排列“对局信息”“思考”“研究”“USI 日志”“CSA 日志”“注释”“变化树”“评价值图表”。点击标签页即可切换显示的面板。</p>
+                <p class="guide-step-text">“菜单”和“定跡”一开始不显示。“棋谱分析”在开始分析棋谱时显示。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/dock/dock-01-default.png" alt="默认布局">
+                    <p class="screenshot-caption">默认布局：右侧为棋谱，下方为思考、研究等标签页（研究中的画面）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">显示与隐藏面板</span>
+                </div>
+                <p class="guide-step-text">“视图”菜单下部列出了各个面板，勾选即显示，取消勾选即隐藏。也可以点击面板标题栏右端的 × 关闭。关闭的面板可以从“视图”菜单重新显示。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/dock/dock-02-view-menu.png" alt="“视图”菜单中的面板列表">
+                    <p class="screenshot-caption">“视图”菜单：勾选或取消勾选以显示或隐藏面板</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="arrange" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">调整布局</h2>
+        <p class="section-desc">拖动面板，移到其他位置或独立的窗口</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">移动与合并为标签页</span>
+                </div>
+                <p class="guide-step-text">拖动面板的标题栏，可以把面板移到主窗口的上下左右边缘。放到其他面板上时，两者会合并为标签页。拖动面板之间的边界可以调整大小。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/dock/dock-03-custom.png" alt="调整面板布局后的画面">
+                    <p class="screenshot-caption">布局示例：把评价值图表移到棋谱下方，下方显示棋谱分析的结果</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">浮动面板</span>
+                </div>
+                <p class="guide-step-text">把标题栏拖到主窗口之外，或双击标题栏（或点击标题栏右端的 ⧉），面板就会成为独立的窗口。再次双击即可放回主窗口。</p>
+                <p class="guide-step-text">使用多台显示器时，可以把评价值图表或棋谱分析放到另一台显示器上，以更大的面积显示。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/dock/dock-04-floating.png" alt="面板成为独立窗口的画面">
+                    <p class="screenshot-caption">浮动：评价值图表与棋谱分析成为独立窗口的示例</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="layouts" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">保存与管理布局</h2>
+        <p class="section-desc">为常用的布局命名保存，随时调用</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">保存布局</span>
+                </div>
+                <p class="guide-step-text">选择“视图”→“保存面板布局…”，输入布局名称后保存。已有同名布局时，会确认是否覆盖。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/dock/dock-05-save-dialog.png" alt="保存面板布局对话框">
+                    <p class="screenshot-caption">保存面板布局：输入布局名称</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">使用已保存的布局</span>
+                </div>
+                <p class="guide-step-text">“视图”→“已保存的布局”中列出已保存的名称，每个布局都可以选择“恢复”“设为启动布局”“删除”。启动布局带有 ★，下次启动时使用该布局。选择“清除启动布局”后，将以默认布局启动。</p>
+                <p class="guide-step-text">未设置启动布局时，主窗口内的布局在下次启动时恢复为默认。“棋谱”“评价值图表”“菜单”“定跡”“棋谱分析”的显示状态和作为独立窗口时的位置会保留。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/dock/dock-06-saved-layouts.png" alt="已保存的布局菜单">
+                    <p class="screenshot-caption">已保存的布局：★ 表示启动布局；每个布局都可以恢复或删除</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">锁定与重置</span>
+                </div>
+                <p class="guide-step-text">勾选“视图”→“锁定面板”后，面板不能移动或浮动，可以防止误拖动打乱布局。面板仍可显示或隐藏。</p>
+                <p class="guide-step-text">选择“视图”→“重置面板布局”，包括浮动的面板在内，所有面板都会恢复为默认布局。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
