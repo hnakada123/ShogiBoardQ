@@ -1,148 +1,227 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Board Editing - ShogiBoardQ</title>
-<meta content="Learn to edit the board in ShogiBoardQ. Arrange pieces freely to create a position, then start a game or analysis from it." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html" property="og:url"/>
-<meta content="Board Editing - ShogiBoardQ" property="og:title"/>
-<meta content="Create positions in ShogiBoardQ by arranging pieces freely, then use them for games or analysis." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/board-edit/board-edit-01-editing.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Board Editing - ShogiBoardQ" name="twitter:title"/>
-<meta content="Create positions in ShogiBoardQ by arranging pieces freely, then use them for games or analysis." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/board-edit/board-edit-01-editing.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board Editing - ShogiBoardQ</title>
+    <meta name="description" content="A screenshot guide to board editing in ShogiBoardQ: moving, promoting and switching pieces, placing pieces from the piece box, even-game and tsume setups, changing the turn, and starting games or analysis from the edited position.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html">
+    <meta property="og:title" content="Board Editing - ShogiBoardQ">
+    <meta property="og:description" content="Move pieces freely and place them from the piece box to create any position, then start a game or analysis from it.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/board-edit/board-edit-01-editing.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Board Editing - ShogiBoardQ">
+    <meta name="twitter:description" content="Move pieces freely and place them from the piece box to create any position, then start a game or analysis from it.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/board-edit/board-edit-01-editing.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/board-edit.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/board-edit.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/board-edit.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#board-edit">Board Editing</a></li>
-<li><a href="#preset">Presets</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/board-edit.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="board-edit.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/board-edit.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/board-edit.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#editing">Editing</a></li>
+            <li><a href="#presets">Setups and Turn</a></li>
+            <li><a href="#finish">Finishing</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Board Editing</h1>
-<p class="hero-subtitle">Arrange pieces freely to create any position</p>
-<div class="hero-badges">
-<span class="badge">Free Piece Placement</span>
-<span class="badge">Play from a Position</span>
-<span class="badge">Analyze a Position</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Board Editing</h1>
+        <p class="hero-subtitle">Arrange pieces freely to create any position</p>
+        <div class="hero-badges">
+            <span class="badge">Move, Promote, Switch Side</span>
+            <span class="badge">Piece Box</span>
+            <span class="badge">Even and Tsume Setups</span>
+            <span class="badge">Play from the Position</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: Board Editing -->
-<section class="section section--alt" id="board-edit">
-<div class="section-inner">
-<h2 class="section-title">Board Editing</h2>
-<p class="section-desc">Create positions for games and analysis</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Start Board Editing</span>
-</div>
-<p class="guide-step-text">Choose Edit → Start Position Edit to enter board editing mode. Use the following controls to create a position.</p>
-<p class="guide-step-text">Starting position editing clears the move list, leaving only the starting-position row, and resets the evaluation graph. The board position is preserved, and the edited position becomes the new starting position.</p>
-<ul class="guide-step-text">
-<li><strong>Left-click</strong>: Move a piece to another square, or place a piece from a stand onto the board.</li>
-<li><strong>Right-click</strong>: Change a piece. Right-click a piece on the board to promote it or change its side.</li>
-</ul>
-<p class="guide-step-text">To place pieces from the box at the lower left, select Black or White in the piece box. Pieces in the box, while being moved, and on the board face the same direction. Flipping the board keeps the selected side, and changing the selection does not change the side to move. Pieces placed on a stand belong to that stand's player.</p>
-<p class="guide-step-text">When you are done, click End Edit to leave board editing mode. You can then use the position as the starting point for a game or analysis.</p>
-<div class="screenshot-item">
-<img alt="Board editing mode" src="../../images/en/board-edit/board-edit-01-editing.png"/>
-<p class="screenshot-caption">Board editing mode: arrange pieces freely to create a position</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="editing" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Editing the Board</h2>
+        <p class="section-desc">Start from the displayed position and move or place pieces</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Start Editing</span>
+                </div>
+                <p class="guide-step-text">Choose Edit → Start Position Edit. The displayed position becomes the starting point of the edit, and the game record is reduced to the “=== Starting Position ===” row (the evaluation graph is cleared too). If the game record has unsaved changes, you are first asked whether to save it.</p>
+                <p class="guide-step-text">While editing, the “✓ End Edit” button appears at the top right of the board and the piece box at the bottom left.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/board-edit/board-edit-01-editing.png" alt="Main window while editing">
+                    <p class="screenshot-caption">Editing: the End Edit button at the top right of the board and the piece box at the bottom left</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Move and Place Pieces</span>
+                </div>
+                <p class="guide-step-text">Use the mouse as follows. A piece placed on the board or a piece stand belongs to the side of that place (placing it on the opponent’s stand makes it the opponent’s piece in hand).</p>
+                <ul class="guide-step-text">
+                    <li>Left click (or drag): select a piece and click where to put it. You can move pieces on the board, from a stand to the board, from the board to a stand, from the piece box to the board or a stand, and back to the piece box</li>
+                    <li>Right click: change a piece on the board in the order Black → Black promoted → White → White promoted (gold and king only switch between Black and White). Pieces that could not stand on that rank or would make two pawns on a file are skipped</li>
+                    <li>Black / White in the piece box: choose which side the pieces taken from the box belong to. The choice is kept when the board is flipped and does not change the turn</li>
+                    <li>The piece box holds every piece that is not on the board or a stand, grouped by type; the number at the top right is how many are left</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Example: Build a Position from the Piece Box</span>
+                </div>
+                <p class="guide-step-text">Clear the board with Move All Pieces to Piece Box, choose White in the piece box and place the king on 5a, switch to Black and place a pawn on 5c, then put a gold on Black’s stand: a mate-in-one with a gold drop is ready.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/board-edit/board-edit-04-composed.png" alt="A position built from the piece box">
+                    <p class="screenshot-caption">Built from the piece box: White king on 5a, Black pawn on 5c, a gold in Black’s hand</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: Preset & Turn -->
-<section class="section" id="preset">
-<div class="section-inner">
-<h2 class="section-title">Presets and Side to Move</h2>
-<p class="section-desc">Set up common positions with one click, or change the side to move</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Standard Starting Position</span>
-</div>
-<p class="guide-step-text">Choose Edit → Even Game Setup to set up a regular, even game. This is useful for resetting the board while editing.</p>
-<div class="screenshot-item">
-<img alt="Standard starting position" src="../../images/en/board-edit/board-edit-02-hirate.png"/>
-<p class="screenshot-caption">Standard starting position: the initial setup for a regular game</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<span class="guide-step-title">Tsume Shogi Initial Setup</span>
-</div>
-<p class="guide-step-text">Choose Edit → Tsume Shogi Setup to prepare a puzzle position. All pieces other than those in the attacker's hand are assigned to the defender's hand, making it easier to construct tsume shogi positions.</p>
-<div class="screenshot-item">
-<img alt="Tsume shogi initial setup" src="../../images/en/board-edit/board-edit-03-tsumeshogi.png"/>
-<p class="screenshot-caption">Tsume shogi initial setup: a starting point for creating puzzles</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">4</span>
-<span class="guide-step-title">Move All Pieces to Stands</span>
-</div>
-<p class="guide-step-text">Choose Edit → Return All Pieces to Hand to move every piece on the board to the players' stands. This is useful for building a position from an empty board.</p>
-<div class="screenshot-item">
-<img alt="All pieces moved to the piece stands" src="../../images/en/board-edit/board-edit-04-all-to-hand.png"/>
-<p class="screenshot-caption">All pieces on stands: create a position from an empty board</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">5</span>
-<span class="guide-step-title">Change Turn</span>
-</div>
-<p class="guide-step-text">Choose Edit → Change Turn to switch the side to move between Black and White in the position you have created.</p>
-<div class="screenshot-item">
-<img alt="Changing the side to move" src="../../images/en/board-edit/board-edit-05-turn-change.png"/>
-<p class="screenshot-caption">Change Turn: switch the side to move between Black and White</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="presets" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Setups and Turn</h2>
+        <p class="section-desc">Call common setups from the menu and switch the side to move</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Even Game Setup</span>
+                </div>
+                <p class="guide-step-text">Edit → Even Game Setup returns to the standard starting position.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Tsume Shogi Setup</span>
+                </div>
+                <p class="guide-step-text">Edit → Tsume Shogi Setup places a sample tsume problem. All remaining pieces become the defender’s (White’s) pieces in hand and the attacker’s king goes into the piece box, as is customary for tsume problems. Move pieces from here to make your own problem.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/board-edit/board-edit-02-tsume.png" alt="Tsume Shogi Setup">
+                    <p class="screenshot-caption">Tsume Shogi Setup: remaining pieces in the defender’s hand, the attacker’s king in the piece box</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Move All Pieces to Piece Box</span>
+                </div>
+                <p class="guide-step-text">Edit → Move All Pieces to Piece Box puts every piece on the board and the stands into the piece box. Use it to build a position from an empty board.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/board-edit/board-edit-03-box.png" alt="Move All Pieces to Piece Box">
+                    <p class="screenshot-caption">Move All Pieces to Piece Box: the board and stands are empty and the box shows the counts</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">Change Turn</span>
+                </div>
+                <p class="guide-step-text">Edit → Change Turn switches the side to move between Black and White. The side with the Turn badge on its player card moves next.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
+
+<!-- Section 3 -->
+<section id="finish" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Finishing</h2>
+        <p class="section-desc">Use the edited position as the starting position for games and analysis</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">Finish Editing</span>
+                </div>
+                <p class="guide-step-text">Click the “✓ End Edit” button (or Edit → End Position Edit). The edited position becomes the starting position of the game record and the piece box disappears.</p>
+                <p class="guide-step-text">From this position you can start a game (choose Current Position as the starting position), Consideration Mode, Mate Search and so on. A game needs exactly one Black king and one White king on the board.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/board-edit/board-edit-05-finished.png" alt="Main window after editing">
+                    <p class="screenshot-caption">After editing: the edited position is the starting position</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盘面编辑 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 盘面编辑的图文指南：移动棋子、升变与切换先后、从棋子盒摆放棋子、平手与诘棋布局、切换行棋方，以及从编辑好的局面开始对局或研究。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/board-edit.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/board-edit.html">
+    <meta property="og:title" content="盘面编辑 - ShogiBoardQ">
+    <meta property="og:description" content="自由移动棋子并从棋子盒摆放，创建任意局面，然后从该局面开始对局或研究。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/board-edit/board-edit-01-editing.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="盘面编辑 - ShogiBoardQ">
+    <meta name="twitter:description" content="自由移动棋子并从棋子盒摆放，创建任意局面，然后从该局面开始对局或研究。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/board-edit/board-edit-01-editing.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/board-edit.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/board-edit.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/board-edit.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/board-edit.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="board-edit.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/board-edit.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#editing">编辑操作</a></li>
+            <li><a href="#presets">布局与行棋方</a></li>
+            <li><a href="#finish">结束编辑</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>盘面编辑</h1>
+        <p class="hero-subtitle">自由摆放棋子，创建任意局面</p>
+        <div class="hero-badges">
+            <span class="badge">移动・升变・先后</span>
+            <span class="badge">棋子盒</span>
+            <span class="badge">平手与诘棋布局</span>
+            <span class="badge">从局面开始对局</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="editing" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">盘面编辑的操作</h2>
+        <p class="section-desc">以当前显示的局面为基础，移动或摆放棋子来创建局面</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">开始编辑局面</span>
+                </div>
+                <p class="guide-step-text">选择“编辑”→“开始编辑局面”开始编辑。当前显示的局面就是编辑的起点，棋谱只保留“=== 初始局面 ===”一行（评价值图表也会清空）。如果棋谱有未保存的修改，会先询问是否保存。</p>
+                <p class="guide-step-text">编辑期间，棋盘右上方显示“✓ 结束编辑”按钮，左下方显示棋子盒。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/board-edit/board-edit-01-editing.png" alt="开始编辑局面的画面">
+                    <p class="screenshot-caption">编辑中：棋盘右上方显示“结束编辑”按钮，左下方显示棋子盒</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">移动与摆放棋子</span>
+                </div>
+                <p class="guide-step-text">用鼠标进行如下操作。棋子放到棋盘或驹台上后，归属于该位置的一方（放到对方驹台上即成为对方的持驹）。</p>
+                <ul class="guide-step-text">
+                    <li>左键单击（或拖动）：选择棋子，再点击要放置的位置。可以在棋盘上移动棋子，也可以把驹台上的棋子放到棋盘、把棋盘上的棋子放到驹台、把棋子盒里的棋子放到棋盘或驹台，以及放回棋子盒</li>
+                    <li>右键单击：按“先手 → 先手升变 → 后手 → 后手升变”的顺序切换棋盘上的棋子（金和玉只在先手与后手之间切换）。会跳过不能停在该段的棋子和会造成二步的棋子</li>
+                    <li>棋子盒的“先手”“后手”：选择从棋子盒放到棋盘的棋子属于哪一方。翻转棋盘后所选的一方不变，也不会改变行棋方</li>
+                    <li>棋子盒按种类存放棋盘和驹台上没有的棋子，右上角的数字是剩余数量</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">用棋子盒创建局面的例子</span>
+                </div>
+                <p class="guide-step-text">用“将所有棋子放入棋子盒”清空棋盘，在棋子盒中选择“后手”并把玉放到 5一，再切换到“先手”把步放到 5三，然后把金放到先手的驹台上，就完成了一道头金一手诘的题目。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/board-edit/board-edit-04-composed.png" alt="用棋子盒创建的局面">
+                    <p class="screenshot-caption">用棋子盒创建的局面：后手玉 5一、先手步 5三、先手持驹金</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="presets" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">布局与行棋方</h2>
+        <p class="section-desc">从菜单调用常用布局，并切换行棋方</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">平手布局</span>
+                </div>
+                <p class="guide-step-text">选择“编辑”→“平手布局”可回到平手的初始布局。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">诘棋布局</span>
+                </div>
+                <p class="guide-step-text">选择“编辑”→“诘棋布局”会摆出一道诘棋例题。其余棋子全部成为玉方（后手）的持驹，攻方的玉放入棋子盒，这是诘棋的惯例。可以从这里移动棋子来创作题目。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/board-edit/board-edit-02-tsume.png" alt="诘棋布局">
+                    <p class="screenshot-caption">诘棋布局：其余棋子是玉方的持驹，攻方的玉在棋子盒中</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">将所有棋子放入棋子盒</span>
+                </div>
+                <p class="guide-step-text">选择“编辑”→“将所有棋子放入棋子盒”，会把棋盘和驹台上的棋子全部放入棋子盒。用于从空棋盘开始创建局面。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/board-edit/board-edit-03-box.png" alt="将所有棋子放入棋子盒">
+                    <p class="screenshot-caption">将所有棋子放入棋子盒：棋盘和驹台清空，棋子盒显示数量</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">切换行棋方</span>
+                </div>
+                <p class="guide-step-text">选择“编辑”→“切换行棋方”，可在先手和后手之间切换下一手的一方（行棋方）。对局者栏上带有“行棋方”标记的一方下一手。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="finish" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">结束编辑</h2>
+        <p class="section-desc">将创建的局面作为初始局面，用于对局和研究</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">结束编辑</span>
+                </div>
+                <p class="guide-step-text">点击“✓ 结束编辑”按钮（或选择“编辑”→“结束编辑局面”）结束编辑后，创建的局面会成为棋谱的初始局面，棋子盒也会消失。</p>
+                <p class="guide-step-text">可以从这个局面开始对局（初始局面选择“当前局面”）、研究、搜索诘棋等。开始对局时，棋盘上需要先手和后手各有一枚玉。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/board-edit/board-edit-05-finished.png" alt="结束编辑后的画面">
+                    <p class="screenshot-caption">结束编辑后：创建的局面成为初始局面</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
