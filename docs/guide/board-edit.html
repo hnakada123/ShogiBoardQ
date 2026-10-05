@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>盤面編集 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの盤面編集機能を紹介します。自由に駒を配置して任意の局面を作成し、作成した局面から対局や解析を開始できます。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
+    <meta name="description" content="ShogiBoardQの盤面編集を紹介します。駒の移動・成り・先後の切り替え、駒箱からの配置、平手・詰将棋の初期配置、手番変更、編集した局面からの対局や検討をスクリーンショット付きで解説。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
     <meta property="og:title" content="盤面編集 - ShogiBoardQ">
-    <meta property="og:description" content="ShogiBoardQの盤面編集機能を紹介。自由に駒を配置して任意の局面を作成し、対局や解析を開始。">
+    <meta property="og:description" content="駒を自由に動かし、駒箱から置いて任意の局面を作れます。作った局面から対局や検討を始められます。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-edit/board-edit-01-editing.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="盤面編集 - ShogiBoardQ">
-    <meta name="twitter:description" content="ShogiBoardQの盤面編集機能を紹介。自由に駒を配置して任意の局面を作成し、対局や解析を開始。">
+    <meta name="twitter:description" content="駒を自由に動かし、駒箱から置いて任意の局面を作れます。作った局面から対局や検討を始められます。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-edit/board-edit-01-editing.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/board-edit.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/board-edit.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html">
 </head>
 <body>
 
@@ -30,15 +32,24 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/board-edit.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="board-edit.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/board-edit.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/board-edit.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/board-edit.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
-            <li><a href="#board-edit">盤面編集</a></li>
-            <li><a href="#preset">プリセット</a></li>
+            <li><a href="#editing">編集の操作</a></li>
+            <li><a href="#presets">配置と手番</a></li>
+            <li><a href="#finish">編集の終了</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -48,39 +59,60 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>盤面編集</h1>
-        <p class="hero-subtitle">自由に駒を配置して任意の局面を作成</p>
+        <p class="hero-subtitle">駒を自由に置いて、任意の局面を作る</p>
         <div class="hero-badges">
-            <span class="badge">駒の自由配置</span>
-            <span class="badge">局面から対局</span>
-            <span class="badge">局面から解析</span>
+            <span class="badge">駒の移動・成り・先後</span>
+            <span class="badge">駒箱</span>
+            <span class="badge">平手・詰将棋の初期配置</span>
+            <span class="badge">作った局面から対局</span>
         </div>
     </div>
 </section>
 
-<!-- Section 1: Board Editing -->
-<section id="board-edit" class="section section--alt">
+<!-- Section 1 -->
+<section id="editing" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">盤面編集機能</h2>
-        <p class="section-desc">任意の局面を作成して対局や解析に活用できます</p>
+        <h2 class="section-title">盤面編集の操作</h2>
+        <p class="section-desc">表示中の局面をもとに、駒を動かしたり置いたりして局面を作ります</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">盤面編集モードを開始する</span>
+                    <span class="guide-step-title">局面編集を始める</span>
                 </div>
-                <p class="guide-step-text">メニューの「編集」→「局面編集」から盤面編集モードに入ります。盤面編集モードでは、以下の操作で任意の局面を作成できます。</p>
-                <p class="guide-step-text">局面編集を開始すると、棋譜欄は「=== 開始局面 ===」の行だけを残してクリアされ、評価値グラフも初期化されます。編集元の盤面は保持され、編集後の局面が新しい開始局面になります。</p>
-                <ul class="guide-step-text">
-                    <li><strong>左クリック</strong>：駒の移動。盤上の駒を別のマスへ移動したり、駒台の駒を盤上に配置できます</li>
-                    <li><strong>右クリック</strong>：駒の変化。盤上の駒を右クリックすると、成駒への変換や相手の駒への変換ができます</li>
-                </ul>
-                <p class="guide-step-text">左下の駒箱から駒を配置するときは、駒箱の「先手」「後手」で配置する側を選びます。箱の中・移動中・盤上の駒は同じ向きで表示され、盤面を反転しても選択した先後は維持されます。選択を切り替えても手番は変わりません。駒台に置く場合は移動先の駒台の所属になります。</p>
-                <p class="guide-step-text">編集が完了したら「編集終了」ボタンをクリックして盤面編集モードを終了します。作成した局面を開始局面として、対局や解析を行うことができます。</p>
+                <p class="guide-step-text">「編集」→「局面編集開始」で編集を始めます。表示中の局面がそのまま編集のもとになり、棋譜は「=== 開始局面 ===」の行だけになります（評価値グラフも消えます）。棋譜に未保存の変更があるときは、先に保存するかの確認が表示されます。</p>
+                <p class="guide-step-text">編集中は、盤の右上に「✓ 編集終了」ボタン、左下に駒箱が表示されます。</p>
                 <div class="screenshot-item">
-                    <img src="../images/board-edit/board-edit-01-editing.png" alt="盤面編集モードの画面">
-                    <p class="screenshot-caption">盤面編集モード：駒を自由に配置して任意の局面を作成</p>
+                    <img src="../images/board-edit/board-edit-01-editing.png" alt="局面編集を始めた画面">
+                    <p class="screenshot-caption">局面編集中：盤の右上に「編集終了」ボタン、左下に駒箱が表示される</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">駒を動かす・置く</span>
+                </div>
+                <p class="guide-step-text">マウスで次のように操作します。駒を盤や駒台に置くと、その場所に合った持ち主になります（相手の駒台に置くと相手の持ち駒）。</p>
+                <ul class="guide-step-text">
+                    <li>左クリック（またはドラッグ）：駒を選んで、置き先をクリックします。盤上の駒の移動、駒台の駒を盤へ、盤の駒を駒台へ、駒箱の駒を盤や駒台へ、盤や駒台の駒を駒箱へ移せます</li>
+                    <li>右クリック：盤上の駒を「先手 → 先手の成駒 → 後手 → 後手の成駒」の順に変えます（金と玉は先手と後手の切り替えのみ）。置けない段の駒や二歩になる駒は飛ばします</li>
+                    <li>駒箱の「先手」「後手」：駒箱から盤に置く駒をどちらの駒にするかを選びます。盤面を回転しても選んだ側は変わらず、手番も変わりません</li>
+                    <li>駒箱には盤上・駒台にない駒が種類ごとに入り、右上の数字は残りの枚数です</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">駒箱から局面を作る例</span>
+                </div>
+                <p class="guide-step-text">「全ての駒を駒箱へ」で盤を空にし、駒箱の「後手」を選んで玉を5一に、「先手」に切り替えて歩を5三に置き、金を先手の駒台に置くと、頭金の1手詰の問題ができます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/board-edit/board-edit-04-composed.png" alt="駒箱から作った局面">
+                    <p class="screenshot-caption">駒箱から作った局面：後手玉5一・先手歩5三・先手の持ち駒に金</p>
                 </div>
             </div>
 
@@ -88,59 +120,76 @@
     </div>
 </section>
 
-<!-- Section 2: Preset & Turn -->
-<section id="preset" class="section">
+<!-- Section 2 -->
+<section id="presets" class="section">
     <div class="section-inner">
-        <h2 class="section-title">プリセット配置・手番変更</h2>
-        <p class="section-desc">よく使う局面をワンクリックで配置したり、手番を変更できます</p>
+        <h2 class="section-title">配置と手番</h2>
+        <p class="section-desc">よく使う配置をメニューから呼び出し、手番を切り替えます</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">平手初期配置</span>
                 </div>
-                <p class="guide-step-text">メニューの「編集」→「平手初期配置」を選択すると、盤面を平手（通常の対局開始局面）に設定できます。編集中に初期状態に戻したい場合に便利です。</p>
-                <div class="screenshot-item">
-                    <img src="../images/board-edit/board-edit-02-hirate.png" alt="平手初期配置の画面">
-                    <p class="screenshot-caption">平手初期配置：通常の対局開始局面を配置</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">詰将棋初期配置</span>
-                </div>
-                <p class="guide-step-text">メニューの「編集」→「詰将棋初期配置」を選択すると、詰将棋用の配置に設定できます。攻め方の持ち駒を除くすべての駒が玉方の持ち駒となり、詰将棋の局面作成をスムーズに始められます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/board-edit/board-edit-03-tsumeshogi.png" alt="詰将棋初期配置の画面">
-                    <p class="screenshot-caption">詰将棋初期配置：詰将棋作成に適した配置</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
-                    <span class="guide-step-title">全ての駒を駒台へ</span>
-                </div>
-                <p class="guide-step-text">メニューの「編集」→「全ての駒を駒台へ」を選択すると、盤上のすべての駒を先手・後手の駒台に移動します。空の盤面からゼロベースで局面を組み立てたい場合に便利です。</p>
-                <div class="screenshot-item">
-                    <img src="../images/board-edit/board-edit-04-all-to-hand.png" alt="全ての駒を駒台へ移動した画面">
-                    <p class="screenshot-caption">全ての駒を駒台へ：空の盤面から自由に局面を作成</p>
-                </div>
+                <p class="guide-step-text">「編集」→「平手初期配置」で平手の初期配置に戻します。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">詰将棋初期配置</span>
+                </div>
+                <p class="guide-step-text">「編集」→「詰将棋初期配置」で詰将棋の例題の局面を置きます。残りの駒はすべて玉方（後手）の持ち駒になり、攻め方の玉は駒箱に入る、詰将棋の慣例どおりの配置です。ここから駒を動かして問題を作れます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/board-edit/board-edit-02-tsume.png" alt="詰将棋初期配置">
+                    <p class="screenshot-caption">詰将棋初期配置：残りの駒は玉方の持ち駒、攻め方の玉は駒箱</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">全ての駒を駒箱へ</span>
+                </div>
+                <p class="guide-step-text">「編集」→「全ての駒を駒箱へ」で、盤上と駒台の駒をすべて駒箱に入れます。空の盤から局面を作るときに使います。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/board-edit/board-edit-03-box.png" alt="全ての駒を駒箱へ">
+                    <p class="screenshot-caption">全ての駒を駒箱へ：盤と駒台が空になり、駒箱に枚数が表示される</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
                     <span class="guide-step-title">手番変更</span>
                 </div>
-                <p class="guide-step-text">メニューの「編集」→「手番変更」を選択すると、現在の手番を先手・後手で切り替えられます。作成した局面の手番を変更したい場合に使用します。</p>
+                <p class="guide-step-text">「編集」→「手番変更」で、次に指す側（手番）を先手と後手で切り替えます。対局者の欄の「手番」の印が付いた側が次に指します。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="finish" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">編集の終了</h2>
+        <p class="section-desc">作った局面を開始局面にして、対局や検討に使います</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">編集を終える</span>
+                </div>
+                <p class="guide-step-text">「✓ 編集終了」ボタン（または「編集」→「局面編集終了」）で編集を終えると、作った局面が棋譜の開始局面になり、駒箱は消えます。</p>
+                <p class="guide-step-text">この局面から、対局（開始局面に「現在の局面」を選ぶ）、検討、詰み探索などを始められます。対局を始めるには、先手と後手の玉が1枚ずつ盤上に必要です。</p>
                 <div class="screenshot-item">
-                    <img src="../images/board-edit/board-edit-05-turn-change.png" alt="手番変更の画面">
-                    <p class="screenshot-caption">手番変更：先手・後手の手番を切り替え</p>
+                    <img src="../images/board-edit/board-edit-05-finished.png" alt="編集を終えた画面">
+                    <p class="screenshot-caption">編集終了後：作った局面が開始局面になる</p>
                 </div>
             </div>
 
@@ -150,13 +199,28 @@
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
 </div>
 
 <!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>
