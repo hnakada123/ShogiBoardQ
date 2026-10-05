@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>棋譜管理 - ShogiBoardQ</title>
-    <meta name="description" content="介紹 ShogiBoardQ 如何讀取、保存 KIF、KI2、CSA、JKF、USI、USEN 棋譜，以及複製與貼上棋譜。">
+    <meta name="description" content="介紹 ShogiBoardQ 如何讀取、儲存 KIF、KI2、CSA、JKF、USI、USEN 棋譜，以及複製與貼上棋譜。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kifu-management.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -48,7 +48,7 @@
             <li><a href="../index.html">首頁</a></li>
             <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
             <li><a href="#file-load">讀取</a></li>
-            <li><a href="#file-save">保存</a></li>
+            <li><a href="#file-save">儲存</a></li>
             <li><a href="#clipboard">剪貼簿</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
@@ -59,7 +59,7 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>棋譜管理</h1>
-        <p class="hero-subtitle">以多種格式讀取、保存與複製棋譜</p>
+        <p class="hero-subtitle">以多種格式讀取、儲存與複製棋譜</p>
         <div class="hero-badges">
             <span class="badge">KIF / KI2</span>
             <span class="badge">CSA</span>
@@ -105,10 +105,10 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">開啟棋譜檔案</span>
                 </div>
-                <p class="guide-step-text">從選單「文件」→「打開…」開啟檔案選擇對話框（打開棋譜文件）。可以在「檔案類型」中篩選要顯示的格式。</p>
+                <p class="guide-step-text">從選單「檔案」→「開啟…」開啟檔案選擇對話方塊（開啟棋譜檔案）。可以在「檔案類型」中篩選要顯示的格式。</p>
                 <div class="screenshot-item">
-                    <img src="../../images/zh-tw/kifu-management/kifu-02-file-dialog.png" alt="打開棋譜文件對話框">
-                    <p class="screenshot-caption">檔案選擇對話框：可選擇 KIF、KI2、CSA、JKF、USI、SFEN、USEN 格式的檔案</p>
+                    <img src="../../images/zh-tw/kifu-management/kifu-02-file-dialog.png" alt="開啟棋譜檔案對話方塊">
+                    <p class="screenshot-caption">檔案選擇對話方塊：可選擇 KIF、KI2、CSA、JKF、USI、SFEN、USEN 格式的檔案</p>
                 </div>
             </div>
 
@@ -202,8 +202,8 @@ T2</code></pre>
 <!-- Section 2: File Save -->
 <section id="file-save" class="section">
     <div class="section-inner">
-        <h2 class="section-title">保存棋譜檔案</h2>
-        <p class="section-desc">可以用 6 種格式保存棋譜</p>
+        <h2 class="section-title">儲存棋譜檔案</h2>
+        <p class="section-desc">可以用 6 種格式儲存棋譜</p>
 
         <div class="screenshot-gallery">
 
@@ -212,7 +212,7 @@ T2</code></pre>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">另存為</span>
                 </div>
-                <p class="guide-step-text">從選單「文件」→「另存為…」可以將棋譜以任意格式保存為檔案。省略副檔名時，會加上保存對話框中所選篩選器的副檔名；輸入副檔名時，由該副檔名決定保存格式。</p>
+                <p class="guide-step-text">從選單「檔案」→「另存為…」可以將棋譜以任意格式儲存為檔案。省略副檔名時，會加上儲存對話方塊中所選篩選器的副檔名；輸入副檔名時，由該副檔名決定儲存格式。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th>格式</th><th>副檔名</th><th>字元編碼</th></tr>
@@ -226,20 +226,20 @@ T2</code></pre>
                         <tr><td>USI 格式</td><td>.usi</td><td>UTF-8</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">KIF、KI2、JKF、USEN 可以保存變化。CSA、USI 只保存本譜，KI2 不保存用時。USI、USEN 不保存對局者、注釋與用時，USEN 能表示的終局結果也有限制。將 CSA 以毫秒為單位的用時轉換為 KIF、JKF 時，不足 1 秒的部分會捨去。</p>
-                <p class="guide-step-text">保存為 .kif、.ki2（Shift_JIS）時，如果對局者或注釋中含有 Shift_JIS 無法表示的字元（部分簡體字、繁體字或表情符號等），會顯示這些字元並詢問是否「以 UTF-8 保存」。以 UTF-8 保存時，檔案第一行會記錄「encoding=UTF-8」。若要一律以 UTF-8 保存，請選擇 .kifu、.ki2u。</p>
+                <p class="guide-step-text">KIF、KI2、JKF、USEN 可以儲存變化。CSA、USI 只儲存本譜，KI2 不儲存用時。USI、USEN 不儲存對局者、註解與用時，USEN 能表示的終局結果也有限制。將 CSA 以毫秒為單位的用時轉換為 KIF、JKF 時，不足 1 秒的部分會捨去。</p>
+                <p class="guide-step-text">儲存為 .kif、.ki2（Shift_JIS）時，如果對局者或註解中含有 Shift_JIS 無法表示的字元（部分簡體字、繁體字或表情符號等），會顯示這些字元並詢問是否「以 UTF-8 儲存」。以 UTF-8 儲存時，檔案第一行會記錄「encoding=UTF-8」。若要一律以 UTF-8 儲存，請選擇 .kifu、.ki2u。</p>
                 <p class="guide-step-text">CSA 檔案中有以「/」分隔的多個棋譜時，只會讀取第一個棋譜。</p>
-                <p class="guide-step-text">USI 格式棋譜末尾的終局代碼是用於保存棋譜的擴充，不屬於與引擎通訊用的 USI「position」命令規格。</p>
+                <p class="guide-step-text">USI 格式棋譜末尾的終局代碼是用於儲存棋譜的擴充，不屬於與引擎通訊用的 USI「position」指令規格。</p>
                 <p class="guide-step-text">各格式的資料（日文或英文）：<a href="https://kakinoki.o.oo7.jp/kif_format.html">KIF 規格</a>、<a href="https://www.shogi.or.jp/faq/kihuhyouki/">棋譜記法（KI2 的著法記法）</a>、<a href="https://www.computer-shogi.org/protocol/record_v3.html">CSA V3.0 規格</a>、<a href="https://github.com/na2hiro/json-kifu-format">JKF 規格</a>、<a href="https://shogidokoro2.stars.ne.jp/usi.html">USI・SFEN 規格</a>、<a href="https://github.com/mogproject/mog-playground/wiki/USEN-Format">USEN 資料</a>。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">保存</span>
+                    <span class="guide-step-title">儲存</span>
                 </div>
-                <p class="guide-step-text">選單「文件」→「保存」會依副檔名對應的格式，覆寫最近讀取或保存的檔案。尚未設定保存位置、從貼上或局面集匯入、或讀取了 .sfen 檔案時，會開啟「另存為…」。對局結束後的自動保存位置可以在對局對話框中指定。</p>
-                <p class="guide-step-text">棋譜有未保存的修改時，在讀取其他棋譜、以新棋譜開始對局、重設為初始畫面或結束程式時，會確認是否保存。選擇「取消」，或保存被中止、失敗時，該操作也會中止。</p>
+                <p class="guide-step-text">選單「檔案」→「儲存」會依副檔名對應的格式，覆寫最近讀取或儲存的檔案。尚未設定儲存位置、從貼上或局面集匯入、或讀取了 .sfen 檔案時，會開啟「另存為…」。對局結束後的自動儲存位置可以在對局對話方塊中指定。</p>
+                <p class="guide-step-text">棋譜有未儲存的修改時，在讀取其他棋譜、以新棋譜開始對局、重設為初始畫面或結束程式時，會確認是否儲存。選擇「取消」，或儲存被中止、失敗時，該操作也會中止。</p>
             </div>
 
         </div>
@@ -268,7 +268,7 @@ T2</code></pre>
                         <tr><td>KIF 格式</td><td>以 KIF 格式複製整個棋譜</td></tr>
                         <tr><td>KI2 格式</td><td>以 KI2 格式複製整個棋譜</td></tr>
                         <tr><td>CSA 格式</td><td>以 CSA 格式複製整個棋譜</td></tr>
-                        <tr><td>USI 格式（截至當前著法）</td><td>以 USI 格式複製到目前顯示的著法為止</td></tr>
+                        <tr><td>USI 格式（截至目前著法）</td><td>以 USI 格式複製到目前顯示的著法為止</td></tr>
                         <tr><td>USI 格式（全部）</td><td>以 USI 格式複製整個棋譜</td></tr>
                         <tr><td>JSON 棋譜格式</td><td>以 JKF（JSON）格式複製整個棋譜</td></tr>
                         <tr><td>USEN</td><td>以 USEN 壓縮格式複製整個棋譜</td></tr>
@@ -310,10 +310,10 @@ T2</code></pre>
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">貼上棋譜</span>
                 </div>
-                <p class="guide-step-text">選單「編輯」→「粘貼棋譜…」會開啟貼上棋譜的對話框。在文字框中貼上棋譜，或點選「從剪貼板粘貼」，再點選「導入」，程式會自動識別格式並讀取。</p>
+                <p class="guide-step-text">選單「編輯」→「貼上棋譜…」會開啟貼上棋譜的對話方塊。在文字框中貼上棋譜，或點選「從剪貼簿貼上」，再點選「匯入」，程式會自動識別格式並讀取。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/kifu-management/kifu-05-paste-dialog.png" alt="粘貼棋譜對話框">
-                    <p class="screenshot-caption">粘貼棋譜對話框：自動識別 KIF、KI2、CSA、USI、JKF、USEN、SFEN、BOD 格式</p>
+                    <img src="../../images/zh-tw/kifu-management/kifu-05-paste-dialog.png" alt="貼上棋譜對話方塊">
+                    <p class="screenshot-caption">貼上棋譜對話方塊：自動識別 KIF、KI2、CSA、USI、JKF、USEN、SFEN、BOD 格式</p>
                 </div>
                 <table class="info-table">
                     <thead>
@@ -322,10 +322,10 @@ T2</code></pre>
                     <tbody>
                         <tr><td>KIF</td><td>包含「手数----」，或有以手數與目標位置開頭的行。僅有「手数」「指し手」等詞不會判定為 KIF</td></tr>
                         <tr><td>KI2</td><td>以 ▲、△、▽、☗、☖ 開頭並接著目標位置的著法</td></tr>
-                        <tr><td>CSA</td><td>V2/V3 版本行或注釋行、PI/P 局面資料、對局者或對局資訊，或以 + 或 - 開頭並接著數字的著法行</td></tr>
+                        <tr><td>CSA</td><td>V2/V3 版本行或註解行、PI/P 局面資料、對局者或對局資訊，或以 + 或 - 開頭並接著數字的著法行</td></tr>
                         <tr><td>USI</td><td>以 position、startpos、sfen 開頭的行，或 SFEN 局面後接著法。也接受 startpos moves ...</td></tr>
                         <tr><td>JKF</td><td>以 { 或 [ 開頭的 JSON 會依 JKF 檢查。匯入時需要 JKF 物件，僅有 JSON 陣列會被拒絕</td></tr>
-                        <tr><td>USEN</td><td>符合以 ~ 分隔的手數與編碼序列的 USEN 結構。注釋或 URL 中的 ~ 不足以判定</td></tr>
+                        <tr><td>USEN</td><td>符合以 ~ 分隔的手數與編碼序列的 USEN 結構。註解或 URL 中的 ~ 不足以判定</td></tr>
                         <tr><td>SFEN</td><td>由棋盤、行棋方、持駒、手數 4 個欄位組成的局面字串。帶有 sfen 等前綴時會識別為 USI</td></tr>
                         <tr><td>BOD</td><td>帶有持駒標題、邊框或格子記法，且沒有著法列表的局面圖</td></tr>
                     </tbody>
