@@ -1,108 +1,174 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Image Export - ShogiBoardQ</title>
-<meta content="Learn to export the board and evaluation graph as images in ShogiBoardQ for blogs and commentary articles." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html" property="og:url"/>
-<meta content="Image Export - ShogiBoardQ" property="og:title"/>
-<meta content="Save the shogi board and evaluation graph as image files with ShogiBoardQ." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/image-export/export-board.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Image Export - ShogiBoardQ" name="twitter:title"/>
-<meta content="Save the shogi board and evaluation graph as image files with ShogiBoardQ." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/image-export/export-board.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Export - ShogiBoardQ</title>
+    <meta name="description" content="A guide to image export in ShogiBoardQ: save the board and the evaluation graph as images exactly as they appear on screen, or copy them to the clipboard.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html">
+    <meta property="og:title" content="Image Export - ShogiBoardQ">
+    <meta property="og:description" content="Save the board and the evaluation graph as images, exactly as shown on screen, or copy them to the clipboard.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/image-export/image-export-01-board.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Image Export - ShogiBoardQ">
+    <meta name="twitter:description" content="Save the board and the evaluation graph as images, exactly as shown on screen, or copy them to the clipboard.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/image-export/image-export-01-board.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/image-export.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/image-export.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/image-export.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#board-export">Board Image</a></li>
-<li><a href="#eval-graph-export">Evaluation Graph</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/image-export.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="image-export.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/image-export.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/image-export.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#save-copy">Save and Copy</a></li>
+            <li><a href="#board-image">Board Image</a></li>
+            <li><a href="#eval-graph">Evaluation Graph</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Image Export</h1>
-<p class="hero-subtitle">Save the board or evaluation graph as an image file</p>
-<div class="hero-badges">
-<span class="badge">Board Image</span>
-<span class="badge">Evaluation Graph</span>
-<span class="badge">Save as PNG</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Image Export</h1>
+        <p class="hero-subtitle">Save or copy the board and the evaluation graph as images</p>
+        <div class="hero-badges">
+            <span class="badge">Board Image</span>
+            <span class="badge">Evaluation Graph</span>
+            <span class="badge">PNG, JPEG, WebP and More</span>
+            <span class="badge">Clipboard</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: Board Image Export -->
-<section class="section section--alt" id="board-export">
-<div class="section-inner">
-<h2 class="section-title">Export a Board Image</h2>
-<p class="section-desc">Save the current board as an image file</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Save the Board Image to a File</span>
-</div>
-<p class="guide-step-text">Choose File → Save Board Image to File to save the currently displayed board as an image. The image includes the piece placement, pieces in hand, player names, and remaining time, making it useful for blogs and commentary articles.</p>
-<div class="screenshot-item screenshot-item--export">
-<img alt="Example of an exported board image" src="../../images/en/image-export/export-board.png"/>
-<p class="screenshot-caption">Board image: save pieces, hands, player names, and remaining time</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="save-copy" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Saving and Copying Images</h2>
+        <p class="section-desc">Turn the board and the evaluation graph into images, exactly as shown on screen</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Save and Copy Commands</span>
+                </div>
+                <p class="guide-step-text">Choose File → Save Board Image to File… or Save Evaluation Graph Image to File… to save an image. In the save dialog you can choose the file type (PNG, JPEG, WebP, BMP, TIFF and so on; the available formats depend on your system). The dialog starts in your Pictures folder with a name such as “ShogiBoard_date_time.png” (“EvalGraph_date_time.png” for the graph).</p>
+                <p class="guide-step-text">To paste the image into a document or an image editor without saving a file, choose Edit → Copy Board Image or Copy Eval Graph Image. The copied image is the same as the saved one.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/image-export/image-export-03-menu.png" alt="File menu">
+                    <p class="screenshot-caption">File menu: the commands that save images</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: Eval Graph Image Export -->
-<section class="section" id="eval-graph-export">
-<div class="section-inner">
-<h2 class="section-title">Export an Evaluation Graph Image</h2>
-<p class="section-desc">Save the evaluation graph as an image file</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Save the Evaluation Graph to a File</span>
-</div>
-<p class="guide-step-text">Choose File → Save Evaluation Graph Image to File to save the current graph as an image. This preserves the evaluation changes after game analysis, which is useful for reviewing games and preparing commentary.</p>
-<div class="screenshot-item screenshot-item--export">
-<img alt="Example of an exported evaluation graph image" src="../../images/en/image-export/export-eval-graph.png"/>
-<p class="screenshot-caption">Evaluation graph image: save the evaluation history to an image file</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="board-image" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Board Image</h2>
+        <p class="section-desc">Save the board together with the piece stands and player cards</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">What the Board Image Contains</span>
+                </div>
+                <p class="guide-step-text">The board image contains the board and piece stands, the player names with their remaining time and the Turn badge, and the highlight of the last move, exactly as on screen.</p>
+                <p class="guide-step-text">Its size follows the displayed board size (View → Enlarge Board or Shrink Board). A flipped board is saved flipped, and the colors and piece style follow your <a href="board-colors.html">Game Appearance</a> and <a href="piece-style.html">Piece Styles</a> settings.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/image-export/image-export-01-board.png" alt="Exported board image">
+                    <p class="screenshot-caption">Exported board image (move 60)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
+
+<!-- Section 3 -->
+<section id="eval-graph" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Evaluation Graph Image</h2>
+        <p class="section-desc">Save the course of the game as a graph image</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">What the Graph Image Contains</span>
+                </div>
+                <p class="guide-step-text">The evaluation graph image is the graph in the Evaluation Graph tab at its current size. It shows the engine scores from games or <a href="kifu-analysis.html">Game Analysis</a> and the position of the current move.</p>
+                <p class="guide-step-text">Show the Evaluation Graph tab and adjust the panel size before saving to get the image size you want.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/image-export/image-export-02-eval-graph.png" alt="Exported evaluation graph image">
+                    <p class="screenshot-caption">Exported evaluation graph (game analysis results, move 60 selected)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
