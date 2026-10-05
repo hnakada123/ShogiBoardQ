@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>匯出圖片 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 匯出圖片的指南：將棋盤和評價值圖表依畫面上顯示的樣子儲存為圖片檔案，或複製到剪貼簿。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/image-export.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/image-export.html">
+    <meta property="og:title" content="匯出圖片 - ShogiBoardQ">
+    <meta property="og:description" content="將棋盤和評價值圖表依畫面顯示儲存為圖片，或複製到剪貼簿。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/image-export/image-export-01-board.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="匯出圖片 - ShogiBoardQ">
+    <meta name="twitter:description" content="將棋盤和評價值圖表依畫面顯示儲存為圖片，或複製到剪貼簿。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/image-export/image-export-01-board.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/image-export.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/image-export.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/image-export.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/image-export.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/image-export.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="image-export.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#save-copy">儲存與複製</a></li>
+            <li><a href="#board-image">棋盤圖片</a></li>
+            <li><a href="#eval-graph">評價值圖表</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>匯出圖片</h1>
+        <p class="hero-subtitle">將棋盤和評價值圖表儲存或複製為圖片</p>
+        <div class="hero-badges">
+            <span class="badge">棋盤圖片</span>
+            <span class="badge">評價值圖表</span>
+            <span class="badge">PNG・JPEG・WebP 等</span>
+            <span class="badge">剪貼簿</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="save-copy" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">儲存與複製圖片</h2>
+        <p class="section-desc">將棋盤和評價值圖表依畫面上顯示的樣子製作成圖片</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">儲存與複製的選單</span>
+                </div>
+                <p class="guide-step-text">選擇「檔案」→「儲存棋盤圖片…」或「儲存評價值圖表圖片…」即可把圖片儲存為檔案。在選擇儲存位置的視窗中可以選擇檔案類型（PNG、JPEG、WebP、BMP、TIFF 等，可用的格式因環境而異）。預設位置是圖片資料夾，檔名為「ShogiBoard_日期_時間.png」（評價值圖表為「EvalGraph_日期_時間.png」）。</p>
+                <p class="guide-step-text">如果想不儲存檔案而直接貼到文件或圖片編輯軟體中，可以選擇「編輯」→「複製棋盤圖片」或「複製評價值圖表圖片」複製到剪貼簿。複製的圖片與儲存的圖片相同。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/image-export/image-export-03-menu.png" alt="「檔案」選單">
+                    <p class="screenshot-caption">「檔案」選單：儲存圖片的項目</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="board-image" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">棋盤圖片</h2>
+        <p class="section-desc">儲存包含駒台和對局者欄的棋盤圖片</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">棋盤圖片的內容</span>
+                </div>
+                <p class="guide-step-text">棋盤圖片依畫面顯示包含棋盤和駒台、對局者名稱與剩餘時間、「行棋方」標記，以及上一步著法的強調顯示。</p>
+                <p class="guide-step-text">圖片大小取決於棋盤的顯示大小（「檢視」→「放大棋盤」「縮小棋盤」）。翻轉棋盤時依翻轉後的方向儲存，配色和棋子樣式也依<a href="../../en/guide/board-colors.html">對局畫面外觀（英文）</a>和<a href="../../en/guide/piece-style.html">棋子樣式（英文）</a>的設定儲存。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/image-export/image-export-01-board.png" alt="匯出的棋盤圖片">
+                    <p class="screenshot-caption">匯出的棋盤圖片（第 60 手）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="eval-graph" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">評價值圖表圖片</h2>
+        <p class="section-desc">將形勢變化儲存為圖表圖片</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">評價值圖表圖片的內容</span>
+                </div>
+                <p class="guide-step-text">評價值圖表圖片依「評價值圖表」分頁中圖表的目前大小製作。圖中包含對局中引擎的評價值或<a href="kifu-analysis.html">棋譜分析</a>的結果，以及目前著法的位置。</p>
+                <p class="guide-step-text">儲存前先顯示「評價值圖表」分頁並調整面板大小，就能得到想要的圖片大小。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/image-export/image-export-02-eval-graph.png" alt="匯出的評價值圖表圖片">
+                    <p class="screenshot-caption">匯出的評價值圖表圖片（棋譜分析的結果，顯示第 60 手）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

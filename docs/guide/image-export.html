@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>画像エクスポート - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの画像エクスポート機能を紹介します。将棋盤の盤面や評価値グラフを画像ファイルとして保存し、ブログや解説記事に活用できます。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
+    <meta name="description" content="ShogiBoardQの画像エクスポートを紹介します。盤面と評価値グラフを、画面に表示されているとおりの画像としてファイルに保存したり、クリップボードにコピーしたりする方法を解説。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
     <meta property="og:title" content="画像エクスポート - ShogiBoardQ">
-    <meta property="og:description" content="ShogiBoardQの画像エクスポート機能を紹介。将棋盤の盤面や評価値グラフを画像ファイルとして保存。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/image-export/export-board.png">
+    <meta property="og:description" content="盤面と評価値グラフを、画面のとおりの画像としてファイルに保存・クリップボードにコピーできます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/image-export/image-export-01-board.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="画像エクスポート - ShogiBoardQ">
-    <meta name="twitter:description" content="ShogiBoardQの画像エクスポート機能を紹介。将棋盤の盤面や評価値グラフを画像ファイルとして保存。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/image-export/export-board.png">
+    <meta name="twitter:description" content="盤面と評価値グラフを、画面のとおりの画像としてファイルに保存・クリップボードにコピーできます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/image-export/image-export-01-board.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/image-export.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/image-export.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html">
 </head>
 <body>
 
@@ -30,15 +32,24 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/image-export.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="image-export.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/image-export.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/image-export.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/image-export.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
-            <li><a href="#board-export">盤面画像</a></li>
-            <li><a href="#eval-graph-export">評価値グラフ</a></li>
+            <li><a href="#save-copy">保存とコピー</a></li>
+            <li><a href="#board-image">盤面画像</a></li>
+            <li><a href="#eval-graph">評価値グラフ</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -48,32 +59,34 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>画像エクスポート</h1>
-        <p class="hero-subtitle">盤面や評価値グラフを画像ファイルとして保存</p>
+        <p class="hero-subtitle">盤面や評価値グラフを画像として保存・コピー</p>
         <div class="hero-badges">
             <span class="badge">盤面画像</span>
             <span class="badge">評価値グラフ</span>
-            <span class="badge">PNG保存</span>
+            <span class="badge">PNG・JPEG・WebP など</span>
+            <span class="badge">クリップボード</span>
         </div>
     </div>
 </section>
 
-<!-- Section 1: Board Image Export -->
-<section id="board-export" class="section section--alt">
+<!-- Section 1 -->
+<section id="save-copy" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">盤面画像のエクスポート</h2>
-        <p class="section-desc">現在の盤面を画像ファイルとして保存できます</p>
+        <h2 class="section-title">画像の保存とコピー</h2>
+        <p class="section-desc">盤面と評価値グラフを、画面に表示されているとおりの画像にします</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">盤面画像をファイルに保存する</span>
+                    <span class="guide-step-title">保存とコピーのメニュー</span>
                 </div>
-                <p class="guide-step-text">メニューの「ファイル」→「将棋盤の画像をファイルに保存」を選択すると、現在表示されている盤面を画像ファイルとして保存できます。駒の配置・持ち駒・対局者名・残り時間などがそのまま画像に反映されます。ブログや解説記事への掲載に便利です。</p>
-                <div class="screenshot-item screenshot-item--export">
-                    <img src="../images/image-export/export-board.png" alt="盤面画像のエクスポート例">
-                    <p class="screenshot-caption">盤面画像：駒の配置・持ち駒・対局者名・残り時間を含めた画像を保存</p>
+                <p class="guide-step-text">「ファイル」→「将棋盤の画像をファイルに保存…」または「評価値グラフの画像をファイルに保存…」で画像をファイルに保存します。保存先を選ぶ画面ではファイルの種類（PNG・JPEG・WebP・BMP・TIFF など。使える形式は環境によって異なります）を選べます。最初はピクチャフォルダに「ShogiBoard_日付_時刻.png」（評価値グラフは「EvalGraph_日付_時刻.png」）という名前が入っています。</p>
+                <p class="guide-step-text">ファイルにせずに文書や画像編集ソフトへ貼り付けたいときは、「編集」→「将棋盤画像コピー」または「評価値グラフ画像コピー」でクリップボードにコピーします。コピーされる画像は、ファイルに保存する画像と同じです。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/image-export/image-export-03-menu.png" alt="「ファイル」メニュー">
+                    <p class="screenshot-caption">「ファイル」メニュー：画像を保存する項目</p>
                 </div>
             </div>
 
@@ -81,23 +94,49 @@
     </div>
 </section>
 
-<!-- Section 2: Eval Graph Image Export -->
-<section id="eval-graph-export" class="section">
+<!-- Section 2 -->
+<section id="board-image" class="section">
     <div class="section-inner">
-        <h2 class="section-title">評価値グラフ画像のエクスポート</h2>
-        <p class="section-desc">評価値グラフを画像ファイルとして保存できます</p>
+        <h2 class="section-title">盤面画像</h2>
+        <p class="section-desc">盤・駒台・対局者の欄を含めた画像を保存します</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">評価値グラフをファイルに保存する</span>
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">盤面画像の内容</span>
                 </div>
-                <p class="guide-step-text">メニューの「ファイル」→「評価値グラフの画像をファイルに保存」を選択すると、現在表示されている評価値グラフを画像ファイルとして保存できます。棋譜解析後の形勢推移をそのまま画像として記録できるため、対局の振り返りや解説資料の作成に役立ちます。</p>
-                <div class="screenshot-item screenshot-item--export">
-                    <img src="../images/image-export/export-eval-graph.png" alt="評価値グラフ画像のエクスポート例">
-                    <p class="screenshot-caption">評価値グラフ画像：形勢の推移を画像ファイルとして保存</p>
+                <p class="guide-step-text">盤面画像には、盤と駒台、対局者名と残り時間・手番の印、直前の指し手の強調が、画面のとおりに入ります。</p>
+                <p class="guide-step-text">画像の大きさは盤の表示の大きさで決まります（「表示」→「将棋盤の拡大」「将棋盤の縮小」）。盤面を回転していればその向きで、配色や駒の種類も<a href="board-colors.html">対局画面の外観</a>・<a href="piece-style.html">駒の種類</a>の設定どおりになります。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/image-export/image-export-01-board.png" alt="書き出した盤面画像">
+                    <p class="screenshot-caption">書き出した盤面画像（60手目）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="eval-graph" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">評価値グラフ画像</h2>
+        <p class="section-desc">形勢の推移をグラフの画像として保存します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">評価値グラフ画像の内容</span>
+                </div>
+                <p class="guide-step-text">評価値グラフ画像は、「評価値グラフ」タブのグラフをそのままの大きさで画像にします。対局中のエンジンの評価値や<a href="kifu-analysis.html">棋譜解析</a>の結果と、現在の手の位置が入ります。</p>
+                <p class="guide-step-text">保存する前に「評価値グラフ」タブを表示して、パネルの大きさを整えておくと、思いどおりの大きさの画像になります。</p>
+                <div class="screenshot-item">
+                    <img src="../images/image-export/image-export-02-eval-graph.png" alt="書き出した評価値グラフ画像">
+                    <p class="screenshot-caption">書き出した評価値グラフ画像（棋譜解析の結果。60手目を表示中）</p>
                 </div>
             </div>
 
@@ -107,13 +146,28 @@
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
 </div>
 
 <!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>
