@@ -70,6 +70,9 @@ public:
     bool verifyDisplayConsistency() const;
     QString consistencyReport() const;
 
+    /// 棋譜欄・分岐候補・分岐ツリーの強調を現在の手に戻す（移動をやめたとき。コメントは変えない）
+    void restoreCurrentPositionHighlights();
+
 public slots:
     // === KifuNavigationControllerからのシグナルを受けるスロット ===
 

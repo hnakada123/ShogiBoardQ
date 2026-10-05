@@ -6,6 +6,7 @@
 
 
 #include <QObject>
+#include <functional>
 #include <QList>
 
 class KifuBranchTree;
@@ -43,6 +44,11 @@ public:
 
     /// ナビゲーションボタンのclickedシグナルを接続する
     void connectButtons(const Buttons& buttons);
+
+    /// 利用者の操作で別の手へ移る前に呼ぶ確認（未更新のコメントの破棄確認など）。false なら移動しない
+    void setLeaveGuard(std::function<bool()> guard) { m_leaveGuard = std::move(guard); }
+    /// 確認を通って現在の手から移ってよいか
+    bool canLeaveCurrentPosition() const { return !m_leaveGuard || m_leaveGuard(); }
 
     KifuBranchTree* tree() const { return m_tree; }
     KifuNavigationState* state() const { return m_state; }
@@ -137,6 +143,7 @@ private:
 
     KifuBranchTree* m_tree = nullptr;          ///< 分岐ツリー（非所有）
     KifuNavigationState* m_state = nullptr;    ///< ナビゲーション状態（非所有）
+    std::function<bool()> m_leaveGuard;        ///< 移動前の確認（未設定なら常に移動する）
 };
 
 #endif // KIFUNAVIGATIONCONTROLLER_H

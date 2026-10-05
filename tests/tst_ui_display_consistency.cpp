@@ -1,6 +1,8 @@
 #include <QtTest>
 #include <QCoreApplication>
 #include <QGraphicsView>
+#include <QGraphicsItem>
+#include <QScrollBar>
 #include <QTableView>
 
 #include "kifubranchtree.h"
@@ -586,6 +588,81 @@ private slots:
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 5);
         QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
                  qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+    }
+
+    /// 移動前の確認（未更新のコメントの破棄）でやめたときは、ボタン・分岐候補・分岐ツリーの
+    /// どの操作でも移動せず、クリックで変わった強調も現在の手に戻す
+    void leaveGuard_cancelKeepsPositionAndHighlights()
+    {
+        UiHarness h;
+        h.nav.goToPly(2);   // 3手目に分岐がある局面（本譜）
+        QCoreApplication::processEvents();
+        QCOMPARE(h.state.currentPly(), 2);
+        h.nav.goForward(1);
+        QCoreApplication::processEvents();
+        QCOMPARE(h.state.currentPly(), 3);
+        QCOMPARE(h.branchModel.currentHighlightRow(), 0);
+
+        int asked = 0;
+        bool allow = false;
+        h.nav.setLeaveGuard([&asked, &allow]() { ++asked; return allow; });
+
+        h.nav.onNextClicked();
+        h.nav.onFirstClicked();
+        h.branchModel.setCurrentHighlightRow(1);   // 分岐候補をクリックしたときと同じ
+        h.coordinator.onBranchCandidateActivated(h.branchModel.index(1, 0));
+        h.branchTreeManager.highlightBranchTreeAt(h.scenario.branchLineIndex, 3, false);
+        h.nav.handleBranchNodeActivated(h.scenario.branchLineIndex, 3);
+        QCoreApplication::processEvents();
+
+        QCOMPARE(asked, 4);
+        QCOMPARE(h.state.currentPly(), 3);
+        QCOMPARE(h.state.currentLineIndex(), 0);
+        QCOMPARE(h.branchModel.currentHighlightRow(), 0);
+        QCOMPARE(h.branchTreeManager.lastHighlightedRow(), 0);
+        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 3);
+
+        allow = true;
+        h.nav.onNextClicked();
+        QCoreApplication::processEvents();
+        QCOMPARE(asked, 5);
+        QCOMPARE(h.state.currentPly(), 4);
+    }
+
+    /// 分岐ツリーは非表示の間はスクロールせず、表示したときに現在の手を
+    /// 上の手数ラベルごと見える位置に出す（タブの裏で読み込んだ棋譜でもずれない）
+    void branchTree_scrollsCurrentNodeIntoViewWhenShown()
+    {
+        UiHarness h;
+        h.branchTreeView.resize(420, 160);
+        h.branchTreeManager.highlightBranchTreeAt(0, 5, /*centerOn=*/true);
+        QCOMPARE(h.branchTreeView.horizontalScrollBar()->value(), 0);
+        QCOMPARE(h.branchTreeView.verticalScrollBar()->value(), 0);
+
+        QGraphicsItem* node = nullptr;
+        const auto items = h.branchTreeView.scene()->items();
+        for (QGraphicsItem* item : items) {
+            if (item->data(BranchTreeManager::ROLE_ROW).toInt() == 0
+                && item->data(BranchTreeManager::ROLE_PLY).toInt() == 5
+                && item->data(BranchTreeManager::BR_ROLE_KIND).isValid()) {
+                node = item;
+            }
+        }
+        QVERIFY(node != nullptr);
+        const QRectF nodeArea = node->mapRectToScene(node->boundingRect() | node->childrenBoundingRect());
+        const auto visibleArea = [&h]() {
+            return h.branchTreeView.mapToScene(h.branchTreeView.viewport()->rect()).boundingRect();
+        };
+
+        h.branchTreeView.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&h.branchTreeView));
+        QTRY_VERIFY(visibleArea().contains(nodeArea));
+        QCOMPARE(h.branchTreeView.verticalScrollBar()->value(), 0);
+
+        // 見えている手へ移っても動かさない
+        const int x = h.branchTreeView.horizontalScrollBar()->value();
+        h.branchTreeManager.highlightBranchTreeAt(0, 4, /*centerOn=*/false);
+        QCOMPARE(h.branchTreeView.horizontalScrollBar()->value(), x);
     }
 
     void detectsTreeHighlightMismatch()

@@ -1062,32 +1062,32 @@
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="97"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="88"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>已更新註解（第 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="139"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="130"/>
         <source>手を選択してください</source>
         <translation>請選擇著法</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="158"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="149"/>
         <source>しおりを編集</source>
         <translation>編輯書籤</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="159"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="150"/>
         <source>しおり名（手数: %1）:</source>
         <translation>書籤名稱（第 %1 手）：</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="174"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="165"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>已刪除書籤（第 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="176"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="167"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>已設定書籤（第 %1 手）</translation>
     </message>
@@ -1124,8 +1124,8 @@
         <location filename="../../src/widgets/commenteditorpanel.cpp" line="168"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
-        <translation>註解已修改，但尚未儲存。
-放棄修改並移動嗎？</translation>
+        <translation>註解已修改，但尚未更新。
+要放棄修改並移動嗎？</translation>
     </message>
     <message>
         <location filename="../../src/widgets/commenteditorpanel.cpp" line="170"/>

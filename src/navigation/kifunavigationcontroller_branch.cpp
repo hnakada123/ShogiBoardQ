@@ -21,6 +21,12 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
         return;
     }
 
+    // 移動をやめたときは、クリックで強調したノードを現在の手に戻す
+    if (!canLeaveCurrentPosition()) {
+        emit branchTreeHighlightRequired(m_state->currentLineIndex(), m_state->currentPly());
+        return;
+    }
+
     QList<BranchLine> lines = m_tree->allLines();
     if (lines.isEmpty()) {
         qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: no lines available";

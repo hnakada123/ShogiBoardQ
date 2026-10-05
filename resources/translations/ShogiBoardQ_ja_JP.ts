@@ -1192,32 +1192,32 @@
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="97"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="88"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>コメントを更新しました（手数: %1）</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="139"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="130"/>
         <source>手を選択してください</source>
         <translation>手を選択してください</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="158"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="149"/>
         <source>しおりを編集</source>
         <translation>しおりを編集</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="159"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="150"/>
         <source>しおり名（手数: %1）:</source>
         <translation>しおり名（手数: %1）:</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="174"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="165"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>しおりを削除しました（手数: %1）</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="176"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="167"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>しおりを設定しました（手数: %1）</translation>
     </message>

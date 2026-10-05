@@ -1247,7 +1247,7 @@ Author: %1</translation>
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="97"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="88"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
@@ -1256,27 +1256,27 @@ Author: %1</translation>
         <translation type="obsolete">No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="139"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="130"/>
         <source>手を選択してください</source>
         <translation>Please select a move</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="158"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="149"/>
         <source>しおりを編集</source>
         <translation>Edit Bookmark</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="159"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="150"/>
         <source>しおり名（手数: %1）:</source>
         <translation>Bookmark name (move: %1):</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="174"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="165"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>Bookmark removed (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="176"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="167"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>Bookmark set (move: %1)</translation>
     </message>
@@ -1317,8 +1317,8 @@ Author: %1</translation>
         <location filename="../../src/widgets/commenteditorpanel.cpp" line="168"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
-        <translation>The comment has been edited but not saved yet.
-Discard changes and move?</translation>
+        <translation>The comment has been edited but not updated yet.
+Discard the changes and move?</translation>
     </message>
     <message>
         <location filename="../../src/widgets/commenteditorpanel.cpp" line="170"/>

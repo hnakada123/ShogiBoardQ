@@ -187,6 +187,12 @@ void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index
         return;
     }
 
+    // 未更新のコメントの破棄をやめたときは移動せず、クリックした候補の強調を戻す
+    if (!m_navController->canLeaveCurrentPosition()) {
+        restoreCurrentPositionHighlights();
+        return;
+    }
+
     const int row = index.row();
     if (m_branchModel->isBackToMainRow(row)) {
         qCDebug(lcNavTrace).noquote() << "onBranchCandidateActivated: back to main row, calling goToMainLineAtCurrentPly";
@@ -196,6 +202,16 @@ void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index
 
     qCDebug(lcNavTrace).noquote() << "onBranchCandidateActivated: calling selectBranchCandidate(" << row << ")";
     m_navController->selectBranchCandidate(row);
+}
+
+void KifuDisplayCoordinator::restoreCurrentPositionHighlights()
+{
+    if (m_state == nullptr) {
+        return;
+    }
+    m_selectionSync->applyRecordHighlight(m_state->currentPly());
+    updateBranchCandidatesView();
+    onBranchTreeHighlightRequired(m_state->currentLineIndex(), m_state->currentPly());
 }
 
 void KifuDisplayCoordinator::onTreeChanged()
