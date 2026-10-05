@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>将棋引擎 Hayanagi - ShogiBoardQ</title>
+    <meta name="description" content="介绍作为 ShogiBoardQ 子模块开发的 USI 将棋引擎 Hayanagi：对局、研究、诘棋搜索功能，引擎注册，棋力与定式设置，以及从源码构建的方法。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/hayanagi.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/hayanagi.html">
+    <meta property="og:title" content="将棋引擎 Hayanagi - ShogiBoardQ">
+    <meta property="og:description" content="使用支持 USI 的 Hayanagi 进行对局、研究和诘棋搜索，并了解它在诘棋练习中的内置用法。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/hayanagi/hayanagi-02-settings.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="将棋引擎 Hayanagi - ShogiBoardQ">
+    <meta name="twitter:description" content="使用支持 USI 的 Hayanagi 进行对局、研究和诘棋搜索，并了解它在诘棋练习中的内置用法。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/hayanagi/hayanagi-02-settings.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/hayanagi.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/hayanagi.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/hayanagi.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/hayanagi.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="hayanagi.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/hayanagi.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#overview">概要</a></li>
+            <li><a href="#setup">使用方法</a></li>
+            <li><a href="#options">设置</a></li>
+            <li><a href="#tsume">诘棋搜索</a></li>
+            <li><a href="#build">构建</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="hayanagi-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>将棋引擎 Hayanagi</h1>
+        <p class="hero-subtitle">从对局、研究到诘棋中的守方</p>
+        <div class="hero-badges">
+            <span class="badge">支持 USI</span>
+            <span class="badge">C++17</span>
+            <span class="badge">棋力调节</span>
+            <span class="badge">诘棋搜索</span>
+            <span class="badge">ShogiBoardQ 子模块</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
+    </div>
+</section>
+
+<section id="overview" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">什么是 Hayanagi</h2>
+        <p class="section-desc">与 ShogiBoardQ 配合使用、以 C++17 实现的将棋引擎</p>
+        <p class="guide-step-text">Hayanagi 是支持<strong>USI 协议</strong>（将棋 GUI 与引擎交换着法和搜索结果的协议）的将棋引擎。它作为 ShogiBoardQ 的 Git 子模块管理，用同一套源码构建普通对局用的可执行文件和诘棋用的内置库。</p>
+        <table class="info-table">
+            <thead><tr><th scope="col">用法</th><th scope="col">功能与准备</th></tr></thead>
+            <tbody>
+                <tr><td>注册为 USI 引擎</td><td>可用于对局、棋谱分析、研究和诘棋搜索。在“引擎注册”中注册可执行文件。</td></tr>
+                <tr><td>在诘棋练习中内置使用</td><td>用于判定题目和走守方的应着。它内置在 ShogiBoardQ 中，无需注册引擎。</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">源码和详细规格公开在 <a href="https://github.com/hnakada123/Hayanagi">Hayanagi 的 GitHub 仓库</a>。本页基于子模块中的 Hayanagi 1.5.1。</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>对局与棋力调节</h3>
+                <p>支持基本时间、读秒、加时，以及对手回合中的后台思考。可通过限制搜索量调节棋力。</p>
+            </div>
+            <div class="feature-card">
+                <h3>研究与棋谱分析</h3>
+                <p>输出评价值、主要变化、搜索深度和节点数。可用 MultiPV 比较多个候选着法。</p>
+            </div>
+            <div class="feature-card">
+                <h3>定式与对局规则</h3>
+                <p>支持 YaneuraOu 的 DB2016 格式定式，并使用由 Floodgate 棋谱生成的独有定式。还能判定千日手、连续将军的千日手、持将棋和入玉规则。</p>
+            </div>
+            <div class="feature-card">
+                <h3>专用的诘棋搜索</h3>
+                <p>搜索以连续将军达成的强制将死。可处理没有攻方王的局面，作为守方时返回最长抵抗或解围的应着。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="setup" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">在 ShogiBoardQ 中使用</h2>
+        <p class="section-desc">普通对局和研究需要注册 USI 引擎的可执行文件</p>
+        <div class="guide-step">
+            <div class="guide-step-header"><span class="guide-step-number">1</span><h3 class="guide-step-title">准备可执行文件</h3></div>
+            <p class="guide-step-text">Linux 版的发布 ZIP 中，可以使用解压后文件夹里的 <code>Hayanagi/hayanagi</code>。AppImage 版请用 <code>--appimage-extract</code> 解压，并指定 <code>squashfs-root/usr/bin/hayanagi</code>。Windows 版和 macOS 版的发布包目前未附带 Hayanagi，请从源码构建。</p>
+            <p class="guide-step-text">从源码构建 ShogiBoardQ 时，会生成 <code>build/Hayanagi/hayanagi</code>。在 Windows 上文件名带有 <code>.exe</code>，并可能因构建方式位于 <code>Release</code> 等子文件夹中。只构建 Hayanagi 时请参阅<a href="#build">构建方法</a>。在 Linux 和 macOS 上请选择有执行权限的文件。</p>
+        </div>
+        <div class="guide-step">
+            <div class="guide-step-header"><span class="guide-step-number">2</span><h3 class="guide-step-title">在引擎注册中注册</h3></div>
+            <p class="guide-step-text">选择“设置”→“引擎设置…”打开“引擎注册”，点击“添加”并选择 Hayanagi 的可执行文件。列表中显示“Hayanagi 1.5.1”即注册完成。</p>
+            <div class="screenshot-item screenshot-item--compact">
+                <img src="../../images/zh-cn/hayanagi/hayanagi-01-registration.png" alt="在引擎注册中注册了 Hayanagi 的画面">
+                <p class="screenshot-caption">引擎注册：列表中显示“Hayanagi 1.5.1”</p>
+            </div>
+            <p class="guide-step-text">点击“设置”（或双击引擎）打开引擎设置，可以更改线程数、棋力等。带截图的操作说明请参阅<a href="game-play.html#engine-registration">引擎注册指南</a>。</p>
+        </div>
+        <div class="guide-step">
+            <div class="guide-step-header"><span class="guide-step-number">3</span><h3 class="guide-step-title">在对局和分析中选择</h3></div>
+            <p class="guide-step-text">在<a href="game-play.html#game-start">对局设置</a>中选择 Hayanagi 作为对局者，即可进行人机对局或引擎之间的对局。在<a href="consideration.html">研究模式</a>和<a href="kifu-analysis.html">棋谱分析</a>中也请将其选为使用的引擎。</p>
+            <p class="guide-step-text">要在棋盘上解诘棋，请选择“对局”→“练习诘棋…”。在题目列表的“诘棋引擎”中选择“Hayanagi（内置，最多 31 手）”，无需注册引擎即可开始。操作方法请参阅<a href="../../en/guide/tsume-play.html">诘棋练习指南</a>（英文）。</p>
+        </div>
+    </div>
+</section>
+
+<section id="options" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">主要引擎设置</h2>
+        <p class="section-desc">可根据用途调整已注册 USI 引擎的设置</p>
+        <div class="screenshot-item screenshot-item--compact">
+            <img src="../../images/zh-cn/hayanagi/hayanagi-02-settings.png" alt="Hayanagi 的引擎设置画面">
+            <p class="screenshot-caption">引擎设置：可更改“后台思考”以及 Hayanagi 报告的选项值</p>
+        </div>
+        <table class="info-table">
+            <thead><tr><th scope="col">选项</th><th scope="col">内容</th></tr></thead>
+            <tbody>
+                <tr><td><code>Threads</code></td><td>搜索使用的线程数。默认值为 1，范围为 1～128。请根据电脑的 CPU 和其他工作来设置。</td></tr>
+                <tr><td><code>Hash</code> / <code>USI_Hash</code></td><td>普通搜索中记忆局面的内存量（MB）。两者设置的是同一个表，默认值为 16 MB。</td></tr>
+                <tr><td><code>MultiPV</code></td><td>输出的候选着法数。引擎支持 1～32。ShogiBoardQ 的研究中使用“候选着法”的设置。</td></tr>
+                <tr><td><code>USI_Ponder</code></td><td>对手回合中的后台思考。默认关闭。在引擎设置的“后台思考”中，用“在对手行棋时思考”切换。</td></tr>
+                <tr><td><code>USI_LimitStrength</code><br><code>USI_Strength</code></td><td>启用棋力限制后，用 -15～6 的值限制搜索深度和节点数。负数大致对应级位，正数对应段位，0 视为 1 级。默认不限制棋力。</td></tr>
+                <tr><td><code>USI_AnalyseMode</code></td><td>分析用模式。会禁用棋力限制、按定式即时应答、自动认输和后台思考请求。不限时搜索需另行指定。</td></tr>
+                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>指定是否使用定式以及读取哪个文件。默认启用，读取可执行文件所在位置的 <code>book/hayanagi_book.db</code>（将 <code>BookFile</code> 设为 <code>no_book</code> 即不使用定式）。从源码构建时，定式文件会放到构建目录中。发布包不附带定式，此时引擎不使用定式，仅靠搜索走棋。</td></tr>
+                <tr><td><code>EnteringKingRule</code></td><td>引擎自己进行入玉宣言的标准。可选择 24 点法、27 点法、试玉规则等，默认值为 <code>CSARule24</code>。宣言是否成立由 ShogiBoardQ 对局对话框中“持将棋”选择的规则判定。</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">棋力设置的段级位是经对局校准前的参考值，不保证与人类的段级位一致。Hayanagi 是使用简易评价函数的最小构成引擎，评估子力得失、棋子活跃度和王的安全度等。</p>
+        <p class="guide-step-text">此设置表适用于已注册的 USI 引擎。诘棋练习的内置判定使用题目列表的“诘棋引擎”“搜索时间”，以及练习画面的“搜索时间”。</p>
+    </div>
+</section>
+
+<section id="tsume" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">诘棋搜索与诘棋练习</h2>
+        <p class="section-desc">区分将死、不诘和未判定，并调查攻方与守方的着法</p>
+        <table class="info-table">
+            <thead><tr><th scope="col">用途</th><th scope="col">动作</th></tr></thead>
+            <tbody>
+                <tr><td><a href="../../en/guide/tsumi-search.html">诘棋搜索</a>（英文）</td><td>通过标准 USI 的 <code>go mate</code> 请已注册的 Hayanagi 搜索。找到将死时，返回包括守方最长抵抗在内的全部手顺。</td></tr>
+                <tr><td><a href="../../en/guide/tsume-play.html">诘棋练习</a>（英文）</td><td>由内置 Hayanagi 判定题目，并针对用户的将军走守方的应着。错过将死时会显示解围的着法。</td></tr>
+                <tr><td><a href="../../en/guide/tsumeshogi-generator.html">诘棋局面生成器</a>（英文）</td><td>由内置 Hayanagi 预先筛选候选局面。也可以选择已注册的 Hayanagi 作为确认将死的 USI 引擎。</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">标准 USI <code>go mate</code> 的搜索上限为 63 手，ShogiBoardQ 诘棋练习中进行的<strong>内置初始局面判定最多 31 手</strong>。超时和达到搜索上限会与“证明不诘”区分处理。</p>
+        <p class="guide-step-text">由于是深度优先搜索，长手数的诘棋（大约 15 手以上）可能需要较长时间。长手数的题目可以在<a href="../../en/guide/tsume-play.html#problems">题目列表的“诘棋引擎”</a>（英文）中选择另行注册的 KomoringHeights（已注册时，首次打开会选择 KomoringHeights）。此时守方的应着仍由 Hayanagi 走，并根据 KomoringHeights 的将死手数选择应着。</p>
+    </div>
+</section>
+
+<section id="build" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">从源码构建</h2>
+        <p class="section-desc">可以与 ShogiBoardQ 一起构建，也可以只构建 Hayanagi</p>
+        <div class="guide-step">
+            <h3 class="guide-step-title">与 ShogiBoardQ 一起构建</h3>
+            <p class="guide-step-text">在 ShogiBoardQ 仓库的根目录执行。获取子模块后正常构建，即可生成应用和 Hayanagi。</p>
+            <div class="build-steps"><pre><code>git submodule update --init --recursive
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release</code></pre></div>
+            <p class="guide-step-text">Qt 等准备请参阅<a href="../index.html#build">从源码构建</a>中各操作系统的步骤。在 Linux 和 macOS 的一般配置中，注册引擎时使用 <code>build/Hayanagi/hayanagi</code>。定式文件放在 <code>build/Hayanagi/book/hayanagi_book.db</code>。</p>
+        </div>
+        <div class="guide-step">
+            <h3 class="guide-step-title">只构建 Hayanagi</h3>
+            <p class="guide-step-text">获取子模块后，在 ShogiBoardQ 仓库的根目录执行以下命令。Hayanagi 本身不依赖 Qt，需要 CMake 3.16 以上和支持 C++17 的编译器。</p>
+            <div class="build-steps"><pre><code>cmake -S Hayanagi -B build-hayanagi -DCMAKE_BUILD_TYPE=Release
+cmake --build build-hayanagi --config Release
+./build-hayanagi/hayanagi --version</code></pre></div>
+            <p class="guide-step-text">最后一条命令是 Linux 和 macOS 的示例，会显示 <code>Hayanagi 1.5.1</code>。在 Windows 上请运行输出目录中的 <code>hayanagi.exe</code>。USI 命令、搜索原理、测试和更新记录的详细内容请参阅 <a href="https://github.com/hnakada123/Hayanagi#readme">Hayanagi 的 README</a>（日文）。</p>
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../index.html#features" class="back-link">← 返回功能一览</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

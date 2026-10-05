@@ -4,34 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>将棋エンジン Hayanagi - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQのサブモジュールとして組み込まれているUSI対応将棋エンジンHayanagiを紹介します。対局・検討・詰み探索の機能、エンジン登録、棋力や定跡の設定、ビルド方法を解説します。">
+    <meta name="description" content="ShogiBoardQのサブモジュールとして開発しているUSI対応将棋エンジンHayanagiを紹介します。対局・検討・詰み探索の機能、エンジン登録、棋力や定跡の設定、ビルド方法を解説します。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
+    <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
     <meta property="og:title" content="将棋エンジン Hayanagi - ShogiBoardQ">
-    <meta property="og:description" content="USI対応のHayanagiで対局・検討・詰み探索。通常のエンジン登録と、詰将棋対局での内蔵利用を紹介します。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta property="og:description" content="USI対応のHayanagiで対局・検討・詰み探索。エンジン登録と、詰将棋対局での内蔵利用を紹介します。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/hayanagi/hayanagi-02-settings.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="将棋エンジン Hayanagi - ShogiBoardQ">
-    <meta name="twitter:description" content="Hayanagiの機能、エンジン登録、主要設定、詰み探索、ビルド方法を紹介します。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta name="twitter:description" content="USI対応のHayanagiで対局・検討・詰み探索。エンジン登録と、詰将棋対局での内蔵利用を紹介します。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/hayanagi/hayanagi-02-settings.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/hayanagi.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/hayanagi.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html">
 </head>
 <body>
 
+<!-- Navigation -->
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/hayanagi.html" class="language-switch" hreflang="en" lang="en" aria-label="English">English</a>
-        <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const open = document.getElementById('guide-nav').classList.toggle('open'); this.setAttribute('aria-expanded', String(open));">
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="hayanagi.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/hayanagi.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/hayanagi.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/hayanagi.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
-        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+        <ul class="nav-links">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
             <li><a href="#overview">概要</a></li>
@@ -39,6 +52,7 @@
             <li><a href="#options">設定</a></li>
             <li><a href="#tsume">詰み探索</a></li>
             <li><a href="#build">ビルド</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
 </nav>
@@ -66,11 +80,11 @@
         <table class="info-table">
             <thead><tr><th scope="col">利用方法</th><th scope="col">できること・準備</th></tr></thead>
             <tbody>
-                <tr><td>USIエンジンとして登録</td><td>対局、棋譜解析、検討、詰み探索に利用できます。実行ファイルを「エンジン設定」で登録します。</td></tr>
-                <tr><td>詰将棋対局で内蔵利用</td><td>問題の詰み判定や玉方の応手に利用します。ShogiBoardQ本体に組み込まれているため、追加のエンジン登録は不要です。</td></tr>
+                <tr><td>USIエンジンとして登録</td><td>対局、棋譜解析、検討、詰み探索に使えます。実行ファイルを「エンジン登録」で登録します。</td></tr>
+                <tr><td>詰将棋対局で内蔵利用</td><td>問題の詰み判定や玉方の応手に使います。ShogiBoardQ本体に組み込まれているため、エンジン登録は不要です。</td></tr>
             </tbody>
         </table>
-        <p class="guide-step-text">ソースコードと詳しい仕様は<a href="https://github.com/hnakada123/Hayanagi">HayanagiのGitHubリポジトリ</a>で公開しています。このページは同梱サブモジュールのHayanagi 1.4.0に基づく説明です。</p>
+        <p class="guide-step-text">ソースコードと詳しい仕様は<a href="https://github.com/hnakada123/Hayanagi">HayanagiのGitHubリポジトリ</a>で公開しています。このページはサブモジュールのHayanagi 1.5.1に基づく説明です。</p>
         <div class="features-grid">
             <div class="feature-card">
                 <h3>対局と棋力調整</h3>
@@ -82,7 +96,7 @@
             </div>
             <div class="feature-card">
                 <h3>定跡と対局ルール</h3>
-                <p>やねうら王のDB2016形式の定跡に対応。千日手、連続王手の千日手、持将棋、入玉ルールの判定も備えています。</p>
+                <p>やねうら王のDB2016形式の定跡に対応し、Floodgateの棋譜から作った独自の定跡を使います。千日手、連続王手の千日手、持将棋、入玉ルールの判定も備えています。</p>
             </div>
             <div class="feature-card">
                 <h3>専用の詰み探索</h3>
@@ -98,18 +112,22 @@
         <p class="section-desc">通常の対局や検討には、USIエンジンの実行ファイルを登録します</p>
         <div class="guide-step">
             <div class="guide-step-header"><span class="guide-step-number">1</span><h3 class="guide-step-title">実行ファイルを用意する</h3></div>
-            <p class="guide-step-text">Linux配布ZIPでは、展開したフォルダの<code>Hayanagi/hayanagi</code>を利用できます。ソースからShogiBoardQをビルドした場合は<code>build/Hayanagi/hayanagi</code>が生成されます。Windowsでは実行ファイル名に<code>.exe</code>が付き、ビルド方式によっては<code>Release</code>などのサブフォルダに配置されます。</p>
-            <p class="guide-step-text">自分で生成する場合は、このページの<a href="#build">ビルド方法</a>を参照してください。Linux・macOSでは実行権限のあるファイルを選択します。</p>
+            <p class="guide-step-text">Linux版の配布ZIPでは、展開したフォルダの<code>Hayanagi/hayanagi</code>を使えます。AppImage版では、<code>--appimage-extract</code>で展開した<code>squashfs-root/usr/bin/hayanagi</code>を指定します。Windows版・macOS版の配布物には現在同梱していないため、ソースからビルドしてください。</p>
+            <p class="guide-step-text">ソースからShogiBoardQをビルドした場合は<code>build/Hayanagi/hayanagi</code>が生成されます。Windowsでは実行ファイル名に<code>.exe</code>が付き、ビルド方式によっては<code>Release</code>などのサブフォルダに配置されます。Hayanagiだけを生成する場合は<a href="#build">ビルド方法</a>を参照してください。Linux・macOSでは実行権限のあるファイルを選択します。</p>
         </div>
         <div class="guide-step">
-            <div class="guide-step-header"><span class="guide-step-number">2</span><h3 class="guide-step-title">エンジン設定で登録する</h3></div>
-            <p class="guide-step-text">「設定」→「エンジン設定」を開き、「追加」でHayanagiの実行ファイルを選択します。一覧にHayanagiが表示されたら登録完了です。「設定」ボタンからスレッド数や棋力などを変更できます。</p>
-            <p class="guide-step-text">画面付きの操作説明は<a href="game-play.html#engine-registration">エンジン登録のガイド</a>をご覧ください。</p>
+            <div class="guide-step-header"><span class="guide-step-number">2</span><h3 class="guide-step-title">エンジン登録で登録する</h3></div>
+            <p class="guide-step-text">「設定」→「エンジン設定…」で「エンジン登録」を開き、「追加」でHayanagiの実行ファイルを選択します。一覧に「Hayanagi 1.5.1」と表示されたら登録完了です。</p>
+            <div class="screenshot-item screenshot-item--compact">
+                <img src="../images/hayanagi/hayanagi-01-registration.png" alt="エンジン登録にHayanagiを登録した画面">
+                <p class="screenshot-caption">エンジン登録：一覧に「Hayanagi 1.5.1」が表示される</p>
+            </div>
+            <p class="guide-step-text">「設定」（またはダブルクリック）でエンジンの設定を開き、スレッド数や棋力などを変更できます。画面付きの操作説明は<a href="game-play.html#engine-registration">エンジン登録のガイド</a>をご覧ください。</p>
         </div>
         <div class="guide-step">
             <div class="guide-step-header"><span class="guide-step-number">3</span><h3 class="guide-step-title">対局・解析で選択する</h3></div>
             <p class="guide-step-text"><a href="game-play.html#game-start">対局の設定</a>でHayanagiを対局者に選ぶと、人間との対局やエンジン同士の対局ができます。<a href="consideration.html">検討モード</a>や<a href="kifu-analysis.html">棋譜解析</a>でも、使用するエンジンとして選択してください。</p>
-            <p class="guide-step-text">詰将棋を盤上で解く場合は「対局」→「詰将棋対局…」を開きます。内蔵Hayanagiでそのまま始められます。操作は<a href="tsume-play.html">詰将棋対局のガイド</a>で説明しています。</p>
+            <p class="guide-step-text">詰将棋を盤上で解く場合は「対局」→「詰将棋対局…」を開きます。問題一覧の「判定エンジン」で「Hayanagi（内蔵・31手まで）」を選べば、エンジンを登録しなくても始められます。操作は<a href="tsume-play.html">詰将棋対局のガイド</a>で説明しています。</p>
         </div>
     </div>
 </section>
@@ -118,21 +136,25 @@
     <div class="section-inner">
         <h2 class="section-title">主なエンジン設定</h2>
         <p class="section-desc">登録したUSIエンジンの設定を、用途に合わせて調整できます</p>
+        <div class="screenshot-item screenshot-item--compact">
+            <img src="../images/hayanagi/hayanagi-02-settings.png" alt="Hayanagiのエンジン設定画面">
+            <p class="screenshot-caption">エンジン設定：「先読み」と、Hayanagiが報告したオプションの値を変更できる</p>
+        </div>
         <table class="info-table">
             <thead><tr><th scope="col">オプション</th><th scope="col">内容</th></tr></thead>
             <tbody>
                 <tr><td><code>Threads</code></td><td>探索に使うスレッド数。既定値は1、範囲は1〜128です。PCのCPUと他の作業に合わせて指定します。</td></tr>
                 <tr><td><code>Hash</code> / <code>USI_Hash</code></td><td>通常探索の局面を記憶するメモリ量（MB）。どちらも同じ設定で、既定値は16 MBです。</td></tr>
-                <tr><td><code>MultiPV</code></td><td>出力する候補手の数。エンジンは1〜32に対応します。ShogiBoardQの検討画面では読み筋数の設定に従います。</td></tr>
-                <tr><td><code>USI_Ponder</code></td><td>相手の手番中の先読み。既定は無効です。ShogiBoardQのエンジン設定の「先読み」で切り替えます。</td></tr>
+                <tr><td><code>MultiPV</code></td><td>出力する候補手の数。エンジンは1〜32に対応します。ShogiBoardQの検討では「候補手の数」の設定が使われます。</td></tr>
+                <tr><td><code>USI_Ponder</code></td><td>相手の手番中の先読み。既定は無効です。エンジン設定の「先読み」にある「相手の手番中に先読みする」で切り替えます。</td></tr>
                 <tr><td><code>USI_LimitStrength</code><br><code>USI_Strength</code></td><td>棋力制限を有効にすると、-15〜6の値で探索の深さとノード数を制限します。負数は級、正数は段の目安で、0は1級相当として扱います。既定では棋力制限は無効です。</td></tr>
                 <tr><td><code>USI_AnalyseMode</code></td><td>解析用のモード。棋力制限、定跡による即答、自動投了、先読み要求を無効にします。時間無制限の探索は別途指定します。</td></tr>
-                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>定跡を使うか、どのファイルを読むかを指定します。既定は有効で、実行ファイルからの相対パス<code>book/standard_book.db</code>を参照します。定跡ファイルは別途用意してください。</td></tr>
-                <tr><td><code>EnteringKingRule</code></td><td>入玉ルール。24点法・27点法・トライルールなどを選択でき、既定値は<code>CSARule24</code>です。</td></tr>
+                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>定跡を使うか、どのファイルを読むかを指定します。既定は有効で、実行ファイルと同じ場所の<code>book/hayanagi_book.db</code>を読みます（<code>BookFile</code>を<code>no_book</code>にすると定跡を使いません）。ソースからビルドすると定跡ファイルがビルド先に配置されます。配布物には定跡を同梱していないため、その場合は定跡なしで探索して指します。</td></tr>
+                <tr><td><code>EnteringKingRule</code></td><td>エンジン自身が入玉宣言する基準。24点法・27点法・トライルールなどを選択でき、既定値は<code>CSARule24</code>です。宣言の成否は、ShogiBoardQの対局ダイアログの「持将棋」で選んだルールで判定します。</td></tr>
             </tbody>
         </table>
         <p class="guide-step-text">棋力設定の段級位は、対局による校正前の目安です。人間の同じ段級位と一致する保証はありません。Hayanagiは簡易な評価関数を使う最小構成のエンジンで、駒得・駒の働き・玉の安全度などを評価します。</p>
-        <p class="guide-step-text">この設定表は登録したUSIエンジン用です。詰将棋対局の内蔵判定では、問題一覧・対局画面の「判定エンジン」「判定時間」を使います。</p>
+        <p class="guide-step-text">この設定表は登録したUSIエンジン用です。詰将棋対局の内蔵判定では、問題一覧の「判定エンジン」「判定時間」と、対局画面の「判定時間」を使います。</p>
     </div>
 </section>
 
@@ -144,12 +166,12 @@
             <thead><tr><th scope="col">用途</th><th scope="col">動作</th></tr></thead>
             <tbody>
                 <tr><td><a href="tsumi-search.html">詰み探索</a></td><td>登録したHayanagiに標準USIの<code>go mate</code>で探索を依頼します。詰みが見つかると、玉方の最長抵抗を含む全手順を返します。</td></tr>
-                <tr><td><a href="tsume-play.html">詰将棋対局</a></td><td>内蔵Hayanagiで問題を判定し、ユーザーの王手に対して玉方の応手を指します。詰みを逃した場合には逃れの手を示します。</td></tr>
+                <tr><td><a href="tsume-play.html">詰将棋対局</a></td><td>内蔵Hayanagiで問題を判定し、ユーザーの王手に対して玉方の応手を指します。詰みを逃した場合は逃れの手を示します。</td></tr>
                 <tr><td><a href="tsumeshogi-generator.html">詰将棋局面生成</a></td><td>内蔵Hayanagiで候補局面を事前に選別します。詰みを確認するUSIエンジンとして、登録したHayanagiを選ぶこともできます。</td></tr>
             </tbody>
         </table>
         <p class="guide-step-text">標準USIの<code>go mate</code>の探索上限は63手、ShogiBoardQの詰将棋対局で行う<strong>内蔵の初期局面判定は31手まで</strong>です。時間切れや探索上限への到達は、不詰の証明とは区別して扱います。</p>
-        <p class="guide-step-text">深さ優先の探索なので、長手数の詰将棋（おおむね15手以上）は解くのに時間がかかる場合があります。長手数の問題は、<a href="tsume-play.html#problems">問題一覧の判定エンジン</a>に別途登録したKomoringHeightsを選択できます。その場合も玉方の応手にはHayanagiを利用します。</p>
+        <p class="guide-step-text">深さ優先の探索なので、長手数の詰将棋（おおむね15手以上）は解くのに時間がかかる場合があります。長手数の問題には、<a href="tsume-play.html#problems">問題一覧の「判定エンジン」</a>で別途登録したKomoringHeightsを選べます（登録してあれば、初めて開いたときはKomoringHeightsが選ばれます）。その場合も玉方の応手はHayanagiが指し、どの応手を選ぶかはKomoringHeightsの詰み手数で決めます。</p>
     </div>
 </section>
 
@@ -163,7 +185,7 @@
             <div class="build-steps"><pre><code>git submodule update --init --recursive
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release</code></pre></div>
-            <p class="guide-step-text">Qtなどの準備は<a href="../index.html#build">ビルド・インストール</a>を参照してください。Linux・macOSの標準的な構成では<code>build/Hayanagi/hayanagi</code>をエンジン登録に使います。</p>
+            <p class="guide-step-text">Qtなどの準備は<a href="../index.html#build">ソースからビルド</a>の各OSの手順を参照してください。Linux・macOSの標準的な構成では<code>build/Hayanagi/hayanagi</code>をエンジン登録に使います。定跡ファイルは<code>build/Hayanagi/book/hayanagi_book.db</code>に配置されます。</p>
         </div>
         <div class="guide-step">
             <h3 class="guide-step-title">Hayanagiだけをビルド</h3>
@@ -171,18 +193,36 @@ cmake --build build --config Release</code></pre></div>
             <div class="build-steps"><pre><code>cmake -S Hayanagi -B build-hayanagi -DCMAKE_BUILD_TYPE=Release
 cmake --build build-hayanagi --config Release
 ./build-hayanagi/hayanagi --version</code></pre></div>
-            <p class="guide-step-text">最後のコマンドはLinux・macOSの例です。Windowsでは生成先にある<code>hayanagi.exe</code>を実行します。USIコマンド、探索の仕組み、テスト、変更履歴の詳細は<a href="https://github.com/hnakada123/Hayanagi#readme">HayanagiのREADME</a>を参照してください。</p>
+            <p class="guide-step-text">最後のコマンドはLinux・macOSの例で、<code>Hayanagi 1.5.1</code>と表示されます。Windowsでは生成先にある<code>hayanagi.exe</code>を実行します。USIコマンド、探索の仕組み、テスト、変更履歴の詳細は<a href="https://github.com/hnakada123/Hayanagi#readme">HayanagiのREADME</a>を参照してください。</p>
         </div>
     </div>
 </section>
 </main>
 
+<!-- Back Link -->
 <div class="back-link-section">
-    <a href="../index.html#features" class="back-link">&larr; 主な機能へ戻る</a>
+    <a href="../index.html#features" class="back-link">← 機能一覧へ戻る</a>
 </div>
+
+<!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>
