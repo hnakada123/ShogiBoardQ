@@ -16,6 +16,7 @@
 #include <QSize>
 
 #include "matchcoordinator.h"
+#include "nyugyokujudgement.h"
 #include "matchturnhandler.h"
 #include "gamestartorchestrator.h"
 #include "gamemodestrategy.h"
@@ -321,7 +322,15 @@ QString ShogiBoard::convertStandToSfen() const { return {}; }
 
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
 ShogiGameController::~ShogiGameController() = default;
-ShogiBoard* ShogiGameController::board() const { return nullptr; }
+// エンジンの入玉宣言の判定をテストから指定する
+ShogiBoard* g_stubGameBoard = nullptr;
+NyugyokuJudgement::Result g_stubNyugyokuResult;
+ShogiBoard* ShogiGameController::board() const { return g_stubGameBoard; }
+NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const ShogiBoard&, bool)
+{
+    return g_stubNyugyokuResult;
+}
+QString NyugyokuJudgement::resultTitle() { return QStringLiteral("入玉宣言結果"); }
 void ShogiGameController::setCurrentPlayer(const Player p) { m_currentPlayer = p; }
 void ShogiGameController::setPromote(bool) {}
 void ShogiGameController::newGame(QString&) {}

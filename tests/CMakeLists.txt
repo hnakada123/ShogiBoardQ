@@ -1452,6 +1452,10 @@ target_compile_definitions(tst_dialog_appearance PRIVATE TRANSLATIONS_DIR="${CMA
 add_shogi_test(tst_automation_dispatcher tst_automation_dispatcher.cpp)
 target_link_libraries(tst_automation_dispatcher PRIVATE shogiboardq_static)
 
+# 入玉宣言の判定（人間・エンジン共通の24点法・27点法）
+add_shogi_test(tst_nyugyoku_judgement tst_nyugyoku_judgement.cpp)
+target_link_libraries(tst_nyugyoku_judgement PRIVATE shogiboardq_static)
+
 add_shogi_test(tst_usi_info_line_parser tst_usi_info_line_parser.cpp)
 target_link_libraries(tst_usi_info_line_parser PRIVATE shogiboardq_static)
 

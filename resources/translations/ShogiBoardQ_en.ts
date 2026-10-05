@@ -3809,7 +3809,7 @@ Each screen keeps its current text size.</translation>
         <translation>The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="132"/>
         <location filename="../../src/game/gameendhandler_record.cpp" line="146"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
@@ -7996,17 +7996,181 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>NyugyokuDeclarationHandler</name>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="57"/>
+        <source>○</source>
+        <translation type="vanished">○</translation>
+    </message>
+    <message>
+        <source>×</source>
+        <translation type="vanished">×</translation>
+    </message>
+    <message>
+        <source>【宣言条件の判定】
+① 玉が敵陣にいる: %1
+② 敵陣に10枚以上: %2 (%3枚)
+③ 王手がかかっていない: %4
+④ 宣言点数: %5点
+</source>
+        <translation type="vanished">[Declaration Condition Check]
+1. King is in enemy territory: %1
+2. 10+ pieces in enemy territory: %2 (%3 pieces)
+3. King is not in check: %4
+4. Declaration points: %5 points
+</translation>
+    </message>
+    <message>
+        <source>
+【24点法】
+</source>
+        <translation type="vanished">
+[24-Point Rule]
+</translation>
+    </message>
+    <message>
+        <source>
+【27点法】
+</source>
+        <translation type="vanished">
+[27-Point Rule]
+</translation>
+    </message>
+    <message>
+        <source>必要点数: %1点以上
+</source>
+        <translation type="vanished">Required Points: %1 or more
+</translation>
+    </message>
+    <message>
+        <source>宣言勝ち</source>
+        <translation type="vanished">Declaration Win</translation>
+    </message>
+    <message>
+        <source>31点以上: 勝ち</source>
+        <translation type="vanished">31+ points: Win</translation>
+    </message>
+    <message>
+        <source>持将棋（引き分け）</source>
+        <translation type="vanished">Jishogi (Draw)</translation>
+    </message>
+    <message>
+        <source>24〜30点: 引き分け</source>
+        <translation type="vanished">24-30 points: Draw</translation>
+    </message>
+    <message>
+        <source>宣言失敗（負け）</source>
+        <translation type="vanished">Declaration Failed (Loss)</translation>
+    </message>
+    <message>
+        <source>24点未満: 宣言失敗</source>
+        <translation type="vanished">Under 24 points: Declaration Failed</translation>
+    </message>
+    <message>
+        <source>条件未達: 宣言失敗</source>
+        <translation type="vanished">Conditions Not Met: Declaration Failed</translation>
+    </message>
+    <message>
+        <source>条件達成: 勝ち</source>
+        <translation type="vanished">Conditions Met: Win</translation>
+    </message>
+    <message>
+        <source>点数不足: 宣言失敗</source>
+        <translation type="vanished">Insufficient Points: Declaration Failed</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="54"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="68"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
+        <source>入玉宣言</source>
+        <translation>Entering King Declaration</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="54"/>
+        <source>対局中ではありません。</source>
+        <translation>No game in progress.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="60"/>
+        <source>エラー</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="60"/>
+        <source>盤面データがありません。</source>
+        <translation>No board data available.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="68"/>
+        <source>入玉宣言は自分の手番で行います。</source>
+        <translation>Make the entering king declaration on your own turn.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="77"/>
+        <source>持将棋ルールが「なし」に設定されています。
+対局ダイアログで「24点法」または「27点法」を選択してください。</source>
+        <translation>Jishogi rule is set to &quot;None&quot;.
+Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="87"/>
+        <source>先手</source>
+        <translation>Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="87"/>
+        <source>後手</source>
+        <translation>White</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="92"/>
+        <source>入玉宣言確認</source>
+        <translation>Confirm Entering King Declaration</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
+        <source>%1が入玉宣言を行います。
+
+宣言条件を満たさない場合は宣言側の負けとなります。
+本当に宣言しますか？</source>
+        <translation>%1 will make an entering king declaration.
+
+If the declaration conditions are not met, the declaring side loses.
+Are you sure you want to declare?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="96"/>
+        <source>宣言する</source>
+        <translation>Declare</translation>
+    </message>
+    <message>
+        <source>%1の入玉宣言
+
+%2
+
+【結果】%3</source>
+        <translation type="vanished">%1&apos;s Entering King Declaration
+
+%2
+
+[Result] %3</translation>
+    </message>
+    <message>
+        <source>入玉宣言結果</source>
+        <translation type="vanished">Entering King Declaration Result</translation>
+    </message>
+</context>
+<context>
+    <name>NyugyokuJudgement</name>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="33"/>
         <source>○</source>
         <translation>○</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="58"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="34"/>
         <source>×</source>
         <translation>×</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="60"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="35"/>
         <source>【宣言条件の判定】
 ① 玉が敵陣にいる: %1
 ② 敵陣に10枚以上: %2 (%3枚)
@@ -8021,7 +8185,7 @@ Please restart the application to apply the changes.</translation>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="72"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="47"/>
         <source>
 【24点法】
 </source>
@@ -8030,7 +8194,45 @@ Please restart the application to apply the changes.</translation>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="75"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="50"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="67"/>
+        <source>宣言勝ち</source>
+        <translation>Declaration Win</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="51"/>
+        <source>31点以上: 勝ち</source>
+        <translation>31+ points: Win</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="55"/>
+        <source>持将棋（引き分け）</source>
+        <translation>Jishogi (Draw)</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="56"/>
+        <source>24〜30点: 引き分け</source>
+        <translation>24-30 points: Draw</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="58"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="70"/>
+        <source>宣言失敗（負け）</source>
+        <translation>Declaration Failed (Loss)</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="59"/>
+        <source>24点未満: 宣言失敗</source>
+        <translation>Under 24 points: Declaration Failed</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="59"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="71"/>
+        <source>条件未達: 宣言失敗</source>
+        <translation>Conditions Not Met: Declaration Failed</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="63"/>
         <source>
 【27点法】
 </source>
@@ -8039,128 +8241,24 @@ Please restart the application to apply the changes.</translation>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="64"/>
         <source>必要点数: %1点以上
 </source>
         <translation>Required Points: %1 or more
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="125"/>
-        <source>宣言勝ち</source>
-        <translation>Declaration Win</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
-        <source>31点以上: 勝ち</source>
-        <translation>31+ points: Win</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="98"/>
-        <source>持将棋（引き分け）</source>
-        <translation>Jishogi (Draw)</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="99"/>
-        <source>24〜30点: 引き分け</source>
-        <translation>24-30 points: Draw</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="102"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="107"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="129"/>
-        <source>宣言失敗（負け）</source>
-        <translation>Declaration Failed (Loss)</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="103"/>
-        <source>24点未満: 宣言失敗</source>
-        <translation>Under 24 points: Declaration Failed</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="108"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="131"/>
-        <source>条件未達: 宣言失敗</source>
-        <translation>Conditions Not Met: Declaration Failed</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="126"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="68"/>
         <source>条件達成: 勝ち</source>
         <translation>Conditions Met: Win</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="133"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="71"/>
         <source>点数不足: 宣言失敗</source>
         <translation>Insufficient Points: Declaration Failed</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="144"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="158"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="167"/>
-        <source>入玉宣言</source>
-        <translation>Entering King Declaration</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="144"/>
-        <source>対局中ではありません。</source>
-        <translation>No game in progress.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="150"/>
-        <source>エラー</source>
-        <translation>Error</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="150"/>
-        <source>盤面データがありません。</source>
-        <translation>No board data available.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="158"/>
-        <source>入玉宣言は自分の手番で行います。</source>
-        <translation>Make the entering king declaration on your own turn.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="168"/>
-        <source>持将棋ルールが「なし」に設定されています。
-対局ダイアログで「24点法」または「27点法」を選択してください。</source>
-        <translation>Jishogi rule is set to &quot;None&quot;.
-Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="178"/>
-        <source>先手</source>
-        <translation>Black</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="178"/>
-        <source>後手</source>
-        <translation>White</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="183"/>
-        <source>入玉宣言確認</source>
-        <translation>Confirm Entering King Declaration</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="184"/>
-        <source>%1が入玉宣言を行います。
-
-宣言条件を満たさない場合は宣言側の負けとなります。
-本当に宣言しますか？</source>
-        <translation>%1 will make an entering king declaration.
-
-If the declaration conditions are not met, the declaring side loses.
-Are you sure you want to declare?</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="187"/>
-        <source>宣言する</source>
-        <translation>Declare</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="233"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="75"/>
         <source>%1の入玉宣言
 
 %2
@@ -8173,7 +8271,22 @@ Are you sure you want to declare?</translation>
 [Result] %3</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="236"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="76"/>
+        <source>先手</source>
+        <translation>Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="76"/>
+        <source>後手</source>
+        <translation>White</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="85"/>
+        <source>持将棋ルールが「なし」のため、27点法で判定しました。</source>
+        <translation>The jishogi rule is set to &quot;None&quot;, so the declaration was judged under the 27-Point Rule.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="93"/>
         <source>入玉宣言結果</source>
         <translation>Entering King Declaration Result</translation>
     </message>

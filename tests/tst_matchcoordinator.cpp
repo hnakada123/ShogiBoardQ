@@ -391,13 +391,19 @@ void Tst_MatchCoordinator::handleEngineWin_recordsWinner()
 {
     MCTestHarness h;
 
+    // エンジンの入玉宣言（bestmove win）も盤面で判定する。初期局面では条件を満たさず宣言側の負け
+    h.mc->handleEngineWin(1);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::IllegalMove);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P1);
+
+    // 先手玉２二、敵陣に15枚・持ち駒と合わせて28点（27点法で宣言勝ち）
+    h.mc->clearGameOverState();
+    QString entered = QStringLiteral(
+        "5+B+RGS/6GKS/+P+P+P+P+P+P+P+P+P/9/p1p1p1p1p/1s1g1g1s1/2n3n1n/1r2k4/2b6 b NL3P3lp 1");
+    h.gc.newGame(entered);
     h.mc->handleEngineWin(1);
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
     QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P2);
-
-    h.mc->clearGameOverState();
-    h.mc->handleEngineWin(2);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P1);
 }
 
 void Tst_MatchCoordinator::handleBreakOff_appendsTerminalOnce()

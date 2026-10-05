@@ -3018,7 +3018,7 @@ ABC abc 0123456789</translation>
         <translation>對局已結束。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="132"/>
         <location filename="../../src/game/gameendhandler_record.cpp" line="146"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
@@ -5955,17 +5955,181 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>NyugyokuDeclarationHandler</name>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="57"/>
+        <source>○</source>
+        <translation type="vanished">○</translation>
+    </message>
+    <message>
+        <source>×</source>
+        <translation type="vanished">×</translation>
+    </message>
+    <message>
+        <source>【宣言条件の判定】
+① 玉が敵陣にいる: %1
+② 敵陣に10枚以上: %2 (%3枚)
+③ 王手がかかっていない: %4
+④ 宣言点数: %5点
+</source>
+        <translation type="vanished">【宣言條件判定】
+① 玉將在敵陣：%1
+② 敵陣內至少 10 枚：%2（%3 枚）
+③ 未被王手：%4
+④ 宣言點數：%5 點
+</translation>
+    </message>
+    <message>
+        <source>
+【24点法】
+</source>
+        <translation type="vanished">
+【24 點法】
+</translation>
+    </message>
+    <message>
+        <source>
+【27点法】
+</source>
+        <translation type="vanished">
+【27 點法】
+</translation>
+    </message>
+    <message>
+        <source>必要点数: %1点以上
+</source>
+        <translation type="vanished">所需點數：至少 %1 點
+</translation>
+    </message>
+    <message>
+        <source>宣言勝ち</source>
+        <translation type="vanished">宣言勝</translation>
+    </message>
+    <message>
+        <source>31点以上: 勝ち</source>
+        <translation type="vanished">31 點以上：勝</translation>
+    </message>
+    <message>
+        <source>持将棋（引き分け）</source>
+        <translation type="vanished">持將棋（和棋）</translation>
+    </message>
+    <message>
+        <source>24〜30点: 引き分け</source>
+        <translation type="vanished">24 至 30 點：和棋</translation>
+    </message>
+    <message>
+        <source>宣言失敗（負け）</source>
+        <translation type="vanished">宣言失敗（負）</translation>
+    </message>
+    <message>
+        <source>24点未満: 宣言失敗</source>
+        <translation type="vanished">不足 24 點：宣言失敗</translation>
+    </message>
+    <message>
+        <source>条件未達: 宣言失敗</source>
+        <translation type="vanished">條件未滿足：宣言失敗</translation>
+    </message>
+    <message>
+        <source>条件達成: 勝ち</source>
+        <translation type="vanished">條件滿足：勝</translation>
+    </message>
+    <message>
+        <source>点数不足: 宣言失敗</source>
+        <translation type="vanished">點數不足：宣言失敗</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="54"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="68"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
+        <source>入玉宣言</source>
+        <translation>入玉宣言</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="54"/>
+        <source>対局中ではありません。</source>
+        <translation>當前沒有進行中的對局。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="60"/>
+        <source>エラー</source>
+        <translation>錯誤</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="60"/>
+        <source>盤面データがありません。</source>
+        <translation>沒有棋盤數據。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="68"/>
+        <source>入玉宣言は自分の手番で行います。</source>
+        <translation>請在輪到自己走棋時進行入玉宣言。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="77"/>
+        <source>持将棋ルールが「なし」に設定されています。
+対局ダイアログで「24点法」または「27点法」を選択してください。</source>
+        <translation>持將棋規則設為“無”。
+請在對局對話框選擇“24 點法”或“27 點法”。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="87"/>
+        <source>先手</source>
+        <translation>先手</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="87"/>
+        <source>後手</source>
+        <translation>後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="92"/>
+        <source>入玉宣言確認</source>
+        <translation>確認入玉宣言</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
+        <source>%1が入玉宣言を行います。
+
+宣言条件を満たさない場合は宣言側の負けとなります。
+本当に宣言しますか？</source>
+        <translation>%1將作出入玉宣言。
+
+若不滿足宣言條件，宣言方將判負。
+確定宣言嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="96"/>
+        <source>宣言する</source>
+        <translation>宣言</translation>
+    </message>
+    <message>
+        <source>%1の入玉宣言
+
+%2
+
+【結果】%3</source>
+        <translation type="vanished">%1的入玉宣言
+
+%2
+
+【結果】%3</translation>
+    </message>
+    <message>
+        <source>入玉宣言結果</source>
+        <translation type="vanished">入玉宣言結果</translation>
+    </message>
+</context>
+<context>
+    <name>NyugyokuJudgement</name>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="33"/>
         <source>○</source>
         <translation>○</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="58"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="34"/>
         <source>×</source>
         <translation>×</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="60"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="35"/>
         <source>【宣言条件の判定】
 ① 玉が敵陣にいる: %1
 ② 敵陣に10枚以上: %2 (%3枚)
@@ -5980,7 +6144,7 @@ OKを選択すると保存先が指定できます。</source>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="72"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="47"/>
         <source>
 【24点法】
 </source>
@@ -5989,7 +6153,45 @@ OKを選択すると保存先が指定できます。</source>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="75"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="50"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="67"/>
+        <source>宣言勝ち</source>
+        <translation>宣言勝</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="51"/>
+        <source>31点以上: 勝ち</source>
+        <translation>31 點以上：勝</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="55"/>
+        <source>持将棋（引き分け）</source>
+        <translation>持將棋（和棋）</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="56"/>
+        <source>24〜30点: 引き分け</source>
+        <translation>24 至 30 點：和棋</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="58"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="70"/>
+        <source>宣言失敗（負け）</source>
+        <translation>宣言失敗（負）</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="59"/>
+        <source>24点未満: 宣言失敗</source>
+        <translation>不足 24 點：宣言失敗</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="59"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="71"/>
+        <source>条件未達: 宣言失敗</source>
+        <translation>條件未滿足：宣言失敗</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="63"/>
         <source>
 【27点法】
 </source>
@@ -5998,128 +6200,24 @@ OKを選択すると保存先が指定できます。</source>
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="64"/>
         <source>必要点数: %1点以上
 </source>
         <translation>所需點數：至少 %1 點
 </translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="125"/>
-        <source>宣言勝ち</source>
-        <translation>宣言勝</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
-        <source>31点以上: 勝ち</source>
-        <translation>31 點以上：勝</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="98"/>
-        <source>持将棋（引き分け）</source>
-        <translation>持將棋（和棋）</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="99"/>
-        <source>24〜30点: 引き分け</source>
-        <translation>24 至 30 點：和棋</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="102"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="107"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="129"/>
-        <source>宣言失敗（負け）</source>
-        <translation>宣言失敗（負）</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="103"/>
-        <source>24点未満: 宣言失敗</source>
-        <translation>不足 24 點：宣言失敗</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="108"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="131"/>
-        <source>条件未達: 宣言失敗</source>
-        <translation>條件未滿足：宣言失敗</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="126"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="68"/>
         <source>条件達成: 勝ち</source>
         <translation>條件滿足：勝</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="133"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="71"/>
         <source>点数不足: 宣言失敗</source>
         <translation>點數不足：宣言失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="144"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="158"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="167"/>
-        <source>入玉宣言</source>
-        <translation>入玉宣言</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="144"/>
-        <source>対局中ではありません。</source>
-        <translation>當前沒有進行中的對局。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="150"/>
-        <source>エラー</source>
-        <translation>錯誤</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="150"/>
-        <source>盤面データがありません。</source>
-        <translation>沒有棋盤數據。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="158"/>
-        <source>入玉宣言は自分の手番で行います。</source>
-        <translation>請在輪到自己走棋時進行入玉宣言。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="168"/>
-        <source>持将棋ルールが「なし」に設定されています。
-対局ダイアログで「24点法」または「27点法」を選択してください。</source>
-        <translation>持將棋規則設為“無”。
-請在對局對話框選擇“24 點法”或“27 點法”。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="178"/>
-        <source>先手</source>
-        <translation>先手</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="178"/>
-        <source>後手</source>
-        <translation>後手</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="183"/>
-        <source>入玉宣言確認</source>
-        <translation>確認入玉宣言</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="184"/>
-        <source>%1が入玉宣言を行います。
-
-宣言条件を満たさない場合は宣言側の負けとなります。
-本当に宣言しますか？</source>
-        <translation>%1將作出入玉宣言。
-
-若不滿足宣言條件，宣言方將判負。
-確定宣言嗎？</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="187"/>
-        <source>宣言する</source>
-        <translation>宣言</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="233"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="75"/>
         <source>%1の入玉宣言
 
 %2
@@ -6132,7 +6230,22 @@ OKを選択すると保存先が指定できます。</source>
 【結果】%3</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="236"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="76"/>
+        <source>先手</source>
+        <translation>先手</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="76"/>
+        <source>後手</source>
+        <translation>後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="85"/>
+        <source>持将棋ルールが「なし」のため、27点法で判定しました。</source>
+        <translation>持將棋規則為「無」，因此依 27 點法判定。</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="93"/>
         <source>入玉宣言結果</source>
         <translation>入玉宣言結果</translation>
     </message>
