@@ -192,7 +192,6 @@ set(TS_FILES
 set(UI_FILES
     src/app/mainwindow.ui
     src/dialogs/changeenginesettingsdialog.ui
-    src/dialogs/considerationdialog.ui
     src/dialogs/tsumeshogisearchdialog.ui
     src/dialogs/csagamedialog.ui
     src/dialogs/engineregistrationdialog.ui
@@ -813,8 +812,6 @@ set(SRC_DIALOGS
     src/dialogs/changeenginesettingsdialog.h
     src/dialogs/enginesettingsoptionhandler.cpp
     src/dialogs/enginesettingsoptionhandler.h
-    src/dialogs/considerationdialog.cpp
-    src/dialogs/considerationdialog.h
     src/dialogs/csagamedialog.cpp
     src/dialogs/csagamedialog.h
     src/dialogs/csawaitingdialog.cpp

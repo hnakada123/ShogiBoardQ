@@ -332,18 +332,6 @@ void setKifuAnalysisDialogSize(const QSize& size)
 
 // --- 検討モード ---
 
-int considerationDialogFontSize()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kFontSizeConsiderationDialog, 10).toInt();
-}
-
-void setConsiderationDialogFontSize(int size)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kFontSizeConsiderationDialog, size);
-}
-
 int considerationEngineIndex()
 {
     QSettings& s = SettingsCommon::openSettings();

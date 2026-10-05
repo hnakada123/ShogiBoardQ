@@ -366,7 +366,6 @@ src/
 │
 ├── dialogs/                        # ダイアログ実装
 │   ├── startgamedialog.cpp/.h/.ui  #   対局開始ダイアログ
-│   ├── considerationdialog.cpp/.h/.ui # 検討設定ダイアログ
 │   ├── kifuanalysisdialog.cpp/.h/.ui # 棋譜解析ダイアログ
 │   ├── csagamedialog.cpp/.h/.ui    #   CSA対局接続ダイアログ
 │   ├── engineregistrationdialog.cpp/.h/.ui # エンジン登録ダイアログ
@@ -5671,8 +5670,7 @@ Urgency::Warn5  → 黄色背景 + 赤文字 + 赤枠（残5秒）
 | クラス名 | 基底クラス | .ui ファイル | 用途 |
 |---------|-----------|------------|------|
 | StartGameDialog | QDialog | startgamedialog.ui | 対局開始パラメータ収集（対局者・持ち時間・開始局面・連続対局設定） |
-| ConsiderationDialog | QDialog | considerationdialog.ui | 検討パラメータ収集（エンジン選択・思考時間・MultiPV） |
-| TsumeShogiSearchDialog | ConsiderationDialog | （親クラス経由） | 詰将棋探索用ダイアログ（ConsiderationDialog を継承） |
+| TsumeShogiSearchDialog | QDialog | tsumeshogisearchdialog.ui | 詰み探索の設定（エンジン選択・探索時間） |
 | KifuAnalysisDialog | QDialog | kifuanalysisdialog.ui | 棋譜解析パラメータ収集（解析範囲・エンジン・思考時間） |
 | CsaGameDialog | QDialog | csagamedialog.ui | CSA通信対局設定（サーバー接続情報・対局者選択） |
 | CsaWaitingDialog | QDialog | なし | CSA通信対局の接続待機表示（状態遷移・ログ表示） |
@@ -8798,7 +8796,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
 | CommentCoordinator | C | app | コメント編集の統合調整 | 第14章 |
 | ConsecutiveGamesController | C | game | 連続対局の進行管理 | 第6章 |
-| ConsiderationDialog | C | dialogs | 検討モード設定ダイアログ | 第11章 |
 | ConsiderationFlowController | C | analysis | 検討モードのフロー制御 | 第9章 |
 | ConsiderationModeUIController | C | analysis | 検討モードUI状態の制御 | 第9章 |
 | ConsiderationWiring | C | ui/wiring | 検討モードのシグナル/スロット配線 | 第10章 |
@@ -9114,7 +9111,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | startgamedialog | 第11章 | 対局開始 |
-| considerationdialog | 第11章 | 検討モード |
 | kifuanalysisdialog | 第11章 | 棋譜解析 |
 | csagamedialog | 第11章 | CSA対局 |
 | engineregistrationdialog | 第11章 | エンジン登録 |

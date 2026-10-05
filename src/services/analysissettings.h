@@ -6,7 +6,7 @@
 ///
 /// 評価値グラフ・解析タブ・棋譜解析・検討モード・読み筋盤面に関する設定を提供します。
 /// 呼び出し元: evaluationchartwidget.cpp, engineanalysistab.cpp, kifuanalysisdialog.cpp,
-///             analysisresultspresenter.cpp, considerationdialog.cpp, considerationtabmanager.cpp,
+///             analysisresultspresenter.cpp, considerationtabmanager.cpp,
 ///             pvboarddialog.cpp
 
 #include <QSize>
@@ -110,19 +110,15 @@ void setKifuAnalysisDialogSize(const QSize& size);
 
 // --- 検討モード ---
 
-/// 検討ダイアログのフォントサイズ（デフォルト: 10）
-int considerationDialogFontSize();
-void setConsiderationDialogFontSize(int size);
-
-/// 検討ダイアログの最後に選択したエンジン番号（デフォルト: 0）
+/// 検討タブで最後に選択したエンジン番号（デフォルト: 0）
 int considerationEngineIndex();
 void setConsiderationEngineIndex(int index);
 
-/// 検討ダイアログの時間無制限フラグ（デフォルト: true）
+/// 検討タブの時間無制限フラグ（デフォルト: true）
 bool considerationUnlimitedTime();
 void setConsiderationUnlimitedTime(bool unlimited);
 
-/// 検討ダイアログの検討時間・秒（デフォルト: 0）
+/// 検討タブの検討時間・秒（デフォルト: 0）
 int considerationByoyomiSec();
 void setConsiderationByoyomiSec(int sec);
 

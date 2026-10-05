@@ -47,7 +47,6 @@ inline constexpr char kFontSizeCsaGameDialog[]           = "FontSize/csaGameDial
 inline constexpr char kFontSizeJishogiScore[]            = "FontSize/jishogiScore";
 inline constexpr char kFontSizeEngineSettings[]          = "FontSize/engineSettings";
 inline constexpr char kFontSizeEngineRegistration[]      = "FontSize/engineRegistration";
-inline constexpr char kFontSizeConsiderationDialog[]     = "FontSize/considerationDialog";
 inline constexpr char kFontSizeStartGameDialog[]         = "FontSize/startGameDialog";
 inline constexpr char kFontSizeKifuPasteDialog[]         = "FontSize/kifuPasteDialog";
 inline constexpr char kFontSizeTsumeshogiGenerator[]     = "FontSize/tsumeshogiGenerator";
