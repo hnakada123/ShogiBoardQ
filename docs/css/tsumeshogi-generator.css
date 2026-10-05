@@ -4,11 +4,16 @@
     overflow-wrap: anywhere;
 }
 
-.cli-guide[id],
+.tsumeshogi-generator-guide section[id],
 .cli-guide [id] {
     scroll-margin-top: 4rem;
 }
 
-.cli-guide ul.guide-step-text {
-    padding-left: 1.25rem;
+.tsumeshogi-generator-guide ol.guide-step-text {
+    padding-left: 1.5rem;
+}
+
+.cli-guide .format-example,
+.cli-guide .info-table {
+    margin-bottom: 1rem;
 }

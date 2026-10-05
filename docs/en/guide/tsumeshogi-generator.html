@@ -1,237 +1,295 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Tsume Shogi Generator - ShogiBoardQ</title>
-<meta content="Generate tsume shogi in ShogiBoardQ with the GUI or generate-tsume CLI. Learn parallel Python execution, checkpoints, usage notes, solution text output, and independent validation." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" property="og:url"/>
-<meta content="Tsume Shogi Generator - ShogiBoardQ" property="og:title"/>
-<meta content="Generate tsume shogi in ShogiBoardQ with the GUI or generate-tsume CLI. Learn parallel Python execution, checkpoints, usage notes, solution text output, and independent validation." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/tsumeshogi-generator/generator-02-results.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Tsume Shogi Generator - ShogiBoardQ" name="twitter:title"/>
-<meta content="Generate tsume shogi in ShogiBoardQ with the GUI or generate-tsume CLI. Learn parallel Python execution, checkpoints, usage notes, solution text output, and independent validation." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/tsumeshogi-generator/generator-02-results.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
-<link href="../../css/tsumeshogi-generator.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tsume Shogi Generator - ShogiBoardQ</title>
+    <meta name="description" content="A guide to the tsume shogi generator in ShogiBoardQ: generate puzzles with the GUI dialog or the generate-tsume CLI, check them for alternative mates and unnecessary pieces, run parallel Python workers, and validate the collection.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html">
+    <meta property="og:title" content="Tsume Shogi Generator - ShogiBoardQ">
+    <meta property="og:description" content="Generate tsume shogi from random positions, confirm the mates with a USI engine, and check alternative mates and unnecessary pieces, in the GUI or the CLI.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/tsumeshogi-generator/tsumeshogi-generator-results.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Tsume Shogi Generator - ShogiBoardQ">
+    <meta name="twitter:description" content="Generate tsume shogi from random positions, confirm the mates with a USI engine, and check alternative mates and unnecessary pieces, in the GUI or the CLI.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/tsumeshogi-generator/tsumeshogi-generator-results.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/tsumeshogi-generator.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumeshogi-generator.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/tsumeshogi-generator.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#overview">Overview</a></li>
-<li><a href="#generation">Generate Positions</a></li>
-<li><a href="#results">Results</a></li>
-<li><a href="#replay">Replay Solutions</a></li>
-<li><a href="#cli-generation">CLI Generation</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/tsumeshogi-generator.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="tsumeshogi-generator.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/tsumeshogi-generator.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/tsumeshogi-generator.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#generation">Generate Positions</a></li>
+            <li><a href="#results">Results</a></li>
+            <li><a href="#replay">Replay Solutions</a></li>
+            <li><a href="#cli-generation">CLI Generation</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
-<!-- Hero -->
+
+<main class="tsumeshogi-generator-guide">
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Tsume Shogi Generator</h1>
-<p class="hero-subtitle">Generate tsume shogi puzzles from random positions verified by a USI engine</p>
-<div class="hero-badges">
-<span class="badge">Automatic Generation</span>
-<span class="badge">Remove Unnecessary Pieces</span>
-<span class="badge">SFEN Output</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Tsume Shogi Generator</h1>
+        <p class="hero-subtitle">Generate tsume shogi from random positions verified by a USI engine</p>
+        <div class="hero-badges">
+            <span class="badge">Automatic Generation</span>
+            <span class="badge">Alternative-Mate and Piece Checks</span>
+            <span class="badge">SFEN Output</span>
+            <span class="badge">CLI and Python</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: Overview -->
-<section class="section section--alt" id="overview">
-<div class="section-inner">
-<h2 class="section-title">Overview</h2>
-<p class="section-desc">Generate random tsume shogi candidates and verify mates with a USI engine</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Features</span>
-</div>
-<p class="guide-step-text">The tsume shogi generator automatically performs the following steps.</p>
-<ul class="guide-step-text">
-<li>Generate random candidate tsume shogi positions.</li>
-<li>Search for mate with a USI engine using go mate, finding positions with the requested solution length.</li>
-<li>Trim unnecessary pieces from successful positions to produce simplified puzzles.</li>
-<li>List results in SFEN format for saving to a file or copying to the clipboard.</li>
-</ul>
-<p class="guide-step-text">Mate searches can use <a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>, a tsume shogi engine developed and published by komori-n. Download the engine separately, register it in Settings → Engine Settings…, and select it in the generator.</p>
-</div>
-</div>
-</div>
+
+<section id="overview" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Overview</h2>
+        <p class="section-desc">Build random candidate positions, then check the mate and alternative mates before output</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">Features</h3>
+                </div>
+                <p class="guide-step-text">The tsume shogi generator automatically performs the following steps.</p>
+                <div class="guide-step-text">
+                    <ul>
+                        <li>Generate random candidate tsume shogi positions.</li>
+                        <li>Screen candidates with the built-in mate search, then confirm a mate of the requested length with a USI engine (<code>go mate</code>).</li>
+                        <li>Check the main line for alternative mates and remove unnecessary pieces, keeping only positions that meet the conditions.</li>
+                        <li>List the results as SFEN for saving to a file or copying to the clipboard.</li>
+                    </ul>
+                </div>
+                <p class="guide-step-text">Mate searches can use <a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>, a tsume shogi engine developed and published by komori-n. Download the engine separately, register it under Settings → Engine Settings… (<a href="game-play.html#engine-registration">Registering an Engine</a>), and select it as the Engine in the generator dialog. Use it with settings that return the shortest solution (<code>PostSearchLevel = MinLength</code> for KomoringHeights, the default).</p>
+            </div>
+        </div>
+    </div>
 </section>
-<!-- Section 2: Generation -->
-<section class="section" id="generation">
-<div class="section-inner">
-<h2 class="section-title">Generation Settings</h2>
-<p class="section-desc">Set the parameters in the generator dialog, then start generation</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Tsume Shogi Generator Dialog</span>
-</div>
-<p class="guide-step-text">Choose Game → Tsume Position Generator… to open the dialog. You can configure the following settings.</p>
-<ul class="guide-step-text">
-<li><strong>Engine Settings</strong>: Select and configure the USI engine for mate search.</li>
-<li><strong>Target Moves</strong>: The puzzle's solution length, such as 3 or 5 plies (each player's move counts as one ply).</li>
-<li><strong>Max Attacking Pieces</strong>: Maximum number of attacking pieces on the board and in hand combined.</li>
-<li><strong>Max Defending Pieces</strong>: Maximum number of defending pieces, excluding the king.</li>
-<li><strong>Placement Range</strong>: The range around the king in which attacking pieces are placed, in squares.</li>
-<li><strong>Search Time per Position</strong>: Engine search time for each position.</li>
-<li><strong>Generation Limit</strong>: Maximum number of positions to find.</li>
-<li><strong>Allow multiple mating moves on the final move</strong>: Accept positions whose main line ends with several mating moves. Turn it off to require a unique final move as well (alternative solutions earlier in the main line are always excluded).</li>
-</ul>
-<div class="screenshot-item">
-<img alt="Tsume Shogi Generator Dialog" src="../../images/en/tsumeshogi-generator/generator-01-dialog.png"/>
-<p class="screenshot-caption">Generator dialog: set the engine and generation parameters, then click Start</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">How Random Positions Are Generated</span>
-</div>
-<p class="guide-step-text">Positions are generated automatically as follows.</p>
-<ul class="guide-step-text">
-<li>Place White's king on a random square of the 9×9 board.</li>
-<li>Place attacking pieces around the king, randomly assigning them to the board or the attacker's hand.</li>
-<li>Place defending pieces around the king.</li>
-<li>Add all unused pieces to the defender's (White's) hand, preserving all 40 pieces.</li>
-<li>Verify that the king is not in check in the initial position.</li>
-</ul>
-<p class="guide-step-text">Generated positions are first screened by the built-in mate search. Only candidates with mate in exactly the requested number of plies and a single mating first move are sent to the USI engine, and only positions whose mate the engine confirms proceed to the alternative-mate check. The searched count includes positions rejected by the built-in screening.</p>
-</div>
-</div>
-</div>
+
+<section id="generation" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Generation Settings</h2>
+        <p class="section-desc">Set the conditions in the generator dialog, then start generating</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">Tsume Position Generator Dialog</h3>
+                </div>
+                <p class="guide-step-text">Choose Game → Tsume Position Generator… to open the dialog, check the engine and the generation settings, and click Start. The settings are used again next time.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-settings.png" alt="Tsume Position Generator dialog" width="840" height="920" loading="lazy">
+                    <p class="screenshot-caption">Tsume Position Generator dialog with About engine settings and acceptance criteria expanded</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">Setting</th><th scope="col">Description</th></tr></thead>
+                    <tbody>
+                        <tr><td>Engine</td><td>The USI engine used for mate search. Settings... changes the options of the selected engine.</td></tr>
+                        <tr><td>Target moves</td><td>The solution length of the puzzles (an odd number of plies). The default is a 3-move mate.</td></tr>
+                        <tr><td>Max attack pieces</td><td>The maximum number of attacking pieces on the board and in hand combined. The default is 4.</td></tr>
+                        <tr><td>Max defense pieces</td><td>The maximum number of defending pieces on the board, excluding the king. The default is 1.</td></tr>
+                        <tr><td>Max positions</td><td>Generation ends when this many positions have been accepted. The default is 10; 0 (Unlimited) keeps generating until you stop.</td></tr>
+                        <tr><td>Search time/pos</td><td>The time for the mate searches of a candidate and of each trimmed position, including the full alternative-mate check of each. The default is 5 seconds; positions whose checks do not finish in time are not accepted.</td></tr>
+                        <tr><td>Placement range</td><td>The range around the king in which attacking pieces are placed, in squares. The default is 3.</td></tr>
+                        <tr><td>Allow multiple mating moves on the final move</td><td>When on, positions are accepted even if the last move of the main line has several mating moves (except the first move of a 1-move mate). When off, the final move must be unique too. Alternative mates earlier in the main line, such as on the first move, are always excluded.</td></tr>
+                        <tr><td>Restore defaults</td><td>Reset the generation settings to their defaults.</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">Click About engine settings and acceptance criteria to show or hide notes on engine settings and the acceptance conditions.</p>
+                <p class="guide-step-text">Click Stop to stop generating. Positions accepted before stopping can still be saved and copied.</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">How Random Positions Are Generated</h3>
+                </div>
+                <p class="guide-step-text">Positions are built automatically as follows.</p>
+                <ol class="guide-step-text">
+                    <li>Place White's king on a random square of the 9×9 board.</li>
+                    <li>Place attacking pieces around the king, randomly assigning them to the board or the attacker's hand.</li>
+                    <li>Place defending pieces around the king.</li>
+                    <li>Leave out the attacker's king and add all other unused pieces to the defender's (White's) hand.</li>
+                    <li>Confirm that the king is not in check in the starting position.</li>
+                </ol>
+                <p class="guide-step-text">Generated positions are first screened by the built-in mate search, which removes positions proven not to mate in the target length and positions with several mating first moves. Candidates the built-in search cannot decide are also sent to the USI engine, and only positions whose mate of the requested length the engine confirms proceed to the alternative-mate check. The Searched count includes positions removed by the built-in screening.</p>
+            </div>
+        </div>
+    </div>
 </section>
-<!-- Section 3: Results -->
-<section class="section section--alt" id="results">
-<div class="section-inner">
-<h2 class="section-title">Results</h2>
-<p class="section-desc">Discovered tsume shogi positions appear in the results list</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Results List</span>
-</div>
-<p class="guide-step-text">When a mate of the requested length is found, unnecessary pieces are trimmed before the position is added to the results. Pieces that can be removed without changing the mating length are automatically eliminated to simplify the puzzle.</p>
-<p class="guide-step-text">The results list offers these actions.</p>
-<ul class="guide-step-text">
-<li><strong>Board Button</strong>: Open the principal variation window to inspect the mating line.</li>
-<li><strong>Save to File</strong>: Save the results as an SFEN text file. The file starts with comment lines (beginning with "#") that record the ShogiBoardQ version, the generation date and time, and the generation settings; these lines are skipped when the file is loaded.</li>
-<li><strong>Copy Selected</strong>: Copy the selected position's SFEN to the clipboard.</li>
-<li><strong>Copy All</strong>: Copy all positions as SFEN to the clipboard.</li>
-</ul>
-<div class="screenshot-item">
-<img alt="Tsume shogi generation results" src="../../images/en/tsumeshogi-generator/generator-02-results.png"/>
-<p class="screenshot-caption">Generation results: three positions with mate in 3 plies (1,371 positions searched in 4 seconds)</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Remove Unnecessary Pieces</span>
-</div>
-<p class="guide-step-text">Trimming automatically removes decorative pieces from randomly generated positions: pieces that do not affect the mating solution.</p>
-<ul class="guide-step-text">
-<li>Try removing attacking and defending pieces on the board, and pieces in the attacker's hand, one at a time.</li>
-<li>Keep a removal if the position still has mate in the same number of plies.</li>
-<li>Move removed pieces to White's hand to preserve all 40 pieces.</li>
-<li>Recheck after each removal to find any pieces that have become unnecessary.</li>
-</ul>
-</div>
-</div>
-</div>
+
+<section id="results" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Results</h2>
+        <p class="section-desc">Accepted puzzles are added to the results list</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">Results List</h3>
+                </div>
+                <p class="guide-step-text">When a mate of the requested length is found, the position is added to the results after trimming unnecessary pieces and checking for alternative mates. The progress bar shows accepted positions against Max positions, and the lines below it show the numbers of searched and accepted positions, the elapsed time, and the positions excluded by verification (including inconclusive ones).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-results.png" alt="Results list of the tsume position generator" width="840" height="920" loading="lazy">
+                    <p class="screenshot-caption">Generation results: ten 3-move mates accepted with the default settings</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">Action</th><th scope="col">Description</th></tr></thead>
+                    <tbody>
+                        <tr><td>Show (Board column)</td><td>Open the principal variation window to inspect the position and the mating line. Double-clicking the row or pressing Enter also opens it.</td></tr>
+                        <tr><td>Include moves</td><td>When on, saved and copied SFENs are followed by <code>moves</code> and the mating line in USI notation.</td></tr>
+                        <tr><td>Copy Selected</td><td>Copy the selected positions to the clipboard (Ctrl+C). Use Ctrl or Shift to select several.</td></tr>
+                        <tr><td>Copy All</td><td>Copy all positions to the clipboard.</td></tr>
+                        <tr><td>Save to File</td><td>Save the positions to a text file. The file starts with comment lines beginning with “#” that record the ShogiBoardQ version, the generation date and time, and the generation settings. The <a href="kyokumenshu-viewer.html">SFEN Collection Viewer</a> and <a href="tsume-play.html">Tsume Shogi Play</a> skip these lines when loading.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <h3 class="guide-step-title">Remove Unnecessary Pieces</h3>
+                </div>
+                <p class="guide-step-text">Trimming automatically removes decorative pieces from the random positions: pieces that do not affect the mating solution.</p>
+                <div class="guide-step-text">
+                    <ul>
+                        <li>Try removing the attacking and defending pieces on the board and the pieces in the attacker's hand, one at a time.</li>
+                        <li>Keep a removal if the position still mates in the target length with a unique main line.</li>
+                        <li>Move removed pieces to the defender's hand to keep all 40 pieces.</li>
+                        <li>Check again after each removal to find pieces that have become unnecessary.</li>
+                        <li>Do not output a puzzle if a check after a removal times out or is inconclusive, or if trimming is interrupted by stopping or an error.</li>
+                    </ul>
+                </div>
+                <p class="guide-step-text">This check establishes that no single piece can be removed while keeping a puzzle with the same conditions. It does not guarantee the minimum number of pieces when several pieces are removed at once or the placement itself changes.</p>
+            </div>
+        </div>
+    </div>
 </section>
-<!-- Section 4: Replay -->
-<section class="section" id="replay">
-<div class="section-inner">
-<h2 class="section-title">Inspect the Mating Line</h2>
-<p class="section-desc">Review generated solutions in the principal variation window</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Principal variation window</span>
-</div>
-<p class="guide-step-text">Click Board in the results list to open the principal variation window. Replay the mating line one move at a time with the Go Forward 1 Move and Go Back 1 Move buttons.</p>
-<div class="screenshot-item">
-<img alt="Inspecting a mating line in the principal variation window" src="../../images/en/tsumeshogi-generator/generator-03-replay.png"/>
-<p class="screenshot-caption">Principal variation display: a generated 3-ply mate at its starting position (0/3)</p>
-</div>
-</div>
-</div>
-</div>
+
+<section id="replay" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Inspect the Mating Line</h2>
+        <p class="section-desc">Replay a generated puzzle on a board</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <h3 class="guide-step-title">Principal Variation Window</h3>
+                </div>
+                <p class="guide-step-text">Click Show in the results list to open the principal variation window. It shows the mating line at the top and the position below, with the Attacker and the Defender as players. Click ▶ to advance one move, or ▶| to go to the mating position. See <a href="tsumi-search.html#pv-board">the principal variation board in Mate Search</a> for details.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-replay.png" alt="Inspecting a generated puzzle in the principal variation window" width="766" height="844" loading="lazy">
+                    <p class="screenshot-caption">Principal variation window: the starting position of a generated 3-move mate (Move 0 / 3)</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
-<!-- Section 5: CLI and Python -->
+
 <section id="cli-generation" class="section section--alt cli-guide">
     <div class="section-inner">
         <h2 class="section-title">Generate Tsume Shogi with the CLI</h2>
         <p class="section-desc">Set up generate-tsume, run parallel Python workers, save solutions, and reverify results</p>
         <div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header"><span class="guide-step-number">1</span><span class="guide-step-title">Prepare the CLI and a mate-search engine</span></div>
-<p class="guide-step-text"><code>generate-tsume</code> uses the same generation pipeline as the GUI. It outputs JSON Lines after checking mate length, main-line uniqueness, and unnecessary pieces. Python can launch the CLI directly as a child process; no MCP server is needed.</p><p class="guide-step-text">The examples below use a Linux shell and Python 3. Run them from the repository root. See <a href="linux-build-and-release.html">Building on Linux</a> for prerequisites. On other platforms, adjust the CLI executable name and path for your environment.</p><div class="format-example"><h4>Build the CLI and list registered engines</h4>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">Prepare the CLI and a mate-search engine</h3>
+                </div>
+                <p class="guide-step-text"><code>generate-tsume</code> uses the same generation pipeline as the GUI. It outputs JSON Lines after checking mate length, main-line uniqueness, and unnecessary pieces. Python can launch the CLI directly as a child process; no MCP server is needed.</p>
+                <p class="guide-step-text">The examples below use a Linux shell and Python 3. Run them from the repository root. See <a href="linux-build-and-release.html">Building on Linux</a> for prerequisites. On other platforms, adjust the CLI executable name and path for your environment.</p>
+                <div class="format-example">
+                    <h4>Build the CLI and list registered engines</h4>
 <pre><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target shogiboardq-cli --parallel 4
-./build/shogiboardq-cli list-engines</code></pre></div><p class="guide-step-text">First register an engine that supports <code>go mate</code> in <a href="menu.html">Settings → Engine Settings</a>. Pass the exact <strong>registered name</strong> returned by <code>list-engines</code> to <code>--engine</code>, not an executable path. Replace the example name below with your actual name, including spaces.</p><p class="guide-step-text">For KomoringHeights, a starting configuration for parallel generation is <code>Threads=1</code>, <code>USI_Hash=256</code>, <code>PostSearchLevel=MinLength</code>, and <code>GenerateAllLegalMoves=true</code>. Configure these through Engine Settings and check which options your engine supports.</p>
-</div>
-<div class="guide-step">
-<div class="guide-step-header"><span class="guide-step-number">2</span><span class="guide-step-title">Generate one batch and inspect the JSON Lines output</span></div>
-<p class="guide-step-text">Start with up to ten 3-ply puzzles to check your engine configuration and output. The JSON Lines event log is a different format from the puzzle collection text file.</p><div class="format-example"><h4>Generate up to ten 3-ply puzzles</h4>
+./build/shogiboardq-cli list-engines</code></pre>
+                </div>
+                <p class="guide-step-text">First <a href="game-play.html#engine-registration">register an engine</a> that supports <code>go mate</code>. Pass the exact <strong>registered name</strong> returned by <code>list-engines</code> to <code>--engine</code>, not an executable path. Replace the example name below with your actual name, including spaces.</p>
+                <p class="guide-step-text">For KomoringHeights, a starting configuration for parallel generation is <code>Threads=1</code>, <code>USI_Hash=256</code>, <code>PostSearchLevel=MinLength</code>, and <code>GenerateAllLegalMoves=true</code>. Configure these through Engine Settings and check which options your engine supports.</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">Generate one batch and inspect the JSON Lines output</h3>
+                </div>
+                <p class="guide-step-text">Start with up to ten 3-ply puzzles to check your engine configuration and output. The JSON Lines event log is a different format from the puzzle collection text file.</p>
+                <div class="format-example">
+                    <h4>Generate up to ten 3-ply puzzles</h4>
 <pre><code>./build/shogiboardq-cli generate-tsume \
-  --engine &#x27;KomoringHeights  1.1.0 64ZEN2&#x27; \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
   --target-moves 3 --max-positions 10 \
   --timeout-ms 5000 --max-attack 4 --max-defend 1 \
-  --attack-range 3 --stdin-control &gt; tsume-batch.jsonl</code></pre></div><table class="info-table"><thead><tr><th scope="col">Option</th><th scope="col">Meaning and range</th></tr></thead><tbody>
-<tr><td><code>--target-moves</code></td><td>Mate length: an odd number from 1 to 19; default 3</td></tr>
-<tr><td><code>--max-positions</code></td><td>Limit per process: 1–100 positions; default 10</td></tr>
-<tr><td><code>--timeout-ms</code></td><td>Time budget for candidate searches, trimming, and verification: 500–60000 ms; default 5000</td></tr>
-<tr><td><code>--max-attack</code></td><td>Maximum attacking pieces on board and in hand combined: 1–10; default 4</td></tr>
-<tr><td><code>--max-defend</code></td><td>Maximum defending pieces on the board, excluding the king: 0–10; default 1</td></tr>
-<tr><td><code>--attack-range</code></td><td>Attacking-piece placement range around the king: 1–8 squares; default 3</td></tr>
-<tr><td><code>--stdin-control</code></td><td>Stop on a line containing stop or on end-of-file on stdin</td></tr>
-<tr><td><code>--no-final-alternatives</code></td><td>Require a unique final mating move; final-move alternatives are allowed by default</td></tr>
-<tr><td><code>--no-remaining-to-hand</code></td><td>Do not give unused pieces to the defender; omit this for standard tsume shogi</td></tr>
-</tbody></table><p class="guide-step-text"><code>started</code> reports settings, <code>progress</code> reports generated, found, rejected, and inconclusive counts, <code>position</code> supplies an accepted puzzle, and <code>finished</code> marks completion. Read the SFEN and solution from <code>position.sfen</code> and <code>position.pv</code>, an array of USI moves. Also check <code>error</code> events and the process exit code.</p><div class="format-example"><h4>Key fields of a position event</h4>
-<pre><code>{&quot;event&quot;:&quot;position&quot;,&quot;sfen&quot;:&quot;9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1&quot;,&quot;pv&quot;:[&quot;2c2b+&quot;,&quot;1b1c&quot;,&quot;2e2c+&quot;]}</code></pre></div><p class="guide-step-text">With <code>--stdin-control</code>, type <code>stop</code> and press Enter to stop. Closing stdin also stops generation. Python must keep <code>stdin=PIPE</code> open until it sends a stop request. An environment that starts the process with closed stdin may cause it to stop immediately.</p>
-</div>
-<div class="guide-step" id="cli-parallel">
-<div class="guide-step-header"><span class="guide-step-number">3</span><span class="guide-step-title">Run parallel workers from Python and save progress</span></div>
-<p class="guide-step-text">Save the code below as <code>generate_tsume_parallel.py</code> and run <code>python3 generate_tsume_parallel.py</code> from the repository root. It only uses the Python standard library. Start with <code>TARGET=10</code> and <code>WORKERS=1</code>, then increase concurrency if CPU and memory capacity allow.</p><p class="guide-step-text"><code>PLIES</code> is the mate length, <code>TARGET</code> is the combined collection target, and <code>WORKERS</code> is the number of concurrent processes. Adjust <code>TIMEOUT_MS</code>, piece limits, and placement range at the top. Targets above 100 use successive batches of at most 100 positions each.</p><details class="guide-step-text"><summary>Show Python code: collect 100 three-ply puzzles with four workers</summary>
-<div class="format-example"><h4>generate_tsume_parallel.py</h4>
+  --attack-range 3 --stdin-control &gt; tsume-batch.jsonl</code></pre>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">Option</th><th scope="col">Meaning and range</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>--target-moves</code></td><td>Mate length: an odd number from 1 to 19; default 3</td></tr>
+                        <tr><td><code>--max-positions</code></td><td>Limit per process: 1–100 positions; default 10</td></tr>
+                        <tr><td><code>--timeout-ms</code></td><td>Time budget for candidate searches, trimming, and verification: 500–60000 ms; default 5000</td></tr>
+                        <tr><td><code>--max-attack</code></td><td>Maximum attacking pieces on board and in hand combined: 1–10; default 4</td></tr>
+                        <tr><td><code>--max-defend</code></td><td>Maximum defending pieces on the board, excluding the king: 0–10; default 1</td></tr>
+                        <tr><td><code>--attack-range</code></td><td>Attacking-piece placement range around the king: 1–8 squares; default 3</td></tr>
+                        <tr><td><code>--stdin-control</code></td><td>Stop on a line containing stop or on end-of-file on stdin</td></tr>
+                        <tr><td><code>--no-final-alternatives</code></td><td>Require a unique final mating move; final-move alternatives are allowed by default</td></tr>
+                        <tr><td><code>--no-remaining-to-hand</code></td><td>Do not give unused pieces to the defender; omit this for standard tsume shogi</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text"><code>started</code> reports settings, <code>progress</code> reports generated, found, rejected, and inconclusive counts, <code>position</code> supplies an accepted puzzle, and <code>finished</code> marks completion. Read the SFEN and solution from <code>position.sfen</code> and <code>position.pv</code>, an array of USI moves. Also check <code>error</code> events and the process exit code.</p>
+                <div class="format-example">
+                    <h4>Key fields of a position event</h4>
+<pre><code>{"event":"position","sfen":"9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1","pv":["2c2b+","1b1c","2e2c+"]}</code></pre>
+                </div>
+                <p class="guide-step-text">With <code>--stdin-control</code>, type <code>stop</code> and press Enter to stop. Closing stdin also stops generation, so Python must keep <code>stdin=PIPE</code> open until it sends a stop request. An environment that starts the process with closed stdin may cause it to stop immediately.</p>
+            </div>
+            <div class="guide-step" id="cli-parallel">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">Run parallel workers from Python and save progress</h3>
+                </div>
+                <p class="guide-step-text">Save the code below as <code>generate_tsume_parallel.py</code> and run <code>python3 generate_tsume_parallel.py</code> from the repository root. It only uses the Python standard library. Start with <code>TARGET=10</code> and <code>WORKERS=1</code>, then increase concurrency if CPU and memory capacity allow.</p>
+                <p class="guide-step-text"><code>PLIES</code> is the mate length, <code>TARGET</code> is the combined collection target, and <code>WORKERS</code> is the number of concurrent processes. Adjust <code>TIMEOUT_MS</code>, piece limits, and placement range at the top. Targets above 100 use successive batches of at most 100 positions each.</p>
+                <details class="guide-step-text">
+                    <summary>Show Python code: collect 100 three-ply puzzles with four workers</summary>
+                    <div class="format-example">
+                        <h4>generate_tsume_parallel.py</h4>
 <pre><code id="parallel-python-example">import asyncio
 import json
 import os
 from pathlib import Path
 
-CLI = str(Path(&quot;build/shogiboardq-cli&quot;).resolve())
-ENGINE = &quot;KomoringHeights  1.1.0 64ZEN2&quot;  # Use the exact name from list-engines
+CLI = str(Path("build/shogiboardq-cli").resolve())
+ENGINE = "KomoringHeights  1.1.0 64ZEN2"  # Use the exact name from list-engines
 PLIES = 3
 TARGET = 100
 WORKERS = 4
@@ -240,10 +298,10 @@ MAX_ATTACK = 4
 MAX_DEFEND = 1
 ATTACK_RANGE = 3
 ALLOW_FINAL_ALTERNATIVES = True
-OUTPUT = Path(f&quot;tsume-work/tsume_{PLIES}ply_candidates.txt&quot;)
+OUTPUT = Path(f"tsume-work/tsume_{PLIES}ply_candidates.txt")
 ENV = dict(os.environ)
 # Optional: use a separately prepared configuration on Linux
-# ENV[&quot;XDG_CONFIG_HOME&quot;] = &quot;/path/to/tsume-config&quot;
+# ENV["XDG_CONFIG_HOME"] = "/path/to/tsume-config"
 
 positions = {}
 active = set()
@@ -252,24 +310,24 @@ active = set()
 def remember(sfen, pv):
     fields = sfen.split()
     if len(fields) != 4 or len(pv) != PLIES:
-        raise ValueError(&quot;Invalid SFEN or PV length&quot;)
-    key = &quot; &quot;.join(fields[:3])  # Board, turn, and hands; ignore the move number
+        raise ValueError("Invalid SFEN or PV length")
+    key = " ".join(fields[:3])  # Board, turn, and hands; ignore the move number
     if key not in positions and len(positions) &lt; TARGET:
-        positions[key] = sfen + &quot; moves &quot; + &quot; &quot;.join(pv)
+        positions[key] = sfen + " moves " + " ".join(pv)
 
 
 def checkpoint():
-    temporary = OUTPUT.with_suffix(&quot;.tmp&quot;)
-    text = &quot;# CLI candidates (before independent collection validation)\n&quot;
-    text += &quot;\n&quot;.join(positions.values()) + &quot;\n&quot;
-    temporary.write_text(text, encoding=&quot;utf-8&quot;)
+    temporary = OUTPUT.with_suffix(".tmp")
+    text = "# CLI candidates (before independent collection validation)\n"
+    text += "\n".join(positions.values()) + "\n"
+    temporary.write_text(text, encoding="utf-8")
     temporary.replace(OUTPUT)
 
 
 async def stop(process):
     if process.returncode is None:
         try:
-            process.stdin.write(b&quot;stop\n&quot;)
+            process.stdin.write(b"stop\n")
             await process.stdin.drain()
         except (BrokenPipeError, ConnectionResetError):
             pass
@@ -288,18 +346,18 @@ async def close_process(process):
 async def worker(number):
     while len(positions) &lt; TARGET:
         args = [
-            CLI, &quot;generate-tsume&quot;, &quot;--engine&quot;, ENGINE,
-            &quot;--target-moves&quot;, str(PLIES),
-            &quot;--max-positions&quot;, str(min(100, TARGET - len(positions))),
-            &quot;--timeout-ms&quot;, str(TIMEOUT_MS),
-            &quot;--max-attack&quot;, str(MAX_ATTACK), &quot;--max-defend&quot;, str(MAX_DEFEND),
-            &quot;--attack-range&quot;, str(ATTACK_RANGE), &quot;--stdin-control&quot;,
+            CLI, "generate-tsume", "--engine", ENGINE,
+            "--target-moves", str(PLIES),
+            "--max-positions", str(min(100, TARGET - len(positions))),
+            "--timeout-ms", str(TIMEOUT_MS),
+            "--max-attack", str(MAX_ATTACK), "--max-defend", str(MAX_DEFEND),
+            "--attack-range", str(ATTACK_RANGE), "--stdin-control",
         ]
         if not ALLOW_FINAL_ALTERNATIVES:
-            args.append(&quot;--no-final-alternatives&quot;)
-        log_path = OUTPUT.parent / f&quot;worker-{PLIES}ply-{number}.jsonl&quot;
-        err_path = OUTPUT.parent / f&quot;worker-{PLIES}ply-{number}.stderr.log&quot;
-        with log_path.open(&quot;a&quot;, encoding=&quot;utf-8&quot;) as log, err_path.open(&quot;ab&quot;) as err:
+            args.append("--no-final-alternatives")
+        log_path = OUTPUT.parent / f"worker-{PLIES}ply-{number}.jsonl"
+        err_path = OUTPUT.parent / f"worker-{PLIES}ply-{number}.stderr.log"
+        with log_path.open("a", encoding="utf-8") as log, err_path.open("ab") as err:
             process = await asyncio.create_subprocess_exec(
                 *args, env=ENV,
                 stdin=asyncio.subprocess.PIPE,
@@ -311,33 +369,33 @@ async def worker(number):
                 if len(positions) &gt;= TARGET:
                     await stop(process)
                 async for raw in process.stdout:
-                    line = raw.decode(&quot;utf-8&quot;)
+                    line = raw.decode("utf-8")
                     log.write(line)
                     log.flush()
                     event = json.loads(line)
-                    if event[&quot;event&quot;] == &quot;error&quot;:
-                        raise RuntimeError(event[&quot;message&quot;])
-                    if event[&quot;event&quot;] != &quot;position&quot;:
+                    if event["event"] == "error":
+                        raise RuntimeError(event["message"])
+                    if event["event"] != "position":
                         continue
-                    remember(event[&quot;sfen&quot;], event[&quot;pv&quot;])
+                    remember(event["sfen"], event["pv"])
                     checkpoint()
-                    print(f&quot;{len(positions)}/{TARGET}&quot;, flush=True)
+                    print(f"{len(positions)}/{TARGET}", flush=True)
                     if len(positions) == TARGET:
                         await asyncio.gather(*(stop(p) for p in list(active)))
                 if await process.wait() != 0:
-                    raise RuntimeError(f&quot;CLI failed; see {err_path}&quot;)
+                    raise RuntimeError(f"CLI failed; see {err_path}")
             finally:
                 await close_process(process)
 
 
 async def main():
     if TARGET &lt; 1 or WORKERS &lt; 1:
-        raise ValueError(&quot;TARGET and WORKERS must be positive&quot;)
+        raise ValueError("TARGET and WORKERS must be positive")
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     if OUTPUT.exists():
-        for line in OUTPUT.read_text(encoding=&quot;utf-8&quot;).splitlines():
-            if line and not line.startswith(&quot;#&quot;):
-                sfen, moves = line.split(&quot; moves &quot;, 1)
+        for line in OUTPUT.read_text(encoding="utf-8").splitlines():
+            if line and not line.startswith("#"):
+                sfen, moves = line.split(" moves ", 1)
                 remember(sfen, moves.split())
     tasks = [asyncio.create_task(worker(i)) for i in range(WORKERS)]
     try:
@@ -348,38 +406,63 @@ async def main():
         await asyncio.gather(*tasks, return_exceptions=True)
         await asyncio.gather(*(close_process(p) for p in list(active)))
         checkpoint()
-    print(f&quot;Collected: {OUTPUT} (validate the collection separately)&quot;)
+    print(f"Collected: {OUTPUT} (validate the collection separately)")
 
 
-if __name__ == &quot;__main__&quot;:
-    asyncio.run(main())</code></pre></div></details>
-<p class="guide-step-text">All workers share a dictionary keyed by the SFEN board, turn, and hands. Results are saved through temporary-file replacement after each discovery and reloaded on restart. JSON Lines and stderr logs are kept separately for each mate length and worker. Once the target is reached, all CLI processes receive a stop request. After Ctrl+C, restart to resume from saved results.</p><p class="guide-step-text">This code collects positions and removes duplicate SFENs. It does not exclude similar puzzles with the same solution but different piece types, or mirrored positions. Independent validation of the whole collection is a separate step.</p>
-</div>
-<div class="guide-step" id="cli-notes">
-<div class="guide-step-header"><span class="guide-step-number">4</span><span class="guide-step-title">Notes on running, stopping, and resuming</span></div>
-<ul class="guide-step-text">
-<li><strong>Total runtime:</strong> <code>--timeout-ms</code> is not a deadline for the entire command. Long mates or strict settings may yield few positions, so time to reach the target is not guaranteed. Start with a small target, inspect progress, and stop to adjust settings if needed. Inconclusive results are neither proof of no mate nor successful verification.</li>
-<li><strong>CPU and memory:</strong> Both the worker count and the engine thread count affect resource use. Sixteen processes with 256 MiB each require about 4 GiB for hash tables alone, plus other memory.</li>
-<li><strong>Configuration:</strong> If CLI engines differ from those in the GUI, check that you are using the same user and settings. On Linux, when changing <code>XDG_CONFIG_HOME</code>, prepare engine registrations and options in <code>ShogiBoardQ/ShogiBoardQ.ini</code> under that directory. Use the same environment for <code>list-engines</code> and Python.</li>
-<li><strong>Resuming:</strong> Do not let multiple Python collectors write to the same <code>OUTPUT</code>. The example does not reverify existing lines. If mate length, engine, or alternative-mate policy changes, use a new output file or reverify existing entries. Settings are also recorded in the <code>started</code> event logs.</li>
-<li><strong>Alternative mates:</strong> By default, multiple final mating moves and alternative solutions in shorter side lines are allowed. To require a unique final move, set <code>ALLOW_FINAL_ALTERNATIVES=False</code> and also pass <code>--no-final-alternatives</code> when reverifying.</li>
-<li><strong>Output files:</strong> <code>tsume-batch.jsonl</code> is an event log. Python writes collected SFENs and solutions to <code>tsume-work/tsume_3ply_candidates.txt</code>. If a CLI process fails, inspect its JSON Lines and stderr logs.</li>
-</ul>
-</div>
-<div class="guide-step" id="collection-validation">
-<div class="guide-step-header"><span class="guide-step-number">5</span><span class="guide-step-title">Save solution text and validate the collection</span></div>
-<p class="guide-step-text">Use UTF-8 and one puzzle per line in the form <code>SFEN moves USI-moves…</code>. Comments beginning with <code>#</code> can record the date, engine, mate length, piece limits, time budgets, and alternative-mate policy.</p><div class="format-example"><h4>A three-ply puzzle, saved as one line</h4>
-<pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre></div><p class="guide-step-text">Use <code>verify-tsume</code> to recheck main-line uniqueness. This example checks one position; for a collection, pass each SFEN in turn.</p><div class="format-example"><h4>Recheck main-line uniqueness</h4>
+if __name__ == "__main__":
+    asyncio.run(main())</code></pre>
+                    </div>
+                </details>
+                <p class="guide-step-text">All workers share a dictionary keyed by the SFEN board, turn, and hands. Results are saved through temporary-file replacement after each discovery and reloaded on restart. JSON Lines and stderr logs are kept separately for each mate length and worker. Once the target is reached, all CLI processes receive a stop request. After Ctrl+C, restart to resume from saved results.</p>
+                <p class="guide-step-text">This code collects positions and removes duplicate SFENs. It does not exclude similar puzzles with the same solution but different piece types, or mirrored positions. Independent validation of the whole collection is a separate step.</p>
+            </div>
+            <div class="guide-step" id="cli-notes">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">Notes on running, stopping, and resuming</h3>
+                </div>
+                <div class="guide-step-text">
+                    <ul>
+                        <li><strong>Total runtime:</strong> <code>--timeout-ms</code> is not a deadline for the entire command. Long mates or strict settings may yield few positions, so time to reach the target is not guaranteed. Start with a small target, inspect progress, and stop to adjust settings if needed. Inconclusive results are neither proof of no mate nor successful verification.</li>
+                        <li><strong>CPU and memory:</strong> Both the worker count and the engine thread count affect resource use. Sixteen processes with 256 MiB each require about 4 GiB for hash tables alone, plus other memory.</li>
+                        <li><strong>Configuration:</strong> If CLI engines differ from those in the GUI, check that you are using the same user and settings. On Linux, when changing <code>XDG_CONFIG_HOME</code>, prepare engine registrations and options in <code>ShogiBoardQ/ShogiBoardQ.ini</code> under that directory. Use the same environment for <code>list-engines</code> and Python.</li>
+                        <li><strong>Resuming:</strong> Do not let multiple Python collectors write to the same <code>OUTPUT</code>. The example does not reverify existing lines. If mate length, engine, or alternative-mate policy changes, use a new output file or reverify existing entries. Settings are also recorded in the <code>started</code> event logs.</li>
+                        <li><strong>Alternative mates:</strong> By default, multiple final mating moves and alternative solutions in shorter side lines are allowed. To require a unique final move, set <code>ALLOW_FINAL_ALTERNATIVES=False</code> and also pass <code>--no-final-alternatives</code> when reverifying.</li>
+                        <li><strong>Output files:</strong> <code>tsume-batch.jsonl</code> is an event log. Python writes collected SFENs and solutions to <code>tsume-work/tsume_3ply_candidates.txt</code>. If a CLI process fails, inspect its JSON Lines and stderr logs.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="guide-step" id="collection-validation">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <h3 class="guide-step-title">Save solution text and validate the collection</h3>
+                </div>
+                <p class="guide-step-text">Use UTF-8 and one puzzle per line in the form <code>SFEN moves USI-moves…</code>. Comments beginning with <code>#</code> can record the date, engine, mate length, piece limits, time budgets, and alternative-mate policy.</p>
+                <div class="format-example">
+                    <h4>A three-ply puzzle, saved as one line</h4>
+<pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre>
+                </div>
+                <p class="guide-step-text">Use <code>verify-tsume</code> to recheck main-line uniqueness. This example checks one position; for a collection, pass each SFEN in turn.</p>
+                <div class="format-example">
+                    <h4>Recheck main-line uniqueness</h4>
 <pre><code>./build/shogiboardq-cli verify-tsume \
-  --engine &#x27;KomoringHeights  1.1.0 64ZEN2&#x27; \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
   --target-moves 3 --timeout-ms 15000 \
-  --sfen &#x27;9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1&#x27;</code></pre></div><p class="guide-step-text">The JSON field <code>ok</code> reports command success. Also require <code>status</code> to be <code>unique</code> before accepting the result, and defer or retry <code>unknown</code> results. This command checks main-line uniqueness; it does not replace auditing every saved PV move and the necessity of each piece.</p><p class="guide-step-text">For independent collection validation, the tools included in the source check shortest mate length, legal solutions, main-line uniqueness, and every single-piece removal. Their <code>--engine</code> argument takes an <strong>engine executable path</strong>, unlike the CLI registered name.</p><div class="format-example"><h4>Independently audit the collected file</h4>
+  --sfen '9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1'</code></pre>
+                </div>
+                <p class="guide-step-text">The JSON field <code>ok</code> reports command success. Also require <code>status</code> to be <code>unique</code> before accepting the result, and defer or retry <code>unknown</code> results. This command checks main-line uniqueness; it does not replace auditing every saved PV move and the necessity of each piece.</p>
+                <p class="guide-step-text">For independent collection validation, the tools included in the source check shortest mate length, legal solutions, main-line uniqueness, and every single-piece removal. Their <code>--engine</code> argument takes an <strong>engine executable path</strong>, unlike the CLI registered name.</p>
+                <div class="format-example">
+                    <h4>Independently audit the collected file</h4>
 <pre><code>cmake -B build -S . -DBUILD_TESTING=ON
 cmake --build build --target tsumeshogi_collection_auditor --parallel 4
 python3 scripts/audit_tsume_collections.py tsume-work/tsume_3ply_candidates.txt \
   --engine /path/to/KomoringHeights-by-gcc \
-  --output-dir tsume-work/audit-3ply --workers 4 --timeout-ms 30000</code></pre></div><p class="guide-step-text">Inspect <code>statuses</code>, <code>unique_minimal</code>, and <code>changed</code> in <code>summary.json</code>. Do not count <code>unknown</code> entries as complete; retry with a larger budget or exclude them. Verified results are saved in <code>tsume_3ply_minimal.txt</code>. If trimming or duplicate/similarity filtering reduces the count, replenish and audit again. See the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a> for detailed validation conditions.</p><p class="guide-step-text">The piece audit establishes that no single-piece removal preserves the acceptance conditions. It does not guarantee the minimum piece count under simultaneous removals or changes of piece type.</p>
-</div>
+  --output-dir tsume-work/audit-3ply --workers 4 --timeout-ms 30000</code></pre>
+                </div>
+                <p class="guide-step-text">Inspect <code>statuses</code>, <code>unique_minimal</code>, and <code>changed</code> in <code>summary.json</code>. Do not count <code>unknown</code> entries as complete; retry with a larger budget or exclude them. Verified results are saved in <code>tsume_3ply_minimal.txt</code>. If trimming or duplicate/similarity filtering reduces the count, replenish and audit again. See the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a> for detailed validation conditions.</p>
+                <p class="guide-step-text">The piece audit establishes that no single-piece removal preserves the acceptance conditions. It does not guarantee the minimum piece count under simultaneous removals or changes of piece type.</p>
+            </div>
         </div>
     </div>
 </section>
@@ -389,25 +472,50 @@ python3 scripts/audit_tsume_collections.py tsume-work/tsume_3ply_candidates.txt 
         <h2 class="section-title">Build a Varied Puzzle Collection</h2>
         <p class="section-desc">Check solution similarity and puzzle order as well as position validity</p>
         <div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header"><span class="guide-step-number">1</span><span class="guide-step-title">Check solution similarity as well as duplicate positions</span></div>
-<p class="guide-step-text">Different SFENs can still produce similar solving experiences through the same king chase, reflection, translation, or substitutions such as gold and promoted knight. Removing duplicate positions with the standard CLI and Python example does not guarantee variety in a collection.</p>
-</div>
-<div class="guide-step">
-<div class="guide-step-header"><span class="guide-step-number">2</span><span class="guide-step-title">Filter and replenish with collection-editing tools</span></div>
-<p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> takes verified collections, shares a similarity index across workers, and generates replacements for missing entries. It uses dedicated samplers and auditors separately from the standard CLI. After replenishment, run an independent audit with <code>scripts/audit_tsume_collections.py</code>. Once all results are conclusive, <code>scripts/publish_diverse_tsume.py</code> orders puzzles to reduce overlap with the preceding ten solutions.</p><p class="guide-step-text">Similarity filtering is an editorial rule based on the main line, not a complete assessment of a puzzle’s value including variations and misleading alternatives. See the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a> for input requirements, resuming, exclusions, and publication.</p>
-</div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">Check solution similarity as well as duplicate positions</h3>
+                </div>
+                <p class="guide-step-text">Different SFENs can still produce similar solving experiences through the same king chase, reflection, translation, or substitutions such as gold and promoted knight. Removing duplicate positions with the standard CLI and Python example does not guarantee variety in a collection.</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">Filter and replenish with collection-editing tools</h3>
+                </div>
+                <p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> takes verified collections, shares a similarity index across workers, and generates replacements for missing entries. It uses dedicated samplers and auditors separately from the standard CLI. After replenishment, run an independent audit with <code>scripts/audit_tsume_collections.py</code>. Once all results are conclusive, <code>scripts/publish_diverse_tsume.py</code> orders puzzles to reduce overlap with the preceding ten solutions.</p>
+                <p class="guide-step-text">Similarity filtering is an editorial rule based on the main line, not a complete assessment of a puzzle’s value including variations and misleading alternatives. See the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a> for input requirements, resuming, exclusions, and publication.</p>
+            </div>
         </div>
     </div>
 </section>
+</main>
 
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html#tsume" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>

@@ -200,6 +200,8 @@
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumeshogi-generator.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -414,6 +416,8 @@
     <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumeshogi-generator.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -829,6 +833,26 @@
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumi-search.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumi-search.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumeshogi-generator.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

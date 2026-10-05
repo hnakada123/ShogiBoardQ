@@ -4,26 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>詰将棋局面生成 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQで詰将棋を生成する方法を紹介します。GUIの操作、CLIのgenerate-tsumeの設定、Pythonによる並列実行と途中保存、実行時の注意点、手順付きテキストの保存と再検証を説明します。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
+    <meta name="description" content="ShogiBoardQの詰将棋局面生成を紹介します。GUIのダイアログやgenerate-tsume CLIで詰将棋を自動生成し、余詰・不要駒を検査して保存する方法、Pythonによる並列実行、問題集の再検証までを解説。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
     <meta property="og:title" content="詰将棋局面生成 - ShogiBoardQ">
-    <meta property="og:description" content="ShogiBoardQで詰将棋を生成する方法を紹介します。GUIの操作、CLIのgenerate-tsumeの設定、Pythonによる並列実行と途中保存、実行時の注意点、手順付きテキストの保存と再検証を説明します。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/generator-02-results.png">
+    <meta property="og:description" content="ランダムな局面からUSIエンジンで詰みを確かめ、余詰と不要駒を検査した詰将棋をGUIやCLIで生成できます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/tsumeshogi-generator-results.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="詰将棋局面生成 - ShogiBoardQ">
-    <meta name="twitter:description" content="ShogiBoardQで詰将棋を生成する方法を紹介します。GUIの操作、CLIのgenerate-tsumeの設定、Pythonによる並列実行と途中保存、実行時の注意点、手順付きテキストの保存と再検証を説明します。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/generator-02-results.png">
+    <meta name="twitter:description" content="ランダムな局面からUSIエンジンで詰みを確かめ、余詰と不要駒を検査した詰将棋をGUIやCLIで生成できます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/tsumeshogi-generator-results.png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/tsumeshogi-generator.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumeshogi-generator.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
 </head>
 <body>
 
@@ -31,7 +33,15 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/tsumeshogi-generator.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="tsumeshogi-generator.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/tsumeshogi-generator.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/tsumeshogi-generator.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/tsumeshogi-generator.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
@@ -48,212 +58,237 @@
     </div>
 </nav>
 
-<!-- Hero -->
+<main class="tsumeshogi-generator-guide">
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>詰将棋局面生成</h1>
-        <p class="hero-subtitle">ランダム局面生成とUSIエンジンによる詰み検証で詰将棋を自動生成</p>
+        <p class="hero-subtitle">ランダムな局面からUSIエンジンで詰みを確かめ、詰将棋を自動生成</p>
         <div class="hero-badges">
             <span class="badge">自動生成</span>
-            <span class="badge">不要駒トリミング</span>
+            <span class="badge">余詰・不要駒の検査</span>
             <span class="badge">SFEN出力</span>
+            <span class="badge">CLI・Python対応</span>
         </div>
     </div>
 </section>
 
-<!-- Section 1: Overview -->
 <section id="overview" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">概要</h2>
-        <p class="section-desc">ランダムに詰将棋の候補局面を生成し、USIエンジンで詰みを検証します</p>
-
+        <p class="section-desc">ランダムに詰将棋の候補局面を作り、詰みと余詰を検査して出力します</p>
         <div class="screenshot-gallery">
-
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">機能の特徴</span>
+                    <h3 class="guide-step-title">機能の特徴</h3>
                 </div>
-                <p class="guide-step-text">詰将棋局面生成機能は、以下の処理を自動で行います。</p>
-                <ul class="guide-step-text">
-                    <li>ランダムに詰将棋の候補局面を生成</li>
-                    <li>USIエンジン（go mate コマンド）で詰み探索を実行し、指定手数の詰みがある局面を発見</li>
-                    <li>不要駒を反復して除去し、残った駒を1枚ずつ除いた場合の検査が完了した局面だけを出力</li>
-                    <li>結果をSFEN形式で一覧表示し、ファイル保存やクリップボードへのコピーが可能</li>
-                </ul>
-                <p class="guide-step-text">詰み探索には、komori-n氏が開発・公開している詰将棋エンジン<a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>を利用できます。エンジンを別途用意してShogiBoardQに登録し、生成ダイアログの「エンジン設定」で選択してください。配布物やソースコードは、リンク先のリポジトリで公開されています。</p>
+                <p class="guide-step-text">詰将棋局面生成は、次の処理を自動で行います。</p>
+                <div class="guide-step-text">
+                    <ul>
+                        <li>ランダムに詰将棋の候補局面を生成</li>
+                        <li>内蔵の詰み探索で候補を選別し、USIエンジン（<code>go mate</code>）で指定手数の詰みを確認</li>
+                        <li>主手順の余詰と不要駒を検査し、条件を満たした局面だけを出力</li>
+                        <li>結果をSFEN形式で一覧表示し、ファイル保存やクリップボードへのコピーが可能</li>
+                    </ul>
+                </div>
+                <p class="guide-step-text">詰み探索には、komori-n氏が開発・公開している詰将棋エンジン<a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>を利用できます。エンジンを別途用意して「設定」→「エンジン設定…」で登録し（<a href="game-play.html#engine-registration">エンジン登録のガイド</a>）、生成ダイアログの「エンジン」で選択してください。最短手順を返す設定（KomoringHeightsでは <code>PostSearchLevel = MinLength</code>。既定値）で使います。</p>
             </div>
-
         </div>
     </div>
 </section>
 
-<!-- Section 2: Generation -->
 <section id="generation" class="section">
     <div class="section-inner">
         <h2 class="section-title">局面生成の設定</h2>
-        <p class="section-desc">生成ダイアログで各種パラメータを設定して局面生成を開始します</p>
-
+        <p class="section-desc">生成ダイアログで条件を設定して、生成を開始します</p>
         <div class="screenshot-gallery">
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">詰将棋局面生成ダイアログ</span>
-                </div>
-                <p class="guide-step-text">メニューの「対局」→「詰将棋局面生成…」からダイアログを開きます。以下の項目を設定できます。</p>
-                <ul class="guide-step-text">
-                    <li><strong>エンジン設定</strong>：詰み探索に使用するUSIエンジンの選択・設定</li>
-                    <li><strong>目標手数</strong>：生成する詰将棋の手数（例：3手詰、5手詰）</li>
-                    <li><strong>攻め駒上限</strong>：攻方の駒数の上限（盤上＋持駒の合計）</li>
-                    <li><strong>守り駒上限</strong>：守方の駒数の上限（玉を除く）</li>
-                    <li><strong>配置範囲</strong>：玉を中心とした攻め駒の配置範囲（マス数）</li>
-                    <li><strong>探索時間/局面</strong>：1局面あたりのエンジン探索時間</li>
-                    <li><strong>生成上限</strong>：発見する局面数の上限</li>
-                    <li><strong>最終手の複数解を許容する</strong>：主手順の最終手に複数の詰手があっても採択するか。オフにすると最終手も一意な局面だけを出力します（初手など主手順の途中の余詰は常に除外）</li>
-                </ul>
-                <div class="screenshot-item">
-                    <img src="../images/tsumeshogi-generator/generator-01-dialog.png" alt="詰将棋局面生成ダイアログ">
-                    <p class="screenshot-caption">詰将棋局面生成ダイアログ：エンジン・生成パラメータを設定して「開始」で生成開始</p>
-                </div>
-            </div>
-
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">ランダム局面生成のしくみ</span>
+                    <h3 class="guide-step-title">詰将棋局面生成ダイアログ</h3>
                 </div>
-                <p class="guide-step-text">局面生成は以下の手順で自動的に行われます。</p>
-                <ul class="guide-step-text">
-                    <li>後手の玉を9x9盤面のランダムな位置に配置</li>
+                <p class="guide-step-text">「対局」→「詰将棋局面生成…」でダイアログを開き、エンジンと生成設定を確認して「開始」をクリックします。設定は次回も使われます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/tsumeshogi-generator/tsumeshogi-generator-settings.png" alt="詰将棋局面生成ダイアログ" width="840" height="920" loading="lazy">
+                    <p class="screenshot-caption">詰将棋局面生成ダイアログ：「エンジン設定・採択条件について」を開いたところ</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">項目</th><th scope="col">内容</th></tr></thead>
+                    <tbody>
+                        <tr><td>エンジン</td><td>詰み探索に使うUSIエンジンです。「設定...」で選んだエンジンのオプションを変更できます。</td></tr>
+                        <tr><td>目標手数</td><td>生成する詰将棋の手数（奇数）。既定値は3手詰です。</td></tr>
+                        <tr><td>攻め駒上限</td><td>攻方の盤上の駒と持駒の合計枚数の上限。既定値は4枚です。</td></tr>
+                        <tr><td>守り駒上限</td><td>玉を除く、玉方の盤上の駒の枚数の上限。既定値は1枚です。</td></tr>
+                        <tr><td>生成上限</td><td>採択した局面がこの件数に達すると終了します。既定値は10局面で、0（無制限）にすると停止するまで生成を続けます。</td></tr>
+                        <tr><td>探索時間/局面</td><td>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間。既定値は5秒で、時間内に検査を終えられない局面は採択しません。</td></tr>
+                        <tr><td>配置範囲</td><td>玉を中心に攻め駒を置く範囲（マス数）。既定値は3マスです。</td></tr>
+                        <tr><td>最終手の複数解を許容する</td><td>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。初手など主手順の途中の余詰は常に除外します。</td></tr>
+                        <tr><td>既定値に戻す</td><td>生成設定を既定値に戻します。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">「エンジン設定・採択条件について」をクリックすると、エンジンの設定と採択条件の説明を開閉できます。</p>
+                <p class="guide-step-text">生成中は「停止」で止められます。停止しても、採択済みの局面は保存・コピーできます。</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">ランダム局面生成のしくみ</h3>
+                </div>
+                <p class="guide-step-text">局面は次の手順で自動的に作られます。</p>
+                <ol class="guide-step-text">
+                    <li>後手の玉を9×9の盤面のランダムな位置に配置</li>
                     <li>攻め駒を玉の周辺に配置（盤上または持駒としてランダムに振り分け）</li>
                     <li>守り駒を玉の周辺に配置</li>
-                    <li>攻方の玉を省略し、その他の未使用駒は全て受方（後手）持駒に追加</li>
-                    <li>初期局面で王手がかかっていないことを検証</li>
-                </ul>
-                <p class="guide-step-text">生成された局面はまず内蔵の詰み探索で選別され、目標手数で詰まないと分かった局面や、複数の詰む初手が見つかった局面を除外します。標準実装では、内蔵探索で判定できなかった候補もUSIエンジンに送信します。エンジンが指定手数の詰みを確認した局面だけが余詰検査に進みます。「探索済み」には内蔵探索で除外した局面も含まれます。</p>
+                    <li>攻方の玉を省略し、その他の未使用駒はすべて玉方（後手）の持駒に追加</li>
+                    <li>初期局面で王手がかかっていないことを確認</li>
+                </ol>
+                <p class="guide-step-text">作られた局面はまず内蔵の詰み探索で選別され、目標手数で詰まないと分かった局面や、詰む初手が複数見つかった局面を除外します。内蔵探索で判定できなかった候補もUSIエンジンに送り、エンジンが指定手数の詰みを確認した局面だけが余詰検査に進みます。「探索済み」の局面数には、内蔵探索で除外した局面も含まれます。</p>
             </div>
-
         </div>
     </div>
 </section>
 
-<!-- Section 3: Results -->
 <section id="results" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">生成結果</h2>
-        <p class="section-desc">発見された詰将棋局面が一覧表示されます</p>
-
+        <p class="section-desc">採択された詰将棋が一覧に追加されます</p>
         <div class="screenshot-gallery">
-
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">結果一覧</span>
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">結果一覧</h3>
                 </div>
-                <p class="guide-step-text">指定手数の詰みが発見されると、不要駒トリミング処理が行われた後、結果一覧に追加されます。目標手数の詰みと主手順の一意性を保ったまま除去できる駒を取り除き、最終局面の全ての1枚除去について判定が完了した問題だけを出力します。</p>
-                <p class="guide-step-text">結果一覧では以下の操作が行えます。</p>
-                <ul class="guide-step-text">
-                    <li><strong>盤面ボタン</strong>：クリックすると読み筋表示ウィンドウで詰み手順を確認</li>
-                    <li><strong>ファイル保存</strong>：結果をSFEN形式のテキストファイルに保存。先頭にShogiBoardQのバージョン・生成日時・生成設定を「#」始まりのコメント行として記録します（局面集ビューアや詰将棋対局の読み込みでは読み飛ばされます）</li>
-                    <li><strong>選択コピー</strong>：選択した局面のSFENをクリップボードにコピー</li>
-                    <li><strong>全コピー</strong>：全局面のSFENをクリップボードにコピー</li>
-                </ul>
-                <div class="screenshot-item">
-                    <img src="../images/tsumeshogi-generator/generator-02-results.png" alt="詰将棋局面生成の結果一覧">
-                    <p class="screenshot-caption">生成結果：10局面の3手詰を発見（探索済み3877局面、経過時間00:00:20、検査で除外18局面）</p>
+                <p class="guide-step-text">指定手数の詰みが見つかると、不要駒のトリミングと余詰検査を終えた局面が結果一覧に追加されます。進行状況のバーには採択数と生成上限、その下には探索した局面数・採択数・経過時間と、検査で除外した局面数（うち判定不能の数）が表示されます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/tsumeshogi-generator/tsumeshogi-generator-results.png" alt="詰将棋局面生成の結果一覧" width="840" height="920" loading="lazy">
+                    <p class="screenshot-caption">生成結果：既定の設定で3手詰を10局面採択</p>
                 </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">操作</th><th scope="col">内容</th></tr></thead>
+                    <tbody>
+                        <tr><td>表示（「盤面」の列）</td><td>読み筋表示ウィンドウで、局面と詰み手順を確認します。行のダブルクリックやEnterキーでも開けます。</td></tr>
+                        <tr><td>手順も出力</td><td>オンにすると、保存・コピーするSFENの後ろに <code>moves</code> とUSI形式の詰み手順を付けます。</td></tr>
+                        <tr><td>選択コピー</td><td>選択した局面をクリップボードにコピーします（Ctrl+C）。CtrlキーやShiftキーで複数選択できます。</td></tr>
+                        <tr><td>全コピー</td><td>すべての局面をクリップボードにコピーします。</td></tr>
+                        <tr><td>ファイル保存</td><td>テキストファイルに保存します。先頭にShogiBoardQのバージョン・生成日時・生成設定を「#」で始まるコメント行として記録します。コメント行は<a href="kyokumenshu-viewer.html">局面集ビューア</a>や<a href="tsume-play.html">詰将棋対局</a>の読み込みでは読み飛ばされます。</td></tr>
+                    </tbody>
+                </table>
             </div>
-
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">不要駒トリミング</span>
+                    <span class="guide-step-number">5</span>
+                    <h3 class="guide-step-title">不要駒トリミング</h3>
                 </div>
-                <p class="guide-step-text">不要駒トリミングは、ランダム生成された局面に含まれる「飾り駒」（取り除いても詰み手順に影響しない駒）を自動的に除去する処理です。</p>
-                <ul class="guide-step-text">
-                    <li>盤上の攻方・守方の駒、攻方の持駒を1枚ずつ試行的に除去</li>
-                    <li>除去しても同じ手数で詰む場合は除去を確定</li>
-                    <li>除去した駒は後手持駒に移動し、駒の総数を維持</li>
-                    <li>1枚除去するたびに再チェックし、新たに不要になった駒も除去</li>
-                    <li>除去後の検査が時間切れ・判定不能になった場合は、その問題を採択しない</li>
-                    <li>停止やエラーでトリミングが中断された問題も出力しない</li>
-                </ul>
-                <p class="guide-step-text">ここで確認するのは「駒を1枚取り除いても同じ条件の詰将棋が成立するか」です。複数枚を同時に除去したり配置自体を変えたりした場合まで含めた、最少の駒数を保証するものではありません。</p>
+                <p class="guide-step-text">不要駒トリミングは、ランダムに作った局面に含まれる「飾り駒」（取り除いても詰み手順に影響しない駒）を自動的に取り除く処理です。</p>
+                <div class="guide-step-text">
+                    <ul>
+                        <li>盤上の攻方・玉方の駒と、攻方の持駒を1枚ずつ試しに取り除く</li>
+                        <li>取り除いても目標手数の詰みと主手順の一意性が保たれる場合は、除去を確定</li>
+                        <li>取り除いた駒は玉方の持駒に移し、駒の総数を保つ</li>
+                        <li>1枚除去するたびに検査し直し、新たに不要になった駒も取り除く</li>
+                        <li>除去後の検査が時間切れ・判定不能になった問題や、停止・エラーでトリミングが中断された問題は出力しない</li>
+                    </ul>
+                </div>
+                <p class="guide-step-text">ここで確認するのは「駒を1枚取り除いても同じ条件の詰将棋が成立するか」です。複数枚を同時に取り除いたり配置自体を変えたりした場合まで含めた、最少の駒数を保証するものではありません。</p>
             </div>
-
         </div>
     </div>
 </section>
 
-<!-- Section 4: Replay -->
 <section id="replay" class="section">
     <div class="section-inner">
         <h2 class="section-title">詰み手順の確認</h2>
-        <p class="section-desc">生成された詰将棋の手順を読み筋表示ウィンドウで確認できます</p>
-
+        <p class="section-desc">生成された詰将棋の手順を盤面で確認します</p>
         <div class="screenshot-gallery">
-
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">読み筋表示ウィンドウ</span>
+                    <span class="guide-step-number">6</span>
+                    <h3 class="guide-step-title">読み筋表示ウィンドウ</h3>
                 </div>
-                <p class="guide-step-text">結果一覧の「盤面」ボタンをクリックすると、読み筋表示ウィンドウが開きます。詰み手順を将棋盤上で1手ずつ再生して確認できます。「1手進む」「1手戻る」ボタンで手順を前後に移動できます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/tsumeshogi-generator/generator-03-replay.png" alt="読み筋表示ウィンドウで詰み手順を確認">
-                    <p class="screenshot-caption">読み筋表示：生成された3手詰の局面を盤面上で確認（手数 0/3）</p>
+                <p class="guide-step-text">結果一覧の「表示」をクリックすると、読み筋表示ウィンドウが開きます。上に詰み手順、その下に局面が表示され、攻方・玉方として盤面に並びます。「▶」で1手ずつ進め、「▶|」で詰みの局面まで進めます。操作の詳細は<a href="tsumi-search.html#pv-board">詰み探索の読み筋表示</a>をご覧ください。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/tsumeshogi-generator/tsumeshogi-generator-replay.png" alt="読み筋表示ウィンドウで生成した詰将棋を確認" width="766" height="845" loading="lazy">
+                    <p class="screenshot-caption">読み筋表示：生成した3手詰の開始局面（手数 0 / 3）</p>
                 </div>
             </div>
-
         </div>
     </div>
 </section>
 
-<!-- Section 5: CLI and Python -->
 <section id="cli-generation" class="section section--alt cli-guide">
     <div class="section-inner">
         <h2 class="section-title">CLIで詰将棋を生成する方法</h2>
         <p class="section-desc">generate-tsumeの準備から、Pythonによる並列実行・保存・再検証まで</p>
         <div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header"><span class="guide-step-number">1</span><span class="guide-step-title">CLIと詰み探索エンジンを準備する</span></div>
-<p class="guide-step-text"><code>generate-tsume</code> はGUIと共通の生成処理を使い、指定手数の詰み・主手順の余詰・不要駒を検査した局面をJSON Linesで出力します。PythonからCLIを子プロセスとして直接起動でき、MCPサーバーの起動は不要です。</p><p class="guide-step-text">以下はLinuxのシェルとPython 3を使う例です。リポジトリのルートで実行してください。ソースからの準備は <a href="linux-build-and-release.html">Linuxでのビルド手順</a> を参照してください。WindowsなどではCLIの実行ファイル名・パスを環境に合わせて変更します。</p><div class="format-example"><h4>CLIをビルドして登録済みエンジンを確認</h4>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">CLIと詰み探索エンジンを準備する</h3>
+                </div>
+                <p class="guide-step-text"><code>generate-tsume</code> はGUIと共通の生成処理を使い、指定手数の詰み・主手順の余詰・不要駒を検査した局面をJSON Linesで出力します。PythonからCLIを子プロセスとして直接起動でき、MCPサーバーの起動は不要です。</p>
+                <p class="guide-step-text">以下はLinuxのシェルとPython 3を使う例です。リポジトリのルートで実行してください。ソースからの準備は<a href="linux-build-and-release.html">Linuxでのビルド手順</a>を参照してください。WindowsなどではCLIの実行ファイル名・パスを環境に合わせて変更します。</p>
+                <div class="format-example">
+                    <h4>CLIをビルドして登録済みエンジンを確認</h4>
 <pre><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target shogiboardq-cli --parallel 4
-./build/shogiboardq-cli list-engines</code></pre></div><p class="guide-step-text">先に <a href="menu.html">設定メニューのエンジン設定</a> で、<code>go mate</code> に対応したエンジンを登録します。<code>--engine</code> には実行ファイルのパスではなく、<code>list-engines</code> が返す<strong>登録名</strong>を指定します。下の名前は例なので、空白も含めて実際の登録名に置き換えてください。</p><p class="guide-step-text">KomoringHeightsを使う場合は、並列実行の開始設定として <code>Threads=1</code>、<code>USI_Hash=256</code>、<code>PostSearchLevel=MinLength</code>、<code>GenerateAllLegalMoves=true</code> をエンジン設定で指定できます。対応するオプション名と値は利用するエンジンで確認してください。</p>
-</div>
-<div class="guide-step">
-<div class="guide-step-header"><span class="guide-step-number">2</span><span class="guide-step-title">1バッチを生成してJSON Linesを確認する</span></div>
-<p class="guide-step-text">まず3手詰を最大10題生成して、エンジン設定と出力を確認します。標準出力のJSON Linesは、手順付き問題集のテキストとは別の形式です。</p><div class="format-example"><h4>3手詰を最大10題生成</h4>
+./build/shogiboardq-cli list-engines</code></pre>
+                </div>
+                <p class="guide-step-text">先に<a href="game-play.html#engine-registration">エンジン登録</a>で、<code>go mate</code> に対応したエンジンを登録します。<code>--engine</code> には実行ファイルのパスではなく、<code>list-engines</code> が返す<strong>登録名</strong>を指定します。下の名前は例なので、空白も含めて実際の登録名に置き換えてください。</p>
+                <p class="guide-step-text">KomoringHeightsを使う場合は、並列実行の開始設定として <code>Threads=1</code>、<code>USI_Hash=256</code>、<code>PostSearchLevel=MinLength</code>、<code>GenerateAllLegalMoves=true</code> をエンジン設定で指定できます。対応するオプション名と値は利用するエンジンで確認してください。</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">1バッチを生成してJSON Linesを確認する</h3>
+                </div>
+                <p class="guide-step-text">まず3手詰を最大10題生成して、エンジン設定と出力を確認します。標準出力のJSON Linesは、手順付き問題集のテキストとは別の形式です。</p>
+                <div class="format-example">
+                    <h4>3手詰を最大10題生成</h4>
 <pre><code>./build/shogiboardq-cli generate-tsume \
-  --engine &#x27;KomoringHeights  1.1.0 64ZEN2&#x27; \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
   --target-moves 3 --max-positions 10 \
   --timeout-ms 5000 --max-attack 4 --max-defend 1 \
-  --attack-range 3 --stdin-control &gt; tsume-batch.jsonl</code></pre></div><table class="info-table"><thead><tr><th scope="col">オプション</th><th scope="col">意味・指定範囲</th></tr></thead><tbody>
-<tr><td><code>--target-moves</code></td><td>目標手数。1～19の奇数。既定値は3</td></tr>
-<tr><td><code>--max-positions</code></td><td>1回の起動で生成する上限。1～100。既定値は10</td></tr>
-<tr><td><code>--timeout-ms</code></td><td>候補探索・駒除去・余詰検査に使う時間予算。500～60000ms。既定値は5000</td></tr>
-<tr><td><code>--max-attack</code></td><td>攻方の盤上・持駒の合計上限。1～10。既定値は4</td></tr>
-<tr><td><code>--max-defend</code></td><td>玉以外の玉方盤上駒の上限。0～10。既定値は1</td></tr>
-<tr><td><code>--attack-range</code></td><td>玉を中心とする攻め駒の配置範囲。1～8マス。既定値は3</td></tr>
-<tr><td><code>--stdin-control</code></td><td>標準入力の stop 行、またはEOFで停止</td></tr>
-<tr><td><code>--no-final-alternatives</code></td><td>最終手の複数解も不採択にする。省略時は最終手の複数解を許容</td></tr>
-<tr><td><code>--no-remaining-to-hand</code></td><td>未使用駒を玉方持駒へ回さない。通常の詰将棋では省略する</td></tr>
-</tbody></table><p class="guide-step-text"><code>started</code> は設定、<code>progress</code> は生成・発見・除外・判定不能の件数、<code>position</code> は採択された局面、<code>finished</code> は終了を表します。保存する局面と手順は <code>position.sfen</code> と <code>position.pv</code>（USI指し手の配列）から取り出します。<code>error</code> とプロセスの終了コードも確認します。</p><div class="format-example"><h4>positionイベントの主要フィールド</h4>
-<pre><code>{&quot;event&quot;:&quot;position&quot;,&quot;sfen&quot;:&quot;9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1&quot;,&quot;pv&quot;:[&quot;2c2b+&quot;,&quot;1b1c&quot;,&quot;2e2c+&quot;]}</code></pre></div><p class="guide-step-text"><code>--stdin-control</code> を付けた場合は、端末で <code>stop</code> と入力してEnterを押すと停止します。標準入力を閉じても停止するため、Pythonでは <code>stdin=PIPE</code> を開いたまま保持します。入力を最初から閉じる実行環境では、生成がすぐに終了することがあります。</p>
-</div>
-<div class="guide-step" id="cli-parallel">
-<div class="guide-step-header"><span class="guide-step-number">3</span><span class="guide-step-title">Pythonから並列実行し、途中結果を保存する</span></div>
-<p class="guide-step-text">以下を <code>generate_tsume_parallel.py</code> として保存し、リポジトリのルートで <code>python3 generate_tsume_parallel.py</code> を実行します。追加のPythonパッケージは不要です。最初は <code>TARGET=10</code>・<code>WORKERS=1</code> で確認し、CPU・メモリに余裕があれば並列数を増やしてください。</p><p class="guide-step-text"><code>PLIES</code> は手数、<code>TARGET</code> は全ワーカー合計の収集目標、<code>WORKERS</code> は同時起動数です。<code>TIMEOUT_MS</code>・駒数・配置範囲も冒頭で変更できます。100題を超える場合も、各バッチの上限を100以下にして不足分を繰り返し収集します。</p><details class="guide-step-text"><summary>Pythonコードを表示（3手詰を4並列で100題収集）</summary>
-<div class="format-example"><h4>generate_tsume_parallel.py</h4>
+  --attack-range 3 --stdin-control &gt; tsume-batch.jsonl</code></pre>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">オプション</th><th scope="col">意味・指定範囲</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>--target-moves</code></td><td>目標手数。1～19の奇数。既定値は3</td></tr>
+                        <tr><td><code>--max-positions</code></td><td>1回の起動で生成する上限。1～100。既定値は10</td></tr>
+                        <tr><td><code>--timeout-ms</code></td><td>候補探索・駒除去・余詰検査に使う時間予算。500～60000ms。既定値は5000</td></tr>
+                        <tr><td><code>--max-attack</code></td><td>攻方の盤上・持駒の合計上限。1～10。既定値は4</td></tr>
+                        <tr><td><code>--max-defend</code></td><td>玉以外の玉方盤上駒の上限。0～10。既定値は1</td></tr>
+                        <tr><td><code>--attack-range</code></td><td>玉を中心とする攻め駒の配置範囲。1～8マス。既定値は3</td></tr>
+                        <tr><td><code>--stdin-control</code></td><td>標準入力の stop 行、またはEOFで停止</td></tr>
+                        <tr><td><code>--no-final-alternatives</code></td><td>最終手の複数解も不採択にする。省略時は最終手の複数解を許容</td></tr>
+                        <tr><td><code>--no-remaining-to-hand</code></td><td>未使用駒を玉方持駒へ回さない。通常の詰将棋では省略する</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text"><code>started</code> は設定、<code>progress</code> は生成・発見・除外・判定不能の件数、<code>position</code> は採択された局面、<code>finished</code> は終了を表します。保存する局面と手順は <code>position.sfen</code> と <code>position.pv</code>（USI指し手の配列）から取り出します。<code>error</code> とプロセスの終了コードも確認します。</p>
+                <div class="format-example">
+                    <h4>positionイベントの主要フィールド</h4>
+<pre><code>{"event":"position","sfen":"9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1","pv":["2c2b+","1b1c","2e2c+"]}</code></pre>
+                </div>
+                <p class="guide-step-text"><code>--stdin-control</code> を付けた場合は、端末で <code>stop</code> と入力してEnterを押すと停止します。標準入力を閉じても停止するため、Pythonでは <code>stdin=PIPE</code> を開いたまま保持します。入力を最初から閉じる実行環境では、生成がすぐに終了することがあります。</p>
+            </div>
+            <div class="guide-step" id="cli-parallel">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">Pythonから並列実行し、途中結果を保存する</h3>
+                </div>
+                <p class="guide-step-text">以下を <code>generate_tsume_parallel.py</code> として保存し、リポジトリのルートで <code>python3 generate_tsume_parallel.py</code> を実行します。追加のPythonパッケージは不要です。最初は <code>TARGET=10</code>・<code>WORKERS=1</code> で確認し、CPU・メモリに余裕があれば並列数を増やしてください。</p>
+                <p class="guide-step-text"><code>PLIES</code> は手数、<code>TARGET</code> は全ワーカー合計の収集目標、<code>WORKERS</code> は同時起動数です。<code>TIMEOUT_MS</code>・駒数・配置範囲も冒頭で変更できます。100題を超える場合も、各バッチの上限を100以下にして不足分を繰り返し収集します。</p>
+                <details class="guide-step-text">
+                    <summary>Pythonコードを表示（3手詰を4並列で100題収集）</summary>
+                    <div class="format-example">
+                        <h4>generate_tsume_parallel.py</h4>
 <pre><code id="parallel-python-example">import asyncio
 import json
 import os
 from pathlib import Path
 
-CLI = str(Path(&quot;build/shogiboardq-cli&quot;).resolve())
-ENGINE = &quot;KomoringHeights  1.1.0 64ZEN2&quot;  # Use the exact name from list-engines
+CLI = str(Path("build/shogiboardq-cli").resolve())
+ENGINE = "KomoringHeights  1.1.0 64ZEN2"  # Use the exact name from list-engines
 PLIES = 3
 TARGET = 100
 WORKERS = 4
@@ -262,10 +297,10 @@ MAX_ATTACK = 4
 MAX_DEFEND = 1
 ATTACK_RANGE = 3
 ALLOW_FINAL_ALTERNATIVES = True
-OUTPUT = Path(f&quot;tsume-work/tsume_{PLIES}ply_candidates.txt&quot;)
+OUTPUT = Path(f"tsume-work/tsume_{PLIES}ply_candidates.txt")
 ENV = dict(os.environ)
 # Optional: use a separately prepared configuration on Linux
-# ENV[&quot;XDG_CONFIG_HOME&quot;] = &quot;/path/to/tsume-config&quot;
+# ENV["XDG_CONFIG_HOME"] = "/path/to/tsume-config"
 
 positions = {}
 active = set()
@@ -274,24 +309,24 @@ active = set()
 def remember(sfen, pv):
     fields = sfen.split()
     if len(fields) != 4 or len(pv) != PLIES:
-        raise ValueError(&quot;Invalid SFEN or PV length&quot;)
-    key = &quot; &quot;.join(fields[:3])  # Board, turn, and hands; ignore the move number
+        raise ValueError("Invalid SFEN or PV length")
+    key = " ".join(fields[:3])  # Board, turn, and hands; ignore the move number
     if key not in positions and len(positions) &lt; TARGET:
-        positions[key] = sfen + &quot; moves &quot; + &quot; &quot;.join(pv)
+        positions[key] = sfen + " moves " + " ".join(pv)
 
 
 def checkpoint():
-    temporary = OUTPUT.with_suffix(&quot;.tmp&quot;)
-    text = &quot;# CLI candidates (before independent collection validation)\n&quot;
-    text += &quot;\n&quot;.join(positions.values()) + &quot;\n&quot;
-    temporary.write_text(text, encoding=&quot;utf-8&quot;)
+    temporary = OUTPUT.with_suffix(".tmp")
+    text = "# CLI candidates (before independent collection validation)\n"
+    text += "\n".join(positions.values()) + "\n"
+    temporary.write_text(text, encoding="utf-8")
     temporary.replace(OUTPUT)
 
 
 async def stop(process):
     if process.returncode is None:
         try:
-            process.stdin.write(b&quot;stop\n&quot;)
+            process.stdin.write(b"stop\n")
             await process.stdin.drain()
         except (BrokenPipeError, ConnectionResetError):
             pass
@@ -310,18 +345,18 @@ async def close_process(process):
 async def worker(number):
     while len(positions) &lt; TARGET:
         args = [
-            CLI, &quot;generate-tsume&quot;, &quot;--engine&quot;, ENGINE,
-            &quot;--target-moves&quot;, str(PLIES),
-            &quot;--max-positions&quot;, str(min(100, TARGET - len(positions))),
-            &quot;--timeout-ms&quot;, str(TIMEOUT_MS),
-            &quot;--max-attack&quot;, str(MAX_ATTACK), &quot;--max-defend&quot;, str(MAX_DEFEND),
-            &quot;--attack-range&quot;, str(ATTACK_RANGE), &quot;--stdin-control&quot;,
+            CLI, "generate-tsume", "--engine", ENGINE,
+            "--target-moves", str(PLIES),
+            "--max-positions", str(min(100, TARGET - len(positions))),
+            "--timeout-ms", str(TIMEOUT_MS),
+            "--max-attack", str(MAX_ATTACK), "--max-defend", str(MAX_DEFEND),
+            "--attack-range", str(ATTACK_RANGE), "--stdin-control",
         ]
         if not ALLOW_FINAL_ALTERNATIVES:
-            args.append(&quot;--no-final-alternatives&quot;)
-        log_path = OUTPUT.parent / f&quot;worker-{PLIES}ply-{number}.jsonl&quot;
-        err_path = OUTPUT.parent / f&quot;worker-{PLIES}ply-{number}.stderr.log&quot;
-        with log_path.open(&quot;a&quot;, encoding=&quot;utf-8&quot;) as log, err_path.open(&quot;ab&quot;) as err:
+            args.append("--no-final-alternatives")
+        log_path = OUTPUT.parent / f"worker-{PLIES}ply-{number}.jsonl"
+        err_path = OUTPUT.parent / f"worker-{PLIES}ply-{number}.stderr.log"
+        with log_path.open("a", encoding="utf-8") as log, err_path.open("ab") as err:
             process = await asyncio.create_subprocess_exec(
                 *args, env=ENV,
                 stdin=asyncio.subprocess.PIPE,
@@ -333,33 +368,33 @@ async def worker(number):
                 if len(positions) &gt;= TARGET:
                     await stop(process)
                 async for raw in process.stdout:
-                    line = raw.decode(&quot;utf-8&quot;)
+                    line = raw.decode("utf-8")
                     log.write(line)
                     log.flush()
                     event = json.loads(line)
-                    if event[&quot;event&quot;] == &quot;error&quot;:
-                        raise RuntimeError(event[&quot;message&quot;])
-                    if event[&quot;event&quot;] != &quot;position&quot;:
+                    if event["event"] == "error":
+                        raise RuntimeError(event["message"])
+                    if event["event"] != "position":
                         continue
-                    remember(event[&quot;sfen&quot;], event[&quot;pv&quot;])
+                    remember(event["sfen"], event["pv"])
                     checkpoint()
-                    print(f&quot;{len(positions)}/{TARGET}&quot;, flush=True)
+                    print(f"{len(positions)}/{TARGET}", flush=True)
                     if len(positions) == TARGET:
                         await asyncio.gather(*(stop(p) for p in list(active)))
                 if await process.wait() != 0:
-                    raise RuntimeError(f&quot;CLI failed; see {err_path}&quot;)
+                    raise RuntimeError(f"CLI failed; see {err_path}")
             finally:
                 await close_process(process)
 
 
 async def main():
     if TARGET &lt; 1 or WORKERS &lt; 1:
-        raise ValueError(&quot;TARGET and WORKERS must be positive&quot;)
+        raise ValueError("TARGET and WORKERS must be positive")
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     if OUTPUT.exists():
-        for line in OUTPUT.read_text(encoding=&quot;utf-8&quot;).splitlines():
-            if line and not line.startswith(&quot;#&quot;):
-                sfen, moves = line.split(&quot; moves &quot;, 1)
+        for line in OUTPUT.read_text(encoding="utf-8").splitlines():
+            if line and not line.startswith("#"):
+                sfen, moves = line.split(" moves ", 1)
                 remember(sfen, moves.split())
     tasks = [asyncio.create_task(worker(i)) for i in range(WORKERS)]
     try:
@@ -370,38 +405,63 @@ async def main():
         await asyncio.gather(*tasks, return_exceptions=True)
         await asyncio.gather(*(close_process(p) for p in list(active)))
         checkpoint()
-    print(f&quot;Collected: {OUTPUT} (validate the collection separately)&quot;)
+    print(f"Collected: {OUTPUT} (validate the collection separately)")
 
 
-if __name__ == &quot;__main__&quot;:
-    asyncio.run(main())</code></pre></div></details>
-<p class="guide-step-text">全ワーカー共通の辞書で、盤面・手番・持駒が同じSFENを除外します。発見のたびに一時ファイルから置換して保存し、再起動時に読み戻します。JSON Linesと標準エラーは手数・ワーカー別に残します。必要数が揃うと全CLIへ停止要求を送り、途中でCtrl+Cを押した場合も保存済みの結果から再開できます。</p><p class="guide-step-text">このコードが行うのは収集とSFENの重複排除です。駒種だけが違う同じ手順や、左右反転した類似問題までは除外しません。問題集全体の独立した監査も別に実施してください。</p>
-</div>
-<div class="guide-step" id="cli-notes">
-<div class="guide-step-header"><span class="guide-step-number">4</span><span class="guide-step-title">実行・停止・再開時の注意点</span></div>
-<ul class="guide-step-text">
-<li><strong>全体の終了時間：</strong><code>--timeout-ms</code> はコマンド全体の制限時間ではありません。長手数や厳しい設定では採択が少なく、目標件数までの時間は保証されません。まず少数で進捗を確認し、必要なら停止して条件を調整します。判定不能は不詰や検証成功として数えません。</li>
-<li><strong>CPU・メモリ：</strong>並列数とエンジン内のスレッド数の両方が負荷に影響します。16プロセスに各256MiBのハッシュを割り当てると、ハッシュだけで約4GiBになり、ほかにもメモリが必要です。</li>
-<li><strong>設定ファイル：</strong>GUIで登録したエンジンが見えない場合は、同じユーザー・同じ設定で実行しているか確認します。Linuxで <code>XDG_CONFIG_HOME</code> を変える場合は、その下の <code>ShogiBoardQ/ShogiBoardQ.ini</code> にエンジン登録・オプションを準備し、同じ環境変数で <code>list-engines</code> とPythonを実行します。</li>
-<li><strong>再開するファイル：</strong>同じ <code>OUTPUT</code> を複数のPythonプロセスから同時に更新しないでください。例のコードは既存行を再検証しないため、手数・エンジン・余詰の条件を変えたら新しい出力先を使うか、既存分を再検証します。設定は <code>started</code> イベントのログでも確認できます。</li>
-<li><strong>余詰の条件：</strong>既定では主手順の最終手の複数解と、早く詰む変化での変化別詰を許容します。最終手も一意にする場合は <code>ALLOW_FINAL_ALTERNATIVES=False</code> にし、再検証にも <code>--no-final-alternatives</code> を付けます。</li>
-<li><strong>出力の区別：</strong><code>tsume-batch.jsonl</code> はイベントログです。Pythonが作る <code>tsume-work/tsume_3ply_candidates.txt</code> は局面・手順の収集ファイルです。CLIのエラー時はワーカーのJSON Linesと標準エラーログを確認します。</li>
-</ul>
-</div>
-<div class="guide-step" id="collection-validation">
-<div class="guide-step-header"><span class="guide-step-number">5</span><span class="guide-step-title">手順付きテキストの形式と再検証</span></div>
-<p class="guide-step-text">問題集はUTF-8で、1行を <code>SFEN moves USI指し手…</code> として保存します。<code>#</code> 始まりのコメントには生成日、エンジン、手数、駒数・探索時間、余詰の条件を記録すると、後から確認できます。</p><div class="format-example"><h4>3手詰の保存形式（1行1題）</h4>
-<pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre></div><p class="guide-step-text">主手順の余詰を再検査するには <code>verify-tsume</code> を使います。次は1局面の例です。複数題を再検査する場合は、収集ファイルの各SFENを順に渡します。</p><div class="format-example"><h4>局面の余詰を再検査</h4>
+if __name__ == "__main__":
+    asyncio.run(main())</code></pre>
+                    </div>
+                </details>
+                <p class="guide-step-text">全ワーカー共通の辞書で、盤面・手番・持駒が同じSFENを除外します。発見のたびに一時ファイルから置換して保存し、再起動時に読み戻します。JSON Linesと標準エラーは手数・ワーカー別に残します。必要数が揃うと全CLIへ停止要求を送り、途中でCtrl+Cを押した場合も保存済みの結果から再開できます。</p>
+                <p class="guide-step-text">このコードが行うのは収集とSFENの重複排除です。駒種だけが違う同じ手順や、左右反転した類似問題までは除外しません。問題集全体の独立した監査も別に実施してください。</p>
+            </div>
+            <div class="guide-step" id="cli-notes">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">実行・停止・再開時の注意点</h3>
+                </div>
+                <div class="guide-step-text">
+                    <ul>
+                        <li><strong>全体の終了時間：</strong><code>--timeout-ms</code> はコマンド全体の制限時間ではありません。長手数や厳しい設定では採択が少なく、目標件数までの時間は保証されません。まず少数で進捗を確認し、必要なら停止して条件を調整します。判定不能は不詰や検証成功として数えません。</li>
+                        <li><strong>CPU・メモリ：</strong>並列数とエンジン内のスレッド数の両方が負荷に影響します。16プロセスに各256MiBのハッシュを割り当てると、ハッシュだけで約4GiBになり、ほかにもメモリが必要です。</li>
+                        <li><strong>設定ファイル：</strong>GUIで登録したエンジンが見えない場合は、同じユーザー・同じ設定で実行しているか確認します。Linuxで <code>XDG_CONFIG_HOME</code> を変える場合は、その下の <code>ShogiBoardQ/ShogiBoardQ.ini</code> にエンジン登録・オプションを準備し、同じ環境変数で <code>list-engines</code> とPythonを実行します。</li>
+                        <li><strong>再開するファイル：</strong>同じ <code>OUTPUT</code> を複数のPythonプロセスから同時に更新しないでください。例のコードは既存行を再検証しないため、手数・エンジン・余詰の条件を変えたら新しい出力先を使うか、既存分を再検証します。設定は <code>started</code> イベントのログでも確認できます。</li>
+                        <li><strong>余詰の条件：</strong>既定では主手順の最終手の複数解と、早く詰む変化での変化別詰を許容します。最終手も一意にする場合は <code>ALLOW_FINAL_ALTERNATIVES=False</code> にし、再検証にも <code>--no-final-alternatives</code> を付けます。</li>
+                        <li><strong>出力の区別：</strong><code>tsume-batch.jsonl</code> はイベントログです。Pythonが作る <code>tsume-work/tsume_3ply_candidates.txt</code> は局面・手順の収集ファイルです。CLIのエラー時はワーカーのJSON Linesと標準エラーログを確認します。</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="guide-step" id="collection-validation">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <h3 class="guide-step-title">手順付きテキストの形式と再検証</h3>
+                </div>
+                <p class="guide-step-text">問題集はUTF-8で、1行を <code>SFEN moves USI指し手…</code> として保存します。<code>#</code> で始まるコメントに生成日、エンジン、手数、駒数・探索時間、余詰の条件を記録しておくと、後から確認できます。</p>
+                <div class="format-example">
+                    <h4>3手詰の保存形式（1行1題）</h4>
+<pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre>
+                </div>
+                <p class="guide-step-text">主手順の余詰を再検査するには <code>verify-tsume</code> を使います。次は1局面の例です。複数題を再検査する場合は、収集ファイルの各SFENを順に渡します。</p>
+                <div class="format-example">
+                    <h4>局面の余詰を再検査</h4>
 <pre><code>./build/shogiboardq-cli verify-tsume \
-  --engine &#x27;KomoringHeights  1.1.0 64ZEN2&#x27; \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
   --target-moves 3 --timeout-ms 15000 \
-  --sfen &#x27;9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1&#x27;</code></pre></div><p class="guide-step-text">JSONの <code>ok</code> はコマンド処理の成否です。合格として扱うには <code>status</code> が <code>unique</code> であることも確認し、<code>unknown</code> は保留・再試行にします。このコマンドは主手順の余詰検査であり、保存済みPVの全手や全駒の必要性を監査する処理の代わりにはなりません。</p><p class="guide-step-text">問題集を独立して監査する場合は、ソースに含まれる次のツールで最短手数・合法手順・主手順の余詰・全1枚除去を確認できます。このツールの <code>--engine</code> は、CLIの登録名ではなく<strong>エンジン実行ファイルのパス</strong>です。</p><div class="format-example"><h4>収集ファイルを独立して監査</h4>
+  --sfen '9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1'</code></pre>
+                </div>
+                <p class="guide-step-text">JSONの <code>ok</code> はコマンド処理の成否です。合格として扱うには <code>status</code> が <code>unique</code> であることも確認し、<code>unknown</code> は保留・再試行にします。このコマンドは主手順の余詰検査であり、保存済みPVの全手や全駒の必要性を監査する処理の代わりにはなりません。</p>
+                <p class="guide-step-text">問題集を独立して監査する場合は、ソースに含まれる次のツールで最短手数・合法手順・主手順の余詰・全1枚除去を確認できます。このツールの <code>--engine</code> は、CLIの登録名ではなく<strong>エンジン実行ファイルのパス</strong>です。</p>
+                <div class="format-example">
+                    <h4>収集ファイルを独立して監査</h4>
 <pre><code>cmake -B build -S . -DBUILD_TESTING=ON
 cmake --build build --target tsumeshogi_collection_auditor --parallel 4
 python3 scripts/audit_tsume_collections.py tsume-work/tsume_3ply_candidates.txt \
   --engine /path/to/KomoringHeights-by-gcc \
-  --output-dir tsume-work/audit-3ply --workers 4 --timeout-ms 30000</code></pre></div><p class="guide-step-text"><code>summary.json</code> の <code>statuses</code>・<code>unique_minimal</code>・<code>changed</code> を確認します。<code>unknown</code> を完成件数に含めず、予算を増やして再試行するか除外します。確認済みの結果は <code>tsume_3ply_minimal.txt</code> に保存されます。駒除去後の重複や類似作の除外で件数が減った場合は補充して再監査します。詳しい検査条件は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集のREADME</a> を参照してください。</p><p class="guide-step-text">不要駒検査で確認するのは、採択条件を維持できる1枚除去がないことです。複数枚の同時除去や駒種変更まで含めた最少駒数は保証しません。</p>
-</div>
+  --output-dir tsume-work/audit-3ply --workers 4 --timeout-ms 30000</code></pre>
+                </div>
+                <p class="guide-step-text"><code>summary.json</code> の <code>statuses</code>・<code>unique_minimal</code>・<code>changed</code> を確認します。<code>unknown</code> を完成件数に含めず、予算を増やして再試行するか除外します。確認済みの結果は <code>tsume_3ply_minimal.txt</code> に保存されます。駒除去後の重複や類似作の除外で件数が減った場合は補充して再監査します。詳しい検査条件は<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集のREADME</a>を参照してください。</p>
+                <p class="guide-step-text">不要駒検査で確認するのは、採択条件を維持できる1枚除去がないことです。複数枚の同時除去や駒種変更まで含めた最少駒数は保証しません。</p>
+            </div>
         </div>
     </div>
 </section>
@@ -411,27 +471,50 @@ python3 scripts/audit_tsume_collections.py tsume-work/tsume_3ply_candidates.txt 
         <h2 class="section-title">似た問題が続かない問題集にする</h2>
         <p class="section-desc">局面の検証に加え、解く手順の類似性と出題順を確認します</p>
         <div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header"><span class="guide-step-number">1</span><span class="guide-step-title">局面の重複だけでなく、手順の類似も確認する</span></div>
-<p class="guide-step-text">SFENが異なっていても、同じ追い詰め、左右反転、配置の平行移動、金と成桂などの置換で解き方が似る場合があります。標準CLIと上のPython例による局面の重複排除だけでは、問題集としての多様性は保証されません。</p>
-</div>
-<div class="guide-step">
-<div class="guide-step-header"><span class="guide-step-number">2</span><span class="guide-step-title">問題集編集用のツールで選別・補充する</span></div>
-<p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> は、検証済みの問題集を入力に、全ワーカー共通で手順の類似を判定して不足分を生成します。標準CLIとは別の専用候補生成器・監査器を使います。補充後に <code>scripts/audit_tsume_collections.py</code> で独立監査し、確定判定が揃ってから <code>scripts/publish_diverse_tsume.py</code> で直近10題との手順の重なりを減らす順序に並べます。</p><p class="guide-step-text">類似判定は主手順を使った編集基準で、変化・紛れを含む作品の価値を完全に判定するものではありません。入力条件・再開・除外・保存の手順は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集のREADME</a> を参照してください。</p>
-</div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">局面の重複だけでなく、手順の類似も確認する</h3>
+                </div>
+                <p class="guide-step-text">SFENが異なっていても、同じ追い詰め、左右反転、配置の平行移動、金と成桂などの置換で解き方が似る場合があります。標準CLIと上のPython例による局面の重複排除だけでは、問題集としての多様性は保証されません。</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">問題集編集用のツールで選別・補充する</h3>
+                </div>
+                <p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> は、検証済みの問題集を入力に、全ワーカー共通で手順の類似を判定して不足分を生成します。標準CLIとは別の専用候補生成器・監査器を使います。補充後に <code>scripts/audit_tsume_collections.py</code> で独立監査し、確定判定が揃ってから <code>scripts/publish_diverse_tsume.py</code> で直近10題との手順の重なりを減らす順序に並べます。</p>
+                <p class="guide-step-text">類似判定は主手順を使った編集基準で、変化・紛れを含む作品の価値を完全に判定するものではありません。入力条件・再開・除外・保存の手順は<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集のREADME</a>を参照してください。</p>
+            </div>
         </div>
     </div>
 </section>
+</main>
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html#tsume" class="back-link">← 利用ガイドに戻る</a>
 </div>
 
 <!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>
