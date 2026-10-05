@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋谱显示 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 棋谱栏的图文指南：显示着法、用时、书签和注释，编辑注释和书签，以及用候选变化和变化树切换分支棋谱。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-display.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-display.html">
+    <meta property="og:title" content="棋谱显示 - ShogiBoardQ">
+    <meta property="og:description" content="在棋谱栏中查看着法、用时、书签和注释，编辑注释和书签，并切换变化。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/kifu-display/kifu-display-04-branch.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="棋谱显示 - ShogiBoardQ">
+    <meta name="twitter:description" content="在棋谱栏中查看着法、用时、书签和注释，编辑注释和书签，并切换变化。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/kifu-display/kifu-display-04-branch.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-display.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kifu-display.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/kifu-display.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/kifu-display.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="kifu-display.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/kifu-display.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#record">棋谱栏</a></li>
+            <li><a href="#comment">注释</a></li>
+            <li><a href="#bookmark">书签</a></li>
+            <li><a href="#branch">分支棋谱</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>棋谱显示</h1>
+        <p class="hero-subtitle">棋谱栏的显示、注释、书签与分支棋谱操作</p>
+        <div class="hero-badges">
+            <span class="badge">切换显示列</span>
+            <span class="badge">编辑注释</span>
+            <span class="badge">书签</span>
+            <span class="badge">候选变化与变化树</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="record" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">棋谱栏</h2>
+        <p class="section-desc">以列表显示着法、用时、书签和注释</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">棋谱栏的看法</span>
+                </div>
+                <p class="guide-step-text">棋谱栏从初始局面开始依次列出着法、用时（每手／累计）、书签和注释。选择一手后，棋盘会显示该局面，“注释”和“变化树”标签页也会切换到同一手。可以点击行、使用 ↑↓ 键或右侧的按钮选择着法。</p>
+                <ul class="guide-step-text">
+                    <li>A- / A+：调整棋谱栏的字号</li>
+                    <li>编辑书签（铅笔按钮）：编辑所选着法的书签</li>
+                    <li>时钟、书签、对话气泡按钮：显示／隐藏用时、书签、注释列（按下时显示）</li>
+                    <li>▲| ▲▲ ▲ ▼ ▼▼ ▼|：跳到起点、后退 10 手、后退一手、前进一手、前进 10 手、跳到最后一手</li>
+                </ul>
+                <p class="guide-step-text">有变化的着法背景为橙色，着法末尾带有“+”。最右侧的“候选变化”会在所选着法有其他着法时列出这些候选（点击“◂ 候选变化”可以折叠）。</p>
+                <p class="guide-step-text">可以在“设置”→“棋谱与棋盘坐标表示”中切换日文记法（▲７六歩）和西文记法（▲P-7f）。默认跟随界面语言（日文和中文使用日文记法，英文使用西文记法）。详情请参阅<a href="../../en/guide/multilanguage.html">多语言支持（英文）</a>指南。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/kifu-display/kifu-display-01-record.png" alt="棋谱栏">
+                    <p class="screenshot-caption">棋谱栏：用时、书签、注释列与第 15 手的候选变化</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="comment" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">注释</h2>
+        <p class="section-desc">为所选着法写注释</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">写注释</span>
+                </div>
+                <p class="guide-step-text">画面下方的“注释”标签页显示所选着法的注释。修改后会显示“编辑中”，点击“更新注释”（Ctrl+Enter）即可应用到棋谱。应用后的注释也会显示在棋谱栏的注释列中。</p>
+                <p class="guide-step-text">注释中的网址会变成链接，按住 Ctrl 点击即可打开。左侧的按钮可以调整字号，以及撤销、重做、剪切、复制、粘贴。注释可以保存在 KIF、KI2、CSA、JKF 格式中。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/kifu-display/kifu-display-02-comment.png" alt="编辑注释">
+                    <p class="screenshot-caption">注释：正在修改第 17 手的注释（编辑中）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">更新前移到其他着法时</span>
+                </div>
+                <p class="guide-step-text">如果没有点击“更新注释”就要移到其他着法，会显示确认对话框。点击“放弃并移动”会放弃修改并移动，点击“取消”则停止移动，回到原来的着法。无论是点击棋谱栏、按钮、候选变化还是变化树，都会这样确认。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/kifu-display/kifu-display-05-unsaved.png" alt="未更新注释的确认">
+                    <p class="screenshot-caption">未更新注释的确认</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="bookmark" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">书签</h2>
+        <p class="section-desc">为想要标记的着法命名</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">添加书签</span>
+                </div>
+                <p class="guide-step-text">选择一手后点击“编辑书签”按钮，输入书签名称并点击“确定”，书签就会显示在棋谱栏的书签列中。名称为空时点击“确定”会删除书签。</p>
+                <p class="guide-step-text">书签保存在 KIF、KI2 格式中，读取时会再次显示。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/kifu-display/kifu-display-03-bookmark.png" alt="编辑书签">
+                    <p class="screenshot-caption">编辑书签</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="branch" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">分支棋谱</h2>
+        <p class="section-desc">切换并查看其他变化的着法</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">切换变化</span>
+                </div>
+                <p class="guide-step-text">选择有变化的着法后，候选变化中会列出主线的着法和其他着法。点击候选即可切换到该变化，棋谱栏也会显示该变化的着法。显示变化时，点击列表最后的“返回主线”可回到主线的同一手。</p>
+                <p class="guide-step-text">“变化树”标签页可以一览主线（最上面一行）和各个变化。当前的着法以黄色显示，点击着法即可移动到该局面。当前着法在可见范围之外时，会自动滚动到能看到它的位置。可以保存变化的格式请参阅<a href="kifu-management.html">棋谱管理</a>指南。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/kifu-display/kifu-display-04-branch.png" alt="选择变化后的主窗口">
+                    <p class="screenshot-caption">变化：在第 15 手选择“▲８七歩打”，并显示变化树</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
