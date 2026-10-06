@@ -3,7 +3,9 @@
 
 #include <QPixmap>
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTextDocument>
 #include <QTextBrowser>
 #include <QComboBox>
@@ -71,6 +73,9 @@ VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(std::make_un
     ui->mainLayout->insertWidget(ui->mainLayout->count() - 1, documents);
     ui->mainLayout->insertWidget(ui->mainLayout->count() - 1, browser, 1);
     connect(documents, &QComboBox::currentIndexChanged, this, &VersionDialog::showLicenseDocument);
+    // 本文中のリンクから別の文書を開いた後、同じ項目を選び直すと元の文書に戻る。
+    connect(documents, &QComboBox::activated, this, &VersionDialog::showLicenseDocument);
+    connect(browser, &QTextBrowser::anchorClicked, this, &VersionDialog::openLicenseLink);
     showLicenseDocument(0);
     const int savedDocument = AppSettings::versionDialogDocument();
     if (savedDocument >= 0 && savedDocument < documents->count()) documents->setCurrentIndex(savedDocument);
@@ -88,6 +93,26 @@ QString VersionDialog::sourceCodeDocument()
 {
     //: Bundled document filename. Use the translated SOURCE_CODE_<language>.md file.
     return tr("SOURCE_CODE.md");
+}
+
+void VersionDialog::openLicenseLink(const QUrl& url)
+{
+    // 一覧の相対リンクは licenses 内の文書を指す。QTextBrowser は相対リンクを起動時の
+    // フォルダから探すうえ、拡張子のない LICENSE などを HTML として表示するため、ここで開く。
+    // http(s)・qrc のリンクは QTextBrowser に任せる。
+    const QString directory = licenseDirectory();
+    if (directory.isEmpty() || !url.isRelative() || url.path().isEmpty()) return;
+    const QString root = QDir::cleanPath(directory) + QLatin1Char('/');
+    const QString path = QDir::cleanPath(root + url.path());
+    if (!path.startsWith(root)) return;
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) return;
+    auto* browser = findChild<QTextBrowser*>(QStringLiteral("licenseBrowser"));
+    const QString contents = QString::fromUtf8(file.readAll());
+    // 本文を差し替えると、QTextBrowser 自身によるリンク先の読み込みは行われない。
+    if (path.endsWith(QStringLiteral(".md"))) browser->setMarkdown(contents);
+    else browser->setPlainText(contents);
+    browser->document()->setBaseUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath() + QLatin1Char('/')));
 }
 
 void VersionDialog::showLicenseDocument(int index)

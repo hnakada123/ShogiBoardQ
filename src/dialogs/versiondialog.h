@@ -9,6 +9,8 @@
 
 #include <memory>
 
+class QUrl;
+
 namespace Ui {
 class VersionDialog;
 }
@@ -29,6 +31,8 @@ private:
     // UI の言語に合わせたソース入手案内のファイル名
     static QString sourceCodeDocument();
     void showLicenseDocument(int index);
+    // 文書中の licenses 内へのリンクを開く
+    void openLicenseLink(const QUrl& url);
     std::unique_ptr<Ui::VersionDialog> ui;
 };
 
