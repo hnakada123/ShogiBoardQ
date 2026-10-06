@@ -5,38 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>対局画面の外観 - ShogiBoardQ</title>
     <meta name="description" content="駒40種類、将棋盤・背景・駒台各26種類、対局者情報20種類を、プレビューを見ながら自由に組み合わせる外観設定を紹介します。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
+    <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
     <meta property="og:title" content="対局画面の外観 - ShogiBoardQ">
-    <meta property="og:description" content="駒に合うおすすめ配色と、盤面・手番・対局者名・持ち時間の個別配色。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/board-theme-kaya.png">
+    <meta property="og:description" content="駒・将棋盤・背景・駒台・対局者情報を見本から選び、プレビューを見ながら自由に組み合わせられます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/appearance-window-ebony.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="対局画面の外観 - ShogiBoardQ">
-    <meta name="twitter:description" content="駒に合うおすすめ配色と、盤面・手番・対局者名・持ち時間の個別配色。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/board-theme-kaya.png">
+    <meta name="twitter:description" content="駒・将棋盤・背景・駒台・対局者情報を見本から選び、プレビューを見ながら自由に組み合わせられます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/appearance-window-ebony.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/board-colors.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/board-colors.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
 </head>
 <body>
 
+<!-- Navigation -->
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/board-colors.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="board-colors.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/board-colors.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/board-colors.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/board-colors.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
-            <li><a href="#presets">おすすめ配色</a></li>
-            <li><a href="#information-colors">手番・名前・時計</a></li>
-            <li><a href="#custom-colors">個別調整</a></li>
+            <li><a href="#open-dialog">開き方</a></li>
+            <li><a href="#appearance">5つの部品</a></li>
+            <li><a href="#presets">おすすめ</a></li>
+            <li><a href="#custom-colors">詳細調整</a></li>
             <li><a href="piece-style.html">駒の種類</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
@@ -44,50 +58,120 @@
 </nav>
 
 <main class="appearance-guide">
-<section class="hero hero--sub"><div class="hero-content"><h1>対局画面の外観</h1><p class="hero-subtitle">5つの部品を、見本から自由に組み合わせる</p></div></section>
-<section id="open-dialog" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">外観ウィンドウを開く</h2>
-<p>「表示」→「対局画面の外観…」を選びます。旧「駒の種類」「盤面の配色」メニューは、このウィンドウに統合しました。</p>
-<p>左側で見本を選び、右側のプレビューで全体の組み合わせを確認します。選択はすべての盤面へ即時反映され、自動保存されます。</p>
-<div class="screenshot-item"><a href="../images/board-colors/appearance-window-ebony.png"><img src="../images/board-colors/appearance-window-ebony.png" alt="外観ウィンドウで黒檀の駒と月白の盤を組み合わせた例" loading="lazy"></a></div>
-</div></section>
-<section id="appearance" class="section"><div class="section-inner">
-<h2 class="section-title">5項目を独立して選ぶ</h2>
-<table class="judgment-table"><thead><tr><th>タブ</th><th>見本</th><th>変更される範囲</th></tr></thead><tbody>
-<tr><td>駒</td><td>40種類</td><td>標準・虎斑・木肌・淡色・深色・戦国文字・チェス風・アルファベットの駒。種類で絞り込めます。</td></tr>
-<tr><td>将棋盤</td><td>26種類</td><td>盤面の色・木目、マス罫線。</td></tr>
-<tr><td>背景</td><td>26種類</td><td>盤や駒台の周囲の背景色。</td></tr>
-<tr><td>駒台</td><td>26種類</td><td>持駒を置く台の色と木目。</td></tr>
-<tr><td>対局者情報</td><td>20種類</td><td>カード、手番バッジ、対局者名、持ち時間と警告時の色。</td></tr>
-</tbody></table>
-<p>各タブで選んでも、ほかの部品は変わりません。将棋盤を変えても背景色は保たれ、背景を変えても盤の色・木目・罫線は保たれます。将棋盤と駒台の木目も独立して設定できます。</p>
-<p>将棋盤の見本：榧、白榧、本榧、琥珀、胡桃、焦茶、白桐、生成り、月白、銀鼠、薄墨、墨夜、青磁、若竹、苔庭、藍青、薄桜、藤鼠、砂岩、青灰。</p>
-<p>駒台の見本：木肌、白榧、本榧、飴色、胡桃、黒檀、白桐、生成り、月白、銀鼠、薄墨、墨夜、青磁、若竹、苔庭、藍青、薄桜、藤鼠、砂岩、青灰。</p>
-<div class="screenshot-item"><a href="../images/board-colors/appearance-background.png"><img src="../images/board-colors/appearance-background.png" alt="背景を独立して選び、白榧の盤と藍青の背景を組み合わせた例" loading="lazy"></a></div>
-</div></section>
-<section id="presets" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">おすすめの組み合わせとプレビュー</h2>
-<p>「黒檀・月白」「白木・墨夜」「淡虎斑・白榧」やチェス風9セット・アルファベット9セットなど、24種類の組み合わせを出発点にできます。おすすめを選ぶと背景を含む5項目をまとめて変更します。その後は部品を個別に選び直せます。</p>
-<p>プレビューは実際の対局画面と同じ描画です。「成駒・持駒の見本」と「盤面反転」で、文字や持駒の読みやすさも確認できます。プレビューの局面・反転操作は、進行中の対局に影響しません。</p>
-</div></section>
-<section id="information-colors" class="section"><div class="section-inner">
-<h2 class="section-title">手番・対局者・持ち時間の20見本</h2>
-<p>若草、生成り、白磁、桜霞、藤霞、青磁、水浅葱、砂丘、琥珀、胡桃、墨、藍夜、深緑、葡萄、鉄紺、墨金、銀鼠、紅殻、石庭、月白から選べます。明るいカードと暗いカードの両方を用意しています。</p>
-<div class="screenshot-item"><a href="../images/board-colors/appearance-information.png"><img src="../images/board-colors/appearance-information.png" alt="対局者情報の見本一覧と盤面プレビュー" loading="lazy"></a></div>
-</div></section>
-<section id="custom-colors" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">詳細調整と設定の保存</h2>
-<p>「詳細」タブでは、従来の18項目の色調整、透明度、駒の大きさ（90〜112%）、駒の影、盤と駒台それぞれの木目を変更できます。見本から色を変えると「カスタム」と表示されます。</p>
-<p>「開いたときの外観に戻す」は、このウィンドウを開いた時点の駒・色・質感を復元します。「標準色に戻す」は18項目の色のみを標準に戻します。</p>
-<p>選択した外観、ウィンドウの大きさ、最後のタブ、駒の絞り込みを保存します。読み筋盤や詰将棋、<a href="image-export.html">盤面画像の出力</a>にも同じ設定が反映されます。</p>
-</div></section></main>
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>対局画面の外観</h1>
+        <p class="hero-subtitle">5つの部品を、見本から自由に組み合わせる</p>
+    </div>
+</section>
 
+<section id="open-dialog" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">外観ウィンドウを開く</h2>
+        <p class="guide-step-text">「表示」→「対局画面の外観…」を選びます。以前の「駒の種類」「盤面の配色」メニューは、このウィンドウにまとめました。</p>
+        <p class="guide-step-text">左側で見本を選び、右側のプレビューで全体の組み合わせを確認します。選択はすべての盤面へすぐに反映され、自動で保存されます。プレビューの下には、いま選んでいる5つの部品の名前が表示されます。</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../images/board-colors/appearance-window-ebony.png"><img src="../images/board-colors/appearance-window-ebony.png" alt="外観ウィンドウで黒檀の駒と月白の盤を組み合わせた例" width="1180" height="800" loading="lazy"></a>
+                <p class="screenshot-caption">おすすめの組み合わせ「黒檀・月白」（駒タブを「深色」で絞り込み）</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="appearance" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">5つの部品を独立して選ぶ</h2>
+        <table class="info-table">
+            <thead><tr><th scope="col">タブ</th><th scope="col">見本</th><th scope="col">変わる範囲</th></tr></thead>
+            <tbody>
+                <tr><td>駒</td><td>40種類</td><td>標準・虎斑・木肌・淡色・深色・戦国文字・チェス風・アルファベットの駒。種類で絞り込めます（<a href="piece-style.html">駒の種類</a>）。</td></tr>
+                <tr><td>将棋盤</td><td>26種類</td><td>盤面の色・木目、マス罫線。</td></tr>
+                <tr><td>背景</td><td>26種類</td><td>盤や駒台の周囲の背景色。</td></tr>
+                <tr><td>駒台</td><td>26種類</td><td>持駒を置く台の色と木目。</td></tr>
+                <tr><td>対局者情報</td><td>20種類</td><td>カード、手番バッジ、対局者名、持ち時間と警告時の色。</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">各タブで選んでも、ほかの部品は変わりません。将棋盤を変えても背景色は保たれ、背景を変えても盤の色・木目・罫線は保たれます。将棋盤と駒台の木目も独立して設定できます。</p>
+        <table class="info-table">
+            <thead><tr><th scope="col">部品</th><th scope="col">見本</th></tr></thead>
+            <tbody>
+                <tr><td>将棋盤</td><td>榧・白榧・本榧・琥珀・胡桃・焦茶・白桐・生成り・月白・銀鼠・薄墨・墨夜・青磁・若竹・苔庭・藍青・薄桜・藤鼠・砂岩・青灰</td></tr>
+                <tr><td>背景</td><td>畳・白緑・松葉・焦茶・胡桃・炭・柳鼠・生成り・青鼠・銀鼠・薄墨・墨夜・青磁・若竹・苔庭・藍青・薄桜・藤鼠・砂岩・青灰</td></tr>
+                <tr><td>駒台</td><td>木肌・白榧・本榧・飴色・胡桃・黒檀・白桐・生成り・月白・銀鼠・薄墨・墨夜・青磁・若竹・苔庭・藍青・薄桜・藤鼠・砂岩・青灰</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">将棋盤・背景・駒台には、このほかにチェス風の駒とアルファベットの駒に合わせた「チェス・木肌」「チェス・白」「チェス・墨」「欧文・木肌」「欧文・白」「欧文・墨」の6種類があります。</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../images/board-colors/appearance-background.png"><img src="../images/board-colors/appearance-background.png" alt="将棋盤を白榧、背景を藍青に個別に選んだ例" width="1180" height="800" loading="lazy"></a>
+                <p class="screenshot-caption">将棋盤を「白榧」、背景を「藍青」に個別に変更</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="presets" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">おすすめの組み合わせとプレビュー</h2>
+        <p class="guide-step-text">「黒檀・月白」「白木・墨夜」「淡虎斑・白榧」やチェス風9セット・アルファベット9セットなど、24種類の組み合わせを出発点にできます。おすすめを選ぶと背景を含む5つの部品をまとめて変更します。その後は部品を個別に選び直せます（組み合わせの欄は「自由な組み合わせ」になります）。</p>
+        <p class="guide-step-text">プレビューは実際の対局画面と同じ描画です。「成駒・持駒の見本」と「盤面反転」で、文字や持駒の読みやすさも確認できます。プレビューの局面・反転の操作は、進行中の対局に影響しません。</p>
+    </div>
+</section>
+
+<section id="information-colors" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">手番・対局者・持ち時間の20見本</h2>
+        <p class="guide-step-text">若草・生成り・白磁・桜霞・藤霞・青磁・水浅葱・砂丘・琥珀・胡桃・墨・藍夜・深緑・葡萄・鉄紺・墨金・銀鼠・紅殻・石庭・月白から選べます。明るいカードと暗いカードの両方を用意しています。</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../images/board-colors/appearance-information.png"><img src="../images/board-colors/appearance-information.png" alt="対局者情報の見本一覧と盤面プレビュー" width="1180" height="800" loading="lazy"></a>
+                <p class="screenshot-caption">対局者情報の見本（月白を選択）</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="custom-colors" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">詳細調整と設定の保存</h2>
+        <p class="guide-step-text">「詳細」タブでは、盤・駒台、対局者カード、手番、対局者名、持ち時間の18項目の色を1つずつ変更できます。背景や枠線の色は透明度も指定できます。「外観」では駒の大きさ（90〜112%）、駒の影、将棋盤と駒台それぞれの木目を変更できます。色を個別に変えると「カスタム（個別に指定）」と表示されます。</p>
+        <p class="guide-step-text">「開いたときの外観に戻す」は、このウィンドウを開いた時点の駒・色・質感を復元します。「標準色に戻す」は18項目の色だけを標準に戻します。</p>
+        <p class="guide-step-text">選んだ外観、ウィンドウの大きさ、最後に開いたタブ、駒の絞り込みを保存します。読み筋表示や詰将棋の盤、<a href="image-export.html">盤面画像の出力</a>にも同じ設定が反映されます。</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../images/board-colors/appearance-details.png"><img src="../images/board-colors/appearance-details.png" alt="詳細タブで盤・駒台の色を調整する画面" width="1180" height="800" loading="lazy"></a>
+                <p class="screenshot-caption">「詳細」タブの「盤・駒台」</p>
+            </div>
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
 </div>
+
+<!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>

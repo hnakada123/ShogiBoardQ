@@ -1,88 +1,178 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Game Appearance - ShogiBoardQ</title>
-<meta content="Learn to customize ShogiBoardQ board colors with screenshots: choose matching palettes and adjust board, turn indicator, player name, and clock backgrounds, borders, and text colors." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html" rel="canonical"/>
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html" property="og:url"/>
-<meta content="Game Appearance - ShogiBoardQ" property="og:title"/>
-<meta content="Customize board, player card, turn indicator, name, and clock colors." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/board-theme-kaya.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Game Appearance - ShogiBoardQ" name="twitter:title"/>
-<meta content="Customize board, player card, turn indicator, name, and clock colors." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/board-theme-kaya.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Appearance - ShogiBoardQ</title>
+    <meta name="description" content="Freely combine 40 piece styles, 26 boards, 26 backgrounds, 26 piece stands, and 20 player information styles while checking a live preview.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html">
+    <meta property="og:title" content="Game Appearance - ShogiBoardQ">
+    <meta property="og:description" content="Choose pieces, board, background, piece stands, and player information from samples and combine them freely with a live preview.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/board-colors/appearance-window-ebony.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Game Appearance - ShogiBoardQ">
+    <meta name="twitter:description" content="Choose pieces, board, background, piece stands, and player information from samples and combine them freely with a live preview.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/board-colors/appearance-window-ebony.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/board-colors.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/board-colors.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
 </head>
 <body>
+
+<!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/board-colors.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#presets">Recommended Palettes</a></li>
-<li><a href="#information-colors">Turn, Names and Clocks</a></li>
-<li><a href="#custom-colors">Individual Colors</a></li>
-<li><a href="piece-style.html">Piece Styles</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/board-colors.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="board-colors.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/board-colors.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/board-colors.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#open-dialog">Open</a></li>
+            <li><a href="#appearance">Five Components</a></li>
+            <li><a href="#presets">Suggestions</a></li>
+            <li><a href="#custom-colors">Details</a></li>
+            <li><a href="piece-style.html">Piece Styles</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <main class="appearance-guide">
-<section class="hero hero--sub"><div class="hero-content"><h1>Game Appearance</h1><p class="hero-subtitle">Combine five components using visual samples</p></div></section>
-<section id="open-dialog" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">Open the Appearance Window</h2>
-<p>Choose View → Game Appearance…. This replaces the former Piece Style and Board Colors menus.</p>
-<p>Select samples on the left and check the combined result in the preview on the right. Your choices apply to all boards immediately and are saved automatically.</p>
-<div class="screenshot-item"><a href="../../images/board-colors/appearance-window-ebony.png"><img src="../../images/board-colors/appearance-window-ebony.png" alt="Appearance window combining Ebony pieces with the Moon White board; Japanese interface" loading="lazy"></a></div>
-</div></section>
-<section id="appearance" class="section"><div class="section-inner">
-<h2 class="section-title">Choose Components Independently</h2>
-<table class="judgment-table"><thead><tr><th>Tab</th><th>Samples</th><th>Changes</th></tr></thead><tbody>
-<tr><td>Pieces</td><td>40</td><td>Standard, tiger grain, wood tones, light colors, dark colors, Sengoku Kanji, chess-inspired pieces, and alphabet pieces. Filter by family.</td></tr>
-<tr><td>Board</td><td>26</td><td>Board color and grain, and grid lines.</td></tr>
-<tr><td>Background</td><td>26</td><td>The background color around the board and stands.</td></tr>
-<tr><td>Stands</td><td>26</td><td>Color and grain of the captured piece stands.</td></tr>
-<tr><td>Players</td><td>20</td><td>Cards, turn badges, player names, clocks, and time warning colors.</td></tr>
-</tbody></table>
-<p>Choosing one component preserves the others. Changing the board preserves the background; changing the background preserves the board color, grain, and grid lines. Board and stand grain can also be set independently.</p>
-<div class="screenshot-item"><a href="../../images/board-colors/appearance-background.png"><img src="../../images/board-colors/appearance-background.png" alt="Independent background selection combining a Pale Kaya board with an Indigo Blue background; Japanese interface" loading="lazy"></a></div>
-</div></section>
-<section id="presets" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">Suggested Combinations and Preview</h2>
-<p>Twenty-four combinations, including Ebony / Moon White, Pale Wood / Ink Night, nine chess-inspired sets, and nine alphabet sets, provide starting points. A suggested combination changes all five components, including the background. You can then choose each component separately.</p>
-<p>The preview uses the same renderer as the game screen. Check promoted and captured pieces or flip the preview to assess readability. These preview controls do not change a game in progress.</p>
-</div></section>
-<section id="information-colors" class="section"><div class="section-inner">
-<h2 class="section-title">20 Player Information Styles</h2>
-<p>Choose light or dark cards, including Spring Green, Linen, Porcelain, Cherry Mist, Wisteria Mist, Celadon, Pale Aqua, Sand Dune, Amber, Walnut, Charcoal, Indigo Night, Forest Green, Grape, Iron Navy, Ink and Gold, Silver Gray, Red Earth, Rock Garden, and Moon White.</p>
-<div class="screenshot-item"><a href="../../images/board-colors/appearance-information.png"><img src="../../images/board-colors/appearance-information.png" alt="Player information samples and board preview; Japanese interface" loading="lazy"></a></div>
-</div></section>
-<section id="custom-colors" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">Details and Saved Preferences</h2>
-<p>Details retains all 18 individual color controls, transparency, piece size (90–112%), shadows, and separate board and stand grain settings. Individual changes are shown as Custom.</p>
-<p>Restore Opening Appearance restores the pieces, colors, and textures from when this window was opened. Restore Default Colors resets only the 18 colors.</p>
-<p>The appearance, window size, selected tabs, and piece filter are remembered. The same appearance is used in variation boards, tsume boards, and <a href="image-export.html">exported board images</a>.</p>
-</div></section></main>
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Game Appearance</h1>
+        <p class="hero-subtitle">Combine five components freely from visual samples</p>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
+</section>
+
+<section id="open-dialog" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Open the Appearance Window</h2>
+        <p class="guide-step-text">Choose View → Game Appearance…. This window replaces the former Piece Style and Board Colors menus.</p>
+        <p class="guide-step-text">Select samples on the left and check the combined result in the preview on the right. Your choices apply to all boards immediately and are saved automatically. The names of the five selected components are shown below the preview.</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../../images/en/board-colors/appearance-window-ebony.png"><img src="../../images/en/board-colors/appearance-window-ebony.png" alt="Appearance window combining Ebony pieces and a Moon White board" width="1180" height="800" loading="lazy"></a>
+                <p class="screenshot-caption">Suggested combination Ebony / Moon White (Pieces tab filtered by Dark Colors)</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="appearance" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Choose the Five Components Independently</h2>
+        <table class="info-table">
+            <thead><tr><th scope="col">Tab</th><th scope="col">Samples</th><th scope="col">What Changes</th></tr></thead>
+            <tbody>
+                <tr><td>Pieces</td><td>40</td><td>Standard, tiger grain, natural wood, light colors, dark colors, Sengoku Kanji, chess-inspired, and alphabet pieces. You can filter by group (<a href="piece-style.html">Piece Styles</a>).</td></tr>
+                <tr><td>Board</td><td>26</td><td>Board color and grain, and grid lines.</td></tr>
+                <tr><td>Background</td><td>26</td><td>The background color around the board and stands.</td></tr>
+                <tr><td>Piece stands</td><td>26</td><td>Color and grain of the stands for captured pieces.</td></tr>
+                <tr><td>Players</td><td>20</td><td>Cards, Turn badges, player names, clocks, and time warning colors.</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">Choosing one component keeps the others. Changing the board keeps the background color, and changing the background keeps the board color, grain, and grid lines. Board and stand grain can also be set independently.</p>
+        <table class="info-table">
+            <thead><tr><th scope="col">Component</th><th scope="col">Samples</th></tr></thead>
+            <tbody>
+                <tr><td>Board</td><td>Kaya, Pale Kaya, Golden Kaya, Amber, Walnut, Dark Brown, Pale Paulownia, Linen, Moon White, Silver Gray, Soft Charcoal, Ink Night, Celadon, Young Bamboo, Moss Garden, Indigo Blue, Pale Cherry, Wisteria Gray, Sandstone, Blue Gray</td></tr>
+                <tr><td>Background</td><td>Tatami, Pale Green, Pine Green, Dark Brown, Walnut, Charcoal, Willow Gray, Linen, Slate Gray, Silver Gray, Soft Charcoal, Ink Night, Celadon, Young Bamboo, Moss Garden, Indigo Blue, Pale Cherry, Wisteria Gray, Sandstone, Blue Gray</td></tr>
+                <tr><td>Piece stands</td><td>Natural Wood, Pale Kaya, Golden Kaya, Amber Wood, Walnut, Ebony, Pale Paulownia, Linen, Moon White, Silver Gray, Soft Charcoal, Ink Night, Celadon, Young Bamboo, Moss Garden, Indigo Blue, Pale Cherry, Wisteria Gray, Sandstone, Blue Gray</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">Boards, backgrounds, and piece stands also have six samples matched to the chess-inspired and alphabet pieces: Chess · Wood, Chess · White, Chess · Ink, Alphabet · Wood, Alphabet · White, and Alphabet · Ink.</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../../images/en/board-colors/appearance-background.png"><img src="../../images/en/board-colors/appearance-background.png" alt="Pale Kaya board and Indigo Blue background chosen separately" width="1180" height="800" loading="lazy"></a>
+                <p class="screenshot-caption">Board changed to Pale Kaya and background to Indigo Blue</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="presets" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Suggested Combinations and Preview</h2>
+        <p class="guide-step-text">Twenty-four combinations, including Ebony / Moon White, Pale Wood / Ink Night, Light Tiger Grain / Pale Kaya, nine chess-inspired sets, and nine alphabet sets, provide starting points. A suggested combination changes all five components, including the background. You can then choose each component separately (the field then shows Custom Combination).</p>
+        <p class="guide-step-text">The preview uses the same rendering as the game screen. Use Promoted and Captured Pieces and Flip Board to check the readability of the lettering and the pieces in hand. These preview controls do not affect a game in progress.</p>
+    </div>
+</section>
+
+<section id="information-colors" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">20 Player Information Styles</h2>
+        <p class="guide-step-text">Choose from Spring Green, Linen, Porcelain, Cherry Mist, Wisteria Mist, Celadon, Pale Aqua, Sand Dune, Amber, Walnut, Ink, Indigo Night, Forest Green, Grape, Iron Navy, Ink and Gold, Silver Gray, Red Earth, Stone Garden, and Moon White. Both light and dark cards are available.</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../../images/en/board-colors/appearance-information.png"><img src="../../images/en/board-colors/appearance-information.png" alt="Player information samples with the board preview" width="1180" height="800" loading="lazy"></a>
+                <p class="screenshot-caption">Player information samples (Moon White selected)</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="custom-colors" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Fine Adjustments and Saved Settings</h2>
+        <p class="guide-step-text">On the Details tab, you can change the 18 colors of the board and stands, player cards, Turn badge, player names, and clocks one by one. Background and border colors can also be made transparent. Appearance sets the piece size (90–112%), piece shadows, and the board and stand grain separately. Individual color changes are shown as Custom (individual colors).</p>
+        <p class="guide-step-text">Restore Opening Appearance restores the pieces, colors, and textures from when this window was opened. Restore Default Colors resets only the 18 colors.</p>
+        <p class="guide-step-text">The selected appearance, window size, last tab, and piece filter are saved. The same appearance is used on principal variation and tsume shogi boards and in <a href="image-export.html">exported board images</a>.</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../../images/en/board-colors/appearance-details.png"><img src="../../images/en/board-colors/appearance-details.png" alt="Adjusting board and stand colors on the Details tab" width="1180" height="800" loading="lazy"></a>
+                <p class="screenshot-caption">Board / stands on the Details tab</p>
+            </div>
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
+<!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
