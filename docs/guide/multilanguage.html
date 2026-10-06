@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多言語対応 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの多言語対応機能を紹介します。日本語・英語・中国語（簡体字／繁体字）のUIに対応し、アプリケーションの言語設定で簡単に切り替えられます。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
+    <meta name="description" content="ShogiBoardQの多言語対応を紹介します。日本語・英語・中国語（簡体字・繁体字）の画面と、言語や棋譜表記の切り替え方法、棋譜データの扱いを解説します。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
     <meta property="og:title" content="多言語対応 - ShogiBoardQ">
-    <meta property="og:description" content="ShogiBoardQの多言語対応機能を紹介。日本語・英語・中国語（簡体字／繁体字）のUIに対応し、言語設定で簡単に切り替え可能。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/multilanguage-02-english.png">
+    <meta property="og:description" content="日本語・英語・中国語（簡体字・繁体字）の画面に対応。言語と棋譜表記を設定から切り替えられます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multilanguage/main-screen.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="多言語対応 - ShogiBoardQ">
-    <meta name="twitter:description" content="ShogiBoardQの多言語対応機能を紹介。日本語・英語・中国語（簡体字／繁体字）のUIに対応し、言語設定で簡単に切り替え可能。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/multilanguage-02-english.png">
+    <meta name="twitter:description" content="日本語・英語・中国語（簡体字・繁体字）の画面に対応。言語と棋譜表記を設定から切り替えられます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multilanguage/main-screen.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multilanguage.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/multilanguage.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
 </head>
 <body>
 
@@ -30,16 +32,25 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/multilanguage.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="multilanguage.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/multilanguage.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/multilanguage.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/multilanguage.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
-            <li><a href="#japanese-ui">日本語UI</a></li>
-            <li><a href="#english-ui">英語UI</a></li>
+            <li><a href="#interfaces">各言語の画面</a></li>
             <li><a href="#how-to-switch">切り替え方法</a></li>
+            <li><a href="#notation">棋譜表記</a></li>
+            <li><a href="#record-data">棋譜の原文</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -49,33 +60,69 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>多言語対応</h1>
-        <p class="hero-subtitle">日本語・英語・中国語（簡体字／繁体字）のUIに対応し、言語設定で切り替え可能</p>
+        <p class="hero-subtitle">日本語・英語・中国語（簡体字／繁体字）の画面に対応し、設定から切り替えられます</p>
         <div class="hero-badges">
-            <span class="badge">日本語</span>
-            <span class="badge">English</span>
-            <span class="badge">简体中文</span>
-            <span class="badge">繁體中文</span>
+            <span class="badge" lang="ja">日本語</span>
+            <span class="badge" lang="en">English</span>
+            <span class="badge" lang="zh-Hans">简体中文</span>
+            <span class="badge" lang="zh-Hant">繁體中文</span>
         </div>
     </div>
 </section>
 
-<!-- Section 1: Japanese UI -->
-<section id="japanese-ui" class="section section--alt">
+<!-- Section 1 -->
+<section id="interfaces" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">日本語UI</h2>
-        <p class="section-desc">メニュー・ボタン・タブなどすべてのUI要素が日本語で表示されます</p>
+        <h2 class="section-title">各言語の画面</h2>
+        <p class="section-desc">どの画像も、同じ日本語の棋譜を読み込んで検討しているところです</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">日本語表示のメイン画面</span>
+                    <span class="guide-step-title">日本語</span>
                 </div>
-                <p class="guide-step-text">日本語UIでは、メニューバー・棋譜欄・エンジン情報タブ・対局情報など、すべてのUI要素が日本語で表示されます。</p>
+                <p class="guide-step-text">メニュー・ボタン・タブなどが日本語で表示されます。指し手は日本語表記（▲２六歩など）で、盤の段は一〜九です。</p>
                 <div class="screenshot-item">
-                    <img src="../images/multilanguage/multilanguage-01-japanese.png" alt="ShogiBoardQ 日本語UI">
-                    <p class="screenshot-caption">日本語UI：メニュー・タブ・棋譜欄などすべて日本語で表示</p>
+                    <a href="../images/multilanguage/main-screen.png"><img src="../images/multilanguage/main-screen.png" alt="ShogiBoardQ 日本語の画面" width="1316" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">日本語の画面：日本語の棋譜を読み込んで検討しているところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">English（英語）</span>
+                </div>
+                <p class="guide-step-text">メニュー（File, Edit, View, Game, Settings, Help）やタブ名（Game Info, Thinking, Consideration など）が英語で表示されます。指し手は英語表記（▲P-2f など）になり、盤の段は a〜i です。</p>
+                <div class="screenshot-item">
+                    <a href="../images/en/multilanguage/main-screen.png"><img src="../images/en/multilanguage/main-screen.png" alt="ShogiBoardQ 英語の画面" width="1397" height="1000" loading="lazy"></a>
+                    <p class="screenshot-caption">英語の画面：日本語の棋譜を読み込んで検討しているところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">简体中文（中国語・簡体字）</span>
+                </div>
+                <p class="guide-step-text">メニューやタブ名が簡体字で表示されます。指し手は日本語の棋譜表記のままで、駒名や「同」「成」「打」などの記号も日本語の表記を使います。</p>
+                <div class="screenshot-item">
+                    <a href="../images/zh-cn/multilanguage/main-screen.png"><img src="../images/zh-cn/multilanguage/main-screen.png" alt="ShogiBoardQ 簡体字の画面" width="1303" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">簡体字の画面：日本語の棋譜を読み込んで検討しているところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">繁體中文（中国語・繁体字）</span>
+                </div>
+                <p class="guide-step-text">メニューやタブ名が繁体字（台湾で使われる用語）で表示されます。指し手は簡体字と同じく日本語の棋譜表記です。</p>
+                <div class="screenshot-item">
+                    <a href="../images/zh-tw/multilanguage/main-screen.png"><img src="../images/zh-tw/multilanguage/main-screen.png" alt="ShogiBoardQ 繁体字の画面" width="1303" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">繁体字の画面：日本語の棋譜を読み込んで検討しているところ</p>
                 </div>
             </div>
 
@@ -83,35 +130,11 @@
     </div>
 </section>
 
-<!-- Section 2: English UI -->
-<section id="english-ui" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">英語UI</h2>
-        <p class="section-desc">メニューや既知の対局情報項目は英語、指し手は英語表記で表示されます</p>
-
-        <div class="screenshot-gallery">
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">英語表示のメイン画面</span>
-                </div>
-                <p class="guide-step-text">英語UIでは、メニューバー（File, Edit, View, Game, Settings, Help）やタブ名（Game Info, Thinking, Consideration, Branch Tree など）がすべて英語で表示されます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/en/multilanguage/multilanguage-02-english.png" alt="ShogiBoardQ English UI">
-                    <p class="screenshot-caption">英語UI：読み筋・棋譜欄に英語表記、盤の段にa〜iを使用</p>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- Section 3: How to Switch -->
-<section id="how-to-switch" class="section section--alt">
+<!-- Section 2 -->
+<section id="how-to-switch" class="section">
     <div class="section-inner">
         <h2 class="section-title">言語の切り替え方法</h2>
-        <p class="section-desc">設定メニューから簡単に言語を切り替えられます</p>
+        <p class="section-desc">「設定」→「言語設定」で画面の言語を選びます</p>
 
         <div class="screenshot-gallery">
 
@@ -120,58 +143,143 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">言語設定を開く</span>
                 </div>
-                <p class="guide-step-text">メニューの「設定」→「言語設定」から言語を選択します。英語UIの場合は「Settings」→「Language」から選択します。</p>
+                <p class="guide-step-text">メニューバーの「設定」→「言語設定」から言語を選びます。英語の画面では「Settings」→「Language」です。</p>
                 <ul class="guide-step-text">
-                    <li>日本語（Japanese）</li>
+                    <li>システム設定に従う：OSの言語が日本語なら日本語、中国語なら簡体字または繁体字、それ以外は英語で表示します。</li>
+                    <li>日本語</li>
                     <li>English（英語）</li>
                     <li>简体中文（中国語・簡体字）</li>
                     <li>繁體中文（中国語・繁体字）</li>
                 </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/multilanguage/language-menu.png"><img src="../images/multilanguage/language-menu.png" alt="「設定」→「言語設定」のメニュー" width="645" height="256" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」→「言語設定」：今の言語に●が付きます</p>
+                </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">言語の反映</span>
+                    <span class="guide-step-title">再起動で反映</span>
                 </div>
-                <p class="guide-step-text">言語を選択すると、アプリケーションの再起動後に新しい言語が反映されます。メニュー・ダイアログ・タブ名・ボタンなど、すべてのUI要素が選択した言語で表示されます。</p>
+                <p class="guide-step-text">言語を選ぶと再起動を促す案内が表示され、アプリケーションを再起動すると新しい言語で表示されます。メニュー・ダイアログ・タブ名・ボタンなど、すべての画面が選んだ言語になります。</p>
             </div>
 
         </div>
     </div>
 </section>
 
-<section id="notation" class="section">
+<!-- Section 3 -->
+<section id="notation" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">棋譜表記と盤の座標</h2>
-        <p class="section-desc">「設定」→「棋譜と盤の座標表記」で、画面の言語とは別に指し手の表記を選べます。変更は再起動後に反映されます。</p>
-        <ul class="guide-step-text">
-            <li>自動：日本語・中国語では日本語表記、英語では英語表記を使います。</li>
-            <li>英語表記：K=玉、R=飛、B=角、G=金、S=銀、N=桂、L=香、P=歩。例：▲P-7f、△Bx8h+、▲P*5e。</li>
-            <li>駒名の前の + は成駒、末尾の + は成り、= は不成、x は駒取り、* は駒打ちを表します。[+] は棋譜の分岐です。</li>
-            <li>英語表記の筋は1〜9、段はa〜iです。日本語表記の段は一〜九です。盤を反転しても各マスの座標は変わりません。</li>
-            <li>英語表記では必要な場合に移動元を表示します。「英語表記で移動元を常に表示」でも指定でき、ツールチップでは常に確認できます。</li>
-            <li>中国語の画面でも、指し手の「歩」「飛」「同」「成」「不成」「打」などは日本語の棋譜表記を保持します。駒画像は外観設定で選べます。</li>
-        </ul>
+        <p class="section-desc">画面の言語とは別に、指し手の表記を選べます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">「棋譜と盤の座標表記」を選ぶ</span>
+                </div>
+                <p class="guide-step-text">「設定」→「棋譜と盤の座標表記」で選びます。変更は再起動後に反映されます。</p>
+                <ul class="guide-step-text">
+                    <li>言語に合わせる：日本語・中国語の画面では日本語表記、英語の画面では英語表記を使います。</li>
+                    <li>日本語表記（▲7六歩、段は一〜九）</li>
+                    <li>英語表記（▲P-7f、段はa〜i）</li>
+                    <li>英語表記で移動元を常に表示：英語表記では通常、区別が必要な場合だけ移動元を表示します。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/multilanguage/notation-menu.png"><img src="../images/multilanguage/notation-menu.png" alt="「設定」→「棋譜と盤の座標表記」のメニュー" width="741" height="284" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」→「棋譜と盤の座標表記」</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">英語表記の読み方</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>駒：K=玉、R=飛、B=角、G=金、S=銀、N=桂、L=香、P=歩。例：▲P-7f、△Bx8h+、▲P*5e。</li>
+                    <li>駒名の前の + は成駒、手の末尾の + は成り、= は不成、x は駒取り、* は駒打ちです。[+] は棋譜の分岐を表します。</li>
+                    <li>筋は1〜9、段はa〜iです（日本語表記の段は一〜九）。盤を反転しても各マスの座標は変わりません。</li>
+                    <li>移動元はツールチップで常に確認できます。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">棋譜表記の読み方を表示する</span>
+                </div>
+                <p class="guide-step-text">「棋譜と盤の座標表記」→「棋譜表記の読み方…」を選ぶと、表記の説明をいつでも確認できます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/multilanguage/notation-help.png"><img src="../images/multilanguage/notation-help.png" alt="棋譜表記の読み方の説明" width="672" height="250" loading="lazy"></a>
+                    <p class="screenshot-caption">「棋譜表記の読み方…」の説明</p>
+                </div>
+            </div>
+
+        </div>
     </div>
 </section>
-<section id="record-data" class="section section--alt">
+
+<!-- Section 4 -->
+<section id="record-data" class="section">
     <div class="section-inner">
         <h2 class="section-title">棋譜の原文と保存形式</h2>
-        <p class="guide-step-text">対局者名・棋戦名・コメント・未知のタグは翻訳せず、原文を表示します。対局情報の既知の項目名や手合割は表示だけを翻訳し、編集時には元の文字列を扱います。</p>
-        <p class="guide-step-text">言語や表記を変更しても棋譜データは変わりません。保存や棋譜のコピーには従来どおりKIF・KI2・CSA・JKF・USI・USENの各形式を使い、KIF・KI2の指し手は日本語で出力します。英語表記専用の保存形式は追加していません。</p>
+        <p class="section-desc">言語や表記を変えても、棋譜データそのものは変わりません</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">対局情報は原文のまま</span>
+                </div>
+                <p class="guide-step-text">対局者名・棋戦名・コメント・未知の項目は翻訳せず、原文を表示します。対局情報の既知の項目名や手合割、持ち時間の「無制限」などは表示だけを翻訳し、編集するときは元の文字列を扱います。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/multilanguage/game-info.png"><img src="../images/multilanguage/game-info.png" alt="対局情報（項目名は翻訳、対局者名・棋戦名は原文）" width="720" height="420" loading="lazy"></a>
+                    <p class="screenshot-caption">対局情報：項目名と手合割は翻訳され、対局者名や棋戦名は原文のまま</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">保存形式は共通</span>
+                </div>
+                <p class="guide-step-text">保存や棋譜のコピーには、どの言語でもKIF・KI2・CSA・JKF・USI・USENの各形式を使います。KIF・KI2の指し手は日本語で出力します。英語表記専用の保存形式はありません。</p>
+            </div>
+
+        </div>
     </div>
 </section>
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
 </div>
 
 <!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>

@@ -1,160 +1,285 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Language Support - ShogiBoardQ</title>
-<meta content="Learn to switch ShogiBoardQ's interface between Japanese, English, and Chinese (Simplified or Traditional) through the application's language settings." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html" property="og:url"/>
-<meta content="Language Support - ShogiBoardQ" property="og:title"/>
-<meta content="ShogiBoardQ supports Japanese, English, and Chinese (Simplified or Traditional) interfaces, selectable in the language settings." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/multilanguage-02-english.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Language Support - ShogiBoardQ" name="twitter:title"/>
-<meta content="ShogiBoardQ supports Japanese, English, and Chinese (Simplified or Traditional) interfaces, selectable in the language settings." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/multilanguage-02-english.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multilingual Support - ShogiBoardQ</title>
+    <meta name="description" content="A guide to ShogiBoardQ&#x27;s multilingual support: the Japanese, English, and Chinese (Simplified and Traditional) interfaces, how to switch the language and move notation, and how game records are handled.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html">
+    <meta property="og:title" content="Multilingual Support - ShogiBoardQ">
+    <meta property="og:description" content="Japanese, English, and Chinese (Simplified and Traditional) interfaces. Switch the language and move notation in Settings.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/main-screen.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Multilingual Support - ShogiBoardQ">
+    <meta name="twitter:description" content="Japanese, English, and Chinese (Simplified and Traditional) interfaces. Switch the language and move notation in Settings.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/main-screen.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multilanguage.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/multilanguage.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/multilanguage.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#japanese-ui">Japanese UI</a></li>
-<li><a href="#english-ui">English UI</a></li>
-<li><a href="#how-to-switch">How to Switch</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/multilanguage.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="multilanguage.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/multilanguage.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/multilanguage.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#interfaces">Interfaces</a></li>
+            <li><a href="#how-to-switch">Switching</a></li>
+            <li><a href="#notation">Notation</a></li>
+            <li><a href="#record-data">Original Text</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Language Support</h1>
-<p class="hero-subtitle">Switch between Japanese, English, and Chinese (Simplified or Traditional) in the language settings</p>
-<div class="hero-badges">
-<span class="badge">Japanese</span>
-<span class="badge">English</span>
-<span class="badge">简体中文</span>
-<span class="badge">繁體中文</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Multilingual Support</h1>
+        <p class="hero-subtitle">Japanese, English, and Chinese (Simplified and Traditional) interfaces, switchable in Settings</p>
+        <div class="hero-badges">
+            <span class="badge" lang="ja">日本語</span>
+            <span class="badge" lang="en">English</span>
+            <span class="badge" lang="zh-Hans">简体中文</span>
+            <span class="badge" lang="zh-Hant">繁體中文</span>
+        </div>
+    </div>
 </section>
-<!-- Section 1: Japanese UI -->
-<section class="section section--alt" id="japanese-ui">
-<div class="section-inner">
-<h2 class="section-title">Japanese UI</h2>
-<p class="section-desc">Menus, buttons, tabs, and other interface elements are displayed in Japanese</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Select Japanese from the Language Menu</span>
-</div>
-<p class="guide-step-text">In the Japanese interface, the menu bar, game record area, engine information tabs, game information, and other interface elements are displayed in Japanese.</p>
-<div class="screenshot-item">
-<img alt="Language menu in the English interface on Linux, with Japanese, English, and Chinese (Simplified or Traditional) options" src="../../images/en/multilanguage/language-menu.png" style="width:176px;max-width:100%;margin:16px auto;display:block"/>
-<p class="screenshot-caption">Settings → Language in the English interface, captured on Linux. Select Japanese and restart to use Japanese.</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="interfaces" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Each Language</h2>
+        <p class="section-desc">Each screenshot shows the same Japanese game record under Consideration</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">日本語 (Japanese)</span>
+                </div>
+                <p class="guide-step-text">Menus, buttons, and tabs appear in Japanese. Moves use Japanese notation (such as ▲２六歩), and board ranks are 一 to 九.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/multilanguage/main-screen.png"><img src="../../images/multilanguage/main-screen.png" alt="ShogiBoardQ Japanese interface" width="1316" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">Japanese interface: a Japanese game record under Consideration</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">English</span>
+                </div>
+                <p class="guide-step-text">Menus (File, Edit, View, Game, Settings, Help) and tab names (Game Info, Thinking, Consideration, and so on) appear in English. Moves use Western notation (such as ▲P-2f), and board ranks are a to i.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/multilanguage/main-screen.png"><img src="../../images/en/multilanguage/main-screen.png" alt="ShogiBoardQ English interface" width="1397" height="1000" loading="lazy"></a>
+                    <p class="screenshot-caption">English interface: a Japanese game record under Consideration</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">简体中文 (Simplified Chinese)</span>
+                </div>
+                <p class="guide-step-text">Menus and tab names appear in Simplified Chinese. Moves keep Japanese notation, including the piece names and symbols such as 同, 成, and 打.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-cn/multilanguage/main-screen.png"><img src="../../images/zh-cn/multilanguage/main-screen.png" alt="ShogiBoardQ Simplified Chinese interface" width="1303" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">Simplified Chinese interface: a Japanese game record under Consideration</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">繁體中文 (Traditional Chinese)</span>
+                </div>
+                <p class="guide-step-text">Menus and tab names appear in Traditional Chinese with Taiwanese terminology. As with Simplified Chinese, moves keep Japanese notation.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-tw/multilanguage/main-screen.png"><img src="../../images/zh-tw/multilanguage/main-screen.png" alt="ShogiBoardQ Traditional Chinese interface" width="1303" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">Traditional Chinese interface: a Japanese game record under Consideration</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: English UI -->
-<section class="section" id="english-ui">
-<div class="section-inner">
-<h2 class="section-title">English UI</h2>
-<p class="section-desc">Switch to the English interface to display UI elements in English</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Main Window in English</span>
-</div>
-<p class="guide-step-text">The English interface displays menus such as File, Edit, View, Game, Settings, and Help, and tabs such as Game Info, Thinking, Consideration, and Branch Tree in English.</p>
-<div class="screenshot-item">
-<img alt="ShogiBoardQ English UI" src="../../images/en/multilanguage/multilanguage-02-english.png"/>
-<p class="screenshot-caption">English UI: Western move notation in the game record and PV; board ranks a–i</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="how-to-switch" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Switching the Language</h2>
+        <p class="section-desc">Choose the interface language from Settings → Language</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Open the Language Menu</span>
+                </div>
+                <p class="guide-step-text">Choose Settings → Language in the menu bar. In the Japanese interface, it is 設定 → 言語設定.</p>
+                <ul class="guide-step-text">
+                    <li>Use System Default: Japanese if the operating system language is Japanese, Simplified or Traditional Chinese if it is Chinese, and English otherwise.</li>
+                    <li>Japanese (日本語)</li>
+                    <li>English</li>
+                    <li>简体中文 (Simplified Chinese)</li>
+                    <li>繁體中文 (Traditional Chinese)</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/multilanguage/language-menu.png"><img src="../../images/en/multilanguage/language-menu.png" alt="Settings → Language menu" width="742" height="255" loading="lazy"></a>
+                    <p class="screenshot-caption">Settings → Language: the current language is marked with ●</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Restart to Apply</span>
+                </div>
+                <p class="guide-step-text">After you choose a language, a message asks you to restart. When you restart the application, menus, dialogs, tab names, and buttons all appear in the new language.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 3: How to Switch -->
-<section class="section section--alt" id="how-to-switch">
-<div class="section-inner">
-<h2 class="section-title">Switch the Interface Language</h2>
-<p class="section-desc">Change the language from the Settings menu</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Open the Language Settings</span>
-</div>
-<p class="guide-step-text">Choose Settings → Language to select a language. In the Japanese interface, this menu is labeled 設定 → 言語設定.</p>
-<ul class="guide-step-text">
-<li>Japanese</li>
-<li>English</li>
-<li>简体中文 (Simplified Chinese)</li>
-<li>繁體中文 (Traditional Chinese)</li>
-</ul>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Apply the Language</span>
-</div>
-<p class="guide-step-text">After selecting a language, restart the application to apply it. Menus, dialogs, tab names, buttons, and other interface elements are then displayed in the selected language.</p>
-</div>
-</div>
-</div>
+
+<!-- Section 3 -->
+<section id="notation" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Move Notation and Board Coordinates</h2>
+        <p class="section-desc">Choose the move notation separately from the interface language</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Choose Move Notation and Board Coordinates</span>
+                </div>
+                <p class="guide-step-text">Choose it from Settings → Move notation and board coordinates. Changes take effect after a restart.</p>
+                <ul class="guide-step-text">
+                    <li>Follow UI language: Japanese notation in the Japanese and Chinese interfaces, and Western notation in the English interface.</li>
+                    <li>Japanese (▲7六歩; ranks 一–九)</li>
+                    <li>Western (▲P-7f; ranks a–i)</li>
+                    <li>Always show origin in Western notation: by default, Western notation shows the origin only when it is needed to distinguish moves.</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/multilanguage/notation-menu.png"><img src="../../images/en/multilanguage/notation-menu.png" alt="Settings → Move notation and board coordinates menu" width="856" height="283" loading="lazy"></a>
+                    <p class="screenshot-caption">Settings → Move notation and board coordinates</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Reading Western Notation</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>Pieces: K=king, R=rook, B=bishop, G=gold, S=silver, N=knight, L=lance, P=pawn. Examples: ▲P-7f, △Bx8h+, ▲P*5e.</li>
+                    <li>A leading + marks a promoted piece; a trailing + means promotion, = declines promotion, x captures, and * drops a piece. [+] marks a branch in the game record.</li>
+                    <li>Files are 1–9 and ranks are a–i (Japanese notation uses 一–九 for ranks). Flipping the board does not change square coordinates.</li>
+                    <li>Tooltips always show the origin.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Show the Notation Guide</span>
+                </div>
+                <p class="guide-step-text">Choose Move notation and board coordinates → Reading move notation… to see the notation guide at any time.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/multilanguage/notation-help.png"><img src="../../images/en/multilanguage/notation-help.png" alt="Notation guide" width="921" height="243" loading="lazy"></a>
+                    <p class="screenshot-caption">The Reading move notation… guide</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<section class="section" id="notation">
-<div class="section-inner">
-<h2 class="section-title">Move Notation and Board Coordinates</h2>
-<p class="section-desc">Choose Settings → Move notation and board coordinates independently of the interface language. Restart the application to apply changes.</p>
-<ul class="guide-step-text">
-<li>Automatic uses Japanese notation for Japanese and Chinese interfaces, and Western notation for English.</li>
-<li>Western piece letters: K (king), R (rook), B (bishop), G (gold), S (silver), N (knight), L (lance), P (pawn). Examples: ▲P-7f, △Bx8h+, ▲P*5e.</li>
-<li>A + before a piece letter means a promoted piece; a + at the end means promotion. = means declining promotion, x a capture, and * a drop. [+] marks a variation.</li>
-<li>Western notation uses files 1–9 and ranks a–i. Japanese notation uses ranks 一–九. Flipping the board does not change a square's coordinates.</li>
-<li>Western notation includes the origin square when needed to distinguish moves. Enable Always show origin in Western notation to include it in every move, or view the tooltip.</li>
-<li>Chinese interfaces retain Japanese move symbols, including 歩, 飛, 同 (same square), 成 (promotion), 不成 (declining promotion), and 打 (drop). Piece artwork can be selected separately in appearance settings.</li>
-</ul>
-</div>
+
+<!-- Section 4 -->
+<section id="record-data" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Original Text and Save Formats</h2>
+        <p class="section-desc">Changing the language or notation does not change the game record itself</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Game Information Keeps the Original Text</span>
+                </div>
+                <p class="guide-step-text">Player names, event names, comments, and unknown fields are shown in their original text without translation. Known game information labels, handicaps, and values such as unlimited time are translated for display only; editing works with the original strings.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/multilanguage/game-info.png"><img src="../../images/en/multilanguage/game-info.png" alt="Game Info with translated labels and original names and event" width="720" height="420" loading="lazy"></a>
+                    <p class="screenshot-caption">Game Info: labels and the handicap are translated; player and event names keep the original text</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Shared Save Formats</span>
+                </div>
+                <p class="guide-step-text">Every language uses the KIF, KI2, CSA, JKF, USI, and USEN formats for saving and copying game records. KIF and KI2 moves are written in Japanese. There is no save format specific to Western notation.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
-<section class="section section--alt" id="record-data">
-<div class="section-inner">
-<h2 class="section-title">Original Record Text and Saving</h2>
-<p class="guide-step-text">Player names, event names, comments, and unknown tags remain in their original language. Known game information keys and handicap values are translated for display; editing uses the original text.</p>
-<p class="guide-step-text">Changing the interface language or notation does not alter the record data. Saving and copying records continue to use KIF, KI2, CSA, JKF, USI, and USEN. Moves in KIF and KI2 remain in Japanese. There is no separate English record format.</p>
-</div>
-</section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
