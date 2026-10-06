@@ -1,255 +1,324 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Menu Panel - ShogiBoardQ</title>
-<meta content="A screenshot guide to ShogiBoardQ's menu dock: show the panel, explore its tabs, and add favorite commands." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html" property="og:url"/>
-<meta content="Menu Panel - ShogiBoardQ" property="og:title"/>
-<meta content="Learn to show the menu dock, use its tabs, and register favorites in ShogiBoardQ." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/menu/tab-file.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Menu Panel - ShogiBoardQ" name="twitter:title"/>
-<meta content="Learn to show the menu dock, use its tabs, and register favorites in ShogiBoardQ." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/menu/tab-file.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Panel - ShogiBoardQ</title>
+    <meta name="description" content="A guide to the ShogiBoardQ menu dock: run menu bar commands from icon buttons, search items, add favorites, adjust button and text sizes, and detach the dock.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html">
+    <meta property="og:title" content="Menu Panel - ShogiBoardQ">
+    <meta property="og:description" content="Run menu bar commands from icon buttons in the menu dock, with item search and favorites.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/menu/main-screen.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Menu Panel - ShogiBoardQ">
+    <meta name="twitter:description" content="Run menu bar commands from icon buttons in the menu dock, with item search and favorites.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/menu/main-screen.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/menu.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/menu.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/menu.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#open-menu">Show the Menu</a></li>
-<li><a href="#menu-tabs">Menu Tabs</a></li>
-<li><a href="#navigation-buttons">Navigation</a></li>
-<li><a href="#favorites">Favorites</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/menu.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="menu.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/menu.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/menu.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#open-menu">Show the Menu</a></li>
+            <li><a href="#menu-tabs">Menu Tabs</a></li>
+            <li><a href="#navigation-buttons">Buttons and Search</a></li>
+            <li><a href="#favorites">Favorites</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Menu Panel</h1>
-<p class="hero-subtitle">Access commands quickly from the menu dock</p>
-<div class="hero-badges">
-<span class="badge">Detach the Dock</span>
-<span class="badge">Tabbed Categories</span>
-<span class="badge">Add Favorites</span>
-<span class="badge">Customization</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Menu Panel</h1>
+        <p class="hero-subtitle">Access commands quickly from the menu dock</p>
+        <div class="hero-badges">
+            <span class="badge">Detach the Dock</span>
+            <span class="badge">Tabbed Categories</span>
+            <span class="badge">Item Search</span>
+            <span class="badge">Favorites</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: How to Open Menu -->
-<section class="section section--alt" id="open-menu">
-<div class="section-inner">
-<h2 class="section-title">Show the Menu Panel</h2>
-<p class="section-desc">Open the menu dock from View in the menu bar</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Show the Menu Dock</span>
-</div>
-<p class="guide-step-text">Choose View → Menu in the menu bar at the top of the application. The menu dock provides icon buttons for commands, giving you quick access to frequently used features.</p>
-<div class="screenshot-item">
-<img alt="ShogiBoardQ main window" src="../../images/en/menu/main-screen.png"/>
-<p class="screenshot-caption">Main window: choose View → Menu to show the menu dock</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Detach the Dock</span>
-</div>
-<p class="guide-step-text">Drag the menu dock's title bar to detach it as an independent window. Place it anywhere on your desktop to suit your work. Drag it back to an edge of the main window to dock it again.</p>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="open-menu" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Show the Menu Panel</h2>
+        <p class="section-desc">Open the menu dock from View in the menu bar</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Show the Menu Dock</span>
+                </div>
+                <p class="guide-step-text">Choose View → Menu in the menu bar to show the menu dock. Menu bar commands are arranged as icon buttons, giving you quick access to frequently used features. The dock first appears as a tab next to the Game Record dock.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/menu/main-screen.png" alt="Main window with the menu dock" width="1400" height="1000" loading="lazy">
+                    <p class="screenshot-caption">Main window: the menu dock shown with View → Menu, next to the Game Record dock</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Detach the Dock</span>
+                </div>
+                <p class="guide-step-text">Drag the menu dock's title bar, or click the float button at the right of the title bar, to use it as a separate window. Place it wherever suits your work. Drag it back to an edge of the main window to dock it again. See <a href="dock.html">Docks</a> for arranging and saving docks.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: Menu Tabs -->
-<section class="section" id="menu-tabs">
-<div class="section-inner">
-<h2 class="section-title">Menu Tabs</h2>
-<p class="section-desc">Commands are organized into tabs so you can find them quickly</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">File (F)</span>
-</div>
-<p class="guide-step-text">Commands for game record files: create, open, save, and save as. You can also export board and evaluation graph images or quit the application.</p>
-<div class="screenshot-item">
-<img alt="Menu dock: File tab" src="../../images/en/menu/tab-file.png"/>
-<p class="screenshot-caption">File tab: create, load, and save game records, or export images</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Edit (E)</span>
-</div>
-<p class="guide-step-text">Commands for editing and converting records: copy in KIF, KI2, CSA, USI, SFEN, JSON, or BOD format; paste records; open the position collection viewer; copy board images; start or end position editing; apply initial setups; and change the side to move.</p>
-<div class="screenshot-item">
-<img alt="Menu dock: Edit tab" src="../../images/en/menu/tab-edit.png"/>
-<p class="screenshot-caption">Edit tab: format conversion, copy and paste, and position editing</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<span class="guide-step-title">View (I)</span>
-</div>
-<p class="guide-step-text">Commands for board display: rotate or resize the board, save and load dock layouts, and lock docks.</p>
-<div class="screenshot-item">
-<img alt="Menu dock: View tab" src="../../images/en/menu/tab-view.png"/>
-<p class="screenshot-caption">View tab: board rotation, zoom, and dock layout management</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">4</span>
-<span class="guide-step-title">Game (G)</span>
-</div>
-<p class="guide-step-text">Commands for games: start local or CSA network games, resign, take back a move, force an engine move, interrupt play, analyze a record, search for mate, check jishogi points, and make an entering king declaration.</p>
-<div class="screenshot-item">
-<img alt="Menu dock: Game tab" src="../../images/en/menu/tab-game.png"/>
-<p class="screenshot-caption">Game tab: start games, resign, analyze records, search for mate, and more</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">5</span>
-<span class="guide-step-title">Settings (S)</span>
-</div>
-<p class="guide-step-text">Application settings: configure engines, turn the piece sound on or off and adjust its volume and tone, and switch the interface between Japanese and English.</p>
-<p class="guide-step-text">Choose “Reset Settings to Defaults…” and confirm to reset all settings, including engine registrations, and close the application. Default settings will be used the next time you start it. Cancelling an unsaved-changes prompt also cancels the reset. This action is available when the application is idle.</p>
-<div class="screenshot-item">
-<img alt="Menu dock: Settings tab" src="../../images/en/menu/tab-settings.png"/>
-<p class="screenshot-caption">Settings tab: engine settings, piece sound, and language selection</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">6</span>
-<span class="guide-step-title">Help (H)</span>
-</div>
-<p class="guide-step-text">Help commands: visit the website and view version information or information about Qt.</p>
-<div class="screenshot-item">
-<img alt="Menu dock: Help tab" src="../../images/en/menu/tab-help.png"/>
-<p class="screenshot-caption">Help tab: website, version information, and About Qt</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="menu-tabs" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Menu Tabs</h2>
+        <p class="section-desc">Commands are arranged as buttons in the same tabs as the menu bar</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">File</span>
+                </div>
+                <p class="guide-step-text">New, Open…, Save, Save As…, Save Board Image to File…, Save Evaluation Graph Image to File…, and Exit.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/tab-file.png" alt="File tab of the menu dock" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">File tab</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Edit</span>
+                </div>
+                <p class="guide-step-text">The Copy Game Record formats (KIF, KI2, CSA, USI, JSON, and USEN), the Copy Position formats (SFEN and BOD), Paste Game Record…, SFEN Collection Viewer, Copy Board Image, Copy Eval Graph Image, and Start Position Edit.</p>
+                <p class="guide-step-text">End Position Edit, Even Game Setup, Tsume Shogi Setup, Move All Pieces to Piece Box, and Change Turn appear only while you are editing a position.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/tab-edit.png" alt="Edit tab of the menu dock" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">Edit tab</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">View</span>
+                </div>
+                <p class="guide-step-text">Flip Board, Enlarge Board, Shrink Board, Game Appearance…, Show legal moves, Application Font…, Reset Dock Layout, Save Dock Layout…, and Lock Docks.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/tab-view.png" alt="View tab of the menu dock" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">View tab (Show legal moves is on)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Game</span>
+                </div>
+                <p class="guide-step-text">Game…, Network Game (CSA)…, Resign, Take Back, Move Now, Abort, Resume, Analyze Game Record…, Cancel Analysis, Mate Search…, Cancel Mate Search, Tsume Position Generator…, Play tsume shogi…, Jishogi Points, and Entering King Declaration.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/tab-game.png" alt="Game tab of the menu dock" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">Game tab (Resign and similar commands are dimmed because no game is in progress)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Settings</span>
+                </div>
+                <p class="guide-step-text">Engine Settings…, Piece Sound, and Piece Sound Settings…; the interface languages Use System Default, Japanese, English, 简体中文, and 繁體中文; the notation options Follow UI language, Japanese (▲7六歩; ranks 一–九), Western (▲P-7f; ranks a–i), Always show origin in Western notation, and Reading move notation…; and Reset Settings to Defaults…. In the menu bar, the language and notation items are under Language and Move notation and board coordinates.</p>
+                <p class="guide-step-text">Choose Reset Settings to Defaults… and confirm to reset all settings, including engine registrations, and close the application. Default settings are used the next time you start it. If you cancel closing at a prompt such as one for an unsaved game record, the settings are not reset. This command is available when no game or analysis is running.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/tab-settings.png" alt="Settings tab of the menu dock" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">Settings tab</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Help</span>
+                </div>
+                <p class="guide-step-text">Website, Version Info, and About Qt.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/tab-help.png" alt="Help tab of the menu dock" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">Help tab</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">Button States</span>
+                </div>
+                <p class="guide-step-text">Clicking a button runs the same command as the matching menu bar item. Buttons for commands that are not available now are dimmed (such as Resign in the Game tab above). Items that can be turned on or off show a ✓ at the top left when they are on (such as Show legal moves in the View tab).</p>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 3: Navigation Buttons -->
-<section class="section section--alt" id="navigation-buttons">
-<div class="section-inner">
-<h2 class="section-title">Navigation Buttons</h2>
-<p class="section-desc">Use the buttons at the top right to adjust sizes and customize the menu</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Navigation Button Functions</span>
-</div>
-<p class="guide-step-text">The top-right corner of the menu dock contains these buttons.</p>
-<ul class="guide-step-text">
-<li><strong>□-</strong> (Smaller Icons): decrease the menu button icon size.</li>
-<li><strong>□+</strong> (Larger Icons): increase the menu button icon size.</li>
-<li><strong>A-</strong> (Smaller Font): decrease the menu button font size.</li>
-<li><strong>A+</strong> (Larger Font): increase the menu button font size.</li>
-<li><strong>⚙</strong> (Customize): switch to favorites editing mode.</li>
-</ul>
-<p class="guide-step-text">Adjust the icon and font sizes to make the menu comfortable to use.</p>
-<div class="screenshot-item">
-<img alt="Menu dock: navigation buttons" src="../../images/en/menu/favorites-empty.png"/>
-<p class="screenshot-caption">Navigation buttons: icon size, font size, and customization at the top right</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 3 -->
+<section id="navigation-buttons" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Buttons and Search</h2>
+        <p class="section-desc">Change the button size and filter items by name</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Buttons at the Top Right</span>
+                </div>
+                <p class="guide-step-text">The menu dock has these buttons at the top right.</p>
+                <ul class="guide-step-text">
+                    <li><strong>□- / □+</strong>: Make buttons and icons smaller or larger.</li>
+                    <li><strong>A- / A+</strong>: Make button text smaller or larger.</li>
+                    <li><strong>Edit favorites</strong>: Start adding, removing, and reordering favorites. The button changes to Done editing.</li>
+                </ul>
+                <p class="guide-step-text">The button and text sizes, the last tab, and your favorites are kept for the next launch.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Search Items</span>
+                </div>
+                <p class="guide-step-text">Type in Search items in this tab to show only the items whose name or description contains the text. Click the button at the right end of the box to clear it.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/search.png" alt="Game tab filtered by “mate”" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">The Game tab filtered by “mate”</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 4: Favorites -->
-<section class="section" id="favorites">
-<div class="section-inner">
-<h2 class="section-title">Add Favorites</h2>
-<p class="section-desc">Add frequently used commands to Favorites for quick access</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Favorites Tab (Empty)</span>
-</div>
-<p class="guide-step-text">The ★ Favorites tab displays your saved favorite commands. It is empty until you add some.</p>
-<div class="screenshot-item">
-<img alt="Empty Favorites tab" src="../../images/en/menu/favorites-empty.png"/>
-<p class="screenshot-caption">Favorites tab: initial state with no saved commands</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Add Favorites in Customize Mode</span>
-</div>
-<p class="guide-step-text">Click the gear button (⚙) at the top right to enter favorites editing mode. A green + appears at the top left of each command button in the menu tabs. Click it to add the command to Favorites.</p>
-<div class="screenshot-item">
-<img alt="Customize mode: adding favorites" src="../../images/en/menu/favorites-customize-mode.png"/>
-<p class="screenshot-caption">Customize mode: click + to add a favorite</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<span class="guide-step-title">Edit and Remove Favorites</span>
-</div>
-<p class="guide-step-text">Open the Favorites tab while in customize mode to see a red × on saved commands. Click × to remove a favorite. When you are finished, click the gear button (⚙) again to leave customize mode.</p>
-<div class="screenshot-item">
-<img alt="Edit and Remove Favorites" src="../../images/en/menu/favorites-editing.png"/>
-<p class="screenshot-caption">Edit favorites: click × to remove an item</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">4</span>
-<span class="guide-step-title">Favorites Ready</span>
-</div>
-<p class="guide-step-text">Your saved commands appear together in the ★ Favorites tab, so you can access them quickly without switching tabs.</p>
-<div class="screenshot-item">
-<img alt="Favorites Ready" src="../../images/en/menu/favorites-registered.png"/>
-<p class="screenshot-caption">Favorites ready: saved commands displayed in the Favorites tab</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 4 -->
+<section id="favorites" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Favorites</h2>
+        <p class="section-desc">Collect frequently used commands in Favorites for quick access</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Favorites Tab (Empty)</span>
+                </div>
+                <p class="guide-step-text">The ★ Favorites tab shows the items you have added. At first nothing is added, so only a hint is shown.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/favorites-empty.png" alt="Menu dock with no favorites" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">Favorites tab with nothing added</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Add Items with Edit Favorites</span>
+                </div>
+                <p class="guide-step-text">Click Edit favorites at the top right to start editing; the button changes to Done editing. A green + appears at the top right of each item in every tab. Click it to add the item to Favorites.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/favorites-customize-mode.png" alt="File tab while editing favorites" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">Editing favorites: add items with +</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Remove and Reorder</span>
+                </div>
+                <p class="guide-step-text">While editing, the Favorites tab shows a red × at the top right of each added item. Click it to remove the item from Favorites. Drag items to reorder them. Click Done editing when you are finished.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/favorites-editing.png" alt="Favorites tab while editing favorites" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">Editing favorites: remove with × and drag to reorder</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Your Favorites</span>
+                </div>
+                <p class="guide-step-text">Added items are collected in the ★ Favorites tab, so you can use frequent commands without switching tabs.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/menu/favorites-registered.png" alt="Menu dock with favorites added" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">Added items appear in the Favorites tab</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
