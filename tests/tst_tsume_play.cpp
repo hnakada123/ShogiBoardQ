@@ -358,11 +358,11 @@ private slots:
     {
         QTest::addColumn<int>("plies");
         QTest::addColumn<QString>("version");
-        // 公開している両方の版（20261001版は駒余りを検査して差し替えた新版）を同梱の監査記録で認める
-        for (const QString version : {QStringLiteral("20260926"), QStringLiteral("20261001")}) {
-            for (int plies : {3, 5, 7, 9, 11, 13})
-                QTest::newRow(qPrintable(QStringLiteral("%1/%2").arg(version).arg(plies))) << plies << version;
-        }
+        // リポジトリに収録している20261001版（駒余りを検査して差し替えた新版）を同梱の監査記録で認める。
+        // 20260926版の監査記録もアプリに同梱するが、問題集ファイルは追跡対象外のためここでは読まない。
+        const QString version = QStringLiteral("20261001");
+        for (int plies : {3, 5, 7, 9, 11, 13})
+            QTest::newRow(qPrintable(QStringLiteral("%1/%2").arg(version).arg(plies))) << plies << version;
     }
     void verifiedCollections()
     {
@@ -403,7 +403,7 @@ private slots:
     }
     void verifiedCollectionReuseAndReanalysis()
     {
-        QFile file(QFINDTESTDATA("../data/tsumeshogi/tsume_13ply_1000_20260926.txt"));
+        QFile file(QFINDTESTDATA("../data/tsumeshogi/tsume_13ply_1000_20261001.txt"));
         QVERIFY(file.open(QIODevice::ReadOnly));
         const auto contents = file.readAll();
         const auto parsed = TsumeCollection::parse(QString::fromUtf8(contents));

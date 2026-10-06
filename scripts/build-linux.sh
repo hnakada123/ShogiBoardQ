@@ -198,7 +198,7 @@ if [[ "$OPT_SKIP_APPIMAGE" = true ]]; then
     exit 0
 fi
 
-# 外部 USI エンジンと問題集も毎回同梱する。欠落した配布物は作らない。
+# 外部 USI エンジンと問題集も毎回 ZIP に同梱する。欠落した配布物は作らない。
 [[ -x "$HAYANAGI_EXE" ]] || die "Hayanagi が見つかりません: $HAYANAGI_EXE"
 TSUME_FILES=()
 for plies in 3 5 7 9 11 13; do
@@ -347,18 +347,10 @@ fi
 # .qm ファイルを実行ファイルと同じ場所にデプロイするため、
 # まず AppDir/usr/bin/ に手動コピーしてから linuxdeploy を実行
 # Qt プラグインは遅延コピー前に翻訳リンクを作るため、配置先も先に作る。
+# AppImage にはアプリの実行に必要なファイルだけを入れる。問題集・Hayanagi・説明書は
+# AppImage 内からはファイル選択できないため、ZIP の外部ファイルとしてのみ配布する。
 mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/translations"
 cp "$EXE_PATH" "${APPDIR}/usr/bin/"
-install -m755 "$HAYANAGI_EXE" "${APPDIR}/usr/bin/hayanagi"
-
-# 問題集はリソース内の監査記録と一致するよう、元ファイルをそのままコピーする。
-BUNDLED_SHARE="${APPDIR}/usr/share/${APP_NAME}"
-mkdir -p "$BUNDLED_SHARE/data/tsumeshogi" "$BUNDLED_SHARE/Hayanagi" "$BUNDLED_SHARE/docs/dev"
-cp "${TSUME_FILES[@]}" data/tsumeshogi/README.md data/tsumeshogi/validation_*.json \
-    "$BUNDLED_SHARE/data/tsumeshogi/"
-cp Hayanagi/README.md "$BUNDLED_SHARE/Hayanagi/"
-cp docs/dev/linux-build-and-release.md docs/dev/qt-licensing.md \
-    docs/dev/tsume-play.md docs/dev/tsumeshogi-collection-generation.md "$BUNDLED_SHARE/docs/dev/"
 
 # .qm ファイルをコピー
 for qm in "$BUILD_DIR"/*.qm; do
@@ -372,7 +364,6 @@ info "AppDir を構築中..."
 "$LINUXDEPLOY" \
     --appdir "$APPDIR" \
     --executable "${APPDIR}/usr/bin/${APP_NAME}" \
-    --executable "${APPDIR}/usr/bin/hayanagi" \
     --desktop-file "$DESKTOP_PATH" \
     --icon-file "$ICON_DEPLOY" \
     --plugin qt
@@ -399,6 +390,10 @@ rm -f "$APPDIR_LIB"/libsharpyuv.so*
 
 AFTER_SIZE=$(du -sm "$APPDIR_LIB" | cut -f1)
 info "ライブラリ削減: ${BEFORE_SIZE}MB → ${AFTER_SIZE}MB（$((BEFORE_SIZE - AFTER_SIZE))MB 削減）"
+
+# linuxdeploy-plugin-qt が配置する Qt 標準の翻訳（全言語の qtbase_*.qm / qtmultimedia_*.qm）
+# は使わない。標準ダイアログの訳は実行ファイルのリソースに内蔵し、アプリの訳は usr/bin から読む。
+rm -rf "${APPDIR}/usr/translations"
 
 # Step 8d: システムの strip で AppDir 内のバイナリをストリップ
 info "AppDir 内のバイナリをストリップ中..."

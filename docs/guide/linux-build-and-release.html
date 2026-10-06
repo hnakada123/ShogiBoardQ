@@ -59,7 +59,7 @@
 <div class="section">
     <!-- Content from docs/dev/linux-build-and-release.md -->
     <article class="section-inner build-document" aria-label="Linux ビルド・リリース手順の詳細">
-<p>ShogiBoardQ を Linux でビルドし、AppImage・問題集・Hayanagi を含む <code>ShogiBoardQ-linux.zip</code> を GitHub で公開する手順。 3・5・7・9・11・13手詰の問題集（各1,000題、計6,000題）と Hayanagi の USI エンジンは、ZIP 展開後すぐ選択できる外部ファイルとしても配置する。 <strong>リリース添付は Linux 用 ZIP 1個のみとする。</strong> Qt 関連ファイルや AppImage を別添付しない。</p>
+<p>ShogiBoardQ を Linux でビルドし、AppImage・問題集・Hayanagi を含む <code>ShogiBoardQ-linux.zip</code> を GitHub で公開する手順。 3・5・7・9・11・13手詰の問題集（各1,000題、計6,000題）と Hayanagi の USI エンジンは、ZIP 展開後すぐ選択できる外部ファイルとして配置する。 AppImage にはアプリの実行に必要なファイルだけを収録する。 <strong>リリース添付は Linux 用 ZIP 1個のみとする。</strong> Qt 関連ファイルや AppImage を別添付しない。</p>
 <p>配布前に <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文書とリリース添付の方針</a> に従って AppImage 内のライセンス文書を準備してください。Qt ソースは文書抽出のための作業用ファイルです。 配布スクリプトには Python 3 も必要です。</p>
 <hr />
 <section id="目次" class="level2">
@@ -213,8 +213,8 @@ qmake6 --version      # Qt 6.x</code></pre>
 <li>CMake Configure + Release ビルド（ShogiBoardQ と Hayanagi）</li>
 <li>ビルド成果物、翻訳ファイル、3〜13手詰の6ファイルの確認</li>
 <li>linuxdeploy + Qt プラグイン + appimagetool のダウンロード（初回のみ）</li>
-<li>Hayanagi・問題集・説明書・Qt ライセンスを含む AppImage 作成</li>
-<li>AppImage と、外から参照できる問題集・Hayanagi を含む ZIP 作成</li>
+<li>実行に必要なファイルと Qt ライセンスだけを含む AppImage 作成</li>
+<li>AppImage と、ファイル選択できる問題集・Hayanagi を含む ZIP 作成</li>
 </ol>
 <p>出力はリポジトリ直下の <code>ShogiBoardQ-linux-x86_64.AppImage</code> と <code>ShogiBoardQ-linux.zip</code>。ZIP 用の作業ディレクトリは <code>build/ShogiBoardQ-linux/</code>。 Qt の対応ソースと文書は事前に <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">qt-licensing.md</a> に従って準備する。 既定の文書ディレクトリは <code>build/qt-licenses</code>。別の場所を使う場合は次のように指定する。</p>
 <pre class="bash"><code>SHOGIBOARDQ_QT_LICENSE_DIR=/path/to/matching-qt-licenses ./scripts/build-linux.sh</code></pre>
@@ -315,37 +315,18 @@ APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh</code></pre>
 <td><code>usr/bin/</code></td>
 </tr>
 <tr>
-<td><code>build/Hayanagi/hayanagi</code></td>
-<td><code>usr/bin/hayanagi</code></td>
-</tr>
-<tr>
-<td><code>data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt</code></td>
-<td><code>usr/share/ShogiBoardQ/data/tsumeshogi/</code></td>
-</tr>
-<tr>
-<td>問題集の <code>README.md</code>、<code>validation_*.json</code></td>
-<td>同上</td>
-</tr>
-<tr>
-<td><code>Hayanagi/README.md</code></td>
-<td><code>usr/share/ShogiBoardQ/Hayanagi/</code></td>
-</tr>
-<tr>
-<td>本手順書、Qt 配布手順、詰将棋対局・生成の説明書</td>
-<td><code>usr/share/ShogiBoardQ/docs/dev/</code></td>
-</tr>
-<tr>
 <td>準備済み Qt 文書・ビルド情報</td>
 <td><code>usr/share/licenses/ShogiBoardQ/</code></td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>問題集は内容を変更せずコピーする。アプリ内蔵の監査記録とハッシュが一致するため、 同梱問題集の読み込み時に検証済みの手数と手順を再利用できる。</p>
-<p><code>linuxdeploy</code> に ShogiBoardQ と Hayanagi の両実行ファイルを渡して依存ライブラリを収集し、 Qt プラグインを配置する。SQLite ドライバー（<code>sqldrivers/libqsqlite.so</code>）も必須。 フィルタ済みプラグイン、システムの <code>strip</code>、同梱 Qt に検索先を固定する <code>AppRun</code> を使い、 最後に <code>qt_licenses.py stage</code> で文書を検証して <code>appimagetool</code> でパッケージ化する。</p>
+<p>問題集・Hayanagi・説明書は AppImage に入れない。アプリはこれらを AppImage 内から読まず、 利用者も AppImage 内のファイルを選択できないため、ZIP の外部ファイルとしてのみ配布する（4.5 参照）。</p>
+<p><code>linuxdeploy</code> に ShogiBoardQ の実行ファイルを渡して依存ライブラリを収集し、 Qt プラグインを配置する。SQLite ドライバー（<code>sqldrivers/libqsqlite.so</code>）も必須。 linuxdeploy が配置する Qt 標準の翻訳（<code>usr/translations/</code>）は使わないため削除する。 標準ダイアログの日本語・中国語訳は実行ファイルのリソースに内蔵し、アプリの翻訳は <code>usr/bin/</code> から読む。 フィルタ済みプラグイン、システムの <code>strip</code>、同梱 Qt に検索先を固定する <code>AppRun</code> を使い、 最後に <code>qt_licenses.py stage</code> で文書を検証して <code>appimagetool</code> でパッケージ化する。</p>
 </section>
 <section id="44-appimage-の構造" class="level3">
 <h3>4.4 AppImage の構造</h3>
+<p>AppImage にはアプリの起動と動作に必要なファイルだけを収録する。</p>
 <pre><code>ShogiBoardQ-linux-x86_64.AppImage（単一実行ファイル）
   └── (展開時)
       ├── AppRun                          ← エントリーポイント
@@ -354,11 +335,11 @@ APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh</code></pre>
       └── usr/
           ├── bin/
           │   ├── ShogiBoardQ             ← 実行ファイル
-          │   ├── hayanagi                ← Hayanagi USI エンジン
+          │   ├── qt.conf                 ← Qt プラグインの検索先
           │   ├── ShogiBoardQ_ja_JP.qm    ← 日本語翻訳
           │   ├── ShogiBoardQ_en.qm       ← 英語翻訳
-          │   ├── ShogiBoardQ_zh_CN.qm       ← 中国語（簡体字）翻訳
-          │   └── ShogiBoardQ_zh_TW.qm       ← 中国語（繁体字）翻訳
+          │   ├── ShogiBoardQ_zh_CN.qm    ← 中国語（簡体字）翻訳
+          │   └── ShogiBoardQ_zh_TW.qm    ← 中国語（繁体字）翻訳
           ├── lib/
           │   ├── libQt6Core.so.6         ← Qt Core
           │   ├── libQt6Gui.so.6          ← Qt GUI
@@ -367,34 +348,32 @@ APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh</code></pre>
           │   ├── libQt6Network.so.6      ← Qt Network
           │   ├── libQt6Multimedia.so.6   ← Qt Multimedia（駒音）
           │   └── ...
-          ├── share/
-          │   ├── ShogiBoardQ/
-          │   │   ├── data/tsumeshogi/
-          │   │   │   ├── tsume_3ply_1000_20260926.txt
-          │   │   │   ├── tsume_5ply_1000_20260926.txt
-          │   │   │   ├── tsume_7ply_1000_20260926.txt
-          │   │   │   ├── tsume_9ply_1000_20260926.txt
-          │   │   │   ├── tsume_11ply_1000_20260926.txt
-          │   │   │   ├── tsume_13ply_1000_20260926.txt
-          │   │   │   ├── README.md
-          │   │   │   └── validation_20260926.json
-          │   │   ├── Hayanagi/README.md
-          │   │   └── docs/dev/            ← 本手順書など
-          │   └── licenses/ShogiBoardQ/    ← Qt 文書・対応ソース情報
-          └── plugins/
-              ├── platforms/
-              │   └── libqxcb.so          ← X11 プラットフォームプラグイン
-              ├── imageformats/
-              │   ├── libqsvg.so          ← SVG サポート
-              │   └── ...
-              ├── sqldrivers/
-              │   └── libqsqlite.so       ← 解答履歴・解析キャッシュ
-              └── tls/
-                  └── libqopensslbackend.so</code></pre>
+          ├── plugins/
+          │   ├── platforms/
+          │   │   └── libqxcb.so          ← X11 プラットフォームプラグイン
+          │   ├── xcbglintegrations/      ← OpenGL 統合（GLX・EGL）
+          │   ├── imageformats/
+          │   │   ├── libqsvg.so          ← SVG サポート
+          │   │   └── ...                 ← GIF・JPEG・ICO
+          │   ├── iconengines/
+          │   │   └── libqsvgicon.so      ← SVG アイコン
+          │   ├── platforminputcontexts/  ← 日本語入力（compose・fcitx5・ibus）
+          │   ├── platformthemes/
+          │   │   └── libqxdgdesktopportal.so
+          │   ├── sqldrivers/
+          │   │   └── libqsqlite.so       ← 解答履歴・解析キャッシュ
+          │   └── tls/
+          │       ├── libqopensslbackend.so
+          │       └── libqcertonlybackend.so
+          └── share/
+              ├── applications/shogiboardq.desktop
+              ├── icons/hicolor/512x512/apps/shogiboardq.png
+              └── licenses/ShogiBoardQ/   ← Qt 文書・対応ソース情報（「バージョン情報」で表示）</code></pre>
+<p>問題集（<code>data/tsumeshogi/</code>）、通常対局用 Hayanagi（<code>hayanagi</code>）、説明書（<code>docs/</code>）、 問題集の検証記録（<code>validation_*.json</code>）は収録しない。詰将棋対局の Hayanagi はアプリ本体に 組み込まれているため、AppImage 内に実行ファイルがなくても動作する。</p>
 </section>
 <section id="45-zip-の構造と同梱ファイルの利用" class="level3">
 <h3>4.5 ZIP の構造と同梱ファイルの利用</h3>
-<p>AppImage 内の問題集と通常対局用 Hayanagi は、現行アプリでは自動的にファイル選択できない。 ZIP を展開してすぐ使えるよう、問題集とエンジンを AppImage の外にも配置する。 詰将棋対局用の内蔵 Hayanagi はアプリ本体に組み込まれており、エンジン登録は不要。</p>
+<p>問題集と通常対局用 Hayanagi は AppImage に入れず、ZIP を展開してすぐファイル選択できるよう AppImage の外に配置する。詰将棋対局用の内蔵 Hayanagi はアプリ本体に組み込まれており、エンジン登録は不要。 問題集は内容を変更せずコピーする。アプリ内蔵の監査記録とハッシュが一致するため、 同梱問題集の読み込み時に検証済みの手数と手順を再利用できる。</p>
 <p>ZIP の外部ファイルには <code>docs/</code>、問題集の検証記録 <code>validation_*.json</code>、<code>licenses/</code> を含めない。 Qt 文書は AppImage 内に収録し、「バージョン情報」から参照する。</p>
 <pre class="text"><code>ShogiBoardQ-linux.zip
 └── ShogiBoardQ-linux/
@@ -405,18 +384,17 @@ APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh</code></pre>
     │   ├── hayanagi
     │   └── README.md
     └── data/tsumeshogi/
-        ├── tsume_{3,5,7,9,11,13}ply_1000_20260926.txt（6ファイル）
+        ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt（6ファイル）
         └── README.md</code></pre>
 <pre class="bash"><code>unzip ShogiBoardQ-linux.zip
 cd ShogiBoardQ-linux
 chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 ./ShogiBoardQ-linux-x86_64.AppImage</code></pre>
 <ul>
-<li>詰将棋対局の「局面集を開く…」で <code>data/tsumeshogi/tsume_*ply_1000_20260926.txt</code> を選ぶ。</li>
+<li>詰将棋対局の「局面集を開く…」で <code>data/tsumeshogi/tsume_*ply_1000_20261001.txt</code> を選ぶ。</li>
 <li>通常対局用のエンジン登録では <code>Hayanagi/hayanagi</code> を選ぶ。</li>
 <li>詳しい開発・操作手順書はリポジトリの <code>docs/dev/</code> を参照する。</li>
 </ul>
-<p>AppImage 内にも同じ問題集とエンジンが入っている。そちらを取り出す必要がある場合は <code>./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract</code> を実行し、問題集は <code>squashfs-root/usr/share/ShogiBoardQ/data/tsumeshogi/</code>、エンジンは <code>squashfs-root/usr/bin/hayanagi</code> を参照する。</p>
 </section>
 <section id="46-動作テスト" class="level3">
 <h3>4.6 動作テスト</h3>
@@ -426,10 +404,15 @@ chmod +x ShogiBoardQ-linux-x86_64.AppImage
 # 起動
 ./ShogiBoardQ-linux-x86_64.AppImage
 
-# 展開して同梱物を確認
+# 展開して同梱物を確認（問題集・Hayanagi・説明書・Qt 標準翻訳が入っていないこと）
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
-ls squashfs-root/usr/share/ShogiBoardQ/data/tsumeshogi/
-printf &#39;usi\nisready\nquit\n&#39; | squashfs-root/usr/bin/hayanagi
+ls squashfs-root/usr/bin/ squashfs-root/usr/share/
+ls squashfs-root/usr/share/licenses/ShogiBoardQ/NOTICE.md
+test ! -e squashfs-root/usr/bin/hayanagi &amp;&amp; test ! -e squashfs-root/usr/share/ShogiBoardQ \
+    &amp;&amp; test ! -e squashfs-root/usr/translations &amp;&amp; echo OK
+
+# ZIP 側の Hayanagi が USI エンジンとして応答すること
+printf &#39;usi\nisready\nquit\n&#39; | build/ShogiBoardQ-linux/Hayanagi/hayanagi
 
 # ZIP に AppImage・問題集・Hayanagi があり、破損がないことを確認
 python3 -m zipfile -l ShogiBoardQ-linux.zip
