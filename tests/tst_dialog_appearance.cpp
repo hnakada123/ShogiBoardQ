@@ -285,6 +285,19 @@ private slots:
         dialog.reject();
     }
 
+    /// 推奨の高さより低く縮めても、最小の高さ以上なら縮めた高さを保つ（小さい画面でも決定ボタンまで表示できる）
+    void dialogKeepsHeightBelowPreferred()
+    {
+        BoardColorDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        QVERIFY(dialog.sizeHint().height() > 720);
+        dialog.resize(1120, 700);
+        QTest::qWait(100);
+        QCOMPARE(dialog.height(), 700);
+        dialog.reject();
+    }
+
     /// 表示時に文字サイズ操作を足す QInputDialog でも決定ボタンが隠れない（以前の版で保存した小さいサイズを含む）
     void inputDialogKeepsActionsVisible()
     {
