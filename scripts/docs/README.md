@@ -1,7 +1,8 @@
 # ガイド（docs/）作成用のスクリプト
 
 公開ガイド（`docs/`）の4言語ページ（日本語・英語・簡体字・繁体字）と、そのスクリーンショットを作るための補助スクリプトです。
-ページの依頼文のテンプレートは [docs/dev/guide-update-prompts.md](../../docs/dev/guide-update-prompts.md) にあります。
+作業手順は Claude Code の Skill [.claude/skills/guide-page/SKILL.md](../../.claude/skills/guide-page/SKILL.md)、
+依頼の例は [docs/dev/guide-update-prompts.md](../../docs/dev/guide-update-prompts.md) にあります。
 
 ## ファイル
 
@@ -10,6 +11,7 @@
 | `guide_common.py` | 4言語の共通処理。言語メニュー（`lang_menu`）、hreflang（`alternates`）、言語の表（`LANGS`/`meta`）、既存の ja/en ページに4言語メニューを付ける `update_existing` |
 | `gen_home.py` | ホームページ（`docs/index.html` と en / zh-cn / zh-tw）を生成する。機能カードは `FEATURE_GROUPS` と各言語の文言。カードのリンク先は、その言語のガイドがあればそれ、無ければ英語版になる |
 | `sitemap_add_zh.py` | `docs/sitemap.xml` のページに簡体字・繁体字版を追加する（`guide/<page>.html` を渡す） |
+| `check_links.py` | ページ内のリンク・画像の参照先があるか、`<section>` の開閉が対応しているかを4言語分確かめる（`--all` で全ページ） |
 | `examples/piece_sound/` | ガイドページの生成スクリプトの見本（`texts.py` に言語ごとの本文、`gen_piece_sound.py` が4言語の HTML を書く） |
 | `launch.sh` | Xvfb 上で ShogiBoardQ を `--automation` 付きで起動する。設定・キャッシュ・データ・状態を作業フォルダに隔離する |
 | `rpc.py` | 自動化 API（JSON-RPC）を1回呼ぶ。`rpc.py <名前> <メソッド> [JSON]` |
@@ -55,4 +57,5 @@ scripts/docs/kwin_capture.sh k1 en bash -c 'python3 scripts/docs/rpc.py "$SBQ_SO
 2. 4言語で撮影し、`docs/images/<ページ>/`（日本語）と `docs/images/{en,zh-cn,zh-tw}/<ページ>/` に置く。
 3. 生成スクリプト（`examples/piece_sound/` を写して作る）で4言語の HTML を書く。既存の ja/en ページを部分的に直すだけなら、`guide_common.update_existing` で4言語メニューを付け、本文はその場で編集する。
 4. `python3 scripts/docs/gen_home.py` でホームのリンクを更新し、`scripts/docs/sitemap_add_zh.py guide/<ページ>.html` でサイトマップに追加する。
-5. `chromium --headless=new --screenshot=out.png --window-size=1280,4000 file://…` で表示を確かめ、リンク切れを確認する。
+5. `chromium --headless=new --screenshot=out.png --window-size=1280,4000 file://…` で表示を確かめ、
+   `python3 scripts/docs/check_links.py guide/<ページ>.html` でリンク切れを確認する。
