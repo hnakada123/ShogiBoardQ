@@ -51,6 +51,7 @@
             <li><a href="#how-to-switch">切り替え方法</a></li>
             <li><a href="#notation">棋譜表記</a></li>
             <li><a href="#record-data">棋譜の原文</a></li>
+            <li><a href="#notes">注意点</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -250,6 +251,31 @@
                     <span class="guide-step-title">保存形式は共通</span>
                 </div>
                 <p class="guide-step-text">保存や棋譜のコピーには、どの言語でもKIF・KI2・CSA・JKF・USI・USENの各形式を使います。KIF・KI2の指し手は日本語で出力します。英語表記専用の保存形式はありません。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="notes" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">注意点</h2>
+        <p class="section-desc">「システム設定に従う」では、起動したときの環境で言語が決まります</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">思っていない言語で起動する場合</span>
+                </div>
+                <p class="guide-step-text">「システム設定に従う」のときは、ShogiBoardQ を起動したときの環境変数から言語を決めます。Linux では <code>LANGUAGE</code>・<code>LC_ALL</code>・<code>LC_MESSAGES</code>・<code>LANG</code> の順に優先します。デスクトップの言語が日本語でも、ShogiBoardQ を起動したプログラムがこれらを英語にしていると、英語で表示されます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>設定の初期化：</strong>「設定」→「設定を初期値に戻す…」を実行すると、言語も「システム設定に従う」に戻ります。それまで日本語を選んでいても、次からは起動した環境の言語で表示されます。</li>
+                    <li><strong>Qt Creator から実行する場合：</strong>Qt Creator は、ビルドの出力を英語にするため、ビルド時の環境変数に <code>LANGUAGE=en_US:en</code> と <code>LC_MESSAGES=en_US.UTF-8</code> を加えます。実行時の基本環境が「ビルド時の環境変数」（Qt Creator の初期値）のままだと、これが引き継がれて英語で起動します。「プロジェクト」→「実行」の「環境」で、「この実行構成用の基本環境:」を「システム環境変数」に変えてください。</li>
+                    <li><strong>いつも同じ言語で表示するには：</strong>「言語設定」で言語を選びます。選んだ言語は、設定を初期化するまで変わりません。</li>
+                </ul>
             </div>
 
         </div>

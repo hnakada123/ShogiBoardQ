@@ -51,6 +51,7 @@
             <li><a href="#how-to-switch">切換方法</a></li>
             <li><a href="#notation">棋譜記法</a></li>
             <li><a href="#record-data">棋譜原文</a></li>
+            <li><a href="#notes">注意事項</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -250,6 +251,31 @@
                     <span class="guide-step-title">儲存格式通用</span>
                 </div>
                 <p class="guide-step-text">無論哪種語言，儲存和複製棋譜都使用 KIF、KI2、CSA、JKF、USI、USEN 各格式。KIF 和 KI2 的著法以日文輸出。沒有西文記法專用的儲存格式。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="notes" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">注意事項</h2>
+        <p class="section-desc">選擇「跟隨系統設定」時，語言取決於啟動時的環境</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">以非預期的語言啟動時</span>
+                </div>
+                <p class="guide-step-text">選擇「跟隨系統設定」時，ShogiBoardQ 會根據啟動時的環境變數決定語言。在 Linux 上，依 <code>LANGUAGE</code>、<code>LC_ALL</code>、<code>LC_MESSAGES</code>、<code>LANG</code> 的順序優先。即使桌面語言是中文，若啟動 ShogiBoardQ 的程式把這些變數設為英文，也會以英文顯示。</p>
+                <ul class="guide-step-text">
+                    <li><strong>恢復預設設定：</strong>執行「設定」→「恢復預設設定…」後，語言也會恢復為「跟隨系統設定」。即使先前選擇了某種語言，之後也會依啟動環境的語言顯示。</li>
+                    <li><strong>從 Qt Creator 執行時：</strong>Qt Creator 為了讓建置輸出使用英文，會在建置環境變數中加入 <code>LANGUAGE=en_US:en</code> 和 <code>LC_MESSAGES=en_US.UTF-8</code>。若執行組態的基礎環境仍為「建置環境變數」（Qt Creator 的預設值），這些變數會被沿用，程式以英文啟動。請在「專案」→「執行」的「環境」中，將基礎環境改為「系統環境變數」。</li>
+                    <li><strong>一律使用同一種語言：</strong>在「語言」中選擇語言。選擇的語言在恢復預設設定之前不會改變。</li>
+                </ul>
             </div>
 
         </div>
