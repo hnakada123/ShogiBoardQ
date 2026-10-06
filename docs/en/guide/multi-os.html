@@ -12,25 +12,35 @@
 <meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html" property="og:url"/>
 <meta content="Cross-Platform Support - ShogiBoardQ" property="og:title"/>
 <meta content="ShogiBoardQ runs on Linux, macOS, and Windows with Qt6." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/multi-os/Linux.png" property="og:image"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/multi-os/linux-plasma.png" property="og:image"/>
 <meta content="en_US" property="og:locale"/>
 <meta content="ShogiBoardQ" property="og:site_name"/>
 <!-- Twitter Card -->
 <meta content="summary_large_image" name="twitter:card"/>
 <meta content="Cross-Platform Support - ShogiBoardQ" name="twitter:title"/>
 <meta content="ShogiBoardQ runs on Linux, macOS, and Windows with Qt6." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/multi-os/Linux.png" name="twitter:image"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/multi-os/linux-plasma.png" name="twitter:image"/>
 <link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html" hreflang="x-default" rel="alternate"/>
+<link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
+<link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html">
+<link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multi-os.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/multi-os.html">
+<link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
 </head>
 <body>
 <!-- Navigation -->
 <nav class="site-nav">
 <div class="nav-inner">
 <a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/multi-os.html" hreflang="ja" lang="ja">日本語</a>
+<details class="lang-menu">
+    <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+    <ul>
+        <li><a href="../../guide/multi-os.html" lang="ja" hreflang="ja">日本語</a></li>
+        <li><a href="multi-os.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+        <li><a href="../../zh-cn/guide/multi-os.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-tw/guide/multi-os.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+    </ul>
+</details>
 <button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
 <span></span><span></span><span></span>
 </button>
@@ -60,25 +70,38 @@
 </div>
 </section>
 <!-- Section 1: Linux -->
-<section class="section section--alt" id="linux">
-<div class="section-inner">
-<h2 class="section-title">Linux</h2>
-<p class="section-desc">Runs natively on Linux</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Linux Screenshot</span>
-</div>
-<p class="guide-step-text">ShogiBoardQ running on Linux. It supports major desktop environments such as KDE Plasma and GNOME.</p>
-<div class="screenshot-item">
-<img alt="ShogiBoardQ running on Linux" src="../../images/en/multi-os/Linux.png"/>
-<p class="screenshot-caption">English interface captured on Linux</p>
-</div>
-</div>
-</div>
-</div>
+<section id="linux" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Linux</h2>
+        <p class="section-desc">Runs natively on Linux</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Linux Screenshot</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQ running on Linux. It works on major desktop environments such as KDE Plasma and GNOME. The screenshot shows a game against the <a href="hayanagi.html">Hayanagi</a> engine on KDE Plasma.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/multi-os/linux-plasma.png"><img src="../../images/en/multi-os/linux-plasma.png" alt="ShogiBoardQ on Linux: a game against the Hayanagi engine on KDE Plasma" width="1513" height="1138" loading="lazy"></a>
+                    <p class="screenshot-caption">Linux: a game on KDE Plasma while Hayanagi is thinking (English interface)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Linux Package</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQ-linux.zip on <a href="https://github.com/hnakada123/ShogiBoardQ/releases">GitHub Releases</a> contains the AppImage, the tsume shogi collections (3- to 13-move mates, 6,000 problems in total), and the Hayanagi engine. After you extract the ZIP, the collections and Hayanagi are ready to select. The package is for x86_64 Linux.</p>
+                <p class="guide-step-text">To build from source or create the package, see <a href="linux-build-and-release.html">Linux Build and Release</a>.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
+
 <!-- Section 2: macOS -->
 <section class="section" id="macos">
 <div class="section-inner">
@@ -168,5 +191,20 @@
 <footer class="site-footer">
 <p>© 2025 ShogiBoardQ</p>
 </footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
