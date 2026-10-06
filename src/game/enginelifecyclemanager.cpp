@@ -245,8 +245,9 @@ void EngineLifecycleManager::initEnginesForEvE(const QString& engineName1,
 
 void EngineLifecycleManager::sendStopToEngine(Usi* which)
 {
+    // 対局中の「すぐ指させる」（MatchTurnHandler::forceImmediateMove）から使う
     if (!which) return;
-    which->sendStopCommand();
+    which->requestImmediateMove();
 }
 
 void EngineLifecycleManager::sendRawTo(Usi* which, const QString& cmd)
