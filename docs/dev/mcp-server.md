@@ -41,16 +41,16 @@ shogiboardq-cli            ShogiBoardQ --automation
 
 | 層 | 役割 | 実装 |
 |---|---|---|
-| MCP サーバー | ツール定義（JSON Schema）、引数検証、パス方針、ジョブ管理、アプリの自動起動・再接続、エラー変換 | `mcp/shogiboardq_mcp/`（Python 3.10+、`mcp>=1.10,<3`（1.x・2.x 両対応）） |
+| MCP サーバー | ツール定義（JSON Schema）、引数検証、パス方針、ジョブ管理、アプリの自動起動・再接続、エラー変換 | `mcp/shogiboardq_mcp/`（Python 3.10+、`mcp>=2,<3`。SDK 1.x では版を示して終了する） |
 | CLI | アプリを起動せずに使える機能（棋譜変換、SFEN 検証、エンジン一覧、解析、詰み探索、詰将棋生成・余詰検査、盤面画像） | `src/cli/` + `src/automation/` の共通サービス |
 | 自動化 API | 起動中のアプリの状態取得・操作（局面、棋譜、メニュー動作、スクリーンショット、ダイアログ内容） | `src/automation/`（`--automation` 指定時のみ有効） |
 
 設計上の原則:
 
-- MCP 仕様（2025-11-25 版。実装時点の `mcp` SDK 1.29 が対応する最新安定版）に忠実に実装し、ベンダー固有機能に依存しない。トランスポートは stdio のみ。
+- MCP 仕様の最新版 2026-07-28（リクエストごとに版を示すステートレスな方式。`server/discover` で交渉）と、`initialize` で交渉する 2024-11-05〜2025-11-25 の両方に対応する。交渉は `mcp` SDK 2.x の低レベル Server が行い、`mcp/tests/test_protocol.py` で両方式を確認する。ベンダー固有機能に依存しない。トランスポートは stdio のみ。
 - ツールは `inputSchema` / `outputSchema` を厳密な JSON Schema で定義し、結果は必ず人が読めるテキストと、`structuredContent` の両方を返す。
 - 長時間処理（解析・詰み探索・局面生成）はジョブ方式（開始ツールがジョブ ID を返し、状態・結果ツールで取得）。1 回のツール呼び出しは数秒以内に返す。
-- `sampling` / `elicitation` / `roots` に依存しない。`notifications/progress` は `progressToken` が渡された場合だけ補助的に送る。
+- `sampling` / `elicitation` / `roots` / ログ通知（2026-07-28 で非推奨）に依存しない。進捗はジョブの状態ツールで返し、`notifications/progress` は送らない。
 - UI 操作はすべてメインスレッドで行う。自動化 API は `QLocalServer` のシグナルからメインスレッドで既存コントローラを呼ぶだけで、ワーカースレッドを持たない。
 
 ## 2. 提供経路とツール一覧

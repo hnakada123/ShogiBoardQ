@@ -1487,7 +1487,7 @@ add_executable(mock_mate_engine mock_mate_engine.cpp)
 target_link_libraries(mock_mate_engine PRIVATE hayanagi_tsume)
 
 # MCP サーバーの結合テスト（mcp SDK のクライアントで stdio サーバーを起動してツールを呼ぶ）。
-# Python3 と mcp・pytest が使えるときだけ登録する。
+# Python3 と mcp 2.x・pytest が使えるときだけ登録する。
 if(Python3_Interpreter_FOUND)
     add_test(NAME tst_tsume_diversity_python
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_tsume_diversity.py)
@@ -1498,7 +1498,7 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(tst_tsume_collection_audit_python PROPERTIES TIMEOUT 60
         ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
     execute_process(
-        COMMAND ${Python3_EXECUTABLE} -c "import mcp, pytest"
+        COMMAND ${Python3_EXECUTABLE} -c "import importlib.metadata as m, mcp, pytest; assert int(m.version('mcp').split('.')[0]) >= 2"
         RESULT_VARIABLE _mcp_python_missing
         OUTPUT_QUIET ERROR_QUIET
     )
@@ -1512,7 +1512,7 @@ if(Python3_Interpreter_FOUND)
             TIMEOUT 600
         )
     else()
-        message(STATUS "mcp/pytest not found for ${Python3_EXECUTABLE}; tst_mcp_python is not registered")
+        message(STATUS "mcp 2.x/pytest not found for ${Python3_EXECUTABLE}; tst_mcp_python is not registered")
     endif()
 endif()
 
