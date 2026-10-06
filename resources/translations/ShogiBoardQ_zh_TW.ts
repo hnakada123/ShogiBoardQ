@@ -763,47 +763,47 @@
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="49"/>
         <source>端正（木肌）</source>
-        <translation>端正（木肌）</translation>
+        <translation>端正（木色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="50"/>
         <source>端正（白）</source>
-        <translation>端正（白）</translation>
+        <translation>端正（白色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="51"/>
         <source>端正（墨）</source>
-        <translation>端正（墨）</translation>
+        <translation>端正（墨色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="52"/>
         <source>凛（木肌）</source>
-        <translation>凛（木肌）</translation>
+        <translation>凜（木色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="53"/>
         <source>凛（白）</source>
-        <translation>凛（白）</translation>
+        <translation>凜（白色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="54"/>
         <source>凛（墨）</source>
-        <translation>凛（墨）</translation>
+        <translation>凜（墨色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="55"/>
         <source>墨（木肌）</source>
-        <translation>墨（木肌）</translation>
+        <translation>墨（木色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="56"/>
         <source>墨（白）</source>
-        <translation>墨（白）</translation>
+        <translation>墨（白色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="57"/>
         <source>墨（墨）</source>
-        <translation>墨（墨）</translation>
+        <translation>墨（墨色）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="117"/>
@@ -5509,47 +5509,47 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="108"/>
         <source>端正（木肌）</source>
-        <translation>端正（木肌）</translation>
+        <translation>端正（木色）</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="110"/>
         <source>端正（白）</source>
-        <translation>端正（白）</translation>
+        <translation>端正（白色）</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="112"/>
         <source>端正（墨）</source>
-        <translation>端正（墨）</translation>
+        <translation>端正（墨色）</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="114"/>
         <source>凛（木肌）</source>
-        <translation>凛（木肌）</translation>
+        <translation>凜（木色）</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="116"/>
         <source>凛（白）</source>
-        <translation>凛（白）</translation>
+        <translation>凜（白色）</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="118"/>
         <source>凛（墨）</source>
-        <translation>凛（墨）</translation>
+        <translation>凜（墨色）</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="120"/>
         <source>墨（木肌）</source>
-        <translation>墨（木肌）</translation>
+        <translation>墨（木色）</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="122"/>
         <source>墨（白）</source>
-        <translation>墨（白）</translation>
+        <translation>墨（白色）</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="124"/>
         <source>墨（墨）</source>
-        <translation>墨（墨）</translation>
+        <translation>墨（墨色）</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="237"/>
