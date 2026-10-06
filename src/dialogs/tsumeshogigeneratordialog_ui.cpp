@@ -3,6 +3,7 @@
 
 #include "tsumeshogigeneratordialog.h"
 #include "buttonstyles.h"
+#include "countspinbox.h"
 #include "pvboardbuttondelegate.h"
 
 #include <QCheckBox>
@@ -20,8 +21,6 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include <utility>
-
 namespace {
 /// 偶数の直接入力は確定させず、前の値に戻す。
 class OddSpinBox : public QSpinBox
@@ -36,27 +35,6 @@ protected:
         if (state != QValidator::Acceptable) return state;
         return (valueFromText(input) % 2 != 0) ? QValidator::Acceptable : QValidator::Intermediate;
     }
-};
-
-/// 値が 1 のときは単数形の単位を付ける（英語の「1 piece」と「2 pieces」）。
-/// %n の複数形は翻訳ファイルの検査で扱えないため、単数形を別の訳として持つ。
-class CountSpinBox : public QSpinBox
-{
-public:
-    CountSpinBox(QString one, QString many, QWidget* parent)
-        : QSpinBox(parent)
-        , m_one(std::move(one))
-        , m_many(std::move(many))
-    {
-        connect(this, &QSpinBox::valueChanged, this, &CountSpinBox::updateSuffix);
-        updateSuffix(value());
-    }
-
-private:
-    void updateSuffix(int value) { setSuffix(value == 1 ? m_one : m_many); }
-
-    QString m_one;
-    QString m_many;
 };
 
 /// 内容の高さを希望サイズにする。QScrollArea::sizeHint は内容の大きさを最初に一度だけ記録するため、

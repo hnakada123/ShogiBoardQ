@@ -25,7 +25,7 @@
    </property>
    <widget class="QMenu" name="File">
     <property name="title">
-     <string>ファイル(F)</string>
+     <string>ファイル(&amp;F)</string>
     </property>
     <addaction name="actionNewGame"/>
     <addaction name="actionOpenKifuFile"/>
@@ -39,7 +39,7 @@
    </widget>
    <widget class="QMenu" name="Edit">
     <property name="title">
-     <string>編集(E)</string>
+     <string>編集(&amp;E)</string>
     </property>
     <widget class="QMenu" name="copyGameRecord">
      <property name="title">
@@ -78,7 +78,7 @@
    </widget>
    <widget class="QMenu" name="Display">
     <property name="title">
-     <string>表示(I)</string>
+     <string>表示(&amp;I)</string>
     </property>
     <widget class="QMenu" name="menuSavedLayouts">
      <property name="title">
@@ -103,7 +103,7 @@
    </widget>
    <widget class="QMenu" name="Game">
     <property name="title">
-     <string>対局(G)</string>
+     <string>対局(&amp;G)</string>
     </property>
     <addaction name="actionStartGame"/>
     <addaction name="actionCSA"/>
@@ -127,7 +127,7 @@
    </widget>
    <widget class="QMenu" name="Setting">
     <property name="title">
-     <string>設定(S)</string>
+     <string>設定(&amp;S)</string>
     </property>
     <widget class="QMenu" name="menuLanguage">
      <property name="title">
@@ -158,7 +158,7 @@
    </widget>
    <widget class="QMenu" name="Help">
     <property name="title">
-     <string>ヘルプ(H)</string>
+     <string>ヘルプ(&amp;H)</string>
     </property>
     <addaction name="actionOpenWebsite"/>
     <addaction name="separator"/>
