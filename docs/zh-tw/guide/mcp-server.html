@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 用戶端整合（MCP） - ShogiBoardQ</title>
+    <meta name="description" content="透過 Model Context Protocol（MCP），在 Claude Desktop、Claude Code、Cursor、VS Code、Gemini CLI、Codex CLI 等 AI 用戶端中使用 ShogiBoardQ 的棋譜轉換、引擎分析、詰棋生成和應用程式操作。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/mcp-server.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/mcp-server.html">
+    <meta property="og:title" content="AI 用戶端整合（MCP） - ShogiBoardQ">
+    <meta property="og:description" content="讓 Claude、Cursor、VS Code、Gemini CLI 或 Codex CLI 轉換棋譜、分析局面、產生詰棋並操作 ShogiBoardQ 視窗。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/mcp/board-example.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AI 用戶端整合（MCP） - ShogiBoardQ">
+    <meta name="twitter:description" content="透過 Model Context Protocol 在 AI 用戶端中使用 ShogiBoardQ。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/mcp/board-example.png">
+    <link rel="stylesheet" href="../../css/style.css">
+<link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+<link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
+<link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/mcp-server.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/mcp-server.html">
+<link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/mcp-server.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/mcp-server.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/mcp-server.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="mcp-server.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#overview">概要</a></li>
+            <li><a href="#setup">準備</a></li>
+            <li><a href="#clients">用戶端設定</a></li>
+            <li><a href="#usage">使用方法</a></li>
+            <li><a href="#automation">應用程式操作</a></li>
+            <li><a href="#safety">安全性</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>AI 用戶端整合（MCP）</h1>
+        <p class="hero-subtitle">在 Claude、Cursor、VS Code、Gemini CLI 和 Codex CLI 中使用 ShogiBoardQ</p>
+        <div class="hero-badges">
+            <span class="badge">Model Context Protocol</span>
+            <span class="badge">最新規範 2026-07-28</span>
+            <span class="badge">stdio</span>
+            <span class="badge">棋譜轉換・分析・詰棋產生</span>
+            <span class="badge">應用程式操作</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Overview -->
+<section id="overview" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">概要</h2>
+        <p class="section-desc">ShogiBoardQ 附帶 Model Context Protocol（MCP）伺服器</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">什麼是 MCP</span>
+                </div>
+                <p class="guide-step-text">MCP 是讓 AI 用戶端（Claude Desktop、Claude Code、Cursor、VS Code 中的 GitHub Copilot、Gemini CLI、Codex CLI 等）呼叫外部工具的通用規範。註冊 ShogiBoardQ 的 MCP 伺服器（<code>shogiboardq-mcp</code>）後，只需對 AI 用戶端說「把這份棋譜轉換為 CSA」「把這個局面分析 10 秒」「產生 5 道三手詰」，用戶端就會呼叫 ShogiBoardQ 的功能來完成。</p>
+                <p class="guide-step-text">伺服器同時支援 MCP 規範的最新版（2026-07-28）和以前的版本（2024-11-05〜2025-11-25），新舊用戶端都可以連線。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">不需啟動應用程式即可使用的功能</span>
+                </div>
+                <p class="guide-step-text">以下工具在內部執行 <code>shogiboardq-cli</code>，不需開啟視窗。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>工具</th><th>功能</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>convert_kifu</strong></td><td>把棋譜檔案或文字轉換為 KIF、KI2、CSA、JKF、USI、USEN 或 SFEN 清單</td></tr>
+                        <tr><td><strong>validate_sfen</strong></td><td>SFEN 是否合法、行棋方、持駒、是否將軍、合法著法數</td></tr>
+                        <tr><td><strong>list_engines</strong></td><td>在 ShogiBoardQ 中註冊的 USI 引擎</td></tr>
+                        <tr><td><strong>analyze_position</strong> / analysis_status / analysis_result</td><td>用已註冊的引擎分析局面（支援 MultiPV，工作方式）</td></tr>
+                        <tr><td><strong>analyze_kifu</strong> / kifu_analysis_status / kifu_analysis_result</td><td>分析整份棋譜的主線。支援指定範圍、進度、分頁取得結果和取消</td></tr>
+                        <tr><td><strong>search_mate</strong> / mate_status</td><td>用支援 <code>go mate</code> 的引擎搜尋詰棋（工作方式）</td></tr>
+                        <tr><td><strong>generate_tsume</strong> / tsume_generation_status / stop_tsume_generation</td><td>自動產生詰棋局面（工作方式）</td></tr>
+                        <tr><td><strong>verify_tsume</strong></td><td>餘詰檢查（唯一解 / 有餘詰 / 不詰 / 手數不符 / 無法判定）</td></tr>
+                        <tr><td><strong>render_board_image</strong></td><td>從 SFEN 產生棋盤的 PNG 圖片</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/mcp/board-example.png" alt="用 render_board_image 產生的棋盤圖片" width="1008" height="791" loading="lazy">
+                    <p class="screenshot-caption">render_board_image 的輸出範例：與 GUI 相同的棋子圖片和配色，並可醒目提示最後一手。「行棋方」等標籤和段的座標會依照 ShogiBoardQ 的介面語言和記法設定顯示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">操作執行中的應用程式的功能</span>
+                </div>
+                <p class="guide-step-text">以 <code>--automation</code> 啟動 ShogiBoardQ 後，可以用以下工具讀取和修改視窗中的局面和棋譜。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>工具</th><th>功能</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>get_app_state</strong></td><td>狀態（待機、對局中、分析中等）、目前手數、棋譜檔名、是否有未儲存的變更、開啟的對話方塊</td></tr>
+                        <tr><td><strong>get_position</strong> / set_position</td><td>取得目前局面的 SFEN 和著法，設定局面</td></tr>
+                        <tr><td><strong>load_kifu</strong> / save_kifu / get_kifu / goto_ply</td><td>讀取、儲存和取得棋譜（可指定格式和手數範圍），移動到指定手數</td></tr>
+                        <tr><td><strong>list_actions</strong> / trigger_action</td><td>列出並執行選單操作（允許清單方式）</td></tr>
+                        <tr><td><strong>capture_screenshot</strong></td><td>把主視窗或對話方塊的截圖儲存為 PNG</td></tr>
+                        <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>列出、關閉對話方塊，讀取標籤、輸入框、表格、棋盤的內容和座標</td></tr>
+                        <tr><td><strong>list_menu_actions / select_menu_action</strong></td><td>取得和操作定跡、最近檔案和已儲存佈局等動態選單</td></tr>
+                        <tr><td><strong>menu_favorites</strong></td><td>取得、新增、移除、排序並儲存選單的收藏</td></tr>
+                        <tr><td><strong>click_branch_node</strong></td><td>移動到變化樹的節點</td></tr>
+                        <tr><td><strong>click_board_square</strong> / click_dialog_button</td><td>點擊棋盤和駒台，選擇題目、回答升變等對話方塊。座標會跟隨棋盤的翻轉和大小</td></tr>
+                        <tr><td><strong>show_dock</strong> / click_widget / set_widget_value / click_table_cell</td><td>顯示面板，操作按鈕、設定、棋譜和讀筋表格，並在可編輯的輸入框中輸入文字</td></tr>
+                        <tr><td><strong>edit_table_cell</strong></td><td>在對局資訊等可編輯的表格儲存格中輸入文字。也可以保持編輯狀態而不確認</td></tr>
+                        <tr><td><strong>get_clipboard</strong></td><td>取得剪貼簿的文字，以及是否有圖片和圖片尺寸</td></tr>
+                        <tr><td><strong>list_docks</strong> / configure_dock</td><td>確認面板狀態，分離、停駐到上下左右、合併為分頁、顯示或隱藏，以及拖曳標題列</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">還以資源形式提供目前局面（<code>shogiboardq://position/current</code>，SFEN）、目前棋譜（<code>shogiboardq://kifu/current</code>，KIF 文字）和已註冊的引擎（<code>shogiboardq://engines</code>）。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Setup -->
+<section id="setup" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">準備</h2>
+        <p class="section-desc">需要建置好的 ShogiBoardQ 和 Python 的 mcp 套件</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">建置 ShogiBoardQ</span>
+                </div>
+                <p class="guide-step-text">伺服器使用 <code>build/ShogiBoardQ</code>（GUI）和 <code>build/shogiboardq-cli</code>（不需 GUI 的指令）。發行套件目前不包含 <code>shogiboardq-cli</code>，請參閱 <a href="../../en/guide/linux-build-and-release.html">Linux</a>、<a href="../../en/guide/macos-build-and-release.html">macOS</a> 或 <a href="../../en/guide/windows-build-and-release.html">Windows</a> 的建置指南（英文）從原始碼建置。</p>
+                <div class="build-steps">
+<pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ
+cmake -B build -S . -G Ninja
+cmake --build build
+./build/shogiboardq-cli version      # 顯示 {"ok":true,"version":"..."} 即可</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Python 和 mcp 套件</span>
+                </div>
+                <p class="guide-step-text">需要 Python 3.10 或更新版本，以及官方的 <code>mcp</code> 套件 2.x（2.0 或更新、低於 3.0）。伺服器位於儲存庫的 <code>mcp/</code> 目錄。</p>
+                <p class="guide-step-text">如果作業系統的套件（如 Arch Linux 的 <code>python-mcp</code>）是 1.x，請用 pip 安裝 2.x。用 1.x 啟動時，伺服器會顯示所需的版本並結束。</p>
+                <div class="build-steps">
+<pre class="bash"><code># 只安裝 mcp 套件（伺服器透過 PYTHONPATH 參照）
+pip install "mcp>=2,<3"
+
+# 或者連同伺服器一起安裝
+pip install -e mcp</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">註冊 USI 引擎</span>
+                </div>
+                <p class="guide-step-text">分析、詰棋搜尋、詰棋產生和餘詰檢查，都依名稱指定在 ShogiBoardQ 的「設定」→「引擎設定…」中註冊的 USI 引擎，不接受任意的執行檔路徑。詰棋搜尋、產生和餘詰檢查需要註冊支援 <code>go mate</code> 的引擎（如 KomoringHeights）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">環境變數</span>
+                </div>
+                <p class="guide-step-text">在用戶端的設定中把以下環境變數傳給伺服器。至少需要指定 <code>SHOGIBOARDQ_EXECUTABLE</code>。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>變數</th><th>意義</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td><code>ShogiBoardQ</code> 的路徑。應用程式操作工具在沒有執行中的應用程式時會加上 <code>--automation</code> 啟動它。也會自動找到同一目錄中的 <code>shogiboardq-cli</code></td></tr>
+                        <tr><td><code>SHOGIBOARDQ_CLI</code></td><td><code>shogiboardq-cli</code> 的路徑（放在其他位置時）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>允許讀寫的目錄（Linux/macOS 用 <code>:</code> 分隔，Windows 用 <code>;</code> 分隔）。預設是家目錄</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>截圖等的預設輸出位置。預設是暫存目錄下的 <code>shogiboardq-mcp</code></td></tr>
+                        <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自動化通訊端的路徑（與應用程式的 <code>--automation-socket</code> 相同）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>設為 <code>1</code> 時，伺服器結束時會關閉由伺服器啟動的應用程式（預設保留）</td></tr>
+                        <tr><td><code>PYTHONPATH</code></td><td>未執行 <code>pip install -e mcp</code> 時，指定儲存庫的 <code>mcp</code> 目錄</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Clients -->
+<section id="clients" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">用戶端設定</h2>
+        <p class="section-desc">所有用戶端的做法都一樣：以 stdio 啟動 python3 -m shogiboardq_mcp，並傳入環境變數</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <p class="guide-step-text">以下為 Linux 的範例，請把 <code>/path/to/ShogiBoardQ</code> 替換為儲存庫的位置。在 Windows 上，把 <code>python3</code> 改為 <code>python</code>，路徑寫成 <code>C:\\Users\\...\\ShogiBoardQ\\build\\ShogiBoardQ.exe</code> 這樣的形式。修改設定後，請重新啟動用戶端（或重新載入 MCP 伺服器）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Claude Code</span>
+                </div>
+                <p class="guide-step-text">在專案中執行以下指令（加上 <code>--scope user</code> 可在所有專案中啟用）。<code>--</code> 之後是伺服器的啟動指令。</p>
+                <div class="build-steps">
+<pre class="bash"><code>claude mcp add shogiboardq \
+  --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -- python3 -m shogiboardq_mcp
+
+claude mcp list      # 確認連線狀態</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Claude Desktop</span>
+                </div>
+                <p class="guide-step-text">把伺服器新增到 <code>claude_desktop_config.json</code>（透過 Settings → Developer → Edit Config 開啟。macOS：<code>~/Library/Application Support/Claude/</code>，Windows：<code>%APPDATA%\Claude\</code>）。</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Cursor</span>
+                </div>
+                <p class="guide-step-text">寫入專案的 <code>.cursor/mcp.json</code>（所有專案通用時寫入 <code>~/.cursor/mcp.json</code>）。</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">VS Code (GitHub Copilot)</span>
+                </div>
+                <p class="guide-step-text">寫入工作區的 <code>.vscode/mcp.json</code>。VS Code 的最上層鍵是 <code>servers</code>。要在整個使用者範圍內使用，請從命令選擇區執行「MCP: Open User Configuration」，並以相同格式新增。</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "servers": {
+    "shogiboardq": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Gemini CLI</span>
+                </div>
+                <p class="guide-step-text">用以下指令註冊，或寫入 <code>~/.gemini/settings.json</code>（專案則為 <code>.gemini/settings.json</code>）的 <code>mcpServers</code>。</p>
+                <div class="build-steps">
+<pre class="bash"><code>gemini mcp add -s user \
+  -e SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  -e PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  shogiboardq python3 -m shogiboardq_mcp</code></pre>
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Codex（CLI / 應用程式 / IDE 擴充功能）</span>
+                </div>
+                <p class="guide-step-text">同一台主機上的 Codex 用戶端共用 <code>~/.codex/config.toml</code>。請用以下指令註冊，或寫入下面的設定。<code>python3</code> 需指定安裝了 <code>mcp</code> 套件的 Python；使用虛擬環境時，請改為該 Python 的絕對路徑。</p>
+                <div class="build-steps">
+<pre class="bash"><code>codex mcp add shogiboardq \
+  --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -- python3 -m shogiboardq_mcp</code></pre>
+<pre class="toml"><code>[mcp_servers.shogiboardq]
+command = "python3"
+args = ["-m", "shogiboardq_mcp"]
+startup_timeout_sec = 30
+env_vars = ["DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS", "XDG_CONFIG_HOME"]
+
+[mcp_servers.shogiboardq.env]
+SHOGIBOARDQ_EXECUTABLE = "/path/to/ShogiBoardQ/build/ShogiBoardQ"
+PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
+                </div>
+                <p class="guide-step-text">在 Linux 上自動啟動 GUI 時，即使用指令註冊，也請在 <code>[mcp_servers.shogiboardq]</code> 中加入上面的 <code>env_vars</code>。它用於傳遞顯示、工作階段的環境變數和設定目錄。請編輯既有的表，不要重複建立。</p>
+                <p class="guide-step-text">用 <code>codex mcp get shogiboardq</code> 確認註冊內容，然後重新啟動 Codex 並開始新的對話。在 CLI 中可以用 <code>/mcp</code> 確認連線。要求「用 ShogiBoardQ 的 validate_sfen 驗證 startpos」，回傳合法著法數 30 即表示工具可以執行。<code>codex mcp list</code> 只顯示註冊內容。</p>
+                <p class="guide-step-text">在沒有顯示器的環境中試用應用程式操作工具時，請在 <code>[mcp_servers.shogiboardq.env]</code> 中加入 <code>QT_QPA_PLATFORM = "offscreen"</code>。此時視窗不會顯示在螢幕上。設定的詳情請參閱 <a href="https://developers.openai.com/codex/mcp">OpenAI 官方 MCP 文件</a>。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Usage -->
+<section id="usage" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">使用方法</h2>
+        <p class="section-desc">用自然語言提出要求，用戶端會選擇合適的工具來呼叫</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">要求範例</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>要求</th><th>呼叫的工具</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>「把 ~/kifu/game.kif 轉換為 CSA 格式並儲存為 ~/kifu/game.csa」</td><td>convert_kifu</td></tr>
+                        <tr><td>「這個 SFEN 是合法局面嗎？是否被將軍？」</td><td>validate_sfen</td></tr>
+                        <tr><td>「用 YaneuraOu 把初始局面走 7g7f 3c3d 後的局面分析 10 秒，候選 3 手」</td><td>list_engines → analyze_position → analysis_result</td></tr>
+                        <tr><td>「用 KomoringHeights 查一下這個局面有沒有詰」</td><td>search_mate → mate_status</td></tr>
+                        <tr><td>「產生 5 道三手詰，攻方棋子最多 3 枚」</td><td>generate_tsume → tsume_generation_status</td></tr>
+                        <tr><td>「確認這道五手詰沒有餘詰」</td><td>verify_tsume</td></tr>
+                        <tr><td>「把這個局面做成圖片，儲存為 ~/Pictures/board.png」</td><td>render_board_image</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">耗時的處理以工作方式進行</span>
+                </div>
+                <p class="guide-step-text">分析、詰棋搜尋和詰棋產生會由開始工具立即回傳工作 ID，用戶端再用狀態工具（analysis_status 等）取得進度和結果。每次呼叫都很短，因此即使用戶端在約 60 秒後中斷工具呼叫，也能處理需要幾分鐘的分析和產生。產生可以用 stop_tsume_generation 提前結束，工作清單用 list_jobs，取消用 cancel_job。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">局面和著法的表示</span>
+                </div>
+                <p class="guide-step-text">局面用 SFEN（<code>startpos</code> 為初始局面），著法用 USI 格式（<code>7g7f</code>，打入持駒為 <code>P*5e</code>）傳遞。結果同時包含便於閱讀的摘要和便於程式處理的結構化資料（structuredContent）。棋譜文字和讀筋預設只回傳開頭的一部分，可用 <code>max_chars</code> 和 <code>max_pv_moves</code> 調整。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 5: Automation -->
+<section id="automation" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">操作應用程式</h2>
+        <p class="section-desc">可以從 AI 用戶端操作以 --automation 啟動的 ShogiBoardQ</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">啟用自動化 API 並啟動</span>
+                </div>
+                <p class="guide-step-text">自動化 API 預設關閉。加上 <code>--automation</code> 啟動後，ShogiBoardQ 會在只有本使用者可以存取的本機通訊端上接收要求，並在標準輸出中顯示 <code>automation: listening on ...</code>。設定了 <code>SHOGIBOARDQ_EXECUTABLE</code> 時，伺服器會在第一次呼叫應用程式操作工具時自動啟動應用程式（已啟動則直接連線）。</p>
+                <div class="build-steps">
+<pre class="bash"><code>./build/ShogiBoardQ --automation
+# 指定通訊端位置時
+./build/ShogiBoardQ --automation --automation-socket /tmp/shogiboardq.sock</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">要求範例</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>要求</th><th>呼叫的工具</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>「告訴我現在顯示的局面」</td><td>get_position</td></tr>
+                        <tr><td>「開啟 ~/kifu/game.kif 並移動到第 30 手」</td><td>load_kifu → goto_ply</td></tr>
+                        <tr><td>「把顯示中的棋譜以 KI2 格式儲存為 ~/kifu/out.ki2」</td><td>save_kifu</td></tr>
+                        <tr><td>「開啟棋譜分析對話方塊，讀取內容並截圖」</td><td>trigger_action → list_dialogs → get_widget_text → capture_screenshot</td></tr>
+                        <tr><td>「翻轉棋盤」</td><td>trigger_action (actionFlipBoard)</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">在有未儲存變更的狀態下讀取棋譜或設定局面的要求，除非明確指定 <code>discard_unsaved</code>，否則會被拒絕。選單操作採用允許清單，無法執行結束和覆寫儲存。可以切換語言，重新啟動應用程式後生效。可執行的操作可用 list_actions 確認。</p>
+                <p class="guide-step-text">沒有名稱的控制項，可以把 get_widget_text 或 list_dialogs 回傳的 selector 指定給 widget、target 或 dialog 來操作。重新開啟對話方塊或重新啟動應用程式後請重新取得。set_widget_value 也支援滑桿、清單、可勾選的群組和顏色。選單可以用 list_menu_actions 查詢階層索引，再指定給 select_menu_action 的 path。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 6: Safety -->
+<section id="safety" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">安全性與限制</h2>
+        <p class="section-desc">僅限本機、預設關閉、需要明確許可</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">安全性</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>自動化通訊端只有本使用者可以存取，不會公開到網路。只有加上 <code>--automation</code> 時才有效</li>
+                    <li>檔案只接受絕對路徑，<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（預設是家目錄）以外的路徑會被拒絕。沒有明確指定 <code>overwrite</code> 時不會覆寫既有檔案</li>
+                    <li>引擎只接受在 ShogiBoardQ 中註冊的名稱</li>
+                    <li>選單操作採用允許清單，不執行結束和覆寫儲存。可以切換語言和管理已命名的面板佈局</li>
+                    <li>通常用戶端也會在執行工具前要求確認（取決於用戶端的設定）</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">限制事項</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>傳輸方式只支援 stdio（不支援 Streamable HTTP）</li>
+                    <li>可以透過點擊棋盤和對話方塊按鈕走子。尚不支援 CSA 網路對局、開始對局和以 USI 格式走子的專用 API，以及取得評價值圖表圖片</li>
+                    <li>Windows 的具名管道連線已實作但尚未驗證</li>
+                    <li>發行套件不包含 <code>shogiboardq-cli</code>，需要從原始碼建置</li>
+                </ul>
+                <p class="guide-step-text">設計的詳情（JSON-RPC 方法清單、工作的狀態轉換、測試）請參閱開發者文件 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/mcp-server.md">docs/dev/mcp-server.md</a>（日文）和 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/mcp/README.md">mcp/README.md</a>（日文）。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">&larr; 返回使用指南（英文）</a>
+</div>
+
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

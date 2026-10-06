@@ -5,24 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Client Integration (MCP) - ShogiBoardQ</title>
     <meta name="description" content="Use ShogiBoardQ's kifu conversion, engine analysis, tsume shogi generation and GUI automation from AI clients such as Claude Desktop, Claude Code, Cursor, VS Code, Gemini CLI and Codex CLI through the Model Context Protocol (MCP).">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
     <meta property="og:title" content="AI Client Integration (MCP) - ShogiBoardQ">
     <meta property="og:description" content="Ask Claude, Cursor, VS Code, Gemini CLI or Codex CLI to convert records, analyse positions, generate tsume shogi puzzles and drive the ShogiBoardQ window.">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/mcp/board-example.png">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/mcp/board-example.png">
     <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AI Client Integration (MCP) - ShogiBoardQ">
     <meta name="twitter:description" content="Use ShogiBoardQ from AI clients through the Model Context Protocol.">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/mcp/board-example.png">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/mcp/board-example.png">
     <link rel="stylesheet" href="../../css/style.css">
+<link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+<link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
+<link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/mcp-server.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/mcp-server.html">
+<link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
 </head>
 <body>
 
@@ -30,7 +32,15 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../../guide/mcp-server.html" class="language-switch" lang="ja" hreflang="ja" aria-label="日本語">日本語</a>
+<details class="lang-menu">
+    <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+    <ul>
+        <li><a href="../../guide/mcp-server.html" lang="ja" hreflang="ja">日本語</a></li>
+        <li><a href="mcp-server.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+        <li><a href="../../zh-cn/guide/mcp-server.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-tw/guide/mcp-server.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+    </ul>
+</details>
         <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
@@ -55,6 +65,7 @@
         <p class="hero-subtitle">Use ShogiBoardQ from Claude, Cursor, VS Code, Gemini CLI and Codex CLI</p>
         <div class="hero-badges">
             <span class="badge">Model Context Protocol</span>
+            <span class="badge">Latest spec 2026-07-28</span>
             <span class="badge">stdio</span>
             <span class="badge">Convert · Analyse · Generate</span>
             <span class="badge">GUI automation</span>
@@ -75,6 +86,7 @@
                     <span class="guide-step-title">What MCP is</span>
                 </div>
                 <p class="guide-step-text">MCP is a common protocol that lets AI clients (Claude Desktop, Claude Code, Cursor, GitHub Copilot in VS Code, Gemini CLI, Codex CLI and others) call external tools. Once you register the ShogiBoardQ server (<code>shogiboardq-mcp</code>), requests such as "convert this record to CSA", "analyse this position for 10 seconds" or "generate five mate-in-three puzzles" are carried out by the client through ShogiBoardQ's own functions.</p>
+                <p class="guide-step-text">The server connects with both the latest MCP specification (2026-07-28) and the earlier revisions (2024-11-05 to 2025-11-25), so it works with new and older clients alike.</p>
             </div>
 
             <div class="guide-step">
@@ -100,8 +112,8 @@
                     </tbody>
                 </table>
                 <div class="screenshot-item">
-                    <img src="../../images/mcp/board-example.png" alt="Board image produced by render_board_image">
-                    <p class="screenshot-caption">Output of render_board_image: the same piece images and colours as the GUI, with the last move highlighted</p>
+                    <img src="../../images/en/mcp/board-example.png" alt="Board image produced by render_board_image" width="1008" height="791" loading="lazy">
+                    <p class="screenshot-caption">Output of render_board_image: the same piece images and colours as the GUI, with the last move highlighted. Labels such as the turn badge and the rank coordinates follow the interface language and move notation set in ShogiBoardQ</p>
                 </div>
             </div>
 
@@ -165,10 +177,11 @@ cmake --build build
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Python and the mcp package</span>
                 </div>
-                <p class="guide-step-text">Python 3.10 or later and the official <code>mcp</code> package (1.10 or later; both 1.x and 2.x work) are required. The server lives in the <code>mcp/</code> directory of the repository.</p>
+                <p class="guide-step-text">Python 3.10 or later and the official <code>mcp</code> package 2.x (2.0 or later, below 3.0) are required. The server lives in the <code>mcp/</code> directory of the repository.</p>
+                <p class="guide-step-text">If your operating system packages provide mcp 1.x (such as <code>python-mcp</code> on Arch Linux), install 2.x with pip. Started with 1.x, the server prints the required version and exits.</p>
                 <div class="build-steps">
 <pre class="bash"><code># install only the mcp package (the server is found through PYTHONPATH)
-pip install mcp
+pip install "mcp>=2,<3"
 
 # or install the server itself
 pip install -e mcp</code></pre>
@@ -493,5 +506,20 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>

@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI クライアント連携（MCP） - ShogiBoardQ</title>
     <meta name="description" content="ShogiBoardQ の棋譜変換・エンジン解析・詰将棋生成・アプリ操作を、Model Context Protocol（MCP）経由で Claude Desktop / Claude Code / Cursor / VS Code / Gemini CLI / Codex CLI などの AI クライアントから使う方法を説明します。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -23,6 +20,11 @@
     <meta name="twitter:description" content="AI クライアントから ShogiBoardQ の棋譜変換・エンジン解析・詰将棋生成・アプリ操作を依頼できます。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/mcp/board-example.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/mcp-server.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/mcp-server.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
 </head>
 <body>
 
@@ -30,7 +32,15 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/mcp-server.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="mcp-server.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/mcp-server.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/mcp-server.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/mcp-server.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
@@ -55,6 +65,7 @@
         <p class="hero-subtitle">Claude・Cursor・VS Code・Gemini CLI・Codex CLI から ShogiBoardQ の機能を使う</p>
         <div class="hero-badges">
             <span class="badge">Model Context Protocol</span>
+            <span class="badge">最新仕様 2026-07-28</span>
             <span class="badge">stdio</span>
             <span class="badge">棋譜変換・解析・詰将棋生成</span>
             <span class="badge">アプリ操作</span>
@@ -75,6 +86,7 @@
                     <span class="guide-step-title">MCP とは</span>
                 </div>
                 <p class="guide-step-text">MCP は、AI クライアント（Claude Desktop、Claude Code、Cursor、VS Code の GitHub Copilot、Gemini CLI、Codex CLI など）が外部のツールを呼び出すための共通規格です。ShogiBoardQ の MCP サーバー（<code>shogiboardq-mcp</code>）を登録すると、「この棋譜を CSA に変換して」「この局面を 10 秒解析して」「3手詰を5問作って」のような依頼を AI クライアントに話しかけるだけで、クライアントが ShogiBoardQ の機能を呼び出します。</p>
+                <p class="guide-step-text">MCP 仕様の最新版（2026-07-28）と、従来の版（2024-11-05〜2025-11-25）の両方で接続できるため、新旧どちらのクライアントからも使えます。</p>
             </div>
 
             <div class="guide-step">
@@ -100,8 +112,8 @@
                     </tbody>
                 </table>
                 <div class="screenshot-item">
-                    <img src="../images/mcp/board-example.png" alt="render_board_image で作成した盤面画像">
-                    <p class="screenshot-caption">render_board_image の出力例：GUI と同じ駒画像・配色で描画され、最後の指し手を強調表示できる</p>
+                    <img src="../images/mcp/board-example.png" alt="render_board_image で作成した盤面画像" width="1008" height="791" loading="lazy">
+                    <p class="screenshot-caption">render_board_image の出力例：GUI と同じ駒画像・配色で描画され、最後の指し手を強調表示できる。「手番」などの表示と段の表記は ShogiBoardQ の表示言語・棋譜表記の設定に従う</p>
                 </div>
             </div>
 
@@ -165,10 +177,11 @@ cmake --build build
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Python と mcp パッケージ</span>
                 </div>
-                <p class="guide-step-text">Python 3.10 以上と公式の <code>mcp</code> パッケージ（1.10 以上。1.x・2.x のどちらでも動作します）が必要です。リポジトリの <code>mcp/</code> ディレクトリにサーバーがあります。</p>
+                <p class="guide-step-text">Python 3.10 以上と公式の <code>mcp</code> パッケージ 2.x（2.0 以上、3.0 未満）が必要です。リポジトリの <code>mcp/</code> ディレクトリにサーバーがあります。</p>
+                <p class="guide-step-text">OS のパッケージ（Arch Linux の <code>python-mcp</code> など）が 1.x の場合は、pip で 2.x を入れてください。1.x のまま起動すると、必要な版を表示して終了します。</p>
                 <div class="build-steps">
 <pre class="bash"><code># mcp パッケージだけ入れる場合（サーバーは PYTHONPATH で参照）
-pip install mcp
+pip install "mcp>=2,<3"
 
 # サーバーごとインストールする場合
 pip install -e mcp</code></pre>
@@ -493,5 +506,20 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
