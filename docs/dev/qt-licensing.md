@@ -46,6 +46,22 @@ WebEngine・Qt 3D など配布しないモジュールの文書は入れない�
 この表と各ビルドスクリプトの `--modules` も更新する。作業用一式の整合性検査に使う `FILES.json` は
 配布物に入れない。
 
+## Qt 以外の同梱ライブラリ（Linux AppImage）
+
+linuxdeploy は Qt のほかに、ビルド環境のライブラリ（glib・PulseAudio・OpenSSL・ICU・fcitx5-qt など）を
+AppImage に同梱する。これらにもそれぞれのライセンス（MIT・BSD・Apache-2.0・LGPL など）があり、
+著作権表示・ライセンス本文の添付や、LGPL のライブラリではソースの入手方法の提示が必要になる。
+
+`scripts/bundled_licenses.py` は AppDir 内の各ライブラリとプラグインの元のパッケージを pacman で調べ、
+パッケージのライセンス本文を `third-party/` に、版・ライセンス・ソースの取得先（Arch Linux の
+パッケージのソースと上流）の一覧を `THIRD-PARTY-NOTICES.md` に収録する。Qt のパッケージ（`qt6-*`）は
+上記の Qt 文書で扱うので除く。パッケージが分からないファイルや本文がないパッケージがあれば配布物を作らない。
+Arch のライセンス欄が SPDX 形式でないパッケージ（libasyncns・libidn2）は、上流のヘッダーの表記で補う。
+
+現在は Arch Linux（pacman）でビルドした場合だけに対応する。Ubuntu など他の環境（CI を含む）で
+配布物を作るには、そのパッケージ管理（dpkg と `/usr/share/doc/<パッケージ名>/copyright` など）への
+対応を追加する必要がある。
+
 ## 利用者向けの表示
 
 「バージョン情報」に使用中／ビルド時の Qt バージョン、Qt の著作権表示、

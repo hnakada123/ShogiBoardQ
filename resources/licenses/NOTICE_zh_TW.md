@@ -16,5 +16,8 @@ Qt Multimedia 遵循 LGPLv3 或 GPL。各檔案的著作權聲明及授權條款
 Qt 內的第三方程式碼各自適用其授權。二進位發行套件的 licenses/qt 目錄包含授權原文、
 著作權聲明和歸屬資訊；對應的原始碼壓縮檔中也包含這些原文。
 
+Linux 版 AppImage 除 Qt 外，還隨附從 Arch Linux 套件取得的程式庫（glib、PulseAudio、OpenSSL 等），
+各程式庫適用其各自的授權。清單及授權原文請參閱「隨附程式庫的授權」（licenses/THIRD-PARTY-NOTICES.md）。
+
 本軟體不附加禁止修改 Qt、替換為介面相容的程式庫，或為偵錯此類修改而進行還原工程的限制。
 本軟體在適用授權規定的範圍內不提供擔保。

@@ -265,6 +265,7 @@ APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh
 |---|---|
 | `build/ShogiBoardQ`、`build/*.qm` | `usr/bin/` |
 | 準備済み Qt 文書・ビルド情報 | `usr/share/licenses/ShogiBoardQ/` |
+| 同梱ライブラリ（Qt 以外）のライセンス本文と一覧 | `usr/share/licenses/ShogiBoardQ/third-party/`、`THIRD-PARTY-NOTICES.md` |
 
 問題集・Hayanagi・説明書は AppImage に入れない。アプリはこれらを AppImage 内から読まず、
 利用者も AppImage 内のファイルを選択できないため、ZIP の外部ファイルとしてのみ配布する（4.5 参照）。
@@ -274,7 +275,11 @@ Qt プラグインを配置する。SQLite ドライバー（`sqldrivers/libqsql
 linuxdeploy が配置する Qt 標準の翻訳（`usr/translations/`）は使わないため削除する。
 標準ダイアログの日本語・中国語訳は実行ファイルのリソースに内蔵し、アプリの翻訳は `usr/bin/` から読む。
 フィルタ済みプラグイン、システムの `strip`、同梱 Qt に検索先を固定する `AppRun` を使い、
-最後に `qt_licenses.py stage` で文書を検証して `appimagetool` でパッケージ化する。
+最後に `qt_licenses.py stage` で Qt の文書を検証・配置し、`bundled_licenses.py` で
+同梱ライブラリの文書を配置して、`appimagetool` でパッケージ化する。
+
+> **注意**: 同梱ライブラリの文書の収集は、現在 Arch Linux（pacman）だけに対応する。
+> Ubuntu など他の環境では、ライブラリの文書を付けずに配布しないよう、スクリプトはエラーで止まる。
 
 ### 4.4 AppImage の構造
 
@@ -319,7 +324,7 @@ ShogiBoardQ-linux-x86_64.AppImage（単一実行ファイル）
           └── share/
               ├── applications/shogiboardq.desktop
               ├── icons/hicolor/512x512/apps/shogiboardq.png
-              └── licenses/ShogiBoardQ/   ← GPL・LGPL・Qt の著作権表示と第三者ライセンス、
+              └── licenses/ShogiBoardQ/   ← GPL・LGPL・Qt と同梱ライブラリのライセンス、
                                              対応ソースの案内（「バージョン情報」で表示）
 ```
 
@@ -334,6 +339,12 @@ Qt のライセンス文書は、同梱する Qt モジュール（qtbase・qtch
 qtwayland）の分と、Qt ソース最上位の `LICENSES/`、それらの `qt_attribution.json` が参照する文書だけを収録する
 （約260ファイル）。WebEngine など配布しないモジュールの文書は入れない。詳細は
 [Qt 文書とリリース添付の方針](qt-licensing.md) を参照。
+
+Qt 以外の同梱ライブラリ（glib・PulseAudio・OpenSSL・fcitx5-qt など約50パッケージ）は、
+`scripts/bundled_licenses.py` が AppDir 内の各ファイルの元のパッケージを pacman で調べ、
+パッケージのライセンス本文（`/usr/share/licenses/<パッケージ名>/` と共通の SPDX 本文）を
+`third-party/` に、版・ライセンス・ソースの取得先（Arch Linux のパッケージのソースと上流）の一覧を
+`THIRD-PARTY-NOTICES.md` に収録する。「バージョン情報」の「同梱ライブラリのライセンス一覧」で表示する。
 
 ### 4.5 ZIP の構造と同梱ファイルの利用
 
@@ -399,7 +410,8 @@ chmod +x ShogiBoardQ-linux-x86_64.AppImage
 # 展開して同梱物を確認（問題集・Hayanagi・説明書・Qt 標準翻訳が入っていないこと）
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
 ls squashfs-root/usr/bin/ squashfs-root/usr/share/
-ls squashfs-root/usr/share/licenses/ShogiBoardQ/NOTICE.md
+ls squashfs-root/usr/share/licenses/ShogiBoardQ/NOTICE.md \
+   squashfs-root/usr/share/licenses/ShogiBoardQ/THIRD-PARTY-NOTICES.md
 test ! -e squashfs-root/usr/bin/hayanagi && test ! -e squashfs-root/usr/share/ShogiBoardQ \
     && test ! -e squashfs-root/usr/translations && echo OK
 

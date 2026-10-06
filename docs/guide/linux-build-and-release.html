@@ -318,11 +318,18 @@ APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh</code></pre>
 <td>準備済み Qt 文書・ビルド情報</td>
 <td><code>usr/share/licenses/ShogiBoardQ/</code></td>
 </tr>
+<tr>
+<td>同梱ライブラリ（Qt 以外）のライセンス本文と一覧</td>
+<td><code>usr/share/licenses/ShogiBoardQ/third-party/</code>、<code>THIRD-PARTY-NOTICES.md</code></td>
+</tr>
 </tbody>
 </table>
 </div>
 <p>問題集・Hayanagi・説明書は AppImage に入れない。アプリはこれらを AppImage 内から読まず、 利用者も AppImage 内のファイルを選択できないため、ZIP の外部ファイルとしてのみ配布する（4.5 参照）。</p>
-<p><code>linuxdeploy</code> に ShogiBoardQ の実行ファイルを渡して依存ライブラリを収集し、 Qt プラグインを配置する。SQLite ドライバー（<code>sqldrivers/libqsqlite.so</code>）も必須。 linuxdeploy が配置する Qt 標準の翻訳（<code>usr/translations/</code>）は使わないため削除する。 標準ダイアログの日本語・中国語訳は実行ファイルのリソースに内蔵し、アプリの翻訳は <code>usr/bin/</code> から読む。 フィルタ済みプラグイン、システムの <code>strip</code>、同梱 Qt に検索先を固定する <code>AppRun</code> を使い、 最後に <code>qt_licenses.py stage</code> で文書を検証して <code>appimagetool</code> でパッケージ化する。</p>
+<p><code>linuxdeploy</code> に ShogiBoardQ の実行ファイルを渡して依存ライブラリを収集し、 Qt プラグインを配置する。SQLite ドライバー（<code>sqldrivers/libqsqlite.so</code>）も必須。 linuxdeploy が配置する Qt 標準の翻訳（<code>usr/translations/</code>）は使わないため削除する。 標準ダイアログの日本語・中国語訳は実行ファイルのリソースに内蔵し、アプリの翻訳は <code>usr/bin/</code> から読む。 フィルタ済みプラグイン、システムの <code>strip</code>、同梱 Qt に検索先を固定する <code>AppRun</code> を使い、 最後に <code>qt_licenses.py stage</code> で Qt の文書を検証・配置し、<code>bundled_licenses.py</code> で 同梱ライブラリの文書を配置して、<code>appimagetool</code> でパッケージ化する。</p>
+<blockquote>
+<p><strong>注意</strong>: 同梱ライブラリの文書の収集は、現在 Arch Linux（pacman）だけに対応する。 Ubuntu など他の環境では、ライブラリの文書を付けずに配布しないよう、スクリプトはエラーで止まる。</p>
+</blockquote>
 </section>
 <section id="44-appimage-の構造" class="level3">
 <h3>4.4 AppImage の構造</h3>
@@ -365,11 +372,12 @@ APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh</code></pre>
           └── share/
               ├── applications/shogiboardq.desktop
               ├── icons/hicolor/512x512/apps/shogiboardq.png
-              └── licenses/ShogiBoardQ/   ← GPL・LGPL・Qt の著作権表示と第三者ライセンス、
+              └── licenses/ShogiBoardQ/   ← GPL・LGPL・Qt と同梱ライブラリのライセンス、
                                              対応ソースの案内（「バージョン情報」で表示）</code></pre>
 <p>問題集（<code>data/tsumeshogi/</code>）、通常対局用 Hayanagi（<code>hayanagi</code>）、説明書（<code>docs/</code>）、 問題集の検証記録（<code>validation_*.json</code>）は収録しない。詰将棋対局の Hayanagi はアプリ本体に 組み込まれているため、AppImage 内に実行ファイルがなくても動作する。</p>
 <p>使わないプラグイン（OpenGL 統合の <code>xcbglintegrations</code>、通信暗号化の <code>tls</code>、GIF 画像）も収録しない。 OpenGL を使う画面部品はなく、CSA 通信対局は暗号化しない TCP で、HTTPS 等の通信もしないため。</p>
 <p>Qt のライセンス文書は、同梱する Qt モジュール（qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・ qtwayland）の分と、Qt ソース最上位の <code>LICENSES/</code>、それらの <code>qt_attribution.json</code> が参照する文書だけを収録する （約260ファイル）。WebEngine など配布しないモジュールの文書は入れない。詳細は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文書とリリース添付の方針</a> を参照。</p>
+<p>Qt 以外の同梱ライブラリ（glib・PulseAudio・OpenSSL・fcitx5-qt など約50パッケージ）は、 <code>scripts/bundled_licenses.py</code> が AppDir 内の各ファイルの元のパッケージを pacman で調べ、 パッケージのライセンス本文（<code>/usr/share/licenses/&lt;パッケージ名&gt;/</code> と共通の SPDX 本文）を <code>third-party/</code> に、版・ライセンス・ソースの取得先（Arch Linux のパッケージのソースと上流）の一覧を <code>THIRD-PARTY-NOTICES.md</code> に収録する。「バージョン情報」の「同梱ライブラリのライセンス一覧」で表示する。</p>
 </section>
 <section id="45-zip-の構造と同梱ファイルの利用" class="level3">
 <h3>4.5 ZIP の構造と同梱ファイルの利用</h3>
@@ -446,7 +454,8 @@ chmod +x ShogiBoardQ-linux-x86_64.AppImage
 # 展開して同梱物を確認（問題集・Hayanagi・説明書・Qt 標準翻訳が入っていないこと）
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
 ls squashfs-root/usr/bin/ squashfs-root/usr/share/
-ls squashfs-root/usr/share/licenses/ShogiBoardQ/NOTICE.md
+ls squashfs-root/usr/share/licenses/ShogiBoardQ/NOTICE.md \
+   squashfs-root/usr/share/licenses/ShogiBoardQ/THIRD-PARTY-NOTICES.md
 test ! -e squashfs-root/usr/bin/hayanagi &amp;&amp; test ! -e squashfs-root/usr/share/ShogiBoardQ \
     &amp;&amp; test ! -e squashfs-root/usr/translations &amp;&amp; echo OK
 
