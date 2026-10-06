@@ -144,7 +144,7 @@ Qt を使用しています。Qt Charts は GPLv3、その他の Qt モジュー
 ライセンス本文と著作権表示は「バージョン情報」画面およびアプリ内に収録します。
 [GitHub Release](https://github.com/hnakada123/ShogiBoardQ/releases) の添付ファイルは各 OS の実行用パッケージのみです。
 Linux は `ShogiBoardQ-linux.zip` に AppImage・詰将棋問題集・通常対局用 Hayanagi を収録します。
-問題集と Hayanagi は ZIP 展開後すぐ選択できる外部ファイルとしても配置し、Qt 文書は AppImage 内に収録します。
+問題集と Hayanagi は ZIP 展開後すぐ選択できる外部ファイルとして配置し（AppImage には入れません）、Qt 文書は AppImage 内に収録します。
 Qt ソースなどを別添付にはしません。
 配布を作成する方は [Qt 文書とリリース添付の方針](docs/dev/qt-licensing.md) を参照してください。
 

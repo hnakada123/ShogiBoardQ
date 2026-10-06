@@ -479,7 +479,7 @@ private slots:
     void verifiedCollectionSkipsInitialSearch()
     {
         TsumeCollectionDialog window;
-        const auto original = QStringLiteral(REPO "/data/tsumeshogi/tsume_13ply_1000_20260926.txt");
+        const auto original = QStringLiteral(REPO "/data/tsumeshogi/tsume_13ply_1000_20261001.txt");
         const auto renamed = files.filePath(QStringLiteral("renamed-verified.sfen"));
         QVERIFY(QFile::copy(original, renamed));
         QVERIFY(window.loadFile(renamed));

@@ -2,7 +2,7 @@
 
 ZIP を展開すると、アプリ本体、Hayanagi USI エンジン、3・5・7・9・11・13手詰
 各1,000題（計6,000題）が利用できます。問題集と通常対局用 Hayanagi は、
-AppImage を展開せずに選択できる外部ファイルとして配置しています。
+ファイル選択画面から選べるよう AppImage の外に配置しています（AppImage 内には入っていません）。
 
 ## 起動
 
@@ -20,7 +20,7 @@ FUSE を利用できない環境では、次のように起動します。
 ## 詰将棋問題集
 
 「詰将棋対局」の「局面集を開く…」から `data/tsumeshogi/` にある
-`tsume_3ply_1000_20260926.txt` などを選択してください。
+`tsume_3ply_1000_20261001.txt` などを選択してください。
 各ファイル名の `3ply` ～ `13ply` が詰み手数です。
 詰将棋対局の玉方にはアプリ内蔵の Hayanagi を使います。
 
@@ -32,19 +32,6 @@ FUSE を利用できない環境では、次のように起動します。
 通常対局用の USI エンジンとして使用する場合は、エンジン登録画面で
 `Hayanagi/hayanagi` を選択してください。実行ファイル名は小文字です。
 詳細は [Hayanagi/README.md](Hayanagi/README.md) を参照してください。
-
-## AppImage 内のファイルを利用する場合
-
-AppImage 内にも同じ問題集と Hayanagi が入っています。次のコマンドで展開すると、
-ファイル選択画面から固定パスで指定できます。
-
-```bash
-./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
-```
-
-- 問題集: `squashfs-root/usr/share/ShogiBoardQ/data/tsumeshogi/`
-- USI エンジン: `squashfs-root/usr/bin/hayanagi`
-- アプリ起動: `squashfs-root/AppRun`
 
 ## 動作環境とソース
 
