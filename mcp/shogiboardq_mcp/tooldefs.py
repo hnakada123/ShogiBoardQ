@@ -394,7 +394,8 @@ PHASE1_TOOLS: list[types.Tool] = [
         "render_board_image",
         "Render board image",
         "Render a position as a PNG image (same piece images and colours as the ShogiBoardQ GUI) and return the "
-        "file path. Optionally highlight the last move and show player names.",
+        "file path. Optionally highlight the last move and show player names. Labels such as the turn badge and the "
+        "rank coordinates follow the interface language and move notation set in ShogiBoardQ.",
         {
             "properties": {
                 "sfen": {**SFEN, "default": "startpos"},
