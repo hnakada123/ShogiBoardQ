@@ -5,6 +5,7 @@
 #include <QSignalSpy>
 #include <QAction>
 #include <QTabWidget>
+#include <QToolButton>
 #include <QTemporaryDir>
 #include <QSettings>
 #include <QLineEdit>
@@ -68,6 +69,7 @@ private slots:
     void setCategories_empty_noExtraTabs();
     void responsiveLayoutAndFilter();
     void fullLabelAndActionState();
+    void buttonHeightsMatchWithinTab();
     void favoritesEditingAndDrop();
     void favoriteDragStartsOnButton();
     void settingsSavedWithoutClosingDock();
@@ -275,6 +277,49 @@ void TestMenuWindow::fullLabelAndActionState()
     QVERIFY(!button->isEnabled());
     QTest::mouseClick(button, Qt::LeftButton);
     QCOMPARE(triggered.count(), 1);
+}
+
+void TestMenuWindow::buttonHeightsMatchWithinTab()
+{
+    MenuWindow w;
+    auto actions = makeTestActions(&w);
+    actions[0]->setText(QStringLiteral("新規"));
+    actions[1]->setText(QStringLiteral("評価値グラフの画像をファイルに保存する長い名前の項目…"));
+    QAction help(QStringLiteral("終了"), &w);
+    help.setObjectName(QStringLiteral("actionQuit"));
+    w.setCategories({{QStringLiteral("File"), actions}, {QStringLiteral("Help"), {&help}}});
+    auto* tabs = w.findChild<QTabWidget*>();
+    tabs->setCurrentIndex(1);
+    w.resize(650, 420);
+    w.show();
+    const auto file = tabs->widget(1)->findChildren<MenuButtonWidget*>();
+    QCOMPARE(file.size(), 4);
+    QTRY_VERIFY(file[0]->isVisible());
+
+    // 行数の違うボタンも同じタブでは高さと文字の位置を揃え、1 行の名前も省略しない
+    const auto check = [&file]() {
+        for (auto* card : file) {
+            auto* label = card->findChild<QLabel*>(QStringLiteral("menuActionText"));
+            QCOMPARE(card->height(), file[1]->height());
+            QCOMPARE(label->y(), file[1]->findChild<QLabel*>(QStringLiteral("menuActionText"))->y());
+            QVERIFY(label->height() >= label->heightForWidth(label->width()));
+        }
+    };
+    QCoreApplication::processEvents();
+    check();
+    QVERIFY(file[1]->naturalHeight() > file[0]->naturalHeight());
+
+    // 別のタブは自分のタブの項目だけで高さを決める
+    auto* quit = tabs->widget(2)->findChild<MenuButtonWidget*>();
+    QVERIFY(quit);
+    QCOMPARE(quit->height(), quit->naturalHeight());
+    QVERIFY(quit->height() < file[1]->height());
+
+    // 文字やボタンの大きさを変えても揃ったままにする
+    QTest::mouseClick(w.findChild<QToolButton*>(QStringLiteral("menuFontSizeIncrease")), Qt::LeftButton);
+    QTest::mouseClick(w.findChild<QToolButton*>(QStringLiteral("menuButtonSizeDecrease")), Qt::LeftButton);
+    QCoreApplication::processEvents();
+    check();
 }
 
 void TestMenuWindow::favoritesEditingAndDrop()

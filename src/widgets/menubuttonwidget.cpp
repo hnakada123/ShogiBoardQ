@@ -71,12 +71,20 @@ void MenuButtonWidget::updateGeometryForText()
     const int textHeight = qMax(metrics.lineSpacing() * 2,
         metrics.boundingRect(QRect(0, 0, textWidth, 10000),
                              Qt::TextWordWrap, m_textLabel->text()).height());
-    m_buttonHeight = qMax(m_buttonSize * 4 / 5, m_iconSize + textHeight + 30);
+    m_naturalHeight = qMax(m_buttonSize * 4 / 5, m_iconSize + textHeight + 30);
+    m_buttonHeight = qMax(m_naturalHeight, m_rowHeight);
     m_textLabel->setFixedSize(textWidth, textHeight);
     m_iconLabel->setFixedSize(m_iconSize, m_iconSize);
     m_mainButton->setFixedSize(m_buttonWidth - 4, m_buttonHeight - 4);
     setFixedSize(m_buttonWidth, m_buttonHeight);
     updateGeometry();
+}
+
+void MenuButtonWidget::setRowHeight(int height)
+{
+    if (m_rowHeight == height) return;
+    m_rowHeight = height;
+    updateGeometryForText();
 }
 
 void MenuButtonWidget::setupUi()
@@ -109,6 +117,8 @@ void MenuButtonWidget::setupUi()
     m_textLabel->setStyleSheet(QStringLiteral(
         "QLabel { color: #344351; } QLabel:disabled { color: #929eaa; }"));
     btnLayout->addWidget(m_textLabel, 0, Qt::AlignCenter);
+    // 高さを揃えて余った分は下に回し、同じ行のボタンでアイコンの位置を揃える
+    btnLayout->addStretch(1);
     m_mainLayout->addWidget(m_mainButton);
 
     m_checkedLabel = new QLabel(QStringLiteral("✓"), m_mainButton);

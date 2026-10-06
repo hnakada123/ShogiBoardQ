@@ -92,9 +92,10 @@ static void collectActionsFromMenuHelper(QMenu* menu, QList<QAction*>& actions)
         } else {
             // 通常のアクションを追加
             // objectNameが空でないものだけを追加
-            // actionToolBarはメニューウィンドウには表示しない
-            if (!action->objectName().isEmpty() &&
-                action->objectName() != QStringLiteral("actionToolBar")) {
+            // actionToolBar と、保存済みレイアウトが無いときの仮項目（押せない）はメニューウィンドウには表示しない
+            const QString name = action->objectName();
+            if (!name.isEmpty() && name != QStringLiteral("actionToolBar")
+                && name != QStringLiteral("actionSavedLayoutsPlaceholder")) {
                 actions.append(action);
             }
         }
