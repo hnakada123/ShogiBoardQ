@@ -16,6 +16,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSignalBlocker>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
 #include <iterator>
@@ -202,6 +203,11 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
     details->setFrameShape(QFrame::NoFrame);
     details->setWidget(m_tabs);
     m_sections->addTab(details, tr("詳細"));
+    // 英語など見出しが長い言語でも、既定の文字サイズでは6つのタブを切らずに並べる
+    // （文字を大きくしたときは、従来どおりスクロールボタンで切り替える）
+    const int tabsWidth = m_sections->tabBar()->sizeHint().width() + 4;
+    m_sections->setMinimumWidth(qMax(m_sections->minimumWidth(), tabsWidth));
+    m_sections->setMaximumWidth(qMax(m_sections->maximumWidth(), tabsWidth));
     content->addWidget(m_sections, 2);
 
     auto* right = new QVBoxLayout;
