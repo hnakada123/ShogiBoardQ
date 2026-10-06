@@ -58,6 +58,10 @@ void MatchCoordinator::ensureEngineManager()
 
     m_engineManager->setRefs(buildEngineLifecycleRefs());
     m_engineManager->setHooks(buildEngineLifecycleHooks());
+
+    // 起動の失敗は対局開始の処理中に届くことがあるため、開始処理を終えてから中断する
+    connect(m_engineManager, &EngineLifecycleManager::engineError,
+            this, &MatchCoordinator::onUsiError, Qt::QueuedConnection);
 }
 
 EngineLifecycleManager::Refs MatchCoordinator::buildEngineLifecycleRefs()

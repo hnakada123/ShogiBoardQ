@@ -134,6 +134,8 @@ public:
 
 signals:
     void enginesChanged();
+    /// 対局用に起動したエンジンのエラー（Usi::errorOccurred の転送）
+    void engineError(const QString& message);
 
 private slots:
     void onEngine1Resign();

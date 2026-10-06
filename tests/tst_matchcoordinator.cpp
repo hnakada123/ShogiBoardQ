@@ -27,6 +27,7 @@ struct MCTestHarness {
     MatchCoordinator::Player lastTurnPlayer = MatchCoordinator::P1;
     bool renderBoardCalled = false;
     bool showGameOverDialogCalled = false;
+    int showGameOverDialogCount = 0;
     QString lastDialogTitle;
     QString lastDialogMessage;
     bool initializeNewGameCalled = false;
@@ -62,6 +63,7 @@ struct MCTestHarness {
         };
         deps.hooks.ui.showGameOverDialog = [this](const QString& title, const QString& msg) {
             showGameOverDialogCalled = true;
+            ++showGameOverDialogCount;
             lastDialogTitle = title;
             lastDialogMessage = msg;
         };
@@ -140,7 +142,34 @@ private slots:
     // === Section G: シグナル検証 ===
     void gameEnded_signalCarriesCorrectInfo();
     void gameOverStateChanged_signalCarriesState();
+
+    // === Section H: 対局中のエンジンエラー ===
+    void humanVsEngine_engineStartFailure_breaksOffAfterStart();
+    void engineVsEngine_engineStartFailure_breaksOffOnce();
+    void humanVsEngine_engineExit_breaksOff();
 };
+
+namespace {
+
+QString mockMatchEnginePath()
+{
+    QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+#ifdef Q_OS_WIN
+    path += QStringLiteral(".exe");
+#endif
+    return path;
+}
+
+/// テスト中だけ環境変数を設定する（失敗で抜けても戻す）
+struct ScopedEnv {
+    const char* name;
+    ScopedEnv(const char* n, const QByteArray& value) : name(n) { qputenv(name, value); }
+    ~ScopedEnv() { qunsetenv(name); }
+    ScopedEnv(const ScopedEnv&) = delete;
+    ScopedEnv& operator=(const ScopedEnv&) = delete;
+};
+
+} // namespace
 
 // ============================================================
 // Section A: 初期状態
@@ -522,6 +551,74 @@ void Tst_MatchCoordinator::gameOverStateChanged_signalCarriesState()
     QVERIFY(state.isOver);
     QVERIFY(state.hasLast);
     QVERIFY(state.lastLoserIsP1);
+}
+
+// ============================================================
+// Section H: 対局中のエンジンエラー
+// ============================================================
+
+void Tst_MatchCoordinator::humanVsEngine_engineStartFailure_breaksOffAfterStart()
+{
+    MCTestHarness h;
+    MatchCoordinator::StartOptions opt;
+    opt.mode = PlayMode::EvenHumanVsEngine;
+    opt.sfenStart = SfenUtils::hirateSfen();
+    opt.engineName2 = QStringLiteral("MissingEngine");
+    opt.enginePath2 = m_config.filePath(QStringLiteral("missing-engine"));
+    opt.engineIsP2 = true;
+    h.mc->configureAndStart(opt);
+
+    // 起動の失敗は開始処理の中で通知されるが、中断は開始処理を終えてから行う
+    QVERIFY(!h.showGameOverDialogCalled);
+    QVERIFY(!h.mc->gameOverState().isOver);
+
+    QTRY_VERIFY_WITH_TIMEOUT(h.showGameOverDialogCalled, 1000);
+    QCOMPARE(h.lastDialogTitle, QStringLiteral("対局中断"));
+    QVERIFY2(h.lastDialogMessage.contains(opt.enginePath2), qPrintable(h.lastDialogMessage));
+    QVERIFY(h.mc->gameOverState().isOver);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+}
+
+void Tst_MatchCoordinator::engineVsEngine_engineStartFailure_breaksOffOnce()
+{
+    MCTestHarness h;
+    MatchCoordinator::StartOptions opt;
+    opt.mode = PlayMode::EvenEngineVsEngine;
+    opt.sfenStart = SfenUtils::hirateSfen();
+    opt.engineName1 = QStringLiteral("MissingEngine1");
+    opt.enginePath1 = m_config.filePath(QStringLiteral("missing-engine-1"));
+    opt.engineName2 = QStringLiteral("MissingEngine2");
+    opt.enginePath2 = m_config.filePath(QStringLiteral("missing-engine-2"));
+    h.mc->configureAndStart(opt);
+
+    QTRY_VERIFY_WITH_TIMEOUT(h.showGameOverDialogCalled, 1000);
+    QCoreApplication::processEvents();
+    // 2つ目のエンジンのエラーは、中断した後なので知らせない
+    QCOMPARE(h.showGameOverDialogCount, 1);
+    QCOMPARE(h.lastDialogTitle, QStringLiteral("対局中断"));
+    QVERIFY2(h.lastDialogMessage.contains(opt.enginePath1), qPrintable(h.lastDialogMessage));
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+}
+
+void Tst_MatchCoordinator::humanVsEngine_engineExit_breaksOff()
+{
+    const ScopedEnv exitOnGo("SBQ_MATCH_EXIT_ON_GO", "1");
+    MCTestHarness h;
+    MatchCoordinator::StartOptions opt;
+    opt.mode = PlayMode::EvenEngineVsHuman;
+    opt.sfenStart = SfenUtils::hirateSfen();
+    opt.engineName1 = QStringLiteral("ExitingEngine");
+    opt.enginePath1 = mockMatchEnginePath();
+    opt.engineIsP1 = true;
+    h.mc->configureAndStart(opt);
+    h.mc->startInitialEngineMoveIfNeeded();
+
+    // 起動は成功し、初手の go でエンジンが終了する
+    QTRY_VERIFY_WITH_TIMEOUT(h.showGameOverDialogCalled, 5000);
+    QCOMPARE(h.lastDialogTitle, QStringLiteral("対局中断"));
+    QVERIFY2(h.lastDialogMessage.contains(QStringLiteral("Engine exited unexpectedly.")),
+             qPrintable(h.lastDialogMessage));
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
 }
 
 // ============================================================

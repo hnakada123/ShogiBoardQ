@@ -76,6 +76,11 @@ void EngineLifecycleManager::initializeAndStartEngineFor(Player side,
     QString path = enginePathIn;
     QString name = engineNameIn;
 
+    // 起動の失敗や対局中の異常終了を MatchCoordinator に知らせる。
+    // 起動の失敗はこの呼び出しの中で通知されることがある。
+    QObject::connect(eng, &Usi::errorOccurred,
+                     this, &EngineLifecycleManager::engineError,
+                     Qt::UniqueConnection);
     eng->initializeAndStartEngineCommunication(path, name);
 
     wireResignToArbiter(eng, (side == EngineLifecycleManager::P1));
@@ -158,6 +163,7 @@ void EngineLifecycleManager::destroyEngine(int idx, bool clearThinking)
     Usi*& ref = (idx == 1 ? m_usi1 : m_usi2);
     if (ref) {
         disconnectArbiterSignals(ref);
+        QObject::disconnect(ref, &Usi::errorOccurred, this, nullptr);
         ref->cleanupEngineProcessAndThread(clearThinking);
         ref->deleteLater();
         ref = nullptr;
