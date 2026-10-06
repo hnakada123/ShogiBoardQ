@@ -364,21 +364,21 @@ Analyzed moves: %1</translation>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="88"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="108"/>
         <source>欧文・木肌</source>
-        <translation>Alphabet / Wood</translation>
+        <translation>Alphabet · Wood</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="69"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="89"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="109"/>
         <source>欧文・白</source>
-        <translation>Alphabet / White</translation>
+        <translation>Alphabet · White</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="70"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="90"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="110"/>
         <source>欧文・墨</source>
-        <translation>Alphabet / Ink</translation>
+        <translation>Alphabet · Ink</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="74"/>
@@ -458,7 +458,7 @@ Analyzed moves: %1</translation>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="123"/>
         <source>墨</source>
-        <translation>Charcoal</translation>
+        <translation>Ink</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="124"/>

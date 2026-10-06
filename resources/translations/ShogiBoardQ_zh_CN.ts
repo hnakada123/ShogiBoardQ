@@ -328,21 +328,21 @@
         <location filename="../../src/services/boardappearancecatalog.cpp" line="88"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="108"/>
         <source>欧文・木肌</source>
-        <translation>字母・木肌</translation>
+        <translation>字母・木色</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="69"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="89"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="109"/>
         <source>欧文・白</source>
-        <translation>字母・白</translation>
+        <translation>字母・白色</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="70"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="90"/>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="110"/>
         <source>欧文・墨</source>
-        <translation>字母・墨</translation>
+        <translation>字母・墨色</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="74"/>
@@ -422,7 +422,7 @@
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="123"/>
         <source>墨</source>
-        <translation>炭灰</translation>
+        <translation>墨色</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="124"/>
