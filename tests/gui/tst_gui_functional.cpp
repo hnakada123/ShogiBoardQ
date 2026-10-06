@@ -1525,6 +1525,22 @@ private slots:
         click("actionChangeTurn"); QCOMPARE(gc->currentPlayer(), before);
         click("actionEndEditPosition"); QVERIFY(!board()->positionEditMode());
     }
+    /// 読み込めない棋譜のエラーを閉じた後も、盤面を描き続ける（エラー表示で盤の描画を止めない）
+    void failedKifuLoadKeepsBoardVisible()
+    {
+        const QPoint center = squarePoint(5, 5);
+        const QRgb boardColor = board()->grab().toImage().pixel(center);
+        dialogMessages.clear();
+        armDialog("messages");
+        paste(QStringLiteral("先手：先手\n後手：後手\n手合割：平手\n手数----指手---------消費時間--\n"), false);
+        QTRY_VERIFY(dialogHandled);
+        QVERIFY(dialogMessages.join('\n').contains(QStringLiteral("指し手を取得できませんでした")));
+        for (auto* widget : QApplication::topLevelWidgets()) {
+            if (auto* dialog = qobject_cast<KifuPasteDialog*>(widget)) dialog->reject();
+        }
+        QTRY_VERIFY(!hasKifuPasteDialog());
+        QCOMPARE(board()->grab().toImage().pixel(center), boardColor);
+    }
     void boardEditingClearsRecord_data()
     {
         QTest::addColumn<int>("selectedRow");

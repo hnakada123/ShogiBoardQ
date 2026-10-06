@@ -6,7 +6,6 @@
 
 #include "errorbus.h"
 #include <QObject>
-#include <functional>
 
 /**
  * @brief エラー通知表示を一元管理するサービス
@@ -21,7 +20,6 @@ class UiNotificationService : public QObject
 public:
     struct Deps {
         bool* errorOccurred = nullptr;
-        std::function<void(bool)> setErrorOccurred;
         QWidget* parentWidget = nullptr;
     };
 
