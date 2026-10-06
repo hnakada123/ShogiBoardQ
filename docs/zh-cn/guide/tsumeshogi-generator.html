@@ -227,7 +227,7 @@
                     <h3 class="guide-step-title">准备 CLI 和诘棋搜索引擎</h3>
                 </div>
                 <p class="guide-step-text"><code>generate-tsume</code> 使用与 GUI 相同的生成处理，以 JSON Lines 输出已检查指定手数诘杀、主线余诘和多余棋子的局面。可以从 Python 直接以子进程启动 CLI，无需启动 MCP 服务器。</p>
-                <p class="guide-step-text">以下是使用 Linux shell 和 Python 3 的示例，请在仓库根目录执行。从源码准备的方法请参阅<a href="../../en/guide/linux-build-and-release.html">在 Linux 上构建（英文）</a>。在 Windows 等环境中，请根据环境更改 CLI 可执行文件的名称和路径。</p>
+                <p class="guide-step-text">以下是使用 Linux shell 和 Python 3 的示例，请在仓库根目录执行。从源码准备的方法请参阅<a href="linux-build-and-release.html">在 Linux 上构建</a>。在 Windows 等环境中，请根据环境更改 CLI 可执行文件的名称和路径。</p>
                 <div class="format-example">
                     <h4>构建 CLI 并确认已注册的引擎</h4>
 <pre><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release

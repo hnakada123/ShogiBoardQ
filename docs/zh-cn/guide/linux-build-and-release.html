@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux 构建与发布 - ShogiBoardQ</title>
+    <meta name="description" content="介绍如何在 Linux 上构建 ShogiBoardQ，制作包含 AppImage、诘棋题集和 Hayanagi 的 ZIP，并在 GitHub Releases 上发布。内容包括开发环境、Qt 许可文档的准备、AppImage 与 ZIP 的制作以及故障排除。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/linux-build-and-release.html">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/linux-build-and-release.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/linux-build-and-release.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/linux-build-and-release.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/linux-build-and-release.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/linux-build-and-release.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/linux-build-and-release.html">
+    <meta property="og:title" content="Linux 构建与发布 - ShogiBoardQ">
+    <meta property="og:description" content="从搭建 Linux 开发环境、构建，到制作 AppImage 与 ZIP 并在 GitHub Releases 上发布。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Linux 构建与发布 - ShogiBoardQ">
+    <meta name="twitter:description" content="从搭建 Linux 开发环境、构建，到制作 AppImage 与 ZIP 并在 GitHub Releases 上发布。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/build-guide.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/linux-build-and-release.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/linux-build-and-release.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="linux-build-and-release.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/linux-build-and-release.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="../index.html#build">从源代码构建</a></li>
+            <li><a href="#contents">目录</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="build-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Linux 构建与发布</h1>
+        <p class="hero-subtitle">在 Linux 上构建 ShogiBoardQ，并以包含 AppImage 的 ZIP 在 GitHub 上发布</p>
+        <div class="hero-badges">
+            <span class="badge">Linux</span>
+            <span class="badge">Qt 6</span>
+            <span class="badge">AppImage</span>
+            <span class="badge">GitHub Releases</span>
+        </div>
+    </div>
+</section>
+
+<div class="section">
+<article class="section-inner build-document" aria-label="Linux 构建与发布">
+<p>本文介绍如何在 Linux 上构建 ShogiBoardQ，制作 <code>ShogiBoardQ-linux.zip</code> 并在 GitHub Releases 上发布。ZIP 中包含 AppImage（应用程序本体）、3・5・7・9・11・13 手诘的诘棋题集（各 1,000 题，共 6,000 题），以及用于普通对局的 USI 引擎 Hayanagi。<strong>发布时 Linux 只附加这一个 ZIP。</strong></p>
+<blockquote>
+<p><strong>目前只能在 Arch Linux 上制作发布包。</strong> AppImage 中随附的库的许可文档要通过 pacman 收集，因此使用 Arch Linux 的 Qt 软件包制作。用于发布的发布包在较旧的 Arch Linux 容器中制作（<a href="#package-run">5.1</a>）。应用程序本身的构建和开发也可以在其他发行版上进行。</p>
+</blockquote>
+<section id="contents" class="level2">
+<h2>目录</h2>
+<ol>
+<li><a href="#requirements">前提条件</a></li>
+<li><a href="#setup">搭建开发环境</a></li>
+<li><a href="#build">获取源代码并构建</a></li>
+<li><a href="#qt-notices">准备 Qt 的许可文档</a></li>
+<li><a href="#package">制作 AppImage 与 ZIP</a></li>
+<li><a href="#release">在 GitHub Releases 上发布</a></li>
+<li><a href="#troubleshooting">故障排除</a></li>
+</ol>
+</section>
+<section id="requirements" class="level2">
+<h2>1. 前提条件</h2>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>项目</th><th>要求</th></tr>
+</thead>
+<tbody>
+<tr><td>操作系统</td><td>x86_64 的 Linux。制作发布包（AppImage 与 ZIP）需要 Arch Linux（用于发布时为 Docker 容器中的 Arch Linux）</td></tr>
+<tr><td>编译器</td><td>支持 C++17 的 GCC 9 及以上，或 Clang 10 及以上</td></tr>
+<tr><td>CMake</td><td>3.16 及以上（推荐 Ninja）</td></tr>
+<tr><td>Qt</td><td>6.7 及以上（Widgets、Charts、Network、Concurrent、Multimedia、Sql、LinguistTools）。制作发布包还需要 SVG 插件</td></tr>
+<tr><td>Python</td><td>Python 3（发布用脚本）</td></tr>
+<tr><td>Docker</td><td>在容器中制作用于发布的发布包时</td></tr>
+<tr><td>其他</td><td>Git、curl、file、FUSE 2（运行 AppImage 格式的工具）、ImageMagick（缩小超过 512px 的图标）</td></tr>
+</tbody>
+</table>
+</div>
+<p>制作发布包时需要联网，因为首次会下载 linuxdeploy 和 appimagetool。</p>
+<blockquote>
+<p><strong>关于 glibc：</strong> AppImage 只能在 glibc 与构建环境相同或更新的系统上运行。在最新的 Arch Linux 上构建时，需要 glibc 2.43 及以上，无法在 Ubuntu 24.04（glibc 2.39）等系统上启动。因此用于发布的发布包在固定为 2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中构建（<a href="#package-run">5.1</a>）。该 AppImage 需要 glibc 2.38 及以上和 GCC 12 及以上的 libstdc++，可在 Ubuntu 24.04 及以上、Debian 13、Fedora 39 及以上等系统上运行。</p>
+</blockquote>
+</section>
+<section id="setup" class="level2">
+<h2>2. 搭建开发环境</h2>
+<section id="setup-arch" class="level3">
+<h3>2.1 Arch Linux 与 Docker（制作发布包时）</h3>
+<p>用于发布的发布包在容器中构建，因此本机只需要 Docker、Git 和 Python 3（Qt 等构建所需的软件在容器中）。请把用户加入 docker 组并重新登录。</p>
+<pre><code>sudo usermod -aG docker $USER</code></pre>
+<blockquote>
+<p>docker 组的用户可以通过 docker 进行相当于 root 的操作。</p>
+</blockquote>
+<p>直接在 Arch Linux 上构建和开发时，安装构建工具和 Arch 的 Qt 软件包。fcitx5-qt 用于把日语输入（fcitx5）的输入法插件放进 AppImage；未安装时不会随附该插件。</p>
+<pre><code>sudo pacman -S --needed base-devel cmake ninja git curl file python fuse2 imagemagick \
+  qt6-base qt6-charts qt6-multimedia qt6-svg qt6-tools fcitx5-qt</code></pre>
+</section>
+<section id="setup-other" class="level3">
+<h3>2.2 其他发行版（仅构建应用程序）</h3>
+<p>在 Ubuntu、Debian 或 Fedora 上也可以构建和开发应用程序。需要 Qt 6.7 及以上，如果发行版提供的 Qt 较旧，请使用 Qt Online Installer 安装 Qt。</p>
+<p>Ubuntu / Debian：</p>
+<pre><code>sudo apt install build-essential cmake ninja-build git \
+  qt6-base-dev qt6-charts-dev qt6-multimedia-dev qt6-tools-dev qt6-tools-dev-tools \
+  qt6-l10n-tools libqt6sql6-sqlite libgl1-mesa-dev</code></pre>
+<p>Fedora：</p>
+<pre><code>sudo dnf install gcc-c++ cmake ninja-build git \
+  qt6-qtbase-devel qt6-qtcharts-devel qt6-qtmultimedia-devel qt6-qttools-devel \
+  qt6-linguist mesa-libGL-devel</code></pre>
+<p>使用 Qt Online Installer 安装的 Qt 时，在配置 CMake 时指定其位置（示例为 Qt 6.11.2）。</p>
+<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.11.2/gcc_64"</code></pre>
+</section>
+<section id="setup-check" class="level3">
+<h3>2.3 确认安装</h3>
+<pre><code>cmake --version
+g++ --version
+qmake6 --version</code></pre>
+</section>
+</section>
+<section id="build" class="level2">
+<h2>3. 获取源代码并构建</h2>
+<p>获取仓库时请一并获取 Hayanagi 子模块。缺少子模块时，构建所需的文件会不完整。</p>
+<pre><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ</code></pre>
+<p>对于已获取的仓库，运行 <code>git submodule update --init --recursive</code> 获取所记录版本的 Hayanagi。然后以 Release 方式构建并启动。</p>
+<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+./build/ShogiBoardQ</code></pre>
+<p>运行测试：</p>
+<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+cmake --build build
+ctest --test-dir build --output-on-failure</code></pre>
+<p>只构建而不制作发布包时，也可以使用 <code>./scripts/build-linux.sh --skip-appimage</code>。</p>
+</section>
+<section id="qt-notices" class="level2">
+<h2>4. 准备 Qt 的许可文档</h2>
+<p>AppImage 中收录从同版本 Qt 源代码中提取的许可文档，以及源代码来源的记录。请在制作发布包之前准备一次，更新 Qt 后重新准备。普通构建不需要。</p>
+<p>Qt 的版本取决于构建环境。用于发布的容器（<a href="#package-run">5.1</a>）使用 Qt 6.7.2，因此获取并校验 Qt 6.7.2 的源代码（qt-everywhere），把文档提取到 <code>build-container/qt-licenses</code>。SHA-256 请用官方下载站点上与源代码位于同一位置的 <code>.sha256</code> 文件确认。</p>
+<pre><code>curl -fsSL https://download.qt.io/archive/qt/6.7/6.7.2/single/qt-everywhere-src-6.7.2.tar.xz.sha256</code></pre>
+<pre><code>python3 scripts/qt_licenses.py fetch --version 6.7.2 \
+  --sha256 0aaea247db870193c260e8453ae692ca12abc1bd841faa1a6e6c99459968ca8a \
+  --output build-container/qt-sources
+python3 scripts/qt_licenses.py prepare --version 6.7.2 \
+  --archive build-container/qt-sources/qt-everywhere-src-6.7.2.tar.xz \
+  --sha256 0aaea247db870193c260e8453ae692ca12abc1bd841faa1a6e6c99459968ca8a \
+  --source-url https://download.qt.io/archive/qt/6.7/6.7.2/single/qt-everywhere-src-6.7.2.tar.xz \
+  --provenance 'Arch Linux packages from the Arch Linux Archive snapshot 2024-07-15: qt6-base 6.7.2-1; qt6-charts, qt6-multimedia, qt6-svg 6.7.2-1; qt6-wayland 6.7.2-2. Upstream Qt source plus Arch PKGBUILDs and patches.' \
+  --output build-container/qt-licenses</code></pre>
+<p>在 <code>--provenance</code> 中写明所用 Qt 的来源（包括 Arch 软件包的版本，以及适用 Arch 的补丁和构建步骤）。该内容会记录在 <code>QT-SOURCE.json</code> 中，并显示在“版本信息”的“获取源代码”里。直接在 Arch Linux 上构建时，请在 <code>build/qt-licenses</code> 中准备与 <code>pacman -Q qt6-base</code> 所示版本相同的文档。</p>
+<ul>
+<li><code>prepare</code> 不会覆盖已有的输出目录。重新准备时请指定新的输出目录。</li>
+<li>默认位置为构建目录（容器为 <code>build-container</code>，直接构建为 <code>build</code>）下的 <code>qt-licenses</code>。使用会删除构建目录的 <code>--clean</code> 时，请在其外部生成文档，并通过环境变量 <code>SHOGIBOARDQ_QT_LICENSE_DIR</code> 指定。</li>
+<li>不要把获取的 Qt 源代码和文档单独附加到发布中。方针详情请参阅 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文档与发布附件方针（日文）</a>。</li>
+</ul>
+</section>
+<section id="package" class="level2">
+<h2>5. 制作 AppImage 与 ZIP</h2>
+<section id="package-run" class="level3">
+<h3>5.1 运行脚本</h3>
+<p>用于发布的发布包在较旧的 Arch Linux（2024 年 7 月 15 日的 Arch Linux Archive；glibc 2.39、Qt 6.7.2）容器中制作。</p>
+<pre><code>./scripts/build-linux-container.sh</code></pre>
+<ul>
+<li>首次运行时会创建构建环境镜像（<code>scripts/linux-container/Dockerfile</code>，约 3GB）。从 Arch Linux Archive 下载较慢，需要数十分钟。</li>
+<li>在容器中以自己的用户运行 <code>scripts/build-linux.sh</code>。构建目录与平时的 <code>build</code> 分开，使用 <code>build-container</code>，输出放在仓库根目录。</li>
+<li>为当时的软件包签名的密钥中，有些后来已过期。镜像中用官方密钥环验证签名，但不要求密钥当前受信任。</li>
+</ul>
+<p>也可以直接在 Arch Linux 上制作。这样制作的 AppImage 需要本机的 glibc 版本及以上（2026 年 10 月时为 2.43）。</p>
+<pre><code>./scripts/build-linux.sh</code></pre>
+<p>两个脚本都可以使用以下选项：</p>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>选项</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--skip-appimage</code></td><td>只构建，不制作 AppImage 与 ZIP</td></tr>
+<tr><td><code>--clean</code></td><td>删除构建目录后再构建</td></tr>
+<tr><td><code>--help</code></td><td>显示帮助</td></tr>
+</tbody>
+</table>
+</div>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>环境变量</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SHOGIBOARDQ_BUILD_DIR</code></td><td>构建目录（默认为 <code>build</code>；容器中为 <code>build-container</code>）</td></tr>
+<tr><td><code>SHOGIBOARDQ_QT_LICENSE_DIR</code></td><td>已准备的 Qt 文档的位置（默认为构建目录下的 <code>qt-licenses</code>）</td></tr>
+<tr><td><code>APPIMAGE_EXTRACT_AND_RUN=1</code></td><td>在无法使用 FUSE 的环境中，解压并运行 AppImage 格式的工具（容器中始终指定）</td></tr>
+<tr><td><code>DOCKER</code></td><td>仅用于容器。docker 命令（例如 <code>sudo docker</code>）</td></tr>
+<tr><td><code>SHOGIBOARDQ_ARCH_SNAPSHOT</code></td><td>仅用于容器。Arch Linux Archive 的日期（默认为 <code>2024/07/15</code>）</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>build-linux.sh</code> 依次执行以下处理（在容器中，于容器内执行同样的处理）：</p>
+<ol>
+<li>检查所需工具（cmake、python3；推荐 ninja）</li>
+<li>配置 CMake 并以 Release 方式构建（ShogiBoardQ 与 Hayanagi）</li>
+<li>检查可执行文件、翻译文件，以及 3〜13 手诘的题集（每种手数各 1 个文件）</li>
+<li>下载 linuxdeploy、其 Qt 插件和 appimagetool（仅首次；保存在构建目录中）</li>
+<li>创建 AppDir 并生成 AppImage（运行所需的文件，以及 Qt 与随附库的许可文档）</li>
+<li>制作包含 AppImage、题集和 Hayanagi 的 ZIP</li>
+</ol>
+<p>输出为仓库根目录下的 <code>ShogiBoardQ-linux-x86_64.AppImage</code> 和 <code>ShogiBoardQ-linux.zip</code>。工作目录为构建目录下的 <code>AppDir</code> 和 <code>ShogiBoardQ-linux/</code>。</p>
+</section>
+<section id="appimage" class="level3">
+<h3>5.2 AppImage 的内容</h3>
+<p>AppImage 中只收录启动和运行应用程序所需的文件以及许可文档。</p>
+<pre><code>ShogiBoardQ-linux-x86_64.AppImage
+└── （解压后）
+    ├── AppRun                          ← 只使用随附的 Qt 启动
+    ├── shogiboardq.desktop
+    ├── shogiboardq.png
+    └── usr/
+        ├── bin/
+        │   ├── ShogiBoardQ             ← 可执行文件
+        │   ├── qt.conf                 ← Qt 插件的位置
+        │   └── ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm   ← 应用程序翻译（4 种语言）
+        ├── lib/                        ← Qt 及其依赖库
+        ├── plugins/
+        │   ├── platforms/libqxcb.so            ← X11
+        │   ├── imageformats/libqsvg.so, libqjpeg.so, libqico.so
+        │   ├── iconengines/libqsvgicon.so
+        │   ├── platforminputcontexts/          ← 日语输入（compose、fcitx5、ibus）
+        │   ├── platformthemes/libqxdgdesktopportal.so
+        │   └── sqldrivers/libqsqlite.so        ← 诘棋作答记录与分析缓存
+        └── share/
+            ├── applications/, icons/
+            └── licenses/ShogiBoardQ/
+                ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
+                ├── QT-NOTICES.md, qt/          ← 随附的 Qt 模块的文档
+                ├── QT-SOURCE.json, BUILD.json  ← Qt 的来源与构建时版本
+                └── THIRD-PARTY-NOTICES.md, third-party/   ← Qt 以外随附库的文档</code></pre>
+<ul>
+<li>不收录题集、普通对局用的 Hayanagi、说明文档和题集的校验记录（<code>validation_*.json</code>）。应用程序不会从 AppImage 内部读取它们，用户也无法在其中选择文件，因此只作为 ZIP 中 AppImage 之外的文件发布。诘棋练习用的 Hayanagi 已内置于应用程序中。</li>
+<li>删除 linuxdeploy 放入的 Qt 标准翻译（<code>usr/translations/</code>）。标准对话框的日语和中文翻译已内置于可执行文件，应用程序的翻译从 <code>usr/bin/</code> 读取。</li>
+<li>不收录用不到的插件：OpenGL 集成（<code>xcbglintegrations</code>）、通信加密（<code>tls</code>）和 GIF 图像。没有使用 OpenGL 的界面部件，CSA 联网对局使用不加密的 TCP，也不进行 HTTPS 等通信。</li>
+<li>Qt 的许可文档只收录随附的 Qt 模块（qtbase、qtcharts、qtmultimedia、qtsvg、qttranslations、qtwayland）及其引用的文档（<code>scripts/qt_licenses.py</code>）。不收录 WebEngine 等未发布模块的文档。</li>
+<li>对于 Qt 以外的随附库（glib、PulseAudio、OpenSSL、fcitx5-qt 等约 50 个软件包），<code>scripts/bundled_licenses.py</code> 通过 pacman 查找所属软件包，把许可原文放入 <code>third-party/</code>，并在 <code>THIRD-PARTY-NOTICES.md</code> 中列出版本、许可和源代码获取位置。两者分别显示在“版本信息”的“Qt 中的第三方许可证”和“随附库的许可证”中。</li>
+</ul>
+</section>
+<section id="zip" class="level3">
+<h3>5.3 ZIP 的内容</h3>
+<p>ZIP 中放入以下文件。解压 ZIP 后即可选择题集和 Hayanagi。</p>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr><th>源文件</th><th>在 ZIP 中的位置</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ShogiBoardQ-linux-x86_64.AppImage</code></td><td><code>ShogiBoardQ-linux/</code></td></tr>
+<tr><td><code>resources/platform/README-linux.md</code></td><td><code>ShogiBoardQ-linux/README.md</code></td></tr>
+<tr><td><code>LICENSE</code></td><td><code>ShogiBoardQ-linux/LICENSE</code></td></tr>
+<tr><td><code>build/Hayanagi/hayanagi</code></td><td><code>ShogiBoardQ-linux/Hayanagi/hayanagi</code></td></tr>
+<tr><td><code>Hayanagi/README.md</code></td><td><code>ShogiBoardQ-linux/Hayanagi/README.md</code></td></tr>
+<tr><td><code>data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt</code>, <code>data/tsumeshogi/README.md</code></td><td><code>ShogiBoardQ-linux/data/tsumeshogi/</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre><code>ShogiBoardQ-linux.zip
+└── ShogiBoardQ-linux/
+    ├── ShogiBoardQ-linux-x86_64.AppImage
+    ├── README.md
+    ├── LICENSE
+    ├── Hayanagi/
+    │   ├── hayanagi
+    │   └── README.md
+    └── data/tsumeshogi/
+        ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt   ← 6 个文件（各 1,000 题）
+        └── README.md</code></pre>
+<ul>
+<li>题集按原样复制。其哈希值与应用程序内置的审核记录一致，因此读取时可以复用已验证的手数和手顺。</li>
+<li><code>data/tsumeshogi/</code> 中每种手数只放 1 个题集文件（仓库只跟踪当前的 20261001 版）。同一手数有多个文件时，脚本会报错并停止。</li>
+<li>Hayanagi 经 <code>strip</code> 后放入。ZIP 中 AppImage 之外不放 <code>docs/</code>、<code>validation_*.json</code> 和 <code>licenses/</code>，许可文档位于 AppImage 内。</li>
+</ul>
+<p>用户按以下方式启动。在诘棋练习的“打开题集…”中选择 <code>data/tsumeshogi/</code> 中的题集；登记普通对局用的引擎时选择 <code>Hayanagi/hayanagi</code>。</p>
+<pre><code>unzip ShogiBoardQ-linux.zip
+cd ShogiBoardQ-linux
+chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
+./ShogiBoardQ-linux-x86_64.AppImage</code></pre>
+</section>
+<section id="test" class="level3">
+<h3>5.4 运行确认</h3>
+<pre><code># 启动
+./ShogiBoardQ-linux-x86_64.AppImage
+
+# 解压并确认内容（不含 Hayanagi 和 Qt 标准翻译）
+./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
+ls squashfs-root/usr/bin/ squashfs-root/usr/plugins/*/
+ls squashfs-root/usr/share/licenses/ShogiBoardQ/THIRD-PARTY-NOTICES.md
+test ! -e squashfs-root/usr/bin/hayanagi &amp;&amp; test ! -e squashfs-root/usr/translations &amp;&amp; echo OK
+
+# 所需的 glibc 版本
+find squashfs-root/usr -type f \( -name '*.so*' -o -name ShogiBoardQ \) -exec objdump -T {} + 2&gt;/dev/null \
+  | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
+
+# ZIP 中的 Hayanagi 能作为 USI 引擎响应
+unzip -o -q ShogiBoardQ-linux.zip -d /tmp/zipcheck
+printf 'usi\nisready\nquit\n' | /tmp/zipcheck/ShogiBoardQ-linux/Hayanagi/hayanagi
+
+# ZIP 由预期的 12 个文件组成且没有损坏
+python3 -m zipfile -l ShogiBoardQ-linux.zip
+python3 -m zipfile -t ShogiBoardQ-linux.zip</code></pre>
+<p>在容器中构建时，所需的 glibc 版本应为 <code>GLIBC_2.38</code> 及以下。AppImage 使用系统中的 OpenGL（libEGL、libOpenGL）、fontconfig、HarfBuzz 和 wayland-client（普通桌面环境中已安装）。</p>
+<blockquote>
+<p>请在 <code>LD_LIBRARY_PATH</code> 不包含 Qt 的 lib 目录的环境中确认，否则会使用系统中的库，发现不了遗漏的文件。如有可能，也请在 Ubuntu 24.04 等其他环境中确认日语、英语、中文的切换、SVG 棋子、棋子音效、诘棋记录的保存，以及“版本信息”中的许可证列表。</p>
+</blockquote>
+</section>
+</section>
+<section id="release" class="level2">
+<h2>6. 在 GitHub Releases 上发布</h2>
+<p>发布的标签使用应用程序的版本（<code>CMakeLists.txt</code> 中的 <code>APP_VERSION</code>，例如 2026.10.06）。Linux 只附加 <code>ShogiBoardQ-linux.zip</code>，文件名不随版本变化。</p>
+<pre><code>git tag 2026.10.06
+git push origin 2026.10.06
+gh release create 2026.10.06 --title "ShogiBoardQ 2026.10.06" \
+  --notes-file RELEASE_NOTES.md ShogiBoardQ-linux.zip</code></pre>
+<p>如果已经先发布了其他操作系统的发布包，则添加到现有的发布中：</p>
+<pre><code>gh release upload 2026.10.06 ShogiBoardQ-linux.zip</code></pre>
+<ul>
+<li>按文件名指定要附加的文件。不要上传整个工作目录或 <code>build/</code> 中的文件。</li>
+<li>不要单独附加 Qt 源代码、<code>QT-SOURCE.json</code>、校验和或 SBOM 等。许可文档和源代码的获取方法位于 AppImage 内。</li>
+<li>发布后请确认附件列表。GitHub 自动显示的 Source code 链接与手动附加的文件是分开的。</li>
+</ul>
+<p>在发布说明中写明 Linux 版的启动方法和运行条件（所需的 glibc 版本等）。</p>
+<pre><code>### 在 Linux 上启动
+
+1. 下载并解压 ShogiBoardQ-linux.zip
+2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
+3. ./ShogiBoardQ-linux-x86_64.AppImage
+
+运行条件：x86_64 的 Linux，glibc 2.38 及以上（Ubuntu 24.04 及以上、Debian 13、Fedora 39 及以上等）
+没有 FUSE 时，可加上 --appimage-extract-and-run 启动。</code></pre>
+<blockquote>
+<p>仓库中的 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release.yml</a> 会在推送以 <code>v</code> 开头的标签或手动运行时构建三种操作系统，但其 Linux 任务运行在 Ubuntu 上。在随附库许可文档的收集支持 Ubuntu 之前，该任务无法制作 Linux 发布包，因此目前手动附加在 Arch Linux 容器中制作的 ZIP。</p>
+</blockquote>
+</section>
+<section id="troubleshooting" class="level2">
+<h2>7. 故障排除</h2>
+<section id="ts-qt" class="level3">
+<h3>找不到 Qt</h3>
+<pre><code>Could not find a package configuration file provided by "Qt6"</code></pre>
+<p>确认已安装 Qt 6.7 及以上和所需模块。使用 Qt Online Installer 的 Qt 时，用 <code>-DCMAKE_PREFIX_PATH</code> 指定。更换 Qt 或 CMake 生成器后，请在新的 build 目录中重新开始。</p>
+</section>
+<section id="ts-submodule" class="level3">
+<h3>缺少 Hayanagi 的源代码</h3>
+<p>在仓库根目录运行 <code>git submodule update --init --recursive</code>。</p>
+</section>
+<section id="ts-tsume" class="level3">
+<h3>因存在多个题集而停止</h3>
+<pre><code>==&gt; ERROR: 5手詰の問題集が複数あります: data/tsumeshogi/tsume_5ply_1000_20260926.txt data/tsumeshogi/tsume_5ply_1000_20261001.txt</code></pre>
+<p><code>data/tsumeshogi/</code> 中残留了旧版题集（消息表示同一手数找到了多个题集）。请删除不用的版本，使每种手数只剩 1 个文件。</p>
+</section>
+<section id="ts-qt-notices" class="level3">
+<h3>Qt 文档的校验失败</h3>
+<pre><code>Qt license preparation failed: Qt version mismatch: build=6.7.2, source=6.11.2
+Qt license preparation failed: Qt notices are missing. See docs/dev/qt-licensing.md; set SHOGIBOARDQ_QT_LICENSE_DIR to prepared matching notices.</code></pre>
+<p>请准备与构建所用 Qt 同版本的文档（<a href="#qt-notices">第 4 节</a>）：容器中为 Qt 6.7.2，直接在 Arch Linux 上构建时为 <code>pacman -Q qt6-base</code> 所示的版本。不要忽略失败而继续发布。</p>
+</section>
+<section id="ts-bundled" class="level3">
+<h3>收集随附库的文档时停止</h3>
+<pre><code>Bundled library notices failed: Bundled library notices need pacman (Arch Linux); other distributions are not supported yet
+Bundled library notices failed: Cannot find the system file of lib/libQt6Core.so.6
+Bundled library notices failed: No license text for bundled package fcitx5-qt (GPL)</code></pre>
+<ul>
+<li>请在 Arch Linux 上使用 Arch 的 Qt 软件包制作发布包。如果 AppImage 中含有不属于 pacman 软件包的库（例如通过 Qt Online Installer 安装的 Qt），就无法确定其所属软件包，脚本会停止。</li>
+<li><code>No license text for …</code> 表示有软件包找不到许可原文。较旧的软件仓库中，许可字段可能不是 SPDX 表达式，请在 <code>scripts/bundled_licenses.py</code> 的 <code>LICENSE_OVERRIDES</code> 中加入上游的写法。软件包中没有的文档（例如带有实际版权声明的原文）放在 <code>scripts/license-texts/&lt;软件包名&gt;/</code> 中。</li>
+</ul>
+</section>
+<section id="ts-docker" class="level3">
+<h3>无法使用 docker</h3>
+<pre><code>permission denied while trying to connect to the docker API at unix:///var/run/docker.sock</code></pre>
+<p>把用户加入 docker 组并重新登录（<code>sudo usermod -aG docker $USER</code>），或指定环境变量 <code>DOCKER="sudo docker"</code>。</p>
+</section>
+<section id="ts-linuxdeploy" class="level3">
+<h3>linuxdeploy 无法启动</h3>
+<pre><code>dlopen(): error loading libfuse.so.2</code></pre>
+<p>安装 <code>fuse2</code>，或用 <code>APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh</code> 运行。</p>
+</section>
+<section id="ts-fuse" class="level3">
+<h3>AppImage 无法启动（FUSE）</h3>
+<pre><code>AppImages require FUSE to run.</code></pre>
+<p>安装 FUSE 2，或加上 <code>--appimage-extract-and-run</code> 启动。</p>
+<pre><code>./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract-and-run</code></pre>
+</section>
+<section id="ts-glibc" class="level3">
+<h3>glibc 版本不足</h3>
+<pre><code>version `GLIBC_2.38' not found</code></pre>
+<p>运行系统的 glibc 比构建环境旧。用于发布的发布包请在容器中构建（<a href="#package-run">5.1</a>）。仍然不足时，请在 glibc 更新的发行版上使用（参阅<a href="#requirements">前提条件</a>中关于 glibc 的说明）。</p>
+</section>
+<section id="ts-libs" class="level3">
+<h3>找不到系统库</h3>
+<pre><code>error while loading shared libraries: libOpenGL.so.0: cannot open shared object file: No such file or directory</code></pre>
+<p>系统中缺少 AppImage 不随附的库（OpenGL、fontconfig、HarfBuzz、wayland-client）。Ubuntu / Debian 的示例：</p>
+<pre><code>sudo apt install libegl1 libopengl0 libfontconfig1 libharfbuzz0b libwayland-client0</code></pre>
+</section>
+<section id="ts-xcb" class="level3">
+<h3>无法加载 xcb 平台插件</h3>
+<pre><code>qt.qpa.plugin: Could not load the Qt platform plugin "xcb"</code></pre>
+<p>缺少 X11 相关的库。以下依次为 Ubuntu / Debian、Fedora、Arch Linux 的示例：</p>
+<pre><code>sudo apt install libxcb-cursor0 libxcb-xinerama0
+sudo dnf install xcb-util-cursor xcb-util-wm xcb-util-keysyms
+sudo pacman -S xcb-util-cursor xcb-util-wm xcb-util-keysyms</code></pre>
+</section>
+<section id="ts-im" class="level3">
+<h3>无法输入日语</h3>
+<p>AppImage 只随附 X11 平台插件，因此在 Wayland 桌面上也会通过 XWayland 运行。未设置环境变量 <code>QT_IM_MODULE</code> 时，不会选用日语输入法插件。使用 fcitx5 时请加上 <code>QT_IM_MODULE=fcitx</code>，使用 IBus 时请加上 <code>QT_IM_MODULE=ibus</code> 启动。</p>
+<pre><code>QT_IM_MODULE=fcitx ./ShogiBoardQ-linux-x86_64.AppImage</code></pre>
+</section>
+<section id="ts-translations" class="level3">
+<h3>无法加载翻译</h3>
+<p>确认 <code>.qm</code> 文件位于可执行文件所在的 <code>usr/bin/</code> 中。</p>
+<pre><code>./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
+ls squashfs-root/usr/bin/*.qm</code></pre>
+</section>
+</section>
+</article>
+</div>
+</main>
+
+<div class="back-link-section">
+    <a href="../index.html#build" class="back-link">&larr; 返回“从源代码构建”</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

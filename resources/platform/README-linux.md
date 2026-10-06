@@ -35,8 +35,10 @@ FUSE を利用できない環境では、次のように起動します。
 
 ## 動作環境とソース
 
-x86_64 Linux の X11 / XWayland 環境向けです。必要な glibc の版は
-ビルド環境に依存します。ダウンロード元のリリースノートで動作条件を確認してください。
+x86_64 Linux の X11 / XWayland 環境向けです。公式の配布版は glibc 2.38 以降
+（Ubuntu 24.04 以降、Debian 13、Fedora 39 以降など）で動作します。OpenGL・fontconfig・HarfBuzz は
+システムのものを使います（通常のデスクトップには入っています）。動作条件はダウンロード元の
+リリースノートでも確認してください。
 
 Qt と同梱ライブラリのライセンス文書は、アプリの「バージョン情報」で参照できます。
 AppImage を展開した場合は `squashfs-root/usr/share/licenses/ShogiBoardQ/` にあります。

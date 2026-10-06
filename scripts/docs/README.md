@@ -12,6 +12,7 @@
 | `gen_home.py` | ホームページ（`docs/index.html` と en / zh-cn / zh-tw）を生成する。機能カードは `FEATURE_GROUPS` と各言語の文言。カードのリンク先は、その言語のガイドがあればそれ、無ければ英語版になる |
 | `sitemap_add_zh.py` | `docs/sitemap.xml` のページに簡体字・繁体字版を追加する（`guide/<page>.html` を渡す） |
 | `check_links.py` | ページ内のリンク・画像の参照先があるか、`<section>` の開閉が対応しているかを4言語分確かめる（`--all` で全ページ） |
+| `build_guide/` | Linux ビルド手順のページ（4言語の `guide/linux-build-and-release.html`）と、開発者向けの `docs/dev/linux-build-and-release.md` を同じ本文（`texts_linux_build.py`）から書き出す。ページも md も直接編集しない |
 | `examples/piece_sound/` | ガイドページの生成スクリプトの見本（`texts.py` に言語ごとの本文、`gen_piece_sound.py` が4言語の HTML を書く） |
 | `launch.sh` | Xvfb 上で ShogiBoardQ を `--automation` 付きで起動する。設定・キャッシュ・データ・状態を作業フォルダに隔離する |
 | `rpc.py` | 自動化 API（JSON-RPC）を1回呼ぶ。`rpc.py <名前> <メソッド> [JSON]` |
