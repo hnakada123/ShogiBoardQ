@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "ShogiBoardQ contributors" }]
-dependencies = ["mcp>=1.10,<3"]  # 1.x（ディストリのパッケージ）と 2.x の両方に対応
+dependencies = ["mcp>=2,<3"]  # 2.x は最新の 2026-07-28 と 2024-11-05〜2025-11-25 の両方を話す
 
 [project.optional-dependencies]
 test = ["pytest>=8", "anyio>=4"]

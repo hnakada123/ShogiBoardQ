@@ -9,7 +9,9 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 
 ## 必要なもの
 
-- Python 3.10 以上と `mcp` パッケージ 1.10 以上（1.x・2.x とも可。`pip install mcp`、または `pip install -e mcp` でこのパッケージごと）
+- Python 3.10 以上と `mcp` パッケージ 2.x（`pip install "mcp>=2,<3"`、または `pip install -e mcp` でこのパッケージごと）。
+  SDK 2.x は MCP 仕様の最新版 2026-07-28 と、従来の 2024-11-05〜2025-11-25 の両方で接続できます。
+  OS のパッケージ（Arch Linux の `python-mcp` など）が 1.x の場合は、pip で 2.x を入れてください
 - ビルド済みの ShogiBoardQ（`build/shogiboardq-cli` と `build/ShogiBoardQ`）
 - エンジンを使うツールには、ShogiBoardQ の「エンジン設定」で登録した USI エンジン
 

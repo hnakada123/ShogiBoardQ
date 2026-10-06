@@ -28,9 +28,6 @@ ToolOutcome = tuple[str, dict[str, Any]] | types.CallToolResult
 ToolDispatcher = Callable[[str, dict[str, Any] | None], Awaitable[ToolOutcome]]
 ResourceReader = Callable[[str], Awaitable[tuple[str, str]]]
 
-# mcp 2.x は lowlevel Server のデコレータ登録を廃止し、コンストラクタの on_* 引数に変えた
-MCP_V2 = not hasattr(Server, "list_tools")
-
 INSTRUCTIONS = (
     "ShogiBoardQ tools. Positions are SFEN strings ('startpos' = initial position) and moves are USI "
     "(e.g. 7g7f, P*5e). Engines are referenced by the name shown by list_engines. Long operations "
@@ -126,12 +123,15 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
             raise ValueError(f"{exc.code}: {exc.message}") from exc
         raise ValueError(f"Unknown resource: {uri}")
 
-    build = _build_server_v2 if MCP_V2 else _build_server_v1
-    return build(dispatch_tool, read_text_resource), jobs, client
+    return _build_lowlevel_server(dispatch_tool, read_text_resource), jobs, client
 
 
-def _build_server_v2(dispatch_tool: ToolDispatcher, read_text_resource: ResourceReader) -> Server:
-    """mcp 2.x: handlers are passed to the constructor and return result models."""
+def _build_lowlevel_server(dispatch_tool: ToolDispatcher, read_text_resource: ResourceReader) -> Server:
+    """Pass the handlers to the mcp 2.x low-level Server.
+
+    The SDK serves both protocol eras on stdio: the stateless 2026-07-28 revision (``server/discover``)
+    and the ``initialize`` handshake revisions 2024-11-05 to 2025-11-25.
+    """
 
     async def list_tools(_ctx: Any, _params: Any) -> types.ListToolsResult:
         return types.ListToolsResult(tools=ALL_TOOLS)
@@ -162,36 +162,6 @@ def _build_server_v2(dispatch_tool: ToolDispatcher, read_text_resource: Resource
         on_list_resources=list_resources,
         on_read_resource=read_resource,
     )
-
-
-def _build_server_v1(dispatch_tool: ToolDispatcher, read_text_resource: ResourceReader) -> Server:
-    """mcp 1.x: handlers are registered with decorators (distribution packages still ship 1.x)."""
-    from mcp.server.lowlevel.helper_types import ReadResourceContents
-
-    server: Server = Server("shogiboardq", version=__version__, instructions=INSTRUCTIONS)
-
-    @server.list_tools()  # type: ignore[attr-defined]
-    async def list_tools() -> list[types.Tool]:
-        return ALL_TOOLS
-
-    @server.call_tool()  # type: ignore[attr-defined]
-    async def call_tool(name: str, arguments: dict[str, Any]):
-        outcome = await dispatch_tool(name, arguments)
-        if isinstance(outcome, types.CallToolResult):
-            return outcome
-        text, structured = outcome
-        return [types.TextContent(type="text", text=text)], structured
-
-    @server.list_resources()  # type: ignore[attr-defined]
-    async def list_resources() -> list[types.Resource]:
-        return RESOURCES
-
-    @server.read_resource()  # type: ignore[attr-defined]
-    async def read_resource(uri) -> list[ReadResourceContents]:
-        text, mime_type = await read_text_resource(str(uri))
-        return [ReadResourceContents(content=text, mime_type=mime_type)]
-
-    return server
 
 
 def _error_result(code: str, message: str, data: dict | None = None) -> types.CallToolResult:
