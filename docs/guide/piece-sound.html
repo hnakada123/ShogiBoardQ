@@ -4,37 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>駒音 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの駒音機能を紹介します。駒を指した瞬間に鳴る駒音のON/OFF切り替えと、音量・音の高さ・3バンドイコライザーで好みの音に調整する手順をスクリーンショット付きで解説。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
+    <meta name="description" content="ShogiBoardQの駒音の使い方を紹介します。「設定」メニューでのオン・オフ、駒音の設定ダイアログでの音量・音の高さ・イコライザーの調整、駒音が鳴る場面を解説します。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
+    <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
     <meta property="og:title" content="駒音 - ShogiBoardQ">
-    <meta property="og:description" content="駒を指した瞬間に駒音が鳴ります。ON/OFFの切り替えと、音量・音の高さ・イコライザーによる調整ができます。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/piece-sound/settings-menu.png">
+    <meta property="og:description" content="駒を指した瞬間に「パチッ」と鳴る駒音。オン・オフ、音量・音の高さ・イコライザーを調整できます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/piece-sound/piece-sound-settings.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="駒音 - ShogiBoardQ">
-    <meta name="twitter:description" content="駒を指した瞬間に駒音が鳴ります。ON/OFFの切り替えと、音量・音の高さ・イコライザーによる調整ができます。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/piece-sound/settings-menu.png">
+    <meta name="twitter:description" content="駒を指した瞬間に「パチッ」と鳴る駒音。オン・オフ、音量・音の高さ・イコライザーを調整できます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/piece-sound/piece-sound-settings.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/piece-sound.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/piece-sound.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
 </head>
 <body>
 
+<!-- Navigation -->
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/piece-sound.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="piece-sound.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/piece-sound.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/piece-sound.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/piece-sound.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
-            <li><a href="#toggle">ON/OFF</a></li>
+            <li><a href="#toggle">オン・オフ</a></li>
             <li><a href="#settings">音量と音質</a></li>
             <li><a href="#when">鳴る場面</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
@@ -42,120 +55,153 @@
     </div>
 </nav>
 
-<main class="appearance-guide">
+<main>
+<!-- Hero -->
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>駒音</h1>
         <p class="hero-subtitle">駒を指した瞬間に、盤に駒を打つ「パチッ」という音が鳴ります</p>
         <div class="hero-badges">
-            <span class="badge">ON/OFF切り替え</span>
+            <span class="badge">オン・オフ切り替え</span>
             <span class="badge">音量調整</span>
             <span class="badge">イコライザー</span>
         </div>
     </div>
 </section>
 
+<!-- Section 1 -->
 <section id="toggle" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">駒音のON/OFF</h2>
+        <h2 class="section-title">駒音のオン・オフ</h2>
         <p class="section-desc">「設定」メニューから、いつでも駒音を切り替えられます</p>
+
         <div class="screenshot-gallery">
+
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <h3 class="guide-step-title">「設定」→「駒音」で切り替える</h3>
+                    <span class="guide-step-title">「設定」→「駒音」で切り替える</span>
                 </div>
-                <p class="guide-step-text">メニューバーの「設定」を開くと「駒音」の項目があり、チェックが付いていれば駒音が鳴ります。初期状態ではONです。チェックを外すと駒音は鳴らなくなり、もう一度選ぶと元に戻ります。画像をクリックすると元のサイズで表示できます。</p>
-                <div class="screenshot-item">
-                    <a href="../images/piece-sound/settings-menu.png">
-                        <img src="../images/piece-sound/settings-menu.png" alt="「設定」メニューを開き、「駒音」のチェックと「駒音の設定」の項目を表示した画面" width="1200" height="865">
-                    </a>
-                    <p class="screenshot-caption">「設定」メニュー：「駒音」でON/OFF、「駒音の設定」で音を調整</p>
+                <p class="guide-step-text">メニューバーの「設定」を開くと「駒音」の項目があり、チェックが付いていれば駒音が鳴ります。初期状態ではオンです。選ぶたびにオンとオフが切り替わります。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/piece-sound/settings-menu.png"><img src="../images/piece-sound/settings-menu.png" alt="「設定」メニューを開き、「駒音の設定…」を選んだところ" width="481" height="212" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」メニュー：「駒音」でオン・オフ、「駒音の設定…」で音を調整</p>
                 </div>
             </div>
+
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <h3 class="guide-step-title">設定は自動で保存</h3>
+                    <span class="guide-step-title">設定は自動で保存</span>
                 </div>
-                <p class="guide-step-text">ON/OFFの状態は自動で保存され、次回起動時にも引き継がれます。<a href="menu.html">メニューウィンドウ</a>の「設定」タブからも同じ操作ができます。</p>
+                <p class="guide-step-text">オン・オフの状態は自動で保存され、次回の起動時にも使われます。<a href="menu.html">メニュードック</a>の「設定」タブにも同じ「駒音」「駒音の設定…」のボタンがあります。</p>
             </div>
+
         </div>
     </div>
 </section>
 
+<!-- Section 2 -->
 <section id="settings" class="section">
     <div class="section-inner">
         <h2 class="section-title">音量と音質の調整</h2>
         <p class="section-desc">「駒音の設定」ダイアログで、音量・音の高さ・イコライザーを調整できます</p>
+
         <div class="screenshot-gallery">
+
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <h3 class="guide-step-title">「設定」→「駒音の設定」を開く</h3>
+                    <span class="guide-step-title">「設定」→「駒音の設定…」を開く</span>
                 </div>
-                <p class="guide-step-text">ダイアログには音量と音の高さの横スライダー、低音・中音・高音の3本の縦スライダーが並びます。スライダーを動かすたびに駒音が鳴るので、音を聞きながら調整できます。「試聴」を押せばいつでも現在の設定の音を確認できます。</p>
+                <p class="guide-step-text">ダイアログには音量と音の高さの横スライダー、イコライザーの低音・中音・高音の縦スライダーが並びます。スライダーを動かすと、離したときに今の設定の駒音が鳴るので、音を聞きながら調整できます。「試聴」を押せば、いつでも今の設定の音を確かめられます（駒音をオフにしていても鳴ります）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/piece-sound/piece-sound-settings.png">
-                        <img src="../images/piece-sound/piece-sound-settings.png" alt="音量・音の高さ・低音・中音・高音のスライダーと、標準に戻す・試聴・OK・キャンセルのボタンを表示した駒音の設定ダイアログ" loading="lazy" width="470" height="368">
-                    </a>
+                    <a href="../images/piece-sound/piece-sound-settings.png"><img src="../images/piece-sound/piece-sound-settings.png" alt="音量・音の高さ・イコライザーのスライダーと、標準に戻す・試聴・OK・キャンセルのボタンが並ぶ駒音の設定ダイアログ" width="613" height="412" loading="lazy"></a>
                     <p class="screenshot-caption">駒音の設定ダイアログ（初期状態）</p>
                 </div>
             </div>
+
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <h3 class="guide-step-title">スライダーで好みの音にする</h3>
+                    <span class="guide-step-title">スライダーで好みの音にする</span>
                 </div>
                 <ul class="guide-step-text">
-                    <li><strong>音量</strong>：0〜100%。初期値は30%です。耳の感覚に合わせた目盛りで、50%でおよそ半分の大きさに聞こえます。</li>
-                    <li><strong>音の高さ</strong>：-12〜+12半音。上げると高く短い「チッ」、下げると低く長い「コン」という音に変わります。</li>
-                    <li><strong>イコライザー</strong>：低音・中音・高音をそれぞれ-12〜+12dBで調整します。中音を上げると打撃感が強まり、高音を下げると柔らかい音になります。</li>
+                    <li><strong>音量</strong>：0〜100%。初期値は30%です。耳の感覚に合わせた目盛りになっています。</li>
+                    <li><strong>音の高さ</strong>：-12〜+12半音。上げると高く短い音、下げると低く長い音になります。</li>
+                    <li><strong>イコライザー</strong>：低音・中音・高音をそれぞれ-12〜+12dBで調整します。中音を上げると打つ感じが強まり、高音を下げると柔らかい音になります。</li>
                 </ul>
+                <p class="guide-step-text">各スライダーの右や下の欄に数値を直接入力することもできます。</p>
             </div>
+
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
-                    <h3 class="guide-step-title">確定・取り消し・標準に戻す</h3>
+                    <span class="guide-step-title">確定・取り消し・標準に戻す</span>
                 </div>
-                <p class="guide-step-text">「OK」で設定を確定します。「キャンセル」を押すと、ダイアログを開いたときの設定に戻ります。「標準に戻す」を押すと音量30%・音の高さ0・イコライザー0の初期設定に戻せます。確定した設定は自動で保存され、次回起動時にも引き継がれます。</p>
+                <p class="guide-step-text">「OK」で設定を確定します。「キャンセル」を押すと、ダイアログを開いたときの設定に戻ります。「標準に戻す」を押すと、音量30%・音の高さ0・イコライザー0の初期設定に戻せます。確定した設定は自動で保存され、次回の起動時にも使われます。</p>
+                <p class="guide-step-text">左下の「A-」「A+」でダイアログの文字の大きさを変えられます。文字の大きさとダイアログの大きさも次回に引き継がれます。</p>
             </div>
+
         </div>
     </div>
 </section>
 
+<!-- Section 3 -->
 <section id="when" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">駒音が鳴る場面</h2>
-        <p class="section-desc">対局中に盤上で駒が動いたときに鳴り、棋譜の閲覧や局面編集では鳴りません</p>
+        <p class="section-desc">対局で盤上の駒が動いたときに鳴り、棋譜の閲覧や局面編集では鳴りません</p>
+
         <div class="screenshot-gallery">
+
             <div class="guide-step">
                 <table class="info-table">
                     <thead>
-                        <tr><th>場面</th><th>駒音</th><th>補足</th></tr>
+                        <tr><th scope="col">場面</th><th scope="col">駒音</th><th scope="col">補足</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>人間の着手</strong></td><td>鳴る</td><td>人間 vs 人間、人間 vs エンジンで自分が指したとき</td></tr>
-                        <tr><td><strong>エンジンの着手</strong></td><td>鳴る</td><td>人間 vs エンジン、エンジン vs エンジンでエンジンが指したとき</td></tr>
+                        <tr><td><strong>人間の着手</strong></td><td>鳴る</td><td>人間対人間、人間対エンジンで自分が指したとき</td></tr>
+                        <tr><td><strong>エンジンの着手</strong></td><td>鳴る</td><td>人間対エンジン、エンジン対エンジンでエンジンが指したとき</td></tr>
                         <tr><td><strong>通信対局（CSA）</strong></td><td>鳴る</td><td>自分の着手と相手の着手の両方</td></tr>
-                        <tr><td><strong>定跡手の着手</strong></td><td>鳴る</td><td>定跡ウィンドウから指した手も盤上の着手として扱われます</td></tr>
+                        <tr><td><strong>定跡手の着手</strong></td><td>鳴る</td><td><a href="joseki.html">定跡ウィンドウ</a>から指した手も、盤上の着手として扱われます</td></tr>
+                        <tr><td><strong><a href="tsume-play.html">詰将棋対局</a></strong></td><td>鳴る</td><td>自分の手と玉方の応手の両方。「正解手順」での再生では鳴りません</td></tr>
                         <tr><td><strong>棋譜の再生・分岐の切り替え</strong></td><td>鳴らない</td><td>読み込んだ棋譜を進めたり戻したりする操作</td></tr>
-                        <tr><td><strong>局面編集・解析・検討</strong></td><td>鳴らない</td><td>駒の配置変更や、エンジンによる解析中の局面表示</td></tr>
+                        <tr><td><strong>局面編集・解析・検討・詰み探索</strong></td><td>鳴らない</td><td>駒の配置の変更や、エンジンの読み筋の表示</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">駒音は、実際に榧の盤へ黄楊の駒を打った音を分析し、その特徴に合わせて作られています。動作にはQt Multimediaを使用し、OSの標準の音声出力から再生されます。</p>
+                <p class="guide-step-text">駒音は、実際の駒音の録音を分析し、その特徴に合わせて合成した音です。Qt Multimediaを使い、OSの標準の音声出力から再生されます。</p>
             </div>
+
         </div>
     </div>
 </section>
 </main>
 
+<!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
 </div>
+
+<!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>

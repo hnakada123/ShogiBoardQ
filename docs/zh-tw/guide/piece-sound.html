@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>走子音效 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 走子音效的使用方法：在「設定」選單中開關音效，在走子音效設定中調整音量、音高和等化器，並說明音效在哪些場合播放。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/piece-sound.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/piece-sound.html">
+    <meta property="og:title" content="走子音效 - ShogiBoardQ">
+    <meta property="og:description" content="棋子落在棋盤上的瞬間會發出清脆的聲音。可以開關音效，並調整音量、音高和等化器。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/piece-sound/piece-sound-settings.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="走子音效 - ShogiBoardQ">
+    <meta name="twitter:description" content="棋子落在棋盤上的瞬間會發出清脆的聲音。可以開關音效，並調整音量、音高和等化器。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/piece-sound/piece-sound-settings.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/piece-sound.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/piece-sound.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/piece-sound.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/piece-sound.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/piece-sound.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="piece-sound.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#toggle">開關</a></li>
+            <li><a href="#settings">音量與音色</a></li>
+            <li><a href="#when">播放場合</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>走子音效</h1>
+        <p class="hero-subtitle">走子的瞬間，會發出棋子落在棋盤上的清脆聲音</p>
+        <div class="hero-badges">
+            <span class="badge">開關音效</span>
+            <span class="badge">調整音量</span>
+            <span class="badge">等化器</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="toggle" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">開關走子音效</h2>
+        <p class="section-desc">隨時可以從「設定」選單切換走子音效</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">以「設定」→「走子音效」切換</span>
+                </div>
+                <p class="guide-step-text">開啟選單列的「設定」，其中有「走子音效」項目，有勾選標記時會播放走子音效。預設為開啟，每次選擇都會在開啟和關閉之間切換。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/piece-sound/settings-menu.png"><img src="../../images/zh-tw/piece-sound/settings-menu.png" alt="開啟「設定」選單並選取「走子音效設定…」" width="458" height="212" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」選單：以「走子音效」開關，以「走子音效設定…」調整聲音</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">自動儲存設定</span>
+                </div>
+                <p class="guide-step-text">開關狀態會自動儲存，下次啟動時繼續使用。<a href="menu.html">選單面板</a>的「設定」分頁中也有相同的「走子音效」和「走子音效設定…」按鈕。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="settings" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">調整音量與音色</h2>
+        <p class="section-desc">在「走子音效設定」對話方塊中調整音量、音高和等化器</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">開啟「設定」→「走子音效設定…」</span>
+                </div>
+                <p class="guide-step-text">對話方塊中有音量和音高的橫向滑桿，以及等化器的低頻、中頻、高頻縱向滑桿。放開滑桿時會以目前設定播放走子音效，可以邊聽邊調整。按一下「試聽」隨時可以確認目前設定的聲音（即使關閉了走子音效也會播放）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/piece-sound/piece-sound-settings.png"><img src="../../images/zh-tw/piece-sound/piece-sound-settings.png" alt="顯示音量、音高、等化器滑桿，以及恢復預設值、試聽、確定、取消按鈕的走子音效設定對話方塊" width="582" height="412" loading="lazy"></a>
+                    <p class="screenshot-caption">走子音效設定對話方塊（初始狀態）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">以滑桿調出喜歡的聲音</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>音量</strong>：0〜100%，預設值為 30%。刻度符合人耳對音量的感受。</li>
+                    <li><strong>音高</strong>：-12〜+12 半音。調高時聲音更高更短，調低時聲音更低更長。</li>
+                    <li><strong>等化器</strong>：低頻、中頻、高頻分別在 -12〜+12 dB 之間調整。提高中頻會增強敲擊感，降低高頻會使聲音更柔和。</li>
+                </ul>
+                <p class="guide-step-text">也可以在各滑桿右側或下方的輸入框中直接輸入數值。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">確定、取消與恢復預設值</span>
+                </div>
+                <p class="guide-step-text">按一下「確定」確認設定。按一下「取消」會恢復到開啟對話方塊時的設定。按一下「恢復預設值」可恢復為音量 30%、音高 0、等化器 0 的初始設定。確認的設定會自動儲存，下次啟動時繼續使用。</p>
+                <p class="guide-step-text">左下角的「A-」「A+」可以調整對話方塊的文字大小。文字大小和對話方塊大小也會在下次繼續使用。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="when" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">播放走子音效的場合</h2>
+        <p class="section-desc">對局中棋盤上的棋子移動時播放，瀏覽棋譜或編輯局面時不播放</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">場合</th><th scope="col">音效</th><th scope="col">說明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>人類走子</strong></td><td>播放</td><td>人類對人類、人類對引擎時自己走子</td></tr>
+                        <tr><td><strong>引擎走子</strong></td><td>播放</td><td>人類對引擎、引擎對引擎時引擎走子</td></tr>
+                        <tr><td><strong>網路對局 (CSA)</strong></td><td>播放</td><td>自己和對手的走子都會播放</td></tr>
+                        <tr><td><strong>定跡走子</strong></td><td>播放</td><td>從<a href="joseki.html">定跡視窗</a>走的棋也視為棋盤上的走子</td></tr>
+                        <tr><td><strong><a href="tsume-play.html">練習詰棋</a></strong></td><td>播放</td><td>自己的走子和玉方的應手都會播放。以「解答」重播時不播放</td></tr>
+                        <tr><td><strong>播放棋譜、切換分支</strong></td><td>不播放</td><td>前進或後退已讀取的棋譜</td></tr>
+                        <tr><td><strong>編輯局面、分析、研究、搜尋詰棋</strong></td><td>不播放</td><td>改變棋子佈置，或顯示引擎的讀筋</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">走子音效是分析實際棋子聲音的錄音，並依其特徵合成的聲音。透過 Qt Multimedia 從作業系統的預設音訊輸出播放。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

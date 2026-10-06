@@ -1,156 +1,208 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Piece Sound - ShogiBoardQ</title>
-<meta content="Learn about the ShogiBoardQ piece sound: a click plays whenever a piece is moved. Toggle it in the Settings menu and shape it with volume, pitch, and a three-band equalizer, with screenshots." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html" rel="canonical"/>
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html" property="og:url"/>
-<meta content="Piece Sound - ShogiBoardQ" property="og:title"/>
-<meta content="A piece click plays with every move. Toggle it on or off and adjust volume, pitch, and equalizer." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/piece-sound/settings-menu.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Piece Sound - ShogiBoardQ" name="twitter:title"/>
-<meta content="A piece click plays with every move. Toggle it on or off and adjust volume, pitch, and equalizer." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/piece-sound/settings-menu.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piece Sound - ShogiBoardQ</title>
+    <meta name="description" content="How to use the ShogiBoardQ piece sound: turn it on or off from the Settings menu, adjust volume, pitch, and equalizer in Piece Sound Settings, and see when it plays.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html">
+    <meta property="og:title" content="Piece Sound - ShogiBoardQ">
+    <meta property="og:description" content="A crisp click plays the moment a piece lands. Turn it on or off and adjust volume, pitch, and equalizer.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/piece-sound/piece-sound-settings.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Piece Sound - ShogiBoardQ">
+    <meta name="twitter:description" content="A crisp click plays the moment a piece lands. Turn it on or off and adjust volume, pitch, and equalizer.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/piece-sound/piece-sound-settings.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/piece-sound.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/piece-sound.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html">
 </head>
 <body>
+
+<!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/piece-sound.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#toggle">On/Off</a></li>
-<li><a href="#settings">Volume &amp; Tone</a></li>
-<li><a href="#when">When It Plays</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/piece-sound.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="piece-sound.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/piece-sound.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/piece-sound.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#toggle">On/Off</a></li>
+            <li><a href="#settings">Volume &amp; Tone</a></li>
+            <li><a href="#when">When It Plays</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
-<main class="appearance-guide">
+
+<main>
+<!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Piece Sound</h1>
-<p class="hero-subtitle">A crisp click plays the moment a piece lands on the board</p>
-<div class="hero-badges">
-<span class="badge">On/Off Toggle</span>
-<span class="badge">Volume Control</span>
-<span class="badge">Equalizer</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Piece Sound</h1>
+        <p class="hero-subtitle">A crisp click plays the moment a piece lands on the board</p>
+        <div class="hero-badges">
+            <span class="badge">On/Off Toggle</span>
+            <span class="badge">Volume Control</span>
+            <span class="badge">Equalizer</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<section class="section section--alt" id="toggle">
-<div class="section-inner">
-<h2 class="section-title">Turn the Piece Sound On or Off</h2>
-<p class="section-desc">Toggle the sound at any time from the Settings menu</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<h3 class="guide-step-title">Open Settings → Piece Sound</h3>
-</div>
-<p class="guide-step-text">The Settings menu contains a Piece Sound item. When it is checked, a click plays with every move; it is on by default. Uncheck it to silence the sound, and check it again to restore it. Click a screenshot to view it at its original size.</p>
-<div class="screenshot-item">
-<a href="../../images/en/piece-sound/settings-menu.png">
-<img alt="Settings menu showing the Piece Sound check item and the Piece Sound Settings item" height="865" src="../../images/en/piece-sound/settings-menu.png" width="1200"/>
-</a>
-<p class="screenshot-caption">Settings menu: Piece Sound toggles the sound, Piece Sound Settings adjusts it</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<h3 class="guide-step-title">Settings Are Saved Automatically</h3>
-</div>
-<p class="guide-step-text">The on/off state is saved automatically and restored the next time you start the application. The same items are available on the Settings tab of the <a href="menu.html">Menu Panel</a>.</p>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="toggle" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Turn the Piece Sound On or Off</h2>
+        <p class="section-desc">Toggle the sound at any time from the Settings menu</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Choose Settings → Piece Sound</span>
+                </div>
+                <p class="guide-step-text">The Settings menu in the menu bar contains Piece Sound. When it is checked, the sound plays with every move. It is on by default, and each time you choose it, it switches between on and off.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/piece-sound/settings-menu.png"><img src="../../images/en/piece-sound/settings-menu.png" alt="Settings menu open with Piece Sound Settings… highlighted" width="576" height="211" loading="lazy"></a>
+                    <p class="screenshot-caption">Settings menu: Piece Sound turns the sound on or off, and Piece Sound Settings… adjusts it</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Saved Automatically</span>
+                </div>
+                <p class="guide-step-text">The on/off state is saved automatically and used the next time you start the application. The Settings tab of the <a href="menu.html">menu dock</a> has the same Piece Sound and Piece Sound Settings… buttons.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
-<section class="section" id="settings">
-<div class="section-inner">
-<h2 class="section-title">Adjust Volume and Tone</h2>
-<p class="section-desc">The Piece Sound Settings dialog controls volume, pitch, and a three-band equalizer</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<h3 class="guide-step-title">Open Settings → Piece Sound Settings</h3>
-</div>
-<p class="guide-step-text">The dialog shows horizontal sliders for Volume and Pitch, plus three vertical sliders for Low, Mid, and High. The piece sound plays each time you move a slider, so you can tune it by ear. Press Preview at any time to hear the current settings.</p>
-<div class="screenshot-item screenshot-item--compact">
-<a href="../../images/en/piece-sound/piece-sound-settings.png">
-<img alt="Piece Sound Settings dialog with Volume, Pitch, Low, Mid, and High sliders and Restore Defaults, Preview, OK, and Cancel buttons" height="365" loading="lazy" src="../../images/en/piece-sound/piece-sound-settings.png" width="475"/>
-</a>
-<p class="screenshot-caption">Piece Sound Settings dialog (default values)</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<h3 class="guide-step-title">Shape the Sound with the Sliders</h3>
-</div>
-<ul class="guide-step-text">
-<li><strong>Volume</strong>: 0–100%, 30% by default. The scale follows perceived loudness, so 50% sounds roughly half as loud as 100%.</li>
-<li><strong>Pitch</strong>: −12 to +12 semitones. Raising it gives a higher, shorter tick; lowering it gives a deeper, longer knock.</li>
-<li><strong>Equalizer</strong>: Low, Mid, and High bands from −12 to +12 dB. Boosting Mid adds punch; cutting High makes the sound softer.</li>
-</ul>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<h3 class="guide-step-title">Confirm, Cancel, or Restore Defaults</h3>
-</div>
-<p class="guide-step-text">Press OK to keep your changes. Cancel returns to the settings that were active when the dialog opened. Restore Defaults resets the sound to 30% volume with pitch and equalizer at zero. Confirmed settings are saved automatically and restored on the next start.</p>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="settings" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Adjust Volume and Tone</h2>
+        <p class="section-desc">Piece Sound Settings controls the volume, pitch, and a three-band equalizer</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Open Settings → Piece Sound Settings…</span>
+                </div>
+                <p class="guide-step-text">The dialog shows horizontal sliders for Volume and Pitch, and vertical Low, Mid, and High sliders under Equalizer. When you release a slider, the sound plays with the current settings, so you can tune it by ear. Click Preview to hear the current sound at any time (it plays even when the piece sound is off).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/piece-sound/piece-sound-settings.png"><img src="../../images/en/piece-sound/piece-sound-settings.png" alt="Piece Sound Settings dialog with Volume, Pitch, and Equalizer sliders and the Restore Defaults, Preview, OK, and Cancel buttons" width="618" height="406" loading="lazy"></a>
+                    <p class="screenshot-caption">Piece Sound Settings dialog (default values)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Shape the Sound with the Sliders</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Volume</strong>: 0–100%, 30% by default. The scale follows how loudness is perceived.</li>
+                    <li><strong>Pitch</strong>: −12 to +12 semitones. Raising it gives a higher, shorter sound; lowering it gives a deeper, longer one.</li>
+                    <li><strong>Equalizer</strong>: Low, Mid, and High from −12 to +12 dB each. Boosting Mid adds punch; cutting High makes the sound softer.</li>
+                </ul>
+                <p class="guide-step-text">You can also type a value in the box to the right of or below each slider.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Confirm, Cancel, or Restore Defaults</span>
+                </div>
+                <p class="guide-step-text">Click OK to keep your changes. Cancel returns to the settings that were in effect when the dialog opened. Restore Defaults resets the sound to 30% volume with pitch and equalizer at 0. Confirmed settings are saved automatically and used the next time you start the application.</p>
+                <p class="guide-step-text">Use A- and A+ at the bottom left to change the dialog's text size. The text size and the dialog size are also kept for next time.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
-<section class="section section--alt" id="when">
-<div class="section-inner">
-<h2 class="section-title">When the Piece Sound Plays</h2>
-<p class="section-desc">It plays when a piece moves on the board during a game, not while browsing a record or editing a position</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<table class="info-table">
-<thead>
-<tr><th>Situation</th><th>Sound</th><th>Notes</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Human move</strong></td><td>Plays</td><td>Your own moves in human vs. human and human vs. engine games</td></tr>
-<tr><td><strong>Engine move</strong></td><td>Plays</td><td>Engine moves in human vs. engine and engine vs. engine games</td></tr>
-<tr><td><strong>Network game (CSA)</strong></td><td>Plays</td><td>Both your moves and your opponent's moves</td></tr>
-<tr><td><strong>Opening book move</strong></td><td>Plays</td><td>Moves played from the opening book window count as board moves</td></tr>
-<tr><td><strong>Record playback and branch navigation</strong></td><td>Silent</td><td>Stepping through a loaded game record</td></tr>
-<tr><td><strong>Position editing, analysis, consideration</strong></td><td>Silent</td><td>Rearranging pieces or displaying positions during engine analysis</td></tr>
-</tbody>
-</table>
-<p class="guide-step-text">The sound was designed from an analysis of real boxwood pieces striking a kaya board. Playback uses Qt Multimedia through the operating system's default audio output.</p>
-</div>
-</div>
-</div>
+
+<!-- Section 3 -->
+<section id="when" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">When the Piece Sound Plays</h2>
+        <p class="section-desc">It plays when a piece moves on the board in a game, not while browsing a game record or editing a position</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Situation</th><th scope="col">Sound</th><th scope="col">Notes</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Human move</strong></td><td>Plays</td><td>Your moves in human vs. human and human vs. engine games</td></tr>
+                        <tr><td><strong>Engine move</strong></td><td>Plays</td><td>Engine moves in human vs. engine and engine vs. engine games</td></tr>
+                        <tr><td><strong>Network game (CSA)</strong></td><td>Plays</td><td>Both your moves and your opponent's moves</td></tr>
+                        <tr><td><strong>Opening book move</strong></td><td>Plays</td><td>Moves played from the <a href="joseki.html">Opening Book Window</a> count as board moves</td></tr>
+                        <tr><td><strong><a href="tsume-play.html">Tsume shogi play</a></strong></td><td>Plays</td><td>Both your moves and the defender's replies. Replaying the moves with the Solution button is silent</td></tr>
+                        <tr><td><strong>Game record playback and branch switching</strong></td><td>Silent</td><td>Moving forward or back through a loaded game record</td></tr>
+                        <tr><td><strong>Position editing, analysis, consideration, and mate search</strong></td><td>Silent</td><td>Rearranging pieces or showing engine lines</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">The sound was synthesized to match an analysis of recorded piece sounds. It plays through Qt Multimedia on the operating system's default audio output.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
 </main>
+
+<!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
+<!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
