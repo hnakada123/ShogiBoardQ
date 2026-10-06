@@ -257,13 +257,21 @@ private slots:
         const auto cleanup = qScopeGuard([&appDir] {
             QDir(appDir.filePath(QStringLiteral("licenses"))).removeRecursively();
         });
-        for (const auto& [name, text] : {std::pair{"NOTICE.md", "# Notice\n"},
-                                         std::pair{"THIRD-PARTY-NOTICES.md", "# Bundled library licenses\n\n## openssl 3.6.0-1\n"}}) {
+        // 拡張子のない本文にも、改行や <…> をそのまま含める。
+        const QByteArray license = "Copyright <authors@example.org>\n\n  Indented line\n";
+        QVERIFY(appDir.mkpath(QStringLiteral("licenses/third-party/openssl")));
+        for (const auto& [name, text] : {std::pair{"NOTICE.md", QByteArray("# Notice\n")},
+                                         std::pair{"THIRD-PARTY-NOTICES.md", QByteArray(
+                                             "# Bundled library licenses\n\n## openssl 3.6.0-1\n\n"
+                                             "- License texts: [third-party/openssl/LICENSE](third-party/openssl/LICENSE)\n")},
+                                         std::pair{"third-party/openssl/LICENSE", license}}) {
             QFile file(appDir.filePath(QStringLiteral("licenses/") + QLatin1String(name)));
             QVERIFY(file.open(QIODevice::WriteOnly));
             file.write(text);
         }
         VersionDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         auto* documents = dialog.findChild<QComboBox*>(QStringLiteral("licenseDocuments"));
         auto* browser = dialog.findChild<QTextBrowser*>(QStringLiteral("licenseBrowser"));
         QVERIFY(documents && browser);
@@ -271,6 +279,15 @@ private slots:
         QCOMPARE(documents->count(), 5);
         QCOMPARE(documents->itemText(4), QStringLiteral("同梱ライブラリのライセンス一覧"));
         documents->setCurrentIndex(4);
+        QVERIFY(browser->toPlainText().contains(QStringLiteral("openssl 3.6.0-1")));
+
+        // 一覧のリンク（licenses 内の相対パス）から本文を開ける。起動時のフォルダには依存しない。
+        browser->setFocus();
+        QTest::keyClick(browser, Qt::Key_Tab);
+        QTest::keyClick(browser, Qt::Key_Return);
+        QCOMPARE(browser->toPlainText(), QString::fromUtf8(license));
+        // 同じ項目を選び直すと一覧に戻る。
+        documents->activated(4);
         QVERIFY(browser->toPlainText().contains(QStringLiteral("openssl 3.6.0-1")));
         documents->setCurrentIndex(0);
         QVERIFY(browser->toPlainText().startsWith(QStringLiteral("Notice")));
