@@ -3,6 +3,9 @@
 
 #include "clicommands.h"
 
+#include "applicationfonts.h"
+#include "applicationtranslations.h"
+#include "appsettings.h"
 #include "boardimagerenderer.h"
 #include "cliargs.h"
 #include "clioutput.h"
@@ -196,6 +199,11 @@ int CliCommands::renderBoard(const QStringList& args)
     options.lastMoveUsi = parser.value(QStringLiteral("last-move"));
     options.blackName = parser.value(QStringLiteral("black-name"));
     options.whiteName = parser.value(QStringLiteral("white-name"));
+
+    // 「手番」などの表示・段の表記（一〜九／a〜i）・書体を、GUI と同じ表示言語と棋譜表記の設定に合わせる。
+    // ほかのコマンドの出力（JSON・棋譜の形式）は言語に依存させないため、盤面描画のときだけ適用する。
+    const ApplicationTranslations translations;
+    ApplicationFonts::initialize(AppSettings::uiFontFamily(), translations.language());
 
     QSize size;
     if (!BoardImageRenderer::renderToFile(parser.value(QStringLiteral("sfen")), outputPath, options, &error, &size)) {

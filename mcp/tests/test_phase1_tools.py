@@ -106,6 +106,24 @@ async def test_render_board_image(server_env, tmp_path):
         assert data["width"] > 270 and data["height"] > 270
 
 
+async def test_render_board_image_follows_app_language(server_env, tmp_path):
+    """Labels such as the turn badge and the rank letters follow the language set in ShogiBoardQ."""
+    images = {}
+    for language in ("ja_JP", "en", "en"):
+        config = tmp_path / f"config-{language}"
+        (config / "ShogiBoardQ").mkdir(parents=True, exist_ok=True)
+        (config / "ShogiBoardQ" / "ShogiBoardQ.ini").write_text(f"[%General]\nlanguage={language}\n", encoding="utf-8")
+        env = dict(server_env, XDG_CONFIG_HOME=str(config))
+        out = tmp_path / f"board-{language}-{len(images)}.png"
+        async with mcp_session(env) as session:
+            text, _data, is_error = await _call(session, "render_board_image", sfen="startpos", output_path=str(out),
+                                                square_size=30)
+        assert not is_error, text
+        images.setdefault(language, []).append(out.read_bytes())
+    assert images["en"][0] == images["en"][1]  # deterministic for the same language
+    assert images["en"][0] != images["ja_JP"][0]  # "Turn" and ranks a-i instead of 手番 and 一-九
+
+
 async def test_analysis_job(server_env):
     if not os.environ.get("SHOGIBOARDQ_TEST_USI_ENGINE"):
         pytest.skip("SHOGIBOARDQ_TEST_USI_ENGINE is not set")

@@ -196,6 +196,7 @@ shogiboardq-cli <command> [options]
 - 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`position sfen ... moves ...` を組み立てる。
 - `--output` の既存ファイルは `--overwrite` が無ければ拒否する。ディレクトリ制限は MCP サーバー側で行う（CLI 単体では行わない）。
 - 長時間コマンドは `SIGTERM`/`SIGINT` でも停止処理（エンジンへの `quit`）を行って終了する（Windows は stdin の `stop` のみ）。
+- JSON の出力と棋譜の形式は表示言語に依存しない。`render-board` だけは、GUI と同じ表示言語・棋譜表記・書体の設定（`ApplicationTranslations`・`ApplicationFonts`）を描画前に適用し、「手番」などの表示と段の表記（一〜九／a〜i）を GUI に合わせる。
 
 ## 4. アプリ側自動化 API（--automation）
 

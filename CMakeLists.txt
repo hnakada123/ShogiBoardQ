@@ -207,8 +207,6 @@ set(UI_FILES
 set(SRC_APP
     src/app/applicationlogging.cpp
     src/app/applicationlogging.h
-    src/app/applicationtranslations.cpp
-    src/app/applicationtranslations.h
     src/app/commentcoordinator.cpp
     src/app/commentcoordinator.h
     src/app/dockcreationservice.cpp
@@ -907,6 +905,8 @@ set(SRC_SERVICES
     src/services/piecesoundtone.h
     src/services/analysissettings.cpp
     src/services/analysissettings.h
+    src/services/applicationtranslations.cpp
+    src/services/applicationtranslations.h
     src/services/appsettings.cpp
     src/services/appsettings.h
     src/services/docksettings.cpp
