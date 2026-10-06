@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多语言支持 - ShogiBoardQ</title>
+    <meta name="description" content="介绍 ShogiBoardQ 的多语言支持：日文、英文、中文（简体、繁体）界面，切换语言和棋谱记法的方法，以及棋谱数据的处理方式。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multilanguage.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multilanguage.html">
+    <meta property="og:title" content="多语言支持 - ShogiBoardQ">
+    <meta property="og:description" content="支持日文、英文、中文（简体、繁体）界面。可以在设置中切换语言和棋谱记法。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/multilanguage/main-screen.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="多语言支持 - ShogiBoardQ">
+    <meta name="twitter:description" content="支持日文、英文、中文（简体、繁体）界面。可以在设置中切换语言和棋谱记法。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/multilanguage/main-screen.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multilanguage.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/multilanguage.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/multilanguage.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/multilanguage.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="multilanguage.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/multilanguage.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#interfaces">各语言界面</a></li>
+            <li><a href="#how-to-switch">切换方法</a></li>
+            <li><a href="#notation">棋谱记法</a></li>
+            <li><a href="#record-data">棋谱原文</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>多语言支持</h1>
+        <p class="hero-subtitle">支持日文、英文、中文（简体／繁体）界面，可在设置中切换</p>
+        <div class="hero-badges">
+            <span class="badge" lang="ja">日本語</span>
+            <span class="badge" lang="en">English</span>
+            <span class="badge" lang="zh-Hans">简体中文</span>
+            <span class="badge" lang="zh-Hant">繁體中文</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="interfaces" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">各语言的界面</h2>
+        <p class="section-desc">每张截图都读取了同一份日文棋谱并正在研究</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">日本語（日文）</span>
+                </div>
+                <p class="guide-step-text">菜单、按钮、标签页等以日文显示。着法使用日文记法（如 ▲２六歩），棋盘的段为一〜九。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/multilanguage/main-screen.png"><img src="../../images/multilanguage/main-screen.png" alt="ShogiBoardQ 日文界面" width="1316" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">日文界面：读取日文棋谱并正在研究</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">English（英文）</span>
+                </div>
+                <p class="guide-step-text">菜单（File, Edit, View, Game, Settings, Help）和标签页名称（Game Info, Thinking, Consideration 等）以英文显示。着法使用西文记法（如 ▲P-2f），棋盘的段为 a〜i。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/multilanguage/main-screen.png"><img src="../../images/en/multilanguage/main-screen.png" alt="ShogiBoardQ 英文界面" width="1397" height="1000" loading="lazy"></a>
+                    <p class="screenshot-caption">英文界面：读取日文棋谱并正在研究</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">简体中文</span>
+                </div>
+                <p class="guide-step-text">菜单和标签页名称以简体中文显示。着法保留日文棋谱记法，棋子名称以及“同”“成”“打”等符号也使用日文写法。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-cn/multilanguage/main-screen.png"><img src="../../images/zh-cn/multilanguage/main-screen.png" alt="ShogiBoardQ 简体中文界面" width="1303" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">简体中文界面：读取日文棋谱并正在研究</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">繁體中文</span>
+                </div>
+                <p class="guide-step-text">菜单和标签页名称以繁体中文（台湾用语）显示。与简体中文相同，着法使用日文棋谱记法。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-tw/multilanguage/main-screen.png"><img src="../../images/zh-tw/multilanguage/main-screen.png" alt="ShogiBoardQ 繁体中文界面" width="1303" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">繁体中文界面：读取日文棋谱并正在研究</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="how-to-switch" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">切换语言的方法</h2>
+        <p class="section-desc">在“设置”→“语言”中选择界面语言</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">打开语言菜单</span>
+                </div>
+                <p class="guide-step-text">在菜单栏中选择“设置”→“语言”。日文界面中为“設定”→“言語設定”。</p>
+                <ul class="guide-step-text">
+                    <li>跟随系统设置：操作系统语言为日文时显示日文，为中文时显示简体或繁体中文，其他情况显示英文。</li>
+                    <li>日本語（日文）</li>
+                    <li>English（英文）</li>
+                    <li>简体中文</li>
+                    <li>繁體中文</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/multilanguage/language-menu.png"><img src="../../images/zh-cn/multilanguage/language-menu.png" alt="“设置”→“语言”菜单" width="583" height="256" loading="lazy"></a>
+                    <p class="screenshot-caption">“设置”→“语言”：当前语言带有 ● 标记</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">重新启动后生效</span>
+                </div>
+                <p class="guide-step-text">选择语言后会提示重新启动，重新启动程序后即以新的语言显示。菜单、对话框、标签页名称和按钮等全部界面都会切换为所选语言。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="notation" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">棋谱记法与棋盘坐标</h2>
+        <p class="section-desc">可以独立于界面语言选择着法的记法</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">选择“棋谱与棋盘坐标表示”</span>
+                </div>
+                <p class="guide-step-text">在“设置”→“棋谱与棋盘坐标表示”中选择。更改在重新启动后生效。</p>
+                <ul class="guide-step-text">
+                    <li>跟随界面语言：日文和中文界面使用日文记法，英文界面使用西文记法。</li>
+                    <li>日文记法（▲7六步；段为一至九）</li>
+                    <li>西文记法（▲P-7f；段为 a 至 i）</li>
+                    <li>西文记法始终显示起点：西文记法通常只在需要区分着法时显示起点。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/multilanguage/notation-menu.png"><img src="../../images/zh-cn/multilanguage/notation-menu.png" alt="“设置”→“棋谱与棋盘坐标表示”菜单" width="705" height="284" loading="lazy"></a>
+                    <p class="screenshot-caption">“设置”→“棋谱与棋盘坐标表示”</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">西文记法的读法</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>棋子：K=玉将、R=飞车、B=角行、G=金将、S=银将、N=桂马、L=香车、P=步兵。例：▲P-7f、△Bx8h+、▲P*5e。</li>
+                    <li>棋子名称前的 + 表示成驹；着法末尾的 + 表示升变，= 表示不成，x 表示吃子，* 表示打入持驹。[+] 表示棋谱的分支。</li>
+                    <li>筋为 1〜9，段为 a〜i（日文记法的段为一〜九）。翻转棋盘不会改变格子的坐标。</li>
+                    <li>起点始终可以在工具提示中确认。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">显示棋谱记法说明</span>
+                </div>
+                <p class="guide-step-text">选择“棋谱与棋盘坐标表示”→“棋谱记法说明…”，随时可以查看记法的说明。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/multilanguage/notation-help.png"><img src="../../images/zh-cn/multilanguage/notation-help.png" alt="棋谱记法说明" width="645" height="251" loading="lazy"></a>
+                    <p class="screenshot-caption">“棋谱记法说明…”的内容</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="record-data" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">棋谱原文与保存格式</h2>
+        <p class="section-desc">即使更改语言或记法，棋谱数据本身也不会改变</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">对局信息保持原文</span>
+                </div>
+                <p class="guide-step-text">对局者名称、赛事名称、注释和未知项目不翻译，按原文显示。对局信息中已知的项目名、让子以及用时规则的“不限时”等只在显示时翻译，编辑时使用原来的字符串。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/multilanguage/game-info.png"><img src="../../images/zh-cn/multilanguage/game-info.png" alt="对局信息（项目名已翻译，对局者名称和赛事名称为原文）" width="720" height="420" loading="lazy"></a>
+                    <p class="screenshot-caption">对局信息：项目名和让子已翻译，对局者名称和赛事名称保持原文</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">保存格式通用</span>
+                </div>
+                <p class="guide-step-text">无论哪种语言，保存和复制棋谱都使用 KIF、KI2、CSA、JKF、USI、USEN 各格式。KIF 和 KI2 的着法以日文输出。没有西文记法专用的保存格式。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
