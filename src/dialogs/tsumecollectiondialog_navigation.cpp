@@ -217,6 +217,7 @@ void TsumeCollectionDialog::startProblem()
         m_play = &play;
         connect(&play, &TsumePlayDialog::previousProblemRequested, this, &TsumeCollectionDialog::playPreviousProblem);
         connect(&play, &TsumePlayDialog::nextProblemRequested, this, &TsumeCollectionDialog::playNextProblem);
+        connect(&play, &TsumePlayDialog::movePlayed, this, &TsumeCollectionDialog::movePlayed);
         playProblemAt(position, m_timeout->value());
         play.exec();
         m_play = nullptr;

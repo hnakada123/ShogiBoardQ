@@ -49,7 +49,7 @@ TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     m_view->setSquareSize(std::clamp(preferences.squareSize, 20, 150));
     m_boardRotated = preferences.boardRotated;
     updateTimeLimit();
-    connect(m_session, &TsumeGameSession::positionChanged, this, &TsumePlayDialog::updatePosition);
+    connect(m_session, &TsumeGameSession::positionChanged, this, &TsumePlayDialog::onSessionPositionChanged);
     connect(m_session, &TsumeGameSession::stateChanged, this, &TsumePlayDialog::updateState);
     connect(m_session, &TsumeGameSession::finished, this, &TsumePlayDialog::showOutcome);
     connect(m_session, &TsumeGameSession::moveRejected, this, &TsumePlayDialog::rejectMove);
@@ -393,6 +393,13 @@ void TsumePlayDialog::updatePosition(const QString& sfen, const QString& move)
         if (from && to) m_interaction->showMoveHighlights({from->file, from->rank}, {to->file, to->rank});
     }
     m_view->update();
+}
+
+void TsumePlayDialog::onSessionPositionChanged(const QString& sfen, const QString& move)
+{
+    updatePosition(sfen, move);
+    // 指し手のない通知は開始・待ったなどの局面の置き換えなので鳴らさない
+    if (!move.isEmpty()) emit movePlayed();
 }
 
 void TsumePlayDialog::updateState()
