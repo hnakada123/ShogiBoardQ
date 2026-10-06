@@ -26,7 +26,8 @@ set -euo pipefail
 # ──────────────────────────────────────────────
 
 APP_NAME="ShogiBoardQ"
-BUILD_DIR="build"
+# ビルドディレクトリ（コンテナでのビルドなど、普段の build と分けるときは SHOGIBOARDQ_BUILD_DIR で指定する）
+BUILD_DIR="${SHOGIBOARDQ_BUILD_DIR:-build}"
 APPDIR="${BUILD_DIR}/AppDir"
 APPIMAGE_NAME="${APP_NAME}-linux-x86_64.AppImage"
 PACKAGE_DIR="${BUILD_DIR}/${APP_NAME}-linux"
@@ -429,7 +430,7 @@ info "Qt・同梱ライブラリのライセンスと対応ソース情報を同
 # qtwayland: Qt 6.9 以前は日本語入力（fcitx5）が使う Qt Wayland Client がこのモジュールにある。
 # qttranslations: 標準ダイアログの訳（qtbase_*.qm）を実行ファイルに内蔵している。
 python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
-    --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
+    --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-${BUILD_DIR}/qt-licenses}" \
     --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ" \
     --modules qtbase qtcharts qtmultimedia qtsvg qttranslations qtwayland
 # Qt 以外の同梱ライブラリ（Arch Linux のパッケージ）のライセンス本文と一覧。
