@@ -198,6 +198,7 @@ private:
      * @brief 全ボタンのサイズを更新
      */
     void updateAllButtonSizes();
+    void equalizeButtonHeights();
 
     // UI要素
     QTabWidget* m_tabWidget = nullptr;

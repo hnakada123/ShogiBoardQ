@@ -66,6 +66,12 @@ public:
      */
     void updateSizes(int buttonSize, int fontSize, int iconSize);
 
+    /// 文字を全文収めるのに必要な高さ（行の高さを揃える前の値）
+    int naturalHeight() const { return m_naturalHeight; }
+
+    /// 同じタブのボタンと高さを揃える（文字の行数が違っても、ボタンの下端とアイコンの位置を揃える）
+    void setRowHeight(int height);
+
 signals:
     /**
      * @brief アクションがトリガーされたときのシグナル
@@ -137,6 +143,8 @@ private:
     // サイズ設定（動的に変更可能）
     int m_buttonWidth = 104;
     int m_buttonHeight = 96;
+    int m_naturalHeight = 96;
+    int m_rowHeight = 0;
     int m_buttonSize = 104;
     int m_iconSize = 24;
     int m_fontSize = 12;

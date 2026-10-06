@@ -11,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QCloseEvent>
 #include <QFrame>
+#include <QHash>
 #include <QLabel>
 #include <QLineEdit>
 #include <QSignalBlocker>
@@ -206,8 +207,8 @@ QScrollArea* MenuWindow::createCategoryTab(const CategoryInfo& category, bool is
     auto* emptyLabel = new QLabel(page);
     emptyLabel->setObjectName(QStringLiteral("menuEmptyMessage"));
     emptyLabel->setWordWrap(true);
-    emptyLabel->setContentsMargins(12, 16, 12, 16);
-    emptyLabel->setStyleSheet(QStringLiteral("color: #596b7b;"));
+    // スタイルシートを持つラベルは setContentsMargins が上書きされるため、余白も padding で指定する
+    emptyLabel->setStyleSheet(QStringLiteral("QLabel { color: #596b7b; padding: 16px 12px; }"));
     pageLayout->addWidget(emptyLabel);
 
     auto* container = new QWidget(page);
@@ -290,6 +291,21 @@ void MenuWindow::populateButtons(FlowLayout* layout, const QList<QAction*>& acti
         connect(button, &MenuButtonWidget::dropReceived, this, &MenuWindow::onFavoriteReordered);
         layout->addWidget(button);
         m_allButtons.append(button);
+    }
+    equalizeButtonHeights();
+}
+
+void MenuWindow::equalizeButtonHeights()
+{
+    // タブ（ボタンを並べる領域）ごとに、最も行数の多いボタンの高さへ揃える
+    QHash<QWidget*, int> heights;
+    for (MenuButtonWidget* button : std::as_const(m_allButtons)) {
+        if (!button) continue;
+        int& height = heights[button->parentWidget()];
+        height = qMax(height, button->naturalHeight());
+    }
+    for (MenuButtonWidget* button : std::as_const(m_allButtons)) {
+        if (button) button->setRowHeight(heights.value(button->parentWidget()));
     }
 }
 
@@ -416,6 +432,7 @@ void MenuWindow::updateAllButtonSizes()
             btn->updateSizes(m_buttonSize, m_fontSize, m_iconSize);
         }
     }
+    equalizeButtonHeights();
     m_buttonSizeDecreaseBtn->setEnabled(m_buttonSize > kMinButtonSize);
     m_buttonSizeIncreaseBtn->setEnabled(m_buttonSize < kMaxButtonSize);
     m_fontSizeDecreaseBtn->setEnabled(m_fontSize > kMinFontSize);

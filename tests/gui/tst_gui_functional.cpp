@@ -3937,7 +3937,11 @@ private slots:
         dock->raise();
         auto* tabs = menu->findChild<QTabWidget*>(); QVERIFY(tabs); QCOMPARE(tabs->count(), 7);
         MenuButtonWidget* flip = nullptr;
-        for (auto* b : menu->findChildren<MenuButtonWidget*>()) if (b->actionName() == "actionFlipBoard") flip = b;
+        for (auto* b : menu->findChildren<MenuButtonWidget*>()) {
+            // 保存済みレイアウトが無いときの押せない仮項目はボタンにしない
+            QVERIFY(b->actionName() != QStringLiteral("actionSavedLayoutsPlaceholder"));
+            if (b->actionName() == "actionFlipBoard") flip = b;
+        }
         QVERIFY(flip);
         for (int i = 0; i < tabs->count(); ++i) if (tabs->tabText(i).contains(QStringLiteral("表示"))) tabs->setCurrentIndex(i);
         auto* button = flip->findChild<QPushButton*>(); QVERIFY(button);
