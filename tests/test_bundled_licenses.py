@@ -18,7 +18,7 @@ class FakeSystem:
         self.packages = packages
         self.spdx = root / "spdx"
         self.spdx.mkdir()
-        for name in ("LGPL-2.1-or-later", "GPL-2.0-or-later", "LGPL-3.0-or-later"):
+        for name in ("LGPL-2.1-or-later", "GPL-2.0-or-later", "LGPL-3.0-or-later", "GPL-3.0-or-later"):
             (self.spdx / f"{name}.txt").write_text(f"{name} text\n")
 
     def host_path(self, path, appdir):
@@ -74,7 +74,8 @@ class BundledLicensesTest(unittest.TestCase):
         path.write_bytes(b"\x7fELF")
 
     def stage(self):
-        return bundled.stage(self.appdir, self.destination, FakeSystem(self.root, self.packages))
+        return bundled.stage(self.appdir, self.destination, FakeSystem(self.root, self.packages),
+                             extra_texts=self.root / "extra")
 
     def test_notices_cover_every_bundled_package_except_qt(self):
         # 以前の配置に含まれていたライブラリの文書は残さない。
@@ -102,6 +103,45 @@ class BundledLicensesTest(unittest.TestCase):
             target = link.split(")")[0]
             if not target.startswith("https://"):
                 self.assertTrue((self.destination / target).is_file(), target)
+
+    def test_legacy_license_fields_of_archived_packages(self):
+        # 古いリポジトリの非 SPDX の表記は、元の表記と一致するときだけ補正し、本文を入れる。
+        self.packages["libpulse"] = {"version": "17.0-3", "license": "LGPL", "files": ["libpulse.so.0"]}
+        self.packages["gcc-libs"] = {"version": "14.1.1-1", "license": "GPL-3.0-with-GCC-exception  GFDL-1.3-or-later",
+                                     "files": ["libgomp.so.1"], "texts": ["RUNTIME.LIBRARY.EXCEPTION"]}
+        path = self.root / "pkg/gcc-libs/RUNTIME.LIBRARY.EXCEPTION"
+        path.parent.mkdir(parents=True)
+        path.write_text("GCC exception\n")
+        self.add("lib", "libpulse.so.0")
+        self.add("lib", "libgomp.so.1")
+        self.stage()
+        index = (self.destination / "THIRD-PARTY-NOTICES.md").read_text()
+        self.assertIn("## libpulse 17.0-3\n\n- Files: `libpulse.so.0`\n- License: LGPL-2.1-or-later", index)
+        self.assertIn("- License: GPL-3.0-or-later WITH GCC-exception-3.1  GFDL-1.3-or-later", index)
+        self.assertTrue((self.destination / "third-party/spdx/GPL-3.0-or-later.txt").is_file())
+        self.assertEqual(bundled.license_expression("libpulse", "LGPL-2.1-or-later"), "LGPL-2.1-or-later")
+        self.assertEqual(bundled.license_expression("other", "LGPL"), "LGPL")
+
+    def test_missing_copyleft_text_prevents_packaging(self):
+        # パッケージ固有の文書があっても、GPL 系の本文が欠けていれば配布物を作らない。
+        self.packages["glib2"]["license"] = "BSD  GPL"
+        self.packages["glib2"]["texts"] = ["COPYING"]
+        path = self.root / "pkg/glib2/COPYING"
+        path.parent.mkdir(parents=True)
+        path.write_text("BSD\n")
+        with self.assertRaisesRegex(ValueError, "No license text for GPL of bundled package glib2"):
+            self.stage()
+
+    def test_extra_texts_supplement_package_texts(self):
+        notice = self.root / "extra/fcitx5-qt/BSD-3-Clause-notice.txt"
+        notice.parent.mkdir(parents=True)
+        notice.write_text("Copyright (c) 2012~2017 CSSlayer\n")
+        self.stage()
+        third_party = self.destination / "third-party/fcitx5-qt"
+        self.assertEqual(sorted(p.name for p in third_party.iterdir()),
+                         ["BSD-3-Clause-notice.txt", "BSD-3-Clause.txt"])
+        self.assertIn("(third-party/fcitx5-qt/BSD-3-Clause-notice.txt)",
+                      (self.destination / "THIRD-PARTY-NOTICES.md").read_text())
 
     def test_package_without_license_text_prevents_packaging(self):
         self.packages["glib2"]["license"] = "LicenseRef-Unknown"
