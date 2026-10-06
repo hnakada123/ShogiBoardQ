@@ -156,6 +156,9 @@ void DialogLaunchWiring::displayTsumeShogiSearchDialog()
 void DialogLaunchWiring::displayTsumePlayDialog()
 {
     TsumeCollectionDialog dialog(m_deps.parentWidget);
+    // 詰将棋対局の指し手でも、本譜の対局と同じ駒音を鳴らす（オフなら PieceSoundPlayer 側で鳴らない）
+    if (auto* player = m_deps.getPieceSoundPlayer ? m_deps.getPieceSoundPlayer() : nullptr)
+        connect(&dialog, &TsumeCollectionDialog::movePlayed, player, &PieceSoundPlayer::playMoveSound);
     dialog.exec();
 }
 

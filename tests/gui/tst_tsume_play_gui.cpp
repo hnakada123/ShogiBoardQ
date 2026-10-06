@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QSignalSpy>
 #include "appsettings.h"
 #include <QApplication>
 #include <QComboBox>
@@ -215,6 +216,8 @@ private slots:
         QVERIFY(view->flipMode());
         QCOMPARE(session->sfen(), initialSfen);
         window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-play.png"));
+        // 駒音用の通知は、攻め方と玉方の指し手ごとに出す（開始時の局面表示では出さない）。
+        QSignalSpy movesPlayed(&window, &TsumePlayDialog::movePlayed);
         // 回転した盤でも同じ座標の着手で最後まで解ける。
         clickMove(QStringLiteral("3c5c+"));
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
@@ -225,6 +228,7 @@ private slots:
         clickMove(QStringLiteral("4c4d"));
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Solved);
         QVERIFY(lastNotice.contains(QStringLiteral("正解")));
+        QCOMPARE(movesPlayed.count(), 5);
         dialog = nullptr;
     }
     void boardLayoutDuringMove_data()
@@ -463,6 +467,7 @@ private slots:
         const auto id = TsumeCollection::positionId(problem.sfen);
         QTest::qWait(50); // 文字サイズ変更後のレイアウトで両モードを撮影する。
         window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-play-before-solution.png"));
+        QSignalSpy movesPlayed(&window, &TsumePlayDialog::movePlayed);
         QTest::mouseClick(showSolution, Qt::LeftButton);
         QTRY_VERIFY(replay->available());
         QCOMPARE(replay->currentPly(), 0);
@@ -496,6 +501,7 @@ private slots:
         QCOMPARE(replay->currentPly(), 5);
         QVERIFY(!next->isEnabled() && !last->isEnabled());
         QVERIFY2(lastNotice.isEmpty(), qPrintable(lastNotice));
+        QCOMPARE(movesPlayed.count(), 0); // 正解手順の再生は棋譜の再生と同じく駒音を鳴らさない
         QCOMPARE(store.progress(id).attempts, 1);
         QCOMPARE(store.progress(id).solves, 0);
         window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-solution.png"));

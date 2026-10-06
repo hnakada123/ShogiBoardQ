@@ -28,6 +28,9 @@ public:
     explicit TsumeCollectionDialog(QWidget* parent = nullptr);
     ~TsumeCollectionDialog() override;
     bool loadFile(const QString& path);
+signals:
+    /// 詰将棋対局で指し手を盤に反映した（駒音を鳴らすため）
+    void movePlayed();
 protected:
     void done(int result) override;
     void resizeEvent(QResizeEvent* event) override;

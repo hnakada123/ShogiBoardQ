@@ -36,6 +36,8 @@ public:
 signals:
     void previousProblemRequested();
     void nextProblemRequested();
+    /// 対局中の攻め方・玉方の指し手を盤に反映した（駒音を鳴らすため。正解手順の再生では出さない）
+    void movePlayed();
 
 protected:
     void done(int result) override;
@@ -45,6 +47,7 @@ private slots:
     void selectProblem();
     void requestMove(const QPoint& from, const QPoint& to);
     void updatePosition(const QString& sfen, const QString& move);
+    void onSessionPositionChanged(const QString& sfen, const QString& move);
     void updateState();
     void showOutcome(TsumeGameSession::Outcome outcome, int remaining);
     void showPendingOutcome();
