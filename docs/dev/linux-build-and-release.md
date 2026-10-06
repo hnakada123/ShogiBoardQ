@@ -305,29 +305,35 @@ ShogiBoardQ-linux-x86_64.AppImage（単一実行ファイル）
           ├── plugins/
           │   ├── platforms/
           │   │   └── libqxcb.so          ← X11 プラットフォームプラグイン
-          │   ├── xcbglintegrations/      ← OpenGL 統合（GLX・EGL）
           │   ├── imageformats/
-          │   │   ├── libqsvg.so          ← SVG サポート
-          │   │   └── ...                 ← GIF・JPEG・ICO
+          │   │   ├── libqsvg.so          ← 駒・盤の SVG
+          │   │   ├── libqjpeg.so         ← 盤面画像の JPEG 保存
+          │   │   └── libqico.so          ← ウィンドウアイコン
           │   ├── iconengines/
           │   │   └── libqsvgicon.so      ← SVG アイコン
           │   ├── platforminputcontexts/  ← 日本語入力（compose・fcitx5・ibus）
           │   ├── platformthemes/
           │   │   └── libqxdgdesktopportal.so
-          │   ├── sqldrivers/
-          │   │   └── libqsqlite.so       ← 解答履歴・解析キャッシュ
-          │   └── tls/
-          │       ├── libqopensslbackend.so
-          │       └── libqcertonlybackend.so
+          │   └── sqldrivers/
+          │       └── libqsqlite.so       ← 解答履歴・解析キャッシュ
           └── share/
               ├── applications/shogiboardq.desktop
               ├── icons/hicolor/512x512/apps/shogiboardq.png
-              └── licenses/ShogiBoardQ/   ← Qt 文書・対応ソース情報（「バージョン情報」で表示）
+              └── licenses/ShogiBoardQ/   ← GPL・LGPL・Qt の著作権表示と第三者ライセンス、
+                                             対応ソースの案内（「バージョン情報」で表示）
 ```
 
 問題集（`data/tsumeshogi/`）、通常対局用 Hayanagi（`hayanagi`）、説明書（`docs/`）、
 問題集の検証記録（`validation_*.json`）は収録しない。詰将棋対局の Hayanagi はアプリ本体に
 組み込まれているため、AppImage 内に実行ファイルがなくても動作する。
+
+使わないプラグイン（OpenGL 統合の `xcbglintegrations`、通信暗号化の `tls`、GIF 画像）も収録しない。
+OpenGL を使う画面部品はなく、CSA 通信対局は暗号化しない TCP で、HTTPS 等の通信もしないため。
+
+Qt のライセンス文書は、同梱する Qt モジュール（qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・
+qtwayland）の分と、Qt ソース最上位の `LICENSES/`、それらの `qt_attribution.json` が参照する文書だけを収録する
+（約260ファイル）。WebEngine など配布しないモジュールの文書は入れない。詳細は
+[Qt 文書とリリース添付の方針](qt-licensing.md) を参照。
 
 ### 4.5 ZIP の構造と同梱ファイルの利用
 

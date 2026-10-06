@@ -265,9 +265,12 @@ info "PlugIns:    $(find "$APP_BUNDLE/Contents/PlugIns" -type f 2>/dev/null | wc
 
 info "Qt ライセンスと対応ソース情報を同梱中..."
 [[ -f "$APP_BUNDLE/Contents/PlugIns/sqldrivers/libqsqlite.dylib" ]] || die "SQLite ドライバーが配布物にありません。"
+# Qt の文書は同梱するモジュールの分だけ入れる。macdeployqt は Qt にある画像形式プラグインを
+# すべて配置し、qtimageformats が入っていればその分も含まれるため、そのモジュールの文書も入れる。
 python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
     --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
-    --destination "$APP_BUNDLE/Contents/Resources/licenses"
+    --destination "$APP_BUNDLE/Contents/Resources/licenses" \
+    --modules qtbase qtcharts qtmultimedia qtsvg qttranslations qtimageformats
 # 通常ビルド用の簡易文書より配布用の完全な文書を優先する。
 rm -rf "$APP_BUNDLE/Contents/MacOS/licenses"
 

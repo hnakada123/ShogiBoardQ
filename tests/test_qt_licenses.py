@@ -28,6 +28,13 @@ class QtLicensesTest(unittest.TestCase):
             "qt/qtbase/src/3rdparty/example/qt_attribution.json": json.dumps({
                 "Name": "Example", "LicenseFile": "../terms.txt", "Copyright": "Example authors"}),
             "qt/qtbase/src/3rdparty/terms.txt": "Permission and copyright notice\n",
+            "qt/LICENSES/BSD-3-Clause.txt": "Top-level BSD text\n",
+            # 配布しないモジュールの文書。参照先の一部は配布するモジュールから共有される。
+            "qt/qtwebengine/LICENSES/LGPL-3.0-only.txt": "WebEngine LGPL\n",
+            "qt/qtwebengine/src/3rdparty/chromium/LICENSE": "Chromium notice\n",
+            "qt/qtwebengine/src/shared/terms.txt": "Shared with a distributed module\n",
+            "qt/qtcharts/src/3rdparty/shared/qt_attribution.json": json.dumps({
+                "Name": "Shared", "LicenseFiles": ["../../../../qtwebengine/src/shared/terms.txt"]}),
         }
 
     def prepare(self):
@@ -41,13 +48,13 @@ class QtLicensesTest(unittest.TestCase):
                                    source_url="https://example.invalid/qt.tar.gz",
                                    provenance="Test fixture", output=self.output))
 
-    def stage(self, version="6.7.3", library_type="SHARED_LIBRARY"):
+    def stage(self, version="6.7.3", library_type="SHARED_LIBRARY", modules=("qtbase", "qtcharts")):
         build = self.root / "build"
         build.mkdir(exist_ok=True)
         (build / "qt-build.json").write_text(json.dumps({
             "qt_version": version, "qt_library_type": library_type}))
         (build / "CMakeCache.txt").write_text("")
-        qt.stage(SimpleNamespace(notices=self.output, build_dir=build,
+        qt.stage(SimpleNamespace(notices=self.output, build_dir=build, modules=list(modules),
                                  destination=self.root / "deploy/licenses"))
 
     def test_referenced_notice_preserved_and_sources_identified(self):
@@ -88,12 +95,47 @@ class QtLicensesTest(unittest.TestCase):
             self.assertEqual((destination / guide.name).read_bytes(), guide.read_bytes())
         del manifest["release_sources"]
         self.assertEqual(json.loads((destination / "QT-SOURCE.json").read_text()), manifest)
-        staged_inventory = json.loads((destination / "FILES.json").read_text())
-        for name, checksum in staged_inventory.items():
-            self.assertEqual(qt.digest(destination / name), checksum)
-            if name.startswith("qt/"):
-                self.assertEqual(checksum, inventory[name])
+        for path in (destination / "qt").rglob("*"):
+            if path.is_file():
+                name = path.relative_to(destination).as_posix()
+                self.assertEqual(qt.digest(path), inventory[name])
         self.assertIn("release_sources", json.loads((self.output / "QT-SOURCE.json").read_text()))
+
+    def test_only_distributed_modules_are_staged(self):
+        self.prepare()
+        destination = self.root / "deploy/licenses"
+        # 以前の配置（macOS のバンドルは残る）に含まれていたものは残さない。
+        (destination / "qt/qt/qtwebengine").mkdir(parents=True)
+        (destination / "qt/qt/qtwebengine/old.txt").write_text("stale")
+        (destination / "qt-sdk").mkdir()
+        (destination / "FILES.json").write_text("{}")
+        self.stage()
+        staged = sorted(p.relative_to(destination / "qt").as_posix()
+                        for p in (destination / "qt").rglob("*") if p.is_file())
+        self.assertEqual(staged, [
+            "qt/LICENSES/BSD-3-Clause.txt",
+            "qt/qtbase/LICENSES/GPL-3.0-only.txt",
+            "qt/qtbase/LICENSES/LGPL-3.0-only.txt",
+            "qt/qtbase/src/3rdparty/example/qt_attribution.json",
+            "qt/qtbase/src/3rdparty/terms.txt",
+            "qt/qtcharts/src/3rdparty/shared/qt_attribution.json",
+            # 配布するモジュールが参照する文書は、別モジュールの中でも残す。
+            "qt/qtwebengine/src/shared/terms.txt",
+        ])
+        index = (destination / "QT-NOTICES.md").read_text()
+        self.assertIn("qtbase, qtcharts", index)
+        self.assertNotIn("chromium", index)
+        self.assertEqual(index.count("- ["), len(staged))
+        for name in ("NOTICE.md", "SOURCE_CODE.md", "GPL-3.0.txt", "LGPL-3.0.txt",
+                     "QT-SOURCE.json", "BUILD.json"):
+            self.assertTrue((destination / name).is_file(), name)
+        self.assertFalse((destination / "FILES.json").exists())
+        self.assertFalse((destination / "qt-sdk").exists())
+
+    def test_missing_module_notices_prevent_packaging(self):
+        self.prepare()
+        with self.assertRaisesRegex(ValueError, "qtmultimedia"):
+            self.stage(modules=("qtbase", "qtmultimedia"))
 
     def test_changed_license_prevents_packaging(self):
         self.prepare()
