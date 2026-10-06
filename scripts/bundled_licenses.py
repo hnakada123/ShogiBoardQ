@@ -15,12 +15,32 @@ import re
 import shutil
 import subprocess
 
-# Arch のライセンス欄が SPDX 形式でないパッケージは、上流のヘッダーの表記で補う。
+# Arch のライセンス欄が SPDX 形式でないパッケージは、上流の表記で補う（libasyncns・libidn2 は上流の
+# ヘッダー、ほかは同じパッケージの 2026 年の Arch の表記）。古いリポジトリ（Arch Linux Archive）では
+# 表記が古いものが多い。キーは (パッケージ名, 元の表記) とし、表記が変わったら補正しない。
 LICENSE_OVERRIDES = {
-    "libasyncns": "LGPL-2.1-or-later",
-    "libidn2": "LGPL-3.0-or-later OR GPL-2.0-or-later",
+    ("libasyncns", "LGPL"): "LGPL-2.1-or-later",
+    ("libidn2", "GPL2  LGPL3"): "LGPL-3.0-or-later OR GPL-2.0-or-later",
+    ("fcitx5-qt", "GPL"): "LGPL-2.1-or-later  BSD-3-Clause  GPL-2.0-or-later",
+    ("keyutils", "GPL2  LGPL2.1"): "GPL-2.0-or-later  LGPL-2.1-or-later",
+    ("lame", "LGPL"): "LGPL-2.0-only",
+    ("libpulse", "LGPL"): "LGPL-2.1-or-later",
+    ("libunistring", "GPL"): "GPL-2.0-or-later  LGPL-3.0-or-later",
+    ("mpg123", "LGPL2.1"): "LGPL-2.1-only",
+    ("flac", "BSD  GPL"): "BSD-3-Clause  GPL-2.0-or-later",
+    ("gcc-libs", "GPL-3.0-with-GCC-exception  GFDL-1.3-or-later"):
+        "GPL-3.0-or-later WITH GCC-exception-3.1  GFDL-1.3-or-later",
 }
+# パッケージに含まれない文書（実際の著作権表示を付けた BSD の本文など）を、ここから加える。
+EXTRA_TEXTS = Path(__file__).resolve().parent / "license-texts"
+# GPL 系の本文はパッケージ固有の文書に含まれないことが多いので、共通の本文が見つからなければ止める。
+# 古い表記（GPL・GPL2・LGPL2.1 など）も対象にする。
+COPYLEFT = re.compile(r"(A|L)?GPL")
 OPERATORS = {"AND", "OR", "WITH"}
+
+
+def license_expression(name, field):
+    return LICENSE_OVERRIDES.get((name, field), field)
 
 
 def is_qt_package(name):
@@ -113,7 +133,7 @@ def bundled_files(appdir):
                   for p in usr.glob(pattern) if p.is_file())
 
 
-def stage(appdir, destination, system):
+def stage(appdir, destination, system, extra_texts=EXTRA_TEXTS):
     files = bundled_files(appdir)
     hosts = {path: system.host_path(path, appdir) for path in files}
     owners = system.owners(sorted(set(hosts.values())))
@@ -130,21 +150,28 @@ def stage(appdir, destination, system):
         if is_qt_package(name):
             continue
         info = system.package(name)
-        expression = LICENSE_OVERRIDES.get(name, info["license"])
+        expression = license_expression(name, info["license"])
         texts = []
-        for text in system.license_files(name):
+        extra = extra_texts / name
+        package_texts = list(system.license_files(name))
+        if extra.is_dir():
+            package_texts += sorted(p for p in extra.iterdir() if p.is_file())
+        for text in package_texts:
             target = third_party / name / text.name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(text, target)
             texts.append(target)
         for identifier in license_ids(expression):
             text = system.spdx_text(identifier)
+            if not text and COPYLEFT.match(identifier):
+                raise ValueError(f"No license text for {identifier} of bundled package {name} ({expression})")
             if text:
                 # 共通のライセンス本文は spdx/ に1つだけ置き、各ライブラリから参照する。
                 target = third_party / "spdx" / text.name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(text, target)
-                texts.append(target)
+                if target not in texts:
+                    texts.append(target)
         if not texts:
             raise ValueError(f"No license text for bundled package {name} ({expression})")
         links = ", ".join(f"[{p.relative_to(destination).as_posix()}]({p.relative_to(destination).as_posix()})"
