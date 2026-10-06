@@ -69,6 +69,48 @@ def is_notice(path):
             or "LICENSES" in path.parts or name == "qt_attribution.json")
 
 
+def attribution_references(path, data):
+    """Return the license files referenced by a qt_attribution.json at archive path ``path``."""
+    # Some upstream attribution strings contain literal line breaks.
+    # Preserve their original bytes; accept those strings when finding references.
+    try:
+        entries = json.loads(data, strict=False)
+    except ValueError as error:
+        raise ValueError(f"Invalid attribution metadata in {path}: {error}") from error
+    if isinstance(entries, dict):
+        entries = [entries]
+    references = set()
+    for entry in entries:
+        license_files = entry.get("LicenseFiles", entry.get("LicenseFile", []))
+        if isinstance(license_files, str):
+            license_files = [license_files]
+        for license_file in license_files:
+            # Upstream metadata uses ../ for licenses shared by components.
+            parts = list(path.parent.parts)
+            ref = PurePosixPath(license_file)
+            if ref.is_absolute() or "\\" in license_file or ":" in license_file:
+                raise ValueError(f"Unsafe LicenseFile: {license_file}")
+            for part in ref.parts:
+                if part == "..":
+                    if len(parts) <= 1:
+                        raise ValueError(f"LicenseFile escapes archive: {license_file}")
+                    parts.pop()
+                else:
+                    parts.append(part)
+            references.add(PurePosixPath(*parts))
+    return references
+
+
+def notice_index(output, files, description):
+    """Markdown list of the Qt notice files shown by the About dialog."""
+    index = "# Qt license and attribution files\n\n"
+    index += "Texts are copied unchanged from the identified Qt source archive.\n"
+    index += description + "\n\n"
+    index += "\n".join(f"- [{p.relative_to(output).as_posix()}]({quote(p.relative_to(output).as_posix())})"
+                       for p in files) + "\n"
+    return index
+
+
 def prepare(args):
     """Keep upstream texts byte-for-byte, including licenses referenced by metadata."""
     if args.output.exists():
@@ -107,32 +149,7 @@ def prepare(args):
                 destination.write_bytes(data)
                 copied_files.add(path)
                 if path.name == "qt_attribution.json":
-                    # Some upstream attribution strings contain literal line breaks.
-                    # Preserve their original bytes; accept those strings when finding references.
-                    try:
-                        entries = json.loads(data, strict=False)
-                    except ValueError as error:
-                        raise ValueError(f"Invalid attribution metadata in {path}: {error}") from error
-                    if isinstance(entries, dict):
-                        entries = [entries]
-                    for entry in entries:
-                        license_files = entry.get("LicenseFiles", entry.get("LicenseFile", []))
-                        if isinstance(license_files, str):
-                            license_files = [license_files]
-                        for license_file in license_files:
-                            # Upstream metadata uses ../ for licenses shared by components.
-                            parts = list(path.parent.parts)
-                            ref = PurePosixPath(license_file)
-                            if ref.is_absolute() or "\\" in license_file or ":" in license_file:
-                                raise ValueError(f"Unsafe LicenseFile: {license_file}")
-                            for part in ref.parts:
-                                if part == "..":
-                                    if len(parts) <= 1:
-                                        raise ValueError(f"LicenseFile escapes archive: {license_file}")
-                                    parts.pop()
-                                else:
-                                    parts.append(part)
-                            required_files.add(PurePosixPath(*parts))
+                    required_files |= attribution_references(path, data)
         if not version_found:
             raise ValueError("Source archive is missing qtbase/.cmake.conf")
         missing = required_files - copied_files
@@ -156,19 +173,43 @@ def prepare(args):
             "sha256": checksum, "source_url": args.source_url,
             "provenance": args.provenance,
         })
-        files = sorted((output / "qt").rglob("*"))
-        index = "# Qt license and attribution files\n\n"
-        index += "Texts are copied unchanged from the identified Qt source archive.\n"
-        index += "This inventory includes components not necessarily enabled in this build.\n\n"
-        index += "\n".join(f"- [{p.relative_to(output).as_posix()}]({quote(p.relative_to(output).as_posix())})"
-                           for p in files if p.is_file()) + "\n"
-        (output / "QT-NOTICES.md").write_text(index, encoding="utf-8")
+        files = [p for p in sorted((output / "qt").rglob("*")) if p.is_file()]
+        (output / "QT-NOTICES.md").write_text(notice_index(
+            output, files, "This inventory includes components not necessarily enabled in this build."),
+            encoding="utf-8")
         write_json(output / "FILES.json", {
             p.relative_to(output).as_posix(): digest(p)
             for p in sorted(output.rglob("*")) if p.is_file()
         })
         shutil.move(str(output), args.output)
     print(f"Prepared {args.output}")
+
+
+def distributed_notices(qt_dir, modules):
+    """Notices of the distributed Qt modules, the top-level LICENSES and the files they reference.
+
+    Paths are relative to ``qt_dir`` as <archive root>/<module>/... . Notices of Qt modules
+    that are not distributed (e.g. Qt WebEngine) are left out.
+    """
+    selected = set()
+    found = set()
+    for file in qt_dir.rglob("*"):
+        if not file.is_file():
+            continue
+        path = PurePosixPath(file.relative_to(qt_dir).as_posix())
+        if len(path.parts) >= 3 and (path.parts[1] in modules or path.parts[1] == "LICENSES"):
+            selected.add(path)
+            found.add(path.parts[1])
+    missing_modules = [module for module in modules if module not in found]
+    if missing_modules:
+        raise ValueError("No Qt notices for distributed modules: " + ", ".join(missing_modules))
+    for path in list(selected):
+        if path.name == "qt_attribution.json":
+            for reference in attribution_references(path, (qt_dir / path).read_bytes()):
+                if not (qt_dir / reference).is_file():
+                    raise ValueError(f"Missing referenced license: {reference}")
+                selected.add(reference)
+    return sorted(selected)
 
 
 def stage(args):
@@ -191,35 +232,34 @@ def stage(args):
         relative_member(name)
         if digest(source / name) != checksum:
             raise ValueError(f"Notice changed since preparation: {name}")
-    shutil.copytree(source, args.destination, dirs_exist_ok=True)
+    notices = distributed_notices(source / "qt", args.modules)
+    # Replace what earlier staging left (macOS bundles persist between builds).
+    for stale in ("qt", "qt-sdk"):
+        shutil.rmtree(args.destination / stale, ignore_errors=True)
+    (args.destination / "FILES.json").unlink(missing_ok=True)
+    args.destination.mkdir(parents=True, exist_ok=True)
+    # The source inventory is only for the integrity check above; it is not distributed.
+    for name in inventory:
+        if "/" not in name and name != "FILES.json":
+            shutil.copyfile(source / name, args.destination / name)
+    for path in notices:
+        destination = args.destination / "qt" / path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source / "qt" / path, destination)
+    files = [args.destination / "qt" / path for path in notices]
+    (args.destination / "QT-NOTICES.md").write_text(notice_index(
+        args.destination, files,
+        "This inventory covers the Qt modules distributed with this build: " + ", ".join(args.modules) + "."),
+        encoding="utf-8")
     # Refresh our guides, including translations absent from older caches,
     # while preserving the verified Qt texts and source provenance.
     for guide in sorted((ROOT / "resources/licenses").glob("*.md")):
         shutil.copyfile(guide, args.destination / guide.name)
-        inventory[guide.name] = digest(args.destination / guide.name)
     manifest.pop("release_sources", None)
     write_json(args.destination / "QT-SOURCE.json", manifest)
-    inventory["QT-SOURCE.json"] = digest(args.destination / "QT-SOURCE.json")
-    write_json(args.destination / "FILES.json", inventory)
     shutil.copyfile(args.build_dir / "qt-build.json", args.destination / "BUILD.json")
-    # Record actual Qt SDK configuration alongside the source identification.
-    cache = (args.build_dir / "CMakeCache.txt").read_text(encoding="utf-8")
-    match = re.search(r"^Qt6_DIR:[^=]+=(.+)$", cache, re.MULTILINE)
-    if match:
-        qt_cmake = Path(match[1])
-        for name in ("Qt6ConfigVersion.cmake", "Qt6Config.cmake"):
-            candidate = qt_cmake / name
-            if candidate.is_file():
-                destination = args.destination / "qt-sdk" / name
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(candidate, destination)
-        # Installed features and build configuration help rebuild a compatible Qt.
-        for module in qt_cmake.parent.glob("Qt6*"):
-            for candidate in module.glob("*ConfigExtras.cmake"):
-                destination = args.destination / "qt-sdk" / candidate.name
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(candidate, destination)
-    print(f"Staged notices for Qt {build['qt_version']} in {args.destination}")
+    print(f"Staged notices for Qt {build['qt_version']} ({len(notices)} files from "
+          f"{', '.join(args.modules)}) in {args.destination}")
 
 
 def main():
@@ -241,6 +281,8 @@ def main():
     staging.add_argument("--build-dir", type=Path, default=Path("build"))
     staging.add_argument("--notices", type=Path, required=True)
     staging.add_argument("--destination", type=Path, required=True)
+    staging.add_argument("--modules", nargs="+", required=True,
+                         help="Qt source modules whose binaries are distributed, e.g. qtbase qtcharts")
     args = parser.parse_args()
     try:
         {"fetch": fetch, "prepare": prepare, "stage": stage}[args.command](args)

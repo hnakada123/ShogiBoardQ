@@ -273,11 +273,10 @@ link_plugins() {
 # platforms: X11 のみ
 link_plugins platforms libqxcb.so
 
-# xcbglintegrations: OpenGL 統合
-link_plugins xcbglintegrations libqxcb-glx-integration.so libqxcb-egl-integration.so
+# xcbglintegrations（OpenGL 統合）は同梱しない。OpenGL を使う画面部品（QOpenGLWidget 等）がないため。
 
-# imageformats: 将棋盤アプリに必要な最小限
-link_plugins imageformats libqgif.so libqjpeg.so libqsvg.so libqico.so
+# imageformats: 駒・盤の SVG、盤面画像の JPEG 保存、ウィンドウアイコンの ICO
+link_plugins imageformats libqjpeg.so libqsvg.so libqico.so
 
 # iconengines: SVG アイコン
 link_plugins iconengines libqsvgicon.so
@@ -291,8 +290,7 @@ link_plugins platforminputcontexts \
 # platformthemes: デスクトップ統合
 link_plugins platformthemes libqxdgdesktopportal.so
 
-# tls: ネットワーク通信用
-link_plugins tls libqopensslbackend.so libqcertonlybackend.so
+# tls は同梱しない。CSA 通信対局は暗号化しない TCP で、HTTPS 等の通信もしないため。
 
 # 詰将棋の解答履歴・解析キャッシュ
 link_plugins sqldrivers libqsqlite.so
@@ -427,9 +425,13 @@ chmod +x "$APPDIR/AppRun"
 # クリーンアップ済みの AppDir をそのままパッケージングする appimagetool を使用
 info "Qt ライセンスと対応ソース情報を同梱中..."
 [[ -f "${APPDIR}/usr/plugins/sqldrivers/libqsqlite.so" ]] || die "SQLite ドライバーが配布物にありません。"
+# Qt の文書は同梱するモジュールの分だけ入れる（WebEngine など使わないモジュールの分は入れない）。
+# qtwayland: Qt 6.9 以前は日本語入力（fcitx5）が使う Qt Wayland Client がこのモジュールにある。
+# qttranslations: 標準ダイアログの訳（qtbase_*.qm）を実行ファイルに内蔵している。
 python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
     --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
-    --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ"
+    --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ" \
+    --modules qtbase qtcharts qtmultimedia qtsvg qttranslations qtwayland
 
 info "AppImage を生成中..."
 "$APPIMAGETOOL" "$APPDIR" "$APPIMAGE_NAME"

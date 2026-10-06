@@ -29,6 +29,23 @@ ShogiBoardQ は GPL-3.0 で配布する。Qt Charts のオープンソース版�
 Qt Base / Multimedia などは LGPLv3 または GPL。Qt 内の第三者コードには個別の
 条件があるため、LGPL の本文だけでなく元の著作権表示とライセンスも保持する。
 
+## 同梱する Qt 文書の範囲
+
+ライセンス上の義務は配布するコードに対して生じる。そのため配布物には、同梱する Qt モジュールの
+ライセンス・著作権表示・第三者コードの文書と、Qt ソース最上位の `LICENSES/`、それらの
+`qt_attribution.json` が参照する文書（別モジュール内のものを含む）だけを収録する。
+WebEngine・Qt 3D など配布しないモジュールの文書は入れない。`scripts/qt_licenses.py stage` の
+`--modules` で対象を指定し、指定したモジュールの文書がない場合は配布物を作らない。
+
+| 形式 | 対象モジュール |
+|---|---|
+| Linux AppImage | qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・qtwayland（Qt 6.9 以前は日本語入力が使う Qt Wayland Client がここにある） |
+| macOS .app | qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・qtimageformats（macdeployqt が画像形式プラグインを配置するため） |
+
+同梱するモジュールを増やしたとき（`find_package(Qt6 … COMPONENTS …)` やプラグインの追加）は、
+この表と各ビルドスクリプトの `--modules` も更新する。作業用一式の整合性検査に使う `FILES.json` は
+配布物に入れない。
+
 ## 利用者向けの表示
 
 「バージョン情報」に使用中／ビルド時の Qt バージョン、Qt の著作権表示、
@@ -55,8 +72,9 @@ https://download.qt.io/archive/qt/6.7/6.7.3/single/qt-everywhere-src-6.7.3.tar.x
 1. 完全な Qt ソースアーカイブを取得し、SHA-256 を検証する。
 2. アーカイブの `qtbase/.cmake.conf` でも版を確認する。
 3. ライセンス、著作権表示、`qt_attribution.json` とその参照文書を原文のまま抽出する。
-   使用しない Qt モジュールの文書も含む。ソースアーカイブは作業用に保持する。
+   この作業用の一式には使用しない Qt モジュールの文書も含む。ソースアーカイブは作業用に保持する。
 4. Linux / macOS の配布処理で Qt のビルド時バージョンと一致する文書を同梱する。Windows は外部文書の配置を行わない。
+   同梱するのは配布する Qt モジュールの文書だけ（下記「同梱する Qt 文書の範囲」）。
 5. 製品パッケージを `release-package-*` artifact に保存する。
 6. 公開ジョブは製品パッケージだけを取得し、上表の3ファイル名を明示して公開する。
    SHA256 と SBOM は CI の `release-verification` artifact に保存する。
