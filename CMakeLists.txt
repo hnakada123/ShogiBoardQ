@@ -743,6 +743,8 @@ set(SRC_WIDGETS
     src/widgets/considerationtabmanager.cpp
     src/widgets/considerationtabmanager.h
     src/widgets/considerationtabmanager_ui.cpp
+    src/widgets/countspinbox.cpp
+    src/widgets/countspinbox.h
     src/widgets/csalogpanel.cpp
     src/widgets/csalogpanel.h
     src/widgets/elidelabel.cpp

@@ -4,8 +4,8 @@
 #include "piecesoundsettingsdialog.h"
 #include "piecesoundplayer.h"
 #include "dialogfontscale.h"
+#include "countspinbox.h"
 #include <QSpinBox>
-#include <QSignalBlocker>
 
 #include <QDialogButtonBox>
 #include <QGridLayout>
@@ -27,7 +27,7 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
     , m_midSlider(makeGainSlider(PieceSoundTone::kMaxGainDb, this))
     , m_highSlider(makeGainSlider(PieceSoundTone::kMaxGainDb, this))
     , m_volumeValue(new QSpinBox(this))
-    , m_pitchValue(new QSpinBox(this))
+    , m_pitchValue(new CountSpinBox(tr(" 半音", "1 のとき"), tr(" 半音"), this))
     , m_lowValue(new QSpinBox(this))
     , m_midValue(new QSpinBox(this))
     , m_highValue(new QSpinBox(this))
@@ -112,14 +112,14 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
         QString suffix;
     } controls[] = {
         {m_volumeSlider, m_volumeValue, tr("音量"), QStringLiteral(" %")},
-        {m_pitchSlider, m_pitchValue, tr("音の高さ"), tr(" 半音")},
+        {m_pitchSlider, m_pitchValue, tr("音の高さ"), QString()},  // 単位は CountSpinBox が単数・複数で付け替える
         {m_lowSlider, m_lowValue, tr("低音"), QStringLiteral(" dB")},
         {m_midSlider, m_midValue, tr("中音"), QStringLiteral(" dB")},
         {m_highSlider, m_highValue, tr("高音"), QStringLiteral(" dB")},
     };
     for (const auto& control : controls) {
         control.input->setRange(control.slider->minimum(), control.slider->maximum());
-        control.input->setSuffix(control.suffix);
+        if (!control.suffix.isEmpty()) control.input->setSuffix(control.suffix);
         control.input->setKeyboardTracking(false);
         control.input->setObjectName(control.slider->objectName() + QStringLiteral("Value"));
         control.input->setAccessibleName(control.title);
@@ -236,8 +236,9 @@ void PieceSoundSettingsDialog::updateLabels()
     const QList<QPair<QSpinBox*, QSlider*>> controls{
         {m_volumeValue, m_volumeSlider}, {m_pitchValue, m_pitchSlider},
         {m_lowValue, m_lowSlider}, {m_midValue, m_midSlider}, {m_highValue, m_highSlider}};
+    // シグナルは止めない（音の高さの単位は valueChanged で単数・複数を切り替えるため）。
+    // 入力欄からスライダーへ同じ値が戻るだけなので、往復はしない。
     for (const auto& control : controls) {
-        const QSignalBlocker blocker(control.first);
         control.first->setValue(control.second->value());
     }
 }

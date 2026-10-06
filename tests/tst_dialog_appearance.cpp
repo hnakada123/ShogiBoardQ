@@ -262,6 +262,25 @@ private slots:
         }
     }
 
+    /// 音の高さが ±1 半音のときは英語の単位を単数形（1 semitone）にする
+    void soundPitchSingularUnit()
+    {
+        QTranslator translator;
+        QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_en.qm")));
+        qApp->installTranslator(&translator);
+        PieceSoundSettingsDialog dialog(nullptr);
+        auto* slider = dialog.findChild<QSlider*>(QStringLiteral("pieceSoundPitch"));
+        auto* input = dialog.findChild<QSpinBox*>(QStringLiteral("pieceSoundPitchValue"));
+        QVERIFY(slider && input);
+        const QList<QPair<int, QString>> cases{
+            {0, QStringLiteral("0 semitones")}, {1, QStringLiteral("1 semitone")},
+            {-1, QStringLiteral("-1 semitone")}, {2, QStringLiteral("2 semitones")}};
+        for (const auto& [value, text] : cases) {
+            slider->setValue(value);
+            QCOMPARE(input->text(), text);
+        }
+    }
+
     void footerReflowsWithoutHidingActions()
     {
         PieceSoundSettingsDialog dialog(nullptr);
