@@ -5,7 +5,10 @@
 #include "appsettings.h"
 
 #include <QAction>
+#include <QGuiApplication>
 #include <QMessageBox>
+#include <QScreen>
+#include <QWidget>
 
 LanguageController::LanguageController(QObject* parent)
     : QObject(parent)
@@ -149,7 +152,7 @@ void LanguageController::onOriginTriggered(bool enabled)
 
 void LanguageController::showNotationHelp()
 {
-    QMessageBox::information(m_parentWidget, tr("棋譜表記の読み方"),
+    QMessageBox box(QMessageBox::Information, tr("棋譜表記の読み方"),
         tr("表記設定は表示だけに適用されます。棋譜の保存形式は変わりません。\n\n"
            "英語表記：K=玉、R=飛、B=角、G=金、S=銀、N=桂、L=香、P=歩。\n"
            "駒名の前の + は成駒、手の末尾の + は成り、= は不成、x は駒取り、* は駒打ちです。\n"
@@ -157,5 +160,15 @@ void LanguageController::showNotationHelp()
            "移動元は区別が必要な場合に表示し、ツールチップでは常に確認できます。[+] は分岐を表します。\n\n"
            "日本語表記：同は直前と同じマス、成は成り、不成は成らない手、打は持ち駒を打つ手です。\n"
            "中国語の画面でも棋譜の駒名・記号は日本語表記を保持します。\n"
-           "盤の反転でマスの座標は変わりません。駒画像は外観設定で選択できます。"));
+           "盤の反転でマスの座標は変わりません。駒画像は外観設定で選択できます。"),
+        QMessageBox::Ok, m_parentWidget);
+    // QMessageBox の既定の幅（約 500px）では「*」と「は駒打ちです」のように記号と説明が別の行に分かれるため、
+    // 一番長い行が折り返さない幅にする（画面に収まる範囲で）
+    int widest = 0;
+    const QStringList lines = box.text().split(QLatin1Char('\n'));
+    for (const QString& line : lines) widest = qMax(widest, box.fontMetrics().horizontalAdvance(line));
+    if (const QScreen* screen = m_parentWidget ? m_parentWidget->screen() : QGuiApplication::primaryScreen())
+        widest = qMin(widest, screen->availableGeometry().width() * 2 / 3);
+    box.setStyleSheet(QStringLiteral("QLabel#qt_msgbox_label { min-width: %1px; }").arg(widest + 8));
+    box.exec();
 }

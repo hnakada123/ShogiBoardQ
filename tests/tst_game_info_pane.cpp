@@ -198,6 +198,22 @@ private slots:
         QVERIFY(!paste->isEnabled());
     }
 
+    /// 案内文がボタンの次の行に回っても、余白があれば1行で表示する
+    void editingHintStaysOnOneLine()
+    {
+        auto* status = m_container->findChild<QLabel*>(QStringLiteral("gameInfoEditing"));
+        auto* apply = m_container->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
+        QVERIFY(status && apply);
+        // QLabel は折り返し可能だと、平均文字幅の 20 字分より長い1行を短く折り返した幅を sizeHint にする。
+        // 訳文（英語など）と同じ程度の長さで確かめる。
+        status->setText(QStringLiteral("Double-click a value to edit the game information"));
+        const int textWidth = status->fontMetrics().horizontalAdvance(status->text());
+        m_container->resize(qMax(apply->mapTo(m_container.data(), QPoint()).x() + apply->width(), textWidth) + 40, 300);
+        QTRY_VERIFY(status->mapTo(m_container.data(), QPoint()).y() > apply->mapTo(m_container.data(), QPoint()).y());
+        QVERIFY(status->height() < 2 * status->fontMetrics().lineSpacing());
+        QVERIFY(status->width() >= status->fontMetrics().horizontalAdvance(status->text()));
+    }
+
     void pendingEditEnablesApplyAndEscapeClearsIt()
     {
         auto* apply = m_container->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
