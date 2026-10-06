@@ -16,6 +16,8 @@ env.update(XDG_CONFIG_HOME=str(audit / 'config'),
 names = sys.argv[1:] or [s.removesuffix('()') for s in subprocess.check_output(
     [str(audit / 'test-build/tst_gui_functional'), '-functions'], env=env, text=True).splitlines()
     if s.endswith('()')]
+# 駒の種類ごとに盤面を描く pieceVariants などは、既定の35秒では終わらない
+LONG_SCENARIOS = {'engineMemoryLifecycle': 180, 'pieceVariants': 300}
 results = []
 actions = set()
 for name in names:
@@ -33,7 +35,7 @@ for name in names:
             '-o', f'{logfile},txt', '-o', f'{xmlfile},junitxml'], env=env,
             stdout=stderr, stderr=stderr, start_new_session=True)
         try:
-            code = proc.wait(timeout=180 if name == 'engineMemoryLifecycle' else 35)
+            code = proc.wait(timeout=LONG_SCENARIOS.get(name, 35))
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
