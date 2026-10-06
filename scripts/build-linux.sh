@@ -423,7 +423,7 @@ chmod +x "$APPDIR/AppRun"
 # Step 8f: appimagetool で AppImage を生成
 # linuxdeploy --output appimage は依存ライブラリを再デプロイしてしまうため、
 # クリーンアップ済みの AppDir をそのままパッケージングする appimagetool を使用
-info "Qt ライセンスと対応ソース情報を同梱中..."
+info "Qt・同梱ライブラリのライセンスと対応ソース情報を同梱中..."
 [[ -f "${APPDIR}/usr/plugins/sqldrivers/libqsqlite.so" ]] || die "SQLite ドライバーが配布物にありません。"
 # Qt の文書は同梱するモジュールの分だけ入れる（WebEngine など使わないモジュールの分は入れない）。
 # qtwayland: Qt 6.9 以前は日本語入力（fcitx5）が使う Qt Wayland Client がこのモジュールにある。
@@ -432,6 +432,10 @@ python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
     --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
     --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ" \
     --modules qtbase qtcharts qtmultimedia qtsvg qttranslations qtwayland
+# Qt 以外の同梱ライブラリ（Arch Linux のパッケージ）のライセンス本文と一覧。
+# 「バージョン情報」の「同梱ライブラリのライセンス一覧」で表示する。
+python3 scripts/bundled_licenses.py --appdir "$APPDIR" --qt-plugins "$QT_PLUGINS_SRC" \
+    --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ"
 
 info "AppImage を生成中..."
 "$APPIMAGETOOL" "$APPDIR" "$APPIMAGE_NAME"

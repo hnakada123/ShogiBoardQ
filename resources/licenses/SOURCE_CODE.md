@@ -38,6 +38,14 @@ builds, also consult `provenance` for the supplier's patches and build instructi
 On Linux these documents reside inside the AppImage at `usr/share/licenses/ShogiBoardQ/`;
 the outer ZIP has no `licenses/` directory.
 
+Linux の AppImage に同梱している Qt 以外のライブラリは、版、ライセンス、対応する
+ソースの取得先（Arch Linux のパッケージのソースと上流）を
+`licenses/THIRD-PARTY-NOTICES.md`（「同梱ライブラリのライセンス一覧」）に記載しています。
+
+For the non-Qt libraries bundled in the Linux AppImage, `licenses/THIRD-PARTY-NOTICES.md`
+("Bundled library licenses") lists their versions, licenses and corresponding source
+locations (the Arch Linux package sources and upstream).
+
 ## 再ビルド / Rebuilding
 
 ソースを取得し、対応する Qt と CMake、C++17 コンパイラを用意します。

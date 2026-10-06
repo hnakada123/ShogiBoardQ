@@ -7,6 +7,9 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME tst_qt_licenses
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_qt_licenses.py)
     set_tests_properties(tst_qt_licenses PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
+    add_test(NAME tst_bundled_licenses
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bundled_licenses.py)
+    set_tests_properties(tst_bundled_licenses PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
 endif()
 
 # Common source root

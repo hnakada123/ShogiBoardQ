@@ -3142,12 +3142,12 @@ ABC abc 0123456789</translation>
         <translation>将编辑后的对局信息应用于棋谱 (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="181"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="183"/>
         <source>未反映の変更があります</source>
         <translation>有尚未应用的修改</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="181"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="183"/>
         <source>内容をダブルクリックして編集</source>
         <translation>双击内容进行编辑</translation>
     </message>
@@ -5235,24 +5235,24 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>LanguageController</name>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="89"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="92"/>
         <source>言語設定</source>
         <translation>语言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="90"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="93"/>
         <source>設定を変更しました。
 変更を反映するにはアプリケーションを再起動してください。</source>
         <translation>设置已修改。
 请重新启动应用程序以应用设置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="152"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="155"/>
         <source>棋譜表記の読み方</source>
         <translation>棋谱记法说明</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="153"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="156"/>
         <source>表記設定は表示だけに適用されます。棋譜の保存形式は変わりません。
 
 英語表記：K=玉、R=飛、B=角、G=金、S=銀、N=桂、L=香、P=歩。
@@ -8525,12 +8525,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>题目 %1 — 正在验证诘棋手数…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="419"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="426"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>正在验证诘棋及防守着法…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="447"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="454"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>搜索尚未完成，您的着法未被判错。请增加时间后重试。</translation>
     </message>
@@ -8561,57 +8561,57 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>不成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="412"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="419"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>题目 %1 — %2 手诘／防守：Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="417"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="424"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>轮到您行棋。请在剩余 %1 手内完成诘棋。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="420"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="427"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>搜索已暂停。请增加搜索时间后重试，或撤销上一手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="423"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="430"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>已解答／尝试 %1 次，解答 %2 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="424"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="431"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>未解答／尝试 %1 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="425"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="432"/>
         <source>履歴を保存できません: %1</source>
         <translation>无法保存进度：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="437"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>正确！您已将死防守方玉将。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="451"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>此应手可避免诘棋，无法通过连续王手强制将死。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="445"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="452"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>此应手可避免在剩余 %1 手内被将死。请撤销上一手后重试。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="450"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="457"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>此局面无法通过连续王手强制将死。请选择其他题目。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="473"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="480"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>请走合法的王手。禁止二步、打步诘及己方玉将仍被王手的着法。</translation>
     </message>
@@ -9511,43 +9511,48 @@ Qt Charts: GPLv3 / その他の Qt: LGPLv3・GPL</source>
 Qt Charts：GPLv3／其他 Qt 模块：LGPLv3 / GPL</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="51"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="54"/>
         <source>ライセンス・著作権表示</source>
         <translation>许可证与版权声明</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="51"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="55"/>
         <source>GNU GPL v3</source>
         <translation>GNU GPL v3</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="52"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="56"/>
         <source>GNU LGPL v3</source>
         <translation>GNU LGPL v3</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="52"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="57"/>
         <source>ソースコードの入手方法</source>
         <translation>获取源代码</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="54"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="61"/>
         <source>Qt 内の第三者ライセンス一覧</source>
         <translation>Qt 中的第三方许可证</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="56"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="64"/>
+        <source>同梱ライブラリのライセンス一覧</source>
+        <translation>随附库的许可证</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="66"/>
         <source>ライセンス文書</source>
         <translation>许可证文档</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="80"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="53"/>
         <source>NOTICE.md</source>
         <extracomment>Bundled document filename. Use the translated NOTICE_&lt;language&gt;.md file.</extracomment>
         <translation>NOTICE_zh_CN.md</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="82"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="90"/>
         <source>SOURCE_CODE.md</source>
         <extracomment>Bundled document filename. Use the translated SOURCE_CODE_&lt;language&gt;.md file.</extracomment>
         <translation>SOURCE_CODE_zh_CN.md</translation>

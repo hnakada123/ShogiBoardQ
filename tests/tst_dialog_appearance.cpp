@@ -248,6 +248,34 @@ private slots:
         }
     }
 
+    void bundledLibraryNotices()
+    {
+        // 配布版の licenses に同梱ライブラリの一覧があるときだけ選択肢に出し、その文書を表示する。
+        const QDir appDir(QCoreApplication::applicationDirPath());
+        if (appDir.exists(QStringLiteral("licenses"))) QSKIP("licenses already exists beside the test executable");
+        QVERIFY(appDir.mkdir(QStringLiteral("licenses")));
+        const auto cleanup = qScopeGuard([&appDir] {
+            QDir(appDir.filePath(QStringLiteral("licenses"))).removeRecursively();
+        });
+        for (const auto& [name, text] : {std::pair{"NOTICE.md", "# Notice\n"},
+                                         std::pair{"THIRD-PARTY-NOTICES.md", "# Bundled library licenses\n\n## openssl 3.6.0-1\n"}}) {
+            QFile file(appDir.filePath(QStringLiteral("licenses/") + QLatin1String(name)));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(text);
+        }
+        VersionDialog dialog;
+        auto* documents = dialog.findChild<QComboBox*>(QStringLiteral("licenseDocuments"));
+        auto* browser = dialog.findChild<QTextBrowser*>(QStringLiteral("licenseBrowser"));
+        QVERIFY(documents && browser);
+        // Qt の一覧がない場合も、選択肢と表示する文書が対応する。
+        QCOMPARE(documents->count(), 5);
+        QCOMPARE(documents->itemText(4), QStringLiteral("同梱ライブラリのライセンス一覧"));
+        documents->setCurrentIndex(4);
+        QVERIFY(browser->toPlainText().contains(QStringLiteral("openssl 3.6.0-1")));
+        documents->setCurrentIndex(0);
+        QVERIFY(browser->toPlainText().startsWith(QStringLiteral("Notice")));
+    }
+
     void soundNumericInput()
     {
         PieceSoundSettingsDialog dialog(nullptr);

@@ -26,6 +26,15 @@ Third-party code inside Qt has separate licenses. Original license texts,
 copyright notices and attribution metadata are included in licenses/qt in
 binary distributions, and in the corresponding source archives.
 
+Linux の AppImage には、Qt のほかに Arch Linux のパッケージから取得したライブラリ
+（glib、PulseAudio、OpenSSL など）を同梱しています。各ライブラリにはそれぞれの
+ライセンスが適用されます。一覧と本文は「同梱ライブラリのライセンス一覧」
+（licenses/THIRD-PARTY-NOTICES.md）にあります。
+
+Besides Qt, the Linux AppImage bundles libraries from Arch Linux packages (such as
+glib, PulseAudio and OpenSSL), each under its own license. They are listed with their
+license texts in "Bundled library licenses" (licenses/THIRD-PARTY-NOTICES.md).
+
 Qt の改変、互換性のあるライブラリへの差し替え、およびそのデバッグに必要な
 リバースエンジニアリングを禁止する追加条件は設けていません。
 ソフトウェアは適用ライセンスの定める範囲で無保証です。

@@ -46,12 +46,22 @@ VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(std::make_un
     qtNotice->setAlignment(Qt::AlignCenter);
     ui->mainLayout->insertWidget(ui->mainLayout->count() - 1, qtNotice);
 
+    // 各項目には表示する文書のファイル名を持たせる。
     auto* documents = new QComboBox(this);
     documents->setObjectName(QStringLiteral("licenseDocuments"));
-    documents->addItems({tr("ライセンス・著作権表示"), tr("GNU GPL v3"),
-                         tr("GNU LGPL v3"), tr("ソースコードの入手方法")});
-    if (QFile::exists(licenseDirectory() + QStringLiteral("/QT-NOTICES.md"))) {
-        documents->addItem(tr("Qt 内の第三者ライセンス一覧"));
+    //: Bundled document filename. Use the translated NOTICE_<language>.md file.
+    const QString notice = tr("NOTICE.md");
+    documents->addItem(tr("ライセンス・著作権表示"), notice);
+    documents->addItem(tr("GNU GPL v3"), QStringLiteral("GPL-3.0.txt"));
+    documents->addItem(tr("GNU LGPL v3"), QStringLiteral("LGPL-3.0.txt"));
+    documents->addItem(tr("ソースコードの入手方法"), sourceCodeDocument());
+    // 配布版の licenses にだけある一覧は、文書があるときだけ選べるようにする。
+    const QString directory = licenseDirectory();
+    if (QFile::exists(directory + QStringLiteral("/QT-NOTICES.md"))) {
+        documents->addItem(tr("Qt 内の第三者ライセンス一覧"), QStringLiteral("QT-NOTICES.md"));
+    }
+    if (QFile::exists(directory + QStringLiteral("/THIRD-PARTY-NOTICES.md"))) {
+        documents->addItem(tr("同梱ライブラリのライセンス一覧"), QStringLiteral("THIRD-PARTY-NOTICES.md"));
     }
     documents->setAccessibleName(tr("ライセンス文書"));
     auto* browser = new QTextBrowser(this);
@@ -74,31 +84,31 @@ VersionDialog::~VersionDialog()
     AppSettings::setVersionDialogDocument(findChild<QComboBox*>(QStringLiteral("licenseDocuments"))->currentIndex());
 }
 
+QString VersionDialog::sourceCodeDocument()
+{
+    //: Bundled document filename. Use the translated SOURCE_CODE_<language>.md file.
+    return tr("SOURCE_CODE.md");
+}
+
 void VersionDialog::showLicenseDocument(int index)
 {
-    //: Bundled document filename. Use the translated NOTICE_<language>.md file.
-    const QString notice = tr("NOTICE.md");
-    //: Bundled document filename. Use the translated SOURCE_CODE_<language>.md file.
-    const QString sourceCode = tr("SOURCE_CODE.md");
-    const QStringList names{notice, QStringLiteral("GPL-3.0.txt"),
-                            QStringLiteral("LGPL-3.0.txt"), sourceCode,
-                            QStringLiteral("QT-NOTICES.md")};
-    if (index < 0 || index >= names.size()) return;
+    const QString name = findChild<QComboBox*>(QStringLiteral("licenseDocuments"))->itemData(index).toString();
+    if (name.isEmpty()) return;
     auto* browser = findChild<QTextBrowser*>(QStringLiteral("licenseBrowser"));
-    QString document = QStringLiteral(":/licenses/") + names.at(index);
+    QString document = QStringLiteral(":/licenses/") + name;
     const QString directory = licenseDirectory();
-    if (!directory.isEmpty() && QFile::exists(directory + QLatin1Char('/') + names.at(index))) {
-        document = directory + QLatin1Char('/') + names.at(index);
+    if (!directory.isEmpty() && QFile::exists(directory + QLatin1Char('/') + name)) {
+        document = directory + QLatin1Char('/') + name;
     }
     QFile file(document);
     if (!file.open(QIODevice::ReadOnly)) return;
     QString contents = QString::fromUtf8(file.readAll());
-    if (index == 3 && !directory.isEmpty()) {
-        for (const auto& name : {QStringLiteral("QT-SOURCE.json"), QStringLiteral("BUILD.json")}) {
-            QFile metadata(directory + QLatin1Char('/') + name);
+    if (name == sourceCodeDocument() && !directory.isEmpty()) {
+        for (const auto& metadataName : {QStringLiteral("QT-SOURCE.json"), QStringLiteral("BUILD.json")}) {
+            QFile metadata(directory + QLatin1Char('/') + metadataName);
             if (metadata.open(QIODevice::ReadOnly)) {
                 contents += QStringLiteral("\n\n## %1\n\n```json\n%2\n```\n")
-                                .arg(name, QString::fromUtf8(metadata.readAll()));
+                                .arg(metadataName, QString::fromUtf8(metadata.readAll()));
             }
         }
     }

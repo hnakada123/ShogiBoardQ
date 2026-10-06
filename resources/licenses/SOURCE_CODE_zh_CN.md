@@ -19,6 +19,9 @@ GitHub 自动生成的源代码 ZIP 不包含 Hayanagi 的内容。重新构建�
 还应查看 `provenance` 中供应方的补丁和构建说明。在 Linux 上，这些文档位于 AppImage
 内的 `usr/share/licenses/ShogiBoardQ/`；外层 ZIP 不包含 `licenses/` 目录。
 
+Linux 版 AppImage 随附的 Qt 以外的库，其版本、许可及对应源代码的获取位置（Arch Linux
+软件包的源代码和上游）记载于 `licenses/THIRD-PARTY-NOTICES.md`（“随附库的许可证”）。
+
 ## 重新构建
 
 获取源代码，并准备对应的 Qt、CMake 和 C++17 编译器。

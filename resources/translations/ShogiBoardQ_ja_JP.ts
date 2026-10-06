@@ -3356,12 +3356,12 @@ ABC abc 0123456789</translation>
         <translation>編集した対局情報を棋譜に反映する (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="181"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="183"/>
         <source>未反映の変更があります</source>
         <translation>未反映の変更があります</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="181"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="183"/>
         <source>内容をダブルクリックして編集</source>
         <translation>内容をダブルクリックして編集</translation>
     </message>
@@ -5469,24 +5469,24 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>LanguageController</name>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="89"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="92"/>
         <source>言語設定</source>
         <translation>言語設定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="90"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="93"/>
         <source>設定を変更しました。
 変更を反映するにはアプリケーションを再起動してください。</source>
         <translation>設定を変更しました。
 変更を反映するにはアプリケーションを再起動してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="152"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="155"/>
         <source>棋譜表記の読み方</source>
         <translation>棋譜表記の読み方</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="153"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="156"/>
         <source>表記設定は表示だけに適用されます。棋譜の保存形式は変わりません。
 
 英語表記：K=玉、R=飛、B=角、G=金、S=銀、N=桂、L=香、P=歩。
@@ -8929,12 +8929,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>第%1問 — 詰み手数を確認しています…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="419"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="426"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>詰みと玉方の応手を確認しています…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="447"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="454"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</translation>
     </message>
@@ -9003,12 +9003,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>成らない</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="412"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="419"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>第%1問 — %2手詰 ／ 玉方: Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="417"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="424"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>あなたの手番です。残り%1手以内で詰ませてください。</translation>
     </message>
@@ -9017,37 +9017,37 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">Hayanagiが判定しています…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="420"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="427"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="423"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="430"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>正答済み ／ 挑戦%1回・正答%2回</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="424"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="431"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>未正答 ／ 挑戦%1回</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="425"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="432"/>
         <source>履歴を保存できません: %1</source>
         <translation>履歴を保存できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="437"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>正解です。玉方を詰ませました！</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="451"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>この応手で詰みを防がれました。王手を続けても詰みません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="445"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="452"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</translation>
     </message>
@@ -9056,12 +9056,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">制限時間または探索上限（31手）に達したため判定できませんでした。不正解とは判定していません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="450"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="457"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>この局面は王手の連続で詰ませられません。別の問題を選んでください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="473"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="480"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</translation>
     </message>
@@ -9969,43 +9969,48 @@ Copyright © The Qt Company Ltd. and other contributors.
 Qt Charts: GPLv3 / その他の Qt: LGPLv3・GPL</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="51"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="54"/>
         <source>ライセンス・著作権表示</source>
         <translation>ライセンス・著作権表示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="51"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="55"/>
         <source>GNU GPL v3</source>
         <translation>GNU GPL v3</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="52"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="56"/>
         <source>GNU LGPL v3</source>
         <translation>GNU LGPL v3</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="52"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="57"/>
         <source>ソースコードの入手方法</source>
         <translation>ソースコードの入手方法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="54"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="61"/>
         <source>Qt 内の第三者ライセンス一覧</source>
         <translation>Qt 内の第三者ライセンス一覧</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="56"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="64"/>
+        <source>同梱ライブラリのライセンス一覧</source>
+        <translation>同梱ライブラリのライセンス一覧</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="66"/>
         <source>ライセンス文書</source>
         <translation>ライセンス文書</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="80"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="53"/>
         <source>NOTICE.md</source>
         <extracomment>Bundled document filename. Use the translated NOTICE_&lt;language&gt;.md file.</extracomment>
         <translation>NOTICE.md</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="82"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="90"/>
         <source>SOURCE_CODE.md</source>
         <extracomment>Bundled document filename. Use the translated SOURCE_CODE_&lt;language&gt;.md file.</extracomment>
         <translation>SOURCE_CODE.md</translation>

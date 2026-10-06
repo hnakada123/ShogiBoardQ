@@ -26,6 +26,8 @@ public:
     ~VersionDialog() override;
 
 private:
+    // UI の言語に合わせたソース入手案内のファイル名
+    static QString sourceCodeDocument();
     void showLicenseDocument(int index);
     std::unique_ptr<Ui::VersionDialog> ui;
 };

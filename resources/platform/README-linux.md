@@ -38,7 +38,7 @@ FUSE を利用できない環境では、次のように起動します。
 x86_64 Linux の X11 / XWayland 環境向けです。必要な glibc の版は
 ビルド環境に依存します。ダウンロード元のリリースノートで動作条件を確認してください。
 
-Qt のライセンス文書はアプリの「バージョン情報」で参照できます。
+Qt と同梱ライブラリのライセンス文書は、アプリの「バージョン情報」で参照できます。
 AppImage を展開した場合は `squashfs-root/usr/share/licenses/ShogiBoardQ/` にあります。
 ビルド手順はリポジトリの [Linux ビルド・リリース手順](https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/linux-build-and-release.md)
 を参照してください。
