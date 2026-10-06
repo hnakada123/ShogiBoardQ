@@ -1,379 +1,271 @@
 # Linux ビルド・リリース手順
 
-ShogiBoardQ を Linux でビルドし、AppImage・問題集・Hayanagi を含む `ShogiBoardQ-linux.zip` を GitHub で公開する手順。
-3・5・7・9・11・13手詰の問題集（各1,000題、計6,000題）と Hayanagi の USI エンジンは、ZIP 展開後すぐ選択できる外部ファイルとして配置する。
-AppImage にはアプリの実行に必要なファイルだけを収録する。
-**リリース添付は Linux 用 ZIP 1個のみとする。** Qt 関連ファイルや AppImage を別添付しない。
+<!-- scripts/docs/build_guide/gen_linux_build.py で生成。本文は texts_linux_build.py を編集する。 -->
 
-配布前に [Qt 文書とリリース添付の方針](qt-licensing.md) に従って
-AppImage 内のライセンス文書を準備してください。Qt ソースは文書抽出のための作業用ファイルです。
-配布スクリプトには Python 3 も必要です。
+公開ページ: https://hnakada123.github.io/ShogiBoardQ/guide/linux-build-and-release.html
 
----
+ShogiBoardQ を Linux でビルドし、`ShogiBoardQ-linux.zip` を作って GitHub Release で公開する手順。ZIP には AppImage（アプリ本体）、3・5・7・9・11・13手詰の詰将棋問題集（各1,000題、計6,000題）、通常対局用の USI エンジン Hayanagi を収録する。**リリースに添付するのはこの ZIP 1個だけ。**
+
+> **配布物の作成は Arch Linux だけに対応している。** AppImage に同梱するライブラリのライセンス文書を pacman で集めるため、Arch Linux の Qt パッケージを使って作る。リリース用は、古い Arch Linux のコンテナで作る（[5.1](#package-run)）。アプリのビルドと開発は、ほかのディストリビューションでもできる。
+
+<a id="contents"></a>
 
 ## 目次
 
-1. [前提条件](#1-前提条件)
-2. [開発環境のセットアップ](#2-開発環境のセットアップ)
-3. [ビルド](#3-ビルド)
-4. [AppImage の作成](#4-appimage-の作成)
-5. [GitHub Release での公開](#5-github-release-での公開)
-6. [トラブルシューティング](#6-トラブルシューティング)
+1. [前提条件](#requirements)
+2. [開発環境のセットアップ](#setup)
+3. [ソースの取得とビルド](#build)
+4. [Qt のライセンス文書の準備](#qt-notices)
+5. [AppImage と ZIP の作成](#package)
+6. [GitHub Release での公開](#release)
+7. [トラブルシューティング](#troubleshooting)
 
----
+<a id="requirements"></a>
 
 ## 1. 前提条件
 
-| 項目 | バージョン |
+| 項目 | 内容 |
 |---|---|
-| Linux | Ubuntu 22.04 / Fedora 38 / Arch Linux 等（x86_64） |
-| GCC | 9 以降、または Clang 10 以降（C++17 対応） |
-| CMake | 3.16 以上 |
-| Qt | 6.x（Widgets, Charts, Network, Multimedia, Sql, LinguistTools） |
-| FUSE | AppImage 実行に必要 |
+| OS | x86_64 の Linux。配布物（AppImage・ZIP）の作成は Arch Linux（リリース用は Docker のコンテナ内の Arch Linux） |
+| コンパイラ | C++17 に対応した GCC 9 以降、または Clang 10 以降 |
+| CMake | 3.16 以上（Ninja を推奨） |
+| Qt | 6.7 以上（Widgets・Charts・Network・Concurrent・Multimedia・Sql・LinguistTools）。配布物の作成には SVG のプラグインも必要 |
+| Python | Python 3（配布用のスクリプト） |
+| Docker | リリース用の配布物をコンテナで作る場合 |
+| その他 | Git、curl、file、FUSE 2（AppImage 形式のツールの実行）、ImageMagick（512px を超えるアイコンの縮小） |
 
-> **AppImage のビルド環境について:**
-> AppImage はビルド環境の glibc バージョン以降のシステムでのみ動作する。
-> より広い互換性を確保するには、古めのディストリビューション（Ubuntu 22.04 等）でビルドすることを推奨する。
+配布物を作るときはネットワークに接続できる必要がある。初回に linuxdeploy と appimagetool をダウンロードするため。
 
----
+> **glibc について**: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする（[5.1](#package-run)）。この AppImage は glibc 2.38 以降と GCC 12 以降の libstdc++ を必要とし、Ubuntu 24.04 以降、Debian 13、Fedora 39 以降などで動く。
+
+<a id="setup"></a>
 
 ## 2. 開発環境のセットアップ
 
-### 2.1 ビルドツールのインストール
+<a id="setup-arch"></a>
 
-#### Ubuntu / Debian
+### 2.1 Arch Linux と Docker（配布物を作る場合）
 
-```bash
-sudo apt update
-sudo apt install build-essential cmake ninja-build git curl \
-  libfuse2 file python3 imagemagick
+リリース用の配布物はコンテナの中でビルドするので、手元には Docker・Git・Python 3 があればよい（Qt などのビルドに使うものはコンテナに入る）。ユーザーを docker グループに入れ、ログインし直す。
+
+```
+sudo usermod -aG docker $USER
 ```
 
-#### Fedora
+> docker グループのユーザーは、docker を通じて root と同等の操作ができる。
 
-```bash
-sudo dnf install gcc-c++ cmake ninja-build git curl fuse-libs file python3 ImageMagick
+手元の Arch Linux でビルド・開発する場合は、ビルドツールと Arch の Qt パッケージを入れる。fcitx5-qt は、日本語入力（fcitx5）用の入力プラグインを AppImage に同梱するために使う。入っていないと、このプラグインは同梱されない。
+
+```
+sudo pacman -S --needed base-devel cmake ninja git curl file python fuse2 imagemagick \
+  qt6-base qt6-charts qt6-multimedia qt6-svg qt6-tools fcitx5-qt
 ```
 
-#### Arch Linux
+<a id="setup-other"></a>
 
-```bash
-sudo pacman -S base-devel cmake ninja git curl fuse2 file python imagemagick
+### 2.2 ほかのディストリビューション（アプリのビルドのみ）
+
+Ubuntu・Debian や Fedora でも、アプリのビルドと開発はできる。Qt 6.7 以上が必要なので、ディストリビューションの Qt が古い場合は Qt Online Installer で Qt を入れる。
+
+Ubuntu / Debian:
+
+```
+sudo apt install build-essential cmake ninja-build git \
+  qt6-base-dev qt6-charts-dev qt6-multimedia-dev qt6-tools-dev qt6-tools-dev-tools \
+  qt6-l10n-tools libqt6sql6-sqlite libgl1-mesa-dev
 ```
 
-### 2.2 Qt 6 のインストール
+Fedora:
 
-#### 方法A: Qt Online Installer（推奨）
-
-[Qt 公式サイト](https://www.qt.io/download-qt-installer)からインストーラをダウンロードし、以下のコンポーネントを選択：
-
-- Qt 6.x > Desktop gcc 64-bit
-- Qt 6.x > Qt Charts
-- Qt 6.x > Qt Multimedia
-- Developer and Designer Tools > CMake
-- Developer and Designer Tools > Ninja
-
-インストール後、Qt のパスを環境変数に設定：
-
-```bash
-# ~/.bashrc または ~/.zshrc に追加（パスは環境に合わせて変更）
-export Qt6_DIR="$HOME/Qt/6.8.3/gcc_64/lib/cmake/Qt6"
-export PATH="$HOME/Qt/6.8.3/gcc_64/bin:$PATH"
-export LD_LIBRARY_PATH="$HOME/Qt/6.8.3/gcc_64/lib:$LD_LIBRARY_PATH"
+```
+sudo dnf install gcc-c++ cmake ninja-build git \
+  qt6-qtbase-devel qt6-qtcharts-devel qt6-qtmultimedia-devel qt6-qttools-devel \
+  qt6-linguist mesa-libGL-devel
 ```
 
-#### 方法B: ディストリビューションのパッケージ
+Qt Online Installer で入れた Qt は、CMake の構成時に場所を指定する（例は Qt 6.11.2）。
 
-**Ubuntu / Debian:**
-
-```bash
-sudo apt install qt6-base-dev qt6-charts-dev qt6-l10n-tools \
-  qt6-tools-dev qt6-tools-dev-tools qt6-multimedia-dev libqt6sql6-sqlite libgl1-mesa-dev
+```
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.11.2/gcc_64"
 ```
 
-**Fedora:**
+<a id="setup-check"></a>
 
-```bash
-sudo dnf install qt6-qtbase-devel qt6-qtcharts-devel \
-  qt6-linguist qt6-qttools-devel qt6-qtmultimedia-devel mesa-libGL-devel
+### 2.3 インストールの確認
+
+```
+cmake --version
+g++ --version
+qmake6 --version
 ```
 
-**Arch Linux:**
+<a id="build"></a>
 
-```bash
-sudo pacman -S qt6-base qt6-charts qt6-tools qt6-multimedia
+## 3. ソースの取得とビルド
+
+Hayanagi をサブモジュールとして含めてリポジトリを取得する。サブモジュールがないと、ビルドに必要なファイルが欠ける。
+
+```
+git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ
 ```
 
-> **注意:** ディストリビューションのパッケージは Qt のバージョンが古い場合がある。
-> 最新の Qt 6.x を使うには方法A の Qt Online Installer を推奨。
+取得済みのリポジトリでは、`git submodule update --init --recursive` で記録された版の Hayanagi を取得する。Release ビルドして起動する。
 
-### 2.3 インストール確認
-
-```bash
-cmake --version       # 3.16 以上
-g++ --version         # GCC 9 以上
-qmake6 --version      # Qt 6.x
 ```
-
----
-
-## 3. ビルド
-
-### ビルドスクリプト（推奨）
-
-`scripts/build-linux.sh` を使うと、Release ビルドから AppImage / ZIP 作成まで一括実行できる：
-
-```bash
-# 通常ビルド + AppImage / ZIP 作成
-./scripts/build-linux.sh
-
-# クリーンビルド、AppImage なし
-./scripts/build-linux.sh --clean --skip-appimage
-```
-
-| オプション | 説明 |
-|---|---|
-| `--skip-appimage` | AppImage / ZIP 作成をスキップ（ビルドのみ） |
-| `--clean` | build ディレクトリを削除してからビルド |
-| `--help` | ヘルプを表示 |
-
-スクリプトは以下の処理を自動実行する：
-
-1. 前提ツールの存在確認（cmake, python3、ninja は推奨）
-2. CMake Configure + Release ビルド（ShogiBoardQ と Hayanagi）
-3. ビルド成果物、翻訳ファイル、3〜13手詰の問題集（各手数1ファイル）の確認
-4. linuxdeploy + Qt プラグイン + appimagetool のダウンロード（初回のみ）
-5. 実行に必要なファイルと Qt ライセンスだけを含む AppImage 作成
-6. AppImage と、ファイル選択できる問題集・Hayanagi を含む ZIP 作成
-
-出力はリポジトリ直下の `ShogiBoardQ-linux-x86_64.AppImage` と
-`ShogiBoardQ-linux.zip`。ZIP 用の作業ディレクトリは `build/ShogiBoardQ-linux/`。
-Qt の対応ソースと文書は事前に [qt-licensing.md](qt-licensing.md) に従って準備する。
-既定の文書ディレクトリは `build/qt-licenses`。別の場所を使う場合は次のように指定する。
-
-```bash
-SHOGIBOARDQ_QT_LICENSE_DIR=/path/to/matching-qt-licenses ./scripts/build-linux.sh
-```
-
-ビルド時と文書の Qt バージョンが一致しない場合は配布ファイルを生成しない。
-OS パッケージ版 Qt を使う場合は、同じ上流バージョンのソースに加え、
-そのパッケージのビルド手順と適用パッチの取得元も `QT-SOURCE.json` に記録する。
-これらを Release の別添付ファイルにはしない。
-
-以下は個別のコマンドを手動で実行する場合の手順。
-
-### 3.1 Release ビルド
-
-```bash
-cd /path/to/ShogiBoardQ
-
-# 初回のみ: Hayanagi サブモジュールを取得
-git submodule update --init --recursive
-
-# Configure（Release ビルド、Ninja）
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
-
-# ビルド
-ninja -C build
-```
-
-Ninja がない場合：
-
-```bash
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release -- -j$(nproc)
-```
-
-### 3.2 ビルド成果物の確認
-
-```bash
-# 実行ファイルが生成されていることを確認
-ls -la build/ShogiBoardQ build/Hayanagi/hayanagi
-
-# 翻訳ファイルの確認
-ls build/*.qm
-
-# 依存ライブラリの確認
-ldd build/ShogiBoardQ
-```
-
-### 3.3 動作確認
-
-```bash
-# ビルドしたアプリを起動
+cmake --build build
 ./build/ShogiBoardQ
 ```
 
-> Qt Online Installer で Qt をインストールした場合、`LD_LIBRARY_PATH` に Qt の lib ディレクトリが含まれている必要がある。
+テストを実行する場合:
 
----
-
-## 4. AppImage の作成
-
-> **Note:** `scripts/build-linux.sh` を使用した場合、このセクションの手順は自動実行されるため手動での実行は不要。
-
-### AppImage とは
-
-AppImage は Linux 向けのポータブルなアプリケーション配布形式。
-インストール不要で、単一ファイルをダウンロードして実行するだけで動作する。
-
-### 4.1 linuxdeploy のダウンロード
-
-[linuxdeploy](https://github.com/linuxdeploy/linuxdeploy) と Qt プラグインをダウンロード：
-
-```bash
-# linuxdeploy 本体
-curl -fSL -o build/linuxdeploy-x86_64.AppImage \
-  https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-chmod +x build/linuxdeploy-x86_64.AppImage
-
-# Qt プラグイン
-curl -fSL -o build/linuxdeploy-plugin-qt-x86_64.AppImage \
-  https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-chmod +x build/linuxdeploy-plugin-qt-x86_64.AppImage
-
-# AppImage 生成ツール
-curl -fSL -o build/appimagetool-x86_64.AppImage \
-  https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-chmod +x build/appimagetool-x86_64.AppImage
+```
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
-### 4.2 .desktop ファイルとアイコンの準備
+ビルドだけを行うなら `./scripts/build-linux.sh --skip-appimage` も使える。
 
-AppImage の作成には FreeDesktop 準拠の `.desktop` ファイルとアイコンが必要。
-これらはリポジトリに同梱されている：
+<a id="qt-notices"></a>
 
-- `resources/platform/shogiboardq.desktop` — デスクトップエントリ
-- `resources/icons/linux/shogiboardq.png` — アプリケーションアイコン
+## 4. Qt のライセンス文書の準備
 
-### 4.3 AppDir の作成と AppImage 生成
+AppImage には、使った Qt と同じ版のソースから取り出したライセンス文書と、ソースの取得元の記録を収録する。配布物を作る前に一度準備し、Qt を更新したら作り直す。通常のビルドには不要。
 
-配布処理は `scripts/build-linux.sh` に集約している。手動で Release ビルドした場合も、
-準備済み Qt 文書を指定して同スクリプトを実行する（本体の再ビルドは差分のみ）。
+Qt の版は、ビルドする環境で決まる。リリース用のコンテナ（[5.1](#package-run)）の Qt は 6.7.2 なので、Qt 6.7.2 のソース（qt-everywhere）を取得・検証し、文書を `build-container/qt-licenses` に取り出す。SHA-256 は、公式配布サイトでソースと同じ場所にある `.sha256` ファイルで確かめる。
 
-```bash
+```
+curl -fsSL https://download.qt.io/archive/qt/6.7/6.7.2/single/qt-everywhere-src-6.7.2.tar.xz.sha256
+```
+
+```
+python3 scripts/qt_licenses.py fetch --version 6.7.2 \
+  --sha256 0aaea247db870193c260e8453ae692ca12abc1bd841faa1a6e6c99459968ca8a \
+  --output build-container/qt-sources
+python3 scripts/qt_licenses.py prepare --version 6.7.2 \
+  --archive build-container/qt-sources/qt-everywhere-src-6.7.2.tar.xz \
+  --sha256 0aaea247db870193c260e8453ae692ca12abc1bd841faa1a6e6c99459968ca8a \
+  --source-url https://download.qt.io/archive/qt/6.7/6.7.2/single/qt-everywhere-src-6.7.2.tar.xz \
+  --provenance 'Arch Linux packages from the Arch Linux Archive snapshot 2024-07-15: qt6-base 6.7.2-1; qt6-charts, qt6-multimedia, qt6-svg 6.7.2-1; qt6-wayland 6.7.2-2. Upstream Qt source plus Arch PKGBUILDs and patches.' \
+  --output build-container/qt-licenses
+```
+
+`--provenance` には使った Qt の由来（Arch のパッケージの版と、Arch のパッチ・ビルド手順を含むこと）を書く。この内容は `QT-SOURCE.json` に記録され、「バージョン情報」の「ソースコードの入手方法」に表示される。手元の Arch Linux でそのままビルドする場合は、`pacman -Q qt6-base` で確かめた版の文書を `build/qt-licenses` に準備する。
+
+- `prepare` は既存の出力先を上書きしない。作り直すときは新しい出力先を指定する。
+- 既定の出力先は、ビルドディレクトリ（コンテナは `build-container`、手元のビルドは `build`）の `qt-licenses`。`--clean` でビルドディレクトリを消す場合は文書をその外に作り、環境変数 `SHOGIBOARDQ_QT_LICENSE_DIR` で指定する。
+- 取得した Qt ソースや文書を Release に別添付しない。方針の詳細は [Qt 文書とリリース添付の方針](https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md) を参照。
+
+<a id="package"></a>
+
+## 5. AppImage と ZIP の作成
+
+<a id="package-run"></a>
+
+### 5.1 スクリプトの実行
+
+リリース用の配布物は、古い Arch Linux（2024年7月15日の Arch Linux Archive。glibc 2.39・Qt 6.7.2）のコンテナで作る。
+
+```
+./scripts/build-linux-container.sh
+```
+
+- 初回はビルド環境のイメージ（`scripts/linux-container/Dockerfile`、約3GB）を作る。Arch Linux Archive からのダウンロードは遅く、数十分かかる。
+- コンテナの中で、自分のユーザーとして `scripts/build-linux.sh` を実行する。ビルドディレクトリは普段の `build` と分けて `build-container` を使い、出力はリポジトリ直下に置く。
+- 当時のパッケージに署名した鍵には、その後に期限が切れたものがある。イメージでは、署名を公式の鍵束で確かめたうえで鍵の信頼度は問わない設定にしている。
+
+手元の Arch Linux でそのまま作ることもできる。その場合の AppImage は、手元の glibc（2026年10月時点で 2.43）以降を必要とする。
+
+```
 ./scripts/build-linux.sh
-
-# FUSE を利用できないビルド環境
-APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh
 ```
 
-スクリプトは `build/AppDir` を作り直し、次のファイルを配置する。
+どちらのスクリプトにも、次のオプションを付けられる。
 
-| 元ファイル | AppDir 内の配置先 |
+| オプション | 説明 |
 |---|---|
-| `build/ShogiBoardQ`、`build/*.qm` | `usr/bin/` |
-| 準備済み Qt 文書・ビルド情報 | `usr/share/licenses/ShogiBoardQ/` |
-| 同梱ライブラリ（Qt 以外）のライセンス本文と一覧 | `usr/share/licenses/ShogiBoardQ/third-party/`、`THIRD-PARTY-NOTICES.md` |
+| `--skip-appimage` | AppImage・ZIP を作らず、ビルドだけを行う |
+| `--clean` | ビルドディレクトリを削除してからビルドする |
+| `--help` | ヘルプを表示する |
 
-問題集・Hayanagi・説明書は AppImage に入れない。アプリはこれらを AppImage 内から読まず、
-利用者も AppImage 内のファイルを選択できないため、ZIP の外部ファイルとしてのみ配布する（4.5 参照）。
+| 環境変数 | 説明 |
+|---|---|
+| `SHOGIBOARDQ_BUILD_DIR` | ビルドディレクトリ（既定は `build`。コンテナでは `build-container`） |
+| `SHOGIBOARDQ_QT_LICENSE_DIR` | 準備した Qt 文書の場所（既定はビルドディレクトリの `qt-licenses`） |
+| `APPIMAGE_EXTRACT_AND_RUN=1` | FUSE を使えない環境で、AppImage 形式のツールを展開して実行する（コンテナでは常に指定） |
+| `DOCKER` | コンテナ用。docker コマンド（例: `sudo docker`） |
+| `SHOGIBOARDQ_ARCH_SNAPSHOT` | コンテナ用。Arch Linux Archive の日付（既定は `2024/07/15`） |
 
-`linuxdeploy` に ShogiBoardQ の実行ファイルを渡して依存ライブラリを収集し、
-Qt プラグインを配置する。SQLite ドライバー（`sqldrivers/libqsqlite.so`）も必須。
-linuxdeploy が配置する Qt 標準の翻訳（`usr/translations/`）は使わないため削除する。
-標準ダイアログの日本語・中国語訳は実行ファイルのリソースに内蔵し、アプリの翻訳は `usr/bin/` から読む。
-フィルタ済みプラグイン、システムの `strip`、同梱 Qt に検索先を固定する `AppRun` を使い、
-最後に `qt_licenses.py stage` で Qt の文書を検証・配置し、`bundled_licenses.py` で
-同梱ライブラリの文書を配置して、`appimagetool` でパッケージ化する。
+`build-linux.sh` は次の処理を行う（コンテナでは、その中で同じ処理を行う）。
 
-> **注意**: 同梱ライブラリの文書の収集は、現在 Arch Linux（pacman）だけに対応する。
-> Ubuntu など他の環境では、ライブラリの文書を付けずに配布しないよう、スクリプトはエラーで止まる。
+1. 前提ツールの確認（cmake・python3。ninja を推奨）
+2. CMake の構成と Release ビルド（ShogiBoardQ と Hayanagi）
+3. 実行ファイル・翻訳ファイルと、3〜13手詰の問題集（各手数1ファイル）の確認
+4. linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）
+5. AppDir の作成と AppImage の生成（実行に必要なファイルと、Qt・同梱ライブラリのライセンス文書）
+6. AppImage・問題集・Hayanagi を含む ZIP の作成
 
-### 4.4 AppImage の構造
+出力はリポジトリ直下の `ShogiBoardQ-linux-x86_64.AppImage` と `ShogiBoardQ-linux.zip`。作業用のディレクトリは、ビルドディレクトリの `AppDir` と `ShogiBoardQ-linux/`。
 
-AppImage にはアプリの起動と動作に必要なファイルだけを収録する。
+<a id="appimage"></a>
+
+### 5.2 AppImage の中身
+
+AppImage には、アプリの起動と動作に必要なファイルとライセンス文書だけを収録する。
 
 ```
-ShogiBoardQ-linux-x86_64.AppImage（単一実行ファイル）
-  └── (展開時)
-      ├── AppRun                          ← エントリーポイント
-      ├── shogiboardq.desktop             ← デスクトップエントリ
-      ├── shogiboardq.png                 ← アイコン
-      └── usr/
-          ├── bin/
-          │   ├── ShogiBoardQ             ← 実行ファイル
-          │   ├── qt.conf                 ← Qt プラグインの検索先
-          │   ├── ShogiBoardQ_ja_JP.qm    ← 日本語翻訳
-          │   ├── ShogiBoardQ_en.qm       ← 英語翻訳
-          │   ├── ShogiBoardQ_zh_CN.qm    ← 中国語（簡体字）翻訳
-          │   └── ShogiBoardQ_zh_TW.qm    ← 中国語（繁体字）翻訳
-          ├── lib/
-          │   ├── libQt6Core.so.6         ← Qt Core
-          │   ├── libQt6Gui.so.6          ← Qt GUI
-          │   ├── libQt6Widgets.so.6      ← Qt Widgets
-          │   ├── libQt6Charts.so.6       ← Qt Charts
-          │   ├── libQt6Network.so.6      ← Qt Network
-          │   ├── libQt6Multimedia.so.6   ← Qt Multimedia（駒音）
-          │   └── ...
-          ├── plugins/
-          │   ├── platforms/
-          │   │   └── libqxcb.so          ← X11 プラットフォームプラグイン
-          │   ├── imageformats/
-          │   │   ├── libqsvg.so          ← 駒・盤の SVG
-          │   │   ├── libqjpeg.so         ← 盤面画像の JPEG 保存
-          │   │   └── libqico.so          ← ウィンドウアイコン
-          │   ├── iconengines/
-          │   │   └── libqsvgicon.so      ← SVG アイコン
-          │   ├── platforminputcontexts/  ← 日本語入力（compose・fcitx5・ibus）
-          │   ├── platformthemes/
-          │   │   └── libqxdgdesktopportal.so
-          │   └── sqldrivers/
-          │       └── libqsqlite.so       ← 解答履歴・解析キャッシュ
-          └── share/
-              ├── applications/shogiboardq.desktop
-              ├── icons/hicolor/512x512/apps/shogiboardq.png
-              └── licenses/ShogiBoardQ/   ← GPL・LGPL・Qt と同梱ライブラリのライセンス、
-                                             対応ソースの案内（「バージョン情報」で表示）
+ShogiBoardQ-linux-x86_64.AppImage
+└── （展開時）
+    ├── AppRun                          ← 同梱の Qt だけを使って起動する
+    ├── shogiboardq.desktop
+    ├── shogiboardq.png
+    └── usr/
+        ├── bin/
+        │   ├── ShogiBoardQ             ← 実行ファイル
+        │   ├── qt.conf                 ← Qt プラグインの検索先
+        │   └── ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm   ← アプリの翻訳（4言語）
+        ├── lib/                        ← Qt と依存ライブラリ
+        ├── plugins/
+        │   ├── platforms/libqxcb.so            ← X11
+        │   ├── imageformats/libqsvg.so, libqjpeg.so, libqico.so
+        │   ├── iconengines/libqsvgicon.so
+        │   ├── platforminputcontexts/          ← 日本語入力（compose・fcitx5・ibus）
+        │   ├── platformthemes/libqxdgdesktopportal.so
+        │   └── sqldrivers/libqsqlite.so        ← 詰将棋の解答履歴・解析キャッシュ
+        └── share/
+            ├── applications/, icons/
+            └── licenses/ShogiBoardQ/
+                ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
+                ├── QT-NOTICES.md, qt/          ← 同梱する Qt モジュールの文書
+                ├── QT-SOURCE.json, BUILD.json  ← Qt の取得元・ビルド時の版
+                └── THIRD-PARTY-NOTICES.md, third-party/   ← Qt 以外の同梱ライブラリの文書
 ```
 
-問題集（`data/tsumeshogi/`）、通常対局用 Hayanagi（`hayanagi`）、説明書（`docs/`）、
-問題集の検証記録（`validation_*.json`）は収録しない。詰将棋対局の Hayanagi はアプリ本体に
-組み込まれているため、AppImage 内に実行ファイルがなくても動作する。
+- 問題集・通常対局用の Hayanagi・説明書・問題集の検証記録（`validation_*.json`）は入れない。アプリはこれらを AppImage 内から読まず、利用者もファイル選択できないため、ZIP の外部ファイルとしてだけ配布する。詰将棋対局の Hayanagi はアプリ本体に組み込まれている。
+- linuxdeploy が配置する Qt 標準の翻訳（`usr/translations/`）は使わないので削除する。標準ダイアログの日本語・中国語訳は実行ファイルに内蔵し、アプリの翻訳は `usr/bin/` から読む。
+- 使わないプラグイン（OpenGL 連携の `xcbglintegrations`、通信暗号化の `tls`、GIF 画像）は入れない。OpenGL を使う画面部品はなく、CSA 通信対局は暗号化しない TCP で、HTTPS などの通信もしないため。
+- Qt のライセンス文書は、同梱する Qt モジュール（qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・qtwayland）の分と、それらが参照する文書だけを入れる（`scripts/qt_licenses.py`）。WebEngine など配布しないモジュールの文書は入れない。
+- Qt 以外の同梱ライブラリ（glib・PulseAudio・OpenSSL・fcitx5-qt など約50パッケージ）は、`scripts/bundled_licenses.py` が元のパッケージを pacman で調べ、ライセンス本文を `third-party/` に、版・ライセンス・ソースの取得先の一覧を `THIRD-PARTY-NOTICES.md` に入れる。どちらも「バージョン情報」の「Qt 内の第三者ライセンス一覧」「同梱ライブラリのライセンス一覧」で表示される。
 
-使わないプラグイン（OpenGL 統合の `xcbglintegrations`、通信暗号化の `tls`、GIF 画像）も収録しない。
-OpenGL を使う画面部品はなく、CSA 通信対局は暗号化しない TCP で、HTTPS 等の通信もしないため。
+<a id="zip"></a>
 
-Qt のライセンス文書は、同梱する Qt モジュール（qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・
-qtwayland）の分と、Qt ソース最上位の `LICENSES/`、それらの `qt_attribution.json` が参照する文書だけを収録する
-（約260ファイル）。WebEngine など配布しないモジュールの文書は入れない。詳細は
-[Qt 文書とリリース添付の方針](qt-licensing.md) を参照。
+### 5.3 ZIP の中身
 
-Qt 以外の同梱ライブラリ（glib・PulseAudio・OpenSSL・fcitx5-qt など約50パッケージ）は、
-`scripts/bundled_licenses.py` が AppDir 内の各ファイルの元のパッケージを pacman で調べ、
-パッケージのライセンス本文（`/usr/share/licenses/<パッケージ名>/` と共通の SPDX 本文）を
-`third-party/` に、版・ライセンス・ソースの取得先（Arch Linux のパッケージのソースと上流）の一覧を
-`THIRD-PARTY-NOTICES.md` に収録する。「バージョン情報」の「同梱ライブラリのライセンス一覧」で表示する。
-
-### 4.5 ZIP の構造と同梱ファイルの利用
-
-問題集と通常対局用 Hayanagi は AppImage に入れず、ZIP を展開してすぐファイル選択できるよう
-AppImage の外に配置する。詰将棋対局用の内蔵 Hayanagi はアプリ本体に組み込まれており、エンジン登録は不要。
-
-スクリプトは作業ディレクトリ `build/ShogiBoardQ-linux/` を作り直して次のファイルを配置し、
-リポジトリ直下に `ShogiBoardQ-linux.zip` を作る。
+ZIP には次のファイルを配置する。問題集と Hayanagi は、ZIP を展開すればすぐファイル選択できる。
 
 | 元ファイル | ZIP 内の配置先 |
 |---|---|
-| `ShogiBoardQ-linux-x86_64.AppImage`（4.3 で生成） | `ShogiBoardQ-linux/` |
-| `resources/platform/README-linux.md`（利用者向けの説明） | `ShogiBoardQ-linux/README.md` |
+| `ShogiBoardQ-linux-x86_64.AppImage` | `ShogiBoardQ-linux/` |
+| `resources/platform/README-linux.md` | `ShogiBoardQ-linux/README.md` |
 | `LICENSE` | `ShogiBoardQ-linux/LICENSE` |
-| `build/Hayanagi/hayanagi`（`strip` して配置） | `ShogiBoardQ-linux/Hayanagi/hayanagi` |
+| `build/Hayanagi/hayanagi` | `ShogiBoardQ-linux/Hayanagi/hayanagi` |
 | `Hayanagi/README.md` | `ShogiBoardQ-linux/Hayanagi/README.md` |
-| `data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt`、`data/tsumeshogi/README.md` | `ShogiBoardQ-linux/data/tsumeshogi/` |
+| `data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt`, `data/tsumeshogi/README.md` | `ShogiBoardQ-linux/data/tsumeshogi/` |
 
-問題集は内容を変更せずコピーする。アプリ内蔵の監査記録とハッシュが一致するため、
-同梱問題集の読み込み時に検証済みの手数と手順を再利用できる。
-`data/tsumeshogi/` には各手数の問題集を1ファイルだけ置く（git で追跡しているのは現行の20261001版の6ファイル）。
-旧版などが残っていて同じ手数のファイルが複数あると、スクリプトはエラーで止まる。
-
-ZIP の外部ファイルには `docs/`、問題集の検証記録 `validation_*.json`、`licenses/` を含めない。
-Qt 文書は AppImage 内に収録し、「バージョン情報」から参照する。
-
-作成される ZIP の構成（12ファイル）：
-
-```text
+```
 ShogiBoardQ-linux.zip
 └── ShogiBoardQ-linux/
     ├── ShogiBoardQ-linux-x86_64.AppImage
@@ -383,213 +275,157 @@ ShogiBoardQ-linux.zip
     │   ├── hayanagi
     │   └── README.md
     └── data/tsumeshogi/
-        ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt（6ファイル）
+        ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt   ← 6ファイル（各1,000題）
         └── README.md
 ```
 
-```bash
+- 問題集は内容を変更せずにコピーする。アプリに内蔵した監査記録とハッシュが一致するため、読み込み時に検証済みの手数と手順を再利用できる。
+- `data/tsumeshogi/` には各手数の問題集を1ファイルだけ置く（git で追跡しているのは現行の20261001版）。同じ手数のファイルが複数あると、スクリプトはエラーで止まる。
+- Hayanagi は `strip` してから配置する。ZIP の外部ファイルには `docs/`・`validation_*.json`・`licenses/` を入れない。ライセンス文書は AppImage 内にある。
+
+利用者は次のように起動する。詰将棋対局の「局面集を開く…」で `data/tsumeshogi/` の問題集を選び、通常対局用のエンジン登録では `Hayanagi/hayanagi` を選ぶ。
+
+```
 unzip ShogiBoardQ-linux.zip
 cd ShogiBoardQ-linux
 chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 ./ShogiBoardQ-linux-x86_64.AppImage
 ```
 
-- 詰将棋対局の「局面集を開く…」で `data/tsumeshogi/tsume_*ply_1000_20261001.txt` を選ぶ。
-- 通常対局用のエンジン登録では `Hayanagi/hayanagi` を選ぶ。
-- 詳しい開発・操作手順書はリポジトリの `docs/dev/` を参照する。
+<a id="test"></a>
 
-### 4.6 動作テスト
+### 5.4 動作確認
 
-```bash
-# 実行権限の確認
-chmod +x ShogiBoardQ-linux-x86_64.AppImage
-
+```
 # 起動
 ./ShogiBoardQ-linux-x86_64.AppImage
 
-# 展開して同梱物を確認（問題集・Hayanagi・説明書・Qt 標準翻訳が入っていないこと）
+# 展開して中身を確かめる（Hayanagi と Qt 標準の翻訳が入っていないこと）
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
-ls squashfs-root/usr/bin/ squashfs-root/usr/share/
-ls squashfs-root/usr/share/licenses/ShogiBoardQ/NOTICE.md \
-   squashfs-root/usr/share/licenses/ShogiBoardQ/THIRD-PARTY-NOTICES.md
-test ! -e squashfs-root/usr/bin/hayanagi && test ! -e squashfs-root/usr/share/ShogiBoardQ \
-    && test ! -e squashfs-root/usr/translations && echo OK
+ls squashfs-root/usr/bin/ squashfs-root/usr/plugins/*/
+ls squashfs-root/usr/share/licenses/ShogiBoardQ/THIRD-PARTY-NOTICES.md
+test ! -e squashfs-root/usr/bin/hayanagi && test ! -e squashfs-root/usr/translations && echo OK
 
-# ZIP 側の Hayanagi が USI エンジンとして応答すること
-printf 'usi\nisready\nquit\n' | build/ShogiBoardQ-linux/Hayanagi/hayanagi
+# 必要な glibc の版
+find squashfs-root/usr -type f \( -name '*.so*' -o -name ShogiBoardQ \) -exec objdump -T {} + 2>/dev/null \
+  | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
 
-# ZIP が 4.5 の構成（12ファイル）どおりで、破損がないことを確認
+# ZIP の Hayanagi が USI エンジンとして応答すること
+unzip -o -q ShogiBoardQ-linux.zip -d /tmp/zipcheck
+printf 'usi\nisready\nquit\n' | /tmp/zipcheck/ShogiBoardQ-linux/Hayanagi/hayanagi
+
+# ZIP が 12 ファイルの構成どおりで、破損がないこと
 python3 -m zipfile -l ShogiBoardQ-linux.zip
 python3 -m zipfile -t ShogiBoardQ-linux.zip
 ```
 
-> **重要**: テストは Qt の lib ディレクトリが `LD_LIBRARY_PATH` に**含まれない**環境で行うこと。
-> 含まれていると、AppImage 内のライブラリではなくシステムのライブラリが使われてしまい、
-> バンドル漏れを検出できない。
+必要な glibc の版が、コンテナでビルドした場合は `GLIBC_2.38` 以下であることを確かめる。AppImage は、OpenGL（libEGL・libOpenGL）・fontconfig・HarfBuzz・wayland-client をシステムのものを使う（通常のデスクトップには入っている）。
 
----
+> Qt の lib ディレクトリを `LD_LIBRARY_PATH` に含めない環境で確かめる。含まれているとシステムのライブラリが使われ、同梱漏れに気づけない。できれば Ubuntu 24.04 など別の環境でも、日本語・英語・中国語の切り替え、駒の SVG、駒音、詰将棋の履歴の保存、「バージョン情報」のライセンス一覧を確認する。
 
-## 5. GitHub Release での公開
+<a id="release"></a>
 
-**Linux の公開対象は `ShogiBoardQ-linux.zip` のみ。**
-ZIP には AppImage・問題集・Hayanagi と利用説明を収録する。Qt ソース、パッチ集、`QT-SOURCE.json`、`SOURCE_CODE.md`、
-`BUILD-INFO.txt`、ソースアーカイブ、チェックサム、SBOM は別添付しない。
-Qt 文書は AppImage 内に収録し、ZIP 展開後の `licenses/` は作成しない。
+## 6. GitHub Release での公開
 
-アップロード時はファイル名を明示し、作業フォルダ全体や `assets/*` を指定しない。
-公開後は GitHub Release の添付一覧を確認する。GitHub が自動表示する Source code の
-ダウンロードリンクは手動添付ファイルとは別扱いとなる。
+リリースのタグにはアプリの版（`CMakeLists.txt` の `APP_VERSION`。例: 2026.10.06）を使う。Linux の添付は `ShogiBoardQ-linux.zip` だけで、ファイル名は版によらず同じにする。
 
-以下はタグ `v0.1.0` の例。Linux のファイル名は版番号にかかわらず `ShogiBoardQ-linux.zip` とする。
-CI は各 OS の製品ファイルだけを明示してアップロードし、SHA256 と SBOM は
-Actions の `release-verification` artifact に保存する。
-
-### 5.1 タグの作成
-
-```bash
-git tag -a v0.1.0 -m "v0.1.0 リリース"
-git push origin v0.1.0
+```
+git tag 2026.10.06
+git push origin 2026.10.06
+gh release create 2026.10.06 --title "ShogiBoardQ 2026.10.06" \
+  --notes-file RELEASE_NOTES.md ShogiBoardQ-linux.zip
 ```
 
-### 5.2 GitHub CLI でリリース作成
+ほかの OS の配布物を先に公開している場合は、既存のリリースに追加する。
 
-[GitHub CLI (gh)](https://cli.github.com/) を使用：
-
-```bash
-# インストール
-# Ubuntu / Debian
-sudo apt install gh
-# Fedora
-sudo dnf install gh
-# Arch Linux
-sudo pacman -S github-cli
-
-# ログイン（初回のみ）
-gh auth login
+```
+gh release upload 2026.10.06 ShogiBoardQ-linux.zip
 ```
 
-リリース作成とアセットのアップロード：
+- 添付するファイルは名前で指定する。作業フォルダ全体や `build/` のファイルをアップロードしない。
+- Qt のソース、`QT-SOURCE.json`、チェックサム、SBOM などは別に添付しない。ライセンス文書とソースの入手方法は AppImage 内にある。
+- 公開後に添付ファイルの一覧を確かめる。GitHub が自動で表示する Source code のリンクは、手動の添付とは別のもの。
 
-```bash
-gh release create v0.1.0 \
-  --title "ShogiBoardQ v0.1.0" \
-  --notes-file RELEASE_NOTES.md \
-  ShogiBoardQ-linux.zip
+リリースノートには、Linux での起動方法と動作条件（必要な glibc の版など）を書く。
+
 ```
-
-> 他プラットフォームのファイルも同時に公開する場合：
-> ```bash
-> gh release create v0.1.0 \
->   --title "ShogiBoardQ v0.1.0" \
->   --notes-file RELEASE_NOTES.md \
->   ShogiBoardQ-linux.zip \
->   ShogiBoardQ.dmg \
->   ShogiBoardQ-windows.zip
-> ```
-
-#### リリースノートの自動生成
-
-```bash
-gh release create v0.1.0 \
-  --title "ShogiBoardQ v0.1.0" \
-  --generate-notes \
-  ShogiBoardQ-linux.zip
-```
-
-#### 既存リリースにアセットを追加
-
-他のプラットフォームで先にリリースを作成済みの場合：
-
-```bash
-gh release upload v0.1.0 ShogiBoardQ-linux.zip
-```
-
-### 5.3 Web UI からリリース作成（代替）
-
-1. GitHub リポジトリ → **Releases** → **Draft a new release**
-2. **Choose a tag** → 新しいタグ（例: `v0.1.0`）を入力して作成
-3. **Release title** を入力（例: `ShogiBoardQ v0.1.0`）
-4. **Description** にリリースノートを記入
-5. **Attach binaries** に `ShogiBoardQ-linux.zip` だけをドラッグ＆ドロップ
-6. **Publish release** をクリック
-
-### 5.4 リリースノートの書き方（テンプレート）
-
-```markdown
-## ShogiBoardQ v0.1.0
-
-### ダウンロード
-
-| OS | ファイル |
-|---|---|
-| Linux (x86_64) | `ShogiBoardQ-linux.zip`（AppImage・詰将棋問題集・Hayanagi） |
-| macOS | `ShogiBoardQ.dmg` |
-| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
-
 ### Linux での起動方法
 
-1. ZIP ファイルをダウンロードして展開
-2. 展開先の `ShogiBoardQ-linux` ディレクトリへ移動
-3. 実行権限を付与: `chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi`
-4. 実行: `./ShogiBoardQ-linux-x86_64.AppImage`
+1. ShogiBoardQ-linux.zip をダウンロードして展開する
+2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
+3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-> FUSE がインストールされていない場合は `--appimage-extract-and-run` オプションで起動できます。
-
-### 変更点
-
-- ...
+動作条件: x86_64 の Linux、glibc 2.38 以降（Ubuntu 24.04 以降、Debian 13、Fedora 39 以降など）
+FUSE がない場合は --appimage-extract-and-run を付けて起動できます。
 ```
 
----
+> リポジトリの [release.yml](https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml) は `v` で始まるタグや手動実行で3つの OS をビルドするが、Linux のジョブは Ubuntu で動く。同梱ライブラリの文書の収集が Ubuntu に対応するまでは Linux の配布物を作れないため、現在は Arch Linux のコンテナで作った ZIP を手動で添付する。
 
-## 6. トラブルシューティング
+<a id="troubleshooting"></a>
+
+## 7. トラブルシューティング
+
+<a id="ts-qt"></a>
 
 ### Qt が見つからない
 
 ```
-CMake Error: Could not find a package configuration file provided by "Qt6"
+Could not find a package configuration file provided by "Qt6"
 ```
 
-Qt のインストールパスを明示的に指定する：
+Qt 6.7 以上と必要なモジュールが入っているか確かめる。Qt Online Installer の Qt は `-DCMAKE_PREFIX_PATH` で指定する。Qt や CMake のジェネレーターを替えたときは、新しい build ディレクトリでやり直す。
 
-```bash
-cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.8.3/gcc_64"
-```
+<a id="ts-submodule"></a>
 
-### Qt Charts が見つからない
+### Hayanagi のソースがない
 
-ディストリビューションのパッケージで Qt をインストールした場合、Qt Charts が別パッケージになっていることがある：
+リポジトリ直下で `git submodule update --init --recursive` を実行する。
 
-```bash
-# Ubuntu / Debian
-sudo apt install qt6-charts-dev
+<a id="ts-tsume"></a>
 
-# Fedora
-sudo dnf install qt6-qtcharts-devel
-
-# Arch Linux
-sudo pacman -S qt6-charts
-```
-
-### OpenGL 関連のエラー
+### 問題集が複数あると表示されて止まる
 
 ```
-Could not find EGL/egl.h
+==> ERROR: 5手詰の問題集が複数あります: data/tsumeshogi/tsume_5ply_1000_20260926.txt data/tsumeshogi/tsume_5ply_1000_20261001.txt
 ```
 
-OpenGL 開発ヘッダーをインストール：
+`data/tsumeshogi/` に旧版の問題集が残っている。各手数1ファイルになるよう、使わない版を削除する。
 
-```bash
-# Ubuntu / Debian
-sudo apt install libgl1-mesa-dev libegl1-mesa-dev
+<a id="ts-qt-notices"></a>
 
-# Fedora
-sudo dnf install mesa-libGL-devel mesa-libEGL-devel
+### Qt の文書の検証で止まる
 
-# Arch Linux
-sudo pacman -S mesa
 ```
+Qt license preparation failed: Qt version mismatch: build=6.7.2, source=6.11.2
+Qt license preparation failed: Qt notices are missing. See docs/dev/qt-licensing.md; set SHOGIBOARDQ_QT_LICENSE_DIR to prepared matching notices.
+```
+
+ビルドに使った Qt と同じ版の文書を準備する（[4章](#qt-notices)）。コンテナの Qt は 6.7.2、手元の Arch Linux のQt は `pacman -Q qt6-base` の版。失敗を無視して配布しない。
+
+<a id="ts-bundled"></a>
+
+### 同梱ライブラリの文書の収集で止まる
+
+```
+Bundled library notices failed: Bundled library notices need pacman (Arch Linux); other distributions are not supported yet
+Bundled library notices failed: Cannot find the system file of lib/libQt6Core.so.6
+Bundled library notices failed: No license text for bundled package fcitx5-qt (GPL)
+```
+
+- 配布物は Arch Linux で、Arch の Qt パッケージを使って作る。Qt Online Installer の Qt など、pacman のパッケージに含まれないライブラリが AppImage に入ると、元のパッケージを特定できずに止まる。
+- `No license text for …` は、ライセンス本文が見つからないパッケージがあることを示す。古いリポジトリではライセンス欄が正式な形式（SPDX）でないことがあるので、`scripts/bundled_licenses.py` の `LICENSE_OVERRIDES` に上流の表記を加える。パッケージにない文書（著作権表示付きの本文など）は `scripts/license-texts/<パッケージ名>/` に置く。
+
+<a id="ts-docker"></a>
+
+### docker を使えない
+
+```
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+```
+
+ユーザーを docker グループに入れてログインし直す（`sudo usermod -aG docker $USER`）。または環境変数 `DOCKER="sudo docker"` を指定する。
+
+<a id="ts-linuxdeploy"></a>
 
 ### linuxdeploy が起動しない
 
@@ -597,90 +433,79 @@ sudo pacman -S mesa
 dlopen(): error loading libfuse.so.2
 ```
 
-FUSE 2 ライブラリが必要：
+`fuse2` を入れるか、`APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh` で実行する。
 
-```bash
-# Ubuntu / Debian
-sudo apt install libfuse2
+<a id="ts-fuse"></a>
 
-# Fedora
-sudo dnf install fuse-libs
-
-# Arch Linux
-sudo pacman -S fuse2
-```
-
-FUSE をインストールできない環境（Docker コンテナ等）では、配布ツールを
-展開して実行する環境変数を指定する：
-
-```bash
-APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh
-```
-
-### AppImage が起動しない
+### AppImage が起動しない（FUSE）
 
 ```
 AppImages require FUSE to run.
 ```
 
-FUSE をインストールするか、`--appimage-extract-and-run` オプションで起動：
+FUSE 2 を入れるか、`--appimage-extract-and-run` を付けて起動する。
 
-```bash
+```
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract-and-run
 ```
 
-または、手動で展開して実行：
+<a id="ts-glibc"></a>
 
-```bash
-./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
-cd squashfs-root
-./AppRun
+### glibc の版が足りない
+
+```
+version `GLIBC_2.38' not found
 ```
 
-### xcb プラットフォームプラグインのエラー
+起動したシステムの glibc が、ビルドした環境より古い。リリース用はコンテナでビルドする（[5.1](#package-run)）。それでも足りない場合は、glibc がより新しいディストリビューションで使う（[前提条件](#requirements)の glibc の説明を参照）。
+
+<a id="ts-libs"></a>
+
+### システムのライブラリが見つからない
+
+```
+error while loading shared libraries: libOpenGL.so.0: cannot open shared object file: No such file or directory
+```
+
+AppImage に同梱しないライブラリ（OpenGL・fontconfig・HarfBuzz・wayland-client）がシステムに入っていない。Ubuntu / Debian の例:
+
+```
+sudo apt install libegl1 libopengl0 libfontconfig1 libharfbuzz0b libwayland-client0
+```
+
+<a id="ts-xcb"></a>
+
+### xcb プラットフォームプラグインを読み込めない
 
 ```
 qt.qpa.plugin: Could not load the Qt platform plugin "xcb"
 ```
 
-X11 関連の依存ライブラリが不足：
+X11 関連のライブラリが足りない。Ubuntu / Debian、Fedora、Arch Linux の順に例を示す。
 
-```bash
-# Ubuntu / Debian
-sudo apt install libxcb-xinerama0 libxcb-cursor0
-
-# Fedora
+```
+sudo apt install libxcb-cursor0 libxcb-xinerama0
 sudo dnf install xcb-util-cursor xcb-util-wm xcb-util-keysyms
-
-# Arch Linux
 sudo pacman -S xcb-util-cursor xcb-util-wm xcb-util-keysyms
 ```
 
-### Wayland 環境で表示が崩れる
+<a id="ts-im"></a>
 
-Wayland 環境で問題がある場合、XWayland 経由で起動する：
+### 日本語を入力できない
 
-```bash
-QT_QPA_PLATFORM=xcb ./ShogiBoardQ-linux-x86_64.AppImage
+AppImage は X11 用の表示プラグインだけを同梱しているので、Wayland のデスクトップでも XWayland 経由で動く。環境変数 `QT_IM_MODULE` が未設定だと、日本語入力のプラグインが選ばれない。fcitx5 を使っている場合は `QT_IM_MODULE=fcitx`、IBus の場合は `QT_IM_MODULE=ibus` を付けて起動する。
+
 ```
+QT_IM_MODULE=fcitx ./ShogiBoardQ-linux-x86_64.AppImage
+```
+
+<a id="ts-translations"></a>
 
 ### 翻訳が読み込まれない
 
-`.qm` ファイルが実行ファイルと同じディレクトリに存在するか確認：
+`.qm` ファイルが実行ファイルと同じ `usr/bin/` にあるか確かめる。
 
-```bash
-# AppImage を展開して確認
+```
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
 ls squashfs-root/usr/bin/*.qm
 ```
-
-ない場合、ビルドスクリプトの `.qm` コピー処理を確認する。
-
-### glibc バージョンエラー
-
-```
-version `GLIBC_2.xx' not found
-```
-
-AppImage はビルド環境の glibc バージョン以降のシステムでのみ動作する。
-古いシステムで実行したい場合は、より古いディストリビューション（Ubuntu 22.04 等）でビルドする。

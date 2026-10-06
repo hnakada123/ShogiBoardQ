@@ -94,6 +94,11 @@
     margin-bottom: 1rem;
 }
 
+/* 項目名が短い表（前提条件・オプションなど）は1列目を折り返さない */
+.build-document .info-table--labels td:first-child {
+    white-space: nowrap;
+}
+
 @media (max-width: 640px) {
     .build-document h2 {
         font-size: 1.3rem;

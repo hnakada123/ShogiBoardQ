@@ -56,11 +56,15 @@ AppImage に同梱する。これらにもそれぞれのライセンス（MIT�
 パッケージのライセンス本文を `third-party/` に、版・ライセンス・ソースの取得先（Arch Linux の
 パッケージのソースと上流）の一覧を `THIRD-PARTY-NOTICES.md` に収録する。Qt のパッケージ（`qt6-*`）は
 上記の Qt 文書で扱うので除く。パッケージが分からないファイルや本文がないパッケージがあれば配布物を作らない。
-Arch のライセンス欄が SPDX 形式でないパッケージ（libasyncns・libidn2）は、上流のヘッダーの表記で補う。
+Arch のライセンス欄が SPDX 形式でないパッケージ（libasyncns・libidn2 や、古いリポジトリの多くのパッケージ）は、
+`LICENSE_OVERRIDES` で上流の表記に補う。補正は（パッケージ名, 元の表記）の組で指定し、表記が変わったら当てない。
+GPL 系の本文が見つからないパッケージがあれば配布物を作らない。パッケージにない文書（BSD の本文に実際の
+著作権表示を付けたものなど）は `scripts/license-texts/<パッケージ名>/` に置く（例: fcitx5-qt の DBusAddons）。
 
-現在は Arch Linux（pacman）でビルドした場合だけに対応する。Ubuntu など他の環境（CI を含む）で
-配布物を作るには、そのパッケージ管理（dpkg と `/usr/share/doc/<パッケージ名>/copyright` など）への
-対応を追加する必要がある。
+現在は Arch Linux（pacman）でビルドした場合だけに対応する。リリース用は `scripts/build-linux-container.sh` で、
+glibc の古い Arch Linux（Arch Linux Archive の 2024-07-15）のコンテナの中でビルドする（Qt は 6.7.2 になるので、
+Qt 文書もその版で準備する）。Ubuntu など他の環境（CI を含む）で配布物を作るには、そのパッケージ管理
+（dpkg と `/usr/share/doc/<パッケージ名>/copyright` など）への対応を追加する必要がある。
 
 ## 利用者向けの表示
 
@@ -159,9 +163,10 @@ Qt 文書を使っても旧方針の「Release の別添付から取得する」
 
 ## 確認範囲
 
-この仕組みは Qt と Qt ソースに収録された第三者コードを扱う。配布ツールが OS から
-追加する Qt 外の共有ライブラリ、外付けプラグイン、MSVC ランタイム等については、
-配布元の条件と対応ソースの要否も別途確認する。Qt SQL / QSQLITE も文書抽出の対象に含む。
+この仕組みは Qt と Qt ソースに収録された第三者コードを扱う。Qt SQL / QSQLITE も文書抽出の対象に含む。
+Linux AppImage で配布ツールが OS から追加する Qt 外の共有ライブラリと外付けプラグインは、
+`scripts/bundled_licenses.py` が扱う（上記「Qt 以外の同梱ライブラリ」）。macOS・Windows で追加される
+Qt 外のライブラリや MSVC ランタイム等については、配布元の条件と対応ソースの要否を別途確認する。
 
 参照:
 - https://www.qt.io/development/open-source-lgpl-obligations
