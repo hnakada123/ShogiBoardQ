@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菜单面板 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 菜单面板的指南：用带图标的按钮执行菜单栏的各项命令，并可搜索项目、添加收藏、调整按钮和文字大小以及分离面板。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/menu.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/menu.html">
+    <meta property="og:title" content="菜单面板 - ShogiBoardQ">
+    <meta property="og:description" content="在菜单面板中用带图标的按钮执行菜单栏的各项命令，并支持搜索项目和收藏。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/menu/main-screen.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="菜单面板 - ShogiBoardQ">
+    <meta name="twitter:description" content="在菜单面板中用带图标的按钮执行菜单栏的各项命令，并支持搜索项目和收藏。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/menu/main-screen.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/menu.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/menu.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/menu.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/menu.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="menu.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/menu.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#open-menu">显示菜单</a></li>
+            <li><a href="#menu-tabs">各菜单标签页</a></li>
+            <li><a href="#navigation-buttons">按钮与搜索</a></li>
+            <li><a href="#favorites">收藏</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>菜单面板</h1>
+        <p class="hero-subtitle">在菜单面板中快速执行各种操作</p>
+        <div class="hero-badges">
+            <span class="badge">分离面板</span>
+            <span class="badge">标签页分类</span>
+            <span class="badge">搜索项目</span>
+            <span class="badge">收藏</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="open-menu" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">菜单面板的显示方法</h2>
+        <p class="section-desc">从菜单栏的“视图”显示菜单面板</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">显示菜单面板</span>
+                </div>
+                <p class="guide-step-text">在菜单栏中选择“视图”→“菜单”，即可显示菜单面板。菜单栏的各项命令以带图标的按钮排列，可以快速使用常用功能。最初会以标签页的形式与棋谱面板显示在同一位置。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/menu/main-screen.png" alt="显示菜单面板的主窗口" width="1300" height="980" loading="lazy">
+                    <p class="screenshot-caption">主窗口：用“视图”→“菜单”显示的菜单面板（与棋谱面板在同一位置）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">分离为独立窗口</span>
+                </div>
+                <p class="guide-step-text">拖动菜单面板的标题栏，或点击标题栏右侧的分离按钮，即可将其作为独立窗口使用，并放在方便的位置。把它拖到主窗口边缘，即可恢复为面板。面板的布置和保存请参阅<a href="dock.html">面板布局</a>。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="menu-tabs" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">各菜单标签页</h2>
+        <p class="section-desc">按与菜单栏相同的分类，以按钮排列各项目</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">文件</span>
+                </div>
+                <p class="guide-step-text">包括“新建”“打开…”“保存”“另存为…”“保存棋盘图片…”“保存评价值图表图片…”和“退出”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/tab-file.png" alt="菜单面板的文件标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">文件标签页</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">编辑</span>
+                </div>
+                <p class="guide-step-text">包括“复制棋谱”的各格式（KIF・KI2・CSA・USI・JSON・USEN）、“复制局面”的各格式（SFEN・BOD）、“粘贴棋谱…”“SFEN 局面集查看器”“复制棋盘图片”“复制评价值图表图片”和“开始编辑局面”。</p>
+                <p class="guide-step-text">“结束编辑局面”“平手布局”“诘棋布局”“将所有棋子放入棋子盒”和“切换行棋方”只在编辑局面期间显示。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/tab-edit.png" alt="菜单面板的编辑标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">编辑标签页</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">视图</span>
+                </div>
+                <p class="guide-step-text">包括“翻转棋盘”“放大棋盘”“缩小棋盘”“对局外观…”“显示合法落点”“应用程序字体…”“重置面板布局”“保存面板布局…”和“锁定面板”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/tab-view.png" alt="菜单面板的视图标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">视图标签页（“显示合法落点”已开启）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">对局</span>
+                </div>
+                <p class="guide-step-text">包括“对局…”“网络对局 (CSA)…”“认输”“悔棋”“立即落子”“中断”“继续”“分析棋谱…”“取消分析”“搜索诘棋…”“取消诘棋搜索”“诘棋局面生成器…”“练习诘棋…”“持将棋点数”和“入玉宣言”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/tab-game.png" alt="菜单面板的对局标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">对局标签页（未在对局，因此“认输”等变淡显示）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">设置</span>
+                </div>
+                <p class="guide-step-text">包括“引擎设置…”“走子音效”“走子音效设置…”，界面语言“跟随系统设置”“日本語”“English”“简体中文”“繁體中文”，记法选项“跟随界面语言”“日文记法（▲7六步；段为一至九）”“西文记法（▲P-7f；段为 a 至 i）”“西文记法始终显示起点”“棋谱记法说明…”，以及“恢复默认设置…”。界面语言和记法的项目在菜单栏中分别位于“语言”和“棋谱与棋盘坐标表示”之下。</p>
+                <p class="guide-step-text">选择“恢复默认设置…”并在确认窗口中同意后，会初始化包括引擎注册在内的所有设置并退出程序，下次启动时使用默认设置。如果在未保存棋谱等的确认中取消退出，则不会初始化设置。此操作在未进行对局或分析时可以使用。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/tab-settings.png" alt="菜单面板的设置标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">设置标签页</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">帮助</span>
+                </div>
+                <p class="guide-step-text">包括“官方网站”“版本信息”和“关于 Qt”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/tab-help.png" alt="菜单面板的帮助标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">帮助标签页</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">按钮的显示</span>
+                </div>
+                <p class="guide-step-text">点击按钮会执行与菜单栏中同一项目相同的操作。当前不能使用的操作按钮会变淡显示（如上面对局标签页中的“认输”）。可开关的项目在开启时左上角会显示 ✓（如视图标签页中的“显示合法落点”）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="navigation-buttons" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">右上角的按钮与搜索</h2>
+        <p class="section-desc">可以调整按钮大小，或按名称筛选项目</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">右上角的按钮</span>
+                </div>
+                <p class="guide-step-text">菜单面板的右上角有以下按钮。</p>
+                <ul class="guide-step-text">
+                    <li><strong>□- ／ □+</strong>：缩小／放大按钮和图标。</li>
+                    <li><strong>A- ／ A+</strong>：缩小／放大按钮的文字。</li>
+                    <li><strong>编辑收藏</strong>：开始添加、移除和调整收藏的顺序。按下后变为“完成编辑”。</li>
+                </ul>
+                <p class="guide-step-text">按钮和文字的大小、最后打开的标签页以及收藏会在下次启动时继续使用。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">搜索项目</span>
+                </div>
+                <p class="guide-step-text">在“搜索此标签页的项目”中输入文字，只会显示名称或说明中包含该文字的项目。点击输入框右端的按钮可以清除输入的文字。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/search.png" alt="用“诘棋”筛选的对局标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">用“诘棋”筛选对局标签页的项目</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="favorites" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">收藏</h2>
+        <p class="section-desc">把常用功能汇集到收藏中，快速使用</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">收藏标签页（未添加）</span>
+                </div>
+                <p class="guide-step-text">“★ 收藏”标签页中显示已添加的项目。最初没有添加任何项目，只显示提示。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/favorites-empty.png" alt="未添加收藏的菜单面板" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">收藏标签页：未添加的状态</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">用编辑收藏添加</span>
+                </div>
+                <p class="guide-step-text">点击右上角的“编辑收藏”开始编辑，按钮会变为“完成编辑”。各标签页项目的右上角会显示绿色的“+”，点击即可把该项目添加到收藏。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/favorites-customize-mode.png" alt="编辑收藏时的文件标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">编辑收藏：用“+”添加</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">移除与排序</span>
+                </div>
+                <p class="guide-step-text">编辑期间打开收藏标签页，已添加项目的右上角会显示红色的“×”，点击即可从收藏中移除。拖动项目可以调整顺序。完成后点击“完成编辑”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/favorites-editing.png" alt="编辑收藏时的收藏标签页" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">编辑收藏：用“×”移除，拖动调整顺序</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">完成收藏</span>
+                </div>
+                <p class="guide-step-text">添加的项目会汇集在“★ 收藏”标签页中。添加常用功能后，无需切换标签页即可使用。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/menu/favorites-registered.png" alt="已添加收藏的菜单面板" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">添加的项目显示在收藏标签页中</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>選單面板 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 選單面板的指南：以附圖示的按鈕執行選單列的各項指令，並可搜尋項目、新增收藏、調整按鈕和文字大小以及分離面板。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/menu.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/menu.html">
+    <meta property="og:title" content="選單面板 - ShogiBoardQ">
+    <meta property="og:description" content="在選單面板中以附圖示的按鈕執行選單列的各項指令，並支援搜尋項目和收藏。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/menu/main-screen.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="選單面板 - ShogiBoardQ">
+    <meta name="twitter:description" content="在選單面板中以附圖示的按鈕執行選單列的各項指令，並支援搜尋項目和收藏。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/menu/main-screen.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/menu.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/menu.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/menu.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/menu.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/menu.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="menu.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#open-menu">顯示選單</a></li>
+            <li><a href="#menu-tabs">各選單分頁</a></li>
+            <li><a href="#navigation-buttons">按鈕與搜尋</a></li>
+            <li><a href="#favorites">收藏</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>選單面板</h1>
+        <p class="hero-subtitle">在選單面板中快速執行各種操作</p>
+        <div class="hero-badges">
+            <span class="badge">分離面板</span>
+            <span class="badge">分頁分類</span>
+            <span class="badge">搜尋項目</span>
+            <span class="badge">收藏</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="open-menu" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">選單面板的顯示方法</h2>
+        <p class="section-desc">從選單列的「檢視」顯示選單面板</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">顯示選單面板</span>
+                </div>
+                <p class="guide-step-text">在選單列中選擇「檢視」→「選單」，即可顯示選單面板。選單列的各項指令以附圖示的按鈕排列，可以快速使用常用功能。最初會以分頁的形式與棋譜面板顯示在同一位置。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/menu/main-screen.png" alt="顯示選單面板的主視窗" width="1300" height="980" loading="lazy">
+                    <p class="screenshot-caption">主視窗：以「檢視」→「選單」顯示的選單面板（與棋譜面板在同一位置）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">分離為獨立視窗</span>
+                </div>
+                <p class="guide-step-text">拖曳選單面板的標題列，或按一下標題列右側的分離按鈕，即可將其作為獨立視窗使用，並放在方便的位置。把它拖到主視窗邊緣，即可恢復為面板。面板的配置和儲存請參閱<a href="dock.html">面板佈局</a>。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="menu-tabs" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">各選單分頁</h2>
+        <p class="section-desc">依與選單列相同的分類，以按鈕排列各項目</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">檔案</span>
+                </div>
+                <p class="guide-step-text">包括「新建」「開啟…」「儲存」「另存為…」「儲存棋盤圖片…」「儲存評價值圖表圖片…」和「結束」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/tab-file.png" alt="選單面板的檔案分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">檔案分頁</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">編輯</span>
+                </div>
+                <p class="guide-step-text">包括「複製棋譜」的各格式（KIF・KI2・CSA・USI・JSON・USEN）、「複製局面」的各格式（SFEN・BOD）、「貼上棋譜…」「SFEN 局面集檢視器」「複製棋盤圖片」「複製評價值圖表圖片」和「開始編輯局面」。</p>
+                <p class="guide-step-text">「結束編輯局面」「平手佈局」「詰棋佈局」「將所有棋子放入棋子盒」和「切換行棋方」只在編輯局面期間顯示。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/tab-edit.png" alt="選單面板的編輯分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">編輯分頁</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">檢視</span>
+                </div>
+                <p class="guide-step-text">包括「翻轉棋盤」「放大棋盤」「縮小棋盤」「對局外觀…」「顯示合法落點」「應用程式字型…」「重設面板佈局」「儲存面板佈局…」和「鎖定面板」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/tab-view.png" alt="選單面板的檢視分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">檢視分頁（「顯示合法落點」已開啟）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">對局</span>
+                </div>
+                <p class="guide-step-text">包括「對局…」「網路對局 (CSA)…」「認輸」「悔棋」「立即落子」「中斷」「繼續」「分析棋譜…」「取消分析」「搜尋詰棋…」「取消詰棋搜尋」「詰棋局面生成器…」「練習詰棋…」「持將棋點數」和「入玉宣言」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/tab-game.png" alt="選單面板的對局分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">對局分頁（未在對局，因此「認輸」等變淡顯示）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">設定</span>
+                </div>
+                <p class="guide-step-text">包括「引擎設定…」「走子音效」「走子音效設定…」，介面語言「跟隨系統設定」「日本語」「English」「简体中文」「繁體中文」，記法選項「跟隨介面語言」「日文記法（▲7六步；段為一至九）」「西文記法（▲P-7f；段為 a 至 i）」「西文記法始終顯示起點」「棋譜記法說明…」，以及「恢復預設設定…」。介面語言和記法的項目在選單列中分別位於「語言」和「棋譜與棋盤座標表示」之下。</p>
+                <p class="guide-step-text">選擇「恢復預設設定…」並在確認視窗中同意後，會初始化包括引擎註冊在內的所有設定並結束程式，下次啟動時使用預設設定。如果在未儲存棋譜等的確認中取消結束，則不會初始化設定。此操作在未進行對局或分析時可以使用。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/tab-settings.png" alt="選單面板的設定分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">設定分頁</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">說明</span>
+                </div>
+                <p class="guide-step-text">包括「官方網站」「版本資訊」和「關於 Qt」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/tab-help.png" alt="選單面板的說明分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">說明分頁</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">按鈕的顯示</span>
+                </div>
+                <p class="guide-step-text">按一下按鈕會執行與選單列中同一項目相同的操作。目前無法使用的操作按鈕會變淡顯示（如上面對局分頁中的「認輸」）。可開關的項目在開啟時左上角會顯示 ✓（如檢視分頁中的「顯示合法落點」）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="navigation-buttons" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">右上角的按鈕與搜尋</h2>
+        <p class="section-desc">可以調整按鈕大小，或依名稱篩選項目</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">右上角的按鈕</span>
+                </div>
+                <p class="guide-step-text">選單面板的右上角有以下按鈕。</p>
+                <ul class="guide-step-text">
+                    <li><strong>□- ／ □+</strong>：縮小／放大按鈕和圖示。</li>
+                    <li><strong>A- ／ A+</strong>：縮小／放大按鈕的文字。</li>
+                    <li><strong>編輯收藏</strong>：開始新增、移除和調整收藏的順序。按下後變為「完成編輯」。</li>
+                </ul>
+                <p class="guide-step-text">按鈕和文字的大小、最後開啟的分頁以及收藏會在下次啟動時繼續使用。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">搜尋項目</span>
+                </div>
+                <p class="guide-step-text">在「搜尋此分頁的項目」中輸入文字，只會顯示名稱或說明中包含該文字的項目。按一下輸入框右端的按鈕可以清除輸入的文字。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/search.png" alt="以「詰棋」篩選的對局分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">以「詰棋」篩選對局分頁的項目</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="favorites" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">收藏</h2>
+        <p class="section-desc">把常用功能匯集到收藏中，快速使用</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">收藏分頁（未新增）</span>
+                </div>
+                <p class="guide-step-text">「★ 收藏」分頁中顯示已新增的項目。最初沒有新增任何項目，只顯示提示。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/favorites-empty.png" alt="未新增收藏的選單面板" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">收藏分頁：未新增的狀態</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">以編輯收藏新增</span>
+                </div>
+                <p class="guide-step-text">按一下右上角的「編輯收藏」開始編輯，按鈕會變為「完成編輯」。各分頁項目的右上角會顯示綠色的「+」，按一下即可把該項目新增到收藏。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/favorites-customize-mode.png" alt="編輯收藏時的檔案分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">編輯收藏：以「+」新增</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">移除與排序</span>
+                </div>
+                <p class="guide-step-text">編輯期間開啟收藏分頁，已新增項目的右上角會顯示紅色的「×」，按一下即可從收藏中移除。拖曳項目可以調整順序。完成後按一下「完成編輯」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/favorites-editing.png" alt="編輯收藏時的收藏分頁" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">編輯收藏：以「×」移除，拖曳調整順序</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">完成收藏</span>
+                </div>
+                <p class="guide-step-text">新增的項目會匯集在「★ 收藏」分頁中。新增常用功能後，不需切換分頁即可使用。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/menu/favorites-registered.png" alt="已新增收藏的選單面板" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">新增的項目顯示在收藏分頁中</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

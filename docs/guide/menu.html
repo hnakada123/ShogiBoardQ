@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>メニュー機能 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQのメニュー機能を紹介します。メニュードックの表示方法、各メニュータブの機能紹介、お気に入り登録の手順をスクリーンショット付きで解説。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
+    <meta name="description" content="ShogiBoardQのメニュードックを紹介します。メニューバーの各項目をアイコン付きのボタンで実行でき、項目の検索、お気に入り登録、ボタンと文字の大きさの調整、ドックの分離ができます。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
     <meta property="og:title" content="メニュー機能 - ShogiBoardQ">
-    <meta property="og:description" content="ShogiBoardQのメニュー機能を紹介。メニュードックの表示・各タブの紹介・お気に入り登録の手順を解説。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/menu/tab-file.png">
+    <meta property="og:description" content="メニューバーの各項目をアイコン付きのボタンで実行できるメニュードック。項目の検索やお気に入り登録にも対応します。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/menu/main-screen.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="メニュー機能 - ShogiBoardQ">
-    <meta name="twitter:description" content="ShogiBoardQのメニュー機能を紹介。メニュードックの表示・各タブの紹介・お気に入り登録の手順を解説。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/menu/tab-file.png">
+    <meta name="twitter:description" content="メニューバーの各項目をアイコン付きのボタンで実行できるメニュードック。項目の検索やお気に入り登録にも対応します。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/menu/main-screen.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/menu.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/menu.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html">
 </head>
 <body>
 
@@ -30,7 +32,15 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/menu.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="menu.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/menu.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/menu.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/menu.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
@@ -39,7 +49,7 @@
             <li><a href="index.html">利用ガイド</a></li>
             <li><a href="#open-menu">メニューの表示</a></li>
             <li><a href="#menu-tabs">各メニュータブ</a></li>
-            <li><a href="#navigation-buttons">ナビゲーション</a></li>
+            <li><a href="#navigation-buttons">ボタンと検索</a></li>
             <li><a href="#favorites">お気に入り</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
@@ -54,17 +64,17 @@
         <div class="hero-badges">
             <span class="badge">ドック分離</span>
             <span class="badge">タブ切り替え</span>
+            <span class="badge">項目の検索</span>
             <span class="badge">お気に入り登録</span>
-            <span class="badge">カスタマイズ</span>
         </div>
     </div>
 </section>
 
-<!-- Section 1: How to Open Menu -->
+<!-- Section 1 -->
 <section id="open-menu" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">メニューの表示方法</h2>
-        <p class="section-desc">メニューバーの「表示」からメニュードックを表示できます</p>
+        <p class="section-desc">メニューバーの「表示」からメニュードックを表示します</p>
 
         <div class="screenshot-gallery">
 
@@ -73,10 +83,10 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">メニュードックを表示する</span>
                 </div>
-                <p class="guide-step-text">GUI画面上部のメニューバーから「表示」→「メニュー」をクリックすると、メニュードックが表示されます。メニュードックには各種操作がアイコン付きのボタンとして配置されており、よく使う機能にすばやくアクセスできます。</p>
+                <p class="guide-step-text">メニューバーの「表示」→「メニュー」を選ぶと、メニュードックが表示されます。メニューバーの各項目がアイコン付きのボタンとして並び、よく使う機能にすばやくアクセスできます。最初は棋譜ドックと同じ場所にタブとして並びます。</p>
                 <div class="screenshot-item">
-                    <img src="../images/menu/main-screen.png" alt="ShogiBoardQ メイン画面">
-                    <p class="screenshot-caption">メイン画面：メニューバーの「表示」→「メニュー」でメニュードックを表示</p>
+                    <img src="../images/menu/main-screen.png" alt="メニュードックを表示したメイン画面" width="1300" height="980" loading="lazy">
+                    <p class="screenshot-caption">メイン画面：「表示」→「メニュー」で表示したメニュードック（棋譜ドックと同じ場所に並ぶ）</p>
                 </div>
             </div>
 
@@ -85,123 +95,138 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">ドックとして分離</span>
                 </div>
-                <p class="guide-step-text">メニュードックはタイトルバーをドラッグすることで、GUI本体から分離して独立したウィンドウとして使用できます。デスクトップの好きな位置に配置できるため、作業に応じたレイアウトが可能です。再びGUI本体の端にドラッグすると、ドックとして再結合できます。</p>
+                <p class="guide-step-text">メニュードックのタイトルバーをドラッグするか、タイトルバー右側の分離ボタンを押すと、メイン画面から分離した独立したウィンドウとして使えます。作業に合わせて好きな位置に置けます。メイン画面の端へドラッグすると、ドックに戻ります。ドックの配置や保存については<a href="dock.html">ドック機能</a>をご覧ください。</p>
             </div>
 
         </div>
     </div>
 </section>
 
-<!-- Section 2: Menu Tabs -->
+<!-- Section 2 -->
 <section id="menu-tabs" class="section">
     <div class="section-inner">
         <h2 class="section-title">各メニュータブ</h2>
-        <p class="section-desc">メニュードックはタブで分類されており、目的の操作をすばやく見つけられます</p>
+        <p class="section-desc">メニューバーと同じ分類のタブに、各項目がボタンとして並びます</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">ファイル(F)</span>
+                    <span class="guide-step-title">ファイル</span>
                 </div>
-                <p class="guide-step-text">棋譜ファイルの操作に関するメニューです。新規作成、開く、上書き保存、名前を付けて保存のほか、将棋盤や評価値グラフの画像エクスポート、アプリケーションの終了が行えます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/tab-file.png" alt="メニュードック：ファイルタブ">
-                    <p class="screenshot-caption">ファイルタブ：棋譜ファイルの新規作成・読み込み・保存や画像エクスポート</p>
+                <p class="guide-step-text">「新規」「開く…」「上書き保存」「名前を付けて保存…」「将棋盤の画像をファイルに保存…」「評価値グラフの画像をファイルに保存…」「終了」が並びます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/tab-file.png" alt="メニュードックのファイルタブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">ファイルタブ</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">編集(E)</span>
+                    <span class="guide-step-title">編集</span>
                 </div>
-                <p class="guide-step-text">棋譜の編集・変換に関するメニューです。各種棋譜フォーマット（KIF / KI2 / CSA / USI / SFEN / JSON / BOD）でのコピー、棋譜の貼り付け、局面集ビューア、将棋盤画像コピー、局面編集の開始・終了、初期配置への設定、手番変更が行えます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/tab-edit.png" alt="メニュードック：編集タブ">
-                    <p class="screenshot-caption">編集タブ：棋譜フォーマット変換・コピー・貼り付け・局面編集</p>
+                <p class="guide-step-text">「棋譜コピー」の各形式（KIF・KI2・CSA・USI・JSON・USEN）、「局面コピー」の各形式（SFEN・BOD）、「棋譜貼り付け…」「局面集ビューア」「将棋盤画像コピー」「評価値グラフ画像コピー」「局面編集開始」が並びます。</p>
+                <p class="guide-step-text">「局面編集終了」「平手初期配置」「詰将棋初期配置」「全ての駒を駒箱へ」「手番変更」は、局面編集中だけ表示されます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/tab-edit.png" alt="メニュードックの編集タブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">編集タブ</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">表示(I)</span>
+                    <span class="guide-step-title">表示</span>
                 </div>
-                <p class="guide-step-text">盤面の表示に関するメニューです。盤面の回転、将棋盤の拡大・縮小、ドックレイアウトの保存・読み込み、ドックの固定が行えます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/tab-view.png" alt="メニュードック：表示タブ">
-                    <p class="screenshot-caption">表示タブ：盤面回転・拡大縮小・ドックレイアウト管理</p>
+                <p class="guide-step-text">「盤面の回転」「将棋盤の拡大」「将棋盤の縮小」「対局画面の外観…」「指せるマスを表示」「GUI全体のフォント…」「ドックレイアウトをリセット」「ドックレイアウトを保存…」「ドックを固定」が並びます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/tab-view.png" alt="メニュードックの表示タブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">表示タブ（「指せるマスを表示」がオン）</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
-                    <span class="guide-step-title">対局(G)</span>
+                    <span class="guide-step-title">対局</span>
                 </div>
-                <p class="guide-step-text">対局に関するメニューです。対局や通信対局（CSA）の開始、投了、待った、すぐ指させる、中断、棋譜解析、詰み探索、持将棋点数の計算、入玉宣言が行えます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/tab-game.png" alt="メニュードック：対局タブ">
-                    <p class="screenshot-caption">対局タブ：対局開始・投了・棋譜解析・詰み探索など対局関連の操作</p>
+                <p class="guide-step-text">「対局…」「通信対局（CSA）…」「投了」「待った」「すぐ指させる」「中断」「再開」「棋譜解析…」「棋譜解析中止」「詰み探索…」「詰み探索中止」「詰将棋局面生成…」「詰将棋対局…」「持将棋点数」「入玉宣言」が並びます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/tab-game.png" alt="メニュードックの対局タブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">対局タブ（対局していないため「投了」などは薄く表示）</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">5</span>
-                    <span class="guide-step-title">設定(S)</span>
+                    <span class="guide-step-title">設定</span>
                 </div>
-                <p class="guide-step-text">アプリケーションの設定に関するメニューです。エンジン設定、駒音のON/OFFと音量・音質の調整、言語の切り替え（日本語 / English）が行えます。</p>
-                <p class="guide-step-text">「設定を初期値に戻す…」を選び、確認画面で承認すると、エンジン登録を含むすべての設定を初期化してアプリケーションを終了します。次回起動時は初期設定が使用されます。未保存の棋譜などの確認で終了をキャンセルした場合、設定は初期化されません。この操作は対局や解析などを行っていないときに利用できます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/tab-settings.png" alt="メニュードック：設定タブ">
-                    <p class="screenshot-caption">設定タブ：エンジン設定・駒音・言語切り替え</p>
+                <p class="guide-step-text">「エンジン設定…」「駒音」「駒音の設定…」、表示言語の「システム設定に従う」「日本語」「English」「简体中文」「繁體中文」、座標表記の「言語に合わせる」「日本語表記（▲7六歩、段は一〜九）」「英語表記（▲P-7f、段はa〜i）」「英語表記で移動元を常に表示」「棋譜表記の読み方…」、そして「設定を初期値に戻す…」が並びます。表示言語と座標表記の項目は、メニューバーではそれぞれ「言語設定」「棋譜と盤の座標表記」の中にあります。</p>
+                <p class="guide-step-text">「設定を初期値に戻す…」を選び、確認画面で承認すると、エンジン登録を含むすべての設定を初期化してアプリケーションを終了します。次回起動時は初期設定が使われます。未保存の棋譜などの確認で終了を取り消した場合、設定は初期化されません。この操作は対局や解析などを行っていないときに使えます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/tab-settings.png" alt="メニュードックの設定タブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">設定タブ</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">6</span>
-                    <span class="guide-step-title">ヘルプ(H)</span>
+                    <span class="guide-step-title">ヘルプ</span>
                 </div>
-                <p class="guide-step-text">ヘルプに関するメニューです。ホームページへのリンク、バージョン情報、Qtについての情報が確認できます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/tab-help.png" alt="メニュードック：ヘルプタブ">
-                    <p class="screenshot-caption">ヘルプタブ：ホームページ・バージョン情報・Qtについて</p>
+                <p class="guide-step-text">「ホームページ」「バージョン情報」「Qtについて」が並びます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/tab-help.png" alt="メニュードックのヘルプタブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">ヘルプタブ</p>
                 </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">ボタンの表示</span>
+                </div>
+                <p class="guide-step-text">ボタンを押すと、メニューバーの同じ項目と同じ操作を実行します。今は使えない操作のボタンは薄く表示されます（上の対局タブの「投了」など）。オン・オフを切り替える項目は、オンのときに左上に✓が付きます（表示タブの「指せるマスを表示」など）。</p>
             </div>
 
         </div>
     </div>
 </section>
 
-<!-- Section 3: Navigation Buttons -->
+<!-- Section 3 -->
 <section id="navigation-buttons" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">ナビゲーションボタン</h2>
-        <p class="section-desc">メニュードック右上のボタンで、表示サイズやカスタマイズを操作できます</p>
+        <h2 class="section-title">右上のボタンと検索</h2>
+        <p class="section-desc">ボタンの大きさを変えたり、項目を名前で絞り込んだりできます</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">ナビゲーションボタンの機能</span>
+                    <span class="guide-step-title">右上のボタン</span>
                 </div>
-                <p class="guide-step-text">メニュードックの右上には、以下のナビゲーションボタンが配置されています。</p>
+                <p class="guide-step-text">メニュードックの右上には、次のボタンがあります。</p>
                 <ul class="guide-step-text">
-                    <li><strong>&#9633;-</strong>（アイコン縮小）：メニューボタンのアイコンサイズを縮小</li>
-                    <li><strong>&#9633;+</strong>（アイコン拡大）：メニューボタンのアイコンサイズを拡大</li>
-                    <li><strong>A-</strong>（フォント縮小）：メニューボタンのフォントサイズを縮小</li>
-                    <li><strong>A+</strong>（フォント拡大）：メニューボタンのフォントサイズを拡大</li>
-                    <li><strong>&#9881;</strong>（カスタマイズ）：お気に入り登録モードに切り替え</li>
+                    <li><strong>□- ／ □+</strong>：ボタンとアイコンを小さく／大きくします。</li>
+                    <li><strong>A- ／ A+</strong>：ボタンの文字を小さく／大きくします。</li>
+                    <li><strong>お気に入り編集</strong>：お気に入りの追加・削除・並べ替えを始めます。押すと「編集完了」に変わります。</li>
                 </ul>
-                <p class="guide-step-text">アイコンサイズとフォントサイズを調整することで、お好みの表示サイズにカスタマイズできます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/favorites-empty.png" alt="メニュードック：ナビゲーションボタン">
-                    <p class="screenshot-caption">ナビゲーションボタン：右上にアイコンサイズ・フォントサイズ・カスタマイズの各ボタン</p>
+                <p class="guide-step-text">ボタンと文字の大きさ、最後に開いたタブ、お気に入りは次回の起動時にも使われます。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">項目の検索</span>
+                </div>
+                <p class="guide-step-text">「このタブの項目を検索」に文字を入れると、名前や説明にその文字を含む項目だけが表示されます。入力欄右端のボタンで、入力した文字を消せます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/search.png" alt="「詰」で項目を絞り込んだ対局タブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">対局タブを「詰」で絞り込んだところ</p>
                 </div>
             </div>
 
@@ -209,59 +234,59 @@
     </div>
 </section>
 
-<!-- Section 4: Favorites -->
+<!-- Section 4 -->
 <section id="favorites" class="section">
     <div class="section-inner">
         <h2 class="section-title">お気に入り登録</h2>
-        <p class="section-desc">よく使う機能をお気に入りに登録して、すばやくアクセスできます</p>
+        <p class="section-desc">よく使う機能をお気に入りにまとめて、すばやく使えます</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">お気に入りタブ（未登録状態）</span>
+                    <span class="guide-step-title">お気に入りタブ（未登録）</span>
                 </div>
-                <p class="guide-step-text">メニュードックの「★ お気に入り」タブには、登録したお気に入りの機能が表示されます。初期状態ではお気に入りが登録されていないため、空の状態です。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/favorites-empty.png" alt="お気に入りタブ（空の状態）">
-                    <p class="screenshot-caption">お気に入りタブ：初期状態（未登録）</p>
+                <p class="guide-step-text">「★ お気に入り」タブには、登録した項目が表示されます。最初は何も登録されていないため、案内だけが表示されます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/favorites-empty.png" alt="お気に入りが未登録のメニュードック" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">お気に入りタブ：未登録の状態</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">カスタマイズモードで登録</span>
+                    <span class="guide-step-title">お気に入り編集で追加</span>
                 </div>
-                <p class="guide-step-text">右上の歯車ボタン（&#9881;）をクリックすると、お気に入り登録モードに切り替わります。各メニュータブのボタンの左上に緑色の「+」マークが表示され、クリックするとそのアクションがお気に入りに登録されます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/favorites-customize-mode.png" alt="カスタマイズモード：お気に入り登録">
-                    <p class="screenshot-caption">カスタマイズモード：「+」マークをクリックしてお気に入りに登録</p>
+                <p class="guide-step-text">右上の「お気に入り編集」を押すと編集が始まり、ボタンは「編集完了」に変わります。各タブの項目の右上に緑色の「+」が表示され、押すとその項目がお気に入りに追加されます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/favorites-customize-mode.png" alt="お気に入り編集中のファイルタブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">お気に入り編集中：「+」で追加</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">お気に入りの編集・削除</span>
+                    <span class="guide-step-title">削除と並べ替え</span>
                 </div>
-                <p class="guide-step-text">カスタマイズモード中にお気に入りタブを表示すると、登録済みの項目に赤い「&times;」マークが表示されます。「&times;」マークをクリックするとお気に入りから削除できます。登録・削除が完了したら、再度歯車ボタン（&#9881;）をクリックしてカスタマイズモードを終了します。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/favorites-editing.png" alt="お気に入りの編集・削除">
-                    <p class="screenshot-caption">お気に入りの編集：「&times;」マークで削除も可能</p>
+                <p class="guide-step-text">編集中にお気に入りタブを開くと、登録済みの項目の右上に赤い「×」が表示され、押すとお気に入りから削除できます。項目をドラッグすると並べ替えられます。終わったら「編集完了」を押します。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/favorites-editing.png" alt="お気に入り編集中のお気に入りタブ" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">お気に入り編集中：「×」で削除、ドラッグで並べ替え</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
-                    <span class="guide-step-title">お気に入り登録完了</span>
+                    <span class="guide-step-title">お気に入りの完成</span>
                 </div>
-                <p class="guide-step-text">お気に入りに登録した機能は「★ お気に入り」タブにまとめて表示されます。よく使う機能を登録しておくことで、タブを切り替えることなくすばやくアクセスできます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/menu/favorites-registered.png" alt="お気に入り登録完了">
-                    <p class="screenshot-caption">お気に入り登録完了：登録した機能がお気に入りタブに表示される</p>
+                <p class="guide-step-text">登録した項目は「★ お気に入り」タブにまとめて表示されます。よく使う機能を登録しておくと、タブを切り替えずにすぐ使えます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/menu/favorites-registered.png" alt="お気に入りを登録したメニュードック" width="900" height="640" loading="lazy">
+                    <p class="screenshot-caption">登録した項目がお気に入りタブに表示される</p>
                 </div>
             </div>
 
@@ -271,13 +296,28 @@
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
 </div>
 
 <!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>
