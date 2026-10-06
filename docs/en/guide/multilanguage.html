@@ -51,6 +51,7 @@
             <li><a href="#how-to-switch">Switching</a></li>
             <li><a href="#notation">Notation</a></li>
             <li><a href="#record-data">Original Text</a></li>
+            <li><a href="#notes">Notes</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -250,6 +251,31 @@
                     <span class="guide-step-title">Shared Save Formats</span>
                 </div>
                 <p class="guide-step-text">Every language uses the KIF, KI2, CSA, JKF, USI, and USEN formats for saving and copying game records. KIF and KI2 moves are written in Japanese. There is no save format specific to Western notation.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="notes" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Notes</h2>
+        <p class="section-desc">With Use System Default, the language depends on the environment ShogiBoardQ starts in</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">If ShogiBoardQ Starts in an Unexpected Language</span>
+                </div>
+                <p class="guide-step-text">With Use System Default, ShogiBoardQ chooses the language from the environment variables it was started with. On Linux, <code>LANGUAGE</code>, <code>LC_ALL</code>, <code>LC_MESSAGES</code>, and <code>LANG</code> take priority in that order. Even if your desktop uses another language, ShogiBoardQ starts in English when the program that launches it sets these variables to English.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Resetting settings:</strong> Settings → Reset Settings to Defaults… also resets the language to Use System Default. Even if you had chosen a language, ShogiBoardQ then uses the language of the environment it starts in.</li>
+                    <li><strong>Running from Qt Creator:</strong> To keep build output in English, Qt Creator adds <code>LANGUAGE=en_US:en</code> and <code>LC_MESSAGES=en_US.UTF-8</code> to the build environment. If the run configuration still uses Build Environment as its base environment (the Qt Creator default), ShogiBoardQ inherits these variables and starts in English. In Projects → Run → Environment, set Base environment for this run configuration to System Environment.</li>
+                    <li><strong>To always use the same language:</strong> Choose a language under Language. Your choice stays until you reset the settings.</li>
+                </ul>
             </div>
 
         </div>
