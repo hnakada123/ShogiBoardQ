@@ -170,6 +170,13 @@ class GuiAudit : public QObject
         QVERIFY2(a, qPrintable(name));
         clickAction(a);
     }
+    /// 局面編集を始める。棋譜に未保存の変更があるときの確認（局面編集で棋譜を破棄する）には「破棄」で答える
+    void startPositionEdit()
+    {
+        armDialog("discard");
+        click("actionStartEditPosition");
+        dialogTimer.stop();
+    }
     void clickAction(QAction* a)
     {
         const QString name = a->objectName().isEmpty() ? a->text() : a->objectName();
@@ -1505,7 +1512,7 @@ private slots:
     void boardEditing()
     {
         QVERIFY(!board()->positionEditMode());
-        click("actionStartEditPosition"); QVERIFY(board()->positionEditMode());
+        startPositionEdit(); QVERIFY(board()->positionEditMode());
         click("actionReturnAllPiecesToStand"); QCOMPARE(boardSfen(), QString("9/9/9/9/9/9/9/9/9"));
         QCOMPARE(board()->board()->convertStandToSfen(), QStringLiteral("-"));
         QCOMPARE(board()->board()->pieceBoxCount(Piece::BlackKing), 2);
@@ -1578,7 +1585,7 @@ private slots:
         QVERIFY(evalChart->countP1() > 0);
         QVERIFY(evalChart->countP2() > 0);
 
-        click("actionStartEditPosition");
+        startPositionEdit();
         QVERIFY(board()->positionEditMode());
         // 描画待ちの評価値も破棄し、編集開始後にグラフが復活しないことを確認する。
         evalChart->flushPendingScores();
@@ -1629,7 +1636,7 @@ private slots:
         QCOMPARE(view->currentIndex().row(), 0);
         snapshot(QStringLiteral("board-edit-reset-") + QString::fromLatin1(QTest::currentDataTag()));
 
-        click("actionStartEditPosition");
+        startPositionEdit();
         QCOMPARE(boardSfen(), editedBoard);
         QCOMPARE(model->rowCount(), 1);
         click("actionEndEditPosition");
@@ -1643,7 +1650,7 @@ private slots:
     void boardEditingTurn()
     {
         QFETCH(QString, operation);
-        click("actionStartEditPosition");
+        startPositionEdit();
         auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
         if (operation == "move" || operation == "rejected-move") {
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(3, 3));
@@ -1682,13 +1689,13 @@ private slots:
     void boardEditingSelectionReset()
     {
         QFETCH(QString, operation);
-        if (operation != "begin") click("actionStartEditPosition");
+        if (operation != "begin") startPositionEdit();
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(2, 8));
         if (operation == "begin") {
-            click("actionStartEditPosition");
+            startPositionEdit();
         } else if (operation == "finish") {
             click("actionEndEditPosition");
-            click("actionStartEditPosition");
+            startPositionEdit();
         } else {
             click(operation);
         }
@@ -1715,7 +1722,7 @@ private slots:
     void boardEditingPieceTransfers()
     {
         QFETCH(bool, flipped);
-        click("actionStartEditPosition");
+        startPositionEdit();
         if (flipped) click("actionFlipBoard");
         click("actionReturnAllPiecesToStand");
         auto* model = board()->board();
@@ -1753,7 +1760,7 @@ private slots:
         click("actionEndEditPosition");
         QVERIFY(board()->pieceBoxRect().isEmpty());
         QCOMPARE(model->pieceBox(), originalBox);
-        click("actionStartEditPosition");
+        startPositionEdit();
         QVERIFY(!board()->pieceBoxRect().isEmpty());
         QCOMPARE(model->pieceBox(), originalBox);
         QCOMPARE(model->pieceStand(), originalHand);
@@ -1764,7 +1771,7 @@ private slots:
     {
         QFETCH(bool, flipped);
         QVERIFY(board()->pieceBoxRect().isEmpty());
-        click("actionStartEditPosition");
+        startPositionEdit();
         if (flipped) click("actionFlipBoard");
         auto* model = board()->board();
         QVERIFY(!board()->pieceBoxRect().isEmpty());
@@ -1806,7 +1813,7 @@ private slots:
         QVERIFY(board()->pieceBoxRect().isEmpty());
         QCOMPARE(board()->clickedSquare(oldBoxCenter), QPoint());
         QCOMPARE(model->pieceBox(), box);
-        click("actionStartEditPosition");
+        startPositionEdit();
         QVERIFY(!board()->pieceBoxRect().isEmpty());
         QCOMPARE(model->pieceBox(), box);
         QCOMPARE(model->pieceStand(), hand);
@@ -1817,7 +1824,7 @@ private slots:
         dialogMessages.clear(); armDialog("messages"); paste(savedKif);
         QVERIFY2(dialogMessages.isEmpty(), qPrintable(dialogMessages.join('\n')));
         QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
-        click("actionStartEditPosition");
+        startPositionEdit();
         QCOMPARE(board()->board()->pieceBox(), box);
         QCOMPARE(board()->board()->pieceStand(), hand);
         // 保存・再読込後も、駒箱に残していた玉を取り出せる。
@@ -1831,7 +1838,7 @@ private slots:
     {
         QFETCH(bool, flipped);
         if (flipped) click("actionFlipBoard");
-        click("actionStartEditPosition");
+        startPositionEdit();
         auto* model = board()->board();
         auto* black = board()->findChild<QToolButton*>("pieceBoxBlackButton");
         auto* white = board()->findChild<QToolButton*>("pieceBoxWhiteButton");
@@ -1876,7 +1883,7 @@ private slots:
         snapshot(flipped ? "board-edit-box-white-flipped" : "board-edit-box-white");
         click("actionEndEditPosition");
         QVERIFY(!black->isVisible() && !white->isVisible());
-        click("actionStartEditPosition");
+        startPositionEdit();
         QVERIFY(white->isVisible() && white->isChecked());
         QCOMPARE(board()->pieceBoxSide(), Turn::White);
         // 選択を戻したあとも、既存の盤上の駒の所属は変わらない。
@@ -1900,7 +1907,7 @@ private slots:
     void boardEditingPieceBoxLayout()
     {
         QFETCH(bool, flipped); QFETCH(int, size);
-        click("actionStartEditPosition");
+        startPositionEdit();
         if (flipped) click("actionFlipBoard");
         board()->setSquareSize(size - 1);
         click("actionEnlargeBoard");
@@ -1952,7 +1959,7 @@ private slots:
     void boardEditingKingsStayOnBoard()
     {
         QFETCH(bool, flipped); QFETCH(bool, blackKing); QFETCH(int, standFile);
-        click("actionStartEditPosition");
+        startPositionEdit();
         if (flipped) click("actionFlipBoard");
         auto* model = board()->board();
         // 持ち駒がある状態でも王・玉の駒台への移動だけを拒否する。
@@ -1980,7 +1987,7 @@ private slots:
         QTest::mouseClick(finish, Qt::LeftButton);
         QCOMPARE(model->boardData(), expected);
         QCOMPARE(model->pieceStand(), hand);
-        click("actionStartEditPosition");
+        startPositionEdit();
         QCOMPARE(model->boardData(), expected);
         QCOMPARE(model->pieceStand(), hand);
         QCOMPARE(model->boardData().count(Piece::BlackKing), 1);
@@ -1989,7 +1996,7 @@ private slots:
     }
     void boardEditingPromotionAndCapture()
     {
-        click("actionStartEditPosition");
+        startPositionEdit();
         click("actionReturnAllPiecesToStand");
         auto* model = board()->board();
         for (int type : {1, 2, 3, 4, 6, 7}) {
@@ -2032,7 +2039,7 @@ private slots:
     void boardEditingStandMargins()
     {
         QFETCH(bool, flipped);
-        click("actionStartEditPosition");
+        startPositionEdit();
         if (flipped) click("actionFlipBoard");
         click("actionReturnAllPiecesToStand");
         for (int side : {10, 11}) {
@@ -2065,7 +2072,7 @@ private slots:
     void boardEditingForcedPromotion()
     {
         QFETCH(int, side); QFETCH(int, type); QFETCH(int, destinationRank);
-        click("actionStartEditPosition");
+        startPositionEdit();
         click("actionReturnAllPiecesToStand");
         auto* model = board()->board();
         const int standRank = side == 10 ? type : 10 - type;
@@ -2084,7 +2091,7 @@ private slots:
     }
     void boardEditingRejectedMoves()
     {
-        click("actionStartEditPosition");
+        startPositionEdit();
         auto* model = board()->board();
         auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
         const QString before = boardSfen();
@@ -2129,7 +2136,7 @@ private slots:
         QTest::mouseClick(branches->viewport(), Qt::LeftButton, Qt::NoModifier, branches->visualRect(index).center());
         const QString expected = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2PP5/PP2PPPPP/1B5R1/LNSGKGSNL w - 1");
         QTRY_COMPARE(boardSfen(), expected.section(' ', 0, 0));
-        click("actionStartEditPosition");
+        startPositionEdit();
         QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
         click("actionEndEditPosition");
         QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
@@ -2138,7 +2145,7 @@ private slots:
     }
     void boardEditingGameAndExport()
     {
-        click("actionStartEditPosition");
+        startPositionEdit();
         QVERIFY(!action("actionStartGame")->isEnabled());
         QVERIFY(!action("actionPasteKifu")->isEnabled());
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(7, 7));
@@ -2177,7 +2184,7 @@ private slots:
         QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
         auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
         QCOMPARE(gc->currentPlayer(), ShogiGameController::Player2);
-        click("actionStartEditPosition");
+        startPositionEdit();
         QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
         click("actionEndEditPosition");
     }
@@ -2542,7 +2549,7 @@ private slots:
     }
     void editedPositionCopy()
     {
-        click("actionStartEditPosition"); click("actionSetTsumePosition");
+        startPositionEdit(); click("actionSetTsumePosition");
         const auto sfen = copy("actionCopySFEN");
         qInfo() << "edited board" << boardSfen() << "copied" << sfen;
         QVERIFY(sfen.contains(boardSfen()));
