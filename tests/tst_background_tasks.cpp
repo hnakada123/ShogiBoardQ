@@ -208,6 +208,24 @@ private slots:
         QCOMPARE(moves.first().at(1).toPoint(), QPoint(8, 4));
         QVERIFY(moves.first().at(2).toString().endsWith(QStringLiteral("7g7f 8c8d")));
     }
+    /// 準備中に「すぐ指させる」を押しても、保留中の position・go を捨てずにエンジンが指す
+    void immediateMoveDuringInitializationKeepsPendingSearch()
+    {
+        qputenv("SBQ_MATCH_INIT_DELAY_MS", "250");
+        ShogiGameController game;
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
+        game.setCurrentPlayer(ShogiGameController::Player2);
+        Usi engine(nullptr, nullptr, &game);
+        QSignalSpy moves(&engine, &Usi::matchMoveReady);
+        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
+                                {5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true});
+        QVERIFY(engine.isInitializing());
+        engine.requestImmediateMove();
+        QTRY_COMPARE(moves.size(), 1);
+        QCOMPARE(moves.first().at(1).toPoint(), QPoint(8, 4));
+    }
     void ponderSwitch_data()
     {
         QTest::addColumn<bool>("hit");

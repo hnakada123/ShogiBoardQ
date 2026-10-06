@@ -88,6 +88,8 @@ public:
     QChar rankToAlphabet(int rank) const;
     void sendGameOverWinAndQuitCommands();
     void sendStopCommand();
+    /// 対局中の「すぐ指させる」。準備中に保留した position・go は残し、それを送った後で stop を送る
+    void requestImmediateMove();
 
     void executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV = 1);
 

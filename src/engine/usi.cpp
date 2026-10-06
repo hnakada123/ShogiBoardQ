@@ -361,6 +361,14 @@ void Usi::sendStopCommand()
     // モデルのクリアはエンジン破棄時に自動的に行われる
 }
 
+void Usi::requestImmediateMove()
+{
+    // 準備中に sendStopCommand を呼ぶと保留中の position・go まで破棄され、エンジンが指さずに対局が止まる。
+    // 保留中の処理の後ろに並べ、探索を始めた直後に止めて指させる
+    if (deferUntilReady([this]() { sendStopCommand(); })) return;
+    sendStopCommand();
+}
+
 void Usi::setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV)
 {
     m_considerationModel = model;
