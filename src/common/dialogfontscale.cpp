@@ -138,6 +138,7 @@ bool DialogFontScale::attachToLayout()
             footer->addWidget(this);
             footer->addWidget(actions);
             box->addLayout(footer);
+            m_footer = footer;
         } else if (last && qobject_cast<QHBoxLayout*>(last->layout())) {
             static_cast<QHBoxLayout*>(last->layout())->insertWidget(0, this);
         } else {
@@ -195,13 +196,17 @@ void DialogFontScale::updateLayout()
 
 void DialogFontScale::ensureContentFits()
 {
-    // 幅が狭いと操作列が二段になるが、ウィンドウの高さは自動では増えないため、決定ボタンが隠れないよう広げる
+    // 幅が狭いと操作列が二段になるが、最小の高さは一段の操作列で計算されるため、決定ボタンが隠れないよう
+    // 二段になった分だけ高くする。推奨の高さまでは広げず、利用者が縮めた高さ（小さい画面に合わせた高さ）を保つ
     QLayout* layout = m_dialog->layout();
     if (!layout) return;
     layout->activate();
-    QSize size = m_dialog->size().expandedTo(m_dialog->minimumSizeHint());
-    if (layout->hasHeightForWidth())
-        size.setHeight(qMax(size.height(), layout->totalHeightForWidth(size.width())));
+    const QSize minimum = m_dialog->minimumSizeHint();
+    QSize size = m_dialog->size().expandedTo(minimum);
+    if (m_footer && m_footer->geometry().width() > 0) {
+        const int wrapped = m_footer->heightForWidth(m_footer->geometry().width()) - m_footer->minimumSize().height();
+        if (wrapped > 0) size.setHeight(qMax(size.height(), minimum.height() + wrapped));
+    }
     if (size != m_dialog->size()) m_dialog->resize(size);
 }
 
