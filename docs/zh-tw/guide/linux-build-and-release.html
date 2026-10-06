@@ -183,6 +183,9 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <section id="package-run" class="level3">
 <h3>5.1 執行指令碼</h3>
 <p>用於發行的發行套件在較舊的 Arch Linux（2024 年 7 月 15 日的 Arch Linux Archive；glibc 2.39、Qt 6.7.2）容器中製作。</p>
+<blockquote>
+<p>製作用於發行的發行套件時，請先把版本號改為發行當天的日期並提交（<a href="#release">第 6 節</a>）。</p>
+</blockquote>
 <pre><code>./scripts/build-linux-container.sh</code></pre>
 <ul>
 <li>第一次執行時會建立建置環境映像（<code>scripts/linux-container/Dockerfile</code>，約 3GB）。從 Arch Linux Archive 下載較慢，需要數十分鐘。</li>
@@ -335,13 +338,14 @@ python3 -m zipfile -t ShogiBoardQ-linux.zip</code></pre>
 </section>
 <section id="release" class="level2">
 <h2>6. 在 GitHub Releases 上發行</h2>
-<p>發行的標籤使用應用程式的版本（<code>CMakeLists.txt</code> 中的 <code>APP_VERSION</code>，例如 2026.10.06）。Linux 只附加 <code>ShogiBoardQ-linux.zip</code>，檔名不隨版本改變。</p>
-<pre><code>git tag 2026.10.06
-git push origin 2026.10.06
-gh release create 2026.10.06 --title "ShogiBoardQ 2026.10.06" \
+<p>版本號只在發行當天改為當天的日期。製作發行套件之前，修改 <code>CMakeLists.txt</code> 中的 <code>APP_VERSION</code> 並提交，再從該提交製作發行套件。同一天第二次以後的發行，像 <code>2026.10.07.1</code> 這樣加上第四個數字。標籤（不加 <code>v</code>）和發行名稱使用這個版本號。詳情請參閱<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">版本號與發行的規則（日文）</a>。</p>
+<p>Linux 只附加 <code>ShogiBoardQ-linux.zip</code>，檔名不隨版本改變。</p>
+<pre><code>git tag -a 2026.10.07 -m "ShogiBoardQ 2026.10.07"
+git push origin main 2026.10.07
+gh release create 2026.10.07 --title "ShogiBoardQ 2026.10.07" \
   --notes-file RELEASE_NOTES.md ShogiBoardQ-linux.zip</code></pre>
 <p>如果已經先發行了其他作業系統的發行套件，則新增到既有的發行中：</p>
-<pre><code>gh release upload 2026.10.06 ShogiBoardQ-linux.zip</code></pre>
+<pre><code>gh release upload 2026.10.07 ShogiBoardQ-linux.zip</code></pre>
 <ul>
 <li>以檔名指定要附加的檔案。不要上傳整個工作目錄或 <code>build/</code> 中的檔案。</li>
 <li>不要單獨附加 Qt 原始碼、<code>QT-SOURCE.json</code>、檢查碼或 SBOM 等。授權文件和原始碼的取得方式位於 AppImage 內。</li>

@@ -169,6 +169,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 
 リリース用の配布物は、古い Arch Linux（2024年7月15日の Arch Linux Archive。glibc 2.39・Qt 6.7.2）のコンテナで作る。
 
+> リリース用に作るときは、先に版番号をリリースする日の日付に上げてコミットする（[6章](#release)）。
+
 ```
 ./scripts/build-linux-container.sh
 ```
@@ -327,19 +329,21 @@ python3 -m zipfile -t ShogiBoardQ-linux.zip
 
 ## 6. GitHub Release での公開
 
-リリースのタグにはアプリの版（`CMakeLists.txt` の `APP_VERSION`。例: 2026.10.06）を使う。Linux の添付は `ShogiBoardQ-linux.zip` だけで、ファイル名は版によらず同じにする。
+版番号は、リリースする日にだけその日の日付に上げる。配布物を作る前に `CMakeLists.txt` の `APP_VERSION` を変えてコミットし、そのコミットから配布物を作る。同じ日の2回目以降のリリースは `2026.10.07.1` のように4つ目の番号を付ける。タグ（`v` は付けない）と Release 名にはこの版番号を使う。詳しくは[版番号とリリースの運用](https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md)を参照。
+
+Linux の添付は `ShogiBoardQ-linux.zip` だけで、ファイル名は版によらず同じにする。
 
 ```
-git tag 2026.10.06
-git push origin 2026.10.06
-gh release create 2026.10.06 --title "ShogiBoardQ 2026.10.06" \
+git tag -a 2026.10.07 -m "ShogiBoardQ 2026.10.07"
+git push origin main 2026.10.07
+gh release create 2026.10.07 --title "ShogiBoardQ 2026.10.07" \
   --notes-file RELEASE_NOTES.md ShogiBoardQ-linux.zip
 ```
 
 ほかの OS の配布物を先に公開している場合は、既存のリリースに追加する。
 
 ```
-gh release upload 2026.10.06 ShogiBoardQ-linux.zip
+gh release upload 2026.10.07 ShogiBoardQ-linux.zip
 ```
 
 - 添付するファイルは名前で指定する。作業フォルダ全体や `build/` のファイルをアップロードしない。

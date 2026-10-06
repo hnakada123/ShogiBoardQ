@@ -378,8 +378,9 @@ dir deploy\platforms\qwindows.dll</code></pre>
 <h2>5. GitHub Release での公開</h2>
 <section id="51-タグの作成" class="level3">
 <h3>5.1 タグの作成</h3>
-<pre class="powershell"><code>git tag -a v0.1.0 -m &quot;v0.1.0 リリース&quot;
-git push origin v0.1.0</code></pre>
+<p>版番号は、リリースする日にだけその日の日付に上げる（<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">版番号とリリースの運用</a>）。配布物を作る前に <code>CMakeLists.txt</code> の <code>APP_VERSION</code> を変えてコミットし、そのコミットから配布物を作ってから、同じコミットに同じ版番号のタグを付ける。タグには <code>v</code> を付けない。</p>
+<pre class="powershell"><code>git tag -a 2026.10.07 -m &quot;ShogiBoardQ 2026.10.07&quot;
+git push origin main 2026.10.07</code></pre>
 </section>
 <section id="52-github-cli-でリリース作成" class="level3">
 <h3>5.2 GitHub CLI でリリース作成</h3>
@@ -390,14 +391,14 @@ winget install GitHub.cli
 # ログイン（初回のみ）
 gh auth login</code></pre>
 <p>リリース作成とアセットのアップロード：</p>
-<pre class="powershell"><code>gh release create v0.1.0 `
-  --title &quot;ShogiBoardQ v0.1.0&quot; `
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
   --notes-file RELEASE_NOTES.md `
   ShogiBoardQ-windows.zip</code></pre>
 <blockquote>
 <p>macOS の DMG も同時に公開する場合は、アセットを追加：</p>
-<pre class="powershell"><code>gh release create v0.1.0 `
-  --title &quot;ShogiBoardQ v0.1.0&quot; `
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
   --notes-file RELEASE_NOTES.md `
   ShogiBoardQ-windows.zip `
   ShogiBoardQ.dmg</code></pre>
@@ -405,8 +406,8 @@ gh auth login</code></pre>
 <section id="リリースノートの自動生成" class="level4">
 <h4>リリースノートの自動生成</h4>
 <p>リリースノートファイルを用意しない場合、GitHub が自動生成する：</p>
-<pre class="powershell"><code>gh release create v0.1.0 `
-  --title &quot;ShogiBoardQ v0.1.0&quot; `
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
   --generate-notes `
   ShogiBoardQ-windows.zip</code></pre>
 </section>
@@ -415,8 +416,8 @@ gh auth login</code></pre>
 <h3>5.3 Web UI からリリース作成（代替）</h3>
 <ol type="1">
 <li>GitHub リポジトリ → <strong>Releases</strong> → <strong>Draft a new release</strong></li>
-<li><strong>Choose a tag</strong> → 新しいタグ（例: <code>v0.1.0</code>）を入力して作成</li>
-<li><strong>Release title</strong> を入力（例: <code>ShogiBoardQ v0.1.0</code>）</li>
+<li><strong>Choose a tag</strong> → 新しいタグ（例: <code>2026.10.07</code>）を入力して作成</li>
+<li><strong>Release title</strong> を入力（例: <code>ShogiBoardQ 2026.10.07</code>）</li>
 <li><strong>Description</strong> にリリースノートを記入</li>
 <li><strong>Attach binaries</strong> に <code>ShogiBoardQ-windows.zip</code> をドラッグ＆ドロップ</li>
 <li><strong>Publish release</strong> をクリック</li>
@@ -424,7 +425,7 @@ gh auth login</code></pre>
 </section>
 <section id="54-リリースノートの書き方テンプレート" class="level3">
 <h3>5.4 リリースノートの書き方（テンプレート）</h3>
-<pre class="markdown"><code>## ShogiBoardQ v0.1.0
+<pre class="markdown"><code>## ShogiBoardQ 2026.10.07
 
 ### ダウンロード
 
