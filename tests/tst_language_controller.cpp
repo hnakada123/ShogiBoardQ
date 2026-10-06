@@ -11,6 +11,9 @@
 #include <QActionGroup>
 #include <QStandardPaths>
 #include <QFile>
+#include <QLabel>
+#include <QMessageBox>
+#include <QTimer>
 
 #include "languagecontroller.h"
 #include "appsettings.h"
@@ -21,6 +24,27 @@ class TestLanguageController : public QObject
     Q_OBJECT
 
 private:
+    int m_unwrappedLines = -1;
+
+    /// 表示中の「棋譜表記の読み方」で、すべての行が本文の幅に収まっていれば行数を記録して閉じる
+    void inspectNotationHelp()
+    {
+        auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+        if (!box) {
+            QTimer::singleShot(10, this, &TestLanguageController::inspectNotationHelp);
+            return;
+        }
+        auto* label = box->findChild<QLabel*>(QStringLiteral("qt_msgbox_label"));
+        int lines = 0;
+        bool fits = label != nullptr;
+        for (const QString& line : label ? label->text().split(QLatin1Char('\n')) : QStringList()) {
+            fits = fits && label->fontMetrics().horizontalAdvance(line) <= label->contentsRect().width();
+            ++lines;
+        }
+        m_unwrappedLines = fits ? lines : 0;
+        box->accept();
+    }
+
     struct TestSetup {
         LanguageController controller;
         QAction systemAction{QStringLiteral("System")};
@@ -57,6 +81,17 @@ private slots:
         QVERIFY(!setup.simplifiedAction.isChecked());
         setup.englishAction.trigger();
         QVERIFY(!setup.traditionalAction.isChecked());
+    }
+    /// 「棋譜表記の読み方」は、記号と説明が別の行に分かれないよう各行を折り返さずに表示する
+    void notationHelpKeepsLinesUnwrapped()
+    {
+        LanguageController controller;
+        QAction automatic, japanese, western, origin, help;
+        controller.setNotationActions(&automatic, &japanese, &western, &origin, &help);
+        m_unwrappedLines = -1;
+        QTimer::singleShot(0, this, &TestLanguageController::inspectNotationHelp);
+        help.trigger();
+        QVERIFY(m_unwrappedLines > 5);
     }
     void setActions_createsActionGroup();
     void setActions_actionsAreExclusive();

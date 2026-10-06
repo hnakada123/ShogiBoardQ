@@ -142,7 +142,9 @@ void GameInfoPaneController::buildToolbar()
 
     m_editingLabel = new QLabel(m_toolbar);
     m_editingLabel->setObjectName(QStringLiteral("gameInfoEditing"));
-    m_editingLabel->setWordWrap(true);
+    // FlowLayout は sizeHint の幅で並べるため、折り返し可能なラベルは次の行に回ったとき
+    // 余白があっても短く折り返される。案内文は短いので1行で表示する。
+    m_editingLabel->setWordWrap(false);
     flow->addWidget(m_editingLabel);
 }
 
