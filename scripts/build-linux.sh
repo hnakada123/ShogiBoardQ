@@ -166,6 +166,10 @@ cmake "${CMAKE_ARGS[@]}"
 
 info "ビルド中..."
 
+# 「バージョン情報」のビルド日時（__DATE__・__TIME__）は versiondialog.cpp をコンパイルした時刻。
+# 差分ビルドでも今回の時刻になるように、そのオブジェクトだけ作り直させる
+find "$BUILD_DIR" -name 'versiondialog.cpp.o' -delete
+
 if [[ "$USE_NINJA" = true ]]; then
     ninja -C "$BUILD_DIR"
 else
