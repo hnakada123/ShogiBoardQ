@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 116
+- CTest ケース数: 117
 - 取得コマンド: `ctest --test-dir build -N`
 
 ## テスト一覧
@@ -103,23 +103,24 @@
 94. `tst_fontsettingsdialog`
 95. `tst_dialog_appearance`
 96. `tst_automation_dispatcher`
-97. `tst_usi_info_line_parser`
-98. `tst_sfen_validation_service`
-99. `tst_game_info_pane`
-100. `tst_kifu_conversion_service`
-101. `tst_kifu_format_compliance`
-102. `tst_board_image_renderer`
-103. `tst_tsume_diversity_python`
-104. `tst_tsume_collection_audit_python`
-105. `tst_mcp_python`
-106. `tst_background_tasks`
-107. `tst_memory_lifecycle`
-108. `tst_evaluationchart`
-109. `tst_csalogpanel`
-110. `tst_usilogpanel`
-111. `tst_kifupresentation`
-112. `tst_legal_move_highlights`
-113. `tst_candidate_arrows`
-114. `tst_i18n_workflows`
-115. `tst_applicationlogging`
-116. `tst_service_initialization`
+97. `tst_nyugyoku_judgement`
+98. `tst_usi_info_line_parser`
+99. `tst_sfen_validation_service`
+100. `tst_game_info_pane`
+101. `tst_kifu_conversion_service`
+102. `tst_kifu_format_compliance`
+103. `tst_board_image_renderer`
+104. `tst_tsume_diversity_python`
+105. `tst_tsume_collection_audit_python`
+106. `tst_mcp_python`
+107. `tst_background_tasks`
+108. `tst_memory_lifecycle`
+109. `tst_evaluationchart`
+110. `tst_csalogpanel`
+111. `tst_usilogpanel`
+112. `tst_kifupresentation`
+113. `tst_legal_move_highlights`
+114. `tst_candidate_arrows`
+115. `tst_i18n_workflows`
+116. `tst_applicationlogging`
+117. `tst_service_initialization`
