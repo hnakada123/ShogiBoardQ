@@ -396,9 +396,11 @@ xattr -cr /Applications/ShogiBoardQ.app
 
 ### 7.1 タグの作成
 
+版番号は、リリースする日にだけその日の日付に上げる（[版番号とリリースの運用](versioning.md)）。配布物を作る前に `CMakeLists.txt` の `APP_VERSION` を変えてコミットし、そのコミットから配布物を作ってから、同じコミットに同じ版番号のタグを付ける。タグには `v` を付けない。
+
 ```bash
-git tag -a v0.1.0 -m "v0.1.0 リリース"
-git push origin v0.1.0
+git tag -a 2026.10.07 -m "ShogiBoardQ 2026.10.07"
+git push origin main 2026.10.07
 ```
 
 ### 7.2 GitHub CLI でリリース作成
@@ -416,16 +418,16 @@ gh auth login
 リリース作成とアセットのアップロード：
 
 ```bash
-gh release create v0.1.0 \
-  --title "ShogiBoardQ v0.1.0" \
+gh release create 2026.10.07 \
+  --title "ShogiBoardQ 2026.10.07" \
   --notes-file RELEASE_NOTES.md \
   ShogiBoardQ.dmg
 ```
 
 > Windows の ZIP も同時に公開する場合は、アセットを追加：
 > ```bash
-> gh release create v0.1.0 \
->   --title "ShogiBoardQ v0.1.0" \
+> gh release create 2026.10.07 \
+>   --title "ShogiBoardQ 2026.10.07" \
 >   --notes-file RELEASE_NOTES.md \
 >   ShogiBoardQ.dmg \
 >   ShogiBoardQ-windows.zip
@@ -436,8 +438,8 @@ gh release create v0.1.0 \
 リリースノートファイルを用意しない場合、GitHub が自動生成する：
 
 ```bash
-gh release create v0.1.0 \
-  --title "ShogiBoardQ v0.1.0" \
+gh release create 2026.10.07 \
+  --title "ShogiBoardQ 2026.10.07" \
   --generate-notes \
   ShogiBoardQ.dmg
 ```
@@ -447,14 +449,14 @@ gh release create v0.1.0 \
 Windows 側で先にリリースを作成済みの場合、macOS の DMG を追加：
 
 ```bash
-gh release upload v0.1.0 ShogiBoardQ.dmg
+gh release upload 2026.10.07 ShogiBoardQ.dmg
 ```
 
 ### 7.3 Web UI からリリース作成（代替）
 
 1. GitHub リポジトリ → **Releases** → **Draft a new release**
-2. **Choose a tag** → 新しいタグ（例: `v0.1.0`）を入力して作成
-3. **Release title** を入力（例: `ShogiBoardQ v0.1.0`）
+2. **Choose a tag** → 新しいタグ（例: `2026.10.07`）を入力して作成
+3. **Release title** を入力（例: `ShogiBoardQ 2026.10.07`）
 4. **Description** にリリースノートを記入
 5. **Attach binaries** に `ShogiBoardQ.dmg` をドラッグ＆ドロップ
 6. **Publish release** をクリック
@@ -462,7 +464,7 @@ gh release upload v0.1.0 ShogiBoardQ.dmg
 ### 7.4 リリースノートの書き方（テンプレート）
 
 ```markdown
-## ShogiBoardQ v0.1.0
+## ShogiBoardQ 2026.10.07
 
 ### ダウンロード
 

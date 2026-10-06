@@ -2,6 +2,7 @@
 
 REPO = "https://github.com/hnakada123/ShogiBoardQ"
 QT_LICENSING = f"{REPO}/blob/main/docs/dev/qt-licensing.md"
+VERSIONING = f"{REPO}/blob/main/docs/dev/versioning.md"
 RELEASE_YML = f"{REPO}/blob/main/.github/workflows/release.yml"
 
 # ---------------------------------------------------------------- 言語に依存しないコマンド
@@ -65,12 +66,12 @@ chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 ./ShogiBoardQ-linux-x86_64.AppImage
 """
 RELEASE = r"""
-git tag 2026.10.06
-git push origin 2026.10.06
-gh release create 2026.10.06 --title "ShogiBoardQ 2026.10.06" \
+git tag -a 2026.10.07 -m "ShogiBoardQ 2026.10.07"
+git push origin main 2026.10.07
+gh release create 2026.10.07 --title "ShogiBoardQ 2026.10.07" \
   --notes-file RELEASE_NOTES.md ShogiBoardQ-linux.zip
 """
-UPLOAD = "gh release upload 2026.10.06 ShogiBoardQ-linux.zip"
+UPLOAD = "gh release upload 2026.10.07 ShogiBoardQ-linux.zip"
 ERR_QT = 'Could not find a package configuration file provided by "Qt6"'
 ERR_TSUME = "==> ERROR: 5手詰の問題集が複数あります: data/tsumeshogi/tsume_5ply_1000_20260926.txt data/tsumeshogi/tsume_5ply_1000_20261001.txt"
 ERR_QT_NOTICES = """Qt license preparation failed: Qt version mismatch: build=6.7.2, source=6.11.2
@@ -278,6 +279,7 @@ T["ja"] = {
         ("h3", "package-run", "5.1 スクリプトの実行"),
         ("p", "リリース用の配布物は、古い Arch Linux（2024年7月15日の Arch Linux Archive。glibc 2.39・Qt 6.7.2）の"
               "コンテナで作る。"),
+        ("note", "リリース用に作るときは、先に版番号をリリースする日の日付に上げてコミットする（[6章](#release)）。"),
         ("code", CONTAINER_RUN),
         ("ul", [
             "初回はビルド環境のイメージ（`scripts/linux-container/Dockerfile`、約3GB）を作る。Arch Linux Archive からの"
@@ -367,8 +369,11 @@ T["ja"] = {
                  "ライセンス一覧を確認する。"),
 
         ("h2", "release", "6. GitHub Release での公開"),
-        ("p", "リリースのタグにはアプリの版（`CMakeLists.txt` の `APP_VERSION`。例: 2026.10.06）を使う。Linux の添付は "
-              "`ShogiBoardQ-linux.zip` だけで、ファイル名は版によらず同じにする。"),
+        ("p", "版番号は、リリースする日にだけその日の日付に上げる。配布物を作る前に `CMakeLists.txt` の `APP_VERSION` を"
+              "変えてコミットし、そのコミットから配布物を作る。同じ日の2回目以降のリリースは `2026.10.07.1` のように4つ目の"
+              "番号を付ける。タグ（`v` は付けない）と Release 名にはこの版番号を使う。詳しくは"
+              f"[版番号とリリースの運用]({VERSIONING})を参照。"),
+        ("p", "Linux の添付は `ShogiBoardQ-linux.zip` だけで、ファイル名は版によらず同じにする。"),
         ("code", RELEASE),
         ("p", "ほかの OS の配布物を先に公開している場合は、既存のリリースに追加する。"),
         ("code", UPLOAD),
@@ -551,6 +556,7 @@ T["en"] = {
         ("h2", "package", "5. Creating the AppImage and ZIP"),
         ("h3", "package-run", "5.1 Running the script"),
         ("p", "Release packages are built in an older Arch Linux container (the Arch Linux Archive as of 2024-07-15: glibc 2.39, Qt 6.7.2)."),
+        ("note", "For a release, first update the version to the release date and commit it ([section 6](#release))."),
         ("code", CONTAINER_RUN),
         ("ul", [
             "The first run creates the build image (`scripts/linux-container/Dockerfile`, about 3 GB). Downloads from the Arch "
@@ -640,8 +646,11 @@ T["en"] = {
                  "and the license lists in “Version Info”."),
 
         ("h2", "release", "6. Publishing on GitHub Releases"),
-        ("p", "Tag the release with the application version (`APP_VERSION` in `CMakeLists.txt`, for example 2026.10.06). "
-              "Attach only `ShogiBoardQ-linux.zip` for Linux, and keep this filename the same in every release."),
+        ("p", "Update the version only on the day of a release, to that date. Before building the packages, change `APP_VERSION` "
+              "in `CMakeLists.txt`, commit it, and build the packages from that commit. For a second release on the same day, "
+              "add a fourth number, as in `2026.10.07.1`. Use this version for the tag (without a leading `v`) and the release "
+              f"name. See [Versioning and releases (Japanese)]({VERSIONING}) for details."),
+        ("p", "Attach only `ShogiBoardQ-linux.zip` for Linux, and keep this filename the same in every release."),
         ("code", RELEASE),
         ("p", "If the packages for other operating systems are already published, add the ZIP to the existing release:"),
         ("code", UPLOAD),
@@ -820,6 +829,7 @@ T["zh-cn"] = {
         ("h2", "package", "5. 制作 AppImage 与 ZIP"),
         ("h3", "package-run", "5.1 运行脚本"),
         ("p", "用于发布的发布包在较旧的 Arch Linux（2024 年 7 月 15 日的 Arch Linux Archive；glibc 2.39、Qt 6.7.2）容器中制作。"),
+        ("note", "制作用于发布的发布包时，请先把版本号改为发布当天的日期并提交（[第 6 节](#release)）。"),
         ("code", CONTAINER_RUN),
         ("ul", [
             "首次运行时会创建构建环境镜像（`scripts/linux-container/Dockerfile`，约 3GB）。从 Arch Linux Archive 下载较慢，需要数十分钟。",
@@ -901,8 +911,10 @@ T["zh-cn"] = {
                  "诘棋记录的保存，以及“版本信息”中的许可证列表。"),
 
         ("h2", "release", "6. 在 GitHub Releases 上发布"),
-        ("p", "发布的标签使用应用程序的版本（`CMakeLists.txt` 中的 `APP_VERSION`，例如 2026.10.06）。"
-              "Linux 只附加 `ShogiBoardQ-linux.zip`，文件名不随版本变化。"),
+        ("p", "版本号只在发布当天改为当天的日期。制作发布包之前，修改 `CMakeLists.txt` 中的 `APP_VERSION` 并提交，"
+              "再从该提交制作发布包。同一天第二次及以后的发布，像 `2026.10.07.1` 这样加上第四个数字。标签（不加 `v`）和"
+              f"发布名称使用这个版本号。详情请参阅[版本号与发布的规则（日文）]({VERSIONING})。"),
+        ("p", "Linux 只附加 `ShogiBoardQ-linux.zip`，文件名不随版本变化。"),
         ("code", RELEASE),
         ("p", "如果已经先发布了其他操作系统的发布包，则添加到现有的发布中："),
         ("code", UPLOAD),
@@ -1074,6 +1086,7 @@ T["zh-tw"] = {
         ("h2", "package", "5. 製作 AppImage 與 ZIP"),
         ("h3", "package-run", "5.1 執行指令碼"),
         ("p", "用於發行的發行套件在較舊的 Arch Linux（2024 年 7 月 15 日的 Arch Linux Archive；glibc 2.39、Qt 6.7.2）容器中製作。"),
+        ("note", "製作用於發行的發行套件時，請先把版本號改為發行當天的日期並提交（[第 6 節](#release)）。"),
         ("code", CONTAINER_RUN),
         ("ul", [
             "第一次執行時會建立建置環境映像（`scripts/linux-container/Dockerfile`，約 3GB）。從 Arch Linux Archive 下載較慢，需要數十分鐘。",
@@ -1155,8 +1168,10 @@ T["zh-tw"] = {
                  "詰棋紀錄的儲存，以及「版本資訊」中的授權清單。"),
 
         ("h2", "release", "6. 在 GitHub Releases 上發行"),
-        ("p", "發行的標籤使用應用程式的版本（`CMakeLists.txt` 中的 `APP_VERSION`，例如 2026.10.06）。"
-              "Linux 只附加 `ShogiBoardQ-linux.zip`，檔名不隨版本改變。"),
+        ("p", "版本號只在發行當天改為當天的日期。製作發行套件之前，修改 `CMakeLists.txt` 中的 `APP_VERSION` 並提交，"
+              "再從該提交製作發行套件。同一天第二次以後的發行，像 `2026.10.07.1` 這樣加上第四個數字。標籤（不加 `v`）和"
+              f"發行名稱使用這個版本號。詳情請參閱[版本號與發行的規則（日文）]({VERSIONING})。"),
+        ("p", "Linux 只附加 `ShogiBoardQ-linux.zip`，檔名不隨版本改變。"),
         ("code", RELEASE),
         ("p", "如果已經先發行了其他作業系統的發行套件，則新增到既有的發行中："),
         ("code", UPLOAD),
