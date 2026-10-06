@@ -105,7 +105,20 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-source
 <h2>Create the Linux ZIP package</h2>
 <p>After preparing the <a href="#qt-sources">matching Qt notices and source archive</a>, run:</p>
 <pre><code>./scripts/build-linux.sh</code></pre>
-<p>The script builds the application, assembles <code>build/AppDir</code>, deploys Qt and the required plugins, copies all four application translations (ja_JP, en, zh_CN, zh_TW) and license documents, and creates <code>ShogiBoardQ-linux-x86_64.AppImage</code> in the repository root. The AppImage contains only the files needed to run the application; Qt's own translation catalogs under <code>usr/translations/</code> are removed because the standard dialog translations are built into the executable. It also creates <code>ShogiBoardQ-linux.zip</code> containing the AppImage, a standalone Hayanagi engine, and six puzzle collections (3, 5, 7, 9, 11, and 13 moves to mate; 1,000 puzzles each). The outer ZIP excludes <code>docs/</code>, <code>validation_*.json</code>, and <code>licenses/</code>. Qt notices remain inside the AppImage and are accessible from About. The QSQLITE plugin is checked so that tsume puzzle history works in the distributed application.</p>
+<p>The script builds the application, assembles <code>build/AppDir</code>, deploys Qt and the required plugins, copies all four application translations (ja_JP, en, zh_CN, zh_TW) and license documents, and creates <code>ShogiBoardQ-linux-x86_64.AppImage</code> in the repository root. The AppImage contains only the files needed to run the application; Qt's own translation catalogs under <code>usr/translations/</code> are removed because the standard dialog translations are built into the executable. The QSQLITE plugin is checked so that tsume puzzle history works in the distributed application.</p>
+<p>The script then rebuilds the working folder <code>build/ShogiBoardQ-linux/</code> and creates <code>ShogiBoardQ-linux.zip</code> in the repository root. The ZIP contains these 12 files:</p>
+<pre><code>ShogiBoardQ-linux.zip
+└── ShogiBoardQ-linux/
+    ├── ShogiBoardQ-linux-x86_64.AppImage
+    ├── README.md            ← resources/platform/README-linux.md
+    ├── LICENSE
+    ├── Hayanagi/
+    │   ├── hayanagi         ← build/Hayanagi/hayanagi (stripped)
+    │   └── README.md
+    └── data/tsumeshogi/
+        ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt (6 files, 1,000 puzzles each)
+        └── README.md</code></pre>
+<p>The puzzle files are copied unchanged so that their hashes match the audit records built into the application. Keep exactly one collection per move count in <code>data/tsumeshogi/</code> (the repository tracks only the current 20261001 files); the script stops with an error if an older version for the same move count remains. The outer ZIP excludes <code>docs/</code>, <code>validation_*.json</code>, and <code>licenses/</code>. Qt notices remain inside the AppImage and are accessible from About.</p>
 <pre><code>unzip ShogiBoardQ-linux.zip
 cd ShogiBoardQ-linux
 chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi

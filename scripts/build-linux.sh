@@ -202,10 +202,11 @@ fi
 [[ -x "$HAYANAGI_EXE" ]] || die "Hayanagi が見つかりません: $HAYANAGI_EXE"
 TSUME_FILES=()
 for plies in 3 5 7 9 11 13; do
-    for collection in data/tsumeshogi/tsume_"${plies}"ply_*.txt; do
-        [[ -f "$collection" ]] || die "${plies}手詰の問題集が見つかりません。"
-        TSUME_FILES+=("$collection")
-    done
+    collections=(data/tsumeshogi/tsume_"${plies}"ply_*.txt)
+    [[ -f "${collections[0]}" ]] || die "${plies}手詰の問題集が見つかりません。"
+    # 旧版などが残っていると ZIP に混ざるため、各手数1ファイルに限る。
+    [[ ${#collections[@]} -eq 1 ]] || die "${plies}手詰の問題集が複数あります: ${collections[*]}"
+    TSUME_FILES+=("${collections[0]}")
 done
 
 # ──────────────────────────────────────────────

@@ -211,7 +211,7 @@ qmake6 --version      # Qt 6.x</code></pre>
 <ol type="1">
 <li>前提ツールの存在確認（cmake, python3、ninja は推奨）</li>
 <li>CMake Configure + Release ビルド（ShogiBoardQ と Hayanagi）</li>
-<li>ビルド成果物、翻訳ファイル、3〜13手詰の6ファイルの確認</li>
+<li>ビルド成果物、翻訳ファイル、3〜13手詰の問題集（各手数1ファイル）の確認</li>
 <li>linuxdeploy + Qt プラグイン + appimagetool のダウンロード（初回のみ）</li>
 <li>実行に必要なファイルと Qt ライセンスだけを含む AppImage 作成</li>
 <li>AppImage と、ファイル選択できる問題集・Hayanagi を含む ZIP 作成</li>
@@ -373,8 +373,47 @@ APPIMAGE_EXTRACT_AND_RUN=1 ./scripts/build-linux.sh</code></pre>
 </section>
 <section id="45-zip-の構造と同梱ファイルの利用" class="level3">
 <h3>4.5 ZIP の構造と同梱ファイルの利用</h3>
-<p>問題集と通常対局用 Hayanagi は AppImage に入れず、ZIP を展開してすぐファイル選択できるよう AppImage の外に配置する。詰将棋対局用の内蔵 Hayanagi はアプリ本体に組み込まれており、エンジン登録は不要。 問題集は内容を変更せずコピーする。アプリ内蔵の監査記録とハッシュが一致するため、 同梱問題集の読み込み時に検証済みの手数と手順を再利用できる。</p>
+<p>問題集と通常対局用 Hayanagi は AppImage に入れず、ZIP を展開してすぐファイル選択できるよう AppImage の外に配置する。詰将棋対局用の内蔵 Hayanagi はアプリ本体に組み込まれており、エンジン登録は不要。</p>
+<p>スクリプトは作業ディレクトリ <code>build/ShogiBoardQ-linux/</code> を作り直して次のファイルを配置し、 リポジトリ直下に <code>ShogiBoardQ-linux.zip</code> を作る。</p>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>元ファイル</th>
+<th>ZIP 内の配置先</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ShogiBoardQ-linux-x86_64.AppImage</code>（4.3 で生成）</td>
+<td><code>ShogiBoardQ-linux/</code></td>
+</tr>
+<tr>
+<td><code>resources/platform/README-linux.md</code>（利用者向けの説明）</td>
+<td><code>ShogiBoardQ-linux/README.md</code></td>
+</tr>
+<tr>
+<td><code>LICENSE</code></td>
+<td><code>ShogiBoardQ-linux/LICENSE</code></td>
+</tr>
+<tr>
+<td><code>build/Hayanagi/hayanagi</code>（<code>strip</code> して配置）</td>
+<td><code>ShogiBoardQ-linux/Hayanagi/hayanagi</code></td>
+</tr>
+<tr>
+<td><code>Hayanagi/README.md</code></td>
+<td><code>ShogiBoardQ-linux/Hayanagi/README.md</code></td>
+</tr>
+<tr>
+<td><code>data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt</code>、<code>data/tsumeshogi/README.md</code></td>
+<td><code>ShogiBoardQ-linux/data/tsumeshogi/</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>問題集は内容を変更せずコピーする。アプリ内蔵の監査記録とハッシュが一致するため、 同梱問題集の読み込み時に検証済みの手数と手順を再利用できる。 <code>data/tsumeshogi/</code> には各手数の問題集を1ファイルだけ置く（git で追跡しているのは現行の20261001版の6ファイル）。 旧版などが残っていて同じ手数のファイルが複数あると、スクリプトはエラーで止まる。</p>
 <p>ZIP の外部ファイルには <code>docs/</code>、問題集の検証記録 <code>validation_*.json</code>、<code>licenses/</code> を含めない。 Qt 文書は AppImage 内に収録し、「バージョン情報」から参照する。</p>
+<p>作成される ZIP の構成（12ファイル）：</p>
 <pre class="text"><code>ShogiBoardQ-linux.zip
 └── ShogiBoardQ-linux/
     ├── ShogiBoardQ-linux-x86_64.AppImage
@@ -414,7 +453,7 @@ test ! -e squashfs-root/usr/bin/hayanagi &amp;&amp; test ! -e squashfs-root/usr/
 # ZIP 側の Hayanagi が USI エンジンとして応答すること
 printf &#39;usi\nisready\nquit\n&#39; | build/ShogiBoardQ-linux/Hayanagi/hayanagi
 
-# ZIP に AppImage・問題集・Hayanagi があり、破損がないことを確認
+# ZIP が 4.5 の構成（12ファイル）どおりで、破損がないことを確認
 python3 -m zipfile -l ShogiBoardQ-linux.zip
 python3 -m zipfile -t ShogiBoardQ-linux.zip</code></pre>
 <blockquote>
