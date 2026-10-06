@@ -46,8 +46,11 @@ fi
 
 # 自分のユーザーで実行し、作られるファイルの所有者をそろえる。FUSE は使えないので AppImage 形式の
 # ツールは展開して実行する。
+# イメージの時間帯は UTC なので、手元の時間帯を渡してビルド日時を手元と同じ時刻で記録する。
+TZ_ARGS=()
+[[ -e /etc/localtime ]] && TZ_ARGS=(-v /etc/localtime:/etc/localtime:ro)
 info "コンテナでビルド中..."
 "${DOCKER_CMD[@]}" run --rm --user "$(id -u):$(id -g)" \
     -e HOME=/tmp/home -e SHOGIBOARDQ_BUILD_DIR="$BUILD_DIR" -e APPIMAGE_EXTRACT_AND_RUN=1 \
-    -v "$PWD:/src" -w /src "$IMAGE" \
+    "${TZ_ARGS[@]}" -v "$PWD:/src" -w /src "$IMAGE" \
     bash -c 'mkdir -p "$HOME" && exec ./scripts/build-linux.sh "$@"' build-linux "$@"
