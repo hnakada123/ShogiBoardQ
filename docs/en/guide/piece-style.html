@@ -1,107 +1,204 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Piece Styles - ShogiBoardQ</title>
-<meta content="40 piece styles with a shared shape: traditional Mincho lettering, wood and color variations, symbolic Sengoku Kanji, nine chess-inspired sets, and nine alphabet sets." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html" rel="canonical"/>
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html" property="og:url"/>
-<meta content="Piece Styles - ShogiBoardQ" property="og:title"/>
-<meta content="40 piece styles with a shared shape: traditional Mincho lettering, wood and color variations, symbolic Sengoku Kanji, nine chess-inspired sets, and nine alphabet sets." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/piece-style/pieces-standard.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Piece Styles - ShogiBoardQ" name="twitter:title"/>
-<meta content="40 piece styles with a shared shape: traditional Mincho lettering, wood and color variations, symbolic Sengoku Kanji, nine chess-inspired sets, and nine alphabet sets." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/piece-style/pieces-standard.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piece Styles - ShogiBoardQ</title>
+    <meta name="description" content="40 piece styles with a shared shape: traditional Mincho lettering, wood and color variations, symbolic Sengoku Kanji, nine chess-inspired sets, and nine alphabet sets.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html">
+    <meta property="og:title" content="Piece Styles - ShogiBoardQ">
+    <meta property="og:description" content="40 piece styles with a shared shape: traditional Mincho lettering, wood and color variations, symbolic Sengoku Kanji, nine chess-inspired sets, and nine alphabet sets.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/piece-style/pieces-standard.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Piece Styles - ShogiBoardQ">
+    <meta name="twitter:description" content="40 piece styles with a shared shape: traditional Mincho lettering, wood and color variations, symbolic Sengoku Kanji, nine chess-inspired sets, and nine alphabet sets.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/piece-style/pieces-standard.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/piece-style.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/piece-style.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html">
 </head>
 <body>
+
+<!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/piece-style.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#how-to-switch">How to Switch</a></li>
-<li><a href="#styles">Style Gallery</a></li>
-<li><a href="board-colors.html">Board Colors</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/piece-style.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="piece-style.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/piece-style.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/piece-style.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#how-to-switch">How to Switch</a></li>
+            <li><a href="#styles">Piece Styles</a></li>
+            <li><a href="board-colors.html">Game Appearance</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <main class="appearance-guide">
-<section class="hero hero--sub"><div class="hero-content">
-<h1>Piece Styles</h1><p class="hero-subtitle">40 piece styles with a shared traditional shape</p>
-</div></section>
-<section id="how-to-switch" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">Choose Pieces in the Appearance Window</h2>
-<p>Open View → Game Appearance… → Pieces to choose Standard Pieces or one of 39 variations. The styles are grouped into Tiger Grain, Wood Tones, Light Colors, Dark Colors, Symbolic, Chess, and Alphabet. Your selection applies immediately and is restored on the next launch.</p>
-<p>Fine Straight Grain is now the standard, with its artwork unchanged. The former standard remains available as Wood Grain. Saved selections of Fine Straight Grain migrate to Standard Pieces without changing their appearance.</p>
-<p>The same pieces appear on the main board, in hand, in principal variations, and in tsume boards. Adjust colors, piece size, and shadows in <a href="board-colors.html">Game Appearance → Details</a>.</p>
-</div></section>
-<section id="styles" class="section"><div class="section-inner">
-<h2 class="section-title">Standard Pieces</h2>
-<p class="section-desc">Pale wood, fine outlines, subtle grain, and Mincho lettering</p>
-<div class="screenshot-item"><a href="../../images/en/piece-style/pieces-standard.png"><img src="../../images/en/piece-style/pieces-standard.png" alt="Starting position with standard wooden pieces" loading="lazy"></a></div>
-<p>Promoted pieces use red lettering. Promoted lance, knight, and silver are marked 杏, 圭, and 全.</p>
-</div></section>
-<section id="variants" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">20 Variations</h2>
-<p>Every variation keeps the shape, size, and Mincho lettering of Standard Pieces, with different grain patterns and colors. Standard Pieces remains the default.</p>
-<table class="judgment-table">
-<thead><tr><th>Group</th><th>Piece Styles</th></tr></thead>
-<tbody>
-<tr><td>Tiger Grain</td><td>Light Tiger Grain, Silk Tiger Grain, Amber Tiger Grain, Red Tiger Grain, Golden Tiger Grain</td></tr>
-<tr><td>Wood Tones</td><td>Pale Wood, Wood Grain, Amber Straight Grain, Bamboo Grain, Walnut</td></tr>
-<tr><td>Light Colors</td><td>Linen, Pale Cherry, Celadon, Moon White, Wisteria Gray</td></tr>
-<tr><td>Dark Colors</td><td>Ebony, Iron Navy, Forest Green, Grape, Ink and Gold</td></tr>
-</tbody></table>
-<p>Light pieces use dark lettering, while dark pieces use light lettering. Promoted pieces are distinguished by red or warm coral lettering.</p>
-<div class="screenshot-item"><a href="../../images/piece-style/pieces-torafu_light.png"><img src="../../images/piece-style/pieces-torafu_light.png" alt="Board with Light Tiger Grain pieces" loading="lazy"></a><p>Light Tiger Grain</p></div>
-<div class="screenshot-item"><a href="../../images/piece-style/pieces-deep_ebony.png"><img src="../../images/piece-style/pieces-deep_ebony.png" alt="Board with Ebony pieces" loading="lazy"></a><p>Ebony</p></div>
-</div></section>
-<section id="sengoku" class="section"><div class="section-inner">
-<h2 class="section-title">Sengoku Kanji</h2>
-<p>Choose Sengoku Kanji in the Symbolic group for bold, abstract glyphs combining shogi characters with samurai helmet shapes. The outlines, relative piece sizes, and player orientations match Standard Pieces.</p>
-<p>Ivory surfaces carry charcoal lettering, with vermilion lettering for promoted pieces. Promoted silver, knight, and lance use 全, 圭, and 杏.</p>
-<div class="screenshot-item"><a href="../../images/piece-style/pieces-sengoku.png"><img src="../../images/piece-style/pieces-sengoku.png" alt="Board with Sengoku Kanji pieces" loading="lazy"></a></div>
-</div></section>
-<section id="chess" class="section section--alt"><div class="section-inner">
-<h2 class="section-title">Chess-inspired Pieces: Facet, Atelier, and Ribbon</h2>
-<p>The Chess group offers nine sets: geometric Facet, sculptural Atelier, and outlined Ribbon, each in Wood, White, and Ink. Crowns, castles, horses, shields, and spears identify the pieces without kanji or letters.</p>
-<p>The pentagonal outlines and relative sizes match Standard Pieces. Promoted symbols turn red, and both kings share the same crown. Movement, promotion, and drops follow shogi rules.</p>
-<p>Select a matching Recommended Combination to coordinate the board, stands, and background. Ink pairs a dark board with light piece surfaces.</p>
-<div class="screenshot-item"><a href="../../images/piece-style/combination-chess_facet_wood.png"><img src="../../images/piece-style/combination-chess_facet_wood.png" alt="Facet (Wood)" loading="lazy"></a><p>Facet (Wood)</p></div>
-<div class="screenshot-item"><a href="../../images/piece-style/combination-chess_atelier_paper.png"><img src="../../images/piece-style/combination-chess_atelier_paper.png" alt="Atelier (White)" loading="lazy"></a><p>Atelier (White)</p></div>
-<div class="screenshot-item"><a href="../../images/piece-style/combination-chess_ribbon_slate.png"><img src="../../images/piece-style/combination-chess_ribbon_slate.png" alt="Ribbon (Ink)" loading="lazy"></a><p>Ribbon (Ink)</p></div>
-</div></section>
-<section id="alphabet" class="section"><div class="section-inner">
-<h2 class="section-title">Alphabet Pieces: Sei, Rin, and Sumi</h2>
-<p>The Alphabet group offers three Mincho typefaces, Sei, Rin, and Sumi, each in Wood, White, and Ink: nine sets in total. Normal letters are black; promoted pieces keep the same letter in red.</p>
-<p>King=K, Rook=R, Bishop=B, Gold=G, Silver=S, Knight=N, Lance=L, and Pawn=P. Both kings use K. The outlines and relative piece sizes match Standard Pieces, with lettering and margins scaled to each piece.</p>
-<p>Choose a matching Recommended Combination to coordinate the board, stands, and background. Movement, promotion, and drops follow shogi rules.</p>
-<div class="screenshot-item"><a href="../../images/piece-style/combination-alphabet_sei_wood.png"><img src="../../images/piece-style/combination-alphabet_sei_wood.png" alt="Sei (Wood)" loading="lazy"></a><p>Sei (Wood)</p></div>
-<div class="screenshot-item"><a href="../../images/piece-style/combination-alphabet_rin_paper.png"><img src="../../images/piece-style/combination-alphabet_rin_paper.png" alt="Rin (White)" loading="lazy"></a><p>Rin (White)</p></div>
-<div class="screenshot-item"><a href="../../images/piece-style/combination-alphabet_sumi_slate.png"><img src="../../images/piece-style/combination-alphabet_sumi_slate.png" alt="Sumi (Ink)" loading="lazy"></a><p>Sumi (Ink)</p></div>
-</div></section>
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Piece Styles</h1>
+        <p class="hero-subtitle">40 piece styles with a shared traditional shape</p>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
+</section>
+
+<section id="how-to-switch" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Choose Pieces in the Appearance Window</h2>
+        <p class="guide-step-text">Open View → Game Appearance… and choose the Pieces tab to select Standard Pieces or one of 39 variations. The additional styles are grouped into Tiger Grain, Natural Wood, Light Colors, Dark Colors, Symbolic, Chess, and Alphabet. Your selection applies immediately and is restored on the next launch.</p>
+        <p class="guide-step-text">The former Fine Straight Grain is now Standard Pieces, with its artwork unchanged. The former standard pieces remain available as Wood Grain. If Fine Straight Grain was selected, it switches to Standard Pieces without changing its appearance.</p>
+        <p class="guide-step-text">The same pieces appear on every board: the main board, pieces in hand, principal variations, and tsume boards. Adjust colors, piece size, and shadows under <a href="board-colors.html">Details in Game Appearance</a>.</p>
+    </div>
+</section>
+
+<section id="styles" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Standard Pieces</h2>
+        <p class="section-desc">Pale wood, fine outlines, subtle grain, and Mincho lettering</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/pieces-standard.png"><img src="../../images/en/piece-style/pieces-standard.png" alt="Starting position with Standard Pieces" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Standard Pieces</p>
+            </div>
+        </div>
+        <p class="guide-step-text">Promoted pieces use red lettering. Promoted lance, knight, and silver are marked 杏, 圭, and 全.</p>
+    </div>
+</section>
+
+<section id="variants" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">20 Variations</h2>
+        <p class="guide-step-text">Every variation keeps the shape, size, and Mincho lettering of Standard Pieces, with different grain patterns and colors. Standard Pieces remains the default.</p>
+        <table class="info-table">
+            <thead><tr><th scope="col">Group</th><th scope="col">Piece Styles</th></tr></thead>
+            <tbody>
+                <tr><td>Tiger Grain</td><td>Light Tiger Grain, Silk Tiger Grain, Amber Tiger Grain, Red Tiger Grain, Golden Tiger Grain</td></tr>
+                <tr><td>Natural Wood</td><td>Pale Wood, Wood Grain, Amber Straight Grain, Bamboo Grain, Walnut</td></tr>
+                <tr><td>Light Colors</td><td>Linen, Pale Cherry, Celadon, Moon White, Wisteria Gray</td></tr>
+                <tr><td>Dark Colors</td><td>Ebony, Iron Navy, Forest Green, Grape, Ink and Gold</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">Light and natural wood pieces use dark lettering, while dark pieces use light lettering. Promoted pieces are distinguished by vermilion or bright red lettering.</p>
+        <div class="screenshot-gallery screenshot-gallery--comparison">
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/pieces-torafu_light.png"><img src="../../images/en/piece-style/pieces-torafu_light.png" alt="Board with Light Tiger Grain pieces" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Light Tiger Grain</p>
+            </div>
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/pieces-deep_ebony.png"><img src="../../images/en/piece-style/pieces-deep_ebony.png" alt="Board with Ebony pieces" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Ebony</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="sengoku" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Sengoku Kanji</h2>
+        <p class="guide-step-text">Sengoku Kanji in the Symbolic group has bold, abstract glyphs that combine characters such as 王 and 歩 with samurai helmet shapes. The outlines, relative piece sizes, and player orientations match Standard Pieces.</p>
+        <p class="guide-step-text">Ivory surfaces carry ink-black lettering, with vermilion lettering for promoted pieces. Promoted silver, knight, and lance use 全, 圭, and 杏.</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/pieces-sengoku.png"><img src="../../images/en/piece-style/pieces-sengoku.png" alt="Board with Sengoku Kanji pieces" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Sengoku Kanji</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="chess" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Chess-inspired Pieces: Facet, Atelier, and Ribbon</h2>
+        <p class="guide-step-text">The Chess group offers nine sets: geometric Facet, sculptural Atelier, and outlined Ribbon, each in Wood, White, and Ink. Crowns, castles, horses, shields, and spears identify the pieces without kanji or letters.</p>
+        <p class="guide-step-text">The pentagonal outlines and relative sizes match Standard Pieces. Promoted symbols turn red, and both kings share the same crown. Movement, promotion, and drops follow shogi rules.</p>
+        <p class="guide-step-text">Choosing the item with the same name in Suggested Combinations also coordinates the board, stands, and background. Ink pairs a dark board with light piece surfaces.</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/combination-chess_facet_wood.png"><img src="../../images/en/piece-style/combination-chess_facet_wood.png" alt="Board with the Facet (Wood) suggested combination" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Facet (Wood)</p>
+            </div>
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/combination-chess_atelier_paper.png"><img src="../../images/en/piece-style/combination-chess_atelier_paper.png" alt="Board with the Atelier (White) suggested combination" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Atelier (White)</p>
+            </div>
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/combination-chess_ribbon_slate.png"><img src="../../images/en/piece-style/combination-chess_ribbon_slate.png" alt="Board with the Ribbon (Ink) suggested combination" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Ribbon (Ink)</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="alphabet" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Alphabet Pieces: Sei, Rin, and Sumi</h2>
+        <p class="guide-step-text">The Alphabet group offers three Mincho typefaces, Sei, Rin, and Sumi, each in Wood, White, and Ink: nine sets in total. Normal letters are black; promoted pieces keep the same letter in red.</p>
+        <p class="guide-step-text">King = K, Rook = R, Bishop = B, Gold = G, Silver = S, Knight = N, Lance = L, and Pawn = P. Both kings use K. The pentagonal outlines and relative sizes match Standard Pieces, with lettering and margins scaled to each piece.</p>
+        <p class="guide-step-text">Choosing the item with the same name in Suggested Combinations also gives the board, stands, and background the sample colors. Movement, promotion, and drops follow shogi rules.</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/combination-alphabet_sei_wood.png"><img src="../../images/en/piece-style/combination-alphabet_sei_wood.png" alt="Board with the Sei (Wood) suggested combination" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Sei (Wood)</p>
+            </div>
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/combination-alphabet_rin_paper.png"><img src="../../images/en/piece-style/combination-alphabet_rin_paper.png" alt="Board with the Rin (White) suggested combination" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Rin (White)</p>
+            </div>
+            <div class="screenshot-item">
+                <a href="../../images/en/piece-style/combination-alphabet_sumi_slate.png"><img src="../../images/en/piece-style/combination-alphabet_sumi_slate.png" alt="Board with the Sumi (Ink) suggested combination" width="1440" height="1130" loading="lazy"></a>
+                <p class="screenshot-caption">Sumi (Ink)</p>
+            </div>
+        </div>
+    </div>
+</section>
 </main>
+
+<!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
+<!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
