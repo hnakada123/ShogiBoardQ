@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨平台支持 - ShogiBoardQ</title>
+    <meta name="description" content="介绍 ShogiBoardQ 的跨平台支持。借助 Qt6，可以用同一套源代码构建 Linux、macOS 和 Windows 版的应用程序。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multi-os.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multi-os.html">
+    <meta property="og:title" content="跨平台支持 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQ 借助 Qt6 在 Linux、macOS 和 Windows 上运行。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/multi-os/linux-plasma.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="跨平台支持 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQ 借助 Qt6 在 Linux、macOS 和 Windows 上运行。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/multi-os/linux-plasma.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multi-os.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/multi-os.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/multi-os.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/multi-os.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="multi-os.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/multi-os.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#linux">Linux</a></li>
+            <li><a href="#macos">macOS</a></li>
+            <li><a href="#windows">Windows</a></li>
+            <li><a href="#qt6">关于 Qt6</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>跨平台支持</h1>
+        <p class="hero-subtitle">用同一套 Qt6 源代码支持 Linux、macOS 和 Windows</p>
+        <div class="hero-badges">
+            <span class="badge">Linux</span>
+            <span class="badge">macOS</span>
+            <span class="badge">Windows</span>
+            <span class="badge">Qt 6</span>
+        </div>
+        <p class="screenshot-note">Linux 的截图在 Linux 上以简体中文界面拍摄。macOS 和 Windows 的截图为日文界面。</p>
+    </div>
+</section>
+
+<!-- Section 1: Linux -->
+<section id="linux" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Linux</h2>
+        <p class="section-desc">在 Linux 环境中原生运行</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Linux 版的画面</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQ 在 Linux 上运行的样子。可以在 KDE Plasma、GNOME 等主流桌面环境中使用。截图是在 KDE Plasma 上与将棋引擎 <a href="hayanagi.html">Hayanagi</a> 对局的画面。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-cn/multi-os/linux-plasma.png"><img src="../../images/zh-cn/multi-os/linux-plasma.png" alt="ShogiBoardQ 的 Linux 版画面（在 KDE Plasma 上与将棋引擎 Hayanagi 对局）" width="1407" height="1138" loading="lazy"></a>
+                    <p class="screenshot-caption">Linux 版：KDE Plasma 环境中的对局画面（Hayanagi 正在思考）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Linux 版的发布包</span>
+                </div>
+                <p class="guide-step-text">在 <a href="https://github.com/hnakada123/ShogiBoardQ/releases">GitHub Releases</a> 发布的 ShogiBoardQ-linux.zip 中包含 AppImage、诘棋题集（3〜13 手诘，共 6,000 题）和将棋引擎 Hayanagi。解压 ZIP 后即可选择题集和 Hayanagi。适用于 x86_64 的 Linux。</p>
+                <p class="guide-step-text">从源代码构建以及制作发布包的步骤，请参阅<a href="../../en/guide/linux-build-and-release.html">Linux 构建与发布（英文）</a>。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: macOS -->
+<section id="macos" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">macOS</h2>
+        <p class="section-desc">在 macOS 环境中原生运行</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">macOS 版的画面</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQ 在 macOS 上运行的样子。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/multi-os/macOS.png"><img src="../../images/multi-os/macOS.png" alt="ShogiBoardQ 的 macOS 版画面" width="2424" height="1942" loading="lazy"></a>
+                    <p class="screenshot-caption">macOS 版：macOS 环境中的对局画面（日文界面）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Windows -->
+<section id="windows" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Windows</h2>
+        <p class="section-desc">在 Windows 环境中原生运行</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Windows 版的画面</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQ 在 Windows 上运行的样子。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/multi-os/Windows.png"><img src="../../images/multi-os/Windows.png" alt="ShogiBoardQ 的 Windows 版画面" width="1546" height="1413" loading="lazy"></a>
+                    <p class="screenshot-caption">Windows 版：Windows 环境中的对局画面（日文界面）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: 基于 Qt6 的跨平台开发 -->
+<section id="qt6" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">基于 Qt6 的跨平台开发</h2>
+        <p class="section-desc">Qt6 框架让 ShogiBoardQ 支持多种操作系统</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">一套源代码支持多种操作系统</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQ 使用 Qt6 和 C++17 开发。借助 Qt6 的跨平台功能，可以用同一套源代码构建 Linux、macOS 和 Windows 版的应用程序。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">各平台一致的界面</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQ 使用 Qt6 的 Fusion 控件样式，在各平台上提供一致的界面。</p>
+                <ul class="guide-step-text">
+                    <li>Linux：支持 KDE Plasma、GNOME 等桌面环境</li>
+                    <li>macOS：使用相同的棋盘、菜单和对话框</li>
+                    <li>Windows：使用相同的棋盘、菜单和对话框</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">构建方法</span>
+                </div>
+                <p class="guide-step-text">在各操作系统上安装 Qt6 和 CMake，然后从包含 Hayanagi 子模块的源代码构建。</p>
+                <ul class="guide-step-text">
+                    <li>Qt 6.7 或更高版本（Widgets、Charts、Network、Concurrent、Multimedia、Sql、LinguistTools）</li>
+                    <li>支持 C++17 的编译器</li>
+                    <li>CMake 3.16 或更高版本</li>
+                </ul>
+                <p class="guide-step-text">环境准备、构建命令和发布包，请参阅 <a href="../../en/guide/linux-build-and-release.html">Linux</a>、<a href="../../en/guide/windows-build-and-release.html">Windows</a> 和 <a href="../../en/guide/macos-build-and-release.html">macOS</a> 的构建与发布指南（英文）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

@@ -5,24 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>クロスプラットフォーム - ShogiBoardQ</title>
     <meta name="description" content="ShogiBoardQのクロスプラットフォーム対応を紹介します。Qt6により、単一のソースコードからLinux・macOS・Windowsで動作するアプリケーションをビルドできます。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
     <meta property="og:title" content="クロスプラットフォーム - ShogiBoardQ">
     <meta property="og:description" content="ShogiBoardQのクロスプラットフォーム対応を紹介。Qt6により、Linux・macOS・Windowsで動作。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multi-os/Linux.png">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multi-os/linux-plasma.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="クロスプラットフォーム - ShogiBoardQ">
     <meta name="twitter:description" content="ShogiBoardQのクロスプラットフォーム対応を紹介。Qt6により、Linux・macOS・Windowsで動作。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multi-os/Linux.png">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multi-os/linux-plasma.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/multi-os.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/multi-os.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html">
 </head>
 <body>
 
@@ -30,7 +32,15 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/multi-os.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="multi-os.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/multi-os.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/multi-os.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/multi-os.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
@@ -59,7 +69,6 @@
         </div>
     </div>
 </section>
-
 <!-- Section 1: Linux -->
 <section id="linux" class="section section--alt">
     <div class="section-inner">
@@ -73,11 +82,20 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Linux版の画面</span>
                 </div>
-                <p class="guide-step-text">Linux上でShogiBoardQが動作している様子です。KDE PlasmaやGNOMEなど主要なデスクトップ環境で利用できます。</p>
+                <p class="guide-step-text">Linux上でShogiBoardQが動作している様子です。KDE PlasmaやGNOMEなど主要なデスクトップ環境で利用できます。画像はKDE Plasmaで、将棋エンジン<a href="hayanagi.html">Hayanagi</a>と対局しているところです。</p>
                 <div class="screenshot-item">
-                    <img src="../images/multi-os/Linux.png" alt="ShogiBoardQ Linux版の画面">
-                    <p class="screenshot-caption">Linux版：KDE Plasma環境での対局画面</p>
+                    <a href="../images/multi-os/linux-plasma.png"><img src="../images/multi-os/linux-plasma.png" alt="ShogiBoardQ Linux版の画面（KDE Plasmaで将棋エンジンHayanagiと対局中）" width="1419" height="1138" loading="lazy"></a>
+                    <p class="screenshot-caption">Linux版：KDE Plasma環境での対局画面（Hayanagiが思考中）</p>
                 </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Linux版の配布パッケージ</span>
+                </div>
+                <p class="guide-step-text"><a href="https://github.com/hnakada123/ShogiBoardQ/releases">GitHub Release</a>で公開している ShogiBoardQ-linux.zip には、AppImage・詰将棋問題集（3〜13手詰、計6,000題）・将棋エンジンHayanagiを収録しています。ZIPを展開すれば、問題集とHayanagiをすぐに選べます。対象はx86_64のLinuxです。</p>
+                <p class="guide-step-text">ソースからのビルドや配布パッケージの作成手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>をご覧ください。</p>
             </div>
 
         </div>
@@ -187,6 +205,21 @@
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>
