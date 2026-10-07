@@ -154,7 +154,7 @@ gh release create 2026.10.07 \
 
 # If the release already exists (for example, created from Windows)
 gh release upload 2026.10.07 ShogiBoardQ-macos.zip</code></pre>
-<p>The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release.yml</a> builds all three operating systems for tags beginning with <code>v</code> or when run manually, so pushing a date tag does not start it. Its macOS job attaches the same <code>ShogiBoardQ-macos.zip</code> that the script builds. Releases are still created by hand because the workflow's Linux job cannot create the Linux package yet (see the <a href="linux-build-and-release.html">Linux build guide</a>).</p>
+<p>The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release.yml</a> builds all three operating systems for tags beginning with <code>v</code> or when run manually, so pushing a date tag does not start it. A manual run attaches the packages to a release only when Publish is turned on; by default it only builds and verifies them. Its macOS job attaches the same <code>ShogiBoardQ-macos.zip</code> that the script builds. Releases are still created by hand because the workflow's Linux job cannot create the Linux package yet (see the <a href="linux-build-and-release.html">Linux build guide</a>).</p>
 </section>
 <section id="troubleshooting" class="level2">
 <h2>Troubleshooting</h2>
