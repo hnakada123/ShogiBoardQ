@@ -124,17 +124,33 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-source
 </section>
 <section id="signing" class="level2">
 <h2>Code signing and notarization</h2>
-<p>The script uses ad hoc signing by default. To prepare a Developer ID release, import your signing identity into the keychain and pass it to the script:</p>
+<p>The script uses ad hoc signing by default. A Developer ID release requires the <a href="https://developer.apple.com/programs/">Apple Developer Program</a>. Import your Developer ID Application certificate into the keychain and pass its identity to the script:</p>
 <pre><code>./scripts/build-macos.sh --sign-identity "Developer ID Application: Your Name (TEAMID)"</code></pre>
-<p>This enables Hardened Runtime signing. Signing does not submit the DMG for notarization. The <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> contains the separate notarization steps using <code>xcrun notarytool</code> and <code>xcrun stapler</code>.</p>
-<p>To use that workflow, configure its macOS certificate, signing identity, and notarization credentials as repository secrets. It skips these steps when the required secrets are absent. Confirm notarization succeeded and test the final downloaded DMG before publishing a signed release.</p>
+<p>This signs the app and <code>Hayanagi/hayanagi</code> with Hardened Runtime and a secure timestamp. Signing does not notarize the DMG. Submit it to Apple and staple the ticket:</p>
+<pre><code>xcrun notarytool submit ShogiBoardQ.dmg \
+  --apple-id "your@email.com" \
+  --team-id "TEAMID" \
+  --password "app-specific-password" \
+  --wait
+xcrun stapler staple ShogiBoardQ.dmg
+xcrun stapler validate ShogiBoardQ.dmg</code></pre>
+<p>Use an <a href="https://appleid.apple.com/account/manage">app-specific password</a>, not your Apple Account password. Confirm that notarization succeeded and test the final downloaded package before publishing a signed release. Do not rely on the optional signing step in the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a>: it re-signs the app only after the script has built the DMG and the ZIP, so the DMG it submits still contains the ad hoc signed app.</p>
+<p>Without notarization, Gatekeeper blocks the downloaded app the first time it is opened. Since macOS 15, Control-clicking the app and choosing Open no longer bypasses this. Tell users to try opening the app, close the warning, then open System Settings &gt; Privacy &amp; Security and click Open Anyway. If Open Anyway does not appear, they can remove the quarantine attribute in Terminal with <code>xattr -cr /Applications/ShogiBoardQ.app</code>.</p>
 </section>
 <section id="release" class="level2">
 <h2>Publish on GitHub Releases</h2>
-<p>The repository includes a <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> that builds all three platforms, prepares bundled license documents, and uploads only the Linux ZIP, macOS DMG, and Windows ZIP. Checksums and the SBOM remain in the CI artifact <code>release-verification</code>; Qt sources, source guides, build metadata, and CI logs are not release attachments.</p>
 <p>The release version is the release date (<code>YYYY.MM.DD</code>, for example <code>2026.10.07</code>). Update <code>APP_VERSION</code> in <code>CMakeLists.txt</code> only on the day of a release: commit the change before building the packages, build them from that commit, and tag that commit with the same version, without a leading <code>v</code>. Use the version in the release name as well. For a second release on the same day, add a fourth number, as in <code>2026.10.07.1</code>. See <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">Versioning and releases (Japanese)</a>.</p>
-<p>The workflow starts automatically only for tags beginning with <code>v</code>, so pushing a release tag does not start it. Maintainers with push access can run it from the Actions tab with an existing release tag. Choose the intended release commit and tag, then review the workflow results and attached files.</p>
-<p>For a manual release, open the repository's Releases page and create a release for the intended tag. Attach only the tested <code>ShogiBoardQ-macos.zip</code>. Select the package by its exact filename instead of uploading the entire working directory. License documents remain inside the application package.</p>
+<p>Releases are created by hand. Build the package with the script, test it, and attach only <code>ShogiBoardQ-macos.zip</code>; the other platforms add <code>ShogiBoardQ-linux.zip</code> and <code>ShogiBoardQ-windows.zip</code> to the same release. Select the package by its exact filename instead of uploading the entire working directory. License documents remain inside the application package; Qt sources and build metadata are not release attachments.</p>
+<pre><code>git tag -a 2026.10.07 -m "ShogiBoardQ 2026.10.07"
+git push origin main 2026.10.07
+gh release create 2026.10.07 \
+  --title "ShogiBoardQ 2026.10.07" \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ-macos.zip
+
+# If the release already exists (for example, created from Windows)
+gh release upload 2026.10.07 ShogiBoardQ-macos.zip</code></pre>
+<p>The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release.yml</a> builds all three operating systems for tags beginning with <code>v</code> or when run manually, so pushing a date tag does not start it. Its macOS job runs the script, which also creates <code>ShogiBoardQ-macos.zip</code> with Hayanagi and the tsume shogi collections, but it uploads only the DMG (renamed to <code>ShogiBoardQ-&lt;version&gt;-macos.dmg</code>) and discards the ZIP, so it is not used for releases.</p>
 </section>
 <section id="troubleshooting" class="level2">
 <h2>Troubleshooting</h2>

@@ -99,7 +99,7 @@
 </tr>
 <tr>
 <td>Qt</td>
-<td>6.x（Widgets, Charts, Network, Multimedia, LinguistTools）</td>
+<td>6.7 以上（Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools）</td>
 </tr>
 <tr>
 <td>C++</td>
@@ -150,6 +150,10 @@ clang++ --version     # Apple Clang</code></pre>
 </section>
 <section id="3-ビルド" class="level2">
 <h2>3. ビルド</h2>
+<p>通常対局用の Hayanagi はサブモジュールなので、<code>--recurse-submodules</code> を付けて取得する（付けないと CMake が止まる）：</p>
+<pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ</code></pre>
+<p>取得済みのリポジトリでは <code>git submodule update --init --recursive</code> で記録された版の Hayanagi を取得する。</p>
 <section id="ビルドスクリプト推奨" class="level3">
 <h3>ビルドスクリプト（推奨）</h3>
 <p><code>scripts/build-macos.sh</code> を使うと、Release ビルドからコード署名・DMG 作成まで一括実行できる：</p>
@@ -209,7 +213,7 @@ clang++ --version     # Apple Clang</code></pre>
 </div>
 <p>スクリプトは以下の処理を自動実行する：</p>
 <ol type="1">
-<li>前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, create-dmg）</li>
+<li>前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg）</li>
 <li>CMake Configure（<code>CMAKE_OSX_DEPLOYMENT_TARGET</code> を指定）+ Ninja ビルド</li>
 <li>ビルド成果物の確認（.app、実行ファイルの最小 macOS バージョン、.qm 翻訳ファイル）</li>
 <li>macdeployqt によるフレームワークバンドル</li>
@@ -491,7 +495,7 @@ hdiutil detach /Volumes/ShogiBoardQ</code></pre>
 </section>
 <section id="6-コード署名と公証" class="level2">
 <h2>6. コード署名と公証</h2>
-<p>配布する場合、Apple の Gatekeeper を通過するためにコード署名と公証が必要。 署名なしでも動作するが、ダウンロード時に「開発元が未確認」の警告が表示される。</p>
+<p>配布する場合、Apple の Gatekeeper を通過するためにコード署名と公証が必要。 公証なしでも動作するが、ダウンロードしたアプリを初回に開くと Gatekeeper の警告が表示され、利用者が許可する必要がある（<a href="#66-公証なしで配布する場合">6.6</a>）。</p>
 <section id="61-apple-developer-program-への加入" class="level3">
 <h3>6.1 Apple Developer Program への加入</h3>
 <p>コード署名と公証には <a href="https://developer.apple.com/programs/">Apple Developer Program</a>（年額 $99）への加入が必要。</p>
@@ -550,12 +554,12 @@ xcrun stapler validate ShogiBoardQ.dmg</code></pre>
 </section>
 <section id="66-公証なしで配布する場合" class="level3">
 <h3>6.6 公証なしで配布する場合</h3>
-<p>署名や公証を行わずに配布する場合、ユーザーは初回起動時に以下の手順が必要：</p>
+<p>公証を受けずに配布する場合、ダウンロードしたアプリは初回起動時に Gatekeeper に止められる。macOS 15 以降は Finder の右クリック → 「開く」では開けないため、利用者には以下の手順を案内する：</p>
 <ol type="1">
-<li>Finder でアプリを右クリック → 「開く」を選択</li>
-<li>「開発元が未確認」の警告で「開く」をクリック</li>
+<li>アプリを開き、警告が表示されたら閉じる</li>
+<li>「システム設定」→「プライバシーとセキュリティ」を開き、「このまま開く」をクリックして表示に従って許可する</li>
 </ol>
-<p>または、ターミナルから Gatekeeper の隔離属性を解除：</p>
+<p>または、ターミナルから Gatekeeper の隔離属性を解除（「このまま開く」が表示されない場合もこの方法を使う）：</p>
 <pre class="bash"><code>xattr -cr /Applications/ShogiBoardQ.app</code></pre>
 </section>
 </section>
@@ -630,8 +634,8 @@ gh auth login</code></pre>
 2. ShogiBoardQ.app を Applications フォルダにドラッグ＆ドロップ
 3. Applications から起動
 
-&gt; 署名なしの場合、初回起動時に「開発元が未確認」と表示されます。
-&gt; Finder でアプリを右クリック →「開く」で起動できます。
+&gt; Apple の公証を受けていないため、初回起動時に警告が表示されて開けません。
+&gt; 「システム設定」→「プライバシーとセキュリティ」で「このまま開く」をクリックすると起動できます。
 
 ### 変更点
 
@@ -674,11 +678,11 @@ install_name_tool -change \
   @executable_path/../Frameworks/QtCharts.framework/Versions/A/QtCharts \
   build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
 </section>
-<section id="開発元が未確認の警告署名なしの場合" class="level3">
-<h3>「開発元が未確認」の警告（署名なしの場合）</h3>
+<section id="初回起動時に開けない公証なしの場合" class="level3">
+<h3>初回起動時に開けない（公証なしの場合）</h3>
 <p>配布先のユーザーに以下のいずれかを案内する：</p>
 <ul>
-<li>Finder で右クリック → 「開く」（初回のみ）</li>
+<li>「システム設定」→「プライバシーとセキュリティ」で「このまま開く」をクリック（初回のみ。macOS 15 以降は Finder の右クリック → 「開く」では開けない）</li>
 <li><code>xattr -cr /Applications/ShogiBoardQ.app</code> をターミナルで実行</li>
 </ul>
 </section>
