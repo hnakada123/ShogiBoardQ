@@ -6,9 +6,6 @@
     <title>macOS Build and Release - ShogiBoardQ</title>
     <meta name="description" content="Build a macOS app, create a DMG, and prepare a signed release. Covers development tools, Qt, packaging, and troubleshooting.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/macos-build-and-release.html">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/macos-build-and-release.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/macos-build-and-release.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/macos-build-and-release.html">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/macos-build-and-release.html">
     <meta property="og:title" content="macOS Build and Release - ShogiBoardQ">
@@ -22,12 +19,25 @@
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png?v=20261005">
     <link rel="stylesheet" href="../../css/style.css">
     <link rel="stylesheet" href="../../css/build-guide.css">
+<link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/macos-build-and-release.html">
+<link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/macos-build-and-release.html">
+<link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/macos-build-and-release.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/macos-build-and-release.html">
+<link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/macos-build-and-release.html">
 </head>
 <body>
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../../guide/macos-build-and-release.html" class="language-switch" hreflang="ja" lang="ja" aria-label="日本語">日本語</a>
+<details class="lang-menu">
+    <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+    <ul>
+        <li><a href="../../guide/macos-build-and-release.html" lang="ja" hreflang="ja">日本語</a></li>
+        <li><a href="macos-build-and-release.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+        <li><a href="../../zh-cn/guide/macos-build-and-release.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-tw/guide/macos-build-and-release.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+    </ul>
+</details>
         <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
             <span></span><span></span><span></span>
         </button>
@@ -175,5 +185,20 @@ gh release upload 2026.10.07 ShogiBoardQ-macos.zip</code></pre>
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
