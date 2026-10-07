@@ -592,7 +592,8 @@ def page(code):
         "downloadUrl": RELEASES + "/latest",
         "offers": {"@type": "Offer", "price": "0", "priceCurrency": "JPY"},
     }
-    og_image = SITE + ("images/" if code == "ja" else m["shots"]) + "og-image.png"
+    # 画像を差し替えたら版を上げる（X などが古い取得結果を使い続けないよう URL を変える）
+    og_image = SITE + ("images/" if code == "ja" else m["shots"]) + "og-image.png?v=20261005"
 
     w(f"""<!DOCTYPE html>
 <html lang="{m['lang']}">
