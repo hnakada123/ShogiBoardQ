@@ -874,9 +874,10 @@ def page(code):
     return "".join(out)
 
 
-for code in ORDER:
-    path = os.path.join(DOCS, META[code]["dir"], "index.html")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(page(code))
-    print("wrote", path)
+if __name__ == "__main__":
+    for code in ORDER:
+        path = os.path.join(DOCS, META[code]["dir"], "index.html")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(page(code))
+        print("wrote", path)

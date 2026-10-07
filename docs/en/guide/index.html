@@ -1,252 +1,304 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>User Guide - ShogiBoardQ</title>
-<meta content="The ShogiBoardQ user guide: setup, appearance, playing games, game records, analysis, and tsume shogi, organized by task." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/" rel="canonical"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Guide - ShogiBoardQ</title>
+    <meta name="description" content="The ShogiBoardQ user guide: setup and appearance, playing games, game records and positions, study and analysis, tsume shogi, AI integration, and building from source, organized by task.">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/">
+    <link rel="stylesheet" href="../../css/style.css">
 </head>
 <body>
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/index.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
-<li><a href="../index.html">Home</a></li>
-<li><a href="#setup">Setup &amp; Appearance</a></li>
-<li><a href="#play">Playing</a></li>
-<li><a href="#records">Records &amp; Positions</a></li>
-<li><a href="#analysis">Study &amp; Analysis</a></li>
-<li><a href="#tsume">Tsume Shogi</a></li>
-<li><a href="#ai">AI Integration</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/index.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="index.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/index.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="#setup">Setup &amp; Appearance</a></li>
+            <li><a href="#play">Playing</a></li>
+            <li><a href="#records">Records &amp; Positions</a></li>
+            <li><a href="#analysis">Study &amp; Analysis</a></li>
+            <li><a href="#tsume">Tsume Shogi</a></li>
+            <li><a href="#ai">AI Integration</a></li>
+            <li><a href="#build">Build from Source</a></li>
+        </ul>
+    </div>
 </nav>
 <main>
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>User Guide</h1>
-<p class="hero-subtitle">Find the features and instructions you need</p>
-</div>
+    <div class="hero-content">
+        <h1>User Guide</h1>
+        <p class="hero-subtitle">Find the features and instructions you need</p>
+    </div>
 </section>
-<section class="section section--alt" id="setup">
-<div class="section-inner">
-<h2 class="section-title">Setup &amp; Appearance</h2>
-<div class="features-grid">
-<a class="feature-card-link" href="multi-os.html">
-<div class="feature-card">
-<h3>Cross-Platform Support</h3>
-<p>One Qt6 codebase supports Linux, macOS, and Windows</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="piece-sound.html">
-<div class="feature-card">
-<h3>Piece Sound</h3>
-<p>Toggle the move sound and adjust its volume, pitch, and equalizer</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="multilanguage.html">
-<div class="feature-card">
-<h3>Language Support</h3>
-<p>Switch between Japanese, English, and Chinese (Simplified or Traditional) in the language settings</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="menu.html">
-<div class="feature-card">
-<h3>Menu Panel</h3>
-<p>Access commands quickly from the menu dock</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="piece-style.html">
-<div class="feature-card">
-<h3>Piece Styles</h3>
-<p>40 piece styles including wood grain, Sengoku Kanji, chess-inspired symbols, and alphabet lettering</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="board-colors.html">
-<div class="feature-card">
-<h3>Game Appearance</h3>
-<p>Use recommended palettes or adjust background, board, stands, and grid colors</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="dock.html">
-<div class="feature-card">
-<h3>Dock Panels</h3>
-<p>Arrange panels freely to customize your layout</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-</div>
-</div>
+<section id="setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Setup &amp; Appearance</h2>
+        <div class="features-grid">
+            <a href="piece-style.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Piece Styles</h3>
+                    <p>40 styles in all, including tiger grain, Sengoku Kanji, chess-inspired, and alphabet pieces.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="board-colors.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Game Appearance</h3>
+                    <p>Combine pieces, board, background, piece stands, and player cards freely from samples.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="dock.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Dock Panels</h3>
+                    <p>Arrange the record, thinking, graph, and other panels freely and save your layout.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="menu.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Menu Panel</h3>
+                    <p>Reach commands quickly from an icon menu panel, and register your favorites.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="piece-sound.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Piece Sound</h3>
+                    <p>Turn the move sound on or off and adjust its volume, pitch, and tone.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="multilanguage.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Language Support</h3>
+                    <p>Japanese, English, and Chinese (Simplified or Traditional) interfaces, with a choice of interface font.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="multi-os.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Cross-Platform Support</h3>
+                    <p>Built with Qt 6 for Linux, macOS, and Windows.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
 </section>
-<section class="section" id="play">
-<div class="section-inner">
-<h2 class="section-title">Playing</h2>
-<div class="features-grid">
-<a class="feature-card-link" href="game-play.html">
-<div class="feature-card">
-<h3>Playing Games</h3>
-<p>From registering an engine to playing and reviewing a game</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="hayanagi.html">
-<div class="feature-card">
-<h3>Hayanagi Shogi Engine</h3>
-<p>USI engine features, registration, settings, and built-in use for tsume shogi</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="csa-game.html">
-<div class="feature-card">
-<h3>CSA Network Play</h3>
-<p>Network games on CSA-compatible servers</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="nyugyoku.html">
-<div class="feature-card">
-<h3>Entering King Declaration</h3>
-<p>Check jishogi points and entering king declaration conditions</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-</div>
-</div>
+<section id="play" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Playing</h2>
+        <div class="features-grid">
+            <a href="game-play.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Playing Games</h3>
+                    <p>Play human vs. engine, engine vs. engine, or human vs. human. Legal destinations are highlighted, and an interrupted game resumes with its position and clocks.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="hayanagi.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Hayanagi Shogi Engine</h3>
+                    <p>A USI engine developed alongside ShogiBoardQ. Register it to play and analyze; it also defends in Tsume Shogi Play.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="csa-game.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>CSA Network Play</h3>
+                    <p>Connect to CSA-protocol servers such as floodgate and play as a human or with an engine.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="nyugyoku.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Entering King Declaration</h3>
+                    <p>Count jishogi points and check declarations under the 24-point and 27-point rules.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
 </section>
-<section class="section section--alt" id="records">
-<div class="section-inner">
-<h2 class="section-title">Records &amp; Positions</h2>
-<div class="features-grid">
-<a class="feature-card-link" href="kifu-display.html">
-<div class="feature-card">
-<h3>Game Record Display</h3>
-<p>View moves, comments, bookmarks, and variations in the game record pane</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="kifu-management.html">
-<div class="feature-card">
-<h3>Game Record Management</h3>
-<p>Load, save, and copy game records in multiple formats</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="board-edit.html">
-<div class="feature-card">
-<h3>Board Editing</h3>
-<p>Arrange pieces freely to create any position</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="image-export.html">
-<div class="feature-card">
-<h3>Image Export</h3>
-<p>Save the board or evaluation graph as an image file</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-</div>
-</div>
+<section id="records" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Records &amp; Positions</h2>
+        <div class="features-grid">
+            <a href="kifu-display.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Game Record Display</h3>
+                    <p>View moves, times, bookmarks, comments, and variations. Records and coordinates can use Western notation.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="kifu-management.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Game Record Management</h3>
+                    <p>Load and save KIF, KI2, CSA, JKF, USI, SFEN, and USEN, and copy or paste records via the clipboard.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="board-edit.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Board Editing</h3>
+                    <p>Arrange pieces freely with the piece box, then start a game or analysis from that position.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="image-export.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Image Export</h3>
+                    <p>Save or copy the board and the evaluation graph as images.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
 </section>
-<section class="section" id="analysis">
-<div class="section-inner">
-<h2 class="section-title">Study &amp; Analysis</h2>
-<div class="features-grid">
-<a class="feature-card-link" href="kifu-analysis.html">
-<div class="feature-card">
-<h3>Game Analysis</h3>
-<p>Track changes in the position with USI engine analysis</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="consideration.html">
-<div class="feature-card">
-<h3>Consideration Mode</h3>
-<p>Analyze candidate moves from any position with an engine</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="joseki.html">
-<div class="feature-card">
-<h3>Opening Books</h3>
-<p>Load and browse opening books, and edit book moves</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="kyokumenshu-viewer.html">
-<div class="feature-card">
-<h3>SFEN Collection Viewer</h3>
-<p>Browse, select, and import SFEN positions</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-</div>
-</div>
+<section id="analysis" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Study &amp; Analysis</h2>
+        <div class="features-grid">
+            <a href="consideration.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Consideration Mode</h3>
+                    <p>Let an engine study any position and compare several lines with arrows.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="kifu-analysis.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Game Analysis</h3>
+                    <p>Analyze a whole game and follow each move's score on the evaluation graph.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="joseki.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Opening Books</h3>
+                    <p>Load opening books to show, play, and edit book moves for the current position.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="kyokumenshu-viewer.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>SFEN Collection Viewer</h3>
+                    <p>Browse SFEN position collections on a board and import a position into the main window.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
 </section>
-<section class="section section--alt" id="tsume">
-<div class="section-inner">
-<h2 class="section-title">Tsume Shogi</h2>
-<div class="features-grid">
-<a class="feature-card-link" href="tsumi-search.html">
-<div class="feature-card">
-<h3>Mate Search</h3>
-<p>Find mating lines with a USI engine</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="tsumeshogi-generator.html">
-<div class="feature-card">
-<h3>Tsume Shogi Generator</h3>
-<p>Generate puzzles with the GUI or CLI, run parallel Python workers, and save and verify solutions</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="tsume-play.html">
-<div class="feature-card">
-<h3>Tsume Shogi Play</h3>
-<p>Choose a puzzle, solve it against Hayanagi, and review your progress and the solution</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-</div>
-</div>
+<section id="tsume" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Tsume Shogi</h2>
+        <div class="features-grid">
+            <a href="tsume-play.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Tsume Shogi Play</h3>
+                    <p>Choose a puzzle, solve it on the board, and review your history and the solution.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="tsumi-search.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Mate Search</h3>
+                    <p>Search for a mate with a USI engine and show the mating line.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="tsumeshogi-generator.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Tsume Shogi Generator</h3>
+                    <p>Generate puzzles that match your conditions in the GUI or CLI, check them for alternative mates, and save them.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
 </section>
-<section class="section" id="ai">
-<div class="section-inner">
-<h2 class="section-title">AI Integration</h2>
-<div class="features-grid">
-<a class="feature-card-link" href="mcp-server.html">
-<div class="feature-card">
-<h3>AI Client Integration (MCP)</h3>
-<p>Convert records, analyse, generate tsume puzzles and drive the window from Claude, Cursor, VS Code, Gemini CLI or Codex CLI</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-</div>
-</div>
+<section id="ai" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">AI Integration</h2>
+        <div class="features-grid">
+            <a href="mcp-server.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>AI Client Integration (MCP)</h3>
+                    <p>Ask Claude, Cursor, VS Code, Gemini CLI, Codex CLI, and other AI clients to convert records, analyze, generate puzzles, and operate the app.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+<section id="build" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Build from Source</h2>
+        <div class="features-grid">
+            <a href="linux-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Linux Build and Release</h3>
+                    <p>Build from source, and create and publish the AppImage and release ZIP</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="windows-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Windows Build and Release</h3>
+                    <p>Build with MSVC, and create and publish the release ZIP</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="macos-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>macOS Build and Release</h3>
+                    <p>Build, and create and publish the release ZIP that contains the DMG</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
 </section>
 </main>
 <div class="back-link-section">
-<a class="back-link" href="../index.html">← Back to Home</a>
+    <a href="../index.html" class="back-link">&larr; Back to Home</a>
 </div>
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 </body>
 </html>

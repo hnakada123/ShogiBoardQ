@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用指南 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 使用指南：依用途查找介面與設定、對局、棋譜與局面、研究與分析、詰棋、AI 整合以及從原始碼建置的說明。">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/">
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/index.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/index.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/index.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="index.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="#setup">介面與設定</a></li>
+            <li><a href="#play">對局</a></li>
+            <li><a href="#records">棋譜與局面</a></li>
+            <li><a href="#analysis">研究與分析</a></li>
+            <li><a href="#tsume">詰棋</a></li>
+            <li><a href="#ai">AI 整合</a></li>
+            <li><a href="#build">從原始碼建置</a></li>
+        </ul>
+    </div>
+</nav>
+<main>
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>使用指南</h1>
+        <p class="hero-subtitle">依用途查找功能與操作方式</p>
+    </div>
+</section>
+<section id="setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">介面與設定</h2>
+        <div class="features-grid">
+            <a href="piece-style.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>棋子樣式</h3>
+                    <p>除標準棋子外，還有虎紋、戰國漢字、西洋棋風格、字母等，共 40 種。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="board-colors.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>對局外觀</h3>
+                    <p>從樣本中自由組合棋子、棋盤、背景、駒台與對局者資訊。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="dock.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>停駐面板</h3>
+                    <p>自由排列棋譜、思考、評價值圖表等面板，並儲存版面設定。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="menu.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>選單面板</h3>
+                    <p>透過附圖示的選單面板快速執行各項操作，也能把常用功能加入收藏。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="piece-sound.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>走子音效</h3>
+                    <p>開啟或關閉走子音效，並調整音量、音高與音色。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="multilanguage.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>多語言</h3>
+                    <p>支援日文、英文、中文（簡體／繁體）介面，也可選擇整個介面的字型。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="multi-os.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>跨平台</h3>
+                    <p>以 Qt 6 開發，可在 Linux、macOS 與 Windows 上執行。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+<section id="play" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">對局</h2>
+        <div class="features-grid">
+            <a href="game-play.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>對局</h3>
+                    <p>支援人對引擎、引擎對引擎、人對人對局。選取棋子時會標示可移動的位置，中斷的對局可保留局面與剩餘時間繼續進行。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="hayanagi.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>將棋引擎 Hayanagi</h3>
+                    <p>與 ShogiBoardQ 一同開發的 USI 引擎。註冊後即可用於對局、研究與分析，並在詰棋練習中擔任守方。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="csa-game.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>CSA 網路對局</h3>
+                    <p>連線至 floodgate 等支援 CSA 協定的伺服器，由人或引擎進行網路對局。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="nyugyoku.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>入玉宣言</h3>
+                    <p>計算持將棋點數，依 24 點法與 27 點法判定入玉宣言。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+<section id="records" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">棋譜與局面</h2>
+        <div class="features-grid">
+            <a href="kifu-display.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>棋譜顯示</h3>
+                    <p>顯示著法、用時、書籤、註解與變化。棋譜與座標也可切換為西式記法。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="kifu-management.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>棋譜管理</h3>
+                    <p>支援讀取與儲存 KIF、KI2、CSA、JKF、USI、SFEN、USEN，並可透過剪貼簿複製與貼上。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="board-edit.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>局面編輯</h3>
+                    <p>使用駒箱自由擺放棋子，並從編輯好的局面開始對局或研究。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="image-export.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>圖片匯出</h3>
+                    <p>將棋盤與評價值圖表儲存或複製為圖片。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+<section id="analysis" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">研究與分析</h2>
+        <div class="features-grid">
+            <a href="consideration.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>研究模式</h3>
+                    <p>讓引擎思考任意局面的候選著法，透過多條主要變化與箭頭進行比較。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="kifu-analysis.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>棋譜分析</h3>
+                    <p>以引擎分析整盤棋譜，透過圖表查看每一手的評價值與形勢變化。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="joseki.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>定跡</h3>
+                    <p>讀取定跡（開局定式）檔案，顯示、走出並編輯符合目前局面的定跡著法。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="kyokumenshu-viewer.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>SFEN 局面集檢視器</h3>
+                    <p>在棋盤上瀏覽 SFEN 格式的局面集，並將選取的局面匯入主視窗。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+<section id="tsume" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">詰棋</h2>
+        <div class="features-grid">
+            <a href="tsume-play.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>詰棋練習</h3>
+                    <p>從題目列表選題，在棋盤上解題，並透過挑戰紀錄與正解手順復盤。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="tsumi-search.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>詰棋搜尋</h3>
+                    <p>使用 USI 引擎搜尋詰殺，並顯示詰殺手順。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="tsumeshogi-generator.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>詰棋局面生成器</h3>
+                    <p>在 GUI 或 CLI 中自動產生符合條件的詰棋，檢查餘詰後儲存。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+<section id="ai" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">AI 整合</h2>
+        <div class="features-grid">
+            <a href="mcp-server.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>AI 用戶端整合（MCP）</h3>
+                    <p>可從 Claude、Cursor、VS Code、Gemini CLI、Codex CLI 等 AI 用戶端要求棋譜轉換、分析、詰棋產生與應用程式操作。</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+<section id="build" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">從原始碼建置</h2>
+        <div class="features-grid">
+            <a href="linux-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Linux 建置與發行</h3>
+                    <p>從原始碼建置，以及製作 AppImage 與發行套件（ZIP）並發行的步驟</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="windows-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Windows 建置與發行</h3>
+                    <p>使用 MSVC 建置，以及製作發行套件（ZIP）並發行的步驟</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+            <a href="../../en/guide/macos-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>macOS 建置與發行（英文）</h3>
+                    <p>建置，以及製作含 DMG 的發行套件（ZIP）並發行的步驟</p>
+                    <span class="feature-card-more">了解更多 &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+</main>
+<div class="back-link-section">
+    <a href="../index.html" class="back-link">&larr; 返回首頁</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+</body>
+</html>
