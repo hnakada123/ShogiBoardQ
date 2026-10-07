@@ -7952,7 +7952,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="829"/>
         <source>無制限</source>
-        <translation>不限时</translation>
+        <translation>不限</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="836"/>
