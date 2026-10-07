@@ -34,7 +34,7 @@ def page(code):
     img = f"{up}images/{IMAGES[code]}piece-sound/"
     url = f"{SITE}{d}{PAGE}"
     og_img = f"{SITE}images/{IMAGES[code]}piece-sound/piece-sound-settings.png"
-    guide = "index.html" if code in ("ja", "en") else "../../en/guide/index.html"
+    guide = "index.html"
     colon = ": " if code == "en" else "："
     e = html.escape
     o = []
