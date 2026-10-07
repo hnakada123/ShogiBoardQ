@@ -240,10 +240,20 @@ jobs:
           version: ${{ env.QT_VERSION }}
           modules: "qtcharts qtmultimedia"
 
+      # 手順書と同じく Developer PowerShell for VS の環境でスクリプトを実行する（cl・Ninja・
+      # VCToolsRedistDir が揃い、ランナーに入っているツールでジェネレータが変わらない）。
       - name: Build deploy directory
         shell: pwsh
-        run: .\scripts\build-windows.ps1 -SkipZip
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vsPath) { throw "Visual Studio with the C++ tools was not found." }
+          Import-Module (Join-Path $vsPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll")
+          Enter-VsDevShell -VsInstallPath $vsPath -SkipAutomaticLocation -DevCmdArguments "-arch=x64 -host_arch=x64"
+          .\scripts\build-windows.ps1 -SkipZip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # ZIP にする前に、Hayanagi と CLI を含むすべての exe に署名する。
       - name: Optional Windows signing
         shell: pwsh
         env:
@@ -256,20 +266,35 @@ jobs:
             exit 0
           }
 
-          $certPath = Join-Path $PWD "codesign.pfx"
+          # signtool は Windows SDK にあり、通常の PATH には入っていない。
+          $signtool = Get-ChildItem -Path (Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin") -Filter signtool.exe -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.Directory.Name -eq "x64" -and $_.Directory.Parent.Name -match '^\d+(\.\d+)+$' } |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
+            Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe was not found in the Windows SDK." }
+          Write-Host "signtool: $($signtool.FullName)"
+
+          $certPath = Join-Path $env:RUNNER_TEMP "codesign.pfx"
           [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CERT_PFX_BASE64))
           $timestamp = if ($env:WINDOWS_SIGN_TIMESTAMP_URL) { $env:WINDOWS_SIGN_TIMESTAMP_URL } else { "http://timestamp.digicert.com" }
 
-          Get-ChildItem -Path deploy -Filter *.exe -Recurse | ForEach-Object {
-            signtool sign /fd SHA256 /tr $timestamp /td SHA256 /f $certPath /p $env:WINDOWS_CERT_PASSWORD $_.FullName
+          try {
+            foreach ($exe in Get-ChildItem -Path deploy -Filter *.exe -Recurse) {
+              & $signtool.FullName sign /fd SHA256 /tr $timestamp /td SHA256 /f $certPath /p $env:WINDOWS_CERT_PASSWORD $exe.FullName
+              if ($LASTEXITCODE -ne 0) { throw "Signing failed: $($exe.FullName)" }
+              & $signtool.FullName verify /pa $exe.FullName
+              if ($LASTEXITCODE -ne 0) { throw "Signature verification failed: $($exe.FullName)" }
+            }
+          } finally {
+            Remove-Item -Force $certPath -ErrorAction SilentlyContinue
           }
 
+      # scripts/build-windows.ps1 の ZIP 作成と同じ形（deploy の中身を ZIP の直下に置く）にし、
+      # 手作業の Release・ホームのダウンロードボタンと同じ名前で添付する。
       - name: Package Windows artifact
         shell: pwsh
         run: |
-          $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.ref_name }}" }
-          $version = $tag.TrimStart("v")
-          $zipName = "ShogiBoardQ-$version-windows-x86_64.zip"
+          $zipName = "ShogiBoardQ-windows.zip"
           if (Test-Path $zipName) { Remove-Item $zipName -Force }
           Compress-Archive -Path "deploy\*" -DestinationPath $zipName
           New-Item -ItemType Directory -Force -Path dist | Out-Null
@@ -348,7 +373,7 @@ jobs:
           ASSETS=(
             "release-assets/ShogiBoardQ-linux.zip"
             "release-assets/ShogiBoardQ-macos.zip"
-            "release-assets/ShogiBoardQ-${VERSION}-windows-x86_64.zip"
+            "release-assets/ShogiBoardQ-windows.zip"
           )
           for asset in "${ASSETS[@]}"; do
             test -s "$asset"
