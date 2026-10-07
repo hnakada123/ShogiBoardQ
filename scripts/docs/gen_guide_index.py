@@ -88,10 +88,11 @@ def page(code):
     groups = dict(FEATURE_GROUPS)
 
     def link(slug, title):
-        # 翻訳版が無いページは英語版へ
-        if os.path.exists(os.path.join(DOCS, d, "guide", slug + ".html")):
-            return slug + ".html", title
-        return "../../en/guide/" + slug + ".html", title + t["english"]
+        # 翻訳版が無いページは英語版へ（# 以降はページ内の節）
+        page, sep, frag = slug.partition("#")
+        if os.path.exists(os.path.join(DOCS, d, "guide", page + ".html")):
+            return page + ".html" + sep + frag, title
+        return "../../en/guide/" + page + ".html" + sep + frag, title + t["english"]
 
     def card(slug, title, desc):
         href, title = link(slug, title)

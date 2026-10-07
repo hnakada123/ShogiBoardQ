@@ -20,9 +20,9 @@ META = {
     "zh-tw": {"dir": "zh-tw/", "lang": "zh-Hant", "hreflang": "zh-Hant", "locale": "zh_TW", "name": "繁體中文", "shots": "images/zh-tw/"},
 }
 
-# (icon, guide page, text key)
+# (icon, guide page) — 節へリンクするときは "page#id"。各言語の "cards" もこの文字列で引く
 FEATURE_GROUPS = [
-    ("play", [("game", "game-play"), ("engine", "hayanagi"), ("network", "csa-game"), ("nyugyoku", "nyugyoku")]),
+    ("play", [("game", "game-play"), ("engine", "game-play#engine-registration"), ("engine", "hayanagi"), ("network", "csa-game"), ("nyugyoku", "nyugyoku")]),
     ("analysis", [("consideration", "consideration"), ("eval-graph", "kifu-analysis"), ("book", "joseki"),
                   ("position-viewer", "kyokumenshu-viewer")]),
     ("records", [("kifu-list", "kifu-display"), ("kifu-file", "kifu-management"), ("board-edit", "board-edit"),
@@ -109,6 +109,7 @@ T["ja"] = {
                "setup": "導入・画面設定", "ai": "AI連携"},
     "cards": {
         "game-play": ("対局機能", "人間対エンジン・エンジン同士・人間同士で対局。駒を選ぶと移動できるマスを表示し、中断した対局は局面と残り時間を保ったまま再開できます。"),
+        "game-play#engine-registration": ("エンジン登録・設定", "USIエンジンの実行ファイルを選んで登録し、ハッシュサイズ・スレッド数・先読みなどのオプションをエンジンごとに設定できます。"),
         "hayanagi": ("将棋エンジン Hayanagi", "ShogiBoardQと一緒に開発しているUSIエンジン。登録すれば対局・検討・解析に使え、詰将棋対局では玉方を務めます。"),
         "csa-game": ("CSA通信対局", "floodgateなどCSAプロトコル対応サーバーに接続し、人間またはエンジンで通信対局できます。"),
         "nyugyoku": ("入玉宣言", "持将棋の点数を計算し、24点法・27点法に基づく入玉宣言を判定します。"),
@@ -231,6 +232,7 @@ T["en"] = {
                "tsume": "Tsume Shogi", "setup": "Setup &amp; Appearance", "ai": "AI Integration"},
     "cards": {
         "game-play": ("Playing Games", "Play human vs. engine, engine vs. engine, or human vs. human. Legal destinations are highlighted, and an interrupted game resumes with its position and clocks."),
+        "game-play#engine-registration": ("Engine Registration &amp; Settings", "Register a USI engine by selecting its executable, then set options such as hash size, threads, and pondering for each engine."),
         "hayanagi": ("Hayanagi Shogi Engine", "A USI engine developed alongside ShogiBoardQ. Register it to play and analyze; it also defends in Tsume Shogi Play."),
         "csa-game": ("CSA Network Play", "Connect to CSA-protocol servers such as floodgate and play as a human or with an engine."),
         "nyugyoku": ("Entering King Declaration", "Count jishogi points and check declarations under the 24-point and 27-point rules."),
@@ -353,6 +355,7 @@ T["zh-cn"] = {
                "setup": "界面与设置", "ai": "AI 集成"},
     "cards": {
         "game-play": ("对局", "支持人与引擎、引擎与引擎、人与人对局。选中棋子时会提示可走的位置，中断的对局可保留局面和剩余时间继续进行。"),
+        "game-play#engine-registration": ("引擎注册与设置", "选择 USI 引擎的可执行文件进行注册，并可为每个引擎分别设置哈希大小、线程数、后台思考等选项。"),
         "hayanagi": ("将棋引擎 Hayanagi", "与 ShogiBoardQ 一同开发的 USI 引擎。注册后即可用于对局、研究和分析，在诘棋练习中担任守方。"),
         "csa-game": ("CSA 网络对局", "连接 floodgate 等支持 CSA 协议的服务器，由人或引擎进行网络对局。"),
         "nyugyoku": ("入玉宣言", "计算持将棋点数，按 24 点法和 27 点法判定入玉宣言。"),
@@ -475,6 +478,7 @@ T["zh-tw"] = {
                "setup": "介面與設定", "ai": "AI 整合"},
     "cards": {
         "game-play": ("對局", "支援人對引擎、引擎對引擎、人對人對局。選取棋子時會標示可移動的位置，中斷的對局可保留局面與剩餘時間繼續進行。"),
+        "game-play#engine-registration": ("引擎註冊與設定", "選擇 USI 引擎的執行檔進行註冊，並可為每個引擎分別設定雜湊大小、執行緒數、背景思考等選項。"),
         "hayanagi": ("將棋引擎 Hayanagi", "與 ShogiBoardQ 一同開發的 USI 引擎。註冊後即可用於對局、研究與分析，並在詰棋練習中擔任守方。"),
         "csa-game": ("CSA 網路對局", "連線至 floodgate 等支援 CSA 協定的伺服器，由人或引擎進行網路對局。"),
         "nyugyoku": ("入玉宣言", "計算持將棋點數，依 24 點法與 27 點法判定入玉宣言。"),
@@ -561,10 +565,11 @@ def page(code):
     css_v = "20261004"
 
     def gl(slug):
-        # 翻訳済みのガイドがあればその言語のページへ、なければ英語版へ
-        if os.path.exists(os.path.join(DOCS, m["dir"], "guide", slug + ".html")):
-            return "guide/" + slug + ".html"
-        return up + "en/guide/" + slug + ".html"
+        # 翻訳済みのガイドがあればその言語のページへ、なければ英語版へ（# 以降はページ内の節）
+        page, sep, frag = slug.partition("#")
+        if os.path.exists(os.path.join(DOCS, m["dir"], "guide", page + ".html")):
+            return "guide/" + page + ".html" + sep + frag
+        return up + "en/guide/" + page + ".html" + sep + frag
 
     def lang_href(target):
         if target == code:
