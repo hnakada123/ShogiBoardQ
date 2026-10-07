@@ -162,7 +162,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Build ShogiBoardQ</span>
                 </div>
-                <p class="guide-step-text">The server uses <code>build/ShogiBoardQ</code> (GUI) and <code>build/shogiboardq-cli</code> (command line, no GUI). The release packages do not include <code>shogiboardq-cli</code> yet, so build from source following the <a href="linux-build-and-release.html">Linux</a>, <a href="macos-build-and-release.html">macOS</a> or <a href="windows-build-and-release.html">Windows</a> build guide.</p>
+                <p class="guide-step-text">The server uses <code>build/ShogiBoardQ</code> (GUI) and <code>build/shogiboardq-cli</code> (command line, no GUI). The Windows release ZIP contains both <code>ShogiBoardQ.exe</code> and <code>shogiboardq-cli.exe</code>, so you can use it without building: set <code>SHOGIBOARDQ_EXECUTABLE</code> below to <code>ShogiBoardQ.exe</code> in the folder where you extracted the ZIP. The Linux and macOS packages do not include <code>shogiboardq-cli</code>, so build from source following the <a href="linux-build-and-release.html">Linux</a>, <a href="macos-build-and-release.html">macOS</a> or <a href="windows-build-and-release.html">Windows</a> build guide.</p>
                 <div class="build-steps">
 <pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
 cd ShogiBoardQ
