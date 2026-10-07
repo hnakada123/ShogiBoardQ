@@ -126,15 +126,16 @@ enum class Cause : int {
 
 ### 検出呼び出しポイント
 
-各着手後に `if (checkAndHandleSennichite()) return;` を挿入:
+各着手後に `if (checkAndHandleSennichite()) return;` を挿入する。判定は、その手を棋譜に追記してから行う。
+千日手が成立すると終局行（`▲千日手` など）を追記して以降の棋譜追記を止めるため、先に判定すると
+千日手を成立させた手そのものが棋譜から抜ける。
 
 | 対局モード | メソッド | タイミング |
 |-----------|----------|-----------|
-| HvE | `onHumanMove_HvE()` (2引数版) | 人間の手の後（`engineTurnNow` チェックの前） |
-| HvE | `onHumanMove_HvE()` (2引数版) | エンジンの手の後（`m_currentMoveIndex` 更新直後） |
-| HvE | `startInitialEngineMoveFor()` | エンジン初手の後（最大手数チェックの前） |
-| EvE | `kickNextEvETurn()` | 各手の後（最大手数チェックの前） |
-| HvH | `onHumanMove_HvH()` | メソッド冒頭（SFEN は呼び出し前に追加済み） |
+| HvE | `HumanVsEngineStrategy::onHumanMoveEngineReply()` | 人間の手の後（人間の手は `onHumanMove()` で追記済み。最大手数・`engineTurnNow` チェックの前） |
+| HvE | `HumanVsEngineStrategy::onEngineMoveReady()` | エンジンの手を棋譜と盤面に反映した後（最大手数チェックの前） |
+| EvE | `EngineVsEngineStrategy::onEngineMoveReady()` | 各手を棋譜と盤面に反映した後（最大手数チェックの前） |
+| HvH | `HumanVsHumanStrategy::onHumanMove()` | 指し手を棋譜に追記した後（最大手数チェックの前） |
 
 ### 終局時の表示
 

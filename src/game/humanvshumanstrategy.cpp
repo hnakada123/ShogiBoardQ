@@ -37,11 +37,8 @@ void HumanVsHumanStrategy::start()
 
 void HumanVsHumanStrategy::onHumanMove(const QPoint& /*from*/,
                                         const QPoint& /*to*/,
-                                        const QString& /*prettyMove*/)
+                                        const QString& prettyMove)
 {
-    // 千日手チェック（SFENは呼び出し前に追加済み）
-    if (m_ctx.checkAndHandleSennichite()) return;
-
     // 着手後の現在手番は「次の手番」なので、着手者はその逆
     ShogiGameController::Player curAfterMove =
         m_ctx.gc() ? m_ctx.gc()->currentPlayer()
@@ -63,9 +60,30 @@ void HumanVsHumanStrategy::onHumanMove(const QPoint& /*from*/,
         }
     }
 
+    // 指し手＋考慮時間を棋譜欄に追記する。千日手・持将棋の終局行より先に記録する
+    if (m_ctx.hooks().game.appendKifuLine) {
+        QString elapsed = QStringLiteral("00:00/00:00:00");
+        if (clock) {
+            elapsed = (moverP == MatchCoordinator::P1) ? clock->player1ConsiderationAndTotalTime()
+                                                       : clock->player2ConsiderationAndTotalTime();
+        }
+        m_ctx.hooks().game.appendKifuLine(prettyMove, elapsed);
+    }
+
     // 表示更新（時計ラベル等）
     qCDebug(lcGame) << "[Match] HvH: finalize previous turn";
     if (clock) m_ctx.pokeTimeUpdateNow();
+
+    // 千日手チェック（SFENは呼び出し前に追加済み）
+    if (m_ctx.checkAndHandleSennichite()) return;
+
+    // 最大手数チェック
+    const QStringList* rec = m_ctx.sfenHistory();
+    const int movesPlayed = rec ? static_cast<int>(rec->size() - 1) : m_ctx.currentMoveIndex();
+    if (m_ctx.maxMoves() > 0 && movesPlayed >= m_ctx.maxMoves()) {
+        m_ctx.handleMaxMovesJishogi();
+        return;
+    }
 
     // 次手番の計測と UI 準備
     armTurnTimerIfNeeded();

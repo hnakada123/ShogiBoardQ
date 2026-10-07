@@ -183,6 +183,12 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
     // 千日手チェック（人間の手の後）
     if (m_ctx.checkAndHandleSennichite()) return;
 
+    // 最大手数チェック（人間の手の後）。ここで止めないとエンジンが上限を超えて1手指す
+    if (m_ctx.maxMoves() > 0 && m_ctx.currentMoveIndex() >= m_ctx.maxMoves()) {
+        m_ctx.handleMaxMovesJishogi();
+        return;
+    }
+
     const bool engineTurnNow = (m_ctx.gc() && (m_ctx.gc()->currentPlayer() == engineSeat));
     qCDebug(lcGame).noquote() << "HvE engineTurnNow=" << engineTurnNow
                              << " engineSeat=" << int(engineSeat);
@@ -228,9 +234,6 @@ void HumanVsEngineStrategy::onEngineMoveReady(QPoint eFrom, QPoint eTo,
         return;
     }
 
-    // 千日手チェック（エンジンの手の後）
-    if (m_ctx.checkAndHandleSennichite()) return;
-
     if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(eFrom, eTo);
 
     // エンジンの考慮時間を確定してから棋譜に追記する
@@ -267,6 +270,9 @@ void HumanVsEngineStrategy::onEngineMoveReady(QPoint eFrom, QPoint eTo,
         qCDebug(lcGame) << "onHumanMove: calling appendEvalP2, hook set=" << (m_ctx.hooks().game.appendEvalP2 ? "YES" : "NO");
         if (m_ctx.hooks().game.appendEvalP2) m_ctx.hooks().game.appendEvalP2();
     }
+
+    // 千日手チェック（エンジンの手の後）。手を棋譜と盤面に反映してから判定し、終局行をその後に記録する
+    if (m_ctx.checkAndHandleSennichite()) return;
 
     // 最大手数チェック
     if (m_ctx.maxMoves() > 0 && m_ctx.currentMoveIndex() >= m_ctx.maxMoves()) {

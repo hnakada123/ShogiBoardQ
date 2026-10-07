@@ -325,7 +325,6 @@ void MainWindowCompositionRoot::refreshBoardSetupControllerDeps(
     controller->setShogiView(refs.gameService.shogiView);
     controller->setGameController(refs.gameService.gameController);
     controller->setMatchCoordinator(refs.gameService.match);
-    controller->setTimeController(refs.uiController.timeController);
     controller->setPositionEditController(refs.uiController.positionEditController);
     controller->setPlayMode(refs.state.playMode ? *refs.state.playMode : PlayMode::NotStarted);
     controller->setSfenRecord(refs.kifu.sfenRecord);
@@ -333,8 +332,6 @@ void MainWindowCompositionRoot::refreshBoardSetupControllerDeps(
     controller->setCurrentMoveIndex(refs.state.currentMoveIndex);
 
     controller->setEnsurePositionEditCallback(cbs.ensurePositionEdit);
-    controller->setEnsureTimeControllerCallback(cbs.ensureTimeController);
-    controller->setUpdateGameRecordCallback(cbs.updateGameRecord);
     controller->setRedrawEngine1GraphCallback(cbs.redrawEngine1Graph);
     controller->setRedrawEngine2GraphCallback(cbs.redrawEngine2Graph);
     controller->setRefreshBranchTreeCallback([]() {

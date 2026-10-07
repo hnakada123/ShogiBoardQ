@@ -26,6 +26,8 @@ namespace StrategyTracker {
 extern bool validateAndMoveReturnValue;
 extern int  validateAndMoveCallCount;
 extern bool sennichiteDetected;
+extern int  maxMovesJishogiCount;
+extern int  requestHumanReplyCount;
 void reset();
 }
 
@@ -46,6 +48,7 @@ struct StrategyTestHarness {
     QPoint lastHighlightFrom;
     QPoint lastHighlightTo;
     int appendKifuLineCount = 0;
+    QStringList appendedKifuTexts;
     bool appendEvalP1Called = false;
     bool appendEvalP2Called = false;
 
@@ -95,8 +98,9 @@ struct StrategyTestHarness {
 
         // Game Hooks
         deps.hooks.game.initializeNewGame = [](const QString&) {};
-        deps.hooks.game.appendKifuLine = [this](const QString&, const QString&) {
+        deps.hooks.game.appendKifuLine = [this](const QString& text, const QString&) {
             ++appendKifuLineCount;
+            appendedKifuTexts.append(text);
         };
         deps.hooks.game.appendEvalP1 = [this]() { appendEvalP1Called = true; };
         deps.hooks.game.appendEvalP2 = [this]() { appendEvalP2Called = true; };
@@ -114,6 +118,7 @@ struct StrategyTestHarness {
         lastHighlightFrom = QPoint();
         lastHighlightTo = QPoint();
         appendKifuLineCount = 0;
+        appendedKifuTexts.clear();
         appendEvalP1Called = false;
         appendEvalP2Called = false;
     }
@@ -132,7 +137,9 @@ private slots:
     void hvh_start_defaultsToPlayer1WhenNoPlayer();
     void hvh_start_preservesPlayer2WhenSet();
     void hvh_start_callsRenderAndUpdateTurnHooks();
-    void hvh_onHumanMove_earlyReturnOnSennichite();
+    void hvh_onHumanMove_recordsMoveBeforeSennichite();
+    void hvh_onHumanMove_maxMoves_data();
+    void hvh_onHumanMove_maxMoves();
     void hvh_onHumanMove_callsFinishTimerAndByoyomi();
     void hvh_armTimer_armsOnFirstCall();
     void hvh_armTimer_idempotentOnSecondCall();
@@ -147,6 +154,9 @@ private slots:
     void hve_startInitialMove_engineIsP1();
     void hve_startInitialMove_noMoveWhenHumanTurn();
     void hve_onHumanMove_showsHighlightAndAppendsKifu();
+    void hve_onHumanMove_maxMovesReachedByHuman_data();
+    void hve_onHumanMove_maxMovesReachedByHuman();
+    void hve_onEngineMove_recordsMoveBeforeSennichite();
 
     // === Section C: EngineVsEngineStrategy ===
     void eve_needsEngine_returnsTrue();
@@ -214,7 +224,7 @@ void Tst_GameStrategy::hvh_start_callsRenderAndUpdateTurnHooks()
     QVERIFY(h.updateTurnDisplayCalled);
 }
 
-void Tst_GameStrategy::hvh_onHumanMove_earlyReturnOnSennichite()
+void Tst_GameStrategy::hvh_onHumanMove_recordsMoveBeforeSennichite()
 {
     StrategyTestHarness h;
     StrategyTracker::sennichiteDetected = true;
@@ -224,11 +234,50 @@ void Tst_GameStrategy::hvh_onHumanMove_earlyReturnOnSennichite()
     hvh.start();
     h.resetTrackers();
 
-    hvh.onHumanMove(QPoint(7, 7), QPoint(7, 6), QStringLiteral("dummy"));
+    hvh.onHumanMove(QPoint(5, 2), QPoint(5, 1), QStringLiteral("△５一玉(52)"));
 
-    // Should return early without calling finishTimer or clock update
-    // (The fact that it doesn't crash is the main verification)
-    QVERIFY(!h.renderBoardCalled);
+    // 千日手を成立させた手も棋譜に記録してから終局する（終局行はこの手の後に付く）
+    QCOMPARE(h.appendedKifuTexts, QStringList{QStringLiteral("△５一玉(52)")});
+    QCOMPARE(StrategyTracker::maxMovesJishogiCount, 0);
+}
+
+void Tst_GameStrategy::hvh_onHumanMove_maxMoves_data()
+{
+    QTest::addColumn<int>("maxMoves");
+    QTest::addColumn<bool>("expectJishogi");
+
+    QTest::newRow("unlimited") << 0 << false;
+    QTest::newRow("reached") << 1 << true;
+    QTest::newRow("not-yet-reached") << 2 << false;
+}
+
+void Tst_GameStrategy::hvh_onHumanMove_maxMoves()
+{
+    QFETCH(int, maxMoves);
+    QFETCH(bool, expectJishogi);
+
+    StrategyTestHarness h;
+    MatchCoordinator::StartOptions opt;
+    opt.mode = PlayMode::HumanVsHuman;
+    opt.maxMoves = maxMoves;
+    h.mc->configureAndStart(opt);
+
+    HumanVsHumanStrategy hvh(h.mc->strategyCtx());
+    hvh.start();
+
+    // 先手が1手目を指した直後
+    h.sfenRecord = {
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"),
+    };
+    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.resetTrackers();
+
+    hvh.onHumanMove(QPoint(7, 7), QPoint(7, 6), QStringLiteral("▲７六歩(77)"));
+
+    // 指し手を記録したうえで、最大手数に達していれば持将棋にする
+    QCOMPARE(h.appendedKifuTexts, QStringList{QStringLiteral("▲７六歩(77)")});
+    QCOMPARE(StrategyTracker::maxMovesJishogiCount, expectJishogi ? 1 : 0);
 }
 
 void Tst_GameStrategy::hvh_onHumanMove_callsFinishTimerAndByoyomi()
@@ -447,6 +496,79 @@ void Tst_GameStrategy::hve_onHumanMove_showsHighlightAndAppendsKifu()
 
     // Kifu line should be appended for the human move
     QVERIFY(h.appendKifuLineCount > 0);
+}
+
+void Tst_GameStrategy::hve_onHumanMove_maxMovesReachedByHuman_data()
+{
+    QTest::addColumn<int>("maxMoves");
+    QTest::addColumn<bool>("expectJishogi");
+
+    QTest::newRow("unlimited") << 0 << false;
+    QTest::newRow("reached-by-human-move") << 1 << true;
+    QTest::newRow("not-yet-reached") << 2 << false;
+}
+
+void Tst_GameStrategy::hve_onHumanMove_maxMovesReachedByHuman()
+{
+    QFETCH(int, maxMoves);
+    QFETCH(bool, expectJishogi);
+
+    StrategyTestHarness h;
+    MatchCoordinator::StartOptions opt;
+    opt.mode = PlayMode::EvenHumanVsEngine;
+    opt.maxMoves = maxMoves;
+    h.mc->configureAndStart(opt);
+    h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
+
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+                               QStringLiteral("/dummy/engine"),
+                               QStringLiteral("TestEngine"));
+    hve.start();
+
+    // 先手（人間）が1手目を指した直後。次はエンジン（後手）の手番
+    h.sfenRecord = {
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"),
+    };
+    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+
+    hve.onHumanMove(QPoint(7, 7), QPoint(7, 6), QStringLiteral("▲７六歩"));
+
+    // 人間の手で最大手数に達したら、エンジンに次の手を求めずに持将棋にする
+    QCOMPARE(StrategyTracker::maxMovesJishogiCount, expectJishogi ? 1 : 0);
+    QCOMPARE(StrategyTracker::requestHumanReplyCount, expectJishogi ? 0 : 1);
+}
+
+void Tst_GameStrategy::hve_onEngineMove_recordsMoveBeforeSennichite()
+{
+    StrategyTestHarness h;
+    h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
+
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+                               QStringLiteral("/dummy/engine"),
+                               QStringLiteral("TestEngine"));
+    hve.start();
+
+    h.sfenRecord = {
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"),
+    };
+    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    hve.onHumanMove(QPoint(7, 7), QPoint(7, 6), QStringLiteral("▲７六歩(77)"));
+    QCOMPARE(StrategyTracker::requestHumanReplyCount, 1);
+    h.resetTrackers();
+
+    // エンジン（後手）の手で千日手が成立する
+    StrategyTracker::sennichiteDetected = true;
+    Usi* eng = h.mc->primaryEngine();
+    QVERIFY(eng);
+    Q_EMIT eng->matchMoveReady(QPoint(3, 3), QPoint(3, 4),
+                               QStringLiteral("position startpos moves 7g7f 3c3d"), QString());
+
+    // 千日手を成立させたエンジンの手も棋譜と盤面に反映してから終局する
+    QCOMPARE(h.appendKifuLineCount, 1);
+    QVERIFY(h.showMoveHighlightsCalled);
+    QVERIFY(h.renderBoardCalled);
 }
 
 // ============================================================
