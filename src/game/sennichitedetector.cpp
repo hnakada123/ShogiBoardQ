@@ -59,15 +59,17 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
     ShogiBoard board;
     EngineMoveValidator validator;
 
+    // 一方の指し手がすべて王手かどうかは、その側が指した直後の局面（相手の手番の局面）だけで数える。
+    // 王手をかけた側の手番の局面まで分母に入れると、毎手王手でも成立しない
     int p1CheckCount = 0;   // 先手が王手をかけた回数（後手番で後手の玉が王手されている回数）
     int p2CheckCount = 0;   // 後手が王手をかけた回数（先手番で先手の玉が王手されている回数）
-    int totalPositions = 0; // thirdIdxとfourthIdxの間の局面数（両端除く）
+    int p1Moves = 0;        // thirdIdx と fourthIdx の間で先手が指した手の数（後手番の局面数）
+    int p2Moves = 0;        // 同じく後手が指した手の数（先手番の局面数）
 
-    // thirdIdx+1 から fourthIdx-1 までの局面と、fourthIdx自身を調べる
+    // thirdIdx+1 から fourthIdx までの局面を調べる
     // thirdIdx+1 は3回目の出現の直後（次の手が指された局面）
     for (int i = thirdIdx + 1; i <= fourthIdx; ++i) {
         board.setSfen(sfenRecord.at(i));
-        ++totalPositions;
 
         // 手番を判定
         const QStringList tokens = sfenRecord.at(i).split(QLatin1Char(' '), Qt::SkipEmptyParts);
@@ -78,28 +80,25 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
                                                    ? EngineMoveValidator::BLACK
                                                    : EngineMoveValidator::WHITE;
 
-        // 手番側の玉が王手されているか
-        const int checks = validator.checkIfKingInCheck(turn, board.boardData());
-        if (checks > 0) {
-            // 手番側の玉が王手されている = 直前の手（相手の手）が王手
-            if (sideToMoveIsBlack) {
-                // 先手番で先手玉が王手されている → 直前の後手の手が王手
-                ++p2CheckCount;
-            } else {
-                // 後手番で後手玉が王手されている → 直前の先手の手が王手
-                ++p1CheckCount;
-            }
+        // 手番側の玉が王手されているか（= 直前の相手の手が王手）
+        const bool inCheck = validator.checkIfKingInCheck(turn, board.boardData()) > 0;
+        if (sideToMoveIsBlack) {
+            // 先手番の局面 = 直前に後手が指した
+            ++p2Moves;
+            if (inCheck) ++p2CheckCount;
+        } else {
+            // 後手番の局面 = 直前に先手が指した
+            ++p1Moves;
+            if (inCheck) ++p1CheckCount;
         }
     }
 
-    if (totalPositions == 0) return Result::Draw;
-
     // 一方が全ての手で王手を続けていたら連続王手の千日手
-    if (p1CheckCount == totalPositions) {
+    if (p1Moves > 0 && p1CheckCount == p1Moves) {
         qCInfo(lcGame) << "Sennichite: continuous check by P1 (sente)";
         return Result::ContinuousCheckByP1;
     }
-    if (p2CheckCount == totalPositions) {
+    if (p2Moves > 0 && p2CheckCount == p2Moves) {
         qCInfo(lcGame) << "Sennichite: continuous check by P2 (gote)";
         return Result::ContinuousCheckByP2;
     }

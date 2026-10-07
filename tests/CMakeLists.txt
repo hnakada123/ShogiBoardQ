@@ -697,6 +697,19 @@ add_shogi_test(tst_game_end_handler
     ${SRC}/game/gameendhandler_record.cpp
 )
 
+# 千日手・連続王手の千日手の判定（SennichiteDetector）
+add_shogi_test(tst_sennichite_detector
+    tst_sennichite_detector.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${EMV_SOURCES}
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/game/sennichitedetector.cpp
+)
+
 # ============================================================
 # Unit 19: Game Start Orchestrator (GameStartOrchestrator)
 # ============================================================
