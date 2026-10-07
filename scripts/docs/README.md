@@ -10,6 +10,7 @@
 |---|---|
 | `guide_common.py` | 4言語の共通処理。言語メニュー（`lang_menu`）、hreflang（`alternates`）、言語の表（`LANGS`/`meta`）、既存の ja/en ページに4言語メニューを付ける `update_existing` |
 | `gen_home.py` | ホームページ（`docs/index.html` と en / zh-cn / zh-tw）を生成する。機能カードは `FEATURE_GROUPS` と各言語の文言。カードのリンク先は、その言語のガイドがあればそれ、無ければ英語版になる |
+| `gen_guide_index.py` | 利用ガイドの目次（4言語の `guide/index.html`）を生成する。カードの見出しと説明は `gen_home.py` の機能カードと共通なので、カードを足したら両方を実行する |
 | `sitemap_add_zh.py` | `docs/sitemap.xml` のページに簡体字・繁体字版を追加する（`guide/<page>.html` を渡す） |
 | `check_links.py` | ページ内のリンク・画像の参照先があるか、`<section>` の開閉が対応しているかを4言語分確かめる（`--all` で全ページ） |
 | `build_guide/` | Linux ビルド手順のページ（4言語の `guide/linux-build-and-release.html`）と、開発者向けの `docs/dev/linux-build-and-release.md` を同じ本文（`texts_linux_build.py`）から書き出す。ページも md も直接編集しない |
@@ -58,5 +59,6 @@ scripts/docs/kwin_capture.sh k1 en bash -c 'python3 scripts/docs/rpc.py "$SBQ_SO
 2. 4言語で撮影し、`docs/images/<ページ>/`（日本語）と `docs/images/{en,zh-cn,zh-tw}/<ページ>/` に置く。
 3. 生成スクリプト（`examples/piece_sound/` を写して作る）で4言語の HTML を書く。既存の ja/en ページを部分的に直すだけなら、`guide_common.update_existing` で4言語メニューを付け、本文はその場で編集する。
 4. `python3 scripts/docs/gen_home.py` でホームのリンクを更新し、`scripts/docs/sitemap_add_zh.py guide/<ページ>.html` でサイトマップに追加する。
-5. `chromium --headless=new --screenshot=out.png --window-size=1280,4000 file://…` で表示を確かめ、
+5. `XDG_CONFIG_HOME=$W/cfg XDG_CACHE_HOME=$W/cache chromium --headless=new --user-data-dir=$W/profile --screenshot=out.png --window-size=1280,4000 file://…`
+   （`W` は作業フォルダ。付けないと `~/.cache/chromium-headless` に一時フォルダが残る）で表示を確かめ、
    `python3 scripts/docs/check_links.py guide/<ページ>.html` でリンク切れを確認する。

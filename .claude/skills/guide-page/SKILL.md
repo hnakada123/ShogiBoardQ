@@ -30,13 +30,18 @@ description: ShogiBoardQ の公開ガイド（docs/guide/*.html）やホーム�
    - 既存ページの一部だけを直す依頼（例: Linux の箇所だけ）では、ほかの箇所を変えない。ja・en は
      `guide_common.update_existing` で4言語メニューを付け、本文はその場で編集する。
    - 中国語版が無いページへのリンクは `../../en/guide/<page>.html` にし、文中に（英文）と添える。
-   - 新しいページは利用ガイドの目次（`docs/guide/index.html` と英語版）にも追加する。
+   - 新しいページは利用ガイドの目次（4言語の `guide/index.html`）にも載せる。目次のカードはホームと共通なので、
+     5. で `gen_home.py` にカードを足し、`python3 scripts/docs/gen_guide_index.py` で目次を生成する。
 5. **ホーム・サイトマップ**: `python3 scripts/docs/gen_home.py` でホームの4言語を生成する（中国語版ができたページへの
    リンクは自動で切り替わる。カードの追加・説明文の変更は `gen_home.py` を編集する。HTML を直接直さない）。
-   中国語版を新しく作ったページは `python3 scripts/docs/sitemap_add_zh.py guide/<page>.html` でサイトマップに追加する。
+   中国語版を新しく作ったページは `python3 scripts/docs/sitemap_add_zh.py guide/<page>.html` でサイトマップに追加する
+   （ja・en の項目があるページ用。4言語とも新しいページは、4つの `<url>` を同じ hreflang の組で足す）。
 6. **確認**:
    - `python3 scripts/docs/check_links.py guide/<page>.html`（リンク切れと `<section>` の対応）
-   - headless chromium で4言語の表示を見る（`chromium --headless=new --screenshot=out.png --window-size=1280,6000 file://…`）
+   - headless chromium で4言語の表示を見る。普段の `~/.cache/chromium-headless` に一時フォルダが残らないよう、
+     設定とプロファイルを作業フォルダに向ける（`W=<作業フォルダ>/chromium; XDG_CONFIG_HOME=$W/cfg XDG_CACHE_HOME=$W/cache
+     chromium --headless=new --user-data-dir=$W/profile --screenshot=out.png --window-size=1280,6000 file://…`）。
+     スマートフォン幅（`--window-size=390,7000`）でも表や画像がはみ出さないか見る
    - コードを変えたときは `ctest` 全体と GUI 監査（`python3 tests/gui/prepare.py` の後に
      `xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py`）。詰将棋の GUI テストは
      `build/gui-audit/test-build/tst_tsume_*` を別に実行する
