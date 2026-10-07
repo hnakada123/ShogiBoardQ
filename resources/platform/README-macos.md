@@ -9,8 +9,9 @@ ZIP を展開すると、アプリ本体（`ShogiBoardQ.dmg`）、Hayanagi USI �
 1. `ShogiBoardQ.dmg` を開き、`ShogiBoardQ.app` を「アプリケーション」フォルダにドラッグします。
 2. 「アプリケーション」から ShogiBoardQ を起動します。
 
-Apple の公証を受けていないため、初回起動時に「開発元を確認できない」などと表示される場合があります。
-Finder でアプリを右クリックして「開く」を選ぶか、ターミナルで次を実行してください。
+Apple の公証を受けていないため、初回起動時に警告が表示されて開けないことがあります。
+その場合は「システム設定」→「プライバシーとセキュリティ」で「このまま開く」をクリックするか、
+ターミナルで次を実行してください（macOS 15 以降は、Finder の右クリック →「開く」では開けません）。
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/ShogiBoardQ.app

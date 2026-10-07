@@ -32,7 +32,7 @@ UI 言語は日本語・英語・中国語（簡体字・繁体字）の 4 言�
 | macOS | 12 (Monterey) 以降推奨 |
 | Xcode | 14 以降（Command Line Tools 含む） |
 | CMake | 3.16 以上 |
-| Qt | 6.x（Widgets, Charts, Network, Multimedia, LinguistTools） |
+| Qt | 6.7 以上（Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools） |
 | C++ | C++17 対応コンパイラ |
 
 ---
@@ -90,6 +90,15 @@ clang++ --version     # Apple Clang
 
 ## 3. ビルド
 
+通常対局用の Hayanagi はサブモジュールなので、`--recurse-submodules` を付けて取得する（付けないと CMake が止まる）：
+
+```bash
+git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ
+```
+
+取得済みのリポジトリでは `git submodule update --init --recursive` で記録された版の Hayanagi を取得する。
+
 ### ビルドスクリプト（推奨）
 
 `scripts/build-macos.sh` を使うと、Release ビルドからコード署名・DMG 作成まで一括実行できる：
@@ -123,7 +132,7 @@ clang++ --version     # Apple Clang
 
 スクリプトは以下の処理を自動実行する：
 
-1. 前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, create-dmg）
+1. 前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg）
 2. CMake Configure（`CMAKE_OSX_DEPLOYMENT_TARGET` を指定）+ Ninja ビルド
 3. ビルド成果物の確認（.app、実行ファイルの最小 macOS バージョン、.qm 翻訳ファイル）
 4. macdeployqt によるフレームワークバンドル
@@ -403,7 +412,7 @@ unzip -l ShogiBoardQ-macos.zip
 ## 6. コード署名と公証
 
 配布する場合、Apple の Gatekeeper を通過するためにコード署名と公証が必要。
-署名なしでも動作するが、ダウンロード時に「開発元が未確認」の警告が表示される。
+公証なしでも動作するが、ダウンロードしたアプリを初回に開くと Gatekeeper の警告が表示され、利用者が許可する必要がある（[6.6](#66-公証なしで配布する場合)）。
 
 ### 6.1 Apple Developer Program への加入
 
@@ -467,12 +476,12 @@ xcrun stapler validate ShogiBoardQ.dmg
 
 ### 6.6 公証なしで配布する場合
 
-署名や公証を行わずに配布する場合、ユーザーは初回起動時に以下の手順が必要：
+公証を受けずに配布する場合、ダウンロードしたアプリは初回起動時に Gatekeeper に止められる。macOS 15 以降は Finder の右クリック → 「開く」では開けないため、利用者には以下の手順を案内する：
 
-1. Finder でアプリを右クリック → 「開く」を選択
-2. 「開発元が未確認」の警告で「開く」をクリック
+1. アプリを開き、警告が表示されたら閉じる
+2. 「システム設定」→「プライバシーとセキュリティ」を開き、「このまま開く」をクリックして表示に従って許可する
 
-または、ターミナルから Gatekeeper の隔離属性を解除：
+または、ターミナルから Gatekeeper の隔離属性を解除（「このまま開く」が表示されない場合もこの方法を使う）：
 
 ```bash
 xattr -cr /Applications/ShogiBoardQ.app
@@ -567,8 +576,8 @@ gh release upload 2026.10.07 ShogiBoardQ-macos.zip
 2. ShogiBoardQ.app を Applications フォルダにドラッグ＆ドロップ
 3. Applications から起動
 
-> 署名なしの場合、初回起動時に「開発元が未確認」と表示されます。
-> Finder でアプリを右クリック →「開く」で起動できます。
+> Apple の公証を受けていないため、初回起動時に警告が表示されて開けません。
+> 「システム設定」→「プライバシーとセキュリティ」で「このまま開く」をクリックすると起動できます。
 
 ### 変更点
 
@@ -624,11 +633,11 @@ install_name_tool -change \
   build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ
 ```
 
-### 「開発元が未確認」の警告（署名なしの場合）
+### 初回起動時に開けない（公証なしの場合）
 
 配布先のユーザーに以下のいずれかを案内する：
 
-- Finder で右クリック → 「開く」（初回のみ）
+- 「システム設定」→「プライバシーとセキュリティ」で「このまま開く」をクリック（初回のみ。macOS 15 以降は Finder の右クリック → 「開く」では開けない）
 - `xattr -cr /Applications/ShogiBoardQ.app` をターミナルで実行
 
 ### 翻訳が読み込まれない
