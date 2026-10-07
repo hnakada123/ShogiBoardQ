@@ -162,7 +162,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">构建 ShogiBoardQ</span>
                 </div>
-                <p class="guide-step-text">服务器使用 <code>build/ShogiBoardQ</code>（GUI）和 <code>build/shogiboardq-cli</code>（无需 GUI 的命令）。发布包目前不包含 <code>shogiboardq-cli</code>，请参阅 <a href="linux-build-and-release.html">Linux</a>、<a href="../../en/guide/macos-build-and-release.html">macOS</a> 或 <a href="../../en/guide/windows-build-and-release.html">Windows</a> 的构建指南（macOS 和 Windows 为英文）从源代码构建。</p>
+                <p class="guide-step-text">服务器使用 <code>build/ShogiBoardQ</code>（GUI）和 <code>build/shogiboardq-cli</code>（无需 GUI 的命令）。Windows 版的发布 ZIP 同时包含 <code>ShogiBoardQ.exe</code> 和 <code>shogiboardq-cli.exe</code>，无需构建即可使用：请将下面的 <code>SHOGIBOARDQ_EXECUTABLE</code> 设为解压 ZIP 后文件夹中的 <code>ShogiBoardQ.exe</code>。Linux 和 macOS 的发布包不包含 <code>shogiboardq-cli</code>，请参阅 <a href="linux-build-and-release.html">Linux</a>、<a href="../../en/guide/macos-build-and-release.html">macOS</a> 或 <a href="windows-build-and-release.html">Windows</a> 的构建指南（macOS 为英文）从源代码构建。</p>
                 <div class="build-steps">
 <pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
 cd ShogiBoardQ

@@ -162,7 +162,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">ShogiBoardQ をビルドする</span>
                 </div>
-                <p class="guide-step-text">MCP サーバーは <code>build/ShogiBoardQ</code>（GUI）と <code>build/shogiboardq-cli</code>（GUI 不要のコマンド）を使います。現時点では配布パッケージに <code>shogiboardq-cli</code> は含まれていないため、ソースからビルドしてください。手順は <a href="linux-build-and-release.html">Linux</a>・<a href="macos-build-and-release.html">macOS</a>・<a href="windows-build-and-release.html">Windows</a> のビルド手順を参照してください。</p>
+                <p class="guide-step-text">MCP サーバーは <code>build/ShogiBoardQ</code>（GUI）と <code>build/shogiboardq-cli</code>（GUI 不要のコマンド）を使います。Windows 版の配布 ZIP には <code>ShogiBoardQ.exe</code> と <code>shogiboardq-cli.exe</code> の両方が入っているので、ビルドせずに使えます。下の <code>SHOGIBOARDQ_EXECUTABLE</code> に、ZIP を展開したフォルダの <code>ShogiBoardQ.exe</code> を指定してください。Linux・macOS の配布パッケージには <code>shogiboardq-cli</code> が含まれていないため、ソースからビルドしてください。手順は <a href="linux-build-and-release.html">Linux</a>・<a href="macos-build-and-release.html">macOS</a>・<a href="windows-build-and-release.html">Windows</a> のビルド手順を参照してください。</p>
                 <div class="build-steps">
 <pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
 cd ShogiBoardQ
