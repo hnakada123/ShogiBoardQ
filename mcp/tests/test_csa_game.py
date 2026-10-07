@@ -111,16 +111,16 @@ class CsaUI:
         await self.call("click_dialog_button", dialog=title, widget="pushButtonStart")
         return await self.dialog("CsaWaitingDialog")
 
-    async def move(self, usi):
+    async def move(self, usi, decline_promotion=False):
         if "*" in usi:
             await self.call("click_board_square", file=10, rank="PLNSGBR".index(usi[0]) + 1)
             await self.call("click_board_square", file=int(usi[2]), rank=ord(usi[3])-ord("a")+1)
             return
         for file, rank in ((usi[0], usi[1]), (usi[2], usi[3])):
             await self.call("click_board_square", file=int(file), rank=ord(rank)-ord("a")+1)
-        if usi.endswith("+"):
+        if usi.endswith("+") or decline_promotion:
             title = await self.dialog("PromoteDialog")
-            await self.call("click_dialog_button", dialog=title, text="成る")
+            await self.call("click_dialog_button", dialog=title, text="成る" if usi.endswith("+") else "成らない")
 
     async def dismiss_end(self):
         title = await self.dialog("QMessageBox")
@@ -598,19 +598,184 @@ async def test_capture_promotion_drop_and_navigation(csa_env, csa_server, side, 
             await peer.close()
 
 
-@pytest.mark.parametrize("side", ["b", "w"])
-async def test_shogihome_interoperability(csa_env, csa_server, tmp_path, side):
+# 双方の玉が往復するだけの千日手。shogi-server は開始局面を出現回数に数えないので、
+# 1手目の後の局面を繰り返し、13手目で4回目にする
+SENNICHITE_MOVES = [("7g7f", "+7776FU")] + [("5a5b", "-5152OU"), ("5i5h", "+5958OU"),
+                                            ("5b5a", "-5251OU"), ("5h5i", "+5859OU")] * 3
+
+# 後手の角が 3七・4六 を往復して毎手王手をかけ、先手玉が 5九・6八 を往復する（連続王手の千日手）
+_OUTE_CYCLE = [("5i6h", "+5968OU"), ("3g4f", "-3746KA"),
+               ("6h5i", "+6859OU"), ("4f3g", "-4637KA")]
+OUTE_SENNICHITE = {
+    # △3七角の王手（6・10・14・18手目）で同じ局面が4回目。手番は先手（勝者）
+    "check": [("5g5f", "+5756FU"), ("3c3d", "-3334FU"), ("3g3f", "+3736FU"), ("2b5e", "-2255KA"),
+              ("9g9f", "+9796FU"), ("5e3g", "-5537KA")] + _OUTE_CYCLE * 3,
+    # ▲6八玉で逃げた局面（7・11・15・19手目）が4回目。手番は王手を続けた後手
+    "escape": [("5g5f", "+5756FU"), ("3c3d", "-3334FU"), ("3g3f", "+3736FU"), ("2b5e", "-2255KA"),
+               ("5i6h", "+5968OU"), ("5e3g", "-5537KA"), ("9g9f", "+9796FU")]
+              + (_OUTE_CYCLE[1:] + _OUTE_CYCLE[:1]) * 3,
+}
+# 終局行・KIF の結び・CSA/JKF の終局（どちらも後手の反則で先手の勝ち）
+OUTE_SENNICHITE_RESULT = {
+    "check": ("▲反則勝ち", "まで18手で先手の勝ち", "%-ILLEGAL_ACTION", "-ILLEGAL_ACTION"),
+    "escape": ("△反則負け", "まで19手で先手の勝ち", "%ILLEGAL_MOVE", "ILLEGAL_MOVE"),
+}
+
+
+async def play_csa_moves(ui, side, sequence, play_peer, wait_peer):
+    """Play a CSA game where the UI plays `side` and the peer plays the other side.
+
+    wait_peer(ply, csa) returns after the peer has received the ply-th move."""
+    for ply, (usi, csa) in enumerate(sequence, start=1):
+        if (csa[0] == "+") == (side == "b"):
+            # 後手の角が先手の陣地（7〜9段目）に出入りする手は成らずに指す
+            await ui.move(usi, decline_promotion=csa.endswith("KA") and any(r in "ghi" for r in (usi[1], usi[3])))
+        else:
+            await play_peer(csa)
+        await wait_peer(ply, csa)
+        if ply < len(sequence):
+            await ui.wait_state(current_ply=ply)
+
+
+async def assert_saved_results(ui, tmp_path, name, terminal, kif_result, csa_result, jkf_result):
+    """Saved records keep the result, and loading them back gives the same terminal line."""
+    paths = {fmt: tmp_path / f"{name}.{fmt}" for fmt in ("kif", "csa", "jkf")}
+    for path in paths.values():
+        await ui.call("save_kifu", path=str(path), overwrite=True)
+    assert kif_result in paths["kif"].read_bytes().decode("cp932")
+    assert csa_result in paths["csa"].read_text(encoding="utf-8").splitlines()
+    assert json.loads(paths["jkf"].read_text(encoding="utf-8"))["moves"][-1]["special"] == jkf_result
+    for path in paths.values():
+        await ui.call("load_kifu", path=str(path), discard_unsaved=True)
+        assert (await ui.call("get_kifu"))["moves"][-1]["text"] == terminal, path
+
+
+async def test_sennichite_draw(csa_env, csa_server, tmp_path):
+    async with mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(csa_server[0], "b")
+        peer = await Peer.connect(csa_server[0], "w")
+        try:
+            await peer.start()
+            await ui.wait_state(ui_state="csa_game")
+            await play_csa_moves(ui, "b", SENNICHITE_MOVES, peer.send, lambda _, csa: peer.until(csa))
+            await peer.until("#SENNICHITE")
+            assert (await peer.until("#")) == "#DRAW"
+            assert "千日手" in await ui.dismiss_end()
+            moves = (await ui.call("get_kifu"))["moves"]
+            assert len(moves) == 14 and "千日手" in moves[-1]["text"], moves
+            await ui.call("save_kifu", path=str(tmp_path / "sennichite.kif"), overwrite=True)
+            assert "まで13手で千日手" in (tmp_path / "sennichite.kif").read_bytes().decode("cp932")
+            await ui.call("save_kifu", path=str(tmp_path / "sennichite.csa"), overwrite=True)
+            assert "%SENNICHITE" in (tmp_path / "sennichite.csa").read_text(encoding="utf-8").splitlines()
+        finally:
+            await peer.close()
+
+
+@pytest.mark.parametrize(("completed_by", "side"), [("check", "b"), ("escape", "b"), ("check", "w")])
+async def test_oute_sennichite_recorded_as_foul(csa_env, csa_server, tmp_path, completed_by, side):
+    """Perpetual check is recorded as a foul by the checking side, from the side to move."""
+    terminal, kif_result, csa_result, jkf_result = OUTE_SENNICHITE_RESULT[completed_by]
+    async with mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(csa_server[0], side)
+        peer = await Peer.connect(csa_server[0], "w" if side == "b" else "b")
+        try:
+            await peer.start()
+            await ui.wait_state(ui_state="csa_game")
+            await play_csa_moves(ui, side, OUTE_SENNICHITE[completed_by], peer.send,
+                                 lambda _, csa: peer.until(csa))
+            await peer.until("#OUTE_SENNICHITE")
+            # 王手を続けたのは後手（UI が先手なら相手の負け）
+            assert (await peer.until("#")) == ("#LOSE" if side == "b" else "#WIN")
+            assert ("勝ち" if side == "b" else "負け") in await ui.dismiss_end()
+            moves = (await ui.call("get_kifu"))["moves"]
+            assert moves[-1]["text"] == terminal, moves[-3:]
+            await ui.call("capture_screenshot", output_dir=str(tmp_path))
+            await assert_saved_results(ui, tmp_path, f"oute-{completed_by}-{side}", terminal,
+                                       kif_result, csa_result, jkf_result)
+        finally:
+            await peer.close()
+
+
+async def test_shogihome_oute_sennichite(csa_env, csa_server, tmp_path):
+    """ShogiHome checks perpetually as White and receives the same result from shogi-server."""
+    endpoint = shogihome_endpoint()
+    terminal, kif_result, csa_result, jkf_result = OUTE_SENNICHITE_RESULT["check"]
+    async with mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        port = csa_server[0]
+        game = f"boardq-oute-{os.getpid()}-300-5"
+        await ui.connect(port, side="b", game=game)
+        await shogihome_login(endpoint, port, f"{game}-w")
+        try:
+            await ui.wait_state(ui_state="csa_game")
+
+            async def home_move(csa):
+                await shogihome_eval(endpoint, f"electronShogiAPI.csaMove(csaAudit.id, {json.dumps(csa)})")
+
+            async def home_saw(ply, csa):
+                # 同じ指し手が繰り返し届くので、手数で待つ
+                deadline = asyncio.get_running_loop().time() + 8
+                while len(moves := (await shogihome_eval(endpoint, "csaAudit"))["moves"]) < ply:
+                    assert asyncio.get_running_loop().time() < deadline, (ply, csa)
+                    await asyncio.sleep(0.05)
+                assert moves[ply - 1].startswith(csa), (ply, moves)
+
+            await play_csa_moves(ui, "b", OUTE_SENNICHITE["check"], home_move, home_saw)
+            assert "勝ち" in await ui.dismiss_end()
+            peer = await shogihome_eval(endpoint, "csaAudit")
+            assert len(peer["moves"]) == 18, peer
+            assert peer["results"], peer
+            moves = (await ui.call("get_kifu"))["moves"]
+            assert moves[-1]["text"] == terminal, moves[-3:]
+            (tmp_path / "shogihome-result.json").write_text(json.dumps(peer["results"], ensure_ascii=False))
+            await ui.call("capture_screenshot", output_dir=str(tmp_path))
+            await assert_saved_results(ui, tmp_path, "shogihome-oute", terminal, kif_result, csa_result, jkf_result)
+        finally:
+            await shogihome_eval(endpoint, "electronShogiAPI.csaLogout(csaAudit.id)")
+
+
+def shogihome_endpoint():
     endpoint = os.environ.get("SHOGIBOARDQ_TEST_SHOGIHOME_CDP")
     if not endpoint:
         pytest.skip("SHOGIBOARDQ_TEST_SHOGIHOME_CDP is required (isolated ShogiHome)")
+    return endpoint
+
+
+async def shogihome_eval(endpoint, expression):
+    proc = await asyncio.create_subprocess_exec(
+        "node", str(Path(__file__).with_name("shogihome_cdp.mjs")),
+        stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    stdout, stderr = await proc.communicate(json.dumps({"endpoint": endpoint, "expression": expression}).encode())
+    assert proc.returncode == 0, stderr.decode()
+    return json.loads(stdout)
+
+
+async def shogihome_login(endpoint, port, password):
+    """Log ShogiHome in and agree automatically; moves and results are collected in csaAudit."""
+    settings = {"protocolVersion": "v121", "host": "127.0.0.1", "port": port,
+                "id": "ShogiHome", "password": password, "tcpKeepalive": {"initialDelay": 10}}
+    await shogihome_eval(endpoint, """(async () => { window.csaAudit = {moves: [], results: []};
+        if (!window.csaAuditHandlers) {
+        electronShogiAPI.onCSAGameSummary((id,s) => {
+            csaAudit.summary = JSON.parse(s);
+            electronShogiAPI.csaAgree(id, csaAudit.summary.id);
+        });
+        electronShogiAPI.onCSAStart((id,s) => { csaAudit.started=true; });
+        electronShogiAPI.onCSAMove((id,move,times) => { csaAudit.moves.push(move); });
+        electronShogiAPI.onCSAGameResult((id,special,result) => { csaAudit.results.push({special,result}); });
+        window.csaAuditHandlers = true;
+        }
+        csaAudit.id = await electronShogiAPI.csaLogin(""" + json.dumps(json.dumps(settings)) + "); return csaAudit.id; })()")
+
+
+@pytest.mark.parametrize("side", ["b", "w"])
+async def test_shogihome_interoperability(csa_env, csa_server, tmp_path, side):
+    endpoint = shogihome_endpoint()
 
     async def home(expression):
-        proc = await asyncio.create_subprocess_exec(
-            "node", str(Path(__file__).with_name("shogihome_cdp.mjs")),
-            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        stdout, stderr = await proc.communicate(json.dumps({"endpoint": endpoint, "expression": expression}).encode())
-        assert proc.returncode == 0, stderr.decode()
-        return json.loads(stdout)
+        return await shogihome_eval(endpoint, expression)
 
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
@@ -618,21 +783,7 @@ async def test_shogihome_interoperability(csa_env, csa_server, tmp_path, side):
         port = int(os.environ.get("SHOGIBOARDQ_TEST_SHOGIHOME_SERVER_PORT", csa_server[0]))
         game = f"boardq-ui-{os.getpid()}-300-5"
         await ui.connect(port, side=side, game=game)
-        settings = {"protocolVersion": "v121", "host": "127.0.0.1", "port": port,
-                    "id": "ShogiHome", "password": f"{game}-{'w' if side == 'b' else 'b'}",
-                    "tcpKeepalive": {"initialDelay": 10}}
-        await home("""(async () => { window.csaAudit = {moves: [], results: []};
-            if (!window.csaAuditHandlers) {
-            electronShogiAPI.onCSAGameSummary((id,s) => {
-                csaAudit.summary = JSON.parse(s);
-                electronShogiAPI.csaAgree(id, csaAudit.summary.id);
-            });
-            electronShogiAPI.onCSAStart((id,s) => { csaAudit.started=true; });
-            electronShogiAPI.onCSAMove((id,move,times) => { csaAudit.moves.push(move); });
-            electronShogiAPI.onCSAGameResult((id,special,result) => { csaAudit.results.push({special,result}); });
-            window.csaAuditHandlers = true;
-            }
-            csaAudit.id = await electronShogiAPI.csaLogin(""" + json.dumps(json.dumps(settings)) + "); return csaAudit.id; })()")
+        await shogihome_login(endpoint, port, f"{game}-{'w' if side == 'b' else 'b'}")
         try:
             await ui.wait_state(ui_state="csa_game")
             sequence = [("7g7f", "+7776FU"), ("3c3d", "-3334FU"),

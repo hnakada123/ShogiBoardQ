@@ -96,3 +96,24 @@ CSA結合テストは19ケース。先後の人間対局・再対局、待機取
 今回のshogi-serverでは `%CHUDAN` は不正コマンドとして反則判定されるため、
 中断通知の受信テストと中断要求の送信テストを分けた。初期局面での `%KACHI` もサーバーの反則判定を確認する。
 正当な入玉宣言の成立、千日手、長時間連続運転、外部floodgateでの実対局は今回の確認範囲に含まない。
+
+## 追記（2026-10-08）: 千日手・連続王手の千日手
+
+連続王手の千日手を手番側の「反則勝ち／反則負け」で記録するようにした修正（`KifuParseCommon::foulTerminalMove()`）を、
+shogi-server（コミット `85e12374042db40d690608fc289a2e0c5f6b9fa6`）と ShogiHome 1.29.0 で確認した。
+`mcp/tests/test_csa_game.py` に次のテストを追加した（上の「再実行」の環境変数で実行する）。
+
+| テスト | 内容 |
+|---|---|
+| `test_sennichite_draw` | 双方の玉の往復で `#SENNICHITE` `#DRAW`。棋譜は「千日手」、KIF「まで13手で千日手」、CSA `%SENNICHITE` |
+| `test_oute_sennichite_recorded_as_foul` | 後手の角が 3七・4六 を往復して毎手王手。王手の手で成立（18手目）は「▲反則勝ち」、逃げた手で成立（19手目）は「△反則負け」。ShogiBoardQ が先手（勝ち）と後手（負け）の両方で、KIF・CSA・JKF に保存して読み込み直しても同じ終局行になる |
+| `test_shogihome_oute_sennichite` | ShogiHome が後手で王手を続け、shogi-server から `oute_sennichite`・`lose` を受け取る。ShogiBoardQ の記録は先手の勝ち |
+
+保存した KIF・CSA・JKF を ShogiHome で開くと、どれも「後手の反則負け」と表示された
+（ShogiHome は起動時の引数に棋譜ファイルを渡すと開く。検証用の ShogiHome は必ず Xvfb と専用の
+`--user-data-dir`・`XDG_*` で起動する）。
+
+- shogi-server は開始局面を出現回数に数えない（`Board#update_sennichite` は指した後の局面だけを数える）。
+  平手から往復すると16手目でやっと千日手になるので、テストは1手目の後の局面を繰り返す。
+  ShogiBoardQ の通常対局の判定（`SennichiteDetector`）は開始局面も数える。
+- 一時フォルダが長いと自動化ソケットのパス長（約100バイト）を超えるので、pytest には短い `--basetemp` を渡す。
