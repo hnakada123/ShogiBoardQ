@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用程序字体 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 应用程序字体的使用方法：为菜单、棋谱、日志和各对话框统一选择字体，并介绍各界面语言的默认字体以及与文字大小的关系。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/gui-font.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/gui-font.html">
+    <meta property="og:title" content="应用程序字体 - ShogiBoardQ">
+    <meta property="og:description" content="一次性更改菜单、棋谱、日志和各对话框的字体。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/gui-font/main-window.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="应用程序字体 - ShogiBoardQ">
+    <meta name="twitter:description" content="一次性更改菜单、棋谱、日志和各对话框的字体。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/gui-font/main-window.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/gui-font.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/gui-font.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/gui-font.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/gui-font.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/gui-font.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="gui-font.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/gui-font.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="#choose">选择字体</a></li>
+            <li><a href="#default">默认字体</a></li>
+            <li><a href="#notes">补充说明</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>应用程序字体</h1>
+        <p class="hero-subtitle">一次性将菜单、棋谱、日志和各对话框的字体换成喜欢的字体</p>
+        <div class="hero-badges">
+            <span class="badge">统一更改字体</span>
+            <span class="badge">预览确认</span>
+            <span class="badge">无需重启</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。字体列表中显示的是您电脑上已安装的字体。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="choose" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">选择字体</h2>
+        <p class="section-desc">通过“视图”菜单中的“应用程序字体…”设置整个程序的字体</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">打开“视图”→“应用程序字体…”</span>
+                </div>
+                <p class="guide-step-text">打开菜单栏中的“视图”，选择“应用程序字体…”，即可打开“应用程序字体”对话框。<a href="menu.html">菜单面板</a>的“视图”标签页中也有相同的按钮。</p>
+                <p class="guide-step-text">初始状态下勾选了“使用默认字体”，使用与界面语言相应的默认字体（见<a href="#default">下表</a>）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/gui-font/view-menu.png"><img src="../../images/zh-cn/gui-font/view-menu.png" alt="打开“视图”菜单并选中“应用程序字体…”" width="342" height="212" loading="lazy"></a>
+                    <p class="screenshot-caption">“视图”菜单中的“应用程序字体…”</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/gui-font/font-dialog.png"><img src="../../images/zh-cn/gui-font/font-dialog.png" alt="初始状态的应用程序字体对话框，已勾选“使用默认字体”，预览以默认字体显示" width="520" height="349" loading="lazy"></a>
+                    <p class="screenshot-caption">应用程序字体对话框（初始状态）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">选择字体并在预览中确认</span>
+                </div>
+                <p class="guide-step-text">取消勾选“使用默认字体”后，即可从“字体”列表中选择。列表中显示的是您电脑上已安装的字体。</p>
+                <p class="guide-step-text">下方的预览会以所选字体显示“棋盘／棋谱／分析”“先手 ▲７六歩 后手 △３四歩”“ABC abc 0123456789”三行，可以确认汉字、符号、字母和数字的效果。此时程序的显示还不会改变。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/gui-font/font-selected.png"><img src="../../images/zh-cn/gui-font/font-selected.png" alt="取消勾选“使用默认字体”，在字体中选择 Noto Serif CJK SC，预览以宋体显示" width="520" height="349" loading="lazy"></a>
+                    <p class="screenshot-caption">字体选择“Noto Serif CJK SC”</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">点击“确定”应用到整个程序</span>
+                </div>
+                <p class="guide-step-text">点击“确定”后，整个程序的字体会立即改变，无需重启。菜单、棋谱、各面板、对话框，以及棋盘周围的对局者名称、剩余时间和坐标都会使用所选字体。</p>
+                <p class="guide-step-text">所选字体会自动保存，下次启动时继续使用。点击“取消”则不做任何更改并关闭对话框。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-cn/gui-font/main-window.png"><img src="../../images/zh-cn/gui-font/main-window.png" alt="应用 Noto Serif CJK SC 后的主窗口，菜单、棋谱、注释、对局者名称和棋盘坐标都以宋体显示" width="1302" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">点击“确定”后的主窗口（Noto Serif CJK SC）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="default" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">默认字体与文字大小</h2>
+        <p class="section-desc">随时可以恢复默认字体，文字大小保持各界面的设置</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">与界面语言相应的默认字体</span>
+                </div>
+                <p class="guide-step-text">勾选“使用默认字体”时，会根据界面语言和操作系统使用以下字体。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">界面语言</th><th scope="col">Windows</th><th scope="col">macOS</th><th scope="col">Linux</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>日语</strong></td><td>Yu Gothic UI 等</td><td>Hiragino Sans</td><td>Noto Sans CJK JP 等</td></tr>
+                        <tr><td><strong>中文（简体）</strong></td><td>Microsoft YaHei UI</td><td>PingFang SC</td><td>Noto Sans CJK SC</td></tr>
+                        <tr><td><strong>中文（繁体）</strong></td><td>Microsoft JhengHei UI</td><td>PingFang TC</td><td>Noto Sans CJK TC</td></tr>
+                        <tr><td><strong>英语</strong></td><td colspan="3">各操作系统的默认字体。棋谱等日文以日语的默认字体显示</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">电脑上没有表中的字体时，会查找适用于同一语言的其他字体（日语为 Meiryo UI、IPAexGothic 等），都没有时使用操作系统的默认字体。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">用“恢复默认值”恢复原来的字体</span>
+                </div>
+                <p class="guide-step-text">点击“恢复默认值”后，“使用默认字体”会被勾选，列表也会恢复为默认字体。点击“确定”后，整个程序恢复为默认字体。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">文字大小保持各界面的设置</span>
+                </div>
+                <p class="guide-step-text">此对话框只更改字体。文字大小保持在棋谱面板、各对话框的“A-”“A+”等处为各界面设置的大小。</p>
+                <p class="guide-step-text">对话框左下角的“A-”“A+”及其间的数值（pt）用于调整此对话框本身的文字大小。文字大小和对话框大小会在下次打开时沿用。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="notes" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">补充说明</h2>
+        <p class="section-desc">所选字体中缺少的文字，以及把设置移到其他电脑时的处理</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">更改字体后的显示</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>缺少的文字</strong>：所选字体中没有的文字，会用默认字体补充显示。即使选择只含拉丁字母的字体，棋谱中的汉字和假名也能正常显示。</li>
+                    <li><strong>通信日志</strong>：“USI 日志”“CSA 日志”等以等宽字体显示的区域也会使用所选字体。重新勾选“使用默认字体”后，会恢复为原来的等宽字体。</li>
+                    <li><strong>未安装该字体的电脑</strong>：保存的字体未安装在电脑上时（例如把设置文件复制到其他电脑后），会以默认字体显示，打开对话框时“使用默认字体”处于勾选状态。</li>
+                    <li><strong>棋子上的文字</strong>：棋盘上棋子的文字是棋子图片的一部分，因此不会随字体改变。棋子的外观可以在<a href="piece-style.html">棋子样式</a>或<a href="board-colors.html">对局外观</a>中选择。</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 返回使用指南</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

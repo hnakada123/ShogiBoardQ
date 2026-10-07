@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Font - ShogiBoardQ</title>
+    <meta name="description" content="How to use the ShogiBoardQ Application Font setting: choose one font family for menus, game records, logs, and dialogs, see the default font for each interface language, and learn how it works with text sizes.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/gui-font.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/gui-font.html">
+    <meta property="og:title" content="Application Font - ShogiBoardQ">
+    <meta property="og:description" content="Change the font of menus, game records, logs, and dialogs all at once.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/gui-font/main-window.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Application Font - ShogiBoardQ">
+    <meta name="twitter:description" content="Change the font of menus, game records, logs, and dialogs all at once.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/gui-font/main-window.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/gui-font.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/gui-font.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/gui-font.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/gui-font.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="gui-font.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/gui-font.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/gui-font.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#choose">Choose a Font</a></li>
+            <li><a href="#default">Default Font</a></li>
+            <li><a href="#notes">Notes</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Application Font</h1>
+        <p class="hero-subtitle">Change the font of menus, game records, logs, and dialogs all at once</p>
+        <div class="hero-badges">
+            <span class="badge">One Font for the Whole App</span>
+            <span class="badge">Live Preview</span>
+            <span class="badge">No Restart</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface. The font list shows the fonts installed on your computer.</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="choose" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Choose a Font</h2>
+        <p class="section-desc">Set the font for the whole application from View → Application Font…</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Open View → Application Font…</span>
+                </div>
+                <p class="guide-step-text">Open the View menu in the menu bar and choose Application Font… to open the Application Font dialog. The View tab of the <a href="menu.html">menu dock</a> has the same button.</p>
+                <p class="guide-step-text">By default, Use the default font is checked, and the default font for your interface language (<a href="#default">see the table below</a>) is used.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/gui-font/view-menu.png"><img src="../../images/en/gui-font/view-menu.png" alt="View menu open with Application Font… highlighted" width="368" height="211" loading="lazy"></a>
+                    <p class="screenshot-caption">View menu: Application Font…</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/gui-font/font-dialog.png"><img src="../../images/en/gui-font/font-dialog.png" alt="Application Font dialog in its initial state, with Use the default font checked and the preview in the default font" width="520" height="340" loading="lazy"></a>
+                    <p class="screenshot-caption">Application Font dialog (initial state)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Pick a Font and Check the Preview</span>
+                </div>
+                <p class="guide-step-text">Clear Use the default font to choose from the Font family list. The list shows the fonts installed on your computer.</p>
+                <p class="guide-step-text">The preview below the list shows the chosen font in three lines—Board / Game record / Analysis, Black ▲７六歩  White △３四歩, and ABC abc 0123456789—so you can check how letters, digits, and move notation look. The application itself does not change yet.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/gui-font/font-selected.png"><img src="../../images/en/gui-font/font-selected.png" alt="Use the default font cleared and Noto Serif CJK JP chosen in Font family, with the preview shown in a serif font" width="520" height="340" loading="lazy"></a>
+                    <p class="screenshot-caption">Noto Serif CJK JP chosen as the font family</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Click OK to Apply It Everywhere</span>
+                </div>
+                <p class="guide-step-text">Click OK and the whole application switches to the new font right away; no restart is needed. Menus, game records, panels (docks), and dialogs change, and so do the player names, clocks, and coordinates around the board.</p>
+                <p class="guide-step-text">The chosen font is saved automatically and used the next time you start the application. Cancel closes the dialog without changing anything.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/gui-font/main-window.png"><img src="../../images/en/gui-font/main-window.png" alt="Main window with Noto Serif CJK JP applied: the menus, game record, comments, player names, and board coordinates appear in a serif font" width="1408" height="1000" loading="lazy"></a>
+                    <p class="screenshot-caption">Main window after clicking OK (Noto Serif CJK JP)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="default" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Default Font and Text Size</h2>
+        <p class="section-desc">You can return to the default font at any time, and text sizes stay as each screen sets them</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Default Font for Each Interface Language</span>
+                </div>
+                <p class="guide-step-text">While Use the default font is checked, ShogiBoardQ uses the following fonts for your interface language and operating system.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Interface language</th><th scope="col">Windows</th><th scope="col">macOS</th><th scope="col">Linux</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Japanese</strong></td><td>Yu Gothic UI, etc.</td><td>Hiragino Sans</td><td>Noto Sans CJK JP, etc.</td></tr>
+                        <tr><td><strong>Chinese (Simplified)</strong></td><td>Microsoft YaHei UI</td><td>PingFang SC</td><td>Noto Sans CJK SC</td></tr>
+                        <tr><td><strong>Chinese (Traditional)</strong></td><td>Microsoft JhengHei UI</td><td>PingFang TC</td><td>Noto Sans CJK TC</td></tr>
+                        <tr><td><strong>English</strong></td><td colspan="3">The operating system's default font. Japanese text, such as game records, uses the Japanese default font</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">If a listed font is not installed, ShogiBoardQ looks for other fonts for the same language (for Japanese, Meiryo UI, IPAexGothic, and others) and uses the operating system's default font if none is found.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Restore Defaults</span>
+                </div>
+                <p class="guide-step-text">Click Restore Defaults to check Use the default font and return the list to the default font. Click OK to switch the whole application back to the default font.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Text Sizes Stay as They Are</span>
+                </div>
+                <p class="guide-step-text">This dialog changes only the font family. Text sizes stay as you set them on each screen, for example with the A- and A+ buttons of the game record or of a dialog.</p>
+                <p class="guide-step-text">A- and A+ at the bottom left, with the size in points between them, change the text size of this dialog itself. The text size and the dialog size are kept for next time.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="notes" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Notes</h2>
+        <p class="section-desc">Missing characters, and moving your settings to another computer</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">How the Font Is Applied</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Missing characters</strong>: Characters that the chosen font lacks are filled in from the default font. Even if you choose a Latin-only font, the kanji and kana in game records still appear.</li>
+                    <li><strong>Communication logs</strong>: Fixed-width areas such as the USI Log and CSA Log also use the chosen font. Checking Use the default font again returns them to the original fixed-width font.</li>
+                    <li><strong>Font not installed</strong>: If the saved font is not installed (for example, after you copy your settings file to another computer), the default font is used, and Use the default font is checked when you open the dialog.</li>
+                    <li><strong>Piece characters</strong>: The characters on the pieces are part of the piece images, so they do not change with the font. Choose the look of the pieces in <a href="piece-style.html">Piece Styles</a> or <a href="board-colors.html">Game Appearance</a>.</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← Back to User Guide</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
