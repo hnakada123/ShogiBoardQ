@@ -44,13 +44,6 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
 
     MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
     cbs.ensurePositionEdit = [this]() { m_foundation->ensurePositionEditController(); };
-    cbs.ensureTimeController = [this]() { ensureTimeController(); };
-    cbs.updateGameRecord = [this](const QString& moveText, const QString& elapsed) {
-        m_kifu->ensureGameRecordUpdateService();
-        if (m_mw.m_gameRecordUpdateService) {
-            m_mw.m_gameRecordUpdateService->updateGameRecord(moveText, elapsed);
-        }
-    };
     cbs.redrawEngine1Graph = [this](int ply) {
         m_foundation->ensureEvaluationGraphController();
         if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine1Graph(ply);

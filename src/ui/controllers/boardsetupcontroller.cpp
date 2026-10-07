@@ -11,9 +11,7 @@
 #include "shogiview.h"
 #include "boardinteractioncontroller.h"
 #include "matchcoordinator.h"
-#include "timecontrolcontroller.h"
 #include "positioneditcontroller.h"
-#include "shogiclock.h"
 #include "shogimove.h"
 
 namespace {
@@ -91,11 +89,6 @@ void BoardSetupController::setMatchCoordinator(MatchCoordinator* match)
     m_match = match;
 }
 
-void BoardSetupController::setTimeController(TimeControlController* tc)
-{
-    m_timeController = tc;
-}
-
 void BoardSetupController::setPositionEditController(PositionEditController* posEdit)
 {
     m_posEdit = posEdit;
@@ -132,16 +125,6 @@ void BoardSetupController::setCurrentMoveIndex(int* currentMoveIndex)
 void BoardSetupController::setEnsurePositionEditCallback(EnsurePositionEditCallback cb)
 {
     m_ensurePositionEdit = std::move(cb);
-}
-
-void BoardSetupController::setEnsureTimeControllerCallback(EnsureTimeControllerCallback cb)
-{
-    m_ensureTimeController = std::move(cb);
-}
-
-void BoardSetupController::setUpdateGameRecordCallback(UpdateGameRecordCallback cb)
-{
-    m_updateGameRecord = std::move(cb);
 }
 
 void BoardSetupController::setRedrawEngine1GraphCallback(RedrawEngine1GraphCallback cb)
@@ -258,9 +241,6 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     qCDebug(lcUi) << "effective modeNow=" << int(modeNow)
                  << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
 
-    // 着手前の手番
-    const auto moverBefore = m_gameController->currentPlayer();
-
     // validateAndMove は参照引数なのでローカルに退避
     QPoint hFrom = from, hTo = to;
 
@@ -285,40 +265,13 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
     // --- 対局モードごとの後処理 ---
     switch (modeNow) {
-    case PlayMode::HumanVsHuman: {
+    case PlayMode::HumanVsHuman:
+        // 考慮時間の確定・棋譜への追記・千日手と最大手数の判定は Strategy が行う
         qCDebug(lcUi) << "HvH: delegate post-human-move to MatchCoordinator";
         if (m_match) {
-            m_match->onHumanMove(hFrom, hTo, QString());
-        }
-
-        // HvH でも「指し手＋考慮時間」を棋譜欄に追記する
-        QString elapsed;
-        ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
-        if (clk) {
-            elapsed = (moverBefore == ShogiGameController::Player1)
-                ? clk->player1ConsiderationAndTotalTime()
-                : clk->player2ConsiderationAndTotalTime();
-        } else {
-            if (m_ensureTimeController) {
-                m_ensureTimeController();
-            }
-            elapsed = QStringLiteral("00:00/00:00:00");
-        }
-
-        if (m_updateGameRecord) {
-            m_updateGameRecord(m_lastMove, elapsed);
-        }
-
-        // 最大手数チェック
-        if (m_match && m_sfenHistory) {
-            const int maxMoves = m_match->maxMoves();
-            const int currentMoveIdx = static_cast<int>(m_sfenHistory->size() - 1);
-            if (maxMoves > 0 && currentMoveIdx >= maxMoves) {
-                m_match->handleMaxMovesJishogi();
-            }
+            m_match->onHumanMove(hFrom, hTo, m_lastMove);
         }
         break;
-    }
 
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:

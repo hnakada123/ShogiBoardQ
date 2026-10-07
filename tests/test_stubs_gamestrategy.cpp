@@ -57,12 +57,16 @@ bool validateAndMoveReturnValue = true;
 int  validateAndMoveCallCount = 0;
 
 bool sennichiteDetected = false;
+int  maxMovesJishogiCount = 0;
+int  requestHumanReplyCount = 0;
 
 void reset()
 {
     validateAndMoveReturnValue = true;
     validateAndMoveCallCount = 0;
     sennichiteDetected = false;
+    maxMovesJishogiCount = 0;
+    requestHumanReplyCount = 0;
 }
 
 } // namespace StrategyTracker
@@ -193,7 +197,7 @@ void GameEndHandler::handleBreakOff() {}
 void GameEndHandler::handleNyugyokuDeclaration(Player, bool, bool) {}
 void GameEndHandler::appendGameOverLineAndMark(Cause, Player) {}
 void GameEndHandler::appendBreakOffLineAndMark() {}
-void GameEndHandler::handleMaxMovesJishogi() {}
+void GameEndHandler::handleMaxMovesJishogi() { ++StrategyTracker::maxMovesJishogiCount; }
 bool GameEndHandler::checkAndHandleSennichite() { return StrategyTracker::sennichiteDetected; }
 void GameEndHandler::handleSennichite() {}
 void GameEndHandler::handleOuteSennichite(bool) {}
@@ -206,9 +210,13 @@ void GameEndHandler::markGameOverMoveAppended() {}
 // GameStartOrchestrator スタブ
 // ============================================================
 
-void GameStartOrchestrator::setRefs(const Refs&) {}
+void GameStartOrchestrator::setRefs(const Refs& refs) { m_refs = refs; }
 void GameStartOrchestrator::setHooks(const Hooks&) {}
-void GameStartOrchestrator::configureAndStart(const StartOptions&) {}
+// 最大手数の判定を検証できるよう、対局条件のうち手数制限だけは反映する。
+void GameStartOrchestrator::configureAndStart(const StartOptions& opt)
+{
+    if (m_refs.maxMoves) *m_refs.maxMoves = opt.maxMoves;
+}
 
 MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
     PlayMode mode, const QString& startSfenStr,
@@ -670,7 +678,10 @@ void Usi::onProcessStarted() {}
 void Usi::onEngineInitialized(bool) {}
 void Usi::onStartTimeout() {}
 void Usi::requestMatchMove(const QString&, const QString&, const UsiTimingParams&) {}
-void Usi::requestHumanReply(QString&, const QString&, const QPoint&, const QPoint&, const UsiTimingParams&, QStringList&) {}
+void Usi::requestHumanReply(QString&, const QString&, const QPoint&, const QPoint&, const UsiTimingParams&, QStringList&)
+{
+    ++StrategyTracker::requestHumanReplyCount;
+}
 
 void UsiProtocolHandler::onInitializationUsiOk() {}
 void UsiProtocolHandler::onInitializationReadyOk() {}

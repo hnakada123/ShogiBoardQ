@@ -62,8 +62,6 @@ public:
     /// BoardSetupController 用コールバック群
     struct BoardSetupControllerCallbacks {
         std::function<void()> ensurePositionEdit;
-        std::function<void()> ensureTimeController;
-        std::function<void(const QString&, const QString&)> updateGameRecord;
         std::function<void(int)> redrawEngine1Graph;
         std::function<void(int)> redrawEngine2Graph;
     };

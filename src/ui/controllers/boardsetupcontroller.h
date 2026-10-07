@@ -16,7 +16,6 @@
 class ShogiView;
 class BoardInteractionController;
 class MatchCoordinator;
-class TimeControlController;
 class PositionEditController;
 struct ShogiMove;
 
@@ -43,7 +42,6 @@ public:
     void setShogiView(ShogiView* view);
     void setGameController(ShogiGameController* gc);
     void setMatchCoordinator(MatchCoordinator* match);
-    void setTimeController(TimeControlController* tc);
     void setPositionEditController(PositionEditController* posEdit);
 
     // --------------------------------------------------------
@@ -84,15 +82,11 @@ public:
     // コールバック設定
     // --------------------------------------------------------
     using EnsurePositionEditCallback = std::function<void()>;
-    using EnsureTimeControllerCallback = std::function<void()>;
-    using UpdateGameRecordCallback = std::function<void(const QString& moveText, const QString& elapsed)>;
     using RedrawEngine1GraphCallback = std::function<void(int ply)>;
     using RedrawEngine2GraphCallback = std::function<void(int ply)>;
     using RefreshBranchTreeCallback = std::function<void()>;
 
     void setEnsurePositionEditCallback(EnsurePositionEditCallback cb);
-    void setEnsureTimeControllerCallback(EnsureTimeControllerCallback cb);
-    void setUpdateGameRecordCallback(UpdateGameRecordCallback cb);
     void setRedrawEngine1GraphCallback(RedrawEngine1GraphCallback cb);
     void setRedrawEngine2GraphCallback(RedrawEngine2GraphCallback cb);
     void setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb);
@@ -124,7 +118,6 @@ private:
     ShogiGameController* m_gameController = nullptr;
     QPointer<BoardInteractionController> m_boardController;
     QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
-    TimeControlController* m_timeController = nullptr;
     PositionEditController* m_posEdit = nullptr;
     QObject* m_wheelFilter = nullptr;
 
@@ -137,8 +130,6 @@ private:
 
     // コールバック
     EnsurePositionEditCallback m_ensurePositionEdit;
-    EnsureTimeControllerCallback m_ensureTimeController;
-    UpdateGameRecordCallback m_updateGameRecord;
     RedrawEngine1GraphCallback m_redrawEngine1Graph;
     RedrawEngine2GraphCallback m_redrawEngine2Graph;
     RefreshBranchTreeCallback m_refreshBranchTree;
