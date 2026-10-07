@@ -68,7 +68,7 @@
 
 <div class="section">
     <article class="section-inner build-document" aria-label="Windows 构建与发布">
-<p>Windows 的 ZIP 收录应用程序（<code>ShogiBoardQ.exe</code>、<code>shogiboardq-cli.exe</code>）、运行所需的 DLL、翻译、6 个诘棋题集文件、Hayanagi 可执行文件以及根目录的 LICENSE。不收录 README。今后的 Windows 发布也不收录 <code>Hayanagi/source/</code> 和外部的 <code>licenses/</code>，许可信息使用应用程序内置的显示。</p>
+<p>Windows 的 ZIP 收录应用程序（<code>ShogiBoardQ.exe</code>、<code>shogiboardq-cli.exe</code>）、运行所需的 DLL、翻译、6 个诘棋题集文件、Hayanagi 可执行文件及其定式文件，以及根目录的 LICENSE。不收录 README。今后的 Windows 发布也不收录 <code>Hayanagi/source/</code> 和外部的 <code>licenses/</code>，许可信息使用应用程序内置的显示。</p>
 <p>Release 只附加可运行的 ZIP，不另行附加 Qt 源代码或相关文档。应用程序内许可文档的准备请参阅 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文档与发布附件的方针</a>（日文）。</p>
 <section id="contents" class="level2">
 <h2>目录</h2>
@@ -187,8 +187,8 @@ windeployqt --version # Qt 部署工具</code></pre>
 <ol type="1">
 <li>确认所需工具（cmake、ninja、cl、windeployqt、MSVC 运行库 DLL 的位置）</li>
 <li>CMake 配置 + 构建（ShogiBoardQ、shogiboardq-cli、Hayanagi）</li>
-<li>确认构建产物（.exe、.qm 翻译文件、hayanagi.exe、每种手数各 1 个文件的题集）</li>
-<li>创建 deploy 目录 + 放置题集、Hayanagi 和 LICENSE + 用 windeployqt 部署 DLL + 添加 <code>qoffscreen.dll</code> + 复制 MSVC 运行库 DLL + 校验</li>
+<li>确认构建产物（.exe、.qm 翻译文件、hayanagi.exe 和定式文件、每种手数各 1 个文件的题集）</li>
+<li>创建 deploy 目录 + 放置题集、Hayanagi（含定式文件）和 LICENSE + 用 windeployqt 部署 DLL + 添加 <code>qoffscreen.dll</code> + 复制 MSVC 运行库 DLL + 校验</li>
 <li>制作 ZIP 文件</li>
 </ol>
 <blockquote>
@@ -245,15 +245,16 @@ dir build\Release\*.qm   # VS 生成器</code></pre>
 </blockquote>
 <section id="package-deploy" class="level3">
 <h3>4.1 创建 deploy 目录</h3>
-<p>将 exe、翻译文件、诘棋题集、Hayanagi 和 LICENSE 复制到发布用目录：</p>
-<pre class="powershell"><code>mkdir deploy, deploy\Hayanagi, deploy\data\tsumeshogi
+<p>将 exe、翻译文件、诘棋题集、Hayanagi 及其定式文件和 LICENSE 复制到发布用目录：</p>
+<pre class="powershell"><code>mkdir deploy, deploy\Hayanagi\book, deploy\data\tsumeshogi
 copy build\ShogiBoardQ.exe deploy\
 copy build\shogiboardq-cli.exe deploy\
 copy build\*.qm deploy\
 copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
+copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
 copy data\tsumeshogi\tsume_*ply_*.txt deploy\data\tsumeshogi\
 copy LICENSE deploy\</code></pre>
-<p>诘棋题集收录 3、5、7、9、11、13 手诘各 1 个文件，共 6 个文件（<code>data/tsumeshogi/</code> 中不能残留相同手数的旧版本；有多个时脚本会停止）。不收录 README（根目录、<code>Hayanagi/</code>、<code>data/tsumeshogi/</code>）。请不要整个复制源代码树或构建文件夹，并在发布前确认 ZIP 中不包含 <code>Hayanagi/source/</code> 和 <code>licenses/</code>。普通构建生成的 <code>build/licenses/</code> 也不复制到 Windows 的 ZIP 中。</p>
+<p>诘棋题集收录 3、5、7、9、11、13 手诘各 1 个文件，共 6 个文件（<code>data/tsumeshogi/</code> 中不能残留相同手数的旧版本；有多个时脚本会停止）。不收录 README（根目录、<code>Hayanagi/</code>、<code>data/tsumeshogi/</code>）。Hayanagi 的定式文件 <code>hayanagi_book.db</code> 使用构建时复制到 <code>build/Hayanagi/book/</code> 的文件，放入 <code>Hayanagi/book/</code>。Hayanagi 从工作目录的 <code>book/</code> 读取定式，而 ShogiBoardQ 以引擎所在的目录作为工作目录启动引擎，因此解压 ZIP 后即可直接使用定式。请不要整个复制源代码树或构建文件夹，并在发布前确认 ZIP 中不包含 <code>Hayanagi/source/</code> 和 <code>licenses/</code>。普通构建生成的 <code>build/licenses/</code> 也不复制到 Windows 的 ZIP 中。</p>
 </section>
 <section id="package-windeployqt" class="level3">
 <h3>4.2 用 windeployqt 部署 Qt DLL</h3>
@@ -317,8 +318,9 @@ dir deploy\platforms\qoffscreen.dll
 # SQLite 驱动（用于保存诘棋的解题记录）
 dir deploy\sqldrivers\qsqlite.dll
 
-# Hayanagi 与题集（6 个文件）
+# Hayanagi、定式文件与题集（6 个文件）
 dir deploy\Hayanagi
+dir deploy\Hayanagi\book\hayanagi_book.db
 dir deploy\data\tsumeshogi</code></pre>
 <p>部署后的目录结构：</p>
 <pre><code>deploy/
@@ -348,7 +350,8 @@ dir deploy\data\tsumeshogi</code></pre>
 │   ├── hayanagi.exe               ← 用于普通对局的 USI 引擎
 │   ├── vcruntime140.dll           ← Hayanagi 用 MSVC 运行库（仅这 3 个）
 │   ├── vcruntime140_1.dll
-│   └── msvcp140.dll
+│   ├── msvcp140.dll
+│   └── book/hayanagi_book.db      ← Hayanagi 的定式
 ├── data/tsumeshogi/
 │   ├── tsume_3ply_1000_*.txt      ← 诘棋题集（3～13 手诘，各 1,000 题）
 │   ├── ...
@@ -385,8 +388,9 @@ dir deploy\data\tsumeshogi</code></pre>
 .\deploy\shogiboardq-cli.exe version
 .\deploy\shogiboardq-cli.exe render-board --sfen startpos --output board.png --overwrite
 
-# Hayanagi（应返回 id name Hayanagi … 和 usiok）
-cmd /c &quot;(echo usi&amp; echo quit) | deploy\Hayanagi\hayanagi.exe&quot;</code></pre>
+# Hayanagi（与 ShogiBoardQ 一样在 Hayanagi 的文件夹中启动，应返回 id name Hayanagi … 和
+# info string book loaded）
+cmd /c &quot;cd deploy\Hayanagi &amp;&amp; (echo usi&amp; echo isready&amp; echo quit) | .\hayanagi.exe&quot;</code></pre>
 <blockquote>
 <p><strong>重要</strong>：请在 PATH 中<strong>不包含</strong> Qt 的 bin 目录的环境下测试。如果 PATH 中包含 Qt，就会使用系统中的 DLL 而不是 deploy 文件夹中的 DLL，从而无法发现部署遗漏。</p>
 </blockquote>

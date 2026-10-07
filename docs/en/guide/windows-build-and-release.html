@@ -123,7 +123,7 @@ ctest --test-dir build --output-on-failure</code></pre>
 <p>The ZIP contains:</p>
 <ul>
 <li><code>ShogiBoardQ.exe</code> and <code>shogiboardq-cli.exe</code> (the command-line tool used by the MCP server), with the Qt DLLs and plugins. <code>platforms\qoffscreen.dll</code> is added for the CLI's board rendering, because <code>windeployqt</code> does not copy it.</li>
-<li><code>Hayanagi\hayanagi.exe</code>, the USI engine for normal games, with only the three runtime DLLs it loads (<code>vcruntime140.dll</code>, <code>vcruntime140_1.dll</code>, <code>msvcp140.dll</code>).</li>
+<li><code>Hayanagi\hayanagi.exe</code>, the USI engine for normal games, with its opening book <code>Hayanagi\book\hayanagi_book.db</code> (the copy the build places in <code>build\Hayanagi\book\</code>) and only the three runtime DLLs it loads (<code>vcruntime140.dll</code>, <code>vcruntime140_1.dll</code>, <code>msvcp140.dll</code>).</li>
 <li>The six tsume collections in <code>data\tsumeshogi\</code> (3 to 13 moves, one file each). The script stops if <code>data/tsumeshogi/</code> holds more than one file for the same number of moves.</li>
 <li>The root <code>LICENSE</code>. README files, <code>Hayanagi/source/</code>, and an external <code>licenses/</code> folder are not included.</li>
 </ul>
@@ -131,7 +131,7 @@ ctest --test-dir build --output-on-failure</code></pre>
 <pre><code>.\scripts\build-windows.ps1 -BuildDir build\msvc-release-2026.10.07 `
     -DeployDir build\releases\2026.10.07-windows\deploy `
     -ZipPath build\releases\2026.10.07-windows\ShogiBoardQ-windows.zip</code></pre>
-<p>Extract the ZIP into an empty folder on a Windows machine without the development SDK and run <code>ShogiBoardQ.exe</code>. Check language switching, pieces, sound, and tsume progress. Also run <code>shogiboardq-cli.exe version</code>, and check that <code>cmd /c "(echo usi&amp; echo quit) | Hayanagi\hayanagi.exe"</code> answers with <code>id name Hayanagi</code>. Distribute the complete folder; the executable alone does not contain Qt.</p>
+<p>Extract the ZIP into an empty folder on a Windows machine without the development SDK and run <code>ShogiBoardQ.exe</code>. Check language switching, pieces, sound, and tsume progress. Also run <code>shogiboardq-cli.exe version</code>, and check that <code>cmd /c "cd Hayanagi &amp;&amp; (echo usi&amp; echo isready&amp; echo quit) | .\hayanagi.exe"</code> answers with <code>id name Hayanagi</code> and <code>info string book loaded</code>. Hayanagi reads the book from <code>book\</code> in its working directory; ShogiBoardQ starts each engine in the engine's own folder, so the book is used as extracted. Distribute the complete folder; the executable alone does not contain Qt.</p>
 </section>
 <section id="signing" class="level2">
 <h2>Code signing</h2>
