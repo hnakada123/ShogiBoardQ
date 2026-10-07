@@ -4,10 +4,10 @@ ShogiBoardQ を macOS でビルドし、DMG ファイルとしてリリースす
 
 配布前に [Qt 文書とリリース添付の方針](qt-licensing.md) に従って
 アプリ内のライセンス文書を準備してください。配布スクリプトには Python 3 も必要です。
-Release の添付は実行用 DMG のみとし、Qt ソースや関連文書を別添付しません。
+Release の添付は配布 ZIP（`ShogiBoardQ-macos.zip`）のみとし、Qt ソースや関連文書を別添付しません。
 
 DMG には ShogiBoardQ の実行に必要なファイルだけを入れる（最小構成）。
-Windows / Linux の ZIP と異なり、Hayanagi（USI エンジン）と問題集は同梱しない。
+Linux 版と同様に、通常対局用の Hayanagi（USI エンジン）と詰将棋問題集は DMG の外に置き、DMG と一緒に配布 ZIP に入れる（[5.2](#52-配布-zip)）。
 UI 言語は日本語・英語・中国語（簡体字・繁体字）の 4 言語で、翻訳ファイル 4 個を同梱する。
 
 ---
@@ -116,7 +116,7 @@ clang++ --version     # Apple Clang
 | `--universal` | Universal Binary (arm64 + x86_64) をビルド |
 | `--deployment-target VER` | 最小対応 macOS バージョン（既定: 環境変数 `MACOSX_DEPLOYMENT_TARGET`、未設定なら `26.0`） |
 | `--sign-identity ID` | コード署名 ID（既定: `-` = アドホック署名）。Developer ID を指定すると Hardened Runtime とタイムスタンプを付けて署名する |
-| `--skip-dmg` | DMG 作成をスキップ（.app バンドルのみ生成） |
+| `--skip-dmg` | DMG と配布 ZIP の作成をスキップ（.app バンドルのみ生成） |
 | `--skip-qt-licenses` | [Qt 文書](qt-licensing.md) の追加をスキップし、ビルド時に同梱される簡易文書（`Contents/MacOS/licenses`）のみにする。配布用には付けない |
 | `--clean` | build ディレクトリを削除してからビルド |
 | `--help` | ヘルプを表示 |
@@ -131,6 +131,7 @@ clang++ --version     # Apple Clang
 6. Qt ライセンス文書の同梱（`--skip-qt-licenses` でスキップ）
 7. バンドル全体のコード署名 + `codesign --verify --deep --strict` による検証
 8. create-dmg による DMG 作成
+9. DMG・Hayanagi・詰将棋問題集を入れた配布 ZIP（`ShogiBoardQ-macos.zip`）の作成（[5.2](#52-配布-zip)）
 
 > **最小 macOS バージョンについて:** デプロイメントターゲットを指定しないと、ビルドホストの macOS バージョンが最小対応バージョンになる（例: macOS 27 でビルドすると macOS 26 で起動できない）。スクリプトは既定で `26.0` を指定し、ビルド後に実行ファイルの `minos` が一致しなければ停止する。
 >
@@ -368,6 +369,33 @@ open /Volumes/ShogiBoardQ/ShogiBoardQ.app
 hdiutil detach /Volumes/ShogiBoardQ
 ```
 
+### 5.2 配布 ZIP
+
+スクリプトは DMG の後に、リポジトリ直下に `ShogiBoardQ-macos.zip` を作る。構成は Linux 版の ZIP に合わせる。
+
+```
+ShogiBoardQ-macos/
+├── ShogiBoardQ.dmg
+├── README.md                      ← resources/platform/README-macos.md
+├── LICENSE
+├── Hayanagi/
+│   ├── hayanagi                   ← 通常対局用の USI エンジン（arm64、最小 macOS はアプリと同じ）
+│   └── README.md
+└── data/tsumeshogi/
+    ├── tsume_{3,5,7,9,11,13}ply_1000_YYYYMMDD.txt
+    └── README.md
+```
+
+- 問題集は各手数1ファイルに限る。旧版などが残っているとスクリプトは停止する。
+- `hayanagi` は `build/Hayanagi/hayanagi` を `strip -x` し、アプリと同じ ID（既定はアドホック）で署名し直す。
+- ダウンロードした `hayanagi` には隔離属性が付くため、README で `xattr -d com.apple.quarantine Hayanagi/hayanagi` を案内している。
+
+```bash
+unzip -l ShogiBoardQ-macos.zip
+# Hayanagi が応答するか
+(printf 'usi\nisready\nposition startpos\ngo movetime 300\n'; sleep 1.5; echo quit) | build/ShogiBoardQ-macos/Hayanagi/hayanagi | grep -E 'usiok|readyok|bestmove'
+```
+
 ---
 
 ## 6. コード署名と公証
@@ -479,7 +507,7 @@ gh auth login
 gh release create 2026.10.07 \
   --title "ShogiBoardQ 2026.10.07" \
   --notes-file RELEASE_NOTES.md \
-  ShogiBoardQ.dmg
+  ShogiBoardQ-macos.zip
 ```
 
 > Windows の ZIP も同時に公開する場合は、アセットを追加：
@@ -487,7 +515,7 @@ gh release create 2026.10.07 \
 > gh release create 2026.10.07 \
 >   --title "ShogiBoardQ 2026.10.07" \
 >   --notes-file RELEASE_NOTES.md \
->   ShogiBoardQ.dmg \
+>   ShogiBoardQ-macos.zip \
 >   ShogiBoardQ-windows.zip
 > ```
 
@@ -499,15 +527,15 @@ gh release create 2026.10.07 \
 gh release create 2026.10.07 \
   --title "ShogiBoardQ 2026.10.07" \
   --generate-notes \
-  ShogiBoardQ.dmg
+  ShogiBoardQ-macos.zip
 ```
 
 #### 既存リリースにアセットを追加
 
-Windows 側で先にリリースを作成済みの場合、macOS の DMG を追加：
+Windows 側で先にリリースを作成済みの場合、macOS の ZIP を追加：
 
 ```bash
-gh release upload 2026.10.07 ShogiBoardQ.dmg
+gh release upload 2026.10.07 ShogiBoardQ-macos.zip
 ```
 
 ### 7.3 Web UI からリリース作成（代替）
@@ -516,7 +544,7 @@ gh release upload 2026.10.07 ShogiBoardQ.dmg
 2. **Choose a tag** → 新しいタグ（例: `2026.10.07`）を入力して作成
 3. **Release title** を入力（例: `ShogiBoardQ 2026.10.07`）
 4. **Description** にリリースノートを記入
-5. **Attach binaries** に `ShogiBoardQ.dmg` をドラッグ＆ドロップ
+5. **Attach binaries** に `ShogiBoardQ-macos.zip` をドラッグ＆ドロップ
 6. **Publish release** をクリック
 
 ### 7.4 リリースノートの書き方（テンプレート）
@@ -528,12 +556,12 @@ gh release upload 2026.10.07 ShogiBoardQ.dmg
 
 | OS | ファイル |
 |---|---|
-| macOS | `ShogiBoardQ.dmg` |
+| macOS | `ShogiBoardQ-macos.zip` |
 | Windows (64-bit) | `ShogiBoardQ-windows.zip` |
 
 ### macOS での起動方法
 
-1. DMG ファイルを開く
+1. ZIP を展開し、`ShogiBoardQ.dmg` を開く
 2. ShogiBoardQ.app を Applications フォルダにドラッグ＆ドロップ
 3. Applications から起動
 
