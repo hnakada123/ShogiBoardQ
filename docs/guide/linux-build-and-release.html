@@ -281,6 +281,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <tr><td><code>resources/platform/README-linux.md</code></td><td><code>ShogiBoardQ-linux/README.md</code></td></tr>
 <tr><td><code>LICENSE</code></td><td><code>ShogiBoardQ-linux/LICENSE</code></td></tr>
 <tr><td><code>build/Hayanagi/hayanagi</code></td><td><code>ShogiBoardQ-linux/Hayanagi/hayanagi</code></td></tr>
+<tr><td><code>build/Hayanagi/book/hayanagi_book.db</code></td><td><code>ShogiBoardQ-linux/Hayanagi/book/hayanagi_book.db</code></td></tr>
 <tr><td><code>Hayanagi/README.md</code></td><td><code>ShogiBoardQ-linux/Hayanagi/README.md</code></td></tr>
 <tr><td><code>data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt</code>, <code>data/tsumeshogi/README.md</code></td><td><code>ShogiBoardQ-linux/data/tsumeshogi/</code></td></tr>
 </tbody>
@@ -293,6 +294,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
     ├── LICENSE
     ├── Hayanagi/
     │   ├── hayanagi
+    │   ├── book/hayanagi_book.db   ← Hayanagi の定跡
     │   └── README.md
     └── data/tsumeshogi/
         ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt   ← 6ファイル（各1,000題）
@@ -300,7 +302,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <ul>
 <li>問題集は内容を変更せずにコピーする。アプリに内蔵した監査記録とハッシュが一致するため、読み込み時に検証済みの手数と手順を再利用できる。</li>
 <li><code>data/tsumeshogi/</code> には各手数の問題集を1ファイルだけ置く（git で追跡しているのは現行の20261001版）。同じ手数のファイルが複数あると、スクリプトはエラーで止まる。</li>
-<li>Hayanagi は <code>strip</code> してから配置する。ZIP の外部ファイルには <code>docs/</code>・<code>validation_*.json</code>・<code>licenses/</code> を入れない。ライセンス文書は AppImage 内にある。</li>
+<li>Hayanagi は <code>strip</code> してから配置する。定跡 <code>hayanagi_book.db</code> はビルドで <code>build/Hayanagi/book/</code> にコピーされたものを <code>Hayanagi/book/</code> に置く。Hayanagi は実行ファイルの横の <code>book/</code> から定跡を読む。ZIP の外部ファイルには <code>docs/</code>・<code>validation_*.json</code>・<code>licenses/</code> を入れない。ライセンス文書は AppImage 内にある。</li>
 </ul>
 <p>利用者は次のように起動する。詰将棋対局の「局面集を開く…」で <code>data/tsumeshogi/</code> の問題集を選び、通常対局用のエンジン登録では <code>Hayanagi/hayanagi</code> を選ぶ。</p>
 <pre><code>unzip ShogiBoardQ-linux.zip

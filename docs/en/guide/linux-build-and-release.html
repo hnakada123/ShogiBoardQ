@@ -281,6 +281,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <tr><td><code>resources/platform/README-linux.md</code></td><td><code>ShogiBoardQ-linux/README.md</code></td></tr>
 <tr><td><code>LICENSE</code></td><td><code>ShogiBoardQ-linux/LICENSE</code></td></tr>
 <tr><td><code>build/Hayanagi/hayanagi</code></td><td><code>ShogiBoardQ-linux/Hayanagi/hayanagi</code></td></tr>
+<tr><td><code>build/Hayanagi/book/hayanagi_book.db</code></td><td><code>ShogiBoardQ-linux/Hayanagi/book/hayanagi_book.db</code></td></tr>
 <tr><td><code>Hayanagi/README.md</code></td><td><code>ShogiBoardQ-linux/Hayanagi/README.md</code></td></tr>
 <tr><td><code>data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt</code>, <code>data/tsumeshogi/README.md</code></td><td><code>ShogiBoardQ-linux/data/tsumeshogi/</code></td></tr>
 </tbody>
@@ -293,6 +294,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
     ├── LICENSE
     ├── Hayanagi/
     │   ├── hayanagi
+    │   ├── book/hayanagi_book.db   ← Hayanagi opening book
     │   └── README.md
     └── data/tsumeshogi/
         ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt   ← 6 files (1,000 puzzles each)
@@ -300,7 +302,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <ul>
 <li>The puzzle collections are copied unchanged. Their hashes match the audit records built into the application, so verified move counts and solutions are reused when a collection is opened.</li>
 <li>Keep exactly one collection per move count in <code>data/tsumeshogi/</code> (the repository tracks only the current 20261001 files). The script stops with an error if two files exist for the same move count.</li>
-<li>Hayanagi is stripped before it is added. The ZIP has no <code>docs/</code>, <code>validation_*.json</code>, or <code>licenses/</code> outside the AppImage; the license notices are inside the AppImage.</li>
+<li>Hayanagi is stripped before it is added. Its opening book <code>hayanagi_book.db</code>, which the build copies to <code>build/Hayanagi/book/</code>, goes to <code>Hayanagi/book/</code>; Hayanagi reads the book from <code>book/</code> next to its executable. The ZIP has no <code>docs/</code>, <code>validation_*.json</code>, or <code>licenses/</code> outside the AppImage; the license notices are inside the AppImage.</li>
 </ul>
 <p>Users start the application as follows. In tsume play, they choose a collection in <code>data/tsumeshogi/</code> with “Open collection…”; to register the engine for regular games, they choose <code>Hayanagi/hayanagi</code>.</p>
 <pre><code>unzip ShogiBoardQ-linux.zip

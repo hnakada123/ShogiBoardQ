@@ -264,6 +264,7 @@ ZIP には次のファイルを配置する。問題集と Hayanagi は、ZIP �
 | `resources/platform/README-linux.md` | `ShogiBoardQ-linux/README.md` |
 | `LICENSE` | `ShogiBoardQ-linux/LICENSE` |
 | `build/Hayanagi/hayanagi` | `ShogiBoardQ-linux/Hayanagi/hayanagi` |
+| `build/Hayanagi/book/hayanagi_book.db` | `ShogiBoardQ-linux/Hayanagi/book/hayanagi_book.db` |
 | `Hayanagi/README.md` | `ShogiBoardQ-linux/Hayanagi/README.md` |
 | `data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt`, `data/tsumeshogi/README.md` | `ShogiBoardQ-linux/data/tsumeshogi/` |
 
@@ -275,6 +276,7 @@ ShogiBoardQ-linux.zip
     ├── LICENSE
     ├── Hayanagi/
     │   ├── hayanagi
+    │   ├── book/hayanagi_book.db   ← Hayanagi の定跡
     │   └── README.md
     └── data/tsumeshogi/
         ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt   ← 6ファイル（各1,000題）
@@ -283,7 +285,7 @@ ShogiBoardQ-linux.zip
 
 - 問題集は内容を変更せずにコピーする。アプリに内蔵した監査記録とハッシュが一致するため、読み込み時に検証済みの手数と手順を再利用できる。
 - `data/tsumeshogi/` には各手数の問題集を1ファイルだけ置く（git で追跡しているのは現行の20261001版）。同じ手数のファイルが複数あると、スクリプトはエラーで止まる。
-- Hayanagi は `strip` してから配置する。ZIP の外部ファイルには `docs/`・`validation_*.json`・`licenses/` を入れない。ライセンス文書は AppImage 内にある。
+- Hayanagi は `strip` してから配置する。定跡 `hayanagi_book.db` はビルドで `build/Hayanagi/book/` にコピーされたものを `Hayanagi/book/` に置く。Hayanagi は実行ファイルの横の `book/` から定跡を読む。ZIP の外部ファイルには `docs/`・`validation_*.json`・`licenses/` を入れない。ライセンス文書は AppImage 内にある。
 
 利用者は次のように起動する。詰将棋対局の「局面集を開く…」で `data/tsumeshogi/` の問題集を選び、通常対局用のエンジン登録では `Hayanagi/hayanagi` を選ぶ。
 

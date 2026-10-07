@@ -37,6 +37,8 @@ xattr -d com.apple.quarantine Hayanagi/hayanagi
 ```
 
 隔離属性が付いたままだと、macOS がエンジンの起動を止めることがあります。
+Hayanagi は同じフォルダの `book/hayanagi_book.db` を定跡として使います（エンジン設定の
+`BookFile` を `no_book` にすると定跡を使いません）。
 詳細は [Hayanagi/README.md](Hayanagi/README.md) を参照してください。
 
 ## 動作環境とソース

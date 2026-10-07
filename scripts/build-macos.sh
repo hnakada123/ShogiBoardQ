@@ -3,7 +3,7 @@
 # macOS ビルドスクリプト for ShogiBoardQ
 #
 # Release ビルド → macdeployqt → コード署名 → DMG 作成 → 配布 ZIP 作成を一括実行する。
-# ZIP（ShogiBoardQ-macos.zip）には DMG・通常対局用 Hayanagi・詰将棋問題集を入れる。
+# ZIP（ShogiBoardQ-macos.zip）には DMG・通常対局用 Hayanagi（定跡を含む）・詰将棋問題集を入れる。
 # Hayanagi と問題集は DMG（アプリバンドル）には入れない。
 # 詳細: docs/dev/macos-build-and-release.md
 #
@@ -31,6 +31,8 @@ DMG_NAME="${APP_NAME}.dmg"
 PACKAGE_DIR="${BUILD_DIR}/${APP_NAME}-macos"
 ZIP_NAME="${APP_NAME}-macos.zip"
 HAYANAGI_EXE="${BUILD_DIR}/Hayanagi/hayanagi"
+# Hayanagi の定跡（ビルド時に hayanagi の横の book/ にコピーされる）
+HAYANAGI_BOOK="${BUILD_DIR}/Hayanagi/book/hayanagi_book.db"
 APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
 ICON_PATH="resources/icons/shogiboardq.icns"
 DEFAULT_DEPLOYMENT_TARGET="26.0"
@@ -398,12 +400,13 @@ create-dmg \
 # 問題集と通常対局用エンジンは、ZIP 展開後すぐファイル選択できるよう DMG の外に配置する。
 info "DMG・問題集・Hayanagi を含む ZIP を作成中..."
 [[ -x "$HAYANAGI_EXE" ]] || die "Hayanagi が見つかりません: $HAYANAGI_EXE"
+[[ -f "$HAYANAGI_BOOK" ]] || die "Hayanagi の定跡が見つかりません: $HAYANAGI_BOOK"
 HAYANAGI_MINOS=$(vtool -show-build "$HAYANAGI_EXE" 2>/dev/null | awk '/minos/ { print $2; exit }')
 if [[ "$(normalize_version "${HAYANAGI_MINOS:-0}")" != "$(normalize_version "$OPT_DEPLOYMENT_TARGET")" ]]; then
     die "Hayanagi の最小 macOS が ${HAYANAGI_MINOS:-不明} です（期待値: ${OPT_DEPLOYMENT_TARGET}）。"
 fi
 rm -rf "$PACKAGE_DIR" "$ZIP_NAME"
-mkdir -p "$PACKAGE_DIR/data/tsumeshogi" "$PACKAGE_DIR/Hayanagi"
+mkdir -p "$PACKAGE_DIR/data/tsumeshogi" "$PACKAGE_DIR/Hayanagi/book"
 cp "$DMG_NAME" "$PACKAGE_DIR/"
 cp "${TSUME_FILES[@]}" data/tsumeshogi/README.md "$PACKAGE_DIR/data/tsumeshogi/"
 cp Hayanagi/README.md "$PACKAGE_DIR/Hayanagi/"
@@ -417,6 +420,8 @@ fi
 codesign "${HAYANAGI_SIGN_ARGS[@]}" "$PACKAGE_DIR/Hayanagi/hayanagi"
 codesign --verify --strict "$PACKAGE_DIR/Hayanagi/hayanagi" \
     || die "Hayanagi のコード署名の検証に失敗しました。"
+# Hayanagi は作業ディレクトリ（ShogiBoardQ はエンジンのあるディレクトリにする）の book/ から定跡を読む。
+cp "$HAYANAGI_BOOK" "$PACKAGE_DIR/Hayanagi/book/"
 cp resources/platform/README-macos.md "$PACKAGE_DIR/README.md"
 cp LICENSE "$PACKAGE_DIR/"
 # 拡張属性や ._ ファイルを入れない（-X）。

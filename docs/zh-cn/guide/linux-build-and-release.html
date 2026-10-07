@@ -281,6 +281,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <tr><td><code>resources/platform/README-linux.md</code></td><td><code>ShogiBoardQ-linux/README.md</code></td></tr>
 <tr><td><code>LICENSE</code></td><td><code>ShogiBoardQ-linux/LICENSE</code></td></tr>
 <tr><td><code>build/Hayanagi/hayanagi</code></td><td><code>ShogiBoardQ-linux/Hayanagi/hayanagi</code></td></tr>
+<tr><td><code>build/Hayanagi/book/hayanagi_book.db</code></td><td><code>ShogiBoardQ-linux/Hayanagi/book/hayanagi_book.db</code></td></tr>
 <tr><td><code>Hayanagi/README.md</code></td><td><code>ShogiBoardQ-linux/Hayanagi/README.md</code></td></tr>
 <tr><td><code>data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt</code>, <code>data/tsumeshogi/README.md</code></td><td><code>ShogiBoardQ-linux/data/tsumeshogi/</code></td></tr>
 </tbody>
@@ -293,6 +294,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
     ├── LICENSE
     ├── Hayanagi/
     │   ├── hayanagi
+    │   ├── book/hayanagi_book.db   ← Hayanagi 的定式
     │   └── README.md
     └── data/tsumeshogi/
         ├── tsume_{3,5,7,9,11,13}ply_1000_20261001.txt   ← 6 个文件（各 1,000 题）
@@ -300,7 +302,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <ul>
 <li>题集按原样复制。其哈希值与应用程序内置的审核记录一致，因此读取时可以复用已验证的手数和手顺。</li>
 <li><code>data/tsumeshogi/</code> 中每种手数只放 1 个题集文件（仓库只跟踪当前的 20261001 版）。同一手数有多个文件时，脚本会报错并停止。</li>
-<li>Hayanagi 经 <code>strip</code> 后放入。ZIP 中 AppImage 之外不放 <code>docs/</code>、<code>validation_*.json</code> 和 <code>licenses/</code>，许可文档位于 AppImage 内。</li>
+<li>Hayanagi 经 <code>strip</code> 后放入。定式文件 <code>hayanagi_book.db</code> 由构建复制到 <code>build/Hayanagi/book/</code>，放入 <code>Hayanagi/book/</code>；Hayanagi 从可执行文件旁边的 <code>book/</code> 读取定式。ZIP 中 AppImage 之外不放 <code>docs/</code>、<code>validation_*.json</code> 和 <code>licenses/</code>，许可文档位于 AppImage 内。</li>
 </ul>
 <p>用户按以下方式启动。在诘棋练习的“打开题集…”中选择 <code>data/tsumeshogi/</code> 中的题集；登记普通对局用的引擎时选择 <code>Hayanagi/hayanagi</code>。</p>
 <pre><code>unzip ShogiBoardQ-linux.zip
