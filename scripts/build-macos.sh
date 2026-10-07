@@ -2,7 +2,9 @@
 #
 # macOS ビルドスクリプト for ShogiBoardQ
 #
-# Release ビルド → macdeployqt → コード署名 → DMG 作成を一括実行する。
+# Release ビルド → macdeployqt → コード署名 → DMG 作成 → 配布 ZIP 作成を一括実行する。
+# ZIP（ShogiBoardQ-macos.zip）には DMG・通常対局用 Hayanagi・詰将棋問題集を入れる。
+# Hayanagi と問題集は DMG（アプリバンドル）には入れない。
 # 詳細: docs/dev/macos-build-and-release.md
 #
 # Usage:
@@ -12,7 +14,7 @@
 #   --universal               Universal Binary (arm64 + x86_64) をビルド
 #   --deployment-target VER   最小対応 macOS バージョン（既定: 26.0）
 #   --sign-identity ID        コード署名 ID（既定: "-" = アドホック署名）
-#   --skip-dmg                DMG 作成をスキップ（.app のみ）
+#   --skip-dmg                DMG と ZIP の作成をスキップ（.app のみ）
 #   --skip-qt-licenses        Qt ライセンス文書の追加をスキップ（ビルド同梱の簡易文書のみ）
 #   --clean                   build ディレクトリを削除してからビルド
 #   --help                    このヘルプを表示
@@ -26,6 +28,9 @@ set -euo pipefail
 APP_NAME="ShogiBoardQ"
 BUILD_DIR="build"
 DMG_NAME="${APP_NAME}.dmg"
+PACKAGE_DIR="${BUILD_DIR}/${APP_NAME}-macos"
+ZIP_NAME="${APP_NAME}-macos.zip"
+HAYANAGI_EXE="${BUILD_DIR}/Hayanagi/hayanagi"
 APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
 ICON_PATH="resources/icons/shogiboardq.icns"
 DEFAULT_DEPLOYMENT_TARGET="26.0"
@@ -69,7 +74,7 @@ Options:
                             （既定: 環境変数 MACOSX_DEPLOYMENT_TARGET、未設定なら 26.0）
   --sign-identity ID        コード署名 ID（既定: "-" = アドホック署名）
                             Developer ID を指定すると Hardened Runtime を有効にして署名する
-  --skip-dmg                DMG 作成をスキップ（.app バンドルのみ生成）
+  --skip-dmg                DMG と ZIP の作成をスキップ（.app バンドルのみ生成）
   --skip-qt-licenses        Qt のライセンス文書と対応ソース情報の追加をスキップ
                             （ビルド時に同梱される簡易文書のみ。配布用は通常付けない）
   --clean                   build ディレクトリを削除してからビルド
@@ -161,6 +166,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 info "プロジェクトルート: $PROJECT_ROOT"
+
+# ZIP に入れる詰将棋問題集。旧版などが残っていると ZIP に混ざるため、各手数1ファイルに限る。
+TSUME_FILES=()
+if [[ "$OPT_SKIP_DMG" = false ]]; then
+    for plies in 3 5 7 9 11 13; do
+        collections=(data/tsumeshogi/tsume_"${plies}"ply_*.txt)
+        [[ -f "${collections[0]}" ]] || die "${plies}手詰の問題集が見つかりません。"
+        [[ ${#collections[@]} -eq 1 ]] || die "${plies}手詰の問題集が複数あります: ${collections[*]}"
+        TSUME_FILES+=("${collections[0]}")
+    done
+fi
 
 # ──────────────────────────────────────────────
 # Step 3: クリーン（オプション）
@@ -376,9 +392,41 @@ create-dmg \
     "$APP_BUNDLE"
 
 # ──────────────────────────────────────────────
+# Step 11: 配布 ZIP 作成
+# ──────────────────────────────────────────────
+
+# 問題集と通常対局用エンジンは、ZIP 展開後すぐファイル選択できるよう DMG の外に配置する。
+info "DMG・問題集・Hayanagi を含む ZIP を作成中..."
+[[ -x "$HAYANAGI_EXE" ]] || die "Hayanagi が見つかりません: $HAYANAGI_EXE"
+HAYANAGI_MINOS=$(vtool -show-build "$HAYANAGI_EXE" 2>/dev/null | awk '/minos/ { print $2; exit }')
+if [[ "$(normalize_version "${HAYANAGI_MINOS:-0}")" != "$(normalize_version "$OPT_DEPLOYMENT_TARGET")" ]]; then
+    die "Hayanagi の最小 macOS が ${HAYANAGI_MINOS:-不明} です（期待値: ${OPT_DEPLOYMENT_TARGET}）。"
+fi
+rm -rf "$PACKAGE_DIR" "$ZIP_NAME"
+mkdir -p "$PACKAGE_DIR/data/tsumeshogi" "$PACKAGE_DIR/Hayanagi"
+cp "$DMG_NAME" "$PACKAGE_DIR/"
+cp "${TSUME_FILES[@]}" data/tsumeshogi/README.md "$PACKAGE_DIR/data/tsumeshogi/"
+cp Hayanagi/README.md "$PACKAGE_DIR/Hayanagi/"
+install -m755 "$HAYANAGI_EXE" "$PACKAGE_DIR/Hayanagi/hayanagi"
+# strip で署名が外れるため、アプリと同じ ID で署名し直す。
+strip -x "$PACKAGE_DIR/Hayanagi/hayanagi"
+HAYANAGI_SIGN_ARGS=(--force --sign "$OPT_SIGN_IDENTITY")
+if [[ "$OPT_SIGN_IDENTITY" != "-" ]]; then
+    HAYANAGI_SIGN_ARGS+=(--options runtime --timestamp)
+fi
+codesign "${HAYANAGI_SIGN_ARGS[@]}" "$PACKAGE_DIR/Hayanagi/hayanagi"
+codesign --verify --strict "$PACKAGE_DIR/Hayanagi/hayanagi" \
+    || die "Hayanagi のコード署名の検証に失敗しました。"
+cp resources/platform/README-macos.md "$PACKAGE_DIR/README.md"
+cp LICENSE "$PACKAGE_DIR/"
+# 拡張属性や ._ ファイルを入れない（-X）。
+(cd "$BUILD_DIR" && zip -qrX "$PROJECT_ROOT/$ZIP_NAME" "$(basename "$PACKAGE_DIR")")
+
+# ──────────────────────────────────────────────
 # 完了
 # ──────────────────────────────────────────────
 
 info "ビルド完了!"
 info "アプリバンドル: $APP_BUNDLE"
 info "DMG ファイル:   $DMG_NAME"
+info "ZIP ファイル:   $ZIP_NAME"
