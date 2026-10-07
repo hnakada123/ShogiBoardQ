@@ -8,7 +8,10 @@ GitHub Release には各 OS の実行用パッケージだけを添付する。
 |---|---|
 | Linux | `ShogiBoardQ-linux.zip`（AppImage・問題集・Hayanagi を含む） |
 | macOS | `ShogiBoardQ-<version>-macos.dmg` |
-| Windows | `ShogiBoardQ-<version>-windows-x86_64.zip` |
+| Windows | `ShogiBoardQ-windows.zip`（問題集・Hayanagi を含む） |
+
+ホームページのダウンロードボタンは `releases/latest/download/ShogiBoardQ-windows.zip` を指すため、
+Windows の ZIP は版番号を付けずにこの名前で添付する（`scripts/build-windows.ps1` の既定名）。
 
 Linux だけを公開する場合は ZIP 1個のみとする。Qt ソースアーカイブ、Qt のパッチ・
 ビルド手順アーカイブ、`QT-SOURCE.json`、`SOURCE_CODE.md`、`BUILD-INFO.txt`、
@@ -21,7 +24,7 @@ Qt ソースの取得はライセンス文書の抽出に使用するビルド�
 Linux ZIP の外部ファイルには `licenses/` を作成せず、AppImage 内の文書を利用する。
 Windows ZIP にも外部の `licenses/` と `Hayanagi/source/` は収録しない。
 Windows ではアプリ内蔵のライセンス表示とルートの `LICENSE` を維持し、
-実行用ファイル・問題集・利用案内を配布する。この構成を今後の Windows リリースにも適用する。
+実行用ファイル・問題集・Hayanagi を配布する（README は収録しない）。この構成を今後の Windows リリースにも適用する。
 
 ## ライセンス文書
 
