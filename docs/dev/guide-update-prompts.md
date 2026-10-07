@@ -23,7 +23,7 @@
 ## 残っている作業（2026-10-06 時点）
 
 - 中国語版が無いページ: `guide/index.html`（利用ガイドの目次）、`guide/linux-build-and-release.html`、
-  `guide/macos-build-and-release.html`、`guide/windows-build-and-release.html`
+  `guide/macos-build-and-release.html`
 - `guide/multi-os.html` の Windows・macOS の箇所（画像はユーザーが用意する）。あわせて、日本語版の
   「Qt6によるクロスプラットフォーム」の記述（各 OS のネイティブなルック＆フィール → 実際は全 OS で Fusion スタイル、
   ビルド要件の Qt モジュール一覧と Qt 6.7 以上）を直す
