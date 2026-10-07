@@ -63,8 +63,15 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
 
     m_refs.clock->stopClock();
 
+    // 千日手・持将棋（引き分け）の終局行は、終局した局面で手番の側の行として記録する。
+    // 棋譜ファイルを読み込んだときも終局行には手番側の印が付くので、それと合わせる
+    Player lineOwner = loser;
+    if ((cause == Cause::Sennichite || cause == Cause::Jishogi) && m_refs.gc) {
+        lineOwner = (m_refs.gc->currentPlayer() == ShogiGameController::Player2) ? Player::P2 : Player::P1;
+    }
+
     QString line;
-    const QString mark = (loser == Player::P1) ? QStringLiteral("▲") : QStringLiteral("△");
+    const QString mark = (lineOwner == Player::P1) ? QStringLiteral("▲") : QStringLiteral("△");
     const QString winMark = (loser == Player::P1) ? QStringLiteral("△") : QStringLiteral("▲");
 
     switch (cause) {
@@ -82,7 +89,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
     // 入玉宣言勝ちでは宣言した勝者が手番側になる。
     const Player mover = (cause == Cause::NyugyokuWin)
                              ? (loser == Player::P1 ? Player::P2 : Player::P1)
-                             : loser;
+                             : lineOwner;
     const qint64 epochMs = m_hooks.turnEpochFor ? m_hooks.turnEpochFor(mover) : -1;
     qint64 considerMs = 0;
     if (epochMs > 0) {

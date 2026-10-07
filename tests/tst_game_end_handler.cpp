@@ -184,6 +184,8 @@ private slots:
     void handleMaxMovesJishogi_setsState();
     void handleMaxMovesJishogi_appendsKifuLine();
     void handleMaxMovesJishogi_alreadyOver_ignored();
+    void drawLine_usesSideToMove_data();
+    void drawLine_usesSideToMove();
 
     // === Section F: 千日手 ===
 
@@ -480,6 +482,48 @@ void Tst_GameEndHandler::handleMaxMovesJishogi_alreadyOver_ignored()
 
     QVERIFY(!EndTracker::showGameOverDialogCalled);
     QCOMPARE(EndTracker::appendKifuLineCount, 0);
+}
+
+void Tst_GameEndHandler::drawLine_usesSideToMove_data()
+{
+    QTest::addColumn<bool>("sennichite");
+    QTest::addColumn<int>("sideToMove");
+    QTest::addColumn<QString>("expectedLine");
+    QTest::addColumn<QString>("expectedEpoch");
+
+    QTest::newRow("jishogi-white-to-move") << false << 2 << QStringLiteral("△持将棋") << QStringLiteral("epoch-P2");
+    QTest::newRow("jishogi-black-to-move") << false << 1 << QStringLiteral("▲持将棋") << QStringLiteral("epoch-P1");
+    QTest::newRow("sennichite-white-to-move") << true << 2 << QStringLiteral("△千日手") << QStringLiteral("epoch-P2");
+    QTest::newRow("sennichite-black-to-move") << true << 1 << QStringLiteral("▲千日手") << QStringLiteral("epoch-P1");
+}
+
+void Tst_GameEndHandler::drawLine_usesSideToMove()
+{
+    // 千日手・持将棋の終局行は、終局した局面の手番側の印と消費時間で記録する
+    // （棋譜ファイルを読み込んだときに付く印と同じ）
+    QFETCH(bool, sennichite);
+    QFETCH(int, sideToMove);
+    QFETCH(QString, expectedLine);
+    QFETCH(QString, expectedEpoch);
+
+    EndTestHarness h;
+    h.gc.setCurrentPlayer(sideToMove == 1 ? ShogiGameController::Player1 : ShogiGameController::Player2);
+    GameEndHandler::Hooks hooks;
+    hooks.turnEpochFor = [](MatchCoordinator::Player p) -> qint64 {
+        EndTracker::events.append(p == MatchCoordinator::P1 ? QStringLiteral("epoch-P1")
+                                                            : QStringLiteral("epoch-P2"));
+        return -1;
+    };
+    hooks.appendKifuLine = [](const QString& line, const QString&) {
+        EndTracker::lastAppendedLine = line;
+    };
+    h.handler.setHooks(hooks);
+
+    if (sennichite) h.handler.handleSennichite();
+    else            h.handler.handleMaxMovesJishogi();
+
+    QCOMPARE(EndTracker::lastAppendedLine, expectedLine);
+    QCOMPARE(EndTracker::events, QStringList{expectedEpoch});
 }
 
 // ============================================================
