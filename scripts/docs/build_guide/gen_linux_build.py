@@ -103,13 +103,13 @@ def page(code):
     <meta property="og:url" content="{url}">
     <meta property="og:title" content="{e(title)}">
     <meta property="og:description" content="{e(t['summary'])}">
-    <meta property="og:image" content="{SITE}images/og-image.png">
+    <meta property="og:image" content="{SITE}images/og-image.png?v=20261005">
     <meta property="og:locale" content="{locale}">
     <meta property="og:site_name" content="ShogiBoardQ">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{e(title)}">
     <meta name="twitter:description" content="{e(t['summary'])}">
-    <meta name="twitter:image" content="{SITE}images/og-image.png">
+    <meta name="twitter:image" content="{SITE}images/og-image.png?v=20261005">
     <link rel="stylesheet" href="{up}css/style.css">
     <link rel="stylesheet" href="{up}css/build-guide.css">
 </head>
