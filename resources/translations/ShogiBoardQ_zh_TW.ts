@@ -2703,7 +2703,7 @@
     <message>
         <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="301"/>
         <source>重複したエンジンオプションが見つかりました。</source>
-        <translation>發現重復的引擎選項。</translation>
+        <translation>發現重複的引擎選項。</translation>
     </message>
 </context>
 <context>
@@ -3014,7 +3014,7 @@ ABC abc 0123456789</translation>
     <message>
         <location filename="../../src/game/gameendhandler_record.cpp" line="133"/>
         <source>千日手が成立しました。</source>
-        <translation>千日手成立（重復局面和棋）。</translation>
+        <translation>千日手成立（重複局面和棋）。</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
@@ -7952,7 +7952,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="829"/>
         <source>無制限</source>
-        <translation>不限時</translation>
+        <translation>不限</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="836"/>
