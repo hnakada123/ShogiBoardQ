@@ -2,6 +2,8 @@
 # Windows ビルドスクリプト for ShogiBoardQ
 #
 # Release ビルド → windeployqt → ZIP 作成を一括実行する。
+# ZIP には ShogiBoardQ・shogiboardq-cli・Hayanagi（通常対局用 USI エンジン）と
+# data/tsumeshogi の詰将棋問題集（3〜13手詰の各1ファイル）を同梱する。
 # 詳細: docs/dev/windows-build-and-release.md
 #
 # Usage:
@@ -10,6 +12,9 @@
 # Options:
 #   -Clean       build ディレクトリを削除してからビルド
 #   -SkipZip     ZIP 作成をスキップ
+#   -BuildDir    ビルドディレクトリ（既定: build）
+#   -DeployDir   配布用ディレクトリ（既定: deploy）
+#   -ZipPath     作成する ZIP ファイル（既定: ShogiBoardQ-windows.zip）
 #   -Help        このヘルプを表示
 #
 # Prerequisites:
@@ -25,6 +30,9 @@
 param(
     [switch]$Clean,
     [switch]$SkipZip,
+    [string]$BuildDir = "build",
+    [string]$DeployDir = "deploy",
+    [string]$ZipPath = "ShogiBoardQ-windows.zip",
     [switch]$Help
 )
 
@@ -36,9 +44,12 @@ $ErrorActionPreference = "Stop"
 # ──────────────────────────────────────────────
 
 $APP_NAME = "ShogiBoardQ"
-$BUILD_DIR = "build"
-$DEPLOY_DIR = "deploy"
-$ZIP_NAME = "${APP_NAME}-windows.zip"
+$CLI_NAME = "shogiboardq-cli"
+$BUILD_DIR = $BuildDir
+$DEPLOY_DIR = $DeployDir
+$ZIP_NAME = $ZipPath
+# 同梱する詰将棋問題集の手数（各手数 data/tsumeshogi/tsume_<手数>ply_*.txt が1ファイルだけあること）
+$TSUME_PLIES = @(3, 5, 7, 9, 11, 13)
 
 # ──────────────────────────────────────────────
 # ヘルパー関数
@@ -94,6 +105,9 @@ Windows 用の Release ビルド〜ZIP 作成を一括実行するスクリプ�
 Options:
   -Clean       build ディレクトリを削除してからビルド
   -SkipZip     ZIP 作成をスキップ（deploy フォルダのみ生成）
+  -BuildDir    ビルドディレクトリ（既定: build）
+  -DeployDir   配布用ディレクトリ（既定: deploy）
+  -ZipPath     作成する ZIP ファイル（既定: ShogiBoardQ-windows.zip）
   -Help        このヘルプを表示
 
 Examples:
@@ -102,6 +116,11 @@ Examples:
 
   # クリーンビルド、ZIP なし
   .\scripts\build-windows.ps1 -Clean -SkipZip
+
+  # 版ごとのディレクトリにビルドする
+  .\scripts\build-windows.ps1 -BuildDir build\msvc-release-2026.10.07 ``
+      -DeployDir build\releases\2026.10.07-windows\deploy ``
+      -ZipPath build\releases\2026.10.07-windows\ShogiBoardQ-windows.zip
 "@
 }
 
@@ -260,8 +279,42 @@ if (-not $exePath) {
 
 Write-Info "実行ファイル: $exePath"
 
-# 翻訳ファイルの確認
 $exeDir = Split-Path -Parent $exePath
+
+# shogiboardq-cli（MCP サーバーが呼び出す CLI）
+$cliPath = Join-Path $exeDir "${CLI_NAME}.exe"
+if (-not (Test-Path $cliPath)) {
+    Stop-WithError "${CLI_NAME}.exe が見つかりません: $cliPath"
+}
+
+# Hayanagi（Ninja: build/Hayanagi/、VS: build/Hayanagi/Release/）
+$hayanagiPath = $null
+foreach ($path in @("$BUILD_DIR/Hayanagi/hayanagi.exe", "$BUILD_DIR/Hayanagi/Release/hayanagi.exe")) {
+    if (Test-Path $path) {
+        $hayanagiPath = $path
+        break
+    }
+}
+if (-not $hayanagiPath) {
+    Stop-WithError "Hayanagi（hayanagi.exe）が見つかりません。"
+}
+Write-Info "Hayanagi: $hayanagiPath"
+
+# 詰将棋問題集。旧版などが残っていると ZIP に混ざるため、各手数1ファイルに限る。
+$tsumeFiles = @()
+foreach ($plies in $TSUME_PLIES) {
+    $collections = @(Get-ChildItem -Path "data/tsumeshogi" -Filter "tsume_${plies}ply_*.txt" -File -ErrorAction SilentlyContinue)
+    if ($collections.Count -eq 0) {
+        Stop-WithError "${plies}手詰の問題集が見つかりません。"
+    }
+    if ($collections.Count -gt 1) {
+        Stop-WithError "${plies}手詰の問題集が複数あります: $($collections.Name -join ', ')"
+    }
+    $tsumeFiles += $collections[0]
+}
+Write-Info "問題集: $($tsumeFiles.Name -join ', ')"
+
+# 翻訳ファイルの確認
 $qmFiles = Get-ChildItem -Path $exeDir -Filter "*.qm" -ErrorAction SilentlyContinue
 if ($qmFiles) {
     Write-Info "翻訳ファイル: $(@($qmFiles).Count) 個の .qm ファイルを検出"
@@ -282,6 +335,19 @@ New-Item -ItemType Directory -Path $DEPLOY_DIR | Out-Null
 
 # exe をコピー
 Copy-Item $exePath $DEPLOY_DIR
+Copy-Item $cliPath $DEPLOY_DIR
+
+# Hayanagi と問題集。ZIP 展開後すぐエンジン登録・問題集の選択ができるよう exe の横に置く。
+$deployHayanagiDir = Join-Path $DEPLOY_DIR "Hayanagi"
+$deployTsumeDir = Join-Path $DEPLOY_DIR "data/tsumeshogi"
+New-Item -ItemType Directory -Path $deployHayanagiDir, $deployTsumeDir | Out-Null
+Copy-Item $hayanagiPath $deployHayanagiDir
+foreach ($tsume in $tsumeFiles) {
+    Copy-Item $tsume.FullName $deployTsumeDir
+}
+
+# ライセンス（アプリ内蔵の表示とあわせて、ルートの LICENSE を収録する）
+Copy-Item "LICENSE" $DEPLOY_DIR
 
 # .qm ファイルをコピー
 if ($qmFiles) {
@@ -298,11 +364,21 @@ Write-Info "windeployqt で Qt DLL をデプロイ中..."
 
 $deployExePath = Join-Path $DEPLOY_DIR "${APP_NAME}.exe"
 # --no-compiler-runtime: vc_redist.x64.exe を同梱せず、次のステップでランタイム DLL を直接コピーする
-windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime $deployExePath
+$deployCliPath = Join-Path $DEPLOY_DIR "${CLI_NAME}.exe"
+windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime $deployExePath $deployCliPath
 
 if ($LASTEXITCODE -ne 0) {
     Stop-WithError "windeployqt に失敗しました。"
 }
+
+# shogiboardq-cli は画面の無い環境でも盤面を描画できるよう offscreen プラットフォームを既定にする。
+# windeployqt は qoffscreen.dll をコピーしないため、Qt のプラグインディレクトリから追加する。
+$qtPluginsDir = Join-Path (Split-Path -Parent (Split-Path -Parent $windeployqtExe.Source)) "plugins"
+$offscreenPlugin = Join-Path $qtPluginsDir "platforms/qoffscreen.dll"
+if (-not (Test-Path $offscreenPlugin)) {
+    Stop-WithError "qoffscreen.dll が見つかりません: $offscreenPlugin"
+}
+Copy-Item $offscreenPlugin (Join-Path $DEPLOY_DIR "platforms")
 
 # ──────────────────────────────────────────────
 # Step 8.5: MSVC ランタイム DLL のコピー
@@ -318,6 +394,17 @@ foreach ($dll in $runtimeDlls) {
     Copy-Item $dll.FullName $DEPLOY_DIR
 }
 Write-Info "MSVC ランタイム DLL: $(@($runtimeDlls).Count) 個をコピー"
+
+# Hayanagi は別ディレクトリにあり exe の横の DLL しか探さないため、Hayanagi/ にも置く。
+# hayanagi.exe が読み込むのは次の3個だけなので、それ以外は置かない。
+$hayanagiRuntimeDlls = @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
+foreach ($dll in $hayanagiRuntimeDlls) {
+    $src = Join-Path $vcRuntimeDir $dll
+    if (-not (Test-Path $src)) {
+        Stop-WithError "$vcRuntimeDir に $dll がありません。"
+    }
+    Copy-Item $src $deployHayanagiDir
+}
 
 # ──────────────────────────────────────────────
 # Step 9: デプロイ後の検証
@@ -372,6 +459,18 @@ if ($missingRuntimeDlls.Count -gt 0) {
 } else {
     Write-Info "MSVC ランタイム DLL: すべて存在を確認"
 }
+
+# Hayanagi・問題集の確認
+foreach ($dll in $hayanagiRuntimeDlls) {
+    if (-not (Test-Path (Join-Path $deployHayanagiDir $dll))) {
+        Stop-WithError "Hayanagi 用の MSVC ランタイム DLL が見つかりません: $dll"
+    }
+}
+$deployedTsumeCount = @(Get-ChildItem -Path $deployTsumeDir -Filter "tsume_*ply_*.txt" -File).Count
+if ($deployedTsumeCount -ne $TSUME_PLIES.Count) {
+    Stop-WithError "問題集の数が $($TSUME_PLIES.Count) ではありません: $deployedTsumeCount"
+}
+Write-Info "Hayanagi・問題集: OK（問題集 $deployedTsumeCount ファイル）"
 
 # platforms プラグインの確認
 if (-not (Test-Path (Join-Path $DEPLOY_DIR "platforms"))) {
