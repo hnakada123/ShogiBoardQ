@@ -61,6 +61,19 @@ private slots:
         }
     }
 
+    /// macOS の Qt は文字列から役割を推測し、「設定…」で始まる項目を
+    /// アプリケーションメニューの「設定」（⌘,）に、「…について」で終わる項目を
+    /// 「ShogiBoardQ について」に移す。どちらも元のメニューに残す。
+    void menuItemsAreNotMovedToApplicationMenu()
+    {
+        QMainWindow window;
+        Ui::MainWindow ui;
+        ui.setupUi(&window);
+        QCOMPARE(ui.actionResetSettings->menuRole(), QAction::NoRole);
+        QCOMPARE(ui.actionAboutQt->menuRole(), QAction::NoRole);
+        QVERIFY(ui.Help->actions().contains(ui.actionAboutQt));
+    }
+
     void allRecordFormatsShareMenuPolicy()
     {
         QMainWindow window;
