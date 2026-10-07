@@ -139,6 +139,7 @@ ShogiBoardQ-linux.zip
     ├── LICENSE
     ├── Hayanagi/
     │   ├── hayanagi
+    │   ├── book/hayanagi_book.db   ← {c['book']}
     │   └── README.md
     └── data/tsumeshogi/
         ├── tsume_{{3,5,7,9,11,13}}ply_1000_20261001.txt   ← {c['puzzles']}
@@ -176,6 +177,7 @@ ZIP_ROWS = [
     ["`resources/platform/README-linux.md`", "`ShogiBoardQ-linux/README.md`"],
     ["`LICENSE`", "`ShogiBoardQ-linux/LICENSE`"],
     ["`build/Hayanagi/hayanagi`", "`ShogiBoardQ-linux/Hayanagi/hayanagi`"],
+    ["`build/Hayanagi/book/hayanagi_book.db`", "`ShogiBoardQ-linux/Hayanagi/book/hayanagi_book.db`"],
     ["`Hayanagi/README.md`", "`ShogiBoardQ-linux/Hayanagi/README.md`"],
     ["`data/tsumeshogi/tsume_{3,5,7,9,11,13}ply_*.txt`, `data/tsumeshogi/README.md`",
      "`ShogiBoardQ-linux/data/tsumeshogi/`"],
@@ -343,13 +345,15 @@ T["ja"] = {
         ("h3", "zip", "5.3 ZIP の中身"),
         ("p", "ZIP には次のファイルを配置する。問題集と Hayanagi は、ZIP を展開すればすぐファイル選択できる。"),
         ("table", ["元ファイル", "ZIP 内の配置先"], ZIP_ROWS),
-        ("code", zip_tree({"puzzles": "6ファイル（各1,000題）"})),
+        ("code", zip_tree({"puzzles": "6ファイル（各1,000題）", "book": "Hayanagi の定跡"})),
         ("ul", [
             "問題集は内容を変更せずにコピーする。アプリに内蔵した監査記録とハッシュが一致するため、読み込み時に"
             "検証済みの手数と手順を再利用できる。",
             "`data/tsumeshogi/` には各手数の問題集を1ファイルだけ置く（git で追跡しているのは現行の20261001版）。"
             "同じ手数のファイルが複数あると、スクリプトはエラーで止まる。",
-            "Hayanagi は `strip` してから配置する。ZIP の外部ファイルには `docs/`・`validation_*.json`・`licenses/` を"
+            "Hayanagi は `strip` してから配置する。定跡 `hayanagi_book.db` はビルドで `build/Hayanagi/book/` に"
+            "コピーされたものを `Hayanagi/book/` に置く。Hayanagi は実行ファイルの横の `book/` から定跡を読む。"
+            "ZIP の外部ファイルには `docs/`・`validation_*.json`・`licenses/` を"
             "入れない。ライセンス文書は AppImage 内にある。",
         ]),
         ("p", "利用者は次のように起動する。詰将棋対局の「局面集を開く…」で `data/tsumeshogi/` の問題集を選び、"
@@ -621,13 +625,15 @@ T["en"] = {
         ("h3", "zip", "5.3 Contents of the ZIP"),
         ("p", "The ZIP contains the following files. After extracting it, users can select the puzzle collections and Hayanagi right away."),
         ("table", ["Source file", "Location in the ZIP"], ZIP_ROWS),
-        ("code", zip_tree({"puzzles": "6 files (1,000 puzzles each)"})),
+        ("code", zip_tree({"puzzles": "6 files (1,000 puzzles each)", "book": "Hayanagi opening book"})),
         ("ul", [
             "The puzzle collections are copied unchanged. Their hashes match the audit records built into the application, "
             "so verified move counts and solutions are reused when a collection is opened.",
             "Keep exactly one collection per move count in `data/tsumeshogi/` (the repository tracks only the current 20261001 "
             "files). The script stops with an error if two files exist for the same move count.",
-            "Hayanagi is stripped before it is added. The ZIP has no `docs/`, `validation_*.json`, or `licenses/` outside the "
+            "Hayanagi is stripped before it is added. Its opening book `hayanagi_book.db`, which the build copies to "
+            "`build/Hayanagi/book/`, goes to `Hayanagi/book/`; Hayanagi reads the book from `book/` next to its executable. "
+            "The ZIP has no `docs/`, `validation_*.json`, or `licenses/` outside the "
             "AppImage; the license notices are inside the AppImage.",
         ]),
         ("p", "Users start the application as follows. In tsume play, they choose a collection in `data/tsumeshogi/` with "
@@ -888,12 +894,13 @@ T["zh-cn"] = {
         ("h3", "zip", "5.3 ZIP 的内容"),
         ("p", "ZIP 中放入以下文件。解压 ZIP 后即可选择题集和 Hayanagi。"),
         ("table", ["源文件", "在 ZIP 中的位置"], ZIP_ROWS),
-        ("code", zip_tree({"puzzles": "6 个文件（各 1,000 题）"})),
+        ("code", zip_tree({"puzzles": "6 个文件（各 1,000 题）", "book": "Hayanagi 的定式"})),
         ("ul", [
             "题集按原样复制。其哈希值与应用程序内置的审核记录一致，因此读取时可以复用已验证的手数和手顺。",
             "`data/tsumeshogi/` 中每种手数只放 1 个题集文件（仓库只跟踪当前的 20261001 版）。"
             "同一手数有多个文件时，脚本会报错并停止。",
-            "Hayanagi 经 `strip` 后放入。ZIP 中 AppImage 之外不放 `docs/`、`validation_*.json` 和 `licenses/`，"
+            "Hayanagi 经 `strip` 后放入。定式文件 `hayanagi_book.db` 由构建复制到 `build/Hayanagi/book/`，"
+            "放入 `Hayanagi/book/`；Hayanagi 从可执行文件旁边的 `book/` 读取定式。ZIP 中 AppImage 之外不放 `docs/`、`validation_*.json` 和 `licenses/`，"
             "许可文档位于 AppImage 内。",
         ]),
         ("p", "用户按以下方式启动。在诘棋练习的“打开题集…”中选择 `data/tsumeshogi/` 中的题集；"
@@ -1145,12 +1152,13 @@ T["zh-tw"] = {
         ("h3", "zip", "5.3 ZIP 的內容"),
         ("p", "ZIP 中放入以下檔案。解壓縮 ZIP 後即可選擇題集和 Hayanagi。"),
         ("table", ["來源檔案", "在 ZIP 中的位置"], ZIP_ROWS),
-        ("code", zip_tree({"puzzles": "6 個檔案（各 1,000 題）"})),
+        ("code", zip_tree({"puzzles": "6 個檔案（各 1,000 題）", "book": "Hayanagi 的定跡"})),
         ("ul", [
             "題集原樣複製。其雜湊值與應用程式內建的稽核紀錄一致，因此讀取時可以沿用已驗證的手數和手順。",
             "`data/tsumeshogi/` 中每種手數只放 1 個題集檔案（儲存庫只追蹤目前的 20261001 版）。"
             "同一手數有多個檔案時，指令碼會報錯並停止。",
-            "Hayanagi 經 `strip` 後放入。ZIP 中 AppImage 之外不放 `docs/`、`validation_*.json` 和 `licenses/`，"
+            "Hayanagi 經 `strip` 後放入。定跡檔案 `hayanagi_book.db` 由建置複製到 `build/Hayanagi/book/`，"
+            "放入 `Hayanagi/book/`；Hayanagi 從執行檔旁邊的 `book/` 讀取定跡。ZIP 中 AppImage 之外不放 `docs/`、`validation_*.json` 和 `licenses/`，"
             "授權文件位於 AppImage 內。",
         ]),
         ("p", "使用者依以下方式啟動。在練習詰棋的「開啟題集…」中選擇 `data/tsumeshogi/` 中的題集；"

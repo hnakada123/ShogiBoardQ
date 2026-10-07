@@ -473,6 +473,7 @@ hdiutil detach /Volumes/ShogiBoardQ</code></pre>
 ├── LICENSE
 ├── Hayanagi/
 │   ├── hayanagi                   ← 通常対局用の USI エンジン（arm64、最小 macOS はアプリと同じ）
+│   ├── book/hayanagi_book.db      ← Hayanagi の定跡
 │   └── README.md
 └── data/tsumeshogi/
     ├── tsume_{3,5,7,9,11,13}ply_1000_YYYYMMDD.txt
@@ -480,11 +481,12 @@ hdiutil detach /Volumes/ShogiBoardQ</code></pre>
 <ul>
 <li>問題集は各手数1ファイルに限る。旧版などが残っているとスクリプトは停止する。</li>
 <li><code>hayanagi</code> は <code>build/Hayanagi/hayanagi</code> を <code>strip -x</code> し、アプリと同じ ID（既定はアドホック）で署名し直す。</li>
+<li>定跡 <code>hayanagi_book.db</code> は、ビルドで <code>build/Hayanagi/book/</code> にコピーされたものを <code>Hayanagi/book/</code> に置く。Hayanagi は作業ディレクトリの <code>book/</code> から定跡を読み、ShogiBoardQ はエンジンのあるディレクトリを作業ディレクトリにして起動するので、展開したまま定跡が使われる。</li>
 <li>ダウンロードした <code>hayanagi</code> には隔離属性が付くため、README で <code>xattr -d com.apple.quarantine Hayanagi/hayanagi</code> を案内している。</li>
 </ul>
 <pre class="bash"><code>unzip -l ShogiBoardQ-macos.zip
-# Hayanagi が応答するか
-(printf &#39;usi\nisready\nposition startpos\ngo movetime 300\n&#39;; sleep 1.5; echo quit) | build/ShogiBoardQ-macos/Hayanagi/hayanagi | grep -E &#39;usiok|readyok|bestmove&#39;</code></pre>
+# Hayanagi が応答し、定跡を読むか（ShogiBoardQ と同じく Hayanagi/ で起動する）
+(cd build/ShogiBoardQ-macos/Hayanagi &amp;&amp; (printf &#39;usi\nisready\nposition startpos\ngo movetime 300\n&#39;; sleep 1.5; echo quit) | ./hayanagi | grep -E &#39;book|usiok|readyok|bestmove&#39;)</code></pre>
 </section>
 </section>
 <section id="6-コード署名と公証" class="level2">

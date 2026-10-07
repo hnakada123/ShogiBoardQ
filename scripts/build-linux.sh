@@ -33,6 +33,8 @@ APPIMAGE_NAME="${APP_NAME}-linux-x86_64.AppImage"
 PACKAGE_DIR="${BUILD_DIR}/${APP_NAME}-linux"
 ZIP_NAME="${APP_NAME}-linux.zip"
 HAYANAGI_EXE="${BUILD_DIR}/Hayanagi/hayanagi"
+# Hayanagi の定跡（ビルド時に hayanagi の横の book/ にコピーされる）
+HAYANAGI_BOOK="${BUILD_DIR}/Hayanagi/book/hayanagi_book.db"
 ICON_PATH="resources/icons/linux/shogiboardq.png"
 DESKTOP_PATH="resources/platform/shogiboardq.desktop"
 
@@ -205,6 +207,7 @@ fi
 
 # 外部 USI エンジンと問題集も毎回 ZIP に同梱する。欠落した配布物は作らない。
 [[ -x "$HAYANAGI_EXE" ]] || die "Hayanagi が見つかりません: $HAYANAGI_EXE"
+[[ -f "$HAYANAGI_BOOK" ]] || die "Hayanagi の定跡が見つかりません: $HAYANAGI_BOOK"
 TSUME_FILES=()
 for plies in 3 5 7 9 11 13; do
     collections=(data/tsumeshogi/tsume_"${plies}"ply_*.txt)
@@ -459,12 +462,14 @@ info "AppImage サイズ: $APPIMAGE_SIZE"
 # 問題集と通常対局用エンジンを、ZIP 展開後すぐファイル選択できるよう外にも配置する。
 info "AppImage・問題集・Hayanagi を含む ZIP を作成中..."
 rm -rf "$PACKAGE_DIR"
-mkdir -p "$PACKAGE_DIR/data/tsumeshogi" "$PACKAGE_DIR/Hayanagi"
+mkdir -p "$PACKAGE_DIR/data/tsumeshogi" "$PACKAGE_DIR/Hayanagi/book"
 cp "$APPIMAGE_NAME" "$PACKAGE_DIR/"
 cp "${TSUME_FILES[@]}" data/tsumeshogi/README.md "$PACKAGE_DIR/data/tsumeshogi/"
 cp Hayanagi/README.md "$PACKAGE_DIR/Hayanagi/"
 install -m755 "$HAYANAGI_EXE" "$PACKAGE_DIR/Hayanagi/hayanagi"
 strip --strip-unneeded "$PACKAGE_DIR/Hayanagi/hayanagi"
+# Hayanagi は実行ファイルの横の book/hayanagi_book.db を定跡として読む。
+cp "$HAYANAGI_BOOK" "$PACKAGE_DIR/Hayanagi/book/"
 cp resources/platform/README-linux.md "$PACKAGE_DIR/README.md"
 cp LICENSE "$PACKAGE_DIR/"
 # docs、検証 JSON、licenses は ZIP の外部ファイルに含めない。

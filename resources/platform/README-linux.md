@@ -31,6 +31,8 @@ FUSE を利用できない環境では、次のように起動します。
 
 通常対局用の USI エンジンとして使用する場合は、エンジン登録画面で
 `Hayanagi/hayanagi` を選択してください。実行ファイル名は小文字です。
+Hayanagi は同じフォルダの `book/hayanagi_book.db` を定跡として使います（エンジン設定の
+`BookFile` を `no_book` にすると定跡を使いません）。
 詳細は [Hayanagi/README.md](Hayanagi/README.md) を参照してください。
 
 ## 動作環境とソース
