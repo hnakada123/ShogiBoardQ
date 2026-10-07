@@ -60,6 +60,7 @@
     <!-- Content from docs/dev/macos-build-and-release.md -->
     <article class="section-inner build-document" aria-label="macOS ビルド・リリース手順の詳細">
 <p>Release の添付は実行用 DMG のみとし、Qt ソースや関連文書を別添付しません。アプリ内のライセンス文書の準備は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文書とリリース添付の方針</a>を参照してください。</p>
+<p>DMG には ShogiBoardQ の実行に必要なファイルだけを入れる（最小構成）。Windows / Linux の ZIP と異なり、Hayanagi（USI エンジン）と問題集は同梱しない。UI 言語は日本語・英語・中国語（簡体字・繁体字）の 4 言語で、翻訳ファイル 4 個を同梱する。</p>
 <section id="目次" class="level2">
 <h2>目次</h2>
 <ol type="1">
@@ -161,6 +162,9 @@ clang++ --version     # Apple Clang</code></pre>
 # クリーンビルド、DMG なし
 ./scripts/build-macos.sh --clean --skip-dmg
 
+# Qt ライセンス文書を準備していないときの試験用 DMG（配布には使わない）
+./scripts/build-macos.sh --clean --skip-qt-licenses
+
 # Developer ID で署名（既定はアドホック署名）
 ./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot;</code></pre>
 <div class="table-scroll">
@@ -189,6 +193,10 @@ clang++ --version     # Apple Clang</code></pre>
 <td>DMG 作成をスキップ（.app バンドルのみ生成）</td>
 </tr>
 <tr>
+<td><code>--skip-qt-licenses</code></td>
+<td><a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文書</a>の追加をスキップし、ビルド時に同梱される簡易文書（<code>Contents/MacOS/licenses</code>）のみにする。配布用には付けない</td>
+</tr>
+<tr>
 <td><code>--clean</code></td>
 <td>build ディレクトリを削除してからビルド</td>
 </tr>
@@ -204,13 +212,16 @@ clang++ --version     # Apple Clang</code></pre>
 <li>前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, create-dmg）</li>
 <li>CMake Configure（<code>CMAKE_OSX_DEPLOYMENT_TARGET</code> を指定）+ Ninja ビルド</li>
 <li>ビルド成果物の確認（.app、実行ファイルの最小 macOS バージョン、.qm 翻訳ファイル）</li>
-<li>macdeployqt によるフレームワークバンドル + 検証</li>
+<li>macdeployqt によるフレームワークバンドル</li>
+<li>未使用の Qt 部品の削除と、Qt バイナリの arm64 化（<a href="#44-未使用の-qt-部品の削除最小構成">4.4</a>。<code>--universal</code> 時は arm64 化しない）+ 検証</li>
+<li>Qt ライセンス文書の同梱（<code>--skip-qt-licenses</code> でスキップ）</li>
 <li>バンドル全体のコード署名 + <code>codesign --verify --deep --strict</code> による検証</li>
 <li>create-dmg による DMG 作成</li>
 </ol>
 <blockquote>
 <p><strong>最小 macOS バージョンについて:</strong> デプロイメントターゲットを指定しないと、ビルドホストの macOS バージョンが最小対応バージョンになる（例: macOS 27 でビルドすると macOS 26 で起動できない）。スクリプトは既定で <code>26.0</code> を指定し、ビルド後に実行ファイルの <code>minos</code> が一致しなければ停止する。</p>
 <p><strong>コード署名について:</strong> macdeployqt はバイナリを書き換えるため、実行後のバンドルはリンカ署名のみの状態になり、厳格な署名検証に通らない。スクリプトは macdeployqt の後にバンドル全体を署名し直してから DMG を作成する。</p>
+<p><strong>macdeployqt の ERROR 表示について:</strong> <code>.qm: is not an object file</code>（翻訳ファイルに otool を実行したもの）、ODBC / PostgreSQL / Mimer の SQL ドライバーの依存先が見つからないという表示、macdeployqt 自身の署名エラーが出るが、いずれも無害。これらのドライバーは次の手順で削除し、署名はスクリプトがやり直して厳格に検証する。</p>
 </blockquote>
 <p>以下は個別のコマンドを手動で実行する場合の手順。</p>
 </section>
@@ -242,8 +253,9 @@ find build/ShogiBoardQ.app -type f | head -20</code></pre>
 │   │   ├── ShogiBoardQ              ← 実行ファイル
 │   │   ├── ShogiBoardQ_ja_JP.qm     ← 日本語翻訳
 │   │   ├── ShogiBoardQ_en.qm        ← 英語翻訳
-│   │   ├── ShogiBoardQ_zh_CN.qm        ← 中国語（簡体字）翻訳
-│   │   └── ShogiBoardQ_zh_TW.qm        ← 中国語（繁体字）翻訳
+│   │   ├── ShogiBoardQ_zh_CN.qm     ← 中国語（簡体字）翻訳
+│   │   ├── ShogiBoardQ_zh_TW.qm     ← 中国語（繁体字）翻訳
+│   │   └── licenses/                ← ライセンス文書（簡易版）
 │   └── Resources/
 │       └── shogiboardq.icns          ← アプリアイコン</code></pre>
 </section>
@@ -285,13 +297,68 @@ otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
 <section id="43-翻訳ファイルの確認" class="level3">
 <h3>4.3 翻訳ファイルの確認</h3>
 <p>CMake のポストビルドステップにより <code>.qm</code> ファイルは <code>Contents/MacOS/</code> に配置される。 <code>macdeployqt</code> 実行後もファイルが残っていることを確認：</p>
-<pre class="bash"><code>ls build/ShogiBoardQ.app/Contents/MacOS/*.qm</code></pre>
+<pre class="bash"><code>ls build/ShogiBoardQ.app/Contents/MacOS/*.qm   # 4 個（ja_JP / en / zh_CN / zh_TW）</code></pre>
+<p>Qt 標準ダイアログの翻訳（<code>qtbase_ja</code> / <code>qtbase_zh_CN</code> / <code>qtbase_zh_TW</code>）は実行ファイルのリソースに埋め込まれるため、別ファイルは不要。</p>
+</section>
+<section id="44-未使用の-qt-部品の削除最小構成" class="level3">
+<h3>4.4 未使用の Qt 部品の削除（最小構成）</h3>
+<p>macdeployqt は種類ごとに Qt のプラグインをすべて配置し、仮想キーボードのプラグイン経由で Qt Quick / QML まで取り込む（約 187MB）。 ShogiBoardQ が使わないものを削除し、Apple Silicon 専用の配布では Qt の x86_64 部分も取り除く（約 89MB、DMG は約 50MB）。</p>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>削除するもの</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PlugIns/platforminputcontexts/</code>、<code>QtQml*</code> / <code>QtQuick</code> / <code>QtVirtualKeyboard*</code></td>
+<td>仮想キーボード・QML を使わない</td>
+</tr>
+<tr>
+<td><code>PlugIns/tls/</code>、<code>PlugIns/networkinformation/</code></td>
+<td>CSA 通信は平文 TCP のみ</td>
+</tr>
+<tr>
+<td><code>PlugIns/multimedia/libffmpegmediaplugin.dylib</code>、<code>libav*</code> / <code>libsw*</code></td>
+<td>駒音は macOS 標準の darwin バックエンドで再生する</td>
+</tr>
+<tr>
+<td><code>PlugIns/sqldrivers/</code> の SQLite 以外</td>
+<td>SQLite のみ使用</td>
+</tr>
+<tr>
+<td><code>PlugIns/imageformats/</code> の gif / wbmp / macheif / icns / tga / macjp2</td>
+<td>SVG / ICO（アイコン）と JPEG / TIFF / WebP（盤面画像出力）のみ使用</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="bash"><code>C=build/ShogiBoardQ.app/Contents
+rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/tls $C/PlugIns/networkinformation \
+  $C/PlugIns/multimedia/libffmpegmediaplugin.dylib $C/Frameworks/libav*.dylib $C/Frameworks/libsw*.dylib \
+  $C/Frameworks/QtQml*.framework $C/Frameworks/QtQuick.framework $C/Frameworks/QtVirtualKeyboard*.framework
+find $C/PlugIns/sqldrivers -name &#39;*.dylib&#39; ! -name libqsqlite.dylib -delete
+for p in gif wbmp macheif icns tga macjp2; do rm -f $C/PlugIns/imageformats/libq$p.dylib; done
+
+# Qt を arm64 のみにする（Universal Binary を配布する場合は行わない）
+find $C -type f \( -perm +111 -o -name &#39;*.dylib&#39; \) | while read -r f; do
+  if lipo -archs &quot;$f&quot; 2&gt;/dev/null | grep -q x86_64; then
+    lipo &quot;$f&quot; -thin arm64 -output &quot;$f.thin&quot; &amp;&amp; chmod &quot;$(stat -f %Lp &quot;$f&quot;)&quot; &quot;$f.thin&quot; &amp;&amp; mv &quot;$f.thin&quot; &quot;$f&quot;
+  fi
+done</code></pre>
+<p>残るのは Qt フレームワーク 12 個（Charts, Concurrent, Core, DBus, Gui, Multimedia, Network, OpenGL, OpenGLWidgets, Sql, Svg, Widgets）と、プラグイン 9 個（cocoa, macstyle, svgicon, darwin multimedia, sqlite, ico / jpeg / tiff / webp）。 削除後はバンドル全体を署名し直す（<a href="#64-手動でのコード署名">6.4</a>。アドホック署名なら <code>codesign --force --deep --sign - build/ShogiBoardQ.app</code>）。</p>
+<p>起動後、読み込まれたライブラリがすべてバンドル内のものか確認する：</p>
+<pre class="bash"><code>open build/ShogiBoardQ.app
+lsof -p &quot;$(pgrep -x ShogiBoardQ)&quot; | grep -E &#39;/Qt/|homebrew&#39;   # 何も表示されなければよい</code></pre>
 </section>
 </section>
 <section id="5-dmg-ファイルの作成" class="level2">
 <h2>5. DMG ファイルの作成</h2>
 <blockquote>
 <p><strong>Note:</strong> <code>scripts/build-macos.sh</code> を使用した場合、方法B (create-dmg) で自動作成されるため手動での実行は不要。<code>--skip-dmg</code> オプションで DMG 作成のみスキップすることも可能。</p>
+<p>手動で作成する場合も、DMG に入れる前に <a href="#44-未使用の-qt-部品の削除最小構成">4.4</a> の削除と署名を済ませる。方法A は macdeployqt が DMG を直接作るため、最小構成にはならない。</p>
 </blockquote>
 <section id="方法a-macdeployqt-の--dmg-オプション簡易" class="level3">
 <h3>方法A: macdeployqt の -dmg オプション（簡易）</h3>
@@ -595,10 +662,7 @@ install_name_tool -change \
 <p><code>.qm</code> ファイルがバンドル内に存在するか確認：</p>
 <pre class="bash"><code>find build/ShogiBoardQ.app -name &quot;*.qm&quot;</code></pre>
 <p><code>Contents/MacOS/</code> 内に <code>.qm</code> ファイルがない場合、手動でコピー：</p>
-<pre class="bash"><code>cp build/ShogiBoardQ_ja_JP.qm build/ShogiBoardQ.app/Contents/MacOS/
-cp build/ShogiBoardQ_en.qm build/ShogiBoardQ.app/Contents/MacOS/
-cp build/ShogiBoardQ_zh_CN.qm build/ShogiBoardQ.app/Contents/MacOS/
-cp build/ShogiBoardQ_zh_TW.qm build/ShogiBoardQ.app/Contents/MacOS/</code></pre>
+<pre class="bash"><code>cp build/ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm build/ShogiBoardQ.app/Contents/MacOS/</code></pre>
 </section>
 <section id="universal-binary-intel--apple-silicon-の作成" class="level3">
 <h3>Universal Binary (Intel + Apple Silicon) の作成</h3>

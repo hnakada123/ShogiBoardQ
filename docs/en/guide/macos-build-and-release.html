@@ -108,8 +108,18 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-source
 <p>After preparing the <a href="#qt-sources">Qt notices and source archive</a>, run:</p>
 <pre><code>./scripts/build-macos.sh</code></pre>
 <p>The script builds <code>build/ShogiBoardQ.app</code>, deploys Qt frameworks and plugins with <code>macdeployqt</code>, copies all four application translations (ja_JP, en, zh_CN, zh_TW) and license documents, signs the app, and creates <code>ShogiBoardQ.dmg</code> in the repository root. It checks the bundled SQLite plugin used for puzzle history.</p>
-<p>Use <code>--skip-dmg</code> to produce only the deployed app bundle, <code>--universal</code> for both CPU architectures, or <code>--help</code> for all options. Preparing a deployed app still requires the <a href="#qt-sources">Qt notices</a>.</p>
-<p>Mount the DMG, copy the app to Applications, and test it on a machine without the Qt SDK. Check language switching, pieces, sound, and saving tsume puzzle progress. For a universal release, test both architectures.</p>
+<p>The DMG contains only the files needed to run ShogiBoardQ. Unlike the Windows and Linux ZIPs, it does not include the Hayanagi USI engine or the puzzle collections. Translations of the standard Qt dialogs are embedded in the executable.</p>
+<p>After <code>macdeployqt</code>, the script removes Qt parts the application does not use, then checks that every framework still referenced is present in the bundle:</p>
+<ul>
+<li>Virtual keyboard, QML, and Qt Quick (<code>platforminputcontexts</code>, <code>QtQml*</code>, <code>QtQuick</code>, <code>QtVirtualKeyboard*</code>)</li>
+<li>TLS and network information plugins (CSA play uses plain TCP)</li>
+<li>The FFmpeg multimedia backend and its <code>libav*</code> / <code>libsw*</code> libraries (piece sounds use the native darwin backend)</li>
+<li>SQL drivers other than SQLite</li>
+<li>Image format plugins other than SVG and ICO (icons) and JPEG, TIFF, and WebP (board image export)</li>
+</ul>
+<p>Unless <code>--universal</code> is given, it also strips the x86_64 slices from Qt, so the app is arm64 only. This reduces the bundle from about 187 MB to about 89 MB and the DMG to about 50 MB. Expect harmless <code>macdeployqt</code> errors about <code>.qm</code> files not being object files, missing ODBC, PostgreSQL, or Mimer driver dependencies, and its own signing step; the script removes those drivers, re-signs the bundle, and verifies it strictly.</p>
+<p>Use <code>--skip-dmg</code> to produce only the deployed app bundle, <code>--universal</code> for both CPU architectures, or <code>--help</code> for all options. Preparing a deployed app still requires the <a href="#qt-sources">Qt notices</a>. For a test DMG without them, <code>--skip-qt-licenses</code> keeps only the short license documents bundled by the build in <code>Contents/MacOS/licenses</code>; do not use it for a release.</p>
+<p>Mount the DMG, copy the app to Applications, and test it on a machine without the Qt SDK. Check language switching, pieces, sound, board image export, and saving tsume puzzle progress. For a universal release, test both architectures. To confirm that nothing loads from the Qt SDK or Homebrew, run <code>lsof -p "$(pgrep -x ShogiBoardQ)" | grep -E '/Qt/|homebrew'</code> while the app is running; it should print nothing.</p>
 </section>
 <section id="signing" class="level2">
 <h2>Code signing and notarization</h2>
@@ -134,6 +144,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-source
 <li><strong>A framework cannot load on another Mac:</strong> inspect the deployment log and app bundle. Test the deployed app from the DMG, not an app that relies on the developer SDK.</li>
 <li><strong>One architecture fails to link:</strong> verify that Qt and all dependencies contain both architectures before using <code>--universal</code>.</li>
 <li><strong>Puzzle history cannot be saved:</strong> check <code>Contents/PlugIns/sqldrivers/libqsqlite.dylib</code> in the app.</li>
+<li><strong>The script reports that a removed framework is still referenced:</strong> a new Qt version or feature now depends on it. Keep that framework in the pruning step of <code>scripts/build-macos.sh</code>.</li>
 <li><strong>Signing or notarization fails:</strong> inspect the identity, entitlements, and notarization log. Re-sign after modifying the app bundle.</li>
 <li><strong>Qt notice validation fails:</strong> prepare notices and sources matching the deployed Qt, including any package-manager patches.</li>
 </ul>
