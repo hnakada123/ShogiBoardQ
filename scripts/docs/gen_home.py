@@ -22,7 +22,7 @@ META = {
 
 # (icon, guide page) — 節へリンクするときは "page#id"。各言語の "cards" もこの文字列で引く
 FEATURE_GROUPS = [
-    ("play", [("game", "game-play"), ("engine", "game-play#engine-registration"), ("engine", "hayanagi"), ("network", "csa-game"), ("nyugyoku", "nyugyoku")]),
+    ("play", [("game", "game-play"), ("engine", "game-play#engine-registration"), ("hayanagi", "hayanagi"), ("network", "csa-game"), ("nyugyoku", "nyugyoku")]),
     ("analysis", [("consideration", "consideration"), ("eval-graph", "kifu-analysis"), ("book", "joseki"),
                   ("position-viewer", "kyokumenshu-viewer")]),
     ("records", [("kifu-list", "kifu-display"), ("kifu-file", "kifu-management"), ("board-edit", "board-edit"),
