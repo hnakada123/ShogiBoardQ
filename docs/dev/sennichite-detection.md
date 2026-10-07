@@ -90,6 +90,8 @@ static QString positionKey(const QString& sfen);
 - 各局面について `ShogiBoard::setSfen()` で盤面を復元
 - `FastMoveValidator::checkIfKingInCheck()` で手番側の玉が王手されているか判定
 - 「手番側の玉が王手されている」= 直前の相手の手が王手
+- 先手の手がすべて王手かどうかは後手番の局面だけ、後手の手は先手番の局面だけで数える
+  （王手をかけた側の手番の局面まで分母に入れると、毎手王手でも成立しない）
 
 ```
 SFEN 手番フィールド:
@@ -97,7 +99,7 @@ SFEN 手番フィールド:
   "w"（後手番）→ 直前に先手が指した → 後手玉が王手 = 先手の王手
 ```
 
-全ポジションで一方だけが王手を続けていた場合、その側の反則負けとなる。
+一方の指し手がすべて王手だった場合、その側の反則負けとなる。テストは `tests/tst_sennichite_detector.cpp`。
 
 ## MatchCoordinator の変更
 
