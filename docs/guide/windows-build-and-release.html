@@ -69,7 +69,7 @@
 <div class="section">
     <!-- Content from docs/dev/windows-build-and-release.md -->
     <article class="section-inner build-document" aria-label="Windows ビルド・リリース手順の詳細">
-<p>Windows ZIP にはアプリ（<code>ShogiBoardQ.exe</code>・<code>shogiboardq-cli.exe</code>）、実行用 DLL、翻訳、詰将棋問題集6ファイル、Hayanagi 実行ファイルとルートの LICENSE を収録します。README は収録しません。<code>Hayanagi/source/</code> と外部の <code>licenses/</code> は今後の Windows リリースでも収録しません。アプリ内蔵のライセンス表示はそのまま利用します。</p>
+<p>Windows ZIP にはアプリ（<code>ShogiBoardQ.exe</code>・<code>shogiboardq-cli.exe</code>）、実行用 DLL、翻訳、詰将棋問題集6ファイル、Hayanagi 実行ファイルとその定跡、ルートの LICENSE を収録します。README は収録しません。<code>Hayanagi/source/</code> と外部の <code>licenses/</code> は今後の Windows リリースでも収録しません。アプリ内蔵のライセンス表示はそのまま利用します。</p>
 <p>Release の添付は実行用 ZIP のみとし、Qt ソースや関連文書を別添付しません。アプリ内のライセンス文書の準備は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文書とリリース添付の方針</a>を参照してください。</p>
 <section id="目次" class="level2">
 <h2>目次</h2>
@@ -227,8 +227,8 @@ windeployqt --version # Qt デプロイツール</code></pre>
 <ol type="1">
 <li>前提ツールの存在確認（cmake, ninja, cl, windeployqt, MSVC ランタイム DLL の場所）</li>
 <li>CMake Configure + ビルド（ShogiBoardQ・shogiboardq-cli・Hayanagi）</li>
-<li>ビルド成果物の確認（.exe、.qm 翻訳ファイル、hayanagi.exe、各手数1ファイルの問題集）</li>
-<li>deploy ディレクトリ作成 + 問題集・Hayanagi・LICENSE の配置 + windeployqt による DLL デプロイ + <code>qoffscreen.dll</code> の追加 + MSVC ランタイム DLL のコピー + 検証</li>
+<li>ビルド成果物の確認（.exe、.qm 翻訳ファイル、hayanagi.exe と定跡、各手数1ファイルの問題集）</li>
+<li>deploy ディレクトリ作成 + 問題集・Hayanagi（定跡を含む）・LICENSE の配置 + windeployqt による DLL デプロイ + <code>qoffscreen.dll</code> の追加 + MSVC ランタイム DLL のコピー + 検証</li>
 <li>ZIP ファイル作成</li>
 </ol>
 <blockquote>
@@ -285,15 +285,16 @@ dir build\Release\*.qm   # VS ジェネレータ</code></pre>
 </blockquote>
 <section id="41-deploy-ディレクトリの作成" class="level3">
 <h3>4.1 deploy ディレクトリの作成</h3>
-<p>exe、翻訳ファイル、詰将棋問題集、Hayanagi、LICENSE を配布用ディレクトリにコピー：</p>
-<pre class="powershell"><code>mkdir deploy, deploy\Hayanagi, deploy\data\tsumeshogi
+<p>exe、翻訳ファイル、詰将棋問題集、Hayanagi とその定跡、LICENSE を配布用ディレクトリにコピー：</p>
+<pre class="powershell"><code>mkdir deploy, deploy\Hayanagi\book, deploy\data\tsumeshogi
 copy build\ShogiBoardQ.exe deploy\
 copy build\shogiboardq-cli.exe deploy\
 copy build\*.qm deploy\
 copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
+copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
 copy data\tsumeshogi\tsume_*ply_*.txt deploy\data\tsumeshogi\
 copy LICENSE deploy\</code></pre>
-<p>詰将棋問題集は 3・5・7・9・11・13 手詰を1ファイルずつ、合計6ファイル収録する（<code>data/tsumeshogi/</code> に同じ手数の旧版が残っていないこと。スクリプトは複数あると停止する）。README（ルート・<code>Hayanagi/</code>・<code>data/tsumeshogi/</code>）は収録しない。 ソースツリーやビルドフォルダを丸ごとコピーせず、<code>Hayanagi/source/</code> と <code>licenses/</code> が ZIP に含まれていないことを公開前に確認してください。通常ビルドが生成する <code>build/licenses/</code> も Windows ZIP にはコピーしません。</p>
+<p>詰将棋問題集は 3・5・7・9・11・13 手詰を1ファイルずつ、合計6ファイル収録する（<code>data/tsumeshogi/</code> に同じ手数の旧版が残っていないこと。スクリプトは複数あると停止する）。README（ルート・<code>Hayanagi/</code>・<code>data/tsumeshogi/</code>）は収録しない。Hayanagi の定跡 <code>hayanagi_book.db</code> は、ビルドで <code>build/Hayanagi/book/</code> にコピーされたものを <code>Hayanagi/book/</code> に置く。Hayanagi は作業ディレクトリの <code>book/</code> から定跡を読み、ShogiBoardQ はエンジンのあるディレクトリを作業ディレクトリにして起動するので、ZIP を展開したまま定跡が使われる。 ソースツリーやビルドフォルダを丸ごとコピーせず、<code>Hayanagi/source/</code> と <code>licenses/</code> が ZIP に含まれていないことを公開前に確認してください。通常ビルドが生成する <code>build/licenses/</code> も Windows ZIP にはコピーしません。</p>
 </section>
 <section id="42-windeployqt-で-qt-dll-をデプロイ" class="level3">
 <h3>4.2 windeployqt で Qt DLL をデプロイ</h3>
@@ -375,8 +376,9 @@ dir deploy\platforms\qoffscreen.dll
 # SQLite ドライバー（詰将棋の解答履歴の保存に使う）
 dir deploy\sqldrivers\qsqlite.dll
 
-# Hayanagi と問題集（6ファイル）
+# Hayanagi・定跡と問題集（6ファイル）
 dir deploy\Hayanagi
+dir deploy\Hayanagi\book\hayanagi_book.db
 dir deploy\data\tsumeshogi</code></pre>
 <p>デプロイ後のディレクトリ構造：</p>
 <pre><code>deploy/
@@ -406,7 +408,8 @@ dir deploy\data\tsumeshogi</code></pre>
 │   ├── hayanagi.exe               ← 通常対局用 USI エンジン
 │   ├── vcruntime140.dll           ← Hayanagi 用 MSVC ランタイム（この3個のみ）
 │   ├── vcruntime140_1.dll
-│   └── msvcp140.dll
+│   ├── msvcp140.dll
+│   └── book/hayanagi_book.db      ← Hayanagi の定跡
 ├── data/tsumeshogi/
 │   ├── tsume_3ply_1000_*.txt      ← 詰将棋問題集（3〜13手詰、各1,000題）
 │   ├── ...
@@ -443,8 +446,9 @@ dir deploy\data\tsumeshogi</code></pre>
 .\deploy\shogiboardq-cli.exe version
 .\deploy\shogiboardq-cli.exe render-board --sfen startpos --output board.png --overwrite
 
-# Hayanagi（id name Hayanagi … と usiok が返ること）
-cmd /c &quot;(echo usi&amp; echo quit) | deploy\Hayanagi\hayanagi.exe&quot;</code></pre>
+# Hayanagi（ShogiBoardQ と同じく Hayanagi のフォルダで起動し、id name Hayanagi … と
+# info string book loaded が返ること）
+cmd /c &quot;cd deploy\Hayanagi &amp;&amp; (echo usi&amp; echo isready&amp; echo quit) | .\hayanagi.exe&quot;</code></pre>
 <blockquote>
 <p><strong>重要</strong>: テストは Qt の bin ディレクトリが PATH に<strong>含まれない</strong>環境で行うこと。 PATH に Qt が含まれていると、deploy フォルダの DLL ではなくシステムの DLL が使われてしまい、 デプロイ漏れを検出できない。</p>
 </blockquote>

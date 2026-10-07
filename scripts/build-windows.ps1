@@ -2,7 +2,7 @@
 # Windows ビルドスクリプト for ShogiBoardQ
 #
 # Release ビルド → windeployqt → ZIP 作成を一括実行する。
-# ZIP には ShogiBoardQ・shogiboardq-cli・Hayanagi（通常対局用 USI エンジン）と
+# ZIP には ShogiBoardQ・shogiboardq-cli・Hayanagi（通常対局用 USI エンジンとその定跡）と
 # data/tsumeshogi の詰将棋問題集（3〜13手詰の各1ファイル）を同梱する。
 # 詳細: docs/dev/windows-build-and-release.md
 #
@@ -300,6 +300,15 @@ if (-not $hayanagiPath) {
 }
 Write-Info "Hayanagi: $hayanagiPath"
 
+# Hayanagi の定跡。ビルド時に hayanagi.exe の横の book/ にコピーされる。
+# Hayanagi は作業ディレクトリ（ShogiBoardQ はエンジンのあるディレクトリにする）からの
+# book/hayanagi_book.db を読むため、配布物でも Hayanagi/book/ に置く。
+$hayanagiBookPath = Join-Path (Split-Path -Parent $hayanagiPath) "book/hayanagi_book.db"
+if (-not (Test-Path $hayanagiBookPath)) {
+    Stop-WithError "Hayanagi の定跡（hayanagi_book.db）が見つかりません: $hayanagiBookPath"
+}
+Write-Info "Hayanagi 定跡: $hayanagiBookPath"
+
 # 詰将棋問題集。旧版などが残っていると ZIP に混ざるため、各手数1ファイルに限る。
 $tsumeFiles = @()
 foreach ($plies in $TSUME_PLIES) {
@@ -340,8 +349,10 @@ Copy-Item $cliPath $DEPLOY_DIR
 # Hayanagi と問題集。ZIP 展開後すぐエンジン登録・問題集の選択ができるよう exe の横に置く。
 $deployHayanagiDir = Join-Path $DEPLOY_DIR "Hayanagi"
 $deployTsumeDir = Join-Path $DEPLOY_DIR "data/tsumeshogi"
-New-Item -ItemType Directory -Path $deployHayanagiDir, $deployTsumeDir | Out-Null
+$deployHayanagiBookDir = Join-Path $deployHayanagiDir "book"
+New-Item -ItemType Directory -Path $deployHayanagiDir, $deployHayanagiBookDir, $deployTsumeDir | Out-Null
 Copy-Item $hayanagiPath $deployHayanagiDir
+Copy-Item $hayanagiBookPath $deployHayanagiBookDir
 foreach ($tsume in $tsumeFiles) {
     Copy-Item $tsume.FullName $deployTsumeDir
 }
@@ -466,11 +477,14 @@ foreach ($dll in $hayanagiRuntimeDlls) {
         Stop-WithError "Hayanagi 用の MSVC ランタイム DLL が見つかりません: $dll"
     }
 }
+if (-not (Test-Path (Join-Path $deployHayanagiBookDir "hayanagi_book.db"))) {
+    Stop-WithError "Hayanagi の定跡が配布物にありません。"
+}
 $deployedTsumeCount = @(Get-ChildItem -Path $deployTsumeDir -Filter "tsume_*ply_*.txt" -File).Count
 if ($deployedTsumeCount -ne $TSUME_PLIES.Count) {
     Stop-WithError "問題集の数が $($TSUME_PLIES.Count) ではありません: $deployedTsumeCount"
 }
-Write-Info "Hayanagi・問題集: OK（問題集 $deployedTsumeCount ファイル）"
+Write-Info "Hayanagi・定跡・問題集: OK（問題集 $deployedTsumeCount ファイル）"
 
 # platforms プラグインの確認
 if (-not (Test-Path (Join-Path $DEPLOY_DIR "platforms"))) {
