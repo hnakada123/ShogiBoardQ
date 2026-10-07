@@ -113,7 +113,7 @@
         <p class="section-desc">普通对局和研究需要注册 USI 引擎的可执行文件</p>
         <div class="guide-step">
             <div class="guide-step-header"><span class="guide-step-number">1</span><h3 class="guide-step-title">准备可执行文件</h3></div>
-            <p class="guide-step-text">Linux 版的发布 ZIP 中，可以使用解压后文件夹里的 <code>Hayanagi/hayanagi</code>（AppImage 内部不包含）。Windows 版和 macOS 版的发布包目前未附带 Hayanagi，请从源码构建。</p>
+            <p class="guide-step-text">可以使用解压发布 ZIP 后文件夹里的 <code>Hayanagi/hayanagi</code>（Windows 版为 <code>Hayanagi\hayanagi.exe</code>）。Linux 版放在 AppImage 之外，macOS 版放在 DMG 之外。定式文件 <code>Hayanagi/book/hayanagi_book.db</code> 也一并附带。</p>
             <p class="guide-step-text">从源码构建 ShogiBoardQ 时，会生成 <code>build/Hayanagi/hayanagi</code>。在 Windows 上文件名带有 <code>.exe</code>，并可能因构建方式位于 <code>Release</code> 等子文件夹中。只构建 Hayanagi 时请参阅<a href="#build">构建方法</a>。在 Linux 和 macOS 上请选择有执行权限的文件。</p>
         </div>
         <div class="guide-step">
@@ -150,7 +150,7 @@
                 <tr><td><code>USI_Ponder</code></td><td>对手回合中的后台思考。默认关闭。在引擎设置的“后台思考”中，用“在对手行棋时思考”切换。</td></tr>
                 <tr><td><code>USI_LimitStrength</code><br><code>USI_Strength</code></td><td>启用棋力限制后，用 -15～6 的值限制搜索深度和节点数。负数大致对应级位，正数对应段位，0 视为 1 级。默认不限制棋力。</td></tr>
                 <tr><td><code>USI_AnalyseMode</code></td><td>分析用模式。会禁用棋力限制、按定式即时应答、自动认输和后台思考请求。不限时搜索需另行指定。</td></tr>
-                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>指定是否使用定式以及读取哪个文件。默认启用，读取可执行文件所在位置的 <code>book/hayanagi_book.db</code>（将 <code>BookFile</code> 设为 <code>no_book</code> 即不使用定式）。从源码构建时，定式文件会放到构建目录中。发布包不附带定式，此时引擎不使用定式，仅靠搜索走棋。</td></tr>
+                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>指定是否使用定式以及读取哪个文件。默认启用，读取可执行文件所在位置的 <code>book/hayanagi_book.db</code>（将 <code>BookFile</code> 设为 <code>no_book</code> 即不使用定式）。从源码构建时，定式文件会放到构建目录中，发布 ZIP 也附带该文件。从 ShogiBoardQ 使用时，引擎在其所在的文件夹中启动，因此会读取该定式。找不到定式文件时，引擎不使用定式，仅靠搜索走棋。</td></tr>
                 <tr><td><code>EnteringKingRule</code></td><td>引擎自己进行入玉宣言的标准。可选择 24 点法、27 点法、试玉规则等，默认值为 <code>CSARule24</code>。宣言是否成立由 ShogiBoardQ 对局对话框中“持将棋”选择的规则判定。</td></tr>
             </tbody>
         </table>

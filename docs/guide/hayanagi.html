@@ -112,7 +112,7 @@
         <p class="section-desc">通常の対局や検討には、USIエンジンの実行ファイルを登録します</p>
         <div class="guide-step">
             <div class="guide-step-header"><span class="guide-step-number">1</span><h3 class="guide-step-title">実行ファイルを用意する</h3></div>
-            <p class="guide-step-text">Linux版の配布ZIPでは、展開したフォルダの<code>Hayanagi/hayanagi</code>を使えます（AppImage内には含まれていません）。Windows版・macOS版の配布物には現在同梱していないため、ソースからビルドしてください。</p>
+            <p class="guide-step-text">配布ZIPを展開したフォルダの<code>Hayanagi/hayanagi</code>（Windows版は<code>Hayanagi\hayanagi.exe</code>）を使えます。Linux版はAppImageの外、macOS版はDMGの外に置いています。定跡<code>Hayanagi/book/hayanagi_book.db</code>も一緒に入っています。</p>
             <p class="guide-step-text">ソースからShogiBoardQをビルドした場合は<code>build/Hayanagi/hayanagi</code>が生成されます。Windowsでは実行ファイル名に<code>.exe</code>が付き、ビルド方式によっては<code>Release</code>などのサブフォルダに配置されます。Hayanagiだけを生成する場合は<a href="#build">ビルド方法</a>を参照してください。Linux・macOSでは実行権限のあるファイルを選択します。</p>
         </div>
         <div class="guide-step">
@@ -149,7 +149,7 @@
                 <tr><td><code>USI_Ponder</code></td><td>相手の手番中の先読み。既定は無効です。エンジン設定の「先読み」にある「相手の手番中に先読みする」で切り替えます。</td></tr>
                 <tr><td><code>USI_LimitStrength</code><br><code>USI_Strength</code></td><td>棋力制限を有効にすると、-15〜6の値で探索の深さとノード数を制限します。負数は級、正数は段の目安で、0は1級相当として扱います。既定では棋力制限は無効です。</td></tr>
                 <tr><td><code>USI_AnalyseMode</code></td><td>解析用のモード。棋力制限、定跡による即答、自動投了、先読み要求を無効にします。時間無制限の探索は別途指定します。</td></tr>
-                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>定跡を使うか、どのファイルを読むかを指定します。既定は有効で、実行ファイルと同じ場所の<code>book/hayanagi_book.db</code>を読みます（<code>BookFile</code>を<code>no_book</code>にすると定跡を使いません）。ソースからビルドすると定跡ファイルがビルド先に配置されます。配布物には定跡を同梱していないため、その場合は定跡なしで探索して指します。</td></tr>
+                <tr><td><code>USI_OwnBook</code><br><code>BookDir</code> / <code>BookFile</code></td><td>定跡を使うか、どのファイルを読むかを指定します。既定は有効で、実行ファイルと同じ場所の<code>book/hayanagi_book.db</code>を読みます（<code>BookFile</code>を<code>no_book</code>にすると定跡を使いません）。ソースからビルドすると定跡ファイルがビルド先に配置され、配布ZIPにも同梱しています。ShogiBoardQから使う場合は、エンジンのあるフォルダから起動するのでこの定跡が読まれます。定跡ファイルが見つからないときは、定跡なしで探索して指します。</td></tr>
                 <tr><td><code>EnteringKingRule</code></td><td>エンジン自身が入玉宣言する基準。24点法・27点法・トライルールなどを選択でき、既定値は<code>CSARule24</code>です。宣言の成否は、ShogiBoardQの対局ダイアログの「持将棋」で選んだルールで判定します。</td></tr>
             </tbody>
         </table>
