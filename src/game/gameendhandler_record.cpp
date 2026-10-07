@@ -4,6 +4,7 @@
 #include "gameendhandler.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
+#include "parsecommon.h"
 #include "logcategories.h"
 
 #include <QDateTime>
@@ -63,10 +64,10 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
 
     m_refs.clock->stopClock();
 
-    // 千日手・持将棋（引き分け）の終局行は、終局した局面で手番の側の行として記録する。
+    // 千日手・持将棋（引き分け）と連続王手の千日手の終局行は、終局した局面で手番の側の行として記録する。
     // 棋譜ファイルを読み込んだときも終局行には手番側の印が付くので、それと合わせる
     Player lineOwner = loser;
-    if ((cause == Cause::Sennichite || cause == Cause::Jishogi) && m_refs.gc) {
+    if ((cause == Cause::Sennichite || cause == Cause::Jishogi || cause == Cause::OuteSennichite) && m_refs.gc) {
         lineOwner = (m_refs.gc->currentPlayer() == ShogiGameController::Player2) ? Player::P2 : Player::P1;
     }
 
@@ -79,7 +80,10 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
     case Cause::NyugyokuWin:    line = QStringLiteral("%1入玉勝ち").arg(winMark); break;
     case Cause::IllegalMove:    line = QStringLiteral("%1反則負け").arg(mark); break;
     case Cause::Sennichite:     line = QStringLiteral("%1千日手").arg(mark); break;
-    case Cause::OuteSennichite: line = QStringLiteral("%1連続王手の千日手").arg(mark); break;
+    // 棋譜形式に連続王手の千日手の終局語は無いので、王手を続けた側の反則として記録する
+    case Cause::OuteSennichite:
+        line = KifuParseCommon::foulTerminalMove(loser == Player::P1, lineOwner == Player::P1);
+        break;
     case Cause::BreakOff:       line = QStringLiteral("%1中断").arg(mark); break;
     case Cause::Resignation:    line = QStringLiteral("%1投了").arg(mark); break;
     case Cause::Timeout:        line = QStringLiteral("%1時間切れ").arg(mark); break;

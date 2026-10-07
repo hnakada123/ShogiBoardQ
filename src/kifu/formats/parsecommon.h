@@ -90,6 +90,14 @@ inline QString tebanMark(int ply) {
     return (ply % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
 }
 
+// 全コンバータ共通：反則した側で勝敗が決まる終局（連続王手の千日手など）の終局語。
+// KIF の終局語は手番側の行なので、手番側の反則なら「反則負け」、直前の相手の手が反則なら
+// 「反則勝ち」にする（CSA の %ILLEGAL_MOVE と %+ILLEGAL_ACTION / %-ILLEGAL_ACTION に対応）
+inline QString foulTerminalMove(bool offenderIsBlack, bool blackToMove) {
+    const QString mark = blackToMove ? QStringLiteral("▲") : QStringLiteral("△");
+    return mark + ((offenderIsBlack == blackToMove) ? QStringLiteral("反則負け") : QStringLiteral("反則勝ち"));
+}
+
 // KIF/KI2共通：BOD持駒行判定（先手の持駒/後手の持駒/持ち駒）
 bool isBodHandsLine(QStringView line);
 
