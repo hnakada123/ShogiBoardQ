@@ -164,9 +164,11 @@
                 <p class="guide-step-text">从菜单“对局”→“对局…”打开对局对话框，可以设置以下项目。</p>
                 <ul class="guide-step-text">
                     <li>对局者（人类或已注册的引擎）</li>
-                    <li>用时、读秒和每手加时（费舍尔制）</li>
-                    <li>初始局面（平手、让子或当前局面）</li>
-                    <li>棋谱自动保存</li>
+                    <li>用时、读秒和每手加时（费舍尔制）。勾选“单独设置后手／上手用时”后，可为先后手设置不同的用时</li>
+                    <li>初始局面（平手、让子或当前局面）。让子共 13 种：去香、去右香、去角、去飞车、去飞香、去二枚、去三枚、去四枚、去五枚、去左五枚、去六枚、去八枚、去十枚</li>
+                    <li>最大手数（达到后以持将棋结束对局，也可选择“不限”）</li>
+                    <li>连续对局（适用于引擎之间的对局。两局以上时，可通过“每局后交换先后手”轮流执先后手）</li>
+                    <li>棋谱自动保存及保存位置</li>
                 </ul>
                 <div class="screenshot-item">
                     <img src="../../images/zh-cn/game-play/game-01-setup-dialog.png" alt="对局设置对话框">
@@ -234,6 +236,7 @@
                     <span class="guide-step-title">对局信息</span>
                 </div>
                 <p class="guide-step-text">“对局信息”标签页会显示对局日期、开始时间、先手、后手、让子、用时规则、结束时间等对局信息。</p>
+                <p class="guide-step-text">双击“内容”即可编辑。点击“更新对局信息”后会反映到棋谱中，保存棋谱时也会写入文件。</p>
                 <div class="screenshot-item">
                     <img src="../../images/zh-cn/game-play/game-06-game-info.png" alt="对局结束后的对局信息">
                     <p class="screenshot-caption">对局信息：显示对局的相关信息</p>
@@ -251,6 +254,15 @@
                     <img src="../../images/zh-cn/game-play/game-07-branch-tree.png" alt="变化树">
                     <p class="screenshot-caption">变化树：显示本谱以及其他变化的着法</p>
                 </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">千日手与最大手数</span>
+                </div>
+                <p class="guide-step-text">对局中会自动判定千日手。相同局面（棋盘、持驹和行棋方完全相同）第 4 次出现时千日手成立，对局以和棋结束。若在局面重复期间，一方的每一手都是王手，则为连续王手千日手，持续王手的一方判负。</p>
+                <p class="guide-step-text">达到对局对话框中设置的“最大手数”时，对局以持将棋（和棋）结束。无论哪种情况，结果都会显示在“对局结束”消息中，并记录在棋谱末尾。人与引擎、引擎与引擎、人与人对局都会进行这些判定；CSA 网络对局以服务器的判定为准。</p>
             </div>
 
         </div>
