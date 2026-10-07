@@ -258,6 +258,17 @@ private slots:
                  "onGameStarted must not overwrite coordinator-populated board state");
     }
 
+    void onGameEnded_recordsOuteSennichiteBySideToMove()
+    {
+        // 連続王手の千日手は手番側の「反則勝ち／反則負け」で記録する（敗者の印の「反則負け」だと、
+        // 王手をかけた手で千日手になったときに保存・読み込みで勝者が入れ替わる）
+        QVERIFY2(m_wiringSrc.contains(
+                     QStringLiteral("case Cause::OuteSennichite: return KifuParseCommon::foulTerminalMove(loserIsBlack, blackToMove);")),
+                 "OuteSennichite end line must be built from the side to move");
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("lastSfen.section(QLatin1Char(' '), 1, 1)")),
+                 "side to move at game end must come from the last SFEN");
+    }
+
     void onGameStarted_replaysInitialPrettyMoves()
     {
         QVERIFY2(m_wiringHeader.contains(QStringLiteral("const QStringList& initialPrettyMoves")),

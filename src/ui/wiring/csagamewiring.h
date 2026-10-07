@@ -258,9 +258,11 @@ private:
      * @brief 終局行のテキストを生成
      * @param cause 終局原因
      * @param loserIsBlack 敗者が先手かどうか
+     * @param blackToMove 終局した局面で先手の手番かどうか
      * @return 終局行テキスト
      */
-    QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw) const;
+    QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw,
+                             bool blackToMove) const;
 
     void appendInitialKifuLine(const QString& prettyMove, const QString& sfen);
     QString buildNumberedKifuLine(const QString& prettyMove) const;

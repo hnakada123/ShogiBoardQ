@@ -186,6 +186,8 @@ private slots:
     void handleMaxMovesJishogi_alreadyOver_ignored();
     void drawLine_usesSideToMove_data();
     void drawLine_usesSideToMove();
+    void outeSennichiteLine_recordsFoulBySideToMove_data();
+    void outeSennichiteLine_recordsFoulBySideToMove();
 
     // === Section F: 千日手 ===
 
@@ -524,6 +526,50 @@ void Tst_GameEndHandler::drawLine_usesSideToMove()
 
     QCOMPARE(EndTracker::lastAppendedLine, expectedLine);
     QCOMPARE(EndTracker::events, QStringList{expectedEpoch});
+}
+
+void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove_data()
+{
+    QTest::addColumn<bool>("p1Loses");
+    QTest::addColumn<int>("sideToMove");
+    QTest::addColumn<QString>("expectedLine");
+    QTest::addColumn<QString>("expectedEpoch");
+
+    // 王手をかけた手で千日手になると、手番は勝った側（反則勝ち）
+    QTest::newRow("black-checks-white-to-move") << true << 2 << QStringLiteral("△反則勝ち") << QStringLiteral("epoch-P2");
+    QTest::newRow("white-checks-black-to-move") << false << 1 << QStringLiteral("▲反則勝ち") << QStringLiteral("epoch-P1");
+    // 王手を逃げた手で千日手になると、手番は王手を続けた側（反則負け）
+    QTest::newRow("black-checks-black-to-move") << true << 1 << QStringLiteral("▲反則負け") << QStringLiteral("epoch-P1");
+    QTest::newRow("white-checks-white-to-move") << false << 2 << QStringLiteral("△反則負け") << QStringLiteral("epoch-P2");
+}
+
+void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
+{
+    // 連続王手の千日手は棋譜形式に終局語が無いので、手番側の「反則勝ち／反則負け」で記録し、
+    // 保存しても王手を続けた側の負けが残るようにする
+    QFETCH(bool, p1Loses);
+    QFETCH(int, sideToMove);
+    QFETCH(QString, expectedLine);
+    QFETCH(QString, expectedEpoch);
+
+    EndTestHarness h;
+    h.gc.setCurrentPlayer(sideToMove == 1 ? ShogiGameController::Player1 : ShogiGameController::Player2);
+    GameEndHandler::Hooks hooks;
+    hooks.turnEpochFor = [](MatchCoordinator::Player p) -> qint64 {
+        EndTracker::events.append(p == MatchCoordinator::P1 ? QStringLiteral("epoch-P1")
+                                                            : QStringLiteral("epoch-P2"));
+        return -1;
+    };
+    hooks.appendKifuLine = [](const QString& line, const QString&) {
+        EndTracker::lastAppendedLine = line;
+    };
+    h.handler.setHooks(hooks);
+
+    h.handler.handleOuteSennichite(p1Loses);
+
+    QCOMPARE(EndTracker::lastAppendedLine, expectedLine);
+    QCOMPARE(EndTracker::events, QStringList{expectedEpoch});
+    QCOMPARE(h.gameOver.lastInfo.loser, p1Loses ? MatchCoordinator::P1 : MatchCoordinator::P2);
 }
 
 // ============================================================

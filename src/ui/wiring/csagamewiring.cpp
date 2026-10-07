@@ -204,13 +204,16 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
     const bool isBlackSide = m_coordinator->isBlackSide();
     const bool loserIsBlack = (iAmLoser == isBlackSide);
 
-    // 終局行テキストを生成
+    // 終局行テキストを生成（連続王手の千日手は終局した局面の手番で決まるので、最後の SFEN から手番を取る）
     const bool isDraw = (result == CsaClient::GameResult::Draw);
-    const QString endLine = buildEndLineText(cause, loserIsBlack, isDraw);
+    const QString lastSfen = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
+    const bool blackToMove = lastSfen.isEmpty() ? (m_coordinator->isMyTurn() == isBlackSide)
+                                                : (lastSfen.section(QLatin1Char(' '), 1, 1) != QLatin1String("w"));
+    const QString endLine = buildEndLineText(cause, loserIsBlack, isDraw, blackToMove);
 
-    // 消費時間をフォーマット。終局行はその行を行った手番側の時間で、入玉宣言勝ちでは宣言した勝者
-    const bool moverIsBlack = (cause == CsaClient::GameEndCause::Jishogi && !isDraw)
-                                  ? !loserIsBlack : loserIsBlack;
+    // 消費時間は終局行を行った手番側（入玉宣言勝ちは宣言した勝者、連続王手の千日手は終局した局面の手番側）
+    const bool moverIsBlack = (cause == CsaClient::GameEndCause::OuteSennichite) ? blackToMove
+        : (cause == CsaClient::GameEndCause::Jishogi && !isDraw) ? !loserIsBlack : loserIsBlack;
     const int totalMs = moverIsBlack ? m_coordinator->blackTotalTimeMs()
                                      : m_coordinator->whiteTotalTimeMs();
 
@@ -337,7 +340,7 @@ void CsaGameWiring::onMoveHighlightRequested(const QPoint& from, const QPoint& t
     }
 }
 
-QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw) const
+QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw, bool blackToMove) const
 {
     const QString mark = loserIsBlack ? QStringLiteral("▲") : QStringLiteral("△");
     const QString winMark = loserIsBlack ? QStringLiteral("△") : QStringLiteral("▲");
@@ -348,8 +351,8 @@ QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool lose
     case Cause::Resign: return mark + QStringLiteral("投了");
     case Cause::TimeUp: return mark + QStringLiteral("切れ負け");
     case Cause::IllegalMove:
-    case Cause::IllegalAction:
-    case Cause::OuteSennichite: return mark + QStringLiteral("反則負け");
+    case Cause::IllegalAction: return mark + QStringLiteral("反則負け");
+    case Cause::OuteSennichite: return KifuParseCommon::foulTerminalMove(loserIsBlack, blackToMove);
     case Cause::Sennichite: return QStringLiteral("千日手");
     // 入玉宣言は宣言した勝者の印を付ける（棋譜の保存時に勝者を判定するため）。点数による引き分けは持将棋
     case Cause::Jishogi: return isDraw ? QStringLiteral("持将棋") : winMark + QStringLiteral("入玉勝ち");

@@ -241,7 +241,7 @@
 <span class="guide-step-title">Repetition and Move Limit</span>
 </div>
 <p class="guide-step-text">Repetition (sennichite) is detected automatically during a game. When the same position—the same board, pieces in hand, and side to move—appears for the fourth time, the game ends in a draw. If one side gave check with every move while the position was repeating, it is perpetual check, and the side giving check loses.</p>
-<p class="guide-step-text">When the game reaches the Max Moves set in the game dialog, it ends as an impasse (jishogi), which is a draw. In each case the result appears in the Game Over message and is recorded at the end of the game record. These checks apply to human vs. engine, engine vs. engine, and human vs. human games; in CSA network games, the server’s decision applies.</p>
+<p class="guide-step-text">When the game reaches the Max Moves set in the game dialog, it ends as an impasse (jishogi), which is a draw. In each case the result appears in the Game Over message and is recorded at the end of the game record. Game record formats have no term for perpetual check, so it is recorded as “Win by illegal move” or “Loss by illegal move” against the side that kept checking, and the result is kept in every save format, such as KIF and CSA. These checks apply to human vs. engine, engine vs. engine, and human vs. human games; in CSA network games, the server’s decision applies.</p>
 </div>
 </div>
 </div>

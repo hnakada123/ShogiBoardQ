@@ -356,7 +356,8 @@ private slots:
         using Cause = CsaClient::GameEndCause;
         const QList<QPair<Cause, TerminalType>> endings = {
             {Cause::Resign, TerminalType::Resign}, {Cause::TimeUp, TerminalType::Timeout},
-            {Cause::IllegalMove, TerminalType::IllegalLoss}, {Cause::OuteSennichite, TerminalType::IllegalLoss},
+            // 連続王手の千日手は手番側の行。先手（自分）の王手で成立して後手番なので、後手の反則勝ち
+            {Cause::IllegalMove, TerminalType::IllegalLoss}, {Cause::OuteSennichite, TerminalType::IllegalWin},
             {Cause::Sennichite, TerminalType::Repetition}, {Cause::Jishogi, TerminalType::DeclarationWin},
             {Cause::MaxMoves, TerminalType::MaxMoves}, {Cause::Chudan, TerminalType::Interrupt}};
         for (const auto& ending : endings) {

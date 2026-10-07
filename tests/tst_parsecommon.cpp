@@ -41,6 +41,10 @@ private slots:
     void csaSpecial_withPercentPrefix();
     void csaSpecial_unknown();
 
+    // ---- foulTerminalMove ----
+    void foulTerminalMove_data();
+    void foulTerminalMove();
+
     // ---- formatTimeMS ----
     void formatTimeMS_zero();
     void formatTimeMS_basic();
@@ -232,6 +236,27 @@ void TestParseCommon::csaSpecial_illegalAction()
 void TestParseCommon::csaSpecial_plusIllegalAction()
 {
     QCOMPARE(KifuParseCommon::csaSpecialToJapanese("+ILLEGAL_ACTION"), QString::fromUtf8("反則負け"));
+}
+
+void TestParseCommon::foulTerminalMove_data()
+{
+    QTest::addColumn<bool>("offenderIsBlack");
+    QTest::addColumn<bool>("blackToMove");
+    QTest::addColumn<QString>("expected");
+
+    // 手番側が反則した側なら反則負け、直前の相手の手が反則なら手番側の反則勝ち
+    QTest::newRow("black-offends-black-to-move") << true << true << QString::fromUtf8("▲反則負け");
+    QTest::newRow("black-offends-white-to-move") << true << false << QString::fromUtf8("△反則勝ち");
+    QTest::newRow("white-offends-black-to-move") << false << true << QString::fromUtf8("▲反則勝ち");
+    QTest::newRow("white-offends-white-to-move") << false << false << QString::fromUtf8("△反則負け");
+}
+
+void TestParseCommon::foulTerminalMove()
+{
+    QFETCH(bool, offenderIsBlack);
+    QFETCH(bool, blackToMove);
+    QFETCH(QString, expected);
+    QCOMPARE(KifuParseCommon::foulTerminalMove(offenderIsBlack, blackToMove), expected);
 }
 
 void TestParseCommon::csaSpecial_kachi()
