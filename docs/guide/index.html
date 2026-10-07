@@ -16,10 +16,10 @@
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
         <a href="../en/guide/index.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
-        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+        <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
             <span></span><span></span><span></span>
         </button>
-        <ul class="nav-links">
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="#setup">導入・画面設定</a></li>
             <li><a href="#play">対局</a></li>

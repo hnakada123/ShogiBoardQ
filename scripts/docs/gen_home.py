@@ -636,7 +636,7 @@ def page(code):
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="#top" class="nav-logo"><img src="{img}shogiboardq-icon.png" alt="" width="28" height="28"><span>ShogiBoardQ</span></a>
-        <ul class="nav-links">
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) {{ this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }}">
             <li><a href="#highlights">{t['nav'][0]}</a></li>
             <li><a href="#features">{t['nav'][1]}</a></li>
             <li><a href="#download">{t['nav'][2]}</a></li>
@@ -658,7 +658,7 @@ def page(code):
         w(f'                <li><a href="{lang_href(c)}" lang="{META[c]["lang"]}" hreflang="{META[c]["hreflang"]}"{cur}>{META[c]["name"]}</a></li>\n')
     w(f"""            </ul>
         </details>
-        <button class="nav-toggle" aria-label="{t['menu']}" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+        <button class="nav-toggle" aria-label="{t['menu']}" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
             <span></span><span></span><span></span>
         </button>
     </div>
