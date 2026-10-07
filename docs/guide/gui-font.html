@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GUI全体のフォント - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQのGUI全体のフォントの使い方を紹介します。メニュー・棋譜・ログ・各ダイアログに共通の書体を選ぶ手順、表示言語ごとの標準フォント、文字サイズとの関係を解説します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html">
+    <meta property="og:title" content="GUI全体のフォント - ShogiBoardQ">
+    <meta property="og:description" content="メニュー・棋譜・ログ・各ダイアログの書体を、まとめて好みのフォントに変えられます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/gui-font/main-window.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="GUI全体のフォント - ShogiBoardQ">
+    <meta name="twitter:description" content="メニュー・棋譜・ログ・各ダイアログの書体を、まとめて好みのフォントに変えられます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/gui-font/main-window.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/gui-font.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/gui-font.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/gui-font.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="gui-font.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/gui-font.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/gui-font.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/gui-font.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="#choose">書体を選ぶ</a></li>
+            <li><a href="#default">標準フォント</a></li>
+            <li><a href="#notes">補足</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>GUI全体のフォント</h1>
+        <p class="hero-subtitle">メニュー・棋譜・ログ・各ダイアログの書体を、まとめて好みのフォントに変えられます</p>
+        <div class="hero-badges">
+            <span class="badge">書体の一括変更</span>
+            <span class="badge">見本で確認</span>
+            <span class="badge">再起動不要</span>
+        </div>
+        <p class="screenshot-note">画面はLinuxで撮影したものです。書体の一覧には、お使いのPCに入っているフォントが並びます。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="choose" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">書体を選ぶ</h2>
+        <p class="section-desc">「表示」メニューの「GUI全体のフォント…」で、アプリ全体の書体を設定します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">「表示」→「GUI全体のフォント…」を開く</span>
+                </div>
+                <p class="guide-step-text">メニューバーの「表示」を開き、「GUI全体のフォント…」を選ぶと、「GUI全体のフォント」ダイアログが開きます。<a href="menu.html">メニュードック</a>の「表示」タブにも同じボタンがあります。</p>
+                <p class="guide-step-text">初期状態では「標準フォントを使用する」にチェックが付いていて、表示言語に合わせた標準の書体（<a href="#default">下の表</a>）が使われています。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/gui-font/view-menu.png"><img src="../images/gui-font/view-menu.png" alt="「表示」メニューを開き、「GUI全体のフォント…」を選んだところ" width="447" height="212" loading="lazy"></a>
+                    <p class="screenshot-caption">「表示」メニューの「GUI全体のフォント…」</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/gui-font/font-dialog.png"><img src="../images/gui-font/font-dialog.png" alt="「標準フォントを使用する」にチェックが付いた初期状態のGUI全体のフォントダイアログ。見本は標準の書体で表示されている" width="520" height="349" loading="lazy"></a>
+                    <p class="screenshot-caption">GUI全体のフォント（初期状態）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">書体を選んで見本で確かめる</span>
+                </div>
+                <p class="guide-step-text">「標準フォントを使用する」のチェックを外すと、「書体」の一覧から選べるようになります。一覧には、お使いのPCに入っているフォントが並びます。</p>
+                <p class="guide-step-text">選んだ書体で下の見本が表示されます。「将棋盤・棋譜・検討」「先手 ▲７六歩　後手 △３四歩」「ABC abc 0123456789」の3行で、漢字・仮名・記号・英数字の見え方を確かめられます。この時点では、アプリの表示はまだ変わりません。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/gui-font/font-selected.png"><img src="../images/gui-font/font-selected.png" alt="「標準フォントを使用する」のチェックを外し、書体にNoto Serif CJK JPを選んだところ。見本が明朝体で表示されている" width="520" height="349" loading="lazy"></a>
+                    <p class="screenshot-caption">書体に「Noto Serif CJK JP」を選んだところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">「OK」で全体に反映する</span>
+                </div>
+                <p class="guide-step-text">「OK」を押すと、すぐにアプリ全体の書体が変わります。再起動は必要ありません。メニュー、棋譜、各パネル（ドック）、ダイアログのほか、盤の周りの対局者名・残り時間・座標も選んだ書体になります。</p>
+                <p class="guide-step-text">選んだ書体は自動で保存され、次回の起動時にも使われます。「キャンセル」を押すと、何も変えずに閉じます。</p>
+                <div class="screenshot-item">
+                    <a href="../images/gui-font/main-window.png"><img src="../images/gui-font/main-window.png" alt="Noto Serif CJK JPを適用したメイン画面。メニュー・棋譜・棋譜コメント・対局者名・盤の座標が明朝体で表示されている" width="1313" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">「OK」で確定した後のメイン画面（Noto Serif CJK JP）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="default" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">標準フォントと文字サイズ</h2>
+        <p class="section-desc">標準の書体には、いつでも戻せます。文字の大きさは各画面の設定のままです</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">表示言語に合わせた標準フォント</span>
+                </div>
+                <p class="guide-step-text">「標準フォントを使用する」にチェックが付いているときは、表示言語とOSに合わせて次の書体を使います。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">表示言語</th><th scope="col">Windows</th><th scope="col">macOS</th><th scope="col">Linux</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>日本語</strong></td><td>Yu Gothic UI など</td><td>ヒラギノ角ゴシック</td><td>Noto Sans CJK JP など</td></tr>
+                        <tr><td><strong>中国語（簡体字）</strong></td><td>Microsoft YaHei UI</td><td>PingFang SC</td><td>Noto Sans CJK SC</td></tr>
+                        <tr><td><strong>中国語（繁体字）</strong></td><td>Microsoft JhengHei UI</td><td>PingFang TC</td><td>Noto Sans CJK TC</td></tr>
+                        <tr><td><strong>英語</strong></td><td colspan="3">各OSの標準のフォント。棋譜などの日本語は、日本語の標準フォントで表示します</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">表の書体がPCに入っていないときは、同じ言語向けのほかの書体（日本語なら Meiryo UI や IPAexゴシックなど）を探し、どれもなければOSの標準のフォントを使います。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">「標準に戻す」で元の書体に戻す</span>
+                </div>
+                <p class="guide-step-text">「標準に戻す」を押すと「標準フォントを使用する」にチェックが付き、一覧も標準の書体に戻ります。「OK」で確定すると、アプリ全体が標準フォントに戻ります。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">文字サイズは各画面の設定のまま</span>
+                </div>
+                <p class="guide-step-text">このダイアログで変わるのは書体だけです。文字の大きさは、棋譜欄やダイアログの「A-」「A+」など、それぞれの画面で設定した大きさのまま変わりません。</p>
+                <p class="guide-step-text">ダイアログ左下の「A-」「A+」とその間の数値（pt）は、このダイアログ自体の文字サイズです。文字サイズとダイアログの大きさは次回に引き継がれます。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="notes" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">補足</h2>
+        <p class="section-desc">選んだ書体にない文字や、設定を別のPCへ移したときの扱い</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">書体を変えたときの表示</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>足りない文字</strong>：選んだ書体に含まれない文字は、標準フォントで補って表示します。英字だけの書体を選んでも、棋譜の漢字や仮名は表示されます。</li>
+                    <li><strong>通信ログ</strong>：「USI通信ログ」「CSA通信ログ」のような等幅の欄も、選んだ書体で表示します。「標準フォントを使用する」に戻すと、元の等幅フォントに戻ります。</li>
+                    <li><strong>書体が入っていないPC</strong>：保存した書体がPCに入っていないとき（設定ファイルを別のPCへ移したときなど）は、標準フォントで表示します。ダイアログを開くと「標準フォントを使用する」にチェックが付いています。</li>
+                    <li><strong>駒の文字</strong>：盤上の駒の文字は駒の画像なので、書体を変えても変わりません。駒の見た目は<a href="piece-style.html">駒の種類</a>や<a href="board-colors.html">対局画面の外観</a>で選べます。</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
