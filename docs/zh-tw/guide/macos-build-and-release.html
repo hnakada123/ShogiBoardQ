@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>macOS 建置與發行 - ShogiBoardQ</title>
+    <meta name="description" content="介紹如何在 macOS 上建置 ShogiBoardQ，製作 DMG 檔案並在 GitHub Releases 上發行。內容包括開發環境的建立、建置、DMG 檔案的製作、程式碼簽章與公證以及疑難排解。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/macos-build-and-release.html">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/macos-build-and-release.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/macos-build-and-release.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/macos-build-and-release.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/macos-build-and-release.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/macos-build-and-release.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/macos-build-and-release.html">
+    <meta property="og:title" content="macOS 建置與發行 - ShogiBoardQ">
+    <meta property="og:description" content="從建立 macOS 開發環境、建置、製作 DMG 檔案、程式碼簽章與公證，到在 GitHub Releases 上發行。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png?v=20261005">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="macOS 建置與發行 - ShogiBoardQ">
+    <meta name="twitter:description" content="從建立 macOS 開發環境、建置、製作 DMG 檔案、程式碼簽章與公證，到在 GitHub Releases 上發行。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png?v=20261005">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/build-guide.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/macos-build-and-release.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/macos-build-and-release.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/macos-build-and-release.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="macos-build-and-release.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="../index.html#build">從原始碼建置</a></li>
+            <li><a href="#contents">目錄</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="build-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>macOS 建置與發行</h1>
+        <p class="hero-subtitle">在 macOS 上建置 ShogiBoardQ，並以 DMG 檔案發行</p>
+        <div class="hero-badges">
+            <span class="badge">macOS</span>
+            <span class="badge">Qt 6</span>
+            <span class="badge">DMG 發行</span>
+            <span class="badge">GitHub Releases</span>
+        </div>
+    </div>
+</section>
+
+<div class="section">
+    <article class="section-inner build-document" aria-label="macOS 建置與發行">
+<p>Release 只附加發行用 ZIP（<code>ShogiBoardQ-macos.zip</code>），不另外附加 Qt 原始碼或相關文件。應用程式內授權文件的準備請參閱 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文件與發行附件的方針</a>（日文）。</p>
+<p>DMG 中只放入執行 ShogiBoardQ 所需的檔案（最小組態）。與 Linux 版一樣，用於一般對局的 Hayanagi（USI 引擎）和詰將棋題集放在 DMG 之外，與 DMG 一起放入發行用 ZIP（<a href="#dmg-zip">5.2</a>）。介面語言有日文、英文、中文（簡體、繁體）4 種，附帶 4 個翻譯檔。</p>
+<section id="contents" class="level2">
+<h2>目錄</h2>
+<ol type="1">
+<li><a href="#requirements">前提條件</a></li>
+<li><a href="#setup">建立開發環境</a></li>
+<li><a href="#build">建置</a></li>
+<li><a href="#bundle">製作應用程式套件</a></li>
+<li><a href="#dmg">製作 DMG 檔案</a></li>
+<li><a href="#signing">程式碼簽章與公證</a></li>
+<li><a href="#release">在 GitHub Releases 上發行</a></li>
+<li><a href="#troubleshooting">疑難排解</a></li>
+</ol>
+</section>
+<section id="requirements" class="level2">
+<h2>1. 前提條件</h2>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>項目</th><th>版本</th></tr>
+</thead>
+<tbody>
+<tr><td>macOS</td><td>建議 12 (Monterey) 以上</td></tr>
+<tr><td>Xcode</td><td>14 以上（含 Command Line Tools）</td></tr>
+<tr><td>CMake</td><td>3.16 以上</td></tr>
+<tr><td>Qt</td><td>6.7 以上（Widgets、Charts、Network、Concurrent、Multimedia、Sql、LinguistTools）</td></tr>
+<tr><td>C++</td><td>支援 C++17 的編譯器</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="setup" class="level2">
+<h2>2. 建立開發環境</h2>
+<section id="setup-xcode" class="level3">
+<h3>2.1 Xcode Command Line Tools</h3>
+<pre class="bash"><code>xcode-select --install</code></pre>
+</section>
+<section id="setup-homebrew" class="level3">
+<h3>2.2 以 Homebrew 安裝相依工具</h3>
+<pre class="bash"><code>brew install cmake ninja</code></pre>
+</section>
+<section id="setup-qt" class="level3">
+<h3>2.3 安裝 Qt 6</h3>
+<section id="setup-qt-installer" class="level4">
+<h4>方法 A：Qt Online Installer（建議）</h4>
+<p>從 <a href="https://www.qt.io/download-qt-installer">Qt 官方網站</a>下載安裝程式，並選擇以下元件：</p>
+<ul>
+<li>Qt 6.x &gt; macOS</li>
+<li>Qt 6.x &gt; Qt Charts</li>
+<li>Qt 6.x &gt; Qt Multimedia</li>
+<li>Developer and Designer Tools &gt; CMake</li>
+</ul>
+<p>安裝後，將 Qt 的路徑設定到環境變數中：</p>
+<pre class="bash"><code># 加入 ~/.zshrc（Qt 的安裝路徑請依實際環境修改）
+export Qt6_DIR=&quot;$HOME/Qt/6.x.x/macos/lib/cmake/Qt6&quot;
+export PATH=&quot;$HOME/Qt/6.x.x/macos/bin:$PATH&quot;</code></pre>
+</section>
+<section id="setup-qt-homebrew" class="level4">
+<h4>方法 B：Homebrew</h4>
+<pre class="bash"><code>brew install qt@6</code></pre>
+<p>使用 Homebrew 時，CMake 會自動偵測到 Qt，因此多數情況下不需要設定環境變數。</p>
+</section>
+</section>
+<section id="setup-check" class="level3">
+<h3>2.4 確認安裝</h3>
+<pre class="bash"><code>cmake --version       # 3.16 以上
+qmake --version       # Qt 6.x
+clang++ --version     # Apple Clang</code></pre>
+</section>
+</section>
+<section id="build" class="level2">
+<h2>3. 建置</h2>
+<p>用於一般對局的 Hayanagi 是子模組，因此取得時要加上 <code>--recurse-submodules</code>（不加時 CMake 會停止）：</p>
+<pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ</code></pre>
+<p>對於已取得的存放庫，執行 <code>git submodule update --init --recursive</code> 取得所記錄版本的 Hayanagi。</p>
+<section id="build-script" class="level3">
+<h3>建置指令碼（建議）</h3>
+<p>使用 <code>scripts/build-macos.sh</code>，可以一次完成從 Release 建置到程式碼簽章、製作 DMG 的全部步驟：</p>
+<pre class="bash"><code># 一般建置 + 製作 DMG
+./scripts/build-macos.sh
+
+# 建置通用二進位檔（arm64 + x86_64）
+./scripts/build-macos.sh --universal
+
+# 清理後建置，不製作 DMG
+./scripts/build-macos.sh --clean --skip-dmg
+
+# 尚未準備 Qt 授權文件時的測試用 DMG（不用於發行）
+./scripts/build-macos.sh --clean --skip-qt-licenses
+
+# 以 Developer ID 簽章（預設為臨時簽章）
+./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot;</code></pre>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>選項</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--universal</code></td><td>建置通用二進位檔（arm64 + x86_64）</td></tr>
+<tr><td><code>--deployment-target VER</code></td><td>最低支援的 macOS 版本（預設：環境變數 <code>MACOSX_DEPLOYMENT_TARGET</code>，未設定時為 <code>26.0</code>）</td></tr>
+<tr><td><code>--sign-identity ID</code></td><td>程式碼簽章身分（預設：<code>-</code> = 臨時（ad hoc）簽章）。指定 Developer ID 時，會啟用強化執行階段（Hardened Runtime）並加上時間戳記進行簽章</td></tr>
+<tr><td><code>--skip-dmg</code></td><td>略過 DMG 與發行用 ZIP 的製作（只產生 .app 套件）</td></tr>
+<tr><td><code>--skip-qt-licenses</code></td><td>略過加入 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文件</a>（日文），只保留建置時附帶的簡易文件（<code>Contents/MacOS/licenses</code>）。發行時不要使用</td></tr>
+<tr><td><code>--clean</code></td><td>刪除 build 目錄後再建置</td></tr>
+<tr><td><code>--help</code></td><td>顯示說明</td></tr>
+</tbody>
+</table>
+</div>
+<p>指令碼會自動執行以下處理：</p>
+<ol type="1">
+<li>確認所需工具（cmake、ninja、macdeployqt、codesign、vtool、python3、create-dmg）</li>
+<li>CMake 設定（指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code>）+ Ninja 建置</li>
+<li>確認建置產物（.app、執行檔的最低 macOS 版本、.qm 翻譯檔）</li>
+<li>以 macdeployqt 打包框架</li>
+<li>刪除未使用的 Qt 元件，並將 Qt 二進位檔精簡為 arm64（<a href="#bundle-prune">4.4</a>。使用 <code>--universal</code> 時不精簡為 arm64）+ 驗證</li>
+<li>附帶 Qt 授權文件（使用 <code>--skip-qt-licenses</code> 時略過）</li>
+<li>對整個應用程式套件進行程式碼簽章 + 以 <code>codesign --verify --deep --strict</code> 驗證</li>
+<li>以 create-dmg 製作 DMG</li>
+<li>製作包含 DMG、Hayanagi 與詰將棋題集的發行用 ZIP（<code>ShogiBoardQ-macos.zip</code>）（<a href="#dmg-zip">5.2</a>）</li>
+</ol>
+<blockquote>
+<p><strong>關於最低 macOS 版本：</strong>如果不指定部署目標（deployment target），建置主機的 macOS 版本就會成為最低支援版本（例：在 macOS 27 上建置後，無法在 macOS 26 上啟動）。指令碼預設指定 <code>26.0</code>，建置後如果執行檔的 <code>minos</code> 不一致就會停止。</p>
+<p><strong>關於程式碼簽章：</strong>macdeployqt 會改寫二進位檔，因此執行後的應用程式套件只剩連結器簽章，無法通過嚴格的簽章驗證。指令碼在 macdeployqt 之後重新對整個應用程式套件簽章，然後再製作 DMG。</p>
+<p><strong>關於 macdeployqt 顯示的 ERROR：</strong>會出現 <code>.qm: is not an object file</code>（對翻譯檔執行了 otool）、找不到 ODBC / PostgreSQL / Mimer SQL 驅動程式的相依項目，以及 macdeployqt 本身的簽章錯誤，但都無害。這些驅動程式會在下一步刪除，簽章也會由指令碼重新進行並嚴格驗證。</p>
+</blockquote>
+<p>以下是手動逐一執行指令時的步驟。</p>
+</section>
+<section id="build-release" class="level3">
+<h3>3.1 Release 建置</h3>
+<pre class="bash"><code>cd /path/to/ShogiBoardQ
+
+# 設定（Release 建置）
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+
+# 建置（平行建置）
+cmake --build build --config Release -- -j$(sysctl -n hw.ncpu)</code></pre>
+<p>使用 Ninja 時（更快）：</p>
+<pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+ninja -C build</code></pre>
+</section>
+<section id="build-check" class="level3">
+<h3>3.2 確認建置產物</h3>
+<pre class="bash"><code># 確認已產生 .app 套件
+ls -la build/ShogiBoardQ.app/
+
+# 確認套件內的結構
+find build/ShogiBoardQ.app -type f | head -20</code></pre>
+<p>建置後的套件結構：</p>
+<pre><code>ShogiBoardQ.app/
+├── Contents/
+│   ├── Info.plist
+│   ├── MacOS/
+│   │   ├── ShogiBoardQ              ← 執行檔
+│   │   ├── ShogiBoardQ_ja_JP.qm     ← 日文翻譯
+│   │   ├── ShogiBoardQ_en.qm        ← 英文翻譯
+│   │   ├── ShogiBoardQ_zh_CN.qm     ← 簡體中文翻譯
+│   │   ├── ShogiBoardQ_zh_TW.qm     ← 繁體中文翻譯
+│   │   └── licenses/                ← 授權文件（簡易版）
+│   └── Resources/
+│       └── shogiboardq.icns          ← 應用程式圖示</code></pre>
+</section>
+<section id="build-run" class="level3">
+<h3>3.3 執行確認</h3>
+<pre class="bash"><code># 啟動建置好的應用程式
+open build/ShogiBoardQ.app</code></pre>
+</section>
+</section>
+<section id="bundle" class="level2">
+<h2>4. 製作應用程式套件</h2>
+<blockquote>
+<p><strong>註：</strong>使用 <code>scripts/build-macos.sh</code> 時，本節的步驟會自動執行，不需要手動執行。</p>
+</blockquote>
+<section id="bundle-macdeployqt" class="level3">
+<h3>4.1 以 macdeployqt 打包 Qt 框架</h3>
+<p>只有建置的話，Qt 的動態函式庫不會包含在應用程式套件中。使用 <code>macdeployqt</code> 將所需的 Qt 框架與外掛程式複製到套件內。</p>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app -verbose=2</code></pre>
+<p><code>macdeployqt</code> 自動執行的處理：</p>
+<ol type="1">
+<li>將相依的 Qt 框架（QtWidgets、QtCharts、QtNetwork、QtMultimedia、QtGui、QtCore 等）複製到 <code>Contents/Frameworks/</code></li>
+<li>將 Qt 外掛程式（platforms/cocoa、imageformats/svg 等）複製到 <code>Contents/PlugIns/</code></li>
+<li>改寫函式庫的 <code>@rpath</code>（<code>install_name_tool</code>）</li>
+<li>在 <code>Contents/Resources/</code> 中產生 <code>qt.conf</code></li>
+</ol>
+</section>
+<section id="bundle-verify" class="level3">
+<h3>4.2 確認打包後的結構</h3>
+<pre class="bash"><code># 確認框架已正確打包
+ls build/ShogiBoardQ.app/Contents/Frameworks/
+
+# 確認包含外掛程式
+ls build/ShogiBoardQ.app/Contents/PlugIns/
+
+# 確認相依關係中沒有殘留外部路徑
+otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
+<p>如果 <code>otool</code> 的輸出中殘留 <code>/usr/local/</code> 或 <code>/opt/homebrew/</code> 的路徑，表示打包不完整。</p>
+</section>
+<section id="bundle-translations" class="level3">
+<h3>4.3 確認翻譯檔</h3>
+<p>CMake 的建置後步驟會將 <code>.qm</code> 檔放到 <code>Contents/MacOS/</code>。確認執行 <code>macdeployqt</code> 後檔案仍然存在：</p>
+<pre class="bash"><code>ls build/ShogiBoardQ.app/Contents/MacOS/*.qm   # 4 個（ja_JP / en / zh_CN / zh_TW）</code></pre>
+<p>Qt 標準對話方塊的翻譯（<code>qtbase_ja</code> / <code>qtbase_zh_CN</code> / <code>qtbase_zh_TW</code>）內嵌在執行檔的資源中，因此不需要另外的檔案。</p>
+</section>
+<section id="bundle-prune" class="level3">
+<h3>4.4 刪除未使用的 Qt 元件（最小組態）</h3>
+<p>macdeployqt 會依類別放入所有 Qt 外掛程式，並透過虛擬鍵盤外掛程式連帶引入 Qt Quick / QML（約 187MB）。刪除 ShogiBoardQ 不使用的部分，在僅支援 Apple 晶片的發行中還要去除 Qt 的 x86_64 部分（約 89MB，DMG 約 50MB）。</p>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr><th>刪除的內容</th><th>理由</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PlugIns/platforminputcontexts/</code>、<code>QtQml*</code> / <code>QtQuick</code> / <code>QtVirtualKeyboard*</code></td><td>不使用虛擬鍵盤與 QML</td></tr>
+<tr><td><code>PlugIns/tls/</code>、<code>PlugIns/networkinformation/</code></td><td>CSA 通訊只使用明文 TCP</td></tr>
+<tr><td><code>PlugIns/multimedia/libffmpegmediaplugin.dylib</code>、<code>libav*</code> / <code>libsw*</code></td><td>棋子音效使用 macOS 標準的 darwin 後端播放</td></tr>
+<tr><td><code>PlugIns/sqldrivers/</code> 中 SQLite 以外的驅動程式</td><td>只使用 SQLite</td></tr>
+<tr><td><code>PlugIns/imageformats/</code> 中的 gif / wbmp / macheif / icns / tga / macjp2</td><td>只使用 SVG / ICO（圖示）與 JPEG / TIFF / WebP（匯出棋盤圖片）</td></tr>
+</tbody>
+</table>
+</div>
+<pre class="bash"><code>C=build/ShogiBoardQ.app/Contents
+rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/tls $C/PlugIns/networkinformation \
+  $C/PlugIns/multimedia/libffmpegmediaplugin.dylib $C/Frameworks/libav*.dylib $C/Frameworks/libsw*.dylib \
+  $C/Frameworks/QtQml*.framework $C/Frameworks/QtQuick.framework $C/Frameworks/QtVirtualKeyboard*.framework
+find $C/PlugIns/sqldrivers -name &#39;*.dylib&#39; ! -name libqsqlite.dylib -delete
+for p in gif wbmp macheif icns tga macjp2; do rm -f $C/PlugIns/imageformats/libq$p.dylib; done
+
+# 將 Qt 精簡為只含 arm64（發行通用二進位檔時不要執行）
+find $C -type f \( -perm +111 -o -name &#39;*.dylib&#39; \) | while read -r f; do
+  if lipo -archs &quot;$f&quot; 2&gt;/dev/null | grep -q x86_64; then
+    lipo &quot;$f&quot; -thin arm64 -output &quot;$f.thin&quot; &amp;&amp; chmod &quot;$(stat -f %Lp &quot;$f&quot;)&quot; &quot;$f.thin&quot; &amp;&amp; mv &quot;$f.thin&quot; &quot;$f&quot;
+  fi
+done</code></pre>
+<p>保留的是 12 個 Qt 框架（Charts、Concurrent、Core、DBus、Gui、Multimedia、Network、OpenGL、OpenGLWidgets、Sql、Svg、Widgets）與 9 個外掛程式（cocoa、macstyle、svgicon、darwin multimedia、sqlite、ico / jpeg / tiff / webp）。刪除後要重新對整個應用程式套件簽章（<a href="#signing-manual">6.4</a>。臨時簽章時為 <code>codesign --force --deep --sign - build/ShogiBoardQ.app</code>）。</p>
+<p>啟動後，確認載入的函式庫全部來自套件內：</p>
+<pre class="bash"><code>open build/ShogiBoardQ.app
+lsof -p &quot;$(pgrep -x ShogiBoardQ)&quot; | grep -E &#39;/Qt/|homebrew&#39;   # 沒有任何輸出即可</code></pre>
+</section>
+</section>
+<section id="dmg" class="level2">
+<h2>5. 製作 DMG 檔案</h2>
+<blockquote>
+<p><strong>註：</strong>使用 <code>scripts/build-macos.sh</code> 時，會以方法 B（create-dmg）自動製作，不需要手動執行。也可以用 <code>--skip-dmg</code> 選項只略過 DMG 的製作。</p>
+<p>手動製作時，也要在放入 DMG 之前完成 <a href="#bundle-prune">4.4</a> 的刪除與簽章。方法 A 由 macdeployqt 直接製作 DMG，因此不是最小組態。</p>
+</blockquote>
+<section id="dmg-macdeployqt" class="level3">
+<h3>方法 A：macdeployqt 的 -dmg 選項（簡易）</h3>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app -dmg</code></pre>
+<p>會產生 <code>build/ShogiBoardQ.dmg</code>。方法簡單，但沒有背景圖片，也沒有指向 Applications 資料夾的連結。</p>
+</section>
+<section id="dmg-create-dmg" class="level3">
+<h3>方法 B：create-dmg（建議 - 自訂 DMG）</h3>
+<p>製作外觀美觀、使用者可以拖放到 Applications 資料夾的 DMG。</p>
+<section id="dmg-create-dmg-install" class="level4">
+<h4>安裝</h4>
+<pre class="bash"><code>brew install create-dmg</code></pre>
+</section>
+<section id="dmg-create-dmg-run" class="level4">
+<h4>製作 DMG</h4>
+<pre class="bash"><code># 以 macdeployqt 製作應用程式套件（不加 -dmg）
+macdeployqt build/ShogiBoardQ.app
+
+# 製作 DMG
+create-dmg \
+  --volname &quot;ShogiBoardQ&quot; \
+  --volicon &quot;resources/icons/shogiboardq.icns&quot; \
+  --window-pos 200 120 \
+  --window-size 600 400 \
+  --icon-size 100 \
+  --icon &quot;ShogiBoardQ.app&quot; 150 190 \
+  --hide-extension &quot;ShogiBoardQ.app&quot; \
+  --app-drop-link 450 190 \
+  &quot;ShogiBoardQ.dmg&quot; \
+  &quot;build/ShogiBoardQ.app&quot;</code></pre>
+</section>
+<section id="dmg-create-dmg-options" class="level4">
+<h4>選項說明</h4>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>選項</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--volname</code></td><td>掛載時的磁碟區名稱</td></tr>
+<tr><td><code>--volicon</code></td><td>磁碟區圖示</td></tr>
+<tr><td><code>--window-pos</code></td><td>DMG 視窗的顯示位置（x y）</td></tr>
+<tr><td><code>--window-size</code></td><td>DMG 視窗的大小（寬 高）</td></tr>
+<tr><td><code>--icon-size</code></td><td>圖示大小（px）</td></tr>
+<tr><td><code>--icon</code></td><td>應用程式圖示的顯示位置（名稱 x y）</td></tr>
+<tr><td><code>--hide-extension</code></td><td>隱藏 .app 副檔名</td></tr>
+<tr><td><code>--app-drop-link</code></td><td>指向 Applications 資料夾的連結位置（x y）</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="dmg-hdiutil" class="level3">
+<h3>方法 C：hdiutil（手動 - 完全控制）</h3>
+<pre class="bash"><code># 建立暫存目錄
+mkdir -p dmg_staging
+cp -R build/ShogiBoardQ.app dmg_staging/
+ln -s /Applications dmg_staging/Applications
+
+# 製作 DMG
+hdiutil create -volname &quot;ShogiBoardQ&quot; \
+  -srcfolder dmg_staging \
+  -ov -format UDZO \
+  &quot;ShogiBoardQ.dmg&quot;
+
+# 清理
+rm -rf dmg_staging</code></pre>
+</section>
+<section id="dmg-verify" class="level3">
+<h3>5.1 驗證 DMG</h3>
+<pre class="bash"><code># 掛載後確認執行
+hdiutil attach ShogiBoardQ.dmg
+open /Volumes/ShogiBoardQ/ShogiBoardQ.app
+
+# 退出
+hdiutil detach /Volumes/ShogiBoardQ</code></pre>
+</section>
+<section id="dmg-zip" class="level3">
+<h3>5.2 發行用 ZIP</h3>
+<p>指令碼在製作 DMG 之後，會在存放庫根目錄製作 <code>ShogiBoardQ-macos.zip</code>。結構與 Linux 版的 ZIP 相同。</p>
+<pre><code>ShogiBoardQ-macos/
+├── ShogiBoardQ.dmg
+├── README.md                      ← resources/platform/README-macos.md
+├── LICENSE
+├── Hayanagi/
+│   ├── hayanagi                   ← 用於一般對局的 USI 引擎（arm64，最低 macOS 版本與應用程式相同）
+│   ├── book/hayanagi_book.db      ← Hayanagi 的定跡
+│   └── README.md
+└── data/tsumeshogi/
+    ├── tsume_{3,5,7,9,11,13}ply_1000_YYYYMMDD.txt
+    └── README.md</code></pre>
+<ul>
+<li>題集每種手數只能有 1 個檔案。如果殘留舊版等檔案，指令碼會停止。</li>
+<li><code>hayanagi</code> 使用對 <code>build/Hayanagi/hayanagi</code> 執行 <code>strip -x</code> 後的檔案，並以與應用程式相同的身分（預設為臨時簽章）重新簽章。</li>
+<li>定跡檔案 <code>hayanagi_book.db</code> 使用建置時複製到 <code>build/Hayanagi/book/</code> 的檔案，放入 <code>Hayanagi/book/</code>。Hayanagi 從工作目錄的 <code>book/</code> 讀取定跡，而 ShogiBoardQ 以引擎所在的目錄作為工作目錄啟動引擎，因此解壓縮後即可直接使用定跡。</li>
+<li>下載的 <code>hayanagi</code> 會帶有隔離屬性，因此 README 中說明了 <code>xattr -d com.apple.quarantine Hayanagi/hayanagi</code>。</li>
+</ul>
+<pre class="bash"><code>unzip -l ShogiBoardQ-macos.zip
+# 確認 Hayanagi 能回應並讀取定跡（與 ShogiBoardQ 一樣在 Hayanagi/ 中啟動）
+(cd build/ShogiBoardQ-macos/Hayanagi &amp;&amp; (printf &#39;usi\nisready\nposition startpos\ngo movetime 300\n&#39;; sleep 1.5; echo quit) | ./hayanagi | grep -E &#39;book|usiok|readyok|bestmove&#39;)</code></pre>
+</section>
+</section>
+<section id="signing" class="level2">
+<h2>6. 程式碼簽章與公證</h2>
+<p>對外發行時，為了通過 Apple 的 Gatekeeper，需要進行程式碼簽章與公證。不經公證也能執行，但第一次開啟下載的應用程式時會顯示 Gatekeeper 的警告，需要使用者允許（<a href="#signing-unnotarized">6.6</a>）。</p>
+<section id="signing-program" class="level3">
+<h3>6.1 加入 Apple Developer Program</h3>
+<p>程式碼簽章與公證需要加入 <a href="https://developer.apple.com/programs/">Apple Developer Program</a>（年費 99 美元）。</p>
+</section>
+<section id="signing-cert" class="level3">
+<h3>6.2 取得簽章用憑證</h3>
+<p>在 Xcode &gt; Settings &gt; Accounts 中建立以下憑證：</p>
+<ul>
+<li><strong>Developer ID Application</strong> — 用於對應用程式本身簽章</li>
+<li><strong>Developer ID Installer</strong> — 用於對 DMG / pkg 簽章（選用）</li>
+</ul>
+</section>
+<section id="signing-macdeployqt" class="level3">
+<h3>6.3 以 macdeployqt 製作附程式碼簽章的應用程式套件</h3>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app \
+  -sign-for-notarization=&quot;Developer ID Application: Your Name (TEAMID)&quot;</code></pre>
+<p>使用這個選項時，<code>macdeployqt</code> 會：</p>
+<ol type="1">
+<li>打包 Qt 框架與外掛程式</li>
+<li>對所有框架、外掛程式與執行檔進行程式碼簽章</li>
+<li>啟用 <code>--options=runtime</code>（強化執行階段）</li>
+</ol>
+</section>
+<section id="signing-manual" class="level3">
+<h3>6.4 手動進行程式碼簽章</h3>
+<p>不使用 <code>macdeployqt</code> 的簽章選項時：</p>
+<pre class="bash"><code># 遞迴地對套件內的所有二進位檔簽章
+codesign --deep --force --verify --verbose \
+  --sign &quot;Developer ID Application: Your Name (TEAMID)&quot; \
+  --options runtime \
+  build/ShogiBoardQ.app
+
+# 驗證簽章
+codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app</code></pre>
+</section>
+<section id="signing-notarize" class="level3">
+<h3>6.5 公證（Notarization）</h3>
+<pre class="bash"><code># 製作 DMG（使用已簽章的應用程式套件）
+# ...（依第 5 節的方法製作 DMG）
+
+# 提交公證
+xcrun notarytool submit ShogiBoardQ.dmg \
+  --apple-id &quot;your@email.com&quot; \
+  --team-id &quot;TEAMID&quot; \
+  --password &quot;app-specific-password&quot; \
+  --wait
+
+# 裝訂（將公證結果嵌入 DMG）
+xcrun stapler staple ShogiBoardQ.dmg
+
+# 驗證裝訂
+xcrun stapler validate ShogiBoardQ.dmg</code></pre>
+<blockquote>
+<p><strong>注意</strong>：<code>--password</code> 使用的不是 Apple 帳號的密碼，而是 <a href="https://appleid.apple.com/account/manage">App 專用密碼</a>。</p>
+</blockquote>
+</section>
+<section id="signing-unnotarized" class="level3">
+<h3>6.6 不經公證發行時</h3>
+<p>不經公證就發行時，下載的應用程式在第一次啟動時會被 Gatekeeper 阻擋。從 macOS 15 開始，無法再透過在 Finder 中按右鍵點一下 → 「打開」來開啟，因此請向使用者說明以下步驟：</p>
+<ol type="1">
+<li>開啟應用程式，顯示警告後將其關閉</li>
+<li>開啟「系統設定」→「隱私權與安全性」，按一下「強制打開」，並依指示允許</li>
+</ol>
+<p>或者在終端機中解除 Gatekeeper 的隔離屬性（沒有顯示「強制打開」時也使用這個方法）：</p>
+<pre class="bash"><code>xattr -cr /Applications/ShogiBoardQ.app</code></pre>
+</section>
+</section>
+<section id="release" class="level2">
+<h2>7. 在 GitHub Releases 上發行</h2>
+<section id="release-tag" class="level3">
+<h3>7.1 建立標籤</h3>
+<p>版本號只在發行當天改為當天的日期（<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">版本號與發行的運作方式</a>，日文）。製作發行套件之前，先修改 <code>CMakeLists.txt</code> 中的 <code>APP_VERSION</code> 並提交，用該提交製作發行套件，然後在同一提交上加上相同版本號的標籤。標籤不加 <code>v</code>。</p>
+<pre class="bash"><code>git tag -a 2026.10.07 -m &quot;ShogiBoardQ 2026.10.07&quot;
+git push origin main 2026.10.07</code></pre>
+</section>
+<section id="release-gh" class="level3">
+<h3>7.2 以 GitHub CLI 建立 Release</h3>
+<p>使用 <a href="https://cli.github.com/">GitHub CLI (gh)</a>：</p>
+<pre class="bash"><code># 安裝
+brew install gh
+
+# 登入（僅第一次）
+gh auth login</code></pre>
+<p>建立 Release 並上傳附件：</p>
+<pre class="bash"><code>gh release create 2026.10.07 \
+  --title &quot;ShogiBoardQ 2026.10.07&quot; \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ-macos.zip</code></pre>
+<blockquote>
+<p>同時發行 Windows 的 ZIP 時，加入附件：</p>
+<pre class="bash"><code>gh release create 2026.10.07 \
+  --title &quot;ShogiBoardQ 2026.10.07&quot; \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ-macos.zip \
+  ShogiBoardQ-windows.zip</code></pre>
+</blockquote>
+<section id="release-notes-auto" class="level4">
+<h4>自動產生發行說明</h4>
+<p>不準備發行說明檔案時，由 GitHub 自動產生：</p>
+<pre class="bash"><code>gh release create 2026.10.07 \
+  --title &quot;ShogiBoardQ 2026.10.07&quot; \
+  --generate-notes \
+  ShogiBoardQ-macos.zip</code></pre>
+</section>
+<section id="release-upload" class="level4">
+<h4>在既有的 Release 中加入附件</h4>
+<p>已在 Windows 端先建立 Release 時，加入 macOS 的 ZIP：</p>
+<pre class="bash"><code>gh release upload 2026.10.07 ShogiBoardQ-macos.zip</code></pre>
+</section>
+</section>
+<section id="release-web" class="level3">
+<h3>7.3 在網頁介面上建立 Release（替代方法）</h3>
+<ol type="1">
+<li>GitHub 存放庫 → <strong>Releases</strong> → <strong>Draft a new release</strong></li>
+<li><strong>Choose a tag</strong> → 輸入新標籤（例：<code>2026.10.07</code>）並建立</li>
+<li>輸入 <strong>Release title</strong>（例：<code>ShogiBoardQ 2026.10.07</code>）</li>
+<li>在 <strong>Description</strong> 中填寫發行說明</li>
+<li>將 <code>ShogiBoardQ-macos.zip</code> 拖放到 <strong>Attach binaries</strong></li>
+<li>按一下 <strong>Publish release</strong></li>
+</ol>
+</section>
+<section id="release-notes" class="level3">
+<h3>7.4 發行說明的寫法（範本）</h3>
+<pre class="markdown"><code>## ShogiBoardQ 2026.10.07
+
+### 下載
+
+| OS | 檔案 |
+|---|---|
+| macOS | `ShogiBoardQ-macos.zip` |
+| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+
+### 在 macOS 上啟動
+
+1. 解壓縮 ZIP，打開 `ShogiBoardQ.dmg`
+2. 將 ShogiBoardQ.app 拖放到 Applications 資料夾
+3. 從 Applications 啟動
+
+&gt; 由於未經 Apple 公證，第一次啟動時會顯示警告而無法開啟。
+&gt; 在「系統設定」→「隱私權與安全性」中按一下「強制打開」即可啟動。
+
+### 變更內容
+
+- ...</code></pre>
+</section>
+</section>
+<section id="troubleshooting" class="level2">
+<h2>8. 疑難排解</h2>
+<section id="trouble-qt" class="level3">
+<h3>找不到 Qt</h3>
+<pre><code>CMake Error: Could not find a package configuration file provided by &quot;Qt6&quot;</code></pre>
+<p>明確指定 Qt 的安裝路徑：</p>
+<pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;</code></pre>
+</section>
+<section id="trouble-macdeployqt" class="level3">
+<h3>找不到 macdeployqt</h3>
+<pre class="bash"><code># 確認 Qt 的安裝路徑
+which macdeployqt
+
+# 找不到時，加入 PATH
+export PATH=&quot;$HOME/Qt/6.x.x/macos/bin:$PATH&quot;
+
+# 使用 Homebrew 時
+export PATH=&quot;$(brew --prefix qt@6)/bin:$PATH&quot;</code></pre>
+</section>
+<section id="trouble-charts" class="level3">
+<h3>macdeployqt 沒有打包 Qt Charts</h3>
+<p><code>macdeployqt</code> 有時無法自動偵測到 Qt Charts。這時需要手動複製：</p>
+<pre class="bash"><code># 確認是否遺漏打包
+otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ | grep Charts
+
+# 手動複製（需要時）
+cp -R &quot;$HOME/Qt/6.x.x/macos/lib/QtCharts.framework&quot; \
+  build/ShogiBoardQ.app/Contents/Frameworks/
+
+# 以 install_name_tool 修正參照路徑
+install_name_tool -change \
+  @rpath/QtCharts.framework/Versions/A/QtCharts \
+  @executable_path/../Frameworks/QtCharts.framework/Versions/A/QtCharts \
+  build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
+</section>
+<section id="trouble-gatekeeper" class="level3">
+<h3>第一次啟動時無法開啟（未經公證時）</h3>
+<p>向使用者說明以下任一方法：</p>
+<ul>
+<li>在「系統設定」→「隱私權與安全性」中按一下「強制打開」（僅第一次。從 macOS 15 開始，在 Finder 中按右鍵點一下 → 「打開」無法開啟）</li>
+<li>在終端機中執行 <code>xattr -cr /Applications/ShogiBoardQ.app</code></li>
+</ul>
+</section>
+<section id="trouble-translations" class="level3">
+<h3>無法載入翻譯</h3>
+<p>確認套件內存在 <code>.qm</code> 檔：</p>
+<pre class="bash"><code>find build/ShogiBoardQ.app -name &quot;*.qm&quot;</code></pre>
+<p><code>Contents/MacOS/</code> 中沒有 <code>.qm</code> 檔時，手動複製：</p>
+<pre class="bash"><code>cp build/ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm build/ShogiBoardQ.app/Contents/MacOS/</code></pre>
+</section>
+<section id="trouble-universal" class="level3">
+<h3>製作通用二進位檔（Intel + Apple 晶片）</h3>
+<p>製作同時支援兩種架構的二進位檔時：</p>
+<pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_ARCHITECTURES=&quot;arm64;x86_64&quot;
+
+cmake --build build --config Release</code></pre>
+<blockquote>
+<p><strong>注意</strong>：Qt 本身也必須安裝通用二進位檔版本。</p>
+</blockquote>
+</section>
+</section>
+    </article>
+</div>
+</main>
+
+<div class="back-link-section">
+    <a href="../index.html#build" class="back-link">&larr; 返回「從原始碼建置」</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
