@@ -2,7 +2,7 @@
 #
 # macOS ビルドスクリプト for ShogiBoardQ
 #
-# Release ビルド → macdeployqt → コード署名 → DMG 作成 → 配布 ZIP 作成を一括実行する。
+# Release ビルド → macdeployqt → コード署名 → DMG 作成（→ 公証）→ 配布 ZIP 作成を一括実行する。
 # ZIP（ShogiBoardQ-macos.zip）には DMG・通常対局用 Hayanagi（定跡を含む）・詰将棋問題集を入れる。
 # Hayanagi と問題集は DMG（アプリバンドル）には入れない。
 # 詳細: docs/dev/macos-build-and-release.md
@@ -14,6 +14,8 @@
 #   --universal               Universal Binary (arm64 + x86_64) をビルド
 #   --deployment-target VER   最小対応 macOS バージョン（既定: 26.0）
 #   --sign-identity ID        コード署名 ID（既定: "-" = アドホック署名）
+#   --notarize                DMG を公証・ステープルしてから ZIP を作る（Developer ID と
+#                             環境変数 APPLE_ID / APPLE_TEAM_ID / APPLE_APP_PASSWORD が必要）
 #   --skip-dmg                DMG と ZIP の作成をスキップ（.app のみ）
 #   --skip-qt-licenses        Qt ライセンス文書の追加をスキップ（ビルド同梱の簡易文書のみ）
 #   --clean                   build ディレクトリを削除してからビルド
@@ -47,6 +49,7 @@ OPT_SKIP_QT_LICENSES=false
 OPT_CLEAN=false
 OPT_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-$DEFAULT_DEPLOYMENT_TARGET}"
 OPT_SIGN_IDENTITY="-"
+OPT_NOTARIZE=false
 
 # ──────────────────────────────────────────────
 # ヘルパー関数
@@ -75,7 +78,11 @@ Options:
   --deployment-target VER   最小対応 macOS バージョン
                             （既定: 環境変数 MACOSX_DEPLOYMENT_TARGET、未設定なら 26.0）
   --sign-identity ID        コード署名 ID（既定: "-" = アドホック署名）
-                            Developer ID を指定すると Hardened Runtime を有効にして署名する
+                            Developer ID を指定すると Hardened Runtime を有効にして署名し、
+                            DMG にも署名する
+  --notarize                DMG を Apple の公証に提出し、公証結果をステープルしてから ZIP を作る
+                            --sign-identity で Developer ID を指定し、環境変数 APPLE_ID・
+                            APPLE_TEAM_ID・APPLE_APP_PASSWORD（App 用パスワード）を設定しておく
   --skip-dmg                DMG と ZIP の作成をスキップ（.app バンドルのみ生成）
   --skip-qt-licenses        Qt のライセンス文書と対応ソース情報の追加をスキップ
                             （ビルド時に同梱される簡易文書のみ。配布用は通常付けない）
@@ -94,6 +101,10 @@ Examples:
 
   # Developer ID で署名
   ./scripts/build-macos.sh --sign-identity "Developer ID Application: Your Name (TEAMID)"
+
+  # Developer ID で署名し、DMG を公証してから ZIP を作る
+  export APPLE_ID="your@email.com" APPLE_TEAM_ID="TEAMID" APPLE_APP_PASSWORD="app-specific-password"
+  ./scripts/build-macos.sh --sign-identity "Developer ID Application: Your Name (TEAMID)" --notarize
 EOF
 }
 
@@ -114,6 +125,7 @@ while [[ $# -gt 0 ]]; do
             OPT_SIGN_IDENTITY="$2"
             shift
             ;;
+        --notarize)  OPT_NOTARIZE=true ;;
         --skip-dmg)  OPT_SKIP_DMG=true ;;
         --skip-qt-licenses) OPT_SKIP_QT_LICENSES=true ;;
         --clean)     OPT_CLEAN=true ;;
@@ -122,6 +134,16 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+
+# 公証はビルドの後なので、条件が揃っていないときはビルドの前に止める。
+if [[ "$OPT_NOTARIZE" = true ]]; then
+    [[ "$OPT_SIGN_IDENTITY" != "-" ]] \
+        || die "--notarize には --sign-identity で Developer ID を指定してください（アドホック署名は公証できません）"
+    [[ "$OPT_SKIP_DMG" = false ]] || die "--notarize と --skip-dmg は同時に指定できません"
+    for var in APPLE_ID APPLE_TEAM_ID APPLE_APP_PASSWORD; do
+        [[ -n "${!var:-}" ]] || die "--notarize には環境変数 ${var} が必要です"
+    done
+fi
 
 # ──────────────────────────────────────────────
 # Step 1: 前提チェック
@@ -132,6 +154,9 @@ info "前提ツールを確認中..."
 REQUIRED_TOOLS=(cmake ninja macdeployqt codesign vtool python3)
 if [[ "$OPT_SKIP_DMG" = false ]]; then
     REQUIRED_TOOLS+=(create-dmg)
+fi
+if [[ "$OPT_NOTARIZE" = true ]]; then
+    REQUIRED_TOOLS+=(xcrun)
 fi
 
 MISSING_TOOLS=()
@@ -158,6 +183,9 @@ else
 fi
 if [[ "$OPT_SKIP_DMG" = false ]]; then
     info "create-dmg:  $(command -v create-dmg)"
+fi
+if [[ "$OPT_NOTARIZE" = true ]]; then
+    info "公証:        する（チーム: ${APPLE_TEAM_ID}）"
 fi
 
 # ──────────────────────────────────────────────
@@ -392,6 +420,43 @@ create-dmg \
     --app-drop-link 450 190 \
     "$DMG_NAME" \
     "$APP_BUNDLE"
+
+# Developer ID のときは DMG にも署名する（アドホック署名のときは今までどおり署名しない）。
+if [[ "$OPT_SIGN_IDENTITY" != "-" ]]; then
+    info "DMG にコード署名中..."
+    codesign --force --sign "$OPT_SIGN_IDENTITY" --timestamp "$DMG_NAME"
+    codesign --verify --strict "$DMG_NAME" || die "DMG のコード署名の検証に失敗しました。"
+fi
+
+# ──────────────────────────────────────────────
+# Step 10.5: 公証（--notarize）
+# ──────────────────────────────────────────────
+
+# ZIP にはステープル済みの DMG を入れるため、ZIP を作る前に公証する。
+if [[ "$OPT_NOTARIZE" = true ]]; then
+    info "DMG を公証に提出中（数分かかります）..."
+    # 却下されたときも ID と状態を表示できるよう、終了コードではなく JSON の status で判定する。
+    NOTARY_JSON=$(xcrun notarytool submit "$DMG_NAME" \
+        --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" \
+        --wait --output-format json) || true
+    notary_field() {
+        python3 -c 'import json, sys
+try:
+    print(json.loads(sys.argv[1]).get(sys.argv[2], ""))
+except ValueError:
+    print("")' "$NOTARY_JSON" "$1"
+    }
+    NOTARY_ID=$(notary_field id)
+    NOTARY_STATUS=$(notary_field status)
+    if [[ "$NOTARY_STATUS" != "Accepted" ]]; then
+        [[ -z "$NOTARY_JSON" ]] || printf '%s\n' "$NOTARY_JSON" >&2
+        die "公証が通りませんでした（status: ${NOTARY_STATUS:-不明}）。
+  理由は xcrun notarytool log ${NOTARY_ID:-<ID>} --apple-id ... --team-id ... --password ... で確認してください。"
+    fi
+    info "公証済み: ${NOTARY_ID}"
+    xcrun stapler staple "$DMG_NAME"
+    xcrun stapler validate "$DMG_NAME" || die "DMG のステープルの検証に失敗しました。"
+fi
 
 # ──────────────────────────────────────────────
 # Step 11: 配布 ZIP 作成

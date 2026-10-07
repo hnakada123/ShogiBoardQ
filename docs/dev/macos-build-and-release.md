@@ -118,13 +118,18 @@ cd ShogiBoardQ
 
 # Developer ID で署名（既定はアドホック署名）
 ./scripts/build-macos.sh --sign-identity "Developer ID Application: Your Name (TEAMID)"
+
+# Developer ID で署名し、DMG を公証してから ZIP を作る
+export APPLE_ID="your@email.com" APPLE_TEAM_ID="TEAMID" APPLE_APP_PASSWORD="app-specific-password"
+./scripts/build-macos.sh --sign-identity "Developer ID Application: Your Name (TEAMID)" --notarize
 ```
 
 | オプション | 説明 |
 |---|---|
 | `--universal` | Universal Binary (arm64 + x86_64) をビルド |
 | `--deployment-target VER` | 最小対応 macOS バージョン（既定: 環境変数 `MACOSX_DEPLOYMENT_TARGET`、未設定なら `26.0`） |
-| `--sign-identity ID` | コード署名 ID（既定: `-` = アドホック署名）。Developer ID を指定すると Hardened Runtime とタイムスタンプを付けて署名する |
+| `--sign-identity ID` | コード署名 ID（既定: `-` = アドホック署名）。Developer ID を指定すると Hardened Runtime とタイムスタンプを付けて署名し、DMG にも署名する |
+| `--notarize` | DMG を Apple の公証に提出し、公証結果をステープルしてから配布 ZIP を作る。`--sign-identity` で Developer ID を指定し、環境変数 `APPLE_ID`・`APPLE_TEAM_ID`・`APPLE_APP_PASSWORD`（App 用パスワード）を設定しておく |
 | `--skip-dmg` | DMG と配布 ZIP の作成をスキップ（.app バンドルのみ生成） |
 | `--skip-qt-licenses` | [Qt 文書](qt-licensing.md) の追加をスキップし、ビルド時に同梱される簡易文書（`Contents/MacOS/licenses`）のみにする。配布用には付けない |
 | `--clean` | build ディレクトリを削除してからビルド |
@@ -139,8 +144,9 @@ cd ShogiBoardQ
 5. 未使用の Qt 部品の削除と、Qt バイナリの arm64 化（[4.4](#44-未使用の-qt-部品の削除最小構成)。`--universal` 時は arm64 化しない）+ 検証
 6. Qt ライセンス文書の同梱（`--skip-qt-licenses` でスキップ）
 7. バンドル全体のコード署名 + `codesign --verify --deep --strict` による検証
-8. create-dmg による DMG 作成
-9. DMG・Hayanagi・詰将棋問題集を入れた配布 ZIP（`ShogiBoardQ-macos.zip`）の作成（[5.2](#52-配布-zip)）
+8. create-dmg による DMG 作成（Developer ID のときは DMG にも署名）
+9. `--notarize` のとき、DMG の公証とステープル + 検証
+10. DMG・Hayanagi・詰将棋問題集を入れた配布 ZIP（`ShogiBoardQ-macos.zip`）の作成（[5.2](#52-配布-zip)）
 
 > **最小 macOS バージョンについて:** デプロイメントターゲットを指定しないと、ビルドホストの macOS バージョンが最小対応バージョンになる（例: macOS 27 でビルドすると macOS 26 で起動できない）。スクリプトは既定で `26.0` を指定し、ビルド後に実行ファイルの `minos` が一致しなければ停止する。
 >
@@ -453,6 +459,8 @@ codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app
 ```
 
 ### 6.5 公証 (Notarization)
+
+スクリプトを使う場合は、`--sign-identity` に Developer ID を指定して `--notarize` を付けると、DMG を公証に提出してステープルしてから配布 ZIP を作る（[3. ビルド](#ビルドスクリプト推奨)）。公証が通らなかったときは提出 ID を表示して止まる。以下は手動で行う場合の手順。
 
 ```bash
 # DMG を作成（署名済みバンドルから）
