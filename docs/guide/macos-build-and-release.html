@@ -180,7 +180,11 @@ cd ShogiBoardQ</code></pre>
 ./scripts/build-macos.sh --clean --skip-qt-licenses
 
 # Developer ID で署名（既定はアドホック署名）
-./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot;</code></pre>
+./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot;
+
+# Developer ID で署名し、DMG を公証してから ZIP を作る
+export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPLE_APP_PASSWORD=&quot;app-specific-password&quot;
+./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot; --notarize</code></pre>
 <div class="table-scroll">
 <table class="info-table info-table--labels">
 <thead>
@@ -200,7 +204,11 @@ cd ShogiBoardQ</code></pre>
 </tr>
 <tr>
 <td><code>--sign-identity ID</code></td>
-<td>コード署名 ID（既定: <code>-</code> = アドホック署名）。Developer ID を指定すると Hardened Runtime とタイムスタンプを付けて署名する</td>
+<td>コード署名 ID（既定: <code>-</code> = アドホック署名）。Developer ID を指定すると Hardened Runtime とタイムスタンプを付けて署名し、DMG にも署名する</td>
+</tr>
+<tr>
+<td><code>--notarize</code></td>
+<td>DMG を Apple の公証に提出し、公証結果をステープルしてから配布 ZIP を作る。<code>--sign-identity</code> で Developer ID を指定し、環境変数 <code>APPLE_ID</code>・<code>APPLE_TEAM_ID</code>・<code>APPLE_APP_PASSWORD</code>（App 用パスワード）を設定しておく</td>
 </tr>
 <tr>
 <td><code>--skip-dmg</code></td>
@@ -230,7 +238,8 @@ cd ShogiBoardQ</code></pre>
 <li>未使用の Qt 部品の削除と、Qt バイナリの arm64 化（<a href="#44-未使用の-qt-部品の削除最小構成">4.4</a>。<code>--universal</code> 時は arm64 化しない）+ 検証</li>
 <li>Qt ライセンス文書の同梱（<code>--skip-qt-licenses</code> でスキップ）</li>
 <li>バンドル全体のコード署名 + <code>codesign --verify --deep --strict</code> による検証</li>
-<li>create-dmg による DMG 作成</li>
+<li>create-dmg による DMG 作成（Developer ID のときは DMG にも署名）</li>
+<li><code>--notarize</code> のとき、DMG の公証とステープル + 検証</li>
 <li>DMG・Hayanagi・詰将棋問題集を入れた配布 ZIP（<code>ShogiBoardQ-macos.zip</code>）の作成（<a href="#52-配布-zip">5.2</a>）</li>
 </ol>
 <blockquote>
@@ -543,6 +552,7 @@ codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app</code></pre>
 </section>
 <section id="65-公証-notarization" class="level3">
 <h3>6.5 公証 (Notarization)</h3>
+<p>スクリプトを使う場合は、<code>--sign-identity</code> に Developer ID を指定して <code>--notarize</code> を付けると、DMG を公証に提出してステープルしてから配布 ZIP を作る（<a href="#ビルドスクリプト推奨">3. ビルド</a>）。公証が通らなかったときは提出 ID を表示して止まる。以下は手動で行う場合の手順。</p>
 <pre class="bash"><code># DMG を作成（署名済みバンドルから）
 # ... (手順5の方法で DMG を作成)
 

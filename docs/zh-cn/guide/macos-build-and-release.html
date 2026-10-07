@@ -161,7 +161,11 @@ cd ShogiBoardQ</code></pre>
 ./scripts/build-macos.sh --clean --skip-qt-licenses
 
 # 用 Developer ID 签名（默认为临时签名）
-./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot;</code></pre>
+./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot;
+
+# 用 Developer ID 签名，公证 DMG 后再制作 ZIP
+export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPLE_APP_PASSWORD=&quot;app-specific-password&quot;
+./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot; --notarize</code></pre>
 <div class="table-scroll">
 <table class="info-table info-table--labels">
 <thead>
@@ -170,7 +174,8 @@ cd ShogiBoardQ</code></pre>
 <tbody>
 <tr><td><code>--universal</code></td><td>构建通用二进制（arm64 + x86_64）</td></tr>
 <tr><td><code>--deployment-target VER</code></td><td>最低支持的 macOS 版本（默认：环境变量 <code>MACOSX_DEPLOYMENT_TARGET</code>，未设置时为 <code>26.0</code>）</td></tr>
-<tr><td><code>--sign-identity ID</code></td><td>代码签名身份（默认：<code>-</code> = 临时（ad hoc）签名）。指定 Developer ID 时，会启用强化运行时（Hardened Runtime）并附加时间戳进行签名</td></tr>
+<tr><td><code>--sign-identity ID</code></td><td>代码签名身份（默认：<code>-</code> = 临时（ad hoc）签名）。指定 Developer ID 时，会启用强化运行时（Hardened Runtime）并附加时间戳进行签名，DMG 也会签名</td></tr>
+<tr><td><code>--notarize</code></td><td>将 DMG 提交 Apple 公证，装订公证结果后再制作发布用 ZIP。需要用 <code>--sign-identity</code> 指定 Developer ID，并设置环境变量 <code>APPLE_ID</code>、<code>APPLE_TEAM_ID</code>、<code>APPLE_APP_PASSWORD</code>（App 专用密码）</td></tr>
 <tr><td><code>--skip-dmg</code></td><td>跳过 DMG 和发布用 ZIP 的制作（只生成 .app 包）</td></tr>
 <tr><td><code>--skip-qt-licenses</code></td><td>跳过添加 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文档</a>（日文），只保留构建时附带的简易文档（<code>Contents/MacOS/licenses</code>）。发布时不要使用</td></tr>
 <tr><td><code>--clean</code></td><td>删除 build 目录后再构建</td></tr>
@@ -187,7 +192,8 @@ cd ShogiBoardQ</code></pre>
 <li>删除未使用的 Qt 组件，并把 Qt 二进制精简为 arm64（<a href="#bundle-prune">4.4</a>。使用 <code>--universal</code> 时不精简为 arm64）+ 验证</li>
 <li>附带 Qt 许可文档（使用 <code>--skip-qt-licenses</code> 时跳过）</li>
 <li>对整个应用程序包进行代码签名 + 用 <code>codesign --verify --deep --strict</code> 验证</li>
-<li>用 create-dmg 制作 DMG</li>
+<li>用 create-dmg 制作 DMG（使用 Developer ID 时也对 DMG 签名）</li>
+<li>使用 <code>--notarize</code> 时，对 DMG 进行公证和装订 + 验证</li>
 <li>制作包含 DMG、Hayanagi 和诘棋题集的发布用 ZIP（<code>ShogiBoardQ-macos.zip</code>）（<a href="#dmg-zip">5.2</a>）</li>
 </ol>
 <blockquote>
@@ -455,6 +461,7 @@ codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app</code></pre>
 </section>
 <section id="signing-notarize" class="level3">
 <h3>6.5 公证（Notarization）</h3>
+<p>使用脚本时，用 <code>--sign-identity</code> 指定 Developer ID 并加上 <code>--notarize</code>，脚本会把 DMG 提交公证并装订，然后再制作发布用 ZIP（<a href="#build-script">3. 构建</a>）。公证未通过时会显示提交 ID 并停止。以下是手动进行时的步骤。</p>
 <pre class="bash"><code># 制作 DMG（使用已签名的应用程序包）
 # ...（按第 5 节的方法制作 DMG）
 

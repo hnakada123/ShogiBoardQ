@@ -159,56 +159,64 @@ jobs:
           version: ${{ env.QT_VERSION }}
           modules: "qtcharts qtmultimedia"
 
-      - name: Build DMG
-        run: |
-          chmod +x scripts/build-macos.sh
-          ./scripts/build-macos.sh
-
-      - name: Optional macOS signing/notarization
+      # 証明書はビルドの前に読み込み、署名の ID をスクリプトに渡す。スクリプトがアプリ・Hayanagi・DMG を
+      # 署名し、--notarize のときは DMG を公証・ステープルしてから配布 ZIP を作る。
+      - name: Import signing certificate (optional)
+        id: signing
         env:
           MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${MACOS_CERT_P12_BASE64}" || -z "${MACOS_CERT_PASSWORD}" || -z "${MACOS_SIGN_IDENTITY}" ]]; then
+            echo "macOS signing secrets are not configured. Using ad hoc signing."
+            exit 0
+          fi
+
+          CERT_PATH="$RUNNER_TEMP/signing.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+          echo "${MACOS_CERT_P12_BASE64}" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "${MACOS_CERT_PASSWORD}" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          rm -f "$CERT_PATH"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build DMG and ZIP
+        env:
+          SIGNING_ENABLED: ${{ steps.signing.outputs.enabled }}
           MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -z "${MACOS_CERT_P12_BASE64}" || -z "${MACOS_CERT_PASSWORD}" || -z "${MACOS_SIGN_IDENTITY}" ]]; then
-            echo "macOS signing secrets are not configured. Skipping signing."
-            exit 0
+          chmod +x scripts/build-macos.sh
+          args=()
+          if [[ "${SIGNING_ENABLED:-}" == "true" ]]; then
+            args+=(--sign-identity "${MACOS_SIGN_IDENTITY}")
+            if [[ -n "${APPLE_ID}" && -n "${APPLE_TEAM_ID}" && -n "${APPLE_APP_PASSWORD}" ]]; then
+              args+=(--notarize)
+            else
+              echo "Notarization secrets are not fully configured. Skipping notarization."
+            fi
           fi
+          ./scripts/build-macos.sh ${args[@]+"${args[@]}"}
 
-          echo "${MACOS_CERT_P12_BASE64}" | base64 --decode > cert.p12
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security import cert.p12 -k build.keychain -P "${MACOS_CERT_PASSWORD}" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+      - name: Remove signing keychain
+        if: always() && steps.signing.outputs.enabled == 'true'
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db"
 
-          codesign --force --deep --options runtime --sign "${MACOS_SIGN_IDENTITY}" build/ShogiBoardQ.app
-          codesign --verify --deep --strict build/ShogiBoardQ.app
-
-          if [[ -n "${APPLE_ID}" && -n "${APPLE_TEAM_ID}" && -n "${APPLE_APP_PASSWORD}" ]]; then
-            xcrun notarytool submit ShogiBoardQ.dmg \
-              --apple-id "${APPLE_ID}" \
-              --team-id "${APPLE_TEAM_ID}" \
-              --password "${APPLE_APP_PASSWORD}" \
-              --wait
-            xcrun stapler staple ShogiBoardQ.dmg
-          else
-            echo "Notarization secrets are not fully configured. Skipping notarization."
-          fi
-
+      # 手作業のリリースと同じく、DMG・Hayanagi・問題集を入れた配布 ZIP をそのまま添付する。
       - name: Prepare macOS artifact
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
-          fi
-          VERSION="${TAG#v}"
           mkdir -p dist
-          mv ShogiBoardQ.dmg "dist/ShogiBoardQ-${VERSION}-macos.dmg"
+          mv ShogiBoardQ-macos.zip dist/
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
@@ -339,7 +347,7 @@ jobs:
           # checksums, SBOMs and CI logs must never become separate release assets.
           ASSETS=(
             "release-assets/ShogiBoardQ-linux.zip"
-            "release-assets/ShogiBoardQ-${VERSION}-macos.dmg"
+            "release-assets/ShogiBoardQ-macos.zip"
             "release-assets/ShogiBoardQ-${VERSION}-windows-x86_64.zip"
           )
           for asset in "${ASSETS[@]}"; do

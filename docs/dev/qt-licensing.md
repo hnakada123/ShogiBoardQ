@@ -7,7 +7,7 @@ GitHub Release には各 OS の実行用パッケージだけを添付する。
 | OS | 公開する添付ファイル |
 |---|---|
 | Linux | `ShogiBoardQ-linux.zip`（AppImage・問題集・Hayanagi を含む） |
-| macOS | `ShogiBoardQ-<version>-macos.dmg` |
+| macOS | `ShogiBoardQ-macos.zip`（DMG・問題集・Hayanagi を含む） |
 | Windows | `ShogiBoardQ-windows.zip`（問題集・Hayanagi を含む） |
 
 ホームページのダウンロードボタンは `releases/latest/download/ShogiBoardQ-windows.zip` を指すため、
