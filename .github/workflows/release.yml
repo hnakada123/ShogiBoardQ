@@ -122,7 +122,8 @@ jobs:
         uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
         with:
           version: ${{ env.QT_VERSION }}
-          modules: "qtcharts qtmultimedia"
+          # 盤面画像の TIFF / WebP 書き出しのプラグイン（qtiff・qwebp）は qtimageformats にある
+          modules: "qtcharts qtmultimedia qtimageformats"
 
       - name: Build Linux ZIP
         run: |
@@ -162,7 +163,8 @@ jobs:
         uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
         with:
           version: ${{ env.QT_VERSION }}
-          modules: "qtcharts qtmultimedia"
+          # 盤面画像の TIFF / WebP 書き出しのプラグイン（qtiff・qwebp）は qtimageformats にある
+          modules: "qtcharts qtmultimedia qtimageformats"
 
       # 証明書はビルドの前に読み込み、署名の ID をスクリプトに渡す。スクリプトがアプリ・Hayanagi・DMG を
       # 署名し、--notarize のときは DMG を公証・ステープルしてから配布 ZIP を作る。
@@ -243,7 +245,8 @@ jobs:
         uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
         with:
           version: ${{ env.QT_VERSION }}
-          modules: "qtcharts qtmultimedia"
+          # 盤面画像の TIFF / WebP 書き出しのプラグイン（qtiff・qwebp）は qtimageformats にある
+          modules: "qtcharts qtmultimedia qtimageformats"
 
       # 手順書と同じく Developer PowerShell for VS の環境でスクリプトを実行する（cl・Ninja・
       # VCToolsRedistDir が揃い、ランナーに入っているツールでジェネレータが変わらない）。
