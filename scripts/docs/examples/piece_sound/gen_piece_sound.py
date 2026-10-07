@@ -124,10 +124,10 @@ def page(code):
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
 {lang_menu(PAGE, code, t['lang'], '        ')}
-        <button class="nav-toggle" aria-label="{t['menu']}" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+        <button class="nav-toggle" aria-label="{t['menu']}" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
             <span></span><span></span><span></span>
         </button>
-        <ul class="nav-links">
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) {{ this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }}">
             <li><a href="../index.html">{text(t['nav'][0])}</a></li>
             <li><a href="{guide}">{text(t['nav'][1])}</a></li>
 {nav}

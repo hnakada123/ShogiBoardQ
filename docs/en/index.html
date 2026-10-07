@@ -60,7 +60,7 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="#top" class="nav-logo"><img src="../images/shogiboardq-icon.png" alt="" width="28" height="28"><span>ShogiBoardQ</span></a>
-        <ul class="nav-links">
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
             <li><a href="#highlights">Highlights</a></li>
             <li><a href="#features">Features</a></li>
             <li><a href="#download">Download</a></li>
@@ -82,7 +82,7 @@
                 <li><a href="../zh-tw/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
             </ul>
         </details>
-        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
             <span></span><span></span><span></span>
         </button>
     </div>

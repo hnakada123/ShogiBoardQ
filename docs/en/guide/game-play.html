@@ -41,10 +41,10 @@
         <li><a href="../../zh-tw/guide/game-play.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
     </ul>
 </details>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+<button aria-label="Menu" class="nav-toggle" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
 <span></span><span></span><span></span>
 </button>
-<ul class="nav-links">
+<ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
 <li><a href="../index.html">Home</a></li>
 <li><a href="index.html">User Guide</a></li>
 <li><a href="#engine-registration">Engine Registration</a></li>
