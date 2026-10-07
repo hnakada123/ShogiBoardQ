@@ -7,9 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g. v2026.03.04)"
+        description: "Release tag or ref to build (e.g. 2026.10.07, main)"
         required: true
         type: string
+      publish:
+        description: "Attach the packages to the GitHub Release for the tag (off: build and verify only)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -341,6 +346,8 @@ jobs:
 
   publish-release:
     needs: [build-linux, build-macos, build-windows, checksums-and-sbom]
+    # 手動実行は publish をオンにしたときだけ Release に添付する（既定はビルドと確認だけ）。
+    if: github.event_name == 'push' || inputs.publish
     runs-on: ubuntu-latest
     steps:
       - name: Download product packages
