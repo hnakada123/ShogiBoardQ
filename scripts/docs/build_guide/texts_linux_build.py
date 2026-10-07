@@ -752,7 +752,7 @@ T["zh-cn"] = {
     "badges": ["Linux", "Qt 6", "AppImage", "GitHub Releases"],
     "lang_aria": "界面语言",
     "menu_aria": "菜单",
-    "nav": [("首页", "../index.html"), ("使用指南（英文）", "../../en/guide/index.html"),
+    "nav": [("首页", "../index.html"), ("使用指南", "index.html"),
             ("从源代码构建", "../index.html#build"), ("目录", "#contents"), ("GitHub", REPO)],
     "back": ("返回“从源代码构建”", "../index.html#build"),
     "blocks": [
@@ -1010,7 +1010,7 @@ T["zh-tw"] = {
     "badges": ["Linux", "Qt 6", "AppImage", "GitHub Releases"],
     "lang_aria": "介面語言",
     "menu_aria": "選單",
-    "nav": [("首頁", "../index.html"), ("使用指南（英文）", "../../en/guide/index.html"),
+    "nav": [("首頁", "../index.html"), ("使用指南", "index.html"),
             ("從原始碼建置", "../index.html#build"), ("目錄", "#contents"), ("GitHub", REPO)],
     "back": ("返回「從原始碼建置」", "../index.html#build"),
     "blocks": [

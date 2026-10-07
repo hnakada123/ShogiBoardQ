@@ -290,7 +290,7 @@ T["zh-cn"] = {
     "share": "分享", "menu": "菜单", "language": "语言", "icon_alt": "ShogiBoardQ 图标",
     "eyebrow": "免费开源的将棋软件",
     "lead": "从对局、研究、棋谱分析到诘棋，<br>研究将棋所需的功能都集中在一个窗口中。",
-    "cta": ["下载", "使用指南（英文）"],
+    "cta": ["下载", "使用指南"],
     "platforms": "Windows / macOS / Linux",
     "window": "ShogiBoardQ",
     "main_alt": "ShogiBoardQ 主窗口的研究模式。Hayanagi 给出的 3 个候选着法以带编号的箭头显示在棋盘上，下方“研究”标签页列出了各自的主要变化。",
@@ -347,7 +347,7 @@ T["zh-cn"] = {
                "Ribbon（墨色）", "端正（木色）", "凛（墨色）"],
     "more": "了解更多",
     "ft_title": "功能一览",
-    "ft_desc": "使用指南按用途介绍了全部功能（目前提供英文版和日文版）。",
+    "ft_desc": "使用指南按用途介绍了全部功能的用法。",
     "engine_note": "对局、研究和分析需要注册支持 USI 协议的将棋引擎。各操作系统的发布包中都附带了将棋引擎 Hayanagi。在此向各位将棋引擎开发者致以谢意。",
     "groups": {"play": "对局", "analysis": "研究与分析", "records": "棋谱与局面", "tsume": "诘棋",
                "setup": "界面与设置", "ai": "AI 集成"},
@@ -389,7 +389,7 @@ T["zh-cn"] = {
     },
     "dl_note": "各安装包均附带诘棋题集（6,000 道）和将棋引擎 Hayanagi（含定式文件）。系统要求和更新内容请参阅<a href=\"{rel}\">发布说明</a>（日文）。",
     "build_title": "从源代码构建",
-    "build_desc": "获取包含子模块的仓库后，即可使用 Qt 6 和 CMake 构建。各操作系统的步骤请参阅构建指南（Windows 和 macOS 为英文）。",
+    "build_desc": "获取包含子模块的仓库后，即可使用 Qt 6 和 CMake 构建。各操作系统的步骤请参阅构建指南（macOS 为英文）。",
     "build_links": ["Linux 构建指南", "Windows 构建指南", "macOS 构建指南"],
     "repo": "GitHub 仓库",
     "license_title": "许可证",
@@ -412,7 +412,7 @@ T["zh-tw"] = {
     "share": "分享", "menu": "選單", "language": "語言", "icon_alt": "ShogiBoardQ 圖示",
     "eyebrow": "免費開源的將棋軟體",
     "lead": "從對局、研究、棋譜分析到詰棋，<br>研究將棋所需的功能都整合在同一個視窗中。",
-    "cta": ["下載", "使用指南（英文）"],
+    "cta": ["下載", "使用指南"],
     "platforms": "Windows / macOS / Linux",
     "window": "ShogiBoardQ",
     "main_alt": "ShogiBoardQ 主視窗的研究模式。Hayanagi 提出的 3 個候選著法以附編號的箭頭顯示在棋盤上，下方「研究」分頁列出各自的主要變化。",
@@ -469,7 +469,7 @@ T["zh-tw"] = {
                "Ribbon（墨色）", "端正（木色）", "凜（墨色）"],
     "more": "了解更多",
     "ft_title": "功能一覽",
-    "ft_desc": "使用指南依用途介紹所有功能（目前提供英文版與日文版）。",
+    "ft_desc": "使用指南依用途介紹所有功能的用法。",
     "engine_note": "對局、研究與分析需要註冊支援 USI 協定的將棋引擎。各作業系統的發行套件中都附有將棋引擎 Hayanagi。在此向各位將棋引擎開發者致上謝意。",
     "groups": {"play": "對局", "analysis": "研究與分析", "records": "棋譜與局面", "tsume": "詰棋",
                "setup": "介面與設定", "ai": "AI 整合"},
@@ -511,7 +511,7 @@ T["zh-tw"] = {
     },
     "dl_note": "各套件皆附有詰棋題集（6,000 道）與將棋引擎 Hayanagi（含定跡檔案）。系統需求與更新內容請參閱<a href=\"{rel}\">發行說明</a>（日文）。",
     "build_title": "從原始碼建置",
-    "build_desc": "取得含子模組的儲存庫後，即可使用 Qt 6 與 CMake 建置。各作業系統的步驟請參閱建置指南（Windows 與 macOS 為英文）。",
+    "build_desc": "取得含子模組的儲存庫後，即可使用 Qt 6 與 CMake 建置。各作業系統的步驟請參閱建置指南（macOS 為英文）。",
     "build_links": ["Linux 建置指南", "Windows 建置指南", "macOS 建置指南"],
     "repo": "GitHub 儲存庫",
     "license_title": "授權",
@@ -555,7 +555,8 @@ def page(code):
     up = "../" if m["dir"] else ""
     img = up + "images/"
     shots = up + m["shots"]
-    guide = "guide/" if code in ("ja", "en") else "../en/guide/"
+    # その言語の利用ガイドの目次があればそこへ、なければ英語版へ
+    guide = "guide/" if os.path.exists(os.path.join(DOCS, m["dir"], "guide", "index.html")) else "../en/guide/"
     url = SITE + m["dir"]
     css_v = "20261004"
 
@@ -563,7 +564,7 @@ def page(code):
         # 翻訳済みのガイドがあればその言語のページへ、なければ英語版へ
         if os.path.exists(os.path.join(DOCS, m["dir"], "guide", slug + ".html")):
             return "guide/" + slug + ".html"
-        return guide + slug + ".html"
+        return up + "en/guide/" + slug + ".html"
 
     def lang_href(target):
         if target == code:
