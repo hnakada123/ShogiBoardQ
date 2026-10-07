@@ -161,13 +161,13 @@
                     <span class="guide-step-title">対局ダイアログ</span>
                 </div>
                 <p class="guide-step-text">メニューの「対局」→「対局」から対局ダイアログを開きます。以下の項目を設定できます。</p>
-                <p class="guide-step-text">
-                </p>
                 <ul class="guide-step-text">
                     <li>対局者の選択（人間 / 登録済みエンジンから選択）</li>
-                    <li>持ち時間・秒読み・フィッシャーの時間設定</li>
-                    <li>開始局面の選択（平手 / 駒落ち / 現在の局面）</li>
-                    <li>棋譜の自動保存設定</li>
+                    <li>持ち時間・秒読み・フィッシャー（「1手ごとの加算」）の時間設定。「後手／上手に異なる時間を設定」をチェックすると、先後で別の時間にできます</li>
+                    <li>開始局面の選択（平手 / 駒落ち / 現在の局面）。駒落ちは香落ち・右香落ち・角落ち・飛車落ち・飛香落ち・二枚落ち・三枚落ち・四枚落ち・五枚落ち・左五枚落ち・六枚落ち・八枚落ち・十枚落ちの13種類です</li>
+                    <li>最大手数（達すると持将棋で終局します。「無制限」も選べます）</li>
+                    <li>連続対局（エンジン同士の対局で使えます。2局以上なら「1局ごとに手番を入れ替える」で先後を交互にできます）</li>
+                    <li>棋譜の自動保存と保存先</li>
                 </ul>
                 <div class="screenshot-item">
                     <img src="../images/game-play/game-01-setup-dialog.png" alt="対局設定ダイアログ">
@@ -235,6 +235,7 @@
                     <span class="guide-step-title">対局情報</span>
                 </div>
                 <p class="guide-step-text">対局情報タブで対局日、開始日時、先手、後手、手合割、持ち時間、終了日時などの対局情報が表示されます。</p>
+                <p class="guide-step-text">「内容」をダブルクリックすると編集できます。「対局情報更新」を押すと棋譜に反映され、棋譜を保存するときにファイルにも書き込まれます。</p>
                 <div class="screenshot-item">
                     <img src="../images/game-play/game-06-game-info.png" alt="対局終了後の情報表示">
                     <p class="screenshot-caption">対局情報：対局情報の表示</p>
@@ -252,6 +253,15 @@
                     <img src="../images/game-play/game-07-branch-tree.png" alt="分岐ツリー表示">
                     <p class="screenshot-caption">分岐ツリー：本譜だけでなく、別の変化の指し手を表示</p>
                 </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">千日手と最大手数</span>
+                </div>
+                <p class="guide-step-text">対局中は千日手を自動で判定します。同じ局面（盤面・持駒・手番がすべて同じ）が4回現れると千日手が成立し、引き分けで終局します。同じ局面を繰り返す間、一方がすべての手で王手をかけていた場合は連続王手の千日手となり、王手をかけ続けた側の反則負けです。</p>
+                <p class="guide-step-text">対局ダイアログで設定した「最大手数」に達したときは、持将棋（引き分け）で終局します。いずれも結果が「対局終了」のメッセージで表示され、棋譜の最後に「千日手」「連続王手の千日手」「持将棋」と記録されます。これらの判定は人間対エンジン・エンジン同士・人間同士の対局で行います。CSA通信対局ではサーバーの判定に従います。</p>
             </div>
 
         </div>
