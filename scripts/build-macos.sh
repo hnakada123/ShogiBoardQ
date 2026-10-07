@@ -13,6 +13,7 @@
 #   --deployment-target VER   最小対応 macOS バージョン（既定: 26.0）
 #   --sign-identity ID        コード署名 ID（既定: "-" = アドホック署名）
 #   --skip-dmg                DMG 作成をスキップ（.app のみ）
+#   --skip-qt-licenses        Qt ライセンス文書の追加をスキップ（ビルド同梱の簡易文書のみ）
 #   --clean                   build ディレクトリを削除してからビルド
 #   --help                    このヘルプを表示
 
@@ -35,6 +36,7 @@ DEFAULT_DEPLOYMENT_TARGET="26.0"
 
 OPT_UNIVERSAL=false
 OPT_SKIP_DMG=false
+OPT_SKIP_QT_LICENSES=false
 OPT_CLEAN=false
 OPT_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-$DEFAULT_DEPLOYMENT_TARGET}"
 OPT_SIGN_IDENTITY="-"
@@ -68,6 +70,8 @@ Options:
   --sign-identity ID        コード署名 ID（既定: "-" = アドホック署名）
                             Developer ID を指定すると Hardened Runtime を有効にして署名する
   --skip-dmg                DMG 作成をスキップ（.app バンドルのみ生成）
+  --skip-qt-licenses        Qt のライセンス文書と対応ソース情報の追加をスキップ
+                            （ビルド時に同梱される簡易文書のみ。配布用は通常付けない）
   --clean                   build ディレクトリを削除してからビルド
   --help                    このヘルプを表示
 
@@ -104,6 +108,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --skip-dmg)  OPT_SKIP_DMG=true ;;
+        --skip-qt-licenses) OPT_SKIP_QT_LICENSES=true ;;
         --clean)     OPT_CLEAN=true ;;
         --help)      usage; exit 0 ;;
         *)           die "Unknown option: $1 (--help でヘルプを表示)" ;;
@@ -230,6 +235,55 @@ info "macdeployqt でフレームワークをバンドル中..."
 macdeployqt "$APP_BUNDLE" -verbose=2
 
 # ──────────────────────────────────────────────
+# Step 7.5: 未使用の Qt 部品を削除（最小構成）
+# ──────────────────────────────────────────────
+
+# macdeployqt は Qt にあるプラグインを種類ごとにすべて配置し、仮想キーボードの
+# プラグイン経由で Qt Quick / QML まで取り込む。ShogiBoardQ が使わないものは削除する。
+#   - 仮想キーボード・QML・Qt Quick: 使用しない
+#   - TLS・ネットワーク情報: CSA 通信は平文 TCP のみ
+#   - FFmpeg バックエンド: 駒音は macOS 標準の darwin バックエンドで再生できる
+#   - SQL ドライバー: SQLite のみ使用
+#   - 画像形式: アイコン用の SVG / ICO と、盤面画像出力の JPEG / TIFF / WebP のみ残す
+info "未使用の Qt 部品を削除中..."
+CONTENTS="$APP_BUNDLE/Contents"
+rm -rf \
+    "$CONTENTS/PlugIns/platforminputcontexts" \
+    "$CONTENTS/PlugIns/tls" \
+    "$CONTENTS/PlugIns/networkinformation" \
+    "$CONTENTS/PlugIns/multimedia/libffmpegmediaplugin.dylib" \
+    "$CONTENTS/Frameworks/"libav*.dylib \
+    "$CONTENTS/Frameworks/"libsw*.dylib \
+    "$CONTENTS/Frameworks/"QtQml*.framework \
+    "$CONTENTS/Frameworks/QtQuick.framework" \
+    "$CONTENTS/Frameworks/"QtVirtualKeyboard*.framework
+find "$CONTENTS/PlugIns/sqldrivers" -name '*.dylib' ! -name 'libqsqlite.dylib' -delete
+for plugin in gif wbmp macheif icns tga macjp2; do
+    rm -f "$CONTENTS/PlugIns/imageformats/libq${plugin}.dylib"
+done
+
+# 削除後も全バイナリの依存先がバンドル内に揃っていることを確認する。
+MISSING_DEPS=$(find "$CONTENTS" -type f \( -name '*.dylib' -o -path '*/Versions/A/Qt*' \
+        -o -path "*/MacOS/$APP_NAME" \) -print0 \
+    | xargs -0 otool -L 2>/dev/null \
+    | awk '$1 ~ /^@rpath\/Qt/ { sub(/^@rpath\//, "", $1); sub(/\/.*/, "", $1); print $1 }' \
+    | sort -u \
+    | while read -r fw; do [[ -d "$CONTENTS/Frameworks/$fw" ]] || echo "$fw"; done)
+[[ -z "$MISSING_DEPS" ]] || die "削除したフレームワークがまだ参照されています: $MISSING_DEPS"
+
+# Universal Binary でなければ、Qt の x86_64 部分を取り除いて arm64 のみにする。
+if [[ "$OPT_UNIVERSAL" = false ]]; then
+    info "Qt のバイナリを arm64 のみに縮小中..."
+    while IFS= read -r -d '' bin; do
+        if lipo -archs "$bin" 2>/dev/null | grep -q x86_64; then
+            lipo "$bin" -thin arm64 -output "$bin.thin"
+            chmod "$(stat -f %Lp "$bin")" "$bin.thin"
+            mv "$bin.thin" "$bin"
+        fi
+    done < <(find "$CONTENTS" -type f \( -perm +111 -o -name '*.dylib' \) -print0)
+fi
+
+# ──────────────────────────────────────────────
 # Step 8: macdeployqt 後の検証
 # ──────────────────────────────────────────────
 
@@ -263,16 +317,20 @@ info "PlugIns:    $(find "$APP_BUNDLE/Contents/PlugIns" -type f 2>/dev/null | wc
 # Step 9: コード署名
 # ──────────────────────────────────────────────
 
-info "Qt ライセンスと対応ソース情報を同梱中..."
 [[ -f "$APP_BUNDLE/Contents/PlugIns/sqldrivers/libqsqlite.dylib" ]] || die "SQLite ドライバーが配布物にありません。"
-# Qt の文書は同梱するモジュールの分だけ入れる。macdeployqt は Qt にある画像形式プラグインを
-# すべて配置し、qtimageformats が入っていればその分も含まれるため、そのモジュールの文書も入れる。
-python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
-    --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
-    --destination "$APP_BUNDLE/Contents/Resources/licenses" \
-    --modules qtbase qtcharts qtmultimedia qtsvg qttranslations qtimageformats
-# 通常ビルド用の簡易文書より配布用の完全な文書を優先する。
-rm -rf "$APP_BUNDLE/Contents/MacOS/licenses"
+if [[ "$OPT_SKIP_QT_LICENSES" = true ]]; then
+    warn "Qt ライセンス文書の追加をスキップしました（Contents/MacOS/licenses の簡易文書のみ）。"
+else
+    info "Qt ライセンスと対応ソース情報を同梱中..."
+    # Qt の文書は同梱するモジュールの分だけ入れる。
+    # 盤面画像出力用に qtimageformats の TIFF / WebP を残すため、そのモジュールの文書も入れる。
+    python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
+        --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
+        --destination "$APP_BUNDLE/Contents/Resources/licenses" \
+        --modules qtbase qtcharts qtmultimedia qtsvg qttranslations qtimageformats
+    # 通常ビルド用の簡易文書より配布用の完全な文書を優先する。
+    rm -rf "$APP_BUNDLE/Contents/MacOS/licenses"
+fi
 
 # macdeployqt がバイナリを書き換えるため、バンドル全体を署名し直す。
 # 署名しないとリンカ署名のみの状態になり、厳格な検証に通らない。
