@@ -413,6 +413,9 @@
    <property name="text">
     <string>Qtについて</string>
    </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
   </action>
   <action name="actionCopyKIF">
    <property name="icon">
@@ -645,6 +648,9 @@
   <action name="actionResetSettings">
    <property name="text">
     <string>設定を初期値に戻す…</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
    </property>
   </action>
   <action name="actionLanguageChineseSimplified">
