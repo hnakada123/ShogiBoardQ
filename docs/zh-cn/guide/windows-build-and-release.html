@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 构建与发布 - ShogiBoardQ</title>
+    <meta name="description" content="介绍如何在 Windows 上构建 ShogiBoardQ，制作包含诘棋题集和 Hayanagi 的 ZIP，并在 GitHub Releases 上发布。内容包括开发环境的搭建、构建、发布用 ZIP 的制作以及故障排除。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/windows-build-and-release.html">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/windows-build-and-release.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/windows-build-and-release.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/windows-build-and-release.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/windows-build-and-release.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/windows-build-and-release.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/windows-build-and-release.html">
+    <meta property="og:title" content="Windows 构建与发布 - ShogiBoardQ">
+    <meta property="og:description" content="从搭建 Windows 开发环境、构建，到制作发布用 ZIP 并在 GitHub Releases 上发布。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Windows 构建与发布 - ShogiBoardQ">
+    <meta name="twitter:description" content="从搭建 Windows 开发环境、构建，到制作发布用 ZIP 并在 GitHub Releases 上发布。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/build-guide.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/windows-build-and-release.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/windows-build-and-release.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="windows-build-and-release.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/windows-build-and-release.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="../index.html#build">从源代码构建</a></li>
+            <li><a href="#contents">目录</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="build-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Windows 构建与发布</h1>
+        <p class="hero-subtitle">在 Windows 上构建 ShogiBoardQ，并以 ZIP 在 GitHub 上发布</p>
+        <div class="hero-badges">
+            <span class="badge">Windows</span>
+            <span class="badge">Qt 6</span>
+            <span class="badge">ZIP 发布</span>
+            <span class="badge">GitHub Releases</span>
+        </div>
+    </div>
+</section>
+
+<div class="section">
+    <article class="section-inner build-document" aria-label="Windows 构建与发布">
+<p>Windows 的 ZIP 收录应用程序（<code>ShogiBoardQ.exe</code>、<code>shogiboardq-cli.exe</code>）、运行所需的 DLL、翻译、6 个诘棋题集文件、Hayanagi 可执行文件以及根目录的 LICENSE。不收录 README。今后的 Windows 发布也不收录 <code>Hayanagi/source/</code> 和外部的 <code>licenses/</code>，许可信息使用应用程序内置的显示。</p>
+<p>Release 只附加可运行的 ZIP，不另行附加 Qt 源代码或相关文档。应用程序内许可文档的准备请参阅 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文档与发布附件的方针</a>（日文）。</p>
+<section id="contents" class="level2">
+<h2>目录</h2>
+<ol type="1">
+<li><a href="#requirements">前提条件</a></li>
+<li><a href="#setup">搭建开发环境</a></li>
+<li><a href="#build">构建</a></li>
+<li><a href="#package">制作发布包</a></li>
+<li><a href="#release">在 GitHub Releases 上发布</a></li>
+<li><a href="#signing">代码签名（可选）</a></li>
+<li><a href="#troubleshooting">故障排除</a></li>
+</ol>
+</section>
+<section id="requirements" class="level2">
+<h2>1. 前提条件</h2>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr><th>项目</th><th>版本</th></tr>
+</thead>
+<tbody>
+<tr><td>Windows</td><td>10 / 11（64 位）</td></tr>
+<tr><td>Visual Studio</td><td>2019 或 2022（“使用 C++ 的桌面开发”工作负载）</td></tr>
+<tr><td>CMake</td><td>3.16 以上</td></tr>
+<tr><td>Qt</td><td>6.x（Widgets、Charts、Network、Multimedia、LinguistTools）</td></tr>
+<tr><td>C++</td><td>支持 C++17 的编译器（MSVC 2019 以上）</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="setup" class="level2">
+<h2>2. 搭建开发环境</h2>
+<section id="setup-vs" class="level3">
+<h3>2.1 安装 Visual Studio</h3>
+<p>安装 <a href="https://visualstudio.microsoft.com/">Visual Studio</a>，并选择以下工作负载：</p>
+<ul>
+<li><strong>使用 C++ 的桌面开发</strong></li>
+</ul>
+<p>这样会同时安装 MSVC 编译器、CMake 和 Ninja。</p>
+<blockquote>
+<p><strong>Community 版</strong>可免费用于个人开发和开源开发。</p>
+</blockquote>
+</section>
+<section id="setup-qt" class="level3">
+<h3>2.2 安装 Qt 6</h3>
+<section id="setup-qt-installer" class="level4">
+<h4>方法 A：Qt Online Installer（推荐）</h4>
+<p>从 <a href="https://www.qt.io/download-qt-installer">Qt 官方网站</a>下载安装程序，并选择以下组件：</p>
+<ul>
+<li>Qt 6.x &gt; MSVC 2019/2022 64-bit</li>
+<li>Qt 6.x &gt; Qt Charts</li>
+<li>Qt 6.x &gt; Qt Multimedia</li>
+<li>Developer and Designer Tools &gt; CMake</li>
+<li>Developer and Designer Tools &gt; Ninja</li>
+</ul>
+<p>安装后，将 Qt 的路径设置到环境变量中：</p>
+<pre class="powershell"><code># 添加到用户环境变量（Qt 的安装路径请根据实际环境修改）
+# 例：C:\Qt\6.8.3\msvc2022_64
+[Environment]::SetEnvironmentVariable(&quot;Qt6_DIR&quot;, &quot;C:\Qt\6.8.3\msvc2022_64\lib\cmake\Qt6&quot;, &quot;User&quot;)
+[Environment]::SetEnvironmentVariable(&quot;PATH&quot;, &quot;C:\Qt\6.8.3\msvc2022_64\bin;$env:PATH&quot;, &quot;User&quot;)</code></pre>
+</section>
+<section id="setup-qt-aqt" class="level4">
+<h4>方法 B：aqtinstall（适用于 CI / 命令行）</h4>
+<pre class="powershell"><code>pip install aqtinstall
+aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 -m qtcharts</code></pre>
+</section>
+</section>
+<section id="setup-ninja" class="level3">
+<h3>2.3 安装 Ninja（推荐）</h3>
+<p>可以使用 Visual Studio 自带的 Ninja，也可以单独安装：</p>
+<pre class="powershell"><code>winget install Ninja-build.Ninja</code></pre>
+</section>
+<section id="setup-check" class="level3">
+<h3>2.4 确认安装</h3>
+<p>在 <strong>Developer PowerShell for VS 2022</strong>（从开始菜单启动）中确认：</p>
+<pre class="powershell"><code>cmake --version       # 3.16 以上
+cl                    # MSVC 编译器
+ninja --version       # Ninja
+windeployqt --version # Qt 部署工具</code></pre>
+</section>
+</section>
+<section id="build" class="level2">
+<h2>3. 构建</h2>
+<section id="build-script" class="level3">
+<h3>构建脚本（推荐）</h3>
+<p>使用 <code>scripts/build-windows.ps1</code>，可以一次完成从 Release 构建到制作 ZIP 的全部步骤。</p>
+<blockquote>
+<p><strong>重要</strong>：请在 Developer PowerShell for VS 2022 中运行（需要 MSVC 的环境变量）。</p>
+</blockquote>
+<pre class="powershell"><code># 普通构建 + 制作 ZIP
+.\scripts\build-windows.ps1
+
+# 清理后构建，不制作 ZIP
+.\scripts\build-windows.ps1 -Clean -SkipZip
+
+# 按版本构建到各自的目录（发布时）
+.\scripts\build-windows.ps1 -BuildDir build\msvc-release-2026.10.07 `
+    -DeployDir build\releases\2026.10.07-windows\deploy `
+    -ZipPath build\releases\2026.10.07-windows\ShogiBoardQ-windows.zip</code></pre>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr><th>选项</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-Clean</code></td><td>删除 build / deploy 目录后再构建</td></tr>
+<tr><td><code>-SkipZip</code></td><td>跳过 ZIP 的制作（只生成 deploy 文件夹）</td></tr>
+<tr><td><code>-BuildDir</code></td><td>构建目录（默认：<code>build</code>）</td></tr>
+<tr><td><code>-DeployDir</code></td><td>发布用目录（默认：<code>deploy</code>）</td></tr>
+<tr><td><code>-ZipPath</code></td><td>要制作的 ZIP 文件（默认：<code>ShogiBoardQ-windows.zip</code>）</td></tr>
+<tr><td><code>-Help</code></td><td>显示帮助</td></tr>
+</tbody>
+</table>
+</div>
+<p>脚本会自动执行以下处理：</p>
+<ol type="1">
+<li>确认所需工具（cmake、ninja、cl、windeployqt、MSVC 运行库 DLL 的位置）</li>
+<li>CMake 配置 + 构建（ShogiBoardQ、shogiboardq-cli、Hayanagi）</li>
+<li>确认构建产物（.exe、.qm 翻译文件、hayanagi.exe、每种手数各 1 个文件的题集）</li>
+<li>创建 deploy 目录 + 放置题集、Hayanagi 和 LICENSE + 用 windeployqt 部署 DLL + 添加 <code>qoffscreen.dll</code> + 复制 MSVC 运行库 DLL + 校验</li>
+<li>制作 ZIP 文件</li>
+</ol>
+<blockquote>
+<p>如果没有把 Qt 加入 <code>PATH</code>，请在运行前指定 Qt 的位置（例：Qt 6.11.2）：</p>
+<pre class="powershell"><code>$env:PATH = &quot;C:\Qt\6.11.2\msvc2022_64\bin;C:\Qt\Tools\Ninja;$env:PATH&quot;
+$env:CMAKE_PREFIX_PATH = &quot;C:\Qt\6.11.2\msvc2022_64&quot;</code></pre>
+</blockquote>
+<blockquote>
+<p><strong>出现执行策略错误时：</strong></p>
+<pre class="powershell"><code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></pre>
+</blockquote>
+<p>以下是手动逐条运行命令时的步骤。</p>
+</section>
+<section id="build-release" class="level3">
+<h3>3.1 Release 构建</h3>
+<p>在 Developer PowerShell for VS 2022 中运行：</p>
+<pre class="powershell"><code>cd C:\path\to\ShogiBoardQ
+
+# 配置（Release 构建，Ninja）
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+# 构建
+ninja -C build</code></pre>
+<p>没有 Ninja 时（使用 Visual Studio 生成器）：</p>
+<pre class="powershell"><code># 配置
+cmake -B build -S .
+
+# Release 构建
+cmake --build build --config Release</code></pre>
+</section>
+<section id="build-check" class="level3">
+<h3>3.2 确认构建产物</h3>
+<pre class="powershell"><code># 确认已生成 exe
+# Ninja：
+dir build\ShogiBoardQ.exe
+
+# Visual Studio 生成器：
+dir build\Release\ShogiBoardQ.exe
+
+# 确认翻译文件
+dir build\*.qm           # Ninja
+dir build\Release\*.qm   # VS 生成器</code></pre>
+</section>
+<section id="build-run" class="level3">
+<h3>3.3 运行确认</h3>
+<pre class="powershell"><code># 启动构建好的应用程序（需在 PATH 中包含 Qt DLL 的环境下）
+.\build\ShogiBoardQ.exe</code></pre>
+</section>
+</section>
+<section id="package" class="level2">
+<h2>4. 制作发布包</h2>
+<blockquote>
+<p><strong>注：</strong>使用 <code>scripts/build-windows.ps1</code> 时，本节的步骤会自动执行。</p>
+</blockquote>
+<section id="package-deploy" class="level3">
+<h3>4.1 创建 deploy 目录</h3>
+<p>将 exe、翻译文件、诘棋题集、Hayanagi 和 LICENSE 复制到发布用目录：</p>
+<pre class="powershell"><code>mkdir deploy, deploy\Hayanagi, deploy\data\tsumeshogi
+copy build\ShogiBoardQ.exe deploy\
+copy build\shogiboardq-cli.exe deploy\
+copy build\*.qm deploy\
+copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
+copy data\tsumeshogi\tsume_*ply_*.txt deploy\data\tsumeshogi\
+copy LICENSE deploy\</code></pre>
+<p>诘棋题集收录 3、5、7、9、11、13 手诘各 1 个文件，共 6 个文件（<code>data/tsumeshogi/</code> 中不能残留相同手数的旧版本；有多个时脚本会停止）。不收录 README（根目录、<code>Hayanagi/</code>、<code>data/tsumeshogi/</code>）。请不要整个复制源代码树或构建文件夹，并在发布前确认 ZIP 中不包含 <code>Hayanagi/source/</code> 和 <code>licenses/</code>。普通构建生成的 <code>build/licenses/</code> 也不复制到 Windows 的 ZIP 中。</p>
+</section>
+<section id="package-windeployqt" class="level3">
+<h3>4.2 用 windeployqt 部署 Qt DLL</h3>
+<pre class="powershell"><code>windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe
+
+# shogiboardq-cli 使用 offscreen 平台绘制棋盘。windeployqt 不会复制它，因此需要手动添加
+copy C:\Qt\6.11.2\msvc2022_64\plugins\platforms\qoffscreen.dll deploy\platforms\</code></pre>
+<p><code>windeployqt</code> 自动执行的处理：</p>
+<ol type="1">
+<li>复制依赖的 Qt DLL（Qt6Core、Qt6Gui、Qt6Widgets、Qt6Charts、Qt6Network、Qt6Multimedia 等）</li>
+<li>复制 Qt 插件（platforms/qwindows.dll、imageformats/ 等）</li>
+</ol>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr><th>选项</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--release</code></td><td>部署 Release 构建用的 DLL</td></tr>
+<tr><td><code>--no-translations</code></td><td>不包含 Qt 的翻译文件（应用程序自己的 .qm 已手动复制）</td></tr>
+<tr><td><code>--no-system-d3d-compiler</code></td><td>不包含 d3dcompiler_47.dll（通常不需要）</td></tr>
+<tr><td><code>--no-opengl-sw</code></td><td>不包含软件 OpenGL</td></tr>
+<tr><td><code>--no-compiler-runtime</code></td><td>不附带 <code>vc_redist.x64.exe</code>（运行库 DLL 在下一步直接复制）</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="package-runtime" class="level3">
+<h3>4.2.1 复制 MSVC 运行库 DLL</h3>
+<p>为了在没有安装 Visual C++ 可再发行组件包的电脑上也能启动，将 MSVC 运行库 DLL（<code>vcruntime140.dll</code>、<code>msvcp140.dll</code> 等）放在与 exe 相同的目录中。在 Developer PowerShell for VS 中，环境变量 <code>VCToolsRedistDir</code> 指向运行库所在的位置：</p>
+<pre class="powershell"><code>copy &quot;$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\*.dll&quot; deploy\</code></pre>
+<p><code>Hayanagi\hayanagi.exe</code> 只在自身所在的目录中查找 DLL，因此只把它加载的 3 个 DLL（<code>vcruntime140.dll</code>、<code>vcruntime140_1.dll</code>、<code>msvcp140.dll</code>）也放到 <code>Hayanagi\</code> 中：</p>
+<pre class="powershell"><code>foreach ($dll in &quot;vcruntime140.dll&quot;, &quot;vcruntime140_1.dll&quot;, &quot;msvcp140.dll&quot;) {
+    copy &quot;$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\$dll&quot; deploy\Hayanagi\
+}</code></pre>
+<blockquote>
+<p>windeployqt 默认附带的不是 DLL，而是 <code>vc_redist.x64.exe</code>（约 18 MB）。但除非用户手动运行它，否则运行库不会被安装，因此直接附带 DLL。</p>
+</blockquote>
+</section>
+<section id="package-verify" class="level3">
+<h3>4.3 部署后的确认</h3>
+<pre class="powershell"><code># 确认目录结构
+tree /F deploy
+
+# 确认必需的 DLL
+dir deploy\Qt6Core.dll
+dir deploy\Qt6Gui.dll
+dir deploy\Qt6Widgets.dll
+dir deploy\Qt6Charts.dll
+dir deploy\Qt6Network.dll
+
+# 确认 MSVC 运行库 DLL
+dir deploy\vcruntime140.dll
+dir deploy\vcruntime140_1.dll
+dir deploy\msvcp140.dll
+
+# 确认 platforms 插件
+dir deploy\platforms\qwindows.dll
+dir deploy\platforms\qoffscreen.dll
+
+# SQLite 驱动（用于保存诘棋的解题记录）
+dir deploy\sqldrivers\qsqlite.dll
+
+# Hayanagi 与题集（6 个文件）
+dir deploy\Hayanagi
+dir deploy\data\tsumeshogi</code></pre>
+<p>部署后的目录结构：</p>
+<pre><code>deploy/
+├── ShogiBoardQ.exe                ← 可执行文件
+├── shogiboardq-cli.exe            ← CLI（由 MCP 服务器调用）
+├── LICENSE                        ← 许可
+├── ShogiBoardQ_ja_JP.qm           ← 日语翻译
+├── ShogiBoardQ_en.qm              ← 英语翻译
+├── ShogiBoardQ_zh_CN.qm           ← 简体中文翻译
+├── ShogiBoardQ_zh_TW.qm           ← 繁体中文翻译
+├── Qt6Core.dll                    ← Qt Core
+├── Qt6Gui.dll                     ← Qt GUI
+├── Qt6Widgets.dll                 ← Qt Widgets
+├── Qt6Charts.dll                  ← Qt Charts
+├── Qt6Network.dll                 ← Qt Network
+├── Qt6Multimedia.dll              ← Qt Multimedia（棋子音效）
+├── Qt6OpenGL.dll                  ← Qt OpenGL（Charts 依赖）
+├── Qt6OpenGLWidgets.dll           ← Qt OpenGL Widgets
+├── Qt6Svg.dll                     ← Qt SVG（图标用）
+├── Qt6Sql.dll                     ← Qt SQL（解题记录）
+├── avcodec-61.dll 等              ← FFmpeg（播放棋子音效）
+├── vcruntime140.dll               ← MSVC 运行库
+├── vcruntime140_1.dll
+├── msvcp140.dll
+├── ...                            ← 其他 MSVC 运行库 DLL（concrt140.dll 等）
+├── Hayanagi/
+│   ├── hayanagi.exe               ← 用于普通对局的 USI 引擎
+│   ├── vcruntime140.dll           ← Hayanagi 用 MSVC 运行库（仅这 3 个）
+│   ├── vcruntime140_1.dll
+│   └── msvcp140.dll
+├── data/tsumeshogi/
+│   ├── tsume_3ply_1000_*.txt      ← 诘棋题集（3～13 手诘，各 1,000 题）
+│   ├── ...
+│   └── tsume_13ply_1000_*.txt
+├── platforms/
+│   ├── qwindows.dll               ← Windows 平台插件
+│   └── qoffscreen.dll             ← shogiboardq-cli 绘制棋盘用
+├── sqldrivers/
+│   ├── qsqlite.dll                ← SQLite（诘棋的解题记录）
+│   └── ...
+├── multimedia/
+│   ├── ffmpegmediaplugin.dll      ← 播放棋子音效
+│   └── windowsmediaplugin.dll
+├── imageformats/
+│   ├── qsvg.dll                   ← SVG 支持
+│   ├── qico.dll                   ← ICO 支持
+│   └── ...
+├── styles/
+│   └── qmodernwindowsstyle.dll    ← Windows 样式
+├── tls/
+│   └── qschannelbackend.dll       ← TLS（CSA 网络通信用）
+└── networkinformation/
+    └── qnetworklistmanager.dll    ← 网络信息</code></pre>
+<blockquote>
+<p>由于附带了 MSVC 运行库 DLL，用户的电脑上无需安装 <a href="https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist">Visual C++ 可再发行组件包</a>。</p>
+</blockquote>
+</section>
+<section id="package-test" class="level3">
+<h3>4.4 运行测试</h3>
+<p>直接从 deploy 文件夹启动进行测试：</p>
+<pre class="powershell"><code>.\deploy\ShogiBoardQ.exe
+
+# CLI（版本与生成棋盘图片）
+.\deploy\shogiboardq-cli.exe version
+.\deploy\shogiboardq-cli.exe render-board --sfen startpos --output board.png --overwrite
+
+# Hayanagi（应返回 id name Hayanagi … 和 usiok）
+cmd /c &quot;(echo usi&amp; echo quit) | deploy\Hayanagi\hayanagi.exe&quot;</code></pre>
+<blockquote>
+<p><strong>重要</strong>：请在 PATH 中<strong>不包含</strong> Qt 的 bin 目录的环境下测试。如果 PATH 中包含 Qt，就会使用系统中的 DLL 而不是 deploy 文件夹中的 DLL，从而无法发现部署遗漏。</p>
+</blockquote>
+</section>
+<section id="package-zip" class="level3">
+<h3>4.5 制作 ZIP 文件</h3>
+<pre class="powershell"><code>Compress-Archive -Path deploy\* -DestinationPath ShogiBoardQ-windows.zip</code></pre>
+</section>
+</section>
+<section id="release" class="level2">
+<h2>5. 在 GitHub Releases 上发布</h2>
+<section id="release-tag" class="level3">
+<h3>5.1 创建标签</h3>
+<p>版本号只在发布当天改为当天的日期（<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">版本号与发布的运用</a>，日文）。制作发布包之前，先修改 <code>CMakeLists.txt</code> 中的 <code>APP_VERSION</code> 并提交，用该提交制作发布包，然后在同一提交上打相同版本号的标签。标签不加 <code>v</code>。</p>
+<pre class="powershell"><code>git tag -a 2026.10.07 -m &quot;ShogiBoardQ 2026.10.07&quot;
+git push origin main 2026.10.07</code></pre>
+</section>
+<section id="release-gh" class="level3">
+<h3>5.2 用 GitHub CLI 创建 Release</h3>
+<p>使用 <a href="https://cli.github.com/">GitHub CLI (gh)</a>：</p>
+<pre class="powershell"><code># 安装
+winget install GitHub.cli
+
+# 登录（仅首次）
+gh auth login</code></pre>
+<p>创建 Release 并上传附件：</p>
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
+  --notes-file RELEASE_NOTES.md `
+  ShogiBoardQ-windows.zip</code></pre>
+<blockquote>
+<p>同时发布 macOS 的 DMG 时，添加附件：</p>
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
+  --notes-file RELEASE_NOTES.md `
+  ShogiBoardQ-windows.zip `
+  ShogiBoardQ.dmg</code></pre>
+</blockquote>
+<section id="release-notes-auto" class="level4">
+<h4>自动生成发布说明</h4>
+<p>不准备发布说明文件时，由 GitHub 自动生成：</p>
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
+  --generate-notes `
+  ShogiBoardQ-windows.zip</code></pre>
+</section>
+</section>
+<section id="release-web" class="level3">
+<h3>5.3 在网页界面上创建 Release（替代方法）</h3>
+<ol type="1">
+<li>GitHub 仓库 → <strong>Releases</strong> → <strong>Draft a new release</strong></li>
+<li><strong>Choose a tag</strong> → 输入新标签（例：<code>2026.10.07</code>）并创建</li>
+<li>输入 <strong>Release title</strong>（例：<code>ShogiBoardQ 2026.10.07</code>）</li>
+<li>在 <strong>Description</strong> 中填写发布说明</li>
+<li>将 <code>ShogiBoardQ-windows.zip</code> 拖放到 <strong>Attach binaries</strong></li>
+<li>点击 <strong>Publish release</strong></li>
+</ol>
+</section>
+<section id="release-notes" class="level3">
+<h3>5.4 发布说明的写法（模板）</h3>
+<pre class="markdown"><code>## ShogiBoardQ 2026.10.07
+
+### 下载
+
+| OS | 文件 |
+|---|---|
+| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+| macOS | `ShogiBoardQ.dmg` |
+
+### 在 Windows 上启动
+
+1. 解压 ZIP 文件
+2. 双击 `ShogiBoardQ.exe`
+
+&gt; 首次启动时如果显示“Windows 已保护你的电脑”，
+&gt; 请点击“更多信息”→“仍要运行”。
+
+### 变更内容
+
+- ...</code></pre>
+</section>
+</section>
+<section id="signing" class="level2">
+<h2>6. 代码签名（可选）</h2>
+<p>不签名也能运行，但首次启动时会显示 SmartScreen 警告。</p>
+<section id="signing-cert" class="level3">
+<h3>6.1 获取代码签名证书</h3>
+<p>代码签名推荐使用 EV（Extended Validation）代码签名证书。对个人开发者来说，OV（Organization Validation）证书也是一种选择。</p>
+<p>主要提供商：</p>
+<ul>
+<li><a href="https://signpath.org/">SignPath Foundation</a>（面向开源项目，免费）</li>
+<li>DigiCert</li>
+<li>Sectigo</li>
+<li>GlobalSign</li>
+</ul>
+</section>
+<section id="signing-signtool" class="level3">
+<h3>6.2 用 signtool 签名</h3>
+<pre class="powershell"><code># 使用 Windows SDK 中的 signtool
+signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
+  /f &quot;certificate.pfx&quot; /p &quot;password&quot; `
+  deploy\ShogiBoardQ.exe</code></pre>
+</section>
+<section id="signing-unsigned" class="level3">
+<h3>6.3 不签名发布时</h3>
+<p>向用户说明以下步骤：</p>
+<ol type="1">
+<li>下载后，右键单击 ZIP → 属性 → 勾选“解除锁定” → 确定</li>
+<li>解压后运行 <code>ShogiBoardQ.exe</code></li>
+<li>如果显示 SmartScreen 警告，点击“更多信息”→“仍要运行”</li>
+</ol>
+</section>
+</section>
+<section id="troubleshooting" class="level2">
+<h2>7. 故障排除</h2>
+<section id="trouble-qt" class="level3">
+<h3>找不到 Qt</h3>
+<pre><code>CMake Error: Could not find a package configuration file provided by &quot;Qt6&quot;</code></pre>
+<p>明确指定 Qt 的安装路径：</p>
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release `
+  -DCMAKE_PREFIX_PATH=&quot;C:\Qt\6.8.3\msvc2022_64&quot;</code></pre>
+</section>
+<section id="trouble-cl" class="level3">
+<h3>找不到 cl.exe</h3>
+<p>没有使用 Developer PowerShell for VS 2022 时：</p>
+<pre class="powershell"><code># 手动设置 MSVC 环境
+# Visual Studio 2022 的情况
+&amp; &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat&quot; x64</code></pre>
+<p>或者从开始菜单启动 <strong>Developer PowerShell for VS 2022</strong>。</p>
+</section>
+<section id="trouble-windeployqt" class="level3">
+<h3>找不到 windeployqt</h3>
+<pre class="powershell"><code># 确认 Qt 的安装路径，并添加到 PATH
+$env:PATH = &quot;C:\Qt\6.8.3\msvc2022_64\bin;$env:PATH&quot;
+
+# 确认
+windeployqt --version</code></pre>
+</section>
+<section id="trouble-dll" class="level3">
+<h3>应用程序无法启动（DLL 错误）</h3>
+<pre><code>“找不到 Qt6Core.dll”等错误</code></pre>
+<ol type="1">
+<li><p>重新运行 <code>windeployqt</code></p></li>
+<li><p>确认所有必需的 DLL 都在 deploy 目录中：</p>
+<pre class="powershell"><code>dir deploy\Qt6Core.dll
+dir deploy\Qt6Gui.dll
+dir deploy\Qt6Widgets.dll
+dir deploy\Qt6Charts.dll
+dir deploy\Qt6Network.dll
+dir deploy\platforms\qwindows.dll</code></pre></li>
+<li><p>缺少 MSVC 运行库时：</p>
+<ul>
+<li>安装 <a href="https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist">Visual C++ 可再发行组件包</a></li>
+</ul></li>
+</ol>
+</section>
+<section id="trouble-charts" class="level3">
+<h3>Qt Charts 的 DLL 没有被部署</h3>
+<p>windeployqt 无法检测到 Qt Charts 时，手动复制：</p>
+<pre class="powershell"><code>copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6Charts.dll&quot; deploy\
+copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGL.dll&quot; deploy\
+copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGLWidgets.dll&quot; deploy\</code></pre>
+</section>
+<section id="trouble-translations" class="level3">
+<h3>无法加载翻译</h3>
+<p>确认 <code>.qm</code> 文件与 exe 位于同一目录：</p>
+<pre class="powershell"><code>dir deploy\*.qm</code></pre>
+<p>没有时，从构建目录手动复制：</p>
+<pre class="powershell"><code>copy build\ShogiBoardQ_ja_JP.qm deploy\
+copy build\ShogiBoardQ_en.qm deploy\
+copy build\ShogiBoardQ_zh_CN.qm deploy\
+copy build\ShogiBoardQ_zh_TW.qm deploy\</code></pre>
+</section>
+<section id="trouble-policy" class="level3">
+<h3>执行策略错误（PowerShell 脚本）</h3>
+<pre><code>无法加载文件 ……，因为在此系统上禁止运行脚本。</code></pre>
+<pre class="powershell"><code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></pre>
+</section>
+<section id="trouble-smartscreen" class="level3">
+<h3>SmartScreen 警告（未签名）</h3>
+<p>向用户说明：</p>
+<ol type="1">
+<li>右键单击 ZIP → 属性 → 勾选<strong>解除锁定</strong> → 确定</li>
+<li>先解压 ZIP 再运行</li>
+<li>“Windows 已保护你的电脑”→ <strong>更多信息</strong> → <strong>仍要运行</strong></li>
+</ol>
+<blockquote>
+<p>下载次数增加后，SmartScreen 的信誉会提高，警告会变得不容易出现。</p>
+</blockquote>
+</section>
+</section>
+    </article>
+</div>
+</main>
+
+<div class="back-link-section">
+    <a href="../index.html#build" class="back-link">&larr; 返回“从源代码构建”</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
