@@ -94,6 +94,8 @@
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -322,6 +324,8 @@
     <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -1069,6 +1073,26 @@
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/windows-build-and-release.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/windows-build-and-release.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/windows-build-and-release.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

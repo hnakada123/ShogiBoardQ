@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>利用ガイド - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの利用ガイド。導入・画面設定、対局、棋譜操作、研究・解析、詰将棋の説明を目的別に探せます。">
+    <meta name="description" content="ShogiBoardQの利用ガイド。導入・画面設定、対局、棋譜・局面の操作、研究・解析、詰将棋、AI連携、ソースからのビルドの説明を目的別に探せます。">
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/">
     <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/">
     <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/">
     <link rel="stylesheet" href="../css/style.css">
@@ -15,7 +17,15 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/index.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="index.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/index.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/index.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
             <span></span><span></span><span></span>
         </button>
@@ -27,6 +37,7 @@
             <li><a href="#analysis">研究・解析</a></li>
             <li><a href="#tsume">詰将棋</a></li>
             <li><a href="#ai">AI連携</a></li>
+            <li><a href="#build">ソースからのビルド</a></li>
         </ul>
     </div>
 </nav>
@@ -41,52 +52,52 @@
     <div class="section-inner">
         <h2 class="section-title">導入・画面設定</h2>
         <div class="features-grid">
-            <a href="multi-os.html" class="feature-card-link">
-                <div class="feature-card">
-                    <h3>クロスプラットフォーム</h3>
-                    <p>Qt6により単一のソースコードでLinux・macOS・Windowsをサポート</p>
-                    <span class="feature-card-more">詳しく見る &rarr;</span>
-                </div>
-            </a>
-            <a href="piece-sound.html" class="feature-card-link">
-                <div class="feature-card">
-                    <h3>駒音</h3>
-                    <p>駒を指すと鳴る駒音のON/OFFと、音量・音の高さ・イコライザーの調整</p>
-                    <span class="feature-card-more">詳しく見る &rarr;</span>
-                </div>
-            </a>
-            <a href="multilanguage.html" class="feature-card-link">
-                <div class="feature-card">
-                    <h3>多言語対応</h3>
-                    <p>日本語・英語・中国語（簡体字／繁体字）のUIに対応し、言語設定で切り替え可能</p>
-                    <span class="feature-card-more">詳しく見る &rarr;</span>
-                </div>
-            </a>
-            <a href="menu.html" class="feature-card-link">
-                <div class="feature-card">
-                    <h3>メニュー機能</h3>
-                    <p>メニュードックで各種操作にすばやくアクセス</p>
-                    <span class="feature-card-more">詳しく見る &rarr;</span>
-                </div>
-            </a>
             <a href="piece-style.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>駒の種類</h3>
-                    <p>木目・色調の駒、戦国文字、チェス風、アルファベットを含む全40種類</p>
+                    <p>標準の駒に加え、虎斑・戦国文字・チェス風・アルファベットなど全40種類。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="board-colors.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>対局画面の外観</h3>
-                    <p>駒に合うおすすめ配色と、背景・盤・駒台・罫線の個別調整</p>
+                    <p>駒・将棋盤・背景・駒台・対局者情報を見本から自由に組み合わせます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="dock.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>ドック機能</h3>
-                    <p>パネルを自由に配置してレイアウトをカスタマイズ</p>
+                    <p>棋譜・思考・評価値グラフなどのパネルを自由に配置し、レイアウトを保存できます。</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
+            <a href="menu.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>メニュー機能</h3>
+                    <p>アイコン付きのメニューパネルから各操作へすばやくアクセス。お気に入りも登録できます。</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
+            <a href="piece-sound.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>駒音</h3>
+                    <p>駒を指したときの駒音のオン・オフと、音量・音の高さ・音質を調整できます。</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
+            <a href="multilanguage.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>多言語対応</h3>
+                    <p>日本語・英語・中国語（簡体字／繁体字）のUIに対応。GUI全体の書体も選べます。</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
+            <a href="multi-os.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>クロスプラットフォーム</h3>
+                    <p>Qt 6で開発し、Linux・macOS・Windowsで動作します。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
@@ -100,28 +111,28 @@
             <a href="game-play.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>対局機能</h3>
-                    <p>エンジン登録から対局・振り返りまでの流れ</p>
+                    <p>人間対エンジン・エンジン同士・人間同士で対局。駒を選ぶと移動できるマスを表示し、中断した対局は局面と残り時間を保ったまま再開できます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="hayanagi.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>将棋エンジン Hayanagi</h3>
-                    <p>USI対応エンジンの機能・登録・設定と、詰将棋対局での内蔵利用</p>
+                    <p>ShogiBoardQと一緒に開発しているUSIエンジン。登録すれば対局・検討・解析に使え、詰将棋対局では玉方を務めます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="csa-game.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>CSA通信対局</h3>
-                    <p>CSAプロトコル対応サーバーとのネットワーク対局</p>
+                    <p>floodgateなどCSAプロトコル対応サーバーに接続し、人間またはエンジンで通信対局できます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="nyugyoku.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>入玉宣言</h3>
-                    <p>持将棋点数の確認と入玉宣言の判定</p>
+                    <p>持将棋の点数を計算し、24点法・27点法に基づく入玉宣言を判定します。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
@@ -135,28 +146,28 @@
             <a href="kifu-display.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>棋譜表示</h3>
-                    <p>棋譜欄の表示・コメント・しおり・分岐棋譜の操作</p>
+                    <p>指し手・消費時間・しおり・コメント・分岐を表示。棋譜と座標は英語式の表記にも切り替えられます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="kifu-management.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>棋譜管理</h3>
-                    <p>多フォーマット対応の棋譜読み込み・保存・クリップボード操作</p>
+                    <p>KIF・KI2・CSA・JKF・USI・SFEN・USENの読み込みと保存、クリップボード経由のコピー・貼り付けに対応。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="board-edit.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>盤面編集</h3>
-                    <p>自由に駒を配置して任意の局面を作成</p>
+                    <p>駒箱を使って自由に駒を配置し、作った局面から対局や検討を始められます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="image-export.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>画像エクスポート</h3>
-                    <p>盤面や評価値グラフを画像ファイルとして保存</p>
+                    <p>盤面や評価値グラフを画像として保存・コピーできます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
@@ -167,31 +178,31 @@
     <div class="section-inner">
         <h2 class="section-title">研究・解析</h2>
         <div class="features-grid">
-            <a href="kifu-analysis.html" class="feature-card-link">
-                <div class="feature-card">
-                    <h3>棋譜解析</h3>
-                    <p>USIエンジンによる棋譜解析で形勢の推移を把握</p>
-                    <span class="feature-card-more">詳しく見る &rarr;</span>
-                </div>
-            </a>
             <a href="consideration.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>検討モード</h3>
-                    <p>任意の局面でエンジンに候補手を検討させるモード</p>
+                    <p>任意の局面でエンジンに候補手を考えさせ、複数の読み筋と矢印で比較します。</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
+            <a href="kifu-analysis.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>棋譜解析</h3>
+                    <p>棋譜全体をエンジンで解析し、各手の評価値と形勢の推移をグラフで確認します。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="joseki.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>定跡機能</h3>
-                    <p>定跡ファイルの読み込み・表示から定跡手の編集まで</p>
+                    <p>定跡ファイルを読み込み、局面に合う定跡手の表示・着手・編集ができます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="kyokumenshu-viewer.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>局面集ビューア</h3>
-                    <p>SFEN局面集の閲覧・選択・取り込み</p>
+                    <p>SFEN形式の局面集を盤面で閲覧し、選んだ局面をメイン画面に取り込めます。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
@@ -202,24 +213,24 @@
     <div class="section-inner">
         <h2 class="section-title">詰将棋</h2>
         <div class="features-grid">
+            <a href="tsume-play.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>詰将棋対局</h3>
+                    <p>問題一覧から選んで盤上で解き、挑戦履歴と正解手順で振り返ります。</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
             <a href="tsumi-search.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>詰み探索</h3>
-                    <p>USIエンジンによる詰み探索で詰み手順を発見</p>
+                    <p>USIエンジンで詰みを探し、詰み手順を表示します。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
             <a href="tsumeshogi-generator.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>詰将棋局面生成</h3>
-                    <p>GUIとCLIで詰将棋を生成。Pythonによる並列実行と保存・検証の使い方</p>
-                    <span class="feature-card-more">詳しく見る &rarr;</span>
-                </div>
-            </a>
-            <a href="tsume-play.html" class="feature-card-link">
-                <div class="feature-card">
-                    <h3>詰将棋対局</h3>
-                    <p>局面集から問題を選んで盤上で解き、挑戦履歴と正解手順で振り返り</p>
+                    <p>条件に合う詰将棋をGUIやCLIで自動生成し、余詰を検査して保存します。</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
@@ -228,12 +239,40 @@
 </section>
 <section id="ai" class="section">
     <div class="section-inner">
-        <h2 class="section-title">AI 連携</h2>
+        <h2 class="section-title">AI連携</h2>
         <div class="features-grid">
             <a href="mcp-server.html" class="feature-card-link">
                 <div class="feature-card">
-                    <h3>AI クライアント連携（MCP）</h3>
-                    <p>Claude・Cursor・VS Code・Gemini CLI・Codex CLI から棋譜変換・解析・詰将棋生成・アプリ操作を依頼</p>
+                    <h3>AIクライアント連携（MCP）</h3>
+                    <p>Claude・Cursor・VS Code・Gemini CLI・Codex CLIなどから、棋譜変換・解析・詰将棋生成・アプリ操作を依頼できます。</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+<section id="build" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">ソースからのビルド</h2>
+        <div class="features-grid">
+            <a href="linux-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Linux ビルド・リリース手順</h3>
+                    <p>ソースからのビルドと、AppImage と配布 ZIP の作成・公開の手順</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
+            <a href="windows-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Windows ビルド・リリース手順</h3>
+                    <p>MSVC でのビルドと、配布 ZIP の作成・公開の手順</p>
+                    <span class="feature-card-more">詳しく見る &rarr;</span>
+                </div>
+            </a>
+            <a href="macos-build-and-release.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>macOS ビルド・リリース手順</h3>
+                    <p>ビルドと、DMG を入れた配布 ZIP の作成・公開の手順</p>
                     <span class="feature-card-more">詳しく見る &rarr;</span>
                 </div>
             </a>
@@ -247,5 +286,19 @@
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 </body>
 </html>
