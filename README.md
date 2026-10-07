@@ -36,7 +36,7 @@ ShogiBoardQ は、USI エンジンとの対局・検討・棋譜解析、6,000�
 
 ## 主な機能
 
-各機能の使い方は[利用ガイド](https://hnakada123.github.io/ShogiBoardQ/guide/index.html)で解説しています。対局・検討・解析には、USI プロトコルに対応した将棋エンジンを登録して使います。Linux 版の配布パッケージには将棋エンジン Hayanagi を同梱しています。
+各機能の使い方は[利用ガイド](https://hnakada123.github.io/ShogiBoardQ/guide/index.html)で解説しています。対局・検討・解析には、USI プロトコルに対応した将棋エンジンを登録して使います。各 OS の配布パッケージには将棋エンジン Hayanagi を同梱しています。
 
 ### 対局
 
@@ -89,7 +89,7 @@ ShogiBoardQ は、USI エンジンとの対局・検討・棋譜解析、6,000�
 | macOS | `ShogiBoardQ-macos.zip` | Apple Silicon 搭載の Mac | ZIP を展開して DMG を開き、`ShogiBoardQ.app` をアプリケーションフォルダへ。初回起動が止められたら「システム設定」→「プライバシーとセキュリティ」で許可 |
 | Linux | `ShogiBoardQ-linux.zip` | x86_64、glibc 2.38 以降（Ubuntu 24.04 以降、Debian 13、Fedora 39 以降など） | ZIP を展開し、AppImage に実行権限を付けて起動（下記） |
 
-各パッケージには詰将棋問題集（6,000題）を、Linux 版にはさらに将棋エンジン Hayanagi を同梱しています。
+各パッケージには、詰将棋問題集（6,000題）と将棋エンジン Hayanagi（定跡を含む）を同梱しています。
 
 ```bash
 unzip ShogiBoardQ-linux.zip
@@ -180,7 +180,7 @@ kbuildsycoca6 --noincremental
 
 Qt を使用しています。Qt Charts は GPLv3、その他の Qt モジュールは LGPLv3/GPL の条件に従います。ライセンス本文と著作権表示は、アプリの「バージョン情報」で確認できます。Linux の AppImage には、Qt とあわせて同梱するほかのライブラリのライセンス文書も収録しています。
 
-[GitHub Release](https://github.com/hnakada123/ShogiBoardQ/releases) の添付ファイルは各 OS の実行用パッケージだけです。Linux の `ShogiBoardQ-linux.zip` には AppImage・詰将棋問題集・通常対局用の Hayanagi を収録します。問題集と Hayanagi は ZIP を展開してすぐ選べる外部ファイルとして置き（AppImage には入れません）、ライセンス文書は AppImage の中に収録します。Qt のソースなどを別に添付することはしません。配布物を作る方は [Qt 文書とリリース添付の方針](docs/dev/qt-licensing.md)を参照してください。
+[GitHub Release](https://github.com/hnakada123/ShogiBoardQ/releases) の添付ファイルは各 OS の実行用パッケージだけです。各 OS の ZIP には、アプリ本体・詰将棋問題集・通常対局用の Hayanagi（定跡を含む）を収録します。問題集と Hayanagi は ZIP を展開してすぐ選べる外部ファイルとして置きます（Linux の AppImage や macOS の DMG には入れません）。Linux のライセンス文書は AppImage の中に収録します。Qt のソースなどを別に添付することはしません。配布物を作る方は [Qt 文書とリリース添付の方針](docs/dev/qt-licensing.md)を参照してください。
 
 - ソフトウェアの利用・改変・再配布は自由です。改変・利用にあたって作者への連絡は不要です。
 - 改変して配布する場合は、同じGPL-3.0ライセンスのもとでソースコードを公開する必要があります。
