@@ -2,8 +2,9 @@
 
 ShogiBoardQ を Windows でビルドし、ZIP ファイルとして GitHub で公開する手順。
 
-Windows ZIP にはアプリ、実行用 DLL、翻訳、詰将棋問題集6ファイル、Hayanagi 実行ファイル、
-README とルートの LICENSE を収録します。`Hayanagi/source/` と外部の `licenses/` は
+Windows ZIP にはアプリ（`ShogiBoardQ.exe`・`shogiboardq-cli.exe`）、実行用 DLL、翻訳、
+詰将棋問題集6ファイル、Hayanagi 実行ファイルとルートの LICENSE を収録します。
+README は収録しません。`Hayanagi/source/` と外部の `licenses/` は
 今後の Windows リリースでも収録しません。アプリ内蔵のライセンス表示はそのまま利用します。
 詳細は [Qt 文書とリリース添付の方針](qt-licensing.md) を参照してください。
 Release の添付は実行用 ZIP のみとし、Qt ソースや関連文書を別添付しません。
@@ -109,21 +110,36 @@ windeployqt --version # Qt デプロイツール
 
 # クリーンビルド、ZIP なし
 .\scripts\build-windows.ps1 -Clean -SkipZip
+
+# 版ごとのディレクトリにビルドする（リリース時）
+.\scripts\build-windows.ps1 -BuildDir build\msvc-release-2026.10.07 `
+    -DeployDir build\releases\2026.10.07-windows\deploy `
+    -ZipPath build\releases\2026.10.07-windows\ShogiBoardQ-windows.zip
 ```
 
 | オプション | 説明 |
 |---|---|
 | `-Clean` | build / deploy ディレクトリを削除してからビルド |
 | `-SkipZip` | ZIP 作成をスキップ（deploy フォルダのみ生成） |
+| `-BuildDir` | ビルドディレクトリ（既定: `build`） |
+| `-DeployDir` | 配布用ディレクトリ（既定: `deploy`） |
+| `-ZipPath` | 作成する ZIP ファイル（既定: `ShogiBoardQ-windows.zip`） |
 | `-Help` | ヘルプを表示 |
 
 スクリプトは以下の処理を自動実行する：
 
 1. 前提ツールの存在確認（cmake, ninja, cl, windeployqt, MSVC ランタイム DLL の場所）
-2. CMake Configure + ビルド
-3. ビルド成果物の確認（.exe、.qm 翻訳ファイル）
-4. deploy ディレクトリ作成 + windeployqt による DLL デプロイ + MSVC ランタイム DLL のコピー + 検証
+2. CMake Configure + ビルド（ShogiBoardQ・shogiboardq-cli・Hayanagi）
+3. ビルド成果物の確認（.exe、.qm 翻訳ファイル、hayanagi.exe、各手数1ファイルの問題集）
+4. deploy ディレクトリ作成 + 問題集・Hayanagi・LICENSE の配置 + windeployqt による DLL デプロイ +
+   `qoffscreen.dll` の追加 + MSVC ランタイム DLL のコピー + 検証
 5. ZIP ファイル作成
+
+> Qt を `PATH` に入れていない場合は、実行前に Qt の場所を指定する（例: Qt 6.11.2）：
+> ```powershell
+> $env:PATH = "C:\Qt\6.11.2\msvc2022_64\bin;C:\Qt\Tools\Ninja;$env:PATH"
+> $env:CMAKE_PREFIX_PATH = "C:\Qt\6.11.2\msvc2022_64"
+> ```
 
 > **実行ポリシーエラーが出る場合:**
 > ```powershell
@@ -186,36 +202,21 @@ dir build\Release\*.qm   # VS ジェネレータ
 
 ### 4.1 deploy ディレクトリの作成
 
-exe と翻訳ファイルを配布用ディレクトリにコピー：
+exe、翻訳ファイル、詰将棋問題集、Hayanagi、LICENSE を配布用ディレクトリにコピー：
 
 ```powershell
-mkdir deploy
+mkdir deploy, deploy\Hayanagi, deploy\data\tsumeshogi
 copy build\ShogiBoardQ.exe deploy\
+copy build\shogiboardq-cli.exe deploy\
 copy build\*.qm deploy\
+copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
+copy data\tsumeshogi\tsume_*ply_*.txt deploy\data\tsumeshogi\
+copy LICENSE deploy\
 ```
 
-詰将棋問題集と Hayanagi も、次の構成で収録します。
-
-```text
-deploy/
-├── data/tsumeshogi/
-│   ├── tsume_3ply_*.txt
-│   ├── tsume_5ply_*.txt
-│   ├── tsume_7ply_*.txt
-│   ├── tsume_9ply_*.txt
-│   ├── tsume_11ply_*.txt
-│   ├── tsume_13ply_*.txt
-│   └── README.md
-├── Hayanagi/
-│   ├── hayanagi.exe
-│   ├── README.md
-│   └── MSVCランタイムDLL
-├── README.md
-└── LICENSE
-```
-
-各手数の問題集を1ファイルずつ、合計6ファイル収録してください。
-Hayanagi の DLL は実行ファイルと同じディレクトリにも配置します。
+詰将棋問題集は 3・5・7・9・11・13 手詰を1ファイルずつ、合計6ファイル収録する
+（`data/tsumeshogi/` に同じ手数の旧版が残っていないこと。スクリプトは複数あると停止する）。
+README（ルート・`Hayanagi/`・`data/tsumeshogi/`）は収録しない。
 ソースツリーやビルドフォルダを丸ごとコピーせず、`Hayanagi/source/` と `licenses/` が
 ZIP に含まれていないことを公開前に確認してください。通常ビルドが生成する
 `build/licenses/` も Windows ZIP にはコピーしません。
@@ -223,7 +224,10 @@ ZIP に含まれていないことを公開前に確認してください。通�
 ### 4.2 windeployqt で Qt DLL をデプロイ
 
 ```powershell
-windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime deploy\ShogiBoardQ.exe
+windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe
+
+# shogiboardq-cli は offscreen プラットフォームで盤面を描画する。windeployqt はコピーしないため追加する
+copy C:\Qt\6.11.2\msvc2022_64\plugins\platforms\qoffscreen.dll deploy\platforms\
 ```
 
 `windeployqt` が自動で行う処理：
@@ -249,6 +253,15 @@ Developer PowerShell for VS では `VCToolsRedistDir` 環境変数がランタ�
 copy "$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\*.dll" deploy\
 ```
 
+`Hayanagi\hayanagi.exe` は自分と同じディレクトリの DLL しか探さないため、
+読み込む3個（`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`）だけを `Hayanagi\` にも置く：
+
+```powershell
+foreach ($dll in "vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll") {
+    copy "$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\$dll" deploy\Hayanagi\
+}
+```
+
 > windeployqt のデフォルトでは DLL ではなく `vc_redist.x64.exe`（約 18 MB）が同梱されるが、
 > 利用者がそれを手動で実行しない限りランタイムは導入されないため、DLL を直接同梱する。
 
@@ -272,6 +285,14 @@ dir deploy\msvcp140.dll
 
 # platforms プラグインの確認
 dir deploy\platforms\qwindows.dll
+dir deploy\platforms\qoffscreen.dll
+
+# SQLite ドライバー（詰将棋の解答履歴の保存に使う）
+dir deploy\sqldrivers\qsqlite.dll
+
+# Hayanagi と問題集（6ファイル）
+dir deploy\Hayanagi
+dir deploy\data\tsumeshogi
 ```
 
 デプロイ後のディレクトリ構造：
@@ -279,8 +300,12 @@ dir deploy\platforms\qwindows.dll
 ```
 deploy/
 ├── ShogiBoardQ.exe                ← 実行ファイル
-├── ShogiBoardQ_ja_JP.qm          ← 日本語翻訳
-├── ShogiBoardQ_en.qm             ← 英語翻訳
+├── shogiboardq-cli.exe            ← CLI（MCP サーバーが呼び出す）
+├── LICENSE                        ← ライセンス
+├── ShogiBoardQ_ja_JP.qm           ← 日本語翻訳
+├── ShogiBoardQ_en.qm              ← 英語翻訳
+├── ShogiBoardQ_zh_CN.qm           ← 中国語（簡体字）翻訳
+├── ShogiBoardQ_zh_TW.qm           ← 中国語（繁体字）翻訳
 ├── Qt6Core.dll                    ← Qt Core
 ├── Qt6Gui.dll                     ← Qt GUI
 ├── Qt6Widgets.dll                 ← Qt Widgets
@@ -290,12 +315,30 @@ deploy/
 ├── Qt6OpenGL.dll                  ← Qt OpenGL (Charts 依存)
 ├── Qt6OpenGLWidgets.dll           ← Qt OpenGL Widgets
 ├── Qt6Svg.dll                     ← Qt SVG (アイコン用)
+├── Qt6Sql.dll                     ← Qt SQL（解答履歴）
+├── avcodec-61.dll 等              ← FFmpeg（駒音の再生）
 ├── vcruntime140.dll               ← MSVC ランタイム
 ├── vcruntime140_1.dll
 ├── msvcp140.dll
 ├── ...                            ← その他の MSVC ランタイム DLL（concrt140.dll 等）
+├── Hayanagi/
+│   ├── hayanagi.exe               ← 通常対局用 USI エンジン
+│   ├── vcruntime140.dll           ← Hayanagi 用 MSVC ランタイム（この3個のみ）
+│   ├── vcruntime140_1.dll
+│   └── msvcp140.dll
+├── data/tsumeshogi/
+│   ├── tsume_3ply_1000_*.txt      ← 詰将棋問題集（3〜13手詰、各1,000題）
+│   ├── ...
+│   └── tsume_13ply_1000_*.txt
 ├── platforms/
-│   └── qwindows.dll               ← Windows プラットフォームプラグイン
+│   ├── qwindows.dll               ← Windows プラットフォームプラグイン
+│   └── qoffscreen.dll             ← shogiboardq-cli の盤面描画用
+├── sqldrivers/
+│   ├── qsqlite.dll                ← SQLite（詰将棋の解答履歴）
+│   └── ...
+├── multimedia/
+│   ├── ffmpegmediaplugin.dll      ← 駒音の再生
+│   └── windowsmediaplugin.dll
 ├── imageformats/
 │   ├── qsvg.dll                   ← SVG サポート
 │   ├── qico.dll                   ← ICO サポート
@@ -317,6 +360,13 @@ deploy フォルダから直接起動してテスト：
 
 ```powershell
 .\deploy\ShogiBoardQ.exe
+
+# CLI（バージョンと盤面画像の作成）
+.\deploy\shogiboardq-cli.exe version
+.\deploy\shogiboardq-cli.exe render-board --sfen startpos --output board.png --overwrite
+
+# Hayanagi（id name Hayanagi … と usiok が返ること）
+cmd /c "(echo usi& echo quit) | deploy\Hayanagi\hayanagi.exe"
 ```
 
 > **重要**: テストは Qt の bin ディレクトリが PATH に**含まれない**環境で行うこと。
