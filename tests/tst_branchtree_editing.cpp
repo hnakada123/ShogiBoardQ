@@ -2,9 +2,14 @@
 /// @brief 分岐ツリーの編集（本譜にする・並べ替え・削除）と表示（詰めた配置・折りたたみ・キー操作）のテスト
 
 #include <QtTest>
+#include <QAbstractButton>
+#include <QApplication>
 #include <QGraphicsView>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QSignalSpy>
 #include <QStandardPaths>
+#include <QTimer>
 
 #include "branchtreeeditcontroller.h"
 #include "branchtreemanager.h"
@@ -13,6 +18,7 @@
 #include "kifudisplaypresenter.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
+#include "kifupresentation.h"
 #include "livegamesession.h"
 #include "shogigamecontroller.h"
 #include "shogimove.h"
@@ -56,6 +62,26 @@ struct Fixture {
 class TestBranchTreeEditing : public QObject
 {
     Q_OBJECT
+
+private:
+    QString m_confirmText;                ///< 削除の確認の本文
+    QString m_confirmActionText;          ///< 削除の確認で、操作のボタンに表示された文言
+    bool m_confirmDefaultIsCancel = false;
+
+    /// 表示中の削除の確認を調べてから、キャンセルで閉じる
+    void inspectDeleteConfirmation()
+    {
+        auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+        if (!box) {
+            QTimer::singleShot(10, this, &TestBranchTreeEditing::inspectDeleteConfirmation);
+            return;
+        }
+        m_confirmText = box->text();
+        const QAbstractButton* action = box->button(QMessageBox::Yes);
+        m_confirmActionText = action ? action->text() : QString();
+        m_confirmDefaultIsCancel = box->defaultButton() == box->button(QMessageBox::Cancel);
+        box->button(QMessageBox::Cancel)->click();
+    }
 
 private slots:
     void initTestCase()
@@ -129,6 +155,58 @@ private slots:
         QCOMPARE(state.currentNode(), f.main.at(1));
         QCOMPARE(dirty, 1);
         QCOMPARE(f.main.at(1)->childCount(), 1);
+    }
+
+    // 削除の確認は、KDE で訳されない「Yes」ではなく操作名のボタンで尋ね、キャンセルなら削除しない
+    void controller_deleteConfirmationNamesTheAction()
+    {
+        Fixture f;
+        BranchTreeEditController controller;
+        BranchTreeEditController::Deps deps;
+        deps.tree = &f.tree;
+        controller.updateDeps(deps);
+
+        const int before = f.tree.nodeCount();
+        m_confirmActionText.clear();
+        m_confirmDefaultIsCancel = false;
+        QTimer::singleShot(0, this, &TestBranchTreeEditing::inspectDeleteConfirmation);
+        QVERIFY(!controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2));
+        QCOMPARE(m_confirmActionText, BranchTreeEditController::tr("削除する"));
+        QVERIFY(m_confirmDefaultIsCancel);
+        QCOMPARE(f.tree.nodeCount(), before);
+    }
+
+    // 削除の確認の手は、分岐ツリーと同じ表記（英語式の表記なら P-7f）で示す
+    void controller_deleteConfirmationUsesDisplayedNotation()
+    {
+        KifuBranchTree tree;
+        KifuNavigationState state;
+        state.setTree(&tree);
+        KifuNavigationController nav;
+        nav.setTreeAndState(&tree, &state);
+        ShogiGameController gc;
+        QString initial = kHirateSfen;
+        gc.newGame(initial);
+
+        BranchTreeEditController controller;
+        BranchTreeEditController::Deps deps;
+        deps.tree = &tree;
+        deps.navState = &state;
+        deps.navController = &nav;
+        deps.startPositionSfen = []() { return QStringLiteral("startpos"); };
+        controller.updateDeps(deps);
+        QPoint from(7, 7), to(7, 6);
+        QVERIFY(controller.recordBoardMove(from, to, &gc));
+        KifuBranchNode* move = tree.root()->childAt(0);
+
+        KifuPresentation::configure(QStringLiteral("en"), QStringLiteral("western"), false);
+        m_confirmText.clear();
+        QTimer::singleShot(0, this, &TestBranchTreeEditing::inspectDeleteConfirmation);
+        const bool deleted = controller.apply(BranchTreeEditController::Operation::DeleteFromHere, move);
+        KifuPresentation::configure(QStringLiteral("ja"), QStringLiteral("japanese"), false);
+        QVERIFY(!deleted);
+        QVERIFY2(m_confirmText.contains(QStringLiteral("P-7f")), qPrintable(m_confirmText));
+        QVERIFY2(!m_confirmText.contains(QStringLiteral("七")), qPrintable(m_confirmText));
     }
 
     void controller_promoteKeepsCurrentNode()
