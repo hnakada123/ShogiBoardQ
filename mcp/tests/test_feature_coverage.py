@@ -283,7 +283,16 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
         await ui.call("click_widget", target=question, widget=yes["selector"])
         assert (await ui.read("josekiTable"))["row_count"] == 0
         await ui.click("保存", root="JosekiWindowDock")
-        await asyncio.sleep(0.2)
+        # Saving runs in the background and merging is ignored until it finishes: wait until
+        # 保存 is disabled again (nothing left to save) and マージ is enabled (no longer busy).
+        for _ in range(100):
+            buttons = {w.get("text"): w["enabled"] for w in await ui.widgets(root="JosekiWindowDock")
+                       if w["class"] in ("QPushButton", "QToolButton")}
+            if buttons.get("保存") is False and buttons.get("マージ ▼"):
+                break
+            await asyncio.sleep(0.05)
+        else:
+            pytest.fail(f"Saving the opening book did not finish: {buttons}")
         await ui.call("load_kifu", text="position startpos moves 7g7f 3c3d")
         await ui.call("select_menu_action", widget="josekiMergeMenu", path=[0])
         merge = await ui.dialog("JosekiMergeDialog")

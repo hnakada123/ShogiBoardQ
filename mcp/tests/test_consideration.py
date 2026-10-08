@@ -183,14 +183,14 @@ async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
                 await ui.wait("considerationView", "row_count", 3)
                 assert (await ui.board())["board_sfen"] == pos["sfen"].split()[0]
                 dialog = await ui.open_pv()
-                title = dialog["title"]
-                board = await ui.board(dialog=title)
+                pv = dialog["selector"]
+                board = await ui.board(dialog=pv)
                 assert board["board_sfen"] == pos["sfen"].split()[0]
-                await ui.call("click_dialog_button", dialog=title, text="▶")
-                assert (await ui.board(dialog=title))["board_sfen"] != board["board_sfen"]
-                await ui.call("click_dialog_button", dialog=title, text="|◀")
-                assert (await ui.board(dialog=title))["board_sfen"] == board["board_sfen"]
-                await ui.call("close_dialog", dialog=title)
+                await ui.call("click_dialog_button", dialog=pv, text="▶")
+                assert (await ui.board(dialog=pv))["board_sfen"] != board["board_sfen"]
+                await ui.call("click_dialog_button", dialog=pv, text="|◀")
+                assert (await ui.board(dialog=pv))["board_sfen"] == board["board_sfen"]
+                await ui.call("close_dialog", dialog=pv)
             await ui.set("considerationArrows", False)
             await ui.arrows(lambda arrows: arrows == [])
             await ui.set("considerationArrows", True)
@@ -320,7 +320,7 @@ async def test_widget_operations_reject_invalid_input(consideration_env):
         settings = next(w for w in dialogs if w["class"] == "ChangeEngineSettingsDialog")
         _, _, error = result_data(await session.call_tool("click_widget", {"widget": "considerationStartStop"}))
         assert error  # main window is blocked by the modal engine settings dialog
-        await ui.call("close_dialog", dialog=settings["title"])
+        await ui.call("close_dialog", dialog=settings["selector"])
         assert (await ui.call("get_app_state"))["ui_state"] == "idle"
 
 
@@ -359,7 +359,7 @@ async def test_unavailable_engine_recovers(consideration_env, missing_executable
             assert asyncio.get_running_loop().time() < deadline, dialogs
             await asyncio.sleep(0.1)
         for dialog in errors:
-            await ui.call("close_dialog", dialog=dialog["title"])
+            await ui.call("close_dialog", dialog=dialog["selector"])
         await ui.wait("considerationStartStop", "text", "検討開始")
         assert (await ui.call("get_app_state"))["ui_state"] == "idle"
 

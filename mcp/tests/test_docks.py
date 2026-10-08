@@ -174,4 +174,4 @@ async def test_invalid_and_modally_blocked_operations(dock_env):
         assert dialogs
         await ui.error("configure_dock", widget="ThinkingDock", operation="float")
         await ui.error("trigger_action", name="actionResetDockLayout")
-        await ui.call("close_dialog", dialog=dialogs[0]["title"])
+        await ui.call("close_dialog", dialog=dialogs[0]["selector"])
