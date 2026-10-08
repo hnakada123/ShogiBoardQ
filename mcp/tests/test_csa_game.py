@@ -82,12 +82,13 @@ class CsaUI:
         return data
 
     async def dialog(self, cls, timeout=8):
+        # Return the selector: Qt on macOS leaves QMessageBox titles empty.
         deadline = asyncio.get_running_loop().time() + timeout
         while True:
             windows = (await self.call("list_dialogs"))["windows"]
             found = next((w for w in windows if w["class"] == cls), None)
             if found:
-                return found["title"]
+                return found["selector"]
             assert asyncio.get_running_loop().time() < deadline, windows
             await asyncio.sleep(0.05)
 
@@ -102,14 +103,14 @@ class CsaUI:
 
     async def connect(self, port, side="b", game="audit-300-5", engine=False):
         await self.call("trigger_action", name="actionCSA")
-        title = await self.dialog("CsaGameDialog")
+        dialog = await self.dialog("CsaGameDialog")
         for widget, value in [("radioButtonEngine" if engine else "radioButtonHuman", True),
                               ("lineEditHost", "127.0.0.1"), ("spinBoxPort", port),
                               ("lineEditId", "BoardQ"), ("checkBoxShowPassword", True),
                               ("lineEditPassword", f"{game}-{side},audit-secret")]:
-            await self.call("set_widget_value", target=title, widget=widget, value=value)
-        await self.call("set_widget_value", target=title, widget="checkBoxShowPassword", value=False)
-        await self.call("click_dialog_button", dialog=title, widget="pushButtonStart")
+            await self.call("set_widget_value", target=dialog, widget=widget, value=value)
+        await self.call("set_widget_value", target=dialog, widget="checkBoxShowPassword", value=False)
+        await self.call("click_dialog_button", dialog=dialog, widget="pushButtonStart")
         return await self.dialog("CsaWaitingDialog")
 
     async def move(self, usi, decline_promotion=False):
@@ -120,13 +121,13 @@ class CsaUI:
         for file, rank in ((usi[0], usi[1]), (usi[2], usi[3])):
             await self.call("click_board_square", file=int(file), rank=ord(rank)-ord("a")+1)
         if usi.endswith("+") or decline_promotion:
-            title = await self.dialog("PromoteDialog")
-            await self.call("click_dialog_button", dialog=title, text="成る" if usi.endswith("+") else "成らない")
+            dialog = await self.dialog("PromoteDialog")
+            await self.call("click_dialog_button", dialog=dialog, text="成る" if usi.endswith("+") else "成らない")
 
     async def dismiss_end(self):
-        title = await self.dialog("QMessageBox")
-        data = await self.call("get_widget_text", dialog=title)
-        await self.call("close_dialog", dialog=title)
+        dialog = await self.dialog("QMessageBox")
+        data = await self.call("get_widget_text", dialog=dialog)
+        await self.call("close_dialog", dialog=dialog)
         await self.wait_state(ui_state="idle", play_mode="not_started")
         return str(data)
 
@@ -213,8 +214,8 @@ async def test_wait_cancel_and_retry(csa_env, csa_server):
         await ui.call("load_kifu", path=str(FIXTURES / "test_basic.kif"))
         before = await ui.call("get_position")
         for _ in range(2):
-            title = await ui.connect(csa_server[0])
-            await ui.call("click_dialog_button", dialog=title, text="対局キャンセル")
+            dialog = await ui.connect(csa_server[0])
+            await ui.call("click_dialog_button", dialog=dialog, text="対局キャンセル")
             await ui.wait_state(ui_state="idle", play_mode="not_started")
             assert await ui.call("get_position") == before
 
@@ -239,9 +240,9 @@ async def test_opponent_resign(csa_env, csa_server):
 async def test_waiting_log_and_mcp_enter(csa_env, csa_server):
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
-        title = await ui.connect(csa_server[0])
+        dialog = await ui.connect(csa_server[0])
         await asyncio.sleep(0.2)
-        await ui.call("click_dialog_button", dialog=title, text="通信ログ")
+        await ui.call("click_dialog_button", dialog=dialog, text="通信ログ")
         log = await ui.call("get_widget_text", dialog="csaWaitingLogWindow", widget="csaWaitingLogView")
         text = log["widgets"][0]["text"]
         assert "LOGIN:BoardQ OK" in text
@@ -259,24 +260,24 @@ async def test_connection_form_feedback(csa_env, tmp_path, language, font_size):
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
         await ui.call("trigger_action", name="actionCSA")
-        title = await ui.dialog("CsaGameDialog")
+        dialog = await ui.dialog("CsaGameDialog")
 
         async def widget(name):
-            return (await ui.call("get_widget_text", dialog=title, widget=name))["widgets"][0]
+            return (await ui.call("get_widget_text", dialog=dialog, widget=name))["widgets"][0]
 
         assert not (await widget("pushButtonStart"))["enabled"]
         assert not (await widget("comboBoxEngine"))["enabled"]
         assert not (await widget("pushButtonEngineSettings"))["enabled"]
         assert (await widget("labelValidation"))["text"]
-        await ui.call("capture_screenshot", target=title, output_dir=str(tmp_path))
+        await ui.call("capture_screenshot", target=dialog, output_dir=str(tmp_path))
         for name, value in [("lineEditHost", "127.0.0.1"), ("lineEditId", "BoardQ"),
                             ("checkBoxShowPassword", True), ("lineEditPassword", "test-600-10,pw")]:
-            await ui.call("set_widget_value", target=title, widget=name, value=value)
+            await ui.call("set_widget_value", target=dialog, widget=name, value=value)
         assert (await widget("pushButtonStart"))["enabled"]
-        await ui.call("set_widget_value", target=title, widget="lineEditId", value="bad id")
+        await ui.call("set_widget_value", target=dialog, widget="lineEditId", value="bad id")
         assert not (await widget("pushButtonStart"))["enabled"]
         assert ("空白" if language == "ja_JP" else "whitespace") in (await widget("labelValidation"))["text"]
-        await ui.call("close_dialog", dialog=title)
+        await ui.call("close_dialog", dialog=dialog)
 
 
 async def test_log_send_buttons_and_disconnect(csa_env, csa_server, tmp_path):
@@ -288,8 +289,8 @@ async def test_log_send_buttons_and_disconnect(csa_env, csa_server, tmp_path):
         before = await ui.call("get_widget_text", widget="csaCommandInput")
         assert not before["widgets"][0]["enabled"]
         await ui.call("capture_screenshot", output_dir=str(tmp_path / "disconnected"))
-        title = await ui.connect(csa_server[0])
-        await ui.call("click_dialog_button", dialog=title, text="通信ログ")
+        dialog = await ui.connect(csa_server[0])
+        await ui.call("click_dialog_button", dialog=dialog, text="通信ログ")
         await ui.call("set_widget_value", target="csaWaitingLogWindow", widget="csaWaitingCommandInput",
                       value="%%WHO")
         await ui.call("click_widget", target="csaWaitingLogWindow", widget="csaWaitingSendButton")
@@ -344,8 +345,8 @@ async def test_server_adjudicates_declarations(csa_env, csa_server, action, comm
             await ui.call("trigger_action", name=action)
             if command == "%KACHI":
                 # The declaration is confirmed first, as in local games.
-                title = await ui.dialog("QMessageBox")
-                await ui.call("click_dialog_button", dialog=title, text="宣言する")
+                dialog = await ui.dialog("QMessageBox")
+                await ui.call("click_dialog_button", dialog=dialog, text="宣言する")
             # shogi-server rejects CHUDAN and a declaration at the initial position.
             await peer.until("#WIN")
             assert "反則" in await ui.dismiss_end()
@@ -857,6 +858,6 @@ async def test_connection_refused_recovers(csa_env):
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
         await ui.connect(port)
-        title = await ui.dialog("QMessageBox")
-        await ui.call("close_dialog", dialog=title)
+        dialog = await ui.dialog("QMessageBox")
+        await ui.call("close_dialog", dialog=dialog)
         await ui.wait_state(ui_state="idle", play_mode="not_started")

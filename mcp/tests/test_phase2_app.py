@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES, mcp_session, result_data
+from conftest import FIXTURES, mcp_session, message_box, result_data
 
 pytestmark = pytest.mark.anyio
 
@@ -230,7 +230,7 @@ async def test_tsume_board_clicks(app_env, tmp_path):
                 await asyncio.sleep(0.1)
                 text, _, error = await _call(session, "click_board_square", target="tsumePlayDialog", file=1, rank=1)
                 assert error and "blocked" in text
-                await call("click_dialog_button", dialog="成りの選択", text="成る")
+                await call("click_dialog_button", dialog=await message_box(session, "成りますか"), text="成る")
             await asyncio.sleep(0.1)
             assert "残り3手" in await wait_ready()
             moved = await board()

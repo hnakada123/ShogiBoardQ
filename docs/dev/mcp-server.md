@@ -364,6 +364,11 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 ShogiHome との相互接続は `SHOGIBOARDQ_TEST_SHOGIHOME_CDP` も指定する。
 環境構築・実行例・確認範囲は [CSA検証記録](csa-game-mcp-audit-2026-09-27.md) を参照。
 
+テストでは、`list_dialogs` で見つけたダイアログを `selector` で指す。メッセージボックス（`QMessageBox`）は
+オブジェクト名が無く、macOS の Qt はタイトルも無視する（空になる）ため、タイトルでは探せない。
+`mcp/tests/conftest.py` の `message_box(session, text)` で本文から探し、返るセレクタを `click_dialog_button`・
+`close_dialog` に渡す。
+
 ## 10. 対応クライアント
 
 設定例（`claude_desktop_config.json`、`claude mcp add`、`.cursor/mcp.json`、`.vscode/mcp.json`、Gemini CLI の `settings.json`、Codex CLI の `config.toml`）は [mcp/README.md](../../mcp/README.md) と利用ガイドに記載する。いずれも stdio で `python3 -m shogiboardq_mcp` を起動し、環境変数で実行ファイルの場所を渡す。

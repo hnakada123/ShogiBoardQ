@@ -152,11 +152,11 @@ async def test_reset_cancel_preserves_pending_edits(kifu_env, tmp_path):
         await ui.open()
         await ui.edit("先手", "消えてはいけない名前")
         await ui.call("trigger_action", name="actionNewGame")
-        await ui.dialog("未保存の棋譜")
+        box = await ui.message_box("未保存の変更")
         _, _, error = result_data(await session.call_tool("edit_table_cell", dict(
             widget="gameInfoTable", row=1, column=1, text="モーダル背後の編集")))
         assert error
-        await ui.call("click_dialog_button", dialog="未保存の棋譜", text="キャンセル")
+        await ui.call("click_dialog_button", dialog=box, text="キャンセル")
         assert ["先手", "消えてはいけない名前"] in await ui.rows()
 
 
@@ -252,8 +252,7 @@ async def test_game_end_preserves_active_metadata(kifu_env, tmp_path):
         await ui.call("show_dock", widget="GameInfoDock")
         await ui.edit("先手", "終局直前の入力", commit=False)
         await ui.call("trigger_action", name="actionResign")
-        await ui.dialog("対局終了")
-        await ui.call("close_dialog", dialog="対局終了")
+        await ui.call("close_dialog", dialog=await ui.message_box("投了"))
         state = await ui.wait("get_app_state", lambda d: bool(d["kifu_file"]))
         assert "終局直前の入力" in Path(state["kifu_file"]).read_text(encoding="utf-8")
         assert any(key == "終了日時" and value for key, value in await ui.rows())

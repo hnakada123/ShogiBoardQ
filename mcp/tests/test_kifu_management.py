@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES, mcp_session, result_data
+from conftest import FIXTURES, mcp_session, message_box, result_data
 
 pytestmark = pytest.mark.anyio
 MOVES = ["7g7f", "3c3d", "2g2f", "8c8d", "2f2e", "8d8e", "6i7h"]
@@ -52,6 +52,9 @@ class KifuUi:
     async def dialog(self, title):
         return await self.wait("list_dialogs", lambda d: any(
             title in w["title"] or title == w["object_name"] for w in d["windows"]))
+
+    async def message_box(self, text):
+        return await message_box(self.session, text)
 
     async def copy(self, action):
         await self.call("trigger_action", name=action)
@@ -156,8 +159,8 @@ async def test_paste_dialog_controls_and_cancel(kifu_env, tmp_path):
         await ui.wait("get_app_state", lambda d: d["dirty"])
         pos = await ui.call("get_position")
         await ui.paste("startpos moves 2g2f")
-        await ui.dialog("未保存の棋譜")
-        await ui.call("click_dialog_button", dialog="未保存の棋譜", text="キャンセル")
+        box = await ui.message_box("未保存の変更")
+        await ui.call("click_dialog_button", dialog=box, text="キャンセル")
         assert await ui.call("get_position") == pos
         assert (await ui.call("get_app_state"))["dirty"]
         await ui.dialog("kifuPasteDialog")
@@ -270,7 +273,7 @@ async def test_invalid_paste_preserves_record_and_editor(kifu_env, tmp_path):
         await ui.paste("{ invalid JSON }")
         dialogs = await ui.wait("list_dialogs", lambda d: any(w["class"] == "QMessageBox" for w in d["windows"]))
         dialog = next(w for w in dialogs["windows"] if w["class"] == "QMessageBox")
-        await ui.call("close_dialog", dialog=dialog["title"])
+        await ui.call("close_dialog", dialog=dialog["selector"])
         assert await ui.call("get_position") == original
         assert await ui.call("get_kifu", format="kif") == record
         await ui.dialog("kifuPasteDialog")
@@ -301,16 +304,16 @@ async def test_unsaved_save_cancel_then_discard(kifu_env, tmp_path):
         await ui.call("load_kifu", text="startpos moves 7g7f")
         original = await ui.call("get_position")
         await ui.paste("startpos moves 2g2f")
-        await ui.dialog("未保存の棋譜")
-        await ui.call("click_dialog_button", dialog="未保存の棋譜", text="保存")
+        box = await ui.message_box("未保存の変更")
+        await ui.call("click_dialog_button", dialog=box, text="保存")
         await ui.dialog("名前を付けて保存")
         await ui.call("close_dialog", dialog="名前を付けて保存")
         await ui.dialog("kifuPasteDialog")
         assert await ui.call("get_position") == original
         assert (await ui.call("get_app_state"))["dirty"]
         await ui.call("click_dialog_button", dialog="kifuPasteDialog", text="取り込む")
-        await ui.dialog("未保存の棋譜")
-        await ui.call("click_dialog_button", dialog="未保存の棋譜", text="破棄")
+        box = await ui.message_box("未保存の変更")
+        await ui.call("click_dialog_button", dialog=box, text="破棄")
         await ui.wait("get_kifu", lambda d: d["moves"][0].get("usi") == "2g2f")
         assert (await ui.call("get_app_state"))["dirty"]
 
@@ -355,8 +358,7 @@ async def test_save_filter_warning_and_explicit_extension(kifu_env, tmp_path):
             button = next(w["text"] for w in widgets["widgets"] if w["class"] == "QPushButton" and ("保存" in w.get("text", "") or "Save" in w.get("text", "")))
             await ui.call("click_dialog_button", dialog="名前を付けて保存", text=button)
             if warning:
-                await ui.dialog("KI2形式で保存")
-                await ui.call("close_dialog", dialog="KI2形式で保存")
+                await ui.call("close_dialog", dialog=await ui.message_box("KI2形式は消費時間"))
                 assert not path.exists() and (await ui.call("get_app_state"))["dirty"]
             else:
                 await ui.wait("get_app_state", lambda d: d["kifu_file"] == str(path))
@@ -385,8 +387,7 @@ async def test_game_end_auto_save(kifu_env, tmp_path):
         await ui.call("click_board_square", file=7, rank=6)
         await ui.wait("get_app_state", lambda d: d["current_ply"] == 1)
         await ui.call("trigger_action", name="actionResign")
-        await ui.dialog("対局終了")
-        await ui.call("close_dialog", dialog="対局終了")
+        await ui.call("close_dialog", dialog=await ui.message_box("投了"))
         state = await ui.wait("get_app_state", lambda d: bool(d["kifu_file"]))
         path = Path(state["kifu_file"])
         assert path.parent == tmp_path and not state["dirty"]

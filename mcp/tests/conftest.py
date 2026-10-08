@@ -10,6 +10,7 @@ Environment variables (set by CTest, or manually when running pytest directly):
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 from contextlib import asynccontextmanager
@@ -116,3 +117,24 @@ def result_data(result):
     """Return (text, structured, is_error) from a CallToolResult."""
     text = "\n".join(c.text for c in result.content if getattr(c, "type", "") == "text")
     return text, result.structured_content, bool(result.is_error)
+
+
+async def message_box(session, text: str, timeout: float = 8.0) -> str:
+    """Wait for a QMessageBox whose texts contain ``text`` and return its selector.
+
+    Message boxes have no object name, and Qt on macOS ignores their window titles,
+    so find them by class and text, and address them by selector instead of title.
+    """
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while True:
+        _, dialogs, _ = result_data(await session.call_tool("list_dialogs", {}))
+        for window in (dialogs or {}).get("windows", []):
+            if window["class"] != "QMessageBox":
+                continue
+            # The box may close between the two calls; then keep waiting.
+            _, content, error = result_data(await session.call_tool("get_widget_text", {"dialog": window["selector"]}))
+            if not error and text in str(content):
+                return window["selector"]
+        assert loop.time() < deadline, f"No message box containing {text!r}: {dialogs}"
+        await asyncio.sleep(0.05)
