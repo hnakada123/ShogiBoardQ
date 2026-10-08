@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分岐ツリー - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの分岐ツリーの使い方を紹介します。本譜と変化の見かた、クリックやキーでの移動、拡大・縮小、変化の折りたたみ、右クリックでの本譜の入れ替え・並べ替え・削除、盤上で指した手を変化として記録する方法をスクリーンショット付きで解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html">
+    <meta property="og:title" content="分岐ツリー - ShogiBoardQ">
+    <meta property="og:description" content="本譜と変化の手順を一覧し、右クリックで本譜の入れ替え・並べ替え・削除や折りたたみができます。盤上で指した手も変化として記録できます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/branch-tree/branch-tree-overview.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="分岐ツリー - ShogiBoardQ">
+    <meta name="twitter:description" content="本譜と変化の手順を一覧し、右クリックで本譜の入れ替え・並べ替え・削除や折りたたみができます。盤上で指した手も変化として記録できます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/branch-tree/branch-tree-overview.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/branch-tree.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/branch-tree.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/branch-tree.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="branch-tree.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/branch-tree.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/branch-tree.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/branch-tree.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="#view">見かた</a></li>
+            <li><a href="#operate">移動と表示</a></li>
+            <li><a href="#collapse">折りたたみ</a></li>
+            <li><a href="#edit">編集</a></li>
+            <li><a href="#board-move">盤上で指す</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>分岐ツリー</h1>
+        <p class="hero-subtitle">本譜と変化の手順を一覧し、右クリックで整理・編集できます</p>
+        <div class="hero-badges">
+            <span class="badge">変化を詰めて表示</span>
+            <span class="badge">右クリックメニュー</span>
+            <span class="badge">折りたたみ</span>
+            <span class="badge">本譜の入れ替え・削除</span>
+            <span class="badge">盤上で変化を追加</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="view" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">分岐ツリーの見かた</h2>
+        <p class="section-desc">本譜と変化の手順を、手数をそろえて並べます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">分岐ツリーを表示する</span>
+                </div>
+                <p class="guide-step-text">画面下部の「分岐ツリー」タブを選ぶと表示されます。左端の「開始局面」から、いちばん上の段に本譜、その下に変化の手順が、手数をそろえて並びます。棋譜を読み込んだときのほか、対局中に指した手もすぐに加わります。パネルの配置は<a href="dock.html">ドック機能</a>で変えられます。棋譜欄と分岐候補の使い方は<a href="kifu-display.html">棋譜表示</a>を参照してください。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">表示の見かた</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>青い枠は先手の手、オレンジの枠は後手の手です。</li>
+                    <li>黄色の手は、いま盤面に表示している手です。棋譜欄・棋譜コメントと同じ手を示します。</li>
+                    <li>開始局面から黄色の手までの線は、青い太線で示されます。</li>
+                    <li>同じ手から分かれた変化は、縦の線でつながります。</li>
+                    <li>コメントのある手には、右上に青い丸が付きます。手にマウスを重ねると、指し手とコメントの先頭が表示されます。</li>
+                    <li>上端の「n手目」の見出しは、縦にスクロールしても上端に表示されたままです。</li>
+                </ul>
+                <p class="guide-step-text">黄色の手が画面の外にあるときは、その手が見える位置まで自動でスクロールします。</p>
+                <div class="screenshot-item">
+                    <a href="../images/branch-tree/branch-tree-overview.png"><img src="../images/branch-tree/branch-tree-overview.png" alt="15手目から3通りに分かれ、▲８七歩打の変化がさらに17手目で分かれている分岐ツリー" width="1917" height="498" loading="lazy"></a>
+                    <p class="screenshot-caption">分岐ツリー：変化の中の変化（18手目）を表示中。開始局面からの経路が青い線、コメントのある手が青い丸で示される</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">変化を詰めて表示する</span>
+                </div>
+                <p class="guide-step-text">変化は、分かれた手順より下の段のうち、空いている段に詰めて表示されます。同じ段に別の変化を並べるときは、続いた手順に見えないよう1手分の間隔を空けます。</p>
+                <p class="guide-step-text">右クリックメニューの「変化を詰めて表示する」のチェックを外すと、変化ごとに1段ずつ、変化の順番どおりに並べて表示します。この設定は次回も引き継がれます。</p>
+                <div class="screenshot-item">
+                    <a href="../images/branch-tree/branch-tree-sequential.png"><img src="../images/branch-tree/branch-tree-sequential.png" alt="変化を詰めずに、変化ごとに1段で並べた分岐ツリー" width="1917" height="545" loading="lazy"></a>
+                    <p class="screenshot-caption">「変化を詰めて表示する」を外したところ（上と同じ棋譜）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="operate" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">移動と表示の操作</h2>
+        <p class="section-desc">クリックやキーで局面を移動し、表示の大きさを変えられます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">クリック・キーで移動する</span>
+                </div>
+                <p class="guide-step-text">手をクリックすると、その局面に移動します。盤面・棋譜欄・分岐候補も同じ手に切り替わります。分岐ツリーをクリックしたあとは、次のキーでも移動できます。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">キー</th><th scope="col">動作</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>← / →</strong></td><td>同じ手順の1手前・1手先の手へ（開始局面で → を押すと本譜の1手目）</td></tr>
+                        <tr><td><strong>↑ / ↓</strong></td><td>同じ手数の、すぐ上・すぐ下の段の手へ</td></tr>
+                        <tr><td><strong>Home</strong></td><td>開始局面へ</td></tr>
+                        <tr><td><strong>End</strong></td><td>その手順の最後の手へ</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">対局中・棋譜解析中・局面編集中は、手を選んだり編集したりできません。折りたたみや拡大・縮小などの表示の操作はできます。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">拡大・縮小する</span>
+                </div>
+                <p class="guide-step-text">Ctrl＋ホイール（macOS では ⌘＋ホイール）、トラックパッドのピンチ、右クリックメニューの「拡大」「縮小」で、表示の大きさを50%〜200%の範囲で変えられます（ホイールとメニューでは10%ずつ）。「標準の大きさ（100%）」で元の大きさに戻ります。表示の大きさは次回も引き継がれます。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">右クリックメニュー</span>
+                </div>
+                <p class="guide-step-text">分岐ツリーで右クリックすると、右クリックした場所に応じて次の項目が表示されます。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">メニュー</th><th scope="col">表示されるとき</th><th scope="col">動作</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>この手順を本譜にする／変化を上へ移動する／変化を下へ移動する／この手以降を削除する…</strong></td><td>開始局面以外の手を右クリックしたとき（対局中・棋譜解析中・局面編集中を除く）</td><td>分岐を編集します（<a href="#edit">分岐を編集する</a>）</td></tr>
+                        <tr><td><strong>この変化を折りたたむ／この変化を展開する</strong></td><td>本譜以外の変化の手を右クリックしたとき（2手以上ある変化か、先で分かれる変化）</td><td>変化の続きを隠す・表示する（<a href="#collapse">変化を折りたたむ</a>）</td></tr>
+                        <tr><td><strong>すべての変化を展開する</strong></td><td>折りたたんだ変化があるとき</td><td>折りたたんだ変化をすべて元に戻します</td></tr>
+                        <tr><td><strong>変化を詰めて表示する</strong></td><td>いつでも</td><td>変化を空いている段に詰めて表示するかを切り替えます</td></tr>
+                        <tr><td><strong>拡大／縮小／標準の大きさ（100%）</strong></td><td>いつでも</td><td>表示の大きさを変えます</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item">
+                    <a href="../images/branch-tree/branch-tree-menu.png"><img src="../images/branch-tree/branch-tree-menu.png" alt="変化の先頭の手▲８七歩打を右クリックして表示したメニュー" width="1917" height="635" loading="lazy"></a>
+                    <p class="screenshot-caption">変化の手（15手目の▲８七歩打）を右クリックしたところ</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="collapse" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">変化を折りたたむ</h2>
+        <p class="section-desc">長い変化を隠して、見たい手順を見やすくします</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">折りたたむ・展開する</span>
+                </div>
+                <p class="guide-step-text">変化の手を右クリックして「この変化を折りたたむ」を選ぶと、その変化の先頭の手だけを残し、続きの手と、その先で分かれた変化を隠します。先頭の手は点線の枠になり、右に隠れた手数が「▸ +n」と表示されます。マウスを重ねると「（ダブルクリックで展開）」と表示されます。</p>
+                <p class="guide-step-text">元に戻すには、先頭の手をダブルクリックするか、右クリックして「この変化を展開する」を選びます。折りたたんだ変化があるときは、右クリックメニューの「すべての変化を展開する」でまとめて元に戻せます。</p>
+                <p class="guide-step-text">棋譜欄や分岐候補から隠れている手へ移動したときは、自動で展開されます。表示中の手が隠れたときは、折りたたんだ変化の先頭の手が黄色になります。</p>
+                <div class="screenshot-item">
+                    <a href="../images/branch-tree/branch-tree-collapsed.png"><img src="../images/branch-tree/branch-tree-collapsed.png" alt="▲８七歩打の変化を折りたたみ、隠れた6手を「▸ +6」と表示した分岐ツリー" width="1917" height="368" loading="lazy"></a>
+                    <p class="screenshot-caption">15手目の▲８七歩打の変化を折りたたんだところ（続きの手と先の変化の計6手を隠している）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="edit" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">分岐を編集する</h2>
+        <p class="section-desc">右クリックで、本譜の入れ替え・変化の並べ替え・削除ができます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">編集の操作</span>
+                </div>
+                <p class="guide-step-text">分岐ツリーの手、または棋譜欄の右にある「分岐候補」の手を右クリックすると、次の操作ができます。使えない操作は灰色で表示されます。編集すると棋譜は未保存の状態になるので、必要に応じて保存してください。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">メニュー</th><th scope="col">動作</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>この手順を本譜にする</strong></td><td>開始局面からその手までの手順を本譜にします。その手より先は、続いている手順（いちばん上の変化）がそのまま本譜になります。本譜の手では使えません。</td></tr>
+                        <tr><td><strong>変化を上へ移動する／変化を下へ移動する</strong></td><td>その手を含む変化を、同じ手から分かれた変化の中で1つ上・1つ下へ移します。いちばん上の変化が、その分かれ目での本譜側になります。分岐候補の並び順と、保存したときの変化の順番も変わります。</td></tr>
+                        <tr><td><strong>この手以降を削除する…</strong></td><td>その手と続きの手順、その先で分かれた変化を削除します。削除する手数を確かめて「削除する」を押すと削除します（元に戻せません）。表示中の手が削除されるときは、削除した手の1手前に移動します。</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/branch-tree/branch-tree-delete.png"><img src="../images/branch-tree/branch-tree-delete.png" srcset="../images/branch-tree/branch-tree-delete.png 519w" sizes="346px" alt="「▲２六飛(24)」以降の3手を削除する確認と、「削除する」「キャンセル」のボタン" width="346" height="105" loading="lazy"></a>
+                    <p class="screenshot-caption">削除の確認：削除する手数が表示される</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="board-move" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">盤上で指して変化を加える</h2>
+        <p class="section-desc">対局していないときに盤上で指した手を、棋譜に記録します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">9</span>
+                    <span class="guide-step-title">盤上で駒を動かす</span>
+                </div>
+                <p class="guide-step-text">対局・棋譜解析・検討・局面編集などをしていないときに盤上で駒を動かすと、その手が表示中の手の次の手として棋譜に記録されます。</p>
+                <ul class="guide-step-text">
+                    <li>次の手がまだ無いとき：その手順の続きになります</li>
+                    <li>同じ手が既にあるとき：その手へ移動するだけです</li>
+                    <li>違う手のとき：新しい変化になり、分岐候補と分岐ツリーに表示されます</li>
+                </ul>
+                <p class="guide-step-text">成る・成らないは確認されます。投了などの終局手を表示しているときは、その直前の局面から指した手になります。起動直後など棋譜が空のときも、表示している局面から記録を始めます。新しい手を記録すると、棋譜は未保存の状態になります。</p>
+                <div class="screenshot-item">
+                    <a href="../images/branch-tree/branch-tree-board-move.png"><img src="../images/branch-tree/branch-tree-board-move.png" alt="16手目を表示して盤上で▲５八玉と指し、17手目の新しい変化として記録されたメイン画面" width="1292" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">16手目を表示して▲５八玉と指したところ：17手目の新しい変化になり、分岐候補と分岐ツリーに表示される</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">定跡ウィンドウから指す・保存する</span>
+                </div>
+                <p class="guide-step-text"><a href="joseki.html">定跡</a>ウィンドウの「着手」も、同じように記録されます。加えた手は、ほかの変化と同じように保存できます。分岐を保存できる形式は<a href="kifu-management.html">棋譜管理</a>を参照してください。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

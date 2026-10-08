@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Branch Tree - ShogiBoardQ</title>
+    <meta name="description" content="How to use the ShogiBoardQ branch tree: read the main line and variations, move with clicks and keys, zoom, collapse variations, promote, reorder, and delete variations from the right-click menu, and record moves played on the board as variations.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/branch-tree.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/branch-tree.html">
+    <meta property="og:title" content="Branch Tree - ShogiBoardQ">
+    <meta property="og:description" content="See the main line and all variations at a glance. Promote, reorder, delete, and collapse variations from the right-click menu, and record moves played on the board as variations.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/branch-tree/branch-tree-overview.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Branch Tree - ShogiBoardQ">
+    <meta name="twitter:description" content="See the main line and all variations at a glance. Promote, reorder, delete, and collapse variations from the right-click menu, and record moves played on the board as variations.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/branch-tree/branch-tree-overview.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/branch-tree.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/branch-tree.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/branch-tree.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/branch-tree.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="branch-tree.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/branch-tree.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/branch-tree.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#view">Reading</a></li>
+            <li><a href="#operate">Moving &amp; View</a></li>
+            <li><a href="#collapse">Collapse</a></li>
+            <li><a href="#edit">Edit</a></li>
+            <li><a href="#board-move">Board Moves</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Branch Tree</h1>
+        <p class="hero-subtitle">See the main line and every variation at a glance, and organize them from the right-click menu</p>
+        <div class="hero-badges">
+            <span class="badge">Compact Layout</span>
+            <span class="badge">Right-Click Menu</span>
+            <span class="badge">Collapse</span>
+            <span class="badge">Promote and Delete</span>
+            <span class="badge">Add Variations on the Board</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="view" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Reading the Branch Tree</h2>
+        <p class="section-desc">The main line and the variations are lined up by move number</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Show the Branch Tree</span>
+                </div>
+                <p class="guide-step-text">Choose the Branch Tree tab at the bottom of the window. Starting from Starting Position on the left, the main line runs along the top row and the variations appear below it, lined up by move number. Moves are added as soon as they are played in a game as well as when a record is loaded. You can rearrange the panel as described in <a href="dock.html">Dock Panels</a>. For the game record and the Variations list, see <a href="kifu-display.html">Game Record Display</a>.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">What the Tree Shows</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>Blue boxes are Black's moves and orange boxes are White's moves.</li>
+                    <li>The yellow move is the one shown on the board, the same move as in the game record and the Comments tab.</li>
+                    <li>The path from the starting position to the yellow move is drawn as a thick blue line.</li>
+                    <li>Variations that start from the same move are joined by a vertical line.</li>
+                    <li>Moves with a comment have a blue dot in the top-right corner. Hovering over a move shows the move and the beginning of its comment.</li>
+                    <li>The “Move n” headers stay at the top when you scroll vertically.</li>
+                </ul>
+                <p class="guide-step-text">When the yellow move is out of view, the tree scrolls to show it.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/branch-tree/branch-tree-overview.png"><img src="../../images/en/branch-tree/branch-tree-overview.png" alt="Branch tree with three variations at move 15, one of which branches again at move 17" width="1917" height="500" loading="lazy"></a>
+                    <p class="screenshot-caption">Branch tree showing a variation within a variation (move 18): the path from the starting position in blue and blue dots on moves with comments</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Compact Layout</span>
+                </div>
+                <p class="guide-step-text">Each variation is placed on the first free row below the line it branches from. When two variations share a row, a gap of one move is left between them so that they do not look like one line.</p>
+                <p class="guide-step-text">Uncheck Compact layout in the right-click menu to give every variation its own row, in variation order. The setting is kept for next time.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/branch-tree/branch-tree-sequential.png"><img src="../../images/en/branch-tree/branch-tree-sequential.png" alt="Branch tree with one row per variation" width="1917" height="545" loading="lazy"></a>
+                    <p class="screenshot-caption">Compact layout turned off (the same record as above)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="operate" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Moving and Changing the View</h2>
+        <p class="section-desc">Move through the positions with clicks and keys, and change the size</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Move with Clicks and Keys</span>
+                </div>
+                <p class="guide-step-text">Click a move to go to that position. The board, the game record, and the Variations list switch to the same move. After clicking the branch tree, you can also use these keys.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Key</th><th scope="col">Action</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Left / Right</strong></td><td>The previous or next move of the same line (Right at the starting position goes to the first move of the main line)</td></tr>
+                        <tr><td><strong>Up / Down</strong></td><td>The move on the row just above or below at the same move number</td></tr>
+                        <tr><td><strong>Home</strong></td><td>The starting position</td></tr>
+                        <tr><td><strong>End</strong></td><td>The last move of the line</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">During a game, a game analysis, or position editing, you cannot select or edit moves. View operations such as collapsing and zooming still work.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Zoom</span>
+                </div>
+                <p class="guide-step-text">Change the size between 50% and 200% with Ctrl+wheel (⌘+wheel on macOS), a trackpad pinch, or Zoom in and Zoom out in the right-click menu (the wheel and the menu change it by 10%). Actual size (100%) restores the original size. The size is kept for next time.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Right-Click Menu</span>
+                </div>
+                <p class="guide-step-text">Right-clicking the branch tree shows these items, depending on where you click.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Menu</th><th scope="col">Shown when</th><th scope="col">Action</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Make this line the main line / Move variation up / Move variation down / Delete from this move…</strong></td><td>You right-click a move other than the starting position (not during a game, a game analysis, or position editing)</td><td>Edit the variations (see <a href="#edit">Edit Variations</a>)</td></tr>
+                        <tr><td><strong>Collapse this variation / Expand this variation</strong></td><td>You right-click a move of a variation other than the main line (a variation with two or more moves, or with variations branching from it)</td><td>Hide or show the rest of the variation (see <a href="#collapse">Collapse Variations</a>)</td></tr>
+                        <tr><td><strong>Expand all variations</strong></td><td>Some variations are collapsed</td><td>Expands all collapsed variations</td></tr>
+                        <tr><td><strong>Compact layout</strong></td><td>Always</td><td>Switches between packing variations into free rows and one row per variation</td></tr>
+                        <tr><td><strong>Zoom in / Zoom out / Actual size (100%)</strong></td><td>Always</td><td>Changes the size</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item">
+                    <a href="../../images/en/branch-tree/branch-tree-menu.png"><img src="../../images/en/branch-tree/branch-tree-menu.png" alt="Menu shown by right-clicking ▲P*8g, the first move of a variation" width="1917" height="634" loading="lazy"></a>
+                    <p class="screenshot-caption">Right-clicking a move of a variation (▲P*8g at move 15)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="collapse" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Collapse Variations</h2>
+        <p class="section-desc">Hide long variations to keep the lines you want to see easy to follow</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">Collapse and Expand</span>
+                </div>
+                <p class="guide-step-text">Right-click a move of a variation and choose Collapse this variation to keep only the first move of the variation and hide the rest of the line and the variations that branch from it. The first move gets a dashed border, and the number of hidden moves appears to its right as “▸ +n”. Hovering over it shows “(Double-click to expand)”.</p>
+                <p class="guide-step-text">To show it again, double-click the first move, or right-click it and choose Expand this variation. When some variations are collapsed, Expand all variations in the right-click menu expands them all at once.</p>
+                <p class="guide-step-text">Going to a hidden move from the game record or the Variations list expands it automatically. When the move shown on the board becomes hidden, the first move of the collapsed variation turns yellow.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/branch-tree/branch-tree-collapsed.png"><img src="../../images/en/branch-tree/branch-tree-collapsed.png" alt="Branch tree with the ▲P*8g variation collapsed and its six hidden moves shown as “▸ +6”" width="1917" height="389" loading="lazy"></a>
+                    <p class="screenshot-caption">The ▲P*8g variation at move 15 collapsed (six moves hidden, including the variation that branches from it)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="edit" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Edit Variations</h2>
+        <p class="section-desc">Promote a line to the main line, reorder variations, and delete moves from the right-click menu</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">Editing Operations</span>
+                </div>
+                <p class="guide-step-text">Right-click a move in the branch tree, or in the Variations list to the right of the game record, for these operations. Operations that do not apply are grayed out. Editing marks the game record as unsaved, so save it when needed.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Menu</th><th scope="col">Action</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Make this line the main line</strong></td><td>Makes the line from the starting position to that move the main line. After that move, the line that follows it (the top variation) becomes the rest of the main line. Not available for main-line moves.</td></tr>
+                        <tr><td><strong>Move variation up / Move variation down</strong></td><td>Moves the variation that contains the move one place up or down among the variations that start from the same move. The top variation is the main-line side at that branch point. The order in the Variations list and in the saved file changes too.</td></tr>
+                        <tr><td><strong>Delete from this move…</strong></td><td>Deletes the move, the rest of its line, and the variations that branch from it. Check the number of moves and click Delete (this cannot be undone). If the move shown on the board is deleted, the position goes back to the move just before the deleted one.</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/branch-tree/branch-tree-delete.png"><img src="../../images/en/branch-tree/branch-tree-delete.png" srcset="../../images/en/branch-tree/branch-tree-delete.png 537w" sizes="358px" alt="Confirmation that deletes 3 moves from “▲R-2f” onward, with Delete and Cancel buttons" width="358" height="104" loading="lazy"></a>
+                    <p class="screenshot-caption">Delete confirmation showing the number of moves</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="board-move" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Add Variations by Moving Pieces</h2>
+        <p class="section-desc">Moves played on the board when no game is in progress are recorded in the game record</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">9</span>
+                    <span class="guide-step-title">Move a Piece on the Board</span>
+                </div>
+                <p class="guide-step-text">When no game, game analysis, consideration, or position editing is in progress, moving a piece on the board records the move as the next move after the one shown.</p>
+                <ul class="guide-step-text">
+                    <li>If there is no next move yet, the move continues that line.</li>
+                    <li>If the same move already exists, it simply goes to that move.</li>
+                    <li>Otherwise, the move becomes a new variation and appears in the Variations list and the branch tree.</li>
+                </ul>
+                <p class="guide-step-text">You are asked whether to promote. When a game-ending move such as a resignation is shown, the move is played from the position just before it. Even when the record is empty, for example right after startup, recording starts from the position shown. Recording a new move marks the game record as unsaved.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/branch-tree/branch-tree-board-move.png"><img src="../../images/en/branch-tree/branch-tree-board-move.png" alt="Main window after playing ▲K-5h on the board at move 16, recorded as a new variation at move 17" width="1383" height="1000" loading="lazy"></a>
+                    <p class="screenshot-caption">▲K-5h played at move 16: it becomes a new variation at move 17 and appears in the Variations list and the branch tree</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">Play from the Joseki Window and Save</span>
+                </div>
+                <p class="guide-step-text">The Play button in the <a href="joseki.html">Joseki</a> window records moves the same way. Added moves are saved like any other variation. For the formats that keep variations, see <a href="kifu-management.html">Game Record Management</a>.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← Back to User Guide</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>分岐ツリー</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="4" width="5" height="4" rx="1"/><rect x="16.5" y="4" width="5" height="4" rx="1"/><rect x="16.5" y="16" width="5" height="4" rx="1"/><path d="M7.5 6h9M12 6v12h4.5"/>
+  </g>
+</svg>
