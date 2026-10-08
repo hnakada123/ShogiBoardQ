@@ -421,6 +421,7 @@ void RecordPane::setArrowButtonsEnabled(bool on)
     const QList<QPushButton*> btns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
     for (QPushButton* const b : std::as_const(btns))
         if (b) b->setEnabled(on);
+    emit arrowButtonsEnabledChanged(on);
 }
 
 void RecordPane::setKifuViewEnabled(bool on)

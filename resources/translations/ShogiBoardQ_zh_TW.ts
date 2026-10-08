@@ -2859,66 +2859,66 @@
     <name>EvaluationChartConfigurator</name>
     <message>
         <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="49"/>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="201"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="205"/>
         <source>表示範囲:</source>
         <translation>範圍：</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="52"/>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="186"/>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="197"/>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="198"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="190"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="201"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="202"/>
         <source>自動</source>
         <translation>自動</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="52"/>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="186"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="190"/>
         <source>手動固定</source>
         <translation>固定</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="55"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="64"/>
         <source>表示設定…</source>
         <translation>顯示設定…</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="182"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="186"/>
         <source>評価値グラフの表示設定</source>
         <translation>評價值圖表設定</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="202"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="206"/>
         <source>評価値の範囲（手動）:</source>
         <translation>評價值範圍（固定）：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="203"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="207"/>
         <source>手数の上限（手動）:</source>
         <translation>手數上限（固定）：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="204"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="208"/>
         <source>評価値の目盛り間隔:</source>
         <translation>評價值刻度間隔：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="205"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="209"/>
         <source>手数の目盛り間隔:</source>
         <translation>手數刻度間隔：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="206"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="210"/>
         <source>文字サイズ:</source>
         <translation>字型大小：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="208"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="212"/>
         <source>目盛りは文字が重ならないように間引きます。詰みはグラフの端に表示します。</source>
         <translation>刻度間隔會自動調整以保持標籤清晰。詰棋評價顯示在圖表邊緣。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="211"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="215"/>
         <source>現在の目盛り間隔：評価値 %1 ／ 手数 %2</source>
         <translation>目前刻度間隔：評價值 %1／手數 %2</translation>
     </message>
@@ -2987,13 +2987,13 @@
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="54"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="167"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="252"/>
         <source>先手有利</source>
         <translation>先手有利</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="57"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="167"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="252"/>
         <source>後手有利</source>
         <translation>後手有利</translation>
     </message>
@@ -3010,6 +3010,36 @@
         <translation>%1
 第 %2 手：%3
 評價值以先手為基準</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="160"/>
+        <source>最初に戻る</source>
+        <translation>跳到起點</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="161"/>
+        <source>10手戻る</source>
+        <translation>後退 10 手</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="162"/>
+        <source>1手戻る</source>
+        <translation>後退一手</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="163"/>
+        <source>1手進む</source>
+        <translation>前進一手</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="164"/>
+        <source>10手進む</source>
+        <translation>前進 10 手</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="165"/>
+        <source>最後に進む</source>
+        <translation>跳到終點</translation>
     </message>
 </context>
 <context>

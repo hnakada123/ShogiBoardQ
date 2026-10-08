@@ -15,16 +15,20 @@
 #include "engineanalysistab.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphcontroller.h"
+#include "kifunavigationcontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "josekiwindowwiring.h"
 #include "kifubranchlistmodel.h"
 #include "kifurecordlistmodel.h"
 #include "playerinfocontroller.h"
 #include "playerinfowiring.h"
+#include "recordpane.h"
 #include "recordpanewiring.h"
 #include "shogienginethinkingmodel.h"
 
 #include "logcategories.h"
+
+#include <QPushButton>
 
 void MainWindowServiceRegistry::setupRecordPane()
 {
@@ -146,6 +150,23 @@ void MainWindowServiceRegistry::createEvalChartDock()
     m_foundation->ensureKifuNavigationCoordinator();
     QObject::connect(m_mw.m_evalChart, &EvaluationChartWidget::plyClicked,
                      m_mw.m_kifuNavCoordinator.get(), &KifuNavigationCoordinator::navigateToRow);
+
+    // ナビゲーションボタンは棋譜欄のボタンと同じ操作をし、有効/無効も棋譜欄に合わせる
+    if (m_mw.m_branchNav.kifuNavController) {
+        KifuNavigationController::Buttons buttons;
+        buttons.first = m_mw.m_evalChart->firstButton();
+        buttons.back10 = m_mw.m_evalChart->back10Button();
+        buttons.prev = m_mw.m_evalChart->prevButton();
+        buttons.next = m_mw.m_evalChart->nextButton();
+        buttons.fwd10 = m_mw.m_evalChart->fwd10Button();
+        buttons.last = m_mw.m_evalChart->lastButton();
+        m_mw.m_branchNav.kifuNavController->connectButtons(buttons);
+    }
+    if (m_mw.m_recordPane) {
+        QObject::connect(m_mw.m_recordPane, &RecordPane::arrowButtonsEnabledChanged,
+                         m_mw.m_evalChart, &EvaluationChartWidget::setNavigationEnabled);
+        m_mw.m_evalChart->setNavigationEnabled(m_mw.m_recordPane->firstButton()->isEnabled());
+    }
 
     // DockCreationServiceに委譲
     m_foundation->ensureDockCreationService();
