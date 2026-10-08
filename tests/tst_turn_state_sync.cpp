@@ -237,6 +237,26 @@ private slots:
         QVERIFY(!view.highlighting()->blackActive());
         QVERIFY(!view.findChild<QLabel*>(QStringLiteral("turnLabelWhite"))->isHidden());
     }
+    // 長いエンジン名が2行に折り返しても、2行目が欠けず残り時間と重ならない
+    void longEngineNameStaysAboveClock()
+    {
+        QString initialSfen = SfenUtils::hirateSfen();
+        ShogiGameController gc;
+        gc.newGame(initialSfen);
+        ShogiView view;
+        view.setBoard(gc.board());
+        view.setBlackPlayerName(QStringLiteral("YaneuraOu NNUE V8.30Git 64APPLEM1 TOURNAMENT"));
+        view.setWhitePlayerName(QStringLiteral("YaneuraOu NNUE V8.30Git 64APPLEM1 TOURNAMENT"));
+        view.show();
+        view.updateTurnIndicator(ShogiGameController::Player1);
+
+        for (ElideLabel* name : {view.blackNameLabel(), view.whiteNameLabel()}) {
+            QVERIFY(name);
+            QVERIFY(name->contentsRect().height() >= name->fontMetrics().height() * 2);
+        }
+        QVERIFY(view.blackNameLabel()->geometry().bottom() < view.blackClockLabel()->geometry().top());
+        QVERIFY(view.whiteNameLabel()->geometry().bottom() < view.whiteClockLabel()->geometry().top());
+    }
 };
 
 QTEST_MAIN(TestTurnStateSync)

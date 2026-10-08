@@ -89,9 +89,15 @@ void ShogiView::relayoutTurnLabels()
     badgeFont.setPixelSize(qMax(8, qRound(fs.height() * 0.16)));
     badgeFont.setBold(true);
     // 両者とも2行分を確保し、長い名前でも残り時間と重ならないようにする。
-    const int nameHeight = QFontMetrics(nameFont).height() * 2 + 2;
+    // macOS ではラベルの書体が盤面の書体と異なる（行の高さも違う）ため、
+    // 設定後にラベルが実際に使う書体で測る。
+    m_blackNameLabel->setFont(nameFont);
+    m_whiteNameLabel->setFont(nameFont);
+    const int nameLineHeight = qMax(m_blackNameLabel->fontMetrics().height(),
+                                    m_whiteNameLabel->fontMetrics().height());
+    const int nameHeight = nameLineHeight * 2 + 2;
     const int badgeHeight = QFontMetrics(badgeFont).height() + 4;
-    const int clockHeight = qMax(QFontMetrics(nameFont).height() + 4, qRound(fs.height() * 0.42));
+    const int clockHeight = qMax(nameLineHeight + 4, qRound(fs.height() * 0.42));
     // 非手番側にもバッジの余白を確保し、手番交代でカードや文字が動かないようにする。
     const int cardHeight = padding * 2 + badgeHeight + gap + nameHeight
         + (m_clockEnabled ? gap + clockHeight : 0);
@@ -122,7 +128,6 @@ void ShogiView::relayoutTurnLabels()
         fitLabelFontToRect(badge, badge->text(), badge->geometry(), 2);
         y += badgeHeight + gap;
 
-        name->setFont(nameFont);
         name->setGeometry(x, y, contentWidth, nameHeight);
         name->show();
         y += nameHeight + gap;
