@@ -37,25 +37,28 @@ class CliTools:
     async def convert_kifu(self, args: dict[str, Any]) -> Result:
         cli_args = ["convert-kifu", "--output-format", args["output_format"],
                     "--input-format", args.get("input_format", "auto")]
-        temp_path: Path | None = None
+        # Check both paths before creating the temporary file, so a rejected path leaves nothing behind.
+        input_path = None
         if args.get("input_path"):
-            cli_args += ["--input", str(paths.resolve_read_path(args["input_path"], "input_path"))]
-        else:
-            # Long records do not fit on a command line; hand the text over as a temporary file.
-            suffix = {"auto": ".txt", "kif": ".kif", "ki2": ".ki2", "csa": ".csa", "jkf": ".jkf",
-                      "usi": ".usi", "usen": ".usen"}[args.get("input_format", "auto")]
-            fd, name = tempfile.mkstemp(prefix="shogiboardq-mcp-", suffix=suffix)
-            with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                fh.write(args["text"])
-            temp_path = Path(name)
-            cli_args += ["--input", str(temp_path)]
+            input_path = paths.resolve_read_path(args["input_path"], "input_path")
         output_path = None
         if args.get("output_path"):
             output_path = paths.resolve_write_path(args["output_path"], bool(args.get("overwrite")))
-            cli_args += ["--output", str(output_path)]
-            if args.get("overwrite"):
-                cli_args.append("--overwrite")
+        temp_path: Path | None = None
         try:
+            if input_path is None:
+                # Long records do not fit on a command line; hand the text over as a temporary file.
+                suffix = {"auto": ".txt", "kif": ".kif", "ki2": ".ki2", "csa": ".csa", "jkf": ".jkf",
+                          "usi": ".usi", "usen": ".usen"}[args.get("input_format", "auto")]
+                fd, name = tempfile.mkstemp(prefix="shogiboardq-mcp-", suffix=suffix)
+                temp_path = Path(name)
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                    fh.write(args["text"])
+            cli_args += ["--input", str(input_path or temp_path)]
+            if output_path is not None:
+                cli_args += ["--output", str(output_path)]
+                if args.get("overwrite"):
+                    cli_args.append("--overwrite")
             result = await run_cli(cli_args, timeout=120)
         finally:
             if temp_path is not None:
