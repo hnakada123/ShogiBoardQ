@@ -57,6 +57,9 @@ void BranchNavigationWiring::wireBranchEditing()
     deps.liveSession = liveSess(m_deps);
     deps.parentWidget = m_deps.analysisTab;
     deps.markGameRecordDirty = m_deps.markGameRecordDirty;
+    QString* startSfen = m_deps.startSfenStr;
+    deps.startPositionSfen = [startSfen]() { return startSfen ? *startSfen : QString(); };
+    deps.treeRootCreated = std::bind(&BranchNavigationWiring::onBranchTreeBuilt, this);
     m_editController->updateDeps(deps);
     if (m_deps.analysisTab != nullptr) {
         m_editController->attach(m_deps.analysisTab->branchTreeManager());

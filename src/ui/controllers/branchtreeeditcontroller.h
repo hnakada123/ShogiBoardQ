@@ -38,6 +38,10 @@ public:
         LiveGameSession* liveSession = nullptr;
         QWidget* parentWidget = nullptr;                 ///< 確認ダイアログの親
         std::function<void()> markGameRecordDirty;       ///< 棋譜を未保存にする
+        /// 棋譜が空のとき、盤上で指した最初の手の開始局面（SFEN または "startpos"）
+        std::function<QString()> startPositionSfen;
+        /// ツリーのルートを作ったときに呼ぶ（棋譜モデル・表示へツリーを登録する）
+        std::function<void()> treeRootCreated;
     };
 
     /// 操作の種類（メニュー項目の data）
@@ -57,6 +61,9 @@ public:
 
     /// 編集できる状態か（棋譜があり、対局中でない）
     bool canEdit() const;
+
+    /// 盤上で指した手を記録できる状態か（対局中でない。棋譜が空でも開始局面から記録する）
+    bool canRecordBoardMove() const;
 
     /// 指定ノードに操作を適用する（右クリックメニュー・テストから使う）。
     /// 削除は confirmDelete が true のとき確認する。適用したら true

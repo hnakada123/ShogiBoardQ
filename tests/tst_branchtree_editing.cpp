@@ -14,6 +14,7 @@
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "livegamesession.h"
+#include "shogigamecontroller.h"
 #include "shogimove.h"
 
 namespace {
@@ -173,6 +174,66 @@ private slots:
         QVERIFY(!controller.isApplicable(BranchTreeEditController::Operation::DeleteFromHere, f.b2));
         session.discard();
         QVERIFY(controller.canEdit());
+    }
+
+    // 対局していないときの盤上の手：棋譜が空なら開始局面から始め、同じ手は既存の手へ移動する
+    void controller_recordsBoardMoveFromEmptyRecord()
+    {
+        KifuBranchTree tree;   // 起動直後と同じく空
+        KifuNavigationState state;
+        state.setTree(&tree);
+        KifuNavigationController nav;
+        nav.setTreeAndState(&tree, &state);
+        ShogiGameController gc;
+        QString initial = kHirateSfen;
+        gc.newGame(initial);
+
+        int dirty = 0;
+        int rootCreated = 0;
+        BranchTreeEditController controller;
+        BranchTreeEditController::Deps deps;
+        deps.tree = &tree;
+        deps.navState = &state;
+        deps.navController = &nav;
+        deps.markGameRecordDirty = [&dirty]() { ++dirty; };
+        deps.startPositionSfen = []() { return QStringLiteral("startpos"); };
+        deps.treeRootCreated = [&rootCreated]() { ++rootCreated; };
+        controller.updateDeps(deps);
+        QVERIFY(!controller.canEdit());
+        QVERIFY(controller.canRecordBoardMove());
+
+        QPoint from(7, 7), to(7, 6);
+        QVERIFY(controller.recordBoardMove(from, to, &gc));
+        QCOMPARE(rootCreated, 1);
+        QCOMPARE(tree.root()->sfen(), kHirateSfen);
+        QCOMPARE(tree.root()->childCount(), 1);
+        QCOMPARE(state.currentNode(), tree.root()->childAt(0));
+        QVERIFY(state.currentNode()->displayText().contains(QStringLiteral("７六歩")));
+        QCOMPARE(dirty, 1);
+
+        // 同じ手を指し直しても重複した変化は作らない
+        nav.goToNode(tree.root());
+        from = QPoint(7, 7);
+        to = QPoint(7, 6);
+        QVERIFY(controller.recordBoardMove(from, to, &gc));
+        QCOMPARE(tree.root()->childCount(), 1);
+        QCOMPARE(dirty, 1);
+
+        // 違う手は新しい変化になる
+        nav.goToNode(tree.root());
+        from = QPoint(2, 7);
+        to = QPoint(2, 6);
+        QVERIFY(controller.recordBoardMove(from, to, &gc));
+        QCOMPARE(tree.root()->childCount(), 2);
+        QCOMPARE(dirty, 2);
+
+        // 後手番の局面（▲２六歩の後）で先手の駒は動かせず、記録もしない
+        QCOMPARE(state.currentNode()->ply(), 1);
+        const int nodesBefore = tree.nodeCount();
+        from = QPoint(2, 6);
+        to = QPoint(2, 5);
+        QVERIFY(!controller.recordBoardMove(from, to, &gc));
+        QCOMPARE(tree.nodeCount(), nodesBefore);
     }
 
     // ===== BranchTreeManager の表示 =====

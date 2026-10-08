@@ -183,8 +183,10 @@ void BranchTreeManager::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
         path.moveTo(a);
         path.cubicTo(QPointF(a.x() + 8, a.y()), QPointF(b.x() - 8, b.y()), b);
     } else {
-        // 別の段：列の間のすき間で縦に下ろし、間の段のノードに線が重ならないようにする
-        const qreal xm = (fromRect.right() + toRect.left()) / 2.0;
+        // 別の段：列の間のすき間で縦に下ろし、間の段のノードに線が重ならないようにする。
+        // 縦線は列の中心どうしの中間に置き、同じ手から出る変化が1本の縦線を共有するようにする
+        // （ノードの幅は表記で変わるため、ノードの端を基準にすると縦線が並んでしまう）
+        const qreal xm = (fromRect.center().x() + toRect.center().x()) / 2.0;
         const qreal r = qMin<qreal>(8.0, qMax<qreal>(1.0, (toRect.left() - fromRect.right()) / 4.0));
         const qreal dir = (by > ay) ? 1.0 : -1.0;
         path.moveTo(fromRect.right(), ay);
@@ -243,8 +245,8 @@ void BranchTreeManager::rebuildBranchTree()
 
     // ===== 手数見出しの帯（上端に固定して表示する） =====
     {
-        QColor band = m_branchTree ? m_branchTree->palette().color(QPalette::Base) : QColor(Qt::white);
-        band.setAlpha(235);
+        // 下に隠れたノードが透けないよう不透明にする
+        const QColor band = m_branchTree ? m_branchTree->palette().color(QPalette::Base) : QColor(Qt::white);
         m_headerBand = m_scene->addRect(QRectF(0, 0, 1, kHeaderHeight), Qt::NoPen, band);
         m_headerBand->setZValue(40);
     }

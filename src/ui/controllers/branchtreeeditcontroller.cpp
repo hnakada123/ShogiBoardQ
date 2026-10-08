@@ -13,6 +13,7 @@
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogimove.h"
+#include "sfenutils.h"
 
 #include <QAction>
 #include <QMenu>
@@ -39,6 +40,12 @@ bool BranchTreeEditController::canEdit() const
 {
     if (m_deps.tree == nullptr || m_deps.tree->isEmpty()) return false;
     // 対局中はツリーに手を追加している最中なので編集しない
+    return m_deps.liveSession == nullptr || !m_deps.liveSession->isActive();
+}
+
+bool BranchTreeEditController::canRecordBoardMove() const
+{
+    if (m_deps.tree == nullptr) return false;
     return m_deps.liveSession == nullptr || !m_deps.liveSession->isActive();
 }
 
@@ -202,7 +209,16 @@ void BranchTreeEditController::refreshAfterEdit(KifuBranchNode* current)
 
 bool BranchTreeEditController::recordBoardMove(QPoint& from, QPoint& to, ShogiGameController* gc)
 {
-    if (gc == nullptr || gc->board() == nullptr || !canEdit()) return false;
+    if (gc == nullptr || gc->board() == nullptr || !canRecordBoardMove()) return false;
+
+    // 起動直後など棋譜が空のときは、表示中の開始局面からツリーを始める
+    if (m_deps.tree->isEmpty()) {
+        const QString start = SfenUtils::normalizeStart(
+            m_deps.startPositionSfen ? m_deps.startPositionSfen() : QString());
+        m_deps.tree->setRootSfen(start.isEmpty() ? SfenUtils::hirateSfen() : start);
+        if (m_deps.treeRootCreated) m_deps.treeRootCreated();
+    }
+
     KifuBranchNode* parent = (m_deps.navState != nullptr) ? m_deps.navState->currentNode() : nullptr;
     if (parent == nullptr) parent = m_deps.tree->root();
     // 終局手（投了など）を表示中なら、その直前の局面から指したものとする
