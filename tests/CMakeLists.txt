@@ -607,6 +607,7 @@ add_shogi_test(tst_branchtree_editing
     ${UI_DISPLAY_TEST_SOURCES}
     ${EMV_SOURCES}
     ${SRC}/ui/controllers/branchtreeeditcontroller.cpp
+    ${SRC}/common/dialogutils.cpp
     ${SRC}/game/shogigamecontroller.cpp
     ${SRC}/game/piecemoverules.cpp
 )

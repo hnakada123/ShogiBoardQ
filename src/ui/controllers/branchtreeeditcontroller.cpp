@@ -3,10 +3,12 @@
 
 #include "branchtreeeditcontroller.h"
 #include "branchtreemanager.h"
+#include "dialogutils.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
+#include "kifupresentation.h"
 #include "livegamesession.h"
 #include "logcategories.h"
 #include "playmode.h"
@@ -17,7 +19,6 @@
 
 #include <QAction>
 #include <QMenu>
-#include <QMessageBox>
 
 BranchTreeEditController::BranchTreeEditController(QObject* parent)
     : QObject(parent)
@@ -142,12 +143,16 @@ void BranchTreeEditController::onMenuActionTriggered(QAction* action)
 bool BranchTreeEditController::confirmDeletion(KifuBranchNode* node) const
 {
     const int count = KifuBranchTree::subtreeSize(node);
-    QMessageBox box(QMessageBox::Question, tr("手順の削除"),
-                    tr("「%1」以降の %2 手を削除します。この操作は取り消せません。\n削除しますか？")
-                        .arg(node->displayText()).arg(count),
-                    QMessageBox::Yes | QMessageBox::Cancel, m_deps.parentWidget);
-    box.setDefaultButton(QMessageBox::Cancel);
-    return box.exec() == QMessageBox::Yes;
+    // 手は分岐ツリーと同じ表記（英語式の表記・終局の訳）で示す
+    const KifuBranchNode* parent = node->parent();
+    const QString moveText = KifuPresentation::label(
+        node->displayText(), parent ? parent->sfen() : QString(),
+        node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move()));
+    // 「Yes」は KDE で訳されないため、操作名のボタンで尋ねる
+    return DialogUtils::confirmAction(m_deps.parentWidget, tr("手順の削除"),
+                                      tr("「%1」以降の %2 手を削除します。\nこの操作は取り消せません。")
+                                          .arg(moveText).arg(count),
+                                      tr("削除する"));
 }
 
 bool BranchTreeEditController::apply(Operation operation, KifuBranchNode* node, bool confirmDelete)

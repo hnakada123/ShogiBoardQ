@@ -975,36 +975,41 @@
 <context>
     <name>BranchTreeEditController</name>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="114"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="115"/>
         <source>この手順を本譜にする</source>
         <translation>將此變化設為主線</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="115"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="116"/>
         <source>変化を上へ移動する</source>
         <translation>上移變化</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="116"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="117"/>
         <source>変化を下へ移動する</source>
         <translation>下移變化</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="117"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="118"/>
         <source>この手以降を削除する…</source>
         <translation>刪除此著及之後的著法…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="145"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="152"/>
         <source>手順の削除</source>
         <translation>刪除著法</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="146"/>
-        <source>「%1」以降の %2 手を削除します。この操作は取り消せません。
-削除しますか？</source>
-        <translation>將刪除「%1」及之後的 %2 步。此操作無法復原。
-要刪除嗎？</translation>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="153"/>
+        <source>「%1」以降の %2 手を削除します。
+この操作は取り消せません。</source>
+        <translation>將刪除「%1」及之後的 %2 步。
+此操作無法復原。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="155"/>
+        <source>削除する</source>
+        <translation>刪除</translation>
     </message>
 </context>
 <context>

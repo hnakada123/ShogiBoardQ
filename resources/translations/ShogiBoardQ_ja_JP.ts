@@ -1105,36 +1105,41 @@
 <context>
     <name>BranchTreeEditController</name>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="114"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="115"/>
         <source>この手順を本譜にする</source>
         <translation>この手順を本譜にする</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="115"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="116"/>
         <source>変化を上へ移動する</source>
         <translation>変化を上へ移動する</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="116"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="117"/>
         <source>変化を下へ移動する</source>
         <translation>変化を下へ移動する</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="117"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="118"/>
         <source>この手以降を削除する…</source>
         <translation>この手以降を削除する…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="145"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="152"/>
         <source>手順の削除</source>
         <translation>手順の削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="146"/>
-        <source>「%1」以降の %2 手を削除します。この操作は取り消せません。
-削除しますか？</source>
-        <translation>「%1」以降の %2 手を削除します。この操作は取り消せません。
-削除しますか？</translation>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="153"/>
+        <source>「%1」以降の %2 手を削除します。
+この操作は取り消せません。</source>
+        <translation>「%1」以降の %2 手を削除します。
+この操作は取り消せません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="155"/>
+        <source>削除する</source>
+        <translation>削除する</translation>
     </message>
 </context>
 <context>
