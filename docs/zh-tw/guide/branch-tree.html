@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>變化樹 - ShogiBoardQ</title>
+    <meta name="description" content="介紹 ShogiBoardQ 變化樹的用法：主線與變化的檢視方式、以點擊和按鍵移動、放大縮小、摺疊變化、透過右鍵選單設為主線、調整順序和刪除，以及把在棋盤上走的著法記錄為變化。附截圖說明。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/branch-tree.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/branch-tree.html">
+    <meta property="og:title" content="變化樹 - ShogiBoardQ">
+    <meta property="og:description" content="一覽主線與所有變化，可透過右鍵選單設為主線、調整順序、刪除和摺疊變化，在棋盤上走的著法也能記錄為變化。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/branch-tree/branch-tree-overview.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="變化樹 - ShogiBoardQ">
+    <meta name="twitter:description" content="一覽主線與所有變化，可透過右鍵選單設為主線、調整順序、刪除和摺疊變化，在棋盤上走的著法也能記錄為變化。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/branch-tree/branch-tree-overview.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/branch-tree.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/branch-tree.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/branch-tree.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/branch-tree.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/branch-tree.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/branch-tree.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="branch-tree.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="#view">檢視</a></li>
+            <li><a href="#operate">移動與顯示</a></li>
+            <li><a href="#collapse">摺疊</a></li>
+            <li><a href="#edit">編輯</a></li>
+            <li><a href="#board-move">在棋盤上走子</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>變化樹</h1>
+        <p class="hero-subtitle">一覽主線與變化的著法，並可透過右鍵選單整理和編輯</p>
+        <div class="hero-badges">
+            <span class="badge">緊湊顯示變化</span>
+            <span class="badge">右鍵選單</span>
+            <span class="badge">摺疊</span>
+            <span class="badge">設為主線與刪除</span>
+            <span class="badge">在棋盤上新增變化</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="view" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">變化樹的檢視方式</h2>
+        <p class="section-desc">依手數對齊排列主線和變化的著法</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">顯示變化樹</span>
+                </div>
+                <p class="guide-step-text">選擇畫面下方的「變化樹」分頁即可顯示。從左端的「初始局面」開始，最上面一列是主線，其下是變化，依手數對齊排列。除了讀取棋譜時，對局中走的著法也會立即加入。面板的位置也可以調整（參閱<a href="dock.html">停駐面板</a>）。棋譜欄和候選變化的用法請參閱<a href="kifu-display.html">棋譜顯示</a>。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">顯示內容</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>藍框是先手的著法，橘框是後手的著法。</li>
+                    <li>黃色的著法是目前棋盤上顯示的著法，與棋譜欄和註解中的著法相同。</li>
+                    <li>從初始局面到黃色著法的路徑以藍色粗線顯示。</li>
+                    <li>從同一著分出的變化以直線相連。</li>
+                    <li>有註解的著法右上角帶有藍色圓點。滑鼠停在著法上會顯示該著法和註解的開頭部分。</li>
+                    <li>上方的「第 n 手」標題在垂直捲動時也會一直顯示在上端。</li>
+                </ul>
+                <p class="guide-step-text">黃色的著法在畫面之外時，會自動捲動到能看到它的位置。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-tw/branch-tree/branch-tree-overview.png"><img src="../../images/zh-tw/branch-tree/branch-tree-overview.png" alt="第 15 手分出 3 種變化，其中▲８七歩打的變化在第 17 手再次分出的變化樹" width="1917" height="498" loading="lazy"></a>
+                    <p class="screenshot-caption">變化樹：正在顯示變化中的變化（第 18 手）。從初始局面開始的路徑以藍線顯示，有註解的著法帶藍色圓點</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">緊湊顯示變化</span>
+                </div>
+                <p class="guide-step-text">變化會緊湊地排列在分出它的著法下方的空列中。同一列排列不同的變化時，會空出一手的間隔，以免看起來像連續的著法。</p>
+                <p class="guide-step-text">在右鍵選單中取消「緊湊顯示變化」，則每個變化各占一列，並依變化的順序排列。此設定會保留到下次。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-tw/branch-tree/branch-tree-sequential.png"><img src="../../images/zh-tw/branch-tree/branch-tree-sequential.png" alt="不緊湊顯示、每個變化各占一列的變化樹" width="1917" height="545" loading="lazy"></a>
+                    <p class="screenshot-caption">取消「緊湊顯示變化」後的顯示（與上圖為同一棋譜）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="operate" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">移動與顯示操作</h2>
+        <p class="section-desc">以點擊和按鍵移動局面，並可調整顯示大小</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">以點擊和按鍵移動</span>
+                </div>
+                <p class="guide-step-text">按一下著法即可移動到該局面，棋盤、棋譜欄和候選變化也會切換到同一著。按一下變化樹後，還可以用以下按鍵移動。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">按鍵</th><th scope="col">作用</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>← / →</strong></td><td>移動到同一變化的前一著或後一著（在初始局面按 → 移動到主線第 1 手）</td></tr>
+                        <tr><td><strong>↑ / ↓</strong></td><td>移動到同一手數中緊鄰的上一列或下一列的著法</td></tr>
+                        <tr><td><strong>Home</strong></td><td>移動到初始局面</td></tr>
+                        <tr><td><strong>End</strong></td><td>移動到該變化的最後一手</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">對局中、棋譜分析中和局面編輯中無法選擇或編輯著法，但摺疊、放大縮小等顯示操作仍可使用。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">放大與縮小</span>
+                </div>
+                <p class="guide-step-text">可用 Ctrl＋滾輪（macOS 為 ⌘＋滾輪）、觸控板雙指縮放，或右鍵選單的「放大」「縮小」，在 50%～200% 之間調整顯示大小（滾輪和選單每次 10%）。選擇「標準大小（100%）」可恢復原來的大小。顯示大小會保留到下次。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">右鍵選單</span>
+                </div>
+                <p class="guide-step-text">在變化樹中按右鍵，會依按下的位置顯示以下項目。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">選單</th><th scope="col">顯示條件</th><th scope="col">作用</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>將此變化設為主線／上移變化／下移變化／刪除此著及之後的著法…</strong></td><td>在初始局面以外的著法上按右鍵時（對局中、棋譜分析中和局面編輯中除外）</td><td>編輯變化（參閱<a href="#edit">編輯變化</a>）</td></tr>
+                        <tr><td><strong>摺疊此變化／展開此變化</strong></td><td>在主線以外的變化中的著法上按右鍵時（有 2 手以上的變化，或其後還有分出的變化）</td><td>隱藏或顯示變化的後續著法（參閱<a href="#collapse">摺疊變化</a>）</td></tr>
+                        <tr><td><strong>展開所有變化</strong></td><td>有已摺疊的變化時</td><td>將已摺疊的變化全部展開</td></tr>
+                        <tr><td><strong>緊湊顯示變化</strong></td><td>隨時</td><td>切換是否將變化緊湊地排列在空列中</td></tr>
+                        <tr><td><strong>放大／縮小／標準大小（100%）</strong></td><td>隨時</td><td>調整顯示大小</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-tw/branch-tree/branch-tree-menu.png"><img src="../../images/zh-tw/branch-tree/branch-tree-menu.png" alt="在變化的第一手▲８七歩打上按右鍵後顯示的選單" width="1917" height="635" loading="lazy"></a>
+                    <p class="screenshot-caption">在變化中的著法（第 15 手的▲８七歩打）上按右鍵</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="collapse" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">摺疊變化</h2>
+        <p class="section-desc">隱藏較長的變化，方便檢視想看的著法</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">摺疊與展開</span>
+                </div>
+                <p class="guide-step-text">在變化中的著法上按右鍵並選擇「摺疊此變化」，只保留該變化的第一手，隱藏後續著法和從中分出的變化。第一手變為虛線框，右側以「▸ +n」顯示被隱藏的手數。滑鼠停在上面會顯示「（按兩下展開）」。</p>
+                <p class="guide-step-text">要恢復時，按兩下第一手，或按右鍵並選擇「展開此變化」。有已摺疊的變化時，可用右鍵選單的「展開所有變化」一次全部展開。</p>
+                <p class="guide-step-text">從棋譜欄或候選變化移動到被隱藏的著法時，會自動展開。目前顯示的著法被隱藏時，已摺疊變化的第一手會變成黃色。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-tw/branch-tree/branch-tree-collapsed.png"><img src="../../images/zh-tw/branch-tree/branch-tree-collapsed.png" alt="摺疊▲８七歩打的變化後，以「▸ +6」顯示被隱藏的 6 手的變化樹" width="1917" height="368" loading="lazy"></a>
+                    <p class="screenshot-caption">摺疊第 15 手▲８七歩打的變化後的顯示（隱藏了後續著法和其後的變化共 6 手）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="edit" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">編輯變化</h2>
+        <p class="section-desc">透過右鍵選單設為主線、調整變化順序或刪除著法</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">編輯操作</span>
+                </div>
+                <p class="guide-step-text">在變化樹中的著法，或棋譜欄右側「候選變化」中的著法上按右鍵，可以進行以下操作。無法使用的操作會顯示為灰色。編輯後棋譜會變為未儲存狀態，請視需要儲存。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">選單</th><th scope="col">作用</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>將此變化設為主線</strong></td><td>將從初始局面到該著的著法設為主線。該著之後，接續的著法（最上面的變化）直接成為主線。主線上的著法無法使用。</td></tr>
+                        <tr><td><strong>上移變化／下移變化</strong></td><td>將包含該著的變化，在從同一著分出的變化中上移或下移一位。最上面的變化是該分支點的主線一側。候選變化的排列順序和儲存時變化的順序也會改變。</td></tr>
+                        <tr><td><strong>刪除此著及之後的著法…</strong></td><td>刪除該著、其後續著法以及從中分出的變化。確認要刪除的手數後按「刪除」即可刪除（無法復原）。目前顯示的著法被刪除時，會移動到被刪除著法的前一著。</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/branch-tree/branch-tree-delete.png"><img src="../../images/zh-tw/branch-tree/branch-tree-delete.png" srcset="../../images/zh-tw/branch-tree/branch-tree-delete.png 482w" sizes="321px" alt="刪除「▲２六飛(24)」及之後 3 步的確認，以及「刪除」「取消」按鈕" width="321" height="105" loading="lazy"></a>
+                    <p class="screenshot-caption">刪除確認：顯示要刪除的手數</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="board-move" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">在棋盤上走子新增變化</h2>
+        <p class="section-desc">不在對局時在棋盤上走的著法會記錄到棋譜中</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">9</span>
+                    <span class="guide-step-title">在棋盤上移動棋子</span>
+                </div>
+                <p class="guide-step-text">在沒有進行對局、棋譜分析、研究或局面編輯時，在棋盤上移動棋子，這一著會作為目前著法的下一著記錄到棋譜中。</p>
+                <ul class="guide-step-text">
+                    <li>還沒有下一著時：成為該變化的後續著法</li>
+                    <li>已有相同的著法時：只移動到該著</li>
+                    <li>不同的著法時：成為新的變化，並顯示在候選變化和變化樹中</li>
+                </ul>
+                <p class="guide-step-text">升變與否會進行確認。顯示認輸等終局著法時，視為從其前一個局面走出的著法。剛啟動等棋譜為空時，也會從目前顯示的局面開始記錄。記錄新的著法後，棋譜會變為未儲存狀態。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-tw/branch-tree/branch-tree-board-move.png"><img src="../../images/zh-tw/branch-tree/branch-tree-board-move.png" alt="顯示第 16 手後在棋盤上走▲５八玉，作為第 17 手的新變化記錄的主畫面" width="1279" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">顯示第 16 手後走▲５八玉：成為第 17 手的新變化，顯示在候選變化和變化樹中</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">從定跡視窗走子與儲存</span>
+                </div>
+                <p class="guide-step-text"><a href="joseki.html">定跡</a>視窗的「執行」也會以同樣方式記錄。新增的著法可以和其他變化一樣儲存。可以儲存變化的格式請參閱<a href="kifu-management.html">棋譜管理</a>。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 返回使用指南</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
