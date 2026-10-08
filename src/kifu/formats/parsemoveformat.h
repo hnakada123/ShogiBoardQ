@@ -35,10 +35,12 @@ QString usiMoveToPretty(const QString& usi, int plyNumber,
 // SfenPositionTracerで盤面追跡しながら日本語指し手表記を生成
 // outDisp に指し手アイテムを追加（開始局面・終局アイテムは含まない）
 // 戻り値は最後のply番号
+// previousUsi は開始局面に至る直前の指し手（分岐の1手目の「同」判定用。無ければ空）
 int buildUsiMoveDisplayItems(const QStringList& usiMoves,
                              const QString& baseSfen,
                              int startPly,
-                             QList<KifDisplayItem>& outDisp);
+                             QList<KifDisplayItem>& outDisp,
+                             const QString& previousUsi = QString());
 
 // 任意の開始手番と、分岐内の実手数から終局側を決める。
 KifDisplayItem createUsiTerminalDisplayItem(int ply, const QString& term,

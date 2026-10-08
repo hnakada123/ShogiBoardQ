@@ -3,6 +3,7 @@
 
 #include "kifufilecontroller.h"
 #include "kifuexportcontroller.h"
+#include "kifufilereader.h"
 #include "kifuloadcoordinator.h"
 #include "kifupastedialog.h"
 #include "kifusavecoordinator.h"
@@ -52,11 +53,11 @@ void KifuFileController::chooseAndLoadKifuFile()
 
     const QString filePath = QFileDialog::getOpenFileName(
         m_deps.parentWidget, tr("棋譜ファイルを開く"), lastDir,
-        tr("Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;"
+        tr("Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;"
            "KIF Files (*.kif *.kifu);;"
            "KI2 Files (*.ki2 *.ki2u);;"
            "CSA Files (*.csa);;"
-           "JKF Files (*.jkf);;"
+           "JKF Files (*.jkf *.json);;"
            "USI/SFEN Files (*.usi *.sfen);;"
            "USEN Files (*.usen)")
         );
@@ -289,22 +290,14 @@ bool KifuFileController::dispatchKifuLoad(const QString& filePath)
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
     if (!klc) return false;
 
-    if (filePath.endsWith(QLatin1String(".csa"), Qt::CaseInsensitive)) {
-        return klc->loadCsaFromFile(filePath);
-    }
-    if (filePath.endsWith(QLatin1String(".ki2"), Qt::CaseInsensitive)
-        || filePath.endsWith(QLatin1String(".ki2u"), Qt::CaseInsensitive)) {
-        return klc->loadKi2FromFile(filePath);
-    }
-    if (filePath.endsWith(QLatin1String(".jkf"), Qt::CaseInsensitive)) {
-        return klc->loadJkfFromFile(filePath);
-    }
-    if (filePath.endsWith(QLatin1String(".usen"), Qt::CaseInsensitive)) {
-        return klc->loadUsenFromFile(filePath);
-    }
-    if (filePath.endsWith(QLatin1String(".usi"), Qt::CaseInsensitive)
-        || filePath.endsWith(QLatin1String(".sfen"), Qt::CaseInsensitive)) {
-        return klc->loadUsiFromFile(filePath);
+    // 拡張子が .json などでも、内容から形式を判定して読み込む
+    switch (KifuFileReader::detectFileFormat(filePath)) {
+    case KifuFileReader::KifuFormat::CSA:  return klc->loadCsaFromFile(filePath);
+    case KifuFileReader::KifuFormat::KI2:  return klc->loadKi2FromFile(filePath);
+    case KifuFileReader::KifuFormat::JKF:  return klc->loadJkfFromFile(filePath);
+    case KifuFileReader::KifuFormat::USEN: return klc->loadUsenFromFile(filePath);
+    case KifuFileReader::KifuFormat::USI:  return klc->loadUsiFromFile(filePath);
+    default: break;
     }
     return klc->loadKifuFromFile(filePath);
 }

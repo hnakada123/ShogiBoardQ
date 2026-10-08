@@ -13,6 +13,8 @@
 #include "ui_mainwindow.h"
 
 #include "boardsetupcontroller.h"
+#include "branchnavigationwiring.h"
+#include "branchtreeeditcontroller.h"
 #include "boardsyncpresenter.h"             // IWYU pragma: keep (QPointer の完全型)
 #include "positioneditcontroller.h"         // IWYU pragma: keep (QPointer の完全型)
 #include "positioneditcoordinator.h"
@@ -52,6 +54,8 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
         m_foundation->ensureEvaluationGraphController();
         if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine2Graph(ply);
     };
+    cbs.isVariationInput = [this]() { return canRecordVariationMove(); };
+    cbs.recordVariationMove = [this](QPoint& from, QPoint& to) { return recordVariationMove(from, to); };
 
     m_mw.m_compositionRoot->ensureBoardSetupController(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_boardSetupController);
 }
@@ -161,6 +165,31 @@ void MainWindowServiceRegistry::handleMoveRequested(const QPoint& from, const QP
     if (m_mw.m_boardSetupController) {
         m_mw.m_boardSetupController->onMoveRequested(from, to);
     }
+}
+
+// ---------------------------------------------------------------------------
+// 対局していないときの着手（棋譜の変化として記録）
+// ---------------------------------------------------------------------------
+
+bool MainWindowServiceRegistry::canRecordVariationMove() const
+{
+    // 待機中（対局・解析・検討・局面編集などをしていない）だけ受け付ける
+    if (m_mw.m_uiStatePolicy == nullptr
+        || m_mw.m_uiStatePolicy->currentState() != UiStatePolicyManager::AppState::Idle) {
+        return false;
+    }
+    if (m_mw.m_boardController != nullptr
+        && m_mw.m_boardController->mode() == BoardInteractionController::Mode::Edit) {
+        return false;
+    }
+    BranchTreeEditController* editor = m_mw.m_branchNavWiring ? m_mw.m_branchNavWiring->editController() : nullptr;
+    return editor != nullptr && editor->canEdit();
+}
+
+bool MainWindowServiceRegistry::recordVariationMove(QPoint& from, QPoint& to)
+{
+    BranchTreeEditController* editor = m_mw.m_branchNavWiring ? m_mw.m_branchNavWiring->editController() : nullptr;
+    return editor != nullptr && editor->recordBoardMove(from, to, m_mw.m_gameController);
 }
 
 // ---------------------------------------------------------------------------

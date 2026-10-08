@@ -63,3 +63,9 @@ void RecordPane::clearBranchClickGuard()
     m_branchClickGuard = false;
     m_lastClickedBranchIndex = QPersistentModelIndex();
 }
+
+void RecordPane::onBranchContextMenuRequested(const QPoint& pos)
+{
+    const QModelIndex index = m_branch->indexAt(pos);
+    emit branchContextMenuRequested(index.isValid() ? index.row() : -1, m_branch->viewport()->mapToGlobal(pos));
+}

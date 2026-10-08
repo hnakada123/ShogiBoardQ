@@ -26,6 +26,7 @@
 #include "kifunavigationcoordinator.h"
 #include "kifunavigationdepsfactory.h"
 #include "languagecontroller.h"
+#include "livegamesession.h"
 #include "mainwindowappearancecontroller.h"
 #include "matchruntimequeryservice.h"
 #include "menuwindowwiring.h"
@@ -86,6 +87,13 @@ void MainWindowFoundationRegistry::ensurePlayerInfoWiring()
     deps.markGameRecordDirty = [this]() {
         m_serviceRegistry->kifu()->ensureGameRecordModel();
         if (m_mw.m_models.gameRecord) m_mw.m_models.gameRecord->markDirty();
+    };
+    deps.continuesExistingRecord = [this]() {
+        const LiveGameSession* session = m_mw.m_branchNav.liveGameSession;
+        return session != nullptr && session->isActive() && session->anchorPly() > 0;
+    };
+    deps.setContinuationNote = [this](const QString& note) {
+        if (LiveGameSession* session = m_mw.m_branchNav.liveGameSession) session->setFirstMoveNote(note);
     };
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)

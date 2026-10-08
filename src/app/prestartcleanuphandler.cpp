@@ -83,6 +83,8 @@ void PreStartCleanupHandler::performCleanup()
                        << "saved ply=" << m_savedSelectedPly
                        << "saved node=" << (m_savedCurrentNode ? m_savedCurrentNode->displayText() : "(null)");
 
+    resolveTerminalStartNode();
+
     clearBoardAndHighlights();
     clearClockDisplay();
 
@@ -118,6 +120,32 @@ void PreStartCleanupHandler::performCleanup()
 // ============================================================
 // 個別クリーンアップ処理
 // ============================================================
+
+void PreStartCleanupHandler::resolveTerminalStartNode()
+{
+    KifuBranchNode* terminal = m_savedCurrentNode;
+    if (terminal == nullptr || !terminal->isTerminal() || terminal->parent() == nullptr) {
+        return;
+    }
+    KifuBranchNode* parent = terminal->parent();
+    if (!isStartFromCurrentPosition()) {
+        return;
+    }
+
+    // 以降の処理（棋譜欄の再構築・セッション開始・開始行の選択）を直前の局面で揃える
+    m_savedCurrentNode = parent;
+    m_savedSelectedPly = parent->ply();
+    if (m_currentSelectedPly) *m_currentSelectedPly = parent->ply();
+    if (m_navState != nullptr) m_navState->setCurrentNode(parent);
+
+    // 「中断」は対局の途中経過なので、続きを指せば同じ手順に続ける（新しい分岐にしない）
+    if (m_branchTree != nullptr && terminal->terminalType() == TerminalType::Interrupt
+        && terminal->childCount() == 0) {
+        m_branchTree->removeLeaf(terminal);
+        qCDebug(lcGame).noquote() << "resolveTerminalStartNode: removed interrupt node, continue from ply="
+                                  << parent->ply();
+    }
+}
 
 bool PreStartCleanupHandler::isStartFromCurrentPosition() const
 {

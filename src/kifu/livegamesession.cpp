@@ -7,6 +7,49 @@
 
 #include "logcategories.h"
 
+#include <QRegularExpression>
+
+namespace {
+
+/// 消費時間表記 "mm:ss/HH:MM:SS" を秒に分解する。形式が違えば false
+bool parseElapsedText(const QString& text, int* considerSec, int* totalSec)
+{
+    static const QRegularExpression re(QStringLiteral("^\\s*(\\d+):(\\d{2})\\s*/\\s*(\\d+):(\\d{2}):(\\d{2})\\s*$"));
+    const QRegularExpressionMatch m = re.match(text);
+    if (!m.hasMatch()) return false;
+    if (considerSec) *considerSec = m.captured(1).toInt() * 60 + m.captured(2).toInt();
+    if (totalSec) {
+        *totalSec = m.captured(3).toInt() * 3600 + m.captured(4).toInt() * 60 + m.captured(5).toInt();
+    }
+    return true;
+}
+
+QString formatElapsedText(int considerSec, int totalSec)
+{
+    auto z2 = [](int v) { return QStringLiteral("%1").arg(v, 2, 10, QLatin1Char('0')); };
+    return z2(considerSec / 60) + QLatin1Char(':') + z2(considerSec % 60) + QLatin1Char('/')
+           + z2(totalSec / 3600) + QLatin1Char(':') + z2((totalSec / 60) % 60) + QLatin1Char(':')
+           + z2(totalSec % 60);
+}
+
+/// 対局の累計時間を、棋譜上で同じ側が直前に指した手の累計から続ける。
+/// 時計の累計は対局開始からの値なので、棋譜の途中から対局すると累計が 0 から数え直されてしまう。
+QString continueCumulativeTime(const KifuBranchNode* parent, const QString& elapsed)
+{
+    int considerSec = 0;
+    if (!parseElapsedText(elapsed, &considerSec, nullptr)) return elapsed;
+
+    // 親は相手の手、その親が同じ側の直前の手
+    const KifuBranchNode* sameSide = (parent != nullptr) ? parent->parent() : nullptr;
+    int previousTotal = 0;
+    if (sameSide != nullptr && sameSide->ply() > 0) {
+        parseElapsedText(sameSide->timeText(), nullptr, &previousTotal);
+    }
+    return formatElapsedText(considerSec, previousTotal + considerSec);
+}
+
+} // namespace
+
 LiveGameSession::LiveGameSession(QObject* parent)
     : QObject(parent)
 {
@@ -128,6 +171,11 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
                 m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
                 if (m_liveParent != nullptr) {
                     m_createdNodeIds.insert(m_liveParent->nodeId());
+                    // 棋譜の途中から続けた対局の情報は、新しく作った最初の手に残す
+                    if (!m_firstMoveNote.isEmpty()) {
+                        m_liveParent->setComment(m_firstMoveNote);
+                        m_firstMoveNote.clear();
+                    }
                 }
                 qCDebug(lcKifu).noquote() << "addMove: added to tree, m_liveParent ply="
                                    << (m_liveParent ? m_liveParent->ply() : -1)
@@ -164,6 +212,18 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
     emit recordModelUpdateRequired();
 
     qCDebug(lcKifu).noquote() << "addMove LEAVE";
+}
+
+QString LiveGameSession::continuedElapsedText(const QString& clockElapsed) const
+{
+    if (!m_active || m_tree == nullptr) {
+        return clockElapsed;
+    }
+    const KifuBranchNode* parent = m_liveParent;
+    if (parent == nullptr) {
+        parent = (m_branchPoint != nullptr) ? m_branchPoint : m_tree->root();
+    }
+    return continueCumulativeTime(parent, clockElapsed);
 }
 
 bool LiveGameSession::canUndoMoves(int count) const
@@ -359,4 +419,10 @@ void LiveGameSession::reset()
     m_sfens.clear();
     m_createdNodeIds.clear();
     m_undoneNodeIds.clear();
+    m_firstMoveNote.clear();
+}
+
+void LiveGameSession::setFirstMoveNote(const QString& note)
+{
+    m_firstMoveNote = note;
 }

@@ -5,12 +5,15 @@
 #include "automationdispatcher.h"
 #include "automationparams.h"
 #include "gamerecordmodel.h"
+#include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
 #include "kifusavecoordinator.h"
 #include "sfenutils.h"
+#include "uinotificationservice.h"
+#include "usimoveconverter.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -72,6 +75,8 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         KifuFileController* controller = requireFileController(context);
         requireSavedOrDiscard(controller, AutomationParams::optionalBool(params, QStringLiteral("discard_unsaved")));
         bool ok = false;
+        // 読み込み失敗のダイアログは出さず、内容をエラー応答で返す
+        const UiNotificationService::ScopedCapture capture;
         if (!path.isEmpty()) {
             requireAbsolutePath(path);
             if (!QFileInfo::exists(path)) {
@@ -81,11 +86,18 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         } else {
             ok = controller->loadKifuText(text);
         }
-        if (!ok) {
-            throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("The record could not be loaded"),
-                                  QStringLiteral("Check the format; use dialog.list to see any error dialog"));
+        if (!ok || !capture.errors().isEmpty()) {
+            const QString detail = capture.errors().join(QLatin1Char('\n'));
+            throw AutomationError(AutomationErrorCode::NotFound,
+                                  detail.isEmpty() ? QStringLiteral("The record could not be loaded")
+                                                   : QStringLiteral("The record could not be loaded: %1").arg(detail),
+                                  QStringLiteral("Check the format of the record"));
         }
-        return loadResult(context);
+        QJsonObject result = loadResult(context);
+        if (!capture.notices().isEmpty()) {
+            result[QStringLiteral("warnings")] = QJsonArray::fromStringList(capture.notices());
+        }
+        return result;
     });
 
     dispatcher.registerMethod(QStringLiteral("kifu.save"), [context](const QJsonObject& params) {
@@ -129,8 +141,33 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             QJsonArray moves;
             bool truncated = false;
             if (model) {
-                const QList<KifDisplayItem> items = model->collectMainlineForExport();
-                const QStringList usi = model->collectMainlineUsiForExport();
+                // 既定は表示中の手順（分岐を表示中なら分岐）。line="main" で本譜を返す。
+                const QString lineParam = AutomationParams::optionalString(
+                    params, QStringLiteral("line"), QStringLiteral("current")).toLower();
+                if (lineParam != QLatin1String("current") && lineParam != QLatin1String("main")) {
+                    throw AutomationError(AutomationErrorCode::InvalidParams,
+                                          QStringLiteral("line must be \"current\" or \"main\""));
+                }
+                QList<KifDisplayItem> items;
+                QStringList usi;
+                const KifuBranchTree* tree = model->branchTree();
+                const int lineIndex = (lineParam == QLatin1String("main")) ? 0 : model->activeRow();
+                const QList<BranchLine> lines = (tree && !tree->isEmpty()) ? tree->allLines() : QList<BranchLine>();
+                if (lineIndex >= 0 && lineIndex < lines.size()) {
+                    items = tree->displayItemsForLine(lineIndex);
+                    QStringList positions;
+                    for (const KifuBranchNode* node : std::as_const(lines.at(lineIndex).nodes)) {
+                        if (node->isTerminal()) break;
+                        positions.append(node->sfen());
+                    }
+                    usi = UsiMoveConverter::fromSfenRecord(positions);
+                    result[QStringLiteral("line")] = lineIndex;
+                    result[QStringLiteral("total_plies")] = static_cast<int>(usi.size());
+                } else {
+                    items = model->collectMainlineForExport();
+                    usi = model->collectMainlineUsiForExport();
+                    result[QStringLiteral("line")] = 0;
+                }
                 int emitted = 0;
                 for (const KifDisplayItem& item : items) {
                     if (item.ply < fromPly) continue;

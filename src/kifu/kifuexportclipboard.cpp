@@ -8,6 +8,7 @@
 #include "logcategories.h"
 
 #include "gamerecordmodel.h"
+#include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
 #include "gameinfopanecontroller.h"
 #include "timecontrolcontroller.h"
@@ -97,6 +98,12 @@ GameRecordModel::ExportContext KifuExportClipboard::buildExportContext() const
     }
 
     return ctx;
+}
+
+bool KifuExportClipboard::hasBranches() const
+{
+    const KifuBranchTree* tree = m_deps.gameRecord ? m_deps.gameRecord->branchTree() : nullptr;
+    return tree != nullptr && !tree->isEmpty() && tree->lineCount() > 1;
 }
 
 bool KifuExportClipboard::isCurrentlyPlaying() const
@@ -232,7 +239,8 @@ bool KifuExportClipboard::copyCsaToClipboard()
         return false;
     }
     return setClipboardText(csaLines.join(QStringLiteral("\n")),
-                            tr("CSA形式の棋譜をクリップボードにコピーしました"));
+                            hasBranches() ? tr("CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）")
+                                          : tr("CSA形式の棋譜をクリップボードにコピーしました"));
 }
 
 bool KifuExportClipboard::copyUsiToClipboard()
@@ -249,7 +257,8 @@ bool KifuExportClipboard::copyUsiToClipboard()
         return false;
     }
     return setClipboardText(usiLines.join(QStringLiteral("\n")),
-                            tr("USI形式の棋譜をクリップボードにコピーしました"));
+                            hasBranches() ? tr("USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）")
+                                          : tr("USI形式の棋譜をクリップボードにコピーしました"));
 }
 
 bool KifuExportClipboard::copyUsiCurrentToClipboard()

@@ -7,6 +7,7 @@
 #include "kifubranchnode.h"
 #include "matchcoordinator.h"
 #include "gamerecordpresenter.h"
+#include "livegamesession.h"
 #include "livegamesessionupdater.h"
 #include "shogimove.h"
 #include "shogiutils.h"
@@ -30,12 +31,16 @@ void GameRecordUpdateService::appendKifuLine(const QString& text, const QString&
     updateGameRecord(text, elapsedTime);
 }
 
-void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QString& elapsedTime,
+void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QString& clockElapsedTime,
                                              const QString& recordedSfen)
 {
     const bool gameOverAppended =
         (m_deps.match && m_deps.match->gameOverState().isOver && m_deps.match->gameOverState().moveAppended);
     if (gameOverAppended) return;
+
+    // 棋譜の途中から対局した場合も、累計時間は棋譜上の直前の累計から続ける
+    const QString elapsedTime = (m_deps.liveGameSession != nullptr)
+        ? m_deps.liveGameSession->continuedElapsedText(clockElapsedTime) : clockElapsedTime;
 
     GameRecordPresenter* presenter = nullptr;
     if (m_deps.ensureRecordPresenter) {

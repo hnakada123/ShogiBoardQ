@@ -275,6 +275,9 @@ void RecordPane::wireSignals()
     // シングルクリックで activated も発火する環境では同じ行が二重処理されるため、
     // スロット側で clicked 直後の activated を1周回だけ無視する。
     connect(m_branch, &QTableView::clicked, this, &RecordPane::onBranchClicked, Qt::UniqueConnection);
+    m_branch->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_branch, &QWidget::customContextMenuRequested, this, &RecordPane::onBranchContextMenuRequested,
+            Qt::UniqueConnection);
     connect(m_branch, &QTableView::activated, this, &RecordPane::onBranchActivated, Qt::UniqueConnection);
 
     // 文字サイズ変更ボタンの接続

@@ -189,6 +189,13 @@ QString saveViaDialog(QWidget* parent,
     case SaveFormat::Jkf:
         break;
     case SaveFormat::Usen:
+        if (hasTimeInfo && !confirmLossySave(
+                parent,
+                QObject::tr("USEN形式で保存"),
+                QObject::tr("USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。\n"
+                            "詰み・反則勝ちなど一部の終局理由も保存されません。\n保存を続けますか？"))) {
+            return QString();
+        }
         break;
     case SaveFormat::Usi:
         if (hasBranches && !confirmLossySave(

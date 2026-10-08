@@ -70,6 +70,39 @@ private slots:
         QVERIFY(!QFile::exists(path1));
         QVERIFY(!QFile::exists(path2));
     }
+
+    // 拡張子で決まる形式と、.json・未知の拡張子の内容による判定
+    void detectFileFormat_data()
+    {
+        QTest::addColumn<QString>("suffix");
+        QTest::addColumn<QByteArray>("content");
+        QTest::addColumn<int>("expected");
+        using F = KifuFileReader::KifuFormat;
+        const QByteArray kif = "手合割：平手\n   1 ７六歩(77)\n";
+        QTest::newRow("kif") << "kif" << kif << int(F::KIF);
+        QTest::newRow("kifu") << "kifu" << kif << int(F::KIF);
+        QTest::newRow("ki2u") << "ki2u" << QByteArray("▲７六歩\n") << int(F::KI2);
+        QTest::newRow("csa") << "csa" << QByteArray("PI\n+\n+7776FU\n") << int(F::CSA);
+        QTest::newRow("jkf") << "jkf" << QByteArray("{}") << int(F::JKF);
+        QTest::newRow("usen") << "usen" << QByteArray("~0.7ku.") << int(F::USEN);
+        QTest::newRow("sfen") << "sfen" << QByteArray("position startpos moves 7g7f") << int(F::USI);
+        // JKF は .json で配布されることも多い
+        QTest::newRow("json-jkf") << "json" << QByteArray("{\"header\":{},\"moves\":[{}]}") << int(F::JKF);
+        QTest::newRow("txt-csa") << "txt" << QByteArray("V2.2\nPI\n+\n+7776FU\n") << int(F::CSA);
+        QTest::newRow("txt-kif") << "txt" << kif << int(F::KIF);
+    }
+
+    void detectFileFormat()
+    {
+        QFETCH(QString, suffix);
+        QFETCH(QByteArray, content);
+        QFETCH(int, expected);
+        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/detect_XXXXXX.") + suffix);
+        QVERIFY(file.open());
+        file.write(content);
+        file.close();
+        QCOMPARE(int(KifuFileReader::detectFileFormat(file.fileName())), expected);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestKifuFileReader)

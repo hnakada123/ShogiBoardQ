@@ -97,6 +97,9 @@ void KifuSubRegistry::refreshBranchNavWiringDeps()
     deps.commentCoordinator = m_mw.m_commentCoordinator;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.ensureCommentCoordinator = [this]() { m_foundation->ensureCommentCoordinator(); };
+    deps.markGameRecordDirty = [this]() {
+        if (m_mw.m_models.gameRecord) m_mw.m_models.gameRecord->markDirty();
+    };
     m_mw.m_branchNavWiring->updateDeps(deps);
 }
 

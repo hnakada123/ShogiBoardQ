@@ -127,6 +127,13 @@ void BoardSetupController::setEnsurePositionEditCallback(EnsurePositionEditCallb
     m_ensurePositionEdit = std::move(cb);
 }
 
+void BoardSetupController::setVariationInputCallbacks(IsVariationInputCallback isVariationInput,
+                                                       RecordVariationMoveCallback recordVariationMove)
+{
+    m_isVariationInput = std::move(isVariationInput);
+    m_recordVariationMove = std::move(recordVariationMove);
+}
+
 void BoardSetupController::setRedrawEngine1GraphCallback(RedrawEngine1GraphCallback cb)
 {
     m_redrawEngine1Graph = std::move(cb);
@@ -222,6 +229,15 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
         const bool ok = m_posEdit->applyEditMove(from, to, m_shogiView, m_gameController, m_boardController);
         if (!ok) qCDebug(lcUi) << "editPosition failed (edit-mode move rejected)";
+        return;
+    }
+
+    // --- 対局していないとき：指した手を棋譜の変化として記録する ---
+    if (m_isVariationInput && m_recordVariationMove && m_isVariationInput()) {
+        QPoint hFrom = from, hTo = to;
+        const bool ok = m_recordVariationMove(hFrom, hTo);
+        if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
+        if (!ok) qCDebug(lcUi) << "variation move rejected";
         return;
     }
 

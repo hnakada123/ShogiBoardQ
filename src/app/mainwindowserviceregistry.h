@@ -84,6 +84,10 @@ public:
     void setupBoardInteractionController();
     void handleMoveRequested(const QPoint& from, const QPoint& to);
     void handleMoveCommitted(int mover, int ply);
+    /// 対局・解析などをしていない待機中で、盤上の着手を棋譜の変化として記録できるか
+    bool canRecordVariationMove() const;
+    /// 盤上の着手を、表示中の手の次の手（変化）として記録する
+    bool recordVariationMove(QPoint& from, QPoint& to);
     void handleBeginPositionEditing();
     void handleFinishPositionEditing();
     void resetModels(const QString& hirateStartSfen);

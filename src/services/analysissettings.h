@@ -15,6 +15,16 @@
 
 namespace AnalysisSettings {
 
+// --- 分岐ツリー ---
+
+/// 分岐ツリーの表示倍率（%、デフォルト: 100）
+int branchTreeZoomPercent();
+void setBranchTreeZoomPercent(int percent);
+
+/// 変化を空いた段に詰めて表示するか（デフォルト: true）
+bool branchTreeCompactLayout();
+void setBranchTreeCompactLayout(bool compact);
+
 // --- 評価値グラフ ---
 
 /// 評価値上限（デフォルト: 2000）

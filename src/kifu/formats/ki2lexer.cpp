@@ -100,6 +100,7 @@ bool parseResultLine(const QString& line, QString& terminalWord, int& moveCount)
         {QStringLiteral("持将棋"), QStringLiteral("持将棋")},
         {QStringLiteral("中断"), QStringLiteral("中断")},
         {QStringLiteral("切れ負け"), QStringLiteral("切れ負け")},
+        {QStringLiteral("時間切れ"), QStringLiteral("切れ負け")},
         {QStringLiteral("反則勝ち"), QStringLiteral("反則勝ち")},
         {QStringLiteral("反則負け"), QStringLiteral("反則負け")},
         {QStringLiteral("入玉勝ち"), QStringLiteral("入玉勝ち")},

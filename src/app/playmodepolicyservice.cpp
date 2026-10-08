@@ -16,9 +16,13 @@ bool PlayModePolicyService::isHumanTurnNow() const
     if (!m_deps.playMode)
         return false;
 
+    // 対局していない待機中は、盤上の着手を表示中の手の次の手（変化）として記録する。
+    // 終局後も同じ扱いで、指し継いだ手は分岐ツリーに変化として加わる。
+    if (!isGameActivelyInProgress() && m_deps.canRecordVariationMove && m_deps.canRecordVariationMove()) {
+        return true;
+    }
+
     switch (*m_deps.playMode) {
-    // 終局後もプレイモードは残るが、盤上の着手は棋譜に記録されないため受け付けない。
-    // 終局後の局面から指し継ぐときは「現在の局面」から対局を始める（分岐として記録される）。
     case PlayMode::HumanVsHuman:
         return isGameActivelyInProgress();
 

@@ -148,6 +148,11 @@ bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
             // 分岐ツリーから特定の手を選択して対局開始する場合、
             // 棋譜モデルの行数は前の対局の値を反映している可能性があるため。
             int keepIdx = static_cast<int>(qBound(qsizetype(0), qsizetype(c.selectedPly), c.sfenRecord->size() - 1));
+            // 終局手（投了・中断など）を選んでいた場合、開始前の整理で棋譜欄は直前の局面までになる。
+            // 存在しない行を開始行にすると、選択が開始局面へ戻ってしまう。
+            if (c.kifuModel != nullptr && c.kifuModel->rowCount() > 0) {
+                keepIdx = qMin(keepIdx, c.kifuModel->rowCount() - 1);
+            }
             const int takeLen = keepIdx + 1;
 
             QStringList preserved;

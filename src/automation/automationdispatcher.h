@@ -67,6 +67,8 @@ public:
 
 private:
     QHash<QString, Handler> m_handlers;
+    /// 実行中のハンドラ数。ハンドラ内の入れ子のイベントループで次の要求が届いたときの判定に使う
+    mutable int m_activeHandlers = 0;
 };
 
 #endif // AUTOMATIONDISPATCHER_H

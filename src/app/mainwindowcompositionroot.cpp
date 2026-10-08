@@ -334,6 +334,7 @@ void MainWindowCompositionRoot::refreshBoardSetupControllerDeps(
     controller->setEnsurePositionEditCallback(cbs.ensurePositionEdit);
     controller->setRedrawEngine1GraphCallback(cbs.redrawEngine1Graph);
     controller->setRedrawEngine2GraphCallback(cbs.redrawEngine2Graph);
+    controller->setVariationInputCallbacks(cbs.isVariationInput, cbs.recordVariationMove);
     controller->setRefreshBranchTreeCallback([]() {
         // LiveGameSession + KifuDisplayCoordinator が自動更新するため no-op
     });

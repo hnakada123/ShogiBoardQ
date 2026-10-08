@@ -227,8 +227,11 @@ void EngineVsEngineStrategy::onEngineMoveReady(QPoint from, QPoint to,
     // 千日手チェック
     if (m_ctx.checkAndHandleSennichite()) return;
 
-    // 最大手数チェック
-    if (m_ctx.maxMoves() > 0 && m_eveMoveIndex >= m_ctx.maxMoves()) {
+    // 最大手数チェック（人間を含む対局と同じく、棋譜全体の手数で判定する。
+    // 途中局面から開始した場合も、開始からの手数ではなく総手数が上限に達したら止める）
+    const QStringList* history = m_ctx.sfenHistory();
+    const int plies = history ? static_cast<int>(history->size() - 1) : m_eveMoveIndex;
+    if (m_ctx.maxMoves() > 0 && plies >= m_ctx.maxMoves()) {
         m_ctx.handleMaxMovesJishogi();
         return;
     }

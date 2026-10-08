@@ -458,4 +458,30 @@ void setPvBoardDialogSize(const QSize& size)
     s.setValue(SettingsKeys::kPvBoardDialogSize, size);
 }
 
+// --- 分岐ツリー ---
+
+int branchTreeZoomPercent()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    return s.value(SettingsKeys::kBranchTreeZoomPercent, 100).toInt();
+}
+
+void setBranchTreeZoomPercent(int percent)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kBranchTreeZoomPercent, percent);
+}
+
+bool branchTreeCompactLayout()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    return s.value(SettingsKeys::kBranchTreeCompactLayout, true).toBool();
+}
+
+void setBranchTreeCompactLayout(bool compact)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kBranchTreeCompactLayout, compact);
+}
+
 } // namespace AnalysisSettings

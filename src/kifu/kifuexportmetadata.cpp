@@ -1,6 +1,7 @@
 /// @file kifuexportmetadata.cpp
 /// @brief 棋譜形式間で共有する対局情報と対局者名の生成
 #include "kifuexportmetadata.h"
+#include "notationutils.h"
 #include <QObject>
 
 QList<KifGameInfoItem> KifuExportMetadataBuilder::collect(const KifuExportMetadata& ctx, HeaderStyle style)
@@ -92,9 +93,22 @@ void KifuExportMetadataBuilder::resolvePlayerNames(const KifuExportMetadata& ctx
 
 QString KifuExportMetadataBuilder::handicapLabel(const QString& startSfen)
 {
-    const QString pp = startSfen.trimmed().section(QLatin1Char(' '), 0, 0);
-    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    return (pp.isEmpty() || pp == initPP) ? QStringLiteral("平手") : QStringLiteral("その他");
+    const QString trimmed = startSfen.trimmed();
+    if (trimmed.isEmpty() || trimmed == QLatin1String("startpos")) return QStringLiteral("平手");
+
+    // 駒落ちの初期配置（持駒なし・正しい手番）なら手合割名を使う。
+    // それ以外は局面図で表す「その他」にする。
+    const QString label = NotationUtils::handicapLabelForSfen(trimmed);
+    if (!label.isEmpty()) {
+        const QString preset = NotationUtils::mapHandicapToSfen(label);
+        const QString hands = trimmed.section(QLatin1Char(' '), 2, 2);
+        const QString turn = trimmed.section(QLatin1Char(' '), 1, 1);
+        if ((hands.isEmpty() || hands == QLatin1String("-"))
+            && (turn.isEmpty() || turn == preset.section(QLatin1Char(' '), 1, 1))) {
+            return label;
+        }
+    }
+    return QStringLiteral("その他");
 }
 
 QString KifuExportMetadataBuilder::timeControlText(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs)

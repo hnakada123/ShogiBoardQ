@@ -252,6 +252,10 @@ QList<BranchTreeManager::ResolvedRowLite> KifuDisplayPresenter::buildBranchTreeR
         const BranchLine& line = lines.at(lineIdx);
         BranchTreeManager::ResolvedRowLite row;
         row.startPly = (line.branchPly > 0) ? line.branchPly : 1;
+        // 変化の先頭の手（折りたたみ状態をツリーの再構築後も保つためのキー）
+        if (lineIdx > 0 && row.startPly < line.nodes.size()) {
+            row.headNodeId = line.nodes.at(row.startPly)->nodeId();
+        }
 
         row.parent = -1;
         if (line.branchPoint != nullptr) {

@@ -16,13 +16,7 @@ bool canceled(const CancelFlag& cancel) { return cancel && cancel->load(); }
 
 Format formatForPath(const QString& path)
 {
-    const auto suffix = QFileInfo(path).suffix().toLower();
-    if (suffix == QLatin1String("ki2") || suffix == QLatin1String("ki2u")) return Format::KI2;
-    if (suffix == QLatin1String("csa")) return Format::CSA;
-    if (suffix == QLatin1String("jkf")) return Format::JKF;
-    if (suffix == QLatin1String("usen")) return Format::USEN;
-    if (suffix == QLatin1String("usi") || suffix == QLatin1String("sfen")) return Format::USI;
-    return Format::KIF;
+    return KifuFileReader::detectFileFormat(path);
 }
 }
 

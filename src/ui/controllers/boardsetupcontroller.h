@@ -85,8 +85,14 @@ public:
     using RedrawEngine1GraphCallback = std::function<void(int ply)>;
     using RedrawEngine2GraphCallback = std::function<void(int ply)>;
     using RefreshBranchTreeCallback = std::function<void()>;
+    /// 対局していないときの盤上の着手を棋譜の変化として扱うか
+    using IsVariationInputCallback = std::function<bool()>;
+    /// 盤上の着手を変化として記録する（合法手で記録できたら true）
+    using RecordVariationMoveCallback = std::function<bool(QPoint& from, QPoint& to)>;
 
     void setEnsurePositionEditCallback(EnsurePositionEditCallback cb);
+    void setVariationInputCallbacks(IsVariationInputCallback isVariationInput,
+                                    RecordVariationMoveCallback recordVariationMove);
     void setRedrawEngine1GraphCallback(RedrawEngine1GraphCallback cb);
     void setRedrawEngine2GraphCallback(RedrawEngine2GraphCallback cb);
     void setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb);
@@ -130,6 +136,8 @@ private:
 
     // コールバック
     EnsurePositionEditCallback m_ensurePositionEdit;
+    IsVariationInputCallback m_isVariationInput;
+    RecordVariationMoveCallback m_recordVariationMove;
     RedrawEngine1GraphCallback m_redrawEngine1Graph;
     RedrawEngine2GraphCallback m_redrawEngine2Graph;
     RefreshBranchTreeCallback m_refreshBranchTree;

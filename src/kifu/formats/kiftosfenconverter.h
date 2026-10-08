@@ -45,15 +45,21 @@ public:
 private:
     // ---------- parseWithVariations ヘルパ ----------
     static void extractMainLine(const QString& kifPath, KifParseResult& out, QString* errorMessage);
+    /// 分岐元の局面と、その局面に至る直前の指し手（「同」の解決用、USI形式）を求める。
+    /// @param varPrevUsi vars と同じ並びで、各変化の分岐元に至る直前の指し手
     static QString findBranchBaseSfen(const QList<KifVariation>& vars,
+                                      const QStringList& varPrevUsi,
                                       const KifLine& mainLine,
-                                      int branchPointPly);
+                                      int branchPointPly,
+                                      QString* prevUsi = nullptr);
     static KifVariation parseVariationBlock(const QStringList& blockLines,
                                             int startPly,
-                                            const QString& baseSfen);
+                                            const QString& baseSfen,
+                                            const QString& prevUsi = QString());
     static void extractMovesFromBlock(const QStringList& blockLines,
                                       int startPly,
-                                      KifLine& line);
+                                      KifLine& line,
+                                      const QString& prevUsi = QString());
 };
 
 #endif // KIFTOSFENCONVERTER_H

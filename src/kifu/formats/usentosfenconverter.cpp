@@ -159,7 +159,8 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
 
         // 共通パイプラインで分岐の表示アイテムを構築
         int varPlyNumber = KifuParseCommon::buildUsiMoveDisplayItems(
-            varUsiMoves, kifVar.line.baseSfen, startPly, kifVar.line.disp);
+            varUsiMoves, kifVar.line.baseSfen, startPly, kifVar.line.disp,
+            prefixMoves.isEmpty() ? QString() : prefixMoves.last());
 
         // 分岐の終局理由
         if (!varTerminal.isEmpty()) {

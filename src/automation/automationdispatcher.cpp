@@ -4,6 +4,8 @@
 #include "automationdispatcher.h"
 #include "logcategories.h"
 
+#include <QScopedValueRollback>
+
 #include <QJsonDocument>
 #include <QJsonParseError>
 
@@ -96,6 +98,17 @@ QJsonObject AutomationDispatcher::handleRequest(const QJsonObject& request) cons
                          QStringLiteral("Unknown method \"%1\"").arg(method),
                          QStringLiteral("Available methods: %1").arg(methodNames().join(QStringLiteral(", "))));
     }
+
+    // ハンドラの実行中（入れ子のイベントループ）に届いた要求は実行しない。
+    // 実行すると、途中の処理が前提にしている状態を別の要求が作り直してしまう。
+    if (m_activeHandlers > 0) {
+        if (isNotification) return {};
+        return makeError(id, AutomationErrorCode::InvalidState,
+                         QStringLiteral("Another request is still running"),
+                         QStringLiteral("Wait for the previous response before sending the next request"));
+    }
+
+    const QScopedValueRollback<int> activeGuard(m_activeHandlers, m_activeHandlers + 1);
 
     QJsonObject response;
     try {

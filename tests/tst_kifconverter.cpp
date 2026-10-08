@@ -741,6 +741,91 @@ private slots:
 
         QVERIFY(true);
     }
+
+    // ========================================
+    // 変化の1手目が「同」：分岐元に至る直前の手（本譜・親の変化）を基準にする
+    // ========================================
+
+    void parseWithVariations_variationStartingWithSame()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, QStringLiteral(
+            "手合割：平手\n"
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)   ( 0:00/00:00:00)\n"
+            "   2 ３四歩(33)   ( 0:00/00:00:00)\n"
+            "   3 ２六歩(27)   ( 0:00/00:00:00)+\n"
+            "   4 中断         ( 0:00/00:00:00)\n"
+            "\n"
+            "変化：3手\n"
+            "   3 ２二角成(88) ( 0:00/00:00:00)\n"
+            "   4 同　銀(31)   ( 0:00/00:00:00)+\n"
+            "   5 中断         ( 0:00/00:00:00)\n"
+            "\n"
+            "変化：4手\n"
+            "   4 同　飛(82)   ( 0:00/00:00:00)\n"
+            "   5 同　角打     ( 0:00/00:00:00)\n").toUtf8(), QStringLiteral("kifu")));
+
+        KifParseResult result;
+        QString error;
+        QVERIFY2(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QCOMPARE(result.variations.size(), 2);
+        QCOMPARE(result.variations[0].line.usiMoves,
+                 QStringList({QStringLiteral("8h2b+"), QStringLiteral("3a2b")}));
+        // 入れ子の変化の1手目「同　飛」は親の変化の3手目（２二角成）の地点
+        QCOMPARE(result.variations[1].line.usiMoves,
+                 QStringList({QStringLiteral("8b2b"), QStringLiteral("B*2b")}));
+        QCOMPARE(result.variations[1].line.sfenList.size(), 3);
+    }
+
+    void parseWithVariations_mainlineParentSame()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, QStringLiteral(
+            "手合割：平手\n"
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n"
+            "   2 ３四歩(33)\n"
+            "   3 ２二角成(88)\n"
+            "   4 同　銀(31)+\n"
+            "\n"
+            "変化：4手\n"
+            "   4 同　飛(82)\n").toUtf8(), QStringLiteral("kifu")));
+
+        KifParseResult result;
+        QString error;
+        QVERIFY2(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QCOMPARE(result.variations.size(), 1);
+        QCOMPARE(result.variations[0].line.usiMoves, QStringList({QStringLiteral("8b2b")}));
+    }
+
+    // 消費時間欄がない行の分岐マーク「+」は指し手の表記に含めない
+    void extractMoves_branchMarkWithoutTime()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, QStringLiteral(
+            "手合割：平手\n"
+            "手数----指手--\n"
+            "   1 ７六歩(77)   +\n"
+            "   2 ３四歩(33)+\n"
+            "   3 ２六歩(27)\n"
+            "\n"
+            "変化：2手\n"
+            "   2 ８四歩(83)   +\n"
+            "\n"
+            "変化：2手\n"
+            "   2 ４四歩(43)\n").toUtf8(), QStringLiteral("kif")));
+
+        KifParseResult result;
+        QString error;
+        QVERIFY2(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QCOMPARE(result.mainline.disp.size(), 4);
+        QCOMPARE(result.mainline.disp[1].prettyMove, QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(result.mainline.disp[2].prettyMove, QStringLiteral("△３四歩(33)"));
+        QCOMPARE(result.mainline.usiMoves.size(), 3);
+        QCOMPARE(result.variations.size(), 2);
+        QCOMPARE(result.variations[0].line.disp.first().prettyMove, QStringLiteral("△８四歩(83)"));
+    }
 };
 
 QTEST_MAIN(TestKifConverter)

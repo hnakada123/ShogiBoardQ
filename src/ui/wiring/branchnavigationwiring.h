@@ -21,6 +21,7 @@ class EngineAnalysisTab;
 class CommentCoordinator;
 class ShogiGameController;
 class ShogiBoard;
+class BranchTreeEditController;
 
 /**
  * @brief 分岐ナビゲーション関連のUI配線を担当するクラス
@@ -50,6 +51,7 @@ public:
         CommentCoordinator* commentCoordinator = nullptr; ///< コメントコーディネータ
         QString* startSfenStr = nullptr;                ///< 開始SFEN文字列
         std::function<void()> ensureCommentCoordinator; ///< CommentCoordinator遅延初期化コールバック
+        std::function<void()> markGameRecordDirty;      ///< 分岐の編集後に棋譜を未保存にする
     };
 
     explicit BranchNavigationWiring(QObject* parent = nullptr);
@@ -59,6 +61,9 @@ public:
 
     /// 分岐ナビゲーション関連クラスを初期化する（モデル生成 + シグナル配線）
     void initialize();
+
+    /// 分岐の編集コントローラ（未初期化なら nullptr）
+    BranchTreeEditController* editController() const { return m_editController; }
 
 public slots:
     /// 分岐ツリーの構築完了を処理する（KifuBranchTreeBuilder::treeBuilt に接続）
@@ -91,8 +96,11 @@ private:
     void configureDisplayCoordinator();
     /// 分岐表示コーディネーターのシグナルを接続する
     void connectDisplaySignals();
+    /// 分岐ツリーの右クリックメニューによる編集を配線する
+    void wireBranchEditing();
 
     Deps m_deps;
+    BranchTreeEditController* m_editController = nullptr;   ///< 分岐の編集（this が所有）
 };
 
 #endif // BRANCHNAVIGATIONWIRING_H

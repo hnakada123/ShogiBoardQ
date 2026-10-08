@@ -108,6 +108,26 @@ public:
     /// 先頭の子が本譜側になるため、ライン番号が変わり得る。
     bool moveChildQuiet(KifuBranchNode* child, int index);
 
+    // === 分岐の編集（利用者の操作。変更があれば treeChanged を発火する） ===
+
+    /// 子ノードを兄弟の中で index の位置へ移す（分岐の並べ替え）
+    bool moveChild(KifuBranchNode* child, int index);
+
+    /// ルートから node までの手順が本譜になるよう、経路上の各手を兄弟の先頭へ移す。
+    /// 既に本譜なら何もせず false を返す。
+    bool promoteToMainLine(KifuBranchNode* node);
+
+    /// node とその子孫をすべて削除する（ルートは不可）。
+    /// 呼び出し側は削除前に現在位置を削除範囲の外へ移しておくこと。
+    bool removeSubtree(KifuBranchNode* node);
+
+    /// node を根とする部分木のノード数（node 自身を含む）
+    static int subtreeSize(const KifuBranchNode* node);
+
+    /// node を含む変化の先頭の手（兄弟を持つ最も近い祖先、または node 自身）。
+    /// 経路上に分岐がなければ nullptr
+    static KifuBranchNode* variationHead(KifuBranchNode* node);
+
     // === 一括更新 ===
 
     /**

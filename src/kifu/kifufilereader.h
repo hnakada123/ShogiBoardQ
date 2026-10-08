@@ -26,6 +26,10 @@ enum class KifuFormat {
 /// テキスト内容から棋譜フォーマットを自動判定する
 KifuFormat detectFormat(const QString& content);
 
+/// ファイルの棋譜フォーマットを判定する。
+/// 拡張子で決まらない場合（.json や未知の拡張子）は内容から判定し、それでも不明なら KIF とみなす。
+KifuFormat detectFileFormat(const QString& filePath);
+
 /// UTF-8の一時ファイルを作成する。返されたオブジェクトの破棄時に削除される。
 std::unique_ptr<QTemporaryFile> createTempFile(KifuFormat fmt, const QString& content);
 

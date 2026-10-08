@@ -236,6 +236,7 @@ void MainWindow::refreshPlayModePolicyDeps()
     policyDeps.gameController = m_gameController;
     policyDeps.match = m_match;
     policyDeps.csaGameCoordinator = m_csaGameCoordinator;
+    policyDeps.canRecordVariationMove = [this]() { return m_registry && m_registry->canRecordVariationMove(); };
     m_playModePolicy->updateDeps(policyDeps);
 }
 

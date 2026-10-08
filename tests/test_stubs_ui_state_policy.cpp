@@ -50,6 +50,7 @@ void RecordPane::onBranchClicked(const QModelIndex&) {}
 void RecordPane::onBranchToggled(bool) {}
 void RecordPane::onBranchActivated(const QModelIndex&) {}
 void RecordPane::clearBranchClickGuard() {}
+void RecordPane::onBranchContextMenuRequested(const QPoint&) {}
 
 // ============================================================
 // EngineAnalysisTab スタブ
