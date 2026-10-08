@@ -48,6 +48,7 @@ scripts/docs/kwin_capture.sh k1 en bash -c 'python3 scripts/docs/rpc.py "$SBQ_SO
 
 - 普段の設定・履歴に書き込まないよう、必ず `launch.sh` / `kwin_capture.sh` で起動する（`XDG_CONFIG_HOME`・`XDG_CACHE_HOME`・`XDG_DATA_HOME`・`XDG_STATE_HOME` を隔離する。Qt が XDG を見ない macOS・Windows でも効くよう `SHOGIBOARDQ_CONFIG_HOME`・`SHOGIBOARDQ_DATA_HOME`・`SHOGIBOARDQ_CACHE_HOME` も同じ場所にする）。
 - `screenshot.capture` はクライアント領域だけを撮り、幅1920を超える画像は縮小する。くっきりした盤面は `SBQ_SCREEN=2560x1800x24`、`SBQ_EXTRA_INI=$'[SizeRelated]\nsquareSize=100'`、ウィンドウ幅1900以下で撮る。
+- パネル（分岐ツリーなど）を右クリックメニューごとくっきり撮るときは、`QT_SCALE_FACTOR=1.5 SBQ_SCREEN=3000x2200x24 launch.sh …` で起動し、`dock.configure` の `float`（`geometry` は論理座標）で浮かせて、`import -window root -crop` で切り抜く（`widget.text` の `geometry` も論理座標なので1.5倍する）。1.5倍で撮ったダイアログ級の画像は、ページで `srcset="<画像> <実幅>w" sizes="<実幅÷1.5>px"` を付けると画面と同じ大きさで表示される（`1.5x` の記述子だと `src` が1xの候補になり実寸で表示される）。
 - メニューのポップアップは `screenshot.capture` に写らない。`../x11ctl.py click <x> 12` でメニュー名をクリックし、`../x11ctl.py list` の `or=1`（ポップアップ）の範囲を `import -window root -crop` で切り抜く。メニューの位置は Alt+キー（`keycombo.py Alt_L s`）で開いて `list` から調べられる。
 - 中国語（zh_CN/zh_TW）は `LOCPATH` を付けて起動する（`launch.sh` が行う）。`LOCPATH` を付けると ja/en のロケールは読めなくなるので、言語ごとに別のインスタンスにする。
 - 止めるときは `rpc.py <名前> app.quit`。Xvfb は `pgrep -x Xvfb` で探し、`/proc/<pid>/cmdline` でディスプレイ番号を確かめてから止める（`pkill -f` は自分のシェルにも一致する）。
