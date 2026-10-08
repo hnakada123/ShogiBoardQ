@@ -98,6 +98,8 @@ void KifuSubRegistry::refreshBranchNavWiringDeps()
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.ensureCommentCoordinator = [this]() { m_foundation->ensureCommentCoordinator(); };
     deps.markGameRecordDirty = [this]() {
+        // 起動直後に盤上で指した最初の手では、棋譜モデルがまだ無いことがある
+        ensureGameRecordModel();
         if (m_mw.m_models.gameRecord) m_mw.m_models.gameRecord->markDirty();
     };
     m_mw.m_branchNavWiring->updateDeps(deps);

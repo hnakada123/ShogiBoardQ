@@ -183,7 +183,7 @@ bool MainWindowServiceRegistry::canRecordVariationMove() const
         return false;
     }
     BranchTreeEditController* editor = m_mw.m_branchNavWiring ? m_mw.m_branchNavWiring->editController() : nullptr;
-    return editor != nullptr && editor->canEdit();
+    return editor != nullptr && editor->canRecordBoardMove();
 }
 
 bool MainWindowServiceRegistry::recordVariationMove(QPoint& from, QPoint& to)
