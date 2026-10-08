@@ -102,7 +102,14 @@ def default_output_dir() -> Path:
 
 
 def app_config_dir() -> Path:
-    """Mirror of Qt's ``QStandardPaths::AppConfigLocation`` for ShogiBoardQ."""
+    """Mirror of ShogiBoardQ's settings folder (``AppPaths::configDirectory``).
+
+    ``SHOGIBOARDQ_CONFIG_HOME`` overrides the location on every platform, as in the
+    application; otherwise this follows Qt's ``QStandardPaths::AppConfigLocation``.
+    """
+    override = os.environ.get("SHOGIBOARDQ_CONFIG_HOME")
+    if override:
+        return Path(override) / "ShogiBoardQ"
     if sys.platform.startswith("win"):
         base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
         return Path(base) / "ShogiBoardQ"

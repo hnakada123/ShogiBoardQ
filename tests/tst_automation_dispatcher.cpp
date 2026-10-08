@@ -81,6 +81,7 @@ private slots:
         // listen() が書くエンドポイント情報をユーザーの設定ディレクトリに作らない
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
 
     /// ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず -32002 を返す

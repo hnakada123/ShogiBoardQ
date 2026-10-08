@@ -18,6 +18,7 @@ private slots:
     {
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_config.path());
     }
 

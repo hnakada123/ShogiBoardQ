@@ -20,6 +20,7 @@ private slots:
     {
         QVERIFY(m_settings.isValid());
         qputenv("XDG_CONFIG_HOME", m_settings.path().toUtf8());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_settings.path().toUtf8());
     }
     void latestCandidateAndSearchLifetime()
     {

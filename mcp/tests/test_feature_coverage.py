@@ -20,7 +20,8 @@ def coverage_env(server_env, app_path, tmp_path):
     original = Path(env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     (config / "ShogiBoardQ.ini").write_text(
         original.read_text(encoding="utf-8") + "\n[%General]\nlanguage=ja_JP\n", encoding="utf-8")
-    env.update(XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_EXECUTABLE=str(app_path),
+    env.update(XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_CONFIG_HOME=str(config.parent),
+               SHOGIBOARDQ_EXECUTABLE=str(app_path),
                SHOGIBOARDQ_AUTOMATION_SOCKET=str(tmp_path / "app.sock"), SHOGIBOARDQ_QUIT_APP_ON_EXIT="1")
     return env
 

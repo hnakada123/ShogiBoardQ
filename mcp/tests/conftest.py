@@ -55,7 +55,7 @@ def app_path() -> Path:
 
 @pytest.fixture(scope="session")
 def test_config(tmp_path_factory) -> Path:
-    """A scratch XDG_CONFIG_HOME whose ShogiBoardQ.ini registers the test engines."""
+    """A scratch config home (XDG_CONFIG_HOME and SHOGIBOARDQ_CONFIG_HOME) registering the test engines."""
     root = tmp_path_factory.mktemp("config")
     cfg = root / "ShogiBoardQ"
     cfg.mkdir()
@@ -79,6 +79,10 @@ def server_env(cli_path: Path, test_config: Path, tmp_path_factory) -> dict[str,
     env = dict(os.environ)
     env["SHOGIBOARDQ_CLI"] = str(cli_path)
     env["XDG_CONFIG_HOME"] = str(test_config)
+    env["SHOGIBOARDQ_CONFIG_HOME"] = str(test_config)
+    # Qt ignores XDG_* on macOS and Windows; ShogiBoardQ's own variables isolate data and cache everywhere.
+    env["SHOGIBOARDQ_DATA_HOME"] = str(tmp_path_factory.mktemp("data"))
+    env["SHOGIBOARDQ_CACHE_HOME"] = str(tmp_path_factory.mktemp("cache"))
     env["XDG_RUNTIME_DIR"] = str(tmp_path_factory.mktemp("runtime"))
     env["QT_QPA_PLATFORM"] = "offscreen"
     # GUI scenarios (including those creating their own config) locate Japanese labels.

@@ -67,7 +67,8 @@ def csa_env(server_env, app_path, tmp_path):
     launcher.write_text(f'#!/bin/sh\nexec {shlex.quote(str(app_path))} "$@" >{shlex.quote(str(tmp_path / "app.log"))} 2>&1\n')
     launcher.chmod(0o700)
     env.update(SHOGIBOARDQ_EXECUTABLE=str(launcher), SHOGIBOARDQ_QUIT_APP_ON_EXIT="1",
-               XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_AUTOMATION_SOCKET=str(tmp_path / "app.sock"))
+               XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_CONFIG_HOME=str(config.parent),
+               SHOGIBOARDQ_AUTOMATION_SOCKET=str(tmp_path / "app.sock"))
     return env
 
 

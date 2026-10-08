@@ -21,7 +21,8 @@ def kifu_env(server_env, app_path, tmp_path):
     (config / "ShogiBoardQ.ini").write_text(
         "[General]\nmainWindowSize=@Size(1400 1000)\n", encoding="utf-8")
     env.update(SHOGIBOARDQ_EXECUTABLE=str(app_path), SHOGIBOARDQ_QUIT_APP_ON_EXIT="1",
-               XDG_CONFIG_HOME=str(config.parent), XDG_DATA_HOME=str(tmp_path / "data"),
+               XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_CONFIG_HOME=str(config.parent),
+               XDG_DATA_HOME=str(tmp_path / "data"), SHOGIBOARDQ_DATA_HOME=str(tmp_path / "data"),
                SHOGIBOARDQ_AUTOMATION_SOCKET=str(tmp_path / "app.sock"))
     return env
 

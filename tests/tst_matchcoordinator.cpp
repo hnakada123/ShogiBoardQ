@@ -103,6 +103,7 @@ private slots:
     void initTestCase() {
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
     // === Section A: 初期状態 ===
     void initialState_playModeIsNotStarted();

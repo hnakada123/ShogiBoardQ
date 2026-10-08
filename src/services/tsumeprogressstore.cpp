@@ -1,18 +1,18 @@
 #include "tsumeprogressstore.h"
 #include "tsumecollection.h"
+#include "apppaths.h"
 #include <QDateTime>
 #include <QDir>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSqlError>
 #include <QSqlQuery>
-#include <QStandardPaths>
 #include <QUuid>
 #include <algorithm>
 
 TsumeProgressStore::TsumeProgressStore(const QString& dataDirectory, const QString& cacheDirectory)
-    : m_dataDirectory(dataDirectory.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) : dataDirectory)
-    , m_cacheDirectory(cacheDirectory.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::CacheLocation) : cacheDirectory)
+    : m_dataDirectory(dataDirectory.isEmpty() ? AppPaths::dataDirectory() : dataDirectory)
+    , m_cacheDirectory(cacheDirectory.isEmpty() ? AppPaths::cacheDirectory() : cacheDirectory)
 {
     const QString suffix = QUuid::createUuid().toString(QUuid::WithoutBraces);
     m_progress = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), QStringLiteral("tsume-progress-") + suffix);

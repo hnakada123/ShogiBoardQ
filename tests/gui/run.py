@@ -13,6 +13,10 @@ env = os.environ.copy()
 env.update(XDG_CONFIG_HOME=str(audit / 'config'),
            XDG_DATA_HOME=str(audit / 'data'),
            XDG_CACHE_HOME=str(audit / 'cache'), QT_QPA_PLATFORM='xcb')
+# Qt は macOS・Windows で XDG_* を見ないため、アプリ自身の変数でも隔離する
+env.update(SHOGIBOARDQ_CONFIG_HOME=env['XDG_CONFIG_HOME'],
+           SHOGIBOARDQ_DATA_HOME=env['XDG_DATA_HOME'],
+           SHOGIBOARDQ_CACHE_HOME=env['XDG_CACHE_HOME'])
 names = sys.argv[1:] or [s.removesuffix('()') for s in subprocess.check_output(
     [str(audit / 'test-build/tst_gui_functional'), '-functions'], env=env, text=True).splitlines()
     if s.endswith('()')]

@@ -52,6 +52,7 @@ private slots:
     {
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
         QCoreApplication::setApplicationName(QStringLiteral("evaluationchart-test"));
         QCoreApplication::setOrganizationName(QStringLiteral("ShogiBoardQ-tests"));
     }

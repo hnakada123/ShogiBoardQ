@@ -4,7 +4,7 @@
 #include "settingscommon.h"
 #include <QSettings>
 #include <QDir>
-#include <QStandardPaths>
+#include "apppaths.h"
 
 namespace SettingsCommon {
 
@@ -14,7 +14,7 @@ QString settingsFilePath()
 {
     static QString path;
     if (path.isEmpty()) {
-        const QString configDir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+        const QString configDir = AppPaths::configDirectory();
         QDir().mkpath(configDir);
         path = configDir + "/" + kIniName;
     }
