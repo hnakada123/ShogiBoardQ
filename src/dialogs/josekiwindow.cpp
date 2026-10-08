@@ -222,6 +222,16 @@ void JosekiWindow::setCurrentSfen(const QString &sfen)
     updateJosekiDisplay();
 }
 
+void JosekiWindow::setHumanCanPlayProvider(std::function<bool()> provider)
+{
+    m_humanCanPlayProvider = std::move(provider);
+}
+
+void JosekiWindow::refreshHumanCanPlay()
+{
+    if (m_humanCanPlayProvider) m_humanCanPlay = m_humanCanPlayProvider();
+}
+
 void JosekiWindow::setHumanCanPlay(bool canPlay)
 {
     if (m_humanCanPlay != canPlay) { m_humanCanPlay = canPlay; updateJosekiDisplay(); }
@@ -408,8 +418,9 @@ void JosekiWindow::onMoveResult(bool success, const QString &usiMove)
 void JosekiWindow::onTableDoubleClicked(int row, int column)
 {
     Q_UNUSED(column);
+    refreshHumanCanPlay();
     if (!m_humanCanPlay) {
-        QMessageBox::information(this, tr("情報"), tr("定跡手は、対局中に自分の手番で指せます。"));
+        QMessageBox::information(this, tr("情報"), tr("定跡手は、対局中の自分の手番か、対局していないときに指せます。"));
         return;
     }
     if (row >= 0 && row < m_currentMoves.size())
@@ -423,6 +434,7 @@ void JosekiWindow::onTableContextMenu(const QPoint &pos)
     if (!index.isValid()) return;
     int row = index.row();
     if (row < 0 || row >= m_currentMoves.size()) return;
+    refreshHumanCanPlay();
     m_actionPlay->setEnabled(m_humanCanPlay);
     m_tableWidget->selectRow(row);
     m_tableContextMenu->exec(m_tableWidget->viewport()->mapToGlobal(pos));
@@ -432,8 +444,9 @@ void JosekiWindow::onContextMenuPlay()
 {
     int row = m_tableWidget->currentRow();
     if (row < 0 || row >= m_currentMoves.size()) return;
+    refreshHumanCanPlay();
     if (!m_humanCanPlay) {
-        QMessageBox::information(this, tr("情報"), tr("定跡手は、対局中に自分の手番で指せます。"));
+        QMessageBox::information(this, tr("情報"), tr("定跡手は、対局中の自分の手番か、対局していないときに指せます。"));
         return;
     }
     emit josekiMoveSelected(m_currentMoves[row].move);

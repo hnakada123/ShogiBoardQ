@@ -375,6 +375,7 @@ void JosekiWindow::saveSettings()
 void JosekiWindow::updateJosekiDisplay()
 {
     qCDebug(lcUi) << "updateJosekiDisplay() called";
+    refreshHumanCanPlay();
 
     if (m_pendingAutoLoad && !m_pendingAutoLoadPath.isEmpty()) {
         m_pendingAutoLoad = false;

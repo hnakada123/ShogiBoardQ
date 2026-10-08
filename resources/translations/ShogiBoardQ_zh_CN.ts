@@ -975,32 +975,32 @@
 <context>
     <name>BranchTreeEditController</name>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="107"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="114"/>
         <source>この手順を本譜にする</source>
         <translation>将此变化设为主线</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="108"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="115"/>
         <source>変化を上へ移動する</source>
         <translation>上移变化</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="109"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="116"/>
         <source>変化を下へ移動する</source>
         <translation>下移变化</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="110"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="117"/>
         <source>この手以降を削除する…</source>
         <translation>删除此着及之后的着法…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="138"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="145"/>
         <source>手順の削除</source>
         <translation>删除着法</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="139"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="146"/>
         <source>「%1」以降の %2 手を削除します。この操作は取り消せません。
 削除しますか？</source>
         <translation>将删除“%1”及之后的 %2 步。此操作无法撤销。
@@ -1010,52 +1010,52 @@
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="212"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="158"/>
         <source>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</source>
         <translation>&lt;p&gt;（双击展开）&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="513"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="461"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="311"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="259"/>
         <source>開始局面</source>
         <translation>初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="580"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="125"/>
         <source>この変化を展開する</source>
         <translation>展开此变化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="581"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="126"/>
         <source>この変化を折りたたむ</source>
         <translation>折叠此变化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="585"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="130"/>
         <source>すべての変化を展開する</source>
         <translation>展开所有变化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="587"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="132"/>
         <source>変化を詰めて表示する</source>
         <translation>紧凑显示变化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="591"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="136"/>
         <source>拡大</source>
         <translation>放大</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="593"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="138"/>
         <source>縮小</source>
         <translation>缩小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="595"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="140"/>
         <source>標準の大きさ（100%）</source>
         <translation>标准大小（100%）</translation>
     </message>
@@ -3970,7 +3970,7 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation>从棋谱文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="378"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="388"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="155"/>
         <source>■ 停止</source>
         <translation>■ 停止</translation>
@@ -4020,7 +4020,7 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
     <message>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="213"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="258"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="427"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="428"/>
         <source>着手</source>
         <translation>执行</translation>
     </message>
@@ -4036,14 +4036,14 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="213"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="446"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="447"/>
         <source>編集</source>
         <translation>编辑</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="214"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="261"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="448"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="449"/>
         <source>削除</source>
         <translation>删除</translation>
     </message>
@@ -4116,23 +4116,23 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="399"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="400"/>
         <source>定跡: (該当なし)</source>
         <translation>定跡：（无匹配）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="409"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="410"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="411"/>
         <source>定跡SFEN: %1</source>
         <translation>定跡 SFEN：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="434"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="435"/>
         <source>ダブルクリックで着手</source>
         <translation>双击执行着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="381"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="391"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="347"/>
         <source>▶ 再開</source>
         <translation>▶ 恢复</translation>
@@ -4168,12 +4168,12 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation>定跡：%1 条</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="397"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="407"/>
         <source>着手エラー</source>
         <translation>着法错误</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="398"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="408"/>
         <source>定跡手「%1」を指すことができませんでした。
 
 この定跡手は現在の局面では合法手ではない可能性があります。
@@ -4204,7 +4204,7 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation>未保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="336"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="346"/>
         <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="144"/>
         <source>確認</source>
         <translation>确认</translation>
@@ -4246,41 +4246,47 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation>未找到文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="280"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="290"/>
         <source>削除する</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="313"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="323"/>
         <source>定跡手追加</source>
         <translation>添加定跡着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="314"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="324"/>
         <source>局面が設定されていません。
 将棋盤で局面を表示してから定跡手を追加してください。</source>
         <translation>尚未设置局面。
 请先在棋盘上显示局面，再添加定跡着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="337"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="347"/>
         <source>指し手「%1」は既に登録されています。
 上書きしますか？</source>
         <translation>着法“%1”已注册。
 覆盖吗？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="339"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="349"/>
         <source>上書きする</source>
         <translation>覆盖</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="279"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="423"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="449"/>
+        <source>定跡手は、対局中の自分の手番か、対局していないときに指せます。</source>
+        <translation>定跡着法可在对局中轮到自己时，或不在对局中时执行。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="289"/>
         <source>削除確認</source>
         <translation>确认删除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="280"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="290"/>
         <source>定跡手「%1」を削除しますか？</source>
         <translation>删除定跡着法“%1”吗？</translation>
     </message>
@@ -4312,20 +4318,14 @@ OKを選択すると保存先が指定できます。</source>
         <translation>正在保存...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="412"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="436"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="423"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="449"/>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="30"/>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="35"/>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="64"/>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="70"/>
         <source>情報</source>
         <translation>信息</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="412"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="436"/>
-        <source>定跡手は、対局中に自分の手番で指せます。</source>
-        <translation>定跡着法只能在对局中轮到自己时执行。</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="30"/>
@@ -4432,7 +4432,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">当前轮到引擎行棋，无法执行着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="451"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="464"/>
         <source>「%1」をコピーしました</source>
         <translation>已复制“%1”</translation>
     </message>
