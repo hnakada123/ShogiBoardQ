@@ -89,7 +89,7 @@
 <tr><td><strong>KIF</strong></td><td>.kif .kifu</td><td>The standard Kifu for Windows format, recording move numbers, moves, and time spent</td></tr>
 <tr><td><strong>KI2</strong></td><td>.ki2 .ki2u</td><td>A compact KIF format that records moves horizontally</td></tr>
 <tr><td><strong>CSA</strong></td><td>.csa</td><td>The Computer Shogi Association's standard format, using coordinate notation</td></tr>
-<tr><td><strong>JKF</strong></td><td>.jkf</td><td>A JSON game record format that represents variations in a JSON structure</td></tr>
+<tr><td><strong>JKF</strong></td><td>.jkf .json</td><td>A JSON game record format that represents variations in a JSON structure (for .json files and files with an unfamiliar extension, the format is detected from the content)</td></tr>
 <tr><td><strong>USI / SFEN</strong></td><td>.usi .sfen</td><td>A USI move sequence or an SFEN position without moves</td></tr>
 <tr><td><strong>USEN</strong></td><td>.usen</td><td>USEN compression for compact game record encoding</td></tr>
 </tbody>
@@ -215,7 +215,7 @@ T2</code></pre>
 <tr><td>USI Format</td><td>.usi</td><td>UTF-8</td></tr>
 </tbody>
 </table>
-<p class="guide-step-text">KIF, KI2, JKF, and USEN can save variations. CSA and USI save only the main line; KI2 does not save time spent. USI and USEN omit player names, comments, and time spent, and USEN supports only a limited set of game results. Converting CSA times to KIF or JKF discards fractions of a second.</p>
+<p class="guide-step-text">KIF, KI2, JKF, and USEN can save variations. CSA and USI save only the main line; KI2 does not save time spent. USI and USEN omit player names, comments, and time spent, and USEN supports only a limited set of game results. Converting CSA times to KIF or JKF discards fractions of a second. Saving a record with time spent in USEN asks for confirmation and lists what will not be saved. Copying a record with variations in CSA or USI format shows in the status bar that only the main line was copied.</p>
 <p class="guide-step-text">When saving to .kif or .ki2 (Shift_JIS), if player names or comments contain characters that Shift_JIS cannot represent (such as some Simplified or Traditional Chinese characters or emoji), ShogiBoardQ shows those characters and asks whether to save as UTF-8. A file saved as UTF-8 records "encoding=UTF-8" on its first line. To always save as UTF-8, choose .kifu or .ki2u.</p>
 <p class="guide-step-text">For CSA files containing multiple games separated by a line with “/”, only the first game is loaded.</p>
 <p class="guide-step-text">Trailing game-result tokens in USI records are extensions for saving records. They are not part of the USI “position” command used to communicate with engines.</p>

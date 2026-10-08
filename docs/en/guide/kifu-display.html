@@ -186,6 +186,48 @@
                 </div>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Reading and Using the Branch Tree</span>
+                </div>
+                <p class="guide-step-text">The branch tree packs variations into free rows. Variations that start from the same move are joined by a vertical line, and the line from the starting position to the current move is drawn in blue. Turn off Compact layout in the right-click menu to give every variation its own row.</p>
+                <p class="guide-step-text">The “Move n” headers at the top stay visible when you scroll vertically. Moves with a comment have a blue dot in the top-right corner, and hovering over a move shows the move and the beginning of its comment.</p>
+                <p class="guide-step-text">Right-click a move in a variation and choose Collapse this variation to keep only its first move and hide the rest of the line and the variations that branch from it; the number of hidden moves is shown as “▸ +n”. Double-click the first move or choose Expand this variation to show it again (Expand all variations is also available). Going to a hidden move expands it automatically.</p>
+                <p class="guide-step-text">After clicking the branch tree, use Left and Right to step through the moves, Up and Down to go to the move above or below at the same move number, and Home and End to go to the starting position or the last move of the line. Change the size with Ctrl+wheel (⌘+wheel on macOS), a trackpad pinch, or Zoom in, Zoom out and Actual size (100%) in the right-click menu. The size and the layout setting are kept for next time.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/kifu-display/kifu-display-06-branch-tree.png" alt="Branch tree">
+                    <p class="screenshot-caption">Branch tree: variations packed into free rows, the path to the current move in blue, and blue dots on moves with comments</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">Edit Variations</span>
+                </div>
+                <p class="guide-step-text">Right-click a move in the branch tree or in the Variations list for these operations. Editing marks the game record as unsaved. They are not available during a game.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>Menu</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Make this line the main line</td><td>Makes the line from the starting position to that move the main line</td></tr>
+                        <tr><td>Move variation up / Move variation down</td><td>Changes the order of the variations that start from the same move (the top one is on the main-line side)</td></tr>
+                        <tr><td>Delete from this move…</td><td>Deletes the move, the rest of its line and the variations that branch from it (after a confirmation; this cannot be undone)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">Add a Variation by Moving a Piece</span>
+                </div>
+                <p class="guide-step-text">When no game is in progress, moving a piece on the board records the move as the next move after the one shown. If the same move already exists, it simply goes to that move; otherwise it becomes a new variation. You are asked whether to promote. When a game-ending move such as a resignation is shown, the move is played from the position just before it.</p>
+                <p class="guide-step-text">The Play button in the <a href="joseki.html">Joseki</a> window records moves the same way. Added moves are saved like any other variation.</p>
+            </div>
+
         </div>
     </div>
 </section>

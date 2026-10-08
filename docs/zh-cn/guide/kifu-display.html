@@ -186,6 +186,48 @@
                 </div>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">变化树的查看与操作</span>
+                </div>
+                <p class="guide-step-text">变化树会把变化紧凑地排列在空着的行中。从同一着分出的变化用竖线相连，从开始局面到当前着法的线以蓝色显示。在右键菜单中取消“紧凑显示变化”，则每个变化各占一行。</p>
+                <p class="guide-step-text">上方的“第 n 手”标题在纵向滚动时也会一直显示。有注释的着法右上角带有蓝色圆点，鼠标停在着法上会显示该着法和注释的开头部分。</p>
+                <p class="guide-step-text">右键点击变化中的着法并选择“折叠此变化”，只保留该变化的第一手，隐藏后续着法和从中分出的变化，并以“▸ +n”显示被隐藏的手数。双击第一手或选择“展开此变化”即可恢复（也可选择“展开所有变化”）。移动到被隐藏的着法时会自动展开。</p>
+                <p class="guide-step-text">点击变化树后，可用←→键前后移动，用↑↓键移动到同一手数上下的着法，用 Home／End 键移动到开始局面／该变化的最后一手。可用 Ctrl＋滚轮（macOS 为 ⌘＋滚轮）、触控板双指缩放，或右键菜单的“放大”“缩小”“标准大小（100%）”调整显示大小。显示大小和是否紧凑显示会保留到下次。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/kifu-display/kifu-display-06-branch-tree.png" alt="变化树">
+                    <p class="screenshot-caption">变化树：紧凑显示变化，以蓝色显示到当前着法的路径，有注释的着法带蓝色圆点</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">编辑变化</span>
+                </div>
+                <p class="guide-step-text">右键点击变化树中的着法或候选变化中的着法，可以进行以下操作。编辑后棋谱会变为未保存状态。对局中无法使用。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>菜单</th><th>作用</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>将此变化设为主线</td><td>将从开始局面到该着的着法设为主线</td></tr>
+                        <tr><td>上移变化／下移变化</td><td>调整从同一着分出的变化的顺序（最上面的一方为主线一侧）</td></tr>
+                        <tr><td>删除此着及之后的着法…</td><td>删除该着及其后续着法和从中分出的变化（会先确认，无法撤销）</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">在棋盘上走子添加变化</span>
+                </div>
+                <p class="guide-step-text">不在对局中时，在棋盘上移动棋子，这一着会作为当前着法的下一着记录到棋谱中。已有相同的着法时只会移动到该着，不同的着法则成为新的变化。升变与否会进行确认。显示认输等终局着法时，视为从其前一个局面走出的着法。</p>
+                <p class="guide-step-text"><a href="joseki.html">定跡</a>窗口的“执行”也会以同样方式记录。添加的着法可以和其他变化一样保存。</p>
+            </div>
+
         </div>
     </div>
 </section>

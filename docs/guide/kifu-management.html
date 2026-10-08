@@ -92,7 +92,7 @@
                         <tr><td><strong>KIF</strong></td><td>.kif .kifu</td><td>Kifu for Windows 標準形式。手数・指し手・消費時間を記録</td></tr>
                         <tr><td><strong>KI2</strong></td><td>.ki2 .ki2u</td><td>KIF簡易形式。指し手のみを横並びで記録</td></tr>
                         <tr><td><strong>CSA</strong></td><td>.csa</td><td>コンピュータ将棋協会の標準形式。座標表記で記録</td></tr>
-                        <tr><td><strong>JKF</strong></td><td>.jkf</td><td>JSON棋譜フォーマット。分岐棋譜をJSON構造で表現</td></tr>
+                        <tr><td><strong>JKF</strong></td><td>.jkf .json</td><td>JSON棋譜フォーマット。分岐棋譜をJSON構造で表現（.json や拡張子から分からないファイルは内容で形式を判定）</td></tr>
                         <tr><td><strong>USI / SFEN</strong></td><td>.usi .sfen</td><td>USIの指し手列、またはSFENの局面のみを読み込み</td></tr>
                         <tr><td><strong>USEN</strong></td><td>.usen</td><td>USEN圧縮形式。棋譜をコンパクトにエンコード</td></tr>
                     </tbody>
@@ -226,7 +226,7 @@ T2</code></pre>
                         <tr><td>USI形式</td><td>.usi</td><td>UTF-8</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">KIF・KI2・JKF・USENでは分岐を保存できます。CSA・USIは本譜のみ、KI2は消費時間を保存しません。USI・USENは対局者名・コメント・消費時間を保存せず、USENで表現できる終局理由にも制限があります。CSAのミリ秒単位の消費時間をKIF・JKFへ変換する場合は秒未満を切り捨てます。</p>
+                <p class="guide-step-text">KIF・KI2・JKF・USENでは分岐を保存できます。CSA・USIは本譜のみ、KI2は消費時間を保存しません。USI・USENは対局者名・コメント・消費時間を保存せず、USENで表現できる終局理由にも制限があります。CSAのミリ秒単位の消費時間をKIF・JKFへ変換する場合は秒未満を切り捨てます。消費時間のある棋譜をUSENで保存するときは、保存されない情報を知らせる確認が表示されます。分岐のある棋譜をCSA・USI形式でコピーしたときは、本譜のみであることがステータスバーに表示されます。</p>
                 <p class="guide-step-text">.kif・.ki2（Shift_JIS）に保存するとき、対局者名やコメントにShift_JISで表せない文字（中国語の簡体字・繁体字の一部や絵文字など）があると、その文字を示して「UTF-8で保存」するか確認します。UTF-8で保存した場合は、ファイルの先頭行に「encoding=UTF-8」を記録します。常にUTF-8で保存するには.kifu・.ki2uを選んでください。</p>
                 <p class="guide-step-text">CSAファイルに「/」で区切られた複数の棋譜がある場合は、先頭の棋譜のみを読み込みます。</p>
                 <p class="guide-step-text">USI形式の棋譜で末尾に付く終局コードは、棋譜保存用の拡張です。エンジン通信用のUSI「position」コマンドの仕様には含まれません。</p>
