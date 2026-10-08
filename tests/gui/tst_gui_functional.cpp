@@ -2323,6 +2323,53 @@ private slots:
         QCOMPARE(reopened.findChild<QPlainTextEdit*>("kifuPasteText")->font().pointSize(), 10);
         if (english) qApp->removeTranslator(&translator);
     }
+    void evaluationGraphNavigation()
+    {
+        auto* graph = window->evalChart();
+        QVERIFY(graph);
+        for (auto* dock : window->findChildren<QDockWidget*>()) {
+            if (dock->widget() == graph) { dock->show(); dock->raise(); }
+        }
+        QTest::qWait(50);
+        const QList<QPushButton*> buttons = {graph->firstButton(), graph->back10Button(), graph->prevButton(),
+                                             graph->nextButton(), graph->fwd10Button(), graph->lastButton()};
+        for (auto* button : buttons) QVERIFY(button->isVisible());
+
+        // 対局中は棋譜欄の矢印ボタンと同じく押せない。
+        armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
+        QVERIFY(record()->isNavigationDisabled());
+        for (auto* button : buttons) QVERIFY(!button->isEnabled());
+        armDialog("yes"); click("actionBreakOffGame");
+        QTRY_VERIFY(!record()->isNavigationDisabled());
+        for (auto* button : buttons) QVERIFY(button->isEnabled());
+        armDialog("discard"); click("actionNewGame");
+
+        // 棋譜欄のボタンと同じく、盤面・棋譜欄・グラフの現在手を移動する。
+        sampleGame();
+        auto* recordView = record()->kifuView();
+        const auto expect = [&](int row) {
+            QCOMPARE(recordView->currentIndex().row(), row);
+            QCOMPARE(graph->currentPly(), row);
+        };
+        QTest::mouseClick(graph->lastButton(), Qt::LeftButton);
+        expect(4);
+        const QString last = boardSfen(); QVERIFY(last != initial);
+        QTest::mouseClick(graph->firstButton(), Qt::LeftButton);
+        expect(0); QCOMPARE(boardSfen(), initial);
+        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        expect(1);
+        QCOMPARE(boardSfen(), QString("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL"));
+        QTest::mouseClick(graph->fwd10Button(), Qt::LeftButton);
+        expect(4); QCOMPARE(boardSfen(), last);
+        QTest::mouseClick(graph->prevButton(), Qt::LeftButton);
+        expect(3);
+        QTest::mouseClick(graph->back10Button(), Qt::LeftButton);
+        expect(0); QCOMPARE(boardSfen(), initial);
+        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        expect(2);
+        snapshot("evaluation-graph-navigation");
+    }
     void pasteNavigation()
     {
         sampleGame();

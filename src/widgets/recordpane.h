@@ -46,6 +46,8 @@ signals:
     /// 分岐候補欄の右クリック（row は候補の行、行が無ければ -1）
     void branchContextMenuRequested(int row, const QPoint& globalPos);
     void bookmarkEditRequested();
+    /// 矢印ボタンの有効/無効を切り替えた（評価値グラフのナビゲーションボタンも合わせる）
+    void arrowButtonsEnabledChanged(bool on);
 
 private:
     void buildUi();

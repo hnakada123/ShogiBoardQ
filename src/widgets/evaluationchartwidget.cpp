@@ -3,13 +3,17 @@
 #include "evaluationchartwidget.h"
 #include "evaluationchartconfigurator.h"
 #include "evaluationchartview.h"
+#include "buttonstyles.h"
 
 #include <QChart>
 #include <QLineSeries>
 #include <QValueAxis>
+#include <QGridLayout>
+#include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QFontMetrics>
 #include <QMouseEvent>
+#include <QPushButton>
 #include <QTimer>
 
 EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
@@ -40,7 +44,16 @@ EvaluationChartWidget::~EvaluationChartWidget()
 void EvaluationChartWidget::changeEvent(QEvent* event)
 {
     QWidget::changeEvent(event);
-    if (event->type() == QEvent::FontChange && m_flushTimer) applyFontSize();
+    if (event->type() == QEvent::FontChange && m_flushTimer) {
+        applyFontSize();
+        updateNavigationPlacement();
+    }
+}
+
+void EvaluationChartWidget::resizeEvent(QResizeEvent* event)
+{
+    QWidget::resizeEvent(event);
+    updateNavigationPlacement();
 }
 
 void EvaluationChartWidget::setupAxes()
@@ -103,7 +116,7 @@ void EvaluationChartWidget::setupChartViewAndLayout()
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    layout->addWidget(m_configurator->createControlPanel(this));
+    layout->addWidget(createToolbar());
     layout->addWidget(m_chartView, 1);
     setMinimumSize(320, 230);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -115,6 +128,78 @@ void EvaluationChartWidget::setupChartViewAndLayout()
             this, &EvaluationChartWidget::applyFontSize);
     connect(m_chart, &QChart::plotAreaChanged, this, &EvaluationChartWidget::onPlotAreaChanged);
 }
+
+QWidget* EvaluationChartWidget::createToolbar()
+{
+    auto* toolbar = new QWidget(this);
+    m_toolbarLayout = new QGridLayout(toolbar);
+    m_toolbarLayout->setContentsMargins(12, 4, 12, 4);
+    m_toolbarLayout->setHorizontalSpacing(8);
+    m_toolbarLayout->setVerticalSpacing(4);
+    // 左右の列を同じ幅にして、ナビゲーションボタンを中央に置く。
+    m_toolbarLayout->setColumnStretch(0, 1);
+    m_toolbarLayout->setColumnStretch(2, 1);
+    m_rangeSelector = m_configurator->createRangeSelector(toolbar);
+    m_settingsButton = m_configurator->createSettingsButton(toolbar);
+    m_toolbarLayout->addWidget(m_rangeSelector, 0, 0, Qt::AlignLeft);
+    m_toolbarLayout->addWidget(createNavigationBar(toolbar), 0, 1);
+    m_toolbarLayout->addWidget(m_settingsButton, 0, 2, Qt::AlignRight);
+    return toolbar;
+}
+
+QWidget* EvaluationChartWidget::createNavigationBar(QWidget* parentWidget)
+{
+    struct Spec {
+        const char* objectName;
+        QString text;
+        QString toolTip;
+    };
+    // 横軸が手数なので ◀▶ で向きを表す。⏮⏭ は多くの日本語フォントに無いため、
+    // 読み筋の盤面と同じく ◀▶ と縦棒を組み合わせて記号の大きさを揃える。
+    const Spec specs[NavButtonCount] = {
+        {"evalNavFirst", QStringLiteral("|◀"), tr("最初に戻る")},
+        {"evalNavBack10", QStringLiteral("◀◀"), tr("10手戻る")},
+        {"evalNavPrev", QStringLiteral("◀"), tr("1手戻る")},
+        {"evalNavNext", QStringLiteral("▶"), tr("1手進む")},
+        {"evalNavFwd10", QStringLiteral("▶▶"), tr("10手進む")},
+        {"evalNavLast", QStringLiteral("▶|"), tr("最後に進む")},
+    };
+    m_navBar = new QWidget(parentWidget);
+    m_navBar->setObjectName(QStringLiteral("evalNavigation"));
+    auto* layout = new QHBoxLayout(m_navBar);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(3);
+    const QString style = ButtonStyles::panelToolButton();
+    for (int i = 0; i < NavButtonCount; ++i) {
+        auto* button = new QPushButton(specs[i].text, m_navBar);
+        button->setObjectName(QString::fromLatin1(specs[i].objectName));
+        button->setToolTip(specs[i].toolTip);
+        button->setAccessibleName(specs[i].toolTip);
+        button->setStyleSheet(style);
+        button->setFixedSize(36, 24);
+        layout->addWidget(button);
+        m_navButtons[i] = button;
+    }
+    return m_navBar;
+}
+
+void EvaluationChartWidget::updateNavigationPlacement()
+{
+    if (!m_toolbarLayout) return;
+    // 表示範囲・表示設定と同じ行に収まらない幅では、ボタンを2行目の中央に回す。
+    const QMargins margins = m_toolbarLayout->contentsMargins();
+    const int inlineWidth = margins.left() + margins.right() + 2 * m_toolbarLayout->horizontalSpacing()
+        + m_rangeSelector->sizeHint().width() + m_navBar->sizeHint().width()
+        + m_settingsButton->sizeHint().width();
+    const bool wrapped = width() < inlineWidth;
+    if (wrapped == m_navBarWrapped) return;
+    m_navBarWrapped = wrapped;
+    m_toolbarLayout->removeWidget(m_navBar);
+    if (wrapped) m_toolbarLayout->addWidget(m_navBar, 1, 0, 1, 3, Qt::AlignHCenter);
+    else m_toolbarLayout->addWidget(m_navBar, 0, 1);
+}
+
+void EvaluationChartWidget::setNavigationEnabled(bool on) { m_navBar->setEnabled(on); }
 
 QWidget* EvaluationChartWidget::chartViewWidget() const { return m_chartView; }
 int EvaluationChartWidget::yAxisLimit() const { return m_configurator->yAxisLimit(); }

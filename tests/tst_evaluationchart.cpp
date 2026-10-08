@@ -236,6 +236,53 @@ private slots:
         QVERIFY(chartView->summary.contains(QStringLiteral("評価値なし")));
     }
 
+    void navigationButtons()
+    {
+        EvaluationChartWidget widget;
+        widget.resize(1000, 400);
+        widget.show();
+        QTest::qWait(30);
+        const QList<QPushButton*> buttons = {widget.firstButton(), widget.back10Button(), widget.prevButton(),
+                                             widget.nextButton(), widget.fwd10Button(), widget.lastButton()};
+        const QStringList tips = {QStringLiteral("最初に戻る"), QStringLiteral("10手戻る"), QStringLiteral("1手戻る"),
+                                  QStringLiteral("1手進む"), QStringLiteral("10手進む"), QStringLiteral("最後に進む")};
+        auto* settings = widget.findChild<QPushButton*>(QStringLiteral("evalDisplaySettings"));
+        auto* range = widget.findChild<QComboBox*>(QStringLiteral("evalRangeMode"));
+        QVERIFY(settings && range);
+        const auto rect = [&widget](QWidget* child) { return QRect(child->mapTo(&widget, QPoint()), child->size()); };
+        for (qsizetype i = 0; i < buttons.size(); ++i) {
+            QVERIFY(buttons[i] && buttons[i]->isVisible());
+            QCOMPARE(buttons[i]->toolTip(), tips[i]);
+            if (i > 0) QVERIFY(rect(buttons[i - 1]).right() < rect(buttons[i]).left());
+        }
+        // 横長では表示範囲・表示設定と同じ行の中央に並べる。
+        const QRect first = rect(buttons.first());
+        const QRect last = rect(buttons.last());
+        QVERIFY(qAbs(first.center().y() - rect(settings).center().y()) <= 1);
+        QVERIFY(rect(range).right() < first.left());
+        QVERIFY(last.right() < rect(settings).left());
+        QVERIFY(qAbs((first.left() + last.right()) / 2 - widget.width() / 2) <= 2);
+        const int wideChartTop = rect(widget.chartViewWidget()).top();
+
+        // 幅が足りないときは2行目の中央に回し、どのボタンも欠けない。
+        widget.resize(340, 300);
+        QTest::qWait(30);
+        QVERIFY(rect(buttons.first()).top() > rect(settings).bottom());
+        QVERIFY(rect(buttons.first()).top() > rect(range).bottom());
+        for (auto* button : buttons) QVERIFY(widget.rect().contains(rect(button)));
+        QVERIFY(qAbs((rect(buttons.first()).left() + rect(buttons.last()).right()) / 2 - widget.width() / 2) <= 2);
+        QVERIFY(rect(widget.chartViewWidget()).top() > rect(buttons.first()).bottom());
+        widget.resize(1000, 400);
+        QTest::qWait(30);
+        QCOMPARE(rect(widget.chartViewWidget()).top(), wideChartTop);
+
+        // 棋譜欄の矢印ボタンと同じく、対局中などは無効にできる。
+        widget.setNavigationEnabled(false);
+        for (auto* button : buttons) QVERIFY(!button->isEnabled());
+        widget.setNavigationEnabled(true);
+        for (auto* button : buttons) QVERIFY(button->isEnabled());
+    }
+
     void analysisNavigationKeepsSourceLineUntilCleared()
     {
         EvaluationChartWidget widget;

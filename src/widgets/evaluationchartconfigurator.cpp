@@ -40,28 +40,32 @@ QSpinBox* spinBox(QWidget* parent, const char* name, int min, int max, int value
 
 EvaluationChartConfigurator::EvaluationChartConfigurator(QObject* parent) : QObject(parent) {}
 
-QWidget* EvaluationChartConfigurator::createControlPanel(QWidget* parentWidget)
+QWidget* EvaluationChartConfigurator::createRangeSelector(QWidget* parentWidget)
 {
-    m_panel = new QWidget(parentWidget);
-    auto* layout = new QHBoxLayout(m_panel);
-    layout->setContentsMargins(12, 4, 12, 4);
+    auto* selector = new QWidget(parentWidget);
+    auto* layout = new QHBoxLayout(selector);
+    layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(8);
-    auto* label = new QLabel(tr("表示範囲:"), m_panel);
-    m_mode = new QComboBox(m_panel);
+    auto* label = new QLabel(tr("表示範囲:"), selector);
+    m_mode = new QComboBox(selector);
     m_mode->setObjectName(QStringLiteral("evalRangeMode"));
     m_mode->addItems({tr("自動"), tr("手動固定")});
     m_mode->setCurrentIndex(m_automatic ? 0 : 1);
     label->setBuddy(m_mode);
-    auto* settings = new QPushButton(tr("表示設定…"), m_panel);
-    settings->setObjectName(QStringLiteral("evalDisplaySettings"));
     layout->addWidget(label);
     layout->addWidget(m_mode);
-    layout->addStretch();
-    layout->addWidget(settings);
     connect(m_mode, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &EvaluationChartConfigurator::onRangeModeChanged);
+    return selector;
+}
+
+QPushButton* EvaluationChartConfigurator::createSettingsButton(QWidget* parentWidget)
+{
+    auto* settings = new QPushButton(tr("表示設定…"), parentWidget);
+    settings->setObjectName(QStringLiteral("evalDisplaySettings"));
+    m_dialogParent = settings;
     connect(settings, &QPushButton::clicked, this, &EvaluationChartConfigurator::showSettings);
-    return m_panel;
+    return settings;
 }
 
 void EvaluationChartConfigurator::loadSettings()
@@ -177,7 +181,7 @@ void EvaluationChartConfigurator::updatePlotSize(const QSizeF& size)
 
 void EvaluationChartConfigurator::showSettings()
 {
-    QDialog dialog(m_panel);
+    QDialog dialog(m_dialogParent);
     dialog.setObjectName(QStringLiteral("evalChartSettings"));
     dialog.setWindowTitle(tr("評価値グラフの表示設定"));
     auto* layout = new QVBoxLayout(&dialog);

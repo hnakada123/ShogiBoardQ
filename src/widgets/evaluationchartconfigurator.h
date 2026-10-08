@@ -6,6 +6,7 @@
 
 class QWidget;
 class QComboBox;
+class QPushButton;
 
 /// 表示範囲・目盛り・文字サイズの設定と永続化。手動設定と自動計算値を分離する。
 class EvaluationChartConfigurator : public QObject
@@ -13,7 +14,10 @@ class EvaluationChartConfigurator : public QObject
     Q_OBJECT
 public:
     explicit EvaluationChartConfigurator(QObject* parent = nullptr);
-    QWidget* createControlPanel(QWidget* parentWidget);
+    /// 「表示範囲:」のラベルと選択欄をまとめたウィジェットを作る
+    QWidget* createRangeSelector(QWidget* parentWidget);
+    /// 表示設定ダイアログを開くボタンを作る
+    QPushButton* createSettingsButton(QWidget* parentWidget);
     void saveSettings();
     void loadSettings();
 
@@ -58,7 +62,7 @@ private:
     bool m_automatic = true;
     QSizeF m_plotSize{800, 240};
     QComboBox* m_mode = nullptr; // 親ウィジェット所有
-    QWidget* m_panel = nullptr; // 親ウィジェット所有
+    QWidget* m_dialogParent = nullptr; // 親ウィジェット所有
 };
 
 #endif

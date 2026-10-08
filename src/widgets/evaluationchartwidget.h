@@ -11,6 +11,8 @@ class QValueAxis;
 class EvaluationChartView;
 class QLabel;
 class QTimer;
+class QGridLayout;
+class QPushButton;
 class EvaluationChartConfigurator;
 
 class EvaluationChartWidget : public QWidget
@@ -52,6 +54,14 @@ public:
     void setAnalysisLineIndex(int lineIndex);
     int currentPly() const { return m_currentPly; }
 
+    // 棋譜欄と同じ6つのナビゲーションボタン（KifuNavigationController に接続する）
+    QPushButton* firstButton() const { return m_navButtons[NavFirst]; }
+    QPushButton* back10Button() const { return m_navButtons[NavBack10]; }
+    QPushButton* prevButton() const { return m_navButtons[NavPrev]; }
+    QPushButton* nextButton() const { return m_navButtons[NavNext]; }
+    QPushButton* fwd10Button() const { return m_navButtons[NavFwd10]; }
+    QPushButton* lastButton() const { return m_navButtons[NavLast]; }
+
 signals:
     void yAxisSettingsChanged(int limit, int interval);
     void xAxisSettingsChanged(int limit, int interval);
@@ -60,10 +70,13 @@ signals:
 
 protected:
     void changeEvent(QEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 public slots:
     void setFloating(bool floating);
+    /// ナビゲーションボタンの有効/無効を切り替える（棋譜欄の矢印ボタンに合わせる）
+    void setNavigationEnabled(bool on);
 
 private slots:
     void applyYAxisSettings();
@@ -72,6 +85,7 @@ private slots:
     void onPlotAreaChanged();
 
 private:
+    enum NavButton { NavFirst, NavBack10, NavPrev, NavNext, NavFwd10, NavLast, NavButtonCount };
     struct Score {
         int cp = 0;                 // 先手視点。描画時に丸めても元の値を保持する。
         QString mate;              // 先手視点の符号、手数不明は +/-。
@@ -87,6 +101,9 @@ private:
     void setupChart();
     void setupSeries();
     void setupChartViewAndLayout();
+    QWidget* createToolbar();
+    QWidget* createNavigationBar(QWidget* parentWidget);
+    void updateNavigationPlacement();
     void updateReferenceLines();
     void rebuildSeries();
     void refreshData();
@@ -111,6 +128,12 @@ private:
     EvaluationChartView* m_chartView = nullptr;
     QLabel* m_tooltip = nullptr;
     EvaluationChartConfigurator* m_configurator = nullptr;
+    QGridLayout* m_toolbarLayout = nullptr;
+    QWidget* m_rangeSelector = nullptr;
+    QWidget* m_settingsButton = nullptr;
+    QWidget* m_navBar = nullptr;
+    QPushButton* m_navButtons[NavButtonCount] = {};
+    bool m_navBarWrapped = false; // 幅が足りず、ナビゲーションボタンを2行目に置いている
     QString m_engineNames[2];
     QMap<int, Score> m_scores[2];
     int m_currentPly = 0;
