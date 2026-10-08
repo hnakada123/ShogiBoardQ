@@ -2369,6 +2369,24 @@ private slots:
         QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
         expect(2);
         snapshot("evaluation-graph-navigation");
+
+        // 未更新のコメントがあれば、棋譜欄のボタンと同じく移動前に確認する。
+        auto* panel = window->findChild<CommentEditorPanel*>();
+        auto* edit = window->findChild<QTextEdit*>("kifuCommentEdit");
+        QVERIFY(panel && edit);
+        edit->setPlainText(QStringLiteral("未更新のコメント"));
+        QVERIFY(panel->hasUnsavedComment());
+        armDialog("close");
+        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        QVERIFY(dialogHandled);
+        QCOMPARE(dialogTitle, QStringLiteral("未保存のコメント"));
+        expect(2);
+        QVERIFY(panel->hasUnsavedComment());
+        armDialog("yes");
+        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        QVERIFY(dialogHandled);
+        expect(3);
+        QVERIFY(!panel->hasUnsavedComment());
     }
     void pasteNavigation()
     {
