@@ -501,12 +501,14 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "get_kifu",
         "Get kifu",
-        "Return the record shown in ShogiBoardQ. format=moves (default) gives a structured list of the main "
-        "line (ply, Japanese notation, USI move, time, comment) limited by from_ply/max_moves; the other "
-        "formats return the exported text truncated to max_chars.",
+        "Return the record shown in ShogiBoardQ. format=moves (default) gives a structured list of the line "
+        "being displayed (the variation when one is shown; line=main for the main line) with ply, Japanese "
+        "notation, USI move, time and comment, limited by from_ply/max_moves; the other formats return the "
+        "exported text (with all variations) truncated to max_chars.",
         {
             "properties": {
                 "format": {"type": "string", "enum": ["moves", *KIFU_FORMATS], "default": "moves"},
+                "line": {"type": "string", "enum": ["current", "main"], "default": "current"},
                 "from_ply": {"type": "integer", "minimum": 1, "default": 1},
                 "max_moves": {"type": "integer", "minimum": 1, "maximum": 2000, "default": 200},
                 "max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000, "default": 30000},

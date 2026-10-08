@@ -83,8 +83,33 @@ private slots:
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
     }
 
+    /// ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず -32002 を返す
+    void requestDuringRunningHandlerIsRejected()
+    {
+        AutomationDispatcher dispatcher;
+        QByteArray nestedResponse;
+        bool pingRan = false;
+        dispatcher.registerMethod(QStringLiteral("ping"), [&](const QJsonObject&) {
+            pingRan = true;
+            return QJsonValue(QStringLiteral("pong"));
+        });
+        dispatcher.registerMethod(QStringLiteral("outer"), [&](const QJsonObject&) {
+            nestedResponse = dispatcher.handleLine(R"({"jsonrpc":"2.0","id":2,"method":"ping"})");
+            return QJsonValue(true);
+        });
+        const QJsonObject outer = parse(dispatcher.handleLine(R"({"jsonrpc":"2.0","id":1,"method":"outer"})"));
+        QCOMPARE(outer.value(QStringLiteral("result")).toBool(), true);
+        QVERIFY(!pingRan);
+        const QJsonObject nested = parse(nestedResponse);
+        QCOMPARE(nested.value(QStringLiteral("error")).toObject().value(QStringLiteral("code")).toInt(), -32002);
+        // 実行中でなければ通常どおり処理する
+        const QJsonObject ping = parse(dispatcher.handleLine(R"({"jsonrpc":"2.0","id":3,"method":"ping"})"));
+        QCOMPARE(ping.value(QStringLiteral("result")).toString(), QStringLiteral("pong"));
+    }
+
     /// ダイアログ表示中（入れ子のイベントループ）にクライアントが切断しても、
-    /// 削除済みの接続へ応答を書き込まず、以後の接続を受け付けられる。
+    /// 処理中の接続を入れ子のループで削除せず（readyRead を通知中の Qt が削除済みの
+    /// ソケットに触れないように）、ハンドラが戻ってから削除し、以後の接続を受け付けられる。
     void clientDisconnectDuringNestedLoopIsSafe()
     {
         QTemporaryDir dir(QDir::tempPath() + QStringLiteral("/sbq-XXXXXX"));
@@ -94,16 +119,17 @@ private slots:
         AutomationServer server;
         QPointer<QLocalSocket> client = new QLocalSocket(this);
         bool handled = false;
-        bool socketGoneDuringHandler = false;
+        bool socketKeptDuringHandler = false;
         server.dispatcher().registerMethod(QStringLiteral("nested"), [&](const QJsonObject&) {
             client->abort();
+            // 切断を受け取るまで入れ子のイベントループを回す（削除の予約も処理させる）
             QElapsedTimer timer;
             timer.start();
-            while (timer.elapsed() < 3000 && serverSocketCount(server) > 0) {
+            while (timer.elapsed() < 1000) {
                 QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
                 QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
             }
-            socketGoneDuringHandler = serverSocketCount(server) == 0;
+            socketKeptDuringHandler = serverSocketCount(server) > 0;
             handled = true;
             return QJsonValue(true);
         });
@@ -120,7 +146,9 @@ private slots:
                       R"({"jsonrpc":"2.0","id":2,"method":"nested"})" "\n");
         client->flush();
         QTRY_VERIFY_WITH_TIMEOUT(handled, 5000);
-        QVERIFY(socketGoneDuringHandler);
+        QVERIFY(socketKeptDuringHandler);
+        // ハンドラが戻った後に削除される
+        QTRY_COMPARE_WITH_TIMEOUT(serverSocketCount(server), qsizetype(0), 3000);
         handled = false;
         QTest::qWait(100);
         QVERIFY(!handled);

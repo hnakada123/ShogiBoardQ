@@ -6,6 +6,8 @@
 
 #include "shogigamecontroller.h"
 
+#include <functional>
+
 enum class PlayMode;
 class MatchCoordinator;
 class CsaGameCoordinator;
@@ -24,6 +26,8 @@ public:
         ShogiGameController* gameController = nullptr;
         MatchCoordinator* match = nullptr;
         CsaGameCoordinator* csaGameCoordinator = nullptr;
+        /// 対局していないとき、盤上の着手を棋譜の変化として受け付けるか
+        std::function<bool()> canRecordVariationMove;
     };
 
     void updateDeps(const Deps& deps);

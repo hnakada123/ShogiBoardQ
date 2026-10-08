@@ -150,17 +150,26 @@ void AutomationServer::onReadyRead()
         socket->disconnectFromServer();
         return;
     }
+    // 入れ子のイベントループ中に切断されたとき、ここで deleteLater() すると入れ子のループで削除され、
+    // この readyRead を通知している Qt 側のコードが削除済みのソケットに触れてしまう。
+    // 処理中は削除を保留し、処理が戻ってから削除する。
+    QLocalSocket* const rawSocket = socket.data();
+    m_handlingSockets.insert(rawSocket);
     while (socket) {
         entry = m_buffers.find(socket.data());
-        if (entry == m_buffers.end()) return;
+        if (entry == m_buffers.end()) break;
         const qsizetype newline = entry->indexOf('\n');
-        if (newline < 0) return;
+        if (newline < 0) break;
         const QByteArray line = entry->left(newline);
         entry->remove(0, newline + 1);
         const QByteArray response = m_dispatcher.handleLine(line);
         if (response.isEmpty() || !socket || socket->state() != QLocalSocket::ConnectedState) continue;
         socket->write(response);
         socket->flush();
+    }
+    m_handlingSockets.remove(rawSocket);
+    if (m_pendingDeletion.remove(rawSocket) && socket) {
+        socket->deleteLater();
     }
 }
 
@@ -169,6 +178,10 @@ void AutomationServer::onDisconnected()
     auto* socket = qobject_cast<QLocalSocket*>(sender());
     if (!socket) return;
     m_buffers.remove(socket);
-    socket->deleteLater();
+    if (m_handlingSockets.contains(socket)) {
+        m_pendingDeletion.insert(socket);
+    } else {
+        socket->deleteLater();
+    }
     qCDebug(lcApp) << "automation: client disconnected";
 }

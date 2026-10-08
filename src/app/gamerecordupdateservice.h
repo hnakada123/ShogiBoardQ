@@ -51,9 +51,9 @@ public:
     /**
      * @brief Game Record を更新する
      * @param moveText 指し手テキスト（空の場合はスキップ）
-     * @param elapsedTime 消費時間
+     * @param clockElapsedTime 時計の消費時間（累計は棋譜の直前の累計から続けて記録する）
      */
-    void updateGameRecord(const QString& moveText, const QString& elapsedTime,
+    void updateGameRecord(const QString& moveText, const QString& clockElapsedTime,
                           const QString& recordedSfen = QString());
 
     /**
@@ -67,7 +67,7 @@ public slots:
     /**
      * @brief 棋譜1行の追記を記録更新フローへ橋渡しする
      * @param text 指し手テキスト
-     * @param elapsedTime 消費時間
+     * @param clockElapsedTime 時計の消費時間（累計は棋譜の直前の累計から続けて記録する）
      */
     void appendKifuLine(const QString& text, const QString& elapsedTime);
 

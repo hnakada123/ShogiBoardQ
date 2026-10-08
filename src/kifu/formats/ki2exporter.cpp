@@ -67,53 +67,34 @@ static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove
             .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
     }
     if (stripped.contains(QStringLiteral("詰み"))) {
-        return QStringLiteral("まで%1手で%2の勝ち")
-            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+        // 「先手の勝ち」では読み込み時に投了と区別できないため、詰みと明記する
+        return QStringLiteral("まで%1手で詰み").arg(QString::number(lastActualMoveNo));
     }
+    // 終局の種類を読み込み時に区別できるよう、結果行に種類を明記する。
+    // 終局語の手番記号は、その終局を宣言した側（＝指す番の側）を表す。
+    const bool declaredBySente = terminalMove.startsWith(QStringLiteral("▲"))
+        || (!terminalMove.startsWith(QStringLiteral("△")) && !lastMoveBySente);
+    const QString declarer = declaredBySente ? senteStr : goteStr;
+    const QString opponent = declaredBySente ? goteStr : senteStr;
+    const QString n = QString::number(lastActualMoveNo);
     if (stripped.contains(QStringLiteral("切れ負け"))) {
-        return QStringLiteral("まで%1手で%2の勝ち")
-            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+        // 手番側の時間切れ
+        return QStringLiteral("まで%1手で時間切れにより%2の勝ち").arg(n, opponent);
     }
     if (stripped.contains(QStringLiteral("反則勝ち"))) {
-        if (terminalMove.startsWith(QStringLiteral("▲"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
-        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
-        }
-        return QStringLiteral("まで%1手で%2の勝ち")
-            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+        return QStringLiteral("まで%1手で%2の反則勝ち").arg(n, declarer);
     }
     if (stripped.contains(QStringLiteral("反則負け"))) {
-        if (terminalMove.startsWith(QStringLiteral("▲"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
-        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
-        }
-        return QStringLiteral("まで%1手で%2の勝ち")
-            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? goteStr : senteStr);
+        return QStringLiteral("まで%1手で%2の反則負け").arg(n, declarer);
     }
     if (stripped.contains(QStringLiteral("入玉勝ち"))) {
-        if (terminalMove.startsWith(QStringLiteral("▲"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
-        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
-        }
-        return QStringLiteral("まで%1手で%2の勝ち")
-            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+        return QStringLiteral("まで%1手で%2の入玉勝ち").arg(n, declarer);
     }
     if (stripped.contains(QStringLiteral("不戦勝"))) {
-        if (terminalMove.startsWith(QStringLiteral("▲"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
-        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
-        }
+        return QStringLiteral("まで%1手で%2の不戦勝").arg(n, declarer);
     }
     if (stripped.contains(QStringLiteral("不戦敗"))) {
-        if (terminalMove.startsWith(QStringLiteral("▲"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
-        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
-            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
-        }
+        return QStringLiteral("まで%1手で%2の不戦敗").arg(n, declarer);
     }
     if (stripped.contains(QStringLiteral("千日手"))) {
         return QStringLiteral("まで%1手で千日手").arg(QString::number(lastActualMoveNo));
@@ -190,6 +171,8 @@ static void outputKi2VariationFromBranchLine(const BranchLine& line, const QStri
     // 分岐点より前のノードで盤面を進める（出力はしない）
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
         if (node->ply() >= line.branchPly) break;
+        // ルート（「開始局面」）は指し手ではない。手番を進めると以降の駒の色が逆になる
+        if (node->ply() == 0) continue;
         const QString moveText = node->displayText().trimmed();
         if (moveText.isEmpty() || isTerminalMove(moveText)) continue;
 
@@ -239,7 +222,9 @@ static void outputKi2VariationFromBranchLine(const BranchLine& line, const QStri
                 out << movesOnLine.join(QStringLiteral("    "));
                 movesOnLine.clear();
             }
-            out << ki2Move;
+            // 終局手は本譜と同じく「まで…」の結果行で表す（KI2 では指し手として書かない）
+            out << (isTerminal ? buildEndingLine(node->ply() - 1, moveText, !startSfen.contains(QStringLiteral(" w ")))
+                               : ki2Move);
 
             appendKifBookmarks(bm, out);
             if (hasComment) {

@@ -102,6 +102,18 @@ public:
     void addMove(const ShogiMove& move, const QString& displayText,
                  const QString& sfen, const QString& elapsed);
 
+    /**
+     * @brief 時計の消費時間表記を、棋譜の累計に続けた表記へ直す
+     * @param clockElapsed 時計が出した "mm:ss/HH:MM:SS"（累計は対局開始から）
+     *
+     * 累計は、棋譜上で同じ側が直前に指した手の累計＋今回の消費時間にする。
+     * 棋譜の途中から対局しても、累計が 0 から数え直されない。
+     */
+    QString continuedElapsedText(const QString& clockElapsed) const;
+
+    /// このセッションで新しく作る最初のノードに付けるコメントを設定する（開始後に呼ぶ）
+    void setFirstMoveNote(const QString& note);
+
     /// 対局開始位置を越えず、指定手数を取り消せるか。
     bool canUndoMoves(int count) const;
 
@@ -198,6 +210,7 @@ private:
     QStringList m_sfens;
     QSet<int> m_createdNodeIds;  ///< このセッションが追加したノード（既存手の再利用は含めない）
     QSet<int> m_undoneNodeIds;   ///< 待ったで取り消した、このセッションの手順の先頭ノード
+    QString m_firstMoveNote;     ///< 次に新しく作るノードへ付けるコメント（棋譜の途中から続けた対局の情報）
 };
 
 #endif // LIVEGAMESESSION_H

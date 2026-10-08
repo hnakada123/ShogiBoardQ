@@ -72,6 +72,9 @@ QChar pieceKanjiToUsiUpper(const QString& s);
 /// Promoted表記が含まれているか（"成" かつ "不成" でない）
 bool isPromotionMoveText(const QString& line);
 
+/// USI指し手の移動先（筋・段）を取り出す。形式が不正なら false
+bool usiDestination(const QString& usi, int& toFile, int& toRank);
+
 /// 1行の指し手をUSIに変換（prevTo参照；成功で更新）
 bool convertMoveLine(const QString& moveText, QString& usi,
                      int& prevToFile, int& prevToRank);

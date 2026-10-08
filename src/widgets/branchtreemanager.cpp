@@ -2,17 +2,32 @@
 /// @brief 分岐ツリー管理クラスの実装（状態管理・ハイライト・イベント処理）
 
 #include "branchtreemanager.h"
+#include "analysissettings.h"
 #include "logcategories.h"
 
+#include <QAction>
+#include <QContextMenuEvent>
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QGraphicsPathItem>
+#include <QGraphicsRectItem>
+#include <QKeyEvent>
+#include <QMenu>
 #include <QMouseEvent>
+#include <QNativeGestureEvent>
 #include <QQueue>
 #include <QSet>
 #include <QTransform>
 #include <QScrollBar>
 #include <QTimer>
+#include <QWheelEvent>
+
+#include <climits>
+
+namespace {
+const QPen kEdgePen(QColor(90, 90, 90), 1.0);
+const QPen kPathEdgePen(QColor(40, 110, 210), 2.6);
+} // namespace
 
 // ===================== コンストラクタ / デストラクタ =====================
 
@@ -33,15 +48,24 @@ void BranchTreeManager::setView(QGraphicsView* view)
     m_branchTree = view;
     m_scene = new QGraphicsScene(m_branchTree);
     m_branchTree->setScene(m_scene);
+    // 矢印キーで手を移動できるようにする
+    m_branchTree->setFocusPolicy(Qt::StrongFocus);
 
     if (m_branchTree && m_branchTree->viewport()) {
         QWidget* vp = m_branchTree->viewport();
         if (!vp->property("branchFilterInstalled").toBool()) {
             m_branchTreeViewport = vp;
             vp->installEventFilter(this);
+            m_branchTree->installEventFilter(this);
             vp->setProperty("branchFilterInstalled", true);
         }
+        connect(m_branchTree->verticalScrollBar(), &QScrollBar::valueChanged,
+                this, &BranchTreeManager::onVerticalScrolled);
     }
+
+    m_compactLayout = AnalysisSettings::branchTreeCompactLayout();
+    m_zoomPercent = qBound(kMinZoomPercent, AnalysisSettings::branchTreeZoomPercent(), kMaxZoomPercent);
+    applyZoom();
 
     rebuildBranchTree();
 }
@@ -51,11 +75,24 @@ void BranchTreeManager::setView(QGraphicsView* view)
 void BranchTreeManager::setBranchTreeRows(const QList<ResolvedRowLite>& rows)
 {
     m_rows = rows;
+
+    // 消えた変化の折りたたみ状態は捨てる
+    QSet<int> heads;
+    for (const auto& row : std::as_const(m_rows)) {
+        if (row.headNodeId >= 0) heads.insert(row.headNodeId);
+    }
+    m_collapsedHeads.intersect(heads);
+
     rebuildBranchTree();
 }
 
 void BranchTreeManager::highlightBranchTreeAt(int row, int ply, bool centerOn)
 {
+    // 折りたたんだ変化の中の手を表示するときは、その変化を展開する
+    if (revealNode(row, ply)) {
+        rebuildBranchTree();
+    }
+
     auto it = m_nodeIndex.find(qMakePair(row, ply));
     if (it != m_nodeIndex.end()) {
         highlightNodeId(it.value()->data(ROLE_NODE_ID).toInt(), centerOn);
@@ -73,6 +110,37 @@ int BranchTreeManager::nodeIdFor(int row, int ply) const
     return m_nodeIdByRowPly.value(qMakePair(row, ply), -1);
 }
 
+// ===================== 表示設定 =====================
+
+void BranchTreeManager::setCompactLayout(bool compact)
+{
+    if (m_compactLayout == compact) return;
+    m_compactLayout = compact;
+    AnalysisSettings::setBranchTreeCompactLayout(compact);
+    const int row = m_lastHighlightedRow;
+    const int ply = m_lastHighlightedPly;
+    rebuildBranchTree();
+    if (row >= 0 && ply >= 0) highlightBranchTreeAt(row, ply, true);
+}
+
+void BranchTreeManager::setZoomPercent(int percent)
+{
+    const int clamped = qBound(kMinZoomPercent, percent, kMaxZoomPercent);
+    if (clamped == m_zoomPercent) return;
+    m_zoomPercent = clamped;
+    AnalysisSettings::setBranchTreeZoomPercent(clamped);
+    applyZoom();
+    scrollToCurrentNode();
+}
+
+void BranchTreeManager::applyZoom()
+{
+    if (!m_branchTree) return;
+    const qreal scale = m_zoomPercent / 100.0;
+    m_branchTree->setTransform(QTransform::fromScale(scale, scale));
+    updateStickyHeader();
+}
+
 // ===================== グラフAPI =====================
 
 void BranchTreeManager::clearBranchGraph()
@@ -80,6 +148,9 @@ void BranchTreeManager::clearBranchGraph()
     m_nodeIdByRowPly.clear();
     m_nodesById.clear();
     m_nextIds.clear();
+    m_prevIdOf.clear();
+    m_edgeInto.clear();
+    m_highlightedEdges.clear();
     m_rowEntryNode.clear();
     m_nextNodeId = 1;
     m_lastHighlightedRow = -1;
@@ -109,6 +180,7 @@ void BranchTreeManager::linkEdge(int prevId, int nextId)
 {
     if (prevId <= 0 || nextId <= 0) return;
     m_nextIds[prevId].push_back(nextId);
+    m_prevIdOf.insert(nextId, prevId);
 }
 
 // ===================== 親行解決 =====================
@@ -153,7 +225,29 @@ void BranchTreeManager::highlightNodeId(int nodeId, bool centerOn)
     m_lastHighlightedRow = node.row;
     m_lastHighlightedPly = node.ply;
 
+    highlightPathTo(nodeId);
     scrollToNode(item, centerOn);
+}
+
+void BranchTreeManager::highlightPathTo(int nodeId)
+{
+    // 開始局面から現在の手までの経路の辺を目立たせる
+    for (QGraphicsPathItem* edge : std::as_const(m_highlightedEdges)) {
+        edge->setPen(kEdgePen);
+        edge->setZValue(0);
+    }
+    m_highlightedEdges.clear();
+
+    int current = nodeId;
+    for (int guard = 0; current > 0 && guard <= m_nodesById.size(); ++guard) {
+        QGraphicsPathItem* edge = m_edgeInto.value(current, nullptr);
+        if (edge) {
+            edge->setPen(kPathEdgePen);
+            edge->setZValue(1);
+            m_highlightedEdges.append(edge);
+        }
+        current = m_prevIdOf.value(current, -1);
+    }
 }
 
 void BranchTreeManager::scrollToNode(QGraphicsPathItem* item, bool centerOn)
@@ -162,10 +256,11 @@ void BranchTreeManager::scrollToNode(QGraphicsPathItem* item, bool centerOn)
     // 何もしない。表示・リサイズ時に eventFilter から合わせ直す
     if (!m_branchTree || !item || !m_branchTree->isVisible()) return;
 
-    // ノードの上にある「n手目」ラベルも見える範囲に入れる。上端の手数ラベルの行と一緒に
+    // ノードの上にある「n手目」の見出しも見える範囲に入れる。上端の見出しの行と一緒に
     // 収まるときは、上端から表示する（手数が読めるように）
     QRectF area = item->mapRectToScene(item->boundingRect() | item->childrenBoundingRect());
-    if (m_scene && area.bottom() + 8 <= m_branchTree->viewport()->height()) {
+    const qreal scale = m_zoomPercent / 100.0;
+    if (m_scene && (area.bottom() + 8) * scale <= m_branchTree->viewport()->height()) {
         area.setTop(m_scene->sceneRect().top());
     }
     // 見えているときは動かさず、画面外にあるときは中央に寄せる（前後の手も見えるように）
@@ -174,6 +269,7 @@ void BranchTreeManager::scrollToNode(QGraphicsPathItem* item, bool centerOn)
         m_branchTree->centerOn(area.center());
         m_branchTree->ensureVisible(area, 40, 8);
     }
+    updateStickyHeader();
 }
 
 void BranchTreeManager::scrollToCurrentNode()
@@ -255,56 +351,3 @@ int BranchTreeManager::graphFallbackToPly(int row, int targetPly) const
     return -1;
 }
 
-// ===================== クリック検出 =====================
-
-bool BranchTreeManager::eventFilter(QObject* obj, QEvent* ev)
-{
-    if (!obj || ev->type() == QEvent::Destroy) {
-        return QObject::eventFilter(obj, ev);
-    }
-
-    // 表示されたとき・大きさが変わったときは、現在の手が見える位置までスクロールする
-    // （表示直後は寸法が確定していないため、レイアウト後に合わせる）
-    if (obj == m_branchTreeViewport && (ev->type() == QEvent::Show || ev->type() == QEvent::Resize)) {
-        QTimer::singleShot(0, this, &BranchTreeManager::scrollToCurrentNode);
-    }
-
-    if (obj == m_branchTreeViewport && ev->type() == QEvent::FontChange) {
-        const int row = m_lastHighlightedRow;
-        const int ply = m_lastHighlightedPly;
-        const int x = m_branchTree->horizontalScrollBar()->value();
-        const int y = m_branchTree->verticalScrollBar()->value();
-        rebuildBranchTree();
-        if (row >= 0 && ply >= 0) highlightBranchTreeAt(row, ply, false);
-        m_branchTree->horizontalScrollBar()->setValue(x);
-        m_branchTree->verticalScrollBar()->setValue(y);
-    }
-
-    if (m_branchTreeViewport && obj == m_branchTreeViewport
-        && ev->type() == QEvent::MouseButtonRelease)
-    {
-        if (!m_branchTreeClickEnabled) {
-            return false;
-        }
-
-        auto* me = static_cast<QMouseEvent*>(ev);
-        if (!(me->button() & Qt::LeftButton)) return QObject::eventFilter(obj, ev);
-
-        const QPointF scenePt = m_branchTree->mapToScene(me->pos());
-        QGraphicsItem* hit =
-            m_branchTree->scene() ? m_branchTree->scene()->itemAt(scenePt, QTransform()) : nullptr;
-
-        while (hit && !hit->data(BR_ROLE_KIND).isValid())
-            hit = hit->parentItem();
-        if (!hit) return false;
-
-        const int row = hit->data(ROLE_ROW).toInt();
-        const int ply = hit->data(ROLE_PLY).toInt();
-
-        highlightBranchTreeAt(row, ply, /*centerOn=*/false);
-
-        emit branchNodeActivated(row, ply);
-        return true;
-    }
-    return QObject::eventFilter(obj, ev);
-}

@@ -1016,6 +1016,76 @@ private slots:
         }
         QVERIFY2(foundVar5b, "Should find variation at ply 5 with 56fu");
     }
+
+    // KI2 の変化：分岐前の手順を正しい手番で並べ直し、同じ地点へ動ける駒の区別（右・左）を付ける
+    void ki2VariationDisambiguatesWithCorrectSide()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* m1 = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        addTestMove(tree, m1, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
+        // ２手目の変化：後手の金は 41・61 のどちらも 52 へ動ける
+        addTestMove(tree, m1, QStringLiteral("4a5b"), QStringLiteral("△５二金(41)"));
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoProvided = true;
+        ctx.startSfen = kHirateSfen;
+
+        QTemporaryFile ki2;
+        QVERIFY(KifuTestHelper::writeToTempFile(ki2, model.toKi2Lines(ctx).join(QLatin1Char('\n')).toUtf8(),
+                                                QStringLiteral("ki2u")));
+        KifParseResult result;
+        QString error;
+        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(ki2.fileName(), result, &error), qPrintable(error));
+        QCOMPARE(result.variations.size(), 1);
+        QCOMPARE(result.variations.at(0).line.usiMoves, QStringList({QStringLiteral("4a5b")}));
+    }
+
+    // KI2 の結果行から終局の種類（詰み・切れ負けなど）を読み戻せる
+    void ki2TerminalKindsRoundTrip()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* m1 = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        auto* m2 = addTestMove(tree, m1, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
+        tree.addTerminalMove(m2, TerminalType::Checkmate, QStringLiteral("▲詰み"));
+        auto* v2 = addTestMove(tree, m1, QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
+        tree.addTerminalMove(v2, TerminalType::Timeout, QStringLiteral("▲切れ負け"));
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoProvided = true;
+        ctx.startSfen = kHirateSfen;
+        const QString text = model.toKi2Lines(ctx).join(QLatin1Char('\n'));
+        QVERIFY2(text.contains(QStringLiteral("まで2手で詰み")), qPrintable(text));
+        QVERIFY2(text.contains(QStringLiteral("時間切れ")), qPrintable(text));
+
+        QTemporaryFile ki2;
+        QVERIFY(KifuTestHelper::writeToTempFile(ki2, text.toUtf8(), QStringLiteral("ki2u")));
+        KifParseResult result;
+        QString error;
+        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(ki2.fileName(), result, &error), qPrintable(error));
+        QVERIFY(result.mainline.disp.last().prettyMove.contains(QStringLiteral("詰み")));
+        QCOMPARE(result.variations.size(), 1);
+        QVERIFY(result.variations.at(0).line.disp.last().prettyMove.contains(QStringLiteral("切れ負け")));
+    }
+
+    // 手合割：駒落ちの初期配置は名前で、それ以外の局面は「その他」
+    void handicapLabelRecognizesPresets()
+    {
+        QCOMPARE(KifuExportMetadataBuilder::handicapLabel(kHirateSfen), QStringLiteral("平手"));
+        QCOMPARE(KifuExportMetadataBuilder::handicapLabel(
+                     QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")),
+                 QStringLiteral("二枚落ち"));
+        // 持駒がある・手番が違うなら駒落ちの初期局面ではない
+        QCOMPARE(KifuExportMetadataBuilder::handicapLabel(
+                     QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w P 1")),
+                 QStringLiteral("その他"));
+        QCOMPARE(KifuExportMetadataBuilder::handicapLabel(
+                     QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")),
+                 QStringLiteral("その他"));
+    }
 };
 
 QTEST_MAIN(TestGameRecordModel)

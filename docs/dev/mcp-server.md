@@ -87,7 +87,7 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `set_position` | SFEN で局面を設定 | `sfen`、`discard_unsaved` | `position.set` |
 | `load_kifu` | 棋譜ファイル（または文字列）を読み込む | `path` または `text`、`discard_unsaved` | `kifu.load` |
 | `save_kifu` | 棋譜を保存（形式は拡張子で決定） | `path`、`overwrite` | `kifu.save` |
-| `get_kifu` | 現在の棋譜（構造化した手順、または形式指定のテキスト） | `format`、`from_ply`、`max_moves`、`max_chars` | `kifu.get` |
+| `get_kifu` | 現在の棋譜（表示中の手順の構造化リスト、または形式指定のテキスト） | `format`、`line`、`from_ply`、`max_moves`、`max_chars` | `kifu.get` |
 | `goto_ply` | 指定手数へ移動 | `ply` | `kifu.goto` |
 | `list_actions` | `trigger_action` で実行できる動作の一覧（有効・チェック状態付き） | なし | `action.list` |
 | `trigger_action` | `QAction` の objectName を許可リスト内で実行（応答後に実行するのでモーダルダイアログでも返る） | `name` | `action.trigger` |
@@ -226,9 +226,9 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `app.quit` | - | `{ok:true}`（応答後に終了。テストハーネス用で MCP ツールには出さない） | - |
 | `position.get` | - | `{sfen, start_sfen, ply, moves[]}` | - |
 | `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN、`-32004` 未保存 |
-| `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file}` | `-32003` パス、`-32004` 未保存、`-32005` 読込失敗 |
+| `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file, warnings?}` | `-32003` パス、`-32004` 未保存、`-32005` 読込失敗（理由をメッセージに含め、エラーダイアログは出さない） |
 | `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32003` パス／既存ファイル／.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
-| `kifu.get` | `{format?, from_ply?, max_moves?, max_chars?}` | `{format, total_plies, moves:[{ply,text,usi,time,comment}], text?, truncated}` | - |
+| `kifu.get` | `{format?, line?: "current"\|"main", from_ply?, max_moves?, max_chars?}` | `{format, total_plies, line, moves:[{ply,text,usi,time,comment}], text?, truncated}`（`moves` は表示中の手順。`line="main"` で本譜） | - |
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
 | `action.trigger` | `{name}` | `{name, triggered:true}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
@@ -243,7 +243,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 
 `action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、Web サイトを開く動作は除外する。言語切替とドックレイアウト保存・初期化は許可する。言語はアプリ再起動後に反映する。
 
-モーダルダイアログを開く動作（`action.trigger`）、ダイアログを閉じる `dialog.close`、`app.quit` は、応答を書いた後に `AutomationDeferredCall` で次のイベントループ反復に実行する。これにより `QDialog::exec()` の入れ子ループ中でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。
+モーダルダイアログを開く動作（`action.trigger`）、ダイアログを閉じる `dialog.close`、`app.quit` は、応答を書いた後に `AutomationDeferredCall` で次のイベントループ反復に実行する。これにより `QDialog::exec()` の入れ子ループ中でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。読み込み失敗の通知も `UiNotificationService::ScopedCapture` でダイアログを出さずに記録し、`-32005` の理由として返す。ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず `-32002` を返し、処理中に切断したソケットはハンドラが戻ってから削除する。
 
 ### アプリ側のクラス構成
 

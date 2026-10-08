@@ -2,6 +2,7 @@
 /// @brief 分岐ナビゲーション配線クラスの実装
 
 #include "branchnavigationwiring.h"
+#include "branchtreeeditcontroller.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
@@ -24,12 +25,14 @@ BranchNavigationWiring::BranchNavigationWiring(QObject* parent)
 void BranchNavigationWiring::updateDeps(const Deps& deps)
 {
     m_deps = deps;
+    wireBranchEditing();
 }
 
 void BranchNavigationWiring::initialize()
 {
     createModels();
     wireSignals();
+    wireBranchEditing();
 }
 
 // --- アクセサヘルパー（ポインタのポインタを安全に逆参照）---
@@ -39,6 +42,30 @@ static KifuNavigationState* navSt(const BranchNavigationWiring::Deps& d) { retur
 static KifuNavigationController* navCtl(const BranchNavigationWiring::Deps& d) { return d.kifuNavController ? *d.kifuNavController : nullptr; }
 static KifuDisplayCoordinator* dispCo(const BranchNavigationWiring::Deps& d) { return d.displayCoordinator ? *d.displayCoordinator : nullptr; }
 static LiveGameSession* liveSess(const BranchNavigationWiring::Deps& d) { return d.liveGameSession ? *d.liveGameSession : nullptr; }
+
+void BranchNavigationWiring::wireBranchEditing()
+{
+    if (tree(m_deps) == nullptr || navCtl(m_deps) == nullptr) return;
+
+    if (m_editController == nullptr) {
+        m_editController = new BranchTreeEditController(this);
+    }
+    BranchTreeEditController::Deps deps;
+    deps.tree = tree(m_deps);
+    deps.navState = navSt(m_deps);
+    deps.navController = navCtl(m_deps);
+    deps.liveSession = liveSess(m_deps);
+    deps.parentWidget = m_deps.analysisTab;
+    deps.markGameRecordDirty = m_deps.markGameRecordDirty;
+    m_editController->updateDeps(deps);
+    if (m_deps.analysisTab != nullptr) {
+        m_editController->attach(m_deps.analysisTab->branchTreeManager());
+    }
+    if (m_deps.recordPane != nullptr) {
+        connect(m_deps.recordPane, &RecordPane::branchContextMenuRequested,
+                m_editController, &BranchTreeEditController::onCandidateContextMenuRequested, Qt::UniqueConnection);
+    }
+}
 
 void BranchNavigationWiring::createModels()
 {

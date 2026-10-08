@@ -39,9 +39,10 @@ QString usiTokenToKanji(QStringView token)
 
     switch (pieceChar.toUpper().toLatin1()) {
     case 'P': return promoted ? QStringLiteral("と") : QStringLiteral("歩");
-    case 'L': return promoted ? QStringLiteral("杏") : QStringLiteral("香");
-    case 'N': return promoted ? QStringLiteral("圭") : QStringLiteral("桂");
-    case 'S': return promoted ? QStringLiteral("全") : QStringLiteral("銀");
+    // 指し手の表記では、成香・成桂・成銀は2文字で書く（KIF・KI2 の慣例）
+    case 'L': return promoted ? QStringLiteral("成香") : QStringLiteral("香");
+    case 'N': return promoted ? QStringLiteral("成桂") : QStringLiteral("桂");
+    case 'S': return promoted ? QStringLiteral("成銀") : QStringLiteral("銀");
     case 'G': return QStringLiteral("金");
     case 'B': return promoted ? QStringLiteral("馬") : QStringLiteral("角");
     case 'R': return promoted ? QStringLiteral("龍") : QStringLiteral("飛");
@@ -130,14 +131,24 @@ QString usiMoveToPretty(const QString& usi, int plyNumber,
 int buildUsiMoveDisplayItems(const QStringList& usiMoves,
                              const QString& baseSfen,
                              int startPly,
-                             QList<KifDisplayItem>& outDisp)
+                             QList<KifDisplayItem>& outDisp,
+                             const QString& previousUsi)
 {
     SfenPositionTracer tracer;
     if (!tracer.setFromSfen(baseSfen)) {
         tracer.resetToStartpos();
     }
 
+    // 分岐の1手目でも、直前の手と同じ地点なら「同」と表記する
     int prevToFile = 0, prevToRank = 0;
+    if (previousUsi.size() >= 4) {
+        const auto file = parseFileChar(previousUsi.at(2));
+        const auto rank = parseRankChar(previousUsi.at(3));
+        if (file && rank) {
+            prevToFile = *file;
+            prevToRank = *rank;
+        }
+    }
     int plyNumber = startPly - 1;
     bool blackToMove = !baseSfen.contains(QStringLiteral(" w "));
 

@@ -141,6 +141,10 @@ private:
 
     bool isStartFromCurrentPosition() const;
 
+    /// 選択中のノードが終局手なら、その直前の局面を開始位置にする。
+    /// 末尾の「中断」は対局の続きとして取り除き、新しい手を同じ手順に続ける。
+    void resolveTerminalStartNode();
+
     // --- ライブゲームセッション ---
 
     /// ライブゲームセッションを開始し、分岐ツリーへのリアルタイム更新を有効にする

@@ -8,6 +8,7 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QSet>
 #include <QObject>
 #include <QString>
 
@@ -54,6 +55,9 @@ private:
     QLocalServer* m_server = nullptr;      ///< QObject parent 所有
     AutomationDispatcher m_dispatcher;
     QHash<QLocalSocket*, QByteArray> m_buffers;
+    /// 要求を処理中（readyRead の通知中）のソケット。処理中に切断されても削除を処理後まで遅らせる
+    QSet<QLocalSocket*> m_handlingSockets;
+    QSet<QLocalSocket*> m_pendingDeletion;
     QString m_socketPath;
 };
 

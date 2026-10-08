@@ -187,8 +187,11 @@ private slots:
     // B) dispatchKifuLoad 拡張子ルーティング
     // ================================================================
 
-    /// dispatchKifuLoad が .csa を loadCsaFromFile にルーティングすること
-    void dispatchKifuLoad_routesCsa()
+    // 形式の判定（拡張子と、.json・未知の拡張子の内容判定）は KifuFileReader::detectFileFormat が担い、
+    // 対応は tst_kifu_file_reader で検証する。ここでは判定結果ごとのローダーへの振り分けを確認する。
+
+    /// dispatchKifuLoad が形式判定を KifuFileReader::detectFileFormat に任せること
+    void dispatchKifuLoad_usesFileFormatDetection()
     {
         const QStringList& lines = kfcLines();
         const auto range = findFunctionBody(
@@ -196,89 +199,37 @@ private slots:
         QVERIFY2(range.first >= 0, "dispatchKifuLoad not found");
 
         const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral(".csa")),
-                  "Must check for .csa extension");
-        QVERIFY2(body.contains(QStringLiteral("loadCsaFromFile")),
-                  "Must route .csa to loadCsaFromFile");
+        QVERIFY2(body.contains(QStringLiteral("KifuFileReader::detectFileFormat")),
+                  "Must detect the format with KifuFileReader::detectFileFormat");
     }
 
-    /// dispatchKifuLoad が .ki2/.ki2u を loadKi2FromFile にルーティングすること
-    void dispatchKifuLoad_routesKi2()
+    /// 判定した形式を対応するローダーへ振り分けること
+    void dispatchKifuLoad_routesEachFormat_data()
     {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::dispatchKifuLoad"));
-        QVERIFY2(range.first >= 0, "dispatchKifuLoad not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral(".ki2")),
-                  "Must check for .ki2 extension");
-        QVERIFY2(body.contains(QStringLiteral(".ki2u")),
-                  "Must check for .ki2u extension");
-        QVERIFY2(body.contains(QStringLiteral("loadKi2FromFile")),
-                  "Must route .ki2/.ki2u to loadKi2FromFile");
+        QTest::addColumn<QString>("format");
+        QTest::addColumn<QString>("loader");
+        QTest::newRow("csa") << QStringLiteral("KifuFormat::CSA") << QStringLiteral("loadCsaFromFile");
+        QTest::newRow("ki2") << QStringLiteral("KifuFormat::KI2") << QStringLiteral("loadKi2FromFile");
+        QTest::newRow("jkf") << QStringLiteral("KifuFormat::JKF") << QStringLiteral("loadJkfFromFile");
+        QTest::newRow("usen") << QStringLiteral("KifuFormat::USEN") << QStringLiteral("loadUsenFromFile");
+        QTest::newRow("usi") << QStringLiteral("KifuFormat::USI") << QStringLiteral("loadUsiFromFile");
     }
 
-    /// dispatchKifuLoad が .jkf を loadJkfFromFile にルーティングすること
-    void dispatchKifuLoad_routesJkf()
+    void dispatchKifuLoad_routesEachFormat()
     {
+        QFETCH(QString, format);
+        QFETCH(QString, loader);
         const QStringList& lines = kfcLines();
         const auto range = findFunctionBody(
             lines, QStringLiteral("KifuFileController::dispatchKifuLoad"));
         QVERIFY2(range.first >= 0, "dispatchKifuLoad not found");
 
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral(".jkf")),
-                  "Must check for .jkf extension");
-        QVERIFY2(body.contains(QStringLiteral("loadJkfFromFile")),
-                  "Must route .jkf to loadJkfFromFile");
-    }
-
-    /// dispatchKifuLoad が .usen を loadUsenFromFile にルーティングすること
-    void dispatchKifuLoad_routesUsen()
-    {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::dispatchKifuLoad"));
-        QVERIFY2(range.first >= 0, "dispatchKifuLoad not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral(".usen")),
-                  "Must check for .usen extension");
-        QVERIFY2(body.contains(QStringLiteral("loadUsenFromFile")),
-                  "Must route .usen to loadUsenFromFile");
-    }
-
-    /// dispatchKifuLoad が .usi を loadUsiFromFile にルーティングすること
-    void dispatchKifuLoad_routesUsi()
-    {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::dispatchKifuLoad"));
-        QVERIFY2(range.first >= 0, "dispatchKifuLoad not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral(".usi")),
-                  "Must check for .usi extension");
-        QVERIFY2(body.contains(QStringLiteral("loadUsiFromFile")),
-                  "Must route .usi to loadUsiFromFile");
-    }
-
-    /// dispatchKifuLoad が .sfen を .usi と同じ USI/SFEN ローダーにルーティングすること
-    void dispatchKifuLoad_routesSfen()
-    {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::dispatchKifuLoad"));
-        QVERIFY2(range.first >= 0, "dispatchKifuLoad not found");
-
-        const QString body = bodyText(lines, range);
-        const auto sfenIdx = body.indexOf(QStringLiteral(".sfen"));
-        const auto kifIdx = body.indexOf(QStringLiteral("loadKifuFromFile"));
-        QVERIFY2(sfenIdx >= 0, "Must check for .sfen extension");
-        QVERIFY2(sfenIdx < kifIdx, ".sfen must be routed before the KIF default");
-        QVERIFY2(body.mid(sfenIdx).contains(QStringLiteral("loadUsiFromFile")),
-                  "Must route .sfen to loadUsiFromFile");
+        // case 行と同じ行で対応するローダーを呼ぶこと
+        bool routed = false;
+        for (int i = range.first; i <= range.second && i < lines.size(); ++i) {
+            if (lines.at(i).contains(format) && lines.at(i).contains(loader)) routed = true;
+        }
+        QVERIFY2(routed, qPrintable(QStringLiteral("%1 must be routed to %2").arg(format, loader)));
     }
 
     /// dispatchKifuLoad がデフォルトで loadKifuFromFile を呼ぶこと

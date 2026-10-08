@@ -43,6 +43,8 @@ public:
 signals:
     void mainRowChanged(int row);
     void branchActivated(const QModelIndex&);
+    /// 分岐候補欄の右クリック（row は候補の行、行が無ければ -1）
+    void branchContextMenuRequested(int row, const QPoint& globalPos);
     void bookmarkEditRequested();
 
 private:
@@ -84,6 +86,8 @@ private slots:
     void onBranchActivated(const QModelIndex& index);
     /// clicked 直後の activated 二重発火ガードを解除する
     void clearBranchClickGuard();
+    /// 分岐候補欄の右クリック
+    void onBranchContextMenuRequested(const QPoint& pos);
 
 private:
     QMetaObject::Connection m_connRowChanged;

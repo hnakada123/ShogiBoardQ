@@ -2,12 +2,46 @@
 /// @brief 棋譜ファイル読み込みI/O層の実装
 
 #include "kifufilereader.h"
+#include "kifreader.h"
 #include "logcategories.h"
+
+#include <QFileInfo>
 
 #include <QDir>
 #include <QRegularExpression>
 
 namespace KifuFileReader {
+
+KifuFormat detectFileFormat(const QString& filePath)
+{
+    const QString suffix = QFileInfo(filePath).suffix().toLower();
+    if (suffix == QLatin1String("kif") || suffix == QLatin1String("kifu")) return KifuFormat::KIF;
+    if (suffix == QLatin1String("ki2") || suffix == QLatin1String("ki2u")) return KifuFormat::KI2;
+    if (suffix == QLatin1String("csa")) return KifuFormat::CSA;
+    if (suffix == QLatin1String("jkf")) return KifuFormat::JKF;
+    if (suffix == QLatin1String("usen")) return KifuFormat::USEN;
+    if (suffix == QLatin1String("usi") || suffix == QLatin1String("sfen")) return KifuFormat::USI;
+
+    // JKF は .json で配布されることも多い。拡張子で決まらないときは内容で判定する。
+    QStringList lines;
+    QString usedEncoding;
+    if (KifReader::readLinesAuto(filePath, lines, &usedEncoding, nullptr)) {
+        const KifuFormat detected = detectFormat(lines.join(QLatin1Char('\n')));
+        switch (detected) {
+        case KifuFormat::KI2:
+        case KifuFormat::CSA:
+        case KifuFormat::JKF:
+        case KifuFormat::USEN:
+        case KifuFormat::USI:
+            return detected;
+        case KifuFormat::SFEN:
+            return KifuFormat::USI;
+        default:
+            break;
+        }
+    }
+    return KifuFormat::KIF;
+}
 
 KifuFormat detectFormat(const QString& content)
 {

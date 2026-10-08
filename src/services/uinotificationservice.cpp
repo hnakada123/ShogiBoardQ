@@ -4,6 +4,22 @@
 #include "uinotificationservice.h"
 #include <QMessageBox>
 
+namespace {
+// 通知はメインスレッドからのみ表示する（UI アクセスはメインスレッド限定）
+UiNotificationService::ScopedCapture* s_activeCapture = nullptr;
+}
+
+UiNotificationService::ScopedCapture::ScopedCapture()
+    : m_previous(s_activeCapture)
+{
+    s_activeCapture = this;
+}
+
+UiNotificationService::ScopedCapture::~ScopedCapture()
+{
+    s_activeCapture = m_previous;
+}
+
 UiNotificationService::UiNotificationService(QObject* parent)
     : QObject(parent)
 {
@@ -26,6 +42,12 @@ void UiNotificationService::displayMessage(ErrorBus::ErrorLevel level, const QSt
         if (m_deps.errorOccurred) {
             *m_deps.errorOccurred = true;
         }
+    }
+
+    if (s_activeCapture != nullptr) {
+        const bool isError = level == ErrorBus::ErrorLevel::Error || level == ErrorBus::ErrorLevel::Critical;
+        (isError ? s_activeCapture->m_errors : s_activeCapture->m_notices).append(message);
+        return;
     }
 
     switch (level) {

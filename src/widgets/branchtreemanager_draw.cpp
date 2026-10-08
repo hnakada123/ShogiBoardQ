@@ -7,13 +7,17 @@
 #include "logcategories.h"
 
 #include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QGraphicsEllipseItem>
 #include <QGraphicsPathItem>
+#include <QGraphicsRectItem>
 #include <QGraphicsSimpleTextItem>
 #include <QPainterPath>
 #include <QFont>
 #include <QFontMetrics>
 #include <QApplication>
 #include <QFontInfo>
+#include <QPalette>
 #include <QRegularExpression>
 
 #include <memory>
@@ -24,9 +28,27 @@ namespace {
 // レイアウト定数（ノード配置・シーン範囲・ラベル位置で共有）
 constexpr qreal kBaseX  = 40.0;
 constexpr qreal kShiftX = 40.0;
-constexpr qreal kBaseY  = 40.0;
 constexpr qreal kStepY  = 56.0;
 constexpr qreal kRadius = 8.0;
+constexpr qreal kHeaderHeight = 22.0;   ///< 手数見出しの帯の高さ
+constexpr int kTooltipCommentChars = 400;
+
+const QPen kEdgePen(QColor(90, 90, 90), 1.0);
+
+bool isTerminalText(const QString& text)
+{
+    static const QStringList kTerminalKeywords = {
+        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+        QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
+        QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
+    };
+    for (const auto& kw : kTerminalKeywords) {
+        if (text.contains(kw)) return true;
+    }
+    return false;
+}
 } // namespace
 
 static void debugFontInfo(const QFont &font, const QString &context)
@@ -48,17 +70,16 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const KifDisplay
     QFont LABEL_FONT(QApplication::font().family(), 10);
     if (!entry.usiMove.isEmpty() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
         LABEL_FONT = ApplicationFonts::japaneseFont(LABEL_FONT);
-    const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
+    const QFont BADGE_FONT(QApplication::font().family(), 9);
 
     static bool fontDebugDone = false;
     if (!fontDebugDone) {
         debugFontInfo(LABEL_FONT, "addNode LABEL_FONT");
-        debugFontInfo(MOVE_NO_FONT, "addNode MOVE_NO_FONT");
         fontDebugDone = true;
     }
 
     const qreal x = kBaseX + kShiftX + ply * m_columnSpacing;
-    const qreal y = kBaseY + row * kStepY;
+    const qreal y = laneY(laneForRow(row));
 
     static const QRegularExpression kDropHeadNumber(QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
     QString labelText = entry.prettyMove;
@@ -93,8 +114,17 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const KifDisplay
     auto* item = m_scene->addPath(path, QPen(Qt::black, 1.2));
     item->setBrush(fill);
     item->setZValue(10);
-    item->setToolTip(KifuPresentation::label(canonical, entry.beforeSfen, entry.usiMove, true));
     item->setData(ROLE_ORIGINAL_BRUSH, item->brush().color().rgba());
+
+    // ツールチップ：手の表記（読み上げ形式）と、あればコメント
+    QString tooltip = KifuPresentation::label(canonical, entry.beforeSfen, entry.usiMove, true).toHtmlEscaped();
+    const QString comment = entry.comment.trimmed();
+    if (!comment.isEmpty()) {
+        QString shown = comment.left(kTooltipCommentChars);
+        if (comment.size() > kTooltipCommentChars) shown += QStringLiteral("…");
+        tooltip += QStringLiteral("<hr/><p style='white-space:pre-wrap'>%1</p>").arg(shown.toHtmlEscaped());
+    }
+    item->setToolTip(QStringLiteral("<qt>%1</qt>").arg(tooltip));
 
     item->setData(ROLE_ROW, row);
     item->setData(ROLE_PLY, ply);
@@ -107,14 +137,25 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const KifDisplay
     textItem->setPos(rect.center().x() - br.width() / 2.0,
                      rect.center().y() - br.height() / 2.0);
 
-    if (row == 0) {
-        const QString moveNo = tr("%1\u624b\u76ee").arg(ply);
-        auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
-        const QRectF nbr = noItem->boundingRect();
-        noItem->setParentItem(item);
-        const qreal gap = 4.0;
-        noItem->setPos(rect.center().x() - nbr.width() / 2.0,
-                       rect.top() - gap - nbr.height());
+    // コメントのある手は右上に印を付ける
+    if (!comment.isEmpty()) {
+        constexpr qreal d = 8.0;
+        auto* marker = new QGraphicsEllipseItem(rect.right() - d - 3.0, rect.top() + 3.0, d, d, item);
+        marker->setBrush(QColor(60, 130, 220));
+        marker->setPen(QPen(Qt::white, 1.0));
+    }
+
+    // 折りたたんだ変化の先頭には、隠れている手の数を表示する
+    if (row >= 1 && isRowCollapsed(row) && ply == qMax(1, m_rows.at(row).startPly)) {
+        QPen dashed(Qt::black, 1.2);
+        dashed.setStyle(Qt::DashLine);
+        item->setPen(dashed);
+        auto* badge = m_scene->addSimpleText(QStringLiteral("▸ +%1").arg(hiddenNodeCount(row)), BADGE_FONT);
+        badge->setParentItem(item);
+        badge->setBrush(m_branchTree ? m_branchTree->palette().color(QPalette::Text) : QColor(Qt::black));
+        const QRectF bbr = badge->boundingRect();
+        badge->setPos(rect.right() + 6.0, rect.center().y() - bbr.height() / 2.0);
+        item->setToolTip(item->toolTip() + tr("<p>（ダブルクリックで展開）</p>"));
     }
 
     m_nodeIndex.insert(qMakePair(row, ply), item);
@@ -129,20 +170,40 @@ void BranchTreeManager::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
 {
     if (!from || !to) return;
 
-    const QPointF a = from->sceneBoundingRect().center();
-    const QPointF b = to->sceneBoundingRect().center();
+    const QRectF fromRect = from->sceneBoundingRect();
+    const QRectF toRect = to->sceneBoundingRect();
+    const qreal ay = fromRect.center().y();
+    const qreal by = toRect.center().y();
 
-    QPainterPath path(a);
-    const QPointF c1(a.x() + 8, a.y());
-    const QPointF c2(b.x() - 8, b.y());
-    path.cubicTo(c1, c2, b);
+    QPainterPath path;
+    if (qFuzzyCompare(ay, by)) {
+        // 同じ段：中心どうしを結ぶ
+        const QPointF a = fromRect.center();
+        const QPointF b = toRect.center();
+        path.moveTo(a);
+        path.cubicTo(QPointF(a.x() + 8, a.y()), QPointF(b.x() - 8, b.y()), b);
+    } else {
+        // 別の段：列の間のすき間で縦に下ろし、間の段のノードに線が重ならないようにする
+        const qreal xm = (fromRect.right() + toRect.left()) / 2.0;
+        const qreal r = qMin<qreal>(8.0, qMax<qreal>(1.0, (toRect.left() - fromRect.right()) / 4.0));
+        const qreal dir = (by > ay) ? 1.0 : -1.0;
+        path.moveTo(fromRect.right(), ay);
+        path.lineTo(xm - r, ay);
+        path.quadTo(QPointF(xm, ay), QPointF(xm, ay + dir * r));
+        path.lineTo(xm, by - dir * r);
+        path.quadTo(QPointF(xm, by), QPointF(xm + r, by));
+        path.lineTo(toRect.left(), by);
+    }
 
-    auto* edge = m_scene->addPath(path, QPen(QColor(90, 90, 90), 1.0));
+    auto* edge = m_scene->addPath(path, kEdgePen);
     edge->setZValue(0);
 
     const int prevId = from->data(ROLE_NODE_ID).toInt();
     const int nextId = to  ->data(ROLE_NODE_ID).toInt();
-    if (prevId > 0 && nextId > 0) linkEdge(prevId, nextId);
+    if (prevId > 0 && nextId > 0) {
+        linkEdge(prevId, nextId);
+        m_edgeInto.insert(nextId, edge);
+    }
 }
 
 // ===================== シーン再構築 =====================
@@ -154,9 +215,11 @@ void BranchTreeManager::rebuildBranchTree()
     m_scene->clear();
     m_nodeIndex.clear();
     m_plyLabels.clear();   // scene->clear() で削除済み
+    m_headerBand = nullptr;
 
     clearBranchGraph();
     m_prevSelected = nullptr;
+    computeLayout();
 
     const QFont LABEL_FONT(QApplication::font().family(), 10);
     const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
@@ -171,7 +234,6 @@ void BranchTreeManager::rebuildBranchTree()
         }
     }
 
-
     static bool fontDebugDone2 = false;
     if (!fontDebugDone2) {
         debugFontInfo(LABEL_FONT, "rebuildBranchGraph LABEL_FONT");
@@ -179,12 +241,20 @@ void BranchTreeManager::rebuildBranchTree()
         fontDebugDone2 = true;
     }
 
+    // ===== 手数見出しの帯（上端に固定して表示する） =====
+    {
+        QColor band = m_branchTree ? m_branchTree->palette().color(QPalette::Base) : QColor(Qt::white);
+        band.setAlpha(235);
+        m_headerBand = m_scene->addRect(QRectF(0, 0, 1, kHeaderHeight), Qt::NoPen, band);
+        m_headerBand->setZValue(40);
+    }
+
     // ===== 「開始局面」ノード =====
     QGraphicsPathItem* startNode = nullptr;
     {
         const qreal x = kBaseX + kShiftX;
-        const qreal y = kBaseY + 0 * kStepY;
-        const QString label = tr("\u958b\u59cb\u5c40\u9762");
+        const qreal y = laneY(0);
+        const QString label = tr("開始局面");
 
         const QFontMetrics fm(LABEL_FONT);
         const int  wText = fm.horizontalAdvance(label);
@@ -213,6 +283,19 @@ void BranchTreeManager::rebuildBranchTree()
         t->setPos(rect.center().x() - br.width() / 2.0,
                   rect.center().y() - br.height() / 2.0);
 
+        // 開始局面のコメント
+        if (!m_rows.isEmpty() && !m_rows.at(0).disp.isEmpty()) {
+            const QString comment = m_rows.at(0).disp.at(0).comment.trimmed();
+            if (!comment.isEmpty()) {
+                constexpr qreal d = 8.0;
+                auto* marker = new QGraphicsEllipseItem(rect.right() - d - 3.0, rect.top() + 3.0, d, d, startNode);
+                marker->setBrush(QColor(60, 130, 220));
+                marker->setPen(QPen(Qt::white, 1.0));
+                startNode->setToolTip(QStringLiteral("<qt><p style='white-space:pre-wrap'>%1</p></qt>")
+                                          .arg(comment.left(kTooltipCommentChars).toHtmlEscaped()));
+            }
+        }
+
         const int nid = registerNode(/*row*/0, /*ply*/0, startNode);
         startNode->setData(ROLE_NODE_ID, nid);
     }
@@ -232,34 +315,21 @@ void BranchTreeManager::rebuildBranchTree()
     }
 
     // ===== 分岐 row=1.. =====
-    qCDebug(lcUi).noquote() << "[BTM] rebuildBranchTree: m_rows.size=" << m_rows.size();
+    qCDebug(lcUi).noquote() << "[BTM] rebuildBranchTree: m_rows.size=" << m_rows.size()
+                            << "lanes=" << m_laneCount << "compact=" << m_compactLayout;
     for (qsizetype row = 1; row < m_rows.size(); ++row) {
+        if (laneForRow(static_cast<int>(row)) < 0) continue;   // 折りたたみで隠れている
         const auto& rv = m_rows.at(row);
         const int startPly = qMax(1, rv.startPly);
-        qCDebug(lcUi).noquote() << "[BTM] rebuildBranchTree: row=" << row
-                           << " startPly=" << startPly
-                           << " rv.disp.size=" << rv.disp.size()
-                           << " rv.parent=" << rv.parent;
 
         const int parentRow = resolveParentRowForVariation(static_cast<int>(row));
         const int joinPly = startPly - 1;
 
-        static const QStringList kTerminalKeywords = {
-            QStringLiteral("\u6295\u4e86"), QStringLiteral("\u4e2d\u65ad"), QStringLiteral("\u6301\u5c06\u68cb"),
-            QStringLiteral("\u5343\u65e5\u624b"), QStringLiteral("\u5207\u308c\u8ca0\u3051"),
-            QStringLiteral("\u53cd\u5247\u52dd\u3061"), QStringLiteral("\u53cd\u5247\u8ca0\u3051"),
-            QStringLiteral("\u5165\u7389\u52dd\u3061"), QStringLiteral("\u4e0d\u6226\u52dd"),
-            QStringLiteral("\u4e0d\u6226\u6557"), QStringLiteral("\u8a70\u307f"), QStringLiteral("\u4e0d\u8a70"),
-        };
         auto isTerminalPly = [&](int targetRow, int p) -> bool {
             if (targetRow < 0 || targetRow >= m_rows.size()) return false;
             const auto& rowData = m_rows.at(targetRow);
             if (p < 0 || p >= rowData.disp.size()) return false;
-            const QString& text = rowData.disp.at(p).prettyMove;
-            for (const auto& kw : kTerminalKeywords) {
-                if (text.contains(kw)) return true;
-            }
-            return false;
+            return isTerminalText(rowData.disp.at(p).prettyMove);
         };
 
         QGraphicsPathItem* prev = nullptr;
@@ -286,21 +356,9 @@ void BranchTreeManager::rebuildBranchTree()
             prev = m_nodeIndex.value(qMakePair(0, 0), nullptr);
         }
 
-        const int cut   = startPly;
-        const qsizetype total = rv.disp.size();
-        const int take  = (cut < total) ? static_cast<int>(total - cut) : 0;
-        qCDebug(lcUi).noquote() << "[BTM] rebuildBranchTree: row=" << row
-                           << " cut=" << cut << " total=" << total << " take=" << take;
-        if (take <= 0) {
-            qCDebug(lcUi).noquote() << "[BTM] rebuildBranchTree: SKIPPING row=" << row << " (no moves to draw)";
-            continue;
-        }
-
-        for (int i = 0; i < take; ++i) {
-            const auto& it = rv.disp.at(cut + i);
-            const int absPly = startPly + i;
-
-            QGraphicsPathItem* node = addNode(static_cast<int>(row), absPly, it);
+        const int lastPly = lastVisiblePly(static_cast<int>(row));
+        for (int absPly = startPly; absPly <= lastPly && absPly < rv.disp.size(); ++absPly) {
+            QGraphicsPathItem* node = addNode(static_cast<int>(row), absPly, rv.disp.at(absPly));
 
             node->setData(BR_ROLE_STARTPLY, startPly);
             node->setData(BR_ROLE_BUCKET,   row - 1);
@@ -310,7 +368,7 @@ void BranchTreeManager::rebuildBranchTree()
         }
     }
 
-    // ===== 手数ラベル補完 =====
+    // ===== 手数の見出し =====
     const int maxAbsPly = maxDrawnPly();
     for (int ply = 1; ply <= maxAbsPly; ++ply) {
         addMoveNumberLabel(ply);
@@ -338,10 +396,23 @@ bool BranchTreeManager::appendNodeToRow(int row, int ply, const KifDisplayItem& 
     // disp の添字は手数と一致する（disp[0] = 開始局面）。末尾に連続して追加する場合のみ扱う
     if (ply < 1 || static_cast<int>(rv.disp.size()) != ply) return false;
 
+    // 折りたたみで隠れている行は全再構築に任せる（現在の手を見せるため展開される）
+    if (laneForRow(row) < 0 || isRowCollapsed(row)) return false;
+
     // 直前ノードが同じ行に描画済みであること。分岐行の先頭ノード（新規ライン）は
     // 親行との接続や行の並び替えが必要なため、全再構築に任せる
     QGraphicsPathItem* prev = m_nodeIndex.value(qMakePair(row, ply - 1), nullptr);
     if (!prev) return false;
+
+    // 詰めた配置では、伸びた先に同じ段の別の変化があれば配置し直す
+    if (m_compactLayout) {
+        const int lane = laneForRow(row);
+        for (qsizetype other = 0; other < m_rows.size(); ++other) {
+            if (other == row || laneForRow(static_cast<int>(other)) != lane) continue;
+            const int otherStart = qMax(1, m_rows.at(other).startPly);
+            if (otherStart > rv.startPly && otherStart <= ply + 1) return false;
+        }
+    }
 
     QFont font(QApplication::font().family(), 10);
     if (!item.usiMove.isEmpty() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
@@ -355,14 +426,11 @@ bool BranchTreeManager::appendNodeToRow(int row, int ply, const KifDisplayItem& 
         return true;
     }
     QGraphicsPathItem* node = addNode(row, ply, item);
-    if (row == 0) {
-        // 本譜ノードは自身に「n手目」ラベルを持つので、補完ラベルがあれば取り除く
-        removeMoveNumberLabel(ply);
-    } else {
+    if (row != 0) {
         node->setData(BR_ROLE_STARTPLY, qMax(1, rv.startPly));
         node->setData(BR_ROLE_BUCKET,   row - 1);
-        addMoveNumberLabel(ply);
     }
+    addMoveNumberLabel(ply);
     addEdge(prev, node);
 
     rv.disp.append(item);
@@ -383,26 +451,18 @@ int BranchTreeManager::maxDrawnPly() const
 
 void BranchTreeManager::addMoveNumberLabel(int ply)
 {
-    const QFont LABEL_FONT(QApplication::font().family(), 10);
     const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
 
-    if (!m_scene || ply < 1) return;
-    // 本譜ノードがあればそのノードがラベルを持つ。既に補完済みなら何もしない
-    if (m_nodeIndex.contains(qMakePair(0, ply)) || m_plyLabels.contains(ply)) return;
+    if (!m_scene || !m_headerBand || ply < 1) return;
+    if (m_plyLabels.contains(ply)) return;
 
-    const QFontMetrics fmLabel(LABEL_FONT);
-    const int hText = fmLabel.height();
-    const qreal padY = 6.0;
-    const qreal rectH = qMax<qreal>(24.0, hText + padY * 2);
-    const qreal gap   = 4.0;
-    const qreal topY = (kBaseY - rectH / 2.0) - gap;
-
-    const QString moveNo = tr("%1\u624b\u76ee").arg(ply);
+    const QString moveNo = tr("%1手目").arg(ply);
     auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
+    noItem->setParentItem(m_headerBand);
+    noItem->setBrush(m_branchTree ? m_branchTree->palette().color(QPalette::Text) : QColor(Qt::black));
     const QRectF nbr = noItem->boundingRect();
     const qreal x = kBaseX + kShiftX + ply * m_columnSpacing;
-    noItem->setZValue(15);
-    noItem->setPos(x - nbr.width() / 2.0, topY - nbr.height());
+    noItem->setPos(x - nbr.width() / 2.0, kHeaderHeight - nbr.height() - 1.0);
     m_plyLabels.insert(ply, noItem);
 }
 
@@ -422,6 +482,16 @@ void BranchTreeManager::updateSceneRect()
     const int mainLen = m_rows.isEmpty() ? 0 : static_cast<int>(qMax(qsizetype(0), m_rows.at(0).disp.size() - 1));
     const int spanLen = qMax(mainLen, maxDrawnPly());
     const qreal width  = (kBaseX + kShiftX) + m_columnSpacing * qMax(40, spanLen + 6) + 40.0;
-    const qreal height = 30 + kStepY * static_cast<qreal>(qMax(qsizetype(2), m_rows.size() + 1));
+    const qreal height = 30 + kStepY * static_cast<qreal>(qMax(2, m_laneCount + 1));
     m_scene->setSceneRect(QRectF(0, 0, width, height));
+    if (m_headerBand) m_headerBand->setRect(QRectF(0, 0, width, kHeaderHeight));
+    updateStickyHeader();
+}
+
+void BranchTreeManager::updateStickyHeader()
+{
+    if (!m_branchTree || !m_headerBand) return;
+    // 見えている範囲の上端に帯を置く（スクロールしても手数が読める）
+    const qreal visibleTop = m_branchTree->mapToScene(QPoint(0, 0)).y();
+    m_headerBand->setY(qMax<qreal>(0.0, visibleTop));
 }

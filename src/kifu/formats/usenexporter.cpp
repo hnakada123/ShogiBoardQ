@@ -263,10 +263,6 @@ static QString inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sf
                 else if (beforePiece == 0 && afterPiece != 0) {
                     toRank = rank;
                     toFile = file;
-                    // 成り判定: 移動元が非成りで移動先が成り
-                    if ((afterPiece & 0x100) && !(movedPiece & 0x100)) {
-                        isPromotion = true;
-                    }
                 }
                 // 両方に駒がある → 駒取り
                 else if (beforePiece != 0 && afterPiece != 0) {
@@ -280,10 +276,6 @@ static QString inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sf
                         if ((isSente && afterIsSente) || (!isSente && !afterIsSente)) {
                             toRank = rank;
                             toFile = file;
-                            // 成り判定
-                            if ((afterPiece & 0x100) && !(movedPiece & 0x100)) {
-                                isPromotion = true;
-                            }
                         } else {
                             fromRank = rank;
                             fromFile = file;
@@ -293,6 +285,12 @@ static QString inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sf
                 }
             }
         }
+    }
+
+    // 成り判定: 移動元が非成りで移動先が成り。
+    // 走査順によっては移動先を移動元より先に見るため、走査が終わってから判定する。
+    if (fromRank >= 0 && toRank >= 0) {
+        isPromotion = (after[toRank * 9 + toFile] & 0x100) && !(movedPiece & 0x100);
     }
 
     // 駒打ちの検出（fromRank == -1 で toRank != -1）

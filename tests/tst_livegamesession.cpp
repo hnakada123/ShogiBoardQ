@@ -274,6 +274,33 @@ private slots:
         QCOMPARE(n1->childCount(), 1);
         QCOMPARE(session.liveNode(), resign);
     }
+
+    // 棋譜の途中から対局しても、累計時間は同じ側の直前の累計から続ける
+    void continuedElapsedTextContinuesRecordTotals()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+        auto* m1 = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"),
+                                QStringLiteral("00:05/00:00:05"));
+        auto* m2 = tree.addMove(m1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"),
+                                QStringLiteral("00:03/00:00:03"));
+
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromNode(m2);
+        // 先手：棋譜の累計 5 秒 + 今回 2 秒
+        const QString first = session.continuedElapsedText(QStringLiteral("00:02/00:00:02"));
+        QCOMPARE(first, QStringLiteral("00:02/00:00:07"));
+        session.setFirstMoveNote(QStringLiteral("対局メモ"));
+        session.addMove(ShogiMove(), QStringLiteral("▲２六歩(27)"), QStringLiteral("s3"), first);
+        // 後手：棋譜の累計 3 秒 + 今回 4 秒
+        QCOMPARE(session.continuedElapsedText(QStringLiteral("00:04/00:00:04")), QStringLiteral("00:04/00:00:07"));
+        // 形式が違う表記はそのまま
+        QCOMPARE(session.continuedElapsedText(QStringLiteral("-")), QStringLiteral("-"));
+        // 最初に新しく作った手にメモが付く
+        QCOMPARE(m2->childCount(), 1);
+        QCOMPARE(m2->childAt(0)->comment(), QStringLiteral("対局メモ"));
+    }
 };
 
 QTEST_MAIN(TestLiveGameSession)

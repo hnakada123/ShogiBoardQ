@@ -101,6 +101,8 @@ private:
     GameRecordModel::ExportContext buildExportContext() const;
     bool setClipboardText(const QString& text, const QString& successMsg);
     bool isCurrentlyPlaying() const;
+    /// 分岐を含む棋譜か（分岐に対応しない形式でコピーするときの通知用）
+    bool hasBranches() const;
     int currentPly() const;
 
     struct PositionData {

@@ -60,7 +60,8 @@ void JosekiWindowWiring::updateJosekiWindow()
 
 bool JosekiWindowWiring::determineHumanCanPlay() const
 {
-    // 盤面クリックと同じ判定を使う。対局外や終局後に指すと、盤面だけ進んで棋譜欄に残らないため指させない
+    // 盤面クリックと同じ判定を使う。対局中は人間の手番だけ、対局外（終局後を含む）は
+    // 指した手を棋譜の変化として記録できる待機中だけ指せる
     return m_isHumanTurnNow && m_isHumanTurnNow();
 }
 
@@ -92,8 +93,9 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
     // 定跡手からの着手の場合、成り/不成が決まっているので強制成りモードを設定
     Q_EMIT forcedPromotionRequested(true, promote);
 
-    // 着手前の棋譜サイズを記録
+    // 着手前の棋譜サイズと局面を記録
     const qsizetype sfenSizeBefore = m_sfenHistory ? m_sfenHistory->size() : 0;
+    const QString sfenBefore = m_currentSfenStr ? *m_currentSfenStr : QString();
 
     // 指し手実行を要求
     Q_EMIT moveRequested(from, to);
@@ -102,7 +104,9 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
 
     // 着手後の棋譜サイズを確認して成功/失敗を判定
     const qsizetype sfenSizeAfter = m_sfenHistory ? m_sfenHistory->size() : 0;
-    const bool moveSuccess = (sfenSizeAfter > sfenSizeBefore);
+    // 対局外では変化として記録して表示する手順が切り替わるため、局面が変わったかも見る
+    const bool positionChanged = m_currentSfenStr && *m_currentSfenStr != sfenBefore;
+    const bool moveSuccess = (sfenSizeAfter > sfenSizeBefore) || positionChanged;
 
     qCDebug(lcUi) << "Move result: sfenSizeBefore=" << sfenSizeBefore
                    << "sfenSizeAfter=" << sfenSizeAfter << "success=" << moveSuccess;

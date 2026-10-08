@@ -53,6 +53,10 @@ public:
         QString* startSfenStr = nullptr;
         TimeControlController** timeControllerRef = nullptr;
         std::function<void()> markGameRecordDirty;
+        /// 読み込んだ棋譜の途中局面から対局を続けているか（棋譜の対局情報を残す判定）
+        std::function<bool()> continuesExistingRecord;
+        /// 続けた対局の対局者・日時を、分岐の最初の手のコメントとして残す
+        std::function<void(const QString&)> setContinuationNote;
     };
 
     /**
@@ -289,6 +293,13 @@ private:
     QString* m_engineName2 = nullptr;
     QString* m_startSfenStr = nullptr;
     TimeControlController** m_timeControllerRef = nullptr;
+    std::function<bool()> m_continuesExistingRecord;
+    std::function<void(const QString&)> m_setContinuationNote;
+
+    /// 棋譜の途中から続けた対局では、終局時にも棋譜の対局情報（終了日時など）を書き換えない
+    bool m_keepRecordHeader = false;
+
+    bool continuesExistingRecord() const;
 
     // 内部コントローラ
     GameInfoPaneController* m_gameInfoController = nullptr;

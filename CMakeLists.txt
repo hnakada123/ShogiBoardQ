@@ -444,6 +444,7 @@ set(SRC_KIFU
     src/kifu/kifreader.cpp
     src/kifu/kifreader.h
     src/kifu/kifubranchtree.cpp
+    src/kifu/kifubranchtree_edit.cpp
     src/kifu/kifubranchtree_search.cpp
     src/kifu/kifubranchtree.h
     src/kifu/kifubranchtreebuilder.cpp
@@ -604,6 +605,8 @@ set(SRC_BOARD
 set(SRC_UI
     src/ui/controllers/candidatearrowcontroller.cpp
     src/ui/controllers/candidatearrowcontroller.h
+    src/ui/controllers/branchtreeeditcontroller.cpp
+    src/ui/controllers/branchtreeeditcontroller.h
     src/ui/controllers/boardsetupcontroller.cpp
     src/ui/controllers/boardsetupcontroller.h
     src/ui/controllers/evaluationgraphcontroller.cpp
@@ -735,6 +738,8 @@ set(SRC_WIDGETS
     src/widgets/branchtreemanager.cpp
     src/widgets/branchtreemanager.h
     src/widgets/branchtreemanager_draw.cpp
+    src/widgets/branchtreemanager_input.cpp
+    src/widgets/branchtreemanager_layout.cpp
     src/widgets/collapsiblegroupbox.cpp
     src/widgets/collapsiblegroupbox.h
     src/widgets/commenteditorpanel.cpp

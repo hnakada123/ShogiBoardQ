@@ -213,6 +213,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
 
     // フェーズ3: 変化ブロックの収集と解析
     QList<KifVariation> vars;
+    QStringList varPrevUsi;  // vars と同じ並び：各変化の分岐元に至る直前の指し手
     int i = 0;
 
     while (i < lines.size()) {
@@ -235,11 +236,13 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
             block << s;
         }
 
-        // 分岐元の局面SFENを特定
-        const QString baseSfen = findBranchBaseSfen(vars, out.mainline, startPly - 1);
+        // 分岐元の局面SFENと、変化の1手目が「同」のときの基準になる直前の指し手を特定
+        QString prevUsi;
+        const QString baseSfen = findBranchBaseSfen(vars, varPrevUsi, out.mainline, startPly - 1, &prevUsi);
 
         // 変化ブロック解析
-        vars.push_back(parseVariationBlock(block, startPly, baseSfen));
+        vars.push_back(parseVariationBlock(block, startPly, baseSfen, prevUsi));
+        varPrevUsi.push_back(prevUsi);
     }
 
     out.variations = vars;
@@ -261,9 +264,13 @@ void KifToSfenConverter::extractMainLine(const QString& kifPath,
 }
 
 QString KifToSfenConverter::findBranchBaseSfen(const QList<KifVariation>& vars,
+                                                const QStringList& varPrevUsi,
                                                 const KifLine& mainLine,
-                                                int branchPointPly)
+                                                int branchPointPly,
+                                                QString* prevUsi)
 {
+    if (prevUsi) prevUsi->clear();
+
     // まず既存の分岐から探す
     for (qsizetype vi = vars.size() - 1; vi >= 0; --vi) {
         const KifVariation& prevVar = vars.at(vi);
@@ -273,6 +280,14 @@ QString KifToSfenConverter::findBranchBaseSfen(const QList<KifVariation>& vars,
                 qCDebug(lcKifu).noquote()
                     << "variation baseSfen from variation" << vi
                     << "(startPly=" << prevVar.startPly << ")";
+                if (prevUsi) {
+                    // idx == 0 は分岐元そのもの：その変化の直前の指し手を引き継ぐ
+                    if (idx == 0) {
+                        *prevUsi = varPrevUsi.value(vi);
+                    } else if (idx - 1 < prevVar.line.usiMoves.size()) {
+                        *prevUsi = prevVar.line.usiMoves.at(idx - 1);
+                    }
+                }
                 return prevVar.line.sfenList.at(idx);
             }
         }
@@ -281,6 +296,9 @@ QString KifToSfenConverter::findBranchBaseSfen(const QList<KifVariation>& vars,
     // 分岐から見つからなければ本譜から探す
     if (branchPointPly >= 0 && branchPointPly < mainLine.sfenList.size()) {
         qCDebug(lcKifu).noquote() << "variation baseSfen from mainline";
+        if (prevUsi && branchPointPly >= 1 && branchPointPly - 1 < mainLine.usiMoves.size()) {
+            *prevUsi = mainLine.usiMoves.at(branchPointPly - 1);
+        }
         return mainLine.sfenList.at(branchPointPly);
     }
 
@@ -290,13 +308,14 @@ QString KifToSfenConverter::findBranchBaseSfen(const QList<KifVariation>& vars,
 
 KifVariation KifToSfenConverter::parseVariationBlock(const QStringList& blockLines,
                                                       int startPly,
-                                                      const QString& baseSfen)
+                                                      const QString& baseSfen,
+                                                      const QString& prevUsi)
 {
     KifVariation var;
     var.startPly = startPly;
     var.line.baseSfen = baseSfen;
 
-    extractMovesFromBlock(blockLines, startPly, var.line);
+    extractMovesFromBlock(blockLines, startPly, var.line, prevUsi);
 
     if (!var.line.baseSfen.isEmpty() && !var.line.usiMoves.isEmpty()) {
         var.line.sfenList = SfenPositionTracer::buildSfenRecord(
@@ -313,9 +332,12 @@ KifVariation KifToSfenConverter::parseVariationBlock(const QStringList& blockLin
 
 void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
                                                 int startPly,
-                                                KifLine& line)
+                                                KifLine& line,
+                                                const QString& prevUsi)
 {
+    // 変化の1手目が「同」のときは、分岐元に至る直前の指し手の移動先を使う
     int prevToFile = 0, prevToRank = 0;
+    KifLexer::usiDestination(prevUsi, prevToFile, prevToRank);
     int moveIndex = startPly - 1;
     bool blackToMove = !line.baseSfen.contains(QStringLiteral(" w "));
     QString commentBuf;

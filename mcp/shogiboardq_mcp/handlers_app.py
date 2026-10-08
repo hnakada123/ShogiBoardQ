@@ -71,10 +71,15 @@ class AppTools:
             "from_ply": int(args.get("from_ply", 1)),
             "max_moves": int(args.get("max_moves", 200)),
         }
+        if params["format"] == "moves":
+            params["line"] = args.get("line", "current")
         result = await self.client.call("kifu.get", params)
         if params["format"] == "moves":
             moves = result.get("moves") or []
-            lines = [f"{result.get('total_plies', 0)} plies total; showing {len(moves)} from ply {params['from_ply']}."]
+            line_index = result.get("line", 0)
+            line_label = "main line" if line_index == 0 else f"variation line {line_index}"
+            lines = [f"{result.get('total_plies', 0)} plies total ({line_label}); "
+                     f"showing {len(moves)} from ply {params['from_ply']}."]
             for m in moves:
                 extra = ""
                 if m.get("time"):

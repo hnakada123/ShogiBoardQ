@@ -29,6 +29,8 @@ PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     , m_engineName2(deps.engineName2)
     , m_startSfenStr(deps.startSfenStr)
     , m_timeControllerRef(deps.timeControllerRef)
+    , m_continuesExistingRecord(deps.continuesExistingRecord)
+    , m_setContinuationNote(deps.setContinuationNote)
 {
 }
 
@@ -249,6 +251,17 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
                                                      const QString& startSfen,
                                                      const TimeControlInfo& timeInfo)
 {
+    // 読み込んだ棋譜の途中から続ける対局では、本譜の対局者などの対局情報をそのまま残す
+    const bool keepHeader = continuesExistingRecord();
+    QList<KifGameInfoItem> recordHeader;
+    if (keepHeader) {
+        ensureGameInfoController();
+        if (m_gameInfoController) {
+            m_gameInfoController->commitPendingEditor();
+            recordHeader = m_gameInfoController->gameInfo();
+        }
+    }
+
     // まず対局者名の確定処理
     onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
 
@@ -279,6 +292,25 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         blackName.clear();
         whiteName.clear();
         break;
+    }
+
+    if (keepHeader) {
+        if (m_gameInfoController) {
+            m_gameInfoController->setGameInfo(recordHeader);
+        }
+        m_keepRecordHeader = true;
+        if (m_setContinuationNote) {
+            const QDateTime start = timeInfo.gameStartDateTime.isValid()
+                ? timeInfo.gameStartDateTime : QDateTime::currentDateTime();
+            const QString timeText = timeInfo.hasTimeControl
+                ? KifuExportMetadataBuilder::timeControlText(timeInfo.baseTimeMs, timeInfo.byoyomiMs,
+                                                             timeInfo.incrementMs)
+                : tr("無制限");
+            m_setContinuationNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
+                                      .arg(blackName, whiteName,
+                                           start.toString(QStringLiteral("yyyy/MM/dd HH:mm")), timeText));
+        }
+        return;
     }
 
     // 対局情報を設定
@@ -340,6 +372,7 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
 {
     ensureGameInfoController();
     if (!m_gameInfoController) return;
+    m_keepRecordHeader = false;
 
     QList<KifGameInfoItem> items;
 
@@ -369,9 +402,14 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
                    << " hasTimeControl=" << hasTimeControl;
 }
 
+bool PlayerInfoWiring::continuesExistingRecord() const
+{
+    return m_continuesExistingRecord && m_continuesExistingRecord();
+}
+
 void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
 {
-    if (!m_gameInfoController) return;
+    if (!m_gameInfoController || m_keepRecordHeader) return;
     m_gameInfoController->updateGameInfoValue(
         GameInfoKeys::kEndDateTime, endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
 
@@ -384,7 +422,7 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
                                                      qint64 byoyomiMs,
                                                      qint64 incrementMs)
 {
-    if (!m_gameInfoController) return;
+    if (!m_gameInfoController || continuesExistingRecord()) return;
     if (!hasTimeControl) {
         m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, QStringLiteral("無制限"));
         return;

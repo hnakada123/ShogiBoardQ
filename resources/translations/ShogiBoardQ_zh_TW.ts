@@ -973,17 +973,91 @@
     </message>
 </context>
 <context>
+    <name>BranchTreeEditController</name>
+    <message>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="107"/>
+        <source>この手順を本譜にする</source>
+        <translation>將此變化設為主線</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="108"/>
+        <source>変化を上へ移動する</source>
+        <translation>上移變化</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="109"/>
+        <source>変化を下へ移動する</source>
+        <translation>下移變化</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="110"/>
+        <source>この手以降を削除する…</source>
+        <translation>刪除此著及之後的著法…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="138"/>
+        <source>手順の削除</source>
+        <translation>刪除著法</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="139"/>
+        <source>「%1」以降の %2 手を削除します。この操作は取り消せません。
+削除しますか？</source>
+        <translation>將刪除「%1」及之後的 %2 步。此操作無法復原。
+要刪除嗎？</translation>
+    </message>
+</context>
+<context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="111"/>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="400"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="212"/>
+        <source>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</source>
+        <translation>&lt;p&gt;（按兩下展開）&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="513"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="187"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="311"/>
         <source>開始局面</source>
         <translation>初始局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="580"/>
+        <source>この変化を展開する</source>
+        <translation>展開此變化</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="581"/>
+        <source>この変化を折りたたむ</source>
+        <translation>摺疊此變化</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="585"/>
+        <source>すべての変化を展開する</source>
+        <translation>展開所有變化</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="587"/>
+        <source>変化を詰めて表示する</source>
+        <translation>緊湊顯示變化</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="591"/>
+        <source>拡大</source>
+        <translation>放大</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="593"/>
+        <source>縮小</source>
+        <translation>縮小</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="595"/>
+        <source>標準の大きさ（100%）</source>
+        <translation>標準大小（100%）</translation>
     </message>
 </context>
 <context>
@@ -1785,7 +1859,7 @@
         <translation>CSA 網路對局開始：%1 對 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="244"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="247"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -1796,22 +1870,22 @@
 原因：%2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="252"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="255"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="256"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="259"/>
         <source>対局終了: %1 (%2)</source>
         <translation>對局結束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="311"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="314"/>
         <source>先手番</source>
         <translation>先手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="311"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="314"/>
         <source>後手番</source>
         <translation>後手行棋</translation>
     </message>
@@ -1848,7 +1922,7 @@
         <translation type="vanished">初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="416"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="419"/>
         <source>通信対局をキャンセルしました</source>
         <translation>網路對局已取消</translation>
     </message>
@@ -2975,60 +3049,60 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameEndHandler</name>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="117"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="118"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="128"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="117"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="118"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="128"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="123"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1認輸。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="125"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="136"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1超時。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="127"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="138"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>已達到最大手數。持將棋（和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="140"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1作出入玉宣言。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="131"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="142"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1犯規。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="133"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="144"/>
         <source>千日手が成立しました。</source>
         <translation>千日手成立（重複局面和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="146"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1連續王手千日手。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="138"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="149"/>
         <source>対局が終了しました。</source>
         <translation>對局已結束。</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler.cpp" line="132"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="146"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="157"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
     </message>
@@ -4626,7 +4700,7 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/kifu/kifuapplyservice.cpp" line="145"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="161"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="155"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>解析 BOD 格式失敗。%1</translation>
     </message>
@@ -4660,100 +4734,110 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuExportClipboard</name>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="183"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="190"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>複製到剪貼簿失敗</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="192"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="200"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="199"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="207"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>沒有 KIF 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="197"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="204"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 KIF 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="209"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="217"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="216"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="224"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>沒有 KI2 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="214"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="221"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 KI2 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="231"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="238"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>沒有 CSA 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="235"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="242"/>
+        <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
+        <translation>已將 CSA 格式棋譜複製到剪貼簿（CSA 格式不支援變化，僅包含主線）</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="243"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 CSA 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="248"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="283"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="256"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="292"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>沒有 USI 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="252"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="260"/>
+        <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
+        <translation>已將 USI 格式棋譜複製到剪貼簿（USI 格式不支援變化，僅包含主線）</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="261"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 USI 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="287"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="296"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>已將截至目前著法的 USI 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="300"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="309"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>沒有 JKF 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="304"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="313"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 JKF 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="317"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="326"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>沒有 USEN 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="321"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="330"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 USEN 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="330"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="339"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>沒有 SFEN 格式局面資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="335"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="344"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>已將 SFEN 格式局面複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="344"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="353"/>
         <source>BOD形式の局面データがありません</source>
         <translation>沒有 BOD 格式局面資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="350"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="359"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>解析 SFEN 格式失敗</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="355"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="364"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>已將 BOD 格式局面複製到剪貼簿</translation>
     </message>
@@ -4812,7 +4896,7 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuFileController</name>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="54"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="55"/>
         <source>棋譜ファイルを開く</source>
         <translation>開啟棋譜檔案</translation>
     </message>
@@ -4821,37 +4905,41 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">棋譜文件 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF 文件 (*.kif *.kifu *.ki2 *.ki2u);;CSA 文件 (*.csa);;JKF 文件 (*.jkf);;USI 文件 (*.usi *.sfen);;USEN 文件 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="55"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI/SFEN Files (*.usi *.sfen);;USEN Files (*.usen)</source>
-        <translation>棋譜檔案 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF 檔案 (*.kif *.kifu);;KI2 檔案 (*.ki2 *.ki2u);;CSA 檔案 (*.csa);;JKF 檔案 (*.jkf);;USI/SFEN 檔案 (*.usi *.sfen);;USEN 檔案 (*.usen)</translation>
+        <translation type="vanished">棋譜檔案 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF 檔案 (*.kif *.kifu);;KI2 檔案 (*.ki2 *.ki2u);;CSA 檔案 (*.csa);;JKF 檔案 (*.jkf);;USI/SFEN 檔案 (*.usi *.sfen);;USEN 檔案 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="145"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="56"/>
+        <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf *.json);;USI/SFEN Files (*.usi *.sfen);;USEN Files (*.usen)</source>
+        <translation>棋譜檔案 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;KIF 檔案 (*.kif *.kifu);;KI2 檔案 (*.ki2 *.ki2u);;CSA 檔案 (*.csa);;JKF 檔案 (*.jkf *.json);;USI/SFEN 檔案 (*.usi *.sfen);;USEN 檔案 (*.usen)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="146"/>
         <source>棋譜を読み込み中...</source>
         <translation>正在載入棋譜...</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="145"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="146"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="167"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="168"/>
         <source>棋譜を取り込みました</source>
         <translation>棋譜已匯入</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="190"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="191"/>
         <source>局面を反映しました</source>
         <translation>局面已套用</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="192"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="193"/>
         <source>局面の反映に失敗しました</source>
         <translation>套用局面失敗</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="197"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="198"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>套用局面失敗（內部錯誤）</translation>
     </message>
@@ -4859,7 +4947,7 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuLoadCoordinator</name>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="83"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="77"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>載入棋譜檔案失敗：%1%2</translation>
     </message>
@@ -4871,12 +4959,12 @@ OKを選択すると保存先が指定できます。</source>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="148"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="142"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>要貼上的文字為空。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="166"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="160"/>
         <source>一時ファイルの作成に失敗しました。</source>
         <translation>建立暫存檔案失敗。</translation>
     </message>
@@ -5576,122 +5664,122 @@ OKを選択すると保存先が指定できます。</source>
         <translation>引擎設定…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="486"/>
+        <location filename="../../src/app/mainwindow.ui" line="489"/>
         <source>開く…</source>
         <translation>開啟…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="549"/>
+        <location filename="../../src/app/mainwindow.ui" line="552"/>
         <source>詰み探索…</source>
         <translation>搜尋詰棋…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="558"/>
+        <location filename="../../src/app/mainwindow.ui" line="561"/>
         <source>詰み探索中止</source>
         <translation>取消詰棋搜尋</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="612"/>
+        <location filename="../../src/app/mainwindow.ui" line="615"/>
         <source>通信対局（CSA）…</source>
         <translation>網路對局 (CSA)…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="639"/>
+        <location filename="../../src/app/mainwindow.ui" line="642"/>
         <source>GUI全体のフォント…</source>
         <translation>應用程式字型…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="642"/>
+        <location filename="../../src/app/mainwindow.ui" line="645"/>
         <source>GUI全体で使用する書体を選択します</source>
         <translation>選擇整個應用程式使用的字型</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="647"/>
+        <location filename="../../src/app/mainwindow.ui" line="650"/>
         <source>設定を初期値に戻す…</source>
         <translation>恢復預設設定…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="652"/>
+        <location filename="../../src/app/mainwindow.ui" line="658"/>
         <source>简体中文</source>
         <translation>简体中文</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="656"/>
+        <location filename="../../src/app/mainwindow.ui" line="662"/>
         <source>繁體中文</source>
         <translation>繁體中文</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="660"/>
+        <location filename="../../src/app/mainwindow.ui" line="666"/>
         <source>言語に合わせる</source>
         <translation>跟隨介面語言</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="664"/>
+        <location filename="../../src/app/mainwindow.ui" line="670"/>
         <source>日本語表記（▲７六歩、段は一〜九）</source>
         <translation>日文記法（▲７六歩；段為一至九）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="668"/>
+        <location filename="../../src/app/mainwindow.ui" line="674"/>
         <source>英語表記（▲P-7f、段はa〜i）</source>
         <translation>西文記法（▲P-7f；段為 a 至 i）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="672"/>
+        <location filename="../../src/app/mainwindow.ui" line="678"/>
         <source>英語表記で移動元を常に表示</source>
         <translation>西文記法始終顯示起點</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="734"/>
+        <location filename="../../src/app/mainwindow.ui" line="740"/>
         <source>局面集ビューア</source>
         <translation>SFEN 局面集檢視器</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="752"/>
+        <location filename="../../src/app/mainwindow.ui" line="758"/>
         <source>ドックレイアウトを保存…</source>
         <translation>儲存面板佈局…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="775"/>
+        <location filename="../../src/app/mainwindow.ui" line="781"/>
         <source>駒音</source>
         <translation>走子音效</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="778"/>
+        <location filename="../../src/app/mainwindow.ui" line="784"/>
         <source>駒を指したときに駒音を鳴らす</source>
         <translation>移動棋子時播放聲音</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="787"/>
+        <location filename="../../src/app/mainwindow.ui" line="793"/>
         <source>駒音の設定…</source>
         <translation>走子音效設定…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="830"/>
+        <location filename="../../src/app/mainwindow.ui" line="836"/>
         <source>指せるマスを表示</source>
         <translation>顯示合法落點</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="831"/>
+        <location filename="../../src/app/mainwindow.ui" line="837"/>
         <source>選択した駒を指せるマスに色を付けます</source>
         <translation>醒目顯示所選棋子可以移動到的格子</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="839"/>
+        <location filename="../../src/app/mainwindow.ui" line="845"/>
         <source>対局画面の外観…</source>
         <translation>對局外觀…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="567"/>
+        <location filename="../../src/app/mainwindow.ui" line="570"/>
         <source>持将棋点数</source>
         <translation>持將棋點數</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="630"/>
+        <location filename="../../src/app/mainwindow.ui" line="633"/>
         <source>メニュー</source>
         <translation>選單</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="725"/>
+        <location filename="../../src/app/mainwindow.ui" line="731"/>
         <source>ツールバー</source>
         <translation>工具列</translation>
     </message>
@@ -5801,122 +5889,122 @@ OKを選択すると保存先が指定できます。</source>
         <translation>關於 Qt</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="423"/>
+        <location filename="../../src/app/mainwindow.ui" line="426"/>
         <source>KIF形式</source>
         <translation>KIF 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="432"/>
+        <location filename="../../src/app/mainwindow.ui" line="435"/>
         <source>KI2形式</source>
         <translation>KI2 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="441"/>
+        <location filename="../../src/app/mainwindow.ui" line="444"/>
         <source>CSA形式</source>
         <translation>CSA 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="450"/>
+        <location filename="../../src/app/mainwindow.ui" line="453"/>
         <source>USI形式（現在の指し手まで）</source>
         <translation>USI 格式（截至目前著法）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="459"/>
+        <location filename="../../src/app/mainwindow.ui" line="462"/>
         <source>SFEN形式</source>
         <translation>SFEN 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="468"/>
+        <location filename="../../src/app/mainwindow.ui" line="471"/>
         <source>BOD形式</source>
         <translation>BOD 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="477"/>
+        <location filename="../../src/app/mainwindow.ui" line="480"/>
         <source>新規</source>
         <translation>新建</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="489"/>
+        <location filename="../../src/app/mainwindow.ui" line="492"/>
         <source>Ctrl+O</source>
         <translation>Ctrl+O</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="498"/>
+        <location filename="../../src/app/mainwindow.ui" line="501"/>
         <source>待った</source>
         <translation>悔棋</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="507"/>
+        <location filename="../../src/app/mainwindow.ui" line="510"/>
         <source>すぐ指させる</source>
         <translation>立即落子</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="516"/>
+        <location filename="../../src/app/mainwindow.ui" line="519"/>
         <source>将棋盤の拡大</source>
         <translation>放大棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="519"/>
+        <location filename="../../src/app/mainwindow.ui" line="522"/>
         <source>Ctrl++</source>
         <translation>Ctrl++</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="528"/>
+        <location filename="../../src/app/mainwindow.ui" line="531"/>
         <source>将棋盤の縮小</source>
         <translation>縮小棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="531"/>
+        <location filename="../../src/app/mainwindow.ui" line="534"/>
         <source>Ctrl+-</source>
         <translation>Ctrl+-</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="540"/>
+        <location filename="../../src/app/mainwindow.ui" line="543"/>
         <source>局面編集終了</source>
         <translation>結束編輯局面</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="576"/>
+        <location filename="../../src/app/mainwindow.ui" line="579"/>
         <source>入玉宣言</source>
         <translation>入玉宣言</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="585"/>
+        <location filename="../../src/app/mainwindow.ui" line="588"/>
         <source>USI形式（全て）</source>
         <translation>USI 格式（全部）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="594"/>
+        <location filename="../../src/app/mainwindow.ui" line="597"/>
         <source>JSON棋譜フォーマット</source>
         <translation>JSON 棋譜格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="603"/>
+        <location filename="../../src/app/mainwindow.ui" line="606"/>
         <source>USEN</source>
         <translation>USEN</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="621"/>
+        <location filename="../../src/app/mainwindow.ui" line="624"/>
         <source>棋譜解析中止</source>
         <translation>取消分析</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="675"/>
+        <location filename="../../src/app/mainwindow.ui" line="681"/>
         <source>棋譜表記の読み方…</source>
         <translation>棋譜記法說明…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="686"/>
+        <location filename="../../src/app/mainwindow.ui" line="692"/>
         <source>システム設定に従う</source>
         <translation>跟隨系統設定</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="698"/>
+        <location filename="../../src/app/mainwindow.ui" line="704"/>
         <source>日本語</source>
         <translation>日本語</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="710"/>
+        <location filename="../../src/app/mainwindow.ui" line="716"/>
         <source>English</source>
         <translation>English</translation>
     </message>
@@ -5933,7 +6021,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>沒有棋盤資料。</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="743"/>
+        <location filename="../../src/app/mainwindow.ui" line="749"/>
         <source>ドックレイアウトをリセット</source>
         <translation>重設面板佈局</translation>
     </message>
@@ -5943,12 +6031,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation>已儲存的佈局</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="760"/>
+        <location filename="../../src/app/mainwindow.ui" line="766"/>
         <source>ドックを固定</source>
         <translation>鎖定面板</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="798"/>
+        <location filename="../../src/app/mainwindow.ui" line="804"/>
         <source>（保存済みレイアウトなし）</source>
         <translation>（無已儲存的佈局）</translation>
     </message>
@@ -5963,22 +6051,22 @@ OKを選択すると保存先が指定できます。</source>
         <translation>標準棋子</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="790"/>
+        <location filename="../../src/app/mainwindow.ui" line="796"/>
         <source>駒音の音量・音の高さ・音質を調整する</source>
         <translation>調整走子音效的音量、音高和音色</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="807"/>
+        <location filename="../../src/app/mainwindow.ui" line="813"/>
         <source>評価値グラフの画像をファイルに保存…</source>
         <translation>儲存評價值圖表圖片…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="816"/>
+        <location filename="../../src/app/mainwindow.ui" line="822"/>
         <source>詰将棋対局…</source>
         <translation>練習詰棋…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="825"/>
+        <location filename="../../src/app/mainwindow.ui" line="831"/>
         <source>詰将棋局面生成…</source>
         <translation>詰棋局面生成器…</translation>
     </message>
@@ -6453,14 +6541,24 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PlayerInfoWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="56"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="58"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="57"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="59"/>
         <source>後手</source>
         <translation>後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="308"/>
+        <source>無制限</source>
+        <translation>不限時</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="309"/>
+        <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
+        <translation>對局：▲%1 △%2（%3 開始，用時 %4）</translation>
     </message>
     <message>
         <source>平手</source>
@@ -6486,12 +6584,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PreStartCleanupHandler</name>
     <message>
-        <location filename="../../src/app/prestartcleanuphandler.cpp" line="184"/>
+        <location filename="../../src/app/prestartcleanuphandler.cpp" line="212"/>
         <source>=== 開始局面 ===</source>
         <translation>=== 初始局面 ===</translation>
     </message>
     <message>
-        <location filename="../../src/app/prestartcleanuphandler.cpp" line="185"/>
+        <location filename="../../src/app/prestartcleanuphandler.cpp" line="213"/>
         <source>（１手 / 合計）</source>
         <translation>（每手／累計）</translation>
     </message>
@@ -6652,37 +6750,37 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="65"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="63"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="67"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="83"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="87"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="64"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="68"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="84"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="88"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="65"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="64"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="72"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="80"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="88"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="65"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="73"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="81"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="89"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="68"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="71"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="79"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="84"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="69"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="72"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="80"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="85"/>
         <source>Engine</source>
         <translation>引擎</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="75"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="76"/>
         <source>Engine1</source>
         <translation>引擎1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="76"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="77"/>
         <source>Engine2</source>
         <translation>引擎2</translation>
     </message>
@@ -6766,48 +6864,62 @@ OKを選択すると保存先が指定できます。</source>
 繼續嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="196"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="202"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="194"/>
+        <source>USEN形式で保存</source>
+        <translation>以 USEN 格式儲存</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="195"/>
+        <source>USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。
+詰み・反則勝ちなど一部の終局理由も保存されません。
+保存を続けますか？</source>
+        <translation>USEN 格式不支援用時、註解和書籤，這些資訊不會被儲存。
+部分終局原因（如將死、犯規勝）也不會被儲存。
+要繼續儲存嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="203"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="209"/>
         <source>USI形式で保存</source>
         <translation>儲存為 USI</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="197"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="204"/>
         <source>USI形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI 格式不支援變化分支，將不會儲存分支資訊。
 繼續嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="203"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="210"/>
         <source>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI 格式不支援用時資訊，將不會儲存用時。
 繼續嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="220"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="227"/>
         <source>未保存の棋譜</source>
         <translation>未儲存的棋譜</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="221"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="228"/>
         <source>棋譜に未保存の変更があります。保存しますか？</source>
         <translation>棋譜有尚未儲存的修改。是否儲存？</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="224"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="231"/>
         <source>保存</source>
         <translation>儲存</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="225"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="232"/>
         <source>破棄</source>
         <translation>放棄</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="59"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="226"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="233"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
@@ -7683,12 +7795,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>行棋方</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="167"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="172"/>
         <source>編集終了</source>
         <translation>結束編輯</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="169"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="174"/>
         <source>局面編集を終了し、この局面を開始局面にします</source>
         <translation>結束局面編輯，並將此局面作為初始局面</translation>
     </message>
@@ -9301,17 +9413,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>UiNotificationService</name>
     <message>
-        <location filename="../../src/services/uinotificationservice.cpp" line="33"/>
+        <location filename="../../src/services/uinotificationservice.cpp" line="55"/>
         <source>Information</source>
         <translation>資訊</translation>
     </message>
     <message>
-        <location filename="../../src/services/uinotificationservice.cpp" line="36"/>
+        <location filename="../../src/services/uinotificationservice.cpp" line="58"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../../src/services/uinotificationservice.cpp" line="40"/>
+        <location filename="../../src/services/uinotificationservice.cpp" line="62"/>
         <source>Error</source>
         <translation>錯誤</translation>
     </message>
@@ -9497,12 +9609,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>Hiroshi Nakada</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="39"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="41"/>
         <source>ビルド日時: %1 %2</source>
         <translation>建置：%1 %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="41"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="43"/>
         <source>Qt %1 を使用（ビルド時: %2）
 Copyright © The Qt Company Ltd. and other contributors.
 Qt Charts: GPLv3 / その他の Qt: LGPLv3・GPL</source>
@@ -9511,48 +9623,48 @@ Qt Charts: GPLv3 / その他の Qt: LGPLv3・GPL</source>
 Qt Charts：GPLv3／其他 Qt 模組：LGPLv3 / GPL</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="54"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="56"/>
         <source>ライセンス・著作権表示</source>
         <translation>授權與版權聲明</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="55"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="57"/>
         <source>GNU GPL v3</source>
         <translation>GNU GPL v3</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="56"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="58"/>
         <source>GNU LGPL v3</source>
         <translation>GNU LGPL v3</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="57"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="59"/>
         <source>ソースコードの入手方法</source>
         <translation>取得原始碼</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="61"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="63"/>
         <source>Qt 内の第三者ライセンス一覧</source>
         <translation>Qt 中的第三方授權</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="64"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="66"/>
         <source>同梱ライブラリのライセンス一覧</source>
         <translation>隨附程式庫的授權</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="66"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="68"/>
         <source>ライセンス文書</source>
         <translation>授權檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="53"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="55"/>
         <source>NOTICE.md</source>
         <extracomment>Bundled document filename. Use the translated NOTICE_&lt;language&gt;.md file.</extracomment>
         <translation>NOTICE_zh_TW.md</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="90"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="95"/>
         <source>SOURCE_CODE.md</source>
         <extracomment>Bundled document filename. Use the translated SOURCE_CODE_&lt;language&gt;.md file.</extracomment>
         <translation>SOURCE_CODE_zh_TW.md</translation>

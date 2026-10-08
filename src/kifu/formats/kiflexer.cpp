@@ -115,6 +115,9 @@ void stripTimeAndNextMove(QString& rest, const QString& lineStr, int skipOffset,
             nextMoveStartIdx = -1;
         }
     }
+    // 消費時間欄がない行では、分岐ありを示す行末の「+」が指し手に残るので取り除く
+    static const QRegularExpression s_branchMark(QStringLiteral("\\s*[+＋]$"));
+    rest.remove(s_branchMark);
     Q_UNUSED(lineStr);
     Q_UNUSED(skipOffset);
 }
@@ -249,6 +252,18 @@ bool isPromotionMoveText(const QString& line)
         return &r;
     }();
     return kPromoteSuffix.match(head).hasMatch();
+}
+
+bool usiDestination(const QString& usi, int& toFile, int& toRank)
+{
+    // "7g7f" / "7g7f+" / "P*5e" のいずれも 3〜4 文字目が移動先
+    if (usi.size() < 4) return false;
+    const QChar f = usi.at(2);
+    const QChar r = usi.at(3);
+    if (f < QLatin1Char('1') || f > QLatin1Char('9') || r < QLatin1Char('a') || r > QLatin1Char('i')) return false;
+    toFile = f.unicode() - '0';
+    toRank = r.unicode() - 'a' + 1;
+    return true;
 }
 
 bool convertMoveLine(const QString& moveText, QString& usi,

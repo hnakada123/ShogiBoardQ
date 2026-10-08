@@ -64,6 +64,8 @@ public:
         std::function<void()> ensurePositionEdit;
         std::function<void(int)> redrawEngine1Graph;
         std::function<void(int)> redrawEngine2Graph;
+        std::function<bool()> isVariationInput;                  ///< 盤上の着手を変化として扱うか
+        std::function<bool(QPoint&, QPoint&)> recordVariationMove; ///< 盤上の着手を変化として記録する
     };
 
     /// PositionEditCoordinator 用コールバック群
