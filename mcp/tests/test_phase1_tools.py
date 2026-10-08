@@ -57,7 +57,10 @@ async def test_input_validation_is_reported_as_error(server_env):
 
 
 async def test_convert_kifu_from_file_and_text(server_env, tmp_path):
-    async with mcp_session(server_env) as session:
+    # Text input is handed to the CLI as a temporary file; none may be left behind, even on errors.
+    temp_dir = tmp_path / "tmp"
+    temp_dir.mkdir()
+    async with mcp_session(dict(server_env, TMPDIR=str(temp_dir))) as session:
         text, data, is_error = await _call(session, "convert_kifu", input_path=str(FIXTURES / "test_basic.kif"), output_format="usi")
         assert not is_error, text
         assert data["ply_count"] == 7
@@ -84,6 +87,7 @@ async def test_convert_kifu_from_file_and_text(server_env, tmp_path):
         text, data, is_error = await _call(session, "convert_kifu", text="position startpos moves 7g7f 3c3d 2g2f", output_format="sfen", max_chars=1000)
         assert not is_error
         assert len(data["sfens"]) == 4
+    assert not list(temp_dir.glob("shogiboardq-mcp-*"))
 
 
 async def test_list_engines_and_resource(server_env):
