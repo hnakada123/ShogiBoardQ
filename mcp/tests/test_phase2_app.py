@@ -161,8 +161,11 @@ async def test_tsume_board_clicks(app_env, tmp_path):
         f"file={FIXTURES / 'tsume_positions_with_moves.sfen'}\nengine=@hayanagi\n"
         "[TsumePlay]\nsize=@Size(950 1180)\nsquareSize=65\n", encoding="utf-8")
     env["XDG_CONFIG_HOME"] = str(config.parent)
+    env["SHOGIBOARDQ_CONFIG_HOME"] = str(config.parent)
     env["XDG_DATA_HOME"] = str(tmp_path / "data")
+    env["SHOGIBOARDQ_DATA_HOME"] = str(tmp_path / "data")
     env["XDG_CACHE_HOME"] = str(tmp_path / "cache")
+    env["SHOGIBOARDQ_CACHE_HOME"] = str(tmp_path / "cache")
     env["SHOGIBOARDQ_AUTOMATION_SOCKET"] = str(tmp_path / "click.sock")
     async with mcp_session(env) as session:
         async def call(tool, **args):

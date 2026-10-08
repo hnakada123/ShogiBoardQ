@@ -243,6 +243,11 @@ add_shogi_test(tst_kifreader
     ${SRC}/common/logcategories.cpp
 )
 
+add_shogi_test(tst_app_paths
+    tst_app_paths.cpp
+    ${SRC}/services/settingscommon.cpp
+)
+
 add_shogi_test(tst_kifu_file_reader
     tst_kifu_file_reader.cpp
     ${SRC}/kifu/kifufilereader.cpp

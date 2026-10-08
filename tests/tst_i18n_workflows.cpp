@@ -35,7 +35,7 @@ class TestI18nWorkflows : public QObject
     Q_OBJECT
     QTemporaryDir m_config;
 private slots:
-    void initTestCase() { qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8()); }
+    void initTestCase() { qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8()); qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8()); }
     void cleanup()
     {
         AppSettings::setLanguage("system");

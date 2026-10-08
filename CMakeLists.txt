@@ -929,6 +929,7 @@ set(SRC_SERVICES
     src/services/josekisettings.h
     src/services/networksettings.cpp
     src/services/networksettings.h
+    src/services/apppaths.h
     src/services/settingscommon.cpp
     src/services/settingscommon.h
     src/services/settingskeys.h

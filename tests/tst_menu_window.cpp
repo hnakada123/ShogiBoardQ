@@ -58,6 +58,7 @@ private slots:
     {
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
         QCoreApplication::setApplicationName(QStringLiteral("MenuWindowTest"));
     }
     void init() { SettingsCommon::openSettings().clear(); }

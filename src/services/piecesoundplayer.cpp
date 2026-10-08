@@ -2,6 +2,7 @@
 /// @brief 駒音（駒を指したときの効果音）再生サービスの実装
 
 #include "piecesoundplayer.h"
+#include "apppaths.h"
 #include "appsettings.h"
 #include "logcategories.h"
 #include "piecesoundprocessor.h"
@@ -11,7 +12,6 @@
 #include <QFile>
 #include <QSaveFile>
 #include <QSoundEffect>
-#include <QStandardPaths>
 #include <QUrl>
 
 namespace {
@@ -143,7 +143,7 @@ QString PieceSoundPlayer::renderProcessedFile() const
         return {};
     }
 
-    const QString cacheRoot = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    const QString cacheRoot = AppPaths::cacheDirectory();
     if (cacheRoot.isEmpty()) {
         qCWarning(lcUi) << "PieceSoundPlayer: no writable cache location";
         return {};

@@ -26,7 +26,8 @@ def consideration_env(server_env, app_path, tmp_path):
         + "\n[Consideration]\nengineIndex=1\nunlimitedTime=true\nbyoyomiSec=7\nmultiPV=3\n"
         + "[General]\nmainWindowSize=@Size(1400 1000)\n", encoding="utf-8")
     env.update(SHOGIBOARDQ_EXECUTABLE=str(app_path), SHOGIBOARDQ_QUIT_APP_ON_EXIT="1",
-               XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_AUTOMATION_SOCKET=str(tmp_path / "app.sock"))
+               XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_CONFIG_HOME=str(config.parent),
+               SHOGIBOARDQ_AUTOMATION_SOCKET=str(tmp_path / "app.sock"))
     return env
 
 

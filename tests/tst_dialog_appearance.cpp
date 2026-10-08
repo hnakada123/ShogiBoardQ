@@ -525,8 +525,11 @@ int main(int argc, char** argv)
 {
     QTemporaryDir data;
     qputenv("XDG_CONFIG_HOME", data.path().toUtf8());
+    qputenv("SHOGIBOARDQ_CONFIG_HOME", data.path().toUtf8());
     qputenv("XDG_DATA_HOME", data.path().toUtf8());
     qputenv("XDG_CACHE_HOME", data.path().toUtf8());
+    qputenv("SHOGIBOARDQ_DATA_HOME", data.path().toUtf8());
+    qputenv("SHOGIBOARDQ_CACHE_HOME", data.path().toUtf8());
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("DialogAppearanceTest"));
     ApplicationFonts::initialize();

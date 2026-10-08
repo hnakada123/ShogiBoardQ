@@ -46,7 +46,7 @@ scripts/docs/kwin_capture.sh k1 en bash -c 'python3 scripts/docs/rpc.py "$SBQ_SO
 
 ## 撮影の注意
 
-- 普段の設定・履歴に書き込まないよう、必ず `launch.sh` / `kwin_capture.sh` で起動する（`XDG_CONFIG_HOME`・`XDG_CACHE_HOME`・`XDG_DATA_HOME`・`XDG_STATE_HOME` を隔離する）。
+- 普段の設定・履歴に書き込まないよう、必ず `launch.sh` / `kwin_capture.sh` で起動する（`XDG_CONFIG_HOME`・`XDG_CACHE_HOME`・`XDG_DATA_HOME`・`XDG_STATE_HOME` を隔離する。Qt が XDG を見ない macOS・Windows でも効くよう `SHOGIBOARDQ_CONFIG_HOME`・`SHOGIBOARDQ_DATA_HOME`・`SHOGIBOARDQ_CACHE_HOME` も同じ場所にする）。
 - `screenshot.capture` はクライアント領域だけを撮り、幅1920を超える画像は縮小する。くっきりした盤面は `SBQ_SCREEN=2560x1800x24`、`SBQ_EXTRA_INI=$'[SizeRelated]\nsquareSize=100'`、ウィンドウ幅1900以下で撮る。
 - メニューのポップアップは `screenshot.capture` に写らない。`../x11ctl.py click <x> 12` でメニュー名をクリックし、`../x11ctl.py list` の `or=1`（ポップアップ）の範囲を `import -window root -crop` で切り抜く。メニューの位置は Alt+キー（`keycombo.py Alt_L s`）で開いて `list` から調べられる。
 - 中国語（zh_CN/zh_TW）は `LOCPATH` を付けて起動する（`launch.sh` が行う）。`LOCPATH` を付けると ja/en のロケールは読めなくなるので、言語ごとに別のインスタンスにする。

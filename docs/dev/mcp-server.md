@@ -292,6 +292,11 @@ mcp/
 | `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（`os.pathsep` 区切り。既定はホームディレクトリ） |
 | `SHOGIBOARDQ_OUTPUT_DIR` | スクリーンショットなど出力先未指定時のディレクトリ（既定は一時ディレクトリ配下の `shogiboardq-mcp`） |
 | `SHOGIBOARDQ_QUIT_APP_ON_EXIT` | `1` のとき、サーバーが起動したアプリを終了時に閉じる（既定は残す） |
+| `SHOGIBOARDQ_CONFIG_HOME` | 設定の置き場所の親フォルダ（アプリ・CLI と共通）。指定するとその下の `ShogiBoardQ/` を使い、`ShogiBoardQ.ini` と `automation-endpoint.json` もそこに置く。既定は Qt の標準の場所 |
+| `SHOGIBOARDQ_DATA_HOME` / `SHOGIBOARDQ_CACHE_HOME` | データ（詰将棋の進捗）・キャッシュ（駒音・詰将棋）の置き場所の親フォルダ（アプリ側の変数。意味は `SHOGIBOARDQ_CONFIG_HOME` と同じ） |
+
+`XDG_CONFIG_HOME` などは Linux の Qt だけが見る。macOS・Windows では効かないので、テストや撮影で普段の設定を
+書き換えないよう、`SHOGIBOARDQ_*_HOME` も指定して隔離する（`mcp/tests/conftest.py`・`tests/gui/run.py`・`scripts/docs/launch.sh`）。
 
 - アプリへの接続は `automation-endpoint.json` → 既定パスの順に試し、失敗したら `SHOGIBOARDQ_EXECUTABLE` を起動して最大 30 秒待つ。接続断は次の呼び出しで再接続する。
 - 1 回の JSON-RPC 呼び出しには 30 秒のタイムアウトを置く（GUI がモーダルダイアログで止まっている場合に備える）。

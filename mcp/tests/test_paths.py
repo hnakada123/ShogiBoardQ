@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -67,11 +68,14 @@ def test_socket_and_endpoint_locations(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     if not os.name == "nt":
         assert paths.default_socket_path() == str(tmp_path / "shogiboardq" / "automation.sock")
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    if not os.name == "nt" and os.uname().sysname != "Darwin":
-        assert paths.endpoint_file() == tmp_path / "ShogiBoardQ" / "automation-endpoint.json"
+    monkeypatch.delenv("SHOGIBOARDQ_CONFIG_HOME", raising=False)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    if sys.platform.startswith("linux"):
+        assert paths.endpoint_file() == tmp_path / "xdg" / "ShogiBoardQ" / "automation-endpoint.json"
+    # SHOGIBOARDQ_CONFIG_HOME relocates the settings on every platform, as in the application.
+    monkeypatch.setenv("SHOGIBOARDQ_CONFIG_HOME", str(tmp_path))
+    assert paths.endpoint_file() == tmp_path / "ShogiBoardQ" / "automation-endpoint.json"
     assert paths.read_endpoint() is None
     (tmp_path / "ShogiBoardQ").mkdir()
     paths.endpoint_file().write_text('{"socket": "/x/y.sock", "pid": 1}', encoding="utf-8")
-    if not os.name == "nt" and os.uname().sysname != "Darwin":
-        assert paths.read_endpoint() == {"socket": "/x/y.sock", "pid": 1}
+    assert paths.read_endpoint() == {"socket": "/x/y.sock", "pid": 1}
