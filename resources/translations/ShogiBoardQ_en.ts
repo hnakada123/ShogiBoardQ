@@ -1125,32 +1125,32 @@ Stands: %3 / Players: %4</translation>
 <context>
     <name>BranchTreeEditController</name>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="107"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="114"/>
         <source>この手順を本譜にする</source>
         <translation>Make this line the main line</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="108"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="115"/>
         <source>変化を上へ移動する</source>
         <translation>Move variation up</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="109"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="116"/>
         <source>変化を下へ移動する</source>
         <translation>Move variation down</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="110"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="117"/>
         <source>この手以降を削除する…</source>
         <translation>Delete from this move…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="138"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="145"/>
         <source>手順の削除</source>
         <translation>Delete Moves</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="139"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="146"/>
         <source>「%1」以降の %2 手を削除します。この操作は取り消せません。
 削除しますか？</source>
         <translation>This deletes %2 move(s) from “%1” onward. This cannot be undone.
@@ -1160,52 +1160,52 @@ Delete them?</translation>
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="212"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="158"/>
         <source>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</source>
         <translation>&lt;p&gt;(Double-click to expand)&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="513"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="461"/>
         <source>%1手目</source>
         <translation>Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="311"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="259"/>
         <source>開始局面</source>
         <translation>Starting Position</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="580"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="125"/>
         <source>この変化を展開する</source>
         <translation>Expand this variation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="581"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="126"/>
         <source>この変化を折りたたむ</source>
         <translation>Collapse this variation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="585"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="130"/>
         <source>すべての変化を展開する</source>
         <translation>Expand all variations</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="587"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="132"/>
         <source>変化を詰めて表示する</source>
         <translation>Compact layout</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="591"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="136"/>
         <source>拡大</source>
         <translation>Zoom in</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="593"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="138"/>
         <source>縮小</source>
         <translation>Zoom out</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="595"/>
+        <location filename="../../src/widgets/branchtreemanager_input.cpp" line="140"/>
         <source>標準の大きさ（100%）</source>
         <translation>Actual size (100%)</translation>
     </message>
@@ -4908,7 +4908,7 @@ File: %1</translation>
         <translation>From game file</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="378"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="388"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="155"/>
         <source>■ 停止</source>
         <translation>■ Stop</translation>
@@ -4966,7 +4966,7 @@ File: %1</translation>
     <message>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="213"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="258"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="427"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="428"/>
         <source>着手</source>
         <translation>Play</translation>
     </message>
@@ -4982,14 +4982,14 @@ File: %1</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="213"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="446"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="447"/>
         <source>編集</source>
         <translation>Edit</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="214"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="261"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="448"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="449"/>
         <source>削除</source>
         <translation>Delete</translation>
     </message>
@@ -5114,23 +5114,23 @@ YaneuraOu opening book format requires at least 5 fields per move line
 File: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="399"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="400"/>
         <source>定跡: (該当なし)</source>
         <translation>Book: (No match)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="409"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="410"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="411"/>
         <source>定跡SFEN: %1</source>
         <translation>Book SFEN: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="434"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="435"/>
         <source>ダブルクリックで着手</source>
         <translation>Double-click to play</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="381"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="391"/>
         <location filename="../../src/dialogs/josekiwindowui.cpp" line="347"/>
         <source>▶ 再開</source>
         <translation>▶ Resume</translation>
@@ -5166,12 +5166,12 @@ File: %1</translation>
         <translation>Book: %1 entries</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="397"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="407"/>
         <source>着手エラー</source>
         <translation>Move Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="398"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="408"/>
         <source>定跡手「%1」を指すことができませんでした。
 
 この定跡手は現在の局面では合法手ではない可能性があります。
@@ -5210,7 +5210,7 @@ There may be an error in the opening book data.</translation>
         <translation>Unsaved</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="336"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="346"/>
         <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="144"/>
         <source>確認</source>
         <translation>Confirm</translation>
@@ -5252,41 +5252,47 @@ Discard changes?</translation>
         <translation>File not found: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="280"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="290"/>
         <source>削除する</source>
         <translation>Delete</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="313"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="323"/>
         <source>定跡手追加</source>
         <translation>Add Book Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="314"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="324"/>
         <source>局面が設定されていません。
 将棋盤で局面を表示してから定跡手を追加してください。</source>
         <translation>Position is not set.
 Please display a position on the board before adding a book move.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="337"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="347"/>
         <source>指し手「%1」は既に登録されています。
 上書きしますか？</source>
         <translation>Move &quot;%1&quot; is already registered.
 Overwrite?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="339"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="349"/>
         <source>上書きする</source>
         <translation>Overwrite</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="279"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="423"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="449"/>
+        <source>定跡手は、対局中の自分の手番か、対局していないときに指せます。</source>
+        <translation>Book moves can be played on your turn during a game, or when no game is in progress.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="289"/>
         <source>削除確認</source>
         <translation>Confirm Delete</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="280"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="290"/>
         <source>定跡手「%1」を削除しますか？</source>
         <translation>Delete book move &quot;%1&quot;?</translation>
     </message>
@@ -5322,20 +5328,14 @@ Select OK to specify the save location.</translation>
         <translation type="vanished">Failed to save file.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="412"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="436"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="423"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="449"/>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="30"/>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="35"/>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="64"/>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="70"/>
         <source>情報</source>
         <translation>Information</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="412"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="436"/>
-        <source>定跡手は、対局中に自分の手番で指せます。</source>
-        <translation>Book moves can be played on your own turn during a game.</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="30"/>
@@ -5442,7 +5442,7 @@ Do you want to save them?</translation>
         <translation type="vanished">Cannot play move because it is the engine&apos;s turn.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="451"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="464"/>
         <source>「%1」をコピーしました</source>
         <translation>Copied &quot;%1&quot;</translation>
     </message>

@@ -308,8 +308,9 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
         await ui.call("save_kifu", path=str(tmp_path / "game.kif"))
 
 
-async def test_joseki_play_only_in_game_on_human_turn(coverage_env, tmp_path):
-    # Book moves follow the same rule as board clicks: not outside games, recorded in the game record.
+async def test_joseki_play_outside_games_and_on_human_turn(coverage_env, tmp_path):
+    # Book moves follow the same rule as board clicks: outside games they are recorded as the next move
+    # (a variation when the move differs), and during games only on the human's turn.
     book = tmp_path / "play.db"
     book.write_text("#YANEURAOU-DB2016 1.00\n"
                     "sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1\n"
@@ -324,12 +325,27 @@ async def test_joseki_play_only_in_game_on_human_turn(coverage_env, tmp_path):
         def play_buttons(widgets):
             return [w for w in widgets if w["class"] == "QPushButton" and w.get("text") == "着手"]
 
-        assert not play_buttons(await ui.widgets(root="JosekiWindowDock"))
+        async def wait_moves():
+            for _ in range(100):
+                moves = [m["usi"] for m in (await ui.call("get_kifu"))["moves"]]
+                if moves:
+                    return moves
+                await asyncio.sleep(0.05)
+            return []
+
+        # Outside a game the book move starts the record from the starting position.
+        buttons = play_buttons(await ui.widgets(root="JosekiWindowDock"))
+        assert buttons
+        await ui.call("click_widget", widget=buttons[0]["selector"])
+        assert await wait_moves() == ["7g7f"]
+
         game = await ui.open("actionStartGame", "StartGameDialog")
         for widget in ("comboBoxPlayer1", "comboBoxPlayer2"):
             await ui.call("set_widget_value", target=game, widget=widget, value=0)
         await ui.call("set_widget_value", target=game, widget="comboBoxStartingPosition", value=1)
         await ui.click("対局開始", game)
+        # The book move made the record unsaved, so a new game asks whether to save it first.
+        await ui.click("破棄", await ui.dialog("QMessageBox"))
         for _ in range(100):
             buttons = play_buttons(await ui.widgets(root="JosekiWindowDock"))
             if buttons:
@@ -337,12 +353,7 @@ async def test_joseki_play_only_in_game_on_human_turn(coverage_env, tmp_path):
             await asyncio.sleep(0.05)
         assert buttons
         await ui.call("click_widget", widget=buttons[0]["selector"])
-        for _ in range(100):
-            moves = [m["usi"] for m in (await ui.call("get_kifu"))["moves"]]
-            if moves:
-                break
-            await asyncio.sleep(0.05)
-        assert moves == ["7g7f"]
+        assert await wait_moves() == ["7g7f"]
 
 
 async def test_collection_recent_menu(coverage_env, tmp_path):

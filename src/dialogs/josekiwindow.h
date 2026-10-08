@@ -5,6 +5,7 @@
 #define JOSEKIWINDOW_H
 
 #include <QWidget>
+#include <functional>
 #include <QPushButton>
 #include <QToolButton>
 #include <QCheckBox>
@@ -73,6 +74,9 @@ public:
 
     void setCurrentSfen(const QString &sfen);
     void setHumanCanPlay(bool canPlay);
+    /// 定跡手を指せるかを問い合わせる関数。設定すると、表示の更新や着手のたびにその場で判定する
+    /// （定跡ファイルを開いた直後など、局面が変わらないときも最新の状態にするため）
+    void setHumanCanPlayProvider(std::function<bool()> provider);
     void setDockWidget(QDockWidget *dock);
     [[nodiscard]] bool confirmClose();
 
@@ -200,6 +204,8 @@ private:
     QString       m_currentSfen;
     FontSizeHelper m_fontHelper;
     bool          m_humanCanPlay = true;
+    std::function<bool()> m_humanCanPlayProvider;
+    void refreshHumanCanPlay();
     bool          m_autoLoadEnabled = true;
     bool          m_displayEnabled = true;
     bool          m_modified = false;

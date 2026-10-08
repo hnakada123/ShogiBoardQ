@@ -34,6 +34,9 @@ void JosekiWindowWiring::ensureJosekiWindow()
     connect(m_josekiWindow, &JosekiWindow::josekiMoveSelected,
             this, &JosekiWindowWiring::onJosekiMoveSelected);
 
+    // 定跡手を指せるかは、表示を作り直すたびに盤面クリックと同じ判定で問い合わせる
+    m_josekiWindow->setHumanCanPlayProvider(std::bind(&JosekiWindowWiring::determineHumanCanPlay, this));
+
     // 棋譜データ要求シグナルを接続
     connect(m_josekiWindow, &JosekiWindow::requestKifuDataForMerge,
             this, &JosekiWindowWiring::onRequestKifuDataForMerge);
