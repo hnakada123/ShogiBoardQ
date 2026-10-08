@@ -2434,7 +2434,7 @@ private slots:
         const auto last = boardSfen();
         const QString path = QStringLiteral(AUDIT_DIR "/saved.") + extension;
         QFile::remove(path);
-        const bool lossy = extension.startsWith("ki2") || extension == "usi";
+        const bool lossy = extension.startsWith("ki2") || extension == "usi" || extension == "usen";
         armDialog(lossy ? "file-lossy" : "file", path); click("actionSaveAs"); QVERIFY(dialogHandled);
         dialogTimer.stop();
         QVERIFY(QFileInfo(path).size() > 0);
