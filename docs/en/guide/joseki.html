@@ -102,7 +102,7 @@
                     <li>Book Move and Response: the registered move and the expected reply of the opponent</li>
                     <li>Score, Depth and Frequency: the score, search depth and occurrence count stored in the book</li>
                     <li>Comment: a comment attached to the book move</li>
-                    <li>Edit and Delete: buttons that edit or delete the book move (Play appears only during games)</li>
+                    <li>Edit and Delete: buttons that edit or delete the book move (Play appears on your turn during games and whenever no game is in progress)</li>
                 </ul>
                 <p class="guide-step-text">When you select a move in the game record or a game advances, the table switches to the book moves of that position. Move numbers are ignored, so the same position always shows the same book moves.</p>
                 <p class="guide-step-text">Details shows the SFEN of the position and of the book entry. ■ Stop pauses the book display and ▶ Resume restarts it. The bottom line shows the file name, the number of positions and the number of book moves for this position. A hint is shown inside the table when no book file is open or the position has no book moves.</p>
@@ -116,7 +116,7 @@
 <section id="joseki-play" class="section">
     <div class="section-inner">
         <h2 class="section-title">Using the Book in Games</h2>
-        <p class="section-desc">During a game, play book moves on your own turn</p>
+        <p class="section-desc">Play book moves on your own turn during a game, or at any time when no game is in progress</p>
 
         <div class="screenshot-gallery">
 
@@ -126,7 +126,7 @@
                     <span class="guide-step-title">Play a Book Move</span>
                 </div>
                 <p class="guide-step-text">During a game, buttons appear in the Play column on your turn. Click one, or double-click the row, to play that book move (promotion follows the book). The move is recorded in the game record just like a move made on the board.</p>
-                <p class="guide-step-text">On the engine's turn, in engine-versus-engine games and outside games, the Play column is empty and book moves cannot be played.</p>
+                <p class="guide-step-text">On the engine's turn and in engine-versus-engine games, the Play column is empty and book moves cannot be played. When no game is in progress, Play records the move as the next move after the one shown (a different move becomes a new variation; see “Add a Variation by Moving a Piece” in the <a href="kifu-display.html#branch">Game Record Display</a> guide).</p>
                 <div class="screenshot-item">
                     <img src="../../images/en/joseki/joseki-02-play.png" alt="Joseki window during a game">
                     <p class="screenshot-caption">During a game: Play buttons on your turn play the book move</p>

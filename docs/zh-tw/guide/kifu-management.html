@@ -93,7 +93,7 @@
                         <tr><td><strong>KIF</strong></td><td>.kif .kifu</td><td>Kifu for Windows 的標準格式，記錄手數、著法與用時</td></tr>
                         <tr><td><strong>KI2</strong></td><td>.ki2 .ki2u</td><td>KIF 的簡化格式，將著法橫向排列記錄</td></tr>
                         <tr><td><strong>CSA</strong></td><td>.csa</td><td>日本電腦將棋協會（CSA）的標準格式，以座標記錄</td></tr>
-                        <tr><td><strong>JKF</strong></td><td>.jkf</td><td>JSON 棋譜格式，以 JSON 結構表示變化</td></tr>
+                        <tr><td><strong>JKF</strong></td><td>.jkf .json</td><td>JSON 棋譜格式，以 JSON 結構表示變化（.json 檔案以及無法從副檔名判斷的檔案，會依內容判斷格式）</td></tr>
                         <tr><td><strong>USI / SFEN</strong></td><td>.usi .sfen</td><td>USI 著法序列，或僅包含局面的 SFEN</td></tr>
                         <tr><td><strong>USEN</strong></td><td>.usen</td><td>USEN 壓縮格式，精簡地編碼棋譜</td></tr>
                     </tbody>
@@ -226,7 +226,7 @@ T2</code></pre>
                         <tr><td>USI 格式</td><td>.usi</td><td>UTF-8</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">KIF、KI2、JKF、USEN 可以儲存變化。CSA、USI 只儲存本譜，KI2 不儲存用時。USI、USEN 不儲存對局者、註解與用時，USEN 能表示的終局結果也有限制。將 CSA 以毫秒為單位的用時轉換為 KIF、JKF 時，不足 1 秒的部分會捨去。</p>
+                <p class="guide-step-text">KIF、KI2、JKF、USEN 可以儲存變化。CSA、USI 只儲存本譜，KI2 不儲存用時。USI、USEN 不儲存對局者、註解與用時，USEN 能表示的終局結果也有限制。將 CSA 以毫秒為單位的用時轉換為 KIF、JKF 時，不足 1 秒的部分會捨去。以 USEN 格式儲存含有用時的棋譜時，會顯示確認，說明哪些資訊不會被儲存。以 CSA、USI 格式複製含有變化的棋譜時，狀態列會顯示僅複製了本譜。</p>
                 <p class="guide-step-text">儲存為 .kif、.ki2（Shift_JIS）時，如果對局者或註解中含有 Shift_JIS 無法表示的字元（部分簡體字、繁體字或表情符號等），會顯示這些字元並詢問是否「以 UTF-8 儲存」。以 UTF-8 儲存時，檔案第一行會記錄「encoding=UTF-8」。若要一律以 UTF-8 儲存，請選擇 .kifu、.ki2u。</p>
                 <p class="guide-step-text">CSA 檔案中有以「/」分隔的多個棋譜時，只會讀取第一個棋譜。</p>
                 <p class="guide-step-text">USI 格式棋譜末尾的終局代碼是用於儲存棋譜的擴充，不屬於與引擎通訊用的 USI「position」指令規格。</p>

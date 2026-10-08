@@ -154,7 +154,7 @@
 <li>Players: human or a registered engine</li>
 <li>Main time, byoyomi, and Fischer increment (“Increment per move”). Check “Set different time for White/Uwate” to give each side its own time.</li>
 <li>Starting position: even game, handicap, or current position. The 13 handicaps are Lance, Right Lance, Bishop, Rook, Rook-Lance, Two-Piece, Three-Piece, Four-Piece, Five-Piece, Left Five-Piece, Six-Piece, Eight-Piece, and Ten-Piece.</li>
-<li>Max Moves: the game ends as an impasse (jishogi) when this limit is reached. “Unlimited” is also available.</li>
+<li>Max Moves: the game ends as an impasse (jishogi) when this limit is reached. “Unlimited” is also available. Moves are counted from the starting position of the record, also in games started from a later position.</li>
 <li>Continuous Games: available for games between two engines. With two or more games, “Swap sides after each game” alternates Black and White.</li>
 <li>Automatic game record saving and the save folder</li>
 </ul>
@@ -229,7 +229,9 @@
 <span class="guide-step-title">Branch Tree</span>
 </div>
 <p class="guide-step-text">The Branch Tree tab shows moves in variations as well as the main line. If you use Take Back during a game and then play a different move, the moves you actually played become the main line and the moves you took back remain as a variation.</p>
-<p class="guide-step-text">After a game ends, the board is view-only and pieces cannot be moved. To continue from an earlier position, select it in the game record and start a new game with Starting Position set to Current Position; the new moves are recorded as a variation.</p>
+<p class="guide-step-text">To continue from an earlier position, select it in the game record and start a new game with Starting Position set to Current Position; the new moves are recorded as a variation. If you select the move where a game was interrupted (中断), the new moves continue that line instead of starting a variation. If you select another game-ending move such as a resignation, play continues from the position just before it.</p>
+<p class="guide-step-text">When you continue a loaded game record from a later position, its game information such as the players and the handicap is kept, and the new players, start time and time control are recorded as a comment on the first new move. The cumulative time used continues from the totals in the record.</p>
+<p class="guide-step-text">When no game is in progress, you can also add a variation by moving a piece on the board (see <a href="kifu-display.html#branch">Game Record Display</a>).</p>
 <div class="screenshot-item">
 <img alt="Branch Tree display" src="../../images/en/game-play/game-07-branch-tree.png"/>
 <p class="screenshot-caption">Branch Tree: view the main line and alternative continuations</p>

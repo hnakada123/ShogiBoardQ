@@ -102,7 +102,7 @@
                     <li>定跡著法・預期應手：登記的著法，以及之後預期的對手應手</li>
                     <li>評價值・深度・次數：定跡檔案中記錄的評價值、搜尋深度與出現次數</li>
                     <li>註解：定跡著法的註解</li>
-                    <li>編輯・刪除：編輯或刪除該定跡著法的按鈕（「執行」只在對局中顯示）</li>
+                    <li>編輯・刪除：編輯或刪除該定跡著法的按鈕（「執行」在對局中輪到自己時以及不在對局中時顯示）</li>
                 </ul>
                 <p class="guide-step-text">在棋譜欄選擇著法或對局推進時，會切換為該局面的定跡著法。不區分手數，相同局面總是顯示相同的定跡著法。</p>
                 <p class="guide-step-text">按一下「詳細」可顯示局面與定跡的 SFEN。「■ 停止」暫停定跡顯示，「▶ 恢復」重新顯示。最下方一行顯示檔名、局面數與目前局面的定跡著法數。未開啟定跡檔案或該局面沒有定跡時，表格中會顯示提示。</p>
@@ -116,7 +116,7 @@
 <section id="joseki-play" class="section">
     <div class="section-inner">
         <h2 class="section-title">對局中使用</h2>
-        <p class="section-desc">對局中輪到自己時，可以直接執行定跡著法</p>
+        <p class="section-desc">對局中輪到自己時，以及不在對局中時，可以直接執行定跡著法</p>
 
         <div class="screenshot-gallery">
 
@@ -126,7 +126,7 @@
                     <span class="guide-step-title">執行定跡著法</span>
                 </div>
                 <p class="guide-step-text">對局中輪到自己時，「執行」欄會顯示按鈕。按一下按鈕或按兩下該行即可執行該定跡著法（升變與否也依照定跡）。執行的著法與在棋盤上走的著法一樣記錄在棋譜中。</p>
-                <p class="guide-step-text">輪到引擎時、引擎之間的對局中以及未對局時，「執行」欄為空，無法執行定跡著法。</p>
+                <p class="guide-step-text">輪到引擎時以及引擎之間的對局中，「執行」欄為空，無法執行定跡著法。不在對局中時按一下「執行」，該著法會作為目前著法的下一著記錄到棋譜中（不同的著法會成為新的變化，請參閱<a href="kifu-display.html#branch">棋譜顯示</a>中的「在棋盤上走子新增變化」）。</p>
                 <div class="screenshot-item">
                     <img src="../../images/zh-tw/joseki/joseki-02-play.png" alt="對局中的定跡視窗">
                     <p class="screenshot-caption">對局中：輪到自己時可用「執行」按鈕走定跡著法</p>

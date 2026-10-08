@@ -185,6 +185,48 @@
                 </div>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">分岐ツリーの見方と操作</span>
+                </div>
+                <p class="guide-step-text">分岐ツリーでは、変化を空いている段に詰めて表示します。同じ手から分かれた変化は縦の線でつながり、開始局面から現在の手までの線は青で示されます。右クリックメニューの「変化を詰めて表示する」を外すと、変化ごとに1段ずつ並べて表示します。</p>
+                <p class="guide-step-text">上端の「n手目」の見出しは、縦にスクロールしても表示されたままです。コメントのある手には右上に青い丸が付き、手にマウスを重ねると指し手とコメントの先頭が表示されます。</p>
+                <p class="guide-step-text">変化の手を右クリックして「この変化を折りたたむ」を選ぶと、先頭の手だけを残して続きの手と先の変化を隠し、隠れた手数を「▸ +n」と表示します。先頭の手をダブルクリックするか「この変化を展開する」で元に戻ります（「すべての変化を展開する」もあります）。隠れている手へ移動したときは自動で展開されます。</p>
+                <p class="guide-step-text">分岐ツリーをクリックしてから、←→キーで前後の手、↑↓キーで同じ手数の上下の手、Home／End キーで開始局面／その手順の最後の手へ移動できます。Ctrl＋ホイール（macOS では ⌘＋ホイール）やトラックパッドのピンチ、右クリックメニューの「拡大」「縮小」「標準の大きさ（100%）」で表示の大きさを変えられます。表示の大きさと詰めて表示するかどうかは次回も引き継がれます。</p>
+                <div class="screenshot-item">
+                    <img src="../images/kifu-display/kifu-display-06-branch-tree.png" alt="分岐ツリー">
+                    <p class="screenshot-caption">分岐ツリー：変化を詰めて表示し、現在の手までの経路を青で、コメントのある手を青い丸で表示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">分岐を編集する</span>
+                </div>
+                <p class="guide-step-text">分岐ツリーの手、または分岐候補の手を右クリックすると、次の操作ができます。編集すると棋譜は未保存の状態になります。対局中は使えません。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>メニュー</th><th>動作</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>この手順を本譜にする</td><td>開始局面からその手までの手順を本譜にします</td></tr>
+                        <tr><td>変化を上へ移動する／変化を下へ移動する</td><td>同じ手から分かれた変化の並び順を変えます（いちばん上が本譜側です）</td></tr>
+                        <tr><td>この手以降を削除する…</td><td>その手と、続きの手順・先の変化を削除します（確認があり、元に戻せません）</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">盤上で指して変化を加える</span>
+                </div>
+                <p class="guide-step-text">対局していないときに盤上で駒を動かすと、その手が表示中の手の次の手として棋譜に記録されます。同じ手が既にあればその手へ移動するだけで、違う手なら新しい変化になります。成る・成らないは確認されます。投了などの終局手を表示しているときは、その直前の局面から指した手になります。</p>
+                <p class="guide-step-text"><a href="joseki.html">定跡</a>ウィンドウの「着手」も同じように記録されます。指した手は、ほかの変化と同じく保存できます。</p>
+            </div>
+
         </div>
     </div>
 </section>
