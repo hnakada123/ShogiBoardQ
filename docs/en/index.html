@@ -31,8 +31,8 @@
     <meta name="twitter:description" content="Play USI engines, analyze games, and solve 6,000 tsume puzzles. Free shogi software for Windows, macOS, and Linux.">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/og-image.png?v=20261005">
     <link rel="icon" type="image/png" href="../images/shogiboardq-icon.png">
-    <link rel="stylesheet" href="../css/style.css?v=20261009">
-    <link rel="stylesheet" href="../css/home.css?v=20261009">
+    <link rel="stylesheet" href="../css/style.css?v=20261009.1">
+    <link rel="stylesheet" href="../css/home.css?v=20261009.1">
     <script type="application/ld+json">
 {
     "@context": "https://schema.org",
@@ -226,15 +226,15 @@
             <ul class="mini-grid">
                 <li><a href="guide/game-play.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/game.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Playing Games</h4><p>Play human vs. engine, engine vs. engine, or human vs. human: an even game or 13 handicaps, time controls with byoyomi or Fischer increment (per side if needed), a move limit, and auto-save, plus side swapping in engine series. Repetition (sennichite) and perpetual check are detected, legal destinations are highlighted, and an interrupted game resumes with its position and clocks.</p></div>
+                    <div class="mini-card__text"><h4>Playing Games</h4><p>Human vs. engine, engine vs. engine, or human vs. human, with handicaps, clocks, engine series, and resumable games.</p></div>
                 </a></li>
                 <li><a href="guide/game-play.html#engine-registration" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/engine.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Engine Registration &amp; Settings</h4><p>Register a USI engine by selecting its executable, then set options such as hash size, threads, and pondering for each engine.</p></div>
+                    <div class="mini-card__text"><h4>Engine Registration &amp; Settings</h4><p>Register USI engines and set options such as hash size and threads for each engine.</p></div>
                 </a></li>
                 <li><a href="guide/hayanagi.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/hayanagi.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Hayanagi Shogi Engine</h4><p>A USI engine developed alongside ShogiBoardQ. Register it to play and analyze; it also defends in Tsume Shogi Play.</p></div>
+                    <div class="mini-card__text"><h4>Hayanagi Shogi Engine</h4><p>A USI engine developed alongside ShogiBoardQ for play and analysis. It also defends in Tsume Shogi Play.</p></div>
                 </a></li>
                 <li><a href="guide/csa-game.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/network.svg" alt=""></span>
@@ -252,7 +252,7 @@
             <ul class="mini-grid">
                 <li><a href="guide/consideration.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/consideration.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Consideration Mode</h4><p>Let an engine study any position and compare several lines with arrows. Replay any line move by move on a separate board (the PV board).</p></div>
+                    <div class="mini-card__text"><h4>Consideration Mode</h4><p>Let an engine study any position, compare several lines with arrows, and replay each line on a separate board.</p></div>
                 </a></li>
                 <li><a href="guide/kifu-analysis.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/eval-graph.svg" alt=""></span>
@@ -278,11 +278,11 @@
                 </a></li>
                 <li><a href="guide/branch-tree.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/branch-tree.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Branch Tree</h4><p>See the main line and all variations at a glance. Promote, reorder, delete, and collapse variations from the right-click menu, and record moves played on the board as variations.</p></div>
+                    <div class="mini-card__text"><h4>Branch Tree</h4><p>List the main line and variations, promote or delete them, and keep moves played on the board as variations.</p></div>
                 </a></li>
                 <li><a href="guide/kifu-management.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/kifu-file.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Game Record Management</h4><p>Load and save KIF, KI2, CSA, JKF, USI, SFEN, and USEN, and copy or paste records via the clipboard. Positions can also be copied as BOD, which pasting detects automatically. Game info such as players, handicap, and time control can be edited and saved with the record.</p></div>
+                    <div class="mini-card__text"><h4>Game Record Management</h4><p>Load and save KIF, KI2, CSA, JKF, USI, SFEN, and USEN, copy or paste via the clipboard, and edit game info.</p></div>
                 </a></li>
                 <li><a href="guide/board-edit.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/board-edit.svg" alt=""></span>
@@ -350,7 +350,7 @@
                 </a></li>
                 <li><a href="guide/settings-reset.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/settings-reset.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Reset Settings &amp; Settings File</h4><p>Settings → Reset Settings to Defaults… returns every setting, including engine registrations, to its default and closes the application. The settings file <code>ShogiBoardQ.ini</code> is stored in:<br>Windows: <code>%LOCALAPPDATA%\ShogiBoardQ</code><br>macOS: <code>~/Library/Preferences/ShogiBoardQ</code><br>Linux: <code>~/.config/ShogiBoardQ</code></p></div>
+                    <div class="mini-card__text"><h4>Reset Settings &amp; Settings File</h4><p>How to reset all settings, including registered engines, and where <code>ShogiBoardQ.ini</code> is stored on each OS.</p></div>
                 </a></li>
             </ul>
         </div>
@@ -360,7 +360,7 @@
             <ul class="mini-grid">
                 <li><a href="guide/mcp-server.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/ai.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>AI Client Integration (MCP)</h4><p>Ask Claude, Cursor, VS Code, Gemini CLI, Codex CLI, and other AI clients to convert records, analyze, generate puzzles, and operate the app.</p></div>
+                    <div class="mini-card__text"><h4>AI Client Integration (MCP)</h4><p>Ask Claude, Cursor, VS Code, and other AI clients to convert records, analyze, generate puzzles, and operate the app.</p></div>
                 </a></li>
             </ul>
         </div>

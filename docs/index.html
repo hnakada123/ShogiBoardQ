@@ -31,8 +31,8 @@
     <meta name="twitter:description" content="USIエンジンとの対局・検討・棋譜解析、詰将棋6,000題、40種類の駒。Windows・macOS・Linux対応の無料将棋ソフト。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png?v=20261005">
     <link rel="icon" type="image/png" href="images/shogiboardq-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=20261009">
-    <link rel="stylesheet" href="css/home.css?v=20261009">
+    <link rel="stylesheet" href="css/style.css?v=20261009.1">
+    <link rel="stylesheet" href="css/home.css?v=20261009.1">
     <script type="application/ld+json">
 {
     "@context": "https://schema.org",
@@ -226,11 +226,11 @@
             <ul class="mini-grid">
                 <li><a href="guide/game-play.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/game.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>対局機能</h4><p>人間対エンジン・エンジン同士・人間同士で対局。平手と13種類の駒落ち、持ち時間・秒読み・フィッシャー加算（先後で別の時間も可）、最大手数、棋譜の自動保存を設定でき、エンジン同士の連続対局では1局ごとに先後を入れ替えられます。千日手・連続王手の千日手の判定、指せるマスの表示、中断した対局の再開（局面と残り時間を保持）にも対応。</p></div>
+                    <div class="mini-card__text"><h4>対局機能</h4><p>人間対エンジン・エンジン同士・人間同士で対局。駒落ち・持ち時間・連続対局・中断した対局の再開に対応。</p></div>
                 </a></li>
                 <li><a href="guide/game-play.html#engine-registration" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/engine.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>エンジン登録・設定</h4><p>USIエンジンの実行ファイルを選んで登録し、ハッシュサイズ・スレッド数・先読みなどのオプションをエンジンごとに設定できます。</p></div>
+                    <div class="mini-card__text"><h4>エンジン登録・設定</h4><p>USIエンジンを登録し、ハッシュサイズ・スレッド数などのオプションをエンジンごとに設定できます。</p></div>
                 </a></li>
                 <li><a href="guide/hayanagi.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/hayanagi.svg" alt=""></span>
@@ -252,7 +252,7 @@
             <ul class="mini-grid">
                 <li><a href="guide/consideration.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/consideration.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>検討モード</h4><p>任意の局面でエンジンに候補手を考えさせ、複数の読み筋と矢印で比較します。読み筋は別の盤（読み筋盤）で1手ずつ再生できます。</p></div>
+                    <div class="mini-card__text"><h4>検討モード</h4><p>任意の局面でエンジンに候補手を考えさせ、複数の読み筋と矢印で比較します。読み筋は別の盤で1手ずつ再生できます。</p></div>
                 </a></li>
                 <li><a href="guide/kifu-analysis.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/eval-graph.svg" alt=""></span>
@@ -278,11 +278,11 @@
                 </a></li>
                 <li><a href="guide/branch-tree.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/branch-tree.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>分岐ツリー</h4><p>本譜と変化の手順を一覧し、右クリックで本譜の入れ替え・並べ替え・削除や折りたたみができます。盤上で指した手も変化として記録できます。</p></div>
+                    <div class="mini-card__text"><h4>分岐ツリー</h4><p>本譜と変化を一覧し、右クリックで本譜の入れ替えや削除ができます。盤上で指した手も変化として記録できます。</p></div>
                 </a></li>
                 <li><a href="guide/kifu-management.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/kifu-file.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>棋譜管理</h4><p>KIF・KI2・CSA・JKF・USI・SFEN・USENの読み込みと保存、クリップボード経由のコピー・貼り付けに対応。局面はBOD形式でもコピーでき、貼り付けではBODも自動判定します。対局者・手合割・持ち時間などの対局情報も編集して棋譜に保存できます。</p></div>
+                    <div class="mini-card__text"><h4>棋譜管理</h4><p>KIF・KI2・CSA・JKF・USI・SFEN・USENの読み書きとコピー・貼り付け、対局情報の編集に対応。</p></div>
                 </a></li>
                 <li><a href="guide/board-edit.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/board-edit.svg" alt=""></span>
@@ -350,7 +350,7 @@
                 </a></li>
                 <li><a href="guide/settings-reset.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/settings-reset.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>設定の初期化と設定ファイル</h4><p>「設定」→「設定を初期値に戻す…」で、エンジン登録を含むすべての設定を初期値に戻して終了します。設定ファイル<code>ShogiBoardQ.ini</code>の保存場所：<br>Windows：<code>%LOCALAPPDATA%\ShogiBoardQ</code><br>macOS：<code>~/Library/Preferences/ShogiBoardQ</code><br>Linux：<code>~/.config/ShogiBoardQ</code></p></div>
+                    <div class="mini-card__text"><h4>設定の初期化と設定ファイル</h4><p>エンジン登録を含むすべての設定を初期値に戻す方法と、設定ファイル<code>ShogiBoardQ.ini</code>のOSごとの保存場所。</p></div>
                 </a></li>
             </ul>
         </div>
@@ -360,7 +360,7 @@
             <ul class="mini-grid">
                 <li><a href="guide/mcp-server.html" class="mini-card">
                     <span class="mini-card__icon"><img src="images/icons/ai.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>AIクライアント連携（MCP）</h4><p>Claude・Cursor・VS Code・Gemini CLI・Codex CLIなどから、棋譜変換・解析・詰将棋生成・アプリ操作を依頼できます。</p></div>
+                    <div class="mini-card__text"><h4>AIクライアント連携（MCP）</h4><p>Claude・Cursor・VS CodeなどのAIクライアントから、棋譜変換・解析・詰将棋生成・アプリ操作を依頼できます。</p></div>
                 </a></li>
             </ul>
         </div>
