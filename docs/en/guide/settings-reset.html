@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Settings and the Settings File - ShogiBoardQ</title>
+    <meta name="description" content="How to reset all ShogiBoardQ settings with Reset Settings to Defaults…, what is reset and what is kept, and where the settings file (ShogiBoardQ.ini) is stored on Windows, macOS, and Linux.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/settings-reset.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/settings-reset.html">
+    <meta property="og:title" content="Reset Settings and the Settings File - ShogiBoardQ">
+    <meta property="og:description" content="Settings → Reset Settings to Defaults… returns every setting, including engine registrations, to its default. This page also shows where the settings file is stored on each OS.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/settings-reset/reset-confirm.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Reset Settings and the Settings File - ShogiBoardQ">
+    <meta name="twitter:description" content="Settings → Reset Settings to Defaults… returns every setting, including engine registrations, to its default. This page also shows where the settings file is stored on each OS.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/settings-reset/reset-confirm.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/settings-reset.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/settings-reset.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/settings-reset.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/settings-reset.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/settings-reset.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/settings-reset.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="settings-reset.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/settings-reset.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/settings-reset.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#reset">Reset</a></li>
+            <li><a href="#scope">What Is Reset</a></li>
+            <li><a href="#location">Location</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="settings-guide">
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Reset Settings and the Settings File</h1>
+        <p class="hero-subtitle">How to return every setting to its default, and where your settings are stored</p>
+        <div class="hero-badges">
+            <span class="badge">Reset All Settings</span>
+            <span class="badge">Windows, macOS, Linux</span>
+            <span class="badge">ShogiBoardQ.ini</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="reset" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Reset Settings to Defaults</h2>
+        <p class="section-desc">Reset every setting at once, including engine registrations, from the Settings menu</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Choose Settings → Reset Settings to Defaults…</span>
+                </div>
+                <p class="guide-step-text">Open the Settings menu in the menu bar and choose Reset Settings to Defaults… at the bottom. The Settings tab of the <a href="menu.html">menu dock</a> has the same button.</p>
+                <p class="guide-step-text">This command is available only when no game (including a network game), game analysis, consideration, mate search, or position editing is in progress. While one of these is running, it is grayed out.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/settings-reset/settings-menu.png"><img src="../../images/en/settings-reset/settings-menu.png" alt="The Settings menu open with Reset Settings to Defaults… selected" width="576" height="211" loading="lazy"></a>
+                    <p class="screenshot-caption">Settings menu: Reset Settings to Defaults… is at the bottom</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Click Reset and Quit</span>
+                </div>
+                <p class="guide-step-text">The Reset Settings confirmation opens. Click Reset and Quit to reset the settings and close ShogiBoardQ. This cannot be undone.</p>
+                <p class="guide-step-text">Click Cancel or press Esc to close the confirmation without changing anything. To prevent accidents, Cancel is selected when the confirmation opens.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/settings-reset/reset-confirm.png"><img src="../../images/en/settings-reset/reset-confirm.png" alt="The Reset Settings confirmation with the Reset and Quit and Cancel buttons" width="500" height="188" loading="lazy"></a>
+                    <p class="screenshot-caption">Reset Settings confirmation</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Settings Are Cleared as the Application Closes</span>
+                </div>
+                <p class="guide-step-text">As with a normal exit, if a game record or opening book has unsaved changes, ShogiBoardQ asks whether to save them. If you cancel closing there, the settings are not reset.</p>
+                <p class="guide-step-text">The settings file is cleared after all windows have closed, so window sizes and positions that are normally saved on exit are cleared too. ShogiBoardQ does not restart by itself. Start it again, and it opens with the same default settings as on first launch.</p>
+                <p class="guide-step-text">If the settings file cannot be written, a Failed to Reset Settings message appears with the location of the settings file. Check the write permissions and free disk space for that location.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="scope" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">What Is Reset and What Is Kept</h2>
+        <p class="section-desc">Only the contents of the settings file are cleared. Your files and tsume shogi history are kept</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <table class="info-table info-table--scope">
+                    <thead>
+                        <tr><th scope="col">Item</th><th scope="col">After reset</th><th scope="col">Notes</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Engine registrations and options</strong></td><td>Reset</td><td>The list of registered engines and each engine's options are removed. The engine files themselves are not deleted, so you can use an engine again after <a href="game-play.html#engine-registration">registering it</a>.</td></tr>
+                        <tr><td><strong>Settings in dialogs such as Game</strong></td><td>Reset</td><td>Time controls, player names, the auto-save folder for game records, the engines you chose last time, and so on</td></tr>
+                        <tr><td><strong>Appearance, fonts, and piece sound</strong></td><td>Reset</td><td>Pieces, board, and background; the application font and text sizes; piece sound on/off and volume; and so on</td></tr>
+                        <tr><td><strong>Language and notation</strong></td><td>Reset</td><td>The language returns to Use System Default, and Move notation and board coordinates returns to Follow UI language</td></tr>
+                        <tr><td><strong>Windows and docks</strong></td><td>Reset</td><td>Window and dialog sizes and positions, the dock arrangement, saved dock layouts, and menu favorites</td></tr>
+                        <tr><td><strong>Recent files</strong></td><td>Reset</td><td>Recent opening book files and SFEN collections, the last folder you opened, the tsume shogi collection you selected, and so on</td></tr>
+                        <tr><td><strong>Game records, opening books, and other files you saved</strong></td><td>Kept</td><td>Files you saved yourself are not deleted</td></tr>
+                        <tr><td><strong>Tsume shogi attempt history</strong></td><td>Kept</td><td>Stored in a database separate from the settings file (see <a href="#location">Location</a>)</td></tr>
+                        <tr><td><strong>Cache</strong></td><td>Kept</td><td>Temporary piece sound audio and tsume shogi results, re-created when needed</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">To restore only some settings, change them on their own screens. For example, Piece Sound Settings… and the Game dialog each have a Restore Defaults button.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="location" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Where the Settings File Is Stored</h2>
+        <p class="section-desc">Settings are stored in ShogiBoardQ.ini in a fixed folder on each OS</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Location on Each OS</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">OS</th><th scope="col">Settings file</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Windows</strong></td><td><code>C:\Users\&lt;user name&gt;\AppData\Local\ShogiBoardQ\ShogiBoardQ.ini</code></td></tr>
+                        <tr><td><strong>macOS</strong></td><td><code>~/Library/Preferences/ShogiBoardQ/ShogiBoardQ.ini</code></td></tr>
+                        <tr><td><strong>Linux</strong></td><td><code>~/.config/ShogiBoardQ/ShogiBoardQ.ini</code> (<code>$XDG_CONFIG_HOME/ShogiBoardQ/ShogiBoardQ.ini</code> if the <code>XDG_CONFIG_HOME</code> environment variable is set)</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text"><code>~</code> is your home folder (<code>/Users/&lt;user name&gt;</code> on macOS, <code>/home/&lt;user name&gt;</code> on Linux). Settings are stored per user in this location, not in the folder where you extracted the release ZIP or inside the AppImage, so they carry over when you replace ShogiBoardQ with a newer version or move the application folder.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Open the Folder</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Windows</strong>: Type <code>%LOCALAPPDATA%\ShogiBoardQ</code> in the File Explorer address bar and press Enter.</li>
+                    <li><strong>macOS</strong>: In Finder, choose Go → Go to Folder… and enter <code>~/Library/Preferences/ShogiBoardQ</code>. The Library folder is normally hidden.</li>
+                    <li><strong>Linux</strong>: Enter <code>~/.config/ShogiBoardQ</code> in your file manager's location bar. <code>.config</code> is a hidden folder.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Back Up or Reset Without the Menu</span>
+                </div>
+                <p class="guide-step-text">To back up your settings, quit ShogiBoardQ and copy <code>ShogiBoardQ.ini</code>. To restore it, put the file back in the same place while ShogiBoardQ is not running. Changes made to the file while ShogiBoardQ is running may be overwritten by the settings it saves when it closes.</p>
+                <p class="guide-step-text">If you cannot reset from the menu, for example because ShogiBoardQ does not start, delete or rename <code>ShogiBoardQ.ini</code> while ShogiBoardQ is not running. The next launch starts with the default settings.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Where Other Data Is Stored</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">OS</th><th scope="col">Tsume shogi attempt history</th><th scope="col">Cache</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Windows</strong></td><td><code>%APPDATA%\ShogiBoardQ</code></td><td><code>%LOCALAPPDATA%\ShogiBoardQ\cache</code></td></tr>
+                        <tr><td><strong>macOS</strong></td><td><code>~/Library/Application Support/ShogiBoardQ</code></td><td><code>~/Library/Caches/ShogiBoardQ</code></td></tr>
+                        <tr><td><strong>Linux</strong></td><td><code>~/.local/share/ShogiBoardQ</code></td><td><code>~/.cache/ShogiBoardQ</code></td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">The attempt history is stored in <code>tsume_progress.sqlite</code>. Reset Settings to Defaults… does not delete it, so to clear the history as well, quit ShogiBoardQ and delete this file. You can also delete the cache folder; it is re-created when needed.</p>
+                <p class="guide-step-text">On Windows, <code>%APPDATA%</code> is <code>C:\Users\&lt;user name&gt;\AppData\Roaming</code> and <code>%LOCALAPPDATA%</code> is <code>C:\Users\&lt;user name&gt;\AppData\Local</code>. On Linux, if the <code>XDG_DATA_HOME</code> or <code>XDG_CACHE_HOME</code> environment variable is set, the <code>ShogiBoardQ</code> folder under it is used instead.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← Back to User Guide</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

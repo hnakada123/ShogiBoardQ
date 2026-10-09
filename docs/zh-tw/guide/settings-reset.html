@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恢復預設設定與設定檔案 - ShogiBoardQ</title>
+    <meta name="description" content="介紹如何以「恢復預設設定…」重設 ShogiBoardQ 的所有設定、哪些設定會恢復預設、哪些資料會保留，以及設定檔案（ShogiBoardQ.ini）在 Windows、macOS 與 Linux 上的儲存位置。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/settings-reset.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/settings-reset.html">
+    <meta property="og:title" content="恢復預設設定與設定檔案 - ShogiBoardQ">
+    <meta property="og:description" content="以「設定」→「恢復預設設定…」可將包括引擎註冊在內的所有設定恢復為預設值。同時介紹各作業系統上設定檔案的儲存位置。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/settings-reset/reset-confirm.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="恢復預設設定與設定檔案 - ShogiBoardQ">
+    <meta name="twitter:description" content="以「設定」→「恢復預設設定…」可將包括引擎註冊在內的所有設定恢復為預設值。同時介紹各作業系統上設定檔案的儲存位置。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/settings-reset/reset-confirm.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/settings-reset.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/settings-reset.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/settings-reset.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/settings-reset.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/settings-reset.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/settings-reset.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/settings-reset.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/settings-reset.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="settings-reset.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="#reset">恢復預設</a></li>
+            <li><a href="#scope">重設範圍</a></li>
+            <li><a href="#location">儲存位置</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="settings-guide">
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>恢復預設設定與設定檔案</h1>
+        <p class="hero-subtitle">介紹將所有設定恢復為預設值的方法，以及設定的儲存位置</p>
+        <div class="hero-badges">
+            <span class="badge">重設所有設定</span>
+            <span class="badge">Windows、macOS、Linux</span>
+            <span class="badge">ShogiBoardQ.ini</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="reset" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">恢復預設設定</h2>
+        <p class="section-desc">從「設定」選單可一次將包括引擎註冊在內的所有設定恢復為預設值</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">選擇「設定」→「恢復預設設定…」</span>
+                </div>
+                <p class="guide-step-text">開啟選單列的「設定」，選擇最下方的「恢復預設設定…」。<a href="menu.html">選單面板</a>的「設定」分頁中也有相同的按鈕。</p>
+                <p class="guide-step-text">只有在沒有進行對局（包括網路對局）、棋譜分析、研究、詰棋搜尋或局面編輯時才能選擇此項目。進行這些操作時，此項目會顯示為灰色，無法選擇。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/settings-reset/settings-menu.png"><img src="../../images/zh-tw/settings-reset/settings-menu.png" alt="開啟「設定」選單並選取「恢復預設設定…」" width="458" height="212" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」選單：「恢復預設設定…」位於最下方</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">在確認對話方塊中按一下「還原預設並結束」</span>
+                </div>
+                <p class="guide-step-text">會開啟「重設設定」確認對話方塊。按一下「還原預設並結束」，即可將設定恢復為預設值並結束 ShogiBoardQ。此操作無法復原。</p>
+                <p class="guide-step-text">按一下「取消」或按 Esc 鍵，將不做任何變更並關閉確認對話方塊。為防止誤操作，開啟確認對話方塊時預先選取的是「取消」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/settings-reset/reset-confirm.png"><img src="../../images/zh-tw/settings-reset/reset-confirm.png" alt="有「還原預設並結束」與「取消」按鈕的「重設設定」確認對話方塊" width="500" height="157" loading="lazy"></a>
+                    <p class="screenshot-caption">「重設設定」確認對話方塊</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">結束的同時清除設定</span>
+                </div>
+                <p class="guide-step-text">與一般結束相同，如果有未儲存的棋譜或定跡，會詢問是否儲存。如果在此取消結束，設定不會被重設。</p>
+                <p class="guide-step-text">設定檔案的內容會在所有視窗關閉後清除，因此結束時儲存的視窗大小和位置也不會保留。ShogiBoardQ 不會自動重新啟動，請再次啟動。啟動後將使用與第一次啟動時相同的預設設定。</p>
+                <p class="guide-step-text">如果無法寫入設定檔案，會顯示「重設設定失敗」並列出設定檔案的位置。請檢查儲存位置的寫入權限和可用磁碟空間。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="scope" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">會恢復預設的設定與保留的資料</h2>
+        <p class="section-desc">只清除設定檔案的內容。棋譜等檔案和詰棋練習的嘗試歷史會保留</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <table class="info-table info-table--scope">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">重設後</th><th scope="col">說明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>引擎註冊與選項</strong></td><td>恢復預設</td><td>已註冊的引擎清單和各引擎的選項會被清除。引擎本身的檔案不會被刪除，重新<a href="game-play.html#engine-registration">註冊引擎</a>即可使用。</td></tr>
+                        <tr><td><strong>對局、分析等對話方塊的設定</strong></td><td>恢復預設</td><td>用時規則、對局者名稱、棋譜自動儲存位置、上次選擇的引擎等</td></tr>
+                        <tr><td><strong>外觀、字型與走子音效</strong></td><td>恢復預設</td><td>棋子、棋盤、背景，應用程式字型、文字大小，走子音效的開關和音量等</td></tr>
+                        <tr><td><strong>介面語言與棋譜表示</strong></td><td>恢復預設</td><td>介面語言恢復為「跟隨系統設定」，「棋譜與棋盤座標表示」恢復為「跟隨介面語言」</td></tr>
+                        <tr><td><strong>視窗與停駐面板</strong></td><td>恢復預設</td><td>視窗和對話方塊的大小與位置、停駐面板的配置、儲存的停駐版面配置，以及選單的我的最愛</td></tr>
+                        <tr><td><strong>最近使用的檔案</strong></td><td>恢復預設</td><td>定跡檔案和局面集的歷史記錄、上次開啟的資料夾、所選的詰棋題集等</td></tr>
+                        <tr><td><strong>儲存的棋譜、定跡、局面集等檔案</strong></td><td>保留</td><td>自己儲存的檔案不會被刪除</td></tr>
+                        <tr><td><strong>詰棋練習的嘗試歷史</strong></td><td>保留</td><td>儲存在與設定檔案分開的資料庫中（參見<a href="#location">儲存位置</a>）</td></tr>
+                        <tr><td><strong>快取</strong></td><td>保留</td><td>暫時儲存的走子音效音訊和詰棋判定結果，需要時會重新產生</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">如果只想恢復部分設定，請在對應的畫面中變更。例如，「走子音效設定…」和對局對話方塊中都有「恢復預設值」按鈕。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="location" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">設定檔案的儲存位置</h2>
+        <p class="section-desc">設定儲存在各作業系統固定資料夾中的 ShogiBoardQ.ini 裡</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">各作業系統的儲存位置</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">作業系統</th><th scope="col">設定檔案</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Windows</strong></td><td><code>C:\Users\&lt;使用者名稱&gt;\AppData\Local\ShogiBoardQ\ShogiBoardQ.ini</code></td></tr>
+                        <tr><td><strong>macOS</strong></td><td><code>~/Library/Preferences/ShogiBoardQ/ShogiBoardQ.ini</code></td></tr>
+                        <tr><td><strong>Linux</strong></td><td><code>~/.config/ShogiBoardQ/ShogiBoardQ.ini</code>（設定了環境變數 <code>XDG_CONFIG_HOME</code> 時為 <code>$XDG_CONFIG_HOME/ShogiBoardQ/ShogiBoardQ.ini</code>）</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text"><code>~</code> 表示家目錄（macOS 為 <code>/Users/&lt;使用者名稱&gt;</code>，Linux 為 <code>/home/&lt;使用者名稱&gt;</code>）。設定依使用者儲存在此位置，而不是儲存在解壓縮發行套件（ZIP）的資料夾或 AppImage 內部，因此換成新版本或移動應用程式資料夾後，設定仍會保留。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">開啟所在資料夾</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Windows</strong>：在檔案總管的網址列中輸入 <code>%LOCALAPPDATA%\ShogiBoardQ</code> 並按 Enter 鍵。</li>
+                    <li><strong>macOS</strong>：在 Finder 中選擇「前往」→「前往檔案夾…」，輸入 <code>~/Library/Preferences/ShogiBoardQ</code>。「資料庫」檔案夾通常是隱藏的。</li>
+                    <li><strong>Linux</strong>：在檔案管理員的位址列中輸入 <code>~/.config/ShogiBoardQ</code>。<code>.config</code> 是隱藏資料夾。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">備份與不使用選單的重設</span>
+                </div>
+                <p class="guide-step-text">備份設定時，請先結束 ShogiBoardQ，再複製 <code>ShogiBoardQ.ini</code>。還原時，也請在 ShogiBoardQ 未執行時將檔案放回原位置。在 ShogiBoardQ 執行期間對檔案所做的變更，可能會被結束時儲存的設定覆寫。</p>
+                <p class="guide-step-text">如果因 ShogiBoardQ 無法啟動等原因不能從選單重設，請在 ShogiBoardQ 未執行時刪除 <code>ShogiBoardQ.ini</code> 或變更其名稱。下次啟動時將使用預設設定。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">其他資料的儲存位置</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">作業系統</th><th scope="col">詰棋練習的嘗試歷史</th><th scope="col">快取</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Windows</strong></td><td><code>%APPDATA%\ShogiBoardQ</code></td><td><code>%LOCALAPPDATA%\ShogiBoardQ\cache</code></td></tr>
+                        <tr><td><strong>macOS</strong></td><td><code>~/Library/Application Support/ShogiBoardQ</code></td><td><code>~/Library/Caches/ShogiBoardQ</code></td></tr>
+                        <tr><td><strong>Linux</strong></td><td><code>~/.local/share/ShogiBoardQ</code></td><td><code>~/.cache/ShogiBoardQ</code></td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">嘗試歷史儲存在 <code>tsume_progress.sqlite</code> 中。「恢復預設設定…」不會刪除它，如果也想清除歷史，請結束 ShogiBoardQ 後刪除此檔案。快取資料夾也可以刪除，需要時會重新產生。</p>
+                <p class="guide-step-text">Windows 的 <code>%APPDATA%</code> 為 <code>C:\Users\&lt;使用者名稱&gt;\AppData\Roaming</code>，<code>%LOCALAPPDATA%</code> 為 <code>C:\Users\&lt;使用者名稱&gt;\AppData\Local</code>。在 Linux 上，如果設定了環境變數 <code>XDG_DATA_HOME</code> 或 <code>XDG_CACHE_HOME</code>，則使用其下的 <code>ShogiBoardQ</code> 資料夾。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 返回使用指南</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
