@@ -36,7 +36,7 @@ ShogiBoardQ は、USI エンジンとの対局・検討・棋譜解析、6,000�
 
 ## 主な機能
 
-各機能の使い方は[利用ガイド](https://hnakada123.github.io/ShogiBoardQ/guide/index.html)で解説しています。対局・検討・解析には、USI プロトコルに対応した将棋エンジンを登録して使います。各 OS の配布パッケージには将棋エンジン Hayanagi を同梱しています。
+各機能の使い方は[利用ガイド](https://hnakada123.github.io/ShogiBoardQ/guide/index.html)で解説しています。対局・検討・解析には、USI プロトコルに対応した[将棋エンジンを登録](https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html#engine-registration)して使います。各 OS の配布パッケージには将棋エンジン Hayanagi を同梱しています。
 
 ### 対局
 
@@ -55,6 +55,7 @@ ShogiBoardQ は、USI エンジンとの対局・検討・棋譜解析、6,000�
 ### 棋譜・局面の操作
 
 - **[棋譜表示](https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html)** - 指し手・消費時間・しおり・コメント・分岐を表示します。分岐ツリーやナビゲーションボタンで棋譜を自在に閲覧できます。
+- **[分岐ツリー](https://hnakada123.github.io/ShogiBoardQ/guide/branch-tree.html)** - 本譜と変化の手順を一覧します。右クリックで本譜の入れ替え・並べ替え・削除ができ、盤上で指した手も変化として記録できます。
 - **[棋譜管理](https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html)** - KIF・KI2・CSA・JKF・USI・SFEN・USEN の読み込みと保存、クリップボード経由のコピー・貼り付けに対応しています。分岐棋譜も扱えます。
 - **[盤面編集](https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html)** - 駒箱を使って自由に駒を配置し、作った局面から対局や検討を始められます。
 - **[画像エクスポート](https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html)** - 盤面や評価値グラフを画像として保存・コピーできます。
@@ -65,15 +66,17 @@ ShogiBoardQ は、USI エンジンとの対局・検討・棋譜解析、6,000�
 - **[詰み探索](https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html)** - USI エンジンで詰みを探し、詰み手順を表示します。
 - **[詰将棋局面生成](https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html)** - 条件に合う詰将棋を GUI や CLI で自動生成し、余詰を検査して保存します。詰み探索には KomoringHeights も利用できます。
 
-### 外観・画面設定
+### 導入・画面設定
 
 - **[駒の種類](https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html)** - 標準の駒に加え、虎斑・木肌・淡色・深色・戦国文字・チェス風・アルファベットなど全40種類から選べます。
 - **[対局画面の外観](https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html)** - 「表示」→「対局画面の外観…」で、駒・将棋盤・背景・駒台・対局者情報を見本から自由に組み合わせます。選んだ外観は読み筋盤・詰将棋・画像出力にも反映されます。
+- **[GUI全体のフォント](https://hnakada123.github.io/ShogiBoardQ/guide/gui-font.html)** - 「表示」→「GUI全体のフォント…」で、メニュー・棋譜・ログ・各ダイアログの書体をまとめて変更できます。見本で確かめてから選べます。
 - **[ドック機能](https://hnakada123.github.io/ShogiBoardQ/guide/dock.html)** - 棋譜・思考・評価値グラフなどのパネルをドッキング・フローティング・タブ化して自由に配置し、レイアウトを保存できます。
 - **[メニュー機能](https://hnakada123.github.io/ShogiBoardQ/guide/menu.html)** - アイコン付きのメニューパネルから各操作へすばやくアクセスできます。お気に入りも登録できます。
 - **[駒音](https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html)** - 駒を指したときの駒音のオン・オフと、音量・音の高さ・音質（3バンドイコライザー）を調整できます。
 - **[多言語対応](https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html)** - 日本語・英語・中国語（簡体字／繁体字）の UI に対応しています。棋譜と盤の座標は、UI の言語とは別に日本語表記（`▲７六歩`、段は一〜九）と英語表記（`▲P-7f`、段は a〜i）を選べます。表記の設定は表示だけに適用し、保存形式や対局者名・コメントなどの原文は変えません。
 - **[クロスプラットフォーム](https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html)** - Qt 6 で開発し、Linux・macOS・Windows で動作します。
+- **[設定の初期化と設定ファイル](https://hnakada123.github.io/ShogiBoardQ/guide/settings-reset.html)** - 「設定」→「設定を初期値に戻す…」でエンジン登録を含むすべての設定を初期値に戻せます。設定ファイル `ShogiBoardQ.ini` の OS ごとの保存場所も紹介しています。
 
 ### AI 連携
 
