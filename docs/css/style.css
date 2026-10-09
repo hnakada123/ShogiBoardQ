@@ -471,6 +471,10 @@ html:lang(en) .nav-links a {
     line-height: 1.7;
 }
 
+.feature-card code {
+    overflow-wrap: anywhere;
+}
+
 /* --- Build Section --- */
 .build-content {
     max-width: 700px;

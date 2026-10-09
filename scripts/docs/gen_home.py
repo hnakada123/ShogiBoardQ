@@ -29,7 +29,8 @@ FEATURE_GROUPS = [
                  ("image-export", "image-export")]),
     ("tsume", [("tsume-play", "tsume-play"), ("mate-search", "tsumi-search"), ("tsume-generator", "tsumeshogi-generator")]),
     ("setup", [("piece", "piece-style"), ("appearance", "board-colors"), ("font", "gui-font"), ("dock", "dock"),
-               ("menu", "menu"), ("piece-sound", "piece-sound"), ("language", "multilanguage"), ("platform", "multi-os")]),
+               ("menu", "menu"), ("piece-sound", "piece-sound"), ("language", "multilanguage"), ("platform", "multi-os"),
+               ("settings-reset", "settings-reset")]),
     ("ai", [("ai", "mcp-server")]),
 ]
 
@@ -133,6 +134,7 @@ T["ja"] = {
         "piece-sound": ("駒音", "駒を指したときの駒音のオン・オフと、音量・音の高さ・音質を調整できます。"),
         "multilanguage": ("多言語対応", "日本語・英語・中国語（簡体字／繁体字）のUIに対応。「設定」→「言語設定」で切り替えられます。"),
         "multi-os": ("クロスプラットフォーム", "Qt 6で開発し、Linux・macOS・Windowsで動作します。"),
+        "settings-reset": ("設定の初期化と設定ファイル", "「設定」→「設定を初期値に戻す…」で、エンジン登録を含むすべての設定を初期値に戻して終了します。設定ファイル<code>ShogiBoardQ.ini</code>の保存場所：<br>Windows：<code>%LOCALAPPDATA%\\ShogiBoardQ</code><br>macOS：<code>~/Library/Preferences/ShogiBoardQ</code><br>Linux：<code>~/.config/ShogiBoardQ</code>"),
         "mcp-server": ("AIクライアント連携（MCP）", "Claude・Cursor・VS Code・Gemini CLI・Codex CLIなどから、棋譜変換・解析・詰将棋生成・アプリ操作を依頼できます。"),
     },
     "dl_title": "ダウンロード",
@@ -258,6 +260,7 @@ T["en"] = {
         "piece-sound": ("Piece Sound", "Turn the move sound on or off and adjust its volume, pitch, and tone."),
         "multilanguage": ("Language Support", "Japanese, English, and Chinese (Simplified or Traditional) interfaces, switchable from Settings → Language."),
         "multi-os": ("Cross-Platform Support", "Built with Qt 6 for Linux, macOS, and Windows."),
+        "settings-reset": ("Reset Settings &amp; Settings File", "Settings → Reset Settings to Defaults… returns every setting, including engine registrations, to its default and closes the application. The settings file <code>ShogiBoardQ.ini</code> is stored in:<br>Windows: <code>%LOCALAPPDATA%\\ShogiBoardQ</code><br>macOS: <code>~/Library/Preferences/ShogiBoardQ</code><br>Linux: <code>~/.config/ShogiBoardQ</code>"),
         "mcp-server": ("AI Client Integration (MCP)", "Ask Claude, Cursor, VS Code, Gemini CLI, Codex CLI, and other AI clients to convert records, analyze, generate puzzles, and operate the app."),
     },
     "dl_title": "Download",
@@ -383,6 +386,7 @@ T["zh-cn"] = {
         "piece-sound": ("走子音效", "开启或关闭走子音效，并调整音量、音高和音色。"),
         "multilanguage": ("多语言", "支持日语、英语、中文（简体／繁体）界面，可在“设置”→“语言”中切换。"),
         "multi-os": ("跨平台", "基于 Qt 6 开发，可在 Linux、macOS 和 Windows 上运行。"),
+        "settings-reset": ("恢复默认设置与设置文件", "用“设置”→“恢复默认设置…”可将包括引擎注册在内的所有设置恢复为默认值并退出。设置文件 <code>ShogiBoardQ.ini</code> 的保存位置：<br>Windows：<code>%LOCALAPPDATA%\\ShogiBoardQ</code><br>macOS：<code>~/Library/Preferences/ShogiBoardQ</code><br>Linux：<code>~/.config/ShogiBoardQ</code>"),
         "mcp-server": ("AI 客户端集成（MCP）", "可以从 Claude、Cursor、VS Code、Gemini CLI、Codex CLI 等 AI 客户端请求棋谱转换、分析、诘棋生成和应用操作。"),
     },
     "dl_title": "下载",
@@ -508,6 +512,7 @@ T["zh-tw"] = {
         "piece-sound": ("走子音效", "開啟或關閉走子音效，並調整音量、音高與音色。"),
         "multilanguage": ("多語言", "支援日文、英文、中文（簡體／繁體）介面，可在「設定」→「語言」中切換。"),
         "multi-os": ("跨平台", "以 Qt 6 開發，可在 Linux、macOS 與 Windows 上執行。"),
+        "settings-reset": ("恢復預設設定與設定檔案", "以「設定」→「恢復預設設定…」可將包括引擎註冊在內的所有設定恢復為預設值並結束。設定檔案 <code>ShogiBoardQ.ini</code> 的儲存位置：<br>Windows：<code>%LOCALAPPDATA%\\ShogiBoardQ</code><br>macOS：<code>~/Library/Preferences/ShogiBoardQ</code><br>Linux：<code>~/.config/ShogiBoardQ</code>"),
         "mcp-server": ("AI 用戶端整合（MCP）", "可從 Claude、Cursor、VS Code、Gemini CLI、Codex CLI 等 AI 用戶端要求棋譜轉換、分析、詰棋產生與應用程式操作。"),
     },
     "dl_title": "下載",
@@ -570,7 +575,7 @@ def page(code):
     # その言語の利用ガイドの目次があればそこへ、なければ英語版へ
     guide = "guide/" if os.path.exists(os.path.join(DOCS, m["dir"], "guide", "index.html")) else "../en/guide/"
     url = SITE + m["dir"]
-    css_v = "20261004"
+    css_v = "20261009"
 
     def gl(slug):
         # 翻訳済みのガイドがあればその言語のページへ、なければ英語版へ（# 以降はページ内の節）
