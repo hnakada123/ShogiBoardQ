@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QSettings>
 #include <QFile>
+#include <algorithm>
 
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
@@ -185,6 +186,45 @@ private slots:
         QCOMPARE(h.protocol.currentPhase() == UsiProtocolHandler::SearchPhase::Ponder, expectPonder);
         QCOMPARE(h.commands.last().startsWith(QStringLiteral("go ponder ")), expectPonder);
         QCOMPARE(h.errors, 0);
+    }
+    void incrementBudgetIncludesCurrentMove()
+    {
+        MatchTimekeeper keeper;
+        MatchTimekeeper::Hooks hooks;
+        hooks.remainingMsFor = [](int player) { return player == 1 ? 10000LL : 17000LL; };
+        keeper.setHooks(hooks);
+        keeper.setTimeControlConfig(false, 0, 0, 10000, 7000, true);
+        const auto times = keeper.computeGoTimes();
+        QCOMPARE(times.btime, 10000LL);
+        QCOMPARE(times.wtime, 17000LL);
+        QCOMPARE(times.binc, 10000LL);
+        QCOMPARE(times.winc, 7000LL);
+    }
+    void incrementOnlyFirstMove()
+    {
+        MatchHarness h;
+        const QString realEngine = qEnvironmentVariable("SHOGIBOARDQ_TEST_ENGINE");
+        QVERIFY(h.start(realEngine.isEmpty() ? mockPath() : realEngine, false));
+        h.clock.stopClock();
+        // 対局開始時に加算された初手の10秒を渡す。
+        h.clock.setPlayerTimes(10, 10, 0, 0, 10, 10, true);
+        h.clock.setCurrentPlayer(1);
+        h.game.setCurrentPlayer(ShogiGameController::Player1);
+        h.clock.startClock();
+        const UsiTimingParams timing{0, QStringLiteral("10000"), QStringLiteral("10000"), 10000, 10000, false};
+        h.match.requestMove(QStringLiteral("position startpos"), {}, timing);
+        QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0 || h.clock.isGameOver(), 11000);
+        QCOMPARE(h.errors, 0);
+        QVERIFY(!h.clock.isGameOver());
+        QCOMPARE(h.completed, 1);
+        QVERIFY(h.lastTo != QPoint(-1, -1));
+        qInfo() << "first move:" << h.position << "remaining ms:" << h.clock.getPlayer1TimeIntMs();
+        const auto go = std::find_if(h.commands.cbegin(), h.commands.cend(), [](const QString& cmd) {
+            return cmd.startsWith(QStringLiteral("go "));
+        });
+        QVERIFY(go != h.commands.cend());
+        qInfo() << "time command:" << *go;
+        QVERIFY(go->contains(QStringLiteral("binc 10000 winc 10000")));
     }
     void asymmetricByoyomiUsesSideToMove()
     {

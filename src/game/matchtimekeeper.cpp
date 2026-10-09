@@ -171,8 +171,7 @@ MatchTimekeeper::GoTimes MatchTimekeeper::computeGoTimes() const
         t.binc = m_tc.incMs1;
         t.winc = m_tc.incMs2;
 
-        if (t.binc > 0) t.btime = qMax<qint64>(0, t.btime - t.binc);
-        if (t.winc > 0) t.wtime = qMax<qint64>(0, t.wtime - t.winc);
+        // 時計の残り時間には現在手で使用できる加算分が既に含まれている。
 
         qCDebug(lcGame).noquote()
             << "computeGoTimes_: FISCHER"

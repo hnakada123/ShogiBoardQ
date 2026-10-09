@@ -53,8 +53,9 @@ void applyToClock(
         << " P2{baseSec=" << p2BaseSec << " byoSec=" << finalByo2 << " incSec=" << finalInc2 << "}";
 
     clock->setLoseOnTimeout(limited && tc.loseOnTimeout);
+    // 初手にも加算時間を与える。以降は着手確定時に次の手の分を加算する。
     clock->setPlayerTimes(
-        p1BaseSec, p2BaseSec,
+        p1BaseSec + finalInc1, p2BaseSec + finalInc2,
         finalByo1, finalByo2,
         finalInc1, finalInc2,
         /*isLimitedTime=*/limited);
