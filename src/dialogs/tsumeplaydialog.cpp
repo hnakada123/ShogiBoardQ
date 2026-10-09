@@ -212,11 +212,12 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
 {
     auto* row = new QHBoxLayout;
     row->setSpacing(4);
-    auto* reduce = new QPushButton(QStringLiteral("➖"), this);
+    // 絵文字の ➖➕ は Qt 6.7（Linux 版の AppImage）で ☒ になるため、全角の －＋ を使う。
+    auto* reduce = new QPushButton(QStringLiteral("－"), this);
     reduce->setObjectName(QStringLiteral("tsumeReduceBoard"));
     reduce->setToolTip(tr("将棋盤を縮小する"));
     reduce->setAccessibleName(reduce->toolTip());
-    auto* enlarge = new QPushButton(QStringLiteral("➕"), this);
+    auto* enlarge = new QPushButton(QStringLiteral("＋"), this);
     enlarge->setObjectName(QStringLiteral("tsumeEnlargeBoard"));
     enlarge->setToolTip(tr("将棋盤を拡大する"));
     enlarge->setAccessibleName(enlarge->toolTip());

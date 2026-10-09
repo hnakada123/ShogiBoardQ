@@ -134,14 +134,16 @@ void PvBoardDialog::buildUi()
     QHBoxLayout* zoomLayout = new QHBoxLayout();
     zoomLayout->setSpacing(4);
 
-    m_btnReduce = new QPushButton(QStringLiteral("➖"), this);
+    // 絵文字の ➖➕ はカラー絵文字フォントにしか無く、Qt 6.7（Linux 版の AppImage）では
+    // 代替されずに ☒ で表示される。通常の日本語フォントにある全角の －＋ を使う。
+    m_btnReduce = new QPushButton(QStringLiteral("－"), this);
     m_btnReduce->setToolTip(tr("将棋盤を縮小する"));
     m_btnReduce->setAccessibleName(tr("将棋盤を縮小する"));
     m_btnReduce->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnReduce, &QPushButton::clicked, this, &PvBoardDialog::onReduceBoard);
     zoomLayout->addWidget(m_btnReduce);
 
-    m_btnEnlarge = new QPushButton(QStringLiteral("➕"), this);
+    m_btnEnlarge = new QPushButton(QStringLiteral("＋"), this);
     m_btnEnlarge->setToolTip(tr("将棋盤を拡大する"));
     m_btnEnlarge->setAccessibleName(tr("将棋盤を拡大する"));
     m_btnEnlarge->setStyleSheet(ButtonStyles::secondaryNeutral());
