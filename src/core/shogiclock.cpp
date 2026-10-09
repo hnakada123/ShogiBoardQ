@@ -56,6 +56,7 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
     m_byoyomi2Applied = false;
     m_clockRunning = false;
     m_turnFinished = false;
+    m_currentConsiderationCommitted = false;
     m_gameOver = false;
     m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
     m_resumingTurn = false;
@@ -79,6 +80,7 @@ void ShogiClock::setCurrentPlayer(int player)
     if (next == m_currentPlayer) return;
     updateClock(); // tick間の経過時間は旧手番へ精算する
     m_currentPlayer = next;
+    m_currentConsiderationCommitted = false;
     m_resumedConsiderationMs[next - 1] = 0;
     m_resumingTurn = false;
     if (next == 1) m_player1ConsiderationTimeMs = 0;
@@ -149,12 +151,22 @@ void ShogiClock::stopClock()
 
 int ShogiClock::remainingDisplaySecP1() const
 {
+    if (isUnlimited()) {
+        const qint64 currentMs = m_currentPlayer == 1 && !m_currentConsiderationCommitted
+            ? m_player1ConsiderationTimeMs : 0;
+        return static_cast<int>((m_player1TotalConsiderationTimeMs + currentMs) / 1000);
+    }
     qint64 ms = qMax<qint64>(0, m_player1TimeMs);
     return static_cast<int>((ms + 999) / 1000);
 }
 
 int ShogiClock::remainingDisplaySecP2() const
 {
+    if (isUnlimited()) {
+        const qint64 currentMs = m_currentPlayer == 2 && !m_currentConsiderationCommitted
+            ? m_player2ConsiderationTimeMs : 0;
+        return static_cast<int>((m_player2TotalConsiderationTimeMs + currentMs) / 1000);
+    }
     qint64 ms = qMax<qint64>(0, m_player2TimeMs);
     return static_cast<int>((ms + 999) / 1000);
 }
@@ -181,6 +193,8 @@ void ShogiClock::updateShownConsiderationForPlayer(int player)
 
 void ShogiClock::applyByoyomiAndResetConsideration1()
 {
+    // 累積へ加算した現在手の時間を、時計表示で二重に数えない。
+    if (m_currentPlayer == 1) m_currentConsiderationCommitted = true;
     // 終局後は秒読み/加算は行わず、表示更新のみ
     if (m_gameOver) {
         m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
@@ -208,6 +222,8 @@ void ShogiClock::applyByoyomiAndResetConsideration1()
 
 void ShogiClock::applyByoyomiAndResetConsideration2()
 {
+    // 累積へ加算した現在手の時間を、時計表示で二重に数えない。
+    if (m_currentPlayer == 2) m_currentConsiderationCommitted = true;
     if (m_gameOver) {
         m_player2TotalConsiderationTimeMs += m_player2ConsiderationTimeMs;
         updateShownConsiderationForPlayer(2);
@@ -319,7 +335,7 @@ void ShogiClock::updateClock()
 
     debugCheckInvariants();
 
-    // 秒表示が変わった時のみ通知（残りは切り上げ秒）
+    // 秒表示が変わった時のみ通知（残りは切り上げ、累積消費時間は切り捨て）
     const int sec1 = remainingDisplaySecP1();
     const int sec2 = remainingDisplaySecP2();
     if (sec1 != m_prevShownSecP1 || sec2 != m_prevShownSecP2) {
@@ -351,6 +367,7 @@ void ShogiClock::saveState()
             m_p1PrevShownTotalSec, m_p2PrevShownTotalSec,
             m_p1LastMoveShownSec, m_p2LastMoveShownSec);
 
+    m_considerationCommittedHistory.push(m_currentConsiderationCommitted);
     m_player1TimeHistory.push(m_player1TimeMs);
     m_player2TimeHistory.push(m_player2TimeMs);
     m_player1ConsiderationHistory.push(m_player1ConsiderationTimeMs);
@@ -369,7 +386,8 @@ void ShogiClock::undo()
 {
     // 「待った」は2手分の状態を巻き戻す
     auto enough = [&]{
-        return m_player1TimeHistory.size() >= 3 &&
+        return m_considerationCommittedHistory.size() >= 3 &&
+               m_player1TimeHistory.size() >= 3 &&
                m_player2TimeHistory.size() >= 3 &&
                m_player1ConsiderationHistory.size() >= 3 &&
                m_player2ConsiderationHistory.size() >= 3 &&
@@ -385,6 +403,9 @@ void ShogiClock::undo()
     if (!enough()) return;
 
     auto pop2 = [](auto& st){ st.pop(); st.pop(); };
+
+    pop2(m_considerationCommittedHistory);
+    m_currentConsiderationCommitted = m_considerationCommittedHistory.top();
 
     pop2(m_player1TimeHistory);
     m_player1TimeMs = m_player1TimeHistory.top();

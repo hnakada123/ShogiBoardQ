@@ -28,6 +28,7 @@ public:
     /// 中断した対局の時計。ミリ秒・秒読み・消費時間・待った用履歴を保持する。
     struct Snapshot {
         bool timeLimitSet  = false;
+        bool currentConsiderationCommitted = false;
         bool loseOnTimeout = true;
         int currentPlayer = 1;
         qint64 player1TimeMs = 0;
@@ -48,6 +49,7 @@ public:
         int prevShownSecP2 = -1;
         bool byoyomi1Applied = false;
         bool byoyomi2Applied = false;
+        QStack<bool> considerationCommittedHistory;
         QStack<qint64> player1TimeHistory;
         QStack<qint64> player2TimeHistory;
         QStack<qint64> player1ConsiderationHistory;
@@ -97,6 +99,7 @@ public:
     void finishTurn();
     qint64 remainingMainTimeMs(int player) const;
     qint64 remainingTurnTimeMs(int player) const;
+    bool isUnlimited() const { return !m_timeLimitSet; }
     bool enforcesTimeout() const { return m_timeLimitSet && m_loseOnTimeout; }
 
     // --- 着手確定時処理 ---
@@ -112,7 +115,7 @@ public:
 
     // --- GUI表示API ---
 
-    /// 残り時間文字列（HH:MM:SS、残りmsを秒に切り上げ）
+    /// 時計表示（HH:MM:SS）。制限ありは残り時間を切り上げ、無制限は累積消費時間を切り捨て。
     QString player1TimeString() const;
     QString player2TimeString() const;
 
@@ -189,6 +192,7 @@ private:
     QElapsedTimer m_elapsedTimer;              ///< 経過時間計測用（モノトニック）
     bool          m_clockRunning = false;      ///< タイマー動作中フラグ
     bool          m_turnFinished = false;
+    bool          m_currentConsiderationCommitted = false;
     qint64        m_lastTickMs   = 0;          ///< 前回tickの時刻(ms)
 
     // --- 設定・状態 ---
@@ -225,6 +229,7 @@ private:
     bool m_byoyomi2Applied = false;            ///< 後手が秒読みに入った
 
     // --- undo用の状態履歴スタック ---
+    QStack<bool> m_considerationCommittedHistory;
     QStack<qint64> m_player1TimeHistory;                ///< 先手残り時間の履歴
     QStack<qint64> m_player2TimeHistory;                ///< 後手残り時間の履歴
     QStack<qint64> m_player1ConsiderationHistory;       ///< 先手考慮時間の履歴

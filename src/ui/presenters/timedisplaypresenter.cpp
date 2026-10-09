@@ -43,8 +43,11 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1t
     m_lastP2Ms = p2ms;
 
     if (m_view) {
-        if (auto* b = m_view->blackClockLabel()) b->setText(fmt_hhmmss(p1ms));
-        if (auto* w = m_view->whiteClockLabel()) w->setText(fmt_hhmmss(p2ms));
+        const bool unlimited = m_clock && m_clock->isUnlimited();
+        if (auto* b = m_view->blackClockLabel())
+            b->setText(unlimited ? m_clock->player1TimeString() : fmt_hhmmss(p1ms));
+        if (auto* w = m_view->whiteClockLabel())
+            w->setText(unlimited ? m_clock->player2TimeString() : fmt_hhmmss(p2ms));
     }
     applyTurnHighlights(p1turn);
 }
@@ -56,6 +59,9 @@ void TimeDisplayPresenter::applyTurnHighlights(bool p1turn)
 
 bool TimeDisplayPresenter::isInByoyomi(bool p1turn) const
 {
+    // 無制限対局には時間切れの警告を表示しない。
+    if (m_clock && m_clock->isUnlimited()) return false;
+
     // クロックが設定されていない場合
     if (!m_clock) {
         // 秒読み設定がない（クロックなし）場合：残り5秒以下で緊急状態とみなす

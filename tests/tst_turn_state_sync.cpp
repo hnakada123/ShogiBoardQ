@@ -12,6 +12,7 @@
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "turnmanager.h"
+#include "timedisplaypresenter.h"
 #include "turnstatesyncservice.h"
 
 class TestTurnStateSync : public QObject
@@ -89,6 +90,32 @@ private slots:
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+    }
+
+    void unlimitedClockLabelsMatchRecord()
+    {
+        ShogiView view;
+        ShogiClock clock;
+        TimeDisplayPresenter presenter(&view);
+        presenter.setClock(&clock);
+        clock.setPlayerTimes(0, 0, 0, 0, 0, 0, false);
+        clock.setPlayer1ConsiderationTime(1750);
+        presenter.onMatchTimeUpdated(0, 0, true, 0);
+        QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("00:00:01"));
+        QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("00:00:00"));
+        QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
+        clock.applyByoyomiAndResetConsideration1();
+        clock.setCurrentPlayer(2);
+        clock.setMeasuredConsiderationTime(2, 2999);
+        clock.applyByoyomiAndResetConsideration2();
+        presenter.onMatchTimeUpdated(0, 0, false, 0);
+        QCOMPARE(view.blackClockLabel()->text(), clock.getPlayer1TotalConsiderationTime());
+        QCOMPARE(view.whiteClockLabel()->text(), clock.getPlayer2TotalConsiderationTime());
+
+        clock.setPlayerTimes(10, 10, 0, 0, 0, 0, true);
+        presenter.onMatchTimeUpdated(9501, 10000, true, 9501);
+        QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("00:00:10"));
+        QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("00:00:10"));
     }
 
     void navigationAfterGameEnd_data()
