@@ -267,6 +267,29 @@
                 <p class="guide-step-text">達到對局對話方塊中設定的「最大手數」時，對局以持將棋（和棋）結束。無論哪種情況，結果都會顯示在「對局結束」訊息中，並記錄在棋譜末尾。由於棋譜格式中沒有表示連續王手千日手的終局語，會作為持續王手一方的犯規，記錄為「犯規勝」或「犯規負」，因此以 KIF、CSA 等任何格式儲存都能保留勝負。人對引擎、引擎對引擎、人對人對局都會進行這些判定；CSA 網路對局以伺服器的判定為準。</p>
             </div>
 
+            <div class="guide-step" id="legal-moves">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">顯示合法落點</span>
+                </div>
+                <p class="guide-step-text">開啟選單「檢視」→「顯示合法落點」時（預設開啟），點選行棋方的棋子，該棋子可以移動到的格子會以藍色顯示。點選駒台上的持駒時，會顯示可以打入的格子。只顯示不違規的著法，包括吃子與可以升變的著法。是否升變在點選目標格後選擇。</p>
+                <p class="guide-step-text">對局中輪到人類走棋時、不在對局中時在棋盤上移動棋子時，以及在詰棋練習中都會顯示。此設定會儲存，下次啟動時維持不變。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/game-play/game-08-legal-moves.png"><img src="../../images/zh-tw/game-play/game-08-legal-moves.png" srcset="../../images/zh-tw/game-play/game-08-legal-moves.png 1440w" sizes="720px" alt="選取▲８八的角，７七到２二的 6 個格子以藍色顯示的棋盤" width="720" height="565" loading="lazy"></a>
+                    <p class="screenshot-caption">合法落點：選取▲８八的角後，角可以移動到的 6 個格子以藍色顯示（２二是吃掉對方角的著法）</p>
+                </div>
+            </div>
+
+            <div class="guide-step" id="resume">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">對局的中斷與繼續</span>
+                </div>
+                <p class="guide-step-text">以選單「對局」→「中斷」（工具列中也有）中斷對局後，棋譜末尾會記錄「中斷」，引擎也會停止。不會顯示對局結束的訊息，也不會自動儲存棋譜。在連續對局途中中斷時，不會開始下一局。</p>
+                <p class="guide-step-text">點選「對局」→「繼續」會立即繼續中斷的對局。不會開啟對局對話方塊，而是直接沿用中斷時的局面、行棋方、對局者、用時設定以及雙方的剩餘時間。使用引擎的對局會重新啟動引擎後繼續。棋譜中的「中斷」會被刪除，作為同一手順的後續記錄。跨越中斷的那一手，用時會合計中斷前後的時間。即使棋譜中正在顯示其他著法，也會回到中斷的局面繼續。</p>
+                <p class="guide-step-text">可以繼續的是在結束應用程式之前中斷的人對引擎、引擎對引擎、人對人對局。開始新的對局、開啟或新建棋譜、在棋盤上移動棋子或在變化樹中編輯變化而改變棋譜、開始編輯局面之後，就無法再繼續。CSA 網路對局無法繼續。若要接著下已儲存的棋譜，請依照上方「變化樹」中的說明，在棋譜中選擇「中斷」的著法，並將初始局面設為「目前局面」後開始對局。此時用時會從對局對話方塊的設定開始計算。</p>
+            </div>
+
         </div>
     </div>
 </section>
