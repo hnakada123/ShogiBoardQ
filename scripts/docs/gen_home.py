@@ -22,7 +22,7 @@ META = {
 
 # (icon, guide page) — 節へリンクするときは "page#id"。各言語の "cards" もこの文字列で引く
 FEATURE_GROUPS = [
-    ("play", [("game", "game-play"), ("engine", "game-play#engine-registration"), ("hayanagi", "hayanagi"), ("network", "csa-game"), ("nyugyoku", "nyugyoku")]),
+    ("play", [("game", "game-play"), ("hayanagi", "hayanagi"), ("network", "csa-game"), ("nyugyoku", "nyugyoku")]),
     ("analysis", [("consideration", "consideration"), ("eval-graph", "kifu-analysis"), ("book", "joseki"),
                   ("position-viewer", "kyokumenshu-viewer")]),
     ("records", [("kifu-list", "kifu-display"), ("branch-tree", "branch-tree"), ("kifu-file", "kifu-management"), ("board-edit", "board-edit"),
@@ -33,8 +33,6 @@ FEATURE_GROUPS = [
                ("settings-reset", "settings-reset")]),
     ("ai", [("ai", "mcp-server")]),
 ]
-# ホームの機能一覧には出さないカード（利用ガイドの目次には出す）。エンジン登録へは機能一覧の導入文（engine_note）からリンクする
-HOME_SKIP = {"game-play#engine-registration"}
 
 PIECES = ["standard", "torafu_light", "wood_walnut", "tint_sakura", "deep_ebony", "deep_navy", "sengoku",
           "chess_facet_wood", "chess_atelier_paper", "chess_ribbon_slate", "alphabet_sei_wood", "alphabet_rin_slate"]
@@ -112,7 +110,6 @@ T["ja"] = {
                "setup": "導入・画面設定", "ai": "AI連携"},
     "cards": {
         "game-play": ("対局機能", "人間対エンジン・エンジン同士・人間同士で対局。駒落ち・持ち時間・連続対局・中断した対局の再開に対応。"),
-        "game-play#engine-registration": ("エンジン登録・設定", "USIエンジンを登録し、ハッシュサイズ・スレッド数などのオプションをエンジンごとに設定できます。"),
         "hayanagi": ("将棋エンジン Hayanagi", "ShogiBoardQと一緒に開発しているUSIエンジン。登録すれば対局・検討・解析に使え、詰将棋対局では玉方を務めます。"),
         "csa-game": ("CSA通信対局", "floodgateなどCSAプロトコル対応サーバーに接続し、人間またはエンジンで通信対局できます。"),
         "nyugyoku": ("入玉宣言", "持将棋の点数を計算し、24点法・27点法に基づく入玉宣言を判定します。"),
@@ -238,7 +235,6 @@ T["en"] = {
                "tsume": "Tsume Shogi", "setup": "Setup &amp; Appearance", "ai": "AI Integration"},
     "cards": {
         "game-play": ("Playing Games", "Human vs. engine, engine vs. engine, or human vs. human, with handicaps, clocks, engine series, and resumable games."),
-        "game-play#engine-registration": ("Engine Registration &amp; Settings", "Register USI engines and set options such as hash size and threads for each engine."),
         "hayanagi": ("Hayanagi Shogi Engine", "A USI engine developed alongside ShogiBoardQ for play and analysis. It also defends in Tsume Shogi Play."),
         "csa-game": ("CSA Network Play", "Connect to CSA-protocol servers such as floodgate and play as a human or with an engine."),
         "nyugyoku": ("Entering King Declaration", "Count jishogi points and check declarations under the 24-point and 27-point rules."),
@@ -364,7 +360,6 @@ T["zh-cn"] = {
                "setup": "界面与设置", "ai": "AI 集成"},
     "cards": {
         "game-play": ("对局", "支持人与引擎、引擎与引擎、人与人对局，可设置让子和用时，还能连续对局或继续中断的对局。"),
-        "game-play#engine-registration": ("引擎注册与设置", "注册 USI 引擎，并可为每个引擎分别设置哈希大小、线程数等选项。"),
         "hayanagi": ("将棋引擎 Hayanagi", "与 ShogiBoardQ 一同开发的 USI 引擎。注册后即可用于对局、研究和分析，在诘棋练习中担任守方。"),
         "csa-game": ("CSA 网络对局", "连接 floodgate 等支持 CSA 协议的服务器，由人或引擎进行网络对局。"),
         "nyugyoku": ("入玉宣言", "计算持将棋点数，按 24 点法和 27 点法判定入玉宣言。"),
@@ -490,7 +485,6 @@ T["zh-tw"] = {
                "setup": "介面與設定", "ai": "AI 整合"},
     "cards": {
         "game-play": ("對局", "支援人對引擎、引擎對引擎、人對人對局，可設定讓子與用時，還能連續對局或繼續中斷的對局。"),
-        "game-play#engine-registration": ("引擎註冊與設定", "註冊 USI 引擎，並可為每個引擎分別設定雜湊大小、執行緒數等選項。"),
         "hayanagi": ("將棋引擎 Hayanagi", "與 ShogiBoardQ 一同開發的 USI 引擎。註冊後即可用於對局、研究與分析，並在詰棋練習中擔任守方。"),
         "csa-game": ("CSA 網路對局", "連線至 floodgate 等支援 CSA 協定的伺服器，由人或引擎進行網路對局。"),
         "nyugyoku": ("入玉宣言", "計算持將棋點數，依 24 點法與 27 點法判定入玉宣言。"),
@@ -787,8 +781,6 @@ def page(code):
             <ul class="mini-grid">
 """)
         for icon, slug in items:
-            if slug in HOME_SKIP:
-                continue
             title, desc = t["cards"][slug]
             w(f"""                <li><a href="{gl(slug)}" class="mini-card">
                     <span class="mini-card__icon"><img src="{img}icons/{icon}.svg" alt=""></span>
