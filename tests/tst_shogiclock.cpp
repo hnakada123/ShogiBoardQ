@@ -8,6 +8,88 @@ class TestShogiClock : public QObject
     Q_OBJECT
 
 private slots:
+    void unlimitedTimeMatchesRecord_data()
+    {
+        QTest::addColumn<bool>("switchBeforeCommit");
+        QTest::newRow("commit-before-switch") << false;
+        QTest::newRow("switch-before-commit") << true;
+    }
+
+    void unlimitedTimeMatchesRecord()
+    {
+        QFETCH(bool, switchBeforeCommit);
+        ShogiClock clock;
+        clock.setPlayerTimes(0, 0, 0, 0, 0, 0, false);
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:00:00"));
+        clock.setPlayer1ConsiderationTime(1750);
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:00:01"));
+        if (switchBeforeCommit) clock.setCurrentPlayer(2);
+        clock.applyByoyomiAndResetConsideration1();
+        QCOMPARE(clock.player1TimeString(), clock.getPlayer1TotalConsiderationTime());
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:00:01"));
+        clock.setCurrentPlayer(2);
+        clock.setMeasuredConsiderationTime(2, 2999);
+        QCOMPARE(clock.player2TimeString(), QStringLiteral("00:00:02"));
+        if (switchBeforeCommit) clock.setCurrentPlayer(1);
+        clock.applyByoyomiAndResetConsideration2();
+        QCOMPARE(clock.player2TimeString(), clock.getPlayer2TotalConsiderationTime());
+        clock.setCurrentPlayer(1);
+        clock.setPlayer1ConsiderationTime(750);
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:00:02"));
+        clock.markGameOver();
+        clock.applyByoyomiAndResetConsideration1();
+        QCOMPARE(clock.player1TimeString(), clock.getPlayer1TotalConsiderationTime());
+        QCOMPARE(clock.player1ConsiderationAndTotalTime(), QStringLiteral("00:01/00:00:02"));
+        // 表示用の累積時間をエンジン向けの残り時間へ流用しない。
+        QCOMPARE(clock.getPlayer1TimeIntMs(), 0LL);
+        QCOMPARE(clock.getPlayer2TimeIntMs(), 0LL);
+    }
+
+    void unlimitedTimeUpdatesWhileThinking()
+    {
+        ShogiClock clock;
+        clock.setPlayerTimes(0, 0, 0, 0, 0, 0, false);
+        QSignalSpy updated(&clock, &ShogiClock::timeUpdated);
+        clock.startClock();
+        updated.clear();
+        QTRY_VERIFY_WITH_TIMEOUT(!updated.isEmpty(), 2000);
+        QVERIFY(clock.player1TimeString() != QStringLiteral("00:00:00"));
+        QCOMPARE(clock.player2TimeString(), QStringLiteral("00:00:00"));
+        QVERIFY(!clock.isGameOver());
+        clock.finishTurn();
+        clock.applyByoyomiAndResetConsideration1();
+        QCOMPARE(clock.player1TimeString(), clock.getPlayer1TotalConsiderationTime());
+        clock.stopClock();
+    }
+
+    void unlimitedTimePauseAndUndo()
+    {
+        ShogiClock clock;
+        clock.setPlayerTimes(0, 0, 0, 0, 0, 0, false);
+        clock.startClock();
+        clock.stopClock();
+        clock.setPlayer1ConsiderationTime(1750);
+        const auto paused = clock.pauseAndSnapshot();
+        clock.markGameOver();
+        clock.applyByoyomiAndResetConsideration1();
+        clock.restoreSnapshot(paused);
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:00:01"));
+        clock.setMeasuredConsiderationTime(1, 750);
+        clock.applyByoyomiAndResetConsideration1();
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:00:02"));
+        clock.setCurrentPlayer(2);
+        clock.startClock();
+        clock.stopClock();
+        clock.setPlayer2ConsiderationTime(3200);
+        clock.applyByoyomiAndResetConsideration2();
+        clock.setCurrentPlayer(1);
+        clock.startClock();
+        clock.stopClock();
+        clock.undo();
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:00:00"));
+        QCOMPARE(clock.player2TimeString(), QStringLiteral("00:00:00"));
+    }
+
     void resumePreservesClock_data()
     {
         QTest::addColumn<int>("byoyomi");

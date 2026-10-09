@@ -7,6 +7,8 @@ ShogiClock::Snapshot ShogiClock::pauseAndSnapshot()
     stopClock();
     Snapshot state;
     state.timeLimitSet = m_timeLimitSet;
+    state.currentConsiderationCommitted = m_currentConsiderationCommitted;
+    state.considerationCommittedHistory = m_considerationCommittedHistory;
     state.loseOnTimeout = m_loseOnTimeout;
     state.currentPlayer = m_currentPlayer;
     state.player1TimeMs = m_player1TimeMs;
@@ -49,6 +51,8 @@ void ShogiClock::restoreSnapshot(const Snapshot& state)
     m_turnFinished = false;
     m_gameOver = false;
     m_timeLimitSet = state.timeLimitSet;
+    m_currentConsiderationCommitted = state.currentConsiderationCommitted;
+    m_considerationCommittedHistory = state.considerationCommittedHistory;
     m_loseOnTimeout = state.loseOnTimeout;
     m_currentPlayer = state.currentPlayer;
     m_player1TimeMs = state.player1TimeMs;
