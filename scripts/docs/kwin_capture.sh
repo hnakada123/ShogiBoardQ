@@ -1,10 +1,11 @@
 #!/bin/bash
 # usage: kwin_capture.sh <name> <ja_JP|en|zh_CN|zh_TW> <script> [script args...]
 #
-# ウィンドウ枠（KDE の Breeze 装飾と影）付きの画像を撮るための実行環境。
+# ウィンドウ枠（KDE の Breeze 装飾）付きの画像を撮るための実行環境。
 # 入れ子の KWin（仮想画面）を使い捨ての D-Bus 上で起動し、ShogiBoardQ を Wayland クライアントとして
 # --automation 付きで起動してから <script> を実行する。<script> には環境変数 SBQ_SOCK（自動化ソケット）が渡る。
-# 枠付きの撮影は <script> の中で `spectacle -b -n -a -o out.png`（アクティブウィンドウ、影は透過）を実行する。
+# 枠付きの撮影は <script> の中で `spectacle -b -n -a -S -o out.png`（アクティブウィンドウ、影なし）を実行する。
+# -S を付けないと周囲に半透明の影が入り、ガイドのページでは画像の外側が白い余白に見える。
 #
 # 隔離（2026-10-06 の教訓）:
 #   - 普段のディスプレイ（DISPLAY・WAYLAND_DISPLAY）と入力メソッドの変数は、D-Bus を起動する前に外す。
@@ -17,7 +18,7 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../.." && pwd)
 if [ "${SBQ_IN_KWIN_SESSION:-0}" != 1 ]; then
-  [ $# -lt 3 ] && { sed -n '2,19p' "$0"; exit 2; }
+  [ $# -lt 3 ] && { sed -n '2,16p' "$0"; exit 2; }
   exec env -u DISPLAY -u WAYLAND_DISPLAY -u QT_IM_MODULE -u GTK_IM_MODULE -u XMODIFIERS -u SDL_IM_MODULE \
     QT_NO_XDG_DESKTOP_PORTAL=1 SBQ_IN_KWIN_SESSION=1 dbus-run-session -- "$0" "$@"
 fi

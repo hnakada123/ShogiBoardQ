@@ -19,7 +19,7 @@
 | `rpc.py` | 自動化 API（JSON-RPC）を1回呼ぶ。`rpc.py <名前> <メソッド> [JSON]` |
 | `keycombo.py` | X のキーの組み合わせを押す（例: `Alt_L s`）。単独のキー・クリック・ウィンドウ一覧は `../x11ctl.py` |
 | `humanplay.py` | 対局中に人間（先手）側の手を Hayanagi に考えさせ、盤のクリックで指す |
-| `kwin_capture.sh` | ウィンドウ枠（KDE の装飾と影）付きで撮るための入れ子の KWin を、普段の環境から隔離して実行する |
+| `kwin_capture.sh` | ウィンドウ枠（KDE の装飾）付きで撮るための入れ子の KWin を、普段の環境から隔離して実行する |
 
 ## 典型的な使い方
 
@@ -36,7 +36,7 @@ python3 scripts/docs/rpc.py ja99 app.quit
 SBQ_FRESH=1 scripts/docs/launch.sh zh97 zh_CN 97 1300 980
 
 # ウィンドウ枠付き（スクリプトに SBQ_SOCK が渡る）
-scripts/docs/kwin_capture.sh k1 en bash -c 'python3 scripts/docs/rpc.py "$SBQ_SOCK" app.state; spectacle -b -n -a -o /abs/out.png'
+scripts/docs/kwin_capture.sh k1 en bash -c 'python3 scripts/docs/rpc.py "$SBQ_SOCK" app.state; spectacle -b -n -a -S -o /abs/out.png'
 ```
 
 自動化 API の主なメソッド: `action.trigger`、`dialog.list`/`close`/`clickButton`、`widget.text`/`click`/`setValue`/`showDock`、
