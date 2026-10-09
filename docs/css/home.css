@@ -626,6 +626,7 @@
     font-size: 0.95rem;
 }
 
+.feature-intro a,
 .dl-note a,
 .home .license-link a {
     text-decoration: underline;
