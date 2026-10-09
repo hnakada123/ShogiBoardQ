@@ -9,6 +9,8 @@
 #include <QListWidget>
 #include <QComboBox>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QSettings>
 #include <QSlider>
 #include <QSpinBox>
@@ -40,6 +42,7 @@
 #include "pvboarddialog.h"
 #include "sfencollectiondialog.h"
 #include "sfenutils.h"
+#include "shogiview.h"
 #include "startgamedialog.h"
 #include "tsumecollectiondialog.h"
 #include "tsumeplaydialog.h"
@@ -360,6 +363,43 @@ private slots:
         QTest::qWait(100);
         QCOMPARE(dialog.height(), 700);
         dialog.reject();
+    }
+
+    void boardZoomResizesWindow_data()
+    {
+        QTest::addColumn<QString>("name");
+        QTest::newRow("pv") << QStringLiteral("pv");
+        QTest::newRow("sfen") << QStringLiteral("sfen");
+    }
+
+    /// 盤の拡大・縮小でウィンドウも盤に合わせ、スクロール領域の中で盤が切れない
+    void boardZoomResizesWindow()
+    {
+        QFETCH(QString, name);
+        auto dialog = create(name);
+        dialog->show();
+        QVERIFY(QTest::qWaitForWindowExposed(dialog.get()));
+        QTest::qWait(50);
+        QAbstractButton* reduce = nullptr;
+        QAbstractButton* enlarge = nullptr;
+        for (auto* button : dialog->findChildren<QAbstractButton*>()) {
+            if (button->toolTip() == QStringLiteral("将棋盤を縮小する")) reduce = button;
+            if (button->toolTip() == QStringLiteral("将棋盤を拡大する")) enlarge = button;
+        }
+        QVERIFY(reduce && enlarge);
+        auto* scroll = dialog->findChild<QScrollArea*>(QStringLiteral("boardScrollArea"));
+        auto* view = dialog->findChild<ShogiView*>();
+        QVERIFY(scroll && view);
+
+        // offscreen の小さい画面（800x800）でも盤全体が入る大きさまで縮めてから拡大する
+        for (int i = 0; i < 40; ++i) reduce->click();
+        const QSize reduced = dialog->size();
+        for (int i = 0; i < 10; ++i) enlarge->click();
+        QCOMPARE(view->size(), view->sizeHint());
+        QVERIFY(dialog->width() > reduced.width() && dialog->height() > reduced.height());
+        // スクロールバーはイベント処理の後に消える
+        QTRY_VERIFY(!scroll->horizontalScrollBar()->isVisible() && !scroll->verticalScrollBar()->isVisible());
+        dialog->reject();
     }
 
     /// 表示時に文字サイズ操作を足す QInputDialog でも決定ボタンが隠れない（以前の版で保存した小さいサイズを含む）

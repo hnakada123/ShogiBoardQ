@@ -320,8 +320,7 @@ void PvBoardDialog::onEnlargeBoard()
 {
     if (m_shogiView) {
         m_shogiView->enlargeBoard(false);
-        hideClockLabels();
-        adjustSize();
+        adjustWindowToContents();
     }
 }
 
@@ -329,8 +328,7 @@ void PvBoardDialog::onReduceBoard()
 {
     if (m_shogiView) {
         m_shogiView->reduceBoard(false);
-        hideClockLabels();
-        adjustSize();
+        adjustWindowToContents();
     }
 }
 
@@ -439,11 +437,15 @@ void PvBoardDialog::adjustWindowToContents()
     if (m_shogiView) {
         m_shogiView->updateBoardSize();
         hideClockLabels();
+        // スクロール領域の中の盤は自動では大きさが変わらないため、マスの大きさに合わせる
+        m_shogiView->resize(m_shogiView->sizeHint());
     }
     // 通常表示は盤全体が入る寸法を優先し、小さい画面ではスクロールで補う。
+    // 拡大・縮小の直後はスクロールバーが出ていることがあるため、ビューポートではなく
+    // スクロール領域（枠なし）の大きさから盤以外の部分の寸法を求める。
     layout()->activate();
     auto* scroll = findChild<QScrollArea*>(QStringLiteral("boardScrollArea"));
-    const QSize controls = size() - scroll->viewport()->size();
+    const QSize controls = size() - scroll->size();
     const QSize available = screen()->availableGeometry().size() - QSize(40, 80);
     resize((m_shogiView->size() + controls).boundedTo(available));
 }
