@@ -59,6 +59,7 @@ int  validateAndMoveCallCount = 0;
 bool sennichiteDetected = false;
 int  maxMovesJishogiCount = 0;
 int  requestHumanReplyCount = 0;
+int  requestMatchMoveCount = 0;
 
 void reset()
 {
@@ -67,6 +68,7 @@ void reset()
     sennichiteDetected = false;
     maxMovesJishogiCount = 0;
     requestHumanReplyCount = 0;
+    requestMatchMoveCount = 0;
 }
 
 } // namespace StrategyTracker
@@ -302,8 +304,8 @@ ShogiClock::ShogiClock(QObject* parent) : QObject(parent) {}
 void ShogiClock::setLoseOnTimeout(bool) {}
 void ShogiClock::setPlayerTimes(int, int, int, int, int, int, bool) {}
 void ShogiClock::setCurrentPlayer(int p) { m_currentPlayer = p; }
-void ShogiClock::startClock() {}
-void ShogiClock::stopClock() {}
+void ShogiClock::startClock() { m_clockRunning = true; }
+void ShogiClock::stopClock() { m_clockRunning = false; }
 void ShogiClock::updateClock() {}
 void ShogiClock::applyByoyomiAndResetConsideration1() {}
 void ShogiClock::applyByoyomiAndResetConsideration2() {}
@@ -673,11 +675,22 @@ QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::In
 #include "moc_branchtreemanager.cpp"
 #include "moc_enginevsenginestrategy.cpp"
 
-bool Usi::startAndInitializeEngineAsync(const QString&, const QString&) { return true; }
+bool Usi::startAndInitializeEngineAsync(const QString&, const QString&)
+{
+    m_initializing = true;
+    return true;
+}
 void Usi::onProcessStarted() {}
-void Usi::onEngineInitialized(bool) {}
+void Usi::onEngineInitialized(bool success)
+{
+    m_initializing = false;
+    if (success) emit engineInitialized();
+}
 void Usi::onStartTimeout() {}
-void Usi::requestMatchMove(const QString&, const QString&, const UsiTimingParams&) {}
+void Usi::requestMatchMove(const QString&, const QString&, const UsiTimingParams&)
+{
+    ++StrategyTracker::requestMatchMoveCount;
+}
 void Usi::requestHumanReply(QString&, const QString&, const QPoint&, const QPoint&, const UsiTimingParams&, QStringList&)
 {
     ++StrategyTracker::requestHumanReplyCount;

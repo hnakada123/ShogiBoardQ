@@ -342,7 +342,9 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 
     // --- 3) 時計へ反映 ---
     c.clock->setLoseOnTimeout(isLoseOnTimeout);
-    c.clock->setPlayerTimes(remainingTime1, remainingTime2,
+    const bool useIncrement = byoyomi1 <= 0 && byoyomi2 <= 0;
+    c.clock->setPlayerTimes(remainingTime1 + (useIncrement ? qMax(0, binc) : 0),
+                            remainingTime2 + (useIncrement ? qMax(0, winc) : 0),
                             byoyomi1, byoyomi2,
                             binc, winc,
                             hasTimeLimit);

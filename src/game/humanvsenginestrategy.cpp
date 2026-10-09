@@ -336,16 +336,20 @@ void HumanVsEngineStrategy::onEngineInitialized()
 void HumanVsEngineStrategy::startInitialMoveIfNeeded()
 {
     if (m_ctx.gameOverState().isOver) return;
+    if (m_waitingForMove) return;
+    if (!m_ctx.gc()) return;
+
+    const auto sideToMove = m_ctx.gc()->currentPlayer();
+    const auto engineSide = m_engineIsP1 ? ShogiGameController::Player1
+                                        : ShogiGameController::Player2;
+    // 人間の初手は、相手エンジンの初期化中も計時を続ける。
+    if (sideToMove != engineSide) return;
+
     m_initialMoveRequested = true;
     if (m_ctx.primaryEngine() && m_ctx.primaryEngine()->isInitializing()) {
         if (m_ctx.clock()) m_ctx.clock()->stopClock();
         return;
     }
-    if (m_waitingForMove) return;
-    if (!m_ctx.gc()) return;
-
-    const auto sideToMove = m_ctx.gc()->currentPlayer();
-
     if (m_engineIsP1 && sideToMove == ShogiGameController::Player1) {
         startInitialEngineMoveFor(static_cast<int>(MatchCoordinator::P1));
     } else if (!m_engineIsP1 && sideToMove == ShogiGameController::Player2) {

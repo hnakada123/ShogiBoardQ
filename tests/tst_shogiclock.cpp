@@ -2,12 +2,57 @@
 #include <QSignalSpy>
 
 #include "shogiclock.h"
+#include "timecontrolutil.h"
+#include "gamestartcoordinator.h"
 
 class TestShogiClock : public QObject
 {
     Q_OBJECT
 
 private slots:
+    void initialIncrement_data()
+    {
+        QTest::addColumn<qint64>("baseMs");
+        QTest::newRow("zero-main") << qint64(0);
+        QTest::newRow("five-minutes") << qint64(300000);
+    }
+    void initialIncrement()
+    {
+        QFETCH(qint64, baseMs);
+        ShogiClock clock;
+        GameStartCoordinator::TimeControl tc;
+        tc.enabled = true;
+        tc.p1.baseMs = tc.p2.baseMs = baseMs;
+        tc.p1.incrementMs = 10000;
+        tc.p2.incrementMs = 7000;
+        TimeControlUtil::applyToClock(&clock, tc, QStringLiteral("startpos"), {});
+        QCOMPARE(clock.getPlayer1TimeIntMs(), baseMs + 10000);
+        QCOMPARE(clock.getPlayer2TimeIntMs(), baseMs + 7000);
+        // 再適用・再開で初手分を二重加算しない。
+        TimeControlUtil::applyToClock(&clock, tc, QStringLiteral("startpos"), {});
+        auto state = clock.pauseAndSnapshot();
+        state.player1TimeMs -= 3000;
+        state.player1ConsiderationTimeMs = 3000;
+        clock.restoreSnapshot(state);
+        clock.applyByoyomiAndResetConsideration1();
+        QCOMPARE(clock.getPlayer1TimeIntMs(), baseMs + 17000);
+        QCOMPARE(clock.getPlayer1TotalConsiderationTime(), QStringLiteral("00:00:03"));
+        clock.setCurrentPlayer(2);
+        clock.applyByoyomiAndResetConsideration2();
+        clock.setCurrentPlayer(1);
+        state = clock.pauseAndSnapshot();
+        state.player1TimeMs -= 5000;
+        state.player1ConsiderationTimeMs = 5000;
+        clock.restoreSnapshot(state);
+        clock.applyByoyomiAndResetConsideration1();
+        QCOMPARE(clock.getPlayer1TimeIntMs(), baseMs + 22000);
+        QCOMPARE(clock.getPlayer1TotalConsiderationTime(), QStringLiteral("00:00:08"));
+        clock.startClock();
+        QTest::qWait(60);
+        QVERIFY(!clock.isGameOver());
+        clock.stopClock();
+    }
+
     void unlimitedTimeMatchesRecord_data()
     {
         QTest::addColumn<bool>("switchBeforeCommit");

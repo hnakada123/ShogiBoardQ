@@ -28,6 +28,7 @@ extern int  validateAndMoveCallCount;
 extern bool sennichiteDetected;
 extern int  maxMovesJishogiCount;
 extern int  requestHumanReplyCount;
+extern int  requestMatchMoveCount;
 void reset();
 }
 
@@ -151,6 +152,8 @@ private slots:
     void hve_start_createsUsiEngine();
     void hve_start_callsRenderAndUpdateTurnHooks();
     void hve_armAndDisarmTimer();
+    void hve_initializationClock_data();
+    void hve_initializationClock();
     void hve_startInitialMove_engineIsP1();
     void hve_startInitialMove_noMoveWhenHumanTurn();
     void hve_onHumanMove_showsHighlightAndAppendsKifu();
@@ -424,6 +427,43 @@ void Tst_GameStrategy::hve_armAndDisarmTimer()
     hve.armTurnTimerIfNeeded();
     hve.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
     QVERIFY(true);
+}
+
+void Tst_GameStrategy::hve_initializationClock_data()
+{
+    QTest::addColumn<bool>("engineIsP1");
+    QTest::addColumn<bool>("humanToMove");
+    QTest::newRow("human-black") << false << true;
+    QTest::newRow("human-white") << true << true;
+    QTest::newRow("engine-black") << true << false;
+    QTest::newRow("engine-white") << false << false;
+}
+
+void Tst_GameStrategy::hve_initializationClock()
+{
+    QFETCH(bool, engineIsP1);
+    QFETCH(bool, humanToMove);
+    StrategyTestHarness h;
+    h.mc->setPlayMode(engineIsP1 ? PlayMode::EvenEngineVsHuman : PlayMode::EvenHumanVsEngine);
+    const bool blackToMove = engineIsP1 != humanToMove;
+    h.gc.setCurrentPlayer(blackToMove ? ShogiGameController::Player1 : ShogiGameController::Player2);
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), engineIsP1,
+                             QStringLiteral("/dummy/engine"), QStringLiteral("TestEngine"));
+    hve.start();
+    auto* engine = h.mc->strategyCtx().primaryEngine();
+    QVERIFY(engine);
+    QVERIFY(engine->startAndInitializeEngineAsync(QStringLiteral("/dummy/engine"), QStringLiteral("TestEngine")));
+    QVERIFY(engine->isInitializing());
+    h.clock.startClock();
+    hve.startInitialMoveIfNeeded();
+    QCOMPARE(h.clock.isRunning(), humanToMove);
+    QCOMPARE(StrategyTracker::requestMatchMoveCount, 0);
+
+    QVERIFY(QMetaObject::invokeMethod(engine, "onEngineInitialized", Qt::DirectConnection, Q_ARG(bool, true)));
+    QVERIFY(h.clock.isRunning());
+    QCOMPARE(StrategyTracker::requestMatchMoveCount, humanToMove ? 0 : 1);
+    hve.startInitialMoveIfNeeded();
+    QCOMPARE(StrategyTracker::requestMatchMoveCount, humanToMove ? 0 : 1);
 }
 
 void Tst_GameStrategy::hve_startInitialMove_engineIsP1()
