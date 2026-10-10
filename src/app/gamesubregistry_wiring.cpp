@@ -145,6 +145,11 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     in.showGameOverDialog = [adapter](const QString& title, const QString& message) {
         adapter->showGameOverMessageBox(title, message);
     };
+    in.usesHandicapNames = [this]() -> bool {
+        const auto* gameInfo = m_mw.m_playerInfoWiring ? m_mw.m_playerInfoWiring->gameInfoController() : nullptr;
+        return KifuExportMetadataBuilder::usesHandicapNames(
+            gameInfo ? gameInfo->gameInfo() : QList<KifGameInfoItem>(), m_mw.m_state.startSfenStr);
+    };
     in.remainingMsFor = [this](MatchCoordinator::Player player) -> qint64 {
         return queryRemainingMsFor(player);
     };

@@ -36,6 +36,8 @@ struct MatchCoordinatorHooks {
         std::function<void(const QString& e1, const QString& e2)> setEngineNames;
         std::function<void()> renderBoardFromGc;
         std::function<void(const QString& title, const QString& message)> showGameOverDialog;
+        /// 対局者を下手・上手と呼ぶか（棋譜の書き出しと同じく、対局情報の見出しに合わせる）
+        std::function<bool()> usesHandicapNames;
         std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
     };
 

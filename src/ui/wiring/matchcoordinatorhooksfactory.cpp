@@ -18,6 +18,7 @@ MatchCoordinator::Hooks MatchCoordinatorHooksFactory::buildHooks(const HookDeps&
     hooks.ui.setEngineNames = deps.setEngineNames;
     hooks.ui.renderBoardFromGc = deps.renderBoard;
     hooks.ui.showGameOverDialog = deps.showGameOverDialog;
+    hooks.ui.usesHandicapNames = deps.usesHandicapNames;
     hooks.ui.showMoveHighlights = deps.showMoveHighlights;
 
     // Time hooks

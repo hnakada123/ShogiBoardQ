@@ -250,6 +250,7 @@ void MatchCoordinator::ensureGameEndHandler()
     hooks.turnEpochFor      = [this](Player p) -> qint64 { return turnEpochFor(p); };
     hooks.appendKifuLine    = m_hooks.game.appendKifuLine;
     hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
+    hooks.usesHandicapNames = m_hooks.ui.usesHandicapNames;
     hooks.autoSaveKifuIfEnabled = [this]() {
         if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.game.autoSaveKifu) {
             qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;

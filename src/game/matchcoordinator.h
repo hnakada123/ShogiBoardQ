@@ -125,6 +125,8 @@ public:
 
     /// 入玉宣言を処理する
     void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw);
+    /// 終局の知らせで対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
+    bool usesHandicapNames() const { return m_hooks.ui.usesHandicapNames && m_hooks.ui.usesHandicapNames(); }
 
     /// 対局中の指し手リストを取得する（CSA出力等で使用）
     const QList<ShogiMove>& gameMoves() const { return gameMovesRef(); }

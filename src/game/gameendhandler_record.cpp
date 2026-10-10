@@ -122,11 +122,20 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
 
 // --- 結果表示 ---
 
+bool GameEndHandler::usesHandicapNames() const
+{
+    return m_hooks.usesHandicapNames && m_hooks.usesHandicapNames();
+}
+
 QString GameEndHandler::resultMessage(const GameEndInfo& info) const
 {
+    // 駒落ちは棋譜の局面図・終局行と同じく下手・上手と呼ぶ
+    const bool handicapNames = usesHandicapNames();
+    const QString blackJP = handicapNames ? tr("下手") : tr("先手");
+    const QString whiteJP = handicapNames ? tr("上手") : tr("後手");
     const bool loserIsP1 = (info.loser == Player::P1);
-    const QString loserJP = loserIsP1 ? tr("先手") : tr("後手");
-    const QString winnerJP = loserIsP1 ? tr("後手") : tr("先手");
+    const QString loserJP = loserIsP1 ? blackJP : whiteJP;
+    const QString winnerJP = loserIsP1 ? whiteJP : blackJP;
 
     QString msg;
     switch (info.cause) {

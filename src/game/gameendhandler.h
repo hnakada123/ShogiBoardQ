@@ -84,6 +84,10 @@ public:
         /// @note 配線元: MC→m_hooks.showGameOverDialog (パススルー)
         std::function<void(const QString&, const QString&)> showGameOverDialog;
 
+        /// @brief 結果表示で対局者を下手・上手と呼ぶか（未設定なら先手・後手）
+        /// @note 配線元: MC→m_hooks.ui.usesHandicapNames (パススルー)
+        std::function<bool()> usesHandicapNames;
+
         /// @brief 棋譜自動保存（autoSaveKifu が有効な場合のみ実行）
         /// @note 配線元: MC lambda → KifuFileController::autoSaveKifuToFile
         std::function<void()> autoSaveKifuIfEnabled;
@@ -126,6 +130,7 @@ signals:
 private:
     void displayResultsAndUpdateGui(const GameEndInfo& info);
     QString resultMessage(const GameEndInfo& info) const;
+    bool usesHandicapNames() const;
 
     /// USI gameover コマンド送信ヘルパー
     void sendRawToEngineHelper(Usi* which, const QString& cmd);

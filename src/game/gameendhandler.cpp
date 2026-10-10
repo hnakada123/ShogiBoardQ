@@ -137,7 +137,7 @@ void GameEndHandler::handleEngineWin(int idx)
     // エンジンの入玉宣言（bestmove win）も人間の宣言と同じく、盤面から条件と点数を判定する。
     // 条件を満たさなければ宣言したエンジンの負け、24点法の24〜30点は持将棋。
     const NyugyokuJudgement::Result result =
-        NyugyokuJudgement::judgeEngineDeclaration(*board, declarer == Player::P1);
+        NyugyokuJudgement::judgeEngineDeclaration(*board, declarer == Player::P1, usesHandicapNames());
     handleNyugyokuDeclaration(declarer, result.success, result.isDraw);
     // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
     if (m_refs.gameOver->isOver && m_hooks.showGameOverDialog) {

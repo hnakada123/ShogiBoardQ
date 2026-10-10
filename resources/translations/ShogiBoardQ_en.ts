@@ -2464,13 +2464,13 @@ Cause: %2</translation>
     </message>
     <message>
         <location filename="../../src/network/csamoveprogresshandler.cpp" line="139"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="372"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="378"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>Failed to apply move: %1</translation>
     </message>
     <message>
         <location filename="../../src/network/csamoveprogresshandler.cpp" line="140"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="373"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="379"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>Cannot apply server move to board: %1</translation>
     </message>
@@ -2510,37 +2510,37 @@ Cause: %2</translation>
         <translation>Cannot convert move confirmation from server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="296"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="302"/>
         <source>エンジンが思考中...</source>
         <translation>Engine is thinking...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="310"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="316"/>
         <source>エンジンが投了しました</source>
         <translation>Engine resigned</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="317"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="323"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>Engine did not return a valid move</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="324"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="330"/>
         <source>盤面が取得できませんでした</source>
         <translation>Could not get board state</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="341"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="347"/>
         <source>駒打ちの駒種変換に失敗しました</source>
         <translation>Failed to convert drop piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="350"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="356"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>Failed to convert move piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="359"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="365"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA format move: %1</translation>
     </message>
@@ -3875,60 +3875,68 @@ Each screen keeps its current text size.</translation>
 <context>
     <name>GameEndHandler</name>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="128"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="128"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
+        <source>下手</source>
+        <translation>Handicap receiver</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
+        <source>上手</source>
+        <translation>Handicap giver</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="143"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="136"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="145"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="138"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="147"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="140"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="149"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="142"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="151"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="144"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="153"/>
         <source>千日手が成立しました。</source>
         <translation>Sennichite (draw by repetition).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="146"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="155"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="149"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="158"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler.cpp" line="132"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="157"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="166"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
@@ -3951,7 +3959,7 @@ Each screen keeps its current text size.</translation>
         <translation>Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="284"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="295"/>
         <source>破棄して続行</source>
         <translation>Discard and Continue</translation>
     </message>
@@ -3962,92 +3970,92 @@ Each screen keeps its current text size.</translation>
     </message>
     <message>
         <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="66"/>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="70"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="71"/>
         <source>未設定</source>
         <translation>Not set</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="68"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="69"/>
         <source>未設定（名前を入力できます）</source>
         <translation>Not set (enter a player name)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="70"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="71"/>
         <source>未設定（対局設定から反映）</source>
         <translation>Not set (from game settings)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="72"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="73"/>
         <source>任意入力</source>
         <translation>Optional</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="113"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="114"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="115"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="116"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="117"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="118"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>Undo (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="119"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="120"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>Redo (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="122"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="123"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>Cut (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="124"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="125"/>
         <source>コピー (Ctrl+C)</source>
         <translation>Copy (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="126"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="127"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="129"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="130"/>
         <source>行を追加</source>
         <translation>Add row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="130"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="131"/>
         <source>新しい行を追加する</source>
         <translation>Add a new row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="131"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="132"/>
         <source>行を削除</source>
         <translation>Delete row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="132"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="133"/>
         <source>選択行を削除する（元に戻す操作で復元できます）</source>
         <translation>Delete the selected row (can be restored with Undo)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="137"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="138"/>
         <source>編集した対局情報を棋譜に反映する (Ctrl+Enter)</source>
         <translation>Apply edited game info to the record (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="183"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="184"/>
         <source>未反映の変更があります</source>
         <translation>Unapplied changes</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="183"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="184"/>
         <source>内容をダブルクリックして編集</source>
         <translation>Double-click a value to edit</translation>
     </message>
@@ -4056,7 +4064,7 @@ Each screen keeps its current text size.</translation>
         <translation type="vanished">Editing</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="135"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="136"/>
         <source>対局情報更新</source>
         <translation>Update Game Info</translation>
     </message>
@@ -4073,12 +4081,12 @@ Each screen keeps its current text size.</translation>
         <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="281"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="292"/>
         <source>未保存の対局情報</source>
         <translation>Unsaved Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="282"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="293"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
         <translation>The game info has been edited but not saved yet.
@@ -4116,13 +4124,13 @@ Current counts: Black %1, White %2
 Use Edit → Start Position Editing to correct the position.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="277"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="283"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="285"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="291"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="283"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="291"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
@@ -5822,110 +5830,110 @@ Do you want to save them?</translation>
 <context>
     <name>KifuExportClipboard</name>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="190"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="189"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>Failed to copy to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="199"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="207"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="198"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="206"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>No KIF format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="204"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="203"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied KIF format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="216"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="224"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="215"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="223"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>No KI2 format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="221"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="220"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied KI2 format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="238"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="237"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>No CSA format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="242"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="241"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
         <translation>Copied the record to the clipboard in CSA format (main line only; CSA does not support variations)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="243"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="242"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied CSA format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="256"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="292"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="255"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="291"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>No USI format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="260"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="259"/>
         <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
         <translation>Copied the record to the clipboard in USI format (main line only; USI does not support variations)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="261"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="260"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USI format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="296"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="295"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USI format game record (up to current move) to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="309"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="308"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>No JKF format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="313"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="312"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied JKF format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="326"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="325"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>No USEN format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="330"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="329"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USEN format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="339"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="338"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>No SFEN format position data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="344"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="343"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>Copied SFEN format position to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="353"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="352"/>
         <source>BOD形式の局面データがありません</source>
         <translation>No BOD format position data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="359"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="358"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>Failed to parse SFEN format</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="364"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="363"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>Copied BOD format position to clipboard</translation>
     </message>
@@ -5933,50 +5941,50 @@ Do you want to save them?</translation>
 <context>
     <name>KifuExportController</name>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="147"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="146"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="247"/>
         <location filename="../../src/kifu/kifuexportcontroller.cpp" line="248"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="249"/>
         <source>棋譜データがありません</source>
         <translation>No game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="185"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="184"/>
         <source>棋譜を保存しました: %1</source>
         <translation>Game record saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="260"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="259"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>Game record overwritten: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="177"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="197"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="176"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="196"/>
         <source>KIF Save Error</source>
         <translation>KIF Save Error</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="300"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="299"/>
         <source>自動保存先ディレクトリが指定されていません</source>
         <translation>No autosave directory is specified</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="305"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="304"/>
         <source>棋譜データがありません（自動保存をスキップ）</source>
         <translation>No game record data (autosave skipped)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="312"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="311"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation>Autosave skipped because the game record is empty</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="332"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="331"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="338"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="337"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
@@ -6528,7 +6536,7 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="232"/>
+        <location filename="../../src/common/kifupresentation.cpp" line="238"/>
         <source>%1+%2秒加算</source>
         <translation>%1 + %2 s increment</translation>
     </message>
@@ -8346,25 +8354,23 @@ Please restart the application to apply the changes.</translation>
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="87"/>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="96"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="87"/>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="92"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="100"/>
         <source>入玉宣言確認</source>
         <translation>Confirm Entering King Declaration</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="101"/>
         <source>%1が入玉宣言を行います。
 
@@ -8376,7 +8382,7 @@ If the declaration conditions are not met, the declaring side loses.
 Are you sure you want to declare?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="96"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="97"/>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="105"/>
         <source>宣言する</source>
         <translation>Declare</translation>
@@ -8401,17 +8407,17 @@ Are you sure you want to declare?</translation>
 <context>
     <name>NyugyokuJudgement</name>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="33"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="40"/>
         <source>○</source>
         <translation>○</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="34"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="41"/>
         <source>×</source>
         <translation>×</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="35"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="42"/>
         <source>【宣言条件の判定】
 ① 玉が敵陣にいる: %1
 ② 敵陣に10枚以上: %2 (%3枚)
@@ -8426,7 +8432,7 @@ Are you sure you want to declare?</translation>
 </translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="47"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="54"/>
         <source>
 【24点法】
 </source>
@@ -8435,45 +8441,45 @@ Are you sure you want to declare?</translation>
 </translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="50"/>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="67"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="57"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="74"/>
         <source>宣言勝ち</source>
         <translation>Declaration Win</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="51"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="58"/>
         <source>31点以上: 勝ち</source>
         <translation>31+ points: Win</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="55"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="62"/>
         <source>持将棋（引き分け）</source>
         <translation>Jishogi (Draw)</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="56"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="63"/>
         <source>24〜30点: 引き分け</source>
         <translation>24-30 points: Draw</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="58"/>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="70"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="65"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="77"/>
         <source>宣言失敗（負け）</source>
         <translation>Declaration Failed (Loss)</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="59"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="66"/>
         <source>24点未満: 宣言失敗</source>
         <translation>Under 24 points: Declaration Failed</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="59"/>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="71"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="66"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="78"/>
         <source>条件未達: 宣言失敗</source>
         <translation>Conditions Not Met: Declaration Failed</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="63"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="70"/>
         <source>
 【27点法】
 </source>
@@ -8482,24 +8488,24 @@ Are you sure you want to declare?</translation>
 </translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="64"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="71"/>
         <source>必要点数: %1点以上
 </source>
         <translation>Required Points: %1 or more
 </translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="68"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="75"/>
         <source>条件達成: 勝ち</source>
         <translation>Conditions Met: Win</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="71"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="78"/>
         <source>点数不足: 宣言失敗</source>
         <translation>Insufficient Points: Declaration Failed</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="75"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="82"/>
         <source>%1の入玉宣言
 
 %2
@@ -8512,22 +8518,32 @@ Are you sure you want to declare?</translation>
 [Result] %3</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="76"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="22"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="76"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="21"/>
+        <source>下手</source>
+        <translation>Handicap receiver</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="21"/>
+        <source>上手</source>
+        <translation>Handicap giver</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="22"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="85"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="93"/>
         <source>持将棋ルールが「なし」のため、27点法で判定しました。</source>
         <translation>The jishogi rule is set to &quot;None&quot;, so the declaration was judged under the 27-Point Rule.</translation>
     </message>
     <message>
-        <location filename="../../src/game/nyugyokujudgement.cpp" line="93"/>
+        <location filename="../../src/game/nyugyokujudgement.cpp" line="101"/>
         <source>入玉宣言結果</source>
         <translation>Entering King Declaration Result</translation>
     </message>
@@ -8674,12 +8690,12 @@ Are you sure you want to declare?</translation>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="308"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="309"/>
         <source>無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="309"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="310"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>Game: ☗%1 ☖%2 (started %3, time %4)</translation>
     </message>
@@ -8889,37 +8905,37 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="65"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="64"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="68"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="84"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="88"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="66"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="70"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="87"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="91"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="65"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="65"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="73"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="81"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="89"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="67"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="75"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="84"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="92"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="69"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="72"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="80"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="85"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="71"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="74"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="83"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="88"/>
         <source>Engine</source>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="76"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="79"/>
         <source>Engine1</source>
         <translation>Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="77"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="80"/>
         <source>Engine2</source>
         <translation>Engine2</translation>
     </message>
@@ -10617,8 +10633,8 @@ The engine would treat its available time as 0 seconds and move almost without t
 <context>
     <name>TimeDisplayPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="49"/>
-        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="51"/>
+        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="74"/>
+        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="76"/>
         <source>消費 %1</source>
         <translation>Used %1</translation>
     </message>

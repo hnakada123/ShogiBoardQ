@@ -38,6 +38,7 @@ public:
         std::function<void(const QPoint&, const QPoint&)> showMoveHighlights;  ///< → MC::Hooks::showMoveHighlights
         std::function<void(const QString&, const QString&)> appendKifuLine;    ///< → MC::Hooks::appendKifuLine
         std::function<void(const QString&, const QString&)> showGameOverDialog; ///< → MC::Hooks::showGameOverDialog
+        std::function<bool()> usesHandicapNames;                              ///< → MC::Hooks::usesHandicapNames
         std::function<qint64(MatchCoordinator::Player)> remainingMsFor;        ///< → MC::Hooks::remainingMsFor
         std::function<qint64(MatchCoordinator::Player)> incrementMsFor;        ///< → MC::Hooks::incrementMsFor
         std::function<qint64()> byoyomiMs;                                     ///< → MC::Hooks::byoyomiMs

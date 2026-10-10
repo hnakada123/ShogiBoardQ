@@ -147,7 +147,7 @@
 
 分は60を超えても時間へ繰り上げない（2時間は `120:00`）。CSA形式では V3.0 の `$TIME:持ち時間秒+秒読み秒+加算秒` で書き、先後で時間が違う対局は `$TIME+:` と `$TIME-:` に分ける（例：`$TIME+:60+2+0` と `$TIME-:120+3+0`）。持ち時間だけの対局は `$TIME:600+0+0` と書く（`$TIME_LIMIT:10:00` は CSA V2 の「時:分」として10時間と読まれるため使わない）。時間無制限の対局は `$TIME` を書かない。
 
-駒落ちの対局では、柿木形式の KIF と同じく、対局情報の対局者を「先手」「後手」ではなく「下手」「上手」で記録する。KIF・KI2 の局面図の持駒・手番（`上手の持駒：`・`下手の持駒：`・`上手番`）と終局行（`まで30手で上手の勝ち`）も下手・上手で書く。読み込んだ棋譜の対局情報が「先手」「後手」のままなら、局面図と終局行もそれに合わせ、1つの棋譜で呼び方を混ぜない。読み込みは、どちらの呼び方の局面図も読む。CSA形式では下手を `N+`、上手を `N-` に書く。
+駒落ちの対局では、柿木形式の KIF と同じく、対局情報の対局者を「先手」「後手」ではなく「下手」「上手」で記録する。KIF・KI2 の局面図の持駒・手番（`上手の持駒：`・`下手の持駒：`・`上手番`）と終局行（`まで30手で上手の勝ち`）も下手・上手で書く。読み込んだ棋譜の対局情報が「先手」「後手」のままなら、局面図と終局行もそれに合わせ、1つの棋譜で呼び方を混ぜない。読み込みは、どちらの呼び方の局面図も読む。CSA形式では下手を `N+`、上手を `N-` に書く。対局終了のダイアログ（`上手の時間切れ。下手の勝ちです。`）と入玉宣言の確認・結果のダイアログも、同じ判定（対局情報の見出し）で下手・上手と呼ぶ。
 
 ## 計時の開始・中断・終了
 
@@ -198,4 +198,5 @@ CSA通信対局でエンジンが指すときも同じ形で送る。CSA の残�
 - [対局情報の持ち時間](../../src/kifu/kifuexportmetadata.cpp)：先後別の持ち時間の書式、駒落ちの対局者の見出し（下手・上手）。[対局情報の設定](../../src/ui/wiring/playerinfowiring.cpp)・[記録用の時間設定](../../src/ui/controllers/timecontrolcontroller.cpp)。
 - [CSA形式の持ち時間](../../src/kifu/formats/csaformatter.cpp)・[CSA書き出し](../../src/kifu/formats/csaexporter.cpp)：`$TIME`・`$TIME+`・`$TIME-` への変換。
 - [KIF書き出し](../../src/kifu/formats/kifexporter.cpp)・[KI2書き出し](../../src/kifu/formats/ki2exporter.cpp)・[局面図](../../src/kifu/formats/bodtextgenerator.cpp)：駒落ちの局面図と終局行の下手・上手。対局で時間切れになったときの終局語「時間切れ」も終局として扱い、終局行に勝者を書く（USI の `timeout`、USEN の `t`、JKF の `TIME_UP` も同じ）。[局面図の読み込み](../../src/kifu/formats/kiflexer_bod.cpp)。
-- [時計テスト](../../tests/tst_shogiclock.cpp)・[対局戦略テスト](../../tests/tst_gamestrategy.cpp)・[USI対局テスト](../../tests/tst_usimatchhandler.cpp)・[対局ダイアログテスト](../../tests/tst_startgamedialog.cpp)・[時計表示テスト](../../tests/tst_turn_state_sync.cpp)・[待ったのテスト](../../tests/tst_undo_flow.cpp)・[棋譜の持ち時間と駒落ちの見出しのテスト](../../tests/tst_gamerecordmodel.cpp)・[対局情報のテスト](../../tests/tst_game_info_pane.cpp)・[連続対局と駒落ちの対局情報のGUIテスト](../../tests/gui/tst_start_game_flow.cpp)。
+- [終局の知らせ](../../src/game/gameendhandler_record.cpp)・[入玉宣言の判定](../../src/game/nyugyokujudgement.cpp)：ダイアログの対局者の呼び名。下手・上手と呼ぶかは `MatchCoordinatorHooks::UI::usesHandicapNames`（[配線](../../src/app/gamesubregistry_wiring.cpp)が対局情報の表から `KifuExportMetadataBuilder::usesHandicapNames` で決める）で受け取る。
+- [時計テスト](../../tests/tst_shogiclock.cpp)・[対局戦略テスト](../../tests/tst_gamestrategy.cpp)・[USI対局テスト](../../tests/tst_usimatchhandler.cpp)・[対局ダイアログテスト](../../tests/tst_startgamedialog.cpp)・[時計表示テスト](../../tests/tst_turn_state_sync.cpp)・[待ったのテスト](../../tests/tst_undo_flow.cpp)・[棋譜の持ち時間と駒落ちの見出しのテスト](../../tests/tst_gamerecordmodel.cpp)・[対局情報のテスト](../../tests/tst_game_info_pane.cpp)・[連続対局と駒落ちの対局情報のGUIテスト](../../tests/gui/tst_start_game_flow.cpp)・[終局処理のテスト](../../tests/tst_game_end_handler.cpp)・[入玉宣言の判定のテスト](../../tests/tst_nyugyoku_judgement.cpp)。

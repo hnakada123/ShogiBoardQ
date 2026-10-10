@@ -26,6 +26,7 @@ QString lastAppendedElapsed;
 QString lastDialogTitle;
 QString lastDialogMsg;
 QStringList events;
+bool handicapNames = false;
 
 void reset()
 {
@@ -38,12 +39,14 @@ void reset()
     lastDialogTitle.clear();
     lastDialogMsg.clear();
     events.clear();
+    handicapNames = false;
 }
 
 } // namespace EndTracker
 
 extern ShogiBoard* g_stubGameBoard;
 extern NyugyokuJudgement::Result g_stubNyugyokuResult;
+extern bool g_stubNyugyokuHandicapNames;
 
 // ============================================================
 // テストハーネス
@@ -90,6 +93,7 @@ struct EndTestHarness {
             EndTracker::lastDialogTitle = title;
             EndTracker::lastDialogMsg = msg;
         };
+        hooks.usesHandicapNames = []() { return EndTracker::handicapNames; };
         hooks.autoSaveKifuIfEnabled = []() {
             EndTracker::events.append(QStringLiteral("save"));
             EndTracker::autoSaveKifuCalled = true;
@@ -177,6 +181,7 @@ private slots:
     void handleEngineWin_showsGameOverMessage();
     void handleEngineWin_judgesDeclaration_data();
     void handleEngineWin_judgesDeclaration();
+    void handleEngineWin_passesHandicapNames();
     void appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime();
 
     // === Section E: 持将棋（最大手数） ===
@@ -206,6 +211,11 @@ private slots:
     // === Section H: 二重終局ガード ===
 
     void doubleEnd_resignThenBreakOff_secondIgnored();
+
+    // === Section J: 結果表示の呼び名 ===
+
+    void resultMessage_followsHandicapNames_data();
+    void resultMessage_followsHandicapNames();
 
     // === Section I: gameEndedシグナル ===
 
@@ -425,6 +435,23 @@ void Tst_GameEndHandler::handleEngineWin_judgesDeclaration()
     QCOMPARE(int(h.gameOver.lastInfo.loser), loser);
     QCOMPARE(EndTracker::lastDialogTitle, QStringLiteral("入玉宣言結果"));
     QCOMPARE(EndTracker::lastDialogMsg, QStringLiteral("判定の説明"));
+}
+
+void Tst_GameEndHandler::handleEngineWin_passesHandicapNames()
+{
+    // 駒落ちでは入玉宣言結果の説明も宣言側を下手・上手と呼ぶ
+    EndTestHarness h;
+    EndTracker::handicapNames = true;
+    ShogiBoard board;
+    g_stubGameBoard = &board;
+    g_stubNyugyokuResult = {};
+    g_stubNyugyokuResult.success = true;
+    g_stubNyugyokuHandicapNames = false;
+    h.handler.handleEngineWin(2);
+    g_stubGameBoard = nullptr;
+
+    QVERIFY(h.gameOver.isOver);
+    QVERIFY(g_stubNyugyokuHandicapNames);
 }
 
 void Tst_GameEndHandler::appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime()
@@ -729,5 +756,50 @@ void Tst_GameEndHandler::handleBreakOff_emitsGameEndedSignal()
 }
 
 // ============================================================
+// ============================================================
+// Section J: 結果表示の呼び名
+// ============================================================
+
+void Tst_GameEndHandler::resultMessage_followsHandicapNames_data()
+{
+    QTest::addColumn<bool>("handicapNames");
+    QTest::addColumn<int>("cause");
+    QTest::addColumn<QString>("message");
+    // 駒落ちで対局情報の見出しが下手・上手なら、対局終了のダイアログも下手（先手側）・上手（後手側）と呼ぶ
+    QTest::newRow("timeout") << false << int(MatchCoordinator::Cause::Timeout)
+                             << QStringLiteral("後手の時間切れ。先手の勝ちです。");
+    QTest::newRow("timeout-handicap") << true << int(MatchCoordinator::Cause::Timeout)
+                                      << QStringLiteral("上手の時間切れ。下手の勝ちです。");
+    QTest::newRow("resign-handicap") << true << int(MatchCoordinator::Cause::Resignation)
+                                     << QStringLiteral("上手の投了。下手の勝ちです。");
+    QTest::newRow("nyugyoku-handicap") << true << int(MatchCoordinator::Cause::NyugyokuWin)
+                                       << QStringLiteral("下手の入玉宣言。下手の勝ちです。");
+}
+
+void Tst_GameEndHandler::resultMessage_followsHandicapNames()
+{
+    QFETCH(bool, handicapNames);
+    QFETCH(int, cause);
+    QFETCH(QString, message);
+    EndTestHarness h;
+    EndTracker::handicapNames = handicapNames;
+    switch (static_cast<MatchCoordinator::Cause>(cause)) {
+    case MatchCoordinator::Cause::Timeout:
+        h.handler.handleTimeout(MatchCoordinator::P2);
+        break;
+    case MatchCoordinator::Cause::Resignation:
+        h.gc.setCurrentPlayer(ShogiGameController::Player2);
+        h.handler.handleResign();
+        break;
+    default:
+        // 盤面のない入玉宣言は判定を省いて宣言勝ちとし、対局終了のダイアログで知らせる
+        h.handler.handleEngineWin(1);
+        break;
+    }
+
+    QCOMPARE(EndTracker::lastDialogTitle, QStringLiteral("対局終了"));
+    QCOMPARE(EndTracker::lastDialogMsg, message);
+}
+
 QTEST_MAIN(Tst_GameEndHandler)
 #include "tst_game_end_handler.moc"

@@ -81,6 +81,11 @@ private slots:
         QCOMPARE(result.isDraw, isDraw);
         QVERIFY2(result.message.contains(verdict), qPrintable(result.message));
         QVERIFY(result.message.startsWith(sente ? QStringLiteral("先手の入玉宣言") : QStringLiteral("後手の入玉宣言")));
+
+        // 駒落ちは宣言側を下手・上手と呼ぶ
+        const auto handicap = NyugyokuJudgement::judge(board, sente, rule, true);
+        QCOMPARE(handicap.success, success);
+        QVERIFY(handicap.message.startsWith(sente ? QStringLiteral("下手の入玉宣言") : QStringLiteral("上手の入玉宣言")));
     }
 
     void engineDeclarationUsesConfiguredRule()
