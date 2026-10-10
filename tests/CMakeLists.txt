@@ -1281,6 +1281,8 @@ add_shogi_test(tst_menu_window
 # ============================================================
 add_shogi_test(tst_language_controller
     tst_language_controller.cpp
+    ${SRC}/common/dialogfontscale.cpp
+    ${SRC}/common/dialogutils.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/controllers/languagecontroller.cpp
     ${SETTINGS_SOURCES}

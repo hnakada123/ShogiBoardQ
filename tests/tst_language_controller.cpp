@@ -13,10 +13,12 @@
 #include <QFile>
 #include <QLabel>
 #include <QMessageBox>
+#include <QScreen>
 #include <QTimer>
 
 #include "languagecontroller.h"
 #include "appsettings.h"
+#include "dialogfontscale.h"
 #include "settingscommon.h"
 
 class TestLanguageController : public QObject
@@ -25,6 +27,10 @@ class TestLanguageController : public QObject
 
 private:
     int m_unwrappedLines = -1;
+    int m_labelPointSize = 0;
+    int m_labelMinimumWidth = 0;
+    int m_widestLine = 0;
+    int m_widthLimit = 0;
 
     /// 表示中の「棋譜表記の読み方」で、すべての行が本文の幅に収まっていれば行数を記録して閉じる
     void inspectNotationHelp()
@@ -42,6 +48,12 @@ private:
             ++lines;
         }
         m_unwrappedLines = fits ? lines : 0;
+        m_labelPointSize = label ? label->font().pointSize() : 0;
+        m_labelMinimumWidth = label ? label->minimumWidth() : 0;
+        m_widestLine = 0;
+        for (const QString& line : label ? label->text().split(QLatin1Char('\n')) : QStringList())
+            m_widestLine = qMax(m_widestLine, label->fontMetrics().horizontalAdvance(line));
+        m_widthLimit = box->screen()->availableGeometry().width() * 2 / 3;
         box->accept();
     }
 
@@ -92,6 +104,24 @@ private slots:
         QTimer::singleShot(0, this, &TestLanguageController::inspectNotationHelp);
         help.trigger();
         QVERIFY(m_unwrappedLines > 5);
+    }
+    /// 幅はメッセージボックスの文字サイズ操作で保存した大きさの文字で測る（既定の文字で測ると幅が合わない）。
+    /// offscreen の画面は幅 800px で、既定より大きい文字では画面の 2/3 の上限に達するため小さい文字で確かめる
+    void notationHelpUsesSavedFontSize()
+    {
+        const int saved = QApplication::font().pointSize() - 1;
+        if (saved < 8) QSKIP("既定の文字が最小の大きさのため確かめられない");
+        AppSettings::setDialogFontSize(QStringLiteral("messageBox"), saved);
+        DialogFontScale::installForMessageBoxes(qApp);
+        LanguageController controller;
+        QAction automatic, japanese, western, origin, help;
+        controller.setNotationActions(&automatic, &japanese, &western, &origin, &help);
+        m_unwrappedLines = -1;
+        QTimer::singleShot(0, this, &TestLanguageController::inspectNotationHelp);
+        help.trigger();
+        QVERIFY(m_unwrappedLines > 5);
+        QCOMPARE(m_labelPointSize, saved);
+        QCOMPARE(m_labelMinimumWidth, qMin(m_widestLine, m_widthLimit) + 8);
     }
     void setActions_createsActionGroup();
     void setActions_actionsAreExclusive();
