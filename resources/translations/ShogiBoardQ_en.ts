@@ -7495,14 +7495,14 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="77"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="115"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="78"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="117"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="78"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="116"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="79"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="118"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
@@ -8354,24 +8354,22 @@ Please restart the application to apply the changes.</translation>
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="96"/>
         <source>先手</source>
-        <translation>Black</translation>
+        <translation type="vanished">Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
         <source>後手</source>
-        <translation>White</translation>
+        <translation type="vanished">White</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="100"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="102"/>
         <source>入玉宣言確認</source>
         <translation>Confirm Entering King Declaration</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="101"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="103"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -8383,7 +8381,7 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="97"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="105"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="107"/>
         <source>宣言する</source>
         <translation>Declare</translation>
     </message>

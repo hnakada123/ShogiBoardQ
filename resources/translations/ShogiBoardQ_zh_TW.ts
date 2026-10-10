@@ -6052,14 +6052,14 @@ OKを選択すると保存先が指定できます。</source>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="77"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="115"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="78"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="117"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="78"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="116"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="79"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="118"/>
         <source>盤面データがありません。</source>
         <translation>沒有棋盤資料。</translation>
     </message>
@@ -6313,24 +6313,22 @@ OKを選択すると保存先が指定できます。</source>
 請在對局對話方塊選擇「24 點法」或「27 點法」。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="96"/>
         <source>先手</source>
-        <translation>先手</translation>
+        <translation type="vanished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
         <source>後手</source>
-        <translation>後手</translation>
+        <translation type="vanished">後手</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="100"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="102"/>
         <source>入玉宣言確認</source>
         <translation>確認入玉宣言</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="101"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="103"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -6342,7 +6340,7 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="97"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="105"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="107"/>
         <source>宣言する</source>
         <translation>宣言</translation>
     </message>
