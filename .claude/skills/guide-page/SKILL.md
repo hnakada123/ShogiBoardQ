@@ -44,7 +44,9 @@ description: ShogiBoardQ の公開ガイド（docs/guide/*.html）やホーム�
      スマートフォン幅（`--window-size=390,7000`）でも表や画像がはみ出さないか見る
    - コードを変えたときは `ctest` 全体と GUI 監査（`python3 tests/gui/prepare.py` の後に
      `xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py`）。詰将棋の GUI テストは
-     `build/gui-audit/test-build/tst_tsume_*` を別に実行する
+     `xvfb-run -a env -u WAYLAND_DISPLAY QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_*` で別に実行する。
+     テストの実行ファイルを直接起動するときは必ず `env -u WAYLAND_DISPLAY QT_QPA_PLATFORM=xcb` を付ける
+     （付けないと Wayland のセッションでは Xvfb ではなく普段の画面にウィンドウが出る）
 7. **後片付け**: 起動したアプリは `rpc.py <名前> app.quit` で止め、起動した Xvfb も止める
    （`pgrep -x Xvfb` と `/proc/<pid>/cmdline` で確かめてから。`pkill -f` は使わない）。普段の設定（`~/.config` など）に
    書き込みが無いことを確かめる。

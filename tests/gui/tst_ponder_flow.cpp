@@ -6,6 +6,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QSpinBox>
 #include <QFile>
 #include <QMessageBox>
 #include <QPushButton>
@@ -106,6 +107,8 @@ public slots:
             if (auto* dialog = qobject_cast<StartGameDialog*>(widget)) {
                 dialog->findChild<QComboBox*>("comboBoxPlayer1")->setCurrentIndex(m_bothEngines || !m_humanBlack ? 1 : 0);
                 dialog->findChild<QComboBox*>("comboBoxPlayer2")->setCurrentIndex(m_bothEngines || m_humanBlack ? 1 : 0);
+                // エンジンが参加する対局は時間無制限では開始できないため、十分な持ち時間を入れる。
+                dialog->findChild<QSpinBox*>("basicTimeMinutes1")->setValue(10);
                 dialog->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->click();
             } else if (auto* promotion = qobject_cast<PromoteDialog*>(widget)) {
                 promotion->accept();

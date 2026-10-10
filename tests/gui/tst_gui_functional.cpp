@@ -341,6 +341,10 @@ public slots:
                 if (dialogMode == "gameEngineBlack") p1->setCurrentIndex(1);
                 if (dialogMode == "gameEngineWhite") p2->setCurrentIndex(1);
                 if (dialogMode == "gameEngines") { p1->setCurrentIndex(1); p2->setCurrentIndex(1); }
+                // エンジンが参加する対局は時間無制限では開始できないため、十分な持ち時間を入れる。
+                if (dialogMode != "game") {
+                    if (auto* minutes = d->findChild<QSpinBox*>("basicTimeMinutes1")) minutes->setValue(10);
+                }
                 d->findChild<QLineEdit*>("lineEditHumanName1")->setText("Audit Black");
                 d->findChild<QLineEdit*>("lineEditHumanName2")->setText("Audit White");
                 if (auto* bb = d->findChild<QDialogButtonBox*>()) {
