@@ -193,7 +193,7 @@ void ConsiderationTabManager::layoutToolbar()
 void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
 {
     // EngineInfoWidget（検討タブ用）
-    m_considerationInfo = new EngineInfoWidget(parentWidget, false, false);
+    m_considerationInfo = new EngineInfoWidget(parentWidget, false);
     m_considerationInfo->setObjectName(QStringLiteral("considerationInfo"));
     m_considerationInfo->setWidgetIndex(2);
     m_considerationInfo->setFontSize(m_considerationFontSize);

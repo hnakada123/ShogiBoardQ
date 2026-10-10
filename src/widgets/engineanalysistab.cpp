@@ -9,12 +9,14 @@
 #include "engineanalysispresenter.h"
 #include "candidatearrowcontroller.h"
 #include "analysissettings.h"
+#include "buttonstyles.h"
 #include <QCheckBox>
 #include <QLabel>
 #include <QHBoxLayout>
 
 #include <QTabWidget>
 #include <QTableView>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QGraphicsView>
 #include <QHeaderView>
@@ -136,6 +138,19 @@ QWidget* EngineAnalysisTab::buildThinkingPageContent(QWidget* parent)
     v->setSpacing(4);
 
     auto* arrowControls = new QHBoxLayout;
+    auto* fontDecrease = new QToolButton(page);
+    fontDecrease->setObjectName(QStringLiteral("thinkingFontDecrease"));
+    fontDecrease->setText(QStringLiteral("A-"));
+    fontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    auto* fontIncrease = new QToolButton(page);
+    fontIncrease->setObjectName(QStringLiteral("thinkingFontIncrease"));
+    fontIncrease->setText(QStringLiteral("A+"));
+    fontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    for (auto* button : {fontDecrease, fontIncrease}) {
+        button->setFixedSize(36, 24);
+        button->setStyleSheet(ButtonStyles::panelToolButton());
+        arrowControls->addWidget(button);
+    }
     m_matchArrows = new QCheckBox(tr("対局中の矢印表示"), page);
     m_matchArrows->setObjectName(QStringLiteral("matchArrows"));
     m_matchArrows->setChecked(AnalysisSettings::matchArrowsVisible());
@@ -155,11 +170,11 @@ QWidget* EngineAnalysisTab::buildThinkingPageContent(QWidget* parent)
     connect(m_ponderArrows, &QCheckBox::toggled, this, &EngineAnalysisTab::onPonderArrowsToggled);
     updateArrowControls();
 
-    m_info1 = new EngineInfoWidget(page, true);
+    m_info1 = new EngineInfoWidget(page);
     m_info1->setWidgetIndex(0);
     m_view1 = new QTableView(page);
     m_view1->setObjectName(QStringLiteral("thinkingView1"));
-    m_info2 = new EngineInfoWidget(page, false);
+    m_info2 = new EngineInfoWidget(page);
     m_info2->setWidgetIndex(1);
     m_view2 = new QTableView(page);
 
@@ -167,9 +182,9 @@ QWidget* EngineAnalysisTab::buildThinkingPageContent(QWidget* parent)
     m_presenter->setViews(m_view1, m_view2, m_info1, m_info2);
 
     // フォントサイズ変更シグナルを接続
-    connect(m_info1, &EngineInfoWidget::fontSizeIncreaseRequested,
+    connect(fontIncrease, &QToolButton::clicked,
             m_presenter, &EngineAnalysisPresenter::onThinkingFontIncrease);
-    connect(m_info1, &EngineInfoWidget::fontSizeDecreaseRequested,
+    connect(fontDecrease, &QToolButton::clicked,
             m_presenter, &EngineAnalysisPresenter::onThinkingFontDecrease);
 
     // EngineInfo 列幅管理

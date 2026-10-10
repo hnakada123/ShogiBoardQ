@@ -3940,7 +3940,7 @@ private slots:
     void engineInfoLayout()
     {
         UsiCommLogModel model;
-        EngineInfoWidget info(nullptr, true);
+        EngineInfoWidget info;
         model.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
         model.setPredictiveMove(QStringLiteral("▲７六歩(77)"));
         model.setSearchedMove(QStringLiteral("△３四歩(33)"));

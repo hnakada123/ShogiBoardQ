@@ -3,14 +3,11 @@
 
 #include "engineinfowidget.h"
 #include "kifumovedelegate.h"
-#include "buttonstyles.h"
 #include "tablestyles.h"
 #include "logcategories.h"
 #include <QHBoxLayout>
-#include <QVBoxLayout>
 #include <QTableWidget>
 #include <QHeaderView>
-#include <QToolButton>
 #include <QFont>
 #include <QPalette>
 #include <QResizeEvent>
@@ -19,10 +16,9 @@
 #include <QSignalBlocker>
 #include "usicommlogmodel.h"
 
-EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool showPredictedMove)
+EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showPredictedMove)
     : QWidget(parent)
     , m_table(new QTableWidget(1, COL_COUNT, this))
-    , m_showFontButtons(showFontButtons)
     , m_showPredictedMove(showPredictedMove)
 {
     setupTable();
@@ -107,28 +103,6 @@ void EngineInfoWidget::buildLayout()
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(8);
-    if (m_showFontButtons) {
-        m_fontControls = new QWidget(this);
-        auto* buttonLayout = new QVBoxLayout(m_fontControls);
-        buttonLayout->setContentsMargins(0, 0, 0, 0);
-        buttonLayout->setSpacing(3);
-        m_btnFontDecrease = new QToolButton(m_fontControls);
-        m_btnFontDecrease->setText(QStringLiteral("A-"));
-        m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-        m_btnFontIncrease = new QToolButton(m_fontControls);
-        m_btnFontIncrease->setText(QStringLiteral("A+"));
-        m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-        for (auto* button : {m_btnFontDecrease, m_btnFontIncrease}) {
-            button->setFixedSize(36, 24);
-            button->setStyleSheet(ButtonStyles::panelToolButton());
-            buttonLayout->addWidget(button);
-        }
-        connect(m_btnFontDecrease, &QToolButton::clicked,
-                this, &EngineInfoWidget::fontSizeDecreaseRequested);
-        connect(m_btnFontIncrease, &QToolButton::clicked,
-                this, &EngineInfoWidget::fontSizeIncreaseRequested);
-        mainLayout->addWidget(m_fontControls, 0, Qt::AlignTop);
-    }
     mainLayout->addWidget(m_table);
     mainLayout->addStretch();
     updateTableGeometry();
@@ -295,8 +269,7 @@ void EngineInfoWidget::updateTableGeometry()
         }
     }
     const int contentWidth = m_table->horizontalHeader()->length();
-    const int controlsWidth = m_fontControls ? m_fontControls->sizeHint().width() + 8 : 0;
-    const int availableWidth = qMax(1, width() - controlsWidth);
+    const int availableWidth = qMax(1, width());
     const int frame = 2 * m_table->frameWidth();
     const int tableWidth = qMin(contentWidth + frame, availableWidth);
     m_table->setFixedWidth(tableWidth);
@@ -305,5 +278,5 @@ void EngineInfoWidget::updateTableGeometry()
     const int tableHeight = m_table->horizontalHeader()->sizeHint().height()
         + m_table->verticalHeader()->defaultSectionSize() + frame + scrollHeight;
     m_table->setFixedHeight(tableHeight);
-    setFixedHeight(qMax(tableHeight, m_fontControls ? m_fontControls->sizeHint().height() : 0));
+    setFixedHeight(tableHeight);
 }
