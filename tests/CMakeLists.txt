@@ -674,7 +674,9 @@ add_shogi_test(tst_startgamedialog
     tst_startgamedialog.cpp
     ${SRC}/dialogs/startgamedialog.cpp
     ${SRC}/dialogs/startgamedialog_settings.cpp
+    ${SRC}/dialogs/startgamedialog_time.cpp
     ${SRC}/dialogs/startgamedialog.ui
+    ${SRC}/game/timecontrolvalidator.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.ui
     ${SRC}/dialogs/enginesettingsoptionhandler.cpp

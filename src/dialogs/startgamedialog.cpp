@@ -89,10 +89,8 @@ void StartGameDialog::connectSignalsAndSlots()
     connect(ui->pushButtonResetToDefault, &QPushButton::clicked, this, &StartGameDialog::resetSettingsToDefault);
     connect(ui->pushButtonSaveSettingsOnly, &QPushButton::clicked, this, &StartGameDialog::saveSettingsOnly);
 
-    // OK/キャンセル: OKは設定保存→パラメータ取得→ダイアログ閉じの順で実行される
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::saveGameSettings);
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::updateGameSettingsFromDialog);
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::accept);
+    // OK/キャンセル: OKはパラメータ取得→時間設定の検証→設定保存→ダイアログ閉じの順で実行される
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::onStartRequested);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &StartGameDialog::reject);
 
     // 秒読みと加算時間は排他制約（一方に値が入ると他方を0にする）
@@ -257,6 +255,15 @@ bool StartGameDialog::isSwitchTurnEachGame() const { return m_isSwitchTurnEachGa
 // ============================================================
 // パラメータ取得（OK押下時）
 // ============================================================
+
+void StartGameDialog::onStartRequested()
+{
+    updateGameSettingsFromDialog();
+    // 開始できない時間設定なら、設定を保存せずにダイアログを開いたままにする。
+    if (!confirmTimeSettings()) return;
+    saveGameSettings();
+    accept();
+}
 
 void StartGameDialog::updateGameSettingsFromDialog()
 {

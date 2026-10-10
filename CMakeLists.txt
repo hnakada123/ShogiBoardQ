@@ -377,6 +377,8 @@ set(SRC_GAME
     src/game/shogigamecontroller.cpp
     src/game/shogigamecontroller.h
     src/game/strategycontext.h
+    src/game/timecontrolvalidator.cpp
+    src/game/timecontrolvalidator.h
     src/game/turnmanager.cpp
     src/game/turnmanager.h
     src/game/turnsyncbridge.cpp
@@ -867,6 +869,7 @@ set(SRC_DIALOGS
     src/dialogs/startgamedialog.cpp
     src/dialogs/startgamedialog.h
     src/dialogs/startgamedialog_settings.cpp
+    src/dialogs/startgamedialog_time.cpp
     src/dialogs/tsumeshogigeneratordialog.cpp
     src/dialogs/tsumeshogigeneratordialog_ui.cpp
     src/dialogs/tsumeshogigeneratordialog_actions.cpp

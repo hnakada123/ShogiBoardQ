@@ -147,7 +147,14 @@ private:
     /// 設定ファイルから対局設定を読み込みGUIに反映する
     void loadGameSettings();
 
+    /// 取得済みの時間設定で対局を開始できるか確認し、できなければ理由を表示する
+    /// @return 開始できるなら true
+    bool confirmTimeSettings();
+
 private slots:
+    /// 対局開始ボタン押下時に、時間設定を確認してから設定を保存しダイアログを閉じる
+    void onStartRequested();
+
     /// OKボタン押下時にダイアログの各パラメータをメンバー変数に取得する
     void updateGameSettingsFromDialog();
 
