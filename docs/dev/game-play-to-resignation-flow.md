@@ -379,9 +379,9 @@ GoTimes computeGoTimes() の返り値:
 - `byoyomi` に固定秒読み時間を設定
 
 **フィッシャーモード**の場合:
-- `btime`/`wtime` に残り時間を設定
+- `btime`/`wtime` には、時計の残り時間から次に使う加算分を引いた値を設定する（将棋所の USI 仕様どおり、`btime + binc` が今回の手に使える時間）
 - `binc`/`winc` に加算時間を設定
-- 残り時間から加算分を引いてからエンジンに送信
+- 送信直前に `UsiMatchHandler::timingForSearch()` が余裕（最大250ms）を引く。`btime` が足りなければ手番側の `binc` を減らす（詳細は [時間設定の仕様](game-time-control-spec.md) の「エンジンへの時間指定」）
 
 ### 3.5 時計のUI更新
 

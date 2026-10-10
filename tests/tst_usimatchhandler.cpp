@@ -112,6 +112,19 @@ class TestUsiMatchHandler : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_config;
+
+    /// 送信したコマンドのうち、指定の接頭辞で始まる最初の1件を数値の項目に分けて返す
+    static QHash<QString, qint64> goFields(const QStringList& commands, const QString& prefix)
+    {
+        QHash<QString, qint64> fields;
+        const auto go = std::find_if(commands.cbegin(), commands.cend(), [&prefix](const QString& cmd) {
+            return cmd.startsWith(prefix);
+        });
+        if (go == commands.cend()) return fields;
+        const QStringList tokens = go->mid(prefix.size()).split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        for (qsizetype i = 0; i + 1 < tokens.size(); i += 2) fields.insert(tokens.at(i), tokens.at(i + 1).toLongLong());
+        return fields;
+    }
     QString mockPath() const
     {
         QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
@@ -187,16 +200,17 @@ private slots:
         QCOMPARE(h.commands.last().startsWith(QStringLiteral("go ponder ")), expectPonder);
         QCOMPARE(h.errors, 0);
     }
-    void incrementBudgetIncludesCurrentMove()
+    void incrementIsExcludedFromRemaining()
     {
+        // 時計の残り時間は次に使う加算分を含むが、USI の btime/wtime には含めない。
         MatchTimekeeper keeper;
         MatchTimekeeper::Hooks hooks;
         hooks.remainingMsFor = [](int player) { return player == 1 ? 10000LL : 17000LL; };
         keeper.setHooks(hooks);
         keeper.setTimeControlConfig(false, 0, 0, 10000, 7000, true);
         const auto times = keeper.computeGoTimes();
-        QCOMPARE(times.btime, 10000LL);
-        QCOMPARE(times.wtime, 17000LL);
+        QCOMPARE(times.btime, 0LL);
+        QCOMPARE(times.wtime, 10000LL);
         QCOMPARE(times.binc, 10000LL);
         QCOMPARE(times.winc, 7000LL);
     }
@@ -211,7 +225,7 @@ private slots:
         h.clock.setCurrentPlayer(1);
         h.game.setCurrentPlayer(ShogiGameController::Player1);
         h.clock.startClock();
-        const UsiTimingParams timing{0, QStringLiteral("10000"), QStringLiteral("10000"), 10000, 10000, false};
+        const UsiTimingParams timing{0, QStringLiteral("0"), QStringLiteral("0"), 10000, 10000, false};
         h.match.requestMove(QStringLiteral("position startpos"), {}, timing);
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0 || h.clock.isGameOver(), 11000);
         QCOMPARE(h.errors, 0);
@@ -224,7 +238,59 @@ private slots:
         });
         QVERIFY(go != h.commands.cend());
         qInfo() << "time command:" << *go;
-        QVERIFY(go->contains(QStringLiteral("binc 10000 winc 10000")));
+        // 持ち時間0なので今回使えるのは加算分だけ。余裕を引いた分だけ手番側の加算を減らし、
+        // btime + binc が実際に使える時間を超えないようにする。
+        const auto fields = goFields(h.commands, QStringLiteral("go "));
+        QCOMPARE(fields.value(QStringLiteral("btime"), -1), 0LL);
+        QCOMPARE(fields.value(QStringLiteral("wtime"), -1), 0LL);
+        QVERIFY2(fields.value(QStringLiteral("binc")) > 9000 && fields.value(QStringLiteral("binc")) <= 9750,
+                 qPrintable(*go));
+        QCOMPARE(fields.value(QStringLiteral("winc"), -1), 10000LL);
+    }
+    void incrementWithMainTimeSendsFullIncrement()
+    {
+        MatchHarness h;
+        QVERIFY(h.start(mockPath(), false));
+        h.clock.stopClock();
+        // 持ち時間300秒＋加算10秒。時計は初手の加算を含めて310秒から始まる。
+        h.clock.setPlayerTimes(310, 310, 0, 0, 10, 10, true);
+        h.clock.setCurrentPlayer(1);
+        h.game.setCurrentPlayer(ShogiGameController::Player1);
+        h.clock.startClock();
+        const UsiTimingParams timing{0, QStringLiteral("300000"), QStringLiteral("300000"), 10000, 10000, false};
+        h.match.requestMove(QStringLiteral("position startpos"), {}, timing);
+        QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
+        QCOMPARE(h.errors, 0);
+        const auto fields = goFields(h.commands, QStringLiteral("go "));
+        const qint64 btime = fields.value(QStringLiteral("btime"), -1);
+        QVERIFY2(btime > 299000 && btime <= 299750, qPrintable(h.commands.join(QLatin1Char('\n'))));
+        QCOMPARE(fields.value(QStringLiteral("wtime"), -1), 300000LL);
+        QCOMPARE(fields.value(QStringLiteral("binc"), -1), 10000LL);
+        QCOMPARE(fields.value(QStringLiteral("winc"), -1), 10000LL);
+    }
+    void incrementPonderExcludesNextIncrement()
+    {
+        EnginePonderSettings::save(QStringLiteral("MatchTest"), true, true);
+        MatchHarness h;
+        QVERIFY(h.start(mockPath(), true));
+        h.clock.stopClock();
+        h.clock.setPlayerTimes(310, 310, 0, 0, 10, 10, true);
+        h.clock.setCurrentPlayer(1);
+        h.game.setCurrentPlayer(ShogiGameController::Player1);
+        h.clock.startClock();
+        const UsiTimingParams timing{0, QStringLiteral("300000"), QStringLiteral("300000"), 10000, 10000, false};
+        h.match.requestMove(QStringLiteral("position startpos"), {}, timing);
+        QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
+        QCOMPARE(h.errors, 0);
+        // 先読み開始時は自分の着手の加算前なので、自分の残り時間は加算を含まない。
+        // 相手（次に指す側）の残り時間は次の加算分を含むので差し引く。
+        const auto fields = goFields(h.commands, QStringLiteral("go ponder "));
+        QVERIFY2(!fields.isEmpty(), qPrintable(h.commands.join(QLatin1Char('\n'))));
+        const qint64 btime = fields.value(QStringLiteral("btime"), -1);
+        QVERIFY2(btime > 305000 && btime <= 309750, qPrintable(QString::number(btime)));
+        QCOMPARE(fields.value(QStringLiteral("wtime"), -1), 300000LL);
+        QCOMPARE(fields.value(QStringLiteral("binc"), -1), 10000LL);
+        QCOMPARE(fields.value(QStringLiteral("winc"), -1), 10000LL);
     }
     void asymmetricByoyomiUsesSideToMove()
     {
