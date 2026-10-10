@@ -101,16 +101,19 @@ private slots:
         clock.setPlayerTimes(0, 0, 0, 0, 0, 0, false);
         clock.setPlayer1ConsiderationTime(1750);
         presenter.onMatchTimeUpdated(0, 0, true, 0);
-        QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("00:00:01"));
-        QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("00:00:00"));
+        // 無制限対局は累積消費時間なので、残り時間と区別できるよう「消費」を付ける。
+        QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("消費 00:00:01"));
+        QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("消費 00:00:00"));
         QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
         clock.applyByoyomiAndResetConsideration1();
         clock.setCurrentPlayer(2);
         clock.setMeasuredConsiderationTime(2, 2999);
         clock.applyByoyomiAndResetConsideration2();
         presenter.onMatchTimeUpdated(0, 0, false, 0);
-        QCOMPARE(view.blackClockLabel()->text(), clock.getPlayer1TotalConsiderationTime());
-        QCOMPARE(view.whiteClockLabel()->text(), clock.getPlayer2TotalConsiderationTime());
+        QCOMPARE(view.blackClockLabel()->text(),
+                 QStringLiteral("消費 ") + clock.getPlayer1TotalConsiderationTime());
+        QCOMPARE(view.whiteClockLabel()->text(),
+                 QStringLiteral("消費 ") + clock.getPlayer2TotalConsiderationTime());
 
         clock.setPlayerTimes(10, 10, 0, 0, 0, 0, true);
         presenter.onMatchTimeUpdated(9501, 10000, true, 9501);

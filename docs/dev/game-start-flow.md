@@ -166,10 +166,11 @@ if (dlg->exec() != QDialog::Accepted) {
 
 #### ダイアログOKボタンの処理
 
-OKボタンクリック時、以下の3つの処理が接続されている:
-1. `accept()` → ダイアログを閉じる
-2. `saveGameSettings()` → QSettingsに永続化
-3. `updateGameSettingsFromDialog()` → UI値をメンバ変数にコピー
+OKボタン（「対局開始」）のクリックは `onStartRequested()` に接続され、次の順に処理する:
+1. `updateGameSettingsFromDialog()` → UI値をメンバ変数にコピー
+2. `confirmTimeSettings()` → 時間設定を確認する。片方だけ全項目0秒、またはエンジンが参加する時間無制限なら警告を出し、保存せずにダイアログを開いたままにする（[時間設定の仕様](game-time-control-spec.md)）
+3. `saveGameSettings()` → QSettingsに永続化
+4. `accept()` → ダイアログを閉じる
 
 ### ステップ2: ダイアログ設定値の取得（行715-718）
 

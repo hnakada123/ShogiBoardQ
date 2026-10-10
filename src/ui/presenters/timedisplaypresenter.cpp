@@ -43,11 +43,13 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1t
     m_lastP2Ms = p2ms;
 
     if (m_view) {
+        // 無制限対局は残り時間ではなく累積消費時間なので、表示の意味を書き添える。
+        // 文字数が変わるため、ラベルに収まる文字サイズへ合わせ直す。
         const bool unlimited = m_clock && m_clock->isUnlimited();
-        if (auto* b = m_view->blackClockLabel())
-            b->setText(unlimited ? m_clock->player1TimeString() : fmt_hhmmss(p1ms));
-        if (auto* w = m_view->whiteClockLabel())
-            w->setText(unlimited ? m_clock->player2TimeString() : fmt_hhmmss(p2ms));
+        m_view->setBlackClockText(unlimited ? tr("消費 %1").arg(m_clock->player1TimeString())
+                                            : fmt_hhmmss(p1ms));
+        m_view->setWhiteClockText(unlimited ? tr("消費 %1").arg(m_clock->player2TimeString())
+                                            : fmt_hhmmss(p2ms));
     }
     applyTurnHighlights(p1turn);
 }
