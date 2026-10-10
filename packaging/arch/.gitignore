@@ -1,0 +1,7 @@
+# makepkg が作るもの
+/src/
+/pkg/
+/ShogiBoardQ/
+/Hayanagi/
+*.pkg.tar.*
+*.log

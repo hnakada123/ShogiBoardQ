@@ -103,6 +103,14 @@ chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 
 FUSE がない環境では、`--appimage-extract-and-run` を付けて起動できます。
 
+Arch Linux では、pacman でインストールできるパッケージも作れます。システムの Qt 6 でビルドし、問題集と Hayanagi も一緒に入ります（手順は [packaging/arch](packaging/arch/README.md)）。
+
+```bash
+git clone https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ/packaging/arch
+makepkg -si
+```
+
 ## ソースからのビルド
 
 ### 必要な環境

@@ -1,0 +1,70 @@
+# Maintainer: hnakada123 <hnakada123@gmail.com>
+#
+# ShogiBoardQ を Arch Linux のパッケージにする。リリースタグのソースを、システムの Qt 6 でビルドする。
+# 使い方: このフォルダで `makepkg -si`（手順は README.md）
+#
+# 配置:
+#   /usr/lib/shogiboardq/          ShogiBoardQ・shogiboardq-cli の本体と翻訳（.qm）。
+#                                  アプリは実行ファイルと同じフォルダの .qm を読むため、ここにまとめる
+#   /usr/bin/ShogiBoardQ           本体へのリンク（shogiboardq-cli も同じ）
+#   /usr/lib/shogiboardq/Hayanagi/ 通常対局用の USI エンジン Hayanagi と定跡（book/）
+#   /usr/share/shogiboardq/tsumeshogi/  詰将棋問題集（3〜13手詰、各1,000題）
+#   /usr/share/licenses/shogiboardq/    「バージョン情報」で表示するライセンス文書
+
+pkgname=shogiboardq
+pkgver=2026.10.10
+pkgrel=1
+pkgdesc='Shogi board GUI for playing, kifu management and analysis with USI engines'
+arch=('x86_64')
+url='https://hnakada123.github.io/ShogiBoardQ/'
+license=('GPL-3.0-only')
+depends=('gcc-libs' 'glibc' 'hicolor-icon-theme'
+         'qt6-base' 'qt6-charts' 'qt6-multimedia' 'qt6-svg')
+makedepends=('cmake' 'git' 'ninja' 'qt6-tools' 'qt6-translations')
+# makepkg -si がデバッグ情報のパッケージ（約250 MB）まで入れないようにする
+options=('!debug')
+install=shogiboardq.install
+source=("ShogiBoardQ::git+https://github.com/hnakada123/ShogiBoardQ.git#tag=${pkgver}"
+        "Hayanagi::git+https://github.com/hnakada123/Hayanagi.git")
+sha256sums=('SKIP'
+            'SKIP')
+
+prepare() {
+  cd ShogiBoardQ
+  # サブモジュール Hayanagi は makepkg が取得したものを使う（コミットはタグが指すもの）
+  git submodule init
+  git config submodule.Hayanagi.url "${srcdir}/Hayanagi"
+  git -c protocol.file.allow=always submodule update
+}
+
+build() {
+  cmake -B build -S ShogiBoardQ -G Ninja \
+    -DCMAKE_BUILD_TYPE=None \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_INSTALL_BINDIR=lib/shogiboardq \
+    -DBUILD_TESTING=OFF \
+    -Wno-dev
+  cmake --build build
+}
+
+package() {
+  DESTDIR="${pkgdir}" cmake --install build
+
+  local libdir="${pkgdir}/usr/lib/shogiboardq"
+  install -d "${pkgdir}/usr/bin"
+  ln -s ../lib/shogiboardq/ShogiBoardQ "${pkgdir}/usr/bin/ShogiBoardQ"
+  ln -s ../lib/shogiboardq/shogiboardq-cli "${pkgdir}/usr/bin/shogiboardq-cli"
+
+  # ライセンス文書はパッケージ名のフォルダに置き、「バージョン情報」が探す licenses/ からリンクする
+  mv "${pkgdir}/usr/share/licenses/ShogiBoardQ" "${pkgdir}/usr/share/licenses/${pkgname}"
+  ln -s "../../share/licenses/${pkgname}" "${libdir}/licenses"
+
+  # Hayanagi は実行ファイルの横の book/hayanagi_book.db を定跡として読む
+  install -Dm755 build/Hayanagi/hayanagi "${libdir}/Hayanagi/hayanagi"
+  install -Dm644 build/Hayanagi/book/hayanagi_book.db "${libdir}/Hayanagi/book/hayanagi_book.db"
+  install -Dm644 ShogiBoardQ/Hayanagi/README.md "${libdir}/Hayanagi/README.md"
+
+  install -Dm644 -t "${pkgdir}/usr/share/${pkgname}/tsumeshogi" \
+    ShogiBoardQ/data/tsumeshogi/tsume_*ply_1000_20261001.txt \
+    ShogiBoardQ/data/tsumeshogi/README.md
+}

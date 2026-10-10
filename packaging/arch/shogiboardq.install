@@ -1,0 +1,17 @@
+_notice() {
+  cat <<'EOF'
+ShogiBoardQ は「ShogiBoardQ」コマンドかアプリケーションメニューから起動できます。
+  通常対局用のエンジン Hayanagi: /usr/lib/shogiboardq/Hayanagi/hayanagi
+    （「設定」→「エンジン設定…」で登録してください。定跡は自動で読み込みます）
+  詰将棋問題集: /usr/share/shogiboardq/tsumeshogi/
+    （「対局」→「詰将棋対局…」の「局面集を開く…」から選びます）
+EOF
+}
+
+post_install() {
+  _notice
+}
+
+post_upgrade() {
+  _notice
+}
