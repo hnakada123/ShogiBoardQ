@@ -165,13 +165,13 @@ MatchTimekeeper::GoTimes MatchTimekeeper::computeGoTimes() const
             << " => btime=" << t.btime << " wtime=" << t.wtime
             << " byoyomi=" << t.byoyomi;
     } else {
-        t.btime = rawB;
-        t.wtime = rawW;
+        // USI（将棋所の仕様）では btime + binc が今回の手に使える時間を表す。
+        // 時計の残り時間には次に使う加算分が既に含まれているので、差し引いて送る。
+        t.btime = qMax<qint64>(0, rawB - m_tc.incMs1);
+        t.wtime = qMax<qint64>(0, rawW - m_tc.incMs2);
         t.byoyomi = 0;
         t.binc = m_tc.incMs1;
         t.winc = m_tc.incMs2;
-
-        // 時計の残り時間には現在手で使用できる加算分が既に含まれている。
 
         qCDebug(lcGame).noquote()
             << "computeGoTimes_: FISCHER"

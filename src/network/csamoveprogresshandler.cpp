@@ -283,6 +283,12 @@ void CsaMoveProgressHandler::startEngineThinking()
     if (blackRemainMs < 0) blackRemainMs = 0;
     if (whiteRemainMs < 0) whiteRemainMs = 0;
     const int incMs = m_refs.gameSummary->incrementMs();
+    // USI（将棋所の仕様）では btime + binc が今回の手に使える時間を表す。CSA の残り時間は
+    // 手番の開始時に加算済みなので、加算を binc で伝えるときは自分の残り時間から差し引く。
+    if (byoyomiMyMs <= 0) {
+        int& myRemainMs = *m_refs.isBlackSide ? blackRemainMs : whiteRemainMs;
+        myRemainMs = qMax(0, myRemainMs - incMs);
+    }
 
     CsaEngineController::ThinkingParams params;
     params.positionCmd = positionCmd;

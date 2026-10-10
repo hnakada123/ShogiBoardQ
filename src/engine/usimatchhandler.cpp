@@ -302,6 +302,7 @@ int UsiMatchHandler::remainingTimeMs(const UsiTimingParams& timing) const
     const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
     qint64 budget = side == 1 ? timing.btime.toLongLong() : timing.wtime.toLongLong();
     if (timing.useByoyomi) budget += timing.byoyomiMilliSec;
+    else budget += side == 1 ? timing.addEachMoveMilliSec1 : timing.addEachMoveMilliSec2;
     if (m_clock) budget = m_clock->enforcesTimeout() ? m_clock->remainingTurnTimeMs(side)
                                                      : kUnlimitedSearchTimeoutMs;
     return static_cast<int>(qBound(qint64(1), budget, qint64(std::numeric_limits<int>::max())));
@@ -317,19 +318,26 @@ void UsiMatchHandler::onSearchTimeout()
 
 UsiTimingParams UsiMatchHandler::timingForSearch(const UsiTimingParams& timing, bool pondering) const
 {
+    // btime/wtime は USI（将棋所の仕様）の意味で扱う。加算方式では今回（相手は次の手番）に
+    // 加算される時間を含めず、btime + binc が今回の手に使える時間になる。
     UsiTimingParams result = timing;
     const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
-    qint64 main = side == 1 ? timing.btime.toLongLong() : timing.wtime.toLongLong();
+    const bool useIncrement = !timing.useByoyomi;
+    const auto incrementFor = [&timing, useIncrement](int player) -> qint64 {
+        if (!useIncrement) return 0;
+        return qMax(0, player == 1 ? timing.addEachMoveMilliSec1 : timing.addEachMoveMilliSec2);
+    };
+    // 手番側が今回の手に使える時間のうち、秒読みを除いた分（加算方式では今回の加算分を含む）。
+    qint64 main = (side == 1 ? timing.btime.toLongLong() : timing.wtime.toLongLong()) + incrementFor(side);
     qint64 byo = timing.useByoyomi ? qMax(0, timing.byoyomiMilliSec) : 0;
     if (m_clock) {
-        result.btime = QString::number(m_clock->remainingMainTimeMs(1));
-        result.wtime = QString::number(m_clock->remainingMainTimeMs(2));
+        // 時計の残り時間には、次に使う加算分が既に含まれている。
+        result.btime = QString::number(qMax<qint64>(0, m_clock->remainingMainTimeMs(1) - incrementFor(1)));
+        result.wtime = QString::number(qMax<qint64>(0, m_clock->remainingMainTimeMs(2) - incrementFor(2)));
         main = m_clock->remainingMainTimeMs(side);
         if (pondering) {
             // 現在の着手確定による加算は、Strategyで適用される前。
-            if (!timing.useByoyomi) {
-                main += side == 1 ? timing.addEachMoveMilliSec1 : timing.addEachMoveMilliSec2;
-            }
+            main += incrementFor(side);
         } else {
             // stop待ち、局面準備、最後のtick以降も含めた残予算。
             byo = qMax<qint64>(0, m_clock->remainingTurnTimeMs(side) - main);
@@ -342,6 +350,13 @@ UsiTimingParams UsiMatchHandler::timingForSearch(const UsiTimingParams& timing, 
     const qint64 byoReserve = qMin(byo, reserve);
     byo -= byoReserve;
     main = qMax<qint64>(0, main - (reserve - byoReserve));
+    if (useIncrement) {
+        // 予算のうち加算分は binc/winc で伝える。余裕を引くと加算分に届かないときは、
+        // btime + binc が予算を超えないよう手番側の加算を減らす。
+        const qint64 increment = qMin(incrementFor(side), main);
+        (side == 1 ? result.addEachMoveMilliSec1 : result.addEachMoveMilliSec2) = static_cast<int>(increment);
+        main -= increment;
+    }
     if (side == 1) result.btime = QString::number(main);
     else result.wtime = QString::number(main);
     result.byoyomiMilliSec = static_cast<int>(qMin<qint64>(byo, std::numeric_limits<int>::max()));
