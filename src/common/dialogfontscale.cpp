@@ -10,7 +10,10 @@
 #include <QEvent>
 #include <QGridLayout>
 #include <QLabel>
+#include <QLatin1StringView>
+#include <QMessageBox>
 #include <QPushButton>
+#include <QScreen>
 #include <QTimer>
 #include <QComboBox>
 #include <QAbstractItemView>
@@ -19,12 +22,15 @@
 #include <vector>
 
 namespace {
+constexpr QLatin1StringView kMessageBoxSettingsId("messageBox");
+
 // 幅が足りないと文字サイズ操作と決定ボタンを二段にする。
 // 横並びの最小幅をウィンドウに強制しないため、縮小後も折り返せる。
 class DialogFooterLayout final : public QLayout
 {
 public:
     DialogFooterLayout() { setContentsMargins(0, 0, 0, 0); setSpacing(10); }
+    void setPreferSingleRow(bool prefer) { m_preferSingleRow = prefer; }
     void addItem(QLayoutItem* item) override { m_items.emplace_back(item); }
     int count() const override { return static_cast<int>(m_items.size()); }
     QLayoutItem* itemAt(int index) const override
@@ -42,6 +48,15 @@ public:
     {
         QSize size;
         for (const auto& item : m_items) size = size.expandedTo(item->minimumSize());
+        // QMessageBox は最小の幅で大きさを決めるため、短い文でも一段に並ぶよう一段分の幅を最小にする。
+        // 画面の半分を超える大きな文字では二段に折り返す
+        if (m_preferSingleRow && count() == 2) {
+            const QWidget* widget = parentWidget();
+            const QScreen* screen = widget ? widget->screen() : nullptr;
+            const int singleRow = sizeHint().width();
+            if (screen && singleRow <= screen->availableGeometry().width() / 2)
+                size.setWidth(qMax(size.width(), singleRow));
+        }
         return size;
     }
     QSize sizeHint() const override
@@ -77,6 +92,7 @@ public:
     }
 private:
     std::vector<std::unique_ptr<QLayoutItem>> m_items;
+    bool m_preferSingleRow = false;
 };
 
 void collectFonts(QWidget* root, QList<QPair<QWidget*, QFont>>& fonts)
@@ -88,11 +104,42 @@ void collectFonts(QWidget* root, QList<QPair<QWidget*, QFont>>& fonts)
         collectFonts(child, fonts);
     }
 }
+
+// QMessageBox の静的関数で出すボックスには呼び出し側から触れないため、ポリッシュ時（表示の直前）に付ける
+class MessageBoxFontScaleInstaller final : public QObject
+{
+public:
+    using QObject::QObject;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (event->type() == QEvent::Polish) {
+            auto* box = qobject_cast<QMessageBox*>(watched);
+            if (box && !box->findChild<QWidget*>(QStringLiteral("dialogFontScale"), Qt::FindDirectChildrenOnly))
+                DialogFontScale::install(box, kMessageBoxSettingsId);
+        }
+        return QObject::eventFilter(watched, event);
+    }
+};
 }
 
 void DialogFontScale::install(QDialog* dialog, const QString& settingsId, bool saveSize)
 {
     new DialogFontScale(dialog, settingsId, saveSize);
+}
+
+void DialogFontScale::installForMessageBoxes(QCoreApplication* app)
+{
+    app->installEventFilter(new MessageBoxFontScaleInstaller(app));
+}
+
+QFont DialogFontScale::messageBoxFont(const QFont& font)
+{
+    // install() と同じく、ボックスの文字の大きさを既定値として保存済みの大きさを読む
+    QFont result = font;
+    result.setPointSize(AppSettings::dialogFontSize(kMessageBoxSettingsId, qMax(8, font.pointSize())));
+    return result;
 }
 
 DialogFontScale::DialogFontScale(QDialog* dialog, const QString& settingsId, bool saveSize)
@@ -119,7 +166,8 @@ DialogFontScale::DialogFontScale(QDialog* dialog, const QString& settingsId, boo
     connect(increaseButton, &QPushButton::clicked, this, &DialogFontScale::increase);
 
     if (attachToLayout()) {
-        DialogUtils::standardizeDialog(dialog);
+        // メッセージボックスは既定のボタンの強調（アプリ共通のスタイル）を残す
+        if (!qobject_cast<QMessageBox*>(dialog)) DialogUtils::standardizeDialog(dialog);
         applySize(AppSettings::dialogFontSize(settingsId, m_size));
     }
     if (saveSize) DialogUtils::restoreDialogSize(dialog, AppSettings::auxiliaryDialogSize(settingsId));
@@ -144,9 +192,24 @@ bool DialogFontScale::attachToLayout()
         } else {
             box->insertWidget(qMax(0, box->count() - 1), this);
         }
-    } else if (auto* grid = qobject_cast<QGridLayout*>(m_dialog->layout()))
-        grid->addWidget(this, grid->rowCount(), 0, 1, grid->columnCount());
-    else return false;
+    } else if (auto* grid = qobject_cast<QGridLayout*>(m_dialog->layout())) {
+        // QMessageBox は決定ボタンを最下段に置くので、その位置で文字サイズ操作と並べる
+        auto* actions = m_dialog->findChild<QDialogButtonBox*>(QString(), Qt::FindDirectChildrenOnly);
+        const int index = actions ? grid->indexOf(actions) : -1;
+        if (index >= 0) {
+            int row = 0, column = 0, rowSpan = 0, columnSpan = 0;
+            grid->getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+            grid->removeWidget(actions);
+            auto* footer = new DialogFooterLayout;
+            footer->setPreferSingleRow(qobject_cast<QMessageBox*>(m_dialog) != nullptr);
+            footer->addWidget(this);
+            footer->addWidget(actions);
+            grid->addLayout(footer, row, column, rowSpan, columnSpan);
+            m_footer = footer;
+        } else
+            grid->addWidget(this, grid->rowCount(), 0, 1, grid->columnCount());
+    } else return false;
+    m_hostLayout = m_dialog->layout();
     m_attached = true;
     return true;
 }
@@ -190,6 +253,8 @@ void DialogFontScale::applySize(int size)
 
 void DialogFontScale::updateLayout()
 {
+    // QMessageBox は文の折り返しと大きさ（固定サイズ）を自分で計算し直す
+    if (qobject_cast<QMessageBox*>(m_dialog)) return;
     DialogUtils::fitWrappedLabels(m_dialog);
     ensureContentFits();
 }
@@ -212,9 +277,16 @@ void DialogFontScale::ensureContentFits()
 
 bool DialogFontScale::eventFilter(QObject* watched, QEvent* event)
 {
+    // QMessageBox はアイコンなどの変更でレイアウトを作り直し、操作列が外れるので入れ直す
+    if (watched == m_dialog && m_attached && m_hostLayout != m_dialog->layout()
+        && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Resize
+            || event->type() == QEvent::Show)) {
+        m_attached = false;
+        if (attachToLayout()) applySize(m_size);
+    }
     // QInputDialog は表示時にレイアウトを生成するため、その後で操作列を挿入する。
     if (watched == m_dialog && event->type() == QEvent::Show && !m_attached && attachToLayout()) {
-        DialogUtils::standardizeDialog(m_dialog);
+        if (!qobject_cast<QMessageBox*>(m_dialog)) DialogUtils::standardizeDialog(m_dialog);
         applySize(AppSettings::dialogFontSize(m_settingsId, m_size));
         if (m_saveSize) DialogUtils::restoreDialogSize(m_dialog, AppSettings::auxiliaryDialogSize(m_settingsId));
         // 表示時の大きさは操作列を足す前に決まっているので、少なくとも追加後の推奨サイズまで広げる

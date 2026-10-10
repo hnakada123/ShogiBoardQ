@@ -3,6 +3,7 @@
 
 #include "languagecontroller.h"
 #include "appsettings.h"
+#include "dialogfontscale.h"
 
 #include <QAction>
 #include <QGuiApplication>
@@ -163,10 +164,11 @@ void LanguageController::showNotationHelp()
            "盤の反転でマスの座標は変わりません。駒画像は外観設定で選択できます。"),
         QMessageBox::Ok, m_parentWidget);
     // QMessageBox の既定の幅（約 500px）では「*」と「は駒打ちです」のように記号と説明が別の行に分かれるため、
-    // 一番長い行が折り返さない幅にする（画面に収まる範囲で）
+    // 一番長い行が折り返さない幅にする（画面に収まる範囲で）。表示時に適用される文字サイズで測る
     int widest = 0;
+    const QFontMetrics metrics(DialogFontScale::messageBoxFont(box.font()));
     const QStringList lines = box.text().split(QLatin1Char('\n'));
-    for (const QString& line : lines) widest = qMax(widest, box.fontMetrics().horizontalAdvance(line));
+    for (const QString& line : lines) widest = qMax(widest, metrics.horizontalAdvance(line));
     if (const QScreen* screen = m_parentWidget ? m_parentWidget->screen() : QGuiApplication::primaryScreen())
         widest = qMin(widest, screen->availableGeometry().width() * 2 / 3);
     box.setStyleSheet(QStringLiteral("QLabel#qt_msgbox_label { min-width: %1px; }").arg(widest + 8));

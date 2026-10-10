@@ -8,7 +8,9 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QComboBox>
+#include <QMessageBox>
 #include <QPushButton>
+#include <QScopeGuard>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSettings>
@@ -101,6 +103,17 @@ class TestDialogAppearance : public QObject
         if (name == QLatin1String("generator")) return std::make_unique<TsumeshogiGeneratorDialog>();
         if (name == QLatin1String("tsumeSearch")) return std::make_unique<TsumeShogiSearchDialog>();
         if (name == QLatin1String("version")) return std::make_unique<VersionDialog>();
+        if (name == QLatin1String("messageBox")) {
+            return std::make_unique<QMessageBox>(QMessageBox::Warning, QStringLiteral("時間設定"),
+                QStringLiteral("エンジンが参加する対局は、時間無制限（持ち時間・秒読み・加算がすべて0秒）にできません。\n"
+                               "エンジンは使える時間を0秒と受け取り、ほとんど考えずに指してしまいます。"
+                               "持ち時間・秒読み・加算のいずれかを設定してください。"));
+        }
+        if (name == QLatin1String("messageBoxChoices")) {
+            return std::make_unique<QMessageBox>(QMessageBox::Warning, QStringLiteral("未保存の棋譜"),
+                QStringLiteral("棋譜が保存されていません。保存しますか？"),
+                QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+        }
         auto dialog = std::make_unique<QInputDialog>();
         dialog->setLabelText(QStringLiteral("しおり名:"));
         dialog->setTextValue(QStringLiteral("重要な局面"));
@@ -142,7 +155,8 @@ private slots:
         QTest::addColumn<bool>("english");
         for (const auto* name : {"boardColors", "engineOptions", "csaGame", "csaWaiting", "engines",
              "fontSettings", "jishogi", "josekiMerge", "josekiMove", "analysis", "paste", "sound", "promotion",
-             "pv", "sfen", "startGame", "tsumeCollection", "tsumePlay", "generator", "tsumeSearch", "version", "input"}) {
+             "pv", "sfen", "startGame", "tsumeCollection", "tsumePlay", "generator", "tsumeSearch", "version", "input",
+             "messageBox", "messageBoxChoices"}) {
             for (bool english : {false, true})
                 QTest::newRow(qPrintable(QString::fromLatin1(name) + (english ? "-en" : "-ja"))) << QString::fromLatin1(name) << english;
         }
@@ -505,6 +519,67 @@ private slots:
         QCOMPARE(reopened.font().pointSize(), AppSettings::dialogFontSize(QStringLiteral("promotion"), 10));
     }
 
+    /// 静的関数で出すメッセージボックスにも文字サイズ操作が付き、決定ボタンと同じ段に並ぶ
+    void messageBoxFontControls()
+    {
+        bool inspected = false;
+        int enlarged = 0;
+        QTimer::singleShot(0, this, [&] {
+            auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+            QVERIFY(box);
+            const auto close = qScopeGuard([box] { box->reject(); });
+            auto* scale = box->findChild<QWidget*>(QStringLiteral("dialogFontScale"));
+            auto* ok = box->button(QMessageBox::Ok);
+            const auto buttons = fontButtons(box);
+            QVERIFY(scale && ok && buttons[0] && buttons[1]);
+            QTRY_VERIFY(qAbs(scale->mapTo(box, scale->rect().center()).y() - ok->mapTo(box, ok->rect().center()).y()) <= 2);
+            // 既定のボタンの強調（アプリ共通のスタイル）とフォーカスは残す（Enter で決定できる）
+            QVERIFY(ok->styleSheet().isEmpty());
+            QCOMPARE(box->focusWidget(), ok);
+            auto* label = box->findChild<QLabel*>(QStringLiteral("qt_msgbox_label"));
+            QVERIFY(label);
+            const int initial = label->font().pointSize();
+            const QSize initialSize = box->size();
+            QTest::mouseClick(buttons[1], Qt::LeftButton);
+            QCOMPARE(label->font().pointSize(), initial + 1);
+            QTRY_VERIFY(box->width() > initialSize.width() || box->height() > initialSize.height());
+            enlarged = label->font().pointSize();
+            inspected = true;
+        });
+        QMessageBox::warning(nullptr, QStringLiteral("時間設定"), QStringLiteral("人間が選択されています。"));
+        QVERIFY(inspected);
+        QCOMPARE(AppSettings::dialogFontSize(QStringLiteral("messageBox"), 0), enlarged);
+
+        // 文字サイズはメッセージボックス全体で共有する
+        QMessageBox next(QMessageBox::Information, QStringLiteral("情報"), QStringLiteral("登録する指し手がありません。"));
+        QCOMPARE(DialogFontScale::messageBoxFont(next.font()).pointSize(), enlarged);
+        next.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&next));
+        QCOMPARE(next.findChild<QLabel*>(QStringLiteral("qt_msgbox_label"))->font().pointSize(), enlarged);
+        next.reject();
+    }
+
+    /// QMessageBox がレイアウトを作り直しても、文字サイズ操作を決定ボタンの横に入れ直す
+    void messageBoxKeepsFontControlsAfterRelayout()
+    {
+        QMessageBox box(QMessageBox::Warning, QStringLiteral("履歴の初期化"), QStringLiteral("初期化しますか？"),
+                        QMessageBox::Yes | QMessageBox::Cancel);
+        box.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&box));
+        auto* scale = box.findChild<QWidget*>(QStringLiteral("dialogFontScale"));
+        auto* actions = box.findChild<QDialogButtonBox*>();
+        QVERIFY(scale && actions);
+        box.setIcon(QMessageBox::Question);
+        box.setInformativeText(QStringLiteral("この操作は取り消せません。"));
+        QTRY_VERIFY(qAbs(scale->geometry().center().y() - actions->geometry().center().y()) <= 2);
+        QTest::qWait(30);
+        QVERIFY(box.rect().contains(scale->geometry()));
+        QVERIFY(scale->geometry().right() < actions->geometry().left());
+        for (auto* button : actions->buttons())
+            QVERIFY(box.rect().contains(QRect(button->mapTo(&box, QPoint()), button->size())));
+        box.reject();
+    }
+
     void colorPickerAndCommunicationLog()
     {
         BoardColorDialog appearance;
@@ -573,6 +648,7 @@ int main(int argc, char** argv)
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("DialogAppearanceTest"));
     ApplicationFonts::initialize();
+    DialogFontScale::installForMessageBoxes(&app);
     TestDialogAppearance test;
     return QTest::qExec(&test, argc, argv);
 }

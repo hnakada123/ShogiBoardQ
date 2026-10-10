@@ -6,6 +6,7 @@
 #include "applicationfonts.h"
 #include "applicationlogging.h"
 #include "applicationtranslations.h"
+#include "dialogfontscale.h"
 #include "settingsresetcontroller.h"
 
 #include <QApplication>
@@ -48,6 +49,9 @@ static void configureApplicationAppearance(QApplication& app, const QString& lan
         "QDialogButtonBox QPushButton:default:hover { background-color: #1e88e5; }"
         "QDialogButtonBox QPushButton:default:pressed { background-color: #1565c0; }"
     ));
+
+    // 確認・警告などのメッセージボックスにも、ほかのダイアログと同じ文字サイズ操作（A-/A+）を付ける
+    DialogFontScale::installForMessageBoxes(&app);
 }
 
 int main(int argc, char *argv[])
