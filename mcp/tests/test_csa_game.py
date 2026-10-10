@@ -851,6 +851,40 @@ async def test_single_chudan_and_individual_time_defaults(csa_env, replay):
             await peer.close()
 
 
+@pytest.mark.parametrize("position,side,declarer", [("PI\n+", "+", "先手"), ("PI22KA\n-", "-", "上手")])
+async def test_declaration_confirm_names_handicap_sides(csa_env, position, side, declarer):
+    """A handicap game names the declarer 上手/下手, as the game info and record do."""
+    accepted = asyncio.get_running_loop().create_future()
+
+    def connected(reader, writer):
+        accepted.set_result(Peer(reader, writer))
+
+    server = await asyncio.start_server(connected, "127.0.0.1", 0)
+    async with server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.sockets[0].getsockname()[1])
+        peer = await accepted
+        try:
+            await peer.until("LOGIN ")
+            await peer.send("LOGIN:BoardQ OK\nBEGIN Game_Summary\nProtocol_Version:1.2\n"
+                            "Format:Shogi 1.0\nGame_ID:declare\nName+:BoardQ\nName-:Peer\n"
+                            f"Your_Turn:{side}\nTo_Move:{position[-1]}\n"
+                            "BEGIN Time\nTotal_Time:300\nByoyomi:5\nEND Time\n"
+                            f"BEGIN Position\n{position}\nEND Position\nEND Game_Summary")
+            await peer.until("AGREE")
+            await peer.send("START:declare")
+            await ui.wait_state(ui_state="csa_game")
+            await ui.call("trigger_action", name="actionNyugyokuDeclaration")
+            dialog = await ui.dialog("QMessageBox")
+            text = str(await ui.call("get_widget_text", dialog=dialog))
+            assert f"{declarer}が入玉宣言を行います" in text, text
+            await ui.call("close_dialog", dialog=dialog)
+            await peer.send("#CHUDAN")
+            assert "中断" in await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+
 async def test_connection_refused_recovers(csa_env):
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))

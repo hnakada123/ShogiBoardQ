@@ -16,6 +16,7 @@
 #include "matchcoordinator.h"
 #include "jishogiscoredialogcontroller.h"
 #include "nyugyokudeclarationhandler.h"
+#include "nyugyokujudgement.h"
 #include "csagamewiring.h"
 #include "csagamedialog.h"
 #include "csagamecoordinator.h"
@@ -92,9 +93,10 @@ void DialogLaunchWiring::handleNyugyokuDeclaration()
         CsaGameCoordinator* csa = *m_deps.csaGameCoordinator;
         // 成否はサーバーが判定する。誤操作で負けないよう、ローカル対局と同じく確認する
         if (csa->isMyTurn()) {
-            const QString declarer = csa->isBlackSide()
-                ? QCoreApplication::translate("NyugyokuDeclarationHandler", "先手")
-                : QCoreApplication::translate("NyugyokuDeclarationHandler", "後手");
+            // 駒落ちはローカル対局と同じく、対局情報の見出しに合わせて下手・上手と呼ぶ
+            const MatchCoordinator* match = m_deps.getMatch ? m_deps.getMatch() : nullptr;
+            const QString declarer = NyugyokuJudgement::declarerName(
+                csa->isBlackSide(), match && match->usesHandicapNames());
             if (!DialogUtils::confirmAction(
                     m_deps.parentWidget,
                     QCoreApplication::translate("NyugyokuDeclarationHandler", "入玉宣言確認"),
