@@ -445,12 +445,19 @@ StartOptionsを受け取り、MatchCoordinatorへ対局開始を指示する。
    m_match->refreshGoTimes();
    ```
 
-5. **対局開始**
+5. **対局者名の通知（`params.announcePlayerNames` のときだけ）**
+   ```cpp
+   emit playerNamesResolved(opt.humanName1, opt.humanName2, opt.engineName1, opt.engineName2, mode);
+   ```
+   - 対局ダイアログを経ない連続対局の2局目以降（`ConsecutiveGamesController::launchPreparedNextGame()`）で使う。ダイアログ経由ではステップ8で通知済み。
+   - 持ち時間と開始日時を記録した後、対局開始の前に通知し、盤の対局者名と対局情報（対局日・開始日時・対局者・持ち時間）を新しい対局に合わせる。
+
+6. **対局開始**
    ```cpp
    m_match->configureAndStart(params.opt);
    ```
 
-6. **完了通知**
+7. **完了通知**
    ```cpp
    emit started(params.opt);
    ```

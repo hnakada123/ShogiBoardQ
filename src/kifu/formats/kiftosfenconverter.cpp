@@ -48,13 +48,14 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
     if (label.isEmpty()) label = QStringLiteral("平手");
     if (detectedLabel) *detectedLabel = found.isEmpty() ? QStringLiteral("平手(既定)") : label;
     QString initial = NotationUtils::mapHandicapToSfen(label);
-    // 局面図がなくても、明示された手番を優先する。
+    // 局面図がなくても、明示された手番を優先する（駒落ちは上手番・下手番と書く）。
     for (const QString& raw : std::as_const(lines)) {
-        if (raw.trimmed() == QStringLiteral("後手番")) {
+        const QString t = raw.trimmed();
+        if (t == QStringLiteral("後手番") || t == QStringLiteral("上手番")) {
             initial.replace(QStringLiteral(" b "), QStringLiteral(" w "));
             break;
         }
-        if (raw.trimmed() == QStringLiteral("先手番")) {
+        if (t == QStringLiteral("先手番") || t == QStringLiteral("下手番")) {
             initial.replace(QStringLiteral(" w "), QStringLiteral(" b "));
             break;
         }

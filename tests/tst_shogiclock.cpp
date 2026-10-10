@@ -270,6 +270,22 @@ private slots:
         QVERIFY(clock.hasByoyomi2());
     }
 
+    /// 持ち時間を使い切った側（CSA の時計合わせ・持ち時間0の秒読み対局）は初めから秒読みに入り、
+    /// 手番でないあいだも 00:00:00 ではなく秒読みの秒数を表示する
+    void exhaustedMainTimeStartsInByoyomi()
+    {
+        ShogiClock clock;
+        clock.setPlayerTimes(0, 60, 5, 5, 0, 0, true);
+        QVERIFY(clock.byoyomi1Applied());
+        QVERIFY(!clock.byoyomi2Applied());
+        QCOMPARE(clock.getPlayer1TimeIntMs(), 5000LL);
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:00:05"));
+        QCOMPARE(clock.remainingMainTimeMs(1), 0LL);
+        QCOMPARE(clock.remainingTurnTimeMs(1), 5000LL);
+        QCOMPARE(clock.getPlayer2TimeIntMs(), 60000LL);
+        QCOMPARE(clock.remainingTurnTimeMs(2), 65000LL);
+    }
+
     void byoyomi_application()
     {
         ShogiClock clock;

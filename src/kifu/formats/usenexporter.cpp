@@ -31,6 +31,7 @@ static bool isTerminalMove(const QString& move)
         QStringLiteral("持将棋"),
         QStringLiteral("千日手"),
         QStringLiteral("切れ負け"),
+        QStringLiteral("時間切れ"),  // 対局で時間切れになったときの終局語
         QStringLiteral("反則勝ち"),
         QStringLiteral("反則負け"),
         QStringLiteral("入玉勝ち"),

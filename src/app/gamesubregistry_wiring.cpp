@@ -280,8 +280,8 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
                                         ? tc->gameStartDateTime() : QDateTime::currentDateTime();
         m_mw.m_playerInfoWiring->setGameInfoForMatchStart(
             startTime, black, white, KifuExportMetadataBuilder::handicapLabel(startSfen),
-            tc && tc->hasTimeControl(), tc ? tc->baseTimeMs() : 0,
-            tc ? tc->byoyomiMs() : 0, tc ? tc->incrementMs() : 0);
+            tc && tc->hasTimeControl(), tc ? tc->settings().black : KifuTimeControlSide{},
+            tc ? tc->settings().white : KifuTimeControlSide{});
         startLiveGameSessionIfNeeded();
         m_kifu->ensureGameRecordUpdateService();
     };

@@ -359,9 +359,9 @@ void PlayerInfoWiring::addGameInfoTabAtStartup() {}
 void PlayerInfoWiring::updateGameInfoForCurrentMatch() {}
 void PlayerInfoWiring::setOriginalGameInfo(const QList<KifGameInfoItem>&) {}
 void PlayerInfoWiring::updateGameInfoPlayerNames(const QString&, const QString&) {}
-void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime&, const QString&, const QString&, const QString&, bool, qint64, qint64, qint64) {}
+void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime&, const QString&, const QString&, const QString&, bool, const KifuTimeControlSide&, const KifuTimeControlSide&) {}
 void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime&) {}
-void PlayerInfoWiring::updateGameInfoWithTimeControl(bool, qint64, qint64, qint64) {}
+void PlayerInfoWiring::updateGameInfoWithTimeControl(bool, const KifuTimeControlSide&, const KifuTimeControlSide&) {}
 void PlayerInfoWiring::ensureGameInfoController() {}
 void PlayerInfoWiring::setTabWidget(QTabWidget*) {}
 void PlayerInfoWiring::setAnalysisTab(EngineAnalysisTab*) {}
@@ -467,12 +467,9 @@ ShogiClock* TimeControlController::clock() const { return nullptr; }
 void TimeControlController::setMatchCoordinator(MatchCoordinator*) {}
 void TimeControlController::setTimeDisplayPresenter(TimeDisplayPresenter*) {}
 void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeControl&, MatchCoordinator*, const QString&, const QString&, ShogiView*) {}
-void TimeControlController::saveTimeControlSettings(bool, qint64, qint64, qint64) {}
+void TimeControlController::saveTimeControlSettings(bool, const KifuTimeControlSide&, const KifuTimeControlSide&) {}
 const TimeControlController::TimeControlSettings& TimeControlController::settings() const { static TimeControlSettings s; return s; }
 bool TimeControlController::hasTimeControl() const { return false; }
-qint64 TimeControlController::baseTimeMs() const { return 0; }
-qint64 TimeControlController::byoyomiMs() const { return 0; }
-qint64 TimeControlController::incrementMs() const { return 0; }
 qint64 TimeControlController::remainingMs(int) const { return 0; }
 qint64 TimeControlController::incrementMs(int) const { return 0; }
 qint64 TimeControlController::clockByoyomiMs() const { return 0; }

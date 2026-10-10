@@ -152,8 +152,7 @@ void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::T
 
     // 対局情報ドックに持ち時間を追加
     if (tc.enabled && m_deps.updateGameInfoWithTimeControl) {
-        m_deps.updateGameInfoWithTimeControl(
-            tc.enabled, tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs);
+        m_deps.updateGameInfoWithTimeControl(tc);
     }
 }
 

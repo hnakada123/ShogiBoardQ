@@ -20,9 +20,12 @@ public:
      * @param sfenStr SFEN形式の局面文字列
      * @param moveIndex 手数インデックス（0なら初期局面）
      * @param lastMoveStr 最終手の表示文字列（空でも可）
+     * @param handicapNames true なら持駒・手番の見出しを駒落ちの「下手」「上手」で書く
+     *                      （false は「先手」「後手」）
      * @return BOD形式のテキスト（空文字列の場合は生成失敗）
      */
-    static QString generate(const QString& sfenStr, int moveIndex, const QString& lastMoveStr);
+    static QString generate(const QString& sfenStr, int moveIndex, const QString& lastMoveStr,
+                            bool handicapNames = false);
 };
 
 #endif // BODTEXTGENERATOR_H

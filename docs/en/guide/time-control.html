@@ -107,6 +107,7 @@
                 </div>
                 <p class="guide-step-text">Both players use the same method. Entering a value in either byoyomi box sets both increments to 0, and entering an increment sets both byoyomi values to 0. This is what the dialog's note “Both players use the same time control mode. Setting byoyomi or increment clears the other for both players.” means. You cannot give byoyomi to Black and an increment to White.</p>
                 <p class="guide-step-text">When each side has its own time, you can set the main time, byoyomi length, and increment length separately, but the method is still shared.</p>
+                <p class="guide-step-text">When the two sides have different times, the game information and the saved record show both under “Time control”, for example “Black 10:00+30 / White 05:00+30” (“Handicap receiver” and “Handicap giver” in handicap games). In consecutive engine games with “Swap sides after each game” on, the times move with the engines, so each engine keeps the same time in every game.</p>
             </div>
 
         </div>
@@ -243,7 +244,7 @@
                     <span class="guide-step-title">Time Remaining</span>
                 </div>
                 <p class="guide-step-text">In a game with a time limit, the clocks show the time remaining. Only the clock of the player to move runs. Fractions of a second are rounded up, so 7.2 seconds left shows as “00:00:08”, and the time is up when the clock reaches “00:00:00”.</p>
-                <p class="guide-step-text">In a byoyomi game, the clock shows the byoyomi seconds left once byoyomi starts. With 0 main time, each clock shows “00:00:00” until that player's first turn starts.</p>
+                <p class="guide-step-text">In a byoyomi game, the clock shows the byoyomi seconds left once byoyomi starts. After that, while the opponent is thinking, the clock shows the byoyomi you will have for your next move (“00:00:30” with 30 seconds of byoyomi). With 0 main time, the clocks show this from the start. The same applies to network (CSA) games.</p>
             </div>
 
             <div class="guide-step">

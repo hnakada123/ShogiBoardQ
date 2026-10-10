@@ -161,8 +161,11 @@ void GameInfoPaneController::setGameInfoForMatch(const QList<KifGameInfoItem>& a
 {
     commitPendingEditor();
     QList<KifGameInfoItem> items = automaticItems;
+    // 対局者の見出しは平手（先手・後手）と駒落ち（下手・上手）で変わるため、前の対局の行を残さない。
     QSet<QString> replacedKeys = {GameInfoKeys::kEndDateTime, QStringLiteral("消費時間"),
-                                 QStringLiteral("結果"), QStringLiteral("上手"), QStringLiteral("下手")};
+                                 QStringLiteral("結果"),
+                                 GameInfoKeys::kBlackPlayer, GameInfoKeys::kWhitePlayer,
+                                 GameInfoKeys::kShitatePlayer, GameInfoKeys::kUwatePlayer};
     for (const auto& item : automaticItems) replacedKeys.insert(item.key);
     QSet<QString> retainedKeys;
     for (const auto& item : gameInfo()) {
@@ -213,12 +216,20 @@ void GameInfoPaneController::updatePlayerNames(const QString& blackName, const Q
     if (!m_table) return;
     commitPendingEditor();
 
+    // 駒落ちの対局情報では、先手・後手の代わりに下手・上手の行がある
+    const auto isBlackKey = [](const QString& key) {
+        return key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kShitatePlayer;
+    };
+    const auto isWhiteKey = [](const QString& key) {
+        return key == GameInfoKeys::kWhitePlayer || key == GameInfoKeys::kUwatePlayer;
+    };
+
     m_table->blockSignals(true);
 
-    // 先手の行を検索して更新
+    // 先手（下手）の行を検索して更新
     for (int row = 0; row < m_table->rowCount(); ++row) {
         QTableWidgetItem* keyItem = m_table->item(row, 0);
-        if (keyItem && keyItem->text() == GameInfoKeys::kBlackPlayer) {
+        if (keyItem && isBlackKey(keyItem->text())) {
             QTableWidgetItem* valItem = m_table->item(row, 1);
             if (valItem) {
                 valItem->setText(blackName);
@@ -227,10 +238,10 @@ void GameInfoPaneController::updatePlayerNames(const QString& blackName, const Q
         }
     }
 
-    // 後手の行を検索して更新
+    // 後手（上手）の行を検索して更新
     for (int row = 0; row < m_table->rowCount(); ++row) {
         QTableWidgetItem* keyItem = m_table->item(row, 0);
-        if (keyItem && keyItem->text() == GameInfoKeys::kWhitePlayer) {
+        if (keyItem && isWhiteKey(keyItem->text())) {
             QTableWidgetItem* valItem = m_table->item(row, 1);
             if (valItem) {
                 valItem->setText(whiteName);
@@ -243,17 +254,17 @@ void GameInfoPaneController::updatePlayerNames(const QString& blackName, const Q
 
     // 元データも更新
     for (qsizetype i = 0; i < m_originalItems.size(); ++i) {
-        if (m_originalItems[i].key == GameInfoKeys::kBlackPlayer) {
+        if (isBlackKey(m_originalItems[i].key)) {
             m_originalItems[i].value = blackName;
-        } else if (m_originalItems[i].key == GameInfoKeys::kWhitePlayer) {
+        } else if (isWhiteKey(m_originalItems[i].key)) {
             m_originalItems[i].value = whiteName;
         }
     }
     // 自動同期された名前は、他のセルのUndo/Redoで古い名前に戻さない。
     for (auto& state : m_history) {
         for (auto& cell : state.cells) {
-            if (cell.first == GameInfoKeys::kBlackPlayer) cell.second = blackName;
-            else if (cell.first == GameInfoKeys::kWhitePlayer) cell.second = whiteName;
+            if (isBlackKey(cell.first)) cell.second = blackName;
+            else if (isWhiteKey(cell.first)) cell.second = whiteName;
         }
     }
     m_dirty = checkDirty();

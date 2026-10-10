@@ -38,6 +38,7 @@ static bool isTerminalMove(const QString& move)
         QStringLiteral("持将棋"),
         QStringLiteral("千日手"),
         QStringLiteral("切れ負け"),
+        QStringLiteral("時間切れ"),  // 対局で時間切れになったときの終局語
         QStringLiteral("反則勝ち"),
         QStringLiteral("反則負け"),
         QStringLiteral("入玉勝ち"),
@@ -54,13 +55,15 @@ static bool isTerminalMove(const QString& move)
 }
 
 // ヘルパ関数: 終局結果文字列を生成
-static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove, bool initialBlackToMove)
+static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove, bool initialBlackToMove,
+                               bool handicapNames)
 {
     const QString stripped = removeTurnMarker(terminalMove);
 
     const bool lastMoveBySente = ((lastActualMoveNo % 2 != 0) == initialBlackToMove);
-    const QString senteStr = QStringLiteral("先手");
-    const QString goteStr = QStringLiteral("後手");
+    // 駒落ちは柿木形式と同じく下手（先手側）・上手（後手側）と書く
+    const QString senteStr = handicapNames ? QStringLiteral("下手") : QStringLiteral("先手");
+    const QString goteStr = handicapNames ? QStringLiteral("上手") : QStringLiteral("後手");
 
     if (stripped.contains(QStringLiteral("投了"))) {
         return QStringLiteral("まで%1手で%2の勝ち")
@@ -77,7 +80,7 @@ static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove
     const QString declarer = declaredBySente ? senteStr : goteStr;
     const QString opponent = declaredBySente ? goteStr : senteStr;
     const QString n = QString::number(lastActualMoveNo);
-    if (stripped.contains(QStringLiteral("切れ負け"))) {
+    if (stripped.contains(QStringLiteral("切れ負け")) || stripped.contains(QStringLiteral("時間切れ"))) {
         // 手番側の時間切れ
         return QStringLiteral("まで%1手で時間切れにより%2の勝ち").arg(n, opponent);
     }
@@ -150,7 +153,8 @@ static void appendKifComments(const QString& comment, QStringList& out)
 // 分岐出力用ヘルパ
 // ========================================
 
-static void outputKi2VariationFromBranchLine(const BranchLine& line, const QString& startSfen, QStringList& out)
+static void outputKi2VariationFromBranchLine(const BranchLine& line, const QString& startSfen, bool handicapNames,
+                                             QStringList& out)
 {
     // 本譜（lineIndex == 0）の場合は何もしない
     if (line.lineIndex == 0) {
@@ -223,7 +227,8 @@ static void outputKi2VariationFromBranchLine(const BranchLine& line, const QStri
                 movesOnLine.clear();
             }
             // 終局手は本譜と同じく「まで…」の結果行で表す（KI2 では指し手として書かない）
-            out << (isTerminal ? buildEndingLine(node->ply() - 1, moveText, !startSfen.contains(QStringLiteral(" w ")))
+            out << (isTerminal ? buildEndingLine(node->ply() - 1, moveText, !startSfen.contains(QStringLiteral(" w ")),
+                                                 handicapNames)
                                : ki2Move);
 
             appendKifBookmarks(bm, out);
@@ -258,6 +263,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
 
     // 1) ヘッダ
     const QList<KifGameInfoItem> header = GameRecordModel::collectGameInfo(ctx);
+    const bool handicapNames = KifuExportMetadataBuilder::usesHandicapNames(header, ctx.startSfen);
     // 手合割の行が削除されていても、開始局面は盤面図で保持する。
     bool isNonStandard = !ctx.startSfen.trimmed().isEmpty() && !SfenUtils::isHirateStart(ctx.startSfen);
     for (const auto& it : std::as_const(header)) {
@@ -272,7 +278,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
 
     // 1.5) 非標準局面の場合はBOD盤面を挿入
     if (isNonStandard) {
-        const QStringList bodLines = KifExporter::sfenToBodLines(ctx.startSfen);
+        const QStringList bodLines = KifExporter::sfenToBodLines(ctx.startSfen, handicapNames);
         if (!bodLines.isEmpty())
             out << bodLines;
     }
@@ -371,7 +377,8 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
     }
 
     // 6) 終了行
-    out << buildEndingLine(lastActualMoveNo, terminalMove, !ctx.startSfen.contains(QStringLiteral(" w ")));
+    out << buildEndingLine(lastActualMoveNo, terminalMove, !ctx.startSfen.contains(QStringLiteral(" w ")),
+                           handicapNames);
     if (!terminalMove.isEmpty() && !disp.isEmpty()) {
         appendKifBookmarks(disp.last().bookmark, out);
         appendKifComments(disp.last().comment, out);
@@ -384,7 +391,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
         for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);
-            outputKi2VariationFromBranchLine(line, ctx.startSfen, out);
+            outputKi2VariationFromBranchLine(line, ctx.startSfen, handicapNames, out);
         }
     }
 

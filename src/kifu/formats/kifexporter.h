@@ -29,11 +29,12 @@ public:
     /**
      * @brief SFENから開始局面のBOD行リストを生成
      * @param sfen SFEN形式の局面文字列
+     * @param handicapNames true なら持駒・手番の見出しを「下手」「上手」で書く
      * @return BOD形式の行リスト（空SFENまたは平手の場合は空リスト）
      *
      * KIF / KI2 の両方で非標準局面の表示に使用される。
      */
-    static QStringList sfenToBodLines(const QString& sfen);
+    static QStringList sfenToBodLines(const QString& sfen, bool handicapNames = false);
 };
 
 #endif // KIFEXPORTER_H

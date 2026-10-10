@@ -13,6 +13,7 @@
 
 #include "playmode.h"
 #include "kifparsetypes.h"
+#include "kifuexportmetadata.h"
 
 class QTabWidget;
 class GameInfoPaneController;
@@ -97,22 +98,20 @@ public:
     /**
      * @brief 対局開始時の対局情報を設定（持ち時間を含む）
      * @param startDateTime 対局開始日時
-     * @param blackName 先手名
-     * @param whiteName 後手名
-     * @param handicap 手合割
+     * @param blackName 先手（下手）名
+     * @param whiteName 後手（上手）名
+     * @param handicap 手合割（駒落ちなら対局者の見出しを下手・上手にする）
      * @param hasTimeControl 時間制御が有効か
-     * @param baseTimeMs 持ち時間（ミリ秒）
-     * @param byoyomiMs 秒読み（ミリ秒）
-     * @param incrementMs フィッシャー加算（ミリ秒）
+     * @param blackTime 先手（下手）の持ち時間
+     * @param whiteTime 後手（上手）の持ち時間
      */
     void setGameInfoForMatchStart(const QDateTime& startDateTime,
                                   const QString& blackName,
                                   const QString& whiteName,
                                   const QString& handicap,
                                   bool hasTimeControl,
-                                  qint64 baseTimeMs,
-                                  qint64 byoyomiMs,
-                                  qint64 incrementMs);
+                                  const KifuTimeControlSide& blackTime,
+                                  const KifuTimeControlSide& whiteTime);
 
     /**
      * @brief 対局終了時の終了日時を対局情報に追加
@@ -123,14 +122,12 @@ public:
     /**
      * @brief 持ち時間情報を対局情報に追加/更新
      * @param hasTimeControl 時間制御が有効か
-     * @param baseTimeMs 持ち時間（ミリ秒）
-     * @param byoyomiMs 秒読み（ミリ秒）
-     * @param incrementMs フィッシャー加算（ミリ秒）
+     * @param blackTime 先手（下手）の持ち時間
+     * @param whiteTime 後手（上手）の持ち時間
      */
     void updateGameInfoWithTimeControl(bool hasTimeControl,
-                                       qint64 baseTimeMs,
-                                       qint64 byoyomiMs,
-                                       qint64 incrementMs);
+                                       const KifuTimeControlSide& blackTime,
+                                       const KifuTimeControlSide& whiteTime);
 
     /**
      * @brief GameInfoPaneControllerを取得
@@ -181,9 +178,8 @@ public:
      */
     struct TimeControlInfo {
         bool hasTimeControl = false;
-        qint64 baseTimeMs = 0;
-        qint64 byoyomiMs = 0;
-        qint64 incrementMs = 0;
+        KifuTimeControlSide blackTime;  ///< 先手（下手）の持ち時間
+        KifuTimeControlSide whiteTime;  ///< 後手（上手）の持ち時間
         QDateTime gameStartDateTime;
     };
 

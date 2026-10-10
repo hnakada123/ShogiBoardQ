@@ -299,6 +299,14 @@ QString convertToCsaTime(const QString& timeStr)
         return QStringLiteral("$TIME:%1+0+%2").arg(totalSeconds).arg(inc.captured(3).toInt());
     }
 
+    // 対局情報の持ち時間（切れ負け）: "mm:ss" → "$TIME:秒+0+0"
+    static const QRegularExpression reSuddenDeath(QStringLiteral("^(\\d+):(\\d{2})$"));
+    const QRegularExpressionMatch sd = reSuddenDeath.match(timeStr);
+    if (sd.hasMatch()) {
+        const int totalSeconds = sd.captured(1).toInt() * 60 + sd.captured(2).toInt();
+        return QStringLiteral("$TIME:%1+0+0").arg(totalSeconds);
+    }
+
     // 対局情報の持ち時間: "mm:ss+秒読み" → "$TIME:秒+秒読み+0"
     static const QRegularExpression reV22(
         QStringLiteral("(\\d+):(\\d{2})\\+(\\d+)"));
@@ -339,6 +347,25 @@ QString convertToCsaTime(const QString& timeStr)
     }
 
     return QStringLiteral("$TIME_LIMIT:%1").arg(timeStr);
+}
+
+QStringList convertToCsaTimeLines(const QString& timeStr)
+{
+    // 先後で違う持ち時間（KifuExportMetadataBuilder::timeControlText の
+    // "先手 mm:ss+秒 / 後手 mm:ss+秒"、駒落ちは下手・上手）は CSA V3.0 の $TIME+ と $TIME- に分ける
+    static const QRegularExpression rePerSide(
+        QStringLiteral("^(?:先手|下手) (.+) / (?:後手|上手) (.+)$"));
+    const QRegularExpressionMatch m = rePerSide.match(timeStr.trimmed());
+    if (m.hasMatch()) {
+        static const QString prefix = QStringLiteral("$TIME:");
+        const QString black = convertToCsaTime(m.captured(1));
+        const QString white = convertToCsaTime(m.captured(2));
+        if (black.startsWith(prefix) && white.startsWith(prefix)) {
+            return { QStringLiteral("$TIME+:") + black.mid(prefix.size()),
+                     QStringLiteral("$TIME-:") + white.mid(prefix.size()) };
+        }
+    }
+    return { convertToCsaTime(timeStr) };
 }
 
 } // namespace CsaFormatter

@@ -207,16 +207,22 @@ private slots:
     void kifBodUsesDeclaredTurn_data()
     {
         QTest::addColumn<bool>("withBod");
-        QTest::newRow("bod") << true;
-        QTest::newRow("header-only") << false;
+        QTest::addColumn<bool>("handicapNames");
+        QTest::newRow("bod") << true << false;
+        QTest::newRow("header-only") << false << false;
+        // 駒落ちの呼び方（上手の持駒・上手番）で書いた局面図と手番
+        QTest::newRow("bod-uwate") << true << true;
+        QTest::newRow("header-only-uwate") << false << true;
     }
 
     void kifBodUsesDeclaredTurn()
     {
         QFETCH(bool, withBod);
+        QFETCH(bool, handicapNames);
         QString initial = kHirateSfen;
         initial.replace(QStringLiteral(" b "), QStringLiteral(" w "));
-        const QString text = (withBod ? BodTextGenerator::generate(initial, 0, {}) : QStringLiteral("後手番"))
+        const QString turnLine = handicapNames ? QStringLiteral("上手番") : QStringLiteral("後手番");
+        const QString text = (withBod ? BodTextGenerator::generate(initial, 0, {}, handicapNames) : turnLine)
             + QStringLiteral("\n手数----指手---------消費時間--\n1 ３四歩(33)\n2 投了\n");
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("kif")));
@@ -283,8 +289,13 @@ private slots:
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = initial;
         const QStringList lines = format == QStringLiteral("kif") ? model.toKifLines(ctx) : model.toKi2Lines(ctx);
+        // 駒落ちは柿木形式と同じく、局面図の持駒・手番と終局行も下手・上手で書く（下で読み込み直す）
         QVERIFY(lines.contains(QStringLiteral("まで%1手で%2の勝ち").arg(moveCount)
-            .arg(moveCount % 2 == 0 ? QStringLiteral("先手") : QStringLiteral("後手"))));
+            .arg(moveCount % 2 == 0 ? QStringLiteral("下手") : QStringLiteral("上手"))));
+        QVERIFY(lines.contains(QStringLiteral("上手の持駒：なし")));
+        QVERIFY(lines.contains(QStringLiteral("下手の持駒：なし")));
+        QVERIFY(lines.contains(QStringLiteral("上手番")));
+        QVERIFY(!lines.join(QLatin1Char('\n')).contains(QStringLiteral("後手の持駒")));
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, lines.join(QLatin1Char('\n')).toUtf8(), format));
         KifParseResult result;
@@ -366,6 +377,22 @@ private slots:
         QCOMPARE(CsaFormatter::convertToCsaTime(QStringLiteral("600+30+5")), QStringLiteral("$TIME:600+30+5"));
         // フィッシャー加算は秒読みと区別して第3項に入れる
         QCOMPARE(CsaFormatter::convertToCsaTime(QStringLiteral("05:00+10秒加算")), QStringLiteral("$TIME:300+0+10"));
+        // 切れ負けの「分:秒」を CSA V2 の時:分（$TIME_LIMIT）と取り違えない
+        QCOMPARE(CsaFormatter::convertToCsaTime(QStringLiteral("10:00")), QStringLiteral("$TIME:600+0+0"));
+        QCOMPARE(CsaFormatter::convertToCsaTime(QStringLiteral("120:30")), QStringLiteral("$TIME:7230+0+0"));
+    }
+
+    /// 先後で違う持ち時間は CSA V3.0 の $TIME+ と $TIME- に分ける
+    void csaTimeLinesSplitPerSide()
+    {
+        using CsaFormatter::convertToCsaTimeLines;
+        QCOMPARE(convertToCsaTimeLines(QStringLiteral("10:00+30")), QStringList({"$TIME:600+30+0"}));
+        QCOMPARE(convertToCsaTimeLines(QStringLiteral("先手 01:00+2 / 後手 02:00+3")),
+                 QStringList({"$TIME+:60+2+0", "$TIME-:120+3+0"}));
+        QCOMPARE(convertToCsaTimeLines(QStringLiteral("下手 05:00+10秒加算 / 上手 10:00+10秒加算")),
+                 QStringList({"$TIME+:300+0+10", "$TIME-:600+0+10"}));
+        QCOMPARE(convertToCsaTimeLines(QStringLiteral("先手 03:00 / 後手 05:00")),
+                 QStringList({"$TIME+:180+0+0", "$TIME-:300+0+0"}));
     }
 
     /// 対局情報の持ち時間は秒読みと加算を書き分ける
@@ -378,6 +405,98 @@ private slots:
         QCOMPARE(timeControlText(0, 30000, 0), QStringLiteral("00:00+30"));
     }
 
+    /// 先後で持ち時間が違えば両方を書き、駒落ちの見出しは下手・上手にする
+    void timeControlTextPerSide()
+    {
+        using KifuExportMetadataBuilder::timeControlText;
+        const KifuTimeControlSide black{60000, 2000, 0};
+        const KifuTimeControlSide white{120000, 3000, 0};
+        QCOMPARE(timeControlText(black, black, false), QStringLiteral("01:00+2"));
+        QCOMPARE(timeControlText(black, white, false), QStringLiteral("先手 01:00+2 / 後手 02:00+3"));
+        QCOMPARE(timeControlText(black, white, true), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
+    }
+
+    /// 駒落ちの棋譜は柿木形式と同じく対局者を下手・上手で書き、CSA では下手が先手（N+）になる
+    void handicapHeaderUsesShitateUwate()
+    {
+        GameRecordModel model;
+        GameRecordModel::ExportContext ctx;
+        ctx.startSfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");  // 角落ち
+        ctx.playMode = PlayMode::HandicapEngineVsEngine;
+        ctx.engine1 = QStringLiteral("下手エンジン");
+        ctx.engine2 = QStringLiteral("上手エンジン");
+        ctx.hasTimeControl = true;
+        ctx.blackTime = {60000, 2000, 0};
+        ctx.whiteTime = {120000, 3000, 0};
+        const QString kif = model.toKifLines(ctx).join(QLatin1Char('\n'));
+        QVERIFY2(kif.contains(QStringLiteral("下手：下手エンジン")), qPrintable(kif));
+        QVERIFY(kif.contains(QStringLiteral("上手：上手エンジン")));
+        QVERIFY(!kif.contains(QStringLiteral("先手：")));
+        QVERIFY(!kif.contains(QStringLiteral("後手：")));
+        QVERIFY(kif.contains(QStringLiteral("持ち時間：下手 01:00+2 / 上手 02:00+3")));
+        const QString csa = model.toCsaLines(ctx, {}).join(QLatin1Char('\n'));
+        QVERIFY2(csa.contains(QStringLiteral("N+下手エンジン")), qPrintable(csa));
+        QVERIFY(csa.contains(QStringLiteral("N-上手エンジン")));
+        QVERIFY(csa.contains(QStringLiteral("$TIME+:60+2+0")));
+        QVERIFY(csa.contains(QStringLiteral("$TIME-:120+3+0")));
+        QVERIFY(!csa.contains(QStringLiteral("$TIME:")));
+
+        // 平手は従来どおり先手・後手
+        ctx.startSfen = kHirateSfen;
+        ctx.whiteTime = ctx.blackTime;
+        const QString hirate = model.toKifLines(ctx).join(QLatin1Char('\n'));
+        QVERIFY(hirate.contains(QStringLiteral("先手：下手エンジン")));
+        QVERIFY(hirate.contains(QStringLiteral("持ち時間：01:00+2")));
+        QVERIFY(model.toCsaLines(ctx, {}).contains(QStringLiteral("$TIME:60+2+0")));
+
+        // 読み込んだ棋譜の見出しが先手・後手なら、駒落ちでも局面図をその呼び方にそろえる
+        ctx.startSfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        ctx.gameInfoProvided = true;
+        ctx.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("A")}, {QStringLiteral("後手"), QStringLiteral("B")},
+                             {QStringLiteral("手合割"), QStringLiteral("角落ち")}};
+        const QString keepsHeader = model.toKifLines(ctx).join(QLatin1Char('\n'));
+        QVERIFY2(keepsHeader.contains(QStringLiteral("後手の持駒：なし")), qPrintable(keepsHeader));
+        QVERIFY(keepsHeader.contains(QStringLiteral("後手番")));
+        QVERIFY(!keepsHeader.contains(QStringLiteral("上手の持駒")));
+    }
+
+    /// 対局で時間切れになったときの終局語「時間切れ」を、どの形式でも終局として書く
+    void timeoutTerminalExportsInEveryFormat()
+    {
+        const QString initial =
+            QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");  // 角落ち
+        KifuBranchTree tree;
+        tree.setRootSfen(initial);
+        auto* tip = addTestMove(tree, tree.root(), QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
+        tree.addTerminalMove(tip, TerminalType::Timeout, QStringLiteral("▲時間切れ"));
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext ctx;
+        ctx.startSfen = initial;
+        const QStringList kif = model.toKifLines(ctx);
+        QVERIFY2(kif.contains(QStringLiteral("まで1手で上手の勝ち")), qPrintable(kif.join(QLatin1Char('\n'))));
+        const QStringList ki2 = model.toKi2Lines(ctx);
+        QVERIFY2(ki2.contains(QStringLiteral("まで1手で時間切れにより上手の勝ち")), qPrintable(ki2.join(QLatin1Char('\n'))));
+        QVERIFY(!ki2.contains(QStringLiteral("▲時間切れ")));
+        QVERIFY(model.toUsiLines(ctx, {QStringLiteral("3c3d")}).join(QLatin1Char('\n')).endsWith(QStringLiteral("3c3d timeout")));
+        QVERIFY(model.toUsenLines(ctx, {QStringLiteral("3c3d")}).join(QLatin1Char('\n')).trimmed().endsWith(QStringLiteral(".t")));
+        QVERIFY(model.toJkfLines(ctx).join(QLatin1Char('\n')).contains(QStringLiteral("\"special\":\"TIME_UP\"")));
+    }
+
+    /// 駒落ちの呼び方（下手・上手）で書いた局面図の持駒も読み込める
+    void bodReadsShitateUwateHands()
+    {
+        const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w 2Pr 1");
+        const QString bod = BodTextGenerator::generate(sfen, 0, {}, true);
+        QVERIFY2(bod.contains(QStringLiteral("上手の持駒：")) && bod.contains(QStringLiteral("下手の持駒：")),
+                 qPrintable(bod));
+        QVERIFY(!bod.contains(QStringLiteral("なし")));
+        QTemporaryFile file;
+        QVERIFY(KifuTestHelper::writeToTempFile(
+            file, (bod + QStringLiteral("\n手数----指手---------消費時間--\n")).toUtf8(), QStringLiteral("kif")));
+        QCOMPARE(KifToSfenConverter::detectInitialSfenFromFile(file.fileName()), sfen);
+    }
+
     void clipboardKeepsTimeMetadata()
     {
         KifuBranchTree tree;
@@ -387,9 +506,8 @@ private slots:
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
         ctx.hasTimeControl = true;
-        ctx.initialTimeMs = 630000;
-        ctx.byoyomiMs = 30000;
-        ctx.fischerIncrementMs = 5000;
+        ctx.blackTime = {630000, 30000, 5000};
+        ctx.whiteTime = ctx.blackTime;
         ctx.gameStartDateTime = QDateTime(QDate(2025, 1, 2), QTime(3, 4, 5));
         ctx.gameEndDateTime = QDateTime(QDate(2025, 1, 2), QTime(6, 7, 8));
         QVERIFY(KifuClipboardService::copyKif(model, ctx));

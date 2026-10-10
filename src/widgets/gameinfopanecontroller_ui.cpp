@@ -64,7 +64,8 @@ QString GameInfoPaneController::placeholderForKey(const QString& key) const
 {
     if (key == GameInfoKeys::kGameDate || key == GameInfoKeys::kStartDateTime)
         return m_beforeMatchStart ? tr("未開始（対局開始時に設定）") : tr("未設定");
-    if (key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kWhitePlayer)
+    if (key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kWhitePlayer
+        || key == GameInfoKeys::kShitatePlayer || key == GameInfoKeys::kUwatePlayer)
         return tr("未設定（名前を入力できます）");
     if (key == GameInfoKeys::kTimeControl)
         return m_beforeMatchStart ? tr("未設定（対局設定から反映）") : tr("未設定");

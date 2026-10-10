@@ -76,7 +76,8 @@ void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeCon
                                              ShogiView* shogiView)
 {
     // 1) 設定を保存し、開始時刻を記録
-    saveTimeControlSettings(tc.enabled, tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs);
+    saveTimeControlSettings(tc.enabled, {tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs},
+                            {tc.p2.baseMs, tc.p2.byoyomiMs, tc.p2.incrementMs});
     recordGameStartTime();
 
     // 2) 時計へ適用
@@ -110,23 +111,24 @@ void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeCon
 // 時間制御設定
 // --------------------------------------------------------
 
-void TimeControlController::saveTimeControlSettings(bool enabled, qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs)
+void TimeControlController::saveTimeControlSettings(bool enabled, const KifuTimeControlSide& black,
+                                                    const KifuTimeControlSide& white)
 {
     m_settings.enabled = enabled;
-    m_settings.baseMs = baseMs;
-    m_settings.byoyomiMs = byoyomiMs;
-    m_settings.incrementMs = incrementMs;
+    m_settings.black = black;
+    m_settings.white = white;
 
     qCDebug(lcUi).noquote() << "saveTimeControlSettings:"
                             << "enabled=" << enabled
-                            << "base=" << baseMs
-                            << "byoyomi=" << byoyomiMs
-                            << "increment=" << incrementMs;
+                            << "black={" << black.baseMs << black.byoyomiMs << black.incrementMs << "}"
+                            << "white={" << white.baseMs << white.byoyomiMs << white.incrementMs << "}";
 }
 
-void TimeControlController::beginGameWithTimeControl(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs)
+void TimeControlController::beginGameWithTimeControl(const KifuTimeControlSide& black,
+                                                     const KifuTimeControlSide& white)
 {
-    saveTimeControlSettings(baseMs > 0 || byoyomiMs > 0 || incrementMs > 0, baseMs, byoyomiMs, incrementMs);
+    const KifuTimeControlSide none;
+    saveTimeControlSettings(black != none || white != none, black, white);
     clearGameStartTime();
     recordGameStartTime();
     clearGameEndTime();
@@ -140,21 +142,6 @@ const TimeControlController::TimeControlSettings& TimeControlController::setting
 bool TimeControlController::hasTimeControl() const
 {
     return m_settings.enabled;
-}
-
-qint64 TimeControlController::baseTimeMs() const
-{
-    return m_settings.baseMs;
-}
-
-qint64 TimeControlController::byoyomiMs() const
-{
-    return m_settings.byoyomiMs;
-}
-
-qint64 TimeControlController::incrementMs() const
-{
-    return m_settings.incrementMs;
 }
 
 // --------------------------------------------------------

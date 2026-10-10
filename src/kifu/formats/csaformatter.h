@@ -54,6 +54,8 @@ QString extractCsaTimeToken(const QString& timeText);
 QString csaResultCode(const QString& terminalMove);
 QString convertToCsaDateTime(const QString& dateTimeStr);
 QString convertToCsaTime(const QString& timeStr);
+/// 対局情報の持ち時間を CSA の行にする。先後で違う持ち時間は $TIME+ と $TIME- の2行になる
+QStringList convertToCsaTimeLines(const QString& timeStr);
 
 } // namespace CsaFormatter
 

@@ -67,6 +67,7 @@ public:
         MatchCoordinator::StartOptions opt;  ///< 既存のStartOptionsをそのまま注入
         TimeControl                    tc;   ///< 時計適用のために併送
         bool autoStartEngineMove = true;     ///< 先手がエンジンなら初手goを起動
+        bool announcePlayerNames = false;    ///< 対局者名を通知する（ダイアログを経ない連続対局の2局目以降）
     };
 
     /// 開始前の適用（時計/人手前など）を依頼するための軽量入力

@@ -46,6 +46,7 @@
 #include "gameinfopanecontroller.h"
 #include "gameinfokeys.h"
 #include "gamerecordmodel.h"
+#include "timecontrolcontroller.h"
 #include <QTableView>
 #include <QTableWidget>
 #include <utility>
@@ -780,7 +781,78 @@ private slots:
             QVERIFY(!contents.contains(QStringLiteral("変化：").toUtf8()));
         }
     }
+    void consecutiveSwapKeepsEngineTime() {
+        // 1局ごとに手番を入れ替えると、持ち時間もエンジンと一緒に入れ替わる
+        configureEngineGames(1);
+        auto& settings = SettingsCommon::openSettings();
+        settings.setValue("GameSettings/isSwitchTurnEachGame", true);
+        settings.setValue("GameSettings/isGroupBoxSecondPlayerTimeSettingsChecked", true);
+        settings.setValue("GameSettings/basicTimeMinutes1", 5);
+        settings.setValue("GameSettings/basicTimeMinutes2", 3);
+        settings.sync();
+        startWindowGame();
+        const auto first = window->m_timeController->settings();
+        QCOMPARE(first.black.baseMs, qint64(300000));
+        QCOMPARE(first.white.baseMs, qint64(180000));
+        auto* table = window->findChild<GameInfoPaneController*>()->tableWidget();
+        QCOMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("先手 05:00 / 後手 03:00"));
+        dialogTimer.start(10);
+        QTRY_COMPARE_WITH_TIMEOUT(window->m_consecutiveGamesController->currentGameNumber(), 2, 5000);
+        dialogTimer.stop();
+        const auto second = window->m_timeController->settings();
+        QCOMPARE(second.black.baseMs, qint64(180000));
+        QCOMPARE(second.white.baseMs, qint64(300000));
+        QTRY_COMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("先手 03:00 / 後手 05:00"));
+        // 2局目もダイアログ経由と同じく対局者と開始日時を対局情報に入れる
+        QCOMPARE(gameInfoValue(table, GameInfoKeys::kBlackPlayer), QStringLiteral("Audit USI"));
+        QCOMPARE(gameInfoValue(table, GameInfoKeys::kWhitePlayer), QStringLiteral("Audit USI"));
+        QVERIFY(!gameInfoValue(table, GameInfoKeys::kStartDateTime).isEmpty());
+        QVERIFY(window->findChild<ShogiView*>()->blackNameLabel()->fullText().contains(QStringLiteral("Audit USI")));
+    }
+    void handicapGameInfoUsesShitateUwate() {
+        auto& settings = SettingsCommon::openSettings();
+        settings.setValue("GameSettings/humanName1", QStringLiteral("下手さん"));
+        settings.setValue("GameSettings/humanName2", QStringLiteral("上手さん"));
+        settings.setValue("GameSettings/isGroupBoxSecondPlayerTimeSettingsChecked", true);
+        settings.setValue("GameSettings/basicTimeMinutes1", 1);
+        settings.setValue("GameSettings/byoyomiSec1", 2);
+        settings.setValue("GameSettings/basicTimeMinutes2", 2);
+        settings.setValue("GameSettings/byoyomiSec2", 3);
+        settings.sync();
+        requestedPreset = 4;  // 角落ち
+        startWindowGame();
+        auto* controller = window->findChild<GameInfoPaneController*>();
+        auto* table = controller->tableWidget();
+        QCOMPARE(gameInfoValue(table, GameInfoKeys::kShitatePlayer), QStringLiteral("下手さん"));
+        QCOMPARE(gameInfoValue(table, GameInfoKeys::kUwatePlayer), QStringLiteral("上手さん"));
+        QCOMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
+        for (const auto& item : controller->gameInfo())
+            QVERIFY(item.key != GameInfoKeys::kBlackPlayer && item.key != GameInfoKeys::kWhitePlayer);
+        // 見出しは対局情報から書き出すので、指し手のない棋譜モデルで足りる
+        GameRecordModel record;
+        GameRecordModel::ExportContext context;
+        context.gameInfoItems = controller->gameInfo();
+        context.gameInfoProvided = true;
+        context.startSfen = window->m_state.startSfenStr;
+        const QString kif = record.toKifLines(context).join(QLatin1Char('\n'));
+        QVERIFY2(kif.contains(QStringLiteral("下手：下手さん")), qPrintable(kif));
+        QVERIFY(kif.contains(QStringLiteral("上手：上手さん")));
+        QVERIFY(kif.contains(QStringLiteral("持ち時間：下手 01:00+2 / 上手 02:00+3")));
+        QVERIFY(!kif.contains(QStringLiteral("先手：")));
+        const QString csa = record.toCsaLines(context, {}).join(QLatin1Char('\n'));
+        QVERIFY2(csa.contains(QStringLiteral("N+下手さん")), qPrintable(csa));
+        QVERIFY(csa.contains(QStringLiteral("N-上手さん")));
+        QVERIFY(csa.contains(QStringLiteral("$TIME+:60+2+0")));
+        QVERIFY(csa.contains(QStringLiteral("$TIME-:120+3+0")));
+    }
 private:
+    static QString gameInfoValue(const QTableWidget* table, const QString& key) {
+        for (int row = 0; row < table->rowCount(); ++row) {
+            if (table->item(row, 0) && table->item(row, 0)->text() == key)
+                return table->item(row, 1) ? table->item(row, 1)->text() : QString();
+        }
+        return {};
+    }
     void configureEngineGames(int maxMoves) {
         auto& settings = SettingsCommon::openSettings();
         settings.beginWriteArray("Engines"); settings.setArrayIndex(0);

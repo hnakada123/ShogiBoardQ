@@ -19,15 +19,12 @@ void TimeControlController::setTimeDisplayPresenter(TimeDisplayPresenter*) {}
 void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeControl&,
                                               MatchCoordinator*, const QString&,
                                               const QString&, ShogiView*) {}
-void TimeControlController::saveTimeControlSettings(bool, qint64, qint64, qint64) {}
+void TimeControlController::saveTimeControlSettings(bool, const KifuTimeControlSide&, const KifuTimeControlSide&) {}
 const TimeControlController::TimeControlSettings& TimeControlController::settings() const
 {
     return m_settings;
 }
 bool TimeControlController::hasTimeControl() const { return false; }
-qint64 TimeControlController::baseTimeMs() const { return 0; }
-qint64 TimeControlController::byoyomiMs() const { return 0; }
-qint64 TimeControlController::incrementMs() const { return 0; }
 void TimeControlController::recordGameStartTime() {}
 QDateTime TimeControlController::gameStartDateTime() const { return {}; }
 void TimeControlController::clearGameStartTime() {}

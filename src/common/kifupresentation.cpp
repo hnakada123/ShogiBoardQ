@@ -225,6 +225,12 @@ QString infoValue(const QString& key, const QString& raw)
     if (key == QStringLiteral("持ち時間") && raw == QStringLiteral("無制限"))
         return translated(QT_TRANSLATE_NOOP("KifuPresentation", "無制限"));
     if (key == QStringLiteral("持ち時間")) {
+        // 先後で違う持ち時間（"先手 mm:ss+秒 / 後手 mm:ss+秒"、駒落ちは下手・上手）は、見出しと各側を訳す
+        static const QRegularExpression perSide(QStringLiteral("^(先手|下手) (.+) / (後手|上手) (.+)$"));
+        const QRegularExpressionMatch side = perSide.match(raw);
+        if (side.hasMatch())
+            return QStringLiteral("%1 %2 / %3 %4").arg(infoKey(side.captured(1)), infoValue(key, side.captured(2)),
+                                                       infoKey(side.captured(3)), infoValue(key, side.captured(4)));
         // フィッシャー加算の書式（KifuExportMetadataBuilder::timeControlText）を表示言語に合わせる
         static const QRegularExpression increment(QStringLiteral("^(\\d+:\\d{2})\\+(\\d+)秒加算$"));
         const QRegularExpressionMatch m = increment.match(raw);
