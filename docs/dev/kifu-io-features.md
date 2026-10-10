@@ -117,7 +117,7 @@ USEN Files (*.usen)
 | フォーマット | 内容 | メソッド |
 |---|---|---|
 | SFEN | 現在の局面をSFEN文字列でコピー | `KifuExportController::copySfenToClipboard()` |
-| BOD | 現在の局面をBOD（テキスト盤面図）でコピー | `KifuExportController::copyBodToClipboard()` |
+| BOD | 現在の局面をBOD（テキスト盤面図）でコピー。駒落ちの棋譜は KIF の局面図と同じく持駒・手番を下手・上手で書く（対局情報の見出しが先手・後手ならそれに合わせる） | `KifuExportController::copyBodToClipboard()` |
 
 ### 盤面画像コピー
 
