@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Control and Clocks - ShogiBoardQ</title>
+    <meta name="description" content="How time works in ShogiBoardQ games: main time, byoyomi, and Fischer increment in the game dialog, unlimited-time games, time settings that cannot start a game, and how the clocks and their warning colors work.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/time-control.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/time-control.html">
+    <meta property="og:title" content="Time Control and Clocks - ShogiBoardQ">
+    <meta property="og:description" content="Set main time, byoyomi, or a per-move increment, and read the clocks during a game. Covers unlimited-time games and warning colors.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/time-control/time-settings.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Time Control and Clocks - ShogiBoardQ">
+    <meta name="twitter:description" content="Set main time, byoyomi, or a per-move increment, and read the clocks during a game. Covers unlimited-time games and warning colors.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/time-control/time-settings.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/time-control.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/time-control.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/time-control.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/time-control.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/time-control.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/time-control.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="time-control.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/time-control.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/time-control.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#settings">Time Settings</a></li>
+            <li><a href="#behavior">Byoyomi &amp; Increment</a></li>
+            <li><a href="#unlimited">Unlimited Time</a></li>
+            <li><a href="#blocked">Settings That Cannot Start</a></li>
+            <li><a href="#clock">Clock Display</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Time Control and Clocks</h1>
+        <p class="hero-subtitle">The time settings in the game dialog and how the clocks run during a game</p>
+        <div class="hero-badges">
+            <span class="badge">Main Time &amp; Byoyomi</span>
+            <span class="badge">Per-Move Increment</span>
+            <span class="badge">Unlimited Time</span>
+            <span class="badge">Warning Colors</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="settings" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Time Settings</h2>
+        <p class="section-desc">Set the main time, byoyomi, and per-move increment in the game dialog</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Time Setting Options</span>
+                </div>
+                <p class="guide-step-text">The time settings are in the middle of the game dialog (Game → Game…). Every time value applies to each player individually.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Time control</strong>: The main time each player can use for the whole game, set in hours and minutes.</li>
+                    <li><strong>Byoyomi</strong>: The seconds available for each move after the main time is used up. Unused seconds do not carry over to the next move.</li>
+                    <li><strong>Increment per move</strong>: A Fischer increment. These seconds are added to the remaining time for the first move and after every move. Unused time accumulates.</li>
+                    <li><strong>Set different time for White/Uwate</strong>: When unchecked, the values on the left apply to both players (headed “Shared time control”). When checked, you can set White/Uwate's time on the right, and the left heading changes to “Black / Shitate time control”.</li>
+                    <li><strong>Timeout is loss (under Game options)</strong>: When checked, a player who uses up all available time loses on time. When unchecked, the game continues even after time runs out.</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/time-control/time-settings.png"><img src="../../images/en/time-control/time-settings.png" alt="Time settings in the game dialog: 10 minutes of main time and 30 seconds of byoyomi shared by both players, with Timeout is loss checked" width="958" height="339" loading="lazy"></a>
+                    <p class="screenshot-caption">Time settings: 10 minutes plus 30 seconds of byoyomi for both players</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Byoyomi or Increment, Not Both</span>
+                </div>
+                <p class="guide-step-text">Both players use the same method. Entering a value in either byoyomi box sets both increments to 0, and entering an increment sets both byoyomi values to 0. This is what the dialog's note “Both players use the same time control mode. Setting byoyomi or increment clears the other for both players.” means. You cannot give byoyomi to Black and an increment to White.</p>
+                <p class="guide-step-text">When each side has its own time, you can set the main time, byoyomi length, and increment length separately, but the method is still shared.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="behavior" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">How Byoyomi and Increment Work</h2>
+        <p class="section-desc">How the time you set runs down and is added during a game</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Main Time Only (Sudden Death)</span>
+                </div>
+                <p class="guide-step-text">Only the player to move uses time, and nothing is added after a move. When the main time runs out, that player is out of time. For example, with 5 minutes of main time the clock starts at “00:05:00”, and after a 3-second first move it shows “00:04:57”.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">With Byoyomi</span>
+                </div>
+                <p class="guide-step-text">While main time remains, the clock counts down the main time. If it runs out while you are thinking, byoyomi starts in the middle of that move, and the time already spent on the move still counts.</p>
+                <p class="guide-step-text">In byoyomi, if you move before the byoyomi seconds run out, the next move gets the full byoyomi again; unused seconds do not accumulate. The time is up the moment the byoyomi limit is reached (with 30 seconds of byoyomi, you must move in under 30 seconds). With a main time of 0, every move from the first has, say, 30 seconds.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">With a Per-Move Increment</span>
+                </div>
+                <p class="guide-step-text">At the start of the game, the increment is added to the main time for the first move. After that, every move made in time adds the increment for the next move. Your opponent's moves never add time to your clock.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Setting or action</th><th scope="col">Remaining time</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Start with 0 main time and a 10-second increment</td><td>10 sec</td></tr>
+                        <tr><td>Play the first move in 3 seconds</td><td>10 − 3 + 10 = 17 sec</td></tr>
+                        <tr><td>Play your next move in 5 seconds</td><td>17 − 5 + 10 = 22 sec</td></tr>
+                        <tr><td>Start with 5 minutes of main time and a 10-second increment</td><td>5 min 10 sec</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="unlimited" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Unlimited Time</h2>
+        <p class="section-desc">Set main time, byoyomi, and increment all to 0 to play without watching the clock</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">For Human vs. Human Games</span>
+                </div>
+                <p class="guide-step-text">When main time, byoyomi, and increment are all 0 for both players, the game has no time limit. No one loses on time, even with “Timeout is loss” checked.</p>
+                <p class="guide-step-text">Only human vs. human games can use unlimited time. Games with an engine cannot start, as described in <a href="#blocked">Settings That Cannot Start a Game</a> below.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">The Clocks Show Time Used</span>
+                </div>
+                <p class="guide-step-text">In an unlimited-time game, the clocks show the total time each player has used instead of the time remaining, such as “Used 00:00:09”. During your turn, the time spent on the current move is included. After a move, the value matches that player's total in the Time column of the game record.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/time-control/unlimited-clock.png"><img src="../../images/en/time-control/unlimited-clock.png" alt="An unlimited-time game: Black&#x27;s clock shows Used 00:00:09 and White&#x27;s clock shows Used 00:00:02" width="720" height="566" loading="lazy"></a>
+                    <p class="screenshot-caption">Unlimited time: each clock shows the total time used (Black 9 s, White 2 s)</p>
+                </div>
+                <p class="guide-step-text">Fractions of a second are dropped. The warning colors for low time are not used.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="blocked" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Settings That Cannot Start a Game</h2>
+        <p class="section-desc">Some time settings show a warning when you click Start Game</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Settings That Show a Warning</span>
+                </div>
+                <p class="guide-step-text">With the following settings, clicking “Start Game” shows a “Time Settings” warning and the game does not start. The dialog stays open, so change the time and click “Start Game” again. Your settings are not saved when the warning appears.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Setting</th><th scope="col">Warning and how to fix it</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Only one player has main time, byoyomi, and increment all at 0 (with “Set different time for White/Uwate” checked)</td><td>You cannot give unlimited time to only one player. Set a time for both players. In a human vs. human game, set both to 0 to play without a time limit.</td></tr>
+                        <tr><td>A game with an engine in which both players have main time, byoyomi, and increment all at 0</td><td>The engine would treat its available time as 0 seconds and move almost without thinking, so unlimited time is not allowed. Set a main time, byoyomi, or increment.</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/time-control/engine-warning.png"><img src="../../images/en/time-control/engine-warning.png" alt="The Time Settings warning, explaining that a game with an engine cannot be played without a time limit, and why" width="500" height="134" loading="lazy"></a>
+                    <p class="screenshot-caption">The warning when starting a game with an engine and no time limit</p>
+                </div>
+                <p class="guide-step-text">The first time you open the game dialog, all times are 0, and if an engine is registered, White/Uwate is set to that engine. Clicking “Start Game” as is shows this warning, so set a main time or byoyomi first. The time you set is used again next time.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="clock" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Clock Display</h2>
+        <p class="section-desc">The player cards beside the board show each clock as hours:minutes:seconds</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Time Remaining</span>
+                </div>
+                <p class="guide-step-text">In a game with a time limit, the clocks show the time remaining. Only the clock of the player to move runs. Fractions of a second are rounded up, so 7.2 seconds left shows as “00:00:08”, and the time is up when the clock reaches “00:00:00”.</p>
+                <p class="guide-step-text">In a byoyomi game, the clock shows the byoyomi seconds left once byoyomi starts. With 0 main time, each clock shows “00:00:00” until that player's first turn starts.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Colors Change When Time Runs Low</span>
+                </div>
+                <p class="guide-step-text">The text of the clock of the player to move changes color when time runs low.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Games without byoyomi</strong>: With 10 seconds or less left, the text uses the “Text with 10 seconds or less” color; with 5 seconds or less, the “Text in byoyomi / 5 seconds or less” color.</li>
+                    <li><strong>Games with byoyomi</strong>: With 10 seconds or less of main time left, the text uses the “Text with 10 seconds or less” color; once byoyomi starts, the “Text in byoyomi / 5 seconds or less” color.</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/time-control/byoyomi-clock.png"><img src="../../images/en/time-control/byoyomi-clock.png" alt="A game with 30 seconds of byoyomi: Black, to move, shows 00:00:28 in red, and White&#x27;s clock shows 00:00:30 in the normal color" width="720" height="566" loading="lazy"></a>
+                    <p class="screenshot-caption">In byoyomi: the clock of the player to move uses the warning color</p>
+                </div>
+                <p class="guide-step-text">You can change both colors on the Details tab of <a href="board-colors.html">Game Appearance</a>. The colors do not change in unlimited-time games.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Abort and Resume</span>
+                </div>
+                <p class="guide-step-text">When you abort a game, the clocks stop, and Resume continues from the time remaining at that point (<a href="game-play.html#resume">Aborting and Resuming a Game</a>).</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← Back to User Guide</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

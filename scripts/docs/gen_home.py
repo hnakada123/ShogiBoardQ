@@ -22,7 +22,7 @@ META = {
 
 # (icon, guide page) — 節へリンクするときは "page#id"。各言語の "cards" もこの文字列で引く
 FEATURE_GROUPS = [
-    ("play", [("game", "game-play"), ("hayanagi", "hayanagi"), ("network", "csa-game"), ("nyugyoku", "nyugyoku")]),
+    ("play", [("game", "game-play"), ("clock", "time-control"), ("hayanagi", "hayanagi"), ("network", "csa-game"), ("nyugyoku", "nyugyoku")]),
     ("analysis", [("consideration", "consideration"), ("eval-graph", "kifu-analysis"), ("book", "joseki"),
                   ("position-viewer", "kyokumenshu-viewer")]),
     ("records", [("kifu-list", "kifu-display"), ("branch-tree", "branch-tree"), ("kifu-file", "kifu-management"), ("board-edit", "board-edit"),
@@ -113,6 +113,7 @@ T["ja"] = {
         "hayanagi": ("将棋エンジン Hayanagi", "ShogiBoardQと一緒に開発しているUSIエンジン。登録すれば対局・検討・解析に使え、詰将棋対局では玉方を務めます。"),
         "csa-game": ("CSA通信対局", "floodgateなどCSAプロトコル対応サーバーに接続し、人間またはエンジンで通信対局できます。"),
         "nyugyoku": ("入玉宣言", "持将棋の点数を計算し、24点法・27点法に基づく入玉宣言を判定します。"),
+        "time-control": ("持ち時間と時計", "持ち時間・秒読み・1手ごとの加算の設定と時計の見方。時間無制限の対局や、時間が少ないときの警告の色も解説します。"),
         "consideration": ("検討モード", "任意の局面でエンジンに候補手を考えさせ、複数の読み筋と矢印で比較します。読み筋は別の盤で1手ずつ再生できます。"),
         "kifu-analysis": ("棋譜解析", "棋譜全体をエンジンで解析し、各手の評価値と形勢の推移をグラフで確認します。"),
         "joseki": ("定跡機能", "定跡ファイルを読み込み、局面に合う定跡手の表示・着手・編集ができます。"),
@@ -238,6 +239,7 @@ T["en"] = {
         "hayanagi": ("Hayanagi Shogi Engine", "A USI engine developed alongside ShogiBoardQ for play and analysis. It also defends in Tsume Shogi Play."),
         "csa-game": ("CSA Network Play", "Connect to CSA-protocol servers such as floodgate and play as a human or with an engine."),
         "nyugyoku": ("Entering King Declaration", "Count jishogi points and check declarations under the 24-point and 27-point rules."),
+        "time-control": ("Time Control and Clocks", "Main time, byoyomi, and per-move increment, how to read the clocks, unlimited-time games, and low-time warning colors."),
         "consideration": ("Consideration Mode", "Let an engine study any position, compare several lines with arrows, and replay each line on a separate board."),
         "kifu-analysis": ("Game Analysis", "Analyze a whole game and follow each move's score on the evaluation graph."),
         "joseki": ("Opening Books", "Load opening books to show, play, and edit book moves for the current position."),
@@ -363,6 +365,7 @@ T["zh-cn"] = {
         "hayanagi": ("将棋引擎 Hayanagi", "与 ShogiBoardQ 一同开发的 USI 引擎。注册后即可用于对局、研究和分析，在诘棋练习中担任守方。"),
         "csa-game": ("CSA 网络对局", "连接 floodgate 等支持 CSA 协议的服务器，由人或引擎进行网络对局。"),
         "nyugyoku": ("入玉宣言", "计算持将棋点数，按 24 点法和 27 点法判定入玉宣言。"),
+        "time-control": ("用时与时钟", "持时、读秒和每手加时的设置与时钟的看法，并介绍不限时对局和时间不足时的警告颜色。"),
         "consideration": ("研究模式", "让引擎思考任意局面的候选着法，通过多条主要变化和箭头进行比较。主要变化可在另一个棋盘上逐手回放。"),
         "kifu-analysis": ("棋谱分析", "用引擎分析整盘棋谱，通过图表查看每一手的评价值和形势变化。"),
         "joseki": ("定跡", "读取定跡（开局定式）文件，显示、走出并编辑与当前局面对应的定跡着法。"),
@@ -488,6 +491,7 @@ T["zh-tw"] = {
         "hayanagi": ("將棋引擎 Hayanagi", "與 ShogiBoardQ 一同開發的 USI 引擎。註冊後即可用於對局、研究與分析，並在詰棋練習中擔任守方。"),
         "csa-game": ("CSA 網路對局", "連線至 floodgate 等支援 CSA 協定的伺服器，由人或引擎進行網路對局。"),
         "nyugyoku": ("入玉宣言", "計算持將棋點數，依 24 點法與 27 點法判定入玉宣言。"),
+        "time-control": ("用時與時鐘", "持時、讀秒與每手加時的設定與時鐘的看法，並介紹不限時對局與時間不足時的警告顏色。"),
         "consideration": ("研究模式", "讓引擎思考任意局面的候選著法，透過多條主要變化與箭頭進行比較。主要變化可在另一個棋盤上逐手重播。"),
         "kifu-analysis": ("棋譜分析", "以引擎分析整盤棋譜，透過圖表查看每一手的評價值與形勢變化。"),
         "joseki": ("定跡", "讀取定跡（開局定式）檔案，顯示、走出並編輯符合目前局面的定跡著法。"),

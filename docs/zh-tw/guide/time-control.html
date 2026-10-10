@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用時與時鐘 - ShogiBoardQ</title>
+    <meta name="description" content="介紹 ShogiBoardQ 對局的用時設定：對局對話方塊中的持時、讀秒與每手加時（費雪制）、不限時對局、無法開始對局的用時設定，以及對局中時鐘的顯示與警告顏色。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/time-control.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/time-control.html">
+    <meta property="og:title" content="用時與時鐘 - ShogiBoardQ">
+    <meta property="og:description" content="設定持時、讀秒或每手加時，並了解對局中時鐘的顯示方式，包括不限時對局與警告顏色。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/time-control/time-settings.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="用時與時鐘 - ShogiBoardQ">
+    <meta name="twitter:description" content="設定持時、讀秒或每手加時，並了解對局中時鐘的顯示方式，包括不限時對局與警告顏色。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/time-control/time-settings.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/time-control.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/time-control.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/time-control.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/time-control.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/time-control.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/time-control.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/time-control.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/time-control.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="time-control.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="#settings">用時設定</a></li>
+            <li><a href="#behavior">讀秒與加時</a></li>
+            <li><a href="#unlimited">不限時</a></li>
+            <li><a href="#blocked">無法開始的設定</a></li>
+            <li><a href="#clock">時鐘顯示</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>用時與時鐘</h1>
+        <p class="hero-subtitle">介紹對局對話方塊中的用時設定，以及對局中時鐘的走法</p>
+        <div class="hero-badges">
+            <span class="badge">持時與讀秒</span>
+            <span class="badge">每手加時</span>
+            <span class="badge">不限時</span>
+            <span class="badge">警告顏色</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="settings" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">用時設定</h2>
+        <p class="section-desc">在對局對話方塊中設定持時、讀秒與每手加時</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">用時設定的項目</span>
+                </div>
+                <p class="guide-step-text">從選單「對局」→「對局…」開啟對局對話方塊，用時設定位於對話方塊中段。所有時間都是每位對局者各自的時間。</p>
+                <ul class="guide-step-text">
+                    <li><strong>用時規則（持時）</strong>：整局可以使用的基本時間，以小時與分鐘指定。</li>
+                    <li><strong>讀秒</strong>：持時用完後，每一手可以使用的秒數。未用完的秒數不會留到下一手。</li>
+                    <li><strong>每手加時</strong>：費雪制的加時。第一手以及之後每走一步，都會把這個秒數加到剩餘時間中。未用完的時間會累積。</li>
+                    <li><strong>單獨設定後手／上手用時</strong>：不勾選時，左側的數值同時用於先後雙方（標題為「雙方共用用時規則」）。勾選後，可以在右側單獨設定後手／上手的用時，左側標題會變為「先手／下手用時規則」。</li>
+                    <li><strong>超時判負（位於「對局選項」中）</strong>：勾選時，用完可用時間的一方超時判負。不勾選時，即使時間用完也可以繼續對局。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/time-control/time-settings.png"><img src="../../images/zh-tw/time-control/time-settings.png" alt="對局對話方塊中的用時設定：先後共用持時 10 分鐘、讀秒 30 秒，並勾選了「超時判負」" width="958" height="344" loading="lazy"></a>
+                    <p class="screenshot-caption">用時設定：持時 10 分鐘＋讀秒 30 秒（雙方共用）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">讀秒與加時只能擇一</span>
+                </div>
+                <p class="guide-step-text">先後雙方使用同一種方式。在任一方的讀秒中輸入數值，雙方的加時都會變為 0；輸入加時，雙方的讀秒都會變為 0。對話方塊中的提示「雙方使用相同的計時模式。設定讀秒或加時會清除雙方另一模式的數值。」就是這個意思。不能設定為先手讀秒、後手加時。</p>
+                <p class="guide-step-text">為先後設定不同的用時時，可以分別設定的也只是持時、讀秒長度與加時長度，方式仍然相同。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="behavior" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">讀秒與加時的計時方式</h2>
+        <p class="section-desc">設定的時間在對局中如何減少、如何增加</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">只有持時（切負制）</span>
+                </div>
+                <p class="guide-step-text">只有輪到走棋的一方消耗時間，走棋後不會增加時間。持時用完即為超時。例如持時 5 分鐘時，時鐘從「00:05:00」開始，第一手用 3 秒走棋後剩餘「00:04:57」。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">有讀秒時</span>
+                </div>
+                <p class="guide-step-text">持時剩餘期間，從持時中扣除。如果在思考途中用完持時，就從這一手的中途進入讀秒，之前思考的時間也計入消耗。</p>
+                <p class="guide-step-text">進入讀秒後，只要在讀秒秒數用完前走棋，下一手仍有相同的秒數。未用完的秒數不會累積。達到讀秒秒數的那一刻即為超時（讀秒 30 秒時，須在滿 30 秒之前走棋）。持時設為 0 時，從第一手起就是每手 30 秒這樣的對局。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">有每手加時時</span>
+                </div>
+                <p class="guide-step-text">對局開始時，會把第一手的加時加到持時中。之後，每在時限內走一步，就會加上下一手的加時。對方走棋不會增加自己的時間。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">設定與操作</th><th scope="col">剩餘時間</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>以持時 0 秒、每手加時 10 秒開始</td><td>10 秒</td></tr>
+                        <tr><td>第一手用 3 秒走棋</td><td>10 − 3 + 10 = 17 秒</td></tr>
+                        <tr><td>自己的下一手用 5 秒走棋</td><td>17 − 5 + 10 = 22 秒</td></tr>
+                        <tr><td>以持時 5 分鐘、每手加時 10 秒開始</td><td>5 分 10 秒</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="unlimited" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">不限時</h2>
+        <p class="section-desc">把持時、讀秒與加時全部設為 0 秒，就可以不必在意時間</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">可用於人對人對局</span>
+                </div>
+                <p class="guide-step-text">先後雙方的持時、讀秒與每手加時全部為 0 秒時，就是不限時對局。即使勾選「超時判負」，也不會超時判負。</p>
+                <p class="guide-step-text">只有人對人對局可以不限時。有引擎參加的對局無法開始，詳見下方的<a href="#blocked">無法開始對局的設定</a>。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">時鐘顯示已用時間</span>
+                </div>
+                <p class="guide-step-text">不限時對局中，時鐘顯示的不是剩餘時間，而是各自已用時間的合計，例如「已用 00:00:09」。輪到自己走棋時，這一手的思考時間也會計入。走棋後的數值與棋譜欄「用時」的合計相同。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/time-control/unlimited-clock.png"><img src="../../images/zh-tw/time-control/unlimited-clock.png" alt="不限時對局：先手的時鐘顯示「已用 00:00:09」，後手的時鐘顯示「已用 00:00:02」" width="720" height="566" loading="lazy"></a>
+                    <p class="screenshot-caption">不限時：時鐘顯示各自已用時間的合計（先手 9 秒、後手 2 秒）</p>
+                </div>
+                <p class="guide-step-text">不足 1 秒的部分捨去。也不使用表示時間不足的警告顏色。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="blocked" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">無法開始對局的設定</h2>
+        <p class="section-desc">某些用時設定在按下「開始對局」時會顯示警告</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">會顯示警告的設定</span>
+                </div>
+                <p class="guide-step-text">使用以下設定按下「開始對局」時，會顯示「用時規則」警告，對局不會開始。對話方塊會保持開啟，請重新設定時間後再次按下「開始對局」。顯示警告時，不會儲存設定。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">設定</th><th scope="col">警告內容與修改方法</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>只有一方的持時、讀秒與加時全部為 0 秒（勾選「單獨設定後手／上手用時」時）</td><td>不能只讓一方不限時。請為雙方設定用時。人對人對局時，把雙方都設為 0 秒即可不限時對局。</td></tr>
+                        <tr><td>有引擎參加的對局中，先後雙方的持時、讀秒與加時全部為 0 秒</td><td>引擎會把可用時間當作 0 秒，幾乎不加思考就落子，因此不能不限時。請設定持時、讀秒或每手加時。</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/time-control/engine-warning.png"><img src="../../images/zh-tw/time-control/engine-warning.png" alt="「用時規則」警告，說明有引擎參加的對局不能設為不限時及其原因" width="500" height="120" loading="lazy"></a>
+                    <p class="screenshot-caption">有引擎參加的對局設為不限時並開始時顯示的警告</p>
+                </div>
+                <p class="guide-step-text">第一次開啟對局對話方塊時，時間全部為 0 秒；如果已註冊引擎，後手／上手會設為該引擎。直接按下「開始對局」會顯示這個警告，請先設定持時或讀秒。設定的時間下次也會沿用。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="clock" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">時鐘顯示</h2>
+        <p class="section-desc">在棋盤旁的對局者卡片上，以「時:分:秒」顯示時鐘</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">剩餘時間</span>
+                </div>
+                <p class="guide-step-text">有時間限制的對局中，時鐘顯示剩餘時間。只有輪到走棋一方的時鐘會走動。不足 1 秒的部分進位顯示，例如剩餘 7.2 秒顯示為「00:00:08」，變為「00:00:00」時即為超時。</p>
+                <p class="guide-step-text">讀秒對局進入讀秒後，顯示讀秒的剩餘秒數。持時為 0 秒的讀秒對局中，在各自的第一手開始計時之前，時鐘顯示「00:00:00」。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">時間不足時顏色會改變</span>
+                </div>
+                <p class="guide-step-text">輪到走棋一方的時鐘，在時間不足時文字顏色會改變。</p>
+                <ul class="guide-step-text">
+                    <li><strong>沒有讀秒的對局</strong>：剩餘 10 秒以內時變為「剩餘 10 秒以內的文字」的顏色，剩餘 5 秒以內時變為「讀秒中／剩餘 5 秒以內的文字」的顏色。</li>
+                    <li><strong>有讀秒的對局</strong>：持時剩餘 10 秒以內時變為「剩餘 10 秒以內的文字」的顏色，進入讀秒後變為「讀秒中／剩餘 5 秒以內的文字」的顏色。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/time-control/byoyomi-clock.png"><img src="../../images/zh-tw/time-control/byoyomi-clock.png" alt="讀秒 30 秒的對局：輪到走棋的先手時鐘以紅色文字顯示「00:00:28」，後手時鐘以一般顏色顯示「00:00:30」" width="720" height="566" loading="lazy"></a>
+                    <p class="screenshot-caption">讀秒中：輪到走棋一方的時鐘顯示為警告顏色</p>
+                </div>
+                <p class="guide-step-text">兩種顏色都可以在<a href="board-colors.html">對局外觀</a>的「詳細設定」分頁中變更。不限時對局中顏色不會改變。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">中斷與繼續</span>
+                </div>
+                <p class="guide-step-text">中斷對局後時鐘會停止，選擇「繼續」後從中斷時的剩餘時間接著計時（<a href="game-play.html#resume">對局的中斷與繼續</a>）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 返回使用指南</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
