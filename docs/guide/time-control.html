@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>持ち時間と時計 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの対局の時間設定を解説します。対局ダイアログの持ち時間・秒読み・1手ごとの加算（フィッシャー）、時間無制限の対局、対局を始められない時間設定、対局中の時計の表示と警告の色を紹介します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/time-control.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/time-control.html">
+    <meta property="og:title" content="持ち時間と時計 - ShogiBoardQ">
+    <meta property="og:description" content="持ち時間・秒読み・1手ごとの加算の設定と、対局中の時計の見方。時間無制限の対局や警告の色も解説します。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/time-control/time-settings.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="持ち時間と時計 - ShogiBoardQ">
+    <meta name="twitter:description" content="持ち時間・秒読み・1手ごとの加算の設定と、対局中の時計の見方。時間無制限の対局や警告の色も解説します。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/time-control/time-settings.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/time-control.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/time-control.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/time-control.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/time-control.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/time-control.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="time-control.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/time-control.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/time-control.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/time-control.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="#settings">時間の設定</a></li>
+            <li><a href="#behavior">秒読みと加算</a></li>
+            <li><a href="#unlimited">時間無制限</a></li>
+            <li><a href="#blocked">始められない設定</a></li>
+            <li><a href="#clock">時計の表示</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>持ち時間と時計</h1>
+        <p class="hero-subtitle">対局ダイアログの時間設定と、対局中の時計の動きを解説します</p>
+        <div class="hero-badges">
+            <span class="badge">持ち時間・秒読み</span>
+            <span class="badge">1手ごとの加算</span>
+            <span class="badge">時間無制限</span>
+            <span class="badge">警告の色</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="settings" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">時間の設定</h2>
+        <p class="section-desc">対局ダイアログで、持ち時間・秒読み・1手ごとの加算を決めます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">時間設定の項目</span>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「対局…」で開く対局ダイアログの中ほどに、時間設定があります。時間はどれも対局者ごとの値です。</p>
+                <ul class="guide-step-text">
+                    <li><strong>持ち時間</strong>：対局を通して使える基本の時間です。時間と分で指定します。</li>
+                    <li><strong>秒読み</strong>：持ち時間を使い切った後、1手ごとに使える秒数です。使わなかった分は次の手に持ち越しません。</li>
+                    <li><strong>1手ごとの加算</strong>：フィッシャー方式の加算です。初手と、以後は指すたびに、この秒数が残り時間に足されます。使わなかった分は残り時間にたまります。</li>
+                    <li><strong>後手／上手に異なる時間を設定</strong>：オフのときは、左側の値を先後の両方に使います（見出しは「共通の時間設定」）。オンにすると右側で後手／上手の時間を別に設定でき、左側の見出しは「先手／下手の時間設定」に変わります。</li>
+                    <li><strong>時間切れを負けにする（「対局条件」の中）</strong>：オンなら、使える時間を使い切った側が時間切れ負けになります。オフにすると、時間を使い切っても対局を続けられます。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/time-control/time-settings.png"><img src="../images/time-control/time-settings.png" alt="対局ダイアログの時間設定。持ち時間10分・秒読み30秒を先後共通で設定し、「時間切れを負けにする」にチェックが付いている" width="958" height="344" loading="lazy"></a>
+                    <p class="screenshot-caption">時間設定：持ち時間10分・秒読み30秒（先後共通）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">秒読みと加算はどちらか一方</span>
+                </div>
+                <p class="guide-step-text">秒読みと1手ごとの加算は、先後で同じ方式を使います。どちらかの秒読みに値を入れると両者の加算が0に、加算に値を入れると両者の秒読みが0になります。ダイアログの「秒読みと加算は両者とも同じ方式です。一方を設定すると、もう一方は両者とも0になります。」という注記はこのことです。先手だけ秒読み、後手だけ加算という組み合わせはできません。</p>
+                <p class="guide-step-text">先後で異なる時間にするときも、別々にできるのは持ち時間・秒読みの長さ・加算の長さで、方式は共通です。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="behavior" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">秒読みと加算の動き</h2>
+        <p class="section-desc">設定した時間が、対局中にどう減り、どう足されるかを説明します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">持ち時間だけのとき（切れ負け）</span>
+                </div>
+                <p class="guide-step-text">手番の間だけ持ち時間が減り、指しても時間は足されません。使い切ると時間切れです。例えば持ち時間5分なら「00:05:00」から始まり、初手を3秒で指すと残りは「00:04:57」になります。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">秒読みがあるとき</span>
+                </div>
+                <p class="guide-step-text">持ち時間が残っている間は、持ち時間から減ります。考えている途中で持ち時間を使い切ると、その手の途中から秒読みに入り、それまでに考えた時間も消費として数えます。</p>
+                <p class="guide-step-text">秒読みに入った後は、秒読みの秒数に達する前に指せば、次の手もまた同じ秒数を使えます。使わなかった秒数はたまりません。秒読みの秒数に達した時点で時間切れです（秒読み30秒なら「30秒未満で指す」）。持ち時間を0にすると、初手から1手30秒のような対局になります。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">1手ごとの加算があるとき</span>
+                </div>
+                <p class="guide-step-text">対局の開始時に、初手の分として加算の秒数が持ち時間に足されます。その後は、時間内に指すたびに次の手の分が足されます。相手が指しても、自分の時間は増えません。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">設定・操作</th><th scope="col">残り時間</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>持ち時間0秒・加算10秒で開始</td><td>10秒</td></tr>
+                        <tr><td>初手を3秒で指す</td><td>10 − 3 + 10 = 17秒</td></tr>
+                        <tr><td>次の自分の手を5秒で指す</td><td>17 − 5 + 10 = 22秒</td></tr>
+                        <tr><td>持ち時間5分・加算10秒で開始</td><td>5分10秒</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="unlimited" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">時間無制限</h2>
+        <p class="section-desc">持ち時間・秒読み・加算をすべて0秒にすると、時間を気にせず指せます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">人間同士の対局で使えます</span>
+                </div>
+                <p class="guide-step-text">先後の持ち時間・秒読み・1手ごとの加算をすべて0秒にすると、時間無制限の対局になります。「時間切れを負けにする」がオンでも、時間切れ負けにはなりません。</p>
+                <p class="guide-step-text">時間無制限にできるのは人間同士の対局だけです。エンジンが参加する対局は、下の「<a href="#blocked">対局を始められない設定</a>」のとおり開始できません。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">時計は消費時間を表示</span>
+                </div>
+                <p class="guide-step-text">時間無制限の対局では、時計に残り時間ではなく、それぞれが使った時間の合計を「消費 00:00:09」のように表示します。自分の手番の間は、その手で考えている時間も足して進みます。指した後の値は、棋譜欄の「消費時間」の合計と同じです。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/time-control/unlimited-clock.png"><img src="../images/time-control/unlimited-clock.png" alt="時間無制限の対局。先手の時計が「消費 00:00:09」、後手の時計が「消費 00:00:02」と表示されている" width="720" height="566" loading="lazy"></a>
+                    <p class="screenshot-caption">時間無制限：時計はそれぞれの消費時間の合計（先手9秒・後手2秒）</p>
+                </div>
+                <p class="guide-step-text">秒未満は切り捨てて表示します。時間が少ないことを示す警告の色も使いません。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="blocked" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">対局を始められない設定</h2>
+        <p class="section-desc">時間の設定によっては、「対局開始」を押すと警告が出ます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">警告が出る設定</span>
+                </div>
+                <p class="guide-step-text">次の設定で「対局開始」を押すと「時間設定」の警告が出て、対局は始まりません。ダイアログは開いたままなので、時間を設定し直してから、もう一度「対局開始」を押してください。警告が出たときは、設定は保存されません。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">設定</th><th scope="col">警告の内容と直し方</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>片方の対局者だけ、持ち時間・秒読み・加算がすべて0秒（「後手／上手に異なる時間を設定」をオンにしたとき）</td><td>片方の対局者だけを時間無制限にはできません。両方に時間を設定してください。人間同士なら、両方とも0秒にすれば時間無制限で対局できます。</td></tr>
+                        <tr><td>エンジンが参加する対局で、先後とも持ち時間・秒読み・加算がすべて0秒</td><td>エンジンは使える時間を0秒と受け取り、ほとんど考えずに指してしまうため、時間無制限にはできません。持ち時間・秒読み・加算のいずれかを設定してください。</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/time-control/engine-warning.png"><img src="../images/time-control/engine-warning.png" alt="「時間設定」の警告。エンジンが参加する対局は時間無制限にできないことと、その理由が書かれている" width="500" height="138" loading="lazy"></a>
+                    <p class="screenshot-caption">エンジンが参加する対局を時間無制限で始めようとしたときの警告</p>
+                </div>
+                <p class="guide-step-text">初めて対局ダイアログを開いたときは時間がすべて0秒で、エンジンを登録してあると後手／上手がエンジンになっています。そのまま「対局開始」を押すとこの警告が出るので、持ち時間や秒読みを設定してください。設定した時間は次回も使われます。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="clock" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">時計の表示</h2>
+        <p class="section-desc">盤の横の対局者カードに、時計を「時:分:秒」で表示します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">残り時間</span>
+                </div>
+                <p class="guide-step-text">時間制限のある対局では、残り時間を表示します。時計が進むのは手番側だけです。秒未満は切り上げて表示するので、残り7.2秒なら「00:00:08」で、「00:00:00」になった時点が時間切れです。</p>
+                <p class="guide-step-text">秒読みの対局では、秒読みに入ると秒読みの残り秒数を表示します。持ち時間0秒の秒読み対局では、それぞれの最初の手番で時計が動き出すまで「00:00:00」と表示されます。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">時間が少なくなると色が変わります</span>
+                </div>
+                <p class="guide-step-text">手番側の時計は、時間が少なくなると文字の色が変わります。</p>
+                <ul class="guide-step-text">
+                    <li><strong>秒読みがない対局</strong>：残り10秒以下で「残り10秒以下の文字」の色、残り5秒以下で「秒読み・残り5秒以下の文字」の色になります。</li>
+                    <li><strong>秒読みがある対局</strong>：持ち時間の残りが10秒以下で「残り10秒以下の文字」の色、秒読みに入ると「秒読み・残り5秒以下の文字」の色になります。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/time-control/byoyomi-clock.png"><img src="../images/time-control/byoyomi-clock.png" alt="秒読み30秒の対局。手番の先手の時計が赤い文字で「00:00:28」、後手の時計が通常の色で「00:00:30」と表示されている" width="720" height="566" loading="lazy"></a>
+                    <p class="screenshot-caption">秒読み中：手番側の時計が警告の色になる</p>
+                </div>
+                <p class="guide-step-text">どちらの色も、<a href="board-colors.html">対局画面の外観</a>の「詳細」タブで変えられます。時間無制限の対局では色は変わりません。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">中断と再開</span>
+                </div>
+                <p class="guide-step-text">対局を中断すると時計は止まり、「再開」で中断した時点の残り時間から続きます（<a href="game-play.html#resume">対局の中断と再開</a>）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
