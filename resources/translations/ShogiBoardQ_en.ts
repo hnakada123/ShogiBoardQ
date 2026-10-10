@@ -3882,7 +3882,7 @@ Each screen keeps its current text size.</translation>
     <message>
         <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
         <source>下手</source>
-        <translation>Handicap receiver</translation>
+        <translation>Shitate</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
@@ -3892,7 +3892,7 @@ Each screen keeps its current text size.</translation>
     <message>
         <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
         <source>上手</source>
-        <translation>Handicap giver</translation>
+        <translation>Uwate</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler_record.cpp" line="143"/>
@@ -6408,12 +6408,12 @@ Positions: SFEN / BOD (board diagram)</translation>
     <message>
         <location filename="../../src/common/kifupresentation.cpp" line="202"/>
         <source>下手</source>
-        <translation>Handicap receiver</translation>
+        <translation>Shitate</translation>
     </message>
     <message>
         <location filename="../../src/common/kifupresentation.cpp" line="203"/>
         <source>上手</source>
-        <translation>Handicap giver</translation>
+        <translation>Uwate</translation>
     </message>
     <message>
         <location filename="../../src/common/kifupresentation.cpp" line="203"/>
@@ -8523,12 +8523,12 @@ Are you sure you want to declare?</translation>
     <message>
         <location filename="../../src/game/nyugyokujudgement.cpp" line="21"/>
         <source>下手</source>
-        <translation>Handicap receiver</translation>
+        <translation>Shitate</translation>
     </message>
     <message>
         <location filename="../../src/game/nyugyokujudgement.cpp" line="21"/>
         <source>上手</source>
-        <translation>Handicap giver</translation>
+        <translation>Uwate</translation>
     </message>
     <message>
         <location filename="../../src/game/nyugyokujudgement.cpp" line="22"/>
