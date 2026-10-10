@@ -71,6 +71,8 @@ private slots:
         QCOMPARE(infoValue("持ち時間", "10:00+10"), QStringLiteral("10:00+10"));
         QCOMPARE(infoValue("持ち時間", "05:00+10秒加算"), QStringLiteral("05:00+10秒加算"));
         QCOMPARE(infoValue("持ち時間", "各10分"), QStringLiteral("各10分"));
+        QCOMPARE(infoValue("持ち時間", "下手 01:00+2 / 上手 05:00+10秒加算"),
+                 QStringLiteral("下手 01:00+2 / 上手 05:00+10秒加算"));
         QCOMPARE(status("投了についてのコメント"), QStringLiteral("投了についてのコメント"));
     }
 };

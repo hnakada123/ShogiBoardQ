@@ -14,6 +14,9 @@ inline const QString kStartDateTime = QStringLiteral("開始日時");
 inline const QString kEndDateTime = QStringLiteral("終了日時");
 inline const QString kBlackPlayer = QStringLiteral("先手");
 inline const QString kWhitePlayer = QStringLiteral("後手");
+// 駒落ちの対局者（柿木形式の KIF と同じく、下手が先に並ぶ先手側、上手が後手側）
+inline const QString kShitatePlayer = QStringLiteral("下手");
+inline const QString kUwatePlayer = QStringLiteral("上手");
 inline const QString kHandicap = QStringLiteral("手合割");
 inline const QString kTimeControl = QStringLiteral("持ち時間");
 inline const QString kEvent = QStringLiteral("棋戦");

@@ -8,7 +8,8 @@
 #include <QStringList>
 #include <QList>
 
-QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const QString& lastMoveStr)
+QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const QString& lastMoveStr,
+                                   bool handicapNames)
 {
     if (sfenStr.isEmpty()) return QString();
 
@@ -121,8 +122,11 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
     }
 
     // BOD形式の文字列を生成
+    // 柿木形式の駒落ちの棋譜と同じく、駒落ちでは下手（先手側）・上手（後手側）と書く
+    const QString blackName = handicapNames ? QStringLiteral("下手") : QStringLiteral("先手");
+    const QString whiteName = handicapNames ? QStringLiteral("上手") : QStringLiteral("後手");
     QStringList bodLines;
-    bodLines << QStringLiteral("後手の持駒：%1").arg(handToString(goteHand));
+    bodLines << QStringLiteral("%1の持駒：%2").arg(whiteName, handToString(goteHand));
     bodLines << QStringLiteral("  ９ ８ ７ ６ ５ ４ ３ ２ １");
     bodLines << QStringLiteral("+---------------------------+");
 
@@ -142,8 +146,8 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
     }
 
     bodLines << QStringLiteral("+---------------------------+");
-    bodLines << QStringLiteral("先手の持駒：%1").arg(handToString(senteHand));
-    bodLines << (turnSfen == QStringLiteral("b") ? QStringLiteral("先手番") : QStringLiteral("後手番"));
+    bodLines << QStringLiteral("%1の持駒：%2").arg(blackName, handToString(senteHand));
+    bodLines << (turnSfen == QStringLiteral("b") ? blackName : whiteName) + QStringLiteral("番");
 
     if (moveIndex > 0) {
         const int displayMoveNum = sfenMoveNum - 1;

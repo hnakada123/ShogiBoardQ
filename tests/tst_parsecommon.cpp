@@ -703,6 +703,11 @@ void TestParseCommon::isBodHandsLine_gote()
 {
     QVERIFY(KifuParseCommon::isBodHandsLine(QStringLiteral("後手の持駒：角")));
     QVERIFY(KifuParseCommon::isBodHandsLine(QStringLiteral("後手の持ち駒：なし")));
+    // 駒落ちの棋譜は先手側を下手、後手側を上手と書く
+    QVERIFY(KifuParseCommon::isBodHandsLine(QStringLiteral("上手の持駒：なし")));
+    QVERIFY(KifuParseCommon::isBodHandsLine(QStringLiteral("下手の持ち駒：歩")));
+    QVERIFY(KifuParseCommon::isKifSkippableHeaderLine(QStringLiteral("上手番")));
+    QVERIFY(!KifuParseCommon::isBodHandsLine(QStringLiteral("上手：田中")));
 }
 
 void TestParseCommon::isBodHandsLine_normal()

@@ -298,10 +298,12 @@ void MainWindowServiceRegistry::refreshSessionLifecycleDeps()
         }
     };
     callbacks.lastTimeControl = &m_mw.m_lastTimeControl;
-    callbacks.updateGameInfoWithTimeControl = [this](bool enabled, qint64 baseMs, qint64 byoyomiMs, qint64 incMs) {
+    callbacks.updateGameInfoWithTimeControl = [this](const GameStartCoordinator::TimeControl& tc) {
         m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
-            m_mw.m_playerInfoWiring->updateGameInfoWithTimeControl(enabled, baseMs, byoyomiMs, incMs);
+            m_mw.m_playerInfoWiring->updateGameInfoWithTimeControl(
+                tc.enabled, {tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs},
+                {tc.p2.baseMs, tc.p2.byoyomiMs, tc.p2.incrementMs});
         }
     };
 

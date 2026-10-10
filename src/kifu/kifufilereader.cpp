@@ -110,6 +110,8 @@ KifuFormat detectFormat(const QString& content)
     // BOD判定（局面図のみ: 指し手を含まない局面図）
     if (trimmed.contains(QStringLiteral("後手の持駒")) ||
         trimmed.contains(QStringLiteral("先手の持駒")) ||
+        trimmed.contains(QStringLiteral("上手の持駒")) ||
+        trimmed.contains(QStringLiteral("下手の持駒")) ||
         trimmed.contains(bodBorderRe) ||
         trimmed.contains(QStringLiteral("|v")) ||
         trimmed.contains(QStringLiteral("| ・"))) {

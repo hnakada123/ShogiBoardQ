@@ -116,9 +116,9 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
 
     // 対局情報と棋譜の書き出しに使う持ち時間と開始日時を、サーバーの対局条件で置き換える
     if (m_timeController && m_coordinator) {
-        const CsaClient::GameSummary& summary = m_coordinator->gameSummary();
-        m_timeController->beginGameWithTimeControl(summary.totalTimeMs(true), summary.byoyomiMs(true),
-                                                   summary.incrementMs());
+        const CsaClient::GameSummary& s = m_coordinator->gameSummary();
+        m_timeController->beginGameWithTimeControl({s.totalTimeMs(true), s.byoyomiMs(true), s.incrementMs()},
+                                                   {s.totalTimeMs(false), s.byoyomiMs(false), s.incrementMs()});
     }
 
     if (m_prepareRecord && m_sfenHistory && !m_sfenHistory->isEmpty()) {

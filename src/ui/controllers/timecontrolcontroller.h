@@ -9,6 +9,7 @@
 #include <QDateTime>
 #include <QString>
 #include "gamestartcoordinator.h"
+#include "kifuexportmetadata.h"
 
 class ShogiClock;
 class MatchCoordinator;
@@ -35,10 +36,9 @@ public:
      * @brief 時間制御設定を保持する構造体
      */
     struct TimeControlSettings {
-        bool    enabled = false;
-        qint64  baseMs = 0;
-        qint64  byoyomiMs = 0;
-        qint64  incrementMs = 0;
+        bool                enabled = false;
+        KifuTimeControlSide black;  ///< 先手（下手）の持ち時間
+        KifuTimeControlSide white;  ///< 後手（上手）の持ち時間
     };
 
     explicit TimeControlController(QObject* parent = nullptr);
@@ -93,14 +93,15 @@ public:
     /**
      * @brief 時間制御設定を保存
      */
-    void saveTimeControlSettings(bool enabled, qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs);
+    void saveTimeControlSettings(bool enabled, const KifuTimeControlSide& black,
+                                 const KifuTimeControlSide& white);
 
     /**
      * @brief 時計を使わずに始める対局（CSA通信対局など）の持ち時間と開始日時を記録する
      *
      * 持ち時間・秒読み・加算がすべて0なら時間制限なしとして扱う。
      */
-    void beginGameWithTimeControl(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs);
+    void beginGameWithTimeControl(const KifuTimeControlSide& black, const KifuTimeControlSide& white);
 
     /**
      * @brief 時間制御設定を取得
@@ -111,21 +112,6 @@ public:
      * @brief 時間制御が有効かどうか
      */
     bool hasTimeControl() const;
-
-    /**
-     * @brief 基本持ち時間を取得（ミリ秒）
-     */
-    qint64 baseTimeMs() const;
-
-    /**
-     * @brief 秒読み時間を取得（ミリ秒）
-     */
-    qint64 byoyomiMs() const;
-
-    /**
-     * @brief 加算時間を取得（ミリ秒）
-     */
-    qint64 incrementMs() const;
 
     // --------------------------------------------------------
     // 対局開始時刻

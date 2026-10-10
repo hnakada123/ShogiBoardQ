@@ -228,9 +228,11 @@ bool isBoardHeaderOrFrame(QStringView line)
         if (boxCount >= qMax(3, static_cast<int>(s.size()) / 2)) return true;
     }
 
-    // 持駒見出し
+    // 持駒見出し（駒落ちは下手・上手）
     if (line.contains(QStringLiteral("先手の持駒")) ||
-        line.contains(QStringLiteral("後手の持駒")))
+        line.contains(QStringLiteral("後手の持駒")) ||
+        line.contains(QStringLiteral("下手の持駒")) ||
+        line.contains(QStringLiteral("上手の持駒")))
         return true;
 
     // 下部見出し（"一二三…九"）だけの行
@@ -272,7 +274,9 @@ bool isKifSkippableHeaderLine(QStringView line)
         QStringLiteral("手数----指手---------消費時間--"),
         QStringLiteral("手数――指手――――――――消費時間――"),
         QStringLiteral("先手："), QStringLiteral("後手："),
+        QStringLiteral("下手："), QStringLiteral("上手："),
         QStringLiteral("先手番"), QStringLiteral("後手番"),
+        QStringLiteral("下手番"), QStringLiteral("上手番"),
         QStringLiteral("手合割"), QStringLiteral("手合"),
         QStringLiteral("手数＝")
     };
@@ -375,10 +379,17 @@ QMap<QString, QString> toGameInfoMap(const QList<KifGameInfoItem>& items)
 
 bool isBodHandsLine(QStringView line)
 {
-    return line.startsWith(QStringLiteral("先手の持駒")) ||
-           line.startsWith(QStringLiteral("後手の持駒")) ||
-           line.startsWith(QStringLiteral("先手の持ち駒")) ||
-           line.startsWith(QStringLiteral("後手の持ち駒"));
+    // 駒落ちの棋譜は先手側を下手、後手側を上手と書く
+    static const QString kHeads[] = {
+        QStringLiteral("先手の持駒"), QStringLiteral("後手の持駒"),
+        QStringLiteral("先手の持ち駒"), QStringLiteral("後手の持ち駒"),
+        QStringLiteral("下手の持駒"), QStringLiteral("上手の持駒"),
+        QStringLiteral("下手の持ち駒"), QStringLiteral("上手の持ち駒"),
+    };
+    for (const QString& head : kHeads) {
+        if (line.startsWith(head)) return true;
+    }
+    return false;
 }
 
 QList<KifGameInfoItem> extractHeaderGameInfo(

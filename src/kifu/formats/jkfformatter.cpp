@@ -61,7 +61,9 @@ QString japaneseToJkfSpecial(const QString& japanese)
     if (japanese.contains(QStringLiteral("王手千日手"))) return QStringLiteral("OUTE_SENNICHITE");
     if (japanese.contains(QStringLiteral("千日手"))) return QStringLiteral("SENNICHITE");
     if (japanese.contains(QStringLiteral("持将棋"))) return QStringLiteral("JISHOGI");
-    if (japanese.contains(QStringLiteral("切れ負け"))) return QStringLiteral("TIME_UP");
+    // 対局で時間切れになったときの終局語は「時間切れ」
+    if (japanese.contains(QStringLiteral("切れ負け")) || japanese.contains(QStringLiteral("時間切れ")))
+        return QStringLiteral("TIME_UP");
     if (japanese.contains(QStringLiteral("反則負け"))) return QStringLiteral("ILLEGAL_MOVE");
     if (japanese.contains(QStringLiteral("反則勝ち")))
         return japanese.startsWith(QStringLiteral("▲"))

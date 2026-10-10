@@ -156,7 +156,7 @@ bool KifuApplyService::loadPositionFromBod(const QString& bodStr)
     // 手番情報を追加
     if (!sfen.contains(QLatin1Char(' '))) {
         QString turn = QStringLiteral("b");
-        if (bodStr.contains(QStringLiteral("後手番"))) {
+        if (bodStr.contains(QStringLiteral("後手番")) || bodStr.contains(QStringLiteral("上手番"))) {
             turn = QStringLiteral("w");
         }
         sfen = QStringLiteral("%1 %2 - 1").arg(sfen, turn);

@@ -186,12 +186,11 @@ namespace KifLexer {
 
 void parseBodHandsLine(const QString& line, QMap<Piece, int>& outCounts, bool isBlack)
 {
-    static const QString prefixB = QStringLiteral("先手の持駒");
-    static const QString prefixW = QStringLiteral("後手の持駒");
+    // 駒落ちの棋譜は、先手側を「下手」、後手側を「上手」と書く
     QString t = line.trimmed();
-    if (!t.startsWith(prefixB) && !t.startsWith(prefixW)) return;
-
-    const bool sideBlack = t.startsWith(prefixB);
+    const bool sideBlack = t.startsWith(QStringLiteral("先手の持駒")) || t.startsWith(QStringLiteral("下手の持駒"));
+    const bool sideWhite = t.startsWith(QStringLiteral("後手の持駒")) || t.startsWith(QStringLiteral("上手の持駒"));
+    if (!sideBlack && !sideWhite) return;
     if (sideBlack != isBlack) return;
 
     qsizetype idx = t.indexOf(QChar(u'：')); if (idx < 0) idx = t.indexOf(QLatin1Char(':'));
@@ -281,8 +280,9 @@ void parseBodTurnAndMoveNumber(const QStringList& lines, QChar& turn, int& moveN
     turn = QLatin1Char('b');
     for (const QString& l : std::as_const(lines)) {
         const QString t = l.trimmed();
-        if (t.contains(QStringLiteral("先手番"))) { turn = QLatin1Char('b'); break; }
-        if (t.contains(QStringLiteral("後手番"))) { turn = QLatin1Char('w'); break; }
+        // 駒落ちの棋譜は下手番（先手側）・上手番（後手側）と書く
+        if (t.contains(QStringLiteral("先手番")) || t.contains(QStringLiteral("下手番"))) { turn = QLatin1Char('b'); break; }
+        if (t.contains(QStringLiteral("後手番")) || t.contains(QStringLiteral("上手番"))) { turn = QLatin1Char('w'); break; }
     }
 
     moveNumber = 1;

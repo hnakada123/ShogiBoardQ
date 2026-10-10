@@ -124,9 +124,8 @@ GameRecordModel::ExportContext KifuExportController::buildExportContext() const
     // 時間制御情報
     if (m_deps.timeController) {
         ctx.hasTimeControl = m_deps.timeController->hasTimeControl();
-        ctx.initialTimeMs = static_cast<int>(m_deps.timeController->baseTimeMs());
-        ctx.byoyomiMs = static_cast<int>(m_deps.timeController->byoyomiMs());
-        ctx.fischerIncrementMs = static_cast<int>(m_deps.timeController->incrementMs());
+        ctx.blackTime = m_deps.timeController->settings().black;
+        ctx.whiteTime = m_deps.timeController->settings().white;
         ctx.gameStartDateTime = m_deps.timeController->gameStartDateTime();
         ctx.gameEndDateTime = m_deps.timeController->gameEndDateTime();
     }

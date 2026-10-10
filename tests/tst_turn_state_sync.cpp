@@ -158,7 +158,8 @@ private slots:
         ShogiClock clock;
         TimeDisplayPresenter presenter(&view);
         presenter.setClock(&clock);
-        clock.setPlayerTimes(mainSec, mainSec, byoyomiSec, byoyomiSec, incrementSec, incrementSec, true);
+        // 後手には持ち時間を残し、後手の手番では手番でない先手の時計で警告しないことを確かめる
+        clock.setPlayerTimes(mainSec, 60, byoyomiSec, byoyomiSec, incrementSec, incrementSec, true);
         if (enterByoyomi) clock.applyByoyomiAndResetConsideration1();
         presenter.onMatchTimeUpdated(remainingMs, 60000, true, 0);
         QCOMPARE(view.highlighting()->urgency(), expected);

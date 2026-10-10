@@ -116,6 +116,14 @@ void GameStartCoordinator::start(const StartParams& params)
         m_match->refreshGoTimes();
     }
 
+    // ダイアログを経ずに始める対局（連続対局の2局目以降）は、持ち時間と開始日時を記録したここで
+    // 対局者名を通知し、盤の名前表示と対局情報を新しい対局に合わせる（ダイアログ経由と同じく開始前に）
+    if (params.announcePlayerNames) {
+        emit playerNamesResolved(params.opt.humanName1, params.opt.humanName2,
+                                 params.opt.engineName1, params.opt.engineName2,
+                                 static_cast<int>(params.opt.mode));
+    }
+
     // --- 3) 対局をセットアップ & 開始 ---
     m_match->configureAndStart(params.opt);
 

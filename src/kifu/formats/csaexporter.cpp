@@ -3,6 +3,7 @@
 
 #include "csaexporter.h"
 #include "csaformatter.h"
+#include "gameinfokeys.h"
 #include "gamerecordmodel.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
@@ -57,14 +58,20 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
     // 3) 棋譜情報を先に収集（対局者名もここから取得）
     const QList<KifGameInfoItem> header = GameRecordModel::collectGameInfo(ctx);
 
-    // 4) 対局者名
+    // 4) 対局者名（駒落ちの下手は先手、上手は後手）
+    const auto isBlackKey = [](const QString& key) {
+        return key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kShitatePlayer;
+    };
+    const auto isWhiteKey = [](const QString& key) {
+        return key == GameInfoKeys::kWhitePlayer || key == GameInfoKeys::kUwatePlayer;
+    };
     QString blackPlayer, whitePlayer;
     for (const auto& it : std::as_const(header)) {
         const QString key = it.key.trimmed();
         const QString val = it.value.trimmed();
-        if (key == QStringLiteral("先手") && !val.isEmpty()) {
+        if (isBlackKey(key) && !val.isEmpty()) {
             blackPlayer = val;
-        } else if (key == QStringLiteral("後手") && !val.isEmpty()) {
+        } else if (isWhiteKey(key) && !val.isEmpty()) {
             whitePlayer = val;
         }
     }
@@ -90,7 +97,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         const QString val = it.value.trimmed();
         if (key.isEmpty() || val.isEmpty()) continue;
 
-        if (key == QStringLiteral("先手") || key == QStringLiteral("後手")) {
+        if (isBlackKey(key) || isWhiteKey(key)) {
             continue;
         }
 
@@ -107,7 +114,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             out << QStringLiteral("$END_TIME:%1").arg(csaDateTime);
         } else if (key == QStringLiteral("持ち時間")) {
             // 時間制限のない対局は $TIME を書かずに表す
-            if (val != QStringLiteral("無制限")) out << CsaFormatter::convertToCsaTime(val);
+            if (val != QStringLiteral("無制限")) out << CsaFormatter::convertToCsaTimeLines(val);
             hasTime = true;
         } else if (key == QStringLiteral("持ち時間(秒/加算)")) {
             out << QStringLiteral("$TIME:%1").arg(val);
@@ -140,10 +147,17 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
     }
 
     if (!hasTime && ctx.hasTimeControl) {
-        int initialSec = ctx.initialTimeMs / 1000;
-        int byoyomiSec = ctx.byoyomiMs / 1000;
-        int fischerSec = ctx.fischerIncrementMs / 1000;
-        out << QStringLiteral("$TIME:%1+%2+%3").arg(initialSec).arg(byoyomiSec).arg(fischerSec);
+        const auto csaTime = [](const KifuTimeControlSide& side) {
+            return QStringLiteral("%1+%2+%3")
+                .arg(side.baseMs / 1000).arg(side.byoyomiMs / 1000).arg(side.incrementMs / 1000);
+        };
+        // 先後で持ち時間が違う対局は、CSA V3.0 の $TIME+ と $TIME- に分けて書く
+        if (ctx.blackTime == ctx.whiteTime) {
+            out << QStringLiteral("$TIME:%1").arg(csaTime(ctx.blackTime));
+        } else {
+            out << QStringLiteral("$TIME+:%1").arg(csaTime(ctx.blackTime));
+            out << QStringLiteral("$TIME-:%1").arg(csaTime(ctx.whiteTime));
+        }
     }
 
     // 6) 開始局面

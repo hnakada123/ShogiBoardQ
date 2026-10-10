@@ -51,8 +51,8 @@ void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
     for (const auto& item : items) {
         if (item.key == GameInfoKeys::kBlackPlayer) black = item.value;
         else if (item.key == GameInfoKeys::kWhitePlayer) white = item.value;
-        else if (item.key == QStringLiteral("下手")) shitate = item.value;
-        else if (item.key == QStringLiteral("上手")) uwate = item.value;
+        else if (item.key == GameInfoKeys::kShitatePlayer) shitate = item.value;
+        else if (item.key == GameInfoKeys::kUwatePlayer) uwate = item.value;
     }
     if (m_shogiView) {
         if (black.isEmpty()) black = shitate.isEmpty() ? tr("先手") : shitate;
@@ -302,9 +302,10 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         if (m_setContinuationNote) {
             const QDateTime start = timeInfo.gameStartDateTime.isValid()
                 ? timeInfo.gameStartDateTime : QDateTime::currentDateTime();
+            const bool handicap =
+                KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(startSfen));
             const QString timeText = timeInfo.hasTimeControl
-                ? KifuExportMetadataBuilder::timeControlText(timeInfo.baseTimeMs, timeInfo.byoyomiMs,
-                                                             timeInfo.incrementMs)
+                ? KifuExportMetadataBuilder::timeControlText(timeInfo.blackTime, timeInfo.whiteTime, handicap)
                 : tr("無制限");
             m_setContinuationNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
                                       .arg(blackName, whiteName,
@@ -320,9 +321,8 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         whiteName,
         KifuExportMetadataBuilder::handicapLabel(startSfen),
         timeInfo.hasTimeControl,
-        timeInfo.baseTimeMs,
-        timeInfo.byoyomiMs,
-        timeInfo.incrementMs
+        timeInfo.blackTime,
+        timeInfo.whiteTime
     );
 }
 
@@ -339,9 +339,8 @@ void PlayerInfoWiring::resolveNamesWithTimeController(const QString& human1, con
         // TimeControlController から TimeControlInfo を構築
         TimeControlInfo tcInfo;
         tcInfo.hasTimeControl = timeController->hasTimeControl();
-        tcInfo.baseTimeMs = timeController->baseTimeMs();
-        tcInfo.byoyomiMs = timeController->byoyomiMs();
-        tcInfo.incrementMs = timeController->incrementMs();
+        tcInfo.blackTime = timeController->settings().black;
+        tcInfo.whiteTime = timeController->settings().white;
         tcInfo.gameStartDateTime = timeController->gameStartDateTime();
 
         resolveNamesAndSetupGameInfo(
@@ -366,9 +365,8 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
                                                 const QString& whiteName,
                                                 const QString& handicap,
                                                 bool hasTimeControl,
-                                                qint64 baseTimeMs,
-                                                qint64 byoyomiMs,
-                                                qint64 incrementMs)
+                                                const KifuTimeControlSide& blackTime,
+                                                const KifuTimeControlSide& whiteTime)
 {
     ensureGameInfoController();
     if (!m_gameInfoController) return;
@@ -382,18 +380,18 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
     // 開始日時
     items.append({GameInfoKeys::kStartDateTime, startDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
 
-    // 先手
-    items.append({GameInfoKeys::kBlackPlayer, blackName});
-
-    // 後手
-    items.append({GameInfoKeys::kWhitePlayer, whiteName});
+    // 先手・後手（駒落ちは柿木形式の KIF と同じく下手・上手）
+    const QString handicapLabel = handicap.isEmpty() ? QStringLiteral("平手") : handicap;
+    items.append({KifuExportMetadataBuilder::blackPlayerKey(handicapLabel), blackName});
+    items.append({KifuExportMetadataBuilder::whitePlayerKey(handicapLabel), whiteName});
 
     // 手合割
-    items.append({GameInfoKeys::kHandicap, handicap.isEmpty() ? QStringLiteral("平手") : handicap});
+    items.append({GameInfoKeys::kHandicap, handicapLabel});
 
     // 未開始の「未設定」と、時間制限のない対局を区別する。
     items.append({GameInfoKeys::kTimeControl,
-                  hasTimeControl ? KifuExportMetadataBuilder::timeControlText(baseTimeMs, byoyomiMs, incrementMs)
+                  hasTimeControl ? KifuExportMetadataBuilder::timeControlText(
+                                       blackTime, whiteTime, KifuExportMetadataBuilder::isHandicap(handicapLabel))
                                  : QStringLiteral("無制限")});
 
     m_gameInfoController->setGameInfoForMatch(items);
@@ -418,9 +416,8 @@ void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
 }
 
 void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
-                                                     qint64 baseTimeMs,
-                                                     qint64 byoyomiMs,
-                                                     qint64 incrementMs)
+                                                     const KifuTimeControlSide& blackTime,
+                                                     const KifuTimeControlSide& whiteTime)
 {
     if (!m_gameInfoController || continuesExistingRecord()) return;
     if (!hasTimeControl) {
@@ -428,7 +425,9 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
         return;
     }
 
-    const QString timeStr = KifuExportMetadataBuilder::timeControlText(baseTimeMs, byoyomiMs, incrementMs);
+    const bool handicap = m_startSfenStr
+        && KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(*m_startSfenStr));
+    const QString timeStr = KifuExportMetadataBuilder::timeControlText(blackTime, whiteTime, handicap);
     m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, timeStr);
 
     qCDebug(lcUi) << "updateGameInfoWithTimeControl:"

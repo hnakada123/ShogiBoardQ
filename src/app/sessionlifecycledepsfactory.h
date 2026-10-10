@@ -41,7 +41,7 @@ public:
 
         // --- applyTimeControl 用 ---
         GameStartCoordinator::TimeControl* lastTimeControl = nullptr; ///< 前回の時間設定（外部所有）
-        std::function<void(bool, qint64, qint64, qint64)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
+        std::function<void(const GameStartCoordinator::TimeControl&)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
     };
 
     /// SessionLifecycleCoordinator::Deps を生成する

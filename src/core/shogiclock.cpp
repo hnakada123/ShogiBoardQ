@@ -61,6 +61,17 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
     m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
     m_resumingTurn = false;
 
+    // 持ち時間を使い切っている側（持ち時間0の秒読み対局を含む）は、初めから秒読みに入った状態にする。
+    // 着手後と同じく、手番でないあいだも秒読みの秒数を表示する（CSA は着手ごとにここで時計を合わせる）。
+    if (m_byoyomi1TimeMs > 0 && m_player1TimeMs <= 0) {
+        m_player1TimeMs = m_byoyomi1TimeMs;
+        m_byoyomi1Applied = true;
+    }
+    if (m_byoyomi2TimeMs > 0 && m_player2TimeMs <= 0) {
+        m_player2TimeMs = m_byoyomi2TimeMs;
+        m_byoyomi2Applied = true;
+    }
+
     m_player1ConsiderationTimeMs = 0;
     m_player2ConsiderationTimeMs = 0;
     m_player1TotalConsiderationTimeMs = 0;

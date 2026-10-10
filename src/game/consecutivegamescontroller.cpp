@@ -98,11 +98,13 @@ void ConsecutiveGamesController::prepareNextGameOptions()
     m_remainingGames--;
     m_gameNumber++;
 
-    // 1局ごとに手番を入れ替える場合
+    // 1局ごとに手番を入れ替える場合。持ち時間もエンジンと一緒に入れ替え、
+    // エンジンごとに時間差を付けた対局でも各エンジンが同じ持ち時間で指し続けるようにする。
     if (m_switchTurnEachGame) {
         std::swap(m_lastStartOptions.engineName1, m_lastStartOptions.engineName2);
         std::swap(m_lastStartOptions.enginePath1, m_lastStartOptions.enginePath2);
-        qCDebug(lcGame) << "Switched engine sides for next game";
+        std::swap(m_lastTimeControl.p1, m_lastTimeControl.p2);
+        qCDebug(lcGame) << "Switched engine sides and time controls for next game";
     }
 }
 
@@ -142,5 +144,6 @@ void ConsecutiveGamesController::launchPreparedNextGame()
     params.opt = m_lastStartOptions;
     params.tc = m_lastTimeControl;
     params.autoStartEngineMove = true;
+    params.announcePlayerNames = true;
     m_gameStart->start(params);
 }

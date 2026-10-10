@@ -76,7 +76,7 @@ public:
         MatchCoordinator* match = nullptr;                            ///< 対局進行の司令塔（非所有）
         ShogiView* shogiView = nullptr;                               ///< 盤面ビュー（非所有）
         GameStartCoordinator::TimeControl* lastTimeControl = nullptr; ///< 前回の時間設定（外部所有）
-        std::function<void(bool, qint64, qint64, qint64)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
+        std::function<void(const GameStartCoordinator::TimeControl&)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
     };
 
     explicit SessionLifecycleCoordinator(QObject* parent = nullptr);

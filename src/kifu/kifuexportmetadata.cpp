@@ -1,6 +1,7 @@
 /// @file kifuexportmetadata.cpp
 /// @brief 棋譜形式間で共有する対局情報と対局者名の生成
 #include "kifuexportmetadata.h"
+#include "gameinfokeys.h"
 #include "notationutils.h"
 #include <QObject>
 
@@ -35,15 +36,16 @@ QList<KifGameInfoItem> KifuExportMetadataBuilder::collect(const KifuExportMetada
             ? QStringLiteral("yyyy/MM/dd HH:mm:ss") : QStringLiteral("yyyy/MM/dd HH:mm"))
     });
 
-    items.push_back({ QStringLiteral("先手"), black });
-    items.push_back({ QStringLiteral("後手"), white });
+    const QString handicap = handicapLabel(ctx.startSfen);
+    items.push_back({ blackPlayerKey(handicap), black });
+    items.push_back({ whitePlayerKey(handicap), white });
 
-    items.push_back({ QStringLiteral("手合割"), handicapLabel(ctx.startSfen) });
+    items.push_back({ GameInfoKeys::kHandicap, handicap });
 
     // 持ち時間（時間制御が有効な場合のみ）
     if (ctx.hasTimeControl) {
-        items.push_back({ QStringLiteral("持ち時間"),
-                          timeControlText(ctx.initialTimeMs, ctx.byoyomiMs, ctx.fischerIncrementMs) });
+        items.push_back({ GameInfoKeys::kTimeControl,
+                          timeControlText(ctx.blackTime, ctx.whiteTime, isHandicap(handicap)) });
     }
 
     // 終了日時（ctx.gameEndDateTimeが有効な場合のみ）
@@ -73,6 +75,7 @@ void KifuExportMetadataBuilder::resolvePlayerNames(const KifuExportMetadata& ctx
         outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
         break;
     case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine1") : ctx.engine1;
         outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine2") : ctx.engine2;
         break;
@@ -109,6 +112,45 @@ QString KifuExportMetadataBuilder::handicapLabel(const QString& startSfen)
         }
     }
     return QStringLiteral("その他");
+}
+
+bool KifuExportMetadataBuilder::isHandicap(const QString& handicapLabel)
+{
+    const QString label = handicapLabel.trimmed();
+    return !label.isEmpty() && label != QStringLiteral("平手") && label != QStringLiteral("その他");
+}
+
+QString KifuExportMetadataBuilder::blackPlayerKey(const QString& handicapLabel)
+{
+    return isHandicap(handicapLabel) ? GameInfoKeys::kShitatePlayer : GameInfoKeys::kBlackPlayer;
+}
+
+QString KifuExportMetadataBuilder::whitePlayerKey(const QString& handicapLabel)
+{
+    return isHandicap(handicapLabel) ? GameInfoKeys::kUwatePlayer : GameInfoKeys::kWhitePlayer;
+}
+
+bool KifuExportMetadataBuilder::usesHandicapNames(const QList<KifGameInfoItem>& header, const QString& startSfen)
+{
+    // 読み込んだ棋譜の見出しが先手・後手なら、駒落ちでもその呼び方にそろえる（1つの棋譜で呼び方を混ぜない）
+    for (const auto& item : header) {
+        const QString key = item.key.trimmed();
+        if (key == GameInfoKeys::kShitatePlayer || key == GameInfoKeys::kUwatePlayer) return true;
+        if (key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kWhitePlayer) return false;
+    }
+    return isHandicap(handicapLabel(startSfen));
+}
+
+QString KifuExportMetadataBuilder::timeControlText(const KifuTimeControlSide& black,
+                                                   const KifuTimeControlSide& white, bool handicap)
+{
+    QString blackText = timeControlText(black.baseMs, black.byoyomiMs, black.incrementMs);
+    const QString whiteText = timeControlText(white.baseMs, white.byoyomiMs, white.incrementMs);
+    if (blackText == whiteText) return blackText;
+    // CsaFormatter::convertToCsaTimeLines と KifuPresentation::infoValue がこの書式を読む
+    return QStringLiteral("%1 %2 / %3 %4")
+        .arg(handicap ? GameInfoKeys::kShitatePlayer : GameInfoKeys::kBlackPlayer, blackText,
+             handicap ? GameInfoKeys::kUwatePlayer : GameInfoKeys::kWhitePlayer, whiteText);
 }
 
 QString KifuExportMetadataBuilder::timeControlText(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs)
