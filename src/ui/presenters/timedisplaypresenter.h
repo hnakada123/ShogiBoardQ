@@ -28,9 +28,6 @@ private:
     void applyTurnHighlights(bool p1turn);
     void updateUrgencyStyles(bool p1turn);
 
-    // 秒読みに入っているかどうかを判定
-    bool isInByoyomi(bool p1turn) const;
-
     static inline QString fmt_hhmmss(qint64 ms);
 
 private:

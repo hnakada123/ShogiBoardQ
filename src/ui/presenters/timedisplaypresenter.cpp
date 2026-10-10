@@ -6,6 +6,31 @@
 #include "shogiclock.h"
 #include "logcategories.h"
 
+namespace {
+
+/// 手番側の時計の緊急度（通常／残り10秒以下／秒読み中・残り5秒以下）を判定する
+ShogiView::Urgency urgencyFor(const ShogiClock* clock, qint64 ms, bool p1turn)
+{
+    using Urgency = ShogiView::Urgency;
+    // 無制限対局には時間切れの警告を表示しない。
+    if (clock && clock->isUnlimited()) return Urgency::Normal;
+
+    const bool hasByoyomi = clock && (p1turn ? clock->hasByoyomi1() : clock->hasByoyomi2());
+    if (hasByoyomi) {
+        // 秒読み中（持ち時間0秒の秒読み対局を含む）は最も強い警告にする。
+        // 秒読みに入る前は、持ち時間が残り10秒以下で予告の警告にする。
+        const bool inByoyomi = (p1turn ? clock->byoyomi1Applied() : clock->byoyomi2Applied()) || ms <= 0;
+        if (inByoyomi) return Urgency::Warn5;
+        return ms <= ShogiView::kWarn10Ms ? Urgency::Warn10 : Urgency::Normal;
+    }
+    // 秒読みが無い（切れ負け・加算）場合は、残り時間で2段階に警告する。
+    if (ms <= ShogiView::kWarn5Ms) return Urgency::Warn5;
+    if (ms <= ShogiView::kWarn10Ms) return Urgency::Warn10;
+    return Urgency::Normal;
+}
+
+} // namespace
+
 TimeDisplayPresenter::TimeDisplayPresenter(ShogiView* view, QObject* parent)
     : QObject(parent), m_view(view)
 {
@@ -59,37 +84,6 @@ void TimeDisplayPresenter::applyTurnHighlights(bool p1turn)
     updateUrgencyStyles(p1turn);
 }
 
-bool TimeDisplayPresenter::isInByoyomi(bool p1turn) const
-{
-    // 無制限対局には時間切れの警告を表示しない。
-    if (m_clock && m_clock->isUnlimited()) return false;
-
-    // クロックが設定されていない場合
-    if (!m_clock) {
-        // 秒読み設定がない（クロックなし）場合：残り5秒以下で緊急状態とみなす
-        const qint64 ms = p1turn ? m_lastP1Ms : m_lastP2Ms;
-        return ms <= ShogiView::kWarn5Ms;
-    }
-
-    if (p1turn) {
-        // 先手の手番
-        if (m_clock->hasByoyomi1()) {
-            // 秒読み設定がある場合：秒読みに入っているかどうかのみで判定
-            return m_clock->byoyomi1Applied();
-        }
-        // 秒読み設定が0秒の場合のみ：残り5秒以下で秒読み状態とみなす
-        return m_lastP1Ms <= ShogiView::kWarn5Ms;
-    } else {
-        // 後手の手番
-        if (m_clock->hasByoyomi2()) {
-            // 秒読み設定がある場合：秒読みに入っているかどうかのみで判定
-            return m_clock->byoyomi2Applied();
-        }
-        // 秒読み設定が0秒の場合のみ：残り5秒以下で秒読み状態とみなす
-        return m_lastP2Ms <= ShogiView::kWarn5Ms;
-    }
-}
-
 void TimeDisplayPresenter::updateUrgencyStyles(bool p1turn)
 {
     if (!m_view) return;
@@ -97,10 +91,6 @@ void TimeDisplayPresenter::updateUrgencyStyles(bool p1turn)
     // アクティブ側（先手=黒か）をビューへ通知
     m_view->setActiveIsBlack(p1turn);
 
-    // 秒読みに入っているかどうかで緊急度を決定
-    const bool inByoyomi = isInByoyomi(p1turn);
-    ShogiView::Urgency u = inByoyomi ? ShogiView::Urgency::Warn5 : ShogiView::Urgency::Normal;
-
-    // 見た目の適用は ShogiView に一元化
-    m_view->setUrgencyVisuals(u);
+    // 秒読み・残り時間から緊急度を決め、見た目の適用は ShogiView に一元化
+    m_view->setUrgencyVisuals(urgencyFor(m_clock, p1turn ? m_lastP1Ms : m_lastP2Ms, p1turn));
 }
