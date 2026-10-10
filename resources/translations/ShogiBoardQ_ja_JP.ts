@@ -2648,62 +2648,72 @@
 <context>
     <name>EngineAnalysisTab</name>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="80"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="82"/>
         <source>思考</source>
         <translation>思考</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="92"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="94"/>
         <source>検討</source>
         <translation>検討</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="98"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="100"/>
         <source>USI通信ログ</source>
         <translation>USI通信ログ</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="103"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="105"/>
         <source>CSA通信ログ</source>
         <translation>CSA通信ログ</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="108"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="110"/>
         <source>棋譜コメント</source>
         <translation>棋譜コメント</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="126"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="128"/>
         <source>分岐ツリー</source>
         <translation>分岐ツリー</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="139"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="144"/>
+        <source>フォントサイズを小さくする</source>
+        <translation>フォントサイズを小さくする</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="148"/>
+        <source>フォントサイズを大きくする</source>
+        <translation>フォントサイズを大きくする</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="154"/>
         <source>対局中の矢印表示</source>
         <translation>対局中の矢印表示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="142"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="157"/>
         <source>先読み側も表示</source>
         <translation>先読み側も表示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="145"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="160"/>
         <source>Ponder中の応手を青の破線で表示します。エンジンの先読み設定は変更しません。</source>
         <translation>Ponder中の応手を青の破線で表示します。エンジンの先読み設定は変更しません。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="316"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="331"/>
         <source>検討中の矢印表示は検討タブで設定します。</source>
         <translation>検討中の矢印表示は検討タブで設定します。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="318"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="333"/>
         <source>赤の実線：手番側</source>
         <translation>赤の実線：手番側</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="319"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="334"/>
         <source> ／ 青の破線：先読み側</source>
         <translation> ／ 青の破線：先読み側</translation>
     </message>
@@ -2715,49 +2725,47 @@
 <context>
     <name>EngineInfoWidget</name>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="33"/>
         <source>エンジン</source>
         <translation>エンジン</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="33"/>
         <source>探索手</source>
         <translation>探索手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="33"/>
         <source>予想手</source>
         <translation>予想手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="38"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="34"/>
         <source>深さ</source>
         <translation>深さ</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="38"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="34"/>
         <source>ノード数</source>
         <translation>ノード数</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="38"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="34"/>
         <source>ハッシュ使用率</source>
         <translation>ハッシュ使用率</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="38"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="34"/>
         <source>探索局面数/秒</source>
         <translation>探索局面数/秒</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="117"/>
         <source>フォントサイズを小さくする</source>
-        <translation>フォントサイズを小さくする</translation>
+        <translation type="vanished">フォントサイズを小さくする</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="120"/>
         <source>フォントサイズを大きくする</source>
-        <translation>フォントサイズを大きくする</translation>
+        <translation type="vanished">フォントサイズを大きくする</translation>
     </message>
 </context>
 <context>

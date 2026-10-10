@@ -2881,7 +2881,7 @@ The default layout will be used on next startup.</translation>
 <context>
     <name>EngineAnalysisTab</name>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="80"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="82"/>
         <source>思考</source>
         <translation>Thinking</translation>
     </message>
@@ -2898,47 +2898,47 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Specify the number of candidate moves to display in order of evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="92"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="94"/>
         <source>検討</source>
         <translation>Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="98"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="100"/>
         <source>USI通信ログ</source>
         <translation>USI Log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="103"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="105"/>
         <source>CSA通信ログ</source>
         <translation>CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="139"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="154"/>
         <source>対局中の矢印表示</source>
         <translation>Show arrows during games</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="142"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="157"/>
         <source>先読み側も表示</source>
         <translation>Also show pondering side</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="145"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="160"/>
         <source>Ponder中の応手を青の破線で表示します。エンジンの先読み設定は変更しません。</source>
         <translation>Show ponder replies as blue dashed arrows. This does not change the engine’s pondering setting.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="316"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="331"/>
         <source>検討中の矢印表示は検討タブで設定します。</source>
         <translation>Configure consideration arrows in the Consideration tab.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="318"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="333"/>
         <source>赤の実線：手番側</source>
         <translation>Solid red: side to move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="319"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="334"/>
         <source> ／ 青の破線：先読み側</source>
         <translation> / Dashed blue: pondering side</translation>
     </message>
@@ -2947,22 +2947,24 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">View/Edit comments</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="108"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="110"/>
         <source>棋譜コメント</source>
         <translation>Comments</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="126"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="128"/>
         <source>分岐ツリー</source>
         <translation>Branch Tree</translation>
     </message>
     <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="144"/>
         <source>フォントサイズを小さくする</source>
-        <translation type="vanished">Decrease font size</translation>
+        <translation>Decrease font size</translation>
     </message>
     <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="148"/>
         <source>フォントサイズを大きくする</source>
-        <translation type="vanished">Increase font size</translation>
+        <translation>Increase font size</translation>
     </message>
     <message>
         <source>検討ダイアログで指定した時間設定</source>
@@ -3110,27 +3112,27 @@ Discard changes and move?</translation>
 <context>
     <name>EngineInfoWidget</name>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="33"/>
         <source>エンジン</source>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="33"/>
         <source>予想手</source>
         <translation>Predicted</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="33"/>
         <source>探索手</source>
         <translation>Searching</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="38"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="34"/>
         <source>深さ</source>
         <translation>Depth</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="38"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="34"/>
         <source>ノード数</source>
         <translation>Nodes</translation>
     </message>
@@ -3139,24 +3141,22 @@ Discard changes and move?</translation>
         <translation type="vanished">NPS</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="38"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="34"/>
         <source>ハッシュ使用率</source>
         <translation>Hash Usage</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="38"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="34"/>
         <source>探索局面数/秒</source>
         <translation>Nodes/s</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="117"/>
         <source>フォントサイズを小さくする</source>
-        <translation>Decrease font size</translation>
+        <translation type="vanished">Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="120"/>
         <source>フォントサイズを大きくする</source>
-        <translation>Increase font size</translation>
+        <translation type="vanished">Increase font size</translation>
     </message>
 </context>
 <context>

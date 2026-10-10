@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QCheckBox>
 #include <QClipboard>
 #include <QDialog>
 #include <QLineEdit>
@@ -15,6 +16,7 @@
 #include "gamerecordmodel.h"
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
+#include "analysissettings.h"
 #include "elidelabel.h"
 #include "shogiview.h"
 
@@ -396,6 +398,33 @@ private slots:
                                      static_cast<int>(PlayMode::HandicapEngineVsEngine));
         QVERIFY(tab.info2()->isVisibleTo(page));
         QVERIFY(views.at(1)->isVisibleTo(page));
+    }
+
+    void thinkingFontButtonsPrecedeArrowControls()
+    {
+        AnalysisSettings::setThinkingFontSize(10);
+        QWidget parent;
+        EngineAnalysisTab tab;
+        auto* page = tab.createThinkingPage(&parent);
+        auto* decrease = page->findChild<QToolButton*>(QStringLiteral("thinkingFontDecrease"));
+        auto* increase = page->findChild<QToolButton*>(QStringLiteral("thinkingFontIncrease"));
+        auto* arrows = page->findChild<QCheckBox*>(QStringLiteral("matchArrows"));
+        QVERIFY(decrease && increase && arrows);
+        QVERIFY(tab.info1()->findChildren<QToolButton*>().isEmpty());
+        page->resize(900, 400);
+        parent.show();
+        QTRY_VERIFY(arrows->isVisible());
+        QVERIFY(decrease->geometry().right() < increase->geometry().left());
+        QVERIFY(increase->geometry().right() < arrows->geometry().left());
+        QVERIFY(qAbs(decrease->geometry().center().y() - arrows->geometry().center().y()) <= 2);
+        QVERIFY(arrows->geometry().bottom() < tab.info1()->geometry().top());
+
+        QTest::mouseClick(increase, Qt::LeftButton);
+        QCOMPARE(AnalysisSettings::thinkingFontSize(), 11);
+        QCOMPARE(tab.info1()->fontSize(), 11);
+        QTest::mouseClick(decrease, Qt::LeftButton);
+        QCOMPARE(AnalysisSettings::thinkingFontSize(), 10);
+        QCOMPARE(tab.info1()->fontSize(), 10);
     }
 
     void startupShowsDefaultPlayerNamesOnBoard()

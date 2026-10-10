@@ -8,14 +8,12 @@
 #include <QWidget>
 #include <QList>
 class QTableWidget;
-class QToolButton;
-class QHBoxLayout;
 class UsiCommLogModel;
 
 class EngineInfoWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit EngineInfoWidget(QWidget* parent=nullptr, bool showFontButtons=false, bool showPredictedMove=true);
+    explicit EngineInfoWidget(QWidget* parent=nullptr, bool showPredictedMove=true);
     void setModel(UsiCommLogModel* model);
     void setDisplayNameFallback(const QString& name);
     
@@ -35,10 +33,6 @@ public:
     int columnCount() const { return COL_COUNT; }
 
 signals:
-    // フォントサイズ変更シグナル
-    void fontSizeIncreaseRequested();
-    void fontSizeDecreaseRequested();
-    
     // 列幅変更シグナル
     void columnWidthChanged();
 
@@ -66,12 +60,6 @@ private:
     int m_fontSize=10;
     int m_widgetIndex=0;  // ウィジェットインデックス
     bool m_columnWidthsLoaded=false;  // 列幅が設定ファイルから読み込まれたか
-    QWidget* m_fontControls = nullptr;
-
-    // フォントサイズボタン
-    QToolButton* m_btnFontDecrease=nullptr;
-    QToolButton* m_btnFontIncrease=nullptr;
-    bool m_showFontButtons=false;
     bool m_showPredictedMove=true;  // 予想手列を表示するか
     
     // 列インデックス
