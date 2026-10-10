@@ -21,6 +21,7 @@
 #include "sfenpositiontracer.h"
 #include "sfenutils.h"
 #include "playmode.h"
+#include "shogiclock.h"
 
 namespace {
 
@@ -42,6 +43,8 @@ struct Harness {
     GameRecordPresenter presenter{{&record, &pane}};
     MatchUndoHandler handler;
     UndoFlowService flow;
+    ShogiClock clock;
+    int timerRestarts = 0;
     LiveGameSessionUpdater updater;
     QStringList sfens;
     QList<ShogiMove> moves;
@@ -92,6 +95,10 @@ struct Harness {
         refs.positionPonder1 = &ponder;
         refs.positionStrHistory = &positionHistory;
         handler.setRefs(refs);
+        MatchUndoHandler::Hooks clockHooks;
+        clockHooks.clockProvider = [this]() { return &clock; };
+        clockHooks.restartHumanTurnTimer = [this]() { ++timerRestarts; };
+        handler.setHooks(clockHooks);
         MatchUndoHandler::UndoRefs undoRefs;
         undoRefs.recordModel = &record;
         undoRefs.positionStrList = &positionList;
@@ -120,6 +127,19 @@ struct Harness {
         updateDeps.gameController = &gc;
         updateDeps.sfenRecord = &sfens;
         updater.updateDeps(updateDeps);
+    }
+
+    /// 着手し、その手の消費時間を時計に確定する（対局中の着手と同じ順序）
+    bool playTimed(const QString& usi, qint64 ms)
+    {
+        const int player = gc.currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
+        if (!play(usi)) return false;
+        clock.setCurrentPlayer(player);
+        clock.setMeasuredConsiderationTime(player, ms);
+        if (player == 1) clock.applyByoyomiAndResetConsideration1();
+        else clock.applyByoyomiAndResetConsideration2();
+        clock.setCurrentPlayer(player == 1 ? 2 : 1);
+        return true;
     }
 
     bool play(const QString& usi)
@@ -243,6 +263,58 @@ private slots:
         QCOMPARE(h.tree.mainLine().last(), h.session.liveNode());
         QCOMPARE(h.tree.root()->childAt(1)->displayText(), h.tree.displayItemsForLine(1).at(1).prettyMove);
         QCOMPARE(h.tree.displayItemsForLine(1).size(), opening.size() + 1);
+    }
+
+    // 「待った」で、時計も取り消した自分の手を指し始めたときへ戻る。続けて使うと2手ずつ戻る。
+    void undoRestoresClockOfRetractedTurn()
+    {
+        Harness h;
+        h.clock.setPlayerTimes(610, 610, 0, 0, 10, 10, true); // 持ち時間10分＋加算10秒
+        h.clock.setCurrentPlayer(1);
+        const auto verifyClock = [&h](const ShogiClock::Snapshot& expected) {
+            const auto now = h.clock.pauseAndSnapshot();
+            QCOMPARE(now.currentPlayer, 1);
+            QCOMPARE(now.player1TimeMs, expected.player1TimeMs);
+            QCOMPARE(now.player2TimeMs, expected.player2TimeMs);
+            QCOMPARE(now.player1TotalConsiderationTimeMs, expected.player1TotalConsiderationTimeMs);
+            QCOMPARE(now.player2TotalConsiderationTimeMs, expected.player2TotalConsiderationTimeMs);
+            QCOMPARE(now.player1ConsiderationTimeMs, 0LL);
+        };
+
+        const auto firstTurn = h.clock.pauseAndSnapshot();
+        QVERIFY(h.playTimed(opening.at(0), 3000));
+        // エンジンの手番では「待った」できず、時計も変わらない
+        const auto engineTurn = h.clock.pauseAndSnapshot();
+        h.flow.undoLastTwoMoves();
+        verifyPosition(h, 1);
+        QCOMPARE(h.clock.pauseAndSnapshot().player1TimeMs, engineTurn.player1TimeMs);
+        QCOMPARE(h.timerRestarts, 0);
+
+        QVERIFY(h.playTimed(opening.at(1), 1000));
+        const auto secondTurn = h.clock.pauseAndSnapshot();
+        QVERIFY(h.playTimed(opening.at(2), 5000));
+        QVERIFY(h.playTimed(opening.at(3), 2000));
+        h.clock.setPlayer1ConsiderationTime(700); // 考え中の時間も返す
+
+        h.flow.undoLastTwoMoves();
+        verifyPosition(h, 2);
+        verifyClock(secondTurn);
+        QCOMPARE(h.timerRestarts, 1);
+        h.flow.undoLastTwoMoves();
+        verifyPosition(h, 0);
+        verifyClock(firstTurn);
+        QCOMPARE(h.timerRestarts, 2);
+        h.flow.undoLastTwoMoves(); // 開始局面より前には戻らない
+        verifyPosition(h, 0);
+        verifyClock(firstTurn);
+        QCOMPARE(h.timerRestarts, 2);
+
+        // 指し直した後の「待った」も、指し直した手の前へ戻る
+        QVERIFY(h.playTimed(QStringLiteral("2g2f"), 4000));
+        QVERIFY(h.playTimed(QStringLiteral("8c8d"), 1000));
+        h.flow.undoLastTwoMoves();
+        verifyPosition(h, 0);
+        verifyClock(firstTurn);
     }
 
     void undoThenDifferentMoveKeepsUndoneLineAsVariation()

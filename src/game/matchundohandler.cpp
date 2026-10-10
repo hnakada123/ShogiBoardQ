@@ -9,6 +9,7 @@
 #include "kifurecordlistmodel.h"
 #include "sfenutils.h"
 #include "sfendiffutils.h"
+#include "shogiclock.h"
 
 #include <QMetaObject>
 #include <QMetaMethod>
@@ -49,6 +50,11 @@ QString MatchUndoHandler::buildPositionAfterUndo(const QString& prevFull,
 void MatchUndoHandler::setRefs(const Refs& refs)
 {
     m_refs = refs;
+}
+
+void MatchUndoHandler::setHooks(const Hooks& hooks)
+{
+    m_hooks = hooks;
 }
 
 void MatchUndoHandler::setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks)
@@ -150,6 +156,12 @@ bool MatchUndoHandler::undoTwoPlies()
     if (u_.currentMoveIndex) {
         *u_.currentMoveIndex = targetMoveRow;
     }
+
+    // --- 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す ---
+    if (ShogiClock* clock = m_hooks.clockProvider ? m_hooks.clockProvider() : nullptr) {
+        clock->undo();
+    }
+    if (m_hooks.restartHumanTurnTimer) m_hooks.restartHumanTurnTimer();
 
     // --- 表示/ハイライトの同期 ---
     if (u_.recordModel) u_.recordModel->setCurrentHighlightRow(targetMoveRow);

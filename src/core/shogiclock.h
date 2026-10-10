@@ -110,7 +110,9 @@ public:
     /// 後手の着手確定後に秒読み/加算を適用し、考慮時間を確定する
     void applyByoyomiAndResetConsideration2();
 
-    /// 2手分の状態を巻き戻す（「待った」用）
+    /// 2手分の状態を巻き戻す（「待った」用）。取り消す自分の手を指し始めたときの
+    /// 残り時間・消費時間に戻し、考慮時間は呼び出した時点から数え直す。
+    /// 履歴は setPlayerTimes() の開始状態と、着手確定ごとの状態で、戻せないときは何もしない。
     void undo();
 
     // --- GUI表示API ---
@@ -182,6 +184,7 @@ signals:
 private:
     // --- 内部ヘルパ ---
     void saveState();
+    void clearHistory();
     void debugCheckInvariants() const;
     int remainingDisplaySecP1() const;
     int remainingDisplaySecP2() const;

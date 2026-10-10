@@ -299,37 +299,89 @@ private slots:
         QCOMPARE(clock.getPlayer1TimeIntMs(), 310000LL);
     }
 
+    void undo_restoresState_data()
+    {
+        QTest::addColumn<int>("mainSec");
+        QTest::addColumn<int>("byoyomiSec");
+        QTest::addColumn<int>("incrementSec");
+        QTest::newRow("main-time") << 300 << 0 << 0;
+        QTest::newRow("byoyomi-only") << 0 << 30 << 0;
+        QTest::newRow("fischer") << 310 << 0 << 10; // 初手の加算10秒を含む
+    }
+
+    // 「待った」は、取り消す自分の手を指し始めたときの時計へ戻す。続けて使うと2手ずつ戻る。
     void undo_restoresState()
     {
+        QFETCH(int, mainSec);
+        QFETCH(int, byoyomiSec);
+        QFETCH(int, incrementSec);
         ShogiClock clock;
-        clock.setPlayerTimes(300, 300, 0, 0, 10, 10, true);
+        clock.setPlayerTimes(mainSec, mainSec, byoyomiSec, byoyomiSec, incrementSec, incrementSec, true);
         clock.setCurrentPlayer(1);
+        const auto commit = [&clock](int player, qint64 ms) {
+            clock.setCurrentPlayer(player);
+            clock.setMeasuredConsiderationTime(player, ms);
+            if (player == 1) clock.applyByoyomiAndResetConsideration1();
+            else clock.applyByoyomiAndResetConsideration2();
+        };
+        const auto verifyTurnStart = [&clock](const ShogiClock::Snapshot& expected) {
+            const auto now = clock.pauseAndSnapshot();
+            QCOMPARE(now.currentPlayer, 1);
+            QCOMPARE(now.player1TimeMs, expected.player1TimeMs);
+            QCOMPARE(now.player2TimeMs, expected.player2TimeMs);
+            QCOMPARE(now.player1TotalConsiderationTimeMs, expected.player1TotalConsiderationTimeMs);
+            QCOMPARE(now.player2TotalConsiderationTimeMs, expected.player2TotalConsiderationTimeMs);
+            QCOMPARE(now.byoyomi1Applied, expected.byoyomi1Applied);
+            QCOMPARE(now.byoyomi2Applied, expected.byoyomi2Applied);
+            QCOMPARE(now.player1ConsiderationTimeMs, 0LL);
+            QVERIFY(!now.currentConsiderationCommitted);
+        };
 
-        // undo() requires 3+ history entries (saveState is called by startClock)
-        // and pops 2, restoring from the 1st entry
-
-        // Turn 1 (player 1)
-        clock.startClock();   // saveState: p1=300000
-        clock.stopClock();
-        clock.applyByoyomiAndResetConsideration1();  // p1 += 10000 → 310000
-        QCOMPARE(clock.getPlayer1TimeIntMs(), 310000LL);
-
-        // Turn 2 (player 2)
-        clock.setCurrentPlayer(2);
-        clock.startClock();   // saveState: p1=310000
-        clock.stopClock();
-        clock.applyByoyomiAndResetConsideration2();
-
-        // Turn 3 (player 1 again)
+        const auto firstTurn = clock.pauseAndSnapshot();
+        commit(1, 3000);
+        commit(2, 2000);
         clock.setCurrentPlayer(1);
-        clock.startClock();   // saveState: p1=310000
-        clock.stopClock();
-        clock.applyByoyomiAndResetConsideration1();  // p1 += 10000 → 320000
-        QCOMPARE(clock.getPlayer1TimeIntMs(), 320000LL);
+        const auto secondTurn = clock.pauseAndSnapshot();
+        commit(1, 5000);
+        commit(2, 1000);
+        clock.setCurrentPlayer(1);
+        clock.setPlayer1ConsiderationTime(700); // 考え中の時間も返す
 
-        // undo pops 2 entries, restores from 1st entry (p1=300000)
         clock.undo();
-        QCOMPARE(clock.getPlayer1TimeIntMs(), 300000LL);
+        verifyTurnStart(secondTurn);
+        clock.undo();
+        verifyTurnStart(firstTurn);
+        clock.undo(); // 対局開始より前には戻らない
+        verifyTurnStart(firstTurn);
+
+        // 戻した時点から計時し直す
+        clock.startClock();
+        QTest::qSleep(60);
+        clock.updateClock();
+        QVERIFY(clock.player1ConsiderationMs() >= 60);
+        QVERIFY(clock.player1ConsiderationMs() < 1000);
+        if (byoyomiSec == 0) {
+            QCOMPARE(clock.getPlayer1TimeIntMs(), firstTurn.player1TimeMs - clock.player1ConsiderationMs());
+        }
+        clock.stopClock();
+
+        // 指し直した後の「待った」も、指し直した手の前へ戻る
+        clock.setPlayer1ConsiderationTime(0);
+        commit(1, 4000);
+        commit(2, 1500);
+        clock.setCurrentPlayer(1);
+        clock.undo();
+        verifyTurnStart(firstTurn);
+
+        // 時間を設定し直した新しい対局では、前の対局の状態に戻らない
+        commit(1, 4000);
+        commit(2, 1500);
+        clock.setCurrentPlayer(1);
+        clock.setPlayerTimes(mainSec, mainSec, byoyomiSec, byoyomiSec, incrementSec, incrementSec, true);
+        clock.setCurrentPlayer(1);
+        const auto newGame = clock.pauseAndSnapshot();
+        clock.undo();
+        verifyTurnStart(newGame);
     }
 
     void stressTest_startStop()

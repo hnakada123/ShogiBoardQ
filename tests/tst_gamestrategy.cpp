@@ -146,6 +146,7 @@ private slots:
     void hvh_armTimer_idempotentOnSecondCall();
     void hvh_finishTimer_disarmsAndSetsConsideration();
     void hvh_finishTimer_nothingWhenNotArmed();
+    void hvh_disarmTimer_restartsMeasurement();
 
     // === Section B: HumanVsEngineStrategy ===
     void hve_needsEngine_returnsTrue();
@@ -361,6 +362,28 @@ void Tst_GameStrategy::hvh_finishTimer_nothingWhenNotArmed()
     // Finish without arming - should be a no-op
     hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
     QVERIFY(true);
+}
+
+// 「待った」では計測を打ち切り、その時点から測り直す（取り消す前の考慮時間を次の手に入れない）
+void Tst_GameStrategy::hvh_disarmTimer_restartsMeasurement()
+{
+    StrategyTestHarness h;
+    HumanVsHumanStrategy hvh(h.mc->strategyCtx());
+
+    hvh.armTurnTimerIfNeeded();
+    QTest::qSleep(200);
+    hvh.disarmTurnTimer();
+    hvh.armTurnTimerIfNeeded();
+    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
+    QVERIFY2(h.clock.player1ConsiderationMs() < 150,
+             qPrintable(QString::number(h.clock.player1ConsiderationMs())));
+
+    // 止めずに掛け直しても測り直さない（armTurnTimerIfNeeded は一度だけ開始する）
+    hvh.armTurnTimerIfNeeded();
+    QTest::qSleep(200);
+    hvh.armTurnTimerIfNeeded();
+    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P2));
+    QVERIFY(h.clock.player2ConsiderationMs() >= 200);
 }
 
 // ============================================================

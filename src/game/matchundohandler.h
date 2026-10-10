@@ -14,6 +14,7 @@
 
 class KifuRecordListModel;
 class BoardInteractionController;
+class ShogiClock;
 
 /**
  * @brief 対局中の2手UNDO処理を担当するハンドラ
@@ -72,7 +73,16 @@ public:
         std::function<void(bool)> setMouseClickMode;
     };
 
+    /// MatchCoordinator への時計・計時のコールバック
+    struct Hooks {
+        /// @brief 対局の時計を返す（無ければ nullptr）
+        std::function<ShogiClock*()> clockProvider;
+        /// @brief 人間側の考慮時間の計測をいったん止め、今から測り直す
+        std::function<void()> restartHumanTurnTimer;
+    };
+
     void setRefs(const Refs& refs);
+    void setHooks(const Hooks& hooks);
     void setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks);
 
     /// 2手分のUNDOを実行する
@@ -86,6 +96,7 @@ private:
     static QString buildPositionAfterUndo(const QString& prevFull, const QString& targetSfen);
 
     Refs m_refs;
+    Hooks m_hooks;
     UndoRefs u_;
     UndoHooks h_;
 };

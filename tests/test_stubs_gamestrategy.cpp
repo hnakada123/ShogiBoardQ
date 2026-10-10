@@ -239,6 +239,7 @@ void GameStartOrchestrator::prepareAndStartGame(PlayMode, const QString&,
 // ============================================================
 
 void MatchUndoHandler::setRefs(const Refs&) {}
+void MatchUndoHandler::setHooks(const Hooks&) {}
 void MatchUndoHandler::setUndoBindings(const UndoRefs&, const UndoHooks&) {}
 bool MatchUndoHandler::undoTwoPlies() { return false; }
 
@@ -705,7 +706,12 @@ void Usi::onProcessExited() {}
 
 ShogiClock::Snapshot ShogiClock::pauseAndSnapshot() { return {}; }
 void ShogiClock::restoreSnapshot(const Snapshot&) {}
-void ShogiClock::setMeasuredConsiderationTime(int, qint64) {}
+void ShogiClock::setMeasuredConsiderationTime(int player, qint64 elapsedMs)
+{
+    // 測った考慮時間をテストで確かめられるよう記録する
+    if (player == 1) m_player1ConsiderationTimeMs = elapsedMs;
+    else m_player2ConsiderationTimeMs = elapsedMs;
+}
 
 // ============================================================
 // CsaGameCoordinator スタブ（PlayModePolicyService のリンク用）

@@ -26,6 +26,7 @@ public:
 
     void armTurnTimerIfNeeded() override;
     void finishTurnTimerAndSetConsideration(int moverPlayer) override;
+    void disarmTurnTimer() override;
 
 private:
     MatchCoordinator::StrategyContext& m_ctx;
