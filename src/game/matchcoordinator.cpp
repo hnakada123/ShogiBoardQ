@@ -314,6 +314,14 @@ void MatchCoordinator::ensureUndoHandler()
     refs.positionStrHistory = &m_positionStrHistory;
     refs.gameMoves         = &gameMovesRef();
     m_undoHandler->setRefs(refs);
+
+    MatchUndoHandler::Hooks hooks;
+    hooks.clockProvider = [this]() { return clock(); };
+    hooks.restartHumanTurnTimer = [this]() {
+        disarmHumanTimerIfNeeded();
+        armTurnTimerIfNeeded();
+    };
+    m_undoHandler->setHooks(hooks);
 }
 
 // --- StrategyContext アクセサ ---

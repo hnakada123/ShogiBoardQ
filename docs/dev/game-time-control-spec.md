@@ -127,8 +127,11 @@
 - 初手がエンジンなら、エンジン初期化待ちの間は時計を停止し、準備完了後に計時・思考を開始する。エンジン同士では双方の初期化を待つ。
 - 累積表示が0秒から1秒へ変わるのは、実際に約1秒を消費した後である。
 - 中断中は時計を停止する。再開時には保存した残り時間・考慮時間・累積時間を復元し、初手の加算を再度行わない。
-- 「待った」では時計を戻さない。取り消した手に使った時間は、消費したままになる（時計には巻き戻し用の `ShogiClock::undo()` があるが、現在はどこからも呼ばれていない）。
+- 「待った」は、時計を取り消す自分の手を指し始めたときの状態（双方の残り時間・総消費時間・秒読みに入ったか）へ戻す。取り消した自分の手と相手の応手、応手の後に考えていた時間は返す。考慮時間は「待った」を押した時点から数え直す。
+- 続けて「待った」を押すと、押すたびにさらに2手ずつ戻る。対局の開始局面まで戻ると、それ以上は局面も時計も変えない（時計はそのまま進む）。
 - 終局時は時計を停止し、終局行に記録する消費時間を確定する。以後は秒読みのリセットや加算を行わない。
+
+「待った」のために、時計は手番の開始状態を履歴に積む。対局の時間を設定したとき（`setPlayerTimes()`）に履歴を空にして開始状態を1つ積み、以後は着手を確定するたび（`applyByoyomiAndResetConsideration1/2()`）に、次の手番の開始状態として積む。`undo()` は末尾の2つを取り除き、新しい末尾の状態に戻す。履歴は中断・再開の保存にも含める。人間の考慮時間を測るタイマー（人間対エンジンは時計自身、人間同士はストラテジーのタイマー）も「待った」で掛け直す。
 
 「時間切れを負けにする」がオフでも、有限の時間設定が時間無制限の表示へ変わるわけではない。残り時間は0で止まり、消費時間の記録は続く。加算方式で残り0になった後に指しても加算はしない。秒読み方式では、着手確定時に秒読みを再設定する。
 
@@ -157,9 +160,10 @@ CSA通信対局でエンジンが指すときも同じ形で送る。CSA の残�
 - [開始時の時間設定の確認](../../src/dialogs/startgamedialog_time.cpp)・[判定](../../src/game/timecontrolvalidator.cpp)：片方だけ時間なしと、エンジンが参加する時間無制限を止める警告。
 - [時間設定の構築](../../src/game/gamestartoptionsbuilder.cpp)：対局全体の時間制限の有無。
 - [時計への初期設定](../../src/services/timecontrolutil.cpp)：初手への加算。
-- [時計本体](../../src/core/shogiclock.cpp)：減算、秒読み、加算、時間切れ、累積表示の更新。
+- [時計本体](../../src/core/shogiclock.cpp)：減算、秒読み、加算、時間切れ、累積表示の更新、「待った」用の履歴と巻き戻し。
+- [待った](../../src/game/matchundohandler.cpp)：盤・棋譜を2手戻し、時計を戻して考慮時間を測り直す。
 - [表示文字列](../../src/core/shogiclock_format.cpp)：時計と棋譜の消費時間の表記。
 - [表示の反映](../../src/ui/presenters/timedisplaypresenter.cpp)：時間無制限の「消費」付き累積表示と文字サイズの調整、警告色の段階の判定。
 - [USI時間計算](../../src/game/matchtimekeeper.cpp)・[エンジン応答管理](../../src/engine/usimatchhandler.cpp)：残り時間の通知（加算分を除く）、余裕の差し引きと `btime`/`binc` への配分。
 - [CSA対局のエンジン思考](../../src/network/csamoveprogresshandler.cpp)：CSA の残り時間から自分の加算分を差し引いて送る。
-- [時計テスト](../../tests/tst_shogiclock.cpp)・[対局戦略テスト](../../tests/tst_gamestrategy.cpp)・[USI対局テスト](../../tests/tst_usimatchhandler.cpp)・[対局ダイアログテスト](../../tests/tst_startgamedialog.cpp)・[時計表示テスト](../../tests/tst_turn_state_sync.cpp)。
+- [時計テスト](../../tests/tst_shogiclock.cpp)・[対局戦略テスト](../../tests/tst_gamestrategy.cpp)・[USI対局テスト](../../tests/tst_usimatchhandler.cpp)・[対局ダイアログテスト](../../tests/tst_startgamedialog.cpp)・[時計表示テスト](../../tests/tst_turn_state_sync.cpp)・[待ったのテスト](../../tests/tst_undo_flow.cpp)。

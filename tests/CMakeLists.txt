@@ -622,6 +622,9 @@ add_shogi_test(tst_undo_flow
     ${SRC}/app/undoflowservice.cpp
     ${SRC}/app/livegamesessionupdater.cpp
     ${SRC}/game/matchundohandler.cpp
+    ${SRC}/core/shogiclock.cpp
+    ${SRC}/core/shogiclock_format.cpp
+    ${SRC}/core/shogiclock_snapshot.cpp
     ${SRC}/game/shogigamecontroller.cpp
     ${SRC}/game/piecemoverules.cpp
     ${SRC}/game/turnmanager.cpp

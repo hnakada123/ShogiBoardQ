@@ -97,6 +97,13 @@ void HumanVsHumanStrategy::armTurnTimerIfNeeded()
     }
 }
 
+void HumanVsHumanStrategy::disarmTurnTimer()
+{
+    // 「待った」や終局で計測を打ち切る。次の armTurnTimerIfNeeded() で測り直す。
+    m_turnTimer.invalidate();
+    m_turnTimerArmed = false;
+}
+
 void HumanVsHumanStrategy::finishTurnTimerAndSetConsideration(int moverPlayer)
 {
     if (!m_turnTimerArmed) return;

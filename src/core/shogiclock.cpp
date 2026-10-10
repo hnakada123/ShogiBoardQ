@@ -71,6 +71,10 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
 
     m_prevShownSecP1 = remainingDisplaySecP1();
     m_prevShownSecP2 = remainingDisplaySecP2();
+
+    // 「待った」用の履歴は、対局開始時の状態から積み直す。
+    clearHistory();
+    saveState();
     emit timeUpdated();
 }
 
@@ -118,8 +122,6 @@ qint64 ShogiClock::remainingMainTimeMs(int player) const
 void ShogiClock::startClock()
 {
     if (m_clockRunning) return;
-
-    if (!m_resumingTurn) saveState();
 
     m_elapsedTimer.restart();
     m_turnFinished = false;
@@ -217,6 +219,8 @@ void ShogiClock::applyByoyomiAndResetConsideration1()
         if (m_player1TimeMs > 0) m_player1TimeMs += m_bincMs;
     }
 
+    // 着手を確定した状態を、次の手番の開始状態として「待った」用に残す。
+    saveState();
     emit timeUpdated();
 }
 
@@ -243,6 +247,7 @@ void ShogiClock::applyByoyomiAndResetConsideration2()
         if (m_player2TimeMs > 0) m_player2TimeMs += m_wincMs;
     }
 
+    saveState();
     emit timeUpdated();
 }
 
@@ -384,7 +389,8 @@ void ShogiClock::saveState()
 
 void ShogiClock::undo()
 {
-    // 「待った」は2手分の状態を巻き戻す
+    // 「待った」は2手分の状態を巻き戻す。履歴の末尾は現在の手番の開始状態で、
+    // 2つ取り除いた末尾が、取り消す自分の手を指し始めたときの状態になる。
     auto enough = [&]{
         return m_considerationCommittedHistory.size() >= 3 &&
                m_player1TimeHistory.size() >= 3 &&
@@ -443,7 +449,34 @@ void ShogiClock::undo()
     pop2(m_p2LastMoveShownSecHistory);
     m_p2LastMoveShownSec = m_p2LastMoveShownSecHistory.top();
 
+    // 手番は2手前と同じ。考慮時間は「待った」の時点から数え直す。
+    if (m_currentPlayer == 1) m_player1ConsiderationTimeMs = 0;
+    else m_player2ConsiderationTimeMs = 0;
+    m_currentConsiderationCommitted = false;
+    m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
+    m_resumingTurn = false;
+    m_turnFinished = false;
+    if (m_elapsedTimer.isValid()) m_lastTickMs = m_elapsedTimer.elapsed();
+    m_prevShownSecP1 = remainingDisplaySecP1();
+    m_prevShownSecP2 = remainingDisplaySecP2();
     emit timeUpdated();
+}
+
+void ShogiClock::clearHistory()
+{
+    m_considerationCommittedHistory.clear();
+    m_player1TimeHistory.clear();
+    m_player2TimeHistory.clear();
+    m_player1ConsiderationHistory.clear();
+    m_player2ConsiderationHistory.clear();
+    m_player1TotalConsiderationHistory.clear();
+    m_player2TotalConsiderationHistory.clear();
+    m_byoyomi1AppliedHistory.clear();
+    m_byoyomi2AppliedHistory.clear();
+    m_p1PrevShownTotalSecHistory.clear();
+    m_p2PrevShownTotalSecHistory.clear();
+    m_p1LastMoveShownSecHistory.clear();
+    m_p2LastMoveShownSecHistory.clear();
 }
 
 // ============================================================

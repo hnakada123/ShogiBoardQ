@@ -644,6 +644,7 @@ void MatchTimekeeper::emitTimeUpdateFromClock() {}
 // ============================================================
 
 void MatchUndoHandler::setRefs(const Refs&) {}
+void MatchUndoHandler::setHooks(const Hooks&) {}
 void MatchUndoHandler::setUndoBindings(const UndoRefs&, const UndoHooks&) {}
 bool MatchUndoHandler::undoTwoPlies() { return false; }
 bool MatchUndoHandler::isStandardStartposSfen(const QString&) { return false; }
