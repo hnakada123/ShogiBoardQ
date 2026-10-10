@@ -299,6 +299,37 @@ CLI の `/mcp` で接続を確認し、「ShogiBoardQ の validate_sfen で star
 
 Windows では `python3` を `python` に、パスを `C:\\Users\\...\\ShogiBoardQ\\build\\ShogiBoardQ.exe` のように置き換えてください（JSON では `\\` でエスケープします）。
 
+## 画面に出さずに使う
+
+MCP サーバーが自動で起動するアプリは、通常は普段の画面に表示され、普段の設定ファイルを読み書きします。
+検証などで画面に出したくないときは、OS に合わせて次のどちらかを使います。
+
+### Linux：Xvfb の仮想ディスプレイ
+
+[`scripts/mcp/shogiboardq-mcp-headless.sh`](../scripts/mcp/shogiboardq-mcp-headless.sh) は、Xvfb を起動してから MCP サーバーを起動します。
+アプリは仮想ディスプレイ上に普段と同じ見た目で起動し、`capture_screenshot` で画面を確認できます。
+設定・キャッシュ・データは専用のフォルダ（既定 `~/.local/state/shogiboardq-mcp-headless`、`SHOGIBOARDQ_HEADLESS_HOME` で変更）を使います。
+初回だけ普段の `ShogiBoardQ.ini` をコピーするので、登録済みのエンジンもそのまま使えます。
+MCP サーバーが終了するときは、起動したアプリを閉じてから Xvfb を止めます。
+Xvfb（Arch Linux では `xorg-server-xvfb`、Debian・Ubuntu では `xvfb`）が必要です。
+
+```bash
+claude mcp add shogiboardq-headless \
+  --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  -- /path/to/ShogiBoardQ/scripts/mcp/shogiboardq-mcp-headless.sh
+```
+
+普段の画面で使う `shogiboardq` と並べて登録できます。専用の接続先（ソケット）にだけ接続するので、
+普段起動しているアプリには接続しません。
+
+### Windows・macOS：offscreen
+
+Windows と macOS には Xvfb がありません。MCP サーバーの環境変数に `QT_QPA_PLATFORM=offscreen` を加えると、
+アプリはどの画面にも表示されずに動きます（自動テストもこの方法で動かしています。Linux でも使えます）。
+普段の設定を書き換えたくないときは、`SHOGIBOARDQ_CONFIG_HOME`・`SHOGIBOARDQ_DATA_HOME`・`SHOGIBOARDQ_CACHE_HOME` を
+専用のフォルダに向けます。普段のアプリを `--automation` 付きで起動している場合は、`SHOGIBOARDQ_AUTOMATION_SOCKET` で
+別の接続先を指定してください。画面の見た目は、普段と異なることがあります。
+
 ## 安全性
 
 - 自動化 API は `ShogiBoardQ --automation` を付けたときだけ有効で、ソケットは所有者のみアクセスできます。ネットワークには公開しません。
