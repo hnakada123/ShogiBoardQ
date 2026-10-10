@@ -146,10 +146,11 @@ void GameInfoPaneController::setGameInfo(const QList<KifGameInfoItem>& items, bo
 
 void GameInfoPaneController::resetGameInfo()
 {
+    // 対局者は名前が決まるまで、将棋盤の名前欄と同じく「先手」「後手」と呼ぶ
     setGameInfo({{GameInfoKeys::kGameDate, {}},
                  {GameInfoKeys::kStartDateTime, {}},
-                 {GameInfoKeys::kBlackPlayer, {}},
-                 {GameInfoKeys::kWhitePlayer, {}},
+                 {GameInfoKeys::kBlackPlayer, tr("先手")},
+                 {GameInfoKeys::kWhitePlayer, tr("後手")},
                  {GameInfoKeys::kHandicap, QStringLiteral("平手")},
                  {GameInfoKeys::kTimeControl, {}},
                  {GameInfoKeys::kEvent, {}},

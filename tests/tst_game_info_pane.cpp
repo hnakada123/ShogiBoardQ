@@ -15,6 +15,8 @@
 #include "gamerecordmodel.h"
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
+#include "elidelabel.h"
+#include "shogiview.h"
 
 class TestGameInfoPane : public QObject
 {
@@ -317,7 +319,7 @@ private slots:
         QCOMPARE(restored.tableWidget()->columnWidth(0), 180);
     }
 
-    void initialValuesAreEmptyWithDisplayOnlyHints()
+    void initialValuesHaveDefaultNamesAndDisplayOnlyHints()
     {
         m_controller->resetGameInfo();
         QCOMPARE(m_table->rowCount(), 9);
@@ -325,9 +327,12 @@ private slots:
                                   QStringLiteral("先手"), QStringLiteral("後手"), QStringLiteral("手合割"),
                                   QStringLiteral("持ち時間"), QStringLiteral("棋戦"),
                                   QStringLiteral("場所"), QStringLiteral("備考")};
+        // 対局者は名前が決まるまで「先手」「後手」と呼ぶ
+        const QStringList values = {{}, {}, QStringLiteral("先手"), QStringLiteral("後手"),
+                                    QStringLiteral("平手"), {}, {}, {}, {}};
         for (int row = 0; row < keys.size(); ++row) {
             QCOMPARE(m_table->item(row, 0)->text(), keys.at(row));
-            QCOMPARE(m_table->item(row, 1)->text(), row == 4 ? QStringLiteral("平手") : QString());
+            QCOMPARE(m_table->item(row, 1)->text(), values.at(row));
         }
         QVERIFY(!m_controller->isDirty());
         QVERIFY(m_table->item(1, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
@@ -335,7 +340,7 @@ private slots:
         m_table->editItem(m_table->currentItem());
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
-        QVERIFY(editor->text().isEmpty());
+        QCOMPARE(editor->text(), QStringLiteral("先手"));
         QVERIFY(editor->placeholderText().contains(QStringLiteral("名前を入力")));
         m_controller->commitPendingEditor();
         QVERIFY(!m_controller->isDirty());
@@ -349,6 +354,8 @@ private slots:
         QVERIFY(!kif.contains(QStringLiteral("未設定")));
         QVERIFY(!kif.contains(QStringLiteral("任意入力")));
         QVERIFY(kif.contains(QStringLiteral("開始日時：\n")));
+        QVERIFY(kif.contains(QStringLiteral("先手：先手\n")));
+        QVERIFY(kif.contains(QStringLiteral("後手：後手\n")));
 
         m_controller->setGameInfo({{GameInfoKeys::kStartDateTime, {}}});
         QVERIFY(!m_table->item(0, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
@@ -389,6 +396,28 @@ private slots:
                                      static_cast<int>(PlayMode::HandicapEngineVsEngine));
         QVERIFY(tab.info2()->isVisibleTo(page));
         QVERIFY(views.at(1)->isVisibleTo(page));
+    }
+
+    void startupShowsDefaultPlayerNamesOnBoard()
+    {
+        QWidget parent;
+        ShogiView view;
+        PlayerInfoWiring::Dependencies deps;
+        deps.parentWidget = &parent;
+        deps.shogiView = &view;
+        PlayerInfoWiring wiring(deps);
+        wiring.addGameInfoTabAtStartup();
+        QScopedPointer<QWidget> container(wiring.gameInfoController()->containerWidget());
+        QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(view.whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
+
+        // 対局後の「新規」でも前の対局者名を残さない
+        wiring.onSetPlayersNames(QStringLiteral("太郎"), QStringLiteral("花子"));
+        QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲太郎"));
+        wiring.gameInfoController()->resetGameInfo();
+        wiring.syncBoardNamesWithGameInfo();
+        QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(view.whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
     }
 
     void startingGameKeepsMetadataAndPendingEdits()

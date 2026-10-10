@@ -28,6 +28,7 @@
 #include "gamesessionorchestrator.h"
 #include "kifunavigationcoordinator.h"
 #include "matchruntimequeryservice.h"
+#include "playerinfowiring.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
@@ -315,6 +316,9 @@ void MainWindowServiceRegistry::resetUiState(const QString& hirateStartSfen)
     deps.uiStatePolicy = m_mw.m_uiStatePolicy;
     deps.updateJosekiWindow = [this]() {
         m_kifu->updateJosekiWindow();
+    };
+    deps.syncBoardNamesWithGameInfo = [this]() {
+        if (m_mw.m_playerInfoWiring) m_mw.m_playerInfoWiring->syncBoardNamesWithGameInfo();
     };
 
     const MainWindowResetService resetService;

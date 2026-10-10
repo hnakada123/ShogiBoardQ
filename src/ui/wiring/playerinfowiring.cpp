@@ -47,6 +47,18 @@ void PlayerInfoWiring::ensureGameInfoController()
 
 void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
 {
+    applyBoardNames(items);
+    if (m_markGameRecordDirty) m_markGameRecordDirty();
+}
+
+void PlayerInfoWiring::syncBoardNamesWithGameInfo()
+{
+    if (!m_gameInfoController) return;
+    applyBoardNames(m_gameInfoController->gameInfo());
+}
+
+void PlayerInfoWiring::applyBoardNames(const QList<KifGameInfoItem>& items)
+{
     QString black, white, shitate, uwate;
     for (const auto& item : items) {
         if (item.key == GameInfoKeys::kBlackPlayer) black = item.value;
@@ -60,7 +72,6 @@ void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
         m_shogiView->setBlackPlayerName(black);
         m_shogiView->setWhitePlayerName(white);
     }
-    if (m_markGameRecordDirty) m_markGameRecordDirty();
 }
 
 void PlayerInfoWiring::setTabWidget(QTabWidget* tabWidget)
@@ -123,6 +134,7 @@ void PlayerInfoWiring::populateDefaultGameInfo()
     if (!m_gameInfoController) return;
 
     m_gameInfoController->resetGameInfo();
+    syncBoardNamesWithGameInfo();
 }
 
 void PlayerInfoWiring::applyPlayersNamesForMode()

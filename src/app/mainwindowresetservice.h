@@ -78,6 +78,7 @@ public:
         ShogiView* shogiView = nullptr;
         UiStatePolicyManager* uiStatePolicy = nullptr;
         std::function<void()> updateJosekiWindow;
+        std::function<void()> syncBoardNamesWithGameInfo; ///< 対局者名ラベルを初期化した対局情報に合わせる
     };
 
     void clearGameStateFields(GameState& state, PlayerState& player, KifuState& kifu) const;
