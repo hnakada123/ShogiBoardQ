@@ -36,7 +36,7 @@ python3 tests/gui/prepare.py
 xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py
 
 # 対局ダイアログ・時間切れ・連続対局の回帰テスト
-xvfb-run -a timeout 90s build/gui-audit/test-build/tst_start_game_flow
+xvfb-run -a env -u WAYLAND_DISPLAY QT_QPA_PLATFORM=xcb timeout 90s build/gui-audit/test-build/tst_start_game_flow
 
 # 先読み・成り・即時着手・CSAエンジン制御の回帰テスト
 xvfb-run -a env QT_QPA_PLATFORM=xcb timeout 60s build/gui-audit/test-build/tst_ponder_flow
