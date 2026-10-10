@@ -130,6 +130,13 @@ public:
                                        const KifuTimeControlSide& whiteTime);
 
     /**
+     * @brief 対局情報タブの対局者名を将棋盤の対局者名ラベルに表示する
+     *
+     * 名前が空なら「先手」「後手」と表示する（駒落ちの見出しは下手・上手の行から読む）。
+     */
+    void syncBoardNamesWithGameInfo();
+
+    /**
      * @brief GameInfoPaneControllerを取得
      * @return GameInfoPaneControllerへのポインタ
      */
@@ -267,6 +274,7 @@ signals:
 
 private:
     void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
+    void applyBoardNames(const QList<KifGameInfoItem>& items);
     std::function<void()> m_markGameRecordDirty;
     /**
      * @brief PlayerInfoControllerを確保する

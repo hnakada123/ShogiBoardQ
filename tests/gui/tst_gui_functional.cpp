@@ -3572,7 +3572,8 @@ private slots:
         QVERIFY(!apply->isEnabled());
         QCOMPARE(table->rowCount(), 9);
         QVERIFY(table->item(1, 1)->text().isEmpty());
-        QVERIFY(table->item(2, 1)->text().isEmpty());
+        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("先手"));
+        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("後手"));
         QVERIFY(table->item(5, 1)->text().isEmpty());
         QVERIFY(table->item(1, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
         snapshot("game-info-startup");
@@ -3615,7 +3616,11 @@ private slots:
         click("actionNewGame");
         QCOMPARE(table->rowCount(), 9);
         QVERIFY(table->item(1, 1)->text().isEmpty());
+        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("先手"));
         QVERIFY(table->item(8, 1)->text().isEmpty());
+        // 読み込んだ棋譜の対局者名を将棋盤に残さない
+        QVERIFY(board()->blackNameLabel()->fullText().endsWith(QStringLiteral("先手")));
+        QVERIFY(board()->whiteNameLabel()->fullText().endsWith(QStringLiteral("後手")));
         QVERIFY(!controller->isDirty());
         paste(saved);
         dock->show(); dock->raise();
