@@ -15,6 +15,8 @@
 #include "timedisplaypresenter.h"
 #include "turnstatesyncservice.h"
 
+Q_DECLARE_METATYPE(ShogiView::Urgency)
+
 class TestTurnStateSync : public QObject
 {
     Q_OBJECT
@@ -119,6 +121,53 @@ private slots:
         presenter.onMatchTimeUpdated(9501, 10000, true, 9501);
         QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("00:00:10"));
         QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("00:00:10"));
+    }
+
+    void clockUrgencyFollowsRemainingTime_data()
+    {
+        using Urgency = ShogiView::Urgency;
+        QTest::addColumn<int>("mainSec");
+        QTest::addColumn<int>("byoyomiSec");
+        QTest::addColumn<int>("incrementSec");
+        QTest::addColumn<bool>("enterByoyomi");
+        QTest::addColumn<qint64>("remainingMs");
+        QTest::addColumn<Urgency>("expected");
+        // 秒読みが無い対局は、残り10秒以下と5秒以下の2段階で警告する。
+        QTest::newRow("main-11s") << 60 << 0 << 0 << false << 11000LL << Urgency::Normal;
+        QTest::newRow("main-10s") << 60 << 0 << 0 << false << 10000LL << Urgency::Warn10;
+        QTest::newRow("main-5s") << 60 << 0 << 0 << false << 5000LL << Urgency::Warn5;
+        QTest::newRow("increment-10s") << 0 << 0 << 10 << false << 10000LL << Urgency::Warn10;
+        QTest::newRow("increment-5s") << 0 << 0 << 10 << false << 5000LL << Urgency::Warn5;
+        // 秒読みの前は持ち時間の残り10秒以下で予告し、秒読みに入ったら最も強い警告にする。
+        QTest::newRow("before-byoyomi-11s") << 60 << 30 << 0 << false << 11000LL << Urgency::Normal;
+        QTest::newRow("before-byoyomi-10s") << 60 << 30 << 0 << false << 10000LL << Urgency::Warn10;
+        QTest::newRow("before-byoyomi-4s") << 60 << 30 << 0 << false << 4000LL << Urgency::Warn10;
+        QTest::newRow("in-byoyomi") << 0 << 30 << 0 << true << 30000LL << Urgency::Warn5;
+        QTest::newRow("byoyomi-only-start") << 0 << 30 << 0 << false << 0LL << Urgency::Warn5;
+    }
+
+    void clockUrgencyFollowsRemainingTime()
+    {
+        QFETCH(int, mainSec);
+        QFETCH(int, byoyomiSec);
+        QFETCH(int, incrementSec);
+        QFETCH(bool, enterByoyomi);
+        QFETCH(qint64, remainingMs);
+        QFETCH(ShogiView::Urgency, expected);
+        ShogiView view;
+        ShogiClock clock;
+        TimeDisplayPresenter presenter(&view);
+        presenter.setClock(&clock);
+        clock.setPlayerTimes(mainSec, mainSec, byoyomiSec, byoyomiSec, incrementSec, incrementSec, true);
+        if (enterByoyomi) clock.applyByoyomiAndResetConsideration1();
+        presenter.onMatchTimeUpdated(remainingMs, 60000, true, 0);
+        QCOMPARE(view.highlighting()->urgency(), expected);
+        // 相手の手番の時計は警告しない。時間無制限の対局も警告しない。
+        presenter.onMatchTimeUpdated(remainingMs, 60000, false, 0);
+        QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
+        clock.setPlayerTimes(0, 0, 0, 0, 0, 0, false);
+        presenter.onMatchTimeUpdated(0, 0, true, 0);
+        QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
     }
 
     void navigationAfterGameEnd_data()
