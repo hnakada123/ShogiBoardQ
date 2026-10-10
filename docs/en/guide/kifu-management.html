@@ -217,6 +217,7 @@ T2</code></pre>
 </table>
 <p class="guide-step-text">KIF, KI2, JKF, and USEN can save variations. CSA and USI save only the main line; KI2 does not save time spent. USI and USEN omit player names, comments, and time spent, and USEN supports only a limited set of game results. Converting CSA times to KIF or JKF discards fractions of a second. Saving a record with time spent in USEN asks for confirmation and lists what will not be saved. Copying a record with variations in CSA or USI format shows in the status bar that only the main line was copied.</p>
 <p class="guide-step-text">When saving to .kif or .ki2 (Shift_JIS), if player names or comments contain characters that Shift_JIS cannot represent (such as some Simplified or Traditional Chinese characters or emoji), ShogiBoardQ shows those characters and asks whether to save as UTF-8. A file saved as UTF-8 records "encoding=UTF-8" on its first line. To always save as UTF-8, choose .kifu or .ki2u.</p>
+<p class="guide-step-text" id="handicap-records">Handicap game records name the players “下手” (handicap receiver) and “上手” (handicap giver), as Kakinoki’s KIF format does. In KIF and KI2, the hands and the side to move in the position diagram (“上手の持駒：”, “下手の持駒：”, “上手番”) and the final line (“まで30手で上手の勝ち”) use the same names. In CSA format, the handicap receiver’s name goes on the “N+” line and the giver’s on the “N-” line. If the game information lists the players as Black and White (先手 and 後手), as in records made with some other programs, the diagram and the final line keep 先手 and 後手 so that one record does not mix the two styles. Records in either style can be loaded.</p>
 <p class="guide-step-text">For CSA files containing multiple games separated by a line with “/”, only the first game is loaded.</p>
 <p class="guide-step-text">Trailing game-result tokens in USI records are extensions for saving records. They are not part of the USI “position” command used to communicate with engines.</p>
 <p class="guide-step-text">Format references: <a href="https://kakinoki.o.oo7.jp/kif_format.html">KIF</a>, <a href="https://www.shogi.or.jp/faq/kihuhyouki/">move notation used in KI2</a>, <a href="https://www.computer-shogi.org/protocol/record_v3.html">CSA V3.0</a>, <a href="https://github.com/na2hiro/json-kifu-format">JKF</a>, <a href="https://shogidokoro2.stars.ne.jp/usi.html">USI and SFEN</a>, and <a href="https://github.com/mogproject/mog-playground/wiki/USEN-Format">USEN</a>.</p>
@@ -271,7 +272,7 @@ T2</code></pre>
 </thead>
 <tbody>
 <tr><td>SFEN Format</td><td>Copy the current position as an SFEN string</td></tr>
-<tr><td>BOD Format</td><td>Copy the current position as a text board diagram (BOD)</td></tr>
+<tr><td>BOD Format</td><td>Copy the current position as a text board diagram (BOD). For handicap game records, the hands and the side to move use 下手 and 上手, as in saved records</td></tr>
 </tbody>
 </table>
 </div>

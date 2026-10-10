@@ -228,6 +228,7 @@ T2</code></pre>
                 </table>
                 <p class="guide-step-text">KIF、KI2、JKF、USEN 可以儲存變化。CSA、USI 只儲存本譜，KI2 不儲存用時。USI、USEN 不儲存對局者、註解與用時，USEN 能表示的終局結果也有限制。將 CSA 以毫秒為單位的用時轉換為 KIF、JKF 時，不足 1 秒的部分會捨去。以 USEN 格式儲存含有用時的棋譜時，會顯示確認，說明哪些資訊不會被儲存。以 CSA、USI 格式複製含有變化的棋譜時，狀態列會顯示僅複製了本譜。</p>
                 <p class="guide-step-text">儲存為 .kif、.ki2（Shift_JIS）時，如果對局者或註解中含有 Shift_JIS 無法表示的字元（部分簡體字、繁體字或表情符號等），會顯示這些字元並詢問是否「以 UTF-8 儲存」。以 UTF-8 儲存時，檔案第一行會記錄「encoding=UTF-8」。若要一律以 UTF-8 儲存，請選擇 .kifu、.ki2u。</p>
+                <p class="guide-step-text" id="handicap-records">讓子對局的棋譜與柿木格式的 KIF 一樣，將對局者寫為「下手」「上手」。KIF、KI2 中局面圖的持駒和行棋方（「上手の持駒：」「下手の持駒：」「上手番」）以及終局行（「まで30手で上手の勝ち」）也使用下手、上手。CSA 格式中，下手的名字寫在「N+」行，上手的名字寫在「N-」行。如果對局資訊中的對局者是「先手」「後手」（例如用其他軟體製作的棋譜），局面圖和終局行也保持先手、後手，同一份棋譜中不會混用兩種稱呼。兩種寫法的棋譜都可以讀取。</p>
                 <p class="guide-step-text">CSA 檔案中有以「/」分隔的多個棋譜時，只會讀取第一個棋譜。</p>
                 <p class="guide-step-text">USI 格式棋譜末尾的終局代碼是用於儲存棋譜的擴充，不屬於與引擎通訊用的 USI「position」指令規格。</p>
                 <p class="guide-step-text">各格式的資料（日文或英文）：<a href="https://kakinoki.o.oo7.jp/kif_format.html">KIF 規格</a>、<a href="https://www.shogi.or.jp/faq/kihuhyouki/">棋譜記法（KI2 的著法記法）</a>、<a href="https://www.computer-shogi.org/protocol/record_v3.html">CSA V3.0 規格</a>、<a href="https://github.com/na2hiro/json-kifu-format">JKF 規格</a>、<a href="https://shogidokoro2.stars.ne.jp/usi.html">USI・SFEN 規格</a>、<a href="https://github.com/mogproject/mog-playground/wiki/USEN-Format">USEN 資料</a>。</p>
@@ -288,7 +289,7 @@ T2</code></pre>
                     </thead>
                     <tbody>
                         <tr><td>SFEN 格式</td><td>以 SFEN 字串複製目前的局面</td></tr>
-                        <tr><td>BOD 格式</td><td>以文字棋盤圖（BOD）複製目前的局面</td></tr>
+                        <tr><td>BOD 格式</td><td>以文字棋盤圖（BOD）複製目前的局面。讓子對局的棋譜與儲存的棋譜一樣，持駒和行棋方使用下手、上手</td></tr>
                     </tbody>
                 </table>
             </div>
