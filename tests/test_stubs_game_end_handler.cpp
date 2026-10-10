@@ -325,9 +325,11 @@ ShogiGameController::~ShogiGameController() = default;
 // エンジンの入玉宣言の判定をテストから指定する
 ShogiBoard* g_stubGameBoard = nullptr;
 NyugyokuJudgement::Result g_stubNyugyokuResult;
+bool g_stubNyugyokuHandicapNames = false;
 ShogiBoard* ShogiGameController::board() const { return g_stubGameBoard; }
-NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const ShogiBoard&, bool)
+NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const ShogiBoard&, bool, bool handicapNames)
 {
+    g_stubNyugyokuHandicapNames = handicapNames;
     return g_stubNyugyokuResult;
 }
 QString NyugyokuJudgement::resultTitle() { return QStringLiteral("入玉宣言結果"); }

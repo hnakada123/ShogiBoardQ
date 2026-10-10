@@ -16,7 +16,14 @@ int NyugyokuJudgement::configuredRule()
     return settings.value(QStringLiteral("GameSettings/jishogiRule"), RuleNone).toInt();
 }
 
-NyugyokuJudgement::Result NyugyokuJudgement::judge(const ShogiBoard& board, bool declarerIsSente, int rule)
+QString NyugyokuJudgement::declarerName(bool declarerIsSente, bool handicapNames)
+{
+    if (handicapNames) return declarerIsSente ? tr("下手") : tr("上手");
+    return declarerIsSente ? tr("先手") : tr("後手");
+}
+
+NyugyokuJudgement::Result NyugyokuJudgement::judge(const ShogiBoard& board, bool declarerIsSente, int rule,
+                                                   bool handicapNames)
 {
     const auto points = JishogiCalculator::calculate(board.boardData(), board.pieceStand());
     const auto& score = declarerIsSente ? points.sente : points.gote;
@@ -73,14 +80,15 @@ NyugyokuJudgement::Result NyugyokuJudgement::judge(const ShogiBoard& board, bool
     }
 
     result.message = tr("%1の入玉宣言\n\n%2\n\n【結果】%3")
-        .arg(declarerIsSente ? tr("先手") : tr("後手"), details + verdict, result.resultText);
+        .arg(declarerName(declarerIsSente, handicapNames), details + verdict, result.resultText);
     return result;
 }
 
-NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const ShogiBoard& board, bool declarerIsSente)
+NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const ShogiBoard& board, bool declarerIsSente,
+                                                                    bool handicapNames)
 {
     const int configured = configuredRule();
-    Result result = judge(board, declarerIsSente, configured == Rule24 ? Rule24 : Rule27);
+    Result result = judge(board, declarerIsSente, configured == Rule24 ? Rule24 : Rule27, handicapNames);
     if (configured != Rule24 && configured != Rule27) {
         result.message = tr("持将棋ルールが「なし」のため、27点法で判定しました。") + QStringLiteral("\n\n")
                          + result.message;

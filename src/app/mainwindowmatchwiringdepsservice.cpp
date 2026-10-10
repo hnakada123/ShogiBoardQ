@@ -15,6 +15,7 @@ MatchCoordinatorWiring::Deps MainWindowMatchWiringDepsService::buildDeps(const I
     builder.hookDeps.showMoveHighlights = in.showMoveHighlights;
     builder.hookDeps.appendKifuLine = in.appendKifuLine;
     builder.hookDeps.showGameOverDialog = in.showGameOverDialog;
+    builder.hookDeps.usesHandicapNames = in.usesHandicapNames;
     builder.hookDeps.remainingMsFor = in.remainingMsFor;
     builder.hookDeps.incrementMsFor = in.incrementMsFor;
     builder.hookDeps.byoyomiMs = in.byoyomiMs;

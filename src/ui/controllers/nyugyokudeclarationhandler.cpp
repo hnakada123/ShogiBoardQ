@@ -84,7 +84,8 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     if (m_gameController) {
         isSenteTurn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     }
-    QString declarerName = isSenteTurn ? tr("先手") : tr("後手");
+    const bool handicapNames = m_match && m_match->usesHandicapNames();
+    const QString declarerName = NyugyokuJudgement::declarerName(isSenteTurn, handicapNames);
 
     // 確認ダイアログ
     if (!DialogUtils::confirmAction(
@@ -98,7 +99,8 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     }
 
     // 宣言条件と点数を盤面から判定する（エンジンの宣言と共通）
-    const NyugyokuJudgement::Result result = NyugyokuJudgement::judge(*board, isSenteTurn, jishogiRule);
+    const NyugyokuJudgement::Result result =
+        NyugyokuJudgement::judge(*board, isSenteTurn, jishogiRule, handicapNames);
 
     // 対局終了処理（MatchCoordinatorを使用）- 先に棋譜を更新
     if (m_match) {
