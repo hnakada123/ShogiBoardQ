@@ -497,6 +497,41 @@ private slots:
         QCOMPARE(KifToSfenConverter::detectInitialSfenFromFile(file.fileName()), sfen);
     }
 
+    /// 「局面図をコピー」も、駒落ちは KIF の局面図と同じく下手・上手で書く（途中の局面も同じ）
+    void bodClipboardFollowsHandicapNames_data()
+    {
+        QTest::addColumn<QString>("startSfen");
+        QTest::addColumn<QString>("move");
+        QTest::addColumn<QStringList>("lines");
+        QTest::newRow("even") << kHirateSfen << QStringLiteral("7g7f")
+            << QStringList{QStringLiteral("後手の持駒：なし"), QStringLiteral("先手の持駒：なし"),
+                           QStringLiteral("後手番")};
+        QTest::newRow("handicap")
+            << QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")  // 角落ち
+            << QStringLiteral("3c3d")
+            << QStringList{QStringLiteral("上手の持駒：なし"), QStringLiteral("下手の持駒：なし"),
+                           QStringLiteral("下手番")};
+    }
+
+    void bodClipboardFollowsHandicapNames()
+    {
+        QFETCH(QString, startSfen);
+        QFETCH(QString, move);
+        QFETCH(QStringList, lines);
+        QStringList sfens = SfenPositionTracer::buildSfenRecord(startSfen, {move}, false);
+        KifuExportClipboard exporter(nullptr);
+        KifuExportClipboard::Deps deps;
+        deps.sfenRecord = &sfens;
+        deps.startSfenStr = startSfen;
+        deps.currentMoveIndex = 1;
+        exporter.setDependencies(deps);
+        QVERIFY(exporter.copyBodToClipboard());
+        const QStringList bod = QApplication::clipboard()->text().split(QLatin1Char('\n'));
+        for (const QString& line : std::as_const(lines)) {
+            QVERIFY2(bod.contains(line), qPrintable(bod.join(QLatin1Char('\n'))));
+        }
+    }
+
     void clipboardKeepsTimeMetadata()
     {
         KifuBranchTree tree;

@@ -248,6 +248,36 @@ async def test_kifu_pagination_reports_truncation(kifu_env, tmp_path):
         assert not (await ui.call("get_kifu", from_ply=5, max_moves=3))["truncated"]
 
 
+HANDICAP_KIF = """手合割：角落ち
+{black}：下手の人
+{white}：上手の人
+手数----指手---------消費時間--
+   1 ３四歩(33)   ( 0:01/00:00:01)
+   2 ７六歩(77)   ( 0:01/00:00:01)
+"""
+
+
+@pytest.mark.parametrize("black,white,lines", [
+    ("下手", "上手", ["上手の持駒：なし", "下手の持駒：なし", "上手番"]),
+    # A record whose header says 先手/後手 keeps those names in the diagram as well.
+    ("先手", "後手", ["後手の持駒：なし", "先手の持駒：なし", "後手番"]),
+])
+async def test_handicap_bod_copy_and_paste(kifu_env, tmp_path, black, white, lines):
+    async with mcp_session(kifu_env) as session:
+        ui = KifuUi(session, tmp_path)
+        path = tmp_path / "角落ち.kif"
+        path.write_text(HANDICAP_KIF.format(black=black, white=white), encoding="utf-8")
+        await ui.call("load_kifu", path=str(path))
+        await ui.call("goto_ply", ply=2)
+        pos = await ui.call("get_position")
+        bod = (await ui.copy("actionCopyBOD"))["text"]
+        for line in lines:
+            assert line in bod.splitlines(), bod
+        await ui.paste(bod)
+        await ui.wait("get_app_state", lambda d: d["dirty"] and d["total_plies"] == 0)
+        assert (await ui.call("get_position"))["sfen"].split()[:3] == pos["sfen"].split()[:3]
+
+
 async def test_sfen_and_bod_paste(kifu_env, tmp_path):
     async with mcp_session(kifu_env) as session:
         ui = KifuUi(session, tmp_path)

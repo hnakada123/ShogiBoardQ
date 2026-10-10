@@ -18,6 +18,7 @@
 #include "shogiboard.h"
 #include "kifuclipboardservice.h"
 #include "bodtextgenerator.h"
+#include "kifuexportmetadata.h"
 #include "usimoveconverter.h"
 #include "usiexporter.h"
 
@@ -171,7 +172,11 @@ KifuExportClipboard::PositionData KifuExportClipboard::currentPositionData() con
 
 QString KifuExportClipboard::generateBodText(const PositionData& pos) const
 {
-    return BodTextGenerator::generate(pos.sfenStr, pos.moveIndex, pos.lastMoveStr);
+    // 駒落ちは KIF の局面図と同じく、対局情報の見出しに合わせて下手・上手と呼ぶ
+    const GameRecordModel::ExportContext ctx = buildExportContext();
+    const bool handicapNames = KifuExportMetadataBuilder::usesHandicapNames(
+        GameRecordModel::collectGameInfo(ctx), ctx.startSfen);
+    return BodTextGenerator::generate(pos.sfenStr, pos.moveIndex, pos.lastMoveStr, handicapNames);
 }
 
 // --------------------------------------------------------
