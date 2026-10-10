@@ -153,7 +153,7 @@
 <ul class="guide-step-text">
 <li>Players: human or a registered engine</li>
 <li>Main time, byoyomi, and Fischer increment (“Increment per move”). Check “Set different time for White/Uwate” to give each side its own time. Setting everything to 0 removes the time limit (human vs. human games only). See <a href="time-control.html">Time Control and Clocks</a> for details.</li>
-<li>Starting position: even game, handicap, or current position. The 13 handicaps are Lance, Right Lance, Bishop, Rook, Rook-Lance, Two-Piece, Three-Piece, Four-Piece, Five-Piece, Left Five-Piece, Six-Piece, Eight-Piece, and Ten-Piece. In handicap games, the handicap giver (the White side) moves first (see <a href="#handicap-names">Handicap Names</a>).</li>
+<li>Starting position: even game, handicap, or current position. The 13 handicaps are Lance, Right Lance, Bishop, Rook, Rook-Lance, Two-Piece, Three-Piece, Four-Piece, Five-Piece, Left Five-Piece, Six-Piece, Eight-Piece, and Ten-Piece. In handicap games, Uwate (the handicap giver, on the White side) moves first (see <a href="#handicap-names">Handicap Names</a>).</li>
 <li>Max Moves: the game ends as an impasse (jishogi) when this limit is reached. “Unlimited” is also available. Moves are counted from the starting position of the record, also in games started from a later position.</li>
 <li>Continuous Games: available for games between two engines. With two or more games, “Swap sides after each game” alternates Black and White. If the two sides have different times, the times switch along with the engines.</li>
 <li>Automatic game record saving and the save folder</li>
@@ -216,7 +216,7 @@
 <span class="guide-step-number">4</span>
 <span class="guide-step-title">Game Information</span>
 </div>
-<p class="guide-step-text">The Game Info tab displays the game date, start time, Black and White players, handicap, time control, end time, and other details. In handicap games, the players are listed as the handicap receiver and the handicap giver instead of Black and White (see <a href="#handicap-names">Handicap Names</a>).</p>
+<p class="guide-step-text">The Game Info tab displays the game date, start time, Black and White players, handicap, time control, end time, and other details. In handicap games, the players are listed as Shitate and Uwate instead of Black and White (see <a href="#handicap-names">Handicap Names</a>).</p>
 <p class="guide-step-text">Double-click a value to edit it. Click “Update Game Info” to apply the changes to the game record; they are written to the file when you save the record.</p>
 <div class="screenshot-item">
 <img alt="Game information after the game" src="../../images/en/game-play/game-06-game-info.png"/>
@@ -271,11 +271,11 @@
 <span class="guide-step-number">9</span>
 <span class="guide-step-title">Handicap Names</span>
 </div>
-<p class="guide-step-text">In a handicap game, the side that removes pieces is called the handicap giver (uwate, 上手) and the other side the handicap receiver (shitate, 下手). The handicap giver plays the White side and moves first. In the game dialog, the “Black / Shitate” column sets up the handicap receiver and the “White / Uwate” column sets up the handicap giver.</p>
+<p class="guide-step-text">In a handicap game, the side that removes pieces is called Uwate (上手, the handicap giver) and the other side Shitate (下手, the handicap receiver). Uwate plays the White side and moves first. In the game dialog, the “Black / Shitate” column sets up Shitate and the “White / Uwate” column sets up Uwate.</p>
 <p class="guide-step-text">In handicap games, ShogiBoardQ uses these names instead of Black and White in the following places.</p>
 <ul class="guide-step-text">
-<li>The players in the Game Info tab, and different times for each side (for example, “Handicap receiver 10:00+30 / Handicap giver 05:00+30”)</li>
-<li>The “Game Over” message (for example, “Handicap giver ran out of time. Handicap receiver wins.”) and the entering king declaration confirmation and result messages, including the confirmation in CSA network games</li>
+<li>The players in the Game Info tab, and different times for each side (for example, “Shitate 10:00+30 / Uwate 05:00+30”)</li>
+<li>The “Game Over” message (for example, “Uwate ran out of time. Shitate wins.”) and the entering king declaration confirmation and result messages, including the confirmation in CSA network games</li>
 <li>Saved game records and position diagrams copied with Edit → Copy Position → BOD Format. See <a href="kifu-management.html#handicap-records">Save Game Record Files</a> for how they are written.</li>
 </ul>
 </div>
