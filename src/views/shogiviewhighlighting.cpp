@@ -135,33 +135,48 @@ void ShogiViewHighlighting::refreshPlayerStyles()
 {
     const auto& colors = m_view->boardColors();
     auto stylePlayer = [&](bool black) {
+        const std::size_t side = black ? 0 : 1;
         const bool active = m_turnHighlightActive && m_blackActive == black;
-        auto* card = m_view->findChild<QFrame*>(black ? QStringLiteral("blackPlayerCard")
-                                                    : QStringLiteral("whitePlayerCard"));
-        auto* badge = m_view->findChild<QLabel*>(black ? QStringLiteral("turnLabelBlack")
-                                                     : QStringLiteral("turnLabelWhite"));
+        // 枠と手番の札は一度作ったら作り直さないので、探すのは最初だけにする
+        if (!m_playerCards[side])
+            m_playerCards[side] = m_view->findChild<QFrame*>(black ? QStringLiteral("blackPlayerCard")
+                                                                   : QStringLiteral("whitePlayerCard"));
+        if (!m_turnBadges[side])
+            m_turnBadges[side] = m_view->findChild<QLabel*>(black ? QStringLiteral("turnLabelBlack")
+                                                                  : QStringLiteral("turnLabelWhite"));
+        QFrame* card = m_playerCards[side];
+        QLabel* badge = m_turnBadges[side];
+        CachedStyleSheet* styleSheets = &m_playerStyleSheets[side * PlayerStyleCount];
         const QColor overrideText = active ? m_highlightFgOn : m_highlightFgOff;
         const QColor nameColor = overrideText.isValid() ? overrideText : colors.nameText;
         QColor clockColor = overrideText.isValid() ? overrideText : colors.clockText;
         if (active && m_urgency == Urgency::Warn10) clockColor = colors.clockWarningText;
         if (active && m_urgency == Urgency::Warn5) clockColor = colors.clockCriticalText;
         setLabelStyle(black ? m_view->blackNameLabel() : m_view->whiteNameLabel(),
-                      nameColor, colors.nameBackground, colors.nameBorder, false);
+                      nameColor, colors.nameBackground, colors.nameBorder, false, styleSheets[NameStyle]);
         setLabelStyle(black ? m_view->blackClockLabel() : m_view->whiteClockLabel(),
-                      clockColor, colors.clockBackground, colors.clockBorder, true);
+                      clockColor, colors.clockBackground, colors.clockBorder, true, styleSheets[ClockStyle]);
         if (card) {
-            const QString css = QStringLiteral(
-                "QFrame#%1 { background:%2; border:%3px solid %4; border-radius:6px; }")
-                .arg(card->objectName(), toRgba(m_highlightBg.isValid() ? m_highlightBg : colors.cardBackground))
-                .arg(active ? 2 : 1)
-                .arg(toRgba(active ? colors.activeCardBorder : colors.cardBorder));
-            if (card->styleSheet() != css) card->setStyleSheet(css);
+            const QColor background = m_highlightBg.isValid() ? m_highlightBg : colors.cardBackground;
+            const QColor border = active ? colors.activeCardBorder : colors.cardBorder;
+            CachedStyleSheet& cache = styleSheets[CardStyle];
+            if (cache.update({background.rgba(), border.rgba(), 0}, active ? 2 : 1)) {
+                cache.css = QStringLiteral(
+                    "QFrame#%1 { background:%2; border:%3px solid %4; border-radius:6px; }")
+                    .arg(card->objectName(), toRgba(background))
+                    .arg(active ? 2 : 1)
+                    .arg(toRgba(border));
+            }
+            if (card->styleSheet() != cache.css) card->setStyleSheet(cache.css);
         }
         if (badge) {
-            const QString css = QStringLiteral(
-                "color:%1; background:%2; border:1px solid %3; border-radius:4px; padding:0px; font-weight:700;")
-                .arg(toRgba(colors.turnText), toRgba(colors.turnBackground), toRgba(colors.turnBorder));
-            if (badge->styleSheet() != css) badge->setStyleSheet(css);
+            CachedStyleSheet& cache = styleSheets[BadgeStyle];
+            if (cache.update({colors.turnText.rgba(), colors.turnBackground.rgba(), colors.turnBorder.rgba()}, 0)) {
+                cache.css = QStringLiteral(
+                    "color:%1; background:%2; border:1px solid %3; border-radius:4px; padding:0px; font-weight:700;")
+                    .arg(toRgba(colors.turnText), toRgba(colors.turnBackground), toRgba(colors.turnBorder));
+            }
+            if (badge->styleSheet() != cache.css) badge->setStyleSheet(cache.css);
             badge->setVisible(active && m_view->board());
         }
     };
@@ -319,14 +334,24 @@ QString ShogiViewHighlighting::toRgba(const QColor& c)
         .arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alpha());
 }
 
+bool ShogiViewHighlighting::CachedStyleSheet::update(const std::array<QRgb, 3>& newColors, int newVariant)
+{
+    if (variant == newVariant && colors == newColors) return false;
+    colors = newColors;
+    variant = newVariant;
+    return true;
+}
+
 void ShogiViewHighlighting::setLabelStyle(QLabel* lbl, const QColor& fg, const QColor& bg,
-                                         const QColor& border, bool bold)
+                                         const QColor& border, bool bold, CachedStyleSheet& cache)
 {
     if (!lbl) return;
-    const QString css = QStringLiteral(
-        "color:%1; background:%2; border:%4px solid %3; border-radius:2px; padding:0px; font-weight:%5;")
-        .arg(toRgba(fg), toRgba(bg), toRgba(border))
-        .arg(border.alpha() == 0 ? 0 : 1)
-        .arg(bold ? QStringLiteral("700") : QStringLiteral("400"));
-    if (lbl->styleSheet() != css) lbl->setStyleSheet(css);
+    if (cache.update({fg.rgba(), bg.rgba(), border.rgba()}, bold ? 1 : 0)) {
+        cache.css = QStringLiteral(
+            "color:%1; background:%2; border:%4px solid %3; border-radius:2px; padding:0px; font-weight:%5;")
+            .arg(toRgba(fg), toRgba(bg), toRgba(border))
+            .arg(border.alpha() == 0 ? 0 : 1)
+            .arg(bold ? QStringLiteral("700") : QStringLiteral("400"));
+    }
+    if (lbl->styleSheet() != cache.css) lbl->setStyleSheet(cache.css);
 }

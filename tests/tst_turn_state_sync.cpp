@@ -290,6 +290,70 @@ private slots:
         QVERIFY(qAbs(blended.blue() - (255 + custom.cardBackground.blue()) / 2) <= 1);
     }
 
+    // 対局者の名前・時計・枠のスタイルシートは色の組ごとに覚えて使い回す。手番・緊急度・
+    // 配色・色の上書きのどれが変わっても新しい色になり、変わらなければスタイルを付け直さない。
+    void playerStylesFollowEveryInput()
+    {
+        ShogiBoard board;
+        board.setSfen(SfenUtils::hirateSfen());
+        ShogiView view;
+        view.setBoard(&board);
+        view.setBlackClockText(QStringLiteral("00:00:05"));
+        view.setWhiteClockText(QStringLiteral("00:00:05"));
+        BoardColors custom;
+        custom.clockText = QColor("#102030");
+        custom.clockCriticalText = QColor("#c01020");
+        custom.activeCardBorder = QColor("#205080");
+        BoardAppearance::instance().setColors(custom);
+
+        auto card = [&view](bool black) {
+            return view.findChild<QFrame*>(black ? QStringLiteral("blackPlayerCard") : QStringLiteral("whitePlayerCard"));
+        };
+        auto cardBorder = [&card](bool black) {
+            const QImage image = card(black)->grab().toImage();
+            return image.pixelColor(image.width() / 2, 0);
+        };
+        for (int round = 0; round < 2; ++round) {
+            for (const bool black : {true, false}) {
+                view.setActiveSide(black);
+                view.setUrgencyVisuals(ShogiView::Urgency::Warn5);
+                QLabel* activeClock = black ? view.blackClockLabel() : view.whiteClockLabel();
+                QLabel* inactiveClock = black ? view.whiteClockLabel() : view.blackClockLabel();
+                QCOMPARE(activeClock->palette().color(QPalette::WindowText), custom.clockCriticalText);
+                QCOMPARE(inactiveClock->palette().color(QPalette::WindowText), custom.clockText);
+                QCOMPARE(cardBorder(black), custom.activeCardBorder);
+                QCOMPARE(cardBorder(!black), custom.cardBorder);
+
+                // 状態が同じなら、何度呼んでもスタイルを付け直さない
+                const QString clockStyle = activeClock->styleSheet();
+                const QString cardStyle = card(black)->styleSheet();
+                for (int tick = 0; tick < 3; ++tick) view.setUrgencyVisuals(ShogiView::Urgency::Warn5);
+                QCOMPARE(activeClock->styleSheet().constData(), clockStyle.constData());
+                QCOMPARE(card(black)->styleSheet().constData(), cardStyle.constData());
+
+                view.setUrgencyVisuals(ShogiView::Urgency::Normal);
+                QCOMPARE(activeClock->palette().color(QPalette::WindowText), custom.clockText);
+            }
+            // 色の上書き（背景・手番側と相手側の文字）と、その取り消し
+            const QColor background("#f0e0a0");
+            const QColor activeText("#004000");
+            const QColor inactiveText("#400000");
+            view.setHighlightStyle(background, activeText, inactiveText);
+            QCOMPARE(view.whiteNameLabel()->palette().color(QPalette::WindowText), activeText);
+            QCOMPARE(view.blackNameLabel()->palette().color(QPalette::WindowText), inactiveText);
+            QCOMPARE(card(true)->palette().color(QPalette::Window), background);
+            view.highlighting()->refreshBackgroundColors();
+            QCOMPARE(view.whiteNameLabel()->palette().color(QPalette::WindowText), custom.nameText);
+            QCOMPARE(card(true)->palette().color(QPalette::Window), custom.cardBackground);
+            // 配色を変えると、覚えていた文字列ではなく新しい色になる
+            custom.cardBorder = QColor("#707070");
+            custom.clockText = QColor("#203040");
+            BoardAppearance::instance().setColors(custom);
+            QCOMPARE(cardBorder(true), custom.cardBorder);
+            QCOMPARE(view.blackClockLabel()->palette().color(QPalette::WindowText), custom.clockText);
+        }
+    }
+
     void cleanup()
     {
         BoardAppearance::instance().setColors(BoardColors{});

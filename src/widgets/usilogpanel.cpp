@@ -11,6 +11,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QWidget>
+#include <QPlainTextDocumentLayout>
 #include <QPlainTextEdit>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -30,6 +31,29 @@
 #include "usicommlogmodel.h"
 
 namespace {
+// ログの末尾へ1行足しても、直前の行の文字配置を捨てない。
+// QPlainTextDocumentLayout は、直前の行の末尾に段落の区切りと新しい行を足した変化として
+// 受け取り、文字の変わらない直前の行も配置し直す。ログは長い行が多く、ドックが裏のタブに
+// あっても Qt は表示中として扱うので、追記のたびに2行分の文字配置を計算していた。
+class LogDocumentLayout final : public QPlainTextDocumentLayout
+{
+public:
+    using QPlainTextDocumentLayout::QPlainTextDocumentLayout;
+
+protected:
+    void documentChanged(int from, int charsRemoved, int charsAdded) override
+    {
+        const QTextDocument* doc = document();
+        if (charsRemoved == 0 && charsAdded > 1 && from + charsAdded == doc->characterCount() - 1
+            && doc->characterAt(from) == QChar::ParagraphSeparator) {
+            // 変わったのは区切りの後ろ（新しい行）だけとして渡す
+            QPlainTextDocumentLayout::documentChanged(from + 1, 0, charsAdded - 1);
+            return;
+        }
+        QPlainTextDocumentLayout::documentChanged(from, charsRemoved, charsAdded);
+    }
+};
+
 void relaxToolbarWidth(QWidget* toolbar)
 {
     if (!toolbar) return;
@@ -58,6 +82,14 @@ QWidget* UsiLogPanel::buildUi(QWidget* parent)
     layout->addWidget(m_toolbar);
 
     m_logView = new QPlainTextEdit(m_container);
+    {
+        // QPlainTextEdit が自分で作る文書と同じ設定にして、行の配置だけを差し替える
+        auto* document = new QTextDocument(m_logView);
+        document->setDocumentLayout(new LogDocumentLayout(document));
+        document->setDefaultFont(m_logView->font());
+        document->documentLayout()->setPaintDevice(m_logView->viewport());
+        m_logView->setDocument(document);
+    }
     m_logView->setObjectName(QStringLiteral("usiLogView"));
     m_logView->setAccessibleName(tr("USI通信ログ"));
     m_logView->setReadOnly(true);
