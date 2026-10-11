@@ -74,6 +74,10 @@ void BranchTreeManager::setView(QGraphicsView* view)
 
 void BranchTreeManager::setBranchTreeRows(const QList<ResolvedRowLite>& rows)
 {
+    // 盤上で手を指したときなど、1つの手順の末尾に1手増えただけならその手だけを描き足す。
+    // 全体の作り直しは手数に比例して重く、指すたびに行うと着手が遅くなる。
+    if (appendSingleMove(rows)) return;
+
     m_rows = rows;
 
     // 消えた変化の折りたたみ状態は捨てる
@@ -103,6 +107,44 @@ void BranchTreeManager::highlightBranchTreeAt(int row, int ply, bool centerOn)
     if (nid > 0) {
         highlightNodeId(nid, centerOn);
     }
+}
+
+namespace {
+bool sameDisplayItem(const KifDisplayItem& a, const KifDisplayItem& b)
+{
+    return a == b && a.beforeSfen == b.beforeSfen && a.usiMove == b.usiMove && a.terminal == b.terminal;
+}
+} // namespace
+
+bool BranchTreeManager::appendSingleMove(const QList<ResolvedRowLite>& rows)
+{
+    if (!m_scene || m_rows.isEmpty() || rows.size() != m_rows.size()) return false;
+
+    int grownRow = -1;
+    for (qsizetype i = 0; i < rows.size(); ++i) {
+        const ResolvedRowLite& now = rows.at(i);
+        const ResolvedRowLite& before = m_rows.at(i);
+        if (now.startPly != before.startPly || now.parent != before.parent || now.headNodeId != before.headNodeId
+            || now.sfen.size() != now.disp.size() || before.sfen.size() != before.disp.size()) {
+            return false;
+        }
+        const qsizetype common = before.disp.size();
+        if (now.disp.size() == common + 1 && grownRow < 0) {
+            grownRow = static_cast<int>(i);
+        } else if (now.disp.size() != common) {
+            return false;
+        }
+        for (qsizetype ply = 0; ply < common; ++ply) {
+            if (!sameDisplayItem(now.disp.at(ply), before.disp.at(ply)) || now.sfen.at(ply) != before.sfen.at(ply))
+                return false;
+        }
+    }
+    // 何も増えていない（表記の切り替えなど）ときは全体を作り直す
+    if (grownRow < 0) return false;
+
+    const ResolvedRowLite& grown = rows.at(grownRow);
+    const int ply = static_cast<int>(grown.disp.size()) - 1;
+    return appendNodeToRow(grownRow, ply, grown.disp.last(), grown.sfen.last());
 }
 
 int BranchTreeManager::nodeIdFor(int row, int ply) const

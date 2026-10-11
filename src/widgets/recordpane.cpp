@@ -6,8 +6,8 @@
 #include "buttonstyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
+#include "recordhighlightdelegate.h"
 #include "gamesettings.h"
-#include "tablestyles.h"
 
 #include "logcategories.h"
 #include <QTextBrowser>
@@ -25,33 +25,6 @@
 #include <QModelIndex>
 #include <QItemSelectionModel>
 #include <QTimer>
-#include <QPainter>
-#include <QStyledItemDelegate>
-
-namespace {
-// Qt の選択行に加え、操作が無効な対局中もモデルの現在行に目印を描く。
-class RecordHighlightDelegate : public QStyledItemDelegate
-{
-public:
-    using QStyledItemDelegate::QStyledItemDelegate;
-
-    void paint(QPainter* painter, const QStyleOptionViewItem& option,
-               const QModelIndex& index) const override
-    {
-        QStyledItemDelegate::paint(painter, option, index);
-        if (index.column() != 0) return;
-
-        const auto* recordModel = qobject_cast<const KifuRecordListModel*>(index.model());
-        const auto* branchModel = qobject_cast<const KifuBranchListModel*>(index.model());
-        const bool current = (recordModel && recordModel->currentHighlightRow() == index.row())
-            || (branchModel && branchModel->currentHighlightRow() == index.row());
-        if (current || (option.state & QStyle::State_Selected)) {
-            painter->fillRect(QRect(option.rect.left(), option.rect.top(), 3, option.rect.height()),
-                              TableStyles::selectionAccent());
-        }
-    }
-};
-} // namespace
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
