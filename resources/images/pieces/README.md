@@ -94,6 +94,8 @@ python3 scripts/generate_sengoku_pieces.py \
 `generation.txt` と `pawn-lance-refinement.txt` に画像生成時のプロンプトを記録しています。
 SVGの五角形はベクター、絵柄は透明PNGの埋め込みです。成駒の赤色とAtelierの陰影は
 書き出し時に確定させ、Qt SVGで未対応のフィルターや外部画像には依存しません。
+絵柄のPNGは一辺360pxです。最大の盤（升目150px・駒112%）を2倍表示しても約340pxなので足ります。
+大きくすると実行ファイルが増え、駒を描くたびのPNGの展開も重くなります（720pxでは描く時間が約3倍）。
 
 再生成には Node.js 22以上、Chromium、Python 3を使います。アプリのビルド・実行には不要です。
 

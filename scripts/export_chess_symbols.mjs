@@ -8,6 +8,9 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawn} from 'node:child_process';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// 書き出す絵柄の一辺。升目は最大150px・駒は最大112%なので、2倍表示でも絵柄は約340pxに収まる。
+// 大きくすると実行ファイルが増え、駒を描くたびのPNGの展開も重くなる（720pxでは描く時間が約3倍）。
+const size = 360;
 const output = process.argv[2];
 if (!output) throw new Error('Usage: node scripts/export_chess_symbols.mjs OUTPUT_DIRECTORY');
 const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'shogi-chess-export-'));
@@ -70,13 +73,13 @@ try {
           const ink = container.querySelector('.piece-ink');
           for (const image of ink.querySelectorAll('image')) image.setAttribute('href', window.exportSources[image.getAttribute('href')]);
           const defs = document.getElementById('promoted-flat').parentElement.outerHTML;
-          const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 45 45">'
+          const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 45 45">'
             + '<style>.symbol{display:block;overflow:hidden}</style>' + defs + ink.outerHTML + '</svg>';
           const image = new Image();
           image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
           await image.decode();
           const canvas = document.createElement('canvas');
-          canvas.width = canvas.height = 720;
+          canvas.width = canvas.height = ${size};
           canvas.getContext('2d').drawImage(image, 0, 0);
           return canvas.toDataURL('image/png').split(',')[1];
         })()`);
