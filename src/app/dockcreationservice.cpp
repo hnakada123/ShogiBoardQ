@@ -15,6 +15,7 @@
 #include "menuwindow.h"
 #include "josekiwindow.h"
 #include "docksettings.h"
+#include "opaquebackground.h"
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
 
@@ -122,6 +123,8 @@ QDockWidget* DockCreationService::createRecordPaneDock()
     m_recordPaneDock = new QDockWidget(tr("棋譜"), m_mainWindow);
     setupDockFeatures(m_recordPaneDock, QStringLiteral("RecordPaneDock"));
     m_recordPaneDock->setWidget(m_recordPane);
+    // 着手のたびに更新する棋譜欄の描き直しを、ドックとメインウィンドウまで広げない
+    OpaqueBackground::keep(m_recordPane);
 
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_recordPaneDock);
     addToggleActionToMenu(m_recordPaneDock, tr("棋譜"));
@@ -145,6 +148,9 @@ void DockCreationService::createAnalysisDocks()
     auto setupDock = [this](QDockWidget* dock, QWidget* content, const QString& title, const QString& objectName) {
         dock->setObjectName(objectName);
         dock->setWidget(content);
+        // 思考・ログなど頻繁に更新する中身の描き直しを、ドックのタイトル（Fusion の
+        // アイコンの読み込みを含む）とメインウィンドウまで広げない
+        OpaqueBackground::keep(content);
         dock->setMinimumWidth(0);
         dock->setMinimumHeight(100);
         dock->setFeatures(

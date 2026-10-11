@@ -110,11 +110,20 @@ void EngineInfoWidget::buildLayout()
 
 void EngineInfoWidget::setCellValue(int col, const QString& value) {
     QTableWidgetItem* item = m_table->item(0, col);
-    if (item) {
+    // 思考情報は1秒に何度も届く。値が同じなら表も幅も変えない
+    if (item && item->text() != value) {
         item->setText(value);
         item->setToolTip(value);
-        updateTableGeometry();
+        scheduleTableGeometry();
     }
+}
+
+void EngineInfoWidget::scheduleTableGeometry()
+{
+    if (m_tableGeometryPending) return;
+    m_tableGeometryPending = true;
+    // 描画（優先度の低い更新要求）より先に処理されるので、古い幅で描かれることはない
+    QMetaObject::invokeMethod(this, &EngineInfoWidget::updateTableGeometry, Qt::QueuedConnection);
 }
 
 void EngineInfoWidget::setFontSize(int pointSize) {
@@ -253,15 +262,16 @@ void EngineInfoWidget::showEvent(QShowEvent* event)
 
 void EngineInfoWidget::updateTableGeometry()
 {
+    m_tableGeometryPending = false;
     const QSignalBlocker blocker(m_table->horizontalHeader());
     if (!m_columnWidthsLoaded) {
+        const QFontMetrics headingMetrics(m_table->font());
+        const bool japanese = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
+        const QFontMetrics moveMetrics(japanese ? ApplicationFonts::japaneseFont(m_table->font()) : m_table->font());
         for (int col = 0; col < COL_COUNT; ++col) {
             const auto* item = m_table->item(0, col);
             const auto* heading = m_table->horizontalHeaderItem(col);
-            const QFontMetrics headingMetrics(m_table->font());
-            const bool japaneseMove = (col == COL_PRED || col == COL_SEARCHED)
-                && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
-            const QFontMetrics metrics(japaneseMove ? ApplicationFonts::japaneseFont(m_table->font()) : m_table->font());
+            const QFontMetrics& metrics = (col == COL_PRED || col == COL_SEARCHED) ? moveMetrics : headingMetrics;
             int contentWidth = qMax(metrics.horizontalAdvance(item ? item->text() : QString()),
                                     headingMetrics.horizontalAdvance(heading ? heading->text() : QString())) + 20;
             if (col == COL_ENGINE_NAME) contentWidth = qBound(120, contentWidth, 260);

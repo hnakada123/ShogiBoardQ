@@ -11,6 +11,7 @@
 #include "logcategories.h"
 #include "numericrightaligncommadelegate.h"
 #include "pvboardbuttondelegate.h"
+#include "pvtextdelegate.h"
 #include "tablestyles.h"
 #include "analysissettings.h"
 #include "shogienginethinkingmodel.h"
@@ -212,6 +213,7 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
     m_considerationView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_considerationView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     m_considerationView->setItemDelegateForColumn(4, new PvBoardButtonDelegate(m_considerationView));
+    m_considerationView->setItemDelegateForColumn(5, new PvTextDelegate(m_considerationView));
 
     // ヘッダ設定
     {

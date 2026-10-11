@@ -790,6 +790,10 @@ set(SRC_WIDGETS
     src/widgets/menubuttonwidget.h
     src/widgets/numericrightaligncommadelegate.h
     src/widgets/pvboardbuttondelegate.h
+    src/widgets/pvtextdelegate.cpp
+    src/widgets/pvtextdelegate.h
+    src/widgets/opaquebackground.cpp
+    src/widgets/opaquebackground.h
     src/widgets/kifumovedelegate.h
     src/widgets/recordhighlightdelegate.cpp
     src/widgets/recordhighlightdelegate.h

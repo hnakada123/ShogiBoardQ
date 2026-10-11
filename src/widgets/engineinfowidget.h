@@ -61,6 +61,7 @@ private:
     int m_widgetIndex=0;  // ウィジェットインデックス
     bool m_columnWidthsLoaded=false;  // 列幅が設定ファイルから読み込まれたか
     bool m_showPredictedMove=true;  // 予想手列を表示するか
+    bool m_tableGeometryPending=false;  // 列幅・高さの計算を予約済みか
     
     // 列インデックス
     enum Column {
@@ -83,6 +84,8 @@ private:
 
     // 内容に合う列幅と情報帯の高さを計算（手動の列幅は維持）
     void updateTableGeometry();
+    // 思考情報の1行で複数の値が変わるため、計算はまとめて1回にする
+    void scheduleTableGeometry();
 
     // ヘッダースタイルの再適用（フォントサイズ反映用）
     void applyHeaderStyle();
