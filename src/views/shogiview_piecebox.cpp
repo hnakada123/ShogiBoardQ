@@ -98,10 +98,12 @@ void ShogiView::drawPieceBoxBackground(QPainter* painter)
 {
     const QRect box = pieceBoxRect();
     if (box.isEmpty()) return;
+    // 駒箱は局面編集中だけ表示し、ラベルの文字も含むため、変わらない部分の画像には含めない。
     const QRectF surface = m_layout.standSurfaceRect(box);
-    if (!intersectsPaintRegion(BoardSurfacePainter::paintedRect(surface, fieldSize().width()))) return;
+    const QMarginsF shadow = BoardSurfacePainter::shadowMargins(fieldSize().width());
+    if (!intersectsPaintRegion(surface.marginsAdded(shadow).adjusted(-1, -1, 1, 1))) return;
     BoardSurfacePainter::draw(*painter, surface, m_boardColors.stand, m_boardVisuals.standWoodGrain,
-                              fieldSize().width(), m_paintRegion.boundingRect());
+                              fieldSize().width());
     painter->save();
     const QRect label = ShogiViewLayout::pieceBoxLabelRect(box);
     QFont labelFont = painter->font();

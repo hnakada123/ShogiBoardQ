@@ -3,7 +3,6 @@
 
 #include "shogiviewhighlighting.h"
 #include "shogiviewlayout.h"
-#include "boardconstants.h"
 
 #include <QPainter>
 #include <QLabel>
@@ -11,26 +10,6 @@
 #include <QDebug>
 
 #include "logcategories.h"
-
-// 駒台セル矩形の計算ユーティリティ（shogiview.cpp と同一ロジック）
-static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int offsetY, const QRect& fieldRect, bool leftSide)
-{
-    QRect adjustedRect;
-
-    if (flip) {
-        adjustedRect.setRect(fieldRect.left() + (leftSide ? -param : +param) + offsetX,
-                             fieldRect.top()  + offsetY,
-                             fieldRect.width(),
-                             fieldRect.height());
-    } else {
-        adjustedRect.setRect(fieldRect.left() + (leftSide ? +param : -param) + offsetX,
-                             fieldRect.top()  + offsetY,
-                             fieldRect.width(),
-                             fieldRect.height());
-    }
-
-    return adjustedRect;
-}
 
 ShogiViewHighlighting::ShogiViewHighlighting(ShogiView* view, QObject* parent)
     : QObject(parent)
@@ -45,13 +24,26 @@ ShogiViewHighlighting::ShogiViewHighlighting(ShogiView* view, QObject* parent)
 void ShogiViewHighlighting::addHighlight(ShogiView::Highlight* hl)
 {
     m_highlights.append(hl);
-    m_view->update();
+    updateHighlightArea(hl);
 }
 
 void ShogiViewHighlighting::removeHighlight(ShogiView::Highlight* hl)
 {
     m_highlights.removeOne(hl);
-    m_view->update();
+    updateHighlightArea(hl);
+}
+
+// ハイライトのマスだけを描き直す。駒を選ぶたびに合法な移動先を数十マス足し引きするため、
+// そのたびに盤全体を描き直さない。
+void ShogiViewHighlighting::updateHighlightArea(const ShogiView::Highlight* hl)
+{
+    QRect rect;
+    if (hl && hl->type() == ShogiView::FieldHighlight::Type) {
+        const auto* fhl = static_cast<const ShogiView::FieldHighlight*>(hl);
+        rect = m_view->fieldRect(QPoint(fhl->file(), fhl->rank()));
+    }
+    if (rect.isEmpty()) m_view->update();
+    else m_view->update(rect);
 }
 
 void ShogiViewHighlighting::removeHighlightAllData()
@@ -209,78 +201,17 @@ void ShogiViewHighlighting::refreshBackgroundColors()
     else applyStartupTypography();
 }
 
-void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLayout& layout,
-                                           const QRegion& dirty)
+void ShogiViewHighlighting::drawHighlights(QPainter& painter, const QRegion& dirty)
 {
     if (!m_view->board()) return;
 
-    // 駒台の疑似座標 (10/11, 1..9) → 駒台描画で使う基準盤マス(file=1/2, rank=...) へ変換
-    const auto standPseudoToBase = [&](int pseudoFile, int pseudoRank)
-        -> std::tuple<bool,int,int,bool> {
-        if (pseudoFile == 10) {
-            if (pseudoRank == 7 || pseudoRank == 5 || pseudoRank == 3 || pseudoRank == 1) {
-                const int baseFile = 2;
-                const int baseRank = 6 + ((7 - pseudoRank) / 2);
-                return {true, baseFile, baseRank, true};
-            }
-            if (pseudoRank == 8 || pseudoRank == 6 || pseudoRank == 4 || pseudoRank == 2) {
-                const int baseFile = 1;
-                const int baseRank = 6 + ((8 - pseudoRank) / 2);
-                return {true, baseFile, baseRank, true};
-            }
-            return {false, 0, 0, true};
-        }
-
-        if (pseudoFile == 11) {
-            if (pseudoRank == 3 || pseudoRank == 5 || pseudoRank == 7 || pseudoRank == 9) {
-                const int baseFile = 1;
-                const int baseRank = (11 - pseudoRank) / 2;
-                return {true, baseFile, baseRank, false};
-            }
-            if (pseudoRank == 2 || pseudoRank == 4 || pseudoRank == 6 || pseudoRank == 8) {
-                const int baseFile = 2;
-                const int baseRank = (10 - pseudoRank) / 2;
-                return {true, baseFile, baseRank, false};
-            }
-            return {false, 0, 0, false};
-        }
-
-        return {false, 0, 0, false};
-    };
-
-    // 盤/駒台共通：ハイライト矩形を算出
-    const auto makeHighlightRect = [&](const ShogiView::FieldHighlight* fhl) -> QRect {
-        const int f = fhl->file();
-        const int r = fhl->rank();
-
-        if (f == BoardConstants::kPieceBoxFile) return m_view->pieceBoxCellRect(r);
-
-        if (f == 10 || f == 11) {
-            auto [ok, baseFile, baseRank, isBlackStand] = standPseudoToBase(f, r);
-            if (!ok) return QRect();
-
-            const QRect base = m_view->cachedFieldRect(baseFile, baseRank);
-            const int   param = isBlackStand ? layout.param1() : layout.param2();
-            const bool  leftSide = isBlackStand;
-            const QRect adjusted = makeStandCellRect(layout.flipMode(), param, layout.offsetX(), layout.offsetY(),
-                                                     base, leftSide);
-            return adjusted;
-        }
-
-        const QRect base = m_view->cachedFieldRect(f, r);
-        return QRect(base.left() + layout.offsetX(),
-                     base.top()  + layout.offsetY(),
-                     base.width(), base.height());
-    };
-
-    // 描画
     painter.save();
     for (int i = 0; i < highlightCount(); ++i) {
         ShogiView::Highlight* hl = highlight(i);
         if (!hl || hl->type() != ShogiView::FieldHighlight::Type) continue;
 
         const auto* fhl = static_cast<ShogiView::FieldHighlight*>(hl);
-        const QRect rect = makeHighlightRect(fhl);
+        const QRect rect = m_view->fieldRect(QPoint(fhl->file(), fhl->rank()));
         if (rect.isNull() || !dirty.intersects(rect)) continue;
 
         const QColor originalColor = fhl->color();

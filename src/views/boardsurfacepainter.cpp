@@ -61,35 +61,22 @@ QMarginsF BoardSurfacePainter::shadowMargins(qreal squareSize)
             spread + depth * 0.2, spread + depth};
 }
 
-QRectF BoardSurfacePainter::paintedRect(const QRectF& surface, qreal squareSize)
-{
-    // 影の角丸のアンチエイリアス分として1ピクセル広げる。
-    return surface.marginsAdded(shadowMargins(squareSize)).adjusted(-1, -1, 1, 1);
-}
-
 void BoardSurfacePainter::draw(QPainter& painter, const QRectF& surface, const QColor& color,
-                              bool woodGrain, qreal squareSize, const QRectF& exposed)
+                              bool woodGrain, qreal squareSize)
 {
     if (surface.isEmpty()) return;
-    // ドラッグ中の駒の周囲だけを描き直すときなど、範囲が縁の光・線より内側なら
-    // 影の角丸（表面全体の大きさで塗りつぶしを計算する）を省いて木肌だけを描く。
-    const qreal edge = 2 + squareSize / 75.0;
-    const bool interiorOnly = !exposed.isEmpty()
-        && surface.adjusted(edge, edge, -edge, -edge).contains(exposed);
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing);
     const qreal depth = surfaceDepth(squareSize);
     painter.setPen(Qt::NoPen);
-    if (!interiorOnly) {
-        for (int i = kShadowSteps; i >= 1; --i) {
-            const qreal spread = squareSize * i * kShadowSpread;
-            painter.setBrush(QColor(25, 30, 20, 7));
-            painter.drawRoundedRect(surface.translated(depth * 0.2, depth)
-                                        .adjusted(-spread, -spread, spread, spread), 2, 2);
-        }
-        painter.setBrush(color.darker(140));
-        painter.drawRoundedRect(surface.translated(0, depth), 2, 2);
+    for (int i = kShadowSteps; i >= 1; --i) {
+        const qreal spread = squareSize * i * kShadowSpread;
+        painter.setBrush(QColor(25, 30, 20, 7));
+        painter.drawRoundedRect(surface.translated(depth * 0.2, depth)
+                                    .adjusted(-spread, -spread, spread, spread), 2, 2);
     }
+    painter.setBrush(color.darker(140));
+    painter.drawRoundedRect(surface.translated(0, depth), 2, 2);
     if (woodGrain) {
         const qreal dpr = painter.device()->devicePixelRatioF();
         const QImage texture = woodSurface(surface.size().toSize(), dpr, color);
@@ -97,13 +84,11 @@ void BoardSurfacePainter::draw(QPainter& painter, const QRectF& surface, const Q
     } else {
         painter.fillRect(surface, color);
     }
-    if (!interiorOnly) {
-        // 上辺・左辺に光、下辺に薄い縁を付ける。先後の反転で光源は動かさない。
-        painter.setPen(QPen(QColor(255, 250, 223, 110), qMax(0.6, squareSize / 75.0)));
-        painter.drawLine(surface.topLeft() + QPointF(1, 1), surface.topRight() + QPointF(-1, 1));
-        painter.drawLine(surface.topLeft() + QPointF(1, 1), surface.bottomLeft() + QPointF(1, -1));
-        painter.setPen(QPen(color.darker(120), qMax(0.6, squareSize / 90.0)));
-        painter.drawLine(surface.bottomLeft(), surface.bottomRight());
-    }
+    // 上辺・左辺に光、下辺に薄い縁を付ける。先後の反転で光源は動かさない。
+    painter.setPen(QPen(QColor(255, 250, 223, 110), qMax(0.6, squareSize / 75.0)));
+    painter.drawLine(surface.topLeft() + QPointF(1, 1), surface.topRight() + QPointF(-1, 1));
+    painter.drawLine(surface.topLeft() + QPointF(1, 1), surface.bottomLeft() + QPointF(1, -1));
+    painter.setPen(QPen(color.darker(120), qMax(0.6, squareSize / 90.0)));
+    painter.drawLine(surface.bottomLeft(), surface.bottomRight());
     painter.restore();
 }
