@@ -1,5 +1,8 @@
 #include <QtTest>
+#include <QAction>
+#include <QFile>
 #include <QImage>
+#include <QMenu>
 #include <QPaintEvent>
 #include <QScreen>
 #include <QTemporaryDir>
@@ -11,8 +14,12 @@
 #include "boardappearancecatalog.h"
 #include "boardconstants.h"
 #include "boardinteractioncontroller.h"
+#include "gamesettings.h"
 #include "pieceimageprovider.h"
 #include "playmode.h"
+#include "pvboarddialog.h"
+#include "sfencollectiondialog.h"
+#include "sfenvalidationservice.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
@@ -21,6 +28,7 @@
 /// ドラッグ中は駒の周囲だけを描き直し、それでも画面が全体を描き直したときと一致すること。
 /// 盤面の変わらない部分を描いた画像が、盤の反転・大きさ・配色・質感の変更に追従すること。
 /// 対局画面の外観（駒・将棋盤・背景・駒台・対局者情報）をどれに変えても、描き残しが出ないこと。
+/// 読み筋ウィンドウ・局面集ビューアで局面を替えても、変わった所だけを描き直すこと。
 class TestBoardDragRepaint : public QObject
 {
     Q_OBJECT
@@ -77,23 +85,25 @@ class TestBoardDragRepaint : public QObject
             QCoreApplication::sendEvent(&view, &move);
             QCoreApplication::processEvents();
         }
-
-        QImage screenImage()
-        {
-            QWindow* window = view.window()->windowHandle();
-            return window->screen()->grabWindow(view.window()->winId()).toImage()
-                .convertToFormat(QImage::Format_ARGB32);
-        }
     };
 
     /// 実際に画面に出ている内容と、全体を描き直した内容とで違う画素の数。
     /// 部分描画での半透明の合成は、全体を描いたときと丸めが1だけ違うことがあるため、それは数えない。
-    static int stalePixels(BoardUi& ui)
+    static int stalePixels(BoardUi& ui) { return stalePixels(ui.view); }
+
+    static QImage screenImage(QWidget& widget)
     {
-        const QImage partial = ui.screenImage();
-        ui.view.repaint();
+        QWindow* window = widget.window()->windowHandle();
+        return window->screen()->grabWindow(widget.window()->winId()).toImage()
+            .convertToFormat(QImage::Format_ARGB32);
+    }
+
+    static int stalePixels(QWidget& view)
+    {
+        const QImage partial = screenImage(view);
+        view.repaint();
         QCoreApplication::processEvents();
-        const QImage full = ui.screenImage();
+        const QImage full = screenImage(view);
         if (partial.size() != full.size()) return -1;
         int stale = 0;
         for (int y = 0; y < full.height(); ++y) {
@@ -128,6 +138,58 @@ class TestBoardDragRepaint : public QObject
     static void settle()
     {
         for (int i = 0; i < 3; ++i) QCoreApplication::processEvents();
+    }
+
+    /// 読み筋ウィンドウ・局面集ビューアで試す局面。sfen() と同じ配置で、局面集が読み込めるよう
+    /// 駒の数を正しくしてある（sfen() は歩が19枚ある）
+    static QString validSfen()
+    {
+        return QStringLiteral("ln1g3nl/1r1s1kg2/p2ppp1pp/2p3p2/1p7/2P1P1P2/PPSP1P2P/2G1G2R1/LN2K2NL b B2Sbp 41");
+    }
+
+    /// 角打ち・歩の突き・歩で取る・歩打ちの着手（USI 形式）と、各着手の後の局面
+    static QStringList pvMoves()
+    {
+        return {QStringLiteral("B*5e"), QStringLiteral("8e8f"), QStringLiteral("8g8f"), QStringLiteral("P*8e")};
+    }
+
+    static QStringList positionsAfterPvMoves()
+    {
+        ShogiGameController gc;
+        QString start = validSfen();
+        gc.newGame(start);
+        QStringList history{validSfen()};
+        QList<ShogiMove> moves;
+        int ply = 41;
+        const QList<QPair<QPoint, QPoint>> game = {
+            {QPoint(10, 6), QPoint(5, 5)}, {QPoint(8, 5), QPoint(8, 6)},
+            {QPoint(8, 7), QPoint(8, 6)}, {QPoint(11, 9), QPoint(8, 5)},
+        };
+        for (const auto& [from, to] : game) {
+            QPoint f = from, t = to;
+            QString record;
+            PlayMode mode = PlayMode::HumanVsHuman;
+            if (!gc.validateAndMove(f, t, record, mode, ply++, &history, moves)) return {};
+        }
+        return history;
+    }
+
+    /// 局面を替える操作の後、盤が描き直した範囲が盤の4分の1未満で、描き残しが無いこと
+    static void verifyPartialStep(ShogiView& view, const std::function<void()>& step, const QString& label)
+    {
+        PaintSpy spy;
+        view.installEventFilter(&spy);
+        step();
+        settle();
+        view.removeEventFilter(&spy);
+        QRegion repainted;
+        for (const QRect& rect : std::as_const(spy.regionRects)) repainted += rect;
+        qint64 area = 0;
+        for (const QRect& rect : repainted) area += qint64(rect.width()) * rect.height();
+        const qint64 whole = qint64(view.width()) * view.height();
+        QVERIFY2(area > 0, qPrintable(label));
+        QVERIFY2(area * 4 < whole, qPrintable(QStringLiteral("%1: repainted %2 of %3 px").arg(label).arg(area).arg(whole)));
+        QVERIFY2(stalePixels(view) == 0, qPrintable(label));
     }
 
     // ---- 外観を切り替えて試す（appearanceVariantsLeaveNoStalePixels） ----
@@ -463,6 +525,76 @@ private slots:
         ui.gc.switchPiecePromotionStatusOnRightClick(7, 7);
         QCoreApplication::processEvents();
         QCOMPARE(stalePixels(ui), 0);
+    }
+
+    // 読み筋ウィンドウ（対局中・検討中・棋譜解析・詰将棋生成で共通）で手を進め・戻しても、
+    // 盤は変わった所（駒・持駒・直前の指し手の強調・手番の表示）だけを描き直す
+    void pvBoardWindowRepaintsOnlyChangedSquares()
+    {
+        const QStringList positions = positionsAfterPvMoves();
+        QCOMPARE(positions.size(), 5);
+        PvBoardDialog dialog(validSfen(), pvMoves());
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* view = dialog.findChild<ShogiView*>();
+        QVERIFY(view != nullptr);
+        settle();
+
+        int ply = 0;
+        const QList<QPair<const char*, int>> steps = {
+            {"onGoForward", 1}, {"onGoForward", 2}, {"onGoForward", 3}, {"onGoForward", 4},
+            {"onGoBack", 3}, {"onGoFirst", 0}, {"onGoLast", 4},
+        };
+        for (const auto& step : steps) {
+            const char* slot = step.first;  // ラムダで捕捉するため（構造化束縛の捕捉は C++20）
+            verifyPartialStep(*view, [&] { QVERIFY(QMetaObject::invokeMethod(&dialog, slot)); },
+                              QStringLiteral("%1 from ply %2").arg(QLatin1String(slot)).arg(ply));
+            if (QTest::currentTestFailed()) return;
+            ply = step.second;
+            QCOMPARE(view->board()->convertBoardToSfen(), positions.at(ply).section(QLatin1Char(' '), 0, 0));
+        }
+    }
+
+    // 局面集ビューアで局面を進め・戻しても、盤は変わった所だけを描き直す
+    void sfenCollectionRepaintsOnlyChangedSquares()
+    {
+        const QStringList positions = positionsAfterPvMoves();
+        QCOMPARE(positions.size(), 5);
+        // 読めない局面があると、局面集ビューアがエラーを出して止まる
+        for (const QString& position : positions)
+            QVERIFY2(SfenValidationService::validate(position).valid, qPrintable(position));
+        QTemporaryDir dir;
+        QFile file(dir.filePath(QStringLiteral("positions.sfen")));
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text));
+        file.write(positions.join(QLatin1Char('\n')).toUtf8());
+        file.close();
+        // 最近使ったファイルから開く（ファイルを選ぶ画面を出さずに読み込む）
+        GameSettings::setSfenCollectionRecentFiles({file.fileName()});
+        SfenCollectionDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* view = dialog.findChild<ShogiView*>();
+        auto* menu = dialog.findChild<QMenu*>(QStringLiteral("sfenCollectionRecentMenu"));
+        QVERIFY(view != nullptr && menu != nullptr && !menu->actions().isEmpty());
+        menu->actions().constFirst()->trigger();
+        settle();
+        QCOMPARE(stalePixels(*view), 0);
+        QCOMPARE(view->board()->convertBoardToSfen(), positions.at(0).section(QLatin1Char(' '), 0, 0));
+
+        int index = 0;
+        const QList<QPair<const char*, int>> steps = {
+            {"onGoForward", 1}, {"onGoForward", 2}, {"onGoForward", 3}, {"onGoForward", 4},
+            {"onGoBack", 3}, {"onGoFirst", 0}, {"onGoLast", 4},
+        };
+        for (const auto& step : steps) {
+            const char* slot = step.first;  // ラムダで捕捉するため（構造化束縛の捕捉は C++20）
+            verifyPartialStep(*view, [&] { QVERIFY(QMetaObject::invokeMethod(&dialog, slot)); },
+                              QStringLiteral("%1 from %2").arg(QLatin1String(slot)).arg(index));
+            if (QTest::currentTestFailed()) return;
+            index = step.second;
+            QCOMPARE(view->board()->convertBoardToSfen(), positions.at(index).section(QLatin1Char(' '), 0, 0));
+        }
+        GameSettings::setSfenCollectionRecentFiles({});
     }
 
     // 対局画面の外観（将棋盤・駒台・対局者情報・背景の見本、駒、駒の大きさ・影・木目）を1つずつ変え、

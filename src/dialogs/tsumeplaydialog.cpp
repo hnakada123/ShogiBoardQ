@@ -393,7 +393,7 @@ void TsumePlayDialog::updatePosition(const QString& sfen, const QString& move)
         const auto to = UsiMoveCoordinateConverter::parseMoveTo(move);
         if (from && to) m_interaction->showMoveHighlights({from->file, from->rank}, {to->file, to->rank});
     }
-    m_view->update();
+    // 局面・手番・ハイライトは、盤がそれぞれ変わった所だけを描き直すので、全体の描き直しは頼まない
 }
 
 void TsumePlayDialog::onSessionPositionChanged(const QString& sfen, const QString& move)

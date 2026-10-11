@@ -258,9 +258,9 @@ void PvBoardDialog::updateBoardDisplay()
     const QString sfen = m_controller->currentSfen();
     if (sfen.isEmpty()) return;
 
-    // 現在の局面SFENを取得して盤面を更新
+    // 現在の局面SFENを取得して盤面を更新する。盤は変わったマスだけを描き直すので、
+    // 全体の描き直しは頼まない（ハイライト・手番の表示も、それぞれ変わった所だけを描き直す）
     m_board->setSfen(sfen);
-    m_shogiView->update();
 
     // ハイライトを更新
     updateMoveHighlights();
@@ -423,8 +423,6 @@ void PvBoardDialog::updateMoveHighlights()
             coords.toFile, coords.toRank, QColor(255, 255, 0));
         m_shogiView->addHighlight(m_toHighlight.get());
     }
-
-    m_shogiView->update();
 }
 
 void PvBoardDialog::saveWindowSize()

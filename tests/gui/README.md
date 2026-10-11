@@ -130,6 +130,7 @@ Hayanagiの応手、正解・不詰の通知、問題切替を確認し、`tsume
 CTest の `tst_fontsettingsdialog` はプレビュー・キャンセル・標準への復元・設定の保存と読込を検証します。
 `solveByBoardClicks` は盤の拡大・縮小ボタン、Ctrl＋ホイール、回転後の盤での着手も確認します。
 `boardLayoutDuringMove` は通常・縦長・文字拡大の各表示で、着手から玉方の応手までの全描画フレームを記録し、探索中止ボタンの表示切替で盤面の位置・大きさが変わらないことを確認します。
+`movesRepaintOnlyChangedSquares` は着手から玉方の応手までに盤の半分以上を一度に描き直さないこと（変わった所だけを描き直すこと）と、応手の後の画面が盤全体を描き直した画面と一致することを確認します。
 
 ```bash
 xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_play_gui
