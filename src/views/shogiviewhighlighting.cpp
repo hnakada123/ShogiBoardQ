@@ -68,12 +68,15 @@ void ShogiViewHighlighting::removeHighlightAllData()
 
 void ShogiViewHighlighting::setArrows(const QList<ShogiView::Arrow>& arrows)
 {
+    // エンジンの候補手が届くたびに呼ばれるため、矢印が変わらなければ盤全体を描き直さない。
+    if (m_arrows == arrows) return;
     m_arrows = arrows;
     m_view->update();
 }
 
 void ShogiViewHighlighting::clearArrows()
 {
+    if (m_arrows.isEmpty()) return;
     m_arrows.clear();
     m_view->update();
 }
@@ -206,7 +209,8 @@ void ShogiViewHighlighting::refreshBackgroundColors()
     else applyStartupTypography();
 }
 
-void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLayout& layout)
+void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLayout& layout,
+                                           const QRegion& dirty)
 {
     if (!m_view->board()) return;
 
@@ -277,7 +281,7 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLay
 
         const auto* fhl = static_cast<ShogiView::FieldHighlight*>(hl);
         const QRect rect = makeHighlightRect(fhl);
-        if (rect.isNull()) continue;
+        if (rect.isNull() || !dirty.intersects(rect)) continue;
 
         const QColor originalColor = fhl->color();
 

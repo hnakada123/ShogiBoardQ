@@ -11,6 +11,7 @@
 
 #include <QColor>
 #include <QPainter>
+#include <QPaintEvent>
 #include <QFont>
 
 void ShogiView::drawRanks(QPainter* painter)
@@ -51,7 +52,9 @@ void ShogiView::drawBoardSurface(QPainter* painter)
     if (!m_board) return;
     const QSize fs = fieldSize();
     const QRectF surface = m_layout.boardSurfaceRect(m_board->files(), m_board->ranks());
-    BoardSurfacePainter::draw(*painter, surface, m_boardColors.board, m_boardVisuals.woodGrain, fs.width());
+    if (!intersectsPaintRegion(BoardSurfacePainter::paintedRect(surface, fs.width()))) return;
+    BoardSurfacePainter::draw(*painter, surface, m_boardColors.board, m_boardVisuals.woodGrain, fs.width(),
+                              m_paintRegion.boundingRect());
 }
 
 void ShogiView::drawBoardFields(QPainter* painter)
@@ -67,17 +70,34 @@ void ShogiView::drawBoardFields(QPainter* painter)
     const qreal alignment = physicalWidth % 2 ? 0.5 / dpr : 0;
     painter->translate(alignment, alignment);
     painter->setPen(QPen(m_boardColors.grid, physicalWidth / dpr));
-    for (int c = 1; c < m_board->files(); ++c) {
+    // 罫線は再描画範囲に掛かる部分だけを引く。アンチエイリアスの線は全長で塗りを計算するため、
+    // ドラッグ中の駒の周囲だけを描き直すときに盤の端から端まで引かないようにする。
+    // 切り口は範囲の外（線幅と位置合わせの分だけ広げた位置）に置き、範囲内の画素は全長で引いたときと同じにする。
+    const qreal reach = physicalWidth / dpr + 1;
+    const QRectF exposed = QRectF(m_paintRegion.boundingRect()).adjusted(-reach, -reach, reach, reach);
+    const qreal top = qMax(grid.top(), exposed.top());
+    const qreal bottom = qMin(grid.bottom(), exposed.bottom());
+    const qreal left = qMax(grid.left(), exposed.left());
+    const qreal right = qMin(grid.right(), exposed.right());
+    for (int c = 1; c < m_board->files() && top <= bottom; ++c) {
         const qreal x = grid.left() + c * fs.width();
-        painter->drawLine(QPointF(x, grid.top()), QPointF(x, grid.bottom()));
+        if (x < exposed.left() || x > exposed.right()) continue;
+        painter->drawLine(QPointF(x, top), QPointF(x, bottom));
     }
-    for (int r = 1; r < m_board->ranks(); ++r) {
+    for (int r = 1; r < m_board->ranks() && left <= right; ++r) {
         const qreal y = grid.top() + r * fs.height();
-        painter->drawLine(QPointF(grid.left(), y), QPointF(grid.right(), y));
+        if (y < exposed.top() || y > exposed.bottom()) continue;
+        painter->drawLine(QPointF(left, y), QPointF(right, y));
     }
-    painter->setPen(QPen(m_boardColors.grid, qMax(1.0, fs.width() / 40.0)));
-    painter->setBrush(Qt::NoBrush);
-    painter->drawRect(grid);
+    // 外枠は、再描画範囲が枠の内側に収まるときは見えないので省く。
+    const qreal frameWidth = qMax(1.0, fs.width() / 40.0);
+    const qreal frameReach = frameWidth / 2 + 1;
+    if (!grid.adjusted(frameReach, frameReach, -frameReach, -frameReach)
+             .contains(QRectF(m_paintRegion.boundingRect()))) {
+        painter->setPen(QPen(m_boardColors.grid, frameWidth));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRect(grid);
+    }
     painter->restore();
 }
 
@@ -95,10 +115,13 @@ void ShogiView::drawPieces(QPainter* painter)
     }
 }
 
-void ShogiView::paintEvent(QPaintEvent *)
+void ShogiView::paintEvent(QPaintEvent* event)
 {
     // 【安全弁】盤未設定、またはエラーフラグが立っている場合は描画を行わない。
     if (!m_board || m_errorOccurred) return;
+
+    // 描き直す範囲。各描画ヘルパはこの範囲に掛からない要素を省く。
+    m_paintRegion = event->region();
 
     // 【ペインタ開始】このスコープでのみ QPainter を有効化。
     QPainter painter(this);
@@ -125,7 +148,7 @@ void ShogiView::paintEvent(QPaintEvent *)
     drawFourStars(&painter);
 
     // 4) ハイライト（選択/移動可能マスなど）
-    m_highlighting->drawHighlights(painter, m_layout);
+    m_highlighting->drawHighlights(painter, m_layout, m_paintRegion);
 
     // 5) 盤上の駒
     drawPieces(&painter);
@@ -192,8 +215,9 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
     // 【盤から駒種を取得】
     Piece pieceValue = m_board->pieceCharacter(file, rank);
 
-    // 【アイコン描画】
-    if (pieceValue != Piece::None) {
+    // 【アイコン描画】（影を含めて再描画範囲に掛かる駒だけ）
+    if (pieceValue != Piece::None
+        && intersectsPaintRegion(PiecePainter::paintedRect(adjustedRect, m_boardVisuals))) {
         const QIcon icon = piece(pieceToChar(pieceValue));
         if (!icon.isNull()) {
             PiecePainter::draw(*painter, icon, adjustedRect, m_boardVisuals);
@@ -208,6 +232,7 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
     const int band = m_layout.coordinateBandPx();
     const int x = flipMode() ? boardLeftPx() - band : boardRightPx();
     const QRect label(x, cell.top() + m_layout.offsetY(), band, cell.height());
+    if (!intersectsPaintRegion(label)) return;
     painter->save();
     QFont f = painter->font();
     if (KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
@@ -228,6 +253,7 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
     const int y = flipMode() ? m_layout.offsetY() + fieldSize().height() * m_board->ranks()
                             : m_layout.offsetY() - band;
     const QRect label(cell.left() + m_layout.offsetX(), y, cell.width(), band);
+    if (!intersectsPaintRegion(label)) return;
     painter->save();
     QFont f = painter->font();
     f.setPixelSize(qMax(8, qRound(fieldSize().width() * 0.30 * m_layout.rankFontScale())));

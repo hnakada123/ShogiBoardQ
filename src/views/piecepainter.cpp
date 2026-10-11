@@ -13,6 +13,12 @@ int pieceSize(qreal cellSize, const BoardVisuals& visuals)
     return qMax(1, qRound(cellSize * visuals.normalized().pieceScale / 100.0));
 }
 
+// 影の張り出し用に駒画像の周囲へ確保する余白
+int piecePadding(int size)
+{
+    return qMax(2, qCeil(size * 0.07));
+}
+
 QPixmap renderedPiece(const QIcon& icon, int size, qreal dpr, bool shadow)
 {
     const QString key = QStringLiteral("shogi-piece/%1/%2/%3/%4")
@@ -20,7 +26,7 @@ QPixmap renderedPiece(const QIcon& icon, int size, qreal dpr, bool shadow)
     QPixmap result;
     if (QPixmapCache::find(key, &result)) return result;
     const QPixmap face = icon.pixmap(QSize(size, size), dpr, QIcon::Normal, QIcon::On);
-    const int pad = qMax(2, qCeil(size * 0.07));
+    const int pad = piecePadding(size);
     result = QPixmap(qCeil((size + 2 * pad) * dpr), qCeil((size + 2 * pad) * dpr));
     result.setDevicePixelRatio(dpr);
     result.fill(Qt::transparent);
@@ -92,4 +98,15 @@ void PiecePainter::draw(QPainter& painter, const QIcon& icon, const QRectF& cell
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     painter.drawPixmap(pos, pixmap);
     painter.restore();
+}
+
+QRectF PiecePainter::paintedRect(const QRectF& cell, const BoardVisuals& visuals)
+{
+    if (cell.isEmpty()) return {};
+    const int size = pieceSize(qMin(cell.width(), cell.height()), visuals);
+    // 画像は物理画素へ切り上げて作るため、その分の1ピクセルを足す。
+    const qreal side = size + 2 * piecePadding(size) + 1;
+    QRectF rect(0, 0, side, side);
+    rect.moveCenter(cell.center());
+    return rect;
 }

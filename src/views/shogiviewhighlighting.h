@@ -49,7 +49,8 @@ public:
     Urgency urgency() const { return m_urgency; }
 
     // ──────────────── 描画 ────────────────
-    void drawHighlights(QPainter& painter, const ShogiViewLayout& layout);
+    /// dirty（再描画範囲）に掛からないマスは描かない。
+    void drawHighlights(QPainter& painter, const ShogiViewLayout& layout, const QRegion& dirty);
     void drawArrows(QPainter& painter, const ShogiViewLayout& layout);
 
     // ──────────────── 状態アクセサ ────────────────
