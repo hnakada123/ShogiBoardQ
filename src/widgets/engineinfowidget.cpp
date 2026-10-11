@@ -260,20 +260,54 @@ void EngineInfoWidget::showEvent(QShowEvent* event)
     updateTableGeometry();
 }
 
+// 見出しの高さ。QHeaderView は列幅が変わるたびに全見出しの大きさを測り直すので、
+// 高さが変わりうる条件（書体・スタイルシート・見出し・表示する列）が同じなら使い回す
+int EngineInfoWidget::headerHeight()
+{
+    QHeaderView* header = m_table->horizontalHeader();
+    QString key = m_table->font().key() + QLatin1Char('\n') + m_table->styleSheet();
+    for (int col = 0; col < COL_COUNT; ++col) {
+        const auto* heading = m_table->horizontalHeaderItem(col);
+        key += QLatin1Char('\n') + (header->isSectionHidden(col) ? QStringLiteral("-") : QStringLiteral("+"))
+            + (heading ? heading->text() : QString());
+    }
+    if (key != m_headerHeightKey) {
+        m_headerHeightKey = key;
+        m_headerHeight = header->sizeHint().height();
+    }
+    return m_headerHeight;
+}
+
 void EngineInfoWidget::updateTableGeometry()
 {
     m_tableGeometryPending = false;
     const QSignalBlocker blocker(m_table->horizontalHeader());
     if (!m_columnWidthsLoaded) {
-        const QFontMetrics headingMetrics(m_table->font());
+        const QFont headingFont = m_table->font();
         const bool japanese = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
-        const QFontMetrics moveMetrics(japanese ? ApplicationFonts::japaneseFont(m_table->font()) : m_table->font());
+        const QFont moveFont = japanese ? ApplicationFonts::japaneseFont(headingFont) : headingFont;
+        const QString fontKey = headingFont.key() + QLatin1Char('\n') + moveFont.key();
+        if (fontKey != m_measuredFontKey || m_cellWidths.size() != COL_COUNT) {
+            m_measuredFontKey = fontKey;
+            m_cellWidths = QList<MeasuredText>(COL_COUNT);
+            m_headingWidths = QList<MeasuredText>(COL_COUNT);
+        }
+        const QFontMetrics headingMetrics(headingFont);
+        const QFontMetrics moveMetrics(moveFont);
+        const auto measured = [](MeasuredText& cache, const QString& text, const QFontMetrics& metrics) {
+            if (cache.width < 0 || cache.text != text) {
+                cache.text = text;
+                cache.width = metrics.horizontalAdvance(text);
+            }
+            return cache.width;
+        };
         for (int col = 0; col < COL_COUNT; ++col) {
             const auto* item = m_table->item(0, col);
             const auto* heading = m_table->horizontalHeaderItem(col);
             const QFontMetrics& metrics = (col == COL_PRED || col == COL_SEARCHED) ? moveMetrics : headingMetrics;
-            int contentWidth = qMax(metrics.horizontalAdvance(item ? item->text() : QString()),
-                                    headingMetrics.horizontalAdvance(heading ? heading->text() : QString())) + 20;
+            int contentWidth = qMax(measured(m_cellWidths[col], item ? item->text() : QString(), metrics),
+                                    measured(m_headingWidths[col], heading ? heading->text() : QString(),
+                                             headingMetrics)) + 20;
             if (col == COL_ENGINE_NAME) contentWidth = qBound(120, contentWidth, 260);
             m_table->setColumnWidth(col, contentWidth);
         }
@@ -285,7 +319,7 @@ void EngineInfoWidget::updateTableGeometry()
     m_table->setFixedWidth(tableWidth);
     const int scrollHeight = contentWidth + frame > tableWidth
         ? m_table->horizontalScrollBar()->sizeHint().height() : 0;
-    const int tableHeight = m_table->horizontalHeader()->sizeHint().height()
+    const int tableHeight = headerHeight()
         + m_table->verticalHeader()->defaultSectionSize() + frame + scrollHeight;
     m_table->setFixedHeight(tableHeight);
     setFixedHeight(tableHeight);

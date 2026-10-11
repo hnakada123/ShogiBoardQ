@@ -4140,7 +4140,6 @@ struct KifuExportMetadata {
 | `terminalAdded(type)` | 終局手追加時 |
 | `sessionCommitted(newLineEnd)` | 確定時（新ラインの終端ノードを通知） |
 | `sessionDiscarded()` | 破棄時 |
-| `recordModelUpdateRequired()` | 棋譜欄モデルの更新が必要な時 |
 
 ### 8.7 KifuLoadCoordinator — 棋譜読み込みフロー
 

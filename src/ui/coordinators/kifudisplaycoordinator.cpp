@@ -99,8 +99,6 @@ void KifuDisplayCoordinator::setLiveGameSession(LiveGameSession* session)
                 this, &KifuDisplayCoordinator::onLiveGameCommitted);
         connect(m_liveSession, &LiveGameSession::sessionDiscarded,
                 this, &KifuDisplayCoordinator::onLiveGameDiscarded);
-        connect(m_liveSession, &LiveGameSession::recordModelUpdateRequired,
-                this, &KifuDisplayCoordinator::onLiveGameRecordModelUpdateRequired);
     }
 }
 

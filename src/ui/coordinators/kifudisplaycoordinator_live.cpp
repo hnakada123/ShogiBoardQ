@@ -193,9 +193,3 @@ void KifuDisplayCoordinator::onLiveGameDiscarded()
     updateBranchTreeView();
 }
 
-void KifuDisplayCoordinator::onLiveGameRecordModelUpdateRequired()
-{
-    if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
-        m_recordPane->kifuView()->viewport()->update();
-    }
-}

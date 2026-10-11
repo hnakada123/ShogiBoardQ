@@ -2,6 +2,7 @@
 /// @brief エンジン解析タブクラスの実装
 
 #include "engineanalysistab.h"
+#include "incrementaltableview.h"
 #include "commenteditorpanel.h"
 #include "considerationtabmanager.h"
 #include "usilogpanel.h"
@@ -172,11 +173,12 @@ QWidget* EngineAnalysisTab::buildThinkingPageContent(QWidget* parent)
 
     m_info1 = new EngineInfoWidget(page);
     m_info1->setWidgetIndex(0);
-    m_view1 = new QTableView(page);
+    // 思考情報が届くたびに先頭へ行を足すので、既にある行を画面のずらしで下げる表を使う
+    m_view1 = new IncrementalTableView(page);
     m_view1->setObjectName(QStringLiteral("thinkingView1"));
     m_info2 = new EngineInfoWidget(page);
     m_info2->setWidgetIndex(1);
-    m_view2 = new QTableView(page);
+    m_view2 = new IncrementalTableView(page);
 
     ensurePresenter();
     m_presenter->setViews(m_view1, m_view2, m_info1, m_info2);

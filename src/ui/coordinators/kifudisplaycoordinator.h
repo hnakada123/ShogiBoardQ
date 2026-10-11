@@ -98,7 +98,6 @@ public slots:
     void onLiveGameSessionStarted(KifuBranchNode* branchPoint);
     void onLiveGameCommitted(KifuBranchNode* newLineEnd);
     void onLiveGameDiscarded();
-    void onLiveGameRecordModelUpdateRequired();
 
 signals:
     void boardSfenChanged(const QString& sfen);
