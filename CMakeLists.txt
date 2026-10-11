@@ -963,6 +963,8 @@ set(SRC_COMMON
     src/common/kifupresentation.h
     src/common/applicationfonts.cpp
     src/common/applicationfonts.h
+    src/common/applicationstyle.cpp
+    src/common/applicationstyle.h
     src/common/tsumeevaluation.h
     src/common/boardconstants.h
     src/common/branchtreeitemroles.h
