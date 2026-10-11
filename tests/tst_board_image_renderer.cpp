@@ -7,6 +7,7 @@
 #include <QSet>
 #include <QTemporaryDir>
 #include <QPainter>
+#include <QPixmapCache>
 #include <QComboBox>
 #include <QCheckBox>
 #include <QSpinBox>
@@ -265,6 +266,32 @@ private slots:
             QVERIFY(large != render(112, true, dpr));
             QCOMPARE(large, render(112, false, dpr));
             QVERIFY(qAlpha(large.pixel(qRound(50 * dpr), qRound(50 * dpr))) > 200);
+        }
+    }
+
+    // 駒画像は条件（駒・大きさ・倍率・影）ごとに作って使い回し、キャッシュから消えたら作り直す
+    void pieceImagesAreReusedPerCondition()
+    {
+        const QIcon king = PieceImageProvider::instance().icon('K');
+        const QIcon pawn = PieceImageProvider::instance().icon('P');
+        const BoardVisuals shadowed{true, true, 100};
+        const BoardVisuals flat{true, false, 100};
+        for (const qreal dpr : {1.0, 1.25, 2.0}) {
+            const auto first = PiecePainter::image(king, 60, shadowed, dpr);
+            QVERIFY(!first.pixmap.isNull());
+            QCOMPARE(PiecePainter::image(king, 60, shadowed, dpr).pixmap.cacheKey(), first.pixmap.cacheKey());
+            for (const auto& other : {PiecePainter::image(pawn, 60, shadowed, dpr), PiecePainter::image(king, 60, flat, dpr),
+                                      PiecePainter::image(king, 50, shadowed, dpr),
+                                      PiecePainter::image(king, 60, shadowed, dpr + 0.5)}) {
+                QVERIFY(other.pixmap.cacheKey() != first.pixmap.cacheKey());
+                QVERIFY(other.pixmap.toImage() != first.pixmap.toImage());
+            }
+            const QImage before = first.pixmap.toImage();
+            QPixmapCache::clear();
+            const auto again = PiecePainter::image(king, 60, shadowed, dpr);
+            QVERIFY(again.pixmap.cacheKey() != first.pixmap.cacheKey());
+            QCOMPARE(again.pixmap.toImage(), before);
+            QCOMPARE(again.bounds, first.bounds);
         }
     }
 

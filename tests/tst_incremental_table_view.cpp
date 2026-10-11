@@ -8,6 +8,8 @@
 #include <cmath>
 #include <functional>
 
+#include "analysissettings.h"
+#include "engineanalysispresenter.h"
 #include "incrementaltableview.h"
 #include "kifudisplay.h"
 #include "kifurecordlistmodel.h"
@@ -33,11 +35,16 @@ class TestIncrementalTableView : public QObject
     {
     public:
         QRegion region;
+        int fullPaints = 0;  ///< 表示領域全体を描いた回数
 
     protected:
         bool eventFilter(QObject* watched, QEvent* event) override
         {
-            if (event->type() == QEvent::Paint) region += static_cast<QPaintEvent*>(event)->region();
+            if (event->type() == QEvent::Paint) {
+                const QRegion& painted = static_cast<QPaintEvent*>(event)->region();
+                region += painted;
+                if ((QRegion(static_cast<QWidget*>(watched)->rect()) - painted).isEmpty()) ++fullPaints;
+            }
             return QObject::eventFilter(watched, event);
         }
     };
@@ -103,6 +110,40 @@ class TestIncrementalTableView : public QObject
             const qint64 whole = qint64(view.viewport()->width()) * view.viewport()->height();
             QVERIFY2(double(area(spy.region)) < double(whole) * maxFraction,
                      qPrintable(QStringLiteral("%1: repainted %2 of %3 px").arg(label).arg(area(spy.region)).arg(whole)));
+        }
+        QVERIFY2(stalePixels(view) == 0, qPrintable(label));
+    }
+
+    /// 思考表と同じ設定にする
+    static void setUpThinkingView(QTableView& view, QAbstractItemModel* model)
+    {
+        view.setModel(model);
+        view.setStyleSheet(TableStyles::thinking());
+        view.setShowGrid(false);
+        view.setMouseTracking(true);
+        view.setItemDelegateForColumn(4, new PvBoardButtonDelegate(&view));
+        view.setItemDelegateForColumn(5, new PvTextDelegate(&view));
+        auto* numeric = new NumericRightAlignCommaDelegate(&view);
+        for (int column = 0; column < 4; ++column) view.setItemDelegateForColumn(column, numeric);
+        view.horizontalHeader()->setStretchLastSection(true);
+        view.verticalHeader()->setVisible(false);
+        view.verticalHeader()->setDefaultSectionSize(view.fontMetrics().height() + 4);
+        view.verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+        view.setWordWrap(false);
+    }
+
+    /// 列幅・表示領域・スクロールバーが Qt の表と同じで、画面に描き残しが無いこと
+    static void verifySameLayout(QTableView& view, QTableView& reference, const QString& label)
+    {
+        QVERIFY2(view.viewport()->size() == reference.viewport()->size(), qPrintable(label));
+        for (int column = 0; column < view.model()->columnCount(); ++column)
+            QVERIFY2(view.columnWidth(column) == reference.columnWidth(column), qPrintable(label));
+        for (QScrollBar* bar : {view.horizontalScrollBar(), view.verticalScrollBar()}) {
+            QScrollBar* other = bar == view.horizontalScrollBar() ? reference.horizontalScrollBar()
+                                                                   : reference.verticalScrollBar();
+            QVERIFY2(bar->isVisible() == other->isVisible() && bar->maximum() == other->maximum()
+                         && bar->pageStep() == other->pageStep(),
+                     qPrintable(label));
         }
         QVERIFY2(stalePixels(view) == 0, qPrintable(label));
     }
@@ -230,6 +271,118 @@ private slots:
         }, 1.01, QStringLiteral("trim"));
         verifyStep(view, [&] { model.clearAllItems(); }, 1.01, QStringLiteral("clear"));
         verifyStep(view, [&] { model.prependItem(thinkingRecord(next++)); }, 1.01, QStringLiteral("first row"));
+    }
+
+    // 思考表は手ごとに消して足し直すので、縦のスクロールバーが出入りし、表示領域の幅と
+    // 最後の列の幅が変わる。そのとき表示領域全体を描くのは1回だけで、列幅・スクロールバー・
+    // 画面は、Qt の表と同じになる。
+    void scrollBarToggleRepaintsViewportOnce()
+    {
+        ShogiEngineThinkingModel model;
+        ShogiEngineThinkingModel referenceModel;
+        QWidget window;
+        IncrementalTableView view(&window);
+        QTableView reference(&window);
+        setUpThinkingView(view, &model);
+        setUpThinkingView(reference, &referenceModel);
+        view.setGeometry(0, 0, 900, 130);
+        reference.setGeometry(0, 140, 900, 130);
+        window.resize(900, 270);
+        int next = 0;
+        model.prependItem(thinkingRecord(next));
+        referenceModel.prependItem(thinkingRecord(next++));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        settle();
+
+        for (int cycle = 0; cycle < 3; ++cycle) {
+            for (const bool fill : {true, false}) {
+                PaintSpy spy;
+                view.viewport()->installEventFilter(&spy);
+                for (ShogiEngineThinkingModel* target : {&model, &referenceModel}) {
+                    if (fill) {
+                        for (int i = 0; i < 8; ++i) target->prependItem(thinkingRecord(next + i));
+                    } else {
+                        target->clearAllItems();
+                    }
+                }
+                if (fill) next += 8;
+                settle();
+                QTest::qWait(20);  // Qt の列幅の処理（0ms のタイマー）を待つ
+                settle();
+                view.viewport()->removeEventFilter(&spy);
+                const QString label = QStringLiteral("cycle %1 %2").arg(cycle).arg(fill ? "fill" : "clear");
+                QCOMPARE(view.verticalScrollBar()->isVisible(), fill);
+                // 消すときは、行を消した表を描いた後でスクロールバーが消えて幅が変わるので、
+                // 全体を2回描く（中身が無いので軽い）。足すときは幅が変わってから描くので1回。
+                QVERIFY2(spy.fullPaints == (fill ? 1 : 2),
+                         qPrintable(label + QStringLiteral(": full repaints %1").arg(spy.fullPaints)));
+                verifySameLayout(view, reference, label);
+                if (QTest::currentTestFailed()) return;
+            }
+        }
+
+        // 表の幅を変える（ドックのリサイズ）。狭くすると横のスクロールバーも出る
+        for (int width : {700, 420, 300, 260, 640, 900}) {
+            PaintSpy spy;
+            view.viewport()->installEventFilter(&spy);
+            view.resize(width, view.height());
+            reference.resize(width, reference.height());
+            settle();
+            QTest::qWait(20);
+            settle();
+            view.viewport()->removeEventFilter(&spy);
+            const QString label = QStringLiteral("width %1").arg(width);
+            QVERIFY2(spy.fullPaints <= 2, qPrintable(label + QStringLiteral(": full repaints %1").arg(spy.fullPaints)));
+            verifySameLayout(view, reference, label);
+            if (QTest::currentTestFailed()) return;
+            if (width == 260) QVERIFY(view.horizontalScrollBar()->isVisible());
+        }
+        QVERIFY(!view.horizontalScrollBar()->isVisible());
+    }
+
+    // 思考表の列幅は、最後の列が表示領域に合わせて伸び縮みしただけでは保存しない
+    // （縦のスクロールバーが出入りするたびに設定ファイルへ書いていた）
+    void stretchedColumnWidthIsNotSaved()
+    {
+        ShogiEngineThinkingModel model1;
+        ShogiEngineThinkingModel model2;
+        QWidget window;
+        IncrementalTableView view1(&window);
+        IncrementalTableView view2(&window);
+        EngineAnalysisPresenter presenter;
+        presenter.setViews(&view1, &view2, nullptr, nullptr);
+        presenter.setupThinkingViewHeader(&view1);
+        presenter.setupThinkingViewHeader(&view2);
+        presenter.wireThinkingViewSignals();
+        presenter.setModels(&model1, &model2);
+        view1.setGeometry(0, 0, 900, 130);
+        view2.setGeometry(0, 140, 900, 130);
+        window.resize(900, 270);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTest::qWait(600);  // 列幅を読み込んだ直後の変化は保存しない（0.5秒）
+        settle();
+        const QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(0);
+
+        const int lastWidth = view1.columnWidth(5);
+        for (int i = 0; i < 8; ++i) model1.prependItem(thinkingRecord(i));
+        settle();
+        QVERIFY(view1.verticalScrollBar()->isVisible());
+        QVERIFY(view1.columnWidth(5) != lastWidth);
+        model1.clearAllItems();
+        settle();
+        view1.resize(700, 130);
+        settle();
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(0), saved);
+
+        // 利用者が列幅を変えたときは、すべての列の幅を保存する
+        view1.setColumnWidth(2, 123);
+        settle();
+        const QList<int> changed = AnalysisSettings::thinkingViewColumnWidths(0);
+        QCOMPARE(changed.size(), model1.columnCount());
+        QCOMPARE(changed.at(2), 123);
+        QCOMPARE(changed.at(5), view1.columnWidth(5));
     }
 
     // 同じモデルを渡し直しても、モデルを差し替えても、行の追加を正しく描く

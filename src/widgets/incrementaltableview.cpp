@@ -16,6 +16,16 @@ bool IncrementalTableView::Settings::operator==(const Settings& other) const
         && style == other.style && delegate == other.delegate && columnDelegates == other.columnDelegates;
 }
 
+IncrementalTableView::IncrementalTableView(QWidget* parent)
+    : QTableView(parent)
+{
+    // 列幅の変化は、Qt の処理（後から配置を直して表示領域を描き直す）の前に、
+    // 表示領域の大きさの変化によるものかを見分ける
+    QHeaderView* header = horizontalHeader();
+    disconnect(header, &QHeaderView::sectionResized, this, &IncrementalTableView::columnResized);
+    connect(header, &QHeaderView::sectionResized, this, &IncrementalTableView::onColumnResized);
+}
+
 IncrementalTableView::Settings IncrementalTableView::currentSettings() const
 {
     Settings settings;
@@ -184,6 +194,31 @@ void IncrementalTableView::flushRowUpdates()
         const int bottom = rowViewportPosition(rows.at(i + 1).row()) + rowHeight(rows.at(i + 1).row());
         if (bottom > 0 && top < area->height()) area->update(0, top, area->width(), bottom - top);
     }
+}
+
+// 縦のスクロールバーが出入りすると、表示領域の幅が変わって最後の列が伸び縮みする。
+// Qt の列幅の処理は、後から配置を直して表示領域全体の描き直しを頼む。表示領域の大きさの
+// 変化を処理している間（見出しの幅の更新で最後の列が伸び縮みする）は、配置はその続きで
+// 直る。前回描いてから表示領域の大きさが変わっていれば、全体の描き直しも予約済みなので、
+// Qt の処理を省く（描き直した後で、同じ内容をもう一度描くことになる）。
+void IncrementalTableView::onColumnResized(int column, int oldWidth, int newWidth)
+{
+    if (m_resizingViewport && viewport()->size() != m_paintedViewportSize) return;
+    QTableView::columnResized(column, oldWidth, newWidth);
+}
+
+bool IncrementalTableView::viewportEvent(QEvent* event)
+{
+    if (event->type() == QEvent::Paint) m_paintedViewportSize = viewport()->size();
+    return QTableView::viewportEvent(event);
+}
+
+// 表示領域の大きさの変化は、QAbstractScrollArea がこの関数に渡す
+void IncrementalTableView::resizeEvent(QResizeEvent* event)
+{
+    const bool resizing = std::exchange(m_resizingViewport, true);
+    QTableView::resizeEvent(event);
+    m_resizingViewport = resizing;
 }
 
 bool IncrementalTableView::event(QEvent* event)

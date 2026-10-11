@@ -1,6 +1,7 @@
 #include "piecepainter.h"
 
 #include <QCache>
+#include <QHash>
 #include <QIcon>
 #include <QImage>
 #include <QPainter>
@@ -19,12 +20,33 @@ int piecePadding(int size)
     return qMax(2, qCeil(size * 0.07));
 }
 
+// 描いた駒画像を QPixmapCache から探す条件
+struct RenderKey {
+    qint64 icon = 0;
+    int size = 0;
+    qreal dpr = 0;
+    bool shadow = false;
+    bool operator==(const RenderKey& other) const
+    {
+        return icon == other.icon && size == other.size && dpr == other.dpr && shadow == other.shadow;
+    }
+};
+
+size_t qHash(const RenderKey& key, size_t seed = 0)
+{
+    return qHashMulti(seed, key.icon, key.size, key.dpr, key.shadow);
+}
+
 QPixmap renderedPiece(const QIcon& icon, int size, qreal dpr, bool shadow)
 {
-    const QString key = QStringLiteral("shogi-piece/%1/%2/%3/%4")
-        .arg(icon.cacheKey()).arg(size).arg(dpr).arg(shadow);
+    // 駒を描くたびに文字列のキーを組み立てると重いので、条件ごとに QPixmapCache の鍵を覚える。
+    // 画像そのものは QPixmapCache に任せる（GUI の終了後に QPixmap を残さない）。
+    static QHash<RenderKey, QPixmapCache::Key> keys;
+    constexpr qsizetype kMaxKeys = 4096;
+    const RenderKey renderKey{icon.cacheKey(), size, dpr, shadow};
     QPixmap result;
-    if (QPixmapCache::find(key, &result)) return result;
+    if (const auto it = keys.constFind(renderKey); it != keys.cend() && QPixmapCache::find(*it, &result))
+        return result;
     const QPixmap face = icon.pixmap(QSize(size, size), dpr, QIcon::Normal, QIcon::On);
     const int pad = piecePadding(size);
     result = QPixmap(qCeil((size + 2 * pad) * dpr), qCeil((size + 2 * pad) * dpr));
@@ -53,7 +75,8 @@ QPixmap renderedPiece(const QIcon& icon, int size, qreal dpr, bool shadow)
     }
     painter.drawPixmap(target, face, QRectF(face.rect()));
     painter.end();
-    QPixmapCache::insert(key, result);
+    if (keys.size() >= kMaxKeys) keys.clear();
+    keys.insert(renderKey, QPixmapCache::insert(result));
     return result;
 }
 }

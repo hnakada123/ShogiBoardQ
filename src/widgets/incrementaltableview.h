@@ -28,25 +28,32 @@ class QAbstractItemDelegate;
  * 付けた表では Qt が表示領域の自動の塗りつぶしを止めるので、整数倍率のときだけ戻す。
  * 小数倍率では表示領域の端が物理画素の途中に来て、塗ると枠線の画素が変わるため戻さない
  * （そのときの画面のずらしは、Qt が全体の描き直しに切り替える）。
+ *
+ * 縦のスクロールバーが出入りして表示領域の幅が変わると、最後の列が伸び縮みする。
+ * Qt は列幅の変化を受けて後から表示領域全体の描き直しを頼むが、幅の変化で全体の
+ * 描き直しが既に予約されているので（描いた後でもう一度同じ内容を描くことになる）省く。
  */
 class IncrementalTableView : public QTableView
 {
     Q_OBJECT
 
 public:
-    using QTableView::QTableView;
+    explicit IncrementalTableView(QWidget* parent = nullptr);
 
     void setModel(QAbstractItemModel* model) override;
     void doItemsLayout() override;
 
 protected:
     bool event(QEvent* event) override;
+    bool viewportEvent(QEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     void onRowsAboutToBeInserted(const QModelIndex& parent, int first, int last);
     void onDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight);
     void onStructureChanged();
     void flushRowUpdates();
+    void onColumnResized(int column, int oldWidth, int newWidth);
 
 private:
     enum class Change { None, Append, Prepend, Other };
@@ -74,6 +81,8 @@ private:
     Settings m_lastLayoutSettings;         ///< 前回の配置のやり直しのときの設定
     QList<QMetaObject::Connection> m_modelConnections;  ///< モデルの変更を見張る接続（Qt の接続とは別に外す）
     bool m_viewportFilled = false;
+    QSize m_paintedViewportSize;      ///< 表示領域を前回描いたときの大きさ
+    bool m_resizingViewport = false;  ///< 表示領域の大きさの変化を処理している間
 };
 
 #endif // INCREMENTALTABLEVIEW_H
