@@ -9,6 +9,26 @@
 #include <QLabel>
 #include <QFont>
 #include <QFontMetrics>
+#include <QHash>
+
+namespace {
+// 文字サイズを合わせる条件（文字・収める大きさ・大きさ以外の書体）
+struct LabelFitKey {
+    QString text;
+    QSize area;
+    QFont font;
+
+    bool operator==(const LabelFitKey& other) const
+    {
+        return text == other.text && area == other.area && font == other.font;
+    }
+};
+
+size_t qHash(const LabelFitKey& key, size_t seed = 0)
+{
+    return qHashMulti(seed, key.text, key.area.width(), key.area.height(), key.font);
+}
+} // namespace
 
 // ラベルの表示矩形（rect）にテキスト（text）が収まるよう、フォントサイズを自動調整する。
 void ShogiView::fitLabelFontToRect(QLabel* label, const QString& text,
@@ -18,10 +38,22 @@ void ShogiView::fitLabelFontToRect(QLabel* label, const QString& text,
 
     const QRect inner = rect.adjusted(paddingPx, paddingPx, -paddingPx, -paddingPx);
 
+    QFont f = label->font();
+
+    // 時計と手番の表示は1秒ごと・手番が替わるごとに合わせ直すため、同じ条件の結果を使い回す。
+    // 大きさは下の探索で決めるので、条件の書体は大きさを揃えて比べる。
+    static QHash<LabelFitKey, double> fittedSizes;
+    QFont keyFont = f;
+    keyFont.setPointSizeF(12.0);
+    const LabelFitKey key{text, inner.size(), keyFont};
+    if (const auto it = fittedSizes.constFind(key); it != fittedSizes.cend()) {
+        f.setPointSizeF(it.value());
+        label->setFont(f);
+        return;
+    }
+
     double lo = 1.0;
     double hi = 200.0;
-
-    QFont f = label->font();
 
     for (int i = 0; i < 18; ++i) {
         const double mid = (lo + hi) * 0.5;
@@ -38,6 +70,8 @@ void ShogiView::fitLabelFontToRect(QLabel* label, const QString& text,
         }
     }
 
+    if (fittedSizes.size() >= 512) fittedSizes.clear();
+    fittedSizes.insert(key, lo);
     f.setPointSizeF(lo);
     label->setFont(f);
 }

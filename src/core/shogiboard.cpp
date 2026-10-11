@@ -37,6 +37,7 @@ void ShogiBoard::initStand()
     for (const Piece& piece : pieces) {
         m_pieceStand.insert(piece, 0);
     }
+    emit standChanged(Piece::None);
 }
 
 // ============================================================
@@ -64,6 +65,7 @@ void ShogiBoard::addStandPiece(Piece piece, int delta)
         return;
     }
     m_pieceStand[piece] += delta;
+    emit standChanged(piece);
 }
 
 bool ShogiBoard::consumeStandPiece(Piece piece)
@@ -72,6 +74,7 @@ bool ShogiBoard::consumeStandPiece(Piece piece)
         return false;
     }
     m_pieceStand[piece]--;
+    emit standChanged(piece);
     return true;
 }
 

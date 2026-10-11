@@ -256,6 +256,34 @@ private slots:
         QVERIFY(spy.count() >= 1);
     }
 
+    // 駒台の枚数が変わったときは standChanged で知らせる（盤面の部分的な描き直しに使う）
+    void signal_standChanged()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+
+        QSignalSpy spy(&board, &ShogiBoard::standChanged);
+        QVERIFY(spy.isValid());
+
+        board.addStandPiece(Piece::BlackPawn);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).value<Piece>(), Piece::BlackPawn);
+
+        QVERIFY(board.consumeStandPiece(Piece::BlackPawn));
+        QCOMPARE(spy.count(), 2);
+        // 変わらなかったときは知らせない
+        QVERIFY(!board.consumeStandPiece(Piece::BlackPawn));
+        QCOMPARE(spy.count(), 2);
+
+        // 駒を取ると、取った側の駒台が増える
+        board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 1"));
+        spy.clear();
+        board.updateBoardAndPieceStand(Piece::BlackBishop, Piece::WhiteBishop, 8, 8, 2, 2, false);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).value<Piece>(), Piece::BlackBishop);
+        QCOMPARE(board.pieceStandCount(Piece::BlackBishop), 1);
+    }
+
     // === parseSfen (static) ===
 
     void parseSfen_valid()

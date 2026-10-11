@@ -159,7 +159,8 @@ void ShogiView::setBoard(ShogiBoard* board)
     invalidateFieldRectCache();
 
     if (board) {
-        connect(board, &ShogiBoard::dataChanged, this, qOverload<>(&ShogiView::update));
+        connect(board, &ShogiBoard::dataChanged, this, &ShogiView::onBoardSquareChanged);
+        connect(board, &ShogiBoard::standChanged, this, &ShogiView::onBoardStandChanged);
         connect(board, &ShogiBoard::boardReset,  this, qOverload<>(&ShogiView::update));
         connect(board, &ShogiBoard::dataChanged, this, &ShogiView::positionChanged);
         connect(board, &ShogiBoard::boardReset, this, &ShogiView::positionChanged);
