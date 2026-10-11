@@ -586,6 +586,7 @@ set(UI_DISPLAY_TEST_SOURCES
     ${SRC}/widgets/kifudisplay.cpp
     ${SRC}/widgets/kifubranchdisplay.cpp
     ${SRC}/widgets/recordhighlightdelegate.cpp
+    ${SRC}/widgets/itemtextcutter.cpp
     ${SRC}/widgets/recordpane.cpp
     ${SRC}/widgets/recordpane_branch.cpp
     ${SRC}/widgets/recordpaneappearancemanager.cpp
