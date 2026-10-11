@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include <QDockWidget>
+#include <QFontMetrics>
 #include <QGraphicsView>
 #include <QHeaderView>
 #include <QLabel>
@@ -221,6 +222,43 @@ private slots:
         // 列幅は内容に合わせて広がっている
         const QFontMetrics metrics(table->font());
         QVERIFY(table->columnWidth(4) >= metrics.horizontalAdvance(QStringLiteral("123,456,789")));
+    }
+
+    // 測った文字の幅と見出しの高さを使い回しても、文字の大きさを変えれば測り直す
+    void engineInfoGeometryFollowsFontSize()
+    {
+        UsiCommLogModel log;
+        EngineInfoWidget info;
+        info.setModel(&log);
+        info.resize(1400, 80);
+        info.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&info));
+        auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
+        QVERIFY(table != nullptr);
+        const auto expectedHeight = [table] {
+            return table->horizontalHeader()->sizeHint().height() + table->verticalHeader()->defaultSectionSize()
+                + 2 * table->frameWidth();
+        };
+        log.setSearchedMove(QStringLiteral("▲２三歩成(24)"));
+        log.setNodeCount(QStringLiteral("123,456,789"));
+        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();
+        QCOMPARE(table->height(), expectedHeight());
+        const int nodesWidth = table->columnWidth(4);
+        QVERIFY(nodesWidth >= QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("123,456,789")));
+
+        info.setFontSize(16);
+        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();
+        QVERIFY(table->columnWidth(4) > nodesWidth);
+        QVERIFY(table->columnWidth(4) >= QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("123,456,789")));
+        QCOMPARE(table->height(), expectedHeight());
+
+        // 値が同じ幅に戻れば、列幅も戻る
+        log.setNodeCount(QStringLiteral("1"));
+        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();
+        QVERIFY(table->columnWidth(4) < QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("123,456,789")) + 20);
     }
 };
 

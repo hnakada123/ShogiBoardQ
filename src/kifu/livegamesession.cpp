@@ -207,9 +207,7 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
 
     // 分岐マーク（「+」）は表示中ラインの経路から KifuDisplayCoordinator が計算する。
     // ここで全ラインを走査して計算すると、別ラインにある同じ手数の分岐を拾ってしまう。
-
-    // 棋譜欄モデルの更新が必要
-    emit recordModelUpdateRequired();
+    // 棋譜欄は、行の追加と現在行の強調の変更をモデルが知らせるので、ここで描き直しを頼まない。
 
     qCDebug(lcKifu).noquote() << "addMove LEAVE";
 }

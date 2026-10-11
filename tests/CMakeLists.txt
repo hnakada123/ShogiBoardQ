@@ -587,6 +587,7 @@ set(UI_DISPLAY_TEST_SOURCES
     ${SRC}/widgets/kifubranchdisplay.cpp
     ${SRC}/widgets/recordhighlightdelegate.cpp
     ${SRC}/widgets/itemtextcutter.cpp
+    ${SRC}/widgets/incrementaltableview.cpp
     ${SRC}/widgets/recordpane.cpp
     ${SRC}/widgets/recordpane_branch.cpp
     ${SRC}/widgets/recordpaneappearancemanager.cpp
@@ -1635,6 +1636,12 @@ add_shogi_test(tst_move_record_updates tst_move_record_updates.cpp)
 target_link_libraries(tst_move_record_updates PRIVATE shogiboardq_static)
 add_shogi_test(tst_thinking_display_updates tst_thinking_display_updates.cpp)
 target_link_libraries(tst_thinking_display_updates PRIVATE shogiboardq_static)
+add_shogi_test(tst_incremental_table_view tst_incremental_table_view.cpp)
+target_link_libraries(tst_incremental_table_view PRIVATE shogiboardq_static)
+# 小数倍率では表示領域を不透明にせず、全体を描き直す経路を使う。その場合も画面が正しいことを確かめる
+add_test(NAME tst_incremental_table_view_scaled COMMAND tst_incremental_table_view)
+set_tests_properties(tst_incremental_table_view_scaled PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=1.25")
 add_shogi_test(tst_candidate_arrows tst_candidate_arrows.cpp)
 target_link_libraries(tst_candidate_arrows PRIVATE shogiboardq_static)
 add_shogi_test(tst_i18n_workflows tst_i18n_workflows.cpp)

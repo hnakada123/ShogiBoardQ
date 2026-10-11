@@ -62,6 +62,17 @@ private:
     bool m_columnWidthsLoaded=false;  // 列幅が設定ファイルから読み込まれたか
     bool m_showPredictedMove=true;  // 予想手列を表示するか
     bool m_tableGeometryPending=false;  // 列幅・高さの計算を予約済みか
+
+    // 列幅の計算で測った文字の幅。思考情報は1秒に何度も届くので、文字と書体が同じなら測り直さない
+    struct MeasuredText {
+        QString text;
+        int width = -1;  // -1 は未計測
+    };
+    QList<MeasuredText> m_cellWidths;     // 列ごとの値の幅
+    QList<MeasuredText> m_headingWidths;  // 列ごとの見出しの幅
+    QString m_measuredFontKey;            // 幅を測った書体
+    QString m_headerHeightKey;            // 見出しの高さを測った条件（書体・スタイルシート・見出し・表示する列）
+    int m_headerHeight = 0;
     
     // 列インデックス
     enum Column {
@@ -86,6 +97,8 @@ private:
     void updateTableGeometry();
     // 思考情報の1行で複数の値が変わるため、計算はまとめて1回にする
     void scheduleTableGeometry();
+    // 見出しの高さ（条件が同じなら前回の値を使う）
+    int headerHeight();
 
     // ヘッダースタイルの再適用（フォントサイズ反映用）
     void applyHeaderStyle();

@@ -794,6 +794,8 @@ set(SRC_WIDGETS
     src/widgets/pvtextdelegate.h
     src/widgets/itemtextcutter.cpp
     src/widgets/itemtextcutter.h
+    src/widgets/incrementaltableview.cpp
+    src/widgets/incrementaltableview.h
     src/widgets/opaquebackground.cpp
     src/widgets/opaquebackground.h
     src/widgets/kifumovedelegate.h

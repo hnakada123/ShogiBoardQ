@@ -830,8 +830,8 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
       → 30手目ノードの子として新ノードを追加
       → 既存の31手目（本譜）と並列する分岐として作成される
    d. m_liveParent = 新ノード（次の手の親になる）
-   e. emit moveAdded(), recordModelUpdateRequired()
-      → 棋譜欄に新しい行が追加される
+   e. emit moveAdded()
+      → 棋譜欄に新しい行が追加される（行は GameRecordPresenter が棋譜欄のモデルに足す）
 
 5. 対局終了時
    LiveGameSession::commit()
@@ -889,7 +889,7 @@ root → 1手目 → ... → 30手目 → 31手目(本譜) → ... → 100手目
    c. tree->addMoveQuiet(parent, move, ...)
       → ルートの子として本譜のノードが作成される
    d. m_liveParent = 新ノード
-   e. emit moveAdded(), recordModelUpdateRequired()
+   e. emit moveAdded()
 
 5. 対局終了時
    LiveGameSession::addTerminalMove(type, displayText, elapsed)
@@ -998,7 +998,7 @@ root → 1手目 → ... → 4手目 → 5手目(指し直し) → ... → 8手�
 `addMoveQuiet()` が対局中に使われる理由: `treeChanged` が発火すると
 `KifuDisplayCoordinator::onTreeChanged()` が棋譜モデルを再構築し、
 対局中のエンジン思考に干渉するため。対局中は `nodeAdded` のみで最小限の通知を行い、
-`recordModelUpdateRequired` シグナルで棋譜欄の行追加だけを処理する。
+棋譜欄には `GameRecordPresenter` が1行ずつ追記する（棋譜欄は追加した行だけを描き直す）。
 
 ---
 

@@ -2,6 +2,7 @@
 /// @brief 棋譜欄ペインクラスの実装
 
 #include "recordpane.h"
+#include "incrementaltableview.h"
 #include "tablemodelutils.h"
 #include "buttonstyles.h"
 #include "kifurecordlistmodel.h"
@@ -45,7 +46,8 @@ void RecordPane::buildUi()
 
 void RecordPane::buildKifuTable()
 {
-    m_kifu = new QTableView(this);
+    // 1手ごとに末尾へ行を足すので、追加した行だけを描き直す表を使う
+    m_kifu = new IncrementalTableView(this);
     m_kifu->setObjectName(QStringLiteral("kifuTable"));
     m_kifu->setItemDelegate(new RecordHighlightDelegate(m_kifu));
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);

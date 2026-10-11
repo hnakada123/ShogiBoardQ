@@ -188,11 +188,6 @@ signals:
      */
     void sessionDiscarded();
 
-    /**
-     * @brief 棋譜欄モデルの更新が必要
-     */
-    void recordModelUpdateRequired();
-
 private:
     /// 指した手のノードを、待ったで取り消した兄弟より前（本譜側）へ移す。
     void placeBeforeUndoneSiblings(KifuBranchNode* node);
