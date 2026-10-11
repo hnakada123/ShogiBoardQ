@@ -98,8 +98,10 @@ void ShogiView::drawPieceBoxBackground(QPainter* painter)
 {
     const QRect box = pieceBoxRect();
     if (box.isEmpty()) return;
-    BoardSurfacePainter::draw(*painter, m_layout.standSurfaceRect(box),
-                              m_boardColors.stand, m_boardVisuals.standWoodGrain, fieldSize().width());
+    const QRectF surface = m_layout.standSurfaceRect(box);
+    if (!intersectsPaintRegion(BoardSurfacePainter::paintedRect(surface, fieldSize().width()))) return;
+    BoardSurfacePainter::draw(*painter, surface, m_boardColors.stand, m_boardVisuals.standWoodGrain,
+                              fieldSize().width(), m_paintRegion.boundingRect());
     painter->save();
     const QRect label = ShogiViewLayout::pieceBoxLabelRect(box);
     QFont labelFont = painter->font();
@@ -123,6 +125,7 @@ void ShogiView::drawPieceBoxPieces(QPainter* painter)
         const Piece displayPiece = pieceBoxSide() == Turn::Black ? boxPiece : toWhite(boxPiece);
         const QIcon icon = piece(pieceToChar(displayPiece));
         const QRect cell = pieceBoxCellRect(rank);
+        if (!intersectsPaintRegion(cell)) continue;
         const int numberWidth = qMax(1, cell.width() * 3 / 10);
         painter->save();
         painter->setClipRect(cell, Qt::IntersectClip);

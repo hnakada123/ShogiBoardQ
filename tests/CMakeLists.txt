@@ -1623,6 +1623,11 @@ add_shogi_test(tst_legal_move_highlights
     ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc
 )
 target_link_libraries(tst_legal_move_highlights PRIVATE shogiboardq_static)
+add_shogi_test(tst_board_drag_repaint
+    tst_board_drag_repaint.cpp
+    ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc
+)
+target_link_libraries(tst_board_drag_repaint PRIVATE shogiboardq_static)
 add_shogi_test(tst_candidate_arrows tst_candidate_arrows.cpp)
 target_link_libraries(tst_candidate_arrows PRIVATE shogiboardq_static)
 add_shogi_test(tst_i18n_workflows tst_i18n_workflows.cpp)

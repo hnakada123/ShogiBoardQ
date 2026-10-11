@@ -40,6 +40,8 @@ public:
     void endDrag();
     void drawDraggingPiece(QPainter& painter, const ShogiViewLayout& layout,
                            const QMap<QChar, QIcon>& pieces, const BoardVisuals& visuals);
+    /// ドラッグ中の駒が塗る範囲（ウィジェット座標）。ドラッグ中でなければ空。
+    QRect draggingPieceRect(const ShogiViewLayout& layout, const BoardVisuals& visuals) const;
 
     // ───────────────────────── ドラッグ位置更新 ─────────────────────
     void updateDragPos(const QPoint& pos);
@@ -58,6 +60,8 @@ public:
     const QMap<Piece, int>& tempPieceStandCounts() const { return m_tempPieceStandCounts; }
 
 private:
+    QRect draggingCellRect(const ShogiViewLayout& layout) const;
+
     bool   m_mouseClickMode   = true;
     bool   m_positionEditMode = false;
     bool   m_dragging         = false;

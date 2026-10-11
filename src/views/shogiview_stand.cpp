@@ -59,8 +59,10 @@ void ShogiView::drawNormalModeStand(QPainter* painter)
 {
     if (!m_board) return;
     for (const auto& stand : {blackStandBoundingRect(), whiteStandBoundingRect()}) {
-        BoardSurfacePainter::draw(*painter, m_layout.standSurfaceRect(stand),
-                                  m_boardColors.stand, m_boardVisuals.standWoodGrain, fieldSize().width());
+        const QRectF surface = m_layout.standSurfaceRect(stand);
+        if (!intersectsPaintRegion(BoardSurfacePainter::paintedRect(surface, fieldSize().width()))) continue;
+        BoardSurfacePainter::draw(*painter, surface, m_boardColors.stand, m_boardVisuals.standWoodGrain,
+                                  fieldSize().width(), m_paintRegion.boundingRect());
     }
     drawPieceBoxBackground(painter);
 }
@@ -100,6 +102,8 @@ void ShogiView::drawPiecesStandFeatures(QPainter* painter)
  */
 void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
 {
+    // 駒・枚数はセル内に切り抜いて描くため、セルが再描画範囲に掛からなければ省く。
+    if (!intersectsPaintRegion(adjustedRect)) return;
     const Piece pieceKey = charToPiece(value);
     const int count = (m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey))
     ? m_interaction.tempPieceStandCounts()[pieceKey]

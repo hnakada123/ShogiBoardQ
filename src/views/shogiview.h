@@ -27,6 +27,7 @@
 #include <QHash>
 #include <QMap>
 #include <QPointer>
+#include <QRegion>
 #include <QWidget>
 #include <QPushButton>
 
@@ -138,6 +139,14 @@ public:
         QChar dropPiece = ' ';  // 駒打ちの場合の駒種（例: 'P', 'G' など）、通常の移動は空白
         QColor color = QColor(255, 0, 0, 200);  // 半透明の赤
         Qt::PenStyle penStyle = Qt::SolidLine;
+
+        bool operator==(const Arrow& other) const
+        {
+            return fromFile == other.fromFile && fromRank == other.fromRank
+                && toFile == other.toFile && toRank == other.toRank && priority == other.priority
+                && dropPiece == other.dropPiece && color == other.color && penStyle == other.penStyle;
+        }
+        bool operator!=(const Arrow& other) const { return !(*this == other); }
     };
     void setArrows(const QList<Arrow>& arrows);  // 矢印をセット（複数可）
     const QList<Arrow>& arrows() const;            // 現在の候補手矢印
@@ -336,6 +345,11 @@ private:
 
     // リソース（駒アイコン）
     QMap<QChar, QIcon>  m_pieces;       // 駒文字 → QIcon
+
+    // paintEvent が描き直す範囲。ドラッグ中は駒の移動前後の周囲だけになるため、
+    // 範囲に掛からない盤・駒・ラベルは描画命令ごと省く。
+    QRegion m_paintRegion;
+    bool intersectsPaintRegion(const QRectF& rect) const { return m_paintRegion.intersects(rect.toAlignedRect()); }
 
     // マス矩形キャッシュ（レイアウト変更時に無効化、描画時に遅延再構築）
     mutable QHash<quint64, QRect> m_fieldRectCache;

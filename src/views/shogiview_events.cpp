@@ -88,8 +88,11 @@ void ShogiView::mouseReleaseEvent(QMouseEvent *event)
 void ShogiView::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_interaction.dragging()) {
+        // 盤全体ではなく、駒の移動前と移動後の範囲だけを描き直す。
+        const QRect before = m_interaction.draggingPieceRect(m_layout, m_boardVisuals);
         m_interaction.updateDragPos(event->pos());
-        update();
+        update(before);
+        update(m_interaction.draggingPieceRect(m_layout, m_boardVisuals));
     }
     QWidget::mouseMoveEvent(event);
 }

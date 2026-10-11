@@ -16,6 +16,8 @@ struct Image {
 };
 Image image(const QIcon& icon, qreal cellSize, const BoardVisuals& visuals, qreal dpr);
 void draw(QPainter& painter, const QIcon& icon, const QRectF& cell, const BoardVisuals& visuals);
+/// draw() が影も含めて塗る範囲（論理ピクセル）。部分再描画の範囲に使う。
+QRectF paintedRect(const QRectF& cell, const BoardVisuals& visuals);
 }
 
 #endif // PIECEPAINTER_H

@@ -359,13 +359,25 @@ void ShogiViewInteraction::drawDraggingPiece(QPainter& painter,
     const QIcon icon = pieces.value(pieceToChar(m_dragPiece), QIcon());
     if (icon.isNull()) return;
 
-    // 【描画矩形算出】ドラッグ座標を矩形の中心に据える（縦長マス）
-    const QSize fs = layout.fieldSize();
-    const QRect r(m_dragPos.x() - fs.width() / 2, m_dragPos.y() - fs.height() / 2,
-                  fs.width(), fs.height());
-
     // 【描画】既存の painter を用いて中央揃えでペイント（状態は汚さない）
-    PiecePainter::draw(painter, icon, r, visuals);
+    PiecePainter::draw(painter, icon, draggingCellRect(layout), visuals);
+}
+
+QRect ShogiViewInteraction::draggingPieceRect(const ShogiViewLayout& layout,
+                                              const BoardVisuals& visuals) const
+{
+    if (!m_dragging || m_dragPiece == Piece::None) return {};
+    // 端数の座標は外側へ丸め、さらに1ピクセル広げて描き残しを防ぐ。
+    return PiecePainter::paintedRect(draggingCellRect(layout), visuals)
+        .toAlignedRect().adjusted(-1, -1, 1, 1);
+}
+
+// ドラッグ座標を中心に据えた1マス分の矩形（縦長マス）
+QRect ShogiViewInteraction::draggingCellRect(const ShogiViewLayout& layout) const
+{
+    const QSize fs = layout.fieldSize();
+    return {m_dragPos.x() - fs.width() / 2, m_dragPos.y() - fs.height() / 2,
+            fs.width(), fs.height()};
 }
 
 // ─────────────────────────── ドラッグ位置更新 ───────────────────────
