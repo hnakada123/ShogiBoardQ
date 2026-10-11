@@ -10,6 +10,9 @@
 #include "piecepainter.h"
 
 #include <QColor>
+#include <QPixmap>
+#include <QtMath>
+#include <cmath>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QFont>
@@ -52,9 +55,7 @@ void ShogiView::drawBoardSurface(QPainter* painter)
     if (!m_board) return;
     const QSize fs = fieldSize();
     const QRectF surface = m_layout.boardSurfaceRect(m_board->files(), m_board->ranks());
-    if (!intersectsPaintRegion(BoardSurfacePainter::paintedRect(surface, fs.width()))) return;
-    BoardSurfacePainter::draw(*painter, surface, m_boardColors.board, m_boardVisuals.woodGrain, fs.width(),
-                              m_paintRegion.boundingRect());
+    BoardSurfacePainter::draw(*painter, surface, m_boardColors.board, m_boardVisuals.woodGrain, fs.width());
 }
 
 void ShogiView::drawBoardFields(QPainter* painter)
@@ -70,34 +71,17 @@ void ShogiView::drawBoardFields(QPainter* painter)
     const qreal alignment = physicalWidth % 2 ? 0.5 / dpr : 0;
     painter->translate(alignment, alignment);
     painter->setPen(QPen(m_boardColors.grid, physicalWidth / dpr));
-    // 罫線は再描画範囲に掛かる部分だけを引く。アンチエイリアスの線は全長で塗りを計算するため、
-    // ドラッグ中の駒の周囲だけを描き直すときに盤の端から端まで引かないようにする。
-    // 切り口は範囲の外（線幅と位置合わせの分だけ広げた位置）に置き、範囲内の画素は全長で引いたときと同じにする。
-    const qreal reach = physicalWidth / dpr + 1;
-    const QRectF exposed = QRectF(m_paintRegion.boundingRect()).adjusted(-reach, -reach, reach, reach);
-    const qreal top = qMax(grid.top(), exposed.top());
-    const qreal bottom = qMin(grid.bottom(), exposed.bottom());
-    const qreal left = qMax(grid.left(), exposed.left());
-    const qreal right = qMin(grid.right(), exposed.right());
-    for (int c = 1; c < m_board->files() && top <= bottom; ++c) {
+    for (int c = 1; c < m_board->files(); ++c) {
         const qreal x = grid.left() + c * fs.width();
-        if (x < exposed.left() || x > exposed.right()) continue;
-        painter->drawLine(QPointF(x, top), QPointF(x, bottom));
+        painter->drawLine(QPointF(x, grid.top()), QPointF(x, grid.bottom()));
     }
-    for (int r = 1; r < m_board->ranks() && left <= right; ++r) {
+    for (int r = 1; r < m_board->ranks(); ++r) {
         const qreal y = grid.top() + r * fs.height();
-        if (y < exposed.top() || y > exposed.bottom()) continue;
-        painter->drawLine(QPointF(left, y), QPointF(right, y));
+        painter->drawLine(QPointF(grid.left(), y), QPointF(grid.right(), y));
     }
-    // 外枠は、再描画範囲が枠の内側に収まるときは見えないので省く。
-    const qreal frameWidth = qMax(1.0, fs.width() / 40.0);
-    const qreal frameReach = frameWidth / 2 + 1;
-    if (!grid.adjusted(frameReach, frameReach, -frameReach, -frameReach)
-             .contains(QRectF(m_paintRegion.boundingRect()))) {
-        painter->setPen(QPen(m_boardColors.grid, frameWidth));
-        painter->setBrush(Qt::NoBrush);
-        painter->drawRect(grid);
-    }
+    painter->setPen(QPen(m_boardColors.grid, qMax(1.0, fs.width() / 40.0)));
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRect(grid);
     painter->restore();
 }
 
@@ -113,6 +97,57 @@ void ShogiView::drawPieces(QPainter* painter)
             if (m_errorOccurred) return;
         }
     }
+}
+
+bool ShogiView::StaticLayerKey::operator==(const StaticLayerKey& other) const
+{
+    return size == other.size && dpr == other.dpr && phase == other.phase && surface == other.surface
+        && blackStand == other.blackStand && whiteStand == other.whiteStand && fieldSize == other.fieldSize
+        && offset == other.offset && background == other.background && board == other.board
+        && stand == other.stand && grid == other.grid && woodGrain == other.woodGrain
+        && standWoodGrain == other.standWoodGrain;
+}
+
+// 背景・木肌と縁・影・罫線・駒台・星は局面によらず変わらないため、画像にしておいて貼る。
+// 影の角丸の塗りや罫線のアンチエイリアスは盤全体の大きさで計算されるので、
+// 駒を動かすたびに描き直すと全面の再描画が重くなる。
+// 寸法・配色・質感・物理画素に対する位置が変わったときだけ作り直す。
+void ShogiView::drawStaticLayer(QPainter* painter)
+{
+    // 端数倍率（125% など）では盤の左上が物理画素の途中に来る。画像もその端数だけずらして描き、
+    // 物理画素の境目に合わせて貼ることで、直接描いたときと同じ画素にする。
+    const QTransform device = painter->deviceTransform();
+    const qreal dpr = painter->device()->devicePixelRatioF();
+    const QPointF phase(device.dx() - std::floor(device.dx()), device.dy() - std::floor(device.dy()));
+    const QRect blackStand = blackStandBoundingRect();
+    const QRect whiteStand = whiteStandBoundingRect();
+    const StaticLayerKey key{size(), dpr, phase, m_layout.boardSurfaceRect(m_board->files(), m_board->ranks()),
+                             blackStand, whiteStand, fieldSize(), QPoint(m_layout.offsetX(), m_layout.offsetY()),
+                             m_boardColors.background, m_boardColors.board, m_boardColors.stand,
+                             m_boardColors.grid, m_boardVisuals.woodGrain, m_boardVisuals.standWoodGrain};
+    if (m_staticLayer.isNull() || !(m_staticLayerKey == key)) {
+        // 端数の分だけ右下へずらすため、1物理画素の余白を持たせる。
+        QPixmap layer(qCeil(width() * dpr) + 1, qCeil(height() * dpr) + 1);
+        layer.setDevicePixelRatio(dpr);
+        layer.fill(m_boardColors.background);
+        QPainter layerPainter(&layer);
+        layerPainter.translate(phase / dpr);
+        layerPainter.setRenderHint(QPainter::Antialiasing, false);
+        layerPainter.setRenderHint(QPainter::TextAntialiasing, true);
+        layerPainter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+        drawBackground(&layerPainter);
+        drawBoardSurface(&layerPainter);
+        drawBoardFields(&layerPainter);
+        drawNormalModeStand(&layerPainter);
+        drawFourStars(&layerPainter);
+        layerPainter.end();
+        m_staticLayer = layer;
+        m_staticLayerKey = key;
+    }
+    painter->save();
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, false);
+    painter->drawPixmap(-phase / dpr, m_staticLayer);
+    painter->restore();
 }
 
 void ShogiView::paintEvent(QPaintEvent* event)
@@ -132,23 +167,14 @@ void ShogiView::paintEvent(QPaintEvent* event)
     painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
 
     // 【描画順序：背面 → 前面】
-    // 0) 背景
-    drawBackground(&painter);
+    // 0)〜3) 背景・木肌と縁・影・罫線・駒台・星（変わらない部分は画像を貼る）
+    drawStaticLayer(&painter);
 
-    // 1) 余白まで連続する木肌と縁・影
-    drawBoardSurface(&painter);
-
-    // 2) 罫線
-    drawBoardFields(&painter);
-
-    // 2) 局面編集/通常に応じた周辺（駒台グリッドなどのフィールド）
-    drawNormalModeStand(&painter);
-
-    // 3) 盤の星（目印）
-    drawFourStars(&painter);
+    // 局面編集中の駒箱
+    drawPieceBoxBackground(&painter);
 
     // 4) ハイライト（選択/移動可能マスなど）
-    m_highlighting->drawHighlights(painter, m_layout, m_paintRegion);
+    m_highlighting->drawHighlights(painter, m_paintRegion);
 
     // 5) 盤上の駒
     drawPieces(&painter);

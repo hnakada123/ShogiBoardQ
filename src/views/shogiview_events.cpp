@@ -133,7 +133,10 @@ void ShogiView::wheelEvent(QWheelEvent* e)
 void ShogiView::startDrag(const QPoint &from)
 {
     m_interaction.startDrag(from, m_board, mapFromGlobal(QCursor::pos()));
-    update();
+    // つまんだマス（駒が消える・持駒の枚数が減る）と持ち上げた駒だけを描き直す。
+    // ドラッグの終了（endDrag）は、駒台・駒箱の枚数だけが変わる操作もあるため全体を描き直す。
+    update(fieldPaintRect(from));
+    update(m_interaction.draggingPieceRect(m_layout, m_boardVisuals));
 }
 
 void ShogiView::endDrag()

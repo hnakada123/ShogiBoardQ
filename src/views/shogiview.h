@@ -26,6 +26,7 @@
 #include <QIcon>
 #include <QHash>
 #include <QMap>
+#include <QPixmap>
 #include <QPointer>
 #include <QRegion>
 #include <QWidget>
@@ -110,6 +111,9 @@ public:
 
     // 駒文字（大文字は先手、小文字は後手）に対応する駒台セルのウィジェット座標
     QRect standPieceRect(QChar piece) const;
+
+    // 盤・駒台（疑似座標 file=10/11）・駒箱（file=12）のマスのウィジェット座標。該当しなければ空
+    QRect fieldRect(const QPoint& field) const;
 
     // ───────────────────────────── 駒画像管理 ────────────────────────────────
     QIcon piece(QChar type) const;                // 駒文字 → アイコン取得
@@ -274,6 +278,7 @@ private:
     void drawRank(QPainter* painter, int rank) const;          // 段ラベル 1 本
 
     void drawBackground(QPainter* painter);
+    void drawStaticLayer(QPainter* painter);                   // 局面によらない部分（画像を貼る）
     void drawBoardSurface(QPainter* painter);                  // 余白を含む一枚の木肌
     void drawBoardFields(QPainter* painter);                   // 盤の全マス
 
@@ -350,6 +355,29 @@ private:
     // 範囲に掛からない盤・駒・ラベルは描画命令ごと省く。
     QRegion m_paintRegion;
     bool intersectsPaintRegion(const QRectF& rect) const { return m_paintRegion.intersects(rect.toAlignedRect()); }
+    // マスに描くもの（はみ出す駒の影を含む）を覆う範囲。部分的な再描画に使う
+    QRect fieldPaintRect(const QPoint& field) const;
+
+    // 背景・木肌と縁・影・罫線・駒台・星を描いた画像と、その作成条件
+    struct StaticLayerKey {
+        QSize size;
+        qreal dpr = 0;
+        QPointF phase;      // 物理画素に対する描画位置の端数
+        QRectF surface;
+        QRect blackStand;
+        QRect whiteStand;
+        QSize fieldSize;
+        QPoint offset;
+        QColor background;
+        QColor board;
+        QColor stand;
+        QColor grid;
+        bool woodGrain = false;
+        bool standWoodGrain = false;
+        bool operator==(const StaticLayerKey& other) const;
+    };
+    QPixmap m_staticLayer;
+    StaticLayerKey m_staticLayerKey;
 
     // マス矩形キャッシュ（レイアウト変更時に無効化、描画時に遅延再構築）
     mutable QHash<quint64, QRect> m_fieldRectCache;

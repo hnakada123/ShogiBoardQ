@@ -3,6 +3,7 @@
 
 #include "shogiview.h"
 #include "shogiboard.h"
+#include "boardconstants.h"
 #include "boardsurfacepainter.h"
 #include "piecepainter.h"
 
@@ -54,17 +55,61 @@ QRect ShogiView::standPieceRect(QChar pieceChar) const
     return {};
 }
 
+QRect ShogiView::fieldRect(const QPoint& field) const
+{
+    if (!m_board) return {};
+    const int file = field.x();
+    const int rank = field.y();
+    if (file == BoardConstants::kPieceBoxFile) return pieceBoxCellRect(rank);
+
+    if (file == BoardConstants::kBlackStandFile || file == BoardConstants::kWhiteStandFile) {
+        // 駒台の疑似座標 (10/11, 1..9) → 駒台描画で使う基準盤マス (file=1/2, rank)
+        const bool black = file == BoardConstants::kBlackStandFile;
+        int baseFile = 0;
+        int baseRank = 0;
+        if (black) {
+            if (rank == 7 || rank == 5 || rank == 3 || rank == 1) {
+                baseFile = 2;
+                baseRank = 6 + (7 - rank) / 2;
+            } else if (rank == 8 || rank == 6 || rank == 4 || rank == 2) {
+                baseFile = 1;
+                baseRank = 6 + (8 - rank) / 2;
+            }
+        } else {
+            if (rank == 3 || rank == 5 || rank == 7 || rank == 9) {
+                baseFile = 1;
+                baseRank = (11 - rank) / 2;
+            } else if (rank == 2 || rank == 4 || rank == 6 || rank == 8) {
+                baseFile = 2;
+                baseRank = (10 - rank) / 2;
+            }
+        }
+        if (baseFile == 0) return {};
+        return makeStandCellRect(m_layout.flipMode(), black ? m_layout.param1() : m_layout.param2(),
+                                 m_layout.offsetX(), m_layout.offsetY(), cachedFieldRect(baseFile, baseRank), black);
+    }
+
+    if (file < 1 || file > m_board->files() || rank < 1 || rank > m_board->ranks()) return {};
+    return cachedFieldRect(file, rank).translated(m_layout.offsetX(), m_layout.offsetY());
+}
+
+QRect ShogiView::fieldPaintRect(const QPoint& field) const
+{
+    const QRect cell = fieldRect(field);
+    // 駒台・駒箱の駒と枚数はセル内に切り抜いて描く。盤上の駒は影の分だけマスからはみ出す。
+    if (cell.isEmpty() || field.x() > m_board->files()) return cell;
+    return cell | PiecePainter::paintedRect(cell, m_boardVisuals).toAlignedRect().adjusted(-1, -1, 1, 1);
+}
+
 // 持駒の配置・当たり判定はセルのまま、木肌は駒台全体を通して描く。
+// 駒台の木肌は盤面の変わらない部分の画像（drawStaticLayer）に含める。
 void ShogiView::drawNormalModeStand(QPainter* painter)
 {
     if (!m_board) return;
     for (const auto& stand : {blackStandBoundingRect(), whiteStandBoundingRect()}) {
-        const QRectF surface = m_layout.standSurfaceRect(stand);
-        if (!intersectsPaintRegion(BoardSurfacePainter::paintedRect(surface, fieldSize().width()))) continue;
-        BoardSurfacePainter::draw(*painter, surface, m_boardColors.stand, m_boardVisuals.standWoodGrain,
-                                  fieldSize().width(), m_paintRegion.boundingRect());
+        BoardSurfacePainter::draw(*painter, m_layout.standSurfaceRect(stand),
+                                  m_boardColors.stand, m_boardVisuals.standWoodGrain, fieldSize().width());
     }
-    drawPieceBoxBackground(painter);
 }
 
 // 【通常対局モード：先手（左側）駒台のアイコンを 4×2 で描画】

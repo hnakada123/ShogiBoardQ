@@ -50,7 +50,7 @@ public:
 
     // ──────────────── 描画 ────────────────
     /// dirty（再描画範囲）に掛からないマスは描かない。
-    void drawHighlights(QPainter& painter, const ShogiViewLayout& layout, const QRegion& dirty);
+    void drawHighlights(QPainter& painter, const QRegion& dirty);
     void drawArrows(QPainter& painter, const ShogiViewLayout& layout);
 
     // ──────────────── 状態アクセサ ────────────────
@@ -64,6 +64,8 @@ signals:
     void highlightsCleared();
 
 private:
+    void updateHighlightArea(const ShogiView::Highlight* hl);
+
     ShogiView* m_view;
 
     // ハイライト/矢印データ

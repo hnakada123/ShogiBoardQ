@@ -6,12 +6,14 @@
 #include <QWindow>
 #include <QtMath>
 
+#include "boardappearance.h"
 #include "boardinteractioncontroller.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 
 /// 駒をつまんで動かすときの部分再描画を検証する。
 /// ドラッグ中は駒の周囲だけを描き直し、それでも画面が全体を描き直したときと一致すること。
+/// 盤面の変わらない部分を描いた画像が、盤の反転・大きさ・配色・質感の変更に追従すること。
 class TestBoardDragRepaint : public QObject
 {
     Q_OBJECT
@@ -21,13 +23,17 @@ class TestBoardDragRepaint : public QObject
     class PaintSpy : public QObject
     {
     public:
-        QList<QRect> rects;
+        QList<QRect> rects;        // 再描画範囲の外接矩形
+        QList<QRect> regionRects;  // 再描画範囲を構成する矩形
 
     protected:
         bool eventFilter(QObject* watched, QEvent* event) override
         {
-            if (event->type() == QEvent::Paint)
-                rects.append(static_cast<QPaintEvent*>(event)->rect());
+            if (event->type() == QEvent::Paint) {
+                const auto* paint = static_cast<QPaintEvent*>(event);
+                rects.append(paint->rect());
+                for (const QRect& rect : paint->region()) regionRects.append(rect);
+            }
             return QObject::eventFilter(watched, event);
         }
     };
@@ -73,6 +79,16 @@ class TestBoardDragRepaint : public QObject
         }
     };
 
+    /// 同じ状態の盤面を新しく作って描いた絵と比べる
+    static bool sameAsNewBoard(ShogiView& view)
+    {
+        BoardUi fresh(sfen(), view.flipMode());
+        fresh.view.setSquareSize(view.squareSize());
+        fresh.view.setFixedSize(fresh.view.sizeHint());
+        if (fresh.view.size() != view.size()) return false;
+        return view.grab().toImage() == fresh.view.grab().toImage();
+    }
+
     static QString sfen()
     {
         // 両方の駒台に持駒（枚数表示を含む）がある局面
@@ -92,7 +108,7 @@ private slots:
         BoardUi ui(sfen(), false);
         QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
 
-        // 7七の歩をつまみ、盤の上を少しずつ動かす。
+        // 7七の銀をつまみ、盤の上を少しずつ動かす。
         // クリックを直接送っているため、つまんだ位置はマウスカーソルの位置と一致しない。
         // 最初の移動は計測から外す。
         ui.controller->onLeftClick(QPoint(7, 7));
@@ -114,6 +130,67 @@ private slots:
                                     .arg(rect.width()).arg(rect.height())));
         }
         ui.controller->onRightClick(QPoint(7, 7));
+    }
+
+    // 駒をつまむと、選択・合法な移動先・つまんだマス・持ち上げた駒のマスだけを描き直す
+    void pickRepaintsOnlyChangedSquares()
+    {
+        BoardUi ui(sfen(), false);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+        QCoreApplication::processEvents();
+
+        PaintSpy spy;
+        ui.view.installEventFilter(&spy);
+        ui.controller->onLeftClick(QPoint(7, 7));
+        QCoreApplication::processEvents();
+        ui.view.removeEventFilter(&spy);
+        QVERIFY(ui.view.highlightCount() > 2);
+
+        // 銀の選択・移動先4マス・つまんだマス・持ち上げた駒で、マス10個分に収まる
+        QVERIFY(!spy.regionRects.isEmpty());
+        QRegion repainted;
+        for (const QRect& rect : std::as_const(spy.regionRects)) repainted += rect;
+        qint64 area = 0;
+        for (const QRect& rect : repainted) area += qint64(rect.width()) * rect.height();
+        const QSize fs = ui.view.fieldSize();
+        QVERIFY2(area < qint64(fs.width()) * fs.height() * 10,
+                 qPrintable(QStringLiteral("repainted %1 px for %2 px squares")
+                                .arg(area).arg(fs.width() * fs.height())));
+        ui.controller->onLeftClick(QPoint(7, 7));
+    }
+
+    // 変わらない部分の画像を使い回しても、新しく作った盤面と同じ絵になる
+    void staticLayerFollowsBoardChanges()
+    {
+        const BoardColors originalColors = BoardAppearance::instance().colors();
+        const BoardVisuals originalVisuals = BoardAppearance::instance().visuals();
+        BoardUi ui(sfen(), false);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+        QVERIFY(sameAsNewBoard(ui.view));
+
+        ui.view.setFlipMode(true);
+        QVERIFY2(sameAsNewBoard(ui.view), "flip");
+
+        ui.view.setSquareSize(ui.view.squareSize() + 7);
+        ui.view.setFixedSize(ui.view.sizeHint());
+        QVERIFY2(sameAsNewBoard(ui.view), "square size");
+
+        BoardColors colors = originalColors;
+        colors.background = QColor(40, 60, 90);
+        colors.board = QColor(200, 150, 90);
+        colors.stand = QColor(120, 80, 40);
+        colors.grid = QColor(20, 20, 20);
+        BoardAppearance::instance().setColors(colors);
+        QVERIFY2(sameAsNewBoard(ui.view), "colors");
+
+        BoardVisuals visuals = originalVisuals;
+        visuals.woodGrain = !visuals.woodGrain;
+        visuals.standWoodGrain = !visuals.standWoodGrain;
+        BoardAppearance::instance().setVisuals(visuals);
+        QVERIFY2(sameAsNewBoard(ui.view), "visuals");
+
+        BoardAppearance::instance().setColors(originalColors);
+        BoardAppearance::instance().setVisuals(originalVisuals);
     }
 
     void dragLeavesNoTrails_data()
