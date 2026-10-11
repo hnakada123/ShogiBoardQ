@@ -132,6 +132,22 @@ void CommentEditorPanel::setCommentHtml(const QString& html)
     }
 }
 
+// 手数の表示は手が進むたびに変わる。QLabel は文字が変わるたびにレイアウトの再計算を親へ伝え、
+// ドックを通じてメインウィンドウ全体の配置（全ドックのタイトルを含む）を計算し直させる。
+// 大きさを最も長い表示に合わせて固定すると再計算を伝えなくなる。余った幅は後ろの伸縮が吸収する。
+void CommentEditorPanel::fixPositionLabelSize()
+{
+    if (!m_positionLabel) return;
+    const QString current = m_positionLabel->text();
+    QSize size;
+    for (const QString& text : {tr("開始局面"), tr("%1手目").arg(9999)}) {
+        m_positionLabel->setText(text);
+        size = size.expandedTo(m_positionLabel->sizeHint());
+    }
+    m_positionLabel->setText(current);
+    m_positionLabel->setFixedSize(size);
+}
+
 void CommentEditorPanel::setCurrentMoveIndex(int index)
 {
     qCDebug(lcUi).noquote()
@@ -223,6 +239,10 @@ bool CommentEditorPanel::eventFilter(QObject* obj, QEvent* ev)
 {
     if (!obj || ev->type() == QEvent::Destroy) {
         return QObject::eventFilter(obj, ev);
+    }
+
+    if (obj == m_positionLabel && ev->type() == QEvent::FontChange) {
+        fixPositionLabelSize();
     }
 
     if (m_comment && obj == m_commentViewport && ev->type() == QEvent::MouseButtonPress) {
@@ -415,6 +435,8 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     toolbarLayout->addWidget(m_editingLabel);
     m_positionLabel = new QLabel(m_commentToolbar);
     m_positionLabel->setObjectName(QStringLiteral("kifuCommentPosition"));
+    m_positionLabel->installEventFilter(this);
+    fixPositionLabelSize();
     toolbarLayout->addWidget(m_positionLabel);
     toolbarLayout->addStretch();
     auto* linkHint = new QLabel(tr("リンクは Ctrl+クリックで開きます"), m_commentToolbar);

@@ -79,6 +79,7 @@ private:
     void buildCommentToolbar(QWidget* parentWidget);
     void updateCommentFontSize(int delta);
     void updateEditingIndicator();
+    void fixPositionLabelSize();
 
     // UI
     QTextEdit* m_comment = nullptr;

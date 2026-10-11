@@ -168,6 +168,8 @@ void KifuRecordListModel::clearAllItems()
 // 分岐あり手の集合をセットし、表示更新
 void KifuRecordListModel::setBranchPlyMarks(const QSet<int>& ply1Set)
 {
+    // 手を指すたびに呼ばれるため、変わらなければ全行の描き直しを起こさない
+    if (ply1Set == m_branchPlySet) return;
     m_branchPlySet = ply1Set;
 
     if (rowCount() > 0) {

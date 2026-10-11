@@ -135,6 +135,8 @@ QVariant KifuBranchListModel::headerData(int section, Qt::Orientation orientatio
 void KifuBranchListModel::clearBranchCandidates()
 {
     qCDebug(lcUi).noquote() << "clearBranchCandidates called, list.size was:" << list.size();
+    // 分岐の無い局面では手を指すたびに呼ばれる。既に空ならリセット（表全体の描き直し）をしない
+    if (list.isEmpty() && !m_hasBackToMainRow) return;
     beginResetModel();
     clearOwnedRows(list);
     m_hasBackToMainRow = false;

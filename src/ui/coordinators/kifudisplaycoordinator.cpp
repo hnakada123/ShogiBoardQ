@@ -231,11 +231,12 @@ void KifuDisplayCoordinator::onTreeChanged()
 void KifuDisplayCoordinator::updateRecordView()
 {
     qCDebug(lcNavTrace).noquote() << "updateRecordView: CALLED";
-    m_presenter->populateRecordModel();
+    const bool rebuilt = m_presenter->populateRecordModel();
     m_presenter->populateBranchMarks();
 
-    // ビューの明示的な更新を強制
-    if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
+    // 全行を作り直したときはビューの明示的な更新を強制する
+    // （末尾に手を足しただけなら、足した行の描き直しで足りる）
+    if (rebuilt && m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
         QTableView* view = m_recordPane->kifuView();
         view->viewport()->update();
         qCDebug(lcNavTrace).noquote() << "updateRecordView: forced view update, model rowCount=" << m_recordModel->rowCount();

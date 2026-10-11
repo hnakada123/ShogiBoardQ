@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QSignalSpy>
 
 #include "kifubranchlistmodel.h"
 
@@ -33,6 +34,24 @@ private slots:
 
         QCOMPARE(model.rowCount(), 0);
         QCOMPARE(model.hasBackToMainRow(), false);
+    }
+
+    // 分岐の無い局面では手を指すたびに消去が呼ばれる。既に空ならリセット（表全体の描き直し）をしない
+    void clearBranchCandidates_skipsResetWhenAlreadyEmpty()
+    {
+        KifuBranchListModel model;
+        QSignalSpy reset(&model, &QAbstractItemModel::modelReset);
+
+        model.clearBranchCandidates();
+        QCOMPARE(reset.count(), 0);
+
+        QList<KifDisplayItem> items;
+        items.append(KifDisplayItem(QStringLiteral("▲７六歩(77)")));
+        model.updateBranchCandidates(items);
+        reset.clear();
+        model.clearBranchCandidates();
+        QCOMPARE(reset.count(), 1);
+        QCOMPARE(model.rowCount(), 0);
     }
 
     void updateBranchCandidates_replacesRows()

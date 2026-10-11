@@ -17,6 +17,63 @@
 
 
 
+namespace {
+/// 棋譜欄の1行分の内容
+struct RecordRow {
+    QString move;
+    QString time;
+    QString comment;
+    QString bookmark;
+    QString beforeSfen;
+    QString usiMove;
+};
+
+bool sameRow(const KifuDisplay* item, const RecordRow& row)
+{
+    return item != nullptr && item->currentMove() == row.move && item->timeSpent() == row.time
+        && item->comment() == row.comment && item->bookmark() == row.bookmark
+        && item->beforeSfen == row.beforeSfen && item->usiMove == row.usiMove;
+}
+
+RecordRow startRow(const QString& comment, const QString& bookmark)
+{
+    return {QObject::tr("=== 開始局面 ==="), QObject::tr("（１手 / 合計）"), comment, bookmark, {}, {}};
+}
+
+RecordRow moveRow(const KifuBranchNode* node, QString displayText)
+{
+    return {std::move(displayText), node->timeText(), node->comment(), node->bookmark(),
+            node->parent() ? node->parent()->sfen() : QString(),
+            node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move())};
+}
+
+/// 棋譜欄の行を rows に揃える。今の行の後ろに手が増えただけなら増えた行だけを足し、
+/// それ以外は全行を作り直す。1手指すたびに全行を作り直すと、棋譜欄が全行を並べ直して
+/// 幅を測り直す。行を削る差分更新はしない（現在行が消えると選択の変更通知が出て、
+/// 棋譜の移動が起きるため）。全行を作り直したときは true を返す。
+bool setRecordRows(KifuRecordListModel* model, const QList<RecordRow>& rows)
+{
+    const int current = model->rowCount();
+    bool extends = current > 0 && current <= rows.size();
+    for (int i = 0; extends && i < current; ++i) extends = sameRow(model->item(i), rows.at(i));
+    if (!extends) model->clearAllItems();
+
+    // 行は最後にまとめて追加する。1行ずつ追加すると、そのたびに棋譜欄が
+    // 全行の文字幅を測り直すため、手数の2乗に比例して遅くなる。
+    QList<KifuDisplay*> items;
+    items.reserve(rows.size());
+    for (qsizetype i = extends ? current : 0; i < rows.size(); ++i) {
+        const RecordRow& row = rows.at(i);
+        auto* item = new KifuDisplay(row.move, row.time, row.comment, row.bookmark, model);
+        item->beforeSfen = row.beforeSfen;
+        item->usiMove = row.usiMove;
+        items.append(item);
+    }
+    model->appendItems(items);
+    return !extends;
+}
+} // namespace
+
 KifuDisplayPresenter::KifuDisplayPresenter() = default;
 
 void KifuDisplayPresenter::updateRefs(const Refs& refs)
@@ -28,7 +85,7 @@ void KifuDisplayPresenter::updateRefs(const Refs& refs)
 // 棋譜欄モデル構築
 // ============================================================
 
-void KifuDisplayPresenter::populateRecordModel()
+bool KifuDisplayPresenter::populateRecordModel()
 {
     qCDebug(lcUi).noquote() << "populateRecordModel: ENTER"
                        << "m_recordModel=" << (m_refs.recordModel ? "yes" : "null")
@@ -37,13 +94,8 @@ void KifuDisplayPresenter::populateRecordModel()
 
     if (m_refs.recordModel == nullptr || m_refs.tree == nullptr) {
         qCDebug(lcUi).noquote() << "populateRecordModel: EARLY RETURN (null model or tree)";
-        return;
+        return false;
     }
-
-    const int oldRowCount = m_refs.recordModel->rowCount();
-    m_refs.recordModel->clearAllItems();
-    qCDebug(lcUi).noquote() << "populateRecordModel: cleared model, old rowCount=" << oldRowCount
-                       << "new rowCount=" << m_refs.recordModel->rowCount();
 
     // 現在のラインを取得
     int currentLineIndex = 0;
@@ -58,9 +110,10 @@ void KifuDisplayPresenter::populateRecordModel()
         currentLineIndex = 0;  // フォールバック: 本譜
     }
 
-    // 表示するラインが無い場合は終了
+    // 表示するラインが無い場合は空にして終了
     if (lines.isEmpty()) {
-        return;
+        m_refs.recordModel->clearAllItems();
+        return true;
     }
 
     const BranchLine& line = lines.at(currentLineIndex);
@@ -76,16 +129,8 @@ void KifuDisplayPresenter::populateRecordModel()
             break;
         }
     }
-    auto* startItem = new KifuDisplay(
-        QObject::tr("=== 開始局面 ==="),
-        QObject::tr("（１手 / 合計）"),
-        openingComment,
-        openingBookmark,
-        m_refs.recordModel);
-    // 行は最後にまとめて追加する。1行ずつ追加すると、そのたびに棋譜欄が
-    // 全行の文字幅を測り直すため、手数の2乗に比例して遅くなる。
-    QList<KifuDisplay*> items{startItem};
-    items.reserve(line.nodes.size() + 1);
+    QList<RecordRow> rows{startRow(openingComment, openingBookmark)};
+    rows.reserve(line.nodes.size() + 1);
 
     // 各指し手を追加
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
@@ -105,18 +150,9 @@ void KifuDisplayPresenter::populateRecordModel()
             }
         }
 
-        auto* item = new KifuDisplay(
-            displayText,
-            node->timeText(),
-            node->comment(),
-            node->bookmark(),
-            m_refs.recordModel
-        );
-        item->beforeSfen = node->parent() ? node->parent()->sfen() : QString();
-        item->usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
-        items.append(item);
+        rows.append(moveRow(node, displayText));
     }
-    m_refs.recordModel->appendItems(items);
+    const bool rebuilt = setRecordRows(m_refs.recordModel, rows);
 
     // 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
     m_lastModelLineIndex = currentLineIndex;
@@ -133,6 +169,7 @@ void KifuDisplayPresenter::populateRecordModel()
                                << "ply3_move=" << item->currentMove();
         }
     }
+    return rebuilt;
 }
 
 int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode*>& path, int highlightPly)
@@ -140,8 +177,6 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
     if (m_refs.recordModel == nullptr) {
         return 0;
     }
-
-    m_refs.recordModel->clearAllItems();
 
     // 開始局面のコメントとしおりを取得（ply==0 のノード）
     QString openingComment;
@@ -153,15 +188,8 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
             break;
         }
     }
-    auto* startItem = new KifuDisplay(
-        QObject::tr("=== 開始局面 ==="),
-        QObject::tr("（１手 / 合計）"),
-        openingComment,
-        openingBookmark,
-        m_refs.recordModel);
-    // 行は最後にまとめて追加する（populateRecordModel と同じ理由）
-    QList<KifuDisplay*> items{startItem};
-    items.reserve(path.size() + 1);
+    QList<RecordRow> rows{startRow(openingComment, openingBookmark)};
+    rows.reserve(path.size() + 1);
 
     QSet<int> branchPlys;
 
@@ -181,18 +209,9 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
             branchPlys.insert(node->ply());
         }
 
-        auto* item = new KifuDisplay(
-            displayText,
-            node->timeText(),
-            node->comment(),
-            node->bookmark(),
-            m_refs.recordModel
-        );
-        item->beforeSfen = node->parent() ? node->parent()->sfen() : QString();
-        item->usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
-        items.append(item);
+        rows.append(moveRow(node, displayText));
     }
-    m_refs.recordModel->appendItems(items);
+    setRecordRows(m_refs.recordModel, rows);
 
     m_refs.recordModel->setBranchPlyMarks(branchPlys);
 
