@@ -13,8 +13,11 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QToolButton>
+#include <QPaintEvent>
 #include <QPlainTextEdit>
+#include <QScreen>
 #include <QWheelEvent>
+#include <QWindow>
 #include "tsumesolutionreplay.h"
 #include "tsumeprogressstore.h"
 #include "tsumecollection.h"
@@ -42,6 +45,8 @@ class TestTsumePlayGui : public QObject
     QList<QRect> paintedBoardRects;
     bool trackBoardLayout = false;
     bool paintedThinking = false;
+    bool trackBoardRepaint = false;
+    qint64 largestBoardRepaint = 0;
 
     bool eventFilter(QObject* watched, QEvent* event) override
     {
@@ -52,7 +57,40 @@ class TestTsumePlayGui : public QObject
                     paintedThinking = true;
             }
         }
+        if (trackBoardRepaint && event->type() == QEvent::Paint && qobject_cast<ShogiView*>(watched)) {
+            qint64 area = 0;
+            for (const QRect& rect : static_cast<QPaintEvent*>(event)->region())
+                area += qint64(rect.width()) * rect.height();
+            largestBoardRepaint = qMax(largestBoardRepaint, area);
+        }
         return QObject::eventFilter(watched, event);
+    }
+
+    // 画面に出ている盤と、盤全体を描き直した盤とで違う画素の数。
+    // 部分描画での半透明の合成は丸めが1だけ違うことがあるため、それは数えない。
+    static int stalePixels(ShogiView* view)
+    {
+        const auto grabScreen = [view] {
+            QWidget* window = view->window();
+            return window->windowHandle()->screen()->grabWindow(window->winId()).toImage()
+                .convertToFormat(QImage::Format_ARGB32);
+        };
+        const QImage partial = grabScreen();
+        view->repaint();
+        QCoreApplication::processEvents();
+        const QImage full = grabScreen();
+        if (partial.size() != full.size()) return -1;
+        int stale = 0;
+        for (int y = 0; y < full.height(); ++y) {
+            const auto* a = reinterpret_cast<const QRgb*>(partial.constScanLine(y));
+            const auto* b = reinterpret_cast<const QRgb*>(full.constScanLine(y));
+            for (int x = 0; x < full.width(); ++x) {
+                if (qAbs(qRed(a[x]) - qRed(b[x])) > 1 || qAbs(qGreen(a[x]) - qGreen(b[x])) > 1
+                    || qAbs(qBlue(a[x]) - qBlue(b[x])) > 1)
+                    ++stale;
+            }
+        }
+        return stale;
     }
 
     QRect squareRect(ShogiView* view, const QPoint& square) const
@@ -229,6 +267,38 @@ private slots:
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Solved);
         QVERIFY(lastNotice.contains(QStringLiteral("正解")));
         QCOMPARE(movesPlayed.count(), 5);
+        dialog = nullptr;
+    }
+    // 自分の着手と玉方の応手で局面が替わっても、盤全体は描き直さず、変わった所だけを描き直す。
+    // それでも画面は盤全体を描き直したときと一致する。
+    void movesRepaintOnlyChangedSquares()
+    {
+        TsumePlayDialog window;
+        dialog = &window;
+        window.setProblem(problems[0], 1, {}, nullptr, 5);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* session = window.findChild<TsumeGameSession*>();
+        auto* view = window.findChild<ShogiView*>();
+        QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QTest::qWait(50);
+        view->installEventFilter(this);
+        const qint64 wholeBoard = qint64(view->width()) * view->height();
+        for (const QString& move : {QStringLiteral("3c5c+"), QStringLiteral("1c4c")}) {
+            largestBoardRepaint = 0;
+            trackBoardRepaint = true;
+            clickMove(move);
+            QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+            QTest::qWait(50);
+            trackBoardRepaint = false;
+            QVERIFY(largestBoardRepaint > 0);
+            QVERIFY2(largestBoardRepaint * 2 < wholeBoard,
+                     qPrintable(QStringLiteral("%1: repainted %2 of %3 px at once")
+                                    .arg(move).arg(largestBoardRepaint).arg(wholeBoard)));
+            QCOMPARE(stalePixels(view), 0);
+        }
+        QCOMPARE(session->remainingPlies(), 1);
+        view->removeEventFilter(this);
         dialog = nullptr;
     }
     void boardLayoutDuringMove_data()
@@ -607,8 +677,10 @@ private slots:
         auto* solutionText = window.findChild<QPlainTextEdit*>(QStringLiteral("tsumeSolutionText"));
         QVERIFY(!solutionText->isVisible() && solutionText->toPlainText().isEmpty());
         trackBoardLayout = false;
-        QVERIFY(!paintedBoardRects.isEmpty());
+        // 局面は問題の初期局面のままなので、盤は描き直さなくてよい（変わった所だけを描き直す）。
+        // 盤が動けば必ず描き直されるので、描き直したときの位置と最後の位置を確かめる。
         for (const QRect& rect : std::as_const(paintedBoardRects)) QCOMPARE(rect, initial);
+        QCOMPARE(view->geometry(), initial);
         dialog = nullptr;
     }
 };

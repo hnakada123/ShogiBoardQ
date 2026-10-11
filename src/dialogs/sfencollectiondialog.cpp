@@ -224,9 +224,9 @@ void SfenCollectionDialog::updateBoardDisplay()
         return;
     }
 
+    // 盤は変わったマスだけを描き直すので、全体の描き直しは頼まない
     const QString& sfen = m_sfenList.at(m_currentIndex);
     m_board->setSfen(sfen);
-    m_shogiView->update();
 
     // 手番表示を更新
     bool isBlackTurn = !sfen.contains(QStringLiteral(" w "));

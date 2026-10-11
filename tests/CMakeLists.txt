@@ -1629,6 +1629,7 @@ add_shogi_test(tst_board_drag_repaint
     ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc
 )
 target_link_libraries(tst_board_drag_repaint PRIVATE shogiboardq_static)
+target_include_directories(tst_board_drag_repaint PRIVATE ${SRC}/automation)
 add_shogi_test(tst_move_record_updates tst_move_record_updates.cpp)
 target_link_libraries(tst_move_record_updates PRIVATE shogiboardq_static)
 add_shogi_test(tst_thinking_display_updates tst_thinking_display_updates.cpp)
