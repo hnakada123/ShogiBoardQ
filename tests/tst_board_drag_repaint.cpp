@@ -527,6 +527,59 @@ private slots:
         QCOMPARE(stalePixels(ui), 0);
     }
 
+    // 盤を回転して戻したとき・拡大して縮小し戻したときは、盤面の変わらない部分の画像を
+    // 作り直さずに使い回す。使い回した画像でも、新しく作った盤と同じ絵になる
+    void staticLayerReusedWhenSwitchingBack()
+    {
+        BoardUi ui(sfen(), false);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+        settle();
+        const auto repaintAndKey = [&ui] {
+            ui.view.repaint();
+            return ui.view.m_staticLayer.cacheKey();
+        };
+        const qint64 normal = repaintAndKey();
+        QVERIFY(normal != 0);
+
+        ui.view.setFlipMode(true);
+        const qint64 flipped = repaintAndKey();
+        QVERIFY(flipped != normal);
+        QVERIFY(sameAsNewBoard(ui.view));
+        ui.view.setFlipMode(false);
+        QCOMPARE(repaintAndKey(), normal);
+        QVERIFY(sameAsNewBoard(ui.view));
+        ui.view.setFlipMode(true);
+        QCOMPARE(repaintAndKey(), flipped);
+        QVERIFY(sameAsNewBoard(ui.view));
+        ui.view.setFlipMode(false);
+        QCOMPARE(repaintAndKey(), normal);
+
+        const int square = ui.view.squareSize();
+        ui.view.setSquareSize(square + 4);
+        ui.view.setFixedSize(ui.view.sizeHint());
+        settle();
+        const qint64 enlarged = repaintAndKey();
+        QVERIFY(enlarged != normal);
+        QVERIFY(sameAsNewBoard(ui.view));
+        ui.view.setSquareSize(square);
+        ui.view.setFixedSize(ui.view.sizeHint());
+        settle();
+        QCOMPARE(repaintAndKey(), normal);
+        QVERIFY(sameAsNewBoard(ui.view));
+        QCOMPARE(stalePixels(ui), 0);
+
+        // 配色が変わったときは、どちらの画像も使わずに作り直す
+        BoardColors colors = BoardAppearance::instance().colors();
+        const BoardColors original = colors;
+        colors.board = QColor(200, 160, 100);
+        BoardAppearance::instance().setColors(colors);
+        const qint64 recolored = repaintAndKey();
+        QVERIFY(recolored != normal && recolored != flipped && recolored != enlarged);
+        QVERIFY(sameAsNewBoard(ui.view));
+        BoardAppearance::instance().setColors(original);
+        settle();
+    }
+
     // 読み筋ウィンドウ（対局中・検討中・棋譜解析・詰将棋生成で共通）で手を進め・戻しても、
     // 盤は変わった所（駒・持駒・直前の指し手の強調・手番の表示）だけを描き直す
     void pvBoardWindowRepaintsOnlyChangedSquares()

@@ -12,6 +12,7 @@
 #include <QColor>
 #include <QPixmap>
 #include <QtMath>
+#include <utility>
 #include <cmath>
 #include <QPainter>
 #include <QPaintEvent>
@@ -118,6 +119,8 @@ bool ShogiView::StaticLayerKey::operator==(const StaticLayerKey& other) const
 // 影の角丸の塗りや罫線のアンチエイリアスは盤全体の大きさで計算されるので、
 // 駒を動かすたびに描き直すと全面の再描画が重くなる。
 // 寸法・配色・質感・物理画素に対する位置が変わったときだけ作り直す。
+// 盤を回転すると駒台の位置が入れ替わる。回転を戻したときや、拡大して縮小し戻したときに
+// 作り直さないよう、1つ前の条件の画像も残しておく。
 void ShogiView::drawStaticLayer(QPainter* painter)
 {
     // 端数倍率（125% など）では盤の左上が物理画素の途中に来る。画像もその端数だけずらして描き、
@@ -131,6 +134,11 @@ void ShogiView::drawStaticLayer(QPainter* painter)
                              blackStand, whiteStand, fieldSize(), QPoint(m_layout.offsetX(), m_layout.offsetY()),
                              m_boardColors.background, m_boardColors.board, m_boardColors.stand,
                              m_boardColors.grid, m_boardVisuals.woodGrain, m_boardVisuals.standWoodGrain};
+    if (!m_staticLayer.isNull() && !(m_staticLayerKey == key)) {
+        // 今の画像を1つ前の画像として残し、1つ前の画像が条件に合えば今の画像に戻す
+        std::swap(m_staticLayer, m_spareStaticLayer);
+        std::swap(m_staticLayerKey, m_spareStaticLayerKey);
+    }
     if (m_staticLayer.isNull() || !(m_staticLayerKey == key)) {
         // 端数の分だけ右下へずらすため、1物理画素の余白を持たせる。
         QPixmap layer(qCeil(width() * dpr) + 1, qCeil(height() * dpr) + 1);

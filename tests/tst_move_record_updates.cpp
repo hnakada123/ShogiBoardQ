@@ -1,6 +1,9 @@
 #include <QtTest>
 #include <QSignalSpy>
+#include <QHeaderView>
 #include <QLabel>
+#include <QStyledItemDelegate>
+#include <QTableView>
 #include <QTemporaryDir>
 #include <QVBoxLayout>
 
@@ -12,6 +15,8 @@
 #include "kifudisplaypresenter.h"
 #include "kifunavigationstate.h"
 #include "kifurecordlistmodel.h"
+#include "recordhighlightdelegate.h"
+#include "recordpaneappearancemanager.h"
 #include "sfenutils.h"
 #include "shogimove.h"
 
@@ -155,6 +160,48 @@ private slots:
         }
         QCOMPARE(label->text(), QStringLiteral("1234手目"));
         QCOMPARE(counter.count, 0);
+    }
+
+    // 棋譜欄の長いコメントは、表示幅より十分先で切ってから描く。切っても、全文を渡して
+    // 省略表示（…）にした場合とコメント列の絵が同じになる。
+    void longCommentsRenderSameWhenCut()
+    {
+        KifuRecordListModel model;
+        const QString sentence = QStringLiteral("ここで▲７六歩と突くのが本筋で、△３四歩なら角交換から持久戦になる。");
+        for (int row = 0; row < 14; ++row) {
+            model.appendItem(new KifuDisplay(QStringLiteral("%1 ▲７六歩(77)").arg(row),
+                                             QStringLiteral("00:01/00:00:%1").arg(row, 2, 10, QLatin1Char('0')),
+                                             sentence.repeated(1 + row % 5) + QStringLiteral(" (%1)").arg(row),
+                                             &model));
+        }
+        model.setCurrentHighlightRow(3);
+        model.setBranchPlyMarks({5});
+        for (const int commentWidth : {80, 240, 600}) {
+            QTableView cut;
+            QTableView plain;
+            for (QTableView* view : {&cut, &plain}) {
+                view->setModel(&model);
+                view->setStyleSheet(RecordPaneAppearanceManager::kifuTableStyleSheet(10));
+                view->setWordWrap(false);
+                view->setTextElideMode(Qt::ElideRight);
+                view->verticalHeader()->setVisible(false);
+                view->horizontalHeader()->setStretchLastSection(false);
+                view->horizontalHeader()->resizeSection(3, commentWidth);
+                view->resize(320 + commentWidth, 420);
+                view->selectRow(6);
+                view->show();
+                QVERIFY(QTest::qWaitForWindowExposed(view));
+            }
+            cut.setItemDelegate(new RecordHighlightDelegate(&cut));
+            plain.setItemDelegate(new QStyledItemDelegate(&plain));
+            QCoreApplication::processEvents();
+            // 現在行の目印（指し手の列だけに描く）を除き、コメント列を比べる
+            const QRect column(cut.columnViewportPosition(3), 0, cut.columnWidth(3), cut.viewport()->height());
+            const QImage expected = plain.viewport()->grab(column).toImage();
+            const QImage actual = cut.viewport()->grab(column).toImage();
+            QVERIFY(!actual.isNull());
+            QVERIFY2(actual == expected, qPrintable(QStringLiteral("comment column width %1").arg(commentWidth)));
+        }
     }
 
     // 対局外で指した手は SFEN 履歴に入らない。履歴の長さで横軸をいったん縮めると、

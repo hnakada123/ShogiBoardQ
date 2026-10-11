@@ -54,6 +54,12 @@ class QString;
 class ShogiView : public QWidget
 {
     Q_OBJECT
+
+#ifdef SHOGIBOARDQ_TESTING
+    /// テスト専用: tst_board_drag_repaint.cpp が盤面の変わらない部分の画像の使い回しを検証する
+    friend class TestBoardDragRepaint;
+#endif
+
     // Q_PROPERTY: QML/Qt Designer 等からマスサイズ（正方）をバインド可能にする
     Q_PROPERTY(QSize fieldSize READ fieldSize WRITE setFieldSize NOTIFY fieldSizeChanged)
 
@@ -392,6 +398,9 @@ private:
     };
     QPixmap m_staticLayer;
     StaticLayerKey m_staticLayerKey;
+    // 1つ前の条件で作った画像。盤の回転・拡大と縮小を行き来するときに作り直さず使い回す
+    QPixmap m_spareStaticLayer;
+    StaticLayerKey m_spareStaticLayerKey;
 
     // マス矩形キャッシュ（レイアウト変更時に無効化、描画時に遅延再構築）
     mutable QHash<quint64, QRect> m_fieldRectCache;
