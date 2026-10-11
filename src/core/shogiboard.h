@@ -127,7 +127,8 @@ signals:
     /// 盤面の1マス変更通知（→ ShogiView::repaint）
     void dataChanged(int c, int r);
 
-    /// 駒台の枚数の変更通知。piece が Piece::None のときは駒台全体（→ ShogiView の駒台の描き直し）
+    /// 駒台の枚数の変更通知（→ ShogiView の駒台のセルの描き直し）。
+    /// 局面を丸ごと替える setSfen は、この通知ではなく boardReset で知らせる
     void standChanged(Piece piece);
 
 private:

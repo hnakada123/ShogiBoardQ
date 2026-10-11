@@ -99,6 +99,12 @@ void ShogiView::drawPieces(QPainter* painter)
     }
 }
 
+bool ShogiView::paintRegionCovers(const QRect& rect) const
+{
+    if (m_paintRegion.rectCount() == 1) return m_paintRegion.boundingRect().contains(rect);
+    return QRegion(rect).subtracted(m_paintRegion).isEmpty();
+}
+
 bool ShogiView::StaticLayerKey::operator==(const StaticLayerKey& other) const
 {
     return size == other.size && dpr == other.dpr && phase == other.phase && surface == other.surface
@@ -152,8 +158,12 @@ void ShogiView::drawStaticLayer(QPainter* painter)
 
 void ShogiView::paintEvent(QPaintEvent* event)
 {
-    // 【安全弁】盤未設定、またはエラーフラグが立っている場合は描画を行わない。
-    if (!m_board || m_errorOccurred) return;
+    // 【安全弁】盤未設定、またはエラーフラグが立っている場合は盤を描かず、下地だけを塗る
+    // （親の下地を塗らない設定のため、何も描かないと前の内容が残る）。
+    if (!m_board || m_errorOccurred) {
+        QPainter(this).fillRect(event->rect(), palette().color(QPalette::Window));
+        return;
+    }
 
     // 描き直す範囲。各描画ヘルパはこの範囲に掛からない要素を省く。
     m_paintRegion = event->region();
@@ -226,11 +236,6 @@ void ShogiView::drawFourStars(QPainter* painter)
 
 void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
 {
-    // 【ドラッグ中の元マスは描かない】
-    if (m_interaction.dragging() && file == m_interaction.dragFrom().x() && rank == m_interaction.dragFrom().y()) {
-        return;
-    }
-
     // 【盤座標 → ウィジェット座標】（キャッシュ済み矩形を使用）
     const QRect fieldRect = cachedFieldRect(file, rank);
     QRect adjustedRect(fieldRect.left() + m_layout.offsetX(),
@@ -238,12 +243,30 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
                        fieldRect.width(),
                        fieldRect.height());
 
-    // 【盤から駒種を取得】
-    Piece pieceValue = m_board->pieceCharacter(file, rank);
+    // 再描画範囲に掛からないマスは描かない（駒の影の張り出しを含めて判定する）
+    const QRect painted = fieldRect.isEmpty() ? QRect()
+        : adjustedRect | PiecePainter::paintedRect(adjustedRect, m_boardVisuals).toAlignedRect();
+    if (!intersectsPaintRegion(painted)) return;
 
-    // 【アイコン描画】（影を含めて再描画範囲に掛かる駒だけ）
-    if (pieceValue != Piece::None
-        && intersectsPaintRegion(PiecePainter::paintedRect(adjustedRect, m_boardVisuals))) {
+    // 【盤から駒種を取得】
+    const Piece pieceValue = m_board->pieceCharacter(file, rank);
+
+    // 【ドラッグ中の元マスは描かない】
+    const bool lifted = m_interaction.dragging() && QPoint(file, rank) == m_interaction.dragFrom();
+
+    // 画面に出た駒を記録する（局面を丸ごと替えたときに、違うマスだけを描き直すため）。
+    // 隣のマスを描き直すと、はみ出した影の分だけこのマスも一部が描き直される。記録と同じ駒なら
+    // 画面はそのままなので記録を保ち、違う駒のときは一部だけ新しくなったので不明にする。
+    const qsizetype index = qsizetype(rank - 1) * m_board->files() + (file - 1);
+    if (index < m_shownSquares.size()) {
+        std::optional<Piece>& shown = m_shownSquares[index];
+        if (lifted) shown.reset();
+        else if (paintRegionCovers(painted)) shown = pieceValue;
+        else if (shown != pieceValue) shown.reset();
+    }
+
+    // 【アイコン描画】
+    if (!lifted && pieceValue != Piece::None) {
         const QIcon icon = piece(pieceToChar(pieceValue));
         if (!icon.isNull()) {
             PiecePainter::draw(*painter, icon, adjustedRect, m_boardVisuals);

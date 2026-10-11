@@ -37,7 +37,6 @@ void ShogiBoard::initStand()
     for (const Piece& piece : pieces) {
         m_pieceStand.insert(piece, 0);
     }
-    emit standChanged(Piece::None);
 }
 
 // ============================================================

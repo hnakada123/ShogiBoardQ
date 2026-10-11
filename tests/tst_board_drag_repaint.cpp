@@ -249,6 +249,83 @@ private slots:
         ui.controller->onRightClick(from);
     }
 
+    // 棋譜をたどるたび・エンジンが指すたびに呼ばれる applyBoardAndRender は、盤もマスの大きさも
+    // 駒の画像も変わらなければ盤を描き直さない。別の盤を渡したときは全体を描き直す
+    void applyBoardAndRenderRepaintsOnlyWhenNeeded()
+    {
+        BoardUi ui(sfen(), false);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+        QCoreApplication::processEvents();
+
+        PaintSpy spy;
+        ui.view.installEventFilter(&spy);
+        ui.view.applyBoardAndRender(ui.gc.board());
+        QCoreApplication::processEvents();
+        QVERIFY(spy.rects.isEmpty());
+
+        ShogiBoard other;
+        other.setSfen(sfen());
+        ui.view.applyBoardAndRender(&other);
+        QCoreApplication::processEvents();
+        ui.view.removeEventFilter(&spy);
+        QVERIFY(!spy.rects.isEmpty());
+        QCOMPARE(spy.rects.last(), ui.view.rect());
+        ui.view.applyBoardAndRender(ui.gc.board());
+    }
+
+    // 局面を丸ごと替えたとき（棋譜をたどる・待った・読み込みなど）は、画面に出ている駒と違うマスだけを
+    // 描き直し、それでも全体を描き直した画面と一致する
+    void boardResetRepaintsOnlyChangedSquares()
+    {
+        BoardUi ui(sfen(), false);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+        QCoreApplication::processEvents();
+        // 7七の銀を6六へ上がった局面
+        const QString after = QStringLiteral(
+            "ln1g3nl/1r1s1kg2/p2ppp1pp/2p3p2/1p7/2PSP1P2/PP1P1P2P/2G1G2R1/LN2K2NL w B2Sb3p 42");
+
+        PaintSpy spy;
+        ui.view.installEventFilter(&spy);
+        ui.gc.board()->setSfen(after);
+        QCoreApplication::processEvents();
+        ui.view.removeEventFilter(&spy);
+        QRegion repainted;
+        for (const QRect& rect : std::as_const(spy.regionRects)) repainted += rect;
+        qint64 area = 0;
+        for (const QRect& rect : repainted) area += qint64(rect.width()) * rect.height();
+        const QSize fs = ui.view.fieldSize();
+        QVERIFY(area > 0);
+        QVERIFY2(area < qint64(fs.width()) * fs.height() * 4,
+                 qPrintable(QStringLiteral("repainted %1 px for %2 px squares")
+                                .arg(area).arg(fs.width() * fs.height())));
+        QCOMPARE(stalePixels(ui), 0);
+
+        // 戻す
+        ui.gc.board()->setSfen(sfen());
+        QCoreApplication::processEvents();
+        QCOMPARE(stalePixels(ui), 0);
+
+        // 通知の無い変更（全部の駒を駒箱へ）と全体の描き直しの後でも、違うマスを描き直す
+        ui.view.returnAllPiecesToBox();
+        QCoreApplication::processEvents();
+        ui.gc.board()->setSfen(sfen());
+        QCoreApplication::processEvents();
+        QCOMPARE(stalePixels(ui), 0);
+
+        // 駒を持ち上げている途中で局面が替わる
+        ui.controller->onLeftClick(QPoint(7, 7));
+        QCoreApplication::processEvents();
+        ui.gc.board()->setSfen(after);
+        QCoreApplication::processEvents();
+        QCOMPARE(stalePixels(ui), 0);
+
+        // 持駒が違う局面
+        ui.gc.board()->setSfen(QStringLiteral(
+            "ln1g3nl/1r1s1kg2/p2ppp1pp/2p3p2/1p7/2PSP1P2/PP1P1P2P/2G1G2R1/LN2K2NL b RB2S2Pb3pg 43"));
+        QCoreApplication::processEvents();
+        QCOMPARE(stalePixels(ui), 0);
+    }
+
     // 着手や局面編集で盤・駒台・駒箱が変わったとき、変わった所だけを描き直しても
     // 全体を描き直した画面と一致する（ShogiBoard の変更通知だけで描き直せること）
     void boardChangesLeaveNoStalePixels()
