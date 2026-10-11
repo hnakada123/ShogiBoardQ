@@ -82,7 +82,10 @@ void KifuDisplayPresenter::populateRecordModel()
         openingComment,
         openingBookmark,
         m_refs.recordModel);
-    m_refs.recordModel->appendItem(startItem);
+    // 行は最後にまとめて追加する。1行ずつ追加すると、そのたびに棋譜欄が
+    // 全行の文字幅を測り直すため、手数の2乗に比例して遅くなる。
+    QList<KifuDisplay*> items{startItem};
+    items.reserve(line.nodes.size() + 1);
 
     // 各指し手を追加
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
@@ -111,8 +114,9 @@ void KifuDisplayPresenter::populateRecordModel()
         );
         item->beforeSfen = node->parent() ? node->parent()->sfen() : QString();
         item->usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
-        m_refs.recordModel->appendItem(item);
+        items.append(item);
     }
+    m_refs.recordModel->appendItems(items);
 
     // 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
     m_lastModelLineIndex = currentLineIndex;
@@ -155,7 +159,9 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
         openingComment,
         openingBookmark,
         m_refs.recordModel);
-    m_refs.recordModel->appendItem(startItem);
+    // 行は最後にまとめて追加する（populateRecordModel と同じ理由）
+    QList<KifuDisplay*> items{startItem};
+    items.reserve(path.size() + 1);
 
     QSet<int> branchPlys;
 
@@ -184,8 +190,9 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
         );
         item->beforeSfen = node->parent() ? node->parent()->sfen() : QString();
         item->usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
-        m_refs.recordModel->appendItem(item);
+        items.append(item);
     }
+    m_refs.recordModel->appendItems(items);
 
     m_refs.recordModel->setBranchPlyMarks(branchPlys);
 
