@@ -101,6 +101,25 @@ QRect ShogiView::fieldPaintRect(const QPoint& field) const
     return cell | PiecePainter::paintedRect(cell, m_boardVisuals).toAlignedRect().adjusted(-1, -1, 1, 1);
 }
 
+void ShogiView::onBoardSquareChanged(int file, int rank)
+{
+    update(fieldPaintRect(QPoint(file, rank)));
+    // 駒箱の枚数は盤と駒台の駒から数えるため、局面編集中は一緒に描き直す
+    update(pieceBoxRect());
+}
+
+void ShogiView::onBoardStandChanged(Piece piece)
+{
+    const QRect cell = piece == Piece::None ? QRect() : standPieceRect(pieceToChar(piece));
+    if (cell.isEmpty()) {
+        update(blackStandBoundingRect());
+        update(whiteStandBoundingRect());
+    } else {
+        update(cell);
+    }
+    update(pieceBoxRect());
+}
+
 // 持駒の配置・当たり判定はセルのまま、木肌は駒台全体を通して描く。
 // 駒台の木肌は盤面の変わらない部分の画像（drawStaticLayer）に含める。
 void ShogiView::drawNormalModeStand(QPainter* painter)

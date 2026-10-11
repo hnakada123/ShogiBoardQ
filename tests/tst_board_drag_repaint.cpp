@@ -7,7 +7,10 @@
 #include <QtMath>
 
 #include "boardappearance.h"
+#include "boardconstants.h"
 #include "boardinteractioncontroller.h"
+#include "playmode.h"
+#include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 
@@ -78,6 +81,28 @@ class TestBoardDragRepaint : public QObject
                 .convertToFormat(QImage::Format_ARGB32);
         }
     };
+
+    /// 実際に画面に出ている内容と、全体を描き直した内容とで違う画素の数。
+    /// 部分描画での半透明の合成は、全体を描いたときと丸めが1だけ違うことがあるため、それは数えない。
+    static int stalePixels(BoardUi& ui)
+    {
+        const QImage partial = ui.screenImage();
+        ui.view.repaint();
+        QCoreApplication::processEvents();
+        const QImage full = ui.screenImage();
+        if (partial.size() != full.size()) return -1;
+        int stale = 0;
+        for (int y = 0; y < full.height(); ++y) {
+            const auto* a = reinterpret_cast<const QRgb*>(partial.constScanLine(y));
+            const auto* b = reinterpret_cast<const QRgb*>(full.constScanLine(y));
+            for (int x = 0; x < full.width(); ++x) {
+                if (qAbs(qRed(a[x]) - qRed(b[x])) > 1 || qAbs(qGreen(a[x]) - qGreen(b[x])) > 1
+                    || qAbs(qBlue(a[x]) - qBlue(b[x])) > 1)
+                    ++stale;
+            }
+        }
+        return stale;
+    }
 
     /// 同じ状態の盤面を新しく作って描いた絵と比べる
     static bool sameAsNewBoard(ShogiView& view)
@@ -220,25 +245,71 @@ private slots:
             ui.moveTo(center + QPointF(qCos(angle) * radius * (0.3 + 0.07 * (i % 11)),
                                        qSin(angle * 1.3) * radius));
         }
-        const QImage partial = ui.screenImage();
-        ui.view.repaint();
-        QCoreApplication::processEvents();
-        const QImage full = ui.screenImage();
+        QCOMPARE(stalePixels(ui), 0);
         ui.controller->onRightClick(from);
+    }
 
-        QCOMPARE(partial.size(), full.size());
-        // 部分描画での半透明の合成は、全体を描いたときと丸めが1だけ違うことがある。
-        int trails = 0;
-        for (int y = 0; y < full.height(); ++y) {
-            const auto* a = reinterpret_cast<const QRgb*>(partial.constScanLine(y));
-            const auto* b = reinterpret_cast<const QRgb*>(full.constScanLine(y));
-            for (int x = 0; x < full.width(); ++x) {
-                if (qAbs(qRed(a[x]) - qRed(b[x])) > 1 || qAbs(qGreen(a[x]) - qGreen(b[x])) > 1
-                    || qAbs(qBlue(a[x]) - qBlue(b[x])) > 1)
-                    ++trails;
-            }
+    // 着手や局面編集で盤・駒台・駒箱が変わったとき、変わった所だけを描き直しても
+    // 全体を描き直した画面と一致する（ShogiBoard の変更通知だけで描き直せること）
+    void boardChangesLeaveNoStalePixels()
+    {
+        BoardUi ui(sfen(), false);
+        QObject::connect(&ui.gc, &ShogiGameController::endDragSignal, &ui.view, &ShogiView::endDrag);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+        QCoreApplication::processEvents();
+
+        // 対局の着手: 角打ち・歩の突き・歩で取る・歩打ち
+        QStringList history{sfen()};
+        QList<ShogiMove> moves;
+        int ply = 41;
+        const QList<QPair<QPoint, QPoint>> game = {
+            {QPoint(10, 6), QPoint(5, 5)}, {QPoint(8, 5), QPoint(8, 6)},
+            {QPoint(8, 7), QPoint(8, 6)}, {QPoint(11, 9), QPoint(8, 5)},
+        };
+        for (const auto& [from, to] : game) {
+            ui.controller->onLeftClick(from);
+            QCoreApplication::processEvents();
+            ui.controller->onLeftClick(to);
+            QPoint f = from, t = to;
+            QString record;
+            PlayMode mode = PlayMode::HumanVsHuman;
+            const bool ok = ui.gc.validateAndMove(f, t, record, mode, ply++, &history, moves);
+            QVERIFY2(ok, qPrintable(record));
+            ui.controller->onMoveApplied(f, t, ok);
+            QCoreApplication::processEvents();
+            QCOMPARE(stalePixels(ui), 0);
         }
-        QCOMPARE(trails, 0);
+        QCOMPARE(ui.gc.board()->pieceStandCount(Piece::BlackPawn), 1);
+        QCOMPARE(ui.gc.board()->pieceStandCount(Piece::WhitePawn), 2);
+
+        // 局面編集: 盤→駒台、駒台→相手の駒台、駒箱→盤、盤→駒箱、成りの切り替え
+        ui.view.setPositionEditMode(true);
+        ui.controller->setMode(BoardInteractionController::Mode::Edit);
+        QCoreApplication::processEvents();
+        // 5五に打った角を駒箱へ入れてから、別のマスへ出す
+        int bishopRank = 0;
+        for (int rank = 1; rank <= 8 && bishopRank == 0; ++rank) {
+            if (ui.gc.board()->pieceCharacter(BoardConstants::kPieceBoxFile, rank) == Piece::BlackBishop)
+                bishopRank = rank;
+        }
+        QVERIFY(bishopRank > 0);
+        const QPoint box(BoardConstants::kPieceBoxFile, bishopRank);
+        const QList<QPair<QPoint, QPoint>> edits = {
+            {QPoint(9, 7), QPoint(10, 1)}, {QPoint(10, 1), QPoint(11, 9)},
+            {QPoint(5, 5), box}, {box, QPoint(5, 4)},
+        };
+        for (const auto& [from, to] : edits) {
+            ui.view.startDrag(from);
+            QVERIFY2(ui.gc.editPosition(from, to, ui.view.pieceBoxSide()),
+                     qPrintable(QStringLiteral("edit %1,%2 -> %3,%4").arg(from.x()).arg(from.y())
+                                    .arg(to.x()).arg(to.y())));
+            ui.view.endDrag();
+            QCoreApplication::processEvents();
+            QCOMPARE(stalePixels(ui), 0);
+        }
+        ui.gc.switchPiecePromotionStatusOnRightClick(7, 7);
+        QCoreApplication::processEvents();
+        QCOMPARE(stalePixels(ui), 0);
     }
 };
 

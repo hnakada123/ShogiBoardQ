@@ -127,6 +127,9 @@ signals:
     /// 盤面の1マス変更通知（→ ShogiView::repaint）
     void dataChanged(int c, int r);
 
+    /// 駒台の枚数の変更通知。piece が Piece::None のときは駒台全体（→ ShogiView の駒台の描き直し）
+    void standChanged(Piece piece);
+
 private:
     int m_ranks;                    ///< 盤の段数（9）
     int m_files;                    ///< 盤の筋数（9）

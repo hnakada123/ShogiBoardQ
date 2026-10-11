@@ -357,6 +357,9 @@ private:
     bool intersectsPaintRegion(const QRectF& rect) const { return m_paintRegion.intersects(rect.toAlignedRect()); }
     // マスに描くもの（はみ出す駒の影を含む）を覆う範囲。部分的な再描画に使う
     QRect fieldPaintRect(const QPoint& field) const;
+    // 盤のマス・駒台の枚数が変わったときに、その部分（局面編集中は駒箱も）だけを描き直す
+    void onBoardSquareChanged(int file, int rank);
+    void onBoardStandChanged(Piece piece);
 
     // 背景・木肌と縁・影・罫線・駒台・星を描いた画像と、その作成条件
     struct StaticLayerKey {
