@@ -6,9 +6,12 @@
 #include <QWindow>
 #include <QtMath>
 
+#include "appsettings.h"
 #include "boardappearance.h"
+#include "boardappearancecatalog.h"
 #include "boardconstants.h"
 #include "boardinteractioncontroller.h"
+#include "pieceimageprovider.h"
 #include "playmode.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -17,6 +20,7 @@
 /// 駒をつまんで動かすときの部分再描画を検証する。
 /// ドラッグ中は駒の周囲だけを描き直し、それでも画面が全体を描き直したときと一致すること。
 /// 盤面の変わらない部分を描いた画像が、盤の反転・大きさ・配色・質感の変更に追従すること。
+/// 対局画面の外観（駒・将棋盤・背景・駒台・対局者情報）をどれに変えても、描き残しが出ないこと。
 class TestBoardDragRepaint : public QObject
 {
     Q_OBJECT
@@ -120,12 +124,84 @@ class TestBoardDragRepaint : public QObject
         return QStringLiteral("ln1g3nl/1r1s1kg2/p2ppp1pp/2p3p2/1p7/2P1P1P2/PPSP1P2P/2G1G2R1/LN2K2NL b B2Sb3p 41");
     }
 
+    /// 遅れて届く描き直しの要求まで処理する
+    static void settle()
+    {
+        for (int i = 0; i < 3; ++i) QCoreApplication::processEvents();
+    }
+
+    // ---- 外観を切り替えて試す（appearanceVariantsLeaveNoStalePixels） ----
+    // 行の種類: 0〜3 は将棋盤・駒台・対局者情報・背景の見本（BoardAppearanceCatalog::Component の順）、
+    // 4 は駒、5 は駒の大きさ・影・木目
+    static constexpr int kComponentKinds = 4;
+    static constexpr int kPieceKind = 4;
+    static constexpr int kVisualsKind = 5;
+    static constexpr int kPieceScales[] = {90, 100, 112};
+    static constexpr int kVisualsCount = 12;  // 駒の大きさ3通り×影の有無×木目の有無
+
+    BoardColors m_defaultColors;
+    BoardVisuals m_defaultVisuals;
+    QString m_defaultPieceStyle;
+    std::unique_ptr<BoardUi> m_appearanceBoard;  // 行ごとに作り直さず使い回す盤
+
+    static BoardVisuals visualsVariant(BoardVisuals visuals, int index)
+    {
+        visuals.pieceScale = kPieceScales[index / 4];
+        visuals.pieceShadow = (index / 2) % 2 == 0;
+        visuals.woodGrain = index % 2 == 0;
+        visuals.standWoodGrain = visuals.woodGrain;
+        return visuals;
+    }
+
+    /// 外観を既定に戻してから、行で指定された1つだけを変える
+    void applyAppearance(int kind, int index) const
+    {
+        BoardColors colors = m_defaultColors;
+        BoardVisuals visuals = m_defaultVisuals;
+        QString style = m_defaultPieceStyle;
+        if (kind == kPieceKind) {
+            style = AppSettings::availablePieceStyles().at(index);
+        } else if (kind == kVisualsKind) {
+            visuals = visualsVariant(visuals, index);
+        } else {
+            const auto component = static_cast<BoardAppearanceCatalog::Component>(kind);
+            BoardAppearanceCatalog::apply(component, BoardAppearanceCatalog::samples(component).at(index),
+                                          colors, visuals);
+        }
+        PieceImageProvider::instance().setStyle(style);
+        BoardAppearance::instance().setColors(colors);
+        BoardAppearance::instance().setVisuals(visuals);
+    }
+
+    /// 外観を試す盤。向きが変わるときだけ作り直す（2枚を同時に出すと画面の上で重なる）
+    BoardUi& appearanceBoard(bool flipped)
+    {
+        if (!m_appearanceBoard || m_appearanceBoard->view.flipMode() != flipped) {
+            m_appearanceBoard.reset();
+            m_appearanceBoard = std::make_unique<BoardUi>(sfen(), flipped);
+            QObject::connect(&m_appearanceBoard->gc, &ShogiGameController::endDragSignal,
+                             &m_appearanceBoard->view, &ShogiView::endDrag);
+        }
+        return *m_appearanceBoard;
+    }
+
 private slots:
     void initTestCase()
     {
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+        m_defaultColors = BoardAppearance::instance().colors();
+        m_defaultVisuals = BoardAppearance::instance().visuals();
+        m_defaultPieceStyle = PieceImageProvider::instance().style();
+    }
+
+    void cleanupTestCase()
+    {
+        m_appearanceBoard.reset();
+        PieceImageProvider::instance().setStyle(m_defaultPieceStyle);
+        BoardAppearance::instance().setColors(m_defaultColors);
+        BoardAppearance::instance().setVisuals(m_defaultVisuals);
     }
 
     void dragRepaintsOnlyAroundPiece()
@@ -386,6 +462,110 @@ private slots:
         }
         ui.gc.switchPiecePromotionStatusOnRightClick(7, 7);
         QCoreApplication::processEvents();
+        QCOMPARE(stalePixels(ui), 0);
+    }
+
+    // 対局画面の外観（将棋盤・駒台・対局者情報・背景の見本、駒、駒の大きさ・影・木目）を1つずつ変え、
+    // 外観の変更直後、着手と時計・手番の更新、局面の差し替え、ドラッグで、変わった所だけを
+    // 描き直した画面が全体を描き直した画面と一致することを、通常と反転の向きで確かめる。
+    // 盤を使い回すので、ほかのテストの盤と画面の上で重ならないよう最後に置く。
+    void appearanceVariantsLeaveNoStalePixels_data()
+    {
+        QTest::addColumn<bool>("flipped");
+        QTest::addColumn<int>("kind");
+        QTest::addColumn<int>("index");
+        static const char* const kComponentTags[] = {"board", "stand", "information", "background"};
+        const QStringList styles = AppSettings::availablePieceStyles();
+        for (const bool flipped : {false, true}) {
+            const char* suffix = flipped ? "-flipped" : "";
+            for (int kind = 0; kind < kComponentKinds; ++kind) {
+                const auto component = static_cast<BoardAppearanceCatalog::Component>(kind);
+                const auto count = BoardAppearanceCatalog::samples(component).size();
+                for (int index = 0; index < count; ++index)
+                    QTest::addRow("%s-%02d%s", kComponentTags[kind], index, suffix) << flipped << kind << index;
+            }
+            for (int index = 0; index < styles.size(); ++index)
+                QTest::addRow("piece-%s%s", qPrintable(styles.at(index)), suffix) << flipped << kPieceKind << index;
+            for (int index = 0; index < kVisualsCount; ++index) {
+                const BoardVisuals visuals = visualsVariant(BoardVisuals(), index);
+                QTest::addRow("scale%d-%s-%s%s", visuals.pieceScale, visuals.pieceShadow ? "shadow" : "noshadow",
+                              visuals.woodGrain ? "grain" : "nograin", suffix)
+                    << flipped << kVisualsKind << index;
+            }
+        }
+    }
+
+    void appearanceVariantsLeaveNoStalePixels()
+    {
+        QFETCH(bool, flipped);
+        QFETCH(int, kind);
+        QFETCH(int, index);
+        BoardUi& ui = appearanceBoard(flipped);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+
+        // 前の行で動かした局面から始めても同じになるよう、局面と表示を戻してから外観を変える
+        ui.gc.board()->setSfen(sfen());
+        ui.controller->showMoveHighlights(QPoint(3, 3), QPoint(3, 4));
+        ui.view.setActiveSide(true);
+        ui.view.setBlackClockText(QStringLiteral("00:08:31"));
+        ui.view.setWhiteClockText(QStringLiteral("00:07:12"));
+        applyAppearance(kind, index);
+        settle();
+        QCOMPARE(stalePixels(ui), 0);
+        // 使い回す画像（盤面の変わらない部分・駒）が古いままだと、全体を描き直しても同じ誤りが
+        // 出るので、新しく作った盤とも比べる
+        QVERIFY(sameAsNewBoard(ui.view));
+
+        // 着手（角打ち・歩の突き・歩で取る・歩打ち）と、時計・手番・直前の指し手の表示の更新
+        QStringList history{sfen()};
+        QList<ShogiMove> moves;
+        int ply = 41;
+        const QList<QPair<QPoint, QPoint>> game = {
+            {QPoint(10, 6), QPoint(5, 5)}, {QPoint(8, 5), QPoint(8, 6)},
+            {QPoint(8, 7), QPoint(8, 6)}, {QPoint(11, 9), QPoint(8, 5)},
+        };
+        for (const auto& [from, to] : game) {
+            ui.controller->onLeftClick(from);
+            settle();
+            ui.controller->onLeftClick(to);
+            QPoint f = from, t = to;
+            QString record;
+            PlayMode mode = PlayMode::HumanVsHuman;
+            const bool ok = ui.gc.validateAndMove(f, t, record, mode, ply++, &history, moves);
+            QVERIFY2(ok, qPrintable(record));
+            ui.controller->onMoveApplied(f, t, ok);
+            ui.controller->showMoveHighlights(f, t);
+            ui.view.setActiveSide(ply % 2 == 1);
+            const QString seconds = QStringLiteral("%1").arg(ply % 60, 2, 10, QLatin1Char('0'));
+            ui.view.setBlackClockText(QStringLiteral("00:08:") + seconds);
+            ui.view.setWhiteClockText(QStringLiteral("00:07:") + seconds);
+            settle();
+            QCOMPARE(stalePixels(ui), 0);
+        }
+
+        // 局面を丸ごと替える（棋譜をたどる・待ったと同じ経路）
+        ui.gc.board()->setSfen(QStringLiteral(
+            "ln1g3nl/1r1s1kg2/p2ppp1pp/2p3p2/1p7/2PSP1P2/PP1P1P2P/2G1G2R1/LN2K2NL w B2Sb3p 42"));
+        settle();
+        QCOMPARE(stalePixels(ui), 0);
+        ui.gc.board()->setSfen(sfen());
+        settle();
+        QCOMPARE(stalePixels(ui), 0);
+
+        // 盤・駒台・座標・対局者情報の上をドラッグしてから取り消す
+        ui.controller->onLeftClick(QPoint(7, 7));
+        settle();
+        const QPointF center(ui.view.width() / 2.0, ui.view.height() / 2.0);
+        const qreal radius = qMin(ui.view.width(), ui.view.height()) * 0.45;
+        for (int i = 0; i < 40; ++i) {
+            const qreal angle = i * (0.03 + 0.05 * (i % 7));
+            ui.moveTo(center + QPointF(qCos(angle) * radius * (0.3 + 0.07 * (i % 11)),
+                                       qSin(angle * 1.3) * radius));
+        }
+        settle();
+        QCOMPARE(stalePixels(ui), 0);
+        ui.controller->onRightClick(QPoint(7, 7));
+        settle();
         QCOMPARE(stalePixels(ui), 0);
     }
 };
