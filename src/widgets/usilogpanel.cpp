@@ -21,6 +21,7 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QTextCursor>
+#include <QTextDocument>
 #include <QTextCharFormat>
 #include <QSizePolicy>
 #include <QScrollBar>
@@ -109,32 +110,44 @@ void UsiLogPanel::appendColoredLog(const QString& logLine, const QColor& lineCol
     auto* horizontal = m_logView->horizontalScrollBar();
     const int oldVertical = vertical->value();
     const int oldHorizontal = horizontal->value();
+    QTextDocument* document = m_logView->document();
     const QTextCursor original = m_logView->textCursor();
+    const bool follow = oldVertical == vertical->maximum() && !original.hasSelection();
+    // 末尾への追記で動くのは、末尾にある表示用カーソルの端だけ。先頭ログの削除には
+    // 表示用カーソル自身が追従するので、末尾にないときは戻す処理を省く
+    // （カーソルの位置決めは行の文字配置を毎回計算し直すため重い）。
+    const int end = document->characterCount() - 1;
+    const bool restoreCursor = original.position() == end || original.anchor() == end;
     // 数値の位置ではなくカーソルで保持し、先頭ログの削除に追従させる。
     // 末尾を選択している場合も追記で選択が伸びないよう、両端を個別に固定する。
-    QTextCursor position(m_logView->document());
-    position.setPosition(original.position());
-    position.setKeepPositionOnInsert(true);
-    QTextCursor anchor(m_logView->document());
-    anchor.setPosition(original.anchor());
-    anchor.setKeepPositionOnInsert(true);
-    const bool follow = oldVertical == vertical->maximum() && !original.hasSelection();
-
-    QTextCursor cursor(m_logView->document());
-    cursor.movePosition(QTextCursor::End);
+    QTextCursor position;
+    QTextCursor anchor;
+    if (restoreCursor) {
+        position = QTextCursor(document);
+        position.setPosition(original.position());
+        position.setKeepPositionOnInsert(true);
+        anchor = QTextCursor(document);
+        anchor.setPosition(original.anchor());
+        anchor.setKeepPositionOnInsert(true);
+    }
 
     QTextCharFormat coloredFormat;
     coloredFormat.setForeground(lineColor);
+    QTextCursor cursor(document);
     cursor.beginEditBlock();
-    if (!m_logView->document()->isEmpty()) cursor.insertBlock();
+    // 編集中に末尾へ移る。編集の外で移ると、最終行の文字配置を計算し直す。
+    cursor.movePosition(QTextCursor::End);
+    if (!document->isEmpty()) cursor.insertBlock();
     cursor.insertText(logLine, coloredFormat);
     cursor.endEditBlock();
 
     const int adjustedVertical = vertical->value();
-    QTextCursor restored(m_logView->document());
-    restored.setPosition(anchor.position());
-    restored.setPosition(position.position(), QTextCursor::KeepAnchor);
-    m_logView->setTextCursor(restored);
+    if (restoreCursor) {
+        QTextCursor restored(document);
+        restored.setPosition(anchor.position());
+        restored.setPosition(position.position(), QTextCursor::KeepAnchor);
+        m_logView->setTextCursor(restored);
+    }
     vertical->setValue(follow ? vertical->maximum() : adjustedVertical);
     horizontal->setValue(oldHorizontal);
 }

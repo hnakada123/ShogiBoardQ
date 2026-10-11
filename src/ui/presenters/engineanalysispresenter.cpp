@@ -16,6 +16,7 @@
 #include "logcategories.h"
 #include "numericrightaligncommadelegate.h"
 #include "pvboardbuttondelegate.h"
+#include "pvtextdelegate.h"
 #include "tablestyles.h"
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
@@ -114,6 +115,8 @@ void EngineAnalysisPresenter::setupThinkingViewHeader(QTableView* v)
     v->setMouseTracking(true);
     if (!dynamic_cast<PvBoardButtonDelegate*>(v->itemDelegateForColumn(4)))
         v->setItemDelegateForColumn(4, new PvBoardButtonDelegate(v));
+    if (!qobject_cast<PvTextDelegate*>(v->itemDelegateForColumn(5)))
+        v->setItemDelegateForColumn(5, new PvTextDelegate(v));
 
     h->setDefaultSectionSize(100);
     h->setMinimumSectionSize(24);
