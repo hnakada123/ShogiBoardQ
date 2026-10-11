@@ -194,14 +194,18 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*kee
             QList<KifuBranchNode*> path = m_branchTree->pathToNode(branchPoint);
             m_kifuRecordModel->clearAllItems();
 
+            // 1行ずつ追加すると棋譜欄が毎回全行の幅を測り直すため、まとめて追加する
+            QList<KifuDisplay*> items;
+            items.reserve(path.size());
             for (KifuBranchNode* node : std::as_const(path)) {
                 auto* item = new KifuDisplay(node->displayText(), node->timeText(), node->comment());
                 if (node->parent() && !node->isTerminal()) {
                     item->beforeSfen = node->parent()->sfen();
                     item->usiMove = KifuPresentation::usiMove(node->move());
                 }
-                m_kifuRecordModel->appendItem(item);
+                items.append(item);
             }
+            m_kifuRecordModel->appendItems(items);
             return branchPoint->ply();
         }
     }
