@@ -590,6 +590,44 @@ private slots:
                  qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
     }
 
+    // 対局外で盤上の手を記録したとき（treeChanged による更新）も、手順の末尾に1手足すだけなら
+    // 分岐ツリーはその手を描き足すだけにする。新しい変化ができたときは作り直す
+    void treeChangedAppendsMoveWithoutRebuild()
+    {
+        UiHarness h;
+        KifuBranchNode* main5 = h.tree.findByPlyOnMainLine(5);
+        QVERIFY(main5 != nullptr && main5->childCount() == 0);
+        h.nav.goToNode(main5);
+        QCoreApplication::processEvents();
+        const int rebuildsBefore = h.branchTreeManager.rebuildCount();
+        const int rowsBefore = h.branchTreeManager.rowCount();
+
+        const QString sfen6 = SfenPositionTracer::buildSfenRecord(main5->sfen(), { QStringLiteral("8d8e") }, false).at(1);
+        KifuBranchNode* added = h.tree.addMove(main5, ShogiMove(), QStringLiteral("△８五歩(84)"), sfen6);
+        QVERIFY(added != nullptr);
+        h.nav.goToNode(added);
+        QCoreApplication::processEvents();
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore);
+        QCOMPARE(h.branchTreeManager.rowCount(), rowsBefore);
+        QVERIFY(h.branchTreeManager.nodeIdFor(0, 6) > 0);
+        QCOMPARE(h.branchTreeManager.rowDispCount(0), 7);
+        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 6);
+        QString reason;
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+
+        KifuBranchNode* main3 = h.tree.findByPlyOnMainLine(3);
+        const QString sfen4b = SfenPositionTracer::buildSfenRecord(main3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+        KifuBranchNode* branch = h.tree.addMove(main3, ShogiMove(), QStringLiteral("△３二金(41)"), sfen4b);
+        QVERIFY(branch != nullptr);
+        h.nav.goToNode(branch);
+        QCoreApplication::processEvents();
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore + 1);
+        QCOMPARE(h.branchTreeManager.rowCount(), rowsBefore + 1);
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+    }
+
     /// 移動前の確認（未更新のコメントの破棄）でやめたときは、ボタン・分岐候補・分岐ツリーの
     /// どの操作でも移動せず、クリックで変わった強調も現在の手に戻す
     void leaveGuard_cancelKeepsPositionAndHighlights()

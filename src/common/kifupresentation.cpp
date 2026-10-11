@@ -174,6 +174,12 @@ QString status(const QString& canonical)
         QT_TRANSLATE_NOOP("KifuPresentation", "不詰"), QT_TRANSLATE_NOOP("KifuPresentation", "入玉勝ち"),
         QT_TRANSLATE_NOOP("KifuPresentation", "引き分け"), QT_TRANSLATE_NOOP("KifuPresentation", "最大手数"),
         QT_TRANSLATE_NOOP("KifuPresentation", "エラー"), QT_TRANSLATE_NOOP("KifuPresentation", "（定跡）")};
+    // 棋譜欄の表示のたびに呼ばれるため、原文の文字列は1回だけ作る（訳は表示言語に合わせて毎回引く）
+    static const QStringList decodedNames = [] {
+        QStringList list;
+        for (const char* name : names) list.append(QString::fromUtf8(name));
+        return list;
+    }();
     // Only a whole generated label (with optional move number/side), never free text.
     static const QRegularExpression prefix(QStringLiteral("^(\\s*[0-9]+\\s+)?([▲△☗☖]\\s*)?"));
     const auto match = prefix.match(canonical);
@@ -185,9 +191,9 @@ QString status(const QString& canonical)
     if (tail == QStringLiteral("最大手数到達")) tail = QStringLiteral("最大手数");
     if (tail == QStringLiteral("宣言勝ち") || tail == QStringLiteral("入玉宣言勝ち")) tail = QStringLiteral("入玉勝ち");
     if (tail == QStringLiteral("詰")) tail = QStringLiteral("詰み");
-    for (const char* name : names) {
-        if (tail != QString::fromUtf8(name)) continue;
-        const QString text = translated(name);
+    for (qsizetype i = 0; i < decodedNames.size(); ++i) {
+        if (tail != decodedNames.at(i)) continue;
+        const QString text = translated(names[i]);
         return match.captured() + (text == tail ? original : text)
             + (branch ? (current.notation == Notation::Western ? QStringLiteral(" [+]") : QStringLiteral("+")) : QString());
     }

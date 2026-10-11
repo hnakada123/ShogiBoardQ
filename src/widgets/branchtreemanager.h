@@ -146,6 +146,9 @@ protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private:
+    // rows が現在の行に1手を足しただけなら、その手を描き足して true を返す
+    bool appendSingleMove(const QList<ResolvedRowLite>& rows);
+
     qreal m_columnSpacing = 110.0;
     // --- 描画 ---
     void rebuildBranchTree();
