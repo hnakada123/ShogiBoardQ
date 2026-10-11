@@ -84,7 +84,8 @@ public:
     /**
      * @brief 現在のラインから棋譜欄モデルを構築する
      */
-    void populateRecordModel();
+    /// 現在のラインで棋譜欄を作る。全行を作り直したときは true（末尾に手を足しただけなら false）
+    bool populateRecordModel();
 
     /**
      * @brief 指定パスから棋譜欄モデルを構築する
