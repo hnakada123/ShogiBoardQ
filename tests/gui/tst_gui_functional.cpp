@@ -893,7 +893,8 @@ private slots:
         QCOMPARE(boards->currentRow(), 1);
         QCOMPARE(board()->boardColors().background, custom.background);
         QCOMPARE(backgrounds->currentRow(), -1);
-        const auto boardIcon = boardItem->icon().pixmap(142, 86).toImage();
+        // 見本は一覧に描くときに作るので、項目のアイコンではなく描かれた画素で比べる
+        const auto boardIcon = boards->viewport()->grab(boards->visualItemRect(boardItem)).toImage();
         auto expected = board()->boardColors();
         const auto expectedVisuals = board()->boardVisuals();
         const auto previousImage = board()->toImage();
@@ -908,10 +909,16 @@ private slots:
         expected.background = QColor("#354957");
         QVERIFY(board()->boardColors() == expected);
         QVERIFY(board()->boardVisuals() == expectedVisuals);
-        QCOMPARE(boardItem->icon().pixmap(142, 86).toImage(), boardIcon);
         QVERIFY(board()->toImage() != previousImage);
         QCOMPARE(boardSfen(), initial);
         QVERIFY(dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/appearance-background.png")));
+        // 背景を選んでも盤の見本は変わらない（選択中の項目をもう一度押しても配色は変わらない）
+        sections->setCurrentIndex(1);
+        QTest::qWait(30);
+        QTest::mouseClick(boards->viewport(), Qt::LeftButton, Qt::NoModifier, boards->visualItemRect(boardItem).center());
+        QVERIFY(board()->boardColors() == expected);
+        QCOMPARE(boards->viewport()->grab(boards->visualItemRect(boardItem)).toImage(), boardIcon);
+        sections->setCurrentIndex(2);
 
         QPointer<BoardColorDialog> guard(dialog);
         dialog->close();

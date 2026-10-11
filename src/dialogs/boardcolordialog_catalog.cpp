@@ -7,19 +7,24 @@
 #include "pieceimageprovider.h"
 #include "piecepainter.h"
 
+#include <QApplication>
 #include <QComboBox>
 #include <QEvent>
 #include <QHBoxLayout>
+#include <QHash>
 #include <QLabel>
 #include <QListWidget>
 #include <QPainter>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSignalBlocker>
+#include <QStyledItemDelegate>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
+#include <functional>
 #include <iterator>
+#include <utility>
 
 namespace {
 using Component = BoardAppearanceCatalog::Component;
@@ -89,11 +94,61 @@ QIcon sampleIconWithoutTint(const QPixmap& image)
     return icon;
 }
 
-QIcon sampleIcon(Component component, const BoardAppearanceSample& sample, const QString& style)
+QPixmap blankSample()
 {
     QPixmap image(284, 172);
     image.setDevicePixelRatio(2);
     image.fill(Qt::transparent);
+    return image;
+}
+
+// 見本は、一覧で画面に見えた項目だけを描く。開くたびに全項目を描くと、駒のセットや
+// 盤・駒台などの見本を増やすほどウィンドウを開くのが遅くなり、メモリも増えるため。
+class LazySampleDelegate : public QStyledItemDelegate
+{
+public:
+    using Render = std::function<QIcon(const QModelIndex&)>;
+
+    LazySampleDelegate(Render render, QObject* parent)
+        : QStyledItemDelegate(parent), m_render(std::move(render))
+    {
+    }
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
+    {
+        QStyleOptionViewItem opt = option;
+        initStyleOption(&opt, index);
+        auto it = m_samples.constFind(index.row());
+        if (it == m_samples.cend()) it = m_samples.insert(index.row(), m_render(index));
+        opt.icon = *it;
+        const QWidget* widget = opt.widget;
+        QStyle* style = widget ? widget->style() : QApplication::style();
+        style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
+    }
+
+    // 描いた見本を捨てて、次に見えたときに描き直させる。
+    void clear() { m_samples.clear(); }
+
+private:
+    Render m_render;
+    mutable QHash<int, QIcon> m_samples;
+};
+
+QIcon pieceSampleIcon(const QString& style)
+{
+    QPixmap image = blankSample();
+    QPainter painter(&image);
+    const QString glyphs = QStringLiteral("KPU");
+    for (int i = 0; i < glyphs.size(); ++i)
+        PiecePainter::draw(painter, PieceImageProvider::instance().iconForStyle(glyphs.at(i), style),
+                           QRect(4 + i * 46, 16, 43, 48), {});
+    painter.end();
+    return sampleIconWithoutTint(image);
+}
+
+QIcon sampleIcon(Component component, const BoardAppearanceSample& sample, const QString& style)
+{
+    QPixmap image = blankSample();
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);
     const auto& c = sample.colors;
@@ -160,18 +215,14 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
     pieceLayout->addWidget(m_pieceFilter);
     m_pieceList = gallery(piecePage, QStringLiteral("appearancePieces"));
     m_pieceList->viewport()->installEventFilter(this);
+    m_pieceList->setItemDelegate(new LazySampleDelegate([](const QModelIndex& index) {
+        return pieceSampleIcon(index.data(Qt::UserRole).toString());
+    }, m_pieceList));
     pieceLayout->addWidget(m_pieceList);
+    // 見本は描くときに作る。項目の大きさを揃えるため、同じ大きさの空の画像を全項目で共有する。
+    const QIcon placeholder = sampleIconWithoutTint(blankSample());
     for (const auto& style : AppSettings::availablePieceStyles()) {
-        QPixmap image(284, 172);
-        image.setDevicePixelRatio(2);
-        image.fill(Qt::transparent);
-        QPainter painter(&image);
-        const QString glyphs = QStringLiteral("KPU");
-        for (int i = 0; i < glyphs.size(); ++i)
-            PiecePainter::draw(painter, PieceImageProvider::instance().iconForStyle(glyphs.at(i), style),
-                               QRect(4 + i * 46, 16, 43, 48), {});
-        painter.end();
-        auto* item = new QListWidgetItem(sampleIconWithoutTint(image), BoardColorPresets::pieceStyleName(style), m_pieceList);
+        auto* item = new QListWidgetItem(placeholder, BoardColorPresets::pieceStyleName(style), m_pieceList);
         item->setData(Qt::UserRole, style);
         item->setToolTip(item->text());
     }
@@ -190,8 +241,12 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
         auto* list = gallery(page, names.at(i));
         list->viewport()->installEventFilter(this);
         list->setProperty("component", i);
+        list->setItemDelegate(new LazySampleDelegate([component](const QModelIndex& index) {
+            return sampleIcon(component, BoardAppearanceCatalog::samples(component).at(index.row()),
+                              PieceImageProvider::instance().style());
+        }, list));
         for (const auto& sample : BoardAppearanceCatalog::samples(component))
-            new QListWidgetItem(sample.name, list);
+            new QListWidgetItem(placeholder, sample.name, list);
         m_componentLists.append(list);
         column->addWidget(list);
         if (component == Component::Background) m_sections->insertTab(2, page, titles.at(i));
@@ -254,7 +309,7 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
             this, &BoardColorDialog::refreshCatalogIcons);
     m_sections->setCurrentIndex(AppSettings::appearanceSection());
     m_pieceFilter->setCurrentIndex(AppSettings::appearancePieceFilter());
-    refreshCatalogIcons();
+    syncCatalog();
 }
 
 void BoardColorDialog::selectPiece(int row)
@@ -291,12 +346,10 @@ void BoardColorDialog::filterPieces(int index)
 
 void BoardColorDialog::refreshCatalogIcons()
 {
-    const auto style = PieceImageProvider::instance().style();
-    for (int i = 0; i < m_componentLists.size(); ++i) {
-        const auto component = static_cast<Component>(i);
-        const auto samples = BoardAppearanceCatalog::samples(component);
-        for (int row = 0; row < samples.size(); ++row)
-            m_componentLists.at(i)->item(row)->setIcon(sampleIcon(component, samples.at(row), style));
+    // 盤・駒台の見本には選択中の駒を描くので、駒のセットが変わったら描き直す。
+    for (auto* list : std::as_const(m_componentLists)) {
+        static_cast<LazySampleDelegate*>(list->itemDelegate())->clear();
+        list->viewport()->update();
     }
     syncCatalog();
 }

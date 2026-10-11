@@ -221,6 +221,42 @@ private slots:
         QCOMPARE(preview->image(), original);
     }
 
+    void appearanceSamplesAreDrawnWhenShown()
+    {
+        // 見本は一覧に描くときに作る。空の画像のまま表示されず、駒を変えると盤の見本も描き直す
+        BoardColorDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* sections = dialog.findChild<QTabWidget*>("appearanceSections");
+        auto* pieces = dialog.findChild<QListWidget*>("appearancePieces");
+        auto* boards = dialog.findChild<QListWidget*>("appearanceBoards");
+        QVERIFY(sections && pieces && boards);
+        auto sample = [](QListWidget* list) {
+            QCoreApplication::processEvents();
+            const QRect item = list->visualItemRect(list->item(0));
+            // 見本の画像が入る上側の中央だけを見る（項目名の文字は含めない）
+            const QRect icon(item.center().x() - 50, item.top() + 20, 100, 50);
+            return list->viewport()->grab(icon).toImage();
+        };
+        auto colorCount = [](const QImage& image) {
+            QSet<QRgb> colors;
+            for (int y = 0; y < image.height(); ++y)
+                for (int x = 0; x < image.width(); ++x) colors.insert(image.pixel(x, y));
+            return colors.size();
+        };
+        sections->setCurrentWidget(pieces->parentWidget());
+        pieces->scrollToTop();
+        QVERIFY(colorCount(sample(pieces)) > 20);
+        sections->setCurrentWidget(boards->parentWidget());
+        boards->scrollToTop();
+        const auto standard = sample(boards);
+        QVERIFY(colorCount(standard) > 20);
+        PieceImageProvider::instance().setStyle(QStringLiteral("chess_facet_wood"));
+        QVERIFY(sample(boards) != standard);
+        PieceImageProvider::instance().setStyle(QStringLiteral("standard"));
+        QCOMPARE(sample(boards), standard);
+    }
+
     void surfaceTextureIsStableAndOptional()
     {
         auto render = [](bool grain) {
