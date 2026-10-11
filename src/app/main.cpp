@@ -5,13 +5,13 @@
 #include "appsettings.h"
 #include "applicationfonts.h"
 #include "applicationlogging.h"
+#include "applicationstyle.h"
 #include "applicationtranslations.h"
 #include "dialogfontscale.h"
 #include "settingsresetcontroller.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
-#include <QStyleFactory>
 #include <QIcon>
 
 static QIcon applicationIcon()
@@ -31,8 +31,8 @@ static QIcon applicationIcon()
 // 翻訳の初期化後、ウィジェットの生成前に共通の外観を設定する。
 static void configureApplicationAppearance(QApplication& app, const QString& language)
 {
-    // Creatorのような「Fusion」スタイルに統一する。
-    app.setStyle(QStyleFactory::create("Fusion"));
+    // Creatorのような「Fusion」スタイルに統一する（ドックのボタンのアイコンを使い回す版）。
+    app.setStyle(ApplicationStyle::create());
     ApplicationFonts::initialize(AppSettings::uiFontFamily(), language);
 
     // QDialogButtonBox のデフォルトスタイル（全ダイアログ共通）

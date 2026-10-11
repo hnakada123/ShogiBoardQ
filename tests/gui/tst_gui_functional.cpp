@@ -69,6 +69,7 @@
 #include "settingscommon.h"
 #include "appsettings.h"
 #include "applicationfonts.h"
+#include "applicationstyle.h"
 #include "fontsettingsdialog.h"
 #include "boardappearance.h"
 #include "boardcolorpresets.h"
@@ -4227,7 +4228,8 @@ int main(int argc, char** argv)
     QApplication app(argc, argv);
     app.setApplicationName("ShogiBoardQ-GuiAudit");
     app.setQuitOnLastWindowClosed(false);
-    app.setStyle("Fusion");
+    // アプリと同じスタイル（Fusion。ドックのボタンのアイコンを使い回す版）
+    app.setStyle(ApplicationStyle::create());
     ApplicationFonts::initialize();
     GuiAudit audit;
     return QTest::qExec(&audit, argc, argv);
