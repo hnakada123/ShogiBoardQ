@@ -24,6 +24,15 @@
 
 namespace {
 constexpr int kColumnWidthLoadDelayMs = 500;
+
+// 最後の列は表示領域いっぱいまで伸ばしているので、縦のスクロールバーの出入りやドックの
+// リサイズでも幅が変わる。その変化だけでは列幅を保存しない（検討タブと同じ扱い）。
+bool isStretchedLastSection(const QTableView* view, int logicalIndex)
+{
+    const QHeaderView* header = view ? view->horizontalHeader() : nullptr;
+    return header && header->stretchLastSection() && header->count() > 0
+        && logicalIndex == header->logicalIndex(header->count() - 1);
+}
 } // namespace
 
 EngineAnalysisPresenter::EngineAnalysisPresenter(QObject* parent)
@@ -355,20 +364,18 @@ void EngineAnalysisPresenter::onThinkingViewColumnWidthChanged(int viewIndex)
 
 void EngineAnalysisPresenter::onView1SectionResized(int logicalIndex, int oldSize, int newSize)
 {
-    Q_UNUSED(logicalIndex)
     Q_UNUSED(oldSize)
     Q_UNUSED(newSize)
-    if (m_thinkingView1WidthsLoaded) {
+    if (m_thinkingView1WidthsLoaded && !isStretchedLastSection(m_view1, logicalIndex)) {
         onThinkingViewColumnWidthChanged(0);
     }
 }
 
 void EngineAnalysisPresenter::onView2SectionResized(int logicalIndex, int oldSize, int newSize)
 {
-    Q_UNUSED(logicalIndex)
     Q_UNUSED(oldSize)
     Q_UNUSED(newSize)
-    if (m_thinkingView2WidthsLoaded) {
+    if (m_thinkingView2WidthsLoaded && !isStretchedLastSection(m_view2, logicalIndex)) {
         onThinkingViewColumnWidthChanged(1);
     }
 }
