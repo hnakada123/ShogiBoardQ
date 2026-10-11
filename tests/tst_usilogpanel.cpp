@@ -8,7 +8,9 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QTemporaryDir>
+#include <QAbstractTextDocumentLayout>
 #include <QTextBlock>
+#include <QTextCharFormat>
 
 #include "analysissettings.h"
 #include "settingscommon.h"
@@ -91,6 +93,86 @@ private slots:
         QCOMPARE(vertical->value(), vertical->maximum());
         page->findChild<QAction*>("usiLogWrap")->trigger();
         QCOMPARE(vertical->value(), vertical->maximum());
+    }
+
+    // 末尾への追記では直前の行の文字配置を作り直さない（変わったのは新しい行だけ）。
+    // 配置をすべて作り直したときと、Qt の標準の文書で同じ内容を表示したときと、画面と
+    // スクロールバーが同じになる。
+    void appendKeepsPreviousLineLayout_data()
+    {
+        QTest::addColumn<bool>("wrap");
+        QTest::newRow("no-wrap") << false;
+        QTest::newRow("wrapped") << true;
+    }
+
+    void appendKeepsPreviousLineLayout()
+    {
+        QFETCH(bool, wrap);
+        AnalysisSettings::setUsiLogWrapLines(wrap);
+        UsiLogPanel panel;
+        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        page->resize(700, 300);
+        page->show();
+        QVERIFY(QTest::qWaitForWindowExposed(page.get()));
+        auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
+        QVERIFY(view);
+        QTextDocument* document = view->document();
+        QCOMPARE(document->defaultFont(), view->font());
+        QCOMPARE(document->documentMargin(), 6.0);
+        QCOMPARE(document->maximumBlockCount(), 5000);
+
+        QSignalSpy updated(document->documentLayout(), &QAbstractTextDocumentLayout::updateBlock);
+        QStringList lines;
+        for (int i = 0; i < 80; ++i) {
+            const QString line = QStringLiteral("◀ E1: info depth %1 pv ").arg(i)
+                + QStringLiteral("7g7f 3c3d ").repeated(5 + i % 30);
+            lines.append(line);
+            updated.clear();
+            panel.appendColoredLog(line, i % 3 ? QColor(Qt::blue) : QColor(Qt::darkGreen));
+            if (i == 0) continue;
+            QVERIFY2(!updated.isEmpty(), qPrintable(QString::number(i)));
+            for (const auto& arguments : std::as_const(updated))
+                QCOMPARE(arguments.at(0).value<QTextBlock>().blockNumber(), document->blockCount() - 1);
+        }
+        QCoreApplication::processEvents();
+
+        auto state = [view]() {
+            return QList<int>{view->verticalScrollBar()->maximum(), view->verticalScrollBar()->value(),
+                              view->horizontalScrollBar()->maximum(), view->horizontalScrollBar()->value()};
+        };
+        const QImage appended = view->grab().toImage();
+        const QList<int> appendedState = state();
+        // 文書全体を変えたことにして、行の配置を捨てて描き直す
+        document->markContentsDirty(0, document->characterCount());
+        QCoreApplication::processEvents();
+        QCOMPARE(state(), appendedState);
+        QCOMPARE(view->grab().toImage(), appended);
+
+        // Qt の標準の文書で同じ内容を表示した表と比べる。折り返すときは、Qt が行数を
+        // 配置した行の分だけ数える（ほかは1行とする）ので、追記の手順でスクロールバーが変わる。
+        if (wrap) return;
+        QPlainTextEdit reference(page.get());
+        reference.setGeometry(view->geometry());
+        reference.setReadOnly(true);
+        reference.setMaximumBlockCount(5000);
+        reference.setFont(view->font());
+        reference.setLineWrapMode(view->lineWrapMode());
+        reference.document()->setDocumentMargin(6);
+        reference.show();
+        QTextCursor cursor(reference.document());
+        for (qsizetype i = 0; i < lines.size(); ++i) {
+            QTextCharFormat format;
+            format.setForeground(i % 3 ? QColor(Qt::blue) : QColor(Qt::darkGreen));
+            if (i > 0) cursor.insertBlock();
+            cursor.insertText(lines.at(i), format);
+        }
+        reference.verticalScrollBar()->setValue(view->verticalScrollBar()->value());
+        reference.horizontalScrollBar()->setValue(view->horizontalScrollBar()->value());
+        QCoreApplication::processEvents();
+        QCOMPARE(reference.verticalScrollBar()->maximum(), appendedState.at(0));
+        QCOMPARE(reference.horizontalScrollBar()->maximum(), appendedState.at(2));
+        reference.raise();
+        QCOMPARE(reference.grab().toImage(), appended);
     }
 
     void logHistoryIsBounded()

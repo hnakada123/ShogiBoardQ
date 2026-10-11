@@ -8,7 +8,12 @@
 
 #include <QColor>
 #include <QList>
+#include <QPointer>
+#include <QString>
 
+#include <array>
+
+class QFrame;
 class QPainter;
 class QLabel;
 
@@ -81,9 +86,24 @@ private:
 
     Urgency m_urgency = Urgency::Normal;
 
+    // 対局者の名前・時計・枠・手番の札のスタイルシート。手番の交代では何度も、時計の表示が
+    // 変わるたび（1秒ごと）にも呼ばれるので、色の組が前回と同じなら前回の文字列を使う。
+    struct CachedStyleSheet {
+        std::array<QRgb, 3> colors{};
+        int variant = -1;
+        QString css;
+        /// 色の組か種類が前回と違えば覚え直して true を返す（css を組み立て直す）
+        bool update(const std::array<QRgb, 3>& newColors, int newVariant);
+    };
+    enum PlayerStyleTarget { NameStyle, ClockStyle, CardStyle, BadgeStyle, PlayerStyleCount };
+    std::array<CachedStyleSheet, 2 * PlayerStyleCount> m_playerStyleSheets;  ///< 先手・後手の順
+    std::array<QPointer<QFrame>, 2> m_playerCards;   ///< 先手・後手の枠
+    std::array<QPointer<QLabel>, 2> m_turnBadges;    ///< 先手・後手の手番の札
+
     // ラベルスタイルヘルパ
     void refreshPlayerStyles();
-    void setLabelStyle(QLabel* lbl, const QColor& fg, const QColor& bg, const QColor& border, bool bold);
+    void setLabelStyle(QLabel* lbl, const QColor& fg, const QColor& bg, const QColor& border, bool bold,
+                       CachedStyleSheet& cache);
     static QString toRgba(const QColor& c);
 };
 
