@@ -79,6 +79,9 @@ ShogiView::ShogiView(QWidget *parent)
 
     setMouseTracking(true);
 
+    // 盤面は背景の画像で自分の範囲をすべて塗るため、描き直しのたびに親の下地を塗らせない。
+    setAttribute(Qt::WA_OpaquePaintEvent);
+
     // ───────────────────────────────── 時計・名前ラベル（先手：黒） ─────────────────────────────────
     m_blackClockLabel = new QLabel(QStringLiteral("00:00:00"), this);
     m_blackClockLabel->setObjectName(QStringLiteral("blackClockLabel"));
@@ -157,11 +160,14 @@ void ShogiView::setBoard(ShogiBoard* board)
 
     m_board = board;
     invalidateFieldRectCache();
+    // 新しい盤は、まだ画面に出ていないものとして扱う
+    m_shownSquares = QList<std::optional<Piece>>(board ? board->files() * board->ranks() : 0);
+    m_shownStandCounts.clear();
 
     if (board) {
         connect(board, &ShogiBoard::dataChanged, this, &ShogiView::onBoardSquareChanged);
         connect(board, &ShogiBoard::standChanged, this, &ShogiView::onBoardStandChanged);
-        connect(board, &ShogiBoard::boardReset,  this, qOverload<>(&ShogiView::update));
+        connect(board, &ShogiBoard::boardReset,  this, &ShogiView::onBoardReset);
         connect(board, &ShogiBoard::dataChanged, this, &ShogiView::positionChanged);
         connect(board, &ShogiBoard::boardReset, this, &ShogiView::positionChanged);
     }
@@ -508,14 +514,19 @@ void ShogiView::applyBoardAndRender(ShogiBoard* board)
 {
     if (!board) return;
 
-    if (m_layout.flipMode()) setPiecesFlip();
-    else            setPieces();
+    // 棋譜をたどるたび・エンジンが指すたびに呼ばれる。局面の変化は ShogiBoard の通知で
+    // 変わったマスだけを描き直すので、盤そのもの・マスの大きさが変わったときだけ全体を描き直す
+    // （駒の画像が変わったときは loadPieceImages が描き直す）。
+    loadPieceImages(m_layout.flipMode());
 
+    const bool boardChanged = m_board != board;
     setBoard(board);
 
-    setFieldSize(QSize(squareSize(), qRound(squareSize() * ShogiViewLayout::kSquareAspectRatio)));
+    const QSize field(squareSize(), qRound(squareSize() * ShogiViewLayout::kSquareAspectRatio));
+    const bool fieldChanged = fieldSize() != field;
+    setFieldSize(field);
 
-    update();
+    if (boardChanged || fieldChanged) update();
 }
 
 void ShogiView::configureFixedSizing(int squarePx)

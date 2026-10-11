@@ -178,8 +178,14 @@ void ShogiView::loadPieceImages(bool flipped)
 {
     auto& provider = PieceImageProvider::instance();
     const QString types = QStringLiteral("PLNSGBRKQMOTCUplnsgbrkqmotcu");
+    bool changed = false;
     for (const QChar type : types) {
-        m_pieces.insert(type, provider.icon(type, flipped));
+        const QIcon icon = provider.icon(type, flipped);
+        const auto current = m_pieces.constFind(type);
+        if (current != m_pieces.cend() && current->cacheKey() == icon.cacheKey()) continue;
+        m_pieces.insert(type, icon);
+        changed = true;
     }
-    update();
+    // 画像が同じなら描き直さない（盤を読み込み直すたびに呼ばれるため）
+    if (changed) update();
 }

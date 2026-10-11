@@ -32,6 +32,8 @@
 #include <QWidget>
 #include <QPushButton>
 
+#include <optional>
+
 // 前方宣言（ヘッダ依存を軽減）
 class ShogiBoard;
 class ShogiViewHighlighting;
@@ -360,6 +362,15 @@ private:
     // 盤のマス・駒台の枚数が変わったときに、その部分（局面編集中は駒箱も）だけを描き直す
     void onBoardSquareChanged(int file, int rank);
     void onBoardStandChanged(Piece piece);
+    // 局面を丸ごと替えたとき（棋譜をたどる・待った・読み込みなど）は、画面に出ている駒と
+    // 違うマス・駒台のセルだけを描き直す
+    void onBoardReset();
+
+    // 画面に出ている駒（盤はマスごと、駒台は駒ごとの枚数）。描いたときに記録し、
+    // 描き直しの範囲に一部しか入らず記録と違う駒になったマスは不明（nullopt / 記録なし）にする。
+    mutable QList<std::optional<Piece>> m_shownSquares;
+    mutable QMap<Piece, int> m_shownStandCounts;
+    bool paintRegionCovers(const QRect& rect) const;
 
     // 背景・木肌と縁・影・罫線・駒台・星を描いた画像と、その作成条件
     struct StaticLayerKey {

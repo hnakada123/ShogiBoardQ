@@ -110,12 +110,35 @@ void ShogiView::onBoardSquareChanged(int file, int rank)
 
 void ShogiView::onBoardStandChanged(Piece piece)
 {
-    const QRect cell = piece == Piece::None ? QRect() : standPieceRect(pieceToChar(piece));
+    const QRect cell = standPieceRect(pieceToChar(piece));
     if (cell.isEmpty()) {
         update(blackStandBoundingRect());
         update(whiteStandBoundingRect());
     } else {
         update(cell);
+    }
+    update(pieceBoxRect());
+}
+
+void ShogiView::onBoardReset()
+{
+    if (!m_board) return;
+    const int files = m_board->files();
+    if (m_shownSquares.size() != qsizetype(files) * m_board->ranks()) {
+        update();
+        return;
+    }
+    for (int rank = 1; rank <= m_board->ranks(); ++rank) {
+        for (int file = 1; file <= files; ++file) {
+            const std::optional<Piece>& shown = m_shownSquares.at(qsizetype(rank - 1) * files + (file - 1));
+            if (!shown || *shown != m_board->pieceCharacter(file, rank)) update(fieldPaintRect(QPoint(file, rank)));
+        }
+    }
+    for (const QChar pieceChar : QStringLiteral("PLNSGBRKplnsgbrk")) {
+        const Piece piece = charToPiece(pieceChar);
+        const auto shown = m_shownStandCounts.constFind(piece);
+        if (shown == m_shownStandCounts.cend() || shown.value() != m_board->pieceStandCount(piece))
+            update(standPieceRect(pieceChar));
     }
     update(pieceBoxRect());
 }
@@ -169,9 +192,11 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
     // 駒・枚数はセル内に切り抜いて描くため、セルが再描画範囲に掛からなければ省く。
     if (!intersectsPaintRegion(adjustedRect)) return;
     const Piece pieceKey = charToPiece(value);
-    const int count = (m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey))
-    ? m_interaction.tempPieceStandCounts()[pieceKey]
-    : m_board->pieceStandCount(pieceKey);
+    const bool lifting = m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey);
+    const int count = lifting ? m_interaction.tempPieceStandCounts()[pieceKey] : m_board->pieceStandCount(pieceKey);
+    // 画面に出た枚数を記録する（持ち上げ中の一時的な枚数は局面と違うので記録しない）
+    if (lifting || !paintRegionCovers(adjustedRect)) m_shownStandCounts.remove(pieceKey);
+    else m_shownStandCounts.insert(pieceKey, count);
     drawCountedPiece(painter, adjustedRect, piece(value), count);
 }
 
