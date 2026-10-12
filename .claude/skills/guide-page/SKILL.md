@@ -23,6 +23,7 @@ description: ShogiBoardQ の公開ガイド（docs/guide/*.html）やホーム�
    - メインウィンドウは ja・zh 1300×980、en 1400×1000。ダイアログは `screenshot.capture` にダイアログの selector を渡す。
    - メニューのポップアップは `scripts/x11ctl.py` でクリックして `import -window root -crop` で切り抜く。
    - 盤面をくっきり撮るときは README の高解像度の手順に従う。撮影用のスクリプトは作業フォルダ（scratchpad）に置く。
+   - 思考表・検討タブの表が主な題材の画像は `scripts/docs/shoot_tables.py` で撮る。検討や棋譜欄が写る画像には、見本の棋譜 `scripts/docs/sample_kifu/`（▲鈴木・▽山田）を使う。
    - 置き場所: `docs/images/<page>/`（ja）と `docs/images/{en,zh-cn,zh-tw}/<page>/`。使わなくなった旧画像は `git rm` する。
    - Windows・macOS の画面はこの PC では撮れない。必要ならユーザーに画像を用意してもらう。
 4. **ページを書く**: `scripts/docs/examples/piece_sound/` を写して作業フォルダに生成スクリプトを作り、4言語の HTML を出力する。
