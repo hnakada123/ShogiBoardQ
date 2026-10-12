@@ -2,6 +2,7 @@
 /// @brief 行の追加で表示領域全体を描き直さない表の実装
 
 #include "incrementaltableview.h"
+#include "tableheaderview.h"
 
 #include <QAbstractItemDelegate>
 #include <QEvent>
@@ -19,9 +20,13 @@ bool IncrementalTableView::Settings::operator==(const Settings& other) const
 IncrementalTableView::IncrementalTableView(QWidget* parent)
     : QTableView(parent)
 {
+    // 見出しの文字の測り直しと、見た目の変わらない描き直しを省く見出しにする（QTableView の既定と同じ設定）
+    auto* header = new TableHeaderView(Qt::Horizontal, this);
+    header->setSectionsClickable(true);
+    header->setHighlightSections(true);
+    setHorizontalHeader(header);
     // 列幅の変化は、Qt の処理（後から配置を直して表示領域を描き直す）の前に、
     // 表示領域の大きさの変化によるものかを見分ける
-    QHeaderView* header = horizontalHeader();
     disconnect(header, &QHeaderView::sectionResized, this, &IncrementalTableView::columnResized);
     connect(header, &QHeaderView::sectionResized, this, &IncrementalTableView::onColumnResized);
 }

@@ -588,6 +588,7 @@ set(UI_DISPLAY_TEST_SOURCES
     ${SRC}/widgets/recordhighlightdelegate.cpp
     ${SRC}/widgets/itemtextcutter.cpp
     ${SRC}/widgets/incrementaltableview.cpp
+    ${SRC}/widgets/tableheaderview.cpp
     ${SRC}/widgets/recordpane.cpp
     ${SRC}/widgets/recordpane_branch.cpp
     ${SRC}/widgets/recordpaneappearancemanager.cpp
@@ -1638,6 +1639,8 @@ add_shogi_test(tst_thinking_display_updates tst_thinking_display_updates.cpp)
 target_link_libraries(tst_thinking_display_updates PRIVATE shogiboardq_static)
 add_shogi_test(tst_application_style tst_application_style.cpp)
 target_link_libraries(tst_application_style PRIVATE shogiboardq_static)
+add_shogi_test(tst_table_header_view tst_table_header_view.cpp)
+target_link_libraries(tst_table_header_view PRIVATE shogiboardq_static)
 add_shogi_test(tst_incremental_table_view tst_incremental_table_view.cpp)
 target_link_libraries(tst_incremental_table_view PRIVATE shogiboardq_static)
 # 小数倍率では表示領域を不透明にせず、全体を描き直す経路を使う。その場合も画面が正しいことを確かめる

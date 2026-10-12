@@ -2,6 +2,7 @@
 /// @brief エンジン情報表示ウィジェットクラスの実装
 
 #include "engineinfowidget.h"
+#include "tableheaderview.h"
 #include "kifumovedelegate.h"
 #include "tablestyles.h"
 #include "logcategories.h"
@@ -28,6 +29,12 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showPredictedMove)
 
 void EngineInfoWidget::setupTable()
 {
+    // 表の幅が変わるたびの見出しの文字の測り直しなどを省く見出しにする（QTableView の既定と同じ設定）
+    auto* header = new TableHeaderView(Qt::Horizontal, m_table);
+    header->setSectionsClickable(true);
+    header->setHighlightSections(true);
+    m_table->setHorizontalHeader(header);
+
     // ヘッダー設定
     QStringList headers;
     headers << tr("エンジン") << tr("予想手") << tr("探索手")
