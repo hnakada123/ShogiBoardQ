@@ -264,11 +264,41 @@ private slots:
         verifyStep(view, [&] { view.verticalScrollBar()->setValue(5); }, 1.01, QStringLiteral("scroll"));
         verifyStep(view, [&] { model.prependItem(thinkingRecord(next++)); }, 1.01, QStringLiteral("prepend while scrolled"));
         verifyStep(view, [&] { view.verticalScrollBar()->setValue(0); }, 1.01, QStringLiteral("scroll back"));
-        // 上限を超えた行の削除・消去は全体を描き直す
+        // 上限を超えた行の削除: 消える行が表示領域より下なら、足した行の分だけを描き直す
+        QVERIFY(view.rowViewportPosition(20) >= view.viewport()->height());
         verifyStep(view, [&] {
             model.prependItem(thinkingRecord(next++));
             model.trimToMaxRows(20);
-        }, 1.01, QStringLiteral("trim"));
+        }, 0.4, QStringLiteral("trim below view"));
+        for (int step = 0; step < 5; ++step) {
+            verifyStep(view, [&] {
+                model.prependItem(thinkingRecord(next++));
+                model.prependItem(thinkingRecord(next++));
+                model.trimToMaxRows(20);
+            }, 0.4, QStringLiteral("prepend and trim step %1").arg(step));
+            if (QTest::currentTestFailed()) return;
+        }
+        QCOMPARE(model.rowCount(), 20);
+        // 削除だけ（表示領域より下）は何も描き直さない
+        {
+            PaintSpy spy;
+            view.viewport()->installEventFilter(&spy);
+            model.trimToMaxRows(18);
+            settle();
+            view.viewport()->removeEventFilter(&spy);
+            if (integralScale(view)) QVERIFY2(spy.region.isEmpty(), "remove below view");
+            QVERIFY(stalePixels(view) == 0);
+        }
+        // 消える行が見えているときと、下へスクロールしているときは全体を描き直す
+        verifyStep(view, [&] {
+            model.prependItem(thinkingRecord(next++));
+            model.trimToMaxRows(4);
+        }, 1.01, QStringLiteral("trim visible rows"));
+        for (int i = 0; i < 20; ++i) model.prependItem(thinkingRecord(next++));
+        settle();
+        verifyStep(view, [&] { view.verticalScrollBar()->setValue(3); }, 1.01, QStringLiteral("scroll before trim"));
+        verifyStep(view, [&] { model.trimToMaxRows(22); }, 1.01, QStringLiteral("trim while scrolled"));
+        verifyStep(view, [&] { view.verticalScrollBar()->setValue(0); }, 1.01, QStringLiteral("scroll back before clear"));
         verifyStep(view, [&] { model.clearAllItems(); }, 1.01, QStringLiteral("clear"));
         verifyStep(view, [&] { model.prependItem(thinkingRecord(next++)); }, 1.01, QStringLiteral("first row"));
     }
