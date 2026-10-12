@@ -273,23 +273,34 @@ void BranchTreeManager::highlightNodeId(int nodeId, bool centerOn)
 
 void BranchTreeManager::highlightPathTo(int nodeId)
 {
-    // 開始局面から現在の手までの経路の辺を目立たせる
-    for (QGraphicsPathItem* edge : std::as_const(m_highlightedEdges)) {
+    // 開始局面から現在の手までの経路の辺を目立たせる。
+    // 1手ごとに呼ばれ、経路の長さは手数に比例する。前回の経路と開始局面の側から比べ、
+    // 違う部分の辺だけを戻す・付ける（続けて指すときは1本）。全部を戻してから付け直すと、
+    // 共通の辺でもペンと重なり順が2回変わり、そのたびに Qt が辺の輪郭を計算し直していた。
+    QList<QGraphicsPathItem*> path;  // 現在の手 → 開始局面 の順
+    int current = nodeId;
+    for (int guard = 0; current > 0 && guard <= m_nodesById.size(); ++guard) {
+        if (QGraphicsPathItem* edge = m_edgeInto.value(current, nullptr)) path.append(edge);
+        current = m_prevIdOf.value(current, -1);
+    }
+
+    // 開始局面の側（末尾）から共通している辺の数
+    qsizetype common = 0;
+    while (common < path.size() && common < m_highlightedEdges.size()
+           && path.at(path.size() - 1 - common) == m_highlightedEdges.at(m_highlightedEdges.size() - 1 - common)) {
+        ++common;
+    }
+    for (qsizetype i = 0; i < m_highlightedEdges.size() - common; ++i) {
+        QGraphicsPathItem* edge = m_highlightedEdges.at(i);
         edge->setPen(kEdgePen);
         edge->setZValue(0);
     }
-    m_highlightedEdges.clear();
-
-    int current = nodeId;
-    for (int guard = 0; current > 0 && guard <= m_nodesById.size(); ++guard) {
-        QGraphicsPathItem* edge = m_edgeInto.value(current, nullptr);
-        if (edge) {
-            edge->setPen(kPathEdgePen);
-            edge->setZValue(1);
-            m_highlightedEdges.append(edge);
-        }
-        current = m_prevIdOf.value(current, -1);
+    for (qsizetype i = 0; i < path.size() - common; ++i) {
+        QGraphicsPathItem* edge = path.at(i);
+        edge->setPen(kPathEdgePen);
+        edge->setZValue(1);
     }
+    m_highlightedEdges = path;
 }
 
 void BranchTreeManager::scrollToNode(QGraphicsPathItem* item, bool centerOn)
