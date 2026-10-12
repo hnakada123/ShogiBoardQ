@@ -13,18 +13,6 @@ constexpr int kMinimumLength = 32;
 // 覚えておく文字列の数の上限（思考表・棋譜欄の行数より十分多い）
 constexpr int kMaxCachedTexts = 1024;
 
-// 改行や書字方向の制御文字があると、Qt は行の分け方や省略の仕方を変えるので切らない
-bool hasLayoutControl(const QString& text)
-{
-    for (const QChar c : text) {
-        const char16_t u = c.unicode();
-        if (u == u'\n' || u == u'\r' || u == QChar::LineSeparator || u == QChar::ParagraphSeparator
-            || u == 0x200e || u == 0x200f || (u >= 0x202a && u <= 0x202e) || (u >= 0x2066 && u <= 0x2069))
-            return true;
-    }
-    return false;
-}
-
 // Qt の項目の描画と同じく、折り返さずに1行に並べる
 QTextLine layoutSingleLine(QTextLayout& layout, int width)
 {
@@ -66,6 +54,18 @@ void ItemTextCutter::apply(QStyleOptionViewItem& option) const
         && option.textElideMode == Qt::ElideRight && option.direction == Qt::LeftToRight) {
         option.text = textForWidth(option.text, option.font, option.rect.width());
     }
+}
+
+// 改行や書字方向の制御文字があると、Qt は行の分け方や省略の仕方を変えるので切らない
+bool ItemTextCutter::hasLayoutControl(const QString& text)
+{
+    for (const QChar c : text) {
+        const char16_t u = c.unicode();
+        if (u == u'\n' || u == u'\r' || u == QChar::LineSeparator || u == QChar::ParagraphSeparator
+            || u == 0x200e || u == 0x200f || (u >= 0x202a && u <= 0x202e) || (u >= 0x2066 && u <= 0x2069))
+            return true;
+    }
+    return false;
 }
 
 QString ItemTextCutter::textForWidth(const QString& text, const QFont& font, int width) const
