@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QList>
 #include <QPointer>
+#include <QTimer>
 #include <memory>
 
 #include "csaclient.h"
@@ -87,13 +88,23 @@ public:
      */
     struct StartOptions {
         QString host;
-        int port;
+        int port = 4081;
         QString username;
         QString password;
-        PlayerType playerType;
+        PlayerType playerType = PlayerType::Human;
         QString enginePath;
         QString engineName;
-        int engineNumber;
+        int engineNumber = 0;
+
+        // 接続の維持
+        bool keepAliveEnabled = true;       ///< 対局中に空行キープアライブを送る
+        int keepAliveIntervalMs = 40000;    ///< 空行キープアライブの間隔
+        bool tcpKeepAliveEnabled = true;    ///< OS の TCP キープアライブを使う
+
+        // 対局の進め方
+        int thinkingMarginMs = 1000;        ///< エンジンに渡す持時間から差し引く通信の余裕
+        int gameLimit = 1;                  ///< この接続で行う対局数（0 は無制限）
+        bool reconnectAfterGame = false;    ///< 終局後にサーバーが切断したら再接続して次の対局を待つ
     };
 
     explicit CsaGameCoordinator(QObject* parent = nullptr);
@@ -130,6 +141,11 @@ public:
     const QStringList& usiMoves() const { return m_usiMoves; }
     /// 再開局面の index 手目の消費時間と累計の表記（棋譜欄用）
     QString initialMoveElapsedText(int index) const;
+
+    /// この接続でまだ対局を続けるか（対局数の上限に達していない）
+    bool moreGamesWanted() const;
+    int completedGames() const { return m_completedGames; }
+    int gameLimit() const { return m_options.gameLimit; }
 
     /**
      * @brief 受け入れられない対局条件なら、その理由を返す（受け入れるなら空）
@@ -175,7 +191,11 @@ private slots:
     void onMoveReceived(const QString& move, int consumedTimeMs);
     void onMoveConfirmed(const QString& move, int consumedTimeMs);
     void onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
+    /// サーバーの裁定で終局した（CsaClient::gameEnded）。切断や内部エラーによる終局と区別する
+    void onServerGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
     void onGameInterrupted();
+    /// 終局後にサーバーが切断したとき、少し待ってから次の対局のために接続し直す
+    void reconnectForNextGame();
     void onRawMessageReceived(const QString& message);
     void onRawMessageSent(const QString& message);
     void onEngineControllerResign();
@@ -197,6 +217,10 @@ private:
     void resetGameTracking();
     /// 受信した対局条件の持時間・手数制限・宣言ルールをログに出す
     void logGameConditions(const CsaClient::GameSummary& summary);
+    /// 現在のオプションでサーバーへ接続し、ログイン以降の流れを始める
+    void connectForGame();
+    /// 終局後の対局数の扱い（上限に達したらログアウト、残っていれば次を待つ）
+    void handleGameCountAfterEnd();
 
     CsaClient* m_client;
     CsaEngineController* m_engineController = nullptr;
@@ -213,6 +237,10 @@ private:
     PlayerType m_playerType = PlayerType::Human;
     bool m_initializingEngine = false;
     bool m_engineNeedsRestart = false;   ///< 終局で gameover/quit を送ったので次局は起動し直す
+    bool m_lastGameEndedByServer = false; ///< 直前の終局がサーバーの裁定によるもの（再接続の条件）
+    int m_completedGames = 0;            ///< この接続（再接続を含む）で終えた対局数
+    int m_thinkingMarginMs = 0;          ///< エンジンに渡す持時間から差し引く通信の余裕
+    QTimer* m_reconnectTimer;            ///< 終局後の再接続までの待ち
     StartOptions m_options;
 
     CsaClient::GameSummary m_gameSummary;
@@ -239,6 +267,8 @@ private:
     QList<ShogiMove>* m_gameMoves = nullptr;
 
     std::unique_ptr<CsaMoveProgressHandler> m_moveProgressHandler;
+
+    static constexpr int kReconnectDelayMs = 3000; ///< 終局後の再接続までの待ち時間
 };
 
 #endif // CSAGAMECOORDINATOR_H

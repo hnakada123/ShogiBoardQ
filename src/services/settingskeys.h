@@ -21,6 +21,21 @@ inline constexpr char kKifuPasteDialogSize[]             = "SizeRelated/kifuPast
 inline constexpr char kCsaLogWindowSize[]                = "SizeRelated/csaLogWindowSize";
 inline constexpr char kCsaGameDialogSize[]               = "SizeRelated/csaGameDialogSize";
 inline constexpr char kCsaWaitingDialogSize[]            = "SizeRelated/csaWaitingDialogSize";
+
+// CSA通信対局ダイアログの詳細設定（接続の維持・対局数・自動保存など）
+inline constexpr char kCsaKeepAliveEnabled[]             = "CsaGameSettings/keepAliveEnabled";
+inline constexpr char kCsaKeepAliveIntervalSec[]         = "CsaGameSettings/keepAliveIntervalSec";
+inline constexpr char kCsaTcpKeepAliveEnabled[]          = "CsaGameSettings/tcpKeepAliveEnabled";
+inline constexpr char kCsaThinkingMarginSec[]            = "CsaGameSettings/thinkingMarginSec";
+inline constexpr char kCsaGameCountMode[]                = "CsaGameSettings/gameCountMode";
+inline constexpr char kCsaGameCount[]                    = "CsaGameSettings/gameCount";
+inline constexpr char kCsaReconnectAfterGame[]           = "CsaGameSettings/reconnectAfterGame";
+inline constexpr char kCsaAutoSaveEnabled[]              = "CsaGameSettings/autoSaveEnabled";
+inline constexpr char kCsaAutoSaveDir[]                  = "CsaGameSettings/autoSaveDir";
+inline constexpr char kCsaAutoSaveFormat[]               = "CsaGameSettings/autoSaveFormat";
+inline constexpr char kCsaAutoFlipBoard[]                = "CsaGameSettings/autoFlipBoard";
+inline constexpr char kCsaGameName[]                     = "CsaGameSettings/gameName";
+inline constexpr char kCsaTurnPreference[]               = "CsaGameSettings/turnPreference";
 inline constexpr char kKifuAnalysisDialogSize[]          = "SizeRelated/kifuAnalysisDialogSize";
 inline constexpr char kJosekiMoveDialogSize[]            = "SizeRelated/josekiMoveDialogSize";
 inline constexpr char kTsumeshogiGeneratorDialogSize[]   = "SizeRelated/tsumeshogiGeneratorDialogSize";

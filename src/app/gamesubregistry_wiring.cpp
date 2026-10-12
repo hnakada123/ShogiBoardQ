@@ -23,6 +23,8 @@
 #include "gamesessionorchestrator.h"
 #include "kifuexportmetadata.h"
 #include "kifufilecontroller.h"
+#include "matchcoordinator.h"
+#include "shogiview.h"
 #include "kifunavigationcoordinator.h"
 #include "matchruntimequeryservice.h"
 #include "piecesoundplayer.h"
@@ -295,6 +297,14 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
         m_mw.m_timeController->recordGameEndTime();
         if (m_mw.m_playerInfoWiring)
             m_mw.m_playerInfoWiring->updateGameInfoWithEndTime(m_mw.m_timeController->gameEndDateTime());
+    };
+    deps.saveKifuToPath = [this](const QString& path, QString* error) {
+        m_kifu->ensureKifuFileController();
+        return m_mw.m_kifuFileController && m_mw.m_kifuFileController->saveKifuToPath(path, error);
+    };
+    deps.setBoardFlipped = [this](bool flipped) {
+        // 通常対局と同じ経路で反転し、評価値グラフや名前表示の向きも揃える
+        if (m_mw.m_shogiView && m_mw.m_match && m_mw.m_shogiView->flipMode() != flipped) m_mw.m_match->flipBoard();
     };
     deps.syncPly = [this](int ply) {
         m_mw.m_state.currentMoveIndex = ply;

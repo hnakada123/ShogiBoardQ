@@ -18,7 +18,12 @@
 CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     : QObject(parent)
     , m_client(new CsaClient(this))
+    , m_reconnectTimer(new QTimer(this))
 {
+    m_reconnectTimer->setSingleShot(true);
+    m_reconnectTimer->setInterval(kReconnectDelayMs);
+    connect(m_reconnectTimer, &QTimer::timeout,
+            this, &CsaGameCoordinator::reconnectForNextGame);
     connect(m_client, &CsaClient::connectionStateChanged,
             this, &CsaGameCoordinator::onConnectionStateChanged);
     connect(m_client, &CsaClient::errorOccurred,
@@ -42,7 +47,7 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     connect(m_client, &CsaClient::moveConfirmed,
             this, &CsaGameCoordinator::onMoveConfirmed);
     connect(m_client, &CsaClient::gameEnded,
-            this, &CsaGameCoordinator::onClientGameEnded);
+            this, &CsaGameCoordinator::onServerGameEnded);
     connect(m_client, &CsaClient::gameInterrupted,
             this, &CsaGameCoordinator::onGameInterrupted);
     connect(m_client, &CsaClient::rawMessageReceived,
@@ -79,15 +84,17 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_options = options;
     m_playerType = options.playerType;
     m_engineNeedsRestart = false;
-    resetGameTracking();
-
-    setGameState(GameState::Connecting);
-    emit logMessage(tr("サーバー %1:%2 に接続中...").arg(options.host).arg(options.port));
-    m_client->connectToServer(options.host, options.port);
+    m_completedGames = 0;
+    m_thinkingMarginMs = qMax(0, options.thinkingMarginMs);
+    m_client->setKeepAliveEnabled(options.keepAliveEnabled);
+    m_client->setKeepAliveIntervalMs(options.keepAliveIntervalMs);
+    m_client->setTcpKeepAliveEnabled(options.tcpKeepAliveEnabled);
+    connectForGame();
 }
 
 void CsaGameCoordinator::stopGame()
 {
+    m_reconnectTimer->stop();
     if (m_gameState == GameState::InGame && m_isMyTurn) {
         performResign();
     } else if (m_gameState == GameState::WaitingForAgree) {
@@ -229,10 +236,19 @@ void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState sta
 
     case CsaClient::ConnectionState::Disconnected:
         if (m_gameState == GameState::InGame) {
+            m_lastGameEndedByServer = false;
             onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
             break;
         }
-        if (m_gameState != GameState::Idle && m_gameState != GameState::GameOver) {
+        if (m_gameState == GameState::GameOver) {
+            // shogi-server は終局のたびに切断する。対局数が残っていれば接続し直して次を待つ
+            if (m_options.reconnectAfterGame && m_lastGameEndedByServer && moreGamesWanted()) {
+                emit logMessage(tr("サーバーが切断しました。%1秒後に再接続します").arg(kReconnectDelayMs / 1000));
+                m_reconnectTimer->start();
+            }
+            break;
+        }
+        if (m_gameState != GameState::Idle) {
             emit logMessage(tr("サーバーから切断されました"), true);
             setGameState(GameState::Error);
         }
@@ -247,10 +263,18 @@ void CsaGameCoordinator::onClientError(const QString& message)
 {
     emit logMessage(tr("エラー: %1").arg(message), true);
     if (m_gameState == GameState::InGame) {
+        m_lastGameEndedByServer = false;
         onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
         return;
     }
     emit errorOccurred(message);
+}
+
+void CsaGameCoordinator::onServerGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause,
+                                           int consumedTimeMs)
+{
+    m_lastGameEndedByServer = true;
+    onClientGameEnded(result, cause, consumedTimeMs);
 }
 
 void CsaGameCoordinator::onCommandRejected(const QString& reason)
@@ -396,6 +420,10 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
         // 同じ接続で次の対局条件が来たら、エンジンを起動し直す
         m_engineNeedsRestart = true;
     }
+    // 対局数を数えてログアウトの要否を先に決める。終局の通知を受ける側（結果の表示・自動保存）は
+    // moreGamesWanted() で続行の有無を見られ、結果のダイアログが LOGOUT を遅らせない
+    ++m_completedGames;
+    handleGameCountAfterEnd();
     emit gameEnded(result, cause, actualConsumedTimeMs);
 }
 
@@ -460,6 +488,7 @@ void CsaGameCoordinator::onEngineControllerError(const QString& message)
 void CsaGameCoordinator::failGame(const QString& message)
 {
     const bool inGame = (m_gameState == GameState::InGame);
+    m_lastGameEndedByServer = false;
     if (m_gameState == GameState::WaitingForAgree) {
         // 同意できなくなった対局条件は拒否してから離れる
         m_client->reject(m_gameSummary.gameId);

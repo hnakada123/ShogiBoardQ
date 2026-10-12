@@ -573,6 +573,7 @@ set(SRC_NETWORK
     src/network/csaclient.cpp
     src/network/csaclient.h
     src/network/csaclient_parser.cpp
+    src/network/csaclient_commands.cpp
     src/network/csaenginecontroller.cpp
     src/network/csaenginecontroller.h
     src/network/csagamecoordinator.cpp
@@ -676,6 +677,7 @@ set(SRC_UI
     src/ui/wiring/considerationwiring.h
     src/ui/wiring/csagamewiring.cpp
     src/ui/wiring/csagamewiring.h
+    src/ui/wiring/csagamewiring_options.cpp
     src/ui/wiring/branchnavigationwiring.cpp
     src/ui/wiring/branchnavigationwiring.h
     src/ui/wiring/dialogcoordinatorwiring.cpp
@@ -840,6 +842,7 @@ set(SRC_DIALOGS
     src/dialogs/enginesettingsoptionhandler.cpp
     src/dialogs/enginesettingsoptionhandler.h
     src/dialogs/csagamedialog.cpp
+    src/dialogs/csagamedialog_settings.cpp
     src/dialogs/csagamedialog.h
     src/dialogs/csawaitingdialog.cpp
     src/dialogs/csawaitingdialog.h

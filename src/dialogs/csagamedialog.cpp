@@ -5,24 +5,21 @@
 #include "ui_csagamedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "enginelistsettings.h"
-#include "settingscommon.h"
 #include "networksettings.h"
 #include "dialogutils.h"
-#include <QSettings>
+#include <QDir>
+#include <QFileDialog>
 #include <QMessageBox>
 #include <QRegularExpression>
 #include <QSignalBlocker>
 
 namespace {
-constexpr auto kCsaServerHistoryArray = "CsaServerHistory";
-constexpr auto kCsaGameSettingsGroup = "CsaGameSettings";
-constexpr auto kKeyHost = "host";
-constexpr auto kKeyPort = "port";
-constexpr auto kKeyId = "id";
-constexpr auto kKeyIsHuman = "isHuman";
-constexpr auto kKeyEngineNumber = "engineNumber";
-constexpr auto kKeyEngineName = "engineName";
-constexpr auto kKeyPassword = "password";
+/// shogi-server のゲーム名（名前-持時間-秒読み、末尾の F はフィッシャー）
+const QRegularExpression& gameNamePattern()
+{
+    static const QRegularExpression pattern(QStringLiteral("^[0-9A-Za-z_@.\\-]+-\\d+-\\d+F?$"));
+    return pattern;
+}
 } // namespace
 
 CsaGameDialog::CsaGameDialog(QWidget *parent)
@@ -32,6 +29,7 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
                     NetworkSettings::setCsaGameDialogFontSize})
 {
     ui->setupUi(this);
+    populateAutoSaveFormats();
 
     // フォントサイズを適用
     applyFontSize();
@@ -50,6 +48,7 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
 
     // 設定ファイルから対局設定を読み込む
     loadGameSettings();
+    loadAdvancedSettings();
 
     // シグナル・スロットの接続を行う
     connectSignalsAndSlots();
@@ -74,8 +73,13 @@ void CsaGameDialog::connectSignalsAndSlots()
             this, &CsaGameDialog::updateFormState);
     connect(ui->comboBoxEngine, &QComboBox::currentIndexChanged,
             this, &CsaGameDialog::updateFormState);
-    for (auto* input : {ui->lineEditHost, ui->lineEditId, ui->lineEditPassword}) {
+    for (auto* input : {ui->lineEditHost, ui->lineEditId, ui->lineEditPassword,
+                        ui->lineEditAutoSaveDir, ui->lineEditGameName}) {
         connect(input, &QLineEdit::textChanged, this, &CsaGameDialog::updateFormState);
+    }
+    for (QAbstractButton* toggle : std::initializer_list<QAbstractButton*>{
+             ui->checkBoxKeepAlive, ui->checkBoxAutoSave, ui->radioButtonGamesCount}) {
+        connect(toggle, &QAbstractButton::toggled, this, &CsaGameDialog::updateFormState);
     }
     // 対局開始ボタン
     connect(ui->pushButtonStart, &QPushButton::clicked,
@@ -96,6 +100,10 @@ void CsaGameDialog::connectSignalsAndSlots()
     // パスワード表示チェックボックス
     connect(ui->checkBoxShowPassword, &QCheckBox::toggled,
             this, &CsaGameDialog::onShowPasswordToggled);
+
+    // 自動保存先の参照
+    connect(ui->pushButtonAutoSaveDir, &QPushButton::clicked,
+            this, &CsaGameDialog::onAutoSaveDirBrowse);
 
     // フォントサイズボタン
     connect(ui->toolButtonFontIncrease, &QToolButton::clicked,
@@ -146,144 +154,15 @@ void CsaGameDialog::populateUIWithEngines()
     }
 }
 
-// 設定ファイルからサーバー接続履歴を読み込む
-void CsaGameDialog::loadServerHistory()
+void CsaGameDialog::populateAutoSaveFormats()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // [CsaServerHistory]グループ内の履歴数を取得する
-    int size = settings.beginReadArray(kCsaServerHistoryArray);
-
-    // 履歴リストをクリアする
-    m_serverHistory.clear();
-
-    // 履歴リストに追加する
-    for (int i = 0; i < size; ++i) {
-        settings.setArrayIndex(i);
-        ServerHistory history;
-        history.host = settings.value(kKeyHost).toString();
-        history.port = settings.value(kKeyPort, 4081).toInt();
-        history.id = settings.value(kKeyId).toString();
-        m_serverHistory.append(history);
-    }
-
-    settings.endArray();
-}
-
-// 現在の設定をサーバー接続履歴として保存する
-void CsaGameDialog::saveServerHistory()
-{
-    // 現在の設定を取得
-    ServerHistory current;
-    current.host = ui->lineEditHost->text().trimmed();
-    current.port = ui->spinBoxPort->value();
-    current.id = ui->lineEditId->text().trimmed();
-
-    // 空の場合は保存しない
-    if (current.host.isEmpty() || current.id.isEmpty()) {
-        return;
-    }
-
-    // 同じ設定が既にあるか確認し、あれば削除（最新を先頭に移動するため）
-    for (int i = 0; i < m_serverHistory.size(); ++i) {
-        const ServerHistory& h = m_serverHistory.at(i);
-        if (h.host == current.host && h.port == current.port && h.id == current.id) {
-            m_serverHistory.removeAt(i);
-            break;
-        }
-    }
-
-    // 先頭に追加
-    m_serverHistory.prepend(current);
-
-    // 最大10件まで保持
-    while (m_serverHistory.size() > 10) {
-        m_serverHistory.removeLast();
-    }
-
-    // 設定ファイルに保存
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    settings.beginWriteArray(kCsaServerHistoryArray);
-    for (int i = 0; i < m_serverHistory.size(); ++i) {
-        settings.setArrayIndex(i);
-        const ServerHistory& h = m_serverHistory.at(i);
-        settings.setValue(kKeyHost, h.host);
-        settings.setValue(kKeyPort, h.port);
-        settings.setValue(kKeyId, h.id);
-    }
-    settings.endArray();
-}
-
-// UIにサーバー履歴を反映する
-void CsaGameDialog::populateUIWithServerHistory()
-{
-    // 履歴コンボボックスをクリアする
-    ui->comboBoxHistory->clear();
-
-    ui->comboBoxHistory->addItem(tr("新しい接続先"));
-    ui->comboBoxHistory->setEnabled(!m_serverHistory.isEmpty());
-
-    // 履歴リストからサーバー履歴をコンボボックスに追加する
-    for (const ServerHistory& history : std::as_const(m_serverHistory)) {
-        QString displayText = formatServerHistoryDisplay(history);
-        ui->comboBoxHistory->addItem(displayText);
-    }
-}
-
-// サーバー履歴の表示文字列を生成する
-QString CsaGameDialog::formatServerHistoryDisplay(const ServerHistory& history) const
-{
-    return QString("%1:%2 %3").arg(history.host).arg(history.port).arg(history.id);
-}
-
-// 設定ファイルから対局設定を読み込む
-void CsaGameDialog::loadGameSettings()
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    settings.beginGroup(kCsaGameSettingsGroup);
-
-    // 対局者設定
-    bool isHuman = settings.value(kKeyIsHuman, true).toBool();
-    ui->radioButtonHuman->setChecked(isHuman);
-    ui->radioButtonEngine->setChecked(!isHuman);
-
-    int engineIndex = ui->comboBoxEngine->findText(settings.value(kKeyEngineName).toString());
-    if (engineIndex < 0) engineIndex = settings.value(kKeyEngineNumber, 0).toInt();
-    if (engineIndex >= 0 && engineIndex < ui->comboBoxEngine->count()) {
-        ui->comboBoxEngine->setCurrentIndex(engineIndex);
-    }
-
-    // サーバー設定
-    ui->lineEditHost->setText(settings.value(kKeyHost, "").toString());
-    ui->spinBoxPort->setValue(settings.value(kKeyPort, 4081).toInt());
-    ui->lineEditId->setText(settings.value(kKeyId, "").toString());
-    ui->lineEditPassword->clear();
-    settings.remove(kKeyPassword);
-
-    settings.endGroup();
-}
-
-// 対局設定を設定ファイルに保存する
-void CsaGameDialog::saveGameSettings()
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    settings.beginGroup(kCsaGameSettingsGroup);
-
-    // 対局者設定
-    settings.setValue(kKeyIsHuman, ui->radioButtonHuman->isChecked());
-    settings.setValue(kKeyEngineName, ui->comboBoxEngine->currentText());
-    settings.setValue(kKeyEngineNumber, ui->comboBoxEngine->currentIndex());
-
-    // サーバー設定
-    settings.setValue(kKeyHost, ui->lineEditHost->text().trimmed());
-    settings.setValue(kKeyPort, ui->spinBoxPort->value());
-    settings.setValue(kKeyId, ui->lineEditId->text().trimmed());
-    settings.remove(kKeyPassword);
-
-    settings.endGroup();
+    ui->comboBoxAutoSaveFormat->clear();
+    ui->comboBoxAutoSaveFormat->addItem(tr("KIF (Shift_JIS, .kif)"), QStringLiteral("kif"));
+    ui->comboBoxAutoSaveFormat->addItem(tr("KIF (UTF-8, .kifu)"), QStringLiteral("kifu"));
+    ui->comboBoxAutoSaveFormat->addItem(tr("KI2 (.ki2)"), QStringLiteral("ki2"));
+    ui->comboBoxAutoSaveFormat->addItem(tr("CSA (.csa)"), QStringLiteral("csa"));
+    ui->comboBoxAutoSaveFormat->addItem(tr("JKF (.jkf)"), QStringLiteral("jkf"));
+    ui->comboBoxAutoSaveFormat->addItem(tr("USI (.usi)"), QStringLiteral("usi"));
 }
 
 QString CsaGameDialog::validationMessage() const
@@ -311,6 +190,13 @@ QString CsaGameDialog::validationMessage() const
     if (!passwordPattern.match(password).hasMatch()) {
         return tr("パスワードは半角の英数字・記号のみを使い、32文字以内で入力してください。");
     }
+    const QString gameName = ui->lineEditGameName->text().trimmed();
+    if (!gameName.isEmpty() && !gameNamePattern().match(gameName).hasMatch()) {
+        return tr("ゲーム名は「名前-持時間-秒読み」の形式で入力してください（例: floodgate-300-10F）。");
+    }
+    if (ui->checkBoxAutoSave->isChecked() && ui->lineEditAutoSaveDir->text().trimmed().isEmpty()) {
+        return tr("棋譜の自動保存先フォルダを指定してください。");
+    }
     return {};
 }
 
@@ -319,6 +205,17 @@ void CsaGameDialog::updateFormState()
     const bool engine = ui->radioButtonEngine->isChecked();
     ui->comboBoxEngine->setEnabled(engine && ui->comboBoxEngine->count() > 0);
     ui->pushButtonEngineSettings->setEnabled(engine && ui->comboBoxEngine->currentIndex() >= 0);
+    ui->spinBoxThinkingMargin->setEnabled(engine);
+    ui->labelThinkingMargin->setEnabled(engine);
+    ui->spinBoxKeepAliveInterval->setEnabled(ui->checkBoxKeepAlive->isChecked());
+    ui->labelKeepAliveInterval->setEnabled(ui->checkBoxKeepAlive->isChecked());
+    ui->spinBoxGameCount->setEnabled(ui->radioButtonGamesCount->isChecked());
+    const bool autoSave = ui->checkBoxAutoSave->isChecked();
+    for (QWidget* w : std::initializer_list<QWidget*>{ui->labelAutoSaveDir, ui->lineEditAutoSaveDir,
+                                                     ui->pushButtonAutoSaveDir, ui->labelAutoSaveFormat,
+                                                     ui->comboBoxAutoSaveFormat}) {
+        w->setEnabled(autoSave);
+    }
     const QString message = validationMessage();
     ui->labelValidation->setText(message.isEmpty() ? tr("接続後、対局相手を待ちます。") : message);
     ui->pushButtonStart->setEnabled(message.isEmpty());
@@ -341,8 +238,25 @@ void CsaGameDialog::onAccepted()
     m_loginId = ui->lineEditId->text().trimmed();
     m_password = ui->lineEditPassword->text();
 
+    m_keepAliveEnabled = ui->checkBoxKeepAlive->isChecked();
+    m_keepAliveIntervalSec = ui->spinBoxKeepAliveInterval->value();
+    m_tcpKeepAliveEnabled = ui->checkBoxTcpKeepAlive->isChecked();
+    m_thinkingMarginSec = ui->spinBoxThinkingMargin->value();
+    m_gameCountMode = ui->radioButtonGamesUnlimited->isChecked() ? GameCountMode::Unlimited
+                    : ui->radioButtonGamesCount->isChecked() ? GameCountMode::Count
+                    : GameCountMode::Single;
+    m_gameCount = ui->spinBoxGameCount->value();
+    m_reconnectAfterGame = ui->checkBoxReconnect->isChecked();
+    m_autoSaveEnabled = ui->checkBoxAutoSave->isChecked();
+    m_autoSaveDir = ui->lineEditAutoSaveDir->text().trimmed();
+    m_autoSaveFormat = ui->comboBoxAutoSaveFormat->currentData().toString();
+    m_autoFlipBoard = ui->checkBoxAutoFlip->isChecked();
+    m_gameName = ui->lineEditGameName->text().trimmed();
+    m_turnPreference = static_cast<TurnPreference>(ui->comboBoxTurnPreference->currentIndex());
+
     // 設定を保存
     saveGameSettings();
+    saveAdvancedSettings();
     saveServerHistory();
 
     // ダイアログを受け入れて閉じる
@@ -379,6 +293,14 @@ void CsaGameDialog::onShowPasswordToggled(bool checked)
     } else {
         ui->lineEditPassword->setEchoMode(QLineEdit::Password);
     }
+}
+
+void CsaGameDialog::onAutoSaveDirBrowse()
+{
+    const QString current = ui->lineEditAutoSaveDir->text().trimmed();
+    const QString dir = QFileDialog::getExistingDirectory(
+        this, tr("棋譜の自動保存先"), current.isEmpty() ? QDir::homePath() : current);
+    if (!dir.isEmpty()) ui->lineEditAutoSaveDir->setText(QDir::toNativeSeparators(dir));
 }
 
 // エンジン設定ダイアログを表示する
@@ -422,6 +344,16 @@ QString CsaGameDialog::password() const
     return m_password;
 }
 
+QString CsaGameDialog::loginPassword() const
+{
+    if (m_gameName.isEmpty()) return m_password;
+    // shogi-server: 「ゲーム名[-b|-w],パスワード」をパスワード欄で受け付ける
+    QString token = m_gameName;
+    if (m_turnPreference == TurnPreference::Black) token += QStringLiteral("-b");
+    else if (m_turnPreference == TurnPreference::White) token += QStringLiteral("-w");
+    return token + QLatin1Char(',') + m_password;
+}
+
 bool CsaGameDialog::isHuman() const
 {
     return m_isHuman;
@@ -440,6 +372,16 @@ int CsaGameDialog::engineNumber() const
 const QList<CsaGameDialog::Engine>& CsaGameDialog::engineList() const
 {
     return m_engineList;
+}
+
+int CsaGameDialog::gameLimit() const
+{
+    switch (m_gameCountMode) {
+    case GameCountMode::Count: return qMax(1, m_gameCount);
+    case GameCountMode::Unlimited: return 0;
+    case GameCountMode::Single: break;
+    }
+    return 1;
 }
 
 // フォントサイズを大きくする

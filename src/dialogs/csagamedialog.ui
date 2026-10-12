@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>520</width>
-    <height>440</height>
+    <width>540</width>
+    <height>500</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,180 +20,486 @@
    <property name="rightMargin"><number>16</number></property>
    <property name="bottomMargin"><number>16</number></property>
    <item>
-    <widget class="QGroupBox" name="groupBoxPlayer">
-     <property name="title">
-      <string>こちら側の対局者</string>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayoutPlayer">
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayoutHuman">
-        <item>
-         <widget class="QRadioButton" name="radioButtonHuman">
-          <property name="text">
-           <string>人間</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacerHuman">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayoutEngine">
-        <item>
-         <widget class="QRadioButton" name="radioButtonEngine">
-          <property name="text">
-           <string>エンジン</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="comboBoxEngine">
-          <property name="minimumSize">
-           <size>
-            <width>200</width>
-            <height>0</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButtonEngineSettings">
-          <property name="text">
-           <string>エンジン設定...</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBoxServer">
-     <property name="title">
-      <string>サーバー</string>
-     </property>
-     <layout class="QFormLayout" name="formLayoutServer">
-      <item row="0" column="0">
-       <widget class="QLabel" name="labelHistory">
-        <property name="text">
-         <string>履歴から選ぶ</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="comboBoxHistory">
-        <property name="minimumSize">
-         <size>
-          <width>280</width>
-          <height>0</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="labelVersion">
-        <property name="text">
-         <string>プロトコル</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLabel" name="labelProtocolValue">
-        <property name="text"><string>CSAプロトコル1.2.1</string></property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="labelHost">
-        <property name="text">
-         <string>接続先ホスト</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="lineEditHost">
-        <property name="placeholderText">
-         <string>例: localhost / 127.0.0.1</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="labelPort">
-        <property name="text">
-         <string>ポート番号</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QSpinBox" name="spinBoxPort">
-        <property name="minimum">
-         <number>1</number>
-        </property>
-        <property name="maximum">
-         <number>65535</number>
-        </property>
-        <property name="value">
-         <number>4081</number>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="labelId">
-        <property name="text">
-         <string>ID</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="QLineEdit" name="lineEditId">
-        <property name="placeholderText">
-         <string>ログインID</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="labelPassword">
-        <property name="text">
-         <string>パスワード</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="1">
-       <widget class="QLineEdit" name="lineEditPassword">
-        <property name="toolTip">
-         <string>shogi-serverでは「ゲーム名,パスワード」を指定します（例: test-600-10,pw）。パスワードは保存されません。</string>
-        </property>
-        <property name="echoMode">
-         <enum>QLineEdit::EchoMode::Password</enum>
-        </property>
-        <property name="placeholderText">
-         <string>パスワード</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="1">
-       <widget class="QCheckBox" name="checkBoxShowPassword">
-        <property name="text">
-         <string>パスワードを表示する</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
+     <widget class="QWidget" name="tabBasic">
+      <attribute name="title">
+       <string>基本</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutBasic">
+       <item>
+        <widget class="QGroupBox" name="groupBoxPlayer">
+         <property name="title">
+          <string>こちら側の対局者</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayoutPlayer">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayoutHuman">
+            <item>
+             <widget class="QRadioButton" name="radioButtonHuman">
+              <property name="text">
+               <string>人間</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacerHuman">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayoutEngine">
+            <item>
+             <widget class="QRadioButton" name="radioButtonEngine">
+              <property name="text">
+               <string>エンジン</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBoxEngine">
+              <property name="minimumSize">
+               <size>
+                <width>200</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButtonEngineSettings">
+              <property name="text">
+               <string>エンジン設定...</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBoxServer">
+         <property name="title">
+          <string>サーバー</string>
+         </property>
+         <layout class="QFormLayout" name="formLayoutServer">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelHistory">
+            <property name="text">
+             <string>履歴から選ぶ</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboBoxHistory">
+            <property name="minimumSize">
+             <size>
+              <width>280</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelVersion">
+            <property name="text">
+             <string>プロトコル</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="labelProtocolValue">
+            <property name="text"><string>CSAプロトコル1.2.1</string></property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelHost">
+            <property name="text">
+             <string>接続先ホスト</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLineEdit" name="lineEditHost">
+            <property name="placeholderText">
+             <string>例: localhost / 127.0.0.1</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelPort">
+            <property name="text">
+             <string>ポート番号</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QSpinBox" name="spinBoxPort">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>65535</number>
+            </property>
+            <property name="value">
+             <number>4081</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="labelId">
+            <property name="text">
+             <string>ID</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLineEdit" name="lineEditId">
+            <property name="placeholderText">
+             <string>ログインID</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="labelPassword">
+            <property name="text">
+             <string>パスワード</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QLineEdit" name="lineEditPassword">
+            <property name="toolTip">
+             <string>パスワードは保存されません。shogi-server のゲーム名は「詳細」タブで指定できます。</string>
+            </property>
+            <property name="echoMode">
+             <enum>QLineEdit::EchoMode::Password</enum>
+            </property>
+            <property name="placeholderText">
+             <string>パスワード</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QCheckBox" name="checkBoxShowPassword">
+            <property name="text">
+             <string>パスワードを表示する</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacerBasic">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabAdvanced">
+      <attribute name="title">
+       <string>詳細</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutAdvanced">
+       <item>
+        <widget class="QGroupBox" name="groupBoxKeepAlive">
+         <property name="title">
+          <string>接続の維持</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayoutKeepAlive">
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="checkBoxKeepAlive">
+            <property name="text">
+             <string>対局中に空行を送って接続を維持する</string>
+            </property>
+            <property name="toolTip">
+             <string>CSAプロトコルのキープアライブ（LFだけの行）です。直前の送信から指定の秒数が経つと送ります。</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="labelKeepAliveInterval">
+            <property name="text">
+             <string>間隔</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QSpinBox" name="spinBoxKeepAliveInterval">
+            <property name="toolTip">
+             <string>仕様では直前の送信から30秒以上空ける必要があります。</string>
+            </property>
+            <property name="suffix">
+             <string> 秒</string>
+            </property>
+            <property name="minimum">
+             <number>30</number>
+            </property>
+            <property name="maximum">
+             <number>300</number>
+            </property>
+            <property name="value">
+             <number>40</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxTcpKeepAlive">
+            <property name="text">
+             <string>TCPキープアライブを使う（無通信のときにOSがパケットを送る）</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBoxGames">
+         <property name="title">
+          <string>対局</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayoutGames">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelGameCount">
+            <property name="text">
+             <string>対局数</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QRadioButton" name="radioButtonGamesSingle">
+            <property name="text">
+             <string>1局</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QRadioButton" name="radioButtonGamesCount">
+            <property name="text">
+             <string>指定回数</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QSpinBox" name="spinBoxGameCount">
+            <property name="suffix">
+             <string> 局</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>999</number>
+            </property>
+            <property name="value">
+             <number>2</number>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="4">
+           <widget class="QRadioButton" name="radioButtonGamesUnlimited">
+            <property name="text">
+             <string>無制限</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="5">
+           <widget class="QCheckBox" name="checkBoxReconnect">
+            <property name="text">
+             <string>終局後にサーバーが切断したら再接続して次の対局を待つ</string>
+            </property>
+            <property name="toolTip">
+             <string>shogi-server は終局のたびに切断します。対局数が残っているときだけ再接続します。</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="5">
+           <widget class="QCheckBox" name="checkBoxAutoFlip">
+            <property name="text">
+             <string>後手のときは盤を反転する</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelThinkingMargin">
+            <property name="text">
+             <string>思考時間の余裕</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1" colspan="2">
+           <widget class="QSpinBox" name="spinBoxThinkingMargin">
+            <property name="toolTip">
+             <string>通信の遅延に備えて、エンジンに渡す秒読みと残り時間から差し引く秒数です（エンジン対局のみ）。</string>
+            </property>
+            <property name="suffix">
+             <string> 秒</string>
+            </property>
+            <property name="minimum">
+             <number>0</number>
+            </property>
+            <property name="maximum">
+             <number>30</number>
+            </property>
+            <property name="value">
+             <number>1</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBoxAutoSave">
+         <property name="title">
+          <string>棋譜の自動保存</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayoutAutoSave">
+          <item row="0" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxAutoSave">
+            <property name="text">
+             <string>終局時に棋譜を自動保存する</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelAutoSaveDir">
+            <property name="text">
+             <string>保存先</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="lineEditAutoSaveDir">
+            <property name="placeholderText">
+             <string>フォルダ</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="pushButtonAutoSaveDir">
+            <property name="text">
+             <string>参照...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelAutoSaveFormat">
+            <property name="text">
+             <string>形式</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="comboBoxAutoSaveFormat"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBoxShogiServer">
+         <property name="title">
+          <string>shogi-server</string>
+         </property>
+         <layout class="QFormLayout" name="formLayoutShogiServer">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelGameName">
+            <property name="text">
+             <string>ゲーム名</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="lineEditGameName">
+            <property name="toolTip">
+             <string>shogi-server の「名前-持時間-秒読み」形式のゲーム名です。空欄ならサーバーの既定のゲームに入ります。</string>
+            </property>
+            <property name="placeholderText">
+             <string>例: floodgate-300-10F（空欄なら既定）</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelTurnPreference">
+            <property name="text">
+             <string>手番の希望</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="comboBoxTurnPreference">
+            <item>
+             <property name="text">
+              <string>指定なし</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>先手</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>後手</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacerAdvanced">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
    <item>
@@ -201,19 +507,6 @@
      <property name="wordWrap"><bool>true</bool></property>
      <property name="text"><string/></property>
     </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Orientation::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>10</height>
-      </size>
-     </property>
-    </spacer>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayoutButtons">

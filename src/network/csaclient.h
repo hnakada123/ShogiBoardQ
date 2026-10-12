@@ -255,6 +255,20 @@ public:
     /// 送った指し手・意思表示に対するサーバーの確認を待っているか
     bool isAwaitingMoveConfirmation() const { return m_awaitingMoveConfirmation; }
 
+    // --- 接続の維持 ---
+
+    /// 対局中の空行キープアライブを使うか（デフォルト: 使う）
+    void setKeepAliveEnabled(bool enabled);
+    bool isKeepAliveEnabled() const { return m_keepAliveEnabled; }
+
+    /// 空行キープアライブの間隔（ミリ秒）。仕様の下限 kKeepAliveMinIntervalMs より短くはしない
+    void setKeepAliveIntervalMs(int intervalMs);
+    int keepAliveIntervalMs() const { return m_keepAliveTimer->interval(); }
+
+    /// OS の TCP キープアライブを使うか（デフォルト: 使う）。接続時にソケットへ設定する
+    void setTcpKeepAliveEnabled(bool enabled) { m_tcpKeepAliveEnabled = enabled; }
+    bool isTcpKeepAliveEnabled() const { return m_tcpKeepAliveEnabled; }
+
     /// 対局待ち状態（ログイン済みで対局中でない）か。終局後もここに含む
     static bool isWaitingState(ConnectionState state);
 
@@ -412,6 +426,9 @@ private:
     /// 対局中に自分の手番でだけ送れるコマンド（指し手・%TORYO など）か
     static bool isTurnBoundCommand(const QString& command);
 
+    /// 接続直後にソケットへ Nagle 無効化と TCP キープアライブを設定する
+    void applySocketOptions();
+
     /**
      * @brief 自分の手番で送れる状態か。送れないときは commandRejected() を発行する
      * @param what 送ろうとした内容（通知文に使う）
@@ -441,6 +458,8 @@ private:
     bool m_isMyTurn = false;            ///< 自分の手番かどうか
     bool m_awaitingMoveConfirmation = false; ///< 送った指し手・意思表示の確認待ち
     bool m_logoutPending = false;       ///< LOGOUT 送信済みで応答待ち
+    bool m_keepAliveEnabled = true;     ///< 対局中に空行キープアライブを送るか
+    bool m_tcpKeepAliveEnabled = true;  ///< OS の TCP キープアライブを使うか
     bool m_inGameSummary = false;       ///< Game_Summary解析中フラグ
     bool m_inTimeSection = false;       ///< Time解析中フラグ
     bool m_inPositionSection = false;   ///< Position解析中フラグ
@@ -451,9 +470,13 @@ private:
 
     static constexpr int kConnectionTimeoutMs = 10000; ///< 接続タイムアウト（10秒）
     static constexpr int kLogoutTimeoutMs = 3000;      ///< LOGOUT:completed を待つ上限
-    /// キープアライブの間隔。仕様は直前の送信から30秒以上空けることを求める
-    static constexpr int kKeepAliveIntervalMs = 60000;
-    static constexpr int kKeepAliveMinIntervalMs = 30000; ///< 手動キープアライブの最短間隔（仕様 3.4）
+    /// 空行キープアライブの既定の間隔。仕様は直前の送信から30秒以上空けることを求める
+    static constexpr int kKeepAliveIntervalMs = 40000;
+    static constexpr int kKeepAliveMinIntervalMs = 30000; ///< キープアライブの最短間隔（仕様 3.4）
+    /// OS の TCP キープアライブ: 無通信がこの時間続いたら探査を始め、応答が無ければ間隔ごとに送る
+    static constexpr int kTcpKeepAliveIdleSec = 30;
+    static constexpr int kTcpKeepAliveIntervalSec = 10;
+    static constexpr int kTcpKeepAliveProbeCount = 5;
 };
 
 #endif // CSACLIENT_H

@@ -74,6 +74,10 @@ public:
         std::function<void(int)> syncPly;
         /// 終局日時を記録して対局情報に反映する
         std::function<void()> recordGameEnd;
+        /// 棋譜を指定パスへ保存する（拡張子で形式を決める）。失敗時は理由を返す
+        std::function<bool(const QString&, QString*)> saveKifuToPath;
+        /// 盤の反転表示を指定の向きにする（後手のときに自分側から見る）
+        std::function<void(bool)> setBoardFlipped;
     };
 
     /**
@@ -265,6 +269,13 @@ private:
                              bool blackToMove) const;
 
     void appendInitialKifuLine(const QString& prettyMove, const QString& elapsedTime, const QString& sfen);
+
+    /// 接続ダイアログの入力から対局開始オプションを組み立て、配線側の設定（自動保存・盤反転）も控える
+    CsaGameCoordinator::StartOptions buildStartOptions(const CsaGameDialog* dialog);
+    /// 終局した棋譜を自動保存先へ書き出す（設定が有効なとき）
+    void autoSaveRecord();
+    /// 後手のときに盤を反転する（設定が有効なとき）
+    void applyAutoFlip();
     QString buildNumberedKifuLine(const QString& prettyMove) const;
 
     // 依存オブジェクト
@@ -292,9 +303,17 @@ private:
     std::function<void(const QString&, const QString&, const QString&)> m_prepareRecord;
     std::function<void(int)> m_syncPly;
     std::function<void()> m_recordGameEnd;
+    std::function<bool(const QString&, QString*)> m_saveKifuToPath;
+    std::function<void(bool)> m_setBoardFlipped;
 
     // 内部状態
     int m_activePly = 0;
+
+    // 接続ダイアログの詳細設定（配線側で扱うもの）
+    bool m_autoSaveEnabled = false;      ///< 終局時に棋譜を自動保存する
+    QString m_autoSaveDir;               ///< 自動保存先フォルダ
+    QString m_autoSaveFormat = QStringLiteral("kif"); ///< 自動保存の形式（拡張子）
+    bool m_autoFlipBoard = true;         ///< 後手のときは盤を反転する
 };
 
 #endif // CSAGAMEWIRING_H

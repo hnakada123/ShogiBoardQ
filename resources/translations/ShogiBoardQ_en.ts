@@ -1707,27 +1707,27 @@ Discard the changes and move?</translation>
         <translation>Game conditions not received</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="219"/>
+        <location filename="../../src/network/csaclient_commands.cpp" line="24"/>
         <source>自分の手番ではないため送信しません: %1</source>
         <translation>Not sent because it is not your turn: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="223"/>
+        <location filename="../../src/network/csaclient_commands.cpp" line="28"/>
         <source>直前の送信に対するサーバーの確認を待っているため送信しません: %1</source>
         <translation>Not sent while waiting for the server to confirm the previous command: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="238"/>
+        <location filename="../../src/network/csaclient.cpp" line="225"/>
         <source>対局中ではありません</source>
         <translation>No game in progress</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="267"/>
+        <location filename="../../src/network/csaclient_commands.cpp" line="48"/>
         <source>キープアライブ（空行）は対局中にのみ送信できます</source>
         <translation>A keep-alive (empty line) can only be sent during a game</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="271"/>
+        <location filename="../../src/network/csaclient_commands.cpp" line="52"/>
         <source>キープアライブは直前の送信から30秒以上空ける必要があります</source>
         <translation>A keep-alive must come at least 30 seconds after the previous transmission</translation>
     </message>
@@ -1736,12 +1736,12 @@ Discard the changes and move?</translation>
         <translation type="vanished">Not your turn</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="405"/>
+        <location filename="../../src/network/csaclient.cpp" line="313"/>
         <source>接続がタイムアウトしました</source>
         <translation>Connection timed out</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="468"/>
+        <location filename="../../src/network/csaclient.cpp" line="366"/>
         <source>メッセージの送信に失敗しました: %1</source>
         <translation>Failed to send message: %1</translation>
     </message>
@@ -1772,61 +1772,66 @@ Discard the changes and move?</translation>
 <context>
     <name>CsaGameCoordinator</name>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="74"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="79"/>
         <source>対局中は新しい対局を開始できません</source>
         <translation>Cannot start a new game while playing</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="85"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="314"/>
         <source>サーバー %1:%2 に接続中...</source>
         <translation>Connecting to server %1:%2...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="144"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="176"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="194"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="204"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="151"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="183"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="201"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="211"/>
         <source>相手の手番です</source>
         <translation>Opponent&apos;s turn</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="157"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="158"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="164"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="165"/>
         <source>CSA指し手の生成に失敗しました。</source>
         <translation>Failed to generate the CSA move.</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="209"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="216"/>
         <source>対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります</source>
         <translation>The game conditions do not include the entering-king declaration rule (Declaration:Jishogi). The declaration may be ruled an illegal move.</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="225"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="232"/>
         <source>接続完了。ログイン中...</source>
         <translation>Connected. Logging in...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="236"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="246"/>
+        <source>サーバーが切断しました。%1秒後に再接続します</source>
+        <translation>The server closed the connection. Reconnecting in %1 seconds</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="252"/>
         <source>サーバーから切断されました</source>
         <translation>Disconnected from server</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="248"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="264"/>
         <source>エラー: %1</source>
         <translation>Error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="264"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="288"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation>Login successful. Waiting for game...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="274"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="298"/>
         <source>ログイン失敗: %1</source>
         <translation>Login failed: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="282"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="306"/>
         <source>ログアウト完了</source>
         <translation>Logged out</translation>
     </message>
@@ -1901,17 +1906,47 @@ Discard the changes and move?</translation>
         <translation>Black: %1, White: %2</translation>
     </message>
     <message>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="322"/>
+        <source>予定の対局数（%1局）を終えたのでログアウトします</source>
+        <translation>All %1 scheduled games are finished; logging out</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="327"/>
+        <source>%1/%2局</source>
+        <translation>game %1 of %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="328"/>
+        <source>%1局目まで終了</source>
+        <translation>%1 game(s) finished</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="330"/>
+        <source>次の対局条件を待ちます（%1）</source>
+        <translation>Waiting for the next game conditions (%1)</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="338"/>
+        <source>次の対局のために再接続します（%1局目まで終了）</source>
+        <translation>Reconnecting for the next game (%1 finished)</translation>
+    </message>
+    <message>
         <location filename="../../src/network/csagamecoordinator_setup.cpp" line="223"/>
         <source>持時間: %1秒, 秒読み: %2秒, 加算: %3秒</source>
         <translation>Time: %1 sec, Byoyomi: %2 sec, Increment: %3 sec</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="264"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="263"/>
+        <source>予定の対局数を終えているので、対局条件を拒否します</source>
+        <translation>The scheduled games are finished; rejecting the game conditions</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="272"/>
         <source>対局条件を拒否します: %1</source>
         <translation>Rejecting the game conditions: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="443"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="468"/>
         <source>エンジンが入玉宣言を選択しました</source>
         <translation>Engine chose to declare entering king</translation>
     </message>
@@ -1920,17 +1955,17 @@ Discard the changes and move?</translation>
         <translation type="vanished">Time: %1 sec, Byoyomi: %2 sec</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="276"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="284"/>
         <source>対局条件に同意します...</source>
         <translation>Agreeing to game conditions...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="290"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="314"/>
         <source>対局開始！</source>
         <translation>Game started!</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="314"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="338"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation>Game rejected (ID: %1, Rejected by: %2)</translation>
     </message>
@@ -2015,27 +2050,27 @@ Discard the changes and move?</translation>
         <translation type="vanished">Cheating</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="379"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="403"/>
         <source>対局終了: %1 (%2)</source>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="404"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="429"/>
         <source>対局が中断されました</source>
         <translation>Game was interrupted</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="409"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="434"/>
         <source>[RECV] %1</source>
         <translation>[RECV] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="415"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="440"/>
         <source>[SEND] %1</source>
         <translation>[SEND] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="434"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="459"/>
         <source>エンジンが投了を選択しました</source>
         <translation>Engine chose to resign</translation>
     </message>
@@ -2090,74 +2125,244 @@ Discard the changes and move?</translation>
         <translation>Network Game (CSA)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="112"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="122"/>
         <source>プロトコル</source>
         <translation>Protocol</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="131"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="141"/>
         <source>例: localhost / 127.0.0.1</source>
         <translation>e.g. localhost / 127.0.0.1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="179"/>
         <source>shogi-serverでは「ゲーム名,パスワード」を指定します（例: test-600-10,pw）。パスワードは保存されません。</source>
-        <translation>For shogi-server, enter game-name,password (e.g. test-600-10,pw). Passwords are not saved.</translation>
+        <translation type="vanished">For shogi-server, enter game-name,password (e.g. test-600-10,pw). Passwords are not saved.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="223"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="516"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="226"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="519"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="233"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="526"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="236"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="529"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="256"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="549"/>
         <source>接続</source>
         <translation>Connect</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="25"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="35"/>
         <source>こちら側の対局者</source>
         <translation>Player on this side</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="33"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="29"/>
+        <source>基本</source>
+        <translation>Basic</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="43"/>
         <source>人間</source>
         <translation>Human</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="60"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="70"/>
         <source>エンジン</source>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="77"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="87"/>
         <source>エンジン設定...</source>
         <translation>Engine Settings...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="89"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="99"/>
         <source>サーバー</source>
         <translation>Server</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="95"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="105"/>
         <source>履歴から選ぶ</source>
         <translation>Select from history</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="226"/>
+        <source>詳細</source>
+        <translation>Advanced</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="232"/>
+        <source>接続の維持</source>
+        <translation>Keeping the connection alive</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="238"/>
+        <source>対局中に空行を送って接続を維持する</source>
+        <translation>Send empty lines during a game to keep the connection alive</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="241"/>
+        <source>CSAプロトコルのキープアライブ（LFだけの行）です。直前の送信から指定の秒数が経つと送ります。</source>
+        <translation>The CSA protocol keep-alive (a line with only LF). It is sent when the given number of seconds has passed since the previous transmission.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="251"/>
+        <source>間隔</source>
+        <translation>Interval</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="258"/>
+        <source>仕様では直前の送信から30秒以上空ける必要があります。</source>
+        <translation>The protocol requires at least 30 seconds after the previous transmission.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="261"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="373"/>
+        <source> 秒</source>
+        <translation> sec</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="277"/>
+        <source>TCPキープアライブを使う（無通信のときにOSがパケットを送る）</source>
+        <translation>Use TCP keep-alive (the OS sends packets while the connection is idle)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="290"/>
+        <source>対局</source>
+        <translation>Games</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="296"/>
+        <source>対局数</source>
+        <translation>Number of games</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="303"/>
+        <source>1局</source>
+        <translation>One game</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="313"/>
+        <source>指定回数</source>
+        <translation>Fixed number</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="320"/>
+        <source> 局</source>
+        <translation> games</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="336"/>
+        <source>無制限</source>
+        <translation>Unlimited</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="343"/>
+        <source>終局後にサーバーが切断したら再接続して次の対局を待つ</source>
+        <translation>Reconnect and wait for the next game when the server disconnects after a game</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="346"/>
+        <source>shogi-server は終局のたびに切断します。対局数が残っているときだけ再接続します。</source>
+        <translation>shogi-server disconnects after every game. The client reconnects only while games remain.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="353"/>
+        <source>後手のときは盤を反転する</source>
+        <translation>Flip the board when playing White</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="363"/>
+        <source>思考時間の余裕</source>
+        <translation>Thinking time margin</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="370"/>
+        <source>通信の遅延に備えて、エンジンに渡す秒読みと残り時間から差し引く秒数です（エンジン対局のみ）。</source>
+        <translation>Seconds subtracted from the byoyomi and remaining time given to the engine, to allow for network delay (engine games only).</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="392"/>
+        <source>棋譜の自動保存</source>
+        <translation>Automatic record saving</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="398"/>
+        <source>終局時に棋譜を自動保存する</source>
+        <translation>Save the game record automatically when a game ends</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="405"/>
+        <source>保存先</source>
+        <translation>Folder</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="412"/>
+        <source>フォルダ</source>
+        <translation>Folder</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="419"/>
+        <source>参照...</source>
+        <translation>Browse...</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="426"/>
+        <source>形式</source>
+        <translation>Format</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="439"/>
+        <source>shogi-server</source>
+        <translation>shogi-server</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="445"/>
+        <source>ゲーム名</source>
+        <translation>Game name</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="452"/>
+        <source>shogi-server の「名前-持時間-秒読み」形式のゲーム名です。空欄ならサーバーの既定のゲームに入ります。</source>
+        <translation>The shogi-server game name in the form name-time-byoyomi. Leave it empty to join the server's default game.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="455"/>
+        <source>例: floodgate-300-10F（空欄なら既定）</source>
+        <translation>e.g. floodgate-300-10F (empty for the default)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="462"/>
+        <source>手番の希望</source>
+        <translation>Preferred side</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="470"/>
+        <source>指定なし</source>
+        <translation>No preference</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="475"/>
+        <source>先手</source>
+        <translation>Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="480"/>
+        <source>後手</source>
+        <translation>White</translation>
     </message>
     <message>
         <source>バージョン</source>
@@ -2168,7 +2373,7 @@ Discard the changes and move?</translation>
         <translation type="vanished">CSA Protocol 1.2.1 with PV comment output</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="118"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="128"/>
         <source>CSAプロトコル1.2.1</source>
         <translation>CSA Protocol 1.2.1</translation>
     </message>
@@ -2177,7 +2382,7 @@ Discard the changes and move?</translation>
         <translation type="vanished">CSA Protocol 1.1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="124"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="134"/>
         <source>接続先ホスト</source>
         <translation>Host</translation>
     </message>
@@ -2186,28 +2391,33 @@ Discard the changes and move?</translation>
         <translation type="vanished">e.g. 172.17.0.2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="138"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="148"/>
         <source>ポート番号</source>
         <translation>Port</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="158"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="168"/>
         <source>ID</source>
         <translation>ID</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="165"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="175"/>
         <source>ログインID</source>
         <translation>Login ID</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="172"/>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="185"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="182"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="195"/>
         <source>パスワード</source>
         <translation>Password</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="192"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="189"/>
+        <source>パスワードは保存されません。shogi-server のゲーム名は「詳細」タブで指定できます。</source>
+        <translation>The password is not saved. The shogi-server game name can be set on the Advanced tab.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="202"/>
         <source>パスワードを表示する</source>
         <translation>Show password</translation>
     </message>
@@ -2216,7 +2426,7 @@ Discard the changes and move?</translation>
         <translation type="vanished">Start Game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="266"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="559"/>
         <source>キャンセル</source>
         <translation>Cancel</translation>
     </message>
@@ -2225,52 +2435,97 @@ Discard the changes and move?</translation>
         <translation type="vanished">Input Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="224"/>
+        <location filename="../../src/dialogs/csagamedialog_settings.cpp" line="97"/>
         <source>新しい接続先</source>
         <translation>New connection</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="292"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="160"/>
+        <source>KIF (Shift_JIS, .kif)</source>
+        <translation>KIF (Shift_JIS, .kif)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="161"/>
+        <source>KIF (UTF-8, .kifu)</source>
+        <translation>KIF (UTF-8, .kifu)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="162"/>
+        <source>KI2 (.ki2)</source>
+        <translation>KI2 (.ki2)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="163"/>
+        <source>CSA (.csa)</source>
+        <translation>CSA (.csa)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="164"/>
+        <source>JKF (.jkf)</source>
+        <translation>JKF (.jkf)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="165"/>
+        <source>USI (.usi)</source>
+        <translation>USI (.usi)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="171"/>
         <source>「設定」→「エンジン設定」からエンジンを登録してください。</source>
         <translation>Register an engine under Settings → Engine Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="297"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="176"/>
         <source>接続先ホストを入力してください。</source>
         <translation>Please enter the host address.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="298"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="177"/>
         <source>IDを入力してください。</source>
         <translation>Please enter the ID.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="299"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="178"/>
         <source>パスワードを入力してください。</source>
         <translation>Please enter the password.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="302"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="181"/>
         <source>接続先ホスト・ID・パスワードに空白や改行は使用できません。</source>
         <translation>Host, ID and password cannot contain whitespace or line breaks.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="308"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="187"/>
         <source>IDは英数字・「_」・「-」のみを使い、32文字以内で入力してください。</source>
         <translation>The ID may contain only letters, digits, &quot;_&quot; and &quot;-&quot;, up to 32 characters.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="312"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="191"/>
         <source>パスワードは半角の英数字・記号のみを使い、32文字以内で入力してください。</source>
         <translation>The password may contain only ASCII letters, digits and symbols, up to 32 characters.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="323"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="195"/>
+        <source>ゲーム名は「名前-持時間-秒読み」の形式で入力してください（例: floodgate-300-10F）。</source>
+        <translation>Enter the game name as name-time-byoyomi (e.g. floodgate-300-10F).</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="198"/>
+        <source>棋譜の自動保存先フォルダを指定してください。</source>
+        <translation>Choose the folder for automatically saved records.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="220"/>
         <source>接続後、対局相手を待ちます。</source>
         <translation>After connecting, wait for an opponent.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="390"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="302"/>
+        <source>棋譜の自動保存先</source>
+        <translation>Folder for automatically saved records</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="312"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
@@ -2281,7 +2536,7 @@ Discard the changes and move?</translation>
 Please register an engine from Tools → Engine Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="390"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="312"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
@@ -2289,17 +2544,17 @@ Please register an engine from Tools → Engine Settings.</translation>
 <context>
     <name>CsaGameWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="146"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="149"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="147"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="150"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="186"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="189"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA network game started: %1 vs %2</translation>
     </message>
@@ -2308,7 +2563,7 @@ Please register an engine from Tools → Engine Settings.</translation>
         <translation type="vanished">Loss</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="246"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="252"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -2319,22 +2574,22 @@ Result: %1
 Cause: %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="254"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="260"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="258"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="264"/>
         <source>対局終了: %1 (%2)</source>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="311"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="317"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="311"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="317"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -2379,9 +2634,24 @@ Cause: %2</translation>
         <translation type="vanished">Starting Position</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="416"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="381"/>
         <source>通信対局をキャンセルしました</source>
         <translation>Network game cancelled</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="77"/>
+        <source>棋譜の自動保存先を作成できません: %1</source>
+        <translation>Cannot create the folder for automatic saving: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="94"/>
+        <source>棋譜を自動保存しました: %1</source>
+        <translation>Record saved automatically: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="96"/>
+        <source>棋譜の自動保存に失敗しました: %1</source>
+        <translation>Automatic saving of the record failed: %1</translation>
     </message>
 </context>
 <context>
@@ -2563,7 +2833,7 @@ Cause: %2</translation>
     </message>
     <message>
         <location filename="../../src/network/csamoveprogresshandler.cpp" line="200"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="419"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="421"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>Failed to apply move: %1</translation>
     </message>
@@ -2624,42 +2894,42 @@ Cause: %2</translation>
         <translation>Cannot convert move confirmation from server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="343"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="345"/>
         <source>エンジンが思考中...</source>
         <translation>Engine is thinking...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="357"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="359"/>
         <source>エンジンが投了しました</source>
         <translation>Engine resigned</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="364"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="366"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>Engine did not return a valid move</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="371"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="373"/>
         <source>盤面が取得できませんでした</source>
         <translation>Could not get board state</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="388"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="390"/>
         <source>駒打ちの駒種変換に失敗しました</source>
         <translation>Failed to convert drop piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="397"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="399"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>Failed to convert move piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="406"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="408"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA format move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="420"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="422"/>
         <source>エンジンの指し手を盤面に適用できません: %1</source>
         <translation>Cannot apply the engine&apos;s move to the board: %1</translation>
     </message>
