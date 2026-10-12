@@ -2761,7 +2761,8 @@ private slots:
     {
         selectedCollection.clear();
         armDialog("collection"); click("actionSfenCollectionViewer");
-        QVERIFY(!selectedCollection.isEmpty()); QCOMPARE(boardSfen(), selectedCollection);
+        // ダイアログの操作は30msごとの監視タイマーで行うので、クリックの直後ではなく処理されるまで待つ
+        QTRY_VERIFY_WITH_TIMEOUT(!selectedCollection.isEmpty(), 2000); QCOMPARE(boardSfen(), selectedCollection);
     }
     void josekiVisibleDuringDestruction()
     {
