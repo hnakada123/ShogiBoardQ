@@ -100,8 +100,7 @@ void ShogiView::mouseMoveEvent(QMouseEvent* event)
 void ShogiView::resizeEvent(QResizeEvent* e)
 {
     QWidget::resizeEvent(e);
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
+    // 名前・時計・手番の札は共通のカードの配置で1回に置き直す
     relayoutTurnLabels();
 }
 

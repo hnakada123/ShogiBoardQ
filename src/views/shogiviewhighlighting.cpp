@@ -60,17 +60,44 @@ void ShogiViewHighlighting::removeHighlightAllData()
 
 void ShogiViewHighlighting::setArrows(const QList<ShogiView::Arrow>& arrows)
 {
-    // エンジンの候補手が届くたびに呼ばれるため、矢印が変わらなければ盤全体を描き直さない。
+    // エンジンの候補手が届くたびに呼ばれるため、矢印が変わらなければ描き直さない。
+    // 変わったときも、前の矢印と新しい矢印が掛かる範囲だけを描き直す（盤全体の描き直しは
+    // 1倍で約0.5ms、2倍で約3ms。検討で候補手を表示していると候補が替わるたびに起きる）。
     if (m_arrows == arrows) return;
+    const QRect dirty = arrowsPaintRect(m_arrows) | arrowsPaintRect(arrows);
     m_arrows = arrows;
-    m_view->update();
+    if (dirty.isEmpty()) m_view->update();
+    else m_view->update(dirty);
 }
 
 void ShogiViewHighlighting::clearArrows()
 {
     if (m_arrows.isEmpty()) return;
+    const QRect dirty = arrowsPaintRect(m_arrows);
     m_arrows.clear();
-    m_view->update();
+    if (dirty.isEmpty()) m_view->update();
+    else m_view->update(dirty);
+}
+
+QRect ShogiViewHighlighting::arrowsPaintRect(const QList<ShogiView::Arrow>& arrows) const
+{
+    if (!m_view->board()) return {};
+    const int squareSize = m_view->squareSize();
+    // drawArrows と同じ太さ・矢じり・順位の丸印の大きさに、アンチエイリアスの分を足す
+    const int arrowWidth = qMax(3, squareSize / 12);
+    const int arrowHeadSize = qMax(10, squareSize / 4);
+    const int circleRadius = static_cast<int>(qMax(10, squareSize / 4) * 0.8);
+    const int margin = qMax(arrowHeadSize, circleRadius) + arrowWidth + 2;
+    QRect rect;
+    for (const ShogiView::Arrow& arrow : arrows) {
+        const QRect toRect = m_view->fieldRect(QPoint(arrow.toFile, arrow.toRank));
+        const QRect fromRect = (arrow.fromFile == 0 || arrow.fromRank == 0)
+            ? m_view->standPieceRect(arrow.dropPiece)
+            : m_view->fieldRect(QPoint(arrow.fromFile, arrow.fromRank));
+        if (fromRect.isEmpty() || toRect.isEmpty()) continue;
+        rect |= (fromRect | toRect).adjusted(-margin, -margin, margin, margin);
+    }
+    return rect;
 }
 
 

@@ -129,6 +129,8 @@ private:
 
     QList<int> m_columnWidths;     ///< ユーザー指定の列幅（0は自動）
     bool m_resizingColumns = false;
+    bool m_reflowAllRows = true;   ///< 次の列幅合わせで全行を測り直す（リセット・書体の変更）
+    int m_reflowFromRow = -1;      ///< 次の列幅合わせで測り始める行（足した・変わった行。-1 は無し）
     int m_totalPositions = 0;
 
     bool m_isAnalyzing = false;    ///< 解析中フラグ（行追加時の自動選択制御）

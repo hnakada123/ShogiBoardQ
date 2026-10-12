@@ -19,6 +19,16 @@ QString uiLanguage;
 QString japanese;
 constexpr auto japaneseProperty = "shogiJapaneseFont";
 
+// japaneseFont の結果の覚え。表のモデルが行を描くたび・列幅を測るたびに同じ書体で呼ぶので、
+// 書体の比較だけで返す。書体の設定（initialize / applyFamily）が変わるたびに捨てる。
+struct JapaneseFontEntry {
+    QFont base;
+    QFont result;
+};
+QList<JapaneseFontEntry> japaneseFontCache;
+int fontGeneration = 0;
+int japaneseFontCacheGeneration = -1;
+
 QString firstInstalled(const QStringList& candidates)
 {
     const QStringList available = QFontDatabase::families();
@@ -140,6 +150,7 @@ void ApplicationFonts::applyFamily(const QString& family)
 {
     if (!defaultFont) initialize();
     selectedFamily = firstInstalled({family});
+    ++fontGeneration;
     QFont appFont = *defaultFont;
     if (!selectedFamily.isEmpty()) {
         appFont.setFamily(selectedFamily);
@@ -190,18 +201,30 @@ QFont ApplicationFonts::monospaceFont()
 QFont ApplicationFonts::japaneseFont(QFont base)
 {
     if (!defaultFont) initialize();
+    if (japaneseFontCacheGeneration != fontGeneration) {
+        japaneseFontCache.clear();
+        japaneseFontCacheGeneration = fontGeneration;
+    }
+    // 結果はどの属性が指定済みか（resolveMask）にも依存する。QFont の比較はそれを見ないので
+    // 別に比べる（指定済みでない属性は、表が自分の書体で補う）。
+    for (const auto& entry : std::as_const(japaneseFontCache)) {
+        if (entry.base == base && entry.base.resolveMask() == base.resolveMask()) return entry.result;
+    }
+    const QFont requested = base;
     if (!selectedFamily.isEmpty()) {
         base.setFamily(selectedFamily);
         appendFallback(base, japanese);
-        return base;
+    } else {
+        QString family = base.styleHint() == QFont::Monospace ? japaneseMonospaceFamily() : japanese;
+        if (family.isEmpty()) family = japanese;
+        if (!family.isEmpty()) {
+            const QStringList fallbacks = base.families();
+            base.setFamily(family);
+            for (const auto& fallback : fallbacks) appendFallback(base, fallback);
+        }
     }
-    QString family = base.styleHint() == QFont::Monospace ? japaneseMonospaceFamily() : japanese;
-    if (family.isEmpty()) family = japanese;
-    if (!family.isEmpty()) {
-        const QStringList fallbacks = base.families();
-        base.setFamily(family);
-        for (const auto& fallback : fallbacks) appendFallback(base, fallback);
-    }
+    if (japaneseFontCache.size() >= 8) japaneseFontCache.removeFirst();
+    japaneseFontCache.append({requested, base});
     return base;
 }
 

@@ -150,10 +150,12 @@ void KifuBranchListModel::resetBranchCandidates()
 
 void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows)
 {
-    QStringList s;
-    s.reserve(rows.size());
-    for (qsizetype i = 0; i < rows.size(); ++i) s << rows[i].prettyMove;
-    qCDebug(lcUi).noquote() << "setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ");
+    if (lcUi().isDebugEnabled()) {
+        QStringList s;
+        s.reserve(rows.size());
+        for (qsizetype i = 0; i < rows.size(); ++i) s << rows[i].prettyMove;
+        qCDebug(lcUi).noquote() << "setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ");
+    }
 
     beginResetModel();
     clearOwnedRows(list);
