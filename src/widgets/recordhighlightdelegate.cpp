@@ -46,14 +46,9 @@ QSize RecordHighlightDelegate::sizeHint(const QStyleOptionViewItem& option, cons
 void RecordHighlightDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
                                     const QModelIndex& index) const
 {
-    // QStyledItemDelegate::paint と同じ手順で、渡す文字列だけを切る。棋譜のコメントは
-    // 列幅の数倍の長さになることがあり、描き直すたびの省略表示の計算が重い。
-    QStyleOptionViewItem opt(option);
-    initStyleOption(&opt, index);
-    m_cutter.apply(opt);
-    const QWidget* widget = opt.widget;
-    const QStyle* style = widget ? widget->style() : QApplication::style();
-    style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
+    // 項目は ItemTextDelegate と同じく描く（文字は配置を覚えて描く。棋譜のコメントは列幅の
+    // 数倍の長さになることがあり、表示幅より十分先で切る）
+    ItemTextDelegate::paint(painter, option, index);
     if (index.column() != 0) return;
 
     const auto* recordModel = qobject_cast<const KifuRecordListModel*>(index.model());

@@ -3,6 +3,7 @@
 
 #include "engineinfowidget.h"
 #include "tableheaderview.h"
+#include "itemtextdelegate.h"
 #include "kifumovedelegate.h"
 #include "tablestyles.h"
 #include "logcategories.h"
@@ -40,6 +41,8 @@ void EngineInfoWidget::setupTable()
     headers << tr("エンジン") << tr("予想手") << tr("探索手")
             << tr("深さ") << tr("ノード数") << tr("探索局面数/秒") << tr("ハッシュ使用率");
     m_table->setHorizontalHeaderLabels(headers);
+    // 値は思考情報が届くたびに描き直すので、文字は配置を覚えて描く（見た目は Qt と同じ）
+    m_table->setItemDelegate(new ItemTextDelegate(m_table));
     auto* moveDelegate = new KifuMoveDelegate(m_table);
     m_table->setItemDelegateForColumn(COL_PRED, moveDelegate);
     m_table->setItemDelegateForColumn(COL_SEARCHED, moveDelegate);

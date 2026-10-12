@@ -461,6 +461,9 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/dialogs/josekimovedialog.cpp
     ${SRC}/dialogs/josekimoveinputwidget.cpp
     ${SRC}/dialogs/josekimergedialog.cpp
+    ${SRC}/widgets/itemtextcutter.cpp
+    ${SRC}/widgets/itemtextpainter.cpp
+    ${SRC}/widgets/itemtextdelegate.cpp
     ${SETTINGS_SOURCES}
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
@@ -587,6 +590,8 @@ set(UI_DISPLAY_TEST_SOURCES
     ${SRC}/widgets/kifubranchdisplay.cpp
     ${SRC}/widgets/recordhighlightdelegate.cpp
     ${SRC}/widgets/itemtextcutter.cpp
+    ${SRC}/widgets/itemtextpainter.cpp
+    ${SRC}/widgets/itemtextdelegate.cpp
     ${SRC}/widgets/incrementaltableview.cpp
     ${SRC}/widgets/tableheaderview.cpp
     ${SRC}/widgets/recordpane.cpp

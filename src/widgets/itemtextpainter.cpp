@@ -19,7 +19,8 @@ constexpr std::size_t kMaxPreparedTexts = 256;
 QTextOption itemTextOption(const QStyleOptionViewItem& option)
 {
     QTextOption textOption;
-    textOption.setWrapMode(QTextOption::ManualWrap);
+    const bool wrap = option.features.testFlag(QStyleOptionViewItem::WrapText);
+    textOption.setWrapMode(wrap ? QTextOption::WordWrap : QTextOption::ManualWrap);
     textOption.setTextDirection(option.direction);
     textOption.setAlignment(QStyle::visualAlignment(option.direction, option.displayAlignment));
     return textOption;
@@ -46,8 +47,9 @@ ItemTextPainter::~ItemTextPainter() = default;
 
 bool ItemTextPainter::canDrawText(const QStyleOptionViewItem& option)
 {
+    // 折り返す設定（WrapText）は、1行に収まる文字列だけを自分で描く（prepare で確かめる）
     const QStyleOptionViewItem::ViewItemFeatures unsupported =
-        QStyleOptionViewItem::WrapText | QStyleOptionViewItem::HasDecoration | QStyleOptionViewItem::HasCheckIndicator;
+        QStyleOptionViewItem::HasDecoration | QStyleOptionViewItem::HasCheckIndicator;
     // 文字の範囲がアイコンの位置に左右されない並べ方だけを扱う（上下に置くと文字の高さで範囲が変わる）
     const bool sideDecoration = option.decorationPosition == QStyleOptionViewItem::Left
         || option.decorationPosition == QStyleOptionViewItem::Right;
@@ -64,10 +66,13 @@ void ItemTextPainter::paint(QPainter* painter, const QStyleOptionViewItem& optio
 {
     const QWidget* widget = option.widget;
     const QStyle* style = widget ? widget->style() : QApplication::style();
-    if (!canDrawText(option)) {
+    const auto drawByQt = [&] {
         QStyleOptionViewItem opt(option);
         m_cutter.apply(opt);
         style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
+    };
+    if (!canDrawText(option)) {
+        drawByQt();
         return;
     }
 
@@ -78,6 +83,11 @@ void ItemTextPainter::paint(QPainter* painter, const QStyleOptionViewItem& optio
     const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &frame, widget);
     const int margin = style->pixelMetric(QStyle::PM_FocusFrameHMargin, &option, widget) + 1;
     const QRect lineRect = textRect.adjusted(margin, 0, -margin, 0);
+    const Prepared& prepared = prepare(option, lineRect.width());
+    if (!prepared.layout) {
+        drawByQt();
+        return;
+    }
 
     // 枠・背景・選択の色は Qt が描く
     frame.text.clear();
@@ -85,7 +95,6 @@ void ItemTextPainter::paint(QPainter* painter, const QStyleOptionViewItem& optio
 
     // 文字は Qt と同じ位置・色・切り抜きで描く。縦の位置は、Qt と同じく省略前の（切った）文字列の
     // 配置の大きさで決める
-    const Prepared& prepared = prepare(option, lineRect.width());
     const QRect layoutRect = QStyle::alignedRect(Qt::LayoutDirectionAuto, option.displayAlignment,
                                                  prepared.textSize, lineRect);
     QPalette::ColorGroup group = (option.state & QStyle::State_Enabled) ? QPalette::Normal : QPalette::Disabled;
@@ -104,11 +113,12 @@ const ItemTextPainter::Prepared& ItemTextPainter::prepare(const QStyleOptionView
 {
     const int cellWidth = option.rect.width();
     const int alignment = static_cast<int>(option.displayAlignment);
+    const bool wrap = option.features.testFlag(QStyleOptionViewItem::WrapText);
     auto it = m_prepared.find(option.text);
     if (it != m_prepared.end()) {
         const Prepared& found = it->second;
         if (found.lineWidth == lineWidth && found.cellWidth == cellWidth && found.alignment == alignment
-            && found.font == option.font)
+            && found.wrap == wrap && found.font == option.font)
             return found;
     } else if (m_prepared.size() >= kMaxPreparedTexts) {
         m_prepared.clear();
@@ -119,21 +129,35 @@ const ItemTextPainter::Prepared& ItemTextPainter::prepare(const QStyleOptionView
     prepared.cellWidth = cellWidth;
     prepared.lineWidth = lineWidth;
     prepared.alignment = alignment;
+    prepared.wrap = wrap;
 
-    // Qt に渡していたのと同じく、表示幅より十分先で切った文字列を使う（省略の結果は全文と同じ）
-    const QString cut = m_cutter.textForWidth(option.text, option.font, cellWidth);
+    // Qt に渡していたのと同じく、表示幅より十分先で切った文字列を使う（省略の結果は全文と同じ）。
+    // 折り返す設定では切らない（切ると折り返しが変わる）
+    const QString cut = wrap ? option.text : m_cutter.textForWidth(option.text, option.font, cellWidth);
     const QTextOption textOption = itemTextOption(option);
-    QTextLayout cutLayout(cut, option.font);
-    cutLayout.setTextOption(textOption);
-    layoutLines(cutLayout, lineWidth);
-    prepared.textSize = cutLayout.boundingRect().size().toSize();
+    const auto layoutText = [&](const QString& text) {
+        auto layout = std::make_unique<QTextLayout>(text, option.font);
+        layout->setTextOption(textOption);
+        layout->setCacheEnabled(true);  // 描くたびに字形を求め直さない
+        layoutLines(*layout, lineWidth);
+        return layout;
+    };
+    prepared.layout = layoutText(cut);
+    prepared.textSize = prepared.layout->boundingRect().size().toSize();
 
-    // 表示幅に収まらなければ、Qt と同じ方法（QCommonStylePrivate::calculateElidedText）で右端を省略する
+    // 折り返す設定で1行に収まらなければ（2行以上になる・切れ目が無くはみ出す）、Qt に描かせる。
+    // 1行に収まれば、Qt も折り返さない場合と同じく、その1行をそのまま描く
+    if (wrap) {
+        if (prepared.layout->lineCount() != 1 || prepared.layout->lineAt(0).naturalTextWidth() > lineWidth)
+            prepared.layout.reset();
+        return m_prepared.insert_or_assign(option.text, std::move(prepared)).first->second;
+    }
+
+    // 表示幅に収まらなければ、Qt と同じ方法（QCommonStylePrivate::calculateElidedText）で右端を省略する。
+    // 収まれば、切った文字列の配置をそのまま描く（数値などの短い文字列は、配置の計算が1回で済む）
+    const QTextLayout& cutLayout = *prepared.layout;
     const bool elide = cutLayout.lineCount() > 0 && cutLayout.lineAt(0).naturalTextWidth() > lineWidth;
-    const QString text = elide ? QFontMetrics(option.font).elidedText(cut, option.textElideMode, lineWidth) : cut;
-    prepared.layout = std::make_unique<QTextLayout>(text, option.font);
-    prepared.layout->setTextOption(textOption);
-    prepared.layout->setCacheEnabled(true);  // 描くたびに字形を求め直さない
-    layoutLines(*prepared.layout, lineWidth);
+    if (elide)
+        prepared.layout = layoutText(QFontMetrics(option.font).elidedText(cut, option.textElideMode, lineWidth));
     return m_prepared.insert_or_assign(option.text, std::move(prepared)).first->second;
 }

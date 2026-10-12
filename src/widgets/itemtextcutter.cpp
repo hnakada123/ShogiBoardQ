@@ -72,11 +72,11 @@ QString ItemTextCutter::textForWidth(const QString& text, const QFont& font, int
 {
     if (text.size() < kMinimumLength || width <= 0 || hasLayoutControl(text)) return text;
 
-    const QString fontKey = font.key();
+    // 書体は文字列の形（QFont::key）にせず、そのまま比べる（描くたびに呼ばれるので）
     auto it = m_cuts.constFind(text);
-    if (it == m_cuts.cend() || it->fontKey != fontKey || it->width != width) {
+    if (it == m_cuts.cend() || it->font != font || it->width != width) {
         if (m_cuts.size() >= kMaxCachedTexts) m_cuts.clear();
-        it = m_cuts.insert(text, Cut{fontKey, width, cutPosition(text, font, width)});
+        it = m_cuts.insert(text, Cut{font, width, cutPosition(text, font, width)});
     }
     return it->length < 0 ? text : text.left(it->length);
 }

@@ -36,7 +36,7 @@ public:
 
 private:
     struct Cut {
-        QString fontKey;
+        QFont font;
         int width = 0;
         int length = -1;  ///< 切る位置（-1 なら切らない）
     };
