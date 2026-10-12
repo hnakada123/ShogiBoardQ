@@ -8,6 +8,9 @@
 
 #include <QtTest>
 #include <QCoreApplication>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <algorithm>
 
 // private メンバへは CsaClient の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "csaclient.h"
@@ -96,35 +99,44 @@ private slots:
         QFETCH(int, expectedMs);
 
         CsaClient::GameSummary gs;
-        gs.timeUnit = timeUnit;
-        QCOMPARE(gs.timeUnitMs(), expectedMs);
+        gs.timeBlack.timeUnit = timeUnit;
+        QCOMPARE(gs.timeUnitMs(true), expectedMs);
     }
 
     /// 持ち時間は Time_Unit で換算し、Time+/Time- があれば手番ごとの値を使う
     void gameSummary_timeControlMs()
     {
         CsaClient::GameSummary gs;
-        gs.timeUnit = QStringLiteral("1min");
-        gs.totalTime = 10;
-        gs.byoyomi = 1;
-        gs.increment = 0;
+        for (CsaClient::TimeControl* t : {&gs.timeBlack, &gs.timeWhite}) {
+            t->timeUnit = QStringLiteral("1min");
+            t->totalTime = 10;
+            t->byoyomi = 1;
+            t->increment = 0;
+        }
         QCOMPARE(gs.totalTimeMs(true), 600000);
         QCOMPARE(gs.totalTimeMs(false), 600000);
         QCOMPARE(gs.byoyomiMs(false), 60000);
-        QCOMPARE(gs.incrementMs(), 0);
+        QCOMPARE(gs.incrementMs(true), 0);
 
-        gs.timeUnit = QStringLiteral("1sec");
-        gs.increment = 10;
+        // Time+/Time- は先後で別の値を持てる（加算・遅延も含む）
         gs.hasIndividualTime = true;
-        gs.totalTimeBlack = 300;
-        gs.totalTimeWhite = 600;
-        gs.byoyomiBlack = 0;
-        gs.byoyomiWhite = 30;
+        gs.timeBlack.timeUnit = QStringLiteral("1sec");
+        gs.timeWhite.timeUnit = QStringLiteral("1sec");
+        gs.timeBlack.totalTime = 300;
+        gs.timeWhite.totalTime = 600;
+        gs.timeBlack.byoyomi = 0;
+        gs.timeWhite.byoyomi = 30;
+        gs.timeBlack.increment = 10;
+        gs.timeWhite.increment = 20;
+        gs.timeBlack.delay = 3;
         QCOMPARE(gs.totalTimeMs(true), 300000);
         QCOMPARE(gs.totalTimeMs(false), 600000);
         QCOMPARE(gs.byoyomiMs(true), 0);
         QCOMPARE(gs.byoyomiMs(false), 30000);
-        QCOMPARE(gs.incrementMs(), 10000);
+        QCOMPARE(gs.incrementMs(true), 10000);
+        QCOMPARE(gs.incrementMs(false), 20000);
+        QCOMPARE(gs.delayMs(true), 3000);
+        QCOMPARE(gs.delayMs(false), 0);
     }
 
     // ========================================
@@ -138,8 +150,10 @@ private slots:
         gs.blackName = QStringLiteral("Sente");
         gs.whiteName = QStringLiteral("Gote");
         gs.myTurn = QStringLiteral("+");
-        gs.totalTime = 600;
-        gs.byoyomi = 30;
+        gs.timeBlack.totalTime = 600;
+        gs.timeBlack.byoyomi = 30;
+        gs.timeBlack.specified = true;
+        gs.moveConsumedTimes.append(3);
 
         gs.clear();
 
@@ -147,11 +161,14 @@ private slots:
         QVERIFY(gs.blackName.isEmpty());
         QVERIFY(gs.whiteName.isEmpty());
         QVERIFY(gs.myTurn.isEmpty());
-        QCOMPARE(gs.totalTime, 0);
-        QCOMPARE(gs.byoyomi, 0);
+        QCOMPARE(gs.timeBlack.totalTime, 0);
+        QCOMPARE(gs.timeBlack.byoyomi, 0);
+        QVERIFY(!gs.timeBlack.specified);
+        QVERIFY(gs.isTimeUnlimited());
+        QVERIFY(gs.moveConsumedTimes.isEmpty());
         QCOMPARE(gs.toMove, QStringLiteral("+"));
         QCOMPARE(gs.protocolMode, QStringLiteral("Server"));
-        QCOMPARE(gs.timeUnit, QStringLiteral("1sec"));
+        QCOMPARE(gs.timeBlack.timeUnit, QStringLiteral("1sec"));
         QCOMPARE(gs.maxMoves, 0);
         QVERIFY(!gs.rematchOnDraw);
         QVERIFY(!gs.hasIndividualTime);
@@ -696,8 +713,8 @@ private slots:
         QFETCH(int, expectedMs);
 
         CsaClient::GameSummary gs;
-        gs.timeUnit = timeUnit;
-        QCOMPARE(gs.timeUnitMs(), expectedMs);
+        gs.timeWhite.timeUnit = timeUnit;
+        QCOMPARE(gs.timeUnitMs(false), expectedMs);
     }
     // ========================================
     // 異常系: CsaClient 不正なログインレスポンス
@@ -721,13 +738,14 @@ private slots:
         // A GameSummary with missing fields should still be usable
         CsaClient::GameSummary gs;
         // Defaults should be safe
-        QCOMPARE(gs.totalTime, 0);
-        QCOMPARE(gs.byoyomi, 0);
+        QCOMPARE(gs.timeBlack.totalTime, 0);
+        QCOMPARE(gs.timeWhite.byoyomi, 0);
         QCOMPARE(gs.maxMoves, 0);
         QVERIFY(gs.blackName.isEmpty());
         QVERIFY(gs.whiteName.isEmpty());
         // timeUnitMs should return default even with empty fields
-        QCOMPARE(gs.timeUnitMs(), 1000);
+        QCOMPARE(gs.timeUnitMs(true), 1000);
+        QCOMPARE(gs.timeUnitMs(false), 1000);
     }
 
     // ========================================
@@ -977,17 +995,21 @@ private slots:
         CsaClient client;
         client.m_inTimeSection = true;
         client.m_currentTimeSection = QStringLiteral("Time");
-        client.m_gameSummary.totalTime = 600;
-        client.m_gameSummary.byoyomi = 30;
-        client.m_gameSummary.delay = 5;
+        for (CsaClient::TimeControl* t : {&client.m_gameSummary.timeBlack, &client.m_gameSummary.timeWhite}) {
+            t->totalTime = 600;
+            t->byoyomi = 30;
+            t->delay = 5;
+        }
 
         client.processGameSummary(QStringLiteral("Total_Time:abc"));
         client.processGameSummary(QStringLiteral("Byoyomi:-1"));
         client.processGameSummary(QStringLiteral("Delay:xyz"));
 
-        QCOMPARE(client.m_gameSummary.totalTime, 600);
-        QCOMPARE(client.m_gameSummary.byoyomi, 30);
-        QCOMPARE(client.m_gameSummary.delay, 5);
+        for (const CsaClient::TimeControl* t : {&client.m_gameSummary.timeBlack, &client.m_gameSummary.timeWhite}) {
+            QCOMPARE(t->totalTime, 600);
+            QCOMPARE(t->byoyomi, 30);
+            QCOMPARE(t->delay, 5);
+        }
 
         client.m_inTimeSection = false;
         client.m_gameSummary.maxMoves = 256;
@@ -1005,23 +1027,23 @@ private slots:
 
         // 個別時間が設定された場合
         gs.hasIndividualTime = true;
-        gs.totalTimeBlack = 600;
-        gs.totalTimeWhite = 300;
-        gs.byoyomiBlack = 30;
-        gs.byoyomiWhite = 60;
+        gs.timeBlack.totalTime = 600;
+        gs.timeWhite.totalTime = 300;
+        gs.timeBlack.byoyomi = 30;
+        gs.timeWhite.byoyomi = 60;
 
-        QCOMPARE(gs.totalTimeBlack, 600);
-        QCOMPARE(gs.totalTimeWhite, 300);
-        QCOMPARE(gs.byoyomiBlack, 30);
-        QCOMPARE(gs.byoyomiWhite, 60);
+        QCOMPARE(gs.timeFor(true).totalTime, 600);
+        QCOMPARE(gs.timeFor(false).totalTime, 300);
+        QCOMPARE(gs.timeFor(true).byoyomi, 30);
+        QCOMPARE(gs.timeFor(false).byoyomi, 60);
 
         // clear で全てリセットされる
         gs.clear();
         QVERIFY(!gs.hasIndividualTime);
-        QCOMPARE(gs.totalTimeBlack, 0);
-        QCOMPARE(gs.totalTimeWhite, 0);
-        QCOMPARE(gs.byoyomiBlack, 0);
-        QCOMPARE(gs.byoyomiWhite, 0);
+        QCOMPARE(gs.timeBlack.totalTime, 0);
+        QCOMPARE(gs.timeWhite.totalTime, 0);
+        QCOMPARE(gs.timeBlack.byoyomi, 0);
+        QCOMPARE(gs.timeWhite.byoyomi, 0);
     }
 
     void gameSummary_positionAndMovesClear()
@@ -1029,13 +1051,17 @@ private slots:
         CsaClient::GameSummary gs;
         gs.positionLines.append(QStringLiteral("PI"));
         gs.moves.append(QStringLiteral("+7776FU"));
+        gs.moveConsumedTimes.append(12);
 
         QCOMPARE(gs.positionLines.size(), 1);
         QCOMPARE(gs.moves.size(), 1);
+        QCOMPARE(gs.positionMoveConsumedMs(0), 12000);
+        QCOMPARE(gs.positionMoveConsumedMs(1), 0);
 
         gs.clear();
         QVERIFY(gs.positionLines.isEmpty());
         QVERIFY(gs.moves.isEmpty());
+        QVERIFY(gs.moveConsumedTimes.isEmpty());
     }
 
     void gameSummary_maxMovesNonNumeric()
@@ -1283,9 +1309,9 @@ private slots:
         QVERIFY(gs.myTurn.isEmpty());
         QCOMPARE(gs.toMove, QStringLiteral("+"));
         QCOMPARE(gs.protocolMode, QStringLiteral("Server"));
-        QCOMPARE(gs.timeUnit, QStringLiteral("1sec"));
-        QCOMPARE(gs.totalTime, 0);
-        QCOMPARE(gs.byoyomi, 0);
+        QCOMPARE(gs.timeBlack.timeUnit, QStringLiteral("1sec"));
+        QCOMPARE(gs.timeBlack.totalTime, 0);
+        QCOMPARE(gs.timeWhite.byoyomi, 0);
     }
 
     // ========================================
@@ -1309,6 +1335,434 @@ private slots:
         QFETCH(int, expectedType);
 
         QCOMPARE(CsaMoveConverter::pieceTypeFromCsa(csaPiece), expectedType);
+    }
+
+    // ========================================
+    // 仕様 3.2.2: Time / Time+ / Time- の先後別フィールド
+    // ========================================
+
+    void csaClient_timeSections_keepPerSideFields()
+    {
+        CsaClient client;
+        client.m_inGameSummary = true;
+        for (const char* line : {"BEGIN Time", "Time_Unit:1sec", "Total_Time:300", "Byoyomi:10",
+                                 "Increment:5", "Delay:3", "Least_Time_Per_Move:1", "Time_Roundup:YES", "END Time",
+                                 "BEGIN Time+", "Increment:7", "END Time+",
+                                 "BEGIN Time-", "Time_Unit:1msec", "Total_Time:600000", "Delay:0", "END Time-"}) {
+            client.processGameSummary(QString::fromLatin1(line));
+        }
+        const CsaClient::GameSummary& gs = client.m_gameSummary;
+        QVERIFY(gs.hasIndividualTime);
+        QVERIFY(gs.timeBlack.specified);
+        QVERIFY(gs.timeWhite.specified);
+        QVERIFY(!gs.isTimeUnlimited());
+        // 共通 Time の値を引き継ぎ、Time+/Time- で書かれた項目だけ上書きされる
+        QCOMPARE(gs.incrementMs(true), 7000);
+        QCOMPARE(gs.timeWhite.increment, 5);
+        QCOMPARE(gs.incrementMs(false), 5);  // 後手の単位は msec なので 5ms
+        QCOMPARE(gs.delayMs(true), 3000);
+        QCOMPARE(gs.delayMs(false), 0);
+        QCOMPARE(gs.totalTimeMs(true), 300000);
+        QCOMPARE(gs.totalTimeMs(false), 600000);
+        QCOMPARE(gs.byoyomiMs(false), 10);  // 後手の単位は msec
+        QCOMPARE(gs.timeBlack.leastTimePerMove, 1);
+        QVERIFY(gs.timeBlack.timeRoundup);
+        QVERIFY(gs.timeWhite.timeRoundup);
+    }
+
+    void csaClient_gameSummaryWithoutTime_isUnlimited()
+    {
+        CsaClient client;
+        client.m_connectionState = CsaClient::ConnectionState::LoggedIn;
+        QSignalSpy summary(&client, &CsaClient::gameSummaryReceived);
+        for (const char* line : {"BEGIN Game_Summary", "Protocol_Version:1.2", "Format:Shogi 1.0",
+                                 "Name+:A", "Name-:B", "Your_Turn:+", "To_Move:+",
+                                 "BEGIN Position", "PI", "+", "END Position", "END Game_Summary"}) {
+            client.processLine(QString::fromLatin1(line));
+        }
+        QCOMPARE(summary.count(), 1);
+        QVERIFY(client.gameSummary().isTimeUnlimited());
+        QVERIFY(!client.gameSummary().allowsJishogiDeclaration());
+
+        // 全時間要素が省略された Time 階層も無制限
+        CsaClient::GameSummary gs;
+        gs.timeBlack.specified = gs.timeWhite.specified = true;
+        QVERIFY(gs.isTimeUnlimited());
+        gs.timeWhite.delay = 3;
+        QVERIFY(!gs.isTimeUnlimited());
+    }
+
+    // ========================================
+    // 仕様 3.2.3: 再開局面の指し手は消費時間を保持する
+    // ========================================
+
+    void csaClient_positionMoves_keepConsumedTimes()
+    {
+        CsaClient client;
+        client.m_inGameSummary = true;
+        for (const char* line : {"BEGIN Time+", "Time_Unit:1msec", "END Time+",
+                                 "BEGIN Position", "PI", "+", "+7776FU,T1500", "-3334FU,T6", "+2726FU",
+                                 "END Position"}) {
+            client.processGameSummary(QString::fromLatin1(line));
+        }
+        const CsaClient::GameSummary& gs = client.m_gameSummary;
+        QCOMPARE(gs.moves, (QStringList{QStringLiteral("+7776FU"), QStringLiteral("-3334FU"), QStringLiteral("+2726FU")}));
+        QCOMPARE(gs.moveConsumedTimes, (QList<int>{1500, 6, 0}));
+        // 指した側の時間単位で換算する（先手は msec、後手は sec）
+        QCOMPARE(gs.positionMoveConsumedMs(0), 1500);
+        QCOMPARE(gs.positionMoveConsumedMs(1), 6000);
+        QCOMPARE(gs.positionMoveConsumedMs(2), 0);
+        QCOMPARE(gs.positionLines, (QStringList{QStringLiteral("PI"), QStringLiteral("+")}));
+    }
+
+    void csaClient_moveLine_usesMoverTimeUnit()
+    {
+        CsaClient client;
+        client.m_connectionState = CsaClient::ConnectionState::InGame;
+        client.m_gameSummary.myTurn = QStringLiteral("+");
+        client.m_gameSummary.timeBlack.timeUnit = QStringLiteral("1msec");
+        client.m_gameSummary.timeWhite.timeUnit = QStringLiteral("1sec");
+        client.m_isMyTurn = true;
+        QSignalSpy confirmed(&client, &CsaClient::moveConfirmed);
+        QSignalSpy received(&client, &CsaClient::moveReceived);
+
+        client.processLine(QStringLiteral("+7776FU,T1500"));
+        QCOMPARE(confirmed.count(), 1);
+        QCOMPARE(confirmed.at(0).at(1).toInt(), 1500);
+        QVERIFY(!client.isMyTurn());
+
+        client.processLine(QStringLiteral("-3334FU,T2"));
+        QCOMPARE(received.count(), 1);
+        QCOMPARE(received.at(0).at(1).toInt(), 2000);
+        QVERIFY(client.isMyTurn());
+    }
+
+    // ========================================
+    // 仕様 3.3: Game_ID 省略時の REJECT 通知
+    // ========================================
+
+    void csaClient_rejectWithEmptyGameId_isAccepted()
+    {
+        CsaClient client;
+        client.m_connectionState = CsaClient::ConnectionState::GameReady;
+        QSignalSpy rejected(&client, &CsaClient::gameRejected);
+        QSignalSpy error(&client, &CsaClient::errorOccurred);
+
+        client.processLine(QStringLiteral("REJECT: by Peer"));
+        QCOMPARE(error.count(), 0);
+        QCOMPARE(rejected.count(), 1);
+        QVERIFY(rejected.at(0).at(0).toString().isEmpty());
+        QCOMPARE(rejected.at(0).at(1).toString(), QStringLiteral("Peer"));
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::WaitingForGame);
+
+        client.m_connectionState = CsaClient::ConnectionState::GameReady;
+        client.processLine(QStringLiteral("REJECT:game-1 by Other"));
+        QCOMPARE(rejected.count(), 2);
+        QCOMPARE(rejected.at(1).at(0).toString(), QStringLiteral("game-1"));
+
+        client.m_connectionState = CsaClient::ConnectionState::GameReady;
+        client.processLine(QStringLiteral("REJECT:broken"));
+        QCOMPARE(error.count(), 1);
+        QCOMPARE(rejected.count(), 2);
+    }
+
+    // ========================================
+    // 仕様 3.1/3.4: 終局後も対局待ち状態として次の対局条件と LOGOUT 応答を受ける
+    // ========================================
+
+    void csaClient_gameOver_acceptsNextGameSummaryAndLogout()
+    {
+        CsaClient client;
+        client.m_connectionState = CsaClient::ConnectionState::InGame;
+        client.m_gameSummary.myTurn = QStringLiteral("+");
+        client.m_gameSummary.toMove = QStringLiteral("+");
+        client.m_isMyTurn = true;
+        client.m_awaitingMoveConfirmation = true;
+        QSignalSpy ended(&client, &CsaClient::gameEnded);
+        QSignalSpy summary(&client, &CsaClient::gameSummaryReceived);
+        QSignalSpy started(&client, &CsaClient::gameStarted);
+        QSignalSpy logout(&client, &CsaClient::logoutCompleted);
+
+        client.processLine(QStringLiteral("%TORYO,T4"));
+        client.processLine(QStringLiteral("#RESIGN"));
+        client.processLine(QStringLiteral("#LOSE"));
+        QCOMPARE(ended.count(), 1);
+        QCOMPARE(ended.at(0).at(2).toInt(), 4000);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::GameOver);
+        QVERIFY(!client.isAwaitingMoveConfirmation());
+        QVERIFY(CsaClient::isWaitingState(client.connectionState()));
+
+        for (const char* line : {"BEGIN Game_Summary", "Game_ID:second", "Name+:A", "Name-:B",
+                                 "Your_Turn:-", "To_Move:+", "END Game_Summary"}) {
+            client.processLine(QString::fromLatin1(line));
+        }
+        QCOMPARE(summary.count(), 1);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::GameReady);
+        QCOMPARE(client.gameSummary().gameId, QStringLiteral("second"));
+
+        client.processLine(QStringLiteral("START:second"));
+        QCOMPARE(started.count(), 1);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::InGame);
+        QVERIFY(!client.isMyTurn());
+
+        client.processLine(QStringLiteral("#TIME_UP"));
+        client.processLine(QStringLiteral("#WIN"));
+        QCOMPARE(ended.count(), 2);
+        client.processLine(QStringLiteral("LOGOUT:completed"));
+        QCOMPARE(logout.count(), 1);
+    }
+
+    // ========================================
+    // 実ソケット: ログアウト応答待ち・確認待ちガード・キープアライブ
+    // ========================================
+
+private:
+    // MOC は slots セクション内の構造体定義を受け付けないので、ヘルパーは private に置く
+    struct LocalServer {
+        QTcpServer server;
+        QTcpSocket* peer = nullptr;
+        QStringList lines;
+        QByteArray buffer;
+
+        bool listen() { return server.listen(QHostAddress::LocalHost); }
+        int port() const { return server.serverPort(); }
+        bool accept()
+        {
+            if (!QTest::qWaitFor([this] { return server.hasPendingConnections(); }, 3000)) return false;
+            peer = server.nextPendingConnection();
+            return peer != nullptr;
+        }
+        void pump()
+        {
+            if (!peer) return;
+            buffer += peer->readAll();
+            int idx;
+            while ((idx = static_cast<int>(buffer.indexOf('\n'))) != -1) {
+                lines.append(QString::fromUtf8(buffer.left(idx)));
+                buffer = buffer.mid(idx + 1);
+            }
+        }
+        bool waitForLine(const QString& prefix, int timeoutMs = 3000)
+        {
+            return QTest::qWaitFor([this, &prefix] {
+                pump();
+                return std::any_of(lines.cbegin(), lines.cend(),
+                                   [&prefix](const QString& l) { return l.startsWith(prefix); });
+            }, timeoutMs);
+        }
+        int countLines(const QString& exact)
+        {
+            pump();
+            return static_cast<int>(std::count(lines.cbegin(), lines.cend(), exact));
+        }
+        void send(const char* text)
+        {
+            peer->write(text);
+            peer->write("\n");
+            peer->flush();
+        }
+    };
+
+    static bool bringToWaiting(CsaClient& client, LocalServer& server)
+    {
+        client.connectToServer(QStringLiteral("127.0.0.1"), server.port());
+        if (!server.accept()) return false;
+        if (!QTest::qWaitFor([&client] { return client.connectionState() == CsaClient::ConnectionState::Connected; }, 3000)) return false;
+        client.login(QStringLiteral("user"), QStringLiteral("pass"));
+        if (!server.waitForLine(QStringLiteral("LOGIN user pass"))) return false;
+        server.send("LOGIN:user OK");
+        return QTest::qWaitFor([&client] { return client.connectionState() == CsaClient::ConnectionState::LoggedIn; }, 3000);
+    }
+
+    static bool bringInGame(CsaClient& client, LocalServer& server, const char* yourTurn)
+    {
+        if (!bringToWaiting(client, server)) return false;
+        server.send("BEGIN Game_Summary");
+        server.send("Game_ID:g1");
+        server.send("Name+:A");
+        server.send("Name-:B");
+        server.send((QByteArrayLiteral("Your_Turn:") + yourTurn).constData());
+        server.send("To_Move:+");
+        server.send("BEGIN Time");
+        server.send("Total_Time:300");
+        server.send("END Time");
+        server.send("END Game_Summary");
+        if (!QTest::qWaitFor([&client] { return client.connectionState() == CsaClient::ConnectionState::GameReady; }, 3000)) return false;
+        client.agree(QStringLiteral("g1"));
+        if (!server.waitForLine(QStringLiteral("AGREE g1"))) return false;
+        server.send("START:g1");
+        return QTest::qWaitFor([&client] { return client.connectionState() == CsaClient::ConnectionState::InGame; }, 3000);
+    }
+
+private slots:
+    void csaClient_socket_logoutWaitsForCompleted()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QSignalSpy logout(&client, &CsaClient::logoutCompleted);
+        QSignalSpy error(&client, &CsaClient::errorOccurred);
+        QVERIFY(bringToWaiting(client, server));
+
+        client.disconnectFromServer();
+        QVERIFY(server.waitForLine(QStringLiteral("LOGOUT")));
+        // 応答が来るまでは切断しない
+        QTest::qWait(100);
+        QVERIFY(client.isConnected());
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::LoggedIn);
+
+        server.send("LOGOUT:completed");
+        QTRY_COMPARE(logout.count(), 1);
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+        QCOMPARE(error.count(), 0);
+    }
+
+    void csaClient_socket_logoutTimeoutCloses()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QSignalSpy error(&client, &CsaClient::errorOccurred);
+        QVERIFY(bringToWaiting(client, server));
+
+        client.disconnectFromServer();
+        QVERIFY(server.waitForLine(QStringLiteral("LOGOUT")));
+        QTRY_COMPARE_WITH_TIMEOUT(client.connectionState(), CsaClient::ConnectionState::Disconnected,
+                                  CsaClient::kLogoutTimeoutMs + 2000);
+        QCOMPARE(error.count(), 0);
+    }
+
+    void csaClient_socket_gameReadyDisconnectRejectsThenLogsOut()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QVERIFY(bringToWaiting(client, server));
+        server.send("BEGIN Game_Summary");
+        server.send("Game_ID:g1");
+        server.send("END Game_Summary");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::GameReady);
+
+        client.disconnectFromServer();
+        QVERIFY(server.waitForLine(QStringLiteral("REJECT g1")));
+        QVERIFY(server.waitForLine(QStringLiteral("LOGOUT")));
+        QVERIFY(server.lines.indexOf(QStringLiteral("REJECT g1")) < server.lines.indexOf(QStringLiteral("LOGOUT")));
+        server.send("LOGOUT:completed");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+    }
+
+    void csaClient_socket_reconnectWhileLogoutPending()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QSignalSpy error(&client, &CsaClient::errorOccurred);
+        QSignalSpy states(&client, &CsaClient::connectionStateChanged);
+        QVERIFY(bringToWaiting(client, server));
+
+        client.disconnectFromServer();
+        QVERIFY(server.waitForLine(QStringLiteral("LOGOUT")));
+        states.clear();
+
+        // 応答待ちのまま再接続すると、Disconnected を通知せずに Connecting へ進む
+        client.connectToServer(QStringLiteral("127.0.0.1"), server.port());
+        QCOMPARE(qvariant_cast<CsaClient::ConnectionState>(states.at(0).at(0)), CsaClient::ConnectionState::Connecting);
+        QVERIFY(server.accept());
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Connected);
+        QCOMPARE(error.count(), 0);
+    }
+
+    void csaClient_socket_sendMoveWaitsForConfirmation()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QSignalSpy rejected(&client, &CsaClient::commandRejected);
+        QSignalSpy error(&client, &CsaClient::errorOccurred);
+        QSignalSpy confirmed(&client, &CsaClient::moveConfirmed);
+        QSignalSpy received(&client, &CsaClient::moveReceived);
+        QVERIFY(bringInGame(client, server, "+"));
+        QVERIFY(client.isMyTurn());
+
+        client.sendMove(QStringLiteral("+7776FU"));
+        QVERIFY(server.waitForLine(QStringLiteral("+7776FU")));
+        QVERIFY(client.isAwaitingMoveConfirmation());
+
+        // 確認が届くまで次の手も意思表示も送らない（手番外送信は #ILLEGAL_ACTION）
+        client.sendMove(QStringLiteral("+2726FU"));
+        client.resign();
+        QCOMPARE(rejected.count(), 2);
+        QTest::qWait(50);
+        QCOMPARE(server.countLines(QStringLiteral("+2726FU")), 0);
+        QCOMPARE(server.countLines(QStringLiteral("%TORYO")), 0);
+
+        server.send("+7776FU,T1");
+        QTRY_COMPARE(confirmed.count(), 1);
+        QVERIFY(!client.isAwaitingMoveConfirmation());
+        QVERIFY(!client.isMyTurn());
+
+        client.sendMove(QStringLiteral("+2726FU"));
+        QCOMPARE(rejected.count(), 3);
+
+        server.send("-3334FU,T2");
+        QTRY_COMPARE(received.count(), 1);
+        QVERIFY(client.isMyTurn());
+        client.sendMove(QStringLiteral("+2726FU"));
+        QVERIFY(server.waitForLine(QStringLiteral("+2726FU")));
+
+        // 生コマンドでも指し手・意思表示は同じガードを通り、%% の拡張コマンドは通る
+        client.sendRawCommand(QStringLiteral("%TORYO"));
+        QCOMPARE(rejected.count(), 4);
+        client.sendRawCommand(QStringLiteral("%%WHO"));
+        QVERIFY(server.waitForLine(QStringLiteral("%%WHO")));
+        QCOMPARE(error.count(), 0);
+    }
+
+    void csaClient_socket_keepAliveDuringGameOnly()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QVERIFY(bringToWaiting(client, server));
+        QVERIFY(!client.m_keepAliveTimer->isActive());
+        QVERIFY(CsaClient::kKeepAliveIntervalMs >= CsaClient::kKeepAliveMinIntervalMs);
+
+        server.send("BEGIN Game_Summary");
+        server.send("Game_ID:g1");
+        server.send("Your_Turn:-");
+        server.send("To_Move:+");
+        server.send("END Game_Summary");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::GameReady);
+        client.agree();
+        QVERIFY(server.waitForLine(QStringLiteral("AGREE")));
+        server.send("START:g1");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::InGame);
+        QVERIFY(client.m_keepAliveTimer->isActive());
+        QCOMPARE(client.m_keepAliveTimer->interval(), CsaClient::kKeepAliveIntervalMs);
+
+        // テストでは間隔を縮めて、相手の手番中に LF だけの行が届くことを確かめる
+        client.m_keepAliveTimer->setInterval(100);
+        QVERIFY(QTest::qWaitFor([&server] {
+            server.pump();
+            return server.lines.contains(QString());
+        }, 3000));
+
+        // サーバーの LF 応答は無視され、相手の指し手で手番が戻る
+        server.send("");
+        server.send("+7776FU,T1");
+        QTRY_VERIFY(client.isMyTurn());
+
+        // 手動のキープアライブは直前の送信から30秒未満では送らない
+        QSignalSpy rejected(&client, &CsaClient::commandRejected);
+        client.sendMove(QStringLiteral("-3334FU"));
+        client.sendRawCommand(QString());
+        QCOMPARE(rejected.count(), 1);
+
+        server.send("-3334FU,T1");
+        server.send("#TIME_UP");
+        server.send("#WIN");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::GameOver);
+        QVERIFY(!client.m_keepAliveTimer->isActive());
     }
 };
 

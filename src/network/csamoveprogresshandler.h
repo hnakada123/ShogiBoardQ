@@ -11,6 +11,7 @@
 #include <QString>
 #include <QStringList>
 #include <QPoint>
+#include <QTimer>
 #include <functional>
 
 #include "csaclient.h"
@@ -30,6 +31,9 @@ class CsaClient;
  *
  * CsaGameCoordinator 内部状態への参照は Refs struct で受け取り、
  * シグナル発火や副作用は Hooks struct のコールバックで実行する。
+ *
+ * 解釈できない指し手行（不正な書式・盤面に適用できない手）は、サーバーが続けて送る
+ * #ILLEGAL_MOVE などの裁定を待つ（仕様 3.4）。裁定が届かなければ中断として終局させる。
  */
 class CsaMoveProgressHandler : public QObject
 {
@@ -110,6 +114,8 @@ public:
         std::function<void()> performResign;
     };
 
+    CsaMoveProgressHandler();
+
     void setRefs(const Refs& refs);
     void setHooks(const Hooks& hooks);
 
@@ -119,13 +125,41 @@ public:
     void handleMoveConfirmed(const QString& move, int consumedTimeMs);
     void startEngineThinking();
 
+    /// 解釈できなかった指し手の裁定待ちを取り消す（終局・切断時）
+    void clearPendingVerdict();
+
+    /**
+     * @brief 表示用時計に CSA の持時間を反映する
+     * @param clock 時計
+     * @param summary 対局条件
+     * @param blackRemainingMs 先手の残り時間（ミリ秒）
+     * @param whiteRemainingMs 後手の残り時間（ミリ秒）
+     *
+     * 双方とも時間無制限なら消費時間を数える時計にする。
+     */
+    static void applyClockTimes(ShogiClock* clock, const CsaClient::GameSummary& summary,
+                                int blackRemainingMs, int whiteRemainingMs);
+
+    /// 裁定が届かないときに中断とみなすまでの時間
+    static constexpr int kVerdictTimeoutMs = 5000;
+
 private:
     void onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result);
+    void onVerdictTimeout();
     void updateTimeTracking(bool isBlackMove, int consumedTimeMs);
     void syncClockAfterMove(bool startMyTurnClock);
 
+    /// 指し手行の書式・座標を確認し、問題があれば通知文を返す（問題なければ空）
+    QString validateMoveText(const QString& move, QPoint* from, QPoint* to) const;
+    /// 解釈できない指し手行を記録し、サーバーの裁定を待つ
+    void deferVerdict(const QString& logText, const QString& failureText);
+    /// 裁定待ちのまま次の行が来たら、続行できないとして終局させる
+    bool failIfVerdictPending();
+
     Refs m_refs;
     Hooks m_hooks;
+    QTimer m_verdictTimer;             ///< 裁定待ちのタイムアウト
+    QString m_pendingFailureText;      ///< 裁定が届かなかったときの終局理由（空なら待ちなし）
 };
 
 #endif // CSAMOVEPROGRESSHANDLER_H

@@ -264,7 +264,7 @@ private:
     QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw,
                              bool blackToMove) const;
 
-    void appendInitialKifuLine(const QString& prettyMove, const QString& sfen);
+    void appendInitialKifuLine(const QString& prettyMove, const QString& elapsedTime, const QString& sfen);
     QString buildNumberedKifuLine(const QString& prettyMove) const;
 
     // 依存オブジェクト

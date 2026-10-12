@@ -5,6 +5,8 @@
 /// @brief CSAプロトコルクライアントクラスの定義
 
 
+#include <QElapsedTimer>
+#include <QList>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -15,15 +17,17 @@
  * @brief CSAプロトコルクライアントクラス
  *
  * CSAサーバーとの通信を担当するクラス。
- * shogi-server (https://github.com/TadaoYamaoka/shogi-server) との
- * 通信対局を行うためのCSAプロトコル1.2.1を実装。
+ * CSAサーバープロトコル V1.2.1
+ * (https://www.computer-shogi.org/protocol/tcp_ip_server_121.html) を実装し、
+ * shogi-server (https://github.com/TadaoYamaoka/shogi-server) との通信対局に使う。
  *
  * 責務:
  * - TCP/IP接続の確立と管理
  * - CSAプロトコルメッセージの送受信
- * - ログイン/ログアウト処理
+ * - ログイン/ログアウト処理（LOGOUT:completed を待ってから切断）
  * - 対局の合意処理（AGREE/REJECT）
- * - 指し手の送受信
+ * - 指し手の送受信（確認待ちの間は二重送信しない）
+ * - 対局中のキープアライブ（LF のみの行）
  */
 class CsaClient : public QObject
 {
@@ -46,7 +50,7 @@ public:
         WaitingForGame,     ///< 対局待ち（Game_Summary受信待ち）
         GameReady,          ///< 対局条件受信済み（AGREE待ち）
         InGame,             ///< 対局中
-        GameOver            ///< 対局終了
+        GameOver            ///< 対局終了（ログインしたまま次の対局条件を待つ）
     };
     Q_ENUM(ConnectionState)
 
@@ -81,13 +85,41 @@ public:
     Q_ENUM(GameEndCause)
 
     /**
+     * @brief 片方の対局者の持時間情報（BEGIN Time / Time+ / Time- の内容）
+     *
+     * 値は Time_Unit の単位時間で保持し、*Ms() でミリ秒に換算する。
+     */
+    struct TimeControl {
+        QString timeUnit = QStringLiteral("1sec"); ///< 時間単位（1sec/1min/1msec）
+        int totalTime = 0;          ///< 持時間の初期値
+        int byoyomi = 0;            ///< 秒読み
+        int leastTimePerMove = 0;   ///< 最少消費時間
+        int increment = 0;          ///< 加算時間
+        int delay = 0;              ///< 遅延時間
+        bool timeRoundup = false;   ///< 単位時間未満を切り上げるか
+        bool specified = false;     ///< Time 階層が記述されたか
+
+        int unitMs() const;                 ///< 時間単位をミリ秒に換算
+        int totalTimeMs() const { return totalTime * unitMs(); }
+        int byoyomiMs() const { return byoyomi * unitMs(); }
+        int incrementMs() const { return increment * unitMs(); }
+        int delayMs() const { return delay * unitMs(); }
+        int leastTimePerMoveMs() const { return leastTimePerMove * unitMs(); }
+        /// 時間無制限か（Time 階層の省略、または全時間要素の省略）
+        bool isUnlimited() const
+        {
+            return !specified || (totalTime == 0 && byoyomi == 0 && increment == 0 && delay == 0);
+        }
+    };
+
+    /**
      * @brief 対局情報を格納する構造体
      */
     struct GameSummary {
         QString protocolVersion;    ///< プロトコルバージョン
         QString protocolMode;       ///< プロトコルモード（Server/Direct）
         QString format;             ///< フォーマット（Shogi 1.0）
-        QString declaration;        ///< 宣言ルール
+        QString declaration;        ///< 宣言ルール（Jishogi 1.1）
         QString gameId;             ///< 対局ID
         QString blackName;          ///< 先手名
         QString whiteName;          ///< 後手名
@@ -96,33 +128,32 @@ public:
         bool rematchOnDraw;         ///< 引き分け時再対局するか
         int maxMoves;               ///< 最大手数（0=無制限）
 
-        // 時間情報
-        QString timeUnit;           ///< 時間単位（1sec/1min/1msec）
-        int totalTime;              ///< 持時間（単位時間）
-        int byoyomi;                ///< 秒読み（単位時間）
-        int leastTimePerMove;       ///< 最少消費時間
-        int increment;              ///< 加算時間
-        int delay;                  ///< 遅延時間
-        bool timeRoundup;           ///< 切り上げ
+        // 持時間情報。共通の Time は両方に入れ、Time+/Time- は該当側だけを上書きする
+        TimeControl timeBlack;      ///< 先手の持時間情報
+        TimeControl timeWhite;      ///< 後手の持時間情報
+        bool hasIndividualTime;     ///< Time+/Time- の個別設定があるか
 
         // 局面情報（CSA形式）
         QStringList positionLines;  ///< 初期局面（P1-P9, P+, P-, +/-）
-        QStringList moves;          ///< 初期局面からの指し手リスト
-
-        // 先手/後手の個別時間（省略時は共通）
-        bool hasIndividualTime;     ///< 個別時間設定があるか
-        int totalTimeBlack;         ///< 先手持時間
-        int totalTimeWhite;         ///< 後手持時間
-        int byoyomiBlack;           ///< 先手秒読み
-        int byoyomiWhite;           ///< 後手秒読み
+        QStringList moves;          ///< 初期局面からの指し手リスト（再開局面）
+        QList<int> moveConsumedTimes; ///< moves と同じ長さ。各手の消費時間（単位時間、,T 無しは 0）
 
         GameSummary();
         void clear();
         bool isBlackTurn() const { return myTurn == QStringLiteral("+"); }
-        int timeUnitMs() const;     ///< 時間単位をミリ秒に変換
-        int totalTimeMs(bool black) const;  ///< 持時間（ミリ秒）。Time+/Time- の個別設定を反映
-        int byoyomiMs(bool black) const;    ///< 秒読み（ミリ秒）。Time+/Time- の個別設定を反映
-        int incrementMs() const;            ///< 加算時間（ミリ秒）
+        const TimeControl& timeFor(bool black) const { return black ? timeBlack : timeWhite; }
+        TimeControl& timeFor(bool black) { return black ? timeBlack : timeWhite; }
+        int timeUnitMs(bool black) const { return timeFor(black).unitMs(); }
+        int totalTimeMs(bool black) const { return timeFor(black).totalTimeMs(); }
+        int byoyomiMs(bool black) const { return timeFor(black).byoyomiMs(); }
+        int incrementMs(bool black) const { return timeFor(black).incrementMs(); }
+        int delayMs(bool black) const { return timeFor(black).delayMs(); }
+        /// 双方とも時間無制限か
+        bool isTimeUnlimited() const { return timeBlack.isUnlimited() && timeWhite.isUnlimited(); }
+        /// Declaration で入玉宣言ルール（Jishogi）が採用されているか
+        bool allowsJishogiDeclaration() const { return declaration.startsWith(QStringLiteral("Jishogi")); }
+        /// 再開局面の index 手目の消費時間（ミリ秒）。指した側の時間単位で換算する
+        int positionMoveConsumedMs(int index) const;
     };
 
     explicit CsaClient(QObject* parent = nullptr);
@@ -135,11 +166,16 @@ public:
      * @brief サーバーに接続する
      * @param host ホスト名またはIPアドレス
      * @param port ポート番号
+     *
+     * LOGOUT の応答待ちで接続が残っているときは、待たずに切ってから接続する。
      */
     void connectToServer(const QString& host, int port);
 
     /**
      * @brief サーバーから切断する
+     *
+     * 対局待ち状態なら LOGOUT を送り、LOGOUT:completed（またはタイムアウト）の後に切断する。
+     * 対局条件を受け取ったまま同意していなければ REJECT してからログアウトする。
      */
     void disconnectFromServer();
 
@@ -157,7 +193,9 @@ public:
     void login(const QString& username, const QString& password);
 
     /**
-     * @brief サーバーからログアウトする
+     * @brief サーバーからログアウトする（対局待ち状態のみ）
+     *
+     * LOGOUT を送って応答を待つ。応答を受けるか kLogoutTimeoutMs 経過で切断する。
      */
     void logout();
 
@@ -172,33 +210,41 @@ public:
     /**
      * @brief 対局条件を拒否する
      * @param gameId 対局ID（省略時は直前の対局）
+     *
+     * 送信後は対局待ち状態に戻る（サーバーの REJECT: 通知は待たない）。
      */
     void reject(const QString& gameId = QString());
 
     /**
      * @brief 指し手を送信する
      * @param move CSA形式の指し手（例: "+7776FU"）
+     *
+     * 自分の手番で、直前の送信がサーバーに確認されているときだけ送る。
+     * それ以外は commandRejected() を発行する（手番外の送信は #ILLEGAL_ACTION で負けになる）。
      */
     void sendMove(const QString& move);
 
     /**
      * @brief 生のコマンドを送信する（デバッグ/テスト用）
-     * @param command 送信するコマンド
+     * @param command 送信するコマンド。空文字列は LF のみのキープアライブ
+     *
+     * 対局中の指し手・%コマンドは sendMove() と同じ手番ガードを通す。
+     * shogi-server の拡張コマンド（%%）は手番に関係なく送る。
      */
     void sendRawCommand(const QString& command);
 
     /**
-     * @brief 投了する
+     * @brief 投了する（自分の手番のみ）
      */
     void resign();
 
     /**
-     * @brief 勝利宣言する（入玉）
+     * @brief 勝利宣言する（入玉。自分の手番のみ）
      */
     void declareWin();
 
     /**
-     * @brief 中断を要請する
+     * @brief 中断を要請する（自分の手番のみ）
      */
     void requestChudan();
 
@@ -206,6 +252,11 @@ public:
 
     bool isMyTurn() const { return m_isMyTurn; }
 
+    /// 送った指し手・意思表示に対するサーバーの確認を待っているか
+    bool isAwaitingMoveConfirmation() const { return m_awaitingMoveConfirmation; }
+
+    /// 対局待ち状態（ログイン済みで対局中でない）か。終局後もここに含む
+    static bool isWaitingState(ConnectionState state);
 
 signals:
     /// 接続状態が変化した時に発行する（→ CsaGameCoordinator::onConnectionStateChanged）
@@ -214,6 +265,9 @@ signals:
 
     /// エラーが発生した時に発行する（→ CsaGameCoordinator::onClientError）
     void errorOccurred(const QString& message);
+
+    /// 手番や確認待ちのため送信を取りやめた時に発行する（→ CsaGameCoordinator::onCommandRejected）
+    void commandRejected(const QString& reason);
 
     /// ログインに成功した時に発行する（→ CsaGameCoordinator::onLoginSucceeded）
     void loginSucceeded();
@@ -267,12 +321,26 @@ private slots:
     /// 接続タイムアウト時の処理（m_connectionTimer::timeout に接続）
     void onConnectionTimeout();
 
+    /// LOGOUT:completed が届かなかった時の処理（m_logoutTimer::timeout に接続）
+    void onLogoutTimeout();
+
+    /// 対局中のキープアライブ送信（m_keepAliveTimer::timeout に接続）
+    void onKeepAliveTimeout();
+
 private:
     /**
      * @brief メッセージを送信する
      * @param message 送信するメッセージ
+     * @return 書き込めたら true
      */
-    void sendMessage(const QString& message);
+    bool sendMessage(const QString& message);
+
+    /**
+     * @brief 1行を書き込む（LF を付ける）。送信時刻とキープアライブの起点を更新する
+     * @param line 送信する行（空文字列なら LF のみ）
+     * @return 書き込めたら true
+     */
+    bool writeLine(const QString& line);
 
     /**
      * @brief 受信した1行を処理する
@@ -285,6 +353,12 @@ private:
      * @param line 受信行
      */
     void processLoginResponse(const QString& line);
+
+    /**
+     * @brief 対局待ち状態の受信行を処理する（Game_Summary の開始、LOGOUT 応答）
+     * @param line 受信行
+     */
+    void processWaitingLine(const QString& line);
 
     /**
      * @brief Game_Summaryを処理する
@@ -323,6 +397,27 @@ private:
     /// 接続セッションに紐づく受信/解析状態を初期化する
     void resetSessionState();
 
+    /// 対局の進行状態（手番・確認待ち・終局手の消費時間）を初期化する
+    void resetGameProgressState();
+
+    /// ソケットを閉じる（送信済みデータは送り終えてから）
+    void closeSocket();
+
+    /// 応答を待たずに接続を破棄する。すぐ再接続する前提で Disconnected は通知しない
+    void abortConnection();
+
+    /// LOGOUT 応答を受けた時の処理
+    void handleLogoutResponse();
+
+    /// 対局中に自分の手番でだけ送れるコマンド（指し手・%TORYO など）か
+    static bool isTurnBoundCommand(const QString& command);
+
+    /**
+     * @brief 自分の手番で送れる状態か。送れないときは commandRejected() を発行する
+     * @param what 送ろうとした内容（通知文に使う）
+     */
+    bool ensureCanSendOnMyTurn(const QString& what);
+
     /**
      * @brief 時間文字列を解析する（例: "T12"から12を取得）
      * @param timeStr 時間文字列
@@ -330,14 +425,22 @@ private:
      */
     int parseConsumedTime(const QString& timeStr) const;
 
+    /// 「,T12」のような消費時間部分から単位時間の値を取り出す。無ければ 0
+    int consumedTimeUnitsAfterComma(const QString& line, qsizetype commaPos) const;
+
 private:
     QTcpSocket* m_socket;               ///< TCPソケット
     QTimer* m_connectionTimer;          ///< 接続タイムアウト用タイマー
+    QTimer* m_logoutTimer;              ///< LOGOUT:completed 待ちタイマー
+    QTimer* m_keepAliveTimer;           ///< 対局中のキープアライブタイマー（送信ごとに再起動）
+    QElapsedTimer m_lastSendTimer;      ///< 直前の送信からの経過時間（手動キープアライブの間隔規定用）
     ConnectionState m_connectionState = ConnectionState::Disconnected; ///< 接続状態
     QString m_receiveBuffer;            ///< 受信バッファ
 
     GameSummary m_gameSummary;          ///< 対局情報
     bool m_isMyTurn = false;            ///< 自分の手番かどうか
+    bool m_awaitingMoveConfirmation = false; ///< 送った指し手・意思表示の確認待ち
+    bool m_logoutPending = false;       ///< LOGOUT 送信済みで応答待ち
     bool m_inGameSummary = false;       ///< Game_Summary解析中フラグ
     bool m_inTimeSection = false;       ///< Time解析中フラグ
     bool m_inPositionSection = false;   ///< Position解析中フラグ
@@ -347,6 +450,10 @@ private:
     int m_endMoveConsumedTimeMs = 0;    ///< 終局手の消費時間（ミリ秒）
 
     static constexpr int kConnectionTimeoutMs = 10000; ///< 接続タイムアウト（10秒）
+    static constexpr int kLogoutTimeoutMs = 3000;      ///< LOGOUT:completed を待つ上限
+    /// キープアライブの間隔。仕様は直前の送信から30秒以上空けることを求める
+    static constexpr int kKeepAliveIntervalMs = 60000;
+    static constexpr int kKeepAliveMinIntervalMs = 30000; ///< 手動キープアライブの最短間隔（仕様 3.4）
 };
 
 #endif // CSACLIENT_H

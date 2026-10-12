@@ -7,6 +7,7 @@
 #include "csamoveconverter.h"
 #include "csamoveprogresshandler.h"
 #include "logcategories.h"
+#include "parsecommon.h"
 #include "sfencsapositionconverter.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
@@ -122,31 +123,171 @@ void CsaGameCoordinator::setupInitialPosition()
 
 void CsaGameCoordinator::setupClock()
 {
+    const CsaClient::GameSummary& s = m_gameSummary;
+
+    // 再開局面（仕様 3.2.3）: 初期局面と規定の持時間から、Game_Summary の指し手が
+    // 既に完了した状態にする。各手の消費時間を引き、各手番の開始時に加算時間を足す
+    int remainingBlackMs = s.totalTimeMs(true);
+    int remainingWhiteMs = s.totalTimeMs(false);
+    int consumedBlackMs = 0;
+    int consumedWhiteMs = 0;
+    for (int i = 0; i < s.moves.size(); ++i) {
+        const bool black = s.moves.at(i).startsWith(QLatin1Char('+'));
+        int& remaining = black ? remainingBlackMs : remainingWhiteMs;
+        int& consumed = black ? consumedBlackMs : consumedWhiteMs;
+        const int consumedMs = s.positionMoveConsumedMs(i);
+        remaining += s.incrementMs(black);
+        consumed += consumedMs;
+        // 残り時間を超えた分は秒読みで指したものとして、残りは 0 にする（仕様 3.2.2.1）
+        remaining = qMax(0, remaining - consumedMs);
+    }
+
+    const bool blackToMove = (s.toMove == QStringLiteral("+"));
+    // 手番側には、これから始まる手番の加算時間を足す
+    if (blackToMove) remainingBlackMs += s.incrementMs(true);
+    else remainingWhiteMs += s.incrementMs(false);
+
+    m_initialBlackTimeMs = s.totalTimeMs(true);
+    m_initialWhiteTimeMs = s.totalTimeMs(false);
+    m_blackTotalTimeMs = consumedBlackMs;
+    m_whiteTotalTimeMs = consumedWhiteMs;
+    m_blackRemainingMs = remainingBlackMs;
+    m_whiteRemainingMs = remainingWhiteMs;
+
     if (!m_clock) {
         return;
     }
 
-    const int totalTimeBlackSec = m_gameSummary.totalTimeMs(true) / 1000;
-    const int totalTimeWhiteSec = m_gameSummary.totalTimeMs(false) / 1000;
-    const int byoyomiBlackSec = m_gameSummary.byoyomiMs(true) / 1000;
-    const int byoyomiWhiteSec = m_gameSummary.byoyomiMs(false) / 1000;
-    const int incrementSec = m_gameSummary.incrementMs() / 1000;
-
-    m_initialBlackTimeMs = totalTimeBlackSec * 1000;
-    m_initialWhiteTimeMs = totalTimeWhiteSec * 1000;
-    m_blackRemainingMs = m_initialBlackTimeMs;
-    m_whiteRemainingMs = m_initialWhiteTimeMs;
-
-    const bool blackToMove = (m_gameSummary.toMove == QStringLiteral("+"));
-    if (blackToMove) m_blackRemainingMs += incrementSec * 1000;
-    else m_whiteRemainingMs += incrementSec * 1000;
-    m_clock->setPlayerTimes(m_blackRemainingMs / 1000, m_whiteRemainingMs / 1000,
-                            byoyomiBlackSec, byoyomiWhiteSec,
-                            incrementSec, incrementSec, true);
+    CsaMoveProgressHandler::applyClockTimes(m_clock, s, remainingBlackMs, remainingWhiteMs);
     // 終局の裁定はサーバーを正とし、表示用時計の時間切れで対局を終了しない。
     m_clock->setLoseOnTimeout(false);
     m_clock->setCurrentPlayer(blackToMove ? 1 : 2);
     m_clock->startClock();
+}
+
+
+// ============================================================
+// 対局条件の確認とエンジン起動
+// ============================================================
+
+void CsaGameCoordinator::startEngine()
+{
+    if (!m_engineController) {
+        m_engineController = new CsaEngineController(this);
+        connect(m_engineController, &CsaEngineController::logMessage,
+                this, &CsaGameCoordinator::logMessage);
+        connect(m_engineController, &CsaEngineController::initialized,
+                this, &CsaGameCoordinator::onEngineControllerInitialized);
+        connect(m_engineController, &CsaEngineController::engineError,
+                this, &CsaGameCoordinator::onEngineControllerError);
+        connect(m_engineController, &CsaEngineController::resignRequested,
+                this, &CsaGameCoordinator::onEngineControllerResign);
+        connect(m_engineController, &CsaEngineController::winDeclarationRequested,
+                this, &CsaGameCoordinator::onEngineControllerWinDeclaration);
+    }
+    CsaEngineController::InitParams params;
+    params.enginePath = m_options.enginePath;
+    params.engineName = m_options.engineName;
+    params.engineNumber = m_options.engineNumber;
+    params.gameController = m_gameController;
+    params.commLog = m_usiCommLog;
+    params.thinkingModel = m_engineThinking;
+    // USI初期化の待機中にもTCPのGame_Summaryが届く。readyokを待って合意する。
+    m_initializingEngine = true;
+    m_engineNeedsRestart = false;
+    m_engineController->initialize(params);
+}
+
+QString CsaGameCoordinator::unsupportedConditionReason(const CsaClient::GameSummary& summary,
+                                                      PlayerType playerType)
+{
+    // Format は Position の書式と指し手表記を決める。将棋以外は解釈できない
+    if (!summary.format.isEmpty() && !summary.format.startsWith(QStringLiteral("Shogi"))) {
+        return tr("未対応の Format です: %1").arg(summary.format);
+    }
+    // 時間無制限ではエンジンに思考時間を与えられない（ローカル対局と同じ方針）
+    if (playerType == PlayerType::Engine && summary.isTimeUnlimited()) {
+        return tr("時間無制限の対局はエンジンでは行えません");
+    }
+    return QString();
+}
+
+void CsaGameCoordinator::logGameConditions(const CsaClient::GameSummary& summary)
+{
+    if (summary.isTimeUnlimited()) {
+        emit logMessage(tr("持時間: 無制限"));
+    } else {
+        for (const bool black : {true, false}) {
+            if (!black && !summary.hasIndividualTime) break;
+            const CsaClient::TimeControl& t = summary.timeFor(black);
+            QString text = tr("持時間: %1秒, 秒読み: %2秒, 加算: %3秒")
+                               .arg(t.totalTimeMs() / 1000)
+                               .arg(t.byoyomiMs() / 1000)
+                               .arg(t.incrementMs() / 1000);
+            if (t.delay > 0) text += tr(", 遅延: %1秒").arg(t.delayMs() / 1000);
+            if (t.leastTimePerMove > 0) text += tr(", 最少消費: %1秒").arg(t.leastTimePerMoveMs() / 1000);
+            if (summary.hasIndividualTime) {
+                text = (black ? tr("先手の") : tr("後手の")) + text;
+            }
+            emit logMessage(text);
+        }
+    }
+    if (summary.maxMoves > 0) {
+        emit logMessage(tr("最大手数: %1手").arg(summary.maxMoves));
+    }
+    emit logMessage(summary.allowsJishogiDeclaration()
+                        ? tr("入玉宣言ルール: %1").arg(summary.declaration)
+                        : tr("入玉宣言ルール: なし"));
+    if (!summary.protocolVersion.isEmpty() && !summary.protocolVersion.startsWith(QStringLiteral("1."))) {
+        emit logMessage(tr("未知のプロトコルバージョンです: %1").arg(summary.protocolVersion), true);
+    }
+    if (summary.protocolMode != QStringLiteral("Server")) {
+        emit logMessage(tr("Protocol_Mode が Server ではありません: %1").arg(summary.protocolMode), true);
+    }
+}
+
+void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& summary)
+{
+    m_gameSummary = summary;
+    m_isBlackSide = summary.isBlackTurn();
+    // 終局後も同じ接続で次の対局条件を受けるので、前局の記録はここで消す
+    resetGameTracking();
+
+    emit logMessage(tr("対局条件を受信しました"));
+    emit logMessage(tr("先手: %1, 後手: %2").arg(summary.blackName, summary.whiteName));
+    logGameConditions(summary);
+
+    setGameState(GameState::WaitingForAgree);
+
+    const QString rejectReason = unsupportedConditionReason(summary, m_playerType);
+    if (!rejectReason.isEmpty()) {
+        emit logMessage(tr("対局条件を拒否します: %1").arg(rejectReason), true);
+        m_client->reject(summary.gameId);
+        setGameState(GameState::WaitingForMatch);
+        return;
+    }
+
+    if (m_playerType == PlayerType::Engine
+        && (m_engineNeedsRestart || !m_engineController || !m_engineController->isInitialized())) {
+        // 前局の終局で quit したエンジンを起動し直す
+        startEngine();
+    }
+
+    emit logMessage(tr("対局条件に同意します..."));
+    if (!m_initializingEngine) m_client->agree(summary.gameId);
+}
+
+QString CsaGameCoordinator::initialMoveElapsedText(int index) const
+{
+    // 再開局面の各手の消費時間と、その側の累計（「１手 / 合計」の表記）
+    const CsaClient::GameSummary& s = m_gameSummary;
+    if (index < 0 || index >= s.moves.size()) return QString();
+    const bool black = s.moves.at(index).startsWith(QLatin1Char('+'));
+    int totalMs = 0;
+    for (int i = 0; i <= index; ++i) {
+        if (s.moves.at(i).startsWith(QLatin1Char('+')) == black) totalMs += s.positionMoveConsumedMs(i);
+    }
+    return KifuParseCommon::formatTimeText(s.positionMoveConsumedMs(index), totalMs);
 }
 
 void CsaGameCoordinator::ensureMoveProgressHandler()
@@ -200,6 +341,9 @@ void CsaGameCoordinator::ensureMoveProgressHandler()
 
 void CsaGameCoordinator::cleanup()
 {
+    if (m_moveProgressHandler) {
+        m_moveProgressHandler->clearPendingVerdict();
+    }
     if (m_engineController) {
         m_engineController->cleanup();
     }
