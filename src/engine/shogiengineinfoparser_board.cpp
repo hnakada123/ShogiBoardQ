@@ -25,10 +25,15 @@ std::optional<int> ShogiEngineInfoParser::convertRankCharToInt(const QChar rankC
 
 std::optional<int> ShogiEngineInfoParser::convertPieceToStandRank(const QChar pieceChar)
 {
-    if (m_pieceCharToIntMap.contains(pieceChar)) {
-        return m_pieceCharToIntMap.value(pieceChar);
-    } else {
-        return std::nullopt;
+    switch (pieceChar.unicode()) {
+    case u'P': return 1;
+    case u'L': return 2;
+    case u'N': return 3;
+    case u'S': return 4;
+    case u'G': return 5;
+    case u'B': return 6;
+    case u'R': return 7;
+    default: return std::nullopt;
     }
 }
 
@@ -37,7 +42,7 @@ bool ShogiEngineInfoParser::isBoardRankChar(const QChar rankChar) const
     return rankChar.isLetter() && rankChar.toLatin1() <= 'i';
 }
 
-int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, bool& promote)
+int ShogiEngineInfoParser::parseMoveString(QStringView moveStr, int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, bool& promote)
 {
     fileFrom = rankFrom = fileTo = rankTo = 0;
     promote = false;
@@ -132,17 +137,37 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
 // 駒文字変換
 // ============================================================
 
-QString ShogiEngineInfoParser::pieceKanjiName(QChar symbol)
+const QString& ShogiEngineInfoParser::pieceKanjiName(QChar symbol)
 {
+    static const QString kPawn = QStringLiteral("歩"), kLance = QStringLiteral("香"), kKnight = QStringLiteral("桂"),
+        kSilver = QStringLiteral("銀"), kGold = QStringLiteral("金"), kBishop = QStringLiteral("角"),
+        kRook = QStringLiteral("飛"), kKing = QStringLiteral("玉"), kTokin = QStringLiteral("と"),
+        kPromotedLance = QStringLiteral("成香"), kPromotedKnight = QStringLiteral("成桂"),
+        kPromotedSilver = QStringLiteral("成銀"), kHorse = QStringLiteral("馬"), kDragon = QStringLiteral("龍");
+    static const QString kNone;
+
     symbol = symbol.toUpper();
 
-    if (m_pieceMapping.contains(symbol)) {
-        return m_pieceMapping[symbol];
-    }
-    else {
+    switch (symbol.unicode()) {
+    case u'P': return kPawn;
+    case u'L': return kLance;
+    case u'N': return kKnight;
+    case u'S': return kSilver;
+    case u'G': return kGold;
+    case u'B': return kBishop;
+    case u'R': return kRook;
+    case u'K': return kKing;
+    case u'Q': return kTokin;
+    case u'M': return kPromotedLance;
+    case u'O': return kPromotedKnight;
+    case u'T': return kPromotedSilver;
+    case u'C': return kHorse;
+    case u'U': return kDragon;
+    default: {
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character '%1' does not exist.").arg(symbol);
         qCWarning(lcEngine).noquote() << errorMessage;
-        return QString();
+        return kNone;
+    }
     }
 }
 
@@ -152,10 +177,10 @@ QChar ShogiEngineInfoParser::pieceCharacter(const QList<QChar>& boardData, const
         return boardData.at((rank - 1) * BOARD_SIZE + (file - 1));
     }
     else if (file == STAND_FILE) {
-        auto iter = m_pieceMap.find(rank);
-
-        if (iter != m_pieceMap.end()) {
-            return iter.value();
+        // 駒台の段番号 → 駒文字
+        static constexpr char16_t kStandPieces[] = {u'P', u'L', u'N', u'S', u'G', u'B', u'R'};
+        if (rank >= 1 && rank <= 7) {
+            return QChar(kStandPieces[rank - 1]);
         } else {
             QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.");
             qCWarning(lcEngine).noquote() << errorMessage << "rank=" << rank;
@@ -188,10 +213,22 @@ void ShogiEngineInfoParser::movePieceToSquare(QList<QChar>& boardData, QChar mov
                                               int fileTo, int rankTo, bool promote) const
 {
     if (promote) {
+        // 駒文字 → 成駒の文字（成れない駒は空のまま）
         QChar promotedPiece;
-
-        if (m_promoteMap.contains(movingPiece)) {
-            promotedPiece = m_promoteMap[movingPiece];
+        switch (movingPiece.unicode()) {
+        case u'P': promotedPiece = QLatin1Char('Q'); break;
+        case u'L': promotedPiece = QLatin1Char('M'); break;
+        case u'N': promotedPiece = QLatin1Char('O'); break;
+        case u'S': promotedPiece = QLatin1Char('T'); break;
+        case u'B': promotedPiece = QLatin1Char('C'); break;
+        case u'R': promotedPiece = QLatin1Char('U'); break;
+        case u'p': promotedPiece = QLatin1Char('q'); break;
+        case u'l': promotedPiece = QLatin1Char('m'); break;
+        case u'n': promotedPiece = QLatin1Char('o'); break;
+        case u's': promotedPiece = QLatin1Char('t'); break;
+        case u'b': promotedPiece = QLatin1Char('c'); break;
+        case u'r': promotedPiece = QLatin1Char('u'); break;
+        default: break;
         }
 
         setData(boardData, fileTo, rankTo, promotedPiece);
@@ -211,66 +248,72 @@ void ShogiEngineInfoParser::movePieceToSquare(QList<QChar>& boardData, QChar mov
 // PV解析・盤面シミュレーション
 // ============================================================
 
-int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, const ShogiGameController* algorithm, QList<QChar>& clonedBoardData,
-                                                   const bool isPondering)
+int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QList<QStringView>& tokens, qsizetype first,
+                                                   QList<QChar>& clonedBoardData, const bool isPondering)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
     bool promote = false;
 
+    // 読み筋は info 行ごとに全手を変換する。1手ずつ文字列を作らず、結果の文字列に直接足す
+    const qsizetype moveCount = tokens.size() - first;
     m_pvKanjiStr.clear();
+    m_pvKanjiStr.reserve(moveCount * 10);
     m_pvUsiStr.clear();
+    m_pvUsiStr.reserve(moveCount * 6);
 
-    QStringList validUsiMoves;
-    for (qsizetype i = 0; i < pvTokens.size(); ++i) {
-        const QString& token = pvTokens.at(i);
+    for (qsizetype i = first; i < tokens.size(); ++i) {
+        const QStringView token = tokens.at(i);
+        const int moveIndex = static_cast<int>(i - first);
 
         // 詰んだ局面などでエンジンが返す resign / win は指し手ではなく終局の宣言。
         // 棋譜と同じ日本語表記にし、表示時に KifuPresentation が表記・言語に合わせる
-        if (token == QLatin1String("resign") || token == QLatin1String("win")) {
-            m_pvKanjiStr += moveSymbol(static_cast<int>(i), algorithm, isPondering)
-                + (token == QLatin1String("resign") ? QStringLiteral("投了") : QStringLiteral("入玉勝ち"));
-            m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
+        if (token == u"resign" || token == u"win") {
+            m_pvKanjiStr += moveSymbol(moveIndex, isPondering);
+            m_pvKanjiStr += (token == u"resign" ? QStringLiteral("投了") : QStringLiteral("入玉勝ち"));
             return 0;
         }
 
         const int rc = parseMoveString(token, fileFrom, rankFrom, fileTo, rankTo, promote);
         if (rc == INFO_STRING_SPECIAL_CASE) {
-            if (i == pvTokens.size() - 1) {
+            if (i == tokens.size() - 1) {
                 // 末尾の "(57.54%)" 等はそのまま付加して終了
-                m_pvKanjiStr += " " + token;
-                // m_pvUsiStr には非指し手トークンを含めない
-                m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
+                // （m_pvUsiStr には非指し手トークンを含めない）
+                m_pvKanjiStr += QLatin1Char(' ');
+                m_pvKanjiStr += token;
                 return 0;
             }
-            m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
             return -1;
         }
         if (rc < 0) {
-            m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
             return -1;
         }
-        validUsiMoves.append(token);
+        // USI形式の読み筋は、変換できた手までを空白区切りで並べる
+        if (!m_pvUsiStr.isEmpty()) m_pvUsiStr += QLatin1Char(' ');
+        m_pvUsiStr += token;
 
         const QChar movingPiece = pieceCharacter(clonedBoardData, fileFrom, rankFrom);
-        const QString kanjiMovePiece = pieceKanjiName(movingPiece);
+        const QString& kanjiMovePiece = pieceKanjiName(movingPiece);
         if (kanjiMovePiece.isEmpty()) {
+            // 駒が無いマスからの指し手は、USI形式の読み筋を残さない
+            m_pvUsiStr.clear();
             return -1;
         }
 
-        const QString shogiStr = convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote,
-                                                          algorithm, static_cast<int>(i), isPondering);
+        const qsizetype moveStart = m_pvKanjiStr.size();
+        appendShogiMove(m_pvKanjiStr, kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote,
+                        moveIndex, isPondering);
 
         setPreviousFileTo(fileTo);
         setPreviousRankTo(rankTo);
 
-        m_pvKanjiStr += shogiStr;
-
-        if (i == 0) { m_searchedHand = shogiStr; m_searchedUsi = token; }
+        if (moveIndex == 0) {
+            m_searchedHand = m_pvKanjiStr.mid(moveStart);
+            m_searchedUsi = token.toString();
+        }
 
         movePieceToSquare(clonedBoardData, movingPiece, fileFrom, rankFrom, fileTo, rankTo, promote);
     }
 
-    m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
     return 0;
 }
 
