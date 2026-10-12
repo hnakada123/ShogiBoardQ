@@ -2,14 +2,15 @@
 #define KIFUMOVEDELEGATE_H
 
 #include "applicationfonts.h"
+#include "itemtextdelegate.h"
 #include "kifupresentation.h"
-#include <QStyledItemDelegate>
 
 /// 指し手専用列の字形を選ぶ。ヘッダー・操作ボタン・文字サイズはUIの設定を使う。
-class KifuMoveDelegate : public QStyledItemDelegate
+/// 文字は配置を覚えて描く（ItemTextDelegate。見た目は Qt と同じ）。
+class KifuMoveDelegate : public ItemTextDelegate
 {
 public:
-    using QStyledItemDelegate::QStyledItemDelegate;
+    using ItemTextDelegate::ItemTextDelegate;
 
     // UIと棋譜の書体で高さが違っても、固定高の行で文字を切らない。
     static int textHeight(const QFont& uiFont)

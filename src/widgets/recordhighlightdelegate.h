@@ -4,19 +4,18 @@
 /// @file recordhighlightdelegate.h
 /// @brief 棋譜欄・分岐候補欄の現在行の目印とセルの大きさのキャッシュ
 
-#include "itemtextcutter.h"
+#include "itemtextdelegate.h"
 
 #include <QFont>
 #include <QHash>
-#include <QStyledItemDelegate>
 
 /// Qt の選択行に加え、操作が無効な対局中もモデルの現在行に目印を描く。
 /// 列幅の自動調整で何度も測るセルの大きさは、同じ条件の結果を使い回す。
-/// 長いコメントは表示幅より十分先で切ってから描く（ItemTextCutter。見た目は変わらない）。
-class RecordHighlightDelegate : public QStyledItemDelegate
+/// 文字は配置を覚えて描き、長いコメントは表示幅より十分先で切る（ItemTextDelegate。見た目は変わらない）。
+class RecordHighlightDelegate : public ItemTextDelegate
 {
 public:
-    using QStyledItemDelegate::QStyledItemDelegate;
+    using ItemTextDelegate::ItemTextDelegate;
 
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
     void paint(QPainter* painter, const QStyleOptionViewItem& option,
@@ -38,7 +37,6 @@ public:
 private:
     static constexpr qsizetype kMaxCachedSizes = 4096;
     mutable QHash<SizeKey, QSize> m_sizeCache;
-    ItemTextCutter m_cutter;
 };
 
 size_t qHash(const RecordHighlightDelegate::SizeKey& key, size_t seed = 0);

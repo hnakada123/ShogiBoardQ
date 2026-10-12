@@ -790,12 +790,13 @@ set(SRC_WIDGETS
     src/widgets/menubuttonwidget.h
     src/widgets/numericrightaligncommadelegate.h
     src/widgets/pvboardbuttondelegate.h
-    src/widgets/pvtextdelegate.cpp
     src/widgets/pvtextdelegate.h
     src/widgets/itemtextcutter.cpp
     src/widgets/itemtextcutter.h
     src/widgets/itemtextpainter.cpp
     src/widgets/itemtextpainter.h
+    src/widgets/itemtextdelegate.cpp
+    src/widgets/itemtextdelegate.h
     src/widgets/incrementaltableview.cpp
     src/widgets/incrementaltableview.h
     src/widgets/tableheaderview.cpp

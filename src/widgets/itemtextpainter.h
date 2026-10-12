@@ -32,8 +32,9 @@ class QTextLayout;
  *   変えない表で使う（思考表・検討タブ・棋譜解析の表の TableStyles::thinking は、選択中の色を
  *   selection-color と同じにしている）。
  * - Qt に渡すのと同じく、文字列は先に表示幅の十分先で切る（ItemTextCutter）。
- * - 自分で描けない設定（折り返し・右端以外の省略・右から左・アイコンやチェック・フォーカスの枠・
+ * - 自分で描けない設定（右端以外の省略・右から左・アイコンやチェック・フォーカスの枠・
  *   改行や書字方向の制御文字を含む文字列など）は、切った文字列を Qt に渡して描かせる。
+ *   折り返す設定（WrapText）では、1行に収まる文字列だけを自分で描く。
  */
 class ItemTextPainter
 {
@@ -57,8 +58,9 @@ private:
         int cellWidth = 0;      ///< 表示幅より先で切るときに使ったセルの幅
         int lineWidth = 0;      ///< 文字を並べる幅（省略の判定に使う）
         int alignment = 0;      ///< 項目の文字の配置
+        bool wrap = false;      ///< 折り返す設定か
         QSize textSize;         ///< Qt が縦の位置を決めるのに使う、切った文字列の配置の大きさ
-        std::unique_ptr<QTextLayout> layout;  ///< 省略後の文字列の配置（描くだけにする）
+        std::unique_ptr<QTextLayout> layout;  ///< 省略後の文字列の配置（描くだけにする。空なら Qt に描かせる）
     };
 
     /// 自分で文字を描ける設定か

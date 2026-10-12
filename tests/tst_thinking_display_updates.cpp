@@ -12,11 +12,17 @@
 #include <QVBoxLayout>
 
 #include "engineinfowidget.h"
+#include "kifubranchlistmodel.h"
+#include "kifudisplay.h"
 #include "kifumovedelegate.h"
+#include "kifupresentation.h"
+#include "kifurecordlistmodel.h"
 #include "numericrightaligncommadelegate.h"
 #include "opaquebackground.h"
 #include "pvboardbuttondelegate.h"
 #include "pvtextdelegate.h"
+#include "recordhighlightdelegate.h"
+#include "recordpane.h"
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
 #include "tablestyles.h"
@@ -55,6 +61,67 @@ class TestThinkingDisplayUpdates : public QObject
         QString pv;
         for (int i = 0; i < moves; ++i) pv += kMoves.at(i % kMoves.size());
         return pv;
+    }
+
+    // 比べる基準: 文字まで Qt に描かせる（QStyledItemDelegate::paint）
+    class QtNumericDelegate : public NumericRightAlignCommaDelegate
+    {
+    public:
+        using NumericRightAlignCommaDelegate::NumericRightAlignCommaDelegate;
+        void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
+        {
+            QStyledItemDelegate::paint(painter, option, index);
+        }
+    };
+    class QtKifuMoveDelegate : public KifuMoveDelegate
+    {
+    public:
+        using KifuMoveDelegate::KifuMoveDelegate;
+        void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
+        {
+            QStyledItemDelegate::paint(painter, option, index);
+        }
+    };
+    // 棋譜欄の現在行の目印は RecordHighlightDelegate と同じに描く
+    class QtRecordHighlightDelegate : public RecordHighlightDelegate
+    {
+    public:
+        using RecordHighlightDelegate::RecordHighlightDelegate;
+        void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
+        {
+            QStyledItemDelegate::paint(painter, option, index);
+            if (index.column() != 0) return;
+            const auto* recordModel = qobject_cast<const KifuRecordListModel*>(index.model());
+            const bool current = recordModel && recordModel->currentHighlightRow() == index.row();
+            if (current || (option.state & QStyle::State_Selected)) {
+                painter->fillRect(QRect(option.rect.left(), option.rect.top(), 3, option.rect.height()),
+                                  TableStyles::selectionAccent());
+            }
+        }
+    };
+
+    enum class CellState { Plain, Selected, Hover, Focus, Disabled, Active };
+
+    /// 表を状態 state にして撮る（ウィンドウが前面かどうかで色が変わるので、1つずつ前面にして撮る）
+    static QImage grabInState(QWidget* window, QTableView* view, CellState state, const QModelIndex& target)
+    {
+        if (state != CellState::Plain && state != CellState::Hover) view->selectRow(0);
+        if (state == CellState::Disabled) view->setEnabled(false);
+        view->setMouseTracking(true);
+        window->show();
+        if (!QTest::qWaitForWindowExposed(window)) return QImage();
+        if (state == CellState::Focus || state == CellState::Active) {
+            window->activateWindow();
+            if (!QTest::qWaitForWindowActive(window)) return QImage();
+        }
+        if (state == CellState::Focus) {
+            view->setFocus();
+            view->setCurrentIndex(target);
+        }
+        if (state == CellState::Hover) QTest::mouseMove(view->viewport(), view->visualRect(target).center());
+        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();
+        return view->grab().toImage();
     }
 
     /// 思考タブの表と同じ設定の表（読み筋の列だけ delegate を変えられる）
@@ -235,6 +302,102 @@ private slots:
                          qPrintable(QStringLiteral("state %1, PV column width %2").arg(int(state)).arg(pvWidth)));
             }
         }
+    }
+
+    // 数値の列・エンジン情報の表・棋譜欄も、文字は配置を覚えて自分で描く（ItemTextDelegate）。
+    // 選択・マウスを乗せた行・フォーカス・無効・ウィンドウが前面かどうか・表記で、Qt が描いた場合と同じ画素になる
+    void cellTextRendersSameInEveryState()
+    {
+        const QString startSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        const QList<CellState> states = {CellState::Plain, CellState::Selected, CellState::Hover,
+                                         CellState::Focus, CellState::Disabled, CellState::Active};
+        for (const QString& notation : {QStringLiteral("japanese"), QStringLiteral("western")}) {
+            KifuPresentation::configure(QStringLiteral("ja_JP"), notation, false);
+            for (const CellState state : states) {
+                const QString where = QStringLiteral("%1, state %2").arg(notation).arg(int(state));
+
+                // 思考表の数値の列（右寄せ・3桁区切り。負の数・文字列の評価値を含む）
+                ShogiEngineThinkingModel thinking;
+                for (int row = 0; row < 12; ++row) {
+                    const QString score = row == 5 ? QStringLiteral("詰 15") : QString::number(row * 397 - 1800);
+                    thinking.prependItem(new ShogiInfoRecord(QString::number(row * 1.37, 'f', 1), QString::number(row * 3),
+                                                             QString::number(qint64(row) * 98765432), score, longPv(3)));
+                }
+                const auto renderThinking = [&](bool qtNumeric) {
+                    QTableView view;
+                    setUpThinkingView(view, &thinking, true);
+                    if (qtNumeric) {
+                        auto* numeric = new QtNumericDelegate(&view);
+                        for (int column = 0; column < 4; ++column) view.setItemDelegateForColumn(column, numeric);
+                    }
+                    view.resize(620, 300);
+                    return grabInState(&view, &view, state, thinking.index(3, 2));
+                };
+                const QImage thinkingExpected = renderThinking(true);
+                QVERIFY(!thinkingExpected.isNull());
+                QVERIFY2(renderThinking(false) == thinkingExpected, qPrintable(QStringLiteral("thinking: ") + where));
+
+                // エンジン情報の表（指し手の列は KifuMoveDelegate）
+                UsiCommLogModel log;
+                log.setEngineName(QStringLiteral("YaneuraOu NNUE 9.10"));
+                log.setPredictiveMove(QStringLiteral("△同　歩(23)"));
+                log.setSearchedMove(QStringLiteral("▲２三歩成(24)"));
+                log.setSearchDepth(QStringLiteral("12/18"));
+                log.setNodeCount(QStringLiteral("123,456,789"));
+                log.setNodesPerSecond(QStringLiteral("1,234,567"));
+                log.setHashUsage(QStringLiteral("12.5%"));
+                // 列幅を保存した値で狭くすると、折り返す設定の表で2行になる・はみ出す値ができる（Qt に描かせる）
+                const auto renderInfo = [&](bool qtText, bool narrow) {
+                    EngineInfoWidget info;
+                    info.setModel(&log);
+                    if (narrow) info.setColumnWidths({70, 60, 48, 40, 52, 70, 40});
+                    info.resize(1000, 80);
+                    auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
+                    if (!table) return QImage();
+                    if (qtText) {
+                        table->setItemDelegate(new QStyledItemDelegate(table));
+                        auto* move = new QtKifuMoveDelegate(table);
+                        table->setItemDelegateForColumn(1, move);
+                        table->setItemDelegateForColumn(2, move);
+                    }
+                    return grabInState(&info, table, state, table->model()->index(0, 2));
+                };
+                for (const bool narrow : {false, true}) {
+                    const QImage infoExpected = renderInfo(true, narrow);
+                    QVERIFY(!infoExpected.isNull());
+                    QVERIFY2(renderInfo(false, narrow) == infoExpected,
+                             qPrintable(QStringLiteral("engine info: %1, narrow %2").arg(where).arg(narrow)));
+                }
+
+                // 棋譜欄（指し手の書体・分岐の背景色・現在行・中央寄せの消費時間・しおり・長いコメント）
+                KifuRecordListModel record;
+                KifuBranchListModel branch;
+                record.appendItem(new KifuDisplay(QStringLiteral("=== 開始局面 ==="), QString(), &record));
+                for (int ply = 1; ply <= 14; ++ply) {
+                    auto* item = new KifuDisplay(QStringLiteral("▲７六歩(77)"),
+                                                 QStringLiteral("0:%1/0:00:%1").arg(ply, 2, 10, QLatin1Char('0')),
+                                                 ply % 4 == 1 ? longPv(8) : QString(),
+                                                 ply % 5 == 2 ? QStringLiteral("しおり%1").arg(ply) : QString(), &record);
+                    item->usiMove = QStringLiteral("7g7f");
+                    item->beforeSfen = startSfen;
+                    record.appendItem(item);
+                }
+                record.setBranchPlyMarks({3, 7});
+                record.setCurrentHighlightRow(5);
+                const auto renderRecord = [&](bool qtText) {
+                    RecordPane pane;
+                    pane.setModels(&record, &branch);
+                    pane.resize(560, 420);
+                    QTableView* view = pane.kifuView();
+                    if (qtText) view->setItemDelegate(new QtRecordHighlightDelegate(view));
+                    return grabInState(&pane, view, state, record.index(4, 0));
+                };
+                const QImage recordExpected = renderRecord(true);
+                QVERIFY(!recordExpected.isNull());
+                QVERIFY2(renderRecord(false) == recordExpected, qPrintable(QStringLiteral("record: ") + where));
+            }
+        }
+        KifuPresentation::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
     }
 
     // 思考情報は1行で複数の値が変わる。値が変わらなければ表を更新せず、

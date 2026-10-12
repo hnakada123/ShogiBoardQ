@@ -5,14 +5,16 @@
 /// @brief 数値右寄せカンマ区切りデリゲートクラスの定義
 
 
-#include <QStyledItemDelegate>
+#include "itemtextdelegate.h"
+
 #include <QLocale>
 
-class NumericRightAlignCommaDelegate : public QStyledItemDelegate
+/// 数値を3桁区切りにして右寄せで描く。文字は配置を覚えて描く（ItemTextDelegate。見た目は Qt と同じ）
+class NumericRightAlignCommaDelegate : public ItemTextDelegate
 {
     Q_OBJECT
 public:
-    using QStyledItemDelegate::QStyledItemDelegate;
+    using ItemTextDelegate::ItemTextDelegate;
 
     // 数値は 3桁区切り（,）に整形。非数値はそのまま。
     QString displayText(const QVariant& value, const QLocale& locale) const override
