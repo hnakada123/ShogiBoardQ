@@ -213,19 +213,6 @@ void CsaClient::reject(const QString& gameId)
     setConnectionState(ConnectionState::WaitingForGame);
 }
 
-bool CsaClient::ensureCanSendOnMyTurn(const QString& what)
-{
-    if (!m_isMyTurn) {
-        emit commandRejected(tr("自分の手番ではないため送信しません: %1").arg(what));
-        return false;
-    }
-    if (m_awaitingMoveConfirmation) {
-        emit commandRejected(tr("直前の送信に対するサーバーの確認を待っているため送信しません: %1").arg(what));
-        return false;
-    }
-    return true;
-}
-
 void CsaClient::sendMove(const QString& move)
 {
     qCDebug(lcNetwork) << "CsaClient::sendMove called with:" << move;
@@ -250,90 +237,11 @@ void CsaClient::sendMove(const QString& move)
     }
 }
 
-bool CsaClient::isTurnBoundCommand(const QString& command)
-{
-    if (command.startsWith(QLatin1Char('+')) || command.startsWith(QLatin1Char('-'))) {
-        return true;
-    }
-    // %TORYO などの意思表示。shogi-server の拡張コマンド（%%）は手番に関係なく送れる
-    return command.startsWith(QLatin1Char('%')) && !command.startsWith(QStringLiteral("%%"));
-}
-
-void CsaClient::sendRawCommand(const QString& command)
-{
-    if (command.isEmpty()) {
-        // LF のみのキープアライブ（仕様 3.4）。対局中に限り、直前の送信から30秒以上空ける
-        if (m_connectionState != ConnectionState::InGame) {
-            emit commandRejected(tr("キープアライブ（空行）は対局中にのみ送信できます"));
-            return;
-        }
-        if (m_lastSendTimer.isValid() && m_lastSendTimer.elapsed() < kKeepAliveMinIntervalMs) {
-            emit commandRejected(tr("キープアライブは直前の送信から30秒以上空ける必要があります"));
-            return;
-        }
-        writeLine(QString());
-        return;
-    }
-
-    if (m_connectionState == ConnectionState::InGame && isTurnBoundCommand(command)) {
-        if (!ensureCanSendOnMyTurn(command)) {
-            return;
-        }
-        if (sendMessage(command)) {
-            m_awaitingMoveConfirmation = true;
-        }
-        return;
-    }
-
-    sendMessage(command);
-}
-
-void CsaClient::resign()
-{
-    if (m_connectionState != ConnectionState::InGame) {
-        return;
-    }
-    if (!ensureCanSendOnMyTurn(QStringLiteral("%TORYO"))) {
-        return;
-    }
-
-    if (sendMessage(QStringLiteral("%TORYO"))) {
-        m_awaitingMoveConfirmation = true;
-    }
-}
-
-void CsaClient::declareWin()
-{
-    if (m_connectionState != ConnectionState::InGame) {
-        return;
-    }
-    if (!ensureCanSendOnMyTurn(QStringLiteral("%KACHI"))) {
-        return;
-    }
-
-    if (sendMessage(QStringLiteral("%KACHI"))) {
-        m_awaitingMoveConfirmation = true;
-    }
-}
-
-void CsaClient::requestChudan()
-{
-    if (m_connectionState != ConnectionState::InGame) {
-        return;
-    }
-    if (!ensureCanSendOnMyTurn(QStringLiteral("%CHUDAN"))) {
-        return;
-    }
-
-    if (sendMessage(QStringLiteral("%CHUDAN"))) {
-        m_awaitingMoveConfirmation = true;
-    }
-}
-
 void CsaClient::onSocketConnected()
 {
     m_connectionTimer->stop();
     qCInfo(lcNetwork) << "Connected to server";
+    applySocketOptions();
     setConnectionState(ConnectionState::Connected);
 }
 
@@ -417,16 +325,6 @@ void CsaClient::onLogoutTimeout()
     closeSocket();
 }
 
-void CsaClient::onKeepAliveTimeout()
-{
-    if (m_connectionState != ConnectionState::InGame || !isConnected()) {
-        m_keepAliveTimer->stop();
-        return;
-    }
-    qCDebug(lcNetwork) << "Sending keep-alive LF";
-    writeLine(QString());
-}
-
 void CsaClient::handleLogoutResponse()
 {
     qCInfo(lcNetwork) << "Logout completed";
@@ -474,7 +372,7 @@ bool CsaClient::writeLine(const QString& line)
 
     m_lastSendTimer.start();
     // キープアライブは直前の送信から数える
-    if (m_connectionState == ConnectionState::InGame) {
+    if (m_keepAliveEnabled && m_connectionState == ConnectionState::InGame) {
         m_keepAliveTimer->start();
     }
     return true;
@@ -504,7 +402,7 @@ void CsaClient::setConnectionState(ConnectionState state)
     const bool wasInGame = (m_connectionState == ConnectionState::InGame);
     m_connectionState = state;
     if (state == ConnectionState::InGame) {
-        m_keepAliveTimer->start();
+        if (m_keepAliveEnabled) m_keepAliveTimer->start();
     } else if (wasInGame) {
         m_keepAliveTimer->stop();
     }

@@ -1718,6 +1718,31 @@ private slots:
         QCOMPARE(error.count(), 0);
     }
 
+    void csaClient_keepAliveSettings()
+    {
+        CsaClient client;
+        QVERIFY(client.isKeepAliveEnabled());
+        QVERIFY(client.isTcpKeepAliveEnabled());
+        QCOMPARE(client.keepAliveIntervalMs(), CsaClient::kKeepAliveIntervalMs);
+
+        // 仕様 3.4 の下限（30秒）より短くはならない
+        client.setKeepAliveIntervalMs(5000);
+        QCOMPARE(client.keepAliveIntervalMs(), CsaClient::kKeepAliveMinIntervalMs);
+        client.setKeepAliveIntervalMs(45000);
+        QCOMPARE(client.keepAliveIntervalMs(), 45000);
+
+        // 無効にすると対局中でもタイマーは動かない
+        client.setKeepAliveEnabled(false);
+        client.m_connectionState = CsaClient::ConnectionState::GameReady;
+        client.processLine(QStringLiteral("START:g1"));
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::InGame);
+        QVERIFY(!client.m_keepAliveTimer->isActive());
+        client.setKeepAliveEnabled(true);
+        QVERIFY(client.m_keepAliveTimer->isActive());
+        client.setTcpKeepAliveEnabled(false);
+        QVERIFY(!client.isTcpKeepAliveEnabled());
+    }
+
     void csaClient_socket_keepAliveDuringGameOnly()
     {
         LocalServer server;

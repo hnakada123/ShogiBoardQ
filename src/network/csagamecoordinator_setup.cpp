@@ -259,6 +259,14 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
 
     setGameState(GameState::WaitingForAgree);
 
+    if (!moreGamesWanted()) {
+        emit logMessage(tr("予定の対局数を終えているので、対局条件を拒否します"), true);
+        m_client->reject(summary.gameId);
+        setGameState(GameState::WaitingForMatch);
+        m_client->disconnectFromServer();
+        return;
+    }
+
     const QString rejectReason = unsupportedConditionReason(summary, m_playerType);
     if (!rejectReason.isEmpty()) {
         emit logMessage(tr("対局条件を拒否します: %1").arg(rejectReason), true);
@@ -290,6 +298,46 @@ QString CsaGameCoordinator::initialMoveElapsedText(int index) const
     return KifuParseCommon::formatTimeText(s.positionMoveConsumedMs(index), totalMs);
 }
 
+// ============================================================
+// 対局数と再接続
+// ============================================================
+
+bool CsaGameCoordinator::moreGamesWanted() const
+{
+    return m_options.gameLimit <= 0 || m_completedGames < m_options.gameLimit;
+}
+
+void CsaGameCoordinator::connectForGame()
+{
+    m_lastGameEndedByServer = false;
+    setGameState(GameState::Connecting);
+    emit logMessage(tr("サーバー %1:%2 に接続中...").arg(m_options.host).arg(m_options.port));
+    m_client->connectToServer(m_options.host, m_options.port);
+}
+
+void CsaGameCoordinator::handleGameCountAfterEnd()
+{
+    if (!moreGamesWanted()) {
+        emit logMessage(tr("予定の対局数（%1局）を終えたのでログアウトします").arg(m_completedGames));
+        m_client->disconnectFromServer();
+        return;
+    }
+    const QString progress = m_options.gameLimit > 0
+        ? tr("%1/%2局").arg(m_completedGames).arg(m_options.gameLimit)
+        : tr("%1局目まで終了").arg(m_completedGames);
+    if (m_client->isConnected()) {
+        emit logMessage(tr("次の対局条件を待ちます（%1）").arg(progress));
+    }
+}
+
+void CsaGameCoordinator::reconnectForNextGame()
+{
+    if (m_gameState != GameState::GameOver || !moreGamesWanted()) return;
+    if (m_client->connectionState() != CsaClient::ConnectionState::Disconnected) return;
+    emit logMessage(tr("次の対局のために再接続します（%1局目まで終了）").arg(m_completedGames));
+    connectForGame();
+}
+
 void CsaGameCoordinator::ensureMoveProgressHandler()
 {
     if (m_moveProgressHandler) return;
@@ -316,6 +364,7 @@ void CsaGameCoordinator::ensureMoveProgressHandler()
     refs.sfenHistory = &m_sfenHistory;
     refs.positionStr = &m_positionStr;
     refs.gameSummary = &m_gameSummary;
+    refs.thinkingMarginMs = &m_thinkingMarginMs;
     m_moveProgressHandler->setRefs(refs);
 
     CsaMoveProgressHandler::Hooks hooks;

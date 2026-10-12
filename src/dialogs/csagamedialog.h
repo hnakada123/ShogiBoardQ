@@ -22,8 +22,9 @@ class QComboBox;
  * @brief CSA通信対局ダイアログクラス
  *
  * CSAプロトコルを使用した通信対局の設定を行うダイアログ。
- * サーバー接続情報（ホスト、ポート、ID、パスワード）と
- * こちら側の対局者（人間またはエンジン）の設定を行う。
+ * 「基本」タブでサーバー接続情報（ホスト、ポート、ID、パスワード）と
+ * こちら側の対局者（人間またはエンジン）を、「詳細」タブで接続の維持、
+ * 対局数と再接続、棋譜の自動保存、盤の反転、shogi-server のゲーム名を設定する。
  */
 class CsaGameDialog : public QDialog
 {
@@ -47,6 +48,20 @@ public:
         QString host;       ///< 接続先ホスト
         int port;           ///< ポート番号
         QString id;         ///< ログインID
+    };
+
+    /// 対局数の決め方
+    enum class GameCountMode {
+        Single = 0,     ///< 1局で終了
+        Count = 1,      ///< 指定回数
+        Unlimited = 2   ///< 無制限
+    };
+
+    /// shogi-server に伝える手番の希望
+    enum class TurnPreference {
+        None = 0,       ///< 指定なし
+        Black = 1,      ///< 先手
+        White = 2       ///< 後手
     };
 
     /**
@@ -81,10 +96,17 @@ public:
     QString loginId() const;
 
     /**
-     * @brief パスワードを取得
+     * @brief パスワードを取得（入力されたままの値）
      * @return パスワード
      */
     QString password() const;
+
+    /**
+     * @brief LOGIN コマンドに載せるパスワード欄の文字列を取得
+     *
+     * shogi-server のゲーム名が指定されていれば「ゲーム名[-b|-w],パスワード」の形にする。
+     */
+    QString loginPassword() const;
 
     // ========== 対局者情報の取得 ==========
 
@@ -111,6 +133,23 @@ public:
      * @return エンジンリストへの参照
      */
     const QList<Engine>& engineList() const;
+
+    // ========== 詳細設定の取得 ==========
+
+    bool keepAliveEnabled() const { return m_keepAliveEnabled; }
+    int keepAliveIntervalSec() const { return m_keepAliveIntervalSec; }
+    bool tcpKeepAliveEnabled() const { return m_tcpKeepAliveEnabled; }
+    int thinkingMarginSec() const { return m_thinkingMarginSec; }
+    /// 対局数の上限（無制限は 0）
+    int gameLimit() const;
+    bool reconnectAfterGame() const { return m_reconnectAfterGame; }
+    bool autoSaveEnabled() const { return m_autoSaveEnabled; }
+    QString autoSaveDir() const { return m_autoSaveDir; }
+    /// 自動保存の形式（拡張子: kif/kifu/ki2/csa/jkf/usi）
+    QString autoSaveFormat() const { return m_autoSaveFormat; }
+    bool autoFlipBoard() const { return m_autoFlipBoard; }
+    QString gameName() const { return m_gameName; }
+    TurnPreference turnPreference() const { return m_turnPreference; }
 
     /**
      * @brief 登録エンジンと接続履歴を設定ファイルから読み直す（入力中の値は残す）
@@ -142,6 +181,11 @@ private slots:
      * @param checked チェック状態
      */
     void onShowPasswordToggled(bool checked);
+
+    /**
+     * @brief 自動保存先の「参照...」ボタンが押された時の処理
+     */
+    void onAutoSaveDirBrowse();
 
     /**
      * @brief フォントサイズを大きくする
@@ -195,6 +239,15 @@ private:
      */
     void saveGameSettings();
 
+    /// 「詳細」タブの設定を NetworkSettings から読み込む
+    void loadAdvancedSettings();
+
+    /// 「詳細」タブの設定を NetworkSettings に保存する
+    void saveAdvancedSettings();
+
+    /// 自動保存の形式コンボボックスに選択肢を入れる
+    void populateAutoSaveFormats();
+
     /**
      * @brief サーバー履歴の表示文字列を生成する
      * @param history サーバー履歴
@@ -227,6 +280,21 @@ private:
     int m_port = 4081;      ///< ポート番号
     QString m_loginId;      ///< ログインID
     QString m_password;     ///< パスワード
+
+    // 詳細設定のキャッシュ
+    bool m_keepAliveEnabled = true;
+    int m_keepAliveIntervalSec = 40;
+    bool m_tcpKeepAliveEnabled = true;
+    int m_thinkingMarginSec = 1;
+    GameCountMode m_gameCountMode = GameCountMode::Single;
+    int m_gameCount = 2;
+    bool m_reconnectAfterGame = false;
+    bool m_autoSaveEnabled = false;
+    QString m_autoSaveDir;
+    QString m_autoSaveFormat = QStringLiteral("kif");
+    bool m_autoFlipBoard = true;
+    QString m_gameName;
+    TurnPreference m_turnPreference = TurnPreference::None;
 };
 
 #endif // CSAGAMEDIALOG_H

@@ -468,6 +468,53 @@ private slots:
         QCOMPARE(NetworkSettings::csaWaitingDialogSize(), waitingSize);
     }
 
+    /// 通信対局ダイアログの詳細設定（接続の維持・対局数・自動保存・盤反転・shogi-server）
+    void networkSettings_csaAdvancedOptions()
+    {
+        // 既定値
+        QVERIFY(NetworkSettings::csaKeepAliveEnabled());
+        QCOMPARE(NetworkSettings::csaKeepAliveIntervalSec(), 40);
+        QVERIFY(NetworkSettings::csaTcpKeepAliveEnabled());
+        QCOMPARE(NetworkSettings::csaThinkingMarginSec(), 1);
+        QCOMPARE(NetworkSettings::csaGameCountMode(), 0);
+        QCOMPARE(NetworkSettings::csaGameCount(), 2);
+        QVERIFY(!NetworkSettings::csaReconnectAfterGame());
+        QVERIFY(!NetworkSettings::csaAutoSaveEnabled());
+        QVERIFY(NetworkSettings::csaAutoSaveDir().isEmpty());
+        QCOMPARE(NetworkSettings::csaAutoSaveFormat(), QStringLiteral("kif"));
+        QVERIFY(NetworkSettings::csaAutoFlipBoard());
+        QVERIFY(NetworkSettings::csaGameName().isEmpty());
+        QCOMPARE(NetworkSettings::csaTurnPreference(), 0);
+
+        NetworkSettings::setCsaKeepAliveEnabled(false);
+        NetworkSettings::setCsaKeepAliveIntervalSec(45);
+        NetworkSettings::setCsaTcpKeepAliveEnabled(false);
+        NetworkSettings::setCsaThinkingMarginSec(3);
+        NetworkSettings::setCsaGameCountMode(1);
+        NetworkSettings::setCsaGameCount(5);
+        NetworkSettings::setCsaReconnectAfterGame(true);
+        NetworkSettings::setCsaAutoSaveEnabled(true);
+        NetworkSettings::setCsaAutoSaveDir(QStringLiteral("/tmp/csa-records"));
+        NetworkSettings::setCsaAutoSaveFormat(QStringLiteral("csa"));
+        NetworkSettings::setCsaAutoFlipBoard(false);
+        NetworkSettings::setCsaGameName(QStringLiteral("floodgate-300-10F"));
+        NetworkSettings::setCsaTurnPreference(2);
+
+        QVERIFY(!NetworkSettings::csaKeepAliveEnabled());
+        QCOMPARE(NetworkSettings::csaKeepAliveIntervalSec(), 45);
+        QVERIFY(!NetworkSettings::csaTcpKeepAliveEnabled());
+        QCOMPARE(NetworkSettings::csaThinkingMarginSec(), 3);
+        QCOMPARE(NetworkSettings::csaGameCountMode(), 1);
+        QCOMPARE(NetworkSettings::csaGameCount(), 5);
+        QVERIFY(NetworkSettings::csaReconnectAfterGame());
+        QVERIFY(NetworkSettings::csaAutoSaveEnabled());
+        QCOMPARE(NetworkSettings::csaAutoSaveDir(), QStringLiteral("/tmp/csa-records"));
+        QCOMPARE(NetworkSettings::csaAutoSaveFormat(), QStringLiteral("csa"));
+        QVERIFY(!NetworkSettings::csaAutoFlipBoard());
+        QCOMPARE(NetworkSettings::csaGameName(), QStringLiteral("floodgate-300-10F"));
+        QCOMPARE(NetworkSettings::csaTurnPreference(), 2);
+    }
+
     // ========================================
     // EngineDialogSettings: エンジン設定
     // ========================================

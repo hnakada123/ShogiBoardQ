@@ -101,14 +101,24 @@ class CsaUI:
             assert asyncio.get_running_loop().time() < deadline, state
             await asyncio.sleep(0.05)
 
-    async def connect(self, port, side="b", game="audit-300-5", engine=False):
+    async def connect(self, port, side="b", game="audit-300-5", engine=False, options=None, password=None):
+        """Fill the connection dialog. `options` sets widgets on the advanced tab (name -> value)."""
         await self.call("trigger_action", name="actionCSA")
         dialog = await self.dialog("CsaGameDialog")
-        for widget, value in [("radioButtonEngine" if engine else "radioButtonHuman", True),
-                              ("lineEditHost", "127.0.0.1"), ("spinBoxPort", port),
-                              ("lineEditId", "BoardQ"), ("checkBoxShowPassword", True),
-                              ("lineEditPassword", f"{game}-{side},audit-secret")]:
+        values = [("radioButtonEngine" if engine else "radioButtonHuman", True),
+                  ("lineEditHost", "127.0.0.1"), ("spinBoxPort", port),
+                  ("lineEditId", "BoardQ"), ("checkBoxShowPassword", True),
+                  ("lineEditPassword", password if password is not None else f"{game}-{side},audit-secret")]
+        for widget, value in values:
             await self.call("set_widget_value", target=dialog, widget=widget, value=value)
+        # The advanced tab (hidden widgets cannot be set): one game, no reconnect, no auto-save, no game name.
+        defaults = {"radioButtonGamesSingle": True, "checkBoxReconnect": False, "checkBoxAutoSave": False,
+                    "lineEditGameName": "", "comboBoxTurnPreference": 0, "checkBoxAutoFlip": True}
+        defaults.update(options or {})
+        await self.call("set_widget_value", target=dialog, widget="tabWidget", value=1)
+        for widget, value in defaults.items():
+            await self.call("set_widget_value", target=dialog, widget=widget, value=value)
+        await self.call("set_widget_value", target=dialog, widget="tabWidget", value=0)
         await self.call("set_widget_value", target=dialog, widget="checkBoxShowPassword", value=False)
         await self.call("click_dialog_button", dialog=dialog, widget="pushButtonStart")
         return await self.dialog("CsaWaitingDialog")
@@ -1047,7 +1057,7 @@ async def test_games_continue_on_the_same_connection(csa_env, tmp_path):
     """3.1/3.4: the client stays logged in after a game and LOGOUT precedes a disconnect."""
     async with FakeServer() as server, mcp_session(csa_env) as session:
         ui = CsaUI(session)
-        await ui.connect(server.port)
+        await ui.connect(server.port, options={"radioButtonGamesUnlimited": True})
         peer = await server.login()
         try:
             await peer.send(fake_summary(game_id="first", your_turn="-"))
@@ -1167,3 +1177,168 @@ async def test_increment_is_tracked_per_side(csa_env):
             await ui.dismiss_end()
         finally:
             await peer.close()
+
+
+# ---------------------------------------------------------------------------
+# Advanced settings of the connection dialog
+# ---------------------------------------------------------------------------
+
+async def test_game_limit_logs_out_after_last_game(csa_env, tmp_path):
+    """対局数: after the configured number of games the client sends LOGOUT and rejects more proposals."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port, options={"radioButtonGamesCount": True, "spinBoxGameCount": 2,
+                                               "checkBoxAutoSave": True, "lineEditAutoSaveDir": str(tmp_path / "records"),
+                                               "comboBoxAutoSaveFormat": 3})
+        peer = await server.login()
+        try:
+            for game_id in ("one", "two"):
+                await peer.send(fake_summary(game_id=game_id, your_turn="-"))
+                await peer.until(f"AGREE {game_id}")
+                await peer.send(f"START:{game_id}")
+                await ui.wait_state(ui_state="csa_game")
+                await peer.send("+7776FU,T1")
+                await ui.wait_state(total_plies=1)
+                await peer.send("#TIME_UP\n#WIN")
+                # Non-modal result box between games; modal after the last one.
+                dialog = await ui.dialog("QMessageBox")
+                await ui.call("close_dialog", dialog=dialog)
+            await peer.until("LOGOUT")
+            await peer.send("LOGOUT:completed")
+            assert await peer_closed(peer)
+            await ui.wait_state(ui_state="idle", play_mode="not_started")
+            saved = sorted((tmp_path / "records").glob("*.csa"))
+            assert len(saved) == 2, saved
+            assert "BoardQ" in saved[0].name and "Peer" in saved[0].name, saved
+            assert "+7776FU" in saved[0].read_text(encoding="utf-8", errors="replace"), saved[0]
+        finally:
+            await peer.close()
+
+
+async def test_reconnects_after_server_disconnect(csa_env):
+    """再接続: shogi-server style servers close after a game; the client logs in again while games remain."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port, options={"radioButtonGamesCount": True, "spinBoxGameCount": 2,
+                                               "checkBoxReconnect": True})
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(game_id="one", your_turn="-"))
+            await peer.until("AGREE one")
+            await peer.send("START:one")
+            await ui.wait_state(ui_state="csa_game")
+            await peer.send("#TIME_UP\n#WIN")
+            dialog = await ui.dialog("QMessageBox")
+            await ui.call("close_dialog", dialog=dialog)
+        finally:
+            await peer.close()
+        # The second login arrives on its own after the reconnect delay.
+        peer = await server.login(timeout=15)
+        try:
+            await peer.send(fake_summary(game_id="two", your_turn="-"))
+            await peer.until("AGREE two")
+            await peer.send("START:two")
+            await ui.wait_state(ui_state="csa_game")
+            await peer.send("#TIME_UP\n#WIN")
+            await peer.until("LOGOUT")
+            await peer.send("LOGOUT:completed")
+            assert await peer_closed(peer)
+            assert "時間切れ" in await ui.dismiss_end()
+        finally:
+            await peer.close()
+        # No third connection: the limit was reached.
+        with pytest.raises(TimeoutError):
+            await server.accept(timeout=5)
+
+
+async def test_auto_flip_follows_assigned_side(csa_env):
+    """盤の自動反転: the board is flipped when the server assigns white, and restored for black."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port, options={"radioButtonGamesUnlimited": True, "checkBoxAutoFlip": True})
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(game_id="white", your_turn="-"))
+            await peer.until("AGREE white")
+            await peer.send("START:white")
+            state = await ui.wait_state(ui_state="csa_game")
+            assert state["board_flipped"] is True, state
+            await peer.send("#CHUDAN")
+            dialog = await ui.dialog("QMessageBox")
+            await ui.call("close_dialog", dialog=dialog)
+            await peer.send(fake_summary(game_id="black", your_turn="+"))
+            await peer.until("AGREE black")
+            await peer.send("START:black")
+            state = await ui.wait_state(ui_state="csa_game", total_plies=0)
+            assert state["board_flipped"] is False, state
+            await peer.send("#CHUDAN")
+            dialog = await ui.dialog("QMessageBox")
+            await ui.call("close_dialog", dialog=dialog)
+        finally:
+            await peer.close()
+
+
+async def test_game_name_and_turn_preference_in_login(csa_env):
+    """shogi-server: the game name and side preference are sent in the LOGIN password field."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port, password="secret",
+                         options={"lineEditGameName": "floodgate-300-10F", "comboBoxTurnPreference": 2})
+        peer = await server.accept()
+        try:
+            line = await peer.until("LOGIN ")
+            assert line == "LOGIN BoardQ floodgate-300-10F-w,secret", line
+            await peer.send("LOGIN:BoardQ OK")
+            await peer.send(fake_summary())
+            await peer.until("AGREE")
+            await peer.send("START:spec")
+            await ui.wait_state(ui_state="csa_game")
+            await peer.send("#CHUDAN")
+            await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+
+async def test_thinking_margin_reduces_engine_budget(csa_env, tmp_path):
+    """思考時間の余裕: the margin is subtracted from the byoyomi handed to the engine."""
+    engine = tmp_path / "logging-engine"
+    log = tmp_path / "go.log"
+    engine.write_text(f"""#!/usr/bin/env python3
+import sys
+for command in sys.stdin:
+    command = command.strip()
+    if command == 'usi':
+        print('id name Logger\\nusiok', flush=True)
+    elif command == 'isready':
+        print('readyok', flush=True)
+    elif command.startswith('go'):
+        open({str(log)!r}, 'a').write(command + '\\n')
+        print('bestmove 7g7f', flush=True)
+    elif command == 'quit':
+        break
+""")
+    engine.chmod(0o700)
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    config.write_text(f"[Engines]\nsize=1\n1\\name=Logger\n1\\path={engine}\n")
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        budgets = []
+        for margin in (0, 2):
+            await ui.connect(server.port, engine=True, options={"spinBoxThinkingMargin": margin})
+            peer = await server.login()
+            try:
+                await peer.send(fake_summary(time="BEGIN Time\nTotal_Time:300\nByoyomi:10\nEND Time\n"))
+                await peer.until("AGREE", timeout=20)
+                await peer.send("START:spec")
+                await peer.until("+7776FU", timeout=20)
+                command = log.read_text().splitlines()[-1]
+                assert command.startswith("go btime 300000 wtime 300000 byoyomi "), command
+                budgets.append(int(command.rsplit(" ", 1)[1]))
+                await peer.send("+7776FU,T1")
+                await peer.send("#CHUDAN")
+                await ui.dismiss_end()
+                await ui.call("save_kifu", path=str(tmp_path / f"margin{margin}.kif"), overwrite=True)
+            finally:
+                await peer.close()
+        # The USI layer keeps its own small safety margin; the dialog setting comes on top of it.
+        assert budgets[0] <= 10000 and budgets[0] - budgets[1] == 2000, budgets

@@ -80,6 +80,8 @@ public:
 
         // 対局情報
         CsaClient::GameSummary* gameSummary = nullptr;
+        /// エンジンに渡す持時間から差し引く通信の余裕（ミリ秒）
+        const int* thinkingMarginMs = nullptr;
     };
 
     /**

@@ -323,16 +323,18 @@ void CsaMoveProgressHandler::startEngineThinking()
     const int incBlackMs = s.incrementMs(true);
     const int incWhiteMs = s.incrementMs(false);
     int& myRemainMs = black ? blackRemainMs : whiteRemainMs;
+    // サーバーは LF の到着時刻で消費時間を測るので、通信の遅延に備えて余裕を差し引く
+    const int marginMs = m_refs.thinkingMarginMs ? qMax(0, *m_refs.thinkingMarginMs) : 0;
 
     CsaEngineController::ThinkingParams params;
     params.positionCmd = positionCmd;
     if (byoyomiMyMs > 0) {
-        params.byoyomiMs = byoyomiMyMs + delayMyMs;
+        params.byoyomiMs = qMax(0, byoyomiMyMs + delayMyMs - marginMs);
         params.useByoyomi = true;
     } else {
         // USI（将棋所の仕様）では btime + binc が今回の手に使える時間を表す。CSA の残り時間は
         // 手番の開始時に加算済みなので、加算を binc で伝えるときは自分の残り時間から差し引く。
-        myRemainMs = qMax(0, myRemainMs - (black ? incBlackMs : incWhiteMs)) + delayMyMs;
+        myRemainMs = qMax(0, myRemainMs - (black ? incBlackMs : incWhiteMs) + delayMyMs - marginMs);
         params.bincMs = incBlackMs;
         params.wincMs = incWhiteMs;
         params.useByoyomi = false;

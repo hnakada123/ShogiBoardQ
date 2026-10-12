@@ -920,6 +920,7 @@ add_shogi_test(tst_csaprotocol
     ${TEST_STUBS}
     ${SRC}/network/csaclient.cpp
     ${SRC}/network/csaclient_parser.cpp
+    ${SRC}/network/csaclient_commands.cpp
     ${SRC}/network/csamoveconverter.cpp
     ${SRC}/network/csamoveconverter_game.cpp
     ${SRC}/core/shogiboard.cpp

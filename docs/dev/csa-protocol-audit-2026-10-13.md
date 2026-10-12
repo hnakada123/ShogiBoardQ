@@ -68,3 +68,28 @@ python3 -m pytest -q -p no:cacheprovider --basetemp=/tmp/sbq mcp/tests/test_csa_
 
 - Floodgate 拡張（`x1` ログイン、`%%GAME` など）は仕様外のため対象にしていない。
 - 実運用の Floodgate での長時間対局（キープアライブの効果）は確認していない。
+
+## 追記（2026-10-13）: 接続ダイアログの詳細設定
+
+通信対局（CSA）ダイアログに「詳細」タブを追加し、接続を安定させる設定と連続対局の設定を入れた。
+設定は `NetworkSettings`（`CsaGameSettings/...`）に保存する。パスワードは従来どおり保存しない。
+
+| 設定 | 既定 | 動作 |
+|---|---|---|
+| 対局中に空行を送って接続を維持する／間隔 | 有効、40秒 | 直前の送信から指定秒で LF だけの行を送る。下限は仕様の30秒（`CsaClient::setKeepAliveIntervalMs`） |
+| TCPキープアライブを使う | 有効 | 接続時に SO_KEEPALIVE と、無通信30秒・間隔10秒・5回の探査をソケットに設定する（Linux: TCP_KEEPIDLE/INTVL/CNT、macOS: TCP_KEEPALIVE、Windows: SIO_KEEPALIVE_VALS）。Nagle は常に無効（TCP_NODELAY） |
+| 思考時間の余裕 | 1秒 | エンジンに渡す秒読み（または残り時間）から差し引く。USI 層の250msの余裕とは別に効く |
+| 対局数（1局／指定回数／無制限） | 1局 | 上限に達したら LOGOUT し、その後の対局条件は REJECT する。続けるときは同じ接続で次の対局条件を受ける |
+| 終局後にサーバーが切断したら再接続して次の対局を待つ | 無効 | サーバーの裁定で終局したあとの切断に限り、3秒後に接続し直す。接続失敗やログイン失敗では再試行しない |
+| 終局時に棋譜を自動保存する／保存先／形式 | 無効、KIF | 終局行を記録した直後に `日時_先手_vs_後手.拡張子` で保存する。同じ秒に終わった対局は連番を付ける |
+| 後手のときは盤を反転する | 有効 | 対局開始時に割り当てられた手番に合わせて、通常対局と同じ経路（`MatchCoordinator::flipBoard`）で反転する |
+| ゲーム名／手番の希望（shogi-server） | 空／指定なし | LOGIN のパスワード欄を「ゲーム名[-b\|-w],パスワード」の形にする。従来のパスワード欄に「ゲーム名,パスワード」と書く方法も使える |
+
+対局を続けるときの終局ダイアログは非モーダルにし、次の対局の開始や LOGOUT を止めない。
+対局数を数えて LOGOUT の要否を決めてから終局を通知するので、最後の対局の結果ダイアログが開いていても LOGOUT は送られる。
+
+テストは `tst_settings_roundtrip`（設定の往復）、`tst_csaprotocol`（キープアライブの設定）、
+`mcp/tests/test_csa_game.py` の `test_game_limit_logs_out_after_last_game`・`test_reconnects_after_server_disconnect`・
+`test_auto_flip_follows_assigned_side`・`test_game_name_and_turn_preference_in_login`・`test_thinking_margin_reduces_engine_budget`。
+結合テストで「詳細」タブの部品を操作するときは、先に `set_widget_value(widget="tabWidget", value=1)` でタブを切り替える
+（自動化 API は非表示の部品を操作しない）。

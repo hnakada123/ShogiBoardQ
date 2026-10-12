@@ -52,6 +52,8 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     , m_prepareRecord(deps.prepareRecord)
     , m_syncPly(deps.syncPly)
     , m_recordGameEnd(deps.recordGameEnd)
+    , m_saveKifuToPath(deps.saveKifuToPath)
+    , m_setBoardFlipped(deps.setBoardFlipped)
 {
 }
 
@@ -116,6 +118,7 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
 
     // 終局後も同じ接続で次の対局が始まるので、盤面入力の振り分けを通信対局に戻す
     Q_EMIT playModeChanged(static_cast<int>(PlayMode::CsaNetworkMode));
+    applyAutoFlip();
     // 対局情報と棋譜の書き出しに使う持ち時間と開始日時を、サーバーの対局条件で置き換える
     if (m_timeController && m_coordinator) {
         const CsaClient::GameSummary& s = m_coordinator->gameSummary();
@@ -241,6 +244,9 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
         }
     }
 
+    // 次の対局が始まる前に、終局までの棋譜を書き出す
+    autoSaveRecord();
+
     // 対局終了ダイアログを表示
     const QString message =
         tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText);
@@ -358,47 +364,6 @@ QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool lose
     }
 }
 
-void CsaGameWiring::onPlayModeChangedInternal(int mode)
-{
-    if (m_playMode) {
-        *m_playMode = static_cast<PlayMode>(mode);
-    }
-    qCDebug(lcUi) << "onPlayModeChangedInternal: mode=" << mode;
-}
-
-void CsaGameWiring::showGameEndDialogInternal(const QString& title, const QString& message)
-{
-    QMessageBox::information(m_parentWidget, title, message);
-}
-
-void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const QString& elapsedTime, const QString& sfen)
-{
-    const QString trimmed = prettyMove.trimmed();
-    if (trimmed.isEmpty()) {
-        return;
-    }
-
-    const int beforeRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1;
-    if (m_recordService) {
-        m_recordService->updateGameRecord(trimmed, elapsedTime, sfen);
-    }
-
-    const bool appendedByService = m_kifuRecordModel && m_kifuRecordModel->rowCount() > beforeRows;
-    if (!appendedByService && m_kifuRecordModel) {
-        m_kifuRecordModel->appendItem(new KifuDisplay(buildNumberedKifuLine(trimmed), elapsedTime));
-    }
-}
-
-QString CsaGameWiring::buildNumberedKifuLine(const QString& prettyMove) const
-{
-    const int moveRows = m_kifuRecordModel ? qMax(0, m_kifuRecordModel->rowCount() - 1) : 0;
-
-    const int nextMoveNumber = moveRows + 1;
-    const QString moveNumberStr = QString::number(nextMoveNumber);
-    const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
-    return spaces + moveNumberStr + QLatin1Char(' ') + prettyMove;
-}
-
 void CsaGameWiring::onWaitingCancelled()
 {
     qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
@@ -474,21 +439,8 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         }
     }
 
-    // 対局開始オプションを設定
-    CsaGameCoordinator::StartOptions options;
-    options.host = dialog->host();
-    options.port = dialog->port();
-    options.username = dialog->loginId();
-    options.password = dialog->password();
-
-    if (dialog->isHuman()) {
-        options.playerType = CsaGameCoordinator::PlayerType::Human;
-    } else {
-        options.playerType = CsaGameCoordinator::PlayerType::Engine;
-        options.engineName = dialog->engineName();
-        options.engineNumber = dialog->engineNumber();
-        options.enginePath = dialog->engineList().value(dialog->engineNumber()).path;
-    }
+    // 対局開始オプションを設定（詳細設定もここで控える）
+    const CsaGameCoordinator::StartOptions options = buildStartOptions(dialog);
 
     // プレイモード変更を通知
     Q_EMIT playModeChanged(static_cast<int>(PlayMode::CsaNetworkMode));
