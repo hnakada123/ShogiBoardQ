@@ -38,7 +38,7 @@ class CsaEngineController;
  *
  * 責務:
  * - CSAクライアントとGUIコンポーネントの橋渡し
- * - 対局フローの制御（接続→ログイン→対局→終了）
+ * - 対局フローの制御（接続→ログイン→対局→終了→次の対局条件待ち）
  * - 時間管理のGUIへの反映
  */
 class CsaGameCoordinator : public QObject
@@ -56,7 +56,7 @@ public:
         WaitingForMatch,    ///< マッチング待ち
         WaitingForAgree,    ///< 対局条件確認中
         InGame,             ///< 対局中
-        GameOver,           ///< 対局終了
+        GameOver,           ///< 対局終了（ログインは続き、次の対局条件を受け付ける）
         Error               ///< エラー状態
     };
     Q_ENUM(GameState)
@@ -128,6 +128,17 @@ public:
     void sendRawCommand(const QString& command);
     QString username() const { return m_options.username; }
     const QStringList& usiMoves() const { return m_usiMoves; }
+    /// 再開局面の index 手目の消費時間と累計の表記（棋譜欄用）
+    QString initialMoveElapsedText(int index) const;
+
+    /**
+     * @brief 受け入れられない対局条件なら、その理由を返す（受け入れるなら空）
+     * @param summary 受信した対局条件
+     * @param playerType こちらの対局者タイプ
+     *
+     * Format が将棋以外、またはエンジン対局で時間無制限のときは REJECT する。
+     */
+    static QString unsupportedConditionReason(const CsaClient::GameSummary& summary, PlayerType playerType);
 
 signals:
     void connectionStateChanged(bool connected);
@@ -154,6 +165,7 @@ public slots:
 private slots:
     void onConnectionStateChanged(CsaClient::ConnectionState state);
     void onClientError(const QString& message);
+    void onCommandRejected(const QString& reason);
     void onLoginSucceeded();
     void onLoginFailed(const QString& reason);
     void onLogoutCompleted();
@@ -179,6 +191,12 @@ private:
     void failGame(const QString& message);
     void cleanup();
     void ensureMoveProgressHandler();
+    /// エンジンを起動し、readyok まで AGREE を保留する
+    void startEngine();
+    /// 1局ぶんの進行・時間の記録を初期化する（接続開始時と対局条件の受信時）
+    void resetGameTracking();
+    /// 受信した対局条件の持時間・手数制限・宣言ルールをログに出す
+    void logGameConditions(const CsaClient::GameSummary& summary);
 
     CsaClient* m_client;
     CsaEngineController* m_engineController = nullptr;
@@ -194,6 +212,7 @@ private:
     GameState m_gameState = GameState::Idle;
     PlayerType m_playerType = PlayerType::Human;
     bool m_initializingEngine = false;
+    bool m_engineNeedsRestart = false;   ///< 終局で gameover/quit を送ったので次局は起動し直す
     StartOptions m_options;
 
     CsaClient::GameSummary m_gameSummary;

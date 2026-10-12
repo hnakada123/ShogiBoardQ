@@ -114,11 +114,13 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
 {
     qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
 
+    // 終局後も同じ接続で次の対局が始まるので、盤面入力の振り分けを通信対局に戻す
+    Q_EMIT playModeChanged(static_cast<int>(PlayMode::CsaNetworkMode));
     // 対局情報と棋譜の書き出しに使う持ち時間と開始日時を、サーバーの対局条件で置き換える
     if (m_timeController && m_coordinator) {
         const CsaClient::GameSummary& s = m_coordinator->gameSummary();
-        m_timeController->beginGameWithTimeControl({s.totalTimeMs(true), s.byoyomiMs(true), s.incrementMs()},
-                                                   {s.totalTimeMs(false), s.byoyomiMs(false), s.incrementMs()});
+        m_timeController->beginGameWithTimeControl({s.totalTimeMs(true), s.byoyomiMs(true), s.incrementMs(true)},
+                                                   {s.totalTimeMs(false), s.byoyomiMs(false), s.incrementMs(false)});
     }
 
     if (m_prepareRecord && m_sfenHistory && !m_sfenHistory->isEmpty()) {
@@ -150,7 +152,9 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
         if (m_gameMoves && m_gameMoves->size() == i && m_coordinator && m_sfenHistory)
             m_gameMoves->append(SfenPositionTracer::buildGameMoves(
                 m_sfenHistory->value(i), {m_coordinator->usiMoves().value(i)}));
-        appendInitialKifuLine(initialPrettyMoves.at(i), sfen);
+        // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
+        const QString elapsed = m_coordinator ? m_coordinator->initialMoveElapsedText(static_cast<int>(i)) : QString();
+        appendInitialKifuLine(initialPrettyMoves.at(i), elapsed, sfen);
         if (m_kifuRecordModel && m_coordinator) {
             if (auto* item = m_kifuRecordModel->item(static_cast<int>(i + 1))) {
                 item->beforeSfen = m_sfenHistory ? m_sfenHistory->value(i) : QString();
@@ -175,16 +179,11 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
         }
     }
 
-    if (m_shogiView) {
-        m_shogiView->update();
-    }
+    if (m_shogiView) m_shogiView->update();
     if (m_syncPly) m_syncPly(m_activePly);
 
     // ステータスバーに表示
-    if (m_statusBar) {
-        m_statusBar->showMessage(
-            tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
-    }
+    if (m_statusBar) m_statusBar->showMessage(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
 }
 
 void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
@@ -372,7 +371,7 @@ void CsaGameWiring::showGameEndDialogInternal(const QString& title, const QStrin
     QMessageBox::information(m_parentWidget, title, message);
 }
 
-void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const QString& sfen)
+void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const QString& elapsedTime, const QString& sfen)
 {
     const QString trimmed = prettyMove.trimmed();
     if (trimmed.isEmpty()) {
@@ -381,12 +380,12 @@ void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const QStri
 
     const int beforeRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1;
     if (m_recordService) {
-        m_recordService->updateGameRecord(trimmed, QString(), sfen);
+        m_recordService->updateGameRecord(trimmed, elapsedTime, sfen);
     }
 
     const bool appendedByService = m_kifuRecordModel && m_kifuRecordModel->rowCount() > beforeRows;
     if (!appendedByService && m_kifuRecordModel) {
-        m_kifuRecordModel->appendItem(new KifuDisplay(buildNumberedKifuLine(trimmed), QString()));
+        m_kifuRecordModel->appendItem(new KifuDisplay(buildNumberedKifuLine(trimmed), elapsedTime));
     }
 }
 

@@ -12,6 +12,17 @@ constexpr int kMinPort = 1;
 constexpr int kMaxPort = 65535;
 } // namespace
 
+int CsaClient::TimeControl::unitMs() const
+{
+    if (timeUnit == QStringLiteral("1msec") || timeUnit == QStringLiteral("msec")) {
+        return 1;
+    } else if (timeUnit == QStringLiteral("1min") || timeUnit == QStringLiteral("min")) {
+        return kMsPerMinute;
+    }
+    // デフォルトは秒
+    return kMsPerSecond;
+}
+
 CsaClient::GameSummary::GameSummary()
 {
     clear();
@@ -31,50 +42,27 @@ void CsaClient::GameSummary::clear()
     rematchOnDraw = false;
     maxMoves = 0;
 
-    timeUnit = QStringLiteral("1sec");
-    totalTime = 0;
-    byoyomi = 0;
-    leastTimePerMove = 0;
-    increment = 0;
-    delay = 0;
-    timeRoundup = false;
+    timeBlack = TimeControl();
+    timeWhite = TimeControl();
+    hasIndividualTime = false;
 
     positionLines.clear();
     moves.clear();
-
-    hasIndividualTime = false;
-    totalTimeBlack = 0;
-    totalTimeWhite = 0;
-    byoyomiBlack = 0;
-    byoyomiWhite = 0;
+    moveConsumedTimes.clear();
 }
 
-int CsaClient::GameSummary::timeUnitMs() const
+int CsaClient::GameSummary::positionMoveConsumedMs(int index) const
 {
-    if (timeUnit == QStringLiteral("1msec") || timeUnit == QStringLiteral("msec")) {
-        return 1;
-    } else if (timeUnit == QStringLiteral("1min") || timeUnit == QStringLiteral("min")) {
-        return kMsPerMinute;
-    }
-    // デフォルトは秒
-    return kMsPerSecond;
+    if (index < 0 || index >= moves.size()) return 0;
+    const bool black = moves.at(index).startsWith(QLatin1Char('+'));
+    return moveConsumedTimes.value(index, 0) * timeUnitMs(black);
 }
 
-int CsaClient::GameSummary::totalTimeMs(bool black) const
+bool CsaClient::isWaitingState(ConnectionState state)
 {
-    const int units = hasIndividualTime ? (black ? totalTimeBlack : totalTimeWhite) : totalTime;
-    return units * timeUnitMs();
-}
-
-int CsaClient::GameSummary::byoyomiMs(bool black) const
-{
-    const int units = hasIndividualTime ? (black ? byoyomiBlack : byoyomiWhite) : byoyomi;
-    return units * timeUnitMs();
-}
-
-int CsaClient::GameSummary::incrementMs() const
-{
-    return increment * timeUnitMs();
+    return state == ConnectionState::LoggedIn
+        || state == ConnectionState::WaitingForGame
+        || state == ConnectionState::GameOver;
 }
 
 // ============================================================
@@ -85,6 +73,8 @@ CsaClient::CsaClient(QObject* parent)
     : QObject(parent)
     , m_socket(new QTcpSocket(this))
     , m_connectionTimer(new QTimer(this))
+    , m_logoutTimer(new QTimer(this))
+    , m_keepAliveTimer(new QTimer(this))
 {
     connect(m_socket, &QTcpSocket::connected,
             this, &CsaClient::onSocketConnected);
@@ -99,6 +89,14 @@ CsaClient::CsaClient(QObject* parent)
     m_connectionTimer->setSingleShot(true);
     connect(m_connectionTimer, &QTimer::timeout,
             this, &CsaClient::onConnectionTimeout);
+
+    m_logoutTimer->setSingleShot(true);
+    connect(m_logoutTimer, &QTimer::timeout,
+            this, &CsaClient::onLogoutTimeout);
+
+    m_keepAliveTimer->setInterval(kKeepAliveIntervalMs);
+    connect(m_keepAliveTimer, &QTimer::timeout,
+            this, &CsaClient::onKeepAliveTimeout);
 }
 
 CsaClient::~CsaClient()
@@ -111,8 +109,13 @@ CsaClient::~CsaClient()
 void CsaClient::connectToServer(const QString& host, int port)
 {
     if (m_connectionState != ConnectionState::Disconnected) {
-        emit errorOccurred(tr("既に接続中です"));
-        return;
+        if (!m_logoutPending) {
+            emit errorOccurred(tr("既に接続中です"));
+            return;
+        }
+        // LOGOUT は送ってあるので、応答を待たずに前の接続を捨てて新しい接続を始める
+        qCInfo(lcNetwork) << "Abandoning pending LOGOUT to reconnect";
+        abortConnection();
     }
 
     if (port < kMinPort || port > kMaxPort) {
@@ -133,15 +136,22 @@ void CsaClient::disconnectFromServer()
 {
     m_connectionTimer->stop();
 
-    if (m_connectionState == ConnectionState::LoggedIn ||
-        m_connectionState == ConnectionState::WaitingForGame) {
-        // ログイン済みなら切断前にログアウトを送る（サーバー側でセッションを正常終了させるため）
-        logout();
+    if (m_logoutPending) {
+        return;  // LOGOUT:completed かタイムアウトで切断する
     }
 
-    if (m_socket->state() != QAbstractSocket::UnconnectedState) {
-        m_socket->disconnectFromHost();
+    if (m_connectionState == ConnectionState::GameReady && isConnected()) {
+        // 同意していない対局条件は拒否してから離れる
+        reject(m_gameSummary.gameId);
     }
+
+    if (isWaitingState(m_connectionState) && isConnected()) {
+        // ログイン済みなら LOGOUT を送り、サーバーの LOGOUT:completed を待ってから切る
+        logout();
+        return;
+    }
+
+    closeSocket();
 }
 
 bool CsaClient::isConnected() const
@@ -162,12 +172,16 @@ void CsaClient::login(const QString& username, const QString& password)
 
 void CsaClient::logout()
 {
-    if (m_connectionState != ConnectionState::LoggedIn &&
-        m_connectionState != ConnectionState::WaitingForGame) {
+    if (!isWaitingState(m_connectionState) || m_logoutPending) {
         return;
     }
 
-    sendMessage(QStringLiteral("LOGOUT"));
+    if (!sendMessage(QStringLiteral("LOGOUT"))) {
+        closeSocket();
+        return;
+    }
+    m_logoutPending = true;
+    m_logoutTimer->start(kLogoutTimeoutMs);
 }
 
 void CsaClient::agree(const QString& gameId)
@@ -195,13 +209,29 @@ void CsaClient::reject(const QString& gameId)
         cmd += QStringLiteral(" ") + gameId;
     }
     sendMessage(cmd);
+    // 仕様 3.3: 拒否した双方は対局待ち状態に戻る。サーバーの REJECT: 通知は待たない
+    setConnectionState(ConnectionState::WaitingForGame);
+}
+
+bool CsaClient::ensureCanSendOnMyTurn(const QString& what)
+{
+    if (!m_isMyTurn) {
+        emit commandRejected(tr("自分の手番ではないため送信しません: %1").arg(what));
+        return false;
+    }
+    if (m_awaitingMoveConfirmation) {
+        emit commandRejected(tr("直前の送信に対するサーバーの確認を待っているため送信しません: %1").arg(what));
+        return false;
+    }
+    return true;
 }
 
 void CsaClient::sendMove(const QString& move)
 {
     qCDebug(lcNetwork) << "CsaClient::sendMove called with:" << move;
     qCDebug(lcNetwork) << "connectionState=" << static_cast<int>(m_connectionState)
-                       << "isMyTurn=" << m_isMyTurn;
+                       << "isMyTurn=" << m_isMyTurn
+                       << "awaitingConfirmation=" << m_awaitingMoveConfirmation;
 
     if (m_connectionState != ConnectionState::InGame) {
         qCDebug(lcNetwork) << "Not in game, rejecting move";
@@ -209,18 +239,52 @@ void CsaClient::sendMove(const QString& move)
         return;
     }
 
-    if (!m_isMyTurn) {
-        qCDebug(lcNetwork) << "Not my turn, rejecting move";
-        emit errorOccurred(tr("自分の手番ではありません"));
+    // 手番外の送信は #ILLEGAL_ACTION で反則負けになる。サーバーの確認が届くまで次を送らない
+    if (!ensureCanSendOnMyTurn(move)) {
         return;
     }
 
     qCDebug(lcNetwork) << "Sending move to server:" << move;
-    sendMessage(move);
+    if (sendMessage(move)) {
+        m_awaitingMoveConfirmation = true;
+    }
+}
+
+bool CsaClient::isTurnBoundCommand(const QString& command)
+{
+    if (command.startsWith(QLatin1Char('+')) || command.startsWith(QLatin1Char('-'))) {
+        return true;
+    }
+    // %TORYO などの意思表示。shogi-server の拡張コマンド（%%）は手番に関係なく送れる
+    return command.startsWith(QLatin1Char('%')) && !command.startsWith(QStringLiteral("%%"));
 }
 
 void CsaClient::sendRawCommand(const QString& command)
 {
+    if (command.isEmpty()) {
+        // LF のみのキープアライブ（仕様 3.4）。対局中に限り、直前の送信から30秒以上空ける
+        if (m_connectionState != ConnectionState::InGame) {
+            emit commandRejected(tr("キープアライブ（空行）は対局中にのみ送信できます"));
+            return;
+        }
+        if (m_lastSendTimer.isValid() && m_lastSendTimer.elapsed() < kKeepAliveMinIntervalMs) {
+            emit commandRejected(tr("キープアライブは直前の送信から30秒以上空ける必要があります"));
+            return;
+        }
+        writeLine(QString());
+        return;
+    }
+
+    if (m_connectionState == ConnectionState::InGame && isTurnBoundCommand(command)) {
+        if (!ensureCanSendOnMyTurn(command)) {
+            return;
+        }
+        if (sendMessage(command)) {
+            m_awaitingMoveConfirmation = true;
+        }
+        return;
+    }
+
     sendMessage(command);
 }
 
@@ -229,8 +293,13 @@ void CsaClient::resign()
     if (m_connectionState != ConnectionState::InGame) {
         return;
     }
+    if (!ensureCanSendOnMyTurn(QStringLiteral("%TORYO"))) {
+        return;
+    }
 
-    sendMessage(QStringLiteral("%TORYO"));
+    if (sendMessage(QStringLiteral("%TORYO"))) {
+        m_awaitingMoveConfirmation = true;
+    }
 }
 
 void CsaClient::declareWin()
@@ -238,8 +307,13 @@ void CsaClient::declareWin()
     if (m_connectionState != ConnectionState::InGame) {
         return;
     }
+    if (!ensureCanSendOnMyTurn(QStringLiteral("%KACHI"))) {
+        return;
+    }
 
-    sendMessage(QStringLiteral("%KACHI"));
+    if (sendMessage(QStringLiteral("%KACHI"))) {
+        m_awaitingMoveConfirmation = true;
+    }
 }
 
 void CsaClient::requestChudan()
@@ -247,8 +321,13 @@ void CsaClient::requestChudan()
     if (m_connectionState != ConnectionState::InGame) {
         return;
     }
+    if (!ensureCanSendOnMyTurn(QStringLiteral("%CHUDAN"))) {
+        return;
+    }
 
-    sendMessage(QStringLiteral("%CHUDAN"));
+    if (sendMessage(QStringLiteral("%CHUDAN"))) {
+        m_awaitingMoveConfirmation = true;
+    }
 }
 
 void CsaClient::onSocketConnected()
@@ -260,6 +339,10 @@ void CsaClient::onSocketConnected()
 
 void CsaClient::onSocketDisconnected()
 {
+    // abort() 直後に再接続した場合、古い切断通知が新しい接続に届くことがある
+    if (m_socket->state() != QAbstractSocket::UnconnectedState) {
+        return;
+    }
     m_connectionTimer->stop();
     resetSessionState();
     qCInfo(lcNetwork) << "Disconnected from server";
@@ -272,10 +355,10 @@ void CsaClient::onSocketError(QAbstractSocket::SocketError error)
 
     QString errorMessage = m_socket->errorString();
 
-    // 対局終了後のリモートホスト切断は正常動作として扱う
-    if (m_connectionState == ConnectionState::GameOver &&
-        error == QAbstractSocket::RemoteHostClosedError) {
-        qCInfo(lcNetwork) << "Connection closed by server after game end (normal)";
+    // 対局終了後やログアウト中のリモートホスト切断は正常動作として扱う
+    const bool expectedClose = (m_connectionState == ConnectionState::GameOver || m_logoutPending);
+    if (expectedClose && error == QAbstractSocket::RemoteHostClosedError) {
+        qCInfo(lcNetwork) << "Connection closed by server (expected)";
         resetSessionState();
         setConnectionState(ConnectionState::Disconnected);
         return;
@@ -304,6 +387,7 @@ void CsaClient::onReadyRead()
             line.chop(1);
         }
 
+        // 空行はキープアライブへの応答（LF のみ）なので無視する
         if (!line.isEmpty()) {
             emit rawMessageReceived(line);
             processLine(line);
@@ -323,20 +407,83 @@ void CsaClient::onConnectionTimeout()
     setConnectionState(ConnectionState::Disconnected);
 }
 
-void CsaClient::sendMessage(const QString& message)
+void CsaClient::onLogoutTimeout()
 {
-    if (!isConnected()) {
+    if (!m_logoutPending) {
         return;
     }
+    qCWarning(lcNetwork) << "LOGOUT:completed not received; closing the connection";
+    m_logoutPending = false;
+    closeSocket();
+}
 
-    QString msg = message + QStringLiteral("\n");
+void CsaClient::onKeepAliveTimeout()
+{
+    if (m_connectionState != ConnectionState::InGame || !isConnected()) {
+        m_keepAliveTimer->stop();
+        return;
+    }
+    qCDebug(lcNetwork) << "Sending keep-alive LF";
+    writeLine(QString());
+}
+
+void CsaClient::handleLogoutResponse()
+{
+    qCInfo(lcNetwork) << "Logout completed";
+    emit logoutCompleted();
+    if (m_logoutPending) {
+        m_logoutPending = false;
+        m_logoutTimer->stop();
+        closeSocket();
+    }
+}
+
+void CsaClient::closeSocket()
+{
+    if (m_socket->state() != QAbstractSocket::UnconnectedState) {
+        m_socket->disconnectFromHost();
+    }
+}
+
+void CsaClient::abortConnection()
+{
+    m_connectionTimer->stop();
+    m_logoutTimer->stop();
+    m_logoutPending = false;
+    // 直後に Connecting へ遷移するので、abort() が出す切断通知で Disconnected を発行させない
+    m_connectionState = ConnectionState::Disconnected;
+    m_socket->abort();
+    resetSessionState();
+}
+
+bool CsaClient::writeLine(const QString& line)
+{
+    if (!isConnected()) {
+        return false;
+    }
+
+    const QString msg = line + QStringLiteral("\n");
     if (m_socket->write(msg.toUtf8()) == -1) {
         qCWarning(lcNetwork) << "Failed to write message:" << m_socket->errorString();
         emit errorOccurred(tr("メッセージの送信に失敗しました: %1").arg(m_socket->errorString()));
-        return;
+        return false;
     }
     if (!m_socket->flush()) {
         qCWarning(lcNetwork) << "Failed to flush socket:" << m_socket->errorString();
+    }
+
+    m_lastSendTimer.start();
+    // キープアライブは直前の送信から数える
+    if (m_connectionState == ConnectionState::InGame) {
+        m_keepAliveTimer->start();
+    }
+    return true;
+}
+
+bool CsaClient::sendMessage(const QString& message)
+{
+    if (!writeLine(message)) {
+        return false;
     }
 
     QString displayMessage = message;
@@ -346,25 +493,43 @@ void CsaClient::sendMessage(const QString& message)
     }
     emit rawMessageSent(displayMessage);
     qCDebug(lcNetwork).noquote() << "Sent:" << displayMessage;
+    return true;
 }
 
 void CsaClient::setConnectionState(ConnectionState state)
 {
-    if (m_connectionState != state) {
-        m_connectionState = state;
-        emit connectionStateChanged(state);
+    if (m_connectionState == state) {
+        return;
     }
+    const bool wasInGame = (m_connectionState == ConnectionState::InGame);
+    m_connectionState = state;
+    if (state == ConnectionState::InGame) {
+        m_keepAliveTimer->start();
+    } else if (wasInGame) {
+        m_keepAliveTimer->stop();
+    }
+    emit connectionStateChanged(state);
+}
+
+void CsaClient::resetGameProgressState()
+{
+    m_isMyTurn = false;
+    m_awaitingMoveConfirmation = false;
+    m_pendingFirstResultLine.clear();
+    m_endMoveConsumedTimeMs = 0;
 }
 
 void CsaClient::resetSessionState()
 {
     m_receiveBuffer.clear();
     m_gameSummary.clear();
-    m_isMyTurn = false;
+    resetGameProgressState();
+    m_logoutPending = false;
+    m_logoutTimer->stop();
+    m_keepAliveTimer->stop();
+    m_lastSendTimer.invalidate();
     m_inGameSummary = false;
     m_inTimeSection = false;
     m_inPositionSection = false;
     m_currentTimeSection.clear();
-    m_pendingFirstResultLine.clear();
-    m_endMoveConsumedTimeMs = 0;
 }

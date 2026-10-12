@@ -23,6 +23,8 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
             this, &CsaGameCoordinator::onConnectionStateChanged);
     connect(m_client, &CsaClient::errorOccurred,
             this, &CsaGameCoordinator::onClientError);
+    connect(m_client, &CsaClient::commandRejected,
+            this, &CsaGameCoordinator::onCommandRejected);
     connect(m_client, &CsaClient::loginSucceeded,
             this, &CsaGameCoordinator::onLoginSucceeded);
     connect(m_client, &CsaClient::loginFailed,
@@ -76,16 +78,8 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     cleanup();
     m_options = options;
     m_playerType = options.playerType;
-    m_moveCount = 0;
-    m_blackTotalTimeMs = 0;
-    m_whiteTotalTimeMs = 0;
-    m_prevToFile = 0;
-    m_prevToRank = 0;
-    m_resignConsumedTimeMs = 0;
-    m_initialBlackTimeMs = 0;
-    m_initialWhiteTimeMs = 0;
-    m_usiMoves.clear();
-    m_initialPrettyMoves.clear();
+    m_engineNeedsRestart = false;
+    resetGameTracking();
 
     setGameState(GameState::Connecting);
     emit logMessage(tr("サーバー %1:%2 に接続中...").arg(options.host).arg(options.port));
@@ -94,11 +88,32 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
 
 void CsaGameCoordinator::stopGame()
 {
-    if (m_isMyTurn) performResign();
+    if (m_gameState == GameState::InGame && m_isMyTurn) {
+        performResign();
+    } else if (m_gameState == GameState::WaitingForAgree) {
+        // 同意前に離れるときは対局条件を拒否してから（仕様 3.3）
+        m_client->reject(m_gameSummary.gameId);
+    }
     setGameState(GameState::Idle);
     m_isMyTurn = false;
     if (m_clock) m_clock->stopClock();
     cleanup();
+}
+
+void CsaGameCoordinator::resetGameTracking()
+{
+    m_moveCount = 0;
+    m_blackTotalTimeMs = 0;
+    m_whiteTotalTimeMs = 0;
+    m_prevToFile = 0;
+    m_prevToRank = 0;
+    m_resignConsumedTimeMs = 0;
+    m_initialBlackTimeMs = 0;
+    m_initialWhiteTimeMs = 0;
+    m_blackRemainingMs = 0;
+    m_whiteRemainingMs = 0;
+    m_usiMoves.clear();
+    m_initialPrettyMoves.clear();
 }
 
 bool CsaGameCoordinator::isMyTurn() const
@@ -189,6 +204,10 @@ void CsaGameCoordinator::declareWin()
         emit errorOccurred(tr("相手の手番です"));
         return;
     }
+    if (!m_gameSummary.allowsJishogiDeclaration()) {
+        // 仕様 3.2.1: Declaration に Jishogi が無ければ入玉宣言ルールは採用されていない
+        emit logMessage(tr("対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります"), true);
+    }
     m_client->declareWin();
 }
 
@@ -234,36 +253,19 @@ void CsaGameCoordinator::onClientError(const QString& message)
     emit errorOccurred(message);
 }
 
+void CsaGameCoordinator::onCommandRejected(const QString& reason)
+{
+    // 手番外や確認待ちの送信を取りやめただけなので、対局は続ける
+    emit logMessage(reason, true);
+}
+
 void CsaGameCoordinator::onLoginSucceeded()
 {
     emit logMessage(tr("ログイン成功。対局待ち中..."));
     setGameState(GameState::WaitingForMatch);
 
     if (m_playerType == PlayerType::Engine) {
-        if (!m_engineController) {
-            m_engineController = new CsaEngineController(this);
-            connect(m_engineController, &CsaEngineController::logMessage,
-                    this, &CsaGameCoordinator::logMessage);
-            connect(m_engineController, &CsaEngineController::initialized,
-                    this, &CsaGameCoordinator::onEngineControllerInitialized);
-            connect(m_engineController, &CsaEngineController::engineError,
-                    this, &CsaGameCoordinator::onEngineControllerError);
-            connect(m_engineController, &CsaEngineController::resignRequested,
-                    this, &CsaGameCoordinator::onEngineControllerResign);
-            connect(m_engineController, &CsaEngineController::winDeclarationRequested,
-                    this, &CsaGameCoordinator::onEngineControllerWinDeclaration);
-        }
-        CsaEngineController::InitParams params;
-        params.enginePath = m_options.enginePath;
-        params.engineName = m_options.engineName;
-        params.engineNumber = m_options.engineNumber;
-        params.gameController = m_gameController;
-        params.commLog = m_usiCommLog;
-        params.thinkingModel = m_engineThinking;
-        // USI初期化の待機中にもTCPのGame_Summaryが届く。readyokを待って合意する。
-        m_initializingEngine = true;
-        m_engineController->initialize(params);
-
+        startEngine();
     }
 }
 
@@ -279,24 +281,6 @@ void CsaGameCoordinator::onLogoutCompleted()
 {
     emit logMessage(tr("ログアウト完了"));
     setGameState(GameState::Idle);
-}
-
-void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& summary)
-{
-    m_gameSummary = summary;
-    m_isBlackSide = summary.isBlackTurn();
-
-    emit logMessage(tr("対局条件を受信しました"));
-    emit logMessage(tr("先手: %1, 後手: %2").arg(summary.blackName, summary.whiteName));
-    emit logMessage(tr("持時間: %1秒, 秒読み: %2秒, 加算: %3秒")
-                        .arg(summary.totalTimeMs(true) / 1000)
-                        .arg(summary.byoyomiMs(true) / 1000)
-                        .arg(summary.incrementMs() / 1000));
-
-    setGameState(GameState::WaitingForAgree);
-
-    emit logMessage(tr("対局条件に同意します..."));
-    if (!m_initializingEngine) m_client->agree(summary.gameId);
 }
 
 void CsaGameCoordinator::onGameStarted(const QString& gameId)
@@ -345,6 +329,9 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 
 void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
+    // 解釈できなかった指し手の裁定待ちは、終局で解消する
+    if (m_moveProgressHandler) m_moveProgressHandler->clearPendingVerdict();
+
     if (m_gameState != GameState::InGame) return;
     m_isMyTurn = false;
     qCDebug(lcNetwork).noquote() << "onClientGameEnded ENTER:"
@@ -406,6 +393,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
             m_engineController->sendQuit();
             break;
         }
+        // 同じ接続で次の対局条件が来たら、エンジンを起動し直す
+        m_engineNeedsRestart = true;
     }
     emit gameEnded(result, cause, actualConsumedTimeMs);
 }
@@ -471,6 +460,10 @@ void CsaGameCoordinator::onEngineControllerError(const QString& message)
 void CsaGameCoordinator::failGame(const QString& message)
 {
     const bool inGame = (m_gameState == GameState::InGame);
+    if (m_gameState == GameState::WaitingForAgree) {
+        // 同意できなくなった対局条件は拒否してから離れる
+        m_client->reject(m_gameSummary.gameId);
+    }
     if (!inGame) setGameState(GameState::Error);
     m_client->disconnectFromServer();
     // 対局中に続行できなくなったら中断として終局させ、画面を対局中のまま残さない。

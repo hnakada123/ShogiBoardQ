@@ -11,6 +11,13 @@
 #include "shogiboard.h"
 #include "logcategories.h"
 
+CsaMoveProgressHandler::CsaMoveProgressHandler()
+{
+    m_verdictTimer.setSingleShot(true);
+    m_verdictTimer.setInterval(kVerdictTimeoutMs);
+    connect(&m_verdictTimer, &QTimer::timeout, this, &CsaMoveProgressHandler::onVerdictTimeout);
+}
+
 void CsaMoveProgressHandler::setRefs(const Refs& refs)
 {
     m_refs = refs;
@@ -22,8 +29,98 @@ void CsaMoveProgressHandler::setHooks(const Hooks& hooks)
 }
 
 // ============================================================
+// 裁定待ち（解釈できない指し手行）
+// ============================================================
+
+void CsaMoveProgressHandler::deferVerdict(const QString& logText, const QString& failureText)
+{
+    // 仕様 3.4: 不正な着手・不正な書式の指し手も指し手行として届き、続けて #ILLEGAL_MOVE と
+    // 勝敗が送られる。ここで終局させず、サーバーの裁定を待つ
+    m_hooks.logMessage(logText, true);
+    m_hooks.logMessage(tr("サーバーの裁定を待ちます"), false);
+    m_pendingFailureText = failureText;
+    m_verdictTimer.start();
+}
+
+bool CsaMoveProgressHandler::failIfVerdictPending()
+{
+    if (m_pendingFailureText.isEmpty()) return false;
+    const QString text = m_pendingFailureText;
+    clearPendingVerdict();
+    m_hooks.failGame(text);
+    return true;
+}
+
+void CsaMoveProgressHandler::clearPendingVerdict()
+{
+    m_verdictTimer.stop();
+    m_pendingFailureText.clear();
+}
+
+void CsaMoveProgressHandler::onVerdictTimeout()
+{
+    if (m_pendingFailureText.isEmpty()) return;
+    if (!m_refs.gameState || *m_refs.gameState != GameState::InGame) {
+        clearPendingVerdict();
+        return;
+    }
+    const QString text = m_pendingFailureText;
+    clearPendingVerdict();
+    m_hooks.logMessage(tr("サーバーの裁定が届きませんでした"), true);
+    m_hooks.failGame(text);
+}
+
+QString CsaMoveProgressHandler::validateMoveText(const QString& move, QPoint* from, QPoint* to) const
+{
+    if (move.length() < 7) {
+        qCWarning(lcNetwork) << "Invalid CSA move length:" << move;
+        return tr("不正な形式の指し手を受信しました: %1").arg(move);
+    }
+
+    const int fromFile = move[1].digitValue();
+    const int fromRank = move[2].digitValue();
+    const int toFile = move[3].digitValue();
+    const int toRank = move[4].digitValue();
+
+    const bool invalidTo = (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9);
+    const bool invalidFrom = !((fromFile == 0 && fromRank == 0) ||
+                               (fromFile >= 1 && fromFile <= 9 &&
+                                fromRank >= 1 && fromRank <= 9));
+    if (invalidTo || invalidFrom) {
+        qCWarning(lcNetwork) << "Invalid CSA move coordinates:"
+                             << "fromFile=" << fromFile
+                             << "fromRank=" << fromRank
+                             << "toFile=" << toFile
+                             << "toRank=" << toRank
+                             << "move=" << move;
+        return tr("不正な座標の指し手を受信しました: %1").arg(move);
+    }
+
+    if (from) *from = (fromFile == 0 && fromRank == 0) ? QPoint(-1, -1) : QPoint(fromFile, fromRank);
+    if (to) *to = QPoint(toFile, toRank);
+    return QString();
+}
+
+// ============================================================
 // 時間管理ヘルパー
 // ============================================================
+
+void CsaMoveProgressHandler::applyClockTimes(ShogiClock* clock, const CsaClient::GameSummary& summary,
+                                             int blackRemainingMs, int whiteRemainingMs)
+{
+    if (!clock) return;
+
+    if (summary.isTimeUnlimited()) {
+        // 仕様 3.2.2: Time 階層（または全時間要素）の省略は時間無制限。消費時間だけ数える
+        clock->setPlayerTimes(0, 0, 0, 0, 0, 0, false);
+        return;
+    }
+
+    clock->setPlayerTimes(blackRemainingMs / 1000, whiteRemainingMs / 1000,
+                          summary.byoyomiMs(true) / 1000, summary.byoyomiMs(false) / 1000,
+                          summary.incrementMs(true) / 1000, summary.incrementMs(false) / 1000,
+                          true);
+}
 
 void CsaMoveProgressHandler::updateTimeTracking(bool isBlackMove, int consumedTimeMs)
 {
@@ -36,26 +133,17 @@ void CsaMoveProgressHandler::updateTimeTracking(bool isBlackMove, int consumedTi
         *m_refs.whiteRemainingMs -= consumedTimeMs;
         if (*m_refs.whiteRemainingMs < 0) *m_refs.whiteRemainingMs = 0;
     }
-    // CSAの加算は次の手番の開始時に行う。
-    const int incrementMs = m_refs.gameSummary->incrementMs();
-    if (isBlackMove) *m_refs.whiteRemainingMs += incrementMs;
-    else *m_refs.blackRemainingMs += incrementMs;
+    // CSAの加算は次の手番の開始時に、その手番側の加算時間で行う。
+    if (isBlackMove) *m_refs.whiteRemainingMs += m_refs.gameSummary->incrementMs(false);
+    else *m_refs.blackRemainingMs += m_refs.gameSummary->incrementMs(true);
 }
 
 void CsaMoveProgressHandler::syncClockAfterMove(bool startMyTurnClock)
 {
     if (!*m_refs.clock) return;
 
-    const int blackRemainSec = *m_refs.blackRemainingMs / 1000;
-    const int whiteRemainSec = *m_refs.whiteRemainingMs / 1000;
-    const int byoyomiBlackSec = m_refs.gameSummary->byoyomiMs(true) / 1000;
-    const int byoyomiWhiteSec = m_refs.gameSummary->byoyomiMs(false) / 1000;
-    const int incrementSec = m_refs.gameSummary->incrementMs() / 1000;
-
-    (*m_refs.clock)->setPlayerTimes(blackRemainSec, whiteRemainSec,
-                                    byoyomiBlackSec, byoyomiWhiteSec,
-                                    incrementSec, incrementSec,
-                                    true);
+    applyClockTimes(*m_refs.clock, *m_refs.gameSummary,
+                    *m_refs.blackRemainingMs, *m_refs.whiteRemainingMs);
 
     if (startMyTurnClock) {
         (*m_refs.clock)->setCurrentPlayer(*m_refs.isBlackSide ? 1 : 2);
@@ -73,52 +161,25 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
 {
     m_hooks.logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
 
-    if (move.length() < 7) {
-        qCWarning(lcNetwork) << "Invalid CSA move length:" << move;
-        m_hooks.logMessage(tr("不正な形式の指し手を受信しました: %1").arg(move), true);
-        m_hooks.failGame(tr("サーバーからの指し手形式が不正です: %1").arg(move));
+    // 裁定待ちのまま次の指し手が来た（サーバーは対局を続けている）なら、盤面が合わないので続行できない
+    if (failIfVerdictPending()) return;
+
+    QPoint from, to;
+    const QString problem = validateMoveText(move, &from, &to);
+    if (!problem.isEmpty()) {
+        deferVerdict(problem, tr("サーバーからの指し手を解釈できません: %1").arg(move));
         return;
     }
 
-    bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
-
-    // CSA形式から座標を抽出（ハイライト用）
-    QPoint from, to;
-    int fromFile = 0, fromRank = 0;
-    int toFile = 0, toRank = 0;
-    if (move.length() >= 5) {
-        fromFile = move[1].digitValue();
-        fromRank = move[2].digitValue();
-        toFile = move[3].digitValue();
-        toRank = move[4].digitValue();
-
-        const bool invalidTo = (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9);
-        const bool invalidFrom = !((fromFile == 0 && fromRank == 0) ||
-                                   (fromFile >= 1 && fromFile <= 9 &&
-                                    fromRank >= 1 && fromRank <= 9));
-        if (invalidTo || invalidFrom) {
-            qCWarning(lcNetwork) << "Invalid CSA move coordinates:"
-                                 << "fromFile=" << fromFile
-                                 << "fromRank=" << fromRank
-                                 << "toFile=" << toFile
-                                 << "toRank=" << toRank
-                                 << "move=" << move;
-            m_hooks.logMessage(tr("不正な座標の指し手を受信しました: %1").arg(move), true);
-            m_hooks.failGame(tr("サーバーからの指し手の座標が不正です: %1").arg(move));
-            return;
-        }
-
-        if (fromFile == 0 && fromRank == 0) {
-            from = QPoint(-1, -1);
-        } else {
-            from = QPoint(fromFile, fromRank);
-        }
-        to = QPoint(toFile, toRank);
-    }
+    const bool isBlackMove = (move[0] == QLatin1Char('+'));
+    const int fromFile = move[1].digitValue();
+    const int fromRank = move[2].digitValue();
+    const int toFile = move[3].digitValue();
+    const int toRank = move[4].digitValue();
 
     // 成り判定（盤面更新前に行う）
     bool isPromotion = false;
-    if (move.length() >= 7 && fromFile != 0 && fromRank != 0) {
+    if (fromFile != 0 && fromRank != 0) {
         QString destPiece = move.mid(5, 2);
         static const QStringList promotedPieces = {
             QStringLiteral("TO"), QStringLiteral("NY"), QStringLiteral("NK"),
@@ -136,8 +197,8 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
     }
 
     if (!CsaMoveConverter::applyMoveToBoard(move, *m_refs.gameController, *m_refs.usiMoves, *m_refs.sfenHistory, *m_refs.moveCount)) {
-        m_hooks.logMessage(tr("指し手の適用に失敗しました: %1").arg(move), true);
-        m_hooks.failGame(tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
+        deferVerdict(tr("指し手の適用に失敗しました: %1").arg(move),
+                     tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
         return;
     }
 
@@ -175,45 +236,19 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
 {
     m_hooks.logMessage(tr("指し手確認: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
 
-    if (move.length() < 7) {
-        qCWarning(lcNetwork) << "Invalid confirmed CSA move length:" << move;
-        m_hooks.logMessage(tr("不正な形式の指し手確認を受信しました: %1").arg(move), true);
-        m_hooks.failGame(tr("サーバーからの指し手確認形式が不正です: %1").arg(move));
+    if (failIfVerdictPending()) return;
+
+    QPoint from, to;
+    const QString problem = validateMoveText(move, &from, &to);
+    if (!problem.isEmpty()) {
+        // 自分の送った手が不正な書式として切り出されて返った。続く #ILLEGAL_MOVE を待つ
+        deferVerdict(problem, tr("サーバーからの指し手確認を解釈できません: %1").arg(move));
         return;
     }
 
-    bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
-
-    // CSA形式から座標を抽出（ハイライト用）
-    QPoint from, to;
-    int toFile = 0, toRank = 0;
-    if (move.length() >= 5) {
-        int fromFile = move[1].digitValue();
-        int fromRank = move[2].digitValue();
-        toFile = move[3].digitValue();
-        toRank = move[4].digitValue();
-
-        const bool invalidTo = (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9);
-        const bool invalidFrom = !((fromFile == 0 && fromRank == 0) ||
-                                   (fromFile >= 1 && fromFile <= 9 &&
-                                    fromRank >= 1 && fromRank <= 9));
-        if (invalidTo || invalidFrom) {
-            qCWarning(lcNetwork) << "Invalid confirmed CSA move coordinates:"
-                                 << "fromFile=" << fromFile << "fromRank=" << fromRank
-                                 << "toFile=" << toFile << "toRank=" << toRank
-                                 << "move=" << move;
-            m_hooks.logMessage(tr("不正な座標の指し手確認を受信しました: %1").arg(move), true);
-            m_hooks.failGame(tr("サーバーからの指し手確認の座標が不正です: %1").arg(move));
-            return;
-        }
-
-        if (fromFile == 0 && fromRank == 0) {
-            from = QPoint(-1, -1);
-        } else {
-            from = QPoint(fromFile, fromRank);
-        }
-        to = QPoint(toFile, toRank);
-    }
+    const bool isBlackMove = (move[0] == QLatin1Char('+'));
+    const int toFile = move[3].digitValue();
+    const int toRank = move[4].digitValue();
 
     // USI指し手リストとSFEN記録は更新する必要がある
     QString usiMove = CsaMoveConverter::csaToUsi(move);
@@ -221,8 +256,8 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
         && usiMove.endsWith(QLatin1Char('+'))) usiMove.chop(1);
     if (usiMove.isEmpty()) {
         qCWarning(lcNetwork) << "Invalid confirmed CSA move payload:" << move;
-        m_hooks.logMessage(tr("指し手確認の変換に失敗しました: %1").arg(move), true);
-        m_hooks.failGame(tr("サーバーからの指し手確認を変換できません: %1").arg(move));
+        deferVerdict(tr("指し手確認の変換に失敗しました: %1").arg(move),
+                     tr("サーバーからの指し手確認を変換できません: %1").arg(move));
         return;
     }
     m_refs.usiMoves->append(usiMove);
@@ -277,27 +312,33 @@ void CsaMoveProgressHandler::startEngineThinking()
     }
 
     // 時間パラメータを計算
-    const int byoyomiMyMs = m_refs.gameSummary->byoyomiMs(*m_refs.isBlackSide);
-    int blackRemainMs = *m_refs.blackRemainingMs;
-    int whiteRemainMs = *m_refs.whiteRemainingMs;
-    if (blackRemainMs < 0) blackRemainMs = 0;
-    if (whiteRemainMs < 0) whiteRemainMs = 0;
-    const int incMs = m_refs.gameSummary->incrementMs();
-    // USI（将棋所の仕様）では btime + binc が今回の手に使える時間を表す。CSA の残り時間は
-    // 手番の開始時に加算済みなので、加算を binc で伝えるときは自分の残り時間から差し引く。
-    if (byoyomiMyMs <= 0) {
-        int& myRemainMs = *m_refs.isBlackSide ? blackRemainMs : whiteRemainMs;
-        myRemainMs = qMax(0, myRemainMs - incMs);
-    }
+    const CsaClient::GameSummary& s = *m_refs.gameSummary;
+    const bool black = *m_refs.isBlackSide;
+    const int byoyomiMyMs = s.byoyomiMs(black);
+    // 仕様 3.2.2.1: 1手に使える時間は「遅延時間＋残り時間＋秒読み」。遅延時間はサーバーが
+    // 消費時間から差し引くので、こちらは今回の手の思考時間に足すだけでよい
+    const int delayMyMs = s.delayMs(black);
+    int blackRemainMs = qMax(0, *m_refs.blackRemainingMs);
+    int whiteRemainMs = qMax(0, *m_refs.whiteRemainingMs);
+    const int incBlackMs = s.incrementMs(true);
+    const int incWhiteMs = s.incrementMs(false);
+    int& myRemainMs = black ? blackRemainMs : whiteRemainMs;
 
     CsaEngineController::ThinkingParams params;
     params.positionCmd = positionCmd;
-    params.byoyomiMs = byoyomiMyMs;
+    if (byoyomiMyMs > 0) {
+        params.byoyomiMs = byoyomiMyMs + delayMyMs;
+        params.useByoyomi = true;
+    } else {
+        // USI（将棋所の仕様）では btime + binc が今回の手に使える時間を表す。CSA の残り時間は
+        // 手番の開始時に加算済みなので、加算を binc で伝えるときは自分の残り時間から差し引く。
+        myRemainMs = qMax(0, myRemainMs - (black ? incBlackMs : incWhiteMs)) + delayMyMs;
+        params.bincMs = incBlackMs;
+        params.wincMs = incWhiteMs;
+        params.useByoyomi = false;
+    }
     params.btimeStr = QString::number(blackRemainMs);
     params.wtimeStr = QString::number(whiteRemainMs);
-    params.bincMs = incMs;
-    params.wincMs = incMs;
-    params.useByoyomi = (byoyomiMyMs > 0);
 
     m_hooks.logMessage(tr("エンジンが思考中..."), false);
 
@@ -376,7 +417,7 @@ void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController:
         Piece dropPiece = board->pieceCharacter(result.from.x(), result.from.y());
         if (!board->decrementPieceOnStand(dropPiece)) {
             m_hooks.logMessage(tr("指し手の適用に失敗しました: %1").arg(csaMove), true);
-            m_hooks.failGame(tr("サーバーからの指し手を盤面に適用できません: %1").arg(csaMove));
+            m_hooks.failGame(tr("エンジンの指し手を盤面に適用できません: %1").arg(csaMove));
             return;
         }
         board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);

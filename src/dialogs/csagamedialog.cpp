@@ -301,6 +301,16 @@ QString CsaGameDialog::validationMessage() const
     if (host.contains(whitespace) || id.contains(whitespace) || password.contains(whitespace)) {
         return tr("接続先ホスト・ID・パスワードに空白や改行は使用できません。");
     }
+    // CSAサーバープロトコル 3.1: ID は英数字・「_」・「-」で32バイト以内、
+    // パスワードは空白を含まない32バイト以内の7ビットASCII
+    static const QRegularExpression idPattern(QStringLiteral("^[0-9A-Za-z_-]{1,32}$"));
+    if (!idPattern.match(id).hasMatch()) {
+        return tr("IDは英数字・「_」・「-」のみを使い、32文字以内で入力してください。");
+    }
+    static const QRegularExpression passwordPattern(QStringLiteral("^[\\x21-\\x7e]{1,32}$"));
+    if (!passwordPattern.match(password).hasMatch()) {
+        return tr("パスワードは半角の英数字・記号のみを使い、32文字以内で入力してください。");
+    }
     return {};
 }
 

@@ -16,6 +16,8 @@ bool parseNonNegativeIntField(const QString& key, const QString& value, int& out
     out = parsed;
     return true;
 }
+
+constexpr int kRejectPrefixLength = 7;  // "REJECT:"
 } // namespace
 
 // ============================================================
@@ -39,35 +41,33 @@ void CsaClient::processLine(const QString& line)
         break;
     case ConnectionState::LoggedIn:
     case ConnectionState::WaitingForGame:
-        // Game_Summary開始を待つ
-        if (line == QStringLiteral("BEGIN Game_Summary")) {
-            m_inGameSummary = true;
-            m_gameSummary.clear();
-        } else if (line.startsWith(QStringLiteral("LOGOUT:"))) {
-            emit logoutCompleted();
-        }
+    case ConnectionState::GameOver:
+        // 終局後もログインしたまま対局待ち状態に戻る（仕様 3.1、3.4）
+        processWaitingLine(line);
         break;
     case ConnectionState::GameReady:
         if (line.startsWith(QStringLiteral("START:"))) {
             // 対局開始
             QString gameId = line.mid(6);
+            resetGameProgressState();
             setConnectionState(ConnectionState::InGame);
             m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
-            m_endMoveConsumedTimeMs = 0;  // 終局時消費時間をリセット
             emit gameStarted(gameId);
         } else if (line.startsWith(QStringLiteral("REJECT:"))) {
             // 対局拒否
-            // REJECT:<GameID> by <rejector>
+            // REJECT:<GameID> by <rejector>  （Game_ID 省略時は "REJECT: by <rejector>"）
             qsizetype byIndex = line.indexOf(QStringLiteral(" by "));
-            if (byIndex <= 7 || byIndex + 4 >= line.size()) {
+            if (byIndex < kRejectPrefixLength || byIndex + 4 >= line.size()) {
                 qCWarning(lcNetwork) << "Malformed REJECT line:" << line;
                 emit errorOccurred(tr("不正なREJECT応答を受信しました: %1").arg(line));
                 return;
             }
-            QString gameId = line.mid(7, static_cast<int>(byIndex) - 7);
+            QString gameId = line.mid(kRejectPrefixLength, static_cast<int>(byIndex) - kRejectPrefixLength);
             QString rejector = line.mid(static_cast<int>(byIndex) + 4);
             setConnectionState(ConnectionState::WaitingForGame);
             emit gameRejected(gameId, rejector);
+        } else if (line.startsWith(QStringLiteral("LOGOUT:"))) {
+            handleLogoutResponse();
         }
         break;
     case ConnectionState::InGame:
@@ -92,6 +92,17 @@ void CsaClient::processLoginResponse(const QString& line)
             emit loginFailed(tr("ユーザー名またはパスワードが正しくありません"));
         }
     }
+}
+
+void CsaClient::processWaitingLine(const QString& line)
+{
+    if (line == QStringLiteral("BEGIN Game_Summary")) {
+        m_inGameSummary = true;
+        m_gameSummary.clear();
+    } else if (line.startsWith(QStringLiteral("LOGOUT:"))) {
+        handleLogoutResponse();
+    }
+    // 自分が送った REJECT に対する "REJECT:<GameID> by <自分>" はここに届くが、何もしない
 }
 
 void CsaClient::processGameSummary(const QString& line)
@@ -128,18 +139,22 @@ bool CsaClient::handleGameSummarySectionBoundary(const QString& line)
     if (line == QStringLiteral("BEGIN Time")) {
         m_inTimeSection = true;
         m_currentTimeSection = QStringLiteral("Time");
+        m_gameSummary.timeBlack.specified = true;
+        m_gameSummary.timeWhite.specified = true;
         return true;
     }
     if (line == QStringLiteral("BEGIN Time+")) {
         m_inTimeSection = true;
         m_currentTimeSection = QStringLiteral("Time+");
         m_gameSummary.hasIndividualTime = true;
+        m_gameSummary.timeBlack.specified = true;
         return true;
     }
     if (line == QStringLiteral("BEGIN Time-")) {
         m_inTimeSection = true;
         m_currentTimeSection = QStringLiteral("Time-");
         m_gameSummary.hasIndividualTime = true;
+        m_gameSummary.timeWhite.specified = true;
         return true;
     }
     if (line == QStringLiteral("BEGIN Position")) {
@@ -160,49 +175,31 @@ bool CsaClient::handleGameSummaryTimeSectionLine(const QString& line)
     const QString key = line.left(static_cast<int>(colonPos));
     const QString value = line.mid(static_cast<int>(colonPos) + 1);
 
+    // 共通の Time は双方に、Time+ は先手に、Time- は後手に書く
+    const bool toBlack = (m_currentTimeSection != QStringLiteral("Time-"));
+    const bool toWhite = (m_currentTimeSection != QStringLiteral("Time+"));
+    const auto apply = [&](auto&& assign) {
+        if (toBlack) assign(m_gameSummary.timeBlack);
+        if (toWhite) assign(m_gameSummary.timeWhite);
+    };
+
     if (key == QStringLiteral("Time_Unit")) {
-        m_gameSummary.timeUnit = value;
-        return true;
-    }
-
-    if (key == QStringLiteral("Total_Time")) {
-        int time = 0;
-        if (!parseNonNegativeIntField(key, value, time)) return true;
-        if (m_currentTimeSection == QStringLiteral("Time+")) {
-            m_gameSummary.totalTimeBlack = time;
-        } else if (m_currentTimeSection == QStringLiteral("Time-")) {
-            m_gameSummary.totalTimeWhite = time;
-        } else {
-            m_gameSummary.totalTime = time;
-            m_gameSummary.totalTimeBlack = time;
-            m_gameSummary.totalTimeWhite = time;
-        }
-        return true;
-    }
-
-    if (key == QStringLiteral("Byoyomi")) {
-        int time = 0;
-        if (!parseNonNegativeIntField(key, value, time)) return true;
-        if (m_currentTimeSection == QStringLiteral("Time+")) {
-            m_gameSummary.byoyomiBlack = time;
-        } else if (m_currentTimeSection == QStringLiteral("Time-")) {
-            m_gameSummary.byoyomiWhite = time;
-        } else {
-            m_gameSummary.byoyomi = time;
-            m_gameSummary.byoyomiBlack = time;
-            m_gameSummary.byoyomiWhite = time;
-        }
-        return true;
-    }
-
-    if (key == QStringLiteral("Least_Time_Per_Move")) {
-        (void)parseNonNegativeIntField(key, value, m_gameSummary.leastTimePerMove);
-    } else if (key == QStringLiteral("Increment")) {
-        (void)parseNonNegativeIntField(key, value, m_gameSummary.increment);
-    } else if (key == QStringLiteral("Delay")) {
-        (void)parseNonNegativeIntField(key, value, m_gameSummary.delay);
+        apply([&](TimeControl& t) { t.timeUnit = value; });
     } else if (key == QStringLiteral("Time_Roundup")) {
-        m_gameSummary.timeRoundup = (value == QStringLiteral("YES"));
+        apply([&](TimeControl& t) { t.timeRoundup = (value == QStringLiteral("YES")); });
+    } else {
+        int number = 0;
+        if (key == QStringLiteral("Total_Time")) {
+            if (parseNonNegativeIntField(key, value, number)) apply([&](TimeControl& t) { t.totalTime = number; });
+        } else if (key == QStringLiteral("Byoyomi")) {
+            if (parseNonNegativeIntField(key, value, number)) apply([&](TimeControl& t) { t.byoyomi = number; });
+        } else if (key == QStringLiteral("Least_Time_Per_Move")) {
+            if (parseNonNegativeIntField(key, value, number)) apply([&](TimeControl& t) { t.leastTimePerMove = number; });
+        } else if (key == QStringLiteral("Increment")) {
+            if (parseNonNegativeIntField(key, value, number)) apply([&](TimeControl& t) { t.increment = number; });
+        } else if (key == QStringLiteral("Delay")) {
+            if (parseNonNegativeIntField(key, value, number)) apply([&](TimeControl& t) { t.delay = number; });
+        }
     }
     return true;
 }
@@ -219,12 +216,13 @@ bool CsaClient::handleGameSummaryPositionSectionLine(const QString& line)
         return true;
     }
 
-    // 指し手行（+7776FU,T12 形式）
+    // 再開局面の指し手行（+7776FU,T12 形式）。消費時間は持時間の計算に使う
     if ((line.startsWith(QLatin1Char('+')) || line.startsWith(QLatin1Char('-'))) &&
         line.length() > 1) {
         const qsizetype commaPos = line.indexOf(QLatin1Char(','));
         const QString move = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
         m_gameSummary.moves.append(move);
+        m_gameSummary.moveConsumedTimes.append(consumedTimeUnitsAfterComma(line, commaPos));
     }
     return true;
 }
@@ -280,19 +278,15 @@ void CsaClient::processGameMessage(const QString& line)
     // %で始まる行は特殊コマンド（投了、勝利宣言など）の確認
     if (line.startsWith(QLatin1Char('%'))) {
         qCDebug(lcNetwork) << "Special command line detected";
-        // %TORYO,T4 形式
-        qsizetype commaPos = line.indexOf(QLatin1Char(','));
-        QString cmd = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
-        int consumedTime = 0;
-        if (commaPos > 0 && QStringView(line).mid(commaPos + 1).startsWith(QLatin1Char('T'))) {
-            consumedTime = parseConsumedTime(line.mid(static_cast<int>(commaPos) + 2));
-        }
+        // %TORYO,T4 形式。意思表示をしたのは手番側なので、その側の時間単位で換算する
+        const qsizetype commaPos = line.indexOf(QLatin1Char(','));
+        const int consumedTime = consumedTimeUnitsAfterComma(line, commaPos);
+        const bool moverIsBlack = m_isMyTurn ? m_gameSummary.isBlackTurn() : !m_gameSummary.isBlackTurn();
 
         // 終局手の消費時間を保存（ミリ秒に変換）
-        m_endMoveConsumedTimeMs = consumedTime * m_gameSummary.timeUnitMs();
+        m_endMoveConsumedTimeMs = consumedTime * m_gameSummary.timeUnitMs(moverIsBlack);
         qCDebug(lcNetwork) << "End move consumed time:" << m_endMoveConsumedTimeMs << "ms";
-
-        Q_UNUSED(cmd)
+        m_awaitingMoveConfirmation = false;
         return;
     }
 
@@ -312,6 +306,7 @@ void CsaClient::processResultLine(const QString& line)
     if (line == QStringLiteral("#CHUDAN")) {
         m_pendingFirstResultLine.clear();
         m_isMyTurn = false;
+        m_awaitingMoveConfirmation = false;
         setConnectionState(ConnectionState::GameOver);
         emit gameInterrupted();
         emit gameEnded(GameResult::Chudan, GameEndCause::Chudan, m_endMoveConsumedTimeMs);
@@ -376,30 +371,25 @@ void CsaClient::processResultLine(const QString& line)
                        << "cause=" << static_cast<int>(cause)
                        << "consumedTimeMs=" << m_endMoveConsumedTimeMs;
 
+    m_isMyTurn = false;
+    m_awaitingMoveConfirmation = false;
+    // 終局後は GameOver のまま対局待ちとして扱う。サーバーが切断しても正常終了、
+    // 接続が残れば次の Game_Summary をそのまま受け付ける
     setConnectionState(ConnectionState::GameOver);
     emit gameEnded(result, cause, m_endMoveConsumedTimeMs);
-
-    // 対局終了後はGameOver状態を維持（サーバーからの切断を正常終了として扱うため）
-    // 再接続や次の対局開始時に適切な状態に遷移する
 }
 
 void CsaClient::processMoveLine(const QString& line)
 {
     // 形式: +7776FU,T12
-    qsizetype commaPos = line.indexOf(QLatin1Char(','));
-    QString move = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
-    int consumedTime = 0;
+    const qsizetype commaPos = line.indexOf(QLatin1Char(','));
+    const QString move = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
+    const int consumedTime = consumedTimeUnitsAfterComma(line, commaPos);
 
-    if (commaPos > 0 && QStringView(line).mid(commaPos + 1).startsWith(QLatin1Char('T'))) {
-        consumedTime = parseConsumedTime(line.mid(static_cast<int>(commaPos) + 2));
-    }
-
-    // 消費時間をミリ秒に変換
-    int consumedTimeMs = consumedTime * m_gameSummary.timeUnitMs();
-
-    // 手番を判定（指し手の先頭文字で判定）
-    bool isBlackMove = move.startsWith(QLatin1Char('+'));
-    bool wasMyTurn = m_isMyTurn;
+    // 手番を判定（指し手の先頭文字で判定）し、指した側の時間単位でミリ秒に変換
+    const bool isBlackMove = move.startsWith(QLatin1Char('+'));
+    const int consumedTimeMs = consumedTime * m_gameSummary.timeUnitMs(isBlackMove);
+    const bool wasMyTurn = m_isMyTurn;
 
     // 手番を更新（相手が指したら自分の手番に）
     if (isBlackMove) {
@@ -407,6 +397,7 @@ void CsaClient::processMoveLine(const QString& line)
     } else {
         m_isMyTurn = (m_gameSummary.myTurn == QStringLiteral("+"));
     }
+    m_awaitingMoveConfirmation = false;
 
     if (wasMyTurn) {
         // 自分の指し手の確認
@@ -415,6 +406,14 @@ void CsaClient::processMoveLine(const QString& line)
         // 相手の指し手
         emit moveReceived(move, consumedTimeMs);
     }
+}
+
+int CsaClient::consumedTimeUnitsAfterComma(const QString& line, qsizetype commaPos) const
+{
+    if (commaPos <= 0) return 0;
+    const QStringView rest = QStringView(line).mid(commaPos + 1);
+    if (!rest.startsWith(QLatin1Char('T'))) return 0;
+    return parseConsumedTime(rest.mid(1).toString());
 }
 
 int CsaClient::parseConsumedTime(const QString& timeStr) const

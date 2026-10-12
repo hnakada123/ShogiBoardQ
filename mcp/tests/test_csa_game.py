@@ -841,8 +841,9 @@ async def test_single_chudan_and_individual_time_defaults(csa_env, replay):
             await peer.until("AGREE")
             await peer.send("START:chudan")
             state = await ui.wait_state(ui_state="csa_game")
-            assert state["csa"]["black_remaining_ms"] == 100000
-            assert state["csa"]["white_remaining_ms"] == 300000
+            # The replayed moves have already consumed their ,T times (CSA protocol 3.2.3).
+            assert state["csa"]["black_remaining_ms"] == (99000 if replay else 100000)
+            assert state["csa"]["white_remaining_ms"] == (299000 if replay else 300000)
             assert (await ui.call("get_position"))["moves"] == (["7g7f", "3c3d"] if replay else [])
             await peer.send("#CHUDAN")
             assert "中断" in await ui.dismiss_end()
@@ -895,3 +896,274 @@ async def test_connection_refused_recovers(csa_env):
         dialog = await ui.dialog("QMessageBox")
         await ui.call("close_dialog", dialog=dialog)
         await ui.wait_state(ui_state="idle", play_mode="not_started")
+
+
+# ---------------------------------------------------------------------------
+# CSA server protocol V1.2.1 compliance (fake server; shogi-server cannot
+# produce these messages: echoed illegal moves, resumed positions with ,T,
+# unlimited time, per-side increments, a connection kept after the game).
+# ---------------------------------------------------------------------------
+
+def fake_summary(game_id="spec", your_turn="+", to_move="+", time="BEGIN Time\nTotal_Time:300\nByoyomi:5\nEND Time\n",
+                 position="PI\n+\n", moves="", names=("BoardQ", "Peer"), declaration="Declaration:Jishogi 1.1\n"):
+    game_line = f"Game_ID:{game_id}\n" if game_id is not None else ""
+    return ("BEGIN Game_Summary\nProtocol_Version:1.2\nProtocol_Mode:Server\nFormat:Shogi 1.0\n"
+            f"{declaration}{game_line}Name+:{names[0]}\nName-:{names[1]}\n"
+            f"Your_Turn:{your_turn}\nRematch_On_Draw:NO\nTo_Move:{to_move}\n{time}"
+            f"BEGIN Position\n{position}{moves}END Position\nEND Game_Summary")
+
+
+class FakeServer:
+    """Accepts ShogiBoardQ connections one after another and hands out Peer objects."""
+
+    def __init__(self):
+        self.connections = asyncio.Queue()
+        self.server = None
+
+    async def __aenter__(self):
+        self.server = await asyncio.start_server(self._connected, "127.0.0.1", 0)
+        await self.server.__aenter__()
+        return self
+
+    async def __aexit__(self, *exc):
+        await self.server.__aexit__(*exc)
+
+    def _connected(self, reader, writer):
+        self.connections.put_nowait(Peer(reader, writer))
+
+    @property
+    def port(self):
+        return self.server.sockets[0].getsockname()[1]
+
+    async def accept(self, timeout=8):
+        async with asyncio.timeout(timeout):
+            return await self.connections.get()
+
+    async def login(self, timeout=8):
+        peer = await self.accept(timeout)
+        await peer.until("LOGIN ")
+        await peer.send("LOGIN:BoardQ OK")
+        return peer
+
+
+async def peer_closed(peer, timeout=8):
+    async with asyncio.timeout(timeout):
+        while True:
+            line = await peer.reader.readline()
+            if not line:
+                return True
+            peer.lines.append(line.decode().strip())
+
+
+@pytest.mark.parametrize("bogus", ["+7g7f,T3", "+0031FU,T1"])
+async def test_echoed_illegal_move_waits_for_verdict(csa_env, bogus):
+    """3.4: an illegal or malformed move is echoed and followed by #ILLEGAL_MOVE / #WIN."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port)
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(your_turn="-"))
+            await peer.until("AGREE")
+            await peer.send("START:spec")
+            await ui.wait_state(ui_state="csa_game")
+            await peer.send(bogus)
+            await asyncio.sleep(0.5)
+            await peer.send("#ILLEGAL_MOVE\n#WIN")
+            text = await ui.dismiss_end()
+            assert "反則" in text and "勝ち" in text, text
+            assert "中断" not in text, text
+            assert "反則負け" in str(await ui.call("get_kifu"))
+        finally:
+            await peer.close()
+
+
+async def test_resumed_position_restores_consumed_times(csa_env):
+    """3.2.3: the recorded moves have been played with the given time control."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port)
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(to_move="-", time="BEGIN Time\nTotal_Time:300\nIncrement:5\nEND Time\n",
+                                         moves="+7776FU,T10\n-3334FU,T20\n+2726FU,T30\n"))
+            await peer.until("AGREE")
+            await peer.send("START:spec")
+            state = await ui.wait_state(ui_state="csa_game", total_plies=3)
+            csa = state["csa"]
+            # black: 300 +5 -10 +5 -30 = 270; white: 300 +5 -20 +5 (next turn) = 290
+            assert csa["black_remaining_ms"] == 270000 and csa["white_remaining_ms"] == 290000, csa
+            assert csa["black_consumed_ms"] == 40000 and csa["white_consumed_ms"] == 20000, csa
+            assert not csa["is_my_turn"]
+            kifu = str(await ui.call("get_kifu"))
+            assert "00:30/00:00:40" in kifu and "00:20/00:00:20" in kifu, kifu
+            await peer.send("#CHUDAN")
+            await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+
+async def test_unlimited_time_runs_for_human_and_is_rejected_for_engine(csa_env, tmp_path):
+    """3.2.2: no Time section means unlimited time; the engine cannot be given a budget."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port)
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(time=""))
+            await peer.until("AGREE")
+            await peer.send("START:spec")
+            await ui.wait_state(ui_state="csa_game")
+            await ui.move("7g7f")
+            await peer.until("+7776FU")
+            await peer.send("+7776FU,T5")
+            state = await ui.wait_state(total_plies=1)
+            assert state["csa"]["black_consumed_ms"] == 5000
+            await peer.send("#CHUDAN")
+            await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+        # A dirty record would ask for confirmation before the next connection.
+        await ui.call("save_kifu", path=str(tmp_path / "unlimited.kif"), overwrite=True)
+        write_fake_engine(tmp_path, csa_env, "stop")
+        await ui.connect(server.port, engine=True)
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(game_id="free", time=""))
+            await peer.until("REJECT free")
+            # A limited game is still accepted on the same connection.
+            await peer.send(fake_summary(game_id="limited"))
+            await peer.until("AGREE limited", timeout=20)
+            await peer.send("START:limited")
+            await ui.wait_state(ui_state="csa_game")
+            await peer.send("#CHUDAN")
+            await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+
+async def test_games_continue_on_the_same_connection(csa_env, tmp_path):
+    """3.1/3.4: the client stays logged in after a game and LOGOUT precedes a disconnect."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port)
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(game_id="first", your_turn="-"))
+            await peer.until("AGREE first")
+            await peer.send("START:first")
+            await ui.wait_state(ui_state="csa_game")
+            await peer.send("#TIME_UP\n#WIN")
+            # The next proposal arrives while the result dialog is still open.
+            await peer.send(fake_summary(game_id="second", names=("BoardQ", "Other")))
+            await peer.until("AGREE second")
+            await peer.send("START:second")
+            dialog = await ui.dialog("QMessageBox")
+            assert "時間切れ" in str(await ui.call("get_widget_text", dialog=dialog))
+            await ui.call("close_dialog", dialog=dialog)
+            await ui.wait_state(ui_state="csa_game", play_mode="csa_network", total_plies=0)
+            await ui.move("7g7f")
+            await peer.until("+7776FU")
+            await peer.send("+7776FU,T2")
+            await ui.wait_state(total_plies=1)
+            await peer.send("-3334FU,T3")
+            await ui.wait_state(total_plies=2)
+            await ui.call("trigger_action", name="actionResign")
+            await peer.until("%TORYO")
+            await peer.send("%TORYO,T1\n#RESIGN\n#LOSE")
+            assert "投了" in await ui.dismiss_end()
+            await ui.call("save_kifu", path=str(tmp_path / "second.kif"), overwrite=True)
+            # Starting another connection logs out of the current one first.
+            await ui.connect(server.port)
+            await peer.until("LOGOUT")
+            await peer.send("LOGOUT:completed")
+            assert await peer_closed(peer)
+        finally:
+            await peer.close()
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(game_id="third"))
+            await peer.until("AGREE third")
+            await peer.send("START:third")
+            await ui.wait_state(ui_state="csa_game")
+            await peer.send("#CHUDAN")
+            await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+
+async def test_cancel_before_agree_sends_reject_then_logout(csa_env, tmp_path):
+    """3.3: declining a proposal is REJECT, and leaving the server is LOGOUT."""
+    engine = tmp_path / "slow-engine"
+    engine.write_text("#!/usr/bin/env python3\nimport sys, time\nfor command in sys.stdin:\n"
+                      "    command = command.strip()\n"
+                      "    if command == 'usi':\n        print('id name Slow\\nusiok', flush=True)\n"
+                      "    elif command == 'isready':\n        time.sleep(6)\n        print('readyok', flush=True)\n"
+                      "    elif command == 'quit':\n        break\n")
+    engine.chmod(0o700)
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    config.write_text(f"[Engines]\nsize=1\n1\\name=Slow\n1\\path={engine}\n")
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        dialog = await ui.connect(server.port, engine=True)
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(game_id="pending"))
+            await asyncio.sleep(1.0)
+            assert not any(l.startswith("AGREE") for l in peer.lines), peer.lines
+            await ui.call("click_dialog_button", dialog=dialog, text="対局キャンセル")
+            await peer.until("REJECT pending")
+            await peer.until("LOGOUT")
+            await peer.send("LOGOUT:completed")
+            assert await peer_closed(peer)
+            await ui.wait_state(ui_state="idle", play_mode="not_started")
+        finally:
+            await peer.close()
+
+
+async def test_reject_without_game_id_keeps_waiting(csa_env):
+    """3.3: Game_ID defaults to the empty string, so "REJECT: by X" is a valid notice."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port)
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(game_id=None))
+            agree = await peer.until("AGREE")
+            assert agree == "AGREE", agree
+            await peer.send("REJECT: by Peer")
+            await peer.send(fake_summary(game_id="again"))
+            await peer.until("AGREE again")
+            await peer.send("START:again")
+            await ui.wait_state(ui_state="csa_game")
+            await peer.send("#CHUDAN")
+            await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+
+async def test_increment_is_tracked_per_side(csa_env):
+    """3.2.2: Time+ and Time- may carry different increments."""
+    async with FakeServer() as server, mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(server.port)
+        peer = await server.login()
+        try:
+            await peer.send(fake_summary(time="BEGIN Time+\nTotal_Time:300\nIncrement:5\nEND Time+\n"
+                                              "BEGIN Time-\nTotal_Time:300\nIncrement:10\nEND Time-\n"))
+            await peer.until("AGREE")
+            await peer.send("START:spec")
+            state = await ui.wait_state(ui_state="csa_game")
+            assert state["csa"]["black_remaining_ms"] == 305000
+            assert state["csa"]["white_remaining_ms"] == 300000
+            await ui.move("7g7f")
+            await peer.until("+7776FU")
+            await peer.send("+7776FU,T1")
+            state = await ui.wait_state(total_plies=1)
+            assert state["csa"]["black_remaining_ms"] == 304000
+            assert state["csa"]["white_remaining_ms"] == 310000
+            await peer.send("#CHUDAN")
+            await ui.dismiss_end()
+        finally:
+            await peer.close()

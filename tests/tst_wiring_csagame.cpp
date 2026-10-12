@@ -273,7 +273,7 @@ private slots:
     {
         QVERIFY2(m_wiringHeader.contains(QStringLiteral("const QStringList& initialPrettyMoves")),
                  "onGameStarted should accept initialPrettyMoves");
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("appendInitialKifuLine(initialPrettyMoves.at(i), sfen)")),
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("appendInitialKifuLine(initialPrettyMoves.at(i), elapsed, sfen)")),
                  "onGameStarted should record each Game_Summary move with its own SFEN");
     }
 
