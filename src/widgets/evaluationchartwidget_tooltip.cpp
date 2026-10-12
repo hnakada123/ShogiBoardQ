@@ -49,17 +49,23 @@ void EvaluationChartWidget::hoverAt(const QPoint& position)
         }
     }
     if (sideFound < 0) { clearHover(); return; }
+    // マウスが動くたびに呼ばれる。同じ点の上にいる間は、吹き出しを動かすだけにする
+    // （文字の設定し直しとグラフ全体の描き直しを省く）
+    const bool samePoint = (sideFound == m_hoverSide && plyFound == m_hoverPly && m_tooltip->isVisible());
     m_hoverSide = sideFound;
     m_hoverPly = plyFound;
-    const Score score = m_scores[sideFound].value(plyFound);
-    m_tooltip->setFont(m_chartView->font());
-    m_tooltip->setText(tr("%1\n%2手目：%3\n先手視点の評価値")
-                       .arg(seriesName(sideFound)).arg(plyFound).arg(scoreText(score)));
-    m_tooltip->adjustSize();
+    if (!samePoint) {
+        const Score score = m_scores[sideFound].value(plyFound);
+        m_tooltip->setFont(m_chartView->font());
+        m_tooltip->setText(tr("%1\n%2手目：%3\n先手視点の評価値")
+                           .arg(seriesName(sideFound)).arg(plyFound).arg(scoreText(score)));
+        m_tooltip->adjustSize();
+    }
     const int x = qBound(4, position.x() + 12, qMax(4, m_chartView->width() - m_tooltip->width() - 4));
     const int y = qBound(4, position.y() - m_tooltip->height() - 12,
                         qMax(4, m_chartView->height() - m_tooltip->height() - 4));
     m_tooltip->move(x, y);
+    if (samePoint) return;
     m_tooltip->show();
     m_tooltip->raise();
     updatePresentation();
