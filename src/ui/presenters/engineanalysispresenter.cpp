@@ -122,6 +122,9 @@ void EngineAnalysisPresenter::setupThinkingViewHeader(QTableView* v)
     v->setStyleSheet(TableStyles::thinking());
     v->setShowGrid(false);
     v->setMouseTracking(true);
+    // 思考を始めるたびに表を消すので、縦のスクロールバーが毎回消えては現れ、そのたびに
+    // 表示領域と最後の列の幅が変わって、表と見出しの全体を描き直していた。常に出しておく。
+    v->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     if (!dynamic_cast<PvBoardButtonDelegate*>(v->itemDelegateForColumn(4)))
         v->setItemDelegateForColumn(4, new PvBoardButtonDelegate(v));
     if (!qobject_cast<PvTextDelegate*>(v->itemDelegateForColumn(5)))

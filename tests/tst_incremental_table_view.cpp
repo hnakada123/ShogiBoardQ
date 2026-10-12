@@ -341,8 +341,69 @@ private slots:
         QVERIFY(!view.horizontalScrollBar()->isVisible());
     }
 
+    // アプリの思考表は縦のスクロールバーを常に出しておく。思考を始めるたびに表を消して
+    // 1行ずつ足しても、表示領域と最後の列の幅は変わらず、表示領域全体と見出しを描き直さない
+    // （スクロールバーが現れるたびに、幅が変わって両方を描き直していた）。
+    void thinkingViewKeepsWidthWhileFilling()
+    {
+        ShogiEngineThinkingModel model1;
+        ShogiEngineThinkingModel model2;
+        QWidget window;
+        IncrementalTableView view1(&window);
+        IncrementalTableView view2(&window);
+        EngineAnalysisPresenter presenter;
+        presenter.setViews(&view1, &view2, nullptr, nullptr);
+        presenter.setupThinkingViewHeader(&view1);
+        presenter.setupThinkingViewHeader(&view2);
+        presenter.setModels(&model1, &model2);
+        view1.setGeometry(0, 0, 900, 130);
+        view2.setGeometry(0, 140, 900, 130);
+        window.resize(900, 270);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTest::qWait(600);  // 列幅の読み込み（見出しの通知を止めて決める）の後の配置のやり直しを待つ
+        // 読み筋の列の日本語フォントは初めて使うときに読み込まれ、表の文字設定が変わる
+        // （そのときは Qt が全体を描き直す）。先に1行入れて消しておく。
+        model1.prependItem(thinkingRecord(0));
+        settle();
+        model1.clearAllItems();
+        settle();
+        QVERIFY(view1.verticalScrollBar()->isVisible());
+        const int viewportWidth = view1.viewport()->width();
+        const int lastWidth = view1.columnWidth(5);
+
+        int next = 1;
+        for (int cycle = 0; cycle < 2; ++cycle) {
+            for (int row = 0; row < 8; ++row) {
+                PaintSpy viewportSpy;
+                PaintSpy headerSpy;
+                view1.viewport()->installEventFilter(&viewportSpy);
+                view1.horizontalHeader()->viewport()->installEventFilter(&headerSpy);
+                model1.prependItem(thinkingRecord(next++));
+                settle();
+                view1.viewport()->removeEventFilter(&viewportSpy);
+                view1.horizontalHeader()->viewport()->removeEventFilter(&headerSpy);
+                const QString label = QStringLiteral("cycle %1 row %2").arg(cycle).arg(row);
+                QVERIFY2(view1.verticalScrollBar()->isVisible(), qPrintable(label));
+                QVERIFY2(view1.viewport()->width() == viewportWidth, qPrintable(label));
+                QVERIFY2(view1.columnWidth(5) == lastWidth, qPrintable(label));
+                // 小数倍率では、行の追加は元から全体の描き直しになる（画面のずらしを使えない）
+                if (integralScale(view1)) {
+                    QVERIFY2(viewportSpy.fullPaints == 0,
+                             qPrintable(label + QStringLiteral(": full repaints %1").arg(viewportSpy.fullPaints)));
+                }
+                QVERIFY2(headerSpy.region.isEmpty(), qPrintable(label + QStringLiteral(": header repainted")));
+                QVERIFY2(stalePixels(view1) == 0, qPrintable(label));
+            }
+            model1.clearAllItems();
+            settle();
+            QVERIFY(view1.verticalScrollBar()->isVisible());
+            QCOMPARE(view1.columnWidth(5), lastWidth);
+        }
+    }
+
     // 思考表の列幅は、最後の列が表示領域に合わせて伸び縮みしただけでは保存しない
-    // （縦のスクロールバーが出入りするたびに設定ファイルへ書いていた）
+    // （縦のスクロールバーが出入りするたびや、表の幅が変わるたびに設定ファイルへ書いていた）
     void stretchedColumnWidthIsNotSaved()
     {
         ShogiEngineThinkingModel model1;
@@ -368,11 +429,12 @@ private slots:
         const int lastWidth = view1.columnWidth(5);
         for (int i = 0; i < 8; ++i) model1.prependItem(thinkingRecord(i));
         settle();
-        QVERIFY(view1.verticalScrollBar()->isVisible());
-        QVERIFY(view1.columnWidth(5) != lastWidth);
         model1.clearAllItems();
         settle();
         view1.resize(700, 130);
+        settle();
+        QVERIFY(view1.columnWidth(5) != lastWidth);
+        view1.resize(820, 130);
         settle();
         QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(0), saved);
 
