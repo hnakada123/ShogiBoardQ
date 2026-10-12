@@ -4238,6 +4238,7 @@ int main(int argc, char** argv)
     QApplication app(argc, argv);
     app.setApplicationName("ShogiBoardQ-GuiAudit");
     app.setQuitOnLastWindowClosed(false);
+    ApplicationRendering::reservePixmapCacheForPieces();
     // アプリと同じスタイル（Fusion。ドックのボタンのアイコンを使い回す版）
     app.setStyle(ApplicationStyle::create());
     ApplicationFonts::initialize();

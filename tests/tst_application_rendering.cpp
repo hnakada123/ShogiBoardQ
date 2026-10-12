@@ -4,6 +4,7 @@
 #include <QImage>
 #include <QLinearGradient>
 #include <QPainter>
+#include <QPixmapCache>
 
 #include "applicationrendering.h"
 
@@ -67,6 +68,19 @@ private slots:
         ApplicationRendering::paintOnGuiThreadOnly();
         QVERIFY(qEnvironmentVariableIsSet(kNoGuiThreadPool));
         qputenv(kNoGuiThreadPool, original);
+    }
+
+    // 駒画像の分だけ QPixmapCache の上限を広げ、既に広い値は縮めない
+    void reservesPixmapCacheForPieces()
+    {
+        const int original = QPixmapCache::cacheLimit();
+        QPixmapCache::setCacheLimit(1024);
+        ApplicationRendering::reservePixmapCacheForPieces();
+        QCOMPARE(QPixmapCache::cacheLimit(), ApplicationRendering::kPixmapCacheLimitKb);
+        QPixmapCache::setCacheLimit(ApplicationRendering::kPixmapCacheLimitKb * 2);
+        ApplicationRendering::reservePixmapCacheForPieces();
+        QCOMPARE(QPixmapCache::cacheLimit(), ApplicationRendering::kPixmapCacheLimitKb * 2);
+        QPixmapCache::setCacheLimit(original);
     }
 };
 
