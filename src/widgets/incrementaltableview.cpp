@@ -65,7 +65,7 @@ void IncrementalTableView::setModel(QAbstractItemModel* newModel)
         connect(newModel, &QAbstractItemModel::rowsAboutToBeInserted,
                 this, &IncrementalTableView::onRowsAboutToBeInserted),
         connect(newModel, &QAbstractItemModel::dataChanged, this, &IncrementalTableView::onDataChanged),
-        connect(newModel, &QAbstractItemModel::rowsAboutToBeRemoved, this, &IncrementalTableView::onStructureChanged),
+        connect(newModel, &QAbstractItemModel::rowsAboutToBeRemoved, this, &IncrementalTableView::onRowsAboutToBeRemoved),
         connect(newModel, &QAbstractItemModel::rowsAboutToBeMoved, this, &IncrementalTableView::onStructureChanged),
         connect(newModel, &QAbstractItemModel::columnsAboutToBeInserted,
                 this, &IncrementalTableView::onStructureChanged),
@@ -97,7 +97,13 @@ void IncrementalTableView::onRowsAboutToBeInserted(const QModelIndex& parent, in
         else m_change = Change::Other;
         break;
     case Change::Prepend:
+    case Change::RemoveBelow:
         if (first == 0) {
+            if (m_change == Change::RemoveBelow) {
+                m_firstRow = 0;
+                m_insertedRows = 0;
+                m_change = Change::Prepend;
+            }
             m_insertedRows += count;
             // 先に内容が変わった行も、この追加の分だけ下にずれる
             for (auto& range : m_changedRows) {
@@ -113,11 +119,48 @@ void IncrementalTableView::onRowsAboutToBeInserted(const QModelIndex& parent, in
     }
 }
 
+// 思考表は行数の上限を超えると、先頭に足すたびに末尾の行を消す。一番上を表示していて、
+// 消す行が表示領域より下なら、見えている行の位置も内容も変わらないので部分描画を続ける。
+// 行の位置は、見出しが追加の通知をその場で反映しているので、追加後の値で比べられる。
+void IncrementalTableView::onRowsAboutToBeRemoved(const QModelIndex& parent, int first, int last)
+{
+    Q_UNUSED(last)
+    const bool belowView = parent == rootIndex() && model() && isVisible()
+        && verticalScrollBar()->value() == 0 && rowViewportPosition(first) >= viewport()->height();
+    if (!belowView) {
+        m_change = Change::Other;
+        return;
+    }
+    switch (m_change) {
+    case Change::None:
+        m_changedRows.clear();
+        m_change = Change::RemoveBelow;
+        break;
+    case Change::Prepend:
+        // 足した行の一部も消えるなら、残った分だけを描く
+        if (first < m_firstRow + m_insertedRows) m_insertedRows = first - m_firstRow;
+        if (m_insertedRows <= 0) m_change = Change::Other;
+        break;
+    case Change::RemoveBelow:
+        break;
+    case Change::Append:
+    case Change::Other:
+        m_change = Change::Other;
+        return;
+    }
+    // 内容が変わった行のうち消える分は、表示領域より下なので描かなくてよい
+    for (qsizetype i = m_changedRows.size() - 1; i >= 0; --i) {
+        auto& range = m_changedRows[i];
+        if (range.first >= first) m_changedRows.removeAt(i);
+        else if (range.second >= first) range.second = first - 1;
+    }
+}
+
 // 配置のやり直しを待つ間、Qt は内容が変わった行を描き直さない（全体を描き直す前提のため）。
 // 全体を描き直さない場合に備えて、その行を覚えておく。
 void IncrementalTableView::onDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight)
 {
-    if (m_change != Change::Append && m_change != Change::Prepend) return;
+    if (m_change != Change::Append && m_change != Change::Prepend && m_change != Change::RemoveBelow) return;
     if (!topLeft.isValid() || !bottomRight.isValid() || topLeft.parent() != rootIndex()) {
         m_change = Change::Other;
         return;
@@ -139,9 +182,10 @@ void IncrementalTableView::doItemsLayout()
     m_lastLayoutSettings = settings;
 
     // 先頭への追加で画面をずらすのは、一番上を表示しているときだけ
+    const bool atTop = verticalScrollBar()->value() == 0;
     const bool incremental = sameSettings && isVisible() && model() && !alternatingRowColors()
         && !isRightToLeft()
-        && (change == Change::Append || (change == Change::Prepend && verticalScrollBar()->value() == 0));
+        && (change == Change::Append || ((change == Change::Prepend || change == Change::RemoveBelow) && atTop));
     if (!incremental) {
         QTableView::doItemsLayout();
         return;
@@ -173,13 +217,15 @@ void IncrementalTableView::doItemsLayout()
     // スクロールする。描き直しの予約が残ったまま画面をずらすと、ずらしたはずの所が
     // 古いまま残ることがあるので、行の位置が決まってから予約する。
     QAbstractItemModel* items = model();
-    m_pendingRows.append(items->index(m_firstRow, 0, rootIndex()));
-    m_pendingRows.append(items->index(m_firstRow + m_insertedRows - 1, 0, rootIndex()));
+    if (change != Change::RemoveBelow) {
+        m_pendingRows.append(items->index(m_firstRow, 0, rootIndex()));
+        m_pendingRows.append(items->index(m_firstRow + m_insertedRows - 1, 0, rootIndex()));
+    }
     for (const auto& [top, bottom] : changedRows) {
         m_pendingRows.append(items->index(top, 0, rootIndex()));
         m_pendingRows.append(items->index(bottom, 0, rootIndex()));
     }
-    if (!m_flushQueued) {
+    if (!m_flushQueued && !m_pendingRows.isEmpty()) {
         m_flushQueued = true;
         QMetaObject::invokeMethod(this, &IncrementalTableView::flushRowUpdates, Qt::QueuedConnection);
     }

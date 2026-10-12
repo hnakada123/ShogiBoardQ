@@ -21,6 +21,8 @@ class QAbstractItemDelegate;
  * - 末尾への追加: 追加した行（と、その間に内容が変わった行）だけを描き直す。
  * - 先頭への追加（一番上を表示しているとき）: 既にある行を画面のずらしで下げ、
  *   空いた上の行（と、その間に内容が変わった行）だけを描き直す。
+ * - 一番上を表示しているときの、表示領域より下の行の削除（思考表の行数の上限を超えた分）:
+ *   見えている行は変わらないので描き直さない。
  * - それ以外の変更（削除・並べ替え・リセット・文字サイズや描画クラスの変更など）は、
  *   これまでどおり Qt に任せて全体を描き直す。
  *
@@ -50,13 +52,14 @@ protected:
 
 private slots:
     void onRowsAboutToBeInserted(const QModelIndex& parent, int first, int last);
+    void onRowsAboutToBeRemoved(const QModelIndex& parent, int first, int last);
     void onDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight);
     void onStructureChanged();
     void flushRowUpdates();
     void onColumnResized(int column, int oldWidth, int newWidth);
 
 private:
-    enum class Change { None, Append, Prepend, Other };
+    enum class Change { None, Append, Prepend, RemoveBelow, Other };
 
     /// 配置のやり直しを伴う設定（変わっていれば全体を描き直す）
     struct Settings {
