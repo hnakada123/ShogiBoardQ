@@ -80,6 +80,7 @@ private:
     void updateCommentFontSize(int delta);
     void updateEditingIndicator();
     void fixPositionLabelSize();
+    bool showsAppliedHtml(const QString& html) const;
 
     // UI
     QTextEdit* m_comment = nullptr;
@@ -101,6 +102,8 @@ private:
     int m_currentMoveIndex = -1;
     QString m_originalComment;
     bool m_isCommentDirty = false;
+    QString m_appliedHtml;              ///< 最後に setHtml で表示した文書
+    bool m_appliedHtmlIntact = false;   ///< その後、文書の中身が変わっていないか（textChanged が来ていない）
     QString m_pressedAnchor;
     QPoint m_linkPressPosition;
 };

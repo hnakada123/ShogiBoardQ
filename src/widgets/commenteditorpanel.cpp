@@ -7,6 +7,7 @@
 #include "gamesettings.h"
 #include "logcategories.h"
 
+#include <QScrollBar>
 #include <QTextEdit>
 #include <QToolButton>
 #include <QPushButton>
@@ -116,7 +117,13 @@ void CommentEditorPanel::setCommentHtml(const QString& html)
             << " html.len=" << html.size()
             << " m_isCommentDirty(before)=" << m_isCommentDirty;
 
-        m_comment->setHtml(html);
+        // 対局中や棋譜をたどるときは、手ごとに同じ（多くは空の）コメントを設定し直す。
+        // 前に表示したのと同じ文書を利用者が触っていなければ、作り直さない（HTML の解析を省く）
+        if (!showsAppliedHtml(html)) {
+            m_comment->setHtml(html);
+            m_appliedHtml = html;
+            m_appliedHtmlIntact = true;  // setHtml の中で届く textChanged の後に立てる
+        }
         m_originalComment = m_comment->toPlainText();
 
         qCDebug(lcUi).noquote()
@@ -130,6 +137,19 @@ void CommentEditorPanel::setCommentHtml(const QString& html)
             << "[CommentEditorPanel] setCommentHtml LEAVE:"
             << " m_isCommentDirty=" << m_isCommentDirty;
     }
+}
+
+// setHtml は文書を作り直し、取り消しの履歴を消し、カーソルを先頭に戻して先頭を表示する。
+// 前に表示した html の文書の中身が変わっておらず（取り消しの履歴も残らない）、カーソルが先頭で
+// 選択が無く、スクロールもしていなければ、作り直しても何も変わらない
+bool CommentEditorPanel::showsAppliedHtml(const QString& html) const
+{
+    if (!m_appliedHtmlIntact || html != m_appliedHtml) return false;
+    const QTextDocument* document = m_comment->document();
+    if (document->isModified() || document->isUndoAvailable() || document->isRedoAvailable()) return false;
+    const QTextCursor cursor = m_comment->textCursor();
+    if (cursor.position() != 0 || cursor.hasSelection()) return false;
+    return m_comment->verticalScrollBar()->value() == 0 && m_comment->horizontalScrollBar()->value() == 0;
 }
 
 // 手数の表示は手が進むたびに変わる。QLabel は文字が変わるたびにレイアウトの再計算を親へ伝え、
@@ -300,6 +320,7 @@ void CommentEditorPanel::onCommentTextChanged()
 {
     if (!m_comment) return;
 
+    m_appliedHtmlIntact = false;  // 次に同じコメントを設定するときは作り直す
     QString currentText = m_comment->toPlainText();
     bool isDirty = (currentText != m_originalComment);
 

@@ -3,8 +3,10 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QStyledItemDelegate>
+#include <QScrollBar>
 #include <QTableView>
 #include <QTemporaryDir>
+#include <QTextEdit>
 #include <QVBoxLayout>
 
 #include "commenteditorpanel.h"
@@ -160,6 +162,75 @@ private slots:
         }
         QCOMPARE(label->text(), QStringLiteral("1234手目"));
         QCOMPARE(counter.count, 0);
+    }
+
+    // 対局中は手ごとに同じ（多くは空の）コメントを設定し直す。前に表示したのと同じ文書を
+    // 利用者が触っていなければ作り直さない。触っていれば、これまでどおり作り直して先頭を表示する
+    void sameCommentIsNotRebuilt()
+    {
+        QWidget host;
+        auto* layout = new QVBoxLayout(&host);
+        CommentEditorPanel panel;
+        layout->addWidget(panel.buildCommentUi(&host));
+        host.resize(360, 200);
+        host.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&host));
+        auto* edit = host.findChild<QTextEdit*>(QStringLiteral("kifuCommentEdit"));
+        QVERIFY(edit != nullptr);
+        const QString comment = QStringLiteral("角交換から持久戦 https://example.com/kifu\n").repeated(12);
+
+        // 同じ内容の文書を作ったときの姿（比べる基準）
+        panel.setCommentText(comment);
+        const QString expectedHtml = edit->toHtml();
+        const auto verifyShown = [&](const char* where) {
+            QVERIFY2(edit->toHtml() == expectedHtml, where);
+            QVERIFY2(edit->textCursor().position() == 0 && !edit->textCursor().hasSelection(), where);
+            QVERIFY2(edit->verticalScrollBar()->value() == 0, where);
+            QVERIFY2(!edit->document()->isUndoAvailable() && !edit->document()->isRedoAvailable(), where);
+            QVERIFY2(!panel.hasUnsavedComment(), where);
+        };
+
+        QSignalSpy rebuilt(edit, &QTextEdit::textChanged);
+        panel.setCommentText(comment);
+        QCOMPARE(rebuilt.count(), 0);
+        verifyShown("unchanged");
+
+        // 別のコメントなら作り直す
+        panel.setCommentText(QString());
+        panel.setCommentText(QString());
+        QCOMPARE(rebuilt.count(), 1);
+        panel.setCommentText(comment);
+        QCOMPARE(rebuilt.count(), 2);
+        verifyShown("other comment");
+
+        // カーソルを動かした・スクロールした・編集して取り消した・外から書き換えたときは作り直す
+        rebuilt.clear();
+        edit->moveCursor(QTextCursor::End);
+        panel.setCommentText(comment);
+        QCOMPARE(rebuilt.count(), 1);
+        verifyShown("cursor moved");
+
+        edit->verticalScrollBar()->setValue(edit->verticalScrollBar()->maximum());
+        QVERIFY(edit->verticalScrollBar()->value() > 0);
+        panel.setCommentText(comment);
+        QCOMPARE(rebuilt.count(), 2);
+        verifyShown("scrolled");
+
+        edit->insertPlainText(QStringLiteral("追記"));
+        edit->undo();
+        edit->moveCursor(QTextCursor::Start);
+        QVERIFY(edit->document()->isRedoAvailable());
+        rebuilt.clear();
+        panel.setCommentText(comment);
+        QCOMPARE(rebuilt.count(), 1);
+        verifyShown("edited and undone");
+
+        edit->setPlainText(QStringLiteral("外から書き換えた"));
+        edit->moveCursor(QTextCursor::Start);
+        rebuilt.clear();
+        panel.setCommentText(comment);
+        QCOMPARE(rebuilt.count(), 1);
+        verifyShown("replaced from outside");
     }
 
     // 棋譜欄の長いコメントは、表示幅より十分先で切ってから描く。切っても、全文を渡して
