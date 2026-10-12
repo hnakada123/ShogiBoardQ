@@ -66,6 +66,8 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     a.setApplicationName("ShogiBoardQ");
     a.setApplicationVersion(QStringLiteral(APP_VERSION));
+    // 2倍表示の大きな盤でも駒画像がキャッシュに収まるようにする。
+    ApplicationRendering::reservePixmapCacheForPieces();
 
     // コマンドライン引数。自動化 API（MCP サーバーやテストからの操作用）は既定で無効
     QCommandLineParser parser;

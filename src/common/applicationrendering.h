@@ -17,6 +17,19 @@ namespace ApplicationRendering {
 /// 変わらない。利用者が指定した値はそのままにする。
 void paintOnGuiThreadOnly();
 
+/// QApplication を作った後に呼び、QPixmapCache の上限を駒画像が収まる大きさまで広げる。
+///
+/// 盤の駒は PiecePainter が駒種ごとに「元の SVG 画像」と「影付きの描画済み画像」の2枚を
+/// QPixmapCache に預ける（QApplication の破棄時に Qt がまとめて消すため）。Qt の既定の上限は
+/// 10MB で、2倍表示でマスが 110〜150px になると 16〜28駒種で溢れ、駒を描くたびに SVG の解析と
+/// 影の描画をやり直していた（全面の描き直しが 11ms → 63〜138ms）。2倍・150px・28駒種で約28MB、
+/// 読み筋ウィンドウなど別の大きさの盤の分と Fusion の部品の分を合わせて 64MB あれば足りる。
+/// 使った分だけ確保されるので、小さな盤では増えない。利用者やテストが広げた値は縮めない。
+void reservePixmapCacheForPieces();
+
+/// reservePixmapCacheForPieces が確保する QPixmapCache の上限（KB）
+inline constexpr int kPixmapCacheLimitKb = 64 * 1024;
+
 } // namespace ApplicationRendering
 
 #endif // APPLICATIONRENDERING_H
