@@ -20,6 +20,8 @@
 | `keycombo.py` | X のキーの組み合わせを押す（例: `Alt_L s`）。単独のキー・クリック・ウィンドウ一覧は `../x11ctl.py` |
 | `humanplay.py` | 対局中に人間（先手）側の手を Hayanagi に考えさせ、盤のクリックで指す |
 | `kwin_capture.sh` | ウィンドウ枠（KDE の装飾）付きで撮るための入れ子の KWin を、普段の環境から隔離して実行する |
+| `shoot_tables.py` | 思考表・検討タブの表が主な題材の画像（検討ページ・ドックの既定配置・詰み探索の思考タブ・ホームのメイン画像・対局の思考タブ）を言語ごとに撮る。`docs/images` と同じ並びで書き出す |
+| `sample_kifu/` | 画像に写る見本の棋譜（▲鈴木・▽山田、105行）。`mkkif.py` が `full.usi` から言語別の KIF（`sample-<言語>.kif`・ホーム用の `main-<言語>.kif`）を書き出す。1〜50手目（`first50.usi`）は画像から読み取った手順、51手目以降は `continue_game.py` でやねうら王に指させた |
 
 ## 典型的な使い方
 
@@ -43,6 +45,17 @@ scripts/docs/kwin_capture.sh k1 en bash -c 'python3 scripts/docs/rpc.py "$SBQ_SO
 `widget.clickCell`、`screenshot.capture`、`dock.configure`/`list`、`menu.items`/`select`、`kifu.load`/`goto`/`get`、
 `position.set`/`get`、`board.click`、`app.state`/`quit`。一覧は `src/automation/` と `docs/dev/mcp-server.md`。
 許可されている QAction は `rpc.py <名前> action.list` で確認できる（許可されていない操作はメニューをキーボードで開いて操作する）。
+
+## 思考表・検討タブの画像の撮り直し
+
+```bash
+# docs/images に直接書き出す（言語ごとに main・tsumi・wide。game は対局の思考タブ）
+python3 scripts/docs/shoot_tables.py ja_JP main docs/images
+python3 scripts/docs/shoot_tables.py en game docs/images
+```
+
+検討・ドック・棋譜解析などの画像に写る棋譜は `sample_kifu/` の見本を使う。棋譜欄が元の画像と同じになるよう、消費時間・対局者名・コメントまで合わせてある。やねうら王の場所は `SBQ_YANEURAOU` で変えられる。
+エンジンの数値（評価値・ノード数など）は撮るたびに変わる。今のアプリはメインウィンドウの横幅を中身に合わせて決めるので、画像の幅が変わったらページの `<img>` の width/height も直す（ホームのメイン画像は `gen_home.py` が PNG から読む）。
 
 ## 撮影の注意
 
