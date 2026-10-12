@@ -3,6 +3,7 @@
 import html
 import json
 import os
+import struct
 from urllib.parse import quote
 
 # リポジトリの docs/（このファイルは scripts/docs/ にある）
@@ -13,6 +14,14 @@ RELEASES = REPO + "/releases"
 LATEST = RELEASES + "/latest/download/"
 
 ORDER = ["ja", "en", "zh-cn", "zh-tw"]
+
+
+def png_size(rel):
+    """docs/ からの相対パスにある PNG の幅と高さ（撮り直すと言語ごとに幅が変わる）。"""
+    with open(os.path.join(DOCS, rel), "rb") as f:
+        head = f.read(24)
+    return struct.unpack(">II", head[16:24])
+
 META = {
     "ja": {"dir": "", "lang": "ja", "hreflang": "ja", "locale": "ja_JP", "name": "日本語", "shots": "images/"},
     "en": {"dir": "en/", "lang": "en", "hreflang": "en", "locale": "en_US", "name": "English", "shots": "images/en/"},
@@ -572,6 +581,7 @@ def page(code):
     up = "../" if m["dir"] else ""
     img = up + "images/"
     shots = up + m["shots"]
+    main_w, main_h = png_size(m["shots"] + "screenshot-main.png")
     # その言語の利用ガイドの目次があればそこへ、なければ英語版へ
     guide = "guide/" if os.path.exists(os.path.join(DOCS, m["dir"], "guide", "index.html")) else "../en/guide/"
     url = SITE + m["dir"]
@@ -702,7 +712,7 @@ def page(code):
     <figure class="home-hero__shot">
         <div class="window-frame">
             <div class="window-frame__bar" aria-hidden="true">{t['window']}</div>
-            <a href="{shots}screenshot-main.png"><img src="{shots}screenshot-main.png" alt="{e(t['main_alt'])}" width="1400" height="1000"></a>
+            <a href="{shots}screenshot-main.png"><img src="{shots}screenshot-main.png" alt="{e(t['main_alt'])}" width="{main_w}" height="{main_h}"></a>
         </div>
         <figcaption>{t['main_cap']}</figcaption>
     </figure>
