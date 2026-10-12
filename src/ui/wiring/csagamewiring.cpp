@@ -297,10 +297,8 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
     }
     if (m_syncPly) m_syncPly(m_activePly);
 
-    // 盤面を更新
-    if (m_shogiView) {
-        m_shogiView->update();
-    }
+    // 盤面の変化（盤・駒台・ハイライト・手番の札）はそれぞれ変わった所だけ描き直されるので、
+    // ここで盤全体を描き直さない。
 }
 
 void CsaGameWiring::onTurnChanged(bool isMyTurn)

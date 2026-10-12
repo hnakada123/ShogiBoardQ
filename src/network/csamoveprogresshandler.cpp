@@ -144,7 +144,7 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
     updateTimeTracking(isBlackMove, consumedTimeMs);
     syncClockAfterMove(true);  // 次は自分の手番
 
-    if (*m_refs.view) (*m_refs.view)->update();
+    // 盤・駒台の変化は ShogiBoard の通知で変わった所だけ描き直されるので、盤全体は描き直さない。
     if (m_hooks.moveAppliedToBoard) m_hooks.moveAppliedToBoard();
 
     (*m_refs.moveCount)++;
@@ -383,7 +383,6 @@ void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController:
     }
 
     (*m_refs.gameController)->changeCurrentPlayer();
-    if (*m_refs.view) (*m_refs.view)->update();
     if (m_hooks.moveAppliedToBoard) m_hooks.moveAppliedToBoard();
 
     // 評価値更新
