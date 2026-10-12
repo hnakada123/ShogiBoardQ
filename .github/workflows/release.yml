@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload Compatibility Logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: release-compatibility-logs
           if-no-files-found: ignore
@@ -91,7 +91,7 @@ jobs:
             --output build/qt-licenses
 
       - name: Upload license documents for packaging jobs
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: qt-license-documents
           path: build/qt-licenses/
@@ -136,7 +136,7 @@ jobs:
           mv ShogiBoardQ-linux.zip dist/
 
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: release-package-linux
           path: dist/*
@@ -226,7 +226,7 @@ jobs:
           mv ShogiBoardQ-macos.zip dist/
 
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: release-package-macos
           path: dist/*
@@ -309,7 +309,7 @@ jobs:
           Move-Item $zipName dist\
 
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: release-package-windows
           path: dist/*
@@ -339,7 +339,7 @@ jobs:
           find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
 
       - name: Retain verification reports in CI
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: release-verification
           path: |

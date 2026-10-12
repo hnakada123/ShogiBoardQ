@@ -96,7 +96,7 @@ jobs:
 
       - name: Upload KPI Artifact
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: structural-kpi-${{ github.sha }}
           path: build/kpi-results.json
@@ -174,7 +174,7 @@ jobs:
 
       - name: Upload Build/Test Diagnostics
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-and-test-diagnostics-${{ github.sha }}
           retention-days: 30
@@ -213,7 +213,7 @@ jobs:
 
       - name: Upload Debug Test Log
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-debug-diagnostics-${{ github.sha }}
           retention-days: 30
@@ -254,7 +254,7 @@ jobs:
 
       - name: Upload clang-tidy Diagnostics
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: clang-tidy-diagnostics-${{ github.sha }}
           retention-days: 30
@@ -299,7 +299,7 @@ jobs:
 
       - name: Upload clazy Diagnostics
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: clazy-diagnostics-${{ github.sha }}
           retention-days: 30
@@ -429,7 +429,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: coverage-report
           path: |
