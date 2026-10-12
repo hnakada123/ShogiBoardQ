@@ -15,6 +15,7 @@
 #include "menuwindow.h"
 #include "josekiwindow.h"
 #include "docksettings.h"
+#include "layoutboundarywidget.h"
 #include "opaquebackground.h"
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
@@ -145,9 +146,12 @@ void DockCreationService::createAnalysisDocks()
     }
 
     // ドック共通の設定を適用するヘルパー
-    auto setupDock = [this](QDockWidget* dock, QWidget* content, const QString& title, const QString& objectName) {
+    auto setupDock = [this](QDockWidget* dock, QWidget* content, const QString& title, const QString& objectName,
+                            bool layoutBoundary = false) {
         dock->setObjectName(objectName);
-        dock->setWidget(content);
+        // 思考情報のように中身の大きさが頻繁に変わるドックは、ドックの大きさの条件が変わらない
+        // 限り、メインウィンドウの配置（すべてのドックのタイトルの大きさの計算を含む）をやり直さない
+        dock->setWidget(layoutBoundary ? new LayoutBoundaryWidget(content, dock) : content);
         // 思考・ログなど頻繁に更新する中身の描き直しを、ドックのタイトル（Fusion の
         // アイコンの読み込みを含む）とメインウィンドウまで広げない
         OpaqueBackground::keep(content);
@@ -175,12 +179,12 @@ void DockCreationService::createAnalysisDocks()
     // 1. 思考ドック
     m_thinkingDock = new QDockWidget(tr("思考"), m_mainWindow);
     QWidget* thinkingPage = m_analysisTab->createThinkingPage(m_thinkingDock);
-    setupDock(m_thinkingDock, thinkingPage, tr("思考"), QStringLiteral("ThinkingDock"));
+    setupDock(m_thinkingDock, thinkingPage, tr("思考"), QStringLiteral("ThinkingDock"), true);
 
     // 2. 検討ドック
     m_considerationDock = new QDockWidget(tr("検討"), m_mainWindow);
     QWidget* considerationPage = m_analysisTab->createConsiderationPage(m_considerationDock);
-    setupDock(m_considerationDock, considerationPage, tr("検討"), QStringLiteral("ConsiderationDock"));
+    setupDock(m_considerationDock, considerationPage, tr("検討"), QStringLiteral("ConsiderationDock"), true);
 
     // 3. USI通信ログドック
     m_usiLogDock = new QDockWidget(tr("USI通信ログ"), m_mainWindow);

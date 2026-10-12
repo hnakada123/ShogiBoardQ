@@ -798,6 +798,8 @@ set(SRC_WIDGETS
     src/widgets/incrementaltableview.h
     src/widgets/tableheaderview.cpp
     src/widgets/tableheaderview.h
+    src/widgets/layoutboundarywidget.cpp
+    src/widgets/layoutboundarywidget.h
     src/widgets/opaquebackground.cpp
     src/widgets/opaquebackground.h
     src/widgets/kifumovedelegate.h
