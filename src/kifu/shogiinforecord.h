@@ -74,9 +74,16 @@ public:
     void setScoreCp(int scoreCp);
 
 private:
-    mutable QString m_displayCacheKey;
+    /// 表示用の読み筋を作り直す必要があるか（表記の設定が変わったときは覚えた文字列を捨てる）
+    void invalidateDisplayIfStyleChanged() const;
+
+    // 表示用の読み筋（英語表記では局面をたどって作るので、表記の設定ごとに一度だけ作る）
     mutable QString m_displayCache;
     mutable QString m_tooltipCache;
+    mutable bool m_displayValid = false;
+    mutable bool m_tooltipValid = false;
+    mutable int m_cacheNotation = -1;
+    mutable bool m_cacheAlwaysOrigin = false;
     // 思考時間
     QString m_time;
 

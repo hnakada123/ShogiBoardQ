@@ -9,6 +9,7 @@
 #include <QLocale>
 #include <QStringList>
 #include <QList>
+#include <QHash>
 #include <QPointer>
 #include <memory>
 
@@ -182,6 +183,13 @@ private:
     QString m_pvKanjiStr;               ///< 漢字PV文字列
 
     QLocale m_locale;                   ///< ロケール（カンマ区切り表示用）
+
+    // 探索手の欄の表示。同じ手が何度も届く（MultiPV では候補の数だけの手が繰り返し届く）ので、
+    // 局面と表記の設定が同じ間は、探索手（漢字表記と USI形式）ごとに作った表示を覚えておく
+    QString m_searchedSfenSource;       ///< 覚えた表示を作ったときの局面SFEN
+    int m_searchedNotation = -1;        ///< 覚えた表示を作ったときの表記（KifuPresentation::Notation）
+    bool m_searchedAlwaysOrigin = false;
+    QHash<QString, QString> m_searchedLabels;  ///< 探索手（漢字表記 + U+0000 + USI形式）→ 表示
 
     QStringList m_infoBuffer;           ///< info行バッファ
     bool m_flushScheduled = false;      ///< フラッシュ予約済みフラグ

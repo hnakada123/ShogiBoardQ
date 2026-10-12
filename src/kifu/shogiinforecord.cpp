@@ -70,6 +70,7 @@ QString ShogiInfoRecord::usiPv() const
 void ShogiInfoRecord::setUsiPv(const QString& usiPv)
 {
     m_usiPv = usiPv;
+    m_displayValid = m_tooltipValid = false;
 }
 
 // 読み筋の開始局面SFENを取得する。
@@ -82,6 +83,7 @@ QString ShogiInfoRecord::baseSfen() const
 void ShogiInfoRecord::setBaseSfen(const QString& sfen)
 {
     m_baseSfen = sfen;
+    m_displayValid = m_tooltipValid = false;
 }
 
 // 開始局面に至った最後の指し手（USI形式）を取得する。
@@ -120,15 +122,31 @@ void ShogiInfoRecord::setScoreCp(int scoreCp)
     m_scoreCp = scoreCp;
 }
 
-QString ShogiInfoRecord::displayPv(bool fullOrigin) const
+void ShogiInfoRecord::invalidateDisplayIfStyleChanged() const
 {
     const auto style = KifuPresentation::options();
-    const QString key = m_baseSfen + QLatin1Char('|') + m_usiPv + QLatin1Char('|')
-        + QString::number(static_cast<int>(style.notation)) + QString::number(style.alwaysOrigin);
-    if (m_displayCacheKey != key) {
-        m_displayCacheKey = key;
-        m_displayCache = KifuPresentation::pv(m_baseSfen, m_usiPv, m_pv);
-        m_tooltipCache = KifuPresentation::pv(m_baseSfen, m_usiPv, m_pv, true);
+    const int notation = static_cast<int>(style.notation);
+    if (m_cacheNotation == notation && m_cacheAlwaysOrigin == style.alwaysOrigin) return;
+    m_cacheNotation = notation;
+    m_cacheAlwaysOrigin = style.alwaysOrigin;
+    m_displayValid = m_tooltipValid = false;
+}
+
+// 表の描画のたびに呼ばれる。局面と読み筋は設定し直したときに、表記の設定は呼ばれるたびに比べ、
+// 変わらなければ前に作った文字列を返す。ツールチップ用（移動元をすべて付ける）は使うときに作る。
+QString ShogiInfoRecord::displayPv(bool fullOrigin) const
+{
+    invalidateDisplayIfStyleChanged();
+    if (fullOrigin) {
+        if (!m_tooltipValid) {
+            m_tooltipCache = KifuPresentation::pv(m_baseSfen, m_usiPv, m_pv, true);
+            m_tooltipValid = true;
+        }
+        return m_tooltipCache;
     }
-    return fullOrigin ? m_tooltipCache : m_displayCache;
+    if (!m_displayValid) {
+        m_displayCache = KifuPresentation::pv(m_baseSfen, m_usiPv, m_pv);
+        m_displayValid = true;
+    }
+    return m_displayCache;
 }

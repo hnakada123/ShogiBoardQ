@@ -28,6 +28,7 @@
 #include "sfenpositiontracer.h"
 #include "analysisresulthandler.h"
 #include "kifuanalysislistmodel.h"
+#include "kifuanalysisresultsdisplay.h"
 #include "kifuanalysisdialog.h"
 
 class TestI18nWorkflows : public QObject
@@ -317,6 +318,31 @@ private slots:
         thinking.appendItem(info);
         const QString pv = thinking.data(thinking.index(0, 5), Qt::DisplayRole).toString();
         QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : info->pv());
+        // 表示用の読み筋は覚えておくが、表記の設定や読み筋を変えたら作り直す
+        KifuPresentation::configure(language, western ? QStringLiteral("japanese") : QStringLiteral("western"), true);
+        QCOMPARE(info->displayPv(), western ? info->pv() : QStringLiteral("▲P7g-7f △P3c-3d"));
+        KifuPresentation::configure(language, notation, false);
+        QCOMPARE(info->displayPv(), pv);
+        if (western) {
+            QCOMPARE(info->displayPv(true), QStringLiteral("▲P7g-7f △P3c-3d"));
+            info->setUsiPv(QStringLiteral("7g7f"));
+            QCOMPARE(info->displayPv(), QStringLiteral("▲P-7f"));
+            info->setUsiPv(QStringLiteral("7g7f 3c3d"));
+        }
+        // 棋譜解析の結果の行も同じ。元の値（外から直接書き換える beforeSfen を含む）が変われば作り直す
+        KifuAnalysisResultsDisplay result(QStringLiteral("▲７六歩(77)"), QStringLiteral("10"), QStringLiteral("0"), info->pv());
+        result.beforeSfen = imported.initialSfen;
+        result.setLastUsiMove(QStringLiteral("7g7f"));
+        result.setSfen(imported.initialSfen);
+        result.setUsiPv(QStringLiteral("7g7f 3c3d"));
+        QCOMPARE(result.displayMove(), western ? QStringLiteral("▲P-7f") : QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(result.displayPv(), pv);
+        result.setLastUsiMove(QStringLiteral("2g2f"));
+        QCOMPARE(result.displayMove(), western ? QStringLiteral("▲P-2f") : QStringLiteral("▲７六歩(77)"));
+        result.beforeSfen.clear();
+        QCOMPARE(result.displayMove(), western ? QStringLiteral("2g2f") : QStringLiteral("▲７六歩(77)"));
+        result.setUsiPv(QStringLiteral("7g7f"));
+        QCOMPARE(result.displayPv(), western ? QStringLiteral("▲P-7f") : info->pv());
         // UIの書体と棋譜の書体を分け、ビュー個別の文字サイズを維持する。
         QFont viewFont = QApplication::font();
         viewFont.setPointSize(19);

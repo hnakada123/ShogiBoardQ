@@ -225,9 +225,25 @@ void ThinkingInfoPresenter::logStderrData(const QString& prefix, const QString& 
 
 void ThinkingInfoPresenter::emitSearchedHand(const ShogiEngineInfoParser* info)
 {
-    if (!info->searchedHand().isEmpty()) {
-        emit searchedMoveUpdated(KifuPresentation::label(info->searchedHand(), m_baseSfen, info->searchedUsi()));
+    if (info->searchedHand().isEmpty()) return;
+
+    // info 行ごとに呼ばれ、同じ手が何度も届く。英語表記では局面を読み直して表記を作るので、
+    // 局面と表記の設定が同じ間は、手ごとに作った表示を使う
+    constexpr qsizetype kMaxSearchedLabels = 128;
+    const auto style = KifuPresentation::options();
+    const int notation = static_cast<int>(style.notation);
+    if (m_baseSfen != m_searchedSfenSource || notation != m_searchedNotation
+        || style.alwaysOrigin != m_searchedAlwaysOrigin || m_searchedLabels.size() >= kMaxSearchedLabels) {
+        m_searchedLabels.clear();
+        m_searchedSfenSource = m_baseSfen;
+        m_searchedNotation = notation;
+        m_searchedAlwaysOrigin = style.alwaysOrigin;
     }
+    const QString key = info->searchedHand() + QChar(0) + info->searchedUsi();
+    auto it = m_searchedLabels.constFind(key);
+    if (it == m_searchedLabels.cend())
+        it = m_searchedLabels.insert(key, KifuPresentation::label(info->searchedHand(), m_baseSfen, info->searchedUsi()));
+    emit searchedMoveUpdated(it.value());
 }
 
 void ThinkingInfoPresenter::emitDepth(const ShogiEngineInfoParser* info)

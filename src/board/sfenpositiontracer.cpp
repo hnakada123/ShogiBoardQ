@@ -365,6 +365,13 @@ QString SfenPositionTracer::tokenAtFileRank(int file, QChar rankLetter) const {
     return m_board[row][col];
 }
 
+const QString& SfenPositionTracer::tokenAt(int file, int row) const {
+    static const QString empty;
+    const int col = fileToCol(file);
+    if (col < 0 || row < 0 || row > 8) return empty;
+    return m_board[row][col];
+}
+
 // ======================================================================
 // 局面列構築ユーティリティ
 // ======================================================================
