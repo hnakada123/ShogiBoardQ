@@ -144,7 +144,11 @@ void ShogiView::relayoutTurnLabels()
               findChild<QLabel*>(QStringLiteral("turnLabelBlack")), blackStandBoundingRect(), !flipMode());
     placeCard(m_whitePlayerCard, m_whiteNameLabel, m_whiteClockLabel,
               findChild<QLabel*>(QStringLiteral("turnLabelWhite")), whiteStandBoundingRect(), flipMode());
-    relayoutEditExitButton();
+    // 「編集終了」ボタンは局面編集の間だけ表示する。表示する処理（PositionEditController::
+    // showEditExitButtonOnBoard）は表示の直前に配置し直すので、隠れている間は配置と
+    // 文字の大きさ合わせを省く（手番が替わるたびにも呼ばれる）
+    if (auto* exitBtn = findChild<QPushButton*>(QStringLiteral("editExitButton")); exitBtn && !exitBtn->isHidden())
+        relayoutEditExitButton();
     relayoutPieceBoxSideSelector();
 }
 
