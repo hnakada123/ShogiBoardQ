@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 129
+- CTest ケース数: 132
 - 取得コマンド: `ctest --test-dir build -N`
 
 ## テスト一覧
@@ -127,12 +127,15 @@
 118. `tst_board_drag_repaint`
 119. `tst_move_record_updates`
 120. `tst_thinking_display_updates`
-121. `tst_application_style`
-122. `tst_table_header_view`
-123. `tst_layout_boundary_widget`
-124. `tst_incremental_table_view`
-125. `tst_incremental_table_view_scaled`
-126. `tst_candidate_arrows`
-127. `tst_i18n_workflows`
-128. `tst_applicationlogging`
-129. `tst_service_initialization`
+121. `tst_thinking_display_updates_scaled`
+122. `tst_thinking_display_updates_scaled15`
+123. `tst_application_style`
+124. `tst_application_rendering`
+125. `tst_table_header_view`
+126. `tst_layout_boundary_widget`
+127. `tst_incremental_table_view`
+128. `tst_incremental_table_view_scaled`
+129. `tst_candidate_arrows`
+130. `tst_i18n_workflows`
+131. `tst_applicationlogging`
+132. `tst_service_initialization`
