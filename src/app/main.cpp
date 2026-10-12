@@ -5,6 +5,7 @@
 #include "appsettings.h"
 #include "applicationfonts.h"
 #include "applicationlogging.h"
+#include "applicationrendering.h"
 #include "applicationstyle.h"
 #include "applicationtranslations.h"
 #include "dialogfontscale.h"
@@ -56,6 +57,9 @@ static void configureApplicationAppearance(QApplication& app, const QString& lan
 
 int main(int argc, char *argv[])
 {
+    // 塗りを別のスレッドに分けさせない。Qt が初めて描くより前に設定する。
+    ApplicationRendering::paintOnGuiThreadOnly();
+
     // QApplication の破棄時にもログを出せるよう先に生成する。
     const ApplicationLogging logging;
 

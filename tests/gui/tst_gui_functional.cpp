@@ -69,6 +69,7 @@
 #include "settingscommon.h"
 #include "appsettings.h"
 #include "applicationfonts.h"
+#include "applicationrendering.h"
 #include "applicationstyle.h"
 #include "fontsettingsdialog.h"
 #include "boardappearance.h"
@@ -4231,6 +4232,8 @@ int main(int argc, char** argv)
     qputenv("XDG_CONFIG_HOME", (settingsDir.path() + "/config").toUtf8());
     qputenv("XDG_DATA_HOME", (settingsDir.path() + "/data").toUtf8());
     qputenv("XDG_CACHE_HOME", (settingsDir.path() + "/cache").toUtf8());
+    // アプリと同じく、塗りを別のスレッドに分けさせない
+    ApplicationRendering::paintOnGuiThreadOnly();
     QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     QApplication app(argc, argv);
     app.setApplicationName("ShogiBoardQ-GuiAudit");
