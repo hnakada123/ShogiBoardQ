@@ -90,13 +90,19 @@
                         <tr><td><strong>從歷史記錄選擇</strong></td><td>選擇以前連線過的伺服器（最多 10 個），會填入主機、連接埠和 ID。</td></tr>
                         <tr><td><strong>協定</strong></td><td>使用 CSA 協定 1.2.1 連線。</td></tr>
                         <tr><td><strong>主機、連接埠</strong></td><td>伺服器的主機名稱或 IP 位址，以及連接埠（預設 4081）。</td></tr>
-                        <tr><td><strong>ID、密碼</strong></td><td>登入伺服器的 ID 與密碼。密碼不會儲存到設定檔中。</td></tr>
+                        <tr><td><strong>ID、密碼</strong></td><td>登入伺服器的 ID 與密碼。ID 使用英數字、「_」與「-」，不超過 32 個字元；密碼為不超過 32 個字元的半形字元。密碼不會儲存到設定檔中。</td></tr>
+                        <tr><td><strong>「詳細」分頁：保持連線</strong></td><td>「對局中傳送空行以保持連線」（預設每 40 秒）與「使用 TCP 保活」可避免長考時連線中斷。「思考時間餘量」是為因應網路延遲而從交給引擎的用時中扣除的秒數。</td></tr>
+                        <tr><td><strong>「詳細」分頁：對局</strong></td><td>設定「對局數」「終局後若伺服器中斷連線，則重新連線並等待下一局」「執後手時翻轉棋盤」「自動儲存棋譜」（步驟 8），以及 shogi-server 的「遊戲名稱」與「希望的手番」（步驟 2）。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">有未填寫的項目時，對話方塊下方會顯示「請輸入主機位址。」等提示，「連線」按鈕無法按下。主機、ID 與密碼中不能包含空格。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-tw/csa-game/csa-01-dialog.png" alt="網路對局 (CSA) 對話方塊">
                     <p class="screenshot-caption">網路對局對話方塊：以人類身分連線到本機 shogi-server 的設定</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/csa-game/csa-01-advanced.png" alt="網路對局 (CSA) 對話方塊的「詳細」分頁">
+                    <p class="screenshot-caption">「詳細」分頁：保持連線、對局數、自動儲存棋譜、shogi-server 的遊戲名稱</p>
                 </div>
             </div>
 
@@ -105,12 +111,12 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">shogi-server 的對局條件</span>
                 </div>
-                <p class="guide-step-text">用時等對局條件由伺服器決定，ShogiBoardQ 中沒有相應設定。使用 shogi-server 時，在密碼欄輸入「對局名,密碼」，以相同對局名登入的兩人進行對局。</p>
+                <p class="guide-step-text">用時等對局條件由伺服器決定，ShogiBoardQ 中沒有相應設定。使用 shogi-server 時，在「詳細」分頁的「遊戲名稱」中輸入對局名（也可以在密碼欄輸入「對局名,密碼」）。以相同對局名登入的兩人進行對局。</p>
                 <table class="info-table">
                     <tbody>
                         <tr><td><strong>對局名</strong></td><td>格式為「名稱-用時-讀秒」，時間以秒為單位。例如 test-600-10 表示用時 10 分鐘、讀秒 10 秒</td></tr>
                         <tr><td><strong>加時（費雪制）</strong></td><td>在結尾加 F，則每走一步加時，而不是讀秒。例如 test-300-10F</td></tr>
-                        <tr><td><strong>希望先手或後手</strong></td><td>在對局名後加 -B（先手）或 -W（後手）。例如 test-600-10-B,pw</td></tr>
+                        <tr><td><strong>希望先手或後手</strong></td><td>在「希望的手番」中選擇先手或後手。也可以在對局名後加 -B（先手）或 -W（後手）。例如 test-600-10-B,pw</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">在自己的電腦上執行 shogi-server 時，主機填 localhost，連接埠填 4081。</p>
@@ -202,7 +208,7 @@
                     <span class="guide-step-number">8</span>
                     <span class="guide-step-title">終局</span>
                 </div>
-                <p class="guide-step-text">對局結束後會顯示結果與原因，棋譜欄記錄終局（如「▲認輸」）。棋譜不會自動儲存，需要保留時請從「檔案」選單儲存。終局後可以重播棋譜，或開始下一局網路對局。</p>
+                <p class="guide-step-text">對局結束後會顯示結果與原因，棋譜欄記錄終局（如「▲認輸」）。啟用「詳細」分頁的「終局時自動儲存棋譜」時，棋譜會自動儲存到指定資料夾；否則請從「檔案」選單儲存。終局後可以重播棋譜，或開始下一局網路對局。將「對局數」設為 2 局以上或無限制時，終局後會保持登入並等待下一局的對局條件。啟用「終局後若伺服器中斷連線，則重新連線並等待下一局」後，在 shogi-server 這類每局結束後中斷連線的伺服器上也能連續對局。</p>
                 <p class="guide-step-text">對局中斷線，或引擎無法回傳著法時，對局以「中斷」結束。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-tw/csa-game/csa-04-game-end.png" alt="對局結束的提示">

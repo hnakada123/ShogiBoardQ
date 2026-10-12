@@ -89,13 +89,19 @@
                         <tr><td><strong>履歴から選ぶ</strong></td><td>以前に接続した接続先（最大10件）を選ぶと、接続先ホスト・ポート番号・IDが入力されます。</td></tr>
                         <tr><td><strong>プロトコル</strong></td><td>CSAプロトコル1.2.1で接続します。</td></tr>
                         <tr><td><strong>接続先ホスト・ポート番号</strong></td><td>サーバーのホスト名またはIPアドレスと、ポート番号（既定は4081）です。</td></tr>
-                        <tr><td><strong>ID・パスワード</strong></td><td>サーバーにログインするIDとパスワードです。パスワードは設定ファイルに保存されません。</td></tr>
+                        <tr><td><strong>ID・パスワード</strong></td><td>サーバーにログインするIDとパスワードです。IDは英数字・「_」・「-」で32文字以内、パスワードは半角32文字以内です。パスワードは設定ファイルに保存されません。</td></tr>
+                        <tr><td><strong>「詳細」タブ：接続の維持</strong></td><td>「対局中に空行を送って接続を維持する」（既定40秒間隔）と「TCPキープアライブを使う」で、長考中に通信が切れるのを防ぎます。「思考時間の余裕」は、通信の遅延に備えてエンジンに渡す持ち時間から差し引く秒数です。</td></tr>
+                        <tr><td><strong>「詳細」タブ：対局</strong></td><td>「対局数」「終局後にサーバーが切断したら再接続して次の対局を待つ」「後手のときは盤を反転する」「棋譜の自動保存」（手順8）と、shogi-serverの「ゲーム名」「手番の希望」（手順2）を設定します。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">入力が足りない項目があると、ダイアログの下に「接続先ホストを入力してください。」のような案内が表示され、「接続」は押せません。接続先ホスト・ID・パスワードに空白は使えません。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../images/csa-game/csa-01-dialog.png" alt="通信対局（CSA）ダイアログ">
                     <p class="screenshot-caption">通信対局ダイアログ：ローカルのshogi-serverに人間として接続する設定</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/csa-game/csa-01-advanced.png" alt="通信対局（CSA）ダイアログの「詳細」タブ">
+                    <p class="screenshot-caption">「詳細」タブ：接続の維持、対局数、棋譜の自動保存、shogi-serverのゲーム名</p>
                 </div>
             </div>
 
@@ -104,12 +110,12 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">shogi-serverでの対局条件</span>
                 </div>
-                <p class="guide-step-text">持ち時間などの対局条件はサーバーが決めるため、ShogiBoardQでは設定しません。shogi-serverでは、パスワード欄に「ゲーム名,パスワード」を入力します。同じゲーム名でログインした2人が対局します。</p>
+                <p class="guide-step-text">持ち時間などの対局条件はサーバーが決めるため、ShogiBoardQでは設定しません。shogi-serverでは、「詳細」タブの「ゲーム名」にゲーム名を入力します（パスワード欄に「ゲーム名,パスワード」と入力する方法も使えます）。同じゲーム名でログインした2人が対局します。</p>
                 <table class="info-table">
                     <tbody>
                         <tr><td><strong>ゲーム名</strong></td><td>「名前-持ち時間-秒読み」の形式で、時間は秒単位です。例：test-600-10 は持ち時間10分・秒読み10秒</td></tr>
                         <tr><td><strong>加算（フィッシャー）</strong></td><td>末尾に F を付けると、秒読みの代わりに1手ごとに時間を加算します。例：test-300-10F</td></tr>
-                        <tr><td><strong>先手・後手の希望</strong></td><td>ゲーム名の後に -B（先手）または -W（後手）を付けます。例：test-600-10-B,pw</td></tr>
+                        <tr><td><strong>先手・後手の希望</strong></td><td>「手番の希望」で先手・後手を選びます。ゲーム名の後に -B（先手）または -W（後手）を付ける書き方も使えます。例：test-600-10-B,pw</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">自分のパソコンでshogi-serverを動かしている場合は、接続先ホストに localhost、ポート番号に 4081 を指定します。</p>
@@ -201,7 +207,7 @@
                     <span class="guide-step-number">8</span>
                     <span class="guide-step-title">終局</span>
                 </div>
-                <p class="guide-step-text">対局が終わると結果と原因が表示され、棋譜欄に終局（「▲投了」など）が記録されます。棋譜は自動では保存されないため、残す場合は「ファイル」メニューから保存してください。終局後は棋譜を再生したり、次の通信対局を始めたりできます。</p>
+                <p class="guide-step-text">対局が終わると結果と原因が表示され、棋譜欄に終局（「▲投了」など）が記録されます。「詳細」タブの「終局時に棋譜を自動保存する」を使うと、保存先フォルダに自動で保存されます。使わない場合は「ファイル」メニューから保存してください。終局後は棋譜を再生したり、次の通信対局を始めたりできます。「対局数」を2局以上または無制限にすると、終局後もログインしたまま次の対局条件を待ちます。「終局後にサーバーが切断したら再接続して次の対局を待つ」を使うと、shogi-serverのように終局で切断するサーバーでも続けて対局できます。</p>
                 <p class="guide-step-text">対局中に通信が切れた場合や、エンジンが指し手を返せなくなった場合は「中断」として対局を終えます。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../images/csa-game/csa-04-game-end.png" alt="対局終了の表示">

@@ -90,13 +90,19 @@
                         <tr><td><strong>Select from history</strong></td><td>Pick a server you connected to before (up to 10) to fill in Host, Port and ID.</td></tr>
                         <tr><td><strong>Protocol</strong></td><td>The connection uses CSA Protocol 1.2.1.</td></tr>
                         <tr><td><strong>Host and Port</strong></td><td>The server's host name or IP address, and its port (4081 by default).</td></tr>
-                        <tr><td><strong>ID and Password</strong></td><td>Your login for the server. The password is not saved in the settings file.</td></tr>
+                        <tr><td><strong>ID and Password</strong></td><td>Your login for the server. The ID uses letters, digits, "_" and "-" (up to 32 characters); the password is up to 32 ASCII characters. The password is not saved in the settings file.</td></tr>
+                        <tr><td><strong>Advanced tab: Keeping the connection alive</strong></td><td>"Send empty lines during a game to keep the connection alive" (every 40 seconds by default) and "Use TCP keep-alive" prevent the connection from dropping during a long think. "Thinking time margin" is subtracted from the time given to the engine to allow for network delay.</td></tr>
+                        <tr><td><strong>Advanced tab: Games</strong></td><td>"Number of games", "Reconnect and wait for the next game when the server disconnects after a game", "Flip the board when playing White", automatic record saving (step 8), and the shogi-server game name and preferred side (step 2).</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">While a field is missing, a hint such as "Please enter the host address." appears at the bottom of the dialog and Connect stays disabled. Host, ID and password cannot contain spaces.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/en/csa-game/csa-01-dialog.png" alt="Network Game (CSA) dialog">
                     <p class="screenshot-caption">Network game dialog: settings for connecting to a local shogi-server as a human player</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/csa-game/csa-01-advanced.png" alt="Advanced tab of the Network Game (CSA) dialog">
+                    <p class="screenshot-caption">Advanced tab: keeping the connection alive, number of games, automatic record saving and the shogi-server game name</p>
                 </div>
             </div>
 
@@ -105,12 +111,12 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Game Conditions on shogi-server</span>
                 </div>
-                <p class="guide-step-text">The server decides the time control and other conditions, so ShogiBoardQ has no settings for them. On shogi-server, enter game-name,password in the Password field. Two players who log in with the same game name play each other.</p>
+                <p class="guide-step-text">The server decides the time control and other conditions, so ShogiBoardQ has no settings for them. On shogi-server, enter the game name in "Game name" on the Advanced tab (entering game-name,password in the Password field also works). Two players who log in with the same game name play each other.</p>
                 <table class="info-table">
                     <tbody>
                         <tr><td><strong>Game name</strong></td><td>name-time-byoyomi, with times in seconds. Example: test-600-10 is 10 minutes plus 10 seconds of byoyomi</td></tr>
                         <tr><td><strong>Increment (Fischer)</strong></td><td>Add F at the end to add time after every move instead of byoyomi. Example: test-300-10F</td></tr>
-                        <tr><td><strong>Preferred side</strong></td><td>Append -B (Black) or -W (White) to the game name. Example: test-600-10-B,pw</td></tr>
+                        <tr><td><strong>Preferred side</strong></td><td>Choose Black or White in "Preferred side". Appending -B (Black) or -W (White) to the game name also works. Example: test-600-10-B,pw</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">When shogi-server runs on your own computer, use localhost as the host and 4081 as the port.</p>
@@ -202,7 +208,7 @@
                     <span class="guide-step-number">8</span>
                     <span class="guide-step-title">End of the Game</span>
                 </div>
-                <p class="guide-step-text">When the game ends, the result and cause are shown and the final row (such as ▲Resign) is added to the game record. The record is not saved automatically, so save it from the File menu if you want to keep it. Afterwards you can replay the record or start another network game.</p>
+                <p class="guide-step-text">When the game ends, the result and its cause are shown and the end (such as "▲Resign") is recorded in the record pane. With "Save the game record automatically when a game ends" on the Advanced tab, the record is saved to the chosen folder; otherwise save it from the File menu. Afterwards you can replay the record or start another network game. With "Number of games" set to two or more, or unlimited, the client stays logged in and waits for the next game conditions. "Reconnect and wait for the next game when the server disconnects after a game" keeps playing on servers such as shogi-server that close the connection after every game.</p>
                 <p class="guide-step-text">If the connection is lost or the engine can no longer return a move, the game ends as aborted.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/en/csa-game/csa-04-game-end.png" alt="Game over message">
