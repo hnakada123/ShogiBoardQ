@@ -252,11 +252,9 @@ void MainWindowServiceRegistry::createJosekiWindowDock()
     m_mw.m_dockCreationService->setJosekiWiring(m_mw.m_josekiWiring.get());
     m_mw.m_docks.josekiWindow = m_mw.m_dockCreationService->createJosekiWindowDock();
 
-    // Wiring の寿命に接続を合わせ、MainWindow のメンバ破棄後の表示通知を受けない。
-    if (m_mw.m_docks.josekiWindow) {
-        QObject::connect(m_mw.m_docks.josekiWindow, &QDockWidget::visibilityChanged,
-                         m_mw.m_josekiWiring.get(), &JosekiWindowWiring::updateJosekiWindow);
-    }
+    // ドックが前面に出ている間だけ更新する（接続の受け手は Wiring なので、MainWindow の
+    // メンバ破棄後の表示通知を受けない）。
+    if (m_mw.m_docks.josekiWindow) m_mw.m_josekiWiring->attachDock(m_mw.m_docks.josekiWindow);
 }
 
 void MainWindowServiceRegistry::createAnalysisResultsDock()

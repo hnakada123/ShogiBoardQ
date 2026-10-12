@@ -33,10 +33,17 @@ static QTableWidgetItem *numericItem(const QLocale &locale, int value)
     return item;
 }
 
-static void addRowButton(QTableWidget *table, int row, int col,
-                         const QString &text, const QString &style,
-                         JosekiWindow *win, void (JosekiWindow::*slot)())
+// 行のボタンを用意する。列ごとに文字と接続先は決まっているので、既にある行のボタンは
+// 使い回す（ボタンの生成とスタイルシートの適用が、表の作り直しで最も重い）。
+static void ensureRowButton(QTableWidget *table, int row, int col,
+                            const QString &text, const QString &style,
+                            JosekiWindow *win, void (JosekiWindow::*slot)())
 {
+    if (auto *existing = qobject_cast<QPushButton*>(table->cellWidget(row, col))) {
+        existing->setProperty("row", row);
+        existing->setFont(win->font());
+        return;
+    }
     auto *btn = new QPushButton(text, win);
     btn->setProperty("row", row);
     btn->setFont(win->font());
@@ -386,38 +393,52 @@ void JosekiWindow::updateJosekiDisplay()
         return;
     }
 
-    clearTable();
+    // 局面が変わるたび（1手ごと）に呼ばれる。表はいったん空にせず、行数を合わせて中身を
+    // 入れ替える。状態表示（ラベルのスタイルと案内の表示）は最後に1回だけ更新する。
     updatePositionSummary();
-    m_sfenLineLabel->clear();
-    if (!m_displayEnabled) return;
-    if (m_currentSfen.isEmpty()) return;
+    m_displayedSfen = m_currentSfen;
 
-    QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
-    qCDebug(lcUi) << "Looking for:" << normalizedSfen;
-
-    if (!m_repository->containsPosition(normalizedSfen)) {
-        m_currentMoves.clear();
-        m_sfenLineLabel->setText(tr("定跡: (該当なし)"));
-        updateStatusDisplay();
-        return;
+    QList<JosekiMove> moves;
+    QString sfenLine;
+    if (m_displayEnabled && !m_currentSfen.isEmpty()) {
+        const QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
+        qCDebug(lcUi) << "Looking for:" << normalizedSfen;
+        if (m_repository->containsPosition(normalizedSfen)) {
+            moves = m_repository->movesForPosition(normalizedSfen);
+            const QString sPly = m_repository->sfenWithPly(normalizedSfen);
+            sfenLine = tr("定跡SFEN: %1").arg(sPly.isEmpty() ? normalizedSfen : sPly);
+        } else {
+            sfenLine = tr("定跡: (該当なし)");
+        }
     }
-
-    const QList<JosekiMove> &moves = m_repository->movesForPosition(normalizedSfen);
     m_currentMoves = moves;
+    m_sfenLineLabel->setText(sfenLine);
+    rebuildTableRows(moves);
+    updateStatusDisplay();
+}
 
-    QString sPly = m_repository->sfenWithPly(normalizedSfen);
-    m_sfenLineLabel->setText(sPly.isEmpty()
-        ? tr("定跡SFEN: %1").arg(normalizedSfen)
-        : tr("定跡SFEN: %1").arg(sPly));
+void JosekiWindow::rebuildTableRows(const QList<JosekiMove> &moves)
+{
+    const int rows = static_cast<int>(moves.size());
+    // 作り直していたときと同じく、選択と表示位置は初めに戻す
+    m_tableWidget->setCurrentItem(nullptr);
+    m_tableWidget->clearSelection();
+    m_tableWidget->setRowCount(rows);
+    if (rows == 0) return;
+    m_tableWidget->scrollToTop();
 
     SfenPositionTracer tracer;
     (void)tracer.setFromSfen(m_currentSfen);
-    m_tableWidget->setRowCount(static_cast<int>(moves.size()));
 
     QLocale locale = QLocale::system();
     locale.setNumberOptions(QLocale::DefaultNumberOptions);
+    const QString buttonStyle = ButtonStyles::panelToolButton();
+    const QString playText = tr("着手");
+    const QString editText = tr("編集");
+    const QString deleteText = tr("削除");
+    const QString doubleClickTip = tr("ダブルクリックで着手");
 
-    for (int i = 0; i < moves.size(); ++i) {
+    for (int i = 0; i < rows; ++i) {
         const JosekiMove &move = moves[i];
 
         auto *noItem = new QTableWidgetItem(QString::number(i + 1));
@@ -425,18 +446,17 @@ void JosekiWindow::updateJosekiDisplay()
         m_tableWidget->setItem(i, 0, noItem);
 
         if (m_humanCanPlay)
-            addRowButton(m_tableWidget, i, 1, tr("着手"), ButtonStyles::panelToolButton(),
-                         this, &JosekiWindow::onPlayButtonClicked);
+            ensureRowButton(m_tableWidget, i, 1, playText, buttonStyle, this, &JosekiWindow::onPlayButtonClicked);
+        else
+            m_tableWidget->removeCellWidget(i, 1);
 
-        QString moveJapanese = JosekiPresenter::usiMoveToJapanese(move.move, tracer);
-        auto *moveItem = new QTableWidgetItem(moveJapanese);
+        auto *moveItem = new QTableWidgetItem(JosekiPresenter::usiMoveToJapanese(move.move, tracer));
         moveItem->setTextAlignment(Qt::AlignCenter);
-        moveItem->setToolTip(m_humanCanPlay
-            ? move.move + QLatin1Char('\n') + tr("ダブルクリックで着手") : move.move);
+        moveItem->setToolTip(m_humanCanPlay ? move.move + QLatin1Char('\n') + doubleClickTip : move.move);
         m_tableWidget->setItem(i, 2, moveItem);
 
-        SfenPositionTracer nextTracer;
-        (void)nextTracer.setFromSfen(m_currentSfen);
+        // 同じ局面を手ごとに解析し直さず、解析済みの局面を写して1手進める
+        SfenPositionTracer nextTracer = tracer;
         (void)nextTracer.applyUsiMove(move.move);
         auto *nextMoveItem = new QTableWidgetItem(
             JosekiPresenter::usiMoveToJapanese(move.nextMove, nextTracer));
@@ -444,10 +464,8 @@ void JosekiWindow::updateJosekiDisplay()
         nextMoveItem->setTextAlignment(Qt::AlignCenter);
         m_tableWidget->setItem(i, 3, nextMoveItem);
 
-        addRowButton(m_tableWidget, i, 4, tr("編集"), ButtonStyles::panelToolButton(),
-                     this, &JosekiWindow::onEditButtonClicked);
-        addRowButton(m_tableWidget, i, 5, tr("削除"), ButtonStyles::panelToolButton(),
-                     this, &JosekiWindow::onDeleteButtonClicked);
+        ensureRowButton(m_tableWidget, i, 4, editText, buttonStyle, this, &JosekiWindow::onEditButtonClicked);
+        ensureRowButton(m_tableWidget, i, 5, deleteText, buttonStyle, this, &JosekiWindow::onDeleteButtonClicked);
 
         m_tableWidget->setItem(i, 6, numericItem(locale, move.value));
         m_tableWidget->setItem(i, 7, numericItem(locale, move.depth));
@@ -456,6 +474,4 @@ void JosekiWindow::updateJosekiDisplay()
         commentItem->setToolTip(move.comment);
         m_tableWidget->setItem(i, 9, commentItem);
     }
-
-    updateStatusDisplay();
 }

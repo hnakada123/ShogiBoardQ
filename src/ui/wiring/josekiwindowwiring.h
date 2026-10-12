@@ -14,6 +14,7 @@
 #include "playmode.h"
 
 class JosekiWindow;
+class QDockWidget;
 class ShogiGameController;
 class KifuRecordListModel;
 
@@ -81,6 +82,14 @@ public:
      */
     void ensureJosekiWindow();
 
+    /**
+     * @brief 定跡ウィンドウを入れたドックを登録する
+     *
+     * タブにまとめたドックは裏に回っても Qt では表示中のままなので、ドックの
+     * visibilityChanged で前面にあるかを覚え、前面にある間だけ更新する。
+     */
+    void attachDock(QDockWidget* dock);
+
 signals:
     /**
      * @brief 指し手実行を要求
@@ -107,6 +116,9 @@ private slots:
      * @brief 棋譜データマージ要求時の処理
      */
     void onRequestKifuDataForMerge();
+
+    /// ドックが前面に出た・裏に回った・閉じたときの処理
+    void onDockVisibilityChanged(bool visible);
 
 private:
     /**
@@ -164,6 +176,10 @@ private:
 
     // 内部オブジェクト
     JosekiWindow* m_josekiWindow = nullptr;
+    /// 定跡ウィンドウを入れたドック（無ければ nullptr。単独のウィンドウとして使う場合）
+    QDockWidget* m_dockWidget = nullptr;
+    /// ドックが前面に出ているか（visibilityChanged で更新）
+    bool m_dockShown = false;
 };
 
 #endif // JOSEKIWINDOWWIRING_H

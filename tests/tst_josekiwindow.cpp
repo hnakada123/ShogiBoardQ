@@ -74,6 +74,7 @@ private slots:
     void testEmptyAndStoppedDisplay();
     void testDialogCancelPersistsSize();
     void testAddKeepsTargetPosition();
+    void testSameSfenKeepsTableRows();
 
 private:
     static QString initialSfen();
@@ -937,6 +938,49 @@ void TestJosekiWindow::testAddKeepsTargetPosition()
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves.first().move, QStringLiteral("7g7f"));
     QVERIFY(!window.m_repository->containsPosition(JosekiPresenter::normalizeSfen(window.m_currentSfen)));
+}
+
+/// 同じ局面が続けて設定されたときは表の行（ボタン）を作り直さない。人間が指せるかが
+/// 変わったとき・定跡データを変えたとき・局面が変わったときは行を入れ替える
+void TestJosekiWindow::testSameSfenKeepsTableRows()
+{
+    JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+    JosekiWindow window;
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("same.db"))));
+    QTableWidget *table = window.m_tableWidget;
+    QCOMPARE(table->rowCount(), 1);
+    QWidget *editButton = table->cellWidget(0, 4);
+    QWidget *deleteButton = table->cellWidget(0, 5);
+    QVERIFY(editButton && deleteButton && table->cellWidget(0, 1));
+
+    // 同じ局面: 行もボタンもそのまま
+    window.setCurrentSfen(initialSfen());
+    QCOMPARE(table->cellWidget(0, 4), editButton);
+    QCOMPARE(table->cellWidget(0, 5), deleteButton);
+
+    // 人間が指せなくなると「着手」の列だけ消え、ほかのボタンは使い回す
+    window.setHumanCanPlayProvider([] { return false; });
+    window.setCurrentSfen(initialSfen());
+    QVERIFY(!table->cellWidget(0, 1));
+    QCOMPARE(table->cellWidget(0, 4), editButton);
+    window.setHumanCanPlayProvider([] { return true; });
+    window.setCurrentSfen(initialSfen());
+    QVERIFY(table->cellWidget(0, 1));
+
+    // 定跡手を足すと行が増え、ボタンの行番号も合う
+    window.m_presenter->addMove(JosekiPresenter::normalizeSfen(initialSfen()), initialSfen(),
+                                {QStringLiteral("2g2f"), QStringLiteral("none"), 5, 20, 1, {}});
+    window.updateJosekiDisplay();
+    QCOMPARE(table->rowCount(), 2);
+    QCOMPARE(table->cellWidget(1, 4)->property("row").toInt(), 1);
+    QCOMPARE(window.m_currentMoves.size(), 2);
+
+    // 定跡に無い局面では行が消え、戻すと作り直される
+    window.setCurrentSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+    QCOMPARE(table->rowCount(), 0);
+    window.setCurrentSfen(initialSfen());
+    QCOMPARE(table->rowCount(), 2);
+    QVERIFY(table->cellWidget(0, 1) && table->cellWidget(0, 4) && table->cellWidget(0, 5));
 }
 
 QTEST_MAIN(TestJosekiWindow)

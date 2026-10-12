@@ -9,6 +9,8 @@
 #include "shogigamecontroller.h"
 #include "kifurecordlistmodel.h"
 
+#include <QDockWidget>
+
 JosekiWindowWiring::JosekiWindowWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
@@ -44,20 +46,37 @@ void JosekiWindowWiring::ensureJosekiWindow()
     qCDebug(lcUi) << "JosekiWindow created and connected";
 }
 
+void JosekiWindowWiring::attachDock(QDockWidget* dock)
+{
+    m_dockWidget = dock;
+    m_dockShown = dock && dock->isVisible();
+    if (dock) {
+        connect(dock, &QDockWidget::visibilityChanged,
+                this, &JosekiWindowWiring::onDockVisibilityChanged);
+    }
+}
+
+void JosekiWindowWiring::onDockVisibilityChanged(bool visible)
+{
+    m_dockShown = visible;
+    // 裏に回っている間に進んだ局面は、前面に戻ったときに反映する
+    if (visible) updateJosekiWindow();
+}
+
 void JosekiWindowWiring::updateJosekiWindow()
 {
-    // 定跡ウィンドウが存在し、表示されている場合のみ更新
+    // 定跡ウィンドウが存在し、表示されている場合のみ更新。タブの裏に回ったドックの中身は
+    // isVisible() が真のままなので、ドックが前面にあるかも見る（1手ごとに呼ばれる）
     if (!m_josekiWindow || !m_josekiWindow->isVisible()) {
         return;
     }
+    if (m_dockWidget && !m_dockShown) return;
 
     if (!m_currentSfenStr) return;
 
-    // 人間が着手可能かどうかを判定して設定
-    const bool humanCanPlay = determineHumanCanPlay();
-    m_josekiWindow->setHumanCanPlay(humanCanPlay);
-
-    // 現在の局面のSFENを定跡ウィンドウに設定
+    // 現在の局面のSFENを定跡ウィンドウに設定する。人間が着手可能かどうかは、定跡ウィンドウが
+    // 表示を作り直すたびに setHumanCanPlayProvider の判定で問い合わせる（ここで setHumanCanPlay を
+    // 呼ぶと、手番が替わるたびに表を2回作り直していた）
     m_josekiWindow->setCurrentSfen(*m_currentSfenStr);
 }
 

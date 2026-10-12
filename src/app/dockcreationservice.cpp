@@ -273,7 +273,10 @@ QDockWidget* DockCreationService::createJosekiWindowDock()
 
     m_josekiWindowDock = new QDockWidget(tr("定跡"), m_mainWindow);
     setupDockFeatures(m_josekiWindowDock, QStringLiteral("JosekiWindowDock"));
-    m_josekiWindowDock->setWidget(josekiWindow);
+    // 1手ごとに表と局面のラベルが変わる。思考ドックと同じく、ドックの大きさの条件が変わらない
+    // 限りメインウィンドウの配置をやり直さず、中身の描き直しをドックのタイトルまで広げない
+    m_josekiWindowDock->setWidget(new LayoutBoundaryWidget(josekiWindow, m_josekiWindowDock));
+    OpaqueBackground::keep(josekiWindow);
     josekiWindow->setDockWidget(m_josekiWindowDock);
 
     m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_josekiWindowDock);

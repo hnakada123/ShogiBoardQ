@@ -16,26 +16,29 @@ void JosekiWindow::clearTable()
 {
     m_tableWidget->setRowCount(0);
     m_currentMoves.clear();
-    updateStatusDisplay();
+    m_displayedSfen.clear();
 }
 
 void JosekiWindow::updateStatusDisplay()
 {
     bool hasData = !m_repository->isEmpty();
     m_addMoveButton->setEnabled(!isIoBusy() && !m_currentSfen.isEmpty());
-    m_filePathLabel->setToolTip(m_currentFilePath);
+    if (m_filePathLabel->toolTip() != m_currentFilePath) m_filePathLabel->setToolTip(m_currentFilePath);
     m_noticeLabel->setVisible(m_modified);
     if (m_fileStatusLabel) {
+        QString text;
+        QString style;
         if (m_modified) {
-            m_fileStatusLabel->setText(tr("未保存"));
-            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-weight: bold;"));
+            text = tr("未保存");
+            style = QStringLiteral("color: #cc6600; font-weight: bold;");
         } else if (hasData) {
-            m_fileStatusLabel->setText(tr("✓読込済"));
-            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: green; font-weight: bold;"));
-        } else {
-            m_fileStatusLabel->setText(QString());
-            m_fileStatusLabel->setStyleSheet(QString());
+            text = tr("✓読込済");
+            style = QStringLiteral("color: green; font-weight: bold;");
         }
+        m_fileStatusLabel->setText(text);
+        // 同じスタイルシートでも付け直すと Qt はスタイルを適用し直し、配置の計算が
+        // メインウィンドウまで伝わる。1手ごとに呼ばれるので、変わったときだけ付ける
+        if (m_fileStatusLabel->styleSheet() != style) m_fileStatusLabel->setStyleSheet(style);
     }
     if (m_stopButton)
         m_stopButton->setVisible(hasData || !m_displayEnabled);
