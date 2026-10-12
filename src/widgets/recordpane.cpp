@@ -410,12 +410,22 @@ void RecordPane::setNavigationEnabled(bool on)
     setKifuViewEnabled(on);
 }
 
-void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int)
+void RecordPane::onKifuRowsInserted(const QModelIndex& parent, int first, int last)
 {
     if (!m_kifu) return;
 
     m_kifu->scrollToBottom();
     // 長い指し手が追加された場合も、内容に合わせて列とペインを広げる。
+    // 列幅は全行の最大なので、末尾に足した行が今の幅に収まるなら測り直しても同じ幅になる。
+    // 1手ごとに全行を測り直す（手数に比例して重くなる）のを避け、足した行だけ測って比べる。
+    // 先頭からの追加（作り直し）は従来どおり全行を測る。
+    if (first > 0 && m_kifu->model() && !m_kifu->horizontalHeader()->isSectionHidden(0)) {
+        int added = 0;
+        for (int row = first; row <= last; ++row)
+            added = qMax(added, m_kifu->sizeHintForIndex(m_kifu->model()->index(row, 0, parent)).width());
+        if (m_kifu->showGrid()) added += 1;
+        if (added <= m_kifu->horizontalHeader()->sectionSize(0)) return;
+    }
     m_kifu->resizeColumnToContents(0);
 }
 

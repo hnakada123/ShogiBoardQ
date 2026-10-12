@@ -174,6 +174,31 @@ private:
     };
 
 private slots:
+    /// 棋譜欄の指し手列の幅は、末尾に行を足すたびに全行を測り直した場合と同じになる
+    /// （1手ごとに全行を測り直さず、足した行だけ測って今の幅と比べるため）
+    void kifuColumnWidthMatchesFullMeasure()
+    {
+        KifuRecordListModel model;
+        KifuBranchListModel branchModel;
+        RecordPane pane(nullptr);
+        pane.setModels(&model, &branchModel);
+        pane.resize(420, 320);
+        pane.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&pane));
+        QTableView* kifu = pane.kifuView();
+        QVERIFY(kifu);
+        const QStringList moves = {QStringLiteral("▲７六歩(77)"), QStringLiteral("△同　歩(34)"),
+                                   QStringLiteral("▲２二角成(88)"), QStringLiteral("△同　銀(31)"),
+                                   QStringLiteral("▲３三角打"), QStringLiteral("△投了")};
+        for (int i = 0; i < 30; ++i) {
+            model.appendItem(new KifuDisplay(moves.at(i % moves.size()), QStringLiteral("00:01/00:00:10")));
+            const int incremental = kifu->columnWidth(0);
+            kifu->resizeColumnToContents(0);
+            QCOMPARE(incremental, kifu->columnWidth(0));
+            QCoreApplication::processEvents();
+        }
+    }
+
     void branchLine_consistencyIncludesBoardRecordAndTree()
     {
         UiHarness h;
