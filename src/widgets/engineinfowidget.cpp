@@ -270,19 +270,28 @@ void EngineInfoWidget::showEvent(QShowEvent* event)
     updateTableGeometry();
 }
 
+bool EngineInfoWidget::HeaderHeightKey::sameAs(const HeaderHeightKey& other) const
+{
+    return font == other.font && styleSheet == other.styleSheet && headings == other.headings
+        && hiddenColumns == other.hiddenColumns;
+}
+
 // 見出しの高さ。QHeaderView は列幅が変わるたびに全見出しの大きさを測り直すので、
-// 高さが変わりうる条件（書体・スタイルシート・見出し・表示する列）が同じなら使い回す
+// 高さが変わりうる条件（書体・スタイルシート・見出し・表示する列）が同じなら使い回す。
+// 思考情報が届くたびに呼ばれるので、書体は文字列の形（QFont::key）にせず、そのまま比べる
 int EngineInfoWidget::headerHeight()
 {
     QHeaderView* header = m_table->horizontalHeader();
-    QString key = m_table->font().key() + QLatin1Char('\n') + m_table->styleSheet();
+    HeaderHeightKey key{m_table->font(), m_table->styleSheet(), {}, 0};
+    key.headings.reserve(COL_COUNT);
     for (int col = 0; col < COL_COUNT; ++col) {
         const auto* heading = m_table->horizontalHeaderItem(col);
-        key += QLatin1Char('\n') + (header->isSectionHidden(col) ? QStringLiteral("-") : QStringLiteral("+"))
-            + (heading ? heading->text() : QString());
+        key.headings.append(heading ? heading->text() : QString());
+        if (header->isSectionHidden(col)) key.hiddenColumns |= 1u << col;
     }
-    if (key != m_headerHeightKey) {
+    if (!m_headerHeightMeasured || !key.sameAs(m_headerHeightKey)) {
         m_headerHeightKey = key;
+        m_headerHeightMeasured = true;
         m_headerHeight = header->sizeHint().height();
     }
     return m_headerHeight;
@@ -296,9 +305,10 @@ void EngineInfoWidget::updateTableGeometry()
         const QFont headingFont = m_table->font();
         const bool japanese = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
         const QFont moveFont = japanese ? ApplicationFonts::japaneseFont(headingFont) : headingFont;
-        const QString fontKey = headingFont.key() + QLatin1Char('\n') + moveFont.key();
-        if (fontKey != m_measuredFontKey || m_cellWidths.size() != COL_COUNT) {
-            m_measuredFontKey = fontKey;
+        if (headingFont != m_measuredHeadingFont || moveFont != m_measuredMoveFont
+            || m_cellWidths.size() != COL_COUNT) {
+            m_measuredHeadingFont = headingFont;
+            m_measuredMoveFont = moveFont;
             m_cellWidths = QList<MeasuredText>(COL_COUNT);
             m_headingWidths = QList<MeasuredText>(COL_COUNT);
         }
