@@ -265,10 +265,17 @@ void EvaluationChartWidget::updateReferenceLines()
     m_cursorLine->setVisible(m_currentPly <= xAxisLimit());
 }
 
+// 棋譜の現在行が動くたびに呼ばれる（対局中は1手ごとに setRecordLength と続けて呼ばれる）。
+// 点と横軸の長さが前の refreshData と同じなら、表示範囲と点は変わらないので、現在の手の線と表示だけを更新する
 void EvaluationChartWidget::setCurrentPly(int ply)
 {
     m_currentPly = qMax(0, ply);
-    m_maxVisitedPly = qMax(m_maxVisitedPly, m_currentPly);
+    const int maxVisitedPly = qMax(m_maxVisitedPly, m_currentPly);
+    if (!m_scoresChanged && maxVisitedPly == m_maxVisitedPly) {
+        showCurrentPly();
+        return;
+    }
+    m_maxVisitedPly = maxVisitedPly;
     refreshData();
 }
 
@@ -280,7 +287,12 @@ void EvaluationChartWidget::setAnalysisLineIndex(int lineIndex)
 
 void EvaluationChartWidget::setRecordLength(int plies)
 {
-    m_maxVisitedPly = qMax(0, plies);
+    const int length = qMax(0, plies);
+    if (!m_scoresChanged && length == m_maxVisitedPly) {
+        showCurrentPly();
+        return;
+    }
+    m_maxVisitedPly = length;
     refreshData();
 }
 

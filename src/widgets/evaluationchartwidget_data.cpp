@@ -19,6 +19,7 @@ void EvaluationChartWidget::appendScore(int side, int ply, int cp, bool invert, 
         score.cp = (winning != invert) ? 1 : -1;
     }
     m_scores[side].insert(ply, score);
+    m_scoresChanged = true;
 }
 
 void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert, const QString& mate)
@@ -76,6 +77,7 @@ void EvaluationChartWidget::rebuildSeries()
 
 void EvaluationChartWidget::refreshData()
 {
+    m_scoresChanged = false;
     clearHover();
     int maxCp = 0;
     int maxPly = m_maxVisitedPly;
@@ -87,6 +89,14 @@ void EvaluationChartWidget::refreshData()
     }
     m_configurator->updateDataRange(maxCp, maxPly);
     rebuildSeries();
+    updateReferenceLines();
+    updatePresentation();
+}
+
+// refreshData のうち、現在の手で変わる部分（点と表示範囲が変わらないときに使う）
+void EvaluationChartWidget::showCurrentPly()
+{
+    clearHover();
     updateReferenceLines();
     updatePresentation();
 }

@@ -107,6 +107,7 @@ private:
     void updateReferenceLines();
     void rebuildSeries();
     void refreshData();
+    void showCurrentPly();
     void updatePresentation();
     void appendScore(int side, int ply, int cp, bool invert, const QString& mate);
     void bufferScore(int side, int ply, int cp, bool invert, const QString& mate);
@@ -138,6 +139,7 @@ private:
     QMap<int, Score> m_scores[2];
     int m_currentPly = 0;
     int m_maxVisitedPly = 0;
+    bool m_scoresChanged = true;  // refreshData の後に点を足したか（足した後は表示範囲と点を作り直す）
     int m_hoverSide = -1;
     int m_hoverPly = -1;
     QList<PendingScore> m_pending;

@@ -179,6 +179,63 @@ private slots:
         QCOMPARE(widget.countP1(), 2);
     }
 
+    // 棋譜の現在行が動くたび（対局中は1手ごとに2回）に、点と表示範囲が変わらなければ作り直さず、
+    // 現在の手の線と表示だけを更新する。結果は作り直した場合と同じ
+    void currentPlyMoveKeepsSeries()
+    {
+        const auto fill = [](EvaluationChartWidget& widget) {
+            widget.resize(900, 360);
+            for (int ply = 1; ply <= 14; ++ply) widget.appendScoreP1(ply, ply * 173 - 900);
+            widget.appendScoreP2(15, 0, false, QStringLiteral("+"));
+        };
+        EvaluationChartWidget widget;
+        fill(widget);
+        widget.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&widget));
+        QSignalSpy replaced(series(widget), &QXYSeries::pointsReplaced);
+        QSignalSpy xAxis(&widget, &EvaluationChartWidget::xAxisSettingsChanged);
+
+        widget.setRecordLength(15);
+        widget.setCurrentPly(6);
+        widget.setRecordLength(15);
+        widget.setCurrentPly(9);
+        QCOMPARE(replaced.count(), 0);
+        QCOMPARE(xAxis.count(), 0);
+        QCOMPARE(widget.currentPly(), 9);
+
+        // 作り直した場合（新しく作って同じ手へ移動）と、点・現在の手の印・表示・線が同じ
+        EvaluationChartWidget rebuilt;
+        fill(rebuilt);
+        rebuilt.trimToPly(15);
+        rebuilt.setCurrentPly(9);
+        QCOMPARE(view(widget)->summary, view(rebuilt)->summary);
+        QCOMPARE(view(widget)->currentPly, view(rebuilt)->currentPly);
+        QCOMPARE(view(widget)->markers.size(), view(rebuilt)->markers.size());
+        for (qsizetype i = 0; i < view(widget)->markers.size(); ++i) {
+            QCOMPARE(view(widget)->markers.at(i).value, view(rebuilt)->markers.at(i).value);
+            QCOMPARE(view(widget)->markers.at(i).selected, view(rebuilt)->markers.at(i).selected);
+        }
+        const auto lines = [](EvaluationChartWidget& chart) {
+            QList<QList<QPointF>> points;
+            for (auto* item : view(chart)->chart()->series()) {
+                if (auto* line = qobject_cast<QLineSeries*>(item))
+                    points.append(line->points() << QPointF(line->isVisible(), 0));
+            }
+            return points;
+        };
+        QCOMPARE(lines(widget), lines(rebuilt));
+
+        // 点を足した・記録が伸びたときは作り直す
+        widget.appendScoreP1(16, 50);
+        QCOMPARE(replaced.count(), 1);
+        QCOMPARE(series(widget)->count(), 15);
+        widget.setCurrentPly(16);
+        QCOMPARE(replaced.count(), 1);
+        widget.setRecordLength(25);
+        QCOMPARE(replaced.count(), 2);
+        QCOMPARE(widget.xAxisLimit(), 30);
+    }
+
     void settingsPersistAndCancel()
     {
         {
