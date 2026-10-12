@@ -77,7 +77,6 @@ void EvaluationChartWidget::rebuildSeries()
 
 void EvaluationChartWidget::refreshData()
 {
-    m_scoresChanged = false;
     clearHover();
     int maxCp = 0;
     int maxPly = m_maxVisitedPly;
@@ -87,8 +86,12 @@ void EvaluationChartWidget::refreshData()
             if (it->mate.isEmpty()) maxCp = qMax(maxCp, qAbs(it->cp));
         }
     }
+    const int yLimitBefore = yAxisLimit();
     m_configurator->updateDataRange(maxCp, maxPly);
-    rebuildSeries();
+    // 対局中は棋譜欄の行追加で記録の長さだけが伸びて呼ばれる。点が変わっていなければ、
+    // 点を収める縦の表示範囲が変わったときだけ系列を作り直す。
+    if (m_scoresChanged || yAxisLimit() != yLimitBefore) rebuildSeries();
+    m_scoresChanged = false;
     updateReferenceLines();
     updatePresentation();
 }
@@ -137,6 +140,7 @@ void EvaluationChartWidget::clearAll()
     m_pending.clear();
     m_flushTimer->stop();
     for (auto& scores : m_scores) scores.clear();
+    m_scoresChanged = true;
     m_currentPly = 0;
     m_maxVisitedPly = 0;
     clearHover();
@@ -149,6 +153,7 @@ void EvaluationChartWidget::removeLast(int side)
     flushPendingScores();
     auto& scores = m_scores[side];
     if (!scores.isEmpty()) scores.erase(std::prev(scores.end()));
+    m_scoresChanged = true;
     clearHover();
     refreshData();
 }
@@ -162,6 +167,7 @@ void EvaluationChartWidget::trimToPly(int maxPly)
         auto it = scores.upperBound(maxPly);
         while (it != scores.end()) it = scores.erase(it);
     }
+    m_scoresChanged = true;
     m_currentPly = qMin(m_currentPly, qMax(0, maxPly));
     m_maxVisitedPly = qMax(0, maxPly);
     clearHover();
@@ -170,8 +176,19 @@ void EvaluationChartWidget::trimToPly(int maxPly)
 
 int EvaluationChartWidget::countP1() const { return static_cast<int>(m_scores[0].size()); }
 int EvaluationChartWidget::countP2() const { return static_cast<int>(m_scores[1].size()); }
-void EvaluationChartWidget::setEngine1Name(const QString& name) { m_engineNames[0] = name; updatePresentation(); }
-void EvaluationChartWidget::setEngine2Name(const QString& name) { m_engineNames[1] = name; updatePresentation(); }
+// エンジンの着手のたびに同じ名前で呼ばれるので、変わったときだけ表示を更新する
+void EvaluationChartWidget::setEngine1Name(const QString& name)
+{
+    if (m_engineNames[0] == name) return;
+    m_engineNames[0] = name;
+    updatePresentation();
+}
+void EvaluationChartWidget::setEngine2Name(const QString& name)
+{
+    if (m_engineNames[1] == name) return;
+    m_engineNames[1] = name;
+    updatePresentation();
+}
 
 void EvaluationChartWidget::bufferScore(int side, int ply, int cp, bool invert, const QString& mate)
 {

@@ -225,15 +225,21 @@ private slots:
         };
         QCOMPARE(lines(widget), lines(rebuilt));
 
-        // 点を足した・記録が伸びたときは作り直す
+        // 点を足したときは作り直す。記録が伸びただけ（対局中の棋譜欄の行追加）のときは、
+        // 横の表示範囲は広げるが、点は変わらないので系列は作り直さない
         widget.appendScoreP1(16, 50);
         QCOMPARE(replaced.count(), 1);
         QCOMPARE(series(widget)->count(), 15);
         widget.setCurrentPly(16);
         QCOMPARE(replaced.count(), 1);
         widget.setRecordLength(25);
-        QCOMPARE(replaced.count(), 2);
+        QCOMPARE(replaced.count(), 1);
         QCOMPARE(widget.xAxisLimit(), 30);
+        QCOMPARE(series(widget)->count(), 15);
+        // 点を収める縦の表示範囲が変わるときは、同じ点でも表示する値が変わるので作り直す
+        widget.setAutomaticRange(false);
+        widget.setYAxisLimit(500);
+        QVERIFY(replaced.count() >= 2);
     }
 
     void settingsPersistAndCancel()
