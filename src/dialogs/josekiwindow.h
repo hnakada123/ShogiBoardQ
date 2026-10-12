@@ -131,6 +131,7 @@ private:
     void onMergeRegisterAllMoves(const QList<KifuMergeEntry> &entries);
     void setupUi();
     void updateJosekiDisplay();
+    void rebuildTableRows(const QList<JosekiMove> &moves);
     void clearTable();
     void applyFontSize();
     void loadSettings();
@@ -211,6 +212,8 @@ private:
     bool          m_modified = false;
     QStringList   m_recentFiles;
     QList<JosekiMove> m_currentMoves;
+    /// 表に出している局面。同じ局面が続けて設定されたときに表を作り直さないための覚え
+    QString       m_displayedSfen;
 
     /// 遅延読込用
     bool          m_pendingAutoLoad = false;

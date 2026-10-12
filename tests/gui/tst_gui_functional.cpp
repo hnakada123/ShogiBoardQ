@@ -2767,7 +2767,8 @@ private slots:
     {
         auto* jw = window->findChild<JosekiWindow*>();
         QVERIFY(jw);
-        auto* dock = qobject_cast<QDockWidget*>(jw->parentWidget());
+        // 定跡ウィンドウはドックとの間に入れ物（LayoutBoundaryWidget）を挟んでいる
+        auto* dock = window->findChild<QDockWidget*>("JosekiWindowDock");
         QVERIFY(dock);
         dock->show();
         dock->raise();
@@ -2780,7 +2781,7 @@ private slots:
     {
         armDialog("game"); click("actionStartGame");
         auto* jw = window->findChild<JosekiWindow*>(); QVERIFY(jw);
-        auto* dock = qobject_cast<QDockWidget*>(jw->parentWidget()); QVERIFY(dock);
+        auto* dock = window->findChild<QDockWidget*>("JosekiWindowDock"); QVERIFY(dock);
         if (!dock->toggleViewAction()->isChecked()) clickAction(dock->toggleViewAction());
         dock->raise();
         QFile f(QStringLiteral(AUDIT_DIR "/audit.db")); QVERIFY(f.open(QIODevice::WriteOnly));

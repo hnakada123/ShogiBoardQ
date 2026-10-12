@@ -211,13 +211,23 @@ void JosekiWindow::onRecentFileClicked()
 
 void JosekiWindow::setCurrentSfen(const QString &sfen)
 {
-    m_currentSfen = sfen;
-    m_currentSfen.remove(QLatin1Char('\r'));
-    if (m_currentSfen == QStringLiteral("startpos"))
-        m_currentSfen = SfenUtils::hirateSfen();
+    QString next = sfen;
+    next.remove(QLatin1Char('\r'));
+    if (next == QStringLiteral("startpos"))
+        next = SfenUtils::hirateSfen();
+    const bool sameSfen = (next == m_currentSfen);
+    m_currentSfen = next;
 
     if (m_currentSfenLabel)
         m_currentSfenLabel->setText(m_currentSfen.isEmpty() ? tr("(未設定)") : m_currentSfen);
+
+    // 1手ごとに複数の経路から同じ局面が届く。表に出している局面と同じで、人間が指せるかも
+    // 変わらなければ作り直さない（定跡データの変更は、変更した処理が自分で表示を更新する）
+    if (sameSfen && !m_pendingAutoLoad && m_displayedSfen == m_currentSfen) {
+        const bool couldPlay = m_humanCanPlay;
+        refreshHumanCanPlay();
+        if (m_humanCanPlay == couldPlay) return;
+    }
 
     updateJosekiDisplay();
 }
