@@ -31,6 +31,9 @@ public:
     /// 表示幅 width のセルに text を描くとき、Qt に渡す文字列（切る必要がなければ text のまま）
     QString textForWidth(const QString& text, const QFont& font, int width) const;
 
+    /// 改行や書字方向の制御文字を含むか（Qt は行の分け方や省略の仕方を変えるので、切らない・自前で描かない）
+    static bool hasLayoutControl(const QString& text);
+
 private:
     struct Cut {
         QString fontKey;

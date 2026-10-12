@@ -794,6 +794,8 @@ set(SRC_WIDGETS
     src/widgets/pvtextdelegate.h
     src/widgets/itemtextcutter.cpp
     src/widgets/itemtextcutter.h
+    src/widgets/itemtextpainter.cpp
+    src/widgets/itemtextpainter.h
     src/widgets/incrementaltableview.cpp
     src/widgets/incrementaltableview.h
     src/widgets/tableheaderview.cpp

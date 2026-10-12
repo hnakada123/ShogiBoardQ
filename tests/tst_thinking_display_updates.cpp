@@ -187,6 +187,56 @@ private slots:
         }
     }
 
+    // 読み筋の文字は自分で描く（枠・背景は Qt）。選択・マウスを乗せた行・フォーカス・無効・
+    // ウィンドウが前面かどうか・英語表記（欧文と記号の混在）でも、Qt が全文を描いた場合と同じ画素になる
+    void pvTextRendersSameInEveryState()
+    {
+        ShogiEngineThinkingModel model;
+        const QStringList western = {QStringLiteral("▲P-7f △P-3d ▲Bx2b+ △Sx2b ▲B*4e △S-3c "),
+                                     QStringLiteral("△N-3c ▲R-2f △P*2e ▲R-2h △K-6b ")};
+        for (int row = 0; row < 14; ++row) {
+            const QString pv = row % 3 == 2 ? western.at(row % 2).repeated(1 + row % 4) : longPv(1 + row * 3);
+            model.prependItem(new ShogiInfoRecord(QString::number(row * 13), QString::number(row),
+                                                  QString::number(row * 12345), QString::number(row * 37 - 200), pv));
+        }
+        enum State { Plain, Hover, Focus, Disabled, Active };
+        for (const State state : {Plain, Hover, Focus, Disabled, Active}) {
+            for (const int pvWidth : {50, 230, 700}) {
+                // ウィンドウが前面かどうかで色が変わるので、1つずつ前面にして撮る
+                const auto render = [&](bool pvDelegate) {
+                    QTableView view;
+                    setUpThinkingView(view, &model, pvDelegate);
+                    view.setMouseTracking(true);
+                    view.resize(pvWidth + 520, 340);
+                    view.horizontalHeader()->setStretchLastSection(false);
+                    view.horizontalHeader()->resizeSection(5, pvWidth);
+                    view.setSelectionBehavior(QAbstractItemView::SelectRows);
+                    view.selectRow(2);
+                    if (state == Disabled) view.setEnabled(false);
+                    view.show();
+                    if (!QTest::qWaitForWindowExposed(&view)) return QImage();
+                    if (state == Focus || state == Active) {
+                        view.activateWindow();
+                        if (!QTest::qWaitForWindowActive(&view)) return QImage();
+                    }
+                    if (state == Focus) {
+                        view.setFocus();
+                        view.setCurrentIndex(model.index(4, 5));
+                    }
+                    if (state == Hover) QTest::mouseMove(view.viewport(), view.visualRect(model.index(5, 5)).center());
+                    QCoreApplication::processEvents();
+                    return view.grab().toImage();
+                };
+                const QImage expected = render(false);
+                const QImage actual = render(true);
+                QVERIFY(!expected.isNull());
+                QCOMPARE(actual.size(), expected.size());
+                QVERIFY2(actual == expected,
+                         qPrintable(QStringLiteral("state %1, PV column width %2").arg(int(state)).arg(pvWidth)));
+            }
+        }
+    }
+
     // 思考情報は1行で複数の値が変わる。値が変わらなければ表を更新せず、
     // 列幅の計算（レイアウトの再計算につながる）はまとめて1回にする
     void engineInfoUpdatesAreCoalesced()

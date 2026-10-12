@@ -3,17 +3,11 @@
 
 #include "pvtextdelegate.h"
 
-#include <QApplication>
-#include <QStyle>
-
 void PvTextDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
                            const QModelIndex& index) const
 {
-    // QStyledItemDelegate::paint と同じ手順で、渡す文字列だけを切る
+    // QStyledItemDelegate::paint と同じく項目の設定を作り、描くのは ItemTextPainter に任せる
     QStyleOptionViewItem opt(option);
     initStyleOption(&opt, index);
-    m_cutter.apply(opt);
-    const QWidget* widget = opt.widget;
-    const QStyle* style = widget ? widget->style() : QApplication::style();
-    style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
+    m_painter.paint(painter, opt);
 }
