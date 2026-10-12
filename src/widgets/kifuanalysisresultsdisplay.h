@@ -46,12 +46,11 @@ public:
     QString beforeSfen;
     QString candidateUsi;
     QString candidateSfen;
-    QString displayMove(bool full = false) const
-    { return KifuPresentation::label(m_currentMove, beforeSfen, m_lastUsiMove, full); }
-    QString displayCandidate(bool full = false) const
-    { return KifuPresentation::label(m_candidateMove, candidateSfen, candidateUsi, full); }
-    QString displayPv(bool full = false) const
-    { return KifuPresentation::pv(m_sfen, m_usiPv, m_principalVariation, full); }
+    // 表示用の表記。表の描画と列幅の計算のたびに呼ばれる（英語表記では局面をたどって作るので重い）。
+    // 元の値と表記の設定が前と同じなら、前に作った文字列を返す
+    QString displayMove(bool full = false) const;
+    QString displayCandidate(bool full = false) const;
+    QString displayPv(bool full = false) const;
 
     // 指し手を取得する。
     QString currentMove() const;
@@ -92,6 +91,22 @@ public:
 private:
     // 最後の指し手（USI形式）- 読み筋表示ウィンドウのハイライト用
     QString m_lastUsiMove;
+
+    /// 表示用の表記と、それを作ったときの元の値
+    struct DisplayCache {
+        QString source;
+        QString sfen;
+        QString usi;
+        int notation = -1;
+        bool alwaysOrigin = false;
+        QString text;
+    };
+    enum DisplayKind { MoveDisplay, CandidateDisplay, PvDisplay, DisplayKindCount };
+    /// [種類][移動元をすべて付けるか]
+    mutable DisplayCache m_displayCache[DisplayKindCount][2];
+
+    QString cachedDisplay(DisplayKind kind, bool full, const QString& source, const QString& sfen,
+                          const QString& usi) const;
 };
 
 #endif // KIFUANALYSISRESULTSDISPLAY_H

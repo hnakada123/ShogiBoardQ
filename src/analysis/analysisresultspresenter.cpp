@@ -18,6 +18,7 @@
 #include "elidelabel.h"
 #include "tablestyles.h"
 #include "pvboardbuttondelegate.h"
+#include "pvtextdelegate.h"
 #include "analysissettings.h"
 #include "numericrightaligncommadelegate.h"
 #include "kifuanalysislistmodel.h"
@@ -131,6 +132,9 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
     // 思考タブと共通の盤面表示ボタン
     auto* boardBtnDelegate = new PvBoardButtonDelegate(m_view);
     m_view->setItemDelegateForColumn(6, boardBtnDelegate); // 盤面
+
+    // 読み筋の列は表示幅より長くなりがちなので、思考タブと同じく描く文字列を短くして描く
+    m_view->setItemDelegateForColumn(7, new PvTextDelegate(m_view)); // 読み筋
 
     m_header = m_view->horizontalHeader();
     m_header->setMinimumSectionSize(30);

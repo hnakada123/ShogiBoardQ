@@ -43,15 +43,28 @@ bool reaches(const SfenPositionTracer& board, const QString& token,
     const int rawDy = destRank - rank;
     const int sy = (rawDy > 0) - (rawDy < 0);
     for (int f = file + sx, r = rank + sy; f != destFile || r != destRank; f += sx, r += sy) {
-        if (!board.tokenAtFileRank(f, QChar('a' + r)).isEmpty()) return false;
+        if (!board.tokenAt(f, r).isEmpty()) return false;
     }
     return true;
 }
 
+// USI の指し手の形（"7g7f"・"7g7f+"・"P*5e"）か。正規表現
+// ^(?:[1-9][a-i][1-9][a-i]\+?|[PLNSGBR]\*[1-9][a-i])$ と同じ判定を、読み筋の1手ごとに軽く行う
+// （$ は末尾の改行1つの前でも一致するので、それも同じく許す）。
+bool isUsiMove(QStringView usi)
+{
+    if (usi.endsWith(u'\n')) usi.chop(1);
+    const auto file = [](QChar c) { return c.unicode() >= u'1' && c.unicode() <= u'9'; };
+    const auto rank = [](QChar c) { return c.unicode() >= u'a' && c.unicode() <= u'i'; };
+    if (usi.size() == 4 && usi.at(1) == u'*')
+        return QStringView(u"PLNSGBR").contains(usi.at(0)) && file(usi.at(2)) && rank(usi.at(3));
+    if (usi.size() != 4 && !(usi.size() == 5 && usi.at(4) == u'+')) return false;
+    return file(usi.at(0)) && rank(usi.at(1)) && file(usi.at(2)) && rank(usi.at(3));
+}
+
 QString format(const SfenPositionTracer& board, const QString& usi, Options style, bool side)
 {
-    static const QRegularExpression valid(QStringLiteral("^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$"));
-    if (!valid.match(usi).hasMatch()) return status(usi);
+    if (!isUsiMove(usi)) return status(usi);
     const bool drop = usi.at(1) == QLatin1Char('*');
     const int df = usi.at(2).digitValue(), dr = usi.at(3).unicode() - 'a';
     const QString token = drop ? QString(usi.at(0)) : board.tokenAtFileRank(usi.at(0).digitValue(), usi.at(1));
@@ -59,8 +72,8 @@ QString format(const SfenPositionTracer& board, const QString& usi, Options styl
     const QString piece = token.toUpper();
     QString result = side ? (board.blackToMove() ? QStringLiteral("▲") : QStringLiteral("△")) : QString();
     if (style.notation == Notation::Japanese) {
-        const QStringList names = {QStringLiteral("歩"), QStringLiteral("香"), QStringLiteral("桂"), QStringLiteral("銀"), QStringLiteral("金"), QStringLiteral("角"), QStringLiteral("飛"), QStringLiteral("玉")};
-        const QStringList promoted = {QStringLiteral("と"), QStringLiteral("成香"), QStringLiteral("成桂"), QStringLiteral("成銀"), QStringLiteral("金"), QStringLiteral("馬"), QStringLiteral("龍"), QStringLiteral("玉")};
+        static const QStringList names = {QStringLiteral("歩"), QStringLiteral("香"), QStringLiteral("桂"), QStringLiteral("銀"), QStringLiteral("金"), QStringLiteral("角"), QStringLiteral("飛"), QStringLiteral("玉")};
+        static const QStringList promoted = {QStringLiteral("と"), QStringLiteral("成香"), QStringLiteral("成桂"), QStringLiteral("成銀"), QStringLiteral("金"), QStringLiteral("馬"), QStringLiteral("龍"), QStringLiteral("玉")};
         const qsizetype index = QStringLiteral("PLNSGBRK").indexOf(piece.back());
         if (index < 0) return usi;
         result += QChar(0xff10 + df);
@@ -75,11 +88,15 @@ QString format(const SfenPositionTracer& board, const QString& usi, Options styl
     }
     result += piece;
     if (drop) return result + QLatin1Char('*') + usi.mid(2, 2);
+    // 同じ駒で同じマスへ行ける駒がほかにあれば、移動元を付ける。盤全体を指し手ごとに調べるので、
+    // マスの駒は写さずに比べる
     bool origin = style.alwaysOrigin;
+    const int fromFile = usi.at(0).digitValue();
+    const int fromRow = usi.at(1).unicode() - 'a';
     for (int f = 1; !origin && f <= 9; ++f) {
         for (int r = 0; !origin && r < 9; ++r) {
-            if (f == usi.at(0).digitValue() && r == usi.at(1).unicode() - 'a') continue;
-            if (board.tokenAtFileRank(f, QChar('a' + r)) == token && reaches(board, token, f, r, df, dr)) origin = true;
+            if (f == fromFile && r == fromRow) continue;
+            if (board.tokenAt(f, r) == token && reaches(board, token, f, r, df, dr)) origin = true;
         }
     }
     if (origin) result += usi.left(2);

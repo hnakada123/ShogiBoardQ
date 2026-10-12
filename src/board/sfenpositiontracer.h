@@ -45,6 +45,10 @@ public:
     /// 指定マスのトークンを返す（file: 1..9, rank: 'a'..'i'、空なら空文字列）
     QString tokenAtFileRank(int file, QChar rankLetter) const;
 
+    /// 指定マスのトークンを写さずに返す（file: 1..9, row: 0..8 が 'a'..'i'。範囲外は空文字列）。
+    /// 盤全体を何度も調べるときに使う
+    const QString& tokenAt(int file, int row) const;
+
 private:
     // --- 盤面データ ---
     /// 盤: [rank 0..8][file 0..8]  rank0='a'(最上段) ～ rank8='i'(最下段)

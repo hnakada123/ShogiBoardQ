@@ -186,6 +186,12 @@ QString KifuAnalysisResultsDisplay::currentMove() const { return m_currentMove; 
 QString KifuAnalysisResultsDisplay::evaluationValue() const { return m_evaluationValue; }
 QString KifuAnalysisResultsDisplay::evaluationDifference() const { return m_evaluationDifference; }
 QString KifuAnalysisResultsDisplay::principalVariation() const { return m_principalVariation; }
+QString KifuAnalysisResultsDisplay::displayMove(bool full) const
+{ return KifuPresentation::label(m_currentMove, beforeSfen, m_lastUsiMove, full); }
+QString KifuAnalysisResultsDisplay::displayCandidate(bool full) const
+{ return KifuPresentation::label(m_candidateMove, candidateSfen, candidateUsi, full); }
+QString KifuAnalysisResultsDisplay::displayPv(bool full) const
+{ return KifuPresentation::pv(m_sfen, m_usiPv, m_principalVariation, full); }
 
 // === KifuDisplay スタブ ===
 KifuDisplay::KifuDisplay(QObject* parent) : QObject(parent) {}
