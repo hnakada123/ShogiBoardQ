@@ -245,7 +245,9 @@ void MainWindowServiceRegistry::updateTurnStatus(int currentPlayer)
     }
 
     clock->setCurrentPlayer(currentPlayer);
-    m_mw.m_shogiView->setActiveSide(currentPlayer == 1);
+    // 手番側の表示は、この直後に TurnStateSyncService が呼ぶ ShogiView::updateTurnIndicator が行う。
+    // ここで setActiveSide を呼ぶと時計の緊急度（秒読み・残り10秒の警告色）が通常に戻り、
+    // 着手の直前に時計が付けた警告色が次の秒まで消えるうえ、スタイルの付け直しが余分に走る。
 }
 
 // ---------------------------------------------------------------------------
