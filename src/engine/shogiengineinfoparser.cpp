@@ -16,18 +16,6 @@
 
 ShogiEngineInfoParser::ShogiEngineInfoParser()
 {
-    m_pieceMap = {{1, 'P'}, {2, 'L'}, {3, 'N'}, {4, 'S'}, {5, 'G'}, {6, 'B'}, {7, 'R'}};
-
-    m_pieceCharToIntMap = {{'P', 1}, {'L', 2}, {'N', 3}, {'S', 4}, {'G', 5}, {'B', 6}, {'R', 7}};
-
-    m_promoteMap = {{'P', 'Q'}, {'L', 'M'}, {'N', 'O'}, {'S', 'T'},
-                    {'B', 'C'}, {'R', 'U'}, {'p', 'q'}, {'l', 'm'},
-                    {'n', 'o'}, {'s', 't'}, {'b', 'c'}, {'r', 'u'}};
-
-    m_pieceMapping = {{'P', "歩"}, {'L', "香"}, {'N', "桂"}, {'S', "銀"}, {'G', "金"}, {'B', "角"},
-                      {'R', "飛"}, {'K', "玉"}, {'Q', "と"}, {'M', "成香"}, {'O', "成桂"},
-                      {'T', "成銀"}, {'C', "馬"}, {'U', "龍"}};
-
     clearParsedInfo();
 }
 
@@ -99,61 +87,61 @@ QString ShogiEngineInfoParser::depth() const
 // 指し手の漢字変換
 // ============================================================
 
-QString ShogiEngineInfoParser::moveSymbol(const int moveIndex, const ShogiGameController* algorithm, const bool isPondering) const
+QChar ShogiEngineInfoParser::moveSymbol(const int moveIndex, const bool isPondering) const
 {
-    Q_UNUSED(algorithm)  // 局面更新の影響を避けるため、currentPlayer()は使用しない
-
-    QString symbol;
-
     // 思考開始時の手番を使用（bestmove後の局面更新の影響を受けない）
-    bool thinkingPlayerIsPlayer1 = (m_thinkingStartPlayer == ShogiGameController::Player1);
+    const bool thinkingPlayerIsPlayer1 = (m_thinkingStartPlayer == ShogiGameController::Player1);
+    const QChar black(0x25B2);  // ▲
+    const QChar white(0x25B3);  // △
 
     // moveIndex & 1 と isPondering の XOR で手番を判定:
     // isPondering=false: 偶数=思考側、奇数=相手側
     // isPondering=true:  偶数=相手側（ponderは相手の予想手から始まる）、奇数=思考側
     if ((moveIndex & 1) ^ isPondering) {
-        symbol = thinkingPlayerIsPlayer1 ? "△" : "▲";
-    } else {
-        symbol = thinkingPlayerIsPlayer1 ? "▲" : "△";
+        return thinkingPlayerIsPlayer1 ? white : black;
     }
-
-    return symbol;
+    return thinkingPlayerIsPlayer1 ? black : white;
 }
 
-QString ShogiEngineInfoParser::formattedMove(int fileTo, int rankTo, const QString& kanji) const
+void ShogiEngineInfoParser::appendFormattedMove(QString& out, int fileTo, int rankTo, const QString& kanji) const
 {
-    qCDebug(lcEngine) << "formattedMove: fileTo=" << fileTo
-                      << "rankTo=" << rankTo
-                      << "prevFile=" << previousFileTo()
-                      << "prevRank=" << previousRankTo()
-                      << "kanji=" << kanji;
     if ((fileTo == previousFileTo()) && (rankTo == previousRankTo())) {
-        qCDebug(lcEngine) << "formattedMove: 同" << kanji;
-        return "同" + kanji;
+        out += QChar(0x540C);  // 同
+    } else {
+        out += ShogiUtils::transFileTo(fileTo);
+        out += ShogiUtils::transRankTo(rankTo);
     }
-
-    return ShogiUtils::transFileTo(fileTo) + ShogiUtils::transRankTo(rankTo) + kanji;
+    out += kanji;
 }
 
-QString ShogiEngineInfoParser::convertMoveToShogiString(const QString& kanji, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo,
-                                                        const bool promote, const ShogiGameController* algorithm, const int moveIndex, const bool isPondering)
+namespace {
+// 移動元の座標の数字を足す（1桁は文字を作らずに足す）
+void appendNumber(QString& out, int value)
 {
-    QString moveStr;
+    if (value >= 0 && value <= 9) out += QChar(u'0' + value);
+    else out += QString::number(value);
+}
+} // namespace
 
-    moveStr += moveSymbol(moveIndex, algorithm, isPondering);
-    moveStr += formattedMove(fileTo, rankTo, kanji);
+// 読み筋は info 行ごとに全手を変換するので、1手ずつ文字列を作らず out に直接足す
+void ShogiEngineInfoParser::appendShogiMove(QString& out, const QString& kanji, const int fileFrom, const int rankFrom,
+                                            const int fileTo, const int rankTo, const bool promote, const int moveIndex,
+                                            const bool isPondering) const
+{
+    out += moveSymbol(moveIndex, isPondering);
+    appendFormattedMove(out, fileTo, rankTo, kanji);
 
-    if (promote) moveStr += "成";
+    if (promote) out += QChar(0x6210);  // 成
 
     if (fileFrom == STAND_FILE) {
-        moveStr += "打";
-    }
-    else {
+        out += QChar(0x6253);  // 打
+    } else {
         // 移動元の座標を "(77)" 形式で付加
-        moveStr += "(" + QString::number(fileFrom) + QString::number(rankFrom) + ")";
+        out += QLatin1Char('(');
+        appendNumber(out, fileFrom);
+        appendNumber(out, rankFrom);
+        out += QLatin1Char(')');
     }
-
-    return moveStr;
 }
 
 // ============================================================
@@ -189,7 +177,7 @@ void ShogiEngineInfoParser::setThinkingStartPlayer(ShogiGameController::Player p
 // info行解析
 // ============================================================
 
-QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str, const ShogiGameController* algorithm, QList<QChar>& clonedBoardData,
+QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(QStringView str, QList<QChar>& clonedBoardData,
                                                               const bool isPondering)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
@@ -199,71 +187,70 @@ QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str
     if (rc < 0) {
         return QString();
     }
-    if (rc == INFO_STRING_SPECIAL_CASE) {
-        return QString();
-    }
 
     const QChar movingPiece = pieceCharacter(clonedBoardData, fileFrom, rankFrom);
-    const QString kanjiMovePiece = pieceKanjiName(movingPiece);
+    const QString& kanjiMovePiece = pieceKanjiName(movingPiece);
     if (kanjiMovePiece.isEmpty()) {
         return QString();
     }
 
-    return convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, algorithm, 0, isPondering);
+    QString move;
+    appendShogiMove(move, kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, 0, isPondering);
+    return move;
 }
 
-void ShogiEngineInfoParser::parseEngineInfoTokens(const QStringList& tokens, const ShogiGameController* algorithm, QList<QChar>& clonedBoardData,
+void ShogiEngineInfoParser::parseEngineInfoTokens(const QList<QStringView>& tokens, QList<QChar>& clonedBoardData,
                                                   const bool isPondering)
 {
-    for (int i = 0; i < tokens.count() - 1; i++) {
-        const QString& token = tokens.at(i);
-        const QString& nextToken = tokens.at(i + 1);
+    for (qsizetype i = 0; i < tokens.size() - 1; i++) {
+        const QStringView token = tokens.at(i);
+        const QStringView nextToken = tokens.at(i + 1);
 
-        if (token == "depth") {
-            m_depth = nextToken;
-        } else if (token == "seldepth") {
-            m_seldepth = nextToken;
-        } else if (token == "multipv") {
-            m_multipv = nextToken;
-        } else if (token == "nodes") {
-            m_nodes = nextToken;
-        } else if (token == "nps") {
-            m_nps = nextToken;
-        } else if (token == "time") {
-            m_time = nextToken;
-        } else if (token == "hashfull") {
-            m_hashfull = nextToken;
-        } else if (token == "currmove") {
-            m_searchedUsi = nextToken;
-            m_searchedHand =  convertCurrMoveToKanjiNotation(nextToken, algorithm, clonedBoardData, isPondering);
-        } else if (token == "score") {
+        if (token == u"depth") {
+            m_depth = nextToken.toString();
+        } else if (token == u"seldepth") {
+            m_seldepth = nextToken.toString();
+        } else if (token == u"multipv") {
+            m_multipv = nextToken.toString();
+        } else if (token == u"nodes") {
+            m_nodes = nextToken.toString();
+        } else if (token == u"nps") {
+            m_nps = nextToken.toString();
+        } else if (token == u"time") {
+            m_time = nextToken.toString();
+        } else if (token == u"hashfull") {
+            m_hashfull = nextToken.toString();
+        } else if (token == u"currmove") {
+            m_searchedUsi = nextToken.toString();
+            m_searchedHand = convertCurrMoveToKanjiNotation(nextToken, clonedBoardData, isPondering);
+        } else if (token == u"score") {
             parseScore(tokens, i);
         }
     }
 }
 
-void ShogiEngineInfoParser::parseScore(const QStringList &tokens, int index)
+void ShogiEngineInfoParser::parseScore(const QList<QStringView>& tokens, qsizetype index)
 {
-    if (index + 2 >= tokens.count()) {
+    if (index + 2 >= tokens.size()) {
         return;
     }
 
-    const QString& type = tokens.at(index + 1);
-    const QString& value = tokens.at(index + 2);
+    const QStringView type = tokens.at(index + 1);
+    const QStringView value = tokens.at(index + 2);
 
-    if (type == "cp") {
-        m_scoreCp = value;
+    if (type == u"cp") {
+        m_scoreCp = value.toString();
         m_evaluationBound = EvaluationBound::None;
-        if (index + 3 < tokens.count()) {
-            const QString& boundType = tokens.at(index + 3);
-            if (boundType == "lowerbound") {
+        if (index + 3 < tokens.size()) {
+            const QStringView boundType = tokens.at(index + 3);
+            if (boundType == u"lowerbound") {
                 setEvaluationBound(EvaluationBound::LowerBound);
-            } else if (boundType == "upperbound") {
+            } else if (boundType == u"upperbound") {
                 setEvaluationBound(EvaluationBound::UpperBound);
             }
         }
-    } else if (type == "mate") {
-        m_scoreMate = value;
+    } else if (type == u"mate") {
+        m_scoreMate = value.toString();
     }
 }
 
@@ -284,9 +271,10 @@ void ShogiEngineInfoParser::setEvaluationBound(EvaluationBound newEvaluationBoun
 void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(const QString& line, const ShogiGameController* algorithm,
                                                             QList<QChar>& clonedBoardData, const bool isPondering)
 {
+    Q_UNUSED(algorithm)  // 局面更新の影響を避けるため、手番は思考開始時のものを使う
     clearParsedInfo();
 
-    QString normalizedLine = line;
+    QStringView normalizedLine(line);
     while (!normalizedLine.isEmpty()) {
         const QChar tail = normalizedLine.back();
         if (tail == QLatin1Char('\n') || tail == QLatin1Char('\r')) {
@@ -296,23 +284,23 @@ void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(const QString& line,
         break;
     }
 
-    // info行を空白で分割（例: "info depth 4 seldepth 4 ... pv 8e8f 8g8f 8b8f P*8g"）
-    const QStringList tokens = normalizedLine.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    // info行を空白で分割（例: "info depth 4 seldepth 4 ... pv 8e8f 8g8f 8b8f P*8g"）。
+    // 読み筋の手ごとに文字列を作らないよう、元の行を指すだけの区切りにする
+    const QList<QStringView> tokens = normalizedLine.split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (tokens.isEmpty()) {
         return;
     }
 
-    parseEngineInfoTokens(tokens, algorithm, clonedBoardData, isPondering);
+    parseEngineInfoTokens(tokens, clonedBoardData, isPondering);
 
-    const qsizetype pvIndex = tokens.indexOf(QStringLiteral("pv"));
+    const qsizetype pvIndex = tokens.indexOf(u"pv");
     if (pvIndex < 0 || pvIndex + 1 >= tokens.size()) {
         // pvが含まれていない場合（info stringなど）は読み筋として表示しない
         return;
     }
 
-    const QStringList pvTokens = tokens.mid(pvIndex + 1);
     QList<QChar> pvBoardCopy = clonedBoardData;
-    parsePvAndSimulateMoves(pvTokens, algorithm, pvBoardCopy, isPondering);
+    parsePvAndSimulateMoves(tokens, pvIndex + 1, pvBoardCopy, isPondering);
 }
 
 void ShogiEngineInfoParser::clearParsedInfo()
