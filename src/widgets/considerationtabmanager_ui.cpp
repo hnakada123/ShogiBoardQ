@@ -208,6 +208,9 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
 
     m_considerationView->setShowGrid(false);
     m_considerationView->setMouseTracking(true);
+    // 思考表（EngineAnalysisPresenter::setupThinkingViewHeader）と見た目をそろえ、
+    // 縦のスクロールバーを常に出しておく
+    m_considerationView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     m_considerationView->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_considerationView->setSelectionMode(QAbstractItemView::SingleSelection);
     m_considerationView->setEditTriggers(QAbstractItemView::NoEditTriggers);
