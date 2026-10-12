@@ -6,7 +6,9 @@
 
 
 #include <QWidget>
+#include <QFont>
 #include <QList>
+#include <QStringList>
 class QTableWidget;
 class UsiCommLogModel;
 
@@ -70,8 +72,19 @@ private:
     };
     QList<MeasuredText> m_cellWidths;     // 列ごとの値の幅
     QList<MeasuredText> m_headingWidths;  // 列ごとの見出しの幅
-    QString m_measuredFontKey;            // 幅を測った書体
-    QString m_headerHeightKey;            // 見出しの高さを測った条件（書体・スタイルシート・見出し・表示する列）
+    QFont m_measuredHeadingFont;          // 幅を測った見出し・値の書体
+    QFont m_measuredMoveFont;             // 幅を測った指し手の書体
+
+    // 見出しの高さを測った条件（書体・スタイルシート・見出し・表示する列）
+    struct HeaderHeightKey {
+        QFont font;
+        QString styleSheet;
+        QStringList headings;
+        quint32 hiddenColumns = 0;  // 隠した列のビット
+        bool sameAs(const HeaderHeightKey& other) const;
+    };
+    HeaderHeightKey m_headerHeightKey;
+    bool m_headerHeightMeasured = false;
     int m_headerHeight = 0;
     
     // 列インデックス
