@@ -323,12 +323,9 @@ bool PositionEditController::applyEditMove(const QPoint& from,
     QPoint hFrom = from, hTo = to;
     const bool ok = gc->editPosition(hFrom, hTo, view->pieceBoxSide());
 
-    // UI 後処理（ドラッグ終了／結果通知）
+    // UI 後処理（ドラッグ終了／結果通知）。盤・駒台・駒箱の変化は ShogiBoard の通知で
+    // 変わった所だけ描き直されるので、ここで盤全体は描き直さない。
     view->endDrag();
     bic->onMoveApplied(hFrom, hTo, ok);
-
-    if (ok) {
-        view->update();
-    }
     return ok;
 }

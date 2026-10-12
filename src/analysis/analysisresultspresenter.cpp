@@ -87,6 +87,7 @@ void AnalysisResultsPresenter::showWithModel(KifuAnalysisListModel* model)
         m_dock->raise();
     }
 
+    m_reflowAllRows = true;
     m_reflowTimer->start();
 }
 
@@ -230,16 +231,31 @@ void AnalysisResultsPresenter::reflowNow()
     m_resizingColumns = true;
     // ユーザーが調整した列幅を保ち、自動列だけを内容に合わせて広げる。
     static const int minWidths[] = {140, 120, 50, 85, 110, 85, 60};
+    QAbstractItemModel* model = m_view->model();
+    const int rowCount = model ? model->rowCount() : 0;
+    // 列幅は広がる一方なので、足した・変わった行だけ測れば全行を測り直した結果と同じになる。
+    // 解析中は1局面ごとに行が増え、全行を測り直すと1行あたりの処理が行数に比例して伸びていた。
+    const bool measureAll = m_reflowAllRows || m_reflowFromRow < 0 || rowCount == 0;
     for (int col = 0; col < 7; ++col) {
         int width = m_columnWidths.value(col);
         if (width <= 0) {
             const int previousWidth = m_header->sectionSize(col);
-            m_view->resizeColumnToContents(col);
-            width = qMax(minWidths[col], m_header->sectionSize(col));
-            if (m_view->model()->rowCount() > 0) width = qMax(width, previousWidth);
+            if (measureAll) {
+                m_view->resizeColumnToContents(col);
+                width = qMax(minWidths[col], m_header->sectionSize(col));
+            } else {
+                int content = 0;
+                for (int row = m_reflowFromRow; row < rowCount; ++row)
+                    content = qMax(content, m_view->sizeHintForIndex(model->index(row, col)).width());
+                if (m_view->showGrid()) content += 1;
+                width = qMax(minWidths[col], qMax(content, m_header->sectionSizeHint(col)));
+            }
+            if (rowCount > 0) width = qMax(width, previousWidth);
         }
         m_header->resizeSection(col, width);
     }
+    m_reflowAllRows = false;
+    m_reflowFromRow = -1;
     m_resizingColumns = false;
 }
 
@@ -252,12 +268,14 @@ void AnalysisResultsPresenter::saveColumnWidth(int column, int, int newSize)
 
 void AnalysisResultsPresenter::onModelReset()
 {
+    m_reflowAllRows = true;
     m_reflowTimer->start();
     updateProgress();
 }
 
-void AnalysisResultsPresenter::onRowsInserted(const QModelIndex&, int, int)
+void AnalysisResultsPresenter::onRowsInserted(const QModelIndex&, int first, int)
 {
+    m_reflowFromRow = m_reflowFromRow < 0 ? first : qMin(m_reflowFromRow, first);
     m_reflowTimer->start();
 
     updateProgress();
@@ -288,8 +306,17 @@ void AnalysisResultsPresenter::onRowsInserted(const QModelIndex&, int, int)
     }
 }
 
-void AnalysisResultsPresenter::onDataChanged(const QModelIndex&, const QModelIndex&, const QList<int>&) { m_reflowTimer->start(); }
-void AnalysisResultsPresenter::onLayoutChanged() { m_reflowTimer->start(); }
+void AnalysisResultsPresenter::onDataChanged(const QModelIndex& topLeft, const QModelIndex&, const QList<int>&)
+{
+    if (topLeft.isValid()) m_reflowFromRow = m_reflowFromRow < 0 ? topLeft.row() : qMin(m_reflowFromRow, topLeft.row());
+    else m_reflowAllRows = true;
+    m_reflowTimer->start();
+}
+void AnalysisResultsPresenter::onLayoutChanged()
+{
+    m_reflowAllRows = true;
+    m_reflowTimer->start();
+}
 
 void AnalysisResultsPresenter::setStopButtonEnabled(bool enabled)
 {
@@ -398,6 +425,7 @@ void AnalysisResultsPresenter::applyFontSize(int size)
     m_view->verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(m_view->font()) + 10);
     m_fontDecrease->setEnabled(font.pointSize() > 8);
     m_fontIncrease->setEnabled(font.pointSize() < 24);
+    m_reflowAllRows = true;
     m_reflowTimer->start();
 }
 

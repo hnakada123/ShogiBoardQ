@@ -22,27 +22,24 @@ public:
         (void)locale;
         if (!value.isValid()) return {};
 
-        // QLocaleを毎回生成することでexit-time-destructorを回避
-        const QLocale enUS(QLocale::English, QLocale::UnitedStates);
-
         // まず整数を優先
         bool ok = false;
         qlonglong iv = value.toLongLong(&ok);
         if (ok) {
-            return enUS.toString(iv); // 3桁区切りに , を使う
+            return m_enUS.toString(iv); // 3桁区切りに , を使う
         }
 
         // 次に符号なし整数
         qulonglong uiv = value.toULongLong(&ok);
         if (ok) {
-            return enUS.toString(uiv);
+            return m_enUS.toString(uiv);
         }
 
         // 必要なら double も（整数に丸められてしまうのを避ける）
         double dv = value.toDouble(&ok);
         if (ok) {
             // 桁区切り＋既定精度。必要なら 'f' と桁数を指定してもOK
-            return enUS.toString(dv);
+            return m_enUS.toString(dv);
         }
 
         // 数値以外（例: "mate 1"）はそのまま
@@ -54,6 +51,11 @@ public:
         QStyledItemDelegate::initStyleOption(option, index);
         option->displayAlignment = Qt::AlignRight | Qt::AlignVCenter; // 常に右寄せ
     }
+
+private:
+    /// 3桁区切りに , を使うロケール。セルを描くたび（info 行ごと）に作らず、デリゲートが持つ
+    /// （static にすると終了時のデストラクタになるので、メンバにする）
+    const QLocale m_enUS{QLocale::English, QLocale::UnitedStates};
 };
 
 #endif // NUMERICRIGHTALIGNCOMMADELEGATE_H

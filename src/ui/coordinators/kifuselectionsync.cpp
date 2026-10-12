@@ -121,8 +121,8 @@ void KifuSelectionSync::applyBranchCandidates(const QList<KifuBranchNode*>& cand
         return;
     }
 
-    // 候補の詳細をログ出力
-    {
+    // 候補の詳細をログ出力（文字列の組み立ては、ログを出すときだけ）
+    if (lcUi().isDebugEnabled()) {
         QStringList candidateTexts;
         for (KifuBranchNode* node : std::as_const(candidates)) {
             candidateTexts << node->displayText();

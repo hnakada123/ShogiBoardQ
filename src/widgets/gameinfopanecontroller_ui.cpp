@@ -182,9 +182,12 @@ void GameInfoPaneController::updateEditingIndicator()
     const bool dirty = isDirty();
     m_btnUpdate->setEnabled(dirty);
     m_editingLabel->setText(dirty ? tr("未反映の変更があります") : tr("内容をダブルクリックして編集"));
-    m_editingLabel->setStyleSheet(dirty
+    // フォーカスの移動やクリップボードの変化のたびに呼ばれる。同じスタイルシートでも付け直すと
+    // Qt はスタイルを適用し直して描き直すので、変わったときだけ付ける
+    const QString style = dirty
         ? QStringLiteral("QLabel { color: #8a5800; font-weight: bold; }")
-        : QStringLiteral("QLabel { color: #596773; }"));
+        : QStringLiteral("QLabel { color: #596773; }");
+    if (m_editingLabel->styleSheet() != style) m_editingLabel->setStyleSheet(style);
 }
 
 void GameInfoPaneController::updateTablePresentation()

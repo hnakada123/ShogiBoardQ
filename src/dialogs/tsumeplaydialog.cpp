@@ -459,8 +459,8 @@ void TsumePlayDialog::showOutcome(TsumeGameSession::Outcome outcome, int remaini
     }
     m_status->setText(message);
     if (outcome == Outcome::NoMate || outcome == Outcome::TooLong) {
-        // 玉方の応手を描画し、盤面を1秒間確認できるようにしてから通知する。
-        m_view->repaint();
+        // 玉方の応手を描いた盤面を1秒間確認できるようにしてから通知する（応手の描き直しは
+        // 予約済みで、タイマーが鳴る前にイベントループが描くので、ここで同期描画はしない）。
         m_pendingOutcome = message;
         m_outcomeTimer.start(1000);
         return;

@@ -126,13 +126,16 @@ void KifuDisplayCoordinator::runPendingNavResultCheck()
         qCDebug(lcUi).noquote() << consistencyReport();
     }
 
-    const DisplaySnapshot snap = captureDisplaySnapshot();
-    qCDebug(lcUi).noquote() << "NAV-RESULT: ply=" << snap.statePly
-                        << "line=" << snap.stateLineIndex
-                        << "recordHighlight=" << snap.modelHighlightRow
-                        << "treeHL=(" << snap.treeHighlightLineIndex << "," << snap.treeHighlightPly << ")"
-                        << "candidates=" << snap.branchCandidateCount
-                        << "consistent=" << (consistent ? "YES" : "NO");
+    // 表示の状態の取得（盤の SFEN の生成を含む）は、ログを出すときだけ
+    if (lcUi().isDebugEnabled()) {
+        const DisplaySnapshot snap = captureDisplaySnapshot();
+        qCDebug(lcUi).noquote() << "NAV-RESULT: ply=" << snap.statePly
+                            << "line=" << snap.stateLineIndex
+                            << "recordHighlight=" << snap.modelHighlightRow
+                            << "treeHL=(" << snap.treeHighlightLineIndex << "," << snap.treeHighlightPly << ")"
+                            << "candidates=" << snap.branchCandidateCount
+                            << "consistent=" << (consistent ? "YES" : "NO");
+    }
 }
 
 // ============================================================
@@ -245,8 +248,8 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
         qCDebug(lcUi).noquote() << consistencyReport();
     }
 
-    // NAV-RESULT サマリー
-    {
+    // NAV-RESULT サマリー（表示の状態の取得は、ログを出すときだけ）
+    if (lcUi().isDebugEnabled()) {
         const DisplaySnapshot snap = captureDisplaySnapshot();
         qCDebug(lcUi).noquote() << "NAV-RESULT: ply=" << snap.statePly
                             << "line=" << snap.stateLineIndex
