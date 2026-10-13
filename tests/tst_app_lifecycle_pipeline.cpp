@@ -89,7 +89,6 @@ void TestAppLifecyclePipeline::shutdownRunsStepsInOrderAndSetsGuard()
     };
     steps.saveSettings = [&calls]() { calls << QStringLiteral("saveSettings"); };
     steps.destroyEngines = [&calls]() { calls << QStringLiteral("destroyEngines"); };
-    steps.invalidateRuntimeDeps = [&calls]() { calls << QStringLiteral("invalidateRuntimeDeps"); };
     steps.releaseOwnedResources = [&calls]() { calls << QStringLiteral("releaseOwnedResources"); };
 
     QVERIFY(MainWindowShutdownSequence(std::move(steps)).runOnce(shutdownDone));
@@ -98,7 +97,6 @@ void TestAppLifecyclePipeline::shutdownRunsStepsInOrderAndSetsGuard()
         QStringLiteral("beginShutdown"),
         QStringLiteral("saveSettings"),
         QStringLiteral("destroyEngines"),
-        QStringLiteral("invalidateRuntimeDeps"),
         QStringLiteral("releaseOwnedResources"),
     };
     QCOMPARE(calls, expected);
@@ -184,7 +182,6 @@ void TestAppLifecyclePipeline::acceptedCloseShutsDownBeforeQuit()
     deps.shutdown.beginShutdown = [&]() { calls << QStringLiteral("begin"); };
     deps.shutdown.saveSettings = [&]() { calls << QStringLiteral("save"); };
     deps.shutdown.destroyEngines = [&]() { calls << QStringLiteral("engines"); };
-    deps.shutdown.invalidateRuntimeDeps = [&]() { calls << QStringLiteral("invalidate"); };
     deps.shutdown.releaseOwnedResources = [&]() { calls << QStringLiteral("release"); };
     deps.quitApplication = [&]() { calls << QStringLiteral("quit"); };
 
@@ -192,7 +189,7 @@ void TestAppLifecyclePipeline::acceptedCloseShutsDownBeforeQuit()
     pipeline.requestClose();
     pipeline.runShutdown(); // MainWindow のデストラクタからの再呼び出し
     const QStringList expected{QStringLiteral("close"), QStringLiteral("begin"),
-        QStringLiteral("save"), QStringLiteral("engines"), QStringLiteral("invalidate"),
+        QStringLiteral("save"), QStringLiteral("engines"),
         QStringLiteral("release"), QStringLiteral("quit")};
     QCOMPARE(calls, expected);
 }

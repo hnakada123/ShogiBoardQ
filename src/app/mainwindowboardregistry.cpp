@@ -6,8 +6,6 @@
 #include "mainwindowserviceregistry.h"
 #include "kifusubregistry.h"
 #include "mainwindow.h"
-#include "mainwindowcompositionroot.h"
-#include "mainwindowdepsfactory.h"
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowresetservice.h"
 #include "ui_mainwindow.h"
@@ -27,7 +25,7 @@
 #include "gamerecordupdateservice.h"
 #include "gamesessionorchestrator.h"
 #include "kifunavigationcoordinator.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 #include "playerinfowiring.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -45,20 +43,32 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
 {
     if (m_mw.m_isShuttingDown) return;
 
-    MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
-    cbs.ensurePositionEdit = [this]() { m_foundation->ensurePositionEditController(); };
-    cbs.redrawEngine1Graph = [this](int ply) {
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_boardSetupController) {
+        m_mw.m_boardSetupController = new BoardSetupController(&m_mw);
+    }
+    BoardSetupController* controller = m_mw.m_boardSetupController;
+    controller->setShogiView(m_mw.m_shogiView);
+    controller->setGameController(m_mw.m_gameController);
+    controller->setMatchCoordinator(m_mw.m_match);
+    controller->setPositionEditController(m_mw.m_posEdit);
+    controller->setPlayMode(m_mw.m_state.playMode);
+    controller->setSfenRecord(&m_mw.m_kifu.sfenRecord);
+    controller->setGameMoves(&m_mw.m_kifu.gameMoves);
+
+    controller->setEnsurePositionEditCallback([this]() { m_foundation->ensurePositionEditController(); });
+    controller->setRedrawEngine1GraphCallback([this](int ply) {
         m_foundation->ensureEvaluationGraphController();
         if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine1Graph(ply);
-    };
-    cbs.redrawEngine2Graph = [this](int ply) {
+    });
+    controller->setRedrawEngine2GraphCallback([this](int ply) {
         m_foundation->ensureEvaluationGraphController();
         if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine2Graph(ply);
-    };
-    cbs.isVariationInput = [this]() { return canRecordVariationMove(); };
-    cbs.recordVariationMove = [this](QPoint& from, QPoint& to) { return recordVariationMove(from, to); };
-
-    m_mw.m_compositionRoot->ensureBoardSetupController(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_boardSetupController);
+    });
+    controller->setVariationInputCallbacks(
+        [this]() { return canRecordVariationMove(); },
+        [this](QPoint& from, QPoint& to) { return recordVariationMove(from, to); });
 }
 
 // ---------------------------------------------------------------------------
@@ -71,21 +81,40 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 
     m_foundation->ensureUiStatePolicyManager();
 
-    MainWindowDepsFactory::PositionEditCoordinatorCallbacks cbs;
-    cbs.applyEditMenuState = [this](bool editing) {
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_registryParts.posEditCoordinator) {
+        m_mw.m_registryParts.posEditCoordinator = new PositionEditCoordinator(&m_mw);
+    }
+    PositionEditCoordinator* coordinator = m_mw.m_registryParts.posEditCoordinator;
+    coordinator->setShogiView(m_mw.m_shogiView);
+    coordinator->setGameController(m_mw.m_gameController);
+    coordinator->setBoardController(m_mw.m_boardController);
+    coordinator->setPositionEditController(m_mw.m_posEdit);
+    coordinator->setMatchCoordinator(m_mw.m_match);
+    coordinator->setReplayController(m_mw.m_replayController);
+    coordinator->setNavigationState(m_mw.m_branchNav.navState);
+    coordinator->setStartSfenStr(&m_mw.m_state.startSfenStr);
+    coordinator->setCurrentSfenStr(&m_mw.m_state.currentSfenStr);
+    coordinator->setResumeSfenStr(&m_mw.m_state.resumeSfenStr);
+    coordinator->setOnMainRowGuard(&m_mw.m_kifu.onMainRowGuard);
+
+    coordinator->setApplyEditMenuStateCallback([this](bool editing) {
         if (editing) m_mw.m_uiStatePolicy->transitionToDuringPositionEdit();
         else m_mw.m_uiStatePolicy->transitionToIdle();
-    };
-    cbs.ensurePositionEdit = [this]() {
+    });
+    coordinator->setEnsurePositionEditCallback([this]() {
         m_foundation->ensurePositionEditController();
         if (m_mw.m_registryParts.posEditCoordinator) m_mw.m_registryParts.posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
-    };
-    cbs.actionReturnAllPiecesToStand = m_mw.ui->actionReturnAllPiecesToStand;
-    cbs.actionSetHiratePosition = m_mw.ui->actionSetHiratePosition;
-    cbs.actionSetTsumePosition = m_mw.ui->actionSetTsumePosition;
-    cbs.actionChangeTurn = m_mw.ui->actionChangeTurn;
+    });
 
-    m_mw.m_compositionRoot->ensurePositionEditCoordinator(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_registryParts.posEditCoordinator);
+    PositionEditCoordinator::EditActions actions;
+    actions.actionReturnAllPiecesToStand = m_mw.ui->actionReturnAllPiecesToStand;
+    actions.actionSetHiratePosition = m_mw.ui->actionSetHiratePosition;
+    actions.actionSetTsumePosition = m_mw.ui->actionSetTsumePosition;
+    actions.actionChangeTurn = m_mw.ui->actionChangeTurn;
+    coordinator->setEditActions(actions);
+
     connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
             this, &MainWindowServiceRegistry::resetRecordForEditedPosition, Qt::UniqueConnection);
     connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
@@ -145,7 +174,7 @@ void MainWindowServiceRegistry::setupBoardInteractionController()
             connect(action, &QAction::toggled, m_mw.m_boardController,
                     &BoardInteractionController::setLegalMovesVisible, Qt::UniqueConnection);
             m_mw.m_boardController->setIsHumanTurnCallback([this]() -> bool {
-                return m_mw.m_queryService ? m_mw.m_queryService->isHumanTurnNow() : false;
+                return m_mw.m_playModePolicy && m_mw.m_playModePolicy->isHumanTurnNow();
             });
         }
     }
@@ -263,7 +292,7 @@ void MainWindowServiceRegistry::resetRecordForEditedPosition()
     deps.navState = m_mw.m_branchNav.navState;
     deps.displayCoordinator = m_mw.m_branchNav.displayCoordinator;
     deps.gameRecord = m_mw.m_models.gameRecord;
-    deps.sfenRecord = m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr;
+    deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
     deps.branchTree = m_mw.m_branchNav.branchTree;
     deps.liveGameSession = m_mw.m_branchNav.liveGameSession;
     const MainWindowResetService resetService;
@@ -287,7 +316,7 @@ void MainWindowServiceRegistry::resetModels(const QString& hirateStartSfen)
     deps.gameRecord = m_mw.m_models.gameRecord;
     deps.evalGraphController = m_mw.m_evalGraphController.get();
     deps.timeController = m_mw.m_timeController;
-    deps.sfenRecord = m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr;
+    deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
     deps.gameInfoController = m_mw.m_gameInfoController;
     deps.kifuLoadCoordinator = m_mw.m_kifuLoadCoordinator;
     deps.branchTree = m_mw.m_branchNav.branchTree;

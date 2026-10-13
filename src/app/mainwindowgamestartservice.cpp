@@ -88,7 +88,6 @@ GameStartCoordinator::Ctx MainWindowGameStartService::buildContext(const Context
     c.clock = deps.clock;
     c.sfenRecord = deps.sfenRecord;
     c.kifuModel = deps.kifuModel;
-    c.kifuLoadCoordinator = deps.kifuLoadCoordinator;
     c.currentSfenStr = deps.currentSfenStr;
     c.startSfenStr = deps.startSfenStr;
     c.selectedPly = deps.selectedPly;

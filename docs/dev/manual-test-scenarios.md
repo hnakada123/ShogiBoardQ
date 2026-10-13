@@ -86,9 +86,9 @@
 
 **重点確認ポイント:**
 - `onMoveCommitted` → `updateGameRecord` → `appendMoveLine` のフロー
-- `m_kifu.gameUsiMoves` への USI 形式指し手の記録
+- `LiveGameSessionUpdater::appendMove` → `LiveGameSession::addMove` による分岐ツリー（棋譜の正本）への指し手の記録（USI 形式の指し手はノードの手 `ShogiMove::toUsiMove()` から作る）
+- 表示中の手数（`KifuNavigationState::currentPly()`、分岐ツリーのカーソル）が最新手に合うこと（`KifuDisplayCoordinator::onLiveGameMoveAdded`）
 - `m_state.currentSfenStr` の更新（`sfenRecord()->last()`）
-- `LiveGameSessionUpdater::appendMove` によるライブセッション更新
 - `onTurnManagerChanged` による手番切替の正確さ
 - 評価値グラフへのプロット追加（エンジン対局時）
 
@@ -117,8 +117,8 @@
 - `BoardSyncPresenter::loadBoardWithHighlights` による盤面更新
 - `setCurrentTurn()` による手番同期（非ライブモード: 盤面SFENから取得）
 - `m_state.skipBoardSyncForBranchNav` ガードが不当に立っていないか
-- `m_kifu.currentSelectedPly` の更新
-- `m_state.currentMoveIndex` の更新
+- 盤面の局面が表示中の手順（分岐ツリー）から取られていること（`RecordNavigationHandler::lineSfenAt`）
+- 表示中の手数（`KifuNavigationState::currentPly()`、分岐ツリーのカーソル）が選んだ行に合うこと（`KifuDisplayCoordinator::onPositionChanged`）
 
 ---
 
@@ -289,8 +289,8 @@
    - `QTimer::singleShot(0)` による解除が確実に機能しているか
 
 2. **`sfenRecord()` 参照先のライフタイム**
-   - `MatchCoordinator` 再生成時にポインタが無効化されないか
-   - `ensureBoardSyncPresenter` で sfenRecord ポインタが更新されるか
+   - `MatchCoordinator` 再生成時にポインタが無効化されないか（局面列は MainWindow の `KifuState::sfenRecord` が持ち、どの司令塔にも同じリストを渡す）
+   - 盤面同期（`BoardSyncPresenter`）が対局の局面列ではなく、表示中の手順（`currentLine` = `KifuNavigationState::currentRecordLine()`）から盤面を描いているか
 
 3. **`TurnManager` と `GameController` の同期順序**
    - ライブ対局中は GC を単一ソースとしているか

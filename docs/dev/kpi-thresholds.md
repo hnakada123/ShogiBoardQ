@@ -8,21 +8,21 @@
 |---|---|---|---|
 | files_over_1000 (fileLineLimits) | 例外リスト方式（既定1000行） | 2026-10-13 | 600行の上限は、責務と関係のない機械的なファイル分割（`_session.cpp` など）を生み、設計の見直しを妨げたので1000行へ上げた。例外リストは空 |
 | files_over_1000 (largeFileCount) | 0 | — | 1000行を超えるファイルは作らない |
-| mw_friend_classes | 7 | — | MainWindow friend class 数の上限 |
-| mw_ensure_methods | 0 | — | MainWindow ensure* 全廃（CompositionRoot移譲済み） |
-| sr_ensure_methods | 14 | — | ServiceRegistry ensure* 上限 |
-| mw_public_slots | 13 | — | MainWindow public slots 数の上限 |
+| mw_friend_classes | 3 | 2026-03-07 | MainWindow friend class 数の上限（ServiceRegistry とサブレジストリ） |
+| mw_ensure_methods | 0 | — | MainWindow ensure* 全廃（レジストリへ移譲済み） |
+| sr_ensure_methods | 25 | 2026-03-06 | ServiceRegistry ensure* 上限（実測 24） |
+| mw_public_slots | 0 | 2026-10-13 | MainWindow public slots 数の上限（実測 0） |
 | delete_count | 1 | — | flowlayout.cpp の1件のみ許容 |
 | lambda_connect_count | 0 | — | lambda connect 全廃 |
 | old_style_connections | 0 | — | SIGNAL/SLOT マクロ全廃 |
-| SubRegistry ensure* | 各上限 | — | FoundationRegistry:15, Game:6, GameSession:6, GameWiring:4, Kifu:8 |
+| SubRegistry ensure* | 各上限 | 2026-10-13 | FoundationRegistry:15, Kifu:8（どちらも上限ちょうど。増やすときは別の名前にせず、責務を見直す） |
 
 ## 新規KPI（2026-03-01 導入）
 
 | KPI | 閾値 | 設定日 | 根拠 |
 |---|---|---|---|
-| mainwindow_include_count | 37 | 2026-03-03 | 実測値。依存削減の追跡用 |
-| long_functions_over_100 | 80 | 2026-03-04 | 実測値 60 件に対するラチェット上限 |
+| mainwindow_include_count | 14 | 2026-10-13 | 実測 12。CompositionRoot・RuntimeRefs の削除で減った |
+| long_functions_over_100 | 60 | 2026-10-13 | 実測 53 件に対するラチェット上限 |
 
 files_over_550・files_over_500 の監視は 2026-10-13 に外した（files_over_1000 の根拠と同じ理由）。
 

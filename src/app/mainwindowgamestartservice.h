@@ -13,7 +13,6 @@
 class ShogiGameController;
 class ShogiClock;
 class KifuRecordListModel;
-class KifuLoadCoordinator;
 
 /**
  * @brief MainWindow::initializeGame 周辺の準備処理を担当するサービス
@@ -38,7 +37,6 @@ public:
         ShogiClock* clock = nullptr;
         QStringList* sfenRecord = nullptr;
         KifuRecordListModel* kifuModel = nullptr;
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
         QString* currentSfenStr = nullptr;
         QString* startSfenStr = nullptr;
         int selectedPly = 0;

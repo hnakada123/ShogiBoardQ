@@ -44,7 +44,6 @@ bool MainWindowShutdownSequence::runOnce(bool& shutdownDone) const
     invokeIfSet(m_steps.beginShutdown);
     invokeIfSet(m_steps.saveSettings);
     invokeIfSet(m_steps.destroyEngines);
-    invokeIfSet(m_steps.invalidateRuntimeDeps);
     invokeIfSet(m_steps.releaseOwnedResources);
     return true;
 }

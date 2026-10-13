@@ -2314,7 +2314,7 @@ enum class PlayMode {
 
 **ソース**: `src/core/sfenutils.h`（ヘッダオンリー）
 
-`normalizeStart()` 関数のみを提供する。文字列 `"startpos"` を標準初期配置のSFEN文字列に展開し、既にSFEN形式であればそのまま返す。
+SFEN 文字列の小さな関数群。`normalizeStart()` は文字列 `"startpos"` を標準初期配置のSFEN文字列に展開し、既にSFEN形式であればそのまま返す。ほかに平手のSFEN（`hirateSfen()`）、平手かどうかの判定（`isHirateStart()`）、局面を比べるキー（`normalizeSfenKey()`、持ち駒を並べ直す）などがある。
 
 ```cpp
 SfenUtils::normalizeStart("startpos")
@@ -5206,6 +5206,8 @@ onMoveRequested(from, to)
 
 `redrawEngine1Graph()` / `redrawEngine2Graph()` は `QTimer::singleShot(0, ...)` で遅延実行される。連続呼び出しが発生しても、実際の再描画は1回にまとめられる。
 
+グラフの横軸の長さは、`setRecordLengthProvider()` で渡した関数が分岐ツリーの表示中のラインの行数から求める。対局中に評価値を描く手数（`ply` に -1 を渡したとき）は、`setSfenRecord()` で渡した対局の局面列の長さから求める。
+
 #### TimeControlController — 対局時計管理
 
 **ソース**: `src/ui/controllers/timecontrolcontroller.h`, `src/ui/controllers/timecontrolcontroller.cpp`
@@ -5240,12 +5242,16 @@ timeControl() / hasTimeControl()
 ```
 onPvRowClicked(engineIndex, row)
   ├── ShogiEngineThinkingModel から PV データを取得
-  ├── resolveCurrentSfen() で現在の局面 SFEN を解決
+  ├── resolveCurrentSfen() で読み筋の起点の局面 SFEN を解決
+  ├── resolveHighlightContext() で直前の局面と最終手を決める
+  │     読み筋の起点の局面が表示中の手順（StateRefs::currentLine）の何手目かを探し、
+  │     その直前の局面と、その局面に至った手（record->lastUsiMove() が空なら RecordLine::usiMove(ply)）を使う
   ├── resolvePlayerNames() で先手/後手名を解決
-  ├── resolveLastUsiMove() で最終手 USI 文字列を取得
   └── PvBoardDialog を作成・表示
        └── ダイアログ閉じた時 → pvDialogClosed シグナル
 ```
+
+`StateRefs` は対局モード・対局者名・現在／開始の SFEN・検討モデルと、表示中の手順を返す関数 `currentLine`（`KifuNavigationState::currentRecordLine()`）を持つ。
 
 #### その他のControllers
 
@@ -5382,7 +5388,7 @@ startCsaGame(dialog, parent)
 |--------|------|
 | `AnalysisTabWiring` | `EngineAnalysisTab`（エンジン思考情報表示タブ）とその内部モデル（`ShogiEngineThinkingModel` x2、`UsiCommLogModel` x2）の生成と配線を行う。`buildUiAndWire()` でタブUI部品を作成し、モデルを設定して返す |
 | `MenuWindowWiring` | メニューウィンドウの遅延生成と表示を管理する。`ensureMenuWindow()` で初回のみ `MenuWindow` を作成し、メニューバーからアクション情報を収集してカテゴリ別に分類する |
-| `JosekiWindowWiring` | 定跡ウィンドウの生成・表示と、定跡手選択時のUSI文字列→盤面座標変換を行う。`onJosekiMoveSelected()` でUSI文字列（例: `"7g7f"`）を `QPoint` に変換し、`moveRequested` シグナルを発行する |
+| `JosekiWindowWiring` | 定跡ウィンドウの生成・表示と、定跡手選択時のUSI文字列→盤面座標変換を行う。`onJosekiMoveSelected()` でUSI文字列（例: `"7g7f"`）を `UsiMove::parse()` と `BoardCoordinates` で `QPoint` に変換し、`moveRequested` シグナルを発行する。着手できたかは局面が変わったかで判定する。定跡へのマージには、依存の `currentLine`（表示中の手順 `RecordLine`）の局面・USI の指し手・表記を渡す（`JosekiPresenter::buildMergeEntries()` の表記の一覧は `[i]` が i+1 手目） |
 | `RecordPaneWiring` | `RecordPane`（棋譜表示パネル）の生成と、`KifuRecordListModel`・`KifuBranchListModel` のモデル配線を行う。`buildUiAndWire()` でパネルを作成し、モデルを設定する |
 
 ### 10.5 Coordinators — 複数オブジェクト間の調整
@@ -5471,8 +5477,10 @@ KifuDisplayCoordinator
 
 ```
 beginPositionEditing()
-  ├── 現在の局面を保存（resumeSfenStr）
-  ├── PositionEditController::enterEditMode() で編集モード開始
+  ├── 表示中の手順（navState->currentRecordLine()）から BeginEditContext を作る
+  │     （displayedSfen = 表示中の局面、recordStartSfen = 表示中の棋譜の開始局面）
+  ├── PositionEditController::beginPositionEditing(ctx) で編集モード開始
+  ├── positionEditingStarted シグナル → 棋譜を編集元の局面から作り直す（resetRecordForEditedPosition）
   ├── 編集用 QAction を有効化（EditActions 構造体）
   │     ├── actionReturnAllPiecesToStand（全駒台に戻す）
   │     ├── actionSetHiratePosition（平手初期配置）
@@ -5482,8 +5490,8 @@ beginPositionEditing()
   └── applyEditMenuStateCallback(true) でメニュー状態更新
 
 finishPositionEditing()
-  ├── PositionEditController::exitEditMode() で編集モード終了
-  ├── 編集後の SFEN を取得 → sfenRecord, currentSfenStr に反映
+  ├── PositionEditController::finishPositionEditing(ctx) で編集モード終了（編集後の SFEN を startSfenStr に反映）
+  ├── positionEditingFinished シグナル → 棋譜（分岐ツリー・対局の局面列）を編集後の局面から作り直す（resetRecordForEditedPosition）
   ├── 編集用 QAction を無効化
   └── applyEditMenuStateCallback(false) でメニュー状態復元
 ```
@@ -6568,16 +6576,17 @@ ShogiClock::setCurrentPlayer(1 or 2)  ← SFENから推定
 ```
 findForwardNode():
   1. currentNode の子ノード数が 0 → null（末尾）
-  2. lastSelectedLineAt(currentNode) で以前の分岐選択を取得
-     → 有効なインデックスなら、そのラインの子ノードを返す
-  3. フォールバック: childAt(0)（本譜）を返す
+  2. 分岐があれば、優先ライン（なければ現在のライン）の allLines() のパス上の子を返す
+  3. lastSelectedChildAt(currentNode) で以前選んだ子を取得
+     → 有効なインデックスなら、その子ノードを返す
+  4. フォールバック: childAt(0)（本譜）を返す
 ```
 
 この仕組みにより、一度分岐を選択してから「戻る→進む」した場合、以前選択した分岐パスを辿り直すことができる。
 
 #### goToNode() — 分岐選択記憶の更新
 
-指定ノードへ直接移動する際、ノードからルートまで遡って全分岐点での選択を `rememberLineSelection()` で記憶する。これにより後続の `goForward()` が正しいパスを辿れるようになる。
+指定ノードへ直接移動する際、`rememberPathSelections(node)` でルートからノードまでの経路上の全分岐点での選択を記憶する。これにより後続の `goForward()` が正しいパスを辿れるようになる。
 
 #### その他のナビゲーション操作
 
@@ -6627,20 +6636,21 @@ handleBranchNodeActivated(row, ply):
 |-------|---|------|
 | `m_currentNode` | `KifuBranchNode*` | 現在位置のノード |
 | `m_tree` | `KifuBranchTree*` | 分岐ツリーへの参照 |
-| `m_lastSelectedLineAtBranch` | `QHash<int, int>` | 分岐点ごとの選択記憶 |
+| `m_lastSelectedChildAtBranch` | `QHash<int, int>` | 分岐点ごとに選んだ子の記憶 |
 | `m_preferredLineIndex` | `int` | 優先ラインインデックス（-1=未設定） |
 
 #### 主要メソッド
 
 | メソッド | 説明 |
 |---------|------|
-| `currentPly()` | 現在の手数 |
+| `currentPly()` | 現在の手数（表示中の手数。MainWindow は手数の変数を持たない） |
 | `currentLineIndex()` | 現在のラインインデックス（0=本譜、1以上=分岐） |
+| `currentRecordLine()` | 表示中の手順（`RecordLine`） |
 | `isOnMainLine()` | 本譜上にいるか |
 | `canGoForward()` / `canGoBack()` | 前進/後退可能か |
 | `branchCandidatesAtCurrent()` | 現在位置の分岐候補ノード一覧 |
-| `rememberLineSelection(node, idx)` | 分岐点での選択を記憶 |
-| `lastSelectedLineAt(node)` | 記憶された選択を返す |
+| `rememberChildSelection(node, childIndex)` | 分岐点で選んだ子を記憶 |
+| `lastSelectedChildAt(node)` | 記憶された子を返す |
 
 ### 13.3 RecordNavigationHandler — 棋譜欄行変更ハンドラ
 
@@ -6658,10 +6668,6 @@ struct Deps {
     KifuRecordListModel* kifuRecordModel;    // 棋譜リストモデル
     ShogiView* shogiView;                    // 盤面ビュー
     EvaluationGraphController* evalGraphController; // 評価値グラフ
-    QStringList* sfenRecord;                  // SFEN記録
-    int* activePly;                           // アクティブ手数
-    int* currentSelectedPly;                  // 選択中手数
-    int* currentMoveIndex;                    // 現在の手インデックス
     QString* currentSfenStr;                  // 現在局面SFEN
     bool* skipBoardSyncForBranchNav;          // 分岐ナビ同期スキップフラグ
     CsaGameCoordinator* csaGameCoordinator;  // CSA対局
@@ -6674,21 +6680,25 @@ struct Deps {
 
 ```
 onMainRowChanged(row):
-  1. 再入ガード（static bool でスキップ）
+  1. 再入ガード（インスタンスのフラグ m_mainRowChangeInProgress でスキップ）
   2. 分岐ナビゲーション中フラグチェック → スキップ
   3. CSA対局進行中チェック → スキップ
-  4. 盤面同期:
-     a. 分岐ライン上 → branchBoardSyncRequired(sfen, prevSfen) を emit
-     b. 本譜 → boardSyncRequired(row) を emit
-  5. 手数トラッキング変数を更新（activePly, currentSelectedPly, currentMoveIndex）
-  6. 棋譜モデルのハイライト行を更新
-  7. 手番表示・評価値グラフカーソルを更新
-  8. 矢印ボタン有効化を要求
-  9. m_currentSfenStr を更新（本譜の場合）
-  10. 定跡ウィンドウ更新を要求
-  11. 検討モード中なら buildPositionRequired を emit
-  12. KifuDisplayCoordinator に位置変更を通知
+  4. 盤面同期（対局進行中は行わない）:
+     lineSfenAt(row) で表示中の手順（分岐ツリーの表示中のライン）から row 行目の局面と直前の局面を取る
+     a. 取れた → branchBoardSyncRequired(sfen, prevSfen) を emit
+     b. 取れない → boardSyncRequired(row) を emit
+     本譜か分岐かは区別しない。対局の局面列（sfenRecord）は見ない
+  5. 棋譜モデルのハイライト行を更新
+  6. 手番表示・評価値グラフカーソルを更新
+  7. 矢印ボタン有効化を要求
+  8. m_currentSfenStr を表示中の局面に更新（対局進行中は除く）
+  9. 定跡ウィンドウ更新を要求
+  10. 検討モード中なら buildPositionRequired を emit
+  11. KifuDisplayCoordinator::onPositionChanged() に位置変更を通知（対局進行中は除く）
+      → 表示中の手数（KifuNavigationState のカーソル）がその行のノードへ動く
 ```
+
+表示中の手数は手数の変数ではなく、分岐ツリーのカーソルが持つ。対局中のカーソルは `KifuDisplayCoordinator::onLiveGameMoveAdded()` が最新手に合わせる。
 
 #### 発行するシグナル
 
@@ -6843,16 +6853,19 @@ onMoveApplied(from, to, success):
 ```
 beginPositionEditing(context):
   1. 編集開始SFENの決定:
-     sfenRecord → currentSfenStr → resumeSfenStr → 盤面状態
+     currentSfenStr → displayedSfen（表示中の局面）→ resumeSfenStr → 盤面状態
      の優先順位で取得
   2. SFEN正規化: toMinimalSfen() で4フィールド形式に統一
-  3. 手番/手数の強制上書き: forceTurnAndPly() で現在GCの手番に合わせる
+  3. 手番/手数の強制上書き: forceTurnAndPly() で表示中の盤面の手番に合わせる
   4. 盤面適用: board->setSfen(adjusted)
   5. 編集モード遷移: setPositionEditMode(true), setMouseClickMode(true)
   6. BIC を Edit モードに設定、ハイライトクリア
   7. GC の手番を盤面の手番に同期
   8. 「編集終了」ボタンを表示（コールバック）
+  9. startSfenStr = recordStartSfen（空なら編集する局面）
 ```
+
+`BeginEditContext` の `displayedSfen`・`recordStartSfen` は、`PositionEditCoordinator` が分岐ツリーの表示中の手順（`KifuNavigationState::currentRecordLine()`）から入れる。対局の局面列や手数の変数は受け取らない。
 
 #### 編集終了 — finishPositionEditing()
 
@@ -6860,13 +6873,14 @@ beginPositionEditing(context):
 
 ```
 finishPositionEditing(context):
-  1. 盤面モデルから SFEN を再構成（convertBoardToSfen + convertStandToSfen）
+  1. 盤面モデルから SFEN を再構成（convertBoardToSfen + GC の手番 + convertStandToSfen）
   2. board->setSfen() で反映
   3. setPositionEditMode(false) で通常モードへ復帰
-  4. sfenRecord を 0手局面として再保存（既存の棋譜をクリア）
-  5. startSfenStr を更新
-  6. ハイライトクリア、「編集終了」ボタン非表示
+  4. startSfenStr を編集後の局面に更新（編集した局面が開始局面になる）
+  5. ハイライトクリア、「編集終了」ボタン非表示
 ```
+
+棋譜（分岐ツリー）と対局の局面列は、このあと `PositionEditCoordinator::positionEditingFinished` を受けた `resetRecordForEditedPosition` が編集後の局面から作り直す。`FinishEditContext` は局面列を受け取らない。
 
 #### 盤面操作API
 
@@ -7027,17 +7041,17 @@ MainWindow（ハブ / ファサード）
 
 #### 基本状態 / ゲーム状態
 
-対局の進行状況を追跡する変数群。
+対局の進行状況を追跡する変数群。`src/app/mainwindowstate.h` の構造体にまとめ、`m_state`（`GameState`）と `m_kifu`（`KifuState`）として持つ。
 
 | 変数 | 型 | 役割 |
 |------|----|------|
-| `m_startSfenStr` | `QString` | 開始局面の SFEN 文字列 |
-| `m_currentSfenStr` | `QString` | 現在の局面の SFEN 文字列 |
-| `m_playMode` | `PlayMode` | 現在のプレイモード（NotStarted, HvE 等） |
-| `m_currentMoveIndex` | `int` | 現在の手数インデックス |
-| `m_lastMove` | `QString` | 直近の指し手（USI 形式） |
-| `m_gameMoves` | `QVector<ShogiMove>` | 対局中の指し手列 |
-| `m_gameUsiMoves` | `QStringList` | 対局中に生成した USI 指し手列 |
+| `m_state.startSfenStr` | `QString` | 開始局面の SFEN 文字列 |
+| `m_state.currentSfenStr` | `QString` | 現在の局面の SFEN 文字列 |
+| `m_state.playMode` | `PlayMode` | 現在のプレイモード（NotStarted, HvE 等） |
+| `m_kifu.sfenRecord` | `QStringList` | 対局の局面列（`MatchCoordinator` にポインタで渡す。対局開始時に表示中の手順から作り直す） |
+| `m_kifu.gameMoves` | `QList<ShogiMove>` | 対局の指し手列（同上） |
+
+表示中の手数は MainWindow の変数ではなく、分岐ツリーのカーソル（`m_branchNav.navState` の `KifuNavigationState::currentPly()`）が持つ。棋譜の正本は分岐ツリー（`m_branchNav.branchTree`）である。
 
 #### コントローラ / コーディネータ群
 
@@ -7261,6 +7275,8 @@ m_dockCreationService->setRecordPane(m_recordPane);
 - `onCommentUpdated()` — UI からのコメント更新を処理
 - `onGameRecordCommentChanged()` / `onBookmarkChanged()` — GameRecordModel の変更シグナルから表示を更新
 
+編集する手数は、`setNavigationState()` で受け取った分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から決める。
+
 **遅延初期化ギャップの解決**:
 
 CommentCoordinator は `GameRecordModel` が必要になることがあるが、`GameRecordModel` は遅延生成される。この問題を解決するため、`ensureGameRecordModelRequested` シグナルを定義し、MainWindow 側で接続する。
@@ -7471,60 +7487,49 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant User as ユーザー
-    participant MW as MainWindow
+    participant KFC as KifuFileController
     participant KLC as KifuLoadCoordinator
-    participant Conv as KifToSfenConverter
+    participant KLP as KifuLoadParser
+    participant KAS as KifuApplyService
     participant KBT as KifuBranchTree
     participant KRM as KifuRecordListModel
     participant SV as ShogiView
 
-    User->>MW: ファイル選択（メニュー「棋譜を開く」）
-    MW->>KLC: loadKifuFromFile(filePath)
-    KLC->>KLC: loadKifuCommon(filePath, parseFunc, ...)
+    User->>KFC: ファイル選択（メニュー「棋譜を開く」）
+    KFC->>KLC: loadFileAsync(filePath)
+    KLC->>KLP: parseFile(filePath)（別スレッド）
+    Note over KLP: 形式を判定して変換器の parseWithVariations() を呼ぶ<br/>初期局面SFEN・対局情報・本譜と変化（KifParseResult）を返す
+    KLP-->>KLC: KifuLoadResult
 
-    KLC->>Conv: parseWithVariations(filePath)
-    Note over Conv: KIF行を解析<br/>本譜のUSI指し手列を構築<br/>変化手順を抽出<br/>コメント・時間情報を保持
-    Conv-->>KLC: KifParseResult(usiMoves, dispItems, variations)
+    KLC->>KAS: populateGameInfo() / applyPlayersFromGameInfo()
+    KLC->>KAS: applyParsedResult(..., record, ...)
 
-    KLC->>Conv: detectInitialSfenFromFile(filePath)
-    Conv-->>KLC: 初期局面SFEN（手合割から判定）
-
-    KLC->>Conv: extractGameInfo(filePath)
-    Conv-->>KLC: 対局情報リスト（棋戦名、対局者名等）
-
-    KLC->>KLC: rebuildSfenRecord(initialSfen, usiMoves)
-    Note over KLC: 各手数のSFEN文字列を生成<br/>（ナビゲーション用）
-
-    KLC->>KLC: rebuildGameMoves(initialSfen, usiMoves)
-    Note over KLC: ShogiMoveリストを構築<br/>（ハイライト座標用）
-
-    KLC->>KBT: 分岐ツリーを構築
-    Note over KBT: 本譜ラインをルートに設定<br/>変化手順を子ノードとして追加
-
-    KLC-->>KRM: displayGameRecord シグナル
+    KAS-->>KRM: displayGameRecord フック
     KRM->>KRM: 表示データを設定
 
-    KLC-->>SV: syncBoardAndHighlightsAtRow シグナル
-    SV->>SV: 最終局面を盤面に描画
+    KAS->>KBT: buildFromKifParseResult()
+    Note over KBT: 本譜ラインをルートに設定<br/>変化手順を子ノードとして追加<br/>（棋譜の正本）
 
-    KLC-->>MW: enableArrowButtons シグナル
-    Note over MW: ナビゲーション矢印を有効化
+    KAS-->>SV: syncBoardAndHighlightsAtRow(0) フック
+    SV->>SV: 開始局面を盤面に描画
 ```
 
 **主要クラスの役割:**
 
 | クラス | 責務 |
 |--------|------|
-| `KifuLoadCoordinator` | 棋譜読み込みの統括。形式判定・パーサー呼び出し・データ構築・UI通知 |
+| `KifuLoadCoordinator` | 棋譜読み込みの統括。パースの起動（別スレッド）と結果の適用 |
+| `KifuLoadParser` | 形式判定とフォーマット変換器の呼び出し。結果を `KifuLoadResult` にまとめる |
+| `KifuApplyService` | 解析結果を棋譜欄・分岐ツリー・盤面に当てはめる |
 | `KifToSfenConverter` | KIF形式の解析。手合割→SFEN変換、指し手→USI変換、変化抽出 |
-| `KifuBranchTree` | 分岐棋譜のツリー構造。本譜と変化を木構造で管理 |
+| `KifuBranchTree` | 分岐棋譜のツリー構造。本譜と変化を木構造で管理する棋譜の正本 |
 | `KifuRecordListModel` | 棋譜欄表示用のQtモデル |
 
 **補足:**
-- `loadKifuCommon()` は形式非依存の共通フローを提供する。形式ごとの解析関数（`parseFunc`）、SFEN検出関数（`detectSfenFunc`）、対局情報抽出関数（`extractGameInfoFunc`）をラムダで受け取り、統一的に処理する
+- 同期版の `loadKifuFromFile()` などと、テキストからの読み込み（`loadTextAsync()` / `loadKifuFromString()`、クリップボード貼り付けで使用、形式を自動判定）も同じ `applyLoadResult()` を通る
 - KIF以外の形式も同様のパターンで処理される: `Ki2ToSfenConverter`（KI2形式）、`CsaToSfenConverter`（CSA形式）等
 - 分岐ツリー構築後、`KifuApplyService` が分岐のある手数を棋譜モデルの `setBranchPlyMarks()` に渡す
-- 文字列からの読み込み（`loadKifuFromString()`）はクリップボード貼り付け機能で使用され、形式を自動判定する
+- 読み込みは対局の局面列・指し手列（`sfenRecord` / `gameMoves`）を書かない。対局開始時に表示中の手順から作り直す（8.7）
 
 ---
 
@@ -8869,6 +8874,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | JosekiWindow | C | dialogs | 定跡管理ウィンドウ | 第11章 |
 | JosekiWindowWiring | C | ui/wiring | 定跡ウィンドウのシグナル/スロット配線 | 第10章 |
 | Ki2ToSfenConverter | C | kifu/formats | KI2形式→SFEN変換器 | 第8章 |
+| KifMoveText | NS | core | KIF 形式の指し手の文字列（ヘッダーオンリー） | 第5章 |
 | KifReader | NS | kifu | KIF形式ファイルの読み込み | 第8章 |
 | KifToSfenConverter | C | kifu/formats | KIF形式→SFEN変換器 | 第8章 |
 | KifuAnalysisDialog | C | dialogs | 棋譜解析設定ダイアログ | 第11章 |
@@ -8912,6 +8918,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | PromotionFlow | C | game | 成/不成選択フロー | 第6章 |
 | PvBoardDialog | C | dialogs | 読み筋盤面表示ダイアログ | 第11章 |
 | PvClickController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
+| RecordLine | C | kifu | 分岐ツリーの1本の手順の値（局面列・指し手・表記・表示中の手数） | 第8章 |
 | RecordNavigationHandler | C | navigation | 棋譜ペイン行変更ハンドラ | 第13章 |
 | RecordPane | C | widgets | 棋譜ペインウィジェット | 第11章 |
 | RecordPaneWiring | C | ui/wiring | 棋譜ペインのシグナル/スロット配線 | 第10章 |
@@ -8925,7 +8932,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | ShogiEngineThinkingModel | C | engine | エンジン思考結果リストモデル（6列） | 第7章 |
 | ShogiGameController | C | game | 対局進行・盤面更新・合法手検証 | 第6章 |
 | ShogiInfoRecord | C | kifu | USIエンジン思考情報レコード | 第7章, 第8章 |
-| ShogiUtils | NS | core | 座標変換・USI変換等の共通ユーティリティ | 第2章, 第5章 |
+| ShogiNotation | NS | core | 棋譜の表記（筋・段・駒の名前・CSA の駒種）の対応表（ヘッダーオンリー） | 第2章, 第5章 |
 | ShogiView | C | views | 将棋盤の描画・レンダリングビュー | 第11章 |
 | StartGameDialog | C | dialogs | 対局開始設定ダイアログ | 第11章 |
 | ThinkingInfoPresenter | C | engine | 思考情報のGUI表示プレゼンター | 第7章 |
@@ -8962,7 +8969,8 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | shogiclock | 第5章 | 対局時計 |
 | playmode | 第3章, 第5章 | 動作モード列挙体 |
 | sfenutils | 第2章, 第5章 | SFENユーティリティ |
-| shogiutils | 第2章, 第5章 | 座標変換・USI変換 |
+| shoginotation | 第2章, 第5章 | 棋譜の表記の対応表 |
+| kifmovetext | 第5章 | KIF 形式の指し手の文字列 |
 | legalmovestatus | 第5章 | 合法手ステータス |
 
 #### game/（第6章）
@@ -9008,6 +9016,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | kifuioservice | 第8章 | ファイルI/O |
 | kifuexportcontroller | 第8章 | エクスポート制御 |
 | kifunavigationstate | 第8章, 第13章 | ナビゲーション状態 |
+| recordline | 第8章 | 手順の値（RecordLine） |
 | livegamesession | 第8章 | 対局中セッション |
 | kifuclipboardservice | 第8章 | クリップボード操作 |
 | kifucontentbuilder | 第8章 | コンテンツ構築 |

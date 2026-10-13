@@ -71,7 +71,6 @@ struct MCTestHarness {
         deps.hooks.ui.setEngineNames = [](const QString&, const QString&) {};
         deps.hooks.ui.showMoveHighlights = [](const QPoint&, const QPoint&) {};
 
-        deps.hooks.engine.sendStopToEngine = [](Usi*) {};
 
         deps.hooks.game.initializeNewGame = [this](const QString&) {
             initializeNewGameCalled = true;

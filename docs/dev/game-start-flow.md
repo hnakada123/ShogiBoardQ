@@ -8,17 +8,19 @@
 ユーザー操作: メニュー「対局」→「対局開始」クリック
     │
     ▼
-UiActionsWiring::wire()
-    actionStartGame::triggered → MainWindow::initializeGame()
+GameActionsWiring::wire()
+    actionStartGame::triggered → GameSessionOrchestrator::initializeGame()
     │
     ▼
-MainWindow::initializeGame()
+GameSessionOrchestrator::initializeGame()
+    │  StartGameDialogの生成・表示（モーダル）と設定値の取り出し
+    │  表示中の手順（分岐ツリー）から対局の局面列・指し手列を作り直す
     │  現在局面SFENの解決、コンテキスト(Ctx)の構築
     │
     ▼
 GameStartCoordinator::initializeGame(Ctx)
-    │  1) StartGameDialogの生成・表示（モーダル）
-    │  2) ダイアログ設定値の取得
+    │  1) 編集済み開始局面の判定
+    │  2) ダイアログ設定値（Ctx::dialogData）の取得
     │  3) 開始SFENの決定（現在局面 or プリセット）
     │  4) PlayModeの決定
     │  5) StartOptionsの構築
@@ -34,6 +36,7 @@ GameStartCoordinator::start(StartParams)
     │
     ▼
 MatchCoordinator::configureAndStart(StartOptions)
+    │  0) 指し手列を局面列の長さにそろえる（alignGameMovesWithSfenHistory）
     │  1) 前回対局履歴の保存
     │  2) 終局状態のクリア
     │  3) 対局設定の保存
@@ -50,85 +53,93 @@ MatchCoordinator::configureAndStart(StartOptions)
 
 ## 1. メニューアクションの接続
 
-**ファイル:** `src/ui/wiring/uiactionswiring.cpp:32`
+**ファイル:** `src/ui/wiring/gameactionswiring.cpp`
 
 ```cpp
 QObject::connect(ui->actionStartGame, &QAction::triggered,
-                 mw, &MainWindow::initializeGame, Qt::UniqueConnection);
+                 gso, &GameSessionOrchestrator::initializeGame, Qt::UniqueConnection);
 ```
 
-ユーザーがメニュー「対局」→「対局開始」をクリックすると、`actionStartGame` の `triggered` シグナルが発火し、`MainWindow::initializeGame()` スロットが呼ばれる。
+ユーザーがメニュー「対局」→「対局開始」をクリックすると、`actionStartGame` の `triggered` シグナルが発火し、`GameSessionOrchestrator::initializeGame()` スロットが呼ばれる。
 
 ---
 
-## 2. MainWindow::initializeGame()
+## 2. GameSessionOrchestrator::initializeGame()
 
-**ファイル:** `src/app/mainwindow.cpp:1068-1128`
+**ファイル:** `src/app/gamesessionorchestrator.cpp`, `src/app/mainwindowgamestartservice.cpp`
 
-対局開始フローのエントリポイント。GameStartCoordinatorに渡すコンテキスト（Ctx）を準備する。
+対局開始フローのエントリポイント。対局開始ダイアログを表示し、対局の局面列・指し手列を棋譜の正本（分岐ツリー）から作り直してから、GameStartCoordinatorに渡すコンテキスト（Ctx）を準備する。
 
 ### 処理内容
 
 1. **GameStartCoordinatorの遅延初期化**
    ```cpp
-   ensureGameStartCoordinator();
+   if (m_deps.ensureGameStartCoordinator) m_deps.ensureGameStartCoordinator();
    ```
 
-2. **開始SFENのクリア**
+2. **対局開始ダイアログの表示**
    ```cpp
-   m_startSfenStr.clear();
+   StartGameDialog dlg;
+   if (hasEditedStart) dlg.forceCurrentPositionSelection();  // 編集した局面なら「現在の局面」を選ぶ
+   if (dlg.exec() != QDialog::Accepted) return;
+   const StartGameDialogData dialogData = extractDialogData(dlg);
    ```
-   平手SFENが優先されてしまう問題の対策として、明示的にクリアする。
+   プリセット（平手・駒落ち）で始めるときは、未保存の棋譜を捨ててよいか確かめる。
 
-3. **現在局面SFENの解決**
+3. **表示中の手順と手数の取得**
    ```cpp
-   const QString sfen = resolveCurrentSfenForGameStart().trimmed();
-   if (!sfen.isEmpty()) {
-       m_currentSfenStr = sfen;
-   }
+   const RecordLine line = m_deps.navState ? m_deps.navState->currentRecordLine() : RecordLine{};
+   const int selectedPly = m_deps.navState ? m_deps.navState->currentPly() : 0;
    ```
-   棋譜レコードから現在の局面SFENを最優先で取得する。
+   表示中の手数は分岐ツリーのカーソル（`KifuNavigationState`）が持つ。本譜を表示していても分岐を表示していても同じ経路で取る（[指し手データ・棋譜データ構造](move-and-record-data-structures.md) の 4.4）。
 
-4. **分岐ツリーからのSFEN再構築**（該当する場合）
+4. **対局の局面列・指し手列の作り直しと現在局面SFENの解決**
    ```cpp
-   if (m_branchTree != nullptr && m_navState != nullptr
-       && m_sfenHistory != nullptr && m_currentSelectedPly > 0) {
-       // 現在のラインのSFENでm_sfenHistoryを再構築
-   }
+   MainWindowGameStartService::PrepareDeps prep;
+   prep.line = line;
+   prep.sfenRecord = sfenRecord;          // MatchCoordinator::sfenRecordPtr()
+   prep.gameMoves = m_deps.gameMoves;
+   prep.currentSfenStr = m_deps.currentSfenStr;
+   gameStartService.prepareForInitializeGame(prep);
    ```
-   分岐ツリーから途中局面で再対局する場合、異なる分岐のSFENが混在する問題を防ぐ。
+   `prepareForInitializeGame()` は次の2つを行う。
+   - `rebuildMatchHistoryFromLine()`: 局面列を `line.sfens[0..ply]`（開始局面から開始する手数の後の局面まで）、指し手列を `line.moves[0..ply)` で作り直す（`ply = line.currentPly`）。0手目から始める場合も作り直す。手順が空なら何もしない
+   - `resolveCurrentSfenForGameStart()`: 作り直した局面列の `ply` 番目（範囲外なら末尾）を現在局面SFENにする
+
+   対局の局面列・指し手列は対局の作業用の履歴で、棋譜の読み込みでは書かない。ここで表示中の手順から作り直すので、前の対局の手や、読み込んだ棋譜の開始する手数より後の手は残らない。
 
 5. **Ctxの構築とinitializeGame呼び出し**
    ```cpp
-   GameStartCoordinator::Ctx c;
-   c.view            = m_shogiView;
-   c.gc              = m_gameController;
-   c.clock           = m_timeController ? m_timeController->clock() : nullptr;
-   c.sfenRecord      = m_sfenHistory;
-   c.kifuModel       = m_kifuRecordModel;
-   c.kifuLoadCoordinator = m_kifuLoadCoordinator;
-   c.currentSfenStr  = &m_currentSfenStr;
-   c.startSfenStr    = &m_startSfenStr;
-   c.selectedPly     = m_currentSelectedPly;
-   c.isReplayMode    = m_replayController ? m_replayController->isReplayMode() : false;
-   c.bottomIsP1      = m_bottomIsP1;
+   MainWindowGameStartService::ContextDeps ctx;
+   ctx.gc                  = m_deps.gameController;
+   ctx.clock               = match ? match->clock() : nullptr;
+   ctx.sfenRecord          = sfenRecord;
+   ctx.kifuModel           = m_deps.kifuModel;
+   ctx.kifuLoadCoordinator = m_deps.kifuLoadCoordinator;
+   ctx.currentSfenStr      = m_deps.currentSfenStr;
+   ctx.startSfenStr        = m_deps.startSfenStr;
+   ctx.selectedPly         = selectedPly;
+   ctx.isReplayMode        = m_deps.replayController ? m_deps.replayController->isReplayMode() : false;
+   ctx.bottomIsP1          = m_deps.bottomIsP1 ? *m_deps.bottomIsP1 : true;
 
-   m_gameStart->initializeGame(c);
+   GameStartCoordinator::Ctx c = gameStartService.buildContext(ctx);
+   c.dialogData = dialogData;
+   gameStart->initializeGame(c, errorMessage);
    ```
 
 ### Ctx構造体の内容
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| `view` | `ShogiView*` | 盤面ビュー |
 | `gc` | `ShogiGameController*` | ゲームコントローラ |
 | `clock` | `ShogiClock*` | 将棋時計 |
-| `sfenRecord` | `QStringList*` | SFEN履歴リスト |
+| `dialogData` | `StartGameDialogData` | 対局開始ダイアログから取り出した値 |
+| `sfenRecord` | `QStringList*` | 対局の局面列（手順 4 で作り直したもの） |
 | `kifuModel` | `KifuRecordListModel*` | 棋譜欄モデル |
 | `kifuLoadCoordinator` | `KifuLoadCoordinator*` | 分岐構造の設定用 |
 | `currentSfenStr` | `QString*` | 現在局面のSFEN文字列 |
-| `startSfenStr` | `QString*` | 開始SFEN文字列（空） |
-| `selectedPly` | `int` | 選択中の手数 |
+| `startSfenStr` | `QString*` | 開始SFEN文字列 |
+| `selectedPly` | `int` | 表示中の手数（`KifuNavigationState::currentPly()`） |
 | `isReplayMode` | `bool` | 再生モード中か |
 | `bottomIsP1` | `bool` | 手前が先手か |
 
@@ -138,16 +149,18 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
 
 **ファイル:** `src/game/gamestartcoordinator.cpp:698-991`
 
-対局開始の中核ロジック。ダイアログ表示から対局開始までの一連のフローを実行する。
+対局開始の中核ロジック。ダイアログで決めた設定から対局開始までの一連のフローを実行する。
 
-### ステップ1: ダイアログ生成・表示（行706-713）
+### ステップ1: ダイアログ生成・表示（app 層）
+
+ダイアログの表示と値の取り出しは、呼び出し元の `GameSessionOrchestrator::initializeGame()`（2章）が行う。`GameStartCoordinator::initializeGame()` は取り出した値を `Ctx::dialogData` で受け取る。
 
 ```cpp
-StartGameDialog* dlg = new StartGameDialog;
-if (dlg->exec() != QDialog::Accepted) {
-    delete dlg;
+StartGameDialog dlg;
+if (dlg.exec() != QDialog::Accepted) {
     return;
 }
+const StartGameDialogData dialogData = extractDialogData(dlg);
 ```
 
 - `StartGameDialog` をモーダルダイアログとして表示する
@@ -171,12 +184,12 @@ OKボタン（「対局開始」）のクリックは `onStartRequested()` に�
 3. `saveGameSettings()` → QSettingsに永続化
 4. `accept()` → ダイアログを閉じる
 
-### ステップ2: ダイアログ設定値の取得（行715-718）
+### ステップ2: ダイアログ設定値の取得
 
 ```cpp
-const int  initPosNo = dlg->startingPositionNumber();
-const bool p1Human   = dlg->isHuman1();
-const bool p2Human   = dlg->isHuman2();
+const int  initPosNo = c.dialogData.startingPositionNumber;
+const bool p1Human   = c.dialogData.isHuman1;
+const bool p2Human   = c.dialogData.isHuman2;
 ```
 
 | 値 | 説明 |
@@ -253,7 +266,8 @@ const QString seedSfen = canonicalizeStart(startSfen);
 
 - `"startpos"` や空文字列を平手の完全SFEN表記に正規化する
 - `sfenRecord` に開始SFENをseedとして設定する
-- 現在局面から開始の場合は、0手目からselectedPlyまでを保全し末尾を `seedSfen` に置換
+- 現在局面から開始の場合は、0手目からselectedPlyまでを保全し末尾を `seedSfen` に置換（局面列は2章の手順 4 で表示中の手順から作り直してある）
+- プリセットから開始の場合は、局面列を `seedSfen` の1件にする
 
 ### ステップ4: PlayModeの決定（行877）
 
@@ -467,6 +481,19 @@ StartOptionsを受け取り、MatchCoordinatorへ対局開始を指示する。
 **ファイル:** `src/game/matchcoordinator.cpp:697-1038`
 
 対局進行の司令塔（MatchCoordinator）による対局開始の中核処理。
+
+### ステップ6.0: 指し手列を局面列にそろえる
+
+```cpp
+discardInterruptedGame();
+m_lastStartOptions = opt;
+alignGameMovesWithSfenHistory();   // 指し手列を「局面列の件数 - 1」件に切り詰める
+ensureGameStartOrchestrator();
+m_gameStartOrchestrator->configureAndStart(opt);
+```
+
+- 対局開始の準備で局面列は開始する局面までに切り詰められている。それより後の手（前の対局や読み込んだ棋譜の続き）が指し手列に残っていると、`moveCommitted` の手数や「待った」が前の手を数えてしまうので、ここで捨てる
+- 以降の手順（6.1〜6.7）は `GameStartOrchestrator::configureAndStart()` が行う
 
 ### ステップ6.1: 前回対局履歴の保存（行699-721）
 
@@ -784,12 +811,16 @@ MainWindow::onTurnManagerChanged(Player)
 |---|---|---|
 | 対局ダイアログ | `src/dialogs/startgamedialog.h` | `src/dialogs/startgamedialog.cpp` |
 | MainWindow | `src/app/mainwindow.h` | `src/app/mainwindow.cpp` |
+| 対局ライフサイクル（対局開始の入口） | `src/app/gamesessionorchestrator.h` | `src/app/gamesessionorchestrator.cpp` |
+| 対局開始前の局面列の作り直し・Ctx構築 | `src/app/mainwindowgamestartservice.h` | `src/app/mainwindowgamestartservice.cpp` |
+| 対局開始前クリーンアップ | `src/game/prestartcleanuphandler.h` | `src/app/prestartcleanuphandler.cpp` |
+| 表示中の手順の値 | `src/kifu/recordline.h` | （ヘッダーのみ） |
 | 対局開始コーディネータ | `src/game/gamestartcoordinator.h` | `src/game/gamestartcoordinator.cpp` |
 | 対局司令塔 | `src/game/matchcoordinator.h` | `src/game/matchcoordinator.cpp` |
 | ゲームコントローラ | `src/game/shogigamecontroller.h` | `src/game/shogigamecontroller.cpp` |
 | ターンマネージャ | `src/game/turnmanager.h` | `src/game/turnmanager.cpp` |
 | ターン同期ブリッジ | `src/game/turnsyncbridge.h` | `src/game/turnsyncbridge.cpp` |
-| UIアクション配線 | `src/ui/wiring/uiactionswiring.h` | `src/ui/wiring/uiactionswiring.cpp` |
+| 対局アクション配線 | `src/ui/wiring/gameactionswiring.h` | `src/ui/wiring/gameactionswiring.cpp` |
 | 盤面操作コントローラ | `src/board/boardinteractioncontroller.h` | `src/board/boardinteractioncontroller.cpp` |
 | USIエンジン | `src/engine/usi.h` | `src/engine/usi.cpp` |
 | 将棋時計 | `src/services/shogiclock.h` | `src/services/shogiclock.cpp` |

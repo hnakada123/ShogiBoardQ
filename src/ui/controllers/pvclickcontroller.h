@@ -42,7 +42,6 @@ public:
         const QString* engineName2 = nullptr;
         const QString* currentSfenStr = nullptr;
         const QString* startSfenStr = nullptr;
-        ShogiEngineThinkingModel** considerationModel = nullptr;  ///< ダブルポインタ（外部所有）
         std::function<RecordLine()> currentLine;                  ///< 表示中の手順（分岐ツリー）
     };
 

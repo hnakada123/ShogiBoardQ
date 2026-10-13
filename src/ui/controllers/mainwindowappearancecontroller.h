@@ -36,9 +36,9 @@ class MainWindowAppearanceController : public QObject
 
 public:
     struct Deps {
-        ShogiView** shogiView = nullptr;
-        TimeDisplayPresenter** timePresenter = nullptr;
-        MatchCoordinator** match = nullptr;
+        ShogiView* shogiView = nullptr;
+        TimeDisplayPresenter* timePresenter = nullptr;
+        MatchCoordinator* match = nullptr;          ///< 起動の途中で作られる。作った後に updateDeps し直す
         bool* bottomIsP1 = nullptr;
         bool* lastP1Turn = nullptr;
         qint64* lastP1Ms = nullptr;

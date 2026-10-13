@@ -1189,7 +1189,6 @@ add_shogi_test(tst_lifecycle_runtime
     tst_lifecycle_runtime.cpp
     test_stubs_lifecycle_runtime.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/app/matchruntimequeryservice.cpp
     ${SRC}/app/playmodepolicyservice.cpp
 )
 

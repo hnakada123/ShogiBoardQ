@@ -213,31 +213,3 @@ void KifuLoadCoordinator::setBranchTreeManager(BranchTreeManager* manager)
 // 分岐管理
 // ============================================================
 
-void KifuLoadCoordinator::resetBranchTreeForNewGame()
-{
-    cancelLoad();
-    qCDebug(lcKifu).noquote() << "resetBranchTreeForNewGame: clearing all branch data";
-
-    if (m_navState != nullptr) {
-        m_navState->setCurrentNode(nullptr);
-        m_navState->resetPreferredLineIndex();
-    }
-
-    if (m_branchTree == nullptr) {
-        m_branchTree = new KifuBranchTree(this);
-    } else {
-        m_branchTree->clear();
-    }
-    m_branchTree->setRootSfen(SfenUtils::hirateSfen());
-
-    if (m_navState != nullptr) {
-        m_navState->goToRoot();
-    }
-
-    if (m_branchTreeManager) {
-        QList<BranchTreeManager::ResolvedRowLite> emptyRows;
-        m_branchTreeManager->setBranchTreeRows(emptyRows);
-    }
-
-    qCDebug(lcKifu).noquote() << "resetBranchTreeForNewGame: done";
-}

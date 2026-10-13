@@ -11,13 +11,11 @@
 #include "kifdisplayitem.h"
 #include "gamestartcoordinator.h"
 #include "shogigamecontroller.h"
-#include "mainwindowruntimerefs.h"
 #include "mainwindowstate.h"
 
 // --- 前方宣言 ---
 class QTimer;
 class MatchCoordinator;
-class Usi;
 class RecordPane;
 class EngineAnalysisTab;
 class BoardInteractionController;
@@ -66,12 +64,10 @@ class UsiCommandController;
 class RecordNavigationHandler;
 class RecordNavigationWiring;
 class UiStatePolicyManager;
-class MainWindowCompositionRoot;
 class LiveGameSessionUpdater;
 class KifuNavigationCoordinator;
 class BranchNavigationWiring;
 class PlayModePolicyService;
-class MatchRuntimeQueryService;
 class GameRecordUpdateService;
 class UiNotificationService;
 class UndoFlowService;
@@ -139,8 +135,7 @@ private:
     KifuState m_kifu;
     GameState m_state;
 
-    // --- CompositionRoot / ServiceRegistry / SignalRouter ---
-    std::unique_ptr<MainWindowCompositionRoot> m_compositionRoot;
+    // --- ServiceRegistry / SignalRouter ---
     std::unique_ptr<MainWindowServiceRegistry> m_registry;
     std::unique_ptr<MainWindowSignalRouter> m_signalRouter;
     std::unique_ptr<MainWindowAppearanceController> m_appearanceController;
@@ -153,8 +148,6 @@ private:
     ShogiGameController* m_gameController = nullptr;
     // Lifecycle: Created once in ensureBoardSetupController(), destroyed with parent
     QPointer<BoardInteractionController> m_boardController;
-    Usi* m_usi1 = nullptr;
-    Usi* m_usi2 = nullptr;
 
     // --- UI 構成 ---
     QTabWidget* m_tab = nullptr;
@@ -170,7 +163,7 @@ private:
     CsaGameCoordinator* m_csaGameCoordinator = nullptr;
 
     // --- 試合進行 ---
-    // Lifecycle: Recreated per game session via MatchCoordinatorWiring (QPointer不可: ダブルポインタ経由)
+    // Lifecycle: created once at startup by MatchCoordinatorWiring (owned there), never recreated
     MatchCoordinator* m_match = nullptr;
     GameStartCoordinator::TimeSettings m_lastTimeControl;
     ReplayController* m_replayController = nullptr;
@@ -189,7 +182,7 @@ private:
     BoardLoadService* m_boardLoadService = nullptr;
     ConsiderationPositionService* m_considerationPositionService = nullptr;
     std::unique_ptr<AnalysisResultsPresenter> m_analysisPresenter;
-    // Lifecycle: Recreated per MC recreation via MatchCoordinatorWiring (QPointer不可: ダブルポインタ経由)
+    // Lifecycle: created once by MatchCoordinatorWiring (child of it), never recreated
     GameStartCoordinator* m_gameStart = nullptr;
     GameRecordPresenter* m_recordPresenter = nullptr;
     TimeDisplayPresenter* m_timePresenter = nullptr;
@@ -202,7 +195,6 @@ private:
     std::unique_ptr<KifuExportController> m_kifuExportController;
     GameStateController* m_gameStateController = nullptr;
     std::unique_ptr<PlayModePolicyService> m_playModePolicy;
-    std::unique_ptr<MatchRuntimeQueryService> m_queryService;
     PlayerInfoController* m_playerInfoController = nullptr;
 
     // --- 盤面操作 / 局面編集 ---
@@ -249,8 +241,6 @@ private:
     // --- 終了フラグ ---
     bool m_isShuttingDown = false;
 
-    // --- private メソッド ---
-    MainWindowRuntimeRefs buildRuntimeRefs();
     void refreshPlayModePolicyDeps();
 };
 

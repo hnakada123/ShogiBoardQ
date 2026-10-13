@@ -95,8 +95,8 @@ bool MatchUndoHandler::undoTwoPlies()
                                                 : Turn::White);
     m_refs.gc->setForcedPromotion(false);
 
-    // 「同」表記の基準も戻す。途中局面から開始した場合は gameMoves に
-    // 開始前の手がないことがあるため、SFEN履歴の差分から復元する。
+    // 「同」表記の基準も戻す。戻した局面とその1つ前の局面の差分から移動先を求める
+    // （局面列だけで決まるので、指し手列の長さに依存しない）。
     m_refs.gc->setPreviousMoveDestination(QPoint());
     SfenDiffUtils::DiffResult diff;
     if (targetSfenIdx > 0

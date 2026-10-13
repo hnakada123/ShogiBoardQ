@@ -88,8 +88,6 @@ public:
 
     // --- 分岐管理 ---
 
-    /// 分岐ツリーを完全リセット（新規対局開始時に使用）
-    void resetBranchTreeForNewGame();
 
 signals:
     void loadFinished(bool success);

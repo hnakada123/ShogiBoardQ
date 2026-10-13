@@ -124,11 +124,7 @@ void MainWindowServiceRegistry::configureAnalysisTabDependencies()
         m_mw.m_gameInfoController = m_mw.m_playerInfoWiring->gameInfoController();
     }
 
-    if (!m_mw.m_models.consideration) {
-        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
-        // Created: once at startup, never recreated
-        m_mw.m_models.consideration = new ShogiEngineThinkingModel(&m_mw);
-    }
+    // 検討タブの思考情報モデルは起動の最初（createFoundationObjectsForLifecycle）に作ってある
     if (m_mw.m_analysisTab) {
         m_mw.m_analysisTab->setConsiderationThinkingModel(m_mw.m_models.consideration);
     }

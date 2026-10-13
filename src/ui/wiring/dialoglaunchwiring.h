@@ -25,7 +25,6 @@ class CsaGameCoordinator;
 class BoardSetupController;
 class PlayerInfoWiring;
 class AnalysisResultsPresenter;
-class Usi;
 class EngineAnalysisTab;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
@@ -66,7 +65,6 @@ public:
         std::function<BoardSetupController*()> getBoardSetupController;
         std::function<PlayerInfoWiring*()> getPlayerInfoWiring;
         std::function<AnalysisResultsPresenter*()> getAnalysisPresenter;
-        std::function<Usi*()> getUsi1;
         std::function<EngineAnalysisTab*()> getAnalysisTab;
         std::function<UsiCommLogModel*()> getLineEditModel1;
         std::function<ShogiEngineThinkingModel*()> getModelThinking1;

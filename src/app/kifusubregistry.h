@@ -31,7 +31,8 @@ public:
     void ensureKifuExportController();
     void ensureGameRecordUpdateService();
     void ensureGameRecordLoadService();
-    void prepareKifuLoadCoordinatorForLive();
+    /// 棋譜読み込み担当を初回だけ作る（以後は同じものをすべての読み込みに使う）
+    void ensureKifuLoadCoordinator();
     void ensureGameRecordModel();
     void ensureJosekiWiring();
 
@@ -52,9 +53,6 @@ private:
     void createBranchNavigationWiring();
     void createGameRecordUpdateService();
     void createGameRecordLoadService();
-
-    /// KifuLoadCoordinator を生成・配線し m_kifuLoadCoordinator に設定するヘルパー
-    void createAndWireKifuLoadCoordinator();
 
     MainWindow& m_mw;
     MainWindowServiceRegistry* m_registry;

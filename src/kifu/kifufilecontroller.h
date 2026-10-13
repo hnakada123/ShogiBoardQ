@@ -46,13 +46,11 @@ public:
         std::function<void()> ensureGameRecordModel;           ///< GameRecordModel 確保
         std::function<void()> ensureKifuExportController;      ///< KifuExportController 確保
         std::function<void()> updateKifuExportDependencies;    ///< KifuExportController 依存更新
-        std::function<void()> createAndWireKifuLoadCoordinator; ///< KifuLoadCoordinator 生成・配線
-        std::function<void()> prepareKifuLoadCoordinatorForLive; ///< ライブ用 KifuLoadCoordinator 確保
+        std::function<KifuLoadCoordinator*()> ensureKifuLoadCoordinator; ///< KifuLoadCoordinator 確保（初回だけ生成）
 
         // --- ゲッター ---
         std::function<GameRecordModel*()> getGameRecordModel;          ///< 未保存変更を確認する棋譜モデル
         std::function<KifuExportController*()> getKifuExportController; ///< KifuExportController 取得
-        std::function<KifuLoadCoordinator*()> getKifuLoadCoordinator;   ///< KifuLoadCoordinator 取得
     };
 
     explicit KifuFileController(QObject* parent = nullptr);

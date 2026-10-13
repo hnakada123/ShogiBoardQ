@@ -12,7 +12,7 @@
 #include "kifuloadcoordinator.h"            // IWYU pragma: keep (QPointer の完全型)
 #include "playerinfowiring.h"
 #include "kifufilecontroller.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 
 void MainWindowServiceRegistry::initializeDialogLaunchWiring()
 {
@@ -32,7 +32,6 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getBoardSetupController = [this]() { ensureBoardSetupController(); return m_mw.m_boardSetupController; };
     d.getPlayerInfoWiring  = [this]() { m_foundation->ensurePlayerInfoWiring(); return m_mw.m_playerInfoWiring; };
     d.getAnalysisPresenter = [this]() { m_foundation->ensureAnalysisPresenter(); return m_mw.m_analysisPresenter.get(); };
-    d.getUsi1              = [this]() { return m_mw.m_usi1; };
     d.getAnalysisTab       = [this]() { return m_mw.m_analysisTab; };
     d.getLineEditModel1    = [this]() { return m_mw.m_models.commLog1; };
     d.getModelThinking1    = [this]() { return m_mw.m_models.thinking1; };

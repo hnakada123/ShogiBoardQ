@@ -934,9 +934,9 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 
 4. MatchCoordinator::configureAndStart()
    a. alignGameMovesWithSfenHistory()
-      → gameMoves を sfenRecord.size() - 1 件（30件）に切り詰める
-        （前の対局や読み込んだ棋譜の続きの手が残っていると、moveCommitted の手数や
-          待ったが前の手を数えてしまうため）
+      → gameMoves を sfenRecord.size() - 1 件にそろえる（この例では手順 1 で30件にしてあるので変わらない。
+        手順 3 やプリセットからの開始で局面列が短くなったときは、その長さまで切り詰める）
+        （開始する局面より後の手が残っていると、moveCommitted の手数や待ったが前の手を数えてしまうため）
    b. 30手目のSFENを使って盤面を初期化
 
 5. 対局中の指し手追加（各手ごとに繰り返し）

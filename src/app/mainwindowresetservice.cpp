@@ -143,8 +143,9 @@ void MainWindowResetService::resetBranchTreeForNewState(const ModelResetDeps& de
         deps.liveGameSession->discard();
     }
 
+    // 読み込み途中の棋譜は捨てる（分岐ツリーはこの下で作り直す）
     if (deps.kifuLoadCoordinator) {
-        deps.kifuLoadCoordinator->resetBranchTreeForNewGame();
+        deps.kifuLoadCoordinator->cancelLoad();
     }
     if (deps.branchTree) {
         if (deps.navState) {

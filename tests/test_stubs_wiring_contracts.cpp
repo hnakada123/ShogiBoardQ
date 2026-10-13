@@ -13,7 +13,6 @@
 #include "matchcoordinator.h"
 #include "matchturnhandler.h"
 #include "gamestartcoordinator.h"
-#include "gamesessionfacade.h"
 #include "gamesessionorchestrator.h"
 #include "sessionlifecyclecoordinator.h"
 #include "gamestatecontroller.h"
@@ -28,7 +27,6 @@
 #include "timedisplaypresenter.h"
 #include "boardinteractioncontroller.h"
 #include "shogiclock.h"
-#include "matchcoordinatorhooksfactory.h"
 #include "shogiview.h"
 #include "candidatearrowcontroller.h"
 
@@ -178,6 +176,8 @@ MatchCoordinator::StrategyContext& MatchCoordinator::strategyCtx()
 }
 
 void MatchCoordinator::updateUsiPtrs(Usi*, Usi*) {}
+void MatchCoordinator::setEngineModels(UsiCommLogModel*, ShogiEngineThinkingModel*, UsiCommLogModel*, ShogiEngineThinkingModel*) {}
+void MatchCoordinator::resetPositionHistory() {}
 void MatchCoordinator::setPlayMode(PlayMode) {}
 void MatchCoordinator::setUndoBindings(const UndoRefs&, const UndoHooks&) {}
 void MatchCoordinator::handleResign() {}
@@ -279,17 +279,9 @@ bool GameStartCoordinator::initializeGame(const Ctx&, QString&) { return true; }
 void GameStartCoordinator::setTimerAndStart(const Ctx&) {}
 PlayMode GameStartCoordinator::setPlayMode(const Ctx&) const { return PlayMode::NotStarted; }
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(int, bool, bool, const QString&) { return PlayMode::NotStarted; }
-void GameStartCoordinator::setMatch(MatchCoordinator*) {}
 void GameStartCoordinator::setViewHooks(const ViewHooks&) {}
 bool GameStartCoordinator::validate(const StartParams&, QString&) const { return true; }
 
-// ============================================================
-// GameSessionFacade スタブ
-// ============================================================
-
-GameSessionFacade::GameSessionFacade(Deps) {}
-bool GameSessionFacade::initialize() { return true; }
-MatchCoordinator* GameSessionFacade::match() const { return nullptr; }
 
 // ============================================================
 // GameSessionOrchestrator スタブ（TestTracker 連動）
@@ -545,20 +537,6 @@ void ShogiGameController::newGame(QString&) {}
 // ============================================================
 // ============================================================
 
-
-// ============================================================
-// MatchCoordinatorHooksFactory スタブ
-// ============================================================
-
-MatchCoordinator::Hooks MatchCoordinatorHooksFactory::buildHooks(const HookDeps&)
-{
-    return {};
-}
-
-MatchCoordinator::UndoHooks MatchCoordinatorHooksFactory::buildUndoHooks(const UndoDeps&)
-{
-    return {};
-}
 
 // ============================================================
 // EngineLifecycleManager スタブ

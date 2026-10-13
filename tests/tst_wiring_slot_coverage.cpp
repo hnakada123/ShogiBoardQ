@@ -26,7 +26,6 @@ private:
             QStringLiteral("uiactionswiring.cpp"),
             // CsaGameWiring の分割ファイル（接続は csagamewiring.cpp が持つ）
             QStringLiteral("csagamewiring_options.cpp"),
-            QStringLiteral("matchcoordinatorhooksfactory.cpp"),
         };
         return exemptFiles.contains(fileName);
     }

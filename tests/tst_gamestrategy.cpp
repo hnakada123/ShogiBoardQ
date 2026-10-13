@@ -93,7 +93,6 @@ struct StrategyTestHarness {
         // Time Hooks
 
         // Engine Hooks
-        deps.hooks.engine.sendStopToEngine = [](Usi*) {};
 
         // Game Hooks
         deps.hooks.game.initializeNewGame = [](const QString&) {};

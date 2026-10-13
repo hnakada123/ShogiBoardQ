@@ -132,7 +132,7 @@ void MainWindowAppearanceController::installAppToolTips(QMainWindow* mainWindow)
 
 void MainWindowAppearanceController::setupBoardInCenter()
 {
-    ShogiView* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
+    ShogiView* view = m_deps.shogiView;
     if (!view) {
         qCWarning(lcApp) << "setupBoardInCenter: m_shogiView is null!";
         return;
@@ -158,7 +158,7 @@ void MainWindowAppearanceController::setupBoardInCenter()
 
 void MainWindowAppearanceController::setupNameAndClockFonts()
 {
-    ShogiView* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
+    ShogiView* view = m_deps.shogiView;
     if (!view) return;
 
     auto* n1 = view->blackNameLabel();
@@ -185,7 +185,7 @@ void MainWindowAppearanceController::onBoardSizeChanged(QSize fieldSize)
 {
     Q_UNUSED(fieldSize)
 
-    ShogiView* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
+    ShogiView* view = m_deps.shogiView;
     if (m_central && view) {
         const QSize boardSize = view->sizeHint();
         m_central->setFixedSize(boardSize);
@@ -194,7 +194,7 @@ void MainWindowAppearanceController::onBoardSizeChanged(QSize fieldSize)
 
 void MainWindowAppearanceController::performDeferredEvalChartResize()
 {
-    ShogiView* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
+    ShogiView* view = m_deps.shogiView;
     if (view) {
         onBoardSizeChanged(view->fieldSize());
     }
@@ -203,7 +203,7 @@ void MainWindowAppearanceController::performDeferredEvalChartResize()
 void MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo()
 {
     qCDebug(lcApp) << "flipBoardAndUpdatePlayerInfo ENTER";
-    ShogiView* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
+    ShogiView* view = m_deps.shogiView;
     if (!view) return;
 
     // 盤の表示向きをトグル
@@ -212,7 +212,7 @@ void MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo()
     if (flipped) view->setPiecesFlip();
     else         view->setPieces();
 
-    TimeDisplayPresenter* tp = m_deps.timePresenter ? *m_deps.timePresenter : nullptr;
+    TimeDisplayPresenter* tp = m_deps.timePresenter;
     if (tp && m_deps.lastP1Ms && m_deps.lastP2Ms && m_deps.lastP1Turn) {
         tp->onMatchTimeUpdated(
             *m_deps.lastP1Ms, *m_deps.lastP2Ms, *m_deps.lastP1Turn, /*urgencyMs(未使用)*/ 0);
@@ -233,20 +233,20 @@ void MainWindowAppearanceController::onBoardFlipped(bool /*nowFlipped*/)
 
 void MainWindowAppearanceController::onActionFlipBoardTriggered()
 {
-    MatchCoordinator* match = m_deps.match ? *m_deps.match : nullptr;
+    MatchCoordinator* match = m_deps.match;
     if (match) match->flipBoard();
 }
 
 void MainWindowAppearanceController::onActionEnlargeBoardTriggered()
 {
-    ShogiView* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
+    ShogiView* view = m_deps.shogiView;
     if (!view) return;
     view->enlargeBoard(true);
 }
 
 void MainWindowAppearanceController::onActionShrinkBoardTriggered()
 {
-    ShogiView* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
+    ShogiView* view = m_deps.shogiView;
     if (!view) return;
     view->reduceBoard(true);
 }

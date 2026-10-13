@@ -236,23 +236,6 @@ private slots:
     }
 
     // ============================================================
-    // E) resetBranchTreeForNewGame テスト
-    // ============================================================
-
-    void resetBranchTree_alwaysHirate()
-    {
-        KifuBranchTree tree;
-        tree.setRootSfen(kEditedSfen);
-
-        // resetBranchTreeForNewGame のロジック
-        tree.clear();
-        tree.setRootSfen(kHirateSfen);
-
-        QCOMPARE(tree.root()->sfen(), kHirateSfen);
-        qDebug() << "★ resetBranchTreeForNewGame always sets root to hirate";
-    }
-
-    // ============================================================
     // F) RecordNavigation テスト
     // ============================================================
 

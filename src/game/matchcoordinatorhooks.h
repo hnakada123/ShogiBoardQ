@@ -15,7 +15,6 @@
 #include "matchtypes.h"
 #include "playmode.h"
 
-class Usi;
 
 /**
  * @brief UI/描画系の委譲コールバック群
@@ -24,9 +23,7 @@ class Usi;
  * 子ハンドラ（GameEndHandler, GameStartOrchestrator, EngineLifecycleManager 等）にも
  * パススルーされる。
  *
- * @note MatchCoordinatorHooksFactory::buildHooks() で一括生成される。
- *       入力は MainWindowMatchWiringDepsService::buildDeps() → HookDeps。
- * @see MatchCoordinatorHooksFactory, MainWindowMatchWiringDepsService
+ * @note MainWindowServiceRegistry::buildMatchHooks() が組み立てる。
  */
 struct MatchCoordinatorHooks {
     /// UI更新・描画系コールバック
@@ -41,11 +38,6 @@ struct MatchCoordinatorHooks {
         std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
     };
 
-    /// USI送受系コールバック
-    struct Engine {
-        std::function<void(Usi* which)> sendStopToEngine;
-    };
-
     /// ゲーム初期化・棋譜系コールバック
     struct Game {
         std::function<void(const QString& sfenStart)> initializeNewGame;
@@ -56,7 +48,6 @@ struct MatchCoordinatorHooks {
     };
 
     UI ui;         ///< UI更新・描画系
-    Engine engine; ///< USI送受系
     Game game;     ///< ゲーム初期化・棋譜系
 };
 

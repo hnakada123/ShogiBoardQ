@@ -15,7 +15,6 @@
 
 class ShogiClock;
 class ShogiGameController;
-class KifuLoadCoordinator;
 
 /**
  * @brief 対局開始フローを司るコーディネータ
@@ -84,7 +83,6 @@ public:
 
         KifuRecordListModel* kifuModel  = nullptr;           ///< 棋譜欄モデル
         QStringList*         sfenRecord = nullptr;           ///< SFEN履歴リスト
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;  ///< 分岐構造の設定用
 
         bool                 isReplayMode = false;           ///< 再生モード中は時計を動かさない
 
@@ -134,7 +132,6 @@ public:
         );
 
     /// MatchCoordinator ポインタを外部（MCW）からセットする
-    void setMatch(MatchCoordinator* match);
 
     /// 盤面ビュー操作コールバックを設定する
     void setViewHooks(const ViewHooks& hooks);
@@ -181,7 +178,7 @@ signals:
     /// 対局開始後に棋譜欄の指定行を選択する（現在局面から開始時に使用）
     void requestSelectKifuRow(int row);
 
-    /// 分岐ツリーの完全リセットを依頼（kifuLoadCoordinator が null の場合用）
+    /// 分岐ツリーの完全リセットを依頼（平手・駒落ちから新規対局を始めるとき）
     void requestBranchTreeResetForNewGame();
 
 private:

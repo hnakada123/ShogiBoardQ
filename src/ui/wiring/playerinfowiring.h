@@ -52,7 +52,8 @@ public:
         QString* engineName1 = nullptr;
         QString* engineName2 = nullptr;
         QString* startSfenStr = nullptr;
-        TimeControlController** timeControllerRef = nullptr;
+        /// 時間設定（起動の途中で作られるので、使うときに取得する）
+        std::function<TimeControlController*()> getTimeController;
         std::function<void()> markGameRecordDirty;
         /// 読み込んだ棋譜の途中局面から対局を続けているか（棋譜の対局情報を残す判定）
         std::function<bool()> continuesExistingRecord;
@@ -286,7 +287,7 @@ private:
     QString* m_engineName1 = nullptr;
     QString* m_engineName2 = nullptr;
     QString* m_startSfenStr = nullptr;
-    TimeControlController** m_timeControllerRef = nullptr;
+    std::function<TimeControlController*()> m_getTimeController;
     std::function<bool()> m_continuesExistingRecord;
     std::function<void(const QString&)> m_setContinuationNote;
 

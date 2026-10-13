@@ -12,7 +12,6 @@
 
 #include "matchcoordinator.h"
 #include "gamestartcoordinator.h"
-#include "matchcoordinatorhooksfactory.h"
 
 class GameSessionOrchestrator;
 class SessionLifecycleCoordinator;
@@ -31,7 +30,6 @@ class TimeControlController;
 class UiStatePolicyManager;
 class BoardInteractionController;
 class KifuRecordListModel;
-class GameSessionFacade;
 class MainWindowAppearanceController;
 class KifuNavigationCoordinator;
 class BranchNavigationWiring;
@@ -55,8 +53,6 @@ public:
         // --- MatchCoordinator::Deps 構築用 ---
         ShogiGameController* gc = nullptr;
         ShogiView* view = nullptr;
-        Usi* usi1 = nullptr;
-        Usi* usi2 = nullptr;
         UsiCommLogModel* comm1 = nullptr;
         ShogiEngineThinkingModel* think1 = nullptr;
         UsiCommLogModel* comm2 = nullptr;
@@ -75,7 +71,7 @@ public:
         KifuRecordListModel* kifuRecordModel = nullptr;
 
         // --- Pre-built hooks（MainWindow が構築） ---
-        MatchCoordinator::Hooks hooks;             ///< MC 用コールバック群（HooksFactory で生成済み）
+        MatchCoordinator::Hooks hooks;             ///< MC 用コールバック群（MainWindowServiceRegistry::buildMatchHooks）
         MatchCoordinator::UndoHooks undoHooks;      ///< UNDO 用コールバック群
 
         // --- 遅延初期化コールバック ---
@@ -94,59 +90,11 @@ public:
         std::function<UiStatePolicyManager*()> getUiStatePolicy;          ///< UiStatePolicyManager 取得
     };
 
-    /// MainWindow から渡されるコールバック・ポインタ群（buildDeps の入力）
-    struct BuilderInputs {
-        // --- HookDeps 構築用コールバック ---
-        MatchCoordinatorHooksFactory::HookDeps hookDeps;
-        MatchCoordinatorHooksFactory::UndoDeps undoDeps;
-
-        // --- Deps に直接設定する値 ---
-        ShogiGameController* gc = nullptr;
-        ShogiView* view = nullptr;
-        Usi* usi1 = nullptr;
-        Usi* usi2 = nullptr;
-        UsiCommLogModel* comm1 = nullptr;
-        ShogiEngineThinkingModel* think1 = nullptr;
-        UsiCommLogModel* comm2 = nullptr;
-        ShogiEngineThinkingModel* think2 = nullptr;
-        QStringList* sfenRecord = nullptr;
-        PlayMode* playMode = nullptr;
-
-        TimeDisplayPresenter* timePresenter = nullptr;
-        BoardInteractionController* boardController = nullptr;
-
-        KifuRecordListModel* kifuRecordModel = nullptr;
-        QList<ShogiMove>* gameMoves = nullptr;
-
-        // --- 遅延初期化コールバック ---
-        std::function<void()> ensureTimeController;
-        std::function<void()> ensureEvaluationGraphController;
-        std::function<void()> ensureUsiCommandController;
-        std::function<void()> ensureUiStatePolicyManager;
-        std::function<void()> connectBoardClicks;
-        std::function<void()> connectMoveRequested;
-
-        // --- 遅延初期化オブジェクトのゲッター ---
-        std::function<ShogiClock*()> getClock;
-        std::function<TimeControlController*()> getTimeController;
-        std::function<EvaluationGraphController*()> getEvalGraphController;
-        std::function<UiStatePolicyManager*()> getUiStatePolicy;
-    };
-
-    /// BuilderInputs から Deps を構築する
-    static Deps buildDeps(const BuilderInputs& inputs);
-
     explicit MatchCoordinatorWiring(QObject* parent = nullptr);
     ~MatchCoordinatorWiring() override;
 
     void updateDeps(const Deps& deps);
 
-    /**
-     * @brief MatchCoordinator/GameStartCoordinatorの生成と全配線を行う
-     *
-     * GameStartCoordinatorは初回のみ生成し、MatchCoordinatorは毎回再生成する。
-     */
-    void wireConnections();
 
     /**
      * @brief メニュー操作用 GameStartCoordinator を遅延生成し配線する
@@ -157,13 +105,13 @@ public:
     void ensureMenuGameStartCoordinator();
 
     /**
-     * @brief GameSessionFacade を介した MatchCoordinator の構築・初期化
+     * @brief MatchCoordinator を初回だけ作り、実行時の依存（モデル・時計・盤操作など）を結び直す
      *
-     * MainWindow::initMatchCoordinator() から委譲される。
-     * @param ensureWiringCallback Deps更新を行うコールバック（MainWindow::ensureMatchCoordinatorWiring）
-     * @return 初期化成功なら true
+     * MainWindowServiceRegistry::initMatchCoordinator() から呼ばれる。司令塔は作り直さない。
+     * 2回目以降は局面の履歴を初期状態に戻す（MatchCoordinator::resetPositionHistory）。
+     * @return 依存（盤・ゲームコントローラ）が揃っていれば true
      */
-    bool initializeSession(std::function<void()> ensureWiringCallback);
+    bool initializeSession();
 
     /// wireForwardingSignals に渡す接続先ポインタ群
     struct ForwardingTargets {
@@ -239,13 +187,14 @@ signals:
     void requestBranchTreeResetForNewGame();
 
 private:
-    void createMatchCoordinator(const MatchCoordinator::Deps& deps);
+    /// 司令塔を作り、司令塔からこのクラスへの転送シグナルをつなぐ（一度だけ）
+    void createMatchCoordinator();
+    /// 司令塔と、起動の途中で作られる部品（時計・評価値グラフ・盤操作など）との接続を結び直す（何度呼んでもよい）
+    void bindRuntimeDependencies();
 
     // --- Deps から取り出したメンバ ---
     ShogiGameController* m_gc = nullptr;
     ShogiView* m_view = nullptr;
-    Usi* m_usi1 = nullptr;
-    Usi* m_usi2 = nullptr;
     UsiCommLogModel* m_comm1 = nullptr;
     ShogiEngineThinkingModel* m_think1 = nullptr;
     UsiCommLogModel* m_comm2 = nullptr;
@@ -277,9 +226,7 @@ private:
     // --- 内部管理オブジェクト ---
     GameStartCoordinator* m_menuGameStart = nullptr;
     std::unique_ptr<MatchCoordinator> m_match;
-    QMetaObject::Connection m_timeConn;
     QMetaObject::Connection m_clockConn;
-    std::unique_ptr<GameSessionFacade> m_sessionFacade;
 };
 
 #endif // MATCHCOORDINATORWIRING_H

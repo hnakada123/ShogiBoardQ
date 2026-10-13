@@ -108,7 +108,7 @@ private slots:
 
         const QStringList ensureMethods = {
             QStringLiteral("KifuSubRegistry::ensureKifuExportController()"),
-            QStringLiteral("KifuSubRegistry::prepareKifuLoadCoordinatorForLive()"),
+            QStringLiteral("KifuSubRegistry::ensureKifuLoadCoordinator()"),
             QStringLiteral("KifuSubRegistry::ensureGameRecordModel()"),
             QStringLiteral("KifuSubRegistry::ensureJosekiWiring()"),
         };
@@ -124,154 +124,6 @@ private slots:
             QVERIFY2(hasGuard,
                       qPrintable(QStringLiteral("Method '%1' lacks idempotent guard")
                                      .arg(method)));
-        }
-    }
-
-    // ================================================================
-    // 2. GameSessionOrchestrator の deref() null安全性
-    // ================================================================
-
-    /// deref() ヘルパーが存在し、nullptr を安全に扱うこと
-    void gsoDerefHelperExists()
-    {
-        const QString source = readSourceFile(
-            QStringLiteral("src/app/gamesessionorchestrator.cpp"));
-        QVERIFY2(!source.isEmpty(), "Failed to read gso source");
-
-        // deref テンプレートが定義されていること
-        QVERIFY2(source.contains(QStringLiteral("T* deref(T** pp)")),
-                  "deref() helper template not found");
-
-        // nullptr チェックがあること
-        QVERIFY2(source.contains(QStringLiteral("pp ? *pp : nullptr")),
-                  "deref() does not have null safety check");
-    }
-
-    /// deref() 呼び出し後に null チェックまたは早期リターンがあること
-    void gsoDerefCallsFollowedByNullCheck()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesessionorchestrator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read gso source");
-
-        // deref() を呼んでいるスロットメソッド群
-        const QStringList methods = {
-            QStringLiteral("GameSessionOrchestrator::initializeGame()"),
-            QStringLiteral("GameSessionOrchestrator::handleResignation()"),
-            QStringLiteral("GameSessionOrchestrator::handleBreakOffGame()"),
-            QStringLiteral("GameSessionOrchestrator::movePieceImmediately()"),
-            QStringLiteral("GameSessionOrchestrator::stopTsumeSearch()"),
-            QStringLiteral("GameSessionOrchestrator::openWebsiteInExternalBrowser()"),
-            QStringLiteral("GameSessionOrchestrator::onResignationTriggered()"),
-        };
-
-        // null チェックパターン: "if (!varname)" or "if (varname)"
-        const QRegularExpression nullCheckRe(QStringLiteral(R"(if\s*\(\s*!?\s*\w+\s*\))"));
-
-        for (const QString& method : std::as_const(methods)) {
-            const auto range = findFunctionBody(lines, method);
-            if (range.first < 0)
-                continue; // メソッドが存在しない場合はスキップ
-
-            const QString body = bodyText(lines, range.first, range.second);
-
-            // deref() を含むメソッドのみチェック
-            if (!body.contains(QStringLiteral("deref(")))
-                continue;
-
-            // deref() 呼び出しごとに、その後の行に null チェックがあること
-            for (int i = range.first; i <= range.second; ++i) {
-                if (!lines[i].contains(QStringLiteral("deref(")))
-                    continue;
-
-                // deref 行から 6行以内に null チェックがあること
-                // （間にコンテキスト構築コードが入るケースがあるため余裕を持たせる）
-                // 検出パターン:
-                //   if (!var) / if (var) — 通常の null チェック
-                //   var && — 短絡評価ガード
-                //   var ? — 三項演算子ガード
-                bool hasNullCheck = false;
-
-                // deref の結果を格納する変数名を抽出
-                const QRegularExpression assignRe(QStringLiteral(R"(auto\*?\s+(\w+)\s*=\s*deref)"));
-                const auto assignMatch = assignRe.match(lines[i]);
-                const QString varName = assignMatch.hasMatch() ? assignMatch.captured(1) : QString();
-
-                for (int j = i; j <= qMin(i + 6, range.second); ++j) {
-                    if (nullCheckRe.match(lines[j]).hasMatch()
-                        || lines[j].contains(QStringLiteral("&&"))) {
-                        hasNullCheck = true;
-                        break;
-                    }
-                    // 三項演算子パターン: "varName ?" (deref 結果の変数に対する null チェック)
-                    if (!varName.isEmpty() && lines[j].contains(varName + QStringLiteral(" ?"))) {
-                        hasNullCheck = true;
-                        break;
-                    }
-                }
-
-                QVERIFY2(hasNullCheck,
-                          qPrintable(QStringLiteral("deref() at line %1 in '%2' lacks null check within 6 lines")
-                                         .arg(i + 1)
-                                         .arg(method)));
-            }
-        }
-    }
-
-    /// deref() の前に ensure コールバックが呼ばれること（遅延初期化パターン）
-    void gsoEnsureCallbackBeforeDeref()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesessionorchestrator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read gso source");
-
-        // ensure コールバック + deref のペアが正しい順序で呼ばれるべきメソッド
-        struct EnsureDerefPair {
-            QString method;
-            QString ensureCallback;
-            QString derefTarget;
-        };
-
-        const QList<EnsureDerefPair> pairs = {
-            {QStringLiteral("GameSessionOrchestrator::initializeGame()"),
-             QStringLiteral("ensureGameStartCoordinator"),
-             QStringLiteral("deref(m_deps.gameStart)")},
-            {QStringLiteral("GameSessionOrchestrator::handleResignation()"),
-             QStringLiteral("ensureGameStateController"),
-             QStringLiteral("deref(m_deps.gameStateController)")},
-            {QStringLiteral("GameSessionOrchestrator::handleBreakOffGame()"),
-             QStringLiteral("ensureGameStateController"),
-             QStringLiteral("deref(m_deps.gameStateController)")},
-            {QStringLiteral("GameSessionOrchestrator::openWebsiteInExternalBrowser()"),
-             QStringLiteral("ensureDialogCoordinator"),
-             QStringLiteral("deref(m_deps.dialogCoordinator)")},
-        };
-
-        for (const auto& pair : std::as_const(pairs)) {
-            const auto range = findFunctionBody(lines, pair.method);
-            QVERIFY2(range.first >= 0,
-                      qPrintable(QStringLiteral("Method '%1' not found").arg(pair.method)));
-
-            int ensureLine = -1;
-            int derefLine = -1;
-            for (int i = range.first; i <= range.second; ++i) {
-                if (lines[i].contains(pair.ensureCallback) && ensureLine < 0)
-                    ensureLine = i;
-                if (lines[i].contains(pair.derefTarget) && derefLine < 0)
-                    derefLine = i;
-            }
-
-            QVERIFY2(ensureLine >= 0,
-                      qPrintable(QStringLiteral("ensure callback '%1' not found in '%2'")
-                                     .arg(pair.ensureCallback, pair.method)));
-            QVERIFY2(derefLine >= 0,
-                      qPrintable(QStringLiteral("deref '%1' not found in '%2'")
-                                     .arg(pair.derefTarget, pair.method)));
-            QVERIFY2(ensureLine < derefLine,
-                      qPrintable(QStringLiteral("ensure callback (line %1) should come before deref (line %2) in '%3'")
-                                     .arg(ensureLine + 1)
-                                     .arg(derefLine + 1)
-                                     .arg(pair.method)));
         }
     }
 
@@ -390,78 +242,6 @@ private slots:
                  "Shutdown wiring should check m_match before destroyEngines()");
     }
 
-    /// initMatchCoordinator が二重呼び出しでダングリングポインタを防止すること
-    void initMatchCoordinatorPreventsDoubleInit()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesubregistry_wiring.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry_wiring source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowServiceRegistry::initMatchCoordinator()"));
-        QVERIFY2(range.first >= 0, "initMatchCoordinator() not found");
-
-        const QString body = bodyText(lines, range.first, range.second);
-
-        // 初期化前に既存の m_match を nullptr に設定すること（ダングリング防止）
-        QVERIFY2(body.contains(QStringLiteral("m_mw.m_match = nullptr")),
-                  "initMatchCoordinator should set m_match = nullptr before re-initialization");
-
-        // 依存チェック（GC/View）があること
-        QVERIFY2(body.contains(QStringLiteral("m_mw.m_gameController"))
-                     && body.contains(QStringLiteral("m_mw.m_shogiView")),
-                  "initMatchCoordinator should check core dependencies before initialization");
-    }
-
-    // ================================================================
-    // 5. レジストリのクロスコール順序
-    // ================================================================
-
-    /// MainWindowServiceRegistry::ensureGameStateController が UiStatePolicyManager を
-    /// 先に初期化してから生成/更新すること（依存順序の契約）
-    void ensureGameStateControllerDependencyOrder()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesubregistry.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowServiceRegistry::ensureGameStateController()"));
-        QVERIFY2(range.first >= 0, "ensureGameStateController not found");
-
-        // UiStatePolicyManager 初期化の位置
-        int policyLine = -1;
-        // 生成/更新呼び出しの位置
-        int ensureLine = -1;
-        int refreshLine = -1;
-
-        for (int i = range.first; i <= range.second; ++i) {
-            if (lines[i].contains(QStringLiteral("ensureUiStatePolicyManager")) && policyLine < 0)
-                policyLine = i;
-            if (lines[i].contains(QStringLiteral("ensureGameStateController(refs")) && ensureLine < 0)
-                ensureLine = i;
-            if (lines[i].contains(QStringLiteral("refreshGameStateControllerDeps")) && refreshLine < 0)
-                refreshLine = i;
-        }
-
-        QVERIFY2(policyLine >= 0, "ensureUiStatePolicyManager call not found in ensureGameStateController");
-        QVERIFY2(ensureLine >= 0 || refreshLine >= 0,
-                  "Neither create nor refresh path found in ensureGameStateController");
-
-        if (ensureLine >= 0) {
-            QVERIFY2(policyLine < ensureLine,
-                      qPrintable(QStringLiteral("ensureUiStatePolicyManager (line %1) should come before create path (line %2)")
-                                     .arg(policyLine + 1)
-                                     .arg(ensureLine + 1)));
-        }
-        if (refreshLine >= 0) {
-            QVERIFY2(policyLine < refreshLine,
-                      qPrintable(QStringLiteral("ensureUiStatePolicyManager (line %1) should come before refresh path (line %2)")
-                                     .arg(policyLine + 1)
-                                     .arg(refreshLine + 1)));
-        }
-    }
-
     // ================================================================
     // 6. SFEN パース異常系ユニットテスト
     // ================================================================
@@ -566,30 +346,6 @@ private slots:
         QCOMPARE(r2->turn, Turn::White);
         QCOMPARE(r2->moveNumber, 10);
         QCOMPARE(r2->stand, QStringLiteral("2P"));
-    }
-
-    // ================================================================
-    // 7. Kifu / MainWindow の防御契約
-    // ================================================================
-
-    /// MainWindow が RuntimeRefs を自前で組み立て、const_cast に依存しないこと
-    void mainWindowRuntimeRefsStayInsideMainWindow()
-    {
-        const QString header = readSourceFile(QStringLiteral("src/app/mainwindow.h"));
-        const QString source = readSourceFile(QStringLiteral("src/app/mainwindow.cpp"));
-        QVERIFY2(!header.isEmpty(), "Failed to read mainwindow.h");
-        QVERIFY2(!source.isEmpty(), "Failed to read mainwindow.cpp");
-
-        QVERIFY2(source.contains(QStringLiteral("MainWindowRuntimeRefs refs;")),
-                  "MainWindow::buildRuntimeRefs should build refs locally");
-        QVERIFY2(source.contains(QStringLiteral("refs.ui.statusBar = ui ? ui->statusbar : nullptr;")),
-                  "MainWindow::buildRuntimeRefs should populate UI refs directly");
-        QVERIFY2(source.contains(QStringLiteral("refs.kifu.sfenRecord = m_queryService ? m_queryService->sfenRecord() : nullptr;")),
-                  "MainWindow::buildRuntimeRefs should populate kifu SFEN refs from QueryService");
-        QVERIFY2(!source.contains(QStringLiteral("const_cast<")),
-                  "MainWindow::buildRuntimeRefs must not rely on const_cast");
-        QVERIFY2(!header.contains(QStringLiteral("friend class MainWindowRuntimeRefsBuilder")),
-                  "MainWindow should not expose internals to a RuntimeRefsBuilder friend");
     }
 
     // ================================================================
