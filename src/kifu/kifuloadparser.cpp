@@ -113,24 +113,6 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, Format format, con
     };
     attachContext(record.mainline);
     for (auto& variation : record.variations) attachContext(variation.line);
-    const auto& line = record.mainline;
-    const QString terminalText = line.disp.isEmpty() ? QString() : line.disp.last().prettyMove;
-    const QStringList terminals = {QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-        QStringLiteral("千日手"), QStringLiteral("切れ負け"), QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"), QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰")};
-    bool hasTerminal = line.endsWithTerminal;
-    for (const auto& terminal : terminals) hasTerminal |= terminalText.contains(terminal);
-    result.sfens = SfenPositionTracer::buildSfenRecord(result.initialSfen, line.usiMoves, hasTerminal);
-    if (canceled(cancel)) return result;
-    result.moves = SfenPositionTracer::buildGameMoves(result.initialSfen, line.usiMoves);
-    QString command = QStringLiteral("position sfen %1").arg(result.initialSfen);
-    result.positionCommands.append(command);
-    command += QStringLiteral(" moves");
-    for (const auto& move : line.usiMoves) {
-        if (canceled(cancel)) break;
-        command += QLatin1Char(' ') + move;
-        result.positionCommands.append(command);
-    }
     return result;
 }
 

@@ -14,9 +14,7 @@ void logImportSummary(const QString& filePath,
                       const QList<KifDisplayItem>& disp,
                       const QString& teaiLabel,
                       const QString& warnParse,
-                      const QString& warnConvert,
-                      const QStringList* sfenHistory,
-                      const QList<ShogiMove>* gameMoves)
+                      const QString& warnConvert)
 {
     if (!warnParse.isEmpty())
         qCWarning(lcKifu).noquote() << "parse warnings:\n" << warnParse.trimmed();
@@ -45,21 +43,6 @@ void logImportSummary(const QString& filePath,
         if (!it.comment.trimmed().isEmpty()) {
             qCDebug(lcKifu).noquote() << QStringLiteral("  └ コメント: %1")
                                              .arg(it.comment.trimmed());
-        }
-    }
-
-    if (sfenHistory) {
-        for (int i = 0; i < qMin(12, sfenHistory->size()); ++i) {
-            qCDebug(lcKifu).noquote() << QStringLiteral("%1) %2")
-            .arg(i)
-                .arg(sfenHistory->at(i));
-        }
-    }
-
-    if (gameMoves) {
-        qCDebug(lcKifu) << "gameMoves size:" << gameMoves->size();
-        for (qsizetype i = 0; i < gameMoves->size(); ++i) {
-            qCDebug(lcKifu).noquote() << QString("%1) ").arg(i + 1) << (*gameMoves)[i];
         }
     }
 }

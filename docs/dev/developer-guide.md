@@ -229,7 +229,8 @@ src/
 │   ├── shogimove.cpp/.h            #   指し手の表現
 │   ├── fastmovevalidator.cpp/.h        #   合法手判定
 │   ├── shogiclock.cpp/.h           #   対局時計
-│   ├── shogiutils.cpp/.h           #   ユーティリティ関数
+│   ├── shoginotation.h             #   棋譜の表記（筋・段・駒の名前・CSA の駒種）
+│   ├── kifmovetext.h               #   KIF 形式の指し手の文字列
 │   ├── sfenutils.h                 #   SFEN文字列操作
 │   ├── playmode.h                  #   プレイモード定義
 │   └── legalmovestatus.h           #   合法手判定の状態
@@ -257,7 +258,8 @@ src/
 │   ├── kifuexportcontroller.cpp/.h #   棋譜エクスポート制御
 │   ├── kifuclipboardservice.cpp/.h #   クリップボード操作
 │   ├── kifucontentbuilder.cpp/.h   #   棋譜コンテンツ構築
-│   ├── kifunavigationstate.cpp/.h  #   ナビゲーション状態
+│   ├── kifunavigationstate.cpp/.h  #   ナビゲーション状態（棋譜のカーソル）
+│   ├── recordline.h                #   分岐ツリーの1本の手順の値（RecordLine）
 │   ├── kifreader.cpp/.h            #   棋譜ファイル読み込み
 │   ├── shogiinforecord.cpp/.h      #   対局情報レコード
 │   ├── kifdisplayitem.h            #   棋譜表示アイテム定義
@@ -497,25 +499,24 @@ tests/
 
 #### 座標表記の変換
 
-日本語の棋譜表記では筋を全角数字、段を漢数字で表す。`shogiutils.cpp` に変換関数がある。
+日本語の棋譜表記では筋を全角数字、段を漢数字で表す。`src/core/shoginotation.h`（`ShogiNotation` 名前空間、ヘッダーだけ）に変換関数がある。
 
 ```cpp
-// src/core/shogiutils.cpp
+// src/core/shoginotation.h
 
-// 段番号（1〜9）→ 漢字（"一"〜"九"）
-QString transRankTo(const int rankTo)
+// 筋番号（1〜9）→ 全角数字（"１"〜"９"。範囲外は空文字列）
+inline QString fileZenkaku(int file)
 {
-    static const QStringList rankStrings = { "", "一", "二", "三", "四", "五", "六", "七", "八", "九" };
-    // ...
-    return rankStrings.at(rankTo);
+    if (file < 1 || file > 9) return {};
+    return QString(QChar(u'０' + file));
 }
 
-// 筋番号（1〜9）→ 全角数字（"１"〜"９"）
-QString transFileTo(const int fileTo)
+// 段番号（1〜9）→ 漢数字（"一"〜"九"。範囲外は空文字列）
+inline QString rankKanji(int rank)
 {
-    static const QStringList fileStrings = { "", "１", "２", "３", "４", "５", "６", "７", "８", "９" };
-    // ...
-    return fileStrings.at(fileTo);
+    static const char16_t kanji[] = {u'一', u'二', u'三', u'四', u'五', u'六', u'七', u'八', u'九'};
+    if (rank < 1 || rank > 9) return {};
+    return QString(QChar(kanji[rank - 1]));
 }
 ```
 
@@ -545,9 +546,9 @@ struct ShogiMove {
 **変換式**: 内部値 + 1 = 外部値
 
 ```cpp
-// src/core/shogiutils.cpp — moveToUsi() より
-const int toFile = toX + 1;          // 0-indexed → 1-indexed
-const QChar toRank = QChar('a' + toY); // 0 → 'a', 8 → 'i'
+// src/core/shogimove.cpp — ShogiMove::toUsiMove() より
+move.to = BoardSquare{toSquare.x() + 1, toSquare.y() + 1};  // 0-indexed → 1-indexed
+// 段の 'a'〜'i' への変換は UsiMove::toString()（src/core/usimove.h）が行う
 ```
 
 `ShogiBoard` の盤面データは1次元配列 `QVector<QChar> m_boardData`（81要素）で保持される。
@@ -806,30 +807,31 @@ USI（Universal Shogi Interface）プロトコルで使用される指し手表�
 - 駒打ちの駒文字は常に**大文字**（先手・後手問わず）
 - 駒打ちでは `fromSquare.x()` が `9`（先手駒台）または `10`（後手駒台）
 
+`ShogiMove` から USI 文字列への変換は、`ShogiMove::toUsiMove()` で `UsiMove`（USI と1対1の値）にしてから `UsiMove::toString()` で文字列にする。USI の読み書きの実装は `UsiMove::parse()` と `toString()` だけである。
+
 ```cpp
-// src/core/shogiutils.cpp — moveToUsi()
-
-QString moveToUsi(const ShogiMove& move)
+// src/core/shogimove.cpp — ShogiMove::toUsiMove()
+UsiMove ShogiMove::toUsiMove() const
 {
-    const int toFile = toX + 1;
-    const QChar toRank = QChar('a' + toY);
-
-    // 駒打ち: fromXが9（先手駒台）または10（後手駒台）
-    if (fromX == 9 || fromX == 10) {
-        QChar piece = move.movingPiece.toUpper();
-        return QStringLiteral("%1*%2%3").arg(piece).arg(toFile).arg(toRank);
+    UsiMove move;
+    move.to = BoardSquare{toSquare.x() + 1, toSquare.y() + 1};
+    if (fromSquare.x() >= 9) {                       // 駒台（9=先手、10=後手）からの駒打ち
+        move.drop = toBlack(demote(movingPiece));
+    } else {
+        move.from = BoardSquare{fromSquare.x() + 1, fromSquare.y() + 1};
+        move.promote = isPromotion;
     }
+    return move;
+}
 
-    // 通常移動
-    const int fromFile = fromX + 1;
-    const QChar fromRank = QChar('a' + fromY);
-    QString usi = QStringLiteral("%1%2%3%4")
-                      .arg(fromFile).arg(fromRank).arg(toFile).arg(toRank);
-
-    if (move.isPromotion) {
-        usi += QLatin1Char('+');
-    }
-    return usi;
+// src/core/usimove.h — UsiMove::toString()
+QString UsiMove::toString() const
+{
+    if (!isValid()) return {};
+    if (isDrop()) return pieceToChar(drop) + QStringLiteral("*") + UsiNotation::squareText(to);
+    QString text = UsiNotation::squareText(from) + UsiNotation::squareText(to);
+    if (promote) text += QLatin1Char('+');
+    return text;
 }
 ```
 
@@ -920,10 +922,11 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める。いずれ�
 |------|------|---------|
 | 内部(0-8) → USI筋 | +1 | `file + 1` → `1`〜`9` |
 | 内部(0-8) → USI段 | 'a'+値 | `QChar('a' + rank)` → `a`〜`i` |
-| 内部(0-8) → 日本語筋 | `transFileTo(file+1)` | → `"１"`〜`"９"` |
-| 内部(0-8) → 日本語段 | `transRankTo(rank+1)` | → `"一"`〜`"九"` |
-| 全角数字 → 数値 | `parseFullwidthFile(ch)` | `"１"` → `1` |
-| 漢数字 → 数値 | `parseKanjiRank(ch)` | `"一"` → `1` |
+| 内部(0-8) → 日本語筋 | `ShogiNotation::fileZenkaku(file+1)` | → `"１"`〜`"９"` |
+| 内部(0-8) → 日本語段 | `ShogiNotation::rankKanji(rank+1)` | → `"一"`〜`"九"` |
+| 全角数字 → 数値 | `ShogiNotation::fileFromZenkaku(ch)` | `"１"` → `1` |
+| 漢数字 → 数値 | `ShogiNotation::rankFromKanji(ch)` | `"一"` → `1` |
+| `ShogiMove` → USI | `move.toUsiMove().toString()` | → `"7g7f"` |
 | file,rank → 配列index | `(rank-1)*9 + (file-1)` | 1-indexed入力 |
 
 <!-- chapter-2-end -->
@@ -1698,17 +1701,14 @@ public:
         ShogiGameController* gc = nullptr;
         ShogiView* view = nullptr;
         BoardInteractionController* bic = nullptr;
-        const QStringList* sfenRecord = nullptr;
-        const QVector<ShogiMove>* gameMoves = nullptr;
+        std::function<RecordLine()> currentLine;   // 表示中の手順（KifuNavigationState::currentRecordLine）
     };
 
     explicit BoardSyncPresenter(const Deps& deps, QObject* parent = nullptr);
 
-    void applySfenAtPly(int ply) const;                // SFEN適用→盤描画
-    void syncBoardAndHighlightsAtRow(int ply) const;   // 盤描画＋ハイライト一括
-    void clearHighlights() const;                       // ハイライトクリア
+    void syncBoardAndHighlightsAtRow(int ply) const;   // 表示中の手順の ply 手目を描いてハイライト
     void loadBoardWithHighlights(const QString& currentSfen,
-                                  const QString& prevSfen) const; // 分岐ナビゲーション用
+                                  const QString& prevSfen) const; // 指定の局面を描いてハイライト
 };
 ```
 
@@ -1976,7 +1976,9 @@ src/core/
 ├── playmode.h                対局モード列挙
 ├── legalmovestatus.h         合法手存在状態
 ├── sfenutils.h               SFEN文字列ユーティリティ
-└── shogiutils.h / .cpp       座標変換・USI変換等の共通関数
+├── usimove.h                 USI と1対1の指し手の値（UsiMove / BoardSquare）
+├── shoginotation.h           棋譜の表記（筋・段・駒の名前・CSA の駒種）
+└── kifmovetext.h             KIF 形式の指し手の文字列
 ```
 
 ### 5.2 ShogiBoard — 盤面データ管理
@@ -2093,7 +2095,7 @@ rank 8 [L][N][S][G][K][G][S][N][L]
 
 #### USI文字列との変換
 
-USI形式への変換は `ShogiUtils::moveToUsi()` が担当する。
+USI形式への変換は `ShogiMove::toUsiMove()`（`UsiMove` にする）と `UsiMove::toString()` が担当する。
 
 | 指し手の種類 | USI表記例 | fromSquare | toSquare |
 |-------------|----------|------------|----------|
@@ -2101,7 +2103,7 @@ USI形式への変換は `ShogiUtils::moveToUsi()` が担当する。
 | 盤上移動（成り） | `8h2b+` | (1, 7) | (7, 1) |
 | 駒打ち | `P*3d` | (9, ※) | (6, 3) |
 
-`moveToUsi()` は内部で座標系を0-indexed から USI の1-indexed/a-i表記に変換する。成りの場合は末尾に `+` を付加し、駒打ちの場合は `駒文字*移動先` の形式を生成する。
+`toUsiMove()` は座標系を0-indexed から1-indexed に変換し、`toString()` が段を a-i 表記にする。成りの場合は末尾に `+` を付加し、駒打ちの場合は `駒文字*移動先` の形式を生成する。逆向きは `ShogiMove::fromUsiMove()` が行う。
 
 ### 5.4 FastMoveValidator — 合法手判定
 
@@ -2306,7 +2308,7 @@ enum class PlayMode {
 
 この列挙型は game層・UI層・engine層の各所で参照され、「現在の対局形態がどれか」に応じて振る舞いを切り替えるキーとなる。たとえば、`MatchCoordinator` は着手後に次の手番がエンジンか人間かを `PlayMode` で判定し、エンジンへの思考開始指示や手番表示の切替を行う。
 
-### 5.7 SfenUtils / ShogiUtils — ユーティリティ
+### 5.7 SfenUtils / ShogiNotation / KifMoveText — ユーティリティ
 
 #### SfenUtils
 
@@ -2319,21 +2321,30 @@ SfenUtils::normalizeStart("startpos")
 // → "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
 ```
 
-#### ShogiUtils
+#### ShogiNotation
 
-**ソース**: `src/core/shogiutils.h`, `src/core/shogiutils.cpp`
+**ソース**: `src/core/shoginotation.h`（ヘッダオンリー）
 
-座標表記の変換、USI形式への指し手変換、棋譜ラベルの解析などの共通関数をまとめた名前空間である。
+棋譜の表記の対応表をまとめた名前空間である。対局の棋譜・読み筋・局面図・棋譜の読み書き・通信対局で同じ表を使う。
 
 | 関数 | 説明 |
 |------|------|
-| `transRankTo(rank)` | 段番号（1〜9）→ 漢字（"一"〜"九"） |
-| `transFileTo(file)` | 筋番号（1〜9）→ 全角数字（"１"〜"９"） |
-| `moveToUsi(move)` | `ShogiMove` → USI文字列（例: `"7g7f"`, `"P*3d"`） |
-| `parseFullwidthFile(ch)` | 全角数字 → 1-9 |
-| `parseKanjiRank(ch)` | 漢数字 → 1-9 |
-| `parseMoveLabel(label, &file, &rank)` | 指し手ラベルから移動先座標を解析 |
-| `parseMoveCoordinateFromModel(model, row, &file, &rank)` | 棋譜モデルから座標を解析（「同」の遡り対応） |
+| `fileZenkaku(file)` | 筋番号（1〜9）→ 全角数字（"１"〜"９"） |
+| `rankKanji(rank)` | 段番号（1〜9）→ 漢数字（"一"〜"九"） |
+| `fileFromZenkaku(ch)` | 全角数字 → 1-9（それ以外は0） |
+| `rankFromKanji(ch)` | 漢数字 → 1-9（それ以外は0） |
+| `movePieceName(piece)` | 指し手の表記に使う駒の名前（成香・成桂・成銀は2文字） |
+| `boardPieceName(piece)` | 局面図（BOD）の1文字の駒の名前（杏・圭・全） |
+| `pieceFromName(name)` | 駒の名前（別表記も読む）→ 先手の駒 |
+| `csaPieceCode(piece)` / `pieceFromCsaCode(code, side)` | CSA の駒種との相互変換 |
+
+#### KifMoveText
+
+**ソース**: `src/core/kifmovetext.h`（ヘッダオンリー）
+
+`KifMoveText::format(mover, moving, move, previousTo)` が「▲７六歩(77)」「△同　銀(31)」「▲５五角打」の形の指し手を作る。`previousTo` が移動先と同じなら「同　」と書く。対局の棋譜・棋譜の読み込み・通信対局・定跡・詰将棋の読み筋で同じ書式を使う。
+
+USI 形式への指し手変換は `ShogiMove::toUsiMove()` と `UsiMove::toString()`（`src/core/usimove.h`）が行う（5.3 を参照）。
 
 ### 5.8 core層の他層との関係
 
@@ -2355,7 +2366,7 @@ core層は他の全層から参照されるが、core層自身は他層を参照
     │         core 層             │
     │  ShogiBoard  ShogiMove     │
     │  FastMoveValidator  ShogiClock │
-    │  PlayMode  ShogiUtils      │
+    │  PlayMode  ShogiNotation   │
     └─────────────────────────────┘
          ↑ 依存なし（QtCore のみ）
 ```
@@ -2702,7 +2713,7 @@ struct TimeSettings {
 
 `PreStartCleanupHandler` は対局開始前に UI とデータモデルを初期状態にリセットする。
 
-**ソース**: `src/game/prestartcleanuphandler.h`, `src/game/prestartcleanuphandler.cpp`
+**ソース**: `src/game/prestartcleanuphandler.h`, `src/app/prestartcleanuphandler.cpp`
 
 #### 接続方法
 
@@ -2717,7 +2728,11 @@ GameStartCoordinator::requestPreStartCleanup [signal]
 performCleanup()
   │
   ├── 現在の SFEN・選択手数・選択ノードを一時保存
-  │    （後続の selectStartRow() で上書きされる前に保存）
+  │    選択手数と選択ノードは分岐ツリーのカーソル（navState->currentPly() / currentNode()）から取る
+  │    （棋譜欄を作り直すと行選択の通知でカーソルが動くので、最初に控えた値を以降の判定に使う）
+  │
+  ├── resolveTerminalStartNode()
+  │     終局手（投了など）を選んでいたら直前の局面を開始位置にする（末尾の「中断」は取り除く）
   │
   ├── clearBoardAndHighlights()
   │     盤面のハイライトをすべて消去
@@ -2725,18 +2740,15 @@ performCleanup()
   ├── clearClockDisplay()
   │     時計表示を "00:00:00" にリセット
   │
-  ├── cleanupKifuModel(startFromCurrentPos, keepRow)
-  │     ├── 途中局面から開始 → 分岐ツリーのパスを辿り棋譜を再構築
+  ├── cleanupKifuModel(startFromCurrentPos)
+  │     ├── 途中局面から開始 → 分岐ツリーのパスを辿り棋譜を再構築（保持した最後の行を返す）
   │     └── 新規対局          → 棋譜モデルを全消去し「=== 開始局面 ===」を追加
   │
-  ├── updatePlyTracking(startFromCurrentPos, keepRow)
-  │     手数インデックス（activePly, selectedPly, moveIndex）を更新
+  ├── 新規対局なら navState->goToRoot()
+  │     表示中の手数（カーソル）を開始局面へ戻す。途中局面から始めるときは選んでいた局面のまま
   │
   ├── clearBranchModel()
   │     分岐モデルをクリア
-  │
-  ├── broadcastCommentRequested("", true) [signal]
-  │     コメント欄をクリア
   │
   ├── resetUsiLogModels()
   │     エンジン通信ログ・思考情報・予測手等をすべて初期化
@@ -2757,7 +2769,10 @@ performCleanup()
   └── startLiveGameSession()
         ├── 途中局面から → 保存したノードを分岐点としてセッション開始
         └── 新規対局     → ルートからセッション開始
+        （sessionStarted を受けた KifuDisplayCoordinator がカーソルを分岐点かルートに合わせる）
 ```
+
+対局の局面列・指し手列（`sfenRecord` / `gameMoves`）はここでは作らない。このハンドラより前に、`GameSessionOrchestrator::initializeGame()` が `MainWindowGameStartService::prepareForInitializeGame()` で表示中の手順（`KifuNavigationState::currentRecordLine()`）から作り直す（[対局開始フロー](game-start-flow.md) の 2 章）。
 
 #### 「現在の局面から開始」の判定
 
@@ -2962,11 +2977,11 @@ MatchCoordinator::gameEnded
 
 MatchCoordinator::gameOverStateChanged
     └──▶ GameStateController::onGameOverStateChanged()
-            ├── ライブ追記モード終了
-            ├── 分岐コンテキストリセット
-            ├── 分岐ツリー再構築
-            ├── 手数状態更新
-            └── UIを閲覧モードへ遷移
+            ├── 終局スタイルロックを有効化（終局行の追記前に検知した時点で）
+            ├── 終局行の追記を待ってから以降を行う
+            ├── syncCursorToPly(棋譜欄の最終行) で表示中の手数（分岐ツリーのカーソル）を終局行へ
+            ├── UIを閲覧モードへ遷移
+            └── ハイライト消去
 
 MatchCoordinator::requestAppendGameOverMove
     └──▶ GameStateController::onRequestAppendGameOverMove()
@@ -2975,14 +2990,14 @@ MatchCoordinator::requestAppendGameOverMove
 
 #### コールバック設定
 
-GameStateController は MainWindow への委譲を4種類の `std::function` コールバックで行う:
+GameStateController は MainWindow への委譲を `Hooks` 構造体の `std::function` で行う。主なもの:
 
-| コールバック | 用途 |
+| フック | 用途 |
 |-------------|------|
-| `EnableArrowButtonsCallback` | 矢印ボタン（前の手/次の手）の有効化 |
-| `SetReplayModeCallback` | リプレイモードへの切替 |
-| `RefreshBranchTreeCallback` | 分岐ツリーの再構築 |
-| `UpdatePlyStateCallback` | 手数状態（activePly, selectedPly, moveIndex）の更新 |
+| `enableArrowButtons` | 矢印ボタン（前の手/次の手）の有効化 |
+| `setReplayMode` | リプレイモードへの切替 |
+| `syncCursorToPly(int)` | 表示中の手数（分岐ツリーのカーソル）を指定の手数に合わせる（`KifuNavigationCoordinator::syncNavStateToPly()`） |
+| `updateBoardView` / `setGameOverStyleLock` / `setMouseClickMode` / `removeHighlightAllData` / `setKifuViewSingleSelection` | 盤面ビュー・棋譜欄の表示の切替 |
 
 #### isHumanSide() の判定ロジック
 
@@ -3889,7 +3904,35 @@ struct BranchLine {
 };
 ```
 
-`allLines()` で全ラインを取得でき、`getDisplayItemsForLine(lineIndex)` / `getSfenListForLine(lineIndex)` でライン単位のデータ抽出が可能。
+`allLines()` で全ラインを取得でき、`displayItemsForLine(lineIndex)` / `sfenListForLine(lineIndex)` でライン単位のデータ抽出が可能。
+
+#### RecordLine — 手順の値
+
+**ソース**: `src/kifu/recordline.h`（ヘッダオンリー）
+
+分岐ツリーの1本の手順を、ほかの機能が使う形にした値。検討・詰み探索・棋譜解析・定跡のマージ・読み筋の表示・書き出しは、局面列や指し手列を別々の一覧から探さずにこの値から取る。終局行（投了など）は含まない。
+
+```cpp
+struct RecordLine {
+    QStringList sfens;          // 開始局面（[0]）と各手の後の局面
+    QList<ShogiMove> moves;     // 各手（moves[i] は i+1 手目）
+    QStringList displayTexts;   // 各手の棋譜の表記
+    int currentPly = 0;         // 表示中の手数（0 は開始局面）
+
+    UsiMove usiMove(int ply) const;               // ply 手目の指し手
+    QStringList usiMoves(int upToPly = -1) const; // upToPly 手目までの USI の指し手
+    BoardSquare destinationOf(int ply) const;     // ply 手目の移動先
+    QString positionCommand(int ply) const;       // ply 手目の後の position コマンド
+};
+```
+
+| 取り出し方 | 中身 |
+|---------|------|
+| `KifuNavigationState::currentRecordLine()` | 表示中の手順（選んでいる分岐。対局中はライブの手も含む） |
+| `KifuBranchTree::mainRecordLine()` | 本譜の手順 |
+| `KifuBranchTree::toRecordLine(nodes, currentPly)` | 任意のノード列（static） |
+
+棋譜の正本は分岐ツリーとそのカーソル（8.10）で、対局の局面列・指し手列（`sfenRecord` / `gameMoves`）は対局開始時にこの値から作り直す作業用の履歴である（[指し手データ・棋譜データ構造](move-and-record-data-structures.md) の 4.4）。
 
 #### KifuBranchTree の主要API
 
@@ -3905,6 +3948,8 @@ struct BranchLine {
 | ライン | `mainLine()` | 本譜のノード列を取得 |
 | ライン | `pathToNode(node)` | ルートから指定ノードまでの経路 |
 | ライン | `allLines()` | 全 `BranchLine` のリスト |
+| ライン | `mainRecordLine()` | 本譜の手順（`RecordLine`、終局行を除く） |
+| ライン | `toRecordLine(nodes, currentPly)` | ノード列を `RecordLine` にする（static） |
 | 分岐 | `hasBranch(node)` | 分岐の有無判定 |
 | 分岐 | `branchesAt(node)` | 分岐候補（兄弟ノード）の取得 |
 | コメント | `setComment(nodeId, comment)` | コメント設定（`commentChanged` 発火） |
@@ -4025,7 +4070,7 @@ struct ResolvedRow {
 
 #### 責務
 
-1. **コメント・しおり管理**: 選択中の分岐のノードを更新し、変更シグナルで表示へ通知。本譜の編集時だけ本譜の `liveDisp` にも反映
+1. **コメント・しおり管理**: 表示中の分岐のノードを更新し、変更シグナルで表示へ通知（棋譜欄の表示用の一覧には書かない）
 2. **変更追跡**: `isDirty()` で未保存の変更を検出
 3. **棋譜出力**: 6つのフォーマットへの変換メソッドを提供
 
@@ -4034,8 +4079,8 @@ struct ResolvedRow {
 ```
 setComment(ply, comment)
   │
-  ├── 現在の分岐のノードに保存（ツリー未構築時のみ内部配列）
-  ├── 本譜ノードの場合は liveDisp の表示データも更新
+  ├── 表示中の分岐（KifuNavigationState::currentLineIndex()）の ply 番目のノードに保存
+  │     （ツリー未構築時のみ内部配列）
   └── commentChanged(ply, comment)
         └── CommentCoordinator が棋譜欄とコメント欄を更新
 ```
@@ -4070,6 +4115,8 @@ struct KifuExportMetadata {
 | `toJkfLines(ctx)` | JKF | あり | JSON棋譜フォーマット |
 | `toUsenLines(ctx, usiMoves)` | USEN | あり | URLセーフ短縮形式 |
 | `toUsiLines(ctx, usiMoves)` | USI | なし | position コマンド文字列。本譜のみ |
+
+保存・コピーで渡す `usiMoves` は、`collectMainlineUsiForExport()`（分岐ツリーの本譜 `KifuBranchTree::mainRecordLine().usiMoves()`）から取る。
 
 ### 8.6 LiveGameSession — ライブ対局セッション
 
@@ -4133,9 +4180,9 @@ struct KifuExportMetadata {
 
 ### 8.7 KifuLoadCoordinator — 棋譜読み込みフロー
 
-**ソース**: `src/kifu/kifuloadcoordinator.h/.cpp`
+**ソース**: `src/kifu/kifuloadcoordinator.h/.cpp`, `src/kifu/kifuloadparser.h/.cpp`, `src/kifu/kifuapplyservice.h`, `src/kifu/kifuapplyservice_apply.cpp`
 
-棋譜ファイルの読み込みからUI反映までを統括するコーディネータ。6つのファイル形式と、テキスト貼り付けによる自動判定読み込みに対応する。
+棋譜ファイルの読み込みからUI反映までを統括するコーディネータ。6つのファイル形式と、テキスト貼り付けによる自動判定読み込みに対応する。パース（`KifuLoadParser`）と、結果をモデル・UIに当てはめる処理（`KifuApplyService`）は別のクラスにある。
 
 #### 読み込みフロー
 
@@ -4143,44 +4190,41 @@ struct KifuExportMetadata {
 ユーザーがファイルを開く
   │
   ▼
-loadKifuFromFile(filePath) / loadKi2FromFile / loadCsaFromFile / ...
-  │
+loadFileAsync(filePath) / loadTextAsync(content)     ← KifuFileController から
+  │   （同期版の loadKifuFromFile / loadKi2FromFile / loadCsaFromFile / ... も同じ applyLoadResult() を通る）
   ▼
-loadKifuCommon(filePath, parseFunc, detectSfenFunc, extractGameInfoFunc)
+KifuLoadParser::parseFile() / parseText()             ← 別スレッド（QtConcurrent::run）
+  │   形式を判定してフォーマット変換器の parseWithVariations() を呼ぶ
+  │   → KifuLoadResult { initialSfen, teaiLabel, gameInfo, record: KifParseResult（本譜 + 変化）, ... }
+  ▼
+onLoadFinished() → applyLoadResult(result)            ← メインスレッド
   │
-  ├── 1. 初期SFEN検出
-  │     └── detectSfenFunc(filePath) → 手合割ラベル + 開始SFEN
+  ├── 1. 対局情報
+  │     ├── KifuApplyService::populateGameInfo() → 対局情報テーブルに反映
+  │     └── KifuApplyService::applyPlayersFromGameInfo() → 対局者名を盤面に反映
   │
-  ├── 2. 棋譜パース
-  │     └── parseFunc(filePath, result) → KifParseResult（本譜 + 変化）
-  │
-  ├── 3. 対局情報抽出
-  │     └── extractGameInfoFunc(filePath) → KifGameInfoItem リスト
-  │
-  └── 4. applyParsedResultCommon(filePath, initialSfen, result, ...)
+  └── 2. KifuApplyService::applyParsedResult(filePath, initialSfen, teaiLabel, record, ...)
         │
-        ├── 4a. 内部データ構築
-        │     ├── gameMoves, positionStrList, sfenRecord を再構築
-        │     ├── m_dispMain / m_sfenMain / m_gmMain にスナップショット保存
-        │     └── KifuBranchTreeBuilder::buildFromKifParseResult() でツリー構築
+        ├── 2a. applyToRecordView()
+        │     ├── displayGameRecord(disp) フック → 棋譜欄に反映（GameRecordModel にコメント・しおり）
+        │     ├── 棋譜欄の先頭行を選択、navState->goToRoot()
+        │     └── enableArrowButtons() フック
         │
-        ├── 4b. UI モデル更新
-        │     ├── populateGameInfo() → 対局情報テーブルに反映
-        │     ├── emit displayGameRecord(disp) → 棋譜欄に反映
-        │     └── emit syncBoardAndHighlightsAtRow(0) → 盤面を初期局面に同期
+        ├── 2b. applyBranchTree()
+        │     ├── KifuBranchTreeBuilder::buildFromKifParseResult() でツリー構築
+        │     │     （beginBatchUpdate()/endBatchUpdate() で treeChanged を1回にまとめる）
+        │     ├── navState->goToRoot()、branchTreeBuilt() フック
+        │     ├── applyBranchMarksForCurrentLine() → 棋譜欄の分岐マーク
+        │     └── 分岐ツリー欄の開始局面をハイライト
         │
-        ├── 4c. ナビゲーション初期化
-        │     ├── emit enableArrowButtons()
-        │     └── emit setReplayMode(true)
-        │
-        └── 4d. 分岐マーカー設定
-              ├── applyBranchMarksForCurrentLine()
-              └── emit branchTreeBuilt()
+        └── 2c. syncBoardAndHighlightsAtRow(0) フック → 盤面を開始局面に同期
 ```
+
+棋譜の正本は分岐ツリーで、読み込みは対局の局面列・指し手列（`sfenRecord` / `gameMoves`）を書かない。これらは対局開始時に表示中の手順から作り直す（[対局開始フロー](game-start-flow.md) の 2 章）。
 
 #### テキスト貼り付け
 
-`loadKifuFromString(content)` は `KifuClipboardService::detectFormat()` で形式を自動判定し、適切なパーサーにディスパッチする。
+`loadTextAsync(content)` / `loadKifuFromString(content)` は `KifuLoadParser::parseText()` で、`KifuFileReader::detectFormat()` により形式を自動判定し、適切なパーサーにディスパッチする。SFEN・BOD は局面だけを読み込む（`KifuApplyService::loadPositionFromSfen()`）。
 
 #### 分岐マーカー表示
 
@@ -4227,12 +4271,13 @@ struct Dependencies {
     KifuRecordListModel* kifuRecordModel;
     GameInfoPaneController* gameInfoController;
     TimeControlController* timeController;
-    KifuLoadCoordinator* kifuLoadCoordinator;
-    // ... 他のデータソースと状態値
+    ShogiGameController* gameController;
+    // ... 状態値（開始SFEN・対局モード・対局者名・表示中のライン・currentMoveIndex など）
 };
 ```
 
-`setPrepareCallback()` で設定されたコールバックが、保存・コピー操作の直前に呼ばれ、依存オブジェクトの最新状態を反映する。
+`setPrepareCallback()` で設定されたコールバックが、保存・コピー操作の直前に呼ばれ、依存オブジェクトの最新状態を反映する（`KifuExportDepsAssembler`）。`currentMoveIndex` は分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から取る。
+CSA・USEN・USI の書き出しに使う USI の指し手は、対局の局面列・指し手列ではなく `GameRecordModel::collectMainlineUsiForExport()`（分岐ツリーの本譜）から取る。クリップボード操作は `KifuExportClipboard` に委ね、依存は `Dependencies` から写した `KifuExportClipboard::Deps` で渡す。
 
 #### 主要メソッド
 
@@ -4255,17 +4300,17 @@ struct Dependencies {
 
 **ソース**: `src/kifu/kifunavigationstate.h/.cpp`
 
-`KifuBranchTree` 上の現在位置と、分岐点での選択履歴を管理するクラス。
+`KifuBranchTree` 上の現在位置（棋譜のカーソル）と、分岐点での選択履歴を管理するクラス。表示中の手数は `currentPly()` だけが持ち、MainWindow は手数の変数を持たない。
 
 #### 状態管理
 
 ```
 KifuNavigationState
   │
-  ├── m_currentNode          … 現在表示中のノード
+  ├── m_currentNode          … 現在表示中のノード（カーソル）
   ├── m_preferredLineIndex   … 優先ライン（-1=未設定）
-  └── m_lastSelectedLineAtBranch  … QHash<nodeId, lineIndex>
-                                    分岐点ごとの最後の選択を記憶
+  └── m_lastSelectedChildAtBranch  … QHash<nodeId, childIndex>
+                                     分岐点ごとに最後に選んだ子を記憶
 ```
 
 #### 優先ライン（Preferred Line）
@@ -4276,39 +4321,36 @@ KifuNavigationState
 
 ```
 手順例:
-  1. 3手目で「分岐1」を選択
-     → rememberLineSelection(node3, 1) で記憶
+  1. 3手目で2番目の子（分岐）を選択
+     → rememberChildSelection(node2, 1) で記憶（node2 は分岐点）
   2. 1手目に戻る
   3. 「進む」で3手目に到達
-     → lastSelectedLineAt(node3) が 1 を返す
-     → 自動的に「分岐1」を選択
+     → lastSelectedChildAt(node2) が 1 を返す
+     → 自動的に同じ分岐を選択
 ```
 
-`clearLineSelectionMemory()` ですべての記憶をクリアし、ナビゲーションを本譜に戻す。
+`rememberPathSelections(node)` はルートから `node` までの経路上の全分岐点で、経路が通る子を記憶する。`clearLineSelectionMemory()` ですべての記憶をクリアし、ナビゲーションを本譜に戻す。記憶する添字は `childAt()` の添字で、`allLines()` のラインインデックスとは別物である。
 
 #### 主要メソッド
 
 | カテゴリ | メソッド | 説明 |
 |---------|---------|------|
 | 位置 | `currentNode()` | 現在のノードを取得 |
-| 位置 | `currentPly()` | 現在の手数を取得 |
+| 位置 | `currentPly()` | 現在の手数（表示中の手数）を取得 |
 | 位置 | `currentLineIndex()` | 現在のラインインデックスを取得 |
 | 位置 | `currentSfen()` | 現在位置のSFENを取得 |
+| 位置 | `currentRecordLine()` | 表示中の手順（`RecordLine`。8.2 を参照） |
 | 設定 | `setCurrentNode(node)` | 現在位置を設定 |
 | 設定 | `goToRoot()` | ルートに移動 |
 | クエリ | `isOnMainLine()` | 本譜にいるか |
 | クエリ | `canGoForward()` / `canGoBack()` | 進める/戻れるか |
 | 分岐 | `branchCandidatesAtCurrent()` | 現在位置の分岐候補 |
 | 分岐 | `hasBranchAtCurrent()` | 現在位置に分岐があるか |
-| 記憶 | `rememberLineSelection(node, lineIndex)` | 分岐点での選択を記憶 |
-| 記憶 | `lastSelectedLineAt(node)` | 分岐点での最後の選択を取得 |
+| 記憶 | `rememberChildSelection(node, childIndex)` | 分岐点で選んだ子を記憶 |
+| 記憶 | `lastSelectedChildAt(node)` | 分岐点で最後に選んだ子を取得 |
+| 記憶 | `rememberPathSelections(node)` | 経路上の全分岐点の選択を記憶 |
 
-#### シグナル
-
-| シグナル | 説明 |
-|---------|------|
-| `currentNodeChanged(newNode, oldNode)` | 現在ノード変更時 |
-| `lineChanged(newLineIndex, oldLineIndex)` | ライン変更時 |
+`KifuNavigationState` はシグナルを持たない。カーソルを動かすのは `KifuNavigationController`（ナビゲーション操作）、`KifuDisplayCoordinator`（棋譜欄のクリック・対局の開始・着手・待った）、`KifuApplyService`（棋譜の読み込み）、`PreStartCleanupHandler`（新規対局の開始前）などで、表示の更新は `KifuNavigationController` のシグナル（13.1）で行う。
 
 ### 8.11 フォーマット変換器一覧
 
@@ -4618,7 +4660,7 @@ onTimeSettingsReady(unlimited, byoyomiSec)
   │ MultiPV/停止/開始シグナル接続
   ▼
   ├── （ユーザーが棋譜ナビゲーション）
-  │     └── updatePositionIfInConsiderationMode()
+  │     └── ConsiderationPositionService::handleBuildPositionRequired(row)
   │           MatchCoordinator::updateConsiderationPosition() を呼び出し
   │
   ├── （ユーザーがMultiPV変更）
@@ -4653,7 +4695,7 @@ updateArrows()
 
 #### 棋譜ナビゲーション中の検討位置更新
 
-`updatePositionIfInConsiderationMode()` は、ユーザーが棋譜リスト上で手を選択した際に呼ばれ、検討対象の局面を切り替える。前手の移動先座標を抽出して「同」表記の正しい判定を保持しつつ、`MatchCoordinator::updateConsiderationPosition()` で新しい局面をエンジンに送信する。
+ユーザーが棋譜欄で手を選択すると、`RecordNavigationHandler` の `buildPositionRequired(row)` を受けた `ConsiderationPositionService::handleBuildPositionRequired(row)` が検討対象の局面を切り替える。`ConsiderationPositionResolver::resolve(line, row, fallbackSfen)` が表示中の手順（`KifuNavigationState::currentRecordLine()`）から position コマンドと直前の手（読み筋の「同」の判定に使う移動先と USI の指し手）を決め、`MatchCoordinator::updateConsiderationPosition()` で新しい局面をエンジンに送信する。
 
 ### 9.6 AnalysisFlowController — 棋譜解析の全体フロー
 
@@ -4665,14 +4707,15 @@ updateArrows()
 
 | メンバー | 型 | 必須 | 説明 |
 |---------|-----|------|------|
-| `sfenRecord` | `QStringList*` | 必須 | 各手の position コマンド文字列 |
+| `sfenRecord` | `QStringList*` | 必須 | 解析する手順の局面列（`DialogCoordinator` が表示中の手順 `RecordLine::sfens` を渡す） |
 | `analysisModel` | `KifuAnalysisListModel*` | 必須 | 結果蓄積用モデル |
 | `usi` | `Usi*` | 任意 | 外部提供のUSIエンジン（null なら内部で作成） |
 | `presenter` | `AnalysisResultsPresenter*` | 任意 | 結果表示プレゼンター |
 | `displayError` | `std::function<void(const QString&)>` | 必須 | エラー表示コールバック |
-| `moveRecords` | `QList<KifuDisplay*>*` | 任意 | 棋譜表示データ（指し手ラベル抽出用） |
-| `usiMoves` | `QStringList*` | 任意 | USI形式の指し手リスト |
-| `activePly` | `int` | — | 解析開始時の表示手数 |
+| `recordModel` | `KifuRecordListModel*` | 任意 | 棋譜表示モデル（指し手ラベル抽出用） |
+| `usiMoves` | `QStringList*` | 任意 | USI形式の指し手リスト（`RecordLine::usiMoves()`） |
+| `activePly` | `int` | — | 解析開始時の表示手数（`RecordLine::currentPly`。分岐ツリーのカーソル） |
+| `lineIndex` | `int` | — | 解析対象の分岐ライン |
 | `blackPlayerName` | `QString` | — | 先手棋士名（結果ダイアログ用） |
 | `whitePlayerName` | `QString` | — | 後手棋士名（結果ダイアログ用） |
 
@@ -4765,10 +4808,10 @@ runWithDialog(deps, parent)
   │
   ├── 2. 局面文字列の構築
   │     └── buildPositionForMate(deps)
-  │           ├── usiMoves あり → TsumePositionUtil::buildPositionWithMoves()
+  │           ├── 途中局面（line.currentPly > 0）→ deps.line.positionCommand(ply)
   │           │     └── "position startpos moves 7g7f 3c3d ..." 形式
-  │           └── フォールバック → TsumePositionUtil::buildPositionForMate()
-  │                 └── "position sfen ..." 形式
+  │           └── 開始局面・手順なし → TsumePositionUtil::buildPositionForMate(sfen)
+  │                 └── "position sfen ..." 形式（玉の有無から攻方を決めて手番を合わせる）
   │
   ├── 3. TsumeShogiSearchDialog を表示（モーダル）
   │     ├── エンジン選択
@@ -4795,11 +4838,11 @@ runWithDialog(deps, parent)
 
 #### position 文字列の構築戦略
 
-`buildPositionForMate()` は2つの方式を持つ。
+`TsumeSearchFlowController::Deps` は `match`・`line`（表示中の手順 `RecordLine`）・`fallbackSfen`（手順が無いときの局面）・`onError` を持つ。`buildPositionForMate()` は2つの方式を持つ。
 
-1. **moves形式（優先）**: `usiMoves` リストと `startPositionCmd` が利用可能な場合、`"position startpos moves 7g7f 3c3d ..."` のように指し手列で局面を表現する。エンジンが局面の履歴情報（千日手判定等）を利用できる。
+1. **moves形式（途中局面）**: `line.currentPly > 0` のとき、`RecordLine::positionCommand(ply)` で `"position startpos moves 7g7f 3c3d ..."` のように指し手列で局面を表現する。エンジンが局面の履歴情報（千日手判定等）を利用できる。
 
-2. **SFEN形式（フォールバック）**: `sfenRecord` や `positionStrList` からSFEN文字列を取得し、`"position sfen <sfen>"` で局面を直接指定する。
+2. **SFEN形式（開始局面）**: 開始局面（詰将棋の問題など）や手順が無いときは、`TsumePositionUtil::buildPositionForMate(sfenLike)` が1つの局面（`line.startSfen()` か `fallbackSfen`）から `"position sfen <sfen>"` を作る。玉の有無から攻方を推定し、手番を合わせる。
 
 ### 9.8 AnalysisResultsPresenter — 解析結果の表示
 
@@ -5018,24 +5061,24 @@ Presenters は「Model → View」の単方向データフローを担当する�
 
 **ソース**: `src/ui/presenters/boardsyncpresenter.h`, `src/ui/presenters/boardsyncpresenter.cpp`
 
-盤面の状態とビューの描画を同期するプレゼンターである。コンストラクタで `Deps` 構造体を受け取り、`ShogiGameController` と `ShogiView` を内部に保持する。
+棋譜の局面を盤に描き、直前の手をハイライトするプレゼンターである。コンストラクタで `Deps` 構造体（`gc`・`view`・`bic`・`currentLine`）を受け取る。局面は棋譜の正本（分岐ツリーの表示中の手順）から取る。対局中も、対局の手順は `LiveGameSession` が分岐ツリーに積んでいるので同じ経路で描ける。
 
 | メソッド | 説明 |
 |---------|------|
-| `applySfenAtPly(int ply)` | 指定した手数のSFENを `ShogiGameController` にロードし、`ShogiView` に描画する |
-| `syncBoardAndHighlightsAtRow(int ply)` | 盤面描画に加え、直前の指し手座標からハイライト（移動元・移動先のマーカー）を表示する。`ply=0`（開始局面）ではハイライトなし |
-| `loadBoardWithHighlights(currentSfen, prevSfen)` | 分岐ナビゲーション用。2つのSFEN差分から移動先を検出してハイライト表示する |
-| `clearHighlights()` | ハイライトを明示的にクリアする |
+| `syncBoardAndHighlightsAtRow(int ply)` | 表示中の手順（`currentLine()`）の `ply` 手目の局面を描き、直前の局面との差分からハイライト（移動元・移動先のマーカー）を表示する。`ply=0`（開始局面）と終局行ではハイライトなし |
+| `loadBoardWithHighlights(currentSfen, prevSfen)` | 指定した局面を描き、直前の局面との差分からハイライトする（棋譜欄のクリック・分岐ナビゲーション用）。`prevSfen` が空ならハイライトを消す |
+
+2つのメソッドは同じハイライト処理（`showMoveHighlight()`）を通る。
 
 ```
 データフロー:
 
-sfenRecord[ply] → ShogiGameController::loadSfen()
-                    → ShogiView::loadBoard()
-                       → ShogiView::highlightSquares()
+currentLine().sfens[ply] → ShogiBoard::setSfen()
+                             → ShogiView::applyBoardAndRender()
 
-gameMoves[ply-1] → 移動元/移動先座標を抽出
-                    → ShogiView に from/to ハイライト設定
+sfens[ply-1] と sfens[ply] の差分（SfenDiffUtils::diffBoards）
+    → 移動元/移動先を求める（駒打ちは BoardCoordinates::standSquareOf() で駒台のマスを移動元にする）
+    → BoardInteractionController::showMoveHighlights(from, to)
 ```
 
 #### EvalGraphPresenter — 評価値グラフ
@@ -5061,8 +5104,9 @@ EvalGraphPresenter::appendSecondaryScore(scoreCp, match);  // 後手エンジン
 | メソッド群 | 説明 |
 |-----------|------|
 | **全体描画** | `presentGameRecord(disp)` — `KifDisplayItem` のリストから棋譜全体を描画 |
-| **ライブ追加** | `appendMoveLine(prettyMove, elapsedTime)` — 対局中に1手ずつ末尾に追加 |
-| **コメント管理** | `setCommentsByRow()`, `commentForRow(row)` — 各手に対するコメントを保持・取得 |
+| **ライブ追加** | `appendMoveLine(prettyMove, elapsedTime, beforeSfen, usiMove)` — 対局中に1手ずつ末尾に追加 |
+| **待った** | `syncCurrentMoveIndexToLastRow()` — 棋譜欄の末尾を消した後、現在の手数を最後の行に合わせる |
+| **コメント取得** | `commentForRow(row)` — 棋譜欄の行のコメントを読む（コメントの正本は分岐ツリーのノード） |
 | **選択通知** | `onKifuCurrentRowChanged()` → `currentRowChanged(row, comment)` シグナル発行 |
 | **一括操作** | `displayAndWire()` — 棋譜反映 + コメント設定 + 選択変更配線を一度に実行 |
 

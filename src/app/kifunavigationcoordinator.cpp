@@ -69,10 +69,8 @@ void KifuNavigationCoordinator::navigateToRow(int ply)
     // 盤・ハイライト即時同期
     syncBoardAndHighlightsAtRow(safe);
 
-    // トラッキングを更新
-    if (m_deps.activePly) *m_deps.activePly = safe;
-    if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = safe;
-    if (m_deps.currentMoveIndex) *m_deps.currentMoveIndex = safe;
+    // 表示中の手数（分岐ツリーのカーソル）を合わせる。行選択の通知で既に動いていれば何もしない
+    syncNavStateToPly(safe);
 
     // 手番表示を更新
     if (m_deps.setCurrentTurn) m_deps.setCurrentTurn();
@@ -121,37 +119,13 @@ void KifuNavigationCoordinator::syncBoardAndHighlightsAtRow(int ply)
         m_deps.recordPane->setArrowButtonsEnabled(true);
     }
 
-    // 現在局面SFENの更新:
-    // 分岐ライン表示中は `sfenRecord()` が本譜ベースのため不整合が起こり得る。
-    // そのため分岐中は branchTree を優先し、通常時のみ sfenRecord を使う。
-    // ただし、対局進行中は sfenRecord を正とする（分岐ツリーには対局開始前の
-    // KIF 継続手が残っている可能性があるため）。
-    const bool gameActive = m_deps.isGameActivelyInProgress ? m_deps.isGameActivelyInProgress() : false;
-    bool foundInBranch = false;
-    if (!gameActive && m_deps.navState != nullptr && !m_deps.navState->isOnMainLine() && m_deps.branchTree != nullptr) {
-        const int lineIndex = m_deps.navState->currentLineIndex();
-        QList<BranchLine> lines = m_deps.branchTree->allLines();
-        if (lineIndex >= 0 && lineIndex < lines.size()) {
-            const BranchLine& line = lines.at(lineIndex);
-            if (ply >= 0 && ply < line.nodes.size()) {
-                const QString treeSfen = line.nodes.at(ply)->sfen();
-                // SFEN を持たないノードでは空文字を書き込まず sfenRecord にフォールバックする
-                if (!treeSfen.isEmpty()) {
-                    if (m_deps.currentSfenStr) {
-                        *m_deps.currentSfenStr = treeSfen;
-                    }
-                    foundInBranch = true;
-                    qCDebug(lcNavTrace) << "syncBoardAndHighlightsAtRow: updated currentSfenStr from branchTree";
-                }
-            }
+    // 現在局面SFENを、表示中の手順（分岐ツリー）の ply 手目の局面にする。対局中も
+    // 対局の手順は LiveGameSession が分岐ツリーに積んでいるので同じ手順から取れる
+    if (m_deps.currentSfenStr && m_deps.navState != nullptr) {
+        const RecordLine line = m_deps.navState->currentRecordLine();
+        if (!line.isEmpty()) {
+            *m_deps.currentSfenStr = line.sfens.at(qBound(0, ply, static_cast<int>(line.sfens.size()) - 1));
         }
-    }
-    QStringList* sfenRec = m_deps.getSfenRecord ? m_deps.getSfenRecord() : nullptr;
-    if (!foundInBranch && sfenRec && ply >= 0 && ply < sfenRec->size()) {
-        if (m_deps.currentSfenStr) {
-            *m_deps.currentSfenStr = sfenRec->at(ply);
-        }
-        qCDebug(lcNavTrace) << "syncBoardAndHighlightsAtRow: updated currentSfenStr=" << (m_deps.currentSfenStr ? *m_deps.currentSfenStr : QString());
     }
 
     // 定跡ウィンドウを更新
@@ -172,11 +146,6 @@ void KifuNavigationCoordinator::handleBranchNodeHandled(
                        << "usiMove=" << lastUsiMove
                        << "playMode=" << (m_deps.playMode ? static_cast<int>(*m_deps.playMode) : -1)
                        << "match=" << (m_deps.match ? "valid" : "null");
-
-    // plyインデックス変数を更新
-    if (m_deps.activePly) *m_deps.activePly = ply;
-    if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = ply;
-    if (m_deps.currentMoveIndex) *m_deps.currentMoveIndex = ply;
 
     // currentSfenStr を更新
     if (!sfen.isEmpty() && m_deps.currentSfenStr) {

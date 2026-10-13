@@ -13,7 +13,6 @@
 #include "usicommlogmodel.h"
 #include "shogimove.h"
 #include "kifurecordlistmodel.h"
-#include "shogiutils.h"
 #include "candidatearrowcontroller.h"
 
 ConsiderationModeUIController::ConsiderationModeUIController(QObject* parent)
@@ -192,45 +191,3 @@ void ConsiderationModeUIController::updateArrows()
         m_considerationActive, show, m_considerationModel);
 }
 
-bool ConsiderationModeUIController::updatePositionIfInConsiderationMode(
-    int row, const QString& newPosition,
-    const QList<ShogiMove>* gameMoves,
-    KifuRecordListModel* kifuRecordModel)
-{
-    // 検討モード中でなければ何もしない
-    if (!m_match) return false;
-
-    qCDebug(lcAnalysis).noquote() << "updatePositionIfInConsiderationMode: row=" << row
-                                  << "newPosition.isEmpty=" << newPosition.isEmpty()
-                                  << "newPosition=" << newPosition.left(80);
-
-    if (newPosition.isEmpty()) return false;
-
-    // 選択した手の移動先を取得（「同」表記のため）
-    int previousFileTo = 0;
-    int previousRankTo = 0;
-
-    if (gameMoves && row >= 0 && row < gameMoves->size()) {
-        const QPoint& toSquare = gameMoves->at(row).toSquare;
-        previousFileTo = toSquare.x();
-        previousRankTo = toSquare.y();
-    } else if (kifuRecordModel && row > 0 && row < kifuRecordModel->rowCount()) {
-        // 棋譜読み込み時: ShogiUtilsを使用して座標を解析（「同」の場合は自動的に遡る）
-        if (auto coord = ShogiUtils::parseMoveCoordinateFromModel(kifuRecordModel, row)) {
-            auto [file, rank] = *coord;
-            previousFileTo = file;
-            previousRankTo = rank;
-        }
-    }
-
-    const bool updated = m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo);
-    qCDebug(lcAnalysis).noquote() << "updateConsiderationPosition returned:" << updated
-                                  << "previousFileTo=" << previousFileTo << "previousRankTo=" << previousRankTo;
-
-    // ポジションが変更された場合、経過時間タイマーをリセットして再開
-    if (updated && m_considerationTabManager) {
-        m_considerationTabManager->startElapsedTimer();
-    }
-
-    return updated;
-}

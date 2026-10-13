@@ -33,9 +33,6 @@ struct CleanupHarness {
 
     QString startSfenStr;
     QString currentSfenStr;
-    int activePly = 0;
-    int currentSelectedPly = 0;
-    int currentMoveIndex = 0;
 
     PreStartCleanupHandler* handler = nullptr;
 
@@ -49,9 +46,6 @@ struct CleanupHarness {
         deps.liveGameSession = &liveSession;
         deps.startSfenStr = &startSfenStr;
         deps.currentSfenStr = &currentSfenStr;
-        deps.activePly = &activePly;
-        deps.currentSelectedPly = &currentSelectedPly;
-        deps.currentMoveIndex = &currentMoveIndex;
 
         handler = new PreStartCleanupHandler(deps);
 
@@ -105,12 +99,10 @@ struct CleanupHarness {
         branchModel.appendItem(
             new KifuBranchDisplay(QStringLiteral("分岐A")));
 
-        // 手数関連の状態を更新
+        // 表示中の手数（分岐ツリーのカーソル）を最後の手に
         startSfenStr = kHirateSfen;
         currentSfenStr = moveSfens.at(n - 1);
-        activePly = n;
-        currentSelectedPly = n;
-        currentMoveIndex = n;
+        navState.setCurrentNode(branchTree.mainLine().last());
     }
 };
 
@@ -188,18 +180,14 @@ private slots:
         CleanupHarness h;
         h.simulateGameWithMoves(3);
 
-        // 事前確認: 手数が3
-        QCOMPARE(h.activePly, 3);
-        QCOMPARE(h.currentSelectedPly, 3);
-        QCOMPARE(h.currentMoveIndex, 3);
+        // 事前確認: 表示中の手数が3
+        QCOMPARE(h.navState.currentPly(), 3);
 
         h.currentSfenStr = QStringLiteral("startpos");
         h.handler->performCleanup();
 
-        // 検証: 全手数が0にリセット
-        QCOMPARE(h.activePly, 0);
-        QCOMPARE(h.currentSelectedPly, 0);
-        QCOMPARE(h.currentMoveIndex, 0);
+        // 検証: 表示中の手数が開始局面に戻る
+        QCOMPARE(h.navState.currentPly(), 0);
     }
 
     void cleanup_changedRoot_resetsNavigation()
@@ -270,10 +258,8 @@ private slots:
         // 分岐候補: 空
         QCOMPARE(h.branchModel.rowCount(), 0);
 
-        // 手数: 全て0
-        QCOMPARE(h.activePly, 0);
-        QCOMPARE(h.currentSelectedPly, 0);
-        QCOMPARE(h.currentMoveIndex, 0);
+        // 表示中の手数: 開始局面
+        QCOMPARE(h.navState.currentPly(), 0);
 
         // 分岐ツリー: ルートのみ（子なし）
         QVERIFY(h.branchTree.root() != nullptr);
@@ -290,17 +276,11 @@ private slots:
         CleanupHarness h;
         h.simulateGameWithMoves(5);
 
-        // selectedPly をさらに大きな値に設定（手数よりも大きい場合のテスト）
-        h.currentSelectedPly = 100;
-        h.currentMoveIndex = 100;
-
         h.currentSfenStr = QStringLiteral("startpos");
         h.handler->performCleanup();
 
         QCOMPARE(h.recordModel.rowCount(), 1);
-        QCOMPARE(h.activePly, 0);
-        QCOMPARE(h.currentSelectedPly, 0);
-        QCOMPARE(h.currentMoveIndex, 0);
+        QCOMPARE(h.navState.currentPly(), 0);
     }
 
     // ============================================================
@@ -318,7 +298,7 @@ private slots:
         h.handler->performCleanup();
 
         QCOMPARE(h.recordModel.rowCount(), 1);
-        QCOMPARE(h.activePly, 0);
+        QCOMPARE(h.navState.currentPly(), 0);
     }
 
     // ============================================================

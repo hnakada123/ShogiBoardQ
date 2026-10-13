@@ -604,6 +604,8 @@ void TestJosekiWindow::testMergeTableFitsMovesAndButtons()
     QVERIFY(merge);
     auto *table = merge->findChild<QTableWidget*>();
     QVERIFY(table);
+    // 表記の一覧は [i] が i+1 手目（棋譜欄の「開始局面」行は含まない）
+    QVERIFY2(table->item(0, 1)->text().contains(QStringLiteral("７六歩")), qPrintable(table->item(0, 1)->text()));
     QVERIFY(table->columnWidth(1) >= table->fontMetrics().horizontalAdvance(table->item(0, 1)->text()));
     QVERIFY(table->columnWidth(2) >= table->cellWidget(0, 2)->sizeHint().width());
     QVERIFY(table->rowHeight(0) < 2 * table->fontMetrics().height() + 20);

@@ -237,7 +237,7 @@ private slots:
         state.goToRoot();
         QCOMPARE(state.currentPly(), 0);
 
-        // 2) updatePlyState で最終手に同期
+        // 2) syncCursorToPly で最終手に同期
         KifuBranchNode* lastNode = tree.findByPlyOnMainLine(7);
         QVERIFY(lastNode != nullptr);
         state.setCurrentNode(lastNode);

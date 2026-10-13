@@ -52,7 +52,7 @@ public:
         PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
         QString* startSfenStr = nullptr;
-        int* currentSelectedPly = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;   ///< 対局の指し手列（開始時に表示中の手順から作り直す）
         bool* bottomIsP1 = nullptr;
 
         // === Branch navigation ===
@@ -60,7 +60,7 @@ public:
         KifuNavigationState* navState = nullptr;
         LiveGameSession* liveSession = nullptr;
         std::function<void(bool)> setResumeAvailable;
-        std::function<void(int)> prepareResumeUi;
+        std::function<void()> prepareResumeUi;
 
         std::function<bool()> confirmDiscardUnsavedKifu;
 

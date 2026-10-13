@@ -2,6 +2,7 @@
 /// @brief UI 起点の対局操作オーケストレータ実装
 
 #include "gamesessionorchestrator.h"
+#include "kifunavigationstate.h"
 
 #include "csagamecoordinator.h"
 #include "dialogcoordinator.h"
@@ -127,11 +128,14 @@ void GameSessionOrchestrator::initializeGame()
     if (dialogData.startingPositionNumber != 0 && m_deps.confirmDiscardUnsavedKifu
         && !m_deps.confirmDiscardUnsavedKifu()) return;
 
+    // 表示中の手数（分岐ツリーのカーソル）から開始する
+    const RecordLine line = m_deps.navState ? m_deps.navState->currentRecordLine() : RecordLine{};
+    const int selectedPly = m_deps.navState ? m_deps.navState->currentPly() : 0;
+
     MainWindowGameStartService::PrepareDeps prep;
-    prep.branchTree = m_deps.branchTree;
-    prep.navState = m_deps.navState;
+    prep.line = line;
     prep.sfenRecord = sfenRecord;
-    prep.currentSelectedPly = m_deps.currentSelectedPly ? *m_deps.currentSelectedPly : 0;
+    prep.gameMoves = m_deps.gameMoves;
     prep.currentSfenStr = m_deps.currentSfenStr;
 
     const MainWindowGameStartService gameStartService;
@@ -141,8 +145,7 @@ void GameSessionOrchestrator::initializeGame()
                              << (m_deps.currentSfenStr ? m_deps.currentSfenStr->left(50) : QStringLiteral("null"))
                              << " startSfenStr="
                              << (m_deps.startSfenStr ? m_deps.startSfenStr->left(50) : QStringLiteral("null"))
-                             << " currentSelectedPly="
-                             << (m_deps.currentSelectedPly ? *m_deps.currentSelectedPly : -1);
+                             << " selectedPly=" << selectedPly;
 
     MainWindowGameStartService::ContextDeps ctx;
     ctx.gc = m_deps.gameController;
@@ -152,7 +155,7 @@ void GameSessionOrchestrator::initializeGame()
     ctx.kifuLoadCoordinator = m_deps.kifuLoadCoordinator;
     ctx.currentSfenStr = m_deps.currentSfenStr;
     ctx.startSfenStr = m_deps.startSfenStr;
-    ctx.selectedPly = m_deps.currentSelectedPly ? *m_deps.currentSelectedPly : 0;
+    ctx.selectedPly = selectedPly;
     ctx.isReplayMode = m_deps.replayController ? m_deps.replayController->isReplayMode() : false;
     ctx.bottomIsP1 = m_deps.bottomIsP1 ? *m_deps.bottomIsP1 : true;
 

@@ -55,8 +55,7 @@ void GameSessionOrchestrator::handleResumeGame()
 
     if (m_deps.playMode) *m_deps.playMode = state.options.mode;
     if (m_deps.currentSfenStr) *m_deps.currentSfenStr = state.options.sfenStart;
-    if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = node->ply();
     if (m_deps.replayController) m_deps.replayController->setReplayMode(false);
-    if (m_deps.prepareResumeUi) m_deps.prepareResumeUi(node->ply());
+    if (m_deps.prepareResumeUi) m_deps.prepareResumeUi();
     start->resumeInterruptedGame();
 }

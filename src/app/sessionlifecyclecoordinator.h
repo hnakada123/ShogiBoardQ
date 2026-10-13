@@ -49,7 +49,6 @@ public:
         PlayMode* playMode = nullptr;           ///< プレイモード（外部所有）
         QString* startSfenStr = nullptr;        ///< 開始局面SFEN（外部所有）
         QString* currentSfenStr = nullptr;      ///< 現在局面SFEN（外部所有）
-        int* currentSelectedPly = nullptr;      ///< 現在選択手数（外部所有）
 
         // --- MainWindow に残る処理のコールバック ---
         std::function<void()> clearGameStateFields;       ///< m_state/m_player/m_kifu のフィールドクリア

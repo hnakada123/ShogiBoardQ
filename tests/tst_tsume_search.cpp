@@ -47,7 +47,7 @@ private slots:
 
     // --- エッジケース ---
     void buildForMate_emptyBoard_returnsEmpty();
-    void buildForMate_positionStrList_fallback();
+    void buildForMate_positionCommand_isAccepted();
 };
 
 // ============================================================
@@ -60,7 +60,7 @@ void TestTsumeSearch::buildForMate_singleKing_forcesAttackerTurn()
     const QString sfenOnlyGoteKing = QStringLiteral("4k4/9/9/9/9/9/9/9/9 b - 1");
     QStringList sfenRecord = {sfenOnlyGoteKing};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
 
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     QCOMPARE(extractTurn(result), QStringLiteral("b"));
@@ -75,7 +75,7 @@ void TestTsumeSearch::buildForMate_tsumePosition_correctFormat()
     const QString tsumeSfen = QStringLiteral("k8/G8/9/9/9/9/9/9/9 b G2r2b2g4s4n4l18p 1");
     QStringList sfenRecord = {tsumeSfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
 
     // "position sfen ..." 形式であること
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
@@ -108,7 +108,7 @@ void TestTsumeSearch::buildForMate_handicapPosition()
     const QString handicapSfen = QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
     QStringList sfenRecord = {handicapSfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
 
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     // 両玉(K, k)あり → 元の手番 w を維持
@@ -141,7 +141,7 @@ void TestTsumeSearch::buildCheckmateSendCommand_fromSfen()
     const QString tsumeSfen = QStringLiteral("3sks3/9/4G4/9/9/9/9/9/9 b G2r2b4g4s4n4l18p 1");
     QStringList sfenRecord = {tsumeSfen};
 
-    const QString positionCmd = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString positionCmd = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
 
     // USI checkmate コマンド形式
     const QString checkmateCmd = positionCmd + QStringLiteral("\ngo mate infinite");
@@ -161,7 +161,7 @@ void TestTsumeSearch::tsumePosition_oneMoveMate()
     const QString sfen = QStringLiteral("k8/G8/9/9/9/9/9/9/9 b G2r2b2g4s4n4l18p 1");
     QStringList sfenRecord = {sfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
 
     // 正しい position コマンドが構築できる
     QVERIFY(!result.isEmpty());
@@ -185,7 +185,7 @@ void TestTsumeSearch::tsumePosition_threeMoveMate()
     const QString sfen = QStringLiteral("2k6/9/9/9/9/9/9/9/2R6 b G2r2b4g4s4n4l18p 1");
     QStringList sfenRecord = {sfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
 
     QVERIFY(!result.isEmpty());
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
@@ -204,7 +204,7 @@ void TestTsumeSearch::tsumePosition_noMatePosition()
     const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1");
     QStringList sfenRecord = {sfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
 
     // 両玉あり → position コマンドは構築可能（詰みの有無はエンジンが判断）
     QVERIFY(!result.isEmpty());
@@ -221,23 +221,16 @@ void TestTsumeSearch::tsumePosition_noMatePosition()
 void TestTsumeSearch::buildForMate_emptyBoard_returnsEmpty()
 {
     // 盤面データなし（全ソースが空）→ 空文字列
-    QStringList emptyRecord;
-    const QString result = TsumePositionUtil::buildPositionForMate(
-        &emptyRecord, QString(), QStringList(), 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(QString());
 
     QVERIFY(result.isEmpty());
 }
 
-void TestTsumeSearch::buildForMate_positionStrList_fallback()
+void TestTsumeSearch::buildForMate_positionCommand_isAccepted()
 {
-    // sfenRecord が空、startSfenStr も空 → positionStrList にフォールバック
-    QStringList emptyRecord;
-    QStringList positionStrList = {
-        QStringLiteral("position sfen 4k4/9/4G4/9/9/9/9/9/9 b G2r2b4g4s4n4l18p 1")
-    };
-
+    // "position sfen ..." の形でも渡せる（moves 以降は使わない）
     const QString result = TsumePositionUtil::buildPositionForMate(
-        &emptyRecord, QString(), positionStrList, 0);
+        QStringLiteral("position sfen 4k4/9/4G4/9/9/9/9/9/9 b G2r2b4g4s4n4l18p 1 moves G*5b"));
 
     QVERIFY(!result.isEmpty());
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));

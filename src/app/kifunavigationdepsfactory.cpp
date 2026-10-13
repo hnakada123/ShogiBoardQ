@@ -22,9 +22,6 @@ KifuNavigationCoordinator::Deps KifuNavigationDepsFactory::createDeps(
     deps.branchTree = refs.branchNav.branchTree;
 
     // External state pointers
-    deps.activePly = refs.kifu.activePly;
-    deps.currentSelectedPly = refs.kifu.currentSelectedPly;
-    deps.currentMoveIndex = refs.state.currentMoveIndex;
     deps.currentSfenStr = refs.state.currentSfenStr;
     deps.skipBoardSyncForBranchNav = refs.state.skipBoardSyncForBranchNav;
     deps.playMode = refs.state.playMode;
@@ -38,8 +35,6 @@ KifuNavigationCoordinator::Deps KifuNavigationDepsFactory::createDeps(
     deps.setCurrentTurn = callbacks.setCurrentTurn;
     deps.updateJosekiWindow = callbacks.updateJosekiWindow;
     deps.ensureBoardSyncPresenter = callbacks.ensureBoardSyncPresenter;
-    deps.isGameActivelyInProgress = callbacks.isGameActivelyInProgress;
-    deps.getSfenRecord = callbacks.getSfenRecord;
 
     return deps;
 }

@@ -127,7 +127,6 @@ add_shogi_test(tst_coredatastructures
     tst_coredatastructures.cpp
     ${TEST_STUBS}
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -167,7 +166,6 @@ add_shogi_test(tst_shogimove
     ${SRC}/common/errorbus.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -187,13 +185,12 @@ add_shogi_test(tst_usimove
 )
 
 # ============================================================
-# Unit 2c: ShogiUtils
+# Unit 2c: ShogiNotation（盤の筋・段と駒の表記）
 # ============================================================
-add_shogi_test(tst_shogiutils
-    tst_shogiutils.cpp
+add_shogi_test(tst_shoginotation
+    tst_shoginotation.cpp
     ${SRC}/common/errorbus.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
@@ -287,7 +284,6 @@ add_shogi_test(tst_kifconverter
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -310,7 +306,6 @@ add_shogi_test(tst_ki2converter
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -329,7 +324,6 @@ add_shogi_test(tst_csaconverter
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -344,7 +338,6 @@ add_shogi_test(tst_jkfconverter
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -358,7 +351,6 @@ add_shogi_test(tst_usiconverter
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -373,7 +365,6 @@ add_shogi_test(tst_usenconverter
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -424,7 +415,6 @@ add_shogi_test(tst_navigation
     ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -497,7 +487,6 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/widgets/itemtextdelegate.cpp
     ${SETTINGS_SOURCES}
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -568,7 +557,6 @@ add_shogi_test(tst_integration
     ${SRC}/core/shogiboard_sfen.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/game/shogigamecontroller.cpp
     ${SRC}/game/piecemoverules.cpp
     ${SRC}/game/turnmanager.cpp
@@ -628,7 +616,6 @@ set(UI_DISPLAY_TEST_SOURCES
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/common/errorbus.cpp
     ${SRC}/models/kifurecordlistmodel.cpp
     ${SRC}/models/kifubranchlistmodel.cpp
@@ -985,7 +972,6 @@ add_shogi_test(tst_csaprotocol
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/game/shogigamecontroller.cpp
     ${SRC}/game/piecemoverules.cpp
     ${SRC}/game/turnmanager.cpp
@@ -1216,7 +1202,6 @@ add_shogi_test(tst_joseki_repository
     ${SRC}/dialogs/josekirepository.cpp
     ${SRC}/dialogs/josekipresenter.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -1274,7 +1259,6 @@ add_shogi_test(tst_consideration_resolver
     ${TEST_STUBS}
     ${SRC}/kifu/considerationpositionresolver.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
@@ -1451,7 +1435,6 @@ add_shogi_test(tst_turn_state_sync
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiclock.cpp
     ${EMV_SOURCES}
     ${SRC}/views/shogiview.cpp

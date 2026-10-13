@@ -2,7 +2,6 @@
 
 #include "shoginotation.h"
 #include "shogimove.h"
-#include "shogiutils.h"
 
 class TestShogiMove : public QObject
 {

@@ -36,7 +36,6 @@ public:
         QString* startSfenStr = nullptr;
         QString* resumeSfenStr = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
-        QStringList* gameUsiMoves = nullptr;
 
         // --- 親ウィジェット ---
         QWidget* parent = nullptr;

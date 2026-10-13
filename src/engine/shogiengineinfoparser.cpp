@@ -9,7 +9,6 @@
 #include <QObject>
 #include <QMessageBox>
 #include "shogigamecontroller.h"
-#include "shogiutils.h"
 
 // ============================================================
 // 初期化

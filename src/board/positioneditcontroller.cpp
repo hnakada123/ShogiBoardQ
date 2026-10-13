@@ -102,20 +102,9 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     // 棋譜読込直後も、表示している盤面の手番を編集開始時に保持する。
     const QChar desiredTurn = board->currentPlayer() == Turn::White ? QLatin1Char('w') : QLatin1Char('b');
 
-    // 分岐表示中のsfenRecordは本譜なので、表示中の局面を優先する。
+    // 表示中の局面を編集する
     QString baseSfen = c.currentSfenStr ? *c.currentSfenStr : QString();
-    if (baseSfen.isEmpty() && c.sfenRecord && !c.sfenRecord->isEmpty()) {
-        const qsizetype lastIdx = c.sfenRecord->size() - 1;
-        qsizetype idx = -1;
-        if (c.selectedPly >= 0 && c.selectedPly <= lastIdx) {
-            idx = c.selectedPly;
-        } else if (c.activePly >= 0 && c.activePly <= lastIdx) {
-            idx = c.activePly;
-        } else {
-            idx = lastIdx;
-        }
-        if (idx >= 0 && idx <= lastIdx) baseSfen = c.sfenRecord->at(idx);
-    }
+    if (baseSfen.isEmpty()) baseSfen = c.displayedSfen;
     if (baseSfen.isEmpty()) {
         if (c.resumeSfenStr && !c.resumeSfenStr->isEmpty()) {
             baseSfen = *c.resumeSfenStr;
@@ -159,9 +148,8 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     if (c.onShowEditExitButton) c.onShowEditExitButton();
 
     // startSfenStr にも記録
-    if (c.sfenRecord && c.startSfenStr) {
-        if (!c.sfenRecord->isEmpty()) *c.startSfenStr = c.sfenRecord->first();
-        else                          *c.startSfenStr = adjusted;
+    if (c.startSfenStr) {
+        *c.startSfenStr = c.recordStartSfen.isEmpty() ? adjusted : c.recordStartSfen;
     }
 }
 
@@ -188,16 +176,10 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
     c.view->setMouseClickMode(false);
     c.view->update();
 
-    // sfenRecord を 0手局面として再保存
-    if (c.sfenRecord) {
-        c.sfenRecord->clear();
-        c.sfenRecord->push_back(sfenNow);
-    }
-
-    // startSfen にも反映
+    // 編集した局面が開始局面になる（棋譜と対局の局面列は、編集終了後の
+    // resetRecordForEditedPosition がこの局面から作り直す）
     if (c.startSfenStr) {
-        if (c.sfenRecord && !c.sfenRecord->isEmpty()) *c.startSfenStr = c.sfenRecord->first();
-        else                                          *c.startSfenStr = sfenNow;
+        *c.startSfenStr = sfenNow;
     }
 
     // 再開フラグを落とす

@@ -307,8 +307,7 @@ void MainWindowCompositionRoot::refreshGameStateControllerDeps(
     GameStateController::Hooks hooks;
     hooks.enableArrowButtons = cbs.enableArrowButtons;
     hooks.setReplayMode = cbs.setReplayMode;
-    hooks.refreshBranchTree = cbs.refreshBranchTree;
-    hooks.updatePlyState = cbs.updatePlyState;
+    hooks.syncCursorToPly = cbs.syncCursorToPly;
     hooks.updateBoardView = cbs.updateBoardView;
     hooks.setGameOverStyleLock = cbs.setGameOverStyleLock;
     hooks.setMouseClickMode = cbs.setMouseClickMode;
@@ -329,15 +328,11 @@ void MainWindowCompositionRoot::refreshBoardSetupControllerDeps(
     controller->setPlayMode(refs.state.playMode ? *refs.state.playMode : PlayMode::NotStarted);
     controller->setSfenRecord(refs.kifu.sfenRecord);
     controller->setGameMoves(refs.kifu.gameMoves);
-    controller->setCurrentMoveIndex(refs.state.currentMoveIndex);
 
     controller->setEnsurePositionEditCallback(cbs.ensurePositionEdit);
     controller->setRedrawEngine1GraphCallback(cbs.redrawEngine1Graph);
     controller->setRedrawEngine2GraphCallback(cbs.redrawEngine2Graph);
     controller->setVariationInputCallbacks(cbs.isVariationInput, cbs.recordVariationMove);
-    controller->setRefreshBranchTreeCallback([]() {
-        // LiveGameSession + KifuDisplayCoordinator が自動更新するため no-op
-    });
 }
 
 void MainWindowCompositionRoot::refreshPositionEditCoordinatorDeps(
@@ -351,10 +346,7 @@ void MainWindowCompositionRoot::refreshPositionEditCoordinatorDeps(
     coordinator->setPositionEditController(refs.uiController.positionEditController);
     coordinator->setMatchCoordinator(refs.gameService.match);
     coordinator->setReplayController(refs.kifuService.replayController);
-    coordinator->setSfenRecord(refs.kifu.sfenRecord);
-
-    coordinator->setCurrentSelectedPly(refs.kifu.currentSelectedPly);
-    coordinator->setActivePly(refs.kifu.activePly);
+    coordinator->setNavigationState(refs.branchNav.navState);
     coordinator->setStartSfenStr(refs.state.startSfenStr);
     coordinator->setCurrentSfenStr(refs.state.currentSfenStr);
     coordinator->setResumeSfenStr(refs.state.resumeSfenStr);
@@ -379,7 +371,7 @@ void MainWindowCompositionRoot::refreshCommentCoordinatorDeps(
     coordinator->setRecordPane(refs.ui.recordPane);
     coordinator->setRecordPresenter(refs.kifuService.recordPresenter);
     coordinator->setStatusBar(refs.ui.statusBar);
-    coordinator->setCurrentMoveIndex(refs.state.currentMoveIndex);
+    coordinator->setNavigationState(refs.branchNav.navState);
     coordinator->setGameRecordModel(refs.models.gameRecordModel);
     coordinator->setKifuRecordListModel(refs.models.kifuRecordModel);
 }
@@ -391,9 +383,6 @@ void MainWindowCompositionRoot::refreshPvClickControllerDeps(
     controller->setThinkingModels(refs.models.thinking1, refs.models.thinking2);
     controller->setConsiderationModel(refs.models.consideration);
     controller->setLogModels(refs.models.commLog1, refs.models.commLog2);
-    controller->setSfenRecord(refs.kifu.sfenRecord);
-    controller->setGameMoves(refs.kifu.gameMoves);
-    controller->setUsiMoves(refs.kifu.gameUsiMoves);
 }
 
 void MainWindowCompositionRoot::refreshUiStatePolicyManagerDeps(

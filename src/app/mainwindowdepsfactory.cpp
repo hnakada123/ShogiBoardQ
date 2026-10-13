@@ -14,26 +14,14 @@ DialogCoordinatorWiring::Deps MainWindowDepsFactory::createDialogCoordinatorDeps
     deps.match = refs.gameService.match;
     deps.gameController = refs.gameService.gameController;
 
-    // 複数コンテキストで共有
-    deps.sfenRecord = refs.kifu.sfenRecord;
-    deps.currentMoveIndex = refs.state.currentMoveIndex;
-    deps.gameUsiMoves = refs.kifu.gameUsiMoves;
-    deps.kifuLoadCoordinator = refs.kifuService.kifuLoadCoordinator;
+    // 検討・詰み探索・棋譜解析で共有（手順は分岐ツリーから取る）
     deps.startSfenStr = refs.state.startSfenStr;
-
-    // ConsiderationContext 固有
-    deps.gameMoves = refs.kifu.gameMoves;
     deps.kifuRecordModel = refs.models.kifuRecordModel;
     deps.currentSfenStr = refs.state.currentSfenStr;
-    deps.branchTree = refs.branchNav.branchTree;
     deps.navState = refs.branchNav.navState;
     deps.considerationModel = refs.models.considerationModel;
 
-    // TsumeSearchContext 固有
-    deps.positionStrList = refs.kifu.positionStrList;
-
     // KifuAnalysisContext 固有
-    deps.activePly = refs.kifu.activePly;
     deps.gameInfoController = refs.analysis.gameInfoController;
     deps.evalChart = refs.ui.evalChart;
     deps.presenter = refs.analysis.analysisPresenter;
@@ -93,10 +81,6 @@ RecordNavigationWiring::Deps MainWindowDepsFactory::createRecordNavigationDeps(
     deps.kifuRecordModel = refs.models.kifuRecordModel;
     deps.shogiView = refs.gameService.shogiView;
     deps.evalGraphController = refs.analysis.evalGraphController;
-    deps.sfenRecord = refs.kifu.sfenRecord;
-    deps.activePly = refs.kifu.activePly;
-    deps.currentSelectedPly = refs.kifu.currentSelectedPly;
-    deps.currentMoveIndex = refs.state.currentMoveIndex;
     deps.currentSfenStr = refs.state.currentSfenStr;
     deps.skipBoardSyncForBranchNav = refs.state.skipBoardSyncForBranchNav;
     deps.csaGameCoordinator = refs.gameService.csaGameCoordinator;

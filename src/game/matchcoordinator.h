@@ -374,6 +374,9 @@ private:
     QList<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト
     QList<ShogiMove>* m_externalGameMoves = nullptr; ///< 外部共有の指し手リスト（非所有、Deps経由）
 
+    /// 指し手列を局面列の長さ（手数）までに切り詰める（対局開始時）
+    void alignGameMovesWithSfenHistory();
+
     // 外部共有ポインタが設定されていればそれを使う（Deps経由で注入）
     QList<ShogiMove>& gameMovesRef() {
         return m_externalGameMoves ? *m_externalGameMoves : m_gameMoves;

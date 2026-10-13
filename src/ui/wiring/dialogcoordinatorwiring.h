@@ -47,26 +47,14 @@ public:
         MatchCoordinator* match = nullptr;             ///< 対局調整（非所有）
         ShogiGameController* gameController = nullptr; ///< ゲーム制御（非所有）
 
-        // --- 複数コンテキストで共有 ---
-        QStringList* sfenRecord = nullptr;             ///< SFEN記録（外部所有）
-        int* currentMoveIndex = nullptr;               ///< 現在の手インデックス（外部所有）
-        QStringList* gameUsiMoves = nullptr;           ///< USI形式指し手リスト（外部所有）
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr; ///< 棋譜読み込みコーディネータ（非所有）
+        // --- 検討・詰み探索・棋譜解析で共有（手順は分岐ツリーから取る） ---
         QString* startSfenStr = nullptr;               ///< 開始局面SFEN文字列（外部所有）
-
-        // --- ConsiderationContext 固有 ---
-        QList<ShogiMove>* gameMoves = nullptr;       ///< 指し手リスト（外部所有）
         KifuRecordListModel* kifuRecordModel = nullptr; ///< 棋譜リストモデル（非所有）
-        QString* currentSfenStr = nullptr;             ///< 現在局面SFEN文字列（外部所有）
-        KifuBranchTree* branchTree = nullptr;          ///< 分岐ツリー（非所有）
-        KifuNavigationState* navState = nullptr;       ///< ナビゲーション状態（非所有）
+        QString* currentSfenStr = nullptr;             ///< 手順が無いときに使う現在局面SFEN（外部所有）
+        KifuNavigationState* navState = nullptr;       ///< 表示中の手順（分岐ツリー、非所有）
         ShogiEngineThinkingModel** considerationModel = nullptr; ///< 検討モデル（ダブルポインタ、外部所有）
 
-        // --- TsumeSearchContext 固有 ---
-        QStringList* positionStrList = nullptr;        ///< 局面文字列リスト（外部所有）
-
         // --- KifuAnalysisContext 固有 ---
-        int* activePly = nullptr;                      ///< アクティブ手数（外部所有）
         GameInfoPaneController* gameInfoController = nullptr; ///< 対局情報コントローラ（非所有）
         EvaluationChartWidget* evalChart = nullptr;    ///< 評価値グラフ（非所有）
         AnalysisResultsPresenter* presenter = nullptr; ///< 解析結果プレゼンタ（非所有）

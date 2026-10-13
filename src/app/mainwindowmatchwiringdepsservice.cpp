@@ -39,8 +39,6 @@ MatchCoordinatorWiring::Deps MainWindowMatchWiringDepsService::buildDeps(const I
     builder.boardController = in.boardController;
     builder.kifuRecordModel = in.kifuRecordModel;
     builder.gameMoves = in.gameMoves;
-    builder.positionStrList = in.positionStrList;
-    builder.currentMoveIndex = in.currentMoveIndex;
 
     builder.ensureTimeController = in.ensureTimeController;
     builder.ensureEvaluationGraphController = in.ensureEvaluationGraphController;

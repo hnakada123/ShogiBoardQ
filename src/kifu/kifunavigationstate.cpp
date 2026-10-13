@@ -201,3 +201,21 @@ int KifuNavigationState::lastSelectedChildAt(KifuBranchNode* branchPoint) const
                               << "(map size=" << m_lastSelectedChildAtBranch.size() << ")";
     return result;
 }
+
+RecordLine KifuNavigationState::currentRecordLine() const
+{
+    if (m_tree == nullptr || m_tree->root() == nullptr) return {};
+
+    // 選んでいる分岐の手順。表示中の局面がその手順に無ければ、表示中の局面までの手順にする
+    QList<KifuBranchNode*> nodes;
+    const QList<BranchLine> lines = m_tree->allLines();
+    const int index = currentLineIndex();
+    if (index >= 0 && index < lines.size()
+        && (m_currentNode == nullptr || lines.at(index).nodes.contains(m_currentNode))) {
+        nodes = lines.at(index).nodes;
+    } else {
+        nodes = m_tree->pathToNode(m_currentNode != nullptr ? m_currentNode : m_tree->root());
+    }
+
+    return KifuBranchTree::toRecordLine(nodes, currentPly());
+}

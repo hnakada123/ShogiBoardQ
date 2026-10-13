@@ -1,10 +1,9 @@
 #include <QtTest>
 
 #include "shoginotation.h"
-#include "shogiutils.h"
 #include "shogimove.h"
 
-class TestShogiUtils : public QObject
+class TestShogiNotation : public QObject
 {
     Q_OBJECT
 
@@ -87,40 +86,6 @@ private slots:
         QCOMPARE(ShogiNotation::rankFromKanji(QChar(u'十')), 0);
     }
 
-    // === parseMoveLabel ===
-
-    void parseMoveLabel_sente()
-    {
-        auto result = ShogiUtils::parseMoveLabel(QStringLiteral("▲７六歩(77)"));
-        QVERIFY(result.has_value());
-        auto [file, rank] = *result;
-        QCOMPARE(file, 7);
-        QCOMPARE(rank, 6);
-    }
-
-    void parseMoveLabel_gote()
-    {
-        auto result = ShogiUtils::parseMoveLabel(QStringLiteral("△３四歩(33)"));
-        QVERIFY(result.has_value());
-        auto [file, rank] = *result;
-        QCOMPARE(file, 3);
-        QCOMPARE(rank, 4);
-    }
-
-    void parseMoveLabel_doNotation()
-    {
-        // 「同」で始まる場合は nullopt を返す
-        auto result = ShogiUtils::parseMoveLabel(QStringLiteral("▲同　銀(31)"));
-        QVERIFY(!result.has_value());
-    }
-
-    void parseMoveLabel_noMark()
-    {
-        // ▲も△もない場合
-        auto result = ShogiUtils::parseMoveLabel(QStringLiteral("７六歩"));
-        QVERIFY(!result.has_value());
-    }
-
     // === ShogiMove::toUsiMove ===
 
     void toUsiMove_invalidCoordinates()
@@ -131,5 +96,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestShogiUtils)
-#include "tst_shogiutils.moc"
+QTEST_MAIN(TestShogiNotation)
+#include "tst_shoginotation.moc"

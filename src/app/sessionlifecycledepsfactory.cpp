@@ -19,7 +19,6 @@ SessionLifecycleCoordinator::Deps SessionLifecycleDepsFactory::createDeps(
     deps.playMode = refs.state.playMode;
     deps.startSfenStr = refs.state.startSfenStr;
     deps.currentSfenStr = refs.state.currentSfenStr;
-    deps.currentSelectedPly = refs.kifu.currentSelectedPly;
 
     // コールバック（リセット処理用）
     deps.clearGameStateFields = callbacks.clearGameStateFields;

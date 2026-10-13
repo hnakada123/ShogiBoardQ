@@ -83,10 +83,6 @@ struct RuntimeModelRefs {
 struct RuntimeKifuRefs {
     QStringList* sfenRecord = nullptr;                     ///< SFEN記録（外部所有）
     QList<ShogiMove>* gameMoves = nullptr;               ///< 指し手リスト（外部所有）
-    QStringList* gameUsiMoves = nullptr;                   ///< USI形式指し手リスト（外部所有）
-    QStringList* positionStrList = nullptr;                ///< 局面文字列リスト（外部所有）
-    int* activePly = nullptr;                              ///< アクティブ手数（外部所有）
-    int* currentSelectedPly = nullptr;                     ///< 選択中手数（外部所有）
     QString* saveFileName = nullptr;                       ///< 保存先ファイルパス（外部所有）
     bool* onMainRowGuard = nullptr;                        ///< 本譜行ガード（外部所有）
 };
@@ -95,7 +91,6 @@ struct RuntimeKifuRefs {
 /// 全メンバは非所有（ダブルポインタ経由）。MainWindow の GameState 構造体が所有する状態への参照。
 struct RuntimeStateRefs {
     PlayMode* playMode = nullptr;                          ///< 対局モード（外部所有）
-    int* currentMoveIndex = nullptr;                       ///< 現在の手インデックス（外部所有）
     QString* currentSfenStr = nullptr;                     ///< 現在局面SFEN文字列（外部所有）
     QString* startSfenStr = nullptr;                       ///< 開始局面SFEN文字列（外部所有）
     bool* skipBoardSyncForBranchNav = nullptr;             ///< 分岐ナビ中の盤面同期スキップフラグ（外部所有）

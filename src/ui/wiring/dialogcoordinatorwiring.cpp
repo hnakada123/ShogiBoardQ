@@ -65,41 +65,25 @@ void DialogCoordinatorWiring::bindContexts(const Deps& deps)
     // 検討コンテキストを設定
     DialogCoordinator::ConsiderationContext conCtx;
     conCtx.gameController = deps.gameController;
-    conCtx.gameMoves = deps.gameMoves;
-    conCtx.currentMoveIndex = deps.currentMoveIndex;
-    conCtx.kifuRecordModel = deps.kifuRecordModel;
-    conCtx.sfenRecord = deps.sfenRecord;
     conCtx.startSfenStr = deps.startSfenStr;
     conCtx.currentSfenStr = deps.currentSfenStr;
-    conCtx.branchTree = deps.branchTree;
     conCtx.navState = deps.navState;
     conCtx.considerationModel = deps.considerationModel;
-    conCtx.gameUsiMoves = deps.gameUsiMoves;
-    conCtx.kifuLoadCoordinator = deps.kifuLoadCoordinator;
     m_coordinator->setConsiderationContext(conCtx);
 
     // 詰み探索コンテキストを設定
     DialogCoordinator::TsumeSearchContext tsumeCtx;
-    tsumeCtx.sfenRecord = deps.sfenRecord;
+    tsumeCtx.navState = deps.navState;
     tsumeCtx.startSfenStr = deps.startSfenStr;
-    tsumeCtx.positionStrList = deps.positionStrList;
-    tsumeCtx.currentMoveIndex = deps.currentMoveIndex;
-    tsumeCtx.gameUsiMoves = deps.gameUsiMoves;
-    tsumeCtx.kifuLoadCoordinator = deps.kifuLoadCoordinator;
     m_coordinator->setTsumeSearchContext(tsumeCtx);
 
     // 棋譜解析コンテキストを設定
     DialogCoordinator::KifuAnalysisContext kifuCtx;
-    kifuCtx.sfenRecord = deps.sfenRecord;
     kifuCtx.recordModel = deps.kifuRecordModel;
-    kifuCtx.branchTree = deps.branchTree;
     kifuCtx.navState = deps.navState;
-    kifuCtx.activePly = deps.activePly;
     kifuCtx.gameController = deps.gameController;
     kifuCtx.gameInfoController = deps.gameInfoController;
-    kifuCtx.kifuLoadCoordinator = deps.kifuLoadCoordinator;
     kifuCtx.evalChart = deps.evalChart;
-    kifuCtx.gameUsiMoves = deps.gameUsiMoves;
     kifuCtx.presenter = deps.presenter;
     kifuCtx.getBoardFlipped = deps.getBoardFlipped;
     m_coordinator->setKifuAnalysisContext(kifuCtx);

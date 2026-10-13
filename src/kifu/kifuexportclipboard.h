@@ -18,8 +18,6 @@ class GameRecordModel;
 class KifuRecordListModel;
 class GameInfoPaneController;
 class TimeControlController;
-class KifuLoadCoordinator;
-class MatchCoordinator;
 class ShogiGameController;
 
 /**
@@ -41,13 +39,7 @@ public:
         KifuRecordListModel* kifuRecordModel = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
         TimeControlController* timeController = nullptr;
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
-        MatchCoordinator* match = nullptr;
         ShogiGameController* gameController = nullptr;
-
-        // データソース（ポインタ）
-        QStringList* sfenRecord = nullptr;
-        QStringList* usiMoves = nullptr;
 
         // 状態値
         QString startSfenStr;
@@ -100,7 +92,7 @@ private:
     QStringList resolveUsiMoves() const;
     GameRecordModel::ExportContext buildExportContext() const;
     bool setClipboardText(const QString& text, const QString& successMsg);
-    bool isCurrentlyPlaying() const;
+    QString lineSfenAt(int ply) const;
     /// 分岐を含む棋譜か（分岐に対応しない形式でコピーするときの通知用）
     bool hasBranches() const;
     int currentPly() const;

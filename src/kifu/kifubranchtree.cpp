@@ -255,6 +255,21 @@ KifuBranchNode* KifuBranchTree::findByPlyOnMainLine(int ply) const
     return nullptr;
 }
 
+RecordLine KifuBranchTree::toRecordLine(const QList<KifuBranchNode*>& nodes, int currentPly)
+{
+    RecordLine line;
+    for (const KifuBranchNode* node : std::as_const(nodes)) {
+        if (node == nullptr || node->isTerminal()) continue;
+        line.sfens << node->sfen();
+        if (node->ply() > 0) {
+            line.moves << node->move();
+            line.displayTexts << node->displayText();
+        }
+    }
+    line.currentPly = qBound(0, currentPly, line.moveCount());
+    return line;
+}
+
 QList<KifuBranchNode*> KifuBranchTree::mainLine() const
 {
     QList<KifuBranchNode*> result;

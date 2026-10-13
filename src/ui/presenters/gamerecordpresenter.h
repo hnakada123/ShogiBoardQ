@@ -64,23 +64,9 @@ private slots:
     void onKifuCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);
 
 public:
-    // ライブ記録用アイテムを追加（保存）
-    void addLiveKifItem(const QString& prettyMove, const QString& elapsedTime);
-
-    /// 「待った」後、保存用のライブ履歴とコメントの末尾を取り消す。
-    void removeLastLiveMoves(int count);
-
-    // 現在のライブ記録を取得
-    const QList<KifDisplayItem>& liveDisp() const { return m_liveDisp; }
-
-    // 外部からの可変アクセス（GameRecordModel のバインド用）
-    QList<KifDisplayItem>* liveDispPtr() { return &m_liveDisp; }
-
-    // ライブ記録をクリア
-    void clearLiveDisp() { m_liveDisp.clear(); }
-
-private:
-    QList<KifDisplayItem> m_liveDisp;
+    /// 「待った」で棋譜欄の末尾を消した後、現在の手数を最後の行に合わせる。
+    /// 指し手・コメントの正本は分岐ツリーで、取り消しは LiveGameSession が行う
+    void syncCurrentMoveIndexToLastRow();
 };
 
 #endif // GAMERECORDPRESENTER_H

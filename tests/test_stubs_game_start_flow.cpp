@@ -351,27 +351,10 @@ void KifuDisplay::setBookmark(const QString& bookmark) { m_bookmark = bookmark; 
 // ============================================================
 
 // gamestartcoordinator.cpp は KifuLoadCoordinator::resetBranchTreeForNewGame() だけ呼ぶ
-// コンストラクタは大量引数だがスタブ実装なので空
-// 参照メンバの初期化にはダミーの static 変数を使用
-// NOLINTBEGIN(misc-definitions-in-headers) - stub dummy variables for reference members
-[[maybe_unused]] static QList<ShogiMove> s_dummyGameMoves;
-[[maybe_unused]] static QStringList s_dummyPositionStrList;
-[[maybe_unused]] static int s_dummyActivePly = 0;
-[[maybe_unused]] static int s_dummyCurrentSelectedPly = 0;
-[[maybe_unused]] static int s_dummyCurrentMoveIndex = 0;
-// NOLINTEND(misc-definitions-in-headers)
-
-KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves, QStringList& positionStrList,
-                                          int& activePly, int& currentSelectedPly, int& currentMoveIndex,
-                                          QStringList*, QTableWidget*,
+KifuLoadCoordinator::KifuLoadCoordinator(QTableWidget*,
                                           RecordPane*, KifuRecordListModel*, KifuBranchListModel*,
                                           QObject* parent)
-    : QObject(parent)
-    , m_gameMoves(gameMoves)
-    , m_positionStrList(positionStrList)
-    , m_activePly(activePly)
-    , m_currentSelectedPly(currentSelectedPly)
-    , m_currentMoveIndex(currentMoveIndex) {}
+    : QObject(parent) {}
 
 KifuLoadCoordinator::~KifuLoadCoordinator() = default;
 void KifuLoadCoordinator::onLoadFinished() {}

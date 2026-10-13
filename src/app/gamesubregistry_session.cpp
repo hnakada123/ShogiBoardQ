@@ -50,9 +50,6 @@ void MainWindowServiceRegistry::ensurePreStartCleanupHandler()
     deps.recordPane = m_mw.m_recordPane;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
-    deps.activePly = &m_mw.m_kifu.activePly;
-    deps.currentSelectedPly = &m_mw.m_kifu.currentSelectedPly;
-    deps.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
     deps.liveGameSession = m_mw.m_branchNav.liveGameSession;
     deps.branchTree = m_mw.m_branchNav.branchTree;
     deps.navState = m_mw.m_branchNav.navState;
@@ -151,7 +148,7 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
     deps.playMode = &m_mw.m_state.playMode;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
-    deps.currentSelectedPly = &m_mw.m_kifu.currentSelectedPly;
+    deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.bottomIsP1 = &m_mw.m_player.bottomIsP1;
 
     // === Branch navigation ===
@@ -163,9 +160,7 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
         m_foundation->ensureUiStatePolicyManager();
         m_mw.m_uiStatePolicy->setResumeAvailable(available);
     };
-    deps.prepareResumeUi = [this](int ply) {
-        m_mw.m_kifu.activePly = ply;
-        m_mw.m_state.currentMoveIndex = ply;
+    deps.prepareResumeUi = [this]() {
         unlockGameOverStyle();
         if (m_mw.m_shogiView) m_mw.m_shogiView->setMouseClickMode(true);
         if (m_mw.m_timeController) m_mw.m_timeController->clearGameEndTime();
@@ -212,7 +207,6 @@ void MainWindowServiceRegistry::refreshCoreInitDeps()
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.resumeSfenStr = &m_mw.m_state.resumeSfenStr;
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
-    deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.parent = &m_mw;
     deps.setupBoardInteractionController = [this]() { setupBoardInteractionController(); };
     deps.setCurrentTurn = [this]() {

@@ -43,10 +43,6 @@ public:
         KifuRecordListModel* kifuRecordModel = nullptr;    ///< 棋譜リストモデル（非所有）
         ShogiView* shogiView = nullptr;                    ///< 盤面ビュー（非所有）
         EvaluationGraphController* evalGraphController = nullptr; ///< 評価値グラフ制御（非所有）
-        QStringList* sfenRecord = nullptr;                 ///< SFEN記録（外部所有）
-        int* activePly = nullptr;                          ///< アクティブ手数（外部所有）
-        int* currentSelectedPly = nullptr;                 ///< 選択中手数（外部所有）
-        int* currentMoveIndex = nullptr;                   ///< 現在の手インデックス（外部所有）
         QString* currentSfenStr = nullptr;                 ///< 現在局面SFEN文字列（外部所有）
         bool* skipBoardSyncForBranchNav = nullptr;         ///< 分岐ナビ中の盤面同期スキップフラグ（外部所有）
         CsaGameCoordinator* csaGameCoordinator = nullptr;  ///< CSA対局コーディネータ（非所有）

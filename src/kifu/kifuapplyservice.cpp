@@ -33,19 +33,6 @@ void KifuApplyService::setHooks(const Hooks& hooks)
     m_hooks = hooks;
 }
 
-bool KifuApplyService::ensureSfenHistoryStorage(const char* callerTag) const
-{
-    if (m_refs.sfenHistory && *m_refs.sfenHistory) {
-        return true;
-    }
-
-    qCCritical(lcKifu).noquote() << callerTag << ": sfenHistory storage is not initialized";
-    if (m_hooks.errorOccurred) {
-        m_hooks.errorOccurred(tr("内部エラー: SFEN履歴の格納先が初期化されていません。"));
-    }
-    return false;
-}
-
 // ============================================================
 // SFEN/BOD局面読み込み
 // ============================================================
@@ -68,22 +55,11 @@ bool KifuApplyService::loadPositionFromSfen(const QString& sfenStr)
         return false;
     }
 
-    if (!ensureSfenHistoryStorage("loadPositionFromSfen")) {
-        return false;
-    }
-
     // ローカルエイリアス
-    QStringList* sfenHistory = *m_refs.sfenHistory;
     KifuBranchTree*& branchTree = *m_refs.branchTree;
     KifuNavigationState* navState = *m_refs.navState;
 
     *m_refs.loadingKifu = true;
-
-    // sfenRecordをクリアして初期局面をセット
-    if (sfenHistory) {
-        sfenHistory->clear();
-        sfenHistory->append(sfen);
-    }
 
     // 表示用データを作成
     QList<KifDisplayItem> disp;
@@ -107,13 +83,10 @@ bool KifuApplyService::loadPositionFromSfen(const QString& sfenStr)
     }
     branchTree->setRootSfen(sfen);
 
-    // 各種インデックスをリセット
+    // 表示中の手数（分岐ツリーのカーソル）を開始局面へ
     if (navState != nullptr) {
         navState->goToRoot();
     }
-    *m_refs.activePly = 0;
-    *m_refs.currentSelectedPly = 0;
-    *m_refs.currentMoveIndex = 0;
 
     // ゲーム情報をクリア
     populateGameInfo({});
@@ -250,46 +223,6 @@ void KifuApplyService::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& it
 // ============================================================
 // データ再構築
 // ============================================================
-
-bool KifuApplyService::rebuildSfenRecord(const QString& initialSfen,
-                                         const QStringList& usiMoves,
-                                         bool hasTerminal)
-{
-    if (!ensureSfenHistoryStorage("rebuildSfenRecord")) {
-        return false;
-    }
-
-    QStringList*& sfenHistory = *m_refs.sfenHistory;
-
-    qCDebug(lcKifu).noquote() << "rebuildSfenRecord ENTER"
-                             << "initialSfen=" << initialSfen.left(60)
-                             << "usiMoves.size=" << usiMoves.size()
-                             << "hasTerminal=" << hasTerminal
-                             << "sfenHistory*=" << static_cast<const void*>(sfenHistory);
-
-    const QStringList list = SfenPositionTracer::buildSfenRecord(initialSfen, usiMoves, hasTerminal);
-
-    qCDebug(lcKifu).noquote() << "rebuildSfenRecord: built list.size=" << list.size();
-    if (!list.isEmpty()) {
-        qCDebug(lcKifu).noquote() << "rebuildSfenRecord: head[0]=" << list.first().left(60);
-        if (list.size() > 1) {
-            qCDebug(lcKifu).noquote() << "rebuildSfenRecord: tail[last]=" << list.last().left(60);
-        }
-    }
-
-    *sfenHistory = list;
-
-    qCDebug(lcKifu).noquote() << "rebuildSfenRecord LEAVE"
-                             << "sfenHistory*=" << static_cast<const void*>(sfenHistory)
-                             << "sfenHistory->size=" << sfenHistory->size();
-    return true;
-}
-
-void KifuApplyService::rebuildGameMoves(const QString& initialSfen,
-                                         const QStringList& usiMoves)
-{
-    *m_refs.gameMoves = SfenPositionTracer::buildGameMoves(initialSfen, usiMoves);
-}
 
 // ============================================================
 // 分岐マーカー

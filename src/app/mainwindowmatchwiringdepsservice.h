@@ -58,8 +58,6 @@ public:
         BoardInteractionController* boardController = nullptr;
         KifuRecordListModel* kifuRecordModel = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
-        QStringList* positionStrList = nullptr;
-        int* currentMoveIndex = nullptr;
 
         // --- 遅延初期化コールバック ---
         std::function<void()> ensureTimeController;

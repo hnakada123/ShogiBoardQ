@@ -6,6 +6,8 @@
 #include "kifuconversionservice.h"
 #include "kifuloadparser.h"
 #include "kifubranchtree.h"
+#include "kifubranchtreebuilder.h"
+#include "kifubranchnode.h"
 #include "bodtextgenerator.h"
 #include "ki2lexer.h"
 #include "parsecommon.h"
@@ -115,14 +117,13 @@ private slots:
         QVERIFY(result.lines.contains(QLatin1Char('%') + code));
         const auto loaded = KifuLoadParser::parseText(result.lines.join(QLatin1Char('\n')));
         QVERIFY2(loaded.success, qPrintable(loaded.error));
-        QCOMPARE(loaded.sfens.size(), 3);
-        QCOMPARE(loaded.sfens.at(1), loaded.sfens.at(2));
+        // 棋譜の正本（分岐ツリー）では、終局行は直前の局面を持つ終局ノードになる
         KifuBranchTree tree;
-        tree.setRootSfen(loaded.sfens.at(1));
-        auto* terminal = tree.addMove(tree.root(), {}, loaded.record.mainline.disp.last().prettyMove, {});
-        QVERIFY(terminal);
-        QVERIFY(terminal->isTerminal());
-        QCOMPARE(terminal->sfen(), tree.root()->sfen());
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen);
+        const QList<KifuBranchNode*> mainLine = tree.mainLine();
+        QCOMPARE(mainLine.size(), 3);
+        QVERIFY(mainLine.last()->isTerminal());
+        QCOMPARE(mainLine.last()->sfen(), mainLine.at(1)->sfen());
     }
 
     void noMateIsNotCheckmate()
@@ -198,7 +199,9 @@ private slots:
         QCOMPARE(loaded.initialSfen, sfen);
         QCOMPARE(loaded.record.mainline.baseSfen, sfen);
         QCOMPARE(loaded.record.mainline.usiMoves, moves);
-        QCOMPARE(loaded.sfens.first(), sfen);
+        KifuBranchTree tree;
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen);
+        QCOMPARE(tree.root()->sfen(), sfen);
     }
 
     void csaPromotionSurvivesKifConversion()

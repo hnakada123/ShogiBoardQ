@@ -150,6 +150,12 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
             m_state->resetPreferredLineIndex();
         }
         m_state->clearLineSelectionMemory();
+        // 対局は分岐点（途中局面）か開始局面から始まる。表示中の手数（カーソル）をそこに合わせる
+        KifuBranchNode* startNode = branchPoint != nullptr ? branchPoint
+                                                            : (m_tree != nullptr ? m_tree->root() : nullptr);
+        if (startNode != nullptr) {
+            m_state->setCurrentNode(startNode);
+        }
         qCDebug(lcUi).noquote() << "onLiveGameSessionStarted: set preferredLineIndex=" << branchLineIndex
                            << "and clearLineSelectionMemory";
     }

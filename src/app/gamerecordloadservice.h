@@ -9,12 +9,10 @@ class GameRecordModel;
 class GameRecordPresenter;
 class RecordPane;
 struct KifDisplayItem;
-struct ShogiMove;
 
 /// @brief 棋譜表示時の初期化とコメント同期を担当するサービス
 ///
 /// MainWindow::displayGameRecord から抽出。棋譜読み込み時に
-/// - ゲーム状態（USI指し手・ShogiMove）のクリア
 /// - GameRecordModel の初期化
 /// - RecordPresenter への表示委譲
 /// を一括で行う。
@@ -22,10 +20,6 @@ class GameRecordLoadService
 {
 public:
     struct Deps {
-        // State pointers（外部所有）
-        QStringList* gameUsiMoves = nullptr;          ///< USI形式指し手リスト
-        QList<ShogiMove>* gameMoves = nullptr;      ///< ShogiMove リスト
-
         // Object pointers（非所有）
         RecordPane* recordPane = nullptr;             ///< 棋譜欄ウィジェット
 
@@ -34,7 +28,6 @@ public:
         std::function<GameRecordModel*()> ensureGameRecordModel;     ///< GameRecordModel 遅延初期化
 
         // Data accessor
-        std::function<const QStringList*()> sfenRecord; ///< SFEN記録取得
     };
 
     void updateDeps(const Deps& deps);

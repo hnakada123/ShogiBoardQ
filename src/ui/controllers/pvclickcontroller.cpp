@@ -9,7 +9,6 @@
 #include "shogiview.h"
 #include "usicommlogmodel.h"
 #include "shogiinforecord.h"
-#include "shogimove.h"
 #include "pvboarddialog.h"
 #include "sfenutils.h"
 
@@ -53,21 +52,6 @@ void PvClickController::setConsiderationModel(ShogiEngineThinkingModel* model)
     m_considerationModel = model;
 }
 
-void PvClickController::setSfenRecord(QStringList* sfenRecord)
-{
-    m_sfenHistory = sfenRecord;
-}
-
-void PvClickController::setGameMoves(const QList<ShogiMove>* gameMoves)
-{
-    m_gameMoves = gameMoves;
-}
-
-void PvClickController::setUsiMoves(const QStringList* usiMoves)
-{
-    m_usiMoves = usiMoves;
-}
-
 void PvClickController::setStateRefs(const StateRefs& refs)
 {
     m_stateRefs = refs;
@@ -96,8 +80,7 @@ void PvClickController::syncFromRefs()
         m_startSfenStr = *m_stateRefs.startSfenStr;
     if (m_stateRefs.considerationModel)
         m_considerationModel = *m_stateRefs.considerationModel;
-    if (m_stateRefs.sfenRecordGetter)
-        m_sfenHistory = m_stateRefs.sfenRecordGetter();
+    m_line = m_stateRefs.currentLine ? m_stateRefs.currentLine() : RecordLine{};
     m_boardFlipped = m_shogiView ? m_shogiView->flipMode() : false;
 }
 
@@ -161,7 +144,7 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     qCDebug(lcUi) << "onPvRowClicked: currentSfen=" << currentSfen;
     qCDebug(lcUi) << "onPvRowClicked: record->baseSfen()=" << record->baseSfen();
     qCDebug(lcUi) << "onPvRowClicked: record->lastUsiMove()=" << record->lastUsiMove();
-    qCDebug(lcUi) << "onPvRowClicked: sfenRecord size=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
+    qCDebug(lcUi) << "onPvRowClicked: line positions=" << m_line.sfens.size();
 
     // 起動時の局面に至った最後の手を設定（読み筋生成時に保存された情報）
     QString lastUsiMove = record->lastUsiMove();
@@ -247,33 +230,22 @@ void PvClickController::resolveHighlightContext(const QString& currentSfen,
                                                 QString& lastUsiMove,
                                                 QString& prevSfenForHighlight) const
 {
-    int matchedIndexInRecord = -1;
-    if (m_sfenHistory && !currentSfen.isEmpty()) {
-        const QString curNorm = normalizedSfen(currentSfen);
-        for (int i = 0; i < m_sfenHistory->size(); ++i) {
-            if (normalizedSfen(m_sfenHistory->at(i)) == curNorm) {
-                matchedIndexInRecord = i;
-                break;
-            }
+    // 読み筋の局面が表示中の手順の何手目かを探し、その直前の局面と、その局面に至った手を使う
+    if (currentSfen.isEmpty()) return;
+    const QString curNorm = normalizedSfen(currentSfen);
+    int ply = -1;
+    for (int i = 0; i < m_line.sfens.size(); ++i) {
+        if (normalizedSfen(m_line.sfens.at(i)) == curNorm) {
+            ply = i;
+            break;
         }
-        qCDebug(lcUi) << "onPvRowClicked: found matchedIndexInRecord by baseSfen comparison="
-                      << matchedIndexInRecord;
     }
+    qCDebug(lcUi) << "onPvRowClicked: ply of base position in current line=" << ply;
+    if (ply <= 0) return;
 
-    if (matchedIndexInRecord <= 0 || !m_sfenHistory
-        || matchedIndexInRecord - 1 >= m_sfenHistory->size()) {
-        return;
-    }
-
-    prevSfenForHighlight = m_sfenHistory->at(matchedIndexInRecord - 1);
-    qCDebug(lcUi) << "onPvRowClicked: prevSfenForHighlight from m_sfenHistory["
-                  << (matchedIndexInRecord - 1) << "]";
-
-    if (lastUsiMove.isEmpty() && m_usiMoves
-        && !m_usiMoves->isEmpty() && matchedIndexInRecord - 1 < m_usiMoves->size()) {
-        lastUsiMove = m_usiMoves->at(matchedIndexInRecord - 1);
-        qCDebug(lcUi) << "onPvRowClicked: lastUsiMove from m_usiMoves["
-                      << (matchedIndexInRecord - 1) << "]=" << lastUsiMove;
+    prevSfenForHighlight = m_line.sfens.at(ply - 1);
+    if (lastUsiMove.isEmpty()) {
+        lastUsiMove = m_line.usiMove(ply).toString();
     }
 }
 
@@ -308,30 +280,21 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
     QString currentSfen = baseSfen;
     qCDebug(lcUi) << "baseSfen from record:" << currentSfen;
 
-    // baseSfenが空の場合のフォールバック
-    if (currentSfen.isEmpty() && m_sfenHistory && m_sfenHistory->size() >= 2) {
-        currentSfen = m_sfenHistory->at(m_sfenHistory->size() - 2).trimmed();
-        qCDebug(lcUi) << "fallback to sfenRecord[size-2]:" << currentSfen;
-    } else if (currentSfen.isEmpty() && m_sfenHistory && !m_sfenHistory->isEmpty()) {
-        currentSfen = m_sfenHistory->first().trimmed();
-        qCDebug(lcUi) << "fallback to sfenRecord first:" << currentSfen;
+    // 読み筋に局面が付いていなければ、表示中の局面とみなす
+    const QString displayedSfen = !m_currentSfenStr.isEmpty()
+        ? m_currentSfenStr
+        : m_line.sfens.value(m_line.currentPly).trimmed();
+    if (currentSfen.isEmpty()) {
+        currentSfen = displayedSfen;
     }
 
     // baseSfenがstartposでも、現在局面がstartposでないなら現在局面を優先
-    if (!currentSfen.isEmpty() && isStartposSfen(currentSfen)) {
-        QString fallbackCurrent = m_currentSfenStr;
-        if (fallbackCurrent.isEmpty() && m_sfenHistory && !m_sfenHistory->isEmpty()) {
-            fallbackCurrent = m_sfenHistory->last().trimmed();
-        }
-        if (!fallbackCurrent.isEmpty() && !isStartposSfen(fallbackCurrent)) {
-            qCDebug(lcUi) << "override startpos baseSfen with currentSfen=" << fallbackCurrent;
-            currentSfen = fallbackCurrent;
-        }
+    if (!currentSfen.isEmpty() && isStartposSfen(currentSfen)
+        && !displayedSfen.isEmpty() && !isStartposSfen(displayedSfen)) {
+        qCDebug(lcUi) << "override startpos baseSfen with currentSfen=" << displayedSfen;
+        currentSfen = displayedSfen;
     }
 
-    if (currentSfen.isEmpty()) {
-        currentSfen = m_currentSfenStr;
-    }
     if (currentSfen.isEmpty()) {
         currentSfen = m_startSfenStr;
     }
@@ -370,48 +333,4 @@ void PvClickController::resolvePlayerNames(QString& blackName, QString& whiteNam
         if (whiteName.isEmpty()) whiteName = tr("後手");
         break;
     }
-}
-
-QString PvClickController::resolveLastUsiMove() const
-{
-    QString lastUsiMove;
-    qCDebug(lcUi) << "m_usiMoves size=" << (m_usiMoves ? m_usiMoves->size() : -1)
-                  << " m_gameMoves size=" << (m_gameMoves ? m_gameMoves->size() : -1);
-
-    if (m_usiMoves && !m_usiMoves->isEmpty()) {
-        lastUsiMove = m_usiMoves->last();
-        qCDebug(lcUi) << "using m_usiMoves.last():" << lastUsiMove;
-    } else if (m_gameMoves && !m_gameMoves->isEmpty()) {
-        // m_gameMovesから最後の手をUSI形式に変換
-        const ShogiMove& lastMove = m_gameMoves->last();
-        int fromFile = lastMove.fromSquare.x() + 1;
-        int fromRank = lastMove.fromSquare.y() + 1;
-        int toFile = lastMove.toSquare.x() + 1;
-        int toRank = lastMove.toSquare.y() + 1;
-
-        qCDebug(lcUi) << "lastMove from m_gameMoves (after +1):"
-                      << " fromFile=" << fromFile << " fromRank=" << fromRank
-                      << " toFile=" << toFile << " toRank=" << toRank
-                      << " isPromotion=" << lastMove.isPromotion;
-
-        if (lastMove.fromSquare.x() == 0 && lastMove.fromSquare.y() == 0) {
-            // 駒打ちの場合: P*5e 形式
-            QChar pieceChar = pieceToChar(toBlack(lastMove.movingPiece));
-            QChar rankChar = QChar('a' + toRank - 1);
-            lastUsiMove = QString("%1*%2%3").arg(pieceChar).arg(toFile).arg(rankChar);
-        } else {
-            // 通常の移動: 7g7f 形式
-            QChar fromRankChar = QChar('a' + fromRank - 1);
-            QChar toRankChar = QChar('a' + toRank - 1);
-            lastUsiMove = QString("%1%2%3%4").arg(fromFile).arg(fromRankChar).arg(toFile).arg(toRankChar);
-            if (lastMove.isPromotion) {
-                lastUsiMove += '+';
-            }
-        }
-        qCDebug(lcUi) << "generated USI move:" << lastUsiMove;
-    } else {
-        qCDebug(lcUi) << "both m_usiMoves and m_gameMoves are empty";
-    }
-
-    return lastUsiMove;
 }

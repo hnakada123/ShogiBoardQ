@@ -190,151 +190,6 @@ static QString getUsenTerminalCode(const QString& terminalMove)
     return QString();
 }
 
-static QString inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sfenAfter, bool isSente)
-{
-    // 2つのSFEN間の差分からUSI形式の指し手を推測
-    // SFEN形式: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
-    // 盤面部分を比較して、移動した駒を特定する
-
-    if (sfenBefore.isEmpty() || sfenAfter.isEmpty()) {
-        return QString();
-    }
-
-    // SFEN盤面部分を抽出
-    QString boardBefore = sfenBefore.section(QLatin1Char(' '), 0, 0);
-    QString boardAfter = sfenAfter.section(QLatin1Char(' '), 0, 0);
-
-    // 盤面を9x9配列に展開 (promoted pieces use 0x100 flag)
-    // board[rank][file] の順序で格納 (rank: 0-8 = 一段〜九段, file: 0-8 = 1筋〜9筋)
-    auto expandBoard = [](const QString& board) -> QList<int> {
-        QList<int> result(81, 0);  // 0 = empty
-        int sfenIdx = 0;  // SFEN上のインデックス（左上から右へ、上から下へ）
-        bool promoted = false;
-
-        for (QChar c : board) {
-            if (c == QLatin1Char('/')) continue;
-            if (c == QLatin1Char('+')) {
-                promoted = true;
-                continue;
-            }
-            if (c.isDigit()) {
-                int n = c.toLatin1() - '0';
-                sfenIdx += n;
-            } else {
-                if (sfenIdx < 81) {
-                    int rank = sfenIdx / 9;       // 0-8 (一段目〜九段目)
-                    int sfenFile = sfenIdx % 9;   // 0-8 (9筋〜1筋の順)
-                    int file = 8 - sfenFile;      // 0-8 (1筋〜9筋の順に変換)
-                    int boardIdx = rank * 9 + file;
-
-                    int pieceCode = static_cast<unsigned char>(c.toLatin1());
-                    if (promoted) pieceCode |= 0x100;  // 成駒フラグ
-                    result[boardIdx] = pieceCode;
-                }
-                sfenIdx++;
-                promoted = false;
-            }
-        }
-        return result;
-    };
-
-    QList<int> before = expandBoard(boardBefore);
-    QList<int> after = expandBoard(boardAfter);
-
-    // 差分を探す
-    int fromRank = -1, fromFile = -1;
-    int toRank = -1, toFile = -1;
-    int movedPiece = 0;
-    bool isPromotion = false;
-
-    for (int rank = 0; rank < 9; ++rank) {
-        for (int file = 0; file < 9; ++file) {
-            int idx = rank * 9 + file;
-            int beforePiece = before[idx];
-            int afterPiece = after[idx];
-
-            if (beforePiece != afterPiece) {
-                // beforeにあってafterにない → 移動元
-                if (beforePiece != 0 && afterPiece == 0) {
-                    fromRank = rank;
-                    fromFile = file;
-                    movedPiece = beforePiece;
-                }
-                // beforeになくてafterにある → 移動先
-                else if (beforePiece == 0 && afterPiece != 0) {
-                    toRank = rank;
-                    toFile = file;
-                }
-                // 両方に駒がある → 駒取り
-                else if (beforePiece != 0 && afterPiece != 0) {
-                    // 先手の駒は大文字、後手の駒は小文字
-                    char beforeChar = static_cast<char>(beforePiece & 0xFF);
-                    char afterChar = static_cast<char>(afterPiece & 0xFF);
-                    bool beforeIsSente = (beforeChar >= 'A' && beforeChar <= 'Z');
-                    bool afterIsSente = (afterChar >= 'A' && afterChar <= 'Z');
-
-                    if (beforeIsSente != afterIsSente) {
-                        if ((isSente && afterIsSente) || (!isSente && !afterIsSente)) {
-                            toRank = rank;
-                            toFile = file;
-                        } else {
-                            fromRank = rank;
-                            fromFile = file;
-                            movedPiece = beforePiece;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // 成り判定: 移動元が非成りで移動先が成り。
-    // 走査順によっては移動先を移動元より先に見るため、走査が終わってから判定する。
-    if (fromRank >= 0 && toRank >= 0) {
-        isPromotion = (after[toRank * 9 + toFile] & 0x100) && !(movedPiece & 0x100);
-    }
-
-    // 駒打ちの検出（fromRank == -1 で toRank != -1）
-    if (fromRank < 0 && toRank >= 0) {
-        // 持ち駒から打った
-        int piece = after[toRank * 9 + toFile];
-        char pieceChar = static_cast<char>(piece & 0xFF);
-        QChar usiPiece = QChar(pieceChar).toUpper();
-
-        // USI座標: ファイルは1-9、ランクはa-i
-        int usiFile = toFile + 1;  // 1-9
-        char usiRank = static_cast<char>('a' + toRank);  // a-i
-
-        return QStringLiteral("%1*%2%3")
-            .arg(usiPiece)
-            .arg(usiFile)
-            .arg(QChar(usiRank));
-    }
-
-    // 盤上移動
-    if (fromRank >= 0 && toRank >= 0) {
-        // USI座標: ファイルは1-9、ランクはa-i
-        int fromUsiFile = fromFile + 1;
-        char fromUsiRank = static_cast<char>('a' + fromRank);
-        int toUsiFile = toFile + 1;
-        char toUsiRank = static_cast<char>('a' + toRank);
-
-        QString usi = QStringLiteral("%1%2%3%4")
-            .arg(fromUsiFile)
-            .arg(QChar(fromUsiRank))
-            .arg(toUsiFile)
-            .arg(QChar(toUsiRank));
-
-        if (isPromotion) {
-            usi += QLatin1Char('+');
-        }
-
-        return usi;
-    }
-
-    return QString();
-}
-
 // ========================================
 // エクスポート
 // ========================================
@@ -395,11 +250,10 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
             QString branchMoves;
             QString branchTerminal;
 
-            // 分岐のSFENリストとディスプレイアイテムを取得
-            QStringList sfenList = branchTree->sfenListForLine(lineIdx);
+            // 分岐の表示アイテムと、分岐ツリーの各手の指し手
             QList<KifDisplayItem> branchDisp = branchTree->displayItemsForLine(lineIdx);
+            const RecordLine record = KifuBranchTree::toRecordLine(line.nodes);
 
-            // SFENの差分からUSI指し手を推測
             for (qsizetype i = line.branchPly; i < branchDisp.size(); ++i) {
                 const KifDisplayItem& item = branchDisp[i];
                 if (item.prettyMove.isEmpty()) continue;
@@ -410,15 +264,11 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
                     break;
                 }
 
-                // SFENリストを使ってUSI指し手を推測
-                // i-1番目のSFENからi番目のSFENへの差分を計算
-                if (i < sfenList.size() && (i - 1) >= 0 && (i - 1) < sfenList.size()) {
-                    QString usi = inferUsiFromSfenDiff(sfenList[i - 1], sfenList[i], sfenList[i - 1].contains(QStringLiteral(" b ")));
-                    if (!usi.isEmpty()) {
-                        QString encoded = encodeUsiMoveToUsen(usi);
-                        if (!encoded.isEmpty()) {
-                            branchMoves += encoded;
-                        }
+                const QString usi = record.usiMove(static_cast<int>(i)).toString();
+                if (!usi.isEmpty()) {
+                    const QString encoded = encodeUsiMoveToUsen(usi);
+                    if (!encoded.isEmpty()) {
+                        branchMoves += encoded;
                     }
                 }
             }

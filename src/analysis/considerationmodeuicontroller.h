@@ -55,17 +55,6 @@ public:
     /// 通信ログモデル参照を設定する（非所有）
     void setCommLogModel(UsiCommLogModel* model);
 
-    /**
-     * @brief 検討モード中に局面が変更されたときの処理
-     * @param row 新しい行番号
-     * @param newPosition 新しい局面のposition文字列
-     * @param gameMoves ゲームの指し手リスト（移動先座標取得用、nullの場合は使用しない）
-     * @param kifuRecordModel 棋譜モデル（移動先座標取得用、nullの場合は使用しない）
-     * @return 局面が更新された場合true
-     */
-    bool updatePositionIfInConsiderationMode(int row, const QString& newPosition,
-                                             const QList<ShogiMove>* gameMoves,
-                                             KifuRecordListModel* kifuRecordModel);
 
 public slots:
     /**

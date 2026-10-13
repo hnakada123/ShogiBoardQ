@@ -13,7 +13,6 @@
 #include "kifusavecoordinator.h"
 #include "sfenutils.h"
 #include "uinotificationservice.h"
-#include "usimoveconverter.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -30,8 +29,9 @@ void requireAbsolutePath(const QString& path)
 
 int totalPlies(const AutomationContext& context)
 {
-    const QStringList* record = context.sfenRecord ? context.sfenRecord() : nullptr;
-    return record && !record->isEmpty() ? static_cast<int>(record->size()) - 1 : 0;
+    // 表示中の手順（分岐ツリー）の行数。終局行（投了など）も1手に数える
+    const QStringList record = AutomationCommands::currentLinePositions(context);
+    return record.isEmpty() ? 0 : static_cast<int>(record.size()) - 1;
 }
 
 KifuFileController* requireFileController(const AutomationContext& context)
@@ -56,8 +56,8 @@ QJsonObject loadResult(const AutomationContext& context)
 {
     QJsonObject result;
     result[QStringLiteral("total_plies")] = totalPlies(context);
-    const QStringList* record = context.sfenRecord ? context.sfenRecord() : nullptr;
-    result[QStringLiteral("start_sfen")] = record && !record->isEmpty() ? record->first() : QString();
+    const QStringList record = AutomationCommands::currentLinePositions(context);
+    result[QStringLiteral("start_sfen")] = record.isEmpty() ? QString() : record.first();
     result[QStringLiteral("kifu_file")] = context.saveFileName ? *context.saveFileName : QString();
     return result;
 }
@@ -155,12 +155,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                 const QList<BranchLine> lines = (tree && !tree->isEmpty()) ? tree->allLines() : QList<BranchLine>();
                 if (lineIndex >= 0 && lineIndex < lines.size()) {
                     items = tree->displayItemsForLine(lineIndex);
-                    QStringList positions;
-                    for (const KifuBranchNode* node : std::as_const(lines.at(lineIndex).nodes)) {
-                        if (node->isTerminal()) break;
-                        positions.append(node->sfen());
-                    }
-                    usi = UsiMoveConverter::fromSfenRecord(positions);
+                    usi = KifuBranchTree::toRecordLine(lines.at(lineIndex).nodes).usiMoves();
                     result[QStringLiteral("line")] = lineIndex;
                     result[QStringLiteral("total_plies")] = static_cast<int>(usi.size());
                 } else {
@@ -224,7 +219,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         }
         nav->goToPly(ply);
         QJsonObject result;
-        result[QStringLiteral("ply")] = context.currentMoveIndex ? *context.currentMoveIndex : ply;
+        result[QStringLiteral("ply")] = context.currentPly ? context.currentPly() : ply;
         result[QStringLiteral("sfen")] = currentSfen(context);
         return result;
     });

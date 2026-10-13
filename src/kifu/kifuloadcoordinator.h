@@ -37,13 +37,7 @@ class KifuLoadCoordinator : public QObject
     Q_OBJECT
 
 public:
-    explicit KifuLoadCoordinator(QList<ShogiMove>& gameMoves,
-                        QStringList& positionStrList,
-                        int& activePly,
-                        int& currentSelectedPly,
-                        int& currentMoveIndex,
-                        QStringList* sfenRecord,
-                        QTableWidget* gameInfoTable,
+    explicit KifuLoadCoordinator(QTableWidget* gameInfoTable,
                         RecordPane* recordPane,
                         KifuRecordListModel* kifuRecordModel,
                         KifuBranchListModel* kifuBranchModel,
@@ -92,14 +86,6 @@ public:
     void setBranchTree(KifuBranchTree* tree) { m_branchTree = tree; }
     void setNavigationState(KifuNavigationState* state) { m_navState = state; }
 
-    // --- データアクセス ---
-
-    /// USI指し手リストを取得（CSA出力用）
-    const QStringList& kifuUsiMoves() const { return m_kifuUsiMoves; }
-
-    /// USI指し手リストへのポインタを取得（棋譜解析用）
-    QStringList* kifuUsiMovesPtr() { return &m_kifuUsiMoves; }
-
     // --- 分岐管理 ---
 
     /// 分岐ツリーを完全リセット（新規対局開始時に使用）
@@ -141,16 +127,7 @@ private:
     ShogiView* m_shogiView = nullptr;         ///< 盤面ビュー（非所有）
 
     // --- 棋譜データ ---
-    QStringList m_kifuUsiMoves;               ///< USI形式の指し手リスト
-    QStringList* m_sfenHistory;                ///< 局面SFEN列への参照（非所有）
-    QList<ShogiMove>& m_gameMoves;          ///< ゲーム指し手列への参照
-    QStringList& m_positionStrList;           ///< USI positionコマンド列への参照
     RecordPane* m_recordPane;                 ///< 棋譜ペイン（非所有）
-
-    // --- ナビゲーション状態（参照で共有） ---
-    int& m_activePly;                         ///< 現在のアクティブ手数
-    int& m_currentSelectedPly;                ///< 現在選択中の手数
-    int& m_currentMoveIndex;                  ///< 現在の指し手インデックス
 
     // --- モデル ---
     KifuRecordListModel* m_kifuRecordModel;   ///< 棋譜レコードモデル（非所有）

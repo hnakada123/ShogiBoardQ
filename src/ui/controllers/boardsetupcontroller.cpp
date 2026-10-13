@@ -4,7 +4,6 @@
 #include "boardsetupcontroller.h"
 
 #include "logcategories.h"
-#include <QTimer>
 #include <QWheelEvent>
 #include <QEvent>
 
@@ -113,11 +112,6 @@ void BoardSetupController::setGameMoves(QList<ShogiMove>* gameMoves)
     m_gameMoves = gameMoves;
 }
 
-void BoardSetupController::setCurrentMoveIndex(int* currentMoveIndex)
-{
-    m_currentMoveIndex = currentMoveIndex;
-}
-
 // --------------------------------------------------------
 // コールバック設定
 // --------------------------------------------------------
@@ -142,11 +136,6 @@ void BoardSetupController::setRedrawEngine1GraphCallback(RedrawEngine1GraphCallb
 void BoardSetupController::setRedrawEngine2GraphCallback(RedrawEngine2GraphCallback cb)
 {
     m_redrawEngine2Graph = std::move(cb);
-}
-
-void BoardSetupController::setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb)
-{
-    m_refreshBranchTree = std::move(cb);
 }
 
 // --------------------------------------------------------
@@ -274,11 +263,6 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         return;
     }
 
-    // UI 側の現在カーソルを同期
-    if (m_sfenHistory && m_currentMoveIndex) {
-        *m_currentMoveIndex = static_cast<int>(m_sfenHistory->size() - 1);
-    }
-
     // --- 対局モードごとの後処理 ---
     switch (modeNow) {
     case PlayMode::HumanVsHuman:
@@ -318,15 +302,6 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
 void BoardSetupController::onMoveCommitted(Turn mover, int ply)
 {
-    // 分岐ツリー更新を遅延呼び出し
-    if (m_refreshBranchTree) {
-        QTimer::singleShot(0, this, [this]() {
-            if (m_refreshBranchTree) {
-                m_refreshBranchTree();
-            }
-        });
-    }
-
     // EvE の評価グラフ更新
     const bool isEvE =
         (m_playMode == PlayMode::EvenEngineVsEngine) ||

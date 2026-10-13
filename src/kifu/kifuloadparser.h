@@ -17,9 +17,6 @@ struct KifuLoadResult {
     QString warning;
     QList<KifGameInfoItem> gameInfo;
     KifParseResult record;
-    QStringList sfens;
-    QStringList positionCommands;
-    QList<ShogiMove> moves;
 };
 
 namespace KifuLoadParser {

@@ -5,7 +5,6 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
-#include "shogiutils.h"
 
 #include "logcategories.h"
 

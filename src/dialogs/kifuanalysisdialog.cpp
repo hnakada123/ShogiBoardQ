@@ -7,7 +7,6 @@
 #include "analysissettings.h"
 #include "dialogutils.h"
 #include "enginelistsettings.h"
-#include "shogiutils.h"
 #include "buttonstyles.h"
 
 #include <QFile>

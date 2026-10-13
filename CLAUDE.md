@@ -57,7 +57,7 @@ cmake --build build --target translations
   - `shogimove.cpp/.h` - Move representation
   - `movevalidator.cpp/.h` - Move legality validation
   - `shogiclock.cpp/.h` - Game clock
-  - `shogiutils.cpp/.h` - Utilities
+  - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）
 
 - **game/**: ゲーム進行・対局管理
   - `matchcoordinator.cpp/.h` - Match orchestration

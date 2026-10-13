@@ -572,24 +572,6 @@ private slots:
     // 7. Kifu / MainWindow の防御契約
     // ================================================================
 
-    /// KifuApplyService が欠落した SFEN 履歴を new で補完せず、エラーとして扱うこと
-    void kifuApplyServiceRejectsMissingSfenHistoryStorage()
-    {
-        const QString source = readSourceFile(QStringLiteral("src/kifu/kifuapplyservice.cpp"));
-        const QString applySource = readSourceFile(QStringLiteral("src/kifu/kifuapplyservice_apply.cpp"));
-        QVERIFY2(!source.isEmpty(), "Failed to read kifuapplyservice.cpp");
-        QVERIFY2(!applySource.isEmpty(), "Failed to read kifuapplyservice_apply.cpp");
-
-        QVERIFY2(source.contains(QStringLiteral("ensureSfenHistoryStorage")),
-                  "KifuApplyService must validate SFEN history storage before use");
-        QVERIFY2(source.contains(QStringLiteral("内部エラー: SFEN履歴の格納先が初期化されていません。")),
-                  "KifuApplyService must surface a concrete internal error for missing SFEN history");
-        QVERIFY2(!source.contains(QStringLiteral("new QStringList")),
-                  "KifuApplyService must not allocate fallback QStringList for missing SFEN history");
-        QVERIFY2(applySource.contains(QStringLiteral("OUT (missing sfen history)")),
-                  "applyParsedResult must stop when SFEN history storage is unavailable");
-    }
-
     /// MainWindow が RuntimeRefs を自前で組み立て、const_cast に依存しないこと
     void mainWindowRuntimeRefsStayInsideMainWindow()
     {

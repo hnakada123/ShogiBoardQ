@@ -44,8 +44,6 @@ MatchCoordinatorWiring::Deps MatchCoordinatorWiring::buildDeps(const BuilderInpu
 
     deps.kifuRecordModel  = in.kifuRecordModel;
     deps.gameMoves        = in.gameMoves;
-    deps.positionStrList  = in.positionStrList;
-    deps.currentMoveIndex = in.currentMoveIndex;
 
     deps.hooks     = MatchCoordinatorHooksFactory::buildHooks(in.hookDeps);
     deps.undoHooks = MatchCoordinatorHooksFactory::buildUndoHooks(in.undoDeps);
@@ -90,8 +88,6 @@ void MatchCoordinatorWiring::updateDeps(const Deps& deps)
 
     m_kifuRecordModel = deps.kifuRecordModel;
     m_gameMoves = deps.gameMoves;
-    m_positionStrList = deps.positionStrList;
-    m_currentMoveIndex = deps.currentMoveIndex;
 
     m_hooks = deps.hooks;
     m_undoHooks = deps.undoHooks;
@@ -169,8 +165,6 @@ void MatchCoordinatorWiring::wireConnections()
     if (m_match) {
         MatchCoordinator::UndoRefs u;
         u.recordModel      = m_kifuRecordModel;
-        u.positionStrList  = m_positionStrList;
-        u.currentMoveIndex = m_currentMoveIndex;
         u.boardCtl         = m_boardController;
 
         m_match->setUndoBindings(u, m_undoHooks);

@@ -194,19 +194,11 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
         return;
     }
 
-    // 分岐ツリーを再構築
-    if (m_hooks.refreshBranchTree) {
-        m_hooks.refreshBranchTree();
-    }
-
-    // 対局終了時に現在の手数を設定
+    // 対局終了時に表示中の手数を最終行（終局行）に合わせる
     if (m_kifuRecordModel) {
         const int rows = m_kifuRecordModel->rowCount();
-        if (rows > 0) {
-            const int lastRow = rows - 1;
-            if (m_hooks.updatePlyState) {
-                m_hooks.updatePlyState(lastRow, lastRow, lastRow);
-            }
+        if (rows > 0 && m_hooks.syncCursorToPly) {
+            m_hooks.syncCursorToPly(rows - 1);
         }
     }
 

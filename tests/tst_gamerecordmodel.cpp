@@ -26,6 +26,8 @@
 #include "kifuexportclipboard.h"
 #include "kifuexportmetadata.h"
 #include "kifu_test_helper.h"
+#include "kifuloadparser.h"
+#include "kifubranchtreebuilder.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -40,7 +42,8 @@ private:
                                        const QString& time = {})
     {
         const QStringList positions = SfenPositionTracer::buildSfenRecord(parent->sfen(), {usi}, false);
-        return tree.addMove(parent, ShogiMove(), pretty, positions.last(), time);
+        const QList<ShogiMove> moves = SfenPositionTracer::buildGameMoves(parent->sfen(), {usi});
+        return tree.addMove(parent, moves.value(0), pretty, positions.last(), time);
     }
 
     void setupBasicModel(GameRecordModel& model, KifuBranchTree& tree,
@@ -73,11 +76,31 @@ private:
 
         model.setBranchTree(&tree);
         model.setNavigationState(&navState);
-        model.bind(&disp);
         model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
     }
 
 private slots:
+    /// 後手から指す棋譜（駒落ち・局面指定）を読んでも、分岐ツリーの各手が USI の指し手になる
+    void whiteFirstRecordTreeHasUsiMoves_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QString>("moves");
+        QTest::newRow("csa-handicap") << QString("V2.2\nPI82HI22KA,-,-3334FU,T2\n") << QString("3c3d");
+        QTest::newRow("jkf-white-first") << QString(R"({"initial":{"preset":"6"},"moves":[{},
+            {"move":{"color":1,"piece":"OU","from":{"x":5,"y":1},"to":{"x":4,"y":2},"promote":null}}]})")
+            << QString("5a4b");
+    }
+    void whiteFirstRecordTreeHasUsiMoves()
+    {
+        QFETCH(QString, text);
+        QFETCH(QString, moves);
+        const KifuLoadResult loaded = KifuLoadParser::parseText(text);
+        QVERIFY2(loaded.success, qPrintable(loaded.error));
+        KifuBranchTree tree;
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen);
+        QCOMPARE(tree.mainRecordLine().usiMoves().join(QLatin1Char(' ')), moves);
+    }
+
     void allFormatsRoundTripCustomPosition_data()
     {
         QTest::addColumn<QString>("format");
@@ -517,10 +540,15 @@ private slots:
         QFETCH(QString, startSfen);
         QFETCH(QString, move);
         QFETCH(QStringList, lines);
-        QStringList sfens = SfenPositionTracer::buildSfenRecord(startSfen, {move}, false);
+        // 局面は棋譜の正本（分岐ツリー）の表示中の手順から取る
+        KifuBranchTree tree;
+        tree.setRootSfen(startSfen);
+        addTestMove(tree, tree.root(), move, QStringLiteral("1手目"));
+        GameRecordModel model;
+        model.setBranchTree(&tree);
         KifuExportClipboard exporter(nullptr);
         KifuExportClipboard::Deps deps;
-        deps.sfenRecord = &sfens;
+        deps.gameRecord = &model;
         deps.startSfenStr = startSfen;
         deps.currentMoveIndex = 1;
         exporter.setDependencies(deps);
@@ -614,7 +642,8 @@ private slots:
         LiveGameSession session;
         session.setTree(&tree);
         session.startFromNode(anchor);
-        session.addMove(ShogiMove(), newPretty, sessionSfens.last(), QStringLiteral("00:05/00:00:05"));
+        session.addMove(SfenPositionTracer::buildGameMoves(anchor->sfen(), sessionUsi).value(0),
+                        newPretty, sessionSfens.last(), QStringLiteral("00:05/00:00:05"));
         QVERIFY(session.commit());
 
         GameRecordModel model;
@@ -622,8 +651,6 @@ private slots:
         KifuExportClipboard exporter(nullptr);
         KifuExportClipboard::Deps deps;
         deps.gameRecord = &model;
-        deps.usiMoves = &sessionUsi;
-        deps.sfenRecord = &sessionSfens;
         deps.startSfenStr = anchor->sfen();
         exporter.setDependencies(deps);
         if (format == QStringLiteral("csa")) QVERIFY(exporter.copyCsaToClipboard());
@@ -663,22 +690,15 @@ private slots:
         model.setBranchTree(&tree);
         QCOMPARE(model.collectMainlineUsiForExport(), QStringList({QStringLiteral("7g7f")}));
 
-        // 開始局面だけの本譜に、別セッションの指し手を混ぜない。
+        // 開始局面だけの本譜を書き出す（対局用の一覧など、ほかの指し手の出どころは無い）。
         tree.setRootSfen(kHirateSfen);
-        QStringList staleUsi = {QStringLiteral("2g2f")};
         KifuExportClipboard exporter(nullptr);
         KifuExportClipboard::Deps deps;
         deps.gameRecord = &model;
-        deps.usiMoves = &staleUsi;
         deps.startSfenStr = kHirateSfen;
         exporter.setDependencies(deps);
         QVERIFY(exporter.copyUsiToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos"));
-
-        // ツリーがなければ従来どおり対局用データを出力する。
-        model.setBranchTree(nullptr);
-        QVERIFY(exporter.copyUsiToClipboard());
-        QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos moves 2g2f"));
     }
 
     void exportOpeningRow_data()
@@ -1080,7 +1100,6 @@ private slots:
             auto* node = mainNodes.at(i);
             disp.append(KifDisplayItem(node->displayText(), node->timeText(), QString(), node->ply()));
         }
-        model.bind(&disp);
         model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
 
         GameRecordModel::ExportContext ctx;

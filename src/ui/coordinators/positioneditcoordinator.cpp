@@ -2,6 +2,7 @@
 /// @brief 局面編集コーディネータクラスの実装
 
 #include "positioneditcoordinator.h"
+#include "kifunavigationstate.h"
 
 #include <QAction>
 #include <QPushButton>
@@ -56,23 +57,13 @@ void PositionEditCoordinator::setReplayController(ReplayController* replay)
     m_replayController = replay;
 }
 
-void PositionEditCoordinator::setSfenRecord(QStringList* sfenRecord)
-{
-    m_sfenHistory = sfenRecord;
-}
-
 // --------------------------------------------------------
 // 状態参照の設定
 // --------------------------------------------------------
 
-void PositionEditCoordinator::setCurrentSelectedPly(const int* currentSelectedPly)
+void PositionEditCoordinator::setNavigationState(const KifuNavigationState* state)
 {
-    m_currentSelectedPly = currentSelectedPly;
-}
-
-void PositionEditCoordinator::setActivePly(const int* activePly)
-{
-    m_activePly = activePly;
+    m_navState = state;
 }
 
 void PositionEditCoordinator::setStartSfenStr(QString* startSfenStr)
@@ -134,10 +125,10 @@ void PositionEditCoordinator::beginPositionEditing()
     ctx.view       = m_shogiView;
     ctx.gc         = m_gameController;
     ctx.bic        = m_boardController;
-    ctx.sfenRecord = m_sfenHistory;
 
-    ctx.selectedPly = m_currentSelectedPly ? *m_currentSelectedPly : 0;
-    ctx.activePly   = m_activePly ? *m_activePly : 0;
+    const RecordLine line = m_navState ? m_navState->currentRecordLine() : RecordLine{};
+    ctx.displayedSfen   = line.sfens.value(line.currentPly);
+    ctx.recordStartSfen = line.startSfen();
     ctx.gameOver    = (m_match ? m_match->gameOverState().isOver : false);
 
     ctx.startSfenStr    = m_startSfenStr;
@@ -223,7 +214,6 @@ void PositionEditCoordinator::finishPositionEditing()
     ctx.view       = m_shogiView;
     ctx.gc         = m_gameController;
     ctx.bic        = m_boardController;
-    ctx.sfenRecord = m_sfenHistory;
     ctx.startSfenStr        = m_startSfenStr;
     ctx.isResumeFromCurrent = nullptr;
 

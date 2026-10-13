@@ -15,12 +15,7 @@ void KifuExportDepsAssembler::assemble(KifuExportController* controller, const M
     deps.kifuRecordModel = refs.models.kifuRecordModel;
     deps.gameInfoController = refs.analysis.gameInfoController;
     deps.timeController = refs.uiController.timeController;
-    deps.kifuLoadCoordinator = refs.kifuService.kifuLoadCoordinator;
-    deps.recordPresenter = refs.kifuService.recordPresenter;
-    deps.match = refs.gameService.match;
     deps.gameController = refs.gameService.gameController;
-    deps.sfenRecord = refs.kifu.sfenRecord;
-    deps.usiMoves = refs.kifu.gameUsiMoves;
     deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
     deps.startSfenStr = refs.state.startSfenStr ? *refs.state.startSfenStr : QString();
     deps.playMode = refs.state.playMode ? *refs.state.playMode : PlayMode::NotStarted;
@@ -29,7 +24,7 @@ void KifuExportDepsAssembler::assemble(KifuExportController* controller, const M
     deps.engineName1 = refs.player.engineName1 ? *refs.player.engineName1 : QString();
     deps.engineName2 = refs.player.engineName2 ? *refs.player.engineName2 : QString();
     deps.activeResolvedRow = (refs.branchNav.navState != nullptr) ? refs.branchNav.navState->currentLineIndex() : 0;
-    deps.currentMoveIndex = refs.state.currentMoveIndex ? *refs.state.currentMoveIndex : 0;
+    deps.currentMoveIndex = (refs.branchNav.navState != nullptr) ? refs.branchNav.navState->currentPly() : 0;
 
     controller->setDependencies(deps);
 }

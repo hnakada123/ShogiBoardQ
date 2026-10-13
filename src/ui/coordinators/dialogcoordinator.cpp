@@ -25,7 +25,6 @@
 #include "shogimove.h"
 #include "kifurecordlistmodel.h"
 #include "considerationpositionresolver.h"
-#include "shogiutils.h"
 #include "sfenutils.h"
 
 DialogCoordinator::DialogCoordinator(QWidget* parentWidget, QObject* parent)
@@ -111,7 +110,7 @@ bool DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
 
 void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
 {
-    qCDebug(lcUi).noquote() << "showTsumeSearchDialog: currentMoveIndex=" << params.currentMoveIndex;
+    qCDebug(lcUi).noquote() << "showTsumeSearchDialog: ply=" << params.line.currentPly;
 
     Q_EMIT tsumeSearchModeStarted();
 
@@ -120,12 +119,8 @@ void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
 
     TsumeSearchFlowController::Deps d;
     d.match = m_match;
-    d.sfenRecord = params.sfenRecord;
-    d.startSfenStr = params.startSfenStr;
-    d.positionStrList = params.positionStrList;
-    d.currentMoveIndex = qMax(0, params.currentMoveIndex);
-    d.usiMoves = params.usiMoves;
-    d.startPositionCmd = params.startPositionCmd;
+    d.line = params.line;
+    d.fallbackSfen = params.fallbackSfen;
     d.onError = [this](const QString& msg) { showFlowError(msg); };
 
     const bool started = flow.runWithDialog(d, m_parentWidget);
@@ -149,34 +144,19 @@ bool DialogCoordinator::startConsiderationFromContext()
         return false;
     }
 
-    // 手番表示用の設定
-    if (m_considerationCtx.gameController && m_considerationCtx.gameMoves && m_considerationCtx.currentMoveIndex) {
-        const int moveIdx = *m_considerationCtx.currentMoveIndex;
-        const int movesSize = static_cast<int>(m_considerationCtx.gameMoves->size());
-        if (movesSize > 0 && moveIdx >= 0 && moveIdx < movesSize) {
-            if (isBlackPiece(m_considerationCtx.gameMoves->at(moveIdx).movingPiece))
-                m_considerationCtx.gameController->setCurrentPlayer(Turn::Black);
-            else
-                m_considerationCtx.gameController->setCurrentPlayer(Turn::White);
-        }
+    // 表示中の手順（分岐ツリー）から、検討する局面と直前の手を決める
+    const RecordLine line = m_considerationCtx.navState ? m_considerationCtx.navState->currentRecordLine()
+                                                        : RecordLine{};
+    const QString fallbackSfen = (m_considerationCtx.currentSfenStr && !m_considerationCtx.currentSfenStr->isEmpty())
+        ? *m_considerationCtx.currentSfenStr
+        : (m_considerationCtx.startSfenStr ? *m_considerationCtx.startSfenStr : QString());
+    const auto resolved = ConsiderationPositionResolver::resolve(line, line.currentPly, fallbackSfen);
+
+    // 手番表示は検討する局面の手番に合わせる
+    if (m_considerationCtx.gameController && !line.isEmpty()) {
+        const QString sfen = line.sfens.value(line.currentPly);
+        m_considerationCtx.gameController->setCurrentPlayer(sfenToTurn(sfen.section(QLatin1Char(' '), 1, 1)));
     }
-
-    const int currentMoveIdx = m_considerationCtx.currentMoveIndex ? *m_considerationCtx.currentMoveIndex : 0;
-
-    // ConsiderationPositionResolver で局面・ハイライト情報を一括解決
-    ConsiderationPositionResolver::Inputs resolverInputs;
-    resolverInputs.currentSfenStr = m_considerationCtx.currentSfenStr;
-    resolverInputs.gameUsiMoves = m_considerationCtx.gameUsiMoves;
-    resolverInputs.gameMoves = m_considerationCtx.gameMoves;
-    resolverInputs.startSfenStr = m_considerationCtx.startSfenStr;
-    resolverInputs.sfenRecord = m_considerationCtx.sfenRecord;
-    resolverInputs.kifuLoadCoordinator = m_considerationCtx.kifuLoadCoordinator;
-    resolverInputs.kifuRecordModel = m_considerationCtx.kifuRecordModel;
-    resolverInputs.branchTree = m_considerationCtx.branchTree;
-    resolverInputs.navState = m_considerationCtx.navState;
-
-    const ConsiderationPositionResolver resolver(resolverInputs);
-    const auto resolved = resolver.resolveForRow(currentMoveIdx);
 
     qCDebug(lcUi).noquote() << "startConsiderationFromContext: position=" << resolved.position.left(50);
 
@@ -205,15 +185,6 @@ bool DialogCoordinator::startConsiderationFromContext()
     params.previousRankTo = resolved.previousRankTo;
     params.lastUsiMove = resolved.lastUsiMove;
 
-    // resolver で取得できない場合はレコードの構造化された指し手を使用する
-    if (params.lastUsiMove.isEmpty() && currentMoveIdx > 0 && m_considerationCtx.kifuRecordModel) {
-        const int rowCount = m_considerationCtx.kifuRecordModel->rowCount();
-        if (currentMoveIdx < rowCount) {
-            if (const auto* item = m_considerationCtx.kifuRecordModel->item(currentMoveIdx))
-                params.lastUsiMove = item->usiMove;
-        }
-    }
-
     qCDebug(lcUi).noquote() << "startConsiderationFromContext calling startConsiderationDirect"
                       << "engineIndex=" << params.engineIndex
                       << "engineName=" << params.engineName
@@ -234,65 +205,10 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
 {
     qCDebug(lcUi).noquote() << "showTsumeSearchDialogFromContext";
 
+    // 表示中の手順（分岐ツリー）の、表示中の局面を探索する
     TsumeSearchParams params;
-    // m_tsumeSearchCtx.sfenRecord は起動時に bindContexts() で1度だけ
-    // キャプチャされるため、その時点の MatchCoordinator が指していた
-    // m_sharedSfenRecord のアドレスで固定される。MC が後から再生成されると
-    // この固定ポインタはダングリングとなり、参照すると解放済みメモリへの
-    // アクセスでクラッシュする（リリースビルドで観測）。
-    // displayTsumeShogiSearchDialog() で m_match を最新に差し替えた後に
-    // 呼ばれる前提で、現在の MC から sfenRecord を取得する。
-    params.sfenRecord = m_match ? m_match->sfenRecordPtr() : m_tsumeSearchCtx.sfenRecord;
-    params.startSfenStr = m_tsumeSearchCtx.startSfenStr ? *m_tsumeSearchCtx.startSfenStr : QString();
-    params.positionStrList = m_tsumeSearchCtx.positionStrList ? *m_tsumeSearchCtx.positionStrList : QStringList();
-    params.currentMoveIndex = m_tsumeSearchCtx.currentMoveIndex ? qMax(0, *m_tsumeSearchCtx.currentMoveIndex) : 0;
-
-    // USI形式の指し手リストを取得（棋譜解析と同様のロジック）
-    const qsizetype sfenSize = params.sfenRecord ? params.sfenRecord->size() : 0;
-    qCDebug(lcUi).noquote() << "showTsumeSearchDialogFromContext: sfenSize=" << sfenSize
-                       << "gameUsiMoves.size=" << (m_tsumeSearchCtx.gameUsiMoves ? m_tsumeSearchCtx.gameUsiMoves->size() : -1)
-                       << "kifuLoadCoordinator=" << (m_tsumeSearchCtx.kifuLoadCoordinator ? "exists" : "null");
-
-    if (m_tsumeSearchCtx.gameUsiMoves && !m_tsumeSearchCtx.gameUsiMoves->isEmpty()) {
-        const qsizetype usiSize = m_tsumeSearchCtx.gameUsiMoves->size();
-        qCDebug(lcUi).noquote() << "checking gameUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
-        if (sfenSize == usiSize + 1) {
-            params.usiMoves = m_tsumeSearchCtx.gameUsiMoves;
-            qCDebug(lcUi).noquote() << "using gameUsiMoves, size=" << usiSize;
-        } else {
-            qCDebug(lcUi).noquote() << "gameUsiMoves size mismatch";
-        }
-    } else if (m_tsumeSearchCtx.kifuLoadCoordinator) {
-        QStringList* kifuUsiMoves = m_tsumeSearchCtx.kifuLoadCoordinator->kifuUsiMovesPtr();
-        const qsizetype usiSize = kifuUsiMoves ? kifuUsiMoves->size() : 0;
-        qCDebug(lcUi).noquote() << "checking kifuUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
-        if (kifuUsiMoves) {
-            qCDebug(lcUi).noquote() << "kifuUsiMoves content:" << *kifuUsiMoves;
-        }
-        if (sfenSize == usiSize + 1) {
-            params.usiMoves = kifuUsiMoves;
-            qCDebug(lcUi).noquote() << "using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
-        } else {
-            qCDebug(lcUi).noquote() << "kifuUsiMoves size mismatch (expected sfenSize == usiSize + 1)";
-        }
-    } else {
-        qCDebug(lcUi).noquote() << "no usiMoves source available";
-    }
-
-    // 開始局面コマンドを決定（平手初期局面の場合は "startpos"、それ以外は "sfen ..."）
-    static const QString kHirateSfen = SfenUtils::hirateSfen();
-    if (params.startSfenStr.isEmpty() || params.startSfenStr == kHirateSfen) {
-        params.startPositionCmd = QStringLiteral("startpos");
-    } else {
-        params.startPositionCmd = QStringLiteral("sfen ") + params.startSfenStr;
-    }
-
-    qCDebug(lcUi).noquote() << "showTsumeSearchDialogFromContext:"
-                       << "usiMoves=" << (params.usiMoves ? QString::number(params.usiMoves->size()) : "null")
-                       << "startSfenStr=" << params.startSfenStr.left(50)
-                       << "startPositionCmd=" << params.startPositionCmd
-                       << "currentMoveIndex=" << params.currentMoveIndex;
-
+    if (m_tsumeSearchCtx.navState) params.line = m_tsumeSearchCtx.navState->currentRecordLine();
+    params.fallbackSfen = m_tsumeSearchCtx.startSfenStr ? *m_tsumeSearchCtx.startSfenStr : QString();
     showTsumeSearchDialog(params);
 }
 

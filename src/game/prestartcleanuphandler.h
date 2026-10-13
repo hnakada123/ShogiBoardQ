@@ -59,9 +59,6 @@ public:
         // --- MainWindowの状態変数への参照 ---
         QString* startSfenStr = nullptr;                        ///< 開始SFEN文字列
         QString* currentSfenStr = nullptr;                      ///< 現在SFEN文字列
-        int* activePly = nullptr;                               ///< アクティブな手数
-        int* currentSelectedPly = nullptr;                      ///< 選択中の手数
-        int* currentMoveIndex = nullptr;                        ///< 現在の手数インデックス
 
         // --- 分岐ツリー関連 ---
         LiveGameSession* liveGameSession = nullptr;             ///< ライブゲームセッション（非所有）
@@ -117,17 +114,9 @@ private:
     /**
      * @brief 棋譜モデルをクリーンアップする
      * @param startFromCurrentPos 現在の局面から開始するか
-     * @param keepRow 保持する行番号（入力値）
-     * @return 実際に保持された行番号
+     * @return 保持した最後の行番号（開始局面だけなら0）
      */
-    int cleanupKifuModel(bool startFromCurrentPos, int keepRow);
-
-    /**
-     * @brief 手数トラッキングを更新する
-     * @param startFromCurrentPos 現在の局面から開始するか
-     * @param keepRow 保持する行番号
-     */
-    void updatePlyTracking(bool startFromCurrentPos, int keepRow);
+    int cleanupKifuModel(bool startFromCurrentPos);
 
     void clearBranchModel();
     void resetUsiLogModels();
@@ -170,9 +159,6 @@ private:
 
     QString* m_startSfenStr = nullptr;         ///< 開始SFEN文字列への参照
     QString* m_currentSfenStr = nullptr;       ///< 現在SFEN文字列への参照
-    int* m_activePly = nullptr;                ///< アクティブ手数への参照
-    int* m_currentSelectedPly = nullptr;       ///< 選択中手数への参照
-    int* m_currentMoveIndex = nullptr;         ///< 手数インデックスへの参照
 
     // --- 分岐ツリー関連 ---
 

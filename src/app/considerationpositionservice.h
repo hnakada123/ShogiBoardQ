@@ -8,13 +8,9 @@
 #include <QStringList>
 #include <QList>
 
-class KifuBranchTree;
-class KifuLoadCoordinator;
 class KifuNavigationState;
-class KifuRecordListModel;
 class MatchCoordinator;
 class EngineAnalysisTab;
-struct ShogiMove;
 enum class PlayMode;
 
 /**
@@ -30,13 +26,7 @@ class ConsiderationPositionService : public QObject
 public:
     struct Deps {
         const PlayMode* playMode = nullptr;                   ///< 現在のプレイモード（外部所有）
-        const QStringList* positionStrList = nullptr;         ///< 局面文字列リスト（外部所有）
-        const QStringList* gameUsiMoves = nullptr;            ///< USI手順リスト（外部所有）
-        const QList<ShogiMove>* gameMoves = nullptr;        ///< 指し手リスト（外部所有）
         const QString* startSfenStr = nullptr;                ///< 開始局面SFEN（外部所有）
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;   ///< 棋譜ロードコーディネータ（非所有）
-        KifuRecordListModel* kifuRecordModel = nullptr;       ///< 棋譜レコードモデル（非所有）
-        KifuBranchTree* branchTree = nullptr;                 ///< 分岐ツリー（非所有）
         KifuNavigationState* navState = nullptr;              ///< ナビゲーション状態（非所有）
         MatchCoordinator* match = nullptr;                    ///< 対局コーディネータ（非所有）
         EngineAnalysisTab* analysisTab = nullptr;             ///< 解析タブ（非所有）

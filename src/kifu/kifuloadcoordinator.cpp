@@ -30,26 +30,14 @@
 #include <QtConcurrentRun>
 #include <utility>
 
-KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves,
-                                         QStringList& positionStrList,
-                                         int& activePly,
-                                         int& currentSelectedPly,
-                                         int& currentMoveIndex,
-                                         QStringList* sfenRecord,
-                                         QTableWidget* gameInfoTable,
+KifuLoadCoordinator::KifuLoadCoordinator(QTableWidget* gameInfoTable,
                                          RecordPane* recordPane,
                                          KifuRecordListModel* kifuRecordModel,
                                          KifuBranchListModel* kifuBranchModel,
                                          QObject* parent)
     : QObject(parent)
     , m_gameInfoTable(gameInfoTable)
-    , m_sfenHistory(sfenRecord)
-    , m_gameMoves(gameMoves)
-    , m_positionStrList(positionStrList)
     , m_recordPane(recordPane)
-    , m_activePly(activePly)
-    , m_currentSelectedPly(currentSelectedPly)
-    , m_currentMoveIndex(currentMoveIndex)
     , m_kifuRecordModel(kifuRecordModel)
     , m_kifuBranchModel(kifuBranchModel)
 {
@@ -61,18 +49,11 @@ void KifuLoadCoordinator::initApplyService()
     m_applyService = new KifuApplyService(this);
 
     KifuApplyService::Refs refs;
-    refs.kifuUsiMoves = &m_kifuUsiMoves;
-    refs.gameMoves = &m_gameMoves;
-    refs.positionStrList = &m_positionStrList;
-    refs.activePly = &m_activePly;
-    refs.currentSelectedPly = &m_currentSelectedPly;
-    refs.currentMoveIndex = &m_currentMoveIndex;
     refs.loadingKifu = &m_loadingKifu;
     refs.gameInfoTable = m_gameInfoTable;
     refs.recordPane = m_recordPane;
     refs.kifuRecordModel = m_kifuRecordModel;
     refs.kifuBranchModel = m_kifuBranchModel;
-    refs.sfenHistory = &m_sfenHistory;
     refs.shogiView = &m_shogiView;
     refs.branchTreeManager = &m_branchTreeManager;
     refs.branchTree = &m_branchTree;
@@ -158,7 +139,7 @@ bool KifuLoadCoordinator::applyLoadResult(const KifuLoadResult& result)
     m_applyService->populateGameInfo(result.gameInfo);
     m_applyService->applyPlayersFromGameInfo(result.gameInfo);
     return m_applyService->applyParsedResult(result.filePath, result.initialSfen, result.teaiLabel,
-                                            result.record, result.warning, "loadKifu", &result);
+                                            result.record, result.warning, "loadKifu");
 }
 
 bool KifuLoadCoordinator::loadKifuFromFile(const QString& path)

@@ -5,12 +5,11 @@
 /// @brief MainWindow の対局開始前処理を分離したサービス
 
 #include "gamestartcoordinator.h"
+#include "recordline.h"
 
 #include <QString>
 #include <QStringList>
 
-class KifuBranchTree;
-class KifuNavigationState;
 class ShogiGameController;
 class ShogiClock;
 class KifuRecordListModel;
@@ -28,10 +27,9 @@ class MainWindowGameStartService
 {
 public:
     struct PrepareDeps {
-        KifuBranchTree* branchTree = nullptr;
-        KifuNavigationState* navState = nullptr;
-        QStringList* sfenRecord = nullptr;
-        int currentSelectedPly = 0;
+        RecordLine line;                         ///< 表示中の手順（分岐ツリー）。currentPly が開始する手数
+        QStringList* sfenRecord = nullptr;       ///< 対局の局面列（ここで line から作り直す）
+        QList<ShogiMove>* gameMoves = nullptr;   ///< 対局の指し手列（局面列とそろえて作り直す）
         QString* currentSfenStr = nullptr;
     };
 
@@ -55,7 +53,7 @@ public:
     GameStartCoordinator::Ctx buildContext(const ContextDeps& deps) const;
 
 private:
-    void rebuildSfenRecordForSelectedBranch(const PrepareDeps& deps) const;
+    void rebuildMatchHistoryFromLine(const PrepareDeps& deps) const;
     QString resolveCurrentSfenForGameStart(const PrepareDeps& deps) const;
 };
 

@@ -20,7 +20,6 @@ struct KifuExportContext : KifuExportMetadata {
     // UI/Model参照（読み取り専用）
     const KifuRecordListModel* recordModel = nullptr;
     const QList<ResolvedRow>* resolvedRows = nullptr;
-    const QList<KifDisplayItem>* liveDisp = nullptr;
 
     // アクティブな行インデックス（分岐選択時に使用）
     int activeResolvedRow = 0;

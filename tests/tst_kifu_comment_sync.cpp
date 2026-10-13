@@ -1,8 +1,8 @@
 /// @file tst_kifu_comment_sync.cpp
 /// @brief 棋譜コメント・しおり同期のテスト
 ///
-/// GameRecordModel と外部データストア（liveDisp / KifuBranchTree）の
-/// 同期整合をテストし、リファクタリングによる回帰を検出する。
+/// コメント・しおりが分岐ツリー（棋譜の正本）のノードに入り、書き出しと読み出しが
+/// そろうことをテストする。
 
 #include <QtTest>
 #include <QSignalSpy>
@@ -52,7 +52,6 @@ private:
 
         model.setBranchTree(&tree);
         model.setNavigationState(&navState);
-        model.bind(&disp);
         model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
     }
 
@@ -75,8 +74,8 @@ private slots:
         model.setComment(2, QStringLiteral("分岐コメント"));
         model.setBookmark(2, QStringLiteral("分岐しおり"));
         QCOMPARE(branch->comment(), QStringLiteral("分岐コメント"));
-        QCOMPARE(disp[2].comment, QStringLiteral("本譜コメント"));
-        QCOMPARE(disp[2].bookmark, QStringLiteral("本譜しおり"));
+        QCOMPARE(tree.mainLine()[2]->comment(), QStringLiteral("本譜コメント"));
+        QCOMPARE(tree.mainLine()[2]->bookmark(), QStringLiteral("本譜しおり"));
         const auto exported = model.collectMainlineForExport();
         QCOMPARE(exported[2].comment, QStringLiteral("本譜コメント"));
         QCOMPARE(exported[2].bookmark, QStringLiteral("本譜しおり"));
@@ -95,11 +94,11 @@ private slots:
 
 
     // ================================================================
-    // Scenario 1: Model と liveDisp の同期整合
+    // Scenario 1: Model と分岐ツリーの同期整合
     // ================================================================
 
-    /// setComment で liveDisp にコメントが反映されること
-    void setComment_syncsToLiveDisp()
+    /// setComment で本譜のノードにコメントが入ること
+    void setComment_writesMainlineNode()
     {
         GameRecordModel model;
         KifuBranchTree tree;
@@ -109,14 +108,14 @@ private slots:
 
         model.setComment(1, QStringLiteral("初手のコメント"));
 
-        // liveDisp にも反映されている
-        QCOMPARE(disp[1].comment, QStringLiteral("初手のコメント"));
+        // 本譜のノードに入っている
+        QCOMPARE(tree.mainLine()[1]->comment(), QStringLiteral("初手のコメント"));
         // Model 内部とも一致
         QCOMPARE(model.comment(1), QStringLiteral("初手のコメント"));
     }
 
-    /// setBookmark で liveDisp にしおりが反映されること
-    void setBookmark_syncsToLiveDisp()
+    /// setBookmark で本譜のノードにしおりが入ること
+    void setBookmark_writesMainlineNode()
     {
         GameRecordModel model;
         KifuBranchTree tree;
@@ -126,8 +125,8 @@ private slots:
 
         model.setBookmark(2, QStringLiteral("重要局面"));
 
-        // liveDisp にも反映されている
-        QCOMPARE(disp[2].bookmark, QStringLiteral("重要局面"));
+        // 本譜のノードに入っている
+        QCOMPARE(tree.mainLine()[2]->bookmark(), QStringLiteral("重要局面"));
         // Model 内部とも一致
         QCOMPARE(model.bookmark(2), QStringLiteral("重要局面"));
     }
@@ -186,12 +185,12 @@ private slots:
         // 追加
         model.setComment(0, QStringLiteral("開始局面のコメント"));
         QCOMPARE(model.comment(0), QStringLiteral("開始局面のコメント"));
-        QCOMPARE(disp[0].comment, QStringLiteral("開始局面のコメント"));
+        QCOMPARE(tree.mainLine()[0]->comment(), QStringLiteral("開始局面のコメント"));
 
         // 変更
         model.setComment(0, QStringLiteral("変更後のコメント"));
         QCOMPARE(model.comment(0), QStringLiteral("変更後のコメント"));
-        QCOMPARE(disp[0].comment, QStringLiteral("変更後のコメント"));
+        QCOMPARE(tree.mainLine()[0]->comment(), QStringLiteral("変更後のコメント"));
     }
 
     /// コメントの削除（空文字設定）が正しく反映されること
@@ -209,7 +208,7 @@ private slots:
         // 空文字でコメント削除
         model.setComment(1, QString());
         QCOMPARE(model.comment(1), QString());
-        QCOMPARE(disp[1].comment, QString());
+        QCOMPARE(tree.mainLine()[1]->comment(), QString());
     }
 
     /// コメント変更時に commentChanged シグナルが発火すること
@@ -299,11 +298,11 @@ private slots:
         QCOMPARE(model.comment(2), QString());
         QCOMPARE(model.comment(5), QStringLiteral("5手目"));
 
-        // liveDisp も同期
-        QCOMPARE(disp[0].comment, QStringLiteral("開始局面"));
-        QCOMPARE(disp[1].comment, QStringLiteral("1手目"));
-        QCOMPARE(disp[2].comment, QString());
-        QCOMPARE(disp[5].comment, QStringLiteral("5手目"));
+        // 本譜のノードに入っている
+        QCOMPARE(tree.mainLine()[0]->comment(), QStringLiteral("開始局面"));
+        QCOMPARE(tree.mainLine()[1]->comment(), QStringLiteral("1手目"));
+        QCOMPARE(tree.mainLine()[2]->comment(), QString());
+        QCOMPARE(tree.mainLine()[5]->comment(), QStringLiteral("5手目"));
     }
 
     // ================================================================
@@ -322,12 +321,12 @@ private slots:
         // 追加
         model.setBookmark(1, QStringLiteral("重要"));
         QCOMPARE(model.bookmark(1), QStringLiteral("重要"));
-        QCOMPARE(disp[1].bookmark, QStringLiteral("重要"));
+        QCOMPARE(tree.mainLine()[1]->bookmark(), QStringLiteral("重要"));
 
         // 変更
         model.setBookmark(1, QStringLiteral("非常に重要"));
         QCOMPARE(model.bookmark(1), QStringLiteral("非常に重要"));
-        QCOMPARE(disp[1].bookmark, QStringLiteral("非常に重要"));
+        QCOMPARE(tree.mainLine()[1]->bookmark(), QStringLiteral("非常に重要"));
     }
 
     /// しおりの削除（空文字設定）が正しく反映されること
@@ -344,7 +343,7 @@ private slots:
 
         model.setBookmark(2, QString());
         QCOMPARE(model.bookmark(2), QString());
-        QCOMPARE(disp[2].bookmark, QString());
+        QCOMPARE(tree.mainLine()[2]->bookmark(), QString());
     }
 
     /// bookmarkChanged が変更時に呼ばれること
@@ -393,88 +392,6 @@ private slots:
         QVERIFY(model.isDirty());
     }
 
-    // ================================================================
-    // Scenario 4: bind() の動作確認
-    // ================================================================
-
-    /// bind() でデータソースが正しくバインドされること
-    void bind_setsDataSource()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // bind 済みなので setComment で liveDisp が更新される
-        model.setComment(1, QStringLiteral("バインド済み"));
-        QCOMPARE(disp[1].comment, QStringLiteral("バインド済み"));
-    }
-
-    /// bind(nullptr) 後の setComment がクラッシュしないこと
-    void bind_null_nocrash()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // バインド解除
-        model.bind(nullptr);
-
-        // クラッシュしないことを確認
-        model.setComment(1, QStringLiteral("バインド解除後"));
-
-        // Model 内部は更新されている
-        QCOMPARE(model.comment(1), QStringLiteral("バインド解除後"));
-
-        // liveDisp は更新されていない（バインド解除済み）
-        QCOMPARE(disp[1].comment, QString());
-    }
-
-    /// bind(nullptr) 後の setBookmark がクラッシュしないこと
-    void bind_null_nocrash_bookmark()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.bind(nullptr);
-
-        model.setBookmark(1, QStringLiteral("バインド解除後"));
-        QCOMPARE(model.bookmark(1), QStringLiteral("バインド解除後"));
-        QCOMPARE(disp[1].bookmark, QString());
-    }
-
-    /// 別の liveDisp に再バインドできること
-    void bind_rebind_toNewDisp()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // 新しい liveDisp を用意
-        QList<KifDisplayItem> newDisp;
-        for (int i = 0; i < 8; ++i) {
-            newDisp.append(KifDisplayItem());
-        }
-
-        // 再バインド
-        model.bind(&newDisp);
-
-        model.setComment(2, QStringLiteral("新しいバインド先"));
-
-        // 新しい liveDisp に反映されている
-        QCOMPARE(newDisp[2].comment, QStringLiteral("新しいバインド先"));
-        // 元の liveDisp は変更されない
-        QCOMPARE(disp[2].comment, QString());
-    }
-
     /// initializeFromDisplayItems がコメントを正しく読み込むこと
     void initializeFromDisplayItems_loadsComments()
     {
@@ -499,7 +416,6 @@ private slots:
         navState.goToRoot();
         model.setBranchTree(&tree);
         model.setNavigationState(&navState);
-        model.bind(&disp);
         model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
 
         QCOMPARE(model.comment(0), QStringLiteral("開始時コメント"));
@@ -535,7 +451,6 @@ private slots:
         navState.goToRoot();
         model.setBranchTree(&tree);
         model.setNavigationState(&navState);
-        model.bind(&disp);
         model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
 
         QCOMPARE(model.bookmark(0), QStringLiteral("開始しおり"));
@@ -564,7 +479,7 @@ private slots:
         QVERIFY(!model.isDirty());
     }
 
-    /// clear() 後に bind 済みの liveDisp へのアクセスがクラッシュしないこと
+    /// clear() 後もコメントを分岐ツリーのノードに書けること
     void clear_thenSetComment_nocrash()
     {
         GameRecordModel model;
@@ -576,10 +491,10 @@ private slots:
         model.clear();
         QVERIFY(!model.isDirty());
 
-        // clear 後も bind は維持されている → setComment で容量拡張 + liveDisp 同期
+        // clear 後も分岐ツリーは残っているので、ノードに書き込む
         model.setComment(0, QStringLiteral("クリア後コメント"));
         QCOMPARE(model.comment(0), QStringLiteral("クリア後コメント"));
-        QCOMPARE(disp[0].comment, QStringLiteral("クリア後コメント"));
+        QCOMPARE(tree.mainLine()[0]->comment(), QStringLiteral("クリア後コメント"));
     }
 
     void annotationsWithoutTreeRemainEditable()
@@ -663,8 +578,8 @@ private slots:
 
         QCOMPARE(model.comment(3), QStringLiteral("3手目コメント"));
         QCOMPARE(model.bookmark(3), QStringLiteral("3手目しおり"));
-        QCOMPARE(disp[3].comment, QStringLiteral("3手目コメント"));
-        QCOMPARE(disp[3].bookmark, QStringLiteral("3手目しおり"));
+        QCOMPARE(tree.mainLine()[3]->comment(), QStringLiteral("3手目コメント"));
+        QCOMPARE(tree.mainLine()[3]->bookmark(), QStringLiteral("3手目しおり"));
 
         // コメント変更がしおりに影響しないこと
         model.setComment(3, QStringLiteral("変更後コメント"));

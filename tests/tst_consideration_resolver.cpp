@@ -1,401 +1,209 @@
 /// @file tst_consideration_resolver.cpp
-/// @brief 検討モード局面解決テスト
+/// @brief 検討する局面と直前の手を、分岐ツリーの表示中の手順から決めるテスト
 
 #include <QtTest>
 
 #include "considerationpositionresolver.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
+#include "kifunavigationstate.h"
+#include "recordline.h"
 #include "shogimove.h"
+
+namespace {
+
+const QString kHirate = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+const QString kAfter76 = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2");
+const QString kAfter34 = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
+const QString kAfter26 = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P4P1/PP1PPPP1P/1B5R1/LNSGKGSNL w - 4");
+const QString kAfter84 = QStringLiteral("lnsgkgsnl/1r5b1/p1pppppp1/1p7/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
+
+ShogiMove move(const char* usi, Turn mover, Piece moving)
+{
+    const auto parsed = UsiMove::parse(QString::fromLatin1(usi));
+    return ShogiMove::fromUsiMove(*parsed, mover, moving, Piece::None);
+}
+
+/// 平手から ▲７六歩 △３四歩 ▲２六歩 の本譜と、2手目の分岐 △８四歩
+struct SampleTree {
+    KifuBranchTree tree;
+    KifuNavigationState nav;
+    KifuBranchNode* ply1 = nullptr;
+    KifuBranchNode* ply2 = nullptr;
+    KifuBranchNode* ply3 = nullptr;
+    KifuBranchNode* branch2 = nullptr;
+
+    SampleTree()
+    {
+        tree.setRootSfen(kHirate);
+        ply1 = tree.addMove(tree.root(), move("7g7f", Turn::Black, Piece::BlackPawn),
+                            QStringLiteral("▲７六歩(77)"), kAfter76);
+        ply2 = tree.addMove(ply1, move("3c3d", Turn::White, Piece::WhitePawn),
+                            QStringLiteral("△３四歩(33)"), kAfter34);
+        ply3 = tree.addMove(ply2, move("2g2f", Turn::Black, Piece::BlackPawn),
+                            QStringLiteral("▲２六歩(27)"), kAfter26);
+        branch2 = tree.addMove(ply1, move("8c8d", Turn::White, Piece::WhitePawn),
+                               QStringLiteral("△８四歩(83)"), kAfter84);
+        nav.setTree(&tree);
+    }
+
+    RecordLine lineAt(KifuBranchNode* node)
+    {
+        nav.setCurrentNode(node);
+        return nav.currentRecordLine();
+    }
+};
+
+} // namespace
 
 class TestConsiderationResolver : public QObject
 {
     Q_OBJECT
 
-private:
-    /// テスト用のデータセットを準備
-    struct TestData {
-        QStringList positionStrList;
-        QStringList gameUsiMoves;
-        QList<ShogiMove> gameMoves;
-        QString startSfenStr;
-        QStringList sfenRecord;
-        QString currentSfenStr;
-    };
-
-    /// 平手から3手進んだテストデータ
-    TestData makeSampleData()
-    {
-        TestData d;
-        d.startSfenStr = QStringLiteral("startpos");
-        d.gameUsiMoves = {
-            QStringLiteral("7g7f"),
-            QStringLiteral("3c3d"),
-            QStringLiteral("2g2f")
-        };
-        // positionStrList: row=0は開始局面、row=1..3は各手後の局面
-        d.positionStrList = {
-            QStringLiteral("position startpos"),
-            QStringLiteral("position startpos moves 7g7f"),
-            QStringLiteral("position startpos moves 7g7f 3c3d"),
-            QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"),
-        };
-        d.sfenRecord = {
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"),
-            QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3"),
-            QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P4P1/PP1PPPP1P/1B5R1/LNSGKGSNL w - 4"),
-        };
-        // gameMoves: 7六歩 (from=6,6 to=6,5), 3四歩 (from=2,2 to=2,3), 2六歩 (from=1,6 to=1,5)
-        // 座標: 0-indexed (file=0-8 left-right, rank=0-8 top-bottom)
-        // 7六歩: fromSquare(6,6) toSquare(6,5) = 7筋6段→7筋6段...
-        // USI 7g7f: file7=index6, rankg=index6, rankf=index5
-        d.gameMoves = {
-            ShogiMove(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false),   // 7g7f (▲7六歩)
-            ShogiMove(QPoint(2, 2), QPoint(2, 3), Piece::WhitePawn, Piece::None, false),   // 3c3d (△3四歩)
-            ShogiMove(QPoint(1, 6), QPoint(1, 5), Piece::BlackPawn, Piece::None, false),   // 2g2f (▲2六歩)
-        };
-        return d;
-    }
-
-    ConsiderationPositionResolver::Inputs makeInputs(const TestData& d)
-    {
-        ConsiderationPositionResolver::Inputs inputs;
-        inputs.positionStrList = &d.positionStrList;
-        inputs.gameUsiMoves = &d.gameUsiMoves;
-        inputs.gameMoves = &d.gameMoves;
-        inputs.startSfenStr = &d.startSfenStr;
-        inputs.sfenRecord = &d.sfenRecord;
-        if (!d.currentSfenStr.isEmpty())
-            inputs.currentSfenStr = &d.currentSfenStr;
-        return inputs;
-    }
-
 private slots:
-    // === 基本解決テスト ===
-
-    void resolveForRow_initialPosition();
-    void resolveForRow_startpos_data();
-    void resolveForRow_startpos();
-    void resolveForRow_midGame();
-    void resolveForRow_negativeRow_clamped();
-
-    // === ハイライト座標テスト ===
-
-    void resolveForRow_previousMoveCoordinates();
-    void resolveForRow_initialPosition_noHighlight();
-
-    // === USI指し手テスト ===
-
-    void resolveForRow_lastUsiMove_midGame();
-    void resolveForRow_initialPosition_emptyUsiMove();
-
-    // === 分岐局面テスト ===
-
-    void resolveForRow_branchPosition_useCurrentSfen();
-    void resolveForRow_branchPosition_sfenFormat();
-    void resolveForRow_branchPosition_positionPrefix();
-
-    // === エッジケーステスト ===
-
-    void resolveForRow_allInputsNull();
-    void resolveForRow_emptyLists();
-    void resolveForRow_beyondListSize();
-
-    // === positionStrListなし→USI指し手からの構築テスト ===
-
-    void resolveForRow_buildFromUsiMoves();
-
-    // === sfenRecordフォールバックテスト ===
-
-    void resolveForRow_sfenRecordFallback();
+    void startPosition_hasNoPreviousMove();
+    void midGame_usesMovesUpToDisplayedPly();
+    void previousMove_isTheMoveJustPlayed();
+    void rowOutOfRange_isClamped();
+    void branch_usesDisplayedBranch();
+    void terminalMove_isNotPartOfLine();
+    void nonHirateStart_usesSfenCommand();
+    void dropMove_destinationIsDropSquare();
+    void emptyLine_usesFallbackSfen();
+    void emptyLine_withoutFallback_isStartpos();
 };
 
-// === 基本解決テスト ===
-
-void TestConsiderationResolver::resolveForRow_initialPosition()
+void TestConsiderationResolver::startPosition_hasNoPreviousMove()
 {
-    TestData d = makeSampleData();
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
+    SampleTree t;
+    const RecordLine line = t.lineAt(t.tree.root());
+    const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
-    auto result = resolver.resolveForRow(0);
-
-    QCOMPARE(result.position, QStringLiteral("position startpos"));
+    QCOMPARE(line.currentPly, 0);
+    QCOMPARE(r.position, QStringLiteral("position startpos"));
+    QCOMPARE(r.previousFileTo, 0);
+    QCOMPARE(r.previousRankTo, 0);
+    QVERIFY(r.lastUsiMove.isEmpty());
 }
 
-void TestConsiderationResolver::resolveForRow_startpos_data()
+void TestConsiderationResolver::midGame_usesMovesUpToDisplayedPly()
 {
-    QTest::addColumn<QString>("source");
-    QTest::addColumn<int>("ply");
-    QTest::addColumn<QString>("expected");
-    QTest::newRow("displayed-startpos") << QStringLiteral("current") << 0
-        << QStringLiteral("position startpos");
-    QTest::newRow("startpos-with-moves") << QStringLiteral("moves") << 2
-        << QStringLiteral("position startpos moves 7g7f 3c3d");
-    QTest::newRow("startpos-fallback") << QStringLiteral("start") << 0
-        << QStringLiteral("position startpos");
-    QTest::newRow("history-startpos") << QStringLiteral("history") << 0
-        << QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    SampleTree t;
+    const RecordLine line = t.lineAt(t.ply2);
+    const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
+
+    QCOMPARE(line.currentPly, 2);
+    QCOMPARE(r.position, QStringLiteral("position startpos moves 7g7f 3c3d"));
 }
 
-void TestConsiderationResolver::resolveForRow_startpos()
+void TestConsiderationResolver::previousMove_isTheMoveJustPlayed()
 {
-    QFETCH(QString, source);
-    QFETCH(int, ply);
-    QFETCH(QString, expected);
-    TestData d;
-    d.startSfenStr = QStringLiteral("startpos");
-    if (source == QStringLiteral("current")) {
-        d.currentSfenStr = QStringLiteral("startpos");
-    } else if (source == QStringLiteral("moves")) {
-        d.gameUsiMoves = {QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")};
-    } else if (source == QStringLiteral("history")) {
-        d.sfenRecord = {QStringLiteral("startpos")};
-    }
-    ConsiderationPositionResolver resolver(makeInputs(d));
-    QCOMPARE(resolver.resolveForRow(ply).position, expected);
+    // 2手目（△３四歩）の後の局面では、直前の手は △３四歩。3手目の ▲２六歩 ではない
+    SampleTree t;
+    const RecordLine line = t.lineAt(t.ply2);
+    const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
+
+    QCOMPARE(r.lastUsiMove, QStringLiteral("3c3d"));
+    QCOMPARE(r.previousFileTo, 3);
+    QCOMPARE(r.previousRankTo, 4);
 }
 
-void TestConsiderationResolver::resolveForRow_midGame()
+void TestConsiderationResolver::rowOutOfRange_isClamped()
 {
-    TestData d = makeSampleData();
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
+    SampleTree t;
+    const RecordLine line = t.lineAt(t.ply3);
 
-    auto result = resolver.resolveForRow(2);
+    const auto before = ConsiderationPositionResolver::resolve(line, -5);
+    QCOMPARE(before.position, QStringLiteral("position startpos"));
+    QVERIFY(before.lastUsiMove.isEmpty());
 
-    QCOMPARE(result.position, QStringLiteral("position startpos moves 7g7f 3c3d"));
+    const auto after = ConsiderationPositionResolver::resolve(line, 99);
+    QCOMPARE(after.position, QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
+    QCOMPARE(after.lastUsiMove, QStringLiteral("2g2f"));
 }
 
-void TestConsiderationResolver::resolveForRow_negativeRow_clamped()
+void TestConsiderationResolver::branch_usesDisplayedBranch()
 {
-    TestData d = makeSampleData();
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
+    SampleTree t;
+    const RecordLine line = t.lineAt(t.branch2);
+    const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
-    // row=-1 は positionStrList の範囲外 → USI指し手構築パスへ
-    // TsumePositionUtil::buildPositionWithMoves で selectedIndex<=0 → 開始局面
-    auto result = resolver.resolveForRow(-1);
-
-    QVERIFY(!result.position.isEmpty());
-    QVERIFY(result.position.contains(QStringLiteral("startpos")));
+    QCOMPARE(line.currentPly, 2);
+    QCOMPARE(line.sfens.value(2), kAfter84);
+    QCOMPARE(r.position, QStringLiteral("position startpos moves 7g7f 8c8d"));
+    QCOMPARE(r.lastUsiMove, QStringLiteral("8c8d"));
+    QCOMPARE(r.previousFileTo, 8);
+    QCOMPARE(r.previousRankTo, 4);
 }
 
-// === ハイライト座標テスト ===
-
-void TestConsiderationResolver::resolveForRow_previousMoveCoordinates()
+void TestConsiderationResolver::terminalMove_isNotPartOfLine()
 {
-    TestData d = makeSampleData();
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
+    SampleTree t;
+    KifuBranchNode* resign = t.tree.addTerminalMove(t.ply3, TerminalType::Resign, QStringLiteral("△投了"));
+    const RecordLine line = t.lineAt(resign);
 
-    // row=2 は gameMoves[2] = 2g2f の移動先 (1, 5)
-    auto result = resolver.resolveForRow(2);
-
-    // gameMoves[2].toSquare = QPoint(1, 5)
-    QCOMPARE(result.previousFileTo, 1);
-    QCOMPARE(result.previousRankTo, 5);
+    QCOMPARE(line.moveCount(), 3);
+    QCOMPARE(line.displayTexts.size(), 3);
+    QCOMPARE(line.currentPly, 3);
+    const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
+    QCOMPARE(r.position, QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
+    QCOMPARE(r.lastUsiMove, QStringLiteral("2g2f"));
 }
 
-void TestConsiderationResolver::resolveForRow_initialPosition_noHighlight()
+void TestConsiderationResolver::nonHirateStart_usesSfenCommand()
 {
-    TestData d = makeSampleData();
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
+    const QString start = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
+    const QString after = QStringLiteral("4k4/9/4G4/9/9/9/9/9/4K4 w - 2");
+    KifuBranchTree tree;
+    tree.setRootSfen(start);
+    KifuBranchNode* drop = tree.addMove(tree.root(), move("G*5c", Turn::Black, Piece::BlackGold),
+                                        QStringLiteral("▲５三金打"), after);
+    KifuNavigationState nav;
+    nav.setTree(&tree);
+    nav.setCurrentNode(drop);
+    const RecordLine line = nav.currentRecordLine();
+    const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
-    // row=0 は gameMoves[0] = 7g7f の移動先 (6, 5) を参照
-    // ※ gameMoves[row] を使うので row=0 でも gameMoves が非空ならハイライトあり
-    auto result = resolver.resolveForRow(0);
-
-    QCOMPARE(result.previousFileTo, 6);
-    QCOMPARE(result.previousRankTo, 5);
+    QCOMPARE(r.position, QStringLiteral("position sfen ") + start + QStringLiteral(" moves G*5c"));
 }
 
-// === USI指し手テスト ===
-
-void TestConsiderationResolver::resolveForRow_lastUsiMove_midGame()
+void TestConsiderationResolver::dropMove_destinationIsDropSquare()
 {
-    TestData d = makeSampleData();
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
+    const QString start = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
+    const QString after = QStringLiteral("4k4/9/4G4/9/9/9/9/9/4K4 w - 2");
+    KifuBranchTree tree;
+    tree.setRootSfen(start);
+    KifuBranchNode* drop = tree.addMove(tree.root(), move("G*5c", Turn::Black, Piece::BlackGold),
+                                        QStringLiteral("▲５三金打"), after);
+    KifuNavigationState nav;
+    nav.setTree(&tree);
+    nav.setCurrentNode(drop);
+    const auto r = ConsiderationPositionResolver::resolve(nav.currentRecordLine(), 1);
 
-    // row=3 → usiIdx = 2 → gameUsiMoves[2] = "2g2f"
-    auto result = resolver.resolveForRow(3);
-
-    QCOMPARE(result.lastUsiMove, QStringLiteral("2g2f"));
+    QCOMPARE(r.lastUsiMove, QStringLiteral("G*5c"));
+    QCOMPARE(r.previousFileTo, 5);
+    QCOMPARE(r.previousRankTo, 3);
 }
 
-void TestConsiderationResolver::resolveForRow_initialPosition_emptyUsiMove()
+void TestConsiderationResolver::emptyLine_usesFallbackSfen()
 {
-    TestData d = makeSampleData();
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
-
-    // row=0 → resolveLastUsiMoveForPly returns empty (row<=0)
-    auto result = resolver.resolveForRow(0);
-
-    QVERIFY(result.lastUsiMove.isEmpty());
+    const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
+    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, sfen).position,
+             QStringLiteral("position sfen ") + sfen);
+    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, QStringLiteral("position sfen ") + sfen).position,
+             QStringLiteral("position sfen ") + sfen);
+    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, QStringLiteral("startpos")).position,
+             QStringLiteral("position startpos"));
+    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, kHirate).position,
+             QStringLiteral("position startpos"));
 }
 
-// === 分岐局面テスト ===
-
-void TestConsiderationResolver::resolveForRow_branchPosition_useCurrentSfen()
+void TestConsiderationResolver::emptyLine_withoutFallback_isStartpos()
 {
-    TestData d = makeSampleData();
-    // currentSfenStr が設定されている場合はそちらを最優先
-    d.currentSfenStr = QStringLiteral("position sfen 9/9/9/9/9/9/9/9/9 b - 1");
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
-
-    auto result = resolver.resolveForRow(0);
-
-    // currentSfenStr は "position " で始まるのでそのまま返る
-    QCOMPARE(result.position, QStringLiteral("position sfen 9/9/9/9/9/9/9/9/9 b - 1"));
-}
-
-void TestConsiderationResolver::resolveForRow_branchPosition_sfenFormat()
-{
-    TestData d = makeSampleData();
-    // "sfen " で始まる場合は "position " が先頭に付く
-    d.currentSfenStr = QStringLiteral("sfen 9/9/9/9/9/9/9/9/9 b - 1");
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
-
-    auto result = resolver.resolveForRow(0);
-
-    QCOMPARE(result.position, QStringLiteral("position sfen 9/9/9/9/9/9/9/9/9 b - 1"));
-}
-
-void TestConsiderationResolver::resolveForRow_branchPosition_positionPrefix()
-{
-    TestData d = makeSampleData();
-    // SFEN文字列がプレフィックスなしの場合は "position sfen " が付く
-    d.currentSfenStr =
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
-
-    auto result = resolver.resolveForRow(0);
-
-    QVERIFY(result.position.startsWith(QStringLiteral("position sfen ")));
-    QVERIFY(result.position.contains(
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")));
-}
-
-// === エッジケーステスト ===
-
-void TestConsiderationResolver::resolveForRow_allInputsNull()
-{
-    // 全入力 nullptr でクラッシュしない
-    ConsiderationPositionResolver::Inputs inputs;
-    ConsiderationPositionResolver resolver(inputs);
-
-    auto result = resolver.resolveForRow(0);
-
-    // startSfenStr も nullptr → 平手フォールバック
-    QCOMPARE(result.position, QStringLiteral("position startpos"));
-    QCOMPARE(result.previousFileTo, 0);
-    QCOMPARE(result.previousRankTo, 0);
-}
-
-void TestConsiderationResolver::resolveForRow_emptyLists()
-{
-    // 空リストでクラッシュしない
-    TestData d;
-    // 平手SFENを設定（"startpos"リテラルではなく実際のSFEN）
-    d.startSfenStr = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    d.positionStrList = {};
-    d.gameUsiMoves = {};
-    d.gameMoves = {};
-    d.sfenRecord = {};
-
-    ConsiderationPositionResolver::Inputs inputs;
-    inputs.positionStrList = &d.positionStrList;
-    inputs.gameUsiMoves = &d.gameUsiMoves;
-    inputs.gameMoves = &d.gameMoves;
-    inputs.startSfenStr = &d.startSfenStr;
-    inputs.sfenRecord = &d.sfenRecord;
-
-    ConsiderationPositionResolver resolver(inputs);
-
-    auto result = resolver.resolveForRow(0);
-
-    // 空リスト + 平手SFEN → "position startpos" フォールバック
-    QCOMPARE(result.position, QStringLiteral("position startpos"));
-    QCOMPARE(result.previousFileTo, 0);
-    QCOMPARE(result.previousRankTo, 0);
-    QVERIFY(result.lastUsiMove.isEmpty());
-}
-
-void TestConsiderationResolver::resolveForRow_beyondListSize()
-{
-    TestData d = makeSampleData();
-    auto inputs = makeInputs(d);
-    ConsiderationPositionResolver resolver(inputs);
-
-    // row=100 はリストサイズ(4)を超える → USI指し手構築パスへフォールバック
-    auto result = resolver.resolveForRow(100);
-
-    // TsumePositionUtil::buildPositionWithMoves で moveCount = min(100, 3) = 3 手全部
-    QVERIFY(!result.position.isEmpty());
-    QVERIFY(result.position.contains(QStringLiteral("startpos")));
-}
-
-// === positionStrListなし→USI指し手からの構築テスト ===
-
-void TestConsiderationResolver::resolveForRow_buildFromUsiMoves()
-{
-    TestData d;
-    // 平手SFENを設定（実際のSFEN文字列）
-    d.startSfenStr = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    d.gameUsiMoves = {
-        QStringLiteral("7g7f"),
-        QStringLiteral("3c3d"),
-    };
-    // positionStrList を空にして USI指し手構築パスを強制
-    d.positionStrList = {};
-
-    ConsiderationPositionResolver::Inputs inputs;
-    inputs.positionStrList = &d.positionStrList;
-    inputs.gameUsiMoves = &d.gameUsiMoves;
-    inputs.startSfenStr = &d.startSfenStr;
-
-    ConsiderationPositionResolver resolver(inputs);
-
-    // row=2 → 平手SFENは kHirateSfen と一致するので "position startpos moves ..."
-    auto result = resolver.resolveForRow(2);
-
-    QCOMPARE(result.position, QStringLiteral("position startpos moves 7g7f 3c3d"));
-}
-
-// === sfenRecordフォールバックテスト ===
-
-void TestConsiderationResolver::resolveForRow_sfenRecordFallback()
-{
-    TestData d;
-    d.startSfenStr = QStringLiteral("startpos");
-    // positionStrList も gameUsiMoves も空 → sfenRecord フォールバック
-    d.positionStrList = {};
-    d.gameUsiMoves = {};
-    d.sfenRecord = {
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"),
-    };
-
-    ConsiderationPositionResolver::Inputs inputs;
-    inputs.positionStrList = &d.positionStrList;
-    inputs.gameUsiMoves = &d.gameUsiMoves;
-    inputs.startSfenStr = &d.startSfenStr;
-    inputs.sfenRecord = &d.sfenRecord;
-
-    ConsiderationPositionResolver resolver(inputs);
-
-    auto result = resolver.resolveForRow(1);
-
-    QCOMPARE(result.position,
-             QStringLiteral("position sfen "
-                            "lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"));
+    const auto r = ConsiderationPositionResolver::resolve(RecordLine{}, 3);
+    QCOMPARE(r.position, QStringLiteral("position startpos"));
+    QVERIFY(r.lastUsiMove.isEmpty());
+    QCOMPARE(r.previousFileTo, 0);
 }
 
 QTEST_MAIN(TestConsiderationResolver)

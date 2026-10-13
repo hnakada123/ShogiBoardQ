@@ -67,36 +67,18 @@ public:
     }
 
     /**
-     * @brief SFEN形式で局面コマンドを構築（フォールバック用）
+     * @brief 詰み探索に送る局面コマンドを1つの局面から構築する
      *
      * 玉の有無から攻方を推定し、手番を強制設定して返す。
+     * sfenLike は素の SFEN のほか "position sfen ..."（moves 以降は無視）も受け付ける。空なら空文字列。
      */
-    static QString buildPositionForMate(const QStringList* sfenRecord,
-                                        const QString& startSfenStr,
-                                        const QStringList& positionStrList,
-                                        int selectedIndex)
+    static QString buildPositionForMate(const QString& sfenLike)
     {
-        // 処理フロー:
-        // 1. 複数のデータソースから基本SFENを取得
-        // 2. 玉の有無から攻方（手番）を推定
-        // 3. 手番を強制設定してpositionコマンドを構築
-
-        const int sel = qMax(0, selectedIndex);
-        QString baseSfen;
-
-        if (sfenRecord && !sfenRecord->isEmpty()) {
-            const int safe = static_cast<int>(qBound(static_cast<qsizetype>(0), static_cast<qsizetype>(sel), sfenRecord->size() - 1));
-            baseSfen = sfenRecord->at(safe);
-        } else if (!startSfenStr.isEmpty()) {
-            baseSfen = startSfenStr;
-        } else if (!positionStrList.isEmpty()) {
-            const int safe = static_cast<int>(qBound(static_cast<qsizetype>(0), static_cast<qsizetype>(sel), positionStrList.size() - 1));
-            const QString pos = positionStrList.at(safe).trimmed();
-            if (pos.startsWith(QStringLiteral("position sfen"))) {
-                QString t = pos.mid(14).trimmed(); // "position sfen" を剥がす
-                const int m = static_cast<int>(t.indexOf(QStringLiteral(" moves ")));
-                baseSfen = (m >= 0) ? t.left(m).trimmed() : t;
-            }
+        QString baseSfen = sfenLike.trimmed();
+        if (baseSfen.startsWith(QStringLiteral("position sfen "))) {
+            baseSfen = baseSfen.mid(14).trimmed();
+            const qsizetype m = baseSfen.indexOf(QStringLiteral(" moves "));
+            if (m >= 0) baseSfen = baseSfen.left(m).trimmed();
         }
         if (baseSfen.isEmpty()) return QString();
 

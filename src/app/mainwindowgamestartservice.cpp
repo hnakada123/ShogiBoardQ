@@ -3,15 +3,13 @@
 
 #include "mainwindowgamestartservice.h"
 
-#include "kifubranchtree.h"
-#include "kifunavigationstate.h"
 #include "logcategories.h"
 
 #include <QDebug>
 
 void MainWindowGameStartService::prepareForInitializeGame(const PrepareDeps& deps) const
 {
-    rebuildSfenRecordForSelectedBranch(deps);
+    rebuildMatchHistoryFromLine(deps);
 
     if (!deps.currentSfenStr) {
         return;
@@ -31,39 +29,34 @@ void MainWindowGameStartService::prepareForInitializeGame(const PrepareDeps& dep
     }
 }
 
-void MainWindowGameStartService::rebuildSfenRecordForSelectedBranch(const PrepareDeps& deps) const
+void MainWindowGameStartService::rebuildMatchHistoryFromLine(const PrepareDeps& deps) const
 {
-    if (deps.branchTree == nullptr || deps.navState == nullptr || deps.sfenRecord == nullptr
-        || deps.currentSelectedPly <= 0) {
+    // 対局の局面列・指し手列を、棋譜の正本（分岐ツリーの表示中の手順）の開始局面から
+    // 開始する手数までで作り直す。本譜か分岐かは区別しない。局面列の先頭が棋譜の開始局面になる
+    const int ply = deps.line.currentPly;
+    if (deps.sfenRecord == nullptr || deps.line.isEmpty()) {
         return;
     }
 
-    const int lineIndex = deps.navState->currentLineIndex();
-    const QStringList branchSfens = deps.branchTree->sfenListForLine(lineIndex);
-    if (branchSfens.isEmpty() || deps.currentSelectedPly >= branchSfens.size()) {
-        return;
-    }
-
-    deps.sfenRecord->clear();
-    for (int i = 0; i <= deps.currentSelectedPly; ++i) {
-        deps.sfenRecord->append(branchSfens.at(i));
+    *deps.sfenRecord = deps.line.sfens.mid(0, ply + 1);
+    if (deps.gameMoves != nullptr) {
+        *deps.gameMoves = deps.line.moves.mid(0, ply);
     }
 
     qCDebug(lcApp).noquote()
-        << "initializeGame: rebuilt sfenRecord from branchTree line=" << lineIndex
-        << " entries=" << deps.sfenRecord->size();
+        << "initializeGame: rebuilt match history from the record line, entries=" << deps.sfenRecord->size();
 }
 
 QString MainWindowGameStartService::resolveCurrentSfenForGameStart(const PrepareDeps& deps) const
 {
-    qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: m_kifu.currentSelectedPly="
-                             << deps.currentSelectedPly
+    qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: currentPly="
+                             << deps.line.currentPly
                              << " sfenRecord()=" << (deps.sfenRecord ? "exists" : "null")
                              << " size=" << (deps.sfenRecord ? deps.sfenRecord->size() : -1);
 
     if (deps.sfenRecord != nullptr) {
         const qsizetype size = deps.sfenRecord->size();
-        int idx = deps.currentSelectedPly;
+        int idx = deps.line.currentPly;
         qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: initial idx=" << idx;
 
         if (idx < 0) {

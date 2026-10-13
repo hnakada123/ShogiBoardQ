@@ -394,8 +394,20 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 {
     discardInterruptedGame();
     m_lastStartOptions = opt;
+    alignGameMovesWithSfenHistory();
     ensureGameStartOrchestrator();
     m_gameStartOrchestrator->configureAndStart(opt);
+}
+
+void MatchCoordinator::alignGameMovesWithSfenHistory()
+{
+    // 指し手列は局面列（開始局面＋各手の後の局面）とそろえる。対局開始の準備で局面列は
+    // 開始する局面までに切り詰められるので、それより後の手（前の対局や読み込んだ棋譜の続き）を捨てる。
+    // 残すと手数（moveCommitted の ply）や2手戻しが前の対局の手を数えてしまう
+    if (!m_sfenHistory) return;
+    QList<ShogiMove>& moves = gameMovesRef();
+    const qsizetype keep = qMax<qsizetype>(0, m_sfenHistory->size() - 1);
+    if (moves.size() > keep) moves.resize(keep);
 }
 
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(

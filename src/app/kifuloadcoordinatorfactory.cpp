@@ -17,12 +17,6 @@ KifuLoadCoordinator* KifuLoadCoordinatorFactory::createAndWire(const Params& p)
     // Lifetime: owned by MainWindow (QObject parent=p.parent)
     // Recreated: on each kifu file load via createAndWireKifuLoadCoordinator()
     auto* coordinator = new KifuLoadCoordinator(
-        /* gameMoves           */ *p.gameMoves,
-        /* positionStrList     */ *p.positionStrList,
-        /* activePly           */ *p.activePly,
-        /* currentSelectedPly  */ *p.currentSelectedPly,
-        /* currentMoveIndex    */ *p.currentMoveIndex,
-        /* sfenRecord          */ p.sfenRecord,
         /* gameInfoTable       */ p.gameInfoController ? p.gameInfoController->tableWidget() : nullptr,
         /* recordPane          */ p.recordPane,
         /* kifuRecordModel     */ p.kifuRecordModel,

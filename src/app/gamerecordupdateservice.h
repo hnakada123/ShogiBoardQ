@@ -39,7 +39,6 @@ public:
 
         // State pointers
         QList<ShogiMove>* gameMoves = nullptr;
-        QStringList* gameUsiMoves = nullptr;
         QString* currentSfenStr = nullptr;
         QStringList* sfenRecord = nullptr;
     };
@@ -57,11 +56,11 @@ public:
                           const QString& recordedSfen = QString());
 
     /**
-     * @brief USI形式の指し手を記録し currentSfen を更新する
+     * @brief 着手後に currentSfen を局面列の最後（指した後の局面）に更新する
      *
-     * onMoveCommitted() の後半処理（USI追記・SFEN更新）を担当する。
+     * onMoveCommitted() の後半処理。指し手は分岐ツリー（棋譜の正本）に記録済み。
      */
-    void recordUsiMoveAndUpdateSfen();
+    void updateCurrentSfenAfterMove();
 
 public slots:
     /**

@@ -60,9 +60,6 @@ public:
     void prepareNyugyokuHandler();
 
 private:
-    // MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
-    bool queryIsGameActivelyInProgress();
-
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）
     MainWindowServiceRegistry* m_serviceRegistry;  ///< 親 ServiceRegistry（シグナル接続用）
 };

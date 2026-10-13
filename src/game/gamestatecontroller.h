@@ -34,8 +34,7 @@ public:
     struct Hooks {
         std::function<void()> enableArrowButtons;                             ///< 矢印ボタン有効化
         std::function<void(bool)> setReplayMode;                              ///< リプレイモード切替
-        std::function<void()> refreshBranchTree;                              ///< 分岐ツリー再構築
-        std::function<void(int, int, int)> updatePlyState;                    ///< 手数状態更新
+        std::function<void(int)> syncCursorToPly;                             ///< 表示中の手数（分岐ツリーのカーソル）を合わせる
         std::function<void()> updateBoardView;                                ///< 盤面ビュー再描画
         std::function<void(bool)> setGameOverStyleLock;                       ///< 終局スタイルロック
         std::function<void(bool)> setMouseClickMode;                          ///< マウスクリックモード

@@ -148,9 +148,9 @@ QList<KifuMergeEntry> JosekiPresenter::buildMergeEntries(const QStringList &sfen
         entry.sfen = sfenList[i];
         entry.usiMove = moveList[i];
 
-        // 日本語表記を取得（japaneseMoveListの先頭は「=== 開始局面 ===」なので+1）
-        if (i + 1 < japaneseMoveList.size()) {
-            entry.japaneseMove = KifuPresentation::label(japaneseMoveList[i + 1], sfenList.value(i), moveList.at(i));
+        // 日本語表記（japaneseMoveList[i] が i+1 手目）
+        if (i < japaneseMoveList.size()) {
+            entry.japaneseMove = KifuPresentation::label(japaneseMoveList[i], sfenList.value(i), moveList.at(i));
         } else {
             entry.japaneseMove = moveList[i];
         }

@@ -13,11 +13,11 @@
 #include <functional>
 
 #include "playmode.h"
+#include "recordline.h"
 
 class ShogiEngineThinkingModel;
 class UsiCommLogModel;
 class ShogiView;
-struct ShogiMove;
 
 /**
  * @brief PvClickController - 読み筋クリック処理クラス
@@ -43,7 +43,7 @@ public:
         const QString* currentSfenStr = nullptr;
         const QString* startSfenStr = nullptr;
         ShogiEngineThinkingModel** considerationModel = nullptr;  ///< ダブルポインタ（外部所有）
-        std::function<QStringList*()> sfenRecordGetter;           ///< SFEN履歴の動的取得（MC再生成対応）
+        std::function<RecordLine()> currentLine;                  ///< 表示中の手順（分岐ツリー）
     };
 
     explicit PvClickController(QObject* parent = nullptr);
@@ -55,9 +55,6 @@ public:
     void setThinkingModels(ShogiEngineThinkingModel* model1, ShogiEngineThinkingModel* model2);
     void setConsiderationModel(ShogiEngineThinkingModel* model);
     void setLogModels(UsiCommLogModel* log1, UsiCommLogModel* log2);
-    void setSfenRecord(QStringList* sfenRecord);
-    void setGameMoves(const QList<ShogiMove>* gameMoves);
-    void setUsiMoves(const QStringList* usiMoves);
     void setStateRefs(const StateRefs& refs);
     void setShogiView(ShogiView* view);
 
@@ -90,11 +87,6 @@ private:
      */
     void resolvePlayerNames(QString& blackName, QString& whiteName) const;
 
-    /**
-     * @brief 最後の手をUSI形式で取得
-     */
-    QString resolveLastUsiMove() const;
-
     /// engineIndex(0/1/2) に対応する思考モデルを返す
     ShogiEngineThinkingModel* modelForEngineIndex(int engineIndex) const;
 
@@ -111,9 +103,7 @@ private:
     ShogiEngineThinkingModel* m_considerationModel = nullptr;
     UsiCommLogModel* m_lineEditModel1 = nullptr;
     UsiCommLogModel* m_lineEditModel2 = nullptr;
-    QStringList* m_sfenHistory = nullptr;
-    const QList<ShogiMove>* m_gameMoves = nullptr;
-    const QStringList* m_usiMoves = nullptr;
+    RecordLine m_line;                                   ///< クリック時点の表示中の手順
     ShogiView* m_shogiView = nullptr;                    ///< 盤面反転状態取得用
 
     StateRefs m_stateRefs;                               ///< 動的状態へのポインタ群
