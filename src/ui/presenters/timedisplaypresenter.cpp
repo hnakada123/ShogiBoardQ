@@ -15,11 +15,11 @@ ShogiView::Urgency urgencyFor(const ShogiClock* clock, qint64 ms, bool p1turn)
     // 無制限対局には時間切れの警告を表示しない。
     if (clock && clock->isUnlimited()) return Urgency::Normal;
 
-    const bool hasByoyomi = clock && (p1turn ? clock->hasByoyomi1() : clock->hasByoyomi2());
+    const bool hasByoyomi = clock && clock->hasByoyomi(p1turn ? 1 : 2);
     if (hasByoyomi) {
         // 秒読み中（持ち時間0秒の秒読み対局を含む）は最も強い警告にする。
         // 秒読みに入る前は、持ち時間が残り10秒以下で予告の警告にする。
-        const bool inByoyomi = (p1turn ? clock->byoyomi1Applied() : clock->byoyomi2Applied()) || ms <= 0;
+        const bool inByoyomi = clock->byoyomiApplied(p1turn ? 1 : 2) || ms <= 0;
         if (inByoyomi) return Urgency::Warn5;
         return ms <= ShogiView::kWarn10Ms ? Urgency::Warn10 : Urgency::Normal;
     }
@@ -71,9 +71,9 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1t
         // 無制限対局は残り時間ではなく累積消費時間なので、表示の意味を書き添える。
         // 文字数が変わるため、ラベルに収まる文字サイズへ合わせ直す。
         const bool unlimited = m_clock && m_clock->isUnlimited();
-        m_view->setBlackClockText(unlimited ? tr("消費 %1").arg(m_clock->player1TimeString())
+        m_view->setBlackClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(1))
                                             : fmt_hhmmss(p1ms));
-        m_view->setWhiteClockText(unlimited ? tr("消費 %1").arg(m_clock->player2TimeString())
+        m_view->setWhiteClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(2))
                                             : fmt_hhmmss(p2ms));
     }
     applyTurnHighlights(p1turn);

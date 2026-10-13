@@ -43,9 +43,9 @@ QList<KifGameInfoItem> KifuExportMetadataBuilder::collect(const KifuExportMetada
     items.push_back({ GameInfoKeys::kHandicap, handicap });
 
     // 持ち時間（時間制御が有効な場合のみ）
-    if (ctx.hasTimeControl) {
+    if (!ctx.timeControl.isUnlimited()) {
         items.push_back({ GameInfoKeys::kTimeControl,
-                          timeControlText(ctx.blackTime, ctx.whiteTime, isHandicap(handicap)) });
+                          timeControlText(ctx.timeControl, isHandicap(handicap)) });
     }
 
     // 終了日時（ctx.gameEndDateTimeが有効な場合のみ）
@@ -141,11 +141,10 @@ bool KifuExportMetadataBuilder::usesHandicapNames(const QList<KifGameInfoItem>& 
     return isHandicap(handicapLabel(startSfen));
 }
 
-QString KifuExportMetadataBuilder::timeControlText(const KifuTimeControlSide& black,
-                                                   const KifuTimeControlSide& white, bool handicap)
+QString KifuExportMetadataBuilder::timeControlText(const TimeControl& timeControl, bool handicap)
 {
-    QString blackText = timeControlText(black.baseMs, black.byoyomiMs, black.incrementMs);
-    const QString whiteText = timeControlText(white.baseMs, white.byoyomiMs, white.incrementMs);
+    const QString blackText = timeControlText(timeControl.black);
+    const QString whiteText = timeControlText(timeControl.white);
     if (blackText == whiteText) return blackText;
     // CsaFormatter::convertToCsaTimeLines と KifuPresentation::infoValue がこの書式を読む
     return QStringLiteral("%1 %2 / %3 %4")
@@ -153,16 +152,16 @@ QString KifuExportMetadataBuilder::timeControlText(const KifuTimeControlSide& bl
              handicap ? GameInfoKeys::kUwatePlayer : GameInfoKeys::kWhitePlayer, whiteText);
 }
 
-QString KifuExportMetadataBuilder::timeControlText(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs)
+QString KifuExportMetadataBuilder::timeControlText(const TimeControlSide& side)
 {
-    const qint64 baseSec = baseMs / 1000;
+    const qint64 mainSec = side.mainMs / 1000;
     QString text = QStringLiteral("%1:%2")
-        .arg(baseSec / 60, 2, 10, QLatin1Char('0'))
-        .arg(baseSec % 60, 2, 10, QLatin1Char('0'));
-    if (byoyomiMs >= 1000) {
-        text += QStringLiteral("+%1").arg(byoyomiMs / 1000);
-    } else if (incrementMs >= 1000) {
-        text += QStringLiteral("+%1秒加算").arg(incrementMs / 1000);
+        .arg(mainSec / 60, 2, 10, QLatin1Char('0'))
+        .arg(mainSec % 60, 2, 10, QLatin1Char('0'));
+    if (side.byoyomiMs >= 1000) {
+        text += QStringLiteral("+%1").arg(side.byoyomiMs / 1000);
+    } else if (side.incrementMs >= 1000) {
+        text += QStringLiteral("+%1秒加算").arg(side.incrementMs / 1000);
     }
     return text;
 }

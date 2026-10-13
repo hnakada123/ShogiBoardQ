@@ -164,7 +164,7 @@ private slots:
     {
         ForwardingFixture f;
 
-        emit f.mcw.requestApplyTimeControl(GameStartCoordinator::TimeControl{});
+        emit f.mcw.requestApplyTimeControl(GameStartCoordinator::TimeSettings{});
 
         QVERIFY(TestTracker::onApplyTimeControlRequestedCalled);
     }

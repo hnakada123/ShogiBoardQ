@@ -1,4 +1,6 @@
 #include <QtTest>
+
+#include "timecontrol_test_helper.h"
 #include <QGraphicsView>
 #include <QTableView>
 
@@ -136,8 +138,8 @@ struct Harness {
         if (!play(usi)) return false;
         clock.setCurrentPlayer(player);
         clock.setMeasuredConsiderationTime(player, ms);
-        if (player == 1) clock.applyByoyomiAndResetConsideration1();
-        else clock.applyByoyomiAndResetConsideration2();
+        if (player == 1) clock.commitMove(1);
+        else clock.commitMove(2);
         clock.setCurrentPlayer(player == 1 ? 2 : 1);
         return true;
     }
@@ -269,16 +271,16 @@ private slots:
     void undoRestoresClockOfRetractedTurn()
     {
         Harness h;
-        h.clock.setPlayerTimes(610, 610, 0, 0, 10, 10, true); // 持ち時間10分＋加算10秒
+        h.clock.setTimeControl(TestTime::rules(600, 600, 0, 0, 10, 10)); // 持ち時間10分＋加算10秒
         h.clock.setCurrentPlayer(1);
         const auto verifyClock = [&h](const ShogiClock::Snapshot& expected) {
             const auto now = h.clock.pauseAndSnapshot();
             QCOMPARE(now.currentPlayer, 1);
-            QCOMPARE(now.player1TimeMs, expected.player1TimeMs);
-            QCOMPARE(now.player2TimeMs, expected.player2TimeMs);
-            QCOMPARE(now.player1TotalConsiderationTimeMs, expected.player1TotalConsiderationTimeMs);
-            QCOMPARE(now.player2TotalConsiderationTimeMs, expected.player2TotalConsiderationTimeMs);
-            QCOMPARE(now.player1ConsiderationTimeMs, 0LL);
+            QCOMPARE(now.of(1).remainingMs, expected.of(1).remainingMs);
+            QCOMPARE(now.of(2).remainingMs, expected.of(2).remainingMs);
+            QCOMPARE(now.of(1).totalConsiderationMs, expected.of(1).totalConsiderationMs);
+            QCOMPARE(now.of(2).totalConsiderationMs, expected.of(2).totalConsiderationMs);
+            QCOMPARE(now.of(1).considerationMs, 0LL);
         };
 
         const auto firstTurn = h.clock.pauseAndSnapshot();
@@ -287,14 +289,14 @@ private slots:
         const auto engineTurn = h.clock.pauseAndSnapshot();
         h.flow.undoLastTwoMoves();
         verifyPosition(h, 1);
-        QCOMPARE(h.clock.pauseAndSnapshot().player1TimeMs, engineTurn.player1TimeMs);
+        QCOMPARE(h.clock.pauseAndSnapshot().of(1).remainingMs, engineTurn.of(1).remainingMs);
         QCOMPARE(h.timerRestarts, 0);
 
         QVERIFY(h.playTimed(opening.at(1), 1000));
         const auto secondTurn = h.clock.pauseAndSnapshot();
         QVERIFY(h.playTimed(opening.at(2), 5000));
         QVERIFY(h.playTimed(opening.at(3), 2000));
-        h.clock.setPlayer1ConsiderationTime(700); // 考え中の時間も返す
+        h.clock.setConsiderationTimeMs(1, 700); // 考え中の時間も返す
 
         h.flow.undoLastTwoMoves();
         verifyPosition(h, 2);

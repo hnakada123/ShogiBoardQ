@@ -152,15 +152,6 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
         return KifuExportMetadataBuilder::usesHandicapNames(
             gameInfo ? gameInfo->gameInfo() : QList<KifGameInfoItem>(), m_mw.m_state.startSfenStr);
     };
-    in.remainingMsFor = [this](MatchCoordinator::Player player) -> qint64 {
-        return queryRemainingMsFor(player);
-    };
-    in.incrementMsFor = [this](MatchCoordinator::Player player) -> qint64 {
-        return queryIncrementMsFor(player);
-    };
-    in.byoyomiMs = [this]() -> qint64 {
-        return queryByoyomiMs();
-    };
     in.setPlayersNames = [this](const QString& p1, const QString& p2) {
         m_mw.m_playerInfoWiring->onSetPlayersNames(p1, p2);
     };
@@ -194,7 +185,7 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     in.think1 = m_mw.m_models.thinking1;
     in.comm2  = m_mw.m_models.commLog2;
     in.think2 = m_mw.m_models.thinking2;
-    in.sfenRecord = m_mw.m_queryService->sfenRecord();
+    in.sfenRecord = &m_mw.m_kifu.sfenRecord;
     in.playMode   = &m_mw.m_state.playMode;
     in.timePresenter   = m_mw.m_timePresenter;
     in.boardController = m_mw.m_boardController;
@@ -287,8 +278,7 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
                                         ? tc->gameStartDateTime() : QDateTime::currentDateTime();
         m_mw.m_playerInfoWiring->setGameInfoForMatchStart(
             startTime, black, white, KifuExportMetadataBuilder::handicapLabel(startSfen),
-            tc && tc->hasTimeControl(), tc ? tc->settings().black : KifuTimeControlSide{},
-            tc ? tc->settings().white : KifuTimeControlSide{});
+            tc ? tc->timeControl() : TimeControl{});
         startLiveGameSessionIfNeeded();
         m_kifu->ensureGameRecordUpdateService();
     };
@@ -372,27 +362,6 @@ void MainWindowServiceRegistry::prepareTurnSyncBridge()
 // ---------------------------------------------------------------------------
 // MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
 // ---------------------------------------------------------------------------
-
-qint64 MainWindowServiceRegistry::queryRemainingMsFor(MatchCoordinator::Player player)
-{
-    if (m_mw.m_queryService)
-        return m_mw.m_queryService->remainingMsFor(player);
-    return 0;
-}
-
-qint64 MainWindowServiceRegistry::queryIncrementMsFor(MatchCoordinator::Player player)
-{
-    if (m_mw.m_queryService)
-        return m_mw.m_queryService->incrementMsFor(player);
-    return 0;
-}
-
-qint64 MainWindowServiceRegistry::queryByoyomiMs()
-{
-    if (m_mw.m_queryService)
-        return m_mw.m_queryService->byoyomiMs();
-    return 0;
-}
 
 bool MainWindowServiceRegistry::queryIsHumanSide(ShogiGameController::Player player)
 {

@@ -5,6 +5,8 @@
 /// @brief 対局開始コーディネータクラスの定義
 
 #include <QObject>
+
+#include "timecontrol.h"
 #include <QPointer>
 #include <QString>
 
@@ -47,25 +49,17 @@ public:
         std::function<void(const QString&, const QString&, bool)> addKifuHeaderItem;   ///< 棋譜ヘッダ行追加（move, time, prepend）
     };
 
-    /// 片方の対局者の時間設定（ミリ秒単位）
-    struct TimeSide {
-        qint64 baseMs      = 0;  ///< 持ち時間
-        qint64 byoyomiMs   = 0;  ///< 秒読み
-        qint64 incrementMs = 0;  ///< フィッシャー加算
-    };
-
-    /// 時間制御の設定
-    struct TimeControl {
-        bool     enabled = false;  ///< 時間制御が有効か
-        TimeSide p1;               ///< 先手の時間設定
-        TimeSide p2;               ///< 後手の時間設定
+    /// 対局開始時の時間の設定
+    struct TimeSettings {
+        bool enabled = false;      ///< 時間制御が有効か
+        TimeControl rules;         ///< 先手・後手の持ち時間の決まり
         bool loseOnTimeout = true; ///< 時間切れを負けとするか（時計の有効/無効とは独立）
     };
 
     /// 対局開始パラメータ
     struct StartParams {
         MatchCoordinator::StartOptions opt;  ///< 既存のStartOptionsをそのまま注入
-        TimeControl                    tc;   ///< 時計適用のために併送
+        TimeSettings                   tc;   ///< 時計適用のために併送
         bool autoStartEngineMove = true;     ///< 先手がエンジンなら初手goを起動
         bool announcePlayerNames = false;    ///< 対局者名を通知する（ダイアログを経ない連続対局の2局目以降）
     };
@@ -152,7 +146,7 @@ signals:
     void requestPreStartCleanup();
 
     /// 時計適用の依頼（MainWindow側の既存ロジックへ接続）
-    void requestApplyTimeControl(const GameStartCoordinator::TimeControl& tc);
+    void requestApplyTimeControl(const GameStartCoordinator::TimeSettings& tc);
 
     // --- 進捗通知 ---
 
@@ -198,7 +192,7 @@ private:
     ViewHooks            m_viewHooks;        ///< 盤面ビュー操作コールバック群
 };
 
-Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)
+Q_DECLARE_METATYPE(GameStartCoordinator::TimeSettings)
 Q_DECLARE_METATYPE(GameStartCoordinator::Request)
 
 #endif // GAMESTARTCOORDINATOR_H

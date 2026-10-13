@@ -40,8 +40,8 @@ public:
         std::function<void()> startNextConsecutiveGame;            ///< 次の連続対局を開始
 
         // --- applyTimeControl 用 ---
-        GameStartCoordinator::TimeControl* lastTimeControl = nullptr; ///< 前回の時間設定（外部所有）
-        std::function<void(const GameStartCoordinator::TimeControl&)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
+        GameStartCoordinator::TimeSettings* lastTimeControl = nullptr; ///< 前回の時間設定（外部所有）
+        std::function<void(const GameStartCoordinator::TimeSettings&)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
     };
 
     /// SessionLifecycleCoordinator::Deps を生成する

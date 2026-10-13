@@ -210,7 +210,7 @@ private slots:
         h.session.initializeGame();
         QVERIFY(m_dialogSeen);
         QCOMPARE(h.match->clock(), &h.clock);
-        QVERIFY(h.clock.getPlayer1TimeIntMs() > 0);
+        QVERIFY(h.clock.remainingMs(1) > 0);
         // 棋譜再生から開始した場合も、新しい対局の時計を動かす。
         QVERIFY(h.clock.isRunning());
         QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);

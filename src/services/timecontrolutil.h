@@ -13,20 +13,20 @@ class GameStartCoordinator;
 /**
  * @brief 持ち時間設定をShogiClockへ適用するユーティリティ名前空間
  *
- * GameStartCoordinator::TimeControl の設定値を ShogiClock に変換・適用する。
+ * GameStartCoordinator::TimeSettings の設定値を ShogiClock に変換・適用する。
  *
  */
 namespace TimeControlUtil {
 
 /**
- * @brief GameStartCoordinator::TimeControl を ShogiClock へ適用する
+ * @brief GameStartCoordinator::TimeSettings を ShogiClock へ適用する
  * @param clock 対象の将棋時計
  * @param tc 持ち時間設定
  * @param startSfenStr 開始局面のSFEN（初期手番の推定にのみ使用）
  * @param currentSfenStr 現在局面のSFEN（初期手番の推定にのみ使用）
  */
 void applyToClock(ShogiClock* clock,
-                  const GameStartCoordinator::TimeControl& tc,
+                  const GameStartCoordinator::TimeSettings& tc,
                   const QString& startSfenStr,
                   const QString& currentSfenStr);
 

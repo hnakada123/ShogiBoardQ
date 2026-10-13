@@ -52,20 +52,13 @@ void HumanVsHumanStrategy::onHumanMove(const QPoint& /*from*/,
 
     // HvH でも秒読み/インクリメントを適用し、総考慮へ加算して表示値を確定
     ShogiClock* clock = m_ctx.clock();
-    if (clock) {
-        if (moverP == MatchCoordinator::P1) {
-            clock->applyByoyomiAndResetConsideration1();
-        } else {
-            clock->applyByoyomiAndResetConsideration2();
-        }
-    }
+    if (clock) clock->commitMove(static_cast<int>(moverP));
 
     // 指し手＋考慮時間を棋譜欄に追記する。千日手・持将棋の終局行より先に記録する
     if (m_ctx.hooks().game.appendKifuLine) {
         QString elapsed = QStringLiteral("00:00/00:00:00");
         if (clock) {
-            elapsed = (moverP == MatchCoordinator::P1) ? clock->player1ConsiderationAndTotalTime()
-                                                       : clock->player2ConsiderationAndTotalTime();
+            elapsed = clock->considerationAndTotalTime(static_cast<int>(moverP));
         }
         m_ctx.hooks().game.appendKifuLine(prettyMove, elapsed);
     }

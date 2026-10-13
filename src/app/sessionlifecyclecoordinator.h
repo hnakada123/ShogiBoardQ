@@ -75,8 +75,8 @@ public:
         // --- applyTimeControl 用 ---
         MatchCoordinator* match = nullptr;                            ///< 対局進行の司令塔（非所有）
         ShogiView* shogiView = nullptr;                               ///< 盤面ビュー（非所有）
-        GameStartCoordinator::TimeControl* lastTimeControl = nullptr; ///< 前回の時間設定（外部所有）
-        std::function<void(const GameStartCoordinator::TimeControl&)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
+        GameStartCoordinator::TimeSettings* lastTimeControl = nullptr; ///< 前回の時間設定（外部所有）
+        std::function<void(const GameStartCoordinator::TimeSettings&)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
     };
 
     explicit SessionLifecycleCoordinator(QObject* parent = nullptr);
@@ -98,7 +98,7 @@ public:
     void startNewGame();
 
     /// 時間設定を適用する（保存・時計設定・UI反映）
-    void applyTimeControl(const GameStartCoordinator::TimeControl& tc);
+    void applyTimeControl(const GameStartCoordinator::TimeSettings& tc);
 
     /// 対局開始後の UI/状態同期を行う
     void handleGameStarted(const MatchCoordinator::StartOptions& opt);

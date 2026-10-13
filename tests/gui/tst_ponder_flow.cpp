@@ -421,8 +421,8 @@ private slots:
         QVERIFY(controller.isInitialized());
         CsaEngineController::ThinkingParams params;
         params.positionCmd = "position startpos";
-        params.btimeStr = "60000";
-        params.wtimeStr = "60000";
+        params.timing.timeControl.black.mainMs = params.timing.timeControl.white.mainMs = 60000;
+        params.timing.btimeMs = params.timing.wtimeMs = 60000;
         QSignalSpy results(&controller, &CsaEngineController::thinkingFinished);
         controller.thinkAsync(params);
         QTRY_COMPARE(results.size(), 1);

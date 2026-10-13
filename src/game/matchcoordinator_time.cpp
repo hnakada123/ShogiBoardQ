@@ -7,20 +7,6 @@
 
 // --- 時間管理転送 ---
 
-void MatchCoordinator::setTimeControlConfig(bool useByoyomi,
-                                            int byoyomiMs1, int byoyomiMs2,
-                                            int incMs1,     int incMs2,
-                                            bool loseOnTimeout)
-{
-    ensureTimekeeper();
-    m_timekeeper->setTimeControlConfig(useByoyomi, byoyomiMs1, byoyomiMs2,
-                                       incMs1, incMs2, loseOnTimeout);
-}
-
-const MatchCoordinator::TimeControl& MatchCoordinator::timeControl() const {
-    return m_timekeeper->timeControl();
-}
-
 void MatchCoordinator::markTurnEpochNowFor(Player side, qint64 nowMs) {
     ensureTimekeeper();
     m_timekeeper->markTurnEpochNowFor(side, nowMs);
@@ -28,14 +14,6 @@ void MatchCoordinator::markTurnEpochNowFor(Player side, qint64 nowMs) {
 
 qint64 MatchCoordinator::turnEpochFor(Player side) const {
     return m_timekeeper ? m_timekeeper->turnEpochFor(side) : -1;
-}
-
-MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const {
-    return m_timekeeper ? m_timekeeper->computeGoTimes() : GoTimes{};
-}
-
-void MatchCoordinator::refreshGoTimes() {
-    if (m_timekeeper) m_timekeeper->refreshGoTimes();
 }
 
 void MatchCoordinator::setClock(ShogiClock* clock)

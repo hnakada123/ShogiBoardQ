@@ -105,9 +105,7 @@ void CsaEngineController::thinkAsync(const ThinkingParams& params)
 {
     if (!m_engine || !m_gameController) return;
     m_gameController->setPromote(false);
-    const UsiTimingParams timing{params.byoyomiMs, params.btimeStr, params.wtimeStr,
-                                 params.bincMs, params.wincMs, params.useByoyomi};
-    m_engine->requestMatchMove(params.positionCmd, m_ponderPosition, timing);
+    m_engine->requestMatchMove(params.positionCmd, m_ponderPosition, params.timing);
 }
 
 void CsaEngineController::onMatchMoveReady(const QPoint& from, const QPoint& to,

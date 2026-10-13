@@ -105,21 +105,13 @@ QString CsaMoveProgressHandler::validateMoveText(const QString& move, QPoint* fr
 // 時間管理ヘルパー
 // ============================================================
 
-void CsaMoveProgressHandler::applyClockTimes(ShogiClock* clock, const CsaClient::GameSummary& summary,
-                                             int blackRemainingMs, int whiteRemainingMs)
+void CsaMoveProgressHandler::startDisplayClock(ShogiClock* clock, const CsaClient::GameSummary& summary,
+                                               qint64 blackRemainingMs, qint64 whiteRemainingMs)
 {
     if (!clock) return;
-
-    if (summary.isTimeUnlimited()) {
-        // 仕様 3.2.2: Time 階層（または全時間要素）の省略は時間無制限。消費時間だけ数える
-        clock->setPlayerTimes(0, 0, 0, 0, 0, 0, false);
-        return;
-    }
-
-    clock->setPlayerTimes(blackRemainingMs / 1000, whiteRemainingMs / 1000,
-                          summary.byoyomiMs(true) / 1000, summary.byoyomiMs(false) / 1000,
-                          summary.incrementMs(true) / 1000, summary.incrementMs(false) / 1000,
-                          true);
+    // 仕様 3.2.2: Time 階層（または全時間要素）の省略は時間無制限。決まりが空なら消費時間だけ数える
+    clock->setTimeControl(summary.timeControl());
+    if (!summary.isTimeUnlimited()) clock->setRemainingTimes(blackRemainingMs, whiteRemainingMs);
 }
 
 void CsaMoveProgressHandler::updateTimeTracking(bool isBlackMove, int consumedTimeMs)
@@ -142,8 +134,10 @@ void CsaMoveProgressHandler::syncClockAfterMove(bool startMyTurnClock)
 {
     if (!*m_refs.clock) return;
 
-    applyClockTimes(*m_refs.clock, *m_refs.gameSummary,
-                    *m_refs.blackRemainingMs, *m_refs.whiteRemainingMs);
+    // 表示用の時計をサーバーが示した残り時間に合わせる
+    if (!m_refs.gameSummary->isTimeUnlimited()) {
+        (*m_refs.clock)->setRemainingTimes(*m_refs.blackRemainingMs, *m_refs.whiteRemainingMs);
+    }
 
     if (startMyTurnClock) {
         (*m_refs.clock)->setCurrentPlayer(*m_refs.isBlackSide ? 1 : 2);
@@ -311,36 +305,26 @@ void CsaMoveProgressHandler::startEngineThinking()
         positionCmd += QStringLiteral(" moves ") + m_refs.usiMoves->join(QLatin1Char(' '));
     }
 
-    // 時間パラメータを計算
+    // 時間の条件。CSA の残り時間は手番の始めに加算するので、手番側は今の手番の加算を含み、
+    // 相手側は次の手番の加算を含まない。USI の btime/wtime の意味（その手番の加算を含まない）にそろえる。
+    // 仕様 3.2.2.1: 1手に使える時間は「遅延時間＋残り時間＋秒読み」。遅延時間はサーバーが消費時間から
+    // 差し引くので、今の手の思考時間に足すだけでよい。サーバーは LF の到着時刻で消費時間を測るので、
+    // 通信の遅延に備えて余裕を差し引く。go に載せる値は UsiGoTimeCalculator が求める。
     const CsaClient::GameSummary& s = *m_refs.gameSummary;
     const bool black = *m_refs.isBlackSide;
-    const int byoyomiMyMs = s.byoyomiMs(black);
-    // 仕様 3.2.2.1: 1手に使える時間は「遅延時間＋残り時間＋秒読み」。遅延時間はサーバーが
-    // 消費時間から差し引くので、こちらは今回の手の思考時間に足すだけでよい
-    const int delayMyMs = s.delayMs(black);
-    int blackRemainMs = qMax(0, *m_refs.blackRemainingMs);
-    int whiteRemainMs = qMax(0, *m_refs.whiteRemainingMs);
-    const int incBlackMs = s.incrementMs(true);
-    const int incWhiteMs = s.incrementMs(false);
-    int& myRemainMs = black ? blackRemainMs : whiteRemainMs;
-    // サーバーは LF の到着時刻で消費時間を測るので、通信の遅延に備えて余裕を差し引く
-    const int marginMs = m_refs.thinkingMarginMs ? qMax(0, *m_refs.thinkingMarginMs) : 0;
+    const TimeControl tc = s.timeControl().normalized();
+    const qint64 myIncrementMs = tc.side(black ? Turn::Black : Turn::White).incrementMs;
+    qint64 blackRemainMs = qMax(0, *m_refs.blackRemainingMs);
+    qint64 whiteRemainMs = qMax(0, *m_refs.whiteRemainingMs);
+    (black ? blackRemainMs : whiteRemainMs) = qMax<qint64>(0, (black ? blackRemainMs : whiteRemainMs) - myIncrementMs);
 
     CsaEngineController::ThinkingParams params;
     params.positionCmd = positionCmd;
-    if (byoyomiMyMs > 0) {
-        params.byoyomiMs = qMax(0, byoyomiMyMs + delayMyMs - marginMs);
-        params.useByoyomi = true;
-    } else {
-        // USI（将棋所の仕様）では btime + binc が今回の手に使える時間を表す。CSA の残り時間は
-        // 手番の開始時に加算済みなので、加算を binc で伝えるときは自分の残り時間から差し引く。
-        myRemainMs = qMax(0, myRemainMs - (black ? incBlackMs : incWhiteMs) + delayMyMs - marginMs);
-        params.bincMs = incBlackMs;
-        params.wincMs = incWhiteMs;
-        params.useByoyomi = false;
-    }
-    params.btimeStr = QString::number(blackRemainMs);
-    params.wtimeStr = QString::number(whiteRemainMs);
+    params.timing.timeControl = tc;
+    params.timing.btimeMs = blackRemainMs;
+    params.timing.wtimeMs = whiteRemainMs;
+    params.timing.extraMs = tc.side(black ? Turn::Black : Turn::White).delayMs;
+    params.timing.marginMs = m_refs.thinkingMarginMs ? qMax(0, *m_refs.thinkingMarginMs) : 0;
 
     m_hooks.logMessage(tr("エンジンが思考中..."), false);
 

@@ -223,7 +223,7 @@ signals:
     void requestPreStartCleanup();
 
     /// 時間制御の適用要求
-    void requestApplyTimeControl(const GameStartCoordinator::TimeControl& tc);
+    void requestApplyTimeControl(const GameStartCoordinator::TimeSettings& tc);
 
     /// 対局者名確定通知（メニュー開始用）
     void menuPlayerNamesResolved(const QString& human1, const QString& human2,

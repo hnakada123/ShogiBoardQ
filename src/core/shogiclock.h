@@ -4,18 +4,19 @@
 /// @file shogiclock.h
 /// @brief 将棋対局用タイマー管理クラスの定義
 
+#include <QElapsedTimer>
+#include <QList>
 #include <QObject>
 #include <QTimer>
-#include <QStack>
-#include <QElapsedTimer>
+
+#include "timecontrol.h"
 
 /**
- * @brief 将棋対局の持ち時間・秒読み・インクリメント・考慮時間を管理するクラス
+ * @brief 将棋対局の持ち時間・秒読み・加算・考慮時間を管理するクラス
  *
- * 先手/後手それぞれの残り時間をミリ秒精度で追跡し、
- * 秒読み・フィッシャー加算の自動適用、時間切れ判定、
- * 「待った」による状態巻き戻しを提供する。
- *
+ * 先手（1）と後手（2）の状態を SideState にまとめ、ミリ秒精度で追跡する。
+ * 着手を確定する（commitMove）たびに両側の状態を履歴へ積み、「待った」（undo）は
+ * 履歴の末尾を取り除いて戻す。時間切れの判定は、loseOnTimeout が有効なときだけ行う。
  */
 class ShogiClock : public QObject
 {
@@ -25,43 +26,34 @@ public:
 
     explicit ShogiClock(QObject *parent = nullptr);
 
-    /// 中断した対局の時計。ミリ秒・秒読み・消費時間・待った用履歴を保持する。
+    /// 片側の時計の状態
+    struct SideState {
+        qint64 remainingMs = 0;           ///< 残り時間（秒読みに入った後は秒読みの残り）
+        qint64 considerationMs = 0;       ///< 指している（または直前に指した）手の考慮時間
+        qint64 totalConsiderationMs = 0;  ///< 確定した手の考慮時間の合計
+        bool byoyomiApplied = false;      ///< 秒読みに入っているか
+        int lastMoveShownSec = 0;         ///< 棋譜欄に出す直近の手の考慮秒数
+        int prevShownTotalSec = 0;        ///< 直近の手の秒数を求めるための、前回の総考慮秒数
+    };
+
+    /// 着手を確定した時点の両側の状態（「待った」で戻す単位）
+    struct HistoryEntry {
+        SideState side[2];
+    };
+
+    /// 中断した対局の時計。決まり・各側の状態・待った用の履歴を保持する
     struct Snapshot {
-        bool timeLimitSet  = false;
-        bool currentConsiderationCommitted = false;
+        TimeControl timeControl;
+        bool timeLimitSet = false;
         bool loseOnTimeout = true;
+        bool considerationCommitted = false;
         int currentPlayer = 1;
-        qint64 player1TimeMs = 0;
-        qint64 player2TimeMs = 0;
-        qint64 byoyomi1TimeMs = 0;
-        qint64 byoyomi2TimeMs = 0;
-        qint64 bincMs = 0;
-        qint64 wincMs = 0;
-        qint64 player1ConsiderationTimeMs = 0;
-        qint64 player2ConsiderationTimeMs = 0;
-        qint64 player1TotalConsiderationTimeMs = 0;
-        qint64 player2TotalConsiderationTimeMs = 0;
-        int p1LastMoveShownSec = 0;
-        int p2LastMoveShownSec = 0;
-        int p1PrevShownTotalSec = 0;
-        int p2PrevShownTotalSec = 0;
-        int prevShownSecP1 = -1;
-        int prevShownSecP2 = -1;
-        bool byoyomi1Applied = false;
-        bool byoyomi2Applied = false;
-        QStack<bool> considerationCommittedHistory;
-        QStack<qint64> player1TimeHistory;
-        QStack<qint64> player2TimeHistory;
-        QStack<qint64> player1ConsiderationHistory;
-        QStack<qint64> player2ConsiderationHistory;
-        QStack<qint64> player1TotalConsiderationHistory;
-        QStack<qint64> player2TotalConsiderationHistory;
-        QStack<bool> byoyomi1AppliedHistory;
-        QStack<bool> byoyomi2AppliedHistory;
-        QStack<int> p1LastMoveShownSecHistory;
-        QStack<int> p2LastMoveShownSecHistory;
-        QStack<int> p1PrevShownTotalSecHistory;
-        QStack<int> p2PrevShownTotalSecHistory;
+        SideState side[2];
+        int prevShownSec[2] = {-1, -1};
+        QList<HistoryEntry> history;
+
+        const SideState& of(int player) const { return side[player == 2 ? 1 : 0]; }
+        SideState& of(int player) { return side[player == 2 ? 1 : 0]; }
     };
     Snapshot pauseAndSnapshot();
     void restoreSnapshot(const Snapshot& state);
@@ -73,21 +65,22 @@ public:
     void setLoseOnTimeout(bool v);
 
     /**
-     * @brief 両対局者の持ち時間・秒読み・加算を一括設定する
-     * @param player1Seconds 先手の持ち時間（秒）
-     * @param player2Seconds 後手の持ち時間（秒）
-     * @param byoyomi1Seconds 先手の秒読み（秒、0で無効）
-     * @param byoyomi2Seconds 後手の秒読み（秒、0で無効）
-     * @param bincSeconds 先手のインクリメント（秒、0で無効）
-     * @param wincSeconds 後手のインクリメント（秒、0で無効）
-     * @param isLimitedTime 持ち時間制限ありの場合true
+     * @brief 持ち時間の決まりを設定し、時計を対局開始の状態にする
      *
-     * 秒読みとインクリメントは排他: どちらかが正の場合、他方は0になる。
+     * 秒読みと加算が両方あるときは秒読みを使う。初手にも加算を与えるので、残り時間は
+     * 持ち時間＋加算で始まる。持ち時間がなく秒読みだけの側は、初めから秒読みに入る。
+     * 決まりに制限がなければ、消費時間だけを数える時計になる。「待った」の履歴は空から積み直す。
      */
-    void setPlayerTimes(int player1Seconds, int player2Seconds,
-                        int byoyomi1Seconds, int byoyomi2Seconds,
-                        int bincSeconds, int wincSeconds,
-                        bool isLimitedTime);
+    void setTimeControl(const TimeControl& timeControl);
+    const TimeControl& timeControl() const { return m_timeControl; }
+
+    /**
+     * @brief 残り時間を外部の値に合わせる（CSA のサーバーが示す残り時間など）
+     *
+     * 決まり・考慮時間・履歴はそのまま。残りが0以下で秒読みがある側は秒読みに入る。
+     */
+    void setRemainingTimes(qint64 blackMs, qint64 whiteMs);
+
     void setCurrentPlayer(int player);
 
     // --- クロック制御 ---
@@ -97,76 +90,51 @@ public:
     void updateClock();
     /// 応答受理時に精算し、次の手番への切替まで課金を止める。
     void finishTurn();
+    /// 秒読みを除いた残り時間（未精算の経過時間を含めて計算）
     qint64 remainingMainTimeMs(int player) const;
+    /// 秒読みを含めた、今の手に使える残り時間
     qint64 remainingTurnTimeMs(int player) const;
     bool isUnlimited() const { return !m_timeLimitSet; }
     bool enforcesTimeout() const { return m_timeLimitSet && m_loseOnTimeout; }
 
     // --- 着手確定時処理 ---
 
-    /// 先手の着手確定後に秒読み/加算を適用し、考慮時間を確定する
-    void applyByoyomiAndResetConsideration1();
-
-    /// 後手の着手確定後に秒読み/加算を適用し、考慮時間を確定する
-    void applyByoyomiAndResetConsideration2();
+    /// 着手を確定する。考慮時間を合計へ加え、秒読みを戻すか加算を足して、状態を履歴へ積む
+    void commitMove(int player);
 
     /// 2手分の状態を巻き戻す（「待った」用）。取り消す自分の手を指し始めたときの
     /// 残り時間・消費時間に戻し、考慮時間は呼び出した時点から数え直す。
-    /// 履歴は setPlayerTimes() の開始状態と、着手確定ごとの状態で、戻せないときは何もしない。
+    /// 履歴は setTimeControl() の開始状態と、着手確定ごとの状態で、戻せないときは何もしない。
     void undo();
 
     // --- GUI表示API ---
 
     /// 時計表示（HH:MM:SS）。制限ありは残り時間を切り上げ、無制限は累積消費時間を切り捨て。
-    QString player1TimeString() const;
-    QString player2TimeString() const;
-
-    /// 直近考慮時間文字列（MM:SS）
-    QString getPlayer1ConsiderationTime() const;
-    QString getPlayer2ConsiderationTime() const;
-
-    /// 総考慮時間文字列（HH:MM:SS、実測msを秒に切り捨て）
-    QString getPlayer1TotalConsiderationTime() const;
-    QString getPlayer2TotalConsiderationTime() const;
-
+    QString timeString(int player) const;
+    /// 直近の手の考慮時間（MM:SS）
+    QString considerationTimeString(int player) const;
+    /// 総考慮時間（HH:MM:SS、実測msを秒に切り捨て）
+    QString totalConsiderationTimeString(int player) const;
     /// 棋譜欄用の考慮/総考慮文字列（"MM:SS/HH:MM:SS"）
-    QString player1ConsiderationAndTotalTime() const;
-    QString player2ConsiderationAndTotalTime() const;
+    QString considerationAndTotalTime(int player) const;
 
     // --- 状態取得 ---
 
-    qint64 getPlayer1TimeIntMs() const { return m_player1TimeMs; }  ///< 先手残り時間(ms)
-    qint64 getPlayer2TimeIntMs() const { return m_player2TimeMs; }  ///< 後手残り時間(ms)
-    int currentPlayer() const { return m_currentPlayer; }           ///< 現在の手番（1=先手, 2=後手）
+    qint64 remainingMs(int player) const { return side(player).remainingMs; }  ///< 残り時間(ms)
+    int currentPlayer() const { return m_currentPlayer; }                        ///< 手番（1=先手, 2=後手）
 
-    /// 考慮時間を外部から直接設定する（HvEでエンジン手のelapsed反映用）
-    void setPlayer1ConsiderationTime(int ms);
-    void setPlayer2ConsiderationTime(int ms);
+    /// 考慮時間を外部から直接設定する（エンジンの手の実測値の反映など）
+    void setConsiderationTimeMs(int player, qint64 ms);
+    qint64 considerationMs(int player) const { return side(player).considerationMs; }
 
-    bool hasByoyomi1() const { return m_byoyomi1TimeMs > 0; }    ///< 先手に秒読みが設定されているか
-    bool hasByoyomi2() const { return m_byoyomi2TimeMs > 0; }    ///< 後手に秒読みが設定されているか
-    bool byoyomi1Applied() const { return m_byoyomi1Applied; }   ///< 先手が秒読みに入っているか
-    bool byoyomi2Applied() const { return m_byoyomi2Applied; }   ///< 後手が秒読みに入っているか
+    qint64 byoyomiMs(int player) const { return rules(player).byoyomiMs; }
+    qint64 incrementMs(int player) const { return rules(player).incrementMs; }
+    bool hasByoyomi(int player) const { return byoyomiMs(player) > 0; }
+    bool byoyomiApplied(int player) const { return side(player).byoyomiApplied; }
 
     bool isGameOver() const { return m_gameOver; }                ///< 終局状態か
     void markGameOver() { m_gameOver = true; }                    ///< 終局状態に設定する
     bool isRunning() const { return m_clockRunning; }             ///< タイマー動作中か
-
-    qint64 player1ConsiderationMs() const { return m_player1ConsiderationTimeMs; } ///< 先手の直近考慮(ms)
-    qint64 player2ConsiderationMs() const { return m_player2ConsiderationTimeMs; } ///< 後手の直近考慮(ms)
-    int player1ConsiderationTimeMs() const;
-    int player2ConsiderationTimeMs() const;
-
-    // --- USIパラメータ用 ---
-
-    qint64 bincMs() const { return m_bincMs; }   ///< 先手のインクリメント(ms)
-    qint64 wincMs() const { return m_wincMs; }   ///< 後手のインクリメント(ms)
-
-    /// 両者共通の秒読み値を返す（不一致なら0: USIのbyoyomiパラメータに使えない）
-    qint64 commonByoyomiMs() const {
-        return (m_byoyomi1TimeMs > 0 && m_byoyomi2TimeMs > 0 && m_byoyomi1TimeMs == m_byoyomi2TimeMs)
-        ? m_byoyomi1TimeMs : 0;
-    }
 
 signals:
     /// 時間表示の更新通知（→ TimeDisplayPresenter）
@@ -182,71 +150,43 @@ signals:
     void resignationTriggered();
 
 private:
-    // --- 内部ヘルパ ---
-    void saveState();
-    void clearHistory();
-    void debugCheckInvariants() const;
-    int remainingDisplaySecP1() const;
-    int remainingDisplaySecP2() const;
-    void updateShownConsiderationForPlayer(int player);
+    static int index(int player) { return player == 2 ? 1 : 0; }
+    SideState& side(int player) { return m_side[index(player)]; }
+    const SideState& side(int player) const { return m_side[index(player)]; }
+    const TimeControlSide& rules(int player) const
+    {
+        return player == 2 ? m_timeControl.white : m_timeControl.black;
+    }
+
+    void pushHistory();
+    void enterByoyomiIfExhausted(int player);
+    void checkInvariants() const;
+    int remainingDisplaySec(int player) const;
+    void updateShownConsideration(int player);
+    void resetDisplayCache();
+    /// 手番側の経過時間を残り時間へ反映し、時間切れなら true
+    bool chargeElapsed(int player, qint64 elapsed);
+    void declareTimeout(int player);
 
     // --- タイマー ---
     QTimer*       m_timer = nullptr;           ///< 定期更新タイマー（所有、this親）
     QElapsedTimer m_elapsedTimer;              ///< 経過時間計測用（モノトニック）
     bool          m_clockRunning = false;      ///< タイマー動作中フラグ
-    bool          m_turnFinished = false;
-    bool          m_currentConsiderationCommitted = false;
+    bool          m_turnFinished = false;      ///< 応答受理後、手番切替まで課金を止める
     qint64        m_lastTickMs   = 0;          ///< 前回tickの時刻(ms)
 
-    // --- 設定・状態 ---
-    bool   m_timeLimitSet  = false;            ///< 持ち時間制限が有効か
-    bool   m_loseOnTimeout = true;             ///< 時間切れで負けとするか
-    int    m_currentPlayer = 1;                ///< 現在の手番（1=先手, 2=後手）
+    // --- 決まりと状態 ---
+    TimeControl m_timeControl;                 ///< 持ち時間の決まり
+    bool m_timeLimitSet  = false;              ///< 持ち時間制限が有効か
+    bool m_loseOnTimeout = true;               ///< 時間切れで負けとするか
+    int  m_currentPlayer = 1;                  ///< 現在の手番（1=先手, 2=後手）
+    SideState m_side[2];                       ///< 先手・後手の状態
+    bool m_currentConsiderationCommitted = false; ///< 手番側の考慮時間を合計へ加え済みか
+    int  m_prevShownSec[2] = {-1, -1};         ///< 前回通知した残り秒（表示の変化検出用）
 
-    // --- 残り時間(ms) ---
-    qint64 m_player1TimeMs = 0;                ///< 先手の残り時間
-    qint64 m_player2TimeMs = 0;                ///< 後手の残り時間
+    QList<HistoryEntry> m_history;             ///< 着手確定ごとの状態（「待った」用）
 
-    // --- 秒読み/インクリメント(ms) ---
-    qint64 m_byoyomi1TimeMs = 0;               ///< 先手の秒読み時間
-    qint64 m_byoyomi2TimeMs = 0;               ///< 後手の秒読み時間
-    qint64 m_bincMs = 0;                       ///< 先手のインクリメント
-    qint64 m_wincMs = 0;                       ///< 後手のインクリメント
-
-    // --- 考慮時間(ms) ---
-    qint64 m_player1ConsiderationTimeMs = 0;        ///< 先手の直近手の考慮時間
-    qint64 m_player2ConsiderationTimeMs = 0;        ///< 後手の直近手の考慮時間
-    qint64 m_player1TotalConsiderationTimeMs = 0;   ///< 先手の総考慮時間
-    qint64 m_player2TotalConsiderationTimeMs = 0;   ///< 後手の総考慮時間
-
-    // --- GUI表示用キャッシュ ---
-    int m_p1LastMoveShownSec = 0;              ///< 先手の直近手表示秒数
-    int m_p2LastMoveShownSec = 0;              ///< 後手の直近手表示秒数
-    int m_p1PrevShownTotalSec = 0;             ///< 先手の前回総考慮表示秒数
-    int m_p2PrevShownTotalSec = 0;             ///< 後手の前回総考慮表示秒数
-    int m_prevShownSecP1 = -1;                 ///< 先手の前回残り秒表示（変化検出用）
-    int m_prevShownSecP2 = -1;                 ///< 後手の前回残り秒表示（変化検出用）
-
-    // --- 秒読み適用状態 ---
-    bool m_byoyomi1Applied = false;            ///< 先手が秒読みに入った
-    bool m_byoyomi2Applied = false;            ///< 後手が秒読みに入った
-
-    // --- undo用の状態履歴スタック ---
-    QStack<bool> m_considerationCommittedHistory;
-    QStack<qint64> m_player1TimeHistory;                ///< 先手残り時間の履歴
-    QStack<qint64> m_player2TimeHistory;                ///< 後手残り時間の履歴
-    QStack<qint64> m_player1ConsiderationHistory;       ///< 先手考慮時間の履歴
-    QStack<qint64> m_player2ConsiderationHistory;       ///< 後手考慮時間の履歴
-    QStack<qint64> m_player1TotalConsiderationHistory;  ///< 先手総考慮の履歴
-    QStack<qint64> m_player2TotalConsiderationHistory;  ///< 後手総考慮の履歴
-    QStack<bool>   m_byoyomi1AppliedHistory;            ///< 先手秒読み適用の履歴
-    QStack<bool>   m_byoyomi2AppliedHistory;            ///< 後手秒読み適用の履歴
-    QStack<int>    m_p1LastMoveShownSecHistory;          ///< 先手直近手秒数の履歴
-    QStack<int>    m_p2LastMoveShownSecHistory;          ///< 後手直近手秒数の履歴
-    QStack<int>    m_p1PrevShownTotalSecHistory;         ///< 先手前回総考慮の履歴
-    QStack<int>    m_p2PrevShownTotalSecHistory;         ///< 後手前回総考慮の履歴
-
-    qint64 m_resumedConsiderationMs[2] = {0, 0};
+    qint64 m_resumedConsiderationMs[2] = {0, 0}; ///< 再開前に消費していた考慮時間
     bool m_resumingTurn = false;
     bool m_gameOver = false;                   ///< 終局フラグ
 };

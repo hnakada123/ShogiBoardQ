@@ -30,22 +30,16 @@ void GameEndHandler::appendBreakOffLineAndMark()
             considerMs = now - epochMs;
             if (considerMs < 0) considerMs = 0;
         } else {
-            considerMs = (curP == Player::P1) ? m_refs.clock->player1ConsiderationMs()
-                                               : m_refs.clock->player2ConsiderationMs();
+            considerMs = m_refs.clock->considerationMs(static_cast<int>(curP));
         }
 
-        if (curP == Player::P1) m_refs.clock->setPlayer1ConsiderationTime(int(considerMs));
-        else                    m_refs.clock->setPlayer2ConsiderationTime(int(considerMs));
-
-        if (curP == Player::P1) m_refs.clock->applyByoyomiAndResetConsideration1();
-        else                    m_refs.clock->applyByoyomiAndResetConsideration2();
+        m_refs.clock->setConsiderationTimeMs(static_cast<int>(curP), considerMs);
+        m_refs.clock->commitMove(static_cast<int>(curP));
     }
 
     QString elapsed;
     if (m_refs.clock) {
-        elapsed = (curP == Player::P1)
-            ? m_refs.clock->player1ConsiderationAndTotalTime()
-            : m_refs.clock->player2ConsiderationAndTotalTime();
+        elapsed = m_refs.clock->considerationAndTotalTime(static_cast<int>(curP));
     }
 
     if (m_hooks.appendKifuLine) m_hooks.appendKifuLine(line, elapsed);
@@ -101,19 +95,13 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
         considerMs = now - epochMs;
         if (considerMs < 0) considerMs = 0;
     } else {
-        considerMs = (mover == Player::P1) ? m_refs.clock->player1ConsiderationMs()
-                                            : m_refs.clock->player2ConsiderationMs();
+        considerMs = m_refs.clock->considerationMs(static_cast<int>(mover));
     }
 
-    if (mover == Player::P1) m_refs.clock->setPlayer1ConsiderationTime(int(considerMs));
-    else                     m_refs.clock->setPlayer2ConsiderationTime(int(considerMs));
+    m_refs.clock->setConsiderationTimeMs(static_cast<int>(mover), considerMs);
+    m_refs.clock->commitMove(static_cast<int>(mover));
 
-    if (mover == Player::P1) m_refs.clock->applyByoyomiAndResetConsideration1();
-    else                     m_refs.clock->applyByoyomiAndResetConsideration2();
-
-    const QString elapsed = (mover == Player::P1)
-                                ? m_refs.clock->player1ConsiderationAndTotalTime()
-                                : m_refs.clock->player2ConsiderationAndTotalTime();
+    const QString elapsed = m_refs.clock->considerationAndTotalTime(static_cast<int>(mover));
 
     m_hooks.appendKifuLine(line, elapsed);
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();

@@ -21,11 +21,6 @@ MatchCoordinator::Hooks MatchCoordinatorHooksFactory::buildHooks(const HookDeps&
     hooks.ui.usesHandicapNames = deps.usesHandicapNames;
     hooks.ui.showMoveHighlights = deps.showMoveHighlights;
 
-    // Time hooks
-    hooks.time.remainingMsFor = deps.remainingMsFor;
-    hooks.time.incrementMsFor = deps.incrementMsFor;
-    hooks.time.byoyomiMs = deps.byoyomiMs;
-
     // Engine hooks
     hooks.engine.sendStopToEngine = deps.sendStop;
 

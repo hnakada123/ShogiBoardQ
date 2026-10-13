@@ -54,30 +54,14 @@
 namespace TestTracker {
     bool configureAndStartCalled = false;
     bool startInitialEngineMoveIfNeededCalled = false;
-    bool setTimeControlConfigCalled = false;
-    bool refreshGoTimesCalled = false;
     bool clearGameOverStateCalled = false;
     MatchCoordinator::StartOptions lastStartOptions;
-    bool lastUseByoyomi = false;
-    int lastByoyomiMs1 = 0;
-    int lastByoyomiMs2 = 0;
-    int lastIncMs1 = 0;
-    int lastIncMs2 = 0;
-    bool lastLoseOnTimeout = false;
 
     void reset() {
         configureAndStartCalled = false;
         startInitialEngineMoveIfNeededCalled = false;
-        setTimeControlConfigCalled = false;
-        refreshGoTimesCalled = false;
         clearGameOverStateCalled = false;
         lastStartOptions = {};
-        lastUseByoyomi = false;
-        lastByoyomiMs1 = 0;
-        lastByoyomiMs2 = 0;
-        lastIncMs1 = 0;
-        lastIncMs2 = 0;
-        lastLoseOnTimeout = false;
     }
 }
 
@@ -113,39 +97,9 @@ void MatchCoordinator::startInitialEngineMoveIfNeeded()
     TestTracker::startInitialEngineMoveIfNeededCalled = true;
 }
 
-namespace {
-static MatchCoordinator::TimeControl s_stubTimeControl;
-}
 
-void MatchCoordinator::setTimeControlConfig(bool useByoyomi,
-                                            int byoyomiMs1, int byoyomiMs2,
-                                            int incMs1, int incMs2,
-                                            bool loseOnTimeout)
-{
-    TestTracker::setTimeControlConfigCalled = true;
-    TestTracker::lastUseByoyomi = useByoyomi;
-    TestTracker::lastByoyomiMs1 = byoyomiMs1;
-    TestTracker::lastByoyomiMs2 = byoyomiMs2;
-    TestTracker::lastIncMs1 = incMs1;
-    TestTracker::lastIncMs2 = incMs2;
-    TestTracker::lastLoseOnTimeout = loseOnTimeout;
-    s_stubTimeControl.useByoyomi = useByoyomi;
-    s_stubTimeControl.byoyomiMs1 = byoyomiMs1;
-    s_stubTimeControl.byoyomiMs2 = byoyomiMs2;
-    s_stubTimeControl.incMs1 = incMs1;
-    s_stubTimeControl.incMs2 = incMs2;
-    s_stubTimeControl.loseOnTimeout = loseOnTimeout;
-}
 
-const MatchCoordinator::TimeControl& MatchCoordinator::timeControl() const
-{
-    return s_stubTimeControl;
-}
 
-void MatchCoordinator::refreshGoTimes()
-{
-    TestTracker::refreshGoTimesCalled = true;
-}
 
 void MatchCoordinator::clearGameOverState()
 {
@@ -242,7 +196,6 @@ void MatchTurnHandler::handlePlayerTimeOut(int) {}
 void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
 void MatchTurnHandler::handleUsiError(const QString&) {}
 
-MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const { return {}; }
 void MatchCoordinator::recomputeClockSnapshot(QString&, QString&, QString&) const {}
 void MatchCoordinator::ensureGameStartOrchestrator() {}
 void MatchCoordinator::ensureAnalysisSession() {}
@@ -281,32 +234,6 @@ void AnalysisSessionHandler::finalizeTsumeSearch(const QString&) {}
 // ShogiClock スタブ
 // ============================================================
 
-ShogiClock::ShogiClock(QObject* parent) : QObject(parent) {}
-void ShogiClock::setLoseOnTimeout(bool) {}
-void ShogiClock::setPlayerTimes(int, int, int, int, int, int, bool) {}
-void ShogiClock::setCurrentPlayer(int p) { m_currentPlayer = p; }
-void ShogiClock::startClock() {}
-void ShogiClock::stopClock() {}
-void ShogiClock::updateClock() {}
-void ShogiClock::applyByoyomiAndResetConsideration1() {}
-void ShogiClock::applyByoyomiAndResetConsideration2() {}
-void ShogiClock::undo() {}
-QString ShogiClock::player1TimeString() const { return {}; }
-QString ShogiClock::player2TimeString() const { return {}; }
-QString ShogiClock::getPlayer1ConsiderationTime() const { return {}; }
-QString ShogiClock::getPlayer2ConsiderationTime() const { return {}; }
-QString ShogiClock::getPlayer1TotalConsiderationTime() const { return {}; }
-QString ShogiClock::getPlayer2TotalConsiderationTime() const { return {}; }
-QString ShogiClock::player1ConsiderationAndTotalTime() const { return {}; }
-QString ShogiClock::player2ConsiderationAndTotalTime() const { return {}; }
-void ShogiClock::setPlayer1ConsiderationTime(int) {}
-void ShogiClock::setPlayer2ConsiderationTime(int) {}
-int ShogiClock::player1ConsiderationTimeMs() const { return 0; }
-int ShogiClock::player2ConsiderationTimeMs() const { return 0; }
-void ShogiClock::saveState() {}
-void ShogiClock::debugCheckInvariants() const {}
-int ShogiClock::remainingDisplaySecP1() const { return 0; }
-int ShogiClock::remainingDisplaySecP2() const { return 0; }
 
 // ============================================================
 // ShogiView スタブ
@@ -465,7 +392,7 @@ bool KifuLoadCoordinator::loadPositionFromBod(const QString&) { return false; }
 // ============================================================
 
 namespace TimeControlUtil {
-void applyToClock(ShogiClock*, const GameStartCoordinator::TimeControl&,
+void applyToClock(ShogiClock*, const GameStartCoordinator::TimeSettings&,
                   const QString&, const QString&) {}
 }
 
@@ -507,7 +434,6 @@ void Usi::markHardTimeout() {}
 void Usi::clearHardTimeout() {}
 bool Usi::isIgnoring() const { return false; }
 QString Usi::currentEnginePath() const { return {}; }
-void Usi::sendGoCommand(const UsiTimingParams&) {}
 void Usi::sendRaw(const QString&) const {}
 bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}

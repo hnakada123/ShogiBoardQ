@@ -181,9 +181,6 @@ private:
     void refreshUndoFlowDeps();
     void startGameSession();
     MatchCoordinatorWiring::Deps buildMatchWiringDeps();
-    qint64 queryRemainingMsFor(MatchCoordinator::Player player);
-    qint64 queryIncrementMsFor(MatchCoordinator::Player player);
-    qint64 queryByoyomiMs();
     bool queryIsHumanSide(ShogiGameController::Player player);
     void updateTurnStatus(int currentPlayer);
     void resetRecordForEditedPosition();

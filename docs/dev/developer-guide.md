@@ -1525,13 +1525,8 @@ struct Hooks {
     std::function<void(const QString& msg)> log;            ///< ログ出力
     std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
 
-    // --- 時計読み出し ---
-    std::function<qint64(Player)> remainingMsFor;           ///< 残り時間（ms）
-    std::function<qint64(Player)> incrementMsFor;           ///< フィッシャー加算（ms）
-    std::function<qint64()> byoyomiMs;                      ///< 秒読み（共通、ms）
-
     // --- USI送受 ---
-    std::function<void(Usi* which, const GoTimes& t)> sendGoToEngine;
+    // go の時間はエンジンにつないだ時計から求めるので、時計の値を読むコールバックは持たない
     std::function<void(Usi* which)> sendStopToEngine;
 
     // --- 棋譜 ---
@@ -2193,37 +2188,49 @@ enum PieceType {
 
 ### 5.5 ShogiClock — 対局時計
 
-`ShogiClock` は対局中の時間管理を行う。持ち時間制・秒読み制・フィッシャー制の3モードに対応し、着手ごとの考慮時間の記録と「待った」による巻き戻しも提供する。
+`ShogiClock` は対局中の時間管理を行う。持ち時間制・秒読み制・フィッシャー制の3モードに対応し、着手ごとの考慮時間の記録と「待った」による巻き戻しも提供する。時間の決まり（`TimeControl`）と残り時間の両方を時計が持ち、エンジンへの `go` の時間も時計の値から求める（[時間設定の仕様](game-time-control-spec.md) の「時間の決まりの持ち方」）。
 
-**ソース**: `src/core/shogiclock.h`, `src/core/shogiclock.cpp`
+**ソース**: `src/core/timecontrol.h`, `src/core/shogiclock.h`, `src/core/shogiclock.cpp`
+
+#### 時間の決まり（TimeControl）
+
+```cpp
+struct TimeControlSide {          // 片方の対局者の決まり（ms）
+    qint64 mainMs = 0;            // 持ち時間
+    qint64 byoyomiMs = 0;         // 秒読み
+    qint64 incrementMs = 0;       // 1手ごとの加算
+    qint64 delayMs = 0;           // CSA の Delay（通信対局だけ）
+};
+struct TimeControl {
+    TimeControlSide black, white;
+    bool isUnlimited() const;     // 双方とも全項目0
+    bool usesByoyomi() const;
+    TimeControl normalized() const;  // 秒読みと加算の排他（秒読み優先）
+};
+```
+
+対局ダイアログの値も、CSA の対局条件（`Game_Summary`）も、この値にしてから `ShogiClock::setTimeControl()` に渡す。
 
 #### 3つの時間制モード
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  setPlayerTimes(time, time, byoyomi, byoyomi, binc, winc,  │
-│                 isLimitedTime)                               │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ 持ち時間制   │  │ 秒読み制     │  │ フィッシャー │      │
-│  │              │  │              │  │              │      │
-│  │ time > 0     │  │ time ≥ 0     │  │ time ≥ 0     │      │
-│  │ byoyomi = 0  │  │ byoyomi > 0  │  │ byoyomi = 0  │      │
-│  │ binc = 0     │  │ binc = 0     │  │ binc > 0     │      │
-│  │              │  │              │  │              │      │
-│  │ 切れたら負け │  │ 切れたら     │  │ 着手ごとに   │      │
-│  │              │  │ 秒読みへ移行 │  │ binc秒加算   │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-```
-
 | モード | 設定条件 | 動作 |
 |--------|---------|------|
-| **持ち時間制** | `time > 0`, `byoyomi = 0`, `binc = 0` | 持ち時間を消費し、0になった時点で時間切れ負け |
-| **秒読み制** | `byoyomi > 0` | 持ち時間消費後、毎手 byoyomi 秒の秒読みに移行。秒読み内に着手すればリセット |
-| **フィッシャー制** | `binc > 0` | 着手確定時に binc 秒が加算される。持ち時間が0以下で時間切れ |
+| **持ち時間制** | `mainMs > 0`, `byoyomiMs = 0`, `incrementMs = 0` | 持ち時間を消費し、0になった時点で時間切れ負け |
+| **秒読み制** | `byoyomiMs > 0` | 持ち時間消費後、毎手 byoyomi 秒の秒読みに移行。秒読み内に着手すればリセット |
+| **フィッシャー制** | `incrementMs > 0` | 開始時と着手確定時に加算される。持ち時間が0以下で時間切れ |
 
-秒読みとフィッシャーは排他的であり、両方を同時に指定することはできない。
+秒読みとフィッシャーは排他的であり、`normalized()` が両方の指定を秒読みだけにする。
+
+#### 主なAPI（player は 1=先手、2=後手）
+
+| API | 用途 |
+|-----|------|
+| `setTimeControl(tc)` | 対局の時間を設定する。初手の加算を与え、持ち時間0の秒読みは秒読みに入った状態で始める。「待った」用の履歴を開始状態から積み直す |
+| `setRemainingTimes(blackMs, whiteMs)` | 決まりと履歴を保ったまま、残り時間だけを合わせる（CSA通信対局の着手ごとの同期） |
+| `commitMove(player)` | 着手を確定する。消費時間を総消費へ加え、秒読みの再設定または加算を行い、次の手番の開始状態を履歴に積む |
+| `remainingMs(player)` / `byoyomiMs(player)` / `incrementMs(player)` | 残り時間と決まりの問い合わせ |
+| `timeString(player)` / `considerationAndTotalTime(player)` | 時計と棋譜の消費時間の表記 |
+| `pauseAndSnapshot()` / `restoreSnapshot()` | 中断・再開用に状態（決まり・残り時間・履歴）を保存・復元する |
 
 #### 時間管理の仕組み
 
@@ -2236,43 +2243,33 @@ startClock()
         │
         updateClock()
           ├── delta = 現在時刻 - m_lastTickMs
-          ├── m_playerNTimeMs -= delta         (現手番の残り時間を減算)
-          ├── m_playerNConsiderationTimeMs += delta  (考慮時間を加算)
+          ├── 手番側の remainingMs -= delta、considerationMs += delta
           ├── 残り時間 ≤ 0 なら
-          │     ├── 秒読みあり → m_byoyomiNApplied = true（1回目のみ）
+          │     ├── 秒読みあり → 秒読みへ移行（byoyomiApplied = true）
           │     └── 秒読みなし → emit playerNTimeOut() → 時間切れ処理
           └── emit timeUpdated()              (表示更新通知)
 ```
 
-`QTimer`（50ms刻み）と `QElapsedTimer`（モノトニッククロック）を組み合わせることで、システム時刻変更の影響を受けない精密な時間計測を実現している。
+`QTimer`（50ms刻み）と `QElapsedTimer`（モノトニッククロック）を組み合わせることで、システム時刻変更の影響を受けない精密な時間計測を実現している。先後の状態は `SideState`（残り時間・考慮時間・総消費時間・秒読み突入・表示用の秒）の2要素の配列で持ち、先後で同じ処理を書き分けない。
 
 #### 着手確定時の処理
 
 ```
-applyByoyomiAndResetConsideration1()  ← 先手が着手を確定
+commitMove(player)
   │
-  ├── 考慮時間を確定: m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs
+  ├── 考慮時間を確定: totalConsiderationMs += considerationMs
   │
-  ├── saveState()                     ← undo用に現在の全状態をスタックに保存
+  ├── 秒読みモード → remainingMs = byoyomiMs   (秒読みリセット)
+  ├── フィッシャーモード → remainingMs += incrementMs  (加算。使い切った後は加算しない)
   │
-  ├── 秒読みモード → m_player1TimeMs = m_byoyomi1TimeMs  (秒読みリセット)
-  │
-  ├── フィッシャーモード → m_player1TimeMs += m_bincMs    (加算)
-  │
-  └── m_player1ConsiderationTimeMs = 0  (次の手の考慮時間をリセット)
+  └── pushHistory()  ← 次の手番の開始状態を「待った」用に積む
 ```
+
+考慮時間は、次にその対局者の手番が始まるとき（`setCurrentPlayer()`）に0へ戻す。
 
 #### undo（待った）
 
-`ShogiClock` は各着手時の状態を `QStack` に保存しており、`undo()` で2手分（自分と相手の1手ずつ）を巻き戻す。保存される状態は以下の通り。
-
-| 保存対象 | 用途 |
-|---------|------|
-| `m_playerNTimeMs` | 残り時間 |
-| `m_playerNConsiderationTimeMs` | 直近手の考慮時間 |
-| `m_playerNTotalConsiderationTimeMs` | 総考慮時間 |
-| `m_byoyomiNApplied` | 秒読み突入フラグ |
-| `m_pNLastMoveShownSec` | GUI表示用キャッシュ |
+`ShogiClock` は手番の開始状態を `QList<HistoryEntry>` に積んでおり、`undo()` で末尾の2つ（自分と相手の1手ずつ）を取り除いて、新しい末尾の状態に戻す。各要素は先後の `SideState`（残り時間・直近手の考慮時間・総消費時間・秒読み突入・表示用の秒）を持つ。履歴は中断・再開の保存（`Snapshot`）にも含める。
 
 #### シグナル
 
@@ -2519,13 +2516,7 @@ struct Hooks {
     std::function<void()> renderBoardFromGc;                 // GC→盤面ビューの反映
     std::function<void(const QString&, const QString&)> showGameOverDialog; // 終局ダイアログ
 
-    // 時計読み出し（ShogiClock API差異の吸収）
-    std::function<qint64(Player)> remainingMsFor;            // 残り時間
-    std::function<qint64(Player)> incrementMsFor;            // フィッシャー加算
-    std::function<qint64()> byoyomiMs;                       // 秒読み
-
-    // USI送受
-    std::function<void(Usi*, const GoTimes&)> sendGoToEngine;   // go送信
+    // USI送受（go の時間はエンジンにつないだ時計から求める）
     std::function<void(Usi*)> sendStopToEngine;                 // stop送信
     std::function<void(Usi*, const QString&)> sendRawToEngine;  // 任意コマンド送信
 
@@ -2627,10 +2618,9 @@ sequenceDiagram
     Note over PCH: 盤面クリア, 棋譜モデルリセット,<br/>時計リセット, 評価値グラフ初期化,<br/>分岐ツリーのルート作成,<br/>ライブゲームセッション開始
 
     GSC-->>UI: requestApplyTimeControl(tc) [signal]
-    UI->>Clock: setPlayerTimes(...)
+    UI->>Clock: setTimeControl(tc.rules)
 
     UI->>GSC: start(StartParams)
-    GSC->>MC: setTimeControlConfig(...)
     GSC->>MC: configureAndStart(opt)
 
     MC->>MC: clearGameOverState()
@@ -2677,18 +2667,18 @@ sequenceDiagram
 ```cpp
 struct StartParams {
     MatchCoordinator::StartOptions opt;  // 対局設定
-    TimeControl                    tc;   // 時計設定
+    TimeSettings                   tc;   // 時計設定
     bool autoStartEngineMove = true;     // 先手がエンジンなら初手 go を起動
 };
 ```
 
-**TimeControl** — 時間制御:
+**TimeSettings** — 時間設定:
 
 ```cpp
-struct TimeControl {
-    bool     enabled = false;  // 時間制御が有効か
-    TimeSide p1;               // 先手: { baseMs, byoyomiMs, incrementMs }
-    TimeSide p2;               // 後手: 同上
+struct TimeSettings {
+    bool        enabled = false;        // 時間制御が有効か
+    TimeControl rules;                  // 先後の決まり（src/core/timecontrol.h、5.5 を参照）
+    bool        loseOnTimeout = true;   // 時間切れを負けにするか
 };
 ```
 
@@ -5176,23 +5166,26 @@ onMoveRequested(from, to)
 
 **ソース**: `src/ui/controllers/timecontrolcontroller.h`, `src/ui/controllers/timecontrolcontroller.cpp`
 
-`ShogiClock` のライフサイクル管理、持ち時間設定の適用と永続化、タイムアウト処理を担当する。
+`ShogiClock` のライフサイクル管理、持ち時間設定の適用、対局情報と棋譜に記録する持ち時間・開始終了日時の保持、タイムアウト処理を担当する。
 
 ```
 ensureClock()
   └── ShogiClock が未作成なら作成
        └── player1TimeOut / player2TimeOut シグナルを接続
 
-applyTimeControl(tc, match, startSfen, currentSfen, view)
-  ├── ShogiClock に持ち時間を設定
-  ├── MatchCoordinator に時計を設定
-  └── TimeDisplayPresenter と接続（view 経由）
+applyTimeControl(tc, startSfen, currentSfen, view)
+  ├── recordTimeControl(tc.rules)  ← 記録用の持ち時間（時間無制限なら空の TimeControl）
+  ├── TimeControlUtil::applyToClock() で時計に決まりを渡す
+  └── TimeDisplayPresenter の表示を更新
 
-saveTimeControlSettings(enabled, baseMs, byoyomiMs, incrementMs)
-  └── SettingsService に永続化
+beginGameWithTimeControl(timeControl)
+  └── CSA通信対局で、サーバーの対局条件を記録用の持ち時間にする
+
+timeControl() / hasTimeControl()
+  └── 記録用の持ち時間（TimeControl）と、時間制限があるか
 ```
 
-**ネストされた構造体**: `TimeControlSettings` — `enabled`, `baseMs`, `byoyomiMs`, `incrementMs` の4フィールドを持つ。
+記録用の持ち時間も、時計と同じ `TimeControl`（5.5 を参照）で持つ。
 
 #### PvClickController — 読み筋クリック処理
 
@@ -6141,7 +6134,7 @@ sequenceDiagram
 CSA通信対局では、サーバーが権威的な消費時間（`T` に続く数値）を通知する。CsaGameCoordinatorはこの情報をもとにGUI側の時計を補正する。
 
 1. **残り時間の追跡**: `m_blackRemainingMs` / `m_whiteRemainingMs` でサーバーからの累積消費時間を追跡
-2. **時計の補正**: `onMoveReceived()` / `onMoveConfirmed()` で、サーバーの消費時間を反映して `ShogiClock::setPlayerTimes()` を呼び出し
+2. **時計の補正**: 対局開始時に対局条件（`GameSummary::timeControl()`）を `ShogiClock::setTimeControl()` で渡し、着手ごとにサーバーの消費時間を反映した残り時間を `ShogiClock::setRemainingTimes()` で合わせる
 3. **手番の切替**: 指し手確認後に `setCurrentPlayer()` で相手側の時計に切り替え、`startClock()` でGUI上のカウントダウンを開始
 
 #### 指し手形式の変換
@@ -6464,30 +6457,28 @@ void MyDialog::closeEvent(QCloseEvent* event)
 
 **ソース**: `src/services/timecontrolutil.h/.cpp`
 
-`GameStartCoordinator::TimeControl` の設定値を `ShogiClock` に変換・適用するユーティリティ名前空間。
+`GameStartCoordinator::TimeSettings` の設定値を `ShogiClock` に適用するユーティリティ名前空間。
 
 #### applyToClock()
 
 ```cpp
 void applyToClock(ShogiClock* clock,
-                  const GameStartCoordinator::TimeControl& tc,
+                  const GameStartCoordinator::TimeSettings& tc,
                   const QString& startSfenStr,
                   const QString& currentSfenStr);
 ```
 
 処理の流れ:
 
-1. **持ち時間の有無判定**: `tc.enabled` が `false` でも、ベース時間・秒読み・加算のいずれかに値があれば「持ち時間あり」として扱う
-2. **秒読みと加算の排他制御**: 秒読み（byoyomi）が指定されている場合は秒読みを優先し、加算（increment）は0扱い。両方未指定なら時間無制限
-3. **ShogiClockへの適用**: `setPlayerTimes()` で先手/後手それぞれの持ち時間・秒読み・加算を設定
-4. **初期手番の推定**: 開始局面のSFEN文字列から `" b "`（先手）/ `" w "`（後手）を探索して初期手番を決定
+1. **時計への適用**: `ShogiClock::setTimeControl(tc.rules)` で先後の決まりを渡す。秒読みと加算の排他、初手の加算、持ち時間0の秒読みの扱いは時計と `TimeControl::normalized()` が受け持つ
+2. **時間切れ負け**: 時間制限があり、`tc.loseOnTimeout` がオンのときだけ時間切れを負けにする
+3. **初期手番の推定**: 開始局面のSFEN文字列から `" b "`（先手）/ `" w "`（後手）を探索して初期手番を決定
 
 ```
-TimeControl {p1: {baseMs, byoyomiMs, incrementMs}, p2: {...}}
-    ↓ ミリ秒→秒変換
-    ↓ 秒読み/加算の排他判定
+TimeSettings {enabled, rules: TimeControl {black, white}, loseOnTimeout}
     ↓
-ShogiClock::setPlayerTimes(p1Sec, p2Sec, byo1, byo2, inc1, inc2, isLimited)
+ShogiClock::setTimeControl(rules)
+ShogiClock::setLoseOnTimeout(limited && loseOnTimeout)
 ShogiClock::setCurrentPlayer(1 or 2)  ← SFENから推定
 ```
 

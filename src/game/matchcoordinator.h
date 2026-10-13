@@ -21,7 +21,6 @@
 #include "startgamedatabridge.h"
 
 #include "matchtypes.h"
-#include "timecontrol.h"
 #include "interruptedgamestate.h"
 #include "startoptions.h"
 #include "analysisoptions.h"
@@ -61,17 +60,11 @@ public:
     /// 終局原因（matchtypes.h の MatchCause の using エイリアス）
     using Cause = MatchCause;
 
-    /// USI goコマンドに渡す時間パラメータ（matchtypes.h の MatchGoTimes の using エイリアス）
-    using GoTimes = MatchGoTimes;
-
     /// 終局情報（matchtypes.h の MatchGameEndInfo の using エイリアス）
     using GameEndInfo = MatchGameEndInfo;
 
     /// 直近の終局状態（matchtypes.h の MatchGameOverState の using エイリアス）
     using GameOverState = MatchGameOverState;
-
-    /// 時間制御の設定（timecontrol.h の MatchTimeControl の using エイリアス）
-    using TimeControl = MatchTimeControl;
 
     /// 対局開始のための設定パラメータ（startoptions.h の MatchStartOptions の using エイリアス）
     using StartOptions = MatchStartOptions;
@@ -136,14 +129,6 @@ public:
     /// SFEN履歴への参照を取得する（const版）
     const QStringList* sfenRecordPtr() const { return m_sfenHistory; }
 
-    // --- 時間管理 ---
-
-    void setTimeControlConfig(bool useByoyomi,
-                              int byoyomiMs1, int byoyomiMs2,
-                              int incMs1,     int incMs2,
-                              bool loseOnTimeout);
-    const TimeControl& timeControl() const;
-
     // --- ターン計測（KIF表示用） ---
 
     void   markTurnEpochNowFor(Player side, qint64 nowMs = -1);
@@ -157,10 +142,6 @@ public:
     // --- HvE: 人間タイマー解除（Strategy委譲） ---
 
     void disarmHumanTimerIfNeeded();
-
-    // --- USI時間計算 ---
-
-    void refreshGoTimes();
 
     // --- 対局開始フロー ---
 
@@ -338,8 +319,6 @@ signals:
 
 private:
     // --- 内部ヘルパ ---
-
-    GoTimes computeGoTimes() const;
 
     using EngineModelPair = EngineLifecycleManager::EngineModelPair;
 

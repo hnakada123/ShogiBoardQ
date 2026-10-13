@@ -45,7 +45,7 @@ public:
      * @param tc 時間制御設定
      */
     void onGameStarted(const MatchCoordinator::StartOptions& opt,
-                        const GameStartCoordinator::TimeControl& tc);
+                        const GameStartCoordinator::TimeSettings& tc);
 
     /// @return 次の対局を開始すべきなら true
     bool shouldStartNextGame() const;
@@ -68,7 +68,7 @@ private:
     bool m_switchTurnEachGame = false; ///< 1局ごとに手番を入れ替えるか
 
     MatchCoordinator::StartOptions m_lastStartOptions;     ///< 直前の対局開始オプション
-    GameStartCoordinator::TimeControl m_lastTimeControl;   ///< 直前の時間制御設定
+    GameStartCoordinator::TimeSettings m_lastTimeControl;   ///< 直前の時間制御設定
 
     TimeControlController* m_timeController = nullptr;  ///< 非所有
     QPointer<GameStartCoordinator> m_gameStart;        ///< 非所有（再生成追跡）

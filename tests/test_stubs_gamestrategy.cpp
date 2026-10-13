@@ -146,32 +146,12 @@ void EngineLifecycleManager::onEngine2Win() {}
 // MatchTimekeeper スタブ
 // ============================================================
 
-namespace {
-static MatchCoordinator::TimeControl s_stubTimeControl;
-}
 
 MatchTimekeeper::MatchTimekeeper(QObject* parent) : QObject(parent) {}
 void MatchTimekeeper::setRefs(const Refs&) {}
-void MatchTimekeeper::setHooks(const Hooks&) {}
 void MatchTimekeeper::setClock(ShogiClock* c) { m_clock = c; }
 ShogiClock* MatchTimekeeper::clock() const { return m_clock; }
 const ShogiClock* MatchTimekeeper::clockConst() const { return m_clock; }
-void MatchTimekeeper::setTimeControlConfig(bool useByoyomi,
-                                           int byoyomiMs1, int byoyomiMs2,
-                                           int incMs1, int incMs2,
-                                           bool loseOnTimeout)
-{
-    s_stubTimeControl.useByoyomi = useByoyomi;
-    s_stubTimeControl.byoyomiMs1 = byoyomiMs1;
-    s_stubTimeControl.byoyomiMs2 = byoyomiMs2;
-    s_stubTimeControl.incMs1 = incMs1;
-    s_stubTimeControl.incMs2 = incMs2;
-    s_stubTimeControl.loseOnTimeout = loseOnTimeout;
-}
-const MatchTimekeeper::TimeControl& MatchTimekeeper::timeControl() const { return s_stubTimeControl; }
-MatchTimekeeper::GoTimes MatchTimekeeper::computeGoTimes() const { return {}; }
-void MatchTimekeeper::computeGoTimesForUSI(qint64& b, qint64& w) const { b = 0; w = 0; }
-void MatchTimekeeper::refreshGoTimes() {}
 void MatchTimekeeper::markTurnEpochNowFor(Player, qint64) {}
 qint64 MatchTimekeeper::turnEpochFor(Player) const { return -1; }
 void MatchTimekeeper::recomputeClockSnapshot(QString& t, QString& p1, QString& p2) const
@@ -301,32 +281,6 @@ void notifyNyugyoku(PlayMode, bool, bool, Usi*, Usi*, const RawSender&) {}
 // ShogiClock スタブ
 // ============================================================
 
-ShogiClock::ShogiClock(QObject* parent) : QObject(parent) {}
-void ShogiClock::setLoseOnTimeout(bool) {}
-void ShogiClock::setPlayerTimes(int, int, int, int, int, int, bool) {}
-void ShogiClock::setCurrentPlayer(int p) { m_currentPlayer = p; }
-void ShogiClock::startClock() { m_clockRunning = true; }
-void ShogiClock::stopClock() { m_clockRunning = false; }
-void ShogiClock::updateClock() {}
-void ShogiClock::applyByoyomiAndResetConsideration1() {}
-void ShogiClock::applyByoyomiAndResetConsideration2() {}
-void ShogiClock::undo() {}
-QString ShogiClock::player1TimeString() const { return {}; }
-QString ShogiClock::player2TimeString() const { return {}; }
-QString ShogiClock::getPlayer1ConsiderationTime() const { return {}; }
-QString ShogiClock::getPlayer2ConsiderationTime() const { return {}; }
-QString ShogiClock::getPlayer1TotalConsiderationTime() const { return {}; }
-QString ShogiClock::getPlayer2TotalConsiderationTime() const { return {}; }
-QString ShogiClock::player1ConsiderationAndTotalTime() const { return {}; }
-QString ShogiClock::player2ConsiderationAndTotalTime() const { return {}; }
-void ShogiClock::setPlayer1ConsiderationTime(int) {}
-void ShogiClock::setPlayer2ConsiderationTime(int) {}
-int ShogiClock::player1ConsiderationTimeMs() const { return 0; }
-int ShogiClock::player2ConsiderationTimeMs() const { return 0; }
-void ShogiClock::saveState() {}
-void ShogiClock::debugCheckInvariants() const {}
-int ShogiClock::remainingDisplaySecP1() const { return 0; }
-int ShogiClock::remainingDisplaySecP2() const { return 0; }
 
 // ============================================================
 // ShogiView スタブ
@@ -448,7 +402,6 @@ void Usi::markHardTimeout() {}
 void Usi::clearHardTimeout() {}
 bool Usi::isIgnoring() const { return false; }
 QString Usi::currentEnginePath() const { return {}; }
-void Usi::sendGoCommand(const UsiTimingParams&) {}
 void Usi::sendRaw(const QString&) const {}
 bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}
@@ -704,14 +657,6 @@ void UsiProtocolHandler::onInitializationTimeout() {}
 void Usi::onProtocolError(const QString&) {}
 void Usi::onProcessExited() {}
 
-ShogiClock::Snapshot ShogiClock::pauseAndSnapshot() { return {}; }
-void ShogiClock::restoreSnapshot(const Snapshot&) {}
-void ShogiClock::setMeasuredConsiderationTime(int player, qint64 elapsedMs)
-{
-    // 測った考慮時間をテストで確かめられるよう記録する
-    if (player == 1) m_player1ConsiderationTimeMs = elapsedMs;
-    else m_player2ConsiderationTimeMs = elapsedMs;
-}
 
 // ============================================================
 // CsaGameCoordinator スタブ（PlayModePolicyService のリンク用）

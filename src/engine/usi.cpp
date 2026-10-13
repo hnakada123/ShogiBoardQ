@@ -405,15 +405,6 @@ void Usi::updateConsiderationMultiPV(int multiPV)
     }
 }
 
-void Usi::sendGoCommand(const UsiTimingParams& timing)
-{
-    if (deferUntilReady([this, timing]() { sendGoCommand(timing); })) return;
-    m_matchHandler->cloneCurrentBoardData();
-    m_protocolHandler->sendGo(timing.byoyomiMilliSec, timing.btime, timing.wtime,
-                              timing.addEachMoveMilliSec1, timing.addEachMoveMilliSec2,
-                              timing.useByoyomi);
-}
-
 void Usi::sendRaw(const QString& command) const
 {
     if (deferUntilReady([this, command]() { sendRaw(command); })) return;

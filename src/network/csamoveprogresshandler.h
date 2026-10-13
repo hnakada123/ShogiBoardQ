@@ -131,16 +131,16 @@ public:
     void clearPendingVerdict();
 
     /**
-     * @brief 表示用時計に CSA の持時間を反映する
+     * @brief 対局開始時に表示用時計を CSA の持時間に合わせる
      * @param clock 時計
      * @param summary 対局条件
-     * @param blackRemainingMs 先手の残り時間（ミリ秒）
+     * @param blackRemainingMs 先手の残り時間（ミリ秒、再開局面の消費時間と加算を反映済み）
      * @param whiteRemainingMs 後手の残り時間（ミリ秒）
      *
-     * 双方とも時間無制限なら消費時間を数える時計にする。
+     * 双方とも時間無制限なら消費時間を数える時計にする。以後は着手ごとに残り時間だけを合わせる。
      */
-    static void applyClockTimes(ShogiClock* clock, const CsaClient::GameSummary& summary,
-                                int blackRemainingMs, int whiteRemainingMs);
+    static void startDisplayClock(ShogiClock* clock, const CsaClient::GameSummary& summary,
+                                  qint64 blackRemainingMs, qint64 whiteRemainingMs);
 
     /// 裁定が届かないときに中断とみなすまでの時間
     static constexpr int kVerdictTimeoutMs = 5000;

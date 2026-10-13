@@ -152,8 +152,8 @@ onHumanMove_HvE(humanFrom, humanTo)
     ├─ (2) エンジンに前回の指し手座標を通知
     │      eng->setPreviousFileTo() / setPreviousRankTo()
     │
-    ├─ (3) USI時間パラメータの計算
-    │      computeGoTimesForUSI(bMs, wMs)
+    ├─ (3) USI時間パラメータ
+    │      送信時に、エンジンにつないだ時計から UsiGoTimeCalculator が求める（3.4）
     │
     ├─ (4) エンジンの手番かチェック
     │      engineTurnNow = (gc->currentPlayer() == engineSeat)
@@ -173,8 +173,8 @@ onHumanMove_HvE(humanFrom, humanTo)
     │
     ├─ (7) エンジンの考慮時間を時計に設定
     │      thinkMs = eng->lastBestmoveElapsedMs()
-    │      clock->setPlayer*ConsiderationTime(thinkMs)
-    │      clock->applyByoyomiAndResetConsideration*()
+    │      clock->setConsiderationTimeMs(player, thinkMs)
+    │      clock->commitMove(player)
     │
     ├─ (8) 棋譜にエンジンの指し手を追記
     │      hooks.appendKifuLine(rec, elapsed)
@@ -218,13 +218,7 @@ void MatchCoordinator::onHumanMove_HvH(ShogiGameController::Player moverBefore)
     finishTurnTimerAndSetConsiderationFor(moverP);
 
     // 秒読み/インクリメントを適用し、総考慮へ加算して表示値を確定
-    if (m_clock) {
-        if (moverP == P1) {
-            m_clock->applyByoyomiAndResetConsideration1();
-        } else {
-            m_clock->applyByoyomiAndResetConsideration2();
-        }
-    }
+    if (m_clock) m_clock->commitMove(static_cast<int>(moverP));
 
     // 表示更新（時計ラベル等）
     if (m_clock) handleTimeUpdated();
@@ -258,7 +252,7 @@ kickNextEvETurn()
     │
     ├─ (3) エンジンに思考を依頼
     │      engineThinkApplyMove(mover, pos, ponder, &from, &to)
-    │          ├─ computeGoTimes() で時間パラメータ計算
+    │          ├─ 時間パラメータはエンジンにつないだ時計から求める（3.4）
     │          ├─ handleEngineVsHumanOrEngineMatchCommunication() で通信
     │          └─ from, to に指し手座標を格納
     │
@@ -272,8 +266,8 @@ kickNextEvETurn()
     │
     ├─ (6) 考慮時間を時計に設定
     │      thinkMs = mover->lastBestmoveElapsedMs()
-    │      clock->setPlayer*ConsiderationTime(thinkMs)
-    │      clock->applyByoyomiAndResetConsideration*()
+    │      clock->setConsiderationTimeMs(player, thinkMs)
+    │      clock->commitMove(player)
     │
     ├─ (7) 棋譜追記・盤面描画・ハイライト
     │      hooks.appendKifuLine(rec, elapsed)
@@ -351,22 +345,22 @@ void MatchCoordinator::disarmHumanTimerIfNeeded()  // line 1589
 
 ### 3.3 秒読み/フィッシャー加算の適用
 
-各着手後に呼ばれるメソッド:
+各着手後に呼ばれるメソッド（player は 1=先手、2=後手）:
 
 ```cpp
-// 先手の秒読み/加算を適用し、考慮時間カウンタをリセット
-m_clock->applyByoyomiAndResetConsideration1();
-
-// 後手の秒読み/加算を適用し、考慮時間カウンタをリセット
-m_clock->applyByoyomiAndResetConsideration2();
+// 指した側の秒読み/加算を適用し、総消費時間へ加えて考慮時間カウンタをリセットする。
+// 次の手番の開始状態を「待った」用の履歴に積む
+m_clock->commitMove(player);
 ```
 
 ### 3.4 USI goコマンドの時間パラメータ計算
 
-**ファイル:** `src/game/matchcoordinator.cpp` - `computeGoTimes()`
+**ファイル:** `src/engine/usigotime.cpp` - `UsiGoTimeCalculator::compute()`
+
+対局の種類（人間対エンジン、エンジン同士、CSA通信対局）によらず、この計算だけで `go` の時間を求める。入力は時間の決まり（`TimeControl`）と先後の残り時間で、人間対エンジン・エンジン同士では `UsiMatchHandler::goTimeInput()` がエンジンにつないだ時計から作る。CSA通信対局では `CsaMoveProgressHandler` がサーバーの残り時間から作る。
 
 ```
-GoTimes computeGoTimes() の返り値:
+UsiGoTime compute() の返り値:
     btime   = 先手の残り時間（ms）
     wtime   = 後手の残り時間（ms）
     byoyomi = 秒読み（ms）、0なら秒読みなし
@@ -376,12 +370,13 @@ GoTimes computeGoTimes() の返り値:
 
 **秒読みモード**の場合:
 - 秒読み期間に入っている場合は `btime`/`wtime` を0にする
-- `byoyomi` に固定秒読み時間を設定
+- `byoyomi` に手番側の秒読み時間を設定する
 
 **フィッシャーモード**の場合:
-- `btime`/`wtime` には、時計の残り時間から次に使う加算分を引いた値を設定する（将棋所の USI 仕様どおり、`btime + binc` が今回の手に使える時間）
+- `btime`/`wtime` には、時計の残り時間から次に使う加算分を引いた値を設定する（将棋所の USI 仕様どおり、`btime + binc` が今回の手に使える時間）。先読み（`go ponder`）では自分の加算がまだ適用されていないので、自分の残り時間はそのまま送る
 - `binc`/`winc` に加算時間を設定
-- 送信直前に `UsiMatchHandler::timingForSearch()` が余裕（最大250ms）を引く。`btime` が足りなければ手番側の `binc` を減らす（詳細は [時間設定の仕様](game-time-control-spec.md) の「エンジンへの時間指定」）
+
+どちらの方式でも、手番側の予算から余裕（最大250ms）を引く。秒読みから先に引き、加算方式で `btime` が足りなければ手番側の `binc` を減らす（詳細は [時間設定の仕様](game-time-control-spec.md) の「エンジンへの時間指定」）。
 
 ### 3.5 時計のUI更新
 

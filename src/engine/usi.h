@@ -130,8 +130,6 @@ public:
     /// 現在実行中のエンジンファイルパスを取得
     QString currentEnginePath() const;
 
-    void sendGoCommand(const UsiTimingParams& timing);
-
     void sendRaw(const QString& command) const;
 
     /// エンジンプロセスが起動中かどうかを返す

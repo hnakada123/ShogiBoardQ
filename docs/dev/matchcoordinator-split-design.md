@@ -1,5 +1,7 @@
 # MatchCoordinator 分割設計書（ISSUE-010）
 
+> **2026-10-13 追記:** 時間の決まりと `go` の時間の計算は司令塔（MatchCoordinator・MatchTimekeeper）から外した。決まりは時計（`ShogiClock`）が持ち、`go` の時間はエンジンにつないだ時計から `UsiGoTimeCalculator` が求める。以下の `setTimeControlConfig()`・`computeGoTimes()`・`remainingMsFor` などの記述は分割当時の記録である（現在の構成は [時間設定の仕様](game-time-control-spec.md) の「時間の決まりの持ち方」）。
+
 ## 1. 現状サマリ
 
 | ファイル | 行数 | 備考 |
@@ -14,7 +16,7 @@
 |--------|------|----------|
 | `GameEndHandler` | 投了・中断・千日手・持将棋・入玉宣言 | QObject, Refs/Hooks |
 | `GameStartOrchestrator` | 対局開始フロー（オプション構築・履歴探索） | 非QObject, Refs/Hooks |
-| `MatchTimekeeper` | 時計管理・GoTimes計算・ターンエポック | QObject, Refs/Hooks |
+| `MatchTimekeeper` | 時計の配線・残り時間の通知・ターンエポック | QObject, Refs |
 | `EngineLifecycleManager` | エンジン生成・破棄・USI送受・指し手実行 | QObject, Refs/Hooks |
 | `AnalysisSessionHandler` | 検討・詰み探索セッション管理 | QObject, Hooks |
 | `MatchUndoHandler` | 2手UNDO処理 | 非QObject, Refs/UndoHooks |

@@ -13,6 +13,8 @@
 #include <QTcpSocket>
 #include <QTimer>
 
+#include "timecontrol.h"
+
 /**
  * @brief CSAプロトコルクライアントクラス
  *
@@ -150,6 +152,8 @@ public:
         int delayMs(bool black) const { return timeFor(black).delayMs(); }
         /// 双方とも時間無制限か
         bool isTimeUnlimited() const { return timeBlack.isUnlimited() && timeWhite.isUnlimited(); }
+        /// 持ち時間の決まり（ミリ秒）。時間無制限なら値はすべて 0
+        ::TimeControl timeControl() const;
         /// Declaration で入玉宣言ルール（Jishogi）が採用されているか
         bool allowsJishogiDeclaration() const { return declaration.startsWith(QStringLiteral("Jishogi")); }
         /// 再開局面の index 手目の消費時間（ミリ秒）。指した側の時間単位で換算する

@@ -230,8 +230,6 @@ add_shogi_test(tst_shogiclock
     ${SRC}/services/timecontrolutil.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiclock.cpp
-    ${SRC}/core/shogiclock_snapshot.cpp
-    ${SRC}/core/shogiclock_format.cpp
 )
 
 # ============================================================
@@ -555,6 +553,11 @@ target_link_libraries(tst_usiprotocolhandler PRIVATE shogiboardq_static)
 add_executable(mock_usi_match mock_usi_match.cpp)
 target_link_libraries(mock_usi_match PRIVATE Qt6::Core)
 add_dependencies(tst_usiprotocolhandler mock_usi_match)
+add_shogi_test(tst_usigotime
+    tst_usigotime.cpp
+    ${SRC}/engine/usigotime.cpp
+)
+
 add_shogi_test(tst_usimatchhandler tst_usimatchhandler.cpp)
 target_link_libraries(tst_usimatchhandler PRIVATE shogiboardq_static)
 add_dependencies(tst_usimatchhandler mock_usi_match)
@@ -632,8 +635,6 @@ add_shogi_test(tst_undo_flow
     ${SRC}/app/livegamesessionupdater.cpp
     ${SRC}/game/matchundohandler.cpp
     ${SRC}/core/shogiclock.cpp
-    ${SRC}/core/shogiclock_format.cpp
-    ${SRC}/core/shogiclock_snapshot.cpp
     ${SRC}/game/shogigamecontroller.cpp
     ${SRC}/game/piecemoverules.cpp
     ${SRC}/game/turnmanager.cpp
@@ -680,6 +681,7 @@ add_shogi_test(tst_game_start_flow
     ${SRC}/game/gamestartcoordinator.cpp
     ${SRC}/game/gamestartoptionsbuilder.cpp
     ${SRC}/services/playernameservice.cpp
+    ${SRC}/core/shogiclock.cpp
 )
 
 add_shogi_test(tst_startgamedialog
@@ -738,6 +740,7 @@ add_shogi_test(tst_game_end_handler
     ${SRC}/common/logcategories.cpp
     ${SRC}/game/gameendhandler.cpp
     ${SRC}/game/gameendhandler_record.cpp
+    ${SRC}/core/shogiclock.cpp
 )
 
 # 千日手・連続王手の千日手の判定（SennichiteDetector）
@@ -767,6 +770,7 @@ add_shogi_test(tst_game_start_orchestrator
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiclock.cpp
 )
 
 # ============================================================
@@ -1021,6 +1025,7 @@ add_shogi_test(tst_wiring_contracts
     ${SRC}/widgets/kifudisplay.cpp
     ${SRC}/models/kifurecordlistmodel.cpp
     ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiclock.cpp
 )
 
 # ============================================================
@@ -1045,6 +1050,7 @@ add_shogi_test(tst_gamestrategy
     ${SRC}/game/enginevsenginestrategy.cpp
     ${SRC}/app/playmodepolicyservice.cpp
     ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiclock.cpp
 )
 
 # ============================================================
@@ -1376,8 +1382,6 @@ add_shogi_test(tst_turn_state_sync
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiclock.cpp
-    ${SRC}/core/shogiclock_snapshot.cpp
-    ${SRC}/core/shogiclock_format.cpp
     ${EMV_SOURCES}
     ${SRC}/views/shogiview.cpp
     ${SRC}/views/shogiview_state.cpp

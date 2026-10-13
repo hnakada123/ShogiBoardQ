@@ -90,9 +90,7 @@ GameRecordModel::ExportContext KifuExportClipboard::buildExportContext() const
 
     // 時間制御情報
     if (m_deps.timeController) {
-        ctx.hasTimeControl = m_deps.timeController->hasTimeControl();
-        ctx.blackTime = m_deps.timeController->settings().black;
-        ctx.whiteTime = m_deps.timeController->settings().white;
+        ctx.timeControl = m_deps.timeController->timeControl();
         ctx.gameStartDateTime = m_deps.timeController->gameStartDateTime();
         ctx.gameEndDateTime = m_deps.timeController->gameEndDateTime();
     }

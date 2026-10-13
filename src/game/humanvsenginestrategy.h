@@ -45,8 +45,8 @@ private:
     /// エンジン返し手の処理（人間着手後の2手目以降）
     void onHumanMoveEngineReply(const QPoint& humanFrom, const QPoint& humanTo);
 
-    /// 指定したエンジン側で初手を指す
-    void startInitialEngineMoveFor(int engineSide);
+    /// エンジンの手番で初手を指す
+    void startInitialEngineMove();
 
     /// 人間タイマーを停止し考慮時間を確定する
     void finishHumanTimerInternal();

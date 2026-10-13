@@ -15,50 +15,24 @@ namespace TimeControlUtil {
 
 void applyToClock(
     ShogiClock* clock,
-    const GameStartCoordinator::TimeControl& tc,
+    const GameStartCoordinator::TimeSettings& tc,
     const QString& startSfenStr,
     const QString& currentSfenStr)
 {
     if (!clock) return;
 
-    auto msToSecFloor = [](qint64 ms)->int { return (ms <= 0) ? 0 : int(ms / 1000); };
-
-    // tc.enabled が false でも、どれかに値が入っていれば limited を true 扱い
-    const bool hasAny =
-        (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
-        (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
-        (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
-
-    const bool limited = tc.enabled || hasAny;
-
-    const int p1BaseSec = limited ? msToSecFloor(tc.p1.baseMs) : 0;
-    const int p2BaseSec = limited ? msToSecFloor(tc.p2.baseMs) : 0;
-
-    // byoyomi 指定があれば byoyomi 優先（increment は 0 扱い）
-    const int byo1Sec = msToSecFloor(tc.p1.byoyomiMs);
-    const int byo2Sec = msToSecFloor(tc.p2.byoyomiMs);
-    const int inc1Sec = msToSecFloor(tc.p1.incrementMs);
-    const int inc2Sec = msToSecFloor(tc.p2.incrementMs);
-
-    const bool useByoyomi = (byo1Sec > 0) || (byo2Sec > 0);
-    const int finalByo1 = useByoyomi ? byo1Sec : 0;
-    const int finalByo2 = useByoyomi ? byo2Sec : 0;
-    const int finalInc1 = useByoyomi ? 0       : inc1Sec;
-    const int finalInc2 = useByoyomi ? 0       : inc2Sec;
-
+    // 決まりに値がなければ消費時間だけを数える時計になる（tc.enabled に関係なく決まりで判断する）
+    const TimeControl rules = tc.rules.normalized();
+    const bool limited = !rules.isUnlimited();
     qCDebug(lcUi).noquote()
         << "applyToClock:"
         << " limited=" << limited
-        << " P1{baseSec=" << p1BaseSec << " byoSec=" << finalByo1 << " incSec=" << finalInc1 << "}"
-        << " P2{baseSec=" << p2BaseSec << " byoSec=" << finalByo2 << " incSec=" << finalInc2 << "}";
+        << " P1{mainMs=" << rules.black.mainMs << " byoMs=" << rules.black.byoyomiMs << " incMs=" << rules.black.incrementMs << "}"
+        << " P2{mainMs=" << rules.white.mainMs << " byoMs=" << rules.white.byoyomiMs << " incMs=" << rules.white.incrementMs << "}";
 
     clock->setLoseOnTimeout(limited && tc.loseOnTimeout);
-    // 初手にも加算時間を与える。以降は着手確定時に次の手の分を加算する。
-    clock->setPlayerTimes(
-        p1BaseSec + finalInc1, p2BaseSec + finalInc2,
-        finalByo1, finalByo2,
-        finalInc1, finalInc2,
-        /*isLimitedTime=*/limited);
+    // 初手にも加算時間を与える処理は ShogiClock::setTimeControl が行う
+    clock->setTimeControl(rules);
 
     // 初期手番を SFEN から推定する（1=先手, 2=後手）
     auto sideFromSfen = [](const QString& sfen)->int {

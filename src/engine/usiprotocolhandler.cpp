@@ -195,24 +195,13 @@ void UsiProtocolHandler::beginMainSearch()
     beginCandidateSearch(false);
 }
 
-void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QString& wtime,
-                                int bincMs, int wincMs, bool useByoyomi)
+void UsiProtocolHandler::sendGo(const UsiGoTime& goTime)
 {
     beginMainSearch();
-
-    QString command;
-    if (useByoyomi) {
-        command = "go btime " + btime + " wtime " + wtime +
-                  " byoyomi " + QString::number(byoyomiMs);
-    } else {
-        command = "go btime " + btime + " wtime " + wtime +
-                  " binc " + QString::number(bincMs) +
-                  " winc " + QString::number(wincMs);
-    }
-    sendCommand(command);
+    sendCommand(goTime.toCommand(false));
 }
 
-void UsiProtocolHandler::sendGoPonder(const UsiTimingParams& timing)
+void UsiProtocolHandler::sendGoPonder(const UsiGoTime& goTime)
 {
     m_activeSearchSeq = beginOperationContext();
     m_bestMoveReceived = false;
@@ -222,15 +211,7 @@ void UsiProtocolHandler::sendGoPonder(const UsiTimingParams& timing)
     }
     m_phase = SearchPhase::Ponder;
     beginCandidateSearch(true);
-    QString command = QStringLiteral("go ponder btime %1 wtime %2")
-                          .arg(timing.btime, timing.wtime);
-    if (timing.useByoyomi) {
-        command += QStringLiteral(" byoyomi %1").arg(timing.byoyomiMilliSec);
-    } else {
-        command += QStringLiteral(" binc %1 winc %2")
-                       .arg(timing.addEachMoveMilliSec1).arg(timing.addEachMoveMilliSec2);
-    }
-    sendCommand(command);
+    sendCommand(goTime.toCommand(true));
 }
 
 void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
