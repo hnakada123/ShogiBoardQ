@@ -164,7 +164,7 @@ bool JosekiWindowWiring::parseDropMove(const QString& usiMove, QPoint& from, QPo
     // 現在の手番を取得
     bool isBlackTurn = true;
     if (m_gameController) {
-        isBlackTurn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+        isBlackTurn = (m_gameController->currentPlayer() == Turn::Black);
     }
 
     // 駒台のファイル番号（先手=10, 後手=11）

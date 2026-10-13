@@ -428,7 +428,7 @@ private slots:
         QTRY_COMPARE(results.size(), 1);
         auto result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
         QVERIFY(result.valid);
-        QCOMPARE(result.to, QPoint(7, 6));
+        QCOMPARE(result.move.to, (BoardSquare{7, 6}));
         QTRY_VERIFY(commands().join('\n').contains("go ponder "));
         const auto before = commands().size();
         const QString opponent = hit ? QStringLiteral("3c3d") : QStringLiteral("4c4d");
@@ -440,7 +440,7 @@ private slots:
         result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
         QVERIFY(result.valid);
         QVERIFY(!result.resign);
-        QCOMPARE(result.to, QPoint(2, 6));
+        QCOMPARE(result.move.to, (BoardSquare{2, 6}));
         const auto sent = commands().mid(before);
         if (hit) {
             QCOMPARE(sent.first(), QStringLiteral("ponderhit"));

@@ -77,9 +77,9 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
         if (m_gameController) {
             // " b " または " w " を探す
             bool isPlayer1Turn = pureSfen.contains(QStringLiteral(" b "));
-            ShogiGameController::Player player = isPlayer1Turn
-                ? ShogiGameController::Player1
-                : ShogiGameController::Player2;
+            Turn player = isPlayer1Turn
+                ? Turn::Black
+                : Turn::White;
             m_gameController->setCurrentPlayer(player);
             qCDebug(lcAnalysis).noquote() << "set player="
                                           << (isPlayer1Turn ? "P1(sente)" : "P2(gote)");

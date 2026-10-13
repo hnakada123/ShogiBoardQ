@@ -102,6 +102,11 @@ void UsiProtocolHandler::sendConfiguredOptions()
         sendCommand(cmd);
     }
 
+    // この接続だけの設定は、保存済みの設定の後に送って上書きする
+    for (const auto& option : std::as_const(m_sessionOptions)) {
+        if (m_reportedOptions.contains(option.first)) sendSetOption(option.first, option.second);
+    }
+
     // USI_Ponderは報告を省略できる予約オプション。通知可否とGUIの先読み許可は独立。
     if (m_sendUnreportedPonderOption || m_reportedOptions.contains(QStringLiteral("USI_Ponder"))) {
         sendSetOption(QStringLiteral("USI_Ponder"),
@@ -402,8 +407,15 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
         const qsizetype nameStart = 12; // "option name " の長さ
         qsizetype typePos = line.indexOf(QStringLiteral(" type "), nameStart);
         if (typePos > nameStart) {
-            m_reportedOptions.insert(line.mid(nameStart, typePos - nameStart));
+            const QString name = line.mid(nameStart, typePos - nameStart);
+            m_reportedOptions.insert(name);
+            m_reportedOptionLines.insert(name, trimmed);
         }
+        return;
+    }
+
+    if (trimmed.startsWith(QStringLiteral("id name "))) {
+        m_reportedEngineName = trimmed.mid(8);
         return;
     }
 

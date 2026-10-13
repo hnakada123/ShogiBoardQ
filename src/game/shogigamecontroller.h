@@ -6,10 +6,12 @@
 
 
 #include <QObject>
+#include <functional>
 #include <memory>
 #include "enginemovevalidator.h"
 #include "playmode.h"
 #include "shogitypes.h"
+#include "usimove.h"
 
 class ShogiBoard;
 
@@ -20,8 +22,6 @@ class ShogiBoard;
 class ShogiGameController : public QObject
 {
     Q_OBJECT
-
-    Q_PROPERTY(Player currentPlayer READ currentPlayer NOTIFY currentPlayerChanged)
 
 public:
     // --- 列挙型 ---
@@ -35,14 +35,6 @@ public:
     };
     Q_ENUM(Result)
 
-    /// 対局者（手番）
-    enum Player {
-        NoPlayer, ///< 未設定
-        Player1,  ///< 先手（下手）
-        Player2   ///< 後手（上手）
-    };
-    Q_ENUM(Player)
-
     // --- 生成・取得 ---
 
     explicit ShogiGameController(QObject* parent = nullptr);
@@ -50,7 +42,8 @@ public:
 
     ShogiBoard* board() const;
     Result result() const { return m_result; }
-    Player currentPlayer() const { return m_currentPlayer; }
+    /// 手番（新しい対局の前は先手）
+    Turn currentPlayer() const { return m_currentPlayer; }
 
     /// 「同」表記の基準を復元する（1始まりの盤座標、QPoint() は開始局面）。
     void setPreviousMoveDestination(const QPoint& square)
@@ -59,16 +52,28 @@ public:
         previousRankTo = square.y();
     }
     QPoint previousMoveDestination() const { return QPoint(previousFileTo, previousRankTo); }
-    void setCurrentPlayer(const Player);
+    void setCurrentPlayer(Turn player);
 
     // --- 指し手処理 ---
 
     /**
-     * @brief 指し手を検証し、合法手であれば盤面を更新する
+     * @brief 盤のクリック操作（表示の座標）による着手を検証し、合法手であれば指す
+     *
+     * 成り・不成の両方が合法なら、成りの選び方（setPromotionChooser）で対局者に選ばせる。
      * @return 合法手で盤面更新できた場合 true
      */
-    bool validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int moveNumber,
-                         QStringList* m_sfenHistory, QList<ShogiMove>& gameMoves);
+    bool validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, int moveNumber,
+                         QStringList* sfenHistory, QList<ShogiMove>& gameMoves);
+
+    /**
+     * @brief 成り・不成まで決まった指し手（エンジン・通信対局など）を、合法手か確かめてから指す
+     * @return 合法手で盤面更新できた場合 true。反則手は盤を変えずに false
+     */
+    bool applyMove(const UsiMove& move, QString& record, int moveNumber,
+                   QStringList* sfenHistory, QList<ShogiMove>& gameMoves);
+
+    /// 直前に指した手（validateAndMove・applyMove が成功したときに更新する）
+    const UsiMove& lastMove() const { return m_lastMove; }
 
     /// 局面編集モードで駒を移動し、盤面を更新する
     bool editPosition(const QPoint& outFrom, const QPoint& outTo, Turn pieceBoxSide = Turn::Black);
@@ -82,8 +87,9 @@ public:
 
     // --- 成り制御 ---
 
-    void setPromote(bool newPromote);
-    bool promote() const;
+    /// 成り・不成を対局者に選ばせる関数（成るなら true）。未設定なら成らない
+    using PromotionChooser = std::function<bool()>;
+    void setPromotionChooser(PromotionChooser chooser);
 
     /**
      * @brief 強制成りモードを設定する（定跡手からの着手時に使用）
@@ -108,31 +114,30 @@ public slots:
      * @brief SFEN文字列から新規対局を準備する
      *
      * 盤面・駒台を初期化し、指定SFENの配置に設定する。
-     * 対局結果はNoResult、手番はNoPlayerにリセットされる。
+     * 対局結果はNoResult、手番は SFEN の手番になる。
      */
     void newGame(QString& startsfenstr);
 
 signals:
-    /// 成り/不成の選択ダイアログ表示を要求する（→ PromotionFlow）
-    void showPromotionDialog();
-
     /// 手番が変更された（→ TurnManager）
-    void currentPlayerChanged(ShogiGameController::Player);
+    void currentPlayerChanged(Turn);
 
     /// 駒のドラッグ終了を通知する（→ ShogiView）
     void endDragSignal();
 
     /// 着手が確定した（→ TurnSyncBridge）
-    void moveCommitted(ShogiGameController::Player mover, int ply);
+    void moveCommitted(Turn mover, int ply);
 
 private:
     // --- メンバー変数 ---
 
     std::unique_ptr<ShogiBoard> m_board; ///< 将棋盤（所有）
     Result m_result = NoResult;    ///< 対局結果
-    Player m_currentPlayer = NoPlayer; ///< 現在の手番
+    Turn m_currentPlayer = Turn::Black; ///< 現在の手番
+    bool m_sideToMoveSet = false;       ///< 手番を一度でも設定したか
 
-    bool m_promote = false;              ///< 成り/不成フラグ
+    PromotionChooser m_promotionChooser; ///< 成り・不成の選び方
+    UsiMove m_lastMove;                  ///< 直前に指した手
     bool m_forcedPromotionMode = false;  ///< 強制成りモード有効フラグ（定跡手用）
     bool m_forcedPromotionValue = false; ///< 強制成りモード時の成り/不成の値
 
@@ -144,39 +149,19 @@ private:
     void setupBoard();
 
     /// 指し手を漢字の棋譜文字列に変換する（例: "▲７六歩(77)"）
-    QString convertMoveToKanjiStr(const QString& piece, int fileFrom, int rankFrom, int fileTo, int rankTo);
+    QString convertMoveToKanjiStr(Piece moving, const UsiMove& move);
 
     /// 投了時などの対局結果を設定する（現手番の相手を勝ちにする）
     void gameResult();
 
     void setResult(Result);
 
-    /// アルファベットの駒文字を漢字表記に変換する
-    QString pieceKanji(const Piece piece);
+    /// 成り・不成それぞれで合法手か
+    LegalMoveStatus legalStatus(const UsiMove& move, Turn mover, Piece moving, Piece captured) const;
 
-    /// 指定された駒が成り可能な駒かを判定する
-    bool isPromotablePiece(Piece piece);
-
-    /// 成り/不成の選択ダイアログを表示して結果を反映する
-    void decidePromotionByDialog(Piece piece, int &rankFrom, int &rankTo);
-
-    /// 現在の手番が人間操作かどうかを判定する
-    bool isCurrentPlayerHumanControlled(PlayMode& playMode);
-
-    /**
-     * @brief 人間の着手時に成り/不成を判定・決定する
-     * @return 合法手として成立する場合 true
-     */
-    bool decidePromotion(PlayMode& playMode, EngineMoveValidator& validator,
-                         const EngineMoveValidator::Turn& turnMove,
-                         int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove,
-                         bool forcedPromotionMode, bool forcedPromotionValue);
-
-    /// 相手の手番をTurnで取得する
-    Turn nextPlayerSfen();
-
-    /// MoveValidatorに渡す手番を取得する
-    EngineMoveValidator::Turn currentTurnForValidator(EngineMoveValidator& validator);
+    /// 合法と確かめた指し手を盤・棋譜・SFEN 履歴に記録して手番を渡す
+    bool commitMove(const UsiMove& move, Turn mover, Piece moving, Piece captured, QString& record,
+                    int moveNumber, QStringList* sfenHistory, QList<ShogiMove>& gameMoves);
 };
 
 #endif // SHOGIGAMECONTROLLER_H

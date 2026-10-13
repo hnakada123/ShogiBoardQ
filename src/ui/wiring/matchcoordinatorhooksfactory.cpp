@@ -10,8 +10,8 @@ MatchCoordinator::Hooks MatchCoordinatorHooksFactory::buildHooks(const HookDeps&
     hooks.ui.updateTurnDisplay = [onTurnChanged = deps.onTurnChanged](MatchCoordinator::Player cur) {
         if (!onTurnChanged) return;
         const auto now = (cur == MatchCoordinator::P2)
-                             ? ShogiGameController::Player2
-                             : ShogiGameController::Player1;
+                             ? Turn::White
+                             : Turn::Black;
         onTurnChanged(now);
     };
     hooks.ui.setPlayersNames = deps.setPlayersNames;

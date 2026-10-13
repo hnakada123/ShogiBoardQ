@@ -101,17 +101,17 @@ bool GameStateController::isHvH() const
     return (m_playMode == PlayMode::HumanVsHuman);
 }
 
-bool GameStateController::isHumanSide(ShogiGameController::Player p) const
+bool GameStateController::isHumanSide(Turn p) const
 {
     switch (m_playMode) {
     case PlayMode::HumanVsHuman:
         return true;
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
-        return (p == ShogiGameController::Player1);
+        return (p == Turn::Black);
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
-        return (p == ShogiGameController::Player2);
+        return (p == Turn::White);
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine:
         return false;

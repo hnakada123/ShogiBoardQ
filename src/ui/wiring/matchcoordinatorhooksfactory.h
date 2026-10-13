@@ -30,7 +30,7 @@ public:
     struct HookDeps {
         EvaluationGraphController* evalGraphController = nullptr; ///< 評価値グラフ（appendEvalP1/P2 用）
 
-        std::function<void(ShogiGameController::Player)> onTurnChanged;        ///< → MC::Hooks::updateTurnDisplay
+        std::function<void(Turn)> onTurnChanged;        ///< → MC::Hooks::updateTurnDisplay
         std::function<void(Usi*)> sendStop;                                    ///< → MC::Hooks::sendStopToEngine
 
         std::function<void(const QString&)> initializeNewGame;                 ///< → MC::Hooks::initializeNewGame
@@ -53,7 +53,7 @@ public:
     struct UndoDeps {
         std::function<void(int)> updateHighlightsForPly;                       ///< → UndoHooks::updateHighlightsForPly
         std::function<void()> updateTurnAndTimekeepingDisplay;                 ///< → UndoHooks::updateTurnAndTimekeepingDisplay
-        std::function<bool(ShogiGameController::Player)> isHumanSide;          ///< → UndoHooks::isHumanSide
+        std::function<bool(Turn)> isHumanSide;          ///< → UndoHooks::isHumanSide
         std::function<void(bool)> setMouseClickMode;                           ///< → UndoHooks::setMouseClickMode
     };
 

@@ -65,7 +65,7 @@ void EngineRegistrationHandler::loadEnginesFromSettings()
     m_engineList.clear();
     const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
     for (const auto& entry : engines) {
-        Engine engine;
+        EngineListSettings::EngineEntry engine;
         engine.name = entry.name;
         engine.path = entry.path;
         engine.author = entry.author;
@@ -73,12 +73,12 @@ void EngineRegistrationHandler::loadEnginesFromSettings()
     }
 }
 
-const QList<Engine>& EngineRegistrationHandler::engineList() const
+const QList<EngineListSettings::EngineEntry>& EngineRegistrationHandler::engineList() const
 {
     return m_engineList;
 }
 
-const Engine& EngineRegistrationHandler::engineAt(int index) const
+const EngineListSettings::EngineEntry& EngineRegistrationHandler::engineAt(int index) const
 {
     return m_engineList.at(index);
 }
@@ -87,7 +87,7 @@ const Engine& EngineRegistrationHandler::engineAt(int index) const
 bool EngineRegistrationHandler::isDuplicatePath(const QString& path, QString& existingName) const
 {
     const QString normalizedInput = normalizeEnginePath(path);
-    for (const Engine& engine : std::as_const(m_engineList)) {
+    for (const EngineListSettings::EngineEntry& engine : std::as_const(m_engineList)) {
         if (normalizeEnginePath(engine.path) == normalizedInput) {
             existingName = engine.name;
             return true;
@@ -182,21 +182,15 @@ void EngineRegistrationHandler::onWorkerRegistered(const QString& engineName,
                                                    const QString& engineAuthor,
                                                    const QStringList& optionLines)
 {
-    m_engineIdName = engineName;
+    // 同じ実行ファイルは登録前に断っている。別の実行ファイルが同じ id name を名乗る
+    // （評価関数だけ違うビルドなど）ときは、登録名に番号を付けて別のエンジンとして登録する。
+    // 登録名は設定（オプション・先読み）を保存する名前にもなるので、エンジンごとに設定が分かれる
+    m_engineIdName = uniqueRegisteredName(engineName);
     m_engineIdAuthor = engineAuthor;
     m_optionLines = optionLines;
 
-    // 登録エンジンの重複チェック
-    for (const Engine& engine : std::as_const(m_engineList)) {
-        if (m_engineIdName == engine.name) {
-            setRegistrationInProgress(false);
-            setError(tr("この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。"));
-            return;
-        }
-    }
-
     // エンジン情報をリストに追加
-    Engine engine;
+    EngineListSettings::EngineEntry engine;
     engine.name = m_engineIdName;
     engine.path = m_fileName;
     engine.author = m_engineIdAuthor;
@@ -214,6 +208,21 @@ void EngineRegistrationHandler::onWorkerRegistered(const QString& engineName,
 
     setRegistrationInProgress(false);
     emit engineRegistered(m_engineIdName);
+}
+
+QString EngineRegistrationHandler::uniqueRegisteredName(const QString& idName) const
+{
+    const auto taken = [this](const QString& name) {
+        for (const EngineListSettings::EngineEntry& engine : std::as_const(m_engineList)) {
+            if (engine.name == name) return true;
+        }
+        return false;
+    };
+    if (!taken(idName)) return idName;
+    for (int number = 2;; ++number) {
+        const QString candidate = QStringLiteral("%1 (%2)").arg(idName).arg(number);
+        if (!taken(candidate)) return candidate;
+    }
 }
 
 // ワーカーからの登録失敗通知を処理する。
@@ -342,7 +351,7 @@ void EngineRegistrationHandler::saveEnginesToSettingsFile() const
 }
 
 // 指定されたエンジン情報を設定ファイルに保存する。
-void EngineRegistrationHandler::saveEngineToSettings(QSettings& settings, const Engine& engine) const
+void EngineRegistrationHandler::saveEngineToSettings(QSettings& settings, const EngineListSettings::EngineEntry& engine) const
 {
     settings.setValue(EngineNameKey, engine.name);
     settings.setValue(EnginePathKey, engine.path);

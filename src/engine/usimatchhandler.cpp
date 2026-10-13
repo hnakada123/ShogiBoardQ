@@ -3,7 +3,6 @@
 
 #include "usimatchhandler.h"
 #include "logcategories.h"
-#include "parsecommon.h"
 #include "shogiboard.h"
 #include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
@@ -33,41 +32,11 @@ void ensureMovesKeyword(QString& s)
     }
 }
 
-/// USI形式の指し手をShogiBoard上に適用するローカルヘルパ
+/// USI形式の指し手を ShogiBoard 上に適用するローカルヘルパ（読み取れない指し手は無視する）
 void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isSenteMove)
 {
-    if (usiMove.length() < 4) return;
-
-    bool promote = (usiMove.length() >= 5 && usiMove.at(4) == QLatin1Char('+'));
-
-    if (usiMove.at(1) == QLatin1Char('*')) {
-        // 駒打ち: "P*5e"
-        auto fileTo = KifuParseCommon::parseFileChar(usiMove.at(2));
-        auto rankTo = KifuParseCommon::parseRankChar(usiMove.at(3));
-        if (!fileTo || !rankTo) return;
-
-        QChar pieceChar = isSenteMove ? usiMove.at(0).toUpper() : usiMove.at(0).toLower();
-        Piece piece = charToPiece(pieceChar);
-
-        board->decrementPieceOnStand(piece);
-        board->movePieceToSquare(piece, 10, 0, *fileTo, *rankTo, false);
-    } else {
-        // 盤上の移動: "8c8d" or "8c8d+"
-        auto fileFrom = KifuParseCommon::parseFileChar(usiMove.at(0));
-        auto rankFrom = KifuParseCommon::parseRankChar(usiMove.at(1));
-        auto fileTo = KifuParseCommon::parseFileChar(usiMove.at(2));
-        auto rankTo = KifuParseCommon::parseRankChar(usiMove.at(3));
-
-        if (!fileFrom || !rankFrom || !fileTo || !rankTo) return;
-
-        Piece movingPiece = board->pieceCharacter(*fileFrom, *rankFrom);
-        Piece capturedPiece = board->pieceCharacter(*fileTo, *rankTo);
-
-        if (capturedPiece != Piece::None) {
-            board->addPieceToStand(capturedPiece);
-        }
-
-        board->movePieceToSquare(movingPiece, *fileFrom, *rankFrom, *fileTo, *rankTo, promote);
+    if (const auto move = UsiMove::parse(usiMove)) {
+        board->applyUsiMove(*move, isSenteMove ? Turn::Black : Turn::White);
     }
 }
 
@@ -207,11 +176,6 @@ void UsiMatchHandler::updateBaseSfenForPonder()
     m_presenter->setBaseSfen(ponderBaseSfen);
 }
 
-QString UsiMatchHandler::convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote)
-{
-    return m_protocolHandler->convertHumanMoveToUsi(outFrom, outTo, promote);
-}
-
 // ============================================================
 // 対局通信処理
 // ============================================================
@@ -286,19 +250,18 @@ void UsiMatchHandler::onBestMoveReceived()
     m_responseTimer.stop();
     if (m_clock && m_clock->isGameOver()) return;
     if (m_protocolHandler->specialMove() != SpecialMove::None) return;
-    int fx, fy, tx, ty;
-    m_protocolHandler->parseMoveCoordinates(fx, fy, tx, ty);
-    if (tx < 1 || tx > 9 || ty < 1 || ty > 9) return;
+    const std::optional<UsiMove> move = m_protocolHandler->parseBestMove();
+    if (!move) return;
     appendBestMoveAndStartPondering(m_position, m_ponder, m_timing);
     // コールバック先で次の探索や破棄が起きても、参照中の結果は変化させない。
     const auto position = m_position;
     const auto ponder = m_ponder;
-    if (m_hooks.onMoveReady) m_hooks.onMoveReady(QPoint(fx, fy), QPoint(tx, ty), position, ponder);
+    if (m_hooks.onMoveReady) m_hooks.onMoveReady(*move, position, ponder);
 }
 
 int UsiMatchHandler::remainingTimeMs(const UsiTimingParams& timing) const
 {
-    const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
+    const int side = m_gameController->currentPlayer() == Turn::Black ? 1 : 2;
     qint64 budget = 0;
     if (m_clock) {
         budget = m_clock->enforcesTimeout() ? m_clock->remainingTurnTimeMs(side) : kUnlimitedSearchTimeoutMs;
@@ -318,7 +281,7 @@ void UsiMatchHandler::onSearchTimeout()
 
 UsiGoTimeInput UsiMatchHandler::goTimeInput(const UsiTimingParams& timing, bool pondering) const
 {
-    const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
+    const int side = m_gameController->currentPlayer() == Turn::Black ? 1 : 2;
     UsiGoTimeInput input;
     input.sideToMove = side == 1 ? Turn::Black : Turn::White;
     input.extraMs = timing.extraMs;

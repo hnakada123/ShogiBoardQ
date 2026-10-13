@@ -99,7 +99,7 @@ public:
     void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen);
     void onRecordPaneMainRowChanged(int row);
     void undoLastTwoMoves();
-    void onTurnManagerChanged(ShogiGameController::Player now);
+    void onTurnManagerChanged(Turn now);
     void setCurrentTurn();
 
     // ===== Game系 =====
@@ -181,7 +181,7 @@ private:
     void refreshUndoFlowDeps();
     void startGameSession();
     MatchCoordinatorWiring::Deps buildMatchWiringDeps();
-    bool queryIsHumanSide(ShogiGameController::Player player);
+    bool queryIsHumanSide(Turn player);
     void updateTurnStatus(int currentPlayer);
     void resetRecordForEditedPosition();
 

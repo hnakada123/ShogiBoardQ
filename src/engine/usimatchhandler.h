@@ -15,6 +15,7 @@
 
 #include "usitimingparams.h"
 #include "usigotime.h"
+#include "usimove.h"
 
 class ShogiGameController;
 class ThinkingInfoPresenter;
@@ -35,7 +36,7 @@ public:
     /// コールバック定義（Usiファサードからの注入用）
     struct Hooks {
         std::function<void()> onBestmoveTimeout; ///< bestmoveタイムアウト時の処理
-        std::function<void(const QPoint&, const QPoint&, const QString&, const QString&)> onMoveReady = {};
+        std::function<void(const UsiMove&, const QString&, const QString&)> onMoveReady = {};
     };
 
     UsiMatchHandler(UsiProtocolHandler* protocolHandler,
@@ -66,10 +67,6 @@ public:
 
     QString lastUsiMove() const;
     void setLastUsiMove(const QString& move);
-
-    // --- 対局通信 ---
-
-    QString convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote);
 
 private:
     void startAsyncSearch();

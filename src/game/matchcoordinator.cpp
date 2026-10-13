@@ -333,6 +333,11 @@ void MatchCoordinator::handleEngineWin(int idx) {
     m_gameEndHandler->handleEngineWin(idx);
 }
 
+void MatchCoordinator::handleEngineIllegalMove(int idx) {
+    ensureGameEndHandler();
+    m_gameEndHandler->handleEngineIllegalMove(idx);
+}
+
 void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw)
 {
     ensureGameEndHandler();

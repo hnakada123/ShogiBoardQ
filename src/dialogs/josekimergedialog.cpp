@@ -3,6 +3,7 @@
 
 #include "josekimergedialog.h"
 #include <QSet>
+#include "sfenutils.h"
 #include "kifumovedelegate.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
@@ -297,14 +298,8 @@ void JosekiMergeDialog::applyFontSize()
 
 QString JosekiMergeDialog::normalizeSfen(const QString &sfen) const
 {
-    // SFEN文字列から手数部分を除去して正規化
-    // 形式: "盤面 手番 持ち駒 手数"
-    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (parts.size() >= 3) {
-        // 手数を除いた部分を返す（盤面 手番 持ち駒）
-        return parts[0] + QLatin1Char(' ') + parts[1] + QLatin1Char(' ') + parts[2];
-    }
-    return sfen;
+    // 手数を除き、持ち駒の並びをそろえる（盤面 手番 持ち駒）
+    return SfenUtils::normalizeSfenKey(sfen);
 }
 
 bool JosekiMergeDialog::isRegistered(const QString &sfen, const QString &usiMove) const

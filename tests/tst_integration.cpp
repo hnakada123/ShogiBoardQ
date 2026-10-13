@@ -54,7 +54,7 @@ private slots:
             board.setSfen(kHirateSfen);
             EngineMoveValidator validator;
 
-            EngineMoveValidator::Turn turn = EngineMoveValidator::BLACK;
+            Turn turn = Turn::Black;
 
             for (int moveNum = 0; moveNum < 300; ++moveNum) {
                 int legalCount = validator.generateLegalMoves(
@@ -69,7 +69,7 @@ private slots:
 
                 // Make a simple move if possible: advance a pawn
                 bool moved = false;
-                if (turn == EngineMoveValidator::BLACK) {
+                if (turn == Turn::Black) {
                     // Try each file for a pawn advance
                     for (int file = 1; file <= 9 && !moved; ++file) {
                         for (int rank = 9; rank >= 2 && !moved; --rank) {
@@ -93,7 +93,7 @@ private slots:
 
                 if (!moved) break; // Can't easily make a random move
 
-                turn = (turn == EngineMoveValidator::BLACK) ? EngineMoveValidator::WHITE : EngineMoveValidator::BLACK;
+                turn = (turn == Turn::Black) ? Turn::White : Turn::Black;
 
                 // After each move, pieces should still total 40
                 QCOMPARE(countAllPieces(board), 40);

@@ -1,5 +1,6 @@
 #include "candidatearrowcontroller.h"
 
+#include "usimove.h"
 #include "analysissettings.h"
 #include "enginelifecyclemanager.h"
 #include "kifupresentation.h"
@@ -8,7 +9,6 @@
 #include "shogiboard.h"
 #include "shogienginethinkingmodel.h"
 #include "usi.h"
-#include <QRegularExpression>
 
 namespace {
 QString positionKey(const QString& sfen)
@@ -120,19 +120,19 @@ void CandidateArrowController::scheduleRefresh()
 std::optional<ShogiView::Arrow> CandidateArrowController::arrowForMove(
     const QString& move, const QString& baseSfen, int priority)
 {
-    static const QRegularExpression valid(QStringLiteral("^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$"));
-    if (!valid.match(move).hasMatch()) return std::nullopt;
+    const auto parsed = UsiMove::parse(move);
+    if (!parsed || move.trimmed() != parsed->toString()) return std::nullopt;
     ShogiView::Arrow arrow;
-    arrow.toFile = move.at(2).digitValue();
-    arrow.toRank = move.at(3).unicode() - QChar('a').unicode() + 1;
+    arrow.toFile = parsed->to.file;
+    arrow.toRank = parsed->to.rank;
     arrow.priority = priority;
-    if (move.at(1) == QLatin1Char('*')) {
+    if (parsed->isDrop()) {
         const auto turn = baseSfen.simplified().section(QLatin1Char(' '), 1, 1);
         if (turn != QLatin1String("b") && turn != QLatin1String("w")) return std::nullopt;
-        arrow.dropPiece = turn == QLatin1String("b") ? move.at(0) : move.at(0).toLower();
+        arrow.dropPiece = pieceToChar(parsed->dropPieceFor(turn == QLatin1String("b") ? Turn::Black : Turn::White));
     } else {
-        arrow.fromFile = move.at(0).digitValue();
-        arrow.fromRank = move.at(1).unicode() - QChar('a').unicode() + 1;
+        arrow.fromFile = parsed->from.file;
+        arrow.fromRank = parsed->from.rank;
     }
     arrow.color = priority <= 1 ? QColor(255, 0, 0, 200) : QColor(255, 100, 100, 150);
     return arrow;

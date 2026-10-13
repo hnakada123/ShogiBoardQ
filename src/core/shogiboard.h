@@ -9,6 +9,7 @@
 #include <QMap>
 #include <optional>
 #include "shogitypes.h"
+#include "usimove.h"
 
 /**
  * @brief 将棋盤の盤面データと駒台を管理するクラス
@@ -70,9 +71,16 @@ public:
      * @brief SFEN文字列で盤面全体を更新する
      * @param sfenStr 盤面＋手番＋駒台＋手数を含むSFEN文字列
      *
-     * 文法チェックを行い、不正な場合は盤面を変更しない。
+     * 文法チェックを行い、不正な場合は盤面を変更せず、エラーを通知する（ErrorBus）。
      */
     void setSfen(const QString& sfenStr);
+
+    /**
+     * @brief SFEN文字列で盤面全体を更新する（不正でも通知しない）
+     * @param error 不正だったときの理由（任意）
+     * @return 盤面を更新したら true。不正な場合は盤面を変更せず false
+     */
+    bool trySetSfen(const QString& sfenStr, QString* error = nullptr);
 
     /// 盤面をSFEN形式の文字列に変換する
     QString convertBoardToSfen();
@@ -91,6 +99,15 @@ public:
 
     /// 局面編集用: 盤面と駒台を同時に更新する
     void updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote);
+
+    /**
+     * @brief USI の指し手を盤と駒台に適用する
+     *
+     * 合法手かどうかは確かめない（対局で確かめてから指す経路は ShogiGameController::applyMove）。
+     * 移動元が空、駒台に打つ駒がない、打つ先が埋まっている指し手は適用せず false を返す。
+     * @param mover 指す側（駒打ちの駒の色を決める）
+     */
+    bool applyUsiMove(const UsiMove& move, Turn mover);
 
     /// 局面編集用: 指定マスの駒を成/不成に切り替える
     void promoteOrDemotePiece(const int fileFrom, const int rankFrom);

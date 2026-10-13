@@ -287,7 +287,7 @@ bool TsumeshogiPositionGenerator::isKingInCheck() const
     const QList<Piece> boardData = buildBoardData();
     EngineMoveValidator validator;
     // 後手(WHITE)の玉に先手(BLACK)の駒から王手がかかっているか
-    return validator.checkIfKingInCheck(EngineMoveValidator::WHITE, boardData) > 0;
+    return validator.checkIfKingInCheck(Turn::White, boardData) > 0;
 }
 
 bool TsumeshogiPositionGenerator::isDefenderKingInCheck(const QString& sfen)
@@ -320,7 +320,7 @@ bool TsumeshogiPositionGenerator::isDefenderKingInCheck(const QString& sfen)
     }
 
     EngineMoveValidator validator;
-    return validator.checkIfKingInCheck(EngineMoveValidator::WHITE, boardData) > 0;
+    return validator.checkIfKingInCheck(Turn::White, boardData) > 0;
 }
 
 QString TsumeshogiPositionGenerator::buildSfen() const

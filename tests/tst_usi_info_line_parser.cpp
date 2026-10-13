@@ -76,14 +76,14 @@ private slots:
     {
         // 詰んだ局面ではエンジンが指し手の代わりに resign を返す。生の USI 文字列を表示しない
         ShogiEngineInfoParser parser;
-        parser.setThinkingStartPlayer(ShogiGameController::Player1);
+        parser.setThinkingStartPlayer(Turn::Black);
         QList<QChar> board;  // resign は盤面を参照しない
         parser.parseEngineOutputAndUpdateState(QStringLiteral("info depth 0 score mate -1 pv resign"),
                                                nullptr, board, false);
         QCOMPARE(parser.pvKanjiStr(), QStringLiteral("▲投了"));
         QCOMPARE(parser.pvUsiStr(), QString());
 
-        parser.setThinkingStartPlayer(ShogiGameController::Player2);
+        parser.setThinkingStartPlayer(Turn::White);
         parser.parseEngineOutputAndUpdateState(QStringLiteral("info depth 1 score mate 1 pv win"),
                                                nullptr, board, false);
         QCOMPARE(parser.pvKanjiStr(), QStringLiteral("△入玉勝ち"));

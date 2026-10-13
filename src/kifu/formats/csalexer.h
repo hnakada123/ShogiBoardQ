@@ -9,6 +9,8 @@
 
 #include <optional>
 
+#include "shogitypes.h"
+
 namespace CsaLexer {
 
 // === 手番・駒種の型定義 ===
@@ -68,6 +70,8 @@ Piece basePieceOf(Piece p);
 
 /// Piece → 漢字表記
 QString pieceKanji(Piece p);
+/// CSA の駒種を盤・指し手で使う駒にする（NO_P は None）
+::Piece toPiece(Piece p, Color side);
 
 /// 座標範囲チェック（1..9）
 bool inside(int v);

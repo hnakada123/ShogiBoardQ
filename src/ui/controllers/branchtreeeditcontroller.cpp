@@ -235,15 +235,15 @@ bool BranchTreeEditController::recordBoardMove(QPoint& from, QPoint& to, ShogiGa
     QString sfen = parent->sfen();
     gc->board()->setSfen(sfen);
     gc->setCurrentPlayer(sfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w")
-                             ? ShogiGameController::Player2 : ShogiGameController::Player1);
+                             ? Turn::White : Turn::Black);
     gc->setPreviousMoveDestination(parent->isActualMove()
         ? parent->move().toSquare + QPoint(1, 1) : QPoint());
 
     QStringList history{sfen};
     QList<ShogiMove> moves;
     QString record;
-    PlayMode mode = PlayMode::HumanVsHuman;   // 成り・不成は利用者に確認する
-    if (!gc->validateAndMove(from, to, record, mode, parent->ply() + 1, &history, moves)
+    // 成り・不成は利用者に確認する
+    if (!gc->validateAndMove(from, to, record, parent->ply() + 1, &history, moves)
         || moves.isEmpty() || history.size() < 2) {
         return false;
     }

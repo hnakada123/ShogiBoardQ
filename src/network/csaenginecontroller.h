@@ -9,6 +9,7 @@
 #include <QPoint>
 #include <QPointer>
 
+#include "usimove.h"
 #include "usitimingparams.h"
 
 class Usi;
@@ -30,7 +31,6 @@ public:
     struct InitParams {
         QString enginePath;
         QString engineName;
-        int engineNumber = 0;
         ShogiGameController* gameController = nullptr;
         UsiCommLogModel* commLog = nullptr;
         ShogiEngineThinkingModel* thinkingModel = nullptr;
@@ -42,9 +42,7 @@ public:
     };
 
     struct ThinkingResult {
-        QPoint from;
-        QPoint to;
-        bool promote = false;
+        UsiMove move;  ///< エンジンの指し手（成り・不成を含む）
         bool resign = false;
         bool valid = false;
         int scoreCp = 0;
@@ -76,7 +74,7 @@ signals:
 private slots:
     void onEngineInitialized();
     void onEngineError(const QString& message);
-    void onMatchMoveReady(const QPoint& from, const QPoint& to, const QString& position, const QString& ponder);
+    void onMatchMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
     void onEngineResign();
     void onEngineWinDeclaration();
 

@@ -2,6 +2,8 @@
 /// @brief CsaMoveConverter の表示・終局文言・盤面適用実装
 
 #include "csamoveconverter.h"
+#include "usimove.h"
+#include "kifmovetext.h"
 #include "logcategories.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -17,13 +19,6 @@ bool isValidDropSource(int file, int rank)
 {
     return file == 0 && rank == 0;
 }
-
-bool isPromotedCsaPiece(const QString& piece)
-{
-    return piece == QStringLiteral("TO") || piece == QStringLiteral("NY")
-        || piece == QStringLiteral("NK") || piece == QStringLiteral("NG")
-        || piece == QStringLiteral("UM") || piece == QStringLiteral("RY");
-}
 } // namespace
 
 // ============================================================
@@ -37,14 +32,11 @@ QString CsaMoveConverter::csaToPretty(const QString& csaMove, bool isPromotion,
         return csaMove;
     }
 
-    QChar turnSign = csaMove[0];
-    QString turnMark = (turnSign == QLatin1Char('+')) ? QStringLiteral("▲") : QStringLiteral("△");
-
-    int fromFile = csaMove[1].digitValue();
-    int fromRank = csaMove[2].digitValue();
-    int toFile = csaMove[3].digitValue();
-    int toRank = csaMove[4].digitValue();
-    QString piece = csaMove.mid(5, 2);
+    const Turn mover = (csaMove[0] == QLatin1Char('+')) ? Turn::Black : Turn::White;
+    const int fromFile = csaMove[1].digitValue();
+    const int fromRank = csaMove[2].digitValue();
+    const int toFile = csaMove[3].digitValue();
+    const int toRank = csaMove[4].digitValue();
     const bool validTo = isValidBoardCoordinate(toFile, toRank);
     const bool validFrom = isValidDropSource(fromFile, fromRank)
         || isValidBoardCoordinate(fromFile, fromRank);
@@ -52,56 +44,24 @@ QString CsaMoveConverter::csaToPretty(const QString& csaMove, bool isPromotion,
         return csaMove;
     }
 
-    static const QString zenFile[] = {
-        QString(), QStringLiteral("１"), QStringLiteral("２"), QStringLiteral("３"),
-        QStringLiteral("４"), QStringLiteral("５"), QStringLiteral("６"),
-        QStringLiteral("７"), QStringLiteral("８"), QStringLiteral("９")
-    };
-    static const QString kanjiRank[] = {
-        QString(), QStringLiteral("一"), QStringLiteral("二"), QStringLiteral("三"),
-        QStringLiteral("四"), QStringLiteral("五"), QStringLiteral("六"),
-        QStringLiteral("七"), QStringLiteral("八"), QStringLiteral("九")
-    };
-
-    // 成りの場合は成る前の駒名に変換
-    QString displayPiece = piece;
-    if (isPromotion) {
-        static const QHash<QString, QString> unpromoteMap = {
-            {QStringLiteral("TO"), QStringLiteral("FU")},
-            {QStringLiteral("NY"), QStringLiteral("KY")},
-            {QStringLiteral("NK"), QStringLiteral("KE")},
-            {QStringLiteral("NG"), QStringLiteral("GI")},
-            {QStringLiteral("UM"), QStringLiteral("KA")},
-            {QStringLiteral("RY"), QStringLiteral("HI")}
-        };
-        displayPiece = unpromoteMap.value(piece, piece);
+    // CSA の駒種は着手後の駒。成る手は成る前の駒名で書く
+    const Piece after = ShogiNotation::pieceFromCsaCode(csaMove.mid(5, 2), mover);
+    const Piece moving = isPromotion ? demote(after) : after;
+    if (moving == Piece::None) {
+        return csaMove;
     }
 
-    QString pieceKanji = csaPieceToKanji(displayPiece);
-
-    QString moveStr = turnMark;
-
-    // 「同」の判定（前の指し手の移動先と同じ場合）
-    if (toFile == prevToFile && toRank == prevToRank && moveCount > 0) {
-        moveStr += QStringLiteral("同　") + pieceKanji;
-    } else {
-        moveStr += zenFile[toFile] + kanjiRank[toRank] + pieceKanji;
-    }
-
-    // 成る手の場合は「成」を追加
-    if (isPromotion) {
-        moveStr += QStringLiteral("成");
-    }
-
-    // 駒打ちの場合
+    UsiMove move;
+    move.to = BoardSquare{toFile, toRank};
     if (fromFile == 0 && fromRank == 0) {
-        moveStr += QStringLiteral("打");
+        move.drop = toBlack(moving);
     } else {
-        moveStr += QStringLiteral("(") + QString::number(fromFile) + QString::number(fromRank)
-                + QStringLiteral(")");
+        move.from = BoardSquare{fromFile, fromRank};
+        move.promote = isPromotion;
     }
-
-    return moveStr;
+    // 「同」は前の指し手の移動先と同じときだけ（初手では書かない）
+    const BoardSquare previousTo = (moveCount > 0) ? BoardSquare{prevToFile, prevToRank} : BoardSquare{};
+    return KifMoveText::format(mover, moving, move, previousTo);
 }
 
 // ============================================================
@@ -152,59 +112,32 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
         return false;
     }
 
-    QString usiMove = csaToUsi(csaMove);
-    if (usiMove.isEmpty()) {
+    const QChar turnSign = csaMove[0];
+    if (turnSign != QLatin1Char('+') && turnSign != QLatin1Char('-')) {
         return false;
     }
-
-    const QChar turnSign = csaMove[0];
+    const Turn mover = (turnSign == QLatin1Char('+')) ? Turn::Black : Turn::White;
     const int fromFile = csaMove[1].digitValue();
     const int fromRank = csaMove[2].digitValue();
     const int toFile = csaMove[3].digitValue();
     const int toRank = csaMove[4].digitValue();
-    const QString piece = csaMove.mid(5, 2);
-    if (turnSign != QLatin1Char('+') && turnSign != QLatin1Char('-')) {
-        return false;
-    }
-    if (!isValidBoardCoordinate(toFile, toRank)) {
-        return false;
-    }
-
-    const bool isPromoted = isPromotedCsaPiece(piece);
-
     ShogiBoard* board = gc->board();
 
-    if (!isValidDropSource(fromFile, fromRank)) {
-        if (!isValidBoardCoordinate(fromFile, fromRank)) {
-            return false;
-        }
-        // 通常移動
-        const Piece selectedPiece = board->pieceCharacter(fromFile, fromRank);
-        if (selectedPiece == Piece::None) {
-            return false;
-        }
-        if (usiMove.endsWith(QLatin1Char('+'))
-            && !QStringLiteral("PLNSBRplnsbr").contains(pieceToChar(selectedPiece))) {
-            usiMove.chop(1);
-        }
-        const Piece capturedPiece = board->pieceCharacter(toFile, toRank);
-
-        if (capturedPiece != Piece::None) {
-            board->addPieceToStand(capturedPiece);
-        }
-
-        board->movePieceToSquare(selectedPiece, fromFile, fromRank, toFile, toRank, isPromoted);
+    // CSA の駒種は着手後の駒なので、成ったかどうかは移動元の駒と比べて決める
+    UsiMove move;
+    move.to = BoardSquare{toFile, toRank};
+    if (isValidDropSource(fromFile, fromRank)) {
+        const Piece dropPiece = csaPieceToSfenPiece(csaMove.mid(5, 2), mover == Turn::Black);
+        if (dropPiece == Piece::None) return false;
+        move.drop = toBlack(dropPiece);
     } else {
-        // 駒打ち
-        const Piece dropPiece = csaPieceToSfenPiece(piece, turnSign == QLatin1Char('+'));
-        if (dropPiece == Piece::None) {
-            return false;
-        }
-        if (!board->decrementPieceOnStand(dropPiece)) {
-            return false;
-        }
-        board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);
+        move.from = BoardSquare{fromFile, fromRank};
+        move.promote = isPromotionMove(csaMove, board);
     }
+    if (!move.isValid() || !board->applyUsiMove(move, mover)) {
+        return false;
+    }
+    const QString usiMove = move.toString();
 
     gc->changeCurrentPlayer();
 
@@ -214,7 +147,7 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
     // SFEN記録を更新
     QString boardSfen = board->convertBoardToSfen();
     QString standSfen = board->convertStandToSfen();
-    QString currentPlayerStr = (gc->currentPlayer() == ShogiGameController::Player1)
+    QString currentPlayerStr = (gc->currentPlayer() == Turn::Black)
                                ? QStringLiteral("b") : QStringLiteral("w");
     QString fullSfen = QString("%1 %2 %3 %4")
                            .arg(boardSfen, currentPlayerStr, standSfen)

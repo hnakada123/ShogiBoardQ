@@ -3,13 +3,11 @@
 
 #include "considerationflowcontroller.h"
 
+#include "enginelistsettings.h"
 #include "matchcoordinator.h"
 #include "shogienginethinkingmodel.h"
-#include "enginesettingsconstants.h"
-#include "settingscommon.h"
 
 #include <QObject>
-#include <QSettings>
 
 ConsiderationFlowController::ConsiderationFlowController(QObject* parent)
     : QObject(parent)
@@ -18,8 +16,6 @@ ConsiderationFlowController::ConsiderationFlowController(QObject* parent)
 
 bool ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& params, const QString& positionStr)
 {
-    using namespace EngineSettingsConstants;
-
     if (!d.match) {
         if (d.onError) d.onError(QStringLiteral("内部エラー: MatchCoordinator が未初期化です。"));
         return false;
@@ -29,21 +25,15 @@ bool ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& p
         return false;
     }
 
-    // 設定ファイルからエンジンパスを取得
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    const int size = settings.beginReadArray(EnginesGroupName);
-    QString enginePath;
-    QString engineName = params.engineName;
-
-    if (params.engineIndex >= 0 && params.engineIndex < size) {
-        settings.setArrayIndex(params.engineIndex);
-        enginePath = settings.value(EnginePathKey).toString();
-        if (engineName.isEmpty()) {
-            engineName = settings.value(EngineNameKey).toString();
-        }
+    // エンジンは名前（検討タブで選んだもの）で引く。名前が無いときだけ番号を使う。
+    // 番号で引くと、タブの一覧を作った後に登録が変わったときに名前とパスが食い違う
+    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
+    int index = EngineListSettings::indexOfName(engines, params.engineName);
+    if (index < 0 && params.engineName.isEmpty() && params.engineIndex >= 0 && params.engineIndex < engines.size()) {
+        index = params.engineIndex;
     }
-    settings.endArray();
+    const QString enginePath = index >= 0 ? engines.at(index).path : QString();
+    const QString engineName = index >= 0 ? engines.at(index).name : params.engineName;
 
     if (enginePath.isEmpty()) {
         if (d.onError) d.onError(QStringLiteral("検討エンジンの選択が不正です。"));

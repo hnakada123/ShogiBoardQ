@@ -43,7 +43,7 @@ public:
 
 private slots:
     void kickNextEvETurn();
-    void onEngineMoveReady(QPoint from, QPoint to, const QString& position, const QString& ponder);
+    void onEngineMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
 
 private:
     void initPositionStringsForEvE(const QString& sfenStart);

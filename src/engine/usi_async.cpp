@@ -72,13 +72,11 @@ void Usi::requestMatchMove(const QString& position, const QString& ponder, const
     m_matchHandler->requestMove(position, ponder, timing);
 }
 
-void Usi::requestHumanReply(QString& position, const QString& ponder, const QPoint& from, const QPoint& to,
+void Usi::requestHumanReply(QString& position, const QString& ponder, const UsiMove& humanMove,
                             const UsiTimingParams& timing, QStringList& history)
 {
-    const auto move = m_matchHandler->convertHumanMoveToUsiFormat(from, to, m_gameController->promote());
-    m_gameController->setPromote(false);
     if (!position.contains(QStringLiteral(" moves"))) position += QStringLiteral(" moves");
-    position += QLatin1Char(' ') + move;
+    position += QLatin1Char(' ') + humanMove.toString();
     history.append(position);
     requestMatchMove(position, ponder, timing);
 }

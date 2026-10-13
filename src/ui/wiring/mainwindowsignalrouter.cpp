@@ -12,6 +12,8 @@
 #include "kifufilecontroller.h"
 #include "uinotificationservice.h"
 #include "shogigamecontroller.h"
+
+#include <functional>
 #include "shogiview.h"
 #include "uiactionswiring.h"
 #include "kifuexportcontroller.h"
@@ -95,8 +97,8 @@ void MainWindowSignalRouter::connectCoreSignals()
 
     // 将棋盤表示・昇格・ドラッグ終了・指し手確定
     if (m_deps.gameController && dlw) {
-        connect(m_deps.gameController, &ShogiGameController::showPromotionDialog,
-                dlw, &DialogLaunchWiring::displayPromotionDialog, Qt::UniqueConnection);
+        // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる
+        m_deps.gameController->setPromotionChooser(std::bind(&DialogLaunchWiring::choosePromotion, dlw));
     }
     if (m_deps.gameController) {
         connect(m_deps.gameController, &ShogiGameController::endDragSignal,

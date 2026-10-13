@@ -104,6 +104,9 @@ public:
     /// エンジン入玉宣言勝ち通知を処理する（idx: 1 or 2）
     void handleEngineWin(int idx);
 
+    /// エンジンが反則手を返したときに、そのエンジンの反則負けとする（idx: 1 or 2）
+    void handleEngineIllegalMove(int idx);
+
     void flipBoard();
 
     /// エンジンポインタを差し替える（再生成時など）

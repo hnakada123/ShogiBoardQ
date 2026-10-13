@@ -68,9 +68,7 @@ private slots:
     // --- JosekiPresenter static ---
     void normalizeSfen_removesPlyNumber();
     void normalizeSfen_alreadyNormalized();
-    void pieceToKanji_pawn();
-    void pieceToKanji_promotedPawn();
-    void pieceToKanji_allPieces();
+    void usiMoveToJapanese_promotedPiecesUseRecordNames();
     void hasDuplicateMove_true();
     void hasDuplicateMove_false();
 };
@@ -365,43 +363,16 @@ void TestJosekiRepository::normalizeSfen_alreadyNormalized()
     QCOMPARE(JosekiPresenter::normalizeSfen(input), input);
 }
 
-void TestJosekiRepository::pieceToKanji_pawn()
+void TestJosekiRepository::usiMoveToJapanese_promotedPiecesUseRecordNames()
 {
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('P')), QStringLiteral("歩"));
-}
-
-void TestJosekiRepository::pieceToKanji_promotedPawn()
-{
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('P'), true), QStringLiteral("と"));
-}
-
-void TestJosekiRepository::pieceToKanji_allPieces()
-{
-    // 非成駒
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('P')), QStringLiteral("歩"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('L')), QStringLiteral("香"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('N')), QStringLiteral("桂"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('S')), QStringLiteral("銀"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('G')), QStringLiteral("金"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('B')), QStringLiteral("角"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('R')), QStringLiteral("飛"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('K')), QStringLiteral("玉"));
-
-    // 成駒
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('P'), true), QStringLiteral("と"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('L'), true), QStringLiteral("杏"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('N'), true), QStringLiteral("圭"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('S'), true), QStringLiteral("全"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('G'), true), QStringLiteral("金"));  // 金は成れない
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('B'), true), QStringLiteral("馬"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('R'), true), QStringLiteral("龍"));
-
-    // 小文字でも動作する
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('p')), QStringLiteral("歩"));
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('r'), true), QStringLiteral("龍"));
-
-    // 未知の文字
-    QCOMPARE(JosekiPresenter::pieceToKanji(QChar('X')), QStringLiteral("?"));
+    // 成香・成桂・成銀は棋譜欄と同じく2文字で書く
+    SfenPositionTracer tracer;
+    QVERIFY(tracer.setFromSfen(QStringLiteral("4k4/9/9/9/9/5+L3/9/9/4K4 b - 1")));
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("4f5e"), tracer), QStringLiteral("▲５五成香(46)"));
+    QVERIFY(tracer.setFromSfen(QStringLiteral("4k4/9/9/9/9/9/9/4S4/4K4 w s 1")));
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("S*5e"), tracer), QStringLiteral("△５五銀打"));
+    QVERIFY(tracer.setFromSfen(QStringLiteral("4k4/9/2S6/9/9/9/9/9/4K4 b - 1")));
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("7c6b+"), tracer), QStringLiteral("▲６二銀成(73)"));
 }
 
 void TestJosekiRepository::hasDuplicateMove_true()

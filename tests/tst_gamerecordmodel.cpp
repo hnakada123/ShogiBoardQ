@@ -350,7 +350,8 @@ private slots:
         QFETCH(QString, piece);
         QFETCH(QString, kanji);
         QFETCH(QString, code);
-        const QString initial = QStringLiteral("4k4/9/9/9/9/5+%13/9/9/4K4 b - 1").arg(piece);
+        // "%13" は13番目の置き換えになるので、駒の後の空きは別に書く
+        const QString initial = QStringLiteral("4k4/9/9/9/9/5+%1%2/9/9/4K4 b - 1").arg(piece, QStringLiteral("3"));
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         addTestMove(tree, tree.root(), QStringLiteral("4f5e"), QStringLiteral("▲５五%1(46)").arg(kanji));

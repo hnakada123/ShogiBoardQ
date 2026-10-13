@@ -318,6 +318,10 @@ set(SRC_CORE
     src/core/timecontrol.h
     src/core/shogimove.cpp
     src/core/shogimove.h
+    src/core/usimove.h
+    src/core/boardcoordinates.h
+    src/core/shoginotation.h
+    src/core/kifmovetext.h
     src/core/shogitypes.h
     src/core/shogiutils.cpp
     src/core/shogiutils.h
@@ -562,9 +566,9 @@ set(SRC_ENGINE
     src/engine/usitimingparams.h
     src/engine/usigotime.cpp
     src/engine/usigotime.h
+    src/engine/usienginesession.cpp
+    src/engine/usienginesession.h
     src/engine/usicommlogmodel.h
-    src/engine/usimovecoordinateconverter.cpp
-    src/engine/usimovecoordinateconverter.h
     src/engine/usiprotocolhandler.cpp
     src/engine/usiprotocolhandler.h
     src/engine/usiprotocolhandler_ops.cpp
@@ -1035,8 +1039,6 @@ set(SRC_AUTOMATION
     src/automation/sfenvalidationservice.h
     src/automation/tsumeverificationrunner.cpp
     src/automation/tsumeverificationrunner.h
-    src/automation/usienginesession.cpp
-    src/automation/usienginesession.h
     src/automation/usiinfolineparser.cpp
     src/automation/usiinfolineparser.h
 )

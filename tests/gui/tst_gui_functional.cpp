@@ -1686,7 +1686,7 @@ private slots:
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
                               squarePoint(operation == "move" ? 3 : 4, 4));
             QCOMPARE(board()->board()->pieceCharacter(3, operation == "move" ? 4 : 3), Piece::WhitePawn);
-            QCOMPARE(gc->currentPlayer(), ShogiGameController::Player1);
+            QCOMPARE(gc->currentPlayer(), Turn::Black);
         } else if (operation == "stands") {
             click("actionReturnAllPiecesToStand");
             const auto hand = board()->board()->pieceStand();
@@ -1694,13 +1694,13 @@ private slots:
             click("actionChangeTurn");
             QCOMPARE(board()->board()->pieceStand(), hand);
             QCOMPARE(board()->board()->pieceBox(), box);
-            QCOMPARE(gc->currentPlayer(), ShogiGameController::Player2);
+            QCOMPARE(gc->currentPlayer(), Turn::White);
         } else {
             click("actionChangeTurn");
             click(operation == "hirate" ? "actionSetHiratePosition" : "actionSetTsumePosition");
-            QCOMPARE(gc->currentPlayer(), ShogiGameController::Player1);
+            QCOMPARE(gc->currentPlayer(), Turn::Black);
         }
-        const Turn turn = gc->currentPlayer() == ShogiGameController::Player1 ? Turn::Black : Turn::White;
+        const Turn turn = gc->currentPlayer() == Turn::Black ? Turn::Black : Turn::White;
         QCOMPARE(board()->board()->currentPlayer(), turn);
         const QString expected = QStringLiteral("%1 %2 %3 1")
             .arg(boardSfen(), turnToSfen(turn), board()->board()->convertStandToSfen());
@@ -2133,7 +2133,7 @@ private slots:
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(move.second.x(), move.second.y()));
             QCOMPARE(boardSfen(), before);
             QCOMPARE(model->pieceStand(), hand);
-            QCOMPARE(gc->currentPlayer(), ShogiGameController::Player1);
+            QCOMPARE(gc->currentPlayer(), Turn::Black);
         }
         // 不正な座標や駒台セルを渡されても、駒が消えたり別の種類に変わったりしない。
         const QList<QPair<QPoint, QPoint>> invalid = {
@@ -2212,7 +2212,7 @@ private slots:
         QVERIFY(copy("actionCopyUSIAll").contains(edited));
         QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
         auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
-        QCOMPARE(gc->currentPlayer(), ShogiGameController::Player2);
+        QCOMPARE(gc->currentPlayer(), Turn::White);
         startPositionEdit();
         QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
         click("actionEndEditPosition");

@@ -18,7 +18,7 @@ class TurnManager : public QObject
 {
     Q_OBJECT
 public:
-    using Side = ShogiGameController::Player; ///< Player1 / Player2 / NoPlayer
+    using Side = Turn; ///< 先手・後手
 
     explicit TurnManager(QObject* parent=nullptr);
 
@@ -26,25 +26,20 @@ public:
     void set(Side s);
     void toggle();
 
-    // --- Turn enum 変換 ---
-    void setFromTurn(Turn t);
-
     // --- SFEN "b"/"w" 変換 ---
     QString toSfenToken() const;
     void setFromSfenToken(const QString& bw);
 
     // --- Clock 1/2 変換 ---
     int  toClockPlayer() const;
-    // --- GameController 変換 ---
-    ShogiGameController::Player toGc() const;
-    void setFromGc(ShogiGameController::Player p);
 
 signals:
     /// 手番変更を通知（→ MainWindow::onTurnManagerChanged）
-    void changed(ShogiGameController::Player now);
+    void changed(Turn now);
 
 private:
     Side m_side; ///< 現在の手番
+    bool m_sideSet = false; ///< 手番を一度でも設定したか
 };
 
 #endif // TURNMANAGER_H

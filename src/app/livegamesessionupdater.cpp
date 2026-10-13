@@ -80,7 +80,7 @@ void LiveGameSessionUpdater::appendMove(const ShogiMove& move, const QString& mo
         const QString boardPart = board->convertBoardToSfen();
         // 手番は GC を正とする（盤面モデルの手番は GC から同期されるが、単一ソースは GC）
         const QString turnPart =
-            (m_deps.gameController->currentPlayer() == ShogiGameController::Player2)
+            (m_deps.gameController->currentPlayer() == Turn::White)
                 ? QStringLiteral("w")
                 : QStringLiteral("b");
         QString standPart = board->convertStandToSfen();

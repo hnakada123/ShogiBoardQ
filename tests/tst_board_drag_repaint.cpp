@@ -168,8 +168,7 @@ class TestBoardDragRepaint : public QObject
         for (const auto& [from, to] : game) {
             QPoint f = from, t = to;
             QString record;
-            PlayMode mode = PlayMode::HumanVsHuman;
-            if (!gc.validateAndMove(f, t, record, mode, ply++, &history, moves)) return {};
+            if (!gc.validateAndMove(f, t, record, ply++, &history, moves)) return {};
         }
         return history;
     }
@@ -487,8 +486,7 @@ private slots:
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
             QString record;
-            PlayMode mode = PlayMode::HumanVsHuman;
-            const bool ok = ui.gc.validateAndMove(f, t, record, mode, ply++, &history, moves);
+            const bool ok = ui.gc.validateAndMove(f, t, record, ply++, &history, moves);
             QVERIFY2(ok, qPrintable(record));
             ui.controller->onMoveApplied(f, t, ok);
             QCoreApplication::processEvents();
@@ -715,8 +713,7 @@ private slots:
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
             QString record;
-            PlayMode mode = PlayMode::HumanVsHuman;
-            const bool ok = ui.gc.validateAndMove(f, t, record, mode, ply++, &history, moves);
+            const bool ok = ui.gc.validateAndMove(f, t, record, ply++, &history, moves);
             QVERIFY2(ok, qPrintable(record));
             ui.controller->onMoveApplied(f, t, ok);
             ui.controller->showMoveHighlights(f, t);

@@ -174,7 +174,7 @@ void MainWindowResetService::resetUiState(const UiResetDeps& deps,
     }
 
     if (deps.shogiView) {
-        deps.shogiView->updateTurnIndicator(ShogiGameController::Player1);
+        deps.shogiView->updateTurnIndicator(Turn::Black);
     }
 
     // 前の対局者名を残さない（対局情報の初期値「先手」「後手」を表示する）

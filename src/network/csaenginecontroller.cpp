@@ -2,15 +2,14 @@
 /// @brief CSA通信対局用エンジンコントローラの実装
 
 #include "csaenginecontroller.h"
+#include "enginelistsettings.h"
 #include "usi.h"
 #include "usitimingparams.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
-#include "settingscommon.h"
 #include "logcategories.h"
 
-#include <QSettings>
 #include <utility>
 
 CsaEngineController::CsaEngineController(QObject* parent)
@@ -30,14 +29,11 @@ void CsaEngineController::initialize(const InitParams& params)
     m_gameController = params.gameController;
     m_engineName = params.engineName;
 
-    // ダイアログで選んだエンジンのパスを優先する（番号は登録一覧が変わるとずれるため）
+    // ダイアログで選んだエンジンのパスを優先し、無ければ名前で登録一覧から引く
+    // （番号は登録一覧が変わるとずれるため使わない）
     QString enginePath = params.enginePath;
     if (enginePath.isEmpty()) {
-        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        settings.beginReadArray("Engines");
-        settings.setArrayIndex(params.engineNumber);
-        enginePath = settings.value("path").toString();
-        settings.endArray();
+        enginePath = EngineListSettings::pathForName(params.engineName);
     }
 
     if (enginePath.isEmpty()) {
@@ -104,20 +100,16 @@ void CsaEngineController::onEngineError(const QString& message)
 void CsaEngineController::thinkAsync(const ThinkingParams& params)
 {
     if (!m_engine || !m_gameController) return;
-    m_gameController->setPromote(false);
     m_engine->requestMatchMove(params.positionCmd, m_ponderPosition, params.timing);
 }
 
-void CsaEngineController::onMatchMoveReady(const QPoint& from, const QPoint& to,
-                                          const QString&, const QString& ponder)
+void CsaEngineController::onMatchMoveReady(const UsiMove& move, const QString&, const QString& ponder)
 {
     if (!m_engine || sender() != m_engine || !m_gameController) return;
     m_ponderPosition = ponder;
     ThinkingResult result;
-    result.from = from;
-    result.to = to;
-    result.promote = m_gameController->promote();
-    result.valid = to.x() >= 1 && to.x() <= 9 && to.y() >= 1 && to.y() <= 9;
+    result.move = move;
+    result.valid = move.isValid();
     result.scoreCp = m_engine->lastScoreCp();
     result.scoreMate = m_engine->lastScoreMate();
     emit thinkingFinished(result);

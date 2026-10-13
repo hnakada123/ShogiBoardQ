@@ -152,10 +152,10 @@ void ShogiView::relayoutTurnLabels()
     relayoutPieceBoxSideSelector();
 }
 
-void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
+void ShogiView::updateTurnIndicator(Turn now)
 {
     relayoutTurnLabels();
-    const bool black = now != ShogiGameController::Player2;
+    const bool black = now != Turn::White;
     const Urgency urgency = m_highlighting->blackActive() == black
         ? m_highlighting->urgency() : Urgency::Normal;
     m_highlighting->setActiveIsBlack(black);

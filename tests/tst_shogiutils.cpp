@@ -1,5 +1,6 @@
 #include <QtTest>
 
+#include "shoginotation.h"
 #include "shogiutils.h"
 #include "shogimove.h"
 
@@ -8,82 +9,82 @@ class TestShogiUtils : public QObject
     Q_OBJECT
 
 private slots:
-    // === transRankTo ===
+    // === ShogiNotation::rankKanji ===
 
-    void transRankTo_validRange()
+    void rankKanji_validRange()
     {
-        QCOMPARE(ShogiUtils::transRankTo(1), QStringLiteral("一"));
-        QCOMPARE(ShogiUtils::transRankTo(2), QStringLiteral("二"));
-        QCOMPARE(ShogiUtils::transRankTo(3), QStringLiteral("三"));
-        QCOMPARE(ShogiUtils::transRankTo(4), QStringLiteral("四"));
-        QCOMPARE(ShogiUtils::transRankTo(5), QStringLiteral("五"));
-        QCOMPARE(ShogiUtils::transRankTo(6), QStringLiteral("六"));
-        QCOMPARE(ShogiUtils::transRankTo(7), QStringLiteral("七"));
-        QCOMPARE(ShogiUtils::transRankTo(8), QStringLiteral("八"));
-        QCOMPARE(ShogiUtils::transRankTo(9), QStringLiteral("九"));
+        QCOMPARE(ShogiNotation::rankKanji(1), QStringLiteral("一"));
+        QCOMPARE(ShogiNotation::rankKanji(2), QStringLiteral("二"));
+        QCOMPARE(ShogiNotation::rankKanji(3), QStringLiteral("三"));
+        QCOMPARE(ShogiNotation::rankKanji(4), QStringLiteral("四"));
+        QCOMPARE(ShogiNotation::rankKanji(5), QStringLiteral("五"));
+        QCOMPARE(ShogiNotation::rankKanji(6), QStringLiteral("六"));
+        QCOMPARE(ShogiNotation::rankKanji(7), QStringLiteral("七"));
+        QCOMPARE(ShogiNotation::rankKanji(8), QStringLiteral("八"));
+        QCOMPARE(ShogiNotation::rankKanji(9), QStringLiteral("九"));
     }
 
-    void transRankTo_outOfRange()
+    void rankKanji_outOfRange()
     {
-        QCOMPARE(ShogiUtils::transRankTo(0), QString());
-        QCOMPARE(ShogiUtils::transRankTo(10), QString());
+        QCOMPARE(ShogiNotation::rankKanji(0), QString());
+        QCOMPARE(ShogiNotation::rankKanji(10), QString());
     }
 
-    void transRankTo_sentinel()
+    void rankKanji_sentinel()
     {
         // -1 はセンチネル値
-        QCOMPARE(ShogiUtils::transRankTo(-1), QString());
+        QCOMPARE(ShogiNotation::rankKanji(-1), QString());
     }
 
-    // === transFileTo ===
+    // === ShogiNotation::fileZenkaku ===
 
-    void transFileTo_validRange()
+    void fileZenkaku_validRange()
     {
-        QCOMPARE(ShogiUtils::transFileTo(1), QStringLiteral("１"));
-        QCOMPARE(ShogiUtils::transFileTo(5), QStringLiteral("５"));
-        QCOMPARE(ShogiUtils::transFileTo(9), QStringLiteral("９"));
+        QCOMPARE(ShogiNotation::fileZenkaku(1), QStringLiteral("１"));
+        QCOMPARE(ShogiNotation::fileZenkaku(5), QStringLiteral("５"));
+        QCOMPARE(ShogiNotation::fileZenkaku(9), QStringLiteral("９"));
     }
 
-    void transFileTo_outOfRange()
+    void fileZenkaku_outOfRange()
     {
-        QCOMPARE(ShogiUtils::transFileTo(0), QString());
-        QCOMPARE(ShogiUtils::transFileTo(10), QString());
+        QCOMPARE(ShogiNotation::fileZenkaku(0), QString());
+        QCOMPARE(ShogiNotation::fileZenkaku(10), QString());
     }
 
-    void transFileTo_sentinel()
+    void fileZenkaku_sentinel()
     {
-        QCOMPARE(ShogiUtils::transFileTo(-1), QString());
+        QCOMPARE(ShogiNotation::fileZenkaku(-1), QString());
     }
 
-    // === parseFullwidthFile ===
+    // === ShogiNotation::fileFromZenkaku ===
 
-    void parseFullwidthFile_valid()
+    void fileFromZenkaku_valid()
     {
-        QCOMPARE(ShogiUtils::parseFullwidthFile(QChar(0xFF11)), 1); // '１'
-        QCOMPARE(ShogiUtils::parseFullwidthFile(QChar(0xFF15)), 5); // '５'
-        QCOMPARE(ShogiUtils::parseFullwidthFile(QChar(0xFF19)), 9); // '９'
+        QCOMPARE(ShogiNotation::fileFromZenkaku(QChar(0xFF11)), 1); // '１'
+        QCOMPARE(ShogiNotation::fileFromZenkaku(QChar(0xFF15)), 5); // '５'
+        QCOMPARE(ShogiNotation::fileFromZenkaku(QChar(0xFF19)), 9); // '９'
     }
 
-    void parseFullwidthFile_invalid()
+    void fileFromZenkaku_invalid()
     {
-        QCOMPARE(ShogiUtils::parseFullwidthFile(QChar('1')), 0);
-        QCOMPARE(ShogiUtils::parseFullwidthFile(QChar('A')), 0);
-        QCOMPARE(ShogiUtils::parseFullwidthFile(QChar(0xFF10)), 0); // '０' is out of range
+        QCOMPARE(ShogiNotation::fileFromZenkaku(QChar('1')), 0);
+        QCOMPARE(ShogiNotation::fileFromZenkaku(QChar('A')), 0);
+        QCOMPARE(ShogiNotation::fileFromZenkaku(QChar(0xFF10)), 0); // '０' is out of range
     }
 
-    // === parseKanjiRank ===
+    // === ShogiNotation::rankFromKanji ===
 
-    void parseKanjiRank_valid()
+    void rankFromKanji_valid()
     {
-        QCOMPARE(ShogiUtils::parseKanjiRank(QChar(u'一')), 1);
-        QCOMPARE(ShogiUtils::parseKanjiRank(QChar(u'五')), 5);
-        QCOMPARE(ShogiUtils::parseKanjiRank(QChar(u'九')), 9);
+        QCOMPARE(ShogiNotation::rankFromKanji(QChar(u'一')), 1);
+        QCOMPARE(ShogiNotation::rankFromKanji(QChar(u'五')), 5);
+        QCOMPARE(ShogiNotation::rankFromKanji(QChar(u'九')), 9);
     }
 
-    void parseKanjiRank_invalid()
+    void rankFromKanji_invalid()
     {
-        QCOMPARE(ShogiUtils::parseKanjiRank(QChar('1')), 0);
-        QCOMPARE(ShogiUtils::parseKanjiRank(QChar(u'十')), 0);
+        QCOMPARE(ShogiNotation::rankFromKanji(QChar('1')), 0);
+        QCOMPARE(ShogiNotation::rankFromKanji(QChar(u'十')), 0);
     }
 
     // === parseMoveLabel ===
@@ -120,13 +121,13 @@ private slots:
         QVERIFY(!result.has_value());
     }
 
-    // === moveToUsi ===
+    // === ShogiMove::toUsiMove ===
 
-    void moveToUsi_invalidCoordinates()
+    void toUsiMove_invalidCoordinates()
     {
         // 範囲外の移動先座標
         ShogiMove m(QPoint(0, 0), QPoint(-1, 0), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QString());
+        QCOMPARE(m.toUsiMove().toString(), QString());
     }
 };
 

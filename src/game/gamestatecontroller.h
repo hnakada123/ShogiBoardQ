@@ -11,7 +11,7 @@
 
 #include "playmode.h"
 #include "matchcoordinator.h"  // GameOverState, GameEndInfo, Cause, Player
-#include "shogigamecontroller.h"  // ShogiGameController::Player
+#include "shogigamecontroller.h"  // Turn
 
 class TimeControlController;
 class KifuRecordListModel;
@@ -68,7 +68,7 @@ public:
 
     // --- 人間/エンジン判定 ---
     bool isHvH() const;
-    bool isHumanSide(ShogiGameController::Player p) const;
+    bool isHumanSide(Turn p) const;
     bool isGameOver() const;
 
 public slots:

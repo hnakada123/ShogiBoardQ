@@ -147,7 +147,7 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
-        const auto turn = white ? EngineMoveValidator::WHITE : EngineMoveValidator::BLACK;
+        const auto turn = white ? Turn::White : Turn::Black;
         const auto side = white ? fmv::Color::White : fmv::Color::Black;
         QVERIFY(validator.syncContext(simulation, turn, board.boardData(), board.pieceStand()));
         const fmv::EnginePosition original = ctx.pos;
@@ -213,7 +213,7 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
-        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK, board.boardData(), board.pieceStand()));
+        QVERIFY(validator.syncContext(simulation, Turn::Black, board.boardData(), board.pieceStand()));
         const fmv::EnginePosition original = ctx.pos;
         ShogiMove move(QPoint(0, 2), QPoint(0, 1), Piece::BlackPawn, Piece::None, false);
         const auto status = validator.isLegalMove(ctx, move);
@@ -320,7 +320,7 @@ private slots:
             from = QPoint(8 - from.x(), 8 - from.y());
             to = QPoint(8 - to.x(), 8 - to.y());
         }
-        const auto turn = white ? EngineMoveValidator::WHITE : EngineMoveValidator::BLACK;
+        const auto turn = white ? Turn::White : Turn::Black;
         const auto side = white ? fmv::Color::White : fmv::Color::Black;
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;

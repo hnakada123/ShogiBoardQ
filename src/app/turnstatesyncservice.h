@@ -53,7 +53,7 @@ public:
     void setCurrentTurn();
 
     /// TurnManager 変更通知ハンドラ
-    void onTurnManagerChanged(ShogiGameController::Player now);
+    void onTurnManagerChanged(Turn now);
 
     /// 手番表示 + 時計表示を更新する
     void updateTurnAndTimekeepingDisplay();

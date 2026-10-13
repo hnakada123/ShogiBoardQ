@@ -92,6 +92,7 @@ public:
     }
     Usi* primaryEngine() const { return c_.primaryEngine(); }
     void handleMaxMovesJishogi() { c_.handleMaxMovesJishogi(); }
+    void handleEngineIllegalMove(int idx) { c_.handleEngineIllegalMove(idx); }
     void pokeTimeUpdateNow() { c_.pokeTimeUpdateNow(); }
 private:
     MatchCoordinator& c_;

@@ -155,9 +155,9 @@ bool DialogCoordinator::startConsiderationFromContext()
         const int movesSize = static_cast<int>(m_considerationCtx.gameMoves->size());
         if (movesSize > 0 && moveIdx >= 0 && moveIdx < movesSize) {
             if (isBlackPiece(m_considerationCtx.gameMoves->at(moveIdx).movingPiece))
-                m_considerationCtx.gameController->setCurrentPlayer(ShogiGameController::Player1);
+                m_considerationCtx.gameController->setCurrentPlayer(Turn::Black);
             else
-                m_considerationCtx.gameController->setCurrentPlayer(ShogiGameController::Player2);
+                m_considerationCtx.gameController->setCurrentPlayer(Turn::White);
         }
     }
 

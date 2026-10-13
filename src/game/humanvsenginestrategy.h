@@ -37,7 +37,7 @@ public:
 
 private slots:
     void onEngineInitialized();
-    void onEngineMoveReady(QPoint from, QPoint to, const QString& position, const QString& ponder);
+    void onEngineMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
 
 private:
     bool m_waitingForMove = false;

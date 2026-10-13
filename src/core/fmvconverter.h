@@ -28,11 +28,11 @@ public:
                                  const QMap<Piece, int>& pieceStand);
 
     static bool toEngineMove(ConvertedMove& out,
-                             const EngineMoveValidator::Turn& turn,
+                             Turn turn,
                              const EnginePosition& pos,
                              const ShogiMove& in);
 
-    static Color toColor(const EngineMoveValidator::Turn& t) noexcept;
+    static Color toColor(Turn t) noexcept;
 };
 
 } // namespace fmv

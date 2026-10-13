@@ -29,6 +29,8 @@ public:
 
     /// 起動要求の受付を返す。完了は ready、失敗は errorOccurred で通知する。
     [[nodiscard]] bool startAsync(const QString& enginePath, const QString& engineName, QString* error = nullptr);
+    /// 起動から readyok までの待ち時間（既定 5000ms。大きなハッシュを確保するエンジンなどで延ばす）
+    void setInitializationTimeoutMs(int timeoutMs) { m_initializationTimeoutMs = qMax(1, timeoutMs); }
     /// quit を送ってプロセスを止める（未起動なら何もしない）
     void quit();
     bool isRunning() const;
@@ -55,6 +57,7 @@ private:
     bool m_starting = false;
     bool m_initializing = false;
     QTimer m_startTimer;
+    int m_initializationTimeoutMs = 5000;
 };
 
 #endif // USIENGINESESSION_H

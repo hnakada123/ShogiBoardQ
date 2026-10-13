@@ -8,6 +8,8 @@
 #include <QString>
 #include <QStringList>
 #include <QSet>
+#include <QHash>
+#include <QPair>
 #include <QMap>
 #include <QPoint>
 #include <QElapsedTimer>
@@ -15,6 +17,7 @@
 #include <optional>
 
 #include "shogitypes.h"
+#include "usimove.h"
 #include "usigotime.h"
 
 class EngineProcessManager;
@@ -74,6 +77,20 @@ public:
     /// 設定ファイルからオプションを読み込み
     void loadEngineOptions(const QString& engineName);
 
+    /**
+     * @brief この接続だけで送るオプションを設定する（保存済みの設定の後に送り、同名なら上書きする）
+     *
+     * 登録済みの設定は変えずに、用途に必要な値（詰み探索の最短手数の確認など）を指定する。
+     * 保存済みの設定と同じく、エンジンが報告したオプションだけを送る。
+     */
+    void setSessionOptions(const QList<QPair<QString, QString>>& options) { m_sessionOptions = options; }
+
+    /// usi〜usiok でエンジンが報告した id name（未受信なら空）
+    QString reportedEngineName() const { return m_reportedEngineName; }
+
+    /// エンジンが報告したオプションの定義行（"option name ..."。報告がなければ空）
+    QString reportedOptionLine(const QString& name) const { return m_reportedOptionLines.value(name); }
+
     // --- USIコマンド送信 ---
     
     void sendUsi();
@@ -107,22 +124,14 @@ public:
 
     // --- 指し手処理 ---
 
-    /// bestmoveの座標を解析
-    void parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& rankTo);
-
-    /// 人間の指し手をUSI形式に変換
-    QString convertHumanMoveToUsi(const QPoint& from, const QPoint& to, bool promote);
+    /// 受け取った bestmove を指し手にする。特殊手（投了など）は nullopt、形式が違えばエラーを出して nullopt
+    std::optional<UsiMove> parseBestMove();
 
     /// 現在のbestmoveを取得
     QString bestMove() const { return m_bestMove; }
 
     /// 予想手を取得
     QString predictedMove() const { return m_predictedOpponentMove; }
-
-    // --- 座標変換ユーティリティ（UsiMoveCoordinateConverterへの委譲） ---
-
-    static QChar rankToAlphabet(int rank);
-    [[nodiscard]] static std::optional<int> alphabetToRank(QChar c);
 
     // --- 状態管理 ---
     
@@ -218,6 +227,9 @@ private:
     // --- 設定 ---
     QStringList m_setOptionCommands;   ///< 初期化時に送信するsetoptionコマンド群
     QSet<QString> m_reportedOptions;   ///< エンジンが報告したオプション名（usi〜usiok間）
+    QHash<QString, QString> m_reportedOptionLines; ///< オプション名 → 定義行（usi〜usiok間）
+    QString m_reportedEngineName;      ///< エンジンが報告した id name
+    QList<QPair<QString, QString>> m_sessionOptions; ///< この接続だけで送るオプション
     bool m_sendUnreportedPonderOption = true; ///< 未報告のUSI_Ponderにも設定を通知
 
     // --- 計測 ---

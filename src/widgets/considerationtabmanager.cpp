@@ -2,19 +2,17 @@
 /// @brief 検討タブ管理クラスの実装（状態管理・設定・イベント処理）
 
 #include "considerationtabmanager.h"
+#include "enginelistsettings.h"
 #include "engineinfowidget.h"
 #include "logviewfontmanager.h"
 #include "logcategories.h"
-#include "settingscommon.h"
 #include "analysissettings.h"
-#include "enginesettingsconstants.h"
 
 #include <QCheckBox>
 #include <QComboBox>
 #include <QLabel>
 #include <QMessageBox>
 #include <QRadioButton>
-#include <QSettings>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QTimer>
@@ -133,19 +131,16 @@ void ConsiderationTabManager::loadEngineList()
     const QString selectedName = m_engineComboBox->currentText();
     m_engineComboBox->clear();
 
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    const int size = settings.beginReadArray(EngineSettingsConstants::EnginesGroupName);
-    for (int i = 0; i < size; i++) {
-        settings.setArrayIndex(i);
-        const QString name = settings.value(EngineSettingsConstants::EngineNameKey).toString();
-        m_engineComboBox->addItem(name);
-        m_engineComboBox->setItemData(i, name, Qt::ToolTipRole);
+    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
+    for (qsizetype i = 0; i < engines.size(); ++i) {
+        m_engineComboBox->addItem(engines.at(i).name);
+        m_engineComboBox->setItemData(static_cast<int>(i), engines.at(i).name, Qt::ToolTipRole);
     }
-    settings.endArray();
+    // 選び直した一覧でも、前に選んでいたエンジン（無ければ保存した選択）を選ぶ
     const int previousIndex = m_engineComboBox->findText(selectedName);
     if (m_engineComboBox->count() > 0) {
-        m_engineComboBox->setCurrentIndex(previousIndex >= 0 ? previousIndex
-            : qBound(0, AnalysisSettings::considerationEngineIndex(), m_engineComboBox->count() - 1));
+        const int saved = EngineListSettings::restoreSelection(EngineListSettings::considerationSelection(), engines);
+        m_engineComboBox->setCurrentIndex(previousIndex >= 0 ? previousIndex : qMax(0, saved));
     }
 }
 
@@ -159,7 +154,8 @@ void ConsiderationTabManager::loadConsiderationTabSettings()
     const QSignalBlocker timedBlocker(m_considerationTimeRadioButton);
     const QSignalBlocker secondsBlocker(m_byoyomiSecSpinBox);
     const QSignalBlocker multiPVBlocker(m_multiPVComboBox);
-    const int engineIndex = AnalysisSettings::considerationEngineIndex();
+    const int engineIndex = EngineListSettings::restoreSelection(EngineListSettings::considerationSelection(),
+                                                                 EngineListSettings::loadEngines());
     if (m_engineComboBox && engineIndex >= 0 && engineIndex < m_engineComboBox->count()) {
         m_engineComboBox->setCurrentIndex(engineIndex);
     }
@@ -188,7 +184,7 @@ void ConsiderationTabManager::loadConsiderationTabSettings()
 void ConsiderationTabManager::saveConsiderationTabSettings()
 {
     if (m_engineComboBox) {
-        AnalysisSettings::setConsiderationEngineIndex(m_engineComboBox->currentIndex());
+        EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), m_engineComboBox->currentText());
     }
 
     if (m_unlimitedTimeRadioButton && m_byoyomiSecSpinBox) {

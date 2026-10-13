@@ -23,8 +23,9 @@
 // test_stubs_gamestrategy.cpp で定義されたトラッカー
 // ============================================================
 namespace StrategyTracker {
-extern bool validateAndMoveReturnValue;
-extern int  validateAndMoveCallCount;
+extern bool applyMoveReturnValue;
+extern int  applyMoveCallCount;
+extern int  engineIllegalMoveCount;
 extern bool sennichiteDetected;
 extern int  maxMovesJishogiCount;
 extern int  requestHumanReplyCount;
@@ -132,7 +133,7 @@ class Tst_GameStrategy : public QObject
 private slots:
     // === Section A: HumanVsHumanStrategy ===
     void hvh_needsEngine_returnsFalse();
-    void hvh_start_defaultsToPlayer1WhenNoPlayer();
+    void hvh_start_defaultsToBlack();
     void hvh_start_preservesPlayer2WhenSet();
     void hvh_start_callsRenderAndUpdateTurnHooks();
     void hvh_onHumanMove_recordsMoveBeforeSennichite();
@@ -186,17 +187,17 @@ void Tst_GameStrategy::hvh_needsEngine_returnsFalse()
     QVERIFY(!hvh.needsEngine());
 }
 
-void Tst_GameStrategy::hvh_start_defaultsToPlayer1WhenNoPlayer()
+void Tst_GameStrategy::hvh_start_defaultsToBlack()
 {
     StrategyTestHarness h;
-    // GC starts as NoPlayer
-    QCOMPARE(h.gc.currentPlayer(), ShogiGameController::NoPlayer);
+    // 新しい対局の前の GC の手番は先手
+    QCOMPARE(h.gc.currentPlayer(), Turn::Black);
 
     HumanVsHumanStrategy hvh(h.mc->strategyCtx());
     hvh.start();
 
     // GC should be set to Player1
-    QCOMPARE(h.gc.currentPlayer(), ShogiGameController::Player1);
+    QCOMPARE(h.gc.currentPlayer(), Turn::Black);
     // MC turn should be P1
     QCOMPARE(h.lastTurnPlayer, MatchCoordinator::P1);
 }
@@ -204,13 +205,13 @@ void Tst_GameStrategy::hvh_start_defaultsToPlayer1WhenNoPlayer()
 void Tst_GameStrategy::hvh_start_preservesPlayer2WhenSet()
 {
     StrategyTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(Turn::White);
 
     HumanVsHumanStrategy hvh(h.mc->strategyCtx());
     hvh.start();
 
     // GC should remain Player2
-    QCOMPARE(h.gc.currentPlayer(), ShogiGameController::Player2);
+    QCOMPARE(h.gc.currentPlayer(), Turn::White);
     // MC turn should be P2
     QCOMPARE(h.lastTurnPlayer, MatchCoordinator::P2);
 }
@@ -231,7 +232,7 @@ void Tst_GameStrategy::hvh_onHumanMove_recordsMoveBeforeSennichite()
     StrategyTracker::sennichiteDetected = true;
 
     HumanVsHumanStrategy hvh(h.mc->strategyCtx());
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
     hvh.start();
     h.resetTrackers();
 
@@ -271,7 +272,7 @@ void Tst_GameStrategy::hvh_onHumanMove_maxMoves()
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"),
     };
-    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(Turn::White);
     h.resetTrackers();
 
     hvh.onHumanMove(QPoint(7, 7), QPoint(7, 6), QStringLiteral("▲７六歩(77)"));
@@ -287,7 +288,7 @@ void Tst_GameStrategy::hvh_onHumanMove_callsFinishTimerAndByoyomi()
     StrategyTracker::sennichiteDetected = false;
 
     HumanVsHumanStrategy hvh(h.mc->strategyCtx());
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
     hvh.start();
 
     // Arm the timer first
@@ -296,7 +297,7 @@ void Tst_GameStrategy::hvh_onHumanMove_callsFinishTimerAndByoyomi()
     h.resetTrackers();
 
     // Make a move (GC says Player1 is current = next player, so mover is P2)
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
     hvh.onHumanMove(QPoint(7, 7), QPoint(7, 6), QStringLiteral("dummy"));
 
     // The method should complete without crash, arms timer for next turn
@@ -466,7 +467,7 @@ void Tst_GameStrategy::hve_initializationClock()
     StrategyTestHarness h;
     h.mc->setPlayMode(engineIsP1 ? PlayMode::EvenEngineVsHuman : PlayMode::EvenHumanVsEngine);
     const bool blackToMove = engineIsP1 != humanToMove;
-    h.gc.setCurrentPlayer(blackToMove ? ShogiGameController::Player1 : ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(blackToMove ? Turn::Black : Turn::White);
     HumanVsEngineStrategy hve(h.mc->strategyCtx(), engineIsP1,
                              QStringLiteral("/dummy/engine"), QStringLiteral("TestEngine"));
     hve.start();
@@ -490,7 +491,7 @@ void Tst_GameStrategy::hve_startInitialMove_engineIsP1()
 {
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenEngineVsHuman);
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
 
     HumanVsEngineStrategy hve(h.mc->strategyCtx(), true,
                                QStringLiteral("/dummy/engine"),
@@ -498,23 +499,23 @@ void Tst_GameStrategy::hve_startInitialMove_engineIsP1()
     hve.start();
 
     h.resetTrackers();
-    StrategyTracker::validateAndMoveReturnValue = true;
+    StrategyTracker::applyMoveReturnValue = true;
 
     // Engine is P1, GC says Player1 to move → engine should attempt initial move
     hve.startInitialMoveIfNeeded();
 
     // 送信時は盤面を変更せず、応答を受信してから着手する。
-    QCOMPARE(StrategyTracker::validateAndMoveCallCount, 0);
+    QCOMPARE(StrategyTracker::applyMoveCallCount, 0);
     emit h.mc->strategyCtx().primaryEngine()->matchMoveReady(
-        QPoint(7, 7), QPoint(7, 6), QStringLiteral("position startpos moves 7g7f"), {});
-    QVERIFY(StrategyTracker::validateAndMoveCallCount > 0);
+        *UsiMove::parse(u"7g7f"), QStringLiteral("position startpos moves 7g7f"), {});
+    QVERIFY(StrategyTracker::applyMoveCallCount > 0);
 }
 
 void Tst_GameStrategy::hve_startInitialMove_noMoveWhenHumanTurn()
 {
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
 
     HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
                                QStringLiteral("/dummy/engine"),
@@ -522,20 +523,20 @@ void Tst_GameStrategy::hve_startInitialMove_noMoveWhenHumanTurn()
     hve.start();
 
     h.resetTrackers();
-    StrategyTracker::validateAndMoveCallCount = 0;
+    StrategyTracker::applyMoveCallCount = 0;
 
     // Engine is P2, GC says Player1 to move → no initial move
     hve.startInitialMoveIfNeeded();
 
-    // validateAndMove should NOT have been called
-    QCOMPARE(StrategyTracker::validateAndMoveCallCount, 0);
+    // applyMove should NOT have been called
+    QCOMPARE(StrategyTracker::applyMoveCallCount, 0);
 }
 
 void Tst_GameStrategy::hve_onHumanMove_showsHighlightAndAppendsKifu()
 {
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
-    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(Turn::White);
 
     HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
                                QStringLiteral("/dummy/engine"),
@@ -543,7 +544,7 @@ void Tst_GameStrategy::hve_onHumanMove_showsHighlightAndAppendsKifu()
     hve.start();
     h.resetTrackers();
 
-    StrategyTracker::validateAndMoveReturnValue = true;
+    StrategyTracker::applyMoveReturnValue = true;
 
     const QPoint from(7, 7);
     const QPoint to(7, 6);
@@ -590,7 +591,7 @@ void Tst_GameStrategy::hve_onHumanMove_maxMovesReachedByHuman()
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"),
     };
-    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(Turn::White);
 
     hve.onHumanMove(QPoint(7, 7), QPoint(7, 6), QStringLiteral("▲７六歩"));
 
@@ -613,7 +614,7 @@ void Tst_GameStrategy::hve_onEngineMove_recordsMoveBeforeSennichite()
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"),
     };
-    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(Turn::White);
     hve.onHumanMove(QPoint(7, 7), QPoint(7, 6), QStringLiteral("▲７六歩(77)"));
     QCOMPARE(StrategyTracker::requestHumanReplyCount, 1);
     h.resetTrackers();
@@ -622,7 +623,7 @@ void Tst_GameStrategy::hve_onEngineMove_recordsMoveBeforeSennichite()
     StrategyTracker::sennichiteDetected = true;
     Usi* eng = h.mc->primaryEngine();
     QVERIFY(eng);
-    Q_EMIT eng->matchMoveReady(QPoint(3, 3), QPoint(3, 4),
+    Q_EMIT eng->matchMoveReady(*UsiMove::parse(u"3c3d"),
                                QStringLiteral("position startpos moves 7g7f 3c3d"), QString());
 
     // 千日手を成立させたエンジンの手も棋譜と盤面に反映してから終局する
@@ -716,10 +717,10 @@ void Tst_GameStrategy::policy_humanTurn_onlyWhileGameInProgress_data()
 {
     QTest::addColumn<int>("mode");
     QTest::addColumn<int>("humanPlayer");
-    QTest::newRow("human-vs-human") << int(PlayMode::HumanVsHuman) << int(ShogiGameController::Player1);
-    QTest::newRow("human-vs-engine") << int(PlayMode::EvenHumanVsEngine) << int(ShogiGameController::Player1);
-    QTest::newRow("engine-vs-human") << int(PlayMode::EvenEngineVsHuman) << int(ShogiGameController::Player2);
-    QTest::newRow("handicap-human-vs-engine") << int(PlayMode::HandicapHumanVsEngine) << int(ShogiGameController::Player1);
+    QTest::newRow("human-vs-human") << int(PlayMode::HumanVsHuman) << int(Turn::Black);
+    QTest::newRow("human-vs-engine") << int(PlayMode::EvenHumanVsEngine) << int(Turn::Black);
+    QTest::newRow("engine-vs-human") << int(PlayMode::EvenEngineVsHuman) << int(Turn::White);
+    QTest::newRow("handicap-human-vs-engine") << int(PlayMode::HandicapHumanVsEngine) << int(Turn::Black);
 }
 
 void Tst_GameStrategy::policy_humanTurn_onlyWhileGameInProgress()
@@ -728,7 +729,7 @@ void Tst_GameStrategy::policy_humanTurn_onlyWhileGameInProgress()
     QFETCH(int, humanPlayer);
     StrategyTestHarness h;
     PlayMode playMode = static_cast<PlayMode>(mode);
-    h.gc.setCurrentPlayer(static_cast<ShogiGameController::Player>(humanPlayer));
+    h.gc.setCurrentPlayer(static_cast<Turn>(humanPlayer));
 
     PlayModePolicyService policy;
     PlayModePolicyService::Deps deps;

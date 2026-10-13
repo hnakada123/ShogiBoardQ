@@ -15,7 +15,7 @@ fmv::LegalCore& legalCore()
 } // namespace
 
 bool EngineMoveValidator::syncContext(Context& ctx,
-                                      const Turn& turn,
+                                      Turn turn,
                                       const QList<Piece>& boardData,
                                       const QMap<Piece, int>& pieceStand) const
 {
@@ -63,7 +63,7 @@ int EngineMoveValidator::checkIfKingInCheck(Context& ctx) const
 
 #ifdef SHOGIBOARDQ_TESTING
 bool EngineMoveValidator::syncContext(SimulationContext& simulation,
-                                      const Turn& turn,
+                                      Turn turn,
                                       const QList<Piece>& boardData,
                                       const QMap<Piece, int>& pieceStand) const
 {
@@ -91,7 +91,7 @@ bool EngineMoveValidator::tryApplyMove(SimulationContext& simulation, ShogiMove&
     }
 
     simulation.undoStack[static_cast<std::size_t>(simulation.undoSize++)] = undo;
-    ctx.turn = (ctx.turn == BLACK) ? WHITE : BLACK;
+    ctx.turn = (ctx.turn == Turn::Black) ? Turn::White : Turn::Black;
     return true;
 }
 
@@ -102,7 +102,7 @@ bool EngineMoveValidator::undoLastMove(SimulationContext& simulation) const
         return false;
     }
 
-    ctx.turn = (ctx.turn == BLACK) ? WHITE : BLACK;
+    ctx.turn = (ctx.turn == Turn::Black) ? Turn::White : Turn::Black;
     const fmv::Color side = fmv::Converter::toColor(ctx.turn);
     const fmv::UndoState undo = simulation.undoStack[static_cast<std::size_t>(--simulation.undoSize)];
     legalCore().undoAppliedMove(ctx.pos, side, undo);
@@ -112,7 +112,7 @@ bool EngineMoveValidator::undoLastMove(SimulationContext& simulation) const
 
 // ---- 互換ラッパ（毎回Contextを作る） ----
 
-LegalMoveStatus EngineMoveValidator::isLegalMove(const Turn& turn,
+LegalMoveStatus EngineMoveValidator::isLegalMove(Turn turn,
                                                   const QList<Piece>& boardData,
                                                   const QMap<Piece, int>& pieceStand,
                                                   ShogiMove& currentMove) const
@@ -124,7 +124,7 @@ LegalMoveStatus EngineMoveValidator::isLegalMove(const Turn& turn,
     return isLegalMove(ctx, currentMove);
 }
 
-int EngineMoveValidator::generateLegalMoves(const Turn& turn,
+int EngineMoveValidator::generateLegalMoves(Turn turn,
                                              const QList<Piece>& boardData,
                                              const QMap<Piece, int>& pieceStand) const
 {
@@ -135,7 +135,7 @@ int EngineMoveValidator::generateLegalMoves(const Turn& turn,
     return generateLegalMoves(ctx);
 }
 
-int EngineMoveValidator::checkIfKingInCheck(const Turn& turn,
+int EngineMoveValidator::checkIfKingInCheck(Turn turn,
                                              const QList<Piece>& boardData) const
 {
     Context ctx;

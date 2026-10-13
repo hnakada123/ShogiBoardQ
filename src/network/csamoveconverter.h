@@ -48,6 +48,9 @@ public:
     /// CSA駒記号を漢字に変換する
     static QString csaPieceToKanji(const QString& csaPiece);
 
+    /// CSA の指し手（"+2822UM" など）が成る手か。盤は指す前の局面（移動元の駒が成っていなければ成る手）
+    static bool isPromotionMove(const QString& csaMove, ShogiBoard* board);
+
     /// CSA駒種から駒台インデックスを取得する
     static int pieceTypeFromCsa(const QString& csaPiece);
 

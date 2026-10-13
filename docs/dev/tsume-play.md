@@ -176,14 +176,17 @@ SHA-256が変わるため通常の解析に戻る。ファイル名や外部のJ
 - `TsumePositionPreview`: 表示中のページにのみ作る、軽量な盤面・持駒表示。
 - `TsumePlayDialog` / `TsumeGameSession`: 入力と対局状態、応手選択、保留・待った。
 - `TsumeSolutionReplay`: 検証済みの正解手順の取得と、対局状態から独立した手順再生。
-- `TsumeMateEngine`: 非同期USI子プロセス。`TsumePositionAnalyzer`: 判定方式選択とキャッシュ。
+- `TsumeMateEngine`: ほかの機能と同じ `UsiEngineSession`（USI の手順と設定の送り方）で動かす詰み判定。`TsumePositionAnalyzer`: 判定方式選択とキャッシュ。
 - `TsumeProgressStore`: 設定ファイルとは独立したSQLite集計と解析キャッシュ。
 - `TsumeshogiSettings`: SettingsServiceのドメイン設定としてUI設定を保存。
 
 KomoringHeightsは `PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、
-`RootIsAndNodeIfChecked=false` を必須とし、対応オプションがあれば
-`NodesLimit=0`、`MultiPV=1`、`Threads=1`、`USI_Hash=256` を指定する。
-登録済みエンジンの一般対局用設定は変更せず、専用プロセス内だけで指定する。
+`RootIsAndNodeIfChecked=false` を必須とする。エンジンには登録済みの設定（スレッド数・ハッシュなど、
+エンジン設定ダイアログで変えたもの）を送り、そのうえで最短手数の確認に必要な
+`PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、`RootIsAndNodeIfChecked=false`、
+`NodesLimit=0`、`MultiPV=1` を、この接続に限って上書きする（`UsiProtocolHandler::setSessionOptions`）。
+登録済みの設定そのものは変えない。2026-10-13 までは `Threads=1`、`USI_Hash=256` も固定で送っていたので、
+利用者が設定したスレッド数とハッシュが使われていなかった。
 
 KomoringHeights 1.1.0では最短化の途中で時間制限に達しても発見済み手順を返す場合があるため、
 `go mate infinite` を送り、GUI側のタイマーで打ち切る。自然終了した結果だけを確定とし、

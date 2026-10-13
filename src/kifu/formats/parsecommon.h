@@ -39,8 +39,6 @@ struct MoveDestination {
 
 [[nodiscard]] std::optional<KanjiPieceResult> mapKanjiPiece(QStringView text);
 
-[[nodiscard]] std::optional<int> parseFileChar(QChar ch);   // '1'〜'9' → 1〜9
-[[nodiscard]] std::optional<int> parseRankChar(QChar ch);   // 'a'〜'i' → 1〜9
 [[nodiscard]] std::optional<int> parseDigit(QChar ch);      // '0'〜'9' → 0〜9
 
 // 改行区切りで追記（buf が空でなければ '\n' を挿入してから text を追加）

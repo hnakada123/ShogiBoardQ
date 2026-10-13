@@ -117,7 +117,7 @@ public:
     void setCurrentTurn();
     void displayGameRecord(const QList<KifDisplayItem>& disp);
     void onMoveRequested(const QPoint& from, const QPoint& to);
-    void onMoveCommitted(ShogiGameController::Player mover, int ply);
+    void onMoveCommitted(Turn mover, int ply);
     /// 自動化 API（--automation）の待ち受けを開始する（ServiceRegistry へ委譲）
     void startAutomationServer(const QString& socketPath);
 
@@ -126,7 +126,7 @@ protected:
     void closeEvent(QCloseEvent* event) override;
 
 private slots:
-    void onTurnManagerChanged(ShogiGameController::Player now);
+    void onTurnManagerChanged(Turn now);
     void setReplayMode(bool on);
     void loadBoardFromSfen(const QString& sfen);
 

@@ -266,7 +266,7 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
     // 合法判定＆盤面反映
     const bool ok = m_gameController->validateAndMove(
-        hFrom, hTo, m_lastMove, modeNow, nextIdx, m_sfenHistory, *m_gameMoves);
+        hFrom, hTo, m_lastMove, nextIdx, m_sfenHistory, *m_gameMoves);
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
     if (!ok) {
@@ -302,9 +302,8 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     case PlayMode::CsaNetworkMode: {
         qCDebug(lcUi) << "CsaNetworkMode: emitting csaMoveRequested";
         qCDebug(lcUi) << "BoardSetup: hFrom=" << hFrom << "hTo=" << hTo;
-        // 成り判定（移動先が敵陣であれば成りダイアログを表示すべきだが、
-        // ここでは簡易的にfalseを送信。実際には成り確認ダイアログが必要）
-        bool promote = m_gameController ? m_gameController->promote() : false;
+        // 成り・不成は validateAndMove で決まった（選ばせた）ものを送る
+        const bool promote = m_gameController && m_gameController->lastMove().promote;
         qCDebug(lcUi) << "BoardSetup: promote=" << promote;
         Q_EMIT csaMoveRequested(hFrom, hTo, promote);
         qCDebug(lcUi) << "BoardSetup: csaMoveRequested emitted";
@@ -317,7 +316,7 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     }
 }
 
-void BoardSetupController::onMoveCommitted(ShogiGameController::Player mover, int ply)
+void BoardSetupController::onMoveCommitted(Turn mover, int ply)
 {
     // 分岐ツリー更新を遅延呼び出し
     if (m_refreshBranchTree) {
@@ -334,11 +333,11 @@ void BoardSetupController::onMoveCommitted(ShogiGameController::Player mover, in
         (m_playMode == PlayMode::HandicapEngineVsEngine);
 
     if (isEvE) {
-        if (mover == ShogiGameController::Player1) {
+        if (mover == Turn::Black) {
             if (m_redrawEngine1Graph) {
                 m_redrawEngine1Graph(ply);
             }
-        } else if (mover == ShogiGameController::Player2) {
+        } else if (mover == Turn::White) {
             if (m_redrawEngine2Graph) {
                 m_redrawEngine2Graph(ply);
             }

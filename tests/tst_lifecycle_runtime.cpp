@@ -30,8 +30,8 @@ void TestLifecycleRuntime::testQueryServiceWithNullDeps()
     QCOMPARE(service.isGameActivelyInProgress(), false);
     QCOMPARE(service.isHvH(), false);
     QCOMPARE(service.isHumanTurnNow(), false);
-    QCOMPARE(service.isHumanSide(ShogiGameController::Player1), false);
-    QCOMPARE(service.isHumanSide(ShogiGameController::Player2), false);
+    QCOMPARE(service.isHumanSide(Turn::Black), false);
+    QCOMPARE(service.isHumanSide(Turn::White), false);
 
 
     QCOMPARE(service.sfenRecord(), nullptr);
@@ -56,7 +56,7 @@ void TestLifecycleRuntime::testQueryServiceAfterDepsInvalidation()
     QCOMPARE(service.isGameActivelyInProgress(), false);
     QCOMPARE(service.isHvH(), false);
     QCOMPARE(service.isHumanTurnNow(), false);
-    QCOMPARE(service.isHumanSide(ShogiGameController::Player1), false);
+    QCOMPARE(service.isHumanSide(Turn::Black), false);
 
 
     QCOMPARE(service.sfenRecord(), nullptr);
@@ -103,7 +103,7 @@ void TestLifecycleRuntime::testPlayModePolicyServiceWithNullDeps()
     PlayModePolicyService policy;
 
     QCOMPARE(policy.isHumanTurnNow(), false);
-    QCOMPARE(policy.isHumanSide(ShogiGameController::Player1), false);
+    QCOMPARE(policy.isHumanSide(Turn::Black), false);
     QCOMPARE(policy.isHvH(), false);
     QCOMPARE(policy.isGameActivelyInProgress(), false);
 }

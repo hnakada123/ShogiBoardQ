@@ -76,9 +76,9 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
         if (tokens.size() < 2) continue;
 
         const bool sideToMoveIsBlack = (tokens.at(1) == QLatin1String("b"));
-        const EngineMoveValidator::Turn turn = sideToMoveIsBlack
-                                                   ? EngineMoveValidator::BLACK
-                                                   : EngineMoveValidator::WHITE;
+        const Turn turn = sideToMoveIsBlack
+                                                   ? Turn::Black
+                                                   : Turn::White;
 
         // 手番側の玉が王手されているか（= 直前の相手の手が王手）
         const bool inCheck = validator.checkIfKingInCheck(turn, board.boardData()) > 0;

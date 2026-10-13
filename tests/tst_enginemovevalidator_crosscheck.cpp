@@ -9,7 +9,7 @@ class TestEngineMoveValidatorCrosscheck : public QObject
     Q_OBJECT
 
     void verifyLegalMoveCount(const QString& sfen,
-                              EngineMoveValidator::Turn turn,
+                              Turn turn,
                               int expectedCount)
     {
         ShogiBoard board;
@@ -21,7 +21,7 @@ class TestEngineMoveValidatorCrosscheck : public QObject
     }
 
     void verifyKingInCheck(const QString& sfen,
-                           EngineMoveValidator::Turn turn,
+                           Turn turn,
                            int expectedChecks)
     {
         ShogiBoard board;
@@ -37,14 +37,14 @@ private slots:
     {
         verifyLegalMoveCount(
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
-            EngineMoveValidator::BLACK, 30);
+            Turn::Black, 30);
     }
 
     void crosscheck_hirate_white()
     {
         verifyLegalMoveCount(
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            EngineMoveValidator::WHITE, 30);
+            Turn::White, 30);
     }
 
     void crosscheck_midgame()
@@ -54,7 +54,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
         EngineMoveValidator emv;
-        int count = emv.generateLegalMoves(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand());
+        int count = emv.generateLegalMoves(Turn::Black, board.boardData(), board.pieceStand());
         QVERIFY(count > 0);
     }
 
@@ -65,7 +65,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
         EngineMoveValidator emv;
-        int count = emv.generateLegalMoves(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand());
+        int count = emv.generateLegalMoves(Turn::Black, board.boardData(), board.pieceStand());
         QVERIFY(count > 30);  // 持ち駒があるので平手より多い
     }
 
@@ -73,12 +73,12 @@ private slots:
     {
         // 王手局面
         QString sfen = QStringLiteral("lnsgk1snl/1r4gb1/ppppppppp/9/9/4r4/PPPP1PPPP/1B5R1/LNSGKGSNL b - 1");
-        verifyKingInCheck(sfen, EngineMoveValidator::BLACK, 1);
+        verifyKingInCheck(sfen, Turn::Black, 1);
 
         ShogiBoard board;
         board.setSfen(sfen);
         EngineMoveValidator emv;
-        int count = emv.generateLegalMoves(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand());
+        int count = emv.generateLegalMoves(Turn::Black, board.boardData(), board.pieceStand());
         QVERIFY(count > 0);  // 王手回避手が存在する
     }
 
@@ -86,7 +86,7 @@ private slots:
     {
         verifyKingInCheck(
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
-            EngineMoveValidator::BLACK, 0);
+            Turn::Black, 0);
     }
 
     void crosscheck_isLegalMove()
@@ -98,14 +98,14 @@ private slots:
 
         // 合法手: 7六歩
         ShogiMove legalMove(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
-        auto st = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), legalMove);
+        auto st = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), legalMove);
 
         QCOMPARE(st.nonPromotingMoveExists, true);
         QCOMPARE(st.promotingMoveExists, false);
 
         // 不合法手: 7六歩→7七（後退）
         ShogiMove illegalMove(QPoint(6, 6), QPoint(6, 7), Piece::BlackPawn, Piece::None, false);
-        auto st2 = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), illegalMove);
+        auto st2 = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), illegalMove);
 
         QCOMPARE(st2.nonPromotingMoveExists, false);
         QCOMPARE(st2.promotingMoveExists, false);
@@ -121,7 +121,7 @@ private slots:
         EngineMoveValidator emv;
 
         ShogiMove move(QPoint(4, 3), QPoint(4, 2), Piece::BlackPawn, Piece::None, false);
-        auto st = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), move);
+        auto st = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), move);
 
         QCOMPARE(st.nonPromotingMoveExists, true);
         QCOMPARE(st.promotingMoveExists, true);
@@ -131,7 +131,7 @@ private slots:
     {
         // 後手番の局面
         QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 2");
-        verifyLegalMoveCount(sfen, EngineMoveValidator::WHITE, 30);
+        verifyLegalMoveCount(sfen, Turn::White, 30);
     }
 
     // ---- メタデータ互換性テスト ----
@@ -146,7 +146,7 @@ private slots:
 
         // 7七歩の位置にPawnがあるが、movingPieceをSilverと偽る
         ShogiMove badPiece(QPoint(6, 6), QPoint(6, 5), Piece::BlackSilver, Piece::None, false);
-        auto st = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), badPiece);
+        auto st = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), badPiece);
 
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);
@@ -162,7 +162,7 @@ private slots:
 
         // 6五マスは空だが capturedPiece に BlackPawn を指定
         ShogiMove badCapture(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::BlackPawn, false);
-        auto st = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), badCapture);
+        auto st = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), badCapture);
 
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);
@@ -178,7 +178,7 @@ private slots:
 
         // 先手の銀打ちだが fromX=10（後手側）
         ShogiMove badHand(QPoint(10, 3), QPoint(4, 4), Piece::BlackSilver, Piece::None, false);
-        auto st = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), badHand);
+        auto st = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), badHand);
 
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);
@@ -194,7 +194,7 @@ private slots:
 
         // 先手の銀（期待Rank=3）だが Rank=0 を指定
         ShogiMove badRank(QPoint(9, 0), QPoint(4, 4), Piece::BlackSilver, Piece::None, false);
-        auto st = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), badRank);
+        auto st = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), badRank);
 
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);
@@ -210,7 +210,7 @@ private slots:
 
         // 銀を持っていないのに打つ
         ShogiMove noPiece(QPoint(9, 3), QPoint(4, 4), Piece::BlackSilver, Piece::None, false);
-        auto st = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), noPiece);
+        auto st = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), noPiece);
 
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);
@@ -226,7 +226,7 @@ private slots:
 
         // 先手番だが後手の銀を打とうとする
         ShogiMove oppPiece(QPoint(9, 3), QPoint(4, 4), Piece::WhiteSilver, Piece::None, false);
-        auto st = emv.isLegalMove(EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), oppPiece);
+        auto st = emv.isLegalMove(Turn::Black, board.boardData(), board.pieceStand(), oppPiece);
 
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);

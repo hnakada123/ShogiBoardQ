@@ -130,7 +130,7 @@ void ShogiView::setActiveIsBlack(bool) {}
 void ShogiView::setGameOverStyleLock(bool) {}
 ShogiViewHighlighting* ShogiView::highlighting() const { return nullptr; }
 void ShogiView::setUrgencyVisuals(Urgency) {}
-void ShogiView::updateTurnIndicator(ShogiGameController::Player) {}
+void ShogiView::updateTurnIndicator(Turn) {}
 void ShogiView::relayoutEditExitButton() {}
 void ShogiView::setFieldSize(QSize) {}
 void ShogiView::enlargeBoard(bool) {}

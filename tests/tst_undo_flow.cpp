@@ -1,5 +1,6 @@
 #include <QtTest>
 
+#include "usimove.h"
 #include "timecontrol_test_helper.h"
 #include <QGraphicsView>
 #include <QTableView>
@@ -63,7 +64,7 @@ struct Harness {
     int undoCalls = 0;
     bool dirty = false;
     PlayMode mode = PlayMode::EvenHumanVsEngine;
-    ShogiGameController::Player human = ShogiGameController::Player1;
+    Turn human = Turn::Black;
 
     Harness()
     {
@@ -106,7 +107,7 @@ struct Harness {
         undoRefs.positionStrList = &positionList;
         undoRefs.currentMoveIndex = &currentMoveIndex;
         MatchUndoHandler::UndoHooks hooks;
-        hooks.isHumanSide = [this](ShogiGameController::Player player) { return player == human; };
+        hooks.isHumanSide = [this](Turn player) { return player == human; };
         hooks.updateHighlightsForPly = [this](int ply) { highlightPly = ply; };
         handler.setUndoBindings(undoRefs, hooks);
 
@@ -134,7 +135,7 @@ struct Harness {
     /// 着手し、その手の消費時間を時計に確定する（対局中の着手と同じ順序）
     bool playTimed(const QString& usi, qint64 ms)
     {
-        const int player = gc.currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
+        const int player = gc.currentPlayer() == Turn::Black ? 1 : 2;
         if (!play(usi)) return false;
         clock.setCurrentPlayer(player);
         clock.setMeasuredConsiderationTime(player, ms);
@@ -146,14 +147,11 @@ struct Harness {
 
     bool play(const QString& usi)
     {
-        const auto parsed = SfenPositionTracer::buildGameMoves(sfens.last(), {usi});
-        if (parsed.size() != 1) return false;
-        QPoint from = parsed.first().fromSquare + QPoint(1, 1);
-        QPoint to = parsed.first().toSquare + QPoint(1, 1);
+        const auto move = UsiMove::parse(usi);
+        if (!move) return false;
         const bool humanMove = gc.currentPlayer() == human;
-        gc.setForcedPromotion(true, usi.endsWith('+'));
         QString pretty;
-        if (!gc.validateAndMove(from, to, pretty, mode, static_cast<int>(sfens.size()), &sfens, moves)) {
+        if (!gc.applyMove(*move, pretty, static_cast<int>(sfens.size()), &sfens, moves)) {
             return false;
         }
         if (!position.contains(QStringLiteral(" moves "))) position += QStringLiteral(" moves");
@@ -210,7 +208,7 @@ private slots:
         QFETCH(int, count);
         QFETCH(bool, humanBlack);
         Harness h;
-        h.human = humanBlack ? ShogiGameController::Player1 : ShogiGameController::Player2;
+        h.human = humanBlack ? Turn::Black : Turn::White;
         h.mode = humanBlack ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
         for (int i = 0; i < count; ++i) QVERIFY(h.play(opening.at(i)));
         const QString targetSfen = h.sfens.at(count - 2);
@@ -423,7 +421,7 @@ private slots:
         h.usiMoves.resize(2);
         h.presenter.clearLiveDisp();
         h.gc.board()->setSfen(h.sfens.last());
-        h.gc.setCurrentPlayer(ShogiGameController::Player1);
+        h.gc.setCurrentPlayer(Turn::Black);
         h.position = QStringLiteral("position sfen ") + h.sfens.last();
         h.currentMoveIndex = 2;
         h.session.startFromNode(anchor);

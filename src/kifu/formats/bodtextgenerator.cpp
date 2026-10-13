@@ -2,6 +2,7 @@
 /// @brief BOD形式テキスト生成クラスの実装
 
 #include "bodtextgenerator.h"
+#include "shoginotation.h"
 
 #include <QChar>
 #include <QMap>
@@ -48,15 +49,6 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
         if (hand.isEmpty()) return QStringLiteral("なし");
 
         const QString order = QStringLiteral("RBGSNLP");
-        const QMap<QChar, QString> pieceNames = {
-            {QLatin1Char('R'), QStringLiteral("飛")},
-            {QLatin1Char('B'), QStringLiteral("角")},
-            {QLatin1Char('G'), QStringLiteral("金")},
-            {QLatin1Char('S'), QStringLiteral("銀")},
-            {QLatin1Char('N'), QStringLiteral("桂")},
-            {QLatin1Char('L'), QStringLiteral("香")},
-            {QLatin1Char('P'), QStringLiteral("歩")}
-        };
         const QMap<int, QString> kanjiNumbers = {
             {2, QStringLiteral("二")}, {3, QStringLiteral("三")}, {4, QStringLiteral("四")},
             {5, QStringLiteral("五")}, {6, QStringLiteral("六")}, {7, QStringLiteral("七")},
@@ -70,7 +62,7 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
         for (qsizetype i = 0; i < order.size(); ++i) {
             const QChar piece = order.at(i);
             if (hand.contains(piece) && hand[piece] > 0) {
-                result += pieceNames[piece];
+                result += ShogiNotation::movePieceName(charToPiece(piece));
                 if (hand[piece] > 1) {
                     result += kanjiNumbers.value(hand[piece], QString::number(hand[piece]));
                 }
@@ -100,18 +92,10 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
                 promoted = false;
             } else {
                 QString piece = c.isUpper() ? QStringLiteral(" ") : QStringLiteral("v");
-                const QChar upperC = c.toUpper();
-                const QMap<QChar, QString> pieceChars = {
-                    {QLatin1Char('P'), promoted ? QStringLiteral("と") : QStringLiteral("歩")},
-                    {QLatin1Char('L'), promoted ? QStringLiteral("杏") : QStringLiteral("香")},
-                    {QLatin1Char('N'), promoted ? QStringLiteral("圭") : QStringLiteral("桂")},
-                    {QLatin1Char('S'), promoted ? QStringLiteral("全") : QStringLiteral("銀")},
-                    {QLatin1Char('G'), QStringLiteral("金")},
-                    {QLatin1Char('B'), promoted ? QStringLiteral("馬") : QStringLiteral("角")},
-                    {QLatin1Char('R'), promoted ? QStringLiteral("龍") : QStringLiteral("飛")},
-                    {QLatin1Char('K'), QStringLiteral("玉")}
-                };
-                piece += pieceChars.value(upperC, QStringLiteral("？"));
+                // 局面図の駒は1文字（成香は杏、成桂は圭、成銀は全）
+                const Piece base = charToPiece(c.toUpper());
+                const QString name = ShogiNotation::boardPieceName(promoted ? promote(base) : base);
+                piece += name.isEmpty() ? QStringLiteral("？") : name;
                 board[rank][file++] = piece;
                 promoted = false;
             }
@@ -130,18 +114,12 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
     bodLines << QStringLiteral("  ９ ８ ７ ６ ５ ４ ３ ２ １");
     bodLines << QStringLiteral("+---------------------------+");
 
-    const QStringList rankNames = {
-        QStringLiteral("一"), QStringLiteral("二"), QStringLiteral("三"),
-        QStringLiteral("四"), QStringLiteral("五"), QStringLiteral("六"),
-        QStringLiteral("七"), QStringLiteral("八"), QStringLiteral("九")
-    };
-
     for (int rank = 0; rank < 9; ++rank) {
         QString line = QStringLiteral("|");
         for (int file = 0; file < 9; ++file) {
             line += board[rank][file];
         }
-        line += QStringLiteral("|") + rankNames[rank];
+        line += QStringLiteral("|") + ShogiNotation::rankKanji(rank + 1);
         bodLines << line;
     }
 

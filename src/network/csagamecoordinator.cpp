@@ -167,6 +167,8 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool 
     }
     qCDebug(lcNetwork) << "Generated CSA move:" << csaMove;
 
+    // 盤のクリック操作で指した手（成り・不成を含む）を、指し手確認のために控える
+    if (m_moveProgressHandler && m_gameController) m_moveProgressHandler->noteSentMove(m_gameController->lastMove());
     m_client->sendMove(csaMove);
     qCDebug(lcNetwork) << "Move sent to server";
 }

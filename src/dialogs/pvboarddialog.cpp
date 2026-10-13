@@ -268,8 +268,8 @@ void PvBoardDialog::updateBoardDisplay()
     // 手番表示を更新
     const bool isBlackTurn = m_controller->isBlackTurn();
     m_shogiView->setActiveSide(isBlackTurn);
-    m_shogiView->updateTurnIndicator(isBlackTurn ? ShogiGameController::Player1
-                                                  : ShogiGameController::Player2);
+    m_shogiView->updateTurnIndicator(isBlackTurn ? Turn::Black
+                                                  : Turn::White);
 
     // 手数ラベルを更新
     const int ply = m_controller->currentPly();

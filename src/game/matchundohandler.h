@@ -66,7 +66,7 @@ public:
 
         /// @brief 指定プレイヤーが人間側かどうかを判定する
         /// @note 配線元: UndoDeps → PlayModePolicyService::isHumanSide
-        std::function<bool(ShogiGameController::Player)> isHumanSide;
+        std::function<bool(Turn)> isHumanSide;
 
         /// @brief マウスクリックモードを設定する（人間手番時にtrue）
         /// @note 配線元: UndoDeps → ShogiView::setMouseClickMode

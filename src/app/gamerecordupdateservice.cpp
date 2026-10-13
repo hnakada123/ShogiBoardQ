@@ -54,7 +54,7 @@ void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QS
             const qsizetype previousIndex = recordedSfen.isEmpty() ? m_deps.sfenRecord->size() - 2
                 : m_deps.sfenRecord->indexOf(recordedSfen) - 1;
             beforeSfen = m_deps.sfenRecord->value(previousIndex);
-            usiMove = ShogiUtils::moveToUsi(m_deps.gameMoves->last());
+            usiMove = m_deps.gameMoves->last().toUsiMove().toString();
         }
         presenter->appendMoveLine(moveText, elapsedTime, beforeSfen, usiMove);
 
@@ -84,7 +84,7 @@ void GameRecordUpdateService::recordUsiMoveAndUpdateSfen()
     // USI形式の指し手を記録（詰み探索などで使用）
     if (m_deps.gameMoves && m_deps.gameUsiMoves && !m_deps.gameMoves->isEmpty()) {
         const ShogiMove& lastMove = m_deps.gameMoves->last();
-        const QString usiMove = ShogiUtils::moveToUsi(lastMove);
+        const QString usiMove = lastMove.toUsiMove().toString();
         if (!usiMove.isEmpty()) {
             // 重複追加を防ぐ
             if (m_deps.gameUsiMoves->size() == m_deps.gameMoves->size() - 1) {

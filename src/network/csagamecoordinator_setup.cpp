@@ -18,28 +18,7 @@
 namespace {
 bool isInitialPromotionMove(const QString& csaMove, ShogiGameController* gameController)
 {
-    if (!gameController || !gameController->board() || csaMove.length() < 7) {
-        return false;
-    }
-
-    const int fromFile = csaMove[1].digitValue();
-    const int fromRank = csaMove[2].digitValue();
-    if (fromFile == 0 && fromRank == 0) {
-        return false;
-    }
-
-    const QString destPiece = csaMove.mid(5, 2);
-    static const QStringList promotedPieces = {
-        QStringLiteral("TO"), QStringLiteral("NY"), QStringLiteral("NK"),
-        QStringLiteral("NG"), QStringLiteral("UM"), QStringLiteral("RY")
-    };
-    if (!promotedPieces.contains(destPiece)) {
-        return false;
-    }
-
-    const Piece srcPiece = gameController->board()->pieceCharacter(fromFile, fromRank);
-    static const QString unpromoted = QStringLiteral("PLNSBRplnsbr");
-    return unpromoted.contains(pieceToChar(srcPiece));
+    return gameController && CsaMoveConverter::isPromotionMove(csaMove, gameController->board());
 }
 } // namespace
 
@@ -69,7 +48,7 @@ void CsaGameCoordinator::setupInitialPosition()
     }
     m_gameController->board()->setSfen(*startSfen);
     m_gameController->setCurrentPlayer(m_gameController->board()->currentPlayer() == Turn::Black
-        ? ShogiGameController::Player1 : ShogiGameController::Player2);
+        ? Turn::Black : Turn::White);
     if (m_gameMoves) m_gameMoves->clear();
 
     const QString boardSfen = m_gameController->board()->convertBoardToSfen();
@@ -188,7 +167,6 @@ void CsaGameCoordinator::startEngine()
     CsaEngineController::InitParams params;
     params.enginePath = m_options.enginePath;
     params.engineName = m_options.engineName;
-    params.engineNumber = m_options.engineNumber;
     params.gameController = m_gameController;
     params.commLog = m_usiCommLog;
     params.thinkingModel = m_engineThinking;

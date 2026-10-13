@@ -15,48 +15,15 @@ struct ShogiMove;
 /// 将棋の座標変換・指し手解析等の共通ユーティリティ
 namespace ShogiUtils {
 
-    // --- 座標表記変換 ---
-
-    /// 段番号（1〜9）を漢字表記（"一"〜"九"）に変換する
-    QString transRankTo(const int rankTo);
-
-    /// 筋番号（1〜9）を全角数字表記（"１"〜"９"）に変換する
-    QString transFileTo(const int fileTo);
 
     // --- エラーハンドリング ---
 
     /// エラーメッセージをログ出力し、例外をスローする
     void logAndThrowError(const QString& errorMessage);
 
-    // --- USI変換 ---
-
-    /**
-     * @brief ShogiMoveをUSI形式の文字列に変換する
-     * @param move 変換する指し手
-     * @return USI形式の文字列（例: "7g7f", "8h2b+", "P*3d"）
-     *
-     * 座標系:
-     * - move.fromSquare/toSquare は0-indexed (0-8)
-     * - 駒台: fromSquare.x() == 9 (先手駒台) or 10 (後手駒台)
-     * - USI形式: file=1-9, rank=a-i
-     */
-    QString moveToUsi(const ShogiMove& move);
 
     // --- 漢字座標解析（逆変換） ---
 
-    /**
-     * @brief 全角数字「１」〜「９」を1-9に変換する
-     * @param ch 全角数字文字
-     * @return 1-9、無効な場合は0
-     */
-    int parseFullwidthFile(QChar ch);
-
-    /**
-     * @brief 漢数字「一」〜「九」を1-9に変換する
-     * @param ch 漢数字文字
-     * @return 1-9、無効な場合は0
-     */
-    int parseKanjiRank(QChar ch);
 
     /**
      * @brief 指し手ラベルから移動先座標を解析する

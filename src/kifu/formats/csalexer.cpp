@@ -2,7 +2,7 @@
 /// @brief CSA形式の字句解析・指し手解析・コメント/時間の実装（局面解析は csalexer_position.cpp）
 
 #include "csalexer.h"
-#include "notationutils.h"
+#include "kifmovetext.h"
 #include "parsecommon.h"
 
 namespace CsaLexer {
@@ -75,25 +75,20 @@ Piece basePieceOf(Piece p)
     }
 }
 
+::Piece toPiece(Piece p, Color side)
+{
+    static const ::Piece table[] = {
+        ::Piece::None, ::Piece::BlackPawn, ::Piece::BlackLance, ::Piece::BlackKnight, ::Piece::BlackSilver,
+        ::Piece::BlackGold, ::Piece::BlackBishop, ::Piece::BlackRook, ::Piece::BlackKing,
+        ::Piece::BlackPromotedPawn, ::Piece::BlackPromotedLance, ::Piece::BlackPromotedKnight,
+        ::Piece::BlackPromotedSilver, ::Piece::BlackHorse, ::Piece::BlackDragon};
+    const ::Piece black = (p >= NO_P && p <= RY) ? table[p] : ::Piece::None;
+    return side == White ? toWhite(black) : black;
+}
+
 QString pieceKanji(Piece p)
 {
-    switch (p) {
-    case FU: return QStringLiteral("歩");
-    case KY: return QStringLiteral("香");
-    case KE: return QStringLiteral("桂");
-    case GI: return QStringLiteral("銀");
-    case KI: return QStringLiteral("金");
-    case KA: return QStringLiteral("角");
-    case HI: return QStringLiteral("飛");
-    case OU: return QStringLiteral("玉");
-    case TO: return QStringLiteral("と");
-    case NY: return QStringLiteral("成香");
-    case NK: return QStringLiteral("成桂");
-    case NG: return QStringLiteral("成銀");
-    case UM: return QStringLiteral("馬");
-    case RY: return QStringLiteral("龍");
-    default: return QStringLiteral("歩");
-    }
+    return ShogiNotation::movePieceName(toPiece(p, Black));
 }
 
 bool inside(int v)
@@ -174,45 +169,19 @@ bool parseMoveLine(const QString& line, Color mover, Board& b,
         }
     }
 
-    // USI
-    QString usi;
+    // USI と表示（「同」「(44)」「馬/龍」「打」）
+    const Turn moverTurn = (mover == Black) ? Turn::Black : Turn::White;
+    UsiMove move;
+    move.to = BoardSquare{tx, ty};
     if (isDrop) {
-        QChar usiPieceChar;
-        switch (after) {
-        case FU: usiPieceChar = QLatin1Char('P'); break;
-        case KY: usiPieceChar = QLatin1Char('L'); break;
-        case KE: usiPieceChar = QLatin1Char('N'); break;
-        case GI: usiPieceChar = QLatin1Char('S'); break;
-        case KI: usiPieceChar = QLatin1Char('G'); break;
-        case KA: usiPieceChar = QLatin1Char('B'); break;
-        case HI: usiPieceChar = QLatin1Char('R'); break;
-        default: usiPieceChar = QLatin1Char('P'); break;
-        }
-        usi = NotationUtils::formatSfenDrop(usiPieceChar, tx, ty);
+        move.drop = toPiece(after, Black);
     } else {
-        usi = NotationUtils::formatSfenMove(fx, fy, tx, ty, promote);
+        move.from = BoardSquare{fx, fy};
+        move.promote = promote;
     }
-    usiMoveOut = usi;
-
-    // 表示（「同」「(44)」「馬/龍」「打」）
-    const QString sideMark = (mover == Black) ? QStringLiteral("▲") : QStringLiteral("△");
-
-    if (isDrop) {
-        const QString pj = pieceKanji(after);
-        const QString dest = NotationUtils::intToZenkakuDigit(tx) + NotationUtils::intToKanjiDigit(ty);
-        prettyOut = sideMark + dest + pj + QStringLiteral("打");
-    } else {
-        QString pj;
-        if (promote)           pj = pieceKanji(beforePiece) + QStringLiteral("成");
-        else                   pj = pieceKanji(beforePiece);
-
-        QString dest;
-        if (tx == prevTx && ty == prevTy) dest = QStringLiteral("同　");
-        else dest = NotationUtils::intToZenkakuDigit(tx) + NotationUtils::intToKanjiDigit(ty);
-
-        const QString origin = QStringLiteral("(%1%2)").arg(fx).arg(fy);
-        prettyOut = sideMark + dest + pj + origin;
-    }
+    usiMoveOut = move.toString();
+    const ::Piece moving = isDrop ? toPiece(after, mover) : toPiece(beforePiece, mover);
+    prettyOut = KifMoveText::format(moverTurn, moving, move, BoardSquare{prevTx, prevTy});
 
     // 盤面更新
     if (!isDrop) { b.sq[tx][ty] = { after, mover }; b.sq[fx][fy] = Cell{}; }

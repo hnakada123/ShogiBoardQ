@@ -1,5 +1,8 @@
 #include <QtTest>
 
+#include "usimove.h"
+#include "sfenutils.h"
+#include "shogiboard.h"
 #include "sfenpositiontracer.h"
 #include "shogimove.h"
 
@@ -11,6 +14,48 @@ class TestSfenTracer : public QObject
     Q_OBJECT
 
 private slots:
+    /// 持ち駒は標準の並び（先手の飛角金銀桂香歩、続いて後手）で書き、盤と同じ SFEN になる
+    void handsUseStandardOrderLikeBoard()
+    {
+        const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b bPBp 1");
+        SfenPositionTracer tracer;
+        QVERIFY(tracer.setFromSfen(sfen));
+        QCOMPARE(tracer.toSfenString(), QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b BPbp 1"));
+        ShogiBoard board;
+        board.setSfen(sfen);
+        QCOMPARE(board.convertStandToSfen(), QStringLiteral("BPbp"));
+
+        // 角換わりの後、両者が角と歩を持つ局面を盤と追跡の両方で作り、同じ SFEN になる
+        const QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("8h2b+"),
+                                   QStringLiteral("3a2b"), QStringLiteral("2g2f"), QStringLiteral("8c8d"),
+                                   QStringLiteral("2f2e"), QStringLiteral("8d8e"), QStringLiteral("2e2d"),
+                                   QStringLiteral("2c2d"), QStringLiteral("2h2d"), QStringLiteral("8e8f"),
+                                   QStringLiteral("8g8f"), QStringLiteral("8b8f")};
+        const QStringList record = SfenPositionTracer::buildSfenRecord(SfenUtils::hirateSfen(), moves, false);
+        ShogiBoard played;
+        played.setSfen(SfenUtils::hirateSfen());
+        Turn mover = Turn::Black;
+        for (const QString& move : moves) {
+            QVERIFY(played.applyUsiMove(*UsiMove::parse(move), mover));
+            mover = (mover == Turn::Black) ? Turn::White : Turn::Black;
+        }
+        QCOMPARE(played.convertStandToSfen(), QStringLiteral("B2Pb2p"));  // 以前は "Bb2P2p" と書いていた
+        QCOMPARE(record.last().section(QLatin1Char(' '), 2, 2), played.convertStandToSfen());
+        QCOMPARE(record.last().section(QLatin1Char(' '), 0, 0), played.convertBoardToSfen());
+    }
+
+    /// 比較用のキーは持ち駒の並びをそろえる（以前のこのアプリが書いた先後交互の並びも同じ局面になる）
+    void sfenKeyCanonicalizesHands()
+    {
+        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("BbPp")), QStringLiteral("BPbp"));
+        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("p2PrB")), QStringLiteral("B2Prp"));
+        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("10p")), QStringLiteral("10p"));
+        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("-")), QStringLiteral("-"));
+        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("Kx")), QStringLiteral("Kx"));
+        QCOMPARE(SfenUtils::normalizeSfenKey(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w BbPp 30")),
+                 SfenUtils::normalizeSfenKey(QStringLiteral("position sfen 4k4/9/9/9/9/9/9/9/4K4 w BPbp 1")));
+    }
+
     void resetToStartpos()
     {
         SfenPositionTracer tracer;

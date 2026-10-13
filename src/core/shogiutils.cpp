@@ -2,6 +2,7 @@
 /// @brief 将棋関連の共通ユーティリティ関数群の実装
 
 #include "shogiutils.h"
+#include "shoginotation.h"
 #include "shogimove.h"
 #include "errorbus.h"
 #include "logcategories.h"
@@ -17,106 +18,13 @@ namespace ShogiUtils {
 // 座標表記変換
 // ============================================================
 
-QString transRankTo(const int rankTo)
-{
-    static const QStringList rankStrings = { "", "一", "二", "三", "四", "五", "六", "七", "八", "九" };
-
-    if (rankTo < 1 || rankTo > 9) {
-        // -1 はセンチネル値（未設定/無効）として使われるため、エラーダイアログは表示しない
-        if (rankTo == -1) {
-            qCDebug(lcCore, "transRankTo: sentinel value -1 (no valid coordinate)");
-            return QString();
-        }
-        const QString msg = QObject::tr("The rank must be a value between 1 and 9. (got %1)")
-        .arg(rankTo);
-        qCWarning(lcCore, "%s", qUtf8Printable(msg));
-        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, msg);
-        return QString();
-    }
-    return rankStrings.at(rankTo);
-}
-
-QString transFileTo(const int fileTo)
-{
-    static const QStringList fileStrings = { "", "１", "２", "３", "４", "５", "６", "７", "８", "９" };
-
-    if (fileTo < 1 || fileTo > 9) {
-        // -1 はセンチネル値（未設定/無効）として使われるため、エラーダイアログは表示しない
-        if (fileTo == -1) {
-            qCDebug(lcCore, "transFileTo: sentinel value -1 (no valid coordinate)");
-            return QString();
-        }
-        const QString msg = QObject::tr("The file must be a value between 1 and 9. (got %1)")
-        .arg(fileTo);
-        qCWarning(lcCore, "%s", qUtf8Printable(msg));
-        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, msg);
-        return QString();
-    }
-    return fileStrings.at(fileTo);
-}
-
 // ============================================================
 // USI変換
 // ============================================================
 
-QString moveToUsi(const ShogiMove& move)
-{
-    const int fromX = move.fromSquare.x();
-    const int fromY = move.fromSquare.y();
-    const int toX = move.toSquare.x();
-    const int toY = move.toSquare.y();
-
-    if (toX < 0 || toX > 8 || toY < 0 || toY > 8) {
-        return QString();
-    }
-
-    const int toFile = toX + 1;
-    const QChar toRank = QChar('a' + toY);
-
-    // 駒打ち: fromXが9（先手駒台）または10（後手駒台）
-    if (fromX == 9 || fromX == 10) {
-        QChar piece = pieceToChar(toBlack(move.movingPiece));
-        return QStringLiteral("%1*%2%3").arg(piece).arg(toFile).arg(toRank);
-    }
-
-    if (fromX < 0 || fromX > 8 || fromY < 0 || fromY > 8) {
-        return QString();
-    }
-
-    const int fromFile = fromX + 1;
-    const QChar fromRank = QChar('a' + fromY);
-
-    QString usi = QStringLiteral("%1%2%3%4").arg(fromFile).arg(fromRank).arg(toFile).arg(toRank);
-
-    if (move.isPromotion) {
-        usi += QLatin1Char('+');
-    }
-
-    return usi;
-}
-
 // ============================================================
 // 漢字座標解析（逆変換）
 // ============================================================
-
-int parseFullwidthFile(QChar ch)
-{
-    // 全角数字 '１' (0xFF11) 〜 '９' (0xFF19)
-    if (ch >= QChar(0xFF11) && ch <= QChar(0xFF19)) {
-        return ch.unicode() - 0xFF11 + 1;
-    }
-    return 0;
-}
-
-int parseKanjiRank(QChar ch)
-{
-    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-    const auto idx = kanjiRanks.indexOf(ch);
-    if (idx >= 0) {
-        return static_cast<int>(idx) + 1;
-    }
-    return 0;
-}
 
 std::optional<std::pair<int, int>> parseMoveLabel(QStringView moveLabel)
 {
@@ -141,8 +49,8 @@ std::optional<std::pair<int, int>> parseMoveLabel(QStringView moveLabel)
     const QChar fileChar = afterMark.at(0);
     const QChar rankChar = afterMark.at(1);
 
-    const int file = parseFullwidthFile(fileChar);
-    const int rank = parseKanjiRank(rankChar);
+    const int file = ShogiNotation::fileFromZenkaku(fileChar);
+    const int rank = ShogiNotation::rankFromKanji(rankChar);
 
     if (file >= 1 && file <= 9 && rank >= 1 && rank <= 9) {
         return std::make_pair(file, rank);

@@ -93,9 +93,8 @@ bool MatchUndoHandler::undoTwoPlies()
     // --- 盤面と手番を復元 ---
     m_refs.gc->board()->setSfen(targetSfen);
     const bool sideToMoveIsBlack = targetSfen.contains(QStringLiteral(" b "));
-    m_refs.gc->setCurrentPlayer(sideToMoveIsBlack ? ShogiGameController::Player1
-                                                : ShogiGameController::Player2);
-    m_refs.gc->setPromote(false);
+    m_refs.gc->setCurrentPlayer(sideToMoveIsBlack ? Turn::Black
+                                                : Turn::White);
     m_refs.gc->setForcedPromotion(false);
 
     // 「同」表記の基準も戻す。途中局面から開始した場合は gameMoves に

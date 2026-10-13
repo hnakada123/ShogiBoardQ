@@ -154,17 +154,16 @@ void MatchTurnHandler::forceImmediateMove()
     if (!m_refs.gc || !m_refs.playMode || !m_hooks.sendStopToEngine) return;
     if (m_refs.gameOver && m_refs.gameOver->isOver) return;
 
-    const auto player = m_refs.gc->currentPlayer();
-    if (player == ShogiGameController::NoPlayer) return;
+    const Turn player = m_refs.gc->currentPlayer();
     // 人間の手番に「すぐ指させる」を押しても先読みは停止しない。
     switch (*m_refs.playMode) {
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
-        if (player != ShogiGameController::Player2) return;
+        if (player != Turn::White) return;
         break;
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
-        if (player != ShogiGameController::Player1) return;
+        if (player != Turn::Black) return;
         break;
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine:
@@ -179,7 +178,7 @@ void MatchTurnHandler::forceImmediateMove()
 
     if (isEvE) {
         const Player turn =
-            (m_refs.gc->currentPlayer() == ShogiGameController::Player1) ? P::P1 : P::P2;
+            (m_refs.gc->currentPlayer() == Turn::Black) ? P::P1 : P::P2;
         Usi* eng = (turn == P::P1)
             ? (m_hooks.primaryEngine ? m_hooks.primaryEngine() : nullptr)
             : (m_hooks.secondaryEngine ? m_hooks.secondaryEngine() : nullptr);

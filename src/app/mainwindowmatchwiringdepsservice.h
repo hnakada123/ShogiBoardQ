@@ -25,7 +25,7 @@ public:
     struct Inputs {
         // --- Hook 構築に使う依存 ---
         EvaluationGraphController* evalGraphController = nullptr;
-        std::function<void(ShogiGameController::Player)> onTurnChanged;
+        std::function<void(Turn)> onTurnChanged;
         std::function<void(Usi*)> sendStop;
         std::function<void(const QString&)> initializeNewGame;
         std::function<void()> renderBoard;
@@ -40,7 +40,7 @@ public:
         // --- Undo Hook 構築に使う依存 ---
         std::function<void(int)> updateHighlightsForPly;
         std::function<void()> updateTurnAndTimekeepingDisplay;
-        std::function<bool(ShogiGameController::Player)> isHumanSide;
+        std::function<bool(Turn)> isHumanSide;
         std::function<void(bool)> setMouseClickMode;
 
         // --- Deps に直接設定する値 ---

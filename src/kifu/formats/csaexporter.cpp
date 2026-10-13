@@ -2,6 +2,9 @@
 /// @brief CSA形式棋譜エクスポータクラスの実装
 
 #include "csaexporter.h"
+#include "usimove.h"
+#include "shoginotation.h"
+#include "sfenpositiontracer.h"
 #include "csaformatter.h"
 #include "gameinfokeys.h"
 #include "gamerecordmodel.h"
@@ -46,8 +49,8 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
                                   << usiMoves.mid(0, qMin(5, usiMoves.size()));
     }
 
-    // 盤面追跡用オブジェクト
-    CsaBoardTracker boardTracker;
+    // 指し手の駒種（CSA は着手後の駒）を知るための局面
+    SfenPositionTracer position;
 
     // 1) 文字コード宣言 (V3.0で追加)
     out << QStringLiteral("'CSA encoding=UTF-8");
@@ -173,7 +176,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             SfenCsaPositionConverter::toCsaPositionLines(ctx.startSfen, &convErr);
         if (csaPos && !csaPos->isEmpty()) {
             out << *csaPos;
-            boardTracker.initFromSfen(ctx.startSfen);
+            (void)position.setFromSfen(ctx.startSfen);
         } else {
             qCWarning(lcKifu).noquote()
                 << "SFEN->CSA position conversion failed. fallback to PI. error=" << convErr;
@@ -254,32 +257,18 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         QString csaMove;
         const QString sign = isSente ? QStringLiteral("+") : QStringLiteral("-");
 
-        if (!usiMove.isEmpty()) {
-            if (usiMove.size() >= 4 && usiMove.at(1) == QLatin1Char('*')) {
-                const QString toSquare = usiMove.mid(2, 2);
-                const int toFile = toSquare.at(0).toLatin1() - '0';
-                const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
-                const QString csaPiece = boardTracker.applyMove(usiMove);
-
-                if (!csaPiece.isEmpty()) {
-                    csaMove = QStringLiteral("%1%2%3%4%5")
-                        .arg(sign, QStringLiteral("00"), QString::number(toFile),
-                             QString::number(toRank), csaPiece);
-                }
-            } else if (usiMove.size() >= 4) {
-                const QString fromSquare = usiMove.left(2);
-                const QString toSquare = usiMove.mid(2, 2);
-                const int fromFile = fromSquare.at(0).toLatin1() - '0';
-                const int fromRank = fromSquare.at(1).toLatin1() - 'a' + 1;
-                const int toFile = toSquare.at(0).toLatin1() - '0';
-                const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
-                const QString csaPiece = boardTracker.applyMove(usiMove);
-
-                if (!csaPiece.isEmpty()) {
-                    csaMove = QStringLiteral("%1%2%3%4%5%6")
-                        .arg(sign, QString::number(fromFile), QString::number(fromRank),
-                             QString::number(toFile), QString::number(toRank), csaPiece);
-                }
+        if (const auto move = UsiMove::parse(usiMove)) {
+            const Turn mover = isSente ? Turn::Black : Turn::White;
+            const Piece moving = move->isDrop() ? move->dropPieceFor(mover)
+                                                : position.pieceAt(move->from.file, move->from.rank);
+            const QString csaPiece = ShogiNotation::csaPieceCode(move->promote ? promote(moving) : moving);
+            (void)position.applyUsiMove(usiMove);
+            if (!csaPiece.isEmpty()) {
+                const QString from = move->isDrop()
+                    ? QStringLiteral("00")
+                    : QStringLiteral("%1%2").arg(move->from.file).arg(move->from.rank);
+                csaMove = QStringLiteral("%1%2%3%4%5")
+                    .arg(sign, from, QString::number(move->to.file), QString::number(move->to.rank), csaPiece);
             }
         }
 

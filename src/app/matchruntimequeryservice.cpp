@@ -37,7 +37,7 @@ bool MatchRuntimeQueryService::isHvH() const
     return false;
 }
 
-bool MatchRuntimeQueryService::isHumanSide(ShogiGameController::Player p) const
+bool MatchRuntimeQueryService::isHumanSide(Turn p) const
 {
     if (m_deps.playModePolicy) {
         return m_deps.playModePolicy->isHumanSide(p);

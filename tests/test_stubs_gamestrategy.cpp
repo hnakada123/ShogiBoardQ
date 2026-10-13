@@ -4,7 +4,7 @@
 /// matchcoordinator.cpp + 3つのStrategy .cpp を実ソースとしてコンパイルし、
 /// それ以外の外部シンボル（エンジン、時計、UI等）をスタブ化する。
 /// test_stubs_matchcoordinator.cpp をベースに、Strategy スタブを除去し
-/// validateAndMove スタブを追加したもの。
+/// applyMove スタブを追加したもの。
 
 #include <QObject>
 #include <QProcess>
@@ -53,8 +53,9 @@
 // ============================================================
 namespace StrategyTracker {
 
-bool validateAndMoveReturnValue = true;
-int  validateAndMoveCallCount = 0;
+bool applyMoveReturnValue = true;
+int  applyMoveCallCount = 0;
+int  engineIllegalMoveCount = 0;
 
 bool sennichiteDetected = false;
 int  maxMovesJishogiCount = 0;
@@ -63,8 +64,9 @@ int  requestMatchMoveCount = 0;
 
 void reset()
 {
-    validateAndMoveReturnValue = true;
-    validateAndMoveCallCount = 0;
+    applyMoveReturnValue = true;
+    applyMoveCallCount = 0;
+    engineIllegalMoveCount = 0;
     sennichiteDetected = false;
     maxMovesJishogiCount = 0;
     requestHumanReplyCount = 0;
@@ -175,6 +177,7 @@ void GameEndHandler::handleResign() {}
 void GameEndHandler::handleTimeout(Player) {}
 void GameEndHandler::handleEngineResign(int) {}
 void GameEndHandler::handleEngineWin(int) {}
+void GameEndHandler::handleEngineIllegalMove(int) { ++StrategyTracker::engineIllegalMoveCount; }
 void GameEndHandler::handleBreakOff() {}
 void GameEndHandler::handleNyugyokuDeclaration(Player, bool, bool) {}
 void GameEndHandler::appendGameOverLineAndMark(Cause, Player) {}
@@ -348,20 +351,18 @@ QString ShogiBoard::convertStandToSfen() const { return {}; }
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
 ShogiGameController::~ShogiGameController() = default;
 ShogiBoard* ShogiGameController::board() const { return nullptr; }
-void ShogiGameController::setCurrentPlayer(const Player p) { m_currentPlayer = p; }
-void ShogiGameController::setPromote(bool) {}
+void ShogiGameController::setCurrentPlayer(Turn p) { m_currentPlayer = p; }
 void ShogiGameController::newGame(QString&) {}
 void ShogiGameController::applyTimeoutLossFor(int) {}
 void ShogiGameController::finalizeGameResult() {}
 void ShogiGameController::resetResult() {}
 
-bool ShogiGameController::validateAndMove(QPoint&, QPoint&, QString& record,
-                                          PlayMode&, int,
-                                          QStringList*, QList<ShogiMove>&)
+bool ShogiGameController::applyMove(const UsiMove&, QString& record, int,
+                                    QStringList*, QList<ShogiMove>&)
 {
-    ++StrategyTracker::validateAndMoveCallCount;
+    ++StrategyTracker::applyMoveCallCount;
     record = QStringLiteral("dummy move");
-    return StrategyTracker::validateAndMoveReturnValue;
+    return StrategyTracker::applyMoveReturnValue;
 }
 
 // ============================================================
@@ -378,11 +379,9 @@ bool Usi::isWinMove() const { return false; }
 int Usi::lastScoreCp() const { return 0; }
 QString Usi::pvKanjiStr() const { return {}; }
 void Usi::setPvKanjiStr(const QString&) {}
-void Usi::parseMoveCoordinates(int&, int&, int&, int&) {}
 void Usi::initializeAndStartEngineCommunication(QString&, QString&) {}
 void Usi::sendGameOverCommand(GameOverResult) {}
 void Usi::sendQuitCommand() {}
-QChar Usi::rankToAlphabet(int) const { return QChar(); }
 void Usi::sendGameOverWinAndQuitCommands() {}
 void Usi::sendStopCommand() {}
 void Usi::executeAnalysisCommunication(QString&, int, int) {}
@@ -645,7 +644,7 @@ void Usi::requestMatchMove(const QString&, const QString&, const UsiTimingParams
 {
     ++StrategyTracker::requestMatchMoveCount;
 }
-void Usi::requestHumanReply(QString&, const QString&, const QPoint&, const QPoint&, const UsiTimingParams&, QStringList&)
+void Usi::requestHumanReply(QString&, const QString&, const UsiMove&, const UsiTimingParams&, QStringList&)
 {
     ++StrategyTracker::requestHumanReplyCount;
 }

@@ -243,7 +243,7 @@ public:
 
     void setUrgencyVisuals(Urgency u);
 
-    void updateTurnIndicator(ShogiGameController::Player now);
+    void updateTurnIndicator(Turn now);
 
     void relayoutEditExitButton();
 

@@ -4,6 +4,7 @@
 /// SFEN変換は shogiboard_sfen.cpp、盤面編集は shogiboard_edit.cpp に分離。
 
 #include "shogiboard.h"
+#include "boardcoordinates.h"
 #include "boardconstants.h"
 #include "logcategories.h"
 
@@ -92,39 +93,18 @@ void ShogiBoard::setCurrentPlayer(Turn turn)
 // rank: 段（先手は1〜7「歩、香車、桂馬、銀、金、角、飛車」、後手は3〜9「飛車、角、金、銀、桂馬、香車、歩」を使用）
 Piece ShogiBoard::pieceCharacter(const int file, const int rank)
 {
-    static const QMap<int, Piece> pieceMapBlack = {
-        {1, Piece::BlackPawn}, {2, Piece::BlackLance}, {3, Piece::BlackKnight},
-        {4, Piece::BlackSilver}, {5, Piece::BlackGold}, {6, Piece::BlackBishop},
-        {7, Piece::BlackRook}, {8, Piece::BlackKing}
-    };
-    static const QMap<int, Piece> pieceMapWhite = {
-        {2, Piece::WhiteKing}, {3, Piece::WhiteRook}, {4, Piece::WhiteBishop},
-        {5, Piece::WhiteGold}, {6, Piece::WhiteSilver}, {7, Piece::WhiteKnight},
-        {8, Piece::WhiteLance}, {9, Piece::WhitePawn}
-    };
-
     if (file >= 1 && file <= 9) {
         if (rank < 1 || rank > ranks()) {
             qCWarning(lcCore, "Invalid rank for board access: file=%d rank=%d", file, rank);
             return Piece::None;
         }
         return m_boardData.at((rank - 1) * files() + (file - 1));
-    } else if (file == BoardConstants::kBlackStandFile || file == BoardConstants::kPieceBoxFile) {
-        const auto it = pieceMapBlack.find(rank);
-        if (it != pieceMapBlack.end()) return it.value();
-
-        qCWarning(lcCore, "Invalid rank for black stand: %d", rank);
-        return Piece::None;
-    } else if (file == BoardConstants::kWhiteStandFile) {
-        const auto it = pieceMapWhite.find(rank);
-        if (it != pieceMapWhite.end()) return it.value();
-
-        qCWarning(lcCore, "Invalid rank for white stand: %d", rank);
-        return Piece::None;
-    } else {
-        qCWarning(lcCore, "Invalid file value: %d", file);
-        return Piece::None;
     }
+    const Piece standPiece = BoardCoordinates::standPieceAt(file, rank);
+    if (standPiece == Piece::None) {
+        qCWarning(lcCore, "Invalid stand coordinates: file=%d rank=%d", file, rank);
+    }
+    return standPiece;
 }
 
 bool ShogiBoard::setDataInternal(const int file, const int rank, const Piece piece)
@@ -188,6 +168,24 @@ void ShogiBoard::movePieceToSquare(Piece selectedPiece, const int fileFrom, cons
             setData(fileTo, rankTo, Piece::WhitePromotedKnight);
         }
     }
+}
+
+bool ShogiBoard::applyUsiMove(const UsiMove& move, Turn mover)
+{
+    if (!move.isValid()) return false;
+    if (move.isDrop()) {
+        const Piece piece = move.dropPieceFor(mover);
+        if (pieceCharacter(move.to.file, move.to.rank) != Piece::None) return false;
+        if (!consumeStandPiece(piece)) return false;
+        movePieceToSquare(piece, 0, 0, move.to.file, move.to.rank, false);
+        return true;
+    }
+    const Piece moving = pieceCharacter(move.from.file, move.from.rank);
+    if (moving == Piece::None) return false;
+    const Piece captured = pieceCharacter(move.to.file, move.to.rank);
+    if (captured != Piece::None) addPieceToStand(captured);
+    movePieceToSquare(moving, move.from.file, move.from.rank, move.to.file, move.to.rank, move.promote);
+    return true;
 }
 
 // ============================================================

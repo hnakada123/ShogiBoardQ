@@ -122,7 +122,7 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
 {
     MainWindowMatchWiringDepsService::Inputs in;
     in.evalGraphController = m_mw.m_evalGraphController.get();
-    in.onTurnChanged = [this](ShogiGameController::Player player) {
+    in.onTurnChanged = [this](Turn player) {
         m_mw.onTurnManagerChanged(player);
     };
     in.sendStop = [this](Usi* which) {
@@ -170,7 +170,7 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     in.updateTurnAndTimekeepingDisplay = [adapter]() {
         adapter->updateTurnAndTimekeepingDisplay();
     };
-    in.isHumanSide = [this](ShogiGameController::Player player) {
+    in.isHumanSide = [this](Turn player) {
         return queryIsHumanSide(player);
     };
     in.setMouseClickMode = [this](bool mode) {
@@ -363,7 +363,7 @@ void MainWindowServiceRegistry::prepareTurnSyncBridge()
 // MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
 // ---------------------------------------------------------------------------
 
-bool MainWindowServiceRegistry::queryIsHumanSide(ShogiGameController::Player player)
+bool MainWindowServiceRegistry::queryIsHumanSide(Turn player)
 {
     if (m_mw.m_queryService)
         return m_mw.m_queryService->isHumanSide(player);

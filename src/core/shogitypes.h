@@ -6,6 +6,7 @@
 
 #include <QString>
 #include <QLatin1Char>
+#include <QDebug>
 #include <optional>
 
 /// 手番を表す型安全な列挙型
@@ -16,6 +17,13 @@ inline QString turnToSfen(Turn t) { return t == Turn::Black ? QStringLiteral("b"
 
 /// SFEN手番文字列 → Turn
 inline Turn sfenToTurn(const QString& s) { return s == QStringLiteral("b") ? Turn::Black : Turn::White; }
+
+/// ログ出力用（"Black" / "White"）
+inline QDebug operator<<(QDebug debug, Turn t)
+{
+    QDebugStateSaver saver(debug);
+    return debug.nospace() << (t == Turn::Black ? "Black" : "White");
+}
 
 /// SFEN文字列をパースした結果を保持する構造体
 struct SfenComponents {

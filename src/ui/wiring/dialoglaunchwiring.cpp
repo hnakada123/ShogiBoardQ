@@ -59,15 +59,10 @@ void DialogLaunchWiring::displayEngineSettingsDialog()
     }
 }
 
-void DialogLaunchWiring::displayPromotionDialog()
+bool DialogLaunchWiring::choosePromotion()
 {
-    auto* gc = m_deps.getGameController ? m_deps.getGameController() : nullptr;
-    if (!gc) return;
     auto* dc = m_deps.getDialogCoordinator ? m_deps.getDialogCoordinator() : nullptr;
-    if (dc) {
-        const bool promote = dc->showPromotionDialog();
-        gc->setPromote(promote);
-    }
+    return dc && dc->showPromotionDialog();
 }
 
 void DialogLaunchWiring::displayJishogiScoreDialog()

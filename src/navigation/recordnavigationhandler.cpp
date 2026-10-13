@@ -149,7 +149,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
             const bool isBlackTurn = (boardTurn == Turn::Black);
             m_deps.shogiView->setActiveSide(isBlackTurn);
 
-            const auto player = isBlackTurn ? ShogiGameController::Player1 : ShogiGameController::Player2;
+            const auto player = isBlackTurn ? Turn::Black : Turn::White;
             m_deps.shogiView->updateTurnIndicator(player);
         }
 

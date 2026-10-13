@@ -139,9 +139,9 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
     info->setPreviousRankTo(m_previousRankTo);
     
     // 思考開始時の手番を設定（bestmove後の局面更新の影響を受けないようにする）
-    ShogiGameController::Player startPlayer = m_thinkingStartPlayerIsP1 
-        ? ShogiGameController::Player1 
-        : ShogiGameController::Player2;
+    Turn startPlayer = m_thinkingStartPlayerIsP1 
+        ? Turn::Black 
+        : Turn::White;
     info->setThinkingStartPlayer(startPlayer);
     info->parseEngineOutputAndUpdateState(line, m_gameController, m_clonedBoardData, m_ponderEnabled);
 
@@ -318,10 +318,10 @@ void ThinkingInfoPresenter::updateAnalysisModeAndScore(const ShogiEngineInfoPars
     }
 
     if (m_analysisMode) {
-        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+        if (m_gameController->currentPlayer() == Turn::Black) {
             scoreInt = info->scoreCp().toInt();
             m_scoreStr = info->scoreCp();
-        } else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
+        } else if (m_gameController->currentPlayer() == Turn::White) {
             scoreInt = -info->scoreCp().toInt();
             m_scoreStr = QString::number(scoreInt);
         }

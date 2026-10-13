@@ -39,7 +39,7 @@ struct MCTestHarness {
     {
         QString initial = SfenUtils::hirateSfen();
         gc.newGame(initial);
-        gc.setCurrentPlayer(ShogiGameController::Player1);
+        gc.setCurrentPlayer(Turn::Black);
 
         MatchCoordinator::Deps deps;
         deps.gc = &gc;
@@ -449,7 +449,7 @@ void Tst_MatchCoordinator::configureAndStart_preparesHumanGame()
     opt.sfenStart = SfenUtils::hirateSfen();
     h.mc->configureAndStart(opt);
     QCOMPARE(h.mc->playMode(), PlayMode::HumanVsHuman);
-    QCOMPARE(h.gc.currentPlayer(), ShogiGameController::Player1);
+    QCOMPARE(h.gc.currentPlayer(), Turn::Black);
     QVERIFY(h.initializeNewGameCalled);
     QVERIFY(!h.mc->gameOverState().isOver);
 }

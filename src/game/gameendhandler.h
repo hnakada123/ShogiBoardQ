@@ -104,6 +104,8 @@ public:
     void handleTimeout(Player loser);
     void handleEngineResign(int idx);
     void handleEngineWin(int idx);
+    /// エンジンが反則手を返したときに、そのエンジンの反則負けとする（idx: 1 or 2）
+    void handleEngineIllegalMove(int idx);
     void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw);
     void handleBreakOff();
     void handleMaxMovesJishogi();

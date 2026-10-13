@@ -13,6 +13,8 @@
 
 #include "settingsservice.h"
 #include "settingskeys.h"
+#include "enginelistsettings.h"
+#include "settingscommon.h"
 #include <QSettings>
 
 class Tst_SettingsRoundtrip : public QObject
@@ -294,9 +296,6 @@ private slots:
         AnalysisSettings::setKifuAnalysisByoyomiSec(30);
         QCOMPARE(AnalysisSettings::kifuAnalysisByoyomiSec(), 30);
 
-        AnalysisSettings::setKifuAnalysisEngineIndex(2);
-        QCOMPARE(AnalysisSettings::kifuAnalysisEngineIndex(), 2);
-
         AnalysisSettings::setKifuAnalysisFullRange(true);
         QCOMPARE(AnalysisSettings::kifuAnalysisFullRange(), true);
 
@@ -318,11 +317,36 @@ private slots:
         QCOMPARE(AnalysisSettings::kifuAnalysisResultsWindowSize(), resultsSize);
     }
 
+    /// エンジンの選択は名前で保存し、登録の順番が変わっても同じエンジンを選ぶ。
+    /// 以前の版が保存した番号・パスも読み、保存し直すと名前に置き換える
+    void engineSelection_storedByName()
+    {
+        using EngineListSettings::EngineEntry;
+        const QList<EngineEntry> engines{{QStringLiteral("A"), QStringLiteral("/engines/a"), {}},
+                                         {QStringLiteral("B"), QStringLiteral("/engines/b"), {}},
+                                         {QStringLiteral("C"), QStringLiteral("/engines/c"), {}}};
+        const QList<EngineEntry> reordered{engines.at(2), engines.at(0), engines.at(1)};
+        QSettings& s = SettingsCommon::openSettings();
+        for (const auto& keys : {EngineListSettings::considerationSelection(), EngineListSettings::kifuAnalysisSelection(),
+                                 EngineListSettings::tsumeSearchSelection(),
+                                 EngineListSettings::tsumeshogiGeneratorSelection()}) {
+            s.remove(QString::fromLatin1(keys.name));
+            if (keys.legacyIndex) s.setValue(keys.legacyIndex, 1);
+            if (keys.legacyPath) s.setValue(keys.legacyPath, QStringLiteral("/engines/b"));
+            QCOMPARE(EngineListSettings::restoreSelection(keys, engines), 1);  // 以前の版の保存（B）
+
+            EngineListSettings::saveSelection(keys, QStringLiteral("B"));
+            if (keys.legacyIndex) QVERIFY(!s.contains(keys.legacyIndex));
+            if (keys.legacyPath) QVERIFY(!s.contains(keys.legacyPath));
+            QCOMPARE(EngineListSettings::restoreSelection(keys, reordered), 2);  // 並びが変わっても B
+
+            EngineListSettings::saveSelection(keys, QStringLiteral("removed"));
+            QCOMPARE(EngineListSettings::restoreSelection(keys, engines), -1);
+        }
+    }
+
     void analysisSettings_consideration()
     {
-        AnalysisSettings::setConsiderationEngineIndex(1);
-        QCOMPARE(AnalysisSettings::considerationEngineIndex(), 1);
-
         AnalysisSettings::setConsiderationUnlimitedTime(true);
         QCOMPARE(AnalysisSettings::considerationUnlimitedTime(), true);
 
@@ -609,9 +633,6 @@ private slots:
 
         TsumeshogiSettings::setTsumeshogiGeneratorFontSize(13);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorFontSize(), 13);
-
-        TsumeshogiSettings::setTsumeshogiGeneratorEngineIndex(1);
-        QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorEngineIndex(), 1);
 
         TsumeshogiSettings::setTsumeshogiGeneratorTargetMoves(7);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorTargetMoves(), 7);

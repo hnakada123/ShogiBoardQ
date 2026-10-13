@@ -135,7 +135,7 @@ void GameStateController::handleResignation() {}
 void GameStateController::handleBreakOffGame() {}
 void GameStateController::setGameOverMove(MatchCoordinator::Cause, bool) {}
 bool GameStateController::isHvH() const { return false; }
-bool GameStateController::isHumanSide(ShogiGameController::Player) const { return true; }
+bool GameStateController::isHumanSide(Turn) const { return true; }
 bool GameStateController::isGameOver() const { return false; }
 void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo&) {}
 void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOverState&)
@@ -539,20 +539,12 @@ void GameStartOptionsBuilder::applyResumePositionIfAny(
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
 ShogiGameController::~ShogiGameController() = default;
 ShogiBoard* ShogiGameController::board() const { return nullptr; }
-void ShogiGameController::setCurrentPlayer(const Player) {}
-void ShogiGameController::setPromote(bool) {}
+void ShogiGameController::setCurrentPlayer(Turn) {}
 void ShogiGameController::newGame(QString&) {}
 
 // ============================================================
-// ShogiBoard スタブ
 // ============================================================
 
-ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
-    : QObject(parent), m_ranks(ranks), m_files(files)
-{
-    m_boardData.fill(Piece::None, ranks * files);
-}
-const QList<Piece>& ShogiBoard::boardData() const { return m_boardData; }
 
 // ============================================================
 // MatchCoordinatorHooksFactory スタブ
@@ -675,6 +667,7 @@ void GameEndHandler::setHooks(const Hooks&) {}
 void GameEndHandler::handleResign() {}
 void GameEndHandler::handleEngineResign(int) {}
 void GameEndHandler::handleEngineWin(int) {}
+void GameEndHandler::handleEngineIllegalMove(int) {}
 void GameEndHandler::handleNyugyokuDeclaration(Player, bool, bool) {}
 void GameEndHandler::handleBreakOff() {}
 void GameEndHandler::handleMaxMovesJishogi() {}

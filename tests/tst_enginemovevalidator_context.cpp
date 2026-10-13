@@ -19,11 +19,11 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
 
-        bool ok = validator.syncContext(ctx, EngineMoveValidator::BLACK,
+        bool ok = validator.syncContext(ctx, Turn::Black,
                                         board.boardData(), board.pieceStand());
         QVERIFY(ok);
         QVERIFY(ctx.synced);
-        QCOMPARE(ctx.turn, EngineMoveValidator::BLACK);
+        QCOMPARE(ctx.turn, Turn::Black);
     }
 
     void contextApi_generateLegalMoves()
@@ -33,7 +33,7 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
 
-        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(ctx, Turn::Black,
                                       board.boardData(), board.pieceStand()));
 
         int count = validator.generateLegalMoves(ctx);
@@ -51,7 +51,7 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
 
-        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(ctx, Turn::Black,
                                       board.boardData(), board.pieceStand()));
 
         ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
@@ -67,14 +67,14 @@ private slots:
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
 
-        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(simulation, Turn::Black,
                                       board.boardData(), board.pieceStand()));
 
         // 7六歩を進める
         ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
         bool ok = validator.tryApplyMove(simulation, move);
         QVERIFY(ok);
-        QCOMPARE(ctx.turn, EngineMoveValidator::WHITE); // 手番が変わった
+        QCOMPARE(ctx.turn, Turn::White); // 手番が変わった
         QCOMPARE(simulation.undoSize, 1);
 
         // 後手の合法手数を取得
@@ -84,7 +84,7 @@ private slots:
         // undo
         bool undone = validator.undoLastMove(simulation);
         QVERIFY(undone);
-        QCOMPARE(ctx.turn, EngineMoveValidator::BLACK);
+        QCOMPARE(ctx.turn, Turn::Black);
         QCOMPARE(simulation.undoSize, 0);
 
         // 元に戻った
@@ -100,7 +100,7 @@ private slots:
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
 
-        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(simulation, Turn::Black,
                                       board.boardData(), board.pieceStand()));
 
         // 7六歩
@@ -112,7 +112,7 @@ private slots:
         QVERIFY(validator.tryApplyMove(simulation, m2));
 
         QCOMPARE(simulation.undoSize, 2);
-        QCOMPARE(ctx.turn, EngineMoveValidator::BLACK);
+        QCOMPARE(ctx.turn, Turn::Black);
 
         // 2手undo
         QVERIFY(validator.undoLastMove(simulation));
@@ -130,7 +130,7 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::SimulationContext simulation;
 
-        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(simulation, Turn::Black,
                                       board.boardData(), board.pieceStand()));
 
         // スタック空でundoはfalse
@@ -143,7 +143,7 @@ private slots:
         board.setSfen(kHirateSfen);
         EngineMoveValidator validator;
         EngineMoveValidator::SimulationContext simulation;
-        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(simulation, Turn::Black,
                                       board.boardData(), board.pieceStand()));
         ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
         QVERIFY(validator.tryApplyMove(simulation, move));
@@ -151,12 +151,12 @@ private slots:
 
         // 別局面に同期した後は、以前の局面への取り消しを許可しない。
         board.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w P 1"));
-        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::WHITE,
+        QVERIFY(validator.syncContext(simulation, Turn::White,
                                       board.boardData(), board.pieceStand()));
         const auto original = simulation.context.pos;
         QCOMPARE(simulation.undoSize, 0);
         QVERIFY(!validator.undoLastMove(simulation));
-        QCOMPARE(simulation.context.turn, EngineMoveValidator::WHITE);
+        QCOMPARE(simulation.context.turn, Turn::White);
         QCOMPARE(simulation.context.pos.board, original.board);
         QCOMPARE(simulation.context.pos.hand[0], original.hand[0]);
         QCOMPARE(simulation.context.pos.hand[1], original.hand[1]);
@@ -167,7 +167,7 @@ private slots:
         QCOMPARE(simulation.undoSize, 1);
         QVERIFY(validator.undoLastMove(simulation));
         QCOMPARE(simulation.undoSize, 0);
-        QCOMPARE(simulation.context.turn, EngineMoveValidator::WHITE);
+        QCOMPARE(simulation.context.turn, Turn::White);
         QCOMPARE(simulation.context.pos.board, original.board);
     }
 
