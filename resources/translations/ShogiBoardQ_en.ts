@@ -10340,12 +10340,12 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">An error occurred in ShogiBoard::validateSfenString. The last part of the SFEN string must be a positive integer (indicating the next move number).</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard_sfen.cpp" line="267"/>
+        <location filename="../../src/core/shogiboard_sfen.cpp" line="237"/>
         <source>SFEN board parse error: %1</source>
         <translation>SFEN board parse error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard_sfen.cpp" line="272"/>
+        <location filename="../../src/core/shogiboard_sfen.cpp" line="242"/>
         <source>SFEN piece stand parse error: %1</source>
         <translation>SFEN piece stand parse error: %1</translation>
     </message>

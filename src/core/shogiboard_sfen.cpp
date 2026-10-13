@@ -5,220 +5,203 @@
 #include "errorbus.h"
 #include "logcategories.h"
 
+#include <algorithm>
+#include <array>
+
 // ============================================================
 // SFEN入力・検証
 // ============================================================
 
-// 将棋盤内のみのSFEN文字列を入力し、エラーチェックを行い、成り駒を1文字に変換したSFEN文字列を返す。
-std::optional<QString> ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
+namespace {
+
+constexpr int kBoardSize = 9;
+constexpr int kStandKinds = 16;
+
+/// SFEN の4つの欄（盤・手番・持駒・手数）。盤と持駒は元の文字列を指す
+struct SfenFields
 {
-    // 処理フロー:
-    // 1. 成り駒文字列（"+P"等）を1文字に変換
-    // 2. "/"で分割して9段あるか検証
-    // 3. 各段の駒数が9であるか検証
+    QStringView board;
+    QStringView stand;
+    Turn turn = Turn::Black;
+    int moveNumber = 0;
+};
 
-    const QStringList promotions = {"+P", "+L", "+N", "+S", "+B", "+R",
-                                    "+p", "+l", "+n", "+s", "+b", "+r"};
-
-    const QString replacements = "QMOTCUqmotcu";
-
-    for (qsizetype i = 0; i < promotions.size(); ++i) {
-        initialSfenStr.replace(promotions[i], replacements[i]);
+/// SFEN を空白で4つの欄に分け、手番と手数を確かめる
+std::optional<SfenFields> splitSfenFields(const QString& sfenStr)
+{
+    std::array<QStringView, 4> fields;
+    qsizetype count = 0;
+    qsizetype start = 0;
+    while (true) {
+        const qsizetype space = sfenStr.indexOf(QLatin1Char(' '), start);
+        const qsizetype end = (space < 0) ? sfenStr.size() : space;
+        if (count < 4) fields[static_cast<size_t>(count)] = QStringView(sfenStr).sliced(start, end - start);
+        ++count;
+        if (space < 0) break;
+        start = space + 1;
     }
 
-    QStringList sfenParts = initialSfenStr.split("/");
-
-    if (sfenParts.size() != 9) {
-        qCWarning(lcCore, "SFEN parts != 9: %s", qUtf8Printable(initialSfenStr));
+    if (count != 4) {
+        qCWarning(lcCore, "SFEN components: %lld in %s", count, qUtf8Printable(sfenStr));
         return std::nullopt;
     }
 
-    // 各段に配置可能な駒のリスト
-   static  const QStringList pieces[9] = {
-        {"S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "p", "l", "n", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"},  // 1
-        {"P", "L", "S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "p", "l", "n", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"},  // 2
-        {"P", "L", "N", "S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "p", "l", "n", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"},  // 3
-        {"P", "L", "N", "S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "p", "l", "n", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"},  // 4
-        {"P", "L", "N", "S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "p", "l", "n", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"},  // 5
-        {"P", "L", "N", "S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "p", "l", "n", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"},  // 6
-        {"P", "L", "N", "S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "p", "l", "n", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"},  // 7
-        {"P", "L", "N", "S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "p", "l", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"},  // 8
-        {"P", "L", "N", "S", "G", "B", "R", "K", "Q", "M", "O", "T", "C", "U", "s", "g", "b", "r", "k", "q", "m", "o", "t", "c", "u"}   // 9
-    };
-
-    for (int i = 0; i < 9; ++i) {
-        QString rankStr = sfenParts.at(i);
-        int pieceCount = 0;
-        for (QChar ch : rankStr) {
-            if (ch.isDigit()) {
-                pieceCount += ch.digitValue();
-            } else if (pieces[i].contains(ch)) {
-                ++pieceCount;
-            } else {
-                qCWarning(lcCore, "Unexpected SFEN char: %s at rank %d in %s",
-                         qUtf8Printable(QString(ch)), i, qUtf8Printable(rankStr));
-                return std::nullopt;
-            }
-        }
-
-        if (pieceCount != 9) {
-            qCWarning(lcCore, "SFEN rank piece count: %d in %s", pieceCount, qUtf8Printable(initialSfenStr));
-            return std::nullopt;
-        }
-    }
-
-    return initialSfenStr;
-}
-
-// SFEN文字列の持ち駒部分を解析し、駒台に各駒の枚数をセットする。
-bool ShogiBoard::setPieceStandFromSfen(const QString& str)
-{
-    // 処理フロー:
-    // 1. 初期化（全持ち駒を0に）
-    // 2. "-"なら持ち駒なしで即リターン
-    // 3. 文字列を1文字ずつ走査し、数字+駒文字の組み合わせを解析
-
-    initStand();
-
-    if (str == "-") return true;
-
-    if (str.contains(' ')) {
-        qCWarning(lcCore, "Piece stand string contains space: %s", qUtf8Printable(str));
-        return false;
-    }
-
-    bool isTwoDigits = false;
-
-    for (int i = 0; i < str.length(); ++i) {
-        if (str[i].isDigit()) {
-            if (isTwoDigits) {
-                if (i + 1 < str.length()) {
-                    Piece p = charToPiece(str[i + 1]);
-                    if (m_pieceStand.contains(p)) {
-                        // 10の位と1の位を合算
-                        int twoDigits = 10 * str[i - 1].digitValue() + str[i].digitValue();
-                        m_pieceStand[p] += twoDigits;
-                        ++i;
-                        isTwoDigits = false;
-                    }
-                    else {
-                        qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
-                                 i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-                        return false;
-                    }
-                }
-                else {
-                    qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
-                             i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-                    return false;
-                }
-            }
-            else {
-                if (i + 1 < str.length()) {
-                    Piece p = charToPiece(str[i + 1]);
-                    if (m_pieceStand.contains(p)) {
-                        int count = str[i].digitValue();
-                        m_pieceStand[p] += count;
-                        ++i;
-                    }
-                    else if (str[i+1].isDigit()) {
-                        isTwoDigits = true;
-                    }
-                    else {
-                        qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
-                                 i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-                        return false;
-                    }
-                }
-                else {
-                    qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
-                             i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-                    return false;
-                }
-            }
-        }
-        // 数字が前にない場合は1枚と数える
-        else {
-            Piece p = charToPiece(str[i]);
-            if (m_pieceStand.contains(p)) {
-                m_pieceStand[p] += 1;
-            }
-            else {
-                qCWarning(lcCore, "Invalid piece type in stand string: %s", qUtf8Printable(str));
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-bool ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
-{
-    auto opt = validateAndConvertSfenBoardStr(initialSfenStr);
-    if (!opt) return false;
-
-    const QString& sfenStr = *opt;
-    int strIndex = 0;
-    int emptySquares = 0;
-    const int fileCount = files();
-    Piece pieceVal;
-
-    for (int rank = 1; rank <= ranks(); ++rank) {
-        for (int file = fileCount; file > 0; --file) {
-            if (emptySquares > 0) {
-                pieceVal = Piece::None;
-                emptySquares--;
-            }
-            else {
-                if (strIndex >= sfenStr.size()) {
-                    qCWarning(lcCore, "SFEN string too short at rank=%d file=%d", rank, file);
-                    return false;
-                }
-                QChar pieceChar = sfenStr.at(strIndex++);
-
-                if (pieceChar.isDigit()) {
-                    emptySquares = pieceChar.toLatin1() - '0';
-                    pieceVal = Piece::None;
-                    emptySquares--;
-                }
-                else {
-                    pieceVal = charToPiece(pieceChar);
-                }
-            }
-            setDataInternal(file, rank, pieceVal);
-        }
-
-        strIndex++;
-    }
-    return true;
-}
-
-// SFEN文字列をパースし、各要素に分解する（副作用なしの static メソッド）。
-std::optional<SfenComponents> ShogiBoard::parseSfen(const QString& sfenStr)
-{
-    QStringList parts = sfenStr.split(QLatin1Char(' '));
-
-    if (parts.size() != 4) {
-        qCWarning(lcCore, "SFEN components: %lld in %s",
-                 parts.size(), qUtf8Printable(sfenStr));
-        return std::nullopt;
-    }
-
-    const QString& turnStr = parts.at(1);
-    if (turnStr != QLatin1String("b") && turnStr != QLatin1String("w")) {
+    const QStringView turnStr = fields[1];
+    if (turnStr != u"b" && turnStr != u"w") {
         qCWarning(lcCore, "Invalid turn: %s in %s",
-                 qUtf8Printable(turnStr), qUtf8Printable(sfenStr));
+                 qUtf8Printable(turnStr.toString()), qUtf8Printable(sfenStr));
         return std::nullopt;
     }
 
-    bool ok;
-    int moveNumber = parts.at(3).toInt(&ok);
+    bool ok = false;
+    const int moveNumber = fields[3].toInt(&ok);
     if (!ok || moveNumber <= 0) {
         qCWarning(lcCore, "Invalid move number in SFEN: %s", qUtf8Printable(sfenStr));
         return std::nullopt;
     }
 
-    return SfenComponents{parts.at(0), parts.at(2), sfenToTurn(turnStr), moveNumber};
+    return SfenFields{fields[0], fields[2], turnStr == u"b" ? Turn::Black : Turn::White, moveNumber};
+}
+
+/// 盤の欄の1駒（"+P" などの成駒を含む）。駒でない文字は None
+Piece boardPieceAt(QStringView field, qsizetype& pos)
+{
+    const QChar ch = field.at(pos++);
+    if (ch != QLatin1Char('+')) return charToPiece(ch);
+    if (pos >= field.size()) return Piece::None;
+
+    // 成れる駒（歩・香・桂・銀・角・飛）だけに "+" を付けられる
+    const Piece base = charToPiece(field.at(pos++));
+    const Piece promoted = promote(base);
+    return (promoted != base) ? promoted : Piece::None;
+}
+
+/// 段に置ける駒か（行き所のない駒は置けない。先手の歩・香は1段目、桂は1・2段目、後手は逆）
+bool canStandOnRank(Piece piece, int rank)
+{
+    switch (piece) {
+    case Piece::BlackPawn:
+    case Piece::BlackLance:  return rank >= 2;
+    case Piece::BlackKnight: return rank >= 3;
+    case Piece::WhitePawn:
+    case Piece::WhiteLance:  return rank <= kBoardSize - 1;
+    case Piece::WhiteKnight: return rank <= kBoardSize - 2;
+    default:                 return true;
+    }
+}
+
+/// SFEN の盤の欄を読む（9段を "/" で区切り、各段は9筋から1筋へ9マス。数字は空きマスの数）
+bool readBoardField(QStringView field, std::array<Piece, kBoardSize * kBoardSize>& squares)
+{
+    qsizetype pos = 0;
+    for (int rank = 1; rank <= kBoardSize; ++rank) {
+        if (rank > 1) {
+            if (pos >= field.size()) {
+                qCWarning(lcCore, "SFEN parts != 9: %s", qUtf8Printable(field.toString()));
+                return false;
+            }
+            ++pos;  // 段の区切りの "/"
+        }
+
+        int file = kBoardSize;
+        while (pos < field.size() && field.at(pos) != QLatin1Char('/')) {
+            const char16_t ch = field.at(pos).unicode();
+            if (ch >= u'1' && ch <= u'9') {
+                const int empty = ch - u'0';
+                if (empty > file) {
+                    qCWarning(lcCore, "SFEN rank piece count exceeds 9 at rank %d in %s", rank, qUtf8Printable(field.toString()));
+                    return false;
+                }
+                for (int i = 0; i < empty; ++i) {
+                    squares[static_cast<size_t>((rank - 1) * kBoardSize + (file - 1))] = Piece::None;
+                    --file;
+                }
+                ++pos;
+                continue;
+            }
+
+            const Piece piece = boardPieceAt(field, pos);
+            if (piece == Piece::None || !canStandOnRank(piece, rank)) {
+                qCWarning(lcCore, "Unexpected SFEN char at rank %d in %s", rank, qUtf8Printable(field.toString()));
+                return false;
+            }
+            if (file < 1) {
+                qCWarning(lcCore, "SFEN rank piece count exceeds 9 at rank %d in %s", rank, qUtf8Printable(field.toString()));
+                return false;
+            }
+            squares[static_cast<size_t>((rank - 1) * kBoardSize + (file - 1))] = piece;
+            --file;
+        }
+
+        if (file != 0) {
+            qCWarning(lcCore, "SFEN rank piece count: %d at rank %d in %s",
+                     kBoardSize - file, rank, qUtf8Printable(field.toString()));
+            return false;
+        }
+    }
+
+    if (pos != field.size()) {
+        qCWarning(lcCore, "SFEN parts != 9: %s", qUtf8Printable(field.toString()));
+        return false;
+    }
+    return true;
+}
+
+/// 駒台に置く駒（玉を含む先後16種）の番号。それ以外の駒は -1
+int standSlot(Piece piece)
+{
+    switch (piece) {
+    case Piece::BlackPawn:   return 0;
+    case Piece::BlackLance:  return 1;
+    case Piece::BlackKnight: return 2;
+    case Piece::BlackSilver: return 3;
+    case Piece::BlackGold:   return 4;
+    case Piece::BlackBishop: return 5;
+    case Piece::BlackRook:   return 6;
+    case Piece::BlackKing:   return 7;
+    case Piece::WhitePawn:   return 8;
+    case Piece::WhiteLance:  return 9;
+    case Piece::WhiteKnight: return 10;
+    case Piece::WhiteSilver: return 11;
+    case Piece::WhiteGold:   return 12;
+    case Piece::WhiteBishop: return 13;
+    case Piece::WhiteRook:   return 14;
+    case Piece::WhiteKing:   return 15;
+    default:                 return -1;
+    }
+}
+
+/// SFEN の持駒の欄を読む（"-" は持駒なし。駒の前の1〜2桁の数字は枚数で、同じ駒が何度出ても足す）
+bool readStandField(QStringView field, std::array<int, kStandKinds>& counts)
+{
+    counts.fill(0);
+    if (field == u"-") return true;
+
+    for (qsizetype pos = 0; pos < field.size();) {
+        int count = 1;
+        if (field.at(pos).isDigit()) {
+            count = field.at(pos++).digitValue();
+            if (pos < field.size() && field.at(pos).isDigit()) count = count * 10 + field.at(pos++).digitValue();
+        }
+        const int slot = (pos < field.size()) ? standSlot(charToPiece(field.at(pos))) : -1;
+        if (slot < 0) {
+            qCWarning(lcCore, "Invalid piece in stand string: %s", qUtf8Printable(field.toString()));
+            return false;
+        }
+        counts[static_cast<size_t>(slot)] += count;
+        ++pos;
+    }
+    return true;
+}
+
+} // namespace
+
+// SFEN文字列をパースし、各要素に分解する（副作用なしの static メソッド）。
+std::optional<SfenComponents> ShogiBoard::parseSfen(const QString& sfenStr)
+{
+    const auto fields = splitSfenFields(sfenStr);
+    if (!fields) return std::nullopt;
+    return SfenComponents{fields->board.toString(), fields->stand.toString(), fields->turn, fields->moveNumber};
 }
 
 // SFEN文字列で将棋盤全体（盤面＋駒台）を更新し再描画する。
@@ -233,48 +216,50 @@ void ShogiBoard::setSfen(const QString& sfenStr)
 bool ShogiBoard::trySetSfen(const QString& sfenStr, QString* error)
 {
     // 処理フロー:
-    // 1. SFEN文字列の構文検証・分解
-    // 2. 盤面に駒を配置
-    // 3. 持ち駒を設定
-    // 4. 再描画シグナルを発行
+    // 1. SFEN文字列を4つの欄に分け、手番と手数を確かめる
+    // 2. 盤と持駒を作業用の配列に読む（不正なら盤面を変更せずに返す）
+    // 3. 盤面・駒台・手番を書き換え、再描画シグナルを発行
 
-    {
+    if (lcCore().isDebugEnabled()) {
         const QString preview = (sfenStr.size() > 200) ? sfenStr.left(200) + QStringLiteral(" ...") : sfenStr;
         qCDebug(lcCore, "setSfen: %s", qUtf8Printable(preview));
-        if (sfenStr.startsWith(QLatin1String("position "))) {
-            qCWarning(lcCore, "NON-SFEN passed to setSfen (caller bug)");
-        }
+    }
+    if (sfenStr.startsWith(QLatin1String("position "))) {
+        qCWarning(lcCore, "NON-SFEN passed to setSfen (caller bug)");
     }
 
-    auto parsed = parseSfen(sfenStr);
-    if (!parsed)
+    const auto fields = splitSfenFields(sfenStr);
+    if (!fields)
         return false;
 
-    const QList<Piece> oldBoardData = m_boardData;
-    const QMap<Piece, int> oldPieceStand = m_pieceStand;
-    const Turn oldTurn = m_currentPlayer;
-    const int oldMoveNumber = m_currentMoveNumber;
-    const auto restore = [&] {
-        m_boardData = oldBoardData;
-        m_pieceStand = oldPieceStand;
-        m_currentPlayer = oldTurn;
-        m_currentMoveNumber = oldMoveNumber;
-    };
-
-    QString boardPart = parsed->board;
-    if (!setPiecePlacementFromSfen(boardPart)) {
-        restore();
+    std::array<Piece, kBoardSize * kBoardSize> squares;
+    if (!readBoardField(fields->board, squares)) {
         if (error) *error = tr("SFEN board parse error: %1").arg(sfenStr.left(80));
         return false;
     }
-    if (!setPieceStandFromSfen(parsed->stand)) {
-        restore();
+    std::array<int, kStandKinds> standCounts;
+    if (!readStandField(fields->stand, standCounts)) {
         if (error) *error = tr("SFEN piece stand parse error: %1").arg(sfenStr.left(80));
         return false;
     }
 
-    m_currentPlayer = parsed->turn;
-    m_currentMoveNumber = parsed->moveNumber;
+    if (m_boardData.size() != static_cast<qsizetype>(squares.size())) {
+        m_boardData.resize(static_cast<qsizetype>(squares.size()));
+    }
+    std::copy(squares.cbegin(), squares.cend(), m_boardData.begin());
+
+    // 駒台は16種の駒の枚数。種類がそろっていれば値だけ書き換える（作り直さない）
+    bool sameKinds = m_pieceStand.size() == kStandKinds;
+    for (auto it = m_pieceStand.cbegin(); sameKinds && it != m_pieceStand.cend(); ++it) {
+        sameKinds = standSlot(it.key()) >= 0;
+    }
+    if (!sameKinds) initStand();
+    for (auto it = m_pieceStand.begin(); it != m_pieceStand.end(); ++it) {
+        it.value() = standCounts[static_cast<size_t>(standSlot(it.key()))];
+    }
+
+    m_currentPlayer = fields->turn;
+    m_currentMoveNumber = fields->moveNumber;
 
     // ShogiView::setBoardのconnectで再描画がトリガされる
     emit boardReset();
