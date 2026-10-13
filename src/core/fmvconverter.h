@@ -11,6 +11,7 @@
 #include "fmvposition.h"
 #include "fmvtypes.h"
 #include "shogimove.h"
+#include "usimove.h"
 
 namespace fmv {
 
@@ -33,6 +34,9 @@ public:
                              const ShogiMove& in);
 
     static Color toColor(Turn t) noexcept;
+
+    /// 内部の指し手を USI の指し手にする
+    static UsiMove toUsiMove(const Move& m);
 };
 
 } // namespace fmv

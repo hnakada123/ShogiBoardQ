@@ -28,11 +28,13 @@ SFEN の持ち駒は、盤（`ShogiBoard::convertStandToSfen`）も含めて標�
 SFEN の差分から指し手を推測する処理（以前の `UsiMoveConverter`、定跡のマージ用の `generateUsiMovesFromSfen`、USEN 書き出しの `inferUsiFromSfenDiff`）は無い。
 棋譜の書き出し・自動化 API・定跡のマージに使う USI の指し手は、分岐ツリーのノードの手（`ShogiMove::toUsiMove()`）から作る（4.4 の `RecordLine`）。
 以前の `ShogiUtils`（`src/core/shogiutils.*`）も無い。表記の関数は `ShogiNotation` と `KifMoveText` にある。
+KI2 の読み書き（`Ki2MoveNotation`）も、盤は `ShogiBoard`、指し手は `UsiMove` で扱う。読み込みは局面の合法手
+（`EngineMoveValidator::legalMoves`）から指し手を選び、書き出しは分岐ツリーのノードの手と局面から修飾語・「打」・「不成」を決める。
+反則手を書いた棋譜のために、合法手で決まらない手だけは駒の動きだけで決める（`EngineMoveValidator::pseudoLegalMoves`）。
 
 まだ独自の表現が残っている所（意図して残している）:
 
 - 思考情報の読み筋の漢字化（`ShogiEngineInfoParser`、info 行ごとの高速化のため文字の盤）
-- KI2 の読み込み・書き出し（棋譜の表記を読み、`Ki2Lexer`・`Ki2ToSfenConverter` の駒の動き方で移動元や「右」「直」などを決める）
 - JKF の書き出し（棋譜の表記から JKF の指し手と `relative` を作る）
 - CSA 読み込みの局面（`CsaLexer::Board`）
 - 2つの局面の差分（`SfenDiffUtils`）から手を求める所: 盤のハイライト（`BoardSyncPresenter`）、読み筋の盤（`PvBoardController`）、待ったの後の「同」の基準（`MatchUndoHandler`）。

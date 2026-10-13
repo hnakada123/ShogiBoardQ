@@ -9,7 +9,6 @@
 #include "kifubranchtreebuilder.h"
 #include "kifubranchnode.h"
 #include "bodtextgenerator.h"
-#include "ki2lexer.h"
 #include "parsecommon.h"
 #include "sfenutils.h"
 
@@ -65,7 +64,132 @@ private slots:
         QVERIFY2(resaved.ok, qPrintable(resaved.error));
         QVERIFY(!resaved.lines.join(QLatin1Char('\n')).contains(QStringLiteral("寄寄")));
         QCOMPARE(resaved.usiMoves, QStringList{QStringLiteral("2c4c")});
-        QVERIFY(!Ki2Lexer::canPieceMoveTo(Piece::BlackGold, false, 5, 5, 5, 5, true));
+    }
+
+    /// 修飾語・打・成・不成は日本将棋連盟の棋譜の表記方法に合わせ、読み込むと同じ手に戻る
+    void ki2ModifierNotation_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::addColumn<QString>("usi");
+        QTest::addColumn<QString>("ki2");
+        const auto add = [](const char* name, const char* sfen, const char* usi, const QString& ki2) {
+            QTest::newRow(name) << QString::fromLatin1(sfen) << QString::fromLatin1(usi) << ki2;
+        };
+        // 図「上・寄・引」：動作で区別できれば動作を書く
+        add("action-A-up", "8k/2G6/G8/9/9/9/9/9/4K4 b - 1", "9c8b", QStringLiteral("▲８二金上"));
+        add("action-A-side", "8k/2G6/G8/9/9/9/9/9/4K4 b - 1", "7b8b", QStringLiteral("▲８二金寄"));
+        add("action-B-up", "6G1k/9/5G3/9/9/9/9/9/4K4 b - 1", "4c3b", QStringLiteral("▲３二金上"));
+        add("action-B-back", "6G1k/9/5G3/9/9/9/9/9/4K4 b - 1", "3a3b", QStringLiteral("▲３二金引"));
+        add("action-C-up", "8k/9/9/9/5G3/4G4/9/9/4K4 b - 1", "5f5e", QStringLiteral("▲５五金上"));
+        add("action-C-side", "8k/9/9/9/5G3/4G4/9/9/4K4 b - 1", "4e5e", QStringLiteral("▲５五金寄"));
+        add("action-D-up", "8k/9/9/9/9/9/2S6/9/1S2K4 b - 1", "8i8h", QStringLiteral("▲８八銀上"));
+        add("action-D-back", "8k/9/9/9/9/9/2S6/9/1S2K4 b - 1", "7g8h", QStringLiteral("▲８八銀引"));
+        add("action-E-up", "8k/9/9/9/9/9/7S1/9/4KS3 b - 1", "4i3h", QStringLiteral("▲３八銀上"));
+        add("action-E-back", "8k/9/9/9/9/9/7S1/9/4KS3 b - 1", "2g3h", QStringLiteral("▲３八銀引"));
+        // 図「右・左1」：動作が同じなら位置。金・銀が真っ直ぐ1段上がるときは「直」
+        add("side-A-left", "8k/G1G6/9/9/9/9/9/9/4K4 b - 1", "9b8a", QStringLiteral("▲８一金左"));
+        add("side-A-right", "8k/G1G6/9/9/9/9/9/9/4K4 b - 1", "7b8a", QStringLiteral("▲８一金右"));
+        add("side-B-left", "k8/6G1G/9/9/9/9/9/9/4K4 b - 1", "3b2b", QStringLiteral("▲２二金左"));
+        add("side-B-right", "k8/6G1G/9/9/9/9/9/9/4K4 b - 1", "1b2b", QStringLiteral("▲２二金右"));
+        add("side-C-left", "8k/9/9/9/3S1S3/9/9/9/4K4 b - 1", "6e5f", QStringLiteral("▲５六銀左"));
+        add("side-C-right", "8k/9/9/9/3S1S3/9/9/9/4K4 b - 1", "4e5f", QStringLiteral("▲５六銀右"));
+        add("side-D-left", "8k/9/9/9/9/9/9/9/1GG1K4 b - 1", "8i7h", QStringLiteral("▲７八金左"));
+        add("side-D-straight", "8k/9/9/9/9/9/9/9/1GG1K4 b - 1", "7i7h", QStringLiteral("▲７八金直"));
+        add("side-E-straight", "8k/9/9/9/9/9/9/9/4K1SS1 b - 1", "3i3h", QStringLiteral("▲３八銀直"));
+        add("side-E-right", "8k/9/9/9/9/9/9/9/4K1SS1 b - 1", "2i3h", QStringLiteral("▲３八銀右"));
+        // 図「右・左2」：3枚以上。1字で区別できなければ位置・動作の2字
+        add("three-A-left", "8k/9/3GGG3/9/9/9/9/9/4K4 b - 1", "6c5b", QStringLiteral("▲５二金左"));
+        add("three-A-straight", "8k/9/3GGG3/9/9/9/9/9/4K4 b - 1", "5c5b", QStringLiteral("▲５二金直"));
+        add("three-A-right", "8k/9/3GGG3/9/9/9/9/9/4K4 b - 1", "4c5b", QStringLiteral("▲５二金右"));
+        const char* tokins = "8k/9/9/9/9/9/1+P7/+P8/+P+P+P1K4 b - 1";
+        add("three-B-right", tokins, "7i8h", QStringLiteral("▲８八と右"));
+        add("three-B-straight", tokins, "8i8h", QStringLiteral("▲８八と直"));
+        add("three-B-left-up", tokins, "9i8h", QStringLiteral("▲８八と左上"));
+        add("three-B-side", tokins, "9h8h", QStringLiteral("▲８八と寄"));
+        add("three-B-back", tokins, "8g8h", QStringLiteral("▲８八と引"));
+        const char* silvers = "8k/9/9/9/9/9/6S1S/9/4K1SS1 b - 1";
+        add("three-C-straight", silvers, "2i2h", QStringLiteral("▲２八銀直"));
+        add("three-C-right", silvers, "1g2h", QStringLiteral("▲２八銀右"));
+        add("three-C-left-up", silvers, "3i2h", QStringLiteral("▲２八銀左上"));
+        add("three-C-left-back", silvers, "3g2h", QStringLiteral("▲２八銀左引"));
+        // 図「竜」：動作を優先し、「直」は使わず右・左
+        add("dragon-A-back", "+R8/9/9/1+R7/9/9/9/9/4K3k b - 1", "9a8b", QStringLiteral("▲８二龍引"));
+        add("dragon-A-up", "+R8/9/9/1+R7/9/9/9/9/4K3k b - 1", "8d8b", QStringLiteral("▲８二龍上"));
+        add("dragon-B-side", "8k/4+R4/7+R1/9/9/9/9/9/4K4 b - 1", "2c4c", QStringLiteral("▲４三龍寄"));
+        add("dragon-B-back", "8k/4+R4/7+R1/9/9/9/9/9/4K4 b - 1", "5b4c", QStringLiteral("▲４三龍引"));
+        add("dragon-C-left", "k8/9/9/9/4+R3+R/9/9/9/4K4 b - 1", "5e3e", QStringLiteral("▲３五龍左"));
+        add("dragon-C-right", "k8/9/9/9/4+R3+R/9/9/9/4K4 b - 1", "1e3e", QStringLiteral("▲３五龍右"));
+        add("dragon-D-left", "8k/9/9/9/9/9/9/9/+R+R2K4 b - 1", "9i8h", QStringLiteral("▲８八龍左"));
+        add("dragon-D-right", "8k/9/9/9/9/9/9/9/+R+R2K4 b - 1", "8i8h", QStringLiteral("▲８八龍右"));
+        add("dragon-E-left", "k8/9/9/9/9/9/9/7+R1/4K3+R b - 1", "2h1g", QStringLiteral("▲１七龍左"));
+        add("dragon-E-right", "k8/9/9/9/9/9/9/7+R1/4K3+R b - 1", "1i1g", QStringLiteral("▲１七龍右"));
+        // 図「馬」
+        add("horse-A-left", "+B+B6k/9/9/9/9/9/9/9/4K4 b - 1", "9a8b", QStringLiteral("▲８二馬左"));
+        add("horse-A-right", "+B+B6k/9/9/9/9/9/9/9/4K4 b - 1", "8a8b", QStringLiteral("▲８二馬右"));
+        add("horse-B-side", "8k/9/3+B5/9/+B8/9/9/9/4K4 b - 1", "9e8e", QStringLiteral("▲８五馬寄"));
+        add("horse-B-back", "8k/9/3+B5/9/+B8/9/9/9/4K4 b - 1", "6c8e", QStringLiteral("▲８五馬引"));
+        add("horse-C-back", "k7+B/9/9/6+B2/9/9/9/9/4K4 b - 1", "1a1b", QStringLiteral("▲１二馬引"));
+        add("horse-C-up", "k7+B/9/9/6+B2/9/9/9/9/4K4 b - 1", "3d1b", QStringLiteral("▲１二馬上"));
+        add("horse-D-left", "8k/9/9/9/9/9/9/9/+B3+B3K b - 1", "9i7g", QStringLiteral("▲７七馬左"));
+        add("horse-D-right", "8k/9/9/9/9/9/9/9/+B3+B3K b - 1", "5i7g", QStringLiteral("▲７七馬右"));
+        add("horse-E-left", "8k/9/9/9/9/9/5+B3/8+B/4K4 b - 1", "4g2i", QStringLiteral("▲２九馬左"));
+        add("horse-E-right", "8k/9/9/9/9/9/5+B3/8+B/4K4 b - 1", "1h2i", QStringLiteral("▲２九馬右"));
+        // 後手は後手から見た右・左・上・引
+        add("white-left", "4k4/9/9/9/9/9/3ggg3/9/K8 w - 1", "4g5h", QStringLiteral("△５八金左"));
+        add("white-straight", "4k4/9/9/9/9/9/3ggg3/9/K8 w - 1", "5g5h", QStringLiteral("△５八金直"));
+        add("white-right", "4k4/9/9/9/9/9/3ggg3/9/K8 w - 1", "6g5h", QStringLiteral("△５八金右"));
+        add("white-knight-left", "1k3n1n1/9/9/9/9/9/9/9/4K4 w - 1", "2a3c", QStringLiteral("△３三桂左"));
+        add("white-knight-right", "1k3n1n1/9/9/9/9/9/9/9/4K4 w - 1", "4a3c", QStringLiteral("△３三桂右"));
+        // 桂は直を使わず右・左
+        add("knight-left", "8k/9/9/9/9/9/9/9/N1N1K4 b - 1", "9i8g", QStringLiteral("▲８七桂左"));
+        add("knight-right", "8k/9/9/9/9/9/9/9/N1N1K4 b - 1", "7i8g", QStringLiteral("▲８七桂右"));
+        // 成・不成は成れる手だけに書き、修飾語の後に置く
+        add("promote-with-modifier", "k8/9/9/S1S6/9/9/9/9/4K4 b - 1", "9d8c+", QStringLiteral("▲８三銀左成"));
+        add("not-promote-with-modifier", "k8/9/9/S1S6/9/9/9/9/4K4 b - 1", "7d8c", QStringLiteral("▲８三銀右不成"));
+        add("not-promote", "8k/9/9/4S4/9/9/9/9/4K4 b - 1", "5d5c", QStringLiteral("▲５三銀不成"));
+        add("no-promotion-outside-zone", "8k/9/9/9/4S4/9/9/9/4K4 b - 1", "5e5d", QStringLiteral("▲５四銀"));
+        // ピンされた金は動ける駒に数えない（修飾語も「打」も要らない）
+        add("pinned-omits-modifier", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "3h4g", QStringLiteral("▲４七金"));
+        add("drop-needs-marker", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "G*4g", QStringLiteral("▲４七金打"));
+        add("pinned-omits-drop-marker", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "G*6g", QStringLiteral("▲６七金"));
+        add("pinned-along-the-pin", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "5h5g", QStringLiteral("▲５七金"));
+        // 反則手（二歩・王手放置）も書き、駒の動きだけで読み戻す
+        add("illegal-double-pawn", "4k4/9/9/9/9/9/4P4/9/4K4 b P 1", "P*5e", QStringLiteral("▲５五歩"));
+        add("illegal-double-pawn-marker", "4k4/9/9/9/9/4P4/9/9/4K4 b P 1", "P*5e", QStringLiteral("▲５五歩打"));
+        add("illegal-king-in-check", "4k4/9/9/9/4r4/9/9/9/4K3G b - 1", "1i1h", QStringLiteral("▲１八金"));
+    }
+
+    void ki2ModifierNotation()
+    {
+        QFETCH(QString, sfen);
+        QFETCH(QString, usi);
+        QFETCH(QString, ki2);
+        const auto saved = convert(QStringLiteral("position sfen %1 moves %2").arg(sfen, usi), Format::Ki2);
+        QVERIFY2(saved.ok, qPrintable(saved.error));
+        QVERIFY2(saved.lines.contains(ki2), qPrintable(saved.lines.join(QLatin1Char('\n'))));
+        const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Usi, Format::Ki2);
+        QVERIFY2(reread.ok, qPrintable(reread.error));
+        QCOMPARE(reread.usiMoves, QStringList{usi});
+    }
+
+    /// 「同」は直前の手と同じマスへの手。変化の最初の手でも分岐する前の手を見る
+    void ki2SameSquareRoundTrip()
+    {
+        const QString kif = QStringLiteral(
+            "手合割：平手\n"
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n   2 ３四歩(33)\n   3 ２二角成(88)+\n   4 同　銀(31)\n"
+            "\n変化：3手\n   3 ２二角不成(88)\n   4 同　飛(82)\n");
+        const auto saved = convert(kif, Format::Ki2, Format::Kif);
+        QVERIFY2(saved.ok, qPrintable(saved.error));
+        const QString text = saved.lines.join(QLatin1Char('\n'));
+        QVERIFY2(text.contains(QStringLiteral("▲２二角成    △同　銀")), qPrintable(text));
+        QVERIFY2(text.contains(QStringLiteral("▲２二角不成    △同　飛")), qPrintable(text));
+        const auto reread = convert(text, Format::Kif, Format::Ki2);
+        QVERIFY2(reread.ok, qPrintable(reread.error));
+        QCOMPARE(reread.usiMoves, QStringList({"7g7f", "3c3d", "8h2b+", "3a2b"}));
+        const QString rereadKif = reread.lines.join(QLatin1Char('\n'));
+        QVERIFY2(rereadKif.contains(QStringLiteral("同　飛(82)")), qPrintable(rereadKif));
     }
 
     void ki2PieceSymbolsAreDetected()

@@ -3,8 +3,10 @@
 
 #include "enginemovevalidator.h"
 
+#include "fmvattacks.h"
 #include "fmvconverter.h"
 #include "fmvlegalcore.h"
+#include "fmvlegalcore_internal.h"
 
 namespace {
 fmv::LegalCore& legalCore()
@@ -51,6 +53,76 @@ int EngineMoveValidator::generateLegalMoves(Context& ctx) const
     }
     fmv::EnginePosition work = ctx.pos;
     return legalCore().countLegalMoves(work, fmv::Converter::toColor(ctx.turn));
+}
+
+QList<UsiMove> EngineMoveValidator::legalMoves(Context& ctx) const
+{
+    QList<UsiMove> out;
+    if (!ctx.synced) {
+        return out;
+    }
+    fmv::EnginePosition work = ctx.pos;
+    fmv::MoveList list;
+    legalCore().generateLegalMoves(work, fmv::Converter::toColor(ctx.turn), list);
+    out.reserve(list.size);
+    for (int i = 0; i < list.size; ++i) {
+        out.append(fmv::Converter::toUsiMove(list.moves[static_cast<std::size_t>(i)]));
+    }
+    return out;
+}
+
+QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(Context& ctx) const
+{
+    QList<UsiMove> out;
+    if (!ctx.synced) {
+        return out;
+    }
+    const fmv::EnginePosition& pos = ctx.pos;
+    const fmv::Color side = fmv::Converter::toColor(ctx.turn);
+    const auto ci = static_cast<std::size_t>(side);
+    for (int from = 0; from < fmv::kSquareNb; ++from) {
+        const auto fromSq = static_cast<fmv::Square>(from);
+        if (!pos.colorOcc[ci].test(fromSq)) {
+            continue;
+        }
+        const fmv::PieceType pt = fmv::detail::charToPieceType(pos.board[fromSq]);
+        if (pt == fmv::PieceType::PieceTypeNb) {
+            continue;
+        }
+        for (int to = 0; to < fmv::kSquareNb; ++to) {
+            const auto toSq = static_cast<fmv::Square>(to);
+            if (pos.colorOcc[ci].test(toSq) || !fmv::pieceAttacksSquare(pos, side, pt, fromSq, toSq)) {
+                continue;
+            }
+            fmv::Move m;
+            m.from = fromSq;
+            m.to = toSq;
+            m.piece = pt;
+            out.append(fmv::Converter::toUsiMove(m));
+            if (fmv::detail::isPromotable(pt)
+                && (fmv::detail::isPromotionZone(side, fmv::squareRank(fromSq))
+                    || fmv::detail::isPromotionZone(side, fmv::squareRank(toSq)))) {
+                m.promote = true;
+                out.append(fmv::Converter::toUsiMove(m));
+            }
+        }
+    }
+    for (int hand = 0; hand < static_cast<int>(fmv::HandType::HandTypeNb); ++hand) {
+        if (pos.hand[ci][static_cast<std::size_t>(hand)] <= 0) {
+            continue;
+        }
+        fmv::Move m;
+        m.kind = fmv::MoveKind::Drop;
+        // HandType と PieceType は歩〜飛の並びが同じ
+        m.piece = static_cast<fmv::PieceType>(hand);
+        for (int to = 0; to < fmv::kSquareNb; ++to) {
+            m.to = static_cast<fmv::Square>(to);
+            if (!pos.occupied.test(m.to)) {
+                out.append(fmv::Converter::toUsiMove(m));
+            }
+        }
+    }
+    return out;
 }
 
 int EngineMoveValidator::checkIfKingInCheck(Context& ctx) const
@@ -133,6 +205,28 @@ int EngineMoveValidator::generateLegalMoves(Turn turn,
         return 0;
     }
     return generateLegalMoves(ctx);
+}
+
+QList<UsiMove> EngineMoveValidator::legalMoves(Turn turn,
+                                               const QList<Piece>& boardData,
+                                               const QMap<Piece, int>& pieceStand) const
+{
+    Context ctx;
+    if (!syncContext(ctx, turn, boardData, pieceStand)) {
+        return {};
+    }
+    return legalMoves(ctx);
+}
+
+QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(Turn turn,
+                                                     const QList<Piece>& boardData,
+                                                     const QMap<Piece, int>& pieceStand) const
+{
+    Context ctx;
+    if (!syncContext(ctx, turn, boardData, pieceStand)) {
+        return {};
+    }
+    return pseudoLegalMoves(ctx);
 }
 
 int EngineMoveValidator::checkIfKingInCheck(Turn turn,

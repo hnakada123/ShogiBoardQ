@@ -296,6 +296,8 @@ add_shogi_test(tst_ki2converter
     ${TEST_STUBS}
     ${SRC}/kifu/formats/ki2tosfenconverter.cpp
     ${SRC}/kifu/formats/ki2lexer.cpp
+    ${SRC}/kifu/formats/ki2movenotation.cpp
+    ${EMV_SOURCES}
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/formats/kiflexer_bod.cpp

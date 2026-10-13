@@ -20,7 +20,7 @@ docs/dev/prompts/task20261013-refactoring-followups.md の課題1をやってく
 
 | 課題 | 内容 | 状態 |
 |---|---|---|
-| 1 | KI2 の読み書きを ShogiBoard と合法手で行う | 未着手 |
+| 1 | KI2 の読み書きを ShogiBoard と合法手で行う | 完了（2026-10-13） |
 | 2 | JKF の書き出しを表示用の文字列から作らない | 未着手 |
 | 3 | 盤を文字で持つ CSA の読み込みと読み筋の表示を ShogiBoard にする | 未着手 |
 | 4 | MatchPlayer と時計の int の手番を整理する | 未着手 |

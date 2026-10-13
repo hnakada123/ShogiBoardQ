@@ -1,0 +1,52 @@
+#ifndef KI2MOVENOTATION_H
+#define KI2MOVENOTATION_H
+
+/// @file ki2movenotation.h
+/// @brief KI2 の指し手の文字列と、局面の上の指し手（USI）との対応
+
+#include <QString>
+#include <optional>
+
+#include "ki2lexer.h"
+#include "shogitypes.h"
+#include "usimove.h"
+
+class ShogiBoard;
+
+/**
+ * @brief KI2 の指し手の文字列（"▲５二金右"）と USI の指し手の対応
+ *
+ * 移動元の書かれていない KI2 では、同じ駒が同じマスへ動ける場合に修飾語（右・左・直・上・引・寄）を、
+ * 盤上の駒も動ける場合に「打」を付ける（日本将棋連盟の棋譜の表記方法）。
+ * 「動ける駒」は局面の合法手で決めるので、ピンされた駒は数えない。
+ *
+ * 反則手（二歩・王手放置など）を書いた棋譜も読み書きできるよう、合法手で決まらない手は
+ * 駒の動きだけで決める。
+ */
+namespace Ki2MoveNotation {
+
+/**
+ * @brief 局面の上で、KI2 の指し手の文字列が表す指し手を1つに決める
+ * @param text 指し手の文字列を分けたもの（Ki2Lexer::parseMoveText）
+ * @param board 指す前の局面
+ * @param mover 指す側
+ * @param previousTo 直前の手の移動先（「同」で使う）
+ * @return 決まった指し手。候補がない・修飾語で1つに絞れないときは nullopt
+ */
+[[nodiscard]] std::optional<UsiMove> resolve(const Ki2Lexer::MoveText& text, const ShogiBoard& board,
+                                             Turn mover, BoardSquare previousTo);
+
+/**
+ * @brief 局面と指し手から KI2 の指し手の文字列を作る（"▲５二金右"・"△同　銀成"・"▲５五角打"）
+ * @param board 指す前の局面
+ * @param mover 指す側（手番の印を決める）
+ * @param move 指し手
+ * @param previousTo 直前の手の移動先。同じマスなら「同　」と書く
+ *
+ * 修飾語・「打」・「不成」は必要なときだけ付ける。
+ */
+QString format(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo);
+
+} // namespace Ki2MoveNotation
+
+#endif // KI2MOVENOTATION_H
