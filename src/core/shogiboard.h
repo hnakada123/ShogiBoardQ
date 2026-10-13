@@ -170,9 +170,6 @@ private:
     void setData(const int file, const int rank, const Piece value);
     void initBoard();
     bool setDataInternal(const int file, const int rank, const Piece value);
-    bool setPieceStandFromSfen(const QString& str);
-    std::optional<QString> validateAndConvertSfenBoardStr(QString sfenStr);
-    bool setPiecePlacementFromSfen(QString& initialSfenStr);
     Piece convertPieceChar(const Piece c) const;
     Piece convertPromotedPieceToOriginal(const Piece dest) const;
     QString convertPieceToSfen(const Piece piece) const;

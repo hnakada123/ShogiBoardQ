@@ -8501,12 +8501,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiBoard</name>
     <message>
-        <location filename="../../src/core/shogiboard_sfen.cpp" line="267"/>
+        <location filename="../../src/core/shogiboard_sfen.cpp" line="237"/>
         <source>SFEN board parse error: %1</source>
         <translation>SFEN盤面の解析エラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard_sfen.cpp" line="272"/>
+        <location filename="../../src/core/shogiboard_sfen.cpp" line="242"/>
         <source>SFEN piece stand parse error: %1</source>
         <translation>SFEN持ち駒の解析エラー: %1</translation>
     </message>

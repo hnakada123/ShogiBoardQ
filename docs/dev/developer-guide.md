@@ -575,7 +575,7 @@ int index = (rank - 1) * files() + (file - 1);  // 1-indexed の file, rank か�
 | 5五 | 5 | 5 | (5-1)*9 + (5-1) = 40 |
 | 1九 | 1 | 9 | (9-1)*9 + (1-1) = 72 |
 
-> **注意**: SFEN文字列の盤面パートは9一（左上）から1一（右上）へ左から右に読む。つまり筋が**9→1**の降順で並ぶ。`setPiecePlacementFromSfen()` ではこれに合わせて `file = fileCount; file > 0; --file` とループしている。
+> **注意**: SFEN文字列の盤面パートは9一（左上）から1一（右上）へ左から右に読む。つまり筋が**9→1**の降順で並ぶ。`trySetSfen()` が盤の欄を読むとき（`shogiboard_sfen.cpp` の `readBoardField`）も、各段を9筋から1筋へ読む。
 
 ### 2.2 駒の表現方法
 
@@ -609,19 +609,8 @@ SFEN標準では成駒を `+` 接頭辞で表すが、本プロジェクトで�
 
 > **金将と玉将には成駒がない。**
 
-この変換は `ShogiBoard::validateAndConvertSfenBoardStr()` で行われる。
-
-```cpp
-// src/core/shogiboard.cpp
-
-const QStringList promotions = {"+P", "+L", "+N", "+S", "+B", "+R",
-                                "+p", "+l", "+n", "+s", "+b", "+r"};
-const QString replacements = "QMOTCUqmotcu";
-
-for (qsizetype i = 0; i < promotions.size(); ++i) {
-    initialSfenStr.replace(promotions[i], replacements[i]);
-}
-```
+この変換は `ShogiBoard::trySetSfen()` が盤の欄を読むときに行う（`shogiboard_sfen.cpp` の `boardPieceAt`）。
+`+` の次の駒を `promote()` で成駒にし、成れない駒（金・玉）や駒でない文字に `+` が付いていれば不正な SFEN として読まない。
 
 逆変換（内部文字 → SFEN文字列）は `convertPieceToSfen()` が担う。
 
@@ -2055,17 +2044,17 @@ src/core/
 
 ```
 setSfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
-  │
-  ├── validateSfenString()       … SFEN文字列を盤面/駒台/手番/手数に分割・検証
-  │     ├── sfenBoardStr = "lnsgkgsnl/1r5b1/..."
-  │     └── sfenStandStr = "-"
-  │
-  ├── setPiecePlacementFromSfen()  … 盤面文字列を解析し m_boardData[0..80] に配置
-  │     └── validateAndConvertSfenBoardStr() で1文字ずつパース
-  │
-  ├── setPieceStandFromSfen()      … 駒台文字列をパースし m_pieceStand に反映
-  │
-  └── emit boardReset()            … 盤面描画の全体更新を通知
+  └── trySetSfen()                 … 不正なら盤面を変えずに false（setSfen は ErrorBus に通知する）
+        │
+        ├── splitSfenFields()      … 空白で盤・手番・持駒・手数の4欄に分け、手番と手数を確かめる
+        │                            （欄は元の文字列を指す QStringView で、文字列を作らない）
+        ├── readBoardField()       … 盤の欄を1文字ずつ読み、作業用の配列（81マス）に置く
+        │                            （成駒の "+"、各段9マス、行き所のない歩・香・桂を確かめる）
+        ├── readStandField()       … 持駒の欄を読み、16種の枚数の配列にする
+        │
+        ├── m_boardData・m_pieceStand・手番を書き換える
+        │     （駒台は16種がそろっていれば値だけ書き換え、作り直さない）
+        └── emit boardReset()      … 盤面描画の全体更新を通知
 ```
 
 ### 5.3 ShogiMove — 指し手データ構造

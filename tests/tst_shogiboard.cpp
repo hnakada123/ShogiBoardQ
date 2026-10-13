@@ -70,6 +70,70 @@ private slots:
         QCOMPARE(data[29], Piece::BlackPromotedPawn); // +P -> internal 'Q'
     }
 
+    void trySetSfen_readsHandCountsAndReplacesStand()
+    {
+        ShogiBoard board;
+        QVERIFY(board.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w 2BG 5")));
+
+        // 2桁の枚数、同じ駒の繰り返し（足す）、先後の駒。前の局面の持駒は残らない
+        QVERIFY(board.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b S2P3P10p 1")));
+        QCOMPARE(board.pieceStandCount(Piece::BlackSilver), 1);
+        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), 5);
+        QCOMPARE(board.pieceStandCount(Piece::WhitePawn), 10);
+        QCOMPARE(board.pieceStandCount(Piece::BlackBishop), 0);
+        QCOMPARE(board.pieceStandCount(Piece::BlackGold), 0);
+        QCOMPARE(board.pieceStand().size(), 16);
+        QCOMPARE(board.convertStandToSfen(), QStringLiteral("S5P10p"));
+        QCOMPARE(board.currentPlayer(), Turn::Black);
+
+        QVERIFY(board.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1")));
+        QCOMPARE(board.convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(board.currentPlayer(), Turn::White);
+    }
+
+    void trySetSfen_rejectsInvalidAndKeepsPosition_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::newRow("black-pawn-rank1") << QStringLiteral("P3k4/9/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("black-lance-rank1") << QStringLiteral("L3k4/9/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("black-knight-rank2") << QStringLiteral("4k4/N8/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("white-pawn-rank9") << QStringLiteral("4k4/9/9/9/9/9/9/9/p3K4 b - 1");
+        QTest::newRow("white-knight-rank8") << QStringLiteral("4k4/9/9/9/9/9/9/n8/4K4 b - 1");
+        QTest::newRow("promoted-gold") << QStringLiteral("4k4/9/9/9/9/9/9/9/+G3K4 b - 1");
+        QTest::newRow("plus-at-rank-end") << QStringLiteral("4k3+/9/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("unknown-letter") << QStringLiteral("4k4/9/9/4X4/9/9/9/9/4K4 b - 1");
+        QTest::newRow("zero-empty") << QStringLiteral("4k4/09/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("fullwidth-digit") << QStringLiteral("4k4/\uFF19/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("ten-squares") << QStringLiteral("4k5/9/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("eight-squares") << QStringLiteral("4k3/9/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("eight-ranks") << QStringLiteral("4k4/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("ten-ranks") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4/9 b - 1");
+        QTest::newRow("empty-rank") << QStringLiteral("4k4//9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("hand-three-digits") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b 123P 1");
+        QTest::newRow("hand-count-at-end") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b P2 1");
+        QTest::newRow("hand-promoted") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b +P 1");
+        QTest::newRow("turn") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 x - 1");
+        QTest::newRow("move-number") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 0");
+        QTest::newRow("five-fields") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1 1");
+    }
+
+    void trySetSfen_rejectsInvalidAndKeepsPosition()
+    {
+        QFETCH(QString, sfen);
+        static const QString kBefore = QStringLiteral("lnsgk2nl/1r4gs1/p1pppp1pp/6p2/1p5P1/2P6/PP1PPPP1P/1BG4R1/LN1SKGSNL w Bb 12");
+
+        ShogiBoard board;
+        QVERIFY(board.trySetSfen(kBefore));
+        QSignalSpy resetSpy(&board, &ShogiBoard::boardReset);
+
+        QVERIFY(!board.trySetSfen(sfen));
+        QCOMPARE(resetSpy.count(), 0);
+        QCOMPARE(board.convertBoardToSfen(), kBefore.section(QLatin1Char(' '), 0, 0));
+        QCOMPARE(board.convertStandToSfen(), QStringLiteral("Bb"));
+        QCOMPARE(board.currentPlayer(), Turn::White);
+        QCOMPARE(board.pieceStand().size(), 16);
+    }
+
     void convertStandToSfen()
     {
         ShogiBoard board;
