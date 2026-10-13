@@ -6,7 +6,6 @@
 #include "analysissessionhandler.h"
 #include "usi.h"
 
-using P = MatchCoordinator::Player;
 
 // --- エンジンマネージャアクセサ ---
 
@@ -43,11 +42,11 @@ void MatchCoordinator::resetPositionHistory()
     m_positionPonder2.clear();
     m_positionStrHistory.clear();
     m_allGameHistories.clear();
-    m_cur = P1;
+    m_cur = Turn::Black;
     m_currentMoveIndex = 0;
 }
 
-void MatchCoordinator::initializeAndStartEngineFor(Player side,
+void MatchCoordinator::initializeAndStartEngineFor(Turn side,
                                                    const QString& enginePathIn,
                                                    const QString& engineNameIn)
 {
@@ -55,12 +54,6 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
     m_engineManager->initializeAndStartEngineFor(side, enginePathIn, engineNameIn);
     if (primaryEngine()) primaryEngine()->setMatchClock(clock());
     if (secondaryEngine()) secondaryEngine()->setMatchClock(clock());
-}
-
-void MatchCoordinator::destroyEngine(int idx, bool clearThinking)
-{
-    ensureEngineManager();
-    m_engineManager->destroyEngine(idx, clearThinking);
 }
 
 void MatchCoordinator::destroyEngines(bool clearModels)

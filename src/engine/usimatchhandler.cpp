@@ -202,7 +202,7 @@ void UsiMatchHandler::onBestMoveReceived()
 
 int UsiMatchHandler::remainingTimeMs(const UsiTimingParams& timing) const
 {
-    const int side = m_gameController->currentPlayer() == Turn::Black ? 1 : 2;
+    const Turn side = m_gameController->currentPlayer();
     qint64 budget = 0;
     if (m_clock) {
         budget = m_clock->enforcesTimeout() ? m_clock->remainingTurnTimeMs(side) : kUnlimitedSearchTimeoutMs;
@@ -222,9 +222,9 @@ void UsiMatchHandler::onSearchTimeout()
 
 UsiGoTimeInput UsiMatchHandler::goTimeInput(const UsiTimingParams& timing, bool pondering) const
 {
-    const int side = m_gameController->currentPlayer() == Turn::Black ? 1 : 2;
+    const Turn side = m_gameController->currentPlayer();
     UsiGoTimeInput input;
-    input.sideToMove = side == 1 ? Turn::Black : Turn::White;
+    input.sideToMove = side;
     input.extraMs = timing.extraMs;
     input.marginMs = timing.marginMs;
     if (!m_clock) {
@@ -237,13 +237,13 @@ UsiGoTimeInput UsiMatchHandler::goTimeInput(const UsiTimingParams& timing, bool 
     // するため差し引く。先読みでは、今の手の確定による手番側の加算がまだ足されていないので引かない。
     input.timeControl = m_clock->timeControl();
     const TimeControl tc = input.timeControl.normalized();
-    const auto usiRemaining = [this, &tc, pondering, side](int player) -> qint64 {
-        const qint64 increment = tc.usesByoyomi() ? 0 : tc.side(player == 1 ? Turn::Black : Turn::White).incrementMs;
+    const auto usiRemaining = [this, &tc, pondering, side](Turn player) -> qint64 {
+        const qint64 increment = tc.usesByoyomi() ? 0 : tc.side(player).incrementMs;
         const bool incrementPending = pondering && player == side;
         return qMax<qint64>(0, m_clock->remainingMainTimeMs(player) - (incrementPending ? 0 : increment));
     };
-    input.btimeMs = usiRemaining(1);
-    input.wtimeMs = usiRemaining(2);
+    input.btimeMs = usiRemaining(Turn::Black);
+    input.wtimeMs = usiRemaining(Turn::White);
     if (!pondering) {
         // stop待ち、局面準備、最後のtick以降も含めた、手番側の秒読みの残り
         input.moverByoyomiMs = qMax<qint64>(0, m_clock->remainingTurnTimeMs(side) - m_clock->remainingMainTimeMs(side));

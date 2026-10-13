@@ -104,7 +104,7 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
 
     // 対局終了処理（MatchCoordinatorを使用）- 先に棋譜を更新
     if (m_match) {
-        MatchCoordinator::Player declarer = isSenteTurn ? MatchCoordinator::P1 : MatchCoordinator::P2;
+        Turn declarer = isSenteTurn ? Turn::Black : Turn::White;
         m_match->handleNyugyokuDeclaration(declarer, result.success, result.isDraw);
     }
 

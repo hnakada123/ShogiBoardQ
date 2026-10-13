@@ -24,7 +24,7 @@ struct MCTestHarness {
 
     // フック呼び出しトラッカー
     bool updateTurnDisplayCalled = false;
-    MatchCoordinator::Player lastTurnPlayer = MatchCoordinator::P1;
+    Turn lastTurnPlayer = Turn::Black;
     bool renderBoardCalled = false;
     bool showGameOverDialogCalled = false;
     int showGameOverDialogCount = 0;
@@ -54,7 +54,7 @@ struct MCTestHarness {
         deps.gameMoves = &gameMoves;
 
         // Hooks設定
-        deps.hooks.ui.updateTurnDisplay = [this](MatchCoordinator::Player p) {
+        deps.hooks.ui.updateTurnDisplay = [this](Turn p) {
             updateTurnDisplayCalled = true;
             lastTurnPlayer = p;
         };
@@ -125,6 +125,8 @@ private slots:
     // === Section E: デリゲーション ===
     void handleResign_endsGame();
     void handleEngineResign_recordsLoser();
+    void humanVsEngine_engineResignLosesEngineSide_data();
+    void humanVsEngine_engineResignLosesEngineSide();
     void handleEngineWin_recordsWinner();
     void handleBreakOff_appendsTerminalOnce();
     void configureAndStart_preparesHumanGame();
@@ -212,7 +214,7 @@ void Tst_MatchCoordinator::setGameOver_setsStateAndEmitsSignals()
 
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = MatchCoordinator::P1;
+    info.loser = Turn::Black;
 
     h.mc->setGameOver(info, true);
 
@@ -222,7 +224,7 @@ void Tst_MatchCoordinator::setGameOver_setsStateAndEmitsSignals()
     QVERIFY(st.hasLast);
     QVERIFY(st.lastLoserIsP1);
     QCOMPARE(st.lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(st.lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(st.lastInfo.loser, Turn::Black);
 
     // シグナル確認
     QCOMPARE(endedSpy.count(), 1);
@@ -235,7 +237,7 @@ void Tst_MatchCoordinator::setGameOver_doubleCallIgnored()
 
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = MatchCoordinator::P1;
+    info.loser = Turn::Black;
 
     h.mc->setGameOver(info, true);
 
@@ -243,7 +245,7 @@ void Tst_MatchCoordinator::setGameOver_doubleCallIgnored()
     QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
 
     // 2回目は無視される
-    info.loser = MatchCoordinator::P2;
+    info.loser = Turn::White;
     h.mc->setGameOver(info, false);
 
     QCOMPARE(endedSpy.count(), 0);
@@ -259,14 +261,14 @@ void Tst_MatchCoordinator::setGameOver_emitsRequestAppendGameOverMove()
 
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Timeout;
-    info.loser = MatchCoordinator::P2;
+    info.loser = Turn::White;
 
     h.mc->setGameOver(info, false, true);  // appendMoveOnce=true
 
     QCOMPARE(appendSpy.count(), 1);
     auto receivedInfo = appendSpy.first().first().value<MatchCoordinator::GameEndInfo>();
     QCOMPARE(receivedInfo.cause, MatchCoordinator::Cause::Timeout);
-    QCOMPARE(receivedInfo.loser, MatchCoordinator::P2);
+    QCOMPARE(receivedInfo.loser, Turn::White);
 }
 
 void Tst_MatchCoordinator::clearGameOverState_clearsAndEmitsSignal()
@@ -276,7 +278,7 @@ void Tst_MatchCoordinator::clearGameOverState_clearsAndEmitsSignal()
     // まず終局状態にする
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = MatchCoordinator::P1;
+    info.loser = Turn::Black;
     h.mc->setGameOver(info, true);
     QVERIFY(h.mc->gameOverState().isOver);
 
@@ -307,7 +309,7 @@ void Tst_MatchCoordinator::markGameOverMoveAppended_marksAndEmitsSignal()
     // まず終局状態にする
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = MatchCoordinator::P1;
+    info.loser = Turn::Black;
     h.mc->setGameOver(info, true, false);  // appendMoveOnce=false
 
     QVERIFY(!h.mc->gameOverState().moveAppended);
@@ -336,7 +338,7 @@ void Tst_MatchCoordinator::markGameOverMoveAppended_doubleCallIgnored()
 
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = MatchCoordinator::P1;
+    info.loser = Turn::Black;
     h.mc->setGameOver(info, true, false);
     h.mc->markGameOverMoveAppended();
     QVERIFY(h.mc->gameOverState().moveAppended);
@@ -394,7 +396,7 @@ void Tst_MatchCoordinator::handleResign_endsGame()
     h.mc->handleResign();
     QVERIFY(h.mc->gameOverState().isOver);
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
     QVERIFY(h.showGameOverDialogCalled);
 }
 
@@ -402,13 +404,47 @@ void Tst_MatchCoordinator::handleEngineResign_recordsLoser()
 {
     MCTestHarness h;
 
-    h.mc->handleEngineResign(1);
+    h.mc->handleEngineResign(Turn::Black);
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
 
     h.mc->clearGameOverState();
-    h.mc->handleEngineResign(2);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P2);
+    h.mc->handleEngineResign(Turn::White);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::White);
+}
+
+void Tst_MatchCoordinator::humanVsEngine_engineResignLosesEngineSide_data()
+{
+    QTest::addColumn<int>("mode");
+    QTest::addColumn<bool>("engineIsBlack");
+    QTest::newRow("engine-black") << int(PlayMode::EvenEngineVsHuman) << true;
+    QTest::newRow("engine-white") << int(PlayMode::EvenHumanVsEngine) << false;
+}
+
+void Tst_MatchCoordinator::humanVsEngine_engineResignLosesEngineSide()
+{
+    // 人間対エンジンでは、エンジンが後手でもエンジンの枠は1つ目（primaryEngine）を使う。
+    // そのエンジンの投了は、枠ではなくエンジンの手番の負けになる
+    QFETCH(int, mode);
+    QFETCH(bool, engineIsBlack);
+    MCTestHarness h;
+    MatchCoordinator::StartOptions opt;
+    opt.mode = static_cast<PlayMode>(mode);
+    opt.sfenStart = SfenUtils::hirateSfen();
+    (engineIsBlack ? opt.enginePath1 : opt.enginePath2) = mockMatchEnginePath();
+    (engineIsBlack ? opt.engineName1 : opt.engineName2) = QStringLiteral("ResignSideTest");
+    h.mc->configureAndStart(opt);
+    Usi* engine = h.mc->primaryEngine();
+    QVERIFY(engine);
+    QCOMPARE(h.mc->secondaryEngine(), nullptr);
+    QSignalSpy ready(engine, &Usi::engineInitialized);
+    QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
+
+    emit engine->bestMoveResignReceived();
+
+    QVERIFY(h.mc->gameOverState().isOver);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, engineIsBlack ? Turn::Black : Turn::White);
 }
 
 void Tst_MatchCoordinator::handleEngineWin_recordsWinner()
@@ -416,18 +452,18 @@ void Tst_MatchCoordinator::handleEngineWin_recordsWinner()
     MCTestHarness h;
 
     // エンジンの入玉宣言（bestmove win）も盤面で判定する。初期局面では条件を満たさず宣言側の負け
-    h.mc->handleEngineWin(1);
+    h.mc->handleEngineWin(Turn::Black);
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::IllegalMove);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
 
     // 先手玉２二、敵陣に15枚・持ち駒と合わせて28点（27点法で宣言勝ち）
     h.mc->clearGameOverState();
     QString entered = QStringLiteral(
         "5+B+RGS/6GKS/+P+P+P+P+P+P+P+P+P/9/p1p1p1p1p/1s1g1g1s1/2n3n1n/1r2k4/2b6 b NL3P3lp 1");
     h.gc.newGame(entered);
-    h.mc->handleEngineWin(1);
+    h.mc->handleEngineWin(Turn::Black);
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P2);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::White);
 }
 
 void Tst_MatchCoordinator::handleBreakOff_appendsTerminalOnce()
@@ -492,11 +528,11 @@ void Tst_MatchCoordinator::stopAnalysisEngine_isIdempotent()
 void Tst_MatchCoordinator::handlePlayerTimeOut_callsGcMethods()
 {
     MCTestHarness h;
-    h.mc->handlePlayerTimeOut(1);
+    h.mc->handlePlayerTimeOut(Turn::Black);
     QCOMPARE(h.gc.result(), ShogiGameController::Player2Wins);
     h.gc.resetResult();
     h.mc->clearGameOverState();
-    h.mc->handlePlayerTimeOut(2);
+    h.mc->handlePlayerTimeOut(Turn::White);
     QCOMPARE(h.gc.result(), ShogiGameController::Player1Wins);
 }
 
@@ -511,14 +547,14 @@ void Tst_MatchCoordinator::gameEnded_signalCarriesCorrectInfo()
 
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Timeout;
-    info.loser = MatchCoordinator::P2;
+    info.loser = Turn::White;
 
     h.mc->setGameOver(info, false);
 
     QCOMPARE(spy.count(), 1);
     auto receivedInfo = spy.first().first().value<MatchCoordinator::GameEndInfo>();
     QCOMPARE(receivedInfo.cause, MatchCoordinator::Cause::Timeout);
-    QCOMPARE(receivedInfo.loser, MatchCoordinator::P2);
+    QCOMPARE(receivedInfo.loser, Turn::White);
 }
 
 void Tst_MatchCoordinator::gameOverStateChanged_signalCarriesState()
@@ -528,7 +564,7 @@ void Tst_MatchCoordinator::gameOverStateChanged_signalCarriesState()
 
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Sennichite;
-    info.loser = MatchCoordinator::P1;
+    info.loser = Turn::Black;
 
     h.mc->setGameOver(info, true);
 

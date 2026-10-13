@@ -31,7 +31,7 @@ public:
     bool needsEngine() const override { return true; }
 
     void armTurnTimerIfNeeded() override;
-    void finishTurnTimerAndSetConsideration(int moverPlayer) override;
+    void finishTurnTimerAndSetConsideration(Turn mover) override;
     void disarmTurnTimer() override;
     void startInitialMoveIfNeeded() override;
 

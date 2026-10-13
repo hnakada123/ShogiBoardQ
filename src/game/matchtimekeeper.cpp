@@ -10,7 +10,6 @@
 #include <limits>
 #include <QDateTime>
 
-using P = MatchCoordinator::Player;
 
 // ============================================================
 // 初期化
@@ -79,11 +78,11 @@ void MatchTimekeeper::emitTimeUpdateFromClock()
 {
     if (!m_clock || !m_refs.gc) return;
 
-    const qint64 p1ms = m_clock->remainingMs(1);
-    const qint64 p2ms = m_clock->remainingMs(2);
-    const bool p1turn = (m_refs.gc->currentPlayer() == Turn::Black);
+    const qint64 p1ms = m_clock->remainingMs(Turn::Black);
+    const qint64 p2ms = m_clock->remainingMs(Turn::White);
+    const Turn side = m_refs.gc->currentPlayer();
+    const bool p1turn = (side == Turn::Black);
 
-    const int side = p1turn ? 1 : 2;
     const bool enableUrgency = !m_clock->hasByoyomi(side) || m_clock->byoyomiApplied(side);
 
     const qint64 activeMs = p1turn ? p1ms : p2ms;
@@ -100,15 +99,15 @@ void MatchTimekeeper::emitTimeUpdateFromClock()
 // ターンエポック
 // ============================================================
 
-void MatchTimekeeper::markTurnEpochNowFor(Player side, qint64 nowMs)
+void MatchTimekeeper::markTurnEpochNowFor(Turn side, qint64 nowMs)
 {
     if (nowMs < 0) nowMs = QDateTime::currentMSecsSinceEpoch();
-    if (side == P::P1) m_turnEpochP1Ms = nowMs; else m_turnEpochP2Ms = nowMs;
+    if (side == Turn::Black) m_turnEpochP1Ms = nowMs; else m_turnEpochP2Ms = nowMs;
 }
 
-qint64 MatchTimekeeper::turnEpochFor(Player side) const
+qint64 MatchTimekeeper::turnEpochFor(Turn side) const
 {
-    return (side == P::P1) ? m_turnEpochP1Ms : m_turnEpochP2Ms;
+    return (side == Turn::Black) ? m_turnEpochP1Ms : m_turnEpochP2Ms;
 }
 
 // ============================================================
@@ -125,8 +124,8 @@ void MatchTimekeeper::recomputeClockSnapshot(QString& turnText, QString& p1, QSt
         turnText = p1Turn ? QObject::tr("先手番") : QObject::tr("後手番");
     }
 
-    const qint64 t1ms = qMax<qint64>(0, m_clock->remainingMs(1));
-    const qint64 t2ms = qMax<qint64>(0, m_clock->remainingMs(2));
+    const qint64 t1ms = qMax<qint64>(0, m_clock->remainingMs(Turn::Black));
+    const qint64 t2ms = qMax<qint64>(0, m_clock->remainingMs(Turn::White));
 
     auto mmss = [](qint64 ms) {
         const qint64 s = ms / 1000;

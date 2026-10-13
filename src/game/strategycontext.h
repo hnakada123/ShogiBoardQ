@@ -27,8 +27,8 @@ public:
     ShogiGameController* gc() { return c_.m_gc; }
     ShogiClock* clock() { return c_.m_timekeeper ? c_.m_timekeeper->clock() : nullptr; }
 
-    Player currentTurn() const { return c_.m_cur; }
-    void setCurrentTurn(Player p) { c_.m_cur = p; }
+    Turn currentTurn() const { return c_.m_cur; }
+    void setCurrentTurn(Turn p) { c_.m_cur = p; }
 
     PlayMode playMode() const { return c_.m_playMode; }
     PlayMode& playModeRef() { return c_.m_playMode; }
@@ -71,13 +71,13 @@ public:
 
     // ---- private メソッド委譲 ----
 
-    void updateTurnDisplay(Player p) { c_.m_turnHandler->updateTurnDisplay(p); }
+    void updateTurnDisplay(Turn p) { c_.m_turnHandler->updateTurnDisplay(p); }
     void initPositionStringsFromSfen(const QString& s) { c_.m_turnHandler->initPositionStringsFromSfen(s); }
-    void wireResignToArbiter(Usi* eng, bool asP1) {
-        if (c_.m_engineManager) c_.m_engineManager->wireResignToArbiter(eng, asP1);
+    void wireResignToArbiter(Usi* eng, Turn side) {
+        if (c_.m_engineManager) c_.m_engineManager->wireResignToArbiter(eng, side);
     }
-    void wireWinToArbiter(Usi* eng, bool asP1) {
-        if (c_.m_engineManager) c_.m_engineManager->wireWinToArbiter(eng, asP1);
+    void wireWinToArbiter(Usi* eng, Turn side) {
+        if (c_.m_engineManager) c_.m_engineManager->wireWinToArbiter(eng, side);
     }
 
     // ---- public メソッド委譲 ----
@@ -87,12 +87,12 @@ public:
         return c_.m_gameEndHandler->checkAndHandleSennichite();
     }
     void destroyEngines(bool clearModels = true) { c_.destroyEngines(clearModels); }
-    void initializeAndStartEngineFor(Player side, const QString& path, const QString& name) {
+    void initializeAndStartEngineFor(Turn side, const QString& path, const QString& name) {
         c_.initializeAndStartEngineFor(side, path, name);
     }
     Usi* primaryEngine() const { return c_.primaryEngine(); }
     void handleMaxMovesJishogi() { c_.handleMaxMovesJishogi(); }
-    void handleEngineIllegalMove(int idx) { c_.handleEngineIllegalMove(idx); }
+    void handleEngineIllegalMove(Turn side) { c_.handleEngineIllegalMove(side); }
     void pokeTimeUpdateNow() { c_.pokeTimeUpdateNow(); }
 private:
     MatchCoordinator& c_;

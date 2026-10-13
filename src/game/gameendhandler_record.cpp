@@ -17,29 +17,28 @@ void GameEndHandler::appendBreakOffLineAndMark()
     if (m_refs.gameOver->moveAppended) return;
 
     const Turn gcTurn = m_refs.gc ? m_refs.gc->currentPlayer() : Turn::White;
-    const Player curP = (gcTurn == Turn::Black) ? Player::P1 : Player::P2;
-    const QString line = (curP == Player::P1) ? QStringLiteral("▲中断") : QStringLiteral("△中断");
+    const QString line = (gcTurn == Turn::Black) ? QStringLiteral("▲中断") : QStringLiteral("△中断");
 
     if (m_refs.clock) {
         m_refs.clock->stopClock();
 
-        const qint64 epochMs = m_hooks.turnEpochFor ? m_hooks.turnEpochFor(curP) : -1;
+        const qint64 epochMs = m_hooks.turnEpochFor ? m_hooks.turnEpochFor(gcTurn) : -1;
         qint64 considerMs = 0;
         if (epochMs > 0) {
             const qint64 now = QDateTime::currentMSecsSinceEpoch();
             considerMs = now - epochMs;
             if (considerMs < 0) considerMs = 0;
         } else {
-            considerMs = m_refs.clock->considerationMs(static_cast<int>(curP));
+            considerMs = m_refs.clock->considerationMs(gcTurn);
         }
 
-        m_refs.clock->setConsiderationTimeMs(static_cast<int>(curP), considerMs);
-        m_refs.clock->commitMove(static_cast<int>(curP));
+        m_refs.clock->setConsiderationTimeMs(gcTurn, considerMs);
+        m_refs.clock->commitMove(gcTurn);
     }
 
     QString elapsed;
     if (m_refs.clock) {
-        elapsed = m_refs.clock->considerationAndTotalTime(static_cast<int>(curP));
+        elapsed = m_refs.clock->considerationAndTotalTime(gcTurn);
     }
 
     if (m_hooks.appendKifuLine) m_hooks.appendKifuLine(line, elapsed);
@@ -47,7 +46,7 @@ void GameEndHandler::appendBreakOffLineAndMark()
     markGameOverMoveAppended();
 }
 
-void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
+void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
 {
     if (!m_refs.gameOver->isOver) return;
     if (m_refs.gameOver->moveAppended) return;
@@ -60,14 +59,14 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
 
     // 千日手・持将棋（引き分け）と連続王手の千日手の終局行は、終局した局面で手番の側の行として記録する。
     // 棋譜ファイルを読み込んだときも終局行には手番側の印が付くので、それと合わせる
-    Player lineOwner = loser;
+    Turn lineOwner = loser;
     if ((cause == Cause::Sennichite || cause == Cause::Jishogi || cause == Cause::OuteSennichite) && m_refs.gc) {
-        lineOwner = (m_refs.gc->currentPlayer() == Turn::White) ? Player::P2 : Player::P1;
+        lineOwner = m_refs.gc->currentPlayer();
     }
 
     QString line;
-    const QString mark = (lineOwner == Player::P1) ? QStringLiteral("▲") : QStringLiteral("△");
-    const QString winMark = (loser == Player::P1) ? QStringLiteral("△") : QStringLiteral("▲");
+    const QString mark = (lineOwner == Turn::Black) ? QStringLiteral("▲") : QStringLiteral("△");
+    const QString winMark = (loser == Turn::Black) ? QStringLiteral("△") : QStringLiteral("▲");
 
     switch (cause) {
     case Cause::Jishogi:        line = QStringLiteral("%1持将棋").arg(mark); break;
@@ -76,7 +75,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
     case Cause::Sennichite:     line = QStringLiteral("%1千日手").arg(mark); break;
     // 棋譜形式に連続王手の千日手の終局語は無いので、王手を続けた側の反則として記録する
     case Cause::OuteSennichite:
-        line = KifuParseCommon::foulTerminalMove(loser == Player::P1, lineOwner == Player::P1);
+        line = KifuParseCommon::foulTerminalMove(loser == Turn::Black, lineOwner == Turn::Black);
         break;
     case Cause::BreakOff:       line = QStringLiteral("%1中断").arg(mark); break;
     case Cause::Resignation:    line = QStringLiteral("%1投了").arg(mark); break;
@@ -85,8 +84,8 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
 
     // 終局行の消費時間は、その行（投了・宣言など）を行った手番側のもの。
     // 入玉宣言勝ちでは宣言した勝者が手番側になる。
-    const Player mover = (cause == Cause::NyugyokuWin)
-                             ? (loser == Player::P1 ? Player::P2 : Player::P1)
+    const Turn mover = (cause == Cause::NyugyokuWin)
+                             ? (loser == Turn::Black ? Turn::White : Turn::Black)
                              : lineOwner;
     const qint64 epochMs = m_hooks.turnEpochFor ? m_hooks.turnEpochFor(mover) : -1;
     qint64 considerMs = 0;
@@ -95,13 +94,13 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
         considerMs = now - epochMs;
         if (considerMs < 0) considerMs = 0;
     } else {
-        considerMs = m_refs.clock->considerationMs(static_cast<int>(mover));
+        considerMs = m_refs.clock->considerationMs(mover);
     }
 
-    m_refs.clock->setConsiderationTimeMs(static_cast<int>(mover), considerMs);
-    m_refs.clock->commitMove(static_cast<int>(mover));
+    m_refs.clock->setConsiderationTimeMs(mover, considerMs);
+    m_refs.clock->commitMove(mover);
 
-    const QString elapsed = m_refs.clock->considerationAndTotalTime(static_cast<int>(mover));
+    const QString elapsed = m_refs.clock->considerationAndTotalTime(mover);
 
     m_hooks.appendKifuLine(line, elapsed);
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
@@ -121,7 +120,7 @@ QString GameEndHandler::resultMessage(const GameEndInfo& info) const
     const bool handicapNames = usesHandicapNames();
     const QString blackJP = handicapNames ? tr("下手") : tr("先手");
     const QString whiteJP = handicapNames ? tr("上手") : tr("後手");
-    const bool loserIsP1 = (info.loser == Player::P1);
+    const bool loserIsP1 = (info.loser == Turn::Black);
     const QString loserJP = loserIsP1 ? blackJP : whiteJP;
     const QString winnerJP = loserIsP1 ? whiteJP : blackJP;
 

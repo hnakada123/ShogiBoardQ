@@ -167,8 +167,8 @@ private slots:
                     trigger("actionResumeGame");
                     auto* clock = match->clock();
                     if (match->gameOverState().isOver || *match->sfenRecordPtr() != saved.sfens
-                        || qAbs(clock->remainingMs(1) - saved.clock.of(1).remainingMs) > 100
-                        || qAbs(clock->remainingMs(2) - saved.clock.of(2).remainingMs) > 100) {
+                        || qAbs(clock->remainingMs(Turn::Black) - saved.clock.of(Turn::Black).remainingMs) > 100
+                        || qAbs(clock->remainingMs(Turn::White) - saved.clock.of(Turn::White).remainingMs) > 100) {
                         qCritical() << "RESUME_STATE_MISMATCH";
                         QCoreApplication::exit(6);
                     }

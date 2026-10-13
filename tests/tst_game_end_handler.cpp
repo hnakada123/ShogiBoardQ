@@ -81,7 +81,7 @@ struct EndTestHarness {
             EndTracker::disarmHumanTimerCalled = true;
         };
         hooks.primaryEngine = []() -> Usi* { return nullptr; };
-        hooks.turnEpochFor = [](MatchCoordinator::Player) -> qint64 { return -1; };
+        hooks.turnEpochFor = [](Turn) -> qint64 { return -1; };
         hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
             ++EndTracker::appendKifuLineCount;
             EndTracker::lastAppendedLine = line;
@@ -126,12 +126,12 @@ private slots:
     {
         QFETCH(int, loser);
         EndTestHarness h;
-        const auto side = loser == 1 ? MatchCoordinator::P1 : MatchCoordinator::P2;
+        const auto side = loser == 1 ? Turn::Black : Turn::White;
         QSignalSpy ended(&h.handler, &GameEndHandler::gameEnded);
         QSignalSpy completed(&h.handler, &GameEndHandler::gameEndProcessed);
         h.handler.handleTimeout(side);
         h.handler.handleTimeout(side);
-        h.handler.handleEngineResign(loser);
+        h.handler.handleEngineResign(side);
         QCOMPARE(ended.count(), 1);
         QCOMPARE(completed.count(), 1);
         QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Timeout);
@@ -235,7 +235,7 @@ void Tst_GameEndHandler::handleResign_p1Turn_p1Loses()
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
     QVERIFY(h.gameOver.lastLoserIsP1);
     QVERIFY(EndTracker::showGameOverDialogCalled);
     QVERIFY(EndTracker::autoSaveKifuCalled);
@@ -248,7 +248,7 @@ void Tst_GameEndHandler::handleResign_p2Turn_p2Loses()
     h.handler.handleResign();
 
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
     QVERIFY(!h.gameOver.lastLoserIsP1);
 }
 
@@ -271,22 +271,22 @@ void Tst_GameEndHandler::handleEngineResign_engine1_p1Loses()
 {
     EndTestHarness h;
     h.playMode = PlayMode::EvenHumanVsEngine;
-    h.handler.handleEngineResign(1);
+    h.handler.handleEngineResign(Turn::Black);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
 }
 
 void Tst_GameEndHandler::handleEngineResign_engine2_p2Loses()
 {
     EndTestHarness h;
     h.playMode = PlayMode::EvenHumanVsEngine;
-    h.handler.handleEngineResign(2);
+    h.handler.handleEngineResign(Turn::White);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
 }
 
 // ============================================================
@@ -302,7 +302,7 @@ void Tst_GameEndHandler::handleBreakOff_setsGameOverState()
     QVERIFY(h.gameOver.isOver);
     QVERIFY(h.gameOver.hasLast);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::BreakOff);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
 }
 
 void Tst_GameEndHandler::handleBreakOff_emitsGameEnded()
@@ -316,7 +316,7 @@ void Tst_GameEndHandler::handleBreakOff_emitsGameEnded()
     QCOMPARE(spy.count(), 1);
     auto info = spy.first().first().value<MatchCoordinator::GameEndInfo>();
     QCOMPARE(info.cause, MatchCoordinator::Cause::BreakOff);
-    QCOMPARE(info.loser, MatchCoordinator::P2);
+    QCOMPARE(info.loser, Turn::White);
 }
 
 void Tst_GameEndHandler::handleBreakOff_alreadyOver_ignored()
@@ -348,34 +348,34 @@ void Tst_GameEndHandler::handleBreakOff_appendsKifuLine()
 void Tst_GameEndHandler::handleNyugyokuDeclaration_success_opponentLoses()
 {
     EndTestHarness h;
-    h.handler.handleNyugyokuDeclaration(MatchCoordinator::P1, true, false);
+    h.handler.handleNyugyokuDeclaration(Turn::Black, true, false);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
     // P1 declares and wins → P2 loses
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
     QVERIFY(!h.gameOver.lastLoserIsP1);
 }
 
 void Tst_GameEndHandler::handleNyugyokuDeclaration_draw_jishogi()
 {
     EndTestHarness h;
-    h.handler.handleNyugyokuDeclaration(MatchCoordinator::P1, true, true);
+    h.handler.handleNyugyokuDeclaration(Turn::Black, true, true);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Jishogi);
     // isDraw: declarer is the "loser" in the info struct
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
 }
 
 void Tst_GameEndHandler::handleNyugyokuDeclaration_fail_declarerLoses()
 {
     EndTestHarness h;
-    h.handler.handleNyugyokuDeclaration(MatchCoordinator::P2, false, false);
+    h.handler.handleNyugyokuDeclaration(Turn::White, false, false);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::IllegalMove);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
 }
 
 void Tst_GameEndHandler::handleNyugyokuDeclaration_alreadyOver_ignored()
@@ -383,7 +383,7 @@ void Tst_GameEndHandler::handleNyugyokuDeclaration_alreadyOver_ignored()
     EndTestHarness h;
     h.gameOver.isOver = true;
     QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
-    h.handler.handleNyugyokuDeclaration(MatchCoordinator::P1, true, false);
+    h.handler.handleNyugyokuDeclaration(Turn::Black, true, false);
 
     QCOMPARE(spy.count(), 0);
 }
@@ -392,11 +392,11 @@ void Tst_GameEndHandler::handleEngineWin_showsGameOverMessage()
 {
     // エンジンの入玉宣言（bestmove win）は宣言ダイアログを通らないため、対局終了を知らせる
     EndTestHarness h;
-    h.handler.handleEngineWin(2);
+    h.handler.handleEngineWin(Turn::White);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
     QVERIFY(EndTracker::showGameOverDialogCalled);
     QVERIFY(EndTracker::lastDialogMsg.contains(QStringLiteral("後手の入玉宣言")));
     QCOMPARE(EndTracker::events.count(QStringLiteral("save")), 1);
@@ -408,10 +408,10 @@ void Tst_GameEndHandler::handleEngineWin_judgesDeclaration_data()
     QTest::addColumn<bool>("isDraw");
     QTest::addColumn<int>("cause");
     QTest::addColumn<int>("loser");
-    // 後手のエンジン（idx=2）が宣言。失敗なら後手の反則負け、24点法の24〜30点は持将棋
-    QTest::newRow("win") << true << false << int(MatchCoordinator::Cause::NyugyokuWin) << int(MatchCoordinator::P1);
-    QTest::newRow("draw") << true << true << int(MatchCoordinator::Cause::Jishogi) << int(MatchCoordinator::P2);
-    QTest::newRow("fail") << false << false << int(MatchCoordinator::Cause::IllegalMove) << int(MatchCoordinator::P2);
+    // 後手のエンジンが宣言。失敗なら後手の反則負け、24点法の24〜30点は持将棋
+    QTest::newRow("win") << true << false << int(MatchCoordinator::Cause::NyugyokuWin) << int(Turn::Black);
+    QTest::newRow("draw") << true << true << int(MatchCoordinator::Cause::Jishogi) << int(Turn::White);
+    QTest::newRow("fail") << false << false << int(MatchCoordinator::Cause::IllegalMove) << int(Turn::White);
 }
 
 void Tst_GameEndHandler::handleEngineWin_judgesDeclaration()
@@ -427,7 +427,7 @@ void Tst_GameEndHandler::handleEngineWin_judgesDeclaration()
     g_stubNyugyokuResult.success = success;
     g_stubNyugyokuResult.isDraw = isDraw;
     g_stubNyugyokuResult.message = QStringLiteral("判定の説明");
-    h.handler.handleEngineWin(2);
+    h.handler.handleEngineWin(Turn::White);
     g_stubGameBoard = nullptr;
 
     QVERIFY(h.gameOver.isOver);
@@ -447,7 +447,7 @@ void Tst_GameEndHandler::handleEngineWin_passesHandicapNames()
     g_stubNyugyokuResult = {};
     g_stubNyugyokuResult.success = true;
     g_stubNyugyokuHandicapNames = false;
-    h.handler.handleEngineWin(2);
+    h.handler.handleEngineWin(Turn::White);
     g_stubGameBoard = nullptr;
 
     QVERIFY(h.gameOver.isOver);
@@ -460,8 +460,8 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime(
     EndTestHarness h;
     h.gameOver.isOver = true;
     GameEndHandler::Hooks hooks;
-    hooks.turnEpochFor = [](MatchCoordinator::Player p) -> qint64 {
-        EndTracker::events.append(p == MatchCoordinator::P1 ? QStringLiteral("epoch-P1")
+    hooks.turnEpochFor = [](Turn p) -> qint64 {
+        EndTracker::events.append(p == Turn::Black ? QStringLiteral("epoch-P1")
                                                             : QStringLiteral("epoch-P2"));
         return -1;
     };
@@ -469,7 +469,7 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime(
         EndTracker::lastAppendedLine = line;
     };
     h.handler.setHooks(hooks);
-    h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::NyugyokuWin, MatchCoordinator::P2);
+    h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::NyugyokuWin, Turn::White);
 
     QCOMPARE(EndTracker::lastAppendedLine, QStringLiteral("▲入玉勝ち"));
     QCOMPARE(EndTracker::events, QStringList{QStringLiteral("epoch-P1")});
@@ -487,7 +487,7 @@ void Tst_GameEndHandler::handleMaxMovesJishogi_setsState()
     QVERIFY(h.gameOver.isOver);
     QVERIFY(h.gameOver.hasLast);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Jishogi);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
     QVERIFY(EndTracker::showGameOverDialogCalled);
     QVERIFY(EndTracker::autoSaveKifuCalled);
 }
@@ -538,8 +538,8 @@ void Tst_GameEndHandler::drawLine_usesSideToMove()
     EndTestHarness h;
     h.gc.setCurrentPlayer(sideToMove == 1 ? Turn::Black : Turn::White);
     GameEndHandler::Hooks hooks;
-    hooks.turnEpochFor = [](MatchCoordinator::Player p) -> qint64 {
-        EndTracker::events.append(p == MatchCoordinator::P1 ? QStringLiteral("epoch-P1")
+    hooks.turnEpochFor = [](Turn p) -> qint64 {
+        EndTracker::events.append(p == Turn::Black ? QStringLiteral("epoch-P1")
                                                             : QStringLiteral("epoch-P2"));
         return -1;
     };
@@ -582,8 +582,8 @@ void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
     EndTestHarness h;
     h.gc.setCurrentPlayer(sideToMove == 1 ? Turn::Black : Turn::White);
     GameEndHandler::Hooks hooks;
-    hooks.turnEpochFor = [](MatchCoordinator::Player p) -> qint64 {
-        EndTracker::events.append(p == MatchCoordinator::P1 ? QStringLiteral("epoch-P1")
+    hooks.turnEpochFor = [](Turn p) -> qint64 {
+        EndTracker::events.append(p == Turn::Black ? QStringLiteral("epoch-P1")
                                                             : QStringLiteral("epoch-P2"));
         return -1;
     };
@@ -596,7 +596,7 @@ void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
 
     QCOMPARE(EndTracker::lastAppendedLine, expectedLine);
     QCOMPARE(EndTracker::events, QStringList{expectedEpoch});
-    QCOMPARE(h.gameOver.lastInfo.loser, p1Loses ? MatchCoordinator::P1 : MatchCoordinator::P2);
+    QCOMPARE(h.gameOver.lastInfo.loser, p1Loses ? Turn::Black : Turn::White);
 }
 
 // ============================================================
@@ -621,7 +621,7 @@ void Tst_GameEndHandler::handleOuteSennichite_p1Loses()
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::OuteSennichite);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
     QVERIFY(h.gameOver.lastLoserIsP1);
 }
 
@@ -632,7 +632,7 @@ void Tst_GameEndHandler::handleOuteSennichite_p2Loses()
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::OuteSennichite);
-    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
     QVERIFY(!h.gameOver.lastLoserIsP1);
 }
 
@@ -645,7 +645,7 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_resignation_p1()
     EndTestHarness h;
     h.gameOver.isOver = true;  // must be over for append to work
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Resignation,
-                                         MatchCoordinator::P1);
+                                         Turn::Black);
 
     QVERIFY(EndTracker::appendKifuLineCount > 0);
     QVERIFY(EndTracker::lastAppendedLine.contains(QStringLiteral("投了")));
@@ -658,7 +658,7 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_timeout_p2()
     EndTestHarness h;
     h.gameOver.isOver = true;
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Timeout,
-                                         MatchCoordinator::P2);
+                                         Turn::White);
 
     QVERIFY(EndTracker::appendKifuLineCount > 0);
     QVERIFY(EndTracker::lastAppendedLine.contains(QStringLiteral("時間切れ")));
@@ -671,14 +671,14 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_doubleCallGuard()
     h.gameOver.isOver = true;
 
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Resignation,
-                                         MatchCoordinator::P1);
+                                         Turn::Black);
     int firstCount = EndTracker::appendKifuLineCount;
 
     // Simulate that moveAppended was marked
     h.gameOver.moveAppended = true;
 
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Resignation,
-                                         MatchCoordinator::P1);
+                                         Turn::Black);
     // Second call should be no-op
     QCOMPARE(EndTracker::appendKifuLineCount, firstCount);
 }
@@ -688,7 +688,7 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_notOver_ignored()
     EndTestHarness h;
     h.gameOver.isOver = false;
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Resignation,
-                                         MatchCoordinator::P1);
+                                         Turn::Black);
     QCOMPARE(EndTracker::appendKifuLineCount, 0);
 }
 
@@ -739,7 +739,7 @@ void Tst_GameEndHandler::handleResign_emitsGameEndedSignal()
     QCOMPARE(spy.count(), 1);
     auto info = spy.first().first().value<MatchCoordinator::GameEndInfo>();
     QCOMPARE(info.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(info.loser, MatchCoordinator::P1);
+    QCOMPARE(info.loser, Turn::Black);
 }
 
 void Tst_GameEndHandler::handleBreakOff_emitsGameEndedSignal()
@@ -785,7 +785,7 @@ void Tst_GameEndHandler::resultMessage_followsHandicapNames()
     EndTracker::handicapNames = handicapNames;
     switch (static_cast<MatchCoordinator::Cause>(cause)) {
     case MatchCoordinator::Cause::Timeout:
-        h.handler.handleTimeout(MatchCoordinator::P2);
+        h.handler.handleTimeout(Turn::White);
         break;
     case MatchCoordinator::Cause::Resignation:
         h.gc.setCurrentPlayer(Turn::White);
@@ -793,7 +793,7 @@ void Tst_GameEndHandler::resultMessage_followsHandicapNames()
         break;
     default:
         // 盤面のない入玉宣言は判定を省いて宣言勝ちとし、対局終了のダイアログで知らせる
-        h.handler.handleEngineWin(1);
+        h.handler.handleEngineWin(Turn::Black);
         break;
     }
 

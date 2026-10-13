@@ -57,21 +57,21 @@ void EngineLifecycleManager::setShutdownInProgress(bool v) { m_engineShutdownInP
 // エンジン初期化・シグナル配線
 // ============================================================
 
-void EngineLifecycleManager::initializeAndStartEngineFor(Player side,
+void EngineLifecycleManager::initializeAndStartEngineFor(Turn side,
                                                          const QString& enginePathIn,
                                                          const QString& engineNameIn)
 {
     // 人間対エンジンではエンジンが後手でも m_usi1 だけを使い、m_usi2 は空のままにする
     // （呼び出し側は「後手側が空なら先手側」と扱う）。参照で受けると m_usi2 に同じエンジンが入り、
     // E2 宛てのコマンドや後始末が同じエンジンへ二重に届く。
-    Usi* eng = (side == Player::P1 ? m_usi1 : m_usi2);
+    Usi* eng = (side == Turn::Black ? m_usi1 : m_usi2);
 
     if (!eng) {
         if (m_usi1 && !m_usi2) {
             qCDebug(lcGame) << "[Match] fallback to m_usi1 for HvE";
             eng = m_usi1;
         } else {
-            qCWarning(lcGame) << "[Match] engine ptr is null (side=" << (side == Player::P1 ? "P1" : "P2") << ")";
+            qCWarning(lcGame) << "[Match] engine ptr is null (side=" << side << ")";
             return;
         }
     }
@@ -86,62 +86,62 @@ void EngineLifecycleManager::initializeAndStartEngineFor(Player side,
                      Qt::UniqueConnection);
     eng->initializeAndStartEngineCommunication(path, name);
 
-    wireResignToArbiter(eng, (side == Player::P1));
-    wireWinToArbiter(eng, (side == Player::P1));
+    wireResignToArbiter(eng, side);
+    wireWinToArbiter(eng, side);
 }
 
-void EngineLifecycleManager::wireResignToArbiter(Usi* engine, bool asP1)
+void EngineLifecycleManager::wireResignToArbiter(Usi* engine, Turn side)
 {
     if (!engine) return;
 
     QObject::disconnect(engine, &Usi::bestMoveResignReceived, this, nullptr);
 
-    if (asP1) {
+    if (side == Turn::Black) {
         QObject::connect(engine, &Usi::bestMoveResignReceived,
-                         this,   &EngineLifecycleManager::onEngine1Resign,
+                         this,   &EngineLifecycleManager::onBlackEngineResign,
                          Qt::UniqueConnection);
     } else {
         QObject::connect(engine, &Usi::bestMoveResignReceived,
-                         this,   &EngineLifecycleManager::onEngine2Resign,
+                         this,   &EngineLifecycleManager::onWhiteEngineResign,
                          Qt::UniqueConnection);
     }
 }
 
-void EngineLifecycleManager::wireWinToArbiter(Usi* engine, bool asP1)
+void EngineLifecycleManager::wireWinToArbiter(Usi* engine, Turn side)
 {
     if (!engine) return;
 
     QObject::disconnect(engine, &Usi::bestMoveWinReceived, this, nullptr);
 
-    if (asP1) {
+    if (side == Turn::Black) {
         QObject::connect(engine, &Usi::bestMoveWinReceived,
-                         this,   &EngineLifecycleManager::onEngine1Win,
+                         this,   &EngineLifecycleManager::onBlackEngineWin,
                          Qt::UniqueConnection);
     } else {
         QObject::connect(engine, &Usi::bestMoveWinReceived,
-                         this,   &EngineLifecycleManager::onEngine2Win,
+                         this,   &EngineLifecycleManager::onWhiteEngineWin,
                          Qt::UniqueConnection);
     }
 }
 
-void EngineLifecycleManager::onEngine1Resign()
+void EngineLifecycleManager::onBlackEngineResign()
 {
-    if (m_hooks.onEngineResign) m_hooks.onEngineResign(1);
+    if (m_hooks.onEngineResign) m_hooks.onEngineResign(Turn::Black);
 }
 
-void EngineLifecycleManager::onEngine2Resign()
+void EngineLifecycleManager::onWhiteEngineResign()
 {
-    if (m_hooks.onEngineResign) m_hooks.onEngineResign(2);
+    if (m_hooks.onEngineResign) m_hooks.onEngineResign(Turn::White);
 }
 
-void EngineLifecycleManager::onEngine1Win()
+void EngineLifecycleManager::onBlackEngineWin()
 {
-    if (m_hooks.onEngineWin) m_hooks.onEngineWin(1);
+    if (m_hooks.onEngineWin) m_hooks.onEngineWin(Turn::Black);
 }
 
-void EngineLifecycleManager::onEngine2Win()
+void EngineLifecycleManager::onWhiteEngineWin()
 {
-    if (m_hooks.onEngineWin) m_hooks.onEngineWin(2);
+    if (m_hooks.onEngineWin) m_hooks.onEngineWin(Turn::White);
 }
 
 void EngineLifecycleManager::disconnectArbiterSignals()
@@ -235,10 +235,10 @@ void EngineLifecycleManager::initEnginesForEvE(const QString& engineName1,
     m_usi1->resetResignNotified(); m_usi1->clearHardTimeout(); m_usi1->resetWinNotified();
     m_usi2->resetResignNotified(); m_usi2->clearHardTimeout(); m_usi2->resetWinNotified();
 
-    wireResignToArbiter(m_usi1, /*asP1=*/true);
-    wireResignToArbiter(m_usi2, /*asP1=*/false);
-    wireWinToArbiter(m_usi1, /*asP1=*/true);
-    wireWinToArbiter(m_usi2, /*asP1=*/false);
+    wireResignToArbiter(m_usi1, Turn::Black);
+    wireResignToArbiter(m_usi2, Turn::White);
+    wireWinToArbiter(m_usi1, Turn::Black);
+    wireWinToArbiter(m_usi2, Turn::White);
 
     m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), engineName1);
     m_usi2->setLogIdentity(QStringLiteral("[E2]"), QStringLiteral("P2"), engineName2);

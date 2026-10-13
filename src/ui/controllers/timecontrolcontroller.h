@@ -141,14 +141,9 @@ public:
 
 private slots:
     /**
-     * @brief ShogiClockからのタイムアウト通知（先手）
+     * @brief ShogiClockからのタイムアウト通知（player: 時間が切れた側）
      */
-    void onClockPlayer1TimeOut();
-
-    /**
-     * @brief ShogiClockからのタイムアウト通知（後手）
-     */
-    void onClockPlayer2TimeOut();
+    void onClockPlayerTimeOut(Turn player);
 
 private:
     ShogiClock* m_clock = nullptr;

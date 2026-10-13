@@ -44,7 +44,7 @@ struct StrategyTestHarness {
 
     // フック呼び出しトラッカー
     bool updateTurnDisplayCalled = false;
-    MatchCoordinator::Player lastTurnPlayer = MatchCoordinator::P1;
+    Turn lastTurnPlayer = Turn::Black;
     bool renderBoardCalled = false;
     bool showMoveHighlightsCalled = false;
     QPoint lastHighlightFrom;
@@ -74,7 +74,7 @@ struct StrategyTestHarness {
         deps.gameMoves = &gameMoves;
 
         // UI Hooks
-        deps.hooks.ui.updateTurnDisplay = [this](MatchCoordinator::Player p) {
+        deps.hooks.ui.updateTurnDisplay = [this](Turn p) {
             updateTurnDisplayCalled = true;
             lastTurnPlayer = p;
         };
@@ -110,7 +110,7 @@ struct StrategyTestHarness {
     void resetTrackers()
     {
         updateTurnDisplayCalled = false;
-        lastTurnPlayer = MatchCoordinator::P1;
+        lastTurnPlayer = Turn::Black;
         renderBoardCalled = false;
         showMoveHighlightsCalled = false;
         lastHighlightFrom = QPoint();
@@ -198,7 +198,7 @@ void Tst_GameStrategy::hvh_start_defaultsToBlack()
     // GC should be set to Player1
     QCOMPARE(h.gc.currentPlayer(), Turn::Black);
     // MC turn should be P1
-    QCOMPARE(h.lastTurnPlayer, MatchCoordinator::P1);
+    QCOMPARE(h.lastTurnPlayer, Turn::Black);
 }
 
 void Tst_GameStrategy::hvh_start_preservesPlayer2WhenSet()
@@ -212,7 +212,7 @@ void Tst_GameStrategy::hvh_start_preservesPlayer2WhenSet()
     // GC should remain Player2
     QCOMPARE(h.gc.currentPlayer(), Turn::White);
     // MC turn should be P2
-    QCOMPARE(h.lastTurnPlayer, MatchCoordinator::P2);
+    QCOMPARE(h.lastTurnPlayer, Turn::White);
 }
 
 void Tst_GameStrategy::hvh_start_callsRenderAndUpdateTurnHooks()
@@ -313,10 +313,10 @@ void Tst_GameStrategy::hvh_armTimer_armsOnFirstCall()
     hvh.armTurnTimerIfNeeded();
 
     // After arming, calling finish should have an effect (timer was valid)
-    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
+    hvh.finishTurnTimerAndSetConsideration(Turn::Black);
     // If timer was armed, finish should have disarmed it
     // Calling finish again should be a no-op (not armed)
-    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
+    hvh.finishTurnTimerAndSetConsideration(Turn::Black);
     QVERIFY(true);  // No crash = success
 }
 
@@ -330,7 +330,7 @@ void Tst_GameStrategy::hvh_armTimer_idempotentOnSecondCall()
     hvh.armTurnTimerIfNeeded();
 
     // Finish once should disarm
-    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
+    hvh.finishTurnTimerAndSetConsideration(Turn::Black);
     QVERIFY(true);
 }
 
@@ -343,11 +343,11 @@ void Tst_GameStrategy::hvh_finishTimer_disarmsAndSetsConsideration()
     // Small delay to ensure timer accumulates some ms
     // (In stubbed ShogiClock, setPlayer1ConsiderationTime is a no-op, so
     //  we just verify the call doesn't crash)
-    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
+    hvh.finishTurnTimerAndSetConsideration(Turn::Black);
 
     // After finish, re-arming should work (timer was disarmed)
     hvh.armTurnTimerIfNeeded();
-    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P2));
+    hvh.finishTurnTimerAndSetConsideration(Turn::White);
     QVERIFY(true);
 }
 
@@ -357,7 +357,7 @@ void Tst_GameStrategy::hvh_finishTimer_nothingWhenNotArmed()
     HumanVsHumanStrategy hvh(h.mc->strategyCtx());
 
     // Finish without arming - should be a no-op
-    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
+    hvh.finishTurnTimerAndSetConsideration(Turn::Black);
     QVERIFY(true);
 }
 
@@ -371,16 +371,16 @@ void Tst_GameStrategy::hvh_disarmTimer_restartsMeasurement()
     QTest::qSleep(200);
     hvh.disarmTurnTimer();
     hvh.armTurnTimerIfNeeded();
-    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
-    QVERIFY2(h.clock.considerationMs(1) < 150,
-             qPrintable(QString::number(h.clock.considerationMs(1))));
+    hvh.finishTurnTimerAndSetConsideration(Turn::Black);
+    QVERIFY2(h.clock.considerationMs(Turn::Black) < 150,
+             qPrintable(QString::number(h.clock.considerationMs(Turn::Black))));
 
     // 止めずに掛け直しても測り直さない（armTurnTimerIfNeeded は一度だけ開始する）
     hvh.armTurnTimerIfNeeded();
     QTest::qSleep(200);
     hvh.armTurnTimerIfNeeded();
-    hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P2));
-    QVERIFY(h.clock.considerationMs(2) >= 200);
+    hvh.finishTurnTimerAndSetConsideration(Turn::White);
+    QVERIFY(h.clock.considerationMs(Turn::White) >= 200);
 }
 
 // ============================================================
@@ -445,7 +445,7 @@ void Tst_GameStrategy::hve_armAndDisarmTimer()
 
     // Re-arming after disarm should work
     hve.armTurnTimerIfNeeded();
-    hve.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
+    hve.finishTurnTimerAndSetConsideration(Turn::Black);
     QVERIFY(true);
 }
 
@@ -773,7 +773,7 @@ void Tst_GameStrategy::baseClass_defaultTimerMethodsAreNoop()
 
     // Default implementations should be no-ops (no crash)
     s.armTurnTimerIfNeeded();
-    s.finishTurnTimerAndSetConsideration(1);
+    s.finishTurnTimerAndSetConsideration(Turn::Black);
     s.disarmTurnTimer();
     s.startInitialMoveIfNeeded();
     QVERIFY(true);

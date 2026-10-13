@@ -424,7 +424,7 @@ delete dlg;
 
 5. **初期手番の設定と時計開始**
    ```cpp
-   const int initialPlayer = (req.startSfen.contains(" w ") ? 2 : 1);
+   const Turn initialPlayer = req.startSfen.contains(" w ") ? Turn::White : Turn::Black;
    clock->setCurrentPlayer(initialPlayer);
    m_match->setClock(clock);
    clock->startClock();
@@ -728,7 +728,7 @@ if (isHandicap && whiteToMove) {
 **ファイル:** `src/game/matchcoordinator.cpp`
 
 ```cpp
-void MatchCoordinator::initializeAndStartEngineFor(Player side,
+void MatchCoordinator::initializeAndStartEngineFor(Turn side,   // エンジンの手番
                                                    const QString& enginePathIn,
                                                    const QString& engineNameIn)
 ```
@@ -792,13 +792,13 @@ MatchCoordinator::onHumanMove_HvE(from, to, prettyMove)
 ### ターン同期の仕組み
 
 ```
-ShogiGameController::currentPlayerChanged(Player)
+ShogiGameController::currentPlayerChanged(Turn)
     ↓
-TurnManager::setFromGc(Player)
+TurnManager::set(Turn)
     ↓
-TurnManager::changed(Player)
+TurnManager::changed(Turn)
     ↓
-MainWindow::onTurnManagerChanged(Player)
+MainWindow::onTurnManagerChanged(Turn)
     → 手番表示の更新、アクションの有効/無効切替
 ```
 

@@ -19,9 +19,7 @@ void HumanVsHumanStrategy::start()
     // --- 手番の単一ソースを確立：GC → TurnManager → m_cur → 表示
     const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
 
-    m_ctx.setCurrentTurn(
-        (side == Turn::White) ? MatchCoordinator::P2
-                                               : MatchCoordinator::P1);
+    m_ctx.setCurrentTurn(side);
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
     if (m_ctx.hooks().ui.renderBoardFromGc)
@@ -35,22 +33,20 @@ void HumanVsHumanStrategy::onHumanMove(const QPoint& /*from*/,
 {
     // 着手後の現在手番は「次の手番」なので、着手者はその逆
     const Turn curAfterMove = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::White;
-    const MatchCoordinator::Player moverP =
-        (curAfterMove == Turn::Black) ? MatchCoordinator::P2
-                                                       : MatchCoordinator::P1;
+    const Turn mover = (curAfterMove == Turn::Black) ? Turn::White : Turn::Black;
 
     // 直前手の消費時間（consideration）を確定
-    finishTurnTimerAndSetConsideration(static_cast<int>(moverP));
+    finishTurnTimerAndSetConsideration(mover);
 
     // HvH でも秒読み/インクリメントを適用し、総考慮へ加算して表示値を確定
     ShogiClock* clock = m_ctx.clock();
-    if (clock) clock->commitMove(static_cast<int>(moverP));
+    if (clock) clock->commitMove(mover);
 
     // 指し手＋考慮時間を棋譜欄に追記する。千日手・持将棋の終局行より先に記録する
     if (m_ctx.hooks().game.appendKifuLine) {
         QString elapsed = QStringLiteral("00:00/00:00:00");
         if (clock) {
-            elapsed = clock->considerationAndTotalTime(static_cast<int>(moverP));
+            elapsed = clock->considerationAndTotalTime(mover);
         }
         m_ctx.hooks().game.appendKifuLine(prettyMove, elapsed);
     }
@@ -89,20 +85,14 @@ void HumanVsHumanStrategy::disarmTurnTimer()
     m_turnTimerArmed = false;
 }
 
-void HumanVsHumanStrategy::finishTurnTimerAndSetConsideration(int moverPlayer)
+void HumanVsHumanStrategy::finishTurnTimerAndSetConsideration(Turn mover)
 {
     if (!m_turnTimerArmed) return;
 
     const qint64 ms = m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
-    const auto mover = static_cast<MatchCoordinator::Player>(moverPlayer);
 
     ShogiClock* clock = m_ctx.clock();
-    if (clock) {
-        if (mover == MatchCoordinator::P1)
-            clock->setMeasuredConsiderationTime(1, ms);
-        else
-            clock->setMeasuredConsiderationTime(2, ms);
-    }
+    if (clock) clock->setMeasuredConsiderationTime(mover, ms);
     m_turnTimer.invalidate();
     m_turnTimerArmed = false;
 }

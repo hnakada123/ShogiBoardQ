@@ -7,6 +7,8 @@
 #include <QPoint>
 #include <QString>
 
+#include "shogitypes.h"
+
 /**
  * @brief 対局モードごとの開始・着手処理を抽象化するインターフェース
  *
@@ -31,7 +33,7 @@ public:
     virtual void armTurnTimerIfNeeded() {}
 
     /// ターンタイマーを停止し考慮時間を設定する（必要なモードのみオーバーライド）
-    virtual void finishTurnTimerAndSetConsideration(int /*moverPlayer*/) {}
+    virtual void finishTurnTimerAndSetConsideration(Turn /*mover*/) {}
 
     /// ターンタイマーを解除する（終局時など、計測を破棄する場合）
     virtual void disarmTurnTimer() {}

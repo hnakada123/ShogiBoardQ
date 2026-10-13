@@ -124,8 +124,8 @@ MatchCoordinator::Hooks MainWindowServiceRegistry::buildMatchHooks()
     MatchCoordinator::Hooks hooks;
     auto* adapter = m_mw.m_matchAdapter.get();
 
-    hooks.ui.updateTurnDisplay = [this](MatchCoordinator::Player cur) {
-        m_mw.onTurnManagerChanged(cur == MatchCoordinator::P2 ? Turn::White : Turn::Black);
+    hooks.ui.updateTurnDisplay = [this](Turn cur) {
+        m_mw.onTurnManagerChanged(cur);
     };
     hooks.ui.setPlayersNames = [this](const QString& p1, const QString& p2) {
         m_mw.m_playerInfoWiring->onSetPlayersNames(p1, p2);

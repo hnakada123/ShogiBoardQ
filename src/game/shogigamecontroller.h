@@ -103,8 +103,8 @@ public:
 
     // --- 対局結果制御 ---
 
-    /// 時間切れによる敗北を適用する（clockPlayer: 1=先手負け, 2=後手負け）
-    void applyTimeoutLossFor(int clockPlayer);
+    /// 時間切れによる敗北を適用する（loser: 時間が切れた側）
+    void applyTimeoutLossFor(Turn loser);
 
     /// 結果未確定の場合に最終決定する
     void finalizeGameResult();

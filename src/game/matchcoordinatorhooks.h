@@ -28,7 +28,7 @@
 struct MatchCoordinatorHooks {
     /// UI更新・描画系コールバック
     struct UI {
-        std::function<void(MatchPlayer cur)> updateTurnDisplay;
+        std::function<void(Turn cur)> updateTurnDisplay;
         std::function<void(const QString& p1, const QString& p2)> setPlayersNames;
         std::function<void(const QString& e1, const QString& e2)> setEngineNames;
         std::function<void()> renderBoardFromGc;

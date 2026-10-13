@@ -52,11 +52,6 @@ public:
     StrategyContext& strategyCtx();
     // --- 型定義 ---
 
-    /// 対局者を表す列挙値（matchtypes.h の MatchPlayer の using エイリアス）
-    using Player = MatchPlayer;
-    static constexpr Player P1 = Player::P1;  ///< 先手
-    static constexpr Player P2 = Player::P2;  ///< 後手
-
     /// 終局原因（matchtypes.h の MatchCause の using エイリアス）
     using Cause = MatchCause;
 
@@ -98,14 +93,14 @@ public:
     /// 人間の投了を処理する
     void handleResign();
 
-    /// エンジン投了通知を処理する（idx: 1 or 2）
-    void handleEngineResign(int idx);
+    /// エンジン投了通知を処理する（side: 投了したエンジンの手番）
+    void handleEngineResign(Turn side);
 
-    /// エンジン入玉宣言勝ち通知を処理する（idx: 1 or 2）
-    void handleEngineWin(int idx);
+    /// エンジン入玉宣言勝ち通知を処理する（side: 宣言したエンジンの手番）
+    void handleEngineWin(Turn side);
 
-    /// エンジンが反則手を返したときに、そのエンジンの反則負けとする（idx: 1 or 2）
-    void handleEngineIllegalMove(int idx);
+    /// エンジンが反則手を返したときに、そのエンジンの反則負けとする（side: 反則したエンジンの手番）
+    void handleEngineIllegalMove(Turn side);
 
     void flipBoard();
 
@@ -130,7 +125,7 @@ public:
     bool resumeInterruptedGame();
 
     /// 入玉宣言を処理する
-    void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw);
+    void handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw);
     /// 終局・入玉宣言の知らせで対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）。
     /// CSA 通信対局の入玉宣言の確認でも使う
     bool usesHandicapNames() const { return m_hooks.ui.usesHandicapNames && m_hooks.ui.usesHandicapNames(); }
@@ -144,13 +139,13 @@ public:
 
     // --- ターン計測（KIF表示用） ---
 
-    void   markTurnEpochNowFor(Player side, qint64 nowMs = -1);
-    qint64 turnEpochFor(Player side) const;
+    void   markTurnEpochNowFor(Turn side, qint64 nowMs = -1);
+    qint64 turnEpochFor(Turn side) const;
 
     // --- HvH: ターン計測 ---
 
     void armTurnTimerIfNeeded();
-    void finishTurnTimerAndSetConsiderationFor(Player mover);
+    void finishTurnTimerAndSetConsiderationFor(Turn mover);
 
     // --- HvE: 人間タイマー解除（Strategy委譲） ---
 
@@ -173,13 +168,10 @@ public:
 
     // --- エンジン管理 ---
 
-    /// エンジンの初期化と開始（side: P1 or P2）
-    void initializeAndStartEngineFor(Player side,
+    /// エンジンの初期化と開始（side: エンジンの手番）
+    void initializeAndStartEngineFor(Turn side,
                                      const QString& enginePathIn,
                                      const QString& engineNameIn);
-
-    /// エンジンを破棄する（idx: 1 or 2）
-    void destroyEngine(int idx, bool clearThinking = true);
 
     /// 全エンジンを破棄する
     void destroyEngines(bool clearModels = true);
@@ -244,7 +236,8 @@ public:
 
     // --- 時間/手番・終局の処理 ---
 
-    void handlePlayerTimeOut(int player);
+    /// 時間切れを処理する（player: 時間が切れた側）
+    void handlePlayerTimeOut(Turn player);
 
     /// 開始直後のタイマー起動や初手go判定を1本化する
     void startMatchTimingAndMaybeInitialGo();
@@ -254,7 +247,7 @@ public:
     PlayMode playMode() const { return m_playMode; }
 
     /// 終局1回だけの棋譜追記と重複防止を一括処理する
-    void appendGameOverLineAndMark(Cause cause, Player loser);
+    void appendGameOverLineAndMark(Cause cause, Turn loser);
 
     /// 人間着手後の後処理（Strategy へ委譲）
     void onHumanMove(const QPoint& from, const QPoint& to,
@@ -362,7 +355,7 @@ private:
     // --- ターン進行ハンドラ ---
     std::unique_ptr<MatchTurnHandler> m_turnHandler; ///< ターン進行・ストラテジー管理
 
-    Player m_cur = P1;                        ///< 現在手番
+    Turn m_cur = Turn::Black; ///< 現在手番
 
     // --- モデル ---
 

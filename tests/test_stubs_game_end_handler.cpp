@@ -94,19 +94,18 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
 
 void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
 void MatchCoordinator::handleResign() {}
-void MatchCoordinator::handleEngineResign(int) {}
-void MatchCoordinator::handleEngineWin(int) {}
+void MatchCoordinator::handleEngineResign(Turn) {}
+void MatchCoordinator::handleEngineWin(Turn) {}
 void MatchCoordinator::flipBoard() {}
 void MatchCoordinator::updateUsiPtrs(Usi*, Usi*) {}
 void MatchCoordinator::handleBreakOff() {}
-void MatchCoordinator::handleNyugyokuDeclaration(Player, bool, bool) {}
-void MatchCoordinator::markTurnEpochNowFor(Player, qint64) {}
-qint64 MatchCoordinator::turnEpochFor(Player) const { return -1; }
+void MatchCoordinator::handleNyugyokuDeclaration(Turn, bool, bool) {}
+void MatchCoordinator::markTurnEpochNowFor(Turn, qint64) {}
+qint64 MatchCoordinator::turnEpochFor(Turn) const { return -1; }
 void MatchCoordinator::armTurnTimerIfNeeded() {}
-void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player) {}
+void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Turn) {}
 void MatchCoordinator::disarmHumanTimerIfNeeded() {}
-void MatchCoordinator::initializeAndStartEngineFor(Player, const QString&, const QString&) {}
-void MatchCoordinator::destroyEngine(int, bool) {}
+void MatchCoordinator::initializeAndStartEngineFor(Turn, const QString&, const QString&) {}
 void MatchCoordinator::destroyEngines(bool) {}
 void MatchCoordinator::setGameOver(const GameEndInfo&, bool, bool) {}
 void MatchCoordinator::markGameOverMoveAppended() {}
@@ -117,9 +116,9 @@ bool MatchCoordinator::updateConsiderationPosition(const QString&, int, int, con
 Usi* MatchCoordinator::primaryEngine() const { return nullptr; }
 Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
 void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
-void MatchCoordinator::handlePlayerTimeOut(int) {}
+void MatchCoordinator::handlePlayerTimeOut(Turn) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
-void MatchCoordinator::appendGameOverLineAndMark(Cause, Player) {}
+void MatchCoordinator::appendGameOverLineAndMark(Cause, Turn) {}
 void MatchCoordinator::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 void MatchCoordinator::forceImmediateMove() {}
 void MatchCoordinator::sendStopToEngine(Usi*) {}
@@ -152,13 +151,13 @@ void MatchTurnHandler::createAndStartModeStrategy(const StartOptions&) {}
 void MatchTurnHandler::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 void MatchTurnHandler::startInitialEngineMoveIfNeeded() {}
 void MatchTurnHandler::armTurnTimerIfNeeded() {}
-void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Player) {}
+void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Turn) {}
 void MatchTurnHandler::disarmHumanTimerIfNeeded() {}
 void MatchTurnHandler::flipBoard() {}
-void MatchTurnHandler::updateTurnDisplay(Player) {}
+void MatchTurnHandler::updateTurnDisplay(Turn) {}
 void MatchTurnHandler::initPositionStringsFromSfen(const QString&) {}
 void MatchTurnHandler::forceImmediateMove() {}
-void MatchTurnHandler::handlePlayerTimeOut(int) {}
+void MatchTurnHandler::handlePlayerTimeOut(Turn) {}
 void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
 void MatchTurnHandler::handleUsiError(const QString&) {}
 

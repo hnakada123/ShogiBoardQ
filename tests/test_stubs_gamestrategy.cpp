@@ -95,10 +95,10 @@ void MatchTurnHandler::createAndStartModeStrategy(const StartOptions&) {}
 void MatchTurnHandler::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 void MatchTurnHandler::startInitialEngineMoveIfNeeded() {}
 void MatchTurnHandler::armTurnTimerIfNeeded() {}
-void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Player) {}
+void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Turn) {}
 void MatchTurnHandler::disarmHumanTimerIfNeeded() {}
 void MatchTurnHandler::flipBoard() {}
-void MatchTurnHandler::updateTurnDisplay(Player p)
+void MatchTurnHandler::updateTurnDisplay(Turn p)
 {
     *m_refs.currentTurn = p;
     if (m_hooks.updateTurnDisplayCb) m_hooks.updateTurnDisplayCb(p);
@@ -110,7 +110,7 @@ void MatchTurnHandler::initPositionStringsFromSfen(const QString& sfenBase)
     if (m_refs.positionStrHistory) m_refs.positionStrHistory->clear();
 }
 void MatchTurnHandler::forceImmediateMove() {}
-void MatchTurnHandler::handlePlayerTimeOut(int) {}
+void MatchTurnHandler::handlePlayerTimeOut(Turn) {}
 void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
 void MatchTurnHandler::handleUsiError(const QString&) {}
 
@@ -131,18 +131,18 @@ void EngineLifecycleManager::setUsi2(Usi* u) { m_usi2 = u; }
 bool EngineLifecycleManager::isShutdownInProgress() const { return m_engineShutdownInProgress; }
 void EngineLifecycleManager::setShutdownInProgress(bool v) { m_engineShutdownInProgress = v; }
 EngineLifecycleManager::EngineModelPair EngineLifecycleManager::ensureEngineModels(int) { return {}; }
-void EngineLifecycleManager::initializeAndStartEngineFor(Player, const QString&, const QString&) {}
+void EngineLifecycleManager::initializeAndStartEngineFor(Turn, const QString&, const QString&) {}
 void EngineLifecycleManager::destroyEngine(int, bool) {}
 void EngineLifecycleManager::destroyEngines(bool) {}
 void EngineLifecycleManager::initEnginesForEvE(const QString&, const QString&) {}
 void EngineLifecycleManager::sendStopToEngine(Usi*) {}
-void EngineLifecycleManager::wireResignToArbiter(Usi*, bool) {}
-void EngineLifecycleManager::wireWinToArbiter(Usi*, bool) {}
+void EngineLifecycleManager::wireResignToArbiter(Usi*, Turn) {}
+void EngineLifecycleManager::wireWinToArbiter(Usi*, Turn) {}
 void EngineLifecycleManager::disconnectArbiterSignals() {}
-void EngineLifecycleManager::onEngine1Resign() {}
-void EngineLifecycleManager::onEngine2Resign() {}
-void EngineLifecycleManager::onEngine1Win() {}
-void EngineLifecycleManager::onEngine2Win() {}
+void EngineLifecycleManager::onBlackEngineResign() {}
+void EngineLifecycleManager::onWhiteEngineResign() {}
+void EngineLifecycleManager::onBlackEngineWin() {}
+void EngineLifecycleManager::onWhiteEngineWin() {}
 
 // ============================================================
 // MatchTimekeeper スタブ
@@ -154,8 +154,8 @@ void MatchTimekeeper::setRefs(const Refs&) {}
 void MatchTimekeeper::setClock(ShogiClock* c) { m_clock = c; }
 ShogiClock* MatchTimekeeper::clock() const { return m_clock; }
 const ShogiClock* MatchTimekeeper::clockConst() const { return m_clock; }
-void MatchTimekeeper::markTurnEpochNowFor(Player, qint64) {}
-qint64 MatchTimekeeper::turnEpochFor(Player) const { return -1; }
+void MatchTimekeeper::markTurnEpochNowFor(Turn, qint64) {}
+qint64 MatchTimekeeper::turnEpochFor(Turn) const { return -1; }
 void MatchTimekeeper::recomputeClockSnapshot(QString& t, QString& p1, QString& p2) const
 {
     t.clear(); p1.clear(); p2.clear();
@@ -174,13 +174,13 @@ GameEndHandler::GameEndHandler(QObject* parent) : QObject(parent) {}
 void GameEndHandler::setRefs(const Refs& refs) { m_refs = refs; }
 void GameEndHandler::setHooks(const Hooks&) {}
 void GameEndHandler::handleResign() {}
-void GameEndHandler::handleTimeout(Player) {}
-void GameEndHandler::handleEngineResign(int) {}
-void GameEndHandler::handleEngineWin(int) {}
-void GameEndHandler::handleEngineIllegalMove(int) { ++StrategyTracker::engineIllegalMoveCount; }
+void GameEndHandler::handleTimeout(Turn) {}
+void GameEndHandler::handleEngineResign(Turn) {}
+void GameEndHandler::handleEngineWin(Turn) {}
+void GameEndHandler::handleEngineIllegalMove(Turn) { ++StrategyTracker::engineIllegalMoveCount; }
 void GameEndHandler::handleBreakOff() {}
-void GameEndHandler::handleNyugyokuDeclaration(Player, bool, bool) {}
-void GameEndHandler::appendGameOverLineAndMark(Cause, Player) {}
+void GameEndHandler::handleNyugyokuDeclaration(Turn, bool, bool) {}
+void GameEndHandler::appendGameOverLineAndMark(Cause, Turn) {}
 void GameEndHandler::appendBreakOffLineAndMark() {}
 void GameEndHandler::handleMaxMovesJishogi() { ++StrategyTracker::maxMovesJishogiCount; }
 bool GameEndHandler::checkAndHandleSennichite() { return StrategyTracker::sennichiteDetected; }
@@ -353,7 +353,7 @@ ShogiGameController::~ShogiGameController() = default;
 ShogiBoard* ShogiGameController::board() const { return nullptr; }
 void ShogiGameController::setCurrentPlayer(Turn p) { m_currentPlayer = p; }
 void ShogiGameController::newGame(QString&) {}
-void ShogiGameController::applyTimeoutLossFor(int) {}
+void ShogiGameController::applyTimeoutLossFor(Turn) {}
 void ShogiGameController::finalizeGameResult() {}
 void ShogiGameController::resetResult() {}
 

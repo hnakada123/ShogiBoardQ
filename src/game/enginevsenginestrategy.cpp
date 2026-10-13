@@ -57,8 +57,7 @@ void EngineVsEngineStrategy::start()
     }
 
     // 駒落ちの場合、SFENで手番が「w」（後手番）になっている。GC の手番は SFEN に従う
-    m_ctx.setCurrentTurn((m_ctx.gc()->currentPlayer() == Turn::White)
-                             ? MatchCoordinator::P2 : MatchCoordinator::P1);
+    m_ctx.setCurrentTurn(m_ctx.gc()->currentPlayer());
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
     if (!m_opt.resumeFromBreakOff) initPositionStringsForEvE(m_opt.sfenStart);
@@ -178,7 +177,7 @@ void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     // 次の手を渡す。反則手は盤に指さず、指したエンジンの反則負けにする
     int nextEve = m_eveMoveIndex + 1;
     if (!m_ctx.gc()->applyMove(move, rec, nextEve, sfenRecordForEvE(), gameMovesForEvE())) {
-        m_ctx.handleEngineIllegalMove(p1ToMove ? 1 : 2);
+        m_ctx.handleEngineIllegalMove(moverTurn);
         return;
     }
     m_eveMoveIndex = nextEve;
@@ -190,13 +189,12 @@ void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
         m_ctx.positionStr1() = m_ctx.positionStr2();
     }
 
-    const int moverSide = p1ToMove ? 1 : 2;
     if (m_ctx.clock()) {
-        m_ctx.clock()->setMeasuredConsiderationTime(moverSide, mover ? mover->lastBestmoveElapsedMs() : 0);
-        m_ctx.clock()->commitMove(moverSide);
+        m_ctx.clock()->setMeasuredConsiderationTime(moverTurn, mover ? mover->lastBestmoveElapsedMs() : 0);
+        m_ctx.clock()->commitMove(moverTurn);
     }
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec, m_ctx.clock()->considerationAndTotalTime(moverSide));
+        m_ctx.hooks().game.appendKifuLine(rec, m_ctx.clock()->considerationAndTotalTime(moverTurn));
     }
 
     if (receiver) {
@@ -206,10 +204,7 @@ void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
 
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
     if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(from, to);
-    m_ctx.updateTurnDisplay(
-        (m_ctx.gc()->currentPlayer() == Turn::Black)
-            ? MatchCoordinator::P1 : MatchCoordinator::P2
-        );
+    m_ctx.updateTurnDisplay(m_ctx.gc()->currentPlayer());
 
     // 千日手チェック
     if (m_ctx.checkAndHandleSennichite()) return;

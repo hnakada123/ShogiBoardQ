@@ -7,12 +7,12 @@
 
 // --- 時間管理転送 ---
 
-void MatchCoordinator::markTurnEpochNowFor(Player side, qint64 nowMs) {
+void MatchCoordinator::markTurnEpochNowFor(Turn side, qint64 nowMs) {
     ensureTimekeeper();
     m_timekeeper->markTurnEpochNowFor(side, nowMs);
 }
 
-qint64 MatchCoordinator::turnEpochFor(Player side) const {
+qint64 MatchCoordinator::turnEpochFor(Turn side) const {
     return m_timekeeper ? m_timekeeper->turnEpochFor(side) : -1;
 }
 

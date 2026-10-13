@@ -49,7 +49,7 @@ void GameEndHandler::handleResign()
     GameEndInfo info;
     info.cause = Cause::Resignation;
     info.loser = (m_refs.gc && m_refs.gc->currentPlayer() == Turn::Black)
-                     ? Player::P1 : Player::P2;
+                     ? Turn::Black : Turn::White;
 
     auto rawSender = [this](Usi* which, const QString& cmd) {
         sendRawToEngineHelper(which, cmd);
@@ -57,20 +57,20 @@ void GameEndHandler::handleResign()
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser == Player::P1, u1, u2, rawSender);
+        *m_refs.playMode, info.loser == Turn::Black, u1, u2, rawSender);
 
-    setGameOver(info, info.loser == Player::P1, true);
+    setGameOver(info, info.loser == Turn::Black, true);
     displayResultsAndUpdateGui(info);
 }
 
-void GameEndHandler::handleEngineResign(int idx)
+void GameEndHandler::handleEngineResign(Turn side)
 {
     if (m_refs.gameOver->isOver) return;
     if (m_refs.clock) m_refs.clock->stopClock();
 
     GameEndInfo info;
     info.cause = Cause::Resignation;
-    info.loser = (idx == 1 ? Player::P1 : Player::P2);
+    info.loser = side;
 
     auto rawSender = [this](Usi* which, const QString& cmd) {
         sendRawToEngineHelper(which, cmd);
@@ -78,16 +78,16 @@ void GameEndHandler::handleEngineResign(int idx)
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser == Player::P1, u1, u2, rawSender);
+        *m_refs.playMode, info.loser == Turn::Black, u1, u2, rawSender);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 
-    const bool loserIsP1 = (info.loser == Player::P1);
+    const bool loserIsP1 = (info.loser == Turn::Black);
     setGameOver(info, loserIsP1, true);
     displayResultsAndUpdateGui(info);
 }
 
-void GameEndHandler::handleEngineIllegalMove(int idx)
+void GameEndHandler::handleEngineIllegalMove(Turn side)
 {
     if (m_refs.gameOver->isOver) return;
     if (m_refs.clock) m_refs.clock->stopClock();
@@ -95,7 +95,7 @@ void GameEndHandler::handleEngineIllegalMove(int idx)
     // エンジンが反則手を返した。盤には指さずに、そのエンジンの反則負けとする
     GameEndInfo info;
     info.cause = Cause::IllegalMove;
-    info.loser = (idx == 1 ? Player::P1 : Player::P2);
+    info.loser = side;
 
     auto rawSender = [this](Usi* which, const QString& cmd) {
         sendRawToEngineHelper(which, cmd);
@@ -104,27 +104,27 @@ void GameEndHandler::handleEngineIllegalMove(int idx)
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     // 投了と同じく、負けた側に gameover lose、相手に gameover win を送る
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser == Player::P1, u1, u2, rawSender);
+        *m_refs.playMode, info.loser == Turn::Black, u1, u2, rawSender);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 
-    setGameOver(info, info.loser == Player::P1, true);
+    setGameOver(info, info.loser == Turn::Black, true);
     displayResultsAndUpdateGui(info);
 }
 
-void GameEndHandler::handleTimeout(Player loser)
+void GameEndHandler::handleTimeout(Turn loser)
 {
     if (m_refs.gameOver->isOver) return;
 
     const GameEndInfo info{Cause::Timeout, loser};
-    setGameOver(info, loser == Player::P1, true);
+    setGameOver(info, loser == Turn::Black, true);
     if (m_refs.clock) {
         m_refs.clock->markGameOver();
         m_refs.clock->stopClock();
     }
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
 
-    const auto notify = [loser](Usi* engine, Player side) {
+    const auto notify = [loser](Usi* engine, Turn side) {
         if (!engine) return;
         engine->setSquelchResignLogging(true);
         engine->cancelCurrentOperation();
@@ -136,20 +136,20 @@ void GameEndHandler::handleTimeout(Player loser)
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     const PlayMode mode = *m_refs.playMode;
     if (mode == PlayMode::EvenEngineVsEngine || mode == PlayMode::HandicapEngineVsEngine) {
-        notify(u1, Player::P1);
-        notify(u2, Player::P2);
+        notify(u1, Turn::Black);
+        notify(u2, Turn::White);
     } else if (mode == PlayMode::EvenEngineVsHuman || mode == PlayMode::HandicapEngineVsHuman) {
-        notify(u1, Player::P1);
+        notify(u1, Turn::Black);
     } else if (mode == PlayMode::EvenHumanVsEngine || mode == PlayMode::HandicapHumanVsEngine) {
-        notify(u1, Player::P2);
+        notify(u1, Turn::White);
     }
     displayResultsAndUpdateGui(info);
 }
 
-void GameEndHandler::handleEngineWin(int idx)
+void GameEndHandler::handleEngineWin(Turn side)
 {
     if (m_refs.gameOver->isOver) return;
-    const Player declarer = (idx == 1 ? Player::P1 : Player::P2);
+    const Turn declarer = side;
     const ShogiBoard* board = m_refs.gc ? m_refs.gc->board() : nullptr;
     if (!board) {
         handleNyugyokuDeclaration(declarer, true, false);
@@ -162,7 +162,7 @@ void GameEndHandler::handleEngineWin(int idx)
     // エンジンの入玉宣言（bestmove win）も人間の宣言と同じく、盤面から条件と点数を判定する。
     // 条件を満たさなければ宣言したエンジンの負け、24点法の24〜30点は持将棋。
     const NyugyokuJudgement::Result result =
-        NyugyokuJudgement::judgeEngineDeclaration(*board, declarer == Player::P1, usesHandicapNames());
+        NyugyokuJudgement::judgeEngineDeclaration(*board, declarer == Turn::Black, usesHandicapNames());
     handleNyugyokuDeclaration(declarer, result.success, result.isDraw);
     // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
     if (m_refs.gameOver->isOver && m_hooks.showGameOverDialog) {
@@ -172,11 +172,11 @@ void GameEndHandler::handleEngineWin(int idx)
 
 // --- 入玉宣言 ---
 
-void GameEndHandler::handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw)
+void GameEndHandler::handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw)
 {
     if (m_refs.gameOver->isOver) return;
 
-    qCInfo(lcGame) << "handleNyugyokuDeclaration(): declarer=" << (declarer == Player::P1 ? "P1" : "P2")
+    qCInfo(lcGame) << "handleNyugyokuDeclaration(): declarer=" << declarer
                     << " success=" << success << " isDraw=" << isDraw;
 
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
@@ -188,7 +188,7 @@ void GameEndHandler::handleNyugyokuDeclaration(Player declarer, bool success, bo
         info.loser = declarer;
     } else if (success) {
         info.cause = Cause::NyugyokuWin;
-        info.loser = (declarer == Player::P1) ? Player::P2 : Player::P1;
+        info.loser = (declarer == Turn::Black) ? Turn::White : Turn::Black;
     } else {
         info.cause = Cause::IllegalMove;
         info.loser = declarer;
@@ -200,11 +200,11 @@ void GameEndHandler::handleNyugyokuDeclaration(Player declarer, bool success, bo
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyNyugyoku(
-        *m_refs.playMode, isDraw, info.loser == Player::P1, u1, u2, rawSender);
+        *m_refs.playMode, isDraw, info.loser == Turn::Black, u1, u2, rawSender);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 
-    const bool loserIsP1 = (info.loser == Player::P1);
+    const bool loserIsP1 = (info.loser == Turn::Black);
     setGameOver(info, loserIsP1, true);
     if (m_hooks.autoSaveKifuIfEnabled) m_hooks.autoSaveKifuIfEnabled();
     emit gameEndProcessed(info);
@@ -224,7 +224,7 @@ void GameEndHandler::handleBreakOff()
     m_refs.gameOver->lastInfo.cause = Cause::BreakOff;
 
     const Turn gcTurn = m_refs.gc ? m_refs.gc->currentPlayer() : Turn::White;
-    m_refs.gameOver->lastInfo.loser = (gcTurn == Turn::Black) ? Player::P1 : Player::P2;
+    m_refs.gameOver->lastInfo.loser = gcTurn;
 
     if (m_refs.clock) {
         m_refs.clock->markGameOver();
@@ -292,11 +292,11 @@ void GameEndHandler::handleMaxMovesJishogi()
 
     GameEndInfo info;
     info.cause = Cause::Jishogi;
-    info.loser = Player::P1;
+    info.loser = Turn::Black;
 
     setGameOver(info, true, true);
 
-    appendGameOverLineAndMark(Cause::Jishogi, Player::P1);
+    appendGameOverLineAndMark(Cause::Jishogi, Turn::Black);
     displayResultsAndUpdateGui(info);
 }
 
@@ -359,11 +359,11 @@ void GameEndHandler::handleSennichite()
 
     GameEndInfo info;
     info.cause = Cause::Sennichite;
-    info.loser = Player::P1;
+    info.loser = Turn::Black;
 
     setGameOver(info, true, true);
 
-    appendGameOverLineAndMark(Cause::Sennichite, Player::P1);
+    appendGameOverLineAndMark(Cause::Sennichite, Turn::Black);
     displayResultsAndUpdateGui(info);
 }
 
@@ -371,8 +371,8 @@ void GameEndHandler::handleOuteSennichite(bool p1Loses)
 {
     if (m_refs.gameOver->isOver) return;
 
-    const Player loser = p1Loses ? Player::P1 : Player::P2;
-    const Player winner = p1Loses ? Player::P2 : Player::P1;
+    const Turn loser = p1Loses ? Turn::Black : Turn::White;
+    const Turn winner = p1Loses ? Turn::White : Turn::Black;
 
     qCInfo(lcGame) << "handleOuteSennichite(): continuous check by"
                    << (p1Loses ? "P1(sente)" : "P2(gote)");
@@ -388,11 +388,11 @@ void GameEndHandler::handleOuteSennichite(bool p1Loses)
 
     if (isEvE) {
         if (u1) {
-            const auto result = (winner == Player::P1) ? GameOverResult::Win : GameOverResult::Lose;
+            const auto result = (winner == Turn::Black) ? GameOverResult::Win : GameOverResult::Lose;
             u1->sendGameOverCommand(result); u1->sendQuitCommand(); u1->setSquelchResignLogging(true);
         }
         if (u2) {
-            const auto result = (winner == Player::P2) ? GameOverResult::Win : GameOverResult::Lose;
+            const auto result = (winner == Turn::White) ? GameOverResult::Win : GameOverResult::Lose;
             u2->sendGameOverCommand(result); u2->sendQuitCommand(); u2->setSquelchResignLogging(true);
         }
     } else {
@@ -400,7 +400,7 @@ void GameEndHandler::handleOuteSennichite(bool p1Loses)
             const bool engineIsP1 =
                 (*m_refs.playMode == PlayMode::EvenEngineVsHuman) ||
                 (*m_refs.playMode == PlayMode::HandicapEngineVsHuman);
-            const Player engineSide = engineIsP1 ? Player::P1 : Player::P2;
+            const Turn engineSide = engineIsP1 ? Turn::Black : Turn::White;
             const auto result = (winner == engineSide) ? GameOverResult::Win : GameOverResult::Lose;
             eng->sendGameOverCommand(result); eng->sendQuitCommand(); eng->setSquelchResignLogging(true);
         }
@@ -438,7 +438,7 @@ void GameEndHandler::setGameOver(const GameEndInfo& info, bool loserIsP1, bool a
     qCDebug(lcGame).nospace()
         << "setGameOver cause="
         << ((info.cause==Cause::Timeout)?"Timeout":"Resign")
-        << " loser=" << ((info.loser==Player::P1)?"P1":"P2")
+        << " loser=" << info.loser
         << " appendMoveOnce=" << appendMoveOnce;
 
     m_refs.gameOver->isOver        = true;

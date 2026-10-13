@@ -32,8 +32,7 @@ QDateTime TimeControlController::gameEndDateTime() const { return {}; }
 void TimeControlController::clearGameEndTime() {}
 
 
-void TimeControlController::onClockPlayer1TimeOut() {}
-void TimeControlController::onClockPlayer2TimeOut() {}
+void TimeControlController::onClockPlayerTimeOut(Turn) {}
 
 // MOC 生成ファイルをインクルード（vtable 解決に必要）
 #include "moc_timecontrolcontroller.cpp"

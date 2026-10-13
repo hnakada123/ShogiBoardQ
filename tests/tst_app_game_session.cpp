@@ -117,7 +117,7 @@ private slots:
         QCOMPARE(h.ensured, 1);
         QCOMPARE(ended.count(), 1);
         QCOMPARE(h.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-        QCOMPARE(h.match->gameOverState().lastInfo.loser, MatchCoordinator::P1);
+        QCOMPARE(h.match->gameOverState().lastInfo.loser, Turn::Black);
         h.session.handleResignation();
         QCOMPARE(ended.count(), 1);
     }
@@ -205,7 +205,7 @@ private slots:
         h.session.initializeGame();
         QVERIFY(m_dialogSeen);
         QCOMPARE(h.match->clock(), &h.clock);
-        QVERIFY(h.clock.remainingMs(1) > 0);
+        QVERIFY(h.clock.remainingMs(Turn::Black) > 0);
         // 棋譜再生から開始した場合も、新しい対局の時計を動かす。
         QVERIFY(h.clock.isRunning());
         QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);

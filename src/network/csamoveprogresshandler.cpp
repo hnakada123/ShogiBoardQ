@@ -138,11 +138,8 @@ void CsaMoveProgressHandler::syncClockAfterMove(bool startMyTurnClock)
         (*m_refs.clock)->setRemainingTimes(*m_refs.blackRemainingMs, *m_refs.whiteRemainingMs);
     }
 
-    if (startMyTurnClock) {
-        (*m_refs.clock)->setCurrentPlayer(*m_refs.isBlackSide ? 1 : 2);
-    } else {
-        (*m_refs.clock)->setCurrentPlayer(*m_refs.isBlackSide ? 2 : 1);
-    }
+    const Turn mySide = *m_refs.isBlackSide ? Turn::Black : Turn::White;
+    (*m_refs.clock)->setCurrentPlayer(startMyTurnClock ? mySide : (mySide == Turn::Black ? Turn::White : Turn::Black));
     (*m_refs.clock)->startClock();
 }
 

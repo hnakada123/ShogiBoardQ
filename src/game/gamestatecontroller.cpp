@@ -78,7 +78,7 @@ void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, bool lo
 
     m_match->appendGameOverLineAndMark(
         cause,
-        loserIsPlayerOne ? MatchCoordinator::P1 : MatchCoordinator::P2);
+        loserIsPlayerOne ? Turn::Black : Turn::White);
 
     // UI 後処理
     if (m_hooks.updateBoardView) {
@@ -140,7 +140,7 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
     qCDebug(lcGame).nospace()
         << "onMatchGameEnded ENTER cause="
         << ((info.cause == MatchCoordinator::Cause::Timeout) ? "Timeout" : "Resign")
-        << " loser=" << ((info.loser == MatchCoordinator::P1) ? "P1" : "P2");
+        << " loser=" << info.loser;
 
     // 対局終了時のスタイル維持を有効化
     if (m_hooks.setGameOverStyleLock) {
@@ -159,7 +159,7 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
     }
 
     // 棋譜追記＋時間確定
-    const bool loserIsP1 = (info.loser == MatchCoordinator::P1);
+    const bool loserIsP1 = (info.loser == Turn::Black);
     setGameOverMove(info.cause, loserIsP1);
 
     // UIの後処理
@@ -219,6 +219,6 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
 
 void GameStateController::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)
 {
-    const bool loserIsP1 = (info.loser == MatchCoordinator::P1);
+    const bool loserIsP1 = (info.loser == Turn::Black);
     setGameOverMove(info.cause, loserIsP1);
 }

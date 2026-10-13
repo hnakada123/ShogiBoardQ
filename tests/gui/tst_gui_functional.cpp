@@ -1700,7 +1700,7 @@ private slots:
             click(operation == "hirate" ? "actionSetHiratePosition" : "actionSetTsumePosition");
             QCOMPARE(gc->currentPlayer(), Turn::Black);
         }
-        const Turn turn = gc->currentPlayer() == Turn::Black ? Turn::Black : Turn::White;
+        const Turn turn = gc->currentPlayer();
         QCOMPARE(board()->board()->currentPlayer(), turn);
         const QString expected = QStringLiteral("%1 %2 %3 1")
             .arg(boardSfen(), turnToSfen(turn), board()->board()->convertStandToSfen());

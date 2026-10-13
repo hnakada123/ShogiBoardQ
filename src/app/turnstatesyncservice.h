@@ -34,9 +34,8 @@ public:
         /// 終局後の棋譜閲覧とライブ対局を区別する
         std::function<bool()> isGameActivelyInProgress;
 
-        /// updateTurnStatus(int currentPlayer) のコールバック
-        /// (clock の currentPlayer 設定 + view の activeSide 設定)
-        std::function<void(int)> updateTurnStatus;
+        /// updateTurnStatus(Turn currentPlayer) のコールバック（時計の手番の設定）
+        std::function<void(Turn)> updateTurnStatus;
 
         /// TurnManager の親オブジェクト（findChild で検索するための QObject*）
         QObject* turnManagerParent = nullptr;

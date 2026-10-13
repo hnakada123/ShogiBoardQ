@@ -85,7 +85,7 @@ public:
         if (initialized.isEmpty() && !initialized.wait(5000)) return false;
         if (!initialized.first().first().toBool()) return false;
         clock.setTimeControl(TestTime::rules(300, 0, 0, byoyomi / 1000, 0, 0));
-        clock.setCurrentPlayer(2);
+        clock.setCurrentPlayer(Turn::White);
         clock.startClock();
         return true;
     }
@@ -102,10 +102,10 @@ public:
     }
     void humanMove(const QString& move)
     {
-        clock.setCurrentPlayer(1);
-        clock.commitMove(2);
+        clock.setCurrentPlayer(Turn::Black);
+        clock.commitMove(Turn::White);
         position += QLatin1Char(' ') + move;
-        clock.setCurrentPlayer(2);
+        clock.setCurrentPlayer(Turn::White);
     }
 };
 
@@ -209,7 +209,7 @@ private slots:
         h.clock.stopClock();
         // 持ち時間0・加算10秒。時計は初手の加算を足して10秒から始まる。
         h.clock.setTimeControl(TestTime::rules(0, 0, 0, 0, 10, 10));
-        h.clock.setCurrentPlayer(1);
+        h.clock.setCurrentPlayer(Turn::Black);
         h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});
@@ -218,7 +218,7 @@ private slots:
         QVERIFY(!h.clock.isGameOver());
         QCOMPARE(h.completed, 1);
         QVERIFY(h.lastTo != QPoint(-1, -1));
-        qInfo() << "first move:" << h.position << "remaining ms:" << h.clock.remainingMs(1);
+        qInfo() << "first move:" << h.position << "remaining ms:" << h.clock.remainingMs(Turn::Black);
         const auto go = std::find_if(h.commands.cbegin(), h.commands.cend(), [](const QString& cmd) {
             return cmd.startsWith(QStringLiteral("go "));
         });
@@ -240,7 +240,7 @@ private slots:
         h.clock.stopClock();
         // 持ち時間300秒＋加算10秒。時計は初手の加算を含めて310秒から始まる。
         h.clock.setTimeControl(TestTime::rules(300, 300, 0, 0, 10, 10));
-        h.clock.setCurrentPlayer(1);
+        h.clock.setCurrentPlayer(Turn::Black);
         h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});
@@ -260,7 +260,7 @@ private slots:
         QVERIFY(h.start(mockPath(), true));
         h.clock.stopClock();
         h.clock.setTimeControl(TestTime::rules(300, 300, 0, 0, 10, 10));
-        h.clock.setCurrentPlayer(1);
+        h.clock.setCurrentPlayer(Turn::Black);
         h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});

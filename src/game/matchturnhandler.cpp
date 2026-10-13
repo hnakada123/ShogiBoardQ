@@ -15,7 +15,6 @@
 
 #include <QDebug>
 
-using P = MatchCoordinator::Player;
 
 MatchTurnHandler::MatchTurnHandler(MatchCoordinator& mc)
 {
@@ -48,8 +47,8 @@ void MatchTurnHandler::createAndStartModeStrategy(const StartOptions& opt)
         if (m_hooks.initEnginesForEvE)
             m_hooks.initEnginesForEvE(opt.engineName1, opt.engineName2);
         if (m_hooks.initAndStartEngine) {
-            m_hooks.initAndStartEngine(P::P1, opt.enginePath1, opt.engineName1);
-            m_hooks.initAndStartEngine(P::P2, opt.enginePath2, opt.engineName2);
+            m_hooks.initAndStartEngine(Turn::Black, opt.enginePath1, opt.engineName1);
+            m_hooks.initAndStartEngine(Turn::White, opt.enginePath2, opt.engineName2);
         }
         m_strategy = std::make_unique<EngineVsEngineStrategy>(
             *m_strategyCtx, opt, m_refs.mcAsParent);
@@ -102,9 +101,9 @@ void MatchTurnHandler::armTurnTimerIfNeeded()
     if (m_strategy) m_strategy->armTurnTimerIfNeeded();
 }
 
-void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Player mover)
+void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Turn mover)
 {
-    if (m_strategy) m_strategy->finishTurnTimerAndSetConsideration(static_cast<int>(mover));
+    if (m_strategy) m_strategy->finishTurnTimerAndSetConsideration(mover);
 }
 
 void MatchTurnHandler::disarmHumanTimerIfNeeded()
@@ -120,7 +119,7 @@ void MatchTurnHandler::flipBoard()
     if (m_hooks.emitBoardFlipped) m_hooks.emitBoardFlipped(true);
 }
 
-void MatchTurnHandler::updateTurnDisplay(Player p)
+void MatchTurnHandler::updateTurnDisplay(Turn p)
 {
     *m_refs.currentTurn = p;
     if (m_hooks.updateTurnDisplayCb) m_hooks.updateTurnDisplayCb(p);
@@ -177,9 +176,7 @@ void MatchTurnHandler::forceImmediateMove()
         (*m_refs.playMode == PlayMode::HandicapEngineVsEngine);
 
     if (isEvE) {
-        const Player turn =
-            (m_refs.gc->currentPlayer() == Turn::Black) ? P::P1 : P::P2;
-        Usi* eng = (turn == P::P1)
+        Usi* eng = (m_refs.gc->currentPlayer() == Turn::Black)
             ? (m_hooks.primaryEngine ? m_hooks.primaryEngine() : nullptr)
             : (m_hooks.secondaryEngine ? m_hooks.secondaryEngine() : nullptr);
         if (eng) m_hooks.sendStopToEngine(eng);
@@ -188,7 +185,7 @@ void MatchTurnHandler::forceImmediateMove()
     }
 }
 
-void MatchTurnHandler::handlePlayerTimeOut(int player)
+void MatchTurnHandler::handlePlayerTimeOut(Turn player)
 {
     if (!m_refs.gc) return;
     m_refs.gc->applyTimeoutLossFor(player);

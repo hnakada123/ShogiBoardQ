@@ -25,7 +25,6 @@ class MatchTimekeeper : public QObject
     Q_OBJECT
 
 public:
-    using Player = MatchCoordinator::Player;
 
     /// MatchCoordinator の内部状態への参照群
     struct Refs {
@@ -44,8 +43,8 @@ public:
 
     // --- ターンエポック ---
 
-    void markTurnEpochNowFor(Player side, qint64 nowMs = -1);
-    qint64 turnEpochFor(Player side) const;
+    void markTurnEpochNowFor(Turn side, qint64 nowMs = -1);
+    qint64 turnEpochFor(Turn side) const;
 
     // --- 時計スナップショット ---
 

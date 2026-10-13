@@ -345,7 +345,7 @@ void MatchCoordinator::disarmHumanTimerIfNeeded()  // line 1589
 
 ### 3.3 秒読み/フィッシャー加算の適用
 
-各着手後に呼ばれるメソッド（player は 1=先手、2=後手）:
+各着手後に呼ばれるメソッド（player は指した側の `Turn`）:
 
 ```cpp
 // 指した側の秒読み/加算を適用し、総消費時間へ加えて考慮時間カウンタをリセットする。
@@ -521,11 +521,12 @@ USIエンジンが "bestmove resign" を送信
     ↓
 UsiProtocolHandler が bestMoveResignReceived シグナルを発行
     ↓
-wireResignToArbiter() で接続されたスロットが呼ばれる
-    ├─ エンジン1の場合: onEngine1Resign()
-    └─ エンジン2の場合: onEngine2Resign()
+wireResignToArbiter(engine, side) で接続されたスロットが呼ばれる
+    ├─ 先手のエンジンの場合: onBlackEngineResign()
+    └─ 後手のエンジンの場合: onWhiteEngineResign()
     ↓
-handleEngineResign(idx)
+handleEngineResign(side)   ← side はエンジンの手番（Turn）。人間対エンジンではエンジンが後手でも
+                              エンジンは usi1 に入るが、配線はエンジンの手番で行う
     ├─ 時計を停止（stopコマンドは送らない）
     ├─ 負けエンジンに "gameover lose" + "quit"
     ├─ 勝ちエンジンに "gameover win" + "quit"
@@ -727,19 +728,19 @@ onGameOverStateChanged(st)
 
 ### 8.1 時間切れ: handlePlayerTimeOut()
 
-**ファイル:** `src/game/matchcoordinator.cpp:2945-2952`
+**ファイル:** `src/game/matchcoordinator.cpp`
 
 ```cpp
-void MatchCoordinator::handlePlayerTimeOut(int player)
-{
-    if (!m_gc) return;
-    m_gc->applyTimeoutLossFor(player);  // 時間切れ負けを適用
-    emit uiNotifyTimeout(player);
-    handleGameEnded();
+void MatchCoordinator::handlePlayerTimeOut(Turn player) {
+    if (m_gameOver.isOver) return;
+    ensureMatchTurnHandler();
+    m_turnHandler->handlePlayerTimeOut(player);   // gc->applyTimeoutLossFor(player) で勝敗を設定
+    ensureGameEndHandler();
+    m_gameEndHandler->handleTimeout(player);      // 終局状態・エンジンへの通知・結果表示
 }
 ```
 
-時計の残り時間が0になったときに呼ばれる。`applyTimeoutLossFor()` は `ShogiGameController` にて対戦結果を設定する。
+時計の残り時間が0になると、`ShogiClock::playerTimeOut(Turn)`（引数は時間が切れた側）から `TimeControlController::onClockPlayerTimeOut()` を経て呼ばれる。
 
 ### 8.2 中断: handleBreakOff()
 

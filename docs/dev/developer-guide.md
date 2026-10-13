@@ -71,6 +71,7 @@
 | 2026-10-14 | 合法手判定が `EngineMoveValidator`（内部は `fmv*`）になっているのに合わせて、`FastMoveValidator` の記述を直し、§2.2 の後半・§5.4・§6.6 を書き直し（§6.6 は今の `validateAndMove()`・`applyMove()`・`commitMove()` の流れとシグナル） |
 | 2026-10-14 | §15.2 指し手実行フローの図・役割の表・補足を今の流れに書き直し（着手要求は `BoardSetupController` が振り分け、盤の再描画は `ShogiBoard` のシグナル、棋譜の追記は `GameRecordUpdateService`。存在しない `boardChanged` シグナル・違法手の「エラー通知」・`decidePromotion()` などを削除） |
 | 2026-10-14 | 盤の着手の流れの記述を今のコードに合わせて更新（§3.5 のデータフロー概要、§6.2 の司令塔の責務の表、§6.7 の `TurnManager` の変換メソッド・`TurnSyncBridge` の接続・手番切替の図、§6.8 の PromotionFlow の呼ばれ方とソースの場所、§10.3 の BoardSetupController の処理フロー、§10.6 の UI層全体のデータフロー。存在しない `engineMoveOnce()`・`onHumanMove_HvE()`・`decidePromotion()`・`setMandatoryPromotionFlag()`・`squareClicked`・`TurnManager::setFromGc()` などを削除） |
+| 2026-10-14 | 対局者（先手・後手）を `Turn` にまとめたのに合わせて §4・§5.5・§6.2・§6.7・§6.9・§10 を更新（`MatchPlayer`（P1/P2）を削除。時計の API は `Turn` で受け、時間切れは `playerTimeOut(Turn)` の1つのシグナル。エンジンの投了・勝ち宣言・反則はエンジンの手番で受ける。`TurnManager::toClockPlayer()` を削除） |
 
 <!-- chapter-0-end -->
 
@@ -1527,7 +1528,7 @@ deps.ensureDialogCoordinator = [this]() {
 struct MatchCoordinatorHooks {
     /// UI更新・描画系
     struct UI {
-        std::function<void(MatchPlayer cur)> updateTurnDisplay;                    ///< 手番表示の更新
+        std::function<void(Turn cur)> updateTurnDisplay;                           ///< 手番表示の更新
         std::function<void(const QString& p1, const QString& p2)> setPlayersNames; ///< 対局者名設定
         std::function<void(const QString& e1, const QString& e2)> setEngineNames;  ///< エンジン名設定
         std::function<void()> renderBoardFromGc;                                   ///< gc→view反映
@@ -2245,7 +2246,7 @@ struct TimeControl {
 
 秒読みとフィッシャーは排他的であり、`normalized()` が両方の指定を秒読みだけにする。
 
-#### 主なAPI（player は 1=先手、2=後手）
+#### 主なAPI（player は `Turn::Black`／`Turn::White`）
 
 | API | 用途 |
 |-----|------|
@@ -2270,7 +2271,7 @@ startClock()
           ├── 手番側の remainingMs -= delta、considerationMs += delta
           ├── 残り時間 ≤ 0 なら
           │     ├── 秒読みあり → 秒読みへ移行（byoyomiApplied = true）
-          │     └── 秒読みなし → emit playerNTimeOut() → 時間切れ処理
+          │     └── 秒読みなし → emit playerTimeOut(手番の側) → 時間切れ処理
           └── emit timeUpdated()              (表示更新通知)
 ```
 
@@ -2300,8 +2301,7 @@ commitMove(player)
 | シグナル | 接続先 | 用途 |
 |---------|-------|------|
 | `timeUpdated()` | TimeDisplayPresenter | 残り時間の表示更新 |
-| `player1TimeOut()` | MatchCoordinator | 先手の時間切れ通知 |
-| `player2TimeOut()` | MatchCoordinator | 後手の時間切れ通知 |
+| `playerTimeOut(Turn)` | TimeControlController → `MatchCoordinator::handlePlayerTimeOut()` | 時間切れ通知（引数は時間が切れた側） |
 | `resignationTriggered()` | MatchCoordinator | 時間切れによる投了 |
 
 ### 5.6 PlayMode — 対局モード列挙
@@ -2473,7 +2473,7 @@ game層（`src/game/`）は対局のライフサイクル全体を管理する�
 |------|------|
 | **対局開始** | `configureAndStart()` でモード別の初期化と開始処理を実行 |
 | **エンジン管理** | USIエンジンの生成・初期化・破棄（`initializeAndStartEngineFor()`, `destroyEngines()`） |
-| **手番管理** | 内部手番 `m_cur`（P1/P2）の管理と表示更新 |
+| **手番管理** | 内部手番 `m_cur`（`Turn`）の管理と表示更新 |
 | **時間管理** | ShogiClock との連携、USI go コマンド用の時間計算 |
 | **指し手進行** | 人間の着手後の処理（`onHumanMove()`）とエンジンの初手（`startInitialEngineMoveIfNeeded()`）を、`MatchTurnHandler` を通して対局モードの Strategy（`HumanVsHumanStrategy`・`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）に渡す。エンジンの手は Strategy が `Usi::matchMoveReady` で受け取り、`ShogiGameController::applyMove()` で指す |
 | **終局判定** | 投了・時間切れ・中断・入玉宣言・持将棋の各終局パターンの処理 |
@@ -2483,22 +2483,23 @@ game層（`src/game/`）は対局のライフサイクル全体を管理する�
 
 #### 内部型定義
 
-MatchCoordinator は多くの内部型を定義しており、対局に関する設定・状態・コールバックを構造化している。
+MatchCoordinator は多くの内部型を定義しており、対局に関する設定・状態・コールバックを構造化している。終局原因・終局情報・終局状態は `src/game/matchtypes.h` にあり、`MatchCoordinator::Cause` などはその別名である。対局者（先手・後手）は、盤や対局の進行と同じ `Turn`（`Turn::Black`／`Turn::White`）で表す。
 
 ```cpp
-// 対局者を表す列挙値
-enum Player : int { P1 = 1, P2 = 2 };
-
 // 終局原因
 enum class Cause : int {
-    Resignation = 0,  // 投了
-    Timeout     = 1,  // 時間切れ
-    BreakOff    = 2,  // 中断
-    Jishogi     = 3,  // 持将棋／最大手数到達
-    NyugyokuWin = 4,  // 入玉宣言勝ち
-    IllegalMove = 5   // 反則負け
+    Resignation    = 0,  // 投了
+    Timeout        = 1,  // 時間切れ
+    BreakOff       = 2,  // 中断
+    Jishogi        = 3,  // 持将棋／最大手数到達
+    NyugyokuWin    = 4,  // 入玉宣言勝ち
+    IllegalMove    = 5,  // 反則負け（入玉宣言失敗など）
+    Sennichite     = 6,  // 千日手（引き分け）
+    OuteSennichite = 7   // 連続王手の千日手（反則負け）
 };
 ```
+
+エンジンの投了（`handleEngineResign`）・入玉宣言（`handleEngineWin`）・反則（`handleEngineIllegalMove`）も、エンジンの手番（`Turn`）で受ける。人間対エンジンでは、エンジンが後手でもエンジンは1つ目の枠（`primaryEngine()`、`EngineLifecycleManager` の `usi1`）に入る。枠は `EngineLifecycleManager` の中だけの区別で、投了・勝ち宣言の配線（`wireResignToArbiter(engine, side)`）は枠ではなくエンジンの手番で行う。
 
 **StartOptions** — 対局開始のための設定パラメータ:
 
@@ -2516,8 +2517,8 @@ enum class Cause : int {
 
 ```cpp
 struct GameEndInfo {
-    Cause  cause = Cause::Resignation;  // 終局原因
-    Player loser = P1;                  // 敗者
+    Cause cause = Cause::Resignation;   // 終局原因
+    Turn  loser = Turn::Black;          // 敗者
 };
 ```
 
@@ -2543,7 +2544,7 @@ MatchCoordinator は UI 層やその他の層への依存を `Hooks` 構造体�
 ```cpp
 struct MatchCoordinatorHooks {   // MatchCoordinator::Hooks はこの型の別名
     struct UI {
-        std::function<void(MatchPlayer cur)> updateTurnDisplay;                 // 手番表示更新
+        std::function<void(Turn cur)> updateTurnDisplay;                        // 手番表示更新
         std::function<void(const QString&, const QString&)> setPlayersNames;    // 対局者名設定
         std::function<void(const QString&, const QString&)> setEngineNames;     // エンジン名設定
         std::function<void()> renderBoardFromGc;                                // GC→盤面ビューの反映
@@ -2876,7 +2877,7 @@ commitMove()
                     ▼
              ┌──────────────┐     side()          → Turn
              │ TurnManager  │──── toSfenToken()   → "b" / "w"
-             │ m_side(Turn) │     toClockPlayer() → 1 / 2
+             │ m_side(Turn) │
              └──────┬───────┘
                     │ changed(Turn) [signal]
                     ▼
@@ -2891,7 +2892,6 @@ commitMove()
 | `side()` | TM → | 今の手番（`Turn`）を返す |
 | `setFromSfenToken("b"/"w")` | SFEN → TM | SFEN の手番文字から設定 |
 | `toSfenToken()` | TM → SFEN | `"b"` または `"w"` を返す |
-| `toClockPlayer()` | TM → Clock | 1 または 2 を返す |
 | `toggle()` | — | 手番を反転（先手 ↔ 後手） |
 
 `set()` は後手以外を先手にそろえ、値が変わったとき（と最初の設定のとき）だけ `changed()` シグナルを発行する。
@@ -2977,7 +2977,7 @@ public:
 | **投了処理** | `handleResignation()` → `MatchCoordinator::handleResign()` に委譲 |
 | **中断処理** | `handleBreakOffGame()` → `MatchCoordinator::handleBreakOff()` に委譲 |
 | **終局後処理** | 棋譜追記、UIの閲覧モードへの遷移、矢印ボタン有効化 |
-| **人間/エンジン判定** | `isHvH()`, `isHumanSide(Player)` を `PlayMode` から判定 |
+| **人間/エンジン判定** | `isHvH()`, `isHumanSide(Turn)` を `PlayMode` から判定 |
 | **終局判定** | `isGameOver()` で `MatchCoordinator` の状態を参照 |
 
 #### シグナル接続
@@ -3017,15 +3017,15 @@ GameStateController は MainWindow への委譲を `Hooks` 構造体の `std::fu
 #### isHumanSide() の判定ロジック
 
 ```cpp
-bool isHumanSide(ShogiGameController::Player p) const {
+bool isHumanSide(Turn p) const {
     switch (m_playMode) {
-    case HumanVsHuman:          return true;           // 両方人間
+    case HumanVsHuman:          return true;              // 両方人間
     case EvenHumanVsEngine:
-    case HandicapHumanVsEngine: return (p == Player1); // 先手のみ人間
+    case HandicapHumanVsEngine: return (p == Turn::Black); // 先手のみ人間
     case EvenEngineVsHuman:
-    case HandicapEngineVsHuman: return (p == Player2); // 後手のみ人間
+    case HandicapEngineVsHuman: return (p == Turn::White); // 後手のみ人間
     case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:return false;           // 両方エンジン
+    case HandicapEngineVsEngine:return false;              // 両方エンジン
     default:                    return true;
     }
 }
@@ -5240,7 +5240,8 @@ onMoveCommitted(mover, ply)  ← MainWindowServiceRegistry::handleMoveCommitted(
 ```
 ensureClock()
   └── ShogiClock が未作成なら作成
-       └── player1TimeOut / player2TimeOut シグナルを接続
+       └── playerTimeOut(Turn) シグナルを onClockPlayerTimeOut に接続
+            （→ MatchCoordinator::handlePlayerTimeOut(時間が切れた側)）
 
 applyTimeControl(tc, startSfen, currentSfen, view)
   ├── recordTimeControl(tc.rules)  ← 記録用の持ち時間（時間無制限なら空の TimeControl）
@@ -6846,7 +6847,7 @@ finishPositionEditing(context):
 | `resetPiecesToStand()` | 「全駒台へ」 | `resetAndEqualizePiecesOnStands()` を呼ぶ |
 | `setStandardStartPosition()` | 「平手初期配置」 | `initializeToFlatStartingPosition()` を呼ぶ |
 | `setTsumeShogiStartPosition()` | 「詰将棋初期配置」 | `shogiProblemInitialPosition()` を呼ぶ |
-| `onToggleSideToMoveTriggered()` | 「手番切替」 | Player1 ⇔ Player2 をトグル |
+| `onToggleSideToMoveTriggered()` | 「手番切替」 | 先手 ⇔ 後手をトグル |
 
 各操作はメニューアクションのスロットとしても提供され、編集セッション中に保持した `m_view`/`m_gc`/`m_bic` を利用する。
 
