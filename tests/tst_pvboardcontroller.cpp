@@ -16,6 +16,7 @@ private slots:
     void basePositionWithHand_isNotTreatedAsStartpos();
     void diffHighlight_dropUsesStandOfDroppingSide();
     void diffHighlight_captureUsesSourceAndDestination();
+    void diffHighlight_boardMoveOffCenterKeepsFileAndRank();
     void diffHighlight_unreadablePreviousPositionGivesNoHighlight();
 };
 
@@ -77,6 +78,24 @@ void TestPvBoardController::diffHighlight_captureUsesSourceAndDestination()
     QVERIFY(coords.hasTo);
     QCOMPARE(coords.toFile, 5);
     QCOMPARE(coords.toRank, 4);
+}
+
+void TestPvBoardController::diffHighlight_boardMoveOffCenterKeepsFileAndRank()
+{
+    // 5筋以外のマスで、筋の向きと段を取り違えないこと（7七→7六）
+    PvBoardController controller(
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"), {});
+    controller.setPrevSfen(SfenUtils::hirateSfen());
+
+    const PvHighlightCoords coords = controller.computeHighlightCoords();
+
+    QVERIFY(coords.valid);
+    QVERIFY(coords.hasFrom);
+    QCOMPARE(coords.fromFile, 7);
+    QCOMPARE(coords.fromRank, 7);
+    QVERIFY(coords.hasTo);
+    QCOMPARE(coords.toFile, 7);
+    QCOMPARE(coords.toRank, 6);
 }
 
 void TestPvBoardController::diffHighlight_unreadablePreviousPositionGivesNoHighlight()

@@ -26,7 +26,7 @@
 | [第2章](#第2章-将棋のドメイン知識) | 将棋のドメイン知識 | SFEN、USI記法、駒表現、座標系 |
 | [第3章](#第3章-アーキテクチャ全体図) | アーキテクチャ全体図 | レイヤー構造、データフロー、MainWindowの位置づけ |
 | [第4章](#第4章-設計パターンとコーディング規約) | 設計パターンとコーディング規約 | Deps構造体、ensure*()、Wiring、MVP、コード規約 |
-| [第5章](#第5章-core層純粋なゲームロジック) | core層：純粋なゲームロジック | ShogiBoard、ShogiMove、FastMoveValidator |
+| [第5章](#第5章-core層純粋なゲームロジック) | core層：純粋なゲームロジック | ShogiBoard、ShogiMove、EngineMoveValidator |
 | [第6章](#第6章-game層対局管理) | game層：対局管理 | MatchCoordinator、TurnManager、GameStateController |
 | [第7章](#第7章-engine層usiエンジン連携) | engine層：USIエンジン連携 | Usiファサード、プロトコルハンドラ、思考情報表示 |
 | [第8章](#第8章-kifu層棋譜管理) | kifu層：棋譜管理 | 分岐ツリー、棋譜モデル、フォーマット変換 |
@@ -68,6 +68,7 @@
 | 2026-10-13 | 配線層の整理に合わせて第1章・第4章・第6章・第8章・第14章・第18章を更新（司令塔と棋譜読み込み担当は一度だけ作る。`MainWindowCompositionRoot` などの中継層を削除し、生成はレジストリに集約） |
 | 2026-10-13 | 設定の保存を宣言の表（`Setting<T>`）に移したのに合わせて第1章・第7章・第9章・第11章・第12章・第16章・第17章・第18章を更新（設定項目はドメイン別ヘッダーに1行で宣言し、getter/setter の組を書かない。§12.5・§16.6・§17.5 を書き直し） |
 | 2026-10-13 | 盤（`ShogiBoard`）が駒を `Piece`、駒台を `QMap<Piece, int>` で持つのに合わせて §2.1〜§2.3・§5.2 を更新（`QChar` の盤と、削除した関数・手数のメンバーの記述を除く。駒台の0枚の表を共有することと、SFEN の盤の欄で内部の成駒の文字を読まないことを追記） |
+| 2026-10-14 | 合法手判定が `EngineMoveValidator`（内部は `fmv*`）になっているのに合わせて、`FastMoveValidator` の記述を直し、§2.2 の後半・§5.4・§6.6 を書き直し（§6.6 は今の `validateAndMove()`・`applyMove()`・`commitMove()` の流れとシグナル） |
 
 <!-- chapter-0-end -->
 
@@ -234,7 +235,7 @@ src/
 ├── core/                           # 純粋なゲームロジック（Qt GUI非依存）
 │   ├── shogiboard.cpp/.h           #   盤面状態・駒管理
 │   ├── shogimove.cpp/.h            #   指し手の表現
-│   ├── fastmovevalidator.cpp/.h        #   合法手判定
+│   ├── enginemovevalidator.cpp/.h  #   合法手判定（内部は fmv*.cpp/.h）
 │   ├── shogiclock.cpp/.h           #   対局時計
 │   ├── shoginotation.h             #   棋譜の表記（筋・段・駒の名前・CSA の駒種）
 │   ├── kifmovetext.h               #   KIF 形式の指し手の文字列
@@ -667,38 +668,27 @@ Piece ShogiBoard::convertPieceChar(const Piece c) const
 }
 ```
 
-#### 全駒リストと PieceType 列挙
+#### 合法手判定の中の駒種
 
-`FastMoveValidator` では駒種を列挙型で定義している。
+合法手判定（`EngineMoveValidator`、5.4 節）は、`ShogiBoard` の盤の配列（`boardData()`）と駒台（`pieceStand()`）を受け取り、内部の局面（`fmv::EnginePosition`）に変換して判定する。内部では先後を `fmv::Color`、駒種を先後の区別のない `fmv::PieceType`、持駒の種類を `fmv::HandType` で表す。
 
 ```cpp
-// src/core/fastmovevalidator.h
-enum PieceType {
-    PAWN,             // 歩   (P/p)
-    LANCE,            // 香   (L/l)
-    KNIGHT,           // 桂   (N/n)
-    SILVER,           // 銀   (S/s)
-    GOLD,             // 金   (G/g)
-    BISHOP,           // 角   (B/b)
-    ROOK,             // 飛   (R/r)
-    KING,             // 玉   (K/k)
-    PROMOTED_PAWN,    // と金 (Q/q)
-    PROMOTED_LANCE,   // 成香 (M/m)
-    PROMOTED_KNIGHT,  // 成桂 (O/o)
-    PROMOTED_SILVER,  // 成銀 (T/t)
-    HORSE,            // 馬   (C/c)
-    DRAGON,           // 龍   (U/u)
-    PIECE_TYPE_SIZE   // 駒種の総数 = 14
+// src/core/fmvtypes.h
+enum class Color : std::uint8_t { Black = 0, White = 1, ColorNb = 2 };
+
+enum class PieceType : std::uint8_t {
+    Pawn = 0, Lance, Knight, Silver, Gold, Bishop, Rook, King,
+    ProPawn, ProLance, ProKnight, ProSilver, Horse, Dragon,
+    PieceTypeNb    // 駒種の数 = 14
+};
+
+enum class HandType : std::uint8_t {
+    Pawn = 0, Lance, Knight, Silver, Gold, Bishop, Rook, HandTypeNb
 };
 ```
 
-全28文字（先手14種 + 後手14種）がビットボード管理の対象となる。
-
-```cpp
-// src/core/fastmovevalidator.cpp — コンストラクタ
-m_allPieces = {'P', 'L', 'N', 'S', 'G', 'B', 'R', 'K', 'Q', 'M', 'O', 'T', 'C', 'U',
-               'p', 'l', 'n', 's', 'g', 'b', 'r', 'k', 'q', 'm', 'o', 't', 'c', 'u'};
-```
+- **盤**: 各マスの `Piece` の値の文字（`'P'`、`'q'` など。空きは `' '`）をそのまま `EnginePosition::board` に写し、先後と駒種ごとのビットボード（`pieceOcc[2][14]`）と玉の位置を作り直す。マスの並びは `ShogiBoard` と同じ（添字 = (段-1)×9 + (筋-1)）。
+- **持駒**: 先後と `HandType` ごとの枚数（`hand[2][7]`）にする。駒台の玉は数えない。
 
 ### 2.3 SFEN文字列フォーマット
 
@@ -1200,7 +1190,7 @@ sequenceDiagram
 
     User->>SV: マウスクリック<br/>(駒選択→移動先)
     SV->>BIC: squareClicked(QPoint)
-    BIC->>BIC: 合法手判定<br/>(FastMoveValidator)
+    BIC->>BIC: 合法手判定<br/>(EngineMoveValidator)
     BIC->>MW: moveRequested(from, to)
     MW->>SGC: applyMove(ShogiMove)
     SGC->>SB: movePiece(from, to)
@@ -1223,7 +1213,7 @@ sequenceDiagram
 #### フロー解説
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`BoardInteractionController` に座標を通知する
-2. **合法手判定**: `BoardInteractionController` が `FastMoveValidator` を使って合法手かどうかを判定する。成り/不成の選択が必要な場合は `PromotionFlow` が介入する
+2. **合法手判定**: `BoardInteractionController` が `EngineMoveValidator` を使って合法手かどうかを判定する。成り/不成の選択が必要な場合は `PromotionFlow` が介入する
 3. **指し手の適用**: `MainWindow` 経由で `ShogiGameController` に指し手が渡され、`ShogiBoard` の盤面状態が更新される
 4. **表示の同期**: `moveCommitted` シグナルをトリガーに、MainWindowが以下を並行して更新する:
    - `ShogiView`: 駒の再描画とハイライト表示（`BoardSyncPresenter` 経由）
@@ -1988,7 +1978,8 @@ core層が GUI に依存しないことで、以下のメリットが得られ�
 src/core/
 ├── shogiboard.h / .cpp      盤面データ管理
 ├── shogimove.h / .cpp        指し手データ構造
-├── fastmovevalidator.h / .cpp    合法手判定
+├── enginemovevalidator.h / .cpp 合法手判定の入口
+├── fmv*.h / .cpp               合法手判定の内部（局面・利き・指し手の生成）
 ├── shogiclock.h / .cpp       対局時計
 ├── playmode.h                対局モード列挙
 ├── legalmovestatus.h         合法手存在状態
@@ -2128,88 +2119,95 @@ USI形式への変換は `ShogiMove::toUsiMove()`（`UsiMove` にする）と `U
 
 `toUsiMove()` は座標系を0-indexed から1-indexed に変換し、`toString()` が段を a-i 表記にする。成りの場合は末尾に `+` を付加し、駒打ちの場合は `駒文字*移動先` の形式を生成する。逆向きは `ShogiMove::fromUsiMove()` が行う。
 
-### 5.4 FastMoveValidator — 合法手判定
+### 5.4 EngineMoveValidator — 合法手判定
 
-`FastMoveValidator` はビットボードを用いて駒の利きを計算し、合法手の判定・生成を行うクラスである。将棋の全ルール（王手回避、二歩、打ち歩詰め、行き所のない駒の禁止等）を考慮した完全な合法手判定を提供する。
+`EngineMoveValidator` は、盤の配列（`ShogiBoard::boardData()`）と駒台（`pieceStand()`）から局面を作り、指し手が合法かどうかの判定、合法手の一覧、王手の数を求めるクラスである。王手の放置、二歩、打ち歩詰め、行き所のない駒を考慮する。メンバーを持たないので、使う場所でそのつど作る。
 
-**ソース**: `src/core/fastmovevalidator.h`, `src/core/fastmovevalidator.cpp`
+**ソース**: `src/core/enginemovevalidator.h`, `src/core/enginemovevalidator.cpp`（入口）、`src/core/fmv*.h/.cpp`（内部。名前空間 `fmv`）
+
+| ファイル | 内容 |
+|---------|------|
+| `fmvtypes.h` | 先後・駒種・持駒の種類（2.2 節）、指し手 `fmv::Move`、指し手の一覧 `fmv::MoveList`（最大600手） |
+| `fmvbitboard81.h/.cpp` | 81マスのビットボード `Bitboard81`（`uint64_t` 2つ） |
+| `fmvposition.h/.cpp` | 内部の局面 `EnginePosition`（マスの駒・ビットボード・玉の位置・持駒）と、指す・戻す（`doMove()`／`undoMove()`） |
+| `fmvattacks.h/.cpp` | コンパイル時に作る利きの表と、マスに利いている駒の判定 |
+| `fmvconverter.h/.cpp` | 盤・駒台・`ShogiMove` を内部の型にする変換と、内部の指し手から `UsiMove` への変換 |
+| `fmvlegalcore.h/.cpp`, `fmvmovegeneration.cpp` | 合法性の判定（`LegalCore`）と、指し手の生成 |
+| `fmvlegalcore_internal.h` | 成れる駒・敵陣・行き所のない駒・二歩の判定 |
 
 #### 主要API
 
+同じ局面で何度も判定するときは、局面を `Context` に一度だけ変換してから使う。盤の操作で駒の移動先を光らせる `BoardInteractionController::refreshLegalMoveHighlights()` は、1つの `Context` で81マスを判定している。1回だけ判定するときは、盤の配列と駒台を渡す関数を使う（中で毎回 `Context` を作る）。
+
 | メソッド | 戻り値 | 説明 |
 |---------|--------|------|
-| `isLegalMove(turn, boardData, pieceStand, move)` | `LegalMoveStatus` | 指定した指し手が合法かどうかを判定する |
-| `generateLegalMoves(turn, boardData, pieceStand)` | `int` | 現局面の全合法手を生成し、総数を返す |
-| `checkIfKingInCheck(turn, boardData)` | `int` | 王手の数を返す（0=なし, 1=王手, 2=両王手） |
+| `syncContext(ctx, turn, boardData, pieceStand)` | `bool` | 局面を `Context` に変換する |
+| `isLegalMove(ctx, move)`<br/>`isLegalMove(turn, boardData, pieceStand, move)` | `LegalMoveStatus` | 指し手（`ShogiMove`）を成る場合と成らない場合のそれぞれで判定する |
+| `legalMoves(ctx)`<br/>`legalMoves(turn, boardData, pieceStand)` | `QList<UsiMove>` | 合法手の一覧。成り・不成のどちらも指せる手は両方を入れる |
+| `pseudoLegalMoves(ctx)`<br/>`pseudoLegalMoves(turn, boardData, pieceStand)` | `QList<UsiMove>` | 駒の動きだけで決めた指し手の一覧（自玉の安全・二歩・打ち歩詰め・行き所のない駒は見ない）。反則手を書いた棋譜を読み書きするときの候補にする |
+| `generateLegalMoves(ctx)`<br/>`generateLegalMoves(turn, boardData, pieceStand)` | `int` | 合法手の数 |
+| `checkIfKingInCheck(ctx)`<br/>`checkIfKingInCheck(turn, boardData)` | `int` | 手番の側の玉に利いている相手の駒の数（0=王手なし、2=両王手） |
+
+`isLegalMove()` に渡す `ShogiMove` は0始まりの座標で、駒打ちは移動元を駒台の座標（筋は 9＝先手、10＝後手。段は駒の種類で決まる）にする。`movingPiece` は移動元の駒と、`capturedPiece`（空きでなければ）は移動先の駒と一致しなければならない。
 
 #### LegalMoveStatus
 
 `isLegalMove()` の戻り値は `LegalMoveStatus` 構造体で、「成り」と「不成」それぞれの合法性を表す。
 
 ```cpp
+// src/core/legalmovestatus.h
 struct LegalMoveStatus {
     bool nonPromotingMoveExists;  // 不成での合法手が存在するか
     bool promotingMoveExists;     // 成りでの合法手が存在するか
 };
 ```
 
-この分離により、UI層では「成りますか？」ダイアログの表示判定を自然に行える。両方が `true` なら選択ダイアログを表示し、片方のみ `true` ならその手を自動適用する。
+`ShogiGameController::validateAndMove()` は、両方が `true` なら対局者に成るかどうかを選ばせ（`setPromotionChooser()` で渡された関数）、成りだけが `true` なら成り、どちらも `false` なら着手を受け付けない。エンジンの手（`applyMove()`）は、指し手の成り・不成の側が `true` かを確かめる。
 
-#### ビットボードによる合法手判定アルゴリズム
-
-FastMoveValidator は `std::bitset<81>` をビットボードとして使用し、以下の手順で合法手を判定する。
+#### 判定の手順
 
 ```
-isLegalMove(turn, boardData, pieceStand, move)
+isLegalMove(ctx, move)
   │
-  ├── [1] validateMoveComponents()
-  │     入力値の整合性チェック（座標範囲、駒の存在、手番一致等）
+  ├── [1] Converter::toEngineMove()
+  │     ShogiMove を内部の指し手（fmv::Move）にする。座標が盤外、手番の駒でない、
+  │     持っていない駒を打つ、取る駒の指定が盤と違う、といった手はここで不合法。
+  │     成れる駒で、移動元か移動先が敵陣なら「成る手もある」と記録する
   │
-  ├── [2] generateBitboard()
-  │     盤面配列 → 先手/後手 × 14駒種のビットボード配列を構築
-  │     BoardStateArray = array<array<bitset<81>, 14>, 2>
+  ├── [2] 局面を写す（ctx.pos は書き換えない）
   │
-  ├── [3] isKingInCheck()
-  │     相手駒の利きから自玉への王手判定
-  │     ├── 王手なし → necessaryMovesBitboard = 全1（制約なし）
-  │     ├── 王手1本 → 合駒/王手駒取りの必要マスをbitsetで算出
-  │     └── 両王手  → 玉の移動のみ許可
-  │
-  ├── [4] 盤上移動 or 駒打ちで分岐
-  │     ├── isBoardMoveValid(): 利きbitboardとnecessaryMovesの論理積で判定
-  │     └── isHandPieceMoveValid(): 空きマスbitboard・二歩チェック
-  │
-  └── [5] filterLegalMovesList()
-        仮適用後に自玉が王手されないかを検証（ピンの考慮）
-        ├── applyMovesToBoard() で盤面コピーに指し手を適用
-        ├── 適用後の盤面で相手の利きを再計算
-        └── 自玉に利きがあれば非合法と判定
+  └── [3] LegalCore::checkMoveVariants()（成る手もあるとき）／ checkMove()
+        手を1つだけ確かめる（checkMoveVariants は、成らないと行き所のない駒になる手なら
+        成る手を、それ以外なら成らない手を代表にする）
+        ├── isPseudoLegal()   駒の動き・移動先の自駒・二歩・行き所のない駒・成れるか
+        ├── doMove()          写した局面で指す
+        ├── ownKingInCheck()  自玉に相手の駒が利いていれば不合法（王手の放置・ピン）
+        ├── isPawnDropMate()  歩を打って王手し、相手に合法手がなければ打ち歩詰め
+        └── undoMove()        局面を戻す
 ```
 
-#### 駒種定義
+成る場合と成らない場合で、駒のあるマスも自玉の位置も変わらないので、自玉の安全の確認は1回で両方に使える。代表の手が合法なら、成れる位置かどうかで `promotingMoveExists` を決める。
 
-```cpp
-enum PieceType {
-    PAWN, LANCE, KNIGHT, SILVER, GOLD,     // 歩, 香, 桂, 銀, 金
-    BISHOP, ROOK, KING,                     // 角, 飛, 玉
-    PROMOTED_PAWN, PROMOTED_LANCE,          // と金, 成香
-    PROMOTED_KNIGHT, PROMOTED_SILVER,       // 成桂, 成銀
-    HORSE, DRAGON,                          // 馬, 龍
-    PIECE_TYPE_SIZE                          // 14種
-};
-```
+合法手の一覧（`legalMoves()`）は、王手されていれば玉の移動・王手した駒を取る手・合駒だけを、されていなければ全ての駒の移動と駒打ちを候補にして、候補ごとに上の [3] と同じく指して戻して確かめる。
 
-各駒種に対してビットボードが生成され、個別の利き計算が行われる。飛び駒（香・角・飛・馬・龍）は方向リストと遮蔽判定による反復計算、跳び駒（桂）と短距離駒は固定オフセットで利きを求める。
+#### 利きの計算
+
+利きの表（各マスからの歩・桂・銀・金・玉の利き、馬・龍の1マスの利き、飛・角・香の筋、2マスの間のマス）は `constexpr` 関数でコンパイル時に作る。飛・角・香・馬・龍の利きは、筋の上にある駒と「2マスの間のマス」の表から、間に駒がないかで判定する。と金・成香・成桂・成銀は金と同じ利きを使う。
+
+| 判定 | 関数 | 内容 |
+|-----|------|------|
+| マスに利いている駒 | `attackersTo()` | 指定の側の駒のうち、そのマスに利いている駒のビットボード（王手の数に使う） |
+| マスに利きがあるか | `isSquareAttacked()` | 利いている駒を1枚見つけたところで終える（自玉の安全の確認に使う） |
+| 駒が動けるか | `pieceAttacksSquare()` | 駒種・移動元・移動先と、間の駒から、その駒が移動先へ動けるか |
 
 #### 主な合法性チェック
 
 | チェック項目 | 実装箇所 | 説明 |
 |-------------|---------|------|
-| **王手回避** | `isKingInCheck()` → `necessaryMovesBitboard` | 王手時は回避手のみ許可 |
-| **ピン（釘付け）** | `filterLegalMovesList()` | 移動後に自玉が取られないか検証 |
-| **二歩** | `generateBitboardForEmptyFiles()` | 同筋に自歩がない列のみ歩打ち許可 |
-| **打ち歩詰め** | `isPawnInFrontOfKing()` + 後続チェック | 相手玉の直前への歩打ちで詰む場合は禁止 |
-| **行き所なし** | `generateAllPromotions()` | 移動先で進めなくなる駒（1段目の歩・香、1-2段目の桂）は成りを強制 |
+| **王手の放置・ピン** | `LegalCore::ownKingInCheck()` | 指したあとの局面で自玉に相手の駒が利いていれば不合法 |
+| **二歩** | `detail::hasPawnOnFile()` | 同じ筋に自分の歩（成っていない歩）があれば歩を打てない |
+| **打ち歩詰め** | `LegalCore::isPawnDropMate()` | 歩を打って玉の正面から王手し、相手に合法手がなければ不合法 |
+| **行き所のない駒** | `detail::isMandatoryPromotion()`, `detail::isDropDeadSquare()` | 歩・香は1段目、桂は1〜2段目（後手は逆）へ成らずに動けず、打てない |
 
 ### 5.5 ShogiClock — 対局時計
 
@@ -2387,21 +2385,22 @@ core層は他の全層から参照されるが、core層自身は他層を参照
          ▼        ▼         ▼
     ┌─────────────────────────────┐
     │         core 層             │
-    │  ShogiBoard  ShogiMove     │
-    │  FastMoveValidator  ShogiClock │
-    │  PlayMode  ShogiNotation   │
+    │  ShogiBoard  ShogiMove      │
+    │  EngineMoveValidator        │
+    │  ShogiClock  PlayMode       │
+    │  ShogiNotation              │
     └─────────────────────────────┘
          ↑ 依存なし（QtCore のみ）
 ```
 
 | 参照元 | 使用するcore部品 | 用途 |
 |--------|-----------------|------|
-| **game層** | ShogiBoard, ShogiMove, FastMoveValidator, ShogiClock, PlayMode | 対局進行・合法手判定・時間管理 |
+| **game層** | ShogiBoard, ShogiMove, EngineMoveValidator, ShogiClock, PlayMode | 対局進行・合法手判定・時間管理 |
 | **engine層** | ShogiMove, PlayMode | USI コマンド生成時の指し手変換 |
 | **kifu層** | ShogiBoard, ShogiMove | 棋譜の読み込み・再生時に盤面を更新 |
 | **analysis層** | PlayMode | 解析モードの判定 |
 | **UI層** | ShogiBoard, ShogiClock | 盤面描画データの取得・時間表示 |
-| **board層** | ShogiBoard, FastMoveValidator | 盤面編集・インタラクション |
+| **board層** | ShogiBoard, EngineMoveValidator | 盤面編集・インタラクション |
 
 <!-- chapter-5-end -->
 
@@ -2817,60 +2816,50 @@ static bool shouldStartFromCurrentPosition(
 
 ### 6.6 ShogiGameController — 盤面とルールの橋渡し
 
-`ShogiGameController` は `ShogiBoard`（盤面状態）と `FastMoveValidator`（合法性検証）を統合し、指し手の実行を管理するコントローラである。
+`ShogiGameController` は `ShogiBoard`（盤面状態）と `EngineMoveValidator`（合法性検証）を統合し、指し手の実行を管理するコントローラである。
 
 **ソース**: `src/game/shogigamecontroller.h`, `src/game/shogigamecontroller.cpp`
 
 #### 指し手実行フロー
 
-人間の着手時、`validateAndMove()` が呼ばれる。
+人間の着手（盤のクリック。定跡ウィンドウの手もこちら）では `validateAndMove()`、成り・不成まで決まったエンジンの手では `applyMove()` が呼ばれる。どちらも合法手であることを確かめてから `commitMove()` で指す。
 
 ```
-validateAndMove(outFrom, outTo, record, playMode, moveNumber, sfenRecord, gameMoves)
+validateAndMove(outFrom, outTo, record, moveNumber, sfenHistory, gameMoves)
   │
-  ├── 1. 禁じ手チェック
-  │     ├── checkTwoPawn()         — 二歩の検出
-  │     ├── checkWhetherAllyPiece() — 味方駒への着手
-  │     ├── checkNumberStandPiece() — 駒台の駒数チェック
-  │     └── checkGetKingOpponentPiece() — 相手玉の取得禁止
+  ├── 1. クリックした2マス（表示の座標。駒台は筋 10・11）を UsiMove にする
+  │     盤外・相手の駒台・空きマスからの手は受け付けない
   │
-  ├── 2. FastMoveValidator で合法性を検証
-  │     getCurrentTurnForValidator() → validator.isLegalMove()
+  ├── 2. legalStatus() — EngineMoveValidator::isLegalMove() で成り・不成それぞれを判定
   │
-  ├── 3. 成り判定
-  │     decidePromotion()
-  │       ├── 行き所なし → setMandatoryPromotionFlag() で強制成り
-  │       ├── 強制成りモード → setForcedPromotion() の値を使用
-  │       └── 成り可能ゾーン → showPromotionDialog シグナル → PromotionFlow
+  ├── 3. 成るかどうかを決める
+  │       ├── 両方とも合法 → setForcedPromotion() の指定（定跡の手）か、
+  │       │                  setPromotionChooser() の関数（成りダイアログ）で決める
+  │       ├── 成りだけ合法（行き所のない駒）→ 成る
+  │       └── どちらも不合法 → false を返す
   │
-  ├── 4. 盤面を更新
-  │     board()->movePiece(from, to)
-  │
-  ├── 5. ShogiMove を構築して gameMoves に追加
-  │
-  ├── 6. SFEN 履歴を更新
-  │     sfenRecord->append(board()->boardToSfen(...))
-  │
-  ├── 7. 棋譜文字列を生成
-  │     record = convertMoveToKanjiStr(piece, from, to)
-  │
-  ├── 8. 手番を切替
-  │     changeCurrentPlayer()
-  │     emit currentPlayerChanged(newPlayer)
-  │     emit moveCommitted(mover, ply)
-  │
-  └── return true（成功）
+  └── 4. commitMove()
+
+applyMove(move, record, moveNumber, sfenHistory, gameMoves)
+  ├── legalStatus() で、指し手の成り・不成の側が合法かを確かめる（反則手は盤を変えずに false）
+  └── commitMove()
+
+commitMove()
+  ├── board()->applyUsiMove(move, mover)    盤を更新
+  ├── gameMoves に ShogiMove を追加
+  ├── board()->addSfenRecord(...)            SFEN の履歴に次の局面を追加
+  ├── record = convertMoveToKanjiStr(...)    棋譜の文字列（前の手と同じマスなら「同」）
+  ├── emit moveCommitted(mover, ply)         手番を切り替える「前」に出す
+  └── setCurrentPlayer(次の手番)              emit currentPlayerChanged(次の手番)
 ```
 
 #### 主要なシグナル
 
 | シグナル | 接続先 | 用途 |
 |---------|-------|------|
-| `boardChanged(ShogiBoard*)` | ShogiView | 盤面変更後の描画更新 |
-| `gameOver(Result)` | MatchCoordinator | 対局結果確定 |
-| `showPromotionDialog()` | PromotionFlow | 成り/不成選択の表示要求 |
-| `currentPlayerChanged(Player)` | TurnManager | 手番変更通知 |
-| `moveCommitted(Player, int)` | TurnSyncBridge | 着手確定通知 |
+| `currentPlayerChanged(Turn)` | TurnManager（TurnSyncBridge が接続）、BoardInteractionController | 手番変更通知。盤の操作は1回目のクリックを取り消す |
+| `moveCommitted(Turn, int)` | MainWindow::onMoveCommitted、PieceSoundPlayer | 着手確定通知（棋譜・表示の更新と駒音） |
+| `endDragSignal()` | ShogiView::endDrag | 駒のドラッグ表示を終える |
 
 ### 6.7 TurnManager / TurnSyncBridge — 手番管理
 
@@ -7391,7 +7380,7 @@ sequenceDiagram
     participant BIC as BoardInteractionController
     participant MW as MainWindow
     participant SGC as ShogiGameController
-    participant MV as FastMoveValidator
+    participant MV as EngineMoveValidator
     participant SB as ShogiBoard
     participant KRM as KifuRecordListModel
     participant MC as MatchCoordinator
@@ -7407,9 +7396,9 @@ sequenceDiagram
     BIC-->>MW: moveRequested(from, to) シグナル
 
     MW->>SGC: validateAndMove()
-    SGC->>MV: 合法手チェック
-    MV->>SB: 盤面状態を参照
-    MV-->>SGC: 合法/違法を返却
+    SGC->>SB: 盤の配列と駒台を取得
+    SGC->>MV: isLegalMove()（盤の配列・駒台・指し手）
+    MV-->>SGC: 成り・不成それぞれの合法性
 
     alt 合法手の場合
         SGC->>SB: 駒移動・盤面更新
@@ -7439,7 +7428,7 @@ sequenceDiagram
 | `ShogiView` | Qt Graphics Viewベースの盤面描画とマウスイベントの発行 |
 | `BoardInteractionController` | 2クリック方式の駒選択・移動要求、ハイライト管理 |
 | `ShogiGameController` | 指し手の検証と盤面更新の実行 |
-| `FastMoveValidator` | 合法手判定ロジック（王手放置、二歩、行き所のない駒等を検査） |
+| `EngineMoveValidator` | 合法手判定ロジック（王手放置、二歩、打ち歩詰め、行き所のない駒等を検査） |
 | `ShogiBoard` | 9x9盤面 + 駒台のデータモデル |
 | `KifuRecordListModel` | 棋譜欄の表示モデル |
 
@@ -8780,6 +8769,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | ElideLabel | C | widgets | テキスト省略表示ラベル | 第11章 |
 | EngineAnalysisTab | C | widgets | エンジン解析結果タブウィジェット | 第11章 |
 | EngineInfoWidget | C | widgets | エンジン情報表示ウィジェット | 第11章 |
+| EngineMoveValidator | C | core | 合法手判定・合法手の一覧 | 第2章, 第5章 |
 | EngineOptionDescriptions | C | engine | USIエンジンオプション説明データベース | 第7章 |
 | EngineProcessManager | C | engine | エンジンプロセスのライフサイクル管理 | 第7章 |
 | EngineRegistrationDialog | C | dialogs | エンジン登録・設定ダイアログ | 第11章 |
@@ -8839,7 +8829,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
 | MenuWindow | C | dialogs | 対局開始メニューウィンドウ | 第11章 |
 | MenuWindowWiring | C | ui/wiring | メニューウィンドウのシグナル/スロット配線 | 第10章 |
-| FastMoveValidator | C | core | 合法手判定・バリデーション | 第5章 |
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
 | NyugyokuDeclarationHandler | C | ui/controllers | 入玉宣言の処理ハンドラ | 第10章 |
 | PlayerInfoController | C | ui/controllers | プレイヤー情報表示の制御 | 第10章 |
@@ -8900,7 +8889,8 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | shogiboard | 第2章, 第5章 | 盤面・駒台の状態管理 |
 | shogimove | 第2章, 第5章 | 指し手データ構造 |
-| movevalidator | 第2章, 第5章 | 合法手判定 |
+| enginemovevalidator | 第2章, 第5章 | 合法手判定 |
+| fmv* | 第2章, 第5章 | 合法手判定の内部（局面・利き・指し手の生成） |
 | shogiclock | 第5章 | 対局時計 |
 | playmode | 第3章, 第5章 | 動作モード列挙体 |
 | sfenutils | 第2章, 第5章 | SFENユーティリティ |
