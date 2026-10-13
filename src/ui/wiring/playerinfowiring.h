@@ -101,17 +101,13 @@ public:
      * @param blackName 先手（下手）名
      * @param whiteName 後手（上手）名
      * @param handicap 手合割（駒落ちなら対局者の見出しを下手・上手にする）
-     * @param hasTimeControl 時間制御が有効か
-     * @param blackTime 先手（下手）の持ち時間
-     * @param whiteTime 後手（上手）の持ち時間
+     * @param timeControl 持ち時間（双方とも時間制限がなければ「無制限」と記録する）
      */
     void setGameInfoForMatchStart(const QDateTime& startDateTime,
                                   const QString& blackName,
                                   const QString& whiteName,
                                   const QString& handicap,
-                                  bool hasTimeControl,
-                                  const KifuTimeControlSide& blackTime,
-                                  const KifuTimeControlSide& whiteTime);
+                                  const TimeControl& timeControl);
 
     /**
      * @brief 対局終了時の終了日時を対局情報に追加
@@ -121,13 +117,9 @@ public:
 
     /**
      * @brief 持ち時間情報を対局情報に追加/更新
-     * @param hasTimeControl 時間制御が有効か
-     * @param blackTime 先手（下手）の持ち時間
-     * @param whiteTime 後手（上手）の持ち時間
+     * @param timeControl 持ち時間（双方とも時間制限がなければ「無制限」と記録する）
      */
-    void updateGameInfoWithTimeControl(bool hasTimeControl,
-                                       const KifuTimeControlSide& blackTime,
-                                       const KifuTimeControlSide& whiteTime);
+    void updateGameInfoWithTimeControl(const TimeControl& timeControl);
 
     /**
      * @brief 対局情報タブの対局者名を将棋盤の対局者名ラベルに表示する
@@ -184,9 +176,7 @@ public:
      * @brief 対局開始時の時間制御情報
      */
     struct TimeControlInfo {
-        bool hasTimeControl = false;
-        KifuTimeControlSide blackTime;  ///< 先手（下手）の持ち時間
-        KifuTimeControlSide whiteTime;  ///< 後手（上手）の持ち時間
+        TimeControl timeControl;  ///< 持ち時間（双方とも時間制限がなければ無制限）
         QDateTime gameStartDateTime;
     };
 

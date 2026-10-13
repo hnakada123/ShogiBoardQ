@@ -314,9 +314,8 @@ set(SRC_CORE
     src/core/shogiboard_edit.cpp
     src/core/shogiboard_sfen.cpp
     src/core/shogiclock.cpp
-    src/core/shogiclock_snapshot.cpp
-    src/core/shogiclock_format.cpp
     src/core/shogiclock.h
+    src/core/timecontrol.h
     src/core/shogimove.cpp
     src/core/shogimove.h
     src/core/shogitypes.h
@@ -561,6 +560,8 @@ set(SRC_ENGINE
     src/engine/usimatchhandler.cpp
     src/engine/usimatchhandler.h
     src/engine/usitimingparams.h
+    src/engine/usigotime.cpp
+    src/engine/usigotime.h
     src/engine/usicommlogmodel.h
     src/engine/usimovecoordinateconverter.cpp
     src/engine/usimovecoordinateconverter.h

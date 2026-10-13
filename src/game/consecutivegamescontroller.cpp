@@ -61,7 +61,7 @@ void ConsecutiveGamesController::configure(int totalGames, bool switchTurn)
 
 void ConsecutiveGamesController::onGameStarted(
     const MatchCoordinator::StartOptions& opt,
-    const GameStartCoordinator::TimeControl& tc)
+    const GameStartCoordinator::TimeSettings& tc)
 {
     qCDebug(lcGame).noquote() << "onGameStarted: mode=" << static_cast<int>(opt.mode)
                        << " sfenStart=" << opt.sfenStart;
@@ -82,7 +82,7 @@ void ConsecutiveGamesController::reset()
     m_gameNumber = 1;
     m_switchTurnEachGame = false;
     m_lastStartOptions = MatchCoordinator::StartOptions();
-    m_lastTimeControl = GameStartCoordinator::TimeControl();
+    m_lastTimeControl = GameStartCoordinator::TimeSettings();
 
     if (m_delayTimer->isActive()) {
         m_delayTimer->stop();
@@ -103,7 +103,7 @@ void ConsecutiveGamesController::prepareNextGameOptions()
     if (m_switchTurnEachGame) {
         std::swap(m_lastStartOptions.engineName1, m_lastStartOptions.engineName2);
         std::swap(m_lastStartOptions.enginePath1, m_lastStartOptions.enginePath2);
-        std::swap(m_lastTimeControl.p1, m_lastTimeControl.p2);
+        std::swap(m_lastTimeControl.rules.black, m_lastTimeControl.rules.white);
         qCDebug(lcGame) << "Switched engine sides and time controls for next game";
     }
 }

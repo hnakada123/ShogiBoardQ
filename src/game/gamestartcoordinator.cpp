@@ -24,7 +24,7 @@ GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     , m_match(d.match)
 {
     // MainWindow との queued 接続でも安全に受け渡せるように登録
-    qRegisterMetaType<GameStartCoordinator::TimeControl>("GameStartCoordinator::TimeControl");
+    qRegisterMetaType<GameStartCoordinator::TimeSettings>("GameStartCoordinator::TimeSettings");
     qRegisterMetaType<GameStartCoordinator::Request>("GameStartCoordinator::Request");
 }
 
@@ -73,22 +73,10 @@ void GameStartCoordinator::start(const StartParams& params)
     // prepare()で既にクリーンアップ済みなので、ここでは呼ばない
     // （重複呼び出しにより、playerNamesResolvedで設定された名前が消えてしまう問題を修正）
 
-    // --- 2) TimeControl を正規化して適用（enabled 補正 / byoyomi 優先で inc を落とす） ---
-    TimeControl tc = params.tc;
-
-    const bool hasAny =
-        (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
-        (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
-        (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
-
-    // 秒読み指定がある場合はフィッシャー増加は使わない（衝突回避）
-    const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
-    if (useByoyomi) {
-        tc.p1.incrementMs = 0;
-        tc.p2.incrementMs = 0;
-    }
-
-    // 値が一つでも入っているのに enabled=false だったケースを救済
+    // --- 2) 時間設定を正規化して適用（byoyomi 優先で加算を落とし、値があれば有効にする） ---
+    TimeSettings tc = params.tc;
+    tc.rules = tc.rules.normalized();
+    const bool hasAny = !tc.rules.isUnlimited();
     if (!tc.enabled && hasAny) {
         tc.enabled = true;
     }
@@ -96,24 +84,12 @@ void GameStartCoordinator::start(const StartParams& params)
     qCDebug(lcGame).noquote()
         << "normalized TimeControl:"
         << " enabled=" << tc.enabled
-        << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
-        << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+        << " P1{base=" << tc.rules.black.mainMs << " byo=" << tc.rules.black.byoyomiMs << " inc=" << tc.rules.black.incrementMs << "}"
+        << " P2{base=" << tc.rules.white.mainMs << " byo=" << tc.rules.white.byoyomiMs << " inc=" << tc.rules.white.incrementMs << "}";
 
-    // UI（時計）へ適用依頼
+    // UI（時計）へ適用依頼。決まりは時計が持ち、エンジンの思考時間も時計から求める
     if (tc.enabled || hasAny) {
         emit requestApplyTimeControl(tc);
-    }
-
-    // 司令塔にも直に反映（UIシグナルの非同期順序に影響されないように）
-    if (m_match) {
-        const bool loseOnTimeout = tc.enabled && tc.loseOnTimeout;
-        m_match->setTimeControlConfig(
-            useByoyomi,
-            static_cast<int>(tc.p1.byoyomiMs), static_cast<int>(tc.p2.byoyomiMs),
-            static_cast<int>(tc.p1.incrementMs), static_cast<int>(tc.p2.incrementMs),
-            loseOnTimeout
-            );
-        m_match->refreshGoTimes();
     }
 
     // ダイアログを経ずに始める対局（連続対局の2局目以降）は、持ち時間と開始日時を記録したここで
@@ -151,15 +127,15 @@ void GameStartCoordinator::prepare(const Request& req)
     }
 
     // --- 1) dialogDataから時間設定を抽出 ---
-    const TimeControl tc = GameStartOptionsBuilder::buildTimeControl(req.dialogData);
+    const TimeSettings tc = GameStartOptionsBuilder::buildTimeControl(req.dialogData);
 
     emit requestApplyTimeControl(tc);
 
     qCDebug(lcGame).noquote()
         << "normalized TimeControl: "
         << " enabled=" << tc.enabled
-        << " P1{base=" << tc.p1.baseMs << "  byo=" << tc.p1.byoyomiMs << "  inc=" << tc.p1.incrementMs << " }"
-        << " P2{base=" << tc.p2.baseMs << "  byo=" << tc.p2.byoyomiMs << "  inc=" << tc.p2.incrementMs << " }";
+        << " P1{base=" << tc.rules.black.mainMs << "  byo=" << tc.rules.black.byoyomiMs << "  inc=" << tc.rules.black.incrementMs << " }"
+        << " P2{base=" << tc.rules.white.mainMs << "  byo=" << tc.rules.white.byoyomiMs << "  inc=" << tc.rules.white.incrementMs << " }";
 
     // --- 2) 時計の取得（req.clock が無ければ m_match->clock() を使用） ---
     ShogiClock* clock = req.clock;
@@ -328,68 +304,33 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
         return;
     }
 
-    // --- 1) dialogDataから各種設定値を取得 ---
-    const int basicTimeHour1    = c.dialogData.basicTimeHour1;
-    const int basicTimeMinutes1 = c.dialogData.basicTimeMinutes1;
-    const int basicTimeHour2    = c.dialogData.basicTimeHour2;
-    const int basicTimeMinutes2 = c.dialogData.basicTimeMinutes2;
-    const int byoyomi1          = c.dialogData.byoyomiSec1;
-    const int byoyomi2          = c.dialogData.byoyomiSec2;
-    const int binc              = c.dialogData.addEachMoveSec1;
-    const int winc              = c.dialogData.addEachMoveSec2;
-    const bool isLoseOnTimeout  = c.dialogData.isLoseOnTimeout;
+    // --- 1) ダイアログの値から時間設定を作り、時計へ反映する ---
+    const TimeSettings tc = GameStartOptionsBuilder::buildTimeControl(c.dialogData);
+    c.clock->setLoseOnTimeout(tc.loseOnTimeout);
+    c.clock->setTimeControl(tc.rules);
 
-    // --- 2) 秒へ統一 ---
-    const int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
-    const int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60;
+    // --- 2) 初期msを出力（必要な場合のみ） ---
+    if (c.initialTimeP1MsOut) *c.initialTimeP1MsOut = c.clock->remainingMs(1);
+    if (c.initialTimeP2MsOut) *c.initialTimeP2MsOut = c.clock->remainingMs(2);
 
-    const bool hasTimeLimit =
-        (basicTimeHour1*3600 + basicTimeMinutes1*60) > 0 ||
-        (basicTimeHour2*3600 + basicTimeMinutes2*60) > 0 ||
-        byoyomi1 > 0 || byoyomi2 > 0 || binc > 0 || winc > 0;
-
-    // --- 3) 時計へ反映 ---
-    c.clock->setLoseOnTimeout(isLoseOnTimeout);
-    const bool useIncrement = byoyomi1 <= 0 && byoyomi2 <= 0;
-    c.clock->setPlayerTimes(remainingTime1 + (useIncrement ? qMax(0, binc) : 0),
-                            remainingTime2 + (useIncrement ? qMax(0, winc) : 0),
-                            byoyomi1, byoyomi2,
-                            binc, winc,
-                            hasTimeLimit);
-
-    // --- 4) 初期msを出力（必要な場合のみ） ---
-    if (c.initialTimeP1MsOut) *c.initialTimeP1MsOut = c.clock->getPlayer1TimeIntMs();
-    if (c.initialTimeP2MsOut) *c.initialTimeP2MsOut = c.clock->getPlayer2TimeIntMs();
-
-    // --- 5) 表示更新＆起動制御 ---
+    // --- 3) 表示更新＆起動制御 ---
     c.clock->updateClock();
     if (!c.isReplayMode) {
         c.clock->startClock();
     }
 
-    // 司令塔に TimeControl（秒読み/増加/負け扱い）を設定
-    if (m_match) {
-        const bool useByoyomi = (byoyomi1 > 0 || byoyomi2 > 0);
-        m_match->setTimeControlConfig(
-            useByoyomi,
-            byoyomi1 * 1000, byoyomi2 * 1000,
-            binc     * 1000, winc     * 1000,
-            isLoseOnTimeout
-            );
-    }
-
-    // --- 6) MatchCoordinator へ時計を配線（初期表示も即時反映） ---
+    // --- 4) MatchCoordinator へ時計を配線（初期表示も即時反映） ---
     if (m_match && c.clock) {
         m_match->setClock(c.clock);
         m_match->pokeTimeUpdateNow();
     }
 
     qCDebug(lcGame).noquote() << "setTimerAndStart: "
-                       << "t1=" << remainingTime1 << "s"
-                       << " t2=" << remainingTime2 << "s"
-                       << " byo=" << byoyomi1 << "/" << byoyomi2
-                       << " inc=" << binc << "/" << winc
-                       << " loseOnTimeout=" << isLoseOnTimeout
+                       << "t1=" << tc.rules.black.mainMs << "ms"
+                       << " t2=" << tc.rules.white.mainMs << "ms"
+                       << " byo=" << tc.rules.black.byoyomiMs << "/" << tc.rules.white.byoyomiMs
+                       << " inc=" << tc.rules.black.incrementMs << "/" << tc.rules.white.incrementMs
+                       << " loseOnTimeout=" << tc.loseOnTimeout
                        << " replay=" << c.isReplayMode;
 }
 

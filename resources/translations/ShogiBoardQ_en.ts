@@ -1687,22 +1687,22 @@ Discard the changes and move?</translation>
 <context>
     <name>CsaClient</name>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="113"/>
+        <location filename="../../src/network/csaclient.cpp" line="128"/>
         <source>既に接続中です</source>
         <translation>Already connected</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="122"/>
+        <location filename="../../src/network/csaclient.cpp" line="137"/>
         <source>ポート番号が不正です: %1</source>
         <translation>Invalid port number: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="165"/>
+        <location filename="../../src/network/csaclient.cpp" line="180"/>
         <source>サーバーに接続されていません</source>
         <translation>Not connected to server</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="190"/>
+        <location filename="../../src/network/csaclient.cpp" line="205"/>
         <source>対局条件を受信していません</source>
         <translation>Game conditions not received</translation>
     </message>
@@ -1717,7 +1717,7 @@ Discard the changes and move?</translation>
         <translation>Not sent while waiting for the server to confirm the previous command: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="225"/>
+        <location filename="../../src/network/csaclient.cpp" line="240"/>
         <source>対局中ではありません</source>
         <translation>No game in progress</translation>
     </message>
@@ -1736,12 +1736,12 @@ Discard the changes and move?</translation>
         <translation type="vanished">Not your turn</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="313"/>
+        <location filename="../../src/network/csaclient.cpp" line="328"/>
         <source>接続がタイムアウトしました</source>
         <translation>Connection timed out</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="366"/>
+        <location filename="../../src/network/csaclient.cpp" line="381"/>
         <source>メッセージの送信に失敗しました: %1</source>
         <translation>Failed to send message: %1</translation>
     </message>
@@ -1784,8 +1784,8 @@ Discard the changes and move?</translation>
     <message>
         <location filename="../../src/network/csagamecoordinator.cpp" line="151"/>
         <location filename="../../src/network/csagamecoordinator.cpp" line="183"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="201"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="211"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="199"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="209"/>
         <source>相手の手番です</source>
         <translation>Opponent&apos;s turn</translation>
     </message>
@@ -1796,42 +1796,42 @@ Discard the changes and move?</translation>
         <translation>Failed to generate the CSA move.</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="216"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="214"/>
         <source>対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります</source>
         <translation>The game conditions do not include the entering-king declaration rule (Declaration:Jishogi). The declaration may be ruled an illegal move.</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="232"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="230"/>
         <source>接続完了。ログイン中...</source>
         <translation>Connected. Logging in...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="246"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="244"/>
         <source>サーバーが切断しました。%1秒後に再接続します</source>
         <translation>The server closed the connection. Reconnecting in %1 seconds</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="252"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="250"/>
         <source>サーバーから切断されました</source>
         <translation>Disconnected from server</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="264"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="262"/>
         <source>エラー: %1</source>
         <translation>Error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="288"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="286"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation>Login successful. Waiting for game...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="298"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="296"/>
         <source>ログイン失敗: %1</source>
         <translation>Login failed: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="306"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="304"/>
         <source>ログアウト完了</source>
         <translation>Logged out</translation>
     </message>
@@ -1906,27 +1906,27 @@ Discard the changes and move?</translation>
         <translation>Black: %1, White: %2</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="322"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="321"/>
         <source>予定の対局数（%1局）を終えたのでログアウトします</source>
         <translation>All %1 scheduled games are finished; logging out</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="327"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="326"/>
         <source>%1/%2局</source>
         <translation>game %1 of %2</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="328"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="327"/>
         <source>%1局目まで終了</source>
         <translation>%1 game(s) finished</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="330"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="329"/>
         <source>次の対局条件を待ちます（%1）</source>
         <translation>Waiting for the next game conditions (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="338"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="337"/>
         <source>次の対局のために再接続します（%1局目まで終了）</source>
         <translation>Reconnecting for the next game (%1 finished)</translation>
     </message>
@@ -1946,7 +1946,7 @@ Discard the changes and move?</translation>
         <translation>Rejecting the game conditions: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="468"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="469"/>
         <source>エンジンが入玉宣言を選択しました</source>
         <translation>Engine chose to declare entering king</translation>
     </message>
@@ -1960,12 +1960,12 @@ Discard the changes and move?</translation>
         <translation>Agreeing to game conditions...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="314"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="312"/>
         <source>対局開始！</source>
         <translation>Game started!</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="338"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="336"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation>Game rejected (ID: %1, Rejected by: %2)</translation>
     </message>
@@ -2050,27 +2050,27 @@ Discard the changes and move?</translation>
         <translation type="vanished">Cheating</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="403"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="401"/>
         <source>対局終了: %1 (%2)</source>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="429"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="430"/>
         <source>対局が中断されました</source>
         <translation>Game was interrupted</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="434"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="435"/>
         <source>[RECV] %1</source>
         <translation>[RECV] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="440"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="441"/>
         <source>[SEND] %1</source>
         <translation>[SEND] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="459"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="460"/>
         <source>エンジンが投了を選択しました</source>
         <translation>Engine chose to resign</translation>
     </message>
@@ -2337,7 +2337,7 @@ Discard the changes and move?</translation>
     <message>
         <location filename="../../src/dialogs/csagamedialog.ui" line="452"/>
         <source>shogi-server の「名前-持時間-秒読み」形式のゲーム名です。空欄ならサーバーの既定のゲームに入ります。</source>
-        <translation>The shogi-server game name in the form name-time-byoyomi. Leave it empty to join the server's default game.</translation>
+        <translation>The shogi-server game name in the form name-time-byoyomi. Leave it empty to join the server&apos;s default game.</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/csagamedialog.ui" line="455"/>
@@ -2544,17 +2544,17 @@ Please register an engine from Tools → Engine Settings.</translation>
 <context>
     <name>CsaGameWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="149"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="148"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="150"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="149"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="189"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="188"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA network game started: %1 vs %2</translation>
     </message>
@@ -2563,7 +2563,7 @@ Please register an engine from Tools → Engine Settings.</translation>
         <translation type="vanished">Loss</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="252"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="251"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -2574,22 +2574,22 @@ Result: %1
 Cause: %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="260"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="259"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="264"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="263"/>
         <source>対局終了: %1 (%2)</source>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="317"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="316"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="317"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="316"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -2634,22 +2634,22 @@ Cause: %2</translation>
         <translation type="vanished">Starting Position</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="381"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="380"/>
         <source>通信対局をキャンセルしました</source>
         <translation>Network game cancelled</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="77"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="78"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
         <translation>Cannot create the folder for automatic saving: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="94"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="100"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Record saved automatically: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="96"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="102"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Automatic saving of the record failed: %1</translation>
     </message>
@@ -2809,7 +2809,7 @@ Cause: %2</translation>
 <context>
     <name>CsaMoveProgressHandler</name>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="162"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="156"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>Opponent&apos;s move: %1 (Time: %2ms)</translation>
     </message>
@@ -2832,18 +2832,18 @@ Cause: %2</translation>
         <translation type="vanished">Invalid coordinates in server move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="200"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="421"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="194"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="405"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>Failed to apply move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="201"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="195"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>Cannot apply server move to board: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="237"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="231"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>Move confirmed: %1 (Time: %2ms)</translation>
     </message>
@@ -2874,62 +2874,62 @@ Cause: %2</translation>
         <translation>The server&apos;s ruling did not arrive</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="170"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="164"/>
         <source>サーバーからの指し手を解釈できません: %1</source>
         <translation>Cannot interpret the move from the server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="245"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="239"/>
         <source>サーバーからの指し手確認を解釈できません: %1</source>
         <translation>Cannot interpret the move confirmation from the server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="259"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="253"/>
         <source>指し手確認の変換に失敗しました: %1</source>
         <translation>Failed to convert move confirmation: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="260"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="254"/>
         <source>サーバーからの指し手確認を変換できません: %1</source>
         <translation>Cannot convert move confirmation from server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="345"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="329"/>
         <source>エンジンが思考中...</source>
         <translation>Engine is thinking...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="359"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="343"/>
         <source>エンジンが投了しました</source>
         <translation>Engine resigned</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="366"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="350"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>Engine did not return a valid move</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="373"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="357"/>
         <source>盤面が取得できませんでした</source>
         <translation>Could not get board state</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="390"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="374"/>
         <source>駒打ちの駒種変換に失敗しました</source>
         <translation>Failed to convert drop piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="399"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="383"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>Failed to convert move piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="408"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="392"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA format move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="422"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="406"/>
         <source>エンジンの指し手を盤面に適用できません: %1</source>
         <translation>Cannot apply the engine&apos;s move to the board: %1</translation>
     </message>
@@ -4264,68 +4264,68 @@ Each screen keeps its current text size.</translation>
 <context>
     <name>GameEndHandler</name>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="122"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="122"/>
         <source>下手</source>
         <translation>Shitate</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="123"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="123"/>
         <source>上手</source>
         <translation>Uwate</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="143"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="131"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="145"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="133"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="147"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="149"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="137"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="151"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="139"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="153"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="141"/>
         <source>千日手が成立しました。</source>
         <translation>Sennichite (draw by repetition).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="155"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="143"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="158"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="146"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler.cpp" line="132"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="166"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="154"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
@@ -4515,13 +4515,13 @@ Current counts: Black %1, White %2
 Use Edit → Start Position Editing to correct the position.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="285"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="291"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="261"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="267"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="291"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="267"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
@@ -6220,110 +6220,110 @@ Do you want to save them?</translation>
 <context>
     <name>KifuExportClipboard</name>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="194"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="192"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>Failed to copy to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="203"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="211"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="201"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="209"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>No KIF format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="208"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="206"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied KIF format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="220"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="228"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="218"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="226"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>No KI2 format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="225"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="223"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied KI2 format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="242"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="240"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>No CSA format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="246"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="244"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
         <translation>Copied the record to the clipboard in CSA format (main line only; CSA does not support variations)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="247"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="245"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied CSA format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="260"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="296"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="258"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="294"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>No USI format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="264"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="262"/>
         <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
         <translation>Copied the record to the clipboard in USI format (main line only; USI does not support variations)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="265"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="263"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USI format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="300"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="298"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USI format game record (up to current move) to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="313"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="311"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>No JKF format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="317"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="315"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied JKF format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="330"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="328"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>No USEN format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="334"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="332"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USEN format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="343"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="341"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>No SFEN format position data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="348"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="346"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>Copied SFEN format position to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="357"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="355"/>
         <source>BOD形式の局面データがありません</source>
         <translation>No BOD format position data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="363"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="361"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>Failed to parse SFEN format</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="368"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="366"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>Copied BOD format position to clipboard</translation>
     </message>
@@ -6331,50 +6331,50 @@ Do you want to save them?</translation>
 <context>
     <name>KifuExportController</name>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="146"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="247"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="248"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="144"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="245"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="246"/>
         <source>棋譜データがありません</source>
         <translation>No game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="184"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="182"/>
         <source>棋譜を保存しました: %1</source>
         <translation>Game record saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="259"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="257"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>Game record overwritten: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="176"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="196"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="174"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="194"/>
         <source>KIF Save Error</source>
         <translation>KIF Save Error</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="299"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="297"/>
         <source>自動保存先ディレクトリが指定されていません</source>
         <translation>No autosave directory is specified</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="304"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="302"/>
         <source>棋譜データがありません（自動保存をスキップ）</source>
         <translation>No game record data (autosave skipped)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="311"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="309"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation>Autosave skipped because the game record is empty</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="331"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="329"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="337"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="335"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
@@ -9328,12 +9328,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchtimekeeper.cpp" line="224"/>
+        <location filename="../../src/game/matchtimekeeper.cpp" line="125"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchtimekeeper.cpp" line="224"/>
+        <location filename="../../src/game/matchtimekeeper.cpp" line="125"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -10593,10 +10593,10 @@ Choose a file with one SFEN position per line.</translation>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="197"/>
         <location filename="../../src/dialogs/startgamedialog.ui" line="365"/>
-        <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="106"/>
-        <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="119"/>
-        <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="159"/>
-        <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="173"/>
+        <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="128"/>
+        <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="142"/>
+        <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="179"/>
+        <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="193"/>
         <source>You</source>
         <translation>You</translation>
     </message>
@@ -12340,7 +12340,7 @@ Check the settings and press Start.</translation>
 <context>
     <name>UsiCommandController</name>
     <message>
-        <location filename="../../src/ui/controllers/usicommandcontroller.cpp" line="47"/>
+        <location filename="../../src/ui/controllers/usicommandcontroller.cpp" line="50"/>
         <source>%1: エンジンが起動していません</source>
         <translation>%1: Engine is not running</translation>
     </message>
@@ -12452,7 +12452,7 @@ Check the settings and press Start.</translation>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="449"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="430"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>

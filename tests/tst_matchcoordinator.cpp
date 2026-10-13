@@ -71,10 +71,6 @@ struct MCTestHarness {
         deps.hooks.ui.setEngineNames = [](const QString&, const QString&) {};
         deps.hooks.ui.showMoveHighlights = [](const QPoint&, const QPoint&) {};
 
-        deps.hooks.time.remainingMsFor = [](MatchCoordinator::Player) -> qint64 { return 0; };
-        deps.hooks.time.incrementMsFor = [](MatchCoordinator::Player) -> qint64 { return 0; };
-        deps.hooks.time.byoyomiMs = []() -> qint64 { return 0; };
-
         deps.hooks.engine.sendStopToEngine = [](Usi*) {};
 
         deps.hooks.game.initializeNewGame = [this](const QString&) {
@@ -133,7 +129,6 @@ private slots:
     void handleEngineWin_recordsWinner();
     void handleBreakOff_appendsTerminalOnce();
     void configureAndStart_preparesHumanGame();
-    void setTimeControlConfig_updatesClockPolicy();
     void startAnalysis_initializesAndStopsRealSession();
     void stopAnalysisEngine_isIdempotent();
 
@@ -457,15 +452,6 @@ void Tst_MatchCoordinator::configureAndStart_preparesHumanGame()
     QCOMPARE(h.gc.currentPlayer(), ShogiGameController::Player1);
     QVERIFY(h.initializeNewGameCalled);
     QVERIFY(!h.mc->gameOverState().isOver);
-}
-
-void Tst_MatchCoordinator::setTimeControlConfig_updatesClockPolicy()
-{
-    MCTestHarness h;
-    h.mc->setTimeControlConfig(true, 30000, 30000, 0, 0, true);
-    QVERIFY(h.mc->timeControl().useByoyomi);
-    QCOMPARE(h.mc->timeControl().byoyomiMs1, 30000);
-    QCOMPARE(h.mc->timeControl().byoyomiMs2, 30000);
 }
 
 void Tst_MatchCoordinator::startAnalysis_initializesAndStopsRealSession()

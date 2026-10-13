@@ -51,6 +51,21 @@ void CsaClient::GameSummary::clear()
     moveConsumedTimes.clear();
 }
 
+::TimeControl CsaClient::GameSummary::timeControl() const
+{
+    ::TimeControl tc;
+    if (isTimeUnlimited()) return tc;
+    for (const bool black : {true, false}) {
+        const TimeControl& t = timeFor(black);
+        TimeControlSide& side = black ? tc.black : tc.white;
+        side.mainMs = t.totalTimeMs();
+        side.byoyomiMs = t.byoyomiMs();
+        side.incrementMs = t.incrementMs();
+        side.delayMs = t.delayMs();
+    }
+    return tc;
+}
+
 int CsaClient::GameSummary::positionMoveConsumedMs(int index) const
 {
     if (index < 0 || index >= moves.size()) return 0;

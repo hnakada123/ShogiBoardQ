@@ -103,7 +103,7 @@ void SessionLifecycleCoordinator::performPreStartCleanup()
     TestTracker::onPreStartCleanupRequestedCalled = true;
 }
 void SessionLifecycleCoordinator::startNewGame() {}
-void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::TimeControl&)
+void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::TimeSettings&)
 {
     TestTracker::onApplyTimeControlRequestedCalled = true;
 }
@@ -156,7 +156,7 @@ void ConsecutiveGamesController::configure(int, bool)
     TestTracker::onConsecutiveGamesConfiguredCalled = true;
 }
 void ConsecutiveGamesController::onGameStarted(const MatchCoordinator::StartOptions&,
-                                               const GameStartCoordinator::TimeControl&) {}
+                                               const GameStartCoordinator::TimeSettings&) {}
 bool ConsecutiveGamesController::shouldStartNextGame() const { return false; }
 void ConsecutiveGamesController::reset() {}
 void ConsecutiveGamesController::startNextGame() {}
@@ -186,18 +186,11 @@ void MatchCoordinator::handleEngineWin(int) {}
 void MatchCoordinator::flipBoard() {}
 void MatchCoordinator::handleBreakOff() {}
 void MatchCoordinator::handleNyugyokuDeclaration(Player, bool, bool) {}
-void MatchCoordinator::setTimeControlConfig(bool, int, int, int, int, bool) {}
-const MatchCoordinator::TimeControl& MatchCoordinator::timeControl() const
-{
-    static TimeControl tc;
-    return tc;
-}
 void MatchCoordinator::markTurnEpochNowFor(Player, qint64) {}
 qint64 MatchCoordinator::turnEpochFor(Player) const { return 0; }
 void MatchCoordinator::armTurnTimerIfNeeded() {}
 void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player) {}
 void MatchCoordinator::disarmHumanTimerIfNeeded() {}
-void MatchCoordinator::refreshGoTimes() {}
 void MatchCoordinator::startInitialEngineMoveIfNeeded() {}
 bool MatchCoordinator::undoTwoPlies() { return false; }
 void MatchCoordinator::initializeAndStartEngineFor(Player, const QString&, const QString&) {}
@@ -232,7 +225,6 @@ bool MatchCoordinator::isEngineShutdownInProgress() const { return false; }
 EngineLifecycleManager* MatchCoordinator::engineManager() { return nullptr; }
 void MatchCoordinator::pokeTimeUpdateNow() {}
 void MatchCoordinator::onUsiError(const QString&) {}
-MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const { return {}; }
 void MatchCoordinator::ensureEngineManager() {}
 void MatchCoordinator::ensureTimekeeper() {}
 void MatchCoordinator::ensureMatchTurnHandler() {}
@@ -359,9 +351,9 @@ void PlayerInfoWiring::addGameInfoTabAtStartup() {}
 void PlayerInfoWiring::updateGameInfoForCurrentMatch() {}
 void PlayerInfoWiring::setOriginalGameInfo(const QList<KifGameInfoItem>&) {}
 void PlayerInfoWiring::updateGameInfoPlayerNames(const QString&, const QString&) {}
-void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime&, const QString&, const QString&, const QString&, bool, const KifuTimeControlSide&, const KifuTimeControlSide&) {}
+void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime&, const QString&, const QString&, const QString&, const TimeControl&) {}
 void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime&) {}
-void PlayerInfoWiring::updateGameInfoWithTimeControl(bool, const KifuTimeControlSide&, const KifuTimeControlSide&) {}
+void PlayerInfoWiring::updateGameInfoWithTimeControl(const TimeControl&) {}
 void PlayerInfoWiring::ensureGameInfoController() {}
 void PlayerInfoWiring::setTabWidget(QTabWidget*) {}
 void PlayerInfoWiring::setAnalysisTab(EngineAnalysisTab*) {}
@@ -466,13 +458,10 @@ void TimeControlController::ensureClock() {}
 ShogiClock* TimeControlController::clock() const { return nullptr; }
 void TimeControlController::setMatchCoordinator(MatchCoordinator*) {}
 void TimeControlController::setTimeDisplayPresenter(TimeDisplayPresenter*) {}
-void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeControl&, MatchCoordinator*, const QString&, const QString&, ShogiView*) {}
-void TimeControlController::saveTimeControlSettings(bool, const KifuTimeControlSide&, const KifuTimeControlSide&) {}
-const TimeControlController::TimeControlSettings& TimeControlController::settings() const { static TimeControlSettings s; return s; }
+void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeSettings&, const QString&, const QString&, ShogiView*) {}
+void TimeControlController::recordTimeControl(const TimeControl&) {}
+const TimeControl& TimeControlController::timeControl() const { static TimeControl s; return s; }
 bool TimeControlController::hasTimeControl() const { return false; }
-qint64 TimeControlController::remainingMs(int) const { return 0; }
-qint64 TimeControlController::incrementMs(int) const { return 0; }
-qint64 TimeControlController::clockByoyomiMs() const { return 0; }
 void TimeControlController::recordGameStartTime() {}
 void TimeControlController::recordGameEndTime() {}
 QDateTime TimeControlController::gameStartDateTime() const { return {}; }
@@ -510,10 +499,6 @@ void BoardInteractionController::onHighlightsCleared() {}
 // ShogiClock スタブ
 // ============================================================
 
-ShogiClock::ShogiClock(QObject* parent) : QObject(parent) {}
-void ShogiClock::setLoseOnTimeout(bool) {}
-void ShogiClock::setPlayerTimes(int, int, int, int, int, int, bool) {}
-void ShogiClock::setCurrentPlayer(int) {}
 
 // ============================================================
 // ShogiView スタブ
@@ -618,15 +603,9 @@ void EngineLifecycleManager::sendRawTo(Usi*, const QString&) {}
 
 MatchTimekeeper::MatchTimekeeper(QObject* parent) : QObject(parent) {}
 void MatchTimekeeper::setRefs(const Refs&) {}
-void MatchTimekeeper::setHooks(const Hooks&) {}
 void MatchTimekeeper::setClock(ShogiClock*) {}
 ShogiClock* MatchTimekeeper::clock() const { return nullptr; }
 const ShogiClock* MatchTimekeeper::clockConst() const { return nullptr; }
-void MatchTimekeeper::setTimeControlConfig(bool, int, int, int, int, bool) {}
-const MatchTimekeeper::TimeControl& MatchTimekeeper::timeControl() const { static TimeControl tc; return tc; }
-MatchTimekeeper::GoTimes MatchTimekeeper::computeGoTimes() const { return {}; }
-void MatchTimekeeper::computeGoTimesForUSI(qint64&, qint64&) const {}
-void MatchTimekeeper::refreshGoTimes() {}
 void MatchTimekeeper::markTurnEpochNowFor(Player, qint64) {}
 qint64 MatchTimekeeper::turnEpochFor(Player) const { return 0; }
 void MatchTimekeeper::recomputeClockSnapshot(QString&, QString&, QString&) const {}

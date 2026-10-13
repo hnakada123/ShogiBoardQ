@@ -399,21 +399,21 @@ private slots:
     void timeControlTextDistinguishesIncrement()
     {
         using KifuExportMetadataBuilder::timeControlText;
-        QCOMPARE(timeControlText(600000, 10000, 0), QStringLiteral("10:00+10"));
-        QCOMPARE(timeControlText(300000, 0, 10000), QStringLiteral("05:00+10秒加算"));
-        QCOMPARE(timeControlText(7200000, 0, 0), QStringLiteral("120:00"));
-        QCOMPARE(timeControlText(0, 30000, 0), QStringLiteral("00:00+30"));
+        QCOMPARE(timeControlText(TimeControlSide{600000, 10000, 0}), QStringLiteral("10:00+10"));
+        QCOMPARE(timeControlText(TimeControlSide{300000, 0, 10000}), QStringLiteral("05:00+10秒加算"));
+        QCOMPARE(timeControlText(TimeControlSide{7200000, 0, 0}), QStringLiteral("120:00"));
+        QCOMPARE(timeControlText(TimeControlSide{0, 30000, 0}), QStringLiteral("00:00+30"));
     }
 
     /// 先後で持ち時間が違えば両方を書き、駒落ちの見出しは下手・上手にする
     void timeControlTextPerSide()
     {
         using KifuExportMetadataBuilder::timeControlText;
-        const KifuTimeControlSide black{60000, 2000, 0};
-        const KifuTimeControlSide white{120000, 3000, 0};
-        QCOMPARE(timeControlText(black, black, false), QStringLiteral("01:00+2"));
-        QCOMPARE(timeControlText(black, white, false), QStringLiteral("先手 01:00+2 / 後手 02:00+3"));
-        QCOMPARE(timeControlText(black, white, true), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
+        const TimeControlSide black{60000, 2000, 0};
+        const TimeControlSide white{120000, 3000, 0};
+        QCOMPARE(timeControlText(TimeControl{black, black}, false), QStringLiteral("01:00+2"));
+        QCOMPARE(timeControlText(TimeControl{black, white}, false), QStringLiteral("先手 01:00+2 / 後手 02:00+3"));
+        QCOMPARE(timeControlText(TimeControl{black, white}, true), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
     }
 
     /// 駒落ちの棋譜は柿木形式と同じく対局者を下手・上手で書き、CSA では下手が先手（N+）になる
@@ -425,9 +425,7 @@ private slots:
         ctx.playMode = PlayMode::HandicapEngineVsEngine;
         ctx.engine1 = QStringLiteral("下手エンジン");
         ctx.engine2 = QStringLiteral("上手エンジン");
-        ctx.hasTimeControl = true;
-        ctx.blackTime = {60000, 2000, 0};
-        ctx.whiteTime = {120000, 3000, 0};
+        ctx.timeControl = TimeControl{{60000, 2000, 0}, {120000, 3000, 0}};
         const QString kif = model.toKifLines(ctx).join(QLatin1Char('\n'));
         QVERIFY2(kif.contains(QStringLiteral("下手：下手エンジン")), qPrintable(kif));
         QVERIFY(kif.contains(QStringLiteral("上手：上手エンジン")));
@@ -443,7 +441,7 @@ private slots:
 
         // 平手は従来どおり先手・後手
         ctx.startSfen = kHirateSfen;
-        ctx.whiteTime = ctx.blackTime;
+        ctx.timeControl.white = ctx.timeControl.black;
         const QString hirate = model.toKifLines(ctx).join(QLatin1Char('\n'));
         QVERIFY(hirate.contains(QStringLiteral("先手：下手エンジン")));
         QVERIFY(hirate.contains(QStringLiteral("持ち時間：01:00+2")));
@@ -540,9 +538,7 @@ private slots:
         model.setBranchTree(&tree);
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
-        ctx.hasTimeControl = true;
-        ctx.blackTime = {630000, 30000, 5000};
-        ctx.whiteTime = ctx.blackTime;
+        ctx.timeControl = TimeControl{{630000, 30000, 5000}, {630000, 30000, 5000}};
         ctx.gameStartDateTime = QDateTime(QDate(2025, 1, 2), QTime(3, 4, 5));
         ctx.gameEndDateTime = QDateTime(QDate(2025, 1, 2), QTime(6, 7, 8));
         QVERIFY(KifuClipboardService::copyKif(model, ctx));

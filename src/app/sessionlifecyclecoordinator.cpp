@@ -131,13 +131,13 @@ void SessionLifecycleCoordinator::prepareNextGame(const QString& startSfen)
     if (m_deps.unlockGameOverStyle) m_deps.unlockGameOverStyle();
 }
 
-void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::TimeControl& tc)
+void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::TimeSettings& tc)
 {
     qCDebug(lcApp).noquote()
         << "applyTimeControl:"
         << " enabled=" << tc.enabled
-        << " P1{base=" << tc.p1.baseMs << " byoyomi=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
-        << " P2{base=" << tc.p2.baseMs << " byoyomi=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+        << " P1{base=" << tc.rules.black.mainMs << " byoyomi=" << tc.rules.black.byoyomiMs << " inc=" << tc.rules.black.incrementMs << "}"
+        << " P2{base=" << tc.rules.white.mainMs << " byoyomi=" << tc.rules.white.byoyomiMs << " inc=" << tc.rules.white.incrementMs << "}";
 
     // 連続対局用に時間設定を保存
     if (m_deps.lastTimeControl) {
@@ -147,7 +147,7 @@ void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::T
     // 時間設定の適用を TimeControlController に委譲
     if (m_deps.timeController && m_deps.startSfenStr && m_deps.currentSfenStr) {
         m_deps.timeController->applyTimeControl(
-            tc, m_deps.match, *m_deps.startSfenStr, *m_deps.currentSfenStr, m_deps.shogiView);
+            tc, *m_deps.startSfenStr, *m_deps.currentSfenStr, m_deps.shogiView);
     }
 
     // 対局情報ドックに持ち時間を追加

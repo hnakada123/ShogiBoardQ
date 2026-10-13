@@ -9,6 +9,8 @@
 #include <QPoint>
 #include <QPointer>
 
+#include "usitimingparams.h"
+
 class Usi;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
@@ -36,12 +38,7 @@ public:
 
     struct ThinkingParams {
         QString positionCmd;
-        int byoyomiMs = 0;
-        QString btimeStr;
-        QString wtimeStr;
-        int bincMs = 0;
-        int wincMs = 0;
-        bool useByoyomi = false;
+        UsiTimingParams timing;  ///< 残り時間（USI の btime/wtime の意味）・決まり・遅延・余裕
     };
 
     struct ThinkingResult {

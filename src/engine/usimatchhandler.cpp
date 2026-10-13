@@ -264,13 +264,12 @@ void UsiMatchHandler::startAsyncSearch()
     if (m_position.contains(QStringLiteral(" moves ")))
         m_lastUsiMove = m_position.section(QLatin1Char(' '), -1);
     cloneCurrentBoardData();
-    const auto timing = timingForSearch(m_timing, false);
+    const UsiGoTime goTime = UsiGoTimeCalculator::compute(goTimeInput(m_timing, false));
     m_pending = Pending::Move;
     m_acceptBestMove = true;
     m_responseTimer.start(remainingTimeMs(m_timing));
     m_protocolHandler->sendPosition(m_position);
-    m_protocolHandler->sendGo(timing.byoyomiMilliSec, timing.btime, timing.wtime,
-                             timing.addEachMoveMilliSec1, timing.addEachMoveMilliSec2, timing.useByoyomi);
+    m_protocolHandler->sendGo(goTime);
 }
 
 void UsiMatchHandler::onBestMoveReceived()
@@ -300,11 +299,12 @@ void UsiMatchHandler::onBestMoveReceived()
 int UsiMatchHandler::remainingTimeMs(const UsiTimingParams& timing) const
 {
     const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
-    qint64 budget = side == 1 ? timing.btime.toLongLong() : timing.wtime.toLongLong();
-    if (timing.useByoyomi) budget += timing.byoyomiMilliSec;
-    else budget += side == 1 ? timing.addEachMoveMilliSec1 : timing.addEachMoveMilliSec2;
-    if (m_clock) budget = m_clock->enforcesTimeout() ? m_clock->remainingTurnTimeMs(side)
-                                                     : kUnlimitedSearchTimeoutMs;
+    qint64 budget = 0;
+    if (m_clock) {
+        budget = m_clock->enforcesTimeout() ? m_clock->remainingTurnTimeMs(side) : kUnlimitedSearchTimeoutMs;
+    } else {
+        budget = UsiGoTimeCalculator::budgetMs(goTimeInput(timing, false));
+    }
     return static_cast<int>(qBound(qint64(1), budget, qint64(std::numeric_limits<int>::max())));
 }
 
@@ -316,51 +316,35 @@ void UsiMatchHandler::onSearchTimeout()
     if (!m_protocolHandler->isTimeoutDeclared() && m_hooks.onBestmoveTimeout) m_hooks.onBestmoveTimeout();
 }
 
-UsiTimingParams UsiMatchHandler::timingForSearch(const UsiTimingParams& timing, bool pondering) const
+UsiGoTimeInput UsiMatchHandler::goTimeInput(const UsiTimingParams& timing, bool pondering) const
 {
-    // btime/wtime は USI（将棋所の仕様）の意味で扱う。加算方式では今回（相手は次の手番）に
-    // 加算される時間を含めず、btime + binc が今回の手に使える時間になる。
-    UsiTimingParams result = timing;
     const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
-    const bool useIncrement = !timing.useByoyomi;
-    const auto incrementFor = [&timing, useIncrement](int player) -> qint64 {
-        if (!useIncrement) return 0;
-        return qMax(0, player == 1 ? timing.addEachMoveMilliSec1 : timing.addEachMoveMilliSec2);
+    UsiGoTimeInput input;
+    input.sideToMove = side == 1 ? Turn::Black : Turn::White;
+    input.extraMs = timing.extraMs;
+    input.marginMs = timing.marginMs;
+    if (!m_clock) {
+        input.timeControl = timing.timeControl;
+        input.btimeMs = timing.btimeMs;
+        input.wtimeMs = timing.wtimeMs;
+        return input;
+    }
+    // 時計の残り時間には、次の手番で使う加算が既に含まれている。USI の btime/wtime の意味に
+    // するため差し引く。先読みでは、今の手の確定による手番側の加算がまだ足されていないので引かない。
+    input.timeControl = m_clock->timeControl();
+    const TimeControl tc = input.timeControl.normalized();
+    const auto usiRemaining = [this, &tc, pondering, side](int player) -> qint64 {
+        const qint64 increment = tc.usesByoyomi() ? 0 : tc.side(player == 1 ? Turn::Black : Turn::White).incrementMs;
+        const bool incrementPending = pondering && player == side;
+        return qMax<qint64>(0, m_clock->remainingMainTimeMs(player) - (incrementPending ? 0 : increment));
     };
-    // 手番側が今回の手に使える時間のうち、秒読みを除いた分（加算方式では今回の加算分を含む）。
-    qint64 main = (side == 1 ? timing.btime.toLongLong() : timing.wtime.toLongLong()) + incrementFor(side);
-    qint64 byo = timing.useByoyomi ? qMax(0, timing.byoyomiMilliSec) : 0;
-    if (m_clock) {
-        // 時計の残り時間には、次に使う加算分が既に含まれている。
-        result.btime = QString::number(qMax<qint64>(0, m_clock->remainingMainTimeMs(1) - incrementFor(1)));
-        result.wtime = QString::number(qMax<qint64>(0, m_clock->remainingMainTimeMs(2) - incrementFor(2)));
-        main = m_clock->remainingMainTimeMs(side);
-        if (pondering) {
-            // 現在の着手確定による加算は、Strategyで適用される前。
-            main += incrementFor(side);
-        } else {
-            // stop待ち、局面準備、最後のtick以降も含めた残予算。
-            byo = qMax<qint64>(0, m_clock->remainingTurnTimeMs(side) - main);
-        }
+    input.btimeMs = usiRemaining(1);
+    input.wtimeMs = usiRemaining(2);
+    if (!pondering) {
+        // stop待ち、局面準備、最後のtick以降も含めた、手番側の秒読みの残り
+        input.moverByoyomiMs = qMax<qint64>(0, m_clock->remainingTurnTimeMs(side) - m_clock->remainingMainTimeMs(side));
     }
-    // GUIの期限より先に返せるよう、通信・探索停止の余裕を確保する。
-    // 短い設定でも最低1msの思考予算を残す。
-    const qint64 total = qMax<qint64>(0, main) + byo;
-    const qint64 reserve = qMin<qint64>(250, total / 2);
-    const qint64 byoReserve = qMin(byo, reserve);
-    byo -= byoReserve;
-    main = qMax<qint64>(0, main - (reserve - byoReserve));
-    if (useIncrement) {
-        // 予算のうち加算分は binc/winc で伝える。余裕を引くと加算分に届かないときは、
-        // btime + binc が予算を超えないよう手番側の加算を減らす。
-        const qint64 increment = qMin(incrementFor(side), main);
-        (side == 1 ? result.addEachMoveMilliSec1 : result.addEachMoveMilliSec2) = static_cast<int>(increment);
-        main -= increment;
-    }
-    if (side == 1) result.btime = QString::number(main);
-    else result.wtime = QString::number(main);
-    result.byoyomiMilliSec = static_cast<int>(qMin<qint64>(byo, std::numeric_limits<int>::max()));
-    return result;
+    return input;
 }
 
 void UsiMatchHandler::startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr,
@@ -373,9 +357,9 @@ void UsiMatchHandler::startPonderingAfterBestMove(QString& positionStr, QString&
         positionPonderStr = positionStr + " " + predictedMove;
         updateBaseSfenForPonder();
         m_lastUsiMove = predictedMove;
-        const UsiTimingParams nextTiming = timingForSearch(timing, true);
+        const UsiGoTime goTime = UsiGoTimeCalculator::compute(goTimeInput(timing, true));
         m_protocolHandler->sendPosition(positionPonderStr);
-        m_protocolHandler->sendGoPonder(nextTiming);
+        m_protocolHandler->sendGoPonder(goTime);
     }
 }
 

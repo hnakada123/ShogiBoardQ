@@ -1,5 +1,5 @@
 /// @file matchtimekeeper.cpp
-/// @brief 時計管理・USI残時間計算・ターンエポック管理の実装
+/// @brief 時計の配線・残り時間の通知・ターンエポック管理の実装
 
 #include "matchtimekeeper.h"
 
@@ -24,11 +24,6 @@ MatchTimekeeper::MatchTimekeeper(QObject* parent)
 void MatchTimekeeper::setRefs(const Refs& refs)
 {
     m_refs = refs;
-}
-
-void MatchTimekeeper::setHooks(const Hooks& hooks)
-{
-    m_hooks = hooks;
 }
 
 // ============================================================
@@ -84,15 +79,12 @@ void MatchTimekeeper::emitTimeUpdateFromClock()
 {
     if (!m_clock || !m_refs.gc) return;
 
-    const qint64 p1ms = m_clock->getPlayer1TimeIntMs();
-    const qint64 p2ms = m_clock->getPlayer2TimeIntMs();
+    const qint64 p1ms = m_clock->remainingMs(1);
+    const qint64 p2ms = m_clock->remainingMs(2);
     const bool p1turn = (m_refs.gc->currentPlayer() == ShogiGameController::Player1);
 
-    const bool hasByoyomi = p1turn ? m_clock->hasByoyomi1()
-                                   : m_clock->hasByoyomi2();
-    const bool inByoyomi  = p1turn ? m_clock->byoyomi1Applied()
-                                  : m_clock->byoyomi2Applied();
-    const bool enableUrgency = (!hasByoyomi) || inByoyomi;
+    const int side = p1turn ? 1 : 2;
+    const bool enableUrgency = !m_clock->hasByoyomi(side) || m_clock->byoyomiApplied(side);
 
     const qint64 activeMs = p1turn ? p1ms : p2ms;
     const qint64 urgencyMs = enableUrgency ? activeMs
@@ -102,97 +94,6 @@ void MatchTimekeeper::emitTimeUpdateFromClock()
              << " p1turn=" << p1turn << " urgencyMs=" << urgencyMs;
 
     emit timeUpdated(p1ms, p2ms, p1turn, urgencyMs);
-}
-
-// ============================================================
-// 時間制御の設定／照会
-// ============================================================
-
-void MatchTimekeeper::setTimeControlConfig(bool useByoyomi,
-                                           int byoyomiMs1, int byoyomiMs2,
-                                           int incMs1,     int incMs2,
-                                           bool loseOnTimeout)
-{
-    m_tc.useByoyomi       = useByoyomi;
-    m_tc.byoyomiMs1       = qMax(0, byoyomiMs1);
-    m_tc.byoyomiMs2       = qMax(0, byoyomiMs2);
-    m_tc.incMs1           = qMax(0, incMs1);
-    m_tc.incMs2           = qMax(0, incMs2);
-    m_tc.loseOnTimeout    = loseOnTimeout;
-}
-
-const MatchTimekeeper::TimeControl& MatchTimekeeper::timeControl() const
-{
-    return m_tc;
-}
-
-// ============================================================
-// GoTimes 計算
-// ============================================================
-
-MatchTimekeeper::GoTimes MatchTimekeeper::computeGoTimes() const
-{
-    GoTimes t;
-
-    const bool hasRemainHook = static_cast<bool>(m_hooks.remainingMsFor);
-    const bool hasIncHook    = static_cast<bool>(m_hooks.incrementMsFor);
-    const bool hasByoHook    = static_cast<bool>(m_hooks.byoyomiMs);
-
-    const qint64 rawB = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(static_cast<int>(P::P1))) : 0;
-    const qint64 rawW = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(static_cast<int>(P::P2))) : 0;
-
-    qCDebug(lcGame).noquote()
-        << "computeGoTimes_: hooks{remain=" << hasRemainHook
-        << ", inc=" << hasIncHook
-        << ", byo=" << hasByoHook
-        << "} rawB=" << rawB << " rawW=" << rawW
-        << " useByoyomi=" << m_tc.useByoyomi;
-
-    if (m_tc.useByoyomi) {
-        const bool bApplied = m_clock ? m_clock->byoyomi1Applied() : false;
-        const bool wApplied = m_clock ? m_clock->byoyomi2Applied() : false;
-
-        t.btime = bApplied ? 0 : rawB;
-        t.wtime = wApplied ? 0 : rawW;
-        const bool whiteToMove = m_refs.gc
-            && m_refs.gc->currentPlayer() == ShogiGameController::Player2;
-        t.byoyomi = whiteToMove ? m_tc.byoyomiMs2 : m_tc.byoyomiMs1;
-        t.binc = t.winc = 0;
-
-        qCDebug(lcGame).noquote()
-            << "computeGoTimes_: BYO"
-            << " bApplied=" << bApplied << " wApplied=" << wApplied
-            << " => btime=" << t.btime << " wtime=" << t.wtime
-            << " byoyomi=" << t.byoyomi;
-    } else {
-        // USI（将棋所の仕様）では btime + binc が今回の手に使える時間を表す。
-        // 時計の残り時間には次に使う加算分が既に含まれているので、差し引いて送る。
-        t.btime = qMax<qint64>(0, rawB - m_tc.incMs1);
-        t.wtime = qMax<qint64>(0, rawW - m_tc.incMs2);
-        t.byoyomi = 0;
-        t.binc = m_tc.incMs1;
-        t.winc = m_tc.incMs2;
-
-        qCDebug(lcGame).noquote()
-            << "computeGoTimes_: FISCHER"
-            << " => btime=" << t.btime << " wtime=" << t.wtime
-            << " binc=" << t.binc << " winc=" << t.winc;
-    }
-
-    return t;
-}
-
-void MatchTimekeeper::computeGoTimesForUSI(qint64& outB, qint64& outW) const
-{
-    const GoTimes t = computeGoTimes();
-    outB = t.btime;
-    outW = t.wtime;
-}
-
-void MatchTimekeeper::refreshGoTimes()
-{
-    qint64 b = 0, w = 0;
-    computeGoTimesForUSI(b, w);
 }
 
 // ============================================================
@@ -224,8 +125,8 @@ void MatchTimekeeper::recomputeClockSnapshot(QString& turnText, QString& p1, QSt
         turnText = p1Turn ? QObject::tr("先手番") : QObject::tr("後手番");
     }
 
-    const qint64 t1ms = qMax<qint64>(0, m_clock->getPlayer1TimeIntMs());
-    const qint64 t2ms = qMax<qint64>(0, m_clock->getPlayer2TimeIntMs());
+    const qint64 t1ms = qMax<qint64>(0, m_clock->remainingMs(1));
+    const qint64 t2ms = qMax<qint64>(0, m_clock->remainingMs(2));
 
     auto mmss = [](qint64 ms) {
         const qint64 s = ms / 1000;

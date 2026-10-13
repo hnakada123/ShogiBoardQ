@@ -62,44 +62,11 @@ private:
         return count;
     }
 
-    struct FileInfo {
-        QString relPath;
-        int lines;
-    };
-
-    static QList<FileInfo> collectSourceFiles()
-    {
-        const QString sourceDir = QStringLiteral(SOURCE_DIR);
-        const QString srcPath = sourceDir + QStringLiteral("/src");
-
-        QDirIterator it(srcPath, {"*.cpp", "*.h"}, QDir::Files, QDirIterator::Subdirectories);
-
-        QList<FileInfo> result;
-        while (it.hasNext()) {
-            it.next();
-            const int lines = countLines(it.filePath());
-            if (lines >= 0) {
-                result.append({QDir(sourceDir).relativeFilePath(it.filePath()), lines});
-            }
-        }
-        return result;
-    }
-
-    static int countFilesOverLines(const QList<FileInfo> &files, int threshold)
-    {
-        int count = 0;
-        for (const auto &f : files) {
-            if (f.lines > threshold)
-                ++count;
-        }
-        return count;
-    }
-
     // 既知の例外リスト: ファイルパス(src/からの相対) → 現在の行数上限
-    // リファクタリングでファイルが縮小されたら、この値も下げること。
-    // 例外リスト外のファイルが600行を超えたらテスト失敗となる。
-    // 新しい例外を追加する場合は、削減計画の Issue 番号を同時に記載すること。
-    // 2026-03-01 全ファイル600行以下達成。例外リストは空。
+    // 例外リスト外のファイルが1000行を超えたらテスト失敗となる。
+    // 上限は「1つのクラスを1つのファイルに収められる」大きさにしてある。小さい上限は、
+    // 責務ではなく行数でファイルを分けさせ（*_draw.cpp や *_setup.cpp のような分割）、
+    // 設計の見直しを妨げたので 2026-10-13 に600行から1000行へ上げ、500/550行の監視は外した。
     static QMap<QString, int> knownLargeFiles()
     {
         return {};
@@ -108,14 +75,14 @@ private:
 private slots:
     // ================================================================
     // a) ファイル行数上限テスト
-    //    - src/ 配下の .cpp/.h ファイルが 600行以下であることを検証
+    //    - src/ 配下の .cpp/.h ファイルが 1000行以下であることを検証
     //    - 既知の例外リストにあるファイルは、登録された上限値で検証
     // ================================================================
     void fileLineLimits()
     {
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");
-        constexpr int defaultLimit = 600;
+        constexpr int defaultLimit = 1000;
 
         const QMap<QString, int> exceptions = knownLargeFiles();
 
@@ -264,7 +231,7 @@ private slots:
     // ================================================================
     void largeFileCount()
     {
-        const int kMaxLargeFiles = 0;        // 全ファイル600行以下達成
+        const int kMaxLargeFiles = 0;
         const int kLargeFileThreshold = 1000;
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
@@ -604,62 +571,6 @@ private slots:
                 msg += QStringLiteral("  ") + v + QStringLiteral("\n");
             QFAIL(qPrintable(msg));
         }
-    }
-
-    // ================================================================
-    // j) 550行超ファイル数の上限チェック
-    //    src/ 配下の .cpp/.h で550行を超えるファイルの総数を監視
-    // ================================================================
-    void filesOver550()
-    {
-        constexpr int kMaxFilesOver550 = 1; // 実測値: 0 (2026-03-05, compact cleanup 後)
-        constexpr int kThreshold = 550;
-
-        const auto files = collectSourceFiles();
-        const int count = countFilesOverLines(files, kThreshold);
-
-        qDebug().noquote()
-            << QStringLiteral("KPI: files_over_550 = %1 (limit: %2)")
-                   .arg(count)
-                   .arg(kMaxFilesOver550);
-
-        if (count > 0) {
-            qDebug().noquote() << "  Files over 550 lines:";
-            for (const auto &f : files) {
-                if (f.lines > kThreshold)
-                    qDebug().noquote() << QStringLiteral("    %1: %2 lines").arg(f.relPath).arg(f.lines);
-            }
-        }
-
-        QVERIFY2(count <= kMaxFilesOver550,
-                 qPrintable(QStringLiteral("Too many files over %1 lines: %2 (limit: %3)")
-                                .arg(kThreshold)
-                                .arg(count)
-                                .arg(kMaxFilesOver550)));
-    }
-
-    // ================================================================
-    // k) 500行超ファイル数の上限チェック
-    //    src/ 配下の .cpp/.h で500行を超えるファイルの総数を監視
-    // ================================================================
-    void filesOver500()
-    {
-        constexpr int kMaxFilesOver500 = 14; // 実測値: 13 (2026-03-05, compact cleanup 後)
-        constexpr int kThreshold = 500;
-
-        const auto files = collectSourceFiles();
-        const int count = countFilesOverLines(files, kThreshold);
-
-        qDebug().noquote()
-            << QStringLiteral("KPI: files_over_500 = %1 (limit: %2)")
-                   .arg(count)
-                   .arg(kMaxFilesOver500);
-
-        QVERIFY2(count <= kMaxFilesOver500,
-                 qPrintable(QStringLiteral("Too many files over %1 lines: %2 (limit: %3)")
-                                .arg(kThreshold)
-                                .arg(count)
-                                .arg(kMaxFilesOver500)));
     }
 
     // ================================================================

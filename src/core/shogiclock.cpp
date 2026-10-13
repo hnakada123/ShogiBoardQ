@@ -3,11 +3,18 @@
 
 #include "shogiclock.h"
 #include "logcategories.h"
-#include <QtGlobal>
 #include <QDebug>
+#include <QtGlobal>
+
+namespace {
+QString hhmmss(int totalSec)
+{
+    return QString::asprintf("%02d:%02d:%02d", totalSec / 3600, (totalSec % 3600) / 60, totalSec % 60);
+}
+} // namespace
 
 // ============================================================
-// 構築
+// 構築・設定
 // ============================================================
 
 ShogiClock::ShogiClock(QObject *parent)
@@ -19,74 +26,62 @@ ShogiClock::ShogiClock(QObject *parent)
     connect(m_timer, &QTimer::timeout, this, &ShogiClock::updateClock);
 }
 
-// ============================================================
-// 設定
-// ============================================================
-
 void ShogiClock::setLoseOnTimeout(bool v) { m_loseOnTimeout = v; }
 
-void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
-                                int byoyomi1Seconds, int byoyomi2Seconds,
-                                int bincSeconds, int wincSeconds,
-                                bool isLimitedTime)
+void ShogiClock::setTimeControl(const TimeControl& timeControl)
 {
-    qCDebug(lcShogiClock, "setPlayerTimes p1=%d p2=%d byo1=%d byo2=%d inc1=%d inc2=%d limited=%d",
-            player1Seconds, player2Seconds, byoyomi1Seconds, byoyomi2Seconds,
-            bincSeconds, wincSeconds, isLimitedTime ? 1 : 0);
+    m_timeControl = timeControl.normalized();
+    m_timeLimitSet = !m_timeControl.isUnlimited();
+    qCDebug(lcShogiClock, "setTimeControl black{main=%lld byo=%lld inc=%lld} white{main=%lld byo=%lld inc=%lld} limited=%d",
+            m_timeControl.black.mainMs, m_timeControl.black.byoyomiMs, m_timeControl.black.incrementMs,
+            m_timeControl.white.mainMs, m_timeControl.white.byoyomiMs, m_timeControl.white.incrementMs,
+            m_timeLimitSet ? 1 : 0);
 
-    // 秒読みとインクリメントは排他
-    if (byoyomi1Seconds > 0 || byoyomi2Seconds > 0) {
-        m_byoyomi1TimeMs = qMax(0, byoyomi1Seconds) * 1000LL;
-        m_byoyomi2TimeMs = qMax(0, byoyomi2Seconds) * 1000LL;
-        m_bincMs = 0; m_wincMs = 0;
-    } else if (bincSeconds > 0 || wincSeconds > 0) {
-        m_byoyomi1TimeMs = 0; m_byoyomi2TimeMs = 0;
-        m_bincMs = qMax(0, bincSeconds) * 1000LL;
-        m_wincMs = qMax(0, wincSeconds) * 1000LL;
-    } else {
-        m_byoyomi1TimeMs = m_byoyomi2TimeMs = 0;
-        m_bincMs = m_wincMs = 0;
+    for (int player : {1, 2}) {
+        SideState& s = side(player);
+        s = SideState{};
+        // 初手にも加算を与える。以降は着手確定時に次の手の分を加算する。
+        s.remainingMs = qMax<qint64>(0, rules(player).mainMs) + qMax<qint64>(0, rules(player).incrementMs);
+        enterByoyomiIfExhausted(player);
     }
 
-    m_player1TimeMs = qMax(0, player1Seconds) * 1000LL;
-    m_player2TimeMs = qMax(0, player2Seconds) * 1000LL;
-
-    m_timeLimitSet = isLimitedTime;
-    m_byoyomi1Applied = false;
-    m_byoyomi2Applied = false;
     m_clockRunning = false;
     m_turnFinished = false;
     m_currentConsiderationCommitted = false;
     m_gameOver = false;
     m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
     m_resumingTurn = false;
-
-    // 持ち時間を使い切っている側（持ち時間0の秒読み対局を含む）は、初めから秒読みに入った状態にする。
-    // 着手後と同じく、手番でないあいだも秒読みの秒数を表示する（CSA は着手ごとにここで時計を合わせる）。
-    if (m_byoyomi1TimeMs > 0 && m_player1TimeMs <= 0) {
-        m_player1TimeMs = m_byoyomi1TimeMs;
-        m_byoyomi1Applied = true;
-    }
-    if (m_byoyomi2TimeMs > 0 && m_player2TimeMs <= 0) {
-        m_player2TimeMs = m_byoyomi2TimeMs;
-        m_byoyomi2Applied = true;
-    }
-
-    m_player1ConsiderationTimeMs = 0;
-    m_player2ConsiderationTimeMs = 0;
-    m_player1TotalConsiderationTimeMs = 0;
-    m_player2TotalConsiderationTimeMs = 0;
-
-    m_p1LastMoveShownSec = m_p2LastMoveShownSec = 0;
-    m_p1PrevShownTotalSec = m_p2PrevShownTotalSec = 0;
-
-    m_prevShownSecP1 = remainingDisplaySecP1();
-    m_prevShownSecP2 = remainingDisplaySecP2();
+    resetDisplayCache();
 
     // 「待った」用の履歴は、対局開始時の状態から積み直す。
-    clearHistory();
-    saveState();
+    m_history.clear();
+    pushHistory();
     emit timeUpdated();
+}
+
+void ShogiClock::setRemainingTimes(qint64 blackMs, qint64 whiteMs)
+{
+    updateClock();  // tick間の経過時間は合わせる前の値へ精算する
+    side(1).remainingMs = qMax<qint64>(0, blackMs);
+    side(2).remainingMs = qMax<qint64>(0, whiteMs);
+    for (int player : {1, 2}) {
+        side(player).byoyomiApplied = false;
+        enterByoyomiIfExhausted(player);
+    }
+    if (m_elapsedTimer.isValid()) m_lastTickMs = m_elapsedTimer.elapsed();
+    resetDisplayCache();
+    emit timeUpdated();
+}
+
+void ShogiClock::enterByoyomiIfExhausted(int player)
+{
+    // 持ち時間を使い切っている側（持ち時間0の秒読み対局を含む）は、初めから秒読みに入った状態にする。
+    // 着手後と同じく、手番でないあいだも秒読みの秒数を表示する。
+    SideState& s = side(player);
+    if (rules(player).byoyomiMs > 0 && s.remainingMs <= 0) {
+        s.remainingMs = rules(player).byoyomiMs;
+        s.byoyomiApplied = true;
+    }
 }
 
 void ShogiClock::setCurrentPlayer(int player)
@@ -96,10 +91,9 @@ void ShogiClock::setCurrentPlayer(int player)
     updateClock(); // tick間の経過時間は旧手番へ精算する
     m_currentPlayer = next;
     m_currentConsiderationCommitted = false;
-    m_resumedConsiderationMs[next - 1] = 0;
+    m_resumedConsiderationMs[index(next)] = 0;
     m_resumingTurn = false;
-    if (next == 1) m_player1ConsiderationTimeMs = 0;
-    else m_player2ConsiderationTimeMs = 0;
+    side(next).considerationMs = 0;
     m_turnFinished = false;
     if (m_elapsedTimer.isValid()) m_lastTickMs = m_elapsedTimer.elapsed();
 }
@@ -112,18 +106,15 @@ void ShogiClock::finishTurn()
 
 qint64 ShogiClock::remainingTurnTimeMs(int player) const
 {
-    const qint64 rem = player == 1 ? m_player1TimeMs : m_player2TimeMs;
-    const bool applied = player == 1 ? m_byoyomi1Applied : m_byoyomi2Applied;
-    const qint64 byo = player == 1 ? m_byoyomi1TimeMs : m_byoyomi2TimeMs;
+    const SideState& s = side(player);
     const qint64 pending = m_clockRunning && !m_turnFinished && player == m_currentPlayer
         ? qMax<qint64>(0, m_elapsedTimer.elapsed() - m_lastTickMs) : 0;
-    return qMax<qint64>(0, rem + (applied ? 0 : byo) - pending);
+    return qMax<qint64>(0, s.remainingMs + (s.byoyomiApplied ? 0 : rules(player).byoyomiMs) - pending);
 }
 
 qint64 ShogiClock::remainingMainTimeMs(int player) const
 {
-    const qint64 byo = player == 1 ? m_byoyomi1TimeMs : m_byoyomi2TimeMs;
-    return qMax<qint64>(0, remainingTurnTimeMs(player) - byo);
+    return qMax<qint64>(0, remainingTurnTimeMs(player) - rules(player).byoyomiMs);
 }
 
 // ============================================================
@@ -137,14 +128,10 @@ void ShogiClock::startClock()
     m_elapsedTimer.restart();
     m_turnFinished = false;
     m_lastTickMs = m_elapsedTimer.elapsed();
+    resetDisplayCache();
 
-    m_prevShownSecP1 = remainingDisplaySecP1();
-    m_prevShownSecP2 = remainingDisplaySecP2();
-
-    qCDebug(lcShogiClock, "[DEBUG] startClock: p1Ms=%lld (%d sec), p2Ms=%lld (%d sec), currentPlayer=%d",
-            m_player1TimeMs, m_prevShownSecP1,
-            m_player2TimeMs, m_prevShownSecP2,
-            m_currentPlayer);
+    qCDebug(lcShogiClock, "startClock: p1Ms=%lld p2Ms=%lld currentPlayer=%d",
+            side(1).remainingMs, side(2).remainingMs, m_currentPlayer);
 
     emit timeUpdated();
 
@@ -162,119 +149,9 @@ void ShogiClock::stopClock()
     emit timeUpdated();
 }
 
-int ShogiClock::remainingDisplaySecP1() const
-{
-    if (isUnlimited()) {
-        const qint64 currentMs = m_currentPlayer == 1 && !m_currentConsiderationCommitted
-            ? m_player1ConsiderationTimeMs : 0;
-        return static_cast<int>((m_player1TotalConsiderationTimeMs + currentMs) / 1000);
-    }
-    qint64 ms = qMax<qint64>(0, m_player1TimeMs);
-    return static_cast<int>((ms + 999) / 1000);
-}
-
-int ShogiClock::remainingDisplaySecP2() const
-{
-    if (isUnlimited()) {
-        const qint64 currentMs = m_currentPlayer == 2 && !m_currentConsiderationCommitted
-            ? m_player2ConsiderationTimeMs : 0;
-        return static_cast<int>((m_player2TotalConsiderationTimeMs + currentMs) / 1000);
-    }
-    qint64 ms = qMax<qint64>(0, m_player2TimeMs);
-    return static_cast<int>((ms + 999) / 1000);
-}
-
-void ShogiClock::updateShownConsiderationForPlayer(int player)
-{
-    // 総考慮ms → 秒（切り捨て）の差分から直近手の考慮秒数を算出
-    if (player == 1) {
-        const int totalSec = static_cast<int>(qMax<qint64>(0, m_player1TotalConsiderationTimeMs) / 1000);
-        const int diff = totalSec - m_p1PrevShownTotalSec;
-        m_p1LastMoveShownSec = qMax(0, diff);
-        m_p1PrevShownTotalSec = totalSec;
-    } else {
-        const int totalSec = static_cast<int>(qMax<qint64>(0, m_player2TotalConsiderationTimeMs) / 1000);
-        const int diff = totalSec - m_p2PrevShownTotalSec;
-        m_p2LastMoveShownSec = qMax(0, diff);
-        m_p2PrevShownTotalSec = totalSec;
-    }
-}
-
-// ============================================================
-// 着手確定時処理
-// ============================================================
-
-void ShogiClock::applyByoyomiAndResetConsideration1()
-{
-    // 累積へ加算した現在手の時間を、時計表示で二重に数えない。
-    if (m_currentPlayer == 1) m_currentConsiderationCommitted = true;
-    // 終局後は秒読み/加算は行わず、表示更新のみ
-    if (m_gameOver) {
-        m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
-        updateShownConsiderationForPlayer(1);
-        emit timeUpdated();
-        return;
-    }
-
-    m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
-    updateShownConsiderationForPlayer(1);
-
-    // 秒読み適用: 残り0以下 or 既に秒読み中なら秒読み時間をリセット
-    if (m_byoyomi1TimeMs > 0) {
-        if (m_player1TimeMs <= 0 || m_byoyomi1Applied) {
-            m_player1TimeMs = m_byoyomi1TimeMs;
-            m_byoyomi1Applied = true;
-        }
-    } else if (m_bincMs > 0) {
-        // インクリメント加算（残り0なら加算しない）
-        if (m_player1TimeMs > 0) m_player1TimeMs += m_bincMs;
-    }
-
-    // 着手を確定した状態を、次の手番の開始状態として「待った」用に残す。
-    saveState();
-    emit timeUpdated();
-}
-
-void ShogiClock::applyByoyomiAndResetConsideration2()
-{
-    // 累積へ加算した現在手の時間を、時計表示で二重に数えない。
-    if (m_currentPlayer == 2) m_currentConsiderationCommitted = true;
-    if (m_gameOver) {
-        m_player2TotalConsiderationTimeMs += m_player2ConsiderationTimeMs;
-        updateShownConsiderationForPlayer(2);
-        emit timeUpdated();
-        return;
-    }
-
-    m_player2TotalConsiderationTimeMs += m_player2ConsiderationTimeMs;
-    updateShownConsiderationForPlayer(2);
-
-    if (m_byoyomi2TimeMs > 0) {
-        if (m_player2TimeMs <= 0 || m_byoyomi2Applied) {
-            m_player2TimeMs = m_byoyomi2TimeMs;
-            m_byoyomi2Applied = true;
-        }
-    } else if (m_wincMs > 0) {
-        if (m_player2TimeMs > 0) m_player2TimeMs += m_wincMs;
-    }
-
-    saveState();
-    emit timeUpdated();
-}
-
-// ============================================================
-// タイマー更新
-// ============================================================
-
 void ShogiClock::updateClock()
 {
-    // 処理フロー:
-    // 1. 前回tickからの経過時間を算出
-    // 2. 持ち時間制限ありなら手番側の残り時間を減算
-    //    - 残り0以下になったら秒読み遷移 or 時間切れ判定
-    // 3. 制限なしなら考慮時間のみ加算
-    // 4. 秒表示が変わった場合のみtimeUpdatedを通知
-
+    // 前回tickからの経過時間を手番側へ課金し、秒表示が変わったときだけ通知する。
     if (!m_clockRunning) return;
     if (m_gameOver)      return;
 
@@ -290,238 +167,242 @@ void ShogiClock::updateClock()
     }
 
     if (m_timeLimitSet) {
-        auto step = [&](int player)->bool {
-            qint64& remMs      = (player == 1) ? m_player1TimeMs : m_player2TimeMs;
-            qint64& considerMs = (player == 1) ? m_player1ConsiderationTimeMs : m_player2ConsiderationTimeMs;
-            const qint64 byoMs = (player == 1) ? m_byoyomi1TimeMs : m_byoyomi2TimeMs;
-            bool& byoApplied   = (player == 1) ? m_byoyomi1Applied : m_byoyomi2Applied;
-
-            remMs      -= elapsed;
-            considerMs += elapsed;
-
-            if (remMs <= 0) {
-                if (byoMs > 0) {
-                    const qint64 overshoot = -remMs;
-                    if (!byoApplied) {
-                        // メイン時間→秒読みへ遷移
-                        remMs = byoMs - overshoot;
-                        byoApplied = true;
-                    } else {
-                        // 既に秒読み中で時間切れ
-                        remMs = 0;
-                    }
-                    if (remMs <= 0) {
-                        if (m_loseOnTimeout) {
-                            m_gameOver = true;
-                            m_timer->stop();
-                            m_clockRunning = false;
-                            if (player == 1) emit player1TimeOut();
-                            else             emit player2TimeOut();
-                        } else {
-                            remMs = 0;
-                        }
-                        emit timeUpdated();
-                        return true;
-                    }
-                } else {
-                    remMs = 0;
-                    if (m_loseOnTimeout) {
-                        m_gameOver = true;
-                        m_timer->stop();
-                        m_clockRunning = false;
-                        if (player == 1) emit player1TimeOut();
-                        else             emit player2TimeOut();
-                        emit timeUpdated();
-                        return true;
-                    }
-                }
-            }
-            return false;
-        };
-
-        if (m_currentPlayer == 1) {
-            if (step(1)) return;
-        } else {
-            if (step(2)) return;
-        }
+        if (chargeElapsed(m_currentPlayer, elapsed)) return;
     } else {
-        if (m_currentPlayer == 1) m_player1ConsiderationTimeMs += elapsed;
-        else                      m_player2ConsiderationTimeMs += elapsed;
+        side(m_currentPlayer).considerationMs += elapsed;
     }
 
-    debugCheckInvariants();
+    checkInvariants();
 
     // 秒表示が変わった時のみ通知（残りは切り上げ、累積消費時間は切り捨て）
-    const int sec1 = remainingDisplaySecP1();
-    const int sec2 = remainingDisplaySecP2();
-    if (sec1 != m_prevShownSecP1 || sec2 != m_prevShownSecP2) {
-        const int diff1 = m_prevShownSecP1 - sec1;
-        const int diff2 = m_prevShownSecP2 - sec2;
-        if (diff1 > 1 || diff2 > 1) {
-            qCDebug(lcShogiClock, "Display jump detected! P1: %d->%d (diff=%d), P2: %d->%d (diff=%d), currentPlayer=%d, p1Ms=%lld, p2Ms=%lld",
-                      m_prevShownSecP1, sec1, diff1,
-                      m_prevShownSecP2, sec2, diff2,
-                      m_currentPlayer, m_player1TimeMs, m_player2TimeMs);
-        }
-        m_prevShownSecP1 = sec1;
-        m_prevShownSecP2 = sec2;
+    const int sec1 = remainingDisplaySec(1);
+    const int sec2 = remainingDisplaySec(2);
+    if (sec1 != m_prevShownSec[0] || sec2 != m_prevShownSec[1]) {
+        m_prevShownSec[0] = sec1;
+        m_prevShownSec[1] = sec2;
         emit timeUpdated();
     }
 }
 
-// ============================================================
-// undo
-// ============================================================
-
-void ShogiClock::saveState()
+bool ShogiClock::chargeElapsed(int player, qint64 elapsed)
 {
-    qCDebug(lcShogiClock, "saveState p1=%lld p2=%lld c1=%lld c2=%lld t1=%lld t2=%lld byo1Applied=%d byo2Applied=%d p1PrevShownTot=%d p2PrevShownTot=%d p1Last=%d p2Last=%d",
-            m_player1TimeMs, m_player2TimeMs,
-            m_player1ConsiderationTimeMs, m_player2ConsiderationTimeMs,
-            m_player1TotalConsiderationTimeMs, m_player2TotalConsiderationTimeMs,
-            m_byoyomi1Applied ? 1 : 0, m_byoyomi2Applied ? 1 : 0,
-            m_p1PrevShownTotalSec, m_p2PrevShownTotalSec,
-            m_p1LastMoveShownSec, m_p2LastMoveShownSec);
+    SideState& s = side(player);
+    const qint64 byoMs = rules(player).byoyomiMs;
 
-    m_considerationCommittedHistory.push(m_currentConsiderationCommitted);
-    m_player1TimeHistory.push(m_player1TimeMs);
-    m_player2TimeHistory.push(m_player2TimeMs);
-    m_player1ConsiderationHistory.push(m_player1ConsiderationTimeMs);
-    m_player2ConsiderationHistory.push(m_player2ConsiderationTimeMs);
-    m_player1TotalConsiderationHistory.push(m_player1TotalConsiderationTimeMs);
-    m_player2TotalConsiderationHistory.push(m_player2TotalConsiderationTimeMs);
-    m_byoyomi1AppliedHistory.push(m_byoyomi1Applied);
-    m_byoyomi2AppliedHistory.push(m_byoyomi2Applied);
-    m_p1PrevShownTotalSecHistory.push(m_p1PrevShownTotalSec);
-    m_p2PrevShownTotalSecHistory.push(m_p2PrevShownTotalSec);
-    m_p1LastMoveShownSecHistory.push(m_p1LastMoveShownSec);
-    m_p2LastMoveShownSecHistory.push(m_p2LastMoveShownSec);
+    s.remainingMs -= elapsed;
+    s.considerationMs += elapsed;
+    if (s.remainingMs > 0) return false;
+
+    if (byoMs > 0 && !s.byoyomiApplied) {
+        // 持ち時間から秒読みへ。超過分は秒読みから引く
+        s.remainingMs = byoMs + s.remainingMs;
+        s.byoyomiApplied = true;
+        if (s.remainingMs > 0) return false;
+    }
+
+    s.remainingMs = 0;
+    if (m_loseOnTimeout) {
+        declareTimeout(player);
+    } else if (byoMs <= 0) {
+        // 時間切れを負けにしない設定（CSA の表示用時計など）で秒読みがなければ、0 のまま表示を続ける
+        return false;
+    }
+    emit timeUpdated();
+    return true;
+}
+
+void ShogiClock::declareTimeout(int player)
+{
+    m_gameOver = true;
+    m_timer->stop();
+    m_clockRunning = false;
+    if (player == 1) emit player1TimeOut();
+    else             emit player2TimeOut();
+}
+
+// ============================================================
+// 着手確定・待った
+// ============================================================
+
+void ShogiClock::commitMove(int player)
+{
+    SideState& s = side(player);
+    // 累積へ加算した現在手の時間を、時計表示で二重に数えない。
+    if (m_currentPlayer == player) m_currentConsiderationCommitted = true;
+    s.totalConsiderationMs += s.considerationMs;
+    updateShownConsideration(player);
+
+    // 終局後は秒読み/加算は行わず、表示更新のみ
+    if (m_gameOver) {
+        emit timeUpdated();
+        return;
+    }
+
+    const TimeControlSide& r = rules(player);
+    if (r.byoyomiMs > 0) {
+        // 残り0以下 or 既に秒読み中なら秒読み時間に戻す
+        if (s.remainingMs <= 0 || s.byoyomiApplied) {
+            s.remainingMs = r.byoyomiMs;
+            s.byoyomiApplied = true;
+        }
+    } else if (r.incrementMs > 0 && s.remainingMs > 0) {
+        // 次の手番の分の加算（使い切った後は加算しない）
+        s.remainingMs += r.incrementMs;
+    }
+
+    // 着手を確定した状態を、次の手番の開始状態として「待った」用に残す。
+    pushHistory();
+    emit timeUpdated();
+}
+
+void ShogiClock::pushHistory()
+{
+    HistoryEntry entry;
+    entry.side[0] = m_side[0];
+    entry.side[1] = m_side[1];
+    m_history.append(entry);
 }
 
 void ShogiClock::undo()
 {
     // 「待った」は2手分の状態を巻き戻す。履歴の末尾は現在の手番の開始状態で、
     // 2つ取り除いた末尾が、取り消す自分の手を指し始めたときの状態になる。
-    auto enough = [&]{
-        return m_considerationCommittedHistory.size() >= 3 &&
-               m_player1TimeHistory.size() >= 3 &&
-               m_player2TimeHistory.size() >= 3 &&
-               m_player1ConsiderationHistory.size() >= 3 &&
-               m_player2ConsiderationHistory.size() >= 3 &&
-               m_player1TotalConsiderationHistory.size() >= 3 &&
-               m_player2TotalConsiderationHistory.size() >= 3 &&
-               m_byoyomi1AppliedHistory.size() >= 3 &&
-               m_byoyomi2AppliedHistory.size() >= 3 &&
-               m_p1PrevShownTotalSecHistory.size() >= 3 &&
-               m_p2PrevShownTotalSecHistory.size() >= 3 &&
-               m_p1LastMoveShownSecHistory.size() >= 3 &&
-               m_p2LastMoveShownSecHistory.size() >= 3;
-    };
-    if (!enough()) return;
-
-    auto pop2 = [](auto& st){ st.pop(); st.pop(); };
-
-    pop2(m_considerationCommittedHistory);
-    m_currentConsiderationCommitted = m_considerationCommittedHistory.top();
-
-    pop2(m_player1TimeHistory);
-    m_player1TimeMs = m_player1TimeHistory.top();
-
-    pop2(m_player2TimeHistory);
-    m_player2TimeMs = m_player2TimeHistory.top();
-
-    pop2(m_player1ConsiderationHistory);
-    m_player1ConsiderationTimeMs = m_player1ConsiderationHistory.top();
-
-    pop2(m_player2ConsiderationHistory);
-    m_player2ConsiderationTimeMs = m_player2ConsiderationHistory.top();
-
-    pop2(m_player1TotalConsiderationHistory);
-    m_player1TotalConsiderationTimeMs = m_player1TotalConsiderationHistory.top();
-
-    pop2(m_player2TotalConsiderationHistory);
-    m_player2TotalConsiderationTimeMs = m_player2TotalConsiderationHistory.top();
-
-    pop2(m_byoyomi1AppliedHistory);
-    m_byoyomi1Applied = m_byoyomi1AppliedHistory.top();
-
-    pop2(m_byoyomi2AppliedHistory);
-    m_byoyomi2Applied = m_byoyomi2AppliedHistory.top();
-
-    pop2(m_p1PrevShownTotalSecHistory);
-    m_p1PrevShownTotalSec = m_p1PrevShownTotalSecHistory.top();
-
-    pop2(m_p2PrevShownTotalSecHistory);
-    m_p2PrevShownTotalSec = m_p2PrevShownTotalSecHistory.top();
-
-    pop2(m_p1LastMoveShownSecHistory);
-    m_p1LastMoveShownSec = m_p1LastMoveShownSecHistory.top();
-
-    pop2(m_p2LastMoveShownSecHistory);
-    m_p2LastMoveShownSec = m_p2LastMoveShownSecHistory.top();
+    if (m_history.size() < 3) return;
+    m_history.removeLast();
+    m_history.removeLast();
+    const HistoryEntry& entry = m_history.constLast();
+    m_side[0] = entry.side[0];
+    m_side[1] = entry.side[1];
 
     // 手番は2手前と同じ。考慮時間は「待った」の時点から数え直す。
-    if (m_currentPlayer == 1) m_player1ConsiderationTimeMs = 0;
-    else m_player2ConsiderationTimeMs = 0;
+    side(m_currentPlayer).considerationMs = 0;
     m_currentConsiderationCommitted = false;
     m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
     m_resumingTurn = false;
     m_turnFinished = false;
     if (m_elapsedTimer.isValid()) m_lastTickMs = m_elapsedTimer.elapsed();
-    m_prevShownSecP1 = remainingDisplaySecP1();
-    m_prevShownSecP2 = remainingDisplaySecP2();
+    resetDisplayCache();
     emit timeUpdated();
 }
 
-void ShogiClock::clearHistory()
+// ============================================================
+// 中断・再開
+// ============================================================
+
+ShogiClock::Snapshot ShogiClock::pauseAndSnapshot()
 {
-    m_considerationCommittedHistory.clear();
-    m_player1TimeHistory.clear();
-    m_player2TimeHistory.clear();
-    m_player1ConsiderationHistory.clear();
-    m_player2ConsiderationHistory.clear();
-    m_player1TotalConsiderationHistory.clear();
-    m_player2TotalConsiderationHistory.clear();
-    m_byoyomi1AppliedHistory.clear();
-    m_byoyomi2AppliedHistory.clear();
-    m_p1PrevShownTotalSecHistory.clear();
-    m_p2PrevShownTotalSecHistory.clear();
-    m_p1LastMoveShownSecHistory.clear();
-    m_p2LastMoveShownSecHistory.clear();
+    stopClock();
+    Snapshot state;
+    state.timeControl = m_timeControl;
+    state.timeLimitSet = m_timeLimitSet;
+    state.loseOnTimeout = m_loseOnTimeout;
+    state.considerationCommitted = m_currentConsiderationCommitted;
+    state.currentPlayer = m_currentPlayer;
+    state.side[0] = m_side[0];
+    state.side[1] = m_side[1];
+    state.prevShownSec[0] = m_prevShownSec[0];
+    state.prevShownSec[1] = m_prevShownSec[1];
+    state.history = m_history;
+    return state;
+}
+
+void ShogiClock::restoreSnapshot(const Snapshot& state)
+{
+    m_timer->stop();
+    m_clockRunning = false;
+    m_turnFinished = false;
+    m_gameOver = false;
+    m_timeControl = state.timeControl;
+    m_timeLimitSet = state.timeLimitSet;
+    m_loseOnTimeout = state.loseOnTimeout;
+    m_currentConsiderationCommitted = state.considerationCommitted;
+    m_currentPlayer = state.currentPlayer;
+    m_side[0] = state.side[0];
+    m_side[1] = state.side[1];
+    m_prevShownSec[0] = state.prevShownSec[0];
+    m_prevShownSec[1] = state.prevShownSec[1];
+    m_history = state.history;
+    m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
+    m_resumedConsiderationMs[index(m_currentPlayer)] = side(m_currentPlayer).considerationMs;
+    m_resumingTurn = true;
+    emit timeUpdated();
+}
+
+void ShogiClock::setMeasuredConsiderationTime(int player, qint64 elapsedMs)
+{
+    const qint64 total = qMax<qint64>(0, elapsedMs) + m_resumedConsiderationMs[index(player)];
+    m_resumedConsiderationMs[index(player)] = 0;
+    side(player).considerationMs = total;
+}
+
+void ShogiClock::setConsiderationTimeMs(int player, qint64 ms)
+{
+    side(player).considerationMs = qMax<qint64>(0, ms);
+}
+
+// ============================================================
+// 表示
+// ============================================================
+
+int ShogiClock::remainingDisplaySec(int player) const
+{
+    const SideState& s = side(player);
+    if (isUnlimited()) {
+        const qint64 currentMs = m_currentPlayer == player && !m_currentConsiderationCommitted
+            ? s.considerationMs : 0;
+        return static_cast<int>((s.totalConsiderationMs + currentMs) / 1000);
+    }
+    return static_cast<int>((qMax<qint64>(0, s.remainingMs) + 999) / 1000);
+}
+
+void ShogiClock::resetDisplayCache()
+{
+    m_prevShownSec[0] = remainingDisplaySec(1);
+    m_prevShownSec[1] = remainingDisplaySec(2);
+}
+
+void ShogiClock::updateShownConsideration(int player)
+{
+    // 総考慮ms → 秒（切り捨て）の差分から直近手の考慮秒数を求める
+    SideState& s = side(player);
+    const int totalSec = static_cast<int>(qMax<qint64>(0, s.totalConsiderationMs) / 1000);
+    s.lastMoveShownSec = qMax(0, totalSec - s.prevShownTotalSec);
+    s.prevShownTotalSec = totalSec;
+}
+
+QString ShogiClock::timeString(int player) const
+{
+    return hhmmss(remainingDisplaySec(player));
+}
+
+QString ShogiClock::considerationTimeString(int player) const
+{
+    const int sec = side(player).lastMoveShownSec;
+    return QString::asprintf("%02d:%02d", sec / 60, sec % 60);
+}
+
+QString ShogiClock::totalConsiderationTimeString(int player) const
+{
+    return hhmmss(static_cast<int>(qMax<qint64>(0, side(player).totalConsiderationMs) / 1000));
+}
+
+QString ShogiClock::considerationAndTotalTime(int player) const
+{
+    return considerationTimeString(player) + QLatin1Char('/') + totalConsiderationTimeString(player);
 }
 
 // ============================================================
 // 内部ヘルパ
 // ============================================================
 
-void ShogiClock::debugCheckInvariants() const
+void ShogiClock::checkInvariants() const
 {
-    if (m_player1TimeMs < 0 || m_player2TimeMs < 0) {
-        qWarning().noquote() << "[ShogiClock] invariant violation: negative time"
-                             << "p1=" << m_player1TimeMs << "p2=" << m_player2TimeMs;
-    }
-    if ((m_byoyomi1TimeMs > 0 || m_byoyomi2TimeMs > 0)
-        && (m_bincMs != 0 || m_wincMs != 0)) {
-        qWarning().noquote() << "[ShogiClock] invariant violation: byoyomi and increment both set";
-    }
-    if (!m_byoyomi1TimeMs && m_byoyomi1Applied) {
-        qWarning().noquote() << "[ShogiClock] invariant violation: byoyomi1Applied without byoyomi1";
-    }
-    if (!m_byoyomi2TimeMs && m_byoyomi2Applied) {
-        qWarning().noquote() << "[ShogiClock] invariant violation: byoyomi2Applied without byoyomi2";
+    for (int player : {1, 2}) {
+        if (side(player).remainingMs < 0) {
+            qWarning().noquote() << "[ShogiClock] invariant violation: negative time for player" << player;
+        }
+        if (rules(player).byoyomiMs <= 0 && side(player).byoyomiApplied) {
+            qWarning().noquote() << "[ShogiClock] invariant violation: byoyomi applied without byoyomi" << player;
+        }
     }
 }
-
-void ShogiClock::setPlayer1ConsiderationTime(int ms)
-{
-    m_player1ConsiderationTimeMs = static_cast<qint64>(qMax(0, ms));
-}
-
-void ShogiClock::setPlayer2ConsiderationTime(int ms)
-{
-    m_player2ConsiderationTimeMs = static_cast<qint64>(qMax(0, ms));
-}
-
-int ShogiClock::player1ConsiderationTimeMs() const { return static_cast<int>(m_player1ConsiderationTimeMs); }
-
-int ShogiClock::player2ConsiderationTimeMs() const { return static_cast<int>(m_player2ConsiderationTimeMs); }

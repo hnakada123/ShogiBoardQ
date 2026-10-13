@@ -18,7 +18,7 @@ class ShogiBoard;
  * @brief 対局開始パラメータの構築を担う static ユーティリティクラス
  *
  * GameStartCoordinator から以下の責務を分離:
- *  - ダイアログの値解釈（TimeControl / PlayMode の抽出）
+ *  - ダイアログの値解釈（時間設定 / PlayMode の抽出）
  *  - PlayMode 判定ロジック
  *  - 開始局面プリセットテーブル
  *  - 対局者名・盤面適用のユーティリティ
@@ -26,12 +26,12 @@ class ShogiBoard;
 class GameStartOptionsBuilder
 {
 public:
-    using TimeControl = GameStartCoordinator::TimeControl;
+    using TimeSettings = GameStartCoordinator::TimeSettings;
 
-    // --- TimeControl 構築 ---
+    // --- 時間設定の構築 ---
 
-    /// StartGameDialogData から TimeControl を組み立てる
-    static TimeControl buildTimeControl(const StartGameDialogData& data);
+    /// StartGameDialogData から時間設定を組み立てる（秒読みと加算が両方あれば秒読みを使う）
+    static TimeSettings buildTimeControl(const StartGameDialogData& data);
 
     // --- PlayMode 判定 ---
 

@@ -157,10 +157,8 @@ void EngineVsEngineStrategy::kickNextEvETurn()
     QString& pos    = p1ToMove ? m_ctx.positionStr1()     : m_ctx.positionStr2();
     QString& ponder = p1ToMove ? m_ctx.positionPonder1()  : m_ctx.positionPonder2();
 
-    const auto times = m_ctx.computeGoTimes();
-    const UsiTimingParams timing{static_cast<int>(times.byoyomi), QString::number(times.btime),
-                                 QString::number(times.wtime), static_cast<int>(times.binc),
-                                 static_cast<int>(times.winc), times.byoyomi > 0};
+    // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
+    const UsiTimingParams timing;
     m_ctx.gc()->setPromote(false);
     m_waitingForMove = true;
     mover->requestMatchMove(pos, ponder, timing);
@@ -195,21 +193,13 @@ void EngineVsEngineStrategy::onEngineMoveReady(QPoint from, QPoint to,
         m_ctx.positionStr1() = m_ctx.positionStr2();
     }
 
+    const int moverSide = p1ToMove ? 1 : 2;
     if (m_ctx.clock()) {
-        const qint64 thinkMs = mover ? mover->lastBestmoveElapsedMs() : 0;
-        if (p1ToMove) {
-            m_ctx.clock()->setMeasuredConsiderationTime(1, thinkMs);
-            m_ctx.clock()->applyByoyomiAndResetConsideration1();
-        } else {
-            m_ctx.clock()->setMeasuredConsiderationTime(2, thinkMs);
-            m_ctx.clock()->applyByoyomiAndResetConsideration2();
-        }
+        m_ctx.clock()->setMeasuredConsiderationTime(moverSide, mover ? mover->lastBestmoveElapsedMs() : 0);
+        m_ctx.clock()->commitMove(moverSide);
     }
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        const QString elapsed = p1ToMove
-                                    ? m_ctx.clock()->player1ConsiderationAndTotalTime()
-                                    : m_ctx.clock()->player2ConsiderationAndTotalTime();
-        m_ctx.hooks().game.appendKifuLine(rec, elapsed);
+        m_ctx.hooks().game.appendKifuLine(rec, m_ctx.clock()->considerationAndTotalTime(moverSide));
     }
 
     if (receiver) {

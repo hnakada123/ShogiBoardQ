@@ -1,4 +1,6 @@
 #include <QtTest>
+
+#include "timecontrol_test_helper.h"
 #include <QTemporaryDir>
 #include <QFrame>
 
@@ -100,24 +102,24 @@ private slots:
         ShogiClock clock;
         TimeDisplayPresenter presenter(&view);
         presenter.setClock(&clock);
-        clock.setPlayerTimes(0, 0, 0, 0, 0, 0, false);
-        clock.setPlayer1ConsiderationTime(1750);
+        clock.setTimeControl(TestTime::rules(0, 0, 0, 0, 0, 0));
+        clock.setConsiderationTimeMs(1, 1750);
         presenter.onMatchTimeUpdated(0, 0, true, 0);
         // 無制限対局は累積消費時間なので、残り時間と区別できるよう「消費」を付ける。
         QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("消費 00:00:01"));
         QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("消費 00:00:00"));
         QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
-        clock.applyByoyomiAndResetConsideration1();
+        clock.commitMove(1);
         clock.setCurrentPlayer(2);
         clock.setMeasuredConsiderationTime(2, 2999);
-        clock.applyByoyomiAndResetConsideration2();
+        clock.commitMove(2);
         presenter.onMatchTimeUpdated(0, 0, false, 0);
         QCOMPARE(view.blackClockLabel()->text(),
-                 QStringLiteral("消費 ") + clock.getPlayer1TotalConsiderationTime());
+                 QStringLiteral("消費 ") + clock.totalConsiderationTimeString(1));
         QCOMPARE(view.whiteClockLabel()->text(),
-                 QStringLiteral("消費 ") + clock.getPlayer2TotalConsiderationTime());
+                 QStringLiteral("消費 ") + clock.totalConsiderationTimeString(2));
 
-        clock.setPlayerTimes(10, 10, 0, 0, 0, 0, true);
+        clock.setTimeControl(TestTime::rules(10, 10, 0, 0, 0, 0));
         presenter.onMatchTimeUpdated(9501, 10000, true, 9501);
         QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("00:00:10"));
         QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("00:00:10"));
@@ -159,14 +161,14 @@ private slots:
         TimeDisplayPresenter presenter(&view);
         presenter.setClock(&clock);
         // 後手には持ち時間を残し、後手の手番では手番でない先手の時計で警告しないことを確かめる
-        clock.setPlayerTimes(mainSec, 60, byoyomiSec, byoyomiSec, incrementSec, incrementSec, true);
-        if (enterByoyomi) clock.applyByoyomiAndResetConsideration1();
+        clock.setTimeControl(TestTime::rules(mainSec, 60, byoyomiSec, byoyomiSec, incrementSec, incrementSec));
+        if (enterByoyomi) clock.commitMove(1);
         presenter.onMatchTimeUpdated(remainingMs, 60000, true, 0);
         QCOMPARE(view.highlighting()->urgency(), expected);
         // 相手の手番の時計は警告しない。時間無制限の対局も警告しない。
         presenter.onMatchTimeUpdated(remainingMs, 60000, false, 0);
         QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
-        clock.setPlayerTimes(0, 0, 0, 0, 0, 0, false);
+        clock.setTimeControl(TestTime::rules(0, 0, 0, 0, 0, 0));
         presenter.onMatchTimeUpdated(0, 0, true, 0);
         QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
     }

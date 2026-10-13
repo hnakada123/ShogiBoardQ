@@ -15,49 +15,32 @@
 // TimeControl 構築
 // ============================================================
 
-GameStartOptionsBuilder::TimeControl
+GameStartOptionsBuilder::TimeSettings
 GameStartOptionsBuilder::buildTimeControl(const StartGameDialogData& data)
 {
-    TimeControl tc;
+    const auto minutesToMs = [](int hours, int minutes) {
+        return qMax<qint64>(0, (static_cast<qint64>(hours) * 3600 + minutes * 60) * 1000);
+    };
+    const auto secondsToMs = [](int seconds) { return qMax<qint64>(0, static_cast<qint64>(seconds) * 1000); };
+
+    TimeControl rules;
+    rules.black.mainMs = minutesToMs(data.basicTimeHour1, data.basicTimeMinutes1);
+    rules.white.mainMs = minutesToMs(data.basicTimeHour2, data.basicTimeMinutes2);
+    rules.black.byoyomiMs = secondsToMs(data.byoyomiSec1);
+    rules.white.byoyomiMs = secondsToMs(data.byoyomiSec2);
+    rules.black.incrementMs = secondsToMs(data.addEachMoveSec1);
+    rules.white.incrementMs = secondsToMs(data.addEachMoveSec2);
+
+    TimeSettings tc;
     tc.loseOnTimeout = data.isLoseOnTimeout;
-
-    const int h1   = data.basicTimeHour1;
-    const int m1   = data.basicTimeMinutes1;
-    const int h2   = data.basicTimeHour2;
-    const int m2   = data.basicTimeMinutes2;
-    const int byo1 = data.byoyomiSec1;
-    const int byo2 = data.byoyomiSec2;
-    const int inc1 = data.addEachMoveSec1;
-    const int inc2 = data.addEachMoveSec2;
-
-    const qint64 base1Ms = qMax<qint64>(0, (static_cast<qint64>(h1)*3600 + m1*60) * 1000);
-    const qint64 base2Ms = qMax<qint64>(0, (static_cast<qint64>(h2)*3600 + m2*60) * 1000);
-
-    const qint64 byo1Ms  = qMax<qint64>(0, static_cast<qint64>(byo1) * 1000);
-    const qint64 byo2Ms  = qMax<qint64>(0, static_cast<qint64>(byo2) * 1000);
-
-    const qint64 inc1Ms  = qMax<qint64>(0, static_cast<qint64>(inc1) * 1000);
-    const qint64 inc2Ms  = qMax<qint64>(0, static_cast<qint64>(inc2) * 1000);
-
-    // byoyomi と increment は排他運用（byoyomi 優先）
-    const bool useByoyomi = (byo1Ms > 0) || (byo2Ms > 0);
-
-    tc.p1.baseMs      = base1Ms;
-    tc.p2.baseMs      = base2Ms;
-    tc.p1.byoyomiMs   = useByoyomi ? byo1Ms : 0;
-    tc.p2.byoyomiMs   = useByoyomi ? byo2Ms : 0;
-    tc.p1.incrementMs = useByoyomi ? 0      : inc1Ms;
-    tc.p2.incrementMs = useByoyomi ? 0      : inc2Ms;
-
-    tc.enabled = (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
-                 (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
-                 (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
+    tc.rules = rules.normalized();
+    tc.enabled = !tc.rules.isUnlimited();
 
     qCDebug(lcGame).noquote()
         << "buildTimeControl:"
         << " enabled=" << tc.enabled
-        << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
-        << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+        << " P1{base=" << tc.rules.black.mainMs << " byo=" << tc.rules.black.byoyomiMs << " inc=" << tc.rules.black.incrementMs << "}"
+        << " P2{base=" << tc.rules.white.mainMs << " byo=" << tc.rules.white.byoyomiMs << " inc=" << tc.rules.white.incrementMs << "}";
 
     return tc;
 }

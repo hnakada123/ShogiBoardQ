@@ -22,7 +22,7 @@ GameStartCoordinator::initializeGame(Ctx)
     │  3) 開始SFENの決定（現在局面 or プリセット）
     │  4) PlayModeの決定
     │  5) StartOptionsの構築
-    │  6) TimeControlの構築
+    │  6) 時間設定（TimeSettings）の構築
     │  7) prepare() → 時計の初期化
     │  8) playerNamesResolved シグナル発行
     │  9) start(StartParams) → 対局開始
@@ -30,8 +30,7 @@ GameStartCoordinator::initializeGame(Ctx)
     │
     ▼
 GameStartCoordinator::start(StartParams)
-    │  TimeControlの正規化・適用
-    │  MatchCoordinator::setTimeControlConfig()
+    │  時間の決まりの正規化・時計への適用依頼
     │
     ▼
 MatchCoordinator::configureAndStart(StartOptions)
@@ -304,20 +303,27 @@ struct StartOptions {
 
 `ensureHumanAtBottomIfApplicable()` は、ダイアログの「人間を手前に表示」設定に応じて盤面を反転する。
 
-### ステップ6: TimeControlの構築（行890-934）
+### ステップ6: 時間設定（TimeSettings）の構築
+
+`GameStartOptionsBuilder::buildTimeControl()` がダイアログの値から作る。
 
 ```cpp
-TimeControl tc;
-tc.p1.baseMs      = hms_to_ms(h1, m1);  // 持ち時間（時:分 → ms）
-tc.p2.baseMs      = hms_to_ms(h2, m2);
-tc.p1.byoyomiMs   = sec_to_ms(byo1);    // 秒読み（秒 → ms）
-tc.p2.byoyomiMs   = sec_to_ms(byo2);
-tc.p1.incrementMs = sec_to_ms(inc1);     // フィッシャー加算（秒 → ms）
-tc.p2.incrementMs = sec_to_ms(inc2);
+TimeControl rules;                       // src/core/timecontrol.h
+rules.black.mainMs      = minutesToMs(h1, m1);  // 持ち時間（時:分 → ms）
+rules.white.mainMs      = minutesToMs(h2, m2);
+rules.black.byoyomiMs   = secondsToMs(byo1);    // 秒読み（秒 → ms）
+rules.white.byoyomiMs   = secondsToMs(byo2);
+rules.black.incrementMs = secondsToMs(inc1);    // フィッシャー加算（秒 → ms）
+rules.white.incrementMs = secondsToMs(inc2);
+
+TimeSettings tc;                         // GameStartCoordinator::TimeSettings
+tc.rules = rules.normalized();
+tc.enabled = !tc.rules.isUnlimited();
+tc.loseOnTimeout = data.isLoseOnTimeout;
 ```
 
 - ダイアログの時間設定をミリ秒に変換する
-- **秒読み優先**: 秒読みとフィッシャー加算の両方が設定されている場合、秒読みが優先されフィッシャー加算は0になる
+- **秒読み優先**: 秒読みとフィッシャー加算の両方が設定されている場合、`normalized()` が秒読みを残してフィッシャー加算を0にする
 - いずれかの時間値が設定されていれば `tc.enabled = true`
 
 ### ステップ7: prepare() → 時計の初期化（行936-944）
@@ -387,7 +393,7 @@ delete dlg;
 
 2. **ダイアログから時間設定を抽出**
    ```cpp
-   const TimeControl tc = extractTimeControlFromDialog(req.startDialog);
+   const TimeSettings tc = extractTimeControlFromDialog(req.startDialog);
    ```
 
 3. **時計適用シグナルの発行**
@@ -424,9 +430,9 @@ StartOptionsを受け取り、MatchCoordinatorへ対局開始を指示する。
    if (!validate(params, reason)) return;
    ```
 
-2. **TimeControlの正規化**
+2. **時間の決まりの正規化**
+   - `tc.rules = tc.rules.normalized()`（秒読み優先でフィッシャー加算を落とす）
    - `enabled` フラグの補正（値があるのにfalseの場合を救済）
-   - 秒読み優先でフィッシャー加算を落とす
 
 3. **UI（時計）へ適用依頼**
    ```cpp
@@ -434,16 +440,8 @@ StartOptionsを受け取り、MatchCoordinatorへ対局開始を指示する。
    emit applyTimeControlRequested(tc);
    ```
 
-4. **MatchCoordinatorへ時間制御を直接反映**
-   ```cpp
-   m_match->setTimeControlConfig(
-       useByoyomi,
-       tc.p1.byoyomiMs, tc.p2.byoyomiMs,
-       tc.p1.incrementMs, tc.p2.incrementMs,
-       loseOnTimeout
-   );
-   m_match->refreshGoTimes();
-   ```
+4. **時間の決まりは時計だけが持つ**
+   - 司令塔（MatchCoordinator）へ時間の決まりを写すことはしない。エンジンへの `go` の時間は、送信時にエンジンにつないだ時計から `UsiGoTimeCalculator` が求める（[時間設定の仕様](game-time-control-spec.md) の「時間の決まりの持ち方」）
 
 5. **対局者名の通知（`params.announcePlayerNames` のときだけ）**
    ```cpp
@@ -685,7 +683,7 @@ if (isHandicap && whiteToMove) {
 ```
 
 `startEvEFirstMoveByBlack()` / `startEvEFirstMoveByWhite()` では:
-- `computeGoTimes()` でUSI時間パラメータを計算
+- USI時間パラメータは、エンジンにつないだ時計から `UsiGoTimeCalculator` が求める
 - `Usi::requestMatchMove()` で非同期に思考を要求し、`matchMoveReady` の受信後に着手処理へ進む
 - `ShogiGameController::validateAndMove()` でエンジンの指し手を盤面に適用
 - 時計の消費時間を設定
@@ -753,7 +751,7 @@ ShogiGameController::validateAndMove()
     ↓
 MatchCoordinator::onHumanMove_HvE(from, to, prettyMove)
     ├─ position文字列を更新
-    ├─ computeGoTimesForUSI() で時間パラメータを計算
+    ├─ 時間パラメータはエンジンにつないだ時計から求める（UsiGoTimeCalculator）
     └─ エンジンに go コマンドを送信
     ↓
 エンジンが bestmove を返す

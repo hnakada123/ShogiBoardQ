@@ -3,7 +3,6 @@
 
 #include "matchruntimequeryservice.h"
 #include "playmodepolicyservice.h"
-#include "timecontrolcontroller.h"
 #include "logcategories.h"
 
 void MatchRuntimeQueryService::updateDeps(const Deps& deps)
@@ -45,37 +44,6 @@ bool MatchRuntimeQueryService::isHumanSide(ShogiGameController::Player p) const
     }
     qCDebug(lcApp) << "isHumanSide: playModePolicy=null, player=" << static_cast<int>(p);
     return false;
-}
-
-// --- 時間取得（TimeControlController に委譲）---
-
-qint64 MatchRuntimeQueryService::remainingMsFor(MatchCoordinator::Player p) const
-{
-    if (!m_deps.timeController) {
-        qCDebug(lcApp) << "remainingMsFor: timeController=null";
-        return 0;
-    }
-    const int player = (p == MatchCoordinator::P1) ? 1 : 2;
-    return m_deps.timeController->remainingMs(player);
-}
-
-qint64 MatchRuntimeQueryService::incrementMsFor(MatchCoordinator::Player p) const
-{
-    if (!m_deps.timeController) {
-        qCDebug(lcApp) << "incrementMsFor: timeController=null";
-        return 0;
-    }
-    const int player = (p == MatchCoordinator::P1) ? 1 : 2;
-    return m_deps.timeController->incrementMs(player);
-}
-
-qint64 MatchRuntimeQueryService::byoyomiMs() const
-{
-    if (!m_deps.timeController) {
-        qCDebug(lcApp) << "byoyomiMs: timeController=null";
-        return 0;
-    }
-    return m_deps.timeController->clockByoyomiMs();
 }
 
 // --- SFEN アクセサ（MatchCoordinator に委譲）---

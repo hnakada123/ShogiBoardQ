@@ -6,12 +6,12 @@
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "usimatchhandler.h"
+#include "timecontrol_test_helper.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
 #include "thinkinginfopresenter.h"
 #include "settingscommon.h"
 #include "enginepondersettings.h"
-#include "matchtimekeeper.h"
 #include "usi.h"
 #include "sfenutils.h"
 #include <QTemporaryDir>
@@ -83,7 +83,7 @@ public:
         protocol.initializeEngineAsync();
         if (initialized.isEmpty() && !initialized.wait(5000)) return false;
         if (!initialized.first().first().toBool()) return false;
-        clock.setPlayerTimes(300, 0, 0, byoyomi / 1000, 0, 0, true);
+        clock.setTimeControl(TestTime::rules(300, 0, 0, byoyomi / 1000, 0, 0));
         clock.setCurrentPlayer(2);
         clock.startClock();
         return true;
@@ -92,8 +92,8 @@ public:
     {
         const int previous = completed;
         lastTo = QPoint(-1, -1);
-        const UsiTimingParams timing{byoyomi, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true};
-        match.requestMove(position, ponder, timing);
+        // 思考時間はつないだ時計から求める
+        match.requestMove(position, ponder, UsiTimingParams{});
         const bool finished = QTest::qWaitFor([&] {
             return completed > previous || errors > 0 || clock.isGameOver();
         }, byoyomi + 2000);
@@ -102,7 +102,7 @@ public:
     void humanMove(const QString& move)
     {
         clock.setCurrentPlayer(1);
-        clock.applyByoyomiAndResetConsideration2();
+        clock.commitMove(2);
         position += QLatin1Char(' ') + move;
         clock.setCurrentPlayer(2);
     }
@@ -200,39 +200,24 @@ private slots:
         QCOMPARE(h.commands.last().startsWith(QStringLiteral("go ponder ")), expectPonder);
         QCOMPARE(h.errors, 0);
     }
-    void incrementIsExcludedFromRemaining()
-    {
-        // 時計の残り時間は次に使う加算分を含むが、USI の btime/wtime には含めない。
-        MatchTimekeeper keeper;
-        MatchTimekeeper::Hooks hooks;
-        hooks.remainingMsFor = [](int player) { return player == 1 ? 10000LL : 17000LL; };
-        keeper.setHooks(hooks);
-        keeper.setTimeControlConfig(false, 0, 0, 10000, 7000, true);
-        const auto times = keeper.computeGoTimes();
-        QCOMPARE(times.btime, 0LL);
-        QCOMPARE(times.wtime, 10000LL);
-        QCOMPARE(times.binc, 10000LL);
-        QCOMPARE(times.winc, 7000LL);
-    }
     void incrementOnlyFirstMove()
     {
         MatchHarness h;
         const QString realEngine = qEnvironmentVariable("SHOGIBOARDQ_TEST_ENGINE");
         QVERIFY(h.start(realEngine.isEmpty() ? mockPath() : realEngine, false));
         h.clock.stopClock();
-        // 対局開始時に加算された初手の10秒を渡す。
-        h.clock.setPlayerTimes(10, 10, 0, 0, 10, 10, true);
+        // 持ち時間0・加算10秒。時計は初手の加算を足して10秒から始まる。
+        h.clock.setTimeControl(TestTime::rules(0, 0, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(1);
         h.game.setCurrentPlayer(ShogiGameController::Player1);
         h.clock.startClock();
-        const UsiTimingParams timing{0, QStringLiteral("0"), QStringLiteral("0"), 10000, 10000, false};
-        h.match.requestMove(QStringLiteral("position startpos"), {}, timing);
+        h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0 || h.clock.isGameOver(), 11000);
         QCOMPARE(h.errors, 0);
         QVERIFY(!h.clock.isGameOver());
         QCOMPARE(h.completed, 1);
         QVERIFY(h.lastTo != QPoint(-1, -1));
-        qInfo() << "first move:" << h.position << "remaining ms:" << h.clock.getPlayer1TimeIntMs();
+        qInfo() << "first move:" << h.position << "remaining ms:" << h.clock.remainingMs(1);
         const auto go = std::find_if(h.commands.cbegin(), h.commands.cend(), [](const QString& cmd) {
             return cmd.startsWith(QStringLiteral("go "));
         });
@@ -253,12 +238,11 @@ private slots:
         QVERIFY(h.start(mockPath(), false));
         h.clock.stopClock();
         // 持ち時間300秒＋加算10秒。時計は初手の加算を含めて310秒から始まる。
-        h.clock.setPlayerTimes(310, 310, 0, 0, 10, 10, true);
+        h.clock.setTimeControl(TestTime::rules(300, 300, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(1);
         h.game.setCurrentPlayer(ShogiGameController::Player1);
         h.clock.startClock();
-        const UsiTimingParams timing{0, QStringLiteral("300000"), QStringLiteral("300000"), 10000, 10000, false};
-        h.match.requestMove(QStringLiteral("position startpos"), {}, timing);
+        h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
         QCOMPARE(h.errors, 0);
         const auto fields = goFields(h.commands, QStringLiteral("go "));
@@ -274,12 +258,11 @@ private slots:
         MatchHarness h;
         QVERIFY(h.start(mockPath(), true));
         h.clock.stopClock();
-        h.clock.setPlayerTimes(310, 310, 0, 0, 10, 10, true);
+        h.clock.setTimeControl(TestTime::rules(300, 300, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(1);
         h.game.setCurrentPlayer(ShogiGameController::Player1);
         h.clock.startClock();
-        const UsiTimingParams timing{0, QStringLiteral("300000"), QStringLiteral("300000"), 10000, 10000, false};
-        h.match.requestMove(QStringLiteral("position startpos"), {}, timing);
+        h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
         QCOMPARE(h.errors, 0);
         // 先読み開始時は自分の着手の加算前なので、自分の残り時間は加算を含まない。
@@ -291,17 +274,6 @@ private slots:
         QCOMPARE(fields.value(QStringLiteral("wtime"), -1), 300000LL);
         QCOMPARE(fields.value(QStringLiteral("binc"), -1), 10000LL);
         QCOMPARE(fields.value(QStringLiteral("winc"), -1), 10000LL);
-    }
-    void asymmetricByoyomiUsesSideToMove()
-    {
-        ShogiGameController game;
-        MatchTimekeeper keeper;
-        keeper.setRefs({&game});
-        keeper.setTimeControlConfig(true, 0, 5000, 0, 0, true);
-        game.setCurrentPlayer(ShogiGameController::Player2);
-        QCOMPARE(keeper.computeGoTimes().byoyomi, 5000LL);
-        game.setCurrentPlayer(ShogiGameController::Player1);
-        QCOMPARE(keeper.computeGoTimes().byoyomi, 0LL);
     }
     void guiSettingOverridesLegacyOption()
     {
@@ -406,7 +378,10 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         QString position = QStringLiteral("position startpos");
         QStringList history;
-        const UsiTimingParams timing{5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true};
+        // 時計がないので、残り時間と秒読みを条件で渡す
+        UsiTimingParams timing;
+        timing.timeControl.black.byoyomiMs = timing.timeControl.white.byoyomiMs = 5000;
+        timing.btimeMs = 300000;
         engine.requestHumanReply(position, {}, QPoint(7, 7), QPoint(7, 6), timing, history);
         QCOMPARE(history, QStringList{QStringLiteral("position startpos moves 7g7f")});
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 1, 5000);

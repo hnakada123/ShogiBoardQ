@@ -32,15 +32,6 @@ class TimeControlController : public QObject
     Q_OBJECT
 
 public:
-    /**
-     * @brief 時間制御設定を保持する構造体
-     */
-    struct TimeControlSettings {
-        bool                enabled = false;
-        KifuTimeControlSide black;  ///< 先手（下手）の持ち時間
-        KifuTimeControlSide white;  ///< 後手（上手）の持ち時間
-    };
-
     explicit TimeControlController(QObject* parent = nullptr);
     ~TimeControlController() override;
 
@@ -75,13 +66,11 @@ public:
     /**
      * @brief 時間設定を時計および司令塔へ適用するヘルパー
      * @param tc        GameStartCoordinatorから渡される時間設定
-     * @param match     対局司令塔（null可）
      * @param startSfen 開始局面SFEN（平手/手合割/現在局面など）
      * @param currentSfen 現在のSFEN（「現在の局面から」開始時に使用）
      * @param shogiView UI再描画対象（nullの場合はスキップ）
      */
-    void applyTimeControl(const GameStartCoordinator::TimeControl& tc,
-                          MatchCoordinator* match,
+    void applyTimeControl(const GameStartCoordinator::TimeSettings& tc,
                           const QString& startSfen,
                           const QString& currentSfen,
                           ShogiView* shogiView = nullptr);
@@ -93,20 +82,19 @@ public:
     /**
      * @brief 時間制御設定を保存
      */
-    void saveTimeControlSettings(bool enabled, const KifuTimeControlSide& black,
-                                 const KifuTimeControlSide& white);
+    void recordTimeControl(const TimeControl& timeControl);
 
     /**
      * @brief 時計を使わずに始める対局（CSA通信対局など）の持ち時間と開始日時を記録する
      *
      * 持ち時間・秒読み・加算がすべて0なら時間制限なしとして扱う。
      */
-    void beginGameWithTimeControl(const KifuTimeControlSide& black, const KifuTimeControlSide& white);
+    void beginGameWithTimeControl(const TimeControl& timeControl);
 
     /**
      * @brief 時間制御設定を取得
      */
-    const TimeControlSettings& settings() const;
+    const TimeControl& timeControl() const;
 
     /**
      * @brief 時間制御が有効かどうか
@@ -151,27 +139,6 @@ public:
      */
     void clearGameEndTime();
 
-    // --------------------------------------------------------
-    // 時間取得ヘルパー（MatchCoordinator hooks用）
-    // --------------------------------------------------------
-
-    /**
-     * @brief 指定プレイヤーの残り時間を取得（ミリ秒）
-     * @param player 1=先手, 2=後手
-     */
-    qint64 remainingMs(int player) const;
-
-    /**
-     * @brief 指定プレイヤーの加算時間を取得（ミリ秒）
-     * @param player 1=先手, 2=後手
-     */
-    qint64 incrementMs(int player) const;
-
-    /**
-     * @brief 秒読み時間を取得（ミリ秒、時計から取得）
-     */
-    qint64 clockByoyomiMs() const;
-
 private slots:
     /**
      * @brief ShogiClockからのタイムアウト通知（先手）
@@ -188,7 +155,7 @@ private:
     MatchCoordinator* m_match = nullptr;
     TimeDisplayPresenter* m_timePresenter = nullptr;
 
-    TimeControlSettings m_settings;
+    TimeControl m_timeControl;  ///< 対局情報と棋譜に記録する持ち時間
     QDateTime m_gameStartDateTime;
     QDateTime m_gameEndDateTime;
 };

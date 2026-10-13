@@ -16,13 +16,12 @@ void TimeControlController::ensureClock() {}
 ShogiClock* TimeControlController::clock() const { return nullptr; }
 void TimeControlController::setMatchCoordinator(MatchCoordinator*) {}
 void TimeControlController::setTimeDisplayPresenter(TimeDisplayPresenter*) {}
-void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeControl&,
-                                              MatchCoordinator*, const QString&,
+void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeSettings&, const QString&,
                                               const QString&, ShogiView*) {}
-void TimeControlController::saveTimeControlSettings(bool, const KifuTimeControlSide&, const KifuTimeControlSide&) {}
-const TimeControlController::TimeControlSettings& TimeControlController::settings() const
+void TimeControlController::recordTimeControl(const TimeControl&) {}
+const TimeControl& TimeControlController::timeControl() const
 {
-    return m_settings;
+    return m_timeControl;
 }
 bool TimeControlController::hasTimeControl() const { return false; }
 void TimeControlController::recordGameStartTime() {}
@@ -32,9 +31,6 @@ void TimeControlController::recordGameEndTime() {}
 QDateTime TimeControlController::gameEndDateTime() const { return {}; }
 void TimeControlController::clearGameEndTime() {}
 
-qint64 TimeControlController::remainingMs(int) const { return 0; }
-qint64 TimeControlController::incrementMs(int) const { return 0; }
-qint64 TimeControlController::clockByoyomiMs() const { return 0; }
 
 void TimeControlController::onClockPlayer1TimeOut() {}
 void TimeControlController::onClockPlayer2TimeOut() {}

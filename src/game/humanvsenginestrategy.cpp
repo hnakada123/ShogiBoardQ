@@ -101,29 +101,13 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
     }
 
     // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
-    if (m_ctx.clock()) {
-        if (humanIsP1) {
-            const qint64 ms = m_ctx.clock()->player1ConsiderationMs();
-            m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(ms));
-            m_ctx.clock()->applyByoyomiAndResetConsideration1();
-
-            if (m_ctx.hooks().game.appendKifuLine) {
-                m_ctx.hooks().game.appendKifuLine(prettyMove, m_ctx.clock()->player1ConsiderationAndTotalTime());
-            }
-            // 従来互換：クリア
-            m_ctx.clock()->setPlayer1ConsiderationTime(0);
-        } else {
-            const qint64 ms = m_ctx.clock()->player2ConsiderationMs();
-            m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(ms));
-            m_ctx.clock()->applyByoyomiAndResetConsideration2();
-
-            if (m_ctx.hooks().game.appendKifuLine) {
-                m_ctx.hooks().game.appendKifuLine(prettyMove, m_ctx.clock()->player2ConsiderationAndTotalTime());
-            }
-            // 従来互換：クリア
-            m_ctx.clock()->setPlayer2ConsiderationTime(0);
+    if (ShogiClock* clock = m_ctx.clock()) {
+        const int humanSide = humanIsP1 ? 1 : 2;
+        clock->commitMove(humanSide);
+        if (m_ctx.hooks().game.appendKifuLine) {
+            m_ctx.hooks().game.appendKifuLine(prettyMove, clock->considerationAndTotalTime(humanSide));
         }
-
+        clock->setConsiderationTimeMs(humanSide, 0);
         // ラベルなど即時更新
         m_ctx.pokeTimeUpdateNow();
     }
@@ -171,12 +155,6 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
         eng->setPreviousRankTo(humanTo.y());
     }
 
-    // USIに渡す残り時間
-    qint64 bMs = 0, wMs = 0;
-    m_ctx.computeGoTimesForUSI(bMs, wMs);
-    const QString bTime = QString::number(bMs);
-    const QString wTime = QString::number(wMs);
-
     const ShogiGameController::Player engineSeat =
         m_engineIsP1 ? ShogiGameController::Player1 : ShogiGameController::Player2;
 
@@ -202,10 +180,8 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
         m_ctx.positionStr1() = QStringLiteral("position startpos moves");
     }
 
-    const auto tc = m_ctx.timeControl();
-    const int byoyomiMs = m_engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
-
-    const UsiTimingParams timing{byoyomiMs, bTime, wTime, tc.incMs1, tc.incMs2, tc.useByoyomi};
+    // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
+    const UsiTimingParams timing;
     m_waitingForMove = true;
     eng->requestHumanReply(m_ctx.positionStr1(), m_ctx.positionPonder1(), humanFrom, humanTo,
                            timing, m_ctx.positionStrHistory());
@@ -238,23 +214,15 @@ void HumanVsEngineStrategy::onEngineMoveReady(QPoint eFrom, QPoint eTo,
 
     // エンジンの考慮時間を確定してから棋譜に追記する
     const qint64 thinkMs = eng->lastBestmoveElapsedMs();
+    // 指し終えて手番が移ったので、直前に指したのは今の手番の相手
+    const int engineSide = m_ctx.gc()->currentPlayer() == ShogiGameController::Player1 ? 2 : 1;
     if (m_ctx.clock()) {
-        if (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1) {
-            // 直前に指したのは後手(P2)
-            m_ctx.clock()->setMeasuredConsiderationTime(2, thinkMs);
-            m_ctx.clock()->applyByoyomiAndResetConsideration2();
-        } else {
-            // 直前に指したのは先手(P1)
-            m_ctx.clock()->setMeasuredConsiderationTime(1, thinkMs);
-            m_ctx.clock()->applyByoyomiAndResetConsideration1();
-        }
+        m_ctx.clock()->setMeasuredConsiderationTime(engineSide, thinkMs);
+        m_ctx.clock()->commitMove(engineSide);
     }
 
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        const QString elapsed = (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
-        ? m_ctx.clock()->player2ConsiderationAndTotalTime()
-        : m_ctx.clock()->player1ConsiderationAndTotalTime();
-        m_ctx.hooks().game.appendKifuLine(rec, elapsed);
+        m_ctx.hooks().game.appendKifuLine(rec, m_ctx.clock()->considerationAndTotalTime(engineSide));
     }
 
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
@@ -302,15 +270,7 @@ void HumanVsEngineStrategy::finishTurnTimerAndSetConsideration(int /*moverPlayer
 
 void HumanVsEngineStrategy::finishHumanTimerInternal()
 {
-    const auto side = m_engineIsP1 ? MatchCoordinator::P2 : MatchCoordinator::P1;
-
-    // ShogiClock 内部の考慮msをそのまま反映
-    if (m_ctx.clock()) {
-        const qint64 clkMs = (side == MatchCoordinator::P1) ? m_ctx.clock()->player1ConsiderationMs()
-                                                            : m_ctx.clock()->player2ConsiderationMs();
-        if (side == MatchCoordinator::P1) m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(clkMs));
-        else                              m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(clkMs));
-    }
+    // 考慮時間は ShogiClock が計測済みなので、ここでは人間用の計測タイマーを止めるだけ
     if (m_humanTurnTimer.isValid()) m_humanTurnTimer.invalidate();
     m_humanTimerArmed = false;
 }
@@ -350,18 +310,12 @@ void HumanVsEngineStrategy::startInitialMoveIfNeeded()
         if (m_ctx.clock()) m_ctx.clock()->stopClock();
         return;
     }
-    if (m_engineIsP1 && sideToMove == ShogiGameController::Player1) {
-        startInitialEngineMoveFor(static_cast<int>(MatchCoordinator::P1));
-    } else if (!m_engineIsP1 && sideToMove == ShogiGameController::Player2) {
-        startInitialEngineMoveFor(static_cast<int>(MatchCoordinator::P2));
-    }
+    startInitialEngineMove();
 }
 
-// （内部）指定したエンジン側で 1手だけ指す
-void HumanVsEngineStrategy::startInitialEngineMoveFor(int engineSideInt)
+// （内部）エンジンの手番で初手を指す
+void HumanVsEngineStrategy::startInitialEngineMove()
 {
-    const auto engineSide = static_cast<MatchCoordinator::Player>(engineSideInt);
-
     Usi* eng = m_ctx.primaryEngine();
     if (!eng || !m_ctx.gc()) return;
 
@@ -372,16 +326,9 @@ void HumanVsEngineStrategy::startInitialEngineMoveFor(int engineSideInt)
         m_ctx.positionStr1() = QStringLiteral("position startpos moves");
     }
 
-    qint64 bMs = 0, wMs = 0;
-    m_ctx.computeGoTimesForUSI(bMs, wMs);
-    const QString bTime = QString::number(bMs);
-    const QString wTime = QString::number(wMs);
-
-    const auto tc = m_ctx.timeControl();
-    const int  byoyomiMs = (engineSide == MatchCoordinator::P1) ? tc.byoyomiMs1 : tc.byoyomiMs2;
-
     m_ctx.gc()->setPromote(false);
-    const UsiTimingParams timing{byoyomiMs, bTime, wTime, tc.incMs1, tc.incMs2, tc.useByoyomi};
+    // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
+    const UsiTimingParams timing;
     m_waitingForMove = true;
     eng->requestMatchMove(m_ctx.positionStr1(), m_ctx.positionPonder1(), timing);
 }

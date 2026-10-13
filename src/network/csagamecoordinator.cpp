@@ -186,9 +186,7 @@ void CsaGameCoordinator::performResign()
 
     if (m_clock) {
         m_clock->stopClock();
-        m_resignConsumedTimeMs = m_isBlackSide
-            ? m_clock->player1ConsiderationTimeMs()
-            : m_clock->player2ConsiderationTimeMs();
+        m_resignConsumedTimeMs = static_cast<int>(m_clock->considerationMs(m_isBlackSide ? 1 : 2));
         qCDebug(lcNetwork) << "Resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
     }
     m_client->resign();
@@ -378,8 +376,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
         } else if (cause == CsaClient::GameEndCause::Resign &&
                    result == CsaClient::GameResult::Win && m_clock) {
             qint64 opponentClockRemainingMs = m_isBlackSide
-                ? m_clock->getPlayer2TimeIntMs()
-                : m_clock->getPlayer1TimeIntMs();
+                ? m_clock->remainingMs(2)
+                : m_clock->remainingMs(1);
             const int opponentInitialTimeMs = m_isBlackSide
                 ? m_initialWhiteTimeMs
                 : m_initialBlackTimeMs;

@@ -316,8 +316,8 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
                 ? timeInfo.gameStartDateTime : QDateTime::currentDateTime();
             const bool handicap =
                 KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(startSfen));
-            const QString timeText = timeInfo.hasTimeControl
-                ? KifuExportMetadataBuilder::timeControlText(timeInfo.blackTime, timeInfo.whiteTime, handicap)
+            const QString timeText = !timeInfo.timeControl.isUnlimited()
+                ? KifuExportMetadataBuilder::timeControlText(timeInfo.timeControl, handicap)
                 : tr("無制限");
             m_setContinuationNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
                                       .arg(blackName, whiteName,
@@ -332,9 +332,7 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         blackName,
         whiteName,
         KifuExportMetadataBuilder::handicapLabel(startSfen),
-        timeInfo.hasTimeControl,
-        timeInfo.blackTime,
-        timeInfo.whiteTime
+        timeInfo.timeControl
     );
 }
 
@@ -350,9 +348,7 @@ void PlayerInfoWiring::resolveNamesWithTimeController(const QString& human1, con
 
         // TimeControlController から TimeControlInfo を構築
         TimeControlInfo tcInfo;
-        tcInfo.hasTimeControl = timeController->hasTimeControl();
-        tcInfo.blackTime = timeController->settings().black;
-        tcInfo.whiteTime = timeController->settings().white;
+        tcInfo.timeControl = timeController->timeControl();
         tcInfo.gameStartDateTime = timeController->gameStartDateTime();
 
         resolveNamesAndSetupGameInfo(
@@ -376,10 +372,9 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
                                                 const QString& blackName,
                                                 const QString& whiteName,
                                                 const QString& handicap,
-                                                bool hasTimeControl,
-                                                const KifuTimeControlSide& blackTime,
-                                                const KifuTimeControlSide& whiteTime)
+                                                const TimeControl& timeControl)
 {
+    const bool hasTimeControl = !timeControl.isUnlimited();
     ensureGameInfoController();
     if (!m_gameInfoController) return;
     m_keepRecordHeader = false;
@@ -403,7 +398,7 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
     // 未開始の「未設定」と、時間制限のない対局を区別する。
     items.append({GameInfoKeys::kTimeControl,
                   hasTimeControl ? KifuExportMetadataBuilder::timeControlText(
-                                       blackTime, whiteTime, KifuExportMetadataBuilder::isHandicap(handicapLabel))
+                                       timeControl, KifuExportMetadataBuilder::isHandicap(handicapLabel))
                                  : QStringLiteral("無制限")});
 
     m_gameInfoController->setGameInfoForMatch(items);
@@ -427,19 +422,17 @@ void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
                    << endDateTime.toString(Qt::ISODate);
 }
 
-void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
-                                                     const KifuTimeControlSide& blackTime,
-                                                     const KifuTimeControlSide& whiteTime)
+void PlayerInfoWiring::updateGameInfoWithTimeControl(const TimeControl& timeControl)
 {
     if (!m_gameInfoController || continuesExistingRecord()) return;
-    if (!hasTimeControl) {
+    if (timeControl.isUnlimited()) {
         m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, QStringLiteral("無制限"));
         return;
     }
 
     const bool handicap = m_startSfenStr
         && KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(*m_startSfenStr));
-    const QString timeStr = KifuExportMetadataBuilder::timeControlText(blackTime, whiteTime, handicap);
+    const QString timeStr = KifuExportMetadataBuilder::timeControlText(timeControl, handicap);
     m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, timeStr);
 
     qCDebug(lcUi) << "updateGameInfoWithTimeControl:"

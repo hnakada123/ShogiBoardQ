@@ -90,9 +90,6 @@ struct StrategyTestHarness {
         };
 
         // Time Hooks
-        deps.hooks.time.remainingMsFor = [](MatchCoordinator::Player) -> qint64 { return 0; };
-        deps.hooks.time.incrementMsFor = [](MatchCoordinator::Player) -> qint64 { return 0; };
-        deps.hooks.time.byoyomiMs = []() -> qint64 { return 0; };
 
         // Engine Hooks
         deps.hooks.engine.sendStopToEngine = [](Usi*) {};
@@ -375,15 +372,15 @@ void Tst_GameStrategy::hvh_disarmTimer_restartsMeasurement()
     hvh.disarmTurnTimer();
     hvh.armTurnTimerIfNeeded();
     hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P1));
-    QVERIFY2(h.clock.player1ConsiderationMs() < 150,
-             qPrintable(QString::number(h.clock.player1ConsiderationMs())));
+    QVERIFY2(h.clock.considerationMs(1) < 150,
+             qPrintable(QString::number(h.clock.considerationMs(1))));
 
     // 止めずに掛け直しても測り直さない（armTurnTimerIfNeeded は一度だけ開始する）
     hvh.armTurnTimerIfNeeded();
     QTest::qSleep(200);
     hvh.armTurnTimerIfNeeded();
     hvh.finishTurnTimerAndSetConsideration(static_cast<int>(MatchCoordinator::P2));
-    QVERIFY(h.clock.player2ConsiderationMs() >= 200);
+    QVERIFY(h.clock.considerationMs(2) >= 200);
 }
 
 // ============================================================

@@ -182,7 +182,6 @@ void MainWindowServiceRegistry::initializeEarlyServicesForLifecycle()
     {
         MatchRuntimeQueryService::Deps qsDeps;
         qsDeps.playModePolicy = m_mw.m_playModePolicy.get();
-        qsDeps.timeController = m_mw.m_timeController;
         qsDeps.match = &m_mw.m_match;
         m_mw.m_queryService->updateDeps(qsDeps);
     }

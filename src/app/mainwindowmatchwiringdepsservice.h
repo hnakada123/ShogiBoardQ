@@ -33,9 +33,6 @@ public:
         std::function<void(const QString&, const QString&)> appendKifuLine;
         std::function<void(const QString&, const QString&)> showGameOverDialog;
         std::function<bool()> usesHandicapNames;
-        std::function<qint64(MatchCoordinator::Player)> remainingMsFor;
-        std::function<qint64(MatchCoordinator::Player)> incrementMsFor;
-        std::function<qint64()> byoyomiMs;
         std::function<void(const QString&, const QString&)> setPlayersNames;
         std::function<void(const QString&, const QString&)> setEngineNames;
         std::function<void(const QString& saveDir)> autoSaveKifu;

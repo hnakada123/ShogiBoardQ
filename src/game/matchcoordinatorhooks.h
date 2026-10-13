@@ -41,13 +41,6 @@ struct MatchCoordinatorHooks {
         std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
     };
 
-    /// 時計読み出し系コールバック
-    struct Time {
-        std::function<qint64(MatchPlayer)> remainingMsFor;
-        std::function<qint64(MatchPlayer)> incrementMsFor;
-        std::function<qint64()> byoyomiMs;
-    };
-
     /// USI送受系コールバック
     struct Engine {
         std::function<void(Usi* which)> sendStopToEngine;
@@ -63,7 +56,6 @@ struct MatchCoordinatorHooks {
     };
 
     UI ui;         ///< UI更新・描画系
-    Time time;     ///< 時計読み出し系
     Engine engine; ///< USI送受系
     Game game;     ///< ゲーム初期化・棋譜系
 };

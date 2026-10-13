@@ -36,15 +36,6 @@ public:
         P2 = 2
     };
 
-    /// USI goコマンドに渡す時間パラメータ（MatchCoordinator::GoTimes と互換）
-    struct GoTimes {
-        qint64 btime = 0;
-        qint64 wtime = 0;
-        qint64 byoyomi = 0;
-        qint64 binc = 0;
-        qint64 winc = 0;
-    };
-
     /// MatchCoordinator の内部状態への参照群
     struct Refs {
         ShogiGameController* gc = nullptr;
@@ -79,10 +70,6 @@ public:
         /// @brief エンジン勝ち宣言を MC に通知する（idx: 1=usi1, 2=usi2）
         /// @note 配線元: MC lambda → MC::handleEngineWin
         std::function<void(int)> onEngineWin;
-
-        /// @brief 現在の持ち時間情報 (GoTimes) を計算して返す
-        /// @note 配線元: MC lambda (remainingMsFor/incrementMsFor/byoyomiMs から算出)
-        std::function<GoTimes()> computeGoTimes;
     };
 
     /// エンジンモデルペア

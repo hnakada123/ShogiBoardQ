@@ -285,8 +285,8 @@ private slots:
         QCOMPARE(*match->sfenRecordPtr(), history);
         QCOMPARE(view->board()->convertBoardToSfen(), board);
         QCOMPARE(clock->currentPlayer(), saved.currentPlayer);
-        QVERIFY(qAbs(clock->getPlayer1TimeIntMs() - saved.player1TimeMs) < 100);
-        QVERIFY(qAbs(clock->getPlayer2TimeIntMs() - saved.player2TimeMs) < 100);
+        QVERIFY(qAbs(clock->remainingMs(1) - saved.of(1).remainingMs) < 100);
+        QVERIFY(qAbs(clock->remainingMs(2) - saved.of(2).remainingMs) < 100);
         QCOMPARE(window->m_models.kifuRecord->rowCount(), pausePly + 1);
         QVERIFY(!window->m_branchNav.navState->currentNode()->isTerminal());
         QCOMPARE(window->m_branchNav.navState->currentPly(), pausePly);
@@ -792,17 +792,17 @@ private slots:
         settings.setValue("GameSettings/basicTimeMinutes2", 3);
         settings.sync();
         startWindowGame();
-        const auto first = window->m_timeController->settings();
-        QCOMPARE(first.black.baseMs, qint64(300000));
-        QCOMPARE(first.white.baseMs, qint64(180000));
+        const auto first = window->m_timeController->timeControl();
+        QCOMPARE(first.black.mainMs, qint64(300000));
+        QCOMPARE(first.white.mainMs, qint64(180000));
         auto* table = window->findChild<GameInfoPaneController*>()->tableWidget();
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("先手 05:00 / 後手 03:00"));
         dialogTimer.start(10);
         QTRY_COMPARE_WITH_TIMEOUT(window->m_consecutiveGamesController->currentGameNumber(), 2, 5000);
         dialogTimer.stop();
-        const auto second = window->m_timeController->settings();
-        QCOMPARE(second.black.baseMs, qint64(180000));
-        QCOMPARE(second.white.baseMs, qint64(300000));
+        const auto second = window->m_timeController->timeControl();
+        QCOMPARE(second.black.mainMs, qint64(180000));
+        QCOMPARE(second.white.mainMs, qint64(300000));
         QTRY_COMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("先手 03:00 / 後手 05:00"));
         // 2局目もダイアログ経由と同じく対局者と開始日時を対局情報に入れる
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kBlackPlayer), QStringLiteral("Audit USI"));

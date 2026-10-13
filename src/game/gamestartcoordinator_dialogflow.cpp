@@ -198,8 +198,8 @@ bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
 
     m_match->ensureHumanAtBottomIfApplicable(&c.dialogData, c.bottomIsP1);
 
-    // --- 6) TimeControl を構築（GameStartOptionsBuilder に委譲） ---
-    const TimeControl tc = GameStartOptionsBuilder::buildTimeControl(c.dialogData);
+    // --- 6) 時間設定を構築（GameStartOptionsBuilder に委譲） ---
+    const TimeSettings tc = GameStartOptionsBuilder::buildTimeControl(c.dialogData);
 
     // --- 7) 時計の準備と配線・起動は prepare() に委譲 ---
     Request req;

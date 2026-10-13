@@ -18,16 +18,8 @@
 namespace TestTracker {
     extern bool configureAndStartCalled;
     extern bool startInitialEngineMoveIfNeededCalled;
-    extern bool setTimeControlConfigCalled;
-    extern bool refreshGoTimesCalled;
     extern bool clearGameOverStateCalled;
     extern MatchCoordinator::StartOptions lastStartOptions;
-    extern bool lastUseByoyomi;
-    extern int lastByoyomiMs1;
-    extern int lastByoyomiMs2;
-    extern int lastIncMs1;
-    extern int lastIncMs2;
-    extern bool lastLoseOnTimeout;
     extern void reset();
 }
 
@@ -98,6 +90,26 @@ struct TestHarness {
     }
 };
 
+/// start() が時計へ適用を頼んだ時間設定を受け取る（頼まなければ count は 0）
+struct AppliedTimeControl {
+    int count = 0;
+    GameStartCoordinator::TimeSettings last;
+};
+
+static AppliedTimeControl startAndCaptureTimeControl(GameStartCoordinator* gsc,
+                                                     const GameStartCoordinator::StartParams& params)
+{
+    AppliedTimeControl applied;
+    const auto connection = QObject::connect(gsc, &GameStartCoordinator::requestApplyTimeControl, gsc,
+                                             [&applied](const GameStartCoordinator::TimeSettings& tc) {
+                                                 ++applied.count;
+                                                 applied.last = tc;
+                                             });
+    gsc->start(params);
+    QObject::disconnect(connection);
+    return applied;
+}
+
 class TestGameStartFlow : public QObject
 {
     Q_OBJECT
@@ -123,10 +135,11 @@ private slots:
         p.tc = GameStartOptionsBuilder::buildTimeControl(data);
         QVERIFY(p.tc.enabled);
         QCOMPARE(p.tc.loseOnTimeout, loseOnTimeout);
-        h.gsc->start(p);
-        QCOMPARE(TestTracker::lastLoseOnTimeout, loseOnTimeout);
-        QCOMPARE(TestTracker::lastByoyomiMs1, 60000);
-        QCOMPARE(TestTracker::lastByoyomiMs2, 120000);
+        const AppliedTimeControl applied = startAndCaptureTimeControl(h.gsc, p);
+        QCOMPARE(applied.count, 1);
+        QCOMPARE(applied.last.loseOnTimeout, loseOnTimeout);
+        QCOMPARE(applied.last.rules.black.byoyomiMs, 60000LL);
+        QCOMPARE(applied.last.rules.white.byoyomiMs, 120000LL);
     }
 
     // ============================================================
@@ -336,7 +349,7 @@ private slots:
         auto p = h.makeEveParams();
         p.opt.sfenStart = sfen;
         p.tc.enabled = true;
-        p.tc.p1.baseMs = 300000;
+        p.tc.rules.black.mainMs = 300000;
         QSignalSpy started(h.gsc, &GameStartCoordinator::started);
         QSignalSpy timeControl(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
 
@@ -345,7 +358,6 @@ private slots:
         QCOMPARE(started.count(), 0);
         QCOMPARE(timeControl.count(), 0);
         QVERIFY(!TestTracker::configureAndStartCalled);
-        QVERIFY(!TestTracker::setTimeControlConfigCalled);
         QVERIFY(!TestTracker::startInitialEngineMoveIfNeededCalled);
     }
 
@@ -434,22 +446,22 @@ private slots:
 
         auto p = h.makeHvhParams();
         p.tc.enabled = true;
-        p.tc.p1.baseMs = 600000;      // 10分
-        p.tc.p2.baseMs = 600000;
-        p.tc.p1.byoyomiMs = 30000;    // 30秒秒読み
-        p.tc.p2.byoyomiMs = 30000;
-        p.tc.p1.incrementMs = 10000;  // 10秒加算（秒読みがあるので無視されるべき）
-        p.tc.p2.incrementMs = 10000;
+        p.tc.rules.black.mainMs = 600000;      // 10分
+        p.tc.rules.white.mainMs = 600000;
+        p.tc.rules.black.byoyomiMs = 30000;    // 30秒秒読み
+        p.tc.rules.white.byoyomiMs = 30000;
+        p.tc.rules.black.incrementMs = 10000;  // 10秒加算（秒読みがあるので無視されるべき）
+        p.tc.rules.white.incrementMs = 10000;
 
-        h.gsc->start(p);
+        const AppliedTimeControl applied = startAndCaptureTimeControl(h.gsc, p);
 
-        QVERIFY(TestTracker::setTimeControlConfigCalled);
-        QVERIFY2(TestTracker::lastUseByoyomi, "byoyomi should be used when both specified");
-        QCOMPARE(TestTracker::lastByoyomiMs1, 30000);
-        QCOMPARE(TestTracker::lastByoyomiMs2, 30000);
+        QCOMPARE(applied.count, 1);
+        QVERIFY2(applied.last.rules.usesByoyomi(), "byoyomi should be used when both specified");
+        QCOMPARE(applied.last.rules.black.byoyomiMs, 30000LL);
+        QCOMPARE(applied.last.rules.white.byoyomiMs, 30000LL);
         // increment は 0 にリセットされるべき
-        QCOMPARE(TestTracker::lastIncMs1, 0);
-        QCOMPARE(TestTracker::lastIncMs2, 0);
+        QCOMPARE(applied.last.rules.black.incrementMs, 0LL);
+        QCOMPARE(applied.last.rules.white.incrementMs, 0LL);
     }
 
     void start_incrementOnlyWhenNoByoyomi()
@@ -459,19 +471,19 @@ private slots:
 
         auto p = h.makeHvhParams();
         p.tc.enabled = true;
-        p.tc.p1.baseMs = 600000;
-        p.tc.p2.baseMs = 600000;
-        p.tc.p1.byoyomiMs = 0;
-        p.tc.p2.byoyomiMs = 0;
-        p.tc.p1.incrementMs = 5000;   // 5秒加算
-        p.tc.p2.incrementMs = 5000;
+        p.tc.rules.black.mainMs = 600000;
+        p.tc.rules.white.mainMs = 600000;
+        p.tc.rules.black.byoyomiMs = 0;
+        p.tc.rules.white.byoyomiMs = 0;
+        p.tc.rules.black.incrementMs = 5000;   // 5秒加算
+        p.tc.rules.white.incrementMs = 5000;
 
-        h.gsc->start(p);
+        const AppliedTimeControl applied = startAndCaptureTimeControl(h.gsc, p);
 
-        QVERIFY(TestTracker::setTimeControlConfigCalled);
-        QVERIFY2(!TestTracker::lastUseByoyomi, "byoyomi should not be used");
-        QCOMPARE(TestTracker::lastIncMs1, 5000);
-        QCOMPARE(TestTracker::lastIncMs2, 5000);
+        QCOMPARE(applied.count, 1);
+        QVERIFY2(!applied.last.rules.usesByoyomi(), "byoyomi should not be used");
+        QCOMPARE(applied.last.rules.black.incrementMs, 5000LL);
+        QCOMPARE(applied.last.rules.white.incrementMs, 5000LL);
     }
 
     void start_autoEnableWhenValuesPresent()
@@ -482,8 +494,8 @@ private slots:
 
         auto p = h.makeHvhParams();
         p.tc.enabled = false;            // 明示的にfalse
-        p.tc.p1.baseMs = 3600000;        // 1時間（値あり）
-        p.tc.p2.baseMs = 3600000;
+        p.tc.rules.black.mainMs = 3600000;        // 1時間（値あり）
+        p.tc.rules.white.mainMs = 3600000;
 
         h.gsc->start(p);
 
@@ -499,12 +511,12 @@ private slots:
 
         auto p = h.makeHvhParams();
         p.tc.enabled = false;
-        p.tc.p1.baseMs = 0;
-        p.tc.p2.baseMs = 0;
-        p.tc.p1.byoyomiMs = 0;
-        p.tc.p2.byoyomiMs = 0;
-        p.tc.p1.incrementMs = 0;
-        p.tc.p2.incrementMs = 0;
+        p.tc.rules.black.mainMs = 0;
+        p.tc.rules.white.mainMs = 0;
+        p.tc.rules.black.byoyomiMs = 0;
+        p.tc.rules.white.byoyomiMs = 0;
+        p.tc.rules.black.incrementMs = 0;
+        p.tc.rules.white.incrementMs = 0;
 
         h.gsc->start(p);
 
@@ -518,16 +530,18 @@ private slots:
 
         auto p = h.makeHvhParams();
         p.tc.enabled = true;
-        p.tc.p1.baseMs = 3600000;     // 先手: 1時間
-        p.tc.p1.byoyomiMs = 60000;    // 先手: 60秒秒読み
-        p.tc.p2.baseMs = 1800000;     // 後手: 30分
-        p.tc.p2.byoyomiMs = 30000;    // 後手: 30秒秒読み
+        p.tc.rules.black.mainMs = 3600000;     // 先手: 1時間
+        p.tc.rules.black.byoyomiMs = 60000;    // 先手: 60秒秒読み
+        p.tc.rules.white.mainMs = 1800000;     // 後手: 30分
+        p.tc.rules.white.byoyomiMs = 30000;    // 後手: 30秒秒読み
 
-        h.gsc->start(p);
+        const AppliedTimeControl applied = startAndCaptureTimeControl(h.gsc, p);
 
-        QVERIFY(TestTracker::setTimeControlConfigCalled);
-        QCOMPARE(TestTracker::lastByoyomiMs1, 60000);
-        QCOMPARE(TestTracker::lastByoyomiMs2, 30000);
+        QCOMPARE(applied.count, 1);
+        QCOMPARE(applied.last.rules.black.byoyomiMs, 60000LL);
+        QCOMPARE(applied.last.rules.white.byoyomiMs, 30000LL);
+        QCOMPARE(applied.last.rules.black.mainMs, 3600000LL);
+        QCOMPARE(applied.last.rules.white.mainMs, 1800000LL);
     }
 
     // ============================================================

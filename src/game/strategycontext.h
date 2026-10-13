@@ -65,7 +65,6 @@ public:
     QList<ShogiMove>& gameMovesRef() { return c_.gameMovesRef(); }
 
     const GameOverState& gameOverState() const { return c_.m_gameOver; }
-    const TimeControl& timeControl() const { return c_.m_timekeeper->timeControl(); }
 
     /// MatchCoordinator を QObject 親として使う場合のアクセサ
     QObject* coordinatorAsParent() { return &c_; }
@@ -73,7 +72,6 @@ public:
     // ---- private メソッド委譲 ----
 
     void updateTurnDisplay(Player p) { c_.m_turnHandler->updateTurnDisplay(p); }
-    GoTimes computeGoTimes() const { return c_.computeGoTimes(); }
     void initPositionStringsFromSfen(const QString& s) { c_.m_turnHandler->initPositionStringsFromSfen(s); }
     void wireResignToArbiter(Usi* eng, bool asP1) {
         if (c_.m_engineManager) c_.m_engineManager->wireResignToArbiter(eng, asP1);
@@ -93,10 +91,6 @@ public:
         c_.initializeAndStartEngineFor(side, path, name);
     }
     Usi* primaryEngine() const { return c_.primaryEngine(); }
-    void computeGoTimesForUSI(qint64& outB, qint64& outW) const {
-        if (c_.m_timekeeper) { c_.m_timekeeper->computeGoTimesForUSI(outB, outW); return; }
-        outB = outW = 0;
-    }
     void handleMaxMovesJishogi() { c_.handleMaxMovesJishogi(); }
     void pokeTimeUpdateNow() { c_.pokeTimeUpdateNow(); }
 private:

@@ -14,6 +14,7 @@
 #include <functional>
 
 #include "usitimingparams.h"
+#include "usigotime.h"
 
 class ShogiGameController;
 class ThinkingInfoPresenter;
@@ -87,7 +88,8 @@ private:
     void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr,
                                         const UsiTimingParams& timing);
 
-    UsiTimingParams timingForSearch(const UsiTimingParams& timing, bool pondering) const;
+    /// 思考を始める時点の go の入力。時計があれば時計の決まりと残り時間を使う
+    UsiGoTimeInput goTimeInput(const UsiTimingParams& timing, bool pondering) const;
 
     void applyMovesToBoardFromBestMoveAndPonder();
     void updateBaseSfenForPonder();

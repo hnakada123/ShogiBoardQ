@@ -475,7 +475,7 @@ private slots:
         editor->setText(QStringLiteral("入力途中の備考"));
         const QDateTime start(QDate(2026, 10, 2), QTime(15, 30, 5));
         wiring.setGameInfoForMatchStart(start, QStringLiteral("太郎"), QStringLiteral("花子"),
-                                       QStringLiteral("平手"), true, {300000, 30000, 0}, {300000, 30000, 0});
+                                       QStringLiteral("平手"), TimeControl{{300000, 30000, 0}, {300000, 30000, 0}});
         QCOMPARE(table->rowCount(), 9);
         QCOMPARE(table->item(0, 1)->text(), QStringLiteral("2026/10/02"));
         QCOMPARE(table->item(1, 1)->text(), QStringLiteral("2026/10/02 15:30:05"));
@@ -487,14 +487,14 @@ private slots:
         QCOMPARE(table->item(8, 1)->text(), QStringLiteral("入力途中の備考"));
         QVERIFY(!controller->isDirty());
         wiring.setGameInfoForMatchStart(start.addSecs(3600), QStringLiteral("花子"), QStringLiteral("太郎"),
-                                       QStringLiteral("平手"), false, {}, {});
+                                       QStringLiteral("平手"), TimeControl{});
         QCOMPARE(table->item(5, 1)->text(), QStringLiteral("無制限"));
         QCOMPARE(table->item(8, 1)->text(), QStringLiteral("入力途中の備考"));
 
         // 駒落ちは対局者を下手・上手で書き、前の対局の先手・後手の行を残さない。
         // 先後で違う持ち時間は両方を書く。
         wiring.setGameInfoForMatchStart(start, QStringLiteral("下手さん"), QStringLiteral("上手さん"),
-                                       QStringLiteral("角落ち"), true, {60000, 2000, 0}, {120000, 3000, 0});
+                                       QStringLiteral("角落ち"), TimeControl{{60000, 2000, 0}, {120000, 3000, 0}});
         QCOMPARE(table->rowCount(), 9);
         QCOMPARE(table->item(2, 0)->text(), GameInfoKeys::kShitatePlayer);
         QCOMPARE(table->item(2, 1)->text(), QStringLiteral("下手さん"));
@@ -509,7 +509,7 @@ private slots:
         QCOMPARE(table->item(2, 1)->text(), QStringLiteral("新しい下手"));
         QCOMPARE(table->item(3, 1)->text(), QStringLiteral("新しい上手"));
         wiring.setGameInfoForMatchStart(start, QStringLiteral("太郎"), QStringLiteral("花子"),
-                                       QStringLiteral("平手"), true, {60000, 2000, 0}, {120000, 3000, 0});
+                                       QStringLiteral("平手"), TimeControl{{60000, 2000, 0}, {120000, 3000, 0}});
         QCOMPARE(table->rowCount(), 9);
         QCOMPARE(table->item(2, 0)->text(), GameInfoKeys::kBlackPlayer);
         QCOMPARE(table->item(3, 0)->text(), GameInfoKeys::kWhitePlayer);

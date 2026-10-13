@@ -146,17 +146,18 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
                    .arg(ctx.gameStartDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
     }
 
-    if (!hasTime && ctx.hasTimeControl) {
-        const auto csaTime = [](const KifuTimeControlSide& side) {
+    if (!hasTime && !ctx.timeControl.isUnlimited()) {
+        const auto csaTime = [](const TimeControlSide& side) {
             return QStringLiteral("%1+%2+%3")
-                .arg(side.baseMs / 1000).arg(side.byoyomiMs / 1000).arg(side.incrementMs / 1000);
+                .arg(side.mainMs / 1000).arg(side.byoyomiMs / 1000).arg(side.incrementMs / 1000);
         };
         // 先後で持ち時間が違う対局は、CSA V3.0 の $TIME+ と $TIME- に分けて書く
-        if (ctx.blackTime == ctx.whiteTime) {
-            out << QStringLiteral("$TIME:%1").arg(csaTime(ctx.blackTime));
+        const TimeControl& tc = ctx.timeControl;
+        if (csaTime(tc.black) == csaTime(tc.white)) {
+            out << QStringLiteral("$TIME:%1").arg(csaTime(tc.black));
         } else {
-            out << QStringLiteral("$TIME+:%1").arg(csaTime(ctx.blackTime));
-            out << QStringLiteral("$TIME-:%1").arg(csaTime(ctx.whiteTime));
+            out << QStringLiteral("$TIME+:%1").arg(csaTime(tc.black));
+            out << QStringLiteral("$TIME-:%1").arg(csaTime(tc.white));
         }
     }
 

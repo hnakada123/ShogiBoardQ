@@ -6,8 +6,8 @@
 
 | KPI | 閾値 | 設定日 | 根拠 |
 |---|---|---|---|
-| files_over_600 (fileLineLimits) | 例外リスト方式 | — | 全ファイル600行以下達成。例外リストは空 |
-| files_over_1000 (largeFileCount) | 0 | — | 全ファイル600行以下達成 |
+| files_over_1000 (fileLineLimits) | 例外リスト方式（既定1000行） | 2026-10-13 | 600行の上限は、責務と関係のない機械的なファイル分割（`_session.cpp` など）を生み、設計の見直しを妨げたので1000行へ上げた。例外リストは空 |
+| files_over_1000 (largeFileCount) | 0 | — | 1000行を超えるファイルは作らない |
 | mw_friend_classes | 7 | — | MainWindow friend class 数の上限 |
 | mw_ensure_methods | 0 | — | MainWindow ensure* 全廃（CompositionRoot移譲済み） |
 | sr_ensure_methods | 14 | — | ServiceRegistry ensure* 上限 |
@@ -21,10 +21,10 @@
 
 | KPI | 閾値 | 設定日 | 根拠 |
 |---|---|---|---|
-| files_over_550 | 3 | 2026-03-04 | 実測値 1 件に対するラチェット上限 |
-| files_over_500 | 19 | 2026-03-04 | 実測値 18 件に対するラチェット上限 |
 | mainwindow_include_count | 37 | 2026-03-03 | 実測値。依存削減の追跡用 |
 | long_functions_over_100 | 80 | 2026-03-04 | 実測値 60 件に対するラチェット上限 |
+
+files_over_550・files_over_500 の監視は 2026-10-13 に外した（files_over_1000 の根拠と同じ理由）。
 
 ## 閾値更新ルール
 

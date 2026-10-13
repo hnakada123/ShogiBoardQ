@@ -79,11 +79,6 @@ EngineLifecycleManager::Hooks MatchCoordinator::buildEngineLifecycleHooks()
     hooks.appendEvalP2 = m_hooks.game.appendEvalP2;
     hooks.onEngineResign = [this](int idx) { handleEngineResign(idx); };
     hooks.onEngineWin = [this](int idx) { handleEngineWin(idx); };
-    hooks.computeGoTimes = [this]() -> EngineLifecycleManager::GoTimes {
-        ensureTimekeeper();
-        const auto t = m_timekeeper->computeGoTimes();
-        return {t.btime, t.wtime, t.byoyomi, t.binc, t.winc};
-    };
     return hooks;
 }
 
@@ -95,18 +90,6 @@ void MatchCoordinator::ensureTimekeeper()
     MatchTimekeeper::Refs refs;
     refs.gc = m_gc;
     m_timekeeper->setRefs(refs);
-
-    MatchTimekeeper::Hooks hooks;
-    hooks.remainingMsFor = [this](int p) -> qint64 {
-        return m_hooks.time.remainingMsFor ? m_hooks.time.remainingMsFor(static_cast<Player>(p)) : 0;
-    };
-    hooks.incrementMsFor = [this](int p) -> qint64 {
-        return m_hooks.time.incrementMsFor ? m_hooks.time.incrementMsFor(static_cast<Player>(p)) : 0;
-    };
-    hooks.byoyomiMs = [this]() -> qint64 {
-        return m_hooks.time.byoyomiMs ? m_hooks.time.byoyomiMs() : 0;
-    };
-    m_timekeeper->setHooks(hooks);
 
     connect(m_timekeeper, &MatchTimekeeper::timeUpdated,
             this,         &MatchCoordinator::timeUpdated);

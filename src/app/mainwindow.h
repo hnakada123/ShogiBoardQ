@@ -172,7 +172,7 @@ private:
     // --- 試合進行 ---
     // Lifecycle: Recreated per game session via MatchCoordinatorWiring (QPointer不可: ダブルポインタ経由)
     MatchCoordinator* m_match = nullptr;
-    GameStartCoordinator::TimeControl m_lastTimeControl;
+    GameStartCoordinator::TimeSettings m_lastTimeControl;
     ReplayController* m_replayController = nullptr;
     std::unique_ptr<EvaluationGraphController> m_evalGraphController;
     std::unique_ptr<QTimer> m_evalChartResizeTimer;

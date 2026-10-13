@@ -2,7 +2,7 @@
 #define MATCHTYPES_H
 
 /// @file matchtypes.h
-/// @brief MatchCoordinator の基本型定義（Player, Cause, GoTimes, GameEndInfo, GameOverState）
+/// @brief MatchCoordinator の基本型定義（Player, Cause, GameEndInfo, GameOverState）
 ///
 /// MatchCoordinator に依存せずに終局情報・時間パラメータ等を参照できる軽量ヘッダ。
 /// matchcoordinator.h は本ファイルをインクルードし、using エイリアスで
@@ -29,16 +29,6 @@ enum class MatchCause : int {
     IllegalMove    = 5,  ///< 反則負け（入玉宣言失敗など）
     Sennichite     = 6,  ///< 千日手（引き分け）
     OuteSennichite = 7   ///< 連続王手の千日手（反則負け）
-};
-
-/// @brief USI goコマンドに渡す時間パラメータ（ミリ秒）
-/// @note MatchCoordinator::GoTimes は本型の using エイリアス。
-struct MatchGoTimes {
-    qint64 btime   = 0;  ///< 先手残り時間（ms）
-    qint64 wtime   = 0;  ///< 後手残り時間（ms）
-    qint64 byoyomi = 0;  ///< 共通秒読み（ms）
-    qint64 binc    = 0;  ///< 先手フィッシャー加算（ms）
-    qint64 winc    = 0;  ///< 後手フィッシャー加算（ms）
 };
 
 /// @brief 終局情報

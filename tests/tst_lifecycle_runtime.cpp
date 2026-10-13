@@ -8,7 +8,6 @@
 
 #include "matchruntimequeryservice.h"
 #include "playmodepolicyservice.h"
-#include "timecontrolcontroller.h"
 
 class TestLifecycleRuntime : public QObject
 {
@@ -34,11 +33,6 @@ void TestLifecycleRuntime::testQueryServiceWithNullDeps()
     QCOMPARE(service.isHumanSide(ShogiGameController::Player1), false);
     QCOMPARE(service.isHumanSide(ShogiGameController::Player2), false);
 
-    QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
-    QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
-    QCOMPARE(service.remainingMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
-    QCOMPARE(service.incrementMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
-    QCOMPARE(service.incrementMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
 
     QCOMPARE(service.sfenRecord(), nullptr);
 }
@@ -48,12 +42,10 @@ void TestLifecycleRuntime::testQueryServiceAfterDepsInvalidation()
 {
     MatchRuntimeQueryService service;
     PlayModePolicyService policy;
-    TimeControlController timeCtrl;
 
     // 有効な Deps を設定
     MatchRuntimeQueryService::Deps liveDeps;
     liveDeps.playModePolicy = &policy;
-    liveDeps.timeController = &timeCtrl;
     service.updateDeps(liveDeps);
 
     // null Deps で無効化（shutdown パスのシミュレーション）
@@ -66,9 +58,6 @@ void TestLifecycleRuntime::testQueryServiceAfterDepsInvalidation()
     QCOMPARE(service.isHumanTurnNow(), false);
     QCOMPARE(service.isHumanSide(ShogiGameController::Player1), false);
 
-    QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
-    QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
-    QCOMPARE(service.incrementMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
 
     QCOMPARE(service.sfenRecord(), nullptr);
 }
@@ -78,20 +67,15 @@ void TestLifecycleRuntime::testQueryServiceWithLiveDeps()
 {
     MatchRuntimeQueryService service;
     PlayModePolicyService policy;
-    TimeControlController timeCtrl;
 
     MatchRuntimeQueryService::Deps deps;
     deps.playModePolicy = &policy;
-    deps.timeController = &timeCtrl;
     service.updateDeps(deps);
 
     // PolicyService の Deps が未設定なのでデフォルト動作
     QCOMPARE(service.isGameActivelyInProgress(), false);
     QCOMPARE(service.isHvH(), false);
 
-    // TimeController は初期状態なので 0
-    QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
-    QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
 }
 
 /// sfenRecord() が match ダブルポインタ null 時に nullptr を返すことを確認
@@ -129,12 +113,10 @@ void TestLifecycleRuntime::testDoubleShutdownPattern()
 {
     MatchRuntimeQueryService service;
     PlayModePolicyService policy;
-    TimeControlController timeCtrl;
 
     // 有効な Deps を設定
     MatchRuntimeQueryService::Deps liveDeps;
     liveDeps.playModePolicy = &policy;
-    liveDeps.timeController = &timeCtrl;
     service.updateDeps(liveDeps);
 
     // 1回目の shutdown
@@ -146,7 +128,6 @@ void TestLifecycleRuntime::testDoubleShutdownPattern()
 
     // 二重無効化後もクラッシュしない
     QCOMPARE(service.isGameActivelyInProgress(), false);
-    QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
     QCOMPARE(service.sfenRecord(), nullptr);
 }
 

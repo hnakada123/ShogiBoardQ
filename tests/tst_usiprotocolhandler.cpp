@@ -38,7 +38,11 @@ private slots:
         handler.setProcessManager(&process);
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
         handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
-        handler.sendGoPonder({4750, QStringLiteral("290000"), QStringLiteral("0"), 0, 0, true});
+        UsiGoTime goTime;
+        goTime.btime = 290000;
+        goTime.byoyomi = 4750;
+        goTime.useByoyomi = true;
+        handler.sendGoPonder(goTime);
         QCOMPARE(handler.predictedMove(), QStringLiteral("2g2f"));
         QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Ponder);
         QCOMPARE(commands.last().at(0).toString(),
@@ -55,7 +59,12 @@ private slots:
         UsiProtocolHandler handler;
         handler.setProcessManager(&process);
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
-        handler.sendGoPonder({0, QStringLiteral("1000"), QStringLiteral("2000"), 300, 400, false});
+        UsiGoTime goTime;
+        goTime.btime = 1000;
+        goTime.wtime = 2000;
+        goTime.binc = 300;
+        goTime.winc = 400;
+        handler.sendGoPonder(goTime);
         QCOMPARE(commands.last().at(0).toString(),
                  QStringLiteral("go ponder btime 1000 wtime 2000 binc 300 winc 400"));
     }

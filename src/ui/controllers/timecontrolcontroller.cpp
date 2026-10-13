@@ -69,15 +69,13 @@ void TimeControlController::setTimeDisplayPresenter(TimeDisplayPresenter* presen
 // 時間設定適用ヘルパー
 // --------------------------------------------------------
 
-void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeControl& tc,
-                                             MatchCoordinator* match,
+void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeSettings& tc,
                                              const QString& startSfen,
                                              const QString& currentSfen,
                                              ShogiView* shogiView)
 {
     // 1) 設定を保存し、開始時刻を記録
-    saveTimeControlSettings(tc.enabled, {tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs},
-                            {tc.p2.baseMs, tc.p2.byoyomiMs, tc.p2.incrementMs});
+    recordTimeControl(tc.enabled ? tc.rules : TimeControl{});
     recordGameStartTime();
 
     // 2) 時計へ適用
@@ -85,20 +83,10 @@ void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeCon
     ShogiClock* clk = clock();
     TimeControlUtil::applyToClock(clk, tc, startSfen, currentSfen);
 
-    // 3) 司令塔へ反映
-    if (match) {
-        const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
-        match->setTimeControlConfig(useByoyomi,
-                                    static_cast<int>(tc.p1.byoyomiMs), static_cast<int>(tc.p2.byoyomiMs),
-                                    static_cast<int>(tc.p1.incrementMs), static_cast<int>(tc.p2.incrementMs),
-                                    tc.enabled && tc.loseOnTimeout);
-        match->refreshGoTimes();
-    }
-
-    // 4) 表示更新
+    // 3) 表示更新（決まりは時計が持ち、エンジンの思考時間も時計から求める）
     if (m_timePresenter && clk) {
-        const qint64 p1 = clk->getPlayer1TimeIntMs();
-        const qint64 p2 = clk->getPlayer2TimeIntMs();
+        const qint64 p1 = clk->remainingMs(1);
+        const qint64 p2 = clk->remainingMs(2);
         const bool p1turn = true;  // 呼び出し元で手番更新済みの想定
         m_timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
     }
@@ -111,37 +99,33 @@ void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeCon
 // 時間制御設定
 // --------------------------------------------------------
 
-void TimeControlController::saveTimeControlSettings(bool enabled, const KifuTimeControlSide& black,
-                                                    const KifuTimeControlSide& white)
+void TimeControlController::recordTimeControl(const TimeControl& timeControl)
 {
-    m_settings.enabled = enabled;
-    m_settings.black = black;
-    m_settings.white = white;
+    m_timeControl = timeControl;
 
-    qCDebug(lcUi).noquote() << "saveTimeControlSettings:"
-                            << "enabled=" << enabled
-                            << "black={" << black.baseMs << black.byoyomiMs << black.incrementMs << "}"
-                            << "white={" << white.baseMs << white.byoyomiMs << white.incrementMs << "}";
+    qCDebug(lcUi).noquote() << "recordTimeControl:"
+                            << "black={" << timeControl.black.mainMs << timeControl.black.byoyomiMs
+                            << timeControl.black.incrementMs << "}"
+                            << "white={" << timeControl.white.mainMs << timeControl.white.byoyomiMs
+                            << timeControl.white.incrementMs << "}";
 }
 
-void TimeControlController::beginGameWithTimeControl(const KifuTimeControlSide& black,
-                                                     const KifuTimeControlSide& white)
+void TimeControlController::beginGameWithTimeControl(const TimeControl& timeControl)
 {
-    const KifuTimeControlSide none;
-    saveTimeControlSettings(black != none || white != none, black, white);
+    recordTimeControl(timeControl);
     clearGameStartTime();
     recordGameStartTime();
     clearGameEndTime();
 }
 
-const TimeControlController::TimeControlSettings& TimeControlController::settings() const
+const TimeControl& TimeControlController::timeControl() const
 {
-    return m_settings;
+    return m_timeControl;
 }
 
 bool TimeControlController::hasTimeControl() const
 {
-    return m_settings.enabled;
+    return !m_timeControl.isUnlimited();
 }
 
 // --------------------------------------------------------
@@ -186,43 +170,6 @@ QDateTime TimeControlController::gameEndDateTime() const
 void TimeControlController::clearGameEndTime()
 {
     m_gameEndDateTime = QDateTime();
-}
-
-// --------------------------------------------------------
-// 時間取得ヘルパー
-// --------------------------------------------------------
-
-qint64 TimeControlController::remainingMs(int player) const
-{
-    if (!m_clock) {
-        qCDebug(lcUi) << "remainingMs: clock=null";
-        return 0;
-    }
-    const qint64 p1 = m_clock->getPlayer1TimeIntMs();
-    const qint64 p2 = m_clock->getPlayer2TimeIntMs();
-    qCDebug(lcUi) << "remainingMs: P1=" << p1 << " P2=" << p2
-                  << " req=" << (player == 1 ? "P1" : "P2");
-    return (player == 1) ? p1 : p2;
-}
-
-qint64 TimeControlController::incrementMs(int player) const
-{
-    if (!m_clock) {
-        qCDebug(lcUi) << "incrementMs: clock=null";
-        return 0;
-    }
-    const qint64 inc1 = m_clock->bincMs();
-    const qint64 inc2 = m_clock->wincMs();
-    qCDebug(lcUi) << "incrementMs: binc=" << inc1 << " winc=" << inc2
-                  << " req=" << (player == 1 ? "P1" : "P2");
-    return (player == 1) ? inc1 : inc2;
-}
-
-qint64 TimeControlController::clockByoyomiMs() const
-{
-    const qint64 byo = m_clock ? m_clock->commonByoyomiMs() : 0;
-    qCDebug(lcUi) << "clockByoyomiMs: ms=" << byo;
-    return byo;
 }
 
 // --------------------------------------------------------

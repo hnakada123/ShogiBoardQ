@@ -27,7 +27,6 @@ void MatchCoordinator::captureInterruptedGame()
     state->options.mode = m_playMode;
     state->options.sfenStart = m_sfenHistory->last();
     state->options.resumeFromBreakOff = true;
-    state->timeControl = timeControl();
     state->sfens = *m_sfenHistory;
     state->moves = gameMovesRef();
     state->position = m_positionStr1;
@@ -61,9 +60,7 @@ bool MatchCoordinator::resumeInterruptedGame()
     // 先読みは停止済み。確定局面から新しい探索を開始する。
     m_positionPonder1 = m_positionPonder2 = state->position;
     m_positionStrHistory = state->positionHistory;
-    const auto& tc = state->timeControl;
-    setTimeControlConfig(tc.useByoyomi, tc.byoyomiMs1, tc.byoyomiMs2,
-                         tc.incMs1, tc.incMs2, tc.loseOnTimeout);
+    // 時計のスナップショットは持ち時間の決まりと時間切れの扱いも含む
     clock()->restoreSnapshot(state->clock);
     ensureMatchTurnHandler();
     m_turnHandler->createAndStartModeStrategy(state->options);

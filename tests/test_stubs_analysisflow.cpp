@@ -74,7 +74,6 @@ void Usi::markHardTimeout() {}
 void Usi::clearHardTimeout() {}
 bool Usi::isIgnoring() const { return false; }
 QString Usi::currentEnginePath() const { return {}; }
-void Usi::sendGoCommand(const UsiTimingParams&) {}
 void Usi::sendRaw(const QString&) const {}
 bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}

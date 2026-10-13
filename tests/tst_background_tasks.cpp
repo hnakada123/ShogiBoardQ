@@ -1,4 +1,6 @@
 #include <QtTest>
+
+#include "timecontrol_test_helper.h"
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QThread>
@@ -197,7 +199,7 @@ private slots:
         QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.sendRaw(QStringLiteral("setoption name ReplyDelay value 250"));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
-                                {5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true});
+                                TestTime::byoyomiTiming(5000, 300000, 0));
         QVERIFY(elapsed.elapsed() < 200);
         QCOMPARE(ready.size(), 0);
         QCOMPARE(moves.size(), 0);
@@ -221,7 +223,7 @@ private slots:
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
-                                {5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true});
+                                TestTime::byoyomiTiming(5000, 300000, 0));
         QVERIFY(engine.isInitializing());
         engine.requestImmediateMove();
         QTRY_COMPARE(moves.size(), 1);
@@ -247,7 +249,7 @@ private slots:
         QSignalSpy resigns(&engine, &Usi::bestMoveResignReceived);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        const UsiTimingParams timing{5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true};
+        const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 0);
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
         QTRY_COMPARE(moves.size(), 1);
         const QString ponder = moves.first().at(3).toString();
@@ -275,7 +277,7 @@ private slots:
         QTRY_COMPARE(ready.size(), 1);
         engine.sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
-                                {5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true});
+                                TestTime::byoyomiTiming(5000, 300000, 0));
         engine.cancelCurrentOperation();
         QTest::qWait(400);
         QCOMPARE(moves.size(), 0);
@@ -322,7 +324,7 @@ private slots:
             QVERIFY(engine2.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         QTRY_COMPARE(ready1.size(), 1);
         if (bothEngines) QTRY_COMPARE(ready2.size(), 1);
-        const UsiTimingParams timing{5000, QStringLiteral("300000"), QStringLiteral("300000"), 0, 0, true};
+        const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 300000);
         for (Usi* engine : {&engine1, bothEngines ? &engine2 : nullptr}) {
             if (!engine) continue;
             engine->sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
@@ -387,7 +389,7 @@ private slots:
         QVERIFY(pondering.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         QTRY_COMPARE(thinkingReady.size(), 1);
         QTRY_COMPARE(ponderingReady.size(), 1);
-        const UsiTimingParams timing{5000, QStringLiteral("300000"), QStringLiteral("300000"), 0, 0, true};
+        const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 300000);
         const QString position = QStringLiteral("position startpos moves 7g7f");
         pondering.requestMatchMove(position, {}, timing);
         QTRY_COMPARE(ponderingMoves.size(), 1);
@@ -459,7 +461,7 @@ private slots:
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
-                                {5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true});
+                                TestTime::byoyomiTiming(5000, 300000, 0));
         QTRY_COMPARE(errors.size(), 1);
         QCOMPARE(moves.size(), 0);
     }
