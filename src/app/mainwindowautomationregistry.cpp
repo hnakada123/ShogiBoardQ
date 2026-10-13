@@ -3,6 +3,7 @@
 
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
+#include "kifunavigationstate.h"
 
 #include "automationcommands.h"
 #include "automationcontext.h"
@@ -10,7 +11,6 @@
 #include "kifusubregistry.h"
 #include "logcategories.h"
 #include "mainwindowfoundationregistry.h"
-#include "matchruntimequeryservice.h"
 #include "kifuexportcontroller.h"
 #include "csagamewiring.h"
 #include "menuwindow.h"
@@ -35,14 +35,13 @@ void MainWindowServiceRegistry::ensureAutomationServer(const QString& socketPath
     ctx.shogiView = m_mw.m_shogiView;
     ctx.branchTree = m_mw.m_branchNav.branchTree;
     ctx.playMode = &m_mw.m_state.playMode;
-    ctx.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
     ctx.startSfenStr = &m_mw.m_state.startSfenStr;
     ctx.currentSfenStr = &m_mw.m_state.currentSfenStr;
     ctx.saveFileName = &m_mw.m_kifu.saveFileName;
     ctx.engineName1 = &m_mw.m_player.engineName1;
     ctx.engineName2 = &m_mw.m_player.engineName2;
-    ctx.sfenRecord = [this]() -> const QStringList* {
-        return m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr;
+    ctx.currentPly = [this]() {
+        return m_mw.m_branchNav.navState ? m_mw.m_branchNav.navState->currentPly() : 0;
     };
     ctx.navigationController = [this]() { return m_mw.m_branchNav.kifuNavController; };
     ctx.uiStatePolicy = [this]() {

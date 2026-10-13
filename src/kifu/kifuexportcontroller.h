@@ -22,9 +22,6 @@ class GameRecordModel;
 class KifuRecordListModel;
 class GameInfoPaneController;
 class TimeControlController;
-class KifuLoadCoordinator;
-class GameRecordPresenter;
-class MatchCoordinator;
 class ShogiGameController;
 class KifuExportClipboard;
 struct ShogiMove;
@@ -60,14 +57,9 @@ public:
         KifuRecordListModel* kifuRecordModel = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
         TimeControlController* timeController = nullptr;
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
-        GameRecordPresenter* recordPresenter = nullptr;
-        MatchCoordinator* match = nullptr;
         ShogiGameController* gameController = nullptr;
 
         // データソース（ポインタ）
-        QStringList* sfenRecord = nullptr;
-        QStringList* usiMoves = nullptr;
         QList<ResolvedRow>* resolvedRows = nullptr;
 
         // 状態値
@@ -156,11 +148,6 @@ public:
     // --------------------------------------------------------
     // ユーティリティ
     // --------------------------------------------------------
-
-    /**
-     * @brief SFENレコードからUSI指し手リストを生成
-     */
-    QStringList sfenRecordToUsiMoves() const;
 
     /**
      * @brief 指定形式の出力行を生成する（ファイルに書かない。自動化 API 用）

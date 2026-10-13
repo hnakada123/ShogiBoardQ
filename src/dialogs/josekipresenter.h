@@ -105,7 +105,7 @@ public:
      * @brief 棋譜データからマージエントリを作成する
      * @param sfenList 各手番のSFEN文字列リスト
      * @param moveList 各手のUSI形式指し手リスト
-     * @param japaneseMoveList 各手の日本語表記リスト
+     * @param japaneseMoveList 各手の棋譜の表記（[i] が i+1 手目）
      * @param currentPly 現在選択中の手数
      * @return マージエントリのリスト
      */

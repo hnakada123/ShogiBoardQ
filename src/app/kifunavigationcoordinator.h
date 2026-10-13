@@ -46,9 +46,6 @@ public:
         KifuBranchTree* branchTree = nullptr;                  ///< 分岐ツリー（非所有）
 
         // --- External state pointers ---
-        int* activePly = nullptr;                              ///< アクティブ手数（外部所有）
-        int* currentSelectedPly = nullptr;                     ///< 選択中手数（外部所有）
-        int* currentMoveIndex = nullptr;                       ///< 現在の手インデックス（外部所有）
         QString* currentSfenStr = nullptr;                     ///< 現在局面SFEN文字列（外部所有）
         bool* skipBoardSyncForBranchNav = nullptr;             ///< 分岐ナビ中の盤面同期スキップフラグ（外部所有）
         PlayMode* playMode = nullptr;                          ///< 対局モード（外部所有）
@@ -63,8 +60,6 @@ public:
         std::function<void()> setCurrentTurn;                  ///< 手番表示更新（TurnStateSyncService 経由）
         std::function<void()> updateJosekiWindow;              ///< 定跡ウィンドウ更新
         std::function<void()> ensureBoardSyncPresenter;        ///< BoardSyncPresenter 遅延初期化
-        std::function<bool()> isGameActivelyInProgress;        ///< 対局進行中判定
-        std::function<QStringList*()> getSfenRecord;           ///< SFEN履歴取得
     };
 
     explicit KifuNavigationCoordinator(QObject* parent = nullptr);

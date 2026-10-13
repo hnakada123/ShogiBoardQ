@@ -5,6 +5,7 @@
 /// @brief 詰み探索フローコントローラクラスの定義
 
 
+#include "recordline.h"
 #include <QObject>
 #include <functional>
 
@@ -26,12 +27,8 @@ public:
     /// 依存オブジェクト
     struct Deps {
         MatchCoordinator* match = nullptr;  ///< 司令塔（必須、非所有）
-        const QStringList* sfenRecord = nullptr;  ///< 棋譜のSFEN列（任意、非所有）
-        QString            startSfenStr;          ///< 開始SFEN（空可）
-        QStringList        positionStrList;       ///< 既存`position ...`列
-        int                currentMoveIndex = 0;  ///< 現在の行
-        const QStringList* usiMoves = nullptr;    ///< USI形式指し手列（任意、非所有）
-        QString            startPositionCmd;      ///< 開始局面コマンド（`startpos`または`sfen ...`）
+        RecordLine line;                    ///< 表示中の手順（分岐ツリー）。line.currentPly の局面を探索する
+        QString fallbackSfen;               ///< 手順が無いときに探索する局面（空可）
         std::function<void(const QString&)> onError;  ///< エラー表示コールバック（任意）
     };
 

@@ -28,19 +28,15 @@ void SessionLifecycleCoordinator::resetToInitialState()
     const QString hirateStartSfen = SfenUtils::hirateSfen();
 
     // 「新規」のため局面情報を初期化してから完全クリーンアップを実行する。
-    // performCleanup() は currentSelectedPly > 0 かつ currentSfenStr が
+    // performCleanup() は表示中の手数が 0 より大きく currentSfenStr が
     // 非初期局面の場合、棋譜を保持しようとする（途中局面開始の対局用）。
-    // ここで事前にリセットすることで、完全クリアを保証する。
+    // currentSfenStr を初期局面にしておけば、表示中の手数によらず完全クリアになる。
     if (m_deps.startSfenStr) {
         *m_deps.startSfenStr = hirateStartSfen;
     }
     if (m_deps.currentSfenStr) {
         *m_deps.currentSfenStr = QStringLiteral("startpos");
     }
-    if (m_deps.currentSelectedPly) {
-        *m_deps.currentSelectedPly = 0;
-    }
-
     if (m_deps.resetEngineState) {
         m_deps.resetEngineState();
     }
@@ -123,7 +119,6 @@ void SessionLifecycleCoordinator::prepareNextGame(const QString& startSfen)
                              ? SfenUtils::hirateSfen() : startSfen;
     if (m_deps.startSfenStr) *m_deps.startSfenStr = sfen;
     if (m_deps.currentSfenStr) *m_deps.currentSfenStr = sfen;
-    if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = 0;
 
     resetGameState();
     if (m_deps.resetModels) m_deps.resetModels(sfen);

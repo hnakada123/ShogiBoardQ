@@ -29,10 +29,7 @@ public:
         EvaluationGraphController* evalGraphController = nullptr;
         const PlayMode* playMode = nullptr;
         QStringList* sfenRecord = nullptr;
-        QStringList* gameUsiMoves = nullptr;
         QString* currentSfenStr = nullptr;
-        int* currentSelectedPly = nullptr;
-        int* activePly = nullptr;
     };
 
     void updateDeps(const Deps& deps);

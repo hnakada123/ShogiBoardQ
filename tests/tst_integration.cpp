@@ -5,7 +5,6 @@
 #include "shogiboard.h"
 #include "enginemovevalidator.h"
 #include "shogimove.h"
-#include "shogiutils.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "livegamesession.h"

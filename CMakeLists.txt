@@ -323,8 +323,6 @@ set(SRC_CORE
     src/core/shoginotation.h
     src/core/kifmovetext.h
     src/core/shogitypes.h
-    src/core/shogiutils.cpp
-    src/core/shogiutils.h
 )
 
 set(SRC_GAME
@@ -436,8 +434,6 @@ set(SRC_KIFU
     src/kifu/formats/usentosfenconverter_decode.cpp
     src/kifu/formats/usiexporter.cpp
     src/kifu/formats/usiexporter.h
-    src/kifu/formats/usimoveconverter.cpp
-    src/kifu/formats/usimoveconverter.h
     src/kifu/formats/usitosfenconverter.cpp
     src/kifu/formats/usitosfenconverter.h
     src/kifu/gamerecordmodel.cpp
@@ -483,6 +479,7 @@ set(SRC_KIFU
     src/kifu/kifuloadcoordinator.h
     src/kifu/kifunavigationstate.cpp
     src/kifu/kifunavigationstate.h
+    src/kifu/recordline.h
     src/kifu/kifusavecoordinator.cpp
     src/kifu/kifusavecoordinator.h
     src/kifu/kifutypes.h

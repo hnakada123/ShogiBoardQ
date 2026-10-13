@@ -191,8 +191,6 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     in.boardController = m_mw.m_boardController;
     in.kifuRecordModel  = m_mw.m_models.kifuRecord;
     in.gameMoves        = &m_mw.m_kifu.gameMoves;
-    in.positionStrList  = &m_mw.m_kifu.positionStrList;
-    in.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
 
     in.ensureTimeController = [this]() {
         ensureTimeController();
@@ -263,7 +261,6 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
         m_mw.m_player.humanName2 = white;
         m_mw.m_player.engineName1.clear();
         m_mw.m_player.engineName2.clear();
-        m_mw.m_kifu.gameUsiMoves.clear();
         if (m_mw.m_match) m_mw.m_match->clearGameOverState();
         m_foundation->ensurePlayerInfoWiring();
         m_mw.m_playerInfoWiring->ensureGameInfoController();
@@ -297,9 +294,7 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
         if (m_mw.m_shogiView && m_mw.m_match && m_mw.m_shogiView->flipMode() != flipped) m_mw.m_match->flipBoard();
     };
     deps.syncPly = [this](int ply) {
-        m_mw.m_state.currentMoveIndex = ply;
-        m_mw.m_kifu.activePly = ply;
-        m_mw.m_kifu.currentSelectedPly = ply;
+        // 表示中の手数（分岐ツリーのカーソル）は LiveGameSession の着手通知で動く
         const auto* positions = m_mw.m_queryService->sfenRecord();
         if (positions && ply >= 0 && ply < positions->size())
             m_mw.m_state.currentSfenStr = positions->at(ply);

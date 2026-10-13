@@ -12,14 +12,11 @@
 #include "kifurecordlistmodel.h"
 #include "gameinfopanecontroller.h"
 #include "timecontrolcontroller.h"
-#include "kifuloadcoordinator.h"
-#include "matchcoordinator.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "kifuclipboardservice.h"
 #include "bodtextgenerator.h"
 #include "kifuexportmetadata.h"
-#include "usimoveconverter.h"
 #include "usiexporter.h"
 
 KifuExportClipboard::KifuExportClipboard(QObject* parent)
@@ -43,34 +40,8 @@ void KifuExportClipboard::setPrepareCallback(std::function<void()> callback)
 
 QStringList KifuExportClipboard::resolveUsiMoves() const
 {
-    // 表示テキストと同じ本譜を使う。対局用USI列は途中再開後の新規手だけの場合がある。
-    if (m_deps.gameRecord && m_deps.gameRecord->branchTree()
-        && !m_deps.gameRecord->branchTree()->isEmpty()) {
-        return m_deps.gameRecord->collectMainlineUsiForExport();
-    }
-
-    // ツリーがない場合は対局用データにフォールバックする。
-    if (m_deps.usiMoves && !m_deps.usiMoves->isEmpty()) {
-        return *m_deps.usiMoves;
-    }
-
-    // 2. KifuLoadCoordinatorから取得
-    if (m_deps.kifuLoadCoordinator) {
-        QStringList moves = m_deps.kifuLoadCoordinator->kifuUsiMoves();
-        if (!moves.isEmpty()) {
-            qCDebug(lcKifu).noquote() << "kifuUsiMoves from KifuLoadCoordinator, size =" << moves.size();
-            return moves;
-        }
-    }
-
-    // 3. SFENレコードから生成
-    if (m_deps.sfenRecord && m_deps.sfenRecord->size() > 1) {
-        QStringList moves = UsiMoveConverter::fromSfenRecord(*m_deps.sfenRecord);
-        qCDebug(lcKifu).noquote() << "usiMoves from sfenRecord, size =" << moves.size();
-        return moves;
-    }
-
-    return QStringList();
+    // 棋譜の正本（分岐ツリー）の本譜。表示テキストと同じ手順になる
+    return m_deps.gameRecord ? m_deps.gameRecord->collectMainlineUsiForExport() : QStringList();
 }
 
 GameRecordModel::ExportContext KifuExportClipboard::buildExportContext() const
@@ -104,29 +75,21 @@ bool KifuExportClipboard::hasBranches() const
     return tree != nullptr && !tree->isEmpty() && tree->lineCount() > 1;
 }
 
-bool KifuExportClipboard::isCurrentlyPlaying() const
-{
-    const bool isPlayingMode = (m_deps.playMode == PlayMode::EvenHumanVsEngine ||
-                                m_deps.playMode == PlayMode::EvenEngineVsHuman ||
-                                m_deps.playMode == PlayMode::EvenEngineVsEngine ||
-                                m_deps.playMode == PlayMode::HandicapEngineVsHuman ||
-                                m_deps.playMode == PlayMode::HandicapHumanVsEngine ||
-                                m_deps.playMode == PlayMode::HandicapEngineVsEngine ||
-                                m_deps.playMode == PlayMode::HumanVsHuman);
-
-    const bool isGameOver = (m_deps.match && m_deps.match->gameOverState().isOver);
-
-    return isPlayingMode && !isGameOver;
-}
-
 int KifuExportClipboard::currentPly() const
 {
-    if (isCurrentlyPlaying() && m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
-        return static_cast<int>(m_deps.sfenRecord->size() - 1);
-    }
-
-    // USIの「現在の指し手まで」と同じ、閲覧中の行を参照する。
+    // 表示中の手数（分岐ツリーのカーソル）。対局中はカーソルが最新の手を指している
     return qMax(0, m_deps.currentMoveIndex);
+}
+
+QString KifuExportClipboard::lineSfenAt(int ply) const
+{
+    // 表示中の手順（分岐ツリーのライン）の ply 行目の局面
+    const KifuBranchTree* tree = m_deps.gameRecord ? m_deps.gameRecord->branchTree() : nullptr;
+    if (tree == nullptr) return {};
+    const auto lines = tree->allLines();
+    const int line = m_deps.gameRecord->activeRow();
+    if (line < 0 || line >= lines.size() || ply < 0 || ply >= lines[line].nodes.size()) return {};
+    return lines[line].nodes[ply]->sfen();
 }
 
 KifuExportClipboard::PositionData KifuExportClipboard::currentPositionData() const
@@ -143,19 +106,12 @@ KifuExportClipboard::PositionData KifuExportClipboard::currentPositionData() con
         if (standSfen.isEmpty()) standSfen = QStringLiteral("-");
         const QString turn = turnToSfen(board->currentPlayer());
         int moveNum = data.moveIndex + 1;
-        if (m_deps.gameRecord && m_deps.gameRecord->branchTree()) {
-            const auto lines = m_deps.gameRecord->branchTree()->allLines();
-            const int line = m_deps.gameRecord->activeRow();
-            if (line >= 0 && line < lines.size() && data.moveIndex < lines[line].nodes.size()) {
-                bool ok = false;
-                const int number = lines[line].nodes[data.moveIndex]->sfen().section(QLatin1Char(' '), 3, 3).toInt(&ok);
-                if (ok) moveNum = number;
-            }
-        }
+        bool ok = false;
+        const int number = lineSfenAt(data.moveIndex).section(QLatin1Char(' '), 3, 3).toInt(&ok);
+        if (ok) moveNum = number;
         data.sfenStr = QStringLiteral("%1 %2 %3 %4").arg(boardSfen, turn, standSfen, QString::number(moveNum));
-    } else if (m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
-        data.moveIndex = qBound(0, data.moveIndex, static_cast<int>(m_deps.sfenRecord->size() - 1));
-        data.sfenStr = m_deps.sfenRecord->at(data.moveIndex);
+    } else {
+        data.sfenStr = lineSfenAt(data.moveIndex);
     }
 
     // BODの最終手表示にも閲覧中の行を使用する。
@@ -276,13 +232,13 @@ bool KifuExportClipboard::copyUsiCurrentToClipboard()
             const auto lines = tree->allLines();
             const int line = m_deps.gameRecord->activeRow();
             if (line >= 0 && line < lines.size()) {
-                QStringList positions;
-                for (const auto* node : lines[line].nodes) {
+                QList<KifuBranchNode*> nodes;
+                for (KifuBranchNode* node : lines[line].nodes) {
                     if (node->ply() > limit) break;
                     if (node->isTerminal()) { terminal = node->displayText(); break; }
-                    positions.append(node->sfen());
+                    nodes.append(node);
                 }
-                moves = UsiMoveConverter::fromSfenRecord(positions);
+                moves = KifuBranchTree::toRecordLine(nodes).usiMoves();
             }
         } else {
             const auto disp = m_deps.gameRecord->collectMainlineForExport();

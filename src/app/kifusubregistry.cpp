@@ -24,6 +24,7 @@
 #include "kifunavigationcoordinator.h"
 #include "evaluationgraphcontroller.h"
 #include "josekiwindowwiring.h"
+#include "kifunavigationstate.h"
 #include "josekiwindow.h"
 #include "kifuexportdepsassembler.h"
 #include "kifuloadcoordinatorfactory.h"
@@ -212,7 +213,6 @@ void KifuSubRegistry::refreshGameRecordUpdateDeps()
     deps.match = m_mw.m_match;
     deps.liveGameSession = m_mw.m_branchNav.liveGameSession;
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
-    deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     deps.sfenRecord = m_mw.m_queryService->sfenRecord();
     m_mw.m_gameRecordUpdateService->updateDeps(deps);
@@ -248,8 +248,6 @@ void KifuSubRegistry::refreshGameRecordLoadDeps()
     if (!m_mw.m_gameRecordLoadService) return;
 
     GameRecordLoadService::Deps deps;
-    deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
-    deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.recordPane = m_mw.m_recordPane;
     deps.ensureRecordPresenter = [this]() -> GameRecordPresenter* {
         m_registry->ensureRecordPresenter();
@@ -258,9 +256,6 @@ void KifuSubRegistry::refreshGameRecordLoadDeps()
     deps.ensureGameRecordModel = [this]() -> GameRecordModel* {
         ensureGameRecordModel();
         return m_mw.m_models.gameRecord;
-    };
-    deps.sfenRecord = [this]() -> const QStringList* {
-        return m_mw.m_queryService->sfenRecord();
     };
     m_mw.m_gameRecordLoadService->updateDeps(deps);
 }
@@ -316,13 +311,10 @@ void KifuSubRegistry::ensureJosekiWiring()
     JosekiWindowWiring::Dependencies deps;
     deps.parentWidget = &m_mw;
     deps.gameController = m_mw.m_gameController;
-    deps.kifuRecordModel = m_mw.m_models.kifuRecord;
-    deps.sfenRecord = m_mw.m_queryService->sfenRecord();
-    deps.usiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
-    deps.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
-    deps.currentSelectedPly = &m_mw.m_kifu.currentSelectedPly;
-    deps.playMode = &m_mw.m_state.playMode;
+    deps.currentLine = [this]() {
+        return m_mw.m_branchNav.navState ? m_mw.m_branchNav.navState->currentRecordLine() : RecordLine{};
+    };
     deps.isHumanTurnNow = [this]() {
         return m_mw.m_playModePolicy && m_mw.m_playModePolicy->isHumanTurnNow();
     };
@@ -402,12 +394,6 @@ void KifuSubRegistry::createAndWireKifuLoadCoordinator()
     m_foundation->ensureUiNotificationService();
 
     KifuLoadCoordinatorFactory::Params p;
-    p.gameMoves = &m_mw.m_kifu.gameMoves;
-    p.positionStrList = &m_mw.m_kifu.positionStrList;
-    p.activePly = &m_mw.m_kifu.activePly;
-    p.currentSelectedPly = &m_mw.m_kifu.currentSelectedPly;
-    p.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
-    p.sfenRecord = m_mw.m_queryService->sfenRecord();
     p.gameInfoController = m_mw.m_gameInfoController;
     p.recordPane = m_mw.m_recordPane;
     p.kifuRecordModel = m_mw.m_models.kifuRecord;

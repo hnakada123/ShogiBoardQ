@@ -6,6 +6,8 @@
 /// ensurePlayerInfoWiring を内部呼出し）。
 
 #include "mainwindowfoundationregistry.h"
+#include "kifunavigationstate.h"
+#include "kifubranchtree.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowserviceregistry.h"
@@ -154,10 +156,6 @@ void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
         }
     };
     callbacks.ensureBoardSyncPresenter = [this]() { ensureBoardSyncPresenter(); };
-    callbacks.isGameActivelyInProgress = [this]() {
-        return queryIsGameActivelyInProgress();
-    };
-    callbacks.getSfenRecord = [this]() -> QStringList* { return m_mw.m_queryService->sfenRecord(); };
 
     m_mw.m_kifuNavCoordinator->updateDeps(
         KifuNavigationDepsFactory::createDeps(m_mw.buildRuntimeRefs(), callbacks));
@@ -184,22 +182,17 @@ void MainWindowFoundationRegistry::ensureCommentCoordinator()
 void MainWindowFoundationRegistry::ensureBoardSyncPresenter()
 {
     if (!m_mw.m_boardSync) {
-        qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: creating BoardSyncPresenter"
-                           << "sfenRecord()*=" << static_cast<const void*>(m_mw.m_queryService->sfenRecord())
-                           << "sfenRecord().size=" << (m_mw.m_queryService->sfenRecord() ? m_mw.m_queryService->sfenRecord()->size() : -1);
-
         BoardSyncPresenter::Deps d;
-        d.gc         = m_mw.m_gameController;
-        d.view       = m_mw.m_shogiView;
-        d.bic        = m_mw.m_boardController;
-        d.sfenRecord = m_mw.m_queryService->sfenRecord();
-        d.gameMoves  = &m_mw.m_kifu.gameMoves;
+        d.gc   = m_mw.m_gameController;
+        d.view = m_mw.m_shogiView;
+        d.bic  = m_mw.m_boardController;
+        d.currentLine = [this]() {
+            return m_mw.m_branchNav.navState ? m_mw.m_branchNav.navState->currentRecordLine() : RecordLine{};
+        };
 
         // Lifetime: owned by MainWindow (QObject parent=&m_mw)
         // Created: once on first use, never recreated
         m_mw.m_boardSync = new BoardSyncPresenter(d, &m_mw);
-
-        qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: created m_boardSync*=" << static_cast<const void*>(m_mw.m_boardSync);
     }
     refreshBoardSyncPresenterDeps();
 }
@@ -207,9 +200,6 @@ void MainWindowFoundationRegistry::ensureBoardSyncPresenter()
 void MainWindowFoundationRegistry::refreshBoardSyncPresenterDeps()
 {
     if (!m_mw.m_boardSync) return;
-    // sfenRecord ポインタが変わっている場合は更新する
-    const QStringList* current = m_mw.m_queryService->sfenRecord();
-    m_mw.m_boardSync->setSfenRecord(current);
     if (m_mw.m_kifuNavCoordinator) {
         m_mw.m_kifuNavCoordinator->setBoardSyncPresenter(m_mw.m_boardSync);
     }
@@ -245,6 +235,13 @@ void MainWindowFoundationRegistry::ensureEvaluationGraphController()
     m_mw.m_evalGraphController->setEvalChart(m_mw.m_evalChart);
     m_mw.m_evalGraphController->setMatchCoordinator(m_mw.m_match);
     m_mw.m_evalGraphController->setSfenRecord(m_mw.m_queryService->sfenRecord());
+    m_mw.m_evalGraphController->setRecordLengthProvider([this]() {
+        // 表示中の手順の行数（終局行を含む）- 1
+        if (!m_mw.m_branchNav.navState || !m_mw.m_branchNav.branchTree) return 0;
+        const QList<BranchLine> lines = m_mw.m_branchNav.branchTree->allLines();
+        const int index = m_mw.m_branchNav.navState->currentLineIndex();
+        return (index >= 0 && index < lines.size()) ? static_cast<int>(lines.at(index).nodes.size()) - 1 : 0;
+    });
     m_mw.m_evalGraphController->setEngine1Name(m_mw.m_player.engineName1);
     m_mw.m_evalGraphController->setEngine2Name(m_mw.m_player.engineName2);
 
@@ -252,17 +249,6 @@ void MainWindowFoundationRegistry::ensureEvaluationGraphController()
     if (m_mw.m_playerInfoController) {
         m_mw.m_playerInfoController->setEvalGraphController(m_mw.m_evalGraphController.get());
     }
-}
-
-// ---------------------------------------------------------------------------
-// MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
-// ---------------------------------------------------------------------------
-
-bool MainWindowFoundationRegistry::queryIsGameActivelyInProgress()
-{
-    if (m_mw.m_queryService)
-        return m_mw.m_queryService->isGameActivelyInProgress();
-    return false;
 }
 
 // ===========================================================================

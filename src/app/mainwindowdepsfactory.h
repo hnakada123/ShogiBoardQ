@@ -50,8 +50,7 @@ public:
     struct GameStateControllerCallbacks {
         std::function<void()> enableArrowButtons;
         std::function<void(bool)> setReplayMode;
-        std::function<void()> refreshBranchTree;
-        std::function<void(int, int, int)> updatePlyState;
+        std::function<void(int)> syncCursorToPly;
         std::function<void()> updateBoardView;                                ///< 盤面ビュー再描画
         std::function<void(bool)> setGameOverStyleLock;                       ///< 終局スタイルロック
         std::function<void(bool)> setMouseClickMode;                          ///< マウスクリックモード

@@ -27,12 +27,30 @@ void RecordNavigationHandler::updateDeps(const Deps& deps)
     m_deps = deps;
 }
 
+bool RecordNavigationHandler::lineSfenAt(int row, QString* sfen, QString* prevSfen) const
+{
+    // 棋譜欄の行は表示中の手順（分岐ツリーのライン）のノードと1対1に対応する（終局行を含む）
+    if (m_deps.navState == nullptr || m_deps.branchTree == nullptr || row < 0) return false;
+    const int lineIndex = m_deps.navState->currentLineIndex();
+    const QList<BranchLine> lines = m_deps.branchTree->allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size()) return false;
+    const QList<KifuBranchNode*>& nodes = lines.at(lineIndex).nodes;
+    if (row >= nodes.size() || nodes.at(row) == nullptr) return false;
+
+    const QString previous = (row > 0 && nodes.at(row - 1) != nullptr) ? nodes.at(row - 1)->sfen() : QString();
+    QString current = nodes.at(row)->sfen();
+    // SFENを持たない特殊ノード（投了・中断など）では直前の局面を使う
+    if (current.isEmpty()) current = previous;
+    if (sfen) *sfen = current;
+    if (prevSfen) *prevSfen = previous;
+    return true;
+}
+
 void RecordNavigationHandler::onMainRowChanged(int row)
 {
     qCDebug(lcNavigation).noquote() << "onMainRowChanged ENTER row=" << row
                                     << "navState lineIndex=" << (m_deps.navState ? m_deps.navState->currentLineIndex() : -1)
-                                    << "isOnMainLine=" << (m_deps.navState ? m_deps.navState->isOnMainLine() : true)
-                                    << "m_sfenHistory.size=" << (m_deps.sfenRecord ? m_deps.sfenRecord->size() : -1);
+                                    << "isOnMainLine=" << (m_deps.navState ? m_deps.navState->isOnMainLine() : true);
 
     // 再入防止（インスタンス単位）
     if (m_mainRowChangeInProgress) {
@@ -62,10 +80,8 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         }
     }
 
-    // 対局進行中（HvE/HvH/EvE）は sfenRecord の更新が正であるため、
-    // 分岐ツリーからの盤面上書きをスキップする。
-    // 分岐ツリーには対局開始前の KIF 継続手が残っており、
-    // エンジンの実際の指し手と異なる局面で盤面が上書きされてしまうのを防ぐ。
+    // 対局進行中（HvE/HvH/EvE）は盤面と現在局面を対局ロジックが更新するので、
+    // 棋譜欄の行追加に伴う行変更では盤面を再設定しない。
     const bool gameActivelyInProgress = [&]() {
         if (!m_deps.playMode || !m_deps.match) return false;
         switch (*m_deps.playMode) {
@@ -82,56 +98,25 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         }
     }();
 
-    // 盤面同期とUI更新
+    // 表示中の手順（分岐ツリー）の row 行目の局面
+    QString rowSfen;
+    QString prevSfen;
+    const bool foundInLine = lineSfenAt(row, &rowSfen, &prevSfen);
+
     if (row >= 0) {
-        // 分岐ツリーが存在する場合はツリーからSFENを取得して盤面を更新
-        // ただし、対局進行中は sfenRecord を正とするためスキップする
-        // 本譜（lineIndex=0）でもツリーを使う: sfenRecordは分岐切り替え後に
-        // ツリーのmain lineと不整合になることがあるため
-        bool handledByBranchTree = false;
-        if (!gameActivelyInProgress && m_deps.navState != nullptr && m_deps.branchTree != nullptr) {
-            const int lineIndex = m_deps.navState->currentLineIndex();
-            QList<BranchLine> lines = m_deps.branchTree->allLines();
-            if (lineIndex >= 0 && lineIndex < lines.size()) {
-                const BranchLine& line = lines.at(lineIndex);
-                if (row >= 0 && row < line.nodes.size()) {
-                    QString currentSfen = line.nodes.at(row)->sfen();
-                    // 投了・中断などSFENを持たない特殊ノードの場合、直前ノードのSFENを使用
-                    if (currentSfen.isEmpty() && row > 0 && (row - 1) < line.nodes.size()) {
-                        currentSfen = line.nodes.at(row - 1)->sfen();
-                        qCDebug(lcNavigation).noquote() << "onMainRowChanged: terminal node (empty SFEN),"
-                                                        << "using previous node's SFEN at row=" << (row - 1);
-                    }
-                    QString prevSfen;
-                    if (row > 0 && (row - 1) < line.nodes.size()) {
-                        prevSfen = line.nodes.at(row - 1)->sfen();
-                    }
-                    if (!currentSfen.isEmpty()) {
-                        qCDebug(lcNavigation).noquote() << "onMainRowChanged: using branch tree SFEN"
-                                                        << "lineIndex=" << lineIndex << "row=" << row
-                                                        << "sfen=" << currentSfen.left(60)
-                                                        << "prevSfen=" << (prevSfen.isEmpty() ? "(empty)" : prevSfen.left(60));
-                        emit branchBoardSyncRequired(currentSfen, prevSfen);
-                        handledByBranchTree = true;
-                    } else {
-                        qCDebug(lcNavigation).noquote() << "onMainRowChanged: branch tree SFEN is empty,"
-                                                        << "fallback to boardSyncRequired row=" << row;
-                    }
-                }
+        // 盤面同期。局面は棋譜の正本（分岐ツリー）から取る
+        if (!gameActivelyInProgress) {
+            if (foundInLine && !rowSfen.isEmpty()) {
+                qCDebug(lcNavigation).noquote() << "onMainRowChanged: board from the record line row=" << row
+                                                << "sfen=" << rowSfen.left(60);
+                emit branchBoardSyncRequired(rowSfen, prevSfen);
+            } else {
+                emit boardSyncRequired(row);
             }
         }
 
-        // 本譜の場合は従来の方法を使用。
-        // ただし対局中は盤面を対局ロジックが更新済みなので、棋譜欄の行追加に伴う
-        // 行変更で sfenRecord から盤面を再設定しない（無駄な再設定と再入の原因になる）。
-        if (!handledByBranchTree && !gameActivelyInProgress) {
-            emit boardSyncRequired(row);
-        }
-
-        // 現在手数トラッキングを更新
-        if (m_deps.activePly) *m_deps.activePly = row;
-        if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = row;
-        if (m_deps.currentMoveIndex) *m_deps.currentMoveIndex = row;
+        // 表示中の手数は分岐ツリーのカーソル（KifuNavigationState）が持つ。カーソルは下の
+        // displayCoordinator への通知（対局中は LiveGameSession の着手通知）で動く
 
         // 棋譜欄のハイライト行を更新
         if (m_deps.kifuRecordModel) {
@@ -162,34 +147,9 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     // 矢印ボタンを有効化
     emit enableArrowButtonsRequired();
 
-    // m_currentSfenStrを現在の局面に更新
-    // 対局進行中は分岐状態に関係なく sfenRecord を正とする
-    if (m_deps.currentSfenStr && row >= 0) {
-        bool updatedFromTree = false;
-        // 分岐ツリーが存在する場合は、ツリーからSFENを取得（対局進行中を除く）
-        if (!gameActivelyInProgress && m_deps.navState != nullptr && m_deps.branchTree != nullptr) {
-            const int lineIdx = m_deps.navState->currentLineIndex();
-            QList<BranchLine> treeLines = m_deps.branchTree->allLines();
-            if (lineIdx >= 0 && lineIdx < treeLines.size()) {
-                const BranchLine& ln = treeLines.at(lineIdx);
-                if (row < ln.nodes.size() && ln.nodes.at(row) != nullptr) {
-                    QString treeSfen = ln.nodes.at(row)->sfen();
-                    // 投了・中断などSFENを持たない特殊ノードの場合、直前ノードのSFENを使用
-                    if (treeSfen.isEmpty() && row > 0 && (row - 1) < ln.nodes.size()
-                        && ln.nodes.at(row - 1) != nullptr) {
-                        treeSfen = ln.nodes.at(row - 1)->sfen();
-                    }
-                    if (!treeSfen.isEmpty()) {
-                        *m_deps.currentSfenStr = treeSfen;
-                        updatedFromTree = true;
-                    }
-                }
-            }
-        }
-        // フォールバック: sfenRecordから取得
-        if (!updatedFromTree && m_deps.sfenRecord && row < m_deps.sfenRecord->size()) {
-            *m_deps.currentSfenStr = m_deps.sfenRecord->at(row);
-        }
+    // 現在局面を表示中の局面に更新（対局中は対局ロジックが着手のたびに更新する）
+    if (m_deps.currentSfenStr && row >= 0 && !gameActivelyInProgress && foundInLine && !rowSfen.isEmpty()) {
+        *m_deps.currentSfenStr = rowSfen;
     }
 
     // 定跡ウィンドウを更新
@@ -204,50 +164,13 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     // 対局中は棋譜欄の行追加がツリーへのノード追加より先に走るため、ここで通知すると
     // 旧ラインの同手数ノードへ一時的に同期されてしまう。対局中の状態・ハイライト同期は
     // KifuDisplayCoordinator::onLiveGameMoveAdded が行うので、ここでは通知しない。
+    // SFENが取れなくても、plyベースでノード同期は可能（onPositionChanged は sfen を直接参照しない）。
     if (m_deps.displayCoordinator != nullptr && !gameActivelyInProgress) {
-        QString sfen;
-        bool foundInBranch = false;
         const int lineIndex = (m_deps.navState != nullptr) ? m_deps.navState->currentLineIndex() : 0;
-
-        // 分岐ツリーが存在する場合はツリーから正しいSFENを取得
-        // 対局進行中は sfenRecord を正とするためスキップする
-        if (!gameActivelyInProgress && m_deps.navState != nullptr && m_deps.branchTree != nullptr) {
-            QList<BranchLine> lines = m_deps.branchTree->allLines();
-            if (lineIndex >= 0 && lineIndex < lines.size()) {
-                const BranchLine& line = lines.at(lineIndex);
-                if (row >= 0 && row < line.nodes.size()) {
-                    sfen = line.nodes.at(row)->sfen();
-                    // 投了・中断などSFENを持たない特殊ノードの場合、直前ノードのSFENを使用
-                    if (sfen.isEmpty() && row > 0 && (row - 1) < line.nodes.size()) {
-                        sfen = line.nodes.at(row - 1)->sfen();
-                    }
-                    foundInBranch = true;
-                }
-            }
-        }
-
-        // 本譜または分岐ツリーから取得できなかった場合は m_sfenHistory から取得
-        if (!foundInBranch && m_deps.sfenRecord != nullptr && row >= 0 && row < m_deps.sfenRecord->size()) {
-            sfen = m_deps.sfenRecord->at(row);
-        }
-
-        // 補助フォールバック: SFENが取れなくても、plyベースでノード同期は可能。
-        // onPositionChanged() は sfen を直接参照しないため、空でも処理させる。
-        if (sfen.isEmpty() && m_deps.branchTree != nullptr && lineIndex >= 0) {
-            QList<BranchLine> lines = m_deps.branchTree->allLines();
-            if (lineIndex < lines.size()) {
-                const BranchLine& line = lines.at(lineIndex);
-                if (row >= 0 && row < line.nodes.size() && line.nodes.at(row) != nullptr) {
-                    sfen = line.nodes.at(row)->sfen();
-                }
-            }
-        }
-
         qCDebug(lcNavigation).noquote() << "onMainRowChanged: calling displayCoordinator->onPositionChanged"
                                         << "lineIndex=" << lineIndex << "row=" << row
-                                        << "sfen=" << (sfen.isEmpty() ? "(empty)" : sfen.left(60))
-                                        << "foundInBranch=" << foundInBranch;
-        m_deps.displayCoordinator->onPositionChanged(lineIndex, row, sfen);
+                                        << "sfen=" << (rowSfen.isEmpty() ? "(empty)" : rowSfen.left(60));
+        m_deps.displayCoordinator->onPositionChanged(lineIndex, row, rowSfen);
     }
 
     qCDebug(lcNavigation).noquote() << "onMainRowChanged LEAVE row=" << row;

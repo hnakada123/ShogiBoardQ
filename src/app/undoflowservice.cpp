@@ -32,15 +32,11 @@ void UndoFlowService::undoLastTwoMoves()
 
     const int currentPly = m_deps.sfenRecord
         ? static_cast<int>(qMax(qsizetype(0), m_deps.sfenRecord->size() - 1)) : 0;
-    if (m_deps.gameUsiMoves) {
-        m_deps.gameUsiMoves->resize(qMax(qsizetype(0), m_deps.gameUsiMoves->size() - 2));
-    }
     if (m_deps.currentSfenStr && m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
         *m_deps.currentSfenStr = m_deps.sfenRecord->last();
     }
-    if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = currentPly;
-    if (m_deps.activePly) *m_deps.activePly = currentPly;
-    if (m_deps.recordPresenter) m_deps.recordPresenter->removeLastLiveMoves(2);
+    // 表示中の手数（分岐ツリーのカーソル）は LiveGameSession::undoMoves が戻す
+    if (m_deps.recordPresenter) m_deps.recordPresenter->syncCurrentMoveIndexToLastRow();
     if (live) m_deps.liveSession->undoMoves(2);
     if (m_deps.markGameRecordDirty) m_deps.markGameRecordDirty();
 

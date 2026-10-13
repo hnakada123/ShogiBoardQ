@@ -19,9 +19,7 @@ void logImportSummary(const QString& filePath,
                       const QList<KifDisplayItem>& disp,
                       const QString& teaiLabel,
                       const QString& warnParse,
-                      const QString& warnConvert,
-                      const QStringList* sfenHistory,
-                      const QList<ShogiMove>* gameMoves);
+                      const QString& warnConvert);
 
 } // namespace KifuApplyLogger
 

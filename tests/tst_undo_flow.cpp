@@ -51,15 +51,10 @@ struct Harness {
     LiveGameSessionUpdater updater;
     QStringList sfens;
     QList<ShogiMove> moves;
-    QStringList usiMoves;
     QString position = QStringLiteral("position startpos");
     QString ponder;
     QStringList positionHistory;
-    QStringList positionList{position}; // 読み込み時の履歴は対局中に追記されない
     QString currentSfen;
-    int currentMoveIndex = 0;
-    int selectedPly = 0;
-    int activePly = 0;
     int highlightPly = -1;
     int undoCalls = 0;
     bool dirty = false;
@@ -104,8 +99,6 @@ struct Harness {
         handler.setHooks(clockHooks);
         MatchUndoHandler::UndoRefs undoRefs;
         undoRefs.recordModel = &record;
-        undoRefs.positionStrList = &positionList;
-        undoRefs.currentMoveIndex = &currentMoveIndex;
         MatchUndoHandler::UndoHooks hooks;
         hooks.isHumanSide = [this](Turn player) { return player == human; };
         hooks.updateHighlightsForPly = [this](int ply) { highlightPly = ply; };
@@ -118,10 +111,7 @@ struct Harness {
         deps.recordPresenter = &presenter;
         deps.playMode = &mode;
         deps.sfenRecord = &sfens;
-        deps.gameUsiMoves = &usiMoves;
         deps.currentSfenStr = &currentSfen;
-        deps.currentSelectedPly = &selectedPly;
-        deps.activePly = &activePly;
         flow.updateDeps(deps);
 
         LiveGameSessionUpdater::Deps updateDeps;
@@ -158,11 +148,7 @@ struct Harness {
         position += QLatin1Char(' ') + usi;
         if (humanMove) positionHistory.append(position);
         presenter.appendMoveLine(pretty, QStringLiteral("00:01/00:00:01"));
-        presenter.addLiveKifItem(pretty, QStringLiteral("00:01/00:00:01"));
         updater.appendMove(moves.last(), pretty, QStringLiteral("00:01/00:00:01"));
-        usiMoves.append(usi);
-        currentMoveIndex = static_cast<int>(sfens.size()) - 1;
-        selectedPly = activePly = currentMoveIndex;
         currentSfen = sfens.last();
         return true;
     }
@@ -183,9 +169,6 @@ class TestUndoFlow : public QObject
         QCOMPARE(h.state.currentPly(), ply);
         QCOMPARE(h.session.totalPly(), ply);
         QCOMPARE(h.session.currentSfen(), h.sfens.last());
-        QCOMPARE(h.currentMoveIndex, ply);
-        QCOMPARE(h.selectedPly, ply);
-        QCOMPARE(h.activePly, ply);
         QCOMPARE(h.currentSfen, h.sfens.last());
         QCOMPARE(h.treeManager.lastHighlightedPly(), ply);
         QString reason;
@@ -221,15 +204,16 @@ private slots:
         QCOMPARE(h.tree.displayItemsForLine(0).size(), count + 1);
         QVERIFY(h.tree.nodeAt(undoneId) != nullptr);
         QCOMPARE(h.moves.size(), count - 2);
-        QCOMPARE(h.usiMoves, opening.mid(0, count - 2));
-        QCOMPARE(h.presenter.liveDisp().size(), count - 2);
+        // 戻した局面までの指し手は、分岐ツリー（棋譜の正本）の表示中の手順から取れる
+        const RecordLine line = h.state.currentRecordLine();
+        QCOMPARE(line.currentPly, count - 2);
+        QCOMPARE(line.usiMoves(line.currentPly), opening.mid(0, count - 2));
         QCOMPARE(h.highlightPly, count - 2);
         QVERIFY(h.dirty);
         const QString expectedPosition = count == 2 ? QStringLiteral("position startpos")
             : QStringLiteral("position startpos moves ") + opening.mid(0, count - 2).join(' ');
         QCOMPARE(h.position, expectedPosition);
         QCOMPARE(h.ponder, expectedPosition);
-        QCOMPARE(h.positionList.last(), expectedPosition);
         QVERIFY(h.play(opening.at(count - 2)));
         QVERIFY(h.play(opening.at(count - 1)));
         verifyPosition(h, count);
@@ -418,12 +402,9 @@ private slots:
         auto* anchor = h.tree.findByPlyOnMainLine(2);
         h.sfens.resize(3);
         h.moves.clear();
-        h.usiMoves.resize(2);
-        h.presenter.clearLiveDisp();
         h.gc.board()->setSfen(h.sfens.last());
         h.gc.setCurrentPlayer(Turn::Black);
         h.position = QStringLiteral("position sfen ") + h.sfens.last();
-        h.currentMoveIndex = 2;
         h.session.startFromNode(anchor);
         // 同じ手を再利用しても、以前の棋譜のノードは削除しない。
         QVERIFY(h.play(opening.at(2)));

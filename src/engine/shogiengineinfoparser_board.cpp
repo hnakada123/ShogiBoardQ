@@ -3,7 +3,6 @@
 
 #include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
-#include "shogiutils.h"
 
 #include "logcategories.h"
 

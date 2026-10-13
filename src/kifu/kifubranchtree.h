@@ -13,6 +13,7 @@
 
 #include "kifubranchnode.h"
 #include "kifdisplayitem.h"
+#include "recordline.h"
 
 class KifuBranchTree;
 
@@ -219,6 +220,18 @@ public:
      * @brief ルートから指定ノードまでの経路を取得
      */
     QList<KifuBranchNode*> pathToNode(KifuBranchNode* node) const;
+
+    /**
+     * @brief ノード列（ルートからの経路やライン）を、ほかの機能が使う手順の値にする
+     *
+     * 終局行（投了など）は含めない。currentPly は手数の範囲に収める。
+     */
+    static RecordLine toRecordLine(const QList<KifuBranchNode*>& nodes, int currentPly = 0);
+
+    /**
+     * @brief 本譜の手順（終局行を除く）
+     */
+    RecordLine mainRecordLine() const { return toRecordLine(mainLine()); }
 
     /**
      * @brief 全てのラインを取得

@@ -21,15 +21,31 @@
 #include "tsumethreadbudget.h"
 #include "tsumecollection.h"
 #include "tsume.h"
+#include "kifunavigationstate.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
 
 namespace {
+/// 読み込んだ棋譜は分岐ツリー（棋譜の正本）に入る
 struct KifuHarness {
-    QList<ShogiMove> moves;
-    QStringList commands;
-    int active = 0, selected = 0, current = 0;
-    QStringList history;
-    KifuLoadCoordinator loader{moves, commands, active, selected, current, &history,
-                                nullptr, nullptr, nullptr, nullptr};
+    KifuBranchTree tree;
+    KifuNavigationState nav;
+    KifuLoadCoordinator loader{nullptr, nullptr, nullptr, nullptr};
+
+    KifuHarness()
+    {
+        nav.setTree(&tree);
+        loader.setBranchTree(&tree);
+        loader.setNavigationState(&nav);
+    }
+    QStringList positions() const
+    {
+        QStringList out;
+        const QList<KifuBranchNode*> nodes = tree.mainLine();
+        for (const KifuBranchNode* node : nodes) out << node->sfen();
+        return out;
+    }
+    QString usiMoves() const { return tree.mainRecordLine().usiMoves().join(QLatin1Char(' ')); }
 };
 const QString engineName = QStringLiteral("BackgroundTest");
 QString fixture(const QString& name)
@@ -114,10 +130,8 @@ private slots:
             QTRY_COMPARE(finished.size(), 1);
             QVERIFY2(finished.first().first().toBool(), extension);
             QCOMPARE(errors.size(), 0);
-            QCOMPARE(h.moves.size(), 7);
-            QCOMPARE(h.history.first(), SfenUtils::hirateSfen());
-            QCOMPARE(h.commands.size(), 8);
-            QVERIFY(h.commands.last().endsWith(QStringLiteral("7g7f 3c3d 2g2f 8c8d 2f2e 8d8e 6i7h")));
+            QCOMPARE(h.positions().first(), SfenUtils::hirateSfen());
+            QCOMPARE(h.usiMoves(), QStringLiteral("7g7f 3c3d 2g2f 8c8d 2f2e 8d8e 6i7h"));
         }
     }
     void replacementAndCancelDoNotApplyOldResults()
@@ -129,27 +143,27 @@ private slots:
         position.replace(QStringLiteral(" b "), QStringLiteral(" w "));
         h.loader.loadTextAsync(position);
         QTRY_COMPARE(finished.size(), 1);
-        QCOMPARE(h.history, QStringList{position});
+        QCOMPARE(h.positions(), QStringList{position});
         h.loader.loadFileAsync(fixture(QStringLiteral("test_basic.kif")));
         h.loader.cancelLoad();
         QCOMPARE(finished.size(), 2);
         QVERIFY(!finished.last().first().toBool());
         QTest::qWait(100);
         QCOMPARE(finished.size(), 2);
-        QCOMPARE(h.history, QStringList{position});
+        QCOMPARE(h.positions(), QStringList{position});
     }
     void failedLoadKeepsExistingRecord()
     {
         KifuHarness h;
         QVERIFY(h.loader.loadKifuFromString(QStringLiteral("position startpos moves 7g7f")));
-        const auto before = h.history;
+        const auto before = h.positions();
         QSignalSpy finished(&h.loader, &KifuLoadCoordinator::loadFinished);
         QSignalSpy errors(&h.loader, &KifuLoadCoordinator::errorOccurred);
         h.loader.loadFileAsync(fixture(QStringLiteral("missing.kif")));
         QTRY_COMPARE(finished.size(), 1);
         QVERIFY(!finished.first().first().toBool());
         QCOMPARE(errors.size(), 1);
-        QCOMPARE(h.history, before);
+        QCOMPARE(h.positions(), before);
     }
     void destructionDoesNotWaitForParsing()
     {

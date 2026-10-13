@@ -52,7 +52,6 @@ public:
 
     void setSfenRecord(QStringList* sfenRecord);
     void setGameMoves(QList<ShogiMove>* gameMoves);
-    void setCurrentMoveIndex(int* currentMoveIndex);
 
     // --------------------------------------------------------
     // BoardInteractionControllerアクセス
@@ -84,7 +83,6 @@ public:
     using EnsurePositionEditCallback = std::function<void()>;
     using RedrawEngine1GraphCallback = std::function<void(int ply)>;
     using RedrawEngine2GraphCallback = std::function<void(int ply)>;
-    using RefreshBranchTreeCallback = std::function<void()>;
     /// 対局していないときの盤上の着手を棋譜の変化として扱うか
     using IsVariationInputCallback = std::function<bool()>;
     /// 盤上の着手を変化として記録する（合法手で記録できたら true）
@@ -95,7 +93,6 @@ public:
                                     RecordVariationMoveCallback recordVariationMove);
     void setRedrawEngine1GraphCallback(RedrawEngine1GraphCallback cb);
     void setRedrawEngine2GraphCallback(RedrawEngine2GraphCallback cb);
-    void setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb);
 
 public slots:
     /**
@@ -130,7 +127,6 @@ private:
     PlayMode m_playMode = PlayMode::NotStarted;
     QStringList* m_sfenHistory = nullptr;
     QList<ShogiMove>* m_gameMoves = nullptr;
-    int* m_currentMoveIndex = nullptr;
 
     QString m_lastMove;
 
@@ -140,7 +136,6 @@ private:
     RecordVariationMoveCallback m_recordVariationMove;
     RedrawEngine1GraphCallback m_redrawEngine1Graph;
     RedrawEngine2GraphCallback m_redrawEngine2Graph;
-    RefreshBranchTreeCallback m_refreshBranchTree;
 };
 
 #endif // BOARDSETUPCONTROLLER_H

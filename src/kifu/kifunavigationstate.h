@@ -9,6 +9,8 @@
 #include <QHash>
 #include <QList>
 
+#include "recordline.h"
+
 class KifuBranchTree;
 class KifuBranchNode;
 
@@ -80,6 +82,13 @@ public:
      * @brief 現在位置のSFENを取得
      */
     QString currentSfen() const;
+
+    /**
+     * @brief 表示中の手順（選んでいる分岐の手順。終局行は除く）
+     *
+     * 局面列・指し手・棋譜の表記と表示中の手数をまとめて返す。対局中はライブの手も含む。
+     */
+    RecordLine currentRecordLine() const;
 
     // === 状態設定 ===
 

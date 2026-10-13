@@ -195,21 +195,6 @@ void ConsiderationWiring::onShowArrowsChanged(bool checked)
     }
 }
 
-bool ConsiderationWiring::updatePositionIfNeeded(int row, const QString& newPosition,
-                                                  const QList<ShogiMove>* gameMoves,
-                                                  KifuRecordListModel* kifuRecordModel)
-{
-    ensureUIController();
-    if (m_uiController) {
-        m_uiController->setMatchCoordinator(m_match);
-        m_uiController->setConsiderationTabManager(m_considerationTabManager);
-        m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
-        return m_uiController->updatePositionIfInConsiderationMode(
-            row, newPosition, gameMoves, kifuRecordModel);
-    }
-    return false;
-}
-
 void ConsiderationWiring::handleStopRequest()
 {
     if (m_match) {

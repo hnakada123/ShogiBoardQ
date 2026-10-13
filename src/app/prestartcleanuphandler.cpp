@@ -51,9 +51,6 @@ void PreStartCleanupHandler::updateDependencies(const Dependencies& deps)
     m_recordPane = deps.recordPane;
     m_startSfenStr = deps.startSfenStr;
     m_currentSfenStr = deps.currentSfenStr;
-    m_activePly = deps.activePly;
-    m_currentSelectedPly = deps.currentSelectedPly;
-    m_currentMoveIndex = deps.currentMoveIndex;
     m_liveGameSession = deps.liveGameSession;
     m_branchTree = deps.branchTree;
     m_navState = deps.navState;
@@ -68,12 +65,14 @@ void PreStartCleanupHandler::performCleanup()
     qCDebug(lcGame).noquote() << "performCleanup: start"
                        << "m_startSfenStr=" << (m_startSfenStr ? m_startSfenStr->left(50) : "(null)")
                        << "m_currentSfenStr=" << (m_currentSfenStr ? m_currentSfenStr->left(50) : "(null)")
-                       << "m_currentSelectedPly=" << (m_currentSelectedPly ? *m_currentSelectedPly : -1);
+                       << "currentPly=" << (m_navState ? m_navState->currentPly() : -1);
 
     // m_currentSfenStr を保存（selectStartRow() で変更される前に）
     // この値は startLiveGameSession() で分岐点を探すために使用される
     m_savedCurrentSfen = m_currentSfenStr ? *m_currentSfenStr : QString();
-    m_savedSelectedPly = m_currentSelectedPly ? *m_currentSelectedPly : 0;
+    // 表示中の手数は分岐ツリーのカーソル（KifuNavigationState）が正。棋譜欄を作り直すと
+    // 行選択の通知でカーソルが動くので、最初に控えた値を以降の判定に使う
+    m_savedSelectedPly = m_navState ? m_navState->currentPly() : 0;
 
     // ユーザーが選択しているノードを直接保存
     // SFENで検索すると、同じ局面が複数存在する場合に誤ったノードが返される可能性がある
@@ -90,9 +89,11 @@ void PreStartCleanupHandler::performCleanup()
 
     const bool startFromCurrentPos = isStartFromCurrentPosition();
 
-    int keepRow = m_currentSelectedPly ? qMax(0, *m_currentSelectedPly) : 0;
-    keepRow = cleanupKifuModel(startFromCurrentPos, keepRow);
-    updatePlyTracking(startFromCurrentPos, keepRow);
+    const int keepRow = cleanupKifuModel(startFromCurrentPos);
+    // 新しい対局は開始局面から表示する。途中局面から始めるときは選んでいた局面のまま
+    if (!startFromCurrentPos && m_navState != nullptr) {
+        m_navState->goToRoot();
+    }
     clearBranchModel();
 
     resetUsiLogModels();
@@ -135,7 +136,6 @@ void PreStartCleanupHandler::resolveTerminalStartNode()
     // 以降の処理（棋譜欄の再構築・セッション開始・開始行の選択）を直前の局面で揃える
     m_savedCurrentNode = parent;
     m_savedSelectedPly = parent->ply();
-    if (m_currentSelectedPly) *m_currentSelectedPly = parent->ply();
     if (m_navState != nullptr) m_navState->setCurrentNode(parent);
 
     // 「中断」は対局の途中経過なので、続きを指せば同じ手順に続ける（新しい分岐にしない）
@@ -153,8 +153,7 @@ bool PreStartCleanupHandler::isStartFromCurrentPosition() const
         return false;
     }
 
-    const int selectedPly = m_currentSelectedPly ? *m_currentSelectedPly : 0;
-    return shouldStartFromCurrentPosition(*m_startSfenStr, *m_currentSfenStr, selectedPly);
+    return shouldStartFromCurrentPosition(*m_startSfenStr, *m_currentSfenStr, m_savedSelectedPly);
 }
 
 void PreStartCleanupHandler::clearBoardAndHighlights()
@@ -172,7 +171,7 @@ void PreStartCleanupHandler::clearClockDisplay()
     }
 }
 
-int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*keepRow*/)
+int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos)
 {
     if (!m_kifuRecordModel) return 0;
 
@@ -216,19 +215,6 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*kee
         new KifuDisplay(tr("=== 開始局面 ==="),
                         tr("（１手 / 合計）")));
     return 0;
-}
-
-void PreStartCleanupHandler::updatePlyTracking(bool startFromCurrentPos, int keepRow)
-{
-    if (startFromCurrentPos) {
-        if (m_activePly) *m_activePly = keepRow;
-        if (m_currentSelectedPly) *m_currentSelectedPly = keepRow;
-        if (m_currentMoveIndex) *m_currentMoveIndex = keepRow;
-    } else {
-        if (m_activePly) *m_activePly = 0;
-        if (m_currentSelectedPly) *m_currentSelectedPly = 0;
-        if (m_currentMoveIndex) *m_currentMoveIndex = 0;
-    }
 }
 
 void PreStartCleanupHandler::clearBranchModel()
@@ -278,9 +264,8 @@ void PreStartCleanupHandler::resetEvaluationGraph()
             m_evalGraphController->clearScores();
         }
     } else {
-        if (m_evalGraphController && m_currentMoveIndex) {
-            const int trimPly = qMax(0, *m_currentMoveIndex);
-            m_evalGraphController->trimToPly(trimPly);
+        if (m_evalGraphController) {
+            m_evalGraphController->trimToPly(qMax(0, m_savedSelectedPly));
         }
     }
 }

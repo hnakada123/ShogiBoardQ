@@ -15,15 +15,11 @@
 #include "gamerecordmodel.h"
 #include "gameinfopanecontroller.h"
 #include "timecontrolcontroller.h"
-#include "kifuloadcoordinator.h"
-#include "gamerecordpresenter.h"
-#include "matchcoordinator.h"
 #include "replaycontroller.h"
 #include "kifusavecoordinator.h"
 #include "kifucontentbuilder.h"
 #include "shogimove.h"
 #include "kifuioservice.h"
-#include "usimoveconverter.h"
 
 KifuExportController::KifuExportController(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
@@ -43,11 +39,7 @@ static KifuExportClipboard::Deps toClipboardDeps(const KifuExportController::Dep
     cd.kifuRecordModel = d.kifuRecordModel;
     cd.gameInfoController = d.gameInfoController;
     cd.timeController = d.timeController;
-    cd.kifuLoadCoordinator = d.kifuLoadCoordinator;
-    cd.match = d.match;
     cd.gameController = d.gameController;
-    cd.sfenRecord = d.sfenRecord;
-    cd.usiMoves = d.usiMoves;
     cd.startSfenStr = d.startSfenStr;
     cd.playMode = d.playMode;
     cd.humanName1 = d.humanName1;
@@ -76,34 +68,8 @@ void KifuExportController::setPrepareCallback(std::function<void()> callback)
 
 QStringList KifuExportController::resolveUsiMoves() const
 {
-    // 表示テキストと同じ本譜を使う。対局用USI列は途中再開後の新規手だけの場合がある。
-    if (m_deps.gameRecord && m_deps.gameRecord->branchTree()
-        && !m_deps.gameRecord->branchTree()->isEmpty()) {
-        return m_deps.gameRecord->collectMainlineUsiForExport();
-    }
-
-    // ツリーがない場合は対局用データにフォールバックする。
-    if (m_deps.usiMoves && !m_deps.usiMoves->isEmpty()) {
-        return *m_deps.usiMoves;
-    }
-    
-    // 2. KifuLoadCoordinatorから取得
-    if (m_deps.kifuLoadCoordinator) {
-        QStringList moves = m_deps.kifuLoadCoordinator->kifuUsiMoves();
-        if (!moves.isEmpty()) {
-            qCDebug(lcKifu).noquote() << "kifuUsiMoves from KifuLoadCoordinator, size =" << moves.size();
-            return moves;
-        }
-    }
-    
-    // 3. SFENレコードから生成
-    if (m_deps.sfenRecord && m_deps.sfenRecord->size() > 1) {
-        QStringList moves = sfenRecordToUsiMoves();
-        qCDebug(lcKifu).noquote() << "usiMoves from sfenRecord, size =" << moves.size();
-        return moves;
-    }
-    
-    return QStringList();
+    // 棋譜の正本（分岐ツリー）の本譜。表示テキストと同じ手順になる
+    return m_deps.gameRecord ? m_deps.gameRecord->collectMainlineUsiForExport() : QStringList();
 }
 
 GameRecordModel::ExportContext KifuExportController::buildExportContext() const
@@ -229,9 +195,6 @@ bool KifuExportController::writeToPath(const QString& filePath, QWidget* dialogP
         }
         ctx.recordModel = m_deps.kifuRecordModel;
         ctx.resolvedRows = m_deps.resolvedRows;
-        if (m_deps.recordPresenter) {
-            ctx.liveDisp = &m_deps.recordPresenter->liveDisp();
-        }
         ctx.activeResolvedRow = m_deps.activeResolvedRow;
         ctx.startSfen = m_deps.startSfenStr;
         ctx.playMode = m_deps.playMode;
@@ -349,15 +312,3 @@ bool KifuExportController::copyJkfToClipboard()         { return m_clipboard->co
 bool KifuExportController::copyUsenToClipboard()        { return m_clipboard->copyUsenToClipboard(); }
 bool KifuExportController::copySfenToClipboard()        { return m_clipboard->copySfenToClipboard(); }
 bool KifuExportController::copyBodToClipboard()         { return m_clipboard->copyBodToClipboard(); }
-
-// --------------------------------------------------------
-// USI指し手変換
-// --------------------------------------------------------
-
-QStringList KifuExportController::sfenRecordToUsiMoves() const
-{
-    if (!m_deps.sfenRecord || m_deps.sfenRecord->size() < 2) {
-        return QStringList();
-    }
-    return UsiMoveConverter::fromSfenRecord(*m_deps.sfenRecord);
-}

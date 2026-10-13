@@ -4,6 +4,7 @@
 #include "considerationpositionservice.h"
 
 #include "considerationpositionresolver.h"
+#include "kifunavigationstate.h"
 #include "engineanalysistab.h"
 #include "logcategories.h"
 #include "matchcoordinator.h"
@@ -32,19 +33,10 @@ void ConsiderationPositionService::handleBuildPositionRequired(int row)
         return;
     }
 
-    ConsiderationPositionResolver::Inputs inputs;
-    inputs.positionStrList = m_deps.positionStrList;
-    inputs.gameUsiMoves = m_deps.gameUsiMoves;
-    inputs.gameMoves = m_deps.gameMoves;
-    inputs.startSfenStr = m_deps.startSfenStr;
-    inputs.sfenRecord = m_deps.match->sfenRecordPtr();
-    inputs.kifuLoadCoordinator = m_deps.kifuLoadCoordinator;
-    inputs.kifuRecordModel = m_deps.kifuRecordModel;
-    inputs.branchTree = m_deps.branchTree;
-    inputs.navState = m_deps.navState;
-
-    const ConsiderationPositionResolver resolver(inputs);
-    const ConsiderationPositionResolver::UpdateParams params = resolver.resolveForRow(row);
+    // 表示中の手順（分岐ツリー）から局面と直前の手を決める
+    const RecordLine line = m_deps.navState ? m_deps.navState->currentRecordLine() : RecordLine{};
+    const ConsiderationPositionResolver::UpdateParams params = ConsiderationPositionResolver::resolve(
+        line, row, m_deps.startSfenStr ? *m_deps.startSfenStr : QString());
     qCDebug(lcApp).noquote()
         << "ConsiderationPositionService::handleBuildPositionRequired: newPosition=" << params.position;
 

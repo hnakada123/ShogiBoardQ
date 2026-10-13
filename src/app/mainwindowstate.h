@@ -94,10 +94,6 @@ struct KifuState {
     /// どの司令塔にも同じリストを渡す（司令塔の中に持つと、作り直す前に受け取った側が
     /// 解放済みのリストを指したままになる）
     QStringList sfenRecord;
-    QStringList positionStrList;
-    QStringList gameUsiMoves;
-    int activePly = 0;
-    int currentSelectedPly = 0;
     bool onMainRowGuard = false;
     QList<ShogiMove> gameMoves;
     QString saveFileName;
@@ -121,7 +117,6 @@ struct GameState {
     QString currentSfenStr = QStringLiteral("startpos");
     QString resumeSfenStr;
     bool errorOccurred = false;
-    int currentMoveIndex = 0;
     PlayMode playMode = PlayMode::NotStarted;
     bool skipBoardSyncForBranchNav = false;
 };

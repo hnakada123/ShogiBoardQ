@@ -106,12 +106,6 @@ public slots:
     void onShowArrowsChanged(bool checked);
 
 public:
-    /**
-     * @brief 検討モード中に局面が変更されたときの処理
-     */
-    bool updatePositionIfNeeded(int row, const QString& newPosition,
-                                const QList<ShogiMove>* gameMoves,
-                                KifuRecordListModel* kifuRecordModel);
 
 private slots:
     /**

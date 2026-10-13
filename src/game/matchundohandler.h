@@ -41,8 +41,6 @@ public:
     /// UNDO に必要な外部参照（棋譜UI固有）
     struct UndoRefs {
         KifuRecordListModel*        recordModel      = nullptr;
-        QStringList*                positionStrList   = nullptr;
-        int*                        currentMoveIndex  = nullptr;
         BoardInteractionController* boardCtl          = nullptr;
     };
 

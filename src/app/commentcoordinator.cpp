@@ -3,6 +3,7 @@
 
 #include "dialogfontscale.h"
 #include "commentcoordinator.h"
+#include "kifunavigationstate.h"
 #include "logcategories.h"
 #include "mainwindow.h"
 
@@ -25,9 +26,9 @@ CommentCoordinator::CommentCoordinator(QObject* parent)
 void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
 {
     Q_UNUSED(asHtml)
-    // 現在の手数インデックスをCommentEditorPanelに設定
-    if (m_commentEditor && m_currentMoveIndex) {
-        m_commentEditor->setCurrentMoveIndex(*m_currentMoveIndex);
+    // 表示中の手数（分岐ツリーのカーソル）をCommentEditorPanelに設定
+    if (m_commentEditor && m_navState) {
+        m_commentEditor->setCurrentMoveIndex(m_navState->currentPly());
     }
 
     // 棋譜のコメントはプレーンテキスト。表示用の整形で本文を書き換えない。
@@ -55,11 +56,9 @@ bool CommentCoordinator::confirmLeaveEditingMove()
 
 void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComment)
 {
-    // m_currentMoveIndex を優先して有効なインデックスを決定する
-    // (EngineAnalysisTab::m_state.currentMoveIndex は broadcastComment() 経由でしか
-    // 同期されないため、MainWindow::m_state.currentMoveIndex を信頼する)
-    const int effectiveIndex = (m_currentMoveIndex && *m_currentMoveIndex >= 0)
-                                   ? *m_currentMoveIndex : moveIndex;
+    // 表示中の手数（分岐ツリーのカーソル）を優先する
+    // (コメント欄が持つ手数は broadcastComment() 経由でしか同期されないため)
+    const int effectiveIndex = m_navState ? m_navState->currentPly() : moveIndex;
 
     qCDebug(lcApp).noquote()
         << "onCommentUpdated"
@@ -171,9 +170,8 @@ void CommentCoordinator::onBookmarkEditRequested()
 
 void CommentCoordinator::onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml)
 {
-    if (m_currentMoveIndex) {
-        *m_currentMoveIndex = ply;
-    }
+    // カーソルは通知の前に ply へ動いている
+    Q_UNUSED(ply)
     broadcastComment(comment, asHtml);
 }
 

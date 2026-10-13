@@ -156,9 +156,6 @@ void MainWindowServiceRegistry::clearEvalState()
     if (m_mw.m_evalGraphController) {
         m_mw.m_evalGraphController->clearScores();
     }
-    if (m_mw.m_recordPresenter) {
-        m_mw.m_recordPresenter->clearLiveDisp();
-    }
 }
 
 // ---------------------------------------------------------------------------

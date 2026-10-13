@@ -15,7 +15,6 @@
 #include "evaluationchartwidget.h"
 #include "evaluationgraphcontroller.h"
 #include "kifunavigationstate.h"
-#include "gamerecordpresenter.h"
 #include "kifudisplaycoordinator.h"
 #include "boardinteractioncontroller.h"
 #include "gamerecordmodel.h"
@@ -100,10 +99,6 @@ void MainWindowResetService::clearPresentationState(const ModelResetDeps& deps) 
 {
     if (deps.navState) {
         deps.navState->clearLineSelectionMemory();
-    }
-
-    if (deps.recordPresenter) {
-        deps.recordPresenter->clearLiveDisp();
     }
 
     if (deps.displayCoordinator) {
@@ -201,8 +196,6 @@ void MainWindowResetService::clearGameStateFields(GameState& state, PlayerState&
     player.engineName1.clear();
     player.engineName2.clear();
 
-    kifu.positionStrList.clear();
-
     player.lastP1Turn = true;
     player.lastP1Ms = 0;
     player.lastP2Ms = 0;
@@ -212,7 +205,6 @@ void MainWindowResetService::clearGameStateFields(GameState& state, PlayerState&
     state.skipBoardSyncForBranchNav = false;
     kifu.onMainRowGuard = false;
 
-    kifu.gameUsiMoves.clear();
     kifu.gameMoves.clear();
 }
 

@@ -79,13 +79,9 @@ void MainWindowServiceRegistry::ensureGameStateController()
     cbs.setReplayMode = [this](bool replayMode) {
         m_mw.setReplayMode(replayMode);
     };
-    cbs.refreshBranchTree = [this]() { m_mw.m_kifu.currentSelectedPly = 0; };
-    cbs.updatePlyState = [this](int ap, int sp, int mi) {
-        m_mw.m_kifu.activePly = ap;
-        m_mw.m_kifu.currentSelectedPly = sp;
-        m_mw.m_state.currentMoveIndex = mi;
+    cbs.syncCursorToPly = [this](int ply) {
         m_foundation->ensureKifuNavigationCoordinator();
-        m_mw.m_kifuNavCoordinator->syncNavStateToPly(sp);
+        m_mw.m_kifuNavCoordinator->syncNavStateToPly(ply);
     };
     cbs.updateBoardView = [this]() {
         if (m_mw.m_shogiView) m_mw.m_shogiView->update();
@@ -222,10 +218,7 @@ void MainWindowServiceRegistry::refreshUndoFlowDeps()
     deps.evalGraphController = m_mw.m_evalGraphController.get();
     deps.playMode = &m_mw.m_state.playMode;
     deps.sfenRecord = m_mw.m_queryService->sfenRecord();
-    deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
-    deps.currentSelectedPly = &m_mw.m_kifu.currentSelectedPly;
-    deps.activePly = &m_mw.m_kifu.activePly;
     m_mw.m_undoFlowService->updateDeps(deps);
 }
 

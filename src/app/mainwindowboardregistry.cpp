@@ -206,7 +206,7 @@ void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
     }
 
     m_kifu->ensureGameRecordUpdateService();
-    m_mw.m_gameRecordUpdateService->recordUsiMoveAndUpdateSfen();
+    m_mw.m_gameRecordUpdateService->updateCurrentSfenAfterMove();
 
     m_kifu->updateJosekiWindow();
 }
@@ -257,16 +257,10 @@ void MainWindowServiceRegistry::resetRecordForEditedPosition()
     m_mw.m_state.startSfenStr = sfen;
     m_mw.m_state.currentSfenStr = sfen;
     m_mw.m_state.resumeSfenStr.clear();
-    m_mw.m_state.currentMoveIndex = 0;
-    m_mw.m_kifu.activePly = 0;
-    m_mw.m_kifu.currentSelectedPly = 0;
-    m_mw.m_kifu.gameUsiMoves.clear();
     m_mw.m_kifu.gameMoves.clear();
-    m_mw.m_kifu.positionStrList = QStringList{QStringLiteral("position sfen ") + sfen};
 
     MainWindowResetService::ModelResetDeps deps;
     deps.navState = m_mw.m_branchNav.navState;
-    deps.recordPresenter = m_mw.m_recordPresenter;
     deps.displayCoordinator = m_mw.m_branchNav.displayCoordinator;
     deps.gameRecord = m_mw.m_models.gameRecord;
     deps.sfenRecord = m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr;
@@ -288,7 +282,6 @@ void MainWindowServiceRegistry::resetModels(const QString& hirateStartSfen)
 {
     MainWindowResetService::ModelResetDeps deps;
     deps.navState = m_mw.m_branchNav.navState;
-    deps.recordPresenter = m_mw.m_recordPresenter;
     deps.displayCoordinator = m_mw.m_branchNav.displayCoordinator;
     deps.boardController = m_mw.m_boardController;
     deps.gameRecord = m_mw.m_models.gameRecord;

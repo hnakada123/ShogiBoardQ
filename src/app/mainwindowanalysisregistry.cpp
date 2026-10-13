@@ -4,6 +4,7 @@
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
 #include "mainwindowserviceregistry.h"
+#include "kifunavigationstate.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
@@ -36,7 +37,9 @@ void MainWindowServiceRegistry::ensurePvClickController()
     stateRefs.currentSfenStr = &m_mw.m_state.currentSfenStr;
     stateRefs.startSfenStr = &m_mw.m_state.startSfenStr;
     stateRefs.considerationModel = &m_mw.m_models.consideration;
-    stateRefs.sfenRecordGetter = [this]() { return m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr; };
+    stateRefs.currentLine = [this]() {
+        return m_mw.m_branchNav.navState ? m_mw.m_branchNav.navState->currentRecordLine() : RecordLine{};
+    };
     m_mw.m_pvClickController->setStateRefs(stateRefs);
     m_mw.m_pvClickController->setShogiView(m_mw.m_shogiView);
 
@@ -61,13 +64,7 @@ void MainWindowServiceRegistry::ensureConsiderationPositionService()
 
     ConsiderationPositionService::Deps deps;
     deps.playMode = &m_mw.m_state.playMode;
-    deps.positionStrList = &m_mw.m_kifu.positionStrList;
-    deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
-    deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
-    deps.kifuLoadCoordinator = m_mw.m_kifuLoadCoordinator;
-    deps.kifuRecordModel = m_mw.m_models.kifuRecord;
-    deps.branchTree = m_mw.m_branchNav.branchTree;
     deps.navState = m_mw.m_branchNav.navState;
     deps.match = m_mw.m_match;
     deps.analysisTab = m_mw.m_analysisTab;

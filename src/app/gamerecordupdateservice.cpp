@@ -10,7 +10,6 @@
 #include "livegamesession.h"
 #include "livegamesessionupdater.h"
 #include "shogimove.h"
-#include "shogiutils.h"
 #include "logcategories.h"
 
 GameRecordUpdateService::GameRecordUpdateService(QObject* parent)
@@ -57,10 +56,6 @@ void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QS
             usiMove = m_deps.gameMoves->last().toUsiMove().toString();
         }
         presenter->appendMoveLine(moveText, elapsedTime, beforeSfen, usiMove);
-
-        if (!moveText.isEmpty()) {
-            presenter->addLiveKifItem(moveText, elapsedTime);
-        }
     }
 
     if (m_deps.liveGameSession != nullptr && !moveText.isEmpty()) {
@@ -79,26 +74,12 @@ void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QS
     if (!moveText.isEmpty() && m_deps.markGameRecordDirty) m_deps.markGameRecordDirty();
 }
 
-void GameRecordUpdateService::recordUsiMoveAndUpdateSfen()
+void GameRecordUpdateService::updateCurrentSfenAfterMove()
 {
-    // USI形式の指し手を記録（詰み探索などで使用）
-    if (m_deps.gameMoves && m_deps.gameUsiMoves && !m_deps.gameMoves->isEmpty()) {
-        const ShogiMove& lastMove = m_deps.gameMoves->last();
-        const QString usiMove = lastMove.toUsiMove().toString();
-        if (!usiMove.isEmpty()) {
-            // 重複追加を防ぐ
-            if (m_deps.gameUsiMoves->size() == m_deps.gameMoves->size() - 1) {
-                m_deps.gameUsiMoves->append(usiMove);
-                qCDebug(lcApp).noquote() << "recordUsiMoveAndUpdateSfen: added USI move:" << usiMove
-                                   << "gameUsiMoves.size()=" << m_deps.gameUsiMoves->size();
-            }
-        }
-    }
-
     // currentSfenStrを現在の局面に更新
     if (m_deps.sfenRecord && m_deps.currentSfenStr && !m_deps.sfenRecord->isEmpty()) {
         *m_deps.currentSfenStr = m_deps.sfenRecord->last();
-        qCDebug(lcApp) << "recordUsiMoveAndUpdateSfen:"
+        qCDebug(lcApp) << "updateCurrentSfenAfterMove:"
                  << "sfenRecord.size()=" << m_deps.sfenRecord->size()
                  << "using last sfen=" << *m_deps.currentSfenStr;
     }

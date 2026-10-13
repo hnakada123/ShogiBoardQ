@@ -90,13 +90,6 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
         return result;
     }
 
-    // 次点: ライブ記録
-    if (ctx.liveDisp && !ctx.liveDisp->isEmpty()) {
-        result = *ctx.liveDisp;
-
-        return result;
-    }
-
     // 最終手段: モデルから抽出
     if (ctx.recordModel) {
         const int rows = ctx.recordModel->rowCount();

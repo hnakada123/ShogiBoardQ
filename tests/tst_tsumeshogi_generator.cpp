@@ -221,7 +221,7 @@ void TestTsumeshogiGenerator::sfenRecord_returnsPositionWithForcedTurn()
     QStringList sfenRecord = {
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
     };
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     // 両玉あり → 元の手番維持 (b)
     QVERIFY(result.contains(QLatin1String(" b ")));
@@ -238,7 +238,7 @@ void TestTsumeshogiGenerator::onlyDefenderKing_turnIsWhite()
     QStringList sfenRecord = {
         QStringLiteral("9/9/9/9/4K4/9/9/9/9 b - 1")
     };
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     QVERIFY(result.contains(QLatin1String(" w ")));
 }
@@ -250,7 +250,7 @@ void TestTsumeshogiGenerator::onlyAttackerKing_turnIsBlack()
     QStringList sfenRecord = {
         QStringLiteral("9/9/9/9/4k4/9/9/9/9 b - 1")
     };
-    const QString result = TsumePositionUtil::buildPositionForMate(&sfenRecord, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     QVERIFY(result.contains(QLatin1String(" b ")));
 }
@@ -261,29 +261,27 @@ void TestTsumeshogiGenerator::bothKings_preservesTurn()
     QStringList sfenRecordB = {
         QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1")
     };
-    const QString resultB = TsumePositionUtil::buildPositionForMate(&sfenRecordB, QString(), {}, 0);
+    const QString resultB = TsumePositionUtil::buildPositionForMate(sfenRecordB.value(0));
     QVERIFY(resultB.contains(QLatin1String(" b ")));
 
     QStringList sfenRecordW = {
         QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1")
     };
-    const QString resultW = TsumePositionUtil::buildPositionForMate(&sfenRecordW, QString(), {}, 0);
+    const QString resultW = TsumePositionUtil::buildPositionForMate(sfenRecordW.value(0));
     QVERIFY(resultW.contains(QLatin1String(" w ")));
 }
 
 void TestTsumeshogiGenerator::allSourcesEmpty_returnsEmpty()
 {
-    QStringList emptyList;
-    const QString result = TsumePositionUtil::buildPositionForMate(&emptyList, QString(), {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(QString());
     QVERIFY(result.isEmpty());
 }
 
 void TestTsumeshogiGenerator::fallbackToStartSfen()
 {
-    // sfenRecord が空 → startSfenStr にフォールバック
-    QStringList emptyList;
+    // 渡した局面（開始局面）から組み立てる
     const QString startSfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1");
-    const QString result = TsumePositionUtil::buildPositionForMate(&emptyList, startSfen, {}, 0);
+    const QString result = TsumePositionUtil::buildPositionForMate(startSfen);
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     QVERIFY(!result.isEmpty());
 }

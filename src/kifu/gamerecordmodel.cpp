@@ -10,7 +10,6 @@
 #include "kifexporter.h"
 #include "usenexporter.h"
 #include "usiexporter.h"
-#include "usimoveconverter.h"
 
 #include <QDateTime>
 #include "logcategories.h"
@@ -25,16 +24,8 @@ GameRecordModel::GameRecordModel(QObject* parent)
 }
 
 // ========================================
-// 初期化・バインド
+// 初期化
 // ========================================
-
-void GameRecordModel::bind(QList<KifDisplayItem>* liveDisp)
-{
-    m_liveDisp = liveDisp;
-
-    qCDebug(lcKifu).noquote() << "bind:"
-                              << " liveDisp=" << (liveDisp ? "valid" : "null");
-}
 
 void GameRecordModel::setBranchTree(KifuBranchTree* tree)
 {
@@ -100,10 +91,6 @@ void GameRecordModel::setComment(int ply, const QString& text)
         if (m_comments.size() <= ply) m_comments.resize(ply + 1);
         m_comments[ply] = text;
     }
-    // ライブ履歴は本譜の投影。分岐だけの編集で同じ手数の本譜を上書きしない。
-    if (m_liveDisp && ply < m_liveDisp->size() && isMainlineNode(ply, node)) {
-        (*m_liveDisp)[ply].comment = text;
-    }
     if (old != text) {
         m_isDirty = true;
         emit commentChanged(ply, text);
@@ -129,9 +116,6 @@ void GameRecordModel::setBookmark(int ply, const QString& text)
         if (m_bookmarks.size() <= ply) m_bookmarks.resize(ply + 1);
         m_bookmarks[ply] = text;
     }
-    if (m_liveDisp && ply < m_liveDisp->size() && isMainlineNode(ply, node)) {
-        (*m_liveDisp)[ply].bookmark = text;
-    }
     if (old != text) {
         m_isDirty = true;
         emit bookmarkChanged(ply, text);
@@ -148,13 +132,6 @@ QString GameRecordModel::bookmark(int ply) const
 bool GameRecordModel::hasBranchTree() const
 {
     return m_branchTree && !m_branchTree->isEmpty();
-}
-
-bool GameRecordModel::isMainlineNode(int ply, const KifuBranchNode* node) const
-{
-    if (!hasBranchTree()) return true;
-    const auto nodes = m_branchTree->mainLine();
-    return ply >= 0 && ply < nodes.size() && nodes[ply] == node;
 }
 
 int GameRecordModel::activeRow() const
@@ -208,11 +185,6 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
         }
     }
 
-    // フォールバック: liveDisp から取得
-    if (m_liveDisp && !m_liveDisp->isEmpty()) {
-        result = *m_liveDisp;
-    }
-
     // ツリー未構築時の編集を反映
     for (qsizetype i = 0; i < result.size(); ++i) {
         if (i < m_comments.size() && !m_comments[i].isEmpty()) {
@@ -229,13 +201,7 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
 QStringList GameRecordModel::collectMainlineUsiForExport() const
 {
     if (!m_branchTree || m_branchTree->isEmpty()) return {};
-    QStringList positions;
-    const auto nodes = m_branchTree->mainLine();
-    for (const KifuBranchNode* node : nodes) {
-        if (node->isTerminal()) break;
-        positions.append(node->sfen());
-    }
-    return UsiMoveConverter::fromSfenRecord(positions);
+    return m_branchTree->mainRecordLine().usiMoves();
 }
 
 QString GameRecordModel::initialSfenForExport(const QString& fallback) const

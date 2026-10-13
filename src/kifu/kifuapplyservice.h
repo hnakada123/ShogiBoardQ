@@ -44,15 +44,7 @@ public:
      * @brief KifuLoadCoordinator の内部状態への参照群
      */
     struct Refs {
-        // 棋譜データ（直接ポインタ: アドレス不変）
-        QStringList* kifuUsiMoves = nullptr;
-        QList<ShogiMove>* gameMoves = nullptr;
-        QStringList* positionStrList = nullptr;
-
         // ナビゲーション状態（直接ポインタ: アドレス不変）
-        int* activePly = nullptr;
-        int* currentSelectedPly = nullptr;
-        int* currentMoveIndex = nullptr;
         bool* loadingKifu = nullptr;
 
         // UIウィジェット（直接ポインタ: コンストラクタで確定）
@@ -62,7 +54,6 @@ public:
         KifuBranchListModel* kifuBranchModel = nullptr;
 
         // セッター経由で変化するポインタ（二重ポインタ）
-        QStringList** sfenHistory = nullptr;
         ShogiView** shogiView = nullptr;
         BranchTreeManager** branchTreeManager = nullptr;
         KifuBranchTree** branchTree = nullptr;
@@ -92,11 +83,10 @@ public:
     // --- 適用API ---
 
     /// 解析結果をモデル・UIに一括適用する
-    /// @return 適用に成功した場合 true（指し手なし・SFEN列未構築なら false）
+    /// @return 適用に成功した場合 true（指し手が無ければ false）
     [[nodiscard]] bool applyParsedResult(const QString& filePath, const QString& initialSfen,
                                          const QString& teaiLabel, const KifParseResult& res,
-                                         const QString& parseWarn, const char* callerTag,
-                                         const KifuLoadResult* prepared = nullptr);
+                                         const QString& parseWarn, const char* callerTag);
 
     /// SFEN形式の局面を読み込んでモデルに適用する
     [[nodiscard]] bool loadPositionFromSfen(const QString& sfenStr);
@@ -114,19 +104,14 @@ public:
     void applyBranchMarksForCurrentLine();
 
 private:
-    bool validateParsedResult(const QString& filePath, const QList<KifDisplayItem>& disp,
+    bool validateParsedResult(const QString& filePath, const QStringList& usiMoves,
+                              const QList<KifDisplayItem>& disp,
                               bool hasTerminal, const char* callerTag);
-    [[nodiscard]] bool rebuildMainlineState(const QString& initialSfen, bool hasTerminal);
-    void rebuildPositionCommands(const QString& initialSfen);
     void applyToRecordView(const KifParseResult& res, const QString& filePath,
                            const QString& teaiLabel, const QString& parseWarn);
     void applyBranchTree(const KifParseResult& res, const QString& initialSfen);
-    [[nodiscard]] bool rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves,
-                                         bool hasTerminal);
-    void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
     void addGameInfoTabIfMissing();
     QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
-    [[nodiscard]] bool ensureSfenHistoryStorage(const char* callerTag) const;
 
     Refs m_refs;
     Hooks m_hooks;

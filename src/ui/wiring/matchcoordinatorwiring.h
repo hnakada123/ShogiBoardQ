@@ -73,8 +73,6 @@ public:
 
         // --- UndoRefs 構築用 ---
         KifuRecordListModel* kifuRecordModel = nullptr;
-        QStringList* positionStrList = nullptr;
-        int* currentMoveIndex = nullptr;
 
         // --- Pre-built hooks（MainWindow が構築） ---
         MatchCoordinator::Hooks hooks;             ///< MC 用コールバック群（HooksFactory で生成済み）
@@ -119,8 +117,6 @@ public:
 
         KifuRecordListModel* kifuRecordModel = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
-        QStringList* positionStrList = nullptr;
-        int* currentMoveIndex = nullptr;
 
         // --- 遅延初期化コールバック ---
         std::function<void()> ensureTimeController;
@@ -262,8 +258,6 @@ private:
 
     KifuRecordListModel* m_kifuRecordModel = nullptr;
     QList<ShogiMove>* m_gameMoves = nullptr;
-    QStringList* m_positionStrList = nullptr;
-    int* m_currentMoveIndex = nullptr;
 
     MatchCoordinator::Hooks m_hooks;
     MatchCoordinator::UndoHooks m_undoHooks;

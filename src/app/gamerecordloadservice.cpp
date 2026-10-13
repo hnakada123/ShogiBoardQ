@@ -19,14 +19,8 @@ void GameRecordLoadService::loadGameRecord(const QList<KifDisplayItem>& disp)
     QElapsedTimer timer;
     timer.start();
 
-    // 棋譜読み込み時は対局で記録したUSI形式指し手リストをクリア
-    // （代わりに KifuLoadCoordinator::kifuUsiMovesPtr() を使用する）
-    if (m_deps.gameUsiMoves) {
-        m_deps.gameUsiMoves->clear();
-    }
-    if (m_deps.gameMoves) {
-        m_deps.gameMoves->clear();
-    }
+    // 指し手列（gameMoves）は KifuApplyService が読み込んだ本譜の手に置き換え済み。
+    // 局面列とそろったまま残し、途中の局面から対局を始めるときに MatchCoordinator が切り詰める
 
     // RecordPresenter を遅延初期化
     GameRecordPresenter* presenter = nullptr;
@@ -35,11 +29,7 @@ void GameRecordLoadService::loadGameRecord(const QList<KifDisplayItem>& disp)
     }
     if (!presenter) return;
 
-    const qsizetype moveCount = disp.size();
-    const QStringList* sfen = m_deps.sfenRecord ? m_deps.sfenRecord() : nullptr;
-    const int rowCount = (sfen && !sfen->isEmpty())
-                             ? static_cast<int>(sfen->size())
-                             : static_cast<int>(moveCount + 1);
+    const int rowCount = static_cast<int>(disp.size());
 
     // GameRecordModel を遅延初期化してデータ設定
     GameRecordModel* model = nullptr;

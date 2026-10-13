@@ -11,6 +11,9 @@
 #include "mainwindowruntimerefs.h"
 #include "commentcoordinator.h"
 #include "gamerecordmodel.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
+#include "kifunavigationstate.h"
 #include "gamestatecontroller.h"
 #include "gamerecordpresenter.h"
 #include "positioneditcoordinator.h"
@@ -68,8 +71,15 @@ private slots:
         MainWindowCompositionRoot root;
         MainWindowRuntimeRefs refs;
         GameRecordModel first, second;
-        int ply = 1;
-        refs.state.currentMoveIndex = &ply;
+        // コメントを書く手は表示中の手数（分岐ツリーのカーソル）
+        KifuBranchTree tree;
+        tree.setRootSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+        KifuBranchNode* ply1 = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"));
+        KifuBranchNode* ply2 = tree.addMove(ply1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"));
+        KifuNavigationState nav;
+        nav.setTree(&tree);
+        nav.setCurrentNode(ply1);
+        refs.branchNav.navState = &nav;
         refs.models.gameRecordModel = &first;
         CommentCoordinator* coordinator = nullptr;
         root.ensureCommentCoordinator(refs, &owner, coordinator);
@@ -77,7 +87,7 @@ private slots:
         coordinator->onCommentUpdated(0, QStringLiteral("最初"));
         QCOMPARE(first.comment(1), QStringLiteral("最初"));
         refs.models.gameRecordModel = &second;
-        ply = 2;
+        nav.setCurrentNode(ply2);
         root.ensureCommentCoordinator(refs, &owner, coordinator);
         QCOMPARE(coordinator, original);
         coordinator->onCommentUpdated(0, QStringLiteral("更新後"));

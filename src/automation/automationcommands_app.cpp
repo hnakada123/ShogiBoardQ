@@ -89,14 +89,24 @@ QStringList AutomationCommands::currentLinePositions(const AutomationContext& co
             return positions;
         }
     }
-    const auto* record = context.sfenRecord ? context.sfenRecord() : nullptr;
-    return record ? *record : QStringList();
+    return {};
+}
+
+RecordLine AutomationCommands::currentRecordLine(const AutomationContext& context)
+{
+    auto* model = context.gameRecordModel ? context.gameRecordModel() : nullptr;
+    if (!model || !model->branchTree() || model->branchTree()->isEmpty()) return {};
+    const auto lines = model->branchTree()->allLines();
+    const int line = model->activeRow();
+    if (line < 0 || line >= lines.size()) return {};
+    const int ply = context.currentPly ? context.currentPly() : 0;
+    return KifuBranchTree::toRecordLine(lines.at(line).nodes, ply);
 }
 
 QString AutomationCommands::currentSfen(const AutomationContext& context)
 {
     const QStringList record = currentLinePositions(context);
-    const int index = context.currentMoveIndex ? *context.currentMoveIndex : 0;
+    const int index = context.currentPly ? context.currentPly() : 0;
     if (index >= 0 && index < record.size()) {
         return record.at(index);
     }
@@ -141,7 +151,7 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         UiStatePolicyManager* policy = context.uiStatePolicy ? context.uiStatePolicy() : nullptr;
         result[QStringLiteral("ui_state")] = policy ? uiStateName(policy->currentState()) : QStringLiteral("unknown");
         result[QStringLiteral("play_mode")] = context.playMode ? playModeName(*context.playMode) : QStringLiteral("unknown");
-        const int ply = context.currentMoveIndex ? *context.currentMoveIndex : 0;
+        const int ply = context.currentPly ? context.currentPly() : 0;
         result[QStringLiteral("current_ply")] = ply;
         const QStringList record = currentLinePositions(context);
         result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(record.size()) - 1);

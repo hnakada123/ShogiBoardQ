@@ -63,9 +63,6 @@ void MainWindowCoreInitCoordinator::initializeGameControllerAndKifu()
     if (m_deps.gameMoves) {
         m_deps.gameMoves->clear();
     }
-    if (m_deps.gameUsiMoves) {
-        m_deps.gameUsiMoves->clear();
-    }
 }
 
 void MainWindowCoreInitCoordinator::initializeOrResetShogiView()

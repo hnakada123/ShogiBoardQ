@@ -23,8 +23,6 @@ public:
         std::function<void()> setCurrentTurn;              ///< 手番表示更新
         std::function<void()> updateJosekiWindow;          ///< 定跡ウィンドウ更新
         std::function<void()> ensureBoardSyncPresenter;    ///< BoardSyncPresenter 遅延初期化
-        std::function<bool()> isGameActivelyInProgress;    ///< 対局進行中判定
-        std::function<QStringList*()> getSfenRecord;       ///< SFEN履歴取得
     };
 
     /// KifuNavigationCoordinator::Deps を生成する

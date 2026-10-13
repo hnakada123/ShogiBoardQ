@@ -15,13 +15,6 @@ GameRecordModel* GameRecordModelBuilder::build(const Deps& deps)
 {
     auto* model = new GameRecordModel(deps.parent);
 
-    // 外部データストアをバインド
-    QList<KifDisplayItem>* liveDispPtr = nullptr;
-    if (deps.recordPresenter) {
-        liveDispPtr = deps.recordPresenter->liveDispPtr();
-    }
-    model->bind(liveDispPtr);
-
     if (deps.branchTree != nullptr) {
         model->setBranchTree(deps.branchTree);
     }

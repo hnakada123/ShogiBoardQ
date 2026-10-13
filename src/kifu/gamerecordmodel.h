@@ -40,12 +40,7 @@ public:
     explicit GameRecordModel(QObject* parent = nullptr);
     ~GameRecordModel() override = default;
 
-    // --- 初期化・バインド ---
-
-    /**
-     * @brief 既存のデータストアをバインド（参照を保持、所有しない）
-     */
-    void bind(QList<KifDisplayItem>* liveDisp);
+    // --- 初期化 ---
 
     /**
      * @brief KifuBranchTree を設定（新システム用）
@@ -76,9 +71,7 @@ public:
      * @param ply 手数（0=開始局面, 1=1手目, ...）
      * @param comment 新しいコメント
      *
-     * この関数は以下のすべてを同期更新します:
-     * - KifuBranchTree のノード（ツリーがない場合のみ内部配列）
-     * - 本譜に対応する liveDisp[ply].comment
+     * 表示中の手順の ply 手目のノード（分岐ツリーが無い場合だけ内部配列）に書き込む。
      */
     void setComment(int ply, const QString& comment);
 
@@ -241,7 +234,6 @@ private:
     bool m_isDirty = false;        ///< 変更フラグ
 
     // === 外部データへの参照（同期更新用、所有しない） ===
-    QList<KifDisplayItem>* m_liveDisp = nullptr;
 
     // === 新システム（KifuBranchTree）への参照 ===
     KifuBranchTree* m_branchTree = nullptr;
@@ -250,7 +242,6 @@ private:
     // === 内部ヘルパ ===
     KifuBranchNode* nodeForCurrentLine(int ply) const;
     bool hasBranchTree() const;
-    bool isMainlineNode(int ply, const KifuBranchNode* node) const;
 
 };
 

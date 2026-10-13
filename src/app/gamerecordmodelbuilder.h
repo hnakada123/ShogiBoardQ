@@ -20,7 +20,7 @@ struct KifDisplayItem;
  *
  * 責務:
  * - GameRecordModel のインスタンス生成
- * - 外部データストア（liveDisp, branchTree, navState）のバインド
+ * - 分岐ツリー（棋譜の正本）とナビゲーション状態の設定
  * - CommentCoordinator とのシグナル接続・コールバック設定
  *
  * ensure* パターンの null チェックは MainWindow 側に残す。

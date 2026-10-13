@@ -127,9 +127,6 @@ PvClickController::~PvClickController() = default;
 void PvClickController::setThinkingModels(ShogiEngineThinkingModel*, ShogiEngineThinkingModel*) {}
 void PvClickController::setConsiderationModel(ShogiEngineThinkingModel*) {}
 void PvClickController::setLogModels(UsiCommLogModel*, UsiCommLogModel*) {}
-void PvClickController::setSfenRecord(QStringList*) {}
-void PvClickController::setGameMoves(const QList<ShogiMove>*) {}
-void PvClickController::setUsiMoves(const QStringList*) {}
 void PvClickController::setStateRefs(const StateRefs&) {}
 void PvClickController::setShogiView(ShogiView*) {}
 
@@ -153,11 +150,6 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
 }
 
 void PvClickController::resolvePlayerNames(QString&, QString&) const {}
-
-QString PvClickController::resolveLastUsiMove() const
-{
-    return {};
-}
 
 ShogiEngineThinkingModel* PvClickController::modelForEngineIndex(int) const
 {
@@ -226,13 +218,6 @@ void ConsiderationWiring::onMultiPVChangeRequested(int) {}
 
 
 void ConsiderationWiring::onShowArrowsChanged(bool) {}
-
-bool ConsiderationWiring::updatePositionIfNeeded(int, const QString&,
-                                                 const QList<ShogiMove>*,
-                                                 KifuRecordListModel*)
-{
-    return false;
-}
 
 void ConsiderationWiring::handleStopRequest() {}
 

@@ -34,10 +34,9 @@ public:
         ShogiGameController*       gc   = nullptr; ///< ゲームコントローラ（必須・非所有）
         BoardInteractionController* bic = nullptr; ///< 操作コントローラ（任意・非所有）
 
-        QStringList* sfenRecord = nullptr; ///< SFEN蓄積（0手局面～）の実体ポインタ（任意）
+        QString displayedSfen;   ///< 表示中の局面（分岐ツリーのカーソル。currentSfenStr が空のときに使う）
+        QString recordStartSfen; ///< 表示中の棋譜の開始局面（空なら編集する局面）
 
-        int  selectedPly = -1; ///< 選択中の手数（任意）
-        int  activePly   = -1; ///< アクティブな手数（任意）
         bool gameOver    = false; ///< 対局終了フラグ（任意）
 
         QString* startSfenStr   = nullptr; ///< 開始SFEN文字列（任意）
@@ -56,8 +55,7 @@ public:
         ShogiGameController*       gc   = nullptr; ///< ゲームコントローラ（必須・非所有）
         BoardInteractionController* bic = nullptr; ///< 操作コントローラ（任意・非所有）
 
-        QStringList* sfenRecord = nullptr; ///< 0手局面として再保存（任意）
-        QString*     startSfenStr = nullptr; ///< startSfen更新先（任意）
+        QString*     startSfenStr = nullptr; ///< startSfen更新先（任意。編集した局面が開始局面になる）
         bool*        isResumeFromCurrent = nullptr; ///< falseに落とすフラグ（任意）
 
         std::function<void()> onHideEditExitButton; ///< 「編集終了」ボタン非表示コールバック

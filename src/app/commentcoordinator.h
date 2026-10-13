@@ -9,6 +9,7 @@
 #include <QString>
 #include <QStringList>
 
+class KifuNavigationState;
 class CommentEditorPanel;
 class RecordPane;
 class GameRecordModel;
@@ -35,7 +36,8 @@ public:
     void setGameRecordModel(GameRecordModel* model) { m_gameRecord = model; }
     void setRecordPresenter(GameRecordPresenter* presenter) { m_recordPresenter = presenter; }
     void setStatusBar(QStatusBar* bar) { m_statusBar = bar; }
-    void setCurrentMoveIndex(int* index) { m_currentMoveIndex = index; }
+    /// 表示中の手数（コメントを書き込む手）は分岐ツリーのカーソルから取る
+    void setNavigationState(KifuNavigationState* state) { m_navState = state; }
     void setKifuRecordListModel(KifuRecordListModel* model) { m_kifuRecordModel = model; }
 
     /**
@@ -91,7 +93,7 @@ public slots:
 
     /**
      * @brief ナビゲーション起因のコメント表示更新
-     * @param ply 手数インデックス（m_currentMoveIndexも同期する）
+     * @param ply 手数インデックス（コメント欄が編集する手）
      * @param comment コメントテキスト
      * @param asHtml HTMLとして配信する場合はtrue
      */
@@ -109,7 +111,7 @@ private:
     GameRecordModel* m_gameRecord = nullptr;
     GameRecordPresenter* m_recordPresenter = nullptr;
     QStatusBar* m_statusBar = nullptr;
-    int* m_currentMoveIndex = nullptr;
+    KifuNavigationState* m_navState = nullptr;
     KifuRecordListModel* m_kifuRecordModel = nullptr;
 };
 

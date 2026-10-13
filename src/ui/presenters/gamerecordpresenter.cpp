@@ -219,19 +219,9 @@ int GameRecordPresenter::currentRow() const
     return -1; // 選択がまだ無い／未バインド
 }
 
-void GameRecordPresenter::removeLastLiveMoves(int count)
+void GameRecordPresenter::syncCurrentMoveIndexToLastRow()
 {
-    if (count <= 0) return;
-    m_liveDisp.resize(qMax(qsizetype(0), m_liveDisp.size() - count));
     if (m_d.model) {
         m_currentMoveIndex = qMax(0, m_d.model->rowCount() - 1);
     }
-}
-
-void GameRecordPresenter::addLiveKifItem(const QString& prettyMove, const QString& elapsedTime)
-{
-    KifDisplayItem item;
-    item.prettyMove = prettyMove;
-    item.timeText   = elapsedTime.isEmpty() ? QStringLiteral("00:00/00:00:00") : elapsedTime;
-    m_liveDisp.push_back(item);
 }

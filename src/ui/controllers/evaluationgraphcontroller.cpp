@@ -41,6 +41,11 @@ void EvaluationGraphController::setSfenRecord(QStringList* sfenRecord)
 // エンジン名の設定
 // --------------------------------------------------------
 
+void EvaluationGraphController::setRecordLengthProvider(std::function<int()> provider)
+{
+    m_recordLength = std::move(provider);
+}
+
 void EvaluationGraphController::setEngine1Name(const QString& name)
 {
     qCDebug(lcUi) << "setEngine1Name called: name=" << name;
@@ -287,9 +292,8 @@ void EvaluationGraphController::setCurrentPly(int ply)
         return;
     }
 
-    // 記録の長さには現在手数も含める。対局外で指した手は SFEN 履歴に入らないため、
-    // 履歴の長さだけを先に渡すと横軸がいったん縮み、直後の setCurrentPly で元に戻って
-    // 目盛りを2回作り直す（手ごとに数十ミリ秒かかる）。
-    if (m_sfenHistory) m_evalChart->setRecordLength(qMax(static_cast<int>(m_sfenHistory->size()) - 1, ply));
+    // 記録の長さには現在手数も含める。棋譜の長さだけを先に渡すと横軸がいったん縮み、
+    // 直後の setCurrentPly で元に戻って目盛りを2回作り直す（手ごとに数十ミリ秒かかる）。
+    if (m_recordLength) m_evalChart->setRecordLength(qMax(m_recordLength(), ply));
     m_evalChart->setCurrentPly(ply);
 }

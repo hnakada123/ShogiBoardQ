@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <functional>
 
+class KifuNavigationState;
 class ShogiView;
 class ShogiGameController;
 class BoardInteractionController;
@@ -44,13 +45,12 @@ public:
     void setPositionEditController(PositionEditController* posEdit);
     void setMatchCoordinator(MatchCoordinator* match);
     void setReplayController(ReplayController* replay);
-    void setSfenRecord(QStringList* sfenRecord);
 
     // --------------------------------------------------------
     // 状態参照の設定（ポインタ経由）
     // --------------------------------------------------------
-    void setCurrentSelectedPly(const int* currentSelectedPly);
-    void setActivePly(const int* activePly);
+    /// 表示中の手数（分岐ツリーのカーソル）
+    void setNavigationState(const KifuNavigationState* state);
     void setStartSfenStr(QString* startSfenStr);
     void setCurrentSfenStr(QString* currentSfenStr);
     void setResumeSfenStr(QString* resumeSfenStr);
@@ -102,10 +102,8 @@ private:
     PositionEditController* m_posEdit = nullptr;
     MatchCoordinator* m_match = nullptr;
     ReplayController* m_replayController = nullptr;
-    QStringList* m_sfenHistory = nullptr;
 
-    const int* m_currentSelectedPly = nullptr;
-    const int* m_activePly = nullptr;
+    const KifuNavigationState* m_navState = nullptr;
     QString* m_startSfenStr = nullptr;
     QString* m_currentSfenStr = nullptr;
     QString* m_resumeSfenStr = nullptr;

@@ -36,12 +36,6 @@ public:
     /// ファクトリメソッドの入力パラメータ
     struct Params {
         // --- KifuLoadCoordinator コンストラクタ引数（ポインタ経由で参照渡し） ---
-        QList<ShogiMove>* gameMoves = nullptr;
-        QStringList* positionStrList = nullptr;
-        int* activePly = nullptr;
-        int* currentSelectedPly = nullptr;
-        int* currentMoveIndex = nullptr;
-        QStringList* sfenRecord = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
         RecordPane* recordPane = nullptr;
         KifuRecordListModel* kifuRecordModel = nullptr;

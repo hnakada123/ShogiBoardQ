@@ -50,8 +50,7 @@ bool KifuApplyService::applyParsedResult(
     const QString& teaiLabel,
     const KifParseResult& res,
     const QString& parseWarn,
-    const char* callerTag,
-    const KifuLoadResult* prepared)
+    const char* callerTag)
 {
     QElapsedTimer totalTimer;
     totalTimer.start();
@@ -64,33 +63,17 @@ bool KifuApplyService::applyParsedResult(
     };
 
     const QList<KifDisplayItem>& disp = res.mainline.disp;
-    *m_refs.kifuUsiMoves = res.mainline.usiMoves;
+    const QStringList& usiMoves = res.mainline.usiMoves;
     const bool hasTerminal = !disp.isEmpty() && isTerminalPretty(disp.back().prettyMove);
 
     // 局面編集から保存した棋譜は指し手が0手でも、有効な開始局面図を持つ。
     const bool hasPositionDiagram = teaiLabel == QStringLiteral("BOD") || teaiLabel == QStringLiteral("配置");
-    if (!hasPositionDiagram && !validateParsedResult(filePath, disp, hasTerminal, callerTag)) {
+    if (!hasPositionDiagram && !validateParsedResult(filePath, usiMoves, disp, hasTerminal, callerTag)) {
         return false;
     }
 
-    if (!ensureSfenHistoryStorage(callerTag)) {
-        *m_refs.loadingKifu = false;
-        qCDebug(lcKifu).noquote() << callerTag << "OUT (missing sfen history)";
-        return false;
-    }
-    if (prepared) {
-        **m_refs.sfenHistory = prepared->sfens;
-        *m_refs.gameMoves = prepared->moves;
-        *m_refs.positionStrList = prepared->positionCommands;
-    } else {
-        if (!rebuildMainlineState(initialSfen, hasTerminal)) {
-            *m_refs.loadingKifu = false;
-            return false;
-        }
-        rebuildPositionCommands(initialSfen);
-    }
-    logStep("applyMainlineState");
-
+    // 棋譜の正本は分岐ツリー。対局の局面列・指し手列はここでは触らず、対局開始時に
+    // 表示中の手順から作り直す（MainWindowGameStartService::prepareForInitializeGame）
     applyToRecordView(res, filePath, teaiLabel, parseWarn);
     logStep("applyToRecordView");
 
@@ -111,10 +94,11 @@ bool KifuApplyService::applyParsedResult(
     return true;
 }
 
-bool KifuApplyService::validateParsedResult(const QString& filePath, const QList<KifDisplayItem>& disp,
+bool KifuApplyService::validateParsedResult(const QString& filePath, const QStringList& usiMoves,
+                                            const QList<KifDisplayItem>& disp,
                                             bool hasTerminal, const char* callerTag)
 {
-    if (m_refs.kifuUsiMoves->isEmpty() && !hasTerminal && disp.size() <= 1) {
+    if (usiMoves.isEmpty() && !hasTerminal && disp.size() <= 1) {
         const QString errorMessage =
             tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(filePath);
         if (m_hooks.errorOccurred) {
@@ -127,63 +111,10 @@ bool KifuApplyService::validateParsedResult(const QString& filePath, const QList
     return true;
 }
 
-bool KifuApplyService::rebuildMainlineState(const QString& initialSfen, bool hasTerminal)
-{
-    qCDebug(lcKifu).noquote() << "applyParsedResult: calling rebuildSfenRecord"
-                              << "initialSfen=" << initialSfen.left(60)
-                              << "usiMoves.size=" << m_refs.kifuUsiMoves->size()
-                              << "hasTerminal=" << hasTerminal;
-
-    if (!rebuildSfenRecord(initialSfen, *m_refs.kifuUsiMoves, hasTerminal)) {
-        return false;
-    }
-    rebuildGameMoves(initialSfen, *m_refs.kifuUsiMoves);
-
-    QStringList* sfenHistory = *m_refs.sfenHistory;
-    qCDebug(lcKifu).noquote() << "applyParsedResult: after rebuildSfenRecord"
-                              << "sfenHistory*=" << static_cast<const void*>(sfenHistory)
-                              << "sfenHistory.size=" << (sfenHistory ? sfenHistory->size() : -1);
-    if (sfenHistory && !sfenHistory->isEmpty()) {
-        qCDebug(lcKifu).noquote() << "sfenHistory[0]=" << sfenHistory->first().left(60);
-        if (sfenHistory->size() > 1) {
-            qCDebug(lcKifu).noquote() << "sfenHistory[1]=" << sfenHistory->at(1).left(60);
-        }
-        if (sfenHistory->size() > 2) {
-            qCDebug(lcKifu).noquote() << "sfenHistory[last]=" << sfenHistory->last().left(60);
-        }
-    }
-    return true;
-}
-
-void KifuApplyService::rebuildPositionCommands(const QString& initialSfen)
-{
-    m_refs.positionStrList->clear();
-    m_refs.positionStrList->reserve(m_refs.kifuUsiMoves->size() + 1);
-
-    const QString base = QStringLiteral("position sfen %1").arg(initialSfen);
-    m_refs.positionStrList->push_back(base);
-
-    QStringList acc;
-    acc.reserve(m_refs.kifuUsiMoves->size());
-    for (qsizetype i = 0; i < m_refs.kifuUsiMoves->size(); ++i) {
-        acc.push_back(m_refs.kifuUsiMoves->at(i));
-        m_refs.positionStrList->push_back(base + QStringLiteral(" moves ") + acc.join(' '));
-    }
-
-    qCDebug(lcKifu).noquote() << "position list built. count=" << m_refs.positionStrList->size();
-    if (!m_refs.positionStrList->isEmpty()) {
-        qCDebug(lcKifu).noquote() << "pos[0]=" << m_refs.positionStrList->first();
-        if (m_refs.positionStrList->size() > 1) {
-            qCDebug(lcKifu).noquote() << "pos[1]=" << m_refs.positionStrList->at(1);
-        }
-    }
-}
-
 void KifuApplyService::applyToRecordView(const KifParseResult& res, const QString& filePath,
                                          const QString& teaiLabel, const QString& parseWarn)
 {
     const QList<KifDisplayItem>& disp = res.mainline.disp;
-    QStringList* sfenHistory = *m_refs.sfenHistory;
     KifuNavigationState* navState = *m_refs.navState;
 
     if (m_hooks.displayGameRecord) {
@@ -206,14 +137,12 @@ void KifuApplyService::applyToRecordView(const KifParseResult& res, const QStrin
     if (navState != nullptr) {
         navState->goToRoot();
     }
-    *m_refs.activePly = 0;
 
     if (m_hooks.enableArrowButtons) {
         m_hooks.enableArrowButtons();
     }
 
-    KifuApplyLogger::logImportSummary(filePath, *m_refs.kifuUsiMoves, disp, teaiLabel, parseWarn,
-                                      QString(), sfenHistory, m_refs.gameMoves);
+    KifuApplyLogger::logImportSummary(filePath, res.mainline.usiMoves, disp, teaiLabel, parseWarn, QString());
 }
 
 void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString& initialSfen)

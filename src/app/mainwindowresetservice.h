@@ -16,7 +16,6 @@ class EvaluationChartWidget;
 class EvaluationGraphController;
 
 class KifuNavigationState;
-class GameRecordPresenter;
 class KifuDisplayCoordinator;
 class BoardInteractionController;
 class GameRecordModel;
@@ -60,7 +59,6 @@ public:
 
     struct ModelResetDeps {
         KifuNavigationState* navState = nullptr;
-        GameRecordPresenter* recordPresenter = nullptr;
         KifuDisplayCoordinator* displayCoordinator = nullptr;
         BoardInteractionController* boardController = nullptr;
         GameRecordModel* gameRecord = nullptr;

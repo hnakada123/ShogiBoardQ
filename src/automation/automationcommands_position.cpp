@@ -7,7 +7,6 @@
 #include "kifufilecontroller.h"
 #include "sfenutils.h"
 #include "sfenvalidationservice.h"
-#include "usimoveconverter.h"
 
 #include <QJsonArray>
 
@@ -16,17 +15,15 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
     dispatcher.registerMethod(QStringLiteral("position.get"), [context](const QJsonObject&) {
         QJsonObject result;
         const QStringList record = currentLinePositions(context);
-        const int ply = context.currentMoveIndex ? *context.currentMoveIndex : 0;
+        const int ply = context.currentPly ? context.currentPly() : 0;
         result[QStringLiteral("sfen")] = currentSfen(context);
         QString start = !record.isEmpty() ? record.first()
                                                      : (context.startSfenStr ? *context.startSfenStr : QString());
         result[QStringLiteral("start_sfen")] = SfenUtils::normalizeStart(start);
         result[QStringLiteral("ply")] = ply;
-        QStringList moves;
-        if (ply > 0 && ply < record.size()) {
-            moves = UsiMoveConverter::fromSfenRecord(record.mid(0, ply + 1));
-        }
-        result[QStringLiteral("moves")] = QJsonArray::fromStringList(moves);
+        // 表示中の手数までの指し手（分岐ツリーの各手から取る）
+        const RecordLine line = currentRecordLine(context);
+        result[QStringLiteral("moves")] = QJsonArray::fromStringList(line.usiMoves(line.currentPly));
         return result;
     });
 

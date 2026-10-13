@@ -81,8 +81,6 @@ bool MatchUndoHandler::undoTwoPlies()
         // HvE の positionStrHistory は人間着手時の履歴なので、
         // エンジンの応手まで含む現在値を優先する。
         prevFullPosition = *m_refs.positionStr1;
-    } else if (u_.positionStrList && !u_.positionStrList->isEmpty()) {
-        prevFullPosition = u_.positionStrList->last();
     } else if (m_refs.positionStrHistory && !m_refs.positionStrHistory->isEmpty()) {
         prevFullPosition = m_refs.positionStrHistory->constLast();
     }
@@ -112,9 +110,6 @@ bool MatchUndoHandler::undoTwoPlies()
     if (m_refs.gameMoves && m_refs.gameMoves->size() >= 2) {
         m_refs.gameMoves->remove(m_refs.gameMoves->size() - 2, 2);
     }
-    if (u_.positionStrList && u_.positionStrList->size() >= 2) {
-        u_.positionStrList->remove(u_.positionStrList->size() - 2, 2);
-    }
     if (srec && srec->size() >= 2) {
         srec->remove(srec->size() - 2, 2);
     }
@@ -135,25 +130,11 @@ bool MatchUndoHandler::undoTwoPlies()
     if (m_refs.positionStr1) *m_refs.positionStr1 = nextBase;
     if (m_refs.positionPonder1) *m_refs.positionPonder1 = nextBase;
 
-    if (u_.positionStrList) {
-        if (u_.positionStrList->isEmpty()) {
-            u_.positionStrList->append(nextBase);
-        } else {
-            (*u_.positionStrList)[u_.positionStrList->size() - 1] = nextBase;
-        }
-    }
-
     if (m_refs.positionStrHistory) {
         if (m_refs.positionStrHistory->isEmpty() || m_refs.positionStrHistory->constLast() != nextBase) {
             m_refs.positionStrHistory->clear();
             m_refs.positionStrHistory->append(nextBase);
         }
-    }
-
-    // --- 現在行（0始まり）を同期 ---
-    const int targetMoveRow = targetSfenIdx;
-    if (u_.currentMoveIndex) {
-        *u_.currentMoveIndex = targetMoveRow;
     }
 
     // --- 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す ---
@@ -163,7 +144,7 @@ bool MatchUndoHandler::undoTwoPlies()
     if (m_hooks.restartHumanTurnTimer) m_hooks.restartHumanTurnTimer();
 
     // --- 表示/ハイライトの同期 ---
-    if (u_.recordModel) u_.recordModel->setCurrentHighlightRow(targetMoveRow);
+    if (u_.recordModel) u_.recordModel->setCurrentHighlightRow(targetSfenIdx);
     if (u_.boardCtl) {
         u_.boardCtl->cancelPendingClick();
         u_.boardCtl->clearAllHighlights();

@@ -11,12 +11,11 @@
 #include <QStringList>
 #include <QPoint>
 
-#include "playmode.h"
+#include "recordline.h"
 
 class JosekiWindow;
 class QDockWidget;
 class ShogiGameController;
-class KifuRecordListModel;
 
 /**
  * @brief 定跡ウィンドウとMainWindowの間のUI配線を担当するクラス
@@ -41,13 +40,9 @@ public:
     struct Dependencies {
         QWidget* parentWidget = nullptr;
         ShogiGameController* gameController = nullptr;
-        KifuRecordListModel* kifuRecordModel = nullptr;
-        QStringList* sfenRecord = nullptr;
-        QStringList* usiMoves = nullptr;
         QString* currentSfenStr = nullptr;
-        int* currentMoveIndex = nullptr;
-        int* currentSelectedPly = nullptr;
-        PlayMode* playMode = nullptr;
+        /// 表示中の手順（分岐ツリーの KifuNavigationState::currentRecordLine）
+        std::function<RecordLine()> currentLine;
         /// 盤面クリックと同じ「人間が今指せるか」の判定（PlayModePolicyService::isHumanTurnNow）
         std::function<bool()> isHumanTurnNow;
     };
@@ -121,34 +116,8 @@ private slots:
     void onDockVisibilityChanged(bool visible);
 
 private:
-    /**
-     * @brief USI形式の指し手をQPoint座標に変換
-     * @param usiMove USI形式の指し手
-     * @param from 移動元座標（出力）
-     * @param to 移動先座標（出力）
-     * @param promote 成るかどうか（出力）
-     * @return 変換成功時true
-     */
-    bool parseUsiMove(const QString& usiMove, QPoint& from, QPoint& to, bool& promote) const;
 
-    /**
-     * @brief 駒打ちのUSI形式を解析
-     * @param usiMove USI形式の指し手
-     * @param from 移動元座標（出力）
-     * @param to 移動先座標（出力）
-     * @return 解析成功時true
-     */
-    bool parseDropMove(const QString& usiMove, QPoint& from, QPoint& to) const;
 
-    /**
-     * @brief 通常移動のUSI形式を解析
-     * @param usiMove USI形式の指し手
-     * @param from 移動元座標（出力）
-     * @param to 移動先座標（出力）
-     * @param promote 成るかどうか（出力）
-     * @return 解析成功時true
-     */
-    bool parseNormalMove(const QString& usiMove, QPoint& from, QPoint& to, bool& promote) const;
 
     /**
      * @brief 人間が着手可能かどうかを判定
@@ -156,22 +125,12 @@ private:
      */
     bool determineHumanCanPlay() const;
 
-    /**
-     * @brief SFEN差分からUSI形式指し手リストを生成
-     * @return USI形式指し手リスト
-     */
-    QStringList generateUsiMovesFromSfen() const;
 
     // 依存オブジェクト
     QWidget* m_parentWidget = nullptr;
     ShogiGameController* m_gameController = nullptr;
-    KifuRecordListModel* m_kifuRecordModel = nullptr;
-    QStringList* m_sfenHistory = nullptr;
-    QStringList* m_usiMoves = nullptr;
     QString* m_currentSfenStr = nullptr;
-    int* m_currentMoveIndex = nullptr;
-    int* m_currentSelectedPly = nullptr;
-    PlayMode* m_playMode = nullptr;
+    std::function<RecordLine()> m_currentLine;
     std::function<bool()> m_isHumanTurnNow;
 
     // 内部オブジェクト

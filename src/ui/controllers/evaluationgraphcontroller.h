@@ -6,6 +6,8 @@
 
 
 #include <QObject>
+
+#include <functional>
 #include <QList>
 
 class MatchCoordinator;
@@ -43,9 +45,16 @@ public:
     void setMatchCoordinator(MatchCoordinator* match);
 
     /**
-     * @brief SFENレコード（手数計算用）を設定
+     * @brief 対局の局面列（対局中に評価値を描く手数の計算用）を設定
      */
     void setSfenRecord(QStringList* sfenRecord);
+
+    /**
+     * @brief 表示中の棋譜の長さ（手数。横軸の長さ）を返す関数を設定する
+     *
+     * 棋譜の正本（分岐ツリーの表示中の手順）の行数から求める。
+     */
+    void setRecordLengthProvider(std::function<int()> provider);
 
     // --------------------------------------------------------
     // エンジン名の設定
@@ -131,6 +140,7 @@ private:
     EvaluationChartWidget* m_evalChart = nullptr;
     MatchCoordinator* m_match = nullptr;
     QStringList* m_sfenHistory = nullptr;
+    std::function<int()> m_recordLength;
 
     // エンジン名
     QString m_engine1Name;

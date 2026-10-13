@@ -7,7 +7,7 @@
 
 #include "josekiwindow.h"
 #include "shogigamecontroller.h"
-#include "kifurecordlistmodel.h"
+#include "boardcoordinates.h"
 
 #include <QDockWidget>
 
@@ -15,13 +15,8 @@ JosekiWindowWiring::JosekiWindowWiring(const Dependencies& deps, QObject* parent
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
     , m_gameController(deps.gameController)
-    , m_kifuRecordModel(deps.kifuRecordModel)
-    , m_sfenHistory(deps.sfenRecord)
-    , m_usiMoves(deps.usiMoves)
     , m_currentSfenStr(deps.currentSfenStr)
-    , m_currentMoveIndex(deps.currentMoveIndex)
-    , m_currentSelectedPly(deps.currentSelectedPly)
-    , m_playMode(deps.playMode)
+    , m_currentLine(deps.currentLine)
     , m_isHumanTurnNow(deps.isHumanTurnNow)
 {
 }
@@ -101,22 +96,22 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
         return;
     }
 
-    QPoint from, to;
-    bool promote = false;
-
-    if (!parseUsiMove(usiMove, from, to, promote)) {
+    const auto move = UsiMove::parse(usiMove);
+    if (!move) {
         qCWarning(lcUi) << "onJosekiMoveSelected: invalid move format";
         if (m_josekiWindow) {
             m_josekiWindow->onMoveResult(false, usiMove);
         }
         return;
     }
+    const Turn mover = m_gameController ? m_gameController->currentPlayer() : Turn::Black;
+    const QPoint from = BoardCoordinates::fromSquare(*move, mover);
+    const QPoint to = BoardCoordinates::toSquare(*move);
 
     // 定跡手からの着手の場合、成り/不成が決まっているので強制成りモードを設定
-    Q_EMIT forcedPromotionRequested(true, promote);
+    Q_EMIT forcedPromotionRequested(true, move->promote);
 
-    // 着手前の棋譜サイズと局面を記録
-    const qsizetype sfenSizeBefore = m_sfenHistory ? m_sfenHistory->size() : 0;
+    // 着手できたかは局面が変わったかで判定する
     const QString sfenBefore = m_currentSfenStr ? *m_currentSfenStr : QString();
 
     // 指し手実行を要求
@@ -124,14 +119,8 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
     // 上位の入力ガードで着手処理に到達しなかった場合も指定を解除する。
     Q_EMIT forcedPromotionRequested(false, false);
 
-    // 着手後の棋譜サイズを確認して成功/失敗を判定
-    const qsizetype sfenSizeAfter = m_sfenHistory ? m_sfenHistory->size() : 0;
-    // 対局外では変化として記録して表示する手順が切り替わるため、局面が変わったかも見る
-    const bool positionChanged = m_currentSfenStr && *m_currentSfenStr != sfenBefore;
-    const bool moveSuccess = (sfenSizeAfter > sfenSizeBefore) || positionChanged;
-
-    qCDebug(lcUi) << "Move result: sfenSizeBefore=" << sfenSizeBefore
-                   << "sfenSizeAfter=" << sfenSizeAfter << "success=" << moveSuccess;
+    const bool moveSuccess = m_currentSfenStr && *m_currentSfenStr != sfenBefore;
+    qCDebug(lcUi) << "Move result: success=" << moveSuccess;
 
     // 定跡ウィンドウに結果を通知（失敗時のみ）
     if (m_josekiWindow && !moveSuccess) {
@@ -139,262 +128,16 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
     }
 }
 
-bool JosekiWindowWiring::parseUsiMove(const QString& usiMove, QPoint& from, QPoint& to, bool& promote) const
-{
-    promote = false;
-
-    // 駒打ちのパターン: P*5e（駒種*筋段）
-    if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
-        return parseDropMove(usiMove, from, to);
-    }
-    // 通常移動のパターン: 7g7f または 7g7f+
-    if (usiMove.size() >= 4) {
-        return parseNormalMove(usiMove, from, to, promote);
-    }
-
-    return false;
-}
-
-bool JosekiWindowWiring::parseDropMove(const QString& usiMove, QPoint& from, QPoint& to) const
-{
-    const QChar pieceChar = usiMove.at(0);
-    const int toFile = usiMove.at(2).toLatin1() - '0';
-    const int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-
-    // 現在の手番を取得
-    bool isBlackTurn = true;
-    if (m_gameController) {
-        isBlackTurn = (m_gameController->currentPlayer() == Turn::Black);
-    }
-
-    // 駒台のファイル番号（先手=10, 後手=11）
-    const int standFile = isBlackTurn ? 10 : 11;
-
-    // 駒台のランク（駒種番号）
-    // 先手: P=1, L=2, N=3, S=4, G=5, B=6, R=7
-    // 後手: R=3, B=4, G=5, S=6, N=7, L=8, P=9
-    int pieceRank = 0;
-    if (isBlackTurn) {
-        switch (pieceChar.toUpper().toLatin1()) {
-        case 'P': pieceRank = 1; break;
-        case 'L': pieceRank = 2; break;
-        case 'N': pieceRank = 3; break;
-        case 'S': pieceRank = 4; break;
-        case 'G': pieceRank = 5; break;
-        case 'B': pieceRank = 6; break;
-        case 'R': pieceRank = 7; break;
-        default: return false;
-        }
-    } else {
-        switch (pieceChar.toUpper().toLatin1()) {
-        case 'R': pieceRank = 3; break;
-        case 'B': pieceRank = 4; break;
-        case 'G': pieceRank = 5; break;
-        case 'S': pieceRank = 6; break;
-        case 'N': pieceRank = 7; break;
-        case 'L': pieceRank = 8; break;
-        case 'P': pieceRank = 9; break;
-        default: return false;
-        }
-    }
-
-    from = QPoint(standFile, pieceRank);
-    to = QPoint(toFile, toRank);
-
-    qCDebug(lcUi) << "Drop move: piece=" << pieceChar
-                   << "isBlackTurn=" << isBlackTurn
-                   << "from=" << from << "to=" << to;
-
-    return true;
-}
-
-bool JosekiWindowWiring::parseNormalMove(const QString& usiMove, QPoint& from, QPoint& to, bool& promote) const
-{
-    const int fromFile = usiMove.at(0).toLatin1() - '0';
-    const int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
-    const int toFile = usiMove.at(2).toLatin1() - '0';
-    const int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-    promote = (usiMove.size() >= 5 && usiMove.at(4) == QChar('+'));
-
-    from = QPoint(fromFile, fromRank);
-    to = QPoint(toFile, toRank);
-
-    qCDebug(lcUi) << "Normal move: from=" << from << "to=" << to << "promote=" << promote;
-
-    return true;
-}
-
 void JosekiWindowWiring::onRequestKifuDataForMerge()
 {
-    qCDebug(lcUi) << "onRequestKifuDataForMerge called";
-
     if (!m_josekiWindow) {
         qCWarning(lcUi) << "onRequestKifuDataForMerge: m_josekiWindow is null";
         return;
     }
 
-    QStringList sfenList;
-    QStringList moveList;
-    QStringList japaneseMoveList;
-    int currentPly = 0;
-
-    // SFENレコードから局面リストを取得
-    if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
-        for (const QString& sfen : std::as_const(*m_sfenHistory)) {
-            sfenList.append(sfen);
-        }
-        qCDebug(lcUi) << "sfenList from m_sfenHistory, size=" << sfenList.size();
-    }
-
-    // 棋譜表示モデルから指し手リストを取得
-    if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0) {
-        for (int i = 0; i < m_kifuRecordModel->rowCount(); ++i) {
-            QModelIndex index = m_kifuRecordModel->index(i, 0);
-            QString japaneseMove = m_kifuRecordModel->data(index, Qt::DisplayRole).toString();
-            japaneseMoveList.append(japaneseMove);
-        }
-        qCDebug(lcUi) << "japaneseMoveList size=" << japaneseMoveList.size();
-    }
-
-    // USI形式の指し手リストを取得
-    if (m_usiMoves && !m_usiMoves->isEmpty()) {
-        for (const QString& move : std::as_const(*m_usiMoves)) {
-            moveList.append(move);
-        }
-        qCDebug(lcUi) << "moveList from m_usiMoves, size=" << moveList.size();
-    } else if (m_sfenHistory && m_sfenHistory->size() > 1) {
-        // SFEN差分からUSI形式を生成
-        moveList = generateUsiMovesFromSfen();
-        qCDebug(lcUi) << "moveList from sfenRecord, size=" << moveList.size();
-    }
-
-    // 現在選択中の手数を取得
-    if (m_currentMoveIndex && *m_currentMoveIndex > 0) {
-        currentPly = *m_currentMoveIndex;
-    } else if (m_currentSelectedPly && *m_currentSelectedPly > 0) {
-        currentPly = *m_currentSelectedPly;
-    }
-
-    qCDebug(lcUi) << "FINAL RESULT"
-                   << "sfenList.size=" << sfenList.size()
-                   << "moveList.size=" << moveList.size()
-                   << "japaneseMoveList.size=" << japaneseMoveList.size()
-                   << "currentPly=" << currentPly;
-
-    // 定跡ウィンドウにデータを送信
-    m_josekiWindow->setKifuDataForMerge(sfenList, moveList, japaneseMoveList, currentPly);
-}
-
-QStringList JosekiWindowWiring::generateUsiMovesFromSfen() const
-{
-    QStringList result;
-
-    if (!m_sfenHistory || m_sfenHistory->size() < 2) {
-        return result;
-    }
-
-    // 盤面を展開するラムダ
-    auto expandBoard = [](const QString& boardStr) -> QList<QList<QString>> {
-        QList<QList<QString>> board(9, QList<QString>(9));
-        const QStringList ranks = boardStr.split(QLatin1Char('/'));
-        for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
-            const QString& rankStr = ranks[rank];
-            int file = 0;
-            bool promoted = false;
-            for (qsizetype k = 0; k < rankStr.size() && file < 9; ++k) {
-                QChar c = rankStr[k];
-                if (c == QLatin1Char('+')) {
-                    promoted = true;
-                } else if (c.isDigit()) {
-                    int skip = c.toLatin1() - '0';
-                    for (int s = 0; s < skip && file < 9; ++s) {
-                        board[rank][file++] = QString();
-                    }
-                    promoted = false;
-                } else {
-                    QString piece = promoted ? QStringLiteral("+") + QString(c) : QString(c);
-                    board[rank][file++] = piece;
-                    promoted = false;
-                }
-            }
-        }
-        return board;
-    };
-
-    for (int i = 1; i < m_sfenHistory->size(); ++i) {
-        const QString& prevSfen = m_sfenHistory->at(i - 1);
-        const QString& currSfen = m_sfenHistory->at(i);
-
-        const QStringList prevParts = prevSfen.split(QLatin1Char(' '));
-        const QStringList currParts = currSfen.split(QLatin1Char(' '));
-
-        if (prevParts.size() < 3 || currParts.size() < 3) {
-            result.append(QString());
-            continue;
-        }
-
-        QList<QList<QString>> prevBoardArr = expandBoard(prevParts[0]);
-        QList<QList<QString>> currBoardArr = expandBoard(currParts[0]);
-
-        QPoint fromPos(-1, -1);
-        QPoint toPos(-1, -1);
-        bool isDrop = false;
-        bool isPromotion = false;
-
-        QList<QPoint> emptyPositions;
-        QList<QPoint> filledPositions;
-
-        for (int rank = 0; rank < 9; ++rank) {
-            for (int file = 0; file < 9; ++file) {
-                const QString& prev = prevBoardArr[rank][file];
-                const QString& curr = currBoardArr[rank][file];
-
-                if (prev != curr) {
-                    if (!prev.isEmpty() && curr.isEmpty()) {
-                        emptyPositions.append(QPoint(file, rank));
-                    } else if (!curr.isEmpty()) {
-                        filledPositions.append(QPoint(file, rank));
-                    }
-                }
-            }
-        }
-
-        if (emptyPositions.size() == 1 && filledPositions.size() == 1) {
-            fromPos = emptyPositions[0];
-            toPos = filledPositions[0];
-            const QString movedPiece = prevBoardArr[fromPos.y()][fromPos.x()];
-            const QString& movedPieceFinal = currBoardArr[toPos.y()][toPos.x()];
-            QString baseFrom = movedPiece.startsWith(QLatin1Char('+')) ? movedPiece.mid(1) : movedPiece;
-            QString baseTo = movedPieceFinal.startsWith(QLatin1Char('+')) ? movedPieceFinal.mid(1) : movedPieceFinal;
-            if (baseFrom.toUpper() == baseTo.toUpper() &&
-                movedPieceFinal.startsWith(QLatin1Char('+')) && !movedPiece.startsWith(QLatin1Char('+'))) {
-                isPromotion = true;
-            }
-        } else if (emptyPositions.isEmpty() && filledPositions.size() == 1) {
-            isDrop = true;
-            toPos = filledPositions[0];
-        }
-
-        QString usiMove;
-        if (isDrop && toPos.x() >= 0) {
-            QString droppedPiece = currBoardArr[toPos.y()][toPos.x()];
-            QChar pieceChar = droppedPiece.isEmpty() ? QLatin1Char('P') : droppedPiece[0].toUpper();
-            int toFileNum = 9 - toPos.x();
-            QChar toRankChar = QChar('a' + toPos.y());
-            usiMove = QStringLiteral("%1*%2%3").arg(pieceChar).arg(toFileNum).arg(toRankChar);
-        } else if (fromPos.x() >= 0 && toPos.x() >= 0) {
-            int fromFileNum = 9 - fromPos.x();
-            int toFileNum = 9 - toPos.x();
-            QChar fromRankChar = QChar('a' + fromPos.y());
-            QChar toRankChar = QChar('a' + toPos.y());
-            usiMove = QStringLiteral("%1%2%3%4").arg(fromFileNum).arg(fromRankChar).arg(toFileNum).arg(toRankChar);
-            if (isPromotion) {
-                usiMove += QLatin1Char('+');
-            }
-        }
-
-        result.append(usiMove);
-    }
-
-    return result;
+    // 表示中の手順（分岐を選んでいればその分岐）の局面・指し手・表記をそろえて渡す
+    const RecordLine line = m_currentLine ? m_currentLine() : RecordLine{};
+    qCDebug(lcUi) << "onRequestKifuDataForMerge: moves=" << line.moveCount()
+                  << "currentPly=" << line.currentPly;
+    m_josekiWindow->setKifuDataForMerge(line.sfens, line.usiMoves(), line.displayTexts, line.currentPly);
 }

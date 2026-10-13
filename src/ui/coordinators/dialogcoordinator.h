@@ -5,6 +5,7 @@
 /// @brief ダイアログコーディネータクラスの定義
 
 
+#include "recordline.h"
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -139,17 +140,10 @@ public:
      */
     struct ConsiderationContext {
         ShogiGameController* gameController = nullptr;
-        const QList<ShogiMove>* gameMoves = nullptr;
-        const int* currentMoveIndex = nullptr;
-        KifuRecordListModel* kifuRecordModel = nullptr;
-        QStringList* sfenRecord = nullptr;
         QString* startSfenStr = nullptr;
-        const QString* currentSfenStr = nullptr;             // 現在表示中の局面SFEN（分岐対応）
-        class KifuBranchTree* branchTree = nullptr;          // 分岐ツリー（分岐ラインの手取得用）
-        class KifuNavigationState* navState = nullptr;       // 現在の分岐ライン状態
+        const QString* currentSfenStr = nullptr;             // 手順が無いときに検討する局面
+        class KifuNavigationState* navState = nullptr;       // 表示中の手順（分岐ツリー）
         ShogiEngineThinkingModel** considerationModel = nullptr;  // ダブルポインタ（遅延生成用）
-        const QStringList* gameUsiMoves = nullptr;                // 対局中のUSI指し手リスト
-        class KifuLoadCoordinator* kifuLoadCoordinator = nullptr; // 棋譜読み込みコーディネータ
     };
 
     /**
@@ -171,12 +165,8 @@ public:
      * @brief 詰み探索ダイアログの依存情報
      */
     struct TsumeSearchParams {
-        QStringList* sfenRecord = nullptr;
-        QString startSfenStr;
-        QStringList positionStrList;
-        int currentMoveIndex = 0;
-        QStringList* usiMoves = nullptr;       // USI形式の指し手リスト（moves形式用）
-        QString startPositionCmd;              // 開始局面コマンド（"startpos" or "sfen ..."）
+        RecordLine line;        // 表示中の手順（line.currentPly の局面を探索する）
+        QString fallbackSfen;   // 手順が無いときに探索する局面
     };
 
     /**
@@ -190,12 +180,8 @@ public:
      * MainWindowから一度設定することで、パラメータ収集を自動化します。
      */
     struct TsumeSearchContext {
-        QStringList* sfenRecord = nullptr;
+        KifuNavigationState* navState = nullptr;  // 表示中の手順（分岐ツリー）
         QString* startSfenStr = nullptr;
-        QStringList* positionStrList = nullptr;
-        const int* currentMoveIndex = nullptr;
-        QStringList* gameUsiMoves = nullptr;
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
     };
 
     /**
@@ -234,16 +220,11 @@ public:
      * MainWindowから一度設定することで、パラメータ収集を自動化します。
      */
     struct KifuAnalysisContext {
-        QStringList* sfenRecord = nullptr;
         KifuRecordListModel* recordModel = nullptr;
-        KifuBranchTree* branchTree = nullptr;
-        KifuNavigationState* navState = nullptr;
-        int* activePly = nullptr;
+        KifuNavigationState* navState = nullptr;   // 表示中の手順（分岐ツリー）
         ShogiGameController* gameController = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
         EvaluationChartWidget* evalChart = nullptr;
-        QStringList* gameUsiMoves = nullptr;  // 対局時のUSI形式指し手リスト（MainWindow::m_gameUsiMoves）
         AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
         std::function<bool()> getBoardFlipped;  // GUI本体の盤面反転状態取得コールバック
     };

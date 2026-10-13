@@ -35,7 +35,6 @@ struct AutomationContext {
 
     // MainWindow の状態（読み取り）
     PlayMode* playMode = nullptr;
-    int* currentMoveIndex = nullptr;
     QString* startSfenStr = nullptr;
     QString* currentSfenStr = nullptr;
     QString* saveFileName = nullptr;
@@ -43,7 +42,7 @@ struct AutomationContext {
     QString* engineName2 = nullptr;
 
     // 差し替わる・遅延生成されるオブジェクトのプロバイダ
-    std::function<const QStringList*()> sfenRecord;
+    std::function<int()> currentPly;                               ///< 表示中の手数（分岐ツリーのカーソル）
     std::function<KifuNavigationController*()> navigationController;
     std::function<UiStatePolicyManager*()> uiStatePolicy;
     std::function<KifuFileController*()> kifuFileController;       ///< ensure 済みを返す

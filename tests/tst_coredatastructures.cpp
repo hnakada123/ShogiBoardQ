@@ -7,7 +7,6 @@
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "turnmanager.h"
-#include "shogiutils.h"
 #include "jishogicalculator.h"
 #include "notationutils.h"
 

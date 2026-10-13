@@ -56,10 +56,6 @@ void RecordNavigationWiring::bindDeps(const Deps& deps)
     handlerDeps.kifuRecordModel = deps.kifuRecordModel;
     handlerDeps.shogiView = deps.shogiView;
     handlerDeps.evalGraphController = deps.evalGraphController;
-    handlerDeps.sfenRecord = deps.sfenRecord;
-    handlerDeps.activePly = deps.activePly;
-    handlerDeps.currentSelectedPly = deps.currentSelectedPly;
-    handlerDeps.currentMoveIndex = deps.currentMoveIndex;
     handlerDeps.currentSfenStr = deps.currentSfenStr;
     handlerDeps.skipBoardSyncForBranchNav = deps.skipBoardSyncForBranchNav;
     handlerDeps.csaGameCoordinator = deps.csaGameCoordinator;

@@ -8,6 +8,7 @@
 #include <functional>
 
 #include "automationcontext.h"
+#include "recordline.h"
 
 class AutomationDispatcher;
 
@@ -49,6 +50,8 @@ void registerUiCommands(AutomationDispatcher& dispatcher, const AutomationContex
 QString currentSfen(const AutomationContext& context);
 /// 閲覧中の分岐の局面列（終局行を含む）。
 QStringList currentLinePositions(const AutomationContext& context);
+/// 表示中の手順（分岐ツリー）。終局行は含まない。currentPly は表示中の手数
+RecordLine currentRecordLine(const AutomationContext& context);
 
 } // namespace AutomationCommands
 
