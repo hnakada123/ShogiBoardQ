@@ -173,7 +173,7 @@ UsiCommandController::UsiCommandController(QObject* parent)
 {
 }
 
-void UsiCommandController::setMatchCoordinator(MatchCoordinator*) {}
+void UsiCommandController::setMatchProvider(std::function<MatchCoordinator*()>) {}
 
 void UsiCommandController::setAnalysisTab(EngineAnalysisTab*) {}
 

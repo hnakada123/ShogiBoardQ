@@ -9,14 +9,16 @@
 #include "engineanalysistab.h"
 #include "usi.h"
 
+#include <utility>
+
 UsiCommandController::UsiCommandController(QObject* parent)
     : QObject(parent)
 {
 }
 
-void UsiCommandController::setMatchCoordinator(MatchCoordinator* match)
+void UsiCommandController::setMatchProvider(std::function<MatchCoordinator*()> provider)
 {
-    m_match = match;
+    m_matchProvider = std::move(provider);
 }
 
 void UsiCommandController::setAnalysisTab(EngineAnalysisTab* tab)
@@ -35,8 +37,9 @@ void UsiCommandController::sendCommand(int target, const QString& command)
 {
     qCDebug(lcUi).noquote() << "sendCommand: target=" << target << "command=" << command;
 
-    Usi* usi1 = m_match ? m_match->primaryEngine() : nullptr;
-    Usi* usi2 = m_match ? m_match->secondaryEngine() : nullptr;
+    MatchCoordinator* match = m_matchProvider ? m_matchProvider() : nullptr;
+    Usi* usi1 = match ? match->primaryEngine() : nullptr;
+    Usi* usi2 = match ? match->secondaryEngine() : nullptr;
 
     const auto sendIfReady = [this, &command](Usi* engine, const QString& label) {
         if (engine && engine->isEngineRunning()) {

@@ -61,7 +61,10 @@ void EngineLifecycleManager::initializeAndStartEngineFor(Player side,
                                                          const QString& enginePathIn,
                                                          const QString& engineNameIn)
 {
-    Usi*& eng = (side == EngineLifecycleManager::P1 ? m_usi1 : m_usi2);
+    // 人間対エンジンではエンジンが後手でも m_usi1 だけを使い、m_usi2 は空のままにする
+    // （呼び出し側は「後手側が空なら先手側」と扱う）。参照で受けると m_usi2 に同じエンジンが入り、
+    // E2 宛てのコマンドや後始末が同じエンジンへ二重に届く。
+    Usi* eng = (side == EngineLifecycleManager::P1 ? m_usi1 : m_usi2);
 
     if (!eng) {
         if (m_usi1 && !m_usi2) {
