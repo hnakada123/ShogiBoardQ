@@ -416,8 +416,6 @@ void Usi::sendRaw(const QString&) const {}
 bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}
 void Usi::setLogModel(UsiCommLogModel*) {}
-void Usi::prepareBoardDataForAnalysis() {}
-void Usi::setClonedBoardData(const QList<QChar>&) {}
 void Usi::setBaseSfen(const QString&) {}
 void Usi::flushThinkingInfoBuffer() {}
 void Usi::requestClearThinkingInfo() {}
@@ -536,8 +534,6 @@ ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
 void ThinkingInfoPresenter::setGameController(ShogiGameController*) {}
 void ThinkingInfoPresenter::setAnalysisMode(bool) {}
 void ThinkingInfoPresenter::setPreviousMove(int, int) {}
-void ThinkingInfoPresenter::setClonedBoardData(const QList<QChar>&) {}
-void ThinkingInfoPresenter::setPonderEnabled(bool) {}
 void ThinkingInfoPresenter::setBaseSfen(const QString&) {}
 QString ThinkingInfoPresenter::baseSfen() const { return {}; }
 void ThinkingInfoPresenter::processInfoLine(const QString&) {}
@@ -547,12 +543,6 @@ void ThinkingInfoPresenter::logSentCommand(const QString&, const QString&) {}
 void ThinkingInfoPresenter::logReceivedData(const QString&, const QString&) {}
 void ThinkingInfoPresenter::logStderrData(const QString&, const QString&) {}
 void ThinkingInfoPresenter::onInfoReceived(const QString&) {}
-
-// ============================================================
-// ShogiEngineInfoParser スタブ
-// ============================================================
-
-ShogiEngineInfoParser::ShogiEngineInfoParser() {}
 
 // ============================================================
 // BoardInteractionController スタブ
@@ -656,7 +646,6 @@ QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::In
 #include "moc_shogiinforecord.cpp"
 #include "moc_engineprocessmanager.cpp"
 #include "moc_thinkinginfopresenter.cpp"
-#include "moc_shogiengineinfoparser.cpp"
 #include "moc_usiprotocolhandler.cpp"
 #include "moc_pvboarddialog.cpp"
 #include "moc_elidelabel.cpp"

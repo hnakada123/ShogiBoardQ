@@ -3495,7 +3495,7 @@ USI エンジンが出力する `info` 行のトークンを順に解析し、�
 | `score mate` | `scoreMate()` | 詰み手数 |
 | `hashfull` | `hashfull()` | ハッシュ使用率（千分率） |
 | `pv` | `pvKanjiStr()` / `pvUsiStr()` | 読み筋（漢字/USI形式） |
-| `currmove` | `currmove()` | 現在探索中の手 |
+| `currmove` | `searchedHand()` / `searchedUsi()` | 現在探索中の手（漢字/USI形式） |
 
 #### 評価値の境界
 
@@ -3509,30 +3509,27 @@ enum class EvaluationBound {
 
 #### 読み筋（PV）の漢字変換処理
 
-`parseEngineOutputAndUpdateState()` の中で `parsePvAndSimulateMoves()` が呼ばれ、USI 形式の読み筋を漢字表記に変換する。
+読み筋は、思考を始めた局面から日本語にする。局面は `setPosition(sfen)` で設定する（`ThinkingInfoPresenter::setBaseSfen` が呼ぶ）。
+パーサはその局面を `ShogiBoard` に持ち、`parseEngineOutputAndUpdateState()` の中の `parsePvAndSimulateMoves()` が
+info 行ごとに作業用の盤へ写して（`ShogiBoard::copyPositionFrom`）、指し手を順に進める。
 
 ```
-入力: "7g7f 3c3d 2g2f 8c8d"
+入力: "7g7f 3c3d 8h2b+ 3a2b B*4e"（平手）
 
 変換処理:
   各指し手について:
-    1. parseMoveString() で座標と成フラグを取得
-       "7g7f" → file=7, rank=7 → file=7, rank=6, promote=false
-    2. getPieceCharacter() で移動元の駒を取得
-    3. getPieceKanjiName() で漢字の駒名を取得（P→歩, R→飛, ...）
-    4. getMoveSymbol() で手番マーク（▲/△）を決定
-    5. getFormattedMove() で「同」判定を行う
-    6. convertMoveToShogiString() で最終的な漢字文字列を生成
-    7. movePieceToSquare() で盤面コピーを更新（次の手に備える）
+    1. UsiMove::parse() で指し手を読む
+    2. 盤の上で動かす駒を決める（駒打ちは指す側の持駒）。
+       指す側の駒でない・持っていない・行き先が自分の駒なら、そこで変換をやめる
+    3. KifMoveText::append() で文字列に足す（手番の印は局面の手番から。「同」は詰めて書く）
+    4. ShogiBoard::applyUsiMove() で盤を進める（取った駒は駒台に載る）
 
-出力: "▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)"
+出力: "▲７六歩(77)△３四歩(33)▲２二角成(88)△同銀(31)▲４五角打"
 ```
 
-駒打ちの場合（USI形式で `P*3d` のように `*` を含む）は、`file=STAND_FILE(99)` として駒台からの打ちと認識し、`打` を付加する（例: `▲３四歩打`）。
-
-#### 盤面コピー上でのシミュレーション
-
-漢字変換時は実際の盤面ではなく `clonedBoardData`（`QVector<QChar>`）上で指し手をシミュレートする。これにより、複数手先の読み筋でも正しい駒名を取得できる。
+- 初手が直前の手（`setPreviousMove`）と同じマスへ行くなら「同」と書く。
+- 末尾の `(57.54%)` のような指し手でない語はそのまま付ける。`resign`・`win` は「投了」「入玉勝ち」にする。
+- 局面と合わない指し手で変換をやめたときは、そこまでの漢字表記を残し、USI 形式の読み筋は残さない。
 
 ### 7.8 ShogiEngineThinkingModel — 思考情報テーブルモデル
 

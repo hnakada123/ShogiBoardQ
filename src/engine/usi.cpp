@@ -406,16 +406,6 @@ bool Usi::isEngineRunning() const
     return m_processManager && m_processManager->isRunning();
 }
 
-void Usi::prepareBoardDataForAnalysis()
-{
-    m_matchHandler->prepareBoardDataForAnalysis();
-}
-
-void Usi::setClonedBoardData(const QList<QChar>& boardData)
-{
-    m_matchHandler->setClonedBoardData(boardData);
-}
-
 void Usi::setBaseSfen(const QString& sfen)
 {
     qCDebug(lcEngine) << "setBaseSfen:" << sfen.left(50);

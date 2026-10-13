@@ -51,14 +51,8 @@ public:
     
     /// 前回の指し手の座標を設定
     void setPreviousMove(int fileTo, int rankTo);
-    
-    /// クローンした盤面データを設定
-    void setClonedBoardData(const QList<QChar>& boardData);
-    
-    /// ponderモード有効フラグを設定
-    void setPonderEnabled(bool enabled);
 
-    /// 思考開始時の局面SFENを設定
+    /// 思考開始時の局面SFENを設定（読み筋はこの局面から日本語にする）
     void setBaseSfen(const QString& sfen);
     
     /// 思考開始時の局面SFENを取得
@@ -169,13 +163,8 @@ private:
     bool m_analysisMode = false;       ///< 棋譜解析モードフラグ
     int m_previousFileTo = 0;           ///< 前回の指し手の筋
     int m_previousRankTo = 0;           ///< 前回の指し手の段
-    bool m_ponderEnabled = false;       ///< ponderモード有効フラグ
 
     QString m_baseSfen;                 ///< 思考開始時の局面SFEN
-
-    bool m_thinkingStartPlayerIsP1 = true; ///< 思考開始時の手番（true=先手, false=後手）
-
-    QList<QChar> m_clonedBoardData;   ///< クローンした盤面データ
 
     QString m_lastScoreMate;            ///< 最後の主候補の score mate（空は通常評価値）
     int m_lastScoreCp = 0;              ///< 最後の評価値（センチポーン）

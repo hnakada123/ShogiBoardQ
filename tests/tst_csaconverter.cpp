@@ -661,7 +661,7 @@ private slots:
     // 境界値テスト: 極端な手数 (1500手)
     // ========================================
 
-    void longMoveSequence_doesNotCrash()
+    void longMoveSequence_loadsAllMoves()
     {
         QTemporaryFile tmp;
         QVERIFY(KifuTestHelper::writeToTempFile(
@@ -669,9 +669,142 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
+        QCOMPARE(result.mainline.usiMoves.size(), 1500);
+        QCOMPARE(result.mainline.usiMoves.last(), QStringLiteral("5b5a"));
+        QVERIFY2(warn.isEmpty(), qPrintable(warn));
+    }
 
-        QVERIFY(true);
+    // ========================================
+    // 開始局面: 盤（ShogiBoard）に組み立てた局面の SFEN
+    // ========================================
+
+    void parse_startPosition_data()
+    {
+        QTest::addColumn<QByteArray>("csa");
+        QTest::addColumn<QString>("sfen");
+
+        QTest::newRow("rows-hirate")
+            << QByteArray("P1-KY-KE-GI-KI-OU-KI-GI-KE-KY\n"
+                          "P2 * -HI *  *  *  *  * -KA * \n"
+                          "P3-FU-FU-FU-FU-FU-FU-FU-FU-FU\n"
+                          "P4 *  *  *  *  *  *  *  *  * \n"
+                          "P5 *  *  *  *  *  *  *  *  * \n"
+                          "P6 *  *  *  *  *  *  *  *  * \n"
+                          "P7+FU+FU+FU+FU+FU+FU+FU+FU+FU\n"
+                          "P8 * +KA *  *  *  *  * +HI * \n"
+                          "P9+KY+KE+GI+KI+OU+KI+GI+KE+KY\n+\n")
+            << QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        // 行の上書き（成駒・空きマス）と P+/P- の持駒
+        QTest::newRow("rows-promoted-and-hands")
+            << QByteArray("PI\nP3-FU-FU-FU-FU-FU-FU+TO-FU-FU\nP7+FU+FU+FU+FU+FU+FU *  * +FU\n"
+                          "P+00FU00KI\nP-00KA\n-\n")
+            << QStringLiteral("lnsgkgsnl/1r5b1/pppppp+Ppp/9/9/9/PPPPPP2P/1B5R1/LNSGKGSNL w GPb 1");
+        QTest::newRow("PI-six-piece-handicap")
+            << QByteArray("PI82HI22KA11KY91KY21KE81KE\n-\n")
+            << QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        // 持駒の成駒は生駒にし、玉は持駒にしない
+        QTest::newRow("hand-promoted-and-king")
+            << QByteArray("P-51OU\nP+59OU00TO00UM00OU\n+\n")
+            << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b BP 1");
+        // 00AL は盤上と両者の持駒にない駒（玉を除く）を、指定した側の持駒にする
+        QTest::newRow("AL-white-after-board-and-hands")
+            << QByteArray("P-11OU\nP+22KI\nP+00KI00FU\nP-00AL\n+\n")
+            << QStringLiteral("8k/7G1/9/9/9/9/9/9/9 b GP2r2b2g4s4n4l17p 1");
+        QTest::newRow("AL-black")
+            << QByteArray("P-51OU\nP+00AL\nP-00HI\n+\n")
+            << QStringLiteral("4k4/9/9/9/9/9/9/9/9 b R2B4G4S4N4L18Pr 1");
+    }
+
+    void parse_startPosition()
+    {
+        QFETCH(QByteArray, csa);
+        QFETCH(QString, sfen);
+
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, csa, QStringLiteral("csa")));
+        KifParseResult result;
+        QString warn;
+        QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
+        QCOMPARE(result.mainline.baseSfen, sfen);
+    }
+
+    // ========================================
+    // 指し手: 盤の上で進め、取った駒を打つ・成駒を動かす・「同」を書く
+    // ========================================
+
+    void parse_movesFollowBoard_data()
+    {
+        QTest::addColumn<QByteArray>("csa");
+        QTest::addColumn<QStringList>("usi");
+        QTest::addColumn<QStringList>("pretty");
+
+        QTest::newRow("capture-and-drop")
+            << QByteArray("PI\n+\n+7776FU\n-3334FU\n+8822UM\n-3122GI\n+0055KA\n-4132KI\n"
+                          "+5533UM\n-2233GI\n+2726FU\n-0045KA\n")
+            << QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("8h2b+"),
+                           QStringLiteral("3a2b"), QStringLiteral("B*5e"), QStringLiteral("4a3b"),
+                           QStringLiteral("5e3c+"), QStringLiteral("2b3c"), QStringLiteral("2g2f"),
+                           QStringLiteral("B*4e")}
+            << QStringList{QStringLiteral("▲７六歩(77)"), QStringLiteral("△３四歩(33)"),
+                           QStringLiteral("▲２二角成(88)"), QStringLiteral("△同　銀(31)"),
+                           QStringLiteral("▲５五角打"), QStringLiteral("△３二金(41)"),
+                           QStringLiteral("▲３三角成(55)"), QStringLiteral("△同　銀(22)"),
+                           QStringLiteral("▲２六歩(27)"), QStringLiteral("△４五角打")};
+        QTest::newRow("promoted-piece-moves")
+            << QByteArray("PI\n+\n+7776FU\n-3334FU\n+8833UM\n-4132KI\n+3322UM\n")
+            << QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("8h3c+"),
+                           QStringLiteral("4a3b"), QStringLiteral("3c2b")}
+            << QStringList{QStringLiteral("▲７六歩(77)"), QStringLiteral("△３四歩(33)"),
+                           QStringLiteral("▲３三角成(88)"), QStringLiteral("△３二金(41)"),
+                           QStringLiteral("▲２二馬(33)")};
+    }
+
+    void parse_movesFollowBoard()
+    {
+        QFETCH(QByteArray, csa);
+        QFETCH(QStringList, usi);
+        QFETCH(QStringList, pretty);
+
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, csa, QStringLiteral("csa")));
+        KifParseResult result;
+        QString warn;
+        QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
+        QVERIFY2(warn.isEmpty(), qPrintable(warn));
+        QCOMPARE(result.mainline.usiMoves, usi);
+        QStringList texts;
+        for (qsizetype i = 1; i < result.mainline.disp.size(); ++i) texts.append(result.mainline.disp.at(i).prettyMove);
+        QCOMPARE(texts, pretty);
+    }
+
+    // ========================================
+    // 局面と合わない指し手は読まない
+    // ========================================
+
+    void parse_rejectsMoveNotFittingBoard_data()
+    {
+        QTest::addColumn<QByteArray>("move");
+
+        QTest::newRow("wrong-piece") << QByteArray("+7776KY");
+        QTest::newRow("empty-source") << QByteArray("+5554FU");
+        QTest::newRow("opponent-piece") << QByteArray("+3334FU");
+        QTest::newRow("drop-not-in-hand") << QByteArray("+0055KA");
+        QTest::newRow("capture-own-piece") << QByteArray("+7969GI");
+        QTest::newRow("wrong-promoted-piece") << QByteArray("+2726NY");
+    }
+
+    void parse_rejectsMoveNotFittingBoard()
+    {
+        QFETCH(QByteArray, move);
+
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, "PI\n+\n" + move + "\n", QStringLiteral("csa")));
+        KifParseResult result;
+        QString warn;
+        QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
+        QVERIFY(result.mainline.usiMoves.isEmpty());
+        QVERIFY2(warn.contains(QStringLiteral("does not match the position")), qPrintable(warn));
     }
 };
 

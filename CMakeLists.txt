@@ -530,7 +530,6 @@ set(SRC_ENGINE
     src/engine/enginesettingsconstants.h
     src/engine/shogiengineinfoparser.cpp
     src/engine/shogiengineinfoparser.h
-    src/engine/shogiengineinfoparser_board.cpp
     src/engine/shogienginethinkingmodel.cpp
     src/engine/shogienginethinkingmodel.h
     src/engine/thinkinginfopresenter.cpp

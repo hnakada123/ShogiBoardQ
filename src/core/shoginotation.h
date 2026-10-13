@@ -18,19 +18,33 @@ namespace ShogiNotation {
 // 筋・段
 // ============================================================
 
+/// 全角数字の筋の1文字（1〜9 → '１'〜'９'。範囲外は空の QChar）
+inline QChar fileZenkakuChar(int file)
+{
+    if (file < 1 || file > 9) return {};
+    return QChar(u'０' + file);
+}
+
+/// 漢数字の段の1文字（1〜9 → '一'〜'九'。範囲外は空の QChar）
+inline QChar rankKanjiChar(int rank)
+{
+    static const char16_t kanji[] = {u'一', u'二', u'三', u'四', u'五', u'六', u'七', u'八', u'九'};
+    if (rank < 1 || rank > 9) return {};
+    return QChar(kanji[rank - 1]);
+}
+
 /// 全角数字の筋（1〜9 → "１"〜"９"。範囲外は空文字列）
 inline QString fileZenkaku(int file)
 {
     if (file < 1 || file > 9) return {};
-    return QString(QChar(u'０' + file));
+    return QString(fileZenkakuChar(file));
 }
 
 /// 漢数字の段（1〜9 → "一"〜"九"。範囲外は空文字列）
 inline QString rankKanji(int rank)
 {
-    static const char16_t kanji[] = {u'一', u'二', u'三', u'四', u'五', u'六', u'七', u'八', u'九'};
     if (rank < 1 || rank > 9) return {};
-    return QString(QChar(kanji[rank - 1]));
+    return QString(rankKanjiChar(rank));
 }
 
 /// 全角数字を1〜9にする（それ以外は0）

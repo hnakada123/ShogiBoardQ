@@ -5,25 +5,23 @@
 /// @brief USIエンジンのinfo行パーサの定義
 
 
+#include <QList>
 #include <QString>
-#include <QObject>
-#include <optional>
-#include "shogigamecontroller.h"
-#include "boardconstants.h"
+#include <QStringView>
+#include "shogiboard.h"
+#include "usimove.h"
 
 /**
  * @brief USIエンジンが出力するinfo行を解析し、読み筋を漢字表記に変換するクラス
  *
  * info行のサブコマンド（depth, score cp, pv等）を解析し、
- * 盤面コピー上で指し手をシミュレートして漢字表記の読み筋文字列を生成する。
+ * 思考を始めた局面の盤の写しの上で指し手を進めて、漢字表記の読み筋文字列を生成する。
  *
  */
-class ShogiEngineInfoParser : public QObject
+class ShogiEngineInfoParser
 {
-    Q_OBJECT
-
 public:
-    ShogiEngineInfoParser();
+    ShogiEngineInfoParser() = default;
 
     /// 評価値の境界を表す列挙型
     enum class EvaluationBound {
@@ -33,16 +31,16 @@ public:
     };
 
     EvaluationBound evaluationBound() const;
-    void setEvaluationBound(EvaluationBound newEvaluationBound);
 
-    static constexpr int BOARD_SIZE = BoardConstants::kBoardSize;                       ///< 盤面の1辺のマス数
-    static constexpr int STAND_FILE = 99;                   ///< 駒台を示す筋番号
-    static constexpr int INFO_STRING_SPECIAL_CASE = -2;     ///< "(57.54%)"等の非指し手文字列を示す戻り値
+    /**
+     * @brief 読み筋を日本語にするときの局面（思考を始めた局面）を設定する
+     *
+     * 読み筋の初手はこの局面の手番の手として書く。読めない SFEN なら読み筋を日本語にしない。
+     */
+    void setPosition(const QString& sfen);
 
-    int previousFileTo() const;
-    void setPreviousFileTo(int newPreviousFileTo);
-    int previousRankTo() const;
-    void setPreviousRankTo(int newPreviousRankTo);
+    /// 局面に至った直前の手の移動先（読み筋の初手が同じマスへ行くなら「同」と書く。無効なマスなら書かない）
+    void setPreviousMove(BoardSquare to);
 
     /**
      * @brief info行の読み筋を解析し、漢字表記の読み筋文字列を生成する
@@ -50,10 +48,8 @@ public:
      * USI形式の読み筋（例: "7g7h 2f2e 8e8f"）を解析し、
      * 漢字表記（例: "△７八馬(77)▲２五歩(26)△８六歩(85)"）に変換する。
      */
-    void parseEngineOutputAndUpdateState(const QString& line, const ShogiGameController* algorithm,  QList<QChar>& clonedBoardData,
-                                         const bool isPondering);
+    void parseEngineOutputAndUpdateState(const QString& line);
 
-    void setThinkingStartPlayer(Turn player);
     // --- 解析結果アクセサ ---
 
     QString depth() const;
@@ -74,17 +70,11 @@ public:
     /// USI形式のスペース区切り読み筋文字列を返す
     QString pvUsiStr() const;
 
-    /// 現在思考中の手（currmoveの漢字変換結果）
-    QString currmove() const;
-
     QString hashfull() const;
 
     /// GUIの「探索手」欄に表示する読み筋の先頭手
     QString searchedHand() const;
     QString searchedUsi() const { return m_searchedUsi; }
-
-    /// 指し手を解析し、盤面コピーに適用する
-    void parseAndApplyMoveToClonedBoard(const QString& str, QList<QChar>& clonedBoardData);
 
     void setScore(const QString& newScore);
     QString score() const;
@@ -104,67 +94,28 @@ private:
     QString m_hashfull;         ///< ハッシュ使用率（千分率）
     QString m_searchedUsi;
     QString m_searchedHand;     ///< 探索手（読み筋の先頭手）
-    int m_previousFileTo = 0;   ///< 直前の指し手の筋
-    int m_previousRankTo = 0;   ///< 直前の指し手の段
 
     EvaluationBound m_evaluationBound = EvaluationBound::None; ///< 評価値の境界種別
 
-    /// 思考開始時の手番（info処理中は局面更新の影響を受けない）
-    Turn m_thinkingStartPlayer = Turn::Black;
+    ShogiBoard m_position;          ///< 思考を始めた局面
+    bool m_hasPosition = false;     ///< m_position を設定できたか
+    ShogiBoard m_pvBoard;           ///< 読み筋を進める盤（info 行ごとに m_position を写す）
+    BoardSquare m_previousTo;       ///< 局面に至った直前の手の移動先
 
-    /// 手番に応じた先手/後手マーク（▲/△）を返す
-    QChar moveSymbol(const int moveIndex, const bool isPondering) const;
+    /// board の上で指し手の動かす駒を返す（mover の駒でない、駒台にない、行き先が自分の駒などは None）
+    static Piece movingPiece(const ShogiBoard& board, const UsiMove& move, Turn mover);
 
-    /// 移動先と駒名を out に足す（直前と同じマスへの指し手なら「同」を付ける）
-    void appendFormattedMove(QString& out, int fileTo, int rankTo, const QString& kanji) const;
+    /// info行のトークンを順に解析し、各サブコマンドの値を取得する（pv の位置を返す。なければ -1）
+    qsizetype parseEngineInfoTokens(const QList<QStringView>& tokens);
 
-    /**
-     * @brief USI形式の指し手を漢字表記にして out に足す
-     *
-     * 例: "7g7h" → "△７八馬(77)"
-     */
-    void appendShogiMove(QString& out, const QString& kanji, const int fileFrom, const int rankFrom, const int fileTo,
-                         const int rankTo, const bool promote, const int moveIndex, const bool isPondering) const;
-
-    /// 段文字（'a'〜'i'）を整数（1〜9）に変換する（無効な文字の場合はstd::nullopt）
-    std::optional<int> convertRankCharToInt(const QChar rankChar);
-
-    /// 駒文字を駒台の段番号に変換する（未知の駒文字の場合はstd::nullopt）
-    static std::optional<int> convertPieceToStandRank(const QChar pieceChar);
-
-    /// 文字が盤面のランク（'a'〜'i'）かを判定する
-    bool isBoardRankChar(const QChar rankChar) const;
-
-    /**
-     * @brief 指し手文字列からマス座標と成フラグを取得する
-     * @return 0: 正常、-1: エラー、INFO_STRING_SPECIAL_CASE: 非指し手文字列
-     */
-    int parseMoveString(QStringView moveStr, int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, bool& promote);
-
-    /// 駒文字（英字）から漢字の駒名を返す（未知の駒文字なら空文字列）
-    const QString& pieceKanjiName(QChar symbol);
-
-    /// 指定マスの駒文字を返す（file=STAND_FILEなら駒台から取得）
-    QChar pieceCharacter(const QList<QChar>& boardData, const int file, const int rank);
-
-    /// 盤面データの指定マスに駒を配置する
-    bool setData(QList<QChar>& boardData, const int file, const int rank, const QChar piece) const;
-
-    /// 駒を移動して盤面コピーを更新する
-    void movePieceToSquare(QList<QChar>& boardData, QChar movingPiece, int fileFrom, int rankFrom, int fileTo, int rankTo, bool promote) const;
-
-    /// info行のトークンを順に解析し、各サブコマンドの値を取得する
-    void parseEngineInfoTokens(const QList<QStringView>& tokens, QList<QChar>& clonedBoardData, const bool isPondering);
-
-    /// pvトークン（tokens の first 番目以降）を順に解析し、盤面コピー上で指し手をシミュレートする
-    int parsePvAndSimulateMoves(const QList<QStringView>& tokens, qsizetype first, QList<QChar>& copyBoardData,
-                                const bool isPondering);
+    /// pvトークン（tokens の first 番目以降）を、盤の写しの上で指し手を進めながら漢字表記にする
+    void parsePvAndSimulateMoves(const QList<QStringView>& tokens, qsizetype first);
 
     /// score cp / score mate / lowerbound / upperbound を解析する
     void parseScore(const QList<QStringView>& tokens, qsizetype index);
 
     /// currmoveサブコマンドの指し手を漢字表記に変換する
-    QString convertCurrMoveToKanjiNotation(QStringView str, QList<QChar>& clonedBoardData, const bool isPondering);
+    QString convertCurrMoveToKanjiNotation(QStringView str) const;
 
     /// 1行ごとの解析結果を初期化する（再利用時の状態リーク防止）
     void clearParsedInfo();

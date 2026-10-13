@@ -7,6 +7,7 @@
 #include "tsumeshogicandidatescreener.h"
 #include "tsumeshogipositiongenerator.h"
 #include "tsumeshogiverifier.h"
+#include "usimove.h"
 
 #include <QElapsedTimer>
 #include <QFutureWatcher>
@@ -85,16 +86,8 @@ private:
     struct TrimCandidate {
         enum Location { Board, Hand };
         Location location = Board;
-        int file = -1;           ///< Board時: 筋 (0-8)
-        int rank = -1;           ///< Board時: 段 (0-8)
-        QChar pieceChar;         ///< SFEN文字 (P/p/k等)
-    };
-
-    /// SFEN解析結果
-    struct ParsedSfen {
-        QString cells[9][9];     ///< [rank][file] = "" or "P"/"+R"/"p" etc.
-        int senteHand[7] = {};   ///< P,L,N,S,G,B,R の先手持駒数
-        int goteHand[7] = {};    ///< P,L,N,S,G,B,R の後手持駒数
+        BoardSquare square;          ///< Board時: 除く駒のマス
+        Piece piece = Piece::None;   ///< 除く駒（盤上は先後・成りを含む。持駒は先手の生駒）
     };
 
     // バッチ生成
@@ -111,14 +104,6 @@ private:
     void startVerification(const QString& sfen, Phase origin);
     void submitVerification(TsumeshogiVerifier::Reply reply, const QStringList& pv = {});
     void finishVerification();
-
-    // SFEN解析・再構築
-    static ParsedSfen parseSfen(const QString& sfen);
-    static QString buildSfenFromParsed(const ParsedSfen& parsed);
-
-    // 駒種変換
-    static int pieceCharToIndex(QChar upper);
-    static QChar indexToPieceChar(int idx);
 
     // トリミング操作
     static QList<TrimCandidate> enumerateRemovablePieces(const QString& sfen);

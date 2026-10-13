@@ -12,7 +12,6 @@
 #include "usiprotocolhandler.h"
 #include "thinkinginfopresenter.h"
 #include "engineprocessmanager.h"
-#include "shogiboard.h"
 
 class TestUsiProtocolHandler : public QObject
 {
@@ -364,19 +363,12 @@ private slots:
     /// info 行を出さずに checkmate だけを返すエンジンでも、思考タブに詰み手順の行を残す
     void checkmate_solved_addsThinkingRow()
     {
-        // go mate の前に Usi が行う準備と同じく、探索局面の盤面を渡しておく
+        // go mate の前に Usi が行う準備と同じく、探索局面を渡しておく
         const QString sfen = QStringLiteral("7k1/9/9/9/9/9/9/9/K8 b RS 1");
-        ShogiBoard board;
-        board.setSfen(sfen);
-        QList<QChar> boardChars;
-        for (const Piece piece : board.boardData()) {
-            boardChars.append(pieceToChar(piece));
-        }
 
         UsiProtocolHandler handler;
         ThinkingInfoPresenter presenter;
         presenter.setBaseSfen(sfen);
-        presenter.setClonedBoardData(boardChars);
         handler.setPresenter(&presenter);
         QSignalSpy rows(&presenter, &ThinkingInfoPresenter::thinkingInfoUpdated);
         QSignalSpy solved(&handler, &UsiProtocolHandler::checkmateSolved);

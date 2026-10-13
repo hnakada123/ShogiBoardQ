@@ -458,6 +458,61 @@ private slots:
         QCOMPARE(board.pieceCharacter(5, 9), Piece::WhitePromotedPawn);
     }
 
+    // === pieceAt / setPieceAt ===
+
+    void pieceAt_readsBoardSquares()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        QCOMPARE(board.pieceAt(BoardSquare{7, 7}), Piece::BlackPawn);
+        QCOMPARE(board.pieceAt(BoardSquare{2, 2}), Piece::WhiteBishop);
+        QCOMPARE(board.pieceAt(BoardSquare{5, 5}), Piece::None);
+        QCOMPARE(board.pieceAt(BoardSquare{0, 5}), Piece::None);
+        QCOMPARE(board.pieceAt(BoardSquare{5, 10}), Piece::None);
+    }
+
+    // 局面の組み立て用。成りの補正も駒台の増減もしない
+    void setPieceAt_placesPieceAsGiven()
+    {
+        ShogiBoard board;
+        QSignalSpy changed(&board, &ShogiBoard::dataChanged);
+        board.setPieceAt(BoardSquare{5, 1}, Piece::BlackPawn);
+        QCOMPARE(board.pieceAt(BoardSquare{5, 1}), Piece::BlackPawn);
+        QCOMPARE(changed.count(), 1);
+        board.setPieceAt(BoardSquare{10, 1}, Piece::BlackGold);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), 0);
+        QCOMPARE(board.convertBoardToSfen(), QStringLiteral("4P4/9/9/9/9/9/9/9/9"));
+    }
+
+    // === copyPositionFrom ===
+
+    void copyPositionFrom_copiesBoardStandTurnAndIsIndependent()
+    {
+        const QString sfen = QStringLiteral("lnsgkgsnl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL w B 4");
+        ShogiBoard source;
+        source.setSfen(sfen);
+        ShogiBoard copy;
+        copy.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b 2P 9"));
+        QSignalSpy reset(&copy, &ShogiBoard::boardReset);
+
+        copy.copyPositionFrom(source);
+        QCOMPARE(reset.count(), 1);
+        QCOMPARE(copy.boardData(), source.boardData());
+        QCOMPARE(copy.pieceStand(), source.pieceStand());
+        QCOMPARE(copy.currentPlayer(), Turn::White);
+        QCOMPARE(copy.convertBoardToSfen() + QStringLiteral(" w ") + copy.convertStandToSfen(),
+                 sfen.left(sfen.lastIndexOf(QLatin1Char(' '))));
+
+        // 写した後で進めても、写し元は変わらない
+        QVERIFY(copy.applyUsiMove(*UsiMove::parse(u"3a2b"), Turn::White));
+        QVERIFY(copy.applyUsiMove(*UsiMove::parse(u"B*4e"), Turn::Black));
+        QCOMPARE(source.pieceAt(BoardSquare{2, 2}), Piece::BlackHorse);
+        QCOMPARE(source.pieceStandCount(Piece::BlackBishop), 1);
+        QCOMPARE(copy.pieceStandCount(Piece::BlackBishop), 0);
+        QCOMPARE(copy.pieceStandCount(Piece::WhiteBishop), 1);
+    }
+
     // === initStand ===
 
     void initStand_clearsAll()

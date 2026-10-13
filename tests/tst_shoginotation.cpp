@@ -1,5 +1,6 @@
 #include <QtTest>
 
+#include "kifmovetext.h"
 #include "shoginotation.h"
 #include "shogimove.h"
 
@@ -84,6 +85,41 @@ private slots:
     {
         QCOMPARE(ShogiNotation::rankFromKanji(QChar('1')), 0);
         QCOMPARE(ShogiNotation::rankFromKanji(QChar(u'十')), 0);
+    }
+
+    // === ShogiNotation::fileZenkakuChar / rankKanjiChar ===
+
+    void zenkakuAndKanjiChars()
+    {
+        QCOMPARE(ShogiNotation::fileZenkakuChar(7), QChar(u'７'));
+        QCOMPARE(ShogiNotation::rankKanjiChar(6), QChar(u'六'));
+        QVERIFY(ShogiNotation::fileZenkakuChar(0).isNull());
+        QVERIFY(ShogiNotation::rankKanjiChar(10).isNull());
+    }
+
+    // === KifMoveText ===
+
+    void kifMoveText_format()
+    {
+        const auto move = [](const char* usi) { return *UsiMove::parse(QString::fromLatin1(usi)); };
+        QCOMPARE(KifMoveText::format(Turn::Black, Piece::BlackPawn, move("7g7f")), QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(KifMoveText::format(Turn::Black, Piece::BlackBishop, move("8h2b+")), QStringLiteral("▲２二角成(88)"));
+        QCOMPARE(KifMoveText::format(Turn::White, Piece::WhiteSilver, move("3a2b"), BoardSquare{2, 2}),
+                 QStringLiteral("△同　銀(31)"));
+        QCOMPARE(KifMoveText::format(Turn::Black, Piece::BlackBishop, move("B*5e")), QStringLiteral("▲５五角打"));
+        QCOMPARE(KifMoveText::format(Turn::White, Piece::WhitePromotedLance, move("1a1b")),
+                 QStringLiteral("△１二成香(11)"));
+    }
+
+    // 読み筋のように続けて足すときは「同」を詰めて書ける
+    void kifMoveText_appendCompactSameSquare()
+    {
+        QString pv;
+        KifMoveText::append(pv, Turn::Black, Piece::BlackBishop, *UsiMove::parse(u"8h2b+"), BoardSquare{},
+                            KifMoveText::SameSquare::Compact);
+        KifMoveText::append(pv, Turn::White, Piece::WhiteSilver, *UsiMove::parse(u"3a2b"), BoardSquare{2, 2},
+                            KifMoveText::SameSquare::Compact);
+        QCOMPARE(pv, QStringLiteral("▲２二角成(88)△同銀(31)"));
     }
 
     // === ShogiMove::toUsiMove ===

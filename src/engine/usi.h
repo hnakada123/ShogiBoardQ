@@ -137,25 +137,9 @@ public:
     void setLogModel(UsiCommLogModel* m);
 
     /**
-     * @brief 解析用の盤面データを初期化する
+     * @brief 基準SFENを設定する（読み筋を日本語にする局面）
      * 
-     * 棋譜解析モードで、エンジンに position + go コマンドを送る前に呼び出す。
-     * ShogiGameControllerから現在の盤面データをクローンし、
-     * ThinkingInfoPresenterに設定する。
-     */
-    void prepareBoardDataForAnalysis();
-
-    /**
-     * @brief 盤面データを直接設定する
-     * 
-     * 棋譜解析で各局面ごとに盤面データを更新するために使用。
-     */
-    void setClonedBoardData(const QList<QChar>& boardData);
-
-    /**
-     * @brief 基準SFENを設定する（ThinkingInfoPresenterの手番設定用）
-     * 
-     * 棋譜解析で各局面ごとにThinkingInfoPresenterの手番を正しく設定するために使用。
+     * 棋譜解析で各局面ごとに、読み筋を変換する局面と手番を ThinkingInfoPresenter に設定するために使用。
      */
     void setBaseSfen(const QString& sfen);
 

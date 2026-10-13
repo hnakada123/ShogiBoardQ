@@ -4,7 +4,6 @@
 #include "usimatchhandler.h"
 #include "logcategories.h"
 #include "shogiboard.h"
-#include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
 #include "thinkinginfopresenter.h"
 #include "usiprotocolhandler.h"
@@ -12,17 +11,6 @@
 #include <limits>
 
 namespace {
-
-/// QList<Piece> → QList<QChar> 変換（ShogiBoard::boardData() → 内部クローン用）
-QList<QChar> pieceVectorToCharVector(const QList<Piece>& pieces)
-{
-    QList<QChar> chars;
-    chars.reserve(pieces.size());
-    for (const Piece p : pieces) {
-        chars.append(pieceToChar(p));
-    }
-    return chars;
-}
 
 void ensureMovesKeyword(QString& s)
 {
@@ -68,43 +56,6 @@ void UsiMatchHandler::setHooks(const Hooks& hooks)
 // 盤面データ管理
 // ============================================================
 
-void UsiMatchHandler::cloneCurrentBoardData()
-{
-    qCDebug(lcEngine) << "cloneCurrentBoardData: gameController=" << m_gameController;
-    if (!m_gameController) {
-        qCWarning(lcEngine) << "cloneCurrentBoardData: gameControllerがnull";
-        return;
-    }
-    qCDebug(lcEngine) << "cloneCurrentBoardData: board=" << m_gameController->board();
-    if (!m_gameController->board()) {
-        qCWarning(lcEngine) << "cloneCurrentBoardData: boardがnull";
-        return;
-    }
-    m_clonedBoardData = pieceVectorToCharVector(m_gameController->board()->boardData());
-    qCDebug(lcEngine) << "cloneCurrentBoardData: size=" << m_clonedBoardData.size();
-    m_presenter->setClonedBoardData(m_clonedBoardData);
-}
-
-void UsiMatchHandler::prepareBoardDataForAnalysis()
-{
-    qCDebug(lcEngine) << "prepareBoardDataForAnalysis";
-    if (m_gameController && m_gameController->board()) {
-        m_clonedBoardData = pieceVectorToCharVector(m_gameController->board()->boardData());
-        qCDebug(lcEngine) << "盤面クローン完了: size=" << m_clonedBoardData.size();
-        m_presenter->setClonedBoardData(m_clonedBoardData);
-    } else {
-        qCWarning(lcEngine) << "prepareBoardDataForAnalysis: gameControllerまたはboardがnull";
-    }
-}
-
-void UsiMatchHandler::setClonedBoardData(const QList<QChar>& boardData)
-{
-    m_clonedBoardData = boardData;
-    if (m_presenter) {
-        m_presenter->setClonedBoardData(m_clonedBoardData);
-    }
-}
-
 QString UsiMatchHandler::computeBaseSfenFromBoard() const
 {
     if (!m_gameController || !m_gameController->board()) return QString();
@@ -138,14 +89,6 @@ void UsiMatchHandler::setLastUsiMove(const QString& move)
 // ============================================================
 // 盤面処理（内部）
 // ============================================================
-
-void UsiMatchHandler::applyMovesToBoardFromBestMoveAndPonder()
-{
-    ShogiEngineInfoParser info;
-    info.parseAndApplyMoveToClonedBoard(m_protocolHandler->bestMove(), m_clonedBoardData);
-    info.parseAndApplyMoveToClonedBoard(m_protocolHandler->predictedMove(), m_clonedBoardData);
-    m_presenter->setClonedBoardData(m_clonedBoardData);
-}
 
 void UsiMatchHandler::updateBaseSfenForPonder()
 {
@@ -208,7 +151,6 @@ void UsiMatchHandler::requestMove(const QString& position, const QString& ponder
             if (phase != UsiProtocolHandler::SearchPhase::StoppingPonder) m_protocolHandler->sendStop();
             return;
         }
-        cloneCurrentBoardData();
         m_presenter->setBaseSfen(computeBaseSfenFromBoard());
         m_lastUsiMove = position.section(QLatin1Char(' '), -1);
         m_pending = Pending::Move;
@@ -227,7 +169,6 @@ void UsiMatchHandler::startAsyncSearch()
     m_presenter->setBaseSfen(computeBaseSfenFromBoard());
     if (m_position.contains(QStringLiteral(" moves ")))
         m_lastUsiMove = m_position.section(QLatin1Char(' '), -1);
-    cloneCurrentBoardData();
     const UsiGoTime goTime = UsiGoTimeCalculator::compute(goTimeInput(m_timing, false));
     m_pending = Pending::Move;
     m_acceptBestMove = true;
@@ -315,7 +256,6 @@ void UsiMatchHandler::startPonderingAfterBestMove(QString& positionStr, QString&
 {
     const QString predictedMove = m_protocolHandler->predictedMove();
     if (!predictedMove.isEmpty() && m_protocolHandler->isPonderEnabled()) {
-        applyMovesToBoardFromBestMoveAndPonder();
         ensureMovesKeyword(positionStr);
         positionPonderStr = positionStr + " " + predictedMove;
         updateBaseSfenForPonder();

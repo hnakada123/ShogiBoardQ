@@ -247,9 +247,6 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
         return;
     }
 
-    // 解析用の盤面データを初期化（info行のPV解析に必要）
-    m_usi->prepareBoardDataForAnalysis();
-
     // 解析結果ハンドラの外部参照を更新
     {
         AnalysisResultHandler::Refs refs;

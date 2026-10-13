@@ -86,7 +86,7 @@ void BoardSyncPresenter::showMoveHighlight(const QString& prevSfen, const QStrin
     if (diff.hasFrom()) {
         from = QPoint(diff.from.x() + 1, diff.from.y() + 1);
     } else {
-        const QPoint stand = BoardCoordinates::standSquareOf(charToPiece(diff.droppedPiece));
+        const QPoint stand = BoardCoordinates::standSquareOf(diff.droppedPiece);
         if (!stand.isNull()) from = stand;
     }
     m_bic->showMoveHighlights(from, to);

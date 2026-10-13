@@ -74,7 +74,7 @@ TsumeshogiGeneratorDialog
    - 段制約に違反する場合は自動で成駒に変換（金は不可なので再試行）
    - 同じ筋に同じ側の不成歩がある場合は二歩になるため別のマスを再試行
 3. **守り駒を配置** — 0〜maxDefendPieces枚（玉以外の後手駒、玉周辺2マス以内、二歩回避は攻め駒と同様）
-4. **王手検証** — 初期局面で後手玉に王手がかかっていないことを `FastMoveValidator` で検証
+4. **王手検証** — 初期局面で後手玉に王手がかかっていないことを `EngineMoveValidator::checkIfKingInCheck` で検証
 5. **リトライ** — 王手がかかっている場合は最大100回再生成
 
 ### 詰将棋の慣例
@@ -85,9 +85,9 @@ TsumeshogiGeneratorDialog
 
 ### 盤面内部表現
 
-駒の格納に `QChar` の Unicode Private Use Area (U+E000〜) を利用:
-- 生駒: そのままのSFEN文字（`P`, `p`, `k` 等）
-- 成駒: `0xE000 + 元文字のUnicodeコードポイント`（例: `+P` → `U+E050`）
+局面は `ShogiBoard`（`m_board`）で持つ。盤の駒は `ShogiBoard::setPieceAt` で置き、攻方の持駒は盤の駒台に置く。
+未使用駒は SFEN を作る直前に守方の駒台に置き、SFEN は `ShogiBoard::convertBoardToSfen` と `convertStandToSfen` で書く。
+王手の検証には盤の駒の配列（`ShogiBoard::boardData`）をそのまま使う。
 
 ## 事前選別 (TsumeshogiCandidateScreener)
 
@@ -296,42 +296,17 @@ python3 scripts/audit_tsume_collections.py data/tsumeshogi/tsume_*ply_1000_20260
 
 Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の実行ファイルなら再開できる。`tsume_Nply_minimal.txt` は除去後のSFENで重複を除いた確認済み結果で、元の問題集を直接上書きしない。重複や判定不能で不足した分は、新しく生成して同じ再検査に合格した問題で補充する。
 
-## SFEN解析・再構築
+## 駒を1枚除いた局面（トリミング）
 
-トリミング処理のために、SFEN文字列を構造化データ (`ParsedSfen`) に変換し、駒の追加・除去を行った後、再びSFEN文字列に復元する。
+トリミング処理では、SFEN を `ShogiBoard` に読み、駒を1枚除いて守方（後手）の持駒にしたあと、`ShogiBoard` から SFEN を書き出す
+（`tsumeshogigenerator_sfen.cpp`）。手番は先手、手数は1に固定する。
 
-### ParsedSfen 構造体
+除去候補（`TrimCandidate`）の並び:
+1. 盤上の駒（玉以外。攻方・守方とも）。上の段から、段の中は9筋から
+2. 攻方（先手）の持駒。歩・香・桂・銀・金・角・飛の順
 
-```cpp
-struct ParsedSfen {
-    QString cells[9][9];     // [rank][file] = "" or "P"/"+R"/"p" etc.
-    int senteHand[7] = {};   // P,L,N,S,G,B,R の先手持駒数
-    int goteHand[7] = {};    // P,L,N,S,G,B,R の後手持駒数
-};
-```
-
-### 駒種インデックス
-
-| インデックス | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
-|---|---|---|---|---|---|---|---|
-| 駒種 | P(歩) | L(香) | N(桂) | S(銀) | G(金) | B(角) | R(飛) |
-
-### SFEN解析パターン
-
-`SfenPositionTracer::setFromSfen()` のパターンを踏襲:
-1. スペースで分割 → 盤面部/手番部/持駒部/手数部
-2. 盤面部を `/` で9段に分割 → 各段を文字単位でパース
-   - 数字 = 空きマス数
-   - `+` = 次の文字が成駒
-   - 英字 = 駒（大文字=先手、小文字=後手）
-3. 持駒部を文字単位でパース
-   - 数字 = 枚数の蓄積（複数桁対応）
-   - 英字 = 駒種（大文字=先手、小文字=後手）
-   - `-` = 持駒なし
-
-### SFEN再構築
-
-持駒の出力順は SFEN 慣例に従い、価値の高い順: R, B, G, S, N, L, P
+守方の持駒は除去対象外（守方の防御資源を減らすのは不正）。除いた駒は成駒なら生駒に戻して守方の持駒にする。
+持駒の出力順は SFEN の慣例どおり、先手の駒を書いてから後手の駒を書き、どちらも飛・角・金・銀・桂・香・歩の順。
 
 ## ダイアログ (TsumeshogiGeneratorDialog)
 

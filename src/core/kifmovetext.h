@@ -11,6 +11,40 @@
 
 namespace KifMoveText {
 
+/// 移動先が直前の手と同じマスのときの「同」の書き方
+enum class SameSquare {
+    Spaced,   ///< 「同　銀」（棋譜の1手）
+    Compact,  ///< 「同銀」（読み筋のように手を続けて書くとき）
+};
+
+/**
+ * @brief KIF 形式の指し手の文字列を out の後ろに足す
+ *
+ * 引数は format と同じ。読み筋のように手を続けて書くとき、手ごとに文字列を作らずに済む。
+ */
+inline void append(QString& out, Turn mover, Piece moving, const UsiMove& move, BoardSquare previousTo = {},
+                   SameSquare same = SameSquare::Spaced)
+{
+    out += QChar(mover == Turn::Black ? u'▲' : u'△');
+    if (previousTo.isValid() && previousTo == move.to) {
+        out += QChar(u'同');
+        if (same == SameSquare::Spaced) out += QChar(u'　');
+    } else {
+        out += ShogiNotation::fileZenkakuChar(move.to.file);
+        out += ShogiNotation::rankKanjiChar(move.to.rank);
+    }
+    out += ShogiNotation::movePieceName(moving);
+    if (move.isDrop()) {
+        out += QChar(u'打');
+        return;
+    }
+    if (move.promote) out += QChar(u'成');
+    out += QLatin1Char('(');
+    out += QChar(u'0' + move.from.file);
+    out += QChar(u'0' + move.from.rank);
+    out += QLatin1Char(')');
+}
+
 /**
  * @brief KIF 形式の指し手の文字列を作る
  * @param mover 指す側（手番の印 ▲△ を決める）
@@ -23,17 +57,9 @@ namespace KifMoveText {
  */
 inline QString format(Turn mover, Piece moving, const UsiMove& move, BoardSquare previousTo = {})
 {
-    QString text = (mover == Turn::Black) ? QStringLiteral("▲") : QStringLiteral("△");
-    if (previousTo.isValid() && previousTo == move.to) {
-        text += QStringLiteral("同　");
-    } else {
-        text += ShogiNotation::fileZenkaku(move.to.file);
-        text += ShogiNotation::rankKanji(move.to.rank);
-    }
-    text += ShogiNotation::movePieceName(moving);
-    if (move.isDrop()) return text + QStringLiteral("打");
-    if (move.promote) text += QStringLiteral("成");
-    return text + QStringLiteral("(%1%2)").arg(move.from.file).arg(move.from.rank);
+    QString text;
+    append(text, mover, moving, move, previousTo);
+    return text;
 }
 
 } // namespace KifMoveText

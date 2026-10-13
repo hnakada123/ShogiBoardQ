@@ -14,12 +14,6 @@
 
 namespace {
 
-Piece pieceAt(const ShogiBoard& board, BoardSquare square)
-{
-    if (!square.isValid()) return Piece::None;
-    return board.boardData().at((square.rank - 1) * 9 + (square.file - 1));
-}
-
 /// 指す側から見て前へ動いた段数（正なら上がる、負なら引く、0 なら寄る）
 int advance(BoardSquare from, BoardSquare to, Turn mover)
 {
@@ -104,7 +98,7 @@ std::optional<UsiMove> resolveAmong(const QList<UsiMove>& moves, const Ki2Lexer:
         QList<BoardSquare> sources;
         QList<UsiMove> chosen;
         for (const UsiMove& move : moves) {
-            if (move.isDrop() || move.to != to || toBlack(pieceAt(board, move.from)) != text.piece) continue;
+            if (move.isDrop() || move.to != to || toBlack(board.pieceAt(move.from)) != text.piece) continue;
             if (text.promote && move.promote != *text.promote) continue;
             const qsizetype index = sources.indexOf(move.from);
             if (index < 0) {
@@ -151,7 +145,7 @@ std::optional<UsiMove> resolve(const Ki2Lexer::MoveText& text, const ShogiBoard&
 
 Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move)
 {
-    const Piece moving = move.isDrop() ? move.drop : toBlack(pieceAt(board, move.from));
+    const Piece moving = move.isDrop() ? move.drop : toBlack(board.pieceAt(move.from));
 
     // 読み込みと同じく、反則手は駒の動きだけで決めた手の中で区別する
     const EngineMoveValidator validator;
@@ -163,7 +157,7 @@ Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move)
     Annotation annotation;
     for (const UsiMove& candidate : std::as_const(moves)) {
         if (candidate.isDrop() || candidate.to != move.to) continue;
-        if (toBlack(pieceAt(board, candidate.from)) != moving) continue;
+        if (toBlack(board.pieceAt(candidate.from)) != moving) continue;
         if (!sources.contains(candidate.from)) sources.append(candidate.from);
         if (!move.isDrop() && candidate.from == move.from && candidate.promote) annotation.canPromote = true;
     }
@@ -178,7 +172,7 @@ Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move)
 
 QString format(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
 {
-    const Piece moving = move.isDrop() ? move.drop : toBlack(pieceAt(board, move.from));
+    const Piece moving = move.isDrop() ? move.drop : toBlack(board.pieceAt(move.from));
 
     QString text = (mover == Turn::Black) ? QStringLiteral("▲") : QStringLiteral("△");
     if (previousTo.isValid() && previousTo == move.to) {

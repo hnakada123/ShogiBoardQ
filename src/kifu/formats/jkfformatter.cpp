@@ -12,12 +12,6 @@
 
 namespace {
 
-Piece pieceAt(const ShogiBoard& board, BoardSquare square)
-{
-    if (!square.isValid()) return Piece::None;
-    return board.boardData().at((square.rank - 1) * 9 + (square.file - 1));
-}
-
 QJsonObject jkfSquare(BoardSquare square)
 {
     return QJsonObject{{QStringLiteral("x"), square.file}, {QStringLiteral("y"), square.rank}};
@@ -77,7 +71,7 @@ QJsonObject sfenToJkfData(const QString& sfen)
     for (int file = 1; file <= 9; ++file) {
         QJsonArray column;
         for (int rank = 1; rank <= 9; ++rank) {
-            const Piece piece = pieceAt(board, BoardSquare{file, rank});
+            const Piece piece = board.pieceAt(BoardSquare{file, rank});
             if (piece == Piece::None) {
                 column.append(QJsonObject());
             } else {
@@ -105,7 +99,7 @@ QJsonObject sfenToJkfData(const QString& sfen)
 
 QJsonObject moveToJkf(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
 {
-    const Piece moving = move.isDrop() ? move.drop : pieceAt(board, move.from);
+    const Piece moving = move.isDrop() ? move.drop : board.pieceAt(move.from);
 
     QJsonObject result;
     result[QStringLiteral("color")] = jkfColor(mover);
@@ -114,7 +108,7 @@ QJsonObject moveToJkf(const ShogiBoard& board, Turn mover, const UsiMove& move, 
     result[QStringLiteral("piece")] = ShogiNotation::csaPieceCode(moving);
     if (previousTo.isValid() && previousTo == move.to) result[QStringLiteral("same")] = true;
     if (!move.isDrop()) {
-        const Piece captured = pieceAt(board, move.to);
+        const Piece captured = board.pieceAt(move.to);
         if (captured != Piece::None) result[QStringLiteral("capture")] = ShogiNotation::csaPieceCode(captured);
     }
 

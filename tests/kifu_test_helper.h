@@ -97,9 +97,11 @@ inline QByteArray generateLongKi2Content(int moveCount)
 // CSA形式: 大量手数の棋譜生成
 inline QByteArray generateLongCsaContent(int moveCount)
 {
+    // 盤の上で指せる手順にする（両者の玉が1マス出て戻る）
+    static const char* const cycle[] = {"+5958OU\n", "-5152OU\n", "+5859OU\n", "-5251OU\n"};
     QByteArray content = "PI\n+\n";
     for (int i = 0; i < moveCount; ++i) {
-        content.append(i % 2 == 0 ? "+7776FU\n" : "-3334FU\n");
+        content.append(cycle[i % 4]);
     }
     return content;
 }

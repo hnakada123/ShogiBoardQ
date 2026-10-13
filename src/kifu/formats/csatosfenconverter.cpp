@@ -9,6 +9,7 @@
 #include "kifdisplayitem.h"
 #include "parsecommon.h"
 #include "shiftjiscodec.h"
+#include "shogiboard.h"
 
 #include <QFile>
 #include <QStringDecoder>
@@ -162,11 +163,10 @@ namespace {
 // parse() のループ状態を束ねる構造体
 struct CsaParseState {
     KifParseResult& out;
-    CsaLexer::Board& board;
-    CsaLexer::Color turn;
+    ShogiBoard& board;
+    Turn turn;
     QString* warn;
-    int prevTx = -1;
-    int prevTy = -1;
+    BoardSquare previousTo{};   ///< 直前の手の移動先（「同」の判定に使う）
     qint64 cumMs[2] = {0, 0};
     int lastMover = -1;
     bool lastDispIsResult = false;
@@ -174,8 +174,8 @@ struct CsaParseState {
     int lastResultSideIdx = -1;
     int moveCount = 0;
     bool firstMoveFound = false;
-    QStringList pendingComments;
-    KifDisplayItem openingItem;
+    QStringList pendingComments{};
+    KifDisplayItem openingItem{};
 };
 
 // 開始局面エントリをまだ追加していなければ追加し、pendingCommentsを処理する
@@ -216,7 +216,7 @@ static void handleCsaComment(const QString& token, CsaParseState& st)
 static void handleCsaTurnMarker(const QString& token, CsaParseState& st)
 {
     st.turn = (token.at(0) == QLatin1Char('+'))
-        ? CsaLexer::Black : CsaLexer::White;
+        ? Turn::Black : Turn::White;
     st.lastDispIsResult = false;
     st.lastResultDispIndex = -1;
     st.lastResultSideIdx = -1;
@@ -226,12 +226,12 @@ static void handleCsaResultCode(const QString& token, CsaParseState& st)
 {
     ensureOpeningItemAdded(st);
 
-    const QString sideMark = (st.turn == CsaLexer::Black)
+    const QString sideMark = (st.turn == Turn::Black)
         ? QStringLiteral("▲") : QStringLiteral("△");
     QString label = CsaLexer::csaResultToLabel(token);
     if (label.isEmpty()) label = token;
-    if ((token == QLatin1String("%+ILLEGAL_ACTION") && st.turn == CsaLexer::White)
-        || (token == QLatin1String("%-ILLEGAL_ACTION") && st.turn == CsaLexer::Black)) {
+    if ((token == QLatin1String("%+ILLEGAL_ACTION") && st.turn == Turn::White)
+        || (token == QLatin1String("%-ILLEGAL_ACTION") && st.turn == Turn::Black)) {
         label = QStringLiteral("反則勝ち");
     }
 
@@ -240,7 +240,7 @@ static void handleCsaResultCode(const QString& token, CsaParseState& st)
 
     st.lastDispIsResult = true;
     st.lastResultDispIndex = static_cast<int>(st.out.mainline.disp.size() - 1);
-    st.lastResultSideIdx = (st.turn == CsaLexer::Black) ? 0 : 1;
+    st.lastResultSideIdx = (st.turn == Turn::Black) ? 0 : 1;
     st.out.mainline.endsWithTerminal = true;
 }
 
@@ -284,19 +284,14 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     out.mainline.disp.clear();
     out.variations.clear();
 
-    int   idx  = 0;
-    CsaLexer::Color stm  = CsaLexer::Black;
-    CsaLexer::Board board;
-    CsaLexer::setHirate(board);
-    if (!CsaLexer::parseStartPos(lines, idx, out.mainline.baseSfen, stm, board)) {
+    int idx = 0;
+    ShogiBoard board;
+    if (!CsaLexer::parseStartPos(lines, idx, out.mainline.baseSfen, board)) {
         if (warn) *warn += QStringLiteral("Failed to parse start position.\n");
         return false;
     }
 
-    CsaParseState st{out, board, stm, warn,
-                      -1, -1, {0, 0}, -1,
-                      false, -1, -1, 0, false,
-                      {}, {}};
+    CsaParseState st{out, board, board.currentPlayer(), warn};
     st.openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
 
     for (qsizetype i = idx; i < lines.size(); ++i) {
@@ -319,12 +314,10 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
             } else if (token.startsWith(QLatin1Char('T'))) {
                 handleCsaTimeToken(token, st);
             } else if (CsaLexer::isMoveLine(token)) {
-                const QChar head  = token.at(0);
-                const CsaLexer::Color mover = (head == QLatin1Char('+')) ? CsaLexer::Black : CsaLexer::White;
+                const Turn mover = (token.at(0) == QLatin1Char('+')) ? Turn::Black : Turn::White;
 
                 QString usi, pretty;
-                if (!CsaLexer::parseMoveLine(token, mover, st.board, st.prevTx, st.prevTy,
-                                    usi, pretty, st.warn)) {
+                if (!CsaLexer::parseMoveLine(token, mover, st.board, st.previousTo, usi, pretty, st.warn)) {
                     if (st.warn) *st.warn += QStringLiteral("Failed to parse move: %1\n").arg(token);
                     continue;
                 }
@@ -336,11 +329,11 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                 st.out.mainline.disp.append(
                     KifuParseCommon::createMoveDisplayItem(st.moveCount, pretty));
 
-                st.lastMover = (mover == CsaLexer::Black) ? 0 : 1;
+                st.lastMover = (mover == Turn::Black) ? 0 : 1;
                 st.lastDispIsResult = false;
                 st.lastResultDispIndex = -1;
                 st.lastResultSideIdx = -1;
-                st.turn = (mover == CsaLexer::Black) ? CsaLexer::White : CsaLexer::Black;
+                st.turn = (mover == Turn::Black) ? Turn::White : Turn::Black;
             }
         }
     }

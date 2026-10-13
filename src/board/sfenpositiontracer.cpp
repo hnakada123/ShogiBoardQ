@@ -164,8 +164,7 @@ bool SfenPositionTracer::setFromSfen(const QString& sfen)
 
 Piece SfenPositionTracer::pieceAt(int file, int rank) const
 {
-    if (file < 1 || file > 9 || rank < 1 || rank > 9) return Piece::None;
-    return m_board->boardData().at((rank - 1) * 9 + (file - 1));
+    return m_board->pieceAt(BoardSquare{file, rank});
 }
 
 QString SfenPositionTracer::tokenAtFileRank(int file, QChar rankLetter) const

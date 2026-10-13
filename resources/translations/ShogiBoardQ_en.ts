@@ -43,7 +43,7 @@
         <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="427"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="424"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -10353,59 +10353,48 @@ Choose a file with one SFEN position per line.</translation>
 <context>
     <name>ShogiEngineInfoParser</name>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="19"/>
         <source>An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="51"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="79"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="91"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="97"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="107"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="117"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="124"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="166"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="184"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="190"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</translation>
+        <translation type="vanished">An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</translation>
     </message>
 </context>
 <context>
@@ -11001,12 +10990,12 @@ The engine would treat its available time as 0 seconds and move almost without t
 <context>
     <name>ThinkingInfoPresenter</name>
     <message>
-        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="385"/>
+        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="355"/>
         <source>詰み</source>
         <translation>Checkmate</translation>
     </message>
     <message>
-        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="82"/>
+        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="61"/>
         <source>%1手詰</source>
         <translation>Mate in %1 plies</translation>
     </message>
@@ -11844,12 +11833,12 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="197"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="193"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>The engine does not support mate search.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="223"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="219"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>Generation was aborted because the engine is not responding.</translation>
     </message>

@@ -29,12 +29,9 @@ private slots:
         game.newGame(initial);
         ThinkingInfoPresenter presenter;
         presenter.setGameController(&game);
-        // 読み筋履歴のパーサにも実局面を渡す。
-        QList<QChar> pieces;
-        for (const auto piece : game.board()->boardData()) pieces.append(pieceToChar(piece));
-        presenter.setClonedBoardData(pieces);
         UsiProtocolHandler protocol;
         protocol.setPresenter(&presenter);
+        // 読み筋履歴のパーサにも実局面を渡す。
         presenter.setBaseSfen(SfenUtils::hirateSfen());
         protocol.sendGoDepth(20);
         protocol.onDataReceived("info depth 10 score cp 300 pv 7g7f 3c3d");

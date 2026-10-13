@@ -8,6 +8,7 @@
 #include <QRandomGenerator>
 #include <QStringList>
 #include <QList>
+#include "shogiboard.h"
 #include "shogitypes.h"
 #include "threadtypes.h"
 
@@ -47,36 +48,34 @@ private:
     /// 各駒種の最大数
     static constexpr int kMaxCounts[PieceTypeCount] = {18, 4, 4, 4, 4, 2, 2};
 
-    /// 生駒のSFEN文字（先手大文字）
-    static constexpr char kSfenChars[PieceTypeCount] = {'P', 'L', 'N', 'S', 'G', 'B', 'R'};
+    /// 駒種の先手の生駒
+    static constexpr Piece kBlackPieces[PieceTypeCount] = {
+        Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight, Piece::BlackSilver,
+        Piece::BlackGold, Piece::BlackBishop, Piece::BlackRook};
 
-    /// 成駒のSFEN表記があるか（金は成れない）
+    /// 成駒があるか（金は成れない）
     static constexpr bool kCanPromote[PieceTypeCount] = {true, true, true, true, false, true, true};
 
-    /// 盤面配列（9×9, [rank][file] = SFEN文字 or '\0'）
-    QChar m_board[9][9];
+    /// 局面（盤と持駒）。file・rank は 0〜8 で、盤の筋・段の 1〜9 にあたる
+    ShogiBoard m_board;
 
-    /// 駒使用数カウンタ（各駒種の使用数を追跡）
+    /// 駒使用数カウンタ（各駒種の使用数。盤上の両者の駒と攻方の持駒）
     int m_usedCounts[PieceTypeCount] = {};
-
-    /// 先手持駒カウンタ
-    int m_attackerHand[PieceTypeCount] = {};
 
     QString generateOnce();
     void clearState();
     bool isOccupied(int file, int rank) const;
     bool hasUnpromotedPawnInFile(int file, bool isAttacker) const;
-    void placeOnBoard(int file, int rank, const QString& sfenPiece);
+    void placeOnBoard(int file, int rank, Piece piece);
     PieceType randomPieceType();
     bool hasRemainingPiece(PieceType pt) const;
     void usePiece(PieceType pt);
-    QString promotedSfen(PieceType pt, bool isAttacker) const;
-    QString unpromotedSfen(PieceType pt, bool isAttacker) const;
+    void addToAttackerHand(PieceType pt);
+    /// 駒種の駒（isAttacker なら先手、そうでなければ後手。promote なら成駒）
+    static Piece pieceOf(PieceType pt, bool isAttacker, bool promote);
     bool needsPromotion(PieceType pt, int rank, bool isAttacker) const;
     bool isKingInCheck() const;
-    QList<Piece> buildBoardData() const;
-    static QChar promotedPieceChar(QChar base);
-    QString buildSfen() const;
+    QString buildSfen();
 };
 
 #endif // TSUMESHOGIPOSITIONGENERATOR_H

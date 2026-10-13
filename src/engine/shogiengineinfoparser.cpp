@@ -2,22 +2,25 @@
 /// @brief USIエンジンのinfo行パーサの実装
 
 #include "shogiengineinfoparser.h"
-#include "shoginotation.h"
-#include "usi.h"
-#include <QStringList>
-#include <QString>
-#include <QObject>
-#include <QMessageBox>
-#include "shogigamecontroller.h"
+#include "kifmovetext.h"
+#include "logcategories.h"
 
-// ============================================================
-// 初期化
-// ============================================================
+namespace {
 
-ShogiEngineInfoParser::ShogiEngineInfoParser()
+/// 読み筋の末尾に付く "(57.54%)" のような、指し手でない語か（指し手の形の崩れたものは含めない）
+bool isPvAnnotation(QStringView token)
 {
-    clearParsedInfo();
+    if (token.size() < 4) return false;
+    const QChar head = token.front();
+    return !head.isDigit() && !QStringView(u"PLNSGBR").contains(head);
 }
+
+bool belongsTo(Piece piece, Turn side)
+{
+    return side == Turn::Black ? isBlackPiece(piece) : isWhitePiece(piece);
+}
+
+} // namespace
 
 // ============================================================
 // アクセサ
@@ -83,130 +86,68 @@ QString ShogiEngineInfoParser::depth() const
     return m_depth;
 }
 
+ShogiEngineInfoParser::EvaluationBound ShogiEngineInfoParser::evaluationBound() const
+{
+    return m_evaluationBound;
+}
+
 // ============================================================
-// 指し手の漢字変換
+// 局面
 // ============================================================
 
-QChar ShogiEngineInfoParser::moveSymbol(const int moveIndex, const bool isPondering) const
+void ShogiEngineInfoParser::setPosition(const QString& sfen)
 {
-    // 思考開始時の手番を使用（bestmove後の局面更新の影響を受けない）
-    const bool thinkingPlayerIsPlayer1 = (m_thinkingStartPlayer == Turn::Black);
-    const QChar black(0x25B2);  // ▲
-    const QChar white(0x25B3);  // △
-
-    // moveIndex & 1 と isPondering の XOR で手番を判定:
-    // isPondering=false: 偶数=思考側、奇数=相手側
-    // isPondering=true:  偶数=相手側（ponderは相手の予想手から始まる）、奇数=思考側
-    if ((moveIndex & 1) ^ isPondering) {
-        return thinkingPlayerIsPlayer1 ? white : black;
-    }
-    return thinkingPlayerIsPlayer1 ? black : white;
-}
-
-void ShogiEngineInfoParser::appendFormattedMove(QString& out, int fileTo, int rankTo, const QString& kanji) const
-{
-    if ((fileTo == previousFileTo()) && (rankTo == previousRankTo())) {
-        out += QChar(0x540C);  // 同
-    } else {
-        out += ShogiNotation::fileZenkaku(fileTo);
-        out += ShogiNotation::rankKanji(rankTo);
-    }
-    out += kanji;
-}
-
-namespace {
-// 移動元の座標の数字を足す（1桁は文字を作らずに足す）
-void appendNumber(QString& out, int value)
-{
-    if (value >= 0 && value <= 9) out += QChar(u'0' + value);
-    else out += QString::number(value);
-}
-} // namespace
-
-// 読み筋は info 行ごとに全手を変換するので、1手ずつ文字列を作らず out に直接足す
-void ShogiEngineInfoParser::appendShogiMove(QString& out, const QString& kanji, const int fileFrom, const int rankFrom,
-                                            const int fileTo, const int rankTo, const bool promote, const int moveIndex,
-                                            const bool isPondering) const
-{
-    out += moveSymbol(moveIndex, isPondering);
-    appendFormattedMove(out, fileTo, rankTo, kanji);
-
-    if (promote) out += QChar(0x6210);  // 成
-
-    if (fileFrom == STAND_FILE) {
-        out += QChar(0x6253);  // 打
-    } else {
-        // 移動元の座標を "(77)" 形式で付加
-        out += QLatin1Char('(');
-        appendNumber(out, fileFrom);
-        appendNumber(out, rankFrom);
-        out += QLatin1Char(')');
+    m_hasPosition = !sfen.isEmpty() && m_position.trySetSfen(sfen);
+    if (!m_hasPosition && !sfen.isEmpty()) {
+        qCWarning(lcEngine) << "読み筋の局面を読めません:" << sfen.left(80);
     }
 }
 
-// ============================================================
-// 直前の指し手座標
-// ============================================================
-
-int ShogiEngineInfoParser::previousFileTo() const
+void ShogiEngineInfoParser::setPreviousMove(BoardSquare to)
 {
-    return m_previousFileTo;
+    m_previousTo = to;
 }
 
-void ShogiEngineInfoParser::setPreviousFileTo(int newPreviousFileTo)
+Piece ShogiEngineInfoParser::movingPiece(const ShogiBoard& board, const UsiMove& move, Turn mover)
 {
-    m_previousFileTo = newPreviousFileTo;
-}
-
-int ShogiEngineInfoParser::previousRankTo() const
-{
-    return m_previousRankTo;
-}
-
-void ShogiEngineInfoParser::setPreviousRankTo(int newPreviousRankTo)
-{
-    m_previousRankTo = newPreviousRankTo;
-}
-
-void ShogiEngineInfoParser::setThinkingStartPlayer(Turn player)
-{
-    m_thinkingStartPlayer = player;
+    if (move.isDrop()) {
+        const Piece piece = move.dropPieceFor(mover);
+        if (board.pieceAt(move.to) != Piece::None || board.pieceStandCount(piece) <= 0) return Piece::None;
+        return piece;
+    }
+    const Piece piece = board.pieceAt(move.from);
+    if (!belongsTo(piece, mover) || belongsTo(board.pieceAt(move.to), mover)) return Piece::None;
+    return piece;
 }
 
 // ============================================================
 // info行解析
 // ============================================================
 
-QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(QStringView str, QList<QChar>& clonedBoardData,
-                                                              const bool isPondering)
+QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(QStringView str) const
 {
-    int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
-    bool promote = false;
+    const std::optional<UsiMove> move = UsiMove::parse(str);
+    if (!m_hasPosition || !move) return QString();
 
-    const int rc = parseMoveString(str, fileFrom, rankFrom, fileTo, rankTo, promote);
-    if (rc < 0) {
-        return QString();
-    }
+    const Turn mover = m_position.currentPlayer();
+    const Piece moving = movingPiece(m_position, *move, mover);
+    if (moving == Piece::None) return QString();
 
-    const QChar movingPiece = pieceCharacter(clonedBoardData, fileFrom, rankFrom);
-    const QString& kanjiMovePiece = pieceKanjiName(movingPiece);
-    if (kanjiMovePiece.isEmpty()) {
-        return QString();
-    }
-
-    QString move;
-    appendShogiMove(move, kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, 0, isPondering);
-    return move;
+    QString text;
+    KifMoveText::append(text, mover, moving, *move, m_previousTo, KifMoveText::SameSquare::Compact);
+    return text;
 }
 
-void ShogiEngineInfoParser::parseEngineInfoTokens(const QList<QStringView>& tokens, QList<QChar>& clonedBoardData,
-                                                  const bool isPondering)
+qsizetype ShogiEngineInfoParser::parseEngineInfoTokens(const QList<QStringView>& tokens)
 {
     for (qsizetype i = 0; i < tokens.size() - 1; i++) {
         const QStringView token = tokens.at(i);
         const QStringView nextToken = tokens.at(i + 1);
 
-        if (token == u"depth") {
+        if (token == u"pv") {
+            // pv より後ろはすべて読み筋の指し手
+            return i;
+        } else if (token == u"depth") {
             m_depth = nextToken.toString();
         } else if (token == u"seldepth") {
             m_seldepth = nextToken.toString();
@@ -222,11 +163,12 @@ void ShogiEngineInfoParser::parseEngineInfoTokens(const QList<QStringView>& toke
             m_hashfull = nextToken.toString();
         } else if (token == u"currmove") {
             m_searchedUsi = nextToken.toString();
-            m_searchedHand = convertCurrMoveToKanjiNotation(nextToken, clonedBoardData, isPondering);
+            m_searchedHand = convertCurrMoveToKanjiNotation(nextToken);
         } else if (token == u"score") {
             parseScore(tokens, i);
         }
     }
+    return -1;
 }
 
 void ShogiEngineInfoParser::parseScore(const QList<QStringView>& tokens, qsizetype index)
@@ -244,9 +186,9 @@ void ShogiEngineInfoParser::parseScore(const QList<QStringView>& tokens, qsizety
         if (index + 3 < tokens.size()) {
             const QStringView boundType = tokens.at(index + 3);
             if (boundType == u"lowerbound") {
-                setEvaluationBound(EvaluationBound::LowerBound);
+                m_evaluationBound = EvaluationBound::LowerBound;
             } else if (boundType == u"upperbound") {
-                setEvaluationBound(EvaluationBound::UpperBound);
+                m_evaluationBound = EvaluationBound::UpperBound;
             }
         }
     } else if (type == u"mate") {
@@ -254,24 +196,73 @@ void ShogiEngineInfoParser::parseScore(const QList<QStringView>& tokens, qsizety
     }
 }
 
-ShogiEngineInfoParser::EvaluationBound ShogiEngineInfoParser::evaluationBound() const
+void ShogiEngineInfoParser::parsePvAndSimulateMoves(const QList<QStringView>& tokens, qsizetype first)
 {
-    return m_evaluationBound;
-}
+    if (!m_hasPosition) return;
 
-void ShogiEngineInfoParser::setEvaluationBound(EvaluationBound newEvaluationBound)
-{
-    m_evaluationBound = newEvaluationBound;
+    // 読み筋は info 行ごとに全手を変換する。1手ずつ文字列を作らず、結果の文字列に直接足す
+    const qsizetype moveCount = tokens.size() - first;
+    m_pvKanjiStr.reserve(moveCount * 10);
+    m_pvUsiStr.reserve(moveCount * 6);
+
+    m_pvBoard.copyPositionFrom(m_position);
+    Turn mover = m_position.currentPlayer();
+    BoardSquare previousTo = m_previousTo;
+
+    for (qsizetype i = first; i < tokens.size(); ++i) {
+        const QStringView token = tokens.at(i);
+
+        // 詰んだ局面などでエンジンが返す resign / win は指し手ではなく終局の宣言。
+        // 棋譜と同じ日本語表記にし、表示時に KifuPresentation が表記・言語に合わせる
+        if (token == u"resign" || token == u"win") {
+            m_pvKanjiStr += QChar(mover == Turn::Black ? u'▲' : u'△');
+            m_pvKanjiStr += (token == u"resign" ? QStringLiteral("投了") : QStringLiteral("入玉勝ち"));
+            return;
+        }
+
+        const std::optional<UsiMove> move = UsiMove::parse(token);
+        if (!move) {
+            if (i == tokens.size() - 1 && isPvAnnotation(token)) {
+                // 末尾の "(57.54%)" 等はそのまま付加して終了（m_pvUsiStr には含めない）
+                m_pvKanjiStr += QLatin1Char(' ');
+                m_pvKanjiStr += token;
+            } else if (!isPvAnnotation(token)) {
+                qCWarning(lcEngine) << "読み筋の指し手を読めません:" << token;
+            }
+            return;
+        }
+
+        const Piece moving = movingPiece(m_pvBoard, *move, mover);
+        if (moving == Piece::None) {
+            // 局面と合わない指し手は、USI形式の読み筋を残さない
+            qCWarning(lcEngine) << "読み筋の指し手が局面と合いません:" << token;
+            m_pvUsiStr.clear();
+            return;
+        }
+
+        // USI形式の読み筋は、変換できた手までを空白区切りで並べる
+        if (!m_pvUsiStr.isEmpty()) m_pvUsiStr += QLatin1Char(' ');
+        m_pvUsiStr += token;
+
+        const qsizetype moveStart = m_pvKanjiStr.size();
+        KifMoveText::append(m_pvKanjiStr, mover, moving, *move, previousTo, KifMoveText::SameSquare::Compact);
+        if (i == first) {
+            m_searchedHand = m_pvKanjiStr.mid(moveStart);
+            m_searchedUsi = token.toString();
+        }
+
+        m_pvBoard.applyUsiMove(*move, mover);
+        previousTo = move->to;
+        mover = (mover == Turn::Black) ? Turn::White : Turn::Black;
+    }
 }
 
 // ============================================================
 // メインエントリ: info行全体の解析
 // ============================================================
 
-void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(const QString& line, const ShogiGameController* algorithm,
-                                                            QList<QChar>& clonedBoardData, const bool isPondering)
+void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(const QString& line)
 {
-    Q_UNUSED(algorithm)  // 局面更新の影響を避けるため、手番は思考開始時のものを使う
     clearParsedInfo();
 
     QStringView normalizedLine(line);
@@ -291,16 +282,13 @@ void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(const QString& line,
         return;
     }
 
-    parseEngineInfoTokens(tokens, clonedBoardData, isPondering);
-
-    const qsizetype pvIndex = tokens.indexOf(u"pv");
-    if (pvIndex < 0 || pvIndex + 1 >= tokens.size()) {
-        // pvが含まれていない場合（info stringなど）は読み筋として表示しない
+    // pvが含まれていない場合（info stringなど）は読み筋として表示しない
+    const qsizetype pvIndex = parseEngineInfoTokens(tokens);
+    if (pvIndex < 0) {
         return;
     }
 
-    QList<QChar> pvBoardCopy = clonedBoardData;
-    parsePvAndSimulateMoves(tokens, pvIndex + 1, pvBoardCopy, isPondering);
+    parsePvAndSimulateMoves(tokens, pvIndex + 1);
 }
 
 void ShogiEngineInfoParser::clearParsedInfo()

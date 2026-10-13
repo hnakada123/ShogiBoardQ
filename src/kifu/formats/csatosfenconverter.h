@@ -4,7 +4,6 @@
 /// @file csatosfenconverter.h
 /// @brief CSA形式棋譜コンバータクラスの定義
 
-#include "csalexer.h"
 #include "kifparsetypes.h"
 
 #include <QString>
@@ -22,32 +21,6 @@
 class CsaToSfenConverter
 {
 public:
-    // 型エイリアス（既存API互換）
-    using Color = CsaLexer::Color;
-    using Piece = CsaLexer::Piece;
-    using Cell  = CsaLexer::Cell;
-    using Board = CsaLexer::Board;
-
-    // 定数エイリアス（既存コード互換）
-    static constexpr Color Black = CsaLexer::Black;
-    static constexpr Color White = CsaLexer::White;
-    static constexpr Color None  = CsaLexer::None;
-    static constexpr Piece NO_P  = CsaLexer::NO_P;
-    static constexpr Piece FU    = CsaLexer::FU;
-    static constexpr Piece KY    = CsaLexer::KY;
-    static constexpr Piece KE    = CsaLexer::KE;
-    static constexpr Piece GI    = CsaLexer::GI;
-    static constexpr Piece KI    = CsaLexer::KI;
-    static constexpr Piece KA    = CsaLexer::KA;
-    static constexpr Piece HI    = CsaLexer::HI;
-    static constexpr Piece OU    = CsaLexer::OU;
-    static constexpr Piece TO    = CsaLexer::TO;
-    static constexpr Piece NY    = CsaLexer::NY;
-    static constexpr Piece NK    = CsaLexer::NK;
-    static constexpr Piece NG    = CsaLexer::NG;
-    static constexpr Piece UM    = CsaLexer::UM;
-    static constexpr Piece RY    = CsaLexer::RY;
-
     // --- 公開API ---
 
     [[nodiscard]] static bool parse(const QString& filePath, KifParseResult& out, QString* warn);
