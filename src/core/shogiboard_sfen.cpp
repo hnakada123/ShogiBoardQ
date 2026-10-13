@@ -67,7 +67,11 @@ std::optional<SfenFields> splitSfenFields(const QString& sfenStr)
 Piece boardPieceAt(QStringView field, qsizetype& pos)
 {
     const QChar ch = field.at(pos++);
-    if (ch != QLatin1Char('+')) return charToPiece(ch);
+    if (ch != QLatin1Char('+')) {
+        // 成駒は "+" で書く。内部で使う1文字の成駒（Q・M・O・T・C・U）は SFEN の文字ではない
+        const Piece piece = charToPiece(ch);
+        return isPromoted(piece) ? Piece::None : piece;
+    }
     if (pos >= field.size()) return Piece::None;
 
     // 成れる駒（歩・香・桂・銀・角・飛）だけに "+" を付けられる
@@ -248,18 +252,23 @@ bool ShogiBoard::trySetSfen(const QString& sfenStr, QString* error)
     }
     std::copy(squares.cbegin(), squares.cend(), m_boardData.begin());
 
-    // 駒台は16種の駒の枚数。種類がそろっていれば値だけ書き換える（作り直さない）
+    // 駒台は16種の駒の枚数。種類がそろっていれば値だけ書き換える（作り直さない）。
+    // 作ったばかりの盤は0枚の表をほかの盤と共有しているので、枚数が変わらなければ書き込まない（書き込むと表を複製する）
     bool sameKinds = m_pieceStand.size() == kStandKinds;
+    bool sameCounts = sameKinds;
     for (auto it = m_pieceStand.cbegin(); sameKinds && it != m_pieceStand.cend(); ++it) {
-        sameKinds = standSlot(it.key()) >= 0;
+        const int slot = standSlot(it.key());
+        sameKinds = slot >= 0;
+        sameCounts = sameCounts && sameKinds && it.value() == standCounts[static_cast<size_t>(slot)];
     }
     if (!sameKinds) initStand();
-    for (auto it = m_pieceStand.begin(); it != m_pieceStand.end(); ++it) {
-        it.value() = standCounts[static_cast<size_t>(standSlot(it.key()))];
+    if (!sameCounts) {
+        for (auto it = m_pieceStand.begin(); it != m_pieceStand.end(); ++it) {
+            it.value() = standCounts[static_cast<size_t>(standSlot(it.key()))];
+        }
     }
 
     m_currentPlayer = fields->turn;
-    m_currentMoveNumber = fields->moveNumber;
 
     // ShogiView::setBoardのconnectで再描画がトリガされる
     emit boardReset();

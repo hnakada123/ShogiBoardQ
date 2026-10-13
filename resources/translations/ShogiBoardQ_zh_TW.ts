@@ -8129,12 +8129,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiBoard</name>
     <message>
-        <location filename="../../src/core/shogiboard_sfen.cpp" line="237"/>
+        <location filename="../../src/core/shogiboard_sfen.cpp" line="241"/>
         <source>SFEN board parse error: %1</source>
         <translation>SFEN 棋盤解析錯誤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard_sfen.cpp" line="242"/>
+        <location filename="../../src/core/shogiboard_sfen.cpp" line="246"/>
         <source>SFEN piece stand parse error: %1</source>
         <translation>SFEN 持駒解析錯誤：%1</translation>
     </message>

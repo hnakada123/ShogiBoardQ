@@ -26,20 +26,31 @@ void ShogiBoard::initBoard()
     m_boardData.fill(Piece::None, static_cast<qsizetype>(ranks()) * files());
 }
 
+namespace {
+
+/// 16種の駒を0枚で持つ駒台の表。盤を作るたびに16個を挿入しないよう、すべての盤で共有する
+/// （QMap は暗黙の共有なので、枚数を書き換えた盤だけが自分の表を持つ）
+const QMap<Piece, int>& emptyStand()
+{
+    static const QMap<Piece, int> stand = [] {
+        QMap<Piece, int> pieces;
+        for (const Piece piece : {
+                 Piece::WhitePawn, Piece::WhiteLance, Piece::WhiteKnight, Piece::WhiteSilver,
+                 Piece::WhiteGold, Piece::WhiteBishop, Piece::WhiteRook, Piece::WhiteKing,
+                 Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight, Piece::BlackSilver,
+                 Piece::BlackGold, Piece::BlackBishop, Piece::BlackRook, Piece::BlackKing}) {
+            pieces.insert(piece, 0);
+        }
+        return pieces;
+    }();
+    return stand;
+}
+
+} // namespace
+
 void ShogiBoard::initStand()
 {
-    m_pieceStand.clear();
-
-    static const QList<Piece> pieces = {
-        Piece::WhitePawn, Piece::WhiteLance, Piece::WhiteKnight, Piece::WhiteSilver,
-        Piece::WhiteGold, Piece::WhiteBishop, Piece::WhiteRook, Piece::WhiteKing,
-        Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight, Piece::BlackSilver,
-        Piece::BlackGold, Piece::BlackBishop, Piece::BlackRook, Piece::BlackKing
-    };
-
-    for (const Piece& piece : pieces) {
-        m_pieceStand.insert(piece, 0);
-    }
+    m_pieceStand = emptyStand();
 }
 
 // ============================================================
@@ -221,7 +232,6 @@ void ShogiBoard::copyPositionFrom(const ShogiBoard& other)
     }
     if (!sameKinds) m_pieceStand = other.m_pieceStand;
     m_currentPlayer = other.m_currentPlayer;
-    m_currentMoveNumber = other.m_currentMoveNumber;
 
     // ShogiView::setBoardのconnectで再描画がトリガされる
     emit boardReset();

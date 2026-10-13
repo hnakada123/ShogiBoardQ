@@ -88,7 +88,7 @@ public:
      */
     bool trySetSfen(const QString& sfenStr, QString* error = nullptr);
 
-    /// 別の盤の局面（盤・駒台・手番・手数）を写す。
+    /// 別の盤の局面（盤・駒台・手番）を写す。
     /// 盤の大きさと駒台の駒の種類が同じなら、確保し直さずに上書きする（読み筋の変換で info 行ごとに使う）
     void copyPositionFrom(const ShogiBoard& other);
 
@@ -162,8 +162,7 @@ private:
     int m_ranks;                    ///< 盤の段数（9）
     int m_files;                    ///< 盤の筋数（9）
     QList<Piece> m_boardData;     ///< 81マスの駒データ
-    QMap<Piece, int> m_pieceStand;  ///< 駒台データ（駒 → 枚数）
-    int m_currentMoveNumber;        ///< SFEN文字列の手数
+    QMap<Piece, int> m_pieceStand;  ///< 駒台データ（駒 → 枚数）。玉を含む先後16種を常に持つ
     Turn m_currentPlayer = Turn::Black; ///< 現在の手番
 
     // --- 内部操作 ---
