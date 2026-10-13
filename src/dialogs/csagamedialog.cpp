@@ -25,8 +25,7 @@ const QRegularExpression& gameNamePattern()
 CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::CsaGameDialog>())
-    , m_fontHelper({NetworkSettings::csaGameDialogFontSize(), 8, 24, 1,
-                    NetworkSettings::setCsaGameDialogFontSize})
+    , m_fontHelper(NetworkSettings::csaGameDialogFontSize, 8, 24, 1)
 {
     ui->setupUi(this);
     populateAutoSaveFormats();
@@ -63,7 +62,7 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
 
 CsaGameDialog::~CsaGameDialog()
 {
-    DialogUtils::saveDialogSize(this, NetworkSettings::setCsaGameDialogSize);
+    DialogUtils::saveDialogSize(this, NetworkSettings::csaGameDialogSize);
 }
 
 // シグナル・スロットの接続を行う

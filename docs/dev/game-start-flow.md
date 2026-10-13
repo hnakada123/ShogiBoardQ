@@ -72,10 +72,12 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
 
 ### 処理内容
 
-1. **GameStartCoordinatorの遅延初期化**
+1. **GameStartCoordinatorの取得**
    ```cpp
-   if (m_deps.ensureGameStartCoordinator) m_deps.ensureGameStartCoordinator();
+   auto* gameStart = get(m_deps.gameStart);  // 取得関数が、まだ無ければ作ってから返す
+   if (!gameStart) return;
    ```
+   `Deps::gameStart` はレジストリが渡す取得関数で、`MainWindowServiceRegistry::ensureGameStartCoordinator()` を呼んでから返す。`GameStartCoordinator` は1つだけで、`MatchCoordinatorWiring` が持つ。
 
 2. **対局開始ダイアログの表示**
    ```cpp
@@ -115,7 +117,6 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
    ctx.clock               = match ? match->clock() : nullptr;
    ctx.sfenRecord          = sfenRecord;
    ctx.kifuModel           = m_deps.kifuModel;
-   ctx.kifuLoadCoordinator = m_deps.kifuLoadCoordinator;
    ctx.currentSfenStr      = m_deps.currentSfenStr;
    ctx.startSfenStr        = m_deps.startSfenStr;
    ctx.selectedPly         = selectedPly;
@@ -136,7 +137,6 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
 | `dialogData` | `StartGameDialogData` | 対局開始ダイアログから取り出した値 |
 | `sfenRecord` | `QStringList*` | 対局の局面列（手順 4 で作り直したもの） |
 | `kifuModel` | `KifuRecordListModel*` | 棋譜欄モデル |
-| `kifuLoadCoordinator` | `KifuLoadCoordinator*` | 分岐構造の設定用 |
 | `currentSfenStr` | `QString*` | 現在局面のSFEN文字列 |
 | `startSfenStr` | `QString*` | 開始SFEN文字列 |
 | `selectedPly` | `int` | 表示中の手数（`KifuNavigationState::currentPly()`） |
@@ -165,7 +165,7 @@ const StartGameDialogData dialogData = extractDialogData(dlg);
 
 - `StartGameDialog` をモーダルダイアログとして表示する
 - ユーザーがキャンセルした場合はここで終了
-- ダイアログ内では前回の設定が `QSettings` から復元される
+- ダイアログ内では前回の設定が設定ファイルから復元される（`loadGameSettings()`。項目は `GameSettings::StartGame` の宣言の表）
 
 #### StartGameDialogの主な設定項目
 
@@ -181,7 +181,7 @@ const StartGameDialogData dialogData = extractDialogData(dlg);
 OKボタン（「対局開始」）のクリックは `onStartRequested()` に接続され、次の順に処理する:
 1. `updateGameSettingsFromDialog()` → UI値をメンバ変数にコピー
 2. `confirmTimeSettings()` → 時間設定を確認する。片方だけ全項目0秒、またはエンジンが参加する時間無制限なら警告を出し、保存せずにダイアログを開いたままにする（[時間設定の仕様](game-time-control-spec.md)）
-3. `saveGameSettings()` → QSettingsに永続化
+3. `saveGameSettings()` → `GameSettings::StartGame` の各項目に `.set()` で保存
 4. `accept()` → ダイアログを閉じる
 
 ### ステップ2: ダイアログ設定値の取得
@@ -236,7 +236,8 @@ prepareInitialPosition(c2);
 - 選択された駒落ちのSFENを設定
 - 棋譜に「=== 開始局面 ===」ヘッダを追加
 - SFEN記録をクリアして開始SFENを追加
-- 分岐ツリーを `resetBranchTreeForNewGame()` でリセット
+
+`prepareInitialPosition()` の後、`requestBranchTreeResetForNewGame` シグナルを発行する。`BranchNavigationWiring::onBranchTreeResetForNewGame()` が、開始前の整理（`performCleanup()`）で始めたライブセッションを破棄し、分岐ツリーの根を `startSfenStr`（選んだ手合割の開始局面）にする。Ctx は棋譜読み込み担当（`KifuLoadCoordinator`）を持たない。
 
 #### 開始局面プリセット一覧
 

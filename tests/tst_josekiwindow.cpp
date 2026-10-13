@@ -114,15 +114,15 @@ void TestJosekiWindow::testFontSizePersistence()
     QCOMPARE(JosekiSettings::josekiWindowFontSize(), 10);
 
     // 保存して読み出し
-    JosekiSettings::setJosekiWindowFontSize(16);
+    JosekiSettings::josekiWindowFontSize.set(16);
     QCOMPARE(JosekiSettings::josekiWindowFontSize(), 16);
 
     // 別の値に変更
-    JosekiSettings::setJosekiWindowFontSize(8);
+    JosekiSettings::josekiWindowFontSize.set(8);
     QCOMPARE(JosekiSettings::josekiWindowFontSize(), 8);
 
     // クリーンアップ
-    JosekiSettings::setJosekiWindowFontSize(10);
+    JosekiSettings::josekiWindowFontSize.set(10);
 }
 
 void TestJosekiWindow::testAutoLoadPersistence()
@@ -131,11 +131,11 @@ void TestJosekiWindow::testAutoLoadPersistence()
     QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), true);
 
     // false に変更して読み出し
-    JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
     QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), false);
 
     // true に戻す
-    JosekiSettings::setJosekiWindowAutoLoadEnabled(true);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(true);
     QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), true);
 }
 
@@ -145,11 +145,11 @@ void TestJosekiWindow::testDisplayEnabledPersistence()
     QCOMPARE(JosekiSettings::josekiWindowDisplayEnabled(), true);
 
     // false に変更して読み出し
-    JosekiSettings::setJosekiWindowDisplayEnabled(false);
+    JosekiSettings::josekiWindowDisplayEnabled.set(false);
     QCOMPARE(JosekiSettings::josekiWindowDisplayEnabled(), false);
 
     // true に戻す
-    JosekiSettings::setJosekiWindowDisplayEnabled(true);
+    JosekiSettings::josekiWindowDisplayEnabled.set(true);
 }
 
 void TestJosekiWindow::testSfenDetailVisiblePersistence()
@@ -158,28 +158,28 @@ void TestJosekiWindow::testSfenDetailVisiblePersistence()
     QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), false);
 
     // true に変更して読み出し
-    JosekiSettings::setJosekiWindowSfenDetailVisible(true);
+    JosekiSettings::josekiWindowSfenDetailVisible.set(true);
     QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), true);
 
     // false に戻す
-    JosekiSettings::setJosekiWindowSfenDetailVisible(false);
+    JosekiSettings::josekiWindowSfenDetailVisible.set(false);
 }
 
 void TestJosekiWindow::testLastFilePathClearOnHistoryClear()
 {
     // パスを保存
-    JosekiSettings::setJosekiWindowLastFilePath("/tmp/test.db");
+    JosekiSettings::josekiWindowLastFilePath.set("/tmp/test.db");
     QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), QString("/tmp/test.db"));
 
     // クリア
-    JosekiSettings::setJosekiWindowLastFilePath(QString());
+    JosekiSettings::josekiWindowLastFilePath.set(QString());
     QVERIFY(JosekiSettings::josekiWindowLastFilePath().isEmpty());
 }
 
 void TestJosekiWindow::testApplyFontSizeToWindow()
 {
     // フォントサイズ 14 を設定しておく
-    JosekiSettings::setJosekiWindowFontSize(14);
+    JosekiSettings::josekiWindowFontSize.set(14);
 
     JosekiWindow window;
 
@@ -187,13 +187,13 @@ void TestJosekiWindow::testApplyFontSizeToWindow()
     QCOMPARE(window.font().pointSize(), 14);
 
     // クリーンアップ
-    JosekiSettings::setJosekiWindowFontSize(10);
+    JosekiSettings::josekiWindowFontSize.set(10);
 }
 
 void TestJosekiWindow::testApplyFontSizeToTableHeader()
 {
     // フォントサイズ 16 を設定しておく
-    JosekiSettings::setJosekiWindowFontSize(16);
+    JosekiSettings::josekiWindowFontSize.set(16);
 
     JosekiWindow window;
 
@@ -207,13 +207,13 @@ void TestJosekiWindow::testApplyFontSizeToTableHeader()
     QCOMPARE(header->font().pointSize(), 16);
 
     // クリーンアップ
-    JosekiSettings::setJosekiWindowFontSize(10);
+    JosekiSettings::josekiWindowFontSize.set(10);
 }
 
 void TestJosekiWindow::testFontSizePreservedAfterHideShow()
 {
     // フォントサイズ 10（デフォルト）を設定
-    JosekiSettings::setJosekiWindowFontSize(10);
+    JosekiSettings::josekiWindowFontSize.set(10);
 
     JosekiWindow window;
     window.show();
@@ -263,7 +263,7 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
     }
 
     // クリーンアップ
-    JosekiSettings::setJosekiWindowFontSize(10);
+    JosekiSettings::josekiWindowFontSize.set(10);
 }
 
 // ============================================================
@@ -432,7 +432,7 @@ void TestJosekiWindow::chooseSaveFile()
 
 void TestJosekiWindow::testBusyBlocksEditsAndMerge()
 {
-    JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
     JosekiWindow window;
     const QString path = m_tempDir.filePath(QStringLiteral("busy.db"));
     QVERIFY(seedWindow(window, path));
@@ -628,7 +628,7 @@ void TestJosekiWindow::testPositionSummaryNamesHandicapOrPly()
 /// 読み込めなかったファイルは履歴に入れない
 void TestJosekiWindow::testHistoryKeepsOnlyLoadedFiles()
 {
-    JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
     JosekiWindow window;
     const QString book = m_tempDir.filePath(QStringLiteral("history.db"));
     QVERIFY(seedWindow(window, book));
@@ -857,7 +857,7 @@ void TestJosekiWindow::testEditReplyAndLargeFrequency()
 
 void TestJosekiWindow::testColumnWidthsSurviveRefresh()
 {
-    JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
     {
         JosekiWindow window;
         QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("widths.db"))));
@@ -946,7 +946,7 @@ void TestJosekiWindow::testAddKeepsTargetPosition()
 /// 変わったとき・定跡データを変えたとき・局面が変わったときは行を入れ替える
 void TestJosekiWindow::testSameSfenKeepsTableRows()
 {
-    JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
     JosekiWindow window;
     QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("same.db"))));
     QTableWidget *table = window.m_tableWidget;

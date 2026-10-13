@@ -227,7 +227,7 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
 void BoardInteractionController::setLegalMovesVisible(bool visible)
 {
     m_legalMovesVisible = visible;
-    AppSettings::setLegalMovesVisible(visible);
+    AppSettings::legalMovesVisible.set(visible);
     refreshLegalMoveHighlights();
 }
 

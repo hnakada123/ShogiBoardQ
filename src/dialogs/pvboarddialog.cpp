@@ -427,7 +427,7 @@ void PvBoardDialog::updateMoveHighlights()
 
 void PvBoardDialog::saveWindowSize()
 {
-    DialogUtils::saveDialogSize(this, AnalysisSettings::setPvBoardDialogSize);
+    DialogUtils::saveDialogSize(this, AnalysisSettings::pvBoardDialogSize);
 }
 
 void PvBoardDialog::adjustWindowToContents()

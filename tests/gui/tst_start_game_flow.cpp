@@ -362,7 +362,7 @@ private slots:
         settings.setValue(QStringLiteral("path"), QStringLiteral(REPO "/tests/gui/mock_usi.py"));
         settings.endArray();
         settings.sync();
-        GameSettings::setStartGameDialogFontSize(12);
+        GameSettings::startGameDialogFontSize.set(12);
         StartGameDialog dialog;
         child<QComboBox>(dialog, "comboBoxPlayer2")->setCurrentIndex(1);
         child<QGroupBox>(dialog, "groupBoxSecondPlayerTimeSettings")->setChecked(true);

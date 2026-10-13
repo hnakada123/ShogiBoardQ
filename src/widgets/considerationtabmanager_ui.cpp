@@ -390,7 +390,7 @@ void ConsiderationTabManager::initFontManager()
             applyViewColumnWidths();
         }
 
-        AnalysisSettings::setConsiderationFontSize(size);
+        AnalysisSettings::considerationFontSize.set(size);
     });
     m_considerationFontManager->apply();
 }

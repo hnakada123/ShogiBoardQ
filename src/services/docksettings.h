@@ -10,72 +10,57 @@
 #include <QString>
 #include <QStringList>
 #include <QByteArray>
+#include "setting.h"
 
 namespace DockSettings {
 
 /// 評価値グラフドックのフローティング状態
-bool evalChartDockFloating();
-void setEvalChartDockFloating(bool floating);
+inline const Setting<bool> evalChartDockFloating{"EvalChartDock/floating", false};
 
 /// 評価値グラフドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
-QByteArray evalChartDockGeometry();
-void setEvalChartDockGeometry(const QByteArray& geometry);
+inline const Setting<QByteArray> evalChartDockGeometry{"EvalChartDock/geometry", QByteArray()};
 
 /// 評価値グラフドックの表示状態
-bool evalChartDockVisible();
-void setEvalChartDockVisible(bool visible);
+inline const Setting<bool> evalChartDockVisible{"EvalChartDock/visible", true};
 
 /// 棋譜欄ドックのフローティング状態
-bool recordPaneDockFloating();
-void setRecordPaneDockFloating(bool floating);
+inline const Setting<bool> recordPaneDockFloating{"RecordPaneDock/floating", false};
 
 /// 棋譜欄ドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
-QByteArray recordPaneDockGeometry();
-void setRecordPaneDockGeometry(const QByteArray& geometry);
+inline const Setting<QByteArray> recordPaneDockGeometry{"RecordPaneDock/geometry", QByteArray()};
 
 /// 棋譜欄ドックの表示状態
-bool recordPaneDockVisible();
-void setRecordPaneDockVisible(bool visible);
+inline const Setting<bool> recordPaneDockVisible{"RecordPaneDock/visible", true};
 
 /// メニューウィンドウドックのフローティング状態
-bool menuWindowDockFloating();
-void setMenuWindowDockFloating(bool floating);
+inline const Setting<bool> menuWindowDockFloating{"MenuWindowDock/floating", false};
 
 /// メニューウィンドウドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
-QByteArray menuWindowDockGeometry();
-void setMenuWindowDockGeometry(const QByteArray& geometry);
+inline const Setting<QByteArray> menuWindowDockGeometry{"MenuWindowDock/geometry", QByteArray()};
 
 /// メニューウィンドウドックの表示状態
-bool menuWindowDockVisible();
-void setMenuWindowDockVisible(bool visible);
+inline const Setting<bool> menuWindowDockVisible{"MenuWindowDock/visible", false};
 
 /// 定跡ウィンドウドックのフローティング状態
-bool josekiWindowDockFloating();
-void setJosekiWindowDockFloating(bool floating);
+inline const Setting<bool> josekiWindowDockFloating{"JosekiWindowDock/floating", false};
 
 /// 定跡ウィンドウドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
-QByteArray josekiWindowDockGeometry();
-void setJosekiWindowDockGeometry(const QByteArray& geometry);
+inline const Setting<QByteArray> josekiWindowDockGeometry{"JosekiWindowDock/geometry", QByteArray()};
 
 /// 定跡ウィンドウドックの表示状態
-bool josekiWindowDockVisible();
-void setJosekiWindowDockVisible(bool visible);
+inline const Setting<bool> josekiWindowDockVisible{"JosekiWindowDock/visible", false};
 
 /// 棋譜解析結果ドックのフローティング状態
-bool kifuAnalysisResultsDockFloating();
-void setKifuAnalysisResultsDockFloating(bool floating);
+inline const Setting<bool> kifuAnalysisResultsDockFloating{"KifuAnalysisResultsDock/floating", false};
 
 /// 棋譜解析結果ドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
-QByteArray kifuAnalysisResultsDockGeometry();
-void setKifuAnalysisResultsDockGeometry(const QByteArray& geometry);
+inline const Setting<QByteArray> kifuAnalysisResultsDockGeometry{"KifuAnalysisResultsDock/geometry", QByteArray()};
 
 /// 棋譜解析結果ドックの表示状態
-bool kifuAnalysisResultsDockVisible();
-void setKifuAnalysisResultsDockVisible(bool visible);
+inline const Setting<bool> kifuAnalysisResultsDockVisible{"KifuAnalysisResultsDock/visible", false};
 
 /// 全ドックの固定設定
-bool docksLocked();
-void setDocksLocked(bool locked);
+inline const Setting<bool> docksLocked{"Dock/docksLocked", false};
 
 /// カスタムドックレイアウトの保存・読み込み
 /// 保存されているレイアウト名のリストを取得
@@ -89,8 +74,7 @@ void deleteDockLayout(const QString& name);
 
 /// 起動時に使用するレイアウト名
 /// 空文字列の場合はデフォルトレイアウトを使用
-QString startupDockLayoutName();
-void setStartupDockLayoutName(const QString& name);
+inline const Setting<QString> startupDockLayoutName{"DockLayout/startupLayoutName", QString()};
 
 } // namespace DockSettings
 

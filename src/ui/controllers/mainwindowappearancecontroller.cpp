@@ -256,11 +256,11 @@ void MainWindowAppearanceController::onToolBarVisibilityToggled(bool visible)
     if (m_toolBar) {
         m_toolBar->setVisible(visible);
     }
-    AppSettings::setToolbarVisible(visible);
+    AppSettings::toolbarVisible.set(visible);
 }
 
 void MainWindowAppearanceController::onTabCurrentChanged(int index)
 {
-    AppSettings::setLastSelectedTabIndex(index);
+    AppSettings::lastSelectedTabIndex.set(index);
     qCDebug(lcApp).noquote() << "onTabCurrentChanged: saved tab index =" << index;
 }

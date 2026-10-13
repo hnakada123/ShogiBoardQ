@@ -226,7 +226,7 @@ void GameInfoPaneController::onColumnResized(int column, int oldSize, int newSiz
     Q_UNUSED(oldSize);
     if (column == 0 && !m_table->signalsBlocked()) {
         m_keyColumnWidth = newSize;
-        GameSettings::setGameInfoKeyColumnWidth(newSize);
+        GameSettings::gameInfoKeyColumnWidth.set(newSize);
     }
     m_table->resizeRowsToContents();
 }

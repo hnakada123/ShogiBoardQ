@@ -2,81 +2,19 @@
 #define SETTINGSKEYS_H
 
 /// @file settingskeys.h
-/// @brief 設定キー文字列の一元管理
+/// @brief 処理が要る設定項目のキー文字列
 ///
-/// settingsservice.cpp で使用する全ての QSettings キーを
-/// inline constexpr 定数として定義します。
+/// 単純な項目のキーは各ドメイン別ヘッダーの Setting<T> の宣言に直接書きます。
+/// ここには、範囲の制限・複数キーの構造体・配列・動的キーなど、
+/// 関数として読み書きする項目のキーだけを置きます。
 
 namespace SettingsKeys {
 
-// --- SizeRelated ---
-inline constexpr char kVersionDialogSize[]               = "SizeRelated/versionDialogSize";
-inline constexpr char kVersionDialogDocument[]           = "UI/versionDialogDocument";
-inline constexpr char kMainWindowSize[]                  = "SizeRelated/mainWindowSize";
-inline constexpr char kSquareSize[]                      = "SizeRelated/squareSize";
-inline constexpr char kPvBoardDialogSize[]               = "SizeRelated/pvBoardDialogSize";
-inline constexpr char kSfenCollectionDialogSize[]        = "SizeRelated/sfenCollectionDialogSize";
-inline constexpr char kStartGameDialogSize[]             = "SizeRelated/startGameDialogSize";
-inline constexpr char kKifuPasteDialogSize[]             = "SizeRelated/kifuPasteDialogSize";
-inline constexpr char kCsaLogWindowSize[]                = "SizeRelated/csaLogWindowSize";
-inline constexpr char kCsaGameDialogSize[]               = "SizeRelated/csaGameDialogSize";
-inline constexpr char kCsaWaitingDialogSize[]            = "SizeRelated/csaWaitingDialogSize";
-
-// CSA通信対局ダイアログの詳細設定（接続の維持・対局数・自動保存など）
-inline constexpr char kCsaKeepAliveEnabled[]             = "CsaGameSettings/keepAliveEnabled";
-inline constexpr char kCsaKeepAliveIntervalSec[]         = "CsaGameSettings/keepAliveIntervalSec";
-inline constexpr char kCsaTcpKeepAliveEnabled[]          = "CsaGameSettings/tcpKeepAliveEnabled";
-inline constexpr char kCsaThinkingMarginSec[]            = "CsaGameSettings/thinkingMarginSec";
-inline constexpr char kCsaGameCountMode[]                = "CsaGameSettings/gameCountMode";
-inline constexpr char kCsaGameCount[]                    = "CsaGameSettings/gameCount";
-inline constexpr char kCsaReconnectAfterGame[]           = "CsaGameSettings/reconnectAfterGame";
-inline constexpr char kCsaAutoSaveEnabled[]              = "CsaGameSettings/autoSaveEnabled";
-inline constexpr char kCsaAutoSaveDir[]                  = "CsaGameSettings/autoSaveDir";
-inline constexpr char kCsaAutoSaveFormat[]               = "CsaGameSettings/autoSaveFormat";
-inline constexpr char kCsaAutoFlipBoard[]                = "CsaGameSettings/autoFlipBoard";
-inline constexpr char kCsaGameName[]                     = "CsaGameSettings/gameName";
-inline constexpr char kCsaTurnPreference[]               = "CsaGameSettings/turnPreference";
-inline constexpr char kKifuAnalysisDialogSize[]          = "SizeRelated/kifuAnalysisDialogSize";
-inline constexpr char kJosekiMoveDialogSize[]            = "SizeRelated/josekiMoveDialogSize";
-inline constexpr char kTsumeshogiGeneratorDialogSize[]   = "SizeRelated/tsumeshogiGeneratorDialogSize";
-
 // --- General ---
-inline constexpr char kMoveNotation[] = "General/moveNotation";
-inline constexpr char kNotationOrigin[] = "General/notationOrigin";
-inline constexpr char kLastKifuDirectory[]               = "General/lastKifuDirectory";
-inline constexpr char kLastKifuSaveDirectory[]           = "General/lastKifuSaveDirectory";
-inline constexpr char kLanguage[]                        = "General/language";
-inline constexpr char kUiFontFamily[]                    = "General/uiFontFamily";
-inline constexpr char kFontSettingsDialogSize[]          = "SizeRelated/fontSettingsDialogSize";
 inline constexpr char kSettingsVersion[]                 = "General/settingsVersion";
 
-// --- FontSize ---
-inline constexpr char kFontSizeUsiLog[]                  = "FontSize/usiLog";
-inline constexpr char kFontSizeComment[]                 = "FontSize/comment";
-inline constexpr char kFontSizeGameInfo[]                = "FontSize/gameInfo";
-inline constexpr char kFontSizeThinking[]                = "FontSize/thinking";
-inline constexpr char kFontSizeKifuPane[]                = "FontSize/kifuPane";
-inline constexpr char kFontSizeCsaLog[]                  = "FontSize/csaLog";
-inline constexpr char kFontSizeCsaWaitingDialog[]        = "FontSize/csaWaitingDialog";
-inline constexpr char kFontSizeCsaGameDialog[]           = "FontSize/csaGameDialog";
-inline constexpr char kFontSizeJishogiScore[]            = "FontSize/jishogiScore";
-inline constexpr char kFontSizeEngineSettings[]          = "FontSize/engineSettings";
-inline constexpr char kFontSizeEngineRegistration[]      = "FontSize/engineRegistration";
-inline constexpr char kFontSizeStartGameDialog[]         = "FontSize/startGameDialog";
-inline constexpr char kFontSizeKifuPasteDialog[]         = "FontSize/kifuPasteDialog";
-inline constexpr char kFontSizeTsumeshogiGenerator[]     = "FontSize/tsumeshogiGenerator";
-inline constexpr char kFontSizeTsumePlay[]               = "FontSize/tsumePlay";
-inline constexpr char kFontSizeTsumeCollection[]         = "FontSize/tsumeCollection";
-
 // --- UI ---
-inline constexpr char kGameInfoKeyColumnWidth[]          = "GameInfo/keyColumnWidth";
-inline constexpr char kUsiLogWrapLines[]                 = "UsiLog/wrapLines";
 inline constexpr char kUsiLogCommandTarget[]             = "UsiLog/commandTarget";
-inline constexpr char kLastSelectedTabIndex[]            = "UI/lastSelectedTabIndex";
-inline constexpr char kBranchTreeZoomPercent[]           = "BranchTree/zoomPercent";
-inline constexpr char kBranchTreeCompactLayout[]         = "BranchTree/compactLayout";
-inline constexpr char kToolbarVisible[]                  = "UI/toolbarVisible";
-inline constexpr char kLegalMovesVisible[]                = "UI/legalMovesVisible";
 inline constexpr char kPieceStyle[]                      = "UI/pieceStyle";
 inline constexpr char kBoardWoodGrain[]                  = "BoardVisuals/woodGrain";
 inline constexpr char kStandWoodGrain[]                  = "BoardVisuals/standWoodGrain";
@@ -102,143 +40,44 @@ inline constexpr char kBoardClockBorderColor[] = "BoardColors/clockBorder";
 inline constexpr char kBoardClockTextColor[] = "BoardColors/clockText";
 inline constexpr char kBoardClockWarningTextColor[] = "BoardColors/clockWarningText";
 inline constexpr char kBoardClockCriticalTextColor[] = "BoardColors/clockCriticalText";
-inline constexpr char kBoardColorDialogTab[] = "UI/boardColorDialogTab";
-inline constexpr char kBoardColorDialogSize[]            = "SizeRelated/boardColorDialogSize";
-inline constexpr char kBoardColorPickerSize[]            = "SizeRelated/boardColorPickerSize";
 
 // --- Sound ---
-inline constexpr char kPieceSoundEnabled[]               = "Sound/pieceSoundEnabled";
 inline constexpr char kPieceSoundVolume[]                = "Sound/pieceSoundVolume";
 inline constexpr char kPieceSoundPitch[]                 = "Sound/pieceSoundPitch";
 inline constexpr char kPieceSoundEqLow[]                 = "Sound/pieceSoundEqLow";
 inline constexpr char kPieceSoundEqMid[]                 = "Sound/pieceSoundEqMid";
 inline constexpr char kPieceSoundEqHigh[]                = "Sound/pieceSoundEqHigh";
 
-// --- SfenCollection ---
-inline constexpr char kSfenCollectionRecentFiles[]       = "SfenCollection/recentFiles";
-inline constexpr char kSfenCollectionSquareSize[]        = "SfenCollection/squareSize";
-inline constexpr char kSfenCollectionLastDirectory[]     = "SfenCollection/lastDirectory";
-
-// --- EvalChart ---
-inline constexpr char kEvalChartYLimit[]                 = "EvalChart/yLimit";
-inline constexpr char kEvalChartXLimit[]                 = "EvalChart/xLimit";
-inline constexpr char kEvalChartXInterval[]              = "EvalChart/xInterval";
-inline constexpr char kEvalChartLabelFontSize[]          = "EvalChart/labelFontSize";
-inline constexpr char kEvalChartAutomaticRange[]         = "EvalChart/automaticRange";
-inline constexpr char kEvalChartYInterval[]              = "EvalChart/yInterval";
-inline constexpr char kEvalChartSettingsSize[]           = "EvalChart/settingsSize";
-
 // --- EngineInfo (動的キー: QString(...).arg(idx) で使用) ---
 inline constexpr char kEngineInfoColumnWidthsFmt[]       = "EngineInfo/columnWidths%1";
 
 // --- ThinkingView (動的キー) ---
 inline constexpr char kThinkingViewColumnWidthsFmt[]     = "ThinkingView/columnWidths%1";
-inline constexpr char kMatchArrowsVisible[]               = "ThinkingView/matchArrowsVisible";
-inline constexpr char kPonderArrowsVisible[]              = "ThinkingView/ponderArrowsVisible";
 
 // --- 配列内サブキー ---
 inline constexpr char kArrayWidth[]                      = "width";
 
 // --- KifuAnalysis ---
-inline constexpr char kKifuAnalysisFontSize[]            = "KifuAnalysis/fontSize";
 inline constexpr char kKifuAnalysisColumnWidths[]        = "KifuAnalysis/columnWidths";
-inline constexpr char kKifuAnalysisResultsWindowSize[]   = "KifuAnalysis/resultsWindowSize";
-inline constexpr char kKifuAnalysisByoyomiSec[]          = "KifuAnalysis/byoyomiSec";
 inline constexpr char kKifuAnalysisEngineName[]          = "KifuAnalysis/engineName";
 /// 以前の版が保存していたエンジンの番号（読むだけ）
 inline constexpr char kKifuAnalysisEngineIndex[]         = "KifuAnalysis/engineIndex";
-inline constexpr char kKifuAnalysisFullRange[]           = "KifuAnalysis/fullRange";
-inline constexpr char kKifuAnalysisStartPly[]            = "KifuAnalysis/startPly";
-inline constexpr char kKifuAnalysisEndPly[]              = "KifuAnalysis/endPly";
 
 // --- JosekiWindow ---
-inline constexpr char kJosekiWindowFontSize[]            = "JosekiWindow/fontSize";
-inline constexpr char kJosekiWindowLastFilePath[]        = "JosekiWindow/lastFilePath";
-inline constexpr char kJosekiWindowSize[]                = "JosekiWindow/size";
-inline constexpr char kJosekiWindowAutoLoadEnabled[]     = "JosekiWindow/autoLoadEnabled";
-inline constexpr char kJosekiWindowDisplayEnabled[]      = "JosekiWindow/displayEnabled";
-inline constexpr char kJosekiWindowSfenDetailVisible[]   = "JosekiWindow/sfenDetailVisible";
-inline constexpr char kJosekiWindowRecentFiles[]         = "JosekiWindow/recentFiles";
-inline constexpr char kJosekiWindowMoveDialogFontSize[]  = "JosekiWindow/moveDialogFontSize";
 inline constexpr char kJosekiWindowColumnWidths[]        = "JosekiWindow/columnWidths";
-inline constexpr char kJosekiWindowMergeDialogFontSize[] = "JosekiWindow/mergeDialogFontSize";
-inline constexpr char kJosekiWindowMergeDialogSize[]     = "JosekiWindow/mergeDialogSize";
-
-// --- JishogiScore ---
-inline constexpr char kJishogiScoreDialogSize[]          = "JishogiScore/dialogSize";
-
-// --- MenuWindow ---
-inline constexpr char kMenuWindowFavorites[]             = "MenuWindow/favorites";
-inline constexpr char kMenuWindowSize[]                  = "MenuWindow/size";
-inline constexpr char kMenuWindowButtonSize[]            = "MenuWindow/buttonSize";
-inline constexpr char kMenuWindowFontSize[]              = "MenuWindow/fontSize";
-inline constexpr char kMenuWindowCurrentTab[]            = "MenuWindow/currentTab";
-
-// --- EngineSettings ---
-inline constexpr char kEngineSettingsDialogSize[]        = "EngineSettings/dialogSize";
-
-// --- EngineRegistration ---
-inline constexpr char kEngineRegistrationDialogSize[]    = "EngineRegistration/dialogSize";
 
 // --- Consideration ---
 inline constexpr char kConsiderationEngineName[]         = "Consideration/engineName";
 /// 以前の版が保存していたエンジンの番号（読むだけ）
 inline constexpr char kConsiderationEngineIndex[]        = "Consideration/engineIndex";
-inline constexpr char kConsiderationUnlimitedTime[]      = "Consideration/unlimitedTime";
-inline constexpr char kConsiderationByoyomiSec[]         = "Consideration/byoyomiSec";
-inline constexpr char kConsiderationMultiPV[]            = "Consideration/multiPV";
-
-// --- ConsiderationTab ---
-inline constexpr char kConsiderationTabFontSize[]        = "ConsiderationTab/fontSize";
 
 // --- TsumeSearch ---
 inline constexpr char kTsumeSearchEngineName[]           = "TsumeSearch/engineName";
 /// 以前の版が保存していたエンジンのパス（読むだけ）
 inline constexpr char kTsumeSearchEnginePath[]           = "TsumeSearch/enginePath";
-inline constexpr char kTsumeSearchUnlimitedTime[]        = "TsumeSearch/unlimitedTime";
-inline constexpr char kTsumeSearchTimeLimitSec[]         = "TsumeSearch/timeLimitSec";
-inline constexpr char kTsumeSearchFontSize[]             = "TsumeSearch/fontSize";
-inline constexpr char kTsumeSearchDialogSize[]           = "TsumeSearch/dialogSize";
-
-// --- EvalChartDock ---
-inline constexpr char kEvalChartDockFloating[]           = "EvalChartDock/floating";
-inline constexpr char kEvalChartDockGeometry[]           = "EvalChartDock/geometry";
-inline constexpr char kEvalChartDockVisible[]            = "EvalChartDock/visible";
-
-// --- RecordPaneDock ---
-inline constexpr char kRecordPaneDockFloating[]          = "RecordPaneDock/floating";
-inline constexpr char kRecordPaneDockGeometry[]          = "RecordPaneDock/geometry";
-inline constexpr char kRecordPaneDockVisible[]           = "RecordPaneDock/visible";
-
-// --- MenuWindowDock ---
-inline constexpr char kMenuWindowDockFloating[]          = "MenuWindowDock/floating";
-inline constexpr char kMenuWindowDockGeometry[]          = "MenuWindowDock/geometry";
-inline constexpr char kMenuWindowDockVisible[]           = "MenuWindowDock/visible";
-
-// --- JosekiWindowDock ---
-inline constexpr char kJosekiWindowDockFloating[]        = "JosekiWindowDock/floating";
-inline constexpr char kJosekiWindowDockGeometry[]        = "JosekiWindowDock/geometry";
-inline constexpr char kJosekiWindowDockVisible[]         = "JosekiWindowDock/visible";
 
 // --- CustomDockLayouts ---
 inline constexpr char kCustomDockLayoutsGroup[]          = "CustomDockLayouts";
-
-// --- DockLayout ---
-inline constexpr char kStartupDockLayoutName[]           = "DockLayout/startupLayoutName";
-
-// --- KifuAnalysisResultsDock ---
-inline constexpr char kKifuAnalysisResultsDockFloating[] = "KifuAnalysisResultsDock/floating";
-inline constexpr char kKifuAnalysisResultsDockGeometry[] = "KifuAnalysisResultsDock/geometry";
-inline constexpr char kKifuAnalysisResultsDockVisible[]  = "KifuAnalysisResultsDock/visible";
-
-// --- Dock ---
-inline constexpr char kDocksLocked[]                     = "Dock/docksLocked";
-
-// --- RecordPane ---
-inline constexpr char kRecordPaneTimeColumnVisible[]     = "RecordPane/timeColumnVisible";
-inline constexpr char kRecordPaneBookmarkColumnVisible[] = "RecordPane/bookmarkColumnVisible";
-inline constexpr char kRecordPaneCommentColumnVisible[]  = "RecordPane/commentColumnVisible";
-inline constexpr char kRecordPaneBranchExpanded[]        = "RecordPane/branchExpanded";
 
 // --- TsumeCollection / TsumePlay ---
 inline constexpr char kTsumeCollectionSize[] = "TsumeCollection/size";
@@ -255,19 +94,9 @@ inline constexpr char kTsumePlayTimeout[] = "TsumePlay/timeout";
 inline constexpr char kTsumePlaySquareSize[] = "TsumePlay/squareSize";
 inline constexpr char kTsumePlayBoardRotated[] = "TsumePlay/boardRotated";
 // --- TsumeshogiGenerator ---
-inline constexpr char kTsumeshogiGeneratorLastSaveDirectory[] = "TsumeshogiGenerator/lastSaveDirectory";
 inline constexpr char kTsumeshogiGeneratorEngineName[]        = "TsumeshogiGenerator/engineName";
 /// 以前の版が保存していたエンジンの番号（読むだけ）
 inline constexpr char kTsumeshogiGeneratorEngineIndex[]       = "TsumeshogiGenerator/engineIndex";
-inline constexpr char kTsumeshogiGeneratorTargetMoves[]       = "TsumeshogiGenerator/targetMoves";
-inline constexpr char kTsumeshogiGeneratorMaxAttackPieces[]   = "TsumeshogiGenerator/maxAttackPieces";
-inline constexpr char kTsumeshogiGeneratorMaxDefendPieces[]   = "TsumeshogiGenerator/maxDefendPieces";
-inline constexpr char kTsumeshogiGeneratorAttackRange[]       = "TsumeshogiGenerator/attackRange";
-inline constexpr char kTsumeshogiGeneratorTimeoutSec[]        = "TsumeshogiGenerator/timeoutSec";
-inline constexpr char kTsumeshogiGeneratorMaxPositions[]      = "TsumeshogiGenerator/maxPositions";
-inline constexpr char kTsumeshogiGeneratorIncludePv[]         = "TsumeshogiGenerator/includePv";
-inline constexpr char kTsumeshogiGeneratorHelpExpanded[]      = "TsumeshogiGenerator/helpExpanded";
-inline constexpr char kTsumeshogiGeneratorAllowFinalMoveAlternatives[] = "TsumeshogiGenerator/allowFinalMoveAlternatives";
 
 // --- Settings version ---
 inline constexpr int kCurrentSettingsVersion = 1;

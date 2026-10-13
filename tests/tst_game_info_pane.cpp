@@ -38,8 +38,8 @@ private slots:
 
     void init()
     {
-        GameSettings::setGameInfoFontSize(10);
-        GameSettings::setGameInfoKeyColumnWidth(0);
+        GameSettings::gameInfoFontSize.set(10);
+        GameSettings::gameInfoKeyColumnWidth.set(0);
         m_controller.reset(new GameInfoPaneController);
         m_container.reset(m_controller->containerWidget());
         m_controller->setGameInfo({{QStringLiteral("先手"), QStringLiteral("Black")},
@@ -402,7 +402,7 @@ private slots:
 
     void thinkingFontButtonsPrecedeArrowControls()
     {
-        AnalysisSettings::setThinkingFontSize(10);
+        AnalysisSettings::thinkingFontSize.set(10);
         QWidget parent;
         EngineAnalysisTab tab;
         auto* page = tab.createThinkingPage(&parent);

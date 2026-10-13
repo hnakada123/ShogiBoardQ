@@ -13,7 +13,7 @@
 
 void RecordPane::onBranchToggled(bool expanded)
 {
-    GameSettings::setKifuBranchExpanded(expanded);
+    GameSettings::kifuBranchExpanded.set(expanded);
     updateBranchAppearance();
     updateKifuTableWidth();
 }

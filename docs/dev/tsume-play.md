@@ -178,7 +178,7 @@ SHA-256が変わるため通常の解析に戻る。ファイル名や外部のJ
 - `TsumeSolutionReplay`: 検証済みの正解手順の取得と、対局状態から独立した手順再生。
 - `TsumeMateEngine`: ほかの機能と同じ `UsiEngineSession`（USI の手順と設定の送り方）で動かす詰み判定。`TsumePositionAnalyzer`: 判定方式選択とキャッシュ。
 - `TsumeProgressStore`: 設定ファイルとは独立したSQLite集計と解析キャッシュ。
-- `TsumeshogiSettings`: SettingsServiceのドメイン設定としてUI設定を保存。
+- `TsumeshogiSettings`（`src/services/tsumeshogisettings.h`）: UI設定を保存する。文字サイズは宣言の表の `Setting<int>`（`tsumePlayFontSize`・`tsumeCollectionFontSize`）、画面サイズや最後に開いたファイルなど複数のキーをまとめる項目は構造体を読み書きする関数（`playPreferences()` / `collectionPreferences()`）。
 
 KomoringHeightsは `PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、
 `RootIsAndNodeIfChecked=false` を必須とする。エンジンには登録済みの設定（スレッド数・ハッシュなど、

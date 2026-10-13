@@ -165,7 +165,7 @@ QString saveViaDialog(QWidget* parent,
     const QString path = pathForSelectedFilter(chosenPath, selectedFilter);
     if (path.isEmpty()) return QString();
 
-    GameSettings::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
+    GameSettings::lastKifuSaveDirectory.set(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
     const SaveFormat format = saveFormatForPath(path);

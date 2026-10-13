@@ -200,7 +200,7 @@ void CsaLogPanel::initFontManager()
         font.setPointSize(size);
         if (m_btnSendToServer) m_btnSendToServer->setFont(font);
         if (m_commandInput) m_commandInput->setFont(font);
-        NetworkSettings::setCsaLogFontSize(size);
+        NetworkSettings::csaLogFontSize.set(size);
     });
     m_fontManager->apply();
 }

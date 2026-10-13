@@ -82,9 +82,9 @@ private slots:
     {
         registerEngines();
         EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), QStringLiteral("Hayanagi 1.5.0"));
-        AnalysisSettings::setConsiderationUnlimitedTime(true);
-        AnalysisSettings::setConsiderationByoyomiSec(87);
-        AnalysisSettings::setConsiderationMultiPV(6);
+        AnalysisSettings::considerationUnlimitedTime.set(true);
+        AnalysisSettings::considerationByoyomiSec.set(87);
+        AnalysisSettings::considerationMultiPV.set(6);
         TsumeShogiSearchDialog dialog;
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
@@ -137,8 +137,8 @@ private slots:
     void cancelAndAppearancePersistence()
     {
         registerEngines();
-        AnalysisSettings::setTsumeSearchTimeLimitSec(42);
-        AnalysisSettings::setTsumeSearchFontSize(10);
+        AnalysisSettings::tsumeSearchTimeLimitSec.set(42);
+        AnalysisSettings::tsumeSearchFontSize.set(10);
         TsumeShogiSearchDialog dialog;
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
@@ -184,7 +184,7 @@ private slots:
             qApp->installTranslator(&qtTranslator);
         }
         registerEngines();
-        AnalysisSettings::setTsumeSearchFontSize(pointSize);
+        AnalysisSettings::tsumeSearchFontSize.set(pointSize);
         TsumeShogiSearchDialog dialog;
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));

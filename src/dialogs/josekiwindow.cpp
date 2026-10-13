@@ -33,8 +33,7 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)
     , m_repository(std::make_unique<JosekiRepository>())
     , m_presenter(new JosekiPresenter(m_repository.get(), this))
-    , m_fontHelper({JosekiSettings::josekiWindowFontSize(), 6, 24, 1,
-                    JosekiSettings::setJosekiWindowFontSize})
+    , m_fontHelper(JosekiSettings::josekiWindowFontSize, 6, 24, 1)
 {
     setupUi();
     loadSettings();
@@ -388,7 +387,7 @@ void JosekiWindow::onDeleteButtonClicked()
 void JosekiWindow::onAutoLoadCheckBoxChanged(Qt::CheckState state)
 {
     m_autoLoadEnabled = (state == Qt::Checked);
-    JosekiSettings::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(m_autoLoadEnabled);
 }
 
 void JosekiWindow::onStopButtonClicked()
@@ -401,14 +400,14 @@ void JosekiWindow::onStopButtonClicked()
         m_stopButton->setText(tr("▶ 再開"));
         clearTable();
     }
-    JosekiSettings::setJosekiWindowDisplayEnabled(m_displayEnabled);
+    JosekiSettings::josekiWindowDisplayEnabled.set(m_displayEnabled);
     updateStatusDisplay();
 }
 
 void JosekiWindow::onSfenDetailToggled(bool checked)
 {
     m_sfenDetailWidget->setVisible(checked);
-    JosekiSettings::setJosekiWindowSfenDetailVisible(checked);
+    JosekiSettings::josekiWindowSfenDetailVisible.set(checked);
 }
 
 void JosekiWindow::onMoveResult(bool success, const QString &usiMove)

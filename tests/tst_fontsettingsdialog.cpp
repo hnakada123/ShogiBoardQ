@@ -12,7 +12,6 @@
 #include "appsettings.h"
 #include "fontsettingsdialog.h"
 #include "settingscommon.h"
-#include "settingskeys.h"
 
 class TestFontSettingsDialog : public QObject
 {
@@ -80,7 +79,7 @@ private slots:
         // 独立した QSettings と起動時と同じ経路で復元する。
         SettingsCommon::openSettings().sync();
         QSettings disk(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(disk.value(SettingsKeys::kUiFontFamily).toString(), chosen);
+        QCOMPARE(disk.value(QLatin1String(AppSettings::uiFontFamily.key())).toString(), chosen);
         ApplicationFonts::applyFamily({});
         ApplicationFonts::initialize(AppSettings::uiFontFamily(), language);
         QCOMPARE(QApplication::font().family(), chosen);

@@ -325,7 +325,7 @@ void UsiLogPanel::initFontManager()
         m_commandInput->setFont(font);
         m_btnFontDecrease->setEnabled(size > 8);
         m_btnFontIncrease->setEnabled(size < 24);
-        AnalysisSettings::setUsiLogFontSize(size);
+        AnalysisSettings::usiLogFontSize.set(size);
     });
     m_fontManager->apply();
 }
@@ -396,7 +396,7 @@ void UsiLogPanel::onWrapToggled(bool checked)
         m_logView->setLineWrapMode(checked ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
         if (follow) scroll->setValue(scroll->maximum());
     }
-    AnalysisSettings::setUsiLogWrapLines(checked);
+    AnalysisSettings::usiLogWrapLines.set(checked);
 }
 
 void UsiLogPanel::scrollToLatest()

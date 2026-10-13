@@ -479,7 +479,7 @@ void CommentEditorPanel::updateCommentFontSize(int delta)
         m_comment->setFont(font);
     }
 
-    GameSettings::setCommentFontSize(m_currentFontSize);
+    GameSettings::commentFontSize.set(m_currentFontSize);
 }
 
 void CommentEditorPanel::updateEditingIndicator()

@@ -71,7 +71,7 @@ private:
     GameStartCoordinator::TimeSettings m_lastTimeControl;   ///< 直前の時間制御設定
 
     TimeControlController* m_timeController = nullptr;  ///< 非所有
-    QPointer<GameStartCoordinator> m_gameStart;        ///< 非所有（再生成追跡）
+    QPointer<GameStartCoordinator> m_gameStart;        ///< 非所有（MCW が所有）
     std::function<void(const QString&)> m_performPreStartCleanup; ///< 次局開始局面で初期化
 
     QTimer* m_delayTimer = nullptr; ///< 次局開始遅延用タイマー（所有: this）

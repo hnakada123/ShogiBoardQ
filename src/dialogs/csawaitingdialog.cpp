@@ -25,10 +25,8 @@ constexpr QSize kLogWindowDefaultSize{550, 450};
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
     , m_coordinator(coordinator)
-    , m_fontHelper({NetworkSettings::csaWaitingDialogFontSize(), 8, 24, 1,
-                    NetworkSettings::setCsaWaitingDialogFontSize})
-    , m_logFontHelper({NetworkSettings::csaLogFontSize(), 8, 24, 1,
-                       NetworkSettings::setCsaLogFontSize})
+    , m_fontHelper(NetworkSettings::csaWaitingDialogFontSize, 8, 24, 1)
+    , m_logFontHelper(NetworkSettings::csaLogFontSize, 8, 24, 1)
 {
     qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();
@@ -50,9 +48,9 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
 
 CsaWaitingDialog::~CsaWaitingDialog()
 {
-    DialogUtils::saveDialogSize(this, NetworkSettings::setCsaWaitingDialogSize);
+    DialogUtils::saveDialogSize(this, NetworkSettings::csaWaitingDialogSize);
     if (m_logWindow) {
-        NetworkSettings::setCsaLogWindowSize(m_logWindow->size());
+        NetworkSettings::csaLogWindowSize.set(m_logWindow->size());
         m_logWindow->close();
     }
 }

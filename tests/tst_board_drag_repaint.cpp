@@ -620,7 +620,7 @@ private slots:
         file.write(positions.join(QLatin1Char('\n')).toUtf8());
         file.close();
         // 最近使ったファイルから開く（ファイルを選ぶ画面を出さずに読み込む）
-        GameSettings::setSfenCollectionRecentFiles({file.fileName()});
+        GameSettings::sfenCollectionRecentFiles.set({file.fileName()});
         SfenCollectionDialog dialog;
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
@@ -645,7 +645,7 @@ private slots:
             index = step.second;
             QCOMPARE(view->board()->convertBoardToSfen(), positions.at(index).section(QLatin1Char(' '), 0, 0));
         }
-        GameSettings::setSfenCollectionRecentFiles({});
+        GameSettings::sfenCollectionRecentFiles.set({});
     }
 
     // 対局画面の外観（将棋盤・駒台・対局者情報・背景の見本、駒、駒の大きさ・影・木目）を1つずつ変え、

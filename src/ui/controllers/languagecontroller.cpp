@@ -81,7 +81,7 @@ void LanguageController::changeLanguage(const QString& lang)
     QString current = AppSettings::language();
     if (current == lang) return;
 
-    AppSettings::setLanguage(lang);
+    AppSettings::language.set(lang);
 
     restartNotice();
 }
@@ -142,12 +142,12 @@ void LanguageController::setNotationActions(QAction* automatic, QAction* japanes
 void LanguageController::onNotationTriggered(QAction* action)
 {
     if (AppSettings::moveNotation() == action->data().toString()) return;
-    AppSettings::setMoveNotation(action->data().toString());
+    AppSettings::moveNotation.set(action->data().toString());
     restartNotice();
 }
 void LanguageController::onOriginTriggered(bool enabled)
 {
-    AppSettings::setNotationOrigin(enabled);
+    AppSettings::notationOrigin.set(enabled);
     restartNotice();
 }
 

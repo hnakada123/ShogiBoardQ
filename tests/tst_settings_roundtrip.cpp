@@ -40,33 +40,65 @@ private slots:
     }
 
     // ========================================
+    // Setting<T>: 宣言の表の既定値と消去
+    // ========================================
+
+    /// 未保存の項目は宣言した既定値を返すこと（保存前に実行する）
+    void declaredDefaultsBeforeSaving()
+    {
+        QCOMPARE(AppSettings::language(), QStringLiteral("system"));
+        QCOMPARE(AppSettings::lastSelectedTabIndex(), 0);
+        QCOMPARE(AppSettings::toolbarVisible(), true);
+        QCOMPARE(AppSettings::menuWindowSize(), QSize(500, 400));
+        QCOMPARE(AppSettings::menuWindowFavorites(), QStringList());
+        QCOMPARE(GameSettings::kifuPaneFontSize(), 10);
+        QCOMPARE(GameSettings::startGameDialogSize(), QSize(1000, 580));
+        QCOMPARE(GameSettings::lastKifuDirectory(), QString());
+    }
+
+    /// 宣言したキーへ保存され、remove() で既定値へ戻ること
+    void settingWritesDeclaredKeyAndRemoveRestoresDefault()
+    {
+        const Setting<int>& fontSize = GameSettings::jishogiScoreFontSize;
+        QCOMPARE(fontSize.defaultValue(), 10);
+
+        fontSize.set(15);
+        QCOMPARE(fontSize(), 15);
+        QCOMPARE(SettingsCommon::openSettings().value(QLatin1String(fontSize.key())).toInt(), 15);
+
+        fontSize.remove();
+        QVERIFY(!SettingsCommon::openSettings().contains(QLatin1String(fontSize.key())));
+        QCOMPARE(fontSize(), fontSize.defaultValue());
+    }
+
+    // ========================================
     // AppSettings: UI状態
     // ========================================
 
     void appSettings_lastSelectedTabIndex()
     {
-        AppSettings::setLastSelectedTabIndex(3);
+        AppSettings::lastSelectedTabIndex.set(3);
         QCOMPARE(AppSettings::lastSelectedTabIndex(), 3);
 
-        AppSettings::setLastSelectedTabIndex(0);
+        AppSettings::lastSelectedTabIndex.set(0);
         QCOMPARE(AppSettings::lastSelectedTabIndex(), 0);
     }
 
     void appSettings_toolbarVisible()
     {
-        AppSettings::setToolbarVisible(false);
+        AppSettings::toolbarVisible.set(false);
         QCOMPARE(AppSettings::toolbarVisible(), false);
 
-        AppSettings::setToolbarVisible(true);
+        AppSettings::toolbarVisible.set(true);
         QCOMPARE(AppSettings::toolbarVisible(), true);
     }
 
     void appSettings_pieceSoundEnabled()
     {
-        AppSettings::setPieceSoundEnabled(false);
+        AppSettings::pieceSoundEnabled.set(false);
         QCOMPARE(AppSettings::pieceSoundEnabled(), false);
 
-        AppSettings::setPieceSoundEnabled(true);
+        AppSettings::pieceSoundEnabled.set(true);
         QCOMPARE(AppSettings::pieceSoundEnabled(), true);
     }
 
@@ -111,10 +143,10 @@ private slots:
 
     void appSettings_language()
     {
-        AppSettings::setLanguage(QStringLiteral("en"));
+        AppSettings::language.set(QStringLiteral("en"));
         QCOMPARE(AppSettings::language(), QStringLiteral("en"));
 
-        AppSettings::setLanguage(QStringLiteral("ja_JP"));
+        AppSettings::language.set(QStringLiteral("ja_JP"));
         QCOMPARE(AppSettings::language(), QStringLiteral("ja_JP"));
     }
 
@@ -194,9 +226,9 @@ private slots:
         QVERIFY(AppSettings::boardColors() == expected);
         AppSettings::setBoardColors(defaults);
 
-        AppSettings::setBoardColorDialogSize(QSize(600, 380));
+        AppSettings::boardColorDialogSize.set(QSize(600, 380));
         QCOMPARE(AppSettings::boardColorDialogSize(), QSize(600, 380));
-        AppSettings::setBoardColorPickerSize(QSize(700, 450));
+        AppSettings::boardColorPickerSize.set(QSize(700, 450));
         QCOMPARE(AppSettings::boardColorPickerSize(), QSize(700, 450));
     }
 
@@ -235,25 +267,25 @@ private slots:
         custom.cardBackground.setAlpha(255);
         QVERIFY(AppSettings::boardColors() == custom);
         AppSettings::setBoardColors(defaults);
-        AppSettings::setBoardColorDialogTab(4);
+        AppSettings::boardColorDialogTab.set(4);
         QCOMPARE(AppSettings::boardColorDialogTab(), 4);
-        AppSettings::setBoardColorDialogTab(0);
+        AppSettings::boardColorDialogTab.set(0);
     }
 
     void appSettings_menuWindow()
     {
         QSize testSize(900, 700);
-        AppSettings::setMenuWindowSize(testSize);
+        AppSettings::menuWindowSize.set(testSize);
         QCOMPARE(AppSettings::menuWindowSize(), testSize);
 
-        AppSettings::setMenuWindowButtonSize(64);
+        AppSettings::menuWindowButtonSize.set(64);
         QCOMPARE(AppSettings::menuWindowButtonSize(), 64);
 
-        AppSettings::setMenuWindowFontSize(14);
+        AppSettings::menuWindowFontSize.set(14);
         QCOMPARE(AppSettings::menuWindowFontSize(), 14);
 
         QStringList favorites = {QStringLiteral("item1"), QStringLiteral("item2")};
-        AppSettings::setMenuWindowFavorites(favorites);
+        AppSettings::menuWindowFavorites.set(favorites);
         QCOMPARE(AppSettings::menuWindowFavorites(), favorites);
     }
 
@@ -263,57 +295,57 @@ private slots:
 
     void analysisSettings_evalChart()
     {
-        AnalysisSettings::setEvalChartYLimit(3000);
+        AnalysisSettings::evalChartYLimit.set(3000);
         QCOMPARE(AnalysisSettings::evalChartYLimit(), 3000);
 
-        AnalysisSettings::setEvalChartXLimit(300);
+        AnalysisSettings::evalChartXLimit.set(300);
         QCOMPARE(AnalysisSettings::evalChartXLimit(), 300);
 
-        AnalysisSettings::setEvalChartXInterval(20);
+        AnalysisSettings::evalChartXInterval.set(20);
         QCOMPARE(AnalysisSettings::evalChartXInterval(), 20);
 
-        AnalysisSettings::setEvalChartLabelFontSize(12);
+        AnalysisSettings::evalChartLabelFontSize.set(12);
         QCOMPARE(AnalysisSettings::evalChartLabelFontSize(), 12);
     }
 
     void analysisSettings_fontSizes()
     {
-        AnalysisSettings::setUsiLogFontSize(11);
+        AnalysisSettings::usiLogFontSize.set(11);
         QCOMPARE(AnalysisSettings::usiLogFontSize(), 11);
 
-        AnalysisSettings::setThinkingFontSize(13);
+        AnalysisSettings::thinkingFontSize.set(13);
         QCOMPARE(AnalysisSettings::thinkingFontSize(), 13);
 
-        AnalysisSettings::setKifuAnalysisFontSize(14);
+        AnalysisSettings::kifuAnalysisFontSize.set(14);
         QCOMPARE(AnalysisSettings::kifuAnalysisFontSize(), 14);
 
-        AnalysisSettings::setConsiderationFontSize(15);
+        AnalysisSettings::considerationFontSize.set(15);
         QCOMPARE(AnalysisSettings::considerationFontSize(), 15);
     }
 
     void analysisSettings_kifuAnalysis()
     {
-        AnalysisSettings::setKifuAnalysisByoyomiSec(30);
+        AnalysisSettings::kifuAnalysisByoyomiSec.set(30);
         QCOMPARE(AnalysisSettings::kifuAnalysisByoyomiSec(), 30);
 
-        AnalysisSettings::setKifuAnalysisFullRange(true);
+        AnalysisSettings::kifuAnalysisFullRange.set(true);
         QCOMPARE(AnalysisSettings::kifuAnalysisFullRange(), true);
 
-        AnalysisSettings::setKifuAnalysisFullRange(false);
+        AnalysisSettings::kifuAnalysisFullRange.set(false);
         QCOMPARE(AnalysisSettings::kifuAnalysisFullRange(), false);
 
-        AnalysisSettings::setKifuAnalysisStartPly(10);
+        AnalysisSettings::kifuAnalysisStartPly.set(10);
         QCOMPARE(AnalysisSettings::kifuAnalysisStartPly(), 10);
 
-        AnalysisSettings::setKifuAnalysisEndPly(50);
+        AnalysisSettings::kifuAnalysisEndPly.set(50);
         QCOMPARE(AnalysisSettings::kifuAnalysisEndPly(), 50);
 
         QSize dialogSize(850, 650);
-        AnalysisSettings::setKifuAnalysisDialogSize(dialogSize);
+        AnalysisSettings::kifuAnalysisDialogSize.set(dialogSize);
         QCOMPARE(AnalysisSettings::kifuAnalysisDialogSize(), dialogSize);
 
         QSize resultsSize(700, 500);
-        AnalysisSettings::setKifuAnalysisResultsWindowSize(resultsSize);
+        AnalysisSettings::kifuAnalysisResultsWindowSize.set(resultsSize);
         QCOMPARE(AnalysisSettings::kifuAnalysisResultsWindowSize(), resultsSize);
     }
 
@@ -347,20 +379,20 @@ private slots:
 
     void analysisSettings_consideration()
     {
-        AnalysisSettings::setConsiderationUnlimitedTime(true);
+        AnalysisSettings::considerationUnlimitedTime.set(true);
         QCOMPARE(AnalysisSettings::considerationUnlimitedTime(), true);
 
-        AnalysisSettings::setConsiderationByoyomiSec(60);
+        AnalysisSettings::considerationByoyomiSec.set(60);
         QCOMPARE(AnalysisSettings::considerationByoyomiSec(), 60);
 
-        AnalysisSettings::setConsiderationMultiPV(4);
+        AnalysisSettings::considerationMultiPV.set(4);
         QCOMPARE(AnalysisSettings::considerationMultiPV(), 4);
     }
 
     void analysisSettings_pvBoard()
     {
         QSize pvSize(500, 500);
-        AnalysisSettings::setPvBoardDialogSize(pvSize);
+        AnalysisSettings::pvBoardDialogSize.set(pvSize);
         QCOMPARE(AnalysisSettings::pvBoardDialogSize(), pvSize);
     }
 
@@ -382,82 +414,82 @@ private slots:
     void gameSettings_kifuDirectory()
     {
         QString dir = QStringLiteral("/home/test/kifu");
-        GameSettings::setLastKifuDirectory(dir);
+        GameSettings::lastKifuDirectory.set(dir);
         QCOMPARE(GameSettings::lastKifuDirectory(), dir);
 
         QString saveDir = QStringLiteral("/home/test/kifu/save");
-        GameSettings::setLastKifuSaveDirectory(saveDir);
+        GameSettings::lastKifuSaveDirectory.set(saveDir);
         QCOMPARE(GameSettings::lastKifuSaveDirectory(), saveDir);
     }
 
     void gameSettings_recordPane()
     {
-        GameSettings::setKifuPaneFontSize(12);
+        GameSettings::kifuPaneFontSize.set(12);
         QCOMPARE(GameSettings::kifuPaneFontSize(), 12);
 
-        GameSettings::setKifuTimeColumnVisible(false);
+        GameSettings::kifuTimeColumnVisible.set(false);
         QCOMPARE(GameSettings::kifuTimeColumnVisible(), false);
 
-        GameSettings::setKifuTimeColumnVisible(true);
+        GameSettings::kifuTimeColumnVisible.set(true);
         QCOMPARE(GameSettings::kifuTimeColumnVisible(), true);
 
-        GameSettings::setKifuBookmarkColumnVisible(false);
+        GameSettings::kifuBookmarkColumnVisible.set(false);
         QCOMPARE(GameSettings::kifuBookmarkColumnVisible(), false);
 
-        GameSettings::setKifuCommentColumnVisible(false);
+        GameSettings::kifuCommentColumnVisible.set(false);
         QCOMPARE(GameSettings::kifuCommentColumnVisible(), false);
     }
 
     void gameSettings_commentAndGameInfo()
     {
-        GameSettings::setCommentFontSize(11);
+        GameSettings::commentFontSize.set(11);
         QCOMPARE(GameSettings::commentFontSize(), 11);
 
-        GameSettings::setGameInfoFontSize(13);
+        GameSettings::gameInfoFontSize.set(13);
         QCOMPARE(GameSettings::gameInfoFontSize(), 13);
     }
 
     void gameSettings_dialogSizes()
     {
         QSize startSize(1200, 700);
-        GameSettings::setStartGameDialogSize(startSize);
+        GameSettings::startGameDialogSize.set(startSize);
         QCOMPARE(GameSettings::startGameDialogSize(), startSize);
 
-        GameSettings::setStartGameDialogFontSize(11);
+        GameSettings::startGameDialogFontSize.set(11);
         QCOMPARE(GameSettings::startGameDialogFontSize(), 11);
 
         QSize pasteSize(700, 600);
-        GameSettings::setKifuPasteDialogSize(pasteSize);
+        GameSettings::kifuPasteDialogSize.set(pasteSize);
         QCOMPARE(GameSettings::kifuPasteDialogSize(), pasteSize);
 
-        GameSettings::setKifuPasteDialogFontSize(12);
+        GameSettings::kifuPasteDialogFontSize.set(12);
         QCOMPARE(GameSettings::kifuPasteDialogFontSize(), 12);
 
         QSize jishogiSize(300, 350);
-        GameSettings::setJishogiScoreDialogSize(jishogiSize);
+        GameSettings::jishogiScoreDialogSize.set(jishogiSize);
         QCOMPARE(GameSettings::jishogiScoreDialogSize(), jishogiSize);
 
-        GameSettings::setJishogiScoreFontSize(14);
+        GameSettings::jishogiScoreFontSize.set(14);
         QCOMPARE(GameSettings::jishogiScoreFontSize(), 14);
     }
 
     void gameSettings_sfenCollection()
     {
         QSize sfenSize(700, 800);
-        GameSettings::setSfenCollectionDialogSize(sfenSize);
+        GameSettings::sfenCollectionDialogSize.set(sfenSize);
         QCOMPARE(GameSettings::sfenCollectionDialogSize(), sfenSize);
 
         QStringList recentFiles = {
             QStringLiteral("/path/to/file1.sfen"),
             QStringLiteral("/path/to/file2.sfen"),
         };
-        GameSettings::setSfenCollectionRecentFiles(recentFiles);
+        GameSettings::sfenCollectionRecentFiles.set(recentFiles);
         QCOMPARE(GameSettings::sfenCollectionRecentFiles(), recentFiles);
 
-        GameSettings::setSfenCollectionSquareSize(60);
+        GameSettings::sfenCollectionSquareSize.set(60);
         QCOMPARE(GameSettings::sfenCollectionSquareSize(), 60);
 
-        GameSettings::setSfenCollectionLastDirectory(QStringLiteral("/tmp/sfen"));
+        GameSettings::sfenCollectionLastDirectory.set(QStringLiteral("/tmp/sfen"));
         QCOMPARE(GameSettings::sfenCollectionLastDirectory(), QStringLiteral("/tmp/sfen"));
     }
 
@@ -467,28 +499,28 @@ private slots:
 
     void networkSettings_fontSizes()
     {
-        NetworkSettings::setCsaLogFontSize(12);
+        NetworkSettings::csaLogFontSize.set(12);
         QCOMPARE(NetworkSettings::csaLogFontSize(), 12);
 
-        NetworkSettings::setCsaWaitingDialogFontSize(14);
+        NetworkSettings::csaWaitingDialogFontSize.set(14);
         QCOMPARE(NetworkSettings::csaWaitingDialogFontSize(), 14);
 
-        NetworkSettings::setCsaGameDialogFontSize(11);
+        NetworkSettings::csaGameDialogFontSize.set(11);
         QCOMPARE(NetworkSettings::csaGameDialogFontSize(), 11);
     }
 
     void networkSettings_dialogSizes()
     {
         QSize logSize(600, 500);
-        NetworkSettings::setCsaLogWindowSize(logSize);
+        NetworkSettings::csaLogWindowSize.set(logSize);
         QCOMPARE(NetworkSettings::csaLogWindowSize(), logSize);
 
         QSize gameSize(500, 400);
-        NetworkSettings::setCsaGameDialogSize(gameSize);
+        NetworkSettings::csaGameDialogSize.set(gameSize);
         QCOMPARE(NetworkSettings::csaGameDialogSize(), gameSize);
 
         QSize waitingSize(460, 300);
-        NetworkSettings::setCsaWaitingDialogSize(waitingSize);
+        NetworkSettings::csaWaitingDialogSize.set(waitingSize);
         QCOMPARE(NetworkSettings::csaWaitingDialogSize(), waitingSize);
     }
 
@@ -510,19 +542,19 @@ private slots:
         QVERIFY(NetworkSettings::csaGameName().isEmpty());
         QCOMPARE(NetworkSettings::csaTurnPreference(), 0);
 
-        NetworkSettings::setCsaKeepAliveEnabled(false);
-        NetworkSettings::setCsaKeepAliveIntervalSec(45);
-        NetworkSettings::setCsaTcpKeepAliveEnabled(false);
-        NetworkSettings::setCsaThinkingMarginSec(3);
-        NetworkSettings::setCsaGameCountMode(1);
-        NetworkSettings::setCsaGameCount(5);
-        NetworkSettings::setCsaReconnectAfterGame(true);
-        NetworkSettings::setCsaAutoSaveEnabled(true);
-        NetworkSettings::setCsaAutoSaveDir(QStringLiteral("/tmp/csa-records"));
-        NetworkSettings::setCsaAutoSaveFormat(QStringLiteral("csa"));
-        NetworkSettings::setCsaAutoFlipBoard(false);
-        NetworkSettings::setCsaGameName(QStringLiteral("floodgate-300-10F"));
-        NetworkSettings::setCsaTurnPreference(2);
+        NetworkSettings::csaKeepAliveEnabled.set(false);
+        NetworkSettings::csaKeepAliveIntervalSec.set(45);
+        NetworkSettings::csaTcpKeepAliveEnabled.set(false);
+        NetworkSettings::csaThinkingMarginSec.set(3);
+        NetworkSettings::csaGameCountMode.set(1);
+        NetworkSettings::csaGameCount.set(5);
+        NetworkSettings::csaReconnectAfterGame.set(true);
+        NetworkSettings::csaAutoSaveEnabled.set(true);
+        NetworkSettings::csaAutoSaveDir.set(QStringLiteral("/tmp/csa-records"));
+        NetworkSettings::csaAutoSaveFormat.set(QStringLiteral("csa"));
+        NetworkSettings::csaAutoFlipBoard.set(false);
+        NetworkSettings::csaGameName.set(QStringLiteral("floodgate-300-10F"));
+        NetworkSettings::csaTurnPreference.set(2);
 
         QVERIFY(!NetworkSettings::csaKeepAliveEnabled());
         QCOMPARE(NetworkSettings::csaKeepAliveIntervalSec(), 45);
@@ -545,18 +577,18 @@ private slots:
 
     void engineDialogSettings()
     {
-        EngineDialogSettings::setEngineSettingsFontSize(13);
+        EngineDialogSettings::engineSettingsFontSize.set(13);
         QCOMPARE(EngineDialogSettings::engineSettingsFontSize(), 13);
 
         QSize settingsSize(900, 600);
-        EngineDialogSettings::setEngineSettingsDialogSize(settingsSize);
+        EngineDialogSettings::engineSettingsDialogSize.set(settingsSize);
         QCOMPARE(EngineDialogSettings::engineSettingsDialogSize(), settingsSize);
 
-        EngineDialogSettings::setEngineRegistrationFontSize(11);
+        EngineDialogSettings::engineRegistrationFontSize.set(11);
         QCOMPARE(EngineDialogSettings::engineRegistrationFontSize(), 11);
 
         QSize regSize(800, 550);
-        EngineDialogSettings::setEngineRegistrationDialogSize(regSize);
+        EngineDialogSettings::engineRegistrationDialogSize.set(regSize);
         QCOMPARE(EngineDialogSettings::engineRegistrationDialogSize(), regSize);
     }
 
@@ -566,37 +598,37 @@ private slots:
 
     void josekiSettings_window()
     {
-        JosekiSettings::setJosekiWindowFontSize(12);
+        JosekiSettings::josekiWindowFontSize.set(12);
         QCOMPARE(JosekiSettings::josekiWindowFontSize(), 12);
 
         QSize josekiSize(1100, 800);
-        JosekiSettings::setJosekiWindowSize(josekiSize);
+        JosekiSettings::josekiWindowSize.set(josekiSize);
         QCOMPARE(JosekiSettings::josekiWindowSize(), josekiSize);
 
-        JosekiSettings::setJosekiWindowAutoLoadEnabled(true);
+        JosekiSettings::josekiWindowAutoLoadEnabled.set(true);
         QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), true);
 
-        JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+        JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
         QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), false);
 
-        JosekiSettings::setJosekiWindowDisplayEnabled(true);
+        JosekiSettings::josekiWindowDisplayEnabled.set(true);
         QCOMPARE(JosekiSettings::josekiWindowDisplayEnabled(), true);
 
-        JosekiSettings::setJosekiWindowSfenDetailVisible(true);
+        JosekiSettings::josekiWindowSfenDetailVisible.set(true);
         QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), true);
 
-        JosekiSettings::setJosekiWindowSfenDetailVisible(false);
+        JosekiSettings::josekiWindowSfenDetailVisible.set(false);
         QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), false);
 
         QString lastPath = QStringLiteral("/home/test/joseki/book.db");
-        JosekiSettings::setJosekiWindowLastFilePath(lastPath);
+        JosekiSettings::josekiWindowLastFilePath.set(lastPath);
         QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), lastPath);
 
         QStringList recentFiles = {
             QStringLiteral("/path/to/joseki1.db"),
             QStringLiteral("/path/to/joseki2.db"),
         };
-        JosekiSettings::setJosekiWindowRecentFiles(recentFiles);
+        JosekiSettings::josekiWindowRecentFiles.set(recentFiles);
         QCOMPARE(JosekiSettings::josekiWindowRecentFiles(), recentFiles);
 
         QList<int> colWidths = {50, 120, 80, 200};
@@ -606,18 +638,18 @@ private slots:
 
     void josekiSettings_dialogs()
     {
-        JosekiSettings::setJosekiMoveDialogFontSize(11);
+        JosekiSettings::josekiMoveDialogFontSize.set(11);
         QCOMPARE(JosekiSettings::josekiMoveDialogFontSize(), 11);
 
         QSize moveSize(500, 400);
-        JosekiSettings::setJosekiMoveDialogSize(moveSize);
+        JosekiSettings::josekiMoveDialogSize.set(moveSize);
         QCOMPARE(JosekiSettings::josekiMoveDialogSize(), moveSize);
 
-        JosekiSettings::setJosekiMergeDialogFontSize(12);
+        JosekiSettings::josekiMergeDialogFontSize.set(12);
         QCOMPARE(JosekiSettings::josekiMergeDialogFontSize(), 12);
 
         QSize mergeSize(600, 500);
-        JosekiSettings::setJosekiMergeDialogSize(mergeSize);
+        JosekiSettings::josekiMergeDialogSize.set(mergeSize);
         QCOMPARE(JosekiSettings::josekiMergeDialogSize(), mergeSize);
     }
 
@@ -628,31 +660,31 @@ private slots:
     void tsumeshogiSettings()
     {
         QSize tsumSize(700, 600);
-        TsumeshogiSettings::setTsumeshogiGeneratorDialogSize(tsumSize);
+        TsumeshogiSettings::tsumeshogiGeneratorDialogSize.set(tsumSize);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorDialogSize(), tsumSize);
 
-        TsumeshogiSettings::setTsumeshogiGeneratorFontSize(13);
+        TsumeshogiSettings::tsumeshogiGeneratorFontSize.set(13);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorFontSize(), 13);
 
-        TsumeshogiSettings::setTsumeshogiGeneratorTargetMoves(7);
+        TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.set(7);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorTargetMoves(), 7);
 
-        TsumeshogiSettings::setTsumeshogiGeneratorMaxAttackPieces(5);
+        TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.set(5);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces(), 5);
 
-        TsumeshogiSettings::setTsumeshogiGeneratorMaxDefendPieces(3);
+        TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.set(3);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces(), 3);
 
-        TsumeshogiSettings::setTsumeshogiGeneratorAttackRange(4);
+        TsumeshogiSettings::tsumeshogiGeneratorAttackRange.set(4);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorAttackRange(), 4);
 
-        TsumeshogiSettings::setTsumeshogiGeneratorTimeoutSec(120);
+        TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.set(120);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec(), 120);
 
-        TsumeshogiSettings::setTsumeshogiGeneratorMaxPositions(1000);
+        TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.set(1000);
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions(), 1000);
 
-        TsumeshogiSettings::setTsumeshogiGeneratorLastSaveDirectory(QStringLiteral("/tmp/tsume"));
+        TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory.set(QStringLiteral("/tmp/tsume"));
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory(), QStringLiteral("/tmp/tsume"));
 
         TsumeshogiSettings::CollectionPreferences collection;
@@ -680,10 +712,10 @@ private slots:
 
     void dockSettings_lockState()
     {
-        DockSettings::setDocksLocked(true);
+        DockSettings::docksLocked.set(true);
         QCOMPARE(DockSettings::docksLocked(), true);
 
-        DockSettings::setDocksLocked(false);
+        DockSettings::docksLocked.set(false);
         QCOMPARE(DockSettings::docksLocked(), false);
     }
 
@@ -698,7 +730,7 @@ private slots:
         QStringList names = DockSettings::savedDockLayoutNames();
         QVERIFY(names.contains(QStringLiteral("TestLayout")));
 
-        DockSettings::setStartupDockLayoutName(QStringLiteral("TestLayout"));
+        DockSettings::startupDockLayoutName.set(QStringLiteral("TestLayout"));
         QCOMPARE(DockSettings::startupDockLayoutName(), QStringLiteral("TestLayout"));
 
         DockSettings::deleteDockLayout(QStringLiteral("TestLayout"));

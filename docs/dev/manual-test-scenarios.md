@@ -289,16 +289,17 @@
    - `QTimer::singleShot(0)` による解除が確実に機能しているか
 
 2. **`sfenRecord()` 参照先のライフタイム**
-   - `MatchCoordinator` 再生成時にポインタが無効化されないか（局面列は MainWindow の `KifuState::sfenRecord` が持ち、どの司令塔にも同じリストを渡す）
+   - 司令塔（`MatchCoordinator`、起動時に一度だけ作る）と各部品が、MainWindow の `KifuState::sfenRecord`（局面列）を同じリストとして指しているか（評価値グラフは司令塔の `sfenRecordPtr()` を受け取る）
    - 盤面同期（`BoardSyncPresenter`）が対局の局面列ではなく、表示中の手順（`currentLine` = `KifuNavigationState::currentRecordLine()`）から盤面を描いているか
 
 3. **`TurnManager` と `GameController` の同期順序**
    - ライブ対局中は GC を単一ソースとしているか
    - 棋譜ナビゲーション時は盤面SFEN を優先しているか
 
-4. **`KifuLoadCoordinator` 再生成時の古い接続残り**
-   - `deleteLater()` 後に新しいインスタンスで接続が正しく張り直されるか
-   - 旧インスタンスの保留シグナルによる dangling pointer がないか
+4. **`KifuLoadCoordinator` の使い回し**
+   - 最初の読み込みで作った1つのインスタンス（`KifuSubRegistry::ensureKifuLoadCoordinator()`）で、2回目以降の読み込みも正しく反映されるか
+   - 読み込み中に別の棋譜を読み込んだとき、前の読み込みの結果が後から反映されないか（`KifuLoadCoordinator::startLoad()` が前のジョブを捨てる）
+   - 初期状態へのリセット（`MainWindowServiceRegistry::resetModels()` から `MainWindowResetService::resetBranchTreeForNewState()`）で、読み込み途中の棋譜が `cancelLoad()` で捨てられるか
 
 5. **`UiStatePolicyManager` の状態遷移**
    - 各シナリオで期待される状態遷移が正しく発生しているか

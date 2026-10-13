@@ -366,11 +366,11 @@ void JosekiWindow::loadSettings()
 
 void JosekiWindow::saveSettings()
 {
-    DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiWindowSize);
+    DialogUtils::saveDialogSize(this, JosekiSettings::josekiWindowSize);
     // 「履歴をクリア」した後は、開き直すか保存して履歴に戻るまで前回のファイルとして記録しない
-    JosekiSettings::setJosekiWindowLastFilePath(m_recentFiles.contains(m_currentFilePath) ? m_currentFilePath : QString());
-    JosekiSettings::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
-    JosekiSettings::setJosekiWindowRecentFiles(m_recentFiles);
+    JosekiSettings::josekiWindowLastFilePath.set(m_recentFiles.contains(m_currentFilePath) ? m_currentFilePath : QString());
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(m_autoLoadEnabled);
+    JosekiSettings::josekiWindowRecentFiles.set(m_recentFiles);
     if (m_tableWidget) {
         QList<int> widths;
         for (int i = 0; i < m_tableWidget->columnCount(); ++i)

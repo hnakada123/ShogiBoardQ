@@ -28,8 +28,7 @@
 
 TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper({TsumeshogiSettings::tsumePlayFontSize(), 8, 24, 1,
-                    TsumeshogiSettings::setTsumePlayFontSize})
+    , m_fontHelper(TsumeshogiSettings::tsumePlayFontSize, 8, 24, 1)
 {
     setObjectName(QStringLiteral("tsumePlayDialog"));
     setWindowTitle(tr("詰将棋対局"));

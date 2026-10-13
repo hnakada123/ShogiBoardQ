@@ -145,7 +145,7 @@
 
 ```
 GameStartCoordinator::started ──────────► transitionToDuringGame()
-GameStartCoordinator::matchGameEnded ───► transitionToIdle()
+MatchCoordinator::gameEnded ────────────► transitionToIdle()  （終局処理への転送より後に接続）
 GameStateController callback ───────────► transitionToIdle()
 
 DialogCoordinator::analysisModeStarted ─► transitionToDuringAnalysis()
@@ -173,7 +173,7 @@ PositionEditCoordinator callback(false) ─► transitionToIdle()
 【対局中】
   Usi::errorOccurred → MatchCoordinator::onUsiError()
     → handleBreakOff() → gameEnded()
-    → GameStartCoordinator::matchGameEnded → transitionToIdle()
+    → MatchCoordinator::gameEnded → transitionToIdle()
 
 【棋譜解析中】
   Usi::errorOccurred → AnalysisFlowController::onEngineError()

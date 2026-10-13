@@ -39,9 +39,9 @@ private slots:
     void initTestCase() { qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8()); qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8()); }
     void cleanup()
     {
-        AppSettings::setLanguage("system");
-        AppSettings::setMoveNotation("auto");
-        AppSettings::setNotationOrigin(false);
+        AppSettings::language.set("system");
+        AppSettings::moveNotation.set("auto");
+        AppSettings::notationOrigin.set(false);
         KifuPresentation::configure("ja_JP", "auto", false);
         ApplicationFonts::initialize();
     }
@@ -68,9 +68,9 @@ private slots:
         QFETCH(bool, alwaysOrigin);
         QFETCH(QString, resign);
         QFETCH(QString, firstRank);
-        AppSettings::setLanguage(language);
-        AppSettings::setMoveNotation(notation);
-        AppSettings::setNotationOrigin(alwaysOrigin);
+        AppSettings::language.set(language);
+        AppSettings::moveNotation.set(notation);
+        AppSettings::notationOrigin.set(alwaysOrigin);
         QCOMPARE(KifuPresentation::status("投了"), QStringLiteral("投了"));
         {
             const ApplicationTranslations translations(QStringLiteral(TRANSLATIONS_DIR));
@@ -91,7 +91,7 @@ private slots:
         const QString cancel = reference.translate("QPlatformTheme", "Cancel");
         QVERIFY(!cancel.isEmpty());
         const QString original = QCoreApplication::translate("QPlatformTheme", "Cancel");
-        AppSettings::setLanguage("ja_JP");
+        AppSettings::language.set("ja_JP");
         {
             const ApplicationTranslations translations(QStringLiteral(TRANSLATIONS_DIR));
             QCOMPARE(QCoreApplication::translate("QPlatformTheme", "Cancel"), cancel);
@@ -103,9 +103,9 @@ private slots:
     {
         QTemporaryDir emptyDirectory;
         QVERIFY(emptyDirectory.isValid());
-        AppSettings::setLanguage("en");
-        AppSettings::setMoveNotation("western");
-        AppSettings::setNotationOrigin(true);
+        AppSettings::language.set("en");
+        AppSettings::moveNotation.set("western");
+        AppSettings::notationOrigin.set(true);
         QTest::ignoreMessage(QtWarningMsg, "Translation file not found: \"en\"");
         const ApplicationTranslations translations(emptyDirectory.path());
         QCOMPARE(translations.language(), QStringLiteral("en"));

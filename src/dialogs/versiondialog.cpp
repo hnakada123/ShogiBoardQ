@@ -85,8 +85,8 @@ VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(std::make_un
 
 VersionDialog::~VersionDialog()
 {
-    AppSettings::setVersionDialogSize(size());
-    AppSettings::setVersionDialogDocument(findChild<QComboBox*>(QStringLiteral("licenseDocuments"))->currentIndex());
+    AppSettings::versionDialogSize.set(size());
+    AppSettings::versionDialogDocument.set(findChild<QComboBox*>(QStringLiteral("licenseDocuments"))->currentIndex());
 }
 
 QString VersionDialog::sourceCodeDocument()

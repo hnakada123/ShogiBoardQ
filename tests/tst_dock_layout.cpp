@@ -223,7 +223,7 @@ void TestDockLayout::restoreStartupLayoutIfSet_restoresLayout()
     setup.dock2->setFloating(true);
     QByteArray state = setup.mainWindow.saveState();
     DockSettings::saveDockLayout(QStringLiteral("Startup"), state);
-    DockSettings::setStartupDockLayoutName(QStringLiteral("Startup"));
+    DockSettings::startupDockLayoutName.set(QStringLiteral("Startup"));
 
     // dock1 を非表示にして状態を変更
     setup.dock1->setVisible(false);
@@ -243,7 +243,7 @@ void TestDockLayout::restoreStartupLayoutIfSet_noLayoutSet_noEffect()
     setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
 
     // スタートアップレイアウトが未設定
-    DockSettings::setStartupDockLayoutName(QString());
+    DockSettings::startupDockLayoutName.set(QString());
 
     QByteArray stateBefore = setup.mainWindow.saveState();
 

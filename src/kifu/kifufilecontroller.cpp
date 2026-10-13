@@ -66,7 +66,7 @@ void KifuFileController::chooseAndLoadKifuFile()
 
     // 選択したファイルのディレクトリを保存
     QFileInfo fileInfo(filePath);
-    GameSettings::setLastKifuDirectory(fileInfo.absolutePath());
+    GameSettings::lastKifuDirectory.set(fileInfo.absolutePath());
 
     startAsyncLoad(filePath, false);
 }

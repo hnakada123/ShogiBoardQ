@@ -224,7 +224,7 @@ private slots:
     }
 
     // ============================================================
-    // C) 完全フロー: performCleanup + resetBranchTreeForNewGame 相当
+    // C) 完全フロー: performCleanup + requestBranchTreeResetForNewGame 相当
     // ============================================================
 
     void fullPresetFlow_kifuModelAndBranchTreeBothReset()
@@ -243,7 +243,7 @@ private slots:
         // Step 2: performCleanup (requestPreStartCleanup のスロット)
         h.handler->performCleanup();
 
-        // Step 3: resetBranchTreeForNewGame 相当の処理
+        // Step 3: requestBranchTreeResetForNewGame 相当の処理
         //         （KifuLoadCoordinator が行う処理を模擬）
         h.navState.setCurrentNode(nullptr);
         h.navState.resetPreferredLineIndex();

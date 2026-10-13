@@ -6,13 +6,27 @@
 #include <QWidget>
 #include <functional>
 
+#include "setting.h"
+
 namespace DialogUtils {
 
 /// 保存済みサイズを復元する。savedSize が無効または小さすぎる場合は何もしない。
 void restoreDialogSize(QWidget* dialog, const QSize& savedSize);
 
+/// 設定に保存したサイズを復元する（ダイアログの大きさは設定の宣言の表に1行で書く）
+inline void restoreDialogSize(QWidget* dialog, const Setting<QSize>& setting)
+{
+    restoreDialogSize(dialog, setting());
+}
+
 /// 現在のウィジェットサイズを保存する。
 void saveDialogSize(const QWidget* dialog, const std::function<void(const QSize&)>& setter);
+
+/// 現在のウィジェットサイズを設定に保存する
+inline void saveDialogSize(const QWidget* dialog, const Setting<QSize>& setting)
+{
+    saveDialogSize(dialog, [&setting](const QSize& size) { setting.set(size); });
+}
 
 /// ウィジェットと全子ウィジェットにフォントを適用する。
 /// KDE Breeze テーマでは setFont() が子ウィジェットに伝播しないため、

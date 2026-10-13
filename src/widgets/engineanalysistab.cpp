@@ -310,14 +310,14 @@ void EngineAnalysisTab::setArrowController(CandidateArrowController* controller)
 
 void EngineAnalysisTab::onMatchArrowsToggled(bool checked)
 {
-    AnalysisSettings::setMatchArrowsVisible(checked);
+    AnalysisSettings::matchArrowsVisible.set(checked);
     updateArrowControls();
     if (m_arrowController) m_arrowController->scheduleRefresh();
 }
 
 void EngineAnalysisTab::onPonderArrowsToggled(bool checked)
 {
-    AnalysisSettings::setPonderArrowsVisible(checked);
+    AnalysisSettings::ponderArrowsVisible.set(checked);
     updateArrowControls();
     if (m_arrowController) m_arrowController->scheduleRefresh();
 }

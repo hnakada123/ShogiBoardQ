@@ -433,14 +433,14 @@ void AnalysisResultsPresenter::increaseFontSize()
 {
     if (!m_view) return;
     applyFontSize(m_view->font().pointSize() + 1);
-    AnalysisSettings::setKifuAnalysisFontSize(m_view->font().pointSize());
+    AnalysisSettings::kifuAnalysisFontSize.set(m_view->font().pointSize());
 }
 
 void AnalysisResultsPresenter::decreaseFontSize()
 {
     if (!m_view) return;
     applyFontSize(m_view->font().pointSize() - 1);
-    AnalysisSettings::setKifuAnalysisFontSize(m_view->font().pointSize());
+    AnalysisSettings::kifuAnalysisFontSize.set(m_view->font().pointSize());
 }
 
 void AnalysisResultsPresenter::restoreFontSize()
@@ -454,7 +454,7 @@ void AnalysisResultsPresenter::saveWindowSize()
 {
     // ドックのサイズを保存
     if (m_dock) {
-        AnalysisSettings::setKifuAnalysisResultsWindowSize(m_dock->size());
+        AnalysisSettings::kifuAnalysisResultsWindowSize.set(m_dock->size());
         // 閉じるボタンが押されたらドックを非表示にする
         m_dock->setVisible(false);
     }

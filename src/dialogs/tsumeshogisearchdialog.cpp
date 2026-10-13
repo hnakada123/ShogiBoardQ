@@ -18,7 +18,7 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     , m_engines(EngineListSettings::loadEngines())
     , m_fontHelper({AnalysisSettings::tsumeSearchFontSize() > 0
                         ? AnalysisSettings::tsumeSearchFontSize() : qMax(10, font().pointSize()),
-                    8, 24, 1, AnalysisSettings::setTsumeSearchFontSize})
+                    8, 24, 1, [](int size) { AnalysisSettings::tsumeSearchFontSize.set(size); }})
 {
     ui->setupUi(this);
     auto* start = ui->buttonBox->button(QDialogButtonBox::Ok);
@@ -121,14 +121,14 @@ void TsumeShogiSearchDialog::accept()
     if (!hasValidEngine()) return;
     ui->byoyomiSec->interpretText();
     EngineListSettings::saveSelection(EngineListSettings::tsumeSearchSelection(), m_engines.at(engineNumber()).name);
-    AnalysisSettings::setTsumeSearchUnlimitedTime(unlimitedTimeFlag());
-    AnalysisSettings::setTsumeSearchTimeLimitSec(byoyomiSec());
+    AnalysisSettings::tsumeSearchUnlimitedTime.set(unlimitedTimeFlag());
+    AnalysisSettings::tsumeSearchTimeLimitSec.set(byoyomiSec());
     QDialog::accept();
 }
 
 void TsumeShogiSearchDialog::done(int result)
 {
-    DialogUtils::saveDialogSize(this, AnalysisSettings::setTsumeSearchDialogSize);
+    DialogUtils::saveDialogSize(this, AnalysisSettings::tsumeSearchDialogSize);
     QDialog::done(result);
 }
 

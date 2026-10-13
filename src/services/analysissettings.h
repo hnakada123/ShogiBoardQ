@@ -12,44 +12,36 @@
 #include <QSize>
 #include <QList>
 #include <QString>
+#include "setting.h"
 
 namespace AnalysisSettings {
 
 // --- 分岐ツリー ---
 
 /// 分岐ツリーの表示倍率（%、デフォルト: 100）
-int branchTreeZoomPercent();
-void setBranchTreeZoomPercent(int percent);
+inline const Setting<int> branchTreeZoomPercent{"BranchTree/zoomPercent", 100};
 
 /// 変化を空いた段に詰めて表示するか（デフォルト: true）
-bool branchTreeCompactLayout();
-void setBranchTreeCompactLayout(bool compact);
+inline const Setting<bool> branchTreeCompactLayout{"BranchTree/compactLayout", true};
 
 // --- 評価値グラフ ---
 
 /// 評価値上限（デフォルト: 2000）
-int evalChartYLimit();
-void setEvalChartYLimit(int limit);
+inline const Setting<int> evalChartYLimit{"EvalChart/yLimit", 2000};
 
 /// 手数上限（デフォルト: 500）
-int evalChartXLimit();
-void setEvalChartXLimit(int limit);
+inline const Setting<int> evalChartXLimit{"EvalChart/xLimit", 500};
 
 /// 手数間隔（デフォルト: 0 = 自動）
-int evalChartXInterval();
-void setEvalChartXInterval(int interval);
+inline const Setting<int> evalChartXInterval{"EvalChart/xInterval", 0};
 
 /// 軸ラベルフォントサイズ（デフォルト: 10）
-int evalChartLabelFontSize();
-void setEvalChartLabelFontSize(int size);
+inline const Setting<int> evalChartLabelFontSize{"EvalChart/labelFontSize", 10};
 
-bool evalChartAutomaticRange();
-void setEvalChartAutomaticRange(bool automatic);
+inline const Setting<bool> evalChartAutomaticRange{"EvalChart/automaticRange", true};
 /// 0 は画面サイズに応じた自動目盛り
-int evalChartYInterval();
-void setEvalChartYInterval(int interval);
-QSize evalChartSettingsSize();
-void setEvalChartSettingsSize(const QSize& size);
+inline const Setting<int> evalChartYInterval{"EvalChart/yInterval", 0};
+inline const Setting<QSize> evalChartSettingsSize{"EvalChart/settingsSize", QSize(420, 320)};
 
 // --- 解析タブ ---
 
@@ -62,98 +54,77 @@ QList<int> thinkingViewColumnWidths(int viewIndex);
 void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths);
 
 /// USI通信ログタブのフォントサイズ（デフォルト: 10）
-int usiLogFontSize();
-void setUsiLogFontSize(int size);
+inline const Setting<int> usiLogFontSize{"FontSize/usiLog", 10};
 
-bool usiLogWrapLines();
-void setUsiLogWrapLines(bool wrap);
+inline const Setting<bool> usiLogWrapLines{"UsiLog/wrapLines", false};
 /// コマンド送信先（0=E1、1=E2、2=両方）
 int usiLogCommandTarget();
 void setUsiLogCommandTarget(int target);
 
 /// 思考タブのフォントサイズ（デフォルト: 10）
-int thinkingFontSize();
-void setThinkingFontSize(int size);
+inline const Setting<int> thinkingFontSize{"FontSize/thinking", 10};
 
-bool matchArrowsVisible();
-void setMatchArrowsVisible(bool visible);
-bool ponderArrowsVisible();
-void setPonderArrowsVisible(bool visible);
+inline const Setting<bool> matchArrowsVisible{"ThinkingView/matchArrowsVisible", false};
+inline const Setting<bool> ponderArrowsVisible{"ThinkingView/ponderArrowsVisible", false};
 
 // --- 棋譜解析 ---
 
-/// 棋譜解析ダイアログのフォントサイズ（デフォルト: 10）
-int kifuAnalysisFontSize();
-void setKifuAnalysisFontSize(int size);
+/// 棋譜解析ダイアログのフォントサイズ（0 はアプリケーションの文字サイズを使用）
+inline const Setting<int> kifuAnalysisFontSize{"KifuAnalysis/fontSize", 0};
 
 /// 解析結果の先頭7列の幅（0は内容に合わせて調整）
 QList<int> kifuAnalysisColumnWidths();
 void setKifuAnalysisColumnWidths(const QList<int>& widths);
 
 /// 棋譜解析結果ウィンドウのサイズ（デフォルト: 1100x600）
-QSize kifuAnalysisResultsWindowSize();
-void setKifuAnalysisResultsWindowSize(const QSize& size);
+inline const Setting<QSize> kifuAnalysisResultsWindowSize{"KifuAnalysis/resultsWindowSize", QSize(1100, 600)};
 
 /// 1手あたりの思考時間・秒（デフォルト: 3）
-int kifuAnalysisByoyomiSec();
-void setKifuAnalysisByoyomiSec(int sec);
+inline const Setting<int> kifuAnalysisByoyomiSec{"KifuAnalysis/byoyomiSec", 3};
 
 
 /// 解析範囲: 全局面解析（デフォルト: true）
-bool kifuAnalysisFullRange();
-void setKifuAnalysisFullRange(bool fullRange);
+inline const Setting<bool> kifuAnalysisFullRange{"KifuAnalysis/fullRange", true};
 
 /// 解析範囲: 開始手数（デフォルト: 0）
-int kifuAnalysisStartPly();
-void setKifuAnalysisStartPly(int ply);
+inline const Setting<int> kifuAnalysisStartPly{"KifuAnalysis/startPly", 0};
 
 /// 解析範囲: 終了手数（デフォルト: -1 = 最終局面）
-int kifuAnalysisEndPly();
-void setKifuAnalysisEndPly(int ply);
+inline const Setting<int> kifuAnalysisEndPly{"KifuAnalysis/endPly", -1};
 
 /// 棋譜解析ダイアログのウィンドウサイズ（デフォルト: 560x380）
-QSize kifuAnalysisDialogSize();
-void setKifuAnalysisDialogSize(const QSize& size);
+inline const Setting<QSize> kifuAnalysisDialogSize{"SizeRelated/kifuAnalysisDialogSize", QSize(560, 380)};
 
 // --- 検討モード ---
 
 
 /// 検討タブの時間無制限フラグ（デフォルト: true）
-bool considerationUnlimitedTime();
-void setConsiderationUnlimitedTime(bool unlimited);
+inline const Setting<bool> considerationUnlimitedTime{"Consideration/unlimitedTime", true};
 
 /// 検討タブの検討時間・秒（デフォルト: 0）
-int considerationByoyomiSec();
-void setConsiderationByoyomiSec(int sec);
+inline const Setting<int> considerationByoyomiSec{"Consideration/byoyomiSec", 0};
 
 /// 検討の候補手の数（デフォルト: 1）
-int considerationMultiPV();
-void setConsiderationMultiPV(int multiPV);
+inline const Setting<int> considerationMultiPV{"Consideration/multiPV", 1};
 
 /// 検討タブのフォントサイズ（デフォルト: 10）
-int considerationFontSize();
-void setConsiderationFontSize(int size);
+inline const Setting<int> considerationFontSize{"ConsiderationTab/fontSize", 10};
 
 // --- 詰み探索（検討とは独立して保存） ---
 
 
 /// 探索時間（デフォルト: 時間制限あり・20秒）
-bool tsumeSearchUnlimitedTime();
-void setTsumeSearchUnlimitedTime(bool unlimited);
-int tsumeSearchTimeLimitSec();
-void setTsumeSearchTimeLimitSec(int sec);
+inline const Setting<bool> tsumeSearchUnlimitedTime{"TsumeSearch/unlimitedTime", false};
+inline const Setting<int> tsumeSearchTimeLimitSec{"TsumeSearch/timeLimitSec", 20};
 
 /// 0 はアプリケーションの文字サイズを使用
-int tsumeSearchFontSize();
-void setTsumeSearchFontSize(int size);
-QSize tsumeSearchDialogSize();
-void setTsumeSearchDialogSize(const QSize& size);
+inline const Setting<int> tsumeSearchFontSize{"TsumeSearch/fontSize", 0};
+inline const Setting<QSize> tsumeSearchDialogSize{"TsumeSearch/dialogSize", QSize(560, 360)};
 
 // --- 読み筋盤面 ---
 
 /// 読み筋表示ウィンドウのサイズ（デフォルト: 620x720）
-QSize pvBoardDialogSize();
-void setPvBoardDialogSize(const QSize& size);
+inline const Setting<QSize> pvBoardDialogSize{"SizeRelated/pvBoardDialogSize", QSize(620, 720)};
 
 } // namespace AnalysisSettings
 

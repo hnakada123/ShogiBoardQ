@@ -923,23 +923,20 @@ set(SRC_SERVICES
     src/services/appsettings.h
     src/services/docksettings.cpp
     src/services/docksettings.h
-    src/services/enginedialogsettings.cpp
     src/services/enginedialogsettings.h
     src/services/enginepondersettings.cpp
     src/services/enginepondersettings.h
     src/services/enginelistsettings.cpp
     src/services/enginelistsettings.h
-    src/services/gamesettings.cpp
     src/services/gamesettings.h
     src/services/josekisettings.cpp
     src/services/josekisettings.h
-    src/services/networksettings.cpp
     src/services/networksettings.h
     src/services/apppaths.h
+    src/services/setting.h
     src/services/settingscommon.cpp
     src/services/settingscommon.h
     src/services/settingskeys.h
-    src/services/settingsservice.cpp
     src/services/settingsservice.h
     src/services/tsumeshogisettings.cpp
     src/services/tsumeshogisettings.h

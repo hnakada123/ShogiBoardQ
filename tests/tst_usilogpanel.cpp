@@ -48,7 +48,7 @@ private slots:
     void appendPreservesReadingPositionAndSelection()
     {
         QFETCH(bool, wrap);
-        AnalysisSettings::setUsiLogWrapLines(wrap);
+        AnalysisSettings::usiLogWrapLines.set(wrap);
         UsiLogPanel panel;
         std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
         page->resize(800, 300);
@@ -108,7 +108,7 @@ private slots:
     void appendKeepsPreviousLineLayout()
     {
         QFETCH(bool, wrap);
-        AnalysisSettings::setUsiLogWrapLines(wrap);
+        AnalysisSettings::usiLogWrapLines.set(wrap);
         UsiLogPanel panel;
         std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
         page->resize(700, 300);

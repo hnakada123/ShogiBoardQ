@@ -120,7 +120,7 @@ private:
     ShogiView* m_shogiView = nullptr;
     ShogiGameController* m_gameController = nullptr;
     QPointer<BoardInteractionController> m_boardController;
-    QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
+    QPointer<MatchCoordinator> m_match;                  ///< 非所有（MCW が所有）
     PositionEditController* m_posEdit = nullptr;
     QObject* m_wheelFilter = nullptr;
 

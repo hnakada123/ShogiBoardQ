@@ -2,9 +2,9 @@
 #define SETTINGSSERVICE_H
 
 /// @file settingsservice.h
-/// @brief アプリケーション設定の永続化サービス（互換アダプタ）
+/// @brief ドメイン別の設定ヘッダーをまとめて取り込むヘッダー
 ///
-/// 全関数はドメイン別 namespace に移行済みです。
+/// 設定項目はドメイン別ヘッダーに Setting<T>（setting.h）で1行ずつ宣言しています。
 /// 新規コードはドメイン別ヘッダーを直接 include してください:
 ///   settingscommon.h, appsettings.h, docksettings.h, josekisettings.h,
 ///   analysissettings.h, gamesettings.h, enginedialogsettings.h,

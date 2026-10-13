@@ -69,15 +69,11 @@ endif()
 # Settings sources (全ドメイン設定ファイル)
 set(SETTINGS_SOURCES
     ${SRC}/services/settingscommon.cpp
-    ${SRC}/services/settingsservice.cpp
     ${SRC}/services/analysissettings.cpp
     ${SRC}/services/appsettings.cpp
     ${SRC}/services/docksettings.cpp
-    ${SRC}/services/enginedialogsettings.cpp
     ${SRC}/services/enginelistsettings.cpp
-    ${SRC}/services/gamesettings.cpp
     ${SRC}/services/josekisettings.cpp
-    ${SRC}/services/networksettings.cpp
     ${SRC}/services/tsumeshogisettings.cpp
 )
 
@@ -456,7 +452,6 @@ add_shogi_test(tst_kifusavecoordinator
     ${SRC}/kifu/kifuioservice.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/services/settingscommon.cpp
-    ${SRC}/services/gamesettings.cpp
 )
 
 # ============================================================
@@ -735,8 +730,6 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/common/dialogutils.cpp
     ${SRC}/common/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/services/gamesettings.cpp
-    ${SRC}/services/enginedialogsettings.cpp
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/enginepondersettings.cpp
     ${SRC}/services/settingscommon.cpp
@@ -757,7 +750,6 @@ add_shogi_test(tst_enginepondersettings
     ${SRC}/common/dialogutils.cpp
     ${SRC}/common/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/services/enginedialogsettings.cpp
     ${SRC}/services/enginepondersettings.cpp
     ${SRC}/services/settingscommon.cpp
 )
@@ -1033,7 +1025,6 @@ add_shogi_test(tst_app_ui_state_policy
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/uistatepolicymanager.cpp
     ${SRC}/widgets/recordpaneappearancemanager.cpp
-    ${SRC}/services/gamesettings.cpp
     ${SRC}/services/settingscommon.cpp
     ${SRC}/app/mainwindow.ui
     ${SRC}/common/errorbus.cpp
@@ -1183,7 +1174,7 @@ target_compile_definitions(tst_wiring_slot_coverage PRIVATE
 )
 
 # ============================================================
-# Unit 37: Lifecycle Runtime (MatchRuntimeQueryService 寿命安全性テスト)
+# Unit 37: Lifecycle Runtime (PlayModePolicyService の Deps 未設定時の既定値)
 # ============================================================
 add_shogi_test(tst_lifecycle_runtime
     tst_lifecycle_runtime.cpp
@@ -1375,7 +1366,6 @@ add_shogi_test(tst_jishogi_score_dialog
     ${SRC}/common/fontsizehelper.cpp
     ${SRC}/common/dialogutils.cpp
     ${SRC}/common/applicationfonts.cpp
-    ${SRC}/services/gamesettings.cpp
     ${SRC}/services/settingscommon.cpp
 )
 target_compile_definitions(tst_jishogi_score_dialog PRIVATE
@@ -1662,7 +1652,6 @@ add_shogi_test(tst_csalogpanel
     ${SRC}/widgets/csalogpanel.cpp
     ${SRC}/widgets/logviewfontmanager.cpp
     ${SRC}/common/applicationfonts.cpp
-    ${SRC}/services/networksettings.cpp
     ${SRC}/services/settingscommon.cpp
 )
 

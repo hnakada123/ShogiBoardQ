@@ -75,8 +75,8 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
 
 BoardColorDialog::~BoardColorDialog()
 {
-    DialogUtils::saveDialogSize(this, AppSettings::setBoardColorDialogSize);
-    AppSettings::setBoardColorDialogTab(m_tabs->currentIndex());
+    DialogUtils::saveDialogSize(this, AppSettings::boardColorDialogSize);
+    AppSettings::boardColorDialogTab.set(m_tabs->currentIndex());
     AppSettings::setAppearanceSection(m_sections->currentIndex());
     AppSettings::setAppearancePieceFilter(m_pieceFilter->currentIndex());
 }
@@ -197,7 +197,7 @@ void BoardColorDialog::restoreDefaults()
 
 void BoardColorDialog::savePickerSize()
 {
-    DialogUtils::saveDialogSize(m_picker, AppSettings::setBoardColorPickerSize);
+    DialogUtils::saveDialogSize(m_picker, AppSettings::boardColorPickerSize);
 }
 
 void BoardColorDialog::rebuildPresets()

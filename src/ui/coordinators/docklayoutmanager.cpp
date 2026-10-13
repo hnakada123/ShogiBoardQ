@@ -196,7 +196,7 @@ void DockLayoutManager::setAsStartupLayout(const QString& name)
 {
     if (!m_mainWindow) return;
 
-    DockSettings::setStartupDockLayoutName(name);
+    DockSettings::startupDockLayoutName.set(name);
     updateSavedLayoutsMenu();
     QMessageBox::information(m_mainWindow, tr("設定完了"),
         tr("レイアウト「%1」を起動時のレイアウトに設定しました。").arg(name));
@@ -206,7 +206,7 @@ void DockLayoutManager::clearStartupLayout()
 {
     if (!m_mainWindow) return;
 
-    DockSettings::setStartupDockLayoutName(QString());
+    DockSettings::startupDockLayoutName.set(QString());
     updateSavedLayoutsMenu();
     QMessageBox::information(m_mainWindow, tr("設定完了"),
         tr("起動時のレイアウト設定をクリアしました。\n次回起動時はデフォルトレイアウトが使用されます。"));
@@ -308,7 +308,7 @@ void DockLayoutManager::wireMenuActions(QAction* resetLayout,
 
 void DockLayoutManager::setDocksLocked(bool locked)
 {
-    DockSettings::setDocksLocked(locked);
+    DockSettings::docksLocked.set(locked);
 
     // 固定時: ドッキング禁止、フローティング禁止、移動禁止
     // 非固定時: 全て許可
@@ -353,37 +353,37 @@ void DockLayoutManager::saveDockStates()
 {
     // 必要なドックのみ保存（従来MainWindowが行っていたもの）
     auto saveIf = [](QDockWidget* dock,
-                     auto setFloating,
-                     auto setVisible,
-                     auto setGeometry) {
+                     const Setting<bool>& floating,
+                     const Setting<bool>& visible,
+                     const Setting<QByteArray>& geometry) {
         if (!dock) return;
-        setFloating(dock->isFloating());
-        setVisible(dock->isVisible());
-        setGeometry(dock->saveGeometry());
+        floating.set(dock->isFloating());
+        visible.set(dock->isVisible());
+        geometry.set(dock->saveGeometry());
     };
 
     saveIf(dock(DockType::EvalChart),
-           DockSettings::setEvalChartDockFloating,
-           DockSettings::setEvalChartDockVisible,
-           DockSettings::setEvalChartDockGeometry);
+           DockSettings::evalChartDockFloating,
+           DockSettings::evalChartDockVisible,
+           DockSettings::evalChartDockGeometry);
 
     saveIf(dock(DockType::Record),
-           DockSettings::setRecordPaneDockFloating,
-           DockSettings::setRecordPaneDockVisible,
-           DockSettings::setRecordPaneDockGeometry);
+           DockSettings::recordPaneDockFloating,
+           DockSettings::recordPaneDockVisible,
+           DockSettings::recordPaneDockGeometry);
 
     saveIf(dock(DockType::Menu),
-           DockSettings::setMenuWindowDockFloating,
-           DockSettings::setMenuWindowDockVisible,
-           DockSettings::setMenuWindowDockGeometry);
+           DockSettings::menuWindowDockFloating,
+           DockSettings::menuWindowDockVisible,
+           DockSettings::menuWindowDockGeometry);
 
     saveIf(dock(DockType::Joseki),
-           DockSettings::setJosekiWindowDockFloating,
-           DockSettings::setJosekiWindowDockVisible,
-           DockSettings::setJosekiWindowDockGeometry);
+           DockSettings::josekiWindowDockFloating,
+           DockSettings::josekiWindowDockVisible,
+           DockSettings::josekiWindowDockGeometry);
 
     saveIf(dock(DockType::AnalysisResults),
-           DockSettings::setKifuAnalysisResultsDockFloating,
-           DockSettings::setKifuAnalysisResultsDockVisible,
-           DockSettings::setKifuAnalysisResultsDockGeometry);
+           DockSettings::kifuAnalysisResultsDockFloating,
+           DockSettings::kifuAnalysisResultsDockVisible,
+           DockSettings::kifuAnalysisResultsDockGeometry);
 }

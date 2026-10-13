@@ -20,8 +20,7 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::ChangeEngineSettingsDialog>())
     , m_optionHandler(std::make_unique<EngineSettingsOptionHandler>(this, this))
-    , m_fontHelper({EngineDialogSettings::engineSettingsFontSize(), 8, 20, 1,
-                    EngineDialogSettings::setEngineSettingsFontSize})
+    , m_fontHelper(EngineDialogSettings::engineSettingsFontSize, 8, 20, 1)
 {
     ui->setupUi(this);
 }
@@ -29,7 +28,7 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
 ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog()
 {
     // ウィンドウサイズを保存
-    DialogUtils::saveDialogSize(this, EngineDialogSettings::setEngineSettingsDialogSize);
+    DialogUtils::saveDialogSize(this, EngineDialogSettings::engineSettingsDialogSize);
 }
 
 // 将棋エンジン名のsetter

@@ -527,7 +527,7 @@ private slots:
         QCOMPARE(pasteDialog.findChild<QPlainTextEdit*>()->font().family(), chosen);
         snapshot("application-font-main");
         ApplicationFonts::applyFamily({});
-        AppSettings::setUiFontFamily({});
+        AppSettings::uiFontFamily.set({});
     }
     void startupMenuInventory()
     {
@@ -1195,7 +1195,7 @@ private slots:
     void boardColors()
     {
         BoardAppearance::instance().setVisuals({false, true, 108, false});
-        AppSettings::setBoardColorDialogTab(0);
+        AppSettings::boardColorDialogTab.set(0);
         const BoardColors defaults;
         const BoardColors custom{QColor("#182838"), QColor("#c0d8d0"),
                                  QColor("#6a8494"), QColor("#193b45")};
@@ -1412,7 +1412,7 @@ private slots:
     void boardColorPresets()
     {
         BoardAppearance::instance().setVisuals({false, true, 108, false});
-        AppSettings::setBoardColorDialogTab(0);
+        AppSettings::boardColorDialogTab.set(0);
         QFETCH(QString, style);
         selectPieceStyle(style);
         openAppearanceDetails();
@@ -3225,9 +3225,9 @@ private slots:
         QCOMPARE(tree->lastHighlightedPly(), 1);
         snapshot(QStringLiteral("post-game-analysis-") + QString::fromLatin1(QTest::currentDataTag()));
         // 同じ対局を最終局面だけ再解析する。古い点と終局行は残さない。
-        AnalysisSettings::setKifuAnalysisFullRange(false);
-        AnalysisSettings::setKifuAnalysisStartPly(lastPly);
-        AnalysisSettings::setKifuAnalysisEndPly(lastPly);
+        AnalysisSettings::kifuAnalysisFullRange.set(false);
+        AnalysisSettings::kifuAnalysisStartPly.set(lastPly);
+        AnalysisSettings::kifuAnalysisEndPly.set(lastPly);
         armDialog("startAnalysis");
         click("actionAnalyzeKifu");
         QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 5000);
@@ -3252,9 +3252,9 @@ private slots:
         QCOMPARE(tree->lastHighlightedRow(), 1);
         const QString branchBoard = boardSfen();
         const QString branchMove = record()->kifuView()->model()->index(3, 0).data().toString();
-        AnalysisSettings::setKifuAnalysisFullRange(false);
-        AnalysisSettings::setKifuAnalysisStartPly(3);
-        AnalysisSettings::setKifuAnalysisEndPly(4);
+        AnalysisSettings::kifuAnalysisFullRange.set(false);
+        AnalysisSettings::kifuAnalysisStartPly.set(3);
+        AnalysisSettings::kifuAnalysisEndPly.set(4);
         armDialog("startAnalysis");
         click("actionAnalyzeKifu");
         QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 7000);
@@ -3320,7 +3320,7 @@ private slots:
 
     void engineAnalysisSettings()
     {
-        AnalysisSettings::setKifuAnalysisByoyomiSec(3);
+        AnalysisSettings::kifuAnalysisByoyomiSec.set(3);
         {
             KifuAnalysisDialog dialog;
             dialog.setMaxPly(14);
@@ -3472,9 +3472,9 @@ private slots:
     void engineAnalysisRange()
     {
         sampleGame();
-        AnalysisSettings::setKifuAnalysisFullRange(false);
-        AnalysisSettings::setKifuAnalysisStartPly(2);
-        AnalysisSettings::setKifuAnalysisEndPly(3);
+        AnalysisSettings::kifuAnalysisFullRange.set(false);
+        AnalysisSettings::kifuAnalysisStartPly.set(2);
+        AnalysisSettings::kifuAnalysisEndPly.set(3);
         armDialog("startAnalysis");
         click("actionAnalyzeKifu");
         auto* table = window->findChild<QTableView*>("analysisResultsTable");
@@ -3506,9 +3506,9 @@ private slots:
         armDialog("file", kifu);
         click("actionOpenKifuFile");
         QTRY_VERIFY_WITH_TIMEOUT(record()->kifuView()->model()->rowCount() > 14, 3000);
-        AnalysisSettings::setKifuAnalysisFullRange(false);
-        AnalysisSettings::setKifuAnalysisStartPly(0);
-        AnalysisSettings::setKifuAnalysisEndPly(14);
+        AnalysisSettings::kifuAnalysisFullRange.set(false);
+        AnalysisSettings::kifuAnalysisStartPly.set(0);
+        AnalysisSettings::kifuAnalysisEndPly.set(14);
         armDialog("startAnalysis");
         click("actionAnalyzeKifu");
         auto* table = window->findChild<QTableView*>("analysisResultsTable");
@@ -4202,7 +4202,7 @@ private slots:
     }
     void engineStopMate()
     {
-        AnalysisSettings::setTsumeSearchUnlimitedTime(true);
+        AnalysisSettings::tsumeSearchUnlimitedTime.set(true);
         sampleGame(); armDialog("startAnalysis"); click("actionTsumeShogiSearch");
         QTRY_VERIFY_WITH_TIMEOUT(action("actionStopTsumeSearch")->isEnabled(), 1500);
         const auto searchStarted = [] {

@@ -136,7 +136,7 @@ private slots:
     {
         trackBoardLayout = false;
         TsumeshogiSettings::setPlayPreferences({});
-        TsumeshogiSettings::setTsumePlayFontSize(10);
+        TsumeshogiSettings::tsumePlayFontSize.set(10);
         lastNotice.clear();
         replyTimer.invalidate();
         noticeDelay = -1;
@@ -185,9 +185,9 @@ private slots:
         QFETCH(QString, choice);
         QFETCH(QString, move);
         // 指せるマスの色分けは移動先の確定で消えるため、駒の表示だけを比べる
-        AppSettings::setLegalMovesVisible(false);
+        AppSettings::legalMovesVisible.set(false);
         TsumePlayDialog window;
-        AppSettings::setLegalMovesVisible(true);
+        AppSettings::legalMovesVisible.set(true);
         dialog = &window;
         promotionChoice = choice;
         window.setProblem(problems[0], 1, {}, nullptr, 5);
@@ -319,7 +319,7 @@ private slots:
         preferences.size = windowSize;
         preferences.squareSize = squareSize;
         TsumeshogiSettings::setPlayPreferences(preferences);
-        TsumeshogiSettings::setTsumePlayFontSize(fontSize);
+        TsumeshogiSettings::tsumePlayFontSize.set(fontSize);
         TsumePlayDialog window;
         dialog = &window;
         window.setProblem(problems[0], 1, {}, nullptr, 5);
@@ -360,7 +360,7 @@ private slots:
         preferences.size = windowSize;
         preferences.squareSize = squareSize;
         TsumeshogiSettings::setPlayPreferences(preferences);
-        TsumeshogiSettings::setTsumePlayFontSize(fontSize);
+        TsumeshogiSettings::tsumePlayFontSize.set(fontSize);
         TsumePlayDialog window;
         dialog = &window;
         window.setProblem(problems[0], 1, {}, nullptr, 5);
