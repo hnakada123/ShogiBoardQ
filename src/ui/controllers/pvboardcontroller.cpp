@@ -169,20 +169,20 @@ PvHighlightCoords PvBoardController::computeHighlightCoords() const
         } else if (!m_prevSfen.isEmpty()) {
             // Try diff-based highlight
             int fromFile = 0, fromRank = 0, toFile = 0, toRank = 0;
-            QChar droppedPiece;
+            Piece droppedPiece = Piece::None;
             if (diffSfenForHighlight(m_prevSfen, m_baseSfen, fromFile, fromRank, toFile, toRank, droppedPiece)) {
                 qCDebug(lcUi) << "computeHighlightCoords: diff ok"
                          << " from=" << fromFile << fromRank
                          << " to=" << toFile << toRank
-                         << " drop=" << droppedPiece;
+                         << " drop=" << pieceToChar(droppedPiece);
                 result.valid = true;
                 if (fromFile > 0 && fromRank > 0) {
                     result.hasFrom = true;
                     result.fromFile = fromFile;
                     result.fromRank = fromRank;
-                } else if (!droppedPiece.isNull()) {
-                    const bool isBlack = droppedPiece.isUpper();
-                    QPoint standCoord = standPseudoCoord(droppedPiece, isBlack);
+                } else if (droppedPiece != Piece::None) {
+                    // 駒打ちは、打った側の駒台の駒の位置を移動元にする
+                    const QPoint standCoord = BoardCoordinates::standSquareOf(droppedPiece);
                     if (!standCoord.isNull()) {
                         result.hasFrom = true;
                         result.fromFile = standCoord.x();
@@ -287,13 +287,13 @@ bool PvBoardController::isStartposSfen(QString sfen)
 bool PvBoardController::diffSfenForHighlight(const QString& prevSfen, const QString& currSfen,
                                               int& fromFile, int& fromRank,
                                               int& toFile, int& toRank,
-                                              QChar& droppedPiece)
+                                              Piece& droppedPiece)
 {
     fromFile = 0;
     fromRank = 0;
     toFile = 0;
     toRank = 0;
-    droppedPiece = QChar();
+    droppedPiece = Piece::None;
 
     SfenDiffUtils::DiffResult diff;
     if (!SfenDiffUtils::diffBoards(prevSfen, currSfen, diff)) return false;
@@ -322,9 +322,3 @@ bool PvBoardController::diffSfenForHighlight(const QString& prevSfen, const QStr
     return true;
 }
 
-QPoint PvBoardController::standPseudoCoord(QChar pieceChar, bool isBlack)
-{
-    const Piece black = charToPiece(pieceChar.toUpper());
-    if (black == Piece::None) return QPoint();
-    return BoardCoordinates::standSquareOf(isBlack ? black : toWhite(black));
-}

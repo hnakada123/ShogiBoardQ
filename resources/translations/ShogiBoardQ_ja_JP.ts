@@ -39,7 +39,7 @@
         <translation type="obsolete">後手</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="427"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="424"/>
         <source>エンジンエラー: %1</source>
         <translation>エンジンエラー: %1</translation>
     </message>
@@ -8514,59 +8514,48 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiEngineInfoParser</name>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="19"/>
         <source>An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::convertRankCharToInt）。段の文字 %1 を変換できません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::convertRankCharToInt）。段の文字 %1 を変換できません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="51"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。指し手 %1 の長さが足りません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。指し手 %1 の長さが足りません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="79"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動元の段を変換できません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動元の段を変換できません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="91"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。持ち駒の指定が正しくありません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。持ち駒の指定が正しくありません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="97"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動元の座標が正しくありません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動元の座標が正しくありません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="107"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の筋が正しくありません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の筋が正しくありません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="117"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の段を変換できません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の段を変換できません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="124"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の座標が正しくありません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の座標が正しくありません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="166"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceKanjiName）。駒の文字「%1」はありません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceKanjiName）。駒の文字「%1」はありません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="184"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceCharacter）。段の値が正しくありません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceCharacter）。段の値が正しくありません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="190"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</source>
-        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceCharacter）。筋の値が正しくありません。</translation>
+        <translation type="vanished">読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceCharacter）。筋の値が正しくありません。</translation>
     </message>
 </context>
 <context>
@@ -9079,12 +9068,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ThinkingInfoPresenter</name>
     <message>
-        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="385"/>
+        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="355"/>
         <source>詰み</source>
         <translation>詰み</translation>
     </message>
     <message>
-        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="82"/>
+        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="61"/>
         <source>%1手詰</source>
         <translation>%1手詰</translation>
     </message>
@@ -9922,12 +9911,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="197"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="193"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>エンジンが詰み探索に対応していません。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="223"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="219"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>エンジンが応答しないため生成を中止しました。</translation>
     </message>

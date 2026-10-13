@@ -44,32 +44,11 @@ void ThinkingInfoPresenter::setPreviousMove(int fileTo, int rankTo)
     m_previousRankTo = rankTo;
 }
 
-void ThinkingInfoPresenter::setClonedBoardData(const QList<QChar>& boardData)
-{
-    m_clonedBoardData = boardData;
-}
-
-void ThinkingInfoPresenter::setPonderEnabled(bool enabled)
-{
-    m_ponderEnabled = enabled;
-}
-
 void ThinkingInfoPresenter::setBaseSfen(const QString& sfen)
 {
     m_baseSfen = sfen;
-    
-    // SFENから手番を抽出（形式: "盤面 手番 駒台 手数"）
-    // 例: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
-    const QStringList parts = sfen.split(QLatin1Char(' '));
-    if (parts.size() >= 2) {
-        const QString turn = parts.at(1);
-        // b=先手(Player1), w=後手(Player2)
-        m_thinkingStartPlayerIsP1 = (turn == QStringLiteral("b"));
-        qCDebug(lcEngine) << "setBaseSfen: turn=" << turn
-                          << "isP1=" << m_thinkingStartPlayerIsP1;
-    } else {
-        qCWarning(lcEngine) << "setBaseSfen: SFENから手番をパースできず:" << sfen.left(50);
-    }
+    // 読み筋の手番の印（▲△）は、この局面の手番から決まる
+    m_infoParser->setPosition(sfen);
 }
 
 QString ThinkingInfoPresenter::baseSfen() const
@@ -118,15 +97,13 @@ void ThinkingInfoPresenter::processInfoLine(const QString& line)
 void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 {
     // 処理フロー:
-    // 1. ShogiEngineInfoParserを生成し、前回指し手・手番を設定
-    // 2. info行をパースして盤面情報と合わせて解析
+    // 1. 再利用するShogiEngineInfoParserに前回指し手を設定
+    // 2. info行をパースし、思考開始局面の上で読み筋を日本語にする
     // 3. 探索手・深さ・ノード数・NPS・ハッシュ使用率のシグナルを発行
     // 4. 評価値/詰み手数を更新
     // 5. 有効な情報があれば思考タブ向けの統合シグナルを発行
 
-    qCDebug(lcEngine) << "processInfoLine: boardSize=" << m_clonedBoardData.size()
-                      << "isP1=" << m_thinkingStartPlayerIsP1
-                      << "prevFile=" << m_previousFileTo << "prevRank=" << m_previousRankTo;
+    qCDebug(lcEngine) << "processInfoLine: prevFile=" << m_previousFileTo << "prevRank=" << m_previousRankTo;
 
     int scoreInt = 0;
 
@@ -135,15 +112,8 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
         return;
     }
 
-    info->setPreviousFileTo(m_previousFileTo);
-    info->setPreviousRankTo(m_previousRankTo);
-    
-    // 思考開始時の手番を設定（bestmove後の局面更新の影響を受けないようにする）
-    Turn startPlayer = m_thinkingStartPlayerIsP1
-        ? Turn::Black
-        : Turn::White;
-    info->setThinkingStartPlayer(startPlayer);
-    info->parseEngineOutputAndUpdateState(line, m_gameController, m_clonedBoardData, m_ponderEnabled);
+    info->setPreviousMove(BoardSquare{m_previousFileTo, m_previousRankTo});
+    info->parseEngineOutputAndUpdateState(line);
 
     // シグナル経由でGUI項目を更新
     emitSearchedHand(info);

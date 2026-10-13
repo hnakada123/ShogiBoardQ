@@ -34,12 +34,15 @@ KI2 の読み書き（`Ki2MoveNotation`）も、盤は `ShogiBoard`、指し手�
 JKF の書き出し（`JkfExporter`・`JkfFormatter`）も、分岐ツリーのノードの手を盤に適用しながら、局面と指し手から
 `piece`・`capture`・`promote`・`same`・`relative` を決める（7.6）。終局はノードの終局の種類（`TerminalType`）から `special` にする。
 
-まだ独自の表現が残っている所（意図して残している）:
+CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・00AL）を `ShogiBoard` に組み立て、指し手を `UsiMove` として
+盤に適用する。移動元の駒と指し手の駒種が合わない手・持っていない駒を打つ手は読まない。
+思考情報の読み筋の漢字化（`ShogiEngineInfoParser`）も、思考を始めた局面（`ThinkingInfoPresenter::setBaseSfen`）を
+`ShogiBoard` に持ち、info 行ごとに作業用の盤へ写して（`ShogiBoard::copyPositionFrom`）指し手を進め、`KifMoveText::append` で書く。
+詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeshogiGenerator`）も `ShogiBoard` で局面を持つ。
 
-- 思考情報の読み筋の漢字化（`ShogiEngineInfoParser`、info 行ごとの高速化のため文字の盤）
-- CSA 読み込みの局面（`CsaLexer::Board`）
-- 2つの局面の差分（`SfenDiffUtils`）から手を求める所: 盤のハイライト（`BoardSyncPresenter`）、読み筋の盤（`PvBoardController`）、待ったの後の「同」の基準（`MatchUndoHandler`）。
-  どれも別に持った指し手の一覧ではなく、手順の局面（分岐ツリー・読み筋・対局の局面列）どうしを比べる
+2つの局面の差分（`SfenDiffUtils`。盤は `ShogiBoard` で読む）から手を求める所が残っている（意図して残している）:
+盤のハイライト（`BoardSyncPresenter`）、読み筋の盤（`PvBoardController`）、待ったの後の「同」の基準（`MatchUndoHandler`）。
+どれも別に持った指し手の一覧ではなく、手順の局面（分岐ツリー・読み筋・対局の局面列）どうしを比べる。
 
 ---
 

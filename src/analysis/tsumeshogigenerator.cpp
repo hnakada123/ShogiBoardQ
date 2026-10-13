@@ -3,7 +3,6 @@
 
 #include "tsumeshogigenerator.h"
 #include "usi.h"
-#include "boardconstants.h"
 
 #include <QtConcurrentRun>
 
@@ -98,9 +97,6 @@ void TsumeshogiGenerator::start(const Settings& settings)
 void TsumeshogiGenerator::onEngineInitialized()
 {
     if (m_phase != Phase::Searching || !m_usi) return;
-    // ThinkingInfoPresenter が info 行を処理する際に盤面データが必要。
-    // 局面は position コマンドで直接指定するため、ダミーの盤面（81マス空欄）を一度だけ設定する
-    m_usi->setClonedBoardData(QList<QChar>(BoardConstants::kNumBoardSquares, QChar(' ')));
 
     // キャンセルフラグを初期化
     m_cancelFlag = makeCancelFlag();

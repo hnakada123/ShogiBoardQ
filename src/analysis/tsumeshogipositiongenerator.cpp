@@ -32,7 +32,7 @@ QString TsumeshogiPositionGenerator::generateOnce()
     // 1. 後手の玉をランダム配置
     const int kingFile = rng->bounded(9);  // 0-8
     const int kingRank = rng->bounded(9);  // 0-8
-    placeOnBoard(kingFile, kingRank, QStringLiteral("k"));
+    placeOnBoard(kingFile, kingRank, Piece::WhiteKing);
 
     // 2. 攻め駒をランダム配置
     const int numAttack = rng->bounded(1, m_settings.maxAttackPieces + 1);
@@ -86,21 +86,18 @@ QString TsumeshogiPositionGenerator::generateOnce()
                     continue;
                 }
 
-                const QString sfenPiece = promote ? promotedSfen(pt, true) : unpromotedSfen(pt, true);
-                placeOnBoard(f, r, sfenPiece);
+                placeOnBoard(f, r, pieceOf(pt, true, promote));
                 usePiece(pt);
                 placed = true;
                 break;
             }
             if (!placed) {
                 // 盤上配置失敗 → 持駒に入れる
-                m_attackerHand[pt]++;
-                usePiece(pt);
+                addToAttackerHand(pt);
             }
         } else {
             // 持駒に追加（成駒は不可なので生駒として）
-            m_attackerHand[pt]++;
-            usePiece(pt);
+            addToAttackerHand(pt);
         }
     }
 
@@ -143,8 +140,7 @@ QString TsumeshogiPositionGenerator::generateOnce()
                 continue;
             }
 
-            const QString sfenPiece = promote ? promotedSfen(pt, false) : unpromotedSfen(pt, false);
-            placeOnBoard(f, r, sfenPiece);
+            placeOnBoard(f, r, pieceOf(pt, false, promote));
             usePiece(pt);
             break;
         }
@@ -160,47 +156,32 @@ QString TsumeshogiPositionGenerator::generateOnce()
 
 void TsumeshogiPositionGenerator::clearState()
 {
-    for (int r = 0; r < 9; ++r) {
-        for (int f = 0; f < 9; ++f) {
-            m_board[r][f] = QChar();
-        }
-    }
+    m_board.resetGameBoard();
     for (int i = 0; i < PieceTypeCount; ++i) {
         m_usedCounts[i] = 0;
-        m_attackerHand[i] = 0;
     }
 }
 
 bool TsumeshogiPositionGenerator::isOccupied(int file, int rank) const
 {
-    return !m_board[rank][file].isNull();
+    return m_board.pieceAt(BoardSquare{file + 1, rank + 1}) != Piece::None;
 }
 
 bool TsumeshogiPositionGenerator::hasUnpromotedPawnInFile(int file, bool isAttacker) const
 {
-    // 成駒は Private Use Area にエンコードされるため、素の 'P'/'p' との比較で不成の歩だけが一致する
-    const QChar pawn = isAttacker ? QChar(QLatin1Char('P')) : QChar(QLatin1Char('p'));
+    const Piece pawn = isAttacker ? Piece::BlackPawn : Piece::WhitePawn;
     for (int rank = 0; rank < 9; ++rank) {
-        if (m_board[rank][file] == pawn) return true;
+        if (m_board.pieceAt(BoardSquare{file + 1, rank + 1}) == pawn) return true;
     }
     return false;
 }
 
-void TsumeshogiPositionGenerator::placeOnBoard(int file, int rank, const QString& sfenPiece)
+void TsumeshogiPositionGenerator::placeOnBoard(int file, int rank, Piece piece)
 {
     // 呼び出し側で盤内かつ空きマスであることを確認済み
     Q_ASSERT(file >= 0 && file <= 8 && rank >= 0 && rank <= 8);
     Q_ASSERT(!isOccupied(file, rank));
-
-    // 盤面配列は1マス1文字。成駒（"+P" 等の2文字）は Private Use Area にエンコードする:
-    //   生駒: そのままの文字 P,L,N,S,G,B,R,p,l,n,s,g,b,r,k
-    //   成駒: 0xE000 + 元文字コード
-    if (sfenPiece.startsWith(QLatin1Char('+'))) {
-        const QChar base = sfenPiece.at(1);
-        m_board[rank][file] = QChar(0xE000 + base.unicode());
-    } else {
-        m_board[rank][file] = sfenPiece.at(0);
-    }
+    m_board.setPieceAt(BoardSquare{file + 1, rank + 1}, piece);
 }
 
 TsumeshogiPositionGenerator::PieceType TsumeshogiPositionGenerator::randomPieceType()
@@ -218,16 +199,16 @@ void TsumeshogiPositionGenerator::usePiece(PieceType pt)
     m_usedCounts[pt]++;
 }
 
-QString TsumeshogiPositionGenerator::promotedSfen(PieceType pt, bool isAttacker) const
+void TsumeshogiPositionGenerator::addToAttackerHand(PieceType pt)
 {
-    const QChar c = isAttacker ? QChar(kSfenChars[pt]).toUpper() : QChar(kSfenChars[pt]).toLower();
-    return QStringLiteral("+") + c;
+    m_board.addStandPiece(kBlackPieces[pt]);
+    usePiece(pt);
 }
 
-QString TsumeshogiPositionGenerator::unpromotedSfen(PieceType pt, bool isAttacker) const
+Piece TsumeshogiPositionGenerator::pieceOf(PieceType pt, bool isAttacker, bool promote)
 {
-    const QChar c = isAttacker ? QChar(kSfenChars[pt]).toUpper() : QChar(kSfenChars[pt]).toLower();
-    return QString(c);
+    const Piece piece = isAttacker ? kBlackPieces[pt] : toWhite(kBlackPieces[pt]);
+    return promote ? ::promote(piece) : piece;
 }
 
 bool TsumeshogiPositionGenerator::needsPromotion(PieceType pt, int rank, bool isAttacker) const
@@ -250,152 +231,33 @@ bool TsumeshogiPositionGenerator::needsPromotion(PieceType pt, int rank, bool is
     return false;
 }
 
-QChar TsumeshogiPositionGenerator::promotedPieceChar(QChar base)
-{
-    // SFEN文字 → ShogiBoard内部の成駒文字に変換
-    // P→Q, L→M, N→O, S→T, B→C, R→U (大文字/小文字両対応)
-    static const QMap<QChar, QChar> promotionMap = {
-        {'P', 'Q'}, {'L', 'M'}, {'N', 'O'}, {'S', 'T'}, {'B', 'C'}, {'R', 'U'},
-        {'p', 'q'}, {'l', 'm'}, {'n', 'o'}, {'s', 't'}, {'b', 'c'}, {'r', 'u'}
-    };
-    return promotionMap.value(base, base);
-}
-
-QList<Piece> TsumeshogiPositionGenerator::buildBoardData() const
-{
-    QList<Piece> boardData(81, Piece::None);
-
-    for (int rank = 0; rank < 9; ++rank) {
-        for (int file = 0; file < 9; ++file) {
-            const QChar c = m_board[rank][file];
-            if (c.isNull()) continue;
-
-            if (c.unicode() >= 0xE000) {
-                // 成駒: Private Use Area からベース文字を復元し、成駒文字に変換
-                const QChar base = QChar(c.unicode() - 0xE000);
-                boardData[rank * 9 + file] = charToPiece(promotedPieceChar(base));
-            } else {
-                boardData[rank * 9 + file] = charToPiece(c);
-            }
-        }
-    }
-    return boardData;
-}
-
 bool TsumeshogiPositionGenerator::isKingInCheck() const
 {
-    const QList<Piece> boardData = buildBoardData();
     EngineMoveValidator validator;
     // 後手(WHITE)の玉に先手(BLACK)の駒から王手がかかっているか
-    return validator.checkIfKingInCheck(Turn::White, boardData) > 0;
+    return validator.checkIfKingInCheck(Turn::White, m_board.boardData()) > 0;
 }
 
 bool TsumeshogiPositionGenerator::isDefenderKingInCheck(const QString& sfen)
 {
-    const QString boardPart = sfen.section(QLatin1Char(' '), 0, 0);
-    const QStringList rows = boardPart.split(QLatin1Char('/'));
-    if (rows.size() != 9) return false;
-
-    // buildBoardData() と同じ配列規約（[rank*9 + file], file 0 = 1筋）で盤面を構築する
-    QList<Piece> boardData(81, Piece::None);
-    for (int rank = 0; rank < 9; ++rank) {
-        int col = 0; // SFENの列（0 = 9筋）
-        bool promoted = false;
-        for (const QChar ch : rows.at(rank)) {
-            if (ch.isDigit()) {
-                col += ch.digitValue();
-                continue;
-            }
-            if (ch == QLatin1Char('+')) {
-                promoted = true;
-                continue;
-            }
-            if (col < 9) {
-                const int file = 8 - col;
-                boardData[rank * 9 + file] = charToPiece(promoted ? promotedPieceChar(ch) : ch);
-            }
-            promoted = false;
-            ++col;
-        }
-    }
-
+    ShogiBoard board;
+    if (!board.trySetSfen(sfen)) return false;
     EngineMoveValidator validator;
-    return validator.checkIfKingInCheck(Turn::White, boardData) > 0;
+    return validator.checkIfKingInCheck(Turn::White, board.boardData()) > 0;
 }
 
-QString TsumeshogiPositionGenerator::buildSfen() const
+QString TsumeshogiPositionGenerator::buildSfen()
 {
-    QString boardStr;
-    boardStr.reserve(200);
-
-    // 盤面部分
-    for (int rank = 0; rank < 9; ++rank) {
-        int emptyCount = 0;
-        // SFENは9筋(file=8)から1筋(file=0)の順
-        for (int file = 8; file >= 0; --file) {
-            const QChar c = m_board[rank][file];
-            if (c.isNull()) {
-                emptyCount++;
-            } else {
-                if (emptyCount > 0) {
-                    boardStr += QString::number(emptyCount);
-                    emptyCount = 0;
-                }
-                // 成駒判定
-                if (c.unicode() >= 0xE000) {
-                    boardStr += '+';
-                    boardStr += QChar(c.unicode() - 0xE000);
-                } else {
-                    boardStr += c;
-                }
-            }
-        }
-        if (emptyCount > 0) {
-            boardStr += QString::number(emptyCount);
-        }
-        if (rank < 8) boardStr += '/';
-    }
-
-    // 手番（先手=攻方）
-    boardStr += QStringLiteral(" b ");
-
-    // 持駒部分
-    QString handStr;
-
-    // 先手持駒（攻方）: R, B, G, S, N, L, P の順
-    static constexpr PieceType handOrder[] = {Rook, Bishop, Gold, Silver, Knight, Lance, Pawn};
-    for (PieceType pt : handOrder) {
-        if (m_attackerHand[pt] > 0) {
-            if (m_attackerHand[pt] > 1) {
-                handStr += QString::number(m_attackerHand[pt]);
-            }
-            handStr += QChar(kSfenChars[pt]).toUpper();
-        }
-    }
-
-    // 後手持駒（守方）: 未使用駒を全て追加
+    // 後手持駒（守方）: 未使用駒を全て追加する
     if (m_settings.addRemainingToDefenderHand) {
-        for (PieceType pt : handOrder) {
-            const int remaining = kMaxCounts[pt] - m_usedCounts[pt];
-            if (remaining > 0) {
-                if (remaining > 1) {
-                    handStr += QString::number(remaining);
-                }
-                handStr += QChar(kSfenChars[pt]).toLower();
-            }
+        for (int pt = 0; pt < PieceTypeCount; ++pt) {
+            m_board.addStandPiece(toWhite(kBlackPieces[pt]), kMaxCounts[pt] - m_usedCounts[pt]);
         }
     }
 
-    if (handStr.isEmpty()) {
-        boardStr += '-';
-    } else {
-        boardStr += handStr;
-    }
-
-    // 手数
-    boardStr += QStringLiteral(" 1");
-
-    return boardStr;
+    // 手番は先手（攻方）、手数は1
+    return m_board.convertBoardToSfen() + QStringLiteral(" b ") + m_board.convertStandToSfen()
+           + QStringLiteral(" 1");
 }
 
 QStringList TsumeshogiPositionGenerator::generateBatch(

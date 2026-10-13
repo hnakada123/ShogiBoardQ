@@ -30,6 +30,12 @@ public:
     /// 指定マスの駒を返す（盤上・駒台共通）
     Piece pieceCharacter(const int file, const int rank);
 
+    /// 盤上のマスの駒（盤外のマスは None）
+    Piece pieceAt(BoardSquare square) const;
+
+    /// 盤上のマスの駒を置き換える（局面の組み立て用。成りの補正も駒台の増減もしない。盤外のマスは無視する）
+    void setPieceAt(BoardSquare square, Piece piece);
+
     /// 盤面データ（81マスの駒配列）を返す
     const QList<Piece>& boardData() const;
 
@@ -81,6 +87,10 @@ public:
      * @return 盤面を更新したら true。不正な場合は盤面を変更せず false
      */
     bool trySetSfen(const QString& sfenStr, QString* error = nullptr);
+
+    /// 別の盤の局面（盤・駒台・手番・手数）を写す。
+    /// 盤の大きさと駒台の駒の種類が同じなら、確保し直さずに上書きする（読み筋の変換で info 行ごとに使う）
+    void copyPositionFrom(const ShogiBoard& other);
 
     /// 盤面をSFEN形式の文字列に変換する
     QString convertBoardToSfen();

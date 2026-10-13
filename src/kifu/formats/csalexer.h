@@ -9,36 +9,11 @@
 
 #include <optional>
 
-#include "shogitypes.h"
+#include "usimove.h"
+
+class ShogiBoard;
 
 namespace CsaLexer {
-
-// === 手番・駒種の型定義 ===
-
-/// 手番
-enum Color { Black, White, None };
-
-/// 駒種
-enum Piece {
-    NO_P, FU, KY, KE, GI, KI, KA, HI, OU,
-    TO, NY, NK, NG, UM, RY
-};
-
-/// 盤上の1マス
-struct Cell {
-    Piece p = NO_P;
-    Color c = None;
-};
-
-/// 9x9盤面
-struct Board {
-    Cell sq[10][10]; ///< [x][y], インデックス1..9が有効範囲
-};
-
-// === 盤面初期化 ===
-
-/// 平手初期配置に設定する
-void setHirate(Board& board);
 
 // === 行の種類判定 ===
 
@@ -57,68 +32,45 @@ bool isCommentLine(const QString& s);
 /// 手番マーカー（"+"または"-"の1文字のみ）
 bool isTurnMarker(const QString& token);
 
-// === 駒種変換 ===
-
-/// CSA 2文字駒コード（"FU","KY"等）→ Piece enum
-Piece pieceFromCsa2(const QString& two);
-
-/// 成駒かどうか判定
-bool isPromotedPiece(Piece p);
-
-/// 成駒→基底駒変換
-Piece basePieceOf(Piece p);
-
-/// Piece → 漢字表記
-QString pieceKanji(Piece p);
-/// CSA の駒種を盤・指し手で使う駒にする（NO_P は None）
-::Piece toPiece(Piece p, Color side);
-
-/// 座標範囲チェック（1..9）
-bool inside(int v);
-
 // === P行（初期局面）解析 ===
 
-/// P1..P9 行を盤面に適用
-bool applyPRowLine(const QString& raw, Board& b);
+/// P1..P9 行を盤に適用
+bool applyPRowLine(const QString& raw, ShogiBoard& board);
 
-/// P+/P- 行を盤面・持駒に適用
-bool applyPPlusMinusLine(const QString& raw, Board& b,
-                          int bH[7], int wH[7], bool& alBlack, bool& alWhite);
+/**
+ * @brief P+/P- 行を盤・駒台に適用
+ * @param allRemainingTo 00AL（残りの駒すべて）を指定した側。最初の 00AL だけを覚える
+ */
+bool applyPPlusMinusLine(const QString& raw, ShogiBoard& board, std::optional<Turn>& allRemainingTo);
 
-/// 00AL後処理: 未使用駒を指定側の持駒に追加
-void processAlRemainder(Board& board, int bH[7], int wH[7], bool alBlack, bool alWhite);
-
-// === 盤面→SFEN変換 ===
-
-/// 盤面→SFEN（盤面フィールドのみ）
-QString toSfenBoard(const Board& b);
-
-/// 持駒→SFEN
-QString handsToSfen(const int bH[7], const int wH[7]);
+/// 00AL の後処理: 盤上・駒台にない駒（玉を除く）を side の駒台に置く
+void giveRemainingPiecesTo(ShogiBoard& board, Turn side);
 
 // === 開始局面解析 ===
 
-/// CSA開始局面（PI/P1..P9/P+/P-/+/-）を解析
-bool parseStartPos(const QStringList& lines, int& idx,
-                   QString& baseSfen, Color& stm, Board& board);
+/// CSA開始局面（PI/P1..P9/P+/P-/+/-）を盤に組み立て、その局面の SFEN を baseSfen に入れる（手番は盤の手番）
+bool parseStartPos(const QStringList& lines, int& idx, QString& baseSfen, ShogiBoard& board);
 
 // === 指し手解析 ===
 
 /// CSAトークン解析結果
 struct CsaMoveToken {
-    int fx;
-    int fy;
-    int tx;
-    int ty;
-    Piece afterPiece;
+    BoardSquare from;   ///< 移動元（駒打ちは 0,0）
+    BoardSquare to;     ///< 移動先
+    Piece piece;        ///< 動かした後の駒種（先手の駒で表す）
 };
 
-/// CSAトークン（+7776FU形式）から座標と駒種を抽出
+/// CSAトークン（+7776FU形式）から座標と駒種を抽出（座標は0〜9の数字かだけを確かめる）
 std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token);
 
-/// CSA指し手行をUSI/日本語表記に変換し盤面を更新
-bool parseMoveLine(const QString& line, Color mover, Board& b,
-                   int& prevTx, int& prevTy,
+/**
+ * @brief CSA指し手行を盤の上で USI/日本語表記にし、盤を進める
+ *
+ * 移動元の駒は指す側の駒で、指し手の駒種はその駒か成った駒でなければならない。
+ * 駒打ちは指す側の駒台にある駒だけを打てる。局面と合わない指し手は盤を変えずに false を返す。
+ * @param previousTo 直前の手の移動先（「同」の判定に使い、この手の移動先に更新する）
+ */
+bool parseMoveLine(const QString& line, Turn mover, ShogiBoard& board, BoardSquare& previousTo,
                    QString& usiMoveOut, QString& prettyOut, QString* warn);
 
 // === コメント・時間 ===

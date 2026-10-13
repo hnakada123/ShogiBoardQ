@@ -4,6 +4,7 @@
 #include "csalexer.h"
 #include "kifmovetext.h"
 #include "parsecommon.h"
+#include "shogiboard.h"
 
 namespace CsaLexer {
 
@@ -40,63 +41,16 @@ bool isTurnMarker(const QString& token)
            (token.at(0) == QLatin1Char('+') || token.at(0) == QLatin1Char('-'));
 }
 
-// --- 駒種変換 ---
-
-Piece pieceFromCsa2(const QString& two)
-{
-    if      (two == u"FU") return FU;
-    else if (two == u"KY") return KY;
-    else if (two == u"KE") return KE;
-    else if (two == u"GI") return GI;
-    else if (two == u"KI") return KI;
-    else if (two == u"KA") return KA;
-    else if (two == u"HI") return HI;
-    else if (two == u"OU") return OU;
-    else if (two == u"TO") return TO;
-    else if (two == u"NY") return NY;
-    else if (two == u"NK") return NK;
-    else if (two == u"NG") return NG;
-    else if (two == u"UM") return UM;
-    else if (two == u"RY") return RY;
-    return NO_P;
-}
-
-bool isPromotedPiece(Piece p)
-{
-    return (p == TO || p == NY || p == NK || p == NG || p == UM || p == RY);
-}
-
-Piece basePieceOf(Piece p)
-{
-    switch (p) {
-    case TO: return FU; case NY: return KY; case NK: return KE;
-    case NG: return GI; case UM: return KA; case RY: return HI;
-    default: return p;
-    }
-}
-
-::Piece toPiece(Piece p, Color side)
-{
-    static const ::Piece table[] = {
-        ::Piece::None, ::Piece::BlackPawn, ::Piece::BlackLance, ::Piece::BlackKnight, ::Piece::BlackSilver,
-        ::Piece::BlackGold, ::Piece::BlackBishop, ::Piece::BlackRook, ::Piece::BlackKing,
-        ::Piece::BlackPromotedPawn, ::Piece::BlackPromotedLance, ::Piece::BlackPromotedKnight,
-        ::Piece::BlackPromotedSilver, ::Piece::BlackHorse, ::Piece::BlackDragon};
-    const ::Piece black = (p >= NO_P && p <= RY) ? table[p] : ::Piece::None;
-    return side == White ? toWhite(black) : black;
-}
-
-QString pieceKanji(Piece p)
-{
-    return ShogiNotation::movePieceName(toPiece(p, Black));
-}
-
-bool inside(int v)
-{
-    return (v >= 1) && (v <= 9);
-}
-
 // --- 指し手解析 ---
+
+namespace {
+
+bool belongsTo(Piece piece, Turn side)
+{
+    return side == Turn::Black ? isBlackPiece(piece) : isWhitePiece(piece);
+}
+
+} // namespace
 
 std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token)
 {
@@ -114,80 +68,57 @@ std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token)
 
     if (fx < 0 || fy < 0 || tx < 0 || ty < 0) return std::nullopt;
 
-    const QString p = token.mid(5, 2);
-    const Piece afterPiece = pieceFromCsa2(p);
-    if (afterPiece == NO_P) return std::nullopt;
+    const Piece piece = ShogiNotation::pieceFromCsaCode(QStringView(token).mid(5, 2));
+    if (piece == Piece::None) return std::nullopt;
 
-    return CsaMoveToken{fx, fy, tx, ty, afterPiece};
+    return CsaMoveToken{BoardSquare{fx, fy}, BoardSquare{tx, ty}, piece};
 }
 
-bool parseMoveLine(const QString& line, Color mover, Board& b,
-                   int& prevTx, int& prevTy,
+bool parseMoveLine(const QString& line, Turn mover, ShogiBoard& board, BoardSquare& previousTo,
                    QString& usiMoveOut, QString& prettyOut, QString* warn)
 {
     const qsizetype comma = line.indexOf(QLatin1Char(','));
     const QString token = (comma >= 0) ? line.left(comma) : line;
 
-    const auto moveOpt = parseCsaMoveToken(token);
-    if (!moveOpt) {
+    const auto csa = parseCsaMoveToken(token);
+    if (!csa) {
         if (warn) *warn += QStringLiteral("Malformed move token: %1\n").arg(token);
         return false;
     }
-    const int fx = moveOpt->fx;
-    const int fy = moveOpt->fy;
-    const int tx = moveOpt->tx;
-    const int ty = moveOpt->ty;
-    const Piece after = moveOpt->afterPiece;
 
-    const bool isDrop = (fx == 0 && fy == 0);
-    if (!inside(tx) || !inside(ty)
-        || (isDrop && (isPromotedPiece(after) || after == OU))) {
+    const bool isDrop = (csa->from == BoardSquare{0, 0});
+    if (!csa->to.isValid()
+        || (isDrop && (isPromoted(csa->piece) || csa->piece == Piece::BlackKing))) {
         if (warn) *warn += QStringLiteral("Invalid destination or drop piece: %1\n").arg(token);
         return false;
     }
-
-    Piece beforePiece = NO_P;
-    const bool srcInside = (!isDrop && inside(fx) && inside(fy));
-    bool  beforeProm  = false;
-    if (!isDrop) {
-        if (!srcInside) {
-            if (warn) *warn += QStringLiteral("Source out of range: %1\n").arg(token);
-            return false;
-        }
-        const Cell from = b.sq[fx][fy];
-        beforePiece = from.p;
-        beforeProm  = isPromotedPiece(from.p);
+    if (!isDrop && !csa->from.isValid()) {
+        if (warn) *warn += QStringLiteral("Source out of range: %1\n").arg(token);
+        return false;
     }
 
-    bool promote = false;
-    if (!isDrop) {
-        if (isPromotedPiece(after)) {
-            const Piece base = basePieceOf(after);
-            if (!beforeProm && base == basePieceOf(beforePiece)) {
-                promote = true;
-            }
-        }
-    }
-
-    // USI と表示（「同」「(44)」「馬/龍」「打」）
-    const Turn moverTurn = (mover == Black) ? Turn::Black : Turn::White;
+    // 指し手と動かす駒（駒打ちは打つ駒、盤上の移動は成る前の駒）。成りは移動元の駒と指し手の駒種から決まる
     UsiMove move;
-    move.to = BoardSquare{tx, ty};
+    move.to = csa->to;
+    Piece moving = Piece::None;
     if (isDrop) {
-        move.drop = toPiece(after, Black);
+        move.drop = csa->piece;
+        moving = move.dropPieceFor(mover);
     } else {
-        move.from = BoardSquare{fx, fy};
-        move.promote = promote;
+        move.from = csa->from;
+        moving = board.pieceAt(csa->from);
+        const Piece before = toBlack(moving);
+        move.promote = (before != csa->piece && promote(before) == csa->piece);
+        if (!belongsTo(moving, mover) || (before != csa->piece && !move.promote)) moving = Piece::None;
     }
+    if (moving == Piece::None || belongsTo(board.pieceAt(move.to), mover) || !board.applyUsiMove(move, mover)) {
+        if (warn) *warn += QStringLiteral("Move does not match the position: %1\n").arg(token);
+        return false;
+    }
+
     usiMoveOut = move.toString();
-    const ::Piece moving = isDrop ? toPiece(after, mover) : toPiece(beforePiece, mover);
-    prettyOut = KifMoveText::format(moverTurn, moving, move, BoardSquare{prevTx, prevTy});
-
-    // 盤面更新
-    if (!isDrop) { b.sq[tx][ty] = { after, mover }; b.sq[fx][fy] = Cell{}; }
-    else         { b.sq[tx][ty] = { after, mover }; }
-
-    prevTx = tx; prevTy = ty;
+    prettyOut = KifMoveText::format(mover, moving, move, previousTo);
+    previousTo = move.to;
     return true;
 }
 

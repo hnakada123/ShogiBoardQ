@@ -4,7 +4,6 @@
 /// @file usimatchhandler.h
 /// @brief 対局通信フロー・盤面データ管理を担当するハンドラクラスの定義
 
-#include <QChar>
 #include <QObject>
 #include <QTimer>
 #include <QPoint>
@@ -51,15 +50,6 @@ public:
 
     // --- 盤面データ管理 ---
 
-    /// ゲームコントローラから現在の盤面データをクローンする
-    void cloneCurrentBoardData();
-
-    /// 解析用の盤面データを初期化する
-    void prepareBoardDataForAnalysis();
-
-    /// 盤面データを直接設定する
-    void setClonedBoardData(const QList<QChar>& boardData);
-
     /// 現在の盤面からSFEN文字列を計算する
     QString computeBaseSfenFromBoard() const;
 
@@ -88,7 +78,6 @@ private:
     /// 思考を始める時点の go の入力。時計があれば時計の決まりと残り時間を使う
     UsiGoTimeInput goTimeInput(const UsiTimingParams& timing, bool pondering) const;
 
-    void applyMovesToBoardFromBestMoveAndPonder();
     void updateBaseSfenForPonder();
 
     // --- 内部参照（非所有）---
@@ -99,7 +88,6 @@ private:
 
     // --- 状態 ---
 
-    QList<QChar> m_clonedBoardData;
     QString m_lastUsiMove;
     Hooks m_hooks;
     ShogiClock* m_clock = nullptr;

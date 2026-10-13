@@ -9,6 +9,8 @@
 #include <QList>
 #include <QPoint>
 
+#include "shogitypes.h"
+
 class ShogiBoard;
 
 /// PV手のハイライト座標
@@ -73,8 +75,7 @@ private:
     static bool diffSfenForHighlight(const QString& prevSfen, const QString& currSfen,
                                      int& fromFile, int& fromRank,
                                      int& toFile, int& toRank,
-                                     QChar& droppedPiece);
-    static QPoint standPseudoCoord(QChar pieceChar, bool isBlack);
+                                     Piece& droppedPiece);
 
     QString m_baseSfen;
     QStringList m_pvMoves;

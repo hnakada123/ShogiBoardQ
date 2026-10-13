@@ -1,209 +1,49 @@
 /// @file tsumeshogigenerator_sfen.cpp
-/// @brief TsumeshogiGenerator のSFEN解析・再構築ロジック実装
+/// @brief TsumeshogiGenerator の駒を1枚除いた局面の作成（トリミング）の実装
 
 #include "tsumeshogigenerator.h"
+#include "shogiboard.h"
 
 namespace {
-constexpr int kPieceTypeCount = 7; // P,L,N,S,G,B,R
-}
 
-TsumeshogiGenerator::ParsedSfen TsumeshogiGenerator::parseSfen(const QString& sfen)
+/// 局面の SFEN（手番は攻方=先手、手数は1に固定。詰将棋は常に攻方の手番から始まる）
+QString tsumeSfen(ShogiBoard& board)
 {
-    ParsedSfen result;
-
-    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (parts.size() < 3) {
-        return result;
-    }
-
-    // 盤面パース
-    const QStringList ranks = parts[0].split(QLatin1Char('/'));
-    if (ranks.size() != 9) {
-        return result;
-    }
-
-    for (int r = 0; r < 9; ++r) {
-        const QString& row = ranks[r];
-        int c = 0;
-        for (qsizetype i = 0; i < row.size() && c < 9; ++i) {
-            const QChar ch = row.at(i);
-            if (ch.isDigit()) {
-                int n = ch.digitValue();
-                while (n-- > 0 && c < 9) {
-                    result.cells[r][c++].clear();
-                }
-            } else if (ch == QLatin1Char('+')) {
-                if (i + 1 >= row.size()) {
-                    break;
-                }
-                const QChar p = row.at(++i);
-                result.cells[r][c++] = QString(QLatin1Char('+')) + p;
-            } else {
-                result.cells[r][c++] = QString(ch);
-            }
-        }
-        while (c < 9) {
-            result.cells[r][c++].clear();
-        }
-    }
-
-    // 持ち駒パース
-    const QString hands = parts[2];
-    if (hands == QStringLiteral("-")) {
-        return result;
-    }
-
-    int num = 0;
-    for (QChar ch : hands) {
-        if (ch.isDigit()) {
-            num = num * 10 + ch.digitValue();
-            continue;
-        }
-
-        const bool isSente = ch.isUpper();
-        const int n = (num > 0) ? num : 1;
-        num = 0;
-        const int idx = pieceCharToIndex(ch.toUpper());
-        if (idx < 0) {
-            continue;
-        }
-        if (isSente) {
-            result.senteHand[idx] += n;
-        } else {
-            result.goteHand[idx] += n;
-        }
-    }
-
-    return result;
+    return board.convertBoardToSfen() + QStringLiteral(" b ") + board.convertStandToSfen() + QStringLiteral(" 1");
 }
 
-QString TsumeshogiGenerator::buildSfenFromParsed(const ParsedSfen& parsed)
-{
-    QString board;
-    for (int r = 0; r < 9; ++r) {
-        if (r > 0) {
-            board += QLatin1Char('/');
-        }
-        int empty = 0;
-        for (int c = 0; c < 9; ++c) {
-            if (parsed.cells[r][c].isEmpty()) {
-                empty++;
-            } else {
-                if (empty > 0) {
-                    board += QString::number(empty);
-                    empty = 0;
-                }
-                board += parsed.cells[r][c];
-            }
-        }
-        if (empty > 0) {
-            board += QString::number(empty);
-        }
-    }
-
-    // 持ち駒構築
-    QString hand;
-    // 先手持駒（大文字）: R,B,G,S,N,L,P の順（SFEN慣例: 価値の高い順）
-    static constexpr int kHandOrder[kPieceTypeCount] = {6, 5, 4, 3, 2, 1, 0};
-    for (int o = 0; o < kPieceTypeCount; ++o) {
-        const int idx = kHandOrder[o];
-        if (parsed.senteHand[idx] > 0) {
-            if (parsed.senteHand[idx] > 1) {
-                hand += QString::number(parsed.senteHand[idx]);
-            }
-            hand += indexToPieceChar(idx);
-        }
-    }
-    // 後手持駒（小文字）
-    for (int o = 0; o < kPieceTypeCount; ++o) {
-        const int idx = kHandOrder[o];
-        if (parsed.goteHand[idx] > 0) {
-            if (parsed.goteHand[idx] > 1) {
-                hand += QString::number(parsed.goteHand[idx]);
-            }
-            hand += indexToPieceChar(idx).toLower();
-        }
-    }
-    if (hand.isEmpty()) {
-        hand = QStringLiteral("-");
-    }
-
-    // 「先手番 手数1」固定（詰将棋は常に攻方=先手番）
-    return board + QStringLiteral(" b ") + hand + QStringLiteral(" 1");
-}
-
-int TsumeshogiGenerator::pieceCharToIndex(QChar upper)
-{
-    switch (upper.toLatin1()) {
-    case 'P':
-        return 0;
-    case 'L':
-        return 1;
-    case 'N':
-        return 2;
-    case 'S':
-        return 3;
-    case 'G':
-        return 4;
-    case 'B':
-        return 5;
-    case 'R':
-        return 6;
-    default:
-        return -1;
-    }
-}
-
-QChar TsumeshogiGenerator::indexToPieceChar(int idx)
-{
-    static constexpr char kChars[kPieceTypeCount] = {'P', 'L', 'N', 'S', 'G', 'B', 'R'};
-    if (idx < 0 || idx >= kPieceTypeCount) {
-        return QChar();
-    }
-    return QLatin1Char(kChars[idx]);
-}
+} // namespace
 
 QList<TsumeshogiGenerator::TrimCandidate>
 TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen)
 {
     QList<TrimCandidate> candidates;
-    const ParsedSfen parsed = parseSfen(sfen);
+    ShogiBoard board;
+    if (!board.trySetSfen(sfen)) {
+        return candidates;
+    }
 
-    // 盤上の駒を列挙（玉以外）
-    for (int r = 0; r < 9; ++r) {
-        for (int c = 0; c < 9; ++c) {
-            const QString& cell = parsed.cells[r][c];
-            if (cell.isEmpty()) {
-                continue;
-            }
-
-            // 駒文字を取得（成駒の場合は '+' の次の文字）
-            const bool isPromoted = cell.startsWith(QLatin1Char('+'));
-            const QChar pieceChar = isPromoted ? cell.at(1) : cell.at(0);
-
+    // 盤上の駒を列挙（玉以外）。上の段から、段の中は9筋から順に並べる。
+    // 守方持駒は除去対象外だが、盤上の守方駒は除去可
+    for (int rank = 1; rank <= 9; ++rank) {
+        for (int file = 9; file >= 1; --file) {
+            const BoardSquare square{file, rank};
+            const Piece piece = board.pieceAt(square);
             // 玉はスキップ（攻方玉は詰将棋では配置されないが念のため）
-            const QChar upper = pieceChar.toUpper();
-            if (upper == QLatin1Char('K')) {
+            if (piece == Piece::None || toBlack(piece) == Piece::BlackKing) {
                 continue;
             }
-
-            // 守方持駒は除去対象外だが、盤上の守方駒は除去可
-            TrimCandidate tc;
-            tc.location = TrimCandidate::Board;
-            tc.file = c;
-            tc.rank = r;
-            tc.pieceChar = pieceChar;
-            candidates.append(tc);
+            candidates.append(TrimCandidate{TrimCandidate::Board, square, piece});
         }
     }
 
-    // 攻方（先手）持駒を列挙
-    for (int i = 0; i < kPieceTypeCount; ++i) {
-        if (parsed.senteHand[i] > 0) {
-            TrimCandidate tc;
-            tc.location = TrimCandidate::Hand;
-            tc.pieceChar = indexToPieceChar(i);
-            candidates.append(tc);
+    // 攻方（先手）持駒を列挙（歩・香・桂・銀・金・角・飛の順）
+    static constexpr Piece kHandOrder[] = {
+        Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight, Piece::BlackSilver,
+        Piece::BlackGold, Piece::BlackBishop, Piece::BlackRook};
+    for (const Piece piece : kHandOrder) {
+        if (board.pieceStandCount(piece) > 0) {
+            candidates.append(TrimCandidate{TrimCandidate::Hand, BoardSquare{}, piece});
         }
     }
 
@@ -214,27 +54,24 @@ TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen)
 QString TsumeshogiGenerator::removePieceFromSfen(
     const QString& sfen, const TrimCandidate& candidate)
 {
-    ParsedSfen parsed = parseSfen(sfen);
-
-    // 除去する駒の生駒インデックス（持駒移動用）
-    const QChar upper = candidate.pieceChar.toUpper();
-    const int pieceIdx = pieceCharToIndex(upper);
-
-    if (candidate.location == TrimCandidate::Board) {
-        // 盤上の駒を除去
-        parsed.cells[candidate.rank][candidate.file].clear();
-
-        // 駒の総数を維持: 除去した駒は後手持駒に移動（生駒に戻す）
-        if (pieceIdx >= 0) {
-            parsed.goteHand[pieceIdx]++;
-        }
-    } else if (pieceIdx >= 0 && parsed.senteHand[pieceIdx] > 0) {
-        // 攻方持駒から1枚除去 → 後手持駒に移動
-        parsed.senteHand[pieceIdx]--;
-        parsed.goteHand[pieceIdx]++;
+    ShogiBoard board;
+    if (!board.trySetSfen(sfen)) {
+        return sfen;
     }
 
-    return buildSfenFromParsed(parsed);
+    // 駒の総数を維持: 除去した駒は後手持駒に移動（生駒に戻す）
+    const Piece toDefenderHand = toWhite(toBlack(demote(candidate.piece)));
+    if (candidate.location == TrimCandidate::Board) {
+        if (board.pieceAt(candidate.square) == candidate.piece) {
+            board.setPieceAt(candidate.square, Piece::None);
+            board.addStandPiece(toDefenderHand);
+        }
+    } else if (board.consumeStandPiece(candidate.piece)) {
+        // 攻方持駒から1枚除去 → 後手持駒に移動
+        board.addStandPiece(toDefenderHand);
+    }
+
+    return tsumeSfen(board);
 }
 
 QStringList TsumeshogiGenerator::onePieceRemovedPositions(const QString& sfen)

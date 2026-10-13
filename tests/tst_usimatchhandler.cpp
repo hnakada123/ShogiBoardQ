@@ -328,6 +328,22 @@ private slots:
             QVERIFY(h.commands.at(2).startsWith(QStringLiteral("go btime ")));
         }
     }
+    // 先読み中の読み筋は、エンジンの指した手と予想手を進めた局面から日本語にする
+    void ponderPvUsesPredictedPosition()
+    {
+        MatchHarness h;
+        QVERIFY(h.start(mockPath()));
+        QCOMPARE(h.reply(), QPoint(8, 4));
+        QVERIFY(h.protocol.currentPhase() == UsiProtocolHandler::SearchPhase::Ponder);
+        // 対局の盤（平手・後手番）から、指した手 8c8d と予想手 2g2f を進めた局面
+        QCOMPARE(h.presenter.baseSfen(),
+                 QStringLiteral("lnsgkgsnl/1r5b1/p1ppppppp/1p7/9/7P1/PPPPPPP1P/1B5R1/LNSGKGSNL w - 1"));
+        QSignalSpy rows(&h.presenter, &ThinkingInfoPresenter::thinkingInfoUpdated);
+        h.presenter.processInfoLine(QStringLiteral("info depth 1 score cp 0 pv 8d8e 2f2e 8e8f"));
+        QCOMPARE(rows.count(), 1);
+        QCOMPARE(rows.at(0).at(4).toString(), QStringLiteral("△８五歩(84)▲２五歩(26)△８六歩(85)"));
+        QCOMPARE(rows.at(0).at(5).toString(), QStringLiteral("8d8e 2f2e 8e8f"));
+    }
     void receivedBeforeDeadlineSurvivesUiDelay()
     {
         MatchHarness h;

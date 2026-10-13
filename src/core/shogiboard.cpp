@@ -8,6 +8,8 @@
 #include "boardconstants.h"
 #include "logcategories.h"
 
+#include <algorithm>
+
 // ============================================================
 // 初期化
 // ============================================================
@@ -43,6 +45,18 @@ void ShogiBoard::initStand()
 // ============================================================
 // 盤面アクセス
 // ============================================================
+
+Piece ShogiBoard::pieceAt(BoardSquare square) const
+{
+    if (square.file < 1 || square.file > files() || square.rank < 1 || square.rank > ranks()) return Piece::None;
+    return m_boardData.at((square.rank - 1) * files() + (square.file - 1));
+}
+
+void ShogiBoard::setPieceAt(BoardSquare square, Piece piece)
+{
+    if (square.file < 1 || square.file > files() || square.rank < 1 || square.rank > ranks()) return;
+    setData(square.file, square.rank, piece);
+}
 
 const QList<Piece>& ShogiBoard::boardData() const
 {
@@ -186,6 +200,31 @@ bool ShogiBoard::applyUsiMove(const UsiMove& move, Turn mover)
     if (captured != Piece::None) addPieceToStand(captured);
     movePieceToSquare(moving, move.from.file, move.from.rank, move.to.file, move.to.rank, move.promote);
     return true;
+}
+
+void ShogiBoard::copyPositionFrom(const ShogiBoard& other)
+{
+    if (this == &other) return;
+    m_ranks = other.m_ranks;
+    m_files = other.m_files;
+    if (m_boardData.size() == other.m_boardData.size()) {
+        std::copy(other.m_boardData.cbegin(), other.m_boardData.cend(), m_boardData.begin());
+    } else {
+        m_boardData = other.m_boardData;
+    }
+    // 駒台は、駒の種類（キー）が同じなら枚数だけを上書きする。違えば丸ごと写す
+    bool sameKinds = m_pieceStand.size() == other.m_pieceStand.size();
+    auto dst = m_pieceStand.begin();
+    for (auto src = other.m_pieceStand.cbegin(); sameKinds && src != other.m_pieceStand.cend(); ++src, ++dst) {
+        sameKinds = dst.key() == src.key();
+        if (sameKinds) dst.value() = src.value();
+    }
+    if (!sameKinds) m_pieceStand = other.m_pieceStand;
+    m_currentPlayer = other.m_currentPlayer;
+    m_currentMoveNumber = other.m_currentMoveNumber;
+
+    // ShogiView::setBoardのconnectで再描画がトリガされる
+    emit boardReset();
 }
 
 // ============================================================

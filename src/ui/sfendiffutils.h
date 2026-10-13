@@ -4,18 +4,19 @@
 /// @file sfendiffutils.h
 /// @brief SFEN 盤面差分の共通ユーティリティ
 
-#include <QChar>
 #include <QPoint>
 #include <QString>
-#include <QStringList>
+
+#include "sfenutils.h"
+#include "shogiboard.h"
 
 namespace SfenDiffUtils {
 
 struct DiffResult
 {
-    QPoint from = QPoint(-1, -1);
-    QPoint to = QPoint(-1, -1);
-    QChar droppedPiece;
+    QPoint from = QPoint(-1, -1);   ///< 駒がなくなったマス（筋-1, 段-1）
+    QPoint to = QPoint(-1, -1);     ///< 駒が置かれた・替わったマス（筋-1, 段-1）
+    Piece droppedPiece = Piece::None;  ///< 空きマスに置かれた駒（先後を含む生駒）
     int emptyCount = 0;
     int filledCount = 0;
     int changedCount = 0;
@@ -39,75 +40,37 @@ struct DiffResult
     }
 };
 
-inline bool parseBoardGrid(const QString& sfen, QString grid[9][9])
-{
-    for (int y = 0; y < 9; ++y) {
-        for (int x = 0; x < 9; ++x) {
-            grid[y][x].clear();
-        }
-    }
-
-    if (sfen.isEmpty()) return false;
-    const QString boardField = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts).value(0);
-    const QStringList rows = boardField.split(QLatin1Char('/'), Qt::KeepEmptyParts);
-    if (rows.size() != 9) return false;
-
-    for (int r = 0; r < 9; ++r) {
-        const QString& row = rows.at(r);
-        const int y = r;
-        int x = 8;
-
-        for (qsizetype i = 0; i < row.size(); ++i) {
-            const QChar ch = row.at(i);
-            if (ch.isDigit()) {
-                x -= (ch.toLatin1() - '0');
-            } else if (ch == QLatin1Char('+')) {
-                if (i + 1 >= row.size() || x < 0) return false;
-                grid[y][x] = QStringLiteral("+") + row.at(++i);
-                --x;
-            } else {
-                if (x < 0) return false;
-                grid[y][x] = QString(ch);
-                --x;
-            }
-        }
-        if (x != -1) return false;
-    }
-    return true;
-}
-
+/// 2つの局面（SFEN。"startpos" や "position ..." も読む）の盤上の差分を数える。読めない局面があれば false
 inline bool diffBoards(const QString& prevSfen, const QString& currSfen, DiffResult& out)
 {
     out = DiffResult{};
+    if (prevSfen.isEmpty() || currSfen.isEmpty()) return false;
 
-    QString prevGrid[9][9];
-    QString currGrid[9][9];
-    if (!parseBoardGrid(prevSfen, prevGrid) || !parseBoardGrid(currSfen, currGrid)) {
+    ShogiBoard prev;
+    ShogiBoard curr;
+    if (!prev.trySetSfen(SfenUtils::normalizePositionLikeSfen(prevSfen))
+        || !curr.trySetSfen(SfenUtils::normalizePositionLikeSfen(currSfen))) {
         return false;
     }
 
-    for (int y = 0; y < 9; ++y) {
-        for (int x = 0; x < 9; ++x) {
-            if (prevGrid[y][x] == currGrid[y][x]) continue;
+    for (int rank = 1; rank <= 9; ++rank) {
+        for (int file = 1; file <= 9; ++file) {
+            const Piece before = prev.pieceAt(BoardSquare{file, rank});
+            const Piece after = curr.pieceAt(BoardSquare{file, rank});
+            if (before == after) continue;
 
-            if (!prevGrid[y][x].isEmpty() && currGrid[y][x].isEmpty()) {
+            const QPoint square(file - 1, rank - 1);
+            if (after == Piece::None) {
                 ++out.emptyCount;
-                out.from = QPoint(x, y);
-                continue;
-            }
-
-            if (prevGrid[y][x].isEmpty() && !currGrid[y][x].isEmpty()) {
+                out.from = square;
+            } else if (before == Piece::None) {
                 ++out.filledCount;
-                out.to = QPoint(x, y);
-                out.droppedPiece = currGrid[y][x].at(0);
-                if (out.droppedPiece == QLatin1Char('+') && currGrid[y][x].size() >= 2) {
-                    out.droppedPiece = currGrid[y][x].at(1);
-                }
-                continue;
+                out.to = square;
+                out.droppedPiece = demote(after);
+            } else {
+                ++out.changedCount;
+                out.to = square;
             }
-
-            ++out.changedCount;
-            out.to = QPoint(x, y);
         }
     }
 

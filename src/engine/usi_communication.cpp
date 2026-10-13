@@ -4,26 +4,8 @@
 #include "usi.h"
 #include "usimatchhandler.h"
 #include "sfenpositiontracer.h"
-#include "shogiboard.h"
 
 #include <QTimer>
-
-namespace {
-
-QList<QChar> boardCharsFromSfen(const QString& sfen)
-{
-    ShogiBoard board;
-    board.setSfen(sfen);
-
-    QList<QChar> chars;
-    chars.reserve(board.boardData().size());
-    for (const Piece piece : board.boardData()) {
-        chars.append(pieceToChar(piece));
-    }
-    return chars;
-}
-
-} // namespace
 
 // ============================================================
 // 詰将棋関連
@@ -37,13 +19,11 @@ void Usi::executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec)
     const QString baseSfen = SfenPositionTracer::sfenFromPositionCommand(positionStr);
     if (!baseSfen.isEmpty()) {
         m_presenter->setBaseSfen(baseSfen);
-        m_matchHandler->setClonedBoardData(boardCharsFromSfen(baseSfen));
     } else {
         const QString fallbackSfen = m_matchHandler->computeBaseSfenFromBoard();
         if (!fallbackSfen.isEmpty()) {
             m_presenter->setBaseSfen(fallbackSfen);
         }
-        m_matchHandler->cloneCurrentBoardData();
     }
     m_presenter->requestClearThinkingInfo();
     sendPositionAndGoMateCommands(mateLimitMilliSec, positionStr);
@@ -78,13 +58,7 @@ void Usi::prepareAnalysisSession(const QString& positionStr, int multiPV)
 
     // 思考開始時の局面SFENを保存（読み筋表示用）
     const QString baseSfen = SfenPositionTracer::sfenFromPositionCommand(positionStr);
-    if (!baseSfen.isEmpty()) {
-        m_presenter->setBaseSfen(baseSfen);
-        m_matchHandler->setClonedBoardData(boardCharsFromSfen(baseSfen));
-    } else {
-        m_matchHandler->cloneCurrentBoardData();
-        m_presenter->setBaseSfen(m_matchHandler->computeBaseSfenFromBoard());
-    }
+    m_presenter->setBaseSfen(!baseSfen.isEmpty() ? baseSfen : m_matchHandler->computeBaseSfenFromBoard());
     m_considerationMaxMultiPV = qBound(1, multiPV, 10);
     m_protocolHandler->sendPosition(positionStr);
 

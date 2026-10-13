@@ -7,7 +7,6 @@
 #include "analysisresulthandler.h"
 #include "kifudisplay.h"
 #include "kifurecordlistmodel.h"
-#include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "sfenutils.h"
 #include "usi.h"
@@ -23,23 +22,8 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
 
     // Usiにも設定（ThinkingInfoPresenter経由での変換用）
     if (m_usi) {
-        // SFENから盤面データを生成
+        // ThinkingInfoPresenterに基準SFENを設定（読み筋を日本語にする局面と手番）
         const QString pureSfen = SfenUtils::normalizePositionLikeSfen(sfen);
-
-        ShogiBoard tempBoard;
-        tempBoard.setSfen(pureSfen);
-        const QList<Piece> pieceBoardData = tempBoard.boardData();
-        if (pieceBoardData.size() == 81) {
-            // Usi::setClonedBoardData は QList<QChar> を受け取るため変換
-            QList<QChar> charBoardData;
-            charBoardData.reserve(81);
-            for (const Piece p : std::as_const(pieceBoardData)) {
-                charBoardData.append(pieceToChar(p));
-            }
-            m_usi->setClonedBoardData(charBoardData);
-        }
-
-        // ThinkingInfoPresenterに基準SFENを設定（手番情報用）
         m_usi->setBaseSfen(pureSfen);
         qCDebug(lcAnalysis).noquote() << "setBaseSfen: pureSfen=" << pureSfen.left(50);
 

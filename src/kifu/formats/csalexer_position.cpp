@@ -1,8 +1,12 @@
 /// @file csalexer_position.cpp
-/// @brief CSA形式の初期局面（P行）解析・SFEN変換の実装
+/// @brief CSA形式の初期局面（PI・P行・00AL）を盤（ShogiBoard）に組み立てる実装
 
 #include "csalexer.h"
+#include "sfenutils.h"
+#include "shoginotation.h"
+#include "shogiboard.h"
 
+#include <QMap>
 #include <QString>
 #include <QStringList>
 
@@ -59,31 +63,7 @@ static QStringList tokenizePRow(const QString& raw)
 
 // --- P行（初期局面）解析 ---
 
-void setHirate(Board& board)
-{
-    // クリア
-    for (int x = 1; x <= 9; ++x) {
-        for (int y = 1; y <= 9; ++y) {
-            board.sq[x][y] = Cell{};
-        }
-    }
-    // 白（後手）陣（y=1: L N S G K G S N L）
-    Piece back[9] = { KY, KE, GI, KI, OU, KI, GI, KE, KY };
-    for (int x = 1; x <= 9; ++x) { board.sq[x][1].p = back[x-1]; board.sq[x][1].c = White; }
-    // 白：y=2 角(2,2), 飛(8,2)
-    board.sq[2][2] = { KA, White }; board.sq[8][2] = { HI, White };
-    // 白：歩 y=3
-    for (int x = 1; x <= 9; ++x) { board.sq[x][3] = { FU, White }; }
-
-    // 黒：歩 y=7
-    for (int x = 1; x <= 9; ++x) { board.sq[x][7] = { FU, Black }; }
-    // 黒：y=8 飛(2,8), 角(8,8)
-    board.sq[2][8] = { HI, Black }; board.sq[8][8] = { KA, Black };
-    // 黒（先手）陣（y=9: L N S G K G S N L）
-    for (int x = 1; x <= 9; ++x) { board.sq[x][9].p = back[x-1]; board.sq[x][9].c = Black; }
-}
-
-bool applyPRowLine(const QString& raw, Board& b)
+bool applyPRowLine(const QString& raw, ShogiBoard& board)
 {
     if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
     const int row = raw.at(1).isDigit() ? raw.at(1).digitValue() : -1;
@@ -94,175 +74,73 @@ bool applyPRowLine(const QString& raw, Board& b)
 
     for (int i = 0; i < 9; ++i) {
         const QString& t = toks.at(i);
-        const int x = 9 - i;
+        const BoardSquare square{9 - i, row};
         if (t == QLatin1String("*")) {
-            b.sq[x][row].p = NO_P;
-            b.sq[x][row].c = Black;
+            board.setPieceAt(square, Piece::None);
             continue;
         }
         if (t.size() != 3) return false;
-        const Color side =
-            (t.at(0) == QLatin1Char('+')) ? Black : White;
-        const Piece pc = pieceFromCsa2(t.mid(1, 2));
-        b.sq[x][row] = { pc, side };
+        const Turn side = (t.at(0) == QLatin1Char('+')) ? Turn::Black : Turn::White;
+        board.setPieceAt(square, ShogiNotation::pieceFromCsaCode(QStringView(t).mid(1, 2), side));
     }
     return true;
 }
 
-bool applyPPlusMinusLine(const QString& raw, Board& b,
-                          int bH[7], int wH[7], bool& alBlack, bool& alWhite)
+bool applyPPlusMinusLine(const QString& raw, ShogiBoard& board, std::optional<Turn>& allRemainingTo)
 {
     if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
     const QChar sign = raw.at(1);
     if (sign != QLatin1Char('+') && sign != QLatin1Char('-')) return false;
 
-    const Color side = (sign == QLatin1Char('+')) ? Black : White;
+    const Turn side = (sign == QLatin1Char('+')) ? Turn::Black : Turn::White;
 
-    QString rest = raw.mid(2).trimmed();
-    QString noSpace = rest; noSpace.remove(QLatin1Char(' '));
+    QString noSpace = raw.mid(2).trimmed();
+    noSpace.remove(QLatin1Char(' '));
 
     int matched = 0;
     for (qsizetype pos = 0; pos + 3 < noSpace.size(); pos += 4) {
         const int file = noSpace.at(pos + 0).digitValue();
         const int rank = noSpace.at(pos + 1).digitValue();
-        const QString pc2 = noSpace.mid(pos + 2, 2);
+        const QStringView code = QStringView(noSpace).mid(pos + 2, 2);
 
-        if (file == 0 && rank == 0 && pc2 == QLatin1String("AL")) {
-            if (side == Black) alBlack = true;
-            else               alWhite = true;
+        if (file == 0 && rank == 0 && code == u"AL") {
+            if (!allRemainingTo) allRemainingTo = side;
             ++matched;
             continue;
         }
 
-        const Piece pc = pieceFromCsa2(pc2);
+        const Piece piece = ShogiNotation::pieceFromCsaCode(code, side);
         if (file == 0 && rank == 0) {
-            const Piece base = basePieceOf(pc);
-            int idx = -1;
-            switch (base) {
-            case HI: idx = 0; break; case KA: idx = 1; break;
-            case KI: idx = 2; break; case GI: idx = 3; break;
-            case KE: idx = 4; break; case KY: idx = 5; break;
-            case FU: idx = 6; break; default: idx = -1; break;
-            }
-            if (idx >= 0) {
-                if (side == Black) ++bH[idx];
-                else ++wH[idx];
-            }
+            // 持駒は生駒で数える（玉は持駒にしない）
+            const Piece inHand = demote(piece);
+            if (inHand != Piece::None && toBlack(inHand) != Piece::BlackKing) board.addStandPiece(inHand);
         } else {
-            if (file < 1 || file > 9 || rank < 1 || rank > 9) continue;
-            b.sq[file][rank] = { pc, side };
+            const BoardSquare square{file, rank};
+            if (!square.isValid()) continue;
+            board.setPieceAt(square, piece);
         }
         ++matched;
     }
     return matched > 0;
 }
 
-void processAlRemainder(Board& board, int bH[7], int wH[7], bool alBlack, bool alWhite)
+void giveRemainingPiecesTo(ShogiBoard& board, Turn side)
 {
-    const int TOTAL[7] = {2, 2, 4, 4, 4, 4, 18}; // R,B,G,S,N,L,P
-    int used[7] = {0, 0, 0, 0, 0, 0, 0};
-    for (int x = 1; x <= 9; ++x) {
-        for (int y = 1; y <= 9; ++y) {
-            switch (basePieceOf(board.sq[x][y].p)) {
-            case HI: ++used[0]; break; case KA: ++used[1]; break;
-            case KI: ++used[2]; break; case GI: ++used[3]; break;
-            case KE: ++used[4]; break; case KY: ++used[5]; break;
-            case FU: ++used[6]; break; default: break;
-            }
-        }
+    const QMap<Piece, int> remaining = board.pieceBox();
+    for (auto it = remaining.cbegin(); it != remaining.cend(); ++it) {
+        if (it.key() == Piece::BlackKing || it.value() <= 0) continue;
+        board.addStandPiece(side == Turn::Black ? it.key() : toWhite(it.key()), it.value());
     }
-    for (int k = 0; k < 7; ++k) used[k] += bH[k] + wH[k];
-    for (int k = 0; k < 7; ++k) {
-        const int rem = TOTAL[k] - used[k];
-        if (rem <= 0) continue;
-        if (alBlack) bH[k] += rem;
-        if (alWhite) wH[k] += rem;
-    }
-}
-
-// --- 盤面→SFEN変換 ---
-
-QString toSfenBoard(const Board& b)
-{
-    QString s;
-    s.reserve(81);
-    for (int y = 1; y <= 9; ++y) {
-        int empty = 0;
-        for (int x = 9; x >= 1; --x) {
-            const auto& cell = b.sq[x][y];
-            if (cell.p == NO_P) {
-                ++empty;
-            } else {
-                if (empty > 0) { s += QString::number(empty); empty = 0; }
-                const Piece base = basePieceOf(cell.p);
-                QChar ch;
-                switch (base) {
-                case FU: ch = QLatin1Char('P'); break;
-                case KY: ch = QLatin1Char('L'); break;
-                case KE: ch = QLatin1Char('N'); break;
-                case GI: ch = QLatin1Char('S'); break;
-                case KI: ch = QLatin1Char('G'); break;
-                case KA: ch = QLatin1Char('B'); break;
-                case HI: ch = QLatin1Char('R'); break;
-                case OU: ch = QLatin1Char('K'); break;
-                default: ch = QLatin1Char('?'); break;
-                }
-                if (cell.c == White) ch = ch.toLower();
-                if (isPromotedPiece(cell.p)) s += QLatin1Char('+');
-                s += ch;
-            }
-        }
-        if (empty > 0) s += QString::number(empty);
-        if (y != 9) s += QLatin1Char('/');
-    }
-    return s;
-}
-
-QString handsToSfen(const int bH[7], const int wH[7])
-{
-    auto append = [](QString& out, int n, QChar ch) {
-        if (n <= 0) return;
-        if (n >= 2) out += QString::number(n);
-        out += ch;
-    };
-    QString s;
-    append(s, bH[0], QLatin1Char('R')); append(s, bH[1], QLatin1Char('B'));
-    append(s, bH[2], QLatin1Char('G')); append(s, bH[3], QLatin1Char('S'));
-    append(s, bH[4], QLatin1Char('N')); append(s, bH[5], QLatin1Char('L'));
-    append(s, bH[6], QLatin1Char('P'));
-    append(s, wH[0], QLatin1Char('r')); append(s, wH[1], QLatin1Char('b'));
-    append(s, wH[2], QLatin1Char('g')); append(s, wH[3], QLatin1Char('s'));
-    append(s, wH[4], QLatin1Char('n')); append(s, wH[5], QLatin1Char('l'));
-    append(s, wH[6], QLatin1Char('p'));
-    if (s.isEmpty()) return QStringLiteral("-");
-    return s;
 }
 
 // --- 開始局面解析 ---
 
-bool parseStartPos(const QStringList& lines, int& idx,
-                   QString& baseSfen, Color& stm, Board& board)
+bool parseStartPos(const QStringList& lines, int& idx, QString& baseSfen, ShogiBoard& board)
 {
     // CSAでは配置が省略された駒は駒箱に残る。PIだけが平手配置を指定する。
-    board = Board{};
-    stm = Black;
-
-    int bH[7] = {0,0,0,0,0,0,0};
-    int wH[7] = {0,0,0,0,0,0,0};
-
-    bool alBlack = false;
-    bool alWhite = false;
-
-    // 盤クリア
-    struct Clear {
-        static void all(Board& b) {
-            for (int x = 1; x <= 9; ++x)
-                for (int y = 1; y <= 9; ++y) { b.sq[x][y].p = NO_P; b.sq[x][y].c = Black; }
-        }
-    };
-
-    bool sawPI = false;
-    bool sawAnyP = false;
+    board.resetGameBoard();
+    Turn stm = Turn::Black;
+    std::optional<Turn> allRemainingTo;
 
     int i = idx;
     for (; i < lines.size(); ++i) {
@@ -271,54 +149,45 @@ bool parseStartPos(const QStringList& lines, int& idx,
         if (isMetaLine(raw) || isCommentLine(raw)) continue;
 
         if (raw.startsWith(QLatin1String("PI"))) {
-            setHirate(board);
+            // 平手から、指定された駒（駒落ち）を除く
+            (void)board.trySetSfen(SfenUtils::hirateSfen());
             const QString removed = raw.mid(2);
             if (removed.size() % 4 != 0) return false;
             for (qsizetype pos = 0; pos < removed.size(); pos += 4) {
-                const int file = removed.at(pos).digitValue();
-                const int rank = removed.at(pos + 1).digitValue();
-                const Piece piece = pieceFromCsa2(removed.mid(pos + 2, 2));
-                if (!inside(file) || !inside(rank) || piece == NO_P
-                    || board.sq[file][rank].p != piece) return false;
-                board.sq[file][rank] = Cell{};
+                const BoardSquare square{removed.at(pos).digitValue(), removed.at(pos + 1).digitValue()};
+                const Piece piece = ShogiNotation::pieceFromCsaCode(QStringView(removed).mid(pos + 2, 2));
+                if (!square.isValid() || piece == Piece::None || toBlack(board.pieceAt(square)) != piece) return false;
+                board.setPieceAt(square, Piece::None);
             }
-            for (int k = 0; k < 7; ++k) { bH[k] = 0; wH[k] = 0; }
-            sawPI = true; sawAnyP = true;
             continue;
         }
 
         if (raw.size() >= 2 && raw.at(0) == QLatin1Char('P')) {
-            if (!sawPI && !sawAnyP) Clear::all(board);
-
             if (raw.at(1).isDigit()) {
-                if (applyPRowLine(raw, board)) sawAnyP = true;
+                applyPRowLine(raw, board);
                 continue;
             } else if (raw.at(1) == QLatin1Char('+') || raw.at(1) == QLatin1Char('-')) {
-                if (applyPPlusMinusLine(raw, board, bH, wH, alBlack, alWhite)) sawAnyP = true;
+                applyPPlusMinusLine(raw, board, allRemainingTo);
                 continue;
             }
         }
 
-        if (raw == QLatin1String("+")) { stm = Black; ++i; break; }
-        if (raw == QLatin1String("-")) { stm = White; ++i; break; }
+        if (raw == QLatin1String("+")) { stm = Turn::Black; ++i; break; }
+        if (raw == QLatin1String("-")) { stm = Turn::White; ++i; break; }
 
         if (isMoveLine(raw) || isResultLine(raw)) {
-            if (raw.startsWith(QLatin1Char('+'))) stm = Black;
-            else if (raw.startsWith(QLatin1Char('-'))) stm = White;
+            if (raw.startsWith(QLatin1Char('+'))) stm = Turn::Black;
+            else if (raw.startsWith(QLatin1Char('-'))) stm = Turn::White;
             break;
         }
     }
     idx = i;
 
-    if (alBlack || alWhite)
-        processAlRemainder(board, bH, wH, alBlack, alWhite);
+    if (allRemainingTo) giveRemainingPiecesTo(board, *allRemainingTo);
 
-    const QString boardField = toSfenBoard(board);
-    const QString handsField = handsToSfen(bH, wH);
-
-    baseSfen = boardField
-               + (stm == Black ? QStringLiteral(" b ") : QStringLiteral(" w "))
-               + handsField + QStringLiteral(" 1");
+    board.setCurrentPlayer(stm);
+    baseSfen = board.convertBoardToSfen() + QLatin1Char(' ') + turnToSfen(stm) + QLatin1Char(' ')
+               + board.convertStandToSfen() + QStringLiteral(" 1");
     return true;
 }
 
