@@ -296,8 +296,8 @@ void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions& opt)
 
     // 司令塔の内部手番も GC に同期（既存互換）
     *m_refs.currentTurn =
-        (startSide == Turn::White) ? MatchCoordinator::P2
-                                                    : MatchCoordinator::P1;
+        (startSide == Turn::White) ? Turn::White
+                                                    : Turn::Black;
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(*m_refs.currentTurn);
 }
 

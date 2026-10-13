@@ -181,20 +181,19 @@ void MatchCoordinator::resetPositionHistory() {}
 void MatchCoordinator::setPlayMode(PlayMode) {}
 void MatchCoordinator::setUndoBindings(const UndoRefs&, const UndoHooks&) {}
 void MatchCoordinator::handleResign() {}
-void MatchCoordinator::handleEngineResign(int) {}
-void MatchCoordinator::handleEngineWin(int) {}
+void MatchCoordinator::handleEngineResign(Turn) {}
+void MatchCoordinator::handleEngineWin(Turn) {}
 void MatchCoordinator::flipBoard() {}
 void MatchCoordinator::handleBreakOff() {}
-void MatchCoordinator::handleNyugyokuDeclaration(Player, bool, bool) {}
-void MatchCoordinator::markTurnEpochNowFor(Player, qint64) {}
-qint64 MatchCoordinator::turnEpochFor(Player) const { return 0; }
+void MatchCoordinator::handleNyugyokuDeclaration(Turn, bool, bool) {}
+void MatchCoordinator::markTurnEpochNowFor(Turn, qint64) {}
+qint64 MatchCoordinator::turnEpochFor(Turn) const { return 0; }
 void MatchCoordinator::armTurnTimerIfNeeded() {}
-void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player) {}
+void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Turn) {}
 void MatchCoordinator::disarmHumanTimerIfNeeded() {}
 void MatchCoordinator::startInitialEngineMoveIfNeeded() {}
 bool MatchCoordinator::undoTwoPlies() { return false; }
-void MatchCoordinator::initializeAndStartEngineFor(Player, const QString&, const QString&) {}
-void MatchCoordinator::destroyEngine(int, bool) {}
+void MatchCoordinator::initializeAndStartEngineFor(Turn, const QString&, const QString&) {}
 void MatchCoordinator::destroyEngines(bool) {}
 void MatchCoordinator::clearGameOverState() {}
 void MatchCoordinator::setGameOver(const GameEndInfo&, bool, bool) {}
@@ -209,9 +208,9 @@ void MatchCoordinator::configureAndStart(const StartOptions&) {}
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialogData*) const { return {}; }
 void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
 void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
-void MatchCoordinator::handlePlayerTimeOut(int) {}
+void MatchCoordinator::handlePlayerTimeOut(Turn) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
-void MatchCoordinator::appendGameOverLineAndMark(Cause, Player) {}
+void MatchCoordinator::appendGameOverLineAndMark(Cause, Turn) {}
 void MatchCoordinator::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 void MatchCoordinator::forceImmediateMove() {}
 void MatchCoordinator::sendStopToEngine(Usi*) {}
@@ -247,13 +246,13 @@ void MatchTurnHandler::createAndStartModeStrategy(const StartOptions&) {}
 void MatchTurnHandler::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 void MatchTurnHandler::startInitialEngineMoveIfNeeded() {}
 void MatchTurnHandler::armTurnTimerIfNeeded() {}
-void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Player) {}
+void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Turn) {}
 void MatchTurnHandler::disarmHumanTimerIfNeeded() {}
 void MatchTurnHandler::flipBoard() {}
-void MatchTurnHandler::updateTurnDisplay(Player) {}
+void MatchTurnHandler::updateTurnDisplay(Turn) {}
 void MatchTurnHandler::initPositionStringsFromSfen(const QString&) {}
 void MatchTurnHandler::forceImmediateMove() {}
-void MatchTurnHandler::handlePlayerTimeOut(int) {}
+void MatchTurnHandler::handlePlayerTimeOut(Turn) {}
 void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
 void MatchTurnHandler::handleUsiError(const QString&) {}
 void MatchCoordinator::ensureAnalysisSession() {}
@@ -460,8 +459,7 @@ QDateTime TimeControlController::gameStartDateTime() const { return {}; }
 QDateTime TimeControlController::gameEndDateTime() const { return {}; }
 void TimeControlController::clearGameStartTime() {}
 void TimeControlController::clearGameEndTime() {}
-void TimeControlController::onClockPlayer1TimeOut() {}
-void TimeControlController::onClockPlayer2TimeOut() {}
+void TimeControlController::onClockPlayerTimeOut(Turn) {}
 
 // ============================================================
 // TimeDisplayPresenter スタブ
@@ -545,7 +543,7 @@ void ShogiGameController::newGame(QString&) {}
 EngineLifecycleManager::EngineLifecycleManager(QObject* parent) : QObject(parent) {}
 void EngineLifecycleManager::setRefs(const Refs&) {}
 void EngineLifecycleManager::setHooks(const Hooks&) {}
-void EngineLifecycleManager::initializeAndStartEngineFor(Player, const QString&, const QString&) {}
+void EngineLifecycleManager::initializeAndStartEngineFor(Turn, const QString&, const QString&) {}
 void EngineLifecycleManager::destroyEngine(int, bool) {}
 void EngineLifecycleManager::destroyEngines(bool) {}
 void EngineLifecycleManager::initEnginesForEvE(const QString&, const QString&) {}
@@ -559,12 +557,12 @@ void EngineLifecycleManager::setShutdownInProgress(bool) {}
 EngineLifecycleManager::EngineModelPair EngineLifecycleManager::ensureEngineModels(int) { return {}; }
 void EngineLifecycleManager::setModelPtrs(UsiCommLogModel*, ShogiEngineThinkingModel*, UsiCommLogModel*, ShogiEngineThinkingModel*) {}
 void EngineLifecycleManager::sendStopToEngine(Usi*) {}
-void EngineLifecycleManager::wireResignToArbiter(Usi*, bool) {}
-void EngineLifecycleManager::wireWinToArbiter(Usi*, bool) {}
-void EngineLifecycleManager::onEngine1Resign() {}
-void EngineLifecycleManager::onEngine2Resign() {}
-void EngineLifecycleManager::onEngine1Win() {}
-void EngineLifecycleManager::onEngine2Win() {}
+void EngineLifecycleManager::wireResignToArbiter(Usi*, Turn) {}
+void EngineLifecycleManager::wireWinToArbiter(Usi*, Turn) {}
+void EngineLifecycleManager::onBlackEngineResign() {}
+void EngineLifecycleManager::onWhiteEngineResign() {}
+void EngineLifecycleManager::onBlackEngineWin() {}
+void EngineLifecycleManager::onWhiteEngineWin() {}
 void EngineLifecycleManager::sendRawTo(Usi*, const QString&) {}
 
 // ============================================================
@@ -576,8 +574,8 @@ void MatchTimekeeper::setRefs(const Refs&) {}
 void MatchTimekeeper::setClock(ShogiClock*) {}
 ShogiClock* MatchTimekeeper::clock() const { return nullptr; }
 const ShogiClock* MatchTimekeeper::clockConst() const { return nullptr; }
-void MatchTimekeeper::markTurnEpochNowFor(Player, qint64) {}
-qint64 MatchTimekeeper::turnEpochFor(Player) const { return 0; }
+void MatchTimekeeper::markTurnEpochNowFor(Turn, qint64) {}
+qint64 MatchTimekeeper::turnEpochFor(Turn) const { return 0; }
 void MatchTimekeeper::recomputeClockSnapshot(QString&, QString&, QString&) const {}
 void MatchTimekeeper::pokeTimeUpdateNow() {}
 void MatchTimekeeper::onClockTick() {}
@@ -643,17 +641,17 @@ GameEndHandler::GameEndHandler(QObject* parent) : QObject(parent) {}
 void GameEndHandler::setRefs(const Refs&) {}
 void GameEndHandler::setHooks(const Hooks&) {}
 void GameEndHandler::handleResign() {}
-void GameEndHandler::handleEngineResign(int) {}
-void GameEndHandler::handleEngineWin(int) {}
-void GameEndHandler::handleEngineIllegalMove(int) {}
-void GameEndHandler::handleNyugyokuDeclaration(Player, bool, bool) {}
+void GameEndHandler::handleEngineResign(Turn) {}
+void GameEndHandler::handleEngineWin(Turn) {}
+void GameEndHandler::handleEngineIllegalMove(Turn) {}
+void GameEndHandler::handleNyugyokuDeclaration(Turn, bool, bool) {}
 void GameEndHandler::handleBreakOff() {}
 void GameEndHandler::handleMaxMovesJishogi() {}
 bool GameEndHandler::checkAndHandleSennichite() { return false; }
 void GameEndHandler::handleSennichite() {}
 void GameEndHandler::handleOuteSennichite(bool) {}
 void GameEndHandler::appendBreakOffLineAndMark() {}
-void GameEndHandler::appendGameOverLineAndMark(Cause, Player) {}
+void GameEndHandler::appendGameOverLineAndMark(Cause, Turn) {}
 void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo&) {}
 void GameEndHandler::sendRawToEngineHelper(Usi*, const QString&) {}
 

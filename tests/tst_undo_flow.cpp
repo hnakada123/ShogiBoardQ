@@ -125,13 +125,12 @@ struct Harness {
     /// 着手し、その手の消費時間を時計に確定する（対局中の着手と同じ順序）
     bool playTimed(const QString& usi, qint64 ms)
     {
-        const int player = gc.currentPlayer() == Turn::Black ? 1 : 2;
+        const Turn player = gc.currentPlayer();
         if (!play(usi)) return false;
         clock.setCurrentPlayer(player);
         clock.setMeasuredConsiderationTime(player, ms);
-        if (player == 1) clock.commitMove(1);
-        else clock.commitMove(2);
-        clock.setCurrentPlayer(player == 1 ? 2 : 1);
+        clock.commitMove(player);
+        clock.setCurrentPlayer(player == Turn::Black ? Turn::White : Turn::Black);
         return true;
     }
 
@@ -254,15 +253,15 @@ private slots:
     {
         Harness h;
         h.clock.setTimeControl(TestTime::rules(600, 600, 0, 0, 10, 10)); // 持ち時間10分＋加算10秒
-        h.clock.setCurrentPlayer(1);
+        h.clock.setCurrentPlayer(Turn::Black);
         const auto verifyClock = [&h](const ShogiClock::Snapshot& expected) {
             const auto now = h.clock.pauseAndSnapshot();
-            QCOMPARE(now.currentPlayer, 1);
-            QCOMPARE(now.of(1).remainingMs, expected.of(1).remainingMs);
-            QCOMPARE(now.of(2).remainingMs, expected.of(2).remainingMs);
-            QCOMPARE(now.of(1).totalConsiderationMs, expected.of(1).totalConsiderationMs);
-            QCOMPARE(now.of(2).totalConsiderationMs, expected.of(2).totalConsiderationMs);
-            QCOMPARE(now.of(1).considerationMs, 0LL);
+            QCOMPARE(now.currentPlayer, Turn::Black);
+            QCOMPARE(now.of(Turn::Black).remainingMs, expected.of(Turn::Black).remainingMs);
+            QCOMPARE(now.of(Turn::White).remainingMs, expected.of(Turn::White).remainingMs);
+            QCOMPARE(now.of(Turn::Black).totalConsiderationMs, expected.of(Turn::Black).totalConsiderationMs);
+            QCOMPARE(now.of(Turn::White).totalConsiderationMs, expected.of(Turn::White).totalConsiderationMs);
+            QCOMPARE(now.of(Turn::Black).considerationMs, 0LL);
         };
 
         const auto firstTurn = h.clock.pauseAndSnapshot();
@@ -271,14 +270,14 @@ private slots:
         const auto engineTurn = h.clock.pauseAndSnapshot();
         h.flow.undoLastTwoMoves();
         verifyPosition(h, 1);
-        QCOMPARE(h.clock.pauseAndSnapshot().of(1).remainingMs, engineTurn.of(1).remainingMs);
+        QCOMPARE(h.clock.pauseAndSnapshot().of(Turn::Black).remainingMs, engineTurn.of(Turn::Black).remainingMs);
         QCOMPARE(h.timerRestarts, 0);
 
         QVERIFY(h.playTimed(opening.at(1), 1000));
         const auto secondTurn = h.clock.pauseAndSnapshot();
         QVERIFY(h.playTimed(opening.at(2), 5000));
         QVERIFY(h.playTimed(opening.at(3), 2000));
-        h.clock.setConsiderationTimeMs(1, 700); // 考え中の時間も返す
+        h.clock.setConsiderationTimeMs(Turn::Black, 700); // 考え中の時間も返す
 
         h.flow.undoLastTwoMoves();
         verifyPosition(h, 2);

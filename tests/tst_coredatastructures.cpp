@@ -69,7 +69,6 @@ private slots:
         tm.set(Turn::Black);
         QCOMPARE(tm.side(), Turn::Black);
         QCOMPARE(tm.toSfenToken(), QStringLiteral("b"));
-        QCOMPARE(tm.toClockPlayer(), 1);
     }
 
     void turnManager_setPlayer2()
@@ -78,7 +77,6 @@ private slots:
         tm.set(Turn::White);
         QCOMPARE(tm.side(), Turn::White);
         QCOMPARE(tm.toSfenToken(), QStringLiteral("w"));
-        QCOMPARE(tm.toClockPlayer(), 2);
     }
 
     void turnManager_toggle()

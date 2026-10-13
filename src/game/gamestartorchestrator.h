@@ -26,7 +26,6 @@ class ShogiGameController;
 class GameStartOrchestrator
 {
 public:
-    using Player = MatchCoordinator::Player;
     using StartOptions = MatchCoordinator::StartOptions;
 
     /// MatchCoordinator の内部状態への参照群
@@ -36,7 +35,7 @@ public:
         // 可変状態
         PlayMode* playMode = nullptr;
         int* maxMoves = nullptr;
-        Player* currentTurn = nullptr;
+        Turn* currentTurn = nullptr;
         int* currentMoveIndex = nullptr;
 
         // 棋譜自動保存設定
@@ -89,7 +88,7 @@ public:
 
         /// @brief 手番表示を更新する
         /// @note 配線元: MC lambda → MC::updateTurnDisplay (内部で m_hooks.updateTurnDisplay を呼ぶ)
-        std::function<void(Player)> updateTurnDisplay;
+        std::function<void(Turn)> updateTurnDisplay;
 
         /// @brief 開始局面から USI position 文字列を初期化する
         /// @note 配線元: MC lambda → initPositionStringsFromSfen

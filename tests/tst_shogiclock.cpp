@@ -29,27 +29,27 @@ private slots:
         tc.rules.black.incrementMs = 10000;
         tc.rules.white.incrementMs = 7000;
         TimeControlUtil::applyToClock(&clock, tc, QStringLiteral("startpos"), {});
-        QCOMPARE(clock.remainingMs(1), baseMs + 10000);
-        QCOMPARE(clock.remainingMs(2), baseMs + 7000);
+        QCOMPARE(clock.remainingMs(Turn::Black), baseMs + 10000);
+        QCOMPARE(clock.remainingMs(Turn::White), baseMs + 7000);
         // 再適用・再開で初手分を二重加算しない。
         TimeControlUtil::applyToClock(&clock, tc, QStringLiteral("startpos"), {});
         auto state = clock.pauseAndSnapshot();
-        state.of(1).remainingMs -= 3000;
-        state.of(1).considerationMs = 3000;
+        state.of(Turn::Black).remainingMs -= 3000;
+        state.of(Turn::Black).considerationMs = 3000;
         clock.restoreSnapshot(state);
-        clock.commitMove(1);
-        QCOMPARE(clock.remainingMs(1), baseMs + 17000);
-        QCOMPARE(clock.totalConsiderationTimeString(1), QStringLiteral("00:00:03"));
-        clock.setCurrentPlayer(2);
-        clock.commitMove(2);
-        clock.setCurrentPlayer(1);
+        clock.commitMove(Turn::Black);
+        QCOMPARE(clock.remainingMs(Turn::Black), baseMs + 17000);
+        QCOMPARE(clock.totalConsiderationTimeString(Turn::Black), QStringLiteral("00:00:03"));
+        clock.setCurrentPlayer(Turn::White);
+        clock.commitMove(Turn::White);
+        clock.setCurrentPlayer(Turn::Black);
         state = clock.pauseAndSnapshot();
-        state.of(1).remainingMs -= 5000;
-        state.of(1).considerationMs = 5000;
+        state.of(Turn::Black).remainingMs -= 5000;
+        state.of(Turn::Black).considerationMs = 5000;
         clock.restoreSnapshot(state);
-        clock.commitMove(1);
-        QCOMPARE(clock.remainingMs(1), baseMs + 22000);
-        QCOMPARE(clock.totalConsiderationTimeString(1), QStringLiteral("00:00:08"));
+        clock.commitMove(Turn::Black);
+        QCOMPARE(clock.remainingMs(Turn::Black), baseMs + 22000);
+        QCOMPARE(clock.totalConsiderationTimeString(Turn::Black), QStringLiteral("00:00:08"));
         clock.startClock();
         QTest::qWait(60);
         QVERIFY(!clock.isGameOver());
@@ -68,29 +68,29 @@ private slots:
         QFETCH(bool, switchBeforeCommit);
         ShogiClock clock;
         clock.setTimeControl(rules(0, 0, 0, 0, 0, 0));
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:00:00"));
-        clock.setConsiderationTimeMs(1, 1750);
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:00:01"));
-        if (switchBeforeCommit) clock.setCurrentPlayer(2);
-        clock.commitMove(1);
-        QCOMPARE(clock.timeString(1), clock.totalConsiderationTimeString(1));
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:00:01"));
-        clock.setCurrentPlayer(2);
-        clock.setMeasuredConsiderationTime(2, 2999);
-        QCOMPARE(clock.timeString(2), QStringLiteral("00:00:02"));
-        if (switchBeforeCommit) clock.setCurrentPlayer(1);
-        clock.commitMove(2);
-        QCOMPARE(clock.timeString(2), clock.totalConsiderationTimeString(2));
-        clock.setCurrentPlayer(1);
-        clock.setConsiderationTimeMs(1, 750);
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:00:02"));
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:00"));
+        clock.setConsiderationTimeMs(Turn::Black, 1750);
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:01"));
+        if (switchBeforeCommit) clock.setCurrentPlayer(Turn::White);
+        clock.commitMove(Turn::Black);
+        QCOMPARE(clock.timeString(Turn::Black), clock.totalConsiderationTimeString(Turn::Black));
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:01"));
+        clock.setCurrentPlayer(Turn::White);
+        clock.setMeasuredConsiderationTime(Turn::White, 2999);
+        QCOMPARE(clock.timeString(Turn::White), QStringLiteral("00:00:02"));
+        if (switchBeforeCommit) clock.setCurrentPlayer(Turn::Black);
+        clock.commitMove(Turn::White);
+        QCOMPARE(clock.timeString(Turn::White), clock.totalConsiderationTimeString(Turn::White));
+        clock.setCurrentPlayer(Turn::Black);
+        clock.setConsiderationTimeMs(Turn::Black, 750);
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:02"));
         clock.markGameOver();
-        clock.commitMove(1);
-        QCOMPARE(clock.timeString(1), clock.totalConsiderationTimeString(1));
-        QCOMPARE(clock.considerationAndTotalTime(1), QStringLiteral("00:01/00:00:02"));
+        clock.commitMove(Turn::Black);
+        QCOMPARE(clock.timeString(Turn::Black), clock.totalConsiderationTimeString(Turn::Black));
+        QCOMPARE(clock.considerationAndTotalTime(Turn::Black), QStringLiteral("00:01/00:00:02"));
         // 表示用の累積時間をエンジン向けの残り時間へ流用しない。
-        QCOMPARE(clock.remainingMs(1), 0LL);
-        QCOMPARE(clock.remainingMs(2), 0LL);
+        QCOMPARE(clock.remainingMs(Turn::Black), 0LL);
+        QCOMPARE(clock.remainingMs(Turn::White), 0LL);
     }
 
     void unlimitedTimeUpdatesWhileThinking()
@@ -101,12 +101,12 @@ private slots:
         clock.startClock();
         updated.clear();
         QTRY_VERIFY_WITH_TIMEOUT(!updated.isEmpty(), 2000);
-        QVERIFY(clock.timeString(1) != QStringLiteral("00:00:00"));
-        QCOMPARE(clock.timeString(2), QStringLiteral("00:00:00"));
+        QVERIFY(clock.timeString(Turn::Black) != QStringLiteral("00:00:00"));
+        QCOMPARE(clock.timeString(Turn::White), QStringLiteral("00:00:00"));
         QVERIFY(!clock.isGameOver());
         clock.finishTurn();
-        clock.commitMove(1);
-        QCOMPARE(clock.timeString(1), clock.totalConsiderationTimeString(1));
+        clock.commitMove(Turn::Black);
+        QCOMPARE(clock.timeString(Turn::Black), clock.totalConsiderationTimeString(Turn::Black));
         clock.stopClock();
     }
 
@@ -116,26 +116,26 @@ private slots:
         clock.setTimeControl(rules(0, 0, 0, 0, 0, 0));
         clock.startClock();
         clock.stopClock();
-        clock.setConsiderationTimeMs(1, 1750);
+        clock.setConsiderationTimeMs(Turn::Black, 1750);
         const auto paused = clock.pauseAndSnapshot();
         clock.markGameOver();
-        clock.commitMove(1);
+        clock.commitMove(Turn::Black);
         clock.restoreSnapshot(paused);
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:00:01"));
-        clock.setMeasuredConsiderationTime(1, 750);
-        clock.commitMove(1);
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:00:02"));
-        clock.setCurrentPlayer(2);
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:01"));
+        clock.setMeasuredConsiderationTime(Turn::Black, 750);
+        clock.commitMove(Turn::Black);
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:02"));
+        clock.setCurrentPlayer(Turn::White);
         clock.startClock();
         clock.stopClock();
-        clock.setConsiderationTimeMs(2, 3200);
-        clock.commitMove(2);
-        clock.setCurrentPlayer(1);
+        clock.setConsiderationTimeMs(Turn::White, 3200);
+        clock.commitMove(Turn::White);
+        clock.setCurrentPlayer(Turn::Black);
         clock.startClock();
         clock.stopClock();
         clock.undo();
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:00:00"));
-        QCOMPARE(clock.timeString(2), QStringLiteral("00:00:00"));
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:00"));
+        QCOMPARE(clock.timeString(Turn::White), QStringLiteral("00:00:00"));
     }
 
     void resumePreservesClock_data()
@@ -156,32 +156,32 @@ private slots:
         clock.startClock();
         QTest::qSleep(35);
         const auto state = clock.pauseAndSnapshot();
-        QVERIFY(state.of(1).considerationMs >= 35);
-        const qint64 left = clock.remainingTurnTimeMs(1);
+        QVERIFY(state.of(Turn::Black).considerationMs >= 35);
+        const qint64 left = clock.remainingTurnTimeMs(Turn::Black);
         QTest::qWait(70);
-        QCOMPARE(clock.remainingTurnTimeMs(1), left);
+        QCOMPARE(clock.remainingTurnTimeMs(Turn::Black), left);
         // 中断行による時間確定と、閲覧による手番変更を経ても復元できる。
         clock.markGameOver();
-        clock.commitMove(1);
-        clock.setCurrentPlayer(2);
+        clock.commitMove(Turn::Black);
+        clock.setCurrentPlayer(Turn::White);
         clock.restoreSnapshot(state);
-        QCOMPARE(clock.currentPlayer(), 1);
-        QCOMPARE(clock.remainingMs(1), state.of(1).remainingMs);
-        QCOMPARE(clock.remainingMs(2), state.of(2).remainingMs);
-        QCOMPARE(clock.byoyomiApplied(1), byoyomi != 0);
-        QCOMPARE(clock.totalConsiderationTimeString(1), QStringLiteral("00:00:00"));
+        QCOMPARE(clock.currentPlayer(), Turn::Black);
+        QCOMPARE(clock.remainingMs(Turn::Black), state.of(Turn::Black).remainingMs);
+        QCOMPARE(clock.remainingMs(Turn::White), state.of(Turn::White).remainingMs);
+        QCOMPARE(clock.byoyomiApplied(Turn::Black), byoyomi != 0);
+        QCOMPARE(clock.totalConsiderationTimeString(Turn::Black), QStringLiteral("00:00:00"));
         clock.startClock();
         QTest::qSleep(40);
         clock.finishTurn();
         const auto resumed = clock.pauseAndSnapshot();
-        QVERIFY(resumed.of(1).considerationMs >= state.of(1).considerationMs + 40);
+        QVERIFY(resumed.of(Turn::Black).considerationMs >= state.of(Turn::Black).considerationMs + 40);
         QCOMPARE(resumed.history.size(), state.history.size());
-        clock.setCurrentPlayer(2);
-        clock.setMeasuredConsiderationTime(1, 40);
-        QCOMPARE(clock.considerationMs(1), state.of(1).considerationMs + 40);
-        clock.commitMove(1);
-        if (byoyomi) QCOMPARE(clock.remainingMs(1), 3000LL);
-        if (increment) QCOMPARE(clock.remainingMs(1), resumed.of(1).remainingMs + 2000);
+        clock.setCurrentPlayer(Turn::White);
+        clock.setMeasuredConsiderationTime(Turn::Black, 40);
+        QCOMPARE(clock.considerationMs(Turn::Black), state.of(Turn::Black).considerationMs + 40);
+        clock.commitMove(Turn::Black);
+        if (byoyomi) QCOMPARE(clock.remainingMs(Turn::Black), 3000LL);
+        if (increment) QCOMPARE(clock.remainingMs(Turn::Black), resumed.of(Turn::Black).remainingMs + 2000);
     }
 
     void switchAccountsElapsedToOldPlayer()
@@ -190,9 +190,9 @@ private slots:
         clock.setTimeControl(rules(10, 10, 0, 0, 0, 0));
         clock.startClock();
         QTest::qSleep(35); // イベント処理なし: 未精算のtick端数を作る
-        clock.setCurrentPlayer(2);
-        QVERIFY(clock.remainingMs(1) <= 9965);
-        QCOMPARE(clock.remainingMs(2), 10000LL);
+        clock.setCurrentPlayer(Turn::White);
+        QVERIFY(clock.remainingMs(Turn::Black) <= 9965);
+        QCOMPARE(clock.remainingMs(Turn::White), 10000LL);
         clock.stopClock();
     }
 
@@ -203,15 +203,15 @@ private slots:
         clock.startClock();
         QTest::qSleep(30);
         clock.finishTurn();
-        const qint64 remaining = clock.remainingMs(1);
+        const qint64 remaining = clock.remainingMs(Turn::Black);
         QTest::qSleep(1050); // 受理後のUI処理が期限を越えても敗着にしない
         clock.updateClock();
-        QCOMPARE(clock.remainingMs(1), remaining);
+        QCOMPARE(clock.remainingMs(Turn::Black), remaining);
         QVERIFY(!clock.isGameOver());
-        clock.setCurrentPlayer(2);
+        clock.setCurrentPlayer(Turn::White);
         QTest::qSleep(30);
         clock.updateClock();
-        QVERIFY(clock.remainingTurnTimeMs(2) <= 970);
+        QVERIFY(clock.remainingTurnTimeMs(Turn::White) <= 970);
         clock.stopClock();
     }
 
@@ -219,14 +219,30 @@ private slots:
     {
         ShogiClock clock;
         clock.setTimeControl(rules(0, 0, 1, 1, 0, 0));
-        QSignalSpy timeout(&clock, &ShogiClock::player1TimeOut);
+        QSignalSpy timeout(&clock, &ShogiClock::playerTimeOut);
         QSignalSpy resignation(&clock, &ShogiClock::resignationTriggered);
         clock.startClock();
         QTest::qSleep(1020);
         clock.finishTurn();
         QVERIFY(clock.isGameOver());
         QCOMPARE(timeout.count(), 1);
+        QCOMPARE(timeout.first().first().value<Turn>(), Turn::Black);
         QCOMPARE(resignation.count(), 0);
+    }
+
+    // 時間切れの知らせは、時間が切れた側（手番の側）を渡す
+    void timeoutReportsWhiteSide()
+    {
+        ShogiClock clock;
+        clock.setTimeControl(rules(60, 0, 0, 1, 0, 0));
+        clock.setCurrentPlayer(Turn::White);
+        QSignalSpy timeout(&clock, &ShogiClock::playerTimeOut);
+        clock.startClock();
+        QTest::qSleep(1020);
+        clock.updateClock();
+        QVERIFY(clock.isGameOver());
+        QCOMPARE(timeout.count(), 1);
+        QCOMPARE(timeout.first().first().value<Turn>(), Turn::White);
     }
 
     void liveBudgetIncludesUntickedByoyomiTransition()
@@ -235,13 +251,13 @@ private slots:
         clock.setTimeControl(rules(1, 0, 1, 5, 0, 0));
         clock.startClock();
         QTest::qSleep(1020);
-        QCOMPARE(clock.remainingMainTimeMs(1), 0LL);
-        QVERIFY(clock.remainingTurnTimeMs(1) <= 980);
-        QCOMPARE(clock.remainingTurnTimeMs(2), 5000LL);
+        QCOMPARE(clock.remainingMainTimeMs(Turn::Black), 0LL);
+        QVERIFY(clock.remainingTurnTimeMs(Turn::Black) <= 980);
+        QCOMPARE(clock.remainingTurnTimeMs(Turn::White), 5000LL);
         clock.stopClock();
         QVERIFY(!clock.isGameOver());
-        QVERIFY(clock.byoyomiApplied(1));
-        QVERIFY(clock.remainingMs(1) > 0);
+        QVERIFY(clock.byoyomiApplied(Turn::Black));
+        QVERIFY(clock.remainingMs(Turn::Black) > 0);
     }
 
     void setTimeControl_basic()
@@ -250,8 +266,8 @@ private slots:
         clock.setTimeControl(rules(300, 300, 0, 0, 0, 0));
 
         // 300 seconds = 300000 ms
-        QCOMPARE(clock.remainingMs(1), 300000LL);
-        QCOMPARE(clock.remainingMs(2), 300000LL);
+        QCOMPARE(clock.remainingMs(Turn::Black), 300000LL);
+        QCOMPARE(clock.remainingMs(Turn::White), 300000LL);
     }
 
     /// CSA のようにサーバーが残り時間を示すときは、決まり・考慮時間・待ったの履歴を保ったまま合わせる
@@ -259,17 +275,17 @@ private slots:
     {
         ShogiClock clock;
         clock.setTimeControl(rules(300, 300, 10, 10, 0, 0));
-        clock.setConsiderationTimeMs(1, 1500);
-        clock.commitMove(1);
+        clock.setConsiderationTimeMs(Turn::Black, 1500);
+        clock.commitMove(Turn::Black);
         const auto before = clock.pauseAndSnapshot();
         clock.setRemainingTimes(250000, 0);
-        QCOMPARE(clock.remainingMs(1), 250000LL);
-        QVERIFY(!clock.byoyomiApplied(1));
+        QCOMPARE(clock.remainingMs(Turn::Black), 250000LL);
+        QVERIFY(!clock.byoyomiApplied(Turn::Black));
         // 使い切った側は秒読みに入る
-        QVERIFY(clock.byoyomiApplied(2));
-        QCOMPARE(clock.remainingMs(2), 10000LL);
-        QCOMPARE(clock.byoyomiMs(1), 10000LL);
-        QCOMPARE(clock.totalConsiderationTimeString(1), QStringLiteral("00:00:01"));
+        QVERIFY(clock.byoyomiApplied(Turn::White));
+        QCOMPARE(clock.remainingMs(Turn::White), 10000LL);
+        QCOMPARE(clock.byoyomiMs(Turn::Black), 10000LL);
+        QCOMPARE(clock.totalConsiderationTimeString(Turn::Black), QStringLiteral("00:00:01"));
         QCOMPARE(clock.pauseAndSnapshot().history.size(), before.history.size());
         QVERIFY(!clock.isUnlimited());
     }
@@ -280,8 +296,8 @@ private slots:
         clock.setTimeControl(rules(300, 300, 0, 0, 0, 0));
 
         // 300 seconds = 5 minutes = "00:05:00"
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:05:00"));
-        QCOMPARE(clock.timeString(2), QStringLiteral("00:05:00"));
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:05:00"));
+        QCOMPARE(clock.timeString(Turn::White), QStringLiteral("00:05:00"));
     }
 
     void byoyomi_setup()
@@ -289,8 +305,8 @@ private slots:
         ShogiClock clock;
         clock.setTimeControl(rules(0, 0, 30, 30, 0, 0));
 
-        QVERIFY(clock.hasByoyomi(1));
-        QVERIFY(clock.hasByoyomi(2));
+        QVERIFY(clock.hasByoyomi(Turn::Black));
+        QVERIFY(clock.hasByoyomi(Turn::White));
     }
 
     /// 持ち時間を使い切った側（CSA の時計合わせ・持ち時間0の秒読み対局）は初めから秒読みに入り、
@@ -299,28 +315,28 @@ private slots:
     {
         ShogiClock clock;
         clock.setTimeControl(rules(0, 60, 5, 5, 0, 0));
-        QVERIFY(clock.byoyomiApplied(1));
-        QVERIFY(!clock.byoyomiApplied(2));
-        QCOMPARE(clock.remainingMs(1), 5000LL);
-        QCOMPARE(clock.timeString(1), QStringLiteral("00:00:05"));
-        QCOMPARE(clock.remainingMainTimeMs(1), 0LL);
-        QCOMPARE(clock.remainingTurnTimeMs(1), 5000LL);
-        QCOMPARE(clock.remainingMs(2), 60000LL);
-        QCOMPARE(clock.remainingTurnTimeMs(2), 65000LL);
+        QVERIFY(clock.byoyomiApplied(Turn::Black));
+        QVERIFY(!clock.byoyomiApplied(Turn::White));
+        QCOMPARE(clock.remainingMs(Turn::Black), 5000LL);
+        QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:05"));
+        QCOMPARE(clock.remainingMainTimeMs(Turn::Black), 0LL);
+        QCOMPARE(clock.remainingTurnTimeMs(Turn::Black), 5000LL);
+        QCOMPARE(clock.remainingMs(Turn::White), 60000LL);
+        QCOMPARE(clock.remainingTurnTimeMs(Turn::White), 65000LL);
     }
 
     void byoyomi_application()
     {
         ShogiClock clock;
         clock.setTimeControl(rules(0, 0, 30, 30, 0, 0));
-        clock.setCurrentPlayer(1);
+        clock.setCurrentPlayer(Turn::Black);
 
         // Apply byoyomi for player 1
-        clock.commitMove(1);
+        clock.commitMove(Turn::Black);
 
         // After byoyomi applied, player should have 30 seconds
-        QCOMPARE(clock.remainingMs(1), 30000LL);
-        QVERIFY(clock.byoyomiApplied(1));
+        QCOMPARE(clock.remainingMs(Turn::Black), 30000LL);
+        QVERIFY(clock.byoyomiApplied(Turn::Black));
     }
 
     void fischer_increment()
@@ -328,16 +344,16 @@ private slots:
         ShogiClock clock;
         clock.setTimeControl(rules(300, 300, 0, 0, 10, 10));
 
-        QCOMPARE(clock.incrementMs(1), 10000LL);
-        QCOMPARE(clock.incrementMs(2), 10000LL);
+        QCOMPARE(clock.incrementMs(Turn::Black), 10000LL);
+        QCOMPARE(clock.incrementMs(Turn::White), 10000LL);
         // 初手にも加算を与える
-        QCOMPARE(clock.remainingMs(1), 310000LL);
+        QCOMPARE(clock.remainingMs(Turn::Black), 310000LL);
 
-        clock.setCurrentPlayer(1);
-        clock.commitMove(1);
+        clock.setCurrentPlayer(Turn::Black);
+        clock.commitMove(Turn::Black);
 
         // 着手確定で次の手番の分を加算する: 310 + 10 = 320 秒
-        QCOMPARE(clock.remainingMs(1), 320000LL);
+        QCOMPARE(clock.remainingMs(Turn::Black), 320000LL);
     }
 
     void undo_restoresState_data()
@@ -358,35 +374,34 @@ private slots:
         QFETCH(int, incrementSec);
         ShogiClock clock;
         clock.setTimeControl(rules(mainSec, mainSec, byoyomiSec, byoyomiSec, incrementSec, incrementSec));
-        clock.setCurrentPlayer(1);
-        const auto commit = [&clock](int player, qint64 ms) {
+        clock.setCurrentPlayer(Turn::Black);
+        const auto commit = [&clock](Turn player, qint64 ms) {
             clock.setCurrentPlayer(player);
             clock.setMeasuredConsiderationTime(player, ms);
-            if (player == 1) clock.commitMove(1);
-            else clock.commitMove(2);
+            clock.commitMove(player);
         };
         const auto verifyTurnStart = [&clock](const ShogiClock::Snapshot& expected) {
             const auto now = clock.pauseAndSnapshot();
-            QCOMPARE(now.currentPlayer, 1);
-            QCOMPARE(now.of(1).remainingMs, expected.of(1).remainingMs);
-            QCOMPARE(now.of(2).remainingMs, expected.of(2).remainingMs);
-            QCOMPARE(now.of(1).totalConsiderationMs, expected.of(1).totalConsiderationMs);
-            QCOMPARE(now.of(2).totalConsiderationMs, expected.of(2).totalConsiderationMs);
-            QCOMPARE(now.of(1).byoyomiApplied, expected.of(1).byoyomiApplied);
-            QCOMPARE(now.of(2).byoyomiApplied, expected.of(2).byoyomiApplied);
-            QCOMPARE(now.of(1).considerationMs, 0LL);
+            QCOMPARE(now.currentPlayer, Turn::Black);
+            QCOMPARE(now.of(Turn::Black).remainingMs, expected.of(Turn::Black).remainingMs);
+            QCOMPARE(now.of(Turn::White).remainingMs, expected.of(Turn::White).remainingMs);
+            QCOMPARE(now.of(Turn::Black).totalConsiderationMs, expected.of(Turn::Black).totalConsiderationMs);
+            QCOMPARE(now.of(Turn::White).totalConsiderationMs, expected.of(Turn::White).totalConsiderationMs);
+            QCOMPARE(now.of(Turn::Black).byoyomiApplied, expected.of(Turn::Black).byoyomiApplied);
+            QCOMPARE(now.of(Turn::White).byoyomiApplied, expected.of(Turn::White).byoyomiApplied);
+            QCOMPARE(now.of(Turn::Black).considerationMs, 0LL);
             QVERIFY(!now.considerationCommitted);
         };
 
         const auto firstTurn = clock.pauseAndSnapshot();
-        commit(1, 3000);
-        commit(2, 2000);
-        clock.setCurrentPlayer(1);
+        commit(Turn::Black, 3000);
+        commit(Turn::White, 2000);
+        clock.setCurrentPlayer(Turn::Black);
         const auto secondTurn = clock.pauseAndSnapshot();
-        commit(1, 5000);
-        commit(2, 1000);
-        clock.setCurrentPlayer(1);
-        clock.setConsiderationTimeMs(1, 700); // 考え中の時間も返す
+        commit(Turn::Black, 5000);
+        commit(Turn::White, 1000);
+        clock.setCurrentPlayer(Turn::Black);
+        clock.setConsiderationTimeMs(Turn::Black, 700); // 考え中の時間も返す
 
         clock.undo();
         verifyTurnStart(secondTurn);
@@ -399,27 +414,27 @@ private slots:
         clock.startClock();
         QTest::qSleep(60);
         clock.updateClock();
-        QVERIFY(clock.considerationMs(1) >= 60);
-        QVERIFY(clock.considerationMs(1) < 1000);
+        QVERIFY(clock.considerationMs(Turn::Black) >= 60);
+        QVERIFY(clock.considerationMs(Turn::Black) < 1000);
         if (byoyomiSec == 0) {
-            QCOMPARE(clock.remainingMs(1), firstTurn.of(1).remainingMs - clock.considerationMs(1));
+            QCOMPARE(clock.remainingMs(Turn::Black), firstTurn.of(Turn::Black).remainingMs - clock.considerationMs(Turn::Black));
         }
         clock.stopClock();
 
         // 指し直した後の「待った」も、指し直した手の前へ戻る
-        clock.setConsiderationTimeMs(1, 0);
-        commit(1, 4000);
-        commit(2, 1500);
-        clock.setCurrentPlayer(1);
+        clock.setConsiderationTimeMs(Turn::Black, 0);
+        commit(Turn::Black, 4000);
+        commit(Turn::White, 1500);
+        clock.setCurrentPlayer(Turn::Black);
         clock.undo();
         verifyTurnStart(firstTurn);
 
         // 時間を設定し直した新しい対局では、前の対局の状態に戻らない
-        commit(1, 4000);
-        commit(2, 1500);
-        clock.setCurrentPlayer(1);
+        commit(Turn::Black, 4000);
+        commit(Turn::White, 1500);
+        clock.setCurrentPlayer(Turn::Black);
         clock.setTimeControl(rules(mainSec, mainSec, byoyomiSec, byoyomiSec, incrementSec, incrementSec));
-        clock.setCurrentPlayer(1);
+        clock.setCurrentPlayer(Turn::Black);
         const auto newGame = clock.pauseAndSnapshot();
         clock.undo();
         verifyTurnStart(newGame);
@@ -429,7 +444,7 @@ private slots:
     {
         ShogiClock clock;
         clock.setTimeControl(rules(300, 300, 30, 30, 0, 0));
-        clock.setCurrentPlayer(1);
+        clock.setCurrentPlayer(Turn::Black);
 
         for (int i = 0; i < 100; ++i) {
             clock.startClock();
@@ -443,13 +458,13 @@ private slots:
     {
         ShogiClock clock;
         clock.setTimeControl(rules(300, 300, 30, 30, 0, 0));
-        clock.setCurrentPlayer(1);
+        clock.setCurrentPlayer(Turn::Black);
 
         for (int i = 0; i < 50; ++i) {
-            clock.commitMove(1);
-            clock.setCurrentPlayer(2);
-            clock.commitMove(2);
-            clock.setCurrentPlayer(1);
+            clock.commitMove(Turn::Black);
+            clock.setCurrentPlayer(Turn::White);
+            clock.commitMove(Turn::White);
+            clock.setCurrentPlayer(Turn::Black);
         }
 
         // Undo all operations
@@ -458,8 +473,8 @@ private slots:
         }
 
         // Should not crash, times should be reasonable
-        QVERIFY(clock.remainingMs(1) >= 0);
-        QVERIFY(clock.remainingMs(2) >= 0);
+        QVERIFY(clock.remainingMs(Turn::Black) >= 0);
+        QVERIFY(clock.remainingMs(Turn::White) >= 0);
     }
 
     void byoyomi_and_fischer_exclusive()
@@ -469,9 +484,9 @@ private slots:
         clock.setTimeControl(rules(300, 300, 30, 30, 10, 10));
 
         // One of them should be 0
-        bool exclusive = (clock.hasByoyomi(1) && clock.incrementMs(1) == 0) ||
-                         (!clock.hasByoyomi(1) && clock.incrementMs(1) > 0) ||
-                         (clock.hasByoyomi(1) && clock.incrementMs(1) > 0); // implementation may allow both
+        bool exclusive = (clock.hasByoyomi(Turn::Black) && clock.incrementMs(Turn::Black) == 0) ||
+                         (!clock.hasByoyomi(Turn::Black) && clock.incrementMs(Turn::Black) > 0) ||
+                         (clock.hasByoyomi(Turn::Black) && clock.incrementMs(Turn::Black) > 0); // implementation may allow both
         QVERIFY(exclusive || true); // Just verify no crash
     }
 };

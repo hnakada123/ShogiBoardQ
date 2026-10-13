@@ -151,7 +151,7 @@ void GameStartCoordinator::prepare(const Request& req)
     TimeControlUtil::applyToClock(clock, tc, req.startSfen, QString());
 
     // SFENから初期手番を明示
-    const int initialPlayer = (req.startSfen.contains(QLatin1String(" w ")) ? 2 : 1);
+    const Turn initialPlayer = req.startSfen.contains(QLatin1String(" w ")) ? Turn::White : Turn::Black;
     clock->setCurrentPlayer(initialPlayer);
 
     // --- 4) 司令塔へ配線 → 起動（順序が重要） ---
@@ -310,8 +310,8 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
     c.clock->setTimeControl(tc.rules);
 
     // --- 2) 初期msを出力（必要な場合のみ） ---
-    if (c.initialTimeP1MsOut) *c.initialTimeP1MsOut = c.clock->remainingMs(1);
-    if (c.initialTimeP2MsOut) *c.initialTimeP2MsOut = c.clock->remainingMs(2);
+    if (c.initialTimeP1MsOut) *c.initialTimeP1MsOut = c.clock->remainingMs(Turn::Black);
+    if (c.initialTimeP2MsOut) *c.initialTimeP2MsOut = c.clock->remainingMs(Turn::White);
 
     // --- 3) 表示更新＆起動制御 ---
     c.clock->updateClock();

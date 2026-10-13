@@ -56,10 +56,9 @@ void TurnStateSyncService::setCurrentTurn()
 
 void TurnStateSyncService::onTurnManagerChanged(Turn now)
 {
-    // 1) UI側（先手=1, 後手=2）に反映
-    const int cur = (now == Turn::White) ? 2 : 1;
+    // 1) 時計の手番に反映
     if (m_deps.updateTurnStatus) {
-        m_deps.updateTurnStatus(cur);
+        m_deps.updateTurnStatus(now);
     }
 
     // 2) 盤モデルの手番は GC に集約
@@ -80,8 +79,8 @@ void TurnStateSyncService::updateTurnAndTimekeepingDisplay()
     // 時計の再描画（Presenterに現在値を流し直し）
     ShogiClock* clk = m_deps.timeController ? m_deps.timeController->clock() : nullptr;
     if (m_deps.timePresenter && clk) {
-        const qint64 p1 = clk->remainingMs(1);
-        const qint64 p2 = clk->remainingMs(2);
+        const qint64 p1 = clk->remainingMs(Turn::Black);
+        const qint64 p2 = clk->remainingMs(Turn::White);
         const bool p1turn =
             (m_deps.gameController
                  ? (m_deps.gameController->currentPlayer() == Turn::Black)

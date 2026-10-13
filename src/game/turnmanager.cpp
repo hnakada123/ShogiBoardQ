@@ -52,11 +52,3 @@ void TurnManager::setFromSfenToken(const QString& bw) {
     : Turn::Black;
     set(s);
 }
-
-// ============================================================
-// Clock 1/2 変換
-// ============================================================
-
-int TurnManager::toClockPlayer() const {
-    return (m_side == Turn::White) ? 2 : 1;
-}

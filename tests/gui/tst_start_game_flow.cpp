@@ -285,8 +285,8 @@ private slots:
         QCOMPARE(*match->sfenRecordPtr(), history);
         QCOMPARE(view->board()->convertBoardToSfen(), board);
         QCOMPARE(clock->currentPlayer(), saved.currentPlayer);
-        QVERIFY(qAbs(clock->remainingMs(1) - saved.of(1).remainingMs) < 100);
-        QVERIFY(qAbs(clock->remainingMs(2) - saved.of(2).remainingMs) < 100);
+        QVERIFY(qAbs(clock->remainingMs(Turn::Black) - saved.of(Turn::Black).remainingMs) < 100);
+        QVERIFY(qAbs(clock->remainingMs(Turn::White) - saved.of(Turn::White).remainingMs) < 100);
         QCOMPARE(window->m_models.kifuRecord->rowCount(), pausePly + 1);
         QVERIFY(!window->m_branchNav.navState->currentNode()->isTerminal());
         QCOMPARE(window->m_branchNav.navState->currentPly(), pausePly);
@@ -563,8 +563,8 @@ private slots:
         const auto box = view->board()->pieceBox();
         const auto hands = view->board()->pieceStand();
         const int rows = record->kifuView()->model()->rowCount();
-        const qint64 blackTime = clock->remainingMainTimeMs(1);
-        const qint64 whiteTime = clock->remainingMainTimeMs(2);
+        const qint64 blackTime = clock->remainingMainTimeMs(Turn::Black);
+        const qint64 whiteTime = clock->remainingMainTimeMs(Turn::White);
         const qint64 engineLogSize = QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size();
         QSignalSpy ended(match, &MatchCoordinator::gameEnded);
         auto* wiring = window->m_matchWiring.get();
@@ -586,8 +586,8 @@ private slots:
         QCOMPARE(cleaned.count(), 0);
         QCOMPARE(ended.count(), 0);
         QVERIFY(!clock->isRunning());
-        QCOMPARE(clock->remainingMainTimeMs(1), blackTime);
-        QCOMPARE(clock->remainingMainTimeMs(2), whiteTime);
+        QCOMPARE(clock->remainingMainTimeMs(Turn::Black), blackTime);
+        QCOMPARE(clock->remainingMainTimeMs(Turn::White), whiteTime);
         QCOMPARE(QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size(), engineLogSize);
         QCOMPARE(window->m_state.playMode, PlayMode::NotStarted);
         QVERIFY(!window->m_state.errorOccurred);

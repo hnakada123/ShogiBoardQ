@@ -27,13 +27,12 @@ class GameModeStrategy;
 class MatchTurnHandler
 {
 public:
-    using Player = MatchCoordinator::Player;
     using StartOptions = MatchCoordinator::StartOptions;
     using GameOverState = MatchCoordinator::GameOverState;
 
     struct Refs {
         ShogiGameController* gc = nullptr;
-        Player* currentTurn = nullptr;
+        Turn* currentTurn = nullptr;
         PlayMode* playMode = nullptr;
         QString* positionStr1 = nullptr;
         QString* positionPonder1 = nullptr;
@@ -44,12 +43,12 @@ public:
 
     struct Hooks {
         std::function<void()> renderBoardFromGc;
-        std::function<void(Player)> updateTurnDisplayCb;
+        std::function<void(Turn)> updateTurnDisplayCb;
         std::function<Usi*()> primaryEngine;
         std::function<Usi*()> secondaryEngine;
         std::function<void(Usi*)> sendStopToEngine;
         std::function<ShogiClock*()> clockProvider;
-        std::function<void(Player, const QString&, const QString&)> initAndStartEngine;
+        std::function<void(Turn, const QString&, const QString&)> initAndStartEngine;
         std::function<void(const QString&, const QString&)> initEnginesForEvE;
         std::function<void(bool)> emitBoardFlipped;
         std::function<void()> handleBreakOff;
@@ -75,19 +74,19 @@ public:
     void onHumanMove(const QPoint& from, const QPoint& to, const QString& prettyMove);
     void startInitialEngineMoveIfNeeded();
     void armTurnTimerIfNeeded();
-    void finishTurnTimerAndSetConsiderationFor(Player mover);
+    void finishTurnTimerAndSetConsiderationFor(Turn mover);
     void disarmHumanTimerIfNeeded();
 
     // --- 盤面・表示 ---
 
     void flipBoard();
-    void updateTurnDisplay(Player p);
+    void updateTurnDisplay(Turn p);
     void initPositionStringsFromSfen(const QString& sfenBase);
 
     // --- 対局進行 ---
 
     void forceImmediateMove();
-    void handlePlayerTimeOut(int player);
+    void handlePlayerTimeOut(Turn player);
     void startMatchTimingAndMaybeInitialGo();
     void handleUsiError(const QString& msg);
 

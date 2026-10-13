@@ -186,7 +186,7 @@ private:
     void refreshAppearanceDeps();
     MatchCoordinator::UndoHooks buildUndoHooks();
     bool queryIsHumanSide(Turn player);
-    void updateTurnStatus(int currentPlayer);
+    void updateTurnStatus(Turn currentPlayer);
     void resetRecordForEditedPosition();
 
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）

@@ -50,7 +50,7 @@ void ShogiGameController::newGame(QString& initialSfenString)
 
     // SFEN の手番フィールドから GC の手番を同期
     const Turn boardTurn = board()->currentPlayer();
-    setCurrentPlayer(boardTurn == Turn::White ? Turn::White : Turn::Black);
+    setCurrentPlayer(boardTurn);
 
     // 前の対局の最終手の移動先が残ると「同」表記が誤表示されるためリセット
     previousFileTo = 0;
@@ -111,7 +111,7 @@ void ShogiGameController::setCurrentPlayer(Turn player)
     // 対局中は盤面を SFEN から再設定しないので、これが無いと盤面から生成する SFEN
     // （読み筋表示の基準局面・局面コピー・表示一致性検証）の手番が古いままになる。
     if (board() != nullptr && (player == Turn::Black || player == Turn::White)) {
-        board()->setCurrentPlayer(player == Turn::Black ? Turn::Black : Turn::White);
+        board()->setCurrentPlayer(player);
     }
 
     emit currentPlayerChanged(m_currentPlayer);
@@ -133,7 +133,7 @@ QString ShogiGameController::convertMoveToKanjiStr(Piece moving, const UsiMove& 
         return QString();
     }
     // 前手と同じマスへの移動は「同」表記にする
-    const Turn mover = (currentPlayer() == Turn::Black) ? Turn::Black : Turn::White;
+    const Turn mover = currentPlayer();
     const QString text = KifMoveText::format(mover, moving, move, BoardSquare{previousFileTo, previousRankTo});
     previousFileTo = move.to.file;
     previousRankTo = move.to.rank;
@@ -147,10 +147,9 @@ QString ShogiGameController::convertMoveToKanjiStr(Piece moving, const UsiMove& 
 LegalMoveStatus ShogiGameController::legalStatus(const UsiMove& move, Turn mover, Piece moving, Piece captured) const
 {
     EngineMoveValidator validator;
-    const auto turn = (mover == Turn::Black) ? Turn::Black : Turn::White;
     ShogiMove probe = ShogiMove::fromUsiMove(move, mover, moving, captured);
     probe.isPromotion = false;
-    return validator.isLegalMove(turn, board()->boardData(), board()->pieceStand(), probe);
+    return validator.isLegalMove(mover, board()->boardData(), board()->pieceStand(), probe);
 }
 
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, int moveNumber,
@@ -183,7 +182,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
         return false;
     }
 
-    const Turn mover = (currentPlayer() == Turn::Black) ? Turn::Black : Turn::White;
+    const Turn mover = currentPlayer();
     const Piece moving = candidate->isDrop() ? candidate->dropPieceFor(mover)
                                              : board()->pieceCharacter(fileFrom, rankFrom);
     if (moving == Piece::None) {
@@ -219,7 +218,7 @@ bool ShogiGameController::applyMove(const UsiMove& move, QString& record, int mo
         return false;
     }
 
-    const Turn mover = (currentPlayer() == Turn::Black) ? Turn::Black : Turn::White;
+    const Turn mover = currentPlayer();
     const Piece moving = move.isDrop() ? move.dropPieceFor(mover)
                                        : board()->pieceCharacter(move.from.file, move.from.rank);
     if (moving == Piece::None) {
@@ -262,7 +261,7 @@ bool ShogiGameController::commitMove(const UsiMove& move, Turn mover, Piece movi
     qCDebug(lcGame) << "emit moveCommitted mover=" << moverBefore << "ply=" << confirmedPly;
     emit moveCommitted(moverBefore, confirmedPly);
 
-    setCurrentPlayer(nextPlayerTurn == Turn::Black ? Turn::Black : Turn::White);
+    setCurrentPlayer(nextPlayerTurn);
     return true;
 }
 
@@ -341,17 +340,10 @@ void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileF
 // 対局結果制御（時間切れ・投了・最終決定）
 // ============================================================
 
-void ShogiGameController::applyTimeoutLossFor(int clockPlayer)
+void ShogiGameController::applyTimeoutLossFor(Turn loser)
 {
     if (m_result != NoResult) return;
-
-    if (clockPlayer == 1) {
-        setResult(Player2Wins);
-    } else if (clockPlayer == 2) {
-        setResult(Player1Wins);
-    } else {
-        qCWarning(lcGame).noquote() << "applyTimeoutLossFor: invalid clockPlayer =" << clockPlayer;
-    }
+    setResult(loser == Turn::Black ? Player2Wins : Player1Wins);
 }
 
 void ShogiGameController::finalizeGameResult()

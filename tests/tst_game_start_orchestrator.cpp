@@ -25,7 +25,7 @@ bool startInitialEngineMoveIfNeededCalled = false;
 bool initializePositionStringsForStartCalled = false;
 bool updateTurnDisplayCalled = false;
 
-MatchCoordinator::Player lastTurnDisplayPlayer;
+Turn lastTurnDisplayPlayer;
 MatchCoordinator::StartOptions lastStrategyOptions;
 QString lastInitSfen;
 QString lastEngineName1;
@@ -43,7 +43,7 @@ void reset()
     startInitialEngineMoveIfNeededCalled = false;
     initializePositionStringsForStartCalled = false;
     updateTurnDisplayCalled = false;
-    lastTurnDisplayPlayer = MatchCoordinator::P1;
+    lastTurnDisplayPlayer = Turn::Black;
     lastStrategyOptions = {};
     lastInitSfen.clear();
     lastEngineName1.clear();
@@ -62,7 +62,7 @@ struct OrcTestHarness {
     // Refs用の実体
     PlayMode playMode = PlayMode::NotStarted;
     int maxMoves = 0;
-    MatchCoordinator::Player currentTurn = MatchCoordinator::P1;
+    Turn currentTurn = Turn::Black;
     int currentMoveIndex = 0;
     bool autoSaveKifu = false;
     QString kifuSaveDir;
@@ -108,7 +108,7 @@ struct OrcTestHarness {
         hooks.renderBoardFromGc = []() {
             OrcTracker::renderBoardFromGcCalled = true;
         };
-        hooks.updateTurnDisplay = [](MatchCoordinator::Player p) {
+        hooks.updateTurnDisplay = [](Turn p) {
             OrcTracker::updateTurnDisplayCalled = true;
             OrcTracker::lastTurnDisplayPlayer = p;
         };
@@ -294,8 +294,8 @@ void Tst_GameStartOrchestrator::configureAndStart_senteSfen_turnsP1()
 
     h.orc.configureAndStart(opt);
 
-    QCOMPARE(h.currentTurn, MatchCoordinator::P1);
-    QCOMPARE(OrcTracker::lastTurnDisplayPlayer, MatchCoordinator::P1);
+    QCOMPARE(h.currentTurn, Turn::Black);
+    QCOMPARE(OrcTracker::lastTurnDisplayPlayer, Turn::Black);
 }
 
 void Tst_GameStartOrchestrator::configureAndStart_goteSfen_turnsP2()
@@ -308,8 +308,8 @@ void Tst_GameStartOrchestrator::configureAndStart_goteSfen_turnsP2()
 
     h.orc.configureAndStart(opt);
 
-    QCOMPARE(h.currentTurn, MatchCoordinator::P2);
-    QCOMPARE(OrcTracker::lastTurnDisplayPlayer, MatchCoordinator::P2);
+    QCOMPARE(h.currentTurn, Turn::White);
+    QCOMPARE(OrcTracker::lastTurnDisplayPlayer, Turn::White);
 }
 
 // ============================================================

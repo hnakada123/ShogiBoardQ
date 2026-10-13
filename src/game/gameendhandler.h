@@ -32,7 +32,6 @@ class GameEndHandler : public QObject
     Q_OBJECT
 
 public:
-    using Player = MatchCoordinator::Player;
     using Cause = MatchCoordinator::Cause;
     using GameEndInfo = MatchCoordinator::GameEndInfo;
     using GameOverState = MatchCoordinator::GameOverState;
@@ -74,7 +73,7 @@ public:
 
         /// @brief 指定プレイヤーの手番開始エポック（ms）を返す
         /// @note 配線元: MC lambda → ShogiClock::turnEpochFor
-        std::function<qint64(Player)> turnEpochFor;
+        std::function<qint64(Turn)> turnEpochFor;
 
         /// @brief 棋譜に1行追記する（終局行: "▲投了" 等）
         /// @note 配線元: MC→m_hooks.appendKifuLine (パススルー)
@@ -101,12 +100,12 @@ public:
     // --- 終局処理 API ---
 
     void handleResign();
-    void handleTimeout(Player loser);
-    void handleEngineResign(int idx);
-    void handleEngineWin(int idx);
+    void handleTimeout(Turn loser);
+    void handleEngineResign(Turn side);
+    void handleEngineWin(Turn side);
     /// エンジンが反則手を返したときに、そのエンジンの反則負けとする（idx: 1 or 2）
-    void handleEngineIllegalMove(int idx);
-    void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw);
+    void handleEngineIllegalMove(Turn side);
+    void handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw);
     void handleBreakOff();
     void handleMaxMovesJishogi();
     bool checkAndHandleSennichite();
@@ -114,7 +113,7 @@ public:
     void handleOuteSennichite(bool p1Loses);
 
     void appendBreakOffLineAndMark();
-    void appendGameOverLineAndMark(Cause cause, Player loser);
+    void appendGameOverLineAndMark(Cause cause, Turn loser);
 
     // --- 終局状態管理（MC から移譲） ---
 

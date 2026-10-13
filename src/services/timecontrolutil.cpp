@@ -34,22 +34,21 @@ void applyToClock(
     // 初手にも加算時間を与える処理は ShogiClock::setTimeControl が行う
     clock->setTimeControl(rules);
 
-    // 初期手番を SFEN から推定する（1=先手, 2=後手）
-    auto sideFromSfen = [](const QString& sfen)->int {
+    // 初期手番を SFEN から推定する
+    auto sideFromSfen = [](const QString& sfen) -> Turn {
         const qsizetype b = sfen.indexOf(QLatin1String(" b "));
         const qsizetype w = sfen.indexOf(QLatin1String(" w "));
-        if (b >= 0 && w < 0) return 1;
-        if (w >= 0 && b < 0) return 2;
-        return 1; // fallback は先手
+        if (w >= 0 && b < 0) return Turn::White;
+        return Turn::Black; // " b " だけのとき、どちらも無い・両方あるときは先手
     };
 
     const QString sfenForStart =
         !startSfenStr.isEmpty() ? startSfenStr :
             (!currentSfenStr.isEmpty() ? currentSfenStr : QString());
 
-    const int initialPlayer = sfenForStart.isEmpty()
-                                  ? 1
-                                  : sideFromSfen(sfenForStart);
+    const Turn initialPlayer = sfenForStart.isEmpty()
+                                   ? Turn::Black
+                                   : sideFromSfen(sfenForStart);
 
     clock->setCurrentPlayer(initialPlayer);
 }

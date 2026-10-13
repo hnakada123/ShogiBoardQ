@@ -34,9 +34,9 @@ class TestTurnStateSync : public QObject
         deps.shogiView = &view;
         deps.turnManagerParent = &turnParent;
         deps.isGameActivelyInProgress = [&gameActive]() { return gameActive; };
-        deps.updateTurnStatus = [&view, &clock](int player) {
+        deps.updateTurnStatus = [&view, &clock](Turn player) {
             clock.setCurrentPlayer(player);
-            view.setActiveSide(player == 1);
+            view.setActiveSide(player == Turn::Black);
         };
         deps.onTurnManagerCreated = [this](TurnManager* tm) {
             connect(tm, &TurnManager::changed, this, &TestTurnStateSync::onTurnChanged);
@@ -103,21 +103,21 @@ private slots:
         TimeDisplayPresenter presenter(&view);
         presenter.setClock(&clock);
         clock.setTimeControl(TestTime::rules(0, 0, 0, 0, 0, 0));
-        clock.setConsiderationTimeMs(1, 1750);
+        clock.setConsiderationTimeMs(Turn::Black, 1750);
         presenter.onMatchTimeUpdated(0, 0, true, 0);
         // 無制限対局は累積消費時間なので、残り時間と区別できるよう「消費」を付ける。
         QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("消費 00:00:01"));
         QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("消費 00:00:00"));
         QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
-        clock.commitMove(1);
-        clock.setCurrentPlayer(2);
-        clock.setMeasuredConsiderationTime(2, 2999);
-        clock.commitMove(2);
+        clock.commitMove(Turn::Black);
+        clock.setCurrentPlayer(Turn::White);
+        clock.setMeasuredConsiderationTime(Turn::White, 2999);
+        clock.commitMove(Turn::White);
         presenter.onMatchTimeUpdated(0, 0, false, 0);
         QCOMPARE(view.blackClockLabel()->text(),
-                 QStringLiteral("消費 ") + clock.totalConsiderationTimeString(1));
+                 QStringLiteral("消費 ") + clock.totalConsiderationTimeString(Turn::Black));
         QCOMPARE(view.whiteClockLabel()->text(),
-                 QStringLiteral("消費 ") + clock.totalConsiderationTimeString(2));
+                 QStringLiteral("消費 ") + clock.totalConsiderationTimeString(Turn::White));
 
         clock.setTimeControl(TestTime::rules(10, 10, 0, 0, 0, 0));
         presenter.onMatchTimeUpdated(9501, 10000, true, 9501);
@@ -162,7 +162,7 @@ private slots:
         presenter.setClock(&clock);
         // 後手には持ち時間を残し、後手の手番では手番でない先手の時計で警告しないことを確かめる
         clock.setTimeControl(TestTime::rules(mainSec, 60, byoyomiSec, byoyomiSec, incrementSec, incrementSec));
-        if (enterByoyomi) clock.commitMove(1);
+        if (enterByoyomi) clock.commitMove(Turn::Black);
         presenter.onMatchTimeUpdated(remainingMs, 60000, true, 0);
         QCOMPARE(view.highlighting()->urgency(), expected);
         // 相手の手番の時計は警告しない。時間無制限の対局も警告しない。

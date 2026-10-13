@@ -18,7 +18,6 @@
 #include <QObject>
 #include <QDebug>
 
-using P = MatchCoordinator::Player;
 
 // --- 初期化・破棄 ---
 
@@ -77,8 +76,8 @@ EngineLifecycleManager::Hooks MatchCoordinator::buildEngineLifecycleHooks()
     hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
     hooks.appendEvalP1 = m_hooks.game.appendEvalP1;
     hooks.appendEvalP2 = m_hooks.game.appendEvalP2;
-    hooks.onEngineResign = [this](int idx) { handleEngineResign(idx); };
-    hooks.onEngineWin = [this](int idx) { handleEngineWin(idx); };
+    hooks.onEngineResign = [this](Turn side) { handleEngineResign(side); };
+    hooks.onEngineWin = [this](Turn side) { handleEngineWin(side); };
     return hooks;
 }
 
@@ -130,7 +129,7 @@ void MatchCoordinator::configureMatchTurnHandler()
     hooks.secondaryEngine = [this]() -> Usi* { return secondaryEngine(); };
     hooks.sendStopToEngine = [this](Usi* which) { sendStopToEngine(which); };
     hooks.clockProvider = [this]() -> ShogiClock* { return clock(); };
-    hooks.initAndStartEngine = [this](Player p, const QString& path, const QString& name) {
+    hooks.initAndStartEngine = [this](Turn p, const QString& path, const QString& name) {
         initializeAndStartEngineFor(p, path, name);
     };
     hooks.initEnginesForEvE = [this](const QString& n1, const QString& n2) {
@@ -174,8 +173,8 @@ void MatchCoordinator::configureAnalysisSession()
         m_engineManager->setUsi1(usi);
         connect(usi, &Usi::errorOccurred,
                 this, &MatchCoordinator::onUsiError, Qt::UniqueConnection);
-        m_engineManager->wireResignToArbiter(usi, true);
-        m_engineManager->wireWinToArbiter(usi, true);
+        m_engineManager->wireResignToArbiter(usi, Turn::Black);
+        m_engineManager->wireWinToArbiter(usi, Turn::Black);
         usi->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), opt.engineName);
         usi->setSquelchResignLogging(false);
         return usi;
@@ -230,7 +229,7 @@ void MatchCoordinator::ensureGameEndHandler()
     GameEndHandler::Hooks hooks;
     hooks.disarmHumanTimerIfNeeded = [this]() { disarmHumanTimerIfNeeded(); };
     hooks.primaryEngine     = [this]() -> Usi* { return primaryEngine(); };
-    hooks.turnEpochFor      = [this](Player p) -> qint64 { return turnEpochFor(p); };
+    hooks.turnEpochFor      = [this](Turn p) -> qint64 { return turnEpochFor(p); };
     hooks.appendKifuLine    = m_hooks.game.appendKifuLine;
     hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
     hooks.usesHandicapNames = m_hooks.ui.usesHandicapNames;
@@ -268,7 +267,7 @@ void MatchCoordinator::ensureGameStartOrchestrator()
     hooks.setEngineNames    = m_hooks.ui.setEngineNames;
     hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
     hooks.clearGameOverState = [this]() { clearGameOverState(); };
-    hooks.updateTurnDisplay  = [this](Player p) {
+    hooks.updateTurnDisplay  = [this](Turn p) {
         ensureMatchTurnHandler();
         m_turnHandler->updateTurnDisplay(p);
     };
@@ -323,22 +322,22 @@ void MatchCoordinator::handleResign() {
     m_gameEndHandler->handleResign();
 }
 
-void MatchCoordinator::handleEngineResign(int idx) {
+void MatchCoordinator::handleEngineResign(Turn side) {
     ensureGameEndHandler();
-    m_gameEndHandler->handleEngineResign(idx);
+    m_gameEndHandler->handleEngineResign(side);
 }
 
-void MatchCoordinator::handleEngineWin(int idx) {
+void MatchCoordinator::handleEngineWin(Turn side) {
     ensureGameEndHandler();
-    m_gameEndHandler->handleEngineWin(idx);
+    m_gameEndHandler->handleEngineWin(side);
 }
 
-void MatchCoordinator::handleEngineIllegalMove(int idx) {
+void MatchCoordinator::handleEngineIllegalMove(Turn side) {
     ensureGameEndHandler();
-    m_gameEndHandler->handleEngineIllegalMove(idx);
+    m_gameEndHandler->handleEngineIllegalMove(side);
 }
 
-void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw)
+void MatchCoordinator::handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw)
 {
     ensureGameEndHandler();
     m_gameEndHandler->handleNyugyokuDeclaration(declarer, success, isDraw);
@@ -358,7 +357,7 @@ void MatchCoordinator::handleBreakOff()
     if (m_interruptedGame) emit gameInterrupted();
 }
 
-void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
+void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Turn loser)
 {
     ensureGameEndHandler();
     m_gameEndHandler->appendGameOverLineAndMark(cause, loser);
@@ -464,7 +463,7 @@ void MatchCoordinator::armTurnTimerIfNeeded() {
     m_turnHandler->armTurnTimerIfNeeded();
 }
 
-void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player mover) {
+void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Turn mover) {
     ensureMatchTurnHandler();
     m_turnHandler->finishTurnTimerAndSetConsiderationFor(mover);
 }
@@ -474,12 +473,12 @@ void MatchCoordinator::disarmHumanTimerIfNeeded() {
     m_turnHandler->disarmHumanTimerIfNeeded();
 }
 
-void MatchCoordinator::handlePlayerTimeOut(int player) {
-    if ((player != 1 && player != 2) || m_gameOver.isOver) return;
+void MatchCoordinator::handlePlayerTimeOut(Turn player) {
+    if (m_gameOver.isOver) return;
     ensureMatchTurnHandler();
     m_turnHandler->handlePlayerTimeOut(player);
     ensureGameEndHandler();
-    m_gameEndHandler->handleTimeout(player == 1 ? P1 : P2);
+    m_gameEndHandler->handleTimeout(player);
 }
 
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {

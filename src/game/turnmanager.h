@@ -12,7 +12,7 @@
 /**
  * @brief 手番の単一ソースとして、表現形式の変換とシグナル配信を行う
  *
- * GC・SFEN・Clock 間の手番表現を相互変換する。
+ * GC・SFEN 間の手番表現を相互変換する。
  */
 class TurnManager : public QObject
 {
@@ -29,9 +29,6 @@ public:
     // --- SFEN "b"/"w" 変換 ---
     QString toSfenToken() const;
     void setFromSfenToken(const QString& bw);
-
-    // --- Clock 1/2 変換 ---
-    int  toClockPlayer() const;
 
 signals:
     /// 手番変更を通知（→ MainWindow::onTurnManagerChanged）

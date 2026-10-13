@@ -35,10 +35,8 @@ void TimeControlController::ensureClock()
     }
 
     // タイムアウトシグナルを接続
-    QObject::connect(m_clock, &ShogiClock::player1TimeOut,
-                     this, &TimeControlController::onClockPlayer1TimeOut);
-    QObject::connect(m_clock, &ShogiClock::player2TimeOut,
-                     this, &TimeControlController::onClockPlayer2TimeOut);
+    QObject::connect(m_clock, &ShogiClock::playerTimeOut,
+                     this, &TimeControlController::onClockPlayerTimeOut);
 }
 
 ShogiClock* TimeControlController::clock() const
@@ -85,8 +83,8 @@ void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeSet
 
     // 3) 表示更新（決まりは時計が持ち、エンジンの思考時間も時計から求める）
     if (m_timePresenter && clk) {
-        const qint64 p1 = clk->remainingMs(1);
-        const qint64 p2 = clk->remainingMs(2);
+        const qint64 p1 = clk->remainingMs(Turn::Black);
+        const qint64 p2 = clk->remainingMs(Turn::White);
         const bool p1turn = true;  // 呼び出し元で手番更新済みの想定
         m_timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
     }
@@ -176,18 +174,10 @@ void TimeControlController::clearGameEndTime()
 // タイムアウトハンドリング
 // --------------------------------------------------------
 
-void TimeControlController::onClockPlayer1TimeOut()
+void TimeControlController::onClockPlayerTimeOut(Turn player)
 {
-    qCDebug(lcUi) << "onClockPlayer1TimeOut";
+    qCDebug(lcUi) << "onClockPlayerTimeOut" << player;
     if (m_match) {
-        m_match->handlePlayerTimeOut(1);  // 1 = 先手
-    }
-}
-
-void TimeControlController::onClockPlayer2TimeOut()
-{
-    qCDebug(lcUi) << "onClockPlayer2TimeOut";
-    if (m_match) {
-        m_match->handlePlayerTimeOut(2);  // 2 = 後手
+        m_match->handlePlayerTimeOut(player);
     }
 }

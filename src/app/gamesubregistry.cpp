@@ -173,7 +173,7 @@ void MainWindowServiceRegistry::refreshTurnStateSyncDeps()
         return m_mw.m_playModePolicy && m_mw.m_playModePolicy->isGameActivelyInProgress();
     };
     deps.turnManagerParent = &m_mw;
-    deps.updateTurnStatus = [this](int currentPlayer) {
+    deps.updateTurnStatus = [this](Turn currentPlayer) {
         updateTurnStatus(currentPlayer);
     };
     deps.onTurnManagerCreated = [this](TurnManager* tm) {
@@ -233,7 +233,7 @@ void MainWindowServiceRegistry::refreshUndoFlowDeps()
 // 手番表示更新
 // ---------------------------------------------------------------------------
 
-void MainWindowServiceRegistry::updateTurnStatus(int currentPlayer)
+void MainWindowServiceRegistry::updateTurnStatus(Turn currentPlayer)
 {
     if (!m_mw.m_shogiView) return;
 

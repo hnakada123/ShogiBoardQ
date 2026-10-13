@@ -31,9 +31,6 @@ class EngineLifecycleManager : public QObject
     Q_OBJECT
 
 public:
-    /// 対局者（MatchCoordinator::Player と同じ型）
-    using Player = MatchPlayer;
-
     /// MatchCoordinator の内部状態への参照群
     struct Refs {
         ShogiGameController* gc = nullptr;
@@ -61,13 +58,13 @@ public:
         /// @note 配線元: MC→m_hooks.appendEvalP2 (パススルー)
         std::function<void()> appendEvalP2;
 
-        /// @brief エンジン投了を MC に通知する（idx: 1=usi1, 2=usi2）
+        /// @brief エンジン投了を MC に通知する（side: 投了したエンジンの手番）
         /// @note 配線元: MC lambda → MC::handleEngineResign
-        std::function<void(int)> onEngineResign;
+        std::function<void(Turn)> onEngineResign;
 
-        /// @brief エンジン勝ち宣言を MC に通知する（idx: 1=usi1, 2=usi2）
+        /// @brief エンジン勝ち宣言を MC に通知する（side: 宣言したエンジンの手番）
         /// @note 配線元: MC lambda → MC::handleEngineWin
-        std::function<void(int)> onEngineWin;
+        std::function<void(Turn)> onEngineWin;
     };
 
     /// エンジンモデルペア
@@ -83,9 +80,11 @@ public:
 
     // --- ライフサイクル ---
 
-    void initializeAndStartEngineFor(Player side,
+    /// side はエンジンの手番。エンジンの枠は、先手なら usi1、後手なら usi2（空なら usi1）
+    void initializeAndStartEngineFor(Turn side,
                                      const QString& enginePath,
                                      const QString& engineName);
+    /// エンジンの枠（1=usi1, 2=usi2）のエンジンを破棄する
     void destroyEngine(int idx, bool clearThinking = true);
     void destroyEngines(bool clearModels = true);
     void initEnginesForEvE(const QString& engineName1,
@@ -113,8 +112,9 @@ public:
 
     // --- シグナル配線 ---
 
-    void wireResignToArbiter(Usi* engine, bool asP1);
-    void wireWinToArbiter(Usi* engine, bool asP1);
+    /// エンジンの投了・勝ち宣言を、side（そのエンジンの手番）の知らせとして MC に送る
+    void wireResignToArbiter(Usi* engine, Turn side);
+    void wireWinToArbiter(Usi* engine, Turn side);
     void disconnectArbiterSignals();
 
 signals:
@@ -123,10 +123,10 @@ signals:
     void engineError(const QString& message);
 
 private slots:
-    void onEngine1Resign();
-    void onEngine2Resign();
-    void onEngine1Win();
-    void onEngine2Win();
+    void onBlackEngineResign();
+    void onWhiteEngineResign();
+    void onBlackEngineWin();
+    void onWhiteEngineWin();
 
 private:
     void disconnectArbiterSignals(Usi* engine);

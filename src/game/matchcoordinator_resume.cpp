@@ -48,8 +48,7 @@ bool MatchCoordinator::resumeInterruptedGame()
     clearGameOverState();
     m_playMode = state->options.mode;
     m_gc->board()->setSfen(state->options.sfenStart);
-    m_gc->setCurrentPlayer(state->clock.currentPlayer == 1
-                              ? Turn::Black : Turn::White);
+    m_gc->setCurrentPlayer(state->clock.currentPlayer);
     m_gc->resetResult();
     m_gc->setPreviousMoveDestination(QPoint(state->previousFile, state->previousRank));
     *m_sfenHistory = state->sfens;

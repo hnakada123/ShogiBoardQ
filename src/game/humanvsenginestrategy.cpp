@@ -51,10 +51,10 @@ void HumanVsEngineStrategy::start()
     m_ctx.setUsi1(new Usi(comm, think, m_ctx.gc(), m_ctx.coordinatorAsParent()));
     m_ctx.setUsi2(nullptr); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
-    // 投了配線
-    m_ctx.wireResignToArbiter(m_ctx.usi1(), /*asP1=*/m_engineIsP1);
-    // 入玉宣言勝ち配線
-    m_ctx.wireWinToArbiter(m_ctx.usi1(), /*asP1=*/m_engineIsP1);
+    // 投了・入玉宣言勝ちは、エンジンの手番の知らせとして配線する
+    const Turn engineSide = m_engineIsP1 ? Turn::Black : Turn::White;
+    m_ctx.wireResignToArbiter(m_ctx.usi1(), engineSide);
+    m_ctx.wireWinToArbiter(m_ctx.usi1(), engineSide);
 
     // ログ識別（UI 表示用）
     if (m_ctx.usi1()) {
@@ -66,13 +66,11 @@ void HumanVsEngineStrategy::start()
     connect(m_ctx.usi1(), &Usi::matchMoveReady, this, &HumanVsEngineStrategy::onEngineMoveReady);
 
     // USI エンジンを起動（path/name 必須）
-    const MatchCoordinator::Player engineSide =
-        m_engineIsP1 ? MatchCoordinator::P1 : MatchCoordinator::P2;
     m_ctx.initializeAndStartEngineFor(engineSide, m_enginePath, m_engineName);
 
     // --- 手番の単一ソースを確立：GC → m_cur → 表示 ---
     const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
-    m_ctx.setCurrentTurn((side == Turn::White) ? MatchCoordinator::P2 : MatchCoordinator::P1);
+    m_ctx.setCurrentTurn(side);
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
@@ -97,7 +95,7 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
 
     // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
     if (ShogiClock* clock = m_ctx.clock()) {
-        const int humanSide = humanIsP1 ? 1 : 2;
+        const Turn humanSide = humanIsP1 ? Turn::Black : Turn::White;
         clock->commitMove(humanSide);
         if (m_ctx.hooks().game.appendKifuLine) {
             m_ctx.hooks().game.appendKifuLine(prettyMove, clock->considerationAndTotalTime(humanSide));
@@ -109,7 +107,7 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
 
     // 「次の手番」ラベルをエンジン側に切り替える
     // （TurnSyncBridge 経由のシグナルは棋譜追記中の再入で確実に到達しない場合がある）
-    m_ctx.updateTurnDisplay(humanIsP1 ? MatchCoordinator::P2 : MatchCoordinator::P1);
+    m_ctx.updateTurnDisplay(humanIsP1 ? Turn::White : Turn::Black);
 
     // 2) 以降（エンジン go → bestmove → 盤/棋譜反映）は2引数版に委譲
     //    finishHumanTimerInternal() は2引数版の先頭で呼ばれるが、二重でも実害が出ない想定。
@@ -198,7 +196,7 @@ void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     const QPoint eTo = BoardCoordinates::toSquare(move);
     // 反則手は盤に指さず、エンジンの反則負けにする
     if (!m_ctx.gc()->applyMove(move, rec, nextIdx, m_ctx.sfenHistory(), m_ctx.gameMovesRef())) {
-        m_ctx.handleEngineIllegalMove(m_engineIsP1 ? 1 : 2);
+        m_ctx.handleEngineIllegalMove(m_engineIsP1 ? Turn::Black : Turn::White);
         return;
     }
     m_ctx.setCurrentMoveIndex(nextIdx);
@@ -209,7 +207,7 @@ void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     // エンジンの考慮時間を確定してから棋譜に追記する
     const qint64 thinkMs = eng->lastBestmoveElapsedMs();
     // 指し終えて手番が移ったので、直前に指したのは今の手番の相手
-    const int engineSide = m_ctx.gc()->currentPlayer() == Turn::Black ? 2 : 1;
+    const Turn engineSide = m_ctx.gc()->currentPlayer() == Turn::Black ? Turn::White : Turn::Black;
     if (m_ctx.clock()) {
         m_ctx.clock()->setMeasuredConsiderationTime(engineSide, thinkMs);
         m_ctx.clock()->commitMove(engineSide);
@@ -220,7 +218,7 @@ void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     }
 
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
-    m_ctx.setCurrentTurn((m_ctx.gc()->currentPlayer() == Turn::White) ? MatchCoordinator::P2 : MatchCoordinator::P1);
+    m_ctx.setCurrentTurn(m_ctx.gc()->currentPlayer());
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
     // エンジン着手後の評価値追加
@@ -257,7 +255,7 @@ void HumanVsEngineStrategy::armTurnTimerIfNeeded()
     }
 }
 
-void HumanVsEngineStrategy::finishTurnTimerAndSetConsideration(int /*moverPlayer*/)
+void HumanVsEngineStrategy::finishTurnTimerAndSetConsideration(Turn /*mover*/)
 {
     finishHumanTimerInternal();
 }

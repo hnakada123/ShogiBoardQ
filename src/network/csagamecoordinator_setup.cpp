@@ -140,7 +140,7 @@ void CsaGameCoordinator::setupClock()
     CsaMoveProgressHandler::startDisplayClock(m_clock, s, remainingBlackMs, remainingWhiteMs);
     // 終局の裁定はサーバーを正とし、表示用時計の時間切れで対局を終了しない。
     m_clock->setLoseOnTimeout(false);
-    m_clock->setCurrentPlayer(blackToMove ? 1 : 2);
+    m_clock->setCurrentPlayer(blackToMove ? Turn::Black : Turn::White);
     m_clock->startClock();
 }
 

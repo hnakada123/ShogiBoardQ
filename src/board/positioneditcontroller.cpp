@@ -142,7 +142,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
 
     // GC の手番を盤へ同期
     const Turn boardTurn = board->currentPlayer();
-    c.gc->setCurrentPlayer(boardTurn == Turn::White ? Turn::White : Turn::Black);
+    c.gc->setCurrentPlayer(boardTurn);
 
     // 「編集終了」ボタン表示
     if (c.onShowEditExitButton) c.onShowEditExitButton();
