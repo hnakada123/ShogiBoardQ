@@ -99,6 +99,21 @@ PieceType pieceToPieceType(Piece p) noexcept
     }
 }
 
+/// 打てる駒種を先手の生駒にする（打てない駒種は None）
+Piece pieceTypeToDropPiece(PieceType pt) noexcept
+{
+    switch (pt) {
+    case PieceType::Pawn:   return Piece::BlackPawn;
+    case PieceType::Lance:  return Piece::BlackLance;
+    case PieceType::Knight: return Piece::BlackKnight;
+    case PieceType::Silver: return Piece::BlackSilver;
+    case PieceType::Gold:   return Piece::BlackGold;
+    case PieceType::Bishop: return Piece::BlackBishop;
+    case PieceType::Rook:   return Piece::BlackRook;
+    default: return Piece::None;
+    }
+}
+
 /// 成り可能な駒種かどうか
 bool isPromotable(PieceType pt) noexcept
 {
@@ -338,6 +353,19 @@ bool Converter::toEngineMove(ConvertedMove& out,
 Color Converter::toColor(Turn t) noexcept
 {
     return (t == Turn::Black) ? Color::Black : Color::White;
+}
+
+UsiMove Converter::toUsiMove(const Move& m)
+{
+    UsiMove move;
+    move.to = BoardSquare{squareFile(m.to) + 1, squareRank(m.to) + 1};
+    if (m.kind == MoveKind::Drop) {
+        move.drop = pieceTypeToDropPiece(m.piece);
+        return move;
+    }
+    move.from = BoardSquare{squareFile(m.from) + 1, squareRank(m.from) + 1};
+    move.promote = m.promote;
+    return move;
 }
 
 } // namespace fmv

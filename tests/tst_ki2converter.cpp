@@ -3,9 +3,12 @@
 
 #include "ki2tosfenconverter.h"
 #include "ki2lexer.h"
+#include "ki2movenotation.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "kifu_test_helper.h"
+#include "parsecommon.h"
+#include "shogiboard.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -24,6 +27,17 @@ private:
     QString fixturePath(const QString& name) const
     {
         return QCoreApplication::applicationDirPath() + QStringLiteral("/fixtures/") + name;
+    }
+
+    /// 局面の上で KI2 の指し手の文字列を指し手にする（決まらなければ空文字列）
+    static QString resolveText(const QString& sfen, const QString& text, BoardSquare previousTo = {})
+    {
+        ShogiBoard board;
+        if (!board.trySetSfen(sfen)) return QStringLiteral("<bad sfen>");
+        const auto parsed = Ki2Lexer::parseMoveText(text);
+        if (!parsed) return {};
+        const auto move = Ki2MoveNotation::resolve(*parsed, board, board.currentPlayer(), previousTo);
+        return move ? move->toString() : QString();
     }
 
 private slots:
@@ -65,38 +79,139 @@ private slots:
         QVERIFY(Ki2ToSfenConverter::extractMovesWithTimes(file.fileName()).isEmpty());
     }
 
+    /// 成駒の名前（成銀・成桂・成香）は成駒の移動。同じマスへ動ける生駒があっても成駒を選ぶ
     void promotedMinorPiece_data()
     {
-        QTest::addColumn<QString>("name");
-        QTest::addColumn<QString>("piece");
-        QTest::addColumn<int>("plainFile");
-        QTest::addColumn<int>("plainRank");
-        QTest::newRow("silver") << QStringLiteral("成銀") << QStringLiteral("S") << 6 << 6;
-        QTest::newRow("knight") << QStringLiteral("成桂") << QStringLiteral("N") << 6 << 7;
-        QTest::newRow("lance") << QStringLiteral("成香") << QStringLiteral("L") << 5 << 7;
+        QTest::addColumn<QString>("sfen");
+        QTest::addColumn<QString>("text");
+        // ４六の成駒と、同じ５五へ動ける生駒（６六の銀・６七の桂・５七の香）
+        QTest::newRow("silver") << QStringLiteral("8k/9/9/9/9/3S1+S3/9/9/4K4 b - 1") << QStringLiteral("▲５五成銀");
+        QTest::newRow("knight") << QStringLiteral("8k/9/9/9/9/5+N3/3N5/9/4K4 b - 1") << QStringLiteral("▲５五成桂");
+        QTest::newRow("lance") << QStringLiteral("8k/9/9/9/9/5+L3/4L4/9/4K4 b - 1") << QStringLiteral("▲５五成香");
+        QTest::newRow("silver-one-letter") << QStringLiteral("8k/9/9/9/9/3S1+S3/9/9/4K4 b - 1") << QStringLiteral("▲５五全");
+        QTest::newRow("knight-one-letter") << QStringLiteral("8k/9/9/9/9/5+N3/3N5/9/4K4 b - 1") << QStringLiteral("▲５五圭");
+        QTest::newRow("lance-one-letter") << QStringLiteral("8k/9/9/9/9/5+L3/4L4/9/4K4 b - 1") << QStringLiteral("▲５五杏");
     }
 
     void promotedMinorPiece()
     {
-        QFETCH(QString, name);
-        QFETCH(QString, piece);
-        QFETCH(int, plainFile);
-        QFETCH(int, plainRank);
+        QFETCH(QString, sfen);
+        QFETCH(QString, text);
+        QCOMPARE(resolveText(sfen, text), QStringLiteral("4f5e"));
+    }
 
-        QString board[9][9];
-        board[5][5] = QStringLiteral("+") + piece; // ４六の成駒
-        QMap<Piece, int> blackHands, whiteHands;
-        int prevFile = 0, prevRank = 0;
-        const QString move = QStringLiteral("▲５五") + name;
-        QCOMPARE(Ki2Lexer::convertKi2MoveToUsi(move, board, blackHands, whiteHands,
-                                             true, prevFile, prevRank), QStringLiteral("4f5e"));
+    /// 表記の揺れ（同・生・行・竜／龍・算用数字の段・半角数字）も同じ手として読む
+    void notationVariants_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QString>("usi");
+        const QString silvers = QStringLiteral("k8/9/9/S1S6/9/9/9/9/4K4 b - 1");
+        QTest::newRow("promote") << silvers << QStringLiteral("▲８三銀左成") << QStringLiteral("9d8c+");
+        QTest::newRow("not-promote") << silvers << QStringLiteral("▲８三銀右不成") << QStringLiteral("7d8c");
+        QTest::newRow("nama") << silvers << QStringLiteral("▲８三銀右生") << QStringLiteral("7d8c");
+        QTest::newRow("unspecified-is-not-promote") << silvers << QStringLiteral("▲８三銀左") << QStringLiteral("9d8c");
+        QTest::newRow("arabic-rank") << silvers << QStringLiteral("▲83銀左成") << QStringLiteral("9d8c+");
+        QTest::newRow("zenkaku-rank") << silvers << QStringLiteral("☗８３銀右") << QStringLiteral("7d8c");
+        // ８八の飛は８七へ上がり、９七の飛は８七へ寄る
+        const QString rooks = QStringLiteral("8k/9/9/9/9/9/R8/1R7/4K4 b - 1");
+        QTest::newRow("gyo") << rooks << QStringLiteral("▲８七飛行") << QStringLiteral("8h8g");
+        QTest::newRow("yoru") << rooks << QStringLiteral("▲８七飛寄") << QStringLiteral("9g8g");
+        QTest::newRow("ryu") << QStringLiteral("8k/4+R4/7+R1/9/9/9/9/9/4K4 b - 1")
+                             << QStringLiteral("▲４三竜寄") << QStringLiteral("2c4c");
+        // 桂は行き所のない段へは成るしかない（成を書いていなくても成る手）
+        QTest::newRow("forced-promotion") << QStringLiteral("8k/9/9/4N4/9/9/9/9/4K4 b - 1")
+                                          << QStringLiteral("▲６二桂") << QStringLiteral("5d6b+");
+    }
 
-        // 同じ移動先へ動ける生駒があっても、成駒を選ぶ。
-        board[4][4].clear();
-        board[5][5] = QStringLiteral("+") + piece;
-        board[plainRank - 1][9 - plainFile] = piece;
-        QCOMPARE(Ki2Lexer::convertKi2MoveToUsi(move, board, blackHands, whiteHands,
-                                             true, prevFile, prevRank), QStringLiteral("4f5e"));
+    void notationVariants()
+    {
+        QFETCH(QString, sfen);
+        QFETCH(QString, text);
+        QFETCH(QString, usi);
+        QCOMPARE(resolveText(sfen, text), usi);
+    }
+
+    /// 「同」は直前の手の移動先。「７六同歩」のように移動先と「同」を両方書いても読む
+    void sameSquare()
+    {
+        const QString sfen = QStringLiteral("8k/9/9/9/9/4p4/4P4/9/4K4 b - 1");
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲同　歩"), BoardSquare{5, 6}), QStringLiteral("5g5f"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲同歩"), BoardSquare{5, 6}), QStringLiteral("5g5f"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５六同歩"), BoardSquare{5, 6}), QStringLiteral("5g5f"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲同　歩")), QString());  // 直前の手がない
+    }
+
+    /// ピンされた駒は動ける駒に数えない。合法な候補が1つなら、修飾語や「打」を省いても読める
+    void pinnedPieceIsNotACandidate()
+    {
+        // ５八の金は５一の飛にピンされている。４七へ動けるのは３八の金だけ
+        const QString sfen = QStringLiteral("4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1");
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲４七金")), QStringLiteral("3h4g"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲４七金右")), QStringLiteral("3h4g"));  // 旧版の書き出し
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲４七金打")), QStringLiteral("G*4g"));
+        // ６七へ動ける盤上の金はピンされた金だけなので、「打」がなくても駒打ち
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲６七金")), QStringLiteral("G*6g"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲６七金打")), QStringLiteral("G*6g"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５七金")), QStringLiteral("5h5g"));  // ピンの筋の上は動ける
+    }
+
+    /// 合法な候補が2つ以上あるのに修飾語で絞れない手は読まない
+    void ambiguousMoveIsRejected()
+    {
+        const QString sfen = QStringLiteral("8k/9/3GGG3/9/9/9/9/9/4K4 b - 1");
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５二金")), QString());
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５二金上")), QString());
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５二金直")), QStringLiteral("5c5b"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５二金右")), QStringLiteral("4c5b"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５二金左")), QStringLiteral("6c5b"));
+    }
+
+    /// 反則手（二歩・王手放置）を書いた棋譜も、駒の動きだけで決めて読む
+    void illegalMovesAreReadByPieceMovement()
+    {
+        QCOMPARE(resolveText(QStringLiteral("4k4/9/9/9/9/9/4P4/9/4K4 b P 1"), QStringLiteral("▲５五歩")),
+                 QStringLiteral("P*5e"));  // 二歩
+        QCOMPARE(resolveText(QStringLiteral("4k4/9/9/9/9/4P4/9/9/4K4 b P 1"), QStringLiteral("▲５五歩打")),
+                 QStringLiteral("P*5e"));  // 二歩（盤上の歩も５五へ動ける）
+        QCOMPARE(resolveText(QStringLiteral("4k4/9/9/9/4r4/9/9/9/4K3G b - 1"), QStringLiteral("▲１八金")),
+                 QStringLiteral("1i1h"));  // 王手放置
+    }
+
+    /// 旧版（盤を文字で持っていた版）が書き出した KI2 も、同じ手順として読む
+    void legacyExports_data()
+    {
+        QTest::addColumn<QString>("file");
+        QTest::addColumn<QStringList>("mainline");
+        QTest::addColumn<QStringList>("variations");
+        QTest::newRow("golds") << QStringLiteral("test_ki2_legacy_golds.ki2")
+            << QStringList({"6c5b", "1a2b", "2i2h"})
+            << QStringList({"5c5b", "4c5b", "7i8h", "8i8h", "9i8h", "9h8h", "8g8h", "1g2h", "3i2h", "3g2h"});
+        QTest::newRow("dragons") << QStringLiteral("test_ki2_legacy_dragons.ki2")
+            << QStringList({"5e3e", "9b8a", "9i7g"})
+            << QStringList({"1e3e", "5i7g", "9d8c+", "7d8c", "9d8c", "7d8c+"});
+        // 旧版はピンされた金も数えて、不要な「右」「打」を付けていた
+        QTest::newRow("pins") << QStringLiteral("test_ki2_legacy_pins.ki2")
+            << QStringList({"3h4g", "1a2a", "G*6g"})
+            << QStringList({"G*4g", "5h5g", "G*6g"});
+    }
+
+    void legacyExports()
+    {
+        QFETCH(QString, file);
+        QFETCH(QStringList, mainline);
+        QFETCH(QStringList, variations);
+        KifParseResult result;
+        QString error;
+        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(fixturePath(file), result, &error), qPrintable(error));
+        QCOMPARE(result.mainline.usiMoves, mainline);
+        QStringList firstMoves;
+        for (const KifVariation& variation : std::as_const(result.variations)) {
+            QCOMPARE(variation.startPly, 1);
+            QCOMPARE(variation.line.usiMoves.size(), 1);
+            firstMoves << variation.line.usiMoves.first();
+        }
+        QCOMPARE(firstMoves, variations);
     }
 
     void detectInitialSfen()

@@ -391,6 +391,8 @@ set(SRC_KIFU
     src/kifu/formats/ki2exporter.h
     src/kifu/formats/ki2lexer.cpp
     src/kifu/formats/ki2lexer.h
+    src/kifu/formats/ki2movenotation.cpp
+    src/kifu/formats/ki2movenotation.h
     src/kifu/formats/ki2tosfenconverter.cpp
     src/kifu/formats/ki2tosfenconverter.h
     src/kifu/formats/kifexporter.cpp

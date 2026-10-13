@@ -1,50 +1,31 @@
 /// @file ki2lexer.cpp
-/// @brief KI2形式固有の字句解析・曖昧指し手解決の実装
+/// @brief KI2形式固有の字句解析の実装
 
 #include "ki2lexer.h"
-#include "notationutils.h"
 #include "parsecommon.h"
+#include "shoginotation.h"
 
 #include <QRegularExpression>
-#include "logcategories.h"
 
 namespace {
 
-bool getPieceTypeAndPromoted(const QString& moveText, Piece& pieceUpper, bool& isPromoted)
+bool isTurnMark(QChar ch)
 {
-    isPromoted = false;
-    pieceUpper = Piece::None;
-    const auto result = KifuParseCommon::mapKanjiPiece(moveText);
-    if (!result) return false;
-    pieceUpper = result->base;
-    isPromoted = result->promoted;
-    return true;
+    return ch == QChar(u'▲') || ch == QChar(u'△') || ch == QChar(u'▽')
+        || ch == QChar(u'☗') || ch == QChar(u'☖');
 }
 
-bool isGoldLikeMove(int df, int dr, int forward)
+bool isBlank(QChar ch)
 {
-    if (qAbs(df) > 1 || qAbs(dr) > 1) return false;
-    if (df == 0 && dr == 0) return false;
-    if (qAbs(df) == 1 && dr == -forward) return false;
-    return true;
+    return ch.isSpace() || ch == QChar(u'　');
 }
 
-bool isPathClear(int fromFile, int fromRank, int toFile, int toRank,
-                 const QString boardState[9][9])
+/// 半角・全角の数字（1〜9）。それ以外は0
+int digitValue(QChar ch)
 {
-    const int df = (toFile > fromFile) ? 1 : (toFile < fromFile) ? -1 : 0;
-    const int dr = (toRank > fromRank) ? 1 : (toRank < fromRank) ? -1 : 0;
-    int f = fromFile + df;
-    int r = fromRank + dr;
-    while (f != toFile || r != toRank) {
-        const int col = 9 - f;
-        const int row = r - 1;
-        if (col < 0 || col > 8 || row < 0 || row > 8) break;
-        if (!boardState[row][col].isEmpty()) return false;
-        f += df;
-        r += dr;
-    }
-    return true;
+    const char16_t u = ch.unicode();
+    if (u >= u'1' && u <= u'9') return u - u'0';
+    return ShogiNotation::fileFromZenkaku(ch);
 }
 
 } // namespace
@@ -76,10 +57,7 @@ const QRegularExpression& resultPatternRe()
 bool isKi2MoveLine(const QString& line)
 {
     const QString t = line.trimmed();
-    if (t.isEmpty()) return false;
-    const QChar first = t.at(0);
-    return (first == QChar(u'▲') || first == QChar(u'△') || first == QChar(u'▽') ||
-            first == QChar(u'☗') || first == QChar(u'☖'));
+    return !t.isEmpty() && isTurnMark(t.at(0));
 }
 
 bool isResultLine(const QString& line)
@@ -123,82 +101,6 @@ bool parseResultLine(const QString& line, QString& terminalWord, int& moveCount)
 
 // === 指し手テキスト解析 ===
 
-std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& moveText)
-{
-    if (moveText.contains(QStringLiteral("同"))) {
-        return KifuParseCommon::MoveDestination{0, 0, true};
-    }
-
-    QString line = moveText;
-    line.remove(QChar(u'▲'));
-    line.remove(QChar(u'△'));
-    line.remove(QChar(u'▽'));
-    line.remove(QChar(u'☗'));
-    line.remove(QChar(u'☖'));
-
-    static const QRegularExpression s_digitKanji(QStringLiteral("([1-9１-９])([一二三四五六七八九])"));
-    static const QRegularExpression s_digitDigit(QStringLiteral("([1-9１-９])([1-9１-９])"));
-
-    QRegularExpressionMatch m = s_digitKanji.match(line);
-    if (!m.hasMatch()) m = s_digitDigit.match(line);
-    if (!m.hasMatch()) return std::nullopt;
-
-    const QChar fch = m.capturedView(1).at(0);
-    const QChar rch = m.capturedView(2).at(0);
-
-    const int toFile = KifuParseCommon::flexDigitToIntNoDetach(fch);
-    int r = NotationUtils::kanjiDigitToInt(rch);
-    if (r == 0) r = KifuParseCommon::flexDigitToIntNoDetach(rch);
-    const int toRank = r;
-
-    if (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9)
-        return KifuParseCommon::MoveDestination{toFile, toRank, false};
-
-    return std::nullopt;
-}
-
-Piece pieceKanjiToUsiUpper(const QString& s)
-{
-    const auto result = KifuParseCommon::mapKanjiPiece(s);
-    if (!result) return Piece::None;
-    return result->base;
-}
-
-bool isPromotionMoveText(const QString& moveText)
-{
-    if (moveText.contains(QStringLiteral("不成"))) return false;
-
-    QString head = moveText;
-    qsizetype u = head.indexOf(QChar(u'打'));
-    if (u >= 0) head = head.left(u);
-
-    static const QRegularExpression kDirectionRe(QStringLiteral("[右左上下引寄直行]+"));
-    head.remove(kDirectionRe);
-    head.remove(QChar(u'▲'));
-    head.remove(QChar(u'△'));
-    head.remove(QChar(u'▽'));
-    head.remove(QChar(u'☗'));
-    head.remove(QChar(u'☖'));
-    head = head.trimmed();
-
-    static const QRegularExpression kPromoteSuffix(QStringLiteral("(歩|香|桂|銀|角|飛)成$"));
-    return kPromoteSuffix.match(head).hasMatch();
-}
-
-QString extractMoveModifier(const QString& moveText)
-{
-    QString result;
-    static const QStringList modifiers = {
-        QStringLiteral("右"), QStringLiteral("左"), QStringLiteral("上"),
-        QStringLiteral("引"), QStringLiteral("寄"), QStringLiteral("直"),
-        QStringLiteral("行")
-    };
-    for (const QString& mod : modifiers) {
-        if (moveText.contains(mod)) result += mod;
-    }
-    return result;
-}
-
 QStringList extractMovesFromLine(const QString& line)
 {
     QStringList moves;
@@ -216,223 +118,63 @@ QStringList extractMovesFromLine(const QString& line)
     return moves;
 }
 
-// === 駒の移動判定・候補収集 ===
-
-bool canPieceMoveTo(Piece pieceUpper, bool isPromoted,
-                    int fromFile, int fromRank,
-                    int toFile, int toRank,
-                    bool blackToMove)
+std::optional<MoveText> parseMoveText(QStringView text)
 {
-    const int df = toFile - fromFile;
-    const int dr = toRank - fromRank;
-    const int forward = blackToMove ? -1 : 1;
+    qsizetype i = 0;
+    const auto skipBlanks = [&text, &i] {
+        while (i < text.size() && isBlank(text.at(i))) ++i;
+    };
+    skipBlanks();
+    if (i < text.size() && isTurnMark(text.at(i))) ++i;
+    skipBlanks();
 
-    switch (pieceUpper) {
-    case Piece::BlackPawn:
-        return isPromoted ? isGoldLikeMove(df, dr, forward) : (df == 0 && dr == forward);
-    case Piece::BlackLance:
-        return isPromoted ? isGoldLikeMove(df, dr, forward) : (df == 0 && dr * forward > 0);
-    case Piece::BlackKnight:
-        return isPromoted ? isGoldLikeMove(df, dr, forward) : (qAbs(df) == 1 && dr == 2 * forward);
-    case Piece::BlackSilver:
-        if (isPromoted) return isGoldLikeMove(df, dr, forward);
-        if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
-            if (df == 0 && dr == -forward) return false;
-            if (df == 0 && dr == 0) return false;
-            if (qAbs(df) == 1 && dr == 0) return false;
-            return true;
-        }
-        return false;
-    case Piece::BlackGold:
-        return isGoldLikeMove(df, dr, forward);
-    case Piece::BlackBishop:
-        if (isPromoted) {
-            if (qAbs(df) == qAbs(dr) && df != 0) return true;
-            return (qAbs(df) <= 1 && qAbs(dr) <= 1 && (df != 0 || dr != 0));
-        }
-        return (qAbs(df) == qAbs(dr) && df != 0);
-    case Piece::BlackRook:
-        if (isPromoted) {
-            if ((df == 0 && dr != 0) || (df != 0 && dr == 0)) return true;
-            return (qAbs(df) <= 1 && qAbs(dr) <= 1 && qAbs(df) == qAbs(dr) && df != 0);
-        }
-        return ((df == 0 && dr != 0) || (df != 0 && dr == 0));
-    case Piece::BlackKing:
-        return (qAbs(df) <= 1 && qAbs(dr) <= 1 && (df != 0 || dr != 0));
-    default:
-        return false;
-    }
-}
-
-QList<Candidate> collectCandidates(Piece pieceUpper, bool moveIsPromoted,
-                                     int toFile, int toRank,
-                                     bool blackToMove,
-                                     const QString boardState[9][9])
-{
-    QList<Candidate> candidates;
-    for (int r = 0; r < 9; ++r) {
-        for (int f = 0; f < 9; ++f) {
-            const QString& token = boardState[r][f];
-            if (token.isEmpty()) continue;
-
-            // parseToken inline
-            bool tokenPromoted = token.startsWith(QLatin1Char('+'));
-            const QChar ch = tokenPromoted ? token.at(1) : token.at(0);
-            bool tokenBlack = ch.isUpper();
-            Piece tokenPiece = toBlack(charToPiece(ch));
-
-            if (tokenBlack != blackToMove) continue;
-            if (tokenPiece != pieceUpper) continue;
-            if (tokenPromoted != moveIsPromoted) continue;
-
-            const int candFile = 9 - f;
-            const int candRank = r + 1;
-
-            if (!canPieceMoveTo(pieceUpper, tokenPromoted, candFile, candRank,
-                                toFile, toRank, blackToMove))
-                continue;
-
-            if (pieceUpper == Piece::BlackRook || pieceUpper == Piece::BlackBishop ||
-                pieceUpper == Piece::BlackLance) {
-                if (!isPathClear(candFile, candRank, toFile, toRank, boardState))
-                    continue;
-            }
-            candidates.push_back({candFile, candRank});
-        }
-    }
-    return candidates;
-}
-
-QList<Candidate> filterByDirection(const QList<Candidate>& candidates,
-                                     const QString& modifier,
-                                     bool blackToMove,
-                                     int toFile, int toRank)
-{
-    if (modifier.isEmpty()) return candidates;
-    const int forward = blackToMove ? -1 : 1;
-    QList<Candidate> filtered = candidates;
-
-    if (modifier.contains(QChar(u'右'))) {
-        int targetFile = blackToMove ? 9 : 0;
-        for (const auto& c : std::as_const(filtered)) {
-            if (blackToMove) { if (targetFile == 9 || c.file < targetFile) targetFile = c.file; }
-            else { if (targetFile == 0 || c.file > targetFile) targetFile = c.file; }
-        }
-        QList<Candidate> tmp;
-        for (const auto& c : std::as_const(filtered))
-            if (c.file == targetFile) tmp.push_back(c);
-        filtered = tmp;
-    }
-
-    if (modifier.contains(QChar(u'左'))) {
-        int targetFile = blackToMove ? 0 : 9;
-        for (const auto& c : std::as_const(filtered)) {
-            if (blackToMove) { if (targetFile == 0 || c.file > targetFile) targetFile = c.file; }
-            else { if (targetFile == 9 || c.file < targetFile) targetFile = c.file; }
-        }
-        QList<Candidate> tmp;
-        for (const auto& c : std::as_const(filtered))
-            if (c.file == targetFile) tmp.push_back(c);
-        filtered = tmp;
-    }
-
-    if (modifier.contains(QChar(u'上')) || modifier.contains(QChar(u'行'))) {
-        QList<Candidate> tmp;
-        for (const auto& c : std::as_const(filtered))
-            if ((toRank - c.rank) * forward > 0) tmp.push_back(c);
-        filtered = tmp;
-    }
-    if (modifier.contains(QChar(u'引'))) {
-        QList<Candidate> tmp;
-        for (const auto& c : std::as_const(filtered))
-            if ((toRank - c.rank) * forward < 0) tmp.push_back(c);
-        filtered = tmp;
-    }
-    if (modifier.contains(QChar(u'寄'))) {
-        QList<Candidate> tmp;
-        for (const auto& c : std::as_const(filtered))
-            if (c.rank == toRank) tmp.push_back(c);
-        filtered = tmp;
-    }
-    if (modifier.contains(QChar(u'直'))) {
-        QList<Candidate> tmp;
-        for (const auto& c : std::as_const(filtered))
-            if (c.file == toFile && (toRank - c.rank) * forward > 0) tmp.push_back(c);
-        filtered = tmp;
-    }
-    return filtered;
-}
-
-bool inferSourceSquare(Piece pieceUpper, bool moveIsPromoted,
-                       int toFile, int toRank,
-                       const QString& modifier, bool blackToMove,
-                       const QString boardState[9][9],
-                       int& outFromFile, int& outFromRank)
-{
-    const auto candidates = collectCandidates(pieceUpper, moveIsPromoted,
-                                               toFile, toRank, blackToMove, boardState);
-    if (candidates.isEmpty()) return false;
-
-    const auto filtered = filterByDirection(candidates, modifier, blackToMove, toFile, toRank);
-    if (filtered.size() != 1) return false;
-    outFromFile = filtered[0].file;
-    outFromRank = filtered[0].rank;
-    return true;
-}
-
-// === KI2→USI変換 ===
-
-QString convertKi2MoveToUsi(const QString& moveText,
-                            QString boardState[9][9],
-                            QMap<Piece, int>& blackHands,
-                            QMap<Piece, int>& whiteHands,
-                            bool blackToMove,
-                            int& prevToFile, int& prevToRank)
-{
-    if (moveText.contains(QStringLiteral("パス"))) return QStringLiteral("pass");
-
-    QString term;
-    if (KifuParseCommon::isTerminalWordContains(moveText, &term)) return {};
-
-    const auto dest = findDestination(moveText);
-    if (!dest) return {};
-    int toFile = dest->toFile, toRank = dest->toRank;
-    if (dest->isSameAsPrev) { toFile = prevToFile; toRank = prevToRank; }
-    if (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) return {};
-
-    Piece pieceUpper = Piece::None;
-    bool moveIsPromoted = false;
-    if (!getPieceTypeAndPromoted(moveText, pieceUpper, moveIsPromoted)) return {};
-
-    bool explicitDrop = moveText.contains(QChar(u'打'));
-    const QString modifier = extractMoveModifier(moveText);
-    int fromFile = 0, fromRank = 0;
-    bool canMoveFromBoard = inferSourceSquare(pieceUpper, moveIsPromoted, toFile, toRank,
-                                              modifier, blackToMove, boardState, fromFile, fromRank);
-
-    QMap<Piece, int>& hands = blackToMove ? blackHands : whiteHands;
-    bool hasInHand = !moveIsPromoted && (hands.value(pieceUpper, 0) > 0);
-    bool isDrop = explicitDrop;
-    if (!isDrop && !canMoveFromBoard && hasInHand) isDrop = true;
-
-    QString usi;
-    if (isDrop) {
-        if (!hasInHand) {
-            qCWarning(lcKifu) << "No piece in hand for drop:" << pieceToChar(pieceUpper) << "move:" << moveText;
-            return {};
-        }
-        usi = NotationUtils::formatSfenDrop(pieceToChar(pieceUpper), toFile, toRank);
+    MoveText move;
+    if (i < text.size() && text.at(i) == QChar(u'同')) {
+        move.sameAsPrevious = true;
+        ++i;
     } else {
-        if (!canMoveFromBoard) {
-            qCWarning(lcKifu) << "Cannot infer source square for:" << moveText;
-            return {};
-        }
-        usi = NotationUtils::formatSfenMove(fromFile, fromRank, toFile, toRank, isPromotionMoveText(moveText));
+        if (i + 1 >= text.size()) return std::nullopt;
+        const int file = digitValue(text.at(i));
+        int rank = ShogiNotation::rankFromKanji(text.at(i + 1));
+        if (rank == 0) rank = digitValue(text.at(i + 1));
+        if (file == 0 || rank == 0) return std::nullopt;
+        move.to = BoardSquare{file, rank};
+        i += 2;
+        skipBlanks();
+        // 新聞などの「７六同歩」は、移動先と「同」を両方書く
+        if (i < text.size() && text.at(i) == QChar(u'同')) ++i;
     }
+    skipBlanks();
 
-    prevToFile = toFile;
-    prevToRank = toRank;
-    return usi;
+    // 駒の名前（成香・成桂・成銀だけ2文字）
+    if (i + 1 < text.size() && text.at(i) == QChar(u'成')) {
+        move.piece = ShogiNotation::pieceFromName(text.mid(i, 2));
+        i += 2;
+    } else if (i < text.size()) {
+        move.piece = ShogiNotation::pieceFromName(text.mid(i, 1));
+        ++i;
+    }
+    if (move.piece == Piece::None) return std::nullopt;
+
+    static constexpr QStringView kModifiers = u"右左直上引寄";
+    for (; i < text.size(); ++i) {
+        const QChar ch = text.at(i);
+        if (ch == QChar(u'不') && i + 1 < text.size() && text.at(i + 1) == QChar(u'成')) {
+            move.promote = false;
+            ++i;
+        } else if (ch == QChar(u'生')) {
+            move.promote = false;
+        } else if (ch == QChar(u'成')) {
+            move.promote = true;
+        } else if (ch == QChar(u'打')) {
+            move.drop = true;
+        } else if (ch == QChar(u'行')) {
+            move.modifiers += QChar(u'上');
+        } else if (kModifiers.contains(ch)) {
+            move.modifiers += ch;
+        }
+    }
+    return move;
 }
 
 } // namespace Ki2Lexer

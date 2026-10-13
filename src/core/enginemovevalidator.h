@@ -11,6 +11,7 @@
 #include "shogimove.h"
 #include "shogitypes.h"
 #include "fmvposition.h"
+#include "usimove.h"
 
 class EngineMoveValidator
 {
@@ -35,6 +36,11 @@ public:
 
     LegalMoveStatus isLegalMove(Context& ctx, ShogiMove& move) const;
     int generateLegalMoves(Context& ctx) const;
+    /// 合法手の一覧。成り・不成のどちらも指せる手は両方を入れる。局面が同期されていなければ空
+    QList<UsiMove> legalMoves(Context& ctx) const;
+    /// 駒の動きだけで決めた指し手の一覧（自玉の安全・二歩・打ち歩詰め・行き所のない駒は見ない）。
+    /// 反則手を書いた棋譜を読み書きするときに、合法手で決まらない手の候補にする
+    QList<UsiMove> pseudoLegalMoves(Context& ctx) const;
     int checkIfKingInCheck(Context& ctx) const;
 
 #ifdef SHOGIBOARDQ_TESTING
@@ -63,6 +69,14 @@ public:
     int generateLegalMoves(Turn turn,
                            const QList<Piece>& boardData,
                            const QMap<Piece, int>& pieceStand) const;
+
+    QList<UsiMove> legalMoves(Turn turn,
+                              const QList<Piece>& boardData,
+                              const QMap<Piece, int>& pieceStand) const;
+
+    QList<UsiMove> pseudoLegalMoves(Turn turn,
+                                    const QList<Piece>& boardData,
+                                    const QMap<Piece, int>& pieceStand) const;
 
     int checkIfKingInCheck(Turn turn,
                            const QList<Piece>& boardData) const;
