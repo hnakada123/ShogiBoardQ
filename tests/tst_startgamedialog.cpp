@@ -304,11 +304,51 @@ private slots:
         QCOMPARE(TimeControlValidator::validate(p1, p2, hasEngine), expected);
     }
 
+    /// 時間を指定する（側は 1=先手、2=後手）
+    static void setTime(StartGameDialog& dialog, int side, int minutes, int byoyomi, int increment)
+    {
+        const QString n = QString::number(side);
+        widget<QSpinBox>(dialog, ("basicTimeHour" + n).toLatin1().constData())->setValue(0);
+        widget<QSpinBox>(dialog, ("basicTimeMinutes" + n).toLatin1().constData())->setValue(minutes);
+        widget<QSpinBox>(dialog, ("byoyomiSec" + n).toLatin1().constData())->setValue(byoyomi);
+        widget<QSpinBox>(dialog, ("addEachMoveSec" + n).toLatin1().constData())->setValue(increment);
+    }
+
+    /// 初回に開いたときと「既定に戻す」で同じ対局条件になる（時間は全項目0秒）
+    void firstLoadMatchesResetDefaults()
+    {
+        setEngines({QStringLiteral("engine")});
+        StartGameDialog fresh;
+        const auto snapshot = [](StartGameDialog& d) {
+            QList<int> values;
+            for (const char* name : {"basicTimeHour1", "basicTimeMinutes1", "byoyomiSec1", "addEachMoveSec1",
+                                     "basicTimeHour2", "basicTimeMinutes2", "byoyomiSec2", "addEachMoveSec2",
+                                     "spinBoxMaxMoves", "spinBoxConsecutiveGames"}) {
+                values << widget<QSpinBox>(d, name)->value();
+            }
+            values << widget<QComboBox>(d, "comboBoxPlayer1")->currentIndex()
+                   << widget<QComboBox>(d, "comboBoxPlayer2")->currentIndex()
+                   << widget<QComboBox>(d, "comboBoxStartingPosition")->currentIndex()
+                   << int(widget<QGroupBox>(d, "groupBoxSecondPlayerTimeSettings")->isChecked());
+            return values;
+        };
+        const QList<int> firstLoad = snapshot(fresh);
+        widget<QPushButton>(fresh, "pushButtonResetToDefault")->click();
+        QCOMPARE(snapshot(fresh), firstLoad);
+        QCOMPARE(widget<QComboBox>(fresh, "comboBoxPlayer2")->currentIndex(), 1);
+        // 既定の時間は全項目0秒（仕様書「対局開始時の時間設定の確認」）。後手がエンジンのまま
+        // 開始しようとすると、エンジンが参加する時間無制限として警告する
+        const QString warning = acceptExpectingWarning(fresh);
+        QVERIFY2(warning.contains(QStringLiteral("エンジン")), qPrintable(warning));
+        QVERIFY(fresh.result() != QDialog::Accepted);
+    }
+
     void unlimitedEngineGameIsNotStarted()
     {
         setEngines({QStringLiteral("engine")});
         StartGameDialog dialog;
         widget<QComboBox>(dialog, "comboBoxPlayer2")->setCurrentIndex(1);
+        setTime(dialog, 1, 0, 0, 0);
         const QString warning = acceptExpectingWarning(dialog);
         QVERIFY2(warning.contains(QStringLiteral("エンジン")), qPrintable(warning));
         QVERIFY(dialog.result() != QDialog::Accepted);
@@ -325,6 +365,7 @@ private slots:
     void humanUnlimitedGameStarts()
     {
         StartGameDialog dialog;
+        setTime(dialog, 1, 0, 0, 0);
         QVERIFY(acceptExpectingWarning(dialog).isEmpty());
         QCOMPARE(dialog.result(), int(QDialog::Accepted));
         QCOMPARE(dialog.byoyomiSec1() + dialog.addEachMoveSec1() + dialog.basicTimeMinutes1(), 0);
@@ -334,7 +375,8 @@ private slots:
     {
         StartGameDialog dialog;
         widget<QGroupBox>(dialog, "groupBoxSecondPlayerTimeSettings")->setChecked(true);
-        widget<QSpinBox>(dialog, "byoyomiSec1")->setValue(5);
+        setTime(dialog, 1, 0, 5, 0);
+        setTime(dialog, 2, 0, 0, 0);
         const QString warning = acceptExpectingWarning(dialog);
         QVERIFY2(warning.contains(QStringLiteral("後手／上手")), qPrintable(warning));
         QVERIFY(dialog.result() != QDialog::Accepted);

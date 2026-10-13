@@ -102,7 +102,8 @@ void MainWindowServiceRegistry::ensureUsiCommandController()
     if (!m_mw.m_usiCommandController) {
         m_mw.m_usiCommandController = std::make_unique<UsiCommandController>();
     }
-    m_mw.m_usiCommandController->setMatchCoordinator(m_mw.m_match);
+    // 司令塔は起動時に作り直されるので、送信のたびに現在の司令塔を引く
+    m_mw.m_usiCommandController->setMatchProvider([this]() { return m_mw.m_match; });
     m_mw.m_usiCommandController->setAnalysisTab(m_mw.m_analysisTab);
     if (m_mw.m_analysisTab && m_mw.m_shogiView) {
         m_mw.m_analysisTab->setArrowController(CandidateArrowController::forView(m_mw.m_shogiView));

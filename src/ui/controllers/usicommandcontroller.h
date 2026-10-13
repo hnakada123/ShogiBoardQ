@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QString>
 
+#include <functional>
+
 class MatchCoordinator;
 class EngineAnalysisTab;
 
@@ -23,7 +25,12 @@ class UsiCommandController : public QObject
 public:
     explicit UsiCommandController(QObject* parent = nullptr);
 
-    void setMatchCoordinator(MatchCoordinator* match);
+    /**
+     * @brief 送信先のエンジンを持つ司令塔の取得方法を設定する
+     *
+     * 司令塔は作り直されることがあるので、ポインタを控えずに送信のたびに取得する。
+     */
+    void setMatchProvider(std::function<MatchCoordinator*()> provider);
     void setAnalysisTab(EngineAnalysisTab* tab);
 
 public slots:
@@ -37,7 +44,7 @@ public slots:
 private:
     void appendStatus(const QString& text);
 
-    MatchCoordinator* m_match = nullptr;
+    std::function<MatchCoordinator*()> m_matchProvider;
     EngineAnalysisTab* m_analysisTab = nullptr;
 };
 
