@@ -66,7 +66,10 @@ public:
                          QStringList* sfenHistory, QList<ShogiMove>& gameMoves);
 
     /**
-     * @brief 成り・不成まで決まった指し手（エンジン・通信対局など）を、合法手か確かめてから指す
+     * @brief 成り・不成まで決まったエンジンの指し手を、合法手か確かめてから指す
+     *
+     * 通信対局の手はここを通らない（相手の手は CsaMoveConverter::applyMoveToBoard、
+     * 自分のエンジンの手は CsaMoveProgressHandler が盤に直接指す）。
      * @return 合法手で盤面更新できた場合 true。反則手は盤を変えずに false
      */
     bool applyMove(const UsiMove& move, QString& record, int moveNumber,
@@ -119,13 +122,13 @@ public slots:
     void newGame(QString& startsfenstr);
 
 signals:
-    /// 手番が変更された（→ TurnManager）
+    /// 手番が変更された（→ TurnManager、BoardInteractionController）
     void currentPlayerChanged(Turn);
 
     /// 駒のドラッグ終了を通知する（→ ShogiView）
     void endDragSignal();
 
-    /// 着手が確定した（→ TurnSyncBridge）
+    /// 着手が確定した（→ MainWindow::onMoveCommitted、PieceSoundPlayer）
     void moveCommitted(Turn mover, int ply);
 
 private:
