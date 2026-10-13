@@ -445,6 +445,10 @@ add_shogi_test(tst_kifubranchlistmodel
 add_shogi_test(tst_gamerecordmodel tst_gamerecordmodel.cpp)
 target_link_libraries(tst_gamerecordmodel PRIVATE shogiboardq_static)
 
+# JKF の書き出し（分岐ツリーの指し手と局面から作る）と読み込みの往復
+add_shogi_test(tst_jkfexporter tst_jkfexporter.cpp)
+target_link_libraries(tst_jkfexporter PRIVATE shogiboardq_static)
+
 # ============================================================
 # Unit 8a-2: KifuSaveCoordinator (拡張子による保存形式の判定・上書き保存)
 # ============================================================

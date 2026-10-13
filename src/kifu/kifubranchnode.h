@@ -18,6 +18,7 @@ enum class TerminalType {
     Resign,         ///< 投了
     Checkmate,      ///< 詰み
     Repetition,     ///< 千日手
+    PerpetualCheck, ///< 王手千日手（棋譜ファイルの終局語。対局では王手を続けた側の反則として記録する）
     Impasse,        ///< 持将棋
     Timeout,        ///< 切れ負け
     IllegalWin,     ///< 反則勝ち

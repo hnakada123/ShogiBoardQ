@@ -3,27 +3,36 @@
 
 #include "jkfexporter.h"
 #include "jkfformatter.h"
+#include "jkfmoveparser.h"
 #include "gamerecordmodel.h"
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
+#include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "sfenutils.h"
+#include "shogiboard.h"
 #include "logcategories.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
-#include <QSet>
-
-static const QRegularExpression& newlineRe()
-{
-    static const QRegularExpression re(QStringLiteral("\r?\n"));
-    return re;
-}
 
 // ========================================
 // JKF構築用の内部関数
 // ========================================
+
+// コメントを行ごとの配列にする（空なら空の配列）
+static QJsonArray commentLines(const QString& comment)
+{
+    QJsonArray lines;
+    if (comment.isEmpty()) return lines;
+    static const QRegularExpression newlineRe(QStringLiteral("\r?\n"));
+    const QStringList parts = comment.split(newlineRe);
+    for (const QString& line : parts) {
+        lines.append(line);
+    }
+    return lines;
+}
 
 // JKF形式のヘッダ部分を構築
 static QJsonObject buildJkfHeader(const GameRecordModel::ExportContext& ctx)
@@ -43,17 +52,17 @@ static QJsonObject buildJkfHeader(const GameRecordModel::ExportContext& ctx)
 }
 
 // JKF形式の初期局面部分を構築
-static QJsonObject buildJkfInitial(const GameRecordModel::ExportContext& ctx)
+static QJsonObject buildJkfInitial(const QString& startSfen)
 {
     QJsonObject initial;
 
-    const QString preset = JkfFormatter::sfenToJkfPreset(ctx.startSfen);
+    const QString preset = JkfMoveParser::presetFromSfen(startSfen);
     if (!preset.isEmpty()) {
         initial[QStringLiteral("preset")] = preset;
     } else {
         initial[QStringLiteral("preset")] = QStringLiteral("OTHER");
 
-        const QJsonObject data = JkfFormatter::sfenToJkfData(ctx.startSfen);
+        const QJsonObject data = JkfFormatter::sfenToJkfData(startSfen);
         if (!data.isEmpty()) {
             initial[QStringLiteral("data")] = data;
         }
@@ -62,172 +71,71 @@ static QJsonObject buildJkfInitial(const GameRecordModel::ExportContext& ctx)
     return initial;
 }
 
-// JKF形式の moves 配列を構築（本譜）
-static QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp)
+// 盤の局面の SFEN（変化の手順を別の盤で続けるため。手数は使わない）
+static QString positionSfen(ShogiBoard& board, Turn mover)
 {
-    QJsonArray moves{QJsonObject{}};
-
-    int prevToX = 0, prevToY = 0;
-
-    for (qsizetype i = 0; i < disp.size(); ++i) {
-        const auto& item = disp[i];
-
-        if (i == 0 && item.ply == 0) {
-            QJsonObject openingMove;
-            if (!item.comment.isEmpty()) {
-                QJsonArray comments;
-                const QStringList lines = item.comment.split(newlineRe());
-                for (const QString& line : std::as_const(lines)) {
-                    comments.append(line);
-                }
-                if (!comments.isEmpty()) {
-                    openingMove[QStringLiteral("comments")] = comments;
-                }
-            }
-            moves[0] = openingMove;
-        } else {
-            const QJsonObject moveObj = JkfFormatter::convertMoveToJkf(item, prevToX, prevToY, static_cast<int>(i));
-            if (!moveObj.isEmpty()) {
-                moves.append(moveObj);
-            }
-        }
-    }
-
-    return moves;
+    return QStringLiteral("%1 %2 %3 1").arg(board.convertBoardToSfen(), turnToSfen(mover), board.convertStandToSfen());
 }
 
-// KifuBranchNode から JKF形式の分岐指し手配列を構築
-static QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& visitedNodes,
-                                            int forkPrevToX, int forkPrevToY)
+/**
+ * @brief first から最初の子をたどった手順を JKF の moves の要素の列にする
+ * @param board first を指す前の局面。指し手を適用して進める
+ * @param synced board がノードの局面と合っているか
+ * @param mover first を指す側
+ * @param previousTo 直前の手の移動先（same を決める）
+ *
+ * 指し手は、ノードの指し手（USI）と局面から作る。分岐点では、親の2番目以降の子からの手順を、
+ * 代わられる手（先頭の子）の要素の forks に入れる。局面に合わない指し手のノードは書かず、
+ * 局面をノードから取り直して続ける。
+ */
+static QJsonArray buildJkfMoves(const KifuBranchNode* first, ShogiBoard& board, bool synced, Turn mover,
+                                BoardSquare previousTo)
 {
-    QJsonArray forkMoves;
-
-    if (node == nullptr) {
-        return forkMoves;
-    }
-
-    if (visitedNodes.contains(node->nodeId())) {
-        return forkMoves;
-    }
-    visitedNodes.insert(node->nodeId());
-
-    KifuBranchNode* current = node;
-    while (current != nullptr) {
-        if (visitedNodes.contains(current->nodeId()) && current != node) {
-            break;
-        }
-        if (current != node) {
-            visitedNodes.insert(current->nodeId());
-        }
-
-        const QString moveText = current->displayText().trimmed();
-        if (moveText.isEmpty()) {
-            if (current->childCount() > 0) {
-                current = current->childAt(0);
-                continue;
-            }
-            break;
-        }
-
-        KifDisplayItem item;
-        item.prettyMove = current->displayText();
-        item.comment = current->comment();
-        item.timeText = current->timeText();
-
-        const int previousToX = forkPrevToX;
-        const int previousToY = forkPrevToY;
-        QJsonObject forkMoveObj = JkfFormatter::convertMoveToJkf(item, forkPrevToX, forkPrevToY, current->ply());
-        if (forkMoveObj.isEmpty()) {
-            if (current->childCount() > 0) {
-                current = current->childAt(0);
-                continue;
-            }
-            break;
-        }
-
-        // forks はこの手の代替なので、親を共有する兄弟を先頭の子に付ける。
-        KifuBranchNode* parent = current->parent();
-        if (parent && parent->childAt(0) == current && parent->hasBranch()) {
-            const QList<KifuBranchNode*>& children = parent->children();
-            if (children.size() > 1) {
-                QJsonArray childForks;
-                for (int i = 1; i < children.size(); ++i) {
-                    QJsonArray childForkMoves = buildJkfForkMovesFromNode(
-                        children.at(i), visitedNodes, previousToX, previousToY);
-                    if (!childForkMoves.isEmpty()) {
-                        childForks.append(childForkMoves);
-                    }
-                }
-                if (!childForks.isEmpty()) {
-                    forkMoveObj[QStringLiteral("forks")] = childForks;
-                }
-            }
-        }
-
-        forkMoves.append(forkMoveObj);
-
-        if (current->childCount() > 0) {
-            current = current->childAt(0);
-        } else {
-            break;
-        }
-    }
-
-    return forkMoves;
-}
-
-// KifuBranchTree から JKF形式の分岐を追加
-static void addJkfForksFromTree(QJsonArray& movesArray, const KifuBranchTree* tree)
-{
-    if (tree == nullptr || tree->isEmpty()) {
-        return;
-    }
-
-    QList<KifuBranchNode*> mainLineNodes = tree->mainLine();
-
-    for (KifuBranchNode* node : std::as_const(mainLineNodes)) {
-        if (!node->hasBranch()) {
-            continue;
-        }
-
-        const QList<KifuBranchNode*>& children = node->children();
-
-        if (children.size() <= 1) {
-            continue;
-        }
-
-        const int ply = node->ply() + 1;
-        if (ply >= movesArray.size()) {
-            continue;
-        }
-
-        QJsonObject moveObj = movesArray[ply].toObject();
-        const QJsonObject previousTo = movesArray.at(ply - 1).toObject()
-            .value(QStringLiteral("move")).toObject().value(QStringLiteral("to")).toObject();
-
+    QJsonArray moves;
+    for (const KifuBranchNode* node = first; node != nullptr; node = node->childAt(0)) {
+        // この手に代わる手順。指す前の局面から別の盤で続ける
         QJsonArray forks;
-        if (moveObj.contains(QStringLiteral("forks"))) {
-            forks = moveObj[QStringLiteral("forks")].toArray();
-        }
-
-        for (int i = 1; i < children.size(); ++i) {
-            KifuBranchNode* branchChild = children.at(i);
-            QSet<int> visitedNodes;
-            visitedNodes.insert(node->nodeId());
-
-            QJsonArray forkMovesArr = buildJkfForkMovesFromNode(
-                branchChild, visitedNodes, previousTo[QStringLiteral("x")].toInt(),
-                previousTo[QStringLiteral("y")].toInt());
-            if (!forkMovesArr.isEmpty()) {
-                forks.append(forkMovesArr);
+        const KifuBranchNode* parent = node->parent();
+        if (parent != nullptr && parent->childAt(0) == node && parent->hasBranch()) {
+            const QString before = synced ? positionSfen(board, mover) : parent->sfen();
+            for (int i = 1; i < parent->childCount(); ++i) {
+                ShogiBoard forkBoard;
+                const bool forkSynced = forkBoard.trySetSfen(before);
+                const QJsonArray fork = buildJkfMoves(parent->childAt(i), forkBoard, forkSynced,
+                                                      forkSynced ? forkBoard.currentPlayer() : mover, previousTo);
+                if (!fork.isEmpty()) forks.append(fork);
             }
         }
 
-        if (!forks.isEmpty()) {
-            moveObj[QStringLiteral("forks")] = forks;
-            movesArray[ply] = moveObj;
+        QJsonObject entry;
+        if (node->isTerminal()) {
+            const QString special = JkfFormatter::terminalToJkfSpecial(node->terminalType(), mover);
+            if (!special.isEmpty()) entry[QStringLiteral("special")] = special;
+        } else {
+            const UsiMove move = node->move().toUsiMove();
+            const bool applicable = synced && move.isValid();
+            if (applicable) entry[QStringLiteral("move")] = JkfFormatter::moveToJkf(board, mover, move, previousTo);
+            if (applicable && board.applyUsiMove(move, mover)) {
+                mover = (mover == Turn::Black) ? Turn::White : Turn::Black;
+            } else {
+                qCWarning(lcKifu).noquote() << "toJkfLines: skipped a move that does not fit the position: ply="
+                                            << node->ply() << "usi=" << move.toString();
+                entry = QJsonObject();
+                synced = board.trySetSfen(node->sfen());
+                mover = synced ? board.currentPlayer() : ((mover == Turn::Black) ? Turn::White : Turn::Black);
+            }
+            previousTo = move.to;
         }
+
+        if (entry.isEmpty()) continue;
+        const QJsonObject time = JkfFormatter::parseTimeToJkf(node->timeText());
+        if (!time.isEmpty()) entry[QStringLiteral("time")] = time;
+        const QJsonArray comments = commentLines(node->comment());
+        if (!comments.isEmpty()) entry[QStringLiteral("comments")] = comments;
+        if (!forks.isEmpty()) entry[QStringLiteral("forks")] = forks;
+        moves.append(entry);
     }
+    return moves;
 }
 
 // ========================================
@@ -245,17 +153,24 @@ QStringList JkfExporter::exportLines(const GameRecordModel& model,
     root[QStringLiteral("header")] = buildJkfHeader(ctx);
 
     // 2) initial
-    root[QStringLiteral("initial")] = buildJkfInitial(ctx);
+    const QString startSfen = ctx.startSfen.trimmed().isEmpty() ? SfenUtils::hirateSfen()
+                                                                : SfenUtils::normalizeStart(ctx.startSfen);
+    root[QStringLiteral("initial")] = buildJkfInitial(startSfen);
 
-    // 3) moves（本譜）
-    const QList<KifDisplayItem> disp = model.collectMainlineForExport();
-    QJsonArray movesArray = buildJkfMoves(disp);
-
-    // 4) 分岐を追加（KifuBranchTree から）
+    // 3) moves（先頭は開始局面。本譜の手順と、分岐点ごとの forks）
+    QJsonObject opening;
+    QJsonArray movesArray;
     const KifuBranchTree* tree = model.branchTree();
     if (tree != nullptr && !tree->isEmpty()) {
-        addJkfForksFromTree(movesArray, tree);
+        const KifuBranchNode* rootNode = tree->root();
+        const QJsonArray comments = commentLines(rootNode->comment());
+        if (!comments.isEmpty()) opening[QStringLiteral("comments")] = comments;
+
+        ShogiBoard board;
+        const bool synced = board.trySetSfen(startSfen) || board.trySetSfen(rootNode->sfen());
+        movesArray = buildJkfMoves(rootNode->childAt(0), board, synced, board.currentPlayer(), BoardSquare{});
     }
+    movesArray.prepend(opening);
 
     root[QStringLiteral("moves")] = movesArray;
 

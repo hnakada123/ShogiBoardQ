@@ -31,11 +31,12 @@ SFEN の差分から指し手を推測する処理（以前の `UsiMoveConverter
 KI2 の読み書き（`Ki2MoveNotation`）も、盤は `ShogiBoard`、指し手は `UsiMove` で扱う。読み込みは局面の合法手
 （`EngineMoveValidator::legalMoves`）から指し手を選び、書き出しは分岐ツリーのノードの手と局面から修飾語・「打」・「不成」を決める。
 反則手を書いた棋譜のために、合法手で決まらない手だけは駒の動きだけで決める（`EngineMoveValidator::pseudoLegalMoves`）。
+JKF の書き出し（`JkfExporter`・`JkfFormatter`）も、分岐ツリーのノードの手を盤に適用しながら、局面と指し手から
+`piece`・`capture`・`promote`・`same`・`relative` を決める（7.6）。終局はノードの終局の種類（`TerminalType`）から `special` にする。
 
 まだ独自の表現が残っている所（意図して残している）:
 
 - 思考情報の読み筋の漢字化（`ShogiEngineInfoParser`、info 行ごとの高速化のため文字の盤）
-- JKF の書き出し（棋譜の表記から JKF の指し手と `relative` を作る）
 - CSA 読み込みの局面（`CsaLexer::Board`）
 - 2つの局面の差分（`SfenDiffUtils`）から手を求める所: 盤のハイライト（`BoardSyncPresenter`）、読み筋の盤（`PvBoardController`）、待ったの後の「同」の基準（`MatchUndoHandler`）。
   どれも別に持った指し手の一覧ではなく、手順の局面（分岐ツリー・読み筋・対局の局面列）どうしを比べる
@@ -810,10 +811,28 @@ JSON 形式で棋譜を表現。分岐対応。
   "initial": { "preset": "HIRATE" },
   "moves": [
     {},
-    { "move": { "from": {"x":7,"y":7}, "to": {"x":7,"y":6}, "piece": "FU" } }
+    { "move": { "color": 0, "from": {"x":7,"y":7}, "to": {"x":7,"y":6}, "piece": "FU" } }
   ]
 }
 ```
+
+書き出し（`JkfExporter`）は、分岐ツリーのノードの指し手（USI）を開始局面から盤（`ShogiBoard`）に適用しながら、
+指す前の局面と指し手で `move` を作る（`JkfFormatter::moveToJkf`）。棋譜欄の表示の文字列は使わない。
+
+| 項目 | 決め方 |
+|---|---|
+| `from` | 盤上の駒を動かす手の移動元。駒打ちには無い |
+| `piece` | 動かす前の駒（成る手でも成る前の駒） |
+| `same` | 直前の手と同じマスへ指す手で `true`。変化の最初の手は分岐点の直前の手と比べる |
+| `capture` | 取る駒。成駒は成駒の種類（`UM` など） |
+| `promote` | 成る手で `true`、成れるのに成らない手で `false`、成れない手では書かない |
+| `relative` | KI2 の修飾語と「打」（`Ki2MoveNotation::annotate`）を記号（`L` `C` `R` `U` `M` `D` `H`）にしたもの。同じ駒で同じマスへ動ける駒がほかにあるときだけ |
+
+- 変化は、分岐点で代わられる手（親の先頭の子）の要素の `forks` に、親の2番目以降の子からの手順を入れる。変化の中の分岐も同じ。
+- 終局はノードの `TerminalType` から `special` にする（`JkfFormatter::terminalToJkfSpecial`）。反則勝ちは、手番でない側の反則
+  （先手番なら `-ILLEGAL_ACTION`）。JKF に無い不戦勝・不戦敗は書かない。
+- `initial.preset` は、盤・手番・持ち駒が手合割の開始局面と同じときだけ書き（`JkfMoveParser::presetFromSfen`。
+  読み込みと同じ表）、それ以外は `OTHER` と `data`（盤と持ち駒）で書く。
 
 ### 7.7 USEN形式（URL Safe sfen-Extended Notation）
 

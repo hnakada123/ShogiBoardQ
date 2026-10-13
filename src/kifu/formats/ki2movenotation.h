@@ -36,6 +36,23 @@ namespace Ki2MoveNotation {
 [[nodiscard]] std::optional<UsiMove> resolve(const Ki2Lexer::MoveText& text, const ShogiBoard& board,
                                              Turn mover, BoardSquare previousTo);
 
+/// 局面の上の指し手に、KI2 で付ける語
+struct Annotation {
+    QString modifiers;        ///< 修飾語（右・左・直・上・引・寄。「左上」のように2字のこともある）。盤上の同じ駒も動ける駒打ちは「打」
+    bool canPromote = false;  ///< 成ることもできる手（成らない手は「不成」と書く）
+};
+
+/**
+ * @brief 局面と指し手から、KI2 で付ける修飾語・「打」と、成れる手かどうかを決める
+ * @param board 指す前の局面
+ * @param mover 指す側
+ * @param move 指し手
+ *
+ * 修飾語・「打」は、同じ駒で同じマスへ動ける駒がほかにあるときだけ付ける。
+ * JKF の relative も、この修飾語を記号にしたもの。
+ */
+Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move);
+
 /**
  * @brief 局面と指し手から KI2 の指し手の文字列を作る（"▲５二金右"・"△同　銀成"・"▲５五角打"）
  * @param board 指す前の局面

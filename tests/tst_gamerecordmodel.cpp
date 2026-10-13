@@ -973,11 +973,14 @@ private slots:
 
     void toJkfLines()
     {
-        GameRecordModel model;
+        // JKF は分岐ツリーのノードの指し手と局面から書くので、実際の指し手で木を作る
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        tree.setRootSfen(kHirateSfen);
+        const QStringList usi = {"7g7f", "3c3d", "2g2f", "8c8d", "2f2e", "8d8e", "6i7h"};
+        auto* tip = tree.root();
+        for (const QString& move : usi) tip = addTestMove(tree, tip, move, move);
+        GameRecordModel model;
+        model.setBranchTree(&tree);
 
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
@@ -990,6 +993,11 @@ private slots:
         QVERIFY2(parseError.error == QJsonParseError::NoError,
                  qPrintable(parseError.errorString()));
         QVERIFY(doc.isObject());
+        const QJsonArray moves = doc.object()[QStringLiteral("moves")].toArray();
+        QCOMPARE(moves.size(), usi.size() + 1);
+        for (qsizetype i = 1; i < moves.size(); ++i) {
+            QVERIFY(moves[i].toObject().contains(QStringLiteral("move")));
+        }
     }
 
     // === Export: USEN ===

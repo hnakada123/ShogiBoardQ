@@ -21,7 +21,7 @@ docs/dev/prompts/task20261013-refactoring-followups.md の課題1をやってく
 | 課題 | 内容 | 状態 |
 |---|---|---|
 | 1 | KI2 の読み書きを ShogiBoard と合法手で行う | 完了（2026-10-13） |
-| 2 | JKF の書き出しを表示用の文字列から作らない | 未着手 |
+| 2 | JKF の書き出しを表示用の文字列から作らない | 完了（2026-10-13） |
 | 3 | 盤を文字で持つ CSA の読み込みと読み筋の表示を ShogiBoard にする | 未着手 |
 | 4 | MatchPlayer と時計の int の手番を整理する | 未着手 |
 | 5 | Deps に残った `T**` を整理する | 未着手 |
@@ -66,7 +66,7 @@ docs/dev/prompts/task20261013-refactoring-followups.md の課題1をやってく
 # ビルド（Release・BUILD_TESTING=ON の build を使う）
 ninja -C build
 
-# 単体テスト（133件）
+# 単体テスト（134件）
 ctest --test-dir build -j8 -E tst_mcp_python
 
 # MCP のテスト（150件成功、5件スキップ）。basetemp はソケットパスの長さ制限のため短くする
@@ -327,7 +327,7 @@ GUI を使うテストは、必ず `xvfb-run` の上で実行してください�
   git ls-files 'src/*.cpp' | xargs -P 12 -n 3 clazy-standalone -p build --checks=level0,level1 2>&1 | grep -E '\[-Wclazy-'
   ```
   - range-loop-detach：`automationcommands_kifu.cpp:167`、`boardcolordialog.cpp:151`・`:174`、
-    `tsumecollectiondialog.cpp:95`、`gameinfopanecontroller.cpp:172`、`jkfmoveparser.cpp:52`
+    `tsumecollectiondialog.cpp:95`、`gameinfopanecontroller.cpp:172`、`jkfmoveparser.cpp:75`
   - non-pod-global-static：`appsettings.cpp:189`（`kAppearanceSections`）、`branchtreemanager.cpp:28-29`（QPen）
   - qmap-with-pointer-key：`menuwindow.cpp:315`
   - use-static-qregularexpression：`menuwindow.cpp:174`
