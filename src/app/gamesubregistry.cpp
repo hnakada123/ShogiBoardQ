@@ -5,8 +5,6 @@
 
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
-#include "mainwindowcompositionroot.h"
-#include "mainwindowdepsfactory.h"
 #include "mainwindowfoundationregistry.h"
 
 #include "consecutivegamescontroller.h"
@@ -27,7 +25,7 @@
 #include "uistatepolicymanager.h"
 #include "undoflowservice.h"
 #include "gamerecordmodel.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 #include "logcategories.h"
 
 #include <functional>
@@ -72,36 +70,45 @@ void MainWindowServiceRegistry::ensureGameStateController()
 {
     m_foundation->ensureUiStatePolicyManager();
 
-    MainWindowDepsFactory::GameStateControllerCallbacks cbs;
-    cbs.enableArrowButtons = [this]() {
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_gameStateController) {
+        m_mw.m_gameStateController = new GameStateController(&m_mw);
+    }
+    GameStateController* controller = m_mw.m_gameStateController;
+    controller->setMatchCoordinator(m_mw.m_match);
+    controller->setTimeController(m_mw.m_timeController);
+    controller->setKifuRecordModel(m_mw.m_models.kifuRecord);
+    controller->setPlayMode(m_mw.m_state.playMode);
+
+    GameStateController::Hooks hooks;
+    hooks.enableArrowButtons = [this]() {
         m_mw.m_uiStatePolicy->transitionToIdle();
     };
-    cbs.setReplayMode = [this](bool replayMode) {
+    hooks.setReplayMode = [this](bool replayMode) {
         m_mw.setReplayMode(replayMode);
     };
-    cbs.syncCursorToPly = [this](int ply) {
+    hooks.syncCursorToPly = [this](int ply) {
         m_foundation->ensureKifuNavigationCoordinator();
         m_mw.m_kifuNavCoordinator->syncNavStateToPly(ply);
     };
-    cbs.updateBoardView = [this]() {
+    hooks.updateBoardView = [this]() {
         if (m_mw.m_shogiView) m_mw.m_shogiView->update();
     };
-    cbs.setGameOverStyleLock = [this](bool locked) {
+    hooks.setGameOverStyleLock = [this](bool locked) {
         if (m_mw.m_shogiView) m_mw.m_shogiView->setGameOverStyleLock(locked);
     };
-    cbs.setMouseClickMode = [this](bool mode) {
+    hooks.setMouseClickMode = [this](bool mode) {
         if (m_mw.m_shogiView) m_mw.m_shogiView->setMouseClickMode(mode);
     };
-    cbs.removeHighlightAllData = [this]() {
+    hooks.removeHighlightAllData = [this]() {
         if (m_mw.m_shogiView) m_mw.m_shogiView->removeHighlightAllData();
     };
-    cbs.setKifuViewSingleSelection = [this]() {
+    hooks.setKifuViewSingleSelection = [this]() {
         if (m_mw.m_recordPane && m_mw.m_recordPane->kifuView())
             m_mw.m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
     };
-
-    const MainWindowRuntimeRefs refs = m_mw.buildRuntimeRefs();
-    m_mw.m_compositionRoot->ensureGameStateController(refs, cbs, &m_mw, m_mw.m_gameStateController);
+    controller->setHooks(hooks);
 }
 
 // ---------------------------------------------------------------------------
@@ -163,7 +170,7 @@ void MainWindowServiceRegistry::refreshTurnStateSyncDeps()
             return m_mw.m_csaGameCoordinator
                 && m_mw.m_csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame;
         }
-        return m_mw.m_queryService->isGameActivelyInProgress();
+        return m_mw.m_playModePolicy && m_mw.m_playModePolicy->isGameActivelyInProgress();
     };
     deps.turnManagerParent = &m_mw;
     deps.updateTurnStatus = [this](int currentPlayer) {
@@ -217,7 +224,7 @@ void MainWindowServiceRegistry::refreshUndoFlowDeps()
     deps.recordPresenter = m_mw.m_recordPresenter;
     deps.evalGraphController = m_mw.m_evalGraphController.get();
     deps.playMode = &m_mw.m_state.playMode;
-    deps.sfenRecord = m_mw.m_queryService->sfenRecord();
+    deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     m_mw.m_undoFlowService->updateDeps(deps);
 }

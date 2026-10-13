@@ -5,7 +5,6 @@
 #include "gamestartoptionsbuilder.h"
 #include "logcategories.h"
 #include "kifurecordlistmodel.h"
-#include "kifuloadcoordinator.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "sfenutils.h"
@@ -130,11 +129,8 @@ bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
         prepareInitialPosition(c);
 
         // 平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセット
-        if (c.kifuLoadCoordinator) {
-            c.kifuLoadCoordinator->resetBranchTreeForNewGame();
-        } else {
-            emit requestBranchTreeResetForNewGame();
-        }
+        // （根は選んだ手合割の開始局面。開始前の整理で始めたライブセッションも破棄する）
+        emit requestBranchTreeResetForNewGame();
     }
 
     // --- 3.5) 開始SFENを正規化してsfenRecordにseed ---

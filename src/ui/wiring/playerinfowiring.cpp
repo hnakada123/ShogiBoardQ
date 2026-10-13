@@ -28,7 +28,7 @@ PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     , m_engineName1(deps.engineName1)
     , m_engineName2(deps.engineName2)
     , m_startSfenStr(deps.startSfenStr)
-    , m_timeControllerRef(deps.timeControllerRef)
+    , m_getTimeController(deps.getTimeController)
     , m_continuesExistingRecord(deps.continuesExistingRecord)
     , m_setContinuationNote(deps.setContinuationNote)
 {
@@ -364,7 +364,7 @@ void PlayerInfoWiring::onMenuPlayerNamesResolved(const QString& human1, const QS
                                                   int playMode)
 {
     const QString startSfen = m_startSfenStr ? *m_startSfenStr : QString();
-    TimeControlController* tc = m_timeControllerRef ? *m_timeControllerRef : nullptr;
+    TimeControlController* tc = m_getTimeController ? m_getTimeController() : nullptr;
     resolveNamesWithTimeController(human1, human2, engine1, engine2, playMode, startSfen, tc);
 }
 

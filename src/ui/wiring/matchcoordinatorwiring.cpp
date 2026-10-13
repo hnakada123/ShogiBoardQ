@@ -11,7 +11,6 @@
 
 #include "gamestartcoordinator.h"
 #include "gamestartoptionsbuilder.h"
-#include "gamesessionfacade.h"
 #include "evaluationgraphcontroller.h"
 #include "timecontrolcontroller.h"
 #include "timedisplaypresenter.h"
@@ -21,47 +20,8 @@
 #include "candidatearrowcontroller.h"
 #include "kifurecordlistmodel.h"
 #include "shogiclock.h"
-#include "matchcoordinatorhooksfactory.h"
 #include "kifunavigationcoordinator.h"
 #include "branchnavigationwiring.h"
-
-MatchCoordinatorWiring::Deps MatchCoordinatorWiring::buildDeps(const BuilderInputs& in)
-{
-    Deps deps;
-    deps.gc    = in.gc;
-    deps.view  = in.view;
-    deps.usi1  = in.usi1;
-    deps.usi2  = in.usi2;
-    deps.comm1  = in.comm1;
-    deps.think1 = in.think1;
-    deps.comm2  = in.comm2;
-    deps.think2 = in.think2;
-    deps.sfenRecord = in.sfenRecord;
-    deps.playMode   = in.playMode;
-
-    deps.timePresenter   = in.timePresenter;
-    deps.boardController = in.boardController;
-
-    deps.kifuRecordModel  = in.kifuRecordModel;
-    deps.gameMoves        = in.gameMoves;
-
-    deps.hooks     = MatchCoordinatorHooksFactory::buildHooks(in.hookDeps);
-    deps.undoHooks = MatchCoordinatorHooksFactory::buildUndoHooks(in.undoDeps);
-
-    deps.ensureTimeController           = in.ensureTimeController;
-    deps.ensureEvaluationGraphController = in.ensureEvaluationGraphController;
-    deps.ensureUsiCommandController     = in.ensureUsiCommandController;
-    deps.ensureUiStatePolicyManager     = in.ensureUiStatePolicyManager;
-    deps.connectBoardClicks             = in.connectBoardClicks;
-    deps.connectMoveRequested           = in.connectMoveRequested;
-
-    deps.getClock              = in.getClock;
-    deps.getTimeController     = in.getTimeController;
-    deps.getEvalGraphController = in.getEvalGraphController;
-    deps.getUiStatePolicy      = in.getUiStatePolicy;
-
-    return deps;
-}
 
 MatchCoordinatorWiring::MatchCoordinatorWiring(QObject* parent)
     : QObject(parent)
@@ -74,8 +34,6 @@ void MatchCoordinatorWiring::updateDeps(const Deps& deps)
 {
     m_gc = deps.gc;
     m_view = deps.view;
-    m_usi1 = deps.usi1;
-    m_usi2 = deps.usi2;
     m_comm1 = deps.comm1;
     m_think1 = deps.think1;
     m_comm2 = deps.comm2;
@@ -115,30 +73,28 @@ void MatchCoordinatorWiring::updateDeps(const Deps& deps)
         m_getUiStatePolicy = deps.getUiStatePolicy;
 }
 
-void MatchCoordinatorWiring::wireConnections()
+bool MatchCoordinatorWiring::initializeSession()
 {
     // 依存が揃っていない場合は何もしない
-    if (!m_gc || !m_view) return;
+    if (!m_gc || !m_view) return false;
 
     // まず時計を用意（nullでも可だが、あれば渡す）
     if (m_ensureTimeController) m_ensureTimeController();
 
-    // --- MatchCoordinator::Deps を構築 ---
-    MatchCoordinator::Deps d;
-    d.gc    = m_gc;
-    d.clock = m_getClock ? m_getClock() : nullptr;
-    d.usi1  = m_usi1;
-    d.usi2  = m_usi2;
-    d.comm1  = m_comm1;
-    d.think1 = m_think1;
-    d.comm2  = m_comm2;
-    d.think2 = m_think2;
-    d.sfenRecord = m_sfenRecord;
-    d.gameMoves  = m_gameMoves;
-    d.hooks = m_hooks;
+    // 司令塔は初回だけ作る。2回目以降（起動の最終段など）は作り直さず、実行時の依存を結び直し、
+    // 起動途中の仮の対局開始で残った局面の履歴を捨てる
+    if (!m_match) {
+        createMatchCoordinator();
+    } else {
+        m_match->setEngineModels(m_comm1, m_think1, m_comm2, m_think2);
+        m_match->resetPositionHistory();
+    }
+    bindRuntimeDependencies();
+    return true;
+}
 
-    // --- MatchCoordinator（司令塔）の生成＆初期配線 ---
-    createMatchCoordinator(d);
+void MatchCoordinatorWiring::bindRuntimeDependencies()
+{
     if (auto* arrows = CandidateArrowController::forView(m_view))
         arrows->setMatchCoordinator(m_match.get());
 
@@ -179,6 +135,18 @@ void MatchCoordinatorWiring::wireConnections()
             connect(m_match.get(), &MatchCoordinator::tsumeSearchModeEnded,
                     uiPolicy, &UiStatePolicyManager::transitionToIdle,
                     Qt::UniqueConnection);
+            // 対局終了時にUI状態を「アイドル」に遷移（終局処理への転送より後に接続する）
+            connect(m_match.get(), &MatchCoordinator::gameEnded,
+                    uiPolicy, &UiStatePolicyManager::transitionToIdle,
+                    Qt::UniqueConnection);
+        }
+
+        // timeUpdated → TimeDisplayPresenter（直接配線）。時間表示は起動の途中で作られるので、
+        // 結び直すたびに接続する（同じ組の接続は UniqueConnection で1本に保つ）
+        if (m_timePresenter) {
+            connect(m_match.get(), &MatchCoordinator::timeUpdated,
+                    m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
+                    Qt::UniqueConnection);
         }
     }
 
@@ -208,15 +176,22 @@ void MatchCoordinatorWiring::wireConnections()
         m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
 }
 
-void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps& deps)
+void MatchCoordinatorWiring::createMatchCoordinator()
 {
-    // 既存があれば破棄
-    if (m_match) {
-        m_match.reset();
-    }
+    MatchCoordinator::Deps deps;
+    deps.gc    = m_gc;
+    deps.clock = m_getClock ? m_getClock() : nullptr;
+    deps.comm1  = m_comm1;
+    deps.think1 = m_think1;
+    deps.comm2  = m_comm2;
+    deps.think2 = m_think2;
+    deps.sfenRecord = m_sfenRecord;
+    deps.gameMoves  = m_gameMoves;
+    deps.hooks = m_hooks;
 
+    // Lifetime: owned by MatchCoordinatorWiring (unique_ptr)
+    // Created: once (first initializeSession), never recreated
     m_match = std::make_unique<MatchCoordinator>(deps, nullptr);
-    m_match->updateUsiPtrs(deps.usi1, deps.usi2);
 
     // --- MC シグナル → MCW シグナルへ直接配線 ---
     connect(m_match.get(), &MatchCoordinator::requestAppendGameOverMove,
@@ -239,24 +214,6 @@ void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps
     connect(m_match.get(), &MatchCoordinator::gameEndProcessed,
             this,    &MatchCoordinatorWiring::gameEndProcessed,
             Qt::UniqueConnection);
-
-    // timeUpdated → TimeDisplayPresenter（直接配線）
-    if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
-    if (m_timePresenter) {
-        m_timeConn = connect(
-            m_match.get(), &MatchCoordinator::timeUpdated,
-            m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
-            Qt::UniqueConnection);
-    }
-
-    // 対局終了時にUI状態を「アイドル」に遷移
-    if (m_ensureUiStatePolicyManager) m_ensureUiStatePolicyManager();
-    auto* uiPolicy = m_getUiStatePolicy ? m_getUiStatePolicy() : nullptr;
-    if (uiPolicy) {
-        connect(m_match.get(), &MatchCoordinator::gameEnded,
-                uiPolicy, &UiStatePolicyManager::transitionToIdle,
-                Qt::UniqueConnection);
-    }
 }
 
 void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
@@ -344,22 +301,6 @@ void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
     connect(m_menuGameStart, &GameStartCoordinator::requestBranchTreeResetForNewGame,
             this, &MatchCoordinatorWiring::requestBranchTreeResetForNewGame,
             Qt::UniqueConnection);
-}
-
-bool MatchCoordinatorWiring::initializeSession(std::function<void()> ensureWiringCallback)
-{
-    if (!m_gc || !m_view) return false;
-
-    if (!m_sessionFacade) {
-        GameSessionFacade::Deps deps;
-        deps.ensureAndGetWiring = [this, cb = std::move(ensureWiringCallback)]() -> MatchCoordinatorWiring* {
-            if (cb) cb();
-            return this;
-        };
-        m_sessionFacade = std::make_unique<GameSessionFacade>(deps);
-    }
-
-    return m_sessionFacade->initialize();
 }
 
 void MatchCoordinatorWiring::wireForwardingSignals(const ForwardingTargets& targets)

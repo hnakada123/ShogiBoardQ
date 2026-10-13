@@ -143,10 +143,8 @@ private slots:
             QStringLiteral("ensurePlayerInfoAndGameInfo"),
             QStringLiteral("ensureGameRecordModel"),
             QStringLiteral("ensureKifuExportController"),
-            QStringLiteral("createAndWireKifuLoadCoordinator"),
-            QStringLiteral("prepareKifuLoadCoordinatorForLive"),
+            QStringLiteral("ensureKifuLoadCoordinator"),
             QStringLiteral("getKifuExportController"),
-            QStringLiteral("getKifuLoadCoordinator"),
         };
 
         for (const QString& cb : required) {
@@ -522,12 +520,12 @@ private slots:
 
         const auto guardIdx = body.indexOf(QStringLiteral("confirmDiscardUnsaved"));
         const auto clearIdx = body.indexOf(QStringLiteral("prepareForKifuLoad"));
-        const auto ensureIdx = body.indexOf(QStringLiteral("prepareKifuLoadCoordinatorForLive"));
+        const auto ensureIdx = body.indexOf(QStringLiteral("ensureKifuLoadCoordinator"));
         const auto loadIdx = body.indexOf(QStringLiteral("loadPositionFromSfen"));
 
         QVERIFY2(guardIdx >= 0, "Must guard unsaved changes");
         QVERIFY2(clearIdx > guardIdx, "Load preparation must follow the unsaved guard");
-        QVERIFY2(ensureIdx >= 0, "Must call prepareKifuLoadCoordinatorForLive");
+        QVERIFY2(ensureIdx >= 0, "Must call ensureKifuLoadCoordinator");
         QVERIFY2(loadIdx >= 0, "Must call loadPositionFromSfen");
 
         QVERIFY2(clearIdx < ensureIdx, "clearUi must come before ensure");
@@ -741,24 +739,6 @@ private slots:
         QVERIFY(body.contains(QStringLiteral("Format::JKF")));
         QVERIFY(body.contains(QStringLiteral("Format::USEN")));
         QVERIFY(body.contains(QStringLiteral("KifToSfenConverter::parseWithVariations")));
-    }
-
-    // ================================================================
-    // H) 分岐管理
-    // ================================================================
-
-    /// resetBranchTreeForNewGame が分岐データをクリアすること
-    void klc_resetBranchTree_clearsAllData()
-    {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::resetBranchTreeForNewGame()"));
-        QVERIFY2(range.first >= 0, "resetBranchTreeForNewGame not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("setRootSfen")),
-                  "Must set root SFEN");
     }
 
     // ================================================================

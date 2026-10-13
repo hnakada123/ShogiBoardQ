@@ -350,7 +350,6 @@ void KifuDisplay::setBookmark(const QString& bookmark) { m_bookmark = bookmark; 
 // KifuLoadCoordinator スタブ（最小限）
 // ============================================================
 
-// gamestartcoordinator.cpp は KifuLoadCoordinator::resetBranchTreeForNewGame() だけ呼ぶ
 KifuLoadCoordinator::KifuLoadCoordinator(QTableWidget*,
                                           RecordPane*, KifuRecordListModel*, KifuBranchListModel*,
                                           QObject* parent)
@@ -358,7 +357,6 @@ KifuLoadCoordinator::KifuLoadCoordinator(QTableWidget*,
 
 KifuLoadCoordinator::~KifuLoadCoordinator() = default;
 void KifuLoadCoordinator::onLoadFinished() {}
-void KifuLoadCoordinator::resetBranchTreeForNewGame() {}
 void KifuLoadCoordinator::setBranchTreeManager(BranchTreeManager*) {}
 bool KifuLoadCoordinator::loadKifuFromFile(const QString&) { return false; }
 bool KifuLoadCoordinator::loadJkfFromFile(const QString&) { return false; }

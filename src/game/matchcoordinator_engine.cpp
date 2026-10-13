@@ -28,6 +28,25 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
     m_engineManager->updateUsiPtrs(e1, e2);
 }
 
+void MatchCoordinator::setEngineModels(UsiCommLogModel* comm1, ShogiEngineThinkingModel* think1,
+                                       UsiCommLogModel* comm2, ShogiEngineThinkingModel* think2)
+{
+    ensureEngineManager();
+    m_engineManager->setModelPtrs(comm1, think1, comm2, think2);
+}
+
+void MatchCoordinator::resetPositionHistory()
+{
+    m_positionStr1.clear();
+    m_positionPonder1.clear();
+    m_positionStr2.clear();
+    m_positionPonder2.clear();
+    m_positionStrHistory.clear();
+    m_allGameHistories.clear();
+    m_cur = P1;
+    m_currentMoveIndex = 0;
+}
+
 void MatchCoordinator::initializeAndStartEngineFor(Player side,
                                                    const QString& enginePathIn,
                                                    const QString& engineNameIn)

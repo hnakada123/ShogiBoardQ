@@ -218,16 +218,12 @@ set(SRC_APP
     src/app/mainwindow.cpp
     src/app/mainwindow.h
     src/app/mainwindowownedtypes.h
-    src/app/kifuexportdepsassembler.cpp
-    src/app/kifuexportdepsassembler.h
     src/app/kifuloadcoordinatorfactory.cpp
     src/app/kifuloadcoordinatorfactory.h
     src/app/kifunavigationcoordinator.cpp
     src/app/kifunavigationcoordinator.h
     src/app/sessionlifecyclecoordinator.cpp
     src/app/sessionlifecyclecoordinator.h
-    src/app/sessionlifecycledepsfactory.cpp
-    src/app/sessionlifecycledepsfactory.h
     src/app/boardloadservice.cpp
     src/app/boardloadservice.h
     src/app/considerationpositionservice.cpp
@@ -242,12 +238,8 @@ set(SRC_APP
     src/app/turnstatesyncservice.h
     src/app/undoflowservice.cpp
     src/app/undoflowservice.h
-    src/app/kifunavigationdepsfactory.cpp
-    src/app/kifunavigationdepsfactory.h
     src/app/livegamesessionupdater.cpp
     src/app/livegamesessionupdater.h
-    src/app/mainwindowcompositionroot.cpp
-    src/app/mainwindowcompositionroot.h
     src/app/mainwindowcoreinitcoordinator.cpp
     src/app/mainwindowcoreinitcoordinator.h
     src/app/mainwindowanalysisregistry.cpp
@@ -262,18 +254,13 @@ set(SRC_APP
     src/app/mainwindowserviceregistry.cpp
     src/app/mainwindowserviceregistry.h
     src/app/mainwindowuiregistry.cpp
-    src/app/mainwindowdepsfactory.cpp
-    src/app/mainwindowdepsfactory.h
     src/app/mainwindowgamestartservice.cpp
     src/app/mainwindowgamestartservice.h
     src/app/mainwindowmatchadapter.cpp
     src/app/mainwindowmatchadapter.h
-    src/app/mainwindowmatchwiringdepsservice.cpp
-    src/app/mainwindowmatchwiringdepsservice.h
     src/app/prestartcleanuphandler.cpp
     src/app/mainwindowresetservice.cpp
     src/app/mainwindowresetservice.h
-    src/app/mainwindowruntimerefs.h
     src/app/mainwindowstate.h
     src/app/mainwindowwiringassembler.cpp
     src/app/mainwindowautomationregistry.cpp
@@ -286,8 +273,6 @@ set(SRC_APP
     src/app/mainwindowdockbootstrapper.cpp
     src/app/playmodepolicyservice.cpp
     src/app/playmodepolicyservice.h
-    src/app/matchruntimequeryservice.cpp
-    src/app/matchruntimequeryservice.h
 )
 
 set(SRC_CORE
@@ -346,8 +331,6 @@ set(SRC_GAME
     src/game/enginevsenginestrategy.cpp
     src/game/enginevsenginestrategy.h
     src/game/gamemodestrategy.h
-    src/game/gamesessionfacade.cpp
-    src/game/gamesessionfacade.h
     src/game/gamestartcoordinator.cpp
     src/game/gamestartcoordinator.h
     src/game/gamestartcoordinator_dialogflow.cpp
@@ -694,8 +677,6 @@ set(SRC_UI
     src/ui/wiring/gameactionswiring.h
     src/ui/wiring/josekiwindowwiring.cpp
     src/ui/wiring/josekiwindowwiring.h
-    src/ui/wiring/matchcoordinatorhooksfactory.cpp
-    src/ui/wiring/matchcoordinatorhooksfactory.h
     src/ui/wiring/mainwindowsignalrouter.cpp
     src/ui/wiring/mainwindowsignalrouter.h
     src/ui/wiring/matchcoordinatorwiring.cpp

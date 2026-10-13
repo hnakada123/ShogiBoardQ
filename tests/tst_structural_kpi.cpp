@@ -479,7 +479,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxPublicSlots = 13;
+        constexpr int maxPublicSlots = 0; // 実測値: 0 (2026-10-13)
 
         QFile file(headerPath);
         QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text),
@@ -579,7 +579,7 @@ private slots:
     // ================================================================
     void mainWindowIncludeCount()
     {
-        constexpr int kMaxIncludes = 20; // 実測値: 13 (2026-03-05)
+        constexpr int kMaxIncludes = 14; // 実測値: 12 (2026-10-13、CompositionRoot / RuntimeRefs を削除)
 
         const QString filePath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.cpp");
@@ -608,7 +608,7 @@ private slots:
     void longFunctionMonitor()
     {
         constexpr int kFunctionLengthWarning = 100;
-        constexpr int kMaxLongFunctionsOver100 = 70; // 実測値: 59 (2026-03-05)
+        constexpr int kMaxLongFunctionsOver100 = 60; // 実測値: 53 (2026-10-13)
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");

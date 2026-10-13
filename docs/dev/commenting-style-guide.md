@@ -295,10 +295,10 @@ struct Options {
 
 ```cpp
 public:
-    // --- 初期化・バインド ---
+    // --- 初期化 ---
 
-    /// 既存のデータストアをバインドする（参照を保持、所有しない）
-    void bind(QList<KifDisplayItem>* liveDisp);
+    /// 分岐ツリーを設定する（参照を保持、所有しない）
+    void setBranchTree(KifuBranchTree* tree);
 
     // --- 操作 API ---
 

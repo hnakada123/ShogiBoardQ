@@ -4,12 +4,12 @@
 /// MainWindowServiceRegistry の Game 配線系メソッドを実装する分割ファイル。
 
 #include "mainwindowserviceregistry.h"
+#include "evaluationgraphcontroller.h"
 
 #include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowmatchadapter.h"
-#include "mainwindowmatchwiringdepsservice.h"
 #include "mainwindowsignalrouter.h"
 #include "mainwindowcoreinitcoordinator.h"
 #include "ui_mainwindow.h"
@@ -26,7 +26,7 @@
 #include "matchcoordinator.h"
 #include "shogiview.h"
 #include "kifunavigationcoordinator.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 #include "piecesoundplayer.h"
 #include "playerinfowiring.h"
 #include "sessionlifecyclecoordinator.h"
@@ -118,114 +118,110 @@ void MainWindowServiceRegistry::refreshMatchWiringDeps()
 // MatchCoordinatorWiring::Deps 構築
 // ---------------------------------------------------------------------------
 
-MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
+MatchCoordinator::Hooks MainWindowServiceRegistry::buildMatchHooks()
 {
-    MainWindowMatchWiringDepsService::Inputs in;
-    in.evalGraphController = m_mw.m_evalGraphController.get();
-    in.onTurnChanged = [this](Turn player) {
-        m_mw.onTurnManagerChanged(player);
-    };
-    in.sendStop = [this](Usi* which) {
-        if (m_mw.m_match) m_mw.m_match->sendStopToEngine(which);
-    };
+    // 司令塔は一度だけ作るので、フックは呼ばれた時点の部品を読む（作成時のポインタを写さない）
+    MatchCoordinator::Hooks hooks;
     auto* adapter = m_mw.m_matchAdapter.get();
-    in.initializeNewGame = [adapter](const QString& sfen) {
-        adapter->initializeNewGameHook(sfen);
+
+    hooks.ui.updateTurnDisplay = [this](MatchCoordinator::Player cur) {
+        m_mw.onTurnManagerChanged(cur == MatchCoordinator::P2 ? Turn::White : Turn::Black);
     };
-    in.renderBoard = [adapter]() {
+    hooks.ui.setPlayersNames = [this](const QString& p1, const QString& p2) {
+        m_mw.m_playerInfoWiring->onSetPlayersNames(p1, p2);
+    };
+    hooks.ui.setEngineNames = [this](const QString& e1, const QString& e2) {
+        m_mw.m_playerInfoWiring->onSetEngineNames(e1, e2);
+    };
+    hooks.ui.renderBoardFromGc = [adapter]() {
         adapter->renderBoardFromGc();
     };
-    in.showMoveHighlights = [adapter](const QPoint& from, const QPoint& to) {
+    hooks.ui.showGameOverDialog = [adapter](const QString& title, const QString& message) {
+        adapter->showGameOverMessageBox(title, message);
+    };
+    hooks.ui.usesHandicapNames = [this]() -> bool {
+        const auto* gameInfo = m_mw.m_playerInfoWiring ? m_mw.m_playerInfoWiring->gameInfoController() : nullptr;
+        return KifuExportMetadataBuilder::usesHandicapNames(
+            gameInfo ? gameInfo->gameInfo() : QList<KifGameInfoItem>(), m_mw.m_state.startSfenStr);
+    };
+    hooks.ui.showMoveHighlights = [adapter](const QPoint& from, const QPoint& to) {
         adapter->showMoveHighlights(from, to);
     };
-    in.appendKifuLine = [this](const QString& text, const QString& elapsed) {
+
+    hooks.game.initializeNewGame = [adapter](const QString& sfen) {
+        adapter->initializeNewGameHook(sfen);
+    };
+    hooks.game.appendKifuLine = [this](const QString& text, const QString& elapsed) {
         m_kifu->ensureGameRecordUpdateService();
         if (m_mw.m_gameRecordUpdateService) {
             m_mw.m_gameRecordUpdateService->appendKifuLine(text, elapsed);
         }
     };
-    in.showGameOverDialog = [adapter](const QString& title, const QString& message) {
-        adapter->showGameOverMessageBox(title, message);
+    hooks.game.appendEvalP1 = [this]() {
+        if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine1Graph(-1);
     };
-    in.usesHandicapNames = [this]() -> bool {
-        const auto* gameInfo = m_mw.m_playerInfoWiring ? m_mw.m_playerInfoWiring->gameInfoController() : nullptr;
-        return KifuExportMetadataBuilder::usesHandicapNames(
-            gameInfo ? gameInfo->gameInfo() : QList<KifGameInfoItem>(), m_mw.m_state.startSfenStr);
+    hooks.game.appendEvalP2 = [this]() {
+        if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine2Graph(-1);
     };
-    in.setPlayersNames = [this](const QString& p1, const QString& p2) {
-        m_mw.m_playerInfoWiring->onSetPlayersNames(p1, p2);
-    };
-    in.setEngineNames = [this](const QString& e1, const QString& e2) {
-        m_mw.m_playerInfoWiring->onSetEngineNames(e1, e2);
-    };
-    m_kifu->ensureKifuFileController();
-    in.autoSaveKifu = [this](const QString& saveDir) {
+    hooks.game.autoSaveKifu = [this](const QString& saveDir) {
+        m_kifu->ensureKifuFileController();
         m_mw.m_kifuFileController->autoSaveKifuToFile(saveDir);
     };
+    return hooks;
+}
 
-    m_foundation->ensureKifuNavigationCoordinator();
-    in.updateHighlightsForPly = [this](int ply) {
+MatchCoordinator::UndoHooks MainWindowServiceRegistry::buildUndoHooks()
+{
+    MatchCoordinator::UndoHooks hooks;
+    hooks.updateHighlightsForPly = [this](int ply) {
+        m_foundation->ensureKifuNavigationCoordinator();
         m_mw.m_kifuNavCoordinator->syncBoardAndHighlightsAtRow(ply);
     };
-    in.updateTurnAndTimekeepingDisplay = [adapter]() {
+    auto* adapter = m_mw.m_matchAdapter.get();
+    hooks.updateTurnAndTimekeepingDisplay = [adapter]() {
         adapter->updateTurnAndTimekeepingDisplay();
     };
-    in.isHumanSide = [this](Turn player) {
+    hooks.isHumanSide = [this](Turn player) {
         return queryIsHumanSide(player);
     };
-    in.setMouseClickMode = [this](bool mode) {
+    hooks.setMouseClickMode = [this](bool mode) {
         if (m_mw.m_shogiView) m_mw.m_shogiView->setMouseClickMode(mode);
     };
+    return hooks;
+}
 
-    in.gc    = m_mw.m_gameController;
-    in.view  = m_mw.m_shogiView;
-    in.usi1  = m_mw.m_usi1;
-    in.usi2  = m_mw.m_usi2;
-    in.comm1  = m_mw.m_models.commLog1;
-    in.think1 = m_mw.m_models.thinking1;
-    in.comm2  = m_mw.m_models.commLog2;
-    in.think2 = m_mw.m_models.thinking2;
-    in.sfenRecord = &m_mw.m_kifu.sfenRecord;
-    in.playMode   = &m_mw.m_state.playMode;
-    in.timePresenter   = m_mw.m_timePresenter;
-    in.boardController = m_mw.m_boardController;
-    in.kifuRecordModel  = m_mw.m_models.kifuRecord;
-    in.gameMoves        = &m_mw.m_kifu.gameMoves;
+MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
+{
+    MatchCoordinatorWiring::Deps d;
+    d.gc     = m_mw.m_gameController;
+    d.view   = m_mw.m_shogiView;
+    d.comm1  = m_mw.m_models.commLog1;
+    d.think1 = m_mw.m_models.thinking1;
+    d.comm2  = m_mw.m_models.commLog2;
+    d.think2 = m_mw.m_models.thinking2;
+    d.sfenRecord = &m_mw.m_kifu.sfenRecord;
+    d.gameMoves  = &m_mw.m_kifu.gameMoves;
+    d.playMode   = &m_mw.m_state.playMode;
+    d.timePresenter   = m_mw.m_timePresenter;
+    d.boardController = m_mw.m_boardController;
+    d.kifuRecordModel = m_mw.m_models.kifuRecord;
+    d.hooks     = buildMatchHooks();
+    d.undoHooks = buildUndoHooks();
 
-    in.ensureTimeController = [this]() {
-        ensureTimeController();
-    };
-    in.ensureEvaluationGraphController = [this]() {
-        m_foundation->ensureEvaluationGraphController();
-    };
-    in.ensureUsiCommandController = [this]() {
-        ensureUsiCommandController();
-    };
-    in.ensureUiStatePolicyManager = [this]() {
-        m_foundation->ensureUiStatePolicyManager();
-    };
-    in.connectBoardClicks = [this]() {
-        m_mw.m_signalRouter->connectBoardClicks();
-    };
-    in.connectMoveRequested = [this]() {
-        m_mw.m_signalRouter->connectMoveRequested();
-    };
+    d.ensureTimeController = [this]() { ensureTimeController(); };
+    d.ensureEvaluationGraphController = [this]() { m_foundation->ensureEvaluationGraphController(); };
+    d.ensureUsiCommandController = [this]() { ensureUsiCommandController(); };
+    d.ensureUiStatePolicyManager = [this]() { m_foundation->ensureUiStatePolicyManager(); };
+    d.connectBoardClicks = [this]() { m_mw.m_signalRouter->connectBoardClicks(); };
+    d.connectMoveRequested = [this]() { m_mw.m_signalRouter->connectMoveRequested(); };
 
-    in.getClock = [this]() -> ShogiClock* {
+    d.getClock = [this]() -> ShogiClock* {
         return m_mw.m_timeController ? m_mw.m_timeController->clock() : nullptr;
     };
-    in.getTimeController = [this]() -> TimeControlController* {
-        return m_mw.m_timeController;
-    };
-    in.getEvalGraphController = [this]() -> EvaluationGraphController* {
-        return m_mw.m_evalGraphController.get();
-    };
-    in.getUiStatePolicy = [this]() -> UiStatePolicyManager* {
-        return m_mw.m_uiStatePolicy;
-    };
-
-    const MainWindowMatchWiringDepsService depsService;
-    return depsService.buildDeps(in);
+    d.getTimeController = [this]() -> TimeControlController* { return m_mw.m_timeController; };
+    d.getEvalGraphController = [this]() -> EvaluationGraphController* { return m_mw.m_evalGraphController.get(); };
+    d.getUiStatePolicy = [this]() -> UiStatePolicyManager* { return m_mw.m_uiStatePolicy; };
+    return d;
 }
 
 // ---------------------------------------------------------------------------
@@ -244,7 +240,7 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
     deps.recordPane = m_mw.m_recordPane;
     deps.boardController = m_mw.m_boardController;
     deps.statusBar = m_mw.ui ? m_mw.ui->statusbar : nullptr;
-    deps.sfenRecord = m_mw.m_queryService->sfenRecord();
+    deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
     deps.analysisTab = m_mw.m_analysisTab;
     deps.boardSetupController = m_mw.m_boardSetupController;
     deps.usiCommLog = m_mw.m_models.commLog1;
@@ -295,7 +291,7 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
     };
     deps.syncPly = [this](int ply) {
         // 表示中の手数（分岐ツリーのカーソル）は LiveGameSession の着手通知で動く
-        const auto* positions = m_mw.m_queryService->sfenRecord();
+        const auto* positions = &m_mw.m_kifu.sfenRecord;
         if (positions && ply >= 0 && ply < positions->size())
             m_mw.m_state.currentSfenStr = positions->at(ply);
     };
@@ -355,14 +351,12 @@ void MainWindowServiceRegistry::prepareTurnSyncBridge()
 }
 
 // ---------------------------------------------------------------------------
-// MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
+// PlayModePolicyService 中継メソッド（終了処理中は既定値 false を返す）
 // ---------------------------------------------------------------------------
 
 bool MainWindowServiceRegistry::queryIsHumanSide(Turn player)
 {
-    if (m_mw.m_queryService)
-        return m_mw.m_queryService->isHumanSide(player);
-    return false;
+    return m_mw.m_playModePolicy && m_mw.m_playModePolicy->isHumanSide(player);
 }
 
 // ---------------------------------------------------------------------------
@@ -375,24 +369,19 @@ void MainWindowServiceRegistry::initMatchCoordinator()
 
     ensureMatchCoordinatorWiring();
 
-    // 旧 MC が wireConnections() 内で破棄されると m_match がダングリングポインタに
-    // なり、m_queryService->sfenRecord() 経由で解放済みメモリにアクセスするクラッシュの
-    // 原因となる。再初期化前に nullptr にしてガードで安全に弾けるようにする。
-    m_mw.m_match = nullptr;
-
-    if (!m_mw.m_matchWiring->initializeSession([this]() {
-            ensureMatchCoordinatorWiring();
-        })) {
+    // 司令塔は初回だけ作られ、以後は同じものに依存を結び直す（MatchCoordinatorWiring::initializeSession）
+    if (!m_mw.m_matchWiring->initializeSession()) {
         return;
     }
 
     m_mw.m_match = m_mw.m_matchWiring->match();
     m_mw.refreshPlayModePolicyDeps();
+    refreshAppearanceDeps();
     ensureReplayController();
     ensureGameStateController();
     ensureSessionLifecycleCoordinator();
 
-    // ConsiderationWiring が保持する旧 MatchCoordinator ポインタを更新
+    // 司令塔より先に作られていた部品にも司令塔を渡す（2回目以降は同じものを渡すだけ）
     if (m_mw.m_considerationWiring) {
         m_mw.m_considerationWiring->setMatchCoordinator(m_mw.m_match);
     }

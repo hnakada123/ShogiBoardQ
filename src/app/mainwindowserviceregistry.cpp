@@ -6,7 +6,7 @@
 #include "mainwindowfoundationregistry.h"
 #include "kifusubregistry.h"
 #include "matchcoordinator.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 
 MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* parent)
     : QObject(parent)
@@ -51,7 +51,7 @@ void MainWindowServiceRegistry::startGameSession()
     }
     if (!match) return;
 
-    QStringList* sfenRecord = m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr;
+    QStringList* sfenRecord = &m_mw.m_kifu.sfenRecord;
     match->prepareAndStartGame(
         m_mw.m_state.playMode,
         m_mw.m_state.startSfenStr,

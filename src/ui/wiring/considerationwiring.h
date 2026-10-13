@@ -59,7 +59,7 @@ public:
     /// DialogCoordinator の遅延初期化完了後にポインタだけを更新する
     void setDialogCoordinator(DialogCoordinator* dc);
 
-    /// MatchCoordinator 再生成後にポインタだけを更新する
+    /// MatchCoordinator（起動時に一度だけ作る）を渡す。司令塔より先にこのクラスができた場合に使う
     void setMatchCoordinator(MatchCoordinator* mc);
 
     ConsiderationModeUIController* uiController() const { return m_uiController; }

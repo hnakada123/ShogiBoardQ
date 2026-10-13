@@ -133,8 +133,7 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
 void KifuFileController::startAsyncLoad(const QString& input, bool text)
 {
     prepareForKifuLoad();
-    if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
-    auto* coordinator = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
+    auto* coordinator = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
     if (!coordinator) {
         qCWarning(lcApp) << "KifuLoadCoordinator is null";
         return;
@@ -175,9 +174,7 @@ void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
 {
     if (!confirmDiscardUnsaved()) return;
     prepareForKifuLoad();
-    if (m_deps.prepareKifuLoadCoordinatorForLive) m_deps.prepareKifuLoadCoordinatorForLive();
-
-    auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
+    auto* klc = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
     if (klc) {
         const bool success = klc->loadPositionFromSfen(sfen);
         // 局面集から反映した局面は棋譜ファイル由来ではないので、以前のファイルへ上書きさせない。
@@ -234,7 +231,6 @@ bool KifuFileController::hasUnsavedChanges() const
 bool KifuFileController::loadKifuFile(const QString& filePath)
 {
     prepareForKifuLoad();
-    if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
     const bool loaded = dispatchKifuLoad(filePath);
     if (loaded) setOverwriteTarget(filePath);
     return loaded;
@@ -243,8 +239,7 @@ bool KifuFileController::loadKifuFile(const QString& filePath)
 bool KifuFileController::loadKifuText(const QString& content)
 {
     prepareForKifuLoad();
-    if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
-    auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
+    auto* klc = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
     if (!klc) return false;
     const bool success = klc->loadKifuFromString(content);
     if (success) {
@@ -259,8 +254,7 @@ bool KifuFileController::loadKifuText(const QString& content)
 bool KifuFileController::applySfenPosition(const QString& sfen)
 {
     prepareForKifuLoad();
-    if (m_deps.prepareKifuLoadCoordinatorForLive) m_deps.prepareKifuLoadCoordinatorForLive();
-    auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
+    auto* klc = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
     if (!klc) return false;
     const bool success = klc->loadPositionFromSfen(sfen);
     if (success) {
@@ -287,7 +281,7 @@ bool KifuFileController::saveKifuToPath(const QString& filePath, QString* errorT
 
 bool KifuFileController::dispatchKifuLoad(const QString& filePath)
 {
-    auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
+    auto* klc = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
     if (!klc) return false;
 
     // 拡張子が .json などでも、内容から形式を判定して読み込む

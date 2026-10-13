@@ -19,8 +19,8 @@ void GameRecordLoadService::loadGameRecord(const QList<KifDisplayItem>& disp)
     QElapsedTimer timer;
     timer.start();
 
-    // 指し手列（gameMoves）は KifuApplyService が読み込んだ本譜の手に置き換え済み。
-    // 局面列とそろったまま残し、途中の局面から対局を始めるときに MatchCoordinator が切り詰める
+    // 棋譜の正本は分岐ツリー。対局の局面列・指し手列は読み込みでは触らず、
+    // 対局開始時に表示中の手順から作り直す（MainWindowGameStartService）
 
     // RecordPresenter を遅延初期化
     GameRecordPresenter* presenter = nullptr;

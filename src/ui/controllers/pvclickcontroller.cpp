@@ -78,8 +78,6 @@ void PvClickController::syncFromRefs()
         m_currentSfenStr = *m_stateRefs.currentSfenStr;
     if (m_stateRefs.startSfenStr)
         m_startSfenStr = *m_stateRefs.startSfenStr;
-    if (m_stateRefs.considerationModel)
-        m_considerationModel = *m_stateRefs.considerationModel;
     m_line = m_stateRefs.currentLine ? m_stateRefs.currentLine() : RecordLine{};
     m_boardFlipped = m_shogiView ? m_shogiView->flipMode() : false;
 }

@@ -6,12 +6,10 @@
 #include "mainwindowserviceregistry.h"
 #include "kifunavigationstate.h"
 #include "mainwindow.h"
-#include "mainwindowcompositionroot.h"
-#include "mainwindowdepsfactory.h"
 
 #include "kifuloadcoordinator.h"            // IWYU pragma: keep (QPointer の完全型)
 #include "pvclickcontroller.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 #include "considerationpositionservice.h"
 #include "considerationwiring.h"
 #include "usicommandcontroller.h"
@@ -25,7 +23,14 @@
 void MainWindowServiceRegistry::ensurePvClickController()
 {
     if (m_mw.m_isShuttingDown) return;
-    m_mw.m_compositionRoot->ensurePvClickController(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_pvClickController);
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_pvClickController) {
+        m_mw.m_pvClickController = new PvClickController(&m_mw);
+    }
+    m_mw.m_pvClickController->setThinkingModels(m_mw.m_models.thinking1, m_mw.m_models.thinking2);
+    m_mw.m_pvClickController->setConsiderationModel(m_mw.m_models.consideration);
+    m_mw.m_pvClickController->setLogModels(m_mw.m_models.commLog1, m_mw.m_models.commLog2);
 
     // 動的状態へのポインタを設定（onPvRowClicked 呼び出し時に自動同期）
     PvClickController::StateRefs stateRefs;
@@ -36,7 +41,6 @@ void MainWindowServiceRegistry::ensurePvClickController()
     stateRefs.engineName2 = &m_mw.m_player.engineName2;
     stateRefs.currentSfenStr = &m_mw.m_state.currentSfenStr;
     stateRefs.startSfenStr = &m_mw.m_state.startSfenStr;
-    stateRefs.considerationModel = &m_mw.m_models.consideration;
     stateRefs.currentLine = [this]() {
         return m_mw.m_branchNav.navState ? m_mw.m_branchNav.navState->currentRecordLine() : RecordLine{};
     };
@@ -79,14 +83,30 @@ void MainWindowServiceRegistry::ensureConsiderationWiring()
 {
     if (m_mw.m_isShuttingDown) return;
 
-    MainWindowDepsFactory::ConsiderationWiringCallbacks cbs;
-    cbs.ensureDialogCoordinator = [this]() {
+    ConsiderationWiring::Deps deps;
+    deps.parentWidget = &m_mw;
+    deps.considerationTabManager = m_mw.m_analysisTab ? m_mw.m_analysisTab->considerationTabManager() : nullptr;
+    deps.thinkingInfo1 = m_mw.m_analysisTab ? m_mw.m_analysisTab->info1() : nullptr;
+    deps.shogiView = m_mw.m_shogiView;
+    deps.match = m_mw.m_match;
+    deps.dialogCoordinator = m_mw.m_dialogCoordinator;
+    deps.considerationModel = m_mw.m_models.consideration;
+    deps.commLogModel = m_mw.m_models.commLog1;
+    deps.playMode = &m_mw.m_state.playMode;
+    deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
+    deps.ensureDialogCoordinator = [this]() {
         ensureDialogCoordinator();
         if (m_mw.m_considerationWiring)
             m_mw.m_considerationWiring->setDialogCoordinator(m_mw.m_dialogCoordinator);
     };
 
-    m_mw.m_compositionRoot->ensureConsiderationWiring(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_considerationWiring);
+    if (!m_mw.m_considerationWiring) {
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once on first use, never recreated
+        m_mw.m_considerationWiring = new ConsiderationWiring(deps, &m_mw);
+    } else {
+        m_mw.m_considerationWiring->updateDeps(deps);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -99,7 +119,7 @@ void MainWindowServiceRegistry::ensureUsiCommandController()
     if (!m_mw.m_usiCommandController) {
         m_mw.m_usiCommandController = std::make_unique<UsiCommandController>();
     }
-    // 司令塔は起動時に作り直されるので、送信のたびに現在の司令塔を引く
+    // 司令塔は起動の途中で作られるので、送信のたびに引く（作った後は変わらない）
     m_mw.m_usiCommandController->setMatchProvider([this]() { return m_mw.m_match; });
     m_mw.m_usiCommandController->setAnalysisTab(m_mw.m_analysisTab);
     if (m_mw.m_analysisTab && m_mw.m_shogiView) {

@@ -8,6 +8,7 @@
 // Foundation objects
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowserviceregistry.h"
+#include "shogienginethinkingmodel.h"
 #include "kifusubregistry.h"
 #include "mainwindowsignalrouter.h"
 #include "usicommlogmodel.h"
@@ -24,7 +25,7 @@
 
 // Early services
 #include "playmodepolicyservice.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 #include "timedisplaypresenter.h"
 #include "timecontrolcontroller.h"
 #include "shogiclock.h"
@@ -89,14 +90,6 @@ std::unique_ptr<MainWindowLifecyclePipeline> MainWindowServiceRegistry::createLi
             m_mw.m_match->destroyEngines();
         }
     };
-    // m_queryService は各所の std::bind 経由で参照されるため、
-    // ここで破棄せず依存だけ無効化して終了時アクセスを安全化する。
-    shutdown.invalidateRuntimeDeps = [this]() {
-        if (m_mw.m_queryService) {
-            MatchRuntimeQueryService::Deps nullDeps;
-            m_mw.m_queryService->updateDeps(nullDeps);
-        }
-    };
     // リソース解放（unique_ptr がデストラクタで自動解放するため明示 delete は不要）
     shutdown.releaseOwnedResources = [this]() {
         m_mw.m_playModePolicy.reset();
@@ -118,11 +111,8 @@ void MainWindowServiceRegistry::createFoundationObjectsForLifecycle()
     // Created: once at startup, never recreated
     m_mw.m_models.commLog1 = new UsiCommLogModel(&m_mw);
     m_mw.m_models.commLog2 = new UsiCommLogModel(&m_mw);
-
-    // 対局実行時クエリサービスを早期に生成（deps は initializeEarlyServices で設定）
-    // buildRuntimeRefs() が initializeCoreComponents() 内で参照するため、
-    // UI セットアップ前に存在させる必要がある。
-    m_mw.m_queryService = std::make_unique<MatchRuntimeQueryService>();
+    // 検討タブの思考情報モデル。検討・読み筋表示・矢印が同じものを使うので最初に作る
+    m_mw.m_models.consideration = new ShogiEngineThinkingModel(&m_mw);
 
     m_mw.ui->setupUi(&m_mw);
 }
@@ -141,19 +131,22 @@ void MainWindowServiceRegistry::setupUiSkeletonForLifecycle()
     m_mw.m_central = m_mw.m_appearanceController->central();
     m_mw.m_appearanceController->configureToolBarFromUi(m_mw.ui->toolBar, m_mw.ui->actionToolBar);
 
-    // 外観コントローラに実行時依存を設定（ダブルポインタのためアドレスは常に有効）
-    // setupBoardInCenter() が buildGamePanels() (Step 5) で使うため、ここで設定する。
-    {
-        MainWindowAppearanceController::Deps appDeps;
-        appDeps.shogiView = &m_mw.m_shogiView;
-        appDeps.timePresenter = &m_mw.m_timePresenter;
-        appDeps.match = &m_mw.m_match;
-        appDeps.bottomIsP1 = &m_mw.m_player.bottomIsP1;
-        appDeps.lastP1Turn = &m_mw.m_player.lastP1Turn;
-        appDeps.lastP1Ms = &m_mw.m_player.lastP1Ms;
-        appDeps.lastP2Ms = &m_mw.m_player.lastP2Ms;
-        m_mw.m_appearanceController->updateDeps(appDeps);
-    }
+    // 外観コントローラの実行時依存（盤・時間表示・司令塔）は、それらを作った後に
+    // refreshAppearanceDeps() で設定する（盤と時間表示はステップ 3-4、司令塔はステップ 5）
+}
+
+void MainWindowServiceRegistry::refreshAppearanceDeps()
+{
+    if (!m_mw.m_appearanceController) return;
+    MainWindowAppearanceController::Deps appDeps;
+    appDeps.shogiView = m_mw.m_shogiView;
+    appDeps.timePresenter = m_mw.m_timePresenter;
+    appDeps.match = m_mw.m_match;
+    appDeps.bottomIsP1 = &m_mw.m_player.bottomIsP1;
+    appDeps.lastP1Turn = &m_mw.m_player.lastP1Turn;
+    appDeps.lastP1Ms = &m_mw.m_player.lastP1Ms;
+    appDeps.lastP2Ms = &m_mw.m_player.lastP2Ms;
+    m_mw.m_appearanceController->updateDeps(appDeps);
 }
 
 void MainWindowServiceRegistry::initializeCoreComponentsForLifecycle()
@@ -178,17 +171,13 @@ void MainWindowServiceRegistry::initializeEarlyServicesForLifecycle()
     // TimeControlController を初期化して TimeDisplayPresenter に設定
     ensureTimeController();
 
-    // 対局実行時クエリサービスの依存を設定（生成は createFoundationObjects で実施済み）
-    {
-        MatchRuntimeQueryService::Deps qsDeps;
-        qsDeps.playModePolicy = m_mw.m_playModePolicy.get();
-        qsDeps.match = &m_mw.m_match;
-        m_mw.m_queryService->updateDeps(qsDeps);
-    }
-
     if (m_mw.m_timePresenter && m_mw.m_timeController) {
         m_mw.m_timePresenter->setClock(m_mw.m_timeController->clock());
     }
+
+    // 盤（ステップ 3）と時間表示ができたので外観コントローラに渡す。setupBoardInCenter() が
+    // buildGamePanels()（ステップ 5）で使う
+    refreshAppearanceDeps();
 }
 
 void MainWindowServiceRegistry::connectSignalsForLifecycle()

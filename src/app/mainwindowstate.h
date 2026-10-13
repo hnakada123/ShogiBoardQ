@@ -90,9 +90,9 @@ struct BranchNavigation {
 
 /// 棋譜状態
 struct KifuState {
-    /// 対局の局面履歴（SFEN）。司令塔は起動中に作り直されるので、司令塔ではなくここで持ち、
-    /// どの司令塔にも同じリストを渡す（司令塔の中に持つと、作り直す前に受け取った側が
-    /// 解放済みのリストを指したままになる）
+    /// 対局の局面履歴（SFEN）。対局中だけ使う作業用の履歴で、棋譜の正本は分岐ツリー。
+    /// 対局開始時に表示中の手順から作り直す（MainWindowGameStartService）。
+    /// 司令塔（起動時に一度だけ作る）はこのリストを共有する
     QStringList sfenRecord;
     bool onMainRowGuard = false;
     QList<ShogiMove> gameMoves;

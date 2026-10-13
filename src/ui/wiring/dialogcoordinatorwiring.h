@@ -52,7 +52,7 @@ public:
         KifuRecordListModel* kifuRecordModel = nullptr; ///< 棋譜リストモデル（非所有）
         QString* currentSfenStr = nullptr;             ///< 手順が無いときに使う現在局面SFEN（外部所有）
         KifuNavigationState* navState = nullptr;       ///< 表示中の手順（分岐ツリー、非所有）
-        ShogiEngineThinkingModel** considerationModel = nullptr; ///< 検討モデル（ダブルポインタ、外部所有）
+        ShogiEngineThinkingModel* considerationModel = nullptr;  ///< 検討タブの思考情報モデル（外部所有）
 
         // --- KifuAnalysisContext 固有 ---
         GameInfoPaneController* gameInfoController = nullptr; ///< 対局情報コントローラ（非所有）

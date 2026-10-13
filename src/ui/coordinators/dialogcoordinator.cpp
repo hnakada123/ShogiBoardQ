@@ -38,7 +38,6 @@ DialogCoordinator::~DialogCoordinator() = default;
 void DialogCoordinator::updateDeps(const Deps& deps)
 {
     m_match = deps.matchCoordinator;
-    m_usi = deps.usiEngine;
     m_logModel = deps.logModel;
     m_thinkingModel = deps.thinkingModel;
     m_analysisModel = deps.analysisModel;
@@ -160,13 +159,6 @@ bool DialogCoordinator::startConsiderationFromContext()
 
     qCDebug(lcUi).noquote() << "startConsiderationFromContext: position=" << resolved.position.left(50);
 
-    // 検討タブ専用モデルを作成（なければ）
-    if (m_considerationCtx.considerationModel) {
-        if (!(*m_considerationCtx.considerationModel)) {
-            *m_considerationCtx.considerationModel = new ShogiEngineThinkingModel(m_parentWidget);
-        }
-    }
-
     // 検討タブの設定を保存
     if (m_considerationTabManager) {
         m_considerationTabManager->saveConsiderationTabSettings();
@@ -180,7 +172,7 @@ bool DialogCoordinator::startConsiderationFromContext()
     params.unlimitedTime = m_considerationTabManager ? m_considerationTabManager->isUnlimitedTime() : true;
     params.byoyomiSec = m_considerationTabManager ? m_considerationTabManager->byoyomiSec() : 20;
     params.multiPV = m_considerationTabManager ? m_considerationTabManager->considerationMultiPV() : 1;
-    params.considerationModel = m_considerationCtx.considerationModel ? *m_considerationCtx.considerationModel : nullptr;
+    params.considerationModel = m_considerationCtx.considerationModel;
     params.previousFileTo = resolved.previousFileTo;
     params.previousRankTo = resolved.previousRankTo;
     params.lastUsiMove = resolved.lastUsiMove;

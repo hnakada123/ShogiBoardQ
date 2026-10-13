@@ -16,7 +16,6 @@
 
 class QWidget;
 class MatchCoordinator;
-class Usi;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class KifuAnalysisListModel;
@@ -61,7 +60,6 @@ public:
      */
     struct Deps {
         MatchCoordinator* matchCoordinator = nullptr;         ///< 対局調整（非所有）
-        Usi* usiEngine = nullptr;                             ///< USIエンジン（解析用、非所有）
         UsiCommLogModel* logModel = nullptr;                  ///< ログモデル（解析用、非所有）
         ShogiEngineThinkingModel* thinkingModel = nullptr;    ///< 思考モデル（解析用、非所有）
         KifuAnalysisListModel* analysisModel = nullptr;       ///< 解析モデル（非所有）
@@ -143,7 +141,7 @@ public:
         QString* startSfenStr = nullptr;
         const QString* currentSfenStr = nullptr;             // 手順が無いときに検討する局面
         class KifuNavigationState* navState = nullptr;       // 表示中の手順（分岐ツリー）
-        ShogiEngineThinkingModel** considerationModel = nullptr;  // ダブルポインタ（遅延生成用）
+        ShogiEngineThinkingModel* considerationModel = nullptr;  // 検討タブの思考情報モデル（起動時に作られる）
     };
 
     /**
@@ -323,7 +321,6 @@ signals:
 private:
     QWidget* m_parentWidget = nullptr;
     MatchCoordinator* m_match = nullptr;
-    Usi* m_usi = nullptr;
     UsiCommLogModel* m_logModel = nullptr;
     ShogiEngineThinkingModel* m_thinkingModel = nullptr;
     KifuAnalysisListModel* m_analysisModel = nullptr;

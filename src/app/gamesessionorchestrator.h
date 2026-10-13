@@ -14,7 +14,6 @@ class CsaGameCoordinator;
 class DialogCoordinator;
 class GameStateController;
 class KifuBranchTree;
-class KifuLoadCoordinator;
 class KifuNavigationState;
 class KifuRecordListModel;
 class LiveGameSession;
@@ -35,17 +34,16 @@ class GameSessionOrchestrator : public QObject
 
 public:
     struct Deps {
-        // === Controllers（ダブルポインタ：遅延生成/再生成反映のため） ===
-        GameStateController** gameStateController = nullptr;
-        GameStartCoordinator** gameStart = nullptr;
-        DialogCoordinator** dialogCoordinator = nullptr;
-        CsaGameCoordinator** csaGameCoordinator = nullptr;
-        MatchCoordinator** match = nullptr;
+        // === Controllers（使うときに取得する。遅延生成のものは取得時に作る） ===
+        std::function<GameStateController*()> gameStateController;
+        std::function<GameStartCoordinator*()> gameStart;
+        std::function<DialogCoordinator*()> dialogCoordinator;
+        std::function<CsaGameCoordinator*()> csaGameCoordinator;   ///< 通信対局をしていなければ nullptr
+        std::function<MatchCoordinator*()> match;                 ///< 起動の途中で作られる（以後は変わらない）
 
         // === Core objects（安定ポインタ） ===
         ReplayController* replayController = nullptr;
         ShogiGameController* gameController = nullptr;
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
         KifuRecordListModel* kifuModel = nullptr;
 
         // === State pointers（MainWindow の状態フィールドへの直接ポインタ） ===
@@ -63,11 +61,6 @@ public:
         std::function<void()> prepareResumeUi;
 
         std::function<bool()> confirmDiscardUnsavedKifu;
-
-        // === Lazy-init callbacks ===
-        std::function<void()> ensureGameStateController;
-        std::function<void()> ensureGameStartCoordinator;
-        std::function<void()> ensureDialogCoordinator;
     };
 
     explicit GameSessionOrchestrator(QObject* parent = nullptr);

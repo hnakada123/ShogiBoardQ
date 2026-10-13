@@ -9,7 +9,7 @@
 
 void GameSessionOrchestrator::onGameInterrupted()
 {
-    auto* match = m_deps.match ? *m_deps.match : nullptr;
+    auto* match = m_deps.match ? m_deps.match() : nullptr;
     auto* node = m_deps.navState ? m_deps.navState->currentNode() : nullptr;
     if (!match || !match->interruptedGame() || !node || !node->isTerminal()) return;
     m_interruptedNodeId = node->nodeId();
@@ -20,14 +20,14 @@ void GameSessionOrchestrator::discardInterruptedGame()
 {
     if (m_interruptedNodeId < 0) return;
     m_interruptedNodeId = -1;
-    if (m_deps.match && *m_deps.match) (*m_deps.match)->discardInterruptedGame();
+    if (auto* match = m_deps.match ? m_deps.match() : nullptr) match->discardInterruptedGame();
     if (m_deps.setResumeAvailable) m_deps.setResumeAvailable(false);
 }
 
 void GameSessionOrchestrator::handleResumeGame()
 {
-    auto* match = m_deps.match ? *m_deps.match : nullptr;
-    auto* start = m_deps.gameStart ? *m_deps.gameStart : nullptr;
+    auto* match = m_deps.match ? m_deps.match() : nullptr;
+    auto* start = m_deps.gameStart ? m_deps.gameStart() : nullptr;
     auto* tree = m_deps.branchTree;
     auto* nav = m_deps.navState;
     if (!match || !start || !match->interruptedGame() || !tree || !nav

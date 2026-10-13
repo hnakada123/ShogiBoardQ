@@ -49,25 +49,23 @@ public:
      *
      * 2手戻し操作後に盤面ハイライトと手番表示を更新するために使用。
      *
-     * @note MatchCoordinatorHooksFactory::buildUndoHooks() で UndoDeps から生成。
-     *       UndoDeps は MainWindowWiringAssembler::buildMatchWiringDeps() で設定。
-     * @see MatchCoordinatorHooksFactory::buildUndoHooks
+     * @note MainWindowServiceRegistry::buildUndoHooks() が組み立てる。
      */
     struct UndoHooks {
         /// @brief 指定手数のハイライトを表示する
-        /// @note 配線元: UndoDeps → MainWindowMatchAdapter::updateHighlightsForPly
+        /// @note 配線元: KifuNavigationCoordinator::syncBoardAndHighlightsAtRow
         std::function<void(int /*ply*/)> updateHighlightsForPly;
 
         /// @brief 手番表示と時計表示を現在の状態に更新する
-        /// @note 配線元: UndoDeps → MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay
+        /// @note 配線元: MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay
         std::function<void()> updateTurnAndTimekeepingDisplay;
 
         /// @brief 指定プレイヤーが人間側かどうかを判定する
-        /// @note 配線元: UndoDeps → PlayModePolicyService::isHumanSide
+        /// @note 配線元: PlayModePolicyService::isHumanSide
         std::function<bool(Turn)> isHumanSide;
 
         /// @brief マウスクリックモードを設定する（人間手番時にtrue）
-        /// @note 配線元: UndoDeps → ShogiView::setMouseClickMode
+        /// @note 配線元: ShogiView::setMouseClickMode
         std::function<void(bool)> setMouseClickMode;
     };
 

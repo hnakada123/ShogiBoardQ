@@ -18,11 +18,10 @@
 #include "kifuloadcoordinator.h"
 #include "livegamesession.h"
 #include "livegamesessionupdater.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 #include "playerinfowiring.h"
 #include "prestartcleanuphandler.h"
 #include "sessionlifecyclecoordinator.h"
-#include "sessionlifecycledepsfactory.h"
 #include "logcategories.h"
 #include "shogiview.h"
 #include "timecontrolcontroller.h"
@@ -100,7 +99,7 @@ void MainWindowServiceRegistry::refreshLiveGameSessionUpdaterDeps()
     deps.liveSession = m_mw.m_branchNav.liveGameSession;
     deps.branchTree = m_mw.m_branchNav.branchTree;
     deps.gameController = m_mw.m_gameController;
-    deps.sfenRecord = m_mw.m_queryService->sfenRecord();
+    deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     m_mw.m_liveGameSessionUpdater->updateDeps(deps);
 }
@@ -131,17 +130,25 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
     GameSessionOrchestrator::Deps deps;
     deps.confirmDiscardUnsavedKifu = [this]() { return confirmDiscardUnsavedKifu(); };
 
-    // === Controllers（ダブルポインタ） ===
-    deps.gameStateController = &m_mw.m_gameStateController;
-    deps.gameStart = &m_mw.m_gameStart;
-    deps.dialogCoordinator = &m_mw.m_dialogCoordinator;
-    deps.csaGameCoordinator = &m_mw.m_csaGameCoordinator;
-    deps.match = &m_mw.m_match;
+    // === Controllers（使うときに取得。遅延生成のものはここで作る） ===
+    deps.gameStateController = [this]() -> GameStateController* {
+        ensureGameStateController();
+        return m_mw.m_gameStateController;
+    };
+    deps.gameStart = [this]() -> GameStartCoordinator* {
+        ensureGameStartCoordinator();
+        return m_mw.m_gameStart;
+    };
+    deps.dialogCoordinator = [this]() -> DialogCoordinator* {
+        ensureDialogCoordinator();
+        return m_mw.m_dialogCoordinator;
+    };
+    deps.csaGameCoordinator = [this]() -> CsaGameCoordinator* { return m_mw.m_csaGameCoordinator; };
+    deps.match = [this]() -> MatchCoordinator* { return m_mw.m_match; };
 
     // === Core objects ===
     deps.replayController = m_mw.m_replayController;
     deps.gameController = m_mw.m_gameController;
-    deps.kifuLoadCoordinator = m_mw.m_kifuLoadCoordinator;
     deps.kifuModel = m_mw.m_models.kifuRecord;
 
     // === State pointers ===
@@ -167,15 +174,6 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
         if (m_mw.m_playerInfoWiring) m_mw.m_playerInfoWiring->updateGameInfoWithEndTime(QDateTime());
         if (m_mw.m_models.gameRecord) m_mw.m_models.gameRecord->markDirty();
     };
-
-    // === Lazy-init callbacks ===
-    deps.ensureGameStateController = [this]() {
-        ensureGameStateController();
-    };
-    deps.ensureGameStartCoordinator = [this]() {
-        ensureGameStartCoordinator();
-    };
-    deps.ensureDialogCoordinator = [this]() { ensureDialogCoordinator(); };
 
     m_mw.m_gameSessionOrchestrator->updateDeps(deps);
 }
@@ -249,56 +247,67 @@ void MainWindowServiceRegistry::refreshSessionLifecycleDeps()
 {
     if (!m_mw.m_sessionLifecycle) return;
 
-    SessionLifecycleDepsFactory::Callbacks callbacks;
-    callbacks.clearGameStateFields = [this]() {
+    SessionLifecycleCoordinator::Deps deps;
+    deps.replayController = m_mw.m_replayController;
+    deps.gameController = m_mw.m_gameController;
+    deps.gameStateController = m_mw.m_gameStateController;
+    deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
+    deps.playMode = &m_mw.m_state.playMode;
+    deps.startSfenStr = &m_mw.m_state.startSfenStr;
+    deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
+    deps.timeController = m_mw.m_timeController;
+    deps.consecutiveGamesController = m_mw.m_consecutiveGamesController;
+    deps.match = m_mw.m_match;
+    deps.shogiView = m_mw.m_shogiView;
+
+    deps.clearGameStateFields = [this]() {
         MainWindowResetService().clearGameStateFields(m_mw.m_state, m_mw.m_player, m_mw.m_kifu);
     };
-    callbacks.resetEngineState = [this]() {
+    deps.resetEngineState = [this]() {
         MainWindowResetService().resetEngineState(m_mw.m_match, m_mw.m_csaGameCoordinator,
                                                  m_mw.m_consecutiveGamesController);
     };
-    callbacks.performPreStartCleanup = [this]() {
+    deps.performPreStartCleanup = [this]() {
         ensurePreStartCleanupHandler();
         if (m_mw.m_registryParts.preStartCleanupHandler) {
             m_mw.m_registryParts.preStartCleanupHandler->performCleanup();
         }
     };
-    callbacks.clearSessionDependentUi = [this]() { clearSessionDependentUi(); };
-    callbacks.resetModels = [this](const QString& sfen) { resetModels(sfen); };
-    callbacks.resetUiState = [this](const QString& sfen) { resetUiState(sfen); };
-    callbacks.clearEvalState = [this]() { clearEvalState(); };
-    callbacks.unlockGameOverStyle = [this]() { unlockGameOverStyle(); };
-    callbacks.startGame = [this]() {
+    deps.clearSessionDependentUi = [this]() { clearSessionDependentUi(); };
+    deps.resetModels = [this](const QString& sfen) { resetModels(sfen); };
+    deps.resetUiState = [this](const QString& sfen) { resetUiState(sfen); };
+    deps.clearEvalState = [this]() { clearEvalState(); };
+    deps.unlockGameOverStyle = [this]() { unlockGameOverStyle(); };
+    deps.startGame = [this]() {
         startGameSession();
     };
-    callbacks.updateJosekiWindow = [this]() { m_kifu->updateJosekiWindow(); };
-    callbacks.commitLiveGameSessionIfActive = [this]() {
+    deps.updateJosekiWindow = [this]() { m_kifu->updateJosekiWindow(); };
+    deps.commitLiveGameSessionIfActive = [this]() {
         auto* session = m_mw.m_branchNav.liveGameSession;
         if (session != nullptr && session->isActive()) {
             qCDebug(lcApp) << "commitLiveGameSessionIfActive: committing live game session";
             session->commit();
         }
     };
-    callbacks.updateEndTime = [this](const QDateTime& endTime) {
+    deps.updateEndTime = [this](const QDateTime& endTime) {
         m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->updateGameInfoWithEndTime(endTime);
         }
     };
-    callbacks.startNextConsecutiveGame = [this]() {
+    deps.startNextConsecutiveGame = [this]() {
         ensureConsecutiveGamesController();
         if (m_mw.m_consecutiveGamesController) {
             m_mw.m_consecutiveGamesController->startNextGame();
         }
     };
-    callbacks.lastTimeControl = &m_mw.m_lastTimeControl;
-    callbacks.updateGameInfoWithTimeControl = [this](const GameStartCoordinator::TimeSettings& tc) {
+    deps.lastTimeControl = &m_mw.m_lastTimeControl;
+    deps.updateGameInfoWithTimeControl = [this](const GameStartCoordinator::TimeSettings& tc) {
         m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->updateGameInfoWithTimeControl(tc.enabled ? tc.rules : TimeControl{});
         }
     };
 
-    m_mw.m_sessionLifecycle->updateDeps(
-        SessionLifecycleDepsFactory::createDeps(m_mw.buildRuntimeRefs(), callbacks));
+    m_mw.m_sessionLifecycle->updateDeps(deps);
 }

@@ -181,6 +181,10 @@ private:
     void refreshUndoFlowDeps();
     void startGameSession();
     MatchCoordinatorWiring::Deps buildMatchWiringDeps();
+    MatchCoordinator::Hooks buildMatchHooks();
+    /// 外観コントローラに盤・時間表示・司令塔を渡す（それぞれを作った後に呼ぶ）
+    void refreshAppearanceDeps();
+    MatchCoordinator::UndoHooks buildUndoHooks();
     bool queryIsHumanSide(Turn player);
     void updateTurnStatus(int currentPlayer);
     void resetRecordForEditedPosition();

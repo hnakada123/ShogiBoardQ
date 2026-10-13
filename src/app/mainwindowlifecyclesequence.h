@@ -35,7 +35,6 @@ public:
         std::function<void()> beginShutdown;
         std::function<void()> saveSettings;
         std::function<void()> destroyEngines;
-        std::function<void()> invalidateRuntimeDeps;
         std::function<void()> releaseOwnedResources;
     };
 

@@ -6,10 +6,11 @@
 /// ensurePlayerInfoWiring を内部呼出し）。
 
 #include "mainwindowfoundationregistry.h"
+#include "matchcoordinator.h"
+#include "engineanalysistab.h"
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"
 #include "mainwindow.h"
-#include "mainwindowcompositionroot.h"
 #include "mainwindowserviceregistry.h"
 #include "kifusubregistry.h"
 #include "gamerecordmodel.h"
@@ -26,11 +27,10 @@
 #include "jishogiscoredialogcontroller.h"
 #include "josekiwindowwiring.h"
 #include "kifunavigationcoordinator.h"
-#include "kifunavigationdepsfactory.h"
 #include "languagecontroller.h"
 #include "livegamesession.h"
 #include "mainwindowappearancecontroller.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 #include "menuwindowwiring.h"
 #include "nyugyokudeclarationhandler.h"
 #include "piecesoundplayer.h"
@@ -64,7 +64,21 @@ MainWindowFoundationRegistry::MainWindowFoundationRegistry(MainWindow& mw,
 
 void MainWindowFoundationRegistry::ensureUiStatePolicyManager()
 {
-    m_mw.m_compositionRoot->ensureUiStatePolicyManager(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_uiStatePolicy);
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_uiStatePolicy) {
+        m_mw.m_uiStatePolicy = new UiStatePolicyManager(&m_mw);
+    }
+    UiStatePolicyManager::Deps deps;
+    deps.ui = m_mw.ui.get();
+    deps.recordPane = m_mw.m_recordPane;
+    deps.analysisTab = m_mw.m_analysisTab;
+    deps.boardController = m_mw.m_boardController;
+    // started 通知では MainWindow 側のモード同期より先に UI ポリシーが更新されるので、司令塔のモードを見る
+    deps.getPlayMode = [this]() {
+        return m_mw.m_match ? m_mw.m_match->playMode() : PlayMode::NotStarted;
+    };
+    m_mw.m_uiStatePolicy->updateDeps(deps);
 }
 
 // ---------------------------------------------------------------------------
@@ -85,7 +99,7 @@ void MainWindowFoundationRegistry::ensurePlayerInfoWiring()
     deps.engineName1 = &m_mw.m_player.engineName1;
     deps.engineName2 = &m_mw.m_player.engineName2;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
-    deps.timeControllerRef = &m_mw.m_timeController;
+    deps.getTimeController = [this]() { return m_mw.m_timeController; };
     deps.markGameRecordDirty = [this]() {
         m_serviceRegistry->kifu()->ensureGameRecordModel();
         if (m_mw.m_models.gameRecord) m_mw.m_models.gameRecord->markDirty();
@@ -124,7 +138,14 @@ void MainWindowFoundationRegistry::ensurePlayerInfoWiring()
 void MainWindowFoundationRegistry::ensurePlayerInfoController()
 {
     ensurePlayerInfoWiring();
-    m_mw.m_compositionRoot->ensurePlayerInfoController(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_playerInfoController);
+    if (m_mw.m_playerInfoWiring) {
+        m_mw.m_playerInfoController = m_mw.m_playerInfoWiring->playerInfoController();
+    }
+    if (PlayerInfoController* controller = m_mw.m_playerInfoController) {
+        controller->setEvalGraphController(m_mw.m_evalGraphController.get());
+        controller->setLogModels(m_mw.m_models.commLog1, m_mw.m_models.commLog2);
+        controller->setAnalysisTab(m_mw.m_analysisTab);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -143,11 +164,23 @@ void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
 {
     if (!m_mw.m_kifuNavCoordinator) return;
 
-    KifuNavigationDepsFactory::Callbacks callbacks;
-    callbacks.setCurrentTurn = [this]() {
+    KifuNavigationCoordinator::Deps deps;
+    deps.recordPane = m_mw.m_recordPane;
+    deps.kifuRecordModel = m_mw.m_models.kifuRecord;
+    deps.boardSync = m_mw.m_boardSync;
+    deps.shogiView = m_mw.m_shogiView;
+    deps.navState = m_mw.m_branchNav.navState;
+    deps.branchTree = m_mw.m_branchNav.branchTree;
+    deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
+    deps.skipBoardSyncForBranchNav = &m_mw.m_state.skipBoardSyncForBranchNav;
+    deps.playMode = &m_mw.m_state.playMode;
+    deps.match = m_mw.m_match;
+    deps.analysisTab = m_mw.m_analysisTab;
+    deps.uiStatePolicy = m_mw.m_uiStatePolicy;
+    deps.setCurrentTurn = [this]() {
         m_mw.setCurrentTurn();
     };
-    callbacks.updateJosekiWindow = [this]() {
+    deps.updateJosekiWindow = [this]() {
         if (m_mw.m_docks.josekiWindow && !m_mw.m_docks.josekiWindow->isVisible()) {
             return;
         }
@@ -155,10 +188,8 @@ void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
             m_mw.m_josekiWiring->updateJosekiWindow();
         }
     };
-    callbacks.ensureBoardSyncPresenter = [this]() { ensureBoardSyncPresenter(); };
-
-    m_mw.m_kifuNavCoordinator->updateDeps(
-        KifuNavigationDepsFactory::createDeps(m_mw.buildRuntimeRefs(), callbacks));
+    deps.ensureBoardSyncPresenter = [this]() { ensureBoardSyncPresenter(); };
+    m_mw.m_kifuNavCoordinator->updateDeps(deps);
 }
 
 // ---------------------------------------------------------------------------
@@ -167,10 +198,19 @@ void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
 
 void MainWindowFoundationRegistry::ensureCommentCoordinator()
 {
-    // QPointer<T> は T*& に直接バインドできないため、一時変数経由で渡す
-    CommentCoordinator* ptr = m_mw.m_commentCoordinator;
-    m_mw.m_compositionRoot->ensureCommentCoordinator(m_mw.buildRuntimeRefs(), &m_mw, ptr);
-    m_mw.m_commentCoordinator = ptr;
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_commentCoordinator) {
+        m_mw.m_commentCoordinator = new CommentCoordinator(&m_mw);
+    }
+    CommentCoordinator* coordinator = m_mw.m_commentCoordinator;
+    coordinator->setCommentEditor(m_mw.m_analysisTab ? m_mw.m_analysisTab->commentEditor() : nullptr);
+    coordinator->setRecordPane(m_mw.m_recordPane);
+    coordinator->setRecordPresenter(m_mw.m_recordPresenter);
+    coordinator->setStatusBar(m_mw.ui ? m_mw.ui->statusbar : nullptr);
+    coordinator->setNavigationState(m_mw.m_branchNav.navState);
+    coordinator->setGameRecordModel(m_mw.m_models.gameRecord);
+    coordinator->setKifuRecordListModel(m_mw.m_models.kifuRecord);
     connect(m_mw.m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
             m_serviceRegistry->kifu(), &KifuSubRegistry::ensureGameRecordModel, Qt::UniqueConnection);
 }
@@ -234,7 +274,7 @@ void MainWindowFoundationRegistry::ensureEvaluationGraphController()
     }
     m_mw.m_evalGraphController->setEvalChart(m_mw.m_evalChart);
     m_mw.m_evalGraphController->setMatchCoordinator(m_mw.m_match);
-    m_mw.m_evalGraphController->setSfenRecord(m_mw.m_queryService->sfenRecord());
+    m_mw.m_evalGraphController->setSfenRecord(&m_mw.m_kifu.sfenRecord);
     m_mw.m_evalGraphController->setRecordLengthProvider([this]() {
         // 表示中の手順の行数（終局行を含む）- 1
         if (!m_mw.m_branchNav.navState || !m_mw.m_branchNav.branchTree) return 0;

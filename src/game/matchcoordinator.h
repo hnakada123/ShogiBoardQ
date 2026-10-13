@@ -112,6 +112,16 @@ public:
     /// エンジンポインタを差し替える（再生成時など）
     void updateUsiPtrs(Usi* e1, Usi* e2);
 
+    /// 思考情報・通信ログを表示するモデルを設定する（エンジンを作る前に呼ぶ）
+    void setEngineModels(UsiCommLogModel* comm1, ShogiEngineThinkingModel* think1,
+                         UsiCommLogModel* comm2, ShogiEngineThinkingModel* think2);
+
+    /// エンジンへ送る局面の履歴と手番・手数を初期状態に戻す
+    ///
+    /// 司令塔は起動時に一度だけ作り、以後は使い回す。起動処理の途中で行う仮の対局開始が残した
+    /// position 文字列や過去の対局履歴を、起動の最後にここで捨てる。
+    void resetPositionHistory();
+
     /// 中断を処理する（UI→司令塔）
     void handleBreakOff();
 

@@ -2,11 +2,10 @@
 /// @brief ライフサイクル runtime テスト
 ///
 /// shutdown パスでのオブジェクト寿命安全性を実行時に検証する。
-/// MatchRuntimeQueryService の Deps 無効化後もクラッシュせず、安全側の既定値と nullptr を返すことを確認。
+/// PlayModePolicyService の Deps が無いときも安全側の既定値を返すことを確認（終了処理の二重実行は tst_app_lifecycle_pipeline）。
 
 #include <QtTest>
 
-#include "matchruntimequeryservice.h"
 #include "playmodepolicyservice.h"
 
 class TestLifecycleRuntime : public QObject
@@ -14,88 +13,8 @@ class TestLifecycleRuntime : public QObject
     Q_OBJECT
 
 private slots:
-    void testQueryServiceWithNullDeps();
-    void testQueryServiceAfterDepsInvalidation();
-    void testQueryServiceWithLiveDeps();
-    void testQueryServiceSfenRecordWithNullMatch();
     void testPlayModePolicyServiceWithNullDeps();
-    void testDoubleShutdownPattern();
 };
-
-/// Deps 未設定（デフォルト null）のまま全メソッドを呼び出してもクラッシュしないことを確認
-void TestLifecycleRuntime::testQueryServiceWithNullDeps()
-{
-    MatchRuntimeQueryService service;
-
-    QCOMPARE(service.isGameActivelyInProgress(), false);
-    QCOMPARE(service.isHvH(), false);
-    QCOMPARE(service.isHumanTurnNow(), false);
-    QCOMPARE(service.isHumanSide(Turn::Black), false);
-    QCOMPARE(service.isHumanSide(Turn::White), false);
-
-
-    QCOMPARE(service.sfenRecord(), nullptr);
-}
-
-/// 有効な Deps を設定した後に null Deps で無効化し、全メソッドが安全にデフォルト値を返すことを確認
-void TestLifecycleRuntime::testQueryServiceAfterDepsInvalidation()
-{
-    MatchRuntimeQueryService service;
-    PlayModePolicyService policy;
-
-    // 有効な Deps を設定
-    MatchRuntimeQueryService::Deps liveDeps;
-    liveDeps.playModePolicy = &policy;
-    service.updateDeps(liveDeps);
-
-    // null Deps で無効化（shutdown パスのシミュレーション）
-    MatchRuntimeQueryService::Deps nullDeps;
-    service.updateDeps(nullDeps);
-
-    // 無効化後の呼び出しでクラッシュしないことを確認
-    QCOMPARE(service.isGameActivelyInProgress(), false);
-    QCOMPARE(service.isHvH(), false);
-    QCOMPARE(service.isHumanTurnNow(), false);
-    QCOMPARE(service.isHumanSide(Turn::Black), false);
-
-
-    QCOMPARE(service.sfenRecord(), nullptr);
-}
-
-/// 有効な Deps（PolicyService + TimeController）を設定した状態でクエリが正常動作することを確認
-void TestLifecycleRuntime::testQueryServiceWithLiveDeps()
-{
-    MatchRuntimeQueryService service;
-    PlayModePolicyService policy;
-
-    MatchRuntimeQueryService::Deps deps;
-    deps.playModePolicy = &policy;
-    service.updateDeps(deps);
-
-    // PolicyService の Deps が未設定なのでデフォルト動作
-    QCOMPARE(service.isGameActivelyInProgress(), false);
-    QCOMPARE(service.isHvH(), false);
-
-}
-
-/// sfenRecord() が match ダブルポインタ null 時に nullptr を返すことを確認
-void TestLifecycleRuntime::testQueryServiceSfenRecordWithNullMatch()
-{
-    MatchRuntimeQueryService service;
-
-    // match ダブルポインタ未設定
-    QCOMPARE(service.sfenRecord(), nullptr);
-    QCOMPARE(std::as_const(service).sfenRecord(), nullptr);
-
-    // match ダブルポインタはあるが中身が null
-    MatchCoordinator* nullMatch = nullptr;
-    MatchRuntimeQueryService::Deps deps;
-    deps.match = &nullMatch;
-    service.updateDeps(deps);
-
-    QCOMPARE(service.sfenRecord(), nullptr);
-    QCOMPARE(std::as_const(service).sfenRecord(), nullptr);
-}
 
 /// PlayModePolicyService の Deps 未設定時に全メソッドがクラッシュせずデフォルト値を返すことを確認
 void TestLifecycleRuntime::testPlayModePolicyServiceWithNullDeps()
@@ -106,29 +25,6 @@ void TestLifecycleRuntime::testPlayModePolicyServiceWithNullDeps()
     QCOMPARE(policy.isHumanSide(Turn::Black), false);
     QCOMPARE(policy.isHvH(), false);
     QCOMPARE(policy.isGameActivelyInProgress(), false);
-}
-
-/// 二重 shutdown パターンのシミュレーション: updateDeps(nullDeps) を2回呼んでもクラッシュしないことを確認
-void TestLifecycleRuntime::testDoubleShutdownPattern()
-{
-    MatchRuntimeQueryService service;
-    PlayModePolicyService policy;
-
-    // 有効な Deps を設定
-    MatchRuntimeQueryService::Deps liveDeps;
-    liveDeps.playModePolicy = &policy;
-    service.updateDeps(liveDeps);
-
-    // 1回目の shutdown
-    MatchRuntimeQueryService::Deps nullDeps;
-    service.updateDeps(nullDeps);
-
-    // 2回目の shutdown（二重実行）
-    service.updateDeps(nullDeps);
-
-    // 二重無効化後もクラッシュしない
-    QCOMPARE(service.isGameActivelyInProgress(), false);
-    QCOMPARE(service.sfenRecord(), nullptr);
 }
 
 QTEST_MAIN(TestLifecycleRuntime)

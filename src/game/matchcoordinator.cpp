@@ -128,7 +128,7 @@ void MatchCoordinator::configureMatchTurnHandler()
     hooks.updateTurnDisplayCb = m_hooks.ui.updateTurnDisplay;
     hooks.primaryEngine = [this]() -> Usi* { return primaryEngine(); };
     hooks.secondaryEngine = [this]() -> Usi* { return secondaryEngine(); };
-    hooks.sendStopToEngine = m_hooks.engine.sendStopToEngine;
+    hooks.sendStopToEngine = [this](Usi* which) { sendStopToEngine(which); };
     hooks.clockProvider = [this]() -> ShogiClock* { return clock(); };
     hooks.initAndStartEngine = [this](Player p, const QString& path, const QString& name) {
         initializeAndStartEngineFor(p, path, name);

@@ -350,11 +350,6 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
         initPositionNumber, isPlayer1Human, isPlayer2Human, startSfen);
 }
 
-void GameStartCoordinator::setMatch(MatchCoordinator* match)
-{
-    m_match = match;
-}
-
 void GameStartCoordinator::setViewHooks(const ViewHooks& hooks)
 {
     m_viewHooks = hooks;

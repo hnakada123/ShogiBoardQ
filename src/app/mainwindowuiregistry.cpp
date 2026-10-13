@@ -5,9 +5,8 @@
 /// 共通基盤メソッドは MainWindowFoundationRegistry に移動済み。
 
 #include "mainwindowserviceregistry.h"
+#include "analysisresultspresenter.h"
 #include "mainwindow.h"
-#include "mainwindowcompositionroot.h"
-#include "mainwindowdepsfactory.h"
 #include "mainwindowfoundationregistry.h"
 #include "ui_mainwindow.h"
 
@@ -67,14 +66,30 @@ void MainWindowServiceRegistry::ensureDialogCoordinator()
 {
     if (m_mw.m_isShuttingDown) return;
 
-    auto refs = m_mw.buildRuntimeRefs();
-
-    MainWindowDepsFactory::DialogCoordinatorCallbacks callbacks;
-    callbacks.getBoardFlipped = [this]() { return m_mw.m_shogiView ? m_mw.m_shogiView->flipMode() : false; };
-    callbacks.getConsiderationWiring = [this]() { ensureConsiderationWiring(); return m_mw.m_considerationWiring; };
-    callbacks.getUiStatePolicyManager = [this]() { m_foundation->ensureUiStatePolicyManager(); return m_mw.m_uiStatePolicy; };
     m_foundation->ensureKifuNavigationCoordinator();
-    callbacks.navigateKifuViewToLine = [this](int lineIndex, int ply) {
+
+    DialogCoordinatorWiring::Deps deps;
+    deps.parentWidget = &m_mw;
+    deps.match = m_mw.m_match;
+    deps.gameController = m_mw.m_gameController;
+    // 検討・詰み探索・棋譜解析で共有（手順は分岐ツリーから取る）
+    deps.startSfenStr = &m_mw.m_state.startSfenStr;
+    deps.kifuRecordModel = m_mw.m_models.kifuRecord;
+    deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
+    deps.navState = m_mw.m_branchNav.navState;
+    deps.considerationModel = m_mw.m_models.consideration;
+    // 棋譜解析
+    deps.gameInfoController = m_mw.m_gameInfoController;
+    deps.evalChart = m_mw.m_evalChart;
+    deps.presenter = m_mw.m_analysisPresenter.get();
+    deps.getBoardFlipped = [this]() { return m_mw.m_shogiView ? m_mw.m_shogiView->flipMode() : false; };
+    deps.getConsiderationWiring = [this]() { ensureConsiderationWiring(); return m_mw.m_considerationWiring; };
+    deps.getUiStatePolicyManager = [this]() { m_foundation->ensureUiStatePolicyManager(); return m_mw.m_uiStatePolicy; };
+    // 解析イベントハンドラ用
+    deps.evalChartWidget = m_mw.m_evalChart;
+    deps.analysisTab = m_mw.m_analysisTab;
+    deps.playMode = &m_mw.m_state.playMode;
+    deps.navigateKifuViewToLine = [this](int lineIndex, int ply) {
         if (m_mw.m_branchNav.kifuNavController) {
             m_mw.m_branchNav.kifuNavController->goToLine(lineIndex, ply);
         } else {
@@ -82,8 +97,13 @@ void MainWindowServiceRegistry::ensureDialogCoordinator()
         }
     };
 
-    m_mw.m_compositionRoot->ensureDialogCoordinator(refs, callbacks, &m_mw,
-        m_mw.m_registryParts.dialogCoordinatorWiring, m_mw.m_dialogCoordinator);
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_registryParts.dialogCoordinatorWiring) {
+        m_mw.m_registryParts.dialogCoordinatorWiring = new DialogCoordinatorWiring(&m_mw);
+    }
+    m_mw.m_registryParts.dialogCoordinatorWiring->ensure(deps);
+    m_mw.m_dialogCoordinator = m_mw.m_registryParts.dialogCoordinatorWiring->coordinator();
 }
 
 // ---------------------------------------------------------------------------
@@ -128,8 +148,26 @@ void MainWindowServiceRegistry::ensureRecordNavigationHandler()
     targets.uiStatePolicy = m_mw.m_uiStatePolicy;
     targets.considerationPosition = m_mw.m_considerationPositionService;
 
-    auto refs = m_mw.buildRuntimeRefs();
-    m_mw.m_compositionRoot->ensureRecordNavigationWiring(refs, targets, &m_mw, m_mw.m_recordNavWiring);
+    RecordNavigationWiring::Deps deps;
+    deps.mainWindow = &m_mw;
+    deps.navState = m_mw.m_branchNav.navState;
+    deps.branchTree = m_mw.m_branchNav.branchTree;
+    deps.displayCoordinator = m_mw.m_branchNav.displayCoordinator;
+    deps.kifuRecordModel = m_mw.m_models.kifuRecord;
+    deps.shogiView = m_mw.m_shogiView;
+    deps.evalGraphController = m_mw.m_evalGraphController.get();
+    deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
+    deps.skipBoardSyncForBranchNav = &m_mw.m_state.skipBoardSyncForBranchNav;
+    deps.csaGameCoordinator = m_mw.m_csaGameCoordinator;
+    deps.playMode = &m_mw.m_state.playMode;
+    deps.match = m_mw.m_match;
+
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_recordNavWiring) {
+        m_mw.m_recordNavWiring = new RecordNavigationWiring(&m_mw);
+    }
+    m_mw.m_recordNavWiring->ensure(deps, targets);
 }
 
 // ---------------------------------------------------------------------------

@@ -22,7 +22,7 @@
 namespace {
 
 template<typename T>
-T* deref(T** pp) { return pp ? *pp : nullptr; }
+T* get(const std::function<T*()>& getter) { return getter ? getter() : nullptr; }
 
 bool detectHasEditedStart(const QString* startSfenStr, const QStringList* sfenRecord)
 {
@@ -106,11 +106,10 @@ void GameSessionOrchestrator::updateDeps(const Deps& deps)
 
 void GameSessionOrchestrator::initializeGame()
 {
-    if (m_deps.ensureGameStartCoordinator) m_deps.ensureGameStartCoordinator();
-    auto* gameStart = deref(m_deps.gameStart);
+    auto* gameStart = get(m_deps.gameStart);
     if (!gameStart) return;
 
-    auto* match = deref(m_deps.match);
+    auto* match = get(m_deps.match);
     QStringList* sfenRecord = match ? match->sfenRecordPtr() : nullptr;
 
     const bool hasEditedStart = detectHasEditedStart(m_deps.startSfenStr, sfenRecord);
@@ -152,7 +151,6 @@ void GameSessionOrchestrator::initializeGame()
     ctx.clock = match ? match->clock() : nullptr;
     ctx.sfenRecord = sfenRecord;
     ctx.kifuModel = m_deps.kifuModel;
-    ctx.kifuLoadCoordinator = m_deps.kifuLoadCoordinator;
     ctx.currentSfenStr = m_deps.currentSfenStr;
     ctx.startSfenStr = m_deps.startSfenStr;
     ctx.selectedPly = selectedPly;
@@ -169,14 +167,13 @@ void GameSessionOrchestrator::initializeGame()
 
 void GameSessionOrchestrator::handleResignation()
 {
-    auto* csa = deref(m_deps.csaGameCoordinator);
+    auto* csa = get(m_deps.csaGameCoordinator);
     if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
         csa->onResign();
         return;
     }
 
-    if (m_deps.ensureGameStateController) m_deps.ensureGameStateController();
-    auto* gsc = deref(m_deps.gameStateController);
+    auto* gsc = get(m_deps.gameStateController);
     if (gsc) {
         gsc->handleResignation();
     }
@@ -184,13 +181,12 @@ void GameSessionOrchestrator::handleResignation()
 
 void GameSessionOrchestrator::handleBreakOffGame()
 {
-    auto* csa = deref(m_deps.csaGameCoordinator);
+    auto* csa = get(m_deps.csaGameCoordinator);
     if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
         csa->requestChudan();
         return;
     }
-    if (m_deps.ensureGameStateController) m_deps.ensureGameStateController();
-    auto* gsc = deref(m_deps.gameStateController);
+    auto* gsc = get(m_deps.gameStateController);
     if (gsc) {
         gsc->handleBreakOffGame();
     }
@@ -198,12 +194,12 @@ void GameSessionOrchestrator::handleBreakOffGame()
 
 void GameSessionOrchestrator::movePieceImmediately()
 {
-    auto* csa = deref(m_deps.csaGameCoordinator);
+    auto* csa = get(m_deps.csaGameCoordinator);
     if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
         csa->forceImmediateMove();
         return;
     }
-    auto* mc = deref(m_deps.match);
+    auto* mc = get(m_deps.match);
     if (mc) {
         mc->forceImmediateMove();
     }
@@ -213,7 +209,7 @@ void GameSessionOrchestrator::stopTsumeSearch()
 {
     qCDebug(lcApp).noquote() << "stopTsumeSearch called";
 
-    auto* mc = deref(m_deps.match);
+    auto* mc = get(m_deps.match);
     if (mc) {
         mc->stopAnalysisEngine();
     }
@@ -221,8 +217,7 @@ void GameSessionOrchestrator::stopTsumeSearch()
 
 void GameSessionOrchestrator::openWebsiteInExternalBrowser()
 {
-    if (m_deps.ensureDialogCoordinator) m_deps.ensureDialogCoordinator();
-    auto* dc = deref(m_deps.dialogCoordinator);
+    auto* dc = get(m_deps.dialogCoordinator);
     if (dc) {
         dc->openProjectWebsite();
     }

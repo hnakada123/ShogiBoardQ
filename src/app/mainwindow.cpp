@@ -34,7 +34,6 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(std::make_unique<Ui::MainWindow>())
 {
-    m_compositionRoot = std::make_unique<MainWindowCompositionRoot>();
     m_registry = std::make_unique<MainWindowServiceRegistry>(*this);
     m_pipeline = m_registry->createLifecyclePipeline();
     m_pipeline->runStartup();
@@ -149,79 +148,10 @@ void MainWindow::onMoveCommitted(Turn mover, int ply)
     m_registry->handleMoveCommitted(static_cast<int>(mover), ply);
 }
 
-// `buildRuntimeRefs`: 現在のメンバ変数から MainWindowRuntimeRefs スナップショットを構築する。
-MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
-{
-    MainWindowRuntimeRefs refs;
-
-    refs.ui.parentWidget = this;
-    refs.ui.mainWindow = this;
-    refs.ui.statusBar = ui ? ui->statusbar : nullptr;
-    refs.ui.uiForm = ui.get();
-    refs.ui.recordPane = m_recordPane;
-    refs.ui.evalChart = m_evalChart;
-    refs.ui.analysisTab = m_analysisTab;
-
-    refs.models.kifuRecordModel = m_models.kifuRecord;
-    refs.models.considerationModel = &m_models.consideration;
-    refs.models.thinking1 = m_models.thinking1;
-    refs.models.thinking2 = m_models.thinking2;
-    refs.models.consideration = m_models.consideration;
-    refs.models.commLog1 = m_models.commLog1;
-    refs.models.commLog2 = m_models.commLog2;
-    refs.models.gameRecordModel = m_models.gameRecord;
-
-    refs.kifu.sfenRecord = m_queryService ? m_queryService->sfenRecord() : nullptr;
-    refs.kifu.gameMoves = &m_kifu.gameMoves;
-    refs.kifu.saveFileName = &m_kifu.saveFileName;
-    refs.kifu.onMainRowGuard = &m_kifu.onMainRowGuard;
-
-    refs.state.playMode = &m_state.playMode;
-    refs.state.currentSfenStr = &m_state.currentSfenStr;
-    refs.state.startSfenStr = &m_state.startSfenStr;
-    refs.state.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
-    refs.state.resumeSfenStr = &m_state.resumeSfenStr;
-
-    refs.branchNav.branchTree = m_branchNav.branchTree;
-    refs.branchNav.navState = m_branchNav.navState;
-    refs.branchNav.displayCoordinator = m_branchNav.displayCoordinator;
-
-    refs.player.humanName1 = &m_player.humanName1;
-    refs.player.humanName2 = &m_player.humanName2;
-    refs.player.engineName1 = &m_player.engineName1;
-    refs.player.engineName2 = &m_player.engineName2;
-
-    refs.gameService.match = m_match;
-    refs.gameService.gameController = m_gameController;
-    refs.gameService.csaGameCoordinator = m_csaGameCoordinator;
-    refs.gameService.shogiView = m_shogiView;
-
-    refs.kifuService.kifuLoadCoordinator = m_kifuLoadCoordinator;
-    refs.kifuService.recordPresenter = m_recordPresenter;
-    refs.kifuService.replayController = m_replayController;
-
-    refs.uiController.timeController = m_timeController;
-    refs.uiController.boardController = m_boardController;
-    refs.uiController.positionEditController = m_posEdit;
-    refs.uiController.dialogCoordinator = m_dialogCoordinator;
-    refs.uiController.uiStatePolicy = m_uiStatePolicy;
-    refs.uiController.boardSync = m_boardSync;
-    refs.uiController.playerInfoWiring = m_playerInfoWiring;
-
-    refs.analysis.gameInfoController = m_gameInfoController;
-    refs.analysis.evalGraphController = m_evalGraphController.get();
-    refs.analysis.analysisPresenter = m_analysisPresenter.get();
-
-    refs.gameCtrl.gameStateController = m_gameStateController;
-    refs.gameCtrl.consecutiveGamesController = m_consecutiveGamesController;
-
-    return refs;
-}
-
 // `refreshPlayModePolicyDeps`: PlayModePolicyService の依存を最新に更新する。
 // 以下のタイミングで呼び出すこと:
 //   - 起動完了直後（initializeEarlyServices）
-//   - Match 再生成直後（MainWindowServiceRegistry::initMatchCoordinator）
+//   - 司令塔の生成直後（MainWindowServiceRegistry::initMatchCoordinator）
 //   - CsaGameCoordinator 生成時（DialogLaunchWiring::displayCsaGameDialog）
 void MainWindow::refreshPlayModePolicyDeps()
 {

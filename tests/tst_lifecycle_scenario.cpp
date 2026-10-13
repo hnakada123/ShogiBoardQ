@@ -142,24 +142,6 @@ private slots:
     //   GSO::initializeGame() → GSC → ServiceRegistry::startGameSession() → MC::prepareAndStartGame()
     // ================================================================
 
-    /// initializeGame が GameStartCoordinator に委譲すること
-    void phase2_initializeGameDelegatesToGSC()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesessionorchestrator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read GSO source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("GameSessionOrchestrator::initializeGame()"));
-        QVERIFY2(range.first >= 0, "initializeGame not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("ensureGameStartCoordinator")),
-                  "Must lazy-init GameStartCoordinator");
-        QVERIFY2(body.contains(QStringLiteral("initializeGame")),
-                  "Must delegate to GameStartCoordinator::initializeGame");
-    }
-
     /// ServiceRegistry の開始ヘルパーが MatchCoordinator::prepareAndStartGame に委譲すること
     void phase2_serviceRegistryStartGameSessionDelegatesToMC()
     {
@@ -418,7 +400,7 @@ private slots:
         QVERIFY(body.contains(QStringLiteral("saveDockStates")));
         QVERIFY(body.contains(QStringLiteral("shutdown.destroyEngines =")));
         QVERIFY(body.contains(QStringLiteral("m_match->destroyEngines()")));
-        QVERIFY(body.contains(QStringLiteral("shutdown.invalidateRuntimeDeps =")));
+        QVERIFY(body.contains(QStringLiteral("shutdown.releaseOwnedResources =")));
     }
 
     // ================================================================

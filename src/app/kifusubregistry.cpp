@@ -7,8 +7,6 @@
 #include "playmodepolicyservice.h"
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
-#include "mainwindowcompositionroot.h"
-#include "mainwindowdepsfactory.h"
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowresetservice.h"
 #include "ui_mainwindow.h"
@@ -26,11 +24,10 @@
 #include "josekiwindowwiring.h"
 #include "kifunavigationstate.h"
 #include "josekiwindow.h"
-#include "kifuexportdepsassembler.h"
 #include "kifuloadcoordinatorfactory.h"
 #include "kifuloadcoordinator.h"
 #include "livegamesessionupdater.h"
-#include "matchruntimequeryservice.h"
+#include "playmodepolicyservice.h"
 #include "playerinfowiring.h"
 #include "shogigamecontroller.h"
 #include "logcategories.h"
@@ -118,41 +115,51 @@ bool KifuSubRegistry::confirmDiscardUnsavedKifu()
 
 void KifuSubRegistry::ensureKifuFileController()
 {
-    auto refs = m_mw.buildRuntimeRefs();
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    if (!m_mw.m_kifuFileController) {
+        m_mw.m_kifuFileController = new KifuFileController(&m_mw);
+    }
 
-    MainWindowDepsFactory::KifuFileCallbacks callbacks;
-    callbacks.clearUiBeforeKifuLoad = [this]() {
+    KifuFileController::Deps deps;
+    deps.parentWidget = &m_mw;
+    deps.statusBar = m_mw.ui ? m_mw.ui->statusbar : nullptr;
+    deps.gameInfo = m_mw.m_gameInfoController;
+    deps.saveFileName = &m_mw.m_kifu.saveFileName;
+
+    // 準備コールバック
+    deps.clearUiBeforeKifuLoad = [this]() {
         clearUiBeforeKifuLoad();
     };
-    callbacks.setReplayMode = [this](bool replayMode) {
+    deps.setReplayMode = [this](bool replayMode) {
         m_mw.setReplayMode(replayMode);
     };
-    callbacks.ensurePlayerInfoAndGameInfo = [this]() {
+    deps.ensurePlayerInfoAndGameInfo = [this]() {
         m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->ensureGameInfoController();
             m_mw.m_gameInfoController = m_mw.m_playerInfoWiring->gameInfoController();
         }
     };
-    callbacks.ensureGameRecordModel = [this]() {
+    deps.ensureGameRecordModel = [this]() {
         ensureGameRecordModel();
     };
-    callbacks.ensureKifuExportController = [this]() {
+    deps.ensureKifuExportController = [this]() {
         ensureKifuExportController();
     };
-    callbacks.updateKifuExportDependencies = [this]() {
+    deps.updateKifuExportDependencies = [this]() {
         updateKifuExportDeps();
     };
-    callbacks.createAndWireKifuLoadCoordinator = [this]() { createAndWireKifuLoadCoordinator(); };
-    callbacks.prepareKifuLoadCoordinatorForLive = [this]() {
-        prepareKifuLoadCoordinatorForLive();
+    deps.ensureKifuLoadCoordinator = [this]() -> KifuLoadCoordinator* {
+        ensureKifuLoadCoordinator();
+        return m_mw.m_kifuLoadCoordinator;
     };
-    callbacks.getGameRecordModel = [this]() { return m_mw.m_models.gameRecord; };
-    callbacks.getKifuExportController = [this]() { return m_mw.m_kifuExportController.get(); };
-    callbacks.getKifuLoadCoordinator = [this]() { return m_mw.m_kifuLoadCoordinator; };
 
-    m_mw.m_compositionRoot->ensureKifuFileController(refs, callbacks, &m_mw,
-        m_mw.m_kifuFileController);
+    // ゲッター
+    deps.getGameRecordModel = [this]() { return m_mw.m_models.gameRecord; };
+    deps.getKifuExportController = [this]() { return m_mw.m_kifuExportController.get(); };
+
+    m_mw.m_kifuFileController->updateDeps(deps);
 }
 
 // ---------------------------------------------------------------------------
@@ -214,7 +221,7 @@ void KifuSubRegistry::refreshGameRecordUpdateDeps()
     deps.liveGameSession = m_mw.m_branchNav.liveGameSession;
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
-    deps.sfenRecord = m_mw.m_queryService->sfenRecord();
+    deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
     m_mw.m_gameRecordUpdateService->updateDeps(deps);
 }
 
@@ -263,15 +270,6 @@ void KifuSubRegistry::refreshGameRecordLoadDeps()
 // ---------------------------------------------------------------------------
 // ライブ棋譜ロード
 // ---------------------------------------------------------------------------
-
-void KifuSubRegistry::prepareKifuLoadCoordinatorForLive()
-{
-    if (m_mw.m_kifuLoadCoordinator) {
-        return;
-    }
-
-    createAndWireKifuLoadCoordinator();
-}
 
 // ---------------------------------------------------------------------------
 // 棋譜モデル構築
@@ -373,18 +371,14 @@ void KifuSubRegistry::updateJosekiWindow()
 }
 
 // ---------------------------------------------------------------------------
-// KifuLoadCoordinator 生成ヘルパー
+// KifuLoadCoordinator（初回だけ生成）
 // ---------------------------------------------------------------------------
 
-void KifuSubRegistry::createAndWireKifuLoadCoordinator()
+void KifuSubRegistry::ensureKifuLoadCoordinator()
 {
-    // 既存があればシグナル発火を止めて遅延破棄
-    if (m_mw.m_kifuLoadCoordinator) {
-        m_mw.m_kifuLoadCoordinator->blockSignals(true);
-        m_mw.m_kifuLoadCoordinator->cancelLoad();
-        m_mw.m_kifuLoadCoordinator->deleteLater();
-        m_mw.m_kifuLoadCoordinator = nullptr;
-    }
+    // 一度作ったら作り直さない。読み込み中の別の読み込みは KifuLoadCoordinator 自身が打ち切る。
+    // 対局情報の表を作成時に受け取るので、初回の読み込み（対局情報の表ができた後）に作る
+    if (m_mw.m_kifuLoadCoordinator) return;
 
     // 配線先の遅延初期化
     ensureBranchNavigationWiring();
@@ -419,5 +413,24 @@ void KifuSubRegistry::createAndWireKifuLoadCoordinator()
 
 void KifuSubRegistry::updateKifuExportDeps()
 {
-    KifuExportDepsAssembler::assemble(m_mw.m_kifuExportController.get(), m_mw.buildRuntimeRefs());
+    KifuExportController* controller = m_mw.m_kifuExportController.get();
+    if (!controller) return;
+
+    KifuExportController::Dependencies deps;
+    deps.gameRecord = m_mw.m_models.gameRecord;
+    deps.kifuRecordModel = m_mw.m_models.kifuRecord;
+    deps.gameInfoController = m_mw.m_gameInfoController;
+    deps.timeController = m_mw.m_timeController;
+    deps.gameController = m_mw.m_gameController;
+    deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
+    deps.startSfenStr = m_mw.m_state.startSfenStr;
+    deps.playMode = m_mw.m_state.playMode;
+    deps.humanName1 = m_mw.m_player.humanName1;
+    deps.humanName2 = m_mw.m_player.humanName2;
+    deps.engineName1 = m_mw.m_player.engineName1;
+    deps.engineName2 = m_mw.m_player.engineName2;
+    const KifuNavigationState* nav = m_mw.m_branchNav.navState;
+    deps.activeResolvedRow = nav ? nav->currentLineIndex() : 0;
+    deps.currentMoveIndex = nav ? nav->currentPly() : 0;
+    controller->setDependencies(deps);
 }
