@@ -228,7 +228,7 @@ bool ShogiGameController::applyMove(const UsiMove& move, QString& record, int mo
     }
     const Piece captured = board()->pieceCharacter(move.to.file, move.to.rank);
 
-    // エンジン・通信対局の手も、人間の手と同じく合法手か確かめる（成り・不成も指し手どおりに判定する）
+    // エンジンの手も、人間の手と同じく合法手か確かめる（成り・不成も指し手どおりに判定する）
     const LegalMoveStatus status = legalStatus(move, mover, moving, captured);
     if (move.promote ? !status.promotingMoveExists : !status.nonPromotingMoveExists) {
         qCWarning(lcGame).noquote() << "applyMove: illegal move" << move.toString();

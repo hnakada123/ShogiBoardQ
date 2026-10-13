@@ -69,6 +69,8 @@
 | 2026-10-13 | 設定の保存を宣言の表（`Setting<T>`）に移したのに合わせて第1章・第7章・第9章・第11章・第12章・第16章・第17章・第18章を更新（設定項目はドメイン別ヘッダーに1行で宣言し、getter/setter の組を書かない。§12.5・§16.6・§17.5 を書き直し） |
 | 2026-10-13 | 盤（`ShogiBoard`）が駒を `Piece`、駒台を `QMap<Piece, int>` で持つのに合わせて §2.1〜§2.3・§5.2 を更新（`QChar` の盤と、削除した関数・手数のメンバーの記述を除く。駒台の0枚の表を共有することと、SFEN の盤の欄で内部の成駒の文字を読まないことを追記） |
 | 2026-10-14 | 合法手判定が `EngineMoveValidator`（内部は `fmv*`）になっているのに合わせて、`FastMoveValidator` の記述を直し、§2.2 の後半・§5.4・§6.6 を書き直し（§6.6 は今の `validateAndMove()`・`applyMove()`・`commitMove()` の流れとシグナル） |
+| 2026-10-14 | §15.2 指し手実行フローの図・役割の表・補足を今の流れに書き直し（着手要求は `BoardSetupController` が振り分け、盤の再描画は `ShogiBoard` のシグナル、棋譜の追記は `GameRecordUpdateService`。存在しない `boardChanged` シグナル・違法手の「エラー通知」・`decidePromotion()` などを削除） |
+| 2026-10-14 | 盤の着手の流れの記述を今のコードに合わせて更新（§3.5 のデータフロー概要、§6.2 の司令塔の責務の表、§6.7 の `TurnManager` の変換メソッド・`TurnSyncBridge` の接続・手番切替の図、§6.8 の PromotionFlow の呼ばれ方とソースの場所、§10.3 の BoardSetupController の処理フロー、§10.6 の UI層全体のデータフロー。存在しない `engineMoveOnce()`・`onHumanMove_HvE()`・`decidePromotion()`・`setMandatoryPromotionFlag()`・`squareClicked`・`TurnManager::setFromGc()` などを削除） |
 
 <!-- chapter-0-end -->
 
@@ -1180,7 +1182,7 @@ sequenceDiagram
     participant User as ユーザー
     participant SV as ShogiView<br/>(盤面描画)
     participant BIC as BoardInteraction<br/>Controller
-    participant MW as MainWindow<br/>(ハブ)
+    participant BSC as BoardSetup<br/>Controller
     participant SGC as ShogiGame<br/>Controller
     participant SB as ShogiBoard<br/>(盤面状態)
     participant MC as MatchCoordinator<br/>(司令塔)
@@ -1189,37 +1191,36 @@ sequenceDiagram
     participant EC as EvalChart<br/>(評価値)
 
     User->>SV: マウスクリック<br/>(駒選択→移動先)
-    SV->>BIC: squareClicked(QPoint)
-    BIC->>BIC: 合法手判定<br/>(EngineMoveValidator)
-    BIC->>MW: moveRequested(from, to)
-    MW->>SGC: applyMove(ShogiMove)
-    SGC->>SB: movePiece(from, to)
-    SB-->>SGC: 盤面更新完了
-    SGC-->>MW: moveCommitted(player, ply)
+    SV->>BIC: clicked(QPoint)
+    BIC->>BIC: 駒の選択と合法な移動先の表示<br/>(EngineMoveValidator)
+    BIC->>BSC: moveRequested(from, to)<br/>(MainWindow 経由)
+    BSC->>SGC: validateAndMove()
+    SGC->>SGC: 合法手判定・成り/不成の選択<br/>(EngineMoveValidator・PromotionFlow)
+    SGC->>SB: applyUsiMove()
+    SB-->>SV: dataChanged / standChanged<br/>(変わったマスを再描画)
+    SGC-->>BSC: 成功
+    BSC->>BIC: onMoveApplied()<br/>(移動元・移動先のハイライト)
+    BSC->>MC: onHumanMove()
+    MC->>RP: 棋譜行追加<br/>(GameRecordUpdateService)
 
-    par 並行更新
-        MW->>SV: 盤面再描画<br/>(BoardSyncPresenter)
-        MW->>RP: 棋譜行追加<br/>(RecordPresenter)
-        MW->>EC: 評価値更新<br/>(EvalGraphPresenter)
-        MW->>MC: notifyMove()
-        MC->>USI: position + go<br/>(エンジンへ送信)
-    end
-
+    MC->>USI: position + go<br/>(エンジンへ送信)
     USI-->>MC: bestmove<br/>(エンジンの応手)
-    MC->>SGC: applyMove(engineMove)
-    SGC-->>MW: moveCommitted(player, ply)
+    MC->>SGC: applyMove(UsiMove)
+    SGC->>SB: applyUsiMove()
+    MC->>RP: 棋譜行追加
+    MC->>EC: 評価値グラフ更新
 ```
 
 #### フロー解説
 
-1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`BoardInteractionController` に座標を通知する
-2. **合法手判定**: `BoardInteractionController` が `EngineMoveValidator` を使って合法手かどうかを判定する。成り/不成の選択が必要な場合は `PromotionFlow` が介入する
-3. **指し手の適用**: `MainWindow` 経由で `ShogiGameController` に指し手が渡され、`ShogiBoard` の盤面状態が更新される
-4. **表示の同期**: `moveCommitted` シグナルをトリガーに、MainWindowが以下を並行して更新する:
-   - `ShogiView`: 駒の再描画とハイライト表示（`BoardSyncPresenter` 経由）
-   - `RecordPane`: 棋譜行の追加と選択行の更新（`RecordPresenter` 経由）
-   - `EvaluationChartWidget`: 評価値グラフの更新
-5. **エンジン応答**: 対局モードの場合、`MatchCoordinator` がUSIエンジンに `position` + `go` コマンドを送信し、`bestmove` を受け取って次の指し手を適用する
+1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`clicked` シグナルで `BoardInteractionController` に盤の座標を通知する。1回目のクリックで駒を選び、設定により `EngineMoveValidator` で合法な移動先を光らせる
+2. **着手要求**: 2回目のクリックで `moveRequested` を発行する。`MainWindow` は `MainWindowServiceRegistry` を通して `BoardSetupController` に渡すだけである
+3. **合法手判定と適用**: `ShogiGameController::validateAndMove()` が `EngineMoveValidator` で合法手かを判定し、成り・不成の両方が合法なら `PromotionFlow` のダイアログで選ばせ、`ShogiBoard::applyUsiMove()` で盤を更新する
+4. **表示の同期**:
+   - `ShogiView`: `ShogiBoard` の `dataChanged`／`standChanged` シグナルで、変わったマスと駒台だけを描き直す。移動元・移動先のハイライトは `BoardInteractionController` が付ける
+   - `RecordPane`: 対局モードの Strategy が、考慮時間とともに `GameRecordUpdateService` で棋譜行を追加する
+   - `moveCommitted` シグナルでは、現在の局面・定跡ウィンドウ・駒音を更新する
+5. **エンジン応答**: 対エンジンの対局では、`MatchCoordinator` の Strategy がエンジンに `position` + `go` を送り、`bestmove` を `ShogiGameController::applyMove()` で指して、棋譜と評価値グラフを更新する
 
 #### 棋譜読み込みのデータフロー
 
@@ -2474,7 +2475,7 @@ game層（`src/game/`）は対局のライフサイクル全体を管理する�
 | **エンジン管理** | USIエンジンの生成・初期化・破棄（`initializeAndStartEngineFor()`, `destroyEngines()`） |
 | **手番管理** | 内部手番 `m_cur`（P1/P2）の管理と表示更新 |
 | **時間管理** | ShogiClock との連携、USI go コマンド用の時間計算 |
-| **指し手進行** | エンジン着手の適用（`engineMoveOnce()`）、人間着手後の処理（`onHumanMove_HvE()`, `onHumanMove_HvH()`） |
+| **指し手進行** | 人間の着手後の処理（`onHumanMove()`）とエンジンの初手（`startInitialEngineMoveIfNeeded()`）を、`MatchTurnHandler` を通して対局モードの Strategy（`HumanVsHumanStrategy`・`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）に渡す。エンジンの手は Strategy が `Usi::matchMoveReady` で受け取り、`ShogiGameController::applyMove()` で指す |
 | **終局判定** | 投了・時間切れ・中断・入玉宣言・持将棋の各終局パターンの処理 |
 | **棋譜記録** | 着手ごとの棋譜行追記、評価値追記の委譲 |
 | **UNDO** | 2手分（自分＋相手）の巻き戻し |
@@ -2870,32 +2871,30 @@ commitMove()
 **ソース**: `src/game/turnmanager.h`, `src/game/turnmanager.cpp`
 
 ```
-                    ┌───────────────────┐
-  GC.Player ─set()──▶│   TurnManager    │──toSfenToken()──▶ "b" / "w"
-                    │                   │
-  GC.Player ◀─toGc()─│   m_side         │──toClockPlayer()─▶ 1 / 2
-                    │ (Player1/Player2) │
-                    └─────────┬─────────┘
-                              │
-                         changed() [signal]
-                              │
-                              ▼
-                         MainWindow::onTurnManagerChanged()
+  set(Turn) / setFromSfenToken("b"/"w") / toggle()
+                    │
+                    ▼
+             ┌──────────────┐     side()          → Turn
+             │ TurnManager  │──── toSfenToken()   → "b" / "w"
+             │ m_side(Turn) │     toClockPlayer() → 1 / 2
+             └──────┬───────┘
+                    │ changed(Turn) [signal]
+                    ▼
+       MainWindow::onTurnManagerChanged()
 ```
 
 各変換メソッド:
 
 | メソッド | 方向 | 変換内容 |
 |---------|------|---------|
-| `setFromGc(Player)` | GC → TM | GC の Player 値を設定 |
-| `toGc()` | TM → GC | TM の値を GC の Player 形式で取得 |
+| `set(Turn)` | → TM | 手番を設定する（`ShogiGameController::currentPlayerChanged` から） |
+| `side()` | TM → | 今の手番（`Turn`）を返す |
 | `setFromSfenToken("b"/"w")` | SFEN → TM | SFEN の手番文字から設定 |
 | `toSfenToken()` | TM → SFEN | `"b"` または `"w"` を返す |
-| `setFromClockPlayer(1/2)` | Clock → TM | 時計の player 番号から設定 |
 | `toClockPlayer()` | TM → Clock | 1 または 2 を返す |
-| `toggle()` | — | 手番を反転（Player1 ↔ Player2） |
+| `toggle()` | — | 手番を反転（先手 ↔ 後手） |
 
-`set()` メソッドは Player2 以外を Player1 に正規化し、変更があった場合のみ `changed()` シグナルを発行する。
+`set()` は後手以外を先手にそろえ、値が変わったとき（と最初の設定のとき）だけ `changed()` シグナルを発行する。
 
 #### TurnSyncBridge — 手番同期の配線
 
@@ -2905,15 +2904,15 @@ commitMove()
 
 ```cpp
 // TurnSyncBridge::wire() が構築する接続
-GC::currentPlayerChanged ──▶ TurnManager::setFromGc
+GC::currentPlayerChanged ──▶ TurnManager::set
 TurnManager::changed     ──▶ MainWindow::onTurnManagerChanged
 ```
 
-`wire()` は `Qt::UniqueConnection` を使用して重複接続を防止し、呼び出し時に初期同期（`tm->setFromGc(gc->currentPlayer())`）も行う。
+`wire()` は `Qt::UniqueConnection` を使用して重複接続を防止し、呼び出し時に初期同期（`tm->set(gc->currentPlayer())`）も行う。
 
 #### 人間/エンジンの手番切替
 
-人間とエンジンの手番切替は MatchCoordinator が `PlayMode` に基づいて制御する。
+人間とエンジンの手番切替は、`MatchCoordinator` が対局モードごとに作る Strategy（`HumanVsHumanStrategy`・`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）が制御する。
 
 ```
                          対局中の指し手進行
@@ -2922,31 +2921,33 @@ TurnManager::changed     ──▶ MainWindow::onTurnManagerChanged
                    │                     │
               人間の着手              エンジンの着手
                    │                     │
-          validateAndMove()      engineMoveOnce()
-                   │                     │
-          changeCurrentPlayer()   changeCurrentPlayer()
-                   │                     │
-          GC::currentPlayerChanged  GC::currentPlayerChanged
-                   │                     │
-          TurnManager::setFromGc    TurnManager::setFromGc
-                   │                     │
+          validateAndMove()     Strategy::onEngineMoveReady()
+                   │               → applyMove()
                    └──────────┬──────────┘
                               │
-               次の手番は誰か？（PlayMode で判定）
+                         commitMove()
+                              │
+                  setCurrentPlayer(次の手番)
+                              │
+                  GC::currentPlayerChanged
+                              │
+                     TurnManager::set()
+                              │
+             次の手番は誰か？（Strategy が判定）
                               │
                    ┌──────────┴──────────┐
                    │                     │
               人間の手番            エンジンの手番
                    │                     │
-          盤面クリック待ち      go コマンド送信
-          タイマー起動          bestmove 待ち
+          盤面クリック待ち      position + go 送信
+          タイマー起動          bestmove（Usi::matchMoveReady）待ち
 ```
 
 ### 6.8 PromotionFlow — 成り/不成の選択
 
 `PromotionFlow` は駒の成り/不成をユーザーに問い合わせるシンプルなユーティリティクラスである。
 
-**ソース**: `src/game/promotionflow.h`, `src/game/promotionflow.cpp`
+**ソース**: `src/game/promotionflow.h`, `src/ui/coordinators/promotionflow.cpp`
 
 ```cpp
 class PromotionFlow final {
@@ -2958,10 +2959,10 @@ public:
 
 実装は `PromoteDialog`（成り/不成選択ダイアログ）を表示し、ユーザーの選択結果を返す。`QDialog::Accepted`（OK/成る）なら `true`、それ以外（Cancel/不成）なら `false` を返す。
 
-このクラスは `ShogiGameController` の `decidePromotion()` から呼ばれる。ただし以下の場合はダイアログを表示せずに自動判定される:
+このクラスは、`ShogiGameController::validateAndMove()` が成り・不成の両方とも合法な手で、成りの選び方の関数（`setPromotionChooser()` で渡す `DialogLaunchWiring::choosePromotion()`）を呼んだときに、`DialogCoordinator::showPromotionDialog()` から呼ばれる（6.6 節）。以下の場合はダイアログを表示しない:
 
-- **行き所のない駒**: 歩・桂・香が進めなくなる段に到達した場合は強制成り（`setMandatoryPromotionFlag()`）
-- **強制成りモード**: 定跡手からの着手時など、`setForcedPromotion()` で事前に成り/不成が決定されている場合
+- **行き所のない駒**: 成りだけが合法な手（歩・香が1段目、桂が1〜2段目へ動く手。後手は逆）は成る
+- **成り・不成の指定**: 定跡ウィンドウの手は、`setForcedPromotion()` で事前に成り・不成が決まっている
 
 ### 6.9 GameStateController — ゲーム状態管理
 
@@ -5191,25 +5192,27 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 
 ```
 setupBoardInteractionController()
-  └── BoardInteractionController を作成
-       └── ShogiView, GameController, PlayMode 等を注入
+  ├── 前の BoardInteractionController を切り離して破棄し、作り直す（ShogiView・ShogiGameController を渡す）
+  ├── connectBoardClicks()
+  │     ShogiView::clicked      → BoardInteractionController::onLeftClick
+  │     ShogiView::rightClicked → BoardInteractionController::onRightClick
+  └── Ctrl+ホイールで盤の大きさを変えるフィルタを付ける
 
-connectBoardClicks()
-  └── ShogiView::squareClicked → BoardInteractionController::onSquareClicked を接続
+onMoveRequested(from, to)    ← MainWindowServiceRegistry::handleMoveRequested() から
+  ├── 局面編集モード → PositionEditController::applyEditMove()
+  ├── 対局していないとき → 棋譜の変化として記録（コールバック経由）
+  └── それ以外 → ShogiGameController::validateAndMove()
+       ├── BoardInteractionController::onMoveApplied() でハイライトを更新
+       ├── HvH・HvE → MatchCoordinator::onHumanMove()
+       └── 通信対局 → csaMoveRequested シグナル発行
 
-connectMoveRequested()
-  └── BoardInteractionController::moveRequested → this::onMoveRequested を接続
-
-onMoveRequested(from, to)
-  ├── PlayMode が CSA の場合 → csaMoveRequested シグナル発行
-  └── それ以外 → ShogiGameController で指し手を適用
-       └── onMoveCommitted(mover, ply)
-            ├── 評価値グラフ更新（コールバック経由）
-            ├── 棋譜表示更新（コールバック経由）
-            └── 分岐ツリー更新（コールバック経由）
+onMoveCommitted(mover, ply)  ← MainWindowServiceRegistry::handleMoveCommitted() から
+  └── EvE のとき、指した側の評価値グラフを描き直す（コールバック経由）
 ```
 
-コールバック（`std::function`）は `setRedrawEngine1GraphCallback()` 等のメソッドで注入され、MainWindow の `ensure*()` による遅延初期化を経由してModel層にアクセスする。
+着手要求（`BoardInteractionController::moveRequested`）はこのクラスではつながない。`MainWindowSignalRouter::connectMoveRequested()` が `MainWindow::onMoveRequested` につなぎ、`MainWindowServiceRegistry::handleMoveRequested()` が `onMoveRequested()` を呼ぶ（15.2 節）。
+
+コールバック（`std::function`）は、`MainWindowServiceRegistry::ensureBoardSetupController()` が `setEnsurePositionEditCallback()`・`setVariationInputCallbacks()`・`setRedrawEngine1GraphCallback()` 等で渡す。
 
 #### EvaluationGraphController — 評価値グラフ
 
@@ -5567,28 +5570,35 @@ finishPositionEditing()
 ユーザーが盤面をクリック
   │
   ▼ [View層]
-ShogiView::squareClicked(point)
+ShogiView::clicked(point) シグナル
   │
-  ▼ [Wiring: BoardSetupController が接続済み]
-BoardInteractionController::onSquareClicked(point)
-  │  （内部で移動元/移動先を判定）
+  ▼ [Wiring: BoardSetupController::connectBoardClicks() が接続]
+BoardInteractionController::onLeftClick(point)
+  │  （1回目で駒を選び、2回目で移動先を決める）
   ▼
 BoardInteractionController::moveRequested(from, to) シグナル
   │
+  ▼ [Wiring: MainWindowSignalRouter::connectMoveRequested() が接続]
+MainWindow::onMoveRequested(from, to)
+  │  └── MainWindowServiceRegistry::handleMoveRequested()
   ▼ [Controller]
 BoardSetupController::onMoveRequested(from, to)
-  │  └── ShogiGameController::applyMove()  ← Model層
-  ▼
-BoardSetupController::onMoveCommitted(mover, ply)
   │
-  ├── [Presenter] BoardSyncPresenter::syncBoardAndHighlightsAtRow(ply)
-  │     └── ShogiView に盤面描画 + ハイライト
+  ├── ShogiGameController::validateAndMove()  ← Model層
+  │     ├── ShogiBoard::applyUsiMove()
+  │     │     └── [View] ShogiView が dataChanged / standChanged で変わったマスを再描画
+  │     └── moveCommitted(mover, ply) シグナル
+  │           └── MainWindow::onMoveCommitted() → MainWindowServiceRegistry::handleMoveCommitted()
+  │                 ├── [Controller] BoardSetupController::onMoveCommitted()（EvE なら評価値グラフを再描画）
+  │                 ├── [Service] GameRecordUpdateService::updateCurrentSfenAfterMove()
+  │                 └── 定跡ウィンドウの更新
   │
-  ├── [Presenter] GameRecordPresenter::appendMoveLine(move, time)
-  │     └── RecordPane に棋譜行追加
+  ├── [Controller] BoardInteractionController::onMoveApplied(from, to, ok)
+  │     └── 移動元・移動先のハイライト（違法手なら駒の選択を解除）
   │
-  └── [Controller] EvaluationGraphController::redrawEngine1Graph(ply)
-        └── EvaluationChartWidget を再描画
+  └── MatchCoordinator::onHumanMove()  ← game層
+        └── Strategy → [Service] GameRecordUpdateService::appendKifuLine()
+              └── RecordPane（棋譜欄）に棋譜行追加
 ```
 
 <!-- chapter-10-end -->
@@ -7379,45 +7389,50 @@ sequenceDiagram
     participant SV as ShogiView
     participant BIC as BoardInteractionController
     participant MW as MainWindow
+    participant BSC as BoardSetupController
     participant SGC as ShogiGameController
     participant MV as EngineMoveValidator
     participant SB as ShogiBoard
-    participant KRM as KifuRecordListModel
     participant MC as MatchCoordinator
+    participant GRU as GameRecordUpdateService
     participant USI as Usi
 
     User->>SV: 盤面クリック（1回目: 駒選択）
-    SV-->>BIC: leftClicked シグナル
+    SV-->>BIC: clicked シグナル → onLeftClick()
     BIC->>BIC: selectPieceAndHighlight()
-    Note over BIC: オレンジ色でハイライト表示
+    Note over BIC: オレンジ色でハイライト表示<br/>（設定により合法な移動先も表示）
 
     User->>SV: 盤面クリック（2回目: 移動先指定）
-    SV-->>BIC: leftClicked シグナル
+    SV-->>BIC: clicked シグナル → onLeftClick()
     BIC-->>MW: moveRequested(from, to) シグナル
+    MW->>BSC: onMoveRequested()<br/>（MainWindowServiceRegistry 経由）
 
-    MW->>SGC: validateAndMove()
-    SGC->>SB: 盤の配列と駒台を取得
+    BSC->>SGC: validateAndMove()
     SGC->>MV: isLegalMove()（盤の配列・駒台・指し手）
     MV-->>SGC: 成り・不成それぞれの合法性
 
     alt 合法手の場合
-        SGC->>SB: 駒移動・盤面更新
-        SGC-->>SV: boardChanged シグナル
-        SV->>SV: 盤面再描画
+        SGC->>SB: applyUsiMove()
+        SB-->>SV: dataChanged / standChanged シグナル
+        SV->>SV: 変わったマス・駒台を再描画
         SGC-->>MW: moveCommitted シグナル
-        MW->>KRM: 棋譜1行追記
-        MW->>BIC: showMoveHighlights(from, to)
+        Note over MW: 現在の局面・定跡ウィンドウを更新<br/>（駒音は PieceSoundPlayer）
+        SGC-->>BSC: true
+        BSC->>BIC: onMoveApplied(from, to, true)
         Note over BIC: 赤(移動元)/黄(移動先)ハイライト
+        BSC->>MC: onHumanMove(from, to, 棋譜の文字列)
+        MC->>GRU: appendKifuLine()（考慮時間つきで棋譜欄に追記）
 
         alt エンジン手番（HvEモード）
-            MC->>MC: onHumanMove_HvE(from, to)
-            MC->>USI: go (時間パラメータ)
-            USI-->>MC: bestMoveReceived シグナル
-            MC->>SGC: 盤面にエンジン手を適用
-            MC->>KRM: エンジン手を棋譜追記
+            MC->>USI: requestHumanReply()（position + go）
+            USI-->>MC: matchMoveReady シグナル（bestmove）
+            MC->>SGC: applyMove()（合法手か確かめてから指す）
+            MC->>GRU: エンジンの手を棋譜欄に追記
         end
     else 違法手の場合
-        SGC-->>MW: エラー通知
+        SGC-->>BSC: false（盤は変わらない）
+        BSC->>BIC: onMoveApplied(from, to, false)
+        Note over BIC: 駒の選択とドラッグを解除
     end
 ```
 
@@ -7427,15 +7442,18 @@ sequenceDiagram
 |--------|------|
 | `ShogiView` | Qt Graphics Viewベースの盤面描画とマウスイベントの発行 |
 | `BoardInteractionController` | 2クリック方式の駒選択・移動要求、ハイライト管理 |
+| `BoardSetupController` | 着手要求を受け、モード（局面編集・棋譜の変化の入力・対局）ごとに振り分ける |
 | `ShogiGameController` | 指し手の検証と盤面更新の実行 |
 | `EngineMoveValidator` | 合法手判定ロジック（王手放置、二歩、打ち歩詰め、行き所のない駒等を検査） |
 | `ShogiBoard` | 9x9盤面 + 駒台のデータモデル |
-| `KifuRecordListModel` | 棋譜欄の表示モデル |
+| `GameRecordUpdateService` | 棋譜欄（`KifuRecordListModel`）への追記とライブセッションの更新 |
 
 **補足:**
-- 成り/不成の判定は `ShogiGameController::decidePromotion()` が担当する。成り可能な移動の場合、ダイアログで選択を促す
-- HvEモードでは `MatchCoordinator::onHumanMove_HvE()` が人間の着手後にエンジンへgoコマンドを送信し、`bestMoveReceived`シグナルでエンジンの応手を受け取る
-- HvHモードでは手番が交互に切り替わるのみで、エンジン通信は発生しない
+- `MainWindow` は着手要求を `MainWindowServiceRegistry::handleMoveRequested()` に渡すだけで、判定と後処理は `BoardSetupController::onMoveRequested()` が行う
+- 成り・不成は `ShogiGameController::validateAndMove()` が決める。両方とも合法なら成りダイアログ（`setPromotionChooser()` で渡す `DialogLaunchWiring::choosePromotion()`）で選ばせ、成りだけが合法（行き所のない駒）なら成る（6.6 節）
+- `MatchCoordinator::onHumanMove()` は `MatchTurnHandler` を通して対局モードの Strategy（HvE なら `HumanVsEngineStrategy`）に渡す。HvE では考慮時間を確定して棋譜に追記したあと、`Usi::requestHumanReply()` でエンジンに position と go を送り、`matchMoveReady` シグナルで応手を受け取る
+- HvHモードでは Strategy が考慮時間と棋譜を記録し、手番が交互に切り替わるだけで、エンジンとの通信はない。通信対局では `BoardSetupController` が `csaMoveRequested` シグナルで手をサーバーへ送る
+- 対局していないときに盤で指した手は、`BranchTreeEditController::recordBoardMove()` が棋譜の変化として記録する
 
 ---
 

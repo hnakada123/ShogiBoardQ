@@ -158,8 +158,8 @@ void BoardSetupController::setupBoardInteractionController()
     // 盤クリックの配線
     connectBoardClicks();
 
-    // NOTE: connectMoveRequested()はMainWindow側で呼び出す
-    // （MainWindowが最新のm_playModeとm_matchを設定してから委譲するため）
+    // 着手要求（moveRequested）はここではつながない。MainWindowSignalRouter::connectMoveRequested() が
+    // MainWindow につなぎ、MainWindowServiceRegistry::handleMoveRequested() が onMoveRequested() を呼ぶ
 
     // 既定モード
     m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
@@ -185,19 +185,6 @@ void BoardSetupController::connectBoardClicks()
     QObject::connect(m_shogiView, &ShogiView::rightClicked,
                      m_boardController, &BoardInteractionController::onRightClick,
                      Qt::UniqueConnection);
-}
-
-void BoardSetupController::connectMoveRequested()
-{
-    if (!m_boardController) {
-        qCWarning(lcUi) << "connectMoveRequested: missing boardController";
-        return;
-    }
-
-    QObject::connect(
-        m_boardController, &BoardInteractionController::moveRequested,
-        this,              &BoardSetupController::onMoveRequested,
-        Qt::UniqueConnection);
 }
 
 // --------------------------------------------------------
