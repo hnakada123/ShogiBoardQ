@@ -7,38 +7,61 @@
 #include "parsecommon.h"
 #include "sfenutils.h"
 
+namespace {
+
+// JKF の手合割（initial.preset）と開始局面
+struct PresetEntry { const char* key; const char* sfen; };
+constexpr PresetEntry kPresets[] = {
+    {"HIRATE",  SfenUtils::kHirateSfen},
+    {"KY",      "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"KY_R",    "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"KA",      "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"HI",      "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"HIKY",    "lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"2",       "lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"3",       "lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"4",       "1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"5",       "2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"5_L",     "1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"6",       "2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"7_L",     "2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"7_R",     "3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"8",       "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {"10",      "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+};
+
+// JKF の relative の記号と KI2 の修飾語（並びは修飾語にするときの順）
+struct RelativeEntry { char letter; char16_t modifier; };
+constexpr RelativeEntry kRelatives[] = {
+    {'L', u'左'}, {'C', u'直'}, {'R', u'右'}, {'U', u'上'}, {'M', u'寄'}, {'D', u'引'}, {'H', u'打'},
+};
+
+} // namespace
+
 namespace JkfMoveParser {
 
 // --- プリセット・初期局面 ---
 
 QString presetToSfen(const QString& preset)
 {
-    struct Pair { const char* key; const char* sfen; };
-    static const Pair tbl[] = {
-        {"HIRATE",  SfenUtils::kHirateSfen},
-        {"KY",      "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"KY_R",    "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"KA",      "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"HI",      "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"HIKY",    "lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"2",       "lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"3",       "lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"4",       "1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"5",       "2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"5_L",     "1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"6",       "2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"7_L",     "2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"7_R",     "3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"8",       "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"10",      "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    };
-
-    for (const auto& p : tbl) {
-        if (preset == QString::fromUtf8(p.key)) {
-            return QString::fromUtf8(p.sfen);
+    for (const auto& p : kPresets) {
+        if (preset == QLatin1String(p.key)) {
+            return QString::fromLatin1(p.sfen);
         }
     }
     return SfenUtils::hirateSfen();
+}
+
+QString presetFromSfen(const QString& sfen)
+{
+    if (sfen.trimmed().isEmpty()) return QStringLiteral("HIRATE");
+    const QString key = SfenUtils::normalizeSfenKey(sfen);
+    for (const auto& p : kPresets) {
+        if (SfenUtils::normalizeSfenKey(QString::fromLatin1(p.sfen)) == key) {
+            return QString::fromLatin1(p.key);
+        }
+    }
+    return {};
 }
 
 QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)
@@ -336,14 +359,21 @@ QString extractCommentsFromMoveObj(const QJsonObject& moveObj)
 QString relativeToModifier(const QString& relative)
 {
     QString mod;
-    if (relative.contains(QLatin1Char('L'))) mod += QStringLiteral("左");
-    if (relative.contains(QLatin1Char('C'))) mod += QStringLiteral("直");
-    if (relative.contains(QLatin1Char('R'))) mod += QStringLiteral("右");
-    if (relative.contains(QLatin1Char('U'))) mod += QStringLiteral("上");
-    if (relative.contains(QLatin1Char('M'))) mod += QStringLiteral("寄");
-    if (relative.contains(QLatin1Char('D'))) mod += QStringLiteral("引");
-    if (relative.contains(QLatin1Char('H'))) mod += QStringLiteral("打");
+    for (const auto& entry : kRelatives) {
+        if (relative.contains(QLatin1Char(entry.letter))) mod += QChar(entry.modifier);
+    }
     return mod;
+}
+
+QString modifierToRelative(QStringView modifiers)
+{
+    QString relative;
+    for (const QChar ch : modifiers) {
+        for (const auto& entry : kRelatives) {
+            if (ch == QChar(entry.modifier)) relative += QLatin1Char(entry.letter);
+        }
+    }
+    return relative;
 }
 
 QString specialToJapanese(const QString& special)

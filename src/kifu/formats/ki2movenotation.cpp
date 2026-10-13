@@ -149,6 +149,33 @@ std::optional<UsiMove> resolve(const Ki2Lexer::MoveText& text, const ShogiBoard&
                         text, board, to, mover);
 }
 
+Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move)
+{
+    const Piece moving = move.isDrop() ? move.drop : toBlack(pieceAt(board, move.from));
+
+    // 読み込みと同じく、反則手は駒の動きだけで決めた手の中で区別する
+    const EngineMoveValidator validator;
+    QList<UsiMove> moves = validator.legalMoves(mover, board.boardData(), board.pieceStand());
+    if (!moves.contains(move)) moves = validator.pseudoLegalMoves(mover, board.boardData(), board.pieceStand());
+
+    // 同じ駒で同じマスへ動ける移動元（成り・不成は区別しない）
+    QList<BoardSquare> sources;
+    Annotation annotation;
+    for (const UsiMove& candidate : std::as_const(moves)) {
+        if (candidate.isDrop() || candidate.to != move.to) continue;
+        if (toBlack(pieceAt(board, candidate.from)) != moving) continue;
+        if (!sources.contains(candidate.from)) sources.append(candidate.from);
+        if (!move.isDrop() && candidate.from == move.from && candidate.promote) annotation.canPromote = true;
+    }
+
+    if (move.isDrop()) {
+        if (!sources.isEmpty()) annotation.modifiers = QStringLiteral("打");
+    } else {
+        annotation.modifiers = modifierFor(sources, move.from, move.to, moving, mover);
+    }
+    return annotation;
+}
+
 QString format(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
 {
     const Piece moving = move.isDrop() ? move.drop : toBlack(pieceAt(board, move.from));
@@ -161,28 +188,11 @@ QString format(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSq
     }
     text += ShogiNotation::movePieceName(moving);
 
-    // 読み込みと同じく、反則手は駒の動きだけで決めた手の中で区別する
-    const EngineMoveValidator validator;
-    QList<UsiMove> moves = validator.legalMoves(mover, board.boardData(), board.pieceStand());
-    if (!moves.contains(move)) moves = validator.pseudoLegalMoves(mover, board.boardData(), board.pieceStand());
-
-    // 同じ駒で同じマスへ動ける移動元（成り・不成は区別しない）
-    QList<BoardSquare> sources;
-    bool canPromote = false;
-    for (const UsiMove& candidate : std::as_const(moves)) {
-        if (candidate.isDrop() || candidate.to != move.to) continue;
-        if (toBlack(pieceAt(board, candidate.from)) != moving) continue;
-        if (!sources.contains(candidate.from)) sources.append(candidate.from);
-        if (candidate.from == move.from && candidate.promote) canPromote = true;
-    }
-
-    if (move.isDrop()) {
-        return sources.isEmpty() ? text : text + QStringLiteral("打");
-    }
-    text += modifierFor(sources, move.from, move.to, moving, mover);
+    const Annotation annotation = annotate(board, mover, move);
+    text += annotation.modifiers;
     if (move.promote) {
         text += QStringLiteral("成");
-    } else if (canPromote) {
+    } else if (annotation.canPromote) {
         text += QStringLiteral("不成");
     }
     return text;

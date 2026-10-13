@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QString>
+#include <QStringView>
 
 namespace JkfMoveParser {
 
@@ -14,6 +15,10 @@ namespace JkfMoveParser {
 
 /// JKF preset名（"HIRATE","KY"等）→ SFEN文字列
 QString presetToSfen(const QString& preset);
+
+/// SFEN文字列 → JKF preset名。盤・手番・持ち駒が手合割の開始局面と同じときだけ返す（空のSFENは平手）。
+/// どの手合割でもなければ空文字列（initial.data で局面を書く）
+QString presetFromSfen(const QString& sfen);
 
 /// initial.data から局面SFENを構築（カスタム初期局面用）
 QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber = 1);
@@ -52,6 +57,9 @@ QString extractCommentsFromMoveObj(const QJsonObject& moveObj);
 
 /// JKF relative 文字列から修飾語（右/左/上/引/寄/直/打）を生成
 QString relativeToModifier(const QString& relative);
+
+/// 修飾語（右/左/上/引/寄/直/打。"左上" のように並べたもの）から JKF relative 文字列（"LU"）を生成
+QString modifierToRelative(QStringView modifiers);
 
 /// 終局語を日本語に変換（parsecommon に委譲）
 QString specialToJapanese(const QString& special);
