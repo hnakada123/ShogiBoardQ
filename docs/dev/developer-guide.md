@@ -67,6 +67,7 @@
 | 2026-02-08 | 第18章「用語集・索引」作成 |
 | 2026-10-13 | 配線層の整理に合わせて第1章・第4章・第6章・第8章・第14章・第18章を更新（司令塔と棋譜読み込み担当は一度だけ作る。`MainWindowCompositionRoot` などの中継層を削除し、生成はレジストリに集約） |
 | 2026-10-13 | 設定の保存を宣言の表（`Setting<T>`）に移したのに合わせて第1章・第7章・第9章・第11章・第12章・第16章・第17章・第18章を更新（設定項目はドメイン別ヘッダーに1行で宣言し、getter/setter の組を書かない。§12.5・§16.6・§17.5 を書き直し） |
+| 2026-10-13 | 盤（`ShogiBoard`）が駒を `Piece`、駒台を `QMap<Piece, int>` で持つのに合わせて §2.1〜§2.3・§5.2 を更新（`QChar` の盤と、削除した関数・手数のメンバーの記述を除く。駒台の0枚の表を共有することと、SFEN の盤の欄で内部の成駒の文字を読まないことを追記） |
 
 <!-- chapter-0-end -->
 
@@ -539,11 +540,11 @@ inline QString rankKanji(int rank)
 ```cpp
 // src/core/shogimove.h
 struct ShogiMove {
-    QPoint fromSquare;   // 移動元（盤上:0-8、駒台:9=先手,10=後手）
-    QPoint toSquare;     // 移動先（0-8）
-    QChar movingPiece;   // 動かした駒（SFEN表記）
-    QChar capturedPiece; // 取った駒（なければ ' '）
-    bool isPromotion;    // 成りフラグ
+    QPoint fromSquare{0, 0};            // 移動元（盤上:0-8、駒台:9=先手,10=後手）
+    QPoint toSquare{0, 0};              // 移動先（0-8）
+    Piece movingPiece = Piece::None;    // 動かした駒
+    Piece capturedPiece = Piece::None;  // 取った駒（なければ Piece::None）
+    bool isPromotion = false;           // 成りフラグ
 };
 ```
 
@@ -561,7 +562,7 @@ move.to = BoardSquare{toSquare.x() + 1, toSquare.y() + 1};  // 0-indexed → 1-i
 // 段の 'a'〜'i' への変換は UsiMove::toString()（src/core/usimove.h）が行う
 ```
 
-`ShogiBoard` の盤面データは1次元配列 `QVector<QChar> m_boardData`（81要素）で保持される。
+`ShogiBoard` の盤面データは1次元配列 `QList<Piece> m_boardData`（81要素）で保持される。
 
 ```cpp
 // src/core/shogiboard.cpp — インデックス計算
@@ -596,56 +597,74 @@ int index = (rank - 1) * files() + (file - 1);  // 1-indexed の file, rank か�
 
 #### 成駒の表現
 
-SFEN標準では成駒を `+` 接頭辞で表すが、本プロジェクトではコード内部で1文字に変換して扱う。
+SFEN標準では成駒を `+` 接頭辞で表す。コード内部では、駒を列挙型 `Piece`（`src/core/shogitypes.h`）で持ち、成駒もそれぞれ1つの値にする。
+`Piece` の値は1文字（`char`）で、成駒には SFEN にない文字を当てている。
 
-| 成駒名 | 日本語 | SFEN標準 | 内部文字（先手） | 内部文字（後手） |
-|--------|--------|---------|----------------|----------------|
-| と金 | Promoted Pawn | `+P` / `+p` | `Q` | `q` |
-| 成香 | Promoted Lance | `+L` / `+l` | `M` | `m` |
-| 成桂 | Promoted Knight | `+N` / `+n` | `O` | `o` |
-| 成銀 | Promoted Silver | `+S` / `+s` | `T` | `t` |
-| 馬 | Horse (Promoted Bishop) | `+B` / `+b` | `C` | `c` |
-| 龍 | Dragon (Promoted Rook) | `+R` / `+r` | `U` | `u` |
+| 成駒名 | 日本語 | SFEN標準 | `Piece`（先手） | `Piece`（後手） | 値の文字 |
+|--------|--------|---------|----------------|----------------|---------|
+| と金 | Promoted Pawn | `+P` / `+p` | `BlackPromotedPawn` | `WhitePromotedPawn` | `Q` / `q` |
+| 成香 | Promoted Lance | `+L` / `+l` | `BlackPromotedLance` | `WhitePromotedLance` | `M` / `m` |
+| 成桂 | Promoted Knight | `+N` / `+n` | `BlackPromotedKnight` | `WhitePromotedKnight` | `O` / `o` |
+| 成銀 | Promoted Silver | `+S` / `+s` | `BlackPromotedSilver` | `WhitePromotedSilver` | `T` / `t` |
+| 馬 | Horse (Promoted Bishop) | `+B` / `+b` | `BlackHorse` | `WhiteHorse` | `C` / `c` |
+| 龍 | Dragon (Promoted Rook) | `+R` / `+r` | `BlackDragon` | `WhiteDragon` | `U` / `u` |
 
 > **金将と玉将には成駒がない。**
 
-この変換は `ShogiBoard::trySetSfen()` が盤の欄を読むときに行う（`shogiboard_sfen.cpp` の `boardPieceAt`）。
-`+` の次の駒を `promote()` で成駒にし、成れない駒（金・玉）や駒でない文字に `+` が付いていれば不正な SFEN として読まない。
+値の文字は内部だけのもので、SFEN では使わない。`pieceToChar()`・`charToPiece()` が `Piece` と文字を変換し、
+`promote()`・`demote()` が成駒と元の駒を、`toBlack()`・`toWhite()` が先後を変換する。
 
-逆変換（内部文字 → SFEN文字列）は `convertPieceToSfen()` が担う。
+SFEN から `Piece` への変換は、`ShogiBoard::trySetSfen()` が盤の欄を読むときに行う（`shogiboard_sfen.cpp` の `boardPieceAt`）。
+`+` の次の駒を `promote()` で成駒にする。成れない駒（金・玉）や駒でない文字に `+` が付いているとき、
+内部の文字（`Q`・`c` など）が盤の欄にあるときは、不正な SFEN として読まない。
+
+逆変換（`Piece` → SFEN文字列）は `convertPieceToSfen()` が担う。
 
 ```cpp
-// src/core/shogiboard.cpp
-QString ShogiBoard::convertPieceToSfen(const QChar piece) const
+// src/core/shogiboard_sfen.cpp
+QString ShogiBoard::convertPieceToSfen(const Piece piece) const
 {
-    static const QMap<QChar, QString> sfenMap = {
-        {'Q', "+P"}, {'M', "+L"}, {'O', "+N"}, {'T', "+S"},
-        {'C', "+B"}, {'U', "+R"}, {'q', "+p"}, {'m', "+l"},
-        {'o', "+n"}, {'t', "+s"}, {'c', "+b"}, {'u', "+r"}
+    static const QMap<Piece, QString> sfenMap = {
+        {Piece::BlackPromotedPawn, "+P"}, {Piece::BlackPromotedLance, "+L"},
+        {Piece::BlackPromotedKnight, "+N"}, {Piece::BlackPromotedSilver, "+S"},
+        {Piece::BlackHorse, "+B"}, {Piece::BlackDragon, "+R"},
+        {Piece::WhitePromotedPawn, "+p"}, {Piece::WhitePromotedLance, "+l"},
+        {Piece::WhitePromotedKnight, "+n"}, {Piece::WhitePromotedSilver, "+s"},
+        {Piece::WhiteHorse, "+b"}, {Piece::WhiteDragon, "+r"}
     };
-    return sfenMap.contains(piece) ? sfenMap.value(piece) : QString(piece);
+
+    return sfenMap.contains(piece) ? sfenMap.value(piece) : QString(pieceToChar(piece));
 }
 ```
 
 #### 駒台（持ち駒）
 
-駒台は `QMap<QChar, int>` で管理される。キーは駒文字、値は枚数。
+駒台は `QMap<Piece, int>` で管理される。キーは駒、値は枚数。局面編集で玉も駒台に置けるため、玉を含む先後16種を常に持つ。
+
+16種を0枚で持つ表は、すべての盤で共有する。`QMap` は暗黙の共有なので、枚数を書き換えたときに初めてその盤の表が作られる。
+盤を作るたびに16個を挿入しないための工夫で、一時的な盤を作る処理（`SfenDiffUtils::diffBoards()` など）を軽くしている。
 
 ```cpp
 // src/core/shogiboard.cpp — initStand()
-static const QList<QChar> pieces = {'p', 'l', 'n', 's', 'g', 'b', 'r', 'k',
-                                    'P', 'L', 'N', 'S', 'G', 'B', 'R', 'K'};
+void ShogiBoard::initStand()
+{
+    m_pieceStand = emptyStand();  // 16種を0枚で持つ、共有の表
+}
 ```
 
 駒を取ったとき、成駒は元の駒に変換して相手の駒台に加える。
 
 ```cpp
 // src/core/shogiboard.cpp — convertPieceChar()
-// 成駒は相手の生駒に変換し、それ以外は大文字/小文字を反転する
-static const QMap<QChar, QChar> conversionMap = {
-    {'Q', 'p'}, {'M', 'l'}, {'O', 'n'}, {'T', 's'}, {'C', 'b'}, {'U', 'r'},
-    {'q', 'P'}, {'m', 'L'}, {'o', 'N'}, {'t', 'S'}, {'c', 'B'}, {'u', 'R'}
-};
+// 成駒は相手の生駒に変換し、それ以外は先後を反転する
+Piece ShogiBoard::convertPieceChar(const Piece c) const
+{
+    if (isPromoted(c)) {
+        Piece base = demote(c);
+        return isBlackPiece(base) ? toWhite(base) : toBlack(base);
+    }
+    return isBlackPiece(c) ? toWhite(c) : toBlack(c);
+}
 ```
 
 #### 全駒リストと PieceType 列挙
@@ -719,11 +738,11 @@ inline QString normalizeStart(const QString& startPositionStr)
 
 #### 盤面フィールド
 
-盤面は `/` で9段に区切られ、各段は9一（左上、筋9）から1一（右上、筋1）へ**右から左**に読む。
+盤面は `/` で9段に区切られ、各段は9一（左上、筋9）から1一（右上、筋1）へ**左から右**に読む（筋は9→1の順）。
 
 - アルファベット文字: 駒（大文字=先手、小文字=後手）
 - 数字（1〜9）: 連続する空マスの数
-- `+`: 直後の駒文字が成駒であることを示す（`+P` = と金）
+- `+`: 直後の駒文字が成駒であることを示す（`+P` = と金）。成れる駒（歩・香・桂・銀・角・飛）にだけ付けられる
 
 ```
 lnsgkgsnl    ← 1段目: 後手の 香桂銀金玉金銀桂香
@@ -735,22 +754,22 @@ PPPPPPPPP    ← 7段目: 先手の歩×9
 LNSGKGSNL    ← 9段目: 先手の 香桂銀金玉金銀桂香
 ```
 
-SFEN文字列の検証は `ShogiBoard::validateSfenString()` で行われる。
+SFEN文字列を4つの欄に分けて確かめるのは、`shogiboard_sfen.cpp` の `splitSfenFields()` である
+（`ShogiBoard::parseSfen()` と `ShogiBoard::trySetSfen()` が使う）。欄が4つでない、手番が `b`・`w` でない、
+手数が1以上の整数でない SFEN は読まない。手数は確かめるだけで、`ShogiBoard` には残さない
+（必要なら `parseSfen()` の結果の `SfenComponents::moveNumber` で読める）。
 
 ```cpp
-// src/core/shogiboard.cpp
-void ShogiBoard::validateSfenString(const QString& sfenStr,
-                                     QString& sfenBoardStr, QString& sfenStandStr)
+// src/core/shogiboard_sfen.cpp
+struct SfenFields
 {
-    QStringList sfenComponents = sfenStr.split(" ");
-    if (sfenComponents.size() != 4) {
-        // エラー: SFEN文字列は4要素で構成される必要がある
-    }
-    sfenBoardStr = sfenComponents.at(0);         // 盤面
-    m_currentPlayer = sfenComponents.at(1);       // 手番 "b" or "w"
-    sfenStandStr = sfenComponents.at(2);          // 持ち駒
-    m_currentMoveNumber = sfenComponents.at(3).toInt(); // 手数
-}
+    QStringView board;          // 盤の欄（元の文字列を指す）
+    QStringView stand;          // 持駒の欄
+    Turn turn = Turn::Black;    // 手番
+    int moveNumber = 0;         // 手数
+};
+
+std::optional<SfenFields> splitSfenFields(const QString& sfenStr);
 ```
 
 #### 持ち駒フィールド
@@ -765,21 +784,21 @@ void ShogiBoard::validateSfenString(const QString& sfenStr,
 | `RB2S3P2p` | 先手: 飛1 角1 銀2 歩3、後手: 歩2 |
 | `10P` | 先手の歩10枚（2桁にも対応） |
 
-出力順序は `R B G S N L P`（先手 → 後手）の順。
+出力は先手の駒をすべて書いてから後手の駒を書く。どちらも `R B G S N L P`（飛・角・金・銀・桂・香・歩）の順。
 
 ```cpp
-// src/core/shogiboard.cpp — convertStandToSfen()
-QList<QChar> keys = {'R', 'B', 'G', 'S', 'N', 'L', 'P'};
-for (const auto& key : keys) {
-    // 先手
-    int value = m_pieceStand.value(key, 0);
-    if (value > 0) {
-        handPiece += (value > 1 ? QString::number(value) : "") + convertPieceToSfen(key);
-    }
-    // 後手（小文字）
-    value = m_pieceStand.value(key.toLower(), 0);
-    if (value > 0) {
-        handPiece += (value > 1 ? QString::number(value) : "") + convertPieceToSfen(key.toLower());
+// src/core/shogiboard_sfen.cpp — convertStandToSfen()
+static const QList<Piece> keys = {
+    Piece::BlackRook, Piece::BlackBishop, Piece::BlackGold,
+    Piece::BlackSilver, Piece::BlackKnight, Piece::BlackLance, Piece::BlackPawn
+};
+for (const bool white : {false, true}) {
+    for (const auto& blackKey : keys) {
+        const Piece key = white ? toWhite(blackKey) : blackKey;
+        const int value = m_pieceStand.value(key, 0);
+        if (value > 0) {
+            handPiece += (value > 1 ? QString::number(value) : QString()) + convertPieceToSfen(key);
+        }
     }
 }
 return handPiece.isEmpty() ? "-" : handPiece;
@@ -1981,64 +2000,69 @@ src/core/
 
 ### 5.2 ShogiBoard — 盤面データ管理
 
-`ShogiBoard` は将棋盤の現在局面（駒配置・駒台・手番・手数）を保持し、SFEN文字列との相互変換を行う中核クラスである。
+`ShogiBoard` は将棋盤の現在局面（駒配置・駒台・手番）を保持し、SFEN文字列との相互変換を行う中核クラスである。
 
-**ソース**: `src/core/shogiboard.h`, `src/core/shogiboard.cpp`
+**ソース**: `src/core/shogiboard.h`、`src/core/shogiboard.cpp`（盤面アクセス・駒台）、`src/core/shogiboard_sfen.cpp`（SFEN の入出力）、`src/core/shogiboard_edit.cpp`（局面編集・駒箱）
 
 #### データ構造
 
 ```
-┌──────────────────────────────────────────────┐
-│  ShogiBoard                                  │
-│                                              │
-│  m_boardData : QVector<QChar>  [81要素]       │
-│  ┌─────────────────────────┐                 │
-│  │ index = rank * 9 + file │                 │
-│  │ file: 0-8 (9筋→1筋)     │                 │
-│  │ rank: 0-8 (1段→9段)     │                 │
-│  └─────────────────────────┘                 │
-│                                              │
-│  m_pieceStand : QMap<QChar, int>             │
-│  ┌─────────────────────────┐                 │
-│  │ 'P'→3, 'L'→1, ...      │ (先手: 大文字)   │
-│  │ 'p'→0, 'l'→0, ...      │ (後手: 小文字)   │
-│  └─────────────────────────┘                 │
-│                                              │
-│  m_currentPlayer : QString   "b" or "w"      │
-│  m_currentMoveNumber : int   手数             │
-└──────────────────────────────────────────────┘
+ShogiBoard
+├── m_boardData     : QList<Piece>       81マス。index = (rank - 1) * 9 + (file - 1)
+│                                         （file・rank は1〜9。index 0 が1一、80 が9九）
+├── m_pieceStand    : QMap<Piece, int>   駒台。玉を含む先後16種の枚数を常に持つ
+│                                         （Piece::BlackPawn → 3、Piece::WhitePawn → 0、…）
+├── m_currentPlayer : Turn               手番（Turn::Black / Turn::White）
+└── m_ranks, m_files : int               段数・筋数（9）
 ```
 
-**盤面配列 `m_boardData`** は81要素の `QVector<QChar>` で、各マスの駒を1文字で表す。SFEN表記に準拠し、先手の駒は大文字（`P`, `L`, `N`, `S`, `G`, `B`, `R`, `K`）、後手の駒は小文字（`p`, `l`, `n`, `s`, `g`, `b`, `r`, `k`）、成駒はプレフィクス無しの別文字（`Q`=と金, `M`=成香, `O`=成桂, `T`=成銀, `C`=馬, `U`=龍 / 後手は対応する小文字）で表される。空きマスは空白文字 `' '` である。
+**盤面配列 `m_boardData`** は81要素の `QList<Piece>` で、各マスの駒を列挙型 `Piece`（`src/core/shogitypes.h`）で表す。
+先手の駒は `Piece::BlackPawn` など、後手の駒は `Piece::WhitePawn` など、成駒は `Piece::BlackPromotedPawn`（と金）や
+`Piece::BlackHorse`（馬）などの別の値で、空きマスは `Piece::None` である。`Piece` の値は1文字（先手は大文字、後手は小文字、
+成駒は `Q`・`M`・`O`・`T`・`C`・`U` とその小文字、空きマスは空白）で、`pieceToChar()`・`charToPiece()` で文字と変換できる（2.2節）。
 
-**駒台 `m_pieceStand`** は `QMap<QChar, int>` で、駒文字をキーに所持枚数を値として持つ。先手・後手の駒は大文字/小文字で区別される。
+**駒台 `m_pieceStand`** は `QMap<Piece, int>` で、駒をキーに枚数を値として持つ。局面編集で玉も駒台に置けるため、
+玉を含む先後16種を常に持つ（`addStandPiece()` はこの16種以外の駒を無視する）。16種を0枚で持つ表はすべての盤で共有し
+（`initStand()`）、枚数を書き換えたときに初めてその盤の表が作られる（`QMap` の暗黙の共有）。盤を作るたびに16個を挿入しないためで、
+`SfenDiffUtils::diffBoards()` のように一時的な盤を作る処理を軽くしている。
+
+**手番 `m_currentPlayer`** は `Turn` である。SFEN の手数は読むときに確かめるだけで、盤には残さない。
 
 #### 主要メソッド一覧
 
 | カテゴリ | メソッド | 説明 |
 |---------|---------|------|
-| **SFEN変換** | `setSfen(sfenStr)` | SFEN文字列から盤面全体を復元する |
+| **SFEN変換** | `setSfen(sfenStr)` | SFEN文字列から盤面全体を復元する（不正なら盤面を変えず、ErrorBus に通知する） |
+| | `trySetSfen(sfenStr, error)` | 同上。不正なら盤面を変えずに false を返す（通知しない） |
+| | `parseSfen(sfenStr)` | SFEN文字列を4つの欄に分ける（static。盤面は変えない） |
 | | `convertBoardToSfen()` | 現在の盤面をSFEN形式の文字列に変換する |
 | | `convertStandToSfen()` | 駒台をSFEN形式に変換する |
 | | `addSfenRecord(...)` | 現局面のSFENレコードをリストに追加する |
-| **盤面参照** | `getPieceCharacter(file, rank)` | 指定マスの駒文字を返す |
+| | `copyPositionFrom(other)` | 別の盤の局面（盤・駒台・手番）を写す |
+| **盤面参照** | `pieceAt(square)` | 盤上のマスの駒を返す（盤外のマスは `Piece::None`） |
+| | `pieceCharacter(file, rank)` | 指定マスの駒を返す（筋10・11は先手・後手の駒台の並び） |
 | | `boardData()` | 81マスの配列への const 参照を返す |
-| | `getPieceStand()` | 駒台データへの const 参照を返す |
-| | `currentPlayer()` | 現在の手番（`"b"` or `"w"`）を返す |
-| **駒操作** | `movePieceToSquare(...)` | 盤上の駒を移動する（盤面配列のみ更新） |
+| | `pieceStand()` / `pieceStandCount(piece)` | 駒台データへの const 参照／指定駒の枚数を返す |
+| | `pieceBox()` / `pieceBoxCount(piece)` | 盤上・両駒台にない駒（駒箱）を数える |
+| | `currentPlayer()` | 現在の手番（`Turn`）を返す |
+| **駒操作** | `applyUsiMove(move, mover)` | USI の指し手を盤と駒台に適用する（合法手かどうかは確かめない） |
+| | `movePieceToSquare(...)` | 盤上の駒を移動する（盤面配列のみ更新） |
+| | `setPieceAt(square, piece)` | マスの駒を置き換える（局面の組み立て用） |
 | | `updateBoardAndPieceStand(...)` | 盤面と駒台を同時に更新する（局面編集用） |
 | | `addPieceToStand(dest)` | 取った駒を駒台に追加する（成駒→元駒に変換） |
+| | `addStandPiece(piece, delta)` / `consumeStandPiece(piece)` | 駒台の枚数を増やす／1枚減らす |
 | | `decrementPieceOnStand(piece)` | 駒台から1枚減らす（駒打ち時） |
-| **盤面リセット** | `resetGameBoard()` | 全駒を駒台に配置する（局面編集用） |
+| **盤面リセット** | `resetGameBoard()` | 盤上・両駒台を空にして、全駒を駒箱に戻す（局面編集用） |
+| | `initStand()` | 駒台をすべて0枚にする |
 | | `flipSides()` | 先後の配置を反転する |
 
 #### シグナル
 
 | シグナル | 接続先 | 用途 |
 |---------|-------|------|
-| `boardReset()` | ShogiView | 盤面全体の再描画を要求する |
-| `dataChanged(file, rank)` | ShogiView | 特定マスの再描画を要求する |
-| `errorOccurred(msg)` | （未接続） | エラー通知（将来の拡張用） |
+| `boardReset()` | ShogiView・BoardInteractionController | 盤面全体の再描画を要求する（`setSfen`・`copyPositionFrom` など） |
+| `dataChanged(c, r)` | ShogiView・BoardInteractionController | 特定マスの再描画を要求する |
+| `standChanged(piece)` | ShogiView | 駒台のその駒のセルの再描画を要求する |
 
 #### setSfen() の処理フロー
 
@@ -2053,7 +2077,8 @@ setSfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
         ├── readStandField()       … 持駒の欄を読み、16種の枚数の配列にする
         │
         ├── m_boardData・m_pieceStand・手番を書き換える
-        │     （駒台は16種がそろっていれば値だけ書き換え、作り直さない）
+        │     （駒台は16種がそろっていれば値だけ書き換え、作り直さない。
+        │       枚数が変わらなければ書き込まないので、共有の0枚の表を複製しない）
         └── emit boardReset()      … 盤面描画の全体更新を通知
 ```
 

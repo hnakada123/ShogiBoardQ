@@ -102,6 +102,8 @@ private slots:
         QTest::newRow("promoted-gold") << QStringLiteral("4k4/9/9/9/9/9/9/9/+G3K4 b - 1");
         QTest::newRow("plus-at-rank-end") << QStringLiteral("4k3+/9/9/9/9/9/9/9/4K4 b - 1");
         QTest::newRow("unknown-letter") << QStringLiteral("4k4/9/9/4X4/9/9/9/9/4K4 b - 1");
+        QTest::newRow("internal-promoted-letter") << QStringLiteral("4k4/9/9/9/4Q4/9/9/9/4K4 b - 1");
+        QTest::newRow("internal-promoted-letter-white") << QStringLiteral("4k4/9/9/9/4c4/9/9/9/4K4 b - 1");
         QTest::newRow("zero-empty") << QStringLiteral("4k4/09/9/9/9/9/9/9/4K4 b - 1");
         QTest::newRow("fullwidth-digit") << QStringLiteral("4k4/\uFF19/9/9/9/9/9/9/4K4 b - 1");
         QTest::newRow("ten-squares") << QStringLiteral("4k5/9/9/9/9/9/9/9/4K4 b - 1");
@@ -575,6 +577,32 @@ private slots:
         QCOMPARE(source.pieceStandCount(Piece::BlackBishop), 1);
         QCOMPARE(copy.pieceStandCount(Piece::BlackBishop), 0);
         QCOMPARE(copy.pieceStandCount(Piece::WhiteBishop), 1);
+    }
+
+    // === 駒台の表の共有 ===
+
+    void newBoards_keepStandChangesToThemselves()
+    {
+        // 作ったばかりの盤は0枚の駒台の表を共有する。どの書き換え方でも、ほかの盤には及ばない
+        ShogiBoard added;
+        ShogiBoard loaded;
+        ShogiBoard emptyLoaded;
+        added.addStandPiece(Piece::BlackPawn, 3);
+        QVERIFY(loaded.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b R2p 1")));
+        QVERIFY(emptyLoaded.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1")));
+
+        QCOMPARE(added.convertStandToSfen(), QStringLiteral("3P"));
+        QCOMPARE(loaded.convertStandToSfen(), QStringLiteral("R2p"));
+        QCOMPARE(emptyLoaded.convertStandToSfen(), QStringLiteral("-"));
+
+        added.initStand();
+        QCOMPARE(added.convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(loaded.convertStandToSfen(), QStringLiteral("R2p"));
+
+        const ShogiBoard fresh;
+        QCOMPARE(fresh.pieceStand().size(), 16);
+        QCOMPARE(fresh.convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(fresh.pieceStand(), added.pieceStand());
     }
 
     // === initStand ===
