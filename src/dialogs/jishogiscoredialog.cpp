@@ -25,8 +25,7 @@ constexpr QSize kDefaultSize{660, 640};
 JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& result,
                                      bool senteInCheck, bool goteInCheck, QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper({GameSettings::jishogiScoreFontSize(), kMinFontSize, kMaxFontSize, 1,
-                    GameSettings::setJishogiScoreFontSize})
+    , m_fontHelper(GameSettings::jishogiScoreFontSize, kMinFontSize, kMaxFontSize, 1)
 {
     setObjectName(QStringLiteral("jishogiScoreDialog"));
     setWindowTitle(tr("持将棋の点数"));
@@ -104,8 +103,8 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
 
 JishogiScoreDialog::~JishogiScoreDialog()
 {
-    GameSettings::setJishogiScoreFontSize(m_fontHelper.fontSize());
-    DialogUtils::saveDialogSize(this, GameSettings::setJishogiScoreDialogSize);
+    GameSettings::jishogiScoreFontSize.set(m_fontHelper.fontSize());
+    DialogUtils::saveDialogSize(this, GameSettings::jishogiScoreDialogSize);
 }
 
 QHBoxLayout* JishogiScoreDialog::createButtons()

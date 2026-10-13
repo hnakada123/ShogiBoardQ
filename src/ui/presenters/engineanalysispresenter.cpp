@@ -295,7 +295,7 @@ void EngineAnalysisPresenter::initThinkingFontManager()
             m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
         }
 
-        AnalysisSettings::setThinkingFontSize(size);
+        AnalysisSettings::thinkingFontSize.set(size);
     });
     if (m_thinkingFontSize != 10) {
         m_thinkingFontManager->apply();

@@ -61,7 +61,7 @@ std::unique_ptr<MainWindowLifecyclePipeline> MainWindowServiceRegistry::createLi
     startup.setupUiSkeleton = [this]() { setupUiSkeletonForLifecycle(); };
     // 3. コア部品（GameController/View/Clock）
     startup.initializeCoreComponents = [this]() { initializeCoreComponentsForLifecycle(); };
-    // 4. 早期サービス（PolicyService/TimePresenter/QueryService）
+    // 4. 早期サービス（PolicyService/TimePresenter/TimeController）
     startup.initializeEarlyServices = [this]() { initializeEarlyServicesForLifecycle(); };
     // 5. 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
     startup.buildGamePanels = [this]() { buildGamePanels(); };

@@ -96,7 +96,7 @@ private:
     ShogiClock* m_clock = nullptr;
     ShogiView* m_view = nullptr;
     ShogiGameController* m_gc = nullptr;
-    QPointer<MatchCoordinator> m_match;       ///< 非所有（再生成追跡）
+    QPointer<MatchCoordinator> m_match;       ///< 非所有（MCW が所有）
 
     bool m_isReplayMode = false;
     bool m_isResumeFromCurrent = false;

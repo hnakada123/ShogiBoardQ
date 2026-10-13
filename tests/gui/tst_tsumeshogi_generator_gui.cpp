@@ -195,7 +195,7 @@ private slots:
     }
     void noEngineAndLargeFont()
     {
-        TsumeshogiSettings::setTsumeshogiGeneratorFontSize(16);
+        TsumeshogiSettings::tsumeshogiGeneratorFontSize.set(16);
         TsumeshogiGeneratorDialog dialog;
         dialog.resize(940, 800);
         dialog.show();

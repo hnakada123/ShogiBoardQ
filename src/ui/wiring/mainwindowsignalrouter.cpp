@@ -47,7 +47,7 @@ void MainWindowSignalRouter::connectAll()
 
 void MainWindowSignalRouter::connectAllActions()
 {
-    // DialogCoordinatorWiring を CompositionRoot/Registry 経由で確保
+    // DialogCoordinatorWiring を Registry 経由で確保
     if (m_deps.ensureDialogCoordinator) {
         m_deps.ensureDialogCoordinator();
     }

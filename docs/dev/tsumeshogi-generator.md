@@ -345,10 +345,10 @@ struct ParsedSfen {
 
 ### 設定の永続化
 
-SettingsService を通じて以下の設定が保存・復元される:
+`TsumeshogiSettings`（`src/services/tsumeshogisettings.h` の宣言の表）を通じて以下の設定が保存・復元される:
 - ダイアログサイズ（既定: 840×800）
 - フォントサイズ
-- 選択エンジンインデックス
+- 選択エンジン（`EngineListSettings::saveSelection()` で名前を `TsumeshogiGenerator/engineName` に保存する。以前の版が保存した番号は、名前で見つからないときだけ読む）
 - 各生成パラメータ（目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間、生成上限）
 - 最終手の複数解を許容するか（`TsumeshogiGenerator/allowFinalMoveAlternatives`、既定: 有効）
 - 手順出力オプション（ファイル保存・コピー時に `moves ...` を付加するか）

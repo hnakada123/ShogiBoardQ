@@ -305,7 +305,7 @@ signals:
     /// 盤面反転の通知（→ GameStartCoordinator::boardFlipped へ再送出）
     void boardFlipped(bool nowFlipped);
 
-    /// 終局の通知（→ GameStartCoordinator::matchGameEnded へ再送出）
+    /// 終局の通知（→ MatchCoordinatorWiring::matchGameEnded へ再送出）
     void gameEnded(const MatchCoordinator::GameEndInfo& info);
     void gameEndProcessed(const MatchCoordinator::GameEndInfo& info);
 

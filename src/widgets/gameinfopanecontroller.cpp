@@ -315,7 +315,7 @@ void GameInfoPaneController::setFontSize(int size)
     if (m_fontSize != size) {
         m_fontSize = size;
         applyFontSize();
-        GameSettings::setGameInfoFontSize(m_fontSize);
+        GameSettings::gameInfoFontSize.set(m_fontSize);
     }
 }
 

@@ -4,13 +4,12 @@
 #include "gamestartorchestrator.h"
 #include "enginelistsettings.h"
 #include "shogigamecontroller.h"
-#include "settingscommon.h"
+#include "gamesettings.h"
 #include "sfenpositiontracer.h"
 #include "sfenutils.h"
 #include "logcategories.h"
 
 #include <QDebug>
-#include <QSettings>
 
 // ============================================================
 // configureAndStart 分解用ユーティリティ（static helper）
@@ -437,14 +436,10 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
 
     // --- 対局ダイアログなし：INI から直近選択を復元（StartGameDialog と同じ仕様）
     {
-        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-        // 直近の対局設定（GameSettings）からエンジン名を取得し、登録一覧から名前でパスを引く
+        // 直近の対局設定からエンジン名を取得し、登録一覧から名前でパスを引く
         const auto pathForName = &EngineListSettings::pathForName;
-        settings.beginGroup("GameSettings");
-        const QString name1 = settings.value("engineName1").toString();
-        const QString name2 = settings.value("engineName2").toString();
-        settings.endGroup();
+        const QString name1 = GameSettings::StartGame::player1.engineName();
+        const QString name2 = GameSettings::StartGame::player2.engineName();
 
         if (!name1.isEmpty()) {
             opt.engineName1 = name1;

@@ -21,8 +21,7 @@ constexpr QSize kMinimumSize{500, 400};
 
 JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     : QDialog(parent)
-    , m_fontHelper({JosekiSettings::josekiMergeDialogFontSize(), 8, 20, 1,
-                    JosekiSettings::setJosekiMergeDialogFontSize})
+    , m_fontHelper(JosekiSettings::josekiMergeDialogFontSize, 8, 20, 1)
 {
     setupUi();
 
@@ -32,12 +31,12 @@ JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
 
 JosekiMergeDialog::~JosekiMergeDialog()
 {
-    DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMergeDialogSize);
+    DialogUtils::saveDialogSize(this, JosekiSettings::josekiMergeDialogSize);
 }
 
 void JosekiMergeDialog::closeEvent(QCloseEvent *event)
 {
-    DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMergeDialogSize);
+    DialogUtils::saveDialogSize(this, JosekiSettings::josekiMergeDialogSize);
     QDialog::closeEvent(event);
 }
 

@@ -158,7 +158,7 @@ void BranchTreeManager::setCompactLayout(bool compact)
 {
     if (m_compactLayout == compact) return;
     m_compactLayout = compact;
-    AnalysisSettings::setBranchTreeCompactLayout(compact);
+    AnalysisSettings::branchTreeCompactLayout.set(compact);
     const int row = m_lastHighlightedRow;
     const int ply = m_lastHighlightedPly;
     rebuildBranchTree();
@@ -170,7 +170,7 @@ void BranchTreeManager::setZoomPercent(int percent)
     const int clamped = qBound(kMinZoomPercent, percent, kMaxZoomPercent);
     if (clamped == m_zoomPercent) return;
     m_zoomPercent = clamped;
-    AnalysisSettings::setBranchTreeZoomPercent(clamped);
+    AnalysisSettings::branchTreeZoomPercent.set(clamped);
     applyZoom();
     scrollToCurrentNode();
 }

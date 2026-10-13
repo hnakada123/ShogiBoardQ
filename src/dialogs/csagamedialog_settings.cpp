@@ -8,15 +8,11 @@
 #include <QSettings>
 
 namespace {
+// 接続履歴は配列で保存するため、宣言の表ではなくここでキーを扱う。
 constexpr auto kCsaServerHistoryArray = "CsaServerHistory";
-constexpr auto kCsaGameSettingsGroup = "CsaGameSettings";
 constexpr auto kKeyHost = "host";
 constexpr auto kKeyPort = "port";
 constexpr auto kKeyId = "id";
-constexpr auto kKeyIsHuman = "isHuman";
-constexpr auto kKeyEngineNumber = "engineNumber";
-constexpr auto kKeyEngineName = "engineName";
-constexpr auto kKeyPassword = "password";
 } // namespace
 
 // 設定ファイルからサーバー接続履歴を読み込む
@@ -113,50 +109,38 @@ QString CsaGameDialog::formatServerHistoryDisplay(const ServerHistory& history) 
 // 設定ファイルから対局設定を読み込む
 void CsaGameDialog::loadGameSettings()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    settings.beginGroup(kCsaGameSettingsGroup);
-
     // 対局者設定
-    bool isHuman = settings.value(kKeyIsHuman, true).toBool();
+    const bool isHuman = NetworkSettings::csaPlayerIsHuman();
     ui->radioButtonHuman->setChecked(isHuman);
     ui->radioButtonEngine->setChecked(!isHuman);
 
-    int engineIndex = ui->comboBoxEngine->findText(settings.value(kKeyEngineName).toString());
-    if (engineIndex < 0) engineIndex = settings.value(kKeyEngineNumber, 0).toInt();
+    int engineIndex = ui->comboBoxEngine->findText(NetworkSettings::csaEngineName());
+    if (engineIndex < 0) engineIndex = NetworkSettings::csaEngineNumber();
     if (engineIndex >= 0 && engineIndex < ui->comboBoxEngine->count()) {
         ui->comboBoxEngine->setCurrentIndex(engineIndex);
     }
 
     // サーバー設定
-    ui->lineEditHost->setText(settings.value(kKeyHost, "").toString());
-    ui->spinBoxPort->setValue(settings.value(kKeyPort, 4081).toInt());
-    ui->lineEditId->setText(settings.value(kKeyId, "").toString());
+    ui->lineEditHost->setText(NetworkSettings::csaHost());
+    ui->spinBoxPort->setValue(NetworkSettings::csaPort());
+    ui->lineEditId->setText(NetworkSettings::csaId());
     ui->lineEditPassword->clear();
-    settings.remove(kKeyPassword);
-
-    settings.endGroup();
+    NetworkSettings::csaLegacyPassword.remove();
 }
 
 // 対局設定を設定ファイルに保存する
 void CsaGameDialog::saveGameSettings()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    settings.beginGroup(kCsaGameSettingsGroup);
-
     // 対局者設定
-    settings.setValue(kKeyIsHuman, ui->radioButtonHuman->isChecked());
-    settings.setValue(kKeyEngineName, ui->comboBoxEngine->currentText());
-    settings.setValue(kKeyEngineNumber, ui->comboBoxEngine->currentIndex());
+    NetworkSettings::csaPlayerIsHuman.set(ui->radioButtonHuman->isChecked());
+    NetworkSettings::csaEngineName.set(ui->comboBoxEngine->currentText());
+    NetworkSettings::csaEngineNumber.set(ui->comboBoxEngine->currentIndex());
 
     // サーバー設定
-    settings.setValue(kKeyHost, ui->lineEditHost->text().trimmed());
-    settings.setValue(kKeyPort, ui->spinBoxPort->value());
-    settings.setValue(kKeyId, ui->lineEditId->text().trimmed());
-    settings.remove(kKeyPassword);
-
-    settings.endGroup();
+    NetworkSettings::csaHost.set(ui->lineEditHost->text().trimmed());
+    NetworkSettings::csaPort.set(ui->spinBoxPort->value());
+    NetworkSettings::csaId.set(ui->lineEditId->text().trimmed());
+    NetworkSettings::csaLegacyPassword.remove();
 }
 
 void CsaGameDialog::loadAdvancedSettings()
@@ -185,17 +169,17 @@ void CsaGameDialog::loadAdvancedSettings()
 
 void CsaGameDialog::saveAdvancedSettings()
 {
-    NetworkSettings::setCsaKeepAliveEnabled(ui->checkBoxKeepAlive->isChecked());
-    NetworkSettings::setCsaKeepAliveIntervalSec(ui->spinBoxKeepAliveInterval->value());
-    NetworkSettings::setCsaTcpKeepAliveEnabled(ui->checkBoxTcpKeepAlive->isChecked());
-    NetworkSettings::setCsaThinkingMarginSec(ui->spinBoxThinkingMargin->value());
-    NetworkSettings::setCsaGameCountMode(static_cast<int>(m_gameCountMode));
-    NetworkSettings::setCsaGameCount(ui->spinBoxGameCount->value());
-    NetworkSettings::setCsaReconnectAfterGame(ui->checkBoxReconnect->isChecked());
-    NetworkSettings::setCsaAutoFlipBoard(ui->checkBoxAutoFlip->isChecked());
-    NetworkSettings::setCsaAutoSaveEnabled(ui->checkBoxAutoSave->isChecked());
-    NetworkSettings::setCsaAutoSaveDir(ui->lineEditAutoSaveDir->text().trimmed());
-    NetworkSettings::setCsaAutoSaveFormat(ui->comboBoxAutoSaveFormat->currentData().toString());
-    NetworkSettings::setCsaGameName(ui->lineEditGameName->text().trimmed());
-    NetworkSettings::setCsaTurnPreference(ui->comboBoxTurnPreference->currentIndex());
+    NetworkSettings::csaKeepAliveEnabled.set(ui->checkBoxKeepAlive->isChecked());
+    NetworkSettings::csaKeepAliveIntervalSec.set(ui->spinBoxKeepAliveInterval->value());
+    NetworkSettings::csaTcpKeepAliveEnabled.set(ui->checkBoxTcpKeepAlive->isChecked());
+    NetworkSettings::csaThinkingMarginSec.set(ui->spinBoxThinkingMargin->value());
+    NetworkSettings::csaGameCountMode.set(static_cast<int>(m_gameCountMode));
+    NetworkSettings::csaGameCount.set(ui->spinBoxGameCount->value());
+    NetworkSettings::csaReconnectAfterGame.set(ui->checkBoxReconnect->isChecked());
+    NetworkSettings::csaAutoFlipBoard.set(ui->checkBoxAutoFlip->isChecked());
+    NetworkSettings::csaAutoSaveEnabled.set(ui->checkBoxAutoSave->isChecked());
+    NetworkSettings::csaAutoSaveDir.set(ui->lineEditAutoSaveDir->text().trimmed());
+    NetworkSettings::csaAutoSaveFormat.set(ui->comboBoxAutoSaveFormat->currentData().toString());
+    NetworkSettings::csaGameName.set(ui->lineEditGameName->text().trimmed());
+    NetworkSettings::csaTurnPreference.set(ui->comboBoxTurnPreference->currentIndex());
 }

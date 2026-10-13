@@ -5,15 +5,12 @@
 
 #include "enginemovevalidator.h"
 #include "jishogicalculator.h"
-#include "settingscommon.h"
+#include "gamesettings.h"
 #include "shogiboard.h"
-
-#include <QSettings>
 
 int NyugyokuJudgement::configuredRule()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    return settings.value(QStringLiteral("GameSettings/jishogiRule"), RuleNone).toInt();
+    return GameSettings::StartGame::jishogiRule();
 }
 
 QString NyugyokuJudgement::declarerName(bool declarerIsSente, bool handicapNames)

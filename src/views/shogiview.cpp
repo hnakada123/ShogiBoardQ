@@ -4,7 +4,7 @@
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
-#include "settingscommon.h"
+#include "appsettings.h"
 #include "elidelabel.h"
 #include "shogigamecontroller.h"
 #include "logcategories.h"
@@ -14,7 +14,6 @@
 
 #include <QColor>
 #include <QPainter>
-#include <QSettings>
 #include <QFont>
 #include <QFontMetrics>
 #include <QDebug>
@@ -69,9 +68,8 @@ ShogiView::ShogiView(QWidget *parent)
 
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    int sq = settings.value("SizeRelated/squareSize", 50).toInt();
-    if (sq < 20 || sq > 150) sq = 50;
+    int sq = AppSettings::squareSize();
+    if (sq < 20 || sq > 150) sq = AppSettings::squareSize.defaultValue();
     m_layout.setSquareSize(sq);
 
     m_layout.setStandGapCols(0.7);

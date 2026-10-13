@@ -23,7 +23,7 @@ public:
     ~SettingsWindow() override
     {
         // 実際の各ウィジェットと同様、破棄時にも設定を書き込む。
-        AppSettings::setToolbarVisible(false);
+        AppSettings::toolbarVisible.set(false);
     }
 
 protected:
@@ -67,7 +67,7 @@ private slots:
     void init()
     {
         QVERIFY(SettingsCommon::resetAllSettings());
-        AppSettings::setLanguage(QStringLiteral("en"));
+        AppSettings::language.set(QStringLiteral("en"));
         AppSettings::setPieceSoundVolume(80);
         // エンジン設定など共有インスタンスを使わない書き込みも対象にする。
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);

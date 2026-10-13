@@ -2,6 +2,8 @@
 
 > **2026-10-13 追記:** 時間の決まりと `go` の時間の計算は司令塔（MatchCoordinator・MatchTimekeeper）から外した。決まりは時計（`ShogiClock`）が持ち、`go` の時間はエンジンにつないだ時計から `UsiGoTimeCalculator` が求める。以下の `setTimeControlConfig()`・`computeGoTimes()`・`remainingMsFor` などの記述は分割当時の記録である（現在の構成は [時間設定の仕様](game-time-control-spec.md) の「時間の決まりの持ち方」）。
 
+> **2026-10-13 追記（配線層の整理）:** 司令塔は起動時に一度だけ作り、作り直さない。`MatchCoordinatorWiring::initializeSession()` が初回に作り（`createMatchCoordinator()`）、2回目以降は `setEngineModels()`・`resetPositionHistory()` と依存の結び直し（`bindRuntimeDependencies()`）だけを行う。`MatchCoordinatorHooksFactory`・`MainWindowMatchWiringDepsService`・`GameSessionFacade` は削除した。フックは `MainWindowServiceRegistry::buildMatchHooks()`・`buildUndoHooks()` が、呼ばれた時点の部品を読むラムダとして組み立てる。`Hooks::Engine`（`sendStopToEngine`）も削除し、`MatchTurnHandler` には司令塔が自分の `sendStopToEngine()` を渡す。以下の `MatchCoordinatorHooksFactory::buildHooks()` などの記述は当時の記録である（現在の構成は [開発者ガイド](developer-guide.md) の 6.2 と 14.4）。
+
 ## 1. 現状サマリ
 
 | ファイル | 行数 | 備考 |

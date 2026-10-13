@@ -10,24 +10,21 @@
 /// @note namespace 名は EngineDialogSettings（engine/enginesettingscoordinator.h との名前衝突を回避）
 
 #include <QSize>
+#include "setting.h"
 
 namespace EngineDialogSettings {
 
 /// エンジン設定ダイアログのフォントサイズ（デフォルト: 12）
-int engineSettingsFontSize();
-void setEngineSettingsFontSize(int size);
+inline const Setting<int> engineSettingsFontSize{"FontSize/engineSettings", 12};
 
 /// エンジン設定ダイアログのウィンドウサイズ（デフォルト: 800x800）
-QSize engineSettingsDialogSize();
-void setEngineSettingsDialogSize(const QSize& size);
+inline const Setting<QSize> engineSettingsDialogSize{"EngineSettings/dialogSize", QSize(800, 800)};
 
 /// エンジン登録ダイアログのフォントサイズ（デフォルト: 12）
-int engineRegistrationFontSize();
-void setEngineRegistrationFontSize(int size);
+inline const Setting<int> engineRegistrationFontSize{"FontSize/engineRegistration", 12};
 
 /// エンジン登録ダイアログのウィンドウサイズ（デフォルト: 647x421）
-QSize engineRegistrationDialogSize();
-void setEngineRegistrationDialogSize(const QSize& size);
+inline const Setting<QSize> engineRegistrationDialogSize{"EngineRegistration/dialogSize", QSize(647, 421)};
 
 } // namespace EngineDialogSettings
 

@@ -357,7 +357,7 @@ void MenuWindow::onAddToFavorites(const QString& actionName)
         m_favoriteActionNames.append(actionName);
         updateFavoritesTab();
         updateCustomizeModeForAllTabs();
-        AppSettings::setMenuWindowFavorites(m_favoriteActionNames);
+        AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
         Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
@@ -367,7 +367,7 @@ void MenuWindow::onRemoveFromFavorites(const QString& actionName)
     if (m_favoriteActionNames.removeAll(actionName) > 0) {
         updateFavoritesTab();
         updateCustomizeModeForAllTabs();
-        AppSettings::setMenuWindowFavorites(m_favoriteActionNames);
+        AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
         Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
@@ -380,7 +380,7 @@ void MenuWindow::onFavoriteReordered(const QString& sourceActionName, const QStr
     if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex != targetIndex) {
         m_favoriteActionNames.move(sourceIndex, targetIndex);
         updateFavoritesTab();
-        AppSettings::setMenuWindowFavorites(m_favoriteActionNames);
+        AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
         Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
@@ -388,7 +388,7 @@ void MenuWindow::onFavoriteReordered(const QString& sourceActionName, const QStr
 void MenuWindow::onTabChanged(int index)
 {
     m_savedTabIndex = index;
-    AppSettings::setMenuWindowCurrentTab(index);
+    AppSettings::menuWindowCurrentTab.set(index);
 }
 
 void MenuWindow::onButtonSizeIncrease()
@@ -437,8 +437,8 @@ void MenuWindow::updateAllButtonSizes()
     m_buttonSizeIncreaseBtn->setEnabled(m_buttonSize < kMaxButtonSize);
     m_fontSizeDecreaseBtn->setEnabled(m_fontSize > kMinFontSize);
     m_fontSizeIncreaseBtn->setEnabled(m_fontSize < kMaxFontSize);
-    AppSettings::setMenuWindowButtonSize(m_buttonSize);
-    AppSettings::setMenuWindowFontSize(m_fontSize);
+    AppSettings::menuWindowButtonSize.set(m_buttonSize);
+    AppSettings::menuWindowFontSize.set(m_fontSize);
 }
 
 void MenuWindow::closeEvent(QCloseEvent* event)
@@ -459,8 +459,8 @@ void MenuWindow::loadSettings()
 
 void MenuWindow::saveSettings()
 {
-    AppSettings::setMenuWindowFavorites(m_favoriteActionNames);
-    AppSettings::setMenuWindowButtonSize(m_buttonSize);
-    AppSettings::setMenuWindowFontSize(m_fontSize);
-    AppSettings::setMenuWindowSize(size());
+    AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
+    AppSettings::menuWindowButtonSize.set(m_buttonSize);
+    AppSettings::menuWindowFontSize.set(m_fontSize);
+    AppSettings::menuWindowSize.set(size());
 }

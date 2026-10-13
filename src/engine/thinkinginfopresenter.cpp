@@ -139,8 +139,8 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
     info->setPreviousRankTo(m_previousRankTo);
     
     // 思考開始時の手番を設定（bestmove後の局面更新の影響を受けないようにする）
-    Turn startPlayer = m_thinkingStartPlayerIsP1 
-        ? Turn::Black 
+    Turn startPlayer = m_thinkingStartPlayerIsP1
+        ? Turn::Black
         : Turn::White;
     info->setThinkingStartPlayer(startPlayer);
     info->parseEngineOutputAndUpdateState(line, m_gameController, m_clonedBoardData, m_ponderEnabled);

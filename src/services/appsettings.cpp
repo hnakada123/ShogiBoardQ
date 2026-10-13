@@ -31,115 +31,7 @@ void setAuxiliaryDialogSize(const QString& id, const QSize& size)
     SettingsCommon::openSettings().setValue(QStringLiteral("DialogAppearance/%1/size").arg(id), size);
 }
 
-QSize versionDialogSize()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kVersionDialogSize, QSize(680, 760)).toSize();
-}
-
-void setVersionDialogSize(const QSize& size)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kVersionDialogSize, size);
-}
-
-int versionDialogDocument()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kVersionDialogDocument, 0).toInt();
-}
-
-void setVersionDialogDocument(int index)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kVersionDialogDocument, index);
-}
-
-// --- 言語 ---
-
-QString language()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kLanguage, "system").toString();
-}
-
-void setLanguage(const QString& lang)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kLanguage, lang);
-}
-
-QString moveNotation()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kMoveNotation, "auto").toString();
-}
-void setMoveNotation(const QString& notation)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kMoveNotation, notation);
-}
-bool notationOrigin()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kNotationOrigin, false).toBool();
-}
-void setNotationOrigin(bool enabled)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kNotationOrigin, enabled);
-}
-
-// --- GUI共通フォント ---
-
-QString uiFontFamily()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kUiFontFamily, QString()).toString();
-}
-
-void setUiFontFamily(const QString& family)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kUiFontFamily, family);
-}
-
-QSize fontSettingsDialogSize()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kFontSettingsDialogSize,
-                                                QSize(520, 300)).toSize();
-}
-
-void setFontSettingsDialogSize(const QSize& size)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kFontSettingsDialogSize, size);
-}
-
 // --- UI状態 ---
-
-bool legalMovesVisible()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kLegalMovesVisible, true).toBool();
-}
-
-void setLegalMovesVisible(bool visible)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kLegalMovesVisible, visible);
-}
-
-int lastSelectedTabIndex()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kLastSelectedTabIndex, 0).toInt();
-}
-
-void setLastSelectedTabIndex(int index)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kLastSelectedTabIndex, index);
-}
-
-bool toolbarVisible()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kToolbarVisible, true).toBool();
-}
-
-void setToolbarVisible(bool visible)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kToolbarVisible, visible);
-}
 
 QStringList availablePieceStyles()
 {
@@ -188,18 +80,6 @@ void setPieceStyle(const QString& style)
 }
 
 // --- 駒音 ---
-
-bool pieceSoundEnabled()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kPieceSoundEnabled, true).toBool();
-}
-
-void setPieceSoundEnabled(bool enabled)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kPieceSoundEnabled, enabled);
-}
 
 int pieceSoundVolume()
 {
@@ -305,11 +185,6 @@ void setBoardVisuals(const BoardVisuals& visuals)
     s.setValue(SettingsKeys::kBoardPieceScale, normalized.pieceScale);
 }
 
-int boardColorDialogTab()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogTab, 5).toInt();
-}
-
 namespace {
 const QStringList kAppearanceSections{
     QStringLiteral("pieces"), QStringLiteral("board"), QStringLiteral("background"),
@@ -344,110 +219,22 @@ void setAppearancePieceFilter(int index)
     SettingsCommon::openSettings().setValue(SettingsKeys::kAppearancePieceFilter, qBound(0, index, 7));
 }
 
-void setBoardColorDialogTab(int index)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kBoardColorDialogTab, index);
-}
-
-QSize boardColorDialogSize()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogSize, QSize(1180, 800)).toSize();
-}
-
-void setBoardColorDialogSize(const QSize& size)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kBoardColorDialogSize, size);
-}
-
-QSize boardColorPickerSize()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorPickerSize, QSize()).toSize();
-}
-
-void setBoardColorPickerSize(const QSize& size)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kBoardColorPickerSize, size);
-}
-
-// --- メニューウィンドウ ---
-
-QStringList menuWindowFavorites()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kMenuWindowFavorites, QStringList()).toStringList();
-}
-
-void setMenuWindowFavorites(const QStringList& favorites)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kMenuWindowFavorites, favorites);
-}
-
-QSize menuWindowSize()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kMenuWindowSize, QSize(500, 400)).toSize();
-}
-
-void setMenuWindowSize(const QSize& size)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kMenuWindowSize, size);
-}
-
-int menuWindowButtonSize()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kMenuWindowButtonSize, 104).toInt();
-}
-
-void setMenuWindowButtonSize(int size)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kMenuWindowButtonSize, size);
-}
-
-int menuWindowFontSize()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kMenuWindowFontSize, 12).toInt();
-}
-
-void setMenuWindowFontSize(int size)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kMenuWindowFontSize, size);
-}
-
-int menuWindowCurrentTab()
-{
-    const auto& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kMenuWindowCurrentTab, 0).toInt();
-}
-
-void setMenuWindowCurrentTab(int index)
-{
-    auto& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kMenuWindowCurrentTab, index);
-}
-
 // --- メインウィンドウ ---
 
 void loadWindowSize(QWidget* mainWindow)
 {
     if (!mainWindow) return;
-    QSettings& s = SettingsCommon::openSettings();
-    const QSize sz = s.value(SettingsKeys::kMainWindowSize, QSize(1100, 720)).toSize();
+    const QSize sz = mainWindowSize();
     if (sz.isValid() && sz.width() > 100 && sz.height() > 100)
         mainWindow->resize(sz);
 }
 
-void saveWindowAndBoard(QWidget* mainWindow, int squareSize)
+void saveWindowAndBoard(QWidget* mainWindow, int boardSquareSize)
 {
     if (!mainWindow) return;
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kMainWindowSize, mainWindow->size());
-    s.setValue(SettingsKeys::kSquareSize,     squareSize);
+    mainWindowSize.set(mainWindow->size());
+    squareSize.set(boardSquareSize);
+    const QSettings& s = SettingsCommon::openSettings();
     if (s.status() != QSettings::NoError) {
         qWarning("AppSettings: Failed to save settings (status=%d)", static_cast<int>(s.status()));
     }

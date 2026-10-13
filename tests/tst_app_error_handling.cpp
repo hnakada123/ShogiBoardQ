@@ -349,61 +349,6 @@ private slots:
     }
 
     // ================================================================
-    // 8. 設定 getter のデフォルト値契約テスト（ソースコード構造検証）
-    // ================================================================
-
-    /// Settings の各 getter が QSettings::value() のデフォルト引数を持つこと
-    void settingsGettersHaveDefaultValues()
-    {
-        // 検証対象ファイルとデフォルト値パターン
-        struct SettingsFile {
-            QString path;
-            QStringList expectedDefaults;
-        };
-
-        const QList<SettingsFile> files = {
-            {QStringLiteral("src/services/appsettings.cpp"),
-             {QStringLiteral("\"system\""),   // language
-              QStringLiteral("QSize("),       // window sizes
-              QStringLiteral(", 0)"),         // tab index default
-              QStringLiteral(", true)")}},    // toolbar visible
-            {QStringLiteral("src/services/gamesettings.cpp"),
-             {QStringLiteral("QSize("),       // dialog sizes
-              QStringLiteral(", 10)")}},      // font size default
-        };
-
-        for (const auto& sf : std::as_const(files)) {
-            const QString source = readSourceFile(sf.path);
-            QVERIFY2(!source.isEmpty(),
-                      qPrintable(QStringLiteral("Failed to read %1").arg(sf.path)));
-
-            // .value() 呼び出しにデフォルト引数が含まれること
-            QVERIFY2(source.contains(QStringLiteral(".value(")),
-                      qPrintable(QStringLiteral("%1 has no .value() calls").arg(sf.path)));
-
-            for (const QString& pattern : std::as_const(sf.expectedDefaults)) {
-                QVERIFY2(source.contains(pattern),
-                          qPrintable(QStringLiteral("Default pattern '%1' not found in %2")
-                                         .arg(pattern, sf.path)));
-            }
-
-            // 全ての .value() 呼び出しにデフォルト引数（第2引数）があること
-            const QRegularExpression valueCallRe(
-                QStringLiteral(R"(\.value\([^,)]+\))"));
-            auto it = valueCallRe.globalMatch(source);
-            int noDefaultCount = 0;
-            while (it.hasNext()) {
-                it.next();
-                ++noDefaultCount;
-            }
-            QVERIFY2(noDefaultCount == 0,
-                      qPrintable(QStringLiteral("%1 has %2 .value() call(s) without default argument")
-                                     .arg(sf.path)
-                                     .arg(noDefaultCount)));
-        }
-    }
-
-    // ================================================================
     // 8. CSA クライアント 状態ガード契約テスト（ソースコード構造検証）
     // ================================================================
 

@@ -97,7 +97,7 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
         tr("テキストファイル (*.txt);;すべてのファイル (*)"));
     if (filePath.isEmpty()) return;
 
-    TsumeshogiSettings::setTsumeshogiGeneratorLastSaveDirectory(QFileInfo(filePath).absolutePath());
+    TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory.set(QFileInfo(filePath).absolutePath());
 
     QSaveFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {

@@ -350,7 +350,7 @@ void SfenCollectionDialog::hideClockLabels()
 
 void SfenCollectionDialog::saveWindowSize()
 {
-    DialogUtils::saveDialogSize(this, GameSettings::setSfenCollectionDialogSize);
+    DialogUtils::saveDialogSize(this, GameSettings::sfenCollectionDialogSize);
 }
 
 void SfenCollectionDialog::adjustWindowToContents()
@@ -376,7 +376,7 @@ void SfenCollectionDialog::closeEvent(QCloseEvent* event)
     saveWindowSize();
     saveRecentFiles();
     if (m_shogiView) {
-        GameSettings::setSfenCollectionSquareSize(m_shogiView->squareSize());
+        GameSettings::sfenCollectionSquareSize.set(m_shogiView->squareSize());
     }
     QDialog::closeEvent(event);
 }

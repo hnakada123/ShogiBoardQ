@@ -173,7 +173,7 @@ private:
     // --- コーディネータ / プレゼンタ ---
     TimeControlController* m_timeController = nullptr;
     GameInfoPaneController* m_gameInfoController = nullptr;
-    // Lifecycle: Recreated per kifu load (deleteLater + new)
+    // Lifecycle: Created once by KifuSubRegistry::ensureKifuLoadCoordinator(), reused for every load
     QPointer<KifuLoadCoordinator> m_kifuLoadCoordinator;
     // Lifecycle: Created once in FoundationRegistry, destroyed with parent
     QPointer<PositionEditController> m_posEdit;

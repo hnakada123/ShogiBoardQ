@@ -131,8 +131,6 @@ public:
         const QString& startSfen
         );
 
-    /// MatchCoordinator ポインタを外部（MCW）からセットする
-
     /// 盤面ビュー操作コールバックを設定する
     void setViewHooks(const ViewHooks& hooks);
 
@@ -166,12 +164,6 @@ signals:
     /// 盤面反転通知（MatchCoordinator::boardFlipped の再送出）
     void boardFlipped(bool nowFlipped);
 
-    /// 終局状態変更通知（MatchCoordinator::gameOverStateChanged の再送出）
-    void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
-
-    /// 対局終了通知（MatchCoordinator::gameEnded の再送出）
-    void matchGameEnded(const MatchCoordinator::GameEndInfo& info);
-
     /// 連続対局設定（EvE対局時のみ、totalGames=合計数, switchTurn=手番入替）
     void consecutiveGamesConfigured(int totalGames, bool switchTurn);
 
@@ -185,7 +177,7 @@ private:
     bool validate(const StartParams& params, QString& whyNot) const;
     bool validateKingsForGame(const QString& sfen, QString& whyNot) const;
 
-    QPointer<MatchCoordinator> m_match;       ///< 対局進行の司令塔（非所有、再生成追跡）
+    QPointer<MatchCoordinator> m_match;       ///< 対局進行の司令塔（非所有、MCW が所有）
     ViewHooks            m_viewHooks;        ///< 盤面ビュー操作コールバック群
 };
 

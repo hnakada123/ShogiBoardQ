@@ -78,13 +78,13 @@ void FontSettingsDialog::restoreDefaults()
 void FontSettingsDialog::accept()
 {
     const QString family = m_useDefault->isChecked() ? QString() : m_family->currentFont().family();
-    AppSettings::setUiFontFamily(family);
+    AppSettings::uiFontFamily.set(family);
     ApplicationFonts::applyFamily(family);
     QDialog::accept();
 }
 
 void FontSettingsDialog::done(int result)
 {
-    AppSettings::setFontSettingsDialogSize(size());
+    AppSettings::fontSettingsDialogSize.set(size());
     QDialog::done(result);
 }

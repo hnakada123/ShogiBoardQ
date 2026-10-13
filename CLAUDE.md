@@ -44,7 +44,7 @@ cmake --build build --target translations
 - **app/**: アプリケーションエントリーポイントと委譲先サービス
   - `main.cpp` - Entry point
   - `mainwindow.cpp/.h/.ui` - Main window
-  - `mainwindowcompositionroot.cpp/.h` - ensure*生成ロジック集約
+  - `mainwindowserviceregistry.cpp/.h` - ensure*（部品の生成と依存更新）と主要操作の集約。実装は `gamesubregistry*.cpp`・`mainwindow*registry.cpp` に分割。共通部品は `mainwindowfoundationregistry`、棋譜系は `kifusubregistry`
   - `mainwindowuibootstrapper.cpp/.h` - UI初期化ステップのオーケストレーション
   - `playmodepolicyservice.cpp/.h` - プレイモード依存の判定ロジック
   - `turnstatesyncservice.cpp/.h` - 手番同期（TurnManager/GC/View/時計）
@@ -172,41 +172,44 @@ grep -c 'type="unfinished"' resources/translations/*.ts | \
   sed 's|resources/translations/||' > resources/translations/baseline-unfinished.txt
 ```
 
-### SettingsService Update Guidelines
+### Settings Update Guidelines
 
-**ダイアログに関するソースコードを修正した場合は、SettingsServiceも更新すること。**
+**ダイアログに関するソースコードを修正した場合は、設定の宣言の表も更新すること。**
 
-ダイアログやウィンドウを追加・修正する際は、以下の設定をSettingsServiceに登録して永続化を検討する:
+ダイアログやウィンドウを追加・修正する際は、以下の設定を永続化するか検討する:
 
 1. **ウィンドウサイズ**: ユーザーがリサイズ可能なダイアログは、サイズを保存・復元する
 2. **フォントサイズ**: フォントサイズ調整機能（A-/A+ボタン）がある場合は、サイズを保存
 3. **列幅**: テーブルやリストビューの列幅を保存
 4. **最後に選択した項目**: コンボボックスの選択状態など
 
+設定はドメイン別ヘッダー（`src/services/appsettings.h`・`gamesettings.h`・`analysissettings.h`・`networksettings.h`・`josekisettings.h`・`tsumeshogisettings.h`・`enginedialogsettings.h`・`docksettings.h`）に、`Setting<T>`（`src/services/setting.h`）で**キーと既定値を1行で宣言する**。getter と setter の組やキー定数は手で書かない。
+
 **追加手順:**
-1. `src/services/settingsservice.h` に getter/setter 関数を宣言
-2. `src/services/settingsservice.cpp` に実装を追加（既存の実装パターンに従う）
-3. ダイアログのコンストラクタで設定を読み込み、デストラクタまたは `closeEvent` で保存
+1. ドメイン別ヘッダーに `inline const Setting<T> name{"Group/key", 既定値};` を1行足す
+2. 読むときは `NS::name()`、書くときは `NS::name.set(value)`、既定値は `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は、宣言の既定値を空にして `NS::name.valueOr(tr("..."))` で読む
+3. ダイアログのコンストラクタで読み込み、デストラクタ・`done()`・`closeEvent` で保存する。ウィンドウサイズは `DialogUtils::restoreDialogSize` / `saveDialogSize`、A-/A+ は `FontSizeHelper` に宣言をそのまま渡す
+4. 値の範囲を絞る、複数のキーを構造体にまとめる、配列で保存する、といった処理が要る項目だけを関数として `.cpp` に書く。その場合も `SettingsCommon::openSettings()` を使う（設定ファイルを `QSettings` で直接開くのは、`beginReadArray` などでグループの状態を変える配列データだけ）
 
 **実装例:**
 ```cpp
-// settingsservice.h
-QSize myDialogSize();
-void setMyDialogSize(const QSize& size);
+// gamesettings.h
+/// 〇〇ダイアログのウィンドウサイズ（デフォルト: 800x600）
+inline const Setting<QSize> myDialogSize{"SizeRelated/myDialogSize", QSize(800, 600)};
+/// 〇〇ダイアログのフォントサイズ（デフォルト: 10）
+inline const Setting<int> myDialogFontSize{"FontSize/myDialog", 10};
 
-// settingsservice.cpp
-QSize myDialogSize()
+// mydialog.cpp
+MyDialog::MyDialog(QWidget* parent)
+    : QDialog(parent)
+    , m_fontHelper(GameSettings::myDialogFontSize, 8, 24, 1)  // 変更のたびに保存する
 {
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    return s.value("MyDialog/size", QSize(800, 600)).toSize();
+    DialogUtils::restoreDialogSize(this, GameSettings::myDialogSize);
 }
 
-void setMyDialogSize(const QSize& size)
+MyDialog::~MyDialog()
 {
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    s.setValue("MyDialog/size", size);
+    DialogUtils::saveDialogSize(this, GameSettings::myDialogSize);
 }
 ```
 

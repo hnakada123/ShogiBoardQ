@@ -460,7 +460,7 @@ private slots:
         qDebug() << "★ prepareInitialPosition CLEARS sfenRecord and sets to hirate!";
         qDebug() << "  sfenRecord[0] is now:" << m_sfenRecord.at(0);
 
-        // === Step 5: resetBranchTreeForNewGame ===
+        // === Step 5: requestBranchTreeResetForNewGame 相当 ===
         KifuBranchTree branchTree;
         branchTree.setRootSfen(kHirateSfen);
 
@@ -495,7 +495,7 @@ private slots:
         qDebug() << "  1. m_startSfenStr を平手に上書き";
         qDebug() << "  2. m_currentSfenStr を平手に上書き";
         qDebug() << "  3. sfenRecord を [平手] にリセット";
-        qDebug() << "  4. resetBranchTreeForNewGame で分岐ツリーも平手にリセット";
+        qDebug() << "  4. requestBranchTreeResetForNewGame 相当の処理で分岐ツリーも平手にリセット";
         qDebug() << "";
         qDebug() << "→ 編集した局面は完全に消失する！";
         qDebug() << "";

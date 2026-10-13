@@ -19,8 +19,7 @@
 
 TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper({TsumeshogiSettings::tsumeCollectionFontSize(), 8, 24, 1,
-                    TsumeshogiSettings::setTsumeCollectionFontSize})
+    , m_fontHelper(TsumeshogiSettings::tsumeCollectionFontSize, 8, 24, 1)
 {
     setObjectName(QStringLiteral("tsumeCollectionDialog"));
     setWindowTitle(tr("詰将棋問題一覧"));

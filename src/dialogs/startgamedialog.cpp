@@ -71,7 +71,7 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(std::mak
 
 StartGameDialog::~StartGameDialog()
 {
-    DialogUtils::saveDialogSize(this, GameSettings::setStartGameDialogSize);
+    DialogUtils::saveDialogSize(this, GameSettings::startGameDialogSize);
 }
 
 // ============================================================
@@ -435,7 +435,7 @@ void StartGameDialog::loadFontSizeSettings()
 
 void StartGameDialog::saveFontSizeSettings()
 {
-    GameSettings::setStartGameDialogFontSize(m_fontSize);
+    GameSettings::startGameDialogFontSize.set(m_fontSize);
 }
 
 // ============================================================

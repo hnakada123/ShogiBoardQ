@@ -176,8 +176,8 @@ private slots:
     {
         TsumeshogiSettings::setCollectionPreferences({});
         TsumeshogiSettings::setPlayPreferences({});
-        TsumeshogiSettings::setTsumeCollectionFontSize(10);
-        TsumeshogiSettings::setTsumePlayFontSize(10);
+        TsumeshogiSettings::tsumeCollectionFontSize.set(10);
+        TsumeshogiSettings::tsumePlayFontSize.set(10);
         QFile::remove(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/tsume_progress.sqlite"));
         QFile::remove(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/tsume_cache.sqlite"));
         ticks = 0;

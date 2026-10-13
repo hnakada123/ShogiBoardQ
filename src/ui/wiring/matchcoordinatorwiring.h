@@ -99,7 +99,7 @@ public:
     /**
      * @brief メニュー操作用 GameStartCoordinator を遅延生成し配線する
      *
-     * MainWindow::ensureGameStartCoordinator() から委譲される。
+     * MainWindowServiceRegistry::ensureGameStartCoordinator() から委譲される。
      * 11 connect をこのクラス内に集約する。
      */
     void ensureMenuGameStartCoordinator();

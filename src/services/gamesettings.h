@@ -12,102 +12,148 @@
 #include <QString>
 #include <QStringList>
 #include <QSize>
+#include "setting.h"
 
 namespace GameSettings {
 
 // --- 棋譜ファイルI/O ---
 
 /// 最後に開いた棋譜ファイルのディレクトリ
-QString lastKifuDirectory();
-void setLastKifuDirectory(const QString& dir);
+inline const Setting<QString> lastKifuDirectory{"General/lastKifuDirectory", QString()};
 
 /// 最後に保存した棋譜ファイルのディレクトリ
-QString lastKifuSaveDirectory();
-void setLastKifuSaveDirectory(const QString& dir);
+inline const Setting<QString> lastKifuSaveDirectory{"General/lastKifuSaveDirectory", QString()};
 
 // --- 棋譜欄 ---
 
 /// 棋譜欄・分岐候補欄のフォントサイズ（デフォルト: 10）
-int kifuPaneFontSize();
-void setKifuPaneFontSize(int size);
+inline const Setting<int> kifuPaneFontSize{"FontSize/kifuPane", 10};
 
 /// 棋譜欄の消費時間列の表示状態（デフォルト: true）
-bool kifuTimeColumnVisible();
-void setKifuTimeColumnVisible(bool visible);
+inline const Setting<bool> kifuTimeColumnVisible{"RecordPane/timeColumnVisible", true};
 
 /// 棋譜欄のしおり列の表示状態（デフォルト: true）
-bool kifuBookmarkColumnVisible();
-void setKifuBookmarkColumnVisible(bool visible);
+inline const Setting<bool> kifuBookmarkColumnVisible{"RecordPane/bookmarkColumnVisible", true};
 
 /// 棋譜欄のコメント列の表示状態（デフォルト: true）
-bool kifuCommentColumnVisible();
-void setKifuCommentColumnVisible(bool visible);
+inline const Setting<bool> kifuCommentColumnVisible{"RecordPane/commentColumnVisible", true};
 
 /// 分岐候補欄の開閉状態（デフォルト: 展開）
-bool kifuBranchExpanded();
-void setKifuBranchExpanded(bool expanded);
+inline const Setting<bool> kifuBranchExpanded{"RecordPane/branchExpanded", true};
 
 // --- メインタブ（コメント・対局情報） ---
 
 /// 棋譜コメントタブのフォントサイズ（デフォルト: 10）
-int commentFontSize();
-void setCommentFontSize(int size);
+inline const Setting<int> commentFontSize{"FontSize/comment", 10};
 
 /// 対局情報タブのフォントサイズ（デフォルト: 10）
-int gameInfoFontSize();
-void setGameInfoFontSize(int size);
+inline const Setting<int> gameInfoFontSize{"FontSize/gameInfo", 10};
 
 /// 対局情報の項目列幅（0: 内容に合わせて自動調整）
-int gameInfoKeyColumnWidth();
-void setGameInfoKeyColumnWidth(int width);
+inline const Setting<int> gameInfoKeyColumnWidth{"GameInfo/keyColumnWidth", 0};
 
 // --- 対局開始 ---
 
 /// 対局開始ダイアログのウィンドウサイズ（デフォルト: 1000x580）
-QSize startGameDialogSize();
-void setStartGameDialogSize(const QSize& size);
+inline const Setting<QSize> startGameDialogSize{"SizeRelated/startGameDialogSize", QSize(1000, 580)};
 
 /// 対局開始ダイアログのフォントサイズ（デフォルト: 9）
-int startGameDialogFontSize();
-void setStartGameDialogFontSize(int size);
+inline const Setting<int> startGameDialogFontSize{"FontSize/startGameDialog", 9};
+
+// --- 対局開始ダイアログの対局条件（前回の条件を次の対局で復元する） ---
+
+namespace StartGame {
+
+/// 対局者ごとの項目。1 は先手／下手、2 は後手／上手
+struct Player {
+    Setting<bool> isHuman;
+    Setting<bool> isEngine;          ///< isHuman の反対。旧版との互換のため保存だけする
+    Setting<QString> humanName;      ///< 未保存なら読む側で翻訳した「You」を補う
+    Setting<int> engineNumber;       ///< 登録一覧の番号（名前・パスが一致するときだけ使う）
+    Setting<QString> engineName;
+    Setting<QString> enginePath;
+    Setting<int> basicTimeHour;
+    Setting<int> basicTimeMinutes;
+    Setting<int> byoyomiSec;
+    Setting<int> addEachMoveSec;
+};
+
+inline const Player player1{
+    {"GameSettings/isHuman1", true}, {"GameSettings/isEngine1", false},
+    {"GameSettings/humanName1", QString()}, {"GameSettings/engineNumber1", 0},
+    {"GameSettings/engineName1", QString()}, {"GameSettings/enginePath1", QString()},
+    {"GameSettings/basicTimeHour1", 0}, {"GameSettings/basicTimeMinutes1", 0},
+    {"GameSettings/byoyomiSec1", 0}, {"GameSettings/addEachMoveSec1", 0}};
+
+inline const Player player2{
+    {"GameSettings/isHuman2", false}, {"GameSettings/isEngine2", true},
+    {"GameSettings/humanName2", QString()}, {"GameSettings/engineNumber2", 0},
+    {"GameSettings/engineName2", QString()}, {"GameSettings/enginePath2", QString()},
+    {"GameSettings/basicTimeHour2", 0}, {"GameSettings/basicTimeMinutes2", 0},
+    {"GameSettings/byoyomiSec2", 0}, {"GameSettings/addEachMoveSec2", 0}};
+
+/// 後手／上手の持ち時間を先手と別に設定するか
+inline const Setting<bool> separateSecondPlayerTime{"GameSettings/isGroupBoxSecondPlayerTimeSettingsChecked", false};
+
+/// 開始局面の番号（デフォルト: 1 = 平手）。範囲外なら名前で選び直す
+inline const Setting<int> startingPositionNumber{"GameSettings/startingPositionNumber", 1};
+inline const Setting<QString> startingPositionName{"GameSettings/startingPositionName", QStringLiteral("平手")};
+
+/// 最大手数（デフォルト: 1000）
+inline const Setting<int> maxMoves{"GameSettings/maxMoves", 1000};
+
+/// 連続対局数（エンジン同士のとき。デフォルト: 1）
+inline const Setting<int> consecutiveGames{"GameSettings/consecutiveGames", 1};
+
+/// 人間を手前に表示するか（デフォルト: true）
+inline const Setting<bool> showHumanInFront{"GameSettings/isShowHumanInFront", true};
+
+/// 終局時に棋譜を自動保存するか（デフォルト: false）
+inline const Setting<bool> autoSaveKifu{"GameSettings/isAutoSaveKifu", false};
+
+/// 自動保存先。未保存なら読む側でドキュメントフォルダを補う
+inline const Setting<QString> kifuSaveDir{"GameSettings/kifuSaveDir", QString()};
+
+/// 時間切れを負けにするか（デフォルト: true）
+inline const Setting<bool> loseOnTimeout{"GameSettings/isLoseOnTimeout", true};
+
+/// 連続対局で1局ごとに手番を入れ替えるか（デフォルト: false）
+inline const Setting<bool> switchTurnEachGame{"GameSettings/isSwitchTurnEachGame", false};
+
+/// 持将棋の判定規則（NyugyokuJudgement::Rule。デフォルト: 0 = なし）
+inline const Setting<int> jishogiRule{"GameSettings/jishogiRule", 0};
+
+} // namespace StartGame
 
 // --- 棋譜貼り付け ---
 
 /// 棋譜貼り付けダイアログのウィンドウサイズ（デフォルト: 600x500）
-QSize kifuPasteDialogSize();
-void setKifuPasteDialogSize(const QSize& size);
+inline const Setting<QSize> kifuPasteDialogSize{"SizeRelated/kifuPasteDialogSize", QSize(600, 500)};
 
 /// 棋譜貼り付けダイアログのフォントサイズ（デフォルト: 10）
-int kifuPasteDialogFontSize();
-void setKifuPasteDialogFontSize(int size);
+inline const Setting<int> kifuPasteDialogFontSize{"FontSize/kifuPasteDialog", 10};
 
 // --- 局面集 ---
 
 /// 局面集ビューアのサイズ（デフォルト: 620x780）
-QSize sfenCollectionDialogSize();
-void setSfenCollectionDialogSize(const QSize& size);
+inline const Setting<QSize> sfenCollectionDialogSize{"SizeRelated/sfenCollectionDialogSize", QSize(620, 780)};
 
 /// 局面集ビューアの最近使ったファイルリスト（最大5件）
-QStringList sfenCollectionRecentFiles();
-void setSfenCollectionRecentFiles(const QStringList& files);
+inline const Setting<QStringList> sfenCollectionRecentFiles{"SfenCollection/recentFiles", QStringList()};
 
 /// 局面集ビューアの将棋盤マスサイズ（デフォルト: 50）
-int sfenCollectionSquareSize();
-void setSfenCollectionSquareSize(int size);
+inline const Setting<int> sfenCollectionSquareSize{"SfenCollection/squareSize", 50};
 
 /// 局面集ビューアの最後に開いたディレクトリ
-QString sfenCollectionLastDirectory();
-void setSfenCollectionLastDirectory(const QString& dir);
+inline const Setting<QString> sfenCollectionLastDirectory{"SfenCollection/lastDirectory", QString()};
 
 // --- 持将棋 ---
 
 /// 持将棋の点数ダイアログのフォントサイズ（デフォルト: 10）
-int jishogiScoreFontSize();
-void setJishogiScoreFontSize(int size);
+inline const Setting<int> jishogiScoreFontSize{"FontSize/jishogiScore", 10};
 
 /// 持将棋の点数ダイアログのウィンドウサイズ（デフォルト: 660x640）
-QSize jishogiScoreDialogSize();
-void setJishogiScoreDialogSize(const QSize& size);
+inline const Setting<QSize> jishogiScoreDialogSize{"JishogiScore/dialogSize", QSize(660, 640)};
 
 } // namespace GameSettings
 

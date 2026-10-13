@@ -148,7 +148,7 @@ void TestLanguageController::cleanupTestCase()
 void TestLanguageController::cleanup()
 {
     // 各テスト後にデフォルトに戻す
-    AppSettings::setLanguage(QStringLiteral("system"));
+    AppSettings::language.set(QStringLiteral("system"));
 }
 
 void TestLanguageController::setActions_createsActionGroup()
@@ -175,7 +175,7 @@ void TestLanguageController::setActions_actionsAreExclusive()
 
 void TestLanguageController::updateMenuState_system_checksSystemAction()
 {
-    AppSettings::setLanguage(QStringLiteral("system"));
+    AppSettings::language.set(QStringLiteral("system"));
     TestSetup s;
 
     // setActions 内で updateMenuState が呼ばれるため、すでに同期済み
@@ -186,7 +186,7 @@ void TestLanguageController::updateMenuState_system_checksSystemAction()
 
 void TestLanguageController::updateMenuState_japanese_checksJapaneseAction()
 {
-    AppSettings::setLanguage(QStringLiteral("ja_JP"));
+    AppSettings::language.set(QStringLiteral("ja_JP"));
     TestSetup s;
 
     QVERIFY(!s.systemAction.isChecked());
@@ -196,7 +196,7 @@ void TestLanguageController::updateMenuState_japanese_checksJapaneseAction()
 
 void TestLanguageController::updateMenuState_english_checksEnglishAction()
 {
-    AppSettings::setLanguage(QStringLiteral("en"));
+    AppSettings::language.set(QStringLiteral("en"));
     TestSetup s;
 
     QVERIFY(!s.systemAction.isChecked());
@@ -207,19 +207,19 @@ void TestLanguageController::updateMenuState_english_checksEnglishAction()
 void TestLanguageController::updateMenuState_afterSettingsChange()
 {
     // 初期状態: system
-    AppSettings::setLanguage(QStringLiteral("system"));
+    AppSettings::language.set(QStringLiteral("system"));
     TestSetup s;
     QVERIFY(s.systemAction.isChecked());
 
     // 設定を変更後に updateMenuState で同期
-    AppSettings::setLanguage(QStringLiteral("ja_JP"));
+    AppSettings::language.set(QStringLiteral("ja_JP"));
     s.controller.updateMenuState();
     QVERIFY(s.japaneseAction.isChecked());
     QVERIFY(!s.systemAction.isChecked());
     QVERIFY(!s.englishAction.isChecked());
 
     // さらに英語に変更
-    AppSettings::setLanguage(QStringLiteral("en"));
+    AppSettings::language.set(QStringLiteral("en"));
     s.controller.updateMenuState();
     QVERIFY(s.englishAction.isChecked());
     QVERIFY(!s.systemAction.isChecked());
@@ -228,7 +228,7 @@ void TestLanguageController::updateMenuState_afterSettingsChange()
 
 void TestLanguageController::updateMenuState_unknownLanguage_noneChecked()
 {
-    AppSettings::setLanguage(QStringLiteral("fr_FR"));
+    AppSettings::language.set(QStringLiteral("fr_FR"));
     TestSetup s;
 
     // 未知の言語コードの場合、どのアクションも checked にならない

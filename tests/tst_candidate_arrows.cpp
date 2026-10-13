@@ -106,8 +106,8 @@ private slots:
     }
     void considerationAndSettings()
     {
-        AnalysisSettings::setMatchArrowsVisible(true);
-        AnalysisSettings::setPonderArrowsVisible(true);
+        AnalysisSettings::matchArrowsVisible.set(true);
+        AnalysisSettings::ponderArrowsVisible.set(true);
         ShogiBoard board;
         board.setSfen(SfenUtils::hirateSfen());
         ShogiView view;

@@ -103,7 +103,7 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
     m_fileLabel->setToolTip(fi.absoluteFilePath());
 
     // 最後に開いたディレクトリを保存
-    GameSettings::setSfenCollectionLastDirectory(fi.absolutePath());
+    GameSettings::sfenCollectionLastDirectory.set(fi.absolutePath());
 
     // 最近使ったファイルリストに追加
     addToRecentFiles(filePath);
@@ -186,7 +186,7 @@ void SfenCollectionDialog::updateRecentFilesMenu()
 
 void SfenCollectionDialog::saveRecentFiles()
 {
-    GameSettings::setSfenCollectionRecentFiles(m_recentFiles);
+    GameSettings::sfenCollectionRecentFiles.set(m_recentFiles);
 }
 
 void SfenCollectionDialog::onRecentFileClicked()

@@ -65,6 +65,8 @@
 | 2026-02-08 | 第16章「国際化（i18n）と翻訳」作成 |
 | 2026-02-08 | 第17章「新機能の追加ガイド」作成 |
 | 2026-02-08 | 第18章「用語集・索引」作成 |
+| 2026-10-13 | 配線層の整理に合わせて第1章・第4章・第6章・第8章・第14章・第18章を更新（司令塔と棋譜読み込み担当は一度だけ作る。`MainWindowCompositionRoot` などの中継層を削除し、生成はレジストリに集約） |
+| 2026-10-13 | 設定の保存を宣言の表（`Setting<T>`）に移したのに合わせて第1章・第7章・第9章・第11章・第12章・第16章・第17章・第18章を更新（設定項目はドメイン別ヘッダーに1行で宣言し、getter/setter の組を書かない。§12.5・§16.6・§17.5 を書き直し） |
 
 <!-- chapter-0-end -->
 
@@ -217,12 +219,16 @@ ShogiBoardQ/
 
 ```
 src/
-├── app/                            # アプリケーションエントリーポイント
+├── app/                            # アプリケーションエントリーポイントと部品の生成・起動手順
 │   ├── main.cpp                    #   エントリーポイント
 │   ├── mainwindow.cpp/.h/.ui       #   メインウィンドウ（ハブ/ファサード）
+│   ├── mainwindowserviceregistry.cpp/.h # ensure*（部品の生成と依存更新）と主要操作の集約
+│   ├── gamesubregistry*.cpp        #   同レジストリの対局系（司令塔・対局開始・セッション）
+│   ├── mainwindowfoundationregistry.cpp/.h # 複数の領域が使う部品の ensure*
+│   ├── kifusubregistry.cpp/.h      #   棋譜系の ensure*（読み込み・保存・分岐ナビ・定跡）
+│   ├── mainwindowlifecyclepipeline.cpp/.h # 起動・終了の手順
 │   ├── commentcoordinator.cpp/.h   #   コメント機能の調整
-│   ├── dockcreationservice.cpp/.h  #   ドックウィジェット生成
-│   └── testautomationhelper.cpp/.h #   テスト自動化ヘルパー
+│   └── dockcreationservice.cpp/.h  #   ドックウィジェット生成
 │
 ├── core/                           # 純粋なゲームロジック（Qt GUI非依存）
 │   ├── shogiboard.cpp/.h           #   盤面状態・駒管理
@@ -335,6 +341,7 @@ src/
 │   │   ├── playerinfowiring.cpp/.h     # 対局者情報接続
 │   │   ├── recordpanewiring.cpp/.h     # 棋譜ペイン接続
 │   │   ├── menuwindowwiring.cpp/.h     # メニューウィンドウ接続
+│   │   ├── matchcoordinatorwiring.cpp/.h # 司令塔の生成と配線
 │   │   └── josekiwindowwiring.cpp/.h   # 定跡ウィンドウ接続
 │   └── coordinators/               #   UI調整
 │       ├── dialogcoordinator.cpp/.h     # ダイアログ調整
@@ -389,7 +396,10 @@ src/
 │   └── kifubranchlistmodel.cpp/.h  #   分岐リストモデル
 │
 ├── services/                       # クロスカッティングサービス
-│   ├── settingsservice.cpp/.h      #   INI設定の読み書き
+│   ├── setting.h                   #   設定1項目の宣言（Setting<T>: キーと既定値）
+│   ├── settingscommon.cpp/.h       #   設定ファイルのパスと共有QSettings
+│   ├── appsettings.h, gamesettings.h, ... # ドメイン別の設定の宣言の表
+│   ├── settingsservice.h           #   ドメイン別ヘッダーをまとめて取り込むだけのヘッダー
 │   ├── playernameservice.cpp/.h    #   対局者名解決サービス
 │   └── timecontrolutil.cpp/.h      #   時間制御ユーティリティ
 │
@@ -1374,7 +1384,6 @@ void ConsiderationWiring::updateDeps(const Deps& deps)
 struct Deps {
     ShogiGameController* gc = nullptr;         ///< ゲームコントローラ（非所有）
     ShogiClock*          clock = nullptr;       ///< 将棋時計（非所有）
-    ShogiView*           view = nullptr;        ///< 盤面ビュー（非所有）
     Usi*                 usi1 = nullptr;         ///< エンジン1（非所有）
     Usi*                 usi2 = nullptr;         ///< エンジン2（非所有）
     UsiCommLogModel*           comm1 = nullptr;  ///< エンジン1通信ログ（非所有）
@@ -1383,6 +1392,7 @@ struct Deps {
     ShogiEngineThinkingModel*  think2 = nullptr; ///< エンジン2思考情報（非所有）
     Hooks                hooks;                  ///< UIコールバック群
     QStringList* sfenRecord = nullptr;           ///< SFEN履歴（非所有）
+    QList<ShogiMove>* gameMoves = nullptr;       ///< 指し手リスト（非所有）
 };
 ```
 
@@ -1390,7 +1400,7 @@ struct Deps {
 
 #### 目的
 
-MainWindowは約40個の `ensure*()` メソッドを持ち、各コンポーネントを**初めて必要になった時点**で生成する。これにより:
+`ensure*()` メソッドは MainWindow ではなくレジストリ（`MainWindowServiceRegistry`・`MainWindowFoundationRegistry`・`KifuSubRegistry`、合わせて約50個）にあり、各コンポーネントを**初めて必要になった時点**で生成する。これにより:
 
 - **起動時間の短縮**: 全オブジェクトを起動時に生成しない
 - **循環依存の回避**: AがBに依存し、BがAに依存する場合も、使用時点で双方が存在すれば問題ない
@@ -1404,24 +1414,22 @@ MainWindowは約40個の `ensure*()` メソッドを持ち、各コンポーネ�
 2. 既存インスタンスにも、最新の参照とコールバックを設定する。
 3. シグナル接続は初回のみ、または `Qt::UniqueConnection` で重複を防ぐ。
 
-`MainWindowCompositionRoot` は生成を `create*()`、依存更新を `refresh*Deps()` に分ける。
+レジストリは生成を `create*()`、依存更新を `refresh*Deps()` に分ける（[レジストリ境界仕様](registry-boundary.md) の「ensure* の2段構造パターン」）。
 更新時には、対局・解析の進行状態を初期化しない。
 依存を持たない `PositionEditController` などの生成専用メソッドは、生成済みなら復帰してよい。
 
 ```cpp
-void MainWindowCompositionRoot::ensureGameStateController(
-    const MainWindowRuntimeRefs& refs,
-    const MainWindowDepsFactory::GameStateControllerCallbacks& callbacks,
-    QObject* parent, GameStateController*& controller)
+// src/app/gamesubregistry_wiring.cpp
+void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
 {
-    if (!controller) {
-        controller = createGameStateController(parent);
+    if (!m_mw.m_matchWiring) {
+        createMatchCoordinatorWiring();   // 生成と、初回だけの転送シグナルの接続
     }
-    refreshGameStateControllerDeps(controller, refs, callbacks);
+    refreshMatchWiringDeps();             // 最新の部品とフックを渡し直す
 }
 ```
 
-#### MainWindowの ensure*() 一覧（主要なもの）
+#### レジストリの ensure*() 一覧（主要なもの）
 
 | メソッド | 生成するクラス | 分類 |
 |---------|-------------|------|
@@ -1437,7 +1445,8 @@ void MainWindowCompositionRoot::ensureGameStateController(
 | `ensureGameStateController()` | `GameStateController` | Controller |
 | `ensureReplayController()` | `ReplayController` | Controller |
 | `ensureLanguageController()` | `LanguageController` | Controller |
-| `ensureLiveGameSessionStarted()` | `LiveGameSession` | データモデル |
+| `ensureMatchCoordinatorWiring()` | `MatchCoordinatorWiring`（司令塔は `initMatchCoordinator()` で作る） | Wiring |
+| `ensureKifuLoadCoordinator()` | `KifuLoadCoordinator`（最初の読み込みで作り、以後使い回す） | Coordinator |
 | `ensureGameRecordModel()` | `GameRecordModel` | データモデル |
 
 #### Wiringクラス内での ensure*() パターン
@@ -1514,35 +1523,35 @@ deps.ensureDialogCoordinator = [this]() {
 #### 実例: MatchCoordinator::Hooks
 
 ```cpp
-// src/game/matchcoordinator.h
+// src/game/matchcoordinatorhooks.h（MatchCoordinator::Hooks はこの型の別名）
 
-/// UI/描画系の委譲コールバック群
-struct Hooks {
-    // --- UI/描画系 ---
-    std::function<void(Player cur)> updateTurnDisplay;      ///< 手番表示/ハイライト更新
-    std::function<void(const QString& p1, const QString& p2)> setPlayersNames; ///< 対局者名設定
-    std::function<void(const QString& e1, const QString& e2)> setEngineNames;  ///< エンジン名設定
-    std::function<void(bool inProgress)> setGameActions;    ///< NewGame/Resign等のON/OFF
-    std::function<void()> renderBoardFromGc;                ///< gc→view反映
-    std::function<void(const QString& title, const QString& message)> showGameOverDialog;
-    std::function<void(const QString& msg)> log;            ///< ログ出力
-    std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
+struct MatchCoordinatorHooks {
+    /// UI更新・描画系
+    struct UI {
+        std::function<void(MatchPlayer cur)> updateTurnDisplay;                    ///< 手番表示の更新
+        std::function<void(const QString& p1, const QString& p2)> setPlayersNames; ///< 対局者名設定
+        std::function<void(const QString& e1, const QString& e2)> setEngineNames;  ///< エンジン名設定
+        std::function<void()> renderBoardFromGc;                                   ///< gc→view反映
+        std::function<void(const QString& title, const QString& message)> showGameOverDialog;
+        std::function<bool()> usesHandicapNames;                                   ///< 対局者を下手・上手と呼ぶか
+        std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
+    };
 
-    // --- USI送受 ---
-    // go の時間はエンジンにつないだ時計から求めるので、時計の値を読むコールバックは持たない
-    std::function<void(Usi* which)> sendStopToEngine;
+    /// ゲーム初期化・棋譜系
+    struct Game {
+        std::function<void(const QString& sfenStart)> initializeNewGame;
+        std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
+        std::function<void()> appendEvalP1;
+        std::function<void()> appendEvalP2;
+        std::function<void(const QString& saveDir)> autoSaveKifu;                  ///< 棋譜自動保存
+    };
 
-    // --- 棋譜 ---
-    std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
-    std::function<void()> appendEvalP1;
-    std::function<void()> appendEvalP2;
-
-    // --- 棋譜自動保存 ---
-    std::function<void(const QString& saveDir, PlayMode playMode,
-                       const QString& humanName1, const QString& humanName2,
-                       const QString& engineName1, const QString& engineName2)> autoSaveKifu;
+    UI ui;
+    Game game;
 };
 ```
+
+フックは `MainWindowServiceRegistry::buildMatchHooks()`（UNDO 用は `buildUndoHooks()`）が組み立てる。司令塔は一度だけ作るので、各フックは組み立てたときのポインタを写さない。レジストリ自身（`this`）か一度だけ作るアダプタ（`MainWindowMatchAdapter`）を捕まえ、呼ばれた時点の部品を読む。エンジンへの stop 送信はフックに置かず、`MatchTurnHandler` には司令塔が自分の `sendStopToEngine()` を渡す。
 
 #### Hooks と Deps の使い分け
 
@@ -2440,7 +2449,7 @@ game層（`src/game/`）は対局のライフサイクル全体を管理する�
 
 ### 6.2 MatchCoordinator — 司令塔
 
-`MatchCoordinator` は対局全体のライフサイクルを管理するハブクラスであり、game層の中核を成す。寿命は MainWindow 側で管理される。
+`MatchCoordinator` は対局全体のライフサイクルを管理するハブクラスであり、game層の中核を成す。`MatchCoordinatorWiring` が `std::unique_ptr` で持ち、起動時に一度だけ作る。作り直さないので、`MainWindow::m_match` は終了まで同じ司令塔を指す（[14.4節](#144-コンストラクタの処理フロー)）。
 
 **ソース**: `src/game/matchcoordinator.h`, `src/game/matchcoordinator.cpp`
 
@@ -2518,29 +2527,31 @@ struct GameOverState {
 MatchCoordinator は UI 層やその他の層への依存を `Hooks` 構造体に定義された `std::function` コールバック群で解決する。これにより司令塔自体は UI の具象型に依存しない。
 
 ```cpp
-struct Hooks {
-    // UI/描画系
-    std::function<void(Player cur)> updateTurnDisplay;       // 手番表示更新
-    std::function<void(const QString&, const QString&)> setPlayersNames; // 対局者名設定
-    std::function<void(const QString&, const QString&)> setEngineNames;  // エンジン名設定
-    std::function<void(bool)> setGameActions;                // UI操作の有効/無効切替
-    std::function<void()> renderBoardFromGc;                 // GC→盤面ビューの反映
-    std::function<void(const QString&, const QString&)> showGameOverDialog; // 終局ダイアログ
-
-    // USI送受（go の時間はエンジンにつないだ時計から求める）
-    std::function<void(Usi*)> sendStopToEngine;                 // stop送信
-    std::function<void(Usi*, const QString&)> sendRawToEngine;  // 任意コマンド送信
-
-    // 棋譜関連
-    std::function<void(const QString&)> initializeNewGame;      // 新規対局GUI初期化
-    std::function<void(const QString&, const QString&)> appendKifuLine; // 棋譜行追記
-    std::function<void()> appendEvalP1;  // P1着手後に評価値追記
-    std::function<void()> appendEvalP2;  // P2着手後に評価値追記
-    std::function<void(...)> autoSaveKifu; // 棋譜自動保存
+struct MatchCoordinatorHooks {   // MatchCoordinator::Hooks はこの型の別名
+    struct UI {
+        std::function<void(MatchPlayer cur)> updateTurnDisplay;                 // 手番表示更新
+        std::function<void(const QString&, const QString&)> setPlayersNames;    // 対局者名設定
+        std::function<void(const QString&, const QString&)> setEngineNames;     // エンジン名設定
+        std::function<void()> renderBoardFromGc;                                // GC→盤面ビューの反映
+        std::function<void(const QString&, const QString&)> showGameOverDialog; // 終局ダイアログ
+        std::function<bool()> usesHandicapNames;                                // 下手・上手と呼ぶか
+        std::function<void(const QPoint&, const QPoint&)> showMoveHighlights;   // 着手のハイライト
+    };
+    struct Game {
+        std::function<void(const QString&)> initializeNewGame;                  // 新規対局GUI初期化
+        std::function<void(const QString&, const QString&)> appendKifuLine;     // 棋譜行追記
+        std::function<void()> appendEvalP1;                                     // P1着手後に評価値追記
+        std::function<void()> appendEvalP2;                                     // P2着手後に評価値追記
+        std::function<void(const QString&)> autoSaveKifu;                       // 棋譜自動保存
+    };
+    UI ui;
+    Game game;
 };
 ```
 
-Hooks はコンストラクタで `Deps` 構造体経由で注入される。MainWindow が司令塔を生成する際に、自身のメソッドやUIオブジェクトへの参照をラップして設定する。
+エンジンへの送信（stop など）はフックに置かない。`MatchTurnHandler` などの子ハンドラには、司令塔が自分のメソッド（`sendStopToEngine()` など）を渡す。
+
+Hooks はコンストラクタで `Deps` 構造体経由で注入される。`MainWindowServiceRegistry::buildMatchHooks()` が組み立て、`MatchCoordinatorWiring` が司令塔を作るときに渡す。司令塔は一度だけ作るので、各フックは組み立てたときのポインタを写さず、呼ばれた時点の部品を読む。
 
 > **Note**: `Hooks` の `std::function` はシグナル/スロットの `connect()` とは異なるコールバック注入パターンである。CLAUDE.md の「connect() でラムダを使わない」ルールは `connect()` の話であり、Deps/Hooks 構造体への `std::function` 注入は許容されている。
 
@@ -2550,7 +2561,6 @@ Hooks はコンストラクタで `Deps` 構造体経由で注入される。Mai
 struct Deps {
     ShogiGameController* gc = nullptr;    // ゲームコントローラ
     ShogiClock*          clock = nullptr; // 将棋時計
-    ShogiView*           view = nullptr;  // 盤面ビュー
     Usi*                 usi1 = nullptr;   // エンジン1
     Usi*                 usi2 = nullptr;   // エンジン2
     UsiCommLogModel*     comm1 = nullptr;  // エンジン1通信ログ
@@ -2559,6 +2569,7 @@ struct Deps {
     ShogiEngineThinkingModel* think2 = nullptr; // エンジン2思考情報
     Hooks                hooks;            // UIコールバック群
     QStringList*         sfenRecord = nullptr; // SFEN履歴（共有）
+    QList<ShogiMove>*    gameMoves = nullptr;  // 指し手列（共有）
 };
 ```
 
@@ -2577,8 +2588,7 @@ configureAndStart(opt)
   ├── 4. Hooks 経由で GUI 初期化
   │     ├── initializeNewGame(sfenStart)
   │     ├── setPlayersNames()
-  │     ├── setEngineNames()
-  │     └── setGameActions(true)
+  │     └── setEngineNames()
   ├── 5. SFEN から開始手番を決定 → GC に設定
   ├── 6. position 文字列の初期化
   │
@@ -2695,7 +2705,7 @@ struct TimeSettings {
 
 **Ctx** — 段階実行 API 用のコンテキスト:
 
-`Ctx` は `initializeGame()` や `setTimerAndStart()` などの段階実行 API に渡される。ビュー、GC、時計、ダイアログ、SFEN文字列への参照をまとめて保持する。「現在の局面から開始」のケースも `selectedPly` / `resumeFromCurrent` フラグで扱う。
+`Ctx` は `initializeGame()` や `setTimerAndStart()` などの段階実行 API に渡される。GC、時計、ダイアログから取り出した値（`dialogData`）、SFEN文字列・局面列・棋譜欄モデルへの参照をまとめて保持する。「現在の局面から開始」のケースは `selectedPly`（表示中の手数）で扱う。棋譜読み込み担当（`KifuLoadCoordinator`）は持たない。平手・駒落ちから始めるときの分岐ツリーのリセットは `requestBranchTreeResetForNewGame` シグナルで依頼し、`BranchNavigationWiring::onBranchTreeResetForNewGame()` が行う。
 
 #### API
 
@@ -2705,7 +2715,8 @@ struct TimeSettings {
 | `start(StartParams)` | バリデーション→TimeControl正規化→時計適用→`configureAndStart()`→完了通知 |
 | `initializeGame(Ctx)` | ダイアログ表示→対局開始までの一連のフロー |
 | `setTimerAndStart(Ctx)` | 時計を設定し対局を開始 |
-| `createAndWireMatch(Deps, parent)` | MatchCoordinatorの生成と初期配線をまとめて実施 |
+
+`GameStartCoordinator` は1つだけ存在する。最初に必要になったとき（`MainWindowServiceRegistry::ensureGameStartCoordinator()` から）`MatchCoordinatorWiring::ensureMenuGameStartCoordinator()` が作り、親は `MatchCoordinatorWiring` である。司令塔は作成時に `Deps::match` で受け取る。
 
 `start()` メソッドの時間制御正規化では、秒読みとフィッシャーが同時に指定された場合に秒読みを優先してフィッシャー加算を0にクリアする。
 
@@ -3651,12 +3662,13 @@ USI プロトコルの `option` コマンドで報告される情報を格納す
 
 #### 設定の永続化
 
-エンジン情報とオプション値は `QSettings`（INI ファイル）に保存される。
+エンジン情報とオプション値は `QSettings`（INI ファイル）に配列で保存される。配列やグループを開いたまま読み書きするため、ほかの設定のような宣言の表（§12.5）は使わず、各関数で `QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat)` を開く。登録一覧を読むときは `EngineListSettings::loadEngines()` を使う。
 
 ```
 [Engines]
 1\name=YaneuraOu
 1\path=/path/to/yaneuraou
+1\author=...
 
 [YaneuraOu]           ← エンジン名がグループ名
 1\name=Threads
@@ -3670,7 +3682,7 @@ USI プロトコルの `option` コマンドで報告される情報を格納す
 3\type=check
 ```
 
-`UsiProtocolHandler::loadEngineOptions()` が起動時にこの設定を読み込み、`setoption` コマンド群を構築する。
+`UsiProtocolHandler::loadEngineOptions()` が起動時にこの設定を読み込み、`setoption` コマンド群を構築する。`USI_Ponder` だけはここでは送らず、GUI の先読み設定（`EnginePonderSettings`。エンジン名グループの `gui/ponderEnabled` など）から初期化時に一度だけ送る（通知を省略する設定で、エンジンも報告していなければ送らない）。
 
 ### 7.10 UsiCommLogModel — 通信ログモデル
 
@@ -4184,6 +4196,8 @@ struct KifuExportMetadata {
 
 棋譜ファイルの読み込みからUI反映までを統括するコーディネータ。6つのファイル形式と、テキスト貼り付けによる自動判定読み込みに対応する。パース（`KifuLoadParser`）と、結果をモデル・UIに当てはめる処理（`KifuApplyService`）は別のクラスにある。
 
+最初の読み込みのときに `KifuSubRegistry::ensureKifuLoadCoordinator()` が一度だけ作り（親は MainWindow）、以後のすべての読み込みに使う。`KifuFileController` は `Deps::ensureKifuLoadCoordinator` で取得する。読み込み中に次の読み込みを始めると、前の読み込みは `KifuLoadCoordinator` 自身が打ち切る。
+
 #### 読み込みフロー
 
 ```
@@ -4276,7 +4290,7 @@ struct Dependencies {
 };
 ```
 
-`setPrepareCallback()` で設定されたコールバックが、保存・コピー操作の直前に呼ばれ、依存オブジェクトの最新状態を反映する（`KifuExportDepsAssembler`）。`currentMoveIndex` は分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から取る。
+`setPrepareCallback()` で設定されたコールバックが、保存・コピー操作の直前に呼ばれ、依存オブジェクトの最新状態を反映する（`KifuSubRegistry::updateKifuExportDeps()`）。`currentMoveIndex` は分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から取る。
 CSA・USEN・USI の書き出しに使う USI の指し手は、対局の局面列・指し手列ではなく `GameRecordModel::collectMainlineUsiForExport()`（分岐ツリーの本譜）から取る。クリップボード操作は `KifuExportClipboard` に委ね、依存は `Dependencies` から写した `KifuExportClipboard::Deps` で渡す。
 
 #### 主要メソッド
@@ -4601,7 +4615,8 @@ ConsiderationFlowController::runDirect(deps, params, positionStr)
   │     └── positionStr が空 → エラー通知して return
   │
   ├── 2. エンジンパス取得
-  │     └── QSettings からエンジン実行ファイルパスを読み込み
+  │     └── EngineListSettings::loadEngines() の登録一覧から
+  │         名前（名前が空なら番号）で実行ファイルパスを引く
   │
   ├── 3. 秒読み設定
   │     └── byoyomiSec → byoyomiMs 変換（0 = 無制限）
@@ -4628,8 +4643,8 @@ ConsiderationFlowController::runDirect(deps, params, positionStr)
 
 ```cpp
 struct DirectParams {
-    int engineIndex = 0;      // エンジン番号（QSettings内のインデックス）
-    QString engineName;        // 表示用エンジン名
+    int engineIndex = 0;      // エンジン番号（登録一覧の位置。engineName が空のときだけ使う）
+    QString engineName;        // エンジン名（登録一覧から実行ファイルを引く）
     bool unlimitedTime = true; // 無制限思考
     int byoyomiSec = 20;      // 秒読み時間（秒）
     int multiPV = 1;           // 候補手数
@@ -4881,7 +4896,7 @@ QDockWidget
 
 #### フォントサイズの永続化
 
-A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、`SettingsService` で永続化される。ダイアログのサイズも同様に保存・復元される。
+A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。保存値が範囲外（宣言の既定値 0 を含む）のときは表の現在のフォントサイズ（10pt未満なら10pt）を使う。列幅は `AnalysisSettings::kifuAnalysisColumnWidths()` / `setKifuAnalysisColumnWidths()` で保存・復元し、ドックを閉じたときのサイズは `AnalysisSettings::kifuAnalysisResultsWindowSize` に保存する。
 
 ### 9.9 KifuAnalysisListModel — 解析結果テーブルモデル
 
@@ -5883,7 +5898,7 @@ Qt の公式サンプルコードを参考にした自動折り返しレイア�
 
 **2. フォントサイズの永続化**
 
-ほぼすべてのウィジェットとダイアログにフォントサイズ増減（A+/A-）機能がある。SettingsService を通じてサイズを保存・復元し、`applyFontSize()` で一括反映する。
+ほぼすべてのウィジェットとダイアログにフォントサイズ増減（A+/A-）機能がある。サイズは設定の宣言の表の `Setting<int>`（例: `GameSettings::kifuPaneFontSize`）で保存・復元し、`applyFontSize()` で一括反映する。ダイアログでは `FontSizeHelper` に宣言をそのまま渡すと、初期値の読み込みと変更のたびの保存をまとめて任せられる（§12.5）。
 
 **3. イベントフィルタの活用**
 
@@ -5925,9 +5940,9 @@ network層はCSA（Computer Shogi Association）プロトコルによるネッ�
 │                      services 層                                 │
 │                                                                 │
 │  ┌─────────────────────┐                                        │
-│  │  SettingsService    │                                        │
+│  │  Setting<T>         │                                        │
 │  │  INI設定の永続化     │                                        │
-│  │  (namespace)        │                                        │
+│  │  (ドメイン別の宣言) │                                        │
 │  └─────────────────────┘                                        │
 │                                                                 │
 │  ┌─────────────────────┐   ┌─────────────────────────────┐      │
@@ -6234,15 +6249,17 @@ CsaGameCoordinatorのシグナルとMainWindowのUI要素を接続する配線�
 - CsaGameDialogからの対局開始処理（`startCsaGame()`）
 - 待機ダイアログ（CsaWaitingDialog）の管理
 
-### 12.5 SettingsService — アプリケーション設定の永続化
+### 12.5 設定の永続化 — 宣言の表（`Setting<T>`）
 
-**ソース**: `src/services/settingsservice.h/.cpp`
+**ソース**: `src/services/setting.h`, `src/services/settingscommon.h/.cpp`, ドメイン別ヘッダー（`appsettings.h`・`gamesettings.h`・`analysissettings.h`・`networksettings.h`・`josekisettings.h`・`tsumeshogisettings.h`・`enginedialogsettings.h`・`docksettings.h`）
 
-アプリケーション設定をINIファイル（`ShogiBoardQ.ini`）で永続化するサービス。`namespace SettingsService` として実装されており、すべての関数はフリー関数である（クラスインスタンスは不要）。
+アプリケーション設定をINIファイル（`ShogiBoardQ.ini`）で永続化する。設定項目は `Setting<T>` で**キーと既定値を1行で宣言**し、読み書きはその宣言を通す。getter と setter の組やキー定数は手で書かない。詳しい規約は [settings-service.md](settings-service.md) にまとめている。
 
-#### INIファイルの構造
+`src/services/settingsservice.h` は、ドメイン別ヘッダーをまとめて include するだけのヘッダーとして残っている（関数はなく、`settingsservice.cpp` も空）。新しいコードはドメイン別ヘッダーを直接 include する。
 
-設定は `QSettings`（INI形式）で管理される。INIファイルはアプリケーション実行ファイルと同じディレクトリに配置される（`QApplication::applicationDirPath()`）。
+#### INIファイルの場所と構造
+
+INIファイルの場所は `SettingsCommon::settingsFilePath()` が `QStandardPaths::AppConfigLocation` から決める（Linux は `~/.config/ShogiBoardQ/ShogiBoardQ.ini`）。環境変数 `SHOGIBOARDQ_CONFIG_HOME` を指定すると、その下の `ShogiBoardQ` フォルダを使う。読み書きは `SettingsCommon::openSettings()` が返す、アプリ全体で1つの `QSettings` を通る。
 
 ```ini
 [SizeRelated]
@@ -6273,7 +6290,7 @@ xInterval=10
 labelFontSize=7
 
 [Consideration]
-engineIndex=0
+engineName=YaneuraOu
 unlimitedTime=true
 byoyomiSec=0
 multiPV=1
@@ -6281,7 +6298,7 @@ multiPV=1
 [KifuAnalysis]
 fontSize=10
 byoyomiSec=3
-engineIndex=0
+engineName=YaneuraOu
 fullRange=true
 
 [EvalChartDock]
@@ -6289,10 +6306,6 @@ floating=false
 visible=true
 
 [RecordPaneDock]
-floating=false
-visible=true
-
-[BoardDock]
 floating=false
 visible=true
 
@@ -6304,174 +6317,103 @@ layout1=<base64エンコードされた状態>
 
 | INIグループ | 設定カテゴリ | 主な項目 |
 |------------|------------|---------|
-| `SizeRelated` | ウィンドウサイズ | メインウィンドウ、読み筋ダイアログ |
-| `General` | 一般設定 | 最後の棋譜ディレクトリ、言語 |
+| `SizeRelated` | ウィンドウサイズ | メインウィンドウ、盤のマスの大きさ、各ダイアログのサイズ |
+| `General` | 一般設定 | 最後の棋譜ディレクトリ、言語、指し手の表記、GUI共通フォント |
 | `FontSize` | フォントサイズ | 各タブ・ダイアログのフォントサイズ |
 | `UI` | UI状態 | 最後に選択したタブ、ツールバー表示 |
 | `EvalChart` | 評価値グラフ | Y軸上限、X軸上限、軸ラベルサイズ |
-| `Consideration` | 検討設定 | エンジン番号、時間無制限フラグ、候補手数 |
-| `KifuAnalysis` | 棋譜解析設定 | 思考時間、エンジン番号、解析範囲 |
+| `Consideration` | 検討設定 | エンジン名、時間無制限フラグ、候補手数 |
+| `KifuAnalysis` | 棋譜解析設定 | 思考時間、エンジン名、解析範囲 |
+| `GameSettings` | 対局開始ダイアログ | 対局者・持ち時間・開始局面・最大手数など前回の対局条件 |
+| `CsaGameSettings` | CSA通信対局ダイアログ | 対局者、接続先、接続の維持・連続対局・自動保存などの詳細設定 |
 | `*Dock` | ドック状態 | フローティング、ジオメトリ、表示状態 |
 | `CustomDockLayouts` | カスタムレイアウト | 名前付きレイアウトの保存 |
 | `MenuWindow` | メニューウィンドウ | お気に入り、サイズ、ボタンサイズ |
+| `Engines`・エンジン名 | エンジン登録情報 | 登録一覧とUSIオプション（§7.9。宣言の表を使わない） |
 
-#### getter/setter パターン
+#### 宣言と読み書き
 
-SettingsServiceの全関数は同一パターンで実装されている。以下は実際のコードからの抜粋:
-
-**スカラー値（int / bool / QString）の例:**
+各項目はドメイン別ヘッダーの namespace に `inline const Setting<T>` として宣言する。以下は実際のコードからの抜粋:
 
 ```cpp
-// settingsservice.cpp より
-
-// getter
-int usiLogFontSize()
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    return s.value("FontSize/usiLog", 10).toInt();
-}
-
-// setter
-void setUsiLogFontSize(int size)
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    s.setValue("FontSize/usiLog", size);
+// src/services/analysissettings.h より
+namespace AnalysisSettings {
+/// USI通信ログタブのフォントサイズ（デフォルト: 10）
+inline const Setting<int> usiLogFontSize{"FontSize/usiLog", 10};
+/// 読み筋表示ウィンドウのサイズ（デフォルト: 620x720）
+inline const Setting<QSize> pvBoardDialogSize{"SizeRelated/pvBoardDialogSize", QSize(620, 720)};
 }
 ```
 
-**QSize値の例:**
-
 ```cpp
-// settingsservice.cpp より
-QSize pvBoardDialogSize()
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    return s.value("SizeRelated/pvBoardDialogSize", QSize(620, 720)).toSize();
-}
-
-void setPvBoardDialogSize(const QSize& size)
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    s.setValue("SizeRelated/pvBoardDialogSize", size);
-}
+const int size = AnalysisSettings::usiLogFontSize();     // 読む（未保存なら宣言の既定値）
+AnalysisSettings::usiLogFontSize.set(12);                // 書く
+AnalysisSettings::usiLogFontSize.defaultValue();         // 宣言の既定値（「既定値に戻す」など）
+AnalysisSettings::usiLogFontSize.remove();               // 保存値を消す
 ```
 
-**配列値（QList）の例:**
+`Setting<T>` の要点:
+1. 読み書きは `SettingsCommon::openSettings()` の共有 `QSettings` を通る。項目ごとの `.cpp` は要らない
+2. 未保存のときは宣言の既定値を返す。既定値が翻訳文や実行時の場所で決まる項目は、宣言の既定値を空にして `valueOr()` で読む（例: `GameSettings::StartGame::player1.humanName.valueOr(tr("You"))`）
+3. 同じ形の項目は `Setting<T>` をメンバに持つ構造体にまとめられる（対局開始ダイアログの `GameSettings::StartGame::Player` の `player1` / `player2`）
+
+#### 関数として書く項目
+
+値の範囲を絞る（`AppSettings::pieceSoundVolume` など）、複数のキーを構造体にまとめる（`AppSettings::boardColors` など）、古い保存値を引き継ぐ（`AppSettings::appearanceSection`）、リスト・配列で保存する（`AnalysisSettings::engineInfoColumnWidths`・ドックレイアウトなど）、id ごとにキーを作る（`AppSettings::dialogFontSize(id, ...)`）項目だけは、ドメイン別ヘッダーに関数を宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く（id から組み立てる `DialogAppearance/<id>/...` だけは関数の中に書いている）。
 
 ```cpp
-// settingsservice.cpp より
+// src/services/analysissettings.cpp より
 QList<int> engineInfoColumnWidths(int widgetIndex)
 {
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    QString key = QString("EngineInfo/columnWidths%1").arg(widgetIndex);
+    QSettings& s = SettingsCommon::openSettings();
+    QString key = QString(SettingsKeys::kEngineInfoColumnWidthsFmt).arg(widgetIndex);
     QList<int> widths;
 
     int size = s.beginReadArray(key);
     for (int i = 0; i < size; ++i) {
         s.setArrayIndex(i);
-        widths.append(s.value("width", 0).toInt());
+        widths.append(s.value(SettingsKeys::kArrayWidth, 0).toInt());
     }
     s.endArray();
 
     return widths;
 }
-
-void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths)
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    QString key = QString("EngineInfo/columnWidths%1").arg(widgetIndex);
-
-    s.beginWriteArray(key);
-    for (qsizetype i = 0; i < widths.size(); ++i) {
-        s.setArrayIndex(static_cast<int>(i));
-        s.setValue("width", widths.at(i));
-    }
-    s.endArray();
-
-    s.sync();  // 配列値は即座に書き込み
-}
 ```
 
-共通パターンのポイント:
-1. 関数冒頭で `QDir::setCurrent(QApplication::applicationDirPath())` を呼び、INIファイルの相対パスを解決
-2. `QSettings s(kIniName, QSettings::IniFormat)` で INIファイルを開く（`kIniName = "ShogiBoardQ.ini"`）
-3. getter は `s.value("キー", デフォルト値)` でデフォルト付き読み取り
-4. setter は `s.setValue("キー", 値)` で書き込み（`QSettings` のデストラクタで自動保存）
+設定ファイルを `QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat)` で直接開くのは、`beginReadArray` / `beginGroup` でグループを開いたまま読み書きを続ける配列データ（エンジン登録一覧、エンジンごとのオプション配列、CSA通信対局の接続履歴）だけ。共有の `QSettings` でグループを開いたままにすると、その間に読み書きするほかの項目のキーがずれるためである。
 
 #### 設定項目の追加方法
 
-新しいダイアログやウィンドウを追加する際は、CLAUDE.md の「SettingsService Update Guidelines」に従い、以下の手順で設定を追加する。
+新しいダイアログやウィンドウを追加する際は、CLAUDE.md の「Settings Update Guidelines」に従い、以下の手順で設定を追加する。
 
-**1. settingsservice.h にgetter/setterを宣言:**
+**1. ドメイン別ヘッダーに宣言を1行ずつ足す:**
 
 ```cpp
-/// 新機能ダイアログのフォントサイズを取得（デフォルト: 10）
-int myDialogFontSize();
-/// 新機能ダイアログのフォントサイズを保存
-void setMyDialogFontSize(int size);
-
-/// 新機能ダイアログのウィンドウサイズを取得（デフォルト: 800x600）
-QSize myDialogSize();
-/// 新機能ダイアログのウィンドウサイズを保存
-void setMyDialogSize(const QSize& size);
+// gamesettings.h
+/// 〇〇ダイアログのウィンドウサイズ（デフォルト: 800x600）
+inline const Setting<QSize> myDialogSize{"SizeRelated/myDialogSize", QSize(800, 600)};
+/// 〇〇ダイアログのフォントサイズ（デフォルト: 10）
+inline const Setting<int> myDialogFontSize{"FontSize/myDialog", 10};
 ```
 
-**2. settingsservice.cpp に実装を追加:**
+**2. ダイアログで読み込み/保存を行う:**
 
 ```cpp
-int myDialogFontSize()
+// mydialog.cpp
+MyDialog::MyDialog(QWidget* parent)
+    : QDialog(parent)
+    , m_fontHelper(GameSettings::myDialogFontSize, 8, 24, 1)  // 変更のたびに保存する
 {
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    return s.value("FontSize/myDialog", 10).toInt();
+    DialogUtils::restoreDialogSize(this, GameSettings::myDialogSize);
 }
 
-void setMyDialogFontSize(int size)
+MyDialog::~MyDialog()
 {
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    s.setValue("FontSize/myDialog", size);
-}
-
-QSize myDialogSize()
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    return s.value("MyDialog/size", QSize(800, 600)).toSize();
-}
-
-void setMyDialogSize(const QSize& size)
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    s.setValue("MyDialog/size", size);
+    DialogUtils::saveDialogSize(this, GameSettings::myDialogSize);
 }
 ```
 
-**3. ダイアログで読み込み/保存を行う:**
-
-```cpp
-// コンストラクタで設定を読み込み
-MyDialog::MyDialog(QWidget* parent) : QDialog(parent)
-{
-    resize(SettingsService::myDialogSize());
-    setFontSize(SettingsService::myDialogFontSize());
-}
-
-// デストラクタまたはcloseEventで保存
-void MyDialog::closeEvent(QCloseEvent* event)
-{
-    SettingsService::setMyDialogSize(size());
-    SettingsService::setMyDialogFontSize(fontSize());
-    QDialog::closeEvent(event);
-}
-```
+`FontSizeHelper`（`src/common/fontsizehelper.h`）は宣言から初期値を読み、A-/A+ で変わるたびに同じ宣言へ保存する。`DialogUtils::restoreDialogSize` / `saveDialogSize`（`src/common/dialogutils.h`）も宣言をそのまま受け取る。保存はデストラクタのほか、`done()` や `closeEvent` で行ってもよい。実際のコードでは `KifuPasteDialog` が同じ形になっている。
 
 永続化すべき主な設定項目:
 - **ウィンドウサイズ**: ユーザーがリサイズ可能なダイアログ
@@ -7055,13 +6997,14 @@ MainWindow（ハブ / ファサード）
 
 #### コントローラ / コーディネータ群
 
-`ensure*()` で遅延生成される委譲先クラス群。すべて MainWindow が所有し（`this` を親に指定）、Qt の親子関係で寿命が管理される。代表的なものを以下に示す。
+`ensure*()` で遅延生成される委譲先クラス群。多くは MainWindow が所有する（`&m_mw` を親に指定するか `std::unique_ptr` で持つ）。`m_match` と `m_gameStart` は `MatchCoordinatorWiring` が所有し、MainWindow は非所有のポインタだけを持つ。代表的なものを以下に示す。
 
 | 変数 | クラス | 責務 |
 |------|--------|------|
-| `m_gameStart` | `GameStartCoordinator` | 対局開始フロー全体の調整 |
+| `m_match` | `MatchCoordinator` | 対局進行の司令塔（起動時に一度だけ作る） |
+| `m_gameStart` | `GameStartCoordinator` | 対局開始フロー全体の調整（1つだけ。最初に使うときに作る） |
 | `m_dialogCoordinator` | `DialogCoordinator` | 各種ダイアログの表示と管理 |
-| `m_kifuLoadCoordinator` | `KifuLoadCoordinator` | 棋譜読み込みフロー |
+| `m_kifuLoadCoordinator` | `KifuLoadCoordinator` | 棋譜読み込みフロー（最初の読み込みで作り、以後使い回す） |
 | `m_gameStateController` | `GameStateController` | ゲーム状態遷移の管理 |
 | `m_evalGraphController` | `EvaluationGraphController` | 評価値グラフの管理 |
 | `m_boardSync` | `BoardSyncPresenter` | 盤面と内部状態の同期 |
@@ -7122,15 +7065,19 @@ MainWindow（ハブ / ファサード）
 
 ### 14.3 ensure*() による遅延生成と依存更新
 
-`MainWindowServiceRegistry` と `MainWindowFoundationRegistry` が利用時点の依存を集め、
-`MainWindowCompositionRoot` や既存のWiringに渡す。生成済みオブジェクトを再利用し、
-可変の依存は呼び出しのたびに更新する。共通の契約は [4.2節](#42-ensure-遅延初期化パターン) を参照。
+`MainWindowServiceRegistry`（実装は `gamesubregistry*.cpp`・`mainwindowanalysisregistry.cpp`・`mainwindowboardregistry.cpp`・`mainwindowuiregistry.cpp` などに分割）、
+`MainWindowFoundationRegistry`、`KifuSubRegistry` が、利用時点の依存を集めて部品を生成し、依存を渡す。
+生成済みオブジェクトを再利用し、可変の依存は呼び出しのたびに更新する。共通の契約は [4.2節](#42-ensure-遅延初期化パターン) を参照。
 
+- `MatchCoordinator` は作り直さない。`initMatchCoordinator()` を2回目以降に呼ぶと、既存の司令塔に依存を結び直す（[14.4節](#144-コンストラクタの処理フロー)）。
+- `KifuLoadCoordinator` は最初の読み込みで作り、以後の読み込みに使い回す（[8.7節](#87-kifuloadcoordinator--棋譜読み込みフロー)）。
 - `GameStateController`、`BoardSetupController`、`PositionEditCoordinator` は、最新の対局・時計・局面編集コントローラを参照する。
 - `CommentCoordinator` と `GameRecordPresenter` は、最新の棋譜モデル・コメント欄へ接続する。
 - `DialogCoordinatorWiring` はコンテキストを更新し、初回のシグナル配線を重複させない。
 - `ConsiderationWiring` は、生成済みのUIコントローラにも更新した依存を渡す。
 - `PreStartCleanupHandler::updateDependencies()` は参照だけを更新する。棋譜の消去は `performCleanup()` で行う。
+
+後から作られる部品や差し替わる値は、Deps に入れたゲッター（`std::function`）で使うときに読む。たとえば `GameSessionOrchestrator::Deps` のコントローラ取得関数は、遅延生成のもの（`gameStateController`・`gameStart`・`dialogCoordinator`）を取得時に作り、`csaGameCoordinator`・`match` はその時点の値を返す。二重ポインタ（`T**`）は、生成先を受け取る出力引数（`BranchNavigationWiring`・`DialogLaunchWiring`・`MainWindowCoreInitCoordinator`）と、内部の受け渡し（`KifuApplyService`・`CsaMoveProgressHandler`）にだけ残る。
 
 レジストリ内の状態消去・エンジンリセットは `MainWindowResetService` へ委譲する。
 `ensure*()` は生成と接続の準備を担当し、実際の操作をサービス側に保つ。
@@ -7140,29 +7087,36 @@ MainWindow（ハブ / ファサード）
 
 ### 14.4 コンストラクタの処理フロー
 
-MainWindow のコンストラクタは、依存関係の順序を厳守して初期化を行う。コメントにも「この順序を崩すと null 参照や初期表示不整合が起きやすい」と明記されている。
+MainWindow のコンストラクタは `MainWindowServiceRegistry` を作り、`createLifecyclePipeline()` で組み立てた `MainWindowLifecyclePipeline` の `runStartup()` を呼ぶだけである。起動手順は `MainWindowStartupSequence` が次の8段階の順に実行する（各段階の中身は `src/app/mainwindowlifecyclewiring.cpp` と `mainwindowuibootstrapper.cpp`）。この順序を崩すと null 参照や初期表示の不整合が起きやすい。
 
 ```
 MainWindow::MainWindow()
- │
- ├─ 1. ui->setupUi(this)                      // Qt Designer フォーム適用
- ├─ 2. setupCentralWidgetContainer()           // セントラルウィジェットのレイアウト
- ├─ 3. configureToolBarFromUi()                // ツールバー設定
- ├─ 4. initializeComponents()                  // コア部品（GC, View, Board 等）
- ├─ 5. TimeDisplayPresenter 生成               // 時間表示プレゼンタ
- ├─ 6. ensureTimeController()                  // 時間制御コントローラ
- │     └─ TimeDisplayPresenter に Clock を設定
- ├─ 7. buildGamePanels()                       // 棋譜/分岐/タブ/ドックの構築
- ├─ 8. restoreWindowAndSync()                  // ウィンドウ設定の復元
- ├─ 9. connectAllActions()                     // メニューアクションの配線
- ├─ 10. connectCoreSignals()                   // コアシグナルの配線
- ├─ 11. installAppToolTips()                   // ツールチップフィルタ
- ├─ 12. finalizeCoordinators()                 // コーディネータの最終初期化
- ├─ 13. initializeEditMenuForStartup()         // 編集メニューの初期状態
- ├─ 14. ensureLanguageController()             // 言語設定
- ├─ 15. ensureDockLayoutManager()              // ドックレイアウト管理
- └─ 16. evalChartResizeTimer 初期化            // 評価値グラフ高さ調整用タイマー
+ ├─ m_registry = MainWindowServiceRegistry
+ ├─ m_pipeline = m_registry->createLifecyclePipeline()
+ └─ m_pipeline->runStartup()
+     ├─ 1. createFoundationObjects    // SignalRouter、通信ログ・検討タブのモデル、ui->setupUi()
+     ├─ 2. setupUiSkeleton            // 外観コントローラ、セントラルウィジェット、ツールバー
+     ├─ 3. initializeCoreComponents   // MainWindowCoreInitCoordinator（GC・ShogiView・盤）
+     ├─ 4. initializeEarlyServices    // PlayModePolicyService、TimeDisplayPresenter、ensureTimeController()
+     │                                //   外観コントローラに盤と時間表示を渡す（refreshAppearanceDeps()）
+     ├─ 5. buildGamePanels            // 棋譜欄・ドック・解析タブ・分岐ナビの構築
+     │     └─ SessionLifecycleCoordinator::startNewGame()
+     │           └─ startGameSession() → initMatchCoordinator()   // ここで MatchCoordinator を作る（1回だけ）
+     ├─ 6. restoreWindowAndSync       // ウィンドウサイズと起動時レイアウトの復元
+     ├─ 7. connectSignals             // MainWindowSignalRouter::connectAll()、ツールチップ
+     └─ 8. finalizeAndConfigureUi     // UI状態をアイドルに、言語・駒音・ドック管理、評価値グラフ用タイマー
+           └─ finalizeCoordinators()
+                 └─ initMatchCoordinator()   // 司令塔は作らず、依存を結び直す
 ```
+
+**司令塔（MatchCoordinator）の生成**: `MainWindowServiceRegistry::initMatchCoordinator()` は `MatchCoordinatorWiring::initializeSession()` を呼ぶ。
+
+- 初回（ステップ 5）は `createMatchCoordinator()` で司令塔を作り、司令塔から `MatchCoordinatorWiring` への転送シグナル（終局・中断・盤面反転など）を一度だけつなぐ。
+- 2回目以降（ステップ 8）は司令塔を作り直さない。`MatchCoordinator::setEngineModels()` で思考情報・通信ログのモデルを渡し直し、`MatchCoordinator::resetPositionHistory()` で起動途中の仮の対局開始が残した局面の履歴を捨てる。
+- どちらの場合も `bindRuntimeDependencies()` が、起動の途中で作られる部品との接続を結び直す（候補手の矢印、USIコマンド、PlayMode、評価値グラフ、UNDO、UI状態の遷移、時間表示、時計の時間切れ、盤クリック、着手要求）。何度呼んでも接続が重ならないよう `Qt::UniqueConnection` を使う。
+- 終局でアイドルへ遷移する接続（`gameEnded` → `UiStatePolicyManager::transitionToIdle`）は、転送シグナルの接続より後につなぐ。終局処理が先に動き、その後でアイドルに遷移する。
+
+以前は起動中に司令塔を2回（ステップ 5 と 8）作っていた。現在は一度だけ作り、`MainWindowAppearanceController` にも作った直後に渡す（`refreshAppearanceDeps()`）。
 
 初期化順序の原則:
 1. **UI 骨格**（central / toolbar）を最初に構築
@@ -7853,14 +7807,14 @@ endforeach()
 
 ### 16.4 起動時の翻訳ロード
 
-`main.cpp` でアプリケーション起動時に翻訳ファイルがロードされる。SettingsServiceに保存された言語設定に基づいて、適切な `.qm` ファイルを選択する。
+`main.cpp` でアプリケーション起動時に翻訳ファイルがロードされる。`AppSettings::language`（`General/language`）に保存された言語設定に基づいて、適切な `.qm` ファイルを選択する。
 
 ```
 ┌─────────────────────────────────────────────┐
 │            翻訳ロードのフロー                  │
 ├─────────────────────────────────────────────┤
 │                                             │
-│  SettingsService::language() で設定値を取得    │
+│  AppSettings::language() で設定値を取得        │
 │         │                                   │
 │         ├── "ja_JP"                          │
 │         │     └→ ShogiBoardQ_ja_JP.qm ロード │
@@ -7879,7 +7833,7 @@ endforeach()
 
 ```cpp
 QTranslator translator;
-QString langSetting = SettingsService::language();  // "system", "ja_JP", "en"
+QString langSetting = AppSettings::language();  // "system", "ja_JP", "en"
 
 if (langSetting == "ja_JP") {
     // 日本語を明示的にロード
@@ -7951,7 +7905,7 @@ sequenceDiagram
     participant User as ユーザー
     participant Menu as 言語メニュー
     participant LC as LanguageController
-    participant SS as SettingsService
+    participant SS as AppSettings
     participant MB as QMessageBox
 
     User->>Menu: 「日本語」を選択
@@ -7959,7 +7913,7 @@ sequenceDiagram
     LC->>LC: changeLanguage("ja_JP")
     LC->>SS: language() で現在値を確認
     SS-->>LC: "system"（変更前の値）
-    LC->>SS: setLanguage("ja_JP")
+    LC->>SS: language.set("ja_JP")
     LC->>MB: information("再起動してください")
     MB-->>User: ダイアログ表示
     LC-->>LC: emit languageChanged("ja_JP")
@@ -7993,32 +7947,25 @@ void MainWindow::ensureLanguageController()
 
 `setActions()` の内部で各アクションの `triggered` シグナルと対応するスロットが接続されるため、MainWindow側での追加的な `connect()` は不要である。
 
-### 16.6 SettingsServiceによる言語設定の永続化
+### 16.6 AppSettingsによる言語設定の永続化
 
-言語設定は `SettingsService` を通じてINIファイルに保存される。
+言語設定は `AppSettings::language`（`src/services/appsettings.h`）としてINIファイルに保存される。ほかの設定と同じく、宣言の表に1行で書いた `Setting<QString>` である（§12.5）。
 
 ```cpp
-// settingsservice.h
-QString language();
-void setLanguage(const QString& lang);
+// appsettings.h
+/// 言語コード（デフォルト: "system"）
+inline const Setting<QString> language{"General/language", "system"};
 
-// settingsservice.cpp
-QString language()
-{
-    QSettings s(kIniName, QSettings::IniFormat);
-    return s.value("General/language", "system").toString();
-}
-
-void setLanguage(const QString& lang)
-{
-    QSettings s(kIniName, QSettings::IniFormat);
-    s.setValue("General/language", lang);
-}
+// 読み書き
+const QString current = AppSettings::language();  // LanguageController::changeLanguage()
+AppSettings::language.set(lang);
 ```
+
+起動時は `ApplicationTranslations`（`src/services/applicationtranslations.cpp`）がこの値を読み、`"system"` ならシステムのUI言語から解決して翻訳ファイルを選ぶ。
 
 | 設定キー | 取りうる値 | デフォルト | 説明 |
 |---------|-----------|-----------|------|
-| `General/language` | `"system"`, `"ja_JP"`, `"en"` | `"system"` | 表示言語の設定 |
+| `General/language` | `"system"`, `"ja_JP"`, `"en"`, `"zh_CN"`, `"zh_TW"` | `"system"` | 表示言語の設定 |
 
 ### 16.7 翻訳追加の手順
 
@@ -8404,61 +8351,27 @@ void KifuTagWiring::ensureTagController()
 }
 ```
 
-### 17.5 SettingsServiceに設定項目を追加
+### 17.5 設定の宣言の表に設定項目を追加
 
-ダイアログの状態（ウィンドウサイズ、フォントサイズ等）を永続化する場合は、`SettingsService` に getter/setter を追加する。
+ダイアログの状態（ウィンドウサイズ、フォントサイズ等）を永続化する場合は、ドメイン別ヘッダーの宣言の表に `Setting<T>` を1行ずつ足す（§12.5、[settings-service.md](settings-service.md)）。getter と setter の組やキー定数は書かない。
 
-#### 1. settingsservice.h に宣言を追加
+#### 1. ドメイン別ヘッダーに宣言を追加
 
-```cpp
-// src/services/settingsservice.h — namespace SettingsService 内に追加
-
-/// 棋譜タグダイアログのフォントサイズを取得（デフォルト: 10）
-int kifuTagDialogFontSize();
-/// 棋譜タグダイアログのフォントサイズを保存
-void setKifuTagDialogFontSize(int size);
-
-/// 棋譜タグダイアログのウィンドウサイズを取得（デフォルト: 400x300）
-QSize kifuTagDialogSize();
-/// 棋譜タグダイアログのウィンドウサイズを保存
-void setKifuTagDialogSize(const QSize& size);
-```
-
-#### 2. settingsservice.cpp に実装を追加
+棋譜タグは対局・棋譜の設定なので `gamesettings.h` に置く。
 
 ```cpp
-// src/services/settingsservice.cpp — namespace SettingsService 内に追加
+// src/services/gamesettings.h — namespace GameSettings 内に追加
 
-int kifuTagDialogFontSize()
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    return s.value("FontSize/kifuTag", 10).toInt();
-}
+/// 棋譜タグダイアログのフォントサイズ（デフォルト: 10）
+inline const Setting<int> kifuTagDialogFontSize{"FontSize/kifuTag", 10};
 
-void setKifuTagDialogFontSize(int size)
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    s.setValue("FontSize/kifuTag", size);
-}
-
-QSize kifuTagDialogSize()
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    return s.value("KifuTagDialog/size", QSize(400, 300)).toSize();
-}
-
-void setKifuTagDialogSize(const QSize& size)
-{
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings s(kIniName, QSettings::IniFormat);
-    s.setValue("KifuTagDialog/size", size);
-}
+/// 棋譜タグダイアログのウィンドウサイズ（デフォルト: 400x300）
+inline const Setting<QSize> kifuTagDialogSize{"SizeRelated/kifuTagDialogSize", QSize(400, 300)};
 ```
 
-#### 3. ダイアログ側で読み込み・保存
+宣言は `inline const` なので `.cpp` への実装は要らない。
+
+#### 2. ダイアログ側で読み込み・保存
 
 ```cpp
 // src/dialogs/kifutagdialog.cpp
@@ -8466,33 +8379,33 @@ void setKifuTagDialogSize(const QSize& size)
 KifuTagDialog::KifuTagDialog(KifuTagModel* model, QWidget* parent)
     : QDialog(parent)
     , m_model(model)
+    , m_fontHelper(GameSettings::kifuTagDialogFontSize, 8, 24, 1)  // 初期値を読み、変更のたびに保存する
 {
     // 設定の読み込み
-    resize(SettingsService::kifuTagDialogSize());
-
-    const int fontSize = SettingsService::kifuTagDialogFontSize();
-    QFont f = font();
-    f.setPointSize(fontSize);
-    setFont(f);
+    DialogUtils::restoreDialogSize(this, GameSettings::kifuTagDialogSize);
+    applyFontSize();  // m_fontHelper.fontSize() を画面に反映する
 }
 
 void KifuTagDialog::closeEvent(QCloseEvent* event)
 {
-    // 設定の保存
-    SettingsService::setKifuTagDialogSize(size());
-    SettingsService::setKifuTagDialogFontSize(font().pointSize());
+    // 設定の保存（フォントサイズは FontSizeHelper が保存済み）
+    DialogUtils::saveDialogSize(this, GameSettings::kifuTagDialogSize);
     QDialog::closeEvent(event);
 }
 ```
 
-#### SettingsService 追加時の規約
+A-/A+ ボタンのスロットでは `m_fontHelper.increase()` / `decrease()` が `true` を返したときだけ `applyFontSize()` を呼ぶ（`KifuPasteDialog` と同じ形）。
+
+#### 設定項目を追加するときの規約
 
 | 項目 | 規約 |
 |------|------|
-| **INIキー命名** | `グループ名/キー名` 形式（例: `FontSize/kifuTag`） |
-| **デフォルト値** | `.toInt()` / `.toSize()` の第2引数に指定 |
-| **パス設定** | 毎回 `QDir::setCurrent(QApplication::applicationDirPath())` を呼ぶ |
-| **INIファイル名** | `kIniName`（= `"ShogiBoardQ.ini"`）を使用 |
+| **置き場所** | 機能に合うドメイン別ヘッダー（`appsettings.h`・`gamesettings.h`・`analysissettings.h`・`networksettings.h`・`josekisettings.h`・`tsumeshogisettings.h`・`enginedialogsettings.h`・`docksettings.h`） |
+| **宣言** | `inline const Setting<T> name{"Group/key", 既定値};` を1行。ドキュメントコメントに既定値を書く |
+| **INIキー命名** | `グループ名/キー名` 形式（例: `FontSize/kifuTag`）。キーを変えると保存済みの値は読まれなくなる |
+| **読み書き** | `NS::name()` / `NS::name.set(v)` / `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は `NS::name.valueOr(...)` |
+| **関数にする項目** | 値の範囲を絞る、複数のキーを構造体にまとめる、配列で保存する、古い保存値を引き継ぐ、といった処理が要るものだけ。`SettingsCommon::openSettings()` を使い、キーは `settingskeys.h` に置く |
+| **QSettings の直接構築** | `beginReadArray` / `beginGroup` でグループを開いたまま読み書きする配列データだけ（`QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat)`） |
 | **永続化対象の判断** | ウィンドウサイズ、フォントサイズ、列幅、最後の選択状態など |
 
 ### 17.6 tr()による翻訳対応
@@ -8684,14 +8597,16 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | 9 | MainWindowへのロジック追加を最小限にしているか | CLAUDE.md Design Principles |
 | 10 | ポインタの所有権をコメントで明記しているか | commenting-style-guide.md §6 |
 
-#### SettingsService チェック
+#### 設定の永続化チェック
 
 | # | 確認項目 | 参照 |
 |---|---------|------|
-| 11 | ダイアログのウィンドウサイズを保存しているか | CLAUDE.md SettingsService Guidelines |
-| 12 | フォントサイズ調整機能がある場合、サイズを保存しているか | CLAUDE.md SettingsService Guidelines |
-| 13 | テーブル/リストの列幅を保存しているか（該当する場合） | CLAUDE.md SettingsService Guidelines |
-| 14 | コンボボックス等の選択状態を保存しているか（該当する場合） | CLAUDE.md SettingsService Guidelines |
+| 11 | ダイアログのウィンドウサイズを保存しているか（`DialogUtils::restoreDialogSize` / `saveDialogSize`） | CLAUDE.md Settings Update Guidelines |
+| 12 | フォントサイズ調整機能がある場合、サイズを保存しているか（`FontSizeHelper` に宣言を渡す） | CLAUDE.md Settings Update Guidelines |
+| 13 | テーブル/リストの列幅を保存しているか（該当する場合） | CLAUDE.md Settings Update Guidelines |
+| 14 | コンボボックス等の選択状態を保存しているか（該当する場合） | CLAUDE.md Settings Update Guidelines |
+
+どの項目も、getter と setter の組ではなく `Setting<T>` の宣言1行で足す。関数にするのは処理が要る項目だけ（§17.5）。
 
 #### 翻訳チェック
 
@@ -8728,10 +8643,9 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 ④ シグナル / スロット接続を追加（§17.4）
    └─ connect() はメンバー関数ポインタ構文のみ
      │
-⑤ SettingsService に設定項目を追加（§17.5）
-   ├─ settingsservice.h に getter / setter 宣言
-   ├─ settingsservice.cpp に実装
-   └─ ダイアログで読み込み / 保存
+⑤ 設定の宣言の表に設定項目を追加（§17.5）
+   ├─ ドメイン別ヘッダーに Setting<T> を1行ずつ宣言
+   └─ ダイアログで読み込み / 保存（FontSizeHelper・DialogUtils に宣言を渡す）
      │
 ⑥ tr() で翻訳対応（§17.6）
    ├─ ユーザー向け文字列を tr() でラップ
@@ -8810,7 +8724,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | **MVP** | Model-View-Presenter | UI設計パターン。Model→Viewの同期をPresenterが担当 | 第4章 §4.4 |
 | **Deps** | Dependencies（依存構造体） | 依存注入用のPOD構造体パターン | 第4章 §4.1 |
 | **MOC** | Meta-Object Compiler | Qtのメタオブジェクトコンパイラ。シグナル/スロットを処理 | 第4章 |
-| **INI** | Initialization File | Windows形式の設定ファイル。SettingsServiceが使用 | 第12章 §12.3 |
+| **INI** | Initialization File | Windows形式の設定ファイル。`Setting<T>` の宣言の表で読み書きする | 第12章 §12.5 |
 
 ---
 
@@ -8897,11 +8811,15 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | KifuPasteDialog | C | dialogs | 棋譜ペーストダイアログ | 第11章 |
 | KifuRecordListModel | C | models | 棋譜レコードリストモデル | 第11章 |
 | KifuSaveCoordinator | NS | kifu | 棋譜ファイル保存の統合調整 | 第8章 |
+| KifuSubRegistry | C | app | 棋譜系（読み込み・保存・分岐ナビ・定跡）の ensure* | 第8章, 第14章 |
 | LanguageController | C | ui/controllers | アプリ言語切替の制御 | 第10章, 第16章 |
 | LiveGameSession | C | kifu | 対局中の棋譜一時記録セッション | 第8章 |
 | LongLongSpinBox | C | widgets | 64ビット整数スピンボックス | 第11章 |
 | MainWindow | C | app | メインウィンドウ（ファサード/ハブ） | 第3章, 第10章, 第14章 |
+| MainWindowFoundationRegistry | C | app | 複数の領域が使う部品の ensure* | 第14章 |
+| MainWindowServiceRegistry | C | app | ensure*（部品の生成と依存更新）・起動手順・主要操作の集約 | 第4章, 第14章 |
 | MatchCoordinator | C | game | 対局進行の司令塔（マスターコントローラ） | 第6章 |
+| MatchCoordinatorWiring | C | ui/wiring | 司令塔の生成（一度だけ）と配線、GameStartCoordinator の生成 | 第6章, 第14章 |
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
 | MenuWindow | C | dialogs | 対局開始メニューウィンドウ | 第11章 |
 | MenuWindowWiring | C | ui/wiring | メニューウィンドウのシグナル/スロット配線 | 第10章 |
@@ -8923,7 +8841,8 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | RecordPane | C | widgets | 棋譜ペインウィジェット | 第11章 |
 | RecordPaneWiring | C | ui/wiring | 棋譜ペインのシグナル/スロット配線 | 第10章 |
 | ReplayController | C | ui/controllers | 棋譜再生・自動再生の制御 | 第10章 |
-| SettingsService | NS | services | INI設定ファイルの永続化サービス | 第12章 |
+| Setting | C | services | 設定ファイルの1項目（キーと既定値）の宣言。読み書きの入口になるテンプレート（ヘッダーオンリー） | 第12章 |
+| SettingsCommon | NS | services | 設定ファイルのパスと、アプリ全体で共有する `QSettings` | 第12章 |
 | SfenPositionTracer | C | board | SFEN局面状態のトレーサー | 第13章 |
 | SfenUtils | NS | core | SFEN文字列のユーティリティ（ヘッダーオンリー） | 第2章, 第5章 |
 | ShogiBoard | C | core | 将棋盤・駒台の状態管理 | 第5章 |
@@ -9108,6 +9027,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | analysistabwiring | 第10章 | 解析タブ配線 |
 | recordpanewiring | 第10章 | 棋譜ペイン配線 |
 | menuwindowwiring | 第10章 | メニューウィンドウ配線 |
+| matchcoordinatorwiring | 第6章, 第14章 | 司令塔の生成と配線 |
 | josekiwindowwiring | 第10章 | 定跡ウィンドウ配線 |
 
 #### ui/coordinators/（第10章）
@@ -9181,7 +9101,10 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
-| settingsservice | 第12章 | INI設定永続化 |
+| setting | 第12章 | 設定1項目の宣言（`Setting<T>`） |
+| settingscommon | 第12章 | 設定ファイルのパスと共有 `QSettings` |
+| appsettings ほか `*settings` | 第12章 | ドメイン別の設定の宣言の表 |
+| settingsservice | 第12章 | ドメイン別設定ヘッダーをまとめて取り込むだけのヘッダー |
 | playernameservice | 第12章 | プレイヤー名解決 |
 | timecontrolutil | 第12章 | 持ち時間ユーティリティ |
 
@@ -9199,6 +9122,10 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | main | 第1章 | アプリケーションエントリーポイント |
 | mainwindow | 第3章, 第10章, 第14章 | メインウィンドウ（ハブ） |
+| mainwindowserviceregistry | 第4章, 第14章 | ensure*・起動手順・主要操作（実装は gamesubregistry*.cpp などに分割） |
+| mainwindowfoundationregistry | 第14章 | 複数の領域が使う部品の ensure* |
+| kifusubregistry | 第8章, 第14章 | 棋譜系の ensure* |
+| mainwindowlifecyclepipeline | 第14章 | 起動・終了の手順 |
 | commentcoordinator | 第14章 | コメント調整 |
 | dockcreationservice | 第14章 | ドック生成サービス |
 
@@ -9249,7 +9176,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | 詰将棋探索（TsumeSearch） | 第9章 | §9.4 |
 | ShogiViewの描画パイプライン | 第11章 | §11.1 |
 | CSAプロトコル状態遷移 | 第12章 | §12.1 |
-| SettingsServiceのINI永続化 | 第12章 | §12.3 |
+| 設定の宣言の表（`Setting<T>`）とINI永続化 | 第12章 | §12.5 |
 | MainWindowのensure*()群（約40メソッド） | 第14章 | §14.2 |
 | リファクタリング経緯 | 第14章 | §14.4 |
 | ユースケースシーケンス図（5パターン） | 第15章 | §15.1–§15.5 |

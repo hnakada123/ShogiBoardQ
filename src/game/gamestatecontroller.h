@@ -81,7 +81,7 @@ public slots:
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
 private:
-    QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
+    QPointer<MatchCoordinator> m_match;                  ///< 非所有（MCW が所有）
     TimeControlController* m_timeController = nullptr;  ///< 非所有
     KifuRecordListModel* m_kifuRecordModel = nullptr;   ///< 非所有
 

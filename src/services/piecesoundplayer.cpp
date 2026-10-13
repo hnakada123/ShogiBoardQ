@@ -40,7 +40,7 @@ void PieceSoundPlayer::setEnabled(bool enabled)
     if (m_enabled == enabled) return;
 
     m_enabled = enabled;
-    AppSettings::setPieceSoundEnabled(enabled);
+    AppSettings::pieceSoundEnabled.set(enabled);
     if (enabled) {
         ensureEffect();
     }

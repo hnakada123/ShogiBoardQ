@@ -188,12 +188,12 @@ void ConsiderationTabManager::saveConsiderationTabSettings()
     }
 
     if (m_unlimitedTimeRadioButton && m_byoyomiSecSpinBox) {
-        AnalysisSettings::setConsiderationUnlimitedTime(m_unlimitedTimeRadioButton->isChecked());
-        AnalysisSettings::setConsiderationByoyomiSec(m_byoyomiSecSpinBox->value());
+        AnalysisSettings::considerationUnlimitedTime.set(m_unlimitedTimeRadioButton->isChecked());
+        AnalysisSettings::considerationByoyomiSec.set(m_byoyomiSecSpinBox->value());
     }
 
     if (m_multiPVComboBox) {
-        AnalysisSettings::setConsiderationMultiPV(m_multiPVComboBox->currentData().toInt());
+        AnalysisSettings::considerationMultiPV.set(m_multiPVComboBox->currentData().toInt());
     }
 }
 

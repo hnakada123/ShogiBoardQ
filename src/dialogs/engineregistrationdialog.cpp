@@ -68,7 +68,7 @@ EngineRegistrationDialog::~EngineRegistrationDialog()
     m_handler->cancelRegistration();
 
     // ウィンドウサイズを保存
-    DialogUtils::saveDialogSize(this, EngineDialogSettings::setEngineRegistrationDialogSize);
+    DialogUtils::saveDialogSize(this, EngineDialogSettings::engineRegistrationDialogSize);
 }
 
 // シグナル・スロットの接続を行う。
@@ -257,7 +257,7 @@ void EngineRegistrationDialog::increaseFontSize()
     if (m_fontSize < 20) {  // 最大サイズを20に制限
         m_fontSize++;
         applyFontSize();
-        EngineDialogSettings::setEngineRegistrationFontSize(m_fontSize);
+        EngineDialogSettings::engineRegistrationFontSize.set(m_fontSize);
     }
 }
 
@@ -267,7 +267,7 @@ void EngineRegistrationDialog::decreaseFontSize()
     if (m_fontSize > 8) {  // 最小サイズを8に制限
         m_fontSize--;
         applyFontSize();
-        EngineDialogSettings::setEngineRegistrationFontSize(m_fontSize);
+        EngineDialogSettings::engineRegistrationFontSize.set(m_fontSize);
     }
 }
 

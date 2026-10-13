@@ -377,7 +377,7 @@ private slots:
 
         QVERIFY2(body.contains(QStringLiteral("lastKifuDirectory")),
                   "Must read last kifu directory");
-        QVERIFY2(body.contains(QStringLiteral("setLastKifuDirectory")),
+        QVERIFY2(body.contains(QStringLiteral("lastKifuDirectory.set(")),
                   "Must save last kifu directory");
     }
 

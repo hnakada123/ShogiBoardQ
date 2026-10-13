@@ -19,8 +19,7 @@
 TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     : QDialog(parent)
     , m_generator(new TsumeshogiGenerator(this))
-    , m_fontHelper({TsumeshogiSettings::tsumeshogiGeneratorFontSize(), 8, 24, 1,
-                    TsumeshogiSettings::setTsumeshogiGeneratorFontSize})
+    , m_fontHelper(TsumeshogiSettings::tsumeshogiGeneratorFontSize, 8, 24, 1)
 {
     setWindowTitle(tr("詰将棋局面生成"));
     setupUi();
@@ -131,22 +130,22 @@ void TsumeshogiGeneratorDialog::loadSettings()
 
 void TsumeshogiGeneratorDialog::saveSettings()
 {
-    DialogUtils::saveDialogSize(this, TsumeshogiSettings::setTsumeshogiGeneratorDialogSize);
-    TsumeshogiSettings::setTsumeshogiGeneratorFontSize(m_fontHelper.fontSize());
+    DialogUtils::saveDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize);
+    TsumeshogiSettings::tsumeshogiGeneratorFontSize.set(m_fontHelper.fontSize());
     const int engineIndex = m_comboEngine->currentIndex();
     if (engineIndex >= 0 && engineIndex < m_engineList.size()) {
         EngineListSettings::saveSelection(EngineListSettings::tsumeshogiGeneratorSelection(),
                                           m_engineList.at(engineIndex).name);
     }
-    TsumeshogiSettings::setTsumeshogiGeneratorTargetMoves(m_spinTargetMoves->value());
-    TsumeshogiSettings::setTsumeshogiGeneratorMaxAttackPieces(m_spinMaxAttack->value());
-    TsumeshogiSettings::setTsumeshogiGeneratorMaxDefendPieces(m_spinMaxDefend->value());
-    TsumeshogiSettings::setTsumeshogiGeneratorAttackRange(m_spinAttackRange->value());
-    TsumeshogiSettings::setTsumeshogiGeneratorTimeoutSec(m_spinTimeout->value());
-    TsumeshogiSettings::setTsumeshogiGeneratorMaxPositions(m_spinMaxPositions->value());
-    TsumeshogiSettings::setTsumeshogiGeneratorIncludePv(m_checkIncludePv->isChecked());
-    TsumeshogiSettings::setTsumeshogiGeneratorAllowFinalMoveAlternatives(m_checkAllowFinalAlternatives->isChecked());
-    TsumeshogiSettings::setTsumeshogiGeneratorHelpExpanded(m_btnHelp->isChecked());
+    TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.set(m_spinTargetMoves->value());
+    TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.set(m_spinMaxAttack->value());
+    TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.set(m_spinMaxDefend->value());
+    TsumeshogiSettings::tsumeshogiGeneratorAttackRange.set(m_spinAttackRange->value());
+    TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.set(m_spinTimeout->value());
+    TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.set(m_spinMaxPositions->value());
+    TsumeshogiSettings::tsumeshogiGeneratorIncludePv.set(m_checkIncludePv->isChecked());
+    TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives.set(m_checkAllowFinalAlternatives->isChecked());
+    TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded.set(m_btnHelp->isChecked());
 }
 
 void TsumeshogiGeneratorDialog::onStartClicked()

@@ -233,7 +233,7 @@ void JosekiMoveDialog::done(int result)
         updateValidation();
         return;
     }
-    DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMoveDialogSize);
+    DialogUtils::saveDialogSize(this, JosekiSettings::josekiMoveDialogSize);
     QDialog::done(result);
 }
 
@@ -313,7 +313,7 @@ void JosekiMoveDialog::onFontSizeIncrease()
     if (m_fontSize < 18) {
         m_fontSize++;
         applyFontSize();
-        JosekiSettings::setJosekiMoveDialogFontSize(m_fontSize);
+        JosekiSettings::josekiMoveDialogFontSize.set(m_fontSize);
     }
 }
 
@@ -322,7 +322,7 @@ void JosekiMoveDialog::onFontSizeDecrease()
     if (m_fontSize > 8) {
         m_fontSize--;
         applyFontSize();
-        JosekiSettings::setJosekiMoveDialogFontSize(m_fontSize);
+        JosekiSettings::josekiMoveDialogFontSize.set(m_fontSize);
     }
 }
 

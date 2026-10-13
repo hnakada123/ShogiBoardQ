@@ -109,8 +109,8 @@ private slots:
 
     void fontSizeScrollingAndPersistence()
     {
-        GameSettings::setJishogiScoreFontSize(200);
-        GameSettings::setJishogiScoreDialogSize(QSize(250, 280));
+        GameSettings::jishogiScoreFontSize.set(200);
+        GameSettings::jishogiScoreDialogSize.set(QSize(250, 280));
         {
             JishogiScoreDialog dialog(m_initial, false, false);
             QCOMPARE(dialog.size(), QSize(660, 640));

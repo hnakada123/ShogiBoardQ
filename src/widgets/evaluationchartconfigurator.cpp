@@ -81,12 +81,12 @@ void EvaluationChartConfigurator::loadSettings()
 
 void EvaluationChartConfigurator::saveSettings()
 {
-    AnalysisSettings::setEvalChartYLimit(m_manualYLimit);
-    AnalysisSettings::setEvalChartXLimit(m_manualXLimit);
-    AnalysisSettings::setEvalChartYInterval(m_requestedYInterval);
-    AnalysisSettings::setEvalChartXInterval(m_requestedXInterval);
-    AnalysisSettings::setEvalChartLabelFontSize(m_labelFontSize);
-    AnalysisSettings::setEvalChartAutomaticRange(m_automatic);
+    AnalysisSettings::evalChartYLimit.set(m_manualYLimit);
+    AnalysisSettings::evalChartXLimit.set(m_manualXLimit);
+    AnalysisSettings::evalChartYInterval.set(m_requestedYInterval);
+    AnalysisSettings::evalChartXInterval.set(m_requestedXInterval);
+    AnalysisSettings::evalChartLabelFontSize.set(m_labelFontSize);
+    AnalysisSettings::evalChartAutomaticRange.set(m_automatic);
 }
 
 void EvaluationChartConfigurator::recalculate()
@@ -230,5 +230,5 @@ void EvaluationChartConfigurator::showSettings()
         setAutomaticRange(automatic->currentIndex() == 0);
         saveSettings();
     }
-    AnalysisSettings::setEvalChartSettingsSize(dialog.size());
+    AnalysisSettings::evalChartSettingsSize.set(dialog.size());
 }

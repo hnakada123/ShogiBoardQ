@@ -27,7 +27,7 @@ bool RecordPaneAppearanceManager::tryIncreaseFontSize()
 {
     if (m_fontSize < 24) {
         m_fontSize += 1;
-        GameSettings::setKifuPaneFontSize(m_fontSize);
+        GameSettings::kifuPaneFontSize.set(m_fontSize);
         return true;
     }
     return false;
@@ -37,7 +37,7 @@ bool RecordPaneAppearanceManager::tryDecreaseFontSize()
 {
     if (m_fontSize > 8) {
         m_fontSize -= 1;
-        GameSettings::setKifuPaneFontSize(m_fontSize);
+        GameSettings::kifuPaneFontSize.set(m_fontSize);
         return true;
     }
     return false;
@@ -73,7 +73,7 @@ void RecordPaneAppearanceManager::toggleTimeColumn(QTableView* kifu, bool visibl
         kifu->setColumnHidden(1, !visible);
         updateColumnResizeModes(kifu);
     }
-    GameSettings::setKifuTimeColumnVisible(visible);
+    GameSettings::kifuTimeColumnVisible.set(visible);
 }
 
 void RecordPaneAppearanceManager::toggleBookmarkColumn(QTableView* kifu, bool visible)
@@ -82,7 +82,7 @@ void RecordPaneAppearanceManager::toggleBookmarkColumn(QTableView* kifu, bool vi
         kifu->setColumnHidden(2, !visible);
         updateColumnResizeModes(kifu);
     }
-    GameSettings::setKifuBookmarkColumnVisible(visible);
+    GameSettings::kifuBookmarkColumnVisible.set(visible);
 }
 
 void RecordPaneAppearanceManager::toggleCommentColumn(QTableView* kifu, bool visible)
@@ -91,7 +91,7 @@ void RecordPaneAppearanceManager::toggleCommentColumn(QTableView* kifu, bool vis
         kifu->setColumnHidden(3, !visible);
         updateColumnResizeModes(kifu);
     }
-    GameSettings::setKifuCommentColumnVisible(visible);
+    GameSettings::kifuCommentColumnVisible.set(visible);
 }
 
 void RecordPaneAppearanceManager::applyColumnVisibility(QTableView* kifu)

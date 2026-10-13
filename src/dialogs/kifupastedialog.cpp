@@ -23,8 +23,7 @@ constexpr int kMaximumFontSize = 20;
 
 KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper({GameSettings::kifuPasteDialogFontSize(), kMinimumFontSize, kMaximumFontSize, 1,
-                    GameSettings::setKifuPasteDialogFontSize})
+    , m_fontHelper(GameSettings::kifuPasteDialogFontSize, kMinimumFontSize, kMaximumFontSize, 1)
 {
     setupUi();
     applyFontSize();
@@ -37,12 +36,12 @@ KifuPasteDialog::KifuPasteDialog(QWidget* parent)
 
 KifuPasteDialog::~KifuPasteDialog()
 {
-    DialogUtils::saveDialogSize(this, GameSettings::setKifuPasteDialogSize);
+    DialogUtils::saveDialogSize(this, GameSettings::kifuPasteDialogSize);
 }
 
 void KifuPasteDialog::closeEvent(QCloseEvent* event)
 {
-    DialogUtils::saveDialogSize(this, GameSettings::setKifuPasteDialogSize);
+    DialogUtils::saveDialogSize(this, GameSettings::kifuPasteDialogSize);
     QDialog::closeEvent(event);
 }
 

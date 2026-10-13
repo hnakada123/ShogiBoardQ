@@ -23,7 +23,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     , ui(std::make_unique<Ui::KifuAnalysisDialog>())
     , m_fontHelper({AnalysisSettings::kifuAnalysisFontSize() > 0
                         ? AnalysisSettings::kifuAnalysisFontSize() : qMax(10, font().pointSize()), 8, 24, 1,
-                    AnalysisSettings::setKifuAnalysisFontSize})
+                    [](int size) { AnalysisSettings::kifuAnalysisFontSize.set(size); }})
 {
     // UIをセットアップする。
     ui->setupUi(this);
@@ -113,7 +113,7 @@ KifuAnalysisDialog::~KifuAnalysisDialog() = default;
 
 void KifuAnalysisDialog::done(int result)
 {
-    DialogUtils::saveDialogSize(this, AnalysisSettings::setKifuAnalysisDialogSize);
+    DialogUtils::saveDialogSize(this, AnalysisSettings::kifuAnalysisDialogSize);
     QDialog::done(result);
 }
 
@@ -251,10 +251,10 @@ void KifuAnalysisDialog::processEngineSettings()
     if (m_engineNumber >= 0 && m_engineNumber < m_engineList.size()) {
         EngineListSettings::saveSelection(EngineListSettings::kifuAnalysisSelection(), m_engineList.at(m_engineNumber).name);
     }
-    AnalysisSettings::setKifuAnalysisByoyomiSec(m_byoyomiSec);
-    AnalysisSettings::setKifuAnalysisFullRange(m_initPosition);
-    AnalysisSettings::setKifuAnalysisStartPly(ui->spinBoxStartPly->value());
-    AnalysisSettings::setKifuAnalysisEndPly(ui->spinBoxEndPly->value());
+    AnalysisSettings::kifuAnalysisByoyomiSec.set(m_byoyomiSec);
+    AnalysisSettings::kifuAnalysisFullRange.set(m_initPosition);
+    AnalysisSettings::kifuAnalysisStartPly.set(ui->spinBoxStartPly->value());
+    AnalysisSettings::kifuAnalysisEndPly.set(ui->spinBoxEndPly->value());
     accept();
 }
 
