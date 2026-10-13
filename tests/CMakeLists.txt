@@ -74,6 +74,7 @@ set(SETTINGS_SOURCES
     ${SRC}/services/appsettings.cpp
     ${SRC}/services/docksettings.cpp
     ${SRC}/services/enginedialogsettings.cpp
+    ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/gamesettings.cpp
     ${SRC}/services/josekisettings.cpp
     ${SRC}/services/networksettings.cpp
@@ -173,6 +174,19 @@ add_shogi_test(tst_shogimove
 )
 
 # ============================================================
+# Unit 2b2: USI の指し手の値型と表示座標
+# ============================================================
+add_shogi_test(tst_usimove
+    tst_usimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+)
+
+# ============================================================
 # Unit 2c: ShogiUtils
 # ============================================================
 add_shogi_test(tst_shogiutils
@@ -207,6 +221,11 @@ add_shogi_test(tst_sfentracer
     tst_sfentracer.cpp
     ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -371,6 +390,11 @@ add_shogi_test(tst_kifubranchtree
     ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/core/shogimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 add_shogi_test(tst_livegamesession
@@ -382,6 +406,11 @@ add_shogi_test(tst_livegamesession
     ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/core/shogimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 add_shogi_test(tst_navigation
@@ -416,6 +445,10 @@ add_shogi_test(tst_kifubranchlistmodel
     ${SRC}/models/kifubranchlistmodel.cpp
     ${SRC}/widgets/kifubranchdisplay.cpp
     ${SRC}/common/logcategories.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -489,6 +522,11 @@ add_shogi_test(tst_positionedit_gamestart
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/livegamesession.cpp
     ${SRC}/core/shogimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -512,6 +550,11 @@ add_shogi_test(tst_preset_gamestart_cleanup
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/livegamesession.cpp
     ${SRC}/core/shogimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -665,6 +708,11 @@ add_shogi_test(tst_analysisflow
     ${SRC}/analysis/analysisresulthandler_dialog.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
     ${SRC}/analysis/considerationflowcontroller.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/services/enginelistsettings.cpp
 )
 set_target_properties(tst_analysisflow PROPERTIES
     AUTOUIC ON
@@ -771,6 +819,7 @@ add_shogi_test(tst_game_start_orchestrator
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiclock.cpp
+    ${SRC}/services/enginelistsettings.cpp
 )
 
 # ============================================================
@@ -894,6 +943,11 @@ add_shogi_test(tst_parsecommon
     tst_parsecommon.cpp
     ${TEST_STUBS}
     ${SRC}/core/shogimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -996,6 +1050,10 @@ add_shogi_test(tst_app_ui_state_policy
     ${SRC}/services/gamesettings.cpp
     ${SRC}/services/settingscommon.cpp
     ${SRC}/app/mainwindow.ui
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 set_target_properties(tst_app_ui_state_policy PROPERTIES
     AUTOUIC ON
@@ -1026,6 +1084,10 @@ add_shogi_test(tst_wiring_contracts
     ${SRC}/models/kifurecordlistmodel.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiclock.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -1087,6 +1149,11 @@ add_shogi_test(tst_wiring_analysistab
     test_stubs_ui_state_policy.cpp
     test_stubs_analysistabwiring.cpp
     ${SRC}/ui/wiring/analysistabwiring.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -1193,6 +1260,10 @@ add_shogi_test(tst_analysis_coordinator
     ${SRC}/analysis/kifuanalysislistmodel.cpp
     ${SRC}/analysis/analysisresulthandler.cpp
     ${SRC}/analysis/analysisresulthandler_dialog.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -1427,17 +1498,12 @@ target_compile_options(bench_movevalidator PRIVATE -O2)
 # Hayanagiの詰将棋探索・局面集・非同期対局フロー
 add_executable(mock_tsume_engine mock_tsume_engine.cpp)
 target_link_libraries(mock_tsume_engine PRIVATE hayanagi_tsume)
+# 詰み探索エンジンの接続は UsiEngineSession と USI のプロトコル処理を使うので、アプリの静的ライブラリにリンクする
 add_shogi_test(tst_tsume_play
     tst_tsume_play.cpp
     ${CMAKE_SOURCE_DIR}/resources/tsumeshogi.qrc
-    ${SRC}/analysis/tsumecollection.cpp
-    ${SRC}/analysis/tsumegamesession.cpp
-    ${SRC}/analysis/tsumepositionanalyzer.cpp
-    ${SRC}/analysis/tsumesolutionreplay.cpp
-    ${SRC}/engine/tsumemateengine.cpp
-    ${SRC}/services/tsumeprogressstore.cpp
 )
-target_link_libraries(tst_tsume_play PRIVATE hayanagi_tsume Qt6::Sql)
+target_link_libraries(tst_tsume_play PRIVATE shogiboardq_static hayanagi_tsume Qt6::Sql)
 target_compile_definitions(tst_tsume_play PRIVATE HAYANAGI_EXECUTABLE="$<TARGET_FILE:hayanagi>" MOCK_MATE_EXECUTABLE="$<TARGET_FILE:mock_tsume_engine>")
 add_dependencies(tst_tsume_play hayanagi mock_tsume_engine)
 
@@ -1631,7 +1697,14 @@ add_shogi_test(tst_usilogpanel
     ${SRC}/services/settingscommon.cpp
 )
 
-add_shogi_test(tst_kifupresentation tst_kifupresentation.cpp)
+add_shogi_test(tst_kifupresentation
+    tst_kifupresentation.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+)
 add_shogi_test(tst_legal_move_highlights
     tst_legal_move_highlights.cpp
     ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc

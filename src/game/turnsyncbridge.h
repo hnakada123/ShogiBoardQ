@@ -22,16 +22,16 @@ public:
      * @brief GC→TurnManager→UI の配線を接続し、初期同期を行う
      *
      * 重複接続は Qt::UniqueConnection により抑止。
-     * @tparam Receiver uiReceiver の具象型（ShogiGameController::Player を受けるスロットを持つこと）
+     * @tparam Receiver uiReceiver の具象型（Turn を受けるスロットを持つこと）
      */
     template<typename Receiver>
     static void wire(ShogiGameController* gc, TurnManager* tm, Receiver* uiReceiver,
-                     void (Receiver::*slot)(ShogiGameController::Player))
+                     void (Receiver::*slot)(Turn))
     {
         if (!gc || !tm || !uiReceiver) return;
 
         QObject::connect(gc, &ShogiGameController::currentPlayerChanged,
-                         tm, &TurnManager::setFromGc,
+                         tm, &TurnManager::set,
                          Qt::UniqueConnection);
 
         QObject::connect(tm, &TurnManager::changed,
@@ -39,7 +39,7 @@ public:
                          Qt::UniqueConnection);
 
         // 初期同期
-        tm->setFromGc(gc->currentPlayer());
+        tm->set(gc->currentPlayer());
     }
 };
 

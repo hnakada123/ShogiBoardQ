@@ -33,7 +33,7 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     m_handler->loadEnginesFromSettings();
 
     // GUIのリストウィジェットにエンジン名を追加する。
-    for (const Engine& engine : std::as_const(m_handler->engineList())) {
+    for (const EngineListSettings::EngineEntry& engine : std::as_const(m_handler->engineList())) {
         ui->engineListWidget->addItem(engine.name);
         ui->engineListWidget->item(ui->engineListWidget->count() - 1)->setToolTip(engine.path);
     }

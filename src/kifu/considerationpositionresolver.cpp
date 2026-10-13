@@ -137,7 +137,7 @@ QString ConsiderationPositionResolver::resolveLastUsiMoveForPly(int row) const
                 if (node->ply() == row && node->isActualMove()) {
                     const ShogiMove mv = node->move();
                     if (mv.movingPiece != Piece::None) {
-                        lastUsiMove = ShogiUtils::moveToUsi(mv);
+                        lastUsiMove = mv.toUsiMove().toString();
                     }
                     break;
                 }
@@ -157,7 +157,7 @@ QString ConsiderationPositionResolver::resolveLastUsiMoveForPly(int row) const
                 lastUsiMove = kifuUsiMoves.at(usiIdx);
             }
         } else if (m_inputs.gameMoves && usiIdx < m_inputs.gameMoves->size()) {
-            lastUsiMove = ShogiUtils::moveToUsi(m_inputs.gameMoves->at(usiIdx));
+            lastUsiMove = m_inputs.gameMoves->at(usiIdx).toUsiMove().toString();
         }
     }
 

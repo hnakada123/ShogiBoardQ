@@ -188,7 +188,7 @@ private slots:
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         Usi engine(nullptr, nullptr, &game);
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
@@ -207,9 +207,8 @@ private slots:
         QCOMPARE(ready.size(), 1);
         QCOMPARE(errors.size(), 0);
         QVERIFY(m_ticks > ticks + 5);
-        QCOMPARE(moves.first().at(0).toPoint(), QPoint(8, 3));
-        QCOMPARE(moves.first().at(1).toPoint(), QPoint(8, 4));
-        QVERIFY(moves.first().at(2).toString().endsWith(QStringLiteral("7g7f 8c8d")));
+        QCOMPARE(moves.first().at(0).value<UsiMove>().toString(), QStringLiteral("8c8d"));
+        QVERIFY(moves.first().at(1).toString().endsWith(QStringLiteral("7g7f 8c8d")));
     }
     /// 準備中に「すぐ指させる」を押しても、保留中の position・go を捨てずにエンジンが指す
     void immediateMoveDuringInitializationKeepsPendingSearch()
@@ -218,7 +217,7 @@ private slots:
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         Usi engine(nullptr, nullptr, &game);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
@@ -227,7 +226,7 @@ private slots:
         QVERIFY(engine.isInitializing());
         engine.requestImmediateMove();
         QTRY_COMPARE(moves.size(), 1);
-        QCOMPARE(moves.first().at(1).toPoint(), QPoint(8, 4));
+        QCOMPARE(moves.first().at(0).value<UsiMove>().to, (BoardSquare{8, 4}));
     }
     void ponderSwitch_data()
     {
@@ -243,7 +242,7 @@ private slots:
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         Usi engine(nullptr, nullptr, &game);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QSignalSpy resigns(&engine, &Usi::bestMoveResignReceived);
@@ -252,14 +251,14 @@ private slots:
         const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 0);
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
         QTRY_COMPARE(moves.size(), 1);
-        const QString ponder = moves.first().at(3).toString();
+        const QString ponder = moves.first().at(2).toString();
         QVERIFY(ponder.endsWith(QStringLiteral("2g2f")));
-        const QString position = hit ? ponder : moves.first().at(2).toString() + QStringLiteral(" 6g6f");
+        const QString position = hit ? ponder : moves.first().at(1).toString() + QStringLiteral(" 6g6f");
         const int ticks = m_ticks;
         engine.requestMatchMove(position, ponder, timing);
         QCOMPARE(moves.size(), 1);
         QTRY_COMPARE(moves.size(), 2);
-        QCOMPARE(moves.last().at(1).toPoint(), QPoint(3, 4));
+        QCOMPARE(moves.last().at(0).value<UsiMove>().to, (BoardSquare{3, 4}));
         QCOMPARE(resigns.size(), 0); // 先読み停止時のresignは対局結果に使わない。
         QCOMPARE(errors.size(), 0);
         if (!hit) QVERIFY(m_ticks > ticks + 3);
@@ -269,7 +268,7 @@ private slots:
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         Usi engine(nullptr, nullptr, &game);
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
@@ -313,7 +312,7 @@ private slots:
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         Usi engine1(nullptr, nullptr, &game), engine2(nullptr, nullptr, &game);
         QSignalSpy ready1(&engine1, &Usi::engineInitialized);
         QSignalSpy ready2(&engine2, &Usi::engineInitialized);
@@ -377,7 +376,7 @@ private slots:
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         Usi thinking(nullptr, nullptr, &game), pondering(nullptr, nullptr, &game);
         QSignalSpy thinkingReady(&thinking, &Usi::engineInitialized);
         QSignalSpy ponderingReady(&pondering, &Usi::engineInitialized);
@@ -393,7 +392,7 @@ private slots:
         const QString position = QStringLiteral("position startpos moves 7g7f");
         pondering.requestMatchMove(position, {}, timing);
         QTRY_COMPARE(ponderingMoves.size(), 1);
-        QVERIFY(!ponderingMoves.first().at(3).toString().isEmpty());
+        QVERIFY(!ponderingMoves.first().at(2).toString().isEmpty());
         thinking.sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
         thinking.requestMatchMove(position, {}, timing);
         QTest::qWait(30);
@@ -455,7 +454,7 @@ private slots:
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         Usi engine(nullptr, nullptr, &game);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);

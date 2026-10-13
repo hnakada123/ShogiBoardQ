@@ -2,6 +2,7 @@
 /// @brief KIF形式のBOD盤面解析の実装
 
 #include "kiflexer.h"
+#include "shoginotation.h"
 #include "parsecommon.h"
 
 #include <QRegularExpression>
@@ -240,8 +241,6 @@ QString buildHandsSfen(const QMap<Piece, int>& black, const QMap<Piece, int>& wh
 bool collectBodRows(const QStringList& lines, QMap<QChar, QString>& rowByRank,
                     QString* detectedLabel)
 {
-    static const QChar ranks_1to9[9] = {u'一',u'二',u'三',u'四',u'五',u'六',u'七',u'八',u'九'};
-
     int placementStart = -1;
     for (qsizetype i = 0; i < lines.size(); ++i) {
         if (lines.at(i).contains(QStringLiteral("配置：")) || lines.at(i).contains(QStringLiteral("配置:"))) {
@@ -257,7 +256,7 @@ bool collectBodRows(const QStringList& lines, QMap<QChar, QString>& rowByRank,
             if (raw.trimmed().isEmpty()) continue;
             QStringList toks; QChar dummyRank;
             if (parseBodRow(raw, toks, dummyRank, false)) {
-                rowByRank[ranks_1to9[currentRankIdx]] = rowTokensToSfen(toks);
+                rowByRank[ShogiNotation::rankKanji(currentRankIdx + 1).at(0)] = rowTokensToSfen(toks);
                 currentRankIdx++;
             }
         }

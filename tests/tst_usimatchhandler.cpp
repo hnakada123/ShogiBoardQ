@@ -3,6 +3,7 @@
 #include <QFile>
 #include <algorithm>
 
+#include "boardcoordinates.h"
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "usimatchhandler.h"
@@ -38,13 +39,13 @@ public:
     {
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         protocol.setProcessManager(&process);
         protocol.setGameController(&game);
         match.setClock(&clock);
         match.setHooks({[this] { ++errors; protocol.cancelCurrentOperation(); },
-            [this](const QPoint&, const QPoint& to, const QString& result, const QString& nextPonder) {
-                lastTo = to;
+            [this](const UsiMove& move, const QString& result, const QString& nextPonder) {
+                lastTo = BoardCoordinates::toSquare(move);
                 position = result;
                 ponder = nextPonder;
                 ++completed;
@@ -209,7 +210,7 @@ private slots:
         // 持ち時間0・加算10秒。時計は初手の加算を足して10秒から始まる。
         h.clock.setTimeControl(TestTime::rules(0, 0, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(1);
-        h.game.setCurrentPlayer(ShogiGameController::Player1);
+        h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0 || h.clock.isGameOver(), 11000);
@@ -240,7 +241,7 @@ private slots:
         // 持ち時間300秒＋加算10秒。時計は初手の加算を含めて310秒から始まる。
         h.clock.setTimeControl(TestTime::rules(300, 300, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(1);
-        h.game.setCurrentPlayer(ShogiGameController::Player1);
+        h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
@@ -260,7 +261,7 @@ private slots:
         h.clock.stopClock();
         h.clock.setTimeControl(TestTime::rules(300, 300, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(1);
-        h.game.setCurrentPlayer(ShogiGameController::Player1);
+        h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(QStringLiteral("position startpos"), {}, UsiTimingParams{});
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
@@ -370,7 +371,7 @@ private slots:
         ShogiGameController game;
         QString sfen = SfenUtils::hirateSfen();
         game.newGame(sfen);
-        game.setCurrentPlayer(ShogiGameController::Player2);
+        game.setCurrentPlayer(Turn::White);
         Usi engine(nullptr, nullptr, &game);
         QSignalSpy initialized(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
@@ -382,15 +383,15 @@ private slots:
         UsiTimingParams timing;
         timing.timeControl.black.byoyomiMs = timing.timeControl.white.byoyomiMs = 5000;
         timing.btimeMs = 300000;
-        engine.requestHumanReply(position, {}, QPoint(7, 7), QPoint(7, 6), timing, history);
+        engine.requestHumanReply(position, {}, *UsiMove::parse(u"7g7f"), timing, history);
         QCOMPARE(history, QStringList{QStringLiteral("position startpos moves 7g7f")});
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 1, 5000);
-        QCOMPARE(moves.first().at(1).toPoint(), QPoint(8, 4));
-        position = moves.first().at(2).toString();
-        const QString ponder = moves.first().at(3).toString();
-        engine.requestHumanReply(position, ponder, QPoint(2, 7), QPoint(2, 6), timing, history);
+        QCOMPARE(moves.first().at(0).value<UsiMove>().to, (BoardSquare{8, 4}));
+        position = moves.first().at(1).toString();
+        const QString ponder = moves.first().at(2).toString();
+        engine.requestHumanReply(position, ponder, *UsiMove::parse(u"2g2f"), timing, history);
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 2, 5000);
-        QCOMPARE(moves.last().at(1).toPoint(), QPoint(3, 4));
+        QCOMPARE(moves.last().at(0).value<UsiMove>().to, (BoardSquare{3, 4}));
         QCOMPARE(history.size(), 2);
         QCOMPARE(history.last(), ponder);
         engine.cleanupEngineProcessAndThread();

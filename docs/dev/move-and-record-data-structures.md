@@ -5,6 +5,31 @@ ShogiBoardQ の「指し手データ」と「棋譜データ」のソースコ�
 
 ---
 
+## 0. 指し手の値（UsiMove）と表記の共通部品
+
+2026-10-13 に、USI の指し手と1対1の値型と、座標・表記の対応表を1か所にまとめた。
+指し手の読み書き・盤への適用・日本語の表記は、次の部品だけを使う（同じ表を別のファイルに書かない）。
+
+| 部品 | ファイル | 内容 |
+|---|---|---|
+| `UsiMove` / `BoardSquare` | `src/core/usimove.h` | USI の指し手（"7g7f"・"8h2b+"・"P*5e"）と1対1の値。成りも指し手の一部として持つ。`UsiMove::parse()` と `toString()` が USI の読み書きの唯一の実装 |
+| `BoardCoordinates` | `src/core/boardcoordinates.h` | 盤面表示の座標（1始まり、駒台は筋10・11、駒箱は筋12）と駒・`UsiMove` の対応。駒台の段と駒の並びはここだけで決める |
+| `ShogiBoard::applyUsiMove()` | `src/core/shogiboard.cpp` | `UsiMove` を盤と駒台に適用する（合法性は見ない）。読み筋の盤・SFEN 追跡・通信対局の盤の更新が使う |
+| `ShogiGameController::applyMove()` | `src/game/shogigamecontroller.cpp` | 対局で指す。合法手か確かめ（エンジン・通信対局の手も）、反則手は盤を変えずに断る。盤のクリック操作は `validateAndMove()` が成りを選ばせてから同じ確定処理を通る |
+| `ShogiNotation` | `src/core/shoginotation.h` | 全角の筋・漢数字の段、駒の名前（指し手用は成香・成桂・成銀を2文字、局面図用は杏・圭・全）、CSA の駒種 |
+| `KifMoveText::format()` | `src/core/kifmovetext.h` | 「▲７六歩(77)」「△同　銀(31)」「▲５五角打」の形の指し手。対局の棋譜・棋譜の読み込み（USI・USEN・CSA・JKF）・通信対局・定跡・詰将棋の読み筋が使う |
+| `SfenPositionTracer` | `src/board/sfenpositiontracer.cpp` | USI の手順から SFEN の局面列を作る。局面は `ShogiBoard` で持つ（以前は独自の盤を持っていた） |
+
+SFEN の持ち駒は、盤（`ShogiBoard::convertStandToSfen`）も含めて標準の並び（先手の飛角金銀桂香歩、続いて後手）で書く。
+以前の盤は先後を種類ごとに交互に書いていたので、局面を比べるキーは `SfenUtils::normalizeSfenKey()`（持ち駒を並べ直す）で作る。
+
+エンジンの指し手は `Usi::matchMoveReady(UsiMove, ...)` で届き、共有の成りフラグ（以前の `ShogiGameController::setPromote()`）は無い。
+
+まだ独自の表現が残っている所: 思考情報の読み筋の漢字化（`ShogiEngineInfoParser`、info 行ごとの高速化のため文字の盤）、
+KI2 の読み込み・書き出しの移動元の判定（`Ki2Lexer` の駒の動き方）、CSA 読み込みの局面（`CsaLexer::Board`）。
+
+---
+
 ## 1. 指し手データ（ShogiMove）
 
 **ファイル**: `src/core/shogimove.h` / `src/core/shogimove.cpp`
@@ -13,13 +38,18 @@ ShogiBoardQ の「指し手データ」と「棋譜データ」のソースコ�
 
 ```cpp
 struct ShogiMove {
-    QPoint fromSquare{0, 0};                    // 移動元の座標
-    QPoint toSquare{0, 0};                      // 移動先の座標
-    QChar  movingPiece = QLatin1Char(' ');       // 動かした駒（SFEN表記）
-    QChar  capturedPiece = QLatin1Char(' ');     // 取った駒（なければ ' '）
-    bool   isPromotion = false;                  // 成りフラグ
+    QPoint fromSquare{0, 0};            // 移動元の座標
+    QPoint toSquare{0, 0};              // 移動先の座標
+    Piece movingPiece = Piece::None;    // 動かした駒
+    Piece capturedPiece = Piece::None;  // 取った駒（なければ None）
+    bool isPromotion = false;           // 成りフラグ
+
+    static ShogiMove fromUsiMove(const UsiMove& move, Turn mover, Piece moving, Piece captured);
+    UsiMove toUsiMove() const;
 };
 ```
+
+`ShogiMove` は指した手の記録（動かした駒・取った駒を含む）で、`UsiMove` との変換は `fromUsiMove()`・`toUsiMove()` だけで行う。
 
 ### 1.2 座標系
 

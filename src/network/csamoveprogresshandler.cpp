@@ -2,7 +2,6 @@
 /// @brief CSA対局の指し手進行ハンドラの実装
 
 #include "csamoveprogresshandler.h"
-#include "boardconstants.h"
 #include "csamoveconverter.h"
 #include "csaenginecontroller.h"
 #include "shogigamecontroller.h"
@@ -166,29 +165,12 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
     }
 
     const bool isBlackMove = (move[0] == QLatin1Char('+'));
-    const int fromFile = move[1].digitValue();
-    const int fromRank = move[2].digitValue();
     const int toFile = move[3].digitValue();
     const int toRank = move[4].digitValue();
 
     // 成り判定（盤面更新前に行う）
-    bool isPromotion = false;
-    if (fromFile != 0 && fromRank != 0) {
-        QString destPiece = move.mid(5, 2);
-        static const QStringList promotedPieces = {
-            QStringLiteral("TO"), QStringLiteral("NY"), QStringLiteral("NK"),
-            QStringLiteral("NG"), QStringLiteral("UM"), QStringLiteral("RY")
-        };
-        if (promotedPieces.contains(destPiece)) {
-            if (*m_refs.gameController && (*m_refs.gameController)->board()) {
-                Piece srcPiece = (*m_refs.gameController)->board()->pieceCharacter(fromFile, fromRank);
-                static const QString unpromoted = QStringLiteral("PLNSBRplnsbr");
-                if (unpromoted.contains(pieceToChar(srcPiece))) {
-                    isPromotion = true;
-                }
-            }
-        }
-    }
+    const bool isPromotion = *m_refs.gameController
+        && CsaMoveConverter::isPromotionMove(move, (*m_refs.gameController)->board());
 
     if (!CsaMoveConverter::applyMoveToBoard(move, *m_refs.gameController, *m_refs.usiMoves, *m_refs.sfenHistory, *m_refs.moveCount)) {
         deferVerdict(tr("指し手の適用に失敗しました: %1").arg(move),
@@ -245,9 +227,9 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
     const int toRank = move[4].digitValue();
 
     // USI指し手リストとSFEN記録は更新する必要がある
+    // CSA の駒種だけでは成った手か成駒を動かした手か分からないので、送った手の成り・不成に合わせる
     QString usiMove = CsaMoveConverter::csaToUsi(move);
-    if (*m_refs.gameController && !(*m_refs.gameController)->promote()
-        && usiMove.endsWith(QLatin1Char('+'))) usiMove.chop(1);
+    if (!m_sentMove.promote && usiMove.endsWith(QLatin1Char('+'))) usiMove.chop(1);
     if (usiMove.isEmpty()) {
         qCWarning(lcNetwork) << "Invalid confirmed CSA move payload:" << move;
         deferVerdict(tr("指し手確認の変換に失敗しました: %1").arg(move),
@@ -261,7 +243,7 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
         if (*m_refs.gameController && (*m_refs.gameController)->board() && *m_refs.sfenHistory) {
             QString boardSfen = (*m_refs.gameController)->board()->convertBoardToSfen();
             QString standSfen = (*m_refs.gameController)->board()->convertStandToSfen();
-            QString currentPlayerStr = ((*m_refs.gameController)->currentPlayer() == ShogiGameController::Player1)
+            QString currentPlayerStr = ((*m_refs.gameController)->currentPlayer() == Turn::Black)
                                        ? QStringLiteral("b") : QStringLiteral("w");
             QString fullSfen = QString("%1 %2 %3 %4")
                                    .arg(boardSfen, currentPlayerStr, standSfen)
@@ -279,7 +261,7 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
 
     m_hooks.moveHighlightRequested(from, to);
 
-    bool isPromotion = *m_refs.gameController ? (*m_refs.gameController)->promote() : false;
+    const bool isPromotion = m_sentMove.promote;
     QString prettyMove = CsaMoveConverter::csaToPretty(move, isPromotion, *m_refs.prevToFile, *m_refs.prevToRank, *m_refs.moveCount - 1);
 
     *m_refs.prevToFile = toFile;
@@ -358,55 +340,21 @@ void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController:
         return;
     }
 
-    int fromFile = result.from.x();
-    int fromRank = result.from.y();
-    int toFile = result.to.x();
-    int toRank = result.to.y();
-
-    QChar turnSign = *m_refs.isBlackSide ? QLatin1Char('+') : QLatin1Char('-');
-    QString csaPiece;
-
-    bool isDrop = (fromFile >= BoardConstants::kBlackStandFile);
-    if (isDrop) {
-        Piece piece = board->pieceCharacter(fromFile, fromRank);
-        csaPiece = CsaMoveConverter::pieceCharToCsa(piece, false);
-        if (csaPiece.isEmpty()) {
-            m_hooks.logMessage(tr("駒打ちの駒種変換に失敗しました"), true);
-            return;
-        }
-        fromFile = 0;
-        fromRank = 0;
-    } else {
-        Piece piece = board->pieceCharacter(fromFile, fromRank);
-        csaPiece = CsaMoveConverter::pieceCharToCsa(piece, result.promote);
-        if (csaPiece.isEmpty()) {
-            m_hooks.logMessage(tr("指し手の駒種変換に失敗しました"), true);
-            return;
-        }
+    // CSA形式の指し手は、盤面を更新する前の駒から作る
+    const Turn mover = *m_refs.isBlackSide ? Turn::Black : Turn::White;
+    const QString csaMove = CsaMoveConverter::usiToCsa(result.move.toString(), *m_refs.isBlackSide, board);
+    if (csaMove.isEmpty()) {
+        m_hooks.logMessage(tr("指し手の駒種変換に失敗しました"), true);
+        return;
     }
-
-    QString csaMove = QString("%1%2%3%4%5%6")
-        .arg(turnSign).arg(fromFile).arg(fromRank)
-        .arg(toFile).arg(toRank).arg(csaPiece);
 
     m_hooks.logMessage(tr("CSA形式の指し手: %1").arg(csaMove), false);
 
     // 盤面を更新
-    if (!isDrop) {
-        Piece movingPiece = board->pieceCharacter(result.from.x(), result.from.y());
-        Piece capturedPiece = board->pieceCharacter(toFile, toRank);
-        if (capturedPiece != Piece::None) {
-            board->addPieceToStand(capturedPiece);
-        }
-        board->movePieceToSquare(movingPiece, result.from.x(), result.from.y(), toFile, toRank, result.promote);
-    } else {
-        Piece dropPiece = board->pieceCharacter(result.from.x(), result.from.y());
-        if (!board->decrementPieceOnStand(dropPiece)) {
-            m_hooks.logMessage(tr("指し手の適用に失敗しました: %1").arg(csaMove), true);
-            m_hooks.failGame(tr("エンジンの指し手を盤面に適用できません: %1").arg(csaMove));
-            return;
-        }
-        board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);
+    if (!board->applyUsiMove(result.move, mover)) {
+        m_hooks.logMessage(tr("指し手の適用に失敗しました: %1").arg(csaMove), true);
+        m_hooks.failGame(tr("エンジンの指し手を盤面に適用できません: %1").arg(csaMove));
+        return;
     }
 
     (*m_refs.gameController)->changeCurrentPlayer();
@@ -417,5 +365,6 @@ void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController:
     m_hooks.engineScoreUpdated(result.scoreCp, ply, result.scoreMate);
 
     // サーバーに送信
+    noteSentMove(result.move);
     m_refs.client->sendMove(csaMove);
 }

@@ -649,29 +649,43 @@ private slots:
     }
 
     // ================================================================
-    // 9. 座標変換ユーティリティ
+    // 9. bestmove の指し手
     // ================================================================
 
-    void rankToAlphabet_basic()
+    /// bestmove は成り・不成を含む指し手として読み、ゲーム制御の状態には触れない
+    void parseBestMove_keepsPromotion()
     {
-        QCOMPARE(UsiProtocolHandler::rankToAlphabet(1), QChar('a'));
-        QCOMPARE(UsiProtocolHandler::rankToAlphabet(5), QChar('e'));
-        QCOMPARE(UsiProtocolHandler::rankToAlphabet(9), QChar('i'));
+        UsiProtocolHandler handler;
+        handler.onDataReceived(QStringLiteral("bestmove 8h2b+ ponder 3a2b"));
+        const auto move = handler.parseBestMove();
+        QVERIFY(move);
+        QCOMPARE(move->toString(), QStringLiteral("8h2b+"));
+        QVERIFY(move->promote);
+
+        handler.onDataReceived(QStringLiteral("bestmove P*5e"));
+        const auto drop = handler.parseBestMove();
+        QVERIFY(drop && drop->isDrop());
+        QCOMPARE(drop->drop, Piece::BlackPawn);
     }
 
-    void alphabetToRank_basic()
+    /// 特殊手は指し手にならず、エラーも出さない
+    void parseBestMove_specialMoveIsNotAMove()
     {
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('a')), std::optional<int>(1));
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('e')), std::optional<int>(5));
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('i')), std::optional<int>(9));
+        UsiProtocolHandler handler;
+        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
+        handler.onDataReceived(QStringLiteral("bestmove resign"));
+        QVERIFY(!handler.parseBestMove());
+        QCOMPARE(errors.count(), 0);
     }
 
-    void alphabetToRank_invalidInput()
+    /// 読めない bestmove はエラーにする
+    void parseBestMove_rejectsInvalidMove()
     {
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('z')), std::nullopt);
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('A')), std::nullopt);
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('0')), std::nullopt);
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('j')), std::nullopt);
+        UsiProtocolHandler handler;
+        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
+        handler.onDataReceived(QStringLiteral("bestmove INVALID_MOVE_FORMAT"));
+        QVERIFY(!handler.parseBestMove());
+        QCOMPARE(errors.count(), 1);
     }
 
     // ================================================================
@@ -741,31 +755,6 @@ private slots:
         QCOMPARE(spyError.count(), expectedErrorCount);
     }
 
-    // ================================================================
-    // 11. テーブル駆動: alphabetToRank の境界値
-    // ================================================================
-
-    void alphabetToRank_boundary_data()
-    {
-        QTest::addColumn<QChar>("input");
-        QTest::addColumn<bool>("hasValue");
-
-        QTest::newRow("backtick_below_a") << QChar('`') << false;
-        QTest::newRow("j_above_i") << QChar('j') << false;
-        QTest::newRow("uppercase_A") << QChar('A') << false;
-        QTest::newRow("digit_5") << QChar('5') << false;
-        QTest::newRow("space") << QChar(' ') << false;
-        QTest::newRow("null_char") << QChar('\0') << false;
-    }
-
-    void alphabetToRank_boundary()
-    {
-        QFETCH(QChar, input);
-        QFETCH(bool, hasValue);
-
-        auto result = UsiProtocolHandler::alphabetToRank(input);
-        QCOMPARE(result.has_value(), hasValue);
-    }
     // ================================================================
     // 12. 異常系: bestmove の不正フォーマット
     // ================================================================

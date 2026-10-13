@@ -2,6 +2,7 @@
 /// @brief 将棋の指し手データ構造体の実装
 
 #include "shogimove.h"
+#include "boardcoordinates.h"
 
 ShogiMove::ShogiMove() = default;
 
@@ -14,6 +15,27 @@ bool ShogiMove::operator==(const ShogiMove& other) const {
             && movingPiece == other.movingPiece
             && capturedPiece == other.capturedPiece
             && isPromotion == other.isPromotion;
+}
+
+ShogiMove ShogiMove::fromUsiMove(const UsiMove& move, Turn mover, Piece moving, Piece captured)
+{
+    const QPoint from = BoardCoordinates::fromSquare(move, mover);
+    const QPoint to = BoardCoordinates::toSquare(move);
+    return ShogiMove(QPoint(from.x() - 1, from.y() - 1), QPoint(to.x() - 1, to.y() - 1), moving, captured,
+                     move.promote);
+}
+
+UsiMove ShogiMove::toUsiMove() const
+{
+    UsiMove move;
+    move.to = BoardSquare{toSquare.x() + 1, toSquare.y() + 1};
+    if (fromSquare.x() >= 9) {
+        move.drop = toBlack(demote(movingPiece));
+    } else {
+        move.from = BoardSquare{fromSquare.x() + 1, fromSquare.y() + 1};
+        move.promote = isPromotion;
+    }
+    return move;
 }
 
 QDebug operator<<(QDebug dbg, const ShogiMove& move) {

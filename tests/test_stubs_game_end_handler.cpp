@@ -286,8 +286,7 @@ NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const ShogiB
     return g_stubNyugyokuResult;
 }
 QString NyugyokuJudgement::resultTitle() { return QStringLiteral("入玉宣言結果"); }
-void ShogiGameController::setCurrentPlayer(const Player p) { m_currentPlayer = p; }
-void ShogiGameController::setPromote(bool) {}
+void ShogiGameController::setCurrentPlayer(Turn p) { m_currentPlayer = p; }
 void ShogiGameController::newGame(QString&) {}
 
 // ============================================================
@@ -304,11 +303,9 @@ bool Usi::isWinMove() const { return false; }
 int Usi::lastScoreCp() const { return 0; }
 QString Usi::pvKanjiStr() const { return {}; }
 void Usi::setPvKanjiStr(const QString&) {}
-void Usi::parseMoveCoordinates(int&, int&, int&, int&) {}
 void Usi::initializeAndStartEngineCommunication(QString&, QString&) {}
 void Usi::sendGameOverCommand(GameOverResult) {}
 void Usi::sendQuitCommand() {}
-QChar Usi::rankToAlphabet(int) const { return QChar(); }
 void Usi::sendGameOverWinAndQuitCommands() {}
 void Usi::sendStopCommand() {}
 void Usi::executeAnalysisCommunication(QString&, int, int) {}
@@ -594,9 +591,9 @@ void Usi::onProcessStarted() {}
 void Usi::onEngineInitialized(bool) {}
 void Usi::onStartTimeout() {}
 void Usi::requestMatchMove(const QString&, const QString&, const UsiTimingParams&) {}
-void Usi::requestHumanReply(QString&, const QString&, const QPoint&, const QPoint&, const UsiTimingParams&, QStringList&) {}
+void Usi::requestHumanReply(QString&, const QString&, const UsiMove&, const UsiTimingParams&, QStringList&) {}
 
-void EngineVsEngineStrategy::onEngineMoveReady(QPoint, QPoint, const QString&, const QString&) {}
+void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove&, const QString&, const QString&) {}
 
 void UsiProtocolHandler::onInitializationUsiOk() {}
 void UsiProtocolHandler::onInitializationReadyOk() {}

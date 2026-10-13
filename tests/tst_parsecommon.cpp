@@ -3,6 +3,7 @@
 
 #include <QTest>
 #include <QStringView>
+#include "usimove.h"
 #include "parsecommon.h"
 #include "shogitypes.h"
 
@@ -78,10 +79,6 @@ private slots:
     void flexDigitsToIntNoDetach_mixed();
 
     // ---- coordinate parsing ----
-    void parseFileChar_valid();
-    void parseFileChar_invalid();
-    void parseRankChar_valid();
-    void parseRankChar_invalid();
     void parseDigit_valid();
     void parseDigit_invalid();
 
@@ -124,12 +121,6 @@ private slots:
     void isBodHandsLine_normal();
 
     // ---- USI piece conversion ----
-    void usiPieceToKanji_valid();
-    void usiPieceToKanji_invalid();
-    void usiTokenToKanji_normal();
-    void usiTokenToKanji_promoted();
-    void usiTokenToKanji_empty();
-    void usiTokenToKanji_unknown();
 
     // ---- containsAnyTerminal ----
     void containsAnyTerminal_match();
@@ -143,9 +134,6 @@ private slots:
     void flexDigitsToIntNoDetach_abnormal_data();
     void flexDigitsToIntNoDetach_abnormal();
 
-    // ---- table-driven: usiTokenToKanji abnormal ----
-    void usiTokenToKanji_abnormal_data();
-    void usiTokenToKanji_abnormal();
 
     // ---- table-driven: coordinate parsing boundary ----
     void parseCoordinate_boundary_data();
@@ -450,34 +438,6 @@ void TestParseCommon::flexDigitsToIntNoDetach_mixed()
 
 // ==== coordinate parsing ====
 
-void TestParseCommon::parseFileChar_valid()
-{
-    QCOMPARE(KifuParseCommon::parseFileChar(QChar('1')), std::optional<int>(1));
-    QCOMPARE(KifuParseCommon::parseFileChar(QChar('9')), std::optional<int>(9));
-    QCOMPARE(KifuParseCommon::parseFileChar(QChar('5')), std::optional<int>(5));
-}
-
-void TestParseCommon::parseFileChar_invalid()
-{
-    QCOMPARE(KifuParseCommon::parseFileChar(QChar('0')), std::nullopt);
-    QCOMPARE(KifuParseCommon::parseFileChar(QChar('a')), std::nullopt);
-    QCOMPARE(KifuParseCommon::parseFileChar(QChar(' ')), std::nullopt);
-}
-
-void TestParseCommon::parseRankChar_valid()
-{
-    QCOMPARE(KifuParseCommon::parseRankChar(QChar('a')), std::optional<int>(1));
-    QCOMPARE(KifuParseCommon::parseRankChar(QChar('i')), std::optional<int>(9));
-    QCOMPARE(KifuParseCommon::parseRankChar(QChar('e')), std::optional<int>(5));
-}
-
-void TestParseCommon::parseRankChar_invalid()
-{
-    QCOMPARE(KifuParseCommon::parseRankChar(QChar('j')), std::nullopt);
-    QCOMPARE(KifuParseCommon::parseRankChar(QChar('1')), std::nullopt);
-    QCOMPARE(KifuParseCommon::parseRankChar(QChar('A')), std::nullopt);
-}
-
 void TestParseCommon::parseDigit_valid()
 {
     QCOMPARE(KifuParseCommon::parseDigit(QChar('0')), std::optional<int>(0));
@@ -718,47 +678,6 @@ void TestParseCommon::isBodHandsLine_normal()
 
 // ==== USI piece conversion ====
 
-void TestParseCommon::usiPieceToKanji_valid()
-{
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('P')), QStringLiteral("歩"));
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('L')), QStringLiteral("香"));
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('N')), QStringLiteral("桂"));
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('S')), QStringLiteral("銀"));
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('G')), QStringLiteral("金"));
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('B')), QStringLiteral("角"));
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('R')), QStringLiteral("飛"));
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('K')), QStringLiteral("玉"));
-}
-
-void TestParseCommon::usiPieceToKanji_invalid()
-{
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('X')), QStringLiteral("?"));
-    QCOMPARE(KifuParseCommon::usiPieceToKanji(QChar('Z')), QStringLiteral("?"));
-}
-
-void TestParseCommon::usiTokenToKanji_normal()
-{
-    QCOMPARE(KifuParseCommon::usiTokenToKanji(QStringLiteral("P")), QStringLiteral("歩"));
-    QCOMPARE(KifuParseCommon::usiTokenToKanji(QStringLiteral("B")), QStringLiteral("角"));
-}
-
-void TestParseCommon::usiTokenToKanji_promoted()
-{
-    QCOMPARE(KifuParseCommon::usiTokenToKanji(QStringLiteral("+P")), QStringLiteral("と"));
-    QCOMPARE(KifuParseCommon::usiTokenToKanji(QStringLiteral("+B")), QStringLiteral("馬"));
-    QCOMPARE(KifuParseCommon::usiTokenToKanji(QStringLiteral("+R")), QStringLiteral("龍"));
-}
-
-void TestParseCommon::usiTokenToKanji_empty()
-{
-    QCOMPARE(KifuParseCommon::usiTokenToKanji(QString()), QStringLiteral("?"));
-}
-
-void TestParseCommon::usiTokenToKanji_unknown()
-{
-    QCOMPARE(KifuParseCommon::usiTokenToKanji(QStringLiteral("X")), QStringLiteral("?"));
-}
-
 // ==== containsAnyTerminal ====
 
 void TestParseCommon::containsAnyTerminal_match()
@@ -823,27 +742,6 @@ void TestParseCommon::flexDigitsToIntNoDetach_abnormal()
     QCOMPARE(KifuParseCommon::flexDigitsToIntNoDetach(input), expectedValue);
 }
 
-// ==== table-driven: usiTokenToKanji abnormal ====
-
-void TestParseCommon::usiTokenToKanji_abnormal_data()
-{
-    QTest::addColumn<QString>("token");
-    QTest::addColumn<QString>("expectedKanji");
-
-    QTest::newRow("plus_only") << QStringLiteral("+") << QStringLiteral("?");
-    QTest::newRow("lowercase_p") << QStringLiteral("p") << QStringLiteral("歩");
-    QTest::newRow("plus_invalid") << QStringLiteral("+X") << QStringLiteral("?");
-    QTest::newRow("number") << QStringLiteral("1") << QStringLiteral("?");
-}
-
-void TestParseCommon::usiTokenToKanji_abnormal()
-{
-    QFETCH(QString, token);
-    QFETCH(QString, expectedKanji);
-
-    QCOMPARE(KifuParseCommon::usiTokenToKanji(token), expectedKanji);
-}
-
 // ==== table-driven: coordinate parsing boundary ====
 
 void TestParseCommon::parseCoordinate_boundary_data()
@@ -870,11 +768,9 @@ void TestParseCommon::parseCoordinate_boundary()
     QFETCH(QChar, rankChar);
     QFETCH(bool, rankValid);
 
-    auto fileResult = KifuParseCommon::parseFileChar(fileChar);
-    QCOMPARE(fileResult.has_value(), fileValid);
-
-    auto rankResult = KifuParseCommon::parseRankChar(rankChar);
-    QCOMPARE(rankResult.has_value(), rankValid);
+    // USI のマスは筋・段の両方が読めるときだけ読める
+    const auto square = UsiNotation::parseSquare(QString(fileChar) + rankChar);
+    QCOMPARE(square.has_value(), fileValid && rankValid);
 }
 
 QTEST_MAIN(TestParseCommon)

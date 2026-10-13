@@ -4,6 +4,7 @@
 /// @file enginelifecyclemanager.h
 /// @brief エンジンライフサイクル管理クラスの定義
 
+#include "matchtypes.h"
 #include <QObject>
 #include <QString>
 #include <QPoint>
@@ -30,11 +31,8 @@ class EngineLifecycleManager : public QObject
     Q_OBJECT
 
 public:
-    /// 対局者を表す列挙値（MatchCoordinator::Player と互換）
-    enum Player : int {
-        P1 = 1,
-        P2 = 2
-    };
+    /// 対局者（MatchCoordinator::Player と同じ型）
+    using Player = MatchPlayer;
 
     /// MatchCoordinator の内部状態への参照群
     struct Refs {

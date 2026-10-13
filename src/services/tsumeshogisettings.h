@@ -53,9 +53,6 @@ void setTsumeshogiGeneratorDialogSize(const QSize& size);
 int tsumeshogiGeneratorFontSize();
 void setTsumeshogiGeneratorFontSize(int size);
 
-/// 最後に選択したエンジン番号（デフォルト: 0）
-int tsumeshogiGeneratorEngineIndex();
-void setTsumeshogiGeneratorEngineIndex(int index);
 
 /// 目標手数（デフォルト: 3）
 int tsumeshogiGeneratorTargetMoves();

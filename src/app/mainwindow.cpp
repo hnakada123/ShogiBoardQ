@@ -58,7 +58,7 @@ void MainWindow::updateJosekiWindow()
 }
 
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
-void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
+void MainWindow::onTurnManagerChanged(Turn now)
 {
     m_registry->onTurnManagerChanged(now);
 }
@@ -144,7 +144,7 @@ void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QStri
     m_registry->loadBoardWithHighlights(currentSfen, prevSfen);
 }
 
-void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
+void MainWindow::onMoveCommitted(Turn mover, int ply)
 {
     m_registry->handleMoveCommitted(static_cast<int>(mover), ply);
 }

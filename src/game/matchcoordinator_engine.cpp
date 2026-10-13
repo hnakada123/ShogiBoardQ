@@ -33,8 +33,7 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
                                                    const QString& engineNameIn)
 {
     ensureEngineManager();
-    m_engineManager->initializeAndStartEngineFor(
-        static_cast<EngineLifecycleManager::Player>(side), enginePathIn, engineNameIn);
+    m_engineManager->initializeAndStartEngineFor(side, enginePathIn, engineNameIn);
     if (primaryEngine()) primaryEngine()->setMatchClock(clock());
     if (secondaryEngine()) secondaryEngine()->setMatchClock(clock());
 }

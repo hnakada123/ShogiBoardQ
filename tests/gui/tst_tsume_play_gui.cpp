@@ -26,7 +26,7 @@
 #include "tsumeshogisettings.h"
 #include "shogiview.h"
 #include "shogiboard.h"
-#include "usimovecoordinateconverter.h"
+#include "boardcoordinates.h"
 #include "applicationfonts.h"
 
 class TestTsumePlayGui : public QObject
@@ -107,11 +107,11 @@ class TestTsumePlayGui : public QObject
     void clickMove(const QString& move)
     {
         auto* view = dialog->findChild<ShogiView*>();
-        const auto from = UsiMoveCoordinateConverter::parseMoveFrom(move, true);
-        const auto to = UsiMoveCoordinateConverter::parseMoveTo(move);
-        QVERIFY(from && to);
+        const auto parsed = UsiMove::parse(move);
+        QVERIFY(parsed);
         // 描画のマス矩形は盤の原点相対。入力変換を使って駒台も含む実座標を探す。
-        for (const QPoint square : {QPoint(from->file, from->rank), QPoint(to->file, to->rank)}) {
+        for (const QPoint square : {BoardCoordinates::fromSquare(*parsed, Turn::Black),
+                                    BoardCoordinates::toSquare(*parsed)}) {
             QPoint pixel(-1, -1);
             for (int y = 0; y < view->height() && pixel.x() < 0; y += 4) {
                 for (int x = 0; x < view->width(); x += 4) {
@@ -196,10 +196,10 @@ private slots:
         auto* session = window.findChild<TsumeGameSession*>();
         auto* view = window.findChild<ShogiView*>();
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
-        const auto to = UsiMoveCoordinateConverter::parseMoveTo(move);
-        QVERIFY(to);
+        const auto parsed = UsiMove::parse(move);
+        QVERIFY(parsed);
         const QRect fromRect = squareRect(view, {3, 3});
-        const QRect toRect = squareRect(view, {to->file, to->rank});
+        const QRect toRect = squareRect(view, BoardCoordinates::toSquare(*parsed));
         QVERIFY(!fromRect.isEmpty() && !toRect.isEmpty());
         promotionPreviewRect = fromRect.united(toRect);
         const QImage initial = view->grab(promotionPreviewRect).toImage();
@@ -214,7 +214,7 @@ private slots:
         QVERIFY(!promotionPreview.isNull());
         QCOMPARE(promotionPreview, dragged);
         QCOMPARE(promotionSfen, problems[0].sfen.section(QLatin1Char(' '), 0, 0));
-        if (to->rank == 2) {
+        if (parsed->to.rank == 2) {
             // 王手でない着手を拒否した後は、駒が移動元に戻り選択も解除される。
             QVERIFY(positions.isEmpty());
             QCOMPARE(view->grab(promotionPreviewRect).toImage(), initial);

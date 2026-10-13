@@ -2,6 +2,9 @@
 /// @brief 定跡ウィンドウのプレゼンタークラスの実装
 
 #include "josekipresenter.h"
+#include "kifmovetext.h"
+#include "usimove.h"
+#include "sfenutils.h"
 #include "kifupresentation.h"
 #include "josekirepository.h"
 #include "josekiwindow.h"  // JosekiMove 構造体
@@ -20,32 +23,9 @@ JosekiPresenter::JosekiPresenter(JosekiRepository *repository, QObject *parent)
 {
 }
 
-// 全角数字と漢数字のテーブル
-static constexpr QStringView kZenkakuDigits = u" １２３４５６７８９";  // インデックス1-9
-static constexpr QStringView kKanjiRanks = u" 一二三四五六七八九";    // インデックス1-9
-
 QString JosekiPresenter::normalizeSfen(const QString &sfen)
 {
-    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (parts.size() >= 3) {
-        return parts[0] + QLatin1Char(' ') + parts[1] + QLatin1Char(' ') + parts[2];
-    }
-    return sfen;
-}
-
-QString JosekiPresenter::pieceToKanji(QChar pieceChar, bool promoted)
-{
-    switch (pieceChar.toUpper().toLatin1()) {
-    case 'P': return promoted ? QStringLiteral("と") : QStringLiteral("歩");
-    case 'L': return promoted ? QStringLiteral("杏") : QStringLiteral("香");
-    case 'N': return promoted ? QStringLiteral("圭") : QStringLiteral("桂");
-    case 'S': return promoted ? QStringLiteral("全") : QStringLiteral("銀");
-    case 'G': return QStringLiteral("金");
-    case 'B': return promoted ? QStringLiteral("馬") : QStringLiteral("角");
-    case 'R': return promoted ? QStringLiteral("龍") : QStringLiteral("飛");
-    case 'K': return QStringLiteral("玉");
-    default: return QStringLiteral("?");
-    }
+    return SfenUtils::normalizeSfenKey(sfen);
 }
 
 QString JosekiPresenter::usiMoveToJapanese(const QString &usiMove,
@@ -57,67 +37,13 @@ QString JosekiPresenter::usiMoveToJapanese(const QString &usiMove,
     if (KifuPresentation::options().notation == KifuPresentation::Notation::Western)
         return KifuPresentation::move(tracer.toSfenString(), usiMove, KifuPresentation::options());
 
-    // 手番記号
-    QString teban = tracer.blackToMove() ? QStringLiteral("▲") : QStringLiteral("△");
-
-    // 駒打ちのパターン: P*7f
-    if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
-        QChar pieceChar = usiMove.at(0);
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-
-        QString kanji = pieceToKanji(pieceChar);
-
-        QString result = teban;
-        if (toFile >= 1 && toFile <= 9) result += kZenkakuDigits.at(toFile);
-        if (toRank >= 1 && toRank <= 9) result += kKanjiRanks.at(toRank);
-        result += kanji + QStringLiteral("打");
-
-        return result;
-    }
-
-    // 通常移動のパターン: 7g7f, 7g7f+
-    if (usiMove.size() >= 4) {
-        int fromFile = usiMove.at(0).toLatin1() - '0';
-        QChar fromRankLetter = usiMove.at(1);
-        int fromRank = fromRankLetter.toLatin1() - 'a' + 1;
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-        bool promotes = (usiMove.size() >= 5 && usiMove.at(4) == QChar('+'));
-
-        // 範囲チェック
-        if (fromFile < 1 || fromFile > 9 || fromRank < 1 || fromRank > 9 ||
-            toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) {
-            return teban + usiMove;
-        }
-
-        // 移動元の駒を取得
-        QString pieceToken = tracer.tokenAtFileRank(fromFile, fromRankLetter);
-        bool isPromoted = pieceToken.startsWith(QChar('+'));
-        QChar pieceChar = isPromoted ? pieceToken.at(1) : (pieceToken.isEmpty() ? QChar('?') : pieceToken.at(0));
-
-        QString result = teban;
-
-        // 移動先
-        if (toFile >= 1 && toFile <= 9) result += kZenkakuDigits.at(toFile);
-        if (toRank >= 1 && toRank <= 9) result += kKanjiRanks.at(toRank);
-
-        // 駒種
-        QString kanji = pieceToKanji(pieceChar, isPromoted);
-        result += kanji;
-
-        // 成り
-        if (promotes) {
-            result += QStringLiteral("成");
-        }
-
-        // 移動元
-        result += QStringLiteral("(") + QString::number(fromFile) + QString::number(fromRank) + QStringLiteral(")");
-
-        return result;
-    }
-
-    return teban + usiMove;
+    const Turn mover = tracer.blackToMove() ? Turn::Black : Turn::White;
+    const auto move = UsiMove::parse(usiMove);
+    if (!move) return (mover == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△")) + usiMove;
+    const Piece moving = move->isDrop() ? move->dropPieceFor(mover)
+                                        : tracer.pieceAt(move->from.file, move->from.rank);
+    // 定跡の表は手ごとに独立しているので「同」は使わず、棋譜欄と同じ書式で書く
+    return KifMoveText::format(mover, moving, *move);
 }
 
 void JosekiPresenter::addMove(const QString &normalizedSfen, const QString &currentSfen,

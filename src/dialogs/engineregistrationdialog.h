@@ -14,19 +14,6 @@ class EngineRegistrationDialog;
 
 class EngineRegistrationHandler;
 
-// エンジンの構造体
-struct Engine
-{
-    // エンジン名
-    QString name;
-
-    // エンジンの実行ファイル名
-    QString path;
-
-    // エンジンの作者名
-    QString author;
-};
-
 // エンジン登録ダイアログ
 class EngineRegistrationDialog : public QDialog
 {

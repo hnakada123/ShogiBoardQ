@@ -270,18 +270,6 @@ void setKifuAnalysisByoyomiSec(int sec)
     s.setValue(SettingsKeys::kKifuAnalysisByoyomiSec, sec);
 }
 
-int kifuAnalysisEngineIndex()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kKifuAnalysisEngineIndex, 0).toInt();
-}
-
-void setKifuAnalysisEngineIndex(int index)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kKifuAnalysisEngineIndex, index);
-}
-
 bool kifuAnalysisFullRange()
 {
     QSettings& s = SettingsCommon::openSettings();
@@ -332,18 +320,6 @@ void setKifuAnalysisDialogSize(const QSize& size)
 
 // --- 検討モード ---
 
-int considerationEngineIndex()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kConsiderationEngineIndex, 0).toInt();
-}
-
-void setConsiderationEngineIndex(int index)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kConsiderationEngineIndex, index);
-}
-
 bool considerationUnlimitedTime()
 {
     QSettings& s = SettingsCommon::openSettings();
@@ -393,16 +369,6 @@ void setConsiderationFontSize(int size)
 }
 
 // --- 詰み探索 ---
-
-QString tsumeSearchEnginePath()
-{
-    return SettingsCommon::openSettings().value(SettingsKeys::kTsumeSearchEnginePath).toString();
-}
-
-void setTsumeSearchEnginePath(const QString& path)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kTsumeSearchEnginePath, path);
-}
 
 bool tsumeSearchUnlimitedTime()
 {

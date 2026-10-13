@@ -224,6 +224,14 @@ std::optional<SfenComponents> ShogiBoard::parseSfen(const QString& sfenStr)
 // SFEN文字列で将棋盤全体（盤面＋駒台）を更新し再描画する。
 void ShogiBoard::setSfen(const QString& sfenStr)
 {
+    QString error;
+    if (!trySetSfen(sfenStr, &error) && !error.isEmpty()) {
+        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, error);
+    }
+}
+
+bool ShogiBoard::trySetSfen(const QString& sfenStr, QString* error)
+{
     // 処理フロー:
     // 1. SFEN文字列の構文検証・分解
     // 2. 盤面に駒を配置
@@ -240,31 +248,29 @@ void ShogiBoard::setSfen(const QString& sfenStr)
 
     auto parsed = parseSfen(sfenStr);
     if (!parsed)
-        return;
+        return false;
 
     const QList<Piece> oldBoardData = m_boardData;
     const QMap<Piece, int> oldPieceStand = m_pieceStand;
     const Turn oldTurn = m_currentPlayer;
     const int oldMoveNumber = m_currentMoveNumber;
+    const auto restore = [&] {
+        m_boardData = oldBoardData;
+        m_pieceStand = oldPieceStand;
+        m_currentPlayer = oldTurn;
+        m_currentMoveNumber = oldMoveNumber;
+    };
 
     QString boardPart = parsed->board;
     if (!setPiecePlacementFromSfen(boardPart)) {
-        m_boardData = oldBoardData;
-        m_pieceStand = oldPieceStand;
-        m_currentPlayer = oldTurn;
-        m_currentMoveNumber = oldMoveNumber;
-        const auto msg = tr("SFEN board parse error: %1").arg(sfenStr.left(80));
-        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, msg);
-        return;
+        restore();
+        if (error) *error = tr("SFEN board parse error: %1").arg(sfenStr.left(80));
+        return false;
     }
     if (!setPieceStandFromSfen(parsed->stand)) {
-        m_boardData = oldBoardData;
-        m_pieceStand = oldPieceStand;
-        m_currentPlayer = oldTurn;
-        m_currentMoveNumber = oldMoveNumber;
-        const auto msg = tr("SFEN piece stand parse error: %1").arg(sfenStr.left(80));
-        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, msg);
-        return;
+        restore();
+        if (error) *error = tr("SFEN piece stand parse error: %1").arg(sfenStr.left(80));
+        return false;
     }
 
     m_currentPlayer = parsed->turn;
@@ -272,6 +278,7 @@ void ShogiBoard::setSfen(const QString& sfenStr)
 
     // ShogiView::setBoardのconnectで再描画がトリガされる
     emit boardReset();
+    return true;
 }
 
 // ============================================================
@@ -330,23 +337,18 @@ QString ShogiBoard::convertStandToSfen() const
     QString handPiece;
     handPiece.reserve(40);
 
+    // SFEN（USI）の持ち駒は、先手の駒をすべて書いてから後手の駒を書く。どちらも飛・角・金・銀・桂・香・歩の順
     static const QList<Piece> keys = {
         Piece::BlackRook, Piece::BlackBishop, Piece::BlackGold,
         Piece::BlackSilver, Piece::BlackKnight, Piece::BlackLance, Piece::BlackPawn
     };
-
-    for (const auto& key : keys) {
-        // 先手
-        int value = m_pieceStand.value(key, 0);
-        if (value > 0) {
-            handPiece += (value > 1 ? QString::number(value) : "") + convertPieceToSfen(key);
-        }
-
-        // 後手
-        Piece whiteKey = toWhite(key);
-        value = m_pieceStand.value(whiteKey, 0);
-        if (value > 0) {
-            handPiece += (value > 1 ? QString::number(value) : "") + convertPieceToSfen(whiteKey);
+    for (const bool white : {false, true}) {
+        for (const auto& blackKey : keys) {
+            const Piece key = white ? toWhite(blackKey) : blackKey;
+            const int value = m_pieceStand.value(key, 0);
+            if (value > 0) {
+                handPiece += (value > 1 ? QString::number(value) : QString()) + convertPieceToSfen(key);
+            }
         }
     }
 

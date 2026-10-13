@@ -38,8 +38,8 @@ void TurnStateSyncService::setCurrentTurn()
     // 参照すると古い手番へ巻き戻ることがあるため、ここでは GC だけを見る。
     if (gameActive && m_deps.gameController) {
         const auto gcTurn = m_deps.gameController->currentPlayer();
-        if (gcTurn == ShogiGameController::Player1 || gcTurn == ShogiGameController::Player2) {
-            tm->setFromGc(gcTurn);
+        if (gcTurn == Turn::Black || gcTurn == Turn::White) {
+            tm->set(gcTurn);
             return;
         }
     }
@@ -48,16 +48,16 @@ void TurnStateSyncService::setCurrentTurn()
     const Turn boardTurn = (m_deps.shogiView && m_deps.shogiView->board())
                                ? m_deps.shogiView->board()->currentPlayer()
                                : Turn::Black;
-    tm->setFromTurn(boardTurn);
+    tm->set(boardTurn);
 
     // 盤面起点の同期時のみ GC へ反映する。
-    if (m_deps.gameController) m_deps.gameController->setCurrentPlayer(tm->toGc());
+    if (m_deps.gameController) m_deps.gameController->setCurrentPlayer(tm->side());
 }
 
-void TurnStateSyncService::onTurnManagerChanged(ShogiGameController::Player now)
+void TurnStateSyncService::onTurnManagerChanged(Turn now)
 {
     // 1) UI側（先手=1, 後手=2）に反映
-    const int cur = (now == ShogiGameController::Player2) ? 2 : 1;
+    const int cur = (now == Turn::White) ? 2 : 1;
     if (m_deps.updateTurnStatus) {
         m_deps.updateTurnStatus(cur);
     }
@@ -84,7 +84,7 @@ void TurnStateSyncService::updateTurnAndTimekeepingDisplay()
         const qint64 p2 = clk->remainingMs(2);
         const bool p1turn =
             (m_deps.gameController
-                 ? (m_deps.gameController->currentPlayer() == ShogiGameController::Player1)
+                 ? (m_deps.gameController->currentPlayer() == Turn::Black)
                  : true);
         m_deps.timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
     }

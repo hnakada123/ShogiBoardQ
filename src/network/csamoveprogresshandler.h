@@ -16,6 +16,7 @@
 
 #include "csaclient.h"
 #include "csagamecoordinator.h"
+#include "usimove.h"
 
 class ShogiGameController;
 class ShogiView;
@@ -131,6 +132,14 @@ public:
     void clearPendingVerdict();
 
     /**
+     * @brief 自分がサーバーへ送った指し手を控える
+     *
+     * サーバーの指し手確認は CSA 形式なので、成った手か成駒を動かした手かを駒種だけでは
+     * 区別できない。確認が届いたときは控えた指し手の成り・不成を使う。
+     */
+    void noteSentMove(const UsiMove& move) { m_sentMove = move; }
+
+    /**
      * @brief 対局開始時に表示用時計を CSA の持時間に合わせる
      * @param clock 時計
      * @param summary 対局条件
@@ -162,6 +171,7 @@ private:
     Hooks m_hooks;
     QTimer m_verdictTimer;             ///< 裁定待ちのタイムアウト
     QString m_pendingFailureText;      ///< 裁定が届かなかったときの終局理由（空なら待ちなし）
+    UsiMove m_sentMove;                ///< 最後にサーバーへ送った自分の指し手
 };
 
 #endif // CSAMOVEPROGRESSHANDLER_H

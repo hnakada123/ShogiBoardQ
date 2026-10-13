@@ -10,7 +10,7 @@
 #include "tsumeshogisettings.h"
 #include "tsumeprogressstore.h"
 #include "tsumesolutionreplay.h"
-#include "usimovecoordinateconverter.h"
+#include "boardcoordinates.h"
 
 #include <QHBoxLayout>
 #include <QFontMetrics>
@@ -355,8 +355,8 @@ void TsumePlayDialog::requestMove(const QPoint& from, const QPoint& to)
         return;
     }
     // 通常対局と同様、成りの選択が終わるまでは移動先のドラッグ表示を保つ。
-    QString error;
-    QString move = UsiMoveCoordinateConverter::convertHumanMoveToUsi(from, to, false, error);
+    const auto parsed = BoardCoordinates::usiMoveFromSquares(from, to, false);
+    QString move = parsed ? parsed->toString() : QString();
     const auto legal = m_session->legalMoves();
     const QString promoted = move + QLatin1Char('+');
     if (!move.isEmpty() && legal.contains(promoted)) {
@@ -385,13 +385,16 @@ void TsumePlayDialog::updatePosition(const QString& sfen, const QString& move)
     m_interaction->cancelPendingClick();
     m_game->board()->setSfen(sfen);
     const bool blackTurn = sfen.section(QLatin1Char(' '), 1, 1) == QStringLiteral("b");
-    m_game->setCurrentPlayer(blackTurn ? ShogiGameController::Player1 : ShogiGameController::Player2);
+    m_game->setCurrentPlayer(blackTurn ? Turn::Black : Turn::White);
     m_view->setActiveSide(blackTurn);
     if (move.isEmpty()) m_interaction->clearAllHighlights();
     else {
-        const auto from = UsiMoveCoordinateConverter::parseMoveFrom(move, !blackTurn);
-        const auto to = UsiMoveCoordinateConverter::parseMoveTo(move);
-        if (from && to) m_interaction->showMoveHighlights({from->file, from->rank}, {to->file, to->rank});
+        // 直前の手は、今の手番の相手が指した手
+        if (const auto played = UsiMove::parse(move)) {
+            const Turn mover = blackTurn ? Turn::White : Turn::Black;
+            m_interaction->showMoveHighlights(BoardCoordinates::fromSquare(*played, mover),
+                                              BoardCoordinates::toSquare(*played));
+        }
     }
     // 局面・手番・ハイライトは、盤がそれぞれ変わった所だけを描き直すので、全体の描き直しは頼まない
 }

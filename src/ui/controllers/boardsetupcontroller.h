@@ -11,7 +11,7 @@
 #include <functional>
 
 #include "playmode.h"
-#include "shogigamecontroller.h"  // ShogiGameController::Player
+#include "shogigamecontroller.h"  // Turn
 
 class ShogiView;
 class BoardInteractionController;
@@ -106,7 +106,7 @@ public slots:
     /**
      * @brief 着手確定時の処理
      */
-    void onMoveCommitted(ShogiGameController::Player mover, int ply);
+    void onMoveCommitted(Turn mover, int ply);
 
 signals:
     /**

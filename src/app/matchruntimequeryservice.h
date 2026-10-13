@@ -39,7 +39,7 @@ public:
     bool isHvH() const;
 
     /// 指定プレイヤーが人間側かどうかを判定する
-    bool isHumanSide(ShogiGameController::Player p) const;
+    bool isHumanSide(Turn p) const;
 
     // --- SFEN アクセサ ---
 

@@ -21,6 +21,8 @@ int main()
                       << "option name GenerateAllLegalMoves type check default false\n"
                       << "option name RootIsAndNodeIfChecked type check default true\n"
                       << "option name NodesLimit type spin default 1 min 0 max 1000\n"
+                      << "option name Threads type spin default 1 min 1 max 64\n"
+                      << "option name USI_Hash type spin default 16 min 1 max 4096\n"
                       << "usiok" << std::endl;
         } else if (line.rfind("setoption name ", 0) == 0) {
             const auto split = line.find(" value ");
@@ -28,9 +30,11 @@ int main()
         } else if (line == "isready") std::cout << "readyok" << std::endl;
         else if (line.rfind("position sfen ", 0) == 0) sfen = line.substr(14);
         else if (line.rfind("go mate ", 0) == 0) {
+            // 登録済みの設定（スレッド数）が届いたかを確かめる試験では、期待する値を環境変数で受け取る
+            const char* expectedThreads = std::getenv("SHOGI_TEST_EXPECT_THREADS");
             if (line != "go mate infinite" || options["PostSearchLevel"] != "MinLength"
                 || options["GenerateAllLegalMoves"] != "true" || options["RootIsAndNodeIfChecked"] != "false"
-                || options["NodesLimit"] != "0") {
+                || options["NodesLimit"] != "0" || (expectedThreads && options["Threads"] != expectedThreads)) {
                 std::cout << "checkmate notimplemented" << std::endl;
                 continue;
             }

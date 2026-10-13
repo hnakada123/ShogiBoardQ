@@ -2,6 +2,7 @@
 /// @brief USIエンジンのinfo行パーサの実装
 
 #include "shogiengineinfoparser.h"
+#include "shoginotation.h"
 #include "usi.h"
 #include <QStringList>
 #include <QString>
@@ -90,7 +91,7 @@ QString ShogiEngineInfoParser::depth() const
 QChar ShogiEngineInfoParser::moveSymbol(const int moveIndex, const bool isPondering) const
 {
     // 思考開始時の手番を使用（bestmove後の局面更新の影響を受けない）
-    const bool thinkingPlayerIsPlayer1 = (m_thinkingStartPlayer == ShogiGameController::Player1);
+    const bool thinkingPlayerIsPlayer1 = (m_thinkingStartPlayer == Turn::Black);
     const QChar black(0x25B2);  // ▲
     const QChar white(0x25B3);  // △
 
@@ -108,8 +109,8 @@ void ShogiEngineInfoParser::appendFormattedMove(QString& out, int fileTo, int ra
     if ((fileTo == previousFileTo()) && (rankTo == previousRankTo())) {
         out += QChar(0x540C);  // 同
     } else {
-        out += ShogiUtils::transFileTo(fileTo);
-        out += ShogiUtils::transRankTo(rankTo);
+        out += ShogiNotation::fileZenkaku(fileTo);
+        out += ShogiNotation::rankKanji(rankTo);
     }
     out += kanji;
 }
@@ -168,7 +169,7 @@ void ShogiEngineInfoParser::setPreviousRankTo(int newPreviousRankTo)
     m_previousRankTo = newPreviousRankTo;
 }
 
-void ShogiEngineInfoParser::setThinkingStartPlayer(ShogiGameController::Player player)
+void ShogiEngineInfoParser::setThinkingStartPlayer(Turn player)
 {
     m_thinkingStartPlayer = player;
 }

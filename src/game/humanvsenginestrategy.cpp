@@ -2,6 +2,7 @@
 /// @brief 人間 vs エンジンモードの Strategy 実装
 
 #include "humanvsenginestrategy.h"
+#include "boardcoordinates.h"
 #include "strategycontext.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
@@ -70,14 +71,8 @@ void HumanVsEngineStrategy::start()
     m_ctx.initializeAndStartEngineFor(engineSide, m_enginePath, m_engineName);
 
     // --- 手番の単一ソースを確立：GC → m_cur → 表示 ---
-    ShogiGameController::Player side =
-        m_ctx.gc() ? m_ctx.gc()->currentPlayer() : ShogiGameController::NoPlayer;
-    if (side == ShogiGameController::NoPlayer) {
-        // 既定は先手（SFEN未指定時）
-        side = ShogiGameController::Player1;
-        if (m_ctx.gc()) m_ctx.gc()->setCurrentPlayer(side);
-    }
-    m_ctx.setCurrentTurn((side == ShogiGameController::Player2) ? MatchCoordinator::P2 : MatchCoordinator::P1);
+    const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
+    m_ctx.setCurrentTurn((side == Turn::White) ? MatchCoordinator::P2 : MatchCoordinator::P1);
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
@@ -155,8 +150,8 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
         eng->setPreviousRankTo(humanTo.y());
     }
 
-    const ShogiGameController::Player engineSeat =
-        m_engineIsP1 ? ShogiGameController::Player1 : ShogiGameController::Player2;
+    const Turn engineSeat =
+        m_engineIsP1 ? Turn::Black : Turn::White;
 
     // 千日手チェック（人間の手の後）
     if (m_ctx.checkAndHandleSennichite()) return;
@@ -183,11 +178,11 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
     // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
     const UsiTimingParams timing;
     m_waitingForMove = true;
-    eng->requestHumanReply(m_ctx.positionStr1(), m_ctx.positionPonder1(), humanFrom, humanTo,
+    eng->requestHumanReply(m_ctx.positionStr1(), m_ctx.positionPonder1(), m_ctx.gc()->lastMove(),
                            timing, m_ctx.positionStrHistory());
 }
 
-void HumanVsEngineStrategy::onEngineMoveReady(QPoint eFrom, QPoint eTo,
+void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
                                               const QString& position, const QString& ponder)
 {
     Usi* eng = m_ctx.primaryEngine();
@@ -198,24 +193,23 @@ void HumanVsEngineStrategy::onEngineMoveReady(QPoint eFrom, QPoint eTo,
     const int mcCur = m_ctx.currentMoveIndex();
     QString rec;
     int nextIdx = mcCur + 1;
-    const bool ok = m_ctx.gc()->validateAndMove(
-        eFrom, eTo, rec, m_ctx.playModeRef(),
-        nextIdx, m_ctx.sfenHistory(), m_ctx.gameMovesRef());
-
-    if (ok) {
-        m_ctx.setCurrentMoveIndex(nextIdx);
-        qCDebug(lcGame).noquote() << "HvE mcCur ->" << m_ctx.currentMoveIndex();
-    } else {
-        if (!m_ctx.gameOverState().isOver) armTurnTimerIfNeeded();
+    const Turn engineTurn = m_engineIsP1 ? Turn::Black : Turn::White;
+    const QPoint eFrom = BoardCoordinates::fromSquare(move, engineTurn);
+    const QPoint eTo = BoardCoordinates::toSquare(move);
+    // 反則手は盤に指さず、エンジンの反則負けにする
+    if (!m_ctx.gc()->applyMove(move, rec, nextIdx, m_ctx.sfenHistory(), m_ctx.gameMovesRef())) {
+        m_ctx.handleEngineIllegalMove(m_engineIsP1 ? 1 : 2);
         return;
     }
+    m_ctx.setCurrentMoveIndex(nextIdx);
+    qCDebug(lcGame).noquote() << "HvE mcCur ->" << m_ctx.currentMoveIndex();
 
     if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(eFrom, eTo);
 
     // エンジンの考慮時間を確定してから棋譜に追記する
     const qint64 thinkMs = eng->lastBestmoveElapsedMs();
     // 指し終えて手番が移ったので、直前に指したのは今の手番の相手
-    const int engineSide = m_ctx.gc()->currentPlayer() == ShogiGameController::Player1 ? 2 : 1;
+    const int engineSide = m_ctx.gc()->currentPlayer() == Turn::Black ? 2 : 1;
     if (m_ctx.clock()) {
         m_ctx.clock()->setMeasuredConsiderationTime(engineSide, thinkMs);
         m_ctx.clock()->commitMove(engineSide);
@@ -226,7 +220,7 @@ void HumanVsEngineStrategy::onEngineMoveReady(QPoint eFrom, QPoint eTo,
     }
 
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
-    m_ctx.setCurrentTurn((m_ctx.gc()->currentPlayer() == ShogiGameController::Player2) ? MatchCoordinator::P2 : MatchCoordinator::P1);
+    m_ctx.setCurrentTurn((m_ctx.gc()->currentPlayer() == Turn::White) ? MatchCoordinator::P2 : MatchCoordinator::P1);
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
     // エンジン着手後の評価値追加
@@ -300,8 +294,8 @@ void HumanVsEngineStrategy::startInitialMoveIfNeeded()
     if (!m_ctx.gc()) return;
 
     const auto sideToMove = m_ctx.gc()->currentPlayer();
-    const auto engineSide = m_engineIsP1 ? ShogiGameController::Player1
-                                        : ShogiGameController::Player2;
+    const auto engineSide = m_engineIsP1 ? Turn::Black
+                                        : Turn::White;
     // 人間の初手は、相手エンジンの初期化中も計時を続ける。
     if (sideToMove != engineSide) return;
 
@@ -326,7 +320,6 @@ void HumanVsEngineStrategy::startInitialEngineMove()
         m_ctx.positionStr1() = QStringLiteral("position startpos moves");
     }
 
-    m_ctx.gc()->setPromote(false);
     // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
     const UsiTimingParams timing;
     m_waitingForMove = true;

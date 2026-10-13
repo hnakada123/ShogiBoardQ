@@ -2,6 +2,7 @@
 /// @brief CSA/USI/SFEN形式変換ユーティリティクラスの実装
 
 #include "csamoveconverter.h"
+#include "shoginotation.h"
 #include "boardconstants.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -20,13 +21,11 @@ bool isValidDropSource(int file, int rank)
 }
 bool isPromotedCsaPiece(const QString& piece)
 {
-    return piece == QStringLiteral("TO") || piece == QStringLiteral("NY")
-        || piece == QStringLiteral("NK") || piece == QStringLiteral("NG")
-        || piece == QStringLiteral("UM") || piece == QStringLiteral("RY");
+    return isPromoted(ShogiNotation::pieceFromCsaCode(piece));
 }
 bool isKnownCsaPiece(const QString& piece)
 {
-    return CsaMoveConverter::pieceTypeFromCsa(piece) > 0;
+    return ShogiNotation::pieceFromCsaCode(piece) != Piece::None;
 }
 bool isValidUsiRank(QChar rank)
 {
@@ -247,160 +246,76 @@ QString CsaMoveConverter::boardToCSA(const QPoint& from, const QPoint& to, bool 
 
 QString CsaMoveConverter::pieceCharToCsa(Piece piece, bool promote)
 {
-    char c = static_cast<char>(piece);
-
-    switch (c) {
-    // 先手の成り駒
-    case 'Q': return QStringLiteral("TO");
-    case 'M': return QStringLiteral("NY");
-    case 'O': return QStringLiteral("NK");
-    case 'T': return QStringLiteral("NG");
-    case 'C': return QStringLiteral("UM");
-    case 'U': return QStringLiteral("RY");
-
-    // 後手の成り駒
-    case 'q': return QStringLiteral("TO");
-    case 'm': return QStringLiteral("NY");
-    case 'o': return QStringLiteral("NK");
-    case 't': return QStringLiteral("NG");
-    case 'c': return QStringLiteral("UM");
-    case 'u': return QStringLiteral("RY");
-
-    // 先手の未成駒
-    case 'P': return promote ? QStringLiteral("TO") : QStringLiteral("FU");
-    case 'L': return promote ? QStringLiteral("NY") : QStringLiteral("KY");
-    case 'N': return promote ? QStringLiteral("NK") : QStringLiteral("KE");
-    case 'S': return promote ? QStringLiteral("NG") : QStringLiteral("GI");
-    case 'G': return QStringLiteral("KI");
-    case 'B': return promote ? QStringLiteral("UM") : QStringLiteral("KA");
-    case 'R': return promote ? QStringLiteral("RY") : QStringLiteral("HI");
-    case 'K': return QStringLiteral("OU");
-
-    // 後手の未成駒
-    case 'p': return promote ? QStringLiteral("TO") : QStringLiteral("FU");
-    case 'l': return promote ? QStringLiteral("NY") : QStringLiteral("KY");
-    case 'n': return promote ? QStringLiteral("NK") : QStringLiteral("KE");
-    case 's': return promote ? QStringLiteral("NG") : QStringLiteral("GI");
-    case 'g': return QStringLiteral("KI");
-    case 'b': return promote ? QStringLiteral("UM") : QStringLiteral("KA");
-    case 'r': return promote ? QStringLiteral("RY") : QStringLiteral("HI");
-    case 'k': return QStringLiteral("OU");
-
-    default:
+    const QString code = ShogiNotation::csaPieceCode(promote ? ::promote(piece) : piece);
+    if (code.isEmpty()) {
         qCWarning(lcNetwork) << "Unknown piece character:" << pieceToChar(piece);
-        return QString();
     }
+    return code;
 }
 
 QString CsaMoveConverter::csaPieceToUsi(const QString& csaPiece)
 {
-    static const QHash<QString, QString> map = {
-        {QStringLiteral("FU"), QStringLiteral("P")},
-        {QStringLiteral("KY"), QStringLiteral("L")},
-        {QStringLiteral("KE"), QStringLiteral("N")},
-        {QStringLiteral("GI"), QStringLiteral("S")},
-        {QStringLiteral("KI"), QStringLiteral("G")},
-        {QStringLiteral("KA"), QStringLiteral("B")},
-        {QStringLiteral("HI"), QStringLiteral("R")},
-        {QStringLiteral("OU"), QStringLiteral("K")},
-        {QStringLiteral("TO"), QStringLiteral("+P")},
-        {QStringLiteral("NY"), QStringLiteral("+L")},
-        {QStringLiteral("NK"), QStringLiteral("+N")},
-        {QStringLiteral("NG"), QStringLiteral("+S")},
-        {QStringLiteral("UM"), QStringLiteral("+B")},
-        {QStringLiteral("RY"), QStringLiteral("+R")}
-    };
-    const QString usi = map.value(csaPiece);
-    if (usi.isEmpty()) {
+    const Piece piece = ShogiNotation::pieceFromCsaCode(csaPiece);
+    if (piece == Piece::None) {
         qCWarning(lcNetwork) << "csaPieceToUsi: unknown piece code:" << csaPiece;
+        return QString();
     }
-    return usi;
+    return (isPromoted(piece) ? QStringLiteral("+") : QString()) + pieceToChar(demote(piece));
 }
 
 QString CsaMoveConverter::usiPieceToCsa(const QString& usiPiece, bool promoted)
 {
-    static const QHash<QString, QString> map = {
-        {QStringLiteral("P"), QStringLiteral("FU")},
-        {QStringLiteral("L"), QStringLiteral("KY")},
-        {QStringLiteral("N"), QStringLiteral("KE")},
-        {QStringLiteral("S"), QStringLiteral("GI")},
-        {QStringLiteral("G"), QStringLiteral("KI")},
-        {QStringLiteral("B"), QStringLiteral("KA")},
-        {QStringLiteral("R"), QStringLiteral("HI")},
-        {QStringLiteral("K"), QStringLiteral("OU")}
-    };
-    static const QHash<QString, QString> promotedMap = {
-        {QStringLiteral("P"), QStringLiteral("TO")},
-        {QStringLiteral("L"), QStringLiteral("NY")},
-        {QStringLiteral("N"), QStringLiteral("NK")},
-        {QStringLiteral("S"), QStringLiteral("NG")},
-        {QStringLiteral("B"), QStringLiteral("UM")},
-        {QStringLiteral("R"), QStringLiteral("RY")}
-    };
-
-    if (promoted) {
-        const QString csa = promotedMap.value(usiPiece);
-        if (csa.isEmpty()) {
-            qCWarning(lcNetwork) << "usiPieceToCsa: unknown promoted piece:" << usiPiece;
-        }
-        return csa;
+    // USI の駒文字は大文字だけを読む
+    const Piece base = usiPiece.size() == 1 ? charToPiece(usiPiece.at(0)) : Piece::None;
+    // 金・玉は成れないので、成った駒としては読まない
+    const Piece piece = promoted ? ::promote(base) : base;
+    if (!isBlackPiece(base) || isPromoted(base) || (promoted && piece == base)) {
+        qCWarning(lcNetwork) << "usiPieceToCsa: unknown piece:" << usiPiece << "promoted=" << promoted;
+        return QString();
     }
-    const QString csa = map.value(usiPiece);
-    if (csa.isEmpty()) {
-        qCWarning(lcNetwork) << "usiPieceToCsa: unknown piece:" << usiPiece;
-    }
-    return csa;
+    return ShogiNotation::csaPieceCode(piece);
 }
 
 QString CsaMoveConverter::csaPieceToKanji(const QString& csaPiece)
 {
-    static const QHash<QString, QString> map = {
-        {QStringLiteral("FU"), QStringLiteral("歩")},
-        {QStringLiteral("KY"), QStringLiteral("香")},
-        {QStringLiteral("KE"), QStringLiteral("桂")},
-        {QStringLiteral("GI"), QStringLiteral("銀")},
-        {QStringLiteral("KI"), QStringLiteral("金")},
-        {QStringLiteral("KA"), QStringLiteral("角")},
-        {QStringLiteral("HI"), QStringLiteral("飛")},
-        {QStringLiteral("OU"), QStringLiteral("玉")},
-        {QStringLiteral("TO"), QStringLiteral("と")},
-        {QStringLiteral("NY"), QStringLiteral("成香")},
-        {QStringLiteral("NK"), QStringLiteral("成桂")},
-        {QStringLiteral("NG"), QStringLiteral("成銀")},
-        {QStringLiteral("UM"), QStringLiteral("馬")},
-        {QStringLiteral("RY"), QStringLiteral("龍")}
-    };
-    return map.value(csaPiece, csaPiece);
+    const Piece piece = ShogiNotation::pieceFromCsaCode(csaPiece);
+    return piece == Piece::None ? csaPiece : ShogiNotation::movePieceName(piece);
+}
+
+bool CsaMoveConverter::isPromotionMove(const QString& csaMove, ShogiBoard* board)
+{
+    if (!board || csaMove.length() < 7) return false;
+    const int fromFile = csaMove[1].digitValue();
+    const int fromRank = csaMove[2].digitValue();
+    if (!isValidBoardCoordinate(fromFile, fromRank)) return false;  // 駒打ちは成らない
+    if (!isPromoted(ShogiNotation::pieceFromCsaCode(csaMove.mid(5, 2)))) return false;
+    const Piece source = board->pieceCharacter(fromFile, fromRank);
+    return source != Piece::None && !isPromoted(source) && promote(source) != source;
 }
 
 int CsaMoveConverter::pieceTypeFromCsa(const QString& csaPiece)
 {
-    if (csaPiece == QStringLiteral("FU") || csaPiece == QStringLiteral("TO")) return 1;
-    if (csaPiece == QStringLiteral("KY") || csaPiece == QStringLiteral("NY")) return 2;
-    if (csaPiece == QStringLiteral("KE") || csaPiece == QStringLiteral("NK")) return 3;
-    if (csaPiece == QStringLiteral("GI") || csaPiece == QStringLiteral("NG")) return 4;
-    if (csaPiece == QStringLiteral("KI")) return 5;
-    if (csaPiece == QStringLiteral("KA") || csaPiece == QStringLiteral("UM")) return 6;
-    if (csaPiece == QStringLiteral("HI") || csaPiece == QStringLiteral("RY")) return 7;
-    if (csaPiece == QStringLiteral("OU")) return 8;
-    return 0;
+    // 駒の種類（成駒は元の駒）: 歩1 香2 桂3 銀4 金5 角6 飛7 玉8
+    switch (demote(ShogiNotation::pieceFromCsaCode(csaPiece))) {
+    case Piece::BlackPawn:   return 1;
+    case Piece::BlackLance:  return 2;
+    case Piece::BlackKnight: return 3;
+    case Piece::BlackSilver: return 4;
+    case Piece::BlackGold:   return 5;
+    case Piece::BlackBishop: return 6;
+    case Piece::BlackRook:   return 7;
+    case Piece::BlackKing:   return 8;
+    default:                 return 0;
+    }
 }
 
 Piece CsaMoveConverter::csaPieceToSfenPiece(const QString& csaPiece, bool isBlack)
 {
-    Piece blackPiece;
-    if (csaPiece == QStringLiteral("FU")) blackPiece = Piece::BlackPawn;
-    else if (csaPiece == QStringLiteral("KY")) blackPiece = Piece::BlackLance;
-    else if (csaPiece == QStringLiteral("KE")) blackPiece = Piece::BlackKnight;
-    else if (csaPiece == QStringLiteral("GI")) blackPiece = Piece::BlackSilver;
-    else if (csaPiece == QStringLiteral("KI")) blackPiece = Piece::BlackGold;
-    else if (csaPiece == QStringLiteral("KA")) blackPiece = Piece::BlackBishop;
-    else if (csaPiece == QStringLiteral("HI")) blackPiece = Piece::BlackRook;
-    else if (csaPiece == QStringLiteral("OU")) blackPiece = Piece::BlackKing;
-    else {
+    // 持ち駒・駒打ちに使う生駒だけを読む
+    const Piece piece = ShogiNotation::pieceFromCsaCode(csaPiece, isBlack ? Turn::Black : Turn::White);
+    if (piece == Piece::None || isPromoted(piece)) {
         qCWarning(lcNetwork) << "csaPieceToSfenPiece: unknown piece code:" << csaPiece;
         return Piece::None;
     }
-
-    return isBlack ? blackPiece : toWhite(blackPiece);
+    return piece;
 }

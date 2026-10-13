@@ -50,8 +50,9 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     readEngineNameAndDir();
     
     // 設定から前回選択したエンジンを復元
-    int savedEngineIndex = AnalysisSettings::kifuAnalysisEngineIndex();
-    if (savedEngineIndex >= 0 && savedEngineIndex < ui->comboBoxEngine1->count()) {
+    const int savedEngineIndex =
+        EngineListSettings::restoreSelection(EngineListSettings::kifuAnalysisSelection(), m_engineList);
+    if (savedEngineIndex >= 0) {
         ui->comboBoxEngine1->setCurrentIndex(savedEngineIndex);
     }
     
@@ -248,7 +249,9 @@ void KifuAnalysisDialog::processEngineSettings()
     m_byoyomiSec = ui->byoyomiSec->value();
     
     // 設定を保存
-    AnalysisSettings::setKifuAnalysisEngineIndex(m_engineNumber);
+    if (m_engineNumber >= 0 && m_engineNumber < m_engineList.size()) {
+        EngineListSettings::saveSelection(EngineListSettings::kifuAnalysisSelection(), m_engineList.at(m_engineNumber).name);
+    }
     AnalysisSettings::setKifuAnalysisByoyomiSec(m_byoyomiSec);
     AnalysisSettings::setKifuAnalysisFullRange(m_initPosition);
     AnalysisSettings::setKifuAnalysisStartPly(ui->spinBoxStartPly->value());
@@ -301,17 +304,10 @@ int KifuAnalysisDialog::endPly() const
 // 設定ファイルからエンジンの名前とディレクトリを読み込む。
 void KifuAnalysisDialog::readEngineNameAndDir()
 {
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    for (const auto& entry : engines) {
-        Engine engine;
-        engine.name = entry.name;
-        engine.path = entry.path;
-
+    m_engineList = EngineListSettings::loadEngines();
+    for (const auto& engine : std::as_const(m_engineList)) {
         // 棋譜解析ダイアログのエンジン選択リストにエンジン名を追加する。
         ui->comboBoxEngine1->addItem(engine.name);
-
-        // エンジンリストにエンジンを追加する。
-        m_engineList.append(engine);
     }
 }
 

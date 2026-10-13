@@ -43,7 +43,6 @@ CsaGameCoordinator::StartOptions CsaGameWiring::buildStartOptions(const CsaGameD
     } else {
         options.playerType = CsaGameCoordinator::PlayerType::Engine;
         options.engineName = dialog->engineName();
-        options.engineNumber = dialog->engineNumber();
         options.enginePath = dialog->engineList().value(dialog->engineNumber()).path;
     }
 

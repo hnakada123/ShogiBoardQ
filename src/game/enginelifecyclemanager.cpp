@@ -64,14 +64,14 @@ void EngineLifecycleManager::initializeAndStartEngineFor(Player side,
     // 人間対エンジンではエンジンが後手でも m_usi1 だけを使い、m_usi2 は空のままにする
     // （呼び出し側は「後手側が空なら先手側」と扱う）。参照で受けると m_usi2 に同じエンジンが入り、
     // E2 宛てのコマンドや後始末が同じエンジンへ二重に届く。
-    Usi* eng = (side == EngineLifecycleManager::P1 ? m_usi1 : m_usi2);
+    Usi* eng = (side == Player::P1 ? m_usi1 : m_usi2);
 
     if (!eng) {
         if (m_usi1 && !m_usi2) {
             qCDebug(lcGame) << "[Match] fallback to m_usi1 for HvE";
             eng = m_usi1;
         } else {
-            qCWarning(lcGame) << "[Match] engine ptr is null (side=" << (side == EngineLifecycleManager::P1 ? "P1" : "P2") << ")";
+            qCWarning(lcGame) << "[Match] engine ptr is null (side=" << (side == Player::P1 ? "P1" : "P2") << ")";
             return;
         }
     }
@@ -86,8 +86,8 @@ void EngineLifecycleManager::initializeAndStartEngineFor(Player side,
                      Qt::UniqueConnection);
     eng->initializeAndStartEngineCommunication(path, name);
 
-    wireResignToArbiter(eng, (side == EngineLifecycleManager::P1));
-    wireWinToArbiter(eng, (side == EngineLifecycleManager::P1));
+    wireResignToArbiter(eng, (side == Player::P1));
+    wireWinToArbiter(eng, (side == Player::P1));
 }
 
 void EngineLifecycleManager::wireResignToArbiter(Usi* engine, bool asP1)

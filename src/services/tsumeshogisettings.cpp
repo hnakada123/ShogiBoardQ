@@ -114,18 +114,6 @@ void setTsumeshogiGeneratorFontSize(int size)
     s.setValue(SettingsKeys::kFontSizeTsumeshogiGenerator, size);
 }
 
-int tsumeshogiGeneratorEngineIndex()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kTsumeshogiGeneratorEngineIndex, 0).toInt();
-}
-
-void setTsumeshogiGeneratorEngineIndex(int index)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kTsumeshogiGeneratorEngineIndex, index);
-}
-
 int tsumeshogiGeneratorTargetMoves()
 {
     QSettings& s = SettingsCommon::openSettings();

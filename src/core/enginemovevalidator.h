@@ -19,22 +19,17 @@ public:
     static constexpr int BLACK_HAND_FILE = BOARD_SIZE;
     static constexpr int WHITE_HAND_FILE = BOARD_SIZE + 1;
 
-    enum Turn {
-        BLACK,
-        WHITE,
-        TURN_SIZE
-    };
 
     /// 合法手判定用の局面。取り消し履歴を持たず、1手判定でも軽量に生成できる。
     struct Context {
-        Turn turn = BLACK;
+        Turn turn = Turn::Black;
         bool synced = false;
         fmv::EnginePosition pos{};
     };
 
     // ---- Context主経路 ----
     [[nodiscard]] bool syncContext(Context& ctx,
-                     const Turn& turn,
+                     Turn turn,
                      const QList<Piece>& boardData,
                      const QMap<Piece, int>& pieceStand) const;
 
@@ -52,7 +47,7 @@ public:
     };
 
     [[nodiscard]] bool syncContext(SimulationContext& simulation,
-                     const Turn& turn,
+                     Turn turn,
                      const QList<Piece>& boardData,
                      const QMap<Piece, int>& pieceStand) const;
     [[nodiscard]] bool tryApplyMove(SimulationContext& simulation, ShogiMove& move) const;
@@ -60,16 +55,16 @@ public:
 #endif
 
     // ---- 互換ラッパ ----
-    LegalMoveStatus isLegalMove(const Turn& turn,
+    LegalMoveStatus isLegalMove(Turn turn,
                                 const QList<Piece>& boardData,
                                 const QMap<Piece, int>& pieceStand,
                                 ShogiMove& currentMove) const;
 
-    int generateLegalMoves(const Turn& turn,
+    int generateLegalMoves(Turn turn,
                            const QList<Piece>& boardData,
                            const QMap<Piece, int>& pieceStand) const;
 
-    int checkIfKingInCheck(const Turn& turn,
+    int checkIfKingInCheck(Turn turn,
                            const QList<Piece>& boardData) const;
 };
 

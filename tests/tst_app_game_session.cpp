@@ -35,7 +35,7 @@ struct SessionHarness {
     SessionHarness()
     {
         gc.newGame(start);
-        gc.setCurrentPlayer(ShogiGameController::Player1);
+        gc.setCurrentPlayer(Turn::Black);
         MatchCoordinator::Deps matchDeps;
         matchDeps.gc = &gc;
         matchDeps.clock = &clock;

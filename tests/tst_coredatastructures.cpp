@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QSignalSpy>
 
+#include "shoginotation.h"
 #include "shogimove.h"
 #include "shogitypes.h"
 #include "shogiboard.h"
@@ -59,15 +60,15 @@ private slots:
     void turnManager_initialState()
     {
         TurnManager tm;
-        // initial side should be NoPlayer
-        QCOMPARE(tm.side(), TurnManager::Side::NoPlayer);
+        // 新しい対局の前は先手
+        QCOMPARE(tm.side(), Turn::Black);
     }
 
     void turnManager_setPlayer1()
     {
         TurnManager tm;
-        tm.set(TurnManager::Side::Player1);
-        QCOMPARE(tm.side(), TurnManager::Side::Player1);
+        tm.set(Turn::Black);
+        QCOMPARE(tm.side(), Turn::Black);
         QCOMPARE(tm.toSfenToken(), QStringLiteral("b"));
         QCOMPARE(tm.toClockPlayer(), 1);
     }
@@ -75,8 +76,8 @@ private slots:
     void turnManager_setPlayer2()
     {
         TurnManager tm;
-        tm.set(TurnManager::Side::Player2);
-        QCOMPARE(tm.side(), TurnManager::Side::Player2);
+        tm.set(Turn::White);
+        QCOMPARE(tm.side(), Turn::White);
         QCOMPARE(tm.toSfenToken(), QStringLiteral("w"));
         QCOMPARE(tm.toClockPlayer(), 2);
     }
@@ -84,20 +85,20 @@ private slots:
     void turnManager_toggle()
     {
         TurnManager tm;
-        tm.set(TurnManager::Side::Player1);
+        tm.set(Turn::Black);
         tm.toggle();
-        QCOMPARE(tm.side(), TurnManager::Side::Player2);
+        QCOMPARE(tm.side(), Turn::White);
         tm.toggle();
-        QCOMPARE(tm.side(), TurnManager::Side::Player1);
+        QCOMPARE(tm.side(), Turn::Black);
     }
 
     void turnManager_setFromSfenToken()
     {
         TurnManager tm;
         tm.setFromSfenToken(QStringLiteral("w"));
-        QCOMPARE(tm.side(), TurnManager::Side::Player2);
+        QCOMPARE(tm.side(), Turn::White);
         tm.setFromSfenToken(QStringLiteral("b"));
-        QCOMPARE(tm.side(), TurnManager::Side::Player1);
+        QCOMPARE(tm.side(), Turn::Black);
     }
 
     void turnManager_changedSignal()
@@ -106,7 +107,7 @@ private slots:
         QSignalSpy spy(&tm, &TurnManager::changed);
         QVERIFY(spy.isValid());
 
-        tm.set(TurnManager::Side::Player1);
+        tm.set(Turn::Black);
         QCOMPARE(spy.count(), 1);
 
         tm.toggle();
@@ -115,38 +116,38 @@ private slots:
 
     // === ShogiUtils tests ===
 
-    void shogiUtils_transRankTo()
+    void notation_rankKanji()
     {
-        QCOMPARE(ShogiUtils::transRankTo(1), QStringLiteral("一"));
-        QCOMPARE(ShogiUtils::transRankTo(5), QStringLiteral("五"));
-        QCOMPARE(ShogiUtils::transRankTo(9), QStringLiteral("九"));
+        QCOMPARE(ShogiNotation::rankKanji(1), QStringLiteral("一"));
+        QCOMPARE(ShogiNotation::rankKanji(5), QStringLiteral("五"));
+        QCOMPARE(ShogiNotation::rankKanji(9), QStringLiteral("九"));
     }
 
-    void shogiUtils_transFileTo()
+    void notation_fileZenkaku()
     {
-        QCOMPARE(ShogiUtils::transFileTo(1), QStringLiteral("１"));
-        QCOMPARE(ShogiUtils::transFileTo(9), QStringLiteral("９"));
+        QCOMPARE(ShogiNotation::fileZenkaku(1), QStringLiteral("１"));
+        QCOMPARE(ShogiNotation::fileZenkaku(9), QStringLiteral("９"));
     }
 
-    void shogiUtils_moveToUsi_boardMove()
+    void shogiMove_toUsi_boardMove()
     {
         // 7g7f: fromSquare(6,6) 0-indexed → USI file 7, rank g
         ShogiMove m(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QStringLiteral("7g7f"));
+        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("7g7f"));
     }
 
-    void shogiUtils_moveToUsi_promotion()
+    void shogiMove_toUsi_promotion()
     {
         // 8h2b+: bishop move with promotion
         ShogiMove m(QPoint(7, 7), QPoint(1, 1), Piece::BlackBishop, Piece::WhiteRook, true);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QStringLiteral("8h2b+"));
+        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("8h2b+"));
     }
 
-    void shogiUtils_moveToUsi_drop()
+    void shogiMove_toUsi_drop()
     {
         // P*5e: pawn drop from black's hand (x=9) to 5e (4,4)
         ShogiMove m(QPoint(9, 0), QPoint(4, 4), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QStringLiteral("P*5e"));
+        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("P*5e"));
     }
 
     // === JishogiCalculator tests ===
@@ -396,24 +397,6 @@ private slots:
 
     // === NotationUtils tests ===
 
-    void notationUtils_rankNumToLetter()
-    {
-        QCOMPARE(NotationUtils::rankNumToLetter(1), QChar('a'));
-        QCOMPARE(NotationUtils::rankNumToLetter(5), QChar('e'));
-        QCOMPARE(NotationUtils::rankNumToLetter(9), QChar('i'));
-        QCOMPARE(NotationUtils::rankNumToLetter(0), QChar());
-        QCOMPARE(NotationUtils::rankNumToLetter(10), QChar());
-    }
-
-    void notationUtils_rankLetterToNum()
-    {
-        QCOMPARE(NotationUtils::rankLetterToNum(QChar('a')), 1);
-        QCOMPARE(NotationUtils::rankLetterToNum(QChar('e')), 5);
-        QCOMPARE(NotationUtils::rankLetterToNum(QChar('i')), 9);
-        QCOMPARE(NotationUtils::rankLetterToNum(QChar('z')), 0);
-        QCOMPARE(NotationUtils::rankLetterToNum(QChar('A')), 0);
-    }
-
     void notationUtils_kanjiDigitToInt()
     {
         QCOMPARE(NotationUtils::kanjiDigitToInt(QChar(u'一')), 1);
@@ -501,17 +484,14 @@ private slots:
         QVERIFY(gc.board() != nullptr);
         QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
 
-        gc.setCurrentPlayer(ShogiGameController::Player2);
-        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+        gc.setCurrentPlayer(Turn::White);
+        QCOMPARE(gc.currentPlayer(), Turn::White);
         QCOMPARE(gc.board()->currentPlayer(), Turn::White);
 
         gc.changeCurrentPlayer();
-        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player1);
+        QCOMPARE(gc.currentPlayer(), Turn::Black);
         QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
 
-        // NoPlayer では盤面の手番を変えない
-        gc.setCurrentPlayer(ShogiGameController::NoPlayer);
-        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
     }
 
     void gameController_pieceBoxTransfers_data()
@@ -557,7 +537,7 @@ private slots:
             }
             QCOMPARE(board->pieceBox(), initialBox);
         }
-        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+        QCOMPARE(gc.currentPlayer(), Turn::White);
     }
 
     void gameController_pieceBoxWhiteTransfers_data() { gameController_pieceBoxTransfers_data(); }
@@ -589,7 +569,7 @@ private slots:
             }
             QCOMPARE(board->pieceBox(), initialBox);
         }
-        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player1);
+        QCOMPARE(gc.currentPlayer(), Turn::Black);
         QCOMPARE(board->currentPlayer(), Turn::Black);
     }
 
@@ -606,7 +586,7 @@ private slots:
         QCOMPARE(gc.board()->pieceCharacter(5, 3), Piece::WhitePawn);
         QCOMPARE(gc.board()->pieceBoxCount(Piece::BlackPawn), 16);
         QCOMPARE(gc.board()->pieceBoxCount(Piece::WhitePawn), 16);
-        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+        QCOMPARE(gc.currentPlayer(), Turn::White);
         QCOMPARE(gc.board()->currentPlayer(), Turn::White);
     }
 
@@ -650,25 +630,11 @@ private slots:
         QVERIFY(!gc.editPosition(from, to));
         QCOMPARE(gc.board()->boardData(), before);
         QCOMPARE(gc.board()->pieceStand(), hand);
-        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+        QCOMPARE(gc.currentPlayer(), Turn::White);
         QCOMPARE(gc.board()->currentPlayer(), Turn::White);
     }
 
-    void notationUtils_rankRoundTrip()
-    {
-        // rankNumToLetter → rankLetterToNum ラウンドトリップ
-        for (int r = 1; r <= 9; ++r) {
-            QChar letter = NotationUtils::rankNumToLetter(r);
-            QCOMPARE(NotationUtils::rankLetterToNum(letter), r);
-        }
-        // 逆方向
-        for (char c = 'a'; c <= 'i'; ++c) {
-            int num = NotationUtils::rankLetterToNum(QChar(c));
-            QCOMPARE(NotationUtils::rankNumToLetter(num), QChar(c));
-        }
-    }
-
-    void gameController_rejectsInvalidEngineCoordinates_data()
+    void gameController_rejectsInvalidClickCoordinates_data()
     {
         QTest::addColumn<QPoint>("from");
         QTest::addColumn<QPoint>("to");
@@ -683,7 +649,7 @@ private slots:
         QTest::newRow("opponent-stand") << QPoint(11, 9) << QPoint(7, 6);
     }
 
-    void gameController_rejectsInvalidEngineCoordinates()
+    void gameController_rejectsInvalidClickCoordinates()
     {
         QFETCH(QPoint, from);
         QFETCH(QPoint, to);
@@ -694,15 +660,14 @@ private slots:
         QStringList history{initial};
         QList<ShogiMove> moves;
         QString record;
-        PlayMode mode = PlayMode::EvenEngineVsHuman;
         QSignalSpy committed(&gc, &ShogiGameController::moveCommitted);
-        QVERIFY(!gc.validateAndMove(from, to, record, mode, 1, &history, moves));
+        QVERIFY(!gc.validateAndMove(from, to, record, 1, &history, moves));
         QCOMPARE(gc.board()->boardData(), before);
         QCOMPARE(history, QStringList{initial});
         QVERIFY(moves.isEmpty());
         QVERIFY(record.isEmpty());
         QCOMPARE(committed.count(), 0);
-        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player1);
+        QCOMPARE(gc.currentPlayer(), Turn::Black);
     }
 
     void gameController_acceptsEngineDrop_data()
@@ -722,14 +687,74 @@ private slots:
         QStringList history{initial};
         QList<ShogiMove> moves;
         QString record;
-        PlayMode mode = PlayMode::EvenEngineVsEngine;
-        QPoint from = black ? QPoint(10, 1) : QPoint(11, 9);
-        QPoint to(5, 5);
-        QVERIFY(gc.validateAndMove(from, to, record, mode, 1, &history, moves));
+        QVERIFY(gc.applyMove(*UsiMove::parse(u"P*5e"), record, 1, &history, moves));
         QCOMPARE(gc.board()->pieceCharacter(5, 5), black ? Piece::BlackPawn : Piece::WhitePawn);
         QCOMPARE(gc.board()->convertStandToSfen(), QStringLiteral("-"));
         QCOMPARE(moves.size(), 1);
+        QCOMPARE(moves.last().toUsiMove(), *UsiMove::parse(u"P*5e"));
         QCOMPARE(history.size(), 2);
+        QCOMPARE(gc.lastMove(), *UsiMove::parse(u"P*5e"));
+        QCOMPARE(record, black ? QStringLiteral("▲５五歩打") : QStringLiteral("△５五歩打"));
+    }
+
+    /// エンジン・通信対局の手も合法手か確かめ、反則手は盤も記録も変えずに断る
+    void gameController_rejectsIllegalEngineMove_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::addColumn<QString>("move");
+        const QString hirate = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        QTest::newRow("pawn-two-squares") << hirate << QStringLiteral("7g7e");
+        QTest::newRow("empty-source") << hirate << QStringLiteral("7f7e");
+        QTest::newRow("opponent-piece") << hirate << QStringLiteral("3c3d");
+        QTest::newRow("promotion-outside-zone") << hirate << QStringLiteral("7g7f+");
+        QTest::newRow("drop-without-piece") << hirate << QStringLiteral("P*5e");
+        QTest::newRow("double-pawn") << QStringLiteral("4k4/9/9/9/9/9/4P4/9/4K4 b P 1") << QStringLiteral("P*5e");
+        QTest::newRow("forced-promotion-missing") << QStringLiteral("4k4/P8/9/9/9/9/9/9/4K4 b - 1")
+                                                << QStringLiteral("9b9a");
+        QTest::newRow("leaves-king-in-check") << QStringLiteral("4k4/9/9/9/4r4/9/9/4G4/4K4 b - 1")
+                                            << QStringLiteral("5h6h");
+    }
+
+    void gameController_rejectsIllegalEngineMove()
+    {
+        QFETCH(QString, sfen);
+        QFETCH(QString, move);
+        ShogiGameController gc;
+        gc.newGame(sfen);
+        const auto board = gc.board()->boardData();
+        const auto stand = gc.board()->pieceStand();
+        QStringList history{sfen};
+        QList<ShogiMove> moves;
+        QString record;
+        QSignalSpy committed(&gc, &ShogiGameController::moveCommitted);
+        const auto parsed = UsiMove::parse(move);
+        QVERIFY(parsed);
+        QVERIFY(!gc.applyMove(*parsed, record, 1, &history, moves));
+        QCOMPARE(gc.board()->boardData(), board);
+        QCOMPARE(gc.board()->pieceStand(), stand);
+        QCOMPARE(history, QStringList{sfen});
+        QVERIFY(moves.isEmpty());
+        QCOMPARE(committed.count(), 0);
+        QCOMPARE(gc.currentPlayer(), Turn::Black);
+    }
+
+    /// 成りは指し手どおりに指し、成らない手は成らないまま指す（共有の成りフラグに頼らない）
+    void gameController_appliesEnginePromotionAsGiven()
+    {
+        const QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
+        for (const bool promote : {true, false}) {
+            ShogiGameController gc;
+            QString initial = sfen;
+            gc.newGame(initial);
+            QStringList history{sfen};
+            QList<ShogiMove> moves;
+            QString record;
+            const UsiMove move = *UsiMove::parse(promote ? u"8h2b+" : u"8h2b");
+            QVERIFY(gc.applyMove(move, record, 3, &history, moves));
+            QCOMPARE(gc.board()->pieceCharacter(2, 2), promote ? Piece::BlackHorse : Piece::BlackBishop);
+            QCOMPARE(moves.last().isPromotion, promote);
+            QCOMPARE(record, promote ? QStringLiteral("▲２二角成(88)") : QStringLiteral("▲２二角(88)"));
+        }
     }
 
     void gameController_forcedPromotionDoesNotLeak_data()
@@ -748,20 +773,20 @@ private slots:
         QStringList history{initial};
         QList<ShogiMove> moves;
         QString record;
-        PlayMode mode = PlayMode::HumanVsHuman;
-        QSignalSpy promotion(&gc, &ShogiGameController::showPromotionDialog);
+        int promotionQuestions = 0;
+        gc.setPromotionChooser([&promotionQuestions] { ++promotionQuestions; return false; });
         gc.setForcedPromotion(true, false);
         if (illegalAttempt) {
             QPoint empty(7, 6), dest(7, 5);
-            QVERIFY(!gc.validateAndMove(empty, dest, record, mode, 1, &history, moves));
+            QVERIFY(!gc.validateAndMove(empty, dest, record, 1, &history, moves));
         }
         QPoint from(7, 7), to(7, 6);
-        QVERIFY(gc.validateAndMove(from, to, record, mode, 1, &history, moves));
+        QVERIFY(gc.validateAndMove(from, to, record, 1, &history, moves));
         from = QPoint(3, 3); to = QPoint(3, 4);
-        QVERIFY(gc.validateAndMove(from, to, record, mode, 2, &history, moves));
+        QVERIFY(gc.validateAndMove(from, to, record, 2, &history, moves));
         from = QPoint(8, 8); to = QPoint(2, 2);
-        QVERIFY(gc.validateAndMove(from, to, record, mode, 3, &history, moves));
-        QCOMPARE(promotion.count(), 1);
+        QVERIFY(gc.validateAndMove(from, to, record, 3, &history, moves));
+        QCOMPARE(promotionQuestions, 1);
     }
 
     void gameController_forcedPromotionIsApplied_data()
@@ -780,13 +805,32 @@ private slots:
         QStringList history{initial};
         QList<ShogiMove> moves;
         QString record;
-        PlayMode mode = PlayMode::HumanVsHuman;
-        QSignalSpy promotion(&gc, &ShogiGameController::showPromotionDialog);
+        int promotionQuestions = 0;
+        gc.setPromotionChooser([&promotionQuestions] { ++promotionQuestions; return false; });
         gc.setForcedPromotion(true, promote);
         QPoint from(8, 8), to(2, 2);
-        QVERIFY(gc.validateAndMove(from, to, record, mode, 3, &history, moves));
-        QCOMPARE(promotion.count(), 0);
+        QVERIFY(gc.validateAndMove(from, to, record, 3, &history, moves));
+        QCOMPARE(promotionQuestions, 0);
         QCOMPARE(moves.last().isPromotion, promote);
+        QCOMPARE(gc.lastMove().promote, promote);
+    }
+
+    /// 盤のクリック操作で成り・不成を選べるときは、成りの選び方の答えどおりに指す
+    void gameController_clickUsesPromotionChoice()
+    {
+        for (const bool choice : {true, false}) {
+            ShogiGameController gc;
+            QString initial = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
+            gc.newGame(initial);
+            QStringList history{initial};
+            QList<ShogiMove> moves;
+            QString record;
+            gc.setPromotionChooser([choice] { return choice; });
+            QPoint from(8, 8), to(2, 2);
+            QVERIFY(gc.validateAndMove(from, to, record, 3, &history, moves));
+            QCOMPARE(gc.lastMove().promote, choice);
+            QCOMPARE(gc.board()->pieceCharacter(2, 2), choice ? Piece::BlackHorse : Piece::BlackBishop);
+        }
     }
 };
 

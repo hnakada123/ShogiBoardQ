@@ -4,6 +4,8 @@
 // private メンバへは EngineRegistrationHandler の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "engineregistrationhandler.h"
 #include "engineregistrationdialog.h"
+#include <QSettings>
+#include "settingscommon.h"
 
 #include <QtTest>
 
@@ -123,7 +125,43 @@ class TestEngineRegistrationHandler : public QObject
 {
     Q_OBJECT
 
+    QTemporaryDir m_config;
+
 private slots:
+    void initTestCase()
+    {
+        // 登録の試験は設定ファイルに書くので、利用者の設定ファイルを使わない
+        QVERIFY(m_config.isValid());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+    }
+
+    /// 別の実行ファイルが同じ id name を名乗るときは、登録名に番号を付けて別のエンジンとして登録する
+    void registeredName_duplicateIdNameGetsNumber()
+    {
+        EngineRegistrationHandler handler;
+        EngineListSettings::EngineEntry existing;
+        existing.name = QStringLiteral("YaneuraOu NNUE");
+        existing.path = QStringLiteral("/engines/a/YaneuraOu");
+        handler.m_engineList.append(existing);
+        QSignalSpy registered(&handler, &EngineRegistrationHandler::engineRegistered);
+
+        handler.m_fileName = QStringLiteral("/engines/b/YaneuraOu");
+        handler.onWorkerRegistered(QStringLiteral("YaneuraOu NNUE"), QStringLiteral("author"),
+                                   {QStringLiteral("option name Threads type spin default 1 min 1 max 64")});
+        QCOMPARE(registered.count(), 1);
+        QCOMPARE(registered.first().first().toString(), QStringLiteral("YaneuraOu NNUE (2)"));
+        const auto engines = EngineListSettings::loadEngines();
+        QCOMPARE(engines.size(), 2);
+        QCOMPARE(engines.at(1).name, QStringLiteral("YaneuraOu NNUE (2)"));
+        QCOMPARE(engines.at(1).path, QStringLiteral("/engines/b/YaneuraOu"));
+        // オプションは登録名ごとに保存する
+        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        QCOMPARE(settings.beginReadArray(QStringLiteral("YaneuraOu NNUE (2)")), 2);  // Threads と補った USI_Hash
+        settings.endArray();
+        QCOMPARE(handler.uniqueRegisteredName(QStringLiteral("YaneuraOu NNUE")), QStringLiteral("YaneuraOu NNUE (3)"));
+        QCOMPARE(handler.uniqueRegisteredName(QStringLiteral("Other")), QStringLiteral("Other"));
+    }
+
     void parseOptionLine_multiWordName_parsesSpinOption()
     {
         EngineRegistrationHandler handler;
@@ -241,7 +279,7 @@ private slots:
         file.write("#!/bin/sh\nexit 0\n");
         file.close();
 
-        Engine engine;
+        EngineListSettings::EngineEntry engine;
         engine.name = QStringLiteral("test-engine");
         engine.path = basePath;
         handler.m_engineList.append(engine);

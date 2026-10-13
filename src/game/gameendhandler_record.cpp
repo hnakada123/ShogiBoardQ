@@ -16,8 +16,8 @@ void GameEndHandler::appendBreakOffLineAndMark()
     if (!m_refs.gameOver->isOver) return;
     if (m_refs.gameOver->moveAppended) return;
 
-    const auto gcTurn = m_refs.gc ? m_refs.gc->currentPlayer() : ShogiGameController::NoPlayer;
-    const Player curP = (gcTurn == ShogiGameController::Player1) ? Player::P1 : Player::P2;
+    const Turn gcTurn = m_refs.gc ? m_refs.gc->currentPlayer() : Turn::White;
+    const Player curP = (gcTurn == Turn::Black) ? Player::P1 : Player::P2;
     const QString line = (curP == Player::P1) ? QStringLiteral("▲中断") : QStringLiteral("△中断");
 
     if (m_refs.clock) {
@@ -62,7 +62,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
     // 棋譜ファイルを読み込んだときも終局行には手番側の印が付くので、それと合わせる
     Player lineOwner = loser;
     if ((cause == Cause::Sennichite || cause == Cause::Jishogi || cause == Cause::OuteSennichite) && m_refs.gc) {
-        lineOwner = (m_refs.gc->currentPlayer() == ShogiGameController::Player2) ? Player::P2 : Player::P1;
+        lineOwner = (m_refs.gc->currentPlayer() == Turn::White) ? Player::P2 : Player::P1;
     }
 
     QString line;

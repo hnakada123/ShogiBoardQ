@@ -204,7 +204,7 @@ private slots:
         else if (operation == "clear") ui.controller->clearAllHighlights();
         else if (operation == "view-clear") ui.view.removeHighlightAllData();
         else if (operation == "reset") ui.gc.board()->setSfen(SfenUtils::hirateSfen());
-        else if (operation == "turn") ui.gc.setCurrentPlayer(ShogiGameController::Player2);
+        else if (operation == "turn") ui.gc.setCurrentPlayer(Turn::White);
         else if (operation == "disable") ui.controller->setMoveInputEnabled(false);
         else if (operation == "edit") ui.controller->setMode(BoardInteractionController::Mode::Edit);
         QVERIFY(ui.destinations().isEmpty());

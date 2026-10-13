@@ -2,6 +2,8 @@
 /// @brief 定跡データのファイルI/Oを担当するリポジトリクラスの実装
 
 #include "josekirepository.h"
+#include "sfenutils.h"
+#include "usimove.h"
 #include "josekiwindow.h"  // JosekiMove 構造体
 #include "logcategories.h"
 
@@ -206,12 +208,8 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
         if (line.startsWith(QStringLiteral("sfen "))) {
             currentSfen = line.mid(5).trimmed();
             currentSfen.remove(QLatin1Char('\r'));
-            const QStringList sfenParts = currentSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-            if (sfenParts.size() >= 3) {
-                normalizedSfen = sfenParts[0] + QLatin1Char(' ') + sfenParts[1] + QLatin1Char(' ') + sfenParts[2];
-            } else {
-                normalizedSfen = currentSfen;
-            }
+            // 以前のこのアプリが書いた持ち駒の並び（先後交互）も、標準の並びの局面と同じキーにする
+            normalizedSfen = SfenUtils::normalizeSfenKey(currentSfen);
             if (!result.sfenWithPlyMap.contains(normalizedSfen)) {
                 result.sfenWithPlyMap[normalizedSfen] = currentSfen;
             }
@@ -223,22 +221,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
             const QStringList parts = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
             if (parts.size() >= 5) {
                 const QString &moveStr = parts[0];
-                bool validMove = false;
-
-                if (moveStr.size() >= 4 && moveStr.at(1) == QLatin1Char('*')) {
-                    QChar piece = moveStr.at(0).toUpper();
-                    if (QString("PLNSGBR").contains(piece)) {
-                        validMove = true;
-                    }
-                }
-                else if (moveStr.size() >= 4) {
-                    bool validFormat = true;
-                    if (moveStr.at(0) < QLatin1Char('1') || moveStr.at(0) > QLatin1Char('9')) validFormat = false;
-                    if (moveStr.at(1) < QLatin1Char('a') || moveStr.at(1) > QLatin1Char('i')) validFormat = false;
-                    if (moveStr.at(2) < QLatin1Char('1') || moveStr.at(2) > QLatin1Char('9')) validFormat = false;
-                    if (moveStr.at(3) < QLatin1Char('a') || moveStr.at(3) > QLatin1Char('i')) validFormat = false;
-                    validMove = validFormat;
-                }
+                const bool validMove = UsiMove::parse(moveStr).has_value();
 
                 if (!validMove) {
                     invalidMoveLineCount++;

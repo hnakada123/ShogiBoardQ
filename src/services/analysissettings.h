@@ -98,9 +98,6 @@ void setKifuAnalysisResultsWindowSize(const QSize& size);
 int kifuAnalysisByoyomiSec();
 void setKifuAnalysisByoyomiSec(int sec);
 
-/// 最後に選択したエンジン番号（デフォルト: 0）
-int kifuAnalysisEngineIndex();
-void setKifuAnalysisEngineIndex(int index);
 
 /// 解析範囲: 全局面解析（デフォルト: true）
 bool kifuAnalysisFullRange();
@@ -120,9 +117,6 @@ void setKifuAnalysisDialogSize(const QSize& size);
 
 // --- 検討モード ---
 
-/// 検討タブで最後に選択したエンジン番号（デフォルト: 0）
-int considerationEngineIndex();
-void setConsiderationEngineIndex(int index);
 
 /// 検討タブの時間無制限フラグ（デフォルト: true）
 bool considerationUnlimitedTime();
@@ -142,9 +136,6 @@ void setConsiderationFontSize(int size);
 
 // --- 詰み探索（検討とは独立して保存） ---
 
-/// 登録順が変わっても同じエンジンを復元するための実行ファイルパス
-QString tsumeSearchEnginePath();
-void setTsumeSearchEnginePath(const QString& path);
 
 /// 探索時間（デフォルト: 時間制限あり・20秒）
 bool tsumeSearchUnlimitedTime();

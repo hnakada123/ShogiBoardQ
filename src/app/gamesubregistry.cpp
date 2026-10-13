@@ -128,7 +128,7 @@ void MainWindowServiceRegistry::ensureGameStartCoordinator()
 // 手番同期サービス
 // ---------------------------------------------------------------------------
 
-void MainWindowServiceRegistry::onTurnManagerChanged(ShogiGameController::Player now)
+void MainWindowServiceRegistry::onTurnManagerChanged(Turn now)
 {
     prepareTurnStateSyncService();
     m_mw.m_turnStateSync->onTurnManagerChanged(now);

@@ -46,8 +46,8 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
             cancelCurrentOperation();
             emit errorOccurred(tr("Timeout waiting for bestmove."));
         },
-        /*.onMoveReady =*/ [this](const QPoint& from, const QPoint& to, const QString& position, const QString& ponder) {
-            emit matchMoveReady(from, to, position, ponder);
+        /*.onMoveReady =*/ [this](const UsiMove& move, const QString& position, const QString& ponder) {
+            emit matchMoveReady(move, position, ponder);
         }
     });
 }
@@ -206,16 +206,6 @@ QString Usi::pvKanjiStr() const
 void Usi::setPvKanjiStr(const QString& newPvKanjiStr)
 {
     m_pvKanjiStr = newPvKanjiStr;
-}
-
-void Usi::parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& rankTo)
-{
-    m_protocolHandler->parseMoveCoordinates(fileFrom, rankFrom, fileTo, rankTo);
-}
-
-QChar Usi::rankToAlphabet(int rank) const
-{
-    return UsiProtocolHandler::rankToAlphabet(rank);
 }
 
 qint64 Usi::lastBestmoveElapsedMs() const

@@ -5,6 +5,7 @@
 /// @brief 棋譜解析ダイアログクラスの定義
 
 
+#include "enginelistsettings.h"
 #include <QDialog>
 #include <memory>
 
@@ -25,11 +26,8 @@ public:
     ~KifuAnalysisDialog() override;
 
     // エンジンの名前とディレクトリを格納する構造体
-    struct Engine
-    {
-        QString name;
-        QString path;
-    };
+    /// 登録済みエンジン（名前・実行ファイル・作者）
+    using Engine = EngineListSettings::EngineEntry;
 
     // エンジンの名前とディレクトリを格納するリストを取得する。
     QList<Engine> engineList() const;

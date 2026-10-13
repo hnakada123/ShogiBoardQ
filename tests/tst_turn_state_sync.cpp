@@ -46,8 +46,8 @@ class TestTurnStateSync : public QObject
 
     static void verifyTurn(ShogiView& view, ShogiGameController& gc, bool blackTurn)
     {
-        QCOMPARE(gc.currentPlayer(), blackTurn ? ShogiGameController::Player1
-                                              : ShogiGameController::Player2);
+        QCOMPARE(gc.currentPlayer(), blackTurn ? Turn::Black
+                                              : Turn::White);
         QCOMPARE(view.board()->currentPlayer(), blackTurn ? Turn::Black : Turn::White);
         QCOMPARE(view.highlighting()->blackActive(), blackTurn);
 
@@ -84,7 +84,7 @@ class TestTurnStateSync : public QObject
     }
 
 private slots:
-    void onTurnChanged(ShogiGameController::Player player)
+    void onTurnChanged(Turn player)
     {
         m_sync.onTurnManagerChanged(player);
     }
@@ -209,7 +209,7 @@ private slots:
 
         // ライブ対局から終局後の閲覧へ。終局時の表示維持も実環境と揃える。
         gc.board()->setSfen(sfens.last());
-        gc.setCurrentPlayer(whiteStart ? ShogiGameController::Player1 : ShogiGameController::Player2);
+        gc.setCurrentPlayer(whiteStart ? Turn::Black : Turn::White);
         m_sync.setCurrentTurn();
         gameActive = false;
         view.setGameOverStyleLock(true);
@@ -256,7 +256,7 @@ private slots:
         const bool gameActive = true;
         configure(gc, view, clock, turnParent, gameActive);
         for (bool black : {true, false}) {
-            gc.setCurrentPlayer(black ? ShogiGameController::Player1 : ShogiGameController::Player2);
+            gc.setCurrentPlayer(black ? Turn::Black : Turn::White);
             m_sync.setCurrentTurn();
             verifyTurn(view, gc, black);
             const auto* badge = view.findChild<QLabel*>(black ? "turnLabelBlack" : "turnLabelWhite");
@@ -373,14 +373,14 @@ private slots:
         const bool gameActive = true;
         configure(gc, view, clock, turnParent, gameActive);
 
-        gc.setCurrentPlayer(ShogiGameController::Player2);
+        gc.setCurrentPlayer(Turn::White);
         // 同期前の古い盤面手番より、対局制御側の手番を優先する。
         gc.board()->setSfen(initialSfen);
         m_sync.setCurrentTurn();
         const auto* tm = turnParent.findChild<TurnManager*>();
         QVERIFY(tm);
-        QCOMPARE(tm->toGc(), ShogiGameController::Player2);
-        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+        QCOMPARE(tm->side(), Turn::White);
+        QCOMPARE(gc.currentPlayer(), Turn::White);
         QVERIFY(!view.highlighting()->blackActive());
         QVERIFY(!view.findChild<QLabel*>(QStringLiteral("turnLabelWhite"))->isHidden());
     }
@@ -395,7 +395,7 @@ private slots:
         view.setBlackPlayerName(QStringLiteral("YaneuraOu NNUE V8.30Git 64APPLEM1 TOURNAMENT"));
         view.setWhitePlayerName(QStringLiteral("YaneuraOu NNUE V8.30Git 64APPLEM1 TOURNAMENT"));
         view.show();
-        view.updateTurnIndicator(ShogiGameController::Player1);
+        view.updateTurnIndicator(Turn::Black);
 
         for (ElideLabel* name : {view.blackNameLabel(), view.whiteNameLabel()}) {
             QVERIFY(name);

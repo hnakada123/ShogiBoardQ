@@ -230,7 +230,7 @@ private slots:
 void Tst_GameEndHandler::handleResign_p1Turn_p1Loses()
 {
     EndTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
     h.handler.handleResign();
 
     QVERIFY(h.gameOver.isOver);
@@ -244,7 +244,7 @@ void Tst_GameEndHandler::handleResign_p1Turn_p1Loses()
 void Tst_GameEndHandler::handleResign_p2Turn_p2Loses()
 {
     EndTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(Turn::White);
     h.handler.handleResign();
 
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
@@ -296,7 +296,7 @@ void Tst_GameEndHandler::handleEngineResign_engine2_p2Loses()
 void Tst_GameEndHandler::handleBreakOff_setsGameOverState()
 {
     EndTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
     h.handler.handleBreakOff();
 
     QVERIFY(h.gameOver.isOver);
@@ -308,7 +308,7 @@ void Tst_GameEndHandler::handleBreakOff_setsGameOverState()
 void Tst_GameEndHandler::handleBreakOff_emitsGameEnded()
 {
     EndTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(Turn::White);
     QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
 
     h.handler.handleBreakOff();
@@ -333,7 +333,7 @@ void Tst_GameEndHandler::handleBreakOff_alreadyOver_ignored()
 void Tst_GameEndHandler::handleBreakOff_appendsKifuLine()
 {
     EndTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
     h.handler.handleBreakOff();
 
     QVERIFY(EndTracker::appendKifuLineCount > 0);
@@ -536,7 +536,7 @@ void Tst_GameEndHandler::drawLine_usesSideToMove()
     QFETCH(QString, expectedEpoch);
 
     EndTestHarness h;
-    h.gc.setCurrentPlayer(sideToMove == 1 ? ShogiGameController::Player1 : ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(sideToMove == 1 ? Turn::Black : Turn::White);
     GameEndHandler::Hooks hooks;
     hooks.turnEpochFor = [](MatchCoordinator::Player p) -> qint64 {
         EndTracker::events.append(p == MatchCoordinator::P1 ? QStringLiteral("epoch-P1")
@@ -580,7 +580,7 @@ void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
     QFETCH(QString, expectedEpoch);
 
     EndTestHarness h;
-    h.gc.setCurrentPlayer(sideToMove == 1 ? ShogiGameController::Player1 : ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(sideToMove == 1 ? Turn::Black : Turn::White);
     GameEndHandler::Hooks hooks;
     hooks.turnEpochFor = [](MatchCoordinator::Player p) -> qint64 {
         EndTracker::events.append(p == MatchCoordinator::P1 ? QStringLiteral("epoch-P1")
@@ -696,7 +696,7 @@ void Tst_GameEndHandler::appendBreakOffLineAndMark_p1Turn()
 {
     EndTestHarness h;
     h.gameOver.isOver = true;
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
     h.handler.appendBreakOffLineAndMark();
 
     QVERIFY(EndTracker::appendKifuLineCount > 0);
@@ -711,7 +711,7 @@ void Tst_GameEndHandler::appendBreakOffLineAndMark_p1Turn()
 void Tst_GameEndHandler::doubleEnd_resignThenBreakOff_secondIgnored()
 {
     EndTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
 
     // First: resign → sets gameOver.isOver = true
     h.handler.handleResign();
@@ -731,7 +731,7 @@ void Tst_GameEndHandler::doubleEnd_resignThenBreakOff_secondIgnored()
 void Tst_GameEndHandler::handleResign_emitsGameEndedSignal()
 {
     EndTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player1);
+    h.gc.setCurrentPlayer(Turn::Black);
     QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
 
     h.handler.handleResign();
@@ -745,7 +745,7 @@ void Tst_GameEndHandler::handleResign_emitsGameEndedSignal()
 void Tst_GameEndHandler::handleBreakOff_emitsGameEndedSignal()
 {
     EndTestHarness h;
-    h.gc.setCurrentPlayer(ShogiGameController::Player2);
+    h.gc.setCurrentPlayer(Turn::White);
     QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
 
     h.handler.handleBreakOff();
@@ -788,7 +788,7 @@ void Tst_GameEndHandler::resultMessage_followsHandicapNames()
         h.handler.handleTimeout(MatchCoordinator::P2);
         break;
     case MatchCoordinator::Cause::Resignation:
-        h.gc.setCurrentPlayer(ShogiGameController::Player2);
+        h.gc.setCurrentPlayer(Turn::White);
         h.handler.handleResign();
         break;
     default:

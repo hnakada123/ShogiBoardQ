@@ -130,11 +130,11 @@ char toBasePieceChar(char c) noexcept
 }
 
 /// 駒台座標のRank（EngineMoveValidator互換）
-int expectedHandRank(const EngineMoveValidator::Turn ownerTurn, char rawPiece) noexcept
+int expectedHandRank(const Turn ownerTurn, char rawPiece) noexcept
 {
     char piece = toBasePieceChar(rawPiece);
 
-    if (ownerTurn == EngineMoveValidator::BLACK) {
+    if (ownerTurn == Turn::Black) {
         switch (piece) {
         case 'P': return 0;
         case 'L': return 1;
@@ -160,9 +160,9 @@ int expectedHandRank(const EngineMoveValidator::Turn ownerTurn, char rawPiece) n
 }
 
 /// 駒charが手番に属するか
-bool belongsToTurn(const EngineMoveValidator::Turn turn, char c) noexcept
+bool belongsToTurn(const Turn turn, char c) noexcept
 {
-    if (turn == EngineMoveValidator::BLACK) {
+    if (turn == Turn::Black) {
         return c >= 'A' && c <= 'Z';
     }
     return c >= 'a' && c <= 'z';
@@ -199,7 +199,7 @@ bool Converter::toEnginePosition(EnginePosition& out,
 }
 
 bool Converter::toEngineMove(ConvertedMove& out,
-                             const EngineMoveValidator::Turn& turn,
+                             Turn turn,
                              const EnginePosition& pos,
                              const ShogiMove& in)
 {
@@ -233,7 +233,7 @@ bool Converter::toEngineMove(ConvertedMove& out,
 
     if (isDrop) {
         // 手番と駒台ファイル座標の一致チェック
-        int expectedFile = (turn == EngineMoveValidator::BLACK) ? EngineMoveValidator::BLACK_HAND_FILE
+        int expectedFile = (turn == Turn::Black) ? EngineMoveValidator::BLACK_HAND_FILE
                                                                 : EngineMoveValidator::WHITE_HAND_FILE;
         if (fromX != expectedFile) {
             return false;
@@ -335,9 +335,9 @@ bool Converter::toEngineMove(ConvertedMove& out,
     return true;
 }
 
-Color Converter::toColor(const EngineMoveValidator::Turn& t) noexcept
+Color Converter::toColor(Turn t) noexcept
 {
-    return (t == EngineMoveValidator::BLACK) ? Color::Black : Color::White;
+    return (t == Turn::Black) ? Color::Black : Color::White;
 }
 
 } // namespace fmv

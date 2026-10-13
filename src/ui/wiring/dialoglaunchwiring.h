@@ -109,10 +109,12 @@ public:
 
     void updateDeps(Deps deps);
 
+    /// 成りダイアログで成り・不成を選ばせる（成るなら true）。ShogiGameController の成りの選び方に使う
+    bool choosePromotion();
+
 public slots:
     void displayVersionInformation();
     void displayEngineSettingsDialog();
-    void displayPromotionDialog();
     void displayJishogiScoreDialog();
     void handleNyugyokuDeclaration();
     void displayTsumeShogiSearchDialog();

@@ -53,7 +53,7 @@ public:
     void parseEngineOutputAndUpdateState(const QString& line, const ShogiGameController* algorithm,  QList<QChar>& clonedBoardData,
                                          const bool isPondering);
 
-    void setThinkingStartPlayer(ShogiGameController::Player player);
+    void setThinkingStartPlayer(Turn player);
     // --- 解析結果アクセサ ---
 
     QString depth() const;
@@ -110,7 +110,7 @@ private:
     EvaluationBound m_evaluationBound = EvaluationBound::None; ///< 評価値の境界種別
 
     /// 思考開始時の手番（info処理中は局面更新の影響を受けない）
-    ShogiGameController::Player m_thinkingStartPlayer = ShogiGameController::Player1;
+    Turn m_thinkingStartPlayer = Turn::Black;
 
     /// 手番に応じた先手/後手マーク（▲/△）を返す
     QChar moveSymbol(const int moveIndex, const bool isPondering) const;

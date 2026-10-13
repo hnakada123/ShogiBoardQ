@@ -2,6 +2,7 @@
 /// @brief 詰み探索専用の条件設定ダイアログの実装
 
 #include "tsumeshogisearchdialog.h"
+#include "enginelistsettings.h"
 #include "ui_tsumeshogisearchdialog.h"
 #include "analysissettings.h"
 #include "buttonstyles.h"
@@ -34,13 +35,13 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     ui->comboBoxEngine1->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     ui->comboBoxEngine1->setMinimumContentsLength(18);
 
-    const QString savedPath = AnalysisSettings::tsumeSearchEnginePath();
     for (const auto& engine : std::as_const(m_engines)) {
         ui->comboBoxEngine1->addItem(engine.name, engine.path);
         const int index = ui->comboBoxEngine1->count() - 1;
         ui->comboBoxEngine1->setItemData(index, engine.name, Qt::ToolTipRole);
-        if (engine.path == savedPath) ui->comboBoxEngine1->setCurrentIndex(index);
     }
+    const int saved = EngineListSettings::restoreSelection(EngineListSettings::tsumeSearchSelection(), m_engines);
+    if (saved >= 0) ui->comboBoxEngine1->setCurrentIndex(saved);
     ui->byoyomiSec->setValue(AnalysisSettings::tsumeSearchTimeLimitSec());
     const bool unlimited = AnalysisSettings::tsumeSearchUnlimitedTime();
     ui->unlimitedTimeRadioButton->setChecked(unlimited);
@@ -119,7 +120,7 @@ void TsumeShogiSearchDialog::accept()
 {
     if (!hasValidEngine()) return;
     ui->byoyomiSec->interpretText();
-    AnalysisSettings::setTsumeSearchEnginePath(m_engines.at(engineNumber()).path);
+    EngineListSettings::saveSelection(EngineListSettings::tsumeSearchSelection(), m_engines.at(engineNumber()).name);
     AnalysisSettings::setTsumeSearchUnlimitedTime(unlimitedTimeFlag());
     AnalysisSettings::setTsumeSearchTimeLimitSec(byoyomiSec());
     QDialog::accept();

@@ -58,7 +58,7 @@ private slots:
         root.ensureGameStateController(refs, {}, &owner, controller);
         QCOMPARE(controller, original);
         QVERIFY(!controller->isHvH());
-        QVERIFY(!controller->isHumanSide(ShogiGameController::Player1));
+        QVERIFY(!controller->isHumanSide(Turn::Black));
         QCOMPARE(owner.findChildren<GameStateController*>().size(), 1);
     }
 

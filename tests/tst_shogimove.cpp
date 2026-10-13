@@ -1,5 +1,6 @@
 #include <QtTest>
 
+#include "shoginotation.h"
 #include "shogimove.h"
 #include "shogiutils.h"
 
@@ -107,33 +108,33 @@ private slots:
     void usiConversion_normalMove()
     {
         ShogiMove m(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QStringLiteral("7g7f"));
+        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("7g7f"));
     }
 
     void usiConversion_promotionMove()
     {
         ShogiMove m(QPoint(7, 7), QPoint(1, 1), Piece::BlackBishop, Piece::WhiteRook, true);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QStringLiteral("8h2b+"));
+        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("8h2b+"));
     }
 
     void usiConversion_dropMove()
     {
         ShogiMove m(QPoint(9, 0), QPoint(4, 4), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QStringLiteral("P*5e"));
+        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("P*5e"));
     }
 
     void usiConversion_cornerMove()
     {
         // 1a → 9i (corner to corner)
         ShogiMove m(QPoint(0, 0), QPoint(8, 8), Piece::BlackBishop, Piece::None, false);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QStringLiteral("1a9i"));
+        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("1a9i"));
     }
 
     void usiConversion_whiteDropMove()
     {
         // 後手駒台からの打ち
         ShogiMove m(QPoint(10, 0), QPoint(4, 4), Piece::WhitePawn, Piece::None, false);
-        QCOMPARE(ShogiUtils::moveToUsi(m), QStringLiteral("P*5e"));
+        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("P*5e"));
     }
 };
 

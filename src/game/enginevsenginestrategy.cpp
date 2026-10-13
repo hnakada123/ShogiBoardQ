@@ -2,6 +2,7 @@
 /// @brief エンジン vs エンジンモードの Strategy 実装
 
 #include "enginevsenginestrategy.h"
+#include "boardcoordinates.h"
 #include "strategycontext.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
@@ -55,13 +56,8 @@ void EngineVsEngineStrategy::start()
         qCDebug(lcGame) << "Clock started";
     }
 
-    // 駒落ちの場合、SFENで手番が「w」（後手番）になっている
-    // GCの currentPlayer() がその手番を持っているはず
-    if (m_ctx.gc()->currentPlayer() == ShogiGameController::NoPlayer) {
-        // 平手なら先手から、駒落ちならSFENに従う
-        m_ctx.gc()->setCurrentPlayer(ShogiGameController::Player1);
-    }
-    m_ctx.setCurrentTurn((m_ctx.gc()->currentPlayer() == ShogiGameController::Player2)
+    // 駒落ちの場合、SFENで手番が「w」（後手番）になっている。GC の手番は SFEN に従う
+    m_ctx.setCurrentTurn((m_ctx.gc()->currentPlayer() == Turn::White)
                              ? MatchCoordinator::P2 : MatchCoordinator::P1);
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
@@ -151,7 +147,7 @@ void EngineVsEngineStrategy::kickNextEvETurn()
         if (m_ctx.clock()) m_ctx.clock()->startClock();
     }
 
-    const bool p1ToMove = (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1);
+    const bool p1ToMove = (m_ctx.gc()->currentPlayer() == Turn::Black);
     Usi* mover    = p1ToMove ? m_ctx.usi1() : m_ctx.usi2();
 
     QString& pos    = p1ToMove ? m_ctx.positionStr1()     : m_ctx.positionStr2();
@@ -159,16 +155,15 @@ void EngineVsEngineStrategy::kickNextEvETurn()
 
     // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
     const UsiTimingParams timing;
-    m_ctx.gc()->setPromote(false);
     m_waitingForMove = true;
     mover->requestMatchMove(pos, ponder, timing);
 }
 
-void EngineVsEngineStrategy::onEngineMoveReady(QPoint from, QPoint to,
+void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
                                                const QString& position, const QString& ponder)
 {
     if (!m_waitingForMove || m_ctx.gameOverState().isOver || !m_ctx.gc()) return;
-    const bool p1ToMove = m_ctx.gc()->currentPlayer() == ShogiGameController::Player1;
+    const bool p1ToMove = m_ctx.gc()->currentPlayer() == Turn::Black;
     Usi* mover = p1ToMove ? m_ctx.usi1() : m_ctx.usi2();
     if (sender() != mover) return;
     m_waitingForMove = false;
@@ -176,15 +171,17 @@ void EngineVsEngineStrategy::onEngineMoveReady(QPoint from, QPoint to,
     (p1ToMove ? m_ctx.positionStr1() : m_ctx.positionStr2()) = position;
     (p1ToMove ? m_ctx.positionPonder1() : m_ctx.positionPonder2()) = ponder;
     QString rec;
+    const Turn moverTurn = p1ToMove ? Turn::Black : Turn::White;
+    const QPoint from = BoardCoordinates::fromSquare(move, moverTurn);
+    const QPoint to = BoardCoordinates::toSquare(move);
 
-    // 次の手を渡す
+    // 次の手を渡す。反則手は盤に指さず、指したエンジンの反則負けにする
     int nextEve = m_eveMoveIndex + 1;
-    if (!m_ctx.gc()->validateAndMove(from, to, rec, m_ctx.playModeRef(),
-                                   nextEve, sfenRecordForEvE(), gameMovesForEvE())) {
+    if (!m_ctx.gc()->applyMove(move, rec, nextEve, sfenRecordForEvE(), gameMovesForEvE())) {
+        m_ctx.handleEngineIllegalMove(p1ToMove ? 1 : 2);
         return;
-    } else {
-        m_eveMoveIndex = nextEve;
     }
+    m_eveMoveIndex = nextEve;
 
     // 相手側のポジション文字列を同期
     if (p1ToMove) {
@@ -210,7 +207,7 @@ void EngineVsEngineStrategy::onEngineMoveReady(QPoint from, QPoint to,
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
     if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(from, to);
     m_ctx.updateTurnDisplay(
-        (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
+        (m_ctx.gc()->currentPlayer() == Turn::Black)
             ? MatchCoordinator::P1 : MatchCoordinator::P2
         );
 

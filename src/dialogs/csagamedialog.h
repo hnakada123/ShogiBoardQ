@@ -5,6 +5,7 @@
 /// @brief CSA対局ダイアログクラスの定義
 
 
+#include "enginelistsettings.h"
 #include <QDialog>
 #include <QList>
 
@@ -34,11 +35,8 @@ public:
     /**
      * @brief エンジン情報を格納する構造体
      */
-    struct Engine
-    {
-        QString name;   ///< エンジン名
-        QString path;   ///< エンジンの実行ファイルパス
-    };
+    /// 登録済みエンジン（名前・実行ファイル・作者）
+    using Engine = EngineListSettings::EngineEntry;
 
     /**
      * @brief サーバー接続履歴を格納する構造体

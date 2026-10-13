@@ -29,7 +29,7 @@ NyugyokuJudgement::Result NyugyokuJudgement::judge(const ShogiBoard& board, bool
     const auto& score = declarerIsSente ? points.sente : points.gote;
     const EngineMoveValidator validator;
     const bool inCheck = validator.checkIfKingInCheck(
-        declarerIsSente ? EngineMoveValidator::BLACK : EngineMoveValidator::WHITE, board.boardData()) > 0;
+        declarerIsSente ? Turn::Black : Turn::White, board.boardData()) > 0;
 
     const bool kingInEnemyTerritory = score.kingInEnemyTerritory;
     const bool enoughPieces = score.piecesInEnemyTerritory >= 10;

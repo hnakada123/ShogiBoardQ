@@ -48,7 +48,7 @@ void GameEndHandler::handleResign()
 
     GameEndInfo info;
     info.cause = Cause::Resignation;
-    info.loser = (m_refs.gc && m_refs.gc->currentPlayer() == ShogiGameController::Player1)
+    info.loser = (m_refs.gc && m_refs.gc->currentPlayer() == Turn::Black)
                      ? Player::P1 : Player::P2;
 
     auto rawSender = [this](Usi* which, const QString& cmd) {
@@ -84,6 +84,31 @@ void GameEndHandler::handleEngineResign(int idx)
 
     const bool loserIsP1 = (info.loser == Player::P1);
     setGameOver(info, loserIsP1, true);
+    displayResultsAndUpdateGui(info);
+}
+
+void GameEndHandler::handleEngineIllegalMove(int idx)
+{
+    if (m_refs.gameOver->isOver) return;
+    if (m_refs.clock) m_refs.clock->stopClock();
+
+    // エンジンが反則手を返した。盤には指さずに、そのエンジンの反則負けとする
+    GameEndInfo info;
+    info.cause = Cause::IllegalMove;
+    info.loser = (idx == 1 ? Player::P1 : Player::P2);
+
+    auto rawSender = [this](Usi* which, const QString& cmd) {
+        sendRawToEngineHelper(which, cmd);
+    };
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
+    // 投了と同じく、負けた側に gameover lose、相手に gameover win を送る
+    EngineGameOverNotifier::notifyResignation(
+        *m_refs.playMode, info.loser == Player::P1, u1, u2, rawSender);
+    if (u1) u1->setSquelchResignLogging(true);
+    if (u2) u2->setSquelchResignLogging(true);
+
+    setGameOver(info, info.loser == Player::P1, true);
     displayResultsAndUpdateGui(info);
 }
 
@@ -198,8 +223,8 @@ void GameEndHandler::handleBreakOff()
     m_refs.gameOver->hasLast = true;
     m_refs.gameOver->lastInfo.cause = Cause::BreakOff;
 
-    const auto gcTurn = m_refs.gc ? m_refs.gc->currentPlayer() : ShogiGameController::NoPlayer;
-    m_refs.gameOver->lastInfo.loser = (gcTurn == ShogiGameController::Player1) ? Player::P1 : Player::P2;
+    const Turn gcTurn = m_refs.gc ? m_refs.gc->currentPlayer() : Turn::White;
+    m_refs.gameOver->lastInfo.loser = (gcTurn == Turn::Black) ? Player::P1 : Player::P2;
 
     if (m_refs.clock) {
         m_refs.clock->markGameOver();

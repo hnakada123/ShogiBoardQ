@@ -186,7 +186,7 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
 
     // 盤編集モードでないとき、相手の駒台は触らせない
     if (!m_view->positionEditMode()) {
-        const bool p1Turn = (m_gc->currentPlayer() == ShogiGameController::Player1);
+        const bool p1Turn = (m_gc->currentPlayer() == Turn::Black);
         const bool isMyStand = ( (p1Turn && file == kBlackStandFile) ||
                                 (!p1Turn && file == kWhiteStandFile) );
         if ((file >= kBlackStandFile) && !isMyStand) {
@@ -248,8 +248,8 @@ void BoardInteractionController::refreshLegalMoveHighlights()
     auto* board = m_view->board();
     EngineMoveValidator validator;
     EngineMoveValidator::Context context;
-    const auto turn = m_gc->currentPlayer() == ShogiGameController::Player1
-        ? EngineMoveValidator::BLACK : EngineMoveValidator::WHITE;
+    const auto turn = m_gc->currentPlayer() == Turn::Black
+        ? Turn::Black : Turn::White;
     if (!validator.syncContext(context, turn, board->boardData(), board->pieceStand())) return;
 
     const QPoint from = m_clickPoint - QPoint(1, 1);

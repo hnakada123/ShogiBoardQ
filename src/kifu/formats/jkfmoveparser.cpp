@@ -2,6 +2,7 @@
 /// @brief JKF形式固有の指し手変換・初期局面構築・時間解析の実装
 
 #include "jkfmoveparser.h"
+#include "shoginotation.h"
 #include "notationutils.h"
 #include "parsecommon.h"
 #include "sfenutils.h"
@@ -184,21 +185,8 @@ QChar pieceToSfenChar(int kind, bool isBlack)
 
 QString pieceKindToKanji(const QString& kind)
 {
-    if (kind == QStringLiteral("FU")) return QStringLiteral("歩");
-    if (kind == QStringLiteral("KY")) return QStringLiteral("香");
-    if (kind == QStringLiteral("KE")) return QStringLiteral("桂");
-    if (kind == QStringLiteral("GI")) return QStringLiteral("銀");
-    if (kind == QStringLiteral("KI")) return QStringLiteral("金");
-    if (kind == QStringLiteral("KA")) return QStringLiteral("角");
-    if (kind == QStringLiteral("HI")) return QStringLiteral("飛");
-    if (kind == QStringLiteral("OU")) return QStringLiteral("玉");
-    if (kind == QStringLiteral("TO")) return QStringLiteral("と");
-    if (kind == QStringLiteral("NY")) return QStringLiteral("成香");
-    if (kind == QStringLiteral("NK")) return QStringLiteral("成桂");
-    if (kind == QStringLiteral("NG")) return QStringLiteral("成銀");
-    if (kind == QStringLiteral("UM")) return QStringLiteral("馬");
-    if (kind == QStringLiteral("RY")) return QStringLiteral("龍");
-    return kind;
+    const Piece piece = ShogiNotation::pieceFromCsaCode(kind);
+    return piece == Piece::None ? kind : ShogiNotation::movePieceName(piece);
 }
 
 // --- 指し手変換 ---
@@ -218,18 +206,10 @@ QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
     QString usi;
 
     if (!move.contains(QStringLiteral("from"))) {
-        const QString piece = move[QStringLiteral("piece")].toString();
-        QChar pieceChar;
-        if (piece == QStringLiteral("FU")) pieceChar = QLatin1Char('P');
-        else if (piece == QStringLiteral("KY")) pieceChar = QLatin1Char('L');
-        else if (piece == QStringLiteral("KE")) pieceChar = QLatin1Char('N');
-        else if (piece == QStringLiteral("GI")) pieceChar = QLatin1Char('S');
-        else if (piece == QStringLiteral("KI")) pieceChar = QLatin1Char('G');
-        else if (piece == QStringLiteral("KA")) pieceChar = QLatin1Char('B');
-        else if (piece == QStringLiteral("HI")) pieceChar = QLatin1Char('R');
-        else return QString();
-
-        usi = NotationUtils::formatSfenDrop(pieceChar, toX, toY);
+        // 打てるのは生駒（玉以外）だけ
+        const Piece piece = ShogiNotation::pieceFromCsaCode(move[QStringLiteral("piece")].toString());
+        usi = NotationUtils::formatSfenDrop(pieceToChar(piece), toX, toY);
+        if (usi.isEmpty()) return QString();
     } else {
         const QJsonObject from = move[QStringLiteral("from")].toObject();
         const int fromX = from[QStringLiteral("x")].toInt();

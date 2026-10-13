@@ -1,4 +1,5 @@
 #include "sfencsapositionconverter.h"
+#include "shoginotation.h"
 #include "sfenutils.h"
 
 #include <QChar>
@@ -14,58 +15,25 @@ QString defaultSfen()
     return SfenUtils::hirateSfen();
 }
 
-QChar csaPieceToSfenChar(const QString& piece)
-{
-    if (piece == QStringLiteral("FU")) return QLatin1Char('P');
-    if (piece == QStringLiteral("KY")) return QLatin1Char('L');
-    if (piece == QStringLiteral("KE")) return QLatin1Char('N');
-    if (piece == QStringLiteral("GI")) return QLatin1Char('S');
-    if (piece == QStringLiteral("KI")) return QLatin1Char('G');
-    if (piece == QStringLiteral("KA")) return QLatin1Char('B');
-    if (piece == QStringLiteral("HI")) return QLatin1Char('R');
-    if (piece == QStringLiteral("OU")) return QLatin1Char('K');
-    if (piece == QStringLiteral("TO")) return QLatin1Char('T');
-    if (piece == QStringLiteral("NY")) return QLatin1Char('M');
-    if (piece == QStringLiteral("NK")) return QLatin1Char('Q');
-    if (piece == QStringLiteral("NG")) return QLatin1Char('V');
-    if (piece == QStringLiteral("UM")) return QLatin1Char('H');
-    if (piece == QStringLiteral("RY")) return QLatin1Char('D');
-    return QChar();
-}
-
+/// CSA の駒種を SFEN のトークン（成駒は "+P" の形）にする。読めなければ空
 QString sfenTokenFromCode(bool isSente, const QString& piece)
 {
-    const QChar base = csaPieceToSfenChar(piece);
-    if (base.isNull()) {
-        return QString();
-    }
+    const Piece p = ShogiNotation::pieceFromCsaCode(piece, isSente ? Turn::Black : Turn::White);
+    if (p == Piece::None) return QString();
+    return isPromoted(p) ? QStringLiteral("+") + pieceToChar(demote(p)) : QString(pieceToChar(p));
+}
 
-    const auto mapped = [&](QChar c) {
-        return isSente ? c.toUpper() : c.toLower();
-    };
-
-    if (base == QLatin1Char('T')) return QStringLiteral("+") + mapped(QLatin1Char('P'));
-    if (base == QLatin1Char('M')) return QStringLiteral("+") + mapped(QLatin1Char('L'));
-    if (base == QLatin1Char('Q')) return QStringLiteral("+") + mapped(QLatin1Char('N'));
-    if (base == QLatin1Char('V')) return QStringLiteral("+") + mapped(QLatin1Char('S'));
-    if (base == QLatin1Char('H')) return QStringLiteral("+") + mapped(QLatin1Char('B'));
-    if (base == QLatin1Char('D')) return QStringLiteral("+") + mapped(QLatin1Char('R'));
-
-    return QString(mapped(base));
+/// 持ち駒の CSA の駒種を SFEN 文字（先手の大文字。成駒は元の駒）にする。読めなければ空
+QChar csaHandPieceToSfenChar(const QString& piece)
+{
+    const Piece p = demote(ShogiNotation::pieceFromCsaCode(piece));
+    return p == Piece::None ? QChar() : pieceToChar(p);
 }
 
 QString csaCodeFromSfenPiece(QChar piece, bool promoted)
 {
-    const QChar u = piece.toUpper();
-    if (u == QLatin1Char('P')) return promoted ? QStringLiteral("TO") : QStringLiteral("FU");
-    if (u == QLatin1Char('L')) return promoted ? QStringLiteral("NY") : QStringLiteral("KY");
-    if (u == QLatin1Char('N')) return promoted ? QStringLiteral("NK") : QStringLiteral("KE");
-    if (u == QLatin1Char('S')) return promoted ? QStringLiteral("NG") : QStringLiteral("GI");
-    if (u == QLatin1Char('G')) return QStringLiteral("KI");
-    if (u == QLatin1Char('B')) return promoted ? QStringLiteral("UM") : QStringLiteral("KA");
-    if (u == QLatin1Char('R')) return promoted ? QStringLiteral("RY") : QStringLiteral("HI");
-    if (u == QLatin1Char('K')) return QStringLiteral("OU");
-    return QString();
+    const Piece base = charToPiece(piece.toUpper());
+    return ShogiNotation::csaPieceCode(promoted ? promote(base) : base);
 }
 
 QString buildHandsSfen(const QMap<QChar, int>& blackHands, const QMap<QChar, int>& whiteHands)
@@ -222,15 +190,8 @@ std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString
             for (int i = 2; i + 3 < line.size(); i += 4) {
                 if (line.mid(i, 2) != QStringLiteral("00")) continue;
                 const QString piece = line.mid(i + 2, 2);
-                const QChar c = csaPieceToSfenChar(piece);
-                if (!c.isNull()) {
-                    QChar base = c;
-                    if (base == QLatin1Char('T')) base = QLatin1Char('P');
-                    if (base == QLatin1Char('M')) base = QLatin1Char('L');
-                    if (base == QLatin1Char('Q')) base = QLatin1Char('N');
-                    if (base == QLatin1Char('V')) base = QLatin1Char('S');
-                    if (base == QLatin1Char('H')) base = QLatin1Char('B');
-                    if (base == QLatin1Char('D')) base = QLatin1Char('R');
+                const QChar base = csaHandPieceToSfenChar(piece);
+                if (!base.isNull()) {
                     hands[base] = hands.value(base, 0) + 1;
                 }
             }

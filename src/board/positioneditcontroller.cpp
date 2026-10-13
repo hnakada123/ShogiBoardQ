@@ -153,7 +153,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
 
     // GC の手番を盤へ同期
     const Turn boardTurn = board->currentPlayer();
-    c.gc->setCurrentPlayer(boardTurn == Turn::White ? ShogiGameController::Player2 : ShogiGameController::Player1);
+    c.gc->setCurrentPlayer(boardTurn == Turn::White ? Turn::White : Turn::Black);
 
     // 「編集終了」ボタン表示
     if (c.onShowEditExitButton) c.onShowEditExitButton();
@@ -172,7 +172,7 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
     ShogiBoard* board = c.view->board();
 
     // GC の手番を SFEN 文字列に変換（編集中に手番変更された値を反映）
-    const QString bw = (c.gc->currentPlayer() == ShogiGameController::Player2)
+    const QString bw = (c.gc->currentPlayer() == Turn::White)
                            ? QStringLiteral("w")
                            : QStringLiteral("b");
     const QString sfenNow = QStringLiteral("%1 %2 %3 %4")
@@ -288,21 +288,21 @@ void PositionEditController::onFlatHandInitialPositionTriggered()
 {
     if (!m_view) return;
     setStandardStartPosition(m_view, m_bic);
-    if (m_gc) m_gc->setCurrentPlayer(ShogiGameController::Player1);
+    if (m_gc) m_gc->setCurrentPlayer(Turn::Black);
 }
 
 void PositionEditController::onShogiProblemInitialPositionTriggered()
 {
     if (!m_view) return;
     setTsumeShogiStartPosition(m_view, m_bic);
-    if (m_gc) m_gc->setCurrentPlayer(ShogiGameController::Player1);
+    if (m_gc) m_gc->setCurrentPlayer(Turn::Black);
 }
 
 void PositionEditController::onToggleSideToMoveTriggered()
 {
     if (!m_gc) return;
-    const auto next = (m_gc->currentPlayer() == ShogiGameController::Player1)
-                          ? ShogiGameController::Player2 : ShogiGameController::Player1;
+    const auto next = (m_gc->currentPlayer() == Turn::Black)
+                          ? Turn::White : Turn::Black;
     // 編集中の配置は再構築せず、手番だけ同期する。
     m_gc->setCurrentPlayer(next);
     if (m_view) m_view->update();

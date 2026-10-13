@@ -202,7 +202,7 @@ void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
     ensureBoardSetupController();
     if (m_mw.m_boardSetupController) {
         m_mw.m_boardSetupController->onMoveCommitted(
-            static_cast<ShogiGameController::Player>(mover), ply);
+            static_cast<Turn>(mover), ply);
     }
 
     m_kifu->ensureGameRecordUpdateService();

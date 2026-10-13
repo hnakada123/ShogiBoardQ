@@ -1,3 +1,6 @@
+#include <QSettings>
+#include "settingscommon.h"
+#include "enginesettingsconstants.h"
 #include <QtTest>
 #include <QFile>
 #include <QSignalSpy>
@@ -18,6 +21,7 @@ class TestTsumePlay : public QObject
 {
     Q_OBJECT
     QList<TsumeProblem> problems;
+    QTemporaryDir m_config;
     static QByteArray response(QProcess& process, const QByteArray& prefix)
     {
         QElapsedTimer timer;
@@ -41,9 +45,16 @@ private slots:
         QVERIFY(analyzer.engineKey() != QStringLiteral("hayanagi-1.4.0-depth31-v2"));
     }
 
-    void cleanup() { qunsetenv("SHOGI_TEST_MATE_MODE"); }
+    void cleanup()
+    {
+        qunsetenv("SHOGI_TEST_MATE_MODE");
+        qunsetenv("SHOGI_TEST_EXPECT_THREADS");
+    }
     void initTestCase()
     {
+        // 登録済みエンジンの設定を書く試験があるので、利用者の設定ファイルを使わない
+        QVERIFY(m_config.isValid());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
         QFile file(QFINDTESTDATA("fixtures/tsume_positions_with_moves.sfen"));
         QVERIFY(file.open(QIODevice::ReadOnly));
         const auto result = TsumeCollection::parse(QString::fromUtf8(file.readAll()));
@@ -520,6 +531,44 @@ private slots:
         QVERIFY(!result.detail.isEmpty());
         QTest::qWait(150);
         QCOMPARE(spy.size(), 1);
+    }
+    /// 登録済みエンジンの保存済みの設定（スレッド数など）を送り、最短手数の確認に必要な設定だけ上書きする
+    void externalUsesSavedEngineOptions()
+    {
+        using namespace EngineSettingsConstants;
+        const QString name = QStringLiteral("KomoringHeights mock");
+        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        settings.beginWriteArray(EnginesGroupName, 1);
+        settings.setArrayIndex(0);
+        settings.setValue(EngineNameKey, name);
+        settings.setValue(EnginePathKey, QStringLiteral(MOCK_MATE_EXECUTABLE));
+        settings.endArray();
+        const QList<QPair<QString, QString>> saved{{QStringLiteral("Threads"), QStringLiteral("4")},
+                                                   {QStringLiteral("USI_Hash"), QStringLiteral("1024")},
+                                                   {QStringLiteral("PostSearchLevel"), QStringLiteral("None")}};
+        settings.beginWriteArray(name, static_cast<int>(saved.size()));
+        for (qsizetype i = 0; i < saved.size(); ++i) {
+            settings.setArrayIndex(static_cast<int>(i));
+            settings.setValue(EngineOptionNameKey, saved.at(i).first);
+            settings.setValue(EngineOptionTypeKey, i == 2 ? QStringLiteral("combo") : QStringLiteral("spin"));
+            settings.setValue(EngineOptionValueKey, saved.at(i).second);
+        }
+        settings.endArray();
+        settings.sync();
+
+        // 以前はスレッド数を1に固定して送っていた（模擬エンジンは4以外を受け付けない）
+        qputenv("SHOGI_TEST_EXPECT_THREADS", "4");
+        TsumePositionAnalyzer analyzer;
+        analyzer.configure(QStringLiteral(MOCK_MATE_EXECUTABLE), nullptr);
+        QSignalSpy spy(&analyzer, &TsumePositionAnalyzer::finished);
+        analyzer.evaluate(QStringLiteral("8k/6G2/7G1/9/9/9/9/9/9 b R 1"), 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(spy.size(), 1, 10000);
+        const auto result = qvariant_cast<TsumeEvaluation>(spy.first()[0]);
+        QCOMPARE(result.status, TsumeEvaluation::Status::Mate);
+
+        settings.remove(QString::fromLatin1(EnginesGroupName));
+        settings.remove(name);
+        settings.sync();
     }
     void externalCancellationAndCacheValidation()
     {

@@ -9,14 +9,6 @@
 
 namespace NotationUtils {
 
-// === USI 座標変換 ===
-
-/// 段番号(1-9) → USI段文字('a'-'i')。範囲外は QChar() を返す。
-QChar rankNumToLetter(int r);
-
-/// USI段文字('a'-'i') → 段番号(1-9)。無効文字は 0 を返す。
-int rankLetterToNum(QChar ch);
-
 // === 漢数字変換 ===
 
 /// 漢数字1文字('一'〜'九') → int(1-9)。無効文字は 0 を返す。
@@ -34,10 +26,10 @@ QString intToKanjiDigit(int d);
 
 // === SFEN 指し手フォーマット ===
 
-/// 盤上移動の USI 文字列を生成 (例: "7g7f", "8b2b+")
+/// 盤上移動の USI 文字列を生成 (例: "7g7f", "8b2b+")。盤外のマスなら空文字列
 QString formatSfenMove(int fromFile, int fromRank, int toFile, int toRank, bool promote);
 
-/// 駒打ちの USI 文字列を生成 (例: "P*5e")
+/// 駒打ちの USI 文字列を生成 (例: "P*5e")。打てない駒・盤外のマスなら空文字列
 QString formatSfenDrop(QChar piece, int toFile, int toRank);
 
 // === 手合 → 初期 SFEN ===

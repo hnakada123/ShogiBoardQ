@@ -6,6 +6,7 @@
 #include "sfenvalidationservice.h"
 #include "shogiboard.h"
 #include "shogiview.h"
+#include "usimove.h"
 
 #include <QApplication>
 #include <QColor>
@@ -13,22 +14,6 @@
 #include <QImageWriter>
 
 #include <memory>
-
-namespace {
-
-/// USI の升目（"7g" 等）を筋・段に変換する。駒打ちの元升は false
-bool parseSquare(const QString& text, int& file, int& rank)
-{
-    if (text.size() != 2) return false;
-    const int f = text.at(0).digitValue();
-    const int r = text.at(1).toLatin1() - 'a' + 1;
-    if (f < 1 || f > 9 || r < 1 || r > 9) return false;
-    file = f;
-    rank = r;
-    return true;
-}
-
-} // namespace
 
 QImage BoardImageRenderer::render(const QString& sfen, const Options& options, QString* error)
 {
@@ -62,16 +47,14 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, Q
     // ハイライトは非所有なので描画が終わるまで保持する
     std::unique_ptr<ShogiView::FieldHighlight> fromHighlight;
     std::unique_ptr<ShogiView::FieldHighlight> toHighlight;
-    const QString move = options.lastMoveUsi.trimmed();
-    if (move.size() >= 4) {
-        int file = 0;
-        int rank = 0;
-        if (parseSquare(move.mid(2, 2), file, rank)) {
-            toHighlight = std::make_unique<ShogiView::FieldHighlight>(file, rank, QColor(255, 165, 0, 140));
-            view.addHighlight(toHighlight.get());
-        }
-        if (move.at(1) != QLatin1Char('*') && parseSquare(move.left(2), file, rank)) {
-            fromHighlight = std::make_unique<ShogiView::FieldHighlight>(file, rank, QColor(255, 80, 80, 70));
+    if (const auto move = UsiMove::parse(options.lastMoveUsi)) {
+        toHighlight = std::make_unique<ShogiView::FieldHighlight>(move->to.file, move->to.rank,
+                                                                  QColor(255, 165, 0, 140));
+        view.addHighlight(toHighlight.get());
+        // 駒打ちは移動元を強調しない
+        if (!move->isDrop()) {
+            fromHighlight = std::make_unique<ShogiView::FieldHighlight>(move->from.file, move->from.rank,
+                                                                        QColor(255, 80, 80, 70));
             view.addHighlight(fromHighlight.get());
         }
     }

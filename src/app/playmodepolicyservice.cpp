@@ -29,12 +29,12 @@ bool PlayModePolicyService::isHumanTurnNow() const
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
         return isGameActivelyInProgress() && m_deps.gameController
-               && m_deps.gameController->currentPlayer() == ShogiGameController::Player1;
+               && m_deps.gameController->currentPlayer() == Turn::Black;
 
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
         return isGameActivelyInProgress() && m_deps.gameController
-               && m_deps.gameController->currentPlayer() == ShogiGameController::Player2;
+               && m_deps.gameController->currentPlayer() == Turn::White;
 
     case PlayMode::CsaNetworkMode:
         if (m_deps.csaGameCoordinator) {
@@ -51,7 +51,7 @@ bool PlayModePolicyService::isHumanTurnNow() const
     }
 }
 
-bool PlayModePolicyService::isHumanSide(ShogiGameController::Player p) const
+bool PlayModePolicyService::isHumanSide(Turn p) const
 {
     if (!m_deps.playMode)
         return false;
@@ -61,10 +61,10 @@ bool PlayModePolicyService::isHumanSide(ShogiGameController::Player p) const
         return true;
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
-        return (p == ShogiGameController::Player1);
+        return (p == Turn::Black);
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
-        return (p == ShogiGameController::Player2);
+        return (p == Turn::White);
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine:
     default:

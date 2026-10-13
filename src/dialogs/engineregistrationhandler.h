@@ -8,8 +8,8 @@
 #include <QObject>
 #include <QSettings>
 #include "engineoptions.h"
+#include "enginelistsettings.h"
 
-struct Engine;
 class QThread;
 class EngineRegistrationWorker;
 
@@ -34,10 +34,10 @@ public:
     void loadEnginesFromSettings();
 
     /// エンジンリストを取得する
-    const QList<Engine>& engineList() const;
+    const QList<EngineListSettings::EngineEntry>& engineList() const;
 
     /// 指定インデックスのエンジン情報を取得する
-    const Engine& engineAt(int index) const;
+    const EngineListSettings::EngineEntry& engineAt(int index) const;
 
     /// パスの重複を検査する（重複時は existingName にエンジン名を返す）
     bool isDuplicatePath(const QString& path, QString& existingName) const;
@@ -94,7 +94,10 @@ private:
 
     // 設定I/O
     void saveEnginesToSettingsFile() const;
-    void saveEngineToSettings(QSettings& settings, const Engine& engine) const;
+    void saveEngineToSettings(QSettings& settings, const EngineListSettings::EngineEntry& engine) const;
+
+    /// 登録名。同じ id name の登録があれば「名前 (2)」のように番号を付けて重複しない名前にする
+    QString uniqueRegisteredName(const QString& idName) const;
     void saveEngineOptionsToSettings() const;
     void removeEnginesGroup() const;
     void removeEngineNameGroup(const QString& removeEngineName) const;
@@ -114,7 +117,7 @@ private:
     QString m_fileName;
     QString m_engineIdName;
     QString m_engineIdAuthor;
-    QList<Engine> m_engineList;
+    QList<EngineListSettings::EngineEntry> m_engineList;
     QList<EngineOption> m_engineOptions;
     QStringList m_concatenatedOptionValuesList;
 };

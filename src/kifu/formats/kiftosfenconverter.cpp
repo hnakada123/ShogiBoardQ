@@ -2,6 +2,7 @@
 /// @brief KIF形式棋譜コンバータクラスの実装
 
 #include "kiftosfenconverter.h"
+#include "shoginotation.h"
 #include "kiflexer.h"
 #include "kifreader.h"
 #include "board/sfenpositiontracer.h"
@@ -454,8 +455,6 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
                                                  QString* detectedLabel,
                                                  QString* /*warn*/)
 {
-    static const QChar ranks_1to9[9] = {u'一',u'二',u'三',u'四',u'五',u'六',u'七',u'八',u'九'};
-
     // 1) 盤面情報の収集
     QMap<QChar, QString> rowByRank;
     if (!KifLexer::collectBodRows(lines, rowByRank, detectedLabel)) return false;
@@ -474,7 +473,8 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
 
     // 4) SFEN組み立て
     QStringList boardRows;
-    for (QChar rk : ranks_1to9) {
+    for (int rank = 1; rank <= 9; ++rank) {
+        const QChar rk = ShogiNotation::rankKanji(rank).at(0);
         boardRows << rowByRank.value(rk);
     }
 

@@ -156,31 +156,13 @@ void ElideLabel::onTimerTimeout() {}
 ShogiViewLayout::ShogiViewLayout() {}
 ShogiViewInteraction::ShogiViewInteraction() {}
 
-// === ShogiBoard スタブ ===
 // shogiview.h → shogigamecontroller.h 経由で必要
-ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
-    : QObject(parent), m_ranks(ranks), m_files(files)
-{
-    m_boardData.fill(Piece::None, ranks * files);
-}
-const QList<Piece>& ShogiBoard::boardData() const { return m_boardData; }
-std::optional<SfenComponents> ShogiBoard::parseSfen(const QString&) { return std::nullopt; }
-void ShogiBoard::setSfen(const QString&) { m_boardData.fill(Piece::None, m_ranks * m_files); }
-Piece ShogiBoard::pieceCharacter(int, int) { return Piece::None; }
-const QMap<Piece, int>& ShogiBoard::pieceStand() const { return m_pieceStand; }
-int ShogiBoard::pieceStandCount(Piece piece) const { return m_pieceStand.value(piece, 0); }
-void ShogiBoard::addStandPiece(Piece piece, int delta) { if (delta > 0) m_pieceStand[piece] += delta; }
-bool ShogiBoard::consumeStandPiece(Piece piece) { if (m_pieceStand.value(piece, 0) <= 0) return false; --m_pieceStand[piece]; return true; }
-Turn ShogiBoard::currentPlayer() const { return Turn::Black; }
-QString ShogiBoard::convertBoardToSfen() { return {}; }
-QString ShogiBoard::convertStandToSfen() const { return {}; }
 
 // === ShogiGameController スタブ ===
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
 ShogiGameController::~ShogiGameController() = default;
 ShogiBoard* ShogiGameController::board() const { return nullptr; }
-void ShogiGameController::setCurrentPlayer(const Player) {}
-void ShogiGameController::setPromote(bool) {}
+void ShogiGameController::setCurrentPlayer(Turn) {}
 void ShogiGameController::newGame(QString&) {}
 
 // === SettingsCommon スタブ ===

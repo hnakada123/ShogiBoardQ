@@ -10,7 +10,7 @@
 
 TurnManager::TurnManager(QObject* parent)
     : QObject(parent)
-    , m_side(ShogiGameController::NoPlayer)
+    , m_side(Turn::Black)
 {}
 
 TurnManager::Side TurnManager::side() const {
@@ -19,29 +19,21 @@ TurnManager::Side TurnManager::side() const {
 
 void TurnManager::set(Side s) {
     // Player2 以外は Player1 として正規化
-    const Side norm = (s == ShogiGameController::Player2)
-                          ? ShogiGameController::Player2
-                          : ShogiGameController::Player1;
+    const Side norm = (s == Turn::White)
+                          ? Turn::White
+                          : Turn::Black;
 
-    if (m_side == norm) return;
+    // 最初の設定は、既定の先手と同じでも知らせる（手番の表示を初めて合わせるため）
+    if (m_sideSet && m_side == norm) return;
+    m_sideSet = true;
     m_side = norm;
     emit changed(m_side);
 }
 
 void TurnManager::toggle() {
-    set(m_side == ShogiGameController::Player1
-            ? ShogiGameController::Player2
-            : ShogiGameController::Player1);
-}
-
-// ============================================================
-// Turn enum 変換
-// ============================================================
-
-void TurnManager::setFromTurn(Turn t) {
-    set(t == Turn::White
-            ? ShogiGameController::Player2
-            : ShogiGameController::Player1);
+    set(m_side == Turn::Black
+            ? Turn::White
+            : Turn::Black);
 }
 
 // ============================================================
@@ -49,15 +41,15 @@ void TurnManager::setFromTurn(Turn t) {
 // ============================================================
 
 QString TurnManager::toSfenToken() const {
-    return (m_side == ShogiGameController::Player2)
+    return (m_side == Turn::White)
     ? QStringLiteral("w")
     : QStringLiteral("b");
 }
 
 void TurnManager::setFromSfenToken(const QString& bw) {
     const auto s = (bw.compare(QStringLiteral("w"), Qt::CaseInsensitive) == 0)
-    ? ShogiGameController::Player2
-    : ShogiGameController::Player1;
+    ? Turn::White
+    : Turn::Black;
     set(s);
 }
 
@@ -66,17 +58,5 @@ void TurnManager::setFromSfenToken(const QString& bw) {
 // ============================================================
 
 int TurnManager::toClockPlayer() const {
-    return (m_side == ShogiGameController::Player2) ? 2 : 1;
-}
-
-// ============================================================
-// GameController 変換
-// ============================================================
-
-ShogiGameController::Player TurnManager::toGc() const {
-    return m_side;
-}
-
-void TurnManager::setFromGc(ShogiGameController::Player p) {
-    set(p);
+    return (m_side == Turn::White) ? 2 : 1;
 }

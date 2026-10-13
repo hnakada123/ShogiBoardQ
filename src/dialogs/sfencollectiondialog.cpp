@@ -231,8 +231,8 @@ void SfenCollectionDialog::updateBoardDisplay()
     // 手番表示を更新
     bool isBlackTurn = !sfen.contains(QStringLiteral(" w "));
     m_shogiView->setActiveSide(isBlackTurn);
-    m_shogiView->updateTurnIndicator(isBlackTurn ? ShogiGameController::Player1
-                                                  : ShogiGameController::Player2);
+    m_shogiView->updateTurnIndicator(isBlackTurn ? Turn::Black
+                                                  : Turn::White);
 
     // 位置ラベルを更新
     m_positionLabel->setText(tr("局面: %1 / %2").arg(m_currentIndex + 1).arg(m_sfenList.size()));

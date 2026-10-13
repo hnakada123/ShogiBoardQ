@@ -81,7 +81,7 @@ void MatchTimekeeper::emitTimeUpdateFromClock()
 
     const qint64 p1ms = m_clock->remainingMs(1);
     const qint64 p2ms = m_clock->remainingMs(2);
-    const bool p1turn = (m_refs.gc->currentPlayer() == ShogiGameController::Player1);
+    const bool p1turn = (m_refs.gc->currentPlayer() == Turn::Black);
 
     const int side = p1turn ? 1 : 2;
     const bool enableUrgency = !m_clock->hasByoyomi(side) || m_clock->byoyomiApplied(side);
@@ -121,7 +121,7 @@ void MatchTimekeeper::recomputeClockSnapshot(QString& turnText, QString& p1, QSt
     if (!m_clock) return;
 
     if (m_refs.gc) {
-        const bool p1Turn = (m_refs.gc->currentPlayer() == ShogiGameController::Player1);
+        const bool p1Turn = (m_refs.gc->currentPlayer() == Turn::Black);
         turnText = p1Turn ? QObject::tr("先手番") : QObject::tr("後手番");
     }
 

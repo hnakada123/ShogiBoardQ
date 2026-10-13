@@ -8,6 +8,7 @@
 #include <QList>
 #include <QDebug>
 #include "shogitypes.h"
+#include "usimove.h"
 
 /**
  * @brief 1手分の指し手情報を保持する構造体
@@ -27,6 +28,16 @@ struct ShogiMove {
     ShogiMove(const QPoint &from, const QPoint &to, Piece moving, Piece captured, bool promotion);
 
     bool operator==(const ShogiMove& other) const;
+
+    /**
+     * @brief USI の指し手と、指す前の局面で決まる駒から記録用の指し手を作る
+     *
+     * 駒打ちの移動元は指す側の駒台（0始まりで先手9・後手10、段は駒台の並び）にする。
+     */
+    static ShogiMove fromUsiMove(const UsiMove& move, Turn mover, Piece moving, Piece captured);
+
+    /// USI の指し手にする
+    UsiMove toUsiMove() const;
 };
 
 QDebug operator<<(QDebug dbg, const ShogiMove& move);

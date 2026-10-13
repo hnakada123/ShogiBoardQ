@@ -144,6 +144,8 @@ inline constexpr char kKifuAnalysisFontSize[]            = "KifuAnalysis/fontSiz
 inline constexpr char kKifuAnalysisColumnWidths[]        = "KifuAnalysis/columnWidths";
 inline constexpr char kKifuAnalysisResultsWindowSize[]   = "KifuAnalysis/resultsWindowSize";
 inline constexpr char kKifuAnalysisByoyomiSec[]          = "KifuAnalysis/byoyomiSec";
+inline constexpr char kKifuAnalysisEngineName[]          = "KifuAnalysis/engineName";
+/// 以前の版が保存していたエンジンの番号（読むだけ）
 inline constexpr char kKifuAnalysisEngineIndex[]         = "KifuAnalysis/engineIndex";
 inline constexpr char kKifuAnalysisFullRange[]           = "KifuAnalysis/fullRange";
 inline constexpr char kKifuAnalysisStartPly[]            = "KifuAnalysis/startPly";
@@ -179,6 +181,8 @@ inline constexpr char kEngineSettingsDialogSize[]        = "EngineSettings/dialo
 inline constexpr char kEngineRegistrationDialogSize[]    = "EngineRegistration/dialogSize";
 
 // --- Consideration ---
+inline constexpr char kConsiderationEngineName[]         = "Consideration/engineName";
+/// 以前の版が保存していたエンジンの番号（読むだけ）
 inline constexpr char kConsiderationEngineIndex[]        = "Consideration/engineIndex";
 inline constexpr char kConsiderationUnlimitedTime[]      = "Consideration/unlimitedTime";
 inline constexpr char kConsiderationByoyomiSec[]         = "Consideration/byoyomiSec";
@@ -188,6 +192,8 @@ inline constexpr char kConsiderationMultiPV[]            = "Consideration/multiP
 inline constexpr char kConsiderationTabFontSize[]        = "ConsiderationTab/fontSize";
 
 // --- TsumeSearch ---
+inline constexpr char kTsumeSearchEngineName[]           = "TsumeSearch/engineName";
+/// 以前の版が保存していたエンジンのパス（読むだけ）
 inline constexpr char kTsumeSearchEnginePath[]           = "TsumeSearch/enginePath";
 inline constexpr char kTsumeSearchUnlimitedTime[]        = "TsumeSearch/unlimitedTime";
 inline constexpr char kTsumeSearchTimeLimitSec[]         = "TsumeSearch/timeLimitSec";
@@ -250,6 +256,8 @@ inline constexpr char kTsumePlaySquareSize[] = "TsumePlay/squareSize";
 inline constexpr char kTsumePlayBoardRotated[] = "TsumePlay/boardRotated";
 // --- TsumeshogiGenerator ---
 inline constexpr char kTsumeshogiGeneratorLastSaveDirectory[] = "TsumeshogiGenerator/lastSaveDirectory";
+inline constexpr char kTsumeshogiGeneratorEngineName[]        = "TsumeshogiGenerator/engineName";
+/// 以前の版が保存していたエンジンの番号（読むだけ）
 inline constexpr char kTsumeshogiGeneratorEngineIndex[]       = "TsumeshogiGenerator/engineIndex";
 inline constexpr char kTsumeshogiGeneratorTargetMoves[]       = "TsumeshogiGenerator/targetMoves";
 inline constexpr char kTsumeshogiGeneratorMaxAttackPieces[]   = "TsumeshogiGenerator/maxAttackPieces";

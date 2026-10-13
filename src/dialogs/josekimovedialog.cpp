@@ -183,7 +183,7 @@ bool isLegalMove(const QString &sfen, const QString &usi)
     auto moves = SfenPositionTracer::buildGameMoves(sfen, {usi});
     if (moves.size() != 1) return false;
     EngineMoveValidator validator;
-    const auto turn = tracer.blackToMove() ? EngineMoveValidator::BLACK : EngineMoveValidator::WHITE;
+    const auto turn = tracer.blackToMove() ? Turn::Black : Turn::White;
     const auto status = validator.isLegalMove(turn, board.boardData(), board.pieceStand(), moves.first());
     return usi.endsWith(QLatin1Char('+')) ? status.promotingMoveExists : status.nonPromotingMoveExists;
 }

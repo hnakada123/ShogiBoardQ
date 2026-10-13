@@ -47,10 +47,6 @@ public:
     static QString usiMoveToJapanese(const QString &usiMove,
                                      const SfenPositionTracer &tracer);
 
-    /**
-     * @brief 駒の日本語名を取得
-     */
-    static QString pieceToKanji(QChar pieceChar, bool promoted = false);
 
     // --- データ操作 ---
 

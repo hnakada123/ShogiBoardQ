@@ -142,22 +142,6 @@ std::optional<KanjiPieceResult> mapKanjiPiece(QStringView text)
     return std::nullopt;
 }
 
-std::optional<int> parseFileChar(QChar ch)
-{
-    const ushort u = ch.unicode();
-    if (u >= '1' && u <= '9')
-        return u - '0';
-    return std::nullopt;
-}
-
-std::optional<int> parseRankChar(QChar ch)
-{
-    const ushort u = ch.unicode();
-    if (u >= 'a' && u <= 'i')
-        return u - 'a' + 1;
-    return std::nullopt;
-}
-
 std::optional<int> parseDigit(QChar ch)
 {
     const ushort u = ch.unicode();

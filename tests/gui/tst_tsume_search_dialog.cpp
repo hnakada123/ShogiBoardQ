@@ -12,6 +12,7 @@
 #include <QTemporaryDir>
 #include <QTranslator>
 
+#include "enginelistsettings.h"
 #include "analysissettings.h"
 #include "applicationfonts.h"
 #include "settingscommon.h"
@@ -20,6 +21,8 @@
 class TestTsumeSearchDialog : public QObject
 {
     Q_OBJECT
+
+    static QSettings& settings() { return SettingsCommon::openSettings(); }
 
     void registerEngines(bool reversed = false)
     {
@@ -78,7 +81,7 @@ private slots:
     void timeSettingsAndIsolation()
     {
         registerEngines();
-        AnalysisSettings::setConsiderationEngineIndex(0);
+        EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), QStringLiteral("Hayanagi 1.5.0"));
         AnalysisSettings::setConsiderationUnlimitedTime(true);
         AnalysisSettings::setConsiderationByoyomiSec(87);
         AnalysisSettings::setConsiderationMultiPV(6);
@@ -109,9 +112,11 @@ private slots:
         QTRY_COMPARE(dialog.result(), int(QDialog::Accepted));
         QCOMPARE(dialog.byoyomiSec(), 35);
         QCOMPARE(AnalysisSettings::tsumeSearchTimeLimitSec(), 35);
-        QCOMPARE(AnalysisSettings::tsumeSearchEnginePath(), QStringLiteral("/test/engine1"));
+        QCOMPARE(settings().value(QString::fromLatin1(EngineListSettings::tsumeSearchSelection().name)).toString(),
+                 QStringLiteral("YaneuraOu Mate — long engine name for selection and tooltip"));
         QVERIFY(!AnalysisSettings::tsumeSearchUnlimitedTime());
-        QCOMPARE(AnalysisSettings::considerationEngineIndex(), 0);
+        QCOMPARE(settings().value(QString::fromLatin1(EngineListSettings::considerationSelection().name)).toString(),
+                 QStringLiteral("Hayanagi 1.5.0"));
         QCOMPARE(AnalysisSettings::considerationByoyomiSec(), 87);
         QCOMPARE(AnalysisSettings::considerationMultiPV(), 6);
         QVERIFY(AnalysisSettings::considerationUnlimitedTime());
@@ -147,7 +152,7 @@ private slots:
         QCOMPARE(dialog.result(), int(QDialog::Rejected));
         QCOMPARE(AnalysisSettings::tsumeSearchTimeLimitSec(), 42);
         QVERIFY(!AnalysisSettings::tsumeSearchUnlimitedTime());
-        QVERIFY(AnalysisSettings::tsumeSearchEnginePath().isEmpty());
+        QVERIFY(!settings().contains(QString::fromLatin1(EngineListSettings::tsumeSearchSelection().name)));
         QCOMPARE(AnalysisSettings::tsumeSearchFontSize(), 11);
         TsumeShogiSearchDialog restored;
         QCOMPARE(restored.size(), dialog.size());

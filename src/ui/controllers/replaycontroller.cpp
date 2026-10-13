@@ -70,7 +70,7 @@ void ReplayController::setReplayMode(bool on)
         } else {
             // 対局に戻る: 現手番・残時間から再適用
             const bool p1turn = (m_gc &&
-                                 m_gc->currentPlayer() == ShogiGameController::Player1);
+                                 m_gc->currentPlayer() == Turn::Black);
             m_view->setActiveSide(p1turn);
 
             // Urgency は時計側の更新イベントで再適用させる

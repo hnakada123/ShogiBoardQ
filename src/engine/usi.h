@@ -17,6 +17,7 @@
 
 #include "logcategories.h"
 #include "usitimingparams.h"
+#include "usimove.h"
 
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
@@ -79,13 +80,10 @@ public:
     QString pvKanjiStr() const;
     void setPvKanjiStr(const QString& newPvKanjiStr);
 
-    void parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& rankTo);
-
     void initializeAndStartEngineCommunication(QString& engineFile, QString& enginename);
 
     void sendGameOverCommand(GameOverResult result);
     void sendQuitCommand();
-    QChar rankToAlphabet(int rank) const;
     void sendGameOverWinAndQuitCommands();
     void sendStopCommand();
     /// 対局中の「すぐ指させる」。準備中に保留した position・go は残し、それを送った後で stop を送る
@@ -181,7 +179,8 @@ public:
     [[nodiscard]] bool startAndInitializeEngineAsync(const QString& engineFile, const QString& enginename);
     bool isInitializing() const { return m_initializing; }
     void requestMatchMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
-    void requestHumanReply(QString& position, const QString& ponder, const QPoint& from, const QPoint& to,
+    /// 人間の指し手を局面に加えて、エンジンに次の手を考えさせる
+    void requestHumanReply(QString& position, const QString& ponder, const UsiMove& humanMove,
                            const UsiTimingParams& timing, QStringList& history);
 
     void executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec);
@@ -191,7 +190,8 @@ public:
 signals:
     void searchCandidateChanged();
     void engineInitialized();
-    void matchMoveReady(const QPoint& from, const QPoint& to, const QString& position, const QString& ponder);
+    /// 対局の思考で指し手が決まった（成り・不成を含む USI の指し手）
+    void matchMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
     void bestMoveResignReceived();                    ///< bestmove resign受信（ProtocolHandler → 外部）
     void bestMoveWinReceived();                       ///< bestmove win（入玉宣言勝ち）受信（ProtocolHandler → 外部）
     void checkmateSolved(const QStringList& pvMoves); ///< 詰みあり（ProtocolHandler → TsumeSearchFlowController）

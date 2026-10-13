@@ -63,7 +63,7 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
 
     // 宣言できるのは手番の人間だけ。エンジンの手番で押してもエンジンの代わりには宣言しない
     const bool senteToMove = !m_gameController
-        || m_gameController->currentPlayer() == ShogiGameController::Player1;
+        || m_gameController->currentPlayer() == Turn::Black;
     if (!isHumanToMove(static_cast<PlayMode>(playMode), senteToMove)) {
         QMessageBox::information(parentWidget, tr("入玉宣言"), tr("入玉宣言は自分の手番で行います。"));
         return false;
@@ -82,7 +82,7 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     // 現在の手番を取得（宣言者）
     bool isSenteTurn = true;
     if (m_gameController) {
-        isSenteTurn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+        isSenteTurn = (m_gameController->currentPlayer() == Turn::Black);
     }
     const bool handicapNames = m_match && m_match->usesHandicapNames();
     const QString declarerName = NyugyokuJudgement::declarerName(isSenteTurn, handicapNames);

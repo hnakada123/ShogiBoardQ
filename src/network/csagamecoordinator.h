@@ -94,7 +94,6 @@ public:
         PlayerType playerType = PlayerType::Human;
         QString enginePath;
         QString engineName;
-        int engineNumber = 0;
 
         // 接続の維持
         bool keepAliveEnabled = true;       ///< 対局中に空行キープアライブを送る

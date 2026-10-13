@@ -4,6 +4,7 @@
 /// @file startgamedialog.h
 /// @brief 対局開始ダイアログクラスの定義
 
+#include "enginelistsettings.h"
 #include <QDialog>
 #include <QComboBox>
 
@@ -63,11 +64,8 @@ public:
     // --- エンジン情報 ---
 
     /// エンジンの名前とディレクトリを格納する構造体
-    struct Engine
-    {
-        QString name;  ///< エンジン表示名
-        QString path;  ///< エンジン実行ファイルのパス
-    };
+    /// 登録済みエンジン（名前・実行ファイル・作者）
+    using Engine = EngineListSettings::EngineEntry;
 
     const QList<StartGameDialog::Engine>& engineList() const;
 

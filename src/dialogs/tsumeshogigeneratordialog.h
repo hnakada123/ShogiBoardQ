@@ -4,6 +4,7 @@
 /// @file tsumeshogigeneratordialog.h
 /// @brief 詰将棋局面生成ダイアログクラスの定義
 
+#include "enginelistsettings.h"
 #include <QDateTime>
 #include <QDialog>
 #include <QList>
@@ -67,11 +68,8 @@ private slots:
 
 private:
     /// エンジン情報
-    struct Engine {
-        QString name;
-        QString path;
-        QString author;
-    };
+    /// 登録済みエンジン（名前・実行ファイル・作者）
+    using Engine = EngineListSettings::EngineEntry;
 
     void setupUi();
     void buildFormSection(QVBoxLayout* mainLayout);

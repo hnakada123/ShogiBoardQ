@@ -2,6 +2,7 @@
 /// @brief PV盤面コントローラクラスの実装
 
 #include "pvboardcontroller.h"
+#include "boardcoordinates.h"
 #include "kifupresentation.h"
 #include "shogiboard.h"
 #include "logcategories.h"
@@ -235,14 +236,13 @@ PvHighlightCoords PvBoardController::computeHighlightFromUsiMove(const QString& 
     PvHighlightCoords result;
     result.valid = true;
 
-    if (usiMove.at(1) == '*') {
-        // Drop move (e.g., "P*5e")
-        QChar pieceChar = usiMove.at(0);
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-        qCDebug(lcUi) << "computeHighlightFromUsiMove: drop move, pieceChar=" << pieceChar
-                 << " toFile=" << toFile << " toRank=" << toRank;
+    const auto move = UsiMove::parse(usiMove);
+    if (!move) {
+        result.valid = false;
+        return result;
+    }
 
+    if (move->isDrop()) {
         bool isBlackMove = true;
         if (isBasePosition) {
             isBlackMove = !m_baseSfen.contains(QStringLiteral(" w "));
@@ -250,30 +250,20 @@ PvHighlightCoords PvBoardController::computeHighlightFromUsiMove(const QString& 
             const QString& prevSfen = m_sfenHistory.at(m_currentPly - 1);
             isBlackMove = !prevSfen.contains(QStringLiteral(" w "));
         }
-
-        QPoint standCoord = standPseudoCoord(pieceChar, isBlackMove);
+        const QPoint standCoord = BoardCoordinates::fromSquare(*move, isBlackMove ? Turn::Black : Turn::White);
         if (!standCoord.isNull()) {
             result.hasFrom = true;
             result.fromFile = standCoord.x();
             result.fromRank = standCoord.y();
         }
-
-        result.hasTo = true;
-        result.toFile = toFile;
-        result.toRank = toRank;
-        qCDebug(lcUi) << "computeHighlightFromUsiMove: added drop highlights";
     } else {
-        // Normal move (e.g., "7g7f" or "7g7f+")
         result.hasFrom = true;
-        result.fromFile = usiMove.at(0).toLatin1() - '0';
-        result.fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
-        result.hasTo = true;
-        result.toFile = usiMove.at(2).toLatin1() - '0';
-        result.toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-        qCDebug(lcUi) << "computeHighlightFromUsiMove: normal move, fromFile=" << result.fromFile
-                 << " fromRank=" << result.fromRank << " toFile=" << result.toFile << " toRank=" << result.toRank;
+        result.fromFile = move->from.file;
+        result.fromRank = move->from.rank;
     }
-
+    result.hasTo = true;
+    result.toFile = move->to.file;
+    result.toRank = move->to.rank;
     return result;
 }
 
@@ -283,55 +273,10 @@ PvHighlightCoords PvBoardController::computeHighlightFromUsiMove(const QString& 
 
 void PvBoardController::applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove)
 {
-    if (!board || usiMove.isEmpty()) return;
-
-    if (usiMove.length() < 4) return;
-
-    auto isValidFile = [](QChar ch) { return ch >= '1' && ch <= '9'; };
-    auto isValidRank = [](QChar ch) { return ch >= 'a' && ch <= 'i'; };
-
-    // Drop move
-    if (usiMove.at(1) == '*') {
-        if (!isValidFile(usiMove.at(2)) || !isValidRank(usiMove.at(3))) return;
-
-        QChar pieceChar = usiMove.at(0);
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-
-        if (!isBlackToMove) {
-            pieceChar = pieceChar.toLower();
-        }
-
-        Piece piece = charToPiece(pieceChar);
-
-        board->movePieceToSquare(piece, 0, 0, toFile, toRank, false);
-
-        board->consumeStandPiece(piece);
-        return;
+    if (!board) return;
+    if (const auto move = UsiMove::parse(usiMove)) {
+        board->applyUsiMove(*move, isBlackToMove ? Turn::Black : Turn::White);
     }
-
-    // Normal move
-    if (!isValidFile(usiMove.at(0)) || !isValidRank(usiMove.at(1)) ||
-        !isValidFile(usiMove.at(2)) || !isValidRank(usiMove.at(3))) {
-        return;
-    }
-
-    int fromFile = usiMove.at(0).toLatin1() - '0';
-    int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
-    int toFile = usiMove.at(2).toLatin1() - '0';
-    int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-    bool promote = (usiMove.length() >= 5 && usiMove.at(4) == '+');
-
-    Piece piece = board->pieceCharacter(fromFile, fromRank);
-
-    Piece captured = board->pieceCharacter(toFile, toRank);
-    if (captured != Piece::None) {
-        Piece standPiece = demote(captured);
-        standPiece = isBlackPiece(standPiece) ? toWhite(standPiece) : toBlack(standPiece);
-        board->addStandPiece(standPiece);
-    }
-
-    board->movePieceToSquare(piece, fromFile, fromRank, toFile, toRank, promote);
 }
 
 bool PvBoardController::isStartposSfen(QString sfen)
@@ -379,31 +324,7 @@ bool PvBoardController::diffSfenForHighlight(const QString& prevSfen, const QStr
 
 QPoint PvBoardController::standPseudoCoord(QChar pieceChar, bool isBlack)
 {
-    QChar upperPiece = pieceChar.toUpper();
-
-    if (isBlack) {
-        switch (upperPiece.toLatin1()) {
-            case 'P': return QPoint(10, 1);
-            case 'L': return QPoint(10, 2);
-            case 'N': return QPoint(10, 3);
-            case 'S': return QPoint(10, 4);
-            case 'G': return QPoint(10, 5);
-            case 'B': return QPoint(10, 6);
-            case 'R': return QPoint(10, 7);
-            case 'K': return QPoint(10, 8);
-            default: return QPoint();
-        }
-    } else {
-        switch (upperPiece.toLatin1()) {
-            case 'P': return QPoint(11, 9);
-            case 'L': return QPoint(11, 8);
-            case 'N': return QPoint(11, 7);
-            case 'S': return QPoint(11, 6);
-            case 'G': return QPoint(11, 5);
-            case 'B': return QPoint(11, 4);
-            case 'R': return QPoint(11, 3);
-            case 'K': return QPoint(11, 2);
-            default: return QPoint();
-        }
-    }
+    const Piece black = charToPiece(pieceChar.toUpper());
+    if (black == Piece::None) return QPoint();
+    return BoardCoordinates::standSquareOf(isBlack ? black : toWhite(black));
 }

@@ -3,71 +3,46 @@
 
 #include "notationutils.h"
 #include "sfenutils.h"
+#include "shoginotation.h"
+#include "usimove.h"
 
 #include <QLatin1Char>
 #include <QStringLiteral>
 
 namespace NotationUtils {
 
-QChar rankNumToLetter(int r)
-{
-    if (r < 1 || r > 9) return QChar();
-    return QChar(QLatin1Char(static_cast<char>('a' + (r - 1))));
-}
-
-int rankLetterToNum(QChar ch)
-{
-    char c = ch.toLatin1();
-    if (c >= 'a' && c <= 'i') return c - 'a' + 1;
-    return 0;
-}
-
 int kanjiDigitToInt(QChar c)
 {
-    switch (c.unicode()) {
-    case u'一': return 1;
-    case u'二': return 2;
-    case u'三': return 3;
-    case u'四': return 4;
-    case u'五': return 5;
-    case u'六': return 6;
-    case u'七': return 7;
-    case u'八': return 8;
-    case u'九': return 9;
-    default: return 0;
-    }
+    return ShogiNotation::rankFromKanji(c);
 }
 
 QString intToZenkakuDigit(int d)
 {
-    static const QChar map[] = { QChar(u'０'), QChar(u'１'), QChar(u'２'), QChar(u'３'), QChar(u'４'),
-                                 QChar(u'５'), QChar(u'６'), QChar(u'７'), QChar(u'８'), QChar(u'９') };
-    if (d >= 1 && d <= 9) return QString(map[d]);
-    return QString(QChar(u'？'));
+    const QString text = ShogiNotation::fileZenkaku(d);
+    return text.isEmpty() ? QString(QChar(u'？')) : text;
 }
 
 QString intToKanjiDigit(int d)
 {
-    static const QChar map[10] = { QChar(), QChar(u'一'), QChar(u'二'), QChar(u'三'), QChar(u'四'),
-                                   QChar(u'五'), QChar(u'六'), QChar(u'七'), QChar(u'八'), QChar(u'九') };
-    if (d >= 1 && d <= 9) return QString(map[d]);
-    return QString(QChar(u'？'));
+    const QString text = ShogiNotation::rankKanji(d);
+    return text.isEmpty() ? QString(QChar(u'？')) : text;
 }
 
 QString formatSfenMove(int fromFile, int fromRank, int toFile, int toRank, bool promote)
 {
-    QString usi = QStringLiteral("%1%2%3%4")
-        .arg(fromFile)
-        .arg(rankNumToLetter(fromRank))
-        .arg(toFile)
-        .arg(rankNumToLetter(toRank));
-    if (promote) usi += QLatin1Char('+');
-    return usi;
+    UsiMove move;
+    move.from = BoardSquare{fromFile, fromRank};
+    move.to = BoardSquare{toFile, toRank};
+    move.promote = promote;
+    return move.toString();
 }
 
 QString formatSfenDrop(QChar piece, int toFile, int toRank)
 {
-    return QStringLiteral("%1*%2%3").arg(piece).arg(toFile).arg(rankNumToLetter(toRank));
+    UsiMove move;
+    move.drop = UsiNotation::dropPieceFromChar(piece);
+    move.to = BoardSquare{toFile, toRank};
+    return move.toString();
 }
 
 namespace {

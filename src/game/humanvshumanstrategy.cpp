@@ -17,16 +17,10 @@ void HumanVsHumanStrategy::start()
     qCDebug(lcGame) << "[Match] Start HvH";
 
     // --- 手番の単一ソースを確立：GC → TurnManager → m_cur → 表示
-    ShogiGameController::Player side =
-        m_ctx.gc() ? m_ctx.gc()->currentPlayer()
-                   : ShogiGameController::NoPlayer;
-    if (side == ShogiGameController::NoPlayer) {
-        side = ShogiGameController::Player1;
-        if (m_ctx.gc()) m_ctx.gc()->setCurrentPlayer(side);
-    }
+    const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
 
     m_ctx.setCurrentTurn(
-        (side == ShogiGameController::Player2) ? MatchCoordinator::P2
+        (side == Turn::White) ? MatchCoordinator::P2
                                                : MatchCoordinator::P1);
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
@@ -40,11 +34,9 @@ void HumanVsHumanStrategy::onHumanMove(const QPoint& /*from*/,
                                         const QString& prettyMove)
 {
     // 着手後の現在手番は「次の手番」なので、着手者はその逆
-    ShogiGameController::Player curAfterMove =
-        m_ctx.gc() ? m_ctx.gc()->currentPlayer()
-                   : ShogiGameController::NoPlayer;
+    const Turn curAfterMove = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::White;
     const MatchCoordinator::Player moverP =
-        (curAfterMove == ShogiGameController::Player1) ? MatchCoordinator::P2
+        (curAfterMove == Turn::Black) ? MatchCoordinator::P2
                                                        : MatchCoordinator::P1;
 
     // 直前手の消費時間（consideration）を確定

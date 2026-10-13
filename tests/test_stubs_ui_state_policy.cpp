@@ -184,20 +184,12 @@ ShogiViewInteraction::ShogiViewInteraction() {}
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
 ShogiGameController::~ShogiGameController() = default;
 ShogiBoard* ShogiGameController::board() const { return nullptr; }
-void ShogiGameController::setCurrentPlayer(const Player) {}
-void ShogiGameController::setPromote(bool) {}
+void ShogiGameController::setCurrentPlayer(Turn) {}
 void ShogiGameController::newGame(QString&) {}
 
 // ============================================================
-// ShogiBoard スタブ
 // ============================================================
 
-ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
-    : QObject(parent), m_ranks(ranks), m_files(files)
-{
-    m_boardData.fill(Piece::None, ranks * files);
-}
-const QList<Piece>& ShogiBoard::boardData() const { return m_boardData; }
 
 // ============================================================
 // BranchTreeManager スタブ

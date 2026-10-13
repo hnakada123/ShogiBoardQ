@@ -107,8 +107,9 @@ void TsumeshogiGeneratorDialog::readEngineNameAndDir()
 
 void TsumeshogiGeneratorDialog::loadSettings()
 {
-    int engineIndex = TsumeshogiSettings::tsumeshogiGeneratorEngineIndex();
-    if (engineIndex >= 0 && engineIndex < m_comboEngine->count()) {
+    const int engineIndex =
+        EngineListSettings::restoreSelection(EngineListSettings::tsumeshogiGeneratorSelection(), m_engineList);
+    if (engineIndex >= 0) {
         m_comboEngine->setCurrentIndex(engineIndex);
     }
 
@@ -132,7 +133,11 @@ void TsumeshogiGeneratorDialog::saveSettings()
 {
     DialogUtils::saveDialogSize(this, TsumeshogiSettings::setTsumeshogiGeneratorDialogSize);
     TsumeshogiSettings::setTsumeshogiGeneratorFontSize(m_fontHelper.fontSize());
-    TsumeshogiSettings::setTsumeshogiGeneratorEngineIndex(m_comboEngine->currentIndex());
+    const int engineIndex = m_comboEngine->currentIndex();
+    if (engineIndex >= 0 && engineIndex < m_engineList.size()) {
+        EngineListSettings::saveSelection(EngineListSettings::tsumeshogiGeneratorSelection(),
+                                          m_engineList.at(engineIndex).name);
+    }
     TsumeshogiSettings::setTsumeshogiGeneratorTargetMoves(m_spinTargetMoves->value());
     TsumeshogiSettings::setTsumeshogiGeneratorMaxAttackPieces(m_spinMaxAttack->value());
     TsumeshogiSettings::setTsumeshogiGeneratorMaxDefendPieces(m_spinMaxDefend->value());

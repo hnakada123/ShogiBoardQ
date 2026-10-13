@@ -36,7 +36,7 @@ public:
     bool isHumanTurnNow() const;
 
     /// 指定プレイヤーが人間側かどうかを判定する
-    bool isHumanSide(ShogiGameController::Player p) const;
+    bool isHumanSide(Turn p) const;
 
     /// 人間 vs 人間モードかどうかを判定する
     bool isHvH() const;

@@ -36,7 +36,7 @@ bool UsiEngineSession::startAsync(const QString& enginePath, const QString& engi
     m_handler->loadEngineOptions(engineName);
     m_starting = true;
     m_initializing = true;
-    m_startTimer.start(5000);
+    m_startTimer.start(m_initializationTimeoutMs);
     const bool accepted = m_process->startProcessAsync(enginePath);
     m_starting = false;
     if (!accepted) {
@@ -50,7 +50,7 @@ void UsiEngineSession::onProcessStarted()
 {
     if (!m_initializing) return;
     m_startTimer.stop();
-    m_handler->initializeEngineAsync();
+    m_handler->initializeEngineAsync(m_initializationTimeoutMs);
 }
 
 void UsiEngineSession::onInitialized(bool success)

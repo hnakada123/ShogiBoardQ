@@ -2,6 +2,7 @@
 /// @brief 対局開始フローを管理するオーケストレータの実装
 
 #include "gamestartorchestrator.h"
+#include "enginelistsettings.h"
 #include "shogigamecontroller.h"
 #include "settingscommon.h"
 #include "sfenpositiontracer.h"
@@ -29,9 +30,9 @@ static QString normalizeTargetSfen(const QString& sfenStart)
 }
 
 /// SFEN文字列から開始手番を決定する
-static ShogiGameController::Player decideStartSideFromSfen(const QString& sfen)
+static Turn decideStartSideFromSfen(const QString& sfen)
 {
-    auto start = ShogiGameController::Player1;
+    auto start = Turn::Black;
     if (sfen.isEmpty()) return start;
     const QStringList tok = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (tok.size() < 2) return start;
@@ -47,7 +48,7 @@ static ShogiGameController::Player decideStartSideFromSfen(const QString& sfen)
 
     if (sideIdx >= 0 && sideIdx < tok.size()) {
         if (tok[sideIdx].compare(QLatin1String("w"), Qt::CaseInsensitive) == 0) {
-            start = ShogiGameController::Player2; // 後手番
+            start = Turn::White; // 後手番
         }
     }
     return start;
@@ -287,7 +288,7 @@ void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions& opt)
     qCDebug(lcGame).noquote() << "configureAndStart: hooks done";
 
     // 開始手番の決定
-    const ShogiGameController::Player startSide = decideStartSideFromSfen(opt.sfenStart);
+    const Turn startSide = decideStartSideFromSfen(opt.sfenStart);
     if (m_refs.gc) m_refs.gc->setCurrentPlayer(startSide);
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
@@ -296,7 +297,7 @@ void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions& opt)
 
     // 司令塔の内部手番も GC に同期（既存互換）
     *m_refs.currentTurn =
-        (startSide == ShogiGameController::Player2) ? MatchCoordinator::P2
+        (startSide == Turn::White) ? MatchCoordinator::P2
                                                     : MatchCoordinator::P1;
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(*m_refs.currentTurn);
 }
@@ -438,28 +439,8 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
     {
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
-        // 1) エンジン一覧（name/path）の読み出し
-        struct Eng { QString name; QString path; };
-        QList<Eng> list;
-        int count = settings.beginReadArray("Engines");
-        for (int i = 0; i < count; ++i) {
-            settings.setArrayIndex(i);
-            Eng e;
-            e.name = settings.value("name").toString();
-            e.path = settings.value("path").toString();
-            list.push_back(e);
-        }
-        settings.endArray();
-
-        auto pathForName = [&](const QString& nm) -> QString {
-            if (nm.isEmpty()) return {};
-            for (const auto& e : std::as_const(list)) {
-                if (e.name == nm) return e.path;
-            }
-            return {};
-        };
-
-        // 2) 直近の対局設定（GameSettings）からエンジン名を取得
+        // 直近の対局設定（GameSettings）からエンジン名を取得し、登録一覧から名前でパスを引く
+        const auto pathForName = &EngineListSettings::pathForName;
         settings.beginGroup("GameSettings");
         const QString name1 = settings.value("engineName1").toString();
         const QString name2 = settings.value("engineName2").toString();

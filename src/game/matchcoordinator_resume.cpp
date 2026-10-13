@@ -49,9 +49,8 @@ bool MatchCoordinator::resumeInterruptedGame()
     m_playMode = state->options.mode;
     m_gc->board()->setSfen(state->options.sfenStart);
     m_gc->setCurrentPlayer(state->clock.currentPlayer == 1
-                              ? ShogiGameController::Player1 : ShogiGameController::Player2);
+                              ? Turn::Black : Turn::White);
     m_gc->resetResult();
-    m_gc->setPromote(false);
     m_gc->setPreviousMoveDestination(QPoint(state->previousFile, state->previousRank));
     *m_sfenHistory = state->sfens;
     gameMovesRef() = state->moves;

@@ -5,7 +5,6 @@
 #include <QPointer>
 #include <QRegularExpression>
 #include "thinkinginfopresenter.h"
-#include "usimovecoordinateconverter.h"
 #include "shogigamecontroller.h"
 
 void UsiProtocolHandler::handleCheckmateLine(const QString& line)
@@ -43,66 +42,17 @@ void UsiProtocolHandler::handleCheckmateLine(const QString& line)
     emit checkmateSolved(pv);
 }
 
-void UsiProtocolHandler::parseMoveCoordinates(int& fileFrom, int& rankFrom,
-                                              int& fileTo, int& rankTo)
+std::optional<UsiMove> UsiProtocolHandler::parseBestMove()
 {
-    fileFrom = rankFrom = fileTo = rankTo = -1;
+    if (m_specialMove != SpecialMove::None) return std::nullopt;
+
     const QString move = m_bestMove.trimmed();
-
-    if (m_specialMove != SpecialMove::None) {
-        if (m_gameController) {
-            m_gameController->setPromote(false);
-        }
-        return;
-    }
-
-    if (move.size() < 4) {
+    const std::optional<UsiMove> parsed = UsiMove::parse(move);
+    if (!parsed) {
         emit errorOccurred(tr("Invalid bestmove format: \"%1\"").arg(move));
         cancelCurrentOperation();
-        return;
     }
-
-    const bool promote = (move.size() >= 5 && move.at(4) == QLatin1Char('+'));
-    if (m_gameController) {
-        m_gameController->setPromote(promote);
-    }
-
-    const bool isP1 = m_gameController
-        && m_gameController->currentPlayer() == ShogiGameController::Player1;
-
-    auto fromCoord = UsiMoveCoordinateConverter::parseMoveFrom(move, isP1);
-    auto toCoord = UsiMoveCoordinateConverter::parseMoveTo(move);
-    if (!fromCoord || !toCoord) {
-        emit errorOccurred(tr("Invalid bestmove coordinates: \"%1\"").arg(move));
-        cancelCurrentOperation();
-        return;
-    }
-    fileFrom = fromCoord->file;
-    rankFrom = fromCoord->rank;
-    fileTo = toCoord->file;
-    rankTo = toCoord->rank;
-}
-
-QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoint& to,
-                                                  bool promote)
-{
-    QString errorMsg;
-    QString result =
-        UsiMoveCoordinateConverter::convertHumanMoveToUsi(from, to, promote, errorMsg);
-    if (!errorMsg.isEmpty()) {
-        emit errorOccurred(errorMsg);
-    }
-    return result;
-}
-
-QChar UsiProtocolHandler::rankToAlphabet(int rank)
-{
-    return UsiMoveCoordinateConverter::rankToAlphabet(rank);
-}
-
-std::optional<int> UsiProtocolHandler::alphabetToRank(QChar c)
-{
-    return UsiMoveCoordinateConverter::alphabetToRank(c);
+    return parsed;
 }
 
 quint64 UsiProtocolHandler::beginOperationContext()
@@ -126,6 +76,8 @@ void UsiProtocolHandler::initializeEngineAsync(int timeoutMs)
     cancelCurrentOperation();
     clearHardTimeout();
     m_reportedOptions.clear();
+    m_reportedOptionLines.clear();
+    m_reportedEngineName.clear();
     m_initializationTimeoutMs = qMax(1, timeoutMs);
     m_initialization = Initialization::UsiOk;
     m_initializationTimer.start(m_initializationTimeoutMs);

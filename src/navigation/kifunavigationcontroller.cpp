@@ -484,7 +484,7 @@ void KifuNavigationController::emitUpdateSignals()
         const ShogiMove& move = node->move();
         fileTo = move.toSquare.x();
         rankTo = move.toSquare.y();
-        usiMove = ShogiUtils::moveToUsi(move);
+        usiMove = move.toUsiMove().toString();
     }
     emit branchNodeHandled(node->ply(), node->sfen(), fileTo, rankTo, usiMove);
 

@@ -70,7 +70,7 @@ private slots:
         // 7六歩: (6,6) → (6,5)
         ShogiMove sm(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
         fmv::ConvertedMove cm;
-        bool ok = fmv::Converter::toEngineMove(cm, EngineMoveValidator::BLACK, pos, sm);
+        bool ok = fmv::Converter::toEngineMove(cm, Turn::Black, pos, sm);
         QVERIFY(ok);
 
         QCOMPARE(cm.nonPromote.kind, fmv::MoveKind::Board);
@@ -93,7 +93,7 @@ private slots:
         // 先手銀打ち: 駒台(9,3) → (4,4)
         ShogiMove sm(QPoint(9, 3), QPoint(4, 4), Piece::BlackSilver, Piece::None, false);
         fmv::ConvertedMove cm;
-        bool ok = fmv::Converter::toEngineMove(cm, EngineMoveValidator::BLACK, pos, sm);
+        bool ok = fmv::Converter::toEngineMove(cm, Turn::Black, pos, sm);
         QVERIFY(ok);
 
         QCOMPARE(cm.nonPromote.kind, fmv::MoveKind::Drop);
@@ -114,7 +114,7 @@ private slots:
         // 5四歩→5三: (4,3)→(4,2) 3段目は敵陣なので成り可
         ShogiMove sm(QPoint(4, 3), QPoint(4, 2), Piece::BlackPawn, Piece::None, false);
         fmv::ConvertedMove cm;
-        bool ok = fmv::Converter::toEngineMove(cm, EngineMoveValidator::BLACK, pos, sm);
+        bool ok = fmv::Converter::toEngineMove(cm, Turn::Black, pos, sm);
         QVERIFY(ok);
         QVERIFY(cm.hasPromoteVariant);
         QVERIFY(cm.promote.promote);
@@ -122,8 +122,8 @@ private slots:
 
     void toColor()
     {
-        QCOMPARE(fmv::Converter::toColor(EngineMoveValidator::BLACK), fmv::Color::Black);
-        QCOMPARE(fmv::Converter::toColor(EngineMoveValidator::WHITE), fmv::Color::White);
+        QCOMPARE(fmv::Converter::toColor(Turn::Black), fmv::Color::Black);
+        QCOMPARE(fmv::Converter::toColor(Turn::White), fmv::Color::White);
     }
 };
 
