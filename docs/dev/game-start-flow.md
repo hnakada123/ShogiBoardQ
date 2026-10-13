@@ -771,7 +771,7 @@ BoardInteractionController::onLeftClick(pt)
 BoardSetupController::onMoveRequested(from, to)
     ↓
 ShogiGameController::validateAndMove()
-    ├─ FastMoveValidatorで合法性検証
+    ├─ EngineMoveValidatorで合法性検証
     ├─ 成り判定（人間の場合はダイアログ表示）
     ├─ 盤面更新
     ├─ moveCommitted(moverBefore, ply) シグナル発行

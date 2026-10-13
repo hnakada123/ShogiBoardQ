@@ -307,7 +307,7 @@ GUI を使うテストは、必ず `xvfb-run` の上で実行してください�
   - 4.1 の ConsiderationWiring::Deps の例が、`analysisTab` のままです（実物は `considerationTabManager` と `thinkingInfo1`）。
   - 第1章と 17.1 に「`GLOB_RECURSE` でソースを自動で取り込む」とありますが、実際の CMakeLists.txt はファイルを列挙しています。
   - 16.4 は、`main.cpp` の古いコードと3言語の前提のままです（今は4言語）。
-  - `fastmovevalidator.*` の記載、UiActionsWiring の例、`resetPiecesToStand`（今は `resetPiecesToBox`）。
+  - UiActionsWiring の例、`resetPiecesToStand`（今は `resetPiecesToBox`）。
 - `docs/dev/registry-boundary.md`：存在しない GameSubRegistry・GameSessionSubRegistry・GameWiringSubRegistry が
   出てきます（実際は `gamesubregistry*.cpp` で、MainWindowServiceRegistry の分割ファイル）。上限の値（SR ≤ 11、
   Foundation ≤ 17、Kifu ≤ 10）も、KPI テスト（25／15／8）と合っていません。
