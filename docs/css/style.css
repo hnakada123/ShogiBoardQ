@@ -1077,6 +1077,11 @@ a.feature-card-link:hover .feature-card-more {
     margin: 0 auto;
 }
 
+/* Keep a long caption from widening the card past the image (the white card background would show beside it) */
+.screenshot-item--compact .screenshot-caption {
+    contain: inline-size;
+}
+
 @media (max-width: 640px) {
     .screenshot-gallery--comparison {
         grid-template-columns: 1fr;
