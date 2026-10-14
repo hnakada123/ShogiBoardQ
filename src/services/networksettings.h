@@ -47,6 +47,8 @@ inline const Setting<QString> csaHost{"CsaGameSettings/host", QString()};
 /// 接続先のポート番号（デフォルト: 4081）
 inline const Setting<int> csaPort{"CsaGameSettings/port", 4081};
 
+inline const Setting<bool> csaUseTls{"CsaGameSettings/useTls", false};
+
 /// ログインID（デフォルト: 空）
 inline const Setting<QString> csaId{"CsaGameSettings/id", QString()};
 

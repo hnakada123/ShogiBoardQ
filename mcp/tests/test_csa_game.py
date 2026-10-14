@@ -107,7 +107,7 @@ class CsaUI:
         dialog = await self.dialog("CsaGameDialog")
         values = [("radioButtonEngine" if engine else "radioButtonHuman", True),
                   ("lineEditHost", "127.0.0.1"), ("spinBoxPort", port),
-                  ("lineEditId", "BoardQ"), ("checkBoxShowPassword", True),
+                  ("lineEditId", "BoardQ"), ("comboBoxTransport", 0),
                   ("lineEditPassword", password if password is not None else f"{game}-{side},audit-secret")]
         for widget, value in values:
             await self.call("set_widget_value", target=dialog, widget=widget, value=value)
@@ -119,7 +119,6 @@ class CsaUI:
         for widget, value in defaults.items():
             await self.call("set_widget_value", target=dialog, widget=widget, value=value)
         await self.call("set_widget_value", target=dialog, widget="tabWidget", value=0)
-        await self.call("set_widget_value", target=dialog, widget="checkBoxShowPassword", value=False)
         await self.call("click_dialog_button", dialog=dialog, widget="pushButtonStart")
         return await self.dialog("CsaWaitingDialog")
 
@@ -281,7 +280,7 @@ async def test_connection_form_feedback(csa_env, tmp_path, language, font_size):
         assert (await widget("labelValidation"))["text"]
         await ui.call("capture_screenshot", target=dialog, output_dir=str(tmp_path))
         for name, value in [("lineEditHost", "127.0.0.1"), ("lineEditId", "BoardQ"),
-                            ("checkBoxShowPassword", True), ("lineEditPassword", "test-600-10,pw")]:
+                            ("comboBoxTransport", 0), ("lineEditPassword", "test-600-10,pw")]:
             await ui.call("set_widget_value", target=dialog, widget=name, value=value)
         assert (await widget("pushButtonStart"))["enabled"]
         await ui.call("set_widget_value", target=dialog, widget="lineEditId", value="bad id")
@@ -717,7 +716,9 @@ async def test_shogihome_oute_sennichite(csa_env, csa_server, tmp_path):
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
         port = csa_server[0]
-        game = f"boardq-oute-{os.getpid()}-300-5"
+        # The CSA password field accepts at most 32 ASCII bytes, including the
+        # shogi-server game/side prefix and the helper's ",audit-secret" suffix.
+        game = f"oq{os.getpid():x}-300-5"
         await ui.connect(port, side="b", game=game)
         await shogihome_login(endpoint, port, f"{game}-w")
         try:
@@ -793,7 +794,7 @@ async def test_shogihome_interoperability(csa_env, csa_server, tmp_path, side):
         ui = CsaUI(session)
         # An explicitly supplied port allows checking an already running local server.
         port = int(os.environ.get("SHOGIBOARDQ_TEST_SHOGIHOME_SERVER_PORT", csa_server[0]))
-        game = f"boardq-ui-{os.getpid()}-300-5"
+        game = f"bq{os.getpid():x}-300-5"
         await ui.connect(port, side=side, game=game)
         await shogihome_login(endpoint, port, f"{game}-{'w' if side == 'b' else 'b'}")
         try:

@@ -114,7 +114,10 @@ shogiboardq-cli            ShogiBoardQ --automation
 `widget.text` はコンボ／タブの `current_index`、フォントの `font_point_size`、盤面の `arrows`
 （`from_file`, `from_rank`, `to_file`, `to_rank`, `priority`, `drop_piece`）も返す。
 UI操作は非表示・無効・モーダルで遮られた対象を拒否し、予約実行時にも再確認する。
-テキスト入力は読み取り専用・パスワード欄も拒否する。`kifuPasteText` は棋譜貼り付け欄、
+テキスト入力は読み取り専用欄を拒否する。パスワードは書き込みのみ可能で、表示状態に関係なく
+読み取りを伏せ、APIからの表示切り替えを拒否する。機密欄は `automationSensitive` プロパティで識別する。
+MCPの汎用GUI操作は `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` の明示指定が必要であり、
+有効化時にはGUI操作へのファイル制限を保証しない。専用ファイルツールの制限は常に適用する。`kifuPasteText` は棋譜貼り付け欄、
 `kifuTable` / `kifuBranchTable` は棋譜・分岐候補テーブルを指定する名前。
 `gameInfoTable` は対局情報テーブル。`commit=false` は入力中の状態を維持する。
 `get_widget_text` は省略表示ラベルの `fullText` プロパティにも対応するため、

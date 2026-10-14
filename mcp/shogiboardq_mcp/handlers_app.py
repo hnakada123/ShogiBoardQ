@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 from . import formatting as fmt
 from . import paths
 from .app_client import AppClient
+from .errors import ToolError
 
 Result = tuple[str, dict[str, Any]]
 
@@ -15,6 +17,16 @@ Result = tuple[str, dict[str, Any]]
 class AppTools:
     def __init__(self, client: AppClient) -> None:
         self.client = client
+
+    @staticmethod
+    def _require_unrestricted_ui() -> None:
+        # Generic widget actions can open files, enable auto-save, register engines,
+        # or accept dialogs. They cannot enforce a filesystem allowlist.
+        if os.environ.get("SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI") != "1":
+            raise ToolError("not_allowed", "Generic GUI control is disabled in restricted mode. "
+                            "Use dedicated position/kifu tools. The operator may set "
+                            "SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1 to grant full GUI control; "
+                            "GUI operations then have the application's filesystem permissions.")
 
     async def get_app_state(self, args: dict[str, Any]) -> Result:
         state = await self.client.call("app.state")
@@ -41,6 +53,7 @@ class AppTools:
         return (result["text"] or f"Clipboard image: {result['image_width']} x {result['image_height']}"), result
 
     async def edit_table_cell(self, args: dict[str, Any]) -> Result:
+        self._require_unrestricted_ui()
         result = await self.client.call("widget.editCell", args)
         return f"Queued table edit: {result['object_name']}.", result
 
@@ -109,6 +122,7 @@ class AppTools:
         return "Allowed actions:\n" + "\n".join(lines), result
 
     async def trigger_action(self, args: dict[str, Any]) -> Result:
+        self._require_unrestricted_ui()
         result = await self.client.call("action.trigger", {"name": args["name"]})
         return f"Triggered {result.get('name')}.", result
 
@@ -117,6 +131,7 @@ class AppTools:
         return f"Queued board click on {result['target']}: file {result['file']}, rank {result['rank']}.", result
 
     async def click_dialog_button(self, args: dict[str, Any]) -> Result:
+        self._require_unrestricted_ui()
         result = await self.client.call("dialog.clickButton", args)
         return f"Queued button click: {result['text']}.", result
 
@@ -136,14 +151,17 @@ class AppTools:
         return f"Queued dock operation: {result['object_name']}.", result
 
     async def click_widget(self, args: dict[str, Any]) -> Result:
+        self._require_unrestricted_ui()
         result = await self.client.call("widget.click", args)
         return f"Queued click: {result['object_name']}.", result
 
     async def set_widget_value(self, args: dict[str, Any]) -> Result:
+        self._require_unrestricted_ui()
         result = await self.client.call("widget.setValue", args)
         return f"Queued value change: {result['object_name']}.", result
 
     async def click_table_cell(self, args: dict[str, Any]) -> Result:
+        self._require_unrestricted_ui()
         result = await self.client.call("widget.clickCell", args)
         return f"Queued cell click: {result['object_name']}.", result
 
@@ -152,6 +170,7 @@ class AppTools:
         return json.dumps(result, ensure_ascii=False), result
 
     async def select_menu_action(self, args: dict[str, Any]) -> Result:
+        self._require_unrestricted_ui()
         result = await self.client.call("menu.select", args)
         return f"Queued menu action: {result['text']}.", result
 

@@ -86,6 +86,8 @@ def server_env(cli_path: Path, test_config: Path, tmp_path_factory) -> dict[str,
     env["SHOGIBOARDQ_CACHE_HOME"] = str(tmp_path_factory.mktemp("cache"))
     env["XDG_RUNTIME_DIR"] = str(tmp_path_factory.mktemp("runtime"))
     env["QT_QPA_PLATFORM"] = "offscreen"
+    # Existing UI integration scenarios intentionally exercise full GUI permissions.
+    env["SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI"] = "1"
     # GUI scenarios (including those creating their own config) locate Japanese labels.
     env["LC_ALL"] = "ja_JP.UTF-8"
     env["LANGUAGE"] = "ja_JP"

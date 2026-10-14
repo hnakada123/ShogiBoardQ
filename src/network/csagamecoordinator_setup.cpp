@@ -290,7 +290,7 @@ void CsaGameCoordinator::connectForGame()
     m_lastGameEndedByServer = false;
     setGameState(GameState::Connecting);
     emit logMessage(tr("サーバー %1:%2 に接続中...").arg(m_options.host).arg(m_options.port));
-    m_client->connectToServer(m_options.host, m_options.port);
+    m_client->connectToServer(m_options.host, m_options.port, m_options.transport);
 }
 
 void CsaGameCoordinator::handleGameCountAfterEnd()

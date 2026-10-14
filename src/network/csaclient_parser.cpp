@@ -98,6 +98,8 @@ void CsaClient::processWaitingLine(const QString& line)
 {
     if (line == QStringLiteral("BEGIN Game_Summary")) {
         m_inGameSummary = true;
+        m_summaryBytes = 0;
+        m_summaryLines = 0;
         m_gameSummary.clear();
     } else if (line.startsWith(QStringLiteral("LOGOUT:"))) {
         handleLogoutResponse();
@@ -107,6 +109,11 @@ void CsaClient::processWaitingLine(const QString& line)
 
 void CsaClient::processGameSummary(const QString& line)
 {
+    m_summaryBytes += line.toUtf8().size() + 1;
+    if (++m_summaryLines > kMaxSummaryLines || m_summaryBytes > kMaxSummaryBytes) {
+        rejectOversizedInput();
+        return;
+    }
     if (handleGameSummarySectionBoundary(line)) return;
     if (handleGameSummaryTimeSectionLine(line)) return;
     if (handleGameSummaryPositionSectionLine(line)) return;

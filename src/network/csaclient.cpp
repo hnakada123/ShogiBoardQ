@@ -86,11 +86,16 @@ bool CsaClient::isWaitingState(ConnectionState state)
 
 CsaClient::CsaClient(QObject* parent)
     : QObject(parent)
-    , m_socket(new QTcpSocket(this))
+    , m_socket(new QSslSocket(this))
     , m_connectionTimer(new QTimer(this))
     , m_logoutTimer(new QTimer(this))
     , m_keepAliveTimer(new QTimer(this))
 {
+    m_socket->setReadBufferSize(kMaxLineBytes + 1);
+    m_socket->setPeerVerifyMode(QSslSocket::VerifyPeer);
+    m_socket->setProtocol(QSsl::TlsV1_2OrLater);
+    connect(m_socket, &QSslSocket::encrypted,
+            this, &CsaClient::onSocketConnected);
     connect(m_socket, &QTcpSocket::connected,
             this, &CsaClient::onSocketConnected);
     connect(m_socket, &QTcpSocket::disconnected,
@@ -121,7 +126,7 @@ CsaClient::~CsaClient()
     }
 }
 
-void CsaClient::connectToServer(const QString& host, int port)
+void CsaClient::connectToServer(const QString& host, int port, Transport transport)
 {
     if (m_connectionState != ConnectionState::Disconnected) {
         if (!m_logoutPending) {
@@ -138,13 +143,21 @@ void CsaClient::connectToServer(const QString& host, int port)
         return;
     }
 
+    if (transport == Transport::Tls && !QSslSocket::supportsSsl()) {
+        emit errorOccurred(tr("TLSを利用できません。SSLライブラリを確認してください。"));
+        return;
+    }
+    m_transport = transport;
     qCInfo(lcNetwork) << "Connecting to" << host << ":" << port;
 
     resetSessionState();
     setConnectionState(ConnectionState::Connecting);
 
     m_connectionTimer->start(kConnectionTimeoutMs);
-    m_socket->connectToHost(host, static_cast<quint16>(port));
+    if (m_transport == Transport::Tls)
+        m_socket->connectToHostEncrypted(host, static_cast<quint16>(port));
+    else
+        m_socket->connectToHost(host, static_cast<quint16>(port));
 }
 
 void CsaClient::disconnectFromServer()
@@ -181,6 +194,11 @@ void CsaClient::login(const QString& username, const QString& password)
         return;
     }
 
+    if (m_transport == Transport::Tls && !m_socket->isEncrypted()) {
+        abortConnection();
+        emit errorOccurred(tr("安全な接続が確立されていないためログインを中止しました。"));
+        return;
+    }
     QString loginCmd = QStringLiteral("LOGIN %1 %2").arg(username, password);
     sendMessage(loginCmd);
 }
@@ -254,6 +272,8 @@ void CsaClient::sendMove(const QString& move)
 
 void CsaClient::onSocketConnected()
 {
+    // TCP接続だけではLOGINを送らない。TLS証明書検証とハンドシェイク完了を待つ。
+    if (m_transport == Transport::Tls && !m_socket->isEncrypted()) return;
     m_connectionTimer->stop();
     qCInfo(lcNetwork) << "Connected to server";
     applySocketOptions();
@@ -296,26 +316,32 @@ void CsaClient::onSocketError(QAbstractSocket::SocketError error)
 
 void CsaClient::onReadyRead()
 {
-    // TCP受信データはパケット境界と行境界が一致しないため、バッファに蓄積して行単位に分割する
-    m_receiveBuffer += QString::fromUtf8(m_socket->readAll());
-
-    // 行単位で処理
-    qsizetype newlineIndex;
-    while ((newlineIndex = m_receiveBuffer.indexOf(QLatin1Char('\n'))) != -1) {
-        QString line = m_receiveBuffer.left(static_cast<int>(newlineIndex));
-        m_receiveBuffer = m_receiveBuffer.mid(static_cast<int>(newlineIndex) + 1);
-
-        // CRを除去
-        if (line.endsWith(QLatin1Char('\r'))) {
-            line.chop(1);
-        }
-
-        // 空行はキープアライブへの応答（LF のみ）なので無視する
-        if (!line.isEmpty()) {
+    // Bytes are bounded before decoding; UTF-8 characters may span TCP packets.
+    while (m_socket->bytesAvailable() > 0) {
+        const qint64 capacity = kMaxLineBytes + 1 - m_receiveBuffer.size();
+        m_receiveBuffer += m_socket->read(capacity);
+        qsizetype newlineIndex;
+        while ((newlineIndex = m_receiveBuffer.indexOf('\n')) >= 0) {
+            if (newlineIndex > kMaxLineBytes) { rejectOversizedInput(); return; }
+            QByteArray bytes = m_receiveBuffer.left(newlineIndex);
+            m_receiveBuffer.remove(0, newlineIndex + 1);
+            if (bytes.endsWith('\r')) bytes.chop(1);
+            if (bytes.isEmpty()) continue;
+            const QString line = QString::fromUtf8(bytes);
             emit rawMessageReceived(line);
             processLine(line);
+            if (!isConnected()) return;
         }
+        if (m_receiveBuffer.size() > kMaxLineBytes) { rejectOversizedInput(); return; }
     }
+}
+
+void CsaClient::rejectOversizedInput()
+{
+    // Clear and disconnect before reporting the error (UI callbacks can re-enter).
+    abortConnection();
+    emit connectionStateChanged(ConnectionState::Disconnected);
+    emit errorOccurred(tr("CSA受信データが上限を超えたため切断しました。"));
 }
 
 void CsaClient::onConnectionTimeout()
@@ -371,7 +397,7 @@ void CsaClient::abortConnection()
 
 bool CsaClient::writeLine(const QString& line)
 {
-    if (!isConnected()) {
+    if (!isConnected() || (m_transport == Transport::Tls && !m_socket->isEncrypted())) {
         return false;
     }
 
@@ -435,6 +461,8 @@ void CsaClient::resetGameProgressState()
 void CsaClient::resetSessionState()
 {
     m_receiveBuffer.clear();
+    m_summaryBytes = 0;
+    m_summaryLines = 0;
     m_gameSummary.clear();
     resetGameProgressState();
     m_logoutPending = false;

@@ -79,3 +79,39 @@ def test_socket_and_endpoint_locations(monkeypatch, tmp_path):
     (tmp_path / "ShogiBoardQ").mkdir()
     paths.endpoint_file().write_text('{"socket": "/x/y.sock", "pid": 1}', encoding="utf-8")
     assert paths.read_endpoint() == {"socket": "/x/y.sock", "pid": 1}
+
+
+@pytest.mark.parametrize("existing", [False, True])
+@pytest.mark.parametrize("overwrite", [False, True])
+def test_output_symlink_cannot_escape_allowed_directory(monkeypatch, tmp_path, existing, overwrite):
+    allowed = tmp_path / "allowed"
+    allowed.mkdir()
+    target = tmp_path / "outside.kif"
+    if existing:
+        target.write_bytes(b"unchanged")
+    link = allowed / "output.kif"
+    try:
+        link.symlink_to(target)
+    except OSError:
+        pytest.skip("Symlinks are unavailable")
+    monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(allowed))
+    with pytest.raises(ToolError) as error:
+        paths.resolve_write_path(str(link), overwrite)
+    assert error.value.code == "path_not_allowed"
+    assert target.read_bytes() == b"unchanged" if existing else not target.exists()
+
+
+def test_output_symlink_inside_allowed_directory_returns_resolved_path(monkeypatch, tmp_path):
+    monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(tmp_path))
+    target = tmp_path / "actual.kif"
+    link = tmp_path / "output.kif"
+    try:
+        link.symlink_to(target)
+    except OSError:
+        pytest.skip("Symlinks are unavailable")
+    assert paths.resolve_write_path(str(link), False) == target
+    target.write_bytes(b"unchanged")
+    with pytest.raises(ToolError) as error:
+        paths.resolve_write_path(str(link), False)
+    assert error.value.code == "file_exists"
+    assert paths.resolve_write_path(str(link), True) == target

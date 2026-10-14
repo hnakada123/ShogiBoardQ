@@ -95,7 +95,7 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
                     }
                 }
                 if (!editor || !table->isAncestorOf(editor) || editor->isReadOnly()
-                    || editor->echoMode() != QLineEdit::Normal) return;
+                    || AutomationWidgets::isSensitive(editor)) return;
                 editor->setText(text);
                 if (commit) {
                     QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
@@ -143,7 +143,11 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
     });
 
     dispatcher.registerMethod(QStringLiteral("widget.setValue"), [context](const QJsonObject& params) {
-        QWidget* widget = targetWidget(context, params);
+        QWidget* widget = targetWidget(context, params, false);
+        if (widget->window() != AutomationWidgets::requireWindow(context,
+                AutomationParams::optionalString(params, QStringLiteral("target"))))
+            throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Widget belongs to another window"));
+        AutomationWidgets::requireInteractive(widget, false, true);
         const QJsonValue value = params.value(QStringLiteral("value"));
         const bool submit = AutomationParams::optionalBool(params, QStringLiteral("submit"), false);
         if (submit && !qobject_cast<QLineEdit*>(widget))
@@ -170,14 +174,14 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
                 if (guard) Q_EMIT combo->textActivated(text);
             };
         } else if (auto* lineEdit = qobject_cast<QLineEdit*>(widget)) {
-            if (lineEdit->isReadOnly() || lineEdit->echoMode() != QLineEdit::Normal)
+            if (lineEdit->isReadOnly())
                 throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only or protected"));
             if (!value.isString()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be text"));
             const QString text = value.toString();
             if (text.size() > lineEdit->maxLength())
                 throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Text exceeds the field limit"));
             apply = [lineEdit, text, submit]() {
-                if (lineEdit->isReadOnly() || lineEdit->echoMode() != QLineEdit::Normal) return;
+                if (lineEdit->isReadOnly()) return;
                 QPointer<QLineEdit> guard(lineEdit);
                 lineEdit->selectAll();
                 lineEdit->insert(text); // ユーザー編集と同じtextEditedも発行する（色入力等）。
@@ -241,7 +245,7 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
             throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Unsupported widget type"));
         }
         AutomationDeferredCall::schedule([widget, apply]() {
-            try { AutomationWidgets::requireInteractive(widget); apply(); }
+            try { AutomationWidgets::requireInteractive(widget, false, true); apply(); }
             catch (const AutomationError&) { }
         }, widget);
         return queued(widget);

@@ -671,7 +671,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "considerationEngine, considerationMultiPV, considerationSeconds, considerationUnlimited, "
         "considerationArrows. Normal change signals run; the operation is queued so dialogs can open. "
         "Use submit=true on a line edit to press Enter after entering text (for example csaCommandInput). "
-        "Hidden, disabled, read-only, protected or modally blocked widgets and out-of-range values are refused.",
+        "Requires SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1. Hidden, disabled, read-only or modally blocked widgets and out-of-range values are refused. Password fields accept write-only input; revealing them is forbidden.",
         {"properties": {"target": {"type": "string", "default": "main"},
                         "widget": {"type": "string", "minLength": 1},
                         "value": {"type": ["string", "number", "boolean"]},
