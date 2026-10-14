@@ -142,8 +142,8 @@ docs/dev/developer-guide.md に第6章「game層：対局管理」を作成し�
 - src/game/gamestatecontroller.h
 - src/game/turnmanager.h
 - src/game/turnsyncbridge.h
-- src/game/promotionflow.h
-- src/game/prestartcleanuphandler.h
+- src/ui/coordinators/promotionflow.h
+- src/app/prestartcleanuphandler.h
 - src/game/consecutivegamescontroller.h
 
 記述してほしい内容:
