@@ -261,6 +261,7 @@ void MainWindowServiceRegistry::finalizeAndConfigureUiForLifecycle()
 {
     // 司令塔やUIフォント/位置編集コントローラの最終初期化
     finalizeCoordinators();
+    assembleRuntimeServices();
 
     // UI状態ポリシーマネージャを初期化し、アイドル状態を適用
     foundation()->ensureUiStatePolicyManager();

@@ -251,6 +251,9 @@ set(SRC_APP
     src/app/kifusubregistry.h
     src/app/mainwindowfoundationregistry.cpp
     src/app/mainwindowfoundationregistry.h
+    src/app/mainwindowactions.h
+    src/app/mainwindowactions.cpp
+    src/app/mainwindowruntimeassembly.cpp
     src/app/mainwindowserviceregistry.cpp
     src/app/mainwindowserviceregistry.h
     src/app/mainwindowuiregistry.cpp
@@ -303,6 +306,9 @@ set(SRC_CORE
     src/core/shogiclock.h
     src/core/timecontrol.h
     src/core/shogimove.cpp
+    src/core/recordtime.h
+    src/core/terminaltype.h
+    src/kifu/recordentry.h
     src/core/shogimove.h
     src/core/usimove.h
     src/core/boardcoordinates.h
@@ -359,6 +365,7 @@ set(SRC_GAME
     src/game/sennichitedetector.h
     src/game/shogigamecontroller.cpp
     src/game/shogigamecontroller.h
+    src/game/strategycontext.cpp
     src/game/strategycontext.h
     src/game/timecontrolvalidator.cpp
     src/game/timecontrolvalidator.h

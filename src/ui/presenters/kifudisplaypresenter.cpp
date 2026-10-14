@@ -172,6 +172,27 @@ bool KifuDisplayPresenter::populateRecordModel()
     return rebuilt;
 }
 
+void KifuDisplayPresenter::presentLiveNode(KifuBranchNode* node)
+{
+    if (!node || !m_refs.tree || !m_refs.recordModel) return;
+    auto* model = m_refs.recordModel;
+    const int line = m_refs.state ? m_refs.state->currentLineIndex() : 0;
+    // 通常の末尾追加は一行だけ作る。分岐の変更や指し直しは経路から照合する。
+    if (node->ply() == model->rowCount() && m_lastModelLineIndex == line
+        && node->parent() && !node->parent()->hasBranch()) {
+        const QString label = QString::number(node->ply()).rightJustified(4, QLatin1Char(' '))
+                              + QLatin1Char(' ') + node->displayText();
+        const auto row = moveRow(node, label);
+        auto* item = new KifuDisplay(row.move, row.time, row.comment, row.bookmark, model);
+        item->beforeSfen = row.beforeSfen;
+        item->usiMove = row.usiMove;
+        model->appendItem(item);
+    } else {
+        populateRecordModelFromPath(m_refs.tree->pathToNode(node), node->ply());
+    }
+    m_lastModelLineIndex = line;
+}
+
 int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode*>& path, int highlightPly)
 {
     if (m_refs.recordModel == nullptr) {

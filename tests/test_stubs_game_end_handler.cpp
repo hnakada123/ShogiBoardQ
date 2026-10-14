@@ -334,7 +334,6 @@ void Usi::sendPositionAndGoMateCommands(int, QString&) {}
 void Usi::cancelCurrentOperation() {}
 void Usi::setupConnections() {}
 
-void Usi::onProcessError(QProcess::ProcessError, const QString&) {}
 void Usi::onCommandSent(const QString&) {}
 void Usi::onDataReceived(const QString&) {}
 void Usi::onStderrReceived(const QString&) {}
@@ -520,8 +519,6 @@ EngineVsEngineStrategy::EngineVsEngineStrategy(
     : QObject(parent), m_ctx(ctx) {}
 void EngineVsEngineStrategy::start() {}
 void EngineVsEngineStrategy::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
-QStringList* EngineVsEngineStrategy::sfenRecordForEvE() { return &m_eveSfenRecord; }
-QList<ShogiMove>& EngineVsEngineStrategy::gameMovesForEvE() { return m_eveGameMoves; }
 void EngineVsEngineStrategy::kickNextEvETurn() {}
 void EngineVsEngineStrategy::initPositionStringsForEvE(const QString&) {}
 
@@ -576,9 +573,7 @@ QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::In
 #include "moc_enginevsenginestrategy.cpp"
 
 bool Usi::startAndInitializeEngineAsync(const QString&, const QString&) { return true; }
-void Usi::onProcessStarted() {}
-void Usi::onEngineInitialized(bool) {}
-void Usi::onStartTimeout() {}
+void Usi::onEngineInitialized() {}
 void Usi::requestMatchMove(const QString&, const QString&, const UsiTimingParams&) {}
 void Usi::requestHumanReply(QString&, const QString&, const UsiMove&, const UsiTimingParams&, QStringList&) {}
 
@@ -589,4 +584,3 @@ void UsiProtocolHandler::onInitializationReadyOk() {}
 void UsiProtocolHandler::onInitializationTimeout() {}
 
 void Usi::onProtocolError(const QString&) {}
-void Usi::onProcessExited() {}

@@ -40,7 +40,6 @@ public:
 
     // ===== refresh deps (依存更新のみ、生成済み前提) =====
     void refreshBranchNavWiringDeps();
-    void refreshGameRecordUpdateDeps();
     void refreshGameRecordLoadDeps();
 
     // ===== helpers =====
@@ -53,7 +52,6 @@ public:
 
 private:
     void createBranchNavigationWiring();
-    void createGameRecordUpdateService();
     void createGameRecordLoadService();
 
     MainWindow& m_mw;

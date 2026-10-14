@@ -34,6 +34,7 @@
 
 void MainWindowServiceRegistry::ensureRecordPresenter()
 {
+    if (m_runtimeServicesReady) return;
     if (m_mw.m_isShuttingDown) return;
 
     GameRecordPresenter::Deps d;

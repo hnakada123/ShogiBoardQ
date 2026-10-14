@@ -21,8 +21,6 @@
 #include "usigotime.h"
 
 class EngineProcessManager;
-class ThinkingInfoPresenter;
-class ShogiGameController;
 
 /**
  * @brief USIプロトコルのコマンド送受信を管理するクラス
@@ -33,7 +31,7 @@ class ShogiGameController;
  * - 対局フローの制御（go, ponder, bestmove等）
  * - 非同期初期化と応答通知（usiok, readyok, bestmove）
  *
- * プロセス管理はEngineProcessManagerに、GUI更新はThinkingInfoPresenterに委譲する。
+ * プロセス管理はEngineProcessManagerに委譲し、受信結果はシグナルで通知する。
  *
  */
 class UsiProtocolHandler : public QObject
@@ -65,8 +63,7 @@ public:
     // --- 依存関係設定 ---
     
     void setProcessManager(EngineProcessManager* manager);
-    void setPresenter(ThinkingInfoPresenter* presenter);
-    void setGameController(ShogiGameController* controller);
+    void setBaseSfen(const QString& sfen);
 
     // --- 初期化 ---
     
@@ -155,6 +152,8 @@ public:
 
 signals:
     void searchCandidateChanged();
+    void searchStarted();
+    void positionChanged(const QString& sfen);
     void initializationFinished(bool success);
 
     void usiOkReceived();              ///< usiok受信
@@ -212,8 +211,7 @@ private:
 private:
     // --- 依存オブジェクト ---
     EngineProcessManager* m_processManager = nullptr;  ///< プロセス管理（非所有）
-    ThinkingInfoPresenter* m_presenter = nullptr;      ///< 思考情報表示（非所有）
-    ShogiGameController* m_gameController = nullptr;   ///< 対局制御（非所有）
+    QString m_baseSfen; ///< 最後に送信した探索局面
 
     // --- USI状態フラグ ---
     bool m_bestMoveReceived = false;  ///< bestmove受信済み

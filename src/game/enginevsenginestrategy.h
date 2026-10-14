@@ -36,11 +36,6 @@ public:
                      const QString& prettyMove) override;
     bool needsEngine() const override { return true; }
 
-    /// EvE用SFEN履歴へのアクセサ（千日手チェック等で使用）
-    QStringList* sfenRecordForEvE();
-    QList<ShogiMove>& gameMovesForEvE();
-    int eveMoveIndex() const { return m_eveMoveIndex; }
-
 private slots:
     void kickNextEvETurn();
     void onEngineMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
@@ -53,10 +48,6 @@ private:
     MatchCoordinator::StrategyContext& m_ctx;
     MatchCoordinator::StartOptions m_opt;
 
-    /// EvE専用の棋譜コンテナ
-    QStringList        m_eveSfenRecord;
-    QList<ShogiMove> m_eveGameMoves;
-    int                m_eveMoveIndex = 0;
 };
 
 #endif // ENGINEVSENGINESTRATEGY_H

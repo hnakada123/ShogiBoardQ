@@ -38,8 +38,6 @@ void HumanVsEngineStrategy::start()
     // HvEでは思考モデルは常にエンジン1スロット（m_comm1/m_think1）を使用
     UsiCommLogModel*          comm  = m_ctx.comm1();
     ShogiEngineThinkingModel* think = m_ctx.think1();
-    if (!comm)  { comm  = new UsiCommLogModel(m_ctx.coordinatorAsParent());          m_ctx.setComm1(comm);  }
-    if (!think) { think = new ShogiEngineThinkingModel(m_ctx.coordinatorAsParent()); m_ctx.setThink1(think); }
 
     // 思考タブのエンジン名表示用（EngineAnalysisTab は log model を参照）
     const QString dispName = m_engineName.isEmpty() ? QStringLiteral("Engine") : m_engineName;
@@ -88,74 +86,23 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
 {
     const Turn humanSide = (m_engineSide == Turn::Black) ? Turn::White : Turn::Black;
 
-    // 0) 人間手のハイライト
-    if (m_ctx.hooks().ui.showMoveHighlights) {
-        m_ctx.hooks().ui.showMoveHighlights(humanFrom, humanTo);
-    }
-
-    // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
-    if (ShogiClock* clock = m_ctx.clock()) {
-        clock->commitMove(humanSide);
-        if (m_ctx.hooks().game.appendKifuLine) {
-            m_ctx.hooks().game.appendKifuLine(prettyMove, clock->considerationAndTotalTime(humanSide));
-        }
-        clock->setConsiderationTimeMs(humanSide, 0);
-        // ラベルなど即時更新
-        m_ctx.pokeTimeUpdateNow();
-    }
-
-    // 「次の手番」ラベルをエンジン側に切り替える
-    // （TurnSyncBridge 経由のシグナルは棋譜追記中の再入で確実に到達しない場合がある）
-    m_ctx.updateTurnDisplay(m_engineSide);
-
-    // 2) 以降（エンジン go → bestmove → 盤/棋譜反映）は2引数版に委譲
-    //    finishHumanTimerInternal() は2引数版の先頭で呼ばれるが、二重でも実害が出ない想定。
-    onHumanMoveEngineReply(humanFrom, humanTo);
+    finishHumanTimerInternal();
+    if (m_ctx.completeHumanMove(humanSide, prettyMove, humanFrom, humanTo))
+        onHumanMoveEngineReply(humanFrom, humanTo);
 }
 
 // ============================================================
 // エンジン返し手（2引数版：エンジン go→bestmove→盤反映）
 // ============================================================
 
-void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
+void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& /*humanFrom*/,
                                                      const QPoint& humanTo)
 {
-    // sfenRecordと手数インデックスを同期
-    int mcCur = m_ctx.currentMoveIndex();
-    if (m_ctx.sfenHistory()) {
-        const int fromRec = static_cast<int>(qMax(qsizetype(0), m_ctx.sfenHistory()->size() - 1));
-        if (fromRec != mcCur) {
-            qCDebug(lcGame) << "HvE sync mcCur" << mcCur << "->" << fromRec
-                            << "(by recSize=" << m_ctx.sfenHistory()->size() << ")";
-            mcCur = fromRec;
-            m_ctx.setCurrentMoveIndex(fromRec);
-        }
-    }
-
-    const qsizetype recSizeBefore = m_ctx.sfenHistory() ? m_ctx.sfenHistory()->size() : -1;
-    const QString recTailBefore = (m_ctx.sfenHistory() && !m_ctx.sfenHistory()->isEmpty()) ? m_ctx.sfenHistory()->last() : QString();
-    qCDebug(lcGame).noquote() << "HvE enter  mcCur=" << mcCur
-                             << " recSizeBefore=" << recSizeBefore
-                             << " recTailBefore='" << recTailBefore << "'"
-                             << " humanFrom=" << humanFrom << " humanTo=" << humanTo;
-
-    // 人間側のストップウォッチ締め＆考慮確定（既存）
-    finishHumanTimerInternal();
-
     if (Usi* eng = m_ctx.primaryEngine()) {
         eng->setPreviousFileTo(humanTo.x());
         eng->setPreviousRankTo(humanTo.y());
     }
 
-
-    // 千日手チェック（人間の手の後）
-    if (m_ctx.checkAndHandleSennichite()) return;
-
-    // 最大手数チェック（人間の手の後）。ここで止めないとエンジンが上限を超えて1手指す
-    if (m_ctx.maxMoves() > 0 && m_ctx.currentMoveIndex() >= m_ctx.maxMoves()) {
-        m_ctx.handleMaxMovesJishogi();
-        return;
-    }
 
     const bool engineTurnNow = (m_ctx.gc() && (m_ctx.gc()->currentPlayer() == m_engineSide));
     qCDebug(lcGame).noquote() << "HvE engineTurnNow=" << engineTurnNow
@@ -165,16 +112,8 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
     Usi* eng = m_ctx.primaryEngine();
     if (!eng || !m_ctx.gc() || !m_ctx.sfenHistory()) { if (!m_ctx.gameOverState().isOver) armTurnTimerIfNeeded(); return; }
 
-    if (m_ctx.positionStr1().isEmpty()) { m_ctx.initPositionStringsFromSfen(QString()); }
-    if (!m_ctx.positionStr1().startsWith(QLatin1String("position "))) {
-        m_ctx.positionStr1() = QStringLiteral("position startpos moves");
-    }
-
-    // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
-    const UsiTimingParams timing;
     m_waitingForMove = true;
-    eng->requestHumanReply(m_ctx.positionStr1(), m_ctx.positionPonder1(), m_ctx.gc()->lastMove(),
-                           timing, m_ctx.positionStrHistory());
+    m_ctx.requestHumanReply(eng, m_ctx.gc()->lastMove());
 }
 
 void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
@@ -183,55 +122,9 @@ void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     Usi* eng = m_ctx.primaryEngine();
     if (!m_waitingForMove || sender() != eng || m_ctx.gameOverState().isOver || !m_ctx.gc()) return;
     m_waitingForMove = false;
-    m_ctx.positionStr1() = position;
-    m_ctx.positionPonder1() = ponder;
-    const int mcCur = m_ctx.currentMoveIndex();
-    QString rec;
-    int nextIdx = mcCur + 1;
-    const QPoint eFrom = BoardCoordinates::fromSquare(move, m_engineSide);
-    const QPoint eTo = BoardCoordinates::toSquare(move);
-    // 反則手は盤に指さず、エンジンの反則負けにする
-    if (!m_ctx.gc()->applyMove(move, rec, nextIdx, m_ctx.sfenHistory(), m_ctx.gameMovesRef())) {
-        m_ctx.handleEngineIllegalMove(m_engineSide);
-        return;
-    }
-    m_ctx.setCurrentMoveIndex(nextIdx);
-    qCDebug(lcGame).noquote() << "HvE mcCur ->" << m_ctx.currentMoveIndex();
-
-    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(eFrom, eTo);
-
-    // エンジンの考慮時間を確定してから棋譜に追記する
-    const qint64 thinkMs = eng->lastBestmoveElapsedMs();
-    // 指し終えて手番が移ったので、直前に指したのは今の手番の相手
-    const Turn engineSide = m_ctx.gc()->currentPlayer() == Turn::Black ? Turn::White : Turn::Black;
-    if (m_ctx.clock()) {
-        m_ctx.clock()->setMeasuredConsiderationTime(engineSide, thinkMs);
-        m_ctx.clock()->commitMove(engineSide);
-    }
-
-    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec, m_ctx.clock()->considerationAndTotalTime(engineSide));
-    }
-
-    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
-    m_ctx.setCurrentTurn(m_ctx.gc()->currentPlayer());
-    m_ctx.updateTurnDisplay(m_ctx.currentTurn());
-
-    // エンジン着手後の評価値追加
-    qCDebug(lcGame) << "onHumanMove: calling appendEval, engineSide=" << m_engineSide
-                    << "hook set=" << (m_ctx.hooks().game.appendEval ? "YES" : "NO");
-    if (m_ctx.hooks().game.appendEval) m_ctx.hooks().game.appendEval(m_engineSide);
-
-    // 千日手チェック（エンジンの手の後）。手を棋譜と盤面に反映してから判定し、終局行をその後に記録する
-    if (m_ctx.checkAndHandleSennichite()) return;
-
-    // 最大手数チェック
-    if (m_ctx.maxMoves() > 0 && m_ctx.currentMoveIndex() >= m_ctx.maxMoves()) {
-        m_ctx.handleMaxMovesJishogi();
-        return;
-    }
-
-    if (!m_ctx.gameOverState().isOver) armTurnTimerIfNeeded();
+    m_ctx.setEnginePosition(1, position, ponder);
+    if (m_ctx.applyEngineMove(move, m_engineSide, eng->lastBestmoveElapsedMs(), true))
+        armTurnTimerIfNeeded();
 }
 
 // ============================================================
@@ -299,15 +192,6 @@ void HumanVsEngineStrategy::startInitialEngineMove()
     Usi* eng = m_ctx.primaryEngine();
     if (!eng || !m_ctx.gc()) return;
 
-    if (m_ctx.positionStr1().isEmpty()) {
-        m_ctx.initPositionStringsFromSfen(QString()); // startpos moves
-    }
-    if (!m_ctx.positionStr1().startsWith(QLatin1String("position "))) {
-        m_ctx.positionStr1() = QStringLiteral("position startpos moves");
-    }
-
-    // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
-    const UsiTimingParams timing;
     m_waitingForMove = true;
-    eng->requestMatchMove(m_ctx.positionStr1(), m_ctx.positionPonder1(), timing);
+    m_ctx.requestEngineMove(eng, 1);
 }

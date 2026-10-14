@@ -26,39 +26,16 @@ int jkfColor(Turn side)
 
 namespace JkfFormatter {
 
-QJsonObject parseTimeToJkf(const QString& timeText)
+QJsonObject timeToJkf(const RecordTime& time)
 {
-    QJsonObject result;
-
-    if (timeText.isEmpty()) return result;
-
-    QString text = timeText;
-    text.remove(QLatin1Char('('));
-    text.remove(QLatin1Char(')'));
-    text = text.trimmed();
-
-    const QStringList parts = text.split(QLatin1Char('/'));
-    if (!parts.empty()) {
-        const QStringList nowParts = parts[0].split(QLatin1Char(':'));
-        if (nowParts.size() >= 2) {
-            QJsonObject now;
-            now[QStringLiteral("m")] = nowParts[0].trimmed().toInt();
-            now[QStringLiteral("s")] = nowParts[1].section(QLatin1Char('.'), 0, 0).trimmed().toInt();
-            result[QStringLiteral("now")] = now;
-        }
-    }
-    if (parts.size() >= 2) {
-        const QStringList totalParts = parts[1].split(QLatin1Char(':'));
-        if (totalParts.size() >= 3) {
-            QJsonObject total;
-            total[QStringLiteral("h")] = totalParts[0].trimmed().toInt();
-            total[QStringLiteral("m")] = totalParts[1].trimmed().toInt();
-            total[QStringLiteral("s")] = totalParts[2].section(QLatin1Char('.'), 0, 0).trimmed().toInt();
-            result[QStringLiteral("total")] = total;
-        }
-    }
-
-    return result;
+    if (!time.valid) return {};
+    const qint64 elapsed = time.elapsedMs / 1000;
+    const qint64 total = time.totalMs / 1000;
+    return {{QStringLiteral("now"), QJsonObject{{QStringLiteral("m"), elapsed / 60},
+                                               {QStringLiteral("s"), elapsed % 60}}},
+            {QStringLiteral("total"), QJsonObject{{QStringLiteral("h"), total / 3600},
+                                                 {QStringLiteral("m"), total / 60 % 60},
+                                                 {QStringLiteral("s"), total % 60}}}};
 }
 
 QJsonObject sfenToJkfData(const QString& sfen)

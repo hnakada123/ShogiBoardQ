@@ -387,7 +387,7 @@ QString ShogiClock::totalConsiderationTimeString(Turn player) const
 
 QString ShogiClock::considerationAndTotalTime(Turn player) const
 {
-    return considerationTimeString(player) + QLatin1Char('/') + totalConsiderationTimeString(player);
+    return recordTime(player).toText();
 }
 
 // ============================================================

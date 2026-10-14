@@ -14,6 +14,7 @@
 #include "kifubranchnode.h"
 #include "kifdisplayitem.h"
 #include "recordline.h"
+#include "recordentry.h"
 
 class KifuBranchTree;
 
@@ -69,6 +70,8 @@ public:
      * これにより終局手ノードの SFEN は追加経路（KIF 読み込み・ライブ対局）に
      * よらず一定になる。
      */
+    KifuBranchNode* addRecord(KifuBranchNode* parent, const RecordEntry& entry);
+
     KifuBranchNode* addMove(KifuBranchNode* parent,
                            const ShogiMove& move,
                            const QString& displayText,
@@ -187,6 +190,7 @@ public:
      * 終局手は終局手の種類が一致すれば同じ手とみなす。
      * 同じ手を指し直したときに重複ノードを作らないために使う。
      */
+    KifuBranchNode* findMatchingChild(KifuBranchNode* parent, const RecordEntry& entry) const;
     KifuBranchNode* findMatchingChild(KifuBranchNode* parent,
                                       const ShogiMove& move,
                                       const QString& displayText,
@@ -297,6 +301,7 @@ signals:
 
 private:
     KifuBranchNode* createNode();
+    KifuBranchNode* insertRecord(KifuBranchNode* parent, const RecordEntry& entry);
     void collectLinesRecursive(KifuBranchNode* node,
                                QList<KifuBranchNode*>& currentPath,
                                QList<BranchLine>& lines,

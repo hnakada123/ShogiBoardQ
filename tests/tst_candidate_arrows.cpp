@@ -30,9 +30,10 @@ private slots:
         ThinkingInfoPresenter presenter;
         presenter.setGameController(&game);
         UsiProtocolHandler protocol;
-        protocol.setPresenter(&presenter);
+        connect(&protocol, &UsiProtocolHandler::infoLineReceived, &presenter, &ThinkingInfoPresenter::onInfoReceived);
+        connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoPresenter::setBaseSfen);
         // 読み筋履歴のパーサにも実局面を渡す。
-        presenter.setBaseSfen(SfenUtils::hirateSfen());
+        protocol.setBaseSfen(SfenUtils::hirateSfen());
         protocol.sendGoDepth(20);
         protocol.onDataReceived("info depth 10 score cp 300 pv 7g7f 3c3d");
         QCOMPARE(protocol.searchCandidate().move, QStringLiteral("7g7f"));
@@ -64,9 +65,10 @@ private slots:
     {
         ThinkingInfoPresenter presenter;
         UsiProtocolHandler protocol;
-        protocol.setPresenter(&presenter);
+        connect(&protocol, &UsiProtocolHandler::infoLineReceived, &presenter, &ThinkingInfoPresenter::onInfoReceived);
+        connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoPresenter::setBaseSfen);
         protocol.onDataReceived("bestmove 7g7f ponder 3c3d");
-        presenter.setBaseSfen(SfenUtils::hirateSfen());
+        protocol.setBaseSfen(SfenUtils::hirateSfen());
         protocol.sendGoPonder({});
         protocol.onDataReceived("info pv 2g2f");
         QVERIFY(protocol.searchCandidate().pondering);

@@ -14,6 +14,8 @@
 #include "gamerecordmodel.h"
 #include "gamerecordpresenter.h"
 #include "gamerecordupdateservice.h"
+#include "kifudisplaycoordinator.h"
+#include "kifunavigationstate.h"
 #include "livegamesession.h"
 #include "livegamesessionupdater.h"
 #include "kifurecordlistmodel.h"
@@ -188,17 +190,22 @@ private slots:
         KifuRecordListModel rows;
         GameRecordPresenter presenter({&rows, nullptr});
         presenter.presentGameRecord(tree.displayItemsForLine(0));
-        GameRecordUpdateService service;
+        KifuNavigationState navigation;
+        navigation.setTree(&tree);
+        navigation.setCurrentNode(node);
+        KifuDisplayCoordinator display(&tree, &navigation, nullptr);
+        display.setRecordModel(&rows);
+        display.setLiveGameSession(&session);
+        display.wireSignals();
         GameRecordUpdateService::Deps deps;
-        deps.gameMoves = &moves;
         deps.sfenRecord = &history;
         deps.liveGameSession = &session;
-        deps.ensureRecordPresenter = [&presenter] { return &presenter; };
-        deps.ensureLiveGameSessionUpdater = [&updater] { return &updater; };
-        service.updateDeps(deps);
+        deps.liveSessionUpdater = &updater;
+        GameRecordUpdateService service(deps);
         const QString terminal = (plies == 2 ? QStringLiteral("▲") : QStringLiteral("△"))
             + QStringLiteral("時間切れ");
-        service.appendKifuLine(terminal, "00:01/00:00:01");
+        service.appendRecord(RecordEntry::ending(TerminalType::Timeout,
+            plies == 2 ? Turn::Black : Turn::White, RecordTime::fromMilliseconds(1000, 1000)));
         const auto index = rows.index(plies + 1, 0);
         QVERIFY(rows.item(plies + 1)->usiMove.isEmpty());
         QVERIFY(index.data().toString().endsWith(KifuPresentation::status(terminal)));
@@ -378,7 +385,7 @@ private slots:
         CsaGameWiring::Dependencies csaDeps;
         csaDeps.coordinator = &csa;
         CsaGameWiring csaWiring(csaDeps);
-        QSignalSpy endLines(&csaWiring, &CsaGameWiring::appendKifuLineRequested);
+        QSignalSpy endLines(&csaWiring, &CsaGameWiring::recordAppendRequested);
         using Cause = CsaClient::GameEndCause;
         const QList<QPair<Cause, TerminalType>> endings = {
             {Cause::Resign, TerminalType::Resign}, {Cause::TimeUp, TerminalType::Timeout},
@@ -391,18 +398,18 @@ private slots:
                 Q_ARG(CsaClient::GameResult, CsaClient::GameResult::Lose),
                 Q_ARG(CsaClient::GameEndCause, ending.first), Q_ARG(int, 0)));
             QCOMPARE(endLines.size(), 1);
-            QCOMPARE(detectTerminalType(endLines.takeFirst().at(0).toString()), ending.second);
+            QCOMPARE(endLines.takeFirst().at(0).value<RecordEntry>().terminal, ending.second);
         }
         // 入玉宣言は宣言した勝者の印を付け（保存時に勝者を判定するため）、点数による引き分けは持将棋
         QVERIFY(QMetaObject::invokeMethod(&csaWiring, "onGameEnded", Qt::DirectConnection,
             Q_ARG(CsaClient::GameResult, CsaClient::GameResult::Lose),
             Q_ARG(CsaClient::GameEndCause, Cause::Jishogi), Q_ARG(int, 0)));
-        QCOMPARE(endLines.takeFirst().at(0).toString(),
+        QCOMPARE(endLines.takeFirst().at(0).value<RecordEntry>().displayText,
                  (csa.isBlackSide() ? QStringLiteral("△") : QStringLiteral("▲")) + QStringLiteral("入玉勝ち"));
         QVERIFY(QMetaObject::invokeMethod(&csaWiring, "onGameEnded", Qt::DirectConnection,
             Q_ARG(CsaClient::GameResult, CsaClient::GameResult::Draw),
             Q_ARG(CsaClient::GameEndCause, Cause::Jishogi), Q_ARG(int, 0)));
-        QCOMPARE(endLines.takeFirst().at(0).toString(), QStringLiteral("持将棋"));
+        QCOMPARE(endLines.takeFirst().at(0).value<RecordEntry>().displayText, QStringLiteral("持将棋"));
 
         GameInfoPaneController metadata;
         QScopedPointer<QWidget> container(metadata.containerWidget());

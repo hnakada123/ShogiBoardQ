@@ -117,7 +117,6 @@ struct Harness {
         LiveGameSessionUpdater::Deps updateDeps;
         updateDeps.liveSession = &session;
         updateDeps.branchTree = &tree;
-        updateDeps.gameController = &gc;
         updateDeps.sfenRecord = &sfens;
         updater.updateDeps(updateDeps);
     }
@@ -146,8 +145,12 @@ struct Harness {
         if (!position.contains(QStringLiteral(" moves "))) position += QStringLiteral(" moves");
         position += QLatin1Char(' ') + usi;
         if (humanMove) positionHistory.append(position);
-        presenter.appendMoveLine(pretty, QStringLiteral("00:01/00:00:01"));
-        updater.appendMove(moves.last(), pretty, QStringLiteral("00:01/00:00:01"));
+        RecordEntry entry;
+        entry.move = moves.last();
+        entry.displayText = pretty;
+        entry.sfen = sfens.last();
+        entry.time = RecordTime::fromMilliseconds(1000, 1000);
+        updater.appendRecord(entry);
         currentSfen = sfens.last();
         return true;
     }
@@ -364,7 +367,8 @@ private slots:
         KifuBranchNode* undoneHead = h.session.liveNode()->parent();
         h.flow.undoLastTwoMoves();
         // 待ったの直後に投了しても、投了で終わる手順が本譜になる。
-        h.updater.appendMove(ShogiMove(), QStringLiteral("▲投了"), QStringLiteral("00:01/00:00:01"));
+        h.updater.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::Black,
+            RecordTime::fromMilliseconds(1000, 1000)));
         KifuBranchNode* end = h.session.commit();
         QVERIFY(end != nullptr && end->isTerminal());
         QCOMPARE(h.tree.mainLine().last(), end);

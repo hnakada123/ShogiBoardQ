@@ -126,7 +126,7 @@ void CsaGameWiring::showGameEndDialogInternal(const QString& title, const QStrin
     QMessageBox::information(m_parentWidget, title, message);
 }
 
-void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const QString& elapsedTime, const QString& sfen)
+void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const RecordTime& time, const QString& sfen)
 {
     const QString trimmed = prettyMove.trimmed();
     if (trimmed.isEmpty()) {
@@ -135,12 +135,17 @@ void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const QStri
 
     const int beforeRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1;
     if (m_recordService) {
-        m_recordService->updateGameRecord(trimmed, elapsedTime, sfen);
+        RecordEntry entry;
+        entry.displayText = trimmed;
+        entry.sfen = sfen;
+        entry.time = time;
+        if (m_gameMoves && !m_gameMoves->isEmpty()) entry.move = m_gameMoves->last();
+        m_recordService->appendRecord(entry);
     }
 
     const bool appendedByService = m_kifuRecordModel && m_kifuRecordModel->rowCount() > beforeRows;
     if (!appendedByService && m_kifuRecordModel) {
-        m_kifuRecordModel->appendItem(new KifuDisplay(buildNumberedKifuLine(trimmed), elapsedTime));
+        m_kifuRecordModel->appendItem(new KifuDisplay(buildNumberedKifuLine(trimmed), time.toText()));
     }
 }
 

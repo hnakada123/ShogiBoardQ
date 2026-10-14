@@ -51,11 +51,9 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
     m_state->rememberPathSelections(liveNode);   // 対局後の「戻る→進む」で最新手の経路を辿れるように
     m_state->setCurrentNode(liveNode);
 
-    // 対局中の棋譜欄は1行ずつ追記するため、待ったで残した手順と分岐した場合などに
-    // 既存行の分岐マーク（+）をここで現在の手順に合わせる。
-    if (!syncRecordViewToCurrentLine()) {
-        m_presenter->populateBranchMarks();
-    }
+    // 正本を更新し終えた後に表示を作る。同じ経路で通常手・終局・既存手の再利用を扱う。
+    m_presenter->presentLiveNode(liveNode);
+    m_lastLineIndex = m_state->currentLineIndex();
     highlightCurrentPosition();
     m_pendingNavResultCheck = true;
     updateBranchCandidatesView();

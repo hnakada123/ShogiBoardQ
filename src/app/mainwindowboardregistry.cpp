@@ -4,6 +4,7 @@
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
 #include "mainwindowserviceregistry.h"
+#include "mainwindowactions.h"
 #include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
@@ -41,6 +42,10 @@
 
 void MainWindowServiceRegistry::ensureBoardSetupController()
 {
+    if (m_runtimeServicesReady) {
+        m_mw.m_boardSetupController->setPlayMode(m_mw.m_state.playMode);
+        return;
+    }
     if (m_mw.m_isShuttingDown) return;
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
@@ -77,6 +82,7 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
 
 void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 {
+    if (m_runtimeServicesReady) return;
     if (m_mw.m_isShuttingDown) return;
 
     m_foundation->ensureUiStatePolicyManager();
@@ -128,6 +134,7 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 
 void MainWindowServiceRegistry::ensureBoardLoadService()
 {
+    if (m_runtimeServicesReady) return;
     if (m_mw.m_isShuttingDown) return;
     if (!m_mw.m_boardLoadService) {
         // Lifetime: owned by MainWindow (QObject parent=&m_mw)
@@ -185,15 +192,7 @@ void MainWindowServiceRegistry::setupBoardInteractionController()
 
 void MainWindowServiceRegistry::handleMoveRequested(const QPoint& from, const QPoint& to)
 {
-    qCDebug(lcApp).noquote() << "onMoveRequested_: from=" << from << " to=" << to
-                       << " m_state.playMode=" << static_cast<int>(m_mw.m_state.playMode)
-                       << " m_match=" << (m_mw.m_match ? "valid" : "null")
-                       << " matchMode=" << (m_mw.m_match ? static_cast<int>(m_mw.m_match->playMode()) : -1);
-
-    ensureBoardSetupController();
-    if (m_mw.m_boardSetupController) {
-        m_mw.m_boardSetupController->onMoveRequested(from, to);
-    }
+    m_actions->handleMoveRequested(from, to);
 }
 
 // ---------------------------------------------------------------------------
@@ -202,23 +201,12 @@ void MainWindowServiceRegistry::handleMoveRequested(const QPoint& from, const QP
 
 bool MainWindowServiceRegistry::canRecordVariationMove() const
 {
-    // 待機中（対局・解析・検討・局面編集などをしていない）だけ受け付ける
-    if (m_mw.m_uiStatePolicy == nullptr
-        || m_mw.m_uiStatePolicy->currentState() != UiStatePolicyManager::AppState::Idle) {
-        return false;
-    }
-    if (m_mw.m_boardController != nullptr
-        && m_mw.m_boardController->mode() == BoardInteractionController::Mode::Edit) {
-        return false;
-    }
-    BranchTreeEditController* editor = m_mw.m_branchNavWiring ? m_mw.m_branchNavWiring->editController() : nullptr;
-    return editor != nullptr && editor->canRecordBoardMove();
+    return m_actions->canRecordVariationMove();
 }
 
 bool MainWindowServiceRegistry::recordVariationMove(QPoint& from, QPoint& to)
 {
-    BranchTreeEditController* editor = m_mw.m_branchNavWiring ? m_mw.m_branchNavWiring->editController() : nullptr;
-    return editor != nullptr && editor->recordBoardMove(from, to, m_mw.m_gameController);
+    return m_actions->recordVariationMove(from, to);
 }
 
 // ---------------------------------------------------------------------------
@@ -227,16 +215,7 @@ bool MainWindowServiceRegistry::recordVariationMove(QPoint& from, QPoint& to)
 
 void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
 {
-    ensureBoardSetupController();
-    if (m_mw.m_boardSetupController) {
-        m_mw.m_boardSetupController->onMoveCommitted(
-            static_cast<Turn>(mover), ply);
-    }
-
-    m_kifu->ensureGameRecordUpdateService();
-    m_mw.m_gameRecordUpdateService->updateCurrentSfenAfterMove();
-
-    m_kifu->updateJosekiWindow();
+    m_actions->handleMoveCommitted(mover, ply);
 }
 
 // ---------------------------------------------------------------------------
@@ -245,18 +224,7 @@ void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
 
 void MainWindowServiceRegistry::handleBeginPositionEditing()
 {
-    // 編集を始めると棋譜は開始局面だけになるため、未保存の棋譜は先に保存するか確認する。
-    // やめたときは中断した対局も残す
-    if (!confirmDiscardUnsavedKifu()) return;
-    ensureGameSessionOrchestrator();
-    if (m_mw.m_gameSessionOrchestrator) {
-        m_mw.m_gameSessionOrchestrator->discardInterruptedGame();
-    }
-
-    ensurePositionEditCoordinator();
-    if (m_mw.m_registryParts.posEditCoordinator) {
-        m_mw.m_registryParts.posEditCoordinator->beginPositionEditing();
-    }
+    m_actions->handleBeginPositionEditing();
 }
 
 // ---------------------------------------------------------------------------
@@ -265,40 +233,12 @@ void MainWindowServiceRegistry::handleBeginPositionEditing()
 
 void MainWindowServiceRegistry::handleFinishPositionEditing()
 {
-    ensurePositionEditCoordinator();
-    if (m_mw.m_registryParts.posEditCoordinator) {
-        m_mw.m_registryParts.posEditCoordinator->finishPositionEditing();
-    }
+    m_actions->handleFinishPositionEditing();
 }
 
 void MainWindowServiceRegistry::resetRecordForEditedPosition()
 {
-    if (!m_mw.m_shogiView || !m_mw.m_shogiView->board()) return;
-
-    // 行選択の通知で編集局面が以前の棋譜に巻き戻されるのを防ぐ。
-    const QScopedValueRollback<bool> guard(m_mw.m_kifu.onMainRowGuard, true);
-    ShogiBoard* board = m_mw.m_shogiView->board();
-    const QString sfen = QStringLiteral("%1 %2 %3 1")
-                             .arg(board->convertBoardToSfen(),
-                                  turnToSfen(board->currentPlayer()),
-                                  board->convertStandToSfen());
-    m_mw.m_state.startSfenStr = sfen;
-    m_mw.m_state.currentSfenStr = sfen;
-    m_mw.m_kifu.gameMoves.clear();
-
-    MainWindowResetService::ModelResetDeps deps;
-    deps.navState = m_mw.m_branchNav.navState;
-    deps.displayCoordinator = m_mw.m_branchNav.displayCoordinator;
-    deps.gameRecord = m_mw.m_models.gameRecord;
-    deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
-    deps.branchTree = m_mw.m_branchNav.branchTree;
-    deps.liveGameSession = m_mw.m_branchNav.liveGameSession;
-    const MainWindowResetService resetService;
-    resetService.resetModels(deps, sfen);
-
-    if (m_mw.m_commentCoordinator) {
-        m_mw.m_commentCoordinator->broadcastComment(QString(), false);
-    }
+    m_actions->resetRecordForEditedPosition();
 }
 
 // ---------------------------------------------------------------------------

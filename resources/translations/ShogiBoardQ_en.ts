@@ -2644,12 +2644,12 @@ Cause: %2</translation>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="316"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="316"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -2694,7 +2694,7 @@ Cause: %2</translation>
         <translation type="vanished">Starting Position</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="380"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="394"/>
         <source>通信対局をキャンセルしました</source>
         <translation>Network game cancelled</translation>
     </message>
@@ -4322,68 +4322,68 @@ Each screen keeps its current text size.</translation>
 <context>
     <name>GameEndHandler</name>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="98"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="93"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="98"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="93"/>
         <source>下手</source>
         <translation>Shitate</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="99"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="94"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="99"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="94"/>
         <source>上手</source>
         <translation>Uwate</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="106"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="101"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="108"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="103"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="110"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="105"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="112"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="107"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="114"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="109"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="116"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="111"/>
         <source>千日手が成立しました。</source>
         <translation>Sennichite (draw by repetition).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="118"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="113"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="121"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="116"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler.cpp" line="156"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="124"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
@@ -12351,7 +12351,7 @@ Check the settings and press Start.</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="311"/>
+        <location filename="../../src/engine/usi.cpp" line="301"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>
@@ -12364,17 +12364,17 @@ Check the settings and press Start.</translation>
         <translation type="vanished">USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="47"/>
+        <location filename="../../src/engine/usi.cpp" line="41"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi_async.cpp" line="50"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="73"/>
         <source>Engine exited unexpectedly.</source>
         <translation>Engine exited unexpectedly.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi_async.cpp" line="55"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="67"/>
         <source>Failed to start engine: %1</source>
         <translation>Failed to start engine: %1</translation>
     </message>
@@ -12484,22 +12484,22 @@ Check the settings and press Start.</translation>
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="111"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="102"/>
         <source>Timeout waiting for usiok</source>
         <translation>Timeout waiting for usiok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="112"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="103"/>
         <source>Timeout waiting for readyok</source>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="442"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="432"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="52"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="43"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>Invalid bestmove format: &quot;%1&quot;</translation>
     </message>

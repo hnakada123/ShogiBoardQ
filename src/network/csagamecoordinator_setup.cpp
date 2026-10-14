@@ -263,17 +263,17 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
     if (!m_initializingEngine) m_client->agree(summary.gameId);
 }
 
-QString CsaGameCoordinator::initialMoveElapsedText(int index) const
+RecordTime CsaGameCoordinator::initialMoveTime(int index) const
 {
     // 再開局面の各手の消費時間と、その側の累計（「１手 / 合計」の表記）
     const CsaClient::GameSummary& s = m_gameSummary;
-    if (index < 0 || index >= s.moves.size()) return QString();
+    if (index < 0 || index >= s.moves.size()) return {};
     const bool black = s.moves.at(index).startsWith(QLatin1Char('+'));
-    int totalMs = 0;
+    qint64 totalMs = 0;
     for (int i = 0; i <= index; ++i) {
         if (s.moves.at(i).startsWith(QLatin1Char('+')) == black) totalMs += s.positionMoveConsumedMs(i);
     }
-    return KifuParseCommon::formatTimeText(s.positionMoveConsumedMs(index), totalMs);
+    return RecordTime::fromMilliseconds(s.positionMoveConsumedMs(index), totalMs);
 }
 
 // ============================================================

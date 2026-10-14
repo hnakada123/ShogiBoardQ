@@ -128,7 +128,7 @@ static QJsonArray buildJkfMoves(const KifuBranchNode* first, ShogiBoard& board, 
         }
 
         if (entry.isEmpty()) continue;
-        const QJsonObject time = JkfFormatter::parseTimeToJkf(node->timeText());
+        const QJsonObject time = JkfFormatter::timeToJkf(node->time());
         if (!time.isEmpty()) entry[QStringLiteral("time")] = time;
         const QJsonArray comments = commentLines(node->comment());
         if (!comments.isEmpty()) entry[QStringLiteral("comments")] = comments;

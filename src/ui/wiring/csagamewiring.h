@@ -6,6 +6,7 @@
 
 
 #include <QObject>
+#include "recordentry.h"
 #include <QString>
 #include <QPoint>
 #include <QList>
@@ -168,7 +169,7 @@ signals:
      * @param text 棋譜テキスト
      * @param elapsedTime 経過時間
      */
-    void appendKifuLineRequested(const QString& text, const QString& elapsedTime);
+    void recordAppendRequested(const RecordEntry& entry);
 
     /**
      * @brief プレイモード変更を要求
@@ -265,10 +266,10 @@ private:
      * @param blackToMove 終局した局面で先手の手番かどうか
      * @return 終局行テキスト
      */
-    QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw,
+    RecordEntry buildEndRecord(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw,
                              bool blackToMove) const;
 
-    void appendInitialKifuLine(const QString& prettyMove, const QString& elapsedTime, const QString& sfen);
+    void appendInitialKifuLine(const QString& prettyMove, const RecordTime& time, const QString& sfen);
 
     /// 接続ダイアログの入力から対局開始オプションを組み立て、配線側の設定（自動保存・盤反転）も控える
     CsaGameCoordinator::StartOptions buildStartOptions(const CsaGameDialog* dialog);

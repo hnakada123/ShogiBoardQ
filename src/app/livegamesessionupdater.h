@@ -5,18 +5,16 @@
 /// @brief LiveGameSession の更新ロジックを集約するクラスの定義
 
 #include <QString>
+#include "recordentry.h"
 #include <QStringList>
 
 class LiveGameSession;
 class KifuBranchTree;
-class ShogiGameController;
-struct ShogiMove;
 
 /**
  * @brief LiveGameSession の更新ロジックを集約するクラス
  *
- * MainWindow::updateGameRecord() から LiveGameSession 関連の処理を分離し、
- * セッション開始判定・SFEN 構築・指し手追加を担当する。
+ * セッション開始判定と、確定済み指し手の正本への追加を担当する。
  */
 class LiveGameSessionUpdater
 {
@@ -24,7 +22,6 @@ public:
     struct Deps {
         LiveGameSession* liveSession = nullptr;
         KifuBranchTree* branchTree = nullptr;
-        ShogiGameController* gameController = nullptr;
         QStringList* sfenRecord = nullptr;
         QString* currentSfenStr = nullptr;
     };
@@ -39,18 +36,9 @@ public:
      */
     void ensureSessionStarted();
 
-    /**
-     * @brief 指し手を LiveGameSession に追加する
-     *
-     * セッション未開始なら遅延開始し、現在の盤面から SFEN を構築して
-     * liveSession->addMove() を実行する。
-     *
-     * @param move 指し手
-     * @param moveText 指し手の表示テキスト
-     * @param elapsedTime 消費時間
-     */
-    void appendMove(const ShogiMove& move, const QString& moveText, const QString& elapsedTime,
-                    const QString& recordedSfen = QString());
+    /// セッションが未開始なら開始し、型付きの指し手を追加する。
+    void appendRecord(const RecordEntry& entry);
+
 
 private:
     Deps m_deps;

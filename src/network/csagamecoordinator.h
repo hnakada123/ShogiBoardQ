@@ -6,6 +6,7 @@
 
 
 #include <QObject>
+#include "recordtime.h"
 #include <QString>
 #include <QStringList>
 #include <QList>
@@ -140,7 +141,7 @@ public:
     QString username() const { return m_options.username; }
     const QStringList& usiMoves() const { return m_usiMoves; }
     /// 再開局面の index 手目の消費時間と累計の表記（棋譜欄用）
-    QString initialMoveElapsedText(int index) const;
+    RecordTime initialMoveTime(int index) const;
 
     /// この接続でまだ対局を続けるか（対局数の上限に達していない）
     bool moreGamesWanted() const;

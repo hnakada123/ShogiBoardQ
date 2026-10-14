@@ -4,8 +4,7 @@
 #include "usiprotocolhandler.h"
 #include "logcategories.h"
 #include "engineprocessmanager.h"
-#include "thinkinginfopresenter.h"
-#include "shogigamecontroller.h"
+#include "sfenpositiontracer.h"
 #include "enginesettingsconstants.h"
 #include "enginepondersettings.h"
 #include "settingscommon.h"
@@ -68,14 +67,10 @@ void UsiProtocolHandler::setProcessManager(EngineProcessManager* manager)
     }
 }
 
-void UsiProtocolHandler::setPresenter(ThinkingInfoPresenter* presenter)
+void UsiProtocolHandler::setBaseSfen(const QString& sfen)
 {
-    m_presenter = presenter;
-}
-
-void UsiProtocolHandler::setGameController(ShogiGameController* controller)
-{
-    m_gameController = controller;
+    m_baseSfen = sfen;
+    emit positionChanged(sfen);
 }
 
 // ============================================================
@@ -181,6 +176,8 @@ void UsiProtocolHandler::sendUsiNewGame()
 
 void UsiProtocolHandler::sendPosition(const QString& positionStr)
 {
+    const QString sfen = SfenPositionTracer::sfenFromPositionCommand(positionStr);
+    if (!sfen.isEmpty()) setBaseSfen(sfen);
     sendCommand(positionStr);
 }
 
@@ -191,9 +188,7 @@ void UsiProtocolHandler::beginMainSearch()
     m_specialMove = SpecialMove::None;
     m_predictedOpponentMove.clear();
 
-    if (m_presenter) {
-        m_presenter->requestClearThinkingInfo();
-    }
+    emit searchStarted();
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
     m_phase = SearchPhase::Main;
@@ -211,9 +206,7 @@ void UsiProtocolHandler::sendGoPonder(const UsiGoTime& goTime)
     m_activeSearchSeq = beginOperationContext();
     m_bestMoveReceived = false;
     m_specialMove = SpecialMove::None;
-    if (m_presenter) {
-        m_presenter->requestClearThinkingInfo();
-    }
+    emit searchStarted();
     m_phase = SearchPhase::Ponder;
     beginCandidateSearch(true);
     sendCommand(goTime.toCommand(true));
@@ -388,9 +381,6 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
         updateCandidate(line);
         qCDebug(lcEngine) << "info行受信:" << line.left(60);
         emit infoLineReceived(line);
-        if (m_presenter) {
-            m_presenter->onInfoReceived(line);
-        }
         return;
     }
 

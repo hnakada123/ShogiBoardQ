@@ -7,28 +7,16 @@
 bool Usi::startAndInitializeEngineAsync(const QString& engineFile, const QString& engineName)
 {
     cancelCurrentOperation();
-    m_protocolHandler->loadEngineOptions(engineName);
-    m_initializing = true;
-    m_startTimer.start(5000);
-    if (!m_processManager->startProcessAsync(engineFile)) {
-        cancelCurrentOperation();
+    QString error;
+    if (!m_session->startAsync(engineFile, engineName, &error)) {
+        emit errorOccurred(error);
         return false;
     }
     return true;
 }
 
-void Usi::onProcessStarted()
+void Usi::onEngineInitialized()
 {
-    if (!m_initializing) return;
-    m_startTimer.stop();
-    m_protocolHandler->initializeEngineAsync();
-}
-
-void Usi::onEngineInitialized(bool success)
-{
-    if (!m_initializing) return;
-    m_initializing = false;
-    if (!success) { cleanupEngineProcessAndThread(); return; }
     auto actions = std::exchange(m_pendingActions, {});
     const QPointer<Usi> guard(this);
     const auto generation = m_asyncGeneration;
@@ -45,21 +33,9 @@ void Usi::onProtocolError(const QString& message)
     emit errorOccurred(message);
 }
 
-void Usi::onProcessExited()
-{
-    onProtocolError(tr("Engine exited unexpectedly."));
-}
-
-void Usi::onStartTimeout()
-{
-    const QString message = tr("Failed to start engine: %1").arg(currentEnginePath());
-    cleanupEngineProcessAndThread();
-    emit errorOccurred(message);
-}
-
 bool Usi::deferUntilReady(std::function<void()> action) const
 {
-    if (!m_initializing) return false;
+    if (!isInitializing()) return false;
     m_pendingActions.push_back(std::move(action));
     return true;
 }

@@ -214,6 +214,9 @@ void KifuDisplayCoordinator::restoreCurrentPositionHighlights()
 
 void KifuDisplayCoordinator::onTreeChanged()
 {
+    if (m_liveSession && m_liveSession->isActive() && m_liveSession->liveNode()) {
+        return;
+    }
     m_lastLineIndex = (m_state != nullptr) ? m_state->currentLineIndex() : 0;
 
     updateRecordView();

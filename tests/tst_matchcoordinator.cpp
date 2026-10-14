@@ -75,7 +75,7 @@ struct MCTestHarness {
         deps.hooks.game.initializeNewGame = [this](const QString&) {
             initializeNewGameCalled = true;
         };
-        deps.hooks.game.appendKifuLine = [this](const QString&, const QString&) {
+        deps.hooks.game.appendRecord = [this](const RecordEntry&) {
             ++appendKifuLineCount;
         };
         deps.hooks.game.appendEval = [](Turn) {};

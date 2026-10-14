@@ -11,6 +11,7 @@
 
 #include "shogitypes.h"
 #include "timecontrol.h"
+#include "recordtime.h"
 
 /**
  * @brief 将棋対局の持ち時間・秒読み・加算・考慮時間を管理するクラス
@@ -118,6 +119,12 @@ public:
     QString totalConsiderationTimeString(Turn player) const;
     /// 棋譜欄用の考慮/総考慮文字列（"MM:SS/HH:MM:SS"）
     QString considerationAndTotalTime(Turn player) const;
+    RecordTime recordTime(Turn player) const
+    {
+        // 棋譜の秒数は従来どおり累計秒の差分。計測自体はミリ秒で保持する。
+        return RecordTime::fromMilliseconds(qint64(side(player).lastMoveShownSec) * 1000,
+                                            side(player).totalConsiderationMs / 1000 * 1000);
+    }
 
     // --- 状態取得 ---
 

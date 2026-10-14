@@ -43,6 +43,7 @@
 
 void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
 {
+    if (m_runtimeServicesReady) return;
     if (!m_mw.m_matchWiring) {
         createMatchCoordinatorWiring();
     }
@@ -154,10 +155,10 @@ MatchCoordinator::Hooks MainWindowServiceRegistry::buildMatchHooks()
     hooks.game.initializeNewGame = [adapter](const QString& sfen) {
         adapter->initializeNewGameHook(sfen);
     };
-    hooks.game.appendKifuLine = [this](const QString& text, const QString& elapsed) {
+    hooks.game.appendRecord = [this](const RecordEntry& entry) {
         m_kifu->ensureGameRecordUpdateService();
         if (m_mw.m_gameRecordUpdateService) {
-            m_mw.m_gameRecordUpdateService->appendKifuLine(text, elapsed);
+            m_mw.m_gameRecordUpdateService->appendRecord(entry);
         }
     };
     hooks.game.appendEval = [this](Turn side) {

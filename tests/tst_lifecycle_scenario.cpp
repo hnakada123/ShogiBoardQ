@@ -1,446 +1,92 @@
-/// @file tst_lifecycle_scenario.cpp
-/// @brief アプリケーションライフサイクル全体の構造的シナリオテスト
-///
-/// 「初期化→対局開始→指し手→保存→リセット→再対局」の完全フローを
-/// ソースコード構造検証方式で検証する。
-/// 各フェーズの呼び出しチェーンが正しく接続されていることを確認する。
-
+/// @brief 本体のサービスで、開始・着手・終局・保存・リセット・再開始を検証する。
 #include <QtTest>
+#include <QTemporaryDir>
+#define private public
+#include "mainwindow.h"
+#undef private
+#include "mainwindowserviceregistry.h"
+#include "gamerecordupdateservice.h"
+#include "gamerecordmodel.h"
+#include "kifubranchtree.h"
+#include "kifurecordlistmodel.h"
+#include "livegamesession.h"
+#include "sfenpositiontracer.h"
+#include "sfenutils.h"
+#include "appsettings.h"
 
-#include <QFile>
-#include <QRegularExpression>
-#include <QTextStream>
-
-#ifndef SOURCE_DIR
-#error "SOURCE_DIR must be defined by CMake"
-#endif
-
-class TestLifecycleScenario : public QObject
-{
+class TestLifecycleScenario : public QObject {
     Q_OBJECT
-
-private:
-    static QString readSourceFile(const QString& relPath)
-    {
-        QFile file(QStringLiteral(SOURCE_DIR "/") + relPath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            return {};
-        return QTextStream(&file).readAll();
-    }
-
-    static QStringList readSourceLines(const QString& relPath)
-    {
-        QFile file(QStringLiteral(SOURCE_DIR "/") + relPath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            return {};
-        QStringList lines;
-        QTextStream in(&file);
-        while (!in.atEnd())
-            lines << in.readLine();
-        return lines;
-    }
-
-    static QPair<int, int> findFunctionBody(const QStringList& lines, const QString& signature)
-    {
-        const int sz = int(lines.size());
-        int sigLine = -1;
-        for (int i = 0; i < sz; ++i) {
-            if (lines[i].contains(signature)) {
-                sigLine = i;
-                break;
-            }
-        }
-        if (sigLine < 0)
-            return {-1, -1};
-
-        int braceStart = -1;
-        for (int i = sigLine; i < sz; ++i) {
-            if (lines[i].contains(QLatin1Char('{'))) {
-                braceStart = i;
-                break;
-            }
-        }
-        if (braceStart < 0)
-            return {-1, -1};
-
-        int depth = 0;
-        for (int i = braceStart; i < sz; ++i) {
-            for (const QChar& ch : lines[i]) {
-                if (ch == QLatin1Char('{'))
-                    ++depth;
-                else if (ch == QLatin1Char('}'))
-                    --depth;
-            }
-            if (depth == 0)
-                return {braceStart, i};
-        }
-        return {-1, -1};
-    }
-
-    static QString bodyText(const QStringList& lines, const QPair<int, int>& range)
-    {
-        QStringList body;
-        for (int i = range.first; i <= range.second && i < int(lines.size()); ++i)
-            body << lines[i];
-        return body.join(QLatin1Char('\n'));
-    }
-
+    QTemporaryDir m_config;
 private slots:
-    // ================================================================
-    // Phase 1: 初期化フロー
-    //   MainWindow → LifecyclePipeline::runStartup() → 8段階
-    // ================================================================
-
-    /// MainWindow コンストラクタが LifecyclePipeline を使って初期化すること
-    void phase1_mainWindowDelegatesToPipeline()
+    void initTestCase()
     {
-        const QString mw = readSourceFile(QStringLiteral("src/app/mainwindow.cpp"));
-        QVERIFY2(!mw.isEmpty(), "Failed to read mainwindow.cpp");
-
-        QVERIFY2(mw.contains(QStringLiteral("MainWindowLifecyclePipeline")),
-                  "MainWindow must use LifecyclePipeline");
-        QVERIFY2(mw.contains(QStringLiteral("m_pipeline->runStartup()")),
-                  "Constructor must call runStartup()");
+        QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+        AppSettings::pieceSoundEnabled.set(false);
     }
-
-    /// 全起動ステップが配線されること（実行順序は実行時テストで検証）
-    void phase1_startupStepsAreWired()
+    void recordSaveResetAndRestart()
     {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowServiceRegistry::createLifecyclePipeline()"));
-        QVERIFY2(range.first >= 0, "Lifecycle wiring not found");
-        const QString body = bodyText(lines, range);
-        const QStringList steps{
-            QStringLiteral("createFoundationObjects"), QStringLiteral("setupUiSkeleton"),
-            QStringLiteral("initializeCoreComponents"), QStringLiteral("initializeEarlyServices"),
-            QStringLiteral("buildGamePanels"), QStringLiteral("restoreWindowAndSync"),
-            QStringLiteral("connectSignals"), QStringLiteral("finalizeAndConfigureUi")};
-        for (const QString& step : steps) {
-            QVERIFY2(body.contains(QStringLiteral("startup.") + step + QStringLiteral(" =")),
-                     qPrintable(QStringLiteral("Startup step is not wired: ") + step));
+        MainWindow window;
+        auto* registry = window.m_registry.get();
+        auto* service = window.m_gameRecordUpdateService.get();
+        auto* session = window.m_branchNav.liveGameSession;
+        auto* tree = window.m_branchNav.branchTree;
+        auto* rows = window.m_models.kifuRecord;
+        auto* model = window.m_models.gameRecord;
+        QVERIFY(service);
+        QVERIFY(session);
+        QVERIFY(model);
+        registry->resetToInitialState();
+        const QString initial = SfenUtils::hirateSfen();
+        const QStringList usi{"7g7f", "3c3d"};
+        const auto moves = SfenPositionTracer::buildGameMoves(initial, usi);
+        const auto positions = SfenPositionTracer::buildSfenRecord(initial, usi, false);
+        for (int game = 0; game < 2; ++game) {
+            registry->startLiveGameSessionIfNeeded();
+            QVERIFY(session->canAddMove());
+            QSignalSpy inserted(rows, &QAbstractItemModel::rowsInserted);
+            QSignalSpy changed(tree, &KifuBranchTree::treeChanged);
+            for (int i = 0; i < 2; ++i) {
+                RecordEntry entry;
+                entry.move = moves.at(i);
+                entry.displayText = i == 0 ? QStringLiteral("▲７六歩(77)") : QStringLiteral("△３四歩(33)");
+                entry.sfen = positions.at(i + 1);
+                entry.mover = i == 0 ? Turn::Black : Turn::White;
+                entry.time = RecordTime::fromMilliseconds(1250, 1250);
+                service->appendRecord(entry);
+                QCOMPARE(session->totalPly(), i + 1);
+                QCOMPARE(rows->rowCount(), i + 2);
+                QCOMPARE(session->liveNode()->sfen(), positions.at(i + 1));
+            }
+            service->appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::Black));
+            QCOMPARE(rows->rowCount(), 4);
+            QCOMPARE(inserted.count(), 3);
+            QCOMPARE(changed.count(), 3);
+            QVERIFY(!session->canAddMove());
+            QCOMPARE(session->liveNode()->terminalType(), TerminalType::Resign);
+            QCOMPARE(session->liveNode()->sfen(), positions.last());
+            service->appendRecord(RecordEntry::ending(TerminalType::Interrupt, Turn::Black));
+            QCOMPARE(rows->rowCount(), 4);
+            QVERIFY(session->commit());
+            QVERIFY(!session->isActive());
+            const auto kif = model->toKifLines({}).join('\n');
+            const auto csa = model->toCsaLines({}, usi).join('\n');
+            const auto jkf = model->toJkfLines({}).join('\n');
+            QVERIFY(kif.contains(QStringLiteral("７六歩")));
+            QVERIFY(kif.contains(QStringLiteral("投了")));
+            QVERIFY(csa.contains("+7776FU"));
+            QVERIFY(csa.contains("%TORYO"));
+            QVERIFY(csa.contains("T1.250"));
+            QVERIFY(jkf.contains("TORYO"));
+            model->clearDirty();
+            registry->resetToInitialState();
+            QCOMPARE(rows->rowCount(), 1);
+            QCOMPARE(tree->nodeCount(), 1);
+            QCOMPARE(window.m_gameRecordUpdateService.get(), service);
         }
-    }
-
-    /// connectSignals ステップが SignalRouter を初期化すること
-    void phase1_connectSignalsUsesSignalRouter()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowServiceRegistry::connectSignalsForLifecycle()"));
-        QVERIFY2(range.first >= 0, "connectSignals implementation not found");
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("m_signalRouter->updateDeps(d)"))
-                     && body.contains(QStringLiteral("m_signalRouter->connectAll()")),
-                 "SignalRouter dependencies must be wired before connecting signals");
-    }
-
-    // ================================================================
-    // Phase 2: 対局開始フロー
-    //   GSO::initializeGame() → GSC → ServiceRegistry::startGameSession() → MC::prepareAndStartGame()
-    // ================================================================
-
-    /// ServiceRegistry の開始ヘルパーが MatchCoordinator::prepareAndStartGame に委譲すること
-    void phase2_serviceRegistryStartGameSessionDelegatesToMC()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowserviceregistry.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read ServiceRegistry source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowServiceRegistry::startGameSession()"));
-        QVERIFY2(range.first >= 0, "startGameSession not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("prepareAndStartGame")),
-                  "Must call mc->prepareAndStartGame()");
-    }
-
-    /// MatchCoordinator::prepareAndStartGame が GameStartOrchestrator に委譲すること
-    void phase2_mcDelegatesToGameStartOrchestrator()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/game/matchcoordinator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read MC source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MatchCoordinator::prepareAndStartGame"));
-        QVERIFY2(range.first >= 0, "prepareAndStartGame not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("m_gameStartOrchestrator")),
-                  "Must delegate to GameStartOrchestrator");
-    }
-
-    // ================================================================
-    // Phase 3: 指し手処理フロー
-    //   MatchCoordinator → MatchTurnHandler → GC 更新 → 棋譜追加
-    // ================================================================
-
-    /// MatchCoordinator が MatchTurnHandler を所有すること
-    void phase3_mcOwnsMatchTurnHandler()
-    {
-        const QString header = readSourceFile(
-            QStringLiteral("src/game/matchcoordinator.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read MC header");
-
-        QVERIFY2(header.contains(QStringLiteral("MatchTurnHandler")),
-                  "MatchCoordinator must reference MatchTurnHandler");
-    }
-
-    /// MatchTurnHandler が指し手処理の核となるメソッドを持つこと
-    void phase3_turnHandlerHasMoveProcessing()
-    {
-        const QString header = readSourceFile(
-            QStringLiteral("src/game/matchturnhandler.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read MTH header");
-
-        QVERIFY2(header.contains(QStringLiteral("onHumanMove"))
-                     || header.contains(QStringLiteral("handleHumanMove"))
-                     || header.contains(QStringLiteral("processMove")),
-                  "MatchTurnHandler must have move processing method");
-    }
-
-    /// GameStartOrchestrator の Hooks に棋譜追加コールバックがあること
-    void phase3_hooksHaveKifuAppend()
-    {
-        // Hooks struct は matchcoordinatorhooks.h に分離されている
-        const QString hooksHeader = readSourceFile(
-            QStringLiteral("src/game/matchcoordinatorhooks.h"));
-        QVERIFY2(!hooksHeader.isEmpty(), "Failed to read matchcoordinatorhooks.h");
-
-        QVERIFY2(hooksHeader.contains(QStringLiteral("appendKifuLine"))
-                     || hooksHeader.contains(QStringLiteral("appendKifu")),
-                  "Hooks must have kifu append callback");
-    }
-
-    // ================================================================
-    // Phase 4: 保存フロー
-    //   KifuExportController → format変換 → ファイル書き出し
-    // ================================================================
-
-    /// KifuExportController に saveToFile と overwriteFile メソッドがあること
-    void phase4_exportControllerHasSaveMethods()
-    {
-        const QString header = readSourceFile(
-            QStringLiteral("src/kifu/kifuexportcontroller.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read export controller header");
-
-        QVERIFY2(header.contains(QStringLiteral("saveToFile")),
-                  "Must have saveToFile method");
-        QVERIFY2(header.contains(QStringLiteral("overwriteFile")),
-                  "Must have overwriteFile method");
-    }
-
-    /// saveToFile が選択された形式の生成を保存コーディネータへ委譲すること
-    void phase4_saveToFileDefersConversion()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/kifu/kifuexportcontroller.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read export controller source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuExportController::saveToFile"));
-        QVERIFY2(range.first >= 0, "saveToFile not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY(body.contains(QStringLiteral("saveViaDialog")));
-        QVERIFY(body.contains(QStringLiteral("return linesForFormat(format)")));
-        QVERIFY(!body.contains(QStringLiteral("resolveUsiMoves()")));
-    }
-
-    /// KifuExportClipboard にクリップボード出力メソッドがあること
-    void phase4_clipboardExportExists()
-    {
-        const QString header = readSourceFile(
-            QStringLiteral("src/kifu/kifuexportclipboard.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read clipboard export header");
-
-        QVERIFY2(header.contains(QStringLiteral("copyKifToClipboard"))
-                     || header.contains(QStringLiteral("copyToClipboard")),
-                  "Must have clipboard copy method");
-    }
-
-    // ================================================================
-    // Phase 5: リセットフロー
-    //   SessionLifecycleCoordinator::resetToInitialState() → 全状態クリア
-    // ================================================================
-
-    /// SessionLifecycleCoordinator に resetToInitialState メソッドがあること
-    void phase5_slcHasResetMethod()
-    {
-        const QString header = readSourceFile(
-            QStringLiteral("src/app/sessionlifecyclecoordinator.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read SLC header");
-
-        QVERIFY2(header.contains(QStringLiteral("resetToInitialState")),
-                  "Must have resetToInitialState method");
-    }
-
-    /// resetToInitialState がエンジン停止・クリーンアップ・UI リセットを行うこと
-    void phase5_resetPerformsFullCleanup()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/sessionlifecyclecoordinator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read SLC source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("SessionLifecycleCoordinator::resetToInitialState"));
-        QVERIFY2(range.first >= 0, "resetToInitialState not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("resetEngineState"))
-                     || body.contains(QStringLiteral("destroyEngines")),
-                  "Reset must stop engines");
-        QVERIFY2(body.contains(QStringLiteral("resetGameState"))
-                     || body.contains(QStringLiteral("PlayMode")),
-                  "Reset must clear game state");
-        QVERIFY2(body.contains(QStringLiteral("resetUiState"))
-                     || body.contains(QStringLiteral("resetModels")),
-                  "Reset must reset UI/models");
-    }
-
-    // ================================================================
-    // Phase 6: 再対局フロー
-    //   SLC::startNewGame() → ServiceRegistry::startGameSession() → MC::prepareAndStartGame()
-    // ================================================================
-
-    /// SessionLifecycleCoordinator::startNewGame が対局開始コールバックを呼ぶこと
-    void phase6_startNewGameCallsStartCallback()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/sessionlifecyclecoordinator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read SLC source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("SessionLifecycleCoordinator::startNewGame"));
-        QVERIFY2(range.first >= 0, "startNewGame not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("startGame")),
-                  "startNewGame must call startGame callback");
-    }
-
-    /// 再対局が同一の startGameSession → prepareAndStartGame チェーンを使うこと
-    void phase6_restartUsesExistingChain()
-    {
-        // ServiceRegistry::startGameSession が最終的に MC::prepareAndStartGame を呼ぶことは
-        // phase2_serviceRegistryStartGameSessionDelegatesToMC で検証済み。
-        // ここでは startNewGame の Deps に startGame コールバックがあることを確認。
-        const QString header = readSourceFile(
-            QStringLiteral("src/app/sessionlifecyclecoordinator.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read SLC header");
-
-        QVERIFY2(header.contains(QStringLiteral("startGame")),
-                  "Deps must have startGame callback for restart chain");
-    }
-
-    // ================================================================
-    // Phase 7: シャットダウンフロー（リセット→終了）
-    //   LifecyclePipeline::runShutdown() → 設定保存 → エンジン停止
-    // ================================================================
-
-    void phase7_closeConfirmsUnsavedJoseki()
-    {
-        const auto lines = readSourceLines(QStringLiteral("src/app/mainwindow.cpp"));
-        const auto range = findFunctionBody(lines, QStringLiteral("MainWindow::closeEvent("));
-        QVERIFY(range.first >= 0);
-        const QString body = bodyText(lines, range);
-        const qsizetype confirmation = body.indexOf(QStringLiteral("m_pipeline->confirmClose()"));
-        QVERIFY(confirmation >= 0);
-        QVERIFY(confirmation < body.indexOf(QStringLiteral("QMainWindow::closeEvent(e)")));
-        QVERIFY(body.indexOf(QStringLiteral("e->isAccepted()"))
-                < body.indexOf(QStringLiteral("runShutdown()")));
-        QVERIFY(body.contains(QStringLiteral("e->ignore()")));
-        const QString wiring = readSourceFile(QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
-        QVERIFY(wiring.contains(QStringLiteral("deps.confirmDiscardUnsavedKifu =")));
-        QVERIFY(wiring.contains(QStringLiteral("deps.confirmCloseJoseki =")));
-        const QString registry = readSourceFile(QStringLiteral("src/app/mainwindowserviceregistry.cpp"));
-        QVERIFY(registry.contains(QStringLiteral("return m_kifu->confirmCloseJoseki();")));
-        const QString kifuRegistry = readSourceFile(QStringLiteral("src/app/kifusubregistry.cpp"));
-        QVERIFY(kifuRegistry.contains(QStringLiteral("wiring->josekiWindow()->confirmClose()")));
-    }
-
-    /// runShutdown が二重実行防止ガードを持つこと
-    void phase7_shutdownHasGuard()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
-        QVERIFY2(range.first >= 0, "runShutdown not found");
-        QVERIFY(bodyText(lines, range).contains(QStringLiteral("runOnce(m_shutdownDone)")));
-    }
-
-    /// runShutdown がエンジン停止と設定保存を行うこと
-    void phase7_shutdownSavesAndStopsEngines()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowServiceRegistry::createLifecyclePipeline()"));
-        QVERIFY2(range.first >= 0, "Lifecycle wiring not found");
-        const QString body = bodyText(lines, range);
-        QVERIFY(body.contains(QStringLiteral("shutdown.saveSettings =")));
-        QVERIFY(body.contains(QStringLiteral("saveWindowAndBoard")));
-        QVERIFY(body.contains(QStringLiteral("saveDockStates")));
-        QVERIFY(body.contains(QStringLiteral("shutdown.destroyEngines =")));
-        QVERIFY(body.contains(QStringLiteral("m_match->destroyEngines()")));
-        QVERIFY(body.contains(QStringLiteral("shutdown.releaseOwnedResources =")));
-    }
-
-    // ================================================================
-    // Cross-cutting: フロー間接続の検証
-    // ================================================================
-
-    /// 終局→保存→リセットの接続: GameEndHandler が GameEndInfo シグナルを発行すること
-    void crossCut_gameEndHandlerEmitsSignal()
-    {
-        const QString header = readSourceFile(
-            QStringLiteral("src/game/gameendhandler.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read GEH header");
-
-        QVERIFY2(header.contains(QStringLiteral("gameEnded"))
-                     || header.contains(QStringLiteral("GameEndInfo")),
-                  "GameEndHandler must emit gameEnded signal with GameEndInfo");
-    }
-
-    /// UiStatePolicyManager が初期状態 Idle で開始すること
-    void crossCut_uiPolicyStartsIdle()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowServiceRegistry::finalizeAndConfigureUiForLifecycle()"));
-        QVERIFY2(range.first >= 0, "finalizeAndConfigureUi implementation not found");
-        QVERIFY(bodyText(lines, range).contains(QStringLiteral("UiStatePolicyManager::AppState::Idle")));
-    }
-
-    /// 全フェーズの主要クラスがそれぞれの .h/.cpp ファイルに実装されていること
-    void crossCut_allPhaseClassesExist()
-    {
-        const QStringList requiredHeaders = {
-            QStringLiteral("src/app/mainwindowlifecyclepipeline.h"),
-            QStringLiteral("src/app/gamesessionorchestrator.h"),
-            QStringLiteral("src/app/sessionlifecyclecoordinator.h"),
-            QStringLiteral("src/game/matchcoordinator.h"),
-            QStringLiteral("src/game/gamestartorchestrator.h"),
-            QStringLiteral("src/game/gameendhandler.h"),
-            QStringLiteral("src/app/prestartcleanuphandler.h"),
-            QStringLiteral("src/kifu/kifuexportcontroller.h"),
-        };
-
-        for (const QString& hdr : requiredHeaders) {
-            const QString content = readSourceFile(hdr);
-            QVERIFY2(!content.isEmpty(),
-                      qPrintable(QStringLiteral("Required header missing: %1").arg(hdr)));
-        }
+        model->clearDirty();
     }
 };
-
 QTEST_MAIN(TestLifecycleScenario)
-
 #include "tst_lifecycle_scenario.moc"

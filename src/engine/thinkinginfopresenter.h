@@ -54,6 +54,7 @@ public:
 
     /// 思考開始時の局面SFENを設定（読み筋はこの局面から日本語にする）
     void setBaseSfen(const QString& sfen);
+    void presentCheckmate(const QStringList& pv);
     
     /// 思考開始時の局面SFENを取得
     QString baseSfen() const;

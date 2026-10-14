@@ -2,6 +2,7 @@
 /// @brief GUI モデルを持たない USI エンジン接続の実装
 
 #include "usienginesession.h"
+#include <QCoreApplication>
 
 #include "engineprocessmanager.h"
 #include "logcategories.h"
@@ -63,19 +64,25 @@ void UsiEngineSession::onInitialized(bool success)
 
 void UsiEngineSession::onStartTimeout()
 {
-    onHandlerError(QStringLiteral("Timed out starting the engine"));
+    onHandlerError(QCoreApplication::translate("Usi", "Failed to start engine: %1")
+                       .arg(m_process->currentEnginePath()));
 }
 
 void UsiEngineSession::onProcessExited()
 {
-    onHandlerError(QStringLiteral("Engine exited unexpectedly"));
+    onHandlerError(QCoreApplication::translate("Usi", "Engine exited unexpectedly."));
 }
 
-void UsiEngineSession::quit()
+void UsiEngineSession::cancelCurrentOperation()
 {
     m_startTimer.stop();
     m_initializing = false;
     m_handler->cancelCurrentOperation();
+}
+
+void UsiEngineSession::quit()
+{
+    cancelCurrentOperation();
     if (m_process->isRunning()) {
         m_handler->sendQuit();
     }

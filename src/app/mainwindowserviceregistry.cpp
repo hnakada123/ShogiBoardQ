@@ -3,6 +3,7 @@
 
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
+#include "mainwindowactions.h"
 #include "mainwindowfoundationregistry.h"
 #include "kifusubregistry.h"
 #include "matchcoordinator.h"

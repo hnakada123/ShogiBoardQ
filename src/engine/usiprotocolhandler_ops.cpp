@@ -4,8 +4,6 @@
 #include "usiprotocolhandler.h"
 #include <QPointer>
 #include <QRegularExpression>
-#include "thinkinginfopresenter.h"
-#include "shogigamecontroller.h"
 
 void UsiProtocolHandler::handleCheckmateLine(const QString& line)
 {
@@ -31,13 +29,6 @@ void UsiProtocolHandler::handleCheckmateLine(const QString& line)
     if (pv.isEmpty()) {
         emit checkmateUnknown();
         return;
-    }
-    // info 行を出さずに checkmate だけを返すエンジン（Hayanagi など）でも、思考タブに
-    // 詰み手順の行を残して読み筋を確認できるようにする。先に届いた info 行を反映してから加える
-    if (m_presenter) {
-        m_presenter->flushInfoBuffer();
-        m_presenter->processInfoLine(
-            QStringLiteral("info score mate %1 pv %2").arg(pv.size()).arg(pv.join(QLatin1Char(' '))));
     }
     emit checkmateSolved(pv);
 }
@@ -118,7 +109,7 @@ void UsiProtocolHandler::beginCandidateSearch(bool pondering)
     m_searchCandidate = {};
     m_searchCandidate.active = true;
     m_searchCandidate.pondering = pondering;
-    if (m_presenter) m_searchCandidate.baseSfen = m_presenter->baseSfen();
+    m_searchCandidate.baseSfen = m_baseSfen;
     if (pondering) m_searchCandidate.predictedMove = m_predictedOpponentMove;
     emit searchCandidateChanged();
 }
