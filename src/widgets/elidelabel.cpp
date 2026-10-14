@@ -136,7 +136,8 @@ void ElideLabel::refreshDisplayText()
 bool ElideLabel::isOverflowing() const
 {
     QFontMetrics fm(font());
-    return fm.horizontalAdvance(displayLines().last()) > contentsRect().width();
+    const QStringList lines = displayLines();
+    return fm.horizontalAdvance(lines.constLast()) > contentsRect().width();
 }
 
 QStringList ElideLabel::displayLines() const

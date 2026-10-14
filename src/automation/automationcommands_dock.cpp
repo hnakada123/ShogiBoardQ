@@ -91,9 +91,11 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
         QJsonArray docks;
         auto* window = context.mainWindow;
         if (!window) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("No main window"));
-        for (auto* dock : window->findChildren<QDockWidget*>(QString(), Qt::FindDirectChildrenOnly)) {
+        const auto dockWidgets = window->findChildren<QDockWidget*>(QString(), Qt::FindDirectChildrenOnly);
+        for (auto* dock : dockWidgets) {
             QJsonArray tabs;
-            for (auto* sibling : window->tabifiedDockWidgets(dock)) tabs.append(sibling->objectName());
+            const auto tabified = window->tabifiedDockWidgets(dock);
+            for (auto* sibling : tabified) tabs.append(sibling->objectName());
             QJsonArray areas;
             for (auto area : {Qt::LeftDockWidgetArea, Qt::RightDockWidgetArea,
                               Qt::TopDockWidgetArea, Qt::BottomDockWidgetArea}) {

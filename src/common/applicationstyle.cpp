@@ -30,10 +30,11 @@ public:
         case SP_TitleBarMinButton:
         case SP_TitleBarCloseButton:
         case SP_DockWidgetCloseButton: {
-            auto it = m_icons.constFind(standardIcon);
-            if (it == m_icons.cend())
-                it = m_icons.insert(standardIcon, QProxyStyle::standardIcon(standardIcon, option, widget));
-            return it.value();
+            const auto it = m_icons.constFind(standardIcon);
+            if (it != m_icons.cend()) return it.value();
+            const QIcon icon = QProxyStyle::standardIcon(standardIcon, option, widget);
+            m_icons.insert(standardIcon, icon);
+            return icon;
         }
         default:
             return QProxyStyle::standardIcon(standardIcon, option, widget);

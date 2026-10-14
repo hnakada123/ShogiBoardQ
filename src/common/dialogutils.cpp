@@ -77,7 +77,8 @@ void standardizeDialog(QWidget* dialog)
     const auto boxes = dialog->findChildren<QDialogButtonBox*>();
     for (auto* box : boxes) {
         if (box->window() != dialog->window()) continue;
-        for (auto* button : box->buttons()) {
+        const auto boxButtons = box->buttons();
+        for (auto* button : boxButtons) {
             if (box->buttonRole(button) == QDialogButtonBox::AcceptRole)
                 button->setStyleSheet(ButtonStyles::primaryAction());
         }

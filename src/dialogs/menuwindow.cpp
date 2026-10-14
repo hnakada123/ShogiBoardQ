@@ -170,8 +170,10 @@ void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
     // カテゴリタブを追加
     for (const auto& category : categories) {
         QScrollArea* scrollArea = createCategoryTab(category);
+        // 「ファイル(F)」のようなアクセスキーの表記はタブ名に出さない
+        static const QRegularExpression accessKey(QStringLiteral("\\s*\\([A-Za-z]\\)"));
         QString title = category.displayName;
-        title.remove(QRegularExpression(QStringLiteral("\\s*\\([A-Za-z]\\)")));
+        title.remove(accessKey);
         m_tabWidget->addTab(scrollArea, title);
         m_tabWidget->setTabToolTip(m_tabWidget->count() - 1, title);
     }
@@ -312,7 +314,7 @@ void MenuWindow::equalizeButtonHeights()
 void MenuWindow::updateFilter()
 {
     const QString query = m_searchEdit->text().trimmed();
-    QMap<QWidget*, int> visibleCounts;
+    QHash<QWidget*, int> visibleCounts;
     for (MenuButtonWidget* button : std::as_const(m_allButtons)) {
         const QAction* action = button->action();
         const bool visible = action && action->isVisible()

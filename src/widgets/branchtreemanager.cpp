@@ -24,10 +24,6 @@
 
 #include <climits>
 
-namespace {
-const QPen kEdgePen(QColor(90, 90, 90), 1.0);
-const QPen kPathEdgePen(QColor(40, 110, 210), 2.6);
-} // namespace
 
 // ===================== コンストラクタ / デストラクタ =====================
 
@@ -292,12 +288,12 @@ void BranchTreeManager::highlightPathTo(int nodeId)
     }
     for (qsizetype i = 0; i < m_highlightedEdges.size() - common; ++i) {
         QGraphicsPathItem* edge = m_highlightedEdges.at(i);
-        edge->setPen(kEdgePen);
+        edge->setPen(edgePen());
         edge->setZValue(0);
     }
     for (qsizetype i = 0; i < path.size() - common; ++i) {
         QGraphicsPathItem* edge = path.at(i);
-        edge->setPen(kPathEdgePen);
+        edge->setPen(pathEdgePen());
         edge->setZValue(1);
     }
     m_highlightedEdges = path;

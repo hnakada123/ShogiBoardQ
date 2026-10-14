@@ -169,7 +169,8 @@ void GameInfoPaneController::setGameInfoForMatch(const QList<KifGameInfoItem>& a
                                  GameInfoKeys::kShitatePlayer, GameInfoKeys::kUwatePlayer};
     for (const auto& item : automaticItems) replacedKeys.insert(item.key);
     QSet<QString> retainedKeys;
-    for (const auto& item : gameInfo()) {
+    const QList<KifGameInfoItem> currentItems = gameInfo();
+    for (const auto& item : currentItems) {
         const QString key = item.key.trimmed();
         if (key.isEmpty() || replacedKeys.contains(key)) continue;
         items.append(item);

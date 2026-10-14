@@ -117,11 +117,6 @@ void loadWindowSize(QWidget* mainWindow);
 /// メインウィンドウのサイズと盤マスサイズをINIに保存
 void saveWindowAndBoard(QWidget* mainWindow, int squareSize);
 
-// --- マイグレーション ---
-
-/// 設定バージョンのマイグレーション
-void migrateSettingsIfNeeded();
-
 } // namespace AppSettings
 
 #endif // APPSETTINGS_H

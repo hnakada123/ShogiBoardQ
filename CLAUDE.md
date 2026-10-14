@@ -45,7 +45,7 @@ cmake --build build --target translations
   - `main.cpp` - Entry point
   - `mainwindow.cpp/.h/.ui` - Main window
   - `mainwindowserviceregistry.cpp/.h` - ensure*（部品の生成と依存更新）と主要操作の集約。実装は `gamesubregistry*.cpp`・`mainwindow*registry.cpp` に分割。共通部品は `mainwindowfoundationregistry`、棋譜系は `kifusubregistry`
-  - `mainwindowuibootstrapper.cpp/.h` - UI初期化ステップのオーケストレーション
+  - `mainwindowuibootstrapper.cpp` - UI初期化ステップのオーケストレーション（`MainWindowServiceRegistry` の分割ファイル）
   - `playmodepolicyservice.cpp/.h` - プレイモード依存の判定ロジック
   - `turnstatesyncservice.cpp/.h` - 手番同期（TurnManager/GC/View/時計）
   - `gamerecordupdateservice.cpp/.h` - 棋譜追記・ライブセッション更新
@@ -55,7 +55,7 @@ cmake --build build --target translations
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
   - `shogiboard.cpp/.h` - Board state and piece management
   - `shogimove.cpp/.h` - Move representation
-  - `movevalidator.cpp/.h` - Move legality validation
+  - `enginemovevalidator.cpp/.h` - Move legality validation（`fmvlegalcore` のビットボード合法手生成を使う）
   - `shogiclock.cpp/.h` - Game clock
   - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）
 
@@ -81,15 +81,15 @@ cmake --build build --target translations
   - `usi.cpp/.h` - Main engine interface
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
   - `engineprocessmanager.cpp/.h` - Engine process lifecycle
-  - `enginesettingscoordinator.cpp/.h` - Engine settings
+  - `usimatchhandler.cpp/.h` - 対局・解析での USI のやり取り（position/go/bestmove）
 
 - **network/**: CSA通信対局
   - `csaclient.cpp/.h` - CSA protocol client
   - `csagamecoordinator.cpp/.h` - CSA game coordination
 
 - **navigation/**: ナビゲーション機能
-  - `navigationcontroller.cpp/.h` - Navigation control
-  - `navigationcontext.cpp/.h` - Navigation context
+  - `kifunavigationcontroller.cpp/.h` - 棋譜ナビゲーション（ボタン・分岐）
+  - `recordnavigationhandler.cpp/.h` - 棋譜欄の行変更
 
 - **board/**: 盤面編集・操作
   - `boardinteractioncontroller.cpp/.h` - Board interaction
@@ -98,9 +98,9 @@ cmake --build build --target translations
 
 - **ui/**: UI層
   - **presenters/**: MVP Presenter layer
-    - `evalgraphpresenter`, `recordpresenter`, `navigationpresenter`, etc.
+    - `evalgraphpresenter`, `gamerecordpresenter`, `boardsyncpresenter`, etc.
   - **controllers/**: UI event handlers
-    - `boardsetupcontroller`, `recordnavigationcontroller`, etc.
+    - `boardsetupcontroller`, `timecontrolcontroller`, `replaycontroller`, etc.
   - **wiring/**: Signal/Slot connections
     - `uiactionswiring`, `csagamewiring`, `analysistabwiring`, etc.
   - **coordinators/**: UI coordination
@@ -221,7 +221,7 @@ MyDialog::~MyDialog()
 
 - **MainWindow should stay lean**: Delegate logic to existing or new classes (coordinators, controllers, services). MainWindow should only handle MainWindow-specific responsibilities.
 - When adding new features, prefer creating new classes in appropriate directories (`app/`, `controllers/`, `services/`, etc.) rather than adding code to MainWindow.
-- **Deps/Hooks/Refs パターン**: `docs/dev/deps-hooks-refs-pattern.md` に従う。依存注入に3種の構造体パターン（Deps=外部依存注入、Hooks=上位層へのコールバック、Refs=親状態への参照）を使い分ける
+- **Deps/Hooks/Refs パターン**: `docs/dev/done/deps-hooks-refs-pattern.md` に従う。依存注入に3種の構造体パターン（Deps=外部依存注入、Hooks=上位層へのコールバック、Refs=親状態への参照）を使い分ける
 - **スレッド安全性**: `docs/dev/threading-guidelines.md` に従う。UIアクセスはメインスレッド限定、ワーカーには値オブジェクトのみ渡す
 
 ## Code Style

@@ -69,78 +69,77 @@ struct ShogiMove {
 
 ### 1.2 座標系
 
-座標は `QPoint(x, y)` で表現される。`x` が筋（file）、`y` が段（rank）に対応する。
+座標は2種類ある。どちらも `x` が筋（file）、`y` が段（rank）で、将棋の筋・段の数字をそのまま使う（筋は右から 1〜9、段は上から 1〜9）。
 
-| 範囲 | 意味 |
-|---|---|
-| `x: 0〜8, y: 0〜8` | 盤上の座標（0-indexed）。将棋の「9一」は `(0, 0)`、「1九」は `(8, 8)` |
-| `x: 9` | 先手の駒台（持ち駒からの打ち） |
-| `x: 10` | 後手の駒台（持ち駒からの打ち） |
-
-**盤面座標と将棋筋段の対応**:
+| 座標 | 使う所 | 盤上 | 駒台 |
+|---|---|---|---|
+| 表示座標（1始まり） | 盤のクリック・ハイライト（`BoardCoordinates`、`src/core/boardcoordinates.h`） | 筋・段とも 1〜9。「7七」は `(7, 7)` | 先手 `x = 10`、後手 `x = 11`（駒箱は `x = 12`） |
+| `ShogiMove` の座標（0始まり） | 指した手の記録（`fromSquare`・`toSquare`） | 表示座標から 1 を引く。「7七」は `(6, 6)`、「9一」は `(8, 0)`、「1九」は `(0, 8)` | 先手 `x = 9`、後手 `x = 10` |
 
 ```
-将棋の筋:  ９ ８ ７ ６ ５ ４ ３ ２ １
-x (0-idx):  0  1  2  3  4  5  6  7  8
+将棋の筋:       ９ ８ ７ ６ ５ ４ ３ ２ １
+表示座標の x:    9  8  7  6  5  4  3  2  1
+ShogiMove の x:  8  7  6  5  4  3  2  1  0
 
-将棋の段:  一 二 三 四 五 六 七 八 九
-y (0-idx):  0  1  2  3  4  5  6  7  8
+将棋の段:       一 二 三 四 五 六 七 八 九
+表示座標の y:    1  2  3  4  5  6  7  8  9
+ShogiMove の y:  0  1  2  3  4  5  6  7  8
 ```
 
-表示時には1-indexed（`x + 1`, `y + 1`）に変換してデバッグ出力される。
+駒台の段（`y`）は駒の並びを表す。表示座標では、先手の駒台は歩1・香2・桂3・銀4・金5・角6・飛7・玉8、後手の駒台は玉2・飛3・角4・金5・銀6・桂7・香8・歩9（`BoardCoordinates::standPieceAt()`）。`ShogiMove` はそこから 1 を引く。
 
-### 1.3 駒の文字表現（SFEN記法）
+座標と USI の指し手（`UsiMove`。筋・段とも1始まり）の変換は `BoardCoordinates` と `ShogiMove::fromUsiMove()`・`toUsiMove()` だけで行う。デバッグ出力（`operator<<`）は盤上の座標を1始まりにして出す。
 
-`movingPiece` と `capturedPiece` は SFEN 記法の1文字で駒種を表す。
-**大文字 = 先手の駒、小文字 = 後手の駒**。
+### 1.3 駒の表現（Piece）
+
+`movingPiece` と `capturedPiece` は `Piece`（`src/core/shogitypes.h`）で駒種と先後を表す。`Piece` の値は1文字で、**大文字 = 先手の駒、小文字 = 後手の駒**。駒がないときは `Piece::None`（`' '`）。
 
 | 駒種 | 先手（生駒） | 先手（成駒） | 後手（生駒） | 後手（成駒） |
 |---|---|---|---|---|
-| 玉 / 王 | `K` | — | `k` | — |
-| 飛車 / 龍 | `R` | `U` | `r` | `u` |
-| 角行 / 馬 | `B` | `C` | `b` | `c` |
-| 金将 | `G` | — | `g` | — |
-| 銀将 / 成銀 | `S` | `T` | `s` | `t` |
-| 桂馬 / 成桂 | `N` | `O` | `n` | `o` |
-| 香車 / 成香 | `L` | `M` | `l` | `m` |
-| 歩兵 / と金 | `P` | `Q` | `p` | `q` |
+| 玉 / 王 | `BlackKing`（`K`） | — | `WhiteKing`（`k`） | — |
+| 飛車 / 龍 | `BlackRook`（`R`） | `BlackDragon`（`U`） | `WhiteRook`（`r`） | `WhiteDragon`（`u`） |
+| 角行 / 馬 | `BlackBishop`（`B`） | `BlackHorse`（`C`） | `WhiteBishop`（`b`） | `WhiteHorse`（`c`） |
+| 金将 | `BlackGold`（`G`） | — | `WhiteGold`（`g`） | — |
+| 銀将 / 成銀 | `BlackSilver`（`S`） | `BlackPromotedSilver`（`T`） | `WhiteSilver`（`s`） | `WhitePromotedSilver`（`t`） |
+| 桂馬 / 成桂 | `BlackKnight`（`N`） | `BlackPromotedKnight`（`O`） | `WhiteKnight`（`n`） | `WhitePromotedKnight`（`o`） |
+| 香車 / 成香 | `BlackLance`（`L`） | `BlackPromotedLance`（`M`） | `WhiteLance`（`l`） | `WhitePromotedLance`（`m`） |
+| 歩兵 / と金 | `BlackPawn`（`P`） | `BlackPromotedPawn`（`Q`） | `WhitePawn`（`p`） | `WhitePromotedPawn`（`q`） |
 
-> **注意**: SFEN標準では成駒は `+R`, `+B` 等と表記するが、ShogiBoardQ の内部表現では
-> 独自の1文字マッピング（`R→U`, `B→C` 等）を使用する。
+> **注意**: SFEN では成駒を `+R`・`+B` などの2文字で書く。`Piece` の成駒の1文字（`R→U`、`B→C` など）は内部の値で、SFEN の文字列には出さない。SFEN との変換は `ShogiBoard`（`src/core/shogiboard_sfen.cpp`）が行い、文字との変換は `charToPiece()`・`pieceToChar()` を使う。
 
 ### 1.4 データ例
 
 #### 通常の移動: ▲７六歩（77→76）
 
 ```
-fromSquare:   QPoint(2, 6)   // ７七 = (9-7, 7-1) = (2, 6)
-toSquare:     QPoint(2, 5)   // ７六 = (9-7, 6-1) = (2, 5)
-movingPiece:  'P'            // 先手の歩
-capturedPiece: ' '           // 取った駒なし
+fromSquare:   QPoint(6, 6)        // ７七（表示座標 (7, 7)）
+toSquare:     QPoint(6, 5)        // ７六（表示座標 (7, 6)）
+movingPiece:  Piece::BlackPawn    // 先手の歩
+capturedPiece: Piece::None        // 取った駒なし
 isPromotion:  false
 ```
 
 #### 駒取り: ▲２二角成（88→22で角が銀を取って成る）
 
 ```
-fromSquare:   QPoint(1, 7)   // ８八 = (9-8, 8-1) = (1, 7)
-toSquare:     QPoint(7, 1)   // ２二 = (9-2, 2-1) = (7, 1)
-movingPiece:  'B'            // 先手の角
-capturedPiece: 's'           // 後手の銀を取った
-isPromotion:  true           // 成り
+fromSquare:   QPoint(7, 7)        // ８八（表示座標 (8, 8)）
+toSquare:     QPoint(1, 1)        // ２二（表示座標 (2, 2)）
+movingPiece:  Piece::BlackBishop  // 先手の角
+capturedPiece: Piece::WhiteSilver // 後手の銀を取った
+isPromotion:  true                // 成り
 ```
 
 #### 駒打ち: △４五桂（後手が持ち駒の桂馬を打つ）
 
 ```
-fromSquare:   QPoint(10, 0)  // x=10 = 後手の駒台
-toSquare:     QPoint(4, 4)   // ４五 = (9-4, 5-1) = (5, 4) ※実際は(4, 4)
-movingPiece:  'n'            // 後手の桂馬
-capturedPiece: ' '           // 取った駒なし（打ちなので）
+fromSquare:   QPoint(10, 6)       // 後手の駒台の桂（表示座標 (11, 7)）
+toSquare:     QPoint(3, 4)        // ４五（表示座標 (4, 5)）
+movingPiece:  Piece::WhiteKnight  // 後手の桂馬
+capturedPiece: Piece::None        // 取った駒なし（打ちなので）
 isPromotion:  false
 ```
 
-> `fromSquare.y()` の値は、駒台からの打ちの場合は駒種の識別には使われない。
+> 駒打ちかどうかは `fromSquare.x() >= 9`（駒台）で判断する。USI にするときの打つ駒は `movingPiece` から決める（`toUsiMove()`）。
 
 ---
 

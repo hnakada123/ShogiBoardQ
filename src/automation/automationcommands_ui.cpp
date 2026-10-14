@@ -66,7 +66,8 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         QWidget* window = requireWindow(context, target);
         ShogiView* view = nullptr;
         if (window) {
-            for (auto* candidate : window->findChildren<ShogiView*>()) {
+            const auto views = window->findChildren<ShogiView*>();
+            for (auto* candidate : views) {
                 if (candidate->window() == window && candidate->isVisible()) { view = candidate; break; }
             }
         }
@@ -107,7 +108,8 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         }
         const int index = AutomationParams::optionalInt(params, QStringLiteral("index"), 0, 0, 1000);
         QList<QAbstractButton*> matches;
-        for (auto* button : window->findChildren<QAbstractButton*>()) {
+        const auto buttons = window->findChildren<QAbstractButton*>();
+        for (auto* button : buttons) {
             if (button->window() == window && button->isVisible()
                 && ((!widget.isEmpty() && (button->objectName() == widget || AutomationWidgets::selector(button) == widget))
                     || (!text.isEmpty() && button->text() == text)))

@@ -118,9 +118,13 @@ public:
     {
         QStyleOptionViewItem opt = option;
         initStyleOption(&opt, index);
-        auto it = m_samples.constFind(index.row());
-        if (it == m_samples.cend()) it = m_samples.insert(index.row(), m_render(index));
-        opt.icon = *it;
+        const auto it = m_samples.constFind(index.row());
+        if (it != m_samples.cend()) {
+            opt.icon = *it;
+        } else {
+            opt.icon = m_render(index);
+            m_samples.insert(index.row(), opt.icon);
+        }
         const QWidget* widget = opt.widget;
         QStyle* style = widget ? widget->style() : QApplication::style();
         style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
@@ -221,7 +225,8 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
     pieceLayout->addWidget(m_pieceList);
     // 見本は描くときに作る。項目の大きさを揃えるため、同じ大きさの空の画像を全項目で共有する。
     const QIcon placeholder = sampleIconWithoutTint(blankSample());
-    for (const auto& style : AppSettings::availablePieceStyles()) {
+    const QStringList pieceStyles = AppSettings::availablePieceStyles();
+    for (const auto& style : pieceStyles) {
         auto* item = new QListWidgetItem(placeholder, BoardColorPresets::pieceStyleName(style), m_pieceList);
         item->setData(Qt::UserRole, style);
         item->setToolTip(item->text());
@@ -245,7 +250,8 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
             return sampleIcon(component, BoardAppearanceCatalog::samples(component).at(index.row()),
                               PieceImageProvider::instance().style());
         }, list));
-        for (const auto& sample : BoardAppearanceCatalog::samples(component))
+        const auto samples = BoardAppearanceCatalog::samples(component);
+        for (const auto& sample : samples)
             new QListWidgetItem(placeholder, sample.name, list);
         m_componentLists.append(list);
         column->addWidget(list);

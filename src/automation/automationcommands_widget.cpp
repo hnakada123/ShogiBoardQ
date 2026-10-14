@@ -89,7 +89,8 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
                 // 生成済みのdelegate入力欄にもフォーカスが移らないことがある。
                 if (!editor || !table->isAncestorOf(editor)) {
                     editor = nullptr;
-                    for (auto* candidate : table->findChildren<QLineEdit*>()) {
+                    const auto edits = table->findChildren<QLineEdit*>();
+                    for (auto* candidate : edits) {
                         if (candidate->isVisibleTo(table)) { editor = candidate; break; }
                     }
                 }

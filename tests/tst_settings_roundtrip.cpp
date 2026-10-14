@@ -343,10 +343,6 @@ private slots:
         QSize dialogSize(850, 650);
         AnalysisSettings::kifuAnalysisDialogSize.set(dialogSize);
         QCOMPARE(AnalysisSettings::kifuAnalysisDialogSize(), dialogSize);
-
-        QSize resultsSize(700, 500);
-        AnalysisSettings::kifuAnalysisResultsWindowSize.set(resultsSize);
-        QCOMPARE(AnalysisSettings::kifuAnalysisResultsWindowSize(), resultsSize);
     }
 
     /// エンジンの選択は名前で保存し、登録の順番が変わっても同じエンジンを選ぶ。

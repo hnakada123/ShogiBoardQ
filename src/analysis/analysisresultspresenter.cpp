@@ -450,12 +450,3 @@ void AnalysisResultsPresenter::restoreFontSize()
     applyFontSize(size);
 }
 
-void AnalysisResultsPresenter::saveWindowSize()
-{
-    // ドックのサイズを保存
-    if (m_dock) {
-        AnalysisSettings::kifuAnalysisResultsWindowSize.set(m_dock->size());
-        // 閉じるボタンが押されたらドックを非表示にする
-        m_dock->setVisible(false);
-    }
-}

@@ -74,6 +74,8 @@
 | 2026-10-14 | 対局者（先手・後手）を `Turn` にまとめたのに合わせて §4・§5.5・§6.2・§6.7・§6.9・§10 を更新（`MatchPlayer`（P1/P2）を削除。時計の API は `Turn` で受け、時間切れは `playerTimeOut(Turn)` の1つのシグナル。エンジンの投了・勝ち宣言・反則はエンジンの手番で受ける。`TurnManager::toClockPlayer()` を削除） |
 | 2026-10-14 | 先後を `bool` で持っていたもの（`engineIsP1`・`loserIsP1`・`lastLoserIsP1`・`bottomIsP1`・`appendEvalP1/P2`・`p1turn`）を `Turn` にしたのに合わせて §4・§6.2・§6.3・§10 を更新（§6.2 の `configureAndStart()` の流れと §6.3 の図を、Strategy を作る今の流れに書き直し。盤の反転で時計の表示を描き直す `TimeDisplayPresenter::refresh()` を追記） |
 | 2026-10-14 | 使われていなかった時間切れの投了シグナル（`ShogiClock::resignationTriggered`）と、編集開始の局面の候補の `resumeSfenStr` を削除したのに合わせて §5.5・§13 を更新 |
+| 2026-10-14 | 司令塔と `GameStartCoordinator` のシグナルを受け手へ直接つなぐようにしたのに合わせて §6.2（シグナルの接続先の表、UI・Game のフックをシグナルにしない理由）・§6.9・§6.10・§6.11・§14.4 を更新 |
+| 2026-10-14 | 古い記述を今のコードに合わせて更新（§1.2・§1.4・§17.1 のソースの列挙、§1.6 の規模の表、§4.1 の ConsiderationWiring の例、§4.4・§10.4 の UiActionsWiring の例、§13.6 の局面編集の API、§14.2 のメンバーの表、§14.5.1 を TestAutomationHelper から自動化 API に、§14.6 のスロット構造、§14.7 の行数、第16章を4言語と `ApplicationTranslations` に、§17.3 をレジストリへの追加手順に） |
 
 <!-- chapter-0-end -->
 
@@ -95,7 +97,7 @@ ShogiBoardQは、Qt 6とC++17で構築された将棋盤アプリケーション
 | **局面編集** | 任意の局面をGUIで作成、SFEN文字列からの読み込み |
 | **盤面画像出力** | 現在の局面を画像ファイルとしてエクスポート |
 | **定跡管理** | 定跡データの閲覧、結合、移動 |
-| **国際化** | 日本語・英語の2言語対応（実行時切替可能） |
+| **国際化** | 日本語・英語・簡体字中国語・繁体字中国語の4言語対応（メニューで切り替え、再起動で反映） |
 
 ### 1.2 技術スタック
 
@@ -179,13 +181,23 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-# ソースファイルの自動収集（ディレクトリ別）
-file(GLOB_RECURSE SRC_APP    CONFIGURE_DEPENDS src/app/*.cpp)
-file(GLOB_RECURSE SRC_CORE   CONFIGURE_DEPENDS src/core/*.cpp)
-# ... 全16ディレクトリ
+# ソースファイルはディレクトリ別に列挙する（一覧の更新: ./scripts/update-sources.sh）
+set(SRC_APP
+    src/app/applicationlogging.cpp
+    src/app/applicationlogging.h
+    # ...
+)
+# ... SRC_CORE から SRC_CLI まで、ディレクトリごとに1つ（全18）
+
+# 本体のオブジェクトライブラリ（SRC_CLI 以外）。CLI とテストは同じオブジェクトの静的ライブラリを使う
+qt_add_library(shogiboardq_objects OBJECT ${SRC_APP} ${SRC_CORE} ... ${SRC_AUTOMATION} ${UI_FILES})
+add_library(shogiboardq_static STATIC $<TARGET_OBJECTS:shogiboardq_objects>)
+
+qt_add_executable(ShogiBoardQ src/app/main.cpp resources/shogiboardq.qrc ...)
+qt_add_executable(shogiboardq-cli ${SRC_CLI} resources/shogiboardq.qrc)
 ```
 
-**`GLOB_RECURSE`** を使用しているため、新しいソースファイルを追加する際に `CMakeLists.txt` を編集する必要はない。ファイルを適切なディレクトリに配置すれば自動的にビルド対象となる（CMake再構成時に検出される）。
+ソースファイルは `GLOB` で集めず、`CMakeLists.txt` に列挙している。新しいファイルを追加したら、ディレクトリに対応する `SRC_*` に `.cpp` と `.h` を書き足す（`scripts/update-sources.sh` がディレクトリ別の一覧を出力する）。`.ui` ファイルは `UI_FILES` に足す。テストのソースは `tests/CMakeLists.txt` に別に列挙する。`shogiboardq_static` にリンクするテストは、本体に足したファイルをそのまま使える。
 
 **コンパイラ警告**: 以下の警告オプションが有効化されている:
 
@@ -418,29 +430,34 @@ src/
 
 ### 1.6 コード規模
 
+`src/` 配下の `.cpp` と `.h` の数と行数（2026-10-14 時点）。
+
 | ディレクトリ | ファイル数 | 行数 | 概要 |
 |-------------|-----------|------|------|
-| `app/` | 9 | 7,271 | メインウィンドウ、エントリーポイント |
-| `core/` | 13 | 3,950 | 純粋ゲームロジック |
-| `game/` | 18 | 7,887 | 対局管理 |
-| `kifu/` | 31 | 10,282 | 棋譜管理（formatsを除く） |
-| `kifu/formats/` | 12 | 7,651 | フォーマット変換器 |
-| `engine/` | 20 | 5,709 | USIエンジン連携 |
-| `analysis/` | 14 | 3,564 | 解析機能 |
-| `network/` | 4 | 3,033 | CSA通信対局 |
-| `navigation/` | 4 | 953 | ナビゲーション |
-| `board/` | 8 | 1,536 | 盤面操作 |
-| `ui/presenters/` | 10 | 1,380 | MVPプレゼンター |
-| `ui/controllers/` | 20 | 3,466 | UIコントローラ |
-| `ui/wiring/` | 16 | 2,921 | シグナル/スロット接続 |
-| `ui/coordinators/` | 12 | 3,407 | UI調整 |
-| `views/` | 2 | 4,158 | 将棋盤描画 |
-| `widgets/` | 35 | 9,543 | カスタムウィジェット |
-| `dialogs/` | 32 | 11,427 | ダイアログ |
-| `models/` | 5 | 838 | Qtモデル |
-| `services/` | 8 | 2,151 | 横断サービス |
-| `common/` | 6 | 478 | 共有ユーティリティ |
-| **合計** | **279** | **約91,600** | |
+| `app/` | 68 | 9,067 | メインウィンドウ、エントリーポイント、レジストリ |
+| `core/` | 32 | 5,119 | 純粋ゲームロジック |
+| `game/` | 61 | 8,862 | 対局管理 |
+| `kifu/` | 54 | 7,772 | 棋譜管理（formatsを除く） |
+| `kifu/formats/` | 51 | 8,722 | フォーマット変換器 |
+| `engine/` | 32 | 5,436 | USIエンジン連携 |
+| `analysis/` | 40 | 5,951 | 解析機能 |
+| `network/` | 14 | 4,077 | CSA通信対局 |
+| `navigation/` | 5 | 1,040 | ナビゲーション |
+| `board/` | 8 | 1,285 | 盤面操作 |
+| `ui/`（直下） | 1 | 84 | 局面の差分（`sfendiffutils.h`） |
+| `ui/presenters/` | 13 | 1,897 | MVPプレゼンター |
+| `ui/controllers/` | 30 | 4,413 | UIコントローラ |
+| `ui/wiring/` | 37 | 5,197 | シグナル/スロット接続 |
+| `ui/coordinators/` | 22 | 3,762 | UI調整 |
+| `views/` | 19 | 4,220 | 将棋盤描画 |
+| `widgets/` | 82 | 12,644 | カスタムウィジェット |
+| `dialogs/` | 80 | 16,308 | ダイアログ |
+| `models/` | 5 | 788 | Qtモデル |
+| `services/` | 50 | 3,881 | 横断サービス・設定の宣言 |
+| `common/` | 31 | 2,440 | 共有ユーティリティ |
+| `automation/` | 34 | 3,979 | 自動化 API と、CLI と共有するサービス |
+| `cli/` | 11 | 1,206 | `shogiboardq-cli` |
+| **合計** | **780** | **約118,200** | |
 
 ### 1.7 リソース構成
 
@@ -1334,7 +1351,8 @@ class ConsiderationWiring : public QObject {
 public:
     struct Deps {
         QWidget* parentWidget = nullptr;
-        EngineAnalysisTab* analysisTab = nullptr;
+        ConsiderationTabManager* considerationTabManager = nullptr;
+        EngineInfoWidget* thinkingInfo1 = nullptr;
         ShogiView* shogiView = nullptr;
         MatchCoordinator* match = nullptr;
         DialogCoordinator* dialogCoordinator = nullptr;
@@ -1342,7 +1360,7 @@ public:
         UsiCommLogModel* commLogModel = nullptr;
         PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
-        std::function<void()> ensureDialogCoordinator;  // 遅延初期化コールバック
+        std::function<void()> ensureDialogCoordinator;  ///< DialogCoordinator 遅延初期化コールバック
     };
 
     explicit ConsiderationWiring(const Deps& deps, QObject* parent = nullptr);
@@ -1351,7 +1369,7 @@ public:
 };
 ```
 
-> **注目**: `std::function<void()> ensureDialogCoordinator` は遅延初期化コールバックである。Wiringクラスが自分では `ensureDialogCoordinator()` を呼べないため、MainWindow側の遅延初期化関数を `std::function` 経由で注入する。このパターンについては [4.3節](#43-hooksstdfunction-コールバックパターン) で詳述する。
+> **注目**: `std::function<void()> ensureDialogCoordinator` は遅延初期化コールバックである。Wiringクラスが自分では `ensureDialogCoordinator()` を呼べないため、レジストリ側の遅延初期化関数を `std::function` 経由で注入する。このパターンについては [4.3節](#43-hooksstdfunction-コールバックパターン) で詳述する。
 
 #### updateDeps() メソッドの実装
 
@@ -1363,7 +1381,8 @@ public:
 void ConsiderationWiring::updateDeps(const Deps& deps)
 {
     m_parentWidget = deps.parentWidget;
-    m_analysisTab = deps.analysisTab;
+    m_considerationTabManager = deps.considerationTabManager;
+    m_thinkingInfo1 = deps.thinkingInfo1;
     m_shogiView = deps.shogiView;
     m_match = deps.match;
     m_dialogCoordinator = deps.dialogCoordinator;
@@ -1394,7 +1413,7 @@ struct Deps {
     ShogiEngineThinkingModel*  think2 = nullptr; ///< エンジン2思考情報（非所有）
     Hooks                hooks;                  ///< UIコールバック群
     QStringList* sfenRecord = nullptr;           ///< SFEN履歴（非所有）
-    QList<ShogiMove>* gameMoves = nullptr;       ///< 指し手リスト（非所有）
+    QList<ShogiMove>* gameMoves = nullptr;       ///< 指し手リスト（非所有、外部共有用）
 };
 ```
 
@@ -1460,10 +1479,10 @@ Wiringクラスが内部で所有するコントローラにも同じパター�
 
 void ConsiderationWiring::ensureUIController()
 {
-    if (m_uiController) return;  // ガード
-
-    m_uiController = new ConsiderationModeUIController(this);
-    m_uiController->setAnalysisTab(m_analysisTab);
+    // 初回だけ作り、2回目以降（updateDeps から）は最新の部品を渡し直す
+    if (!m_uiController) m_uiController = new ConsiderationModeUIController(this);
+    m_uiController->setConsiderationTabManager(m_considerationTabManager);
+    m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
     m_uiController->setShogiView(m_shogiView);
     m_uiController->setMatchCoordinator(m_match);
     m_uiController->setConsiderationModel(m_considerationModel);
@@ -1471,9 +1490,9 @@ void ConsiderationWiring::ensureUIController()
 
     // コントローラからのシグナルを接続
     connect(m_uiController, &ConsiderationModeUIController::stopRequested,
-            this, &ConsiderationWiring::stopRequested);
-    connect(m_uiController, &ConsiderationModeUIController::startRequested,
-            this, &ConsiderationWiring::displayConsiderationDialog);
+            this, &ConsiderationWiring::handleStopRequest, Qt::UniqueConnection);
+    connect(m_uiController, &ConsiderationModeUIController::multiPVChangeRequested,
+            this, &ConsiderationWiring::onMultiPVChangeRequested, Qt::UniqueConnection);
 }
 ```
 
@@ -1493,20 +1512,21 @@ void ConsiderationWiring::displayConsiderationDialog()
 {
     // m_dialogCoordinator が未初期化の場合、コールバックで遅延初期化を実行
     if (!m_dialogCoordinator && m_ensureDialogCoordinator) {
-        m_ensureDialogCoordinator();  // MainWindow::ensureDialogCoordinator() が呼ばれる
+        m_ensureDialogCoordinator();  // MainWindowServiceRegistry::ensureDialogCoordinator() が呼ばれる
     }
     // ... 以降、m_dialogCoordinator を使用
 }
 ```
 
-MainWindow側で `Deps` を構築する際にコールバックをバインドする:
+レジストリ側で `Deps` を構築する際にコールバックをバインドする:
 
 ```cpp
-// MainWindow側
+// src/app/mainwindowanalysisregistry.cpp
 ConsiderationWiring::Deps deps;
 deps.ensureDialogCoordinator = [this]() {
     ensureDialogCoordinator();
-    // updateDeps() で最新のポインタを反映
+    if (m_mw.m_considerationWiring)
+        m_mw.m_considerationWiring->setDialogCoordinator(m_mw.m_dialogCoordinator);
 };
 ```
 
@@ -1582,7 +1602,7 @@ struct Deps {
 
 | クラス | ファイル | 責務 |
 |-------|---------|------|
-| `UiActionsWiring` | `ui/wiring/uiactionswiring.h` | メニュー/ツールバーのQAction→MainWindowスロット接続 |
+| `UiActionsWiring` | `ui/wiring/uiactionswiring.h` | メニュー/ツールバーのQActionを担当クラスのスロットへ接続（ファイル・対局・編集・表示の4つの子に分ける） |
 | `ConsiderationWiring` | `ui/wiring/considerationwiring.h` | 検討モードの開始/停止/設定変更フロー |
 | `CsaGameWiring` | `ui/wiring/csagamewiring.h` | CSA通信対局関連の接続 |
 | `PlayerInfoWiring` | `ui/wiring/playerinfowiring.h` | 対局者情報/エンジン名の設定と表示 |
@@ -1605,7 +1625,7 @@ Wiringクラス
 
 #### 実例: UiActionsWiring
 
-シンプルなWiringクラスの例。`wire()` メソッドで全接続を一括実行する:
+アクションの接続だけを行うWiringクラスの例。`wire()` が、メニューの種類ごとの子（`FileActionsWiring`・`GameActionsWiring`・`EditActionsWiring`・`ViewActionsWiring`）を初回だけ作り、それぞれの `wire()` を呼ぶ:
 
 ```cpp
 // src/ui/wiring/uiactionswiring.h
@@ -1614,43 +1634,43 @@ class UiActionsWiring : public QObject {
     Q_OBJECT
 public:
     struct Deps {
-        Ui::MainWindow* ui = nullptr;       ///< UIオブジェクト
-        ShogiView*      shogiView = nullptr; ///< 盤面ビュー
-        QObject*        ctx = nullptr;       ///< 受け側オブジェクト（MainWindow*）
+        Ui::MainWindow* ui = nullptr;           ///< UIオブジェクト
+        QObject*        ctx = nullptr;          ///< 受け側オブジェクト（MainWindow*）
+        DialogLaunchWiring* dlw = nullptr;      ///< ダイアログ起動配線
+        DialogCoordinatorWiring* dcw = nullptr; ///< DialogCoordinator配線（解析中止用）
+        KifuFileController* kfc = nullptr;      ///< 棋譜ファイル操作コントローラ
+        GameSessionOrchestrator* gso = nullptr; ///< 対局ライフサイクルオーケストレータ
+        // ... 外観・盤・評価値グラフ・棋譜エクスポートの取得関数
     };
 
-    explicit UiActionsWiring(const Deps& d, QObject* parent = nullptr);
+    explicit UiActionsWiring(Deps d, QObject* parent = nullptr);
 
-    /// 全アクションのシグナル/スロット接続を実行する
+    /// 全アクションのシグナル/スロット接続を実行する（多重接続を避けるため1回だけ呼ぶ）
     void wire();
 
 private:
     Deps m_d;
+    FileActionsWiring* m_fileWiring = nullptr;
+    GameActionsWiring* m_gameWiring = nullptr;
+    EditActionsWiring* m_editWiring = nullptr;
+    ViewActionsWiring* m_viewWiring = nullptr;
 };
 ```
 
 ```cpp
-// src/ui/wiring/uiactionswiring.cpp（抜粋）
+// src/ui/wiring/fileactionswiring.cpp（抜粋）
 
-void UiActionsWiring::wire()
+void FileActionsWiring::wire()
 {
-    auto* mw = qobject_cast<MainWindow*>(m_d.ctx);
-    auto* ui = m_d.ui;
-
-    // ファイル操作
-    QObject::connect(ui->actionQuit,        &QAction::triggered,
-                     mw, &MainWindow::saveSettingsAndClose, Qt::UniqueConnection);
-    QObject::connect(ui->actionOpenKifuFile,&QAction::triggered,
-                     mw, &MainWindow::chooseAndLoadKifuFile, Qt::UniqueConnection);
-    QObject::connect(ui->actionSaveAs,      &QAction::triggered,
-                     mw, &MainWindow::saveKifuToFile,       Qt::UniqueConnection);
-
-    // 対局操作
-    QObject::connect(ui->actionStartGame,   &QAction::triggered,
-                     mw, &MainWindow::initializeGame,       Qt::UniqueConnection);
-    QObject::connect(ui->actionResign,      &QAction::triggered,
-                     mw, &MainWindow::handleResignation,    Qt::UniqueConnection);
+    // ファイル/アプリ。MainWindow に残っているのは終了だけで、ほかは担当クラスへ直接つなぐ
+    QObject::connect(ui->actionQuit,         &QAction::triggered, mw,  &MainWindow::saveSettingsAndClose,          Qt::UniqueConnection);
+    QObject::connect(ui->actionSaveAs,       &QAction::triggered, kfc, &KifuFileController::saveKifuToFile,        Qt::UniqueConnection);
+    QObject::connect(ui->actionOpenKifuFile, &QAction::triggered, kfc, &KifuFileController::chooseAndLoadKifuFile, Qt::UniqueConnection);
 }
+
+// src/ui/wiring/gameactionswiring.cpp（抜粋）
+QObject::connect(ui->actionStartGame, &QAction::triggered, gso, &GameSessionOrchestrator::initializeGame,    Qt::UniqueConnection);
+QObject::connect(ui->actionResign,    &QAction::triggered, gso, &GameSessionOrchestrator::handleResignation, Qt::UniqueConnection);
 ```
 
 #### 実例: ConsiderationWiring（スロットを持つWiring）
@@ -4908,7 +4928,7 @@ QDockWidget
 
 #### フォントサイズの永続化
 
-A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。保存値が範囲外（宣言の既定値 0 を含む）のときは表の現在のフォントサイズ（10pt未満なら10pt）を使う。列幅は `AnalysisSettings::kifuAnalysisColumnWidths()` / `setKifuAnalysisColumnWidths()` で保存・復元し、ドックを閉じたときのサイズは `AnalysisSettings::kifuAnalysisResultsWindowSize` に保存する。
+A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。保存値が範囲外（宣言の既定値 0 を含む）のときは表の現在のフォントサイズ（10pt未満なら10pt）を使う。列幅は `AnalysisSettings::kifuAnalysisColumnWidths()` / `setKifuAnalysisColumnWidths()` で保存・復元する。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockSettings::kifuAnalysisResultsDockGeometry` などに保存し、起動時に `DockCreationService::restoreDockState()` が戻す。
 
 ### 9.9 KifuAnalysisListModel — 解析結果テーブルモデル
 
@@ -5333,7 +5353,7 @@ public:
 
 | Wiring | ソース | 接続する対象 | 概要 |
 |--------|--------|------------|------|
-| `UiActionsWiring` | `uiactionswiring.h` | QAction → MainWindow スロット | メニュー/ツールバーの全アクションを一括接続 |
+| `UiActionsWiring` | `uiactionswiring.h` | QAction → 担当クラスのスロット | メニュー/ツールバーの全アクションを、4つの子（ファイル・対局・編集・表示）で接続 |
 | `AnalysisTabWiring` | `analysistabwiring.h` | EngineAnalysisTab ↔ ThinkingModel | 解析タブの生成とモデル配線 |
 | `ConsiderationWiring` | `considerationwiring.h` | 検討ダイアログ ↔ MatchCoordinator ↔ ShogiView | 検討モード開始/停止/矢印表示の全フロー |
 | `CsaGameWiring` | `csagamewiring.h` | CsaGameCoordinator ↔ UI各部 | CSA通信対局のシグナル接続・解除 |
@@ -5346,16 +5366,15 @@ public:
 
 **ソース**: `src/ui/wiring/uiactionswiring.h`, `src/ui/wiring/uiactionswiring.cpp`
 
-`Ui::MainWindow` が持つ全ての `QAction`（ファイル操作、対局、盤操作、解析、表示など）を MainWindow のスロットに一括接続する。起動時に1回だけ `wire()` を呼び出す。
+`Ui::MainWindow` が持つ全ての `QAction`（ファイル操作、対局、盤操作、解析、表示など）を、担当するクラスのスロットに接続する。`MainWindowSignalRouter::connectAllActions()` が起動時に1回だけ作って `wire()` を呼ぶ。
 
 ```
 wire()
-  ├── actionOpen     → MainWindow::onOpenKifu
-  ├── actionSave     → MainWindow::onSaveKifu
-  ├── actionNewGame  → MainWindow::onNewGame
-  ├── actionZoomIn   → ShogiView::zoomIn
-  ├── actionZoomOut  → ShogiView::zoomOut
-  └── ... （数十のアクション）
+  ├── FileActionsWiring  → KifuFileController（開く・保存）、DialogLaunchWiring、MainWindow（終了）
+  ├── GameActionsWiring  → GameSessionOrchestrator（対局・投了・中断・再開）、DialogLaunchWiring、
+  │                        DialogCoordinatorWiring（棋譜解析の中止）、MainWindow（新規・局面編集）
+  ├── EditActionsWiring  → KifuExportController（棋譜・局面のコピー）、KifuFileController（貼り付け）
+  └── ViewActionsWiring  → MainWindowAppearanceController（盤の拡大・縮小・反転）、MainWindow（待った）など
 ```
 
 #### ConsiderationWiring — 検討モード配線
@@ -6852,9 +6871,9 @@ finishPositionEditing(context):
 
 | メソッド | 対応アクション | 動作 |
 |---------|-------------|------|
-| `resetPiecesToStand()` | 「全駒台へ」 | `resetAndEqualizePiecesOnStands()` を呼ぶ |
-| `setStandardStartPosition()` | 「平手初期配置」 | `initializeToFlatStartingPosition()` を呼ぶ |
-| `setTsumeShogiStartPosition()` | 「詰将棋初期配置」 | `shogiProblemInitialPosition()` を呼ぶ |
+| `resetPiecesToBox()` | 「全ての駒を駒箱へ」 | `ShogiView::returnAllPiecesToBox()` を呼ぶ |
+| `setStandardStartPosition()` | 「平手初期配置」 | `ShogiView::initializeToFlatStartingPosition()` を呼ぶ |
+| `setTsumeShogiStartPosition()` | 「詰将棋初期配置」 | `ShogiView::shogiProblemInitialPosition()` を呼ぶ |
 | `onToggleSideToMoveTriggered()` | 「手番切替」 | 先手 ⇔ 後手をトグル |
 
 各操作はメニューアクションのスロットとしても提供され、編集セッション中に保持した `m_view`/`m_gc`/`m_bic` を利用する。
@@ -6997,7 +7016,7 @@ MainWindow（ハブ / ファサード）
   └─ UI骨格の構築（ドック、タブ、ツールバー）
 ```
 
-この原則に基づき、当初 5,368 行あった `mainwindow.cpp` はリファクタリングにより約 4,500 行まで削減されている（詳細は [14.7節](#147-リファクタリング経緯) を参照）。
+この原則に基づき、当初 5,368 行あった `mainwindow.cpp` はリファクタリングにより約 170 行まで削減されている（2026-10-14 時点。詳細は [14.7節](#147-リファクタリング経緯) を参照）。
 
 ---
 
@@ -7036,7 +7055,7 @@ MainWindow（ハブ / ファサード）
 | `m_csaGameWiring` | `CsaGameWiring` | CSA 通信対局の UI 配線 |
 | `m_considerationWiring` | `ConsiderationWiring` | 検討モードの UI 配線 |
 | `m_playerInfoWiring` | `PlayerInfoWiring` | 対局者情報の UI 配線 |
-| `m_testHelper` | `TestAutomationHelper` | テスト自動化ヘルパー |
+| `m_matchWiring` | `MatchCoordinatorWiring` | 司令塔と `GameStartCoordinator` の生成・配線（両方を所有する） |
 | `m_dockCreationService` | `DockCreationService` | ドックウィジェット生成 |
 | `m_commentCoordinator` | `CommentCoordinator` | コメント機能の管理 |
 
@@ -7046,12 +7065,15 @@ MainWindow（ハブ / ファサード）
 
 | 変数 | クラス | 役割 |
 |------|--------|------|
-| `m_kifuRecordModel` | `KifuRecordListModel` | 棋譜レコードリスト |
-| `m_kifuBranchModel` | `KifuBranchListModel` | 分岐リスト |
-| `m_modelThinking1/2` | `ShogiEngineThinkingModel` | エンジン思考情報 |
-| `m_considerationModel` | `ShogiEngineThinkingModel` | 検討タブ専用モデル |
-| `m_analysisModel` | `KifuAnalysisListModel` | 棋譜解析結果 |
-| `m_gameRecord` | `GameRecordModel` | 棋譜データの中央管理 |
+| `m_models.kifuRecord` | `KifuRecordListModel` | 棋譜レコードリスト |
+| `m_models.kifuBranch` | `KifuBranchListModel` | 分岐リスト |
+| `m_models.thinking1/2` | `ShogiEngineThinkingModel` | エンジン思考情報 |
+| `m_models.consideration` | `ShogiEngineThinkingModel` | 検討タブ専用モデル |
+| `m_models.analysis` | `KifuAnalysisListModel` | 棋譜解析結果 |
+| `m_models.commLog1/2` | `UsiCommLogModel` | USI 通信ログ |
+| `m_models.gameRecord` | `GameRecordModel` | 棋譜データの中央管理 |
+
+モデルは `src/app/mainwindowstate.h` の `DataModels` にまとめて持つ。
 
 #### UI ウィジェット / ドック
 
@@ -7064,14 +7086,14 @@ MainWindow（ハブ / ファサード）
 | `m_recordPane` | 棋譜欄ウィジェット |
 | `m_analysisTab` | エンジン解析タブ |
 | `m_evalChart` | 評価値グラフ |
-| `m_evalChartDock` | 評価値グラフ用ドック |
-| `m_recordPaneDock` | 棋譜欄用ドック |
-| `m_gameInfoDock` | 対局情報ドック |
-| `m_thinkingDock` | 思考ドック |
-| `m_commentDock` | 棋譜コメントドック |
-| `m_branchTreeDock` | 分岐ツリードック |
+| `m_docks.evalChart` | 評価値グラフ用ドック |
+| `m_docks.recordPane` | 棋譜欄用ドック |
+| `m_docks.gameInfo` | 対局情報ドック |
+| `m_docks.thinking` | 思考ドック |
+| `m_docks.comment` | 棋譜コメントドック |
+| `m_docks.branchTree` | 分岐ツリードック |
 
-ドックウィジェットは合計 12 個あり、それぞれ `QDockWidget*` として保持される。
+ドックウィジェットは合計 12 個あり、`src/app/mainwindowstate.h` の `DockWidgets`（`m_docks`）に `QDockWidget*` としてまとめて持つ（ほかに検討・USI通信ログ・CSA通信ログ・メニューウィンドウ・定跡ウィンドウ・棋譜解析結果）。
 
 #### 分岐ナビゲーション
 
@@ -7156,62 +7178,15 @@ MainWindow::MainWindow()
 
 ### 14.5 委譲先クラスの詳細
 
-#### 14.5.1 TestAutomationHelper
+#### 14.5.1 AutomationServer（自動化 API）
 
-**ファイル**: `src/app/testautomationhelper.h/.cpp`
+**ファイル**: `src/automation/automationserver.h/.cpp`、`src/app/mainwindowautomationregistry.cpp`
 
-テスト自動化メソッドを MainWindow から分離したクラス。UI 操作のシミュレーションと状態検証を担当する。
+`ShogiBoardQ --automation` で起動したときだけ、`MainWindowServiceRegistry::ensureAutomationServer()` が作る（親は MainWindow）。`QLocalServer` で改行区切りの JSON-RPC 2.0 を待ち受け、局面・棋譜・UI の操作を外部から行えるようにする。MCP サーバー（`mcp/`）と GUI のテスト（`tests/gui/`）がこれを使う。
 
-**提供機能**:
-- UI 操作シミュレーション: `navigateToPly()`, `clickBranchCandidate()`, `clickNextButton()` 等
-- 対局シミュレーション: `startTestGame()`, `makeTestMove()`
-- 状態検証: `dumpTestState()`, `verify4WayConsistency()`, `verifyBranchTreeNodeCount()`
+部品は `AutomationContext` に詰めて渡し、メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。設計は [MCP サーバーの設計](mcp-server.md) を参照。
 
-**std::function コールバックパターン**:
-
-TestAutomationHelper は MainWindow の内部機能（対局開始前クリーンアップ、LiveGameSession の起動）にアクセスする必要がある。直接依存を避けるため、`Deps` 構造体に `std::function` コールバックを含める設計となっている。
-
-```cpp
-// TestAutomationHelper::Deps（抜粋）
-struct Deps {
-    // ... 各種ポインタ ...
-    std::function<void()> performCleanup;              // クリーンアップ処理
-    std::function<void()> ensureLiveGameSessionStarted; // セッション起動
-};
-```
-
-MainWindow 側でコールバックを設定する:
-
-```cpp
-// ensureTestAutomationHelper() 内
-deps.performCleanup = [this]() {
-    ensurePreStartCleanupHandler();
-    if (m_preStartCleanupHandler != nullptr) {
-        m_preStartCleanupHandler->performCleanup();
-    }
-};
-deps.ensureLiveGameSessionStarted = [this]() {
-    ensureLiveGameSessionStarted();
-};
-```
-
-TestAutomationHelper 側では、MainWindow を一切知らずにコールバック経由で必要な処理を呼び出す:
-
-```cpp
-// startTestGame() 内
-if (m_deps.performCleanup) {
-    m_deps.performCleanup();
-}
-```
-
-```cpp
-// makeTestMove() 内
-if (!m_deps.liveGameSession->isActive()) {
-    if (m_deps.ensureLiveGameSessionStarted) {
-        m_deps.ensureLiveGameSessionStarted();
-    }
-}
-```
+> 以前は MainWindow から切り出した `TestAutomationHelper`（`startTestGame()`・`makeTestMove()` など）があったが、2026-02-08 に削除した。外部からアプリを操作するときは、今はこの自動化 API を使う。
 
 #### 14.5.2 DockCreationService
 
@@ -7262,32 +7237,27 @@ m_dockCreationService->setRecordPane(m_recordPane);
 CommentCoordinator は `GameRecordModel` が必要になることがあるが、`GameRecordModel` は遅延生成される。この問題を解決するため、`ensureGameRecordModelRequested` シグナルを定義し、MainWindow 側で接続する。
 
 ```cpp
-// ensureCommentCoordinator() 内
-connect(m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
-        this, &MainWindow::ensureGameRecordModel);
+// MainWindowFoundationRegistry::ensureCommentCoordinator() 内
+connect(m_mw.m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
+        m_serviceRegistry->kifu(), &KifuSubRegistry::ensureGameRecordModel, Qt::UniqueConnection);
 ```
 
-CommentCoordinator は `GameRecordModel` の生成方法を知らないが、シグナル発行により MainWindow 側の `ensure*()` を間接的に呼び出せる。
+CommentCoordinator は `GameRecordModel` の生成方法を知らないが、シグナル発行によりレジストリの `ensure*()` を間接的に呼び出せる。
 
 ---
 
 ### 14.6 MainWindow のスロット構造
 
-MainWindow のスロットは以下のカテゴリに分類される。
+MainWindow が受けるのは、ほかの部品から呼ばれる少数の公開メソッドと、3つの private スロットだけである。どれも `MainWindowServiceRegistry` などへ委譲する短い関数である。
 
-| カテゴリ | 代表的なスロット | 接続元 |
-|----------|-----------------|--------|
-| ファイル I/O | `chooseAndLoadKifuFile()`, `saveKifuToFile()` | メニューアクション |
-| 対局制御 | `initializeGame()`, `handleResignation()` | メニューアクション / GameStartCoordinator |
-| 対局終了 | `onMatchGameEnded()`, `onGameOverStateChanged()` | MatchCoordinator |
-| ナビゲーション | `disableArrowButtons()`, `enableArrowButtons()` | GameStartCoordinator / GameStateController 等 |
-| 棋譜同期 | `onMoveCommitted()`, `displayGameRecord()` | ShogiGameController / RecordPresenter |
-| 分岐ナビゲーション | `onBranchNodeActivated()`, `onLineSelectionChanged()` | BranchTreeManager |
-| CSA 通信 | `onCsaPlayModeChanged()`, `onCsaShowGameEndDialog()` | CsaGameWiring |
-| テスト自動化 | `startTestGame()`, `makeTestMove()` | 外部テストスクリプト |
-| ダイアログ | `displayEngineSettingsDialog()`, `displayCsaGameDialog()` | メニューアクション |
+| カテゴリ | メソッド | 接続元 |
+|----------|---------|--------|
+| メニュー操作 | `resetToInitialState()`、`beginPositionEditing()`、`finishPositionEditing()`、`undoLastTwoMoves()`、`saveSettingsAndClose()` | `GameActionsWiring`・`ViewActionsWiring`・`FileActionsWiring`（`UiActionsWiring` の子） |
+| 盤の操作 | `onMoveRequested()`、`onMoveCommitted()` | `MainWindowSignalRouter`、`KifuSubRegistry` |
+| 棋譜欄と盤の同期 | `onRecordPaneMainRowChanged()`、`loadBoardWithHighlights()`、`setCurrentTurn()`、`updateJosekiWindow()`、`displayGameRecord()` | `RecordPaneWiring`・`RecordNavigationWiring`・`BranchNavigationWiring`・`KifuLoadCoordinator` |
+| private スロット | `onTurnManagerChanged()`、`setReplayMode()`、`loadBoardFromSfen()` | `TurnManager`（`TurnSyncBridge`）、`GameStateController` のフック、`BranchNavigationWiring` |
 
-ナビゲーション関連のスロット（`enableArrowButtons()`, `disableArrowButtons()` 等）は、CsaGameWiring、GameStartCoordinator、GameStateController、KifuLoadCoordinator など多数のクラスからシグナル接続されているため、他クラスへの移譲が困難である。
+ファイルの読み書き・対局・ダイアログなど、ほとんどのメニュー操作は MainWindow を経由しない。`UiActionsWiring` の子（`FileActionsWiring` など）が、担当するクラス（`KifuFileController`・`GameSessionOrchestrator`・`DialogLaunchWiring` など）のスロットへ直接つなぐ。矢印ボタンなどの有効・無効は `UiStatePolicyManager` が状態ごとに決める（[UI状態ポリシー](ui-state-policy.md)）。
 
 ---
 
@@ -7302,15 +7272,16 @@ MainWindow は段階的にリファクタリングされ、ロジックが専用
 | リファクタリング前 | 5,368 行 | 765 行 |
 | 第1次完了後 | 4,388 行 | 721 行 |
 | 第2次完了後 | 約 4,180 行 | 725 行 |
-| 現在 | 約 4,550 行 | 849 行 |
+| 委譲の完了後（Task 65） | 379 行 | 545 行 |
+| 現在（2026-10-14） | 171 行 | 238 行 |
 
-> 現在の行数が増加しているのは、新機能追加（分岐ナビゲーション強化、コメント機能等）による。リファクタリングによる削減がなければさらに大きくなっていた。
+部品の生成と依存の更新は `MainWindowServiceRegistry`（`gamesubregistry*.cpp`・`mainwindow*registry.cpp`）と `MainWindowFoundationRegistry`・`KifuSubRegistry` に移り、MainWindow には委譲するだけの短い関数が残っている。
 
 #### 主な移譲先と内容
 
 | 移譲先クラス | 移譲された責務 |
 |-------------|---------------|
-| `TestAutomationHelper` | `startTestGame()`, `makeTestMove()` 等のテスト自動化メソッド |
+| `MainWindowServiceRegistry` ほか | `ensure*()` による部品の生成と依存の更新、主要な操作 |
 | `DockCreationService` | ドックウィジェットの生成・設定復元・メニュー登録 |
 | `CommentCoordinator` | `broadcastComment()`, コメント更新・同期処理 |
 | `ConsiderationWiring` | 検討モードの UI 配線（ダイアログ↔エンジン間の接続） |
@@ -7325,7 +7296,7 @@ MainWindow は段階的にリファクタリングされ、ロジックが専用
 1. **ラッパーメソッドの除去**: MainWindow が単にメソッド呼び出しを中継するだけのラッパーは、`connect()` を委譲先クラスへ直接接続することで削除
 2. **デッドコードの除去**: どのシグナルにも接続されておらず、直接呼び出しもないスロットを特定して削除
 3. **コールバックによる間接呼び出し**: 委譲先クラスが MainWindow の `ensure*()` を呼ぶ必要がある場合、`std::function` コールバックを Deps に含めて解決
-4. **移譲しにくいメソッドの温存**: `enableArrowButtons()` のように多数のクラスから `connect()` のスロットターゲットとして使われているメソッドは、移譲コストが高いため現状維持
+4. **状態表による UI の有効・無効**: 以前は `enableArrowButtons()` などを多数のクラスから MainWindow へつないでいたが、`UiStatePolicyManager` の状態表に置き換えて MainWindow から削除した
 
 <!-- chapter-14-end -->
 
@@ -7709,7 +7680,7 @@ sequenceDiagram
 <!-- chapter-16-start -->
 ## 第16章 国際化（i18n）と翻訳
 
-ShogiBoardQは日本語と英語の2言語をサポートしている。本章ではQtの国際化フレームワークを活用した翻訳の仕組みと、実行時の言語切替メカニズムについて解説する。
+ShogiBoardQは日本語・英語・簡体字中国語・繁体字中国語の4言語をサポートしている（原文は日本語）。本章ではQtの国際化フレームワークを活用した翻訳の仕組みと、実行時の言語切替メカニズムについて解説する。
 
 ### 16.1 翻訳ワークフローの全体像
 
@@ -7725,7 +7696,7 @@ ShogiBoardQは日本語と英語の2言語をサポートしている。本章�
 │            │                                                    │
 │            ▼                                                    │
 │  ② lupdate（文字列抽出）                                         │
-│      lupdate src -ts resources/translations/*.ts                │
+│      cmake --build build --target update_translations          │
 │            │                                                    │
 │            ▼                                                    │
 │  ③ .ts ファイル編集（XML形式）                                    │
@@ -7733,7 +7704,7 @@ ShogiBoardQは日本語と英語の2言語をサポートしている。本章�
 │            │                                                    │
 │            ▼                                                    │
 │  ④ lrelease / cmake ビルド（バイナリ変換）                        │
-│      qt_create_translation() が .ts → .qm を自動生成             │
+│      qt_add_translation() が .ts → .qm を生成                   │
 │            │                                                    │
 │            ▼                                                    │
 │  ⑤ .qm ファイル（コンパクトなバイナリ翻訳）                       │
@@ -7747,7 +7718,7 @@ ShogiBoardQは日本語と英語の2言語をサポートしている。本章�
 | ステップ | ツール/ファイル | 役割 |
 |----------|----------------|------|
 | ① `tr()` | ソースコード中のマクロ | 翻訳対象の文字列をマーク |
-| ② `lupdate` | Qt Linguist ツール | ソースから `.ts` ファイルへ文字列を抽出・同期 |
+| ② `lupdate` | `update_translations` ターゲット | ソースから `.ts` ファイルへ文字列を抽出・同期（明示的に実行する） |
 | ③ `.ts` 編集 | テキストエディタ or Qt Linguist | 翻訳テキストを入力 |
 | ④ `lrelease` | CMakeビルド時に自動実行 | `.ts` → `.qm` バイナリ変換 |
 | ⑤ `.qm` ロード | `QTranslator` + `QApplication` | 実行時に翻訳を適用 |
@@ -7758,8 +7729,12 @@ ShogiBoardQは日本語と英語の2言語をサポートしている。本章�
 
 | ファイル | 言語 |
 |---------|------|
-| `ShogiBoardQ_ja_JP.ts` | 日本語 |
+| `ShogiBoardQ_ja_JP.ts` | 日本語（原文と同じ訳を入れる） |
 | `ShogiBoardQ_en.ts` | 英語 |
+| `ShogiBoardQ_zh_CN.ts` | 簡体字中国語 |
+| `ShogiBoardQ_zh_TW.ts` | 繁体字中国語（台湾の用語） |
+
+4言語とも未翻訳（`type="unfinished"`）を0件に保つ。CI の `translation-check` ジョブは、未翻訳の数が `resources/translations/baseline-unfinished.txt` から増えると失敗する。`tst_translation_files` は、4言語のカタログ（原文の集合）とプレースホルダー（`%1` など）が揃っているかを確かめる。
 
 #### .ts ファイルのXML構造
 
@@ -7811,100 +7786,98 @@ ShogiBoardQは日本語と英語の2言語をサポートしている。本章�
 set(TS_FILES
     resources/translations/ShogiBoardQ_ja_JP.ts
     resources/translations/ShogiBoardQ_en.ts
+    resources/translations/ShogiBoardQ_zh_CN.ts
+    resources/translations/ShogiBoardQ_zh_TW.ts
 )
 
-# .qm 生成（src ディレクトリのみをスキャン対象とする）
-qt_create_translation(QM_FILES
-    ${CMAKE_SOURCE_DIR}/src
-    ${TS_FILES}
-)
-
-# .qm ファイルをビルドターゲットとして追加
+# .qm 生成（lrelease のみ。ソースのスキャンはしない）
+qt_add_translation(QM_FILES ${TS_FILES})
 add_custom_target(translations ALL DEPENDS ${QM_FILES})
 add_dependencies(ShogiBoardQ translations)
+
+# lupdate（ソースから .ts を更新）は明示的に実行する
+add_custom_target(update_translations
+    COMMAND Qt6::lupdate ${CMAKE_SOURCE_DIR}/src -ts ${TS_FILES}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # .qm ファイルを実行可能ファイルと同じディレクトリにコピー
 foreach(QM_FILE ${QM_FILES})
     add_custom_command(TARGET ShogiBoardQ POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${QM_FILE}
-            $<TARGET_FILE_DIR:ShogiBoardQ>
-    )
+            $<TARGET_FILE_DIR:ShogiBoardQ>)
 endforeach()
+
+# Qt 標準ダイアログの翻訳（qtbase_ja / zh_CN / zh_TW）をリソースに同梱する
+qt_add_resources(ShogiBoardQ qt_dialog_translations PREFIX "/translations/qt" ...)
 ```
 
 ポイント:
 
-- `qt_create_translation()` は `lupdate` と `lrelease` の両方を内部で呼び出す
-- スキャン対象を `${CMAKE_SOURCE_DIR}/src` に限定することで、`build/` 配下の autogen ファイルとの循環依存を回避している
+- 通常のビルドは `lrelease` だけを行う。ソースの `tr()` を `.ts` に反映するには `update_translations` ターゲットを実行する
+- `lupdate` のスキャン対象を `${CMAKE_SOURCE_DIR}/src` に限定することで、`build/` 配下の autogen ファイルを拾わない
 - 生成された `.qm` ファイルはビルド後に実行ファイルと同じディレクトリへコピーされる
+- Qt 標準ダイアログ（ファイル選択など）の翻訳は、配布スクリプトが落としても使えるよう `:/translations/qt/` に埋め込む
 
 ### 16.4 起動時の翻訳ロード
 
-`main.cpp` でアプリケーション起動時に翻訳ファイルがロードされる。`AppSettings::language`（`General/language`）に保存された言語設定に基づいて、適切な `.qm` ファイルを選択する。
+`main.cpp` は `QApplication` を作った直後、ウィジェットを作る前に `ApplicationTranslations`（`src/services/applicationtranslations.h/.cpp`）を作り、終了処理まで持っておく。`ApplicationTranslations` は `AppSettings::language`（`General/language`）を読み、言語を1つに決めて翻訳を読み込む。
 
 ```
-┌─────────────────────────────────────────────┐
-│            翻訳ロードのフロー                  │
-├─────────────────────────────────────────────┤
-│                                             │
-│  AppSettings::language() で設定値を取得        │
-│         │                                   │
-│         ├── "ja_JP"                          │
-│         │     └→ ShogiBoardQ_ja_JP.qm ロード │
-│         │                                   │
-│         ├── "en"                             │
-│         │     └→ ShogiBoardQ_en.qm ロード    │
-│         │                                   │
-│         └── "system"（デフォルト）             │
-│               └→ QLocale::system() から       │
-│                  ロケールを判定し自動選択       │
-│                                             │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│               翻訳ロードのフロー                            │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  AppSettings::language() で設定値を取得                     │
+│         │  "system" ならシステムの UI 言語の先頭を使う         │
+│         ▼                                                │
+│  KifuPresentation::resolveLanguage()                     │
+│         ├── 日本語 → "ja_JP"                               │
+│         ├── 中国語 → 繁体字なら "zh_TW"、それ以外は "zh_CN"   │
+│         └── それ以外 → "en"                                │
+│         │                                                │
+│         ├→ Qt 標準ダイアログ: qtbase_<言語>.qm               │
+│         │   （:/translations/qt/ → Qt の翻訳ディレクトリ）     │
+│         ├→ アプリ: ShogiBoardQ_<言語>.qm                    │
+│         │   （実行ファイルと同じディレクトリ）                  │
+│         └→ 棋譜表記の設定: KifuPresentation::configure()     │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-`main.cpp` の該当部分（簡略化）:
+`main.cpp` の該当部分（抜粋）:
 
 ```cpp
-QTranslator translator;
-QString langSetting = AppSettings::language();  // "system", "ja_JP", "en"
+// 終了時の設定初期化メッセージも翻訳できるよう、このスコープで保持する。
+const ApplicationTranslations translations;
 
-if (langSetting == "ja_JP") {
-    // 日本語を明示的にロード
-    loaded = translator.load(":/i18n/ShogiBoardQ_ja_JP");
-    if (!loaded)
-        loaded = translator.load(appDir + "/ShogiBoardQ_ja_JP.qm");
-    if (loaded)
-        a.installTranslator(&translator);
-
-} else if (langSetting == "en") {
-    // 英語翻訳をロード
-    loaded = translator.load(":/i18n/ShogiBoardQ_en");
-    if (!loaded)
-        loaded = translator.load(appDir + "/ShogiBoardQ_en.qm");
-    if (loaded)
-        a.installTranslator(&translator);
-
-} else {
-    // "system": システムロケールに従い自動選択
-    for (const QString &locale : QLocale::system().uiLanguages()) {
-        const QString baseName = "ShogiBoardQ_" + QLocale(locale).name();
-        if (translator.load(":/i18n/" + baseName)) {
-            a.installTranslator(&translator);
-            break;
-        }
-    }
-}
+configureApplicationAppearance(a, translations.language());  // フォントも言語に合わせる
 ```
 
-翻訳ファイルの読み込みは2段階のフォールバックで行われる:
+`ApplicationTranslations` のコンストラクタ（抜粋）:
 
-1. **Qtリソースシステム** (`:/i18n/...`) — `.qrc` に埋め込まれている場合
-2. **ファイルシステム** (実行ファイルと同じディレクトリ) — ビルド時にコピーされた `.qm` ファイル
+```cpp
+m_language = KifuPresentation::resolveLanguage(AppSettings::language(), systemLanguage);
+
+// Qt 標準ダイアログの翻訳（日本語は "ja"）
+const QString qtLanguage = m_language == QStringLiteral("ja_JP") ? QStringLiteral("ja") : m_language;
+if (m_qtTranslator.load(":/translations/qt/qtbase_" + qtLanguage + ".qm")
+    || m_qtTranslator.load("qtbase_" + qtLanguage, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+    QCoreApplication::installTranslator(&m_qtTranslator);
+
+// アプリの翻訳
+if (m_appTranslator.load(directory.filePath("ShogiBoardQ_" + m_language + ".qm")))
+    QCoreApplication::installTranslator(&m_appTranslator);
+
+// 棋譜の表記（漢数字か英字か、など）は言語と表記の設定から決める
+KifuPresentation::configure(m_language, AppSettings::moveNotation(), AppSettings::notationOrigin());
+```
+
+言語は日本語・英語・簡体字・繁体字のいずれかに必ず決まる。日本語のときも `ShogiBoardQ_ja_JP.qm` を読み込む（訳は原文と同じ）。`QTranslator` は `ApplicationTranslations` のメンバなので、破棄するとアプリケーションへの登録も外れる。
 
 ### 16.5 LanguageController: 実行時言語切替
 
-LanguageControllerは、メニューからの言語選択をハンドリングし、設定の保存と再起動の案内を行うコントローラである。
+LanguageControllerは、メニューからの言語と棋譜表記の選択をハンドリングし、設定の保存と再起動の案内を行うコントローラである。
 
 **ファイル**: `src/ui/controllers/languagecontroller.h`, `src/ui/controllers/languagecontroller.cpp`
 
@@ -7913,23 +7886,32 @@ LanguageControllerは、メニューからの言語選択をハンドリング�
 ```
 LanguageController (QObject)
 ├── メンバ
-│   ├── m_actionGroup: QActionGroup*    排他選択グループ
-│   ├── m_systemAction: QAction*        「システム言語」メニュー項目
-│   ├── m_japaneseAction: QAction*      「日本語」メニュー項目
-│   ├── m_englishAction: QAction*       「英語」メニュー項目
-│   └── m_parentWidget: QWidget*        ダイアログ表示用の親ウィジェット
+│   ├── m_actionGroup: QActionGroup*      言語の排他選択グループ
+│   ├── m_systemAction: QAction*          「システム言語」メニュー項目
+│   ├── m_japaneseAction: QAction*        「日本語」メニュー項目
+│   ├── m_englishAction: QAction*         「英語」メニュー項目
+│   ├── m_simplifiedAction: QAction*      「简体中文」メニュー項目
+│   ├── m_traditionalAction: QAction*     「繁體中文」メニュー項目
+│   ├── m_notationGroup: QActionGroup*    棋譜表記（言語に合わせる・日本語表記・英語表記）の排他選択グループ
+│   └── m_parentWidget: QWidget*          ダイアログ表示用の親ウィジェット
 ├── public メソッド
-│   ├── setActions()                    メニューアクションの登録
-│   ├── setParentWidget()               親ウィジェットの設定
-│   └── updateMenuState()               現在の設定でチェック状態を更新
+│   ├── setActions()                      言語のメニューアクションの登録
+│   ├── setNotationActions()              棋譜表記のメニューアクションの登録
+│   ├── setParentWidget()                 親ウィジェットの設定
+│   └── updateMenuState()                 現在の設定でチェック状態を更新
 ├── public slots
-│   ├── onSystemLanguageTriggered()     「システム言語」選択時
-│   ├── onJapaneseTriggered()           「日本語」選択時
-│   └── onEnglishTriggered()            「英語」選択時
-├── signals
-│   └── languageChanged(const QString&) 言語変更通知
+│   ├── onSystemLanguageTriggered()       「システム言語」選択時
+│   ├── onJapaneseTriggered()             「日本語」選択時
+│   └── onEnglishTriggered()              「英語」選択時
+├── private slots
+│   ├── onChineseSimplifiedTriggered()    「简体中文」選択時
+│   ├── onChineseTraditionalTriggered()   「繁體中文」選択時
+│   ├── onNotationTriggered(QAction*)     棋譜表記の選択時
+│   ├── onOriginTriggered(bool)           「英語表記で移動元を常に表示」の切り替え時
+│   └── showNotationHelp()                棋譜表記の読み方を表示
 └── private メソッド
-    └── changeLanguage(const QString&)  設定保存＋通知
+    ├── changeLanguage(const QString&)    設定保存＋再起動の案内
+    └── restartNotice()                   再起動の案内ダイアログ
 ```
 
 #### 言語切替のシーケンス
@@ -7948,38 +7930,42 @@ sequenceDiagram
     LC->>SS: language() で現在値を確認
     SS-->>LC: "system"（変更前の値）
     LC->>SS: language.set("ja_JP")
-    LC->>MB: information("再起動してください")
+    LC->>MB: information("再起動してください")（restartNotice）
     MB-->>User: ダイアログ表示
-    LC-->>LC: emit languageChanged("ja_JP")
     LC->>LC: updateMenuState()
     LC->>Menu: 「日本語」にチェックマーク
 ```
 
 重要な設計上のポイント:
 
-- **再起動が必要**: 言語変更は即座には反映されない。`QTranslator` のロードは `main.cpp` の起動時に行われるため、変更を反映するにはアプリケーションの再起動が必要
-- **排他選択**: `QActionGroup` により、3つの言語オプション（システム/日本語/英語）は常に1つだけが選択される
+- **再起動が必要**: 言語と棋譜表記の変更は即座には反映されない。翻訳と棋譜表記は起動時に `ApplicationTranslations` が決めるため、変更を反映するにはアプリケーションの再起動が必要
+- **排他選択**: `QActionGroup` により、5つの言語オプション（システム/日本語/英語/简体中文/繁體中文）は常に1つだけが選択される
 - **同一言語の再選択を無視**: `changeLanguage()` は現在の設定と同じ値が指定された場合、何もしない
 
 #### MainWindowとの統合
 
-LanguageControllerはMainWindowの `ensureLanguageController()` で遅延生成される。
+LanguageControllerは `MainWindowFoundationRegistry::ensureLanguageController()` で生成される（起動の最終段で呼ばれる）。
 
 ```cpp
-void MainWindow::ensureLanguageController()
+void MainWindowFoundationRegistry::ensureLanguageController()
 {
-    if (m_languageController) return;
+    if (m_mw.m_languageController) return;
 
-    m_languageController = new LanguageController(this);
-    m_languageController->setParentWidget(this);
-    m_languageController->setActions(
-        ui->actionLanguageSystem,
-        ui->actionLanguageJapanese,
-        ui->actionLanguageEnglish);
+    m_mw.m_languageController = std::make_unique<LanguageController>();
+    m_mw.m_languageController->setParentWidget(&m_mw);
+    m_mw.m_languageController->setActions(
+        m_mw.ui->actionLanguageSystem,
+        m_mw.ui->actionLanguageJapanese,
+        m_mw.ui->actionLanguageEnglish,
+        m_mw.ui->actionLanguageChineseSimplified,
+        m_mw.ui->actionLanguageChineseTraditional);
+    m_mw.m_languageController->setNotationActions(
+        m_mw.ui->actionNotationAuto, m_mw.ui->actionNotationJapanese,
+        m_mw.ui->actionNotationWestern, m_mw.ui->actionNotationOrigin, m_mw.ui->actionNotationHelp);
 }
 ```
 
-`setActions()` の内部で各アクションの `triggered` シグナルと対応するスロットが接続されるため、MainWindow側での追加的な `connect()` は不要である。
+`setActions()`・`setNotationActions()` の内部で各アクションの `triggered` シグナルと対応するスロットが接続されるため、呼び出し側での追加的な `connect()` は不要である。
 
 ### 16.6 AppSettingsによる言語設定の永続化
 
@@ -8017,14 +8003,14 @@ QMessageBox::information(this,
 #### ステップ2: `lupdate` で翻訳ファイルを更新
 
 ```bash
-lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
+cmake --build build --target update_translations
 ```
 
-このコマンドにより、新しい `tr()` 文字列が `.ts` ファイルに `type="unfinished"` として追加される。既存の翻訳は保持される。
+このコマンドにより、新しい `tr()` 文字列が4言語の `.ts` ファイルに `type="unfinished"` として追加される。既存の翻訳は保持される。
 
 #### ステップ3: `.ts` ファイルを編集して翻訳を入力
 
-日本語が原文の場合、英語翻訳ファイル（`ShogiBoardQ_en.ts`）に翻訳を追加する:
+日本語が原文の場合、英語・簡体字・繁体字（`ShogiBoardQ_en.ts`・`ShogiBoardQ_zh_CN.ts`・`ShogiBoardQ_zh_TW.ts`）に翻訳を追加し、`ShogiBoardQ_ja_JP.ts` には原文と同じ文字列を訳として入れる。英語の例:
 
 ```xml
 <message>
@@ -8037,7 +8023,13 @@ lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translatio
 </message>
 ```
 
-翻訳を入力したら `type="unfinished"` 属性を削除する（または Qt Linguist で翻訳済みにマークする）。
+翻訳を入力したら `type="unfinished"` 属性を削除する（または Qt Linguist で翻訳済みにマークする）。4言語とも未翻訳が0件になったことを確かめる。
+
+```bash
+grep -c 'type="unfinished"' resources/translations/*.ts
+```
+
+`%n` の複数形（`<numerusform>`）は使わない。`tst_translation_files` が訳を空と判定する。件数は `%2` などの通常の引数で渡す。
 
 #### ステップ4: ビルドして .qm を生成
 
@@ -8045,7 +8037,7 @@ lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translatio
 cmake --build build
 ```
 
-CMakeの `qt_create_translation()` が自動的に `lrelease` を実行し、`.ts` → `.qm` の変換が行われる。
+CMakeの `qt_add_translation()` が `lrelease` を実行し、`.ts` → `.qm` の変換が行われる。
 
 #### ステップ5: 動作確認
 
@@ -8121,6 +8113,10 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 │
 ├─ 設定・永続化・横断サービス ──→ src/services/
 │
+├─ 自動化 API、CLI と共有する GUI 非依存のサービス ──→ src/automation/
+│
+├─ CLI（shogiboardq-cli）のコマンド ──→ src/cli/
+│
 └─ 共通ユーティリティ ──→ src/common/
 ```
 
@@ -8134,7 +8130,7 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 | `KifuTagWiring` | MainWindowとタグUIの接続 | `src/ui/wiring/` |
 | `KifuTagDialog` | タグ編集ダイアログのUI | `src/dialogs/` |
 
-> **ポイント**: ヘッダファイル（`.h`）は対応するソースファイル（`.cpp`）と同じディレクトリに配置する。CMakeの `GLOB_RECURSE` によって `src/` 配下のソースファイルは自動的にビルド対象に含まれるため、`CMakeLists.txt` の変更は不要である。
+> **ポイント**: ヘッダファイル（`.h`）は対応するソースファイル（`.cpp`）と同じディレクトリに配置する。ソースファイルは `CMakeLists.txt` に列挙しているので、配置先に対応する `SRC_*`（例: `src/models/` なら `SRC_MODELS`）に `.cpp` と `.h` を書き足す（[1.4節](#14-cmakeビルド構成の概要)）。
 
 ### 17.2 Deps構造体を持つ新クラスの作成
 
@@ -8186,14 +8182,14 @@ public:
     void updateDeps(const Deps& deps);
 
 public slots:
-    /// タグ編集ダイアログを表示する（MainWindow::actionEditTags に接続）
+    /// タグ編集ダイアログを表示する（actionEditTags に接続）
     void showTagEditDialog();
 
     /// タグが変更されたときの処理（KifuTagModel::tagsChanged に接続）
     void onTagsChanged();
 
 signals:
-    /// タグ変更の保存を要求する（→ MainWindow）
+    /// タグ変更の保存を要求する（→ KifuFileController::overwriteKifuFile）
     void saveRequested();
 
 private:
@@ -8273,72 +8269,96 @@ void KifuTagWiring::onTagsChanged()
 | **ファイルヘッダー** | `@file` と `@brief` の2行（commenting-style-guide.md §2） |
 | **クラスコメント** | `@brief` + 責務の箇条書き（commenting-style-guide.md §3） |
 
-### 17.3 MainWindowにensure*()メソッドを追加
+### 17.3 レジストリにensure*()メソッドを追加
 
-MainWindowの遅延初期化パターンに従い、新しいWiringクラスのインスタンス化を行う。
+部品の生成と依存の設定は、MainWindow ではなくレジストリで行う。MainWindow には `ensure*()` を置かない（`tst_structural_kpi` の `mainWindowEnsureLimit` が 0 個であることを確かめる）。どのレジストリに足すかは [レジストリ境界仕様](registry-boundary.md) に従う。棋譜タグは棋譜系なので `KifuSubRegistry` に足す。
 
-#### 1. mainwindow.h にメンバーとメソッドを宣言
+#### 1. mainwindow.h にメンバーを宣言
 
 ```cpp
-// src/app/mainwindow.h に追加
+// src/app/mainwindow.h に追加（レジストリは MainWindow の friend なので private に置く）
 
 private:
     // --- 棋譜タグ ---
     KifuTagWiring* m_kifuTagWiring = nullptr;
-
-    void ensureKifuTagWiring();
+    KifuTagModel* m_kifuTagModel = nullptr;
 ```
 
 > **ポイント**: 前方宣言 `class KifuTagWiring;` をヘッダ冒頭の前方宣言セクションに追加する。`#include` ではなく前方宣言を使うことで、ヘッダの依存関係を最小化する。
 
-#### 2. mainwindow.cpp に ensure*() を実装
+#### 2. レジストリに ensure*() を宣言・実装
+
+依存の更新が要る部品は、生成（`create*`）と依存の更新（`refresh*Deps`）に分ける（[レジストリ境界仕様](registry-boundary.md) の「ensure* の2段構造パターン」）。
 
 ```cpp
-// src/app/mainwindow.cpp に追加
+// src/app/kifusubregistry.h に追加
+public:
+    void ensureKifuTagWiring();
+    void refreshKifuTagWiringDeps();
+private:
+    void createKifuTagWiring();
+```
 
-void MainWindow::ensureKifuTagWiring()
+```cpp
+// src/app/kifusubregistry.cpp に追加
+
+void KifuSubRegistry::ensureKifuTagWiring()
 {
-    if (m_kifuTagWiring) return;  // ガード
+    if (!m_mw.m_kifuTagWiring) {
+        createKifuTagWiring();
+    }
+    refreshKifuTagWiringDeps();   // 生成済みでも最新の部品を渡し直す
+}
+
+void KifuSubRegistry::createKifuTagWiring()
+{
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    m_mw.m_kifuTagWiring = new KifuTagWiring(KifuTagWiring::Deps{}, &m_mw);
+
+    // 配線は作ったときに1回だけ行う（§17.4）
+    connect(m_mw.ui->actionEditTags, &QAction::triggered,
+            m_mw.m_kifuTagWiring, &KifuTagWiring::showTagEditDialog);
+}
+
+void KifuSubRegistry::refreshKifuTagWiringDeps()
+{
+    if (!m_mw.m_kifuTagWiring) return;
 
     KifuTagWiring::Deps deps;
-    deps.parentWidget = this;
-    deps.tagModel = m_kifuTagModel;  // 既存のタグモデル（あれば）
+    deps.parentWidget = &m_mw;
+    deps.tagModel = m_mw.m_kifuTagModel;
     deps.ensureTagModel = [this]() {
-        // タグモデルの遅延初期化
-        if (!m_kifuTagModel) {
-            m_kifuTagModel = new KifuTagModel(this);
+        if (!m_mw.m_kifuTagModel) {
+            // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+            m_mw.m_kifuTagModel = new KifuTagModel(&m_mw);
         }
-        // 初期化後に最新の依存を反映
-        if (m_kifuTagWiring) {
-            KifuTagWiring::Deps updated;
-            updated.parentWidget = this;
-            updated.tagModel = m_kifuTagModel;
-            m_kifuTagWiring->updateDeps(updated);
-        }
+        refreshKifuTagWiringDeps();   // 作ったモデルを渡し直す
     };
-
-    m_kifuTagWiring = new KifuTagWiring(deps, this);
+    m_mw.m_kifuTagWiring->updateDeps(deps);
 }
 ```
 
-`ensure*()` メソッドの3ステップ:
+`ensure*()` の3つの処理:
 
-| ステップ | 処理 | 対応するコード |
-|---------|------|-------------|
-| ① ガード | 既に生成済みなら即 return | `if (m_kifuTagWiring) return;` |
-| ② 生成 | `new` で生成（`this` を親にして寿命管理） | `new KifuTagWiring(deps, this)` |
-| ③ 依存設定 | `Deps` で依存を注入 | `deps.parentWidget = this;` 等 |
+| 処理 | 内容 | 対応するコード |
+|------|------|-------------|
+| ① 生成（初回だけ） | MainWindow を親にして作る | `createKifuTagWiring()` |
+| ② 配線（初回だけ） | 作った直後にシグナルをつなぐ | `createKifuTagWiring()` の `connect()` |
+| ③ 依存の更新（毎回） | `Deps` を作り直して渡す | `refreshKifuTagWiringDeps()` |
+
+レジストリごとの `ensure*()` の数には上限がある（`tst_structural_kpi` の `serviceRegistryEnsureLimit`・`subRegistryEnsureLimits`）。上限に達しているときは、既存の `ensure*()` をまとめられないか先に検討し、上限を上げる場合はその理由をレビューで説明する（[レジストリ境界仕様](registry-boundary.md)）。`refresh*Deps()` は数えない。
 
 #### 3. 呼び出し箇所の追加
 
-`ensure*()` は必要になった時点で呼ぶ。典型的には、メニューアクションのハンドラやWiringの接続時に呼ぶ。
+`ensure*()` は必要になった時点で呼ぶ。メニューアクションのように起動直後から使える必要があるものは、起動の最終段（`MainWindowServiceRegistry::finalizeAndConfigureUiForLifecycle()`）で呼ぶ。
 
 ```cpp
-// 例: メニューアクション「タグ編集」がトリガーされたとき
-void MainWindow::onEditTagsTriggered()
+// src/app/mainwindowlifecyclewiring.cpp
+void MainWindowServiceRegistry::finalizeAndConfigureUiForLifecycle()
 {
-    ensureKifuTagWiring();
-    m_kifuTagWiring->showTagEditDialog();
+    // ...
+    m_kifu->ensureKifuTagWiring();
 }
 ```
 
@@ -8349,15 +8369,16 @@ void MainWindow::onEditTagsTriggered()
 #### 接続コードの例
 
 ```cpp
-// MainWindow のセットアップ内（ensureKifuTagWiring() 内、または初期化コードで）
+// KifuSubRegistry::createKifuTagWiring() 内（作ったときに1回だけ）
 
 // メニューアクション → KifuTagWiring のスロット
-connect(ui->actionEditTags, &QAction::triggered,
-        m_kifuTagWiring, &KifuTagWiring::showTagEditDialog);
+connect(m_mw.ui->actionEditTags, &QAction::triggered,
+        m_mw.m_kifuTagWiring, &KifuTagWiring::showTagEditDialog);
 
-// KifuTagWiring のシグナル → MainWindow のスロット
-connect(m_kifuTagWiring, &KifuTagWiring::saveRequested,
-        this, &MainWindow::saveKifuToFile);
+// KifuTagWiring のシグナル → 棋譜ファイル操作のスロット
+ensureKifuFileController();
+connect(m_mw.m_kifuTagWiring, &KifuTagWiring::saveRequested,
+        m_mw.m_kifuFileController, &KifuFileController::overwriteKifuFile);
 ```
 
 #### 接続時の注意事項
@@ -8553,11 +8574,11 @@ class KifuTagWiring : public QObject
 
 ```cpp
 signals:
-    /// タグ変更の保存を要求する（→ MainWindow::saveKifuToFile）
+    /// タグ変更の保存を要求する（→ KifuFileController::overwriteKifuFile）
     void saveRequested();
 
 public slots:
-    /// タグ編集ダイアログを表示する（MainWindow::actionEditTags に接続）
+    /// タグ編集ダイアログを表示する（actionEditTags に接続）
     void showTagEditDialog();
 ```
 
@@ -8646,8 +8667,8 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 
 | # | 確認項目 | 参照 |
 |---|---------|------|
-| 15 | `lupdate` を実行して `.ts` ファイルを更新したか | CLAUDE.md Translation Guidelines |
-| 16 | `.ts` ファイルの `type="unfinished"` エントリに翻訳を追加したか | 第16章 §16.2 |
+| 15 | `update_translations` ターゲット（`lupdate`）を実行して `.ts` ファイルを更新したか | CLAUDE.md Translation Guidelines |
+| 16 | 4言語の `.ts` ファイルの `type="unfinished"` エントリに翻訳を追加し、未翻訳が0件か | 第16章 §16.2、§16.7 |
 | 17 | デバッグログやINIキー等の翻訳不要な文字列に `tr()` を付けていないか | §17.6 |
 
 #### ビルド・動作確認チェック
@@ -8670,9 +8691,10 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
    ├─ コンストラクタ / updateDeps() を実装
    └─ スロットメソッドを実装
      │
-③ MainWindow に ensure*() メソッドを追加（§17.3）
-   ├─ mainwindow.h にメンバー・メソッド宣言
-   └─ mainwindow.cpp に実装（ガード → 生成 → 依存設定）
+③ レジストリに ensure*() メソッドを追加（§17.3）
+   ├─ mainwindow.h にメンバーを宣言
+   ├─ 担当のレジストリに ensure*() / create*() / refresh*Deps() を実装
+   └─ CMakeLists.txt の SRC_* に新しいファイルを列挙（§1.4）
      │
 ④ シグナル / スロット接続を追加（§17.4）
    └─ connect() はメンバー関数ポインタ構文のみ

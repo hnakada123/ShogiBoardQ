@@ -148,7 +148,7 @@ void BoardColorDialog::addColorField(QFormLayout* form, BoardColors::Member memb
 
 void BoardColorDialog::chooseColor()
 {
-    for (const auto& field : m_fields) {
+    for (const auto& field : std::as_const(m_fields)) {
         if (field.button != sender()) continue;
         m_selectedMember = field.member;
         m_picker->setWindowTitle(tr("%1の色").arg(field.label));
@@ -171,7 +171,7 @@ void BoardColorDialog::applyColor(const QColor& color)
 void BoardColorDialog::refreshButtons()
 {
     const auto colors = BoardAppearance::instance().colors();
-    for (const auto& field : m_fields) {
+    for (const auto& field : std::as_const(m_fields)) {
         const QColor color = colors.*field.member;
         QPixmap swatch(36, 22);
         swatch.fill(Qt::white);

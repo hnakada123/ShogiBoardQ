@@ -89,7 +89,6 @@ void AnalysisResultsPresenter::onTableClicked(const QModelIndex&) {}
 void AnalysisResultsPresenter::onTableSelectionChanged(const QModelIndex&, const QModelIndex&) {}
 void AnalysisResultsPresenter::increaseFontSize() {}
 void AnalysisResultsPresenter::decreaseFontSize() {}
-void AnalysisResultsPresenter::saveWindowSize() {}
 void AnalysisResultsPresenter::saveColumnWidth(int, int, int) {}
 void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel*) {}
 void AnalysisResultsPresenter::setupHeaderConfiguration() {}

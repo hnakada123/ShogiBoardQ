@@ -16,7 +16,8 @@ constexpr auto kFavoriteMimeType = "application/x-shogiboardq-menu-action";
 
 QString displayText(QString text)
 {
-    text.remove(QRegularExpression(QStringLiteral("\\s*\\(&[^)]\\)")));
+    static const QRegularExpression accessKey(QStringLiteral("\\s*\\(&[^)]\\)"));
+    text.remove(accessKey);
     // && は表示用の &、単独の & はアクセラレータ。
     text.replace(QStringLiteral("&&"), QString(QChar(0x1f)));
     text.remove(QChar('&'));

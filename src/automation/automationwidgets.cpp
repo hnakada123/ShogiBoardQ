@@ -86,7 +86,8 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
     if (auto* graphics = qobject_cast<QGraphicsView*>(w)) {
         QJsonArray nodes;
         if (graphics->scene()) {
-            for (auto* item : graphics->scene()->items(Qt::AscendingOrder)) {
+            const auto items = graphics->scene()->items(Qt::AscendingOrder);
+            for (auto* item : items) {
                 const QVariant id = item->data(BranchTreeItemRoles::NodeId);
                 if (!id.isValid() || nodes.size() >= maxRows) continue;
                 nodes.append(QJsonObject{{QStringLiteral("id"), id.toInt()},
@@ -369,7 +370,8 @@ void requireInteractive(QWidget* widget, bool allowPopup)
     // QFileDialogの補完はディレクトリ読込後にも開く。同じウィンドウ内の操作なら、
     // 通常のクリックと同じようにその入力欄の候補だけを閉じる。
     if (!allowPopup && QApplication::activePopupWidget()) {
-        for (auto* edit : widget->window()->findChildren<QLineEdit*>()) {
+        const auto edits = widget->window()->findChildren<QLineEdit*>();
+        for (auto* edit : edits) {
             if (edit->window() == widget->window() && edit->completer()
                 && edit->completer()->popup() == QApplication::activePopupWidget()) {
                 edit->completer()->popup()->hide();
