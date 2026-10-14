@@ -13,8 +13,12 @@ void MainWindowCoreInitCoordinator::updateDeps(const Deps& deps)
 
 void MainWindowCoreInitCoordinator::initialize()
 {
-    initializeGameControllerAndKifu();
-    initializeOrResetShogiView();
+    if (m_deps.gameMoves) {
+        m_deps.gameMoves->clear();
+    }
+    if (m_deps.shogiView) {
+        m_deps.shogiView->setNameFontScale(0.30);
+    }
 
     // 盤・駒台操作の配線（BoardInteractionController など）
     if (m_deps.setupBoardInteractionController) {
@@ -39,46 +43,15 @@ void MainWindowCoreInitCoordinator::initialize()
 
 void MainWindowCoreInitCoordinator::initializeNewGame(QString& startSfenStr)
 {
-    auto* gc = m_deps.gameController ? *m_deps.gameController : nullptr;
-    if (gc) {
-        gc->newGame(startSfenStr);
-    }
-}
-
-void MainWindowCoreInitCoordinator::initializeGameControllerAndKifu()
-{
-    auto** gc = m_deps.gameController;
-    if (gc && !*gc) {
-        // Lifetime: owned by MainWindow (QObject parent)
-        // Created: once at startup, never recreated
-        *gc = new ShogiGameController(m_deps.parent);
-    }
-
-    if (m_deps.gameMoves) {
-        m_deps.gameMoves->clear();
-    }
-}
-
-void MainWindowCoreInitCoordinator::initializeOrResetShogiView()
-{
-    auto** view = m_deps.shogiView;
-    if (!view) return;
-
-    if (!*view) {
-        // Lifetime: owned by MainWindow (QObject parent)
-        // Created: once at startup, never recreated
-        *view = new ShogiView(m_deps.parent);
-        (*view)->setNameFontScale(0.30);
-    } else {
-        (*view)->setParent(m_deps.parent);
-        (*view)->setNameFontScale(0.30);
+    if (m_deps.gameController) {
+        m_deps.gameController->newGame(startSfenStr);
     }
 }
 
 void MainWindowCoreInitCoordinator::initializeBoardModel()
 {
-    auto* gc = m_deps.gameController ? *m_deps.gameController : nullptr;
-    auto* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
+    ShogiGameController* gc = m_deps.gameController;
+    ShogiView* view = m_deps.shogiView;
     if (!gc || !view) return;
 
     // m_state.startSfenStr が "startpos ..." の場合は完全 SFEN に正規化

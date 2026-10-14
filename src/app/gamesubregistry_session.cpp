@@ -143,7 +143,7 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
         ensureDialogCoordinator();
         return m_mw.m_dialogCoordinator;
     };
-    deps.csaGameCoordinator = [this]() -> CsaGameCoordinator* { return m_mw.m_csaGameCoordinator; };
+    deps.csaGameCoordinator = [this]() -> CsaGameCoordinator* { return csaGameCoordinator(); };
     deps.match = [this]() -> MatchCoordinator* { return m_mw.m_match; };
 
     // === Core objects ===
@@ -200,11 +200,10 @@ void MainWindowServiceRegistry::refreshCoreInitDeps()
     if (!m_mw.m_coreInit) return;
 
     MainWindowCoreInitCoordinator::Deps deps;
-    deps.gameController = &m_mw.m_gameController;
-    deps.shogiView = &m_mw.m_shogiView;
+    deps.gameController = m_mw.m_gameController;
+    deps.shogiView = m_mw.m_shogiView;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
-    deps.parent = &m_mw;
     deps.setupBoardInteractionController = [this]() { setupBoardInteractionController(); };
     deps.setCurrentTurn = [this]() {
         m_mw.setCurrentTurn();
@@ -263,7 +262,7 @@ void MainWindowServiceRegistry::refreshSessionLifecycleDeps()
         MainWindowResetService().clearGameStateFields(m_mw.m_state, m_mw.m_player, m_mw.m_kifu);
     };
     deps.resetEngineState = [this]() {
-        MainWindowResetService().resetEngineState(m_mw.m_match, m_mw.m_csaGameCoordinator,
+        MainWindowResetService().resetEngineState(m_mw.m_match, csaGameCoordinator(),
                                                  m_mw.m_consecutiveGamesController);
     };
     deps.performPreStartCleanup = [this]() {

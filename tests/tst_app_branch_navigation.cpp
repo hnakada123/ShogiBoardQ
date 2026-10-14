@@ -1,576 +1,222 @@
 /// @file tst_app_branch_navigation.cpp
-/// @brief BranchNavigationWiring の構造的契約テスト
+/// @brief BranchNavigationWiring の配線を実物の部品で確かめるテスト
 ///
-/// BranchNavigationWiring は多数のポインタのポインタ依存を持つため、
-/// 単体インスタンス化ではなくソース解析テストで構造的契約を検証する。
+/// 分岐ツリー・表示中の手順・ナビゲーション・表示コーディネータ・ライブセッションは、
+/// アプリではレジストリが作って渡す。ここでも同じように組み立てて BranchNavigationWiring に渡し、
+/// ボタン操作・分岐ツリーのクリック・新規対局のリセットで起きることを確かめる。
 
 #include <QtTest>
+#include <QPushButton>
+#include <QSignalSpy>
 
-#include <QFile>
-#include <QRegularExpression>
-#include <QTextStream>
+#include "branchnavigationwiring.h"
+#include "gamerecordmodel.h"
+#include "kifubranchlistmodel.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
+#include "kifudisplaycoordinator.h"
+#include "kifunavigationcontroller.h"
+#include "kifunavigationstate.h"
+#include "kifurecordlistmodel.h"
+#include "livegamesession.h"
+#include "recordpane.h"
+#include "shogimove.h"
 
-#ifndef SOURCE_DIR
-#error "SOURCE_DIR must be defined by CMake"
-#endif
+namespace {
+
+const QString kHirateSfen =
+    QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+const QString kNoLanceSfen =
+    QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+
+/// アプリのレジストリと同じ組み立てをした分岐ナビゲーションの部品一式
+struct BranchNavigationParts {
+    KifuBranchTree tree;
+    KifuNavigationState navState;
+    KifuNavigationController navController;
+    LiveGameSession liveSession;
+    KifuDisplayCoordinator display{&tree, &navState, &navController};
+    KifuRecordListModel recordModel;
+    KifuBranchListModel branchModel;
+    RecordPane recordPane;
+    GameRecordModel gameRecord;
+    QString startSfen = kHirateSfen;
+    int ensureCommentCalls = 0;
+
+    BranchNavigationParts()
+    {
+        // 本譜5手と、2手目から分かれる変化2手
+        tree.setRootSfen(kHirateSfen);
+        KifuBranchNode* node = tree.root();
+        for (int ply = 1; ply <= 5; ++ply) {
+            node = tree.addMove(node, ShogiMove(), QStringLiteral("move%1").arg(ply),
+                                QStringLiteral("sfen%1").arg(ply));
+        }
+        KifuBranchNode* branch = tree.addMove(tree.findByPlyOnMainLine(2), ShogiMove(),
+                                              QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        tree.addMove(branch, ShogiMove(), QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+
+        navState.setTree(&tree);
+        navController.setTreeAndState(&tree, &navState);
+        liveSession.setTree(&tree);
+        recordPane.setModels(&recordModel, &branchModel);
+    }
+
+    BranchNavigationWiring::Deps deps()
+    {
+        BranchNavigationWiring::Deps d;
+        d.branchTree = &tree;
+        d.navState = &navState;
+        d.kifuNavController = &navController;
+        d.displayCoordinator = &display;
+        d.liveGameSession = &liveSession;
+        d.recordPane = &recordPane;
+        d.kifuRecordModel = &recordModel;
+        d.kifuBranchModel = &branchModel;
+        d.gameRecordModel = &gameRecord;
+        d.startSfenStr = &startSfen;
+        d.ensureCommentCoordinator = [this]() { ++ensureCommentCalls; };
+        return d;
+    }
+};
+
+} // namespace
 
 class TestAppBranchNavigation : public QObject
 {
     Q_OBJECT
 
-private:
-    static QString readSourceFile(const QString& relPath)
-    {
-        QFile file(QStringLiteral(SOURCE_DIR "/") + relPath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            return {};
-        return QTextStream(&file).readAll();
-    }
-
-    static QStringList readSourceLines(const QString& relPath)
-    {
-        QFile file(QStringLiteral(SOURCE_DIR "/") + relPath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            return {};
-        QStringList lines;
-        QTextStream in(&file);
-        while (!in.atEnd())
-            lines << in.readLine();
-        return lines;
-    }
-
-    static QPair<int, int> findFunctionBody(const QStringList& lines, const QString& signature)
-    {
-        const int sz = int(lines.size());
-
-        int sigLine = -1;
-        for (int i = 0; i < sz; ++i) {
-            if (lines[i].contains(signature)) {
-                sigLine = i;
-                break;
-            }
-        }
-        if (sigLine < 0)
-            return {-1, -1};
-
-        int braceStart = -1;
-        for (int i = sigLine; i < sz; ++i) {
-            if (lines[i].contains(QLatin1Char('{'))) {
-                braceStart = i;
-                break;
-            }
-        }
-        if (braceStart < 0)
-            return {-1, -1};
-
-        int depth = 0;
-        for (int i = braceStart; i < sz; ++i) {
-            for (const QChar& ch : lines[i]) {
-                if (ch == QLatin1Char('{'))
-                    ++depth;
-                else if (ch == QLatin1Char('}'))
-                    --depth;
-            }
-            if (depth == 0)
-                return {braceStart, i};
-        }
-        return {-1, -1};
-    }
-
-    static QString bodyText(const QStringList& lines, const QPair<int, int>& range)
-    {
-        QStringList body;
-        for (int i = range.first; i <= range.second && i < int(lines.size()); ++i)
-            body << lines[i];
-        return body.join(QLatin1Char('\n'));
-    }
-
-    static const QString kHeader;
-    static const QString kSource;
-
-    static QString headerText()
-    {
-        return readSourceFile(kHeader);
-    }
-
-    static QStringList sourceLines()
-    {
-        return readSourceLines(kSource);
-    }
-
 private slots:
-    // ================================================================
-    // ヘッダー契約テスト
-    // ================================================================
-
-    /// BranchNavigationWiring が QObject を継承していること
-    void inheritsQObject()
+    void navigationButtonsMoveTheCursorAndForwardSignals()
     {
-        const QString hdr = headerText();
-        QVERIFY2(!hdr.isEmpty(), "Failed to read header");
-        QVERIFY2(hdr.contains(QStringLiteral("public QObject")),
-                 "BranchNavigationWiring does not inherit QObject");
+        BranchNavigationParts parts;
+        BranchNavigationWiring wiring;
+        wiring.updateDeps(parts.deps());
+        wiring.initialize();
+
+        QSignalSpy board(&wiring, &BranchNavigationWiring::boardWithHighlightsRequired);
+        QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
+        QSignalSpy plyChanged(&wiring, &BranchNavigationWiring::currentPlyChanged);
+
+        parts.recordPane.nextButton()->click();
+        QCOMPARE(parts.navState.currentPly(), 1);
+        QCOMPARE(board.count(), 1);
+        QCOMPARE(board.last().at(0).toString(), QStringLiteral("sfen1"));
+        QCOMPARE(board.last().at(1).toString(), kHirateSfen);
+        QCOMPARE(handled.count(), 1);
+        QCOMPARE(handled.last().at(0).toInt(), 1);
+        QCOMPARE(handled.last().at(1).toString(), QStringLiteral("sfen1"));
+        QVERIFY(!plyChanged.isEmpty());
+        QCOMPARE(plyChanged.last().at(0).toInt(), 1);
+
+        parts.recordPane.lastButton()->click();
+        QCOMPARE(parts.navState.currentPly(), 5);
+        parts.recordPane.prevButton()->click();
+        QCOMPARE(parts.navState.currentPly(), 4);
+        parts.recordPane.firstButton()->click();
+        QCOMPARE(parts.navState.currentNode(), parts.tree.root());
+        QCOMPARE(plyChanged.last().at(0).toInt(), 0);
+        QCOMPARE(parts.ensureCommentCalls, 1);
     }
 
-    /// Deps 構造体に必要なダブルポインタが宣言されていること
-    void depsHasRequiredDoublePointers()
+    void initializeTwiceDoesNotDuplicateConnections()
     {
-        const QString hdr = headerText();
-        QVERIFY2(!hdr.isEmpty(), "Failed to read header");
+        BranchNavigationParts parts;
+        BranchNavigationWiring wiring;
+        wiring.updateDeps(parts.deps());
+        wiring.initialize();
+        wiring.initialize();
 
-        const QStringList requiredPointers = {
-            QStringLiteral("KifuBranchTree**"),
-            QStringLiteral("KifuNavigationState**"),
-            QStringLiteral("KifuNavigationController**"),
-            QStringLiteral("KifuDisplayCoordinator**"),
-            QStringLiteral("LiveGameSession**"),
-        };
+        QSignalSpy board(&wiring, &BranchNavigationWiring::boardWithHighlightsRequired);
+        QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
+        parts.recordPane.nextButton()->click();
 
-        for (const QString& ptr : requiredPointers) {
-            QVERIFY2(hdr.contains(ptr),
-                      qPrintable(QStringLiteral("Deps missing double pointer: %1").arg(ptr)));
-        }
+        QCOMPARE(parts.navState.currentPly(), 1);
+        QCOMPARE(board.count(), 1);
+        QCOMPARE(handled.count(), 1);
+        QCOMPARE(parts.ensureCommentCalls, 1);
     }
 
-    /// Deps 構造体に必要な直接ポインタが宣言されていること
-    void depsHasRequiredDirectPointers()
+    void initializeWaitsUntilThePartsArePassed()
     {
-        const QString hdr = headerText();
-        QVERIFY2(!hdr.isEmpty(), "Failed to read header");
+        BranchNavigationParts parts;
+        BranchNavigationWiring wiring;
+        wiring.updateDeps({});
+        wiring.initialize();
+        QVERIFY(wiring.editController() == nullptr);
+        parts.recordPane.nextButton()->click();
+        QCOMPARE(parts.navState.currentPly(), 0);
 
-        const QStringList requiredPointers = {
-            QStringLiteral("RecordPane*"),
-            QStringLiteral("EngineAnalysisTab*"),
-            QStringLiteral("GameRecordModel*"),
-            QStringLiteral("ShogiGameController*"),
-        };
-
-        for (const QString& ptr : requiredPointers) {
-            QVERIFY2(hdr.contains(ptr),
-                      qPrintable(QStringLiteral("Deps missing pointer: %1").arg(ptr)));
-        }
+        // 部品を受け取ってから初期化すれば配線される
+        wiring.updateDeps(parts.deps());
+        QVERIFY(wiring.editController() != nullptr);
+        wiring.initialize();
+        parts.recordPane.nextButton()->click();
+        QCOMPARE(parts.navState.currentPly(), 1);
     }
 
-    /// 必要なシグナルが宣言されていること
-    void hasRequiredSignals()
+    void branchNodeActivationMovesToTheChosenLine()
     {
-        const QString hdr = headerText();
-        QVERIFY2(!hdr.isEmpty(), "Failed to read header");
+        BranchNavigationParts parts;
+        BranchNavigationWiring wiring;
+        wiring.updateDeps(parts.deps());
+        wiring.initialize();
+        QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
 
-        const QStringList requiredSignals = {
-            QStringLiteral("boardWithHighlightsRequired"),
-            QStringLiteral("boardSfenChanged"),
-            QStringLiteral("branchNodeHandled"),
-        };
+        wiring.onBranchNodeActivated(1, 3);
 
-        for (const QString& sig : requiredSignals) {
-            QVERIFY2(hdr.contains(sig),
-                      qPrintable(QStringLiteral("Missing signal: %1").arg(sig)));
-        }
+        QCOMPARE(parts.navState.currentNode()->sfen(), QStringLiteral("bsfen3"));
+        QCOMPARE(parts.navState.currentLineIndex(), 1);
+        QCOMPARE(handled.count(), 1);
+        QCOMPARE(handled.last().at(0).toInt(), 3);
+        QCOMPARE(handled.last().at(1).toString(), QStringLiteral("bsfen3"));
     }
 
-    /// 必要な public slots が宣言されていること
-    void hasRequiredSlots()
+    void branchNodeActivationWithoutControllerIsIgnored()
     {
-        const QString hdr = headerText();
-        QVERIFY2(!hdr.isEmpty(), "Failed to read header");
-
-        const QStringList requiredSlots = {
-            QStringLiteral("onBranchTreeBuilt"),
-            QStringLiteral("onBranchNodeActivated"),
-            QStringLiteral("onBranchTreeResetForNewGame"),
-        };
-
-        for (const QString& slot : requiredSlots) {
-            QVERIFY2(hdr.contains(slot),
-                      qPrintable(QStringLiteral("Missing slot: %1").arg(slot)));
-        }
+        BranchNavigationWiring wiring;
+        QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
+        wiring.onBranchNodeActivated(0, 1);
+        wiring.onBranchTreeBuilt();
+        wiring.onBranchTreeResetForNewGame();
+        QCOMPARE(handled.count(), 0);
     }
 
-    /// ensureCommentCoordinator コールバックが Deps に存在すること
-    void depsHasEnsureCommentCoordinatorCallback()
+    void treeBuiltRebindsGameRecordModelAndCursor()
     {
-        const QString hdr = headerText();
-        QVERIFY2(!hdr.isEmpty(), "Failed to read header");
-        QVERIFY2(hdr.contains(QStringLiteral("ensureCommentCoordinator")),
-                 "Deps missing ensureCommentCoordinator callback");
+        BranchNavigationParts parts;
+        BranchNavigationWiring wiring;
+        wiring.updateDeps(parts.deps());
+        wiring.initialize();
+        parts.navController.goToPly(3);
+        QVERIFY(parts.gameRecord.branchTree() == nullptr);
+
+        wiring.onBranchTreeBuilt();
+
+        QCOMPARE(parts.gameRecord.branchTree(), &parts.tree);
+        QCOMPARE(parts.navState.currentNode(), parts.tree.root());
     }
 
-    // ================================================================
-    // initialize() 契約テスト
-    // ================================================================
-
-    /// initialize() が createModels と wireSignals を呼ぶこと
-    void initializeCallsCreateModelsAndWireSignals()
+    void resetForNewGameDiscardsLiveSessionAndReturnsToRoot()
     {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::initialize()"));
-        QVERIFY2(range.first >= 0, "initialize() function not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("createModels")),
-                 "initialize() does not call createModels()");
-        QVERIFY2(body.contains(QStringLiteral("wireSignals")),
-                 "initialize() does not call wireSignals()");
-    }
-
-    // ================================================================
-    // createModels() 契約テスト
-    // ================================================================
-
-    /// createModels() が4つのオブジェクトを生成すること
-    void createModelsCreatesRequiredObjects()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::createModels()"));
-        QVERIFY2(range.first >= 0, "createModels() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        // 分岐ツリー生成
-        QVERIFY2(body.contains(QStringLiteral("KifuBranchTree")),
-                 "createModels() does not create KifuBranchTree");
-        // ナビゲーション状態
-        QVERIFY2(body.contains(QStringLiteral("KifuNavigationState")),
-                 "createModels() does not create KifuNavigationState");
-        // ナビゲーションコントローラ
-        QVERIFY2(body.contains(QStringLiteral("KifuNavigationController")),
-                 "createModels() does not create KifuNavigationController");
-        // ライブゲームセッション
-        QVERIFY2(body.contains(QStringLiteral("LiveGameSession")),
-                 "createModels() does not create LiveGameSession");
-    }
-
-    /// createModels() がツリーとナビ状態を関連付けること
-    void createModelsSetsTreeOnNavState()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::createModels()"));
-        QVERIFY2(range.first >= 0, "createModels() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("setTree")),
-                 "createModels() does not call setTree on navigation state");
-        QVERIFY2(body.contains(QStringLiteral("setTreeAndState")),
-                 "createModels() does not call setTreeAndState on navigation controller");
-    }
-
-    // ================================================================
-    // onBranchTreeBuilt() 契約テスト
-    // ================================================================
-
-    /// onBranchTreeBuilt() がナビ状態とツリーウィジェットを更新すること
-    void onBranchTreeBuiltUpdatesNavAndWidget()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::onBranchTreeBuilt()"));
-        QVERIFY2(range.first >= 0, "onBranchTreeBuilt() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        // ナビ状態にツリーを再設定
-        QVERIFY2(body.contains(QStringLiteral("setTree")),
-                 "onBranchTreeBuilt() does not call setTree");
-        // 表示コーディネーターに変更通知
-        QVERIFY2(body.contains(QStringLiteral("onTreeChanged")),
-                 "onBranchTreeBuilt() does not notify display coordinator");
-    }
-
-    /// onBranchTreeBuilt() が GameRecordModel を更新すること
-    void onBranchTreeBuiltUpdatesGameRecordModel()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::onBranchTreeBuilt()"));
-        QVERIFY2(range.first >= 0, "onBranchTreeBuilt() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("setBranchTree")),
-                 "onBranchTreeBuilt() does not call setBranchTree on GameRecordModel");
-        QVERIFY2(body.contains(QStringLiteral("setNavigationState")),
-                 "onBranchTreeBuilt() does not call setNavigationState on GameRecordModel");
-    }
-
-    // ================================================================
-    // onBranchNodeActivated() 契約テスト
-    // ================================================================
-
-    /// onBranchNodeActivated() が navCtl に委譲すること
-    void onBranchNodeActivatedDelegatesToNavController()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::onBranchNodeActivated("));
-        QVERIFY2(range.first >= 0, "onBranchNodeActivated() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("handleBranchNodeActivated")),
-                 "onBranchNodeActivated() does not delegate to handleBranchNodeActivated");
-    }
-
-    /// onBranchNodeActivated() が navCtl の null チェックを行うこと
-    void onBranchNodeActivatedChecksNull()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::onBranchNodeActivated("));
-        QVERIFY2(range.first >= 0, "onBranchNodeActivated() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("nullptr")),
-                 "onBranchNodeActivated() does not check for null");
-    }
-
-    // ================================================================
-    // onBranchTreeResetForNewGame() 契約テスト
-    // ================================================================
-
-    /// onBranchTreeResetForNewGame() がライブセッションを破棄すること
-    void onResetDiscardsLiveSession()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::onBranchTreeResetForNewGame()"));
-        QVERIFY2(range.first >= 0, "onBranchTreeResetForNewGame() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("discard")),
-                 "onBranchTreeResetForNewGame() does not discard live session");
-    }
-
-    /// onBranchTreeResetForNewGame() がナビ状態をリセットすること
-    void onResetResetsNavigationState()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::onBranchTreeResetForNewGame()"));
-        QVERIFY2(range.first >= 0, "onBranchTreeResetForNewGame() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("setCurrentNode")),
-                 "onBranchTreeResetForNewGame() does not reset current node");
-        QVERIFY2(body.contains(QStringLiteral("resetPreferredLineIndex")),
-                 "onBranchTreeResetForNewGame() does not reset preferred line index");
-        QVERIFY2(body.contains(QStringLiteral("goToRoot")),
-                 "onBranchTreeResetForNewGame() does not go to root");
-    }
-
-    /// onBranchTreeResetForNewGame() が分岐ツリーの SFEN をリセットすること
-    void onResetSetsRootSfen()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::onBranchTreeResetForNewGame()"));
-        QVERIFY2(range.first >= 0, "onBranchTreeResetForNewGame() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("setRootSfen")),
-                 "onBranchTreeResetForNewGame() does not call setRootSfen");
-    }
-
-    // ================================================================
-    // シグナル転送契約テスト
-    // ================================================================
-
-    /// connectDisplaySignals() が boardWithHighlightsRequired を転送すること
-    void connectsDisplaySignalForBoardWithHighlights()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::connectDisplaySignals()"));
-        QVERIFY2(range.first >= 0, "connectDisplaySignals() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("boardWithHighlightsRequired")),
-                 "connectDisplaySignals() does not forward boardWithHighlightsRequired");
-    }
-
-    /// connectDisplaySignals() が boardSfenChanged を転送すること
-    void connectsDisplaySignalForBoardSfenChanged()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::connectDisplaySignals()"));
-        QVERIFY2(range.first >= 0, "connectDisplaySignals() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("boardSfenChanged")),
-                 "connectDisplaySignals() does not forward boardSfenChanged");
-    }
-
-    /// connectDisplaySignals() が branchNodeHandled を転送すること
-    void connectsDisplaySignalForBranchNodeHandled()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::connectDisplaySignals()"));
-        QVERIFY2(range.first >= 0, "connectDisplaySignals() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("branchNodeHandled")),
-                 "connectDisplaySignals() does not forward branchNodeHandled");
-    }
-
-    /// connectDisplaySignals() がコメント更新を CommentCoordinator に接続すること
-    void connectsCommentUpdateSignal()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::connectDisplaySignals()"));
-        QVERIFY2(range.first >= 0, "connectDisplaySignals() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("commentUpdateRequired")),
-                 "connectDisplaySignals() does not connect commentUpdateRequired");
-        QVERIFY2(body.contains(QStringLiteral("CommentCoordinator")),
-                 "connectDisplaySignals() does not reference CommentCoordinator");
-    }
-
-    /// connectDisplaySignals() が遅延初期化コールバックを呼ぶこと
-    void connectsDisplaySignalsCallsEnsureCommentCoordinator()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::connectDisplaySignals()"));
-        QVERIFY2(range.first >= 0, "connectDisplaySignals() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("ensureCommentCoordinator")),
-                 "connectDisplaySignals() does not call ensureCommentCoordinator callback");
-    }
-
-    // ================================================================
-    // configureDisplayCoordinator() 契約テスト
-    // ================================================================
-
-    /// configureDisplayCoordinator() がモデルとウィジェットを設定すること
-    void configureDisplayCoordinatorSetsModelsAndWidgets()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::configureDisplayCoordinator()"));
-        QVERIFY2(range.first >= 0, "configureDisplayCoordinator() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("setRecordPane")),
-                 "configureDisplayCoordinator() does not call setRecordPane");
-        QVERIFY2(body.contains(QStringLiteral("setRecordModel")),
-                 "configureDisplayCoordinator() does not call setRecordModel");
-        QVERIFY2(body.contains(QStringLiteral("setBranchModel")),
-                 "configureDisplayCoordinator() does not call setBranchModel");
-    }
-
-    /// configureDisplayCoordinator() が wireSignals を呼ぶこと
-    void configureDisplayCoordinatorCallsWireSignals()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::configureDisplayCoordinator()"));
-        QVERIFY2(range.first >= 0, "configureDisplayCoordinator() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("wireSignals()")),
-                 "configureDisplayCoordinator() does not call dc->wireSignals()");
-    }
-
-    /// configureDisplayCoordinator() が盤面SFENプロバイダを設定すること
-    void configureDisplayCoordinatorSetsBoardSfenProvider()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("BranchNavigationWiring::configureDisplayCoordinator()"));
-        QVERIFY2(range.first >= 0, "configureDisplayCoordinator() function not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("setBoardSfenProvider")),
-                 "configureDisplayCoordinator() does not set board SFEN provider");
-    }
-
-    // ================================================================
-    // 全体構造テスト
-    // ================================================================
-
-    /// ソースファイルに全 private メソッドの実装が存在すること
-    void allPrivateMethodsImplemented()
-    {
-        const QStringList lines = sourceLines();
-        QVERIFY2(!lines.isEmpty(), "Failed to read source");
-
-        const QString source = lines.join(QLatin1Char('\n'));
-        const QStringList expectedImpls = {
-            QStringLiteral("BranchNavigationWiring::createModels()"),
-            QStringLiteral("BranchNavigationWiring::wireSignals()"),
-            QStringLiteral("BranchNavigationWiring::configureDisplayCoordinator()"),
-            QStringLiteral("BranchNavigationWiring::connectDisplaySignals()"),
-        };
-
-        for (const QString& impl : expectedImpls) {
-            QVERIFY2(source.contains(impl),
-                      qPrintable(
-                          QStringLiteral("Implementation of '%1' not found in source").arg(impl)));
-        }
+        BranchNavigationParts parts;
+        BranchNavigationWiring wiring;
+        wiring.updateDeps(parts.deps());
+        wiring.initialize();
+        parts.navController.goToLine(1, 4);
+        QCOMPARE(parts.navState.preferredLineIndex(), 1);
+        parts.liveSession.startFromRoot();
+        QVERIFY(parts.liveSession.isActive());
+        parts.startSfen = kNoLanceSfen;
+
+        wiring.onBranchTreeResetForNewGame();
+
+        QVERIFY(!parts.liveSession.isActive());
+        QCOMPARE(parts.tree.root()->sfen(), kNoLanceSfen);
+        QCOMPARE(parts.navState.currentNode(), parts.tree.root());
+        QCOMPARE(parts.navState.preferredLineIndex(), -1);
     }
 };
-
-const QString TestAppBranchNavigation::kHeader =
-    QStringLiteral("src/ui/wiring/branchnavigationwiring.h");
-const QString TestAppBranchNavigation::kSource =
-    QStringLiteral("src/ui/wiring/branchnavigationwiring.cpp");
 
 QTEST_MAIN(TestAppBranchNavigation)
 

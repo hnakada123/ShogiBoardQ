@@ -8,7 +8,6 @@
 #include <QStringList>
 #include <functional>
 
-class QWidget;
 class ShogiGameController;
 class ShogiView;
 struct ShogiMove;
@@ -17,8 +16,7 @@ struct ShogiMove;
  * @brief MainWindow のコア初期化ロジックを集約するコーディネータ
  *
  * 責務:
- * - ShogiGameController の生成・初期化
- * - ShogiView の生成・初期化
+ * - ShogiGameController・ShogiView の初期化（生成はレジストリが起動時に行って渡す）
  * - 盤面モデルの初期化（SFEN 正規化・newGame 実行）
  * - 新対局初期化（initializeNewGame）
  *
@@ -28,16 +26,13 @@ class MainWindowCoreInitCoordinator
 {
 public:
     struct Deps {
-        // --- Core objects（ダブルポインタ：生成先） ---
-        ShogiGameController** gameController = nullptr;
-        ShogiView** shogiView = nullptr;
+        // --- Core objects（起動時にレジストリが作る） ---
+        ShogiGameController* gameController = nullptr;
+        ShogiView* shogiView = nullptr;
 
         // --- 状態参照 ---
         QString* startSfenStr = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
-
-        // --- 親ウィジェット ---
-        QWidget* parent = nullptr;
 
         // --- コールバック ---
         std::function<void()> setupBoardInteractionController;
@@ -57,8 +52,6 @@ public:
 private:
     Deps m_deps;
 
-    void initializeGameControllerAndKifu();
-    void initializeOrResetShogiView();
     void initializeBoardModel();
 };
 

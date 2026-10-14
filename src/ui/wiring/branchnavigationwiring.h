@@ -27,9 +27,12 @@ class BranchTreeEditController;
  * @brief 分岐ナビゲーション関連のUI配線を担当するクラス
  *
  * 責務:
- * - 分岐ツリー/ナビゲーション状態/コントローラの生成
- * - KifuDisplayCoordinatorの生成と配線
+ * - 棋譜欄のナビゲーションボタンと KifuNavigationController の接続
+ * - KifuDisplayCoordinator の設定と配線
  * - 分岐ノード操作イベントの処理
+ *
+ * 分岐ツリー・ナビゲーション状態・コントローラ・表示コーディネータ・ライブセッションは
+ * レジストリ（KifuSubRegistry::createBranchNavigationParts）が起動時に1回作って渡す。
  */
 class BranchNavigationWiring : public QObject
 {
@@ -37,11 +40,11 @@ class BranchNavigationWiring : public QObject
 
 public:
     struct Deps {
-        KifuBranchTree** branchTree = nullptr;                ///< 分岐ツリー（ポインタのポインタ）
-        KifuNavigationState** navState = nullptr;             ///< ナビゲーション状態
-        KifuNavigationController** kifuNavController = nullptr; ///< ナビゲーションコントローラ
-        KifuDisplayCoordinator** displayCoordinator = nullptr; ///< 表示コーディネータ
-        LiveGameSession** liveGameSession = nullptr;          ///< ライブゲームセッション
+        KifuBranchTree* branchTree = nullptr;                 ///< 分岐ツリー
+        KifuNavigationState* navState = nullptr;              ///< ナビゲーション状態
+        KifuNavigationController* kifuNavController = nullptr; ///< ナビゲーションコントローラ
+        KifuDisplayCoordinator* displayCoordinator = nullptr; ///< 表示コーディネータ
+        LiveGameSession* liveGameSession = nullptr;           ///< ライブゲームセッション
         RecordPane* recordPane = nullptr;               ///< 棋譜欄ウィジェット
         EngineAnalysisTab* analysisTab = nullptr;       ///< エンジン解析タブ
         KifuRecordListModel* kifuRecordModel = nullptr; ///< 棋譜レコードモデル
@@ -59,7 +62,7 @@ public:
 
     void updateDeps(const Deps& deps);
 
-    /// 分岐ナビゲーション関連クラスを初期化する（モデル生成 + シグナル配線）
+    /// 分岐ナビゲーションの部品を配線する（2回目以降の呼び出しは何もしない）
     void initialize();
 
     /// 分岐の編集コントローラ（未初期化なら nullptr）
@@ -88,10 +91,8 @@ signals:
                            const QString& lastUsiMove);
 
 private:
-    /// 分岐ナビゲーションのモデルを生成する
-    void createModels();
-    /// 分岐ナビゲーションのシグナルを接続する
-    void wireSignals();
+    /// 棋譜欄のナビゲーションボタンをコントローラへ接続する
+    void connectNavigationButtons();
     /// 分岐表示コーディネーターを設定する
     void configureDisplayCoordinator();
     /// 分岐表示コーディネーターのシグナルを接続する
@@ -101,6 +102,7 @@ private:
 
     Deps m_deps;
     BranchTreeEditController* m_editController = nullptr;   ///< 分岐の編集（this が所有）
+    bool m_initialized = false;                             ///< initialize() を済ませたか
 };
 
 #endif // BRANCHNAVIGATIONWIRING_H

@@ -23,6 +23,10 @@
 #include "evaluationgraphcontroller.h"
 #include "josekiwindowwiring.h"
 #include "kifunavigationstate.h"
+#include "kifubranchtree.h"
+#include "kifunavigationcontroller.h"
+#include "kifudisplaycoordinator.h"
+#include "livegamesession.h"
 #include "josekiwindow.h"
 #include "kifuloadcoordinatorfactory.h"
 #include "kifuloadcoordinator.h"
@@ -49,6 +53,24 @@ KifuSubRegistry::KifuSubRegistry(MainWindow& mw,
 // ---------------------------------------------------------------------------
 // 分岐ナビゲーション
 // ---------------------------------------------------------------------------
+
+void KifuSubRegistry::createBranchNavigationParts()
+{
+    BranchNavigation& nav = m_mw.m_branchNav;
+    if (nav.branchTree) return;
+
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once at startup (initializeBranchNavigationClasses), never recreated
+    nav.branchTree = new KifuBranchTree(&m_mw);
+    nav.navState = new KifuNavigationState(&m_mw);
+    nav.navState->setTree(nav.branchTree);
+    nav.kifuNavController = new KifuNavigationController(&m_mw);
+    nav.kifuNavController->setTreeAndState(nav.branchTree, nav.navState);
+    nav.liveGameSession = new LiveGameSession(&m_mw);
+    nav.liveGameSession->setTree(nav.branchTree);
+    nav.displayCoordinator = new KifuDisplayCoordinator(
+        nav.branchTree, nav.navState, nav.kifuNavController, &m_mw);
+}
 
 void KifuSubRegistry::ensureBranchNavigationWiring()
 {
@@ -81,11 +103,11 @@ void KifuSubRegistry::refreshBranchNavWiringDeps()
     if (!m_mw.m_branchNavWiring) return;
 
     BranchNavigationWiring::Deps deps;
-    deps.branchTree = &m_mw.m_branchNav.branchTree;
-    deps.navState = &m_mw.m_branchNav.navState;
-    deps.kifuNavController = &m_mw.m_branchNav.kifuNavController;
-    deps.displayCoordinator = &m_mw.m_branchNav.displayCoordinator;
-    deps.liveGameSession = &m_mw.m_branchNav.liveGameSession;
+    deps.branchTree = m_mw.m_branchNav.branchTree;
+    deps.navState = m_mw.m_branchNav.navState;
+    deps.kifuNavController = m_mw.m_branchNav.kifuNavController;
+    deps.displayCoordinator = m_mw.m_branchNav.displayCoordinator;
+    deps.liveGameSession = m_mw.m_branchNav.liveGameSession;
     deps.recordPane = m_mw.m_recordPane;
     deps.analysisTab = m_mw.m_analysisTab;
     deps.kifuRecordModel = m_mw.m_models.kifuRecord;

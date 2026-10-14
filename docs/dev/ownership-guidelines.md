@@ -193,7 +193,7 @@ std::unique_ptr<MainWindowLifecyclePipeline> m_pipeline;
 3. **nullptr ガード**: 使用前に必ず nullptr チェック
 
 ```cpp
-// QPointer — 参照先が破棄されると自動的に nullptr になる
+// QPointer — 参照先が破棄されると自動的に nullptr になる（DialogLaunchWiring。閉じると破棄される局面集ビューア）
 QPointer<SfenCollectionDialog> m_sfenCollectionDialog;
 
 // 明示的な nullptr 代入（QPointer でない場合の代替策。EngineLifecycleManager::destroyEngine()）

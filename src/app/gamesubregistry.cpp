@@ -167,8 +167,8 @@ void MainWindowServiceRegistry::refreshTurnStateSyncDeps()
     deps.timePresenter = m_mw.m_timePresenter;
     deps.isGameActivelyInProgress = [this]() {
         if (m_mw.m_state.playMode == PlayMode::CsaNetworkMode) {
-            return m_mw.m_csaGameCoordinator
-                && m_mw.m_csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame;
+            const CsaGameCoordinator* csa = csaGameCoordinator();
+            return csa && csa->gameState() == CsaGameCoordinator::GameState::InGame;
         }
         return m_mw.m_playModePolicy && m_mw.m_playModePolicy->isGameActivelyInProgress();
     };

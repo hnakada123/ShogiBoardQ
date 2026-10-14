@@ -18,6 +18,7 @@
 
 #include "matchcoordinatorwiring.h"
 
+class CsaGameCoordinator;
 class KifuSubRegistry;
 class MainWindow;
 class MainWindowFoundationRegistry;
@@ -114,6 +115,8 @@ public:
     void ensureSessionLifecycleCoordinator();
     void ensureMatchCoordinatorWiring();
     void ensureCsaGameWiring();
+    /// CSA 通信対局の司令塔（CsaGameWiring が持つ。最初の CSA 対局を始めるまでは nullptr）
+    CsaGameCoordinator* csaGameCoordinator() const;
     void ensureConsecutiveGamesController();
     void prepareTurnSyncBridge();
     [[nodiscard]] bool confirmDiscardUnsavedKifu();

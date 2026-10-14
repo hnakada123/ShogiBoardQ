@@ -2454,7 +2454,7 @@
 <context>
     <name>CsaMoveProgressHandler</name>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="152"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="153"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>对手着法：%1（用时：%2 毫秒）</translation>
     </message>
@@ -2477,18 +2477,18 @@
         <translation type="vanished">服务器着法坐标无效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="173"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="352"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="174"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="356"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>应用着法失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="174"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="175"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>无法将服务器着法应用于棋盘：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="210"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="211"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>着法已确认：%1（用时：%2 毫秒）</translation>
     </message>
@@ -2519,42 +2519,42 @@
         <translation>未收到服务器的裁定</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="160"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="161"/>
         <source>サーバーからの指し手を解釈できません: %1</source>
         <translation>无法解析来自服务器的着法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="218"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="219"/>
         <source>サーバーからの指し手確認を解釈できません: %1</source>
         <translation>无法解析来自服务器的着法确认：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="232"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="233"/>
         <source>指し手確認の変換に失敗しました: %1</source>
         <translation>转换着法确认失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="233"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="234"/>
         <source>サーバーからの指し手確認を変換できません: %1</source>
         <translation>无法转换服务器的着法确认：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="308"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="311"/>
         <source>エンジンが思考中...</source>
         <translation>引擎思考中...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="322"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="325"/>
         <source>エンジンが投了しました</source>
         <translation>引擎认输</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="329"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="332"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>引擎未返回有效着法</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="336"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="340"/>
         <source>盤面が取得できませんでした</source>
         <translation>无法获取棋盘状态</translation>
     </message>
@@ -2563,17 +2563,17 @@
         <translation type="vanished">转换打入棋子种类失败</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="344"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="348"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>转换移动棋子种类失败</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="348"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="352"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA 格式着法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="353"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="357"/>
         <source>エンジンの指し手を盤面に適用できません: %1</source>
         <translation>无法将引擎的着法应用到棋盘：%1</translation>
     </message>
@@ -5140,7 +5140,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>SFEN 格式无效。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuapplyservice.cpp" line="68"/>
+        <location filename="../../src/kifu/kifuapplyservice.cpp" line="72"/>
         <source>=== 開始局面 ===</source>
         <translation>=== 初始局面 ===</translation>
     </message>
@@ -5398,7 +5398,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>载入棋谱文件失败：%1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="137"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="136"/>
         <source>棋譜の読み込みで警告があります:
 %1</source>
         <translation>载入棋谱时的警告：
@@ -6455,14 +6455,14 @@ OKを選択すると保存先が指定できます。</source>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="73"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="112"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="71"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="109"/>
         <source>エラー</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="74"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="113"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="72"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="110"/>
         <source>盤面データがありません。</source>
         <translation>没有棋盘数据。</translation>
     </message>
@@ -6725,13 +6725,13 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="94"/>
         <source>入玉宣言確認</source>
         <translation>确认入玉宣言</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="98"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="95"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -6743,7 +6743,7 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="97"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="102"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="99"/>
         <source>宣言する</source>
         <translation>宣言</translation>
     </message>

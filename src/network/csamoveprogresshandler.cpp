@@ -131,16 +131,17 @@ void CsaMoveProgressHandler::updateTimeTracking(bool isBlackMove, int consumedTi
 
 void CsaMoveProgressHandler::syncClockAfterMove(bool startMyTurnClock)
 {
-    if (!*m_refs.clock) return;
+    ShogiClock* const displayClock = currentClock();
+    if (!displayClock) return;
 
     // 表示用の時計をサーバーが示した残り時間に合わせる
     if (!m_refs.gameSummary->isTimeUnlimited()) {
-        (*m_refs.clock)->setRemainingTimes(*m_refs.blackRemainingMs, *m_refs.whiteRemainingMs);
+        displayClock->setRemainingTimes(*m_refs.blackRemainingMs, *m_refs.whiteRemainingMs);
     }
 
     const Turn mySide = *m_refs.isBlackSide ? Turn::Black : Turn::White;
-    (*m_refs.clock)->setCurrentPlayer(startMyTurnClock ? mySide : (mySide == Turn::Black ? Turn::White : Turn::Black));
-    (*m_refs.clock)->startClock();
+    displayClock->setCurrentPlayer(startMyTurnClock ? mySide : (mySide == Turn::Black ? Turn::White : Turn::Black));
+    displayClock->startClock();
 }
 
 // ============================================================
@@ -166,10 +167,10 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
     const int toRank = move[4].digitValue();
 
     // 成り判定（盤面更新前に行う）
-    const bool isPromotion = *m_refs.gameController
-        && CsaMoveConverter::isPromotionMove(move, (*m_refs.gameController)->board());
+    ShogiGameController* const gc = currentGameController();
+    const bool isPromotion = gc && CsaMoveConverter::isPromotionMove(move, gc->board());
 
-    if (!CsaMoveConverter::applyMoveToBoard(move, *m_refs.gameController, *m_refs.usiMoves, *m_refs.sfenHistory, *m_refs.moveCount)) {
+    if (!CsaMoveConverter::applyMoveToBoard(move, gc, *m_refs.usiMoves, currentSfenHistory(), *m_refs.moveCount)) {
         deferVerdict(tr("指し手の適用に失敗しました: %1").arg(move),
                      tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
         return;
@@ -237,15 +238,17 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
 
     // エンジンの指し手の場合のみSFEN記録を更新（人間はvalidateAndMoveで追加済み）
     if (*m_refs.playerType == PlayerType::Engine) {
-        if (*m_refs.gameController && (*m_refs.gameController)->board() && *m_refs.sfenHistory) {
-            QString boardSfen = (*m_refs.gameController)->board()->convertBoardToSfen();
-            QString standSfen = (*m_refs.gameController)->board()->convertStandToSfen();
-            QString currentPlayerStr = ((*m_refs.gameController)->currentPlayer() == Turn::Black)
+        ShogiGameController* const gc = currentGameController();
+        QStringList* const history = currentSfenHistory();
+        if (gc && gc->board() && history) {
+            QString boardSfen = gc->board()->convertBoardToSfen();
+            QString standSfen = gc->board()->convertStandToSfen();
+            QString currentPlayerStr = (gc->currentPlayer() == Turn::Black)
                                        ? QStringLiteral("b") : QStringLiteral("w");
             QString fullSfen = QString("%1 %2 %3 %4")
                                    .arg(boardSfen, currentPlayerStr, standSfen)
                                    .arg(*m_refs.moveCount + 2);
-            (*m_refs.sfenHistory)->append(fullSfen);
+            history->append(fullSfen);
         }
     }
 
@@ -273,8 +276,8 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
 
 void CsaMoveProgressHandler::startEngineThinking()
 {
-    if (!*m_refs.engineController || !(*m_refs.engineController)->isInitialized()
-        || *m_refs.playerType != PlayerType::Engine) {
+    CsaEngineController* const engine = currentEngine();
+    if (!engine || !engine->isInitialized() || *m_refs.playerType != PlayerType::Engine) {
         return;
     }
 
@@ -307,14 +310,14 @@ void CsaMoveProgressHandler::startEngineThinking()
 
     m_hooks.logMessage(tr("エンジンが思考中..."), false);
 
-    connect(*m_refs.engineController, &CsaEngineController::thinkingFinished,
+    connect(engine, &CsaEngineController::thinkingFinished,
             this, &CsaMoveProgressHandler::onEngineThinkingFinished, Qt::UniqueConnection);
-    (*m_refs.engineController)->thinkAsync(params);
+    engine->thinkAsync(params);
 }
 
 void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result)
 {
-    if (sender() != *m_refs.engineController || !*m_refs.isMyTurn) return;
+    if (sender() != currentEngine() || !*m_refs.isMyTurn) return;
     if (*m_refs.gameState != GameState::InGame) return;
 
     // 投了チェック
@@ -331,7 +334,8 @@ void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController:
     }
 
     // CSA形式の指し手を生成（盤面更新前に駒情報を取得）
-    ShogiBoard* board = *m_refs.gameController ? (*m_refs.gameController)->board() : nullptr;
+    ShogiGameController* const gc = currentGameController();
+    ShogiBoard* board = gc ? gc->board() : nullptr;
     if (!board) {
         m_hooks.logMessage(tr("盤面が取得できませんでした"), true);
         return;
@@ -354,7 +358,7 @@ void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController:
         return;
     }
 
-    (*m_refs.gameController)->changeCurrentPlayer();
+    gc->changeCurrentPlayer();
     if (m_hooks.moveAppliedToBoard) m_hooks.moveAppliedToBoard();
 
     // 評価値更新

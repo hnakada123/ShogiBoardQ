@@ -270,6 +270,7 @@ void MainWindowServiceRegistry::createAnalysisResultsDock()
 
 void MainWindowServiceRegistry::initializeBranchNavigationClasses()
 {
+    m_kifu->createBranchNavigationParts();
     m_kifu->ensureBranchNavigationWiring();
     m_mw.m_branchNavWiring->initialize();
 }

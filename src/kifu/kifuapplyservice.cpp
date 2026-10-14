@@ -55,9 +55,13 @@ bool KifuApplyService::loadPositionFromSfen(const QString& sfenStr)
         return false;
     }
 
-    // ローカルエイリアス
-    KifuBranchTree*& branchTree = *m_refs.branchTree;
-    KifuNavigationState* navState = *m_refs.navState;
+    // 分岐ツリーは棋譜の正本で、起動時にレジストリが作って渡す
+    KifuBranchTree* const branchTree = currentTree();
+    KifuNavigationState* const navState = currentNavState();
+    if (branchTree == nullptr) {
+        qCWarning(lcKifu) << "loadPositionFromSfen: branch tree is not set";
+        return false;
+    }
 
     *m_refs.loadingKifu = true;
 
@@ -76,11 +80,7 @@ bool KifuApplyService::loadPositionFromSfen(const QString& sfenStr)
     }
 
     // KifuBranchTree をセットアップ
-    if (branchTree == nullptr) {
-        branchTree = new KifuBranchTree(m_refs.treeParent);
-    } else {
-        branchTree->clear();
-    }
+    branchTree->clear();
     branchTree->setRootSfen(sfen);
 
     // 表示中の手数（分岐ツリーのカーソル）を開始局面へ
@@ -196,7 +196,7 @@ QString KifuApplyService::findGameInfoValue(const QList<KifGameInfoItem>& items,
 
 void KifuApplyService::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
 {
-    ShogiView* shogiView = m_refs.shogiView ? *m_refs.shogiView : nullptr;
+    ShogiView* const shogiView = currentView();
 
     QString black = findGameInfoValue(items, { QStringLiteral("先手") });
     QString white = findGameInfoValue(items, { QStringLiteral("後手") });
@@ -234,8 +234,8 @@ void KifuApplyService::applyBranchMarksForCurrentLine()
 
     QSet<int> marks;
 
-    KifuBranchTree* branchTree = *m_refs.branchTree;
-    KifuNavigationState* navState = *m_refs.navState;
+    KifuBranchTree* const branchTree = currentTree();
+    KifuNavigationState* const navState = currentNavState();
 
     const int currentLineIdx = (navState != nullptr) ? navState->currentLineIndex() : 0;
     qCDebug(lcKifu).noquote() << "applyBranchMarksForCurrentLine: currentLineIndex=" << currentLineIdx;

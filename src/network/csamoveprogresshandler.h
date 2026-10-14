@@ -7,7 +7,6 @@
 #include <QCoreApplication>
 #include <QObject>
 #include "csaenginecontroller.h"
-#include <QPointer>
 #include <QString>
 #include <QStringList>
 #include <QPoint>
@@ -19,7 +18,6 @@
 #include "usimove.h"
 
 class ShogiGameController;
-class ShogiView;
 class ShogiClock;
 class CsaEngineController;
 class CsaClient;
@@ -50,13 +48,13 @@ public:
      * @note CsaGameCoordinator::ensureMoveProgressHandler() で設定される。
      */
     struct Refs {
-        // GUI コンポーネント
-        QPointer<ShogiGameController>* gameController = nullptr;
-        QPointer<ShogiView>* view = nullptr;
-        QPointer<ShogiClock>* clock = nullptr;
+        // 後から設定・生成される部品（呼ばれた時点の値を返す。未設定なら nullptr）
+        std::function<ShogiGameController*()> gameController;
+        std::function<ShogiClock*()> clock;
+        std::function<CsaEngineController*()> engineController;
+        std::function<QStringList*()> sfenHistory;
 
-        // エンジン・クライアント
-        CsaEngineController** engineController = nullptr;
+        // クライアント
         CsaClient* client = nullptr;
 
         // ゲーム状態
@@ -76,7 +74,6 @@ public:
 
         // 指し手データ
         QStringList* usiMoves = nullptr;
-        QStringList** sfenHistory = nullptr;
         QString* positionStr = nullptr;
 
         // 対局情報
@@ -166,6 +163,17 @@ private:
     void deferVerdict(const QString& logText, const QString& failureText);
     /// 裁定待ちのまま次の行が来たら、続行できないとして終局させる
     bool failIfVerdictPending();
+
+    ShogiGameController* currentGameController() const
+    {
+        return m_refs.gameController ? m_refs.gameController() : nullptr;
+    }
+    ShogiClock* currentClock() const { return m_refs.clock ? m_refs.clock() : nullptr; }
+    CsaEngineController* currentEngine() const
+    {
+        return m_refs.engineController ? m_refs.engineController() : nullptr;
+    }
+    QStringList* currentSfenHistory() const { return m_refs.sfenHistory ? m_refs.sfenHistory() : nullptr; }
 
     Refs m_refs;
     Hooks m_hooks;

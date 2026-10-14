@@ -22,10 +22,8 @@
 #include "csagamecoordinator.h"
 #include "dialogutils.h"
 #include "boardsetupcontroller.h"
-#include "playerinfowiring.h"
 #include "analysisresultspresenter.h"
 #include "engineanalysistab.h"
-#include "kifuanalysislistmodel.h"
 #include "sfencollectiondialog.h"
 #include "tsumeshogigeneratordialog.h"
 #include "tsumecollectiondialog.h"
@@ -83,9 +81,8 @@ void DialogLaunchWiring::displayJishogiScoreDialog()
 
 void DialogLaunchWiring::handleNyugyokuDeclaration()
 {
-    if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode
-        && m_deps.csaGameCoordinator && *m_deps.csaGameCoordinator) {
-        CsaGameCoordinator* csa = *m_deps.csaGameCoordinator;
+    CsaGameCoordinator* csa = m_deps.getCsaGameCoordinator ? m_deps.getCsaGameCoordinator() : nullptr;
+    if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
         // 成否はサーバーが判定する。誤操作で負けないよう、ローカル対局と同じく確認する
         if (csa->isMyTurn()) {
             // 駒落ちはローカル対局と同じく、対局情報の見出しに合わせて下手・上手と呼ぶ
@@ -162,34 +159,25 @@ void DialogLaunchWiring::displayTsumeshogiGeneratorDialog()
 
 void DialogLaunchWiring::displayMenuWindow()
 {
-    // ドックが未作成の場合は作成
-    if (m_deps.menuWindowDock && !*m_deps.menuWindowDock) {
-        if (m_deps.createMenuWindowDock) {
-            m_deps.createMenuWindowDock();
-        }
-    }
-
-    // ドックの表示/非表示をトグル
-    if (m_deps.menuWindowDock && *m_deps.menuWindowDock) {
-        QDockWidget* dock = *m_deps.menuWindowDock;
-        if (dock->isVisible()) {
-            dock->hide();
-        } else {
-            dock->show();
-            dock->raise();
-        }
+    // ドックの表示/非表示をトグル（ドックが未作成ならゲッターが作る）
+    QDockWidget* dock = m_deps.getMenuWindowDock ? m_deps.getMenuWindowDock() : nullptr;
+    if (!dock) return;
+    if (dock->isVisible()) {
+        dock->hide();
+    } else {
+        dock->show();
+        dock->raise();
     }
 }
 
 void DialogLaunchWiring::displayCsaGameDialog()
 {
     // ダイアログが未作成の場合は作成する
-    if (m_deps.csaGameDialog && !*m_deps.csaGameDialog) {
-        *m_deps.csaGameDialog = new CsaGameDialog(m_deps.parentWidget);
+    if (!m_csaGameDialog) {
+        m_csaGameDialog = new CsaGameDialog(m_deps.parentWidget);
     }
 
-    CsaGameDialog* dlg = m_deps.csaGameDialog ? *m_deps.csaGameDialog : nullptr;
-    if (!dlg) return;
+    CsaGameDialog* dlg = m_csaGameDialog;
     dlg->refreshChoices();
 
     // ダイアログを表示する
@@ -208,26 +196,12 @@ void DialogLaunchWiring::displayCsaGameDialog()
         auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
         csaWiring->setAnalysisTab(analysisTab);
 
-        // CSA対局を開始（ロジックはCsaGameWiringに委譲）
+        // CSA対局を開始（ロジックはCsaGameWiringに委譲）。司令塔は CsaGameWiring が作って持つ
         const bool started = csaWiring->startCsaGame(dlg, m_deps.parentWidget);
-
-        if (!started) {
-            if (m_deps.csaGameCoordinator) {
-                *m_deps.csaGameCoordinator = nullptr;
-            }
-            if (m_deps.onCsaGameCoordinatorUpdated) {
-                m_deps.onCsaGameCoordinatorUpdated();
-            }
-            return;
-        }
-
-        // CsaGameCoordinatorの参照を保持（他のコードとの互換性のため）
-        if (m_deps.csaGameCoordinator) {
-            *m_deps.csaGameCoordinator = csaWiring->coordinator();
-        }
         if (m_deps.onCsaGameCoordinatorUpdated) {
             m_deps.onCsaGameCoordinatorUpdated();
         }
+        if (!started) return;
 
         // CSA対局でエンジンを使用する場合、評価値グラフ更新用のシグナル接続
         CsaGameCoordinator* coord = csaWiring->coordinator();
@@ -246,26 +220,15 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
     // 解析モードに遷移
     *m_deps.playMode = PlayMode::AnalysisMode;
 
-    // 解析モデルが未生成ならここで作成
-    if (m_deps.analysisModel && !*m_deps.analysisModel) {
-        *m_deps.analysisModel = new KifuAnalysisListModel(m_deps.parentWidget);
-    }
-
     auto* dc = m_deps.getDialogCoordinator ? m_deps.getDialogCoordinator() : nullptr;
     if (!dc) return;
 
     // 依存オブジェクトを確保
-    auto* piw = m_deps.getPlayerInfoWiring ? m_deps.getPlayerInfoWiring() : nullptr;
-    if (piw) {
-        piw->ensureGameInfoController();
-        if (m_deps.gameInfoController) {
-            *m_deps.gameInfoController = piw->gameInfoController();
-        }
-    }
+    auto* gameInfo = m_deps.getGameInfoController ? m_deps.getGameInfoController() : nullptr;
     auto* ap = m_deps.getAnalysisPresenter ? m_deps.getAnalysisPresenter() : nullptr;
 
     // 解析に必要な依存オブジェクトを設定
-    KifuAnalysisListModel* analysisModel = m_deps.analysisModel ? *m_deps.analysisModel : nullptr;
+    KifuAnalysisListModel* analysisModel = m_deps.getAnalysisModel ? m_deps.getAnalysisModel() : nullptr;
     auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
     DialogCoordinator::Deps dcDeps;
     dcDeps.matchCoordinator = m_deps.getMatch ? m_deps.getMatch() : nullptr;
@@ -280,7 +243,7 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
     kifuCtx.recordModel = m_deps.getKifuRecordModel ? m_deps.getKifuRecordModel() : nullptr;
     kifuCtx.navState = m_deps.getNavState ? m_deps.getNavState() : nullptr;
     kifuCtx.gameController = m_deps.getGameController ? m_deps.getGameController() : nullptr;
-    kifuCtx.gameInfoController = m_deps.gameInfoController ? *m_deps.gameInfoController : nullptr;
+    kifuCtx.gameInfoController = gameInfo;
     kifuCtx.evalChart = m_deps.getEvalChart ? m_deps.getEvalChart() : nullptr;
     kifuCtx.presenter = ap;
     auto* sv = m_deps.getShogiView ? m_deps.getShogiView() : nullptr;
@@ -293,17 +256,15 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
 
 void DialogLaunchWiring::displaySfenCollectionViewer()
 {
-    if (!m_deps.sfenCollectionDialog) return;
-
     // 既にダイアログが開いている場合はアクティブにする
-    if (*m_deps.sfenCollectionDialog) {
-        (*m_deps.sfenCollectionDialog)->raise();
-        (*m_deps.sfenCollectionDialog)->activateWindow();
+    if (m_sfenCollectionDialog) {
+        m_sfenCollectionDialog->raise();
+        m_sfenCollectionDialog->activateWindow();
         return;
     }
 
     auto* dlg = new SfenCollectionDialog(m_deps.parentWidget);
-    *m_deps.sfenCollectionDialog = dlg;
+    m_sfenCollectionDialog = dlg;
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     connect(dlg, &SfenCollectionDialog::positionSelected,
             this, &DialogLaunchWiring::sfenCollectionPositionSelected);

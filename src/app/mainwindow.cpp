@@ -152,7 +152,7 @@ void MainWindow::onMoveCommitted(Turn mover, int ply)
 // 以下のタイミングで呼び出すこと:
 //   - 起動完了直後（initializeEarlyServices）
 //   - 司令塔の生成直後（MainWindowServiceRegistry::initMatchCoordinator）
-//   - CsaGameCoordinator 生成時（DialogLaunchWiring::displayCsaGameDialog）
+//   - CSA 通信対局の開始を試みた後（DialogLaunchWiring::displayCsaGameDialog）
 void MainWindow::refreshPlayModePolicyDeps()
 {
     if (!m_playModePolicy) return;
@@ -160,7 +160,7 @@ void MainWindow::refreshPlayModePolicyDeps()
     policyDeps.playMode = &m_state.playMode;
     policyDeps.gameController = m_gameController;
     policyDeps.match = m_match;
-    policyDeps.csaGameCoordinator = m_csaGameCoordinator;
+    policyDeps.csaGameCoordinator = m_registry->csaGameCoordinator();
     policyDeps.canRecordVariationMove = [this]() { return m_registry && m_registry->canRecordVariationMove(); };
     m_playModePolicy->updateDeps(policyDeps);
 }

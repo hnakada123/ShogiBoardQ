@@ -115,7 +115,7 @@ void KifuApplyService::applyToRecordView(const KifParseResult& res, const QStrin
                                          const QString& teaiLabel, const QString& parseWarn)
 {
     const QList<KifDisplayItem>& disp = res.mainline.disp;
-    KifuNavigationState* navState = *m_refs.navState;
+    KifuNavigationState* const navState = currentNavState();
 
     if (m_hooks.displayGameRecord) {
         m_hooks.displayGameRecord(disp);
@@ -147,9 +147,9 @@ void KifuApplyService::applyToRecordView(const KifParseResult& res, const QStrin
 
 void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString& initialSfen)
 {
-    KifuBranchTree*& branchTree = *m_refs.branchTree;
-    KifuNavigationState* navState = *m_refs.navState;
-    BranchTreeManager* branchTreeManager = *m_refs.branchTreeManager;
+    KifuBranchTree* const branchTree = currentTree();
+    KifuNavigationState* const navState = currentNavState();
+    BranchTreeManager* const branchTreeManager = currentTreeManager();
 
     if (branchTree != nullptr) {
         if (navState != nullptr) {

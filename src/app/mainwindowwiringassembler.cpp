@@ -30,7 +30,13 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getNyugyokuHandler   = [this]() { m_foundation->prepareNyugyokuHandler(); return m_mw.m_nyugyokuHandler.get(); };
     d.getCsaGameWiring     = [this]() { ensureCsaGameWiring(); return m_mw.m_csaGameWiring.get(); };
     d.getBoardSetupController = [this]() { ensureBoardSetupController(); return m_mw.m_boardSetupController; };
-    d.getPlayerInfoWiring  = [this]() { m_foundation->ensurePlayerInfoWiring(); return m_mw.m_playerInfoWiring; };
+    d.getGameInfoController = [this]() -> GameInfoPaneController* {
+        m_foundation->ensurePlayerInfoWiring();
+        if (!m_mw.m_playerInfoWiring) return nullptr;
+        m_mw.m_playerInfoWiring->ensureGameInfoController();
+        m_mw.m_gameInfoController = m_mw.m_playerInfoWiring->gameInfoController();
+        return m_mw.m_gameInfoController;
+    };
     d.getAnalysisPresenter = [this]() { m_foundation->ensureAnalysisPresenter(); return m_mw.m_analysisPresenter.get(); };
     d.getAnalysisTab       = [this]() { return m_mw.m_analysisTab; };
     d.getLineEditModel1    = [this]() { return m_mw.m_models.commLog1; };
@@ -39,22 +45,12 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getNavState          = [this]() { return m_mw.m_branchNav.navState; };
     d.getEvalChart         = [this]() { return m_mw.m_evalChart; };
     d.getPieceSoundPlayer  = [this]() { m_foundation->ensurePieceSoundPlayer(); return m_mw.m_registryParts.pieceSoundPlayer; };
-
-    // ダブルポインタ
-    d.csaGameDialog      = &m_mw.m_csaGameDialog;
-    d.csaGameCoordinator = &m_mw.m_csaGameCoordinator;
-    d.gameInfoController = &m_mw.m_gameInfoController;
-    d.analysisModel      = &m_mw.m_models.analysis;
-
-    // メニューウィンドウドック
-    d.menuWindowDock     = &m_mw.m_docks.menuWindow;
-    d.createMenuWindowDock = [this]() { createMenuWindowDock(); };
-
-    // 局面集ダイアログ
-    d.sfenCollectionDialog = &m_mw.m_sfenCollectionDialog;
-
-    // CSA通信対局のエンジン評価値グラフ用
-    d.getCsaGameCoordinator = [this]() { return m_mw.m_csaGameCoordinator; };
+    d.getAnalysisModel     = [this]() { return m_mw.m_models.analysis; };
+    d.getMenuWindowDock    = [this]() {
+        if (!m_mw.m_docks.menuWindow) createMenuWindowDock();
+        return m_mw.m_docks.menuWindow;
+    };
+    d.getCsaGameCoordinator = [this]() { return csaGameCoordinator(); };
 
     // CsaGameCoordinator 生成後に PlayModePolicyService の依存を更新
     d.onCsaGameCoordinatorUpdated = [this]() { m_mw.refreshPlayModePolicyDeps(); };
