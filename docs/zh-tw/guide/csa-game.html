@@ -51,6 +51,7 @@
             <li><a href="#waiting">連線與等待</a></li>
             <li><a href="#playing">對局中</a></li>
             <li><a href="#about-csa">支援的伺服器</a></li>
+            <li><a href="#connection-troubleshooting">連線問題</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -87,21 +88,28 @@
                 <table class="info-table">
                     <tbody>
                         <tr><td><strong>本方對局者</strong></td><td>自己下棋時選擇「人類」，讓 USI 引擎下棋時選擇「引擎」。引擎從「設定」→「引擎設定」中註冊的引擎裡選擇，按一下「引擎設定...」可以變更選項。</td></tr>
-                        <tr><td><strong>從歷史記錄選擇</strong></td><td>選擇以前連線過的伺服器（最多 10 個），會填入主機、連接埠和 ID。</td></tr>
+                        <tr><td><strong>從歷史記錄選擇</strong></td><td>選擇以前連線過的伺服器（最多 10 個），會填入主機、連接埠、ID 與連線方式。密碼需要每次輸入。</td></tr>
                         <tr><td><strong>協定</strong></td><td>使用 CSA 協定 1.2.1 連線。</td></tr>
                         <tr><td><strong>主機、連接埠</strong></td><td>伺服器的主機名稱或 IP 位址，以及連接埠（預設 4081）。</td></tr>
                         <tr><td><strong>ID、密碼</strong></td><td>登入伺服器的 ID 與密碼。ID 使用英數字、「_」與「-」，不超過 32 個字元；密碼為不超過 32 個字元的半形字元。密碼不會儲存到設定檔中。</td></tr>
+                        <tr><td><strong>連線方式</strong></td><td><strong>一般CSA（明文）</strong>：預設連線方式。連線到一般的 shogi-server 或 floodgate 時請選擇此項。支援 localhost、IP 位址與遠端主機名稱。<br><strong>TLS（加密）</strong>：僅用於支援 TLS 的 CSA 伺服器或 TLS 終止代理。連線時驗證伺服器憑證與主機名稱；驗證或連線失敗時不會自動切換成明文。</td></tr>
                         <tr><td><strong>「詳細」分頁：保持連線</strong></td><td>「對局中傳送空行以保持連線」（預設每 40 秒）與「使用 TCP 保活」可避免長考時連線中斷。「思考時間餘量」是為因應網路延遲而從交給引擎的用時中扣除的秒數。</td></tr>
                         <tr><td><strong>「詳細」分頁：對局</strong></td><td>設定「對局數」「終局後若伺服器中斷連線，則重新連線並等待下一局」「執後手時翻轉棋盤」「自動儲存棋譜」（步驟 8），以及 shogi-server 的「遊戲名稱」與「希望的手番」（步驟 2）。</td></tr>
                     </tbody>
                 </table>
+                <div class="judgment-note"><p>一般CSA會以未加密的方式傳送 ID、密碼與對局內容。請勿使用與其他服務相同的密碼。選擇一般CSA時，設定對話方塊也會顯示此提醒。</p></div>
+                <p class="guide-step-text">連線方式會儲存於設定與連線歷史中。以前儲存的 TLS 選項會被還原，因此連線到一般 shogi-server 時，請重新選擇「一般CSA（明文）」。</p>
                 <p class="guide-step-text">有未填寫的項目時，對話方塊下方會顯示「請輸入主機位址。」等提示，「連線」按鈕無法按下。主機、ID 與密碼中不能包含空格。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/csa-game/csa-01-dialog.png" alt="網路對局 (CSA) 對話方塊">
+                    <img src="../../images/zh-tw/csa-game/csa-01-dialog.png" alt="網路對局 (CSA) 對話方塊" width="455" height="693" loading="lazy">
                     <p class="screenshot-caption">網路對局對話方塊：以人類身分連線到本機 shogi-server 的設定</p>
                 </div>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/csa-game/csa-01-advanced.png" alt="網路對局 (CSA) 對話方塊的「詳細」分頁">
+                    <img src="../../images/zh-tw/csa-game/csa-01-tls.png" alt="TLS 設定範例：輸入支援 TLS 的伺服器主機名稱與管理員指定的連接埠（圖中的主機名稱僅作範例）" width="455" height="693" loading="lazy">
+                    <p class="screenshot-caption">TLS 設定範例：輸入支援 TLS 的伺服器主機名稱與管理員指定的連接埠（圖中的主機名稱僅作範例）</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/csa-game/csa-01-advanced.png" alt="網路對局 (CSA) 對話方塊的「詳細」分頁" width="455" height="693" loading="lazy">
                     <p class="screenshot-caption">「詳細」分頁：保持連線、對局數、自動儲存棋譜、shogi-server 的遊戲名稱</p>
                 </div>
             </div>
@@ -119,7 +127,22 @@
                         <tr><td><strong>希望先手或後手</strong></td><td>在「希望的手番」中選擇先手或後手。也可以在對局名後加 -B（先手）或 -W（後手）。例如 test-600-10-B,pw</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">在自己的電腦上執行 shogi-server 時，主機填 localhost，連接埠填 4081。</p>
+                <p class="guide-step-text">如果 shogi-server 執行於本機，主機填寫 <code>localhost</code> 或 <code>127.0.0.1</code>，連接埠填寫伺服器的監聽連接埠（預設 <code>4081</code>），連線方式選擇「一般CSA（明文）」。一般的 shogi-server 不接受直接 TLS 連線。</p>
+                <h3 id="floodgate-settings">floodgate 連線設定</h3>
+                <p class="guide-step-text">依據 <a href="https://wdoor.c.u-tokyo.ac.jp/shogi/">floodgate 官方連線說明</a>填寫以下設定，無需註冊帳號。</p>
+                <table class="info-table"><tbody>
+                        <tr><td><strong>主機</strong></td><td><code>wdoor.c.u-tokyo.ac.jp</code></td></tr>
+                        <tr><td><strong>連接埠</strong></td><td><code>4081</code></td></tr>
+                        <tr><td><strong>連線方式</strong></td><td>一般CSA（明文）</td></tr>
+                        <tr><td><strong>ID</strong></td><td>與其他參加者不重複的專用 ID</td></tr>
+                        <tr><td><strong>密碼</strong></td><td>將 <code>floodgate-300-10F,trip</code> 中的 <code>trip</code> 替換為自己的專用字串。密碼欄整體須在 32 個 ASCII 字元以內。</td></tr>
+                        <tr><td><strong>「詳細」分頁</strong></td><td>採用這種填寫方式時，「遊戲名稱」留空，「希望的手番」選擇「不指定」。</td></tr>
+                </tbody></table>
+                <p class="guide-step-text">登入並等待後，每小時的 00 分與 30 分會安排對局。用時為 5 分鐘，每走一步加 10 秒。連續對局時，將「對局數」設為兩局以上或無限制，並啟用「終局後若伺服器中斷連線，則重新連線並等待下一局」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/csa-game/csa-01-floodgate.png" alt="floodgate 設定範例：選擇一般CSA，密碼以隱藏方式顯示" width="455" height="693" loading="lazy">
+                    <p class="screenshot-caption">floodgate 設定範例：選擇一般CSA，密碼以隱藏方式顯示</p>
+                </div>
             </div>
 
         </div>
@@ -142,7 +165,7 @@
                 <p class="guide-step-text">按一下「連線」會開啟等待視窗，依序進行連線伺服器、登入與等待對手。如果有未儲存的棋譜，會先確認是否捨棄。</p>
                 <p class="guide-step-text">找到對手後，伺服器送來對局條件，ShogiBoardQ 自動同意並開始對局。按一下「取消對局」可以停止等待並登出。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/csa-game/csa-02-waiting.png" alt="等待對手的畫面">
+                    <img src="../../images/zh-tw/csa-game/csa-02-waiting.png" alt="等待對手的畫面" width="400" height="260" loading="lazy">
                     <p class="screenshot-caption">等待畫面：登入成功，正在等待對手</p>
                 </div>
             </div>
@@ -155,8 +178,8 @@
                 <p class="guide-step-text">按一下「通訊記錄」會開啟顯示與伺服器收發內容的視窗。▶ 表示接收的行，◀ 表示傳送的行，LOGIN 的密碼顯示為「*****」。</p>
                 <p class="guide-step-text">連線期間可以在下方輸入指令，按 Enter 或按一下「傳送」傳給伺服器。記錄最多保留 5000 行。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/csa-game/csa-02-commlog.png" alt="CSA 記錄視窗">
-                    <p class="screenshot-caption">通訊記錄：收到對局條件（Game_Summary）並以 AGREE 同意</p>
+                    <img src="../../images/zh-tw/csa-game/csa-02-commlog.png" alt="CSA 記錄視窗" width="550" height="450" loading="lazy">
+                    <p class="screenshot-caption">通訊記錄：已登入本機伺服器並等待對手；傳送的密碼已隱藏</p>
                 </div>
             </div>
 
@@ -180,7 +203,7 @@
                 <p class="guide-step-text">以人類身分對局時，輪到自己時按一下棋盤上的棋子下棋。對手的著法由伺服器送來並反映到棋盤上，棋譜欄記錄每步著法與用時。對局時鐘顯示伺服器送來的用時。</p>
                 <p class="guide-step-text">畫面下方的「CSA 記錄」分頁可以查看收發內容與連線狀態。「複製」複製整個記錄，「清除」清除顯示，也可以從輸入欄傳送指令。「對局資訊」分頁記錄對局者姓名與伺服器的用時。</p>
                 <div class="screenshot-item">
-                    <img src="../../images/zh-tw/csa-game/csa-03-playing.png" alt="網路對局中的畫面">
+                    <img src="../../images/zh-tw/csa-game/csa-03-playing.png" alt="網路對局中的畫面" width="1277" height="980" loading="lazy">
                     <p class="screenshot-caption">對局中：一邊在 CSA 記錄分頁查看與伺服器的收發一邊對局</p>
                 </div>
             </div>
@@ -211,7 +234,7 @@
                 <p class="guide-step-text">對局結束後會顯示結果與原因，棋譜欄記錄終局（如「▲認輸」）。啟用「詳細」分頁的「終局時自動儲存棋譜」時，棋譜會自動儲存到指定資料夾；否則請從「檔案」選單儲存。終局後可以重播棋譜，或開始下一局網路對局。將「對局數」設為 2 局以上或無限制時，終局後會保持登入並等待下一局的對局條件。啟用「終局後若伺服器中斷連線，則重新連線並等待下一局」後，在 shogi-server 這類每局結束後中斷連線的伺服器上也能連續對局。</p>
                 <p class="guide-step-text">對局中斷線，或引擎無法回傳著法時，對局以「中斷」結束。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/csa-game/csa-04-game-end.png" alt="對局結束的提示">
+                    <img src="../../images/zh-tw/csa-game/csa-04-game-end.png" alt="對局結束的提示" width="251" height="141" loading="lazy">
                     <p class="screenshot-caption">終局：結果「負」，原因「認輸」</p>
                 </div>
             </div>
@@ -233,6 +256,22 @@
             </ul>
         </div>
 
+    </div>
+</section>
+
+<section id="connection-troubleshooting" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">無法連線時</h2>
+        <p class="section-desc">檢查連線方式與伺服器設定</p>
+        <table class="info-table">
+            <thead><tr><th>現象</th><th>檢查與處理</th></tr></thead>
+            <tbody>
+                <tr><td>SSL 交握錯誤 / wrong version number</td><td>使用 TLS 連線到明文 CSA 伺服器時會發生此錯誤。連線到一般 shogi-server 或 floodgate 時，請選擇「一般CSA（明文）」。</td></tr>
+                <tr><td>TLS 憑證驗證錯誤</td><td>檢查 TLS 伺服器的主機名稱、憑證有效期與信任狀態。憑證問題請詢問伺服器管理員。</td></tr>
+                <tr><td>連線被拒絕 / 逾時</td><td>檢查伺服器是否啟動、主機與連接埠是否正確、防火牆是否允許連線。localhost 表示執行 ShogiBoardQ 的電腦本身。</td></tr>
+                <tr><td>無法登入 / 找不到對手</td><td>檢查 ID、密碼與遊戲名稱。floodgate 請使用唯一的 ID 與專用 trip 字串，並等待配對時間。</td></tr>
+            </tbody>
+        </table>
     </div>
 </section>
 

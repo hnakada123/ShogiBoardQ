@@ -51,6 +51,7 @@
             <li><a href="#waiting">Waiting</a></li>
             <li><a href="#playing">Playing</a></li>
             <li><a href="#about-csa">Servers</a></li>
+            <li><a href="#connection-troubleshooting">Troubleshooting</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -87,21 +88,28 @@
                 <table class="info-table">
                     <tbody>
                         <tr><td><strong>Player on this side</strong></td><td>Choose Human to play yourself, or Engine to let a USI engine play. Engines are those registered in Settings → Engine Settings, and Engine Settings... changes their options.</td></tr>
-                        <tr><td><strong>Select from history</strong></td><td>Pick a server you connected to before (up to 10) to fill in Host, Port and ID.</td></tr>
+                        <tr><td><strong>Select from history</strong></td><td>Pick a server you connected to before (up to 10) to fill in Host, Port, ID and Connection security. Enter the password each time.</td></tr>
                         <tr><td><strong>Protocol</strong></td><td>The connection uses CSA Protocol 1.2.1.</td></tr>
                         <tr><td><strong>Host and Port</strong></td><td>The server's host name or IP address, and its port (4081 by default).</td></tr>
                         <tr><td><strong>ID and Password</strong></td><td>Your login for the server. The ID uses letters, digits, "_" and "-" (up to 32 characters); the password is up to 32 ASCII characters. The password is not saved in the settings file.</td></tr>
+                        <tr><td><strong>Connection security</strong></td><td><strong>Standard CSA (plaintext)</strong>：The default connection type. Choose this for a standard shogi-server or floodgate. You can use localhost, an IP address or a remote host name.<br><strong>TLS (encrypted)</strong>：Choose this for a TLS-enabled CSA server or a TLS termination proxy. The server certificate and host name are verified. Verification or connection failures never cause an automatic switch to plaintext.</td></tr>
                         <tr><td><strong>Advanced tab: Keeping the connection alive</strong></td><td>"Send empty lines during a game to keep the connection alive" (every 40 seconds by default) and "Use TCP keep-alive" prevent the connection from dropping during a long think. "Thinking time margin" is subtracted from the time given to the engine to allow for network delay.</td></tr>
                         <tr><td><strong>Advanced tab: Games</strong></td><td>"Number of games", "Reconnect and wait for the next game when the server disconnects after a game", "Flip the board when playing White", automatic record saving (step 8), and the shogi-server game name and preferred side (step 2).</td></tr>
                     </tbody>
                 </table>
+                <div class="judgment-note"><p>Standard CSA sends your ID, password and game data without encryption. Do not reuse a password from another service. This warning also appears in the dialog when Standard CSA is selected.</p></div>
+                <p class="guide-step-text">The connection type is saved in settings and server history. A previously saved TLS selection is restored, so select Standard CSA (plaintext) when connecting to a standard shogi-server.</p>
                 <p class="guide-step-text">While a field is missing, a hint such as "Please enter the host address." appears at the bottom of the dialog and Connect stays disabled. Host, ID and password cannot contain spaces.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/en/csa-game/csa-01-dialog.png" alt="Network Game (CSA) dialog">
+                    <img src="../../images/en/csa-game/csa-01-dialog.png" alt="Network Game (CSA) dialog" width="613" height="677" loading="lazy">
                     <p class="screenshot-caption">Network game dialog: settings for connecting to a local shogi-server as a human player</p>
                 </div>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/en/csa-game/csa-01-advanced.png" alt="Advanced tab of the Network Game (CSA) dialog">
+                    <img src="../../images/en/csa-game/csa-01-tls.png" alt="TLS example: enter the TLS server host name and the port specified by its administrator (the host shown is illustrative)" width="613" height="677" loading="lazy">
+                    <p class="screenshot-caption">TLS example: enter the TLS server host name and the port specified by its administrator (the host shown is illustrative)</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/csa-game/csa-01-advanced.png" alt="Advanced tab of the Network Game (CSA) dialog" width="613" height="677" loading="lazy">
                     <p class="screenshot-caption">Advanced tab: keeping the connection alive, number of games, automatic record saving and the shogi-server game name</p>
                 </div>
             </div>
@@ -119,7 +127,22 @@
                         <tr><td><strong>Preferred side</strong></td><td>Choose Black or White in "Preferred side". Appending -B (Black) or -W (White) to the game name also works. Example: test-600-10-B,pw</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">When shogi-server runs on your own computer, use localhost as the host and 4081 as the port.</p>
+                <p class="guide-step-text">For shogi-server running on your own computer, set Host to <code>localhost</code> or <code>127.0.0.1</code>, use its listening port (default <code>4081</code>), and select Standard CSA (plaintext). A standard shogi-server does not accept a direct TLS connection.</p>
+                <h3 id="floodgate-settings">Connecting to floodgate</h3>
+                <p class="guide-step-text">Use the following settings from the <a href="https://wdoor.c.u-tokyo.ac.jp/shogi/">official floodgate connection guide</a>. No account registration is required.</p>
+                <table class="info-table"><tbody>
+                        <tr><td><strong>Host</strong></td><td><code>wdoor.c.u-tokyo.ac.jp</code></td></tr>
+                        <tr><td><strong>Port</strong></td><td><code>4081</code></td></tr>
+                        <tr><td><strong>Connection security</strong></td><td>Standard CSA (plaintext)</td></tr>
+                        <tr><td><strong>ID</strong></td><td>A unique ID that does not overlap with another participant</td></tr>
+                        <tr><td><strong>Password</strong></td><td>Replace <code>trip</code> in <code>floodgate-300-10F,trip</code> with your own dedicated string. Keep the entire Password field within 32 ASCII characters.</td></tr>
+                        <tr><td><strong>Advanced tab</strong></td><td>For this method, leave Game name empty and set Preferred side to No preference.</td></tr>
+                </tbody></table>
+                <p class="guide-step-text">Logged-in players are paired at minute 00 and 30 of each hour. The time control is 5 minutes plus a 10-second increment per move. To play successive games, select two or more games or Unlimited and enable "Reconnect and wait for the next game when the server disconnects after a game".</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/csa-game/csa-01-floodgate.png" alt="floodgate settings: Standard CSA is selected and the password is masked" width="613" height="677" loading="lazy">
+                    <p class="screenshot-caption">floodgate settings: Standard CSA is selected and the password is masked</p>
+                </div>
             </div>
 
         </div>
@@ -142,7 +165,7 @@
                 <p class="guide-step-text">Clicking Connect opens the waiting window, which goes through connecting, logging in and waiting for an opponent. If the current game record is unsaved, you are first asked whether to discard it.</p>
                 <p class="guide-step-text">When an opponent is found, the server sends the game conditions, ShogiBoardQ agrees to them automatically, and the game starts. Cancel Game stops waiting and logs out.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/en/csa-game/csa-02-waiting.png" alt="Waiting for an opponent">
+                    <img src="../../images/en/csa-game/csa-02-waiting.png" alt="Waiting for an opponent" width="400" height="260" loading="lazy">
                     <p class="screenshot-caption">Waiting: logged in and waiting for an opponent</p>
                 </div>
             </div>
@@ -155,8 +178,8 @@
                 <p class="guide-step-text">Communication Log opens a window that shows what is sent to and received from the server. ▶ marks received lines and ◀ sent lines; the LOGIN password is shown as *****.</p>
                 <p class="guide-step-text">While connected, you can type a command in the field below and send it with Enter or Send. The log keeps up to 5000 lines.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/en/csa-game/csa-02-commlog.png" alt="CSA log window">
-                    <p class="screenshot-caption">Communication log: the game conditions (Game_Summary) have arrived and ShogiBoardQ has agreed with AGREE</p>
+                    <img src="../../images/en/csa-game/csa-02-commlog.png" alt="CSA log window" width="550" height="450" loading="lazy">
+                    <p class="screenshot-caption">Communication log: logged in to a local server and waiting; the sent password is masked</p>
                 </div>
             </div>
 
@@ -180,7 +203,7 @@
                 <p class="guide-step-text">When you play as a human, click pieces on the board on your turn. The opponent's moves arrive from the server and appear on the board, and the game record lists each move with the time used. The clocks show the time control sent by the server.</p>
                 <p class="guide-step-text">The CSA Log tab at the bottom shows the traffic and the connection status. Copy copies the whole log, Clear clears the view, and you can send commands from the input field. The Game Info tab records the player names and the server's time control.</p>
                 <div class="screenshot-item">
-                    <img src="../../images/en/csa-game/csa-03-playing.png" alt="During a network game">
+                    <img src="../../images/en/csa-game/csa-03-playing.png" alt="During a network game" width="1383" height="980" loading="lazy">
                     <p class="screenshot-caption">During the game: following the server traffic in the CSA Log tab</p>
                 </div>
             </div>
@@ -211,7 +234,7 @@
                 <p class="guide-step-text">When the game ends, the result and its cause are shown and the end (such as "▲Resign") is recorded in the record pane. With "Save the game record automatically when a game ends" on the Advanced tab, the record is saved to the chosen folder; otherwise save it from the File menu. Afterwards you can replay the record or start another network game. With "Number of games" set to two or more, or unlimited, the client stays logged in and waits for the next game conditions. "Reconnect and wait for the next game when the server disconnects after a game" keeps playing on servers such as shogi-server that close the connection after every game.</p>
                 <p class="guide-step-text">If the connection is lost or the engine can no longer return a move, the game ends as aborted.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/en/csa-game/csa-04-game-end.png" alt="Game over message">
+                    <img src="../../images/en/csa-game/csa-04-game-end.png" alt="Game over message" width="251" height="138" loading="lazy">
                     <p class="screenshot-caption">End of the game: Result Loss, Cause Resign</p>
                 </div>
             </div>
@@ -233,6 +256,22 @@
             </ul>
         </div>
 
+    </div>
+</section>
+
+<section id="connection-troubleshooting" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Connection Troubleshooting</h2>
+        <p class="section-desc">Check the connection type and server settings</p>
+        <table class="info-table">
+            <thead><tr><th>Symptom</th><th>What to check</th></tr></thead>
+            <tbody>
+                <tr><td>SSL handshake error / wrong version number</td><td>This occurs when connecting with TLS to a plaintext CSA server. Select Standard CSA (plaintext) for a standard shogi-server or floodgate.</td></tr>
+                <tr><td>TLS certificate verification error</td><td>Check the TLS server host name, certificate expiration and trust. Contact the server administrator about certificate problems.</td></tr>
+                <tr><td>Connection refused / timeout</td><td>Check that the server is running, the host and port are correct, and the firewall permits access. localhost refers to the computer running ShogiBoardQ.</td></tr>
+                <tr><td>Login fails / no opponent found</td><td>Check the ID, password and game name. On floodgate, use a unique ID and dedicated trip string, and wait for the pairing time.</td></tr>
+            </tbody>
+        </table>
     </div>
 </section>
 
