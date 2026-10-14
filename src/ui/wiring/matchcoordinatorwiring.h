@@ -40,7 +40,7 @@ class BranchNavigationWiring;
  * 責務:
  * - GameStartCoordinatorの生成と管理
  * - MatchCoordinatorの生成とDeps構築
- * - MatchCoordinator/GameStartCoordinatorのシグナル配線
+ * - MatchCoordinator/GameStartCoordinatorのシグナルを、作るときに受け手（SignalTargets）へ直接つなぐ
  * - UndoBindingsの設定
  * - 盤面操作・時計・評価値グラフの配線
  */
@@ -49,6 +49,19 @@ class MatchCoordinatorWiring : public QObject
     Q_OBJECT
 
 public:
+    /// 司令塔と GameStartCoordinator のシグナルの受け手（呼び出し元で ensure 済み。nullptr の受け手はつながない）
+    struct SignalTargets {
+        GameSessionOrchestrator* gameSession = nullptr;
+        SessionLifecycleCoordinator* sessionLifecycle = nullptr;
+        GameStateController* gameStateController = nullptr;
+        ConsecutiveGamesController* consecutiveGamesController = nullptr;
+        MainWindowAppearanceController* appearance = nullptr;
+        PlayerInfoWiring* playerInfo = nullptr;
+        KifuNavigationCoordinator* kifuNav = nullptr;
+        BranchNavigationWiring* branchNav = nullptr;
+        UiStatePolicyManager* uiStatePolicy = nullptr;
+    };
+
     struct Deps {
         // --- MatchCoordinator::Deps 構築用 ---
         ShogiGameController* gc = nullptr;
@@ -79,7 +92,6 @@ public:
         std::function<void()> ensureTimeController;            ///< TimeControlController 遅延初期化
         std::function<void()> ensureEvaluationGraphController; ///< EvaluationGraphController 遅延初期化
         std::function<void()> ensureUsiCommandController;      ///< UsiCommandController 遅延初期化
-        std::function<void()> ensureUiStatePolicyManager;      ///< UiStatePolicyManager 遅延初期化
         std::function<void()> connectBoardClicks;              ///< 盤面クリック接続
         std::function<void()> connectMoveRequested;            ///< moveRequested シグナル接続
 
@@ -87,7 +99,6 @@ public:
         std::function<ShogiClock*()> getClock;                            ///< ShogiClock 取得
         std::function<TimeControlController*()> getTimeController;        ///< TimeControlController 取得
         std::function<EvaluationGraphController*()> getEvalGraphController; ///< EvaluationGraphController 取得
-        std::function<UiStatePolicyManager*()> getUiStatePolicy;          ///< UiStatePolicyManager 取得
     };
 
     explicit MatchCoordinatorWiring(QObject* parent = nullptr);
@@ -95,12 +106,18 @@ public:
 
     void updateDeps(const Deps& deps);
 
+    /**
+     * @brief シグナルの受け手を登録する（司令塔を作る initializeSession より前に1回だけ呼ぶ）
+     *
+     * 受け手は、司令塔（createMatchCoordinator）と GameStartCoordinator（ensureMenuGameStartCoordinator）を
+     * 作るときに、それぞれのシグナルへ直接つなぐ。どちらも一度だけ作るので、つなぐのも一度だけである。
+     */
+    void setSignalTargets(const SignalTargets& targets);
 
     /**
-     * @brief メニュー操作用 GameStartCoordinator を遅延生成し配線する
+     * @brief メニュー操作用 GameStartCoordinator を遅延生成し、シグナルを受け手へつなぐ
      *
      * MainWindowServiceRegistry::ensureGameStartCoordinator() から委譲される。
-     * 11 connect をこのクラス内に集約する。
      */
     void ensureMenuGameStartCoordinator();
 
@@ -113,77 +130,19 @@ public:
      */
     bool initializeSession();
 
-    /// wireForwardingSignals に渡す接続先ポインタ群
-    struct ForwardingTargets {
-        GameSessionOrchestrator* gameSession = nullptr;
-        SessionLifecycleCoordinator* sessionLifecycle = nullptr;
-        GameStateController* gameStateController = nullptr;
-        ConsecutiveGamesController* consecutiveGamesController = nullptr;
-        MainWindowAppearanceController* appearance = nullptr;
-        PlayerInfoWiring* playerInfo = nullptr;
-        KifuNavigationCoordinator* kifuNav = nullptr;
-        BranchNavigationWiring* branchNav = nullptr;
-    };
-
-    /**
-     * @brief 転送シグナルを各コントローラのスロットに接続する
-     *
-     * MatchCoordinatorWiring/GameStartCoordinator → 各責務クラスへ直接接続する。
-     * @param targets 接続先ポインタ群（呼び出し元で ensure 済み）
-     */
-    void wireForwardingSignals(const ForwardingTargets& targets);
-
     /// 生成された MatchCoordinator を返す（非所有）
     MatchCoordinator* match() const { return m_match.get(); }
 
     /// メニュー操作用 GameStartCoordinator を返す（非所有）
     GameStartCoordinator* menuGameStartCoordinator() const { return m_menuGameStart; }
 
-signals:
-    void gameInterrupted();
-    // --- GameStartCoordinator シグナルの転送 ---
-
-    /// 終局手の棋譜追記要求
-    void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
-
-    /// 盤面反転通知
-    void boardFlipped(bool nowFlipped);
-
-    /// 終局状態変更通知
-    void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
-
-    /// 対局終了通知
-    void matchGameEnded(const MatchCoordinator::GameEndInfo& info);
-    void gameEndProcessed(const MatchCoordinator::GameEndInfo& info);
-
-    // --- メニュー GameStartCoordinator シグナルの転送 ---
-
-    /// 対局開始前クリーンアップ要求
-    void requestPreStartCleanup();
-
-    /// 時間制御の適用要求
-    void requestApplyTimeControl(const GameStartCoordinator::TimeSettings& tc);
-
-    /// 対局者名確定通知（メニュー開始用）
-    void menuPlayerNamesResolved(const QString& human1, const QString& human2,
-                                 const QString& engine1, const QString& engine2,
-                                 int playMode);
-
-    /// 連続対局設定通知
-    void consecutiveGamesConfigured(int totalGames, bool switchTurn);
-
-    /// 対局開始通知
-    void gameStarted(const MatchCoordinator::StartOptions& opt);
-
-    /// 棋譜欄の行選択要求
-    void requestSelectKifuRow(int row);
-
-    /// 分岐ツリーリセット要求（新規対局用）
-    void requestBranchTreeResetForNewGame();
-
 private:
-    /// 司令塔を作り、司令塔からこのクラスへの転送シグナルをつなぐ（一度だけ）
+    /// 司令塔を作り、司令塔のシグナルを受け手へつなぐ（一度だけ）
     void createMatchCoordinator();
+    /// 司令塔のシグナルを受け手へつなぐ。同じシグナルの受け手は、ここでつないだ順に呼ばれる
+    void connectMatchSignals();
+    /// GameStartCoordinator のシグナルを受け手へつなぐ。同じシグナルの受け手は、ここでつないだ順に呼ばれる
+    void connectGameStartSignals();
     /// 司令塔と、起動の途中で作られる部品（時計・評価値グラフ・盤操作など）との接続を結び直す（何度呼んでもよい）
     void bindRuntimeDependencies();
 
@@ -209,14 +168,14 @@ private:
     std::function<void()> m_ensureTimeController;
     std::function<void()> m_ensureEvaluationGraphController;
     std::function<void()> m_ensureUsiCommandController;
-    std::function<void()> m_ensureUiStatePolicyManager;
     std::function<void()> m_connectBoardClicks;
     std::function<void()> m_connectMoveRequested;
 
     std::function<ShogiClock*()> m_getClock;
     std::function<TimeControlController*()> m_getTimeController;
     std::function<EvaluationGraphController*()> m_getEvalGraphController;
-    std::function<UiStatePolicyManager*()> m_getUiStatePolicy;
+
+    SignalTargets m_targets;
 
     // --- 内部管理オブジェクト ---
     GameStartCoordinator* m_menuGameStart = nullptr;

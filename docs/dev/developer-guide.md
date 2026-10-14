@@ -1425,7 +1425,7 @@ struct Deps {
 void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
 {
     if (!m_mw.m_matchWiring) {
-        createMatchCoordinatorWiring();   // 生成と、初回だけの転送シグナルの接続
+        createMatchCoordinatorWiring();   // 生成と、シグナルの受け手の登録（初回だけ）
     }
     refreshMatchWiringDeps();             // 最新の部品とフックを渡し直す
 }
@@ -2565,6 +2565,12 @@ struct MatchCoordinatorHooks {   // MatchCoordinator::Hooks はこの型の別�
 
 Hooks はコンストラクタで `Deps` 構造体経由で注入される。`MainWindowServiceRegistry::buildMatchHooks()` が組み立て、`MatchCoordinatorWiring` が司令塔を作るときに渡す。司令塔は一度だけ作るので、各フックは組み立てたときのポインタを写さず、呼ばれた時点の部品を読む。
 
+戻り値のない通知（`updateTurnDisplay`・`showMoveHighlights`・`appendEval` など）も、シグナルにせずフックのままにしている（2026-10-14 に検討）。理由は次の3つである。
+
+- どのフックも受け手が1つで、呼んだ場所で処理が終わっていることを前提に次へ進む（[Deps/Hooks/Refs パターン](done/deps-hooks-refs-pattern.md) の 6.2。複数の受け手に知らせるものはシグナルにする）
+- フックの多くは、QObject でない子（`MatchTurnHandler`・`GameStartOrchestrator`・各 Strategy）がそのまま受け取って呼ぶ。シグナルにしても、子に渡す関数は残る
+- 受け手の側に、引数の合うスロットがないものが多い（`MainWindowMatchAdapter` は QObject でない。`appendEval` は手番でグラフを選ぶ）。`connect()` にラムダを使わない規約のもとでは、スロットを足す分だけコードが増える
+
 > **Note**: `Hooks` の `std::function` はシグナル/スロットの `connect()` とは異なるコールバック注入パターンである。CLAUDE.md の「connect() でラムダを使わない」ルールは `connect()` の話であり、Deps/Hooks 構造体への `std::function` 注入は許容されている。
 
 #### Deps — 依存オブジェクト
@@ -2618,14 +2624,19 @@ configureAndStart(opt)                       GameStartOrchestrator
 
 #### 主要シグナル
 
+接続先は、司令塔を作るときに `MatchCoordinatorWiring::connectMatchSignals()` が直接つなぐ（`timeUpdated` だけは `bindRuntimeDependencies()`）。接続先が複数あるものは、表に書いた順に呼ばれる。
+
 | シグナル | 接続先 | 用途 |
 |---------|-------|------|
-| `gameEnded(GameEndInfo)` | GameStartCoordinator, GameStateController | 終局通知 |
+| `gameEnded(GameEndInfo)` | SessionLifecycleCoordinator（→ GameStateController::onMatchGameEnded）、続いて UiStatePolicyManager（アイドルへ） | 終局通知 |
+| `gameEndProcessed(GameEndInfo)` | SessionLifecycleCoordinator（EvE の連続対局の次局） | 終局表示・自動保存の完了通知 |
 | `gameOverStateChanged(GameOverState)` | GameStateController | 終局状態変更通知 |
 | `timeUpdated(blackMs, whiteMs, sideToMove, urgencyMs)` | TimeDisplayPresenter（時計表示） | 残り時間の定期更新 |
-| `boardFlipped(bool)` | GameStartCoordinator | 盤面反転通知 |
-| `requestAppendGameOverMove(GameEndInfo)` | GameStateController | 終局手の棋譜追記要求 |
-| `considerationModeEnded()` | UI層 | 検討モード終了通知 |
+| `boardFlipped(bool)` | MainWindowAppearanceController | 盤面反転通知 |
+| `requestAppendGameOverMove(GameEndInfo)` | GameStateController、続いて SessionLifecycleCoordinator（ライブセッションの確定） | 終局手の棋譜追記要求 |
+| `gameInterrupted()` | GameSessionOrchestrator | 中断した対局を再開できるようにする |
+| `considerationModeEnded()` | UiStatePolicyManager ほか（候補手の矢印、検討モードのUI） | 検討モード終了通知 |
+| `tsumeSearchModeEnded()` | UiStatePolicyManager | 詰み探索終了通知 |
 
 ### 6.3 対局開始シーケンス
 
@@ -2977,11 +2988,12 @@ public:
 
 ```
 MatchCoordinator::gameEnded
-    └──▶ GameStateController::onMatchGameEnded()
-            ├── gameOverStyleLock を有効化
-            ├── タイマー停止・マウス操作無効化
-            ├── setGameOverMove() で棋譜追記
-            └── 矢印ボタン有効化
+    └──▶ SessionLifecycleCoordinator::handleGameEnded()
+            └──▶ GameStateController::onMatchGameEnded()
+                    ├── gameOverStyleLock を有効化
+                    ├── タイマー停止・マウス操作無効化
+                    ├── setGameOverMove() で棋譜追記
+                    └── 矢印ボタン有効化
 
 MatchCoordinator::gameOverStateChanged
     └──▶ GameStateController::onGameOverStateChanged()
@@ -3036,8 +3048,9 @@ bool isHumanSide(Turn p) const {
 GameStartCoordinator::consecutiveGamesConfigured(totalGames, switchTurn)
     └──▶ ConsecutiveGamesController::configure(totalGames, switchTurn)
 
-MatchCoordinator::gameEnded
-    └──▶ shouldStartNextGame() ? → startNextGame()
+MatchCoordinator::gameEndProcessed（終局表示・自動保存のあと）
+    └──▶ SessionLifecycleCoordinator::handleGameEndProcessed()
+            └──▶ EvE で shouldStartNextGame() ? → startNextGame()
 
 startNextGame()
   │
@@ -3079,13 +3092,13 @@ startNextGame()
 │    │     │                                                            │
 │    │     ├── start() ──▶ MatchCoordinator.configureAndStart()        │
 │    │     │                                                            │
-│    │     └── started ──▶ MainWindow (UI切替)                          │
+│    │     └── started ──▶ UiStatePolicyManager, SessionLifecycle       │
 │    │                                                                  │
 │    ├── MatchCoordinator  (司令塔)                                     │
 │    │     ├── ShogiGameController (盤面/ルール)                        │
 │    │     ├── ShogiClock (時計)                                        │
 │    │     ├── Usi × 2 (エンジン)                                       │
-│    │     └── gameEnded ──▶ GameStateController, ConsecutiveGamesCtl  │
+│    │     └── gameEnded ──▶ SessionLifecycle, UiStatePolicyManager    │
 │    │                                                                  │
 │    ├── GameStateController (終局処理)                                  │
 │    │     └── MatchCoordinator の終局シグナルをハンドリング             │
@@ -7124,10 +7137,10 @@ MainWindow::MainWindow()
 
 **司令塔（MatchCoordinator）の生成**: `MainWindowServiceRegistry::initMatchCoordinator()` は `MatchCoordinatorWiring::initializeSession()` を呼ぶ。
 
-- 初回（ステップ 5）は `createMatchCoordinator()` で司令塔を作り、司令塔から `MatchCoordinatorWiring` への転送シグナル（終局・中断・盤面反転など）を一度だけつなぐ。
+- 初回（ステップ 5）は `createMatchCoordinator()` で司令塔を作り、司令塔のシグナル（終局・中断・盤面反転など）を受け手へ直接つなぐ（`connectMatchSignals()`、一度だけ）。受け手は `createMatchCoordinatorWiring()` が先に `MatchCoordinatorWiring::setSignalTargets()` で登録しておく。`GameStartCoordinator` のシグナルも、作るとき（`ensureMenuGameStartCoordinator()`）に同じ受け手へつなぐ（`connectGameStartSignals()`）。
 - 2回目以降（ステップ 8）は司令塔を作り直さない。`MatchCoordinator::setEngineModels()` で思考情報・通信ログのモデルを渡し直し、`MatchCoordinator::resetPositionHistory()` で起動途中の仮の対局開始が残した局面の履歴を捨てる。
-- どちらの場合も `bindRuntimeDependencies()` が、起動の途中で作られる部品との接続を結び直す（候補手の矢印、USIコマンド、PlayMode、評価値グラフ、UNDO、UI状態の遷移、時間表示、時計の時間切れ、盤クリック、着手要求）。何度呼んでも接続が重ならないよう `Qt::UniqueConnection` を使う。
-- 終局でアイドルへ遷移する接続（`gameEnded` → `UiStatePolicyManager::transitionToIdle`）は、転送シグナルの接続より後につなぐ。終局処理が先に動き、その後でアイドルに遷移する。
+- どちらの場合も `bindRuntimeDependencies()` が、起動の途中で作られる部品との接続を結び直す（候補手の矢印、USIコマンド、PlayMode、評価値グラフ、UNDO、時間表示、時計の時間切れ、盤クリック、着手要求）。何度呼んでも接続が重ならないよう `Qt::UniqueConnection` を使う。
+- 同じシグナルの受け手は、`connectMatchSignals()` がつないだ順に呼ばれる。`gameEnded` は `SessionLifecycleCoordinator::handleGameEnded()`（終局の記録）→ `UiStatePolicyManager::transitionToIdle()`（アイドルへの遷移）の順、`requestAppendGameOverMove` は終局手の追記 → ライブセッションの確定の順である（`tests/tst_wiring_contracts.cpp` が順を確かめる）。
 
 以前は起動中に司令塔を2回（ステップ 5 と 8）作っていた。現在は一度だけ作り、`MainWindowAppearanceController` にも作った直後に渡す（`refreshAppearanceDeps()`）。
 

@@ -53,16 +53,18 @@ void MainWindowServiceRegistry::createMatchCoordinatorWiring()
 {
     m_mw.m_matchWiring = std::make_unique<MatchCoordinatorWiring>();
 
-    // 初回のみ: 転送シグナルを各責務クラスに接続
+    // 司令塔と GameStartCoordinator のシグナルの受け手。どちらも作るときに受け手へ直接つなぐので、
+    // 司令塔を作る（initMatchCoordinator）より前に揃えて登録する
     ensureGameSessionOrchestrator();
     ensureGameStateController();
     ensureConsecutiveGamesController();
     ensureSessionLifecycleCoordinator();
     m_foundation->ensurePlayerInfoWiring();
     m_foundation->ensureKifuNavigationCoordinator();
+    m_foundation->ensureUiStatePolicyManager();
     m_kifu->ensureBranchNavigationWiring();
 
-    MatchCoordinatorWiring::ForwardingTargets targets;
+    MatchCoordinatorWiring::SignalTargets targets;
     targets.gameSession = m_mw.m_gameSessionOrchestrator;
     targets.sessionLifecycle = m_mw.m_sessionLifecycle;
     targets.gameStateController = m_mw.m_gameStateController;
@@ -71,7 +73,8 @@ void MainWindowServiceRegistry::createMatchCoordinatorWiring()
     targets.playerInfo = m_mw.m_playerInfoWiring;
     targets.kifuNav = m_mw.m_kifuNavCoordinator.get();
     targets.branchNav = m_mw.m_branchNavWiring.get();
-    m_mw.m_matchWiring->wireForwardingSignals(targets);
+    targets.uiStatePolicy = m_mw.m_uiStatePolicy;
+    m_mw.m_matchWiring->setSignalTargets(targets);
 }
 
 void MainWindowServiceRegistry::refreshMatchWiringDeps()
@@ -210,7 +213,6 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     d.ensureTimeController = [this]() { ensureTimeController(); };
     d.ensureEvaluationGraphController = [this]() { m_foundation->ensureEvaluationGraphController(); };
     d.ensureUsiCommandController = [this]() { ensureUsiCommandController(); };
-    d.ensureUiStatePolicyManager = [this]() { m_foundation->ensureUiStatePolicyManager(); };
     d.connectBoardClicks = [this]() { m_mw.m_signalRouter->connectBoardClicks(); };
     d.connectMoveRequested = [this]() { m_mw.m_signalRouter->connectMoveRequested(); };
 
@@ -219,7 +221,6 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     };
     d.getTimeController = [this]() -> TimeControlController* { return m_mw.m_timeController; };
     d.getEvalGraphController = [this]() -> EvaluationGraphController* { return m_mw.m_evalGraphController.get(); };
-    d.getUiStatePolicy = [this]() -> UiStatePolicyManager* { return m_mw.m_uiStatePolicy; };
     return d;
 }
 

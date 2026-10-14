@@ -419,24 +419,6 @@ private slots:
                   "GameEndHandler must emit gameEnded signal with GameEndInfo");
     }
 
-    /// MatchCoordinatorWiring が gameEnded を SLC に直接接続すること
-    void crossCut_gameEndReachesSLC()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/ui/wiring/matchcoordinatorwiring.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read MCW source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MatchCoordinatorWiring::wireForwardingSignals"));
-        QVERIFY2(range.first >= 0, "wireForwardingSignals not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("matchGameEnded")),
-                  "matchGameEnded signal must be wired");
-        QVERIFY2(body.contains(QStringLiteral("SessionLifecycleCoordinator::handleGameEnded")),
-                  "Game end must reach SessionLifecycleCoordinator directly");
-    }
-
     /// UiStatePolicyManager が初期状態 Idle で開始すること
     void crossCut_uiPolicyStartsIdle()
     {

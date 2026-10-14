@@ -137,29 +137,22 @@ public:
 signals:
     // --- 開始前フック ---
 
-    /// UI/状態を初期化してほしい（PreStartCleanupHandler::performCleanupに接続）
+    /// UI/状態を初期化してほしい（→ SessionLifecycleCoordinator::performPreStartCleanup → PreStartCleanupHandler::performCleanup）
     void requestPreStartCleanup();
 
-    /// 時計適用の依頼（MainWindow側の既存ロジックへ接続）
+    /// 時計適用の依頼（→ SessionLifecycleCoordinator::applyTimeControl）
     void requestApplyTimeControl(const GameStartCoordinator::TimeSettings& tc);
 
     // --- 進捗通知 ---
 
-    /// 対局開始完了の通知（→ MainWindow::disableNavigationForGame, onGameStarted）
+    /// 対局開始完了の通知（→ UiStatePolicyManager::transitionToDuringGame、SessionLifecycleCoordinator::handleGameStarted、
+    /// GameSessionOrchestrator::discardInterruptedGame の順）
     void started(const MatchCoordinator::StartOptions& opt);
 
-    /// 対局者名が確定した時に発行される（GameStartCoordinator → MainWindow）
+    /// 対局者名が確定した時に発行される（→ PlayerInfoWiring::onMenuPlayerNamesResolved）
     void playerNamesResolved(const QString& human1, const QString& human2,
                              const QString& engine1, const QString& engine2,
                              int playMode);
-
-    // --- MatchCoordinatorシグナルの転送 ---
-
-    /// 終局手の棋譜追記要求（MatchCoordinator::requestAppendGameOverMove の再送出）
-    void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
-
-    /// 盤面反転通知（MatchCoordinator::boardFlipped の再送出）
-    void boardFlipped(bool nowFlipped);
 
     /// 連続対局設定（EvE対局時のみ、totalGames=合計数, switchTurn=手番入替）
     void consecutiveGamesConfigured(int totalGames, bool switchTurn);

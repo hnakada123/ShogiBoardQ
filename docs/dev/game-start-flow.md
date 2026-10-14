@@ -355,7 +355,7 @@ struct MatchStartOptions {
 - ダイアログの値が無いとき（`dlg == nullptr`）は、`GameSettings::StartGame` に保存したエンジン名と `EngineListSettings::pathForName()` から引く
 - エンジンが先手か後手かを表すフラグは持たない。エンジンの手番は対局モード（`mode`）で決まる
 
-`ensureHumanAtBottomIfApplicable()`（`GameStartOrchestrator` へ委譲）は、ダイアログの「人を手前に表示する」がオンで、片方だけが人間のときに、人間の側（先手なら `Turn::Black`）と手前に表示している側（`bottomSide`）が違えば `MatchCoordinator::flipBoard()` で盤を1回反転する。反転は `MatchCoordinator::boardFlipped` → `MatchCoordinatorWiring::boardFlipped` → `MainWindowAppearanceController::onBoardFlipped()` と伝わり、`bottomSide` が入れ替わって盤の向きが変わる。
+`ensureHumanAtBottomIfApplicable()`（`GameStartOrchestrator` へ委譲）は、ダイアログの「人を手前に表示する」がオンで、片方だけが人間のときに、人間の側（先手なら `Turn::Black`）と手前に表示している側（`bottomSide`）が違えば `MatchCoordinator::flipBoard()` で盤を1回反転する。反転は `MatchCoordinator::boardFlipped` → `MainWindowAppearanceController::onBoardFlipped()` と伝わり、`bottomSide` が入れ替わって盤の向きが変わる。
 
 ### ステップ6: 時間設定（TimeSettings）の構築
 
@@ -403,7 +403,7 @@ emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode
 emit consecutiveGamesConfigured(consecutiveGames, switchTurn);
 ```
 
-- 対局者名を通知する（`MatchCoordinatorWiring::menuPlayerNamesResolved` → `PlayerInfoWiring::onMenuPlayerNamesResolved()`）。盤の対局者名と対局情報を更新する。EvEの初手で評価値グラフが動くので、`start()` より前に通知する
+- 対局者名を通知する（`GameStartCoordinator::playerNamesResolved` → `PlayerInfoWiring::onMenuPlayerNamesResolved()`）。盤の対局者名と対局情報を更新する。EvEの初手で評価値グラフが動くので、`start()` より前に通知する
 - 連続対局設定を通知する（`ConsecutiveGamesController::configure()`。連続対局はEvEのときだけ有効）
 
 ### ステップ9: 対局開始
@@ -452,7 +452,7 @@ return true;
    ```cpp
    emit requestPreStartCleanup();
    ```
-   `MatchCoordinatorWiring` が `SessionLifecycleCoordinator::performPreStartCleanup()` へ転送し、`PreStartCleanupHandler::performCleanup()` が棋譜欄・分岐・ログ・時計表示・評価値グラフの整理とライブセッションの開始を行う。
+   `SessionLifecycleCoordinator::performPreStartCleanup()` が受け、`PreStartCleanupHandler::performCleanup()` が棋譜欄・分岐・ログ・時計表示・評価値グラフの整理とライブセッションの開始を行う。
 
 2. **ダイアログの値から時間設定を作る**
    ```cpp
@@ -535,7 +535,7 @@ StartOptionsを受け取り、MatchCoordinatorへ対局開始を指示する。
    ```cpp
    emit started(params.opt);
    ```
-   `UiStatePolicyManager::transitionToDuringGame()`（メニューなどを対局中の状態にする）と、`MatchCoordinatorWiring::gameStarted` 経由で `SessionLifecycleCoordinator::handleGameStarted()`（PlayMode と現在局面SFENの更新、定跡ウィンドウの更新、連続対局への通知）、`GameSessionOrchestrator::discardInterruptedGame()` が受ける。
+   `UiStatePolicyManager::transitionToDuringGame()`（メニューなどを対局中の状態にする）、`SessionLifecycleCoordinator::handleGameStarted()`（PlayMode と現在局面SFENの更新、定跡ウィンドウの更新、連続対局への通知）、`GameSessionOrchestrator::discardInterruptedGame()` がこの順に受ける（`MatchCoordinatorWiring::connectGameStartSignals()` がつないだ順）。
 
 ---
 

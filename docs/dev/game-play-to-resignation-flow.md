@@ -859,13 +859,13 @@ struct MatchGameOverState {
 
 #### 発行されるシグナル
 
-シグナルは `MatchCoordinator` から `MatchCoordinatorWiring` のシグナルに転送され、`MatchCoordinatorWiring::wireForwardingSignals()` が受信先につなぐ（`UiStatePolicyManager::transitionToIdle()` だけは `MatchCoordinatorWiring::bindRuntimeDependencies()` が `MatchCoordinator::gameEnded` に直接つなぐ）。発行の順は表の上から下である。
+受信先は、司令塔を作るときに `MatchCoordinatorWiring::connectMatchSignals()` が `MatchCoordinator` のシグナルへ直接つなぐ。同じシグナルの受信先は、つないだ順（表の受信先の並び）に呼ばれる。発行の順は表の上から下である。
 
 | シグナル | 受信先 | 処理内容 |
 |---|---|---|
 | `gameOverStateChanged` | `GameStateController::onGameOverStateChanged()` | 終局スタイルの保護。終局行の追記前はここで戻る（7.2） |
 | `requestAppendGameOverMove` | `GameStateController::onRequestAppendGameOverMove()`、続いて `SessionLifecycleCoordinator::commitLiveGameSessionIfActive()` | 終局行の棋譜追記（1回限り、7.1）、ライブ対局セッションの確定 |
-| `gameEnded` | `MatchCoordinatorWiring::matchGameEnded` 経由で `SessionLifecycleCoordinator::handleGameEnded()`、続いて `UiStatePolicyManager::transitionToIdle()` | 盤の操作・時計の停止、終局時刻の記録（7.3）、UI状態を待機に戻す |
+| `gameEnded` | `SessionLifecycleCoordinator::handleGameEnded()`、続いて `UiStatePolicyManager::transitionToIdle()` | 盤の操作・時計の停止、終局時刻の記録（7.3）、UI状態を待機に戻す |
 
 ### 6.2 displayResultsAndUpdateGui()
 
@@ -1013,7 +1013,7 @@ onGameOverStateChanged(st)
 
 ### 7.3 GameStateController::onMatchGameEnded()
 
-`gameEnded` は `MatchCoordinatorWiring::matchGameEnded` を経て `SessionLifecycleCoordinator::handleGameEnded()`（`src/app/sessionlifecyclecoordinator.cpp`）に届き、そこから呼ばれる。
+`gameEnded` は `SessionLifecycleCoordinator::handleGameEnded()`（`src/app/sessionlifecyclecoordinator.cpp`）に届き、そこから呼ばれる。
 
 ```
 SessionLifecycleCoordinator::handleGameEnded(info)

@@ -38,7 +38,7 @@
         │ （対局中） │      │   │   │   │    │    Edit       │
         └─────┬─────┘      │   │   │   │    │（局面編集中） │
               │            │   │   │   │    └───────┬───────┘
-   matchGameEnded          │   │   │   │            │
+   gameEnded               │   │   │   │            │
    enableArrowButtons      │   │   │   │       コールバック
               │            │   │   │   │            │
               └─────►Idle◄─┘   │   │   └──◄─────────┘
@@ -145,7 +145,7 @@
 
 ```
 GameStartCoordinator::started ──────────► transitionToDuringGame()
-MatchCoordinator::gameEnded ────────────► transitionToIdle()  （終局処理への転送より後に接続）
+MatchCoordinator::gameEnded ────────────► transitionToIdle()  （SessionLifecycleCoordinator::handleGameEnded より後に接続）
 GameStateController callback ───────────► transitionToIdle()
 
 DialogCoordinator::analysisModeStarted ─► transitionToDuringAnalysis()

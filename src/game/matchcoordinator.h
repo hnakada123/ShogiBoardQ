@@ -287,10 +287,10 @@ public slots:
 signals:
     void gameInterrupted();
     void playModeChanged();
-    /// 盤面反転の通知（→ GameStartCoordinator::boardFlipped へ再送出）
+    /// 盤面反転の通知（→ MainWindowAppearanceController::onBoardFlipped）
     void boardFlipped(bool nowFlipped);
 
-    /// 終局の通知（→ MatchCoordinatorWiring::matchGameEnded へ再送出）
+    /// 終局の通知（→ SessionLifecycleCoordinator::handleGameEnded、続いて UiStatePolicyManager::transitionToIdle）
     void gameEnded(const MatchCoordinator::GameEndInfo& info);
     void gameEndProcessed(const MatchCoordinator::GameEndInfo& info);
 
