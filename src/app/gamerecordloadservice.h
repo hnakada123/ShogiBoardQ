@@ -1,38 +1,39 @@
 #ifndef GAMERECORDLOADSERVICE_H
 #define GAMERECORDLOADSERVICE_H
 
+/// @file gamerecordloadservice.h
+/// @brief 読み込んだ棋譜を棋譜モデルと棋譜欄へ表示するサービス
+
 #include <QList>
-#include <QStringList>
-#include <functional>
+#include <QObject>
+
+#include "kifdisplayitem.h"
 
 class GameRecordModel;
 class GameRecordPresenter;
 class RecordPane;
-struct KifDisplayItem;
 
-/// @brief 棋譜表示時の初期化とコメント同期を担当するサービス
-///
-/// MainWindow::displayGameRecord から抽出。棋譜読み込み時に
-/// - GameRecordModel の初期化
-/// - RecordPresenter への表示委譲
-/// を一括で行う。
-class GameRecordLoadService
+/**
+ * @brief 棋譜の読み込み完了時に、棋譜モデルを初期化して棋譜欄へ表示する
+ *
+ * KifuLoadCoordinator::displayGameRecord から呼ばれる。
+ */
+class GameRecordLoadService : public QObject
 {
+    Q_OBJECT
+
 public:
     struct Deps {
-        // Object pointers（非所有）
-        RecordPane* recordPane = nullptr;             ///< 棋譜欄ウィジェット
-
-        // Lazy-init callbacks
-        std::function<GameRecordPresenter*()> ensureRecordPresenter; ///< RecordPresenter 遅延初期化
-        std::function<GameRecordModel*()> ensureGameRecordModel;     ///< GameRecordModel 遅延初期化
-
-        // Data accessor
+        RecordPane* recordPane = nullptr;              ///< 棋譜欄ウィジェット（非所有）
+        GameRecordPresenter* recordPresenter = nullptr; ///< 棋譜欄の表示（非所有）
+        GameRecordModel* gameRecord = nullptr;          ///< 棋譜モデル（非所有）
     };
+
+    explicit GameRecordLoadService(QObject* parent = nullptr);
 
     void updateDeps(const Deps& deps);
 
-    /// 棋譜表示の初期化を実行する
+public slots:
     void loadGameRecord(const QList<KifDisplayItem>& disp);
 
 private:

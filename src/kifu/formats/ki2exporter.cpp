@@ -9,6 +9,7 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "logcategories.h"
+#include "kifuexportcommon.h"
 
 #include <QRegularExpression>
 
@@ -16,115 +17,10 @@
 // ヘルパ関数
 // ========================================
 
-static inline QString fwColonLine(const QString& key, const QString& val)
-{
-    return QStringLiteral("%1：%2").arg(key, val);
-}
-
-// ヘルパ関数: 指し手から手番記号（▲△）を除去
-static QString removeTurnMarker(const QString& move)
-{
-    QString result = move;
-    if (result.startsWith(QStringLiteral("▲")) || result.startsWith(QStringLiteral("△"))) {
-        result = result.mid(1);
-    }
-    return result;
-}
-
-// ヘルパ関数: 終局結果文字列を生成
-static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove, bool initialBlackToMove,
-                               bool handicapNames)
-{
-    const QString stripped = removeTurnMarker(terminalMove);
-
-    const bool lastMoveBySente = ((lastActualMoveNo % 2 != 0) == initialBlackToMove);
-    // 駒落ちは柿木形式と同じく下手（先手側）・上手（後手側）と書く
-    const QString senteStr = handicapNames ? QStringLiteral("下手") : QStringLiteral("先手");
-    const QString goteStr = handicapNames ? QStringLiteral("上手") : QStringLiteral("後手");
-
-    if (stripped.contains(QStringLiteral("投了"))) {
-        return QStringLiteral("まで%1手で%2の勝ち")
-            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
-    }
-    if (stripped.contains(QStringLiteral("詰み"))) {
-        // 「先手の勝ち」では読み込み時に投了と区別できないため、詰みと明記する
-        return QStringLiteral("まで%1手で詰み").arg(QString::number(lastActualMoveNo));
-    }
-    // 終局の種類を読み込み時に区別できるよう、結果行に種類を明記する。
-    // 終局語の手番記号は、その終局を宣言した側（＝指す番の側）を表す。
-    const bool declaredBySente = terminalMove.startsWith(QStringLiteral("▲"))
-        || (!terminalMove.startsWith(QStringLiteral("△")) && !lastMoveBySente);
-    const QString declarer = declaredBySente ? senteStr : goteStr;
-    const QString opponent = declaredBySente ? goteStr : senteStr;
-    const QString n = QString::number(lastActualMoveNo);
-    if (stripped.contains(QStringLiteral("切れ負け")) || stripped.contains(QStringLiteral("時間切れ"))) {
-        // 手番側の時間切れ
-        return QStringLiteral("まで%1手で時間切れにより%2の勝ち").arg(n, opponent);
-    }
-    if (stripped.contains(QStringLiteral("反則勝ち"))) {
-        return QStringLiteral("まで%1手で%2の反則勝ち").arg(n, declarer);
-    }
-    if (stripped.contains(QStringLiteral("反則負け"))) {
-        return QStringLiteral("まで%1手で%2の反則負け").arg(n, declarer);
-    }
-    if (stripped.contains(QStringLiteral("入玉勝ち"))) {
-        return QStringLiteral("まで%1手で%2の入玉勝ち").arg(n, declarer);
-    }
-    if (stripped.contains(QStringLiteral("不戦勝"))) {
-        return QStringLiteral("まで%1手で%2の不戦勝").arg(n, declarer);
-    }
-    if (stripped.contains(QStringLiteral("不戦敗"))) {
-        return QStringLiteral("まで%1手で%2の不戦敗").arg(n, declarer);
-    }
-    if (stripped.contains(QStringLiteral("千日手"))) {
-        return QStringLiteral("まで%1手で千日手").arg(QString::number(lastActualMoveNo));
-    }
-    if (stripped.contains(QStringLiteral("持将棋"))) {
-        return QStringLiteral("まで%1手で持将棋").arg(QString::number(lastActualMoveNo));
-    }
-    if (stripped.contains(QStringLiteral("中断"))) {
-        return QStringLiteral("まで%1手で中断").arg(QString::number(lastActualMoveNo));
-    }
-    if (stripped.contains(QStringLiteral("不詰"))) {
-        return QStringLiteral("まで%1手で不詰").arg(QString::number(lastActualMoveNo));
-    }
-
-    return QStringLiteral("まで%1手").arg(QString::number(lastActualMoveNo));
-}
-
-// ヘルパ関数: しおり行を出力リストに追加
-static void appendKifBookmarks(const QString& bookmark, QStringList& out)
-{
-    if (bookmark.trimmed().isEmpty()) return;
-
-    const QStringList lines = bookmark.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-    for (const QString& name : std::as_const(lines)) {
-        const QString t = name.trimmed();
-        if (!t.isEmpty()) {
-            out << (QStringLiteral("&") + t);
-        }
-    }
-}
-
-// ヘルパ関数: コメント行を出力リストに追加
-static void appendKifComments(const QString& comment, QStringList& out)
-{
-    if (comment.trimmed().isEmpty()) return;
-
-    static const QRegularExpression newlineRe(QStringLiteral("\r?\n"));
-    const QStringList lines = comment.split(newlineRe, Qt::KeepEmptyParts);
-    for (const QString& raw : std::as_const(lines)) {
-        const QString t = raw.trimmed();
-        if (t.startsWith(QStringLiteral("【しおり】"))) {
-            const QString name = t.mid(5).trimmed();
-            if (!name.isEmpty()) {
-                out << (QStringLiteral("&") + name);
-            }
-            continue;
-        }
-        out << (QStringLiteral("*") + t);
-    }
-}
+using KifuExportCommon::appendKifBookmarks;
+using KifuExportCommon::appendKifComments;
+using KifuExportCommon::buildEndingLine;
+using KifuExportCommon::fwColonLine;
 
 // ヘルパ関数: 手順のノードを KI2 の指し手の文字列にする
 //

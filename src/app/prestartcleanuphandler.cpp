@@ -101,7 +101,7 @@ void PreStartCleanupHandler::performCleanup()
     resetEvaluationGraph();
     selectStartRow();
 
-    ensureBranchTreeRoot();
+    prepareBranchTreeRoot();
 
     if (m_branchTree != nullptr && m_branchTree->root() != nullptr) {
         qCDebug(lcGame).noquote() << "performCleanup: branchTree has"
@@ -386,7 +386,7 @@ void PreStartCleanupHandler::startLiveGameSession()
     }
 }
 
-void PreStartCleanupHandler::ensureBranchTreeRoot()
+void PreStartCleanupHandler::prepareBranchTreeRoot()
 {
     if (m_branchTree == nullptr) {
         return;
@@ -410,13 +410,13 @@ void PreStartCleanupHandler::ensureBranchTreeRoot()
             }
             m_branchTree->setRootSfen(rootSfen);
             if (m_navState) m_navState->goToRoot();
-            qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: updated root sfen=" << rootSfen;
+            qCDebug(lcGame).noquote() << "prepareBranchTreeRoot: updated root sfen=" << rootSfen;
         } else {
-            qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: root already exists with correct sfen";
+            qCDebug(lcGame).noquote() << "prepareBranchTreeRoot: root already exists with correct sfen";
         }
         return;
     }
 
     m_branchTree->setRootSfen(rootSfen);
-    qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: created root with sfen=" << rootSfen;
+    qCDebug(lcGame).noquote() << "prepareBranchTreeRoot: created root with sfen=" << rootSfen;
 }

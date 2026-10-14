@@ -12,13 +12,15 @@
 #include "shogiview.h"
 #include "appsettings.h"
 #include "engineanalysistab.h"
+#include "considerationtabmanager.h"
 #include "engineinfowidget.h"
 #include "timecontrolcontroller.h"
+#include "gamerecordmodel.h"
+#include "livegamesession.h"
 #include "gameinfokeys.h"
 
 PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
-    , m_markGameRecordDirty(deps.markGameRecordDirty)
     , m_parentWidget(deps.parentWidget)
     , m_tabWidget(deps.tabWidget)
     , m_shogiView(deps.shogiView)
@@ -28,10 +30,12 @@ PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     , m_engineName1(deps.engineName1)
     , m_engineName2(deps.engineName2)
     , m_startSfenStr(deps.startSfenStr)
-    , m_getTimeController(deps.getTimeController)
-    , m_continuesExistingRecord(deps.continuesExistingRecord)
-    , m_setContinuationNote(deps.setContinuationNote)
+    , m_timeController(deps.timeController)
+    , m_gameRecord(deps.gameRecord)
+    , m_liveGameSession(deps.liveGameSession)
 {
+    // 対局情報と対局者表示の部品は、配線を作るときに一緒に作る
+    ensurePlayerInfoController();
 }
 
 void PlayerInfoWiring::ensureGameInfoController()
@@ -48,7 +52,7 @@ void PlayerInfoWiring::ensureGameInfoController()
 void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
 {
     applyBoardNames(items);
-    if (m_markGameRecordDirty) m_markGameRecordDirty();
+    if (m_gameRecord) m_gameRecord->markDirty();
 }
 
 void PlayerInfoWiring::syncBoardNamesWithGameInfo()
@@ -196,7 +200,7 @@ void PlayerInfoWiring::onSetEngineNames(const QString& e1, const QString& e2)
     if (m_playMode &&
         (*m_playMode == PlayMode::ConsiderationMode || *m_playMode == PlayMode::TsumiSearchMode)) {
         if (m_analysisTab) {
-            m_analysisTab->setConsiderationEngineName(e1);
+            m_analysisTab->considerationTabManager()->setConsiderationEngineName(e1);
             if (m_analysisTab->info1() && !e1.isEmpty()) {
                 m_analysisTab->info1()->setDisplayNameFallback(e1);
             }
@@ -311,7 +315,7 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
             m_gameInfoController->setGameInfo(recordHeader);
         }
         m_keepRecordHeader = true;
-        if (m_setContinuationNote) {
+        if (m_liveGameSession) {
             const QDateTime start = timeInfo.gameStartDateTime.isValid()
                 ? timeInfo.gameStartDateTime : QDateTime::currentDateTime();
             const bool handicap =
@@ -319,7 +323,7 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
             const QString timeText = !timeInfo.timeControl.isUnlimited()
                 ? KifuExportMetadataBuilder::timeControlText(timeInfo.timeControl, handicap)
                 : tr("無制限");
-            m_setContinuationNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
+            m_liveGameSession->setFirstMoveNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
                                       .arg(blackName, whiteName,
                                            start.toString(QStringLiteral("yyyy/MM/dd HH:mm")), timeText));
         }
@@ -364,8 +368,7 @@ void PlayerInfoWiring::onMenuPlayerNamesResolved(const QString& human1, const QS
                                                   int playMode)
 {
     const QString startSfen = m_startSfenStr ? *m_startSfenStr : QString();
-    TimeControlController* tc = m_getTimeController ? m_getTimeController() : nullptr;
-    resolveNamesWithTimeController(human1, human2, engine1, engine2, playMode, startSfen, tc);
+    resolveNamesWithTimeController(human1, human2, engine1, engine2, playMode, startSfen, m_timeController);
 }
 
 void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
@@ -409,7 +412,7 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
 
 bool PlayerInfoWiring::continuesExistingRecord() const
 {
-    return m_continuesExistingRecord && m_continuesExistingRecord();
+    return m_liveGameSession != nullptr && m_liveGameSession->isActive() && m_liveGameSession->anchorPly() > 0;
 }
 
 void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)

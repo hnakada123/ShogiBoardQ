@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include "fontsizehelper.h"
+
 namespace Ui {
 class StartGameDialog;
 }
@@ -201,14 +203,11 @@ private slots:
 private:
     // --- フォント設定 ---
 
-    int m_fontSize = DefaultFontSize;                    ///< 現在のフォントサイズ
-    static constexpr int DefaultFontSize = 9;           ///< デフォルトのフォントサイズ
     static constexpr int MinFontSize = 7;               ///< 最小フォントサイズ
     static constexpr int MaxFontSize = 16;              ///< 最大フォントサイズ
+    FontSizeHelper m_fontHelper;                        ///< 文字サイズ（既定値は設定の宣言の表）
 
-    void applyFontSize(int size);
-    void loadFontSizeSettings();
-    void saveFontSizeSettings();
+    void applyFontSize();
 };
 
 #endif // STARTGAMEDIALOG_H

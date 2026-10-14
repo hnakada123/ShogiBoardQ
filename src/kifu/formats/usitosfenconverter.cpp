@@ -193,25 +193,34 @@ static bool looksLikePositionLine(const QString& line)
 // 公開メソッド
 // ============================================================================
 
+QString UsiToSfenConverter::labelForBaseSfen(const QString& baseSfen)
+{
+    return baseSfen == SfenUtils::hirateSfen() ? QStringLiteral("平手") : QStringLiteral("局面指定");
+}
+
 QString UsiToSfenConverter::detectInitialSfenFromFile(const QString& usiPath, QString* detectedLabel)
 {
     QString baseSfen;
     QStringList usiMoves;
-    QString terminalCode;
     QString warn;
-
-    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, &warn)) {
+    if (!parseUsiFile(usiPath, baseSfen, usiMoves, nullptr, &warn)) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
         return SfenUtils::hirateSfen();
     }
+    if (detectedLabel) *detectedLabel = labelForBaseSfen(baseSfen);
+    return baseSfen;
+}
 
-    // 平手初期局面かどうかを判定
-    if (baseSfen == SfenUtils::hirateSfen()) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手");
-    } else {
-        if (detectedLabel) *detectedLabel = QStringLiteral("局面指定");
+QString UsiToSfenConverter::detectInitialSfenFromText(const QString& text, QString* detectedLabel)
+{
+    QString baseSfen;
+    QStringList usiMoves;
+    QString warn;
+    if (!parseUsiText(text, baseSfen, usiMoves, nullptr, &warn)) {
+        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
+        return SfenUtils::hirateSfen();
     }
-
+    if (detectedLabel) *detectedLabel = labelForBaseSfen(baseSfen);
     return baseSfen;
 }
 
@@ -220,39 +229,14 @@ QStringList UsiToSfenConverter::convertFile(const QString& usiPath, QString* err
     QString baseSfen;
     QStringList usiMoves;
     QString terminalCode;
-
-    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) {
-        return QStringList();
-    }
-
+    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) return QStringList();
     return usiMoves;
 }
 
 QList<KifDisplayItem> UsiToSfenConverter::extractMovesWithTimes(const QString& usiPath, QString* errorMessage)
 {
-    QList<KifDisplayItem> out;
-
-    QString baseSfen;
-    QStringList usiMoves;
-    QString terminalCode;
-
-    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) {
-        return out;
-    }
-
-    // 開始局面エントリ
-    out.push_back(KifuParseCommon::createOpeningDisplayItem(QString(), QString()));
-
-    // 共通パイプラインで指し手アイテムを構築
-    int plyNumber = KifuParseCommon::buildUsiMoveDisplayItems(usiMoves, baseSfen, 1, out);
-
-    // 終局理由があれば追加
-    if (!terminalCode.isEmpty()) {
-        out.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
-    }
-
-    return out;
+    KifParseResult result;
+    return parseWithVariations(usiPath, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
 }
 
 bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
@@ -260,16 +244,28 @@ bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
                                               QString* errorMessage)
 {
     out = KifParseResult{};
-
     QString baseSfen;
     QStringList usiMoves;
     QString terminalCode;
+    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) return false;
+    buildResult(baseSfen, usiMoves, terminalCode, out);
+    return true;
+}
 
-    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) {
-        return false;
-    }
+bool UsiToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
+{
+    out = KifParseResult{};
+    QString baseSfen;
+    QStringList usiMoves;
+    QString terminalCode;
+    if (!parseUsiText(text, baseSfen, usiMoves, &terminalCode, errorMessage)) return false;
+    buildResult(baseSfen, usiMoves, terminalCode, out);
+    return true;
+}
 
-    // 本譜のメタデータを設定
+void UsiToSfenConverter::buildResult(const QString& baseSfen, const QStringList& usiMoves,
+                                     const QString& terminalCode, KifParseResult& out)
+{
     out.mainline.baseSfen = baseSfen;
     out.mainline.startPly = 1;
     out.mainline.usiMoves = usiMoves;
@@ -278,8 +274,7 @@ bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
     out.mainline.disp.push_back(KifuParseCommon::createOpeningDisplayItem(QString(), QString()));
 
     // 共通パイプラインで指し手アイテムを構築
-    int plyNumber = KifuParseCommon::buildUsiMoveDisplayItems(
-        usiMoves, baseSfen, 1, out.mainline.disp);
+    const int plyNumber = KifuParseCommon::buildUsiMoveDisplayItems(usiMoves, baseSfen, 1, out.mainline.disp);
 
     // 終局理由があれば追加
     if (!terminalCode.isEmpty()) {
@@ -287,10 +282,7 @@ bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
             plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
         out.mainline.endsWithTerminal = true;
     }
-
     // USI形式では変化(分岐)は通常含まれないため、variationsは空のまま
-
-    return true;
 }
 
 QList<KifGameInfoItem> UsiToSfenConverter::extractGameInfo(const QString& filePath)
@@ -335,6 +327,17 @@ bool UsiToSfenConverter::parseUsiFile(const QString& usiPath,
     return parseUsiPositionString(content, baseSfen, usiMoves, terminalCode, warn);
 }
 
+bool UsiToSfenConverter::parseUsiText(const QString& text,
+                                      QString& baseSfen,
+                                      QStringList& usiMoves,
+                                      QString* terminalCode,
+                                      QString* warn)
+{
+    QString content;
+    if (!selectPositionLine(KifReader::splitLines(text), content, warn)) return false;
+    return parseUsiPositionString(content, baseSfen, usiMoves, terminalCode, warn);
+}
+
 bool UsiToSfenConverter::readUsiFile(const QString& filePath, QString& content, QString* warn)
 {
     QStringList lines;
@@ -342,7 +345,11 @@ bool UsiToSfenConverter::readUsiFile(const QString& filePath, QString& content, 
     if (!KifReader::readAllLinesAuto(filePath, lines, &usedEnc, warn)) {
         return false;
     }
+    return selectPositionLine(lines, content, warn);
+}
 
+bool UsiToSfenConverter::selectPositionLine(const QStringList& lines, QString& content, QString* warn)
+{
     // 最初の position/SFEN らしき行を対象にする（コメント行などは読み飛ばす）。
     // 見つからなければ最初の非空行を返し、形式エラーは解析側で報告する。
     QString firstNonEmpty;

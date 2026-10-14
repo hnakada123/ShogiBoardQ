@@ -13,7 +13,7 @@
 
 #include "josekirepository.h"
 #include "josekipresenter.h"
-#include "josekiwindow.h"  // JosekiMove 構造体
+#include "josekitypes.h"
 
 class TestJosekiRepository : public QObject
 {

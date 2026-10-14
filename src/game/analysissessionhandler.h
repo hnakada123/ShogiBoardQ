@@ -33,9 +33,9 @@ public:
      * 検討/詰将棋探索のライフサイクル（開始・停止）で MC のエンジン管理と
      * UI 操作を行うために使用する。
      *
-     * @note MC::ensureAnalysisSession() で lambda 経由で設定される。
+     * @note MC::createAnalysisSession() で lambda 経由で設定される。
      *       showGameOverDialog は MC::Hooks からのパススルー。
-     * @see MatchCoordinator::ensureAnalysisSession
+     * @see MatchCoordinator::createAnalysisSession
      */
     struct Hooks {
         /// @brief 終局/結果ダイアログを表示する

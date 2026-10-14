@@ -22,7 +22,7 @@ class KifuNavigationCoordinator;
 class UiStatePolicyManager;
 class PlayerInfoWiring;
 class UiNotificationService;
-class MainWindow;
+class GameRecordLoadService;
 class RecordPane;
 
 /**
@@ -51,7 +51,7 @@ public:
         ShogiView* shogiView = nullptr;
 
         // --- 配線先（呼び出し元で ensure 済み） ---
-        MainWindow* mainWindow = nullptr;               ///< displayGameRecord 接続先
+        GameRecordLoadService* recordLoad = nullptr;   ///< displayGameRecord の接続先
         BranchNavigationWiring* branchNavWiring = nullptr;
         KifuNavigationCoordinator* kifuNavCoordinator = nullptr;
         UiStatePolicyManager* uiStatePolicy = nullptr;

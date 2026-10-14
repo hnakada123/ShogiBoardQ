@@ -71,8 +71,7 @@ bool AnalysisSessionHandler::startFullAnalysis(const MatchCoordinator::AnalysisO
         auto currentOptions = opt;
         currentOptions.positionStr = m_positionStr;
         currentOptions.multiPV = m_multiPV;
-        usi->setPreviousFileTo(m_previousFileTo);
-        usi->setPreviousRankTo(m_previousRankTo);
+        usi->setPreviousMove(BoardSquare{m_previousFileTo, m_previousRankTo});
         usi->setLastUsiMove(m_lastUsiMove);
         startCommunication(usi, currentOptions);
     } else {
@@ -151,8 +150,7 @@ void AnalysisSessionHandler::setupModeSpecificWiring(Usi* engine,
     qCDebug(lcGame).noquote() << "setupModeSpecificWiring: opt.previousFileTo=" << opt.previousFileTo
                        << "opt.previousRankTo=" << opt.previousRankTo;
     // 開始局面では0を設定し、前局面の「同」判定を残さない。
-    engine->setPreviousFileTo(opt.previousFileTo);
-    engine->setPreviousRankTo(opt.previousRankTo);
+    engine->setPreviousMove(BoardSquare{opt.previousFileTo, opt.previousRankTo});
 
     // --- 検討モードの場合、フラグを設定し bestmove を接続 ---
     if (opt.mode == PlayMode::ConsiderationMode) {
@@ -489,8 +487,7 @@ void AnalysisSessionHandler::restartConsiderationDeferred()
     // 待機状態を解除
     m_waiting = false;
 
-    m_engine->setPreviousFileTo(m_previousFileTo);
-    m_engine->setPreviousRankTo(m_previousRankTo);
+    m_engine->setPreviousMove(BoardSquare{m_previousFileTo, m_previousRankTo});
     m_engine->setLastUsiMove(m_lastUsiMove);
     m_restartInProgress = false;
 

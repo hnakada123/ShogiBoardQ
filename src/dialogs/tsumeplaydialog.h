@@ -9,6 +9,7 @@
 
 class ShogiGameController;
 class ShogiView;
+class BoardViewerWidget;
 class BoardInteractionController;
 class TsumeProgressStore;
 class TsumeSolutionReplay;
@@ -17,7 +18,6 @@ class QStackedWidget;
 class QLabel;
 class QPushButton;
 class QSpinBox;
-class QToolButton;
 class QPlainTextEdit;
 
 /// 一覧で選んだ1問を、既存の ShogiView で解く画面。
@@ -41,7 +41,6 @@ signals:
 
 protected:
     void done(int result) override;
-    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
     void selectProblem();
@@ -62,9 +61,8 @@ private slots:
     void retrySearch();
     void onFontIncrease();
     void onFontDecrease();
-    void onEnlargeBoard();
-    void onReduceBoard();
-    void onFlipBoard();
+    void onFlipToggled(bool flipped);
+    void cancelBoardSelection();
 
 private:
     void buildUi();
@@ -72,14 +70,48 @@ private:
     void buildReplayUi();
     void buildBoardControls(QVBoxLayout* layout);
     void applyBoardOrientation();
-    void cancelBoardSelection();
     void showSolution(int ply);
     void updateReplayControls();
     void cancelPendingOutcome();
     void applyFontSize();
+
+    /// 上段: 問題番号・前後の問題・判定時間・挑戦履歴
+    struct ProblemBar {
+        QLabel* header = nullptr;
+        QPushButton* previous = nullptr;
+        QPushButton* next = nullptr;
+        QSpinBox* timeout = nullptr;
+        QLabel* history = nullptr;
+    };
+    /// 盤の上下の案内: 案内文と正解手順を切り替える領域、盤の下の状態表示
+    struct InfoPanel {
+        QStackedWidget* stack = nullptr;
+        QLabel* solutionStatus = nullptr;
+        QPlainTextEdit* solutionText = nullptr;
+        QLabel* status = nullptr;
+    };
+    /// 盤の下の操作: 対局中の操作と、探索の中止・再判定
+    struct ActionPanel {
+        QStackedWidget* stack = nullptr;
+        QWidget* game = nullptr;
+        QPushButton* restart = nullptr;
+        QPushButton* undo = nullptr;
+        QPushButton* stop = nullptr;
+        QPushButton* retry = nullptr;
+    };
+    /// 正解手順の再生: 局面送りと、対局・再生を切り替えるボタン
+    struct ReplayPanel {
+        QWidget* row = nullptr;
+        QPushButton* first = nullptr;
+        QPushButton* previous = nullptr;
+        QPushButton* next = nullptr;
+        QPushButton* last = nullptr;
+        QStackedWidget* modeButton = nullptr;
+        QPushButton* showSolution = nullptr;
+        QPushButton* returnToGame = nullptr;
+    };
+
     FontSizeHelper m_fontHelper;
-    QToolButton* m_fontDecrease = nullptr;
-    QToolButton* m_fontIncrease = nullptr;
     QTimer m_outcomeTimer;
     QString m_pendingOutcome;
     TsumeGameSession* m_session = nullptr;
@@ -88,7 +120,8 @@ private:
     bool m_boardRotated = false;
     QString m_savedStatus;
     ShogiGameController* m_game = nullptr;
-    ShogiView* m_view = nullptr;
+    BoardViewerWidget* m_viewer = nullptr;  ///< 盤と縮小・拡大・回転の操作列
+    ShogiView* m_view = nullptr;            ///< m_viewer の盤
     BoardInteractionController* m_interaction = nullptr;
     TsumeProblem m_problem;
     int m_number = 0;
@@ -96,29 +129,10 @@ private:
     TsumeProgressStore* m_store = nullptr;
     bool m_attemptRecorded = false;
     bool m_solvedRecorded = false;
-    QLabel* m_header = nullptr;
-    QPushButton* m_previousProblem = nullptr;
-    QPushButton* m_nextProblem = nullptr;
-    QLabel* m_history = nullptr;
-    QLabel* m_status = nullptr;
-    QSpinBox* m_timeout = nullptr;
-    QPushButton* m_restart = nullptr;
-    QPushButton* m_undo = nullptr;
-    QPushButton* m_stop = nullptr;
-    QPushButton* m_retry = nullptr;
-    QPushButton* m_showSolution = nullptr;
-    QStackedWidget* m_information = nullptr;
-    QStackedWidget* m_modeButton = nullptr;
-    QStackedWidget* m_actionControls = nullptr;
-    QPlainTextEdit* m_solutionText = nullptr;
-    QWidget* m_gameControls = nullptr;
-    QWidget* m_replayControls = nullptr;
-    QLabel* m_solutionStatus = nullptr;
-    QPushButton* m_solutionFirst = nullptr;
-    QPushButton* m_solutionPrevious = nullptr;
-    QPushButton* m_solutionNext = nullptr;
-    QPushButton* m_solutionLast = nullptr;
-    QPushButton* m_returnToGame = nullptr;
+    ProblemBar m_problemUi;
+    InfoPanel m_infoUi;
+    ActionPanel m_actionUi;
+    ReplayPanel m_replayUi;
 };
 
 #endif

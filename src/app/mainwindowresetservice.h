@@ -2,9 +2,8 @@
 #define MAINWINDOWRESETSERVICE_H
 
 /// @file mainwindowresetservice.h
-/// @brief MainWindow の状態初期化ロジックを分離したサービス
+/// @brief 状態とモデルの初期化をまとめたサービス（SessionLifecycleCoordinator・MainWindowActions が使う）
 
-#include <functional>
 #include <QString>
 #include <QStringList>
 
@@ -14,6 +13,7 @@ class EngineAnalysisTab;
 class KifuAnalysisListModel;
 class EvaluationChartWidget;
 class EvaluationGraphController;
+class CommentCoordinator;
 
 class KifuNavigationState;
 class KifuDisplayCoordinator;
@@ -28,18 +28,14 @@ class LiveGameSession;
 class ShogiGameController;
 class ShogiView;
 class UiStatePolicyManager;
-class MatchCoordinator;
-class CsaGameCoordinator;
-class ConsecutiveGamesController;
-struct GameState;
-struct PlayerState;
-struct KifuState;
+class JosekiWindowWiring;
+class PlayerInfoWiring;
+struct AppState;
 
 /**
- * @brief MainWindow のリセット処理を担当するサービス
+ * @brief 「新規」・対局開始前・棋譜読み込み前のリセット処理
  *
- * MainWindow から状態クリア/初期化処理を分離し、
- * UI ハブとしての責務を薄く保つことを目的とする。
+ * 状態を持たない。対象の部品は呼び出し側が構造体で渡す（すべて非所有）。
  */
 class MainWindowResetService
 {
@@ -54,7 +50,7 @@ public:
         KifuAnalysisListModel* analysisModel = nullptr;
         EvaluationChartWidget* evalChart = nullptr;
         EvaluationGraphController* evalGraphController = nullptr;
-        std::function<void(const QString&, bool)> broadcastComment;
+        CommentCoordinator* commentCoordinator = nullptr;   ///< コメント欄を空にする
     };
 
     struct ModelResetDeps {
@@ -75,13 +71,11 @@ public:
         ShogiGameController* gameController = nullptr;
         ShogiView* shogiView = nullptr;
         UiStatePolicyManager* uiStatePolicy = nullptr;
-        std::function<void()> updateJosekiWindow;
-        std::function<void()> syncBoardNamesWithGameInfo; ///< 対局者名ラベルを初期化した対局情報に合わせる
+        JosekiWindowWiring* josekiWiring = nullptr;
+        PlayerInfoWiring* playerInfoWiring = nullptr;  ///< 対局者名ラベルを初期化した対局情報に合わせる
     };
 
-    void clearGameStateFields(GameState& state, PlayerState& player, KifuState& kifu) const;
-    void resetEngineState(MatchCoordinator* match, CsaGameCoordinator* csa,
-                          ConsecutiveGamesController* consecutive) const;
+    void clearGameStateFields(AppState& state) const;
     void clearSessionDependentUi(const SessionUiDeps& deps) const;
     void clearUiBeforeKifuLoad(const SessionUiDeps& deps) const;
     void resetModels(const ModelResetDeps& deps, const QString& hirateStartSfen) const;

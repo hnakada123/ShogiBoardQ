@@ -4,11 +4,12 @@
 #include <QTemporaryDir>
 #include <QPointer>
 #include <QSignalSpy>
-#define private public
 #include "mainwindow.h"
-#undef private
-#include "mainwindowserviceregistry.h"
-#include "mainwindowfoundationregistry.h"
+#include "mainwindowactions.h"
+#include "mainwindowcomposer.h"
+#include "csagamewiring.h"
+#include "branchnavigationwiring.h"
+#include "sessionlifecyclecoordinator.h"
 #include "commentcoordinator.h"
 #include "gamerecordmodel.h"
 #include "kifubranchnode.h"
@@ -25,7 +26,6 @@
 #include "pvclickcontroller.h"
 #include "considerationwiring.h"
 #include "appsettings.h"
-#include "kifusubregistry.h"
 #include "matchcoordinatorwiring.h"
 #include "matchcoordinator.h"
 #include "kifuloadcoordinator.h"
@@ -59,67 +59,32 @@ private slots:
         AppSettings::pieceSoundEnabled.set(false);
     }
 
-    void gameStateKeepsInstanceAndRefreshesMode()
-    {
-        MainWindow window;
-        auto* registry = window.m_registry.get();
-        window.m_state.playMode = PlayMode::HumanVsHuman;
-        registry->ensureGameStateController();
-        GameStateController* controller = window.m_gameStateController;
-        QVERIFY(controller);
-        QVERIFY(controller->isHvH());
-        window.m_state.playMode = PlayMode::EvenEngineVsEngine;
-        registry->ensureGameStateController();
-        QCOMPARE(window.m_gameStateController, controller);
-        QVERIFY(!controller->isHvH());
-        QVERIFY(!controller->isHumanSide(Turn::Black));
-        QCOMPARE(window.findChildren<GameStateController*>().size(), 1);
-    }
-
     void commentCoordinatorUsesRefreshedModel()
     {
         MainWindow window;
-        auto* registry = window.m_registry.get();
-        registry->kifu()->ensureGameRecordModel();
+        auto& parts = window.composer().parts();
         // コメントを書く手は表示中の手数（分岐ツリーのカーソル）
-        KifuBranchTree* tree = window.m_branchNav.branchTree;
+        KifuBranchTree* tree = parts.branchTree;
         QVERIFY(tree);
         tree->setRootSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
         KifuBranchNode* ply1 = tree->addMove(tree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"));
         KifuBranchNode* ply2 = tree->addMove(ply1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"));
-        window.m_branchNav.navState->setCurrentNode(ply1);
-        registry->foundation()->ensureCommentCoordinator();
-        CommentCoordinator* coordinator = window.m_commentCoordinator;
+        parts.navState->setCurrentNode(ply1);
+        CommentCoordinator* coordinator = parts.commentCoordinator;
         QVERIFY(coordinator);
         coordinator->onCommentUpdated(0, QStringLiteral("最初"));
         QCOMPARE(ply1->comment(), QStringLiteral("最初"));
-        window.m_branchNav.navState->setCurrentNode(ply2);
-        registry->foundation()->ensureCommentCoordinator();
-        QCOMPARE(window.m_commentCoordinator.data(), coordinator);
+        parts.navState->setCurrentNode(ply2);
         coordinator->onCommentUpdated(0, QStringLiteral("更新後"));
         QCOMPARE(ply2->comment(), QStringLiteral("更新後"));
         QCOMPARE(ply1->comment(), QStringLiteral("最初"));
     }
 
-    void registryEnsuresDoNotDuplicateServicesOrConnections()
+    /// 部品は起動時に1回だけ作られ、どれも1つずつある。局面編集の開始・終了の通知も1回ずつ届く
+    void componentsAreCreatedOnceWithoutDuplicateConnections()
     {
         MainWindow window;
-        auto* registry = window.m_registry.get();
-        QVERIFY(registry);
-        for (int i = 0; i < 3; ++i) {
-            registry->ensureTimeController();
-            registry->ensureReplayController();
-            registry->ensureGameStateController();
-            registry->ensurePreStartCleanupHandler();
-            registry->ensureRecordPresenter();
-            registry->ensureBoardSetupController();
-            registry->ensurePositionEditCoordinator();
-            registry->ensurePvClickController();
-            registry->ensureDialogCoordinator();
-            registry->ensureConsiderationWiring();
-            registry->foundation()->ensureCommentCoordinator();
-            registry->foundation()->ensurePlayerInfoController();
-        }
+        auto& parts = window.composer().parts();
         QCOMPARE(window.findChildren<TimeControlController*>().size(), 1);
         QCOMPARE(window.findChildren<ReplayController*>().size(), 1);
         QCOMPARE(window.findChildren<GameStateController*>().size(), 1);
@@ -134,8 +99,8 @@ private slots:
         auto* editing = window.findChild<PositionEditCoordinator*>();
         QSignalSpy started(editing, &PositionEditCoordinator::positionEditingStarted);
         QSignalSpy finished(editing, &PositionEditCoordinator::positionEditingFinished);
-        registry->handleBeginPositionEditing();
-        registry->handleFinishPositionEditing();
+        parts.actions->beginPositionEditing();
+        parts.actions->finishPositionEditing();
         QCOMPARE(started.count(), 1);
         QCOMPARE(finished.count(), 1);
     }
@@ -145,18 +110,18 @@ private slots:
     void matchCoordinatorIsCreatedOnce()
     {
         MainWindow window;
-        auto* registry = window.m_registry.get();
-        const QPointer<MatchCoordinator> first = window.m_match;
+        auto& parts = window.composer().parts();
+        const QPointer<MatchCoordinator> first = parts.match;
         QVERIFY(first);
-        QCOMPARE(window.m_matchWiring->match(), first.data());
+        QCOMPARE(parts.matchWiring->match(), first.data());
 
-        registry->initMatchCoordinator();
-        registry->resetGameState();
-        registry->initMatchCoordinator();
+        parts.matchWiring->initializeSession();
+        parts.sessionLifecycle->resetGameState();
+        parts.sessionLifecycle->resetToInitialState();
 
         QVERIFY(first);
-        QCOMPARE(window.m_match, first.data());
-        QCOMPARE(window.m_matchWiring->match(), first.data());
+        QCOMPARE(parts.match, first.data());
+        QCOMPARE(parts.matchWiring->match(), first.data());
     }
 
     /// 棋譜の読み込み担当は初回に1つだけ作り、以後の読み込み（ファイル・文字列・局面・非同期）で使い回す。
@@ -164,14 +129,13 @@ private slots:
     void kifuLoadsReuseOneLoadCoordinator()
     {
         MainWindow window;
-        auto* registry = window.m_registry.get();
-        registry->kifu()->ensureKifuFileController();
-        KifuFileController* files = window.m_kifuFileController;
+        auto& parts = window.composer().parts();
+        KifuFileController* files = parts.kifuFileController;
         QVERIFY(files);
         const QString fixture = QCoreApplication::applicationDirPath() + QStringLiteral("/fixtures/test_basic.kif");
 
         QVERIFY(files->loadKifuFile(fixture));
-        const QPointer<KifuLoadCoordinator> first = window.m_kifuLoadCoordinator;
+        const QPointer<KifuLoadCoordinator> first = parts.kifuLoadCoordinator;
         QVERIFY(first);
         QVERIFY(files->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d")));
         QVERIFY(files->applySfenPosition(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1")));
@@ -182,10 +146,10 @@ private slots:
         QTRY_COMPARE(finished.count(), 1);
 
         QVERIFY(first);
-        QCOMPARE(window.m_kifuLoadCoordinator.data(), first.data());
+        QCOMPARE(parts.kifuLoadCoordinator, first.data());
         QCOMPARE(window.findChildren<KifuLoadCoordinator*>().size(), 1);
         // 後から始めた読み込みが残る（先の非同期読み込みは打ち切られる）
-        QCOMPARE(window.m_branchNav.branchTree->mainRecordLine().usiMoves(), QStringList{QStringLiteral("2g2f")});
+        QCOMPARE(parts.branchTree->mainRecordLine().usiMoves(), QStringList{QStringLiteral("2g2f")});
     }
 
     /// 局面編集を始めると棋譜は開始局面だけになるため、未保存の棋譜があれば先に確認する。
@@ -193,26 +157,24 @@ private slots:
     void beginPositionEditingAsksAboutUnsavedRecord()
     {
         MainWindow window;
-        auto* registry = window.m_registry.get();
-        registry->ensurePositionEditCoordinator();
-        registry->kifu()->ensureGameRecordModel();
-        QVERIFY(window.m_models.gameRecord);
-        window.m_models.gameRecord->markDirty();
+        auto& parts = window.composer().parts();
+        QVERIFY(parts.gameRecord);
+        parts.gameRecord->markDirty();
 
         auto* editing = window.findChild<PositionEditCoordinator*>();
         QSignalSpy started(editing, &PositionEditCoordinator::positionEditingStarted);
 
         answerMessageBox(QMessageBox::RejectRole);
-        registry->handleBeginPositionEditing();
+        parts.actions->beginPositionEditing();
         QVERIFY(m_answered);
         QCOMPARE(started.count(), 0);
-        QVERIFY(window.m_models.gameRecord->isDirty());
+        QVERIFY(parts.gameRecord->isDirty());
 
         answerMessageBox(QMessageBox::DestructiveRole);
-        registry->handleBeginPositionEditing();
+        parts.actions->beginPositionEditing();
         QVERIFY(m_answered);
         QCOMPARE(started.count(), 1);
-        registry->handleFinishPositionEditing();
+        parts.actions->finishPositionEditing();
     }
 
     /// 盤・分岐ナビゲーション・棋譜解析の結果は、起動時にレジストリが1回だけ作って MainWindow が持つ。
@@ -220,11 +182,10 @@ private slots:
     void startupPartsAreCreatedOnceAndShared()
     {
         MainWindow window;
-        auto* registry = window.m_registry.get();
-        const BranchNavigation& nav = window.m_branchNav;
-        QCOMPARE(window.findChildren<ShogiGameController*>(), QList<ShogiGameController*>{window.m_gameController});
-        QVERIFY(window.findChildren<ShogiView*>().contains(window.m_shogiView));
-        QCOMPARE(window.m_shogiView->board(), window.m_gameController->board());
+        auto& nav = window.composer().parts();
+        QCOMPARE(window.findChildren<ShogiGameController*>(), QList<ShogiGameController*>{nav.gameController});
+        QVERIFY(window.findChildren<ShogiView*>().contains(nav.shogiView));
+        QCOMPARE(nav.shogiView->board(), nav.gameController->board());
         QCOMPARE(window.findChildren<KifuBranchTree*>(), QList<KifuBranchTree*>{nav.branchTree});
         QCOMPARE(window.findChildren<KifuNavigationState*>(), QList<KifuNavigationState*>{nav.navState});
         QCOMPARE(window.findChildren<KifuNavigationController*>(),
@@ -233,19 +194,18 @@ private slots:
         QCOMPARE(window.findChildren<LiveGameSession*>(), QList<LiveGameSession*>{nav.liveGameSession});
         QCOMPARE(nav.kifuNavController->tree(), nav.branchTree);
         QCOMPARE(nav.kifuNavController->state(), nav.navState);
-        QVERIFY(window.m_models.analysis);
-        QCOMPARE(window.m_models.analysis->parent(), &window);
+        QVERIFY(nav.analysis);
+        QCOMPARE(nav.analysis->parent(), &window);
         // CSA 通信対局の司令塔は、最初の対局を始めるまで作らない
-        QVERIFY(registry->csaGameCoordinator() == nullptr);
+        QVERIFY(nav.csaGameWiring->coordinator() == nullptr);
 
-        registry->initializeBranchNavigationClasses();
+        nav.branchNavWiring->initialize();
         QCOMPARE(window.findChildren<KifuBranchTree*>(), QList<KifuBranchTree*>{nav.branchTree});
 
-        registry->kifu()->ensureKifuFileController();
-        QVERIFY(window.m_kifuFileController->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")));
+        QVERIFY(nav.kifuFileController->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")));
         nav.kifuNavController->goToFirst();
         QCOMPARE(nav.navState->currentPly(), 0);
-        QPushButton* next = window.m_recordPane->nextButton();
+        QPushButton* next = nav.recordPane->nextButton();
         QVERIFY(next->isEnabled());
         next->click();
         QCOMPARE(nav.navState->currentPly(), 1);
@@ -255,7 +215,7 @@ private slots:
     void sfenCollectionViewerIsReusedWhileOpen()
     {
         MainWindow window;
-        DialogLaunchWiring* dialogs = window.m_dialogLaunchWiring;
+        DialogLaunchWiring* dialogs = window.composer().parts().dialogLaunchWiring;
         QVERIFY(dialogs);
 
         dialogs->displaySfenCollectionViewer();
@@ -277,15 +237,16 @@ private slots:
         MainWindow window;
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
-        QDockWidget* dock = window.m_docks.menuWindow;
+        auto& parts = window.composer().parts();
+        QDockWidget* dock = parts.docks.menuWindow;
         QVERIFY(dock);
         const bool wasVisible = dock->isVisible();
 
-        window.m_dialogLaunchWiring->displayMenuWindow();
+        parts.dialogLaunchWiring->displayMenuWindow();
         QCOMPARE(dock->isVisible(), !wasVisible);
-        window.m_dialogLaunchWiring->displayMenuWindow();
+        parts.dialogLaunchWiring->displayMenuWindow();
         QCOMPARE(dock->isVisible(), wasVisible);
-        QCOMPARE(window.m_docks.menuWindow, dock);
+        QCOMPARE(parts.docks.menuWindow, dock);
     }
 
 private:

@@ -2,6 +2,7 @@
 /// @brief 盤面初期設定コントローラクラスの実装
 
 #include "boardsetupcontroller.h"
+#include "evaluationgraphcontroller.h"
 
 #include "logcategories.h"
 #include <QWheelEvent>
@@ -116,26 +117,11 @@ void BoardSetupController::setGameMoves(QList<ShogiMove>* gameMoves)
 // コールバック設定
 // --------------------------------------------------------
 
-void BoardSetupController::setEnsurePositionEditCallback(EnsurePositionEditCallback cb)
-{
-    m_ensurePositionEdit = std::move(cb);
-}
-
 void BoardSetupController::setVariationInputCallbacks(IsVariationInputCallback isVariationInput,
                                                        RecordVariationMoveCallback recordVariationMove)
 {
     m_isVariationInput = std::move(isVariationInput);
     m_recordVariationMove = std::move(recordVariationMove);
-}
-
-void BoardSetupController::setRedrawEngine1GraphCallback(RedrawEngine1GraphCallback cb)
-{
-    m_redrawEngine1Graph = std::move(cb);
-}
-
-void BoardSetupController::setRedrawEngine2GraphCallback(RedrawEngine2GraphCallback cb)
-{
-    m_redrawEngine2Graph = std::move(cb);
 }
 
 // --------------------------------------------------------
@@ -158,8 +144,8 @@ void BoardSetupController::setupBoardInteractionController()
     // 盤クリックの配線
     connectBoardClicks();
 
-    // 着手要求（moveRequested）はここではつながない。MainWindowSignalRouter::connectMoveRequested() が
-    // MainWindow につなぎ、MainWindowServiceRegistry::handleMoveRequested() が onMoveRequested() を呼ぶ
+    // 着手要求（moveRequested）はここではつながない。MainWindowComposer が
+    // MainWindowActions::handleMoveRequested へつなぎ、そこから onMoveRequested() を呼ぶ
 
     // 既定モード
     m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
@@ -198,9 +184,6 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
     // --- 編集モードは Controller へ丸投げ ---
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
-        if (m_ensurePositionEdit) {
-            m_ensurePositionEdit();
-        }
         if (!m_posEdit || !m_shogiView || !m_gameController) return;
 
         const bool ok = m_posEdit->applyEditMove(from, to, m_shogiView, m_gameController, m_boardController);
@@ -294,15 +277,11 @@ void BoardSetupController::onMoveCommitted(Turn mover, int ply)
         (m_playMode == PlayMode::EvenEngineVsEngine) ||
         (m_playMode == PlayMode::HandicapEngineVsEngine);
 
-    if (isEvE) {
+    if (isEvE && m_evalGraph) {
         if (mover == Turn::Black) {
-            if (m_redrawEngine1Graph) {
-                m_redrawEngine1Graph(ply);
-            }
+            m_evalGraph->redrawEngine1Graph(ply);
         } else if (mover == Turn::White) {
-            if (m_redrawEngine2Graph) {
-                m_redrawEngine2Graph(ply);
-            }
+            m_evalGraph->redrawEngine2Graph(ply);
         }
     }
 }

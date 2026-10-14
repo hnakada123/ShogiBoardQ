@@ -2,6 +2,7 @@
 /// @brief 棋譜ファイル操作コントローラの実装
 
 #include "kifufilecontroller.h"
+#include "replaycontroller.h"
 #include "kifuexportcontroller.h"
 #include "kifufilereader.h"
 #include "kifuloadcoordinator.h"
@@ -39,9 +40,8 @@ bool KifuFileController::confirmDiscardUnsaved()
 
 void KifuFileController::prepareForKifuLoad()
 {
-    if (m_deps.setReplayMode) m_deps.setReplayMode(true);
+    if (m_deps.replayController) m_deps.replayController->setReplayMode(true);
     if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
-    if (m_deps.ensurePlayerInfoAndGameInfo) m_deps.ensurePlayerInfoAndGameInfo();
 }
 
 void KifuFileController::chooseAndLoadKifuFile()
@@ -73,11 +73,7 @@ void KifuFileController::chooseAndLoadKifuFile()
 
 void KifuFileController::saveKifuToFile()
 {
-    if (m_deps.ensureGameRecordModel) m_deps.ensureGameRecordModel();
-    if (m_deps.ensureKifuExportController) m_deps.ensureKifuExportController();
-    if (m_deps.updateKifuExportDependencies) m_deps.updateKifuExportDependencies();
-
-    auto* kec = m_deps.getKifuExportController ? m_deps.getKifuExportController() : nullptr;
+    auto* kec = m_deps.exportController;
     if (!kec) return;
 
     const QString path = kec->saveToFile();
@@ -93,11 +89,7 @@ void KifuFileController::overwriteKifuFile()
         return;
     }
 
-    if (m_deps.ensureGameRecordModel) m_deps.ensureGameRecordModel();
-    if (m_deps.ensureKifuExportController) m_deps.ensureKifuExportController();
-    if (m_deps.updateKifuExportDependencies) m_deps.updateKifuExportDependencies();
-
-    auto* kec = m_deps.getKifuExportController ? m_deps.getKifuExportController() : nullptr;
+    auto* kec = m_deps.exportController;
     if (kec) {
         (void)kec->overwriteFile(*m_deps.saveFileName);
     }
@@ -133,7 +125,7 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
 void KifuFileController::startAsyncLoad(const QString& input, bool text)
 {
     prepareForKifuLoad();
-    auto* coordinator = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
+    auto* coordinator = m_deps.loadCoordinator;
     if (!coordinator) {
         qCWarning(lcApp) << "KifuLoadCoordinator is null";
         return;
@@ -162,7 +154,7 @@ void KifuFileController::onAsyncLoadFinished(bool success)
     if (!success) return;
     if (m_loadingText) {
         clearOverwriteTarget();
-        if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) record->markDirty();
+        if (auto* record = m_deps.gameRecord) record->markDirty();
         if (m_kifuPasteDialog) m_kifuPasteDialog->accept();
         if (m_deps.statusBar) m_deps.statusBar->showMessage(tr("棋譜を取り込みました"), 3000);
     } else {
@@ -174,7 +166,7 @@ void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
 {
     if (!confirmDiscardUnsaved()) return;
     prepareForKifuLoad();
-    auto* klc = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
+    auto* klc = m_deps.loadCoordinator;
     if (klc) {
         const bool success = klc->loadPositionFromSfen(sfen);
         // 局面集から反映した局面は棋譜ファイル由来ではないので、以前のファイルへ上書きさせない。
@@ -201,11 +193,7 @@ void KifuFileController::autoSaveKifuToFile(const QString& saveDir)
 {
     qCDebug(lcApp) << "autoSaveKifuToFile called: dir=" << saveDir;
 
-    if (m_deps.ensureGameRecordModel) m_deps.ensureGameRecordModel();
-    if (m_deps.ensureKifuExportController) m_deps.ensureKifuExportController();
-    if (m_deps.updateKifuExportDependencies) m_deps.updateKifuExportDependencies();
-
-    auto* kec = m_deps.getKifuExportController ? m_deps.getKifuExportController() : nullptr;
+    auto* kec = m_deps.exportController;
     if (!kec) {
         qCWarning(lcApp) << "autoSaveKifuToFile: KifuExportController is null";
         return;
@@ -224,7 +212,7 @@ void KifuFileController::autoSaveKifuToFile(const QString& saveDir)
 
 bool KifuFileController::hasUnsavedChanges() const
 {
-    auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr;
+    auto* record = m_deps.gameRecord;
     return (record && record->isDirty()) || (m_deps.gameInfo && m_deps.gameInfo->isDirty());
 }
 
@@ -239,12 +227,12 @@ bool KifuFileController::loadKifuFile(const QString& filePath)
 bool KifuFileController::loadKifuText(const QString& content)
 {
     prepareForKifuLoad();
-    auto* klc = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
+    auto* klc = m_deps.loadCoordinator;
     if (!klc) return false;
     const bool success = klc->loadKifuFromString(content);
     if (success) {
         clearOverwriteTarget();
-        if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
+        if (auto* record = m_deps.gameRecord) {
             record->markDirty();
         }
     }
@@ -254,12 +242,12 @@ bool KifuFileController::loadKifuText(const QString& content)
 bool KifuFileController::applySfenPosition(const QString& sfen)
 {
     prepareForKifuLoad();
-    auto* klc = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
+    auto* klc = m_deps.loadCoordinator;
     if (!klc) return false;
     const bool success = klc->loadPositionFromSfen(sfen);
     if (success) {
         clearOverwriteTarget();
-        if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
+        if (auto* record = m_deps.gameRecord) {
             record->markDirty();
         }
     }
@@ -268,11 +256,7 @@ bool KifuFileController::applySfenPosition(const QString& sfen)
 
 bool KifuFileController::saveKifuToPath(const QString& filePath, QString* errorText)
 {
-    if (m_deps.ensureGameRecordModel) m_deps.ensureGameRecordModel();
-    if (m_deps.ensureKifuExportController) m_deps.ensureKifuExportController();
-    if (m_deps.updateKifuExportDependencies) m_deps.updateKifuExportDependencies();
-
-    auto* kec = m_deps.getKifuExportController ? m_deps.getKifuExportController() : nullptr;
+    auto* kec = m_deps.exportController;
     if (!kec) return false;
     const bool ok = kec->saveToPathWithoutDialogs(filePath, errorText);
     if (ok) setOverwriteTarget(filePath);
@@ -281,7 +265,7 @@ bool KifuFileController::saveKifuToPath(const QString& filePath, QString* errorT
 
 bool KifuFileController::dispatchKifuLoad(const QString& filePath)
 {
-    auto* klc = m_deps.ensureKifuLoadCoordinator ? m_deps.ensureKifuLoadCoordinator() : nullptr;
+    auto* klc = m_deps.loadCoordinator;
     if (!klc) return false;
 
     // 拡張子が .json などでも、内容から形式を判定して読み込む

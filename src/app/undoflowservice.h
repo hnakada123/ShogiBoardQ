@@ -22,8 +22,8 @@ class UndoFlowService
 {
 public:
     struct Deps {
-        std::function<bool()> undoTwoPlies;
-        std::function<void()> markGameRecordDirty;
+        std::function<bool()> undoTwoPlies;        ///< 2手戻す（司令塔。終局後は false を返す）
+        std::function<void()> markGameRecordDirty; ///< 戻したら棋譜を未保存にする
         LiveGameSession* liveSession = nullptr;
         GameRecordPresenter* recordPresenter = nullptr;
         EvaluationGraphController* evalGraphController = nullptr;

@@ -3,6 +3,8 @@
 
 #include "kifuexportcontroller.h"
 #include "kifuexportclipboard.h"
+#include "appstate.h"
+#include "kifunavigationstate.h"
 
 #include <QWidget>
 #include <QStatusBar>
@@ -32,34 +34,18 @@ KifuExportController::KifuExportController(QWidget* parentWidget, QObject* paren
 
 KifuExportController::~KifuExportController() = default;
 
-static KifuExportClipboard::Deps toClipboardDeps(const KifuExportController::Dependencies& d)
-{
-    KifuExportClipboard::Deps cd;
-    cd.gameRecord = d.gameRecord;
-    cd.kifuRecordModel = d.kifuRecordModel;
-    cd.gameInfoController = d.gameInfoController;
-    cd.timeController = d.timeController;
-    cd.gameController = d.gameController;
-    cd.startSfenStr = d.startSfenStr;
-    cd.playMode = d.playMode;
-    cd.humanName1 = d.humanName1;
-    cd.humanName2 = d.humanName2;
-    cd.engineName1 = d.engineName1;
-    cd.engineName2 = d.engineName2;
-    cd.currentMoveIndex = d.currentMoveIndex;
-    return cd;
-}
-
 void KifuExportController::setDependencies(const Dependencies& deps)
 {
     m_deps = deps;
-    m_clipboard->setDependencies(toClipboardDeps(deps));
-}
-
-void KifuExportController::setPrepareCallback(std::function<void()> callback)
-{
-    m_prepareCallback = std::move(callback);
-    m_clipboard->setPrepareCallback(m_prepareCallback);
+    KifuExportClipboard::Deps cd;
+    cd.gameRecord = deps.gameRecord;
+    cd.kifuRecordModel = deps.kifuRecordModel;
+    cd.gameInfoController = deps.gameInfoController;
+    cd.timeController = deps.timeController;
+    cd.gameController = deps.gameController;
+    cd.state = deps.state;
+    cd.navState = deps.navState;
+    m_clipboard->setDependencies(cd);
 }
 
 // --------------------------------------------------------
@@ -80,12 +66,12 @@ GameRecordModel::ExportContext KifuExportController::buildExportContext() const
         ctx.gameInfoProvided = true;
     }
     ctx.startSfen = m_deps.gameRecord
-        ? m_deps.gameRecord->initialSfenForExport(m_deps.startSfenStr) : m_deps.startSfenStr;
-    ctx.playMode = m_deps.playMode;
-    ctx.human1 = m_deps.humanName1;
-    ctx.human2 = m_deps.humanName2;
-    ctx.engine1 = m_deps.engineName1;
-    ctx.engine2 = m_deps.engineName2;
+        ? m_deps.gameRecord->initialSfenForExport(m_deps.state->startSfenStr) : m_deps.state->startSfenStr;
+    ctx.playMode = m_deps.state->playMode;
+    ctx.human1 = m_deps.state->humanName1;
+    ctx.human2 = m_deps.state->humanName2;
+    ctx.engine1 = m_deps.state->engineName1;
+    ctx.engine2 = m_deps.state->engineName2;
     
     // 時間制御情報
     if (m_deps.timeController) {
@@ -103,7 +89,6 @@ GameRecordModel::ExportContext KifuExportController::buildExportContext() const
 
 QString KifuExportController::saveToFile()
 {
-    if (m_prepareCallback) m_prepareCallback();
     if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
 
     if (!m_deps.gameRecord) {
@@ -131,9 +116,9 @@ QString KifuExportController::saveToFile()
     const QString path = KifuSaveCoordinator::saveViaDialog(
         m_parentWidget,
         [this](KifuSaveCoordinator::SaveFormat format) { return linesForFormat(format); },
-        m_deps.playMode,
-        m_deps.humanName1, m_deps.humanName2,
-        m_deps.engineName1, m_deps.engineName2,
+        m_deps.state->playMode,
+        m_deps.state->humanName1, m_deps.state->humanName2,
+        m_deps.state->engineName1, m_deps.state->engineName2,
         hasBranches, hasTimeInfo, &error);
 
     if (!error.isEmpty()) {
@@ -170,7 +155,6 @@ bool KifuExportController::saveToPathWithoutDialogs(const QString& filePath, QSt
 bool KifuExportController::writeToPath(const QString& filePath, QWidget* dialogParent, QString* errorText)
 {
     if (errorText) errorText->clear();
-    if (m_prepareCallback) m_prepareCallback();
     if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
 
     if (filePath.isEmpty()) {
@@ -194,14 +178,14 @@ bool KifuExportController::writeToPath(const QString& filePath, QWidget* dialogP
             ctx.gameInfoProvided = true;
         }
         ctx.recordModel = m_deps.kifuRecordModel;
-        ctx.resolvedRows = m_deps.resolvedRows;
-        ctx.activeResolvedRow = m_deps.activeResolvedRow;
-        ctx.startSfen = m_deps.startSfenStr;
-        ctx.playMode = m_deps.playMode;
-        ctx.human1 = m_deps.humanName1;
-        ctx.human2 = m_deps.humanName2;
-        ctx.engine1 = m_deps.engineName1;
-        ctx.engine2 = m_deps.engineName2;
+        ctx.resolvedRows = nullptr;  // 分岐ツリーを使う
+        ctx.activeResolvedRow = m_deps.navState ? m_deps.navState->currentLineIndex() : 0;
+        ctx.startSfen = m_deps.state->startSfenStr;
+        ctx.playMode = m_deps.state->playMode;
+        ctx.human1 = m_deps.state->humanName1;
+        ctx.human2 = m_deps.state->humanName2;
+        ctx.engine1 = m_deps.state->engineName1;
+        ctx.engine2 = m_deps.state->engineName2;
 
         lines = KifuContentBuilder::buildKifuDataList(ctx);
     } else {
@@ -225,7 +209,6 @@ bool KifuExportController::writeToPath(const QString& filePath, QWidget* dialogP
 
 QStringList KifuExportController::exportLines(KifuSaveCoordinator::SaveFormat format)
 {
-    if (m_prepareCallback) m_prepareCallback();
     return linesForFormat(format);
 }
 
@@ -253,7 +236,6 @@ QStringList KifuExportController::linesForFormat(KifuSaveCoordinator::SaveFormat
 
 std::optional<QString> KifuExportController::autoSaveToDir(const QString& saveDir)
 {
-    if (m_prepareCallback) m_prepareCallback();
     if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
 
     if (saveDir.isEmpty()) {
@@ -275,9 +257,9 @@ std::optional<QString> KifuExportController::autoSaveToDir(const QString& saveDi
 
     // ファイル名生成
     const QString fileName = KifuIoService::makeDefaultSaveFileName(
-        m_deps.playMode,
-        m_deps.humanName1, m_deps.humanName2,
-        m_deps.engineName1, m_deps.engineName2,
+        m_deps.state->playMode,
+        m_deps.state->humanName1, m_deps.state->humanName2,
+        m_deps.state->engineName1, m_deps.state->engineName2,
         QDateTime::currentDateTime());
 
     QString filePath = QDir(saveDir).filePath(fileName);

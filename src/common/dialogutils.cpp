@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include <QCoreApplication>
 #include <QComboBox>
+#include <QMenu>
 #include <QAbstractItemView>
 #include <utility>
 
@@ -24,15 +25,38 @@ void saveDialogSize(const QWidget* dialog, const std::function<void(const QSize&
     setter(dialog->size());
 }
 
-void applyFontToAllChildren(QWidget* widget, const QFont& font)
+namespace {
+bool isExcluded(const QWidget* child, const QList<QWidget*>& excluded)
+{
+    for (const QWidget* root : excluded) {
+        if (root && (child == root || root->isAncestorOf(child))) return true;
+    }
+    return false;
+}
+} // namespace
+
+void applyFontToAllChildren(QWidget* widget, const QFont& font, const QList<QWidget*>& excluded)
 {
     widget->setFont(font);
     const auto children = widget->findChildren<QWidget*>();
     for (QWidget* child : std::as_const(children)) {
-        if (child->window() != widget->window()) continue;
+        // 別ウィンドウ（子ダイアログなど）には伝えない。ダイアログのボタンから開くメニューは同じ文字で出す
+        const QWidget* owner = qobject_cast<QMenu*>(child) ? child->parentWidget() : child;
+        if (!owner || owner->window() != widget->window()) continue;
+        if (isExcluded(child, excluded)) continue;
         child->setFont(font);
         if (auto* combo = qobject_cast<QComboBox*>(child)) combo->view()->setFont(font);
     }
+}
+
+QFont applyFontSize(QWidget* dialog, int size, int minimum, int maximum, const QList<QWidget*>& excluded)
+{
+    standardizeDialog(dialog);
+    QFont font = dialog->font();
+    font.setPointSize(size);
+    applyFontToAllChildren(dialog, font, excluded);
+    updateFontButtons(dialog, size, minimum, maximum);
+    return font;
 }
 
 void updateFontButtons(QWidget* widget, int size, int minimum, int maximum)

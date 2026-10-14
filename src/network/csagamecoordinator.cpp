@@ -2,12 +2,9 @@
 /// @brief CSA通信対局コーディネータクラスの実装
 
 #include "csagamecoordinator.h"
-#include "csamoveprogresshandler.h"
 #include "csamoveconverter.h"
 #include "csaenginecontroller.h"
-#include "kifurecordlistmodel.h"
 #include "shogigamecontroller.h"
-#include "boardinteractioncontroller.h"
 #include "shogiview.h"
 #include "shogiclock.h"
 #include "shogiboard.h"
@@ -19,7 +16,11 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     : QObject(parent)
     , m_client(new CsaClient(this))
     , m_reconnectTimer(new QTimer(this))
+    , m_verdictTimer(new QTimer(this))
 {
+    m_verdictTimer->setSingleShot(true);
+    m_verdictTimer->setInterval(kVerdictTimeoutMs);
+    connect(m_verdictTimer, &QTimer::timeout, this, &CsaGameCoordinator::onVerdictTimeout);
     m_reconnectTimer->setSingleShot(true);
     m_reconnectTimer->setInterval(kReconnectDelayMs);
     connect(m_reconnectTimer, &QTimer::timeout,
@@ -99,28 +100,12 @@ void CsaGameCoordinator::stopGame()
         performResign();
     } else if (m_gameState == GameState::WaitingForAgree) {
         // 同意前に離れるときは対局条件を拒否してから（仕様 3.3）
-        m_client->reject(m_gameSummary.gameId);
+        m_client->reject(m_progress.summary.gameId);
     }
     setGameState(GameState::Idle);
     m_isMyTurn = false;
     if (m_clock) m_clock->stopClock();
     cleanup();
-}
-
-void CsaGameCoordinator::resetGameTracking()
-{
-    m_moveCount = 0;
-    m_blackTotalTimeMs = 0;
-    m_whiteTotalTimeMs = 0;
-    m_prevToFile = 0;
-    m_prevToRank = 0;
-    m_resignConsumedTimeMs = 0;
-    m_initialBlackTimeMs = 0;
-    m_initialWhiteTimeMs = 0;
-    m_blackRemainingMs = 0;
-    m_whiteRemainingMs = 0;
-    m_usiMoves.clear();
-    m_initialPrettyMoves.clear();
 }
 
 bool CsaGameCoordinator::isMyTurn() const
@@ -130,7 +115,7 @@ bool CsaGameCoordinator::isMyTurn() const
 
 bool CsaGameCoordinator::isBlackSide() const
 {
-    return m_isBlackSide;
+    return m_progress.isBlackSide;
 }
 
 void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool promote)
@@ -139,7 +124,7 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool 
     qCDebug(lcNetwork) << "gameState=" << static_cast<int>(m_gameState)
                        << "isMyTurn=" << m_isMyTurn
                        << "playerType=" << static_cast<int>(m_playerType)
-                       << "isBlackSide=" << m_isBlackSide;
+                       << "isBlackSide=" << m_progress.isBlackSide;
 
     if (m_gameState != GameState::InGame) {
         qCDebug(lcNetwork) << "Not in game state, returning";
@@ -158,7 +143,7 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool 
     }
 
     ShogiBoard* board = m_gameController ? m_gameController->board() : nullptr;
-    QString csaMove = CsaMoveConverter::boardToCSA(from, to, promote, m_isBlackSide, board);
+    QString csaMove = CsaMoveConverter::boardToCSA(from, to, promote, m_progress.isBlackSide, board);
     if (csaMove.isEmpty()) {
         qCWarning(lcNetwork) << "Failed to build CSA move from board coordinates";
         emit errorOccurred(tr("CSA指し手の生成に失敗しました。"));
@@ -168,7 +153,7 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool 
     qCDebug(lcNetwork) << "Generated CSA move:" << csaMove;
 
     // 盤のクリック操作で指した手（成り・不成を含む）を、指し手確認のために控える
-    if (m_moveProgressHandler && m_gameController) m_moveProgressHandler->noteSentMove(m_gameController->lastMove());
+    if (m_gameController) m_sentMove = m_gameController->lastMove();
     m_client->sendMove(csaMove);
     qCDebug(lcNetwork) << "Move sent to server";
 }
@@ -188,8 +173,8 @@ void CsaGameCoordinator::performResign()
 
     if (m_clock) {
         m_clock->stopClock();
-        m_resignConsumedTimeMs = static_cast<int>(m_clock->considerationMs(m_isBlackSide ? Turn::Black : Turn::White));
-        qCDebug(lcNetwork) << "Resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
+        m_progress.resignConsumedMs = static_cast<int>(m_clock->considerationMs(m_progress.isBlackSide ? Turn::Black : Turn::White));
+        qCDebug(lcNetwork) << "Resign consumed time from clock:" << m_progress.resignConsumedMs << "ms";
     }
     m_client->resign();
 }
@@ -211,7 +196,7 @@ void CsaGameCoordinator::declareWin()
         emit errorOccurred(tr("相手の手番です"));
         return;
     }
-    if (!m_gameSummary.allowsJishogiDeclaration()) {
+    if (!m_progress.summary.allowsJishogiDeclaration()) {
         // 仕様 3.2.1: Declaration に Jishogi が無ければ入玉宣言ルールは採用されていない
         emit logMessage(tr("対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります"), true);
     }
@@ -319,17 +304,16 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
         return;
     }
 
-    // setupClock()はm_isMyTurnを参照するため、先に設定する
-    m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
+    const CsaClient::GameSummary& summary = m_progress.summary;
+    m_isMyTurn = (summary.myTurn == summary.toMove);
 
     setupClock();
 
-    emit gameStarted(m_gameSummary.blackName, m_gameSummary.whiteName, m_initialPrettyMoves);
+    emit gameStarted(summary.blackName, summary.whiteName, m_initialRecords);
     emit turnChanged(m_isMyTurn);
 
     if (m_playerType == PlayerType::Engine && m_isMyTurn) {
-        ensureMoveProgressHandler();
-        m_moveProgressHandler->startEngineThinking();
+        startEngineThinking();
     }
 }
 
@@ -339,30 +323,23 @@ void CsaGameCoordinator::onGameRejected(const QString& gameId, const QString& re
     setGameState(GameState::WaitingForMatch);
 }
 
-void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
-{
-    ensureMoveProgressHandler();
-    m_moveProgressHandler->handleMoveReceived(move, consumedTimeMs);
-}
-
-void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs)
-{
-    ensureMoveProgressHandler();
-    m_moveProgressHandler->handleMoveConfirmed(move, consumedTimeMs);
-}
-
 void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
     // 解釈できなかった指し手の裁定待ちは、終局で解消する
-    if (m_moveProgressHandler) m_moveProgressHandler->clearPendingVerdict();
+    clearPendingVerdict();
 
     if (m_gameState != GameState::InGame) return;
+    const bool isBlackSide = m_progress.isBlackSide;
+    // 連続王手の千日手は終局した局面の手番で決まるので、最後の局面から手番を取る
+    const QString lastSfen = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
+    const bool blackToMove = lastSfen.isEmpty() ? (m_isMyTurn == isBlackSide)
+                                                : (lastSfen.section(QLatin1Char(' '), 1, 1) != QLatin1String("w"));
     m_isMyTurn = false;
     qCDebug(lcNetwork).noquote() << "onClientGameEnded ENTER:"
                                 << "result=" << static_cast<int>(result)
                                 << "cause=" << static_cast<int>(cause)
                                 << "consumedTimeMs=" << consumedTimeMs
-                                << "m_isBlackSide=" << m_isBlackSide;
+                                << "isBlackSide=" << isBlackSide;
 
     if (m_clock) {
         m_clock->stopClock();
@@ -372,18 +349,14 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     int actualConsumedTimeMs = consumedTimeMs;
     if (consumedTimeMs == 0) {
         if (cause == CsaClient::GameEndCause::Resign &&
-            result == CsaClient::GameResult::Lose && m_resignConsumedTimeMs > 0) {
-            actualConsumedTimeMs = m_resignConsumedTimeMs;
+            result == CsaClient::GameResult::Lose && m_progress.resignConsumedMs > 0) {
+            actualConsumedTimeMs = m_progress.resignConsumedMs;
             qCDebug(lcNetwork).noquote() << "Using saved resign consumed time (my resign):" << actualConsumedTimeMs << "ms";
         } else if (cause == CsaClient::GameEndCause::Resign &&
                    result == CsaClient::GameResult::Win && m_clock) {
-            qint64 opponentClockRemainingMs = m_clock->remainingMs(m_isBlackSide ? Turn::White : Turn::Black);
-            const int opponentInitialTimeMs = m_isBlackSide
-                ? m_initialWhiteTimeMs
-                : m_initialBlackTimeMs;
-            int opponentPreviousConsumedMs = m_isBlackSide
-                ? m_whiteTotalTimeMs
-                : m_blackTotalTimeMs;
+            const qint64 opponentClockRemainingMs = m_clock->remainingMs(isBlackSide ? Turn::White : Turn::Black);
+            const int opponentInitialTimeMs = m_progress.summary.totalTimeMs(!isBlackSide);
+            const int opponentPreviousConsumedMs = m_progress.totalMs(!isBlackSide);
 
             actualConsumedTimeMs = static_cast<int>(
                 static_cast<qint64>(opponentInitialTimeMs)
@@ -400,6 +373,10 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
 
     emit logMessage(tr("対局終了: %1 (%2)").arg(resultStr, causeStr));
     setGameState(GameState::GameOver);
+
+    // 終局行を棋譜へ渡し、局面列にも終局行のぶんを足す（棋譜の行と局面列の位置をそろえる）
+    emit recordEntryReady(m_progress.endRecord(result, cause, blackToMove, actualConsumedTimeMs));
+    if (m_sfenHistory && !m_sfenHistory->isEmpty()) m_sfenHistory->append(m_sfenHistory->last());
 
     // エンジンにgameoverとquitコマンドを送信
     if (m_engineController && m_engineController->isInitialized()) {
@@ -474,7 +451,7 @@ void CsaGameCoordinator::onEngineControllerWinDeclaration()
 void CsaGameCoordinator::onEngineControllerInitialized()
 {
     m_initializingEngine = false;
-    if (m_gameState == GameState::WaitingForAgree) m_client->agree(m_gameSummary.gameId);
+    if (m_gameState == GameState::WaitingForAgree) m_client->agree(m_progress.summary.gameId);
 }
 
 void CsaGameCoordinator::onEngineControllerError(const QString& message)
@@ -489,7 +466,7 @@ void CsaGameCoordinator::failGame(const QString& message)
     m_lastGameEndedByServer = false;
     if (m_gameState == GameState::WaitingForAgree) {
         // 同意できなくなった対局条件は拒否してから離れる
-        m_client->reject(m_gameSummary.gameId);
+        m_client->reject(m_progress.summary.gameId);
     }
     if (!inGame) setGameState(GameState::Error);
     m_client->disconnectFromServer();

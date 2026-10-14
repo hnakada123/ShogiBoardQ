@@ -6,13 +6,15 @@
 
 #include <QObject>
 #include <memory>
+#include <optional>
+
+#include "fontsizehelper.h"
 
 class QTableView;
 class QAbstractItemModel;
 class QModelIndex;
 
 class EngineInfoWidget;
-class LogViewFontManager;
 class ShogiEngineThinkingModel;
 
 /**
@@ -48,7 +50,7 @@ public:
     /// ヘッダの基本設定（モデル設定前でもOK）
     void setupThinkingViewHeader(QTableView* v);
 
-    /// フォントマネージャーの初期化
+    /// 思考タブの文字の大きさを設定から読み込んで適用する
     void initThinkingFontManager();
 
     /// EngineInfoWidget の列幅を設定から読み込み適用
@@ -95,8 +97,8 @@ private:
     ShogiEngineThinkingModel* m_model1 = nullptr;
     ShogiEngineThinkingModel* m_model2 = nullptr;
 
-    int m_thinkingFontSize = 10;
-    std::unique_ptr<LogViewFontManager> m_thinkingFontManager;
+    std::optional<FontSizeHelper> m_thinkingFontSize;   ///< 思考タブの文字の大きさ（変更のたびに保存する）
+    void applyThinkingFontSize();
 
     bool m_thinkingView1WidthsLoaded = false;
     bool m_thinkingView2WidthsLoaded = false;

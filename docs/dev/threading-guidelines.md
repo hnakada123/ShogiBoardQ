@@ -134,7 +134,7 @@ connect(worker, &Worker::resultReady,
 
 マルチスレッド化しても以下の既存パターンを維持する:
 
-- **`ensure*()` 遅延初期化**: メインスレッドで実行（ワーカーから呼ばない）
+- **部品の生成**: `MainWindowComposer` が起動時にメインスレッドで全部作る（[composition-root.md](composition-root.md)）。ワーカーから部品を作らない
 - **Deps/Hooks/Refs パターン**: 依存注入構造体は変更なし
 - **所有権ルール**: QObject は parent ownership、非QObject は `std::unique_ptr`
 
@@ -144,7 +144,7 @@ connect(worker, &Worker::resultReady,
 
 - GUIのファイル選択・貼り付けは `KifuLoadCoordinator::loadFileAsync/loadTextAsync` を使う。
 - `KifuLoadParser` は入力とキャンセルフラグだけを受け取り、値として結果を返す。モデル・分岐ツリー・画面の更新は `KifuApplyService` がGUIスレッドで行う。
-- 読み込みの置換・中止では旧watcherを切り離し、古い結果を反映しない。ワーカーが所有する一時ファイルは解析終了時に削除される。変換器内部の解析中は強制停止せず、処理の境界でキャンセルを確認する。
+- 読み込みの置換・中止では旧watcherを切り離し、古い結果を反映しない。貼り付けたテキストは一時ファイルを作らず、テキストのまま解析する。変換器内部の解析中は強制停止せず、処理の境界でキャンセルを確認する。
 - 通常のGUI対局・解析とCLI解析ジョブは非同期USI初期化を使う。`usiok` と `readyok` はそれぞれタイマーで監視し、初期化完了まで探索要求を保留する。
 - 対局の着手は `matchMoveReady` で適用する。先読み不一致時は `stop` の応答を回収してから新しい `go` を送る。即指しの `stop` と要求のキャンセルは区別する。
 - 終了は `quit → terminate → kill` をタイマーで進める。同期APIは既存のテスト・自動操作との互換用途に残すが、新しいGUI経路では待機型APIを使用しない。

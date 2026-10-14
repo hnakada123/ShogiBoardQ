@@ -24,7 +24,7 @@
  * 子ハンドラ（GameEndHandler, GameStartOrchestrator, EngineLifecycleManager 等）にも
  * パススルーされる。
  *
- * @note MainWindowServiceRegistry::buildMatchHooks() が組み立てる。
+ * @note MainWindowComposer::buildMatchHooks() が組み立てる。
  */
 struct MatchCoordinatorHooks {
     /// UI更新・描画系コールバック

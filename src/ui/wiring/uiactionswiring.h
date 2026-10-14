@@ -5,11 +5,12 @@
 /// @brief メニュー/ツールバーアクションのシグナル/スロット接続ファサードの定義
 
 #include <QObject>
-#include <functional>
 #include <utility>
 
 namespace Ui { class MainWindow; }
 class DialogLaunchWiring;
+class MainWindowActions;
+class QWidget;
 class DialogCoordinatorWiring;
 class GameSessionOrchestrator;
 class KifuFileController;
@@ -23,7 +24,7 @@ class EditActionsWiring;
 class ViewActionsWiring;
 
 /**
- * @brief メニューやツールバーのQActionをMainWindowスロットに接続するファサード
+ * @brief メニューやツールバーのQActionを担当の部品へ接続するファサード
  *
  * UIアクション（ファイル操作、対局、盤操作、解析など）の
  * シグナル/スロット接続をドメイン別サブクラスへ委譲する。
@@ -34,7 +35,8 @@ public:
     /// 依存オブジェクト
     struct Deps {
         Ui::MainWindow* ui = nullptr;       ///< UIオブジェクト
-        QObject*        ctx = nullptr;       ///< 受け側オブジェクト（MainWindow*）
+        QWidget*        window = nullptr;    ///< ダイアログの親
+        MainWindowActions* actions = nullptr; ///< 利用者操作の振り分け先
         DialogLaunchWiring* dlw = nullptr;   ///< ダイアログ起動配線
         DialogCoordinatorWiring* dcw = nullptr; ///< DialogCoordinator配線（解析中止用）
         KifuFileController* kfc = nullptr;      ///< 棋譜ファイル操作コントローラ
@@ -42,7 +44,7 @@ public:
         MainWindowAppearanceController* appearance = nullptr; ///< UI外観コントローラ
         ShogiView* shogiView = nullptr;         ///< 将棋盤ビュー
         EvaluationChartWidget* evalChart = nullptr; ///< 評価値グラフウィジェット
-        std::function<KifuExportController*()> getKifuExportController; ///< 棋譜エクスポートコントローラ取得
+        KifuExportController* kec = nullptr;    ///< 棋譜エクスポートコントローラ
     };
 
     explicit UiActionsWiring(Deps d, QObject* parent=nullptr)

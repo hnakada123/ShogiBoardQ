@@ -7,15 +7,15 @@
 #include "editactionswiring.h"
 #include "viewactionswiring.h"
 #include "kifuexportcontroller.h"
-#include "mainwindow.h"
+#include "mainwindowactions.h"
 #include "logcategories.h"
 
 void UiActionsWiring::wire()
 {
-    auto* mw = qobject_cast<MainWindow*>(m_d.ctx);
-    if (Q_UNLIKELY(!m_d.ui) || Q_UNLIKELY(!mw)) {
-        qCWarning(lcUi, "UiActionsWiring::wire(): required dependency is null (ui=%p, mw=%p)",
-                  static_cast<void*>(m_d.ui), static_cast<void*>(mw));
+    auto* actions = m_d.actions;
+    if (Q_UNLIKELY(!m_d.ui) || Q_UNLIKELY(!actions)) {
+        qCWarning(lcUi, "UiActionsWiring::wire(): required dependency is null (ui=%p, actions=%p)",
+                  static_cast<void*>(m_d.ui), static_cast<void*>(actions));
         return;
     }
 
@@ -28,11 +28,10 @@ void UiActionsWiring::wire()
     }
 
     if (!m_fileWiring) {
-        m_fileWiring = new FileActionsWiring({m_d.ui, mw, m_d.dlw, m_d.kfc, m_d.gso}, this);
-        m_gameWiring = new GameActionsWiring({m_d.ui, mw, m_d.dlw, m_d.dcw, m_d.gso}, this);
-        KifuExportController* kec = m_d.getKifuExportController ? m_d.getKifuExportController() : nullptr;
-        m_editWiring = new EditActionsWiring({m_d.ui, kec, m_d.dlw, m_d.kfc}, this);
-        m_viewWiring = new ViewActionsWiring({m_d.ui, mw, m_d.dlw, m_d.gso, m_d.appearance, m_d.shogiView, m_d.evalChart}, this);
+        m_fileWiring = new FileActionsWiring({m_d.ui, actions, m_d.dlw, m_d.kfc, m_d.gso}, this);
+        m_gameWiring = new GameActionsWiring({m_d.ui, actions, m_d.dlw, m_d.dcw, m_d.gso}, this);
+        m_editWiring = new EditActionsWiring({m_d.ui, m_d.kec, m_d.dlw, m_d.kfc}, this);
+        m_viewWiring = new ViewActionsWiring({m_d.ui, m_d.window, actions, m_d.dlw, m_d.gso, m_d.appearance, m_d.shogiView, m_d.evalChart}, this);
     }
 
     m_fileWiring->wire();

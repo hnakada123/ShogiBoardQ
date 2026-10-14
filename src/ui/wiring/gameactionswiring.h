@@ -7,13 +7,14 @@
 #include <QObject>
 
 namespace Ui { class MainWindow; }
+class MainWindowActions;
+class QWidget;
 class GameSessionOrchestrator;
-class MainWindow;
 class DialogLaunchWiring;
 class DialogCoordinatorWiring;
 
 /**
- * @brief 対局・解析・検討・詰み関連のQActionをMainWindowスロットに接続するクラス
+ * @brief 対局・解析・検討・詰み関連のQActionを担当の部品へ接続するクラス
  *
  * NewGame, StartGame, CSA, Resign, BreakOff,
  * EngineSettings, PieceSoundSettings, Analyze, Tsume 等の接続を担当する。
@@ -23,7 +24,7 @@ class GameActionsWiring : public QObject {
 public:
     struct Deps {
         Ui::MainWindow* ui = nullptr;
-        MainWindow* mw = nullptr;
+        MainWindowActions* actions = nullptr;    ///< 利用者操作の振り分け先
         DialogLaunchWiring* dlw = nullptr;
         DialogCoordinatorWiring* dcw = nullptr; ///< 解析中止スロット接続先
         GameSessionOrchestrator* gso = nullptr; ///< 対局ライフサイクルオーケストレータ

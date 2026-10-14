@@ -127,6 +127,26 @@ KifDisplayItem createMoveDisplayItem(int ply, const QString& prettyMove,
 void finalizeDisplayItems(QString& commentBuf, QList<KifDisplayItem>& items,
                           const QString& openingCommentBuf, const QString& openingBookmarkBuf);
 
+// 持駒の枚数からSFENの持駒欄を作る（飛角金銀桂香歩の順。先手は大文字、後手は小文字。なければ "-"）
+QString buildHandsSfen(const QMap<Piece, int>& black, const QMap<Piece, int>& white);
+
+// KIF/KI2共通：変化の開始局面と、その局面に至る直前の指し手（「同」の解決用、USI形式）
+struct VariationBase {
+    QString sfen;
+    QString prevUsi;
+};
+
+// KIF/KI2共通：「変化：N手」の開始局面を、それまでに読んだ手順から求める。
+// 後から書かれた変化ほど優先し、N手目より前から始まり N-1 手目まで続く変化があればその局面を使う。
+// なければ本譜の局面を使う。どれも N-1 手目まで届かなければ std::nullopt
+[[nodiscard]] std::optional<VariationBase> findVariationBase(const KifLine& mainline,
+                                                             const QList<KifVariation>& variations,
+                                                             int startPly);
+
+// KIF/KI2共通：手順の先頭にある開始局面の項目を取り除き、そのコメント・しおりを最初の指し手へ移す
+// （変化の手順は最初の指し手から始まる）
+void mergeOpeningIntoFirstMove(KifLine& line);
+
 } // namespace KifuParseCommon
 
 // USI/USEN指し手フォーマット関数は parsemoveformat.h に移動

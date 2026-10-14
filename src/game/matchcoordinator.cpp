@@ -36,23 +36,27 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
         qCWarning(lcGame) << "Deps.sfenRecord is null. Using internal sfen history buffer.";
     }
 
-    // エンジンマネージャの初期化
-    ensureEngineManager();
+    // 部品は依存の少ないものから順に、ここで全部作る（作り直さない）
+    createEngineManager();
     m_engineManager->updateUsiPtrs(d.usi1, d.usi2);
     m_engineManager->setModelPtrs(d.comm1, d.think1, d.comm2, d.think2);
 
-    // 時計マネージャの初期化
-    ensureTimekeeper();
+    createTimekeeper();
     m_timekeeper->setClock(d.clock);
+
+    createUndoHandler();
+    createMatchTurnHandler();
+    createAnalysisSession();
+    createGameEndHandler();
+    createGameStartOrchestrator();
 }
 
 MatchCoordinator::~MatchCoordinator() = default;
 
-// --- ハンドラ遅延生成 ---
+// --- 部品の生成（コンストラクタから1回だけ呼ぶ） ---
 
-void MatchCoordinator::ensureEngineManager()
+void MatchCoordinator::createEngineManager()
 {
-    if (m_engineManager) return;
     m_engineManager = new EngineLifecycleManager(this);
 
     m_engineManager->setRefs(buildEngineLifecycleRefs());
@@ -78,9 +82,8 @@ EngineLifecycleManager::Hooks MatchCoordinator::buildEngineLifecycleHooks()
     return hooks;
 }
 
-void MatchCoordinator::ensureTimekeeper()
+void MatchCoordinator::createTimekeeper()
 {
-    if (m_timekeeper) return;
     m_timekeeper = new MatchTimekeeper(this);
 
     MatchTimekeeper::Refs refs;
@@ -91,16 +94,14 @@ void MatchCoordinator::ensureTimekeeper()
             this,         &MatchCoordinator::timeUpdated);
 }
 
-void MatchCoordinator::ensureMatchTurnHandler()
+void MatchCoordinator::createMatchTurnHandler()
 {
-    if (m_turnHandler) return;
     m_turnHandler = std::make_unique<MatchTurnHandler>(*this);
     configureMatchTurnHandler();
 }
 
-void MatchCoordinator::ensureAnalysisSession()
+void MatchCoordinator::createAnalysisSession()
 {
-    if (m_analysisSession) return;
     m_analysisSession = std::make_unique<AnalysisSessionHandler>(this);
     connectAnalysisSessionSignals();
     configureAnalysisSession();
@@ -110,7 +111,6 @@ void MatchCoordinator::configureMatchTurnHandler()
 {
     MatchTurnHandler::Refs refs;
     refs.gc = m_gc;
-    refs.currentTurn = &m_cur;
     refs.playMode = &m_playMode;
     refs.positionStr1 = &m_positionStr1;
     refs.positionPonder1 = &m_positionPonder1;
@@ -135,7 +135,6 @@ void MatchCoordinator::configureMatchTurnHandler()
     hooks.emitBoardFlipped = [this](bool f) { emit boardFlipped(f); };
     hooks.handleBreakOff = [this]() { handleBreakOff(); };
     hooks.handleEngineError = [this](const QString& msg) -> bool {
-        ensureAnalysisSession();
         return m_analysisSession->handleEngineError(msg);
     };
     hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
@@ -158,12 +157,11 @@ void MatchCoordinator::configureAnalysisSession()
     hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
     hooks.destroyEnginesKeepModels = [this]() { destroyEngines(false); };
     hooks.isShutdownInProgress = [this]() -> bool {
-        return m_engineManager && m_engineManager->isShutdownInProgress();
+        return m_engineManager->isShutdownInProgress();
     };
     hooks.setPlayMode = [this](PlayMode mode) { setPlayMode(mode); };
     hooks.destroyEnginesAll = [this]() { destroyEngines(); };
     hooks.createAnalysisEngine = [this](const AnalysisOptions& opt) -> Usi* {
-        ensureEngineManager();
         auto [comm, think] = m_engineManager->ensureEngineModels(1);
         comm->setEngineName(opt.engineName);
         Usi* usi = new Usi(comm, think, m_gc, this);
@@ -186,15 +184,13 @@ void MatchCoordinator::configureAnalysisSession()
         if (m_hooks.ui.setEngineNames) m_hooks.ui.setEngineNames(n1, n2);
     };
     hooks.setShutdownInProgress = [this](bool val) {
-        ensureEngineManager();
         m_engineManager->setShutdownInProgress(val);
     };
     m_analysisSession->setHooks(hooks);
 }
 
-void MatchCoordinator::ensureGameEndHandler()
+void MatchCoordinator::createGameEndHandler()
 {
-    if (m_gameEndHandler) return;
     m_gameEndHandler = new GameEndHandler(this);
 
     // シグナル転送（GameEndHandler → MatchCoordinator）
@@ -210,13 +206,12 @@ void MatchCoordinator::ensureGameEndHandler()
     // Refs 設定
     GameEndHandler::Refs refs;
     refs.gc        = m_gc;
-    refs.clock     = m_timekeeper ? m_timekeeper->clock() : nullptr;
-    refs.usi1Provider = [this]() -> Usi* { return m_engineManager ? m_engineManager->usi1() : nullptr; };
-    refs.usi2Provider = [this]() -> Usi* { return m_engineManager ? m_engineManager->usi2() : nullptr; };
+    refs.clock     = m_timekeeper->clock();
+    refs.usi1Provider = [this]() -> Usi* { return m_engineManager->usi1(); };
+    refs.usi2Provider = [this]() -> Usi* { return m_engineManager->usi2(); };
     refs.playMode  = &m_playMode;
     refs.gameOver  = &m_gameOver;
     refs.strategyProvider = [this]() -> GameModeStrategy* {
-        ensureMatchTurnHandler();
         return m_turnHandler->strategy();
     };
     refs.sfenHistory = m_sfenHistory;
@@ -238,16 +233,14 @@ void MatchCoordinator::ensureGameEndHandler()
     m_gameEndHandler->setHooks(hooks);
 }
 
-void MatchCoordinator::ensureGameStartOrchestrator()
+void MatchCoordinator::createGameStartOrchestrator()
 {
-    if (m_gameStartOrchestrator) return;
     m_gameStartOrchestrator = std::make_unique<GameStartOrchestrator>();
 
     GameStartOrchestrator::Refs refs;
     refs.gc                 = m_gc;
     refs.playMode           = &m_playMode;
     refs.maxMoves           = &m_maxMoves;
-    refs.currentTurn        = &m_cur;
     refs.currentMoveIndex   = &m_currentMoveIndex;
     refs.autoSaveKifu       = &m_autoSaveKifu;
     refs.kifuSaveDir        = &m_kifuSaveDir;
@@ -264,15 +257,12 @@ void MatchCoordinator::ensureGameStartOrchestrator()
     hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
     hooks.clearGameOverState = [this]() { clearGameOverState(); };
     hooks.updateTurnDisplay  = [this](Turn p) {
-        ensureMatchTurnHandler();
         m_turnHandler->updateTurnDisplay(p);
     };
     hooks.initializePositionStringsForStart = [this](const QString& s) {
-        ensureMatchTurnHandler();
         m_turnHandler->initPositionStringsFromSfen(s);
     };
     hooks.createAndStartModeStrategy = [this](const StartOptions& opt) {
-        ensureMatchTurnHandler();
         m_turnHandler->createAndStartModeStrategy(opt);
     };
     hooks.flipBoard = [this]() { flipBoard(); };
@@ -280,9 +270,8 @@ void MatchCoordinator::ensureGameStartOrchestrator()
     m_gameStartOrchestrator->setHooks(hooks);
 }
 
-void MatchCoordinator::ensureUndoHandler()
+void MatchCoordinator::createUndoHandler()
 {
-    if (m_undoHandler) return;
     m_undoHandler = std::make_unique<MatchUndoHandler>();
 
     MatchUndoHandler::Refs refs;
@@ -307,35 +296,29 @@ void MatchCoordinator::ensureUndoHandler()
 
 MatchCoordinator::StrategyContext& MatchCoordinator::strategyCtx()
 {
-    ensureMatchTurnHandler();
     return m_turnHandler->strategyCtx();
 }
 
 // --- 投了・終局処理 ---
 
 void MatchCoordinator::handleResign() {
-    ensureGameEndHandler();
     m_gameEndHandler->handleResign();
 }
 
 void MatchCoordinator::handleEngineResign(Turn side) {
-    ensureGameEndHandler();
     m_gameEndHandler->handleEngineResign(side);
 }
 
 void MatchCoordinator::handleEngineWin(Turn side) {
-    ensureGameEndHandler();
     m_gameEndHandler->handleEngineWin(side);
 }
 
 void MatchCoordinator::handleEngineIllegalMove(Turn side) {
-    ensureGameEndHandler();
     m_gameEndHandler->handleEngineIllegalMove(side);
 }
 
 void MatchCoordinator::handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw)
 {
-    ensureGameEndHandler();
     m_gameEndHandler->handleNyugyokuDeclaration(declarer, success, isDraw);
 }
 
@@ -345,41 +328,34 @@ void MatchCoordinator::handleBreakOff()
     captureInterruptedGame();
     // 時計の精算時に時間切れが確定した場合、中断に上書きしない。
     if (m_gameOver.isOver) return;
-    ensureEngineManager();
     m_engineManager->disconnectArbiterSignals();
 
-    ensureGameEndHandler();
     m_gameEndHandler->handleBreakOff();
     if (m_interruptedGame) emit gameInterrupted();
 }
 
 void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Turn loser)
 {
-    ensureGameEndHandler();
     m_gameEndHandler->appendGameOverLineAndMark(cause, loser);
 }
 
 void MatchCoordinator::handleMaxMovesJishogi()
 {
-    ensureGameEndHandler();
     m_gameEndHandler->handleMaxMovesJishogi();
 }
 
 void MatchCoordinator::clearGameOverState()
 {
-    ensureGameEndHandler();
     m_gameEndHandler->clearGameOverState();
 }
 
 void MatchCoordinator::setGameOver(const GameEndInfo& info, bool appendMoveOnce)
 {
-    ensureGameEndHandler();
     m_gameEndHandler->setGameOver(info, appendMoveOnce);
 }
 
 void MatchCoordinator::markGameOverMoveAppended()
 {
-    ensureGameEndHandler();
     m_gameEndHandler->markGameOverMoveAppended();
 }
 
@@ -390,7 +366,6 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     discardInterruptedGame();
     m_lastStartOptions = opt;
     alignGameMovesWithSfenHistory();
-    ensureGameStartOrchestrator();
     m_gameStartOrchestrator->configureAndStart(opt);
 }
 
@@ -416,87 +391,63 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
 
 void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, Turn bottomSide)
 {
-    ensureGameStartOrchestrator();
     m_gameStartOrchestrator->ensureHumanAtBottomIfApplicable(dlg, bottomSide);
-}
-
-void MatchCoordinator::prepareAndStartGame(PlayMode mode,
-                                           const QString& startSfenStr,
-                                           const QStringList* sfenRecord,
-                                           const StartGameDialogData* dlg,
-                                           Turn bottomSide)
-{
-    ensureGameStartOrchestrator();
-    m_gameStartOrchestrator->prepareAndStartGame(mode, startSfenStr, sfenRecord, dlg, bottomSide);
 }
 
 // --- ターン進行（MatchTurnHandler へ委譲） ---
 
 void MatchCoordinator::flipBoard() {
-    ensureMatchTurnHandler();
     m_turnHandler->flipBoard();
 }
 
 void MatchCoordinator::onHumanMove(const QPoint& from, const QPoint& to,
                                    const QString& prettyMove)
 {
-    ensureMatchTurnHandler();
     m_turnHandler->onHumanMove(from, to, prettyMove);
 }
 
 void MatchCoordinator::forceImmediateMove() {
-    ensureMatchTurnHandler();
     m_turnHandler->forceImmediateMove();
 }
 
 void MatchCoordinator::startInitialEngineMoveIfNeeded() {
-    ensureMatchTurnHandler();
     m_turnHandler->startInitialEngineMoveIfNeeded();
 }
 
 void MatchCoordinator::armTurnTimerIfNeeded() {
-    ensureMatchTurnHandler();
     m_turnHandler->armTurnTimerIfNeeded();
 }
 
 void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Turn mover) {
-    ensureMatchTurnHandler();
     m_turnHandler->finishTurnTimerAndSetConsiderationFor(mover);
 }
 
 void MatchCoordinator::disarmHumanTimerIfNeeded() {
-    ensureMatchTurnHandler();
     m_turnHandler->disarmHumanTimerIfNeeded();
 }
 
 void MatchCoordinator::handlePlayerTimeOut(Turn player) {
     if (m_gameOver.isOver) return;
-    ensureMatchTurnHandler();
     m_turnHandler->handlePlayerTimeOut(player);
-    ensureGameEndHandler();
     m_gameEndHandler->handleTimeout(player);
 }
 
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {
-    ensureMatchTurnHandler();
     m_turnHandler->startMatchTimingAndMaybeInitialGo();
 }
 
 void MatchCoordinator::onUsiError(const QString& msg) {
-    ensureMatchTurnHandler();
     m_turnHandler->handleUsiError(msg);
 }
 
 // --- UNDO ---
 
 void MatchCoordinator::setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks) {
-    ensureUndoHandler();
     m_undoHandler->setUndoBindings(refs, hooks);
 }
 
 bool MatchCoordinator::undoTwoPlies()
 {
-    ensureUndoHandler();
     if (!m_undoHandler->undoTwoPlies()) {
         return false;
     }

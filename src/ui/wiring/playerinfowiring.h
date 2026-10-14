@@ -9,7 +9,6 @@
 #include <QString>
 #include <QList>
 #include <QDateTime>
-#include <functional>
 
 #include "playmode.h"
 #include "kifparsetypes.h"
@@ -21,6 +20,8 @@ class PlayerInfoController;
 class ShogiView;
 class EngineAnalysisTab;
 class TimeControlController;
+class GameRecordModel;
+class LiveGameSession;
 
 /**
  * @brief 対局情報・プレイヤー情報関連のUI配線を担当するクラス
@@ -52,13 +53,11 @@ public:
         QString* engineName1 = nullptr;
         QString* engineName2 = nullptr;
         QString* startSfenStr = nullptr;
-        /// 時間設定（起動の途中で作られるので、使うときに取得する）
-        std::function<TimeControlController*()> getTimeController;
-        std::function<void()> markGameRecordDirty;
-        /// 読み込んだ棋譜の途中局面から対局を続けているか（棋譜の対局情報を残す判定）
-        std::function<bool()> continuesExistingRecord;
-        /// 続けた対局の対局者・日時を、分岐の最初の手のコメントとして残す
-        std::function<void(const QString&)> setContinuationNote;
+        TimeControlController* timeController = nullptr;  ///< 持ち時間と開始日時（非所有）
+        GameRecordModel* gameRecord = nullptr;            ///< 対局情報を編集したら未保存にする（非所有）
+        /// 読み込んだ棋譜の途中局面から対局を続けているかの判定と、続けた対局の対局者・日時を
+        /// 分岐の最初の手のコメントとして残す先（非所有）
+        LiveGameSession* liveGameSession = nullptr;
     };
 
     /**
@@ -266,7 +265,6 @@ signals:
 private:
     void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
     void applyBoardNames(const QList<KifGameInfoItem>& items);
-    std::function<void()> m_markGameRecordDirty;
     /**
      * @brief PlayerInfoControllerを確保する
      */
@@ -287,9 +285,9 @@ private:
     QString* m_engineName1 = nullptr;
     QString* m_engineName2 = nullptr;
     QString* m_startSfenStr = nullptr;
-    std::function<TimeControlController*()> m_getTimeController;
-    std::function<bool()> m_continuesExistingRecord;
-    std::function<void(const QString&)> m_setContinuationNote;
+    TimeControlController* m_timeController = nullptr;
+    GameRecordModel* m_gameRecord = nullptr;
+    LiveGameSession* m_liveGameSession = nullptr;
 
     /// 棋譜の途中から続けた対局では、終局時にも棋譜の対局情報（終了日時など）を書き換えない
     bool m_keepRecordHeader = false;

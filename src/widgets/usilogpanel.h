@@ -6,7 +6,8 @@
 
 #include <QObject>
 #include <QColor>
-#include <memory>
+
+#include "fontsizehelper.h"
 
 class QWidget;
 class QAction;
@@ -18,7 +19,6 @@ class QLineEdit;
 class QComboBox;
 class ElideLabel;
 
-class LogViewFontManager;
 class UsiCommLogModel;
 
 /**
@@ -73,7 +73,7 @@ private slots:
 private:
     void buildToolbar();
     void buildCommandBar();
-    void initFontManager();
+    void applyFontSize();
 
     QWidget* m_container = nullptr;
     QToolBar* m_toolbar = nullptr;
@@ -86,8 +86,7 @@ private:
     QAction* m_clearAction = nullptr;
     QToolButton* m_btnFontIncrease = nullptr;
     QToolButton* m_btnFontDecrease = nullptr;
-    int m_fontSize = 10;
-    std::unique_ptr<LogViewFontManager> m_fontManager;
+    FontSizeHelper m_fontSize;   ///< ログ・コマンド入力の文字の大きさ（変更のたびに保存する）
 
     QWidget* m_commandBar = nullptr;
     QComboBox* m_targetCombo = nullptr;

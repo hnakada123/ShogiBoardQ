@@ -140,7 +140,7 @@ private:
     void startLiveGameSession();
 
     /// 分岐ツリーのルートノードを作成する（セッションは開始しない）
-    void ensureBranchTreeRoot();
+    void prepareBranchTreeRoot();
 
     // --- メンバー変数 ---
 

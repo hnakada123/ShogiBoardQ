@@ -4,40 +4,11 @@
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
-#include "globaltooltip.h"
 #include "pieceimageprovider.h"
 
 #include <QMouseEvent>
 #include <QWheelEvent>
-#include <QHelpEvent>
 #include <QCursor>
-
-// ─────────────────────────────────────────────────────────────────────────────
-// イベントフィルタ
-// ─────────────────────────────────────────────────────────────────────────────
-
-bool ShogiView::eventFilter(QObject* obj, QEvent* ev)
-{
-    if (!m_tooltip) {
-        m_tooltip = new GlobalToolTip(this);
-        m_tooltip->setCompact(true);
-        m_tooltip->setPointSizeF(12.0);
-    }
-
-    if (obj == m_blackNameLabel || obj == m_whiteNameLabel) {
-        if (ev->type() == QEvent::ToolTip) {
-            auto* he = static_cast<QHelpEvent*>(ev);
-            const QString text = (obj == m_blackNameLabel) ? m_blackNameBase : m_whiteNameBase;
-            m_tooltip->showText(he->globalPos(), text);
-            return true;
-        }
-        else if (ev->type() == QEvent::Leave) {
-            m_tooltip->hideTip();
-        }
-    }
-
-    return QWidget::eventFilter(obj, ev);
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 入力座標変換
@@ -100,8 +71,8 @@ void ShogiView::mouseMoveEvent(QMouseEvent* event)
 void ShogiView::resizeEvent(QResizeEvent* e)
 {
     QWidget::resizeEvent(e);
-    // 名前・時計・手番の札は共通のカードの配置で1回に置き直す
-    relayoutTurnLabels();
+    // 盤に重ねた対局者カードの層を同じ大きさにして置き直す
+    relayoutChrome();
 }
 
 void ShogiView::fitBoardToWidget()

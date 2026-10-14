@@ -12,7 +12,7 @@ Q1: QObject 派生クラスか？
 ├─ Yes → Q2: 親オブジェクトが明確か？
 │   ├─ Yes → parent ownership (new T(parent))
 │   └─ No → Q3: 他の QObject の子として管理可能か？
-│       ├─ Yes → 親を設定する（ensure* で parent 引数を渡す）
+│       ├─ Yes → 親を設定する（`MainWindowComposer` で parent 引数を渡す）
 │       └─ No → unique_ptr + deleteLater or explicit delete
 └─ No → Q4: ライフサイクルが所有者と一致するか？
     ├─ Yes → unique_ptr<T>
@@ -32,24 +32,20 @@ Q1: QObject 派生クラスか？
 
 - コンストラクタで `parent` を指定し、親の破棄に連動させる
 - `new MyWidget(this)` — `this` が親となり、`this` の破棄時に自動 delete
-- Registry の `ensure*()` / `create*()` で生成する QObject には、親（通常は `&m_mw`）を必ず渡す
+- 合成ルート（`MainWindowComposer`、[composition-root.md](composition-root.md)）が生成する QObject には、親（通常は MainWindow。コード上は `&m_window`）を必ず渡す
 
 **parent を設定する基準:**
 - `QWidget` 派生 → 必ず親ウィジェットを指定（レイアウト管理のため）
-- `QObject` 派生で MainWindow 寿命と同一 → `&m_mw` または `this` を親に
-- Registry/Bootstrapper が生成するオブジェクト → `&m_mw` を親に指定
+- `QObject` 派生で MainWindow 寿命と同一 → MainWindow（`&m_window`）または `this` を親に
+- `MainWindowComposer` が生成するオブジェクト → MainWindow（`&m_window`）を親に指定
 
 ```cpp
 // Good — parent ownership
 auto* controller = new GameStateController(parent);
 
-// Good — Registry の ensure* での生成（mainwindowuiregistry.cpp、&m_mw を親に指定）
-if (!m_mw.m_registryParts.dialogCoordinatorWiring) {
-    m_mw.m_registryParts.dialogCoordinatorWiring = new DialogCoordinatorWiring(&m_mw);
-}
-
-// Good — Registry での生成（gamesubregistry.cpp、&m_mw を親に指定）
-m_mw.m_timeController = new TimeControlController(&m_mw);
+// Good — 合成ルートでの生成（mainwindowcomposer_create.cpp、MainWindow を親に指定）
+m_c.dialogCoordinatorWiring = new DialogCoordinatorWiring(&m_window);
+m_c.timeController = new TimeControlController(&m_window);
 ```
 
 ### 2. 非QObject クラス — `std::unique_ptr`
@@ -91,11 +87,9 @@ struct Deps {
 QObject 派生クラスで、`new` の直後に parent が設定される場合のみ裸の `new` を許容する:
 
 ```cpp
-// OK — parent 即時設定
-m_mw.m_boardSync = new BoardSyncPresenter(d, &m_mw);
-
-// OK — ensure* パターンで親を指定
-m_mw.m_gameStateController = new GameStateController(&m_mw);
+// OK — parent 即時設定（mainwindowcomposer_create.cpp）
+m_c.boardSync = new BoardSyncPresenter(bs, &m_window);
+m_c.gameStateController = new GameStateController(&m_window);
 
 // NG — parent なしで裸の new
 auto* obj = new SomeQObject();  // 誰が破棄するのか不明
@@ -103,19 +97,20 @@ auto* obj = new SomeQObject();  // 誰が破棄するのか不明
 
 ### 5. Wiring クラスの生成ルール
 
-Wiring クラス（`*Wiring`）の生成（`new` / `std::make_unique`）は、レジストリ（`MainWindowServiceRegistry` とその分割ファイル、`MainWindowFoundationRegistry`、`KifuSubRegistry`）の `ensure*` / `create*` メソッドで行う。`SignalRouter` やその他のクラスで直接 `new` してはならない。
+Wiring クラス（`*Wiring`）の生成（`new` / `std::make_unique`）は、合成ルート `MainWindowComposer`（`src/app/mainwindowcomposer_*.cpp`）で起動時に1回だけ行い、`MainWindowComponents` のメンバに置く。ほかのクラスで直接 `new` してはならない。
 
-例外として、`UiActionsWiring` は `MainWindowSignalRouter::connectAllActions()` が生成し、`setActionsWiring` コールバックで MainWindow 側に渡す。アクション別の Wiring（`FileActionsWiring` など）は `UiActionsWiring` が子として生成する。
+`UiActionsWiring` は `MainWindowComposer::connectSignals()`（`mainwindowcomposer_finalize.cpp`）が生成する。アクション別の Wiring（`FileActionsWiring` など）は `UiActionsWiring` が子として生成する。
 
 ```cpp
-// Good — Registry の create* で生成（gamesubregistry_wiring.cpp）
-void MainWindowServiceRegistry::createMatchCoordinatorWiring()
+// Good — 合成ルートで生成（mainwindowcomposer_create.cpp）
+void MainWindowComposer::createServices()
 {
-    m_mw.m_matchWiring = std::make_unique<MatchCoordinatorWiring>();
+    // ...
+    m_c.matchWiring = std::make_unique<MatchCoordinatorWiring>();
     // ...
 }
 
-// NG — SignalRouter 等で直接 new
+// NG — 部品の中で別の部品を直接 new
 *m_deps.dialogCoordinatorWiringPtr = new DialogCoordinatorWiring(m_deps.mainWindow);
 ```
 
@@ -138,15 +133,15 @@ void MainWindowServiceRegistry::createMatchCoordinatorWiring()
 | オブジェクト | 生成タイミング | 所有者 |
 |-------------|---------------|--------|
 | `MatchCoordinator` | 起動時に1回（最初の `MatchCoordinatorWiring::initializeSession()`） | `MatchCoordinatorWiring` (`std::unique_ptr`) |
-| `GameStartCoordinator` | 最初に使うときに1回（`MatchCoordinatorWiring::ensureMenuGameStartCoordinator()`） | `MatchCoordinatorWiring` (QObject parent) |
-| `KifuLoadCoordinator` | 最初の棋譜読込で1回（`KifuSubRegistry::ensureKifuLoadCoordinator()`） | MainWindow (QObject parent) |
+| `GameStartCoordinator` | 起動時に1回（`MatchCoordinatorWiring::createMenuGameStartCoordinator()`、`MainWindowComposer::wireMatchCoordinator()` から） | `MatchCoordinatorWiring` (QObject parent) |
+| `KifuLoadCoordinator` | 起動時に1回（`KifuLoadCoordinatorFactory::createAndWire()`、`MainWindowComposer::wireKifu()` から） | MainWindow (QObject parent) |
 
 **寿命コメントの記法:**
 
 ```cpp
-// Lifetime: owned by MainWindow (QObject parent=&m_mw)
-// Created: once on first use, never recreated
-m_mw.m_timeController = new TimeControlController(&m_mw);
+// Lifetime: owned by MainWindow (QObject parent=&m_window)
+// Created: once at startup by MainWindowComposer, never recreated
+m_c.timeController = new TimeControlController(&m_window);
 
 // Lifetime: owned by MatchCoordinatorWiring (unique_ptr)
 // Created: once (first initializeSession), never recreated
@@ -161,21 +156,21 @@ m_match = std::make_unique<MatchCoordinator>(deps, nullptr);
 
 | テンプレート | 意味 | 例 |
 |-------------|------|-----|
-| `Created once in <method>` | 1回生成、以後再生成なし | `ensureX()` で1回だけ生成 |
+| `Created once in <method>` | 1回生成、以後再生成なし | `MainWindowComposer::createServices()` で1回だけ生成 |
 | `Recreated per <event>` | 特定イベントで破棄・再生成 | 対局開始ごと（エンジン） |
 | `Destroyed by <owner>` | 明示的な破棄元がある | `unique_ptr` 破棄、`deleteLater` |
 
 **ヘッダーでの記述例:**
 
 ```cpp
-// Lifecycle: Created once in ensureX(), destroyed with parent
+// Lifecycle: Created once in MainWindowComposer::createServices(), destroyed with parent
 QPointer<BoardSyncPresenter> m_boardSync;
 
 // Lifecycle: created once at startup by MatchCoordinatorWiring (owned there), never recreated
 MatchCoordinator* m_match = nullptr;
 
 // Lifecycle: Created once, destroyed in ~MainWindow via unique_ptr
-std::unique_ptr<MainWindowLifecyclePipeline> m_pipeline;
+std::unique_ptr<MainWindowComposer> m_composer;
 ```
 
 **適用範囲:**
@@ -220,16 +215,16 @@ ref = nullptr;  // 破棄を予約した直後にクリア
 1. **Deps/Refs 構造体のメンバ**: 構造体自体が短寿命（関数スコープ）のため不要
 2. **unique_ptr が管理するオブジェクト**: 所有権が明確で、破棄タイミングも制御下
 3. **寿命が参照元と同一の場合**: 同じ親の子オブジェクト間の参照等
-4. **一度だけ作られ、終了まで変わらない参照先**: `MainWindow::m_match` / `m_gameStart` は
+4. **一度だけ作られ、終了まで変わらない参照先**: `MainWindowComponents::match` / `gameStart` は
    `MatchCoordinatorWiring` が一度だけ作り、作り直さないので生ポインタで持つ（使う前に nullptr を確認する）。
    受け取る側のコントローラでは QPointer を使用する（「消費側クラスでの QPointer 適用」）
 
 ### 使用例
 
 ```cpp
-// MainWindow — 一度だけ作られる司令塔への参照（所有は MatchCoordinatorWiring）
-MatchCoordinator* m_match = nullptr;
-QPointer<KifuLoadCoordinator> m_kifuLoadCoordinator;  // 親は MainWindow。最初の読み込みで作る
+// MainWindowComponents — 一度だけ作られる司令塔への参照（所有は MatchCoordinatorWiring）
+MatchCoordinator* match = nullptr;
+KifuLoadCoordinator* kifuLoadCoordinator = nullptr;  // 親は MainWindow。起動時に作る
 
 // コントローラ — 所有者が別にいる QObject への非所有参照
 QPointer<MatchCoordinator> m_match;  // GameStateController など
@@ -307,17 +302,19 @@ m_process = nullptr;
 
 ## 所有権カテゴリ一覧
 
-### MainWindow の直接メンバ
+### MainWindow と MainWindowComponents のメンバ
+
+MainWindow 自身が持つのは `ui` と `m_composer`（`MainWindowComposer`）だけである。部品は `MainWindowComposer` が持つ `MainWindowComponents`（`src/app/mainwindowcomponents.h`）に置く。
 
 | カテゴリ | 所有方法 | 例 |
 |---------|---------|-----|
-| UI フレームワーク | `std::unique_ptr` | `ui` (Ui::MainWindow) |
-| インフラ層 | `std::unique_ptr` | `m_registry`, `m_signalRouter`, `m_pipeline` |
-| 非QObject サービス | `std::unique_ptr` | `m_evalGraphController`, `m_playModePolicy` |
-| QObject コントローラ | QObject parent (`&m_mw`) | `m_timeController`, `m_replayController` |
-| 他のオブジェクトが所有する QObject（一度だけ作る） | 生ポインタ + nullptr ガード | `m_match`, `m_gameStart`（所有は `MatchCoordinatorWiring`） |
-| QObject parent (`&m_mw`) で持ち `QPointer` で参照 | `QPointer<T>` | `m_kifuLoadCoordinator`, `m_posEdit`, `m_boardSync`, `m_commentCoordinator` |
-| UI ウィジェット | QObject parent (レイアウト経由) | `m_shogiView`, `m_evalChart` |
+| UI フレームワーク | `std::unique_ptr`（MainWindow） | `ui` (Ui::MainWindow) |
+| 合成ルート | `std::unique_ptr`（MainWindow） | `m_composer` |
+| 非QObject サービス | `std::unique_ptr`（MainWindowComponents） | `evalGraphController`, `playModePolicy`, `turnStateSync` |
+| QObject コントローラ | QObject parent（MainWindow）+ 生ポインタ | `timeController`, `replayController`, `boardSync`, `commentCoordinator` |
+| 他のオブジェクトが所有する QObject（一度だけ作る） | 生ポインタ | `match`, `gameStart`（所有は `MatchCoordinatorWiring`） |
+| ほかの部品が作る QObject | `QPointer<T>` | `boardController`（`BoardSetupController` が作る） |
+| UI ウィジェット | QObject parent (レイアウト経由) | `shogiView`, `evalChart` |
 
 ## 消費側クラスでの QPointer 適用
 
@@ -325,7 +322,7 @@ m_process = nullptr;
 保持するコントローラ/ハンドラクラスでは、メンバ変数に `QPointer<T>` を使用する。
 
 どちらも現在は一度だけ作り、作り直さない。それでも所有者は `MatchCoordinatorWiring` なので、
-セッターで受け取る消費側クラスは `QPointer` で破棄に備える。MainWindow 側は生ポインタで持つ。
+セッターで受け取る消費側クラスは `QPointer` で破棄に備える。`MainWindowComponents` 側は生ポインタで持つ。
 
 **対象クラスの例:**
 
@@ -344,7 +341,7 @@ m_process = nullptr;
 3. **所有者の明確性** → 誰が破棄責任を持つか、コードから追跡可能か
 4. **破棄順序** → 依存関係がある場合、安全な順序で破棄されるか（`unique_ptr` の宣言順序 = 逆順破棄に注意）
 5. **`delete` 後の `nullptr` 代入** → ポインタを再利用する場合、`delete` 直後に `nullptr` を代入しているか
-6. **寿命コメント** → Registry で生成される `new` に寿命コメントがあるか
+6. **寿命コメント** → 起動時以外に生成される `new`（エンジンなど）に寿命コメントがあるか
 7. **再生成オブジェクト** → 再生成されるオブジェクトへの参照に `QPointer` を使用しているか
 
 ## レビューチェックリスト

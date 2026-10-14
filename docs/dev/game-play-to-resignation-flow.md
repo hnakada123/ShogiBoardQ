@@ -2,7 +2,7 @@
 
 本ドキュメントでは、対局が開始された後の指し手の流れ（人間の着手、エンジンの着手、時計管理）から、投了などによる終局までの一連のフローを説明する。対局が始まるまでの流れは [対局ダイアログから対局開始までのフロー](game-start-flow.md) を参照。対象はローカル対局（人間同士・人間対エンジン・エンジン同士）で、CSA 通信対局は経路が分かれる所だけを記す。
 
-先手・後手はすべて `Turn`（`Turn::Black`／`Turn::White`、`src/core/shogitypes.h`）で表す。部品の生成と配線は `MainWindowServiceRegistry`（`src/app/gamesubregistry*.cpp`、`src/app/mainwindow*registry.cpp`）が行う。対局の司令塔 `MatchCoordinator` は一度だけ作られ（`MatchCoordinatorWiring::createMatchCoordinator()`）、対局ごとに使い回される。
+先手・後手はすべて `Turn`（`Turn::Black`／`Turn::White`、`src/core/shogitypes.h`）で表す。部品は起動時に `MainWindowComposer`（`src/app/mainwindowcomposer*.cpp`）が全部作って配線する（[composition-root.md](composition-root.md)）。対局の司令塔 `MatchCoordinator` は起動時に一度だけ作られ（`MatchCoordinatorWiring::createMatchCoordinator()`）、対局ごとに使い回される。司令塔の子ハンドラ（`MatchTurnHandler`・`GameEndHandler` など）も司令塔のコンストラクタで全部作る。
 
 ## 全体フロー図
 
@@ -68,7 +68,7 @@ BoardInteractionController::onLeftClick(pt)
 `onLeftClick()` の処理:
 
 1. 指し手入力の確認: 指し手入力が無効（`setMoveInputEnabled(false)`。`UiStatePolicyManager` が状態に応じて設定する）なら無視する。局面編集モードは除く。
-2. 人間の手番チェック: `m_isHumanTurnCb` コールバックで現在が人間の手番かを確認し、エンジンの手番なら無視する。コールバックは `MainWindowServiceRegistry`（`src/app/mainwindowboardregistry.cpp`）が `PlayModePolicyService::isHumanTurnNow()` を呼ぶものとして設定する。
+2. 人間の手番チェック: `m_isHumanTurnCb` コールバックで現在が人間の手番かを確認し、エンジンの手番なら無視する。コールバックは `MainWindowComposer::wireGame()`（`src/app/mainwindowcomposer_game.cpp`）が `PlayModePolicyService::isHumanTurnNow()` を呼ぶものとして設定する。
 3. 1回目のクリック（駒選択）: 持ち駒のない駒台のマスは無視する。`ShogiView::startDrag()` でドラッグを始め、`selectPieceAndHighlight()` で駒を選ぶ。選んだマスにオレンジ色のハイライトを付け、合法な移動先（`EngineMoveValidator` で判定）を青色で示す（メニューで表示を切り替えられる）。相手の駒台や空きマスは選ばない。`m_waitingSecondClick = true` に設定する。
 4. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら `moveRequested(from, to)` シグナルを発行する。成り・不成のダイアログを出している間もドラッグ状態を保つため、ここではドラッグを終えない（`ShogiGameController::endDragSignal` → `ShogiView::endDrag()` で終える）。
 
@@ -78,17 +78,15 @@ BoardInteractionController::onLeftClick(pt)
 
 ```
 BoardInteractionController::moveRequested(from, to)
-    ↓  （MainWindowSignalRouter::connectMoveRequested() が接続）
-MainWindow::onMoveRequested(from, to)
-    ↓
-MainWindowServiceRegistry::handleMoveRequested(from, to)   （src/app/mainwindowboardregistry.cpp）
+    ↓  （MainWindowComposer::connectSignals() が接続）
+MainWindowActions::handleMoveRequested(from, to)           （src/app/mainwindowactions.cpp）
     ↓
 BoardSetupController::onMoveRequested(from, to)            （src/ui/controllers/boardsetupcontroller.cpp）
 ```
 
 `BoardSetupController::onMoveRequested()` の処理:
 - 局面編集モード（`BoardInteractionController::Mode::Edit`）なら `PositionEditController::applyEditMove()` に渡して終わる。
-- 対局していない待機中なら、指した手を棋譜の変化として記録して終わる（`MainWindowServiceRegistry::canRecordVariationMove()`／`recordVariationMove()`）。
+- 対局していない待機中なら、指した手を棋譜の変化として記録して終わる（`MainWindowActions::canRecordVariationMove()`／`recordVariationMove()`）。
 - 対局モードは `MatchCoordinator::playMode()` を使い、`NotStarted` なら自分が持つ `m_playMode` を使う。
 - 次の手数を SFEN 履歴の件数（1未満なら1）とし、`ShogiGameController::validateAndMove()` を呼ぶ。
 - 結果を `BoardInteractionController::onMoveApplied()` に渡してハイライトを更新する（1.4）。不合法ならここで終わる。
@@ -135,7 +133,7 @@ validateAndMove() の成り・不成
     └─ どちらも不合法 → false
 ```
 
-成りの選び方は `MainWindowSignalRouter::connectCoreSignals()` が設定する。強制成りの指定は1手かぎりで、`validateAndMove()` の始めに取り出して元に戻す。エンジンの手は成り・不成が決まった `UsiMove` で届くので、`applyMove()` は指し手どおりの成り・不成が合法かだけを確かめる。
+成りの選び方は `MainWindowComposer::connectSignals()` が設定する。強制成りの指定は1手かぎりで、`validateAndMove()` の始めに取り出して元に戻す。エンジンの手は成り・不成が決まった `UsiMove` で届くので、`applyMove()` は指し手どおりの成り・不成が合法かだけを確かめる。
 
 ### 1.4 着手後のハイライト更新
 
@@ -148,7 +146,7 @@ BoardInteractionController::onMoveApplied(from, to, success)
 - 成功時: 移動元に薄い赤色、移動先に黄色のハイライトを表示し、選択中のオレンジ色のハイライトを消す。
 - 失敗時（不合法手）: 選択とドラッグ状態を取り消す。
 
-エンジンの手のハイライトは、Strategy がフック `MatchCoordinatorHooks::UI::showMoveHighlights` を呼び、`MainWindowMatchAdapter::showMoveHighlights()` → `BoardInteractionController::showMoveHighlights()` で表示する。
+エンジンの手のハイライトは、Strategy がフック `MatchCoordinatorHooks::UI::showMoveHighlights` を呼び、`MainWindowComposer::buildMatchHooks()` のラムダが `BoardInteractionController::showMoveHighlights()` を呼んで表示する。
 
 ---
 
@@ -197,7 +195,7 @@ HumanVsEngineStrategy::onHumanMove(humanFrom, humanTo, prettyMove)
     │
     ├─ (2) 人間の手を時計で確定し、棋譜に追記
     │      clock->commitMove(humanSide)
-    │      hooks.game.appendKifuLine(prettyMove, clock->considerationAndTotalTime(humanSide))
+    │      StrategyContext::completeMove → hooks.game.appendRecord(RecordEntry)
     │      clock->setConsiderationTimeMs(humanSide, 0)
     │      pokeTimeUpdateNow()
     │
@@ -208,7 +206,7 @@ HumanVsEngineStrategy::onHumanMove(humanFrom, humanTo, prettyMove)
            ├─ 手数（currentMoveIndex）を SFEN 履歴の件数 - 1 に合わせる
            ├─ 人間の計測タイマーを止める（finishHumanTimerInternal()）
            ├─ エンジンに直前の手の移動先を知らせる（読み筋の「同」表記用）
-           │      eng->setPreviousFileTo() / setPreviousRankTo()
+           │      eng->setPreviousMove(BoardSquare{humanTo.x(), humanTo.y()})
            ├─ 千日手チェック: checkAndHandleSennichite() → 成立なら return（8.4）
            ├─ 最大手数チェック: currentMoveIndex >= maxMoves
            │      └─ 到達: handleMaxMovesJishogi() → return（8.3）
@@ -255,7 +253,7 @@ HumanVsEngineStrategy::onEngineMoveReady(move, position, ponder)
     │      clock->commitMove(engineSide)
     │
     ├─ (6) 棋譜にエンジンの指し手を追記
-    │      hooks.game.appendKifuLine(rec, clock->considerationAndTotalTime(engineSide))
+    │      StrategyContext::completeMove → hooks.game.appendRecord(RecordEntry)
     │
     ├─ (7) 盤面描画・手番表示を更新
     │      hooks.ui.renderBoardFromGc()
@@ -305,19 +303,8 @@ void HumanVsHumanStrategy::onHumanMove(const QPoint& /*from*/,
     // 直前手の消費時間（consideration）を確定
     finishTurnTimerAndSetConsideration(mover);
 
-    // HvH でも秒読み/インクリメントを適用し、総考慮へ加算して表示値を確定
-    ShogiClock* clock = m_ctx.clock();
-    if (clock) clock->commitMove(mover);
-
-    // 指し手＋考慮時間を棋譜欄に追記する。千日手・持将棋の終局行より先に記録する
-    if (m_ctx.hooks().game.appendKifuLine) {
-        QString elapsed = QStringLiteral("00:00/00:00:00");
-        if (clock) {
-            elapsed = clock->considerationAndTotalTime(mover);
-        }
-        m_ctx.hooks().game.appendKifuLine(prettyMove, elapsed);
-    }
-
+    // 指し手・局面・考慮時間を RecordEntry にまとめて棋譜に追記する（千日手・持将棋の終局行より先）。
+    // 実際の処理は StrategyContext::completeMove が行い、hooks.game.appendRecord(entry) を呼ぶ
     // 表示更新（時計ラベル等）
     if (clock) m_ctx.pokeTimeUpdateNow();
 
@@ -389,10 +376,10 @@ onEngineMoveReady(move, position, ponder)   ← Usi::matchMoveReady
     │      clock->commitMove(moverTurn)
     │
     ├─ (5) 棋譜追記
-    │      hooks.game.appendKifuLine(rec, clock->considerationAndTotalTime(moverTurn))
+    │      StrategyContext::completeMove → hooks.game.appendRecord(RecordEntry)
     │
     ├─ (6) 相手エンジンに前回の指し手座標を通知
-    │      receiver->setPreviousFileTo() / setPreviousRankTo()
+    │      receiver->setPreviousMove(BoardSquare{to.x(), to.y()})
     │
     ├─ (7) 盤面描画・ハイライト・手番表示
     │      hooks.ui.renderBoardFromGc()
@@ -565,19 +552,15 @@ UsiGoTime compute() の返り値:
 ```
 ShogiGameController::setCurrentPlayer(next)      （commitMove() の最後）
     ↓ currentPlayerChanged(Turn)
-TurnManager::set(Turn)                           （TurnSyncBridge::wire() が接続）
+TurnManager::set(Turn)                           （TurnStateSyncService::updateDeps() が接続。TurnManager は TurnStateSyncService が持つ）
     ↓ changed(Turn)
-MainWindow::onTurnManagerChanged(Turn)
-    ↓
-MainWindowServiceRegistry::onTurnManagerChanged(Turn)
-    ↓
 TurnStateSyncService::onTurnManagerChanged(Turn)  （src/app/turnstatesyncservice.cpp）
-    ├─ MainWindowServiceRegistry::updateTurnStatus(now) → ShogiClock::setCurrentPlayer(now)
+    ├─ ShogiClock::setCurrentPlayer(now)
     ├─ ShogiGameController::setCurrentPlayer(now)   （同じ手番なら何もしない）
     └─ ShogiView::updateTurnIndicator(now)
 ```
 
-`ShogiClock::setCurrentPlayer()` は、前回の tick からの経過時間を前の手番の側に精算してから手番を切り替え、新しい手番の側の考慮時間を0から数え直す。Strategy が呼ぶ `MatchTurnHandler::updateTurnDisplay()`（フック `MatchCoordinatorHooks::UI::updateTurnDisplay`）も `MainWindow::onTurnManagerChanged()` を呼ぶので、同じ処理になる。
+`ShogiClock::setCurrentPlayer()` は、前回の tick からの経過時間を前の手番の側に精算してから手番を切り替え、新しい手番の側の考慮時間を0から数え直す。Strategy が呼ぶ `MatchTurnHandler::updateTurnDisplay()`（フック `MatchCoordinatorHooks::UI::updateTurnDisplay`）も `TurnStateSyncService::onTurnManagerChanged()` を呼ぶので、同じ処理になる。
 
 エンジンの bestmove を受け取ったときは、`UsiMatchHandler::onBestMoveReceived()` が `ShogiClock::finishTurn()` で時計を精算し、手番が切り替わるまでエンジンの側の時間を減らさない。
 
@@ -637,20 +620,20 @@ SFEN の手数フィールドは `moveNumber + 1` になる。SFENリストに�
 [2] ...
 ```
 
-SFEN 履歴は `MainWindow` の `m_kifu.sfenRecord` で、`MatchCoordinator::Deps::sfenRecord` として共有される。
+SFEN 履歴は `AppState::sfenRecord`（`src/common/appstate.h`）で、`MatchCoordinator::Deps::sfenRecord` として共有される。
 
 ### 4.2 棋譜行の追記
 
 Strategy は MatchCoordinator のフック経由で棋譜欄に1行追記する（エンジン同士の例）:
 
 ```cpp
-m_ctx.hooks().game.appendKifuLine(rec, m_ctx.clock()->considerationAndTotalTime(moverTurn));
+m_ctx.applyEngineMove(move, mover, elapsedMs, appendEvaluation);  // completeMove → hooks.game.appendRecord(RecordEntry)
 ```
 
 - `rec`: 指し手の日本語表記（例: `"▲７六歩(77)"`）
 - 第2引数: 考慮時間と累計時間（例: `"00:03/00:00:06"`）
 
-フックは `MainWindowServiceRegistry::buildMatchHooks()`（`src/app/gamesubregistry_wiring.cpp`）が設定し、`GameRecordUpdateService::appendKifuLine()` を呼ぶ。`GameRecordUpdateService` は棋譜欄（`GameRecordPresenter::appendMoveLine()`）とライブ対局セッション（`LiveGameSessionUpdater::appendMove()`）に追記する。終局行の追記が済んだ後は何も追記しない。
+フックは `MainWindowComposer::buildMatchHooks()`（`src/app/mainwindowcomposer_game.cpp`）が設定し、`GameRecordUpdateService::appendRecord()` を呼ぶ。`GameRecordUpdateService` は棋譜欄（`GameRecordPresenter::appendMoveLine()`）とライブ対局セッション（`LiveGameSessionUpdater::appendMove()`）に追記する。終局行の追記が済んだ後は何も追記しない。
 
 ### 4.3 指し手リストの管理
 
@@ -662,7 +645,7 @@ QList<ShogiMove>* m_externalGameMoves = nullptr; ///< 外部共有の指し手�
 int m_currentMoveIndex = 0;              ///< 現在の手数インデックス
 ```
 
-指し手リストは `gameMovesRef()` で読み、外部共有のリスト（`Deps::gameMoves`、`MainWindow` の `m_kifu.gameMoves`）があればそちらを使う。`configureAndStart()` は、指し手リストを SFEN 履歴の手数までに切り詰める（`alignGameMovesWithSfenHistory()`）。
+指し手リストは `gameMovesRef()` で読み、外部共有のリスト（`Deps::gameMoves`、`AppState::gameMoves`）があればそちらを使う。`configureAndStart()` は、指し手リストを SFEN 履歴の手数までに切り詰める（`alignGameMovesWithSfenHistory()`）。
 
 手数の数え方は Strategy ごとに違う。人間対エンジンは `m_currentMoveIndex` を SFEN 履歴の件数 - 1 に合わせて進め、人間同士は SFEN 履歴の件数 - 1 を使う。エンジン同士は `EngineVsEngineStrategy::m_eveMoveIndex` を `applyMove()` に渡す手数に使い、最大手数は SFEN 履歴の件数 - 1 で判定する。
 
@@ -672,12 +655,10 @@ int m_currentMoveIndex = 0;              ///< 現在の手数インデックス
 
 ```
 ShogiGameController::moveCommitted(mover, ply)
-    ├─ MainWindow::onMoveCommitted()   （MainWindowSignalRouter::connectCoreSignals() が接続）
-    │    ↓
-    │  MainWindowServiceRegistry::handleMoveCommitted()
+    ├─ MainWindowActions::handleMoveCommitted()   （MainWindowComposer::connectSignals() が接続）
     │    ├─ BoardSetupController::onMoveCommitted()   … エンジン同士なら評価値グラフを描き直す
     │    ├─ GameRecordUpdateService::updateCurrentSfenAfterMove()   … 現在局面の SFEN を更新
-    │    └─ 定跡ウィンドウを更新
+    │    └─ JosekiWindowWiring::updateJosekiWindow()   … 定跡ウィンドウを更新
     └─ PieceSoundPlayer::playMoveSound()   … 駒音
 ```
 
@@ -710,7 +691,7 @@ MatchCoordinator::handleResign()                （src/game/matchcoordinator.cpp
 GameEndHandler::handleResign()                  （src/game/gameendhandler.cpp）
 ```
 
-`MatchCoordinator` の終局処理のメソッドは、遅延生成した `GameEndHandler`（`ensureGameEndHandler()`）にそのまま渡す。`GameEndHandler` のシグナル（`gameOverStateChanged`・`requestAppendGameOverMove`・`gameEnded`・`gameEndProcessed`）は、同じ名前の `MatchCoordinator` のシグナルとして出し直される。
+`MatchCoordinator` の終局処理のメソッドは、コンストラクタで作った `GameEndHandler`（`createGameEndHandler()`）にそのまま渡す。`GameEndHandler` のシグナル（`gameOverStateChanged`・`requestAppendGameOverMove`・`gameEnded`・`gameEndProcessed`）は、同じ名前の `MatchCoordinator` のシグナルとして出し直される。
 
 ### 5.3 GameEndHandler::handleResign()
 
@@ -731,13 +712,10 @@ void GameEndHandler::handleResign()
     info.loser = (m_refs.gc && m_refs.gc->currentPlayer() == Turn::Black)
                      ? Turn::Black : Turn::White;
 
-    auto rawSender = [this](Usi* which, const QString& cmd) {
-        sendRawToEngineHelper(which, cmd);
-    };
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser, u1, u2, rawSender);
+        *m_refs.playMode, info.loser, u1, u2);
 
     setGameOver(info, true);
     displayResultsAndUpdateGui(info);
@@ -756,7 +734,7 @@ void GameEndHandler::handleResign()
 
 **ファイル:** `src/game/enginegameovernotifier.cpp`
 
-`notifyResignation(playMode, Turn loser, usi1, usi2, sendRaw)` は、投了・エンジンの投了・エンジンの反則手で共通に使う。
+`notifyResignation(playMode, Turn loser, usi1, usi2)` は、投了・エンジンの投了・エンジンの反則手で共通に使う。
 
 | モード | 通知内容 |
 |---|---|
@@ -887,7 +865,7 @@ void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo& info)
 }
 ```
 
-- `showGameOverDialog` は `MainWindowMatchAdapter::showGameOverMessageBox()` → `DialogCoordinator::showGameOverMessage()`（`QMessageBox::information`）で表示する。
+- `showGameOverDialog` は `MainWindowComposer::buildMatchHooks()` のラムダから `DialogCoordinator::showGameOverMessage()`（`QMessageBox::information`）で表示する。
 - `autoSaveKifuIfEnabled` は、自動保存が有効で保存先があるとき、フック `MatchCoordinatorHooks::Game::autoSaveKifu` → `KifuFileController::autoSaveKifuToFile()` で保存する。
 - `gameEndProcessed` は `SessionLifecycleCoordinator::handleGameEndProcessed()` が受け、エンジン同士の連続対局なら次局を始める（中断では何もしない）。
 
@@ -930,14 +908,14 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
 {
     if (!m_refs.gameOver->isOver) return;        // 終局していなければ無視
     if (m_refs.gameOver->moveAppended) return;   // 既に追記済みなら無視
-    if (!m_refs.clock || !m_hooks.appendKifuLine) {
+    if (!m_refs.clock || !m_hooks.appendRecord) {
         markGameOverMoveAppended();
         return;
     }
 
     // ... 時計を止め、終局行を作り、終局行を行った側の考慮時間を確定する ...
 
-    m_hooks.appendKifuLine(line, elapsed);
+    m_hooks.appendRecord(RecordEntry::ending(terminal, mover, elapsed));
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
     markGameOverMoveAppended();                  // moveAppended = true にして二重追記を防止
 }
@@ -953,7 +931,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
 
 **ファイル:** `src/game/gamestatecontroller.cpp`
 
-`setGameOver()` の3つのシグナルは次の順に処理される。`GameStateController` のフックは `MainWindowServiceRegistry::ensureGameStateController()`（`src/app/gamesubregistry.cpp`）が設定する。
+`setGameOver()` の3つのシグナルは次の順に処理される。`GameStateController` のフックは `MainWindowComposer::wireGame()`（`src/app/mainwindowcomposer_game.cpp`）が設定する。
 
 ### 7.1 終局行の追記: GameStateController::setGameOverMove()
 
@@ -1051,9 +1029,7 @@ SessionLifecycleCoordinator::handleGameEnded(info)
 ```cpp
 void MatchCoordinator::handlePlayerTimeOut(Turn player) {
     if (m_gameOver.isOver) return;
-    ensureMatchTurnHandler();
     m_turnHandler->handlePlayerTimeOut(player);   // gc->applyTimeoutLossFor(player) で勝敗を設定
-    ensureGameEndHandler();
     m_gameEndHandler->handleTimeout(player);      // 終局状態・エンジンへの通知・結果表示
 }
 ```
@@ -1097,10 +1073,8 @@ void MatchCoordinator::handleBreakOff()
     captureInterruptedGame();
     // 時計の精算時に時間切れが確定した場合、中断に上書きしない。
     if (m_gameOver.isOver) return;
-    ensureEngineManager();
     m_engineManager->disconnectArbiterSignals();
 
-    ensureGameEndHandler();
     m_gameEndHandler->handleBreakOff();
     if (m_interruptedGame) emit gameInterrupted();
 }
@@ -1368,7 +1342,8 @@ GameEndHandler::handleResign()
 |---|---|---|
 | 盤面操作コントローラ | `src/board/boardinteractioncontroller.h` | `src/board/boardinteractioncontroller.cpp` |
 | ボードセットアップコントローラ | `src/ui/controllers/boardsetupcontroller.h` | `src/ui/controllers/boardsetupcontroller.cpp` |
-| 着手要求・着手確定の受け口 | `src/app/mainwindowserviceregistry.h` | `src/app/mainwindowboardregistry.cpp` |
+| 着手要求・着手確定の受け口 | `src/app/mainwindowactions.h` | `src/app/mainwindowactions.cpp` |
+| 部品の生成と配線・司令塔のフック | `src/app/mainwindowcomposer.h` | `src/app/mainwindowcomposer_game.cpp`, `src/app/mainwindowcomposer_finalize.cpp` |
 | ゲームコントローラ | `src/game/shogigamecontroller.h` | `src/game/shogigamecontroller.cpp` |
 | 対局司令塔 | `src/game/matchcoordinator.h` | `src/game/matchcoordinator.cpp`、`src/game/matchcoordinator_engine.cpp`、`src/game/matchcoordinator_time.cpp`、`src/game/matchcoordinator_resume.cpp` |
 | 司令塔のフック・終局の型 | `src/game/matchcoordinatorhooks.h`、`src/game/matchtypes.h` | - |
@@ -1383,7 +1358,7 @@ GameEndHandler::handleResign()
 | 千日手の判定 | `src/game/sennichitedetector.h` | `src/game/sennichitedetector.cpp` |
 | ゲーム状態コントローラ | `src/game/gamestatecontroller.h` | `src/game/gamestatecontroller.cpp` |
 | ターンマネージャ | `src/game/turnmanager.h` | `src/game/turnmanager.cpp` |
-| 手番の同期 | `src/game/turnsyncbridge.h`、`src/app/turnstatesyncservice.h` | `src/app/turnstatesyncservice.cpp` |
+| 手番の同期（TurnManager を持つ） | `src/app/turnstatesyncservice.h` | `src/app/turnstatesyncservice.cpp` |
 | 時計の配線・残り時間の通知 | `src/game/matchtimekeeper.h` | `src/game/matchtimekeeper.cpp` |
 | 将棋時計 | `src/core/shogiclock.h` | `src/core/shogiclock.cpp` |
 | 時間制御コントローラ | `src/ui/controllers/timecontrolcontroller.h` | `src/ui/controllers/timecontrolcontroller.cpp` |

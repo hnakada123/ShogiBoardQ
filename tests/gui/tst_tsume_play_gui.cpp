@@ -43,6 +43,11 @@ class TestTsumePlayGui : public QObject
     QImage promotionPreview;
     QString promotionSfen;
     QList<QRect> paintedBoardRects;
+    /// 盤は操作列と同じ部品（BoardViewerWidget）の中にあるので、ウィンドウの中の位置で比べる
+    static QRect boardRectInWindow(const QWidget* view)
+    {
+        return QRect(view->mapTo(view->window(), QPoint()), view->size());
+    }
     bool trackBoardLayout = false;
     bool paintedThinking = false;
     bool trackBoardRepaint = false;
@@ -52,7 +57,7 @@ class TestTsumePlayGui : public QObject
     {
         if (trackBoardLayout && event->type() == QEvent::Paint) {
             if (auto* view = qobject_cast<ShogiView*>(watched)) {
-                paintedBoardRects.append(view->geometry());
+                paintedBoardRects.append(boardRectInWindow(view));
                 if (dialog->findChild<TsumeGameSession*>()->state() == TsumeGameSession::State::Thinking)
                     paintedThinking = true;
             }
@@ -329,7 +334,7 @@ private slots:
         auto* view = window.findChild<ShogiView*>();
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
         QTest::qWait(50);
-        const QRect initial = view->geometry();
+        const QRect initial = boardRectInWindow(view);
         view->installEventFilter(this);
         paintedBoardRects.clear();
         paintedThinking = false;
@@ -343,7 +348,7 @@ private slots:
         QVERIFY(!paintedBoardRects.isEmpty());
         // 完了後だけでなく、着手・探索・応手を描画する全フレームで盤面が動かないこと。
         for (const QRect& rect : std::as_const(paintedBoardRects)) QCOMPARE(rect, initial);
-        QCOMPARE(view->geometry(), initial);
+        QCOMPARE(boardRectInWindow(view), initial);
         dialog = nullptr;
     }
     void solutionLayoutDuringToggle_data()
@@ -649,7 +654,7 @@ private slots:
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
         QTest::qWait(50);
         auto* view = window.findChild<ShogiView*>();
-        const QRect initial = view->geometry();
+        const QRect initial = boardRectInWindow(view);
         view->installEventFilter(this);
         paintedBoardRects.clear();
         trackBoardLayout = true;
@@ -680,7 +685,7 @@ private slots:
         // 局面は問題の初期局面のままなので、盤は描き直さなくてよい（変わった所だけを描き直す）。
         // 盤が動けば必ず描き直されるので、描き直したときの位置と最後の位置を確かめる。
         for (const QRect& rect : std::as_const(paintedBoardRects)) QCOMPARE(rect, initial);
-        QCOMPARE(view->geometry(), initial);
+        QCOMPARE(boardRectInWindow(view), initial);
         dialog = nullptr;
     }
 };

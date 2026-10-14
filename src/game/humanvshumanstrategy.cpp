@@ -16,10 +16,8 @@ void HumanVsHumanStrategy::start()
 {
     qCDebug(lcGame) << "[Match] Start HvH";
 
-    // --- 手番の単一ソースを確立：GC → TurnManager → m_cur → 表示
-    const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
+    // 手番の単一ソースは GC（currentTurn() は GC の手番を返す）
 
-    m_ctx.setCurrentTurn(side);
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
     if (m_ctx.hooks().ui.renderBoardFromGc)

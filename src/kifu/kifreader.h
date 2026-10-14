@@ -29,6 +29,18 @@ bool readAllLinesAuto(const QString& filePath,
                       QString* usedEncoding = nullptr,
                       QString* warn = nullptr);
 
+/**
+ * @brief 文字コードを自動判別してファイル全体をテキストとして取得する（改行は変換しない）
+ * @return 読み込み成功なら true
+ */
+bool readAllTextAuto(const QString& filePath,
+                     QString& outText,
+                     QString* usedEncoding = nullptr,
+                     QString* warn = nullptr);
+
+/// テキストを行に分ける（先頭の BOM を除き、CRLF・CR を LF とみなす）
+QStringList splitLines(const QString& text);
+
 /// 互換API（旧名）: 既存コードが KifReader::readLinesAuto() を呼んでいても動作する
 inline bool readLinesAuto(const QString& filePath,
                           QStringList& outLines,

@@ -59,7 +59,8 @@ public:
     struct StartParams {
         MatchCoordinator::StartOptions opt;  ///< 既存のStartOptionsをそのまま注入
         TimeSettings                   tc;   ///< 時計適用のために併送
-        bool autoStartEngineMove = true;     ///< 先手がエンジンなら初手goを起動
+        bool autoStartEngineMove = true;     ///< 時計を動かし、先手がエンジンなら初手goを起動
+        int selectKifuRow = -1;              ///< 開始後に選ぶ棋譜欄の行（現在局面から始めるとき。-1 なら選ばない）
         bool announcePlayerNames = false;    ///< 対局者名を通知する（ダイアログを経ない連続対局の2局目以降）
     };
 
@@ -164,6 +165,8 @@ signals:
     void requestBranchTreeResetForNewGame();
 
 private:
+    /// 開始の通知・開始行の選択・時計の始動・初手を行う（start と resumeInterruptedGame の共通部分）
+    void finishStart(const MatchCoordinator::StartOptions& opt, int selectKifuRow, bool startClockAndFirstMove);
     bool validate(const StartParams& params, QString& whyNot) const;
     bool validateKingsForGame(const QString& sfen, QString& whyNot) const;
 

@@ -46,11 +46,6 @@ void GameStateController::setHooks(const Hooks& hooks)
     m_hooks = hooks;
 }
 
-void GameStateController::setPlayMode(PlayMode mode)
-{
-    m_playMode = mode;
-}
-
 // ============================================================
 // 投了・中断処理
 // ============================================================
@@ -91,32 +86,8 @@ void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, Turn lo
 }
 
 // ============================================================
-// 人間/エンジン判定
+// 終局状態
 // ============================================================
-
-bool GameStateController::isHvH() const
-{
-    return (m_playMode == PlayMode::HumanVsHuman);
-}
-
-bool GameStateController::isHumanSide(Turn p) const
-{
-    switch (m_playMode) {
-    case PlayMode::HumanVsHuman:
-        return true;
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-        return (p == Turn::Black);
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::HandicapEngineVsHuman:
-        return (p == Turn::White);
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapEngineVsEngine:
-        return false;
-    default:
-        return true;
-    }
-}
 
 bool GameStateController::isGameOver() const
 {
@@ -130,20 +101,16 @@ bool GameStateController::isGameOver() const
 void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 {
     // 処理フロー:
-    // 1. 対局終了スタイルロック
-    // 2. タイマー停止・マウス操作無効化
-    // 3. 棋譜追記
-    // 4. UI後処理（矢印ボタン有効化・選択モード設定）
+    // 1. タイマー停止・マウス操作無効化
+    // 2. 棋譜追記
+    // 3. 棋譜欄の選択モード設定
+    // 対局終了スタイルの固定と矢印ボタンの有効化は、先に届く onGameOverStateChanged と
+    // gameEnded → UiStatePolicyManager::transitionToIdle が行う
 
     qCDebug(lcGame).nospace()
         << "onMatchGameEnded ENTER cause="
         << ((info.cause == MatchCoordinator::Cause::Timeout) ? "Timeout" : "Resign")
         << " loser=" << info.loser;
-
-    // 対局終了時のスタイル維持を有効化
-    if (m_hooks.setGameOverStyleLock) {
-        m_hooks.setGameOverStyleLock(true);
-    }
 
     // UI 後始末
     if (m_match) {
@@ -160,9 +127,6 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
     setGameOverMove(info.cause, info.loser);
 
     // UIの後処理
-    if (m_hooks.enableArrowButtons) {
-        m_hooks.enableArrowButtons();
-    }
     if (m_hooks.setKifuViewSingleSelection) {
         m_hooks.setKifuViewSingleSelection();
     }

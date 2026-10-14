@@ -219,25 +219,6 @@ void parseBodHandsLine(const QString& line, QMap<Piece, int>& outCounts, bool is
     }
 }
 
-QString buildHandsSfen(const QMap<Piece, int>& black, const QMap<Piece, int>& white)
-{
-    auto emitSide = [](const QMap<Piece, int>& m, bool gote) -> QString {
-        const Piece order[] = {Piece::BlackRook, Piece::BlackBishop, Piece::BlackGold,
-                               Piece::BlackSilver, Piece::BlackKnight, Piece::BlackLance, Piece::BlackPawn};
-        QString s;
-        for (Piece p : order) {
-            int cnt = m.value(p, 0);
-            if (cnt <= 0) continue;
-            if (cnt > 1) s += QString::number(cnt);
-            s += pieceToChar(gote ? toWhite(p) : p);
-        }
-        return s;
-    };
-    QString s = emitSide(black, false) + emitSide(white, true);
-    if (s.isEmpty()) s = QStringLiteral("-");
-    return s;
-}
-
 bool collectBodRows(const QStringList& lines, QMap<QChar, QString>& rowByRank,
                     QString* detectedLabel)
 {

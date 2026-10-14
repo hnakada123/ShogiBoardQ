@@ -79,7 +79,7 @@ void Usi::setupConnections()
             m_presenter.get(), &ThinkingInfoPresenter::setBaseSfen);
     connect(m_protocolHandler, &UsiProtocolHandler::searchStarted,
             m_presenter.get(), &ThinkingInfoPresenter::requestClearThinkingInfo);
-    connect(m_protocolHandler, &UsiProtocolHandler::infoLineReceived,
+    connect(m_protocolHandler, &UsiProtocolHandler::infoReceived,
             m_presenter.get(), &ThinkingInfoPresenter::onInfoReceived);
     connect(m_protocolHandler, &UsiProtocolHandler::checkmateSolved,
             m_presenter.get(), &ThinkingInfoPresenter::presentCheckmate);
@@ -97,8 +97,8 @@ void Usi::setupConnections()
             this, &Usi::bestMoveResignReceived);
     connect(m_protocolHandler, &UsiProtocolHandler::bestMoveWinReceived,
             this, &Usi::bestMoveWinReceived);
-    connect(m_protocolHandler, &UsiProtocolHandler::infoLineReceived,
-            this, &Usi::infoLineReceived);
+    connect(m_protocolHandler, &UsiProtocolHandler::infoReceived,
+            this, &Usi::infoReceived);
     connect(m_protocolHandler, &UsiProtocolHandler::checkmateSolved,
             this, &Usi::checkmateSolved);
     connect(m_protocolHandler, &UsiProtocolHandler::checkmateNoMate,
@@ -190,35 +190,16 @@ int Usi::lastScoreCp() const
     return m_presenter->lastScoreCp();
 }
 
-QString Usi::pvKanjiStr() const
-{
-    return m_pvKanjiStr;
-}
-
-void Usi::setPvKanjiStr(const QString& newPvKanjiStr)
-{
-    m_pvKanjiStr = newPvKanjiStr;
-}
-
 qint64 Usi::lastBestmoveElapsedMs() const
 {
     return m_protocolHandler->lastBestmoveElapsedMs();
 }
 
-void Usi::setPreviousFileTo(int newPreviousFileTo)
+void Usi::setPreviousMove(BoardSquare to)
 {
-    qCDebug(lcEngine) << "setPreviousFileTo:" << newPreviousFileTo
-                      << "m_previousRankTo=" << m_previousRankTo;
-    m_previousFileTo = newPreviousFileTo;
-    m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
-}
-
-void Usi::setPreviousRankTo(int newPreviousRankTo)
-{
-    qCDebug(lcEngine) << "setPreviousRankTo: m_previousFileTo=" << m_previousFileTo
-                      << "newPreviousRankTo=" << newPreviousRankTo;
-    m_previousRankTo = newPreviousRankTo;
-    m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
+    qCDebug(lcEngine) << "setPreviousMove: file=" << to.file << "rank=" << to.rank;
+    m_previousMove = to;
+    m_presenter->setPreviousMove(to.file, to.rank);
 }
 
 void Usi::setLastUsiMove(const QString& move)
@@ -371,9 +352,7 @@ void Usi::updateConsiderationMultiPV(int multiPV)
     m_considerationMaxMultiPV = newMultiPV;
 
     // エンジンにMultiPV設定を送信
-    if (m_protocolHandler) {
-        sendRaw(QStringLiteral("setoption name MultiPV value %1").arg(newMultiPV));
-    }
+    sendSetOptionCommand(QStringLiteral("MultiPV"), QString::number(newMultiPV));
 
     // モデルをクリアして新しいMultiPV設定で再表示
     if (m_considerationModel) {
@@ -381,10 +360,16 @@ void Usi::updateConsiderationMultiPV(int multiPV)
     }
 }
 
-void Usi::sendRaw(const QString& command) const
+void Usi::sendSetOptionCommand(const QString& name, const QString& value)
 {
-    if (deferUntilReady([this, command]() { sendRaw(command); })) return;
-    m_protocolHandler->sendRaw(command);
+    if (deferUntilReady([this, name, value]() { sendSetOptionCommand(name, value); })) return;
+    m_protocolHandler->sendSetOption(name, value);
+}
+
+void Usi::sendConsoleCommand(const QString& command)
+{
+    if (deferUntilReady([this, command]() { sendConsoleCommand(command); })) return;
+    m_protocolHandler->sendConsoleCommand(command);
 }
 
 bool Usi::isEngineRunning() const

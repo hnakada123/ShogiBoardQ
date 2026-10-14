@@ -10,12 +10,10 @@
 #include <QStringList>
 #include <QList>
 #include <QPoint>
-#include <functional>
 #include <optional>
 
 #include "playmode.h"
 #include "gamerecordmodel.h"  // GameRecordModel::ExportContext
-#include "kifutypes.h"  // ResolvedRow
 
 class QWidget;
 class GameRecordModel;
@@ -24,6 +22,8 @@ class GameInfoPaneController;
 class TimeControlController;
 class ShogiGameController;
 class KifuExportClipboard;
+class KifuNavigationState;
+struct AppState;
 struct ShogiMove;
 namespace KifuSaveCoordinator { enum class SaveFormat; }
 
@@ -59,29 +59,11 @@ public:
         TimeControlController* timeController = nullptr;
         ShogiGameController* gameController = nullptr;
 
-        // データソース（ポインタ）
-        QList<ResolvedRow>* resolvedRows = nullptr;
-
-        // 状態値
-        QString startSfenStr;
-        PlayMode playMode = PlayMode::NotStarted;
-        QString humanName1;
-        QString humanName2;
-        QString engineName1;
-        QString engineName2;
-        int activeResolvedRow = 0;
-        int currentMoveIndex = 0;
+        const AppState* state = nullptr;               ///< 開始局面・対局モード・対局者名（書き出すたびに読む）
+        const KifuNavigationState* navState = nullptr; ///< 表示中の手順と手数
     };
 
     void setDependencies(const Dependencies& deps);
-
-    /**
-     * @brief 準備コールバックを設定
-     *
-     * クリップボードコピーやファイル保存の前に呼び出されるコールバック。
-     * 依存関係の更新などを行う。
-     */
-    void setPrepareCallback(std::function<void()> callback);
 
     // --------------------------------------------------------
     // ファイル保存
@@ -183,7 +165,6 @@ private:
 
     QWidget* m_parentWidget = nullptr;
     Dependencies m_deps;
-    std::function<void()> m_prepareCallback;
     KifuExportClipboard* m_clipboard = nullptr;
 };
 

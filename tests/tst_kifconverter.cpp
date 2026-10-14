@@ -826,6 +826,122 @@ private slots:
         QCOMPARE(result.variations.size(), 2);
         QCOMPARE(result.variations[0].line.disp.first().prettyMove, QStringLiteral("△８四歩(83)"));
     }
+    // ========================================
+    // テキスト版の入口（貼り付けた棋譜を一時ファイルなしで読む）
+    // ========================================
+
+    void parseText_matchesFile()
+    {
+        const QString path = fixturePath(QStringLiteral("test_branch.kif"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QString text = QString::fromUtf8(file.readAll());
+
+        KifParseResult fromFile, fromText;
+        QString fileError, textError;
+        QVERIFY(KifToSfenConverter::parseWithVariations(path, fromFile, &fileError));
+        QVERIFY(KifToSfenConverter::parseText(text, fromText, &textError));
+        QCOMPARE(fromText.mainline.usiMoves, fromFile.mainline.usiMoves);
+        QCOMPARE(fromText.mainline.sfenList, fromFile.mainline.sfenList);
+        QCOMPARE(fromText.variations.size(), fromFile.variations.size());
+        for (qsizetype i = 0; i < fromText.variations.size(); ++i) {
+            QCOMPARE(fromText.variations[i].startPly, fromFile.variations[i].startPly);
+            QCOMPARE(fromText.variations[i].line.usiMoves, fromFile.variations[i].line.usiMoves);
+        }
+        QCOMPARE(KifToSfenConverter::detectInitialSfenFromText(text), KifToSfenConverter::detectInitialSfenFromFile(path));
+        QCOMPARE(KifToSfenConverter::extractGameInfoFromText(text).size(), KifToSfenConverter::extractGameInfo(path).size());
+    }
+
+    void parseText_crlfAndBom()
+    {
+        const QString text = QChar(0xFEFF) + QStringLiteral(
+            "手合割：平手\r\n手数----指手---------消費時間--\r\n   1 ７六歩(77)\r\n   2 ３四歩(33)\r\n   3 投了\r\n");
+        KifParseResult result;
+        QVERIFY(KifToSfenConverter::parseText(text, result));
+        QCOMPARE(result.mainline.usiMoves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        QVERIFY(result.mainline.endsWithTerminal);
+        QCOMPARE(result.mainline.disp.last().prettyMove, QStringLiteral("▲投了"));
+    }
+
+    // ========================================
+    // 1回の走査: 表示用の指し手と USI の指し手の並びがそろう
+    // ========================================
+
+    // 終局語を含む見出し行（以前は USI の抽出だけがここで止まり、表示とずれた）
+    void singlePass_headerWithTerminalWordKeepsLockstep()
+    {
+        KifParseResult result;
+        QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
+            "手合割：平手\n作者：詰将棋太郎\n手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n   2 ３四歩(33)\n"), result));
+        QCOMPARE(result.mainline.usiMoves.size(), 2);
+        QCOMPARE(result.mainline.disp.size(), 3);  // 開始局面 + 2手
+        QCOMPARE(result.mainline.sfenList.size(), 3);
+    }
+
+    // 読めない指し手の前で手順を打ち切り、警告を残す（表示と USI がずれない）
+    void singlePass_unparsableMoveStopsLine()
+    {
+        KifParseResult result;
+        QString warn;
+        QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
+            "手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 謎の手\n   3 ２六歩(27)\n"), result, &warn));
+        QCOMPARE(result.mainline.usiMoves, QStringList({QStringLiteral("7g7f")}));
+        QCOMPARE(result.mainline.disp.size(), 2);
+        QVERIFY2(warn.contains(QStringLiteral("謎の手")), qPrintable(warn));
+    }
+
+    // 指し手の後ろに書いたコメントはその手に付く
+    void singlePass_inlineCommentBelongsToItsMove()
+    {
+        KifParseResult result;
+        QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
+            "手数----指手---------消費時間--\n   1 ７六歩(77) *角道を開ける\n   2 ３四歩(33) *同じく\n"), result));
+        QCOMPARE(result.mainline.disp.size(), 3);
+        QCOMPARE(result.mainline.disp[1].comment, QStringLiteral("角道を開ける"));
+        QCOMPARE(result.mainline.disp[2].comment, QStringLiteral("同じく"));
+    }
+
+    // 変化の開始局面: 直前の変化が分岐点まで届かなければ本譜から取る
+    void variationBase_fallsBackToMainline()
+    {
+        KifParseResult result;
+        QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n   2 ３四歩(33)\n   3 ２六歩(27)\n   4 ８四歩(83)\n   5 ２五歩(26)\n"
+            "\n変化：3手\n   3 ６六歩(67)\n"
+            "\n変化：5手\n   5 ６八銀(79)\n"), result));
+        QCOMPARE(result.variations.size(), 2);
+        QCOMPARE(result.variations[1].line.baseSfen, result.mainline.sfenList.at(4));
+        QCOMPARE(result.variations[1].line.usiMoves, QStringList({QStringLiteral("7i6h")}));
+    }
+
+    // 変化のコメント・しおりは最初の指し手に付き、開始局面の項目は残らない
+    void variation_commentsAndBookmarkOnFirstMove()
+    {
+        KifParseResult result;
+        QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
+            "手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 ３四歩(33)\n"
+            "\n変化：2手\n   2 ８四歩(83)\n*分岐コメント\n&分岐しおり\n   3 ２六歩(27)\n"), result));
+        QCOMPARE(result.variations.size(), 1);
+        const KifLine& line = result.variations[0].line;
+        QCOMPARE(line.disp.size(), 2);
+        QCOMPARE(line.disp[0].ply, 2);
+        QCOMPARE(line.disp[0].comment, QStringLiteral("分岐コメント"));
+        QCOMPARE(line.disp[0].bookmark, QStringLiteral("分岐しおり"));
+        QCOMPARE(line.usiMoves, QStringList({QStringLiteral("8c8d"), QStringLiteral("2g2f")}));
+    }
+
+    // 不正な変化の開始手数は読み飛ばして警告する
+    void variation_invalidStartIsSkippedWithWarning()
+    {
+        KifParseResult result;
+        QString warn;
+        QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
+            "手数----指手---------消費時間--\n   1 ７六歩(77)\n\n変化：9手\n   9 ５五角打\n"), result, &warn));
+        QCOMPARE(result.variations.size(), 0);
+        QVERIFY2(warn.contains(QStringLiteral("variation start")), qPrintable(warn));
+    }
 };
 
 QTEST_MAIN(TestKifConverter)

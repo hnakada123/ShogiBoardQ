@@ -4,61 +4,57 @@
 /// @file turnstatesyncservice.h
 /// @brief 手番同期サービス — TurnManager / GameController / View / 時計の手番同期を集約
 
-#include "shogigamecontroller.h"
-
+#include <QObject>
+#include <QPointer>
 #include <functional>
 
-class ShogiView;
+#include "shogigamecontroller.h"
+
 class ShogiClock;
-class TurnManager;
-class TimeControlController;
+class ShogiView;
 class TimeDisplayPresenter;
-class QObject;
+class TurnManager;
 
 /**
- * @brief TurnManager / GameController / View / 時計表示の手番同期ロジックを集約するサービス
+ * @brief 手番の同期をまとめる
  *
- * MainWindow から以下の責務を移譲:
- * - setCurrentTurn: TurnManager の生成/取得と手番同期
- * - onTurnManagerChanged: TurnManager 変更通知のハンドリング
- * - updateTurnAndTimekeepingDisplay: 手番表示 + 時計表示の更新
+ * 手番は GameController（対局中の正）と TurnManager（表示の通知元。このサービスが持つ）が持つ。
+ * GC の手番変更 → TurnManager → 時計・盤・手番表示 とつなぐ。
  */
-class TurnStateSyncService
+class TurnStateSyncService : public QObject
 {
+    Q_OBJECT
+
 public:
     struct Deps {
         ShogiGameController* gameController = nullptr;
         ShogiView* shogiView = nullptr;
-        TimeControlController* timeController = nullptr;
+        ShogiClock* clock = nullptr;
         TimeDisplayPresenter* timePresenter = nullptr;
-        /// 終局後の棋譜閲覧とライブ対局を区別する
+        /// 対局が進行中か（対局中は GC、それ以外は盤面 SFEN の手番を正とする）
         std::function<bool()> isGameActivelyInProgress;
-
-        /// updateTurnStatus(Turn currentPlayer) のコールバック（時計の手番の設定）
-        std::function<void(Turn)> updateTurnStatus;
-
-        /// TurnManager の親オブジェクト（findChild で検索するための QObject*）
-        QObject* turnManagerParent = nullptr;
-
-        /// TurnManager 新規生成時に呼ばれるコールバック（シグナル接続用）
-        std::function<void(TurnManager*)> onTurnManagerCreated;
     };
 
-    TurnStateSyncService() = default;
+    explicit TurnStateSyncService(QObject* parent = nullptr);
 
+    /// 依存を設定し、GC の手番変更を TurnManager へつなぐ
     void updateDeps(const Deps& deps);
 
-    /// TurnManager を確保し、手番を同期する
-    void setCurrentTurn();
+    TurnManager* turnManager() const { return m_turnManager; }
 
-    /// TurnManager 変更通知ハンドラ
-    void onTurnManagerChanged(Turn now);
-
-    /// 手番表示 + 時計表示を更新する
+    /// 手番表示と時計の表示を更新する
     void updateTurnAndTimekeepingDisplay();
+
+public slots:
+    /// 対局中は GC、それ以外は盤面 SFEN の手番を正として TurnManager と GC を合わせる
+    void setCurrentTurn();
+    /// TurnManager の手番変更を時計・GC・手番表示へ反映する
+    void onTurnManagerChanged(Turn now);
 
 private:
     Deps m_deps;
+    TurnManager* m_turnManager = nullptr;          ///< this が所有
+    QPointer<ShogiGameController> m_connectedGc;   ///< 手番変更をつないでいる GC
 };
 
 #endif // TURNSTATESYNCSERVICE_H

@@ -9,13 +9,12 @@
 #include <QPoint>
 #include <QString>
 
-#include <functional>
-
 #include "recordline.h"
 
 class ShogiGameController;
 class ShogiView;
 class BoardInteractionController;
+class KifuNavigationState;
 
 /**
  * @brief 棋譜の局面を盤に描き、直前の手をハイライトする
@@ -31,7 +30,7 @@ public:
         ShogiGameController* gc = nullptr;
         ShogiView* view = nullptr;
         BoardInteractionController* bic = nullptr;
-        std::function<RecordLine()> currentLine;   ///< 表示中の手順（KifuNavigationState::currentRecordLine）
+        const KifuNavigationState* navState = nullptr;   ///< 表示中の手順（分岐ツリー）
     };
 
     explicit BoardSyncPresenter(const Deps& deps, QObject* parent=nullptr);
@@ -53,7 +52,7 @@ private:
     ShogiGameController* m_gc;
     ShogiView* m_view;
     BoardInteractionController* m_bic;
-    std::function<RecordLine()> m_currentLine;
+    const KifuNavigationState* m_navState = nullptr;
 };
 
 #endif // BOARDSYNCPRESENTER_H

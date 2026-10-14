@@ -367,10 +367,10 @@ BranchTreeManager* EngineAnalysisTab::branchTreeManager()
     return m_branchTreeManager;
 }
 
-void EngineAnalysisTab::setBranchTreeRows(const QList<ResolvedRowLite>& rows)
+void EngineAnalysisTab::setBranchTree(KifuBranchTree* tree)
 {
     ensureBranchTreeManager();
-    m_branchTreeManager->setBranchTreeRows(rows);
+    m_branchTreeManager->setBranchTree(tree);
 }
 
 void EngineAnalysisTab::highlightBranchTreeAt(int row, int ply, bool centerOn)
@@ -537,5 +537,5 @@ void EngineAnalysisTab::clearCommentDirty()
 void EngineAnalysisTab::clearThinkingViewSelection(int engineIndex)
 {
     ensurePresenter();
-    m_presenter->clearThinkingViewSelection(engineIndex, considerationView());
+    m_presenter->clearThinkingViewSelection(engineIndex, considerationTabManager()->considerationView());
 }

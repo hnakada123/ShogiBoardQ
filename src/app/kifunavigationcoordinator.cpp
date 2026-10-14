@@ -2,6 +2,8 @@
 /// @brief 棋譜ナビゲーション同期コーディネータの実装
 
 #include "kifunavigationcoordinator.h"
+#include "josekiwindowwiring.h"
+#include "turnstatesyncservice.h"
 
 #include <QTableView>
 #include <QItemSelectionModel>
@@ -16,6 +18,7 @@
 #include "kifubranchnode.h"
 #include "matchcoordinator.h"
 #include "engineanalysistab.h"
+#include "considerationtabmanager.h"
 #include "uistatepolicymanager.h"
 #include "playmode.h"
 #include "logcategories.h"
@@ -73,7 +76,7 @@ void KifuNavigationCoordinator::navigateToRow(int ply)
     syncNavStateToPly(safe);
 
     // 手番表示を更新
-    if (m_deps.setCurrentTurn) m_deps.setCurrentTurn();
+    if (m_deps.turnSync) m_deps.turnSync->setCurrentTurn();
 
     qCDebug(lcNavTrace).noquote() << "navigateKifuViewToRow LEAVE";
 }
@@ -83,7 +86,7 @@ void KifuNavigationCoordinator::syncLoadedPositionAtRow(int ply)
     // 新しい棋譜の読込は、以前の分岐選択に伴う一時的な同期抑止に優先する。
     if (m_deps.skipBoardSyncForBranchNav) *m_deps.skipBoardSyncForBranchNav = false;
     syncBoardAndHighlightsAtRow(ply);
-    if (m_deps.setCurrentTurn) m_deps.setCurrentTurn();
+    if (m_deps.turnSync) m_deps.turnSync->setCurrentTurn();
 }
 
 // `syncBoardAndHighlightsAtRow`: 指定手数の盤面・ハイライト・関連UI状態を同期する。
@@ -106,7 +109,6 @@ void KifuNavigationCoordinator::syncBoardAndHighlightsAtRow(int ply)
     }
 
     // BoardSyncPresenterを確保して盤面同期
-    if (m_deps.ensureBoardSyncPresenter) m_deps.ensureBoardSyncPresenter();
     if (m_deps.boardSync) {
         m_deps.boardSync->syncBoardAndHighlightsAtRow(ply);
     }
@@ -129,7 +131,7 @@ void KifuNavigationCoordinator::syncBoardAndHighlightsAtRow(int ply)
     }
 
     // 定跡ウィンドウを更新
-    if (m_deps.updateJosekiWindow) m_deps.updateJosekiWindow();
+    if (m_deps.josekiWiring) m_deps.josekiWiring->updateJosekiWindow();
 
     qCDebug(lcNavTrace) << "syncBoardAndHighlightsAtRow LEAVE";
 }
@@ -153,7 +155,7 @@ void KifuNavigationCoordinator::handleBranchNodeHandled(
     }
 
     // 定跡ウィンドウを更新
-    if (m_deps.updateJosekiWindow) m_deps.updateJosekiWindow();
+    if (m_deps.josekiWiring) m_deps.josekiWiring->updateJosekiWindow();
 
     // 検討モード時はエンジンに新しい局面を送信
     if (m_deps.playMode && *m_deps.playMode == PlayMode::ConsiderationMode
@@ -163,7 +165,7 @@ void KifuNavigationCoordinator::handleBranchNodeHandled(
         if (m_deps.match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo, lastUsiMove)) {
             qCDebug(lcNavTrace).noquote() << "onBranchNodeHandled: updateConsiderationPosition returned true";
             if (m_deps.analysisTab) {
-                m_deps.analysisTab->startElapsedTimer();
+                m_deps.analysisTab->considerationTabManager()->startElapsedTimer();
             }
         } else {
             qCDebug(lcNavTrace).noquote() << "onBranchNodeHandled: updateConsiderationPosition returned false (same position or not in consideration)";

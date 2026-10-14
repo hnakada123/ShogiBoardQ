@@ -104,16 +104,9 @@ void PvBoardDialog::setPlayerNames(const QString&, const QString&) {}
 void PvBoardDialog::setLastMove(const QString&) {}
 void PvBoardDialog::setPrevSfenForHighlight(const QString&) {}
 void PvBoardDialog::setFlipMode(bool) {}
-void PvBoardDialog::onGoFirst() {}
-void PvBoardDialog::onGoBack() {}
-void PvBoardDialog::onGoForward() {}
-void PvBoardDialog::onGoLast() {}
-void PvBoardDialog::onEnlargeBoard() {}
-void PvBoardDialog::onReduceBoard() {}
-void PvBoardDialog::onFlipBoard() {}
+void PvBoardDialog::onPlyChanged(int) {}
 void PvBoardDialog::onHighlightsCleared() {}
 void PvBoardDialog::closeEvent(QCloseEvent*) {}
-bool PvBoardDialog::eventFilter(QObject*, QEvent*) { return false; }
 
 // === ShogiView スタブ ===
 // pvboarddialog.h が shogiview.h をインクルードするため必要
@@ -134,7 +127,6 @@ void ShogiView::mouseMoveEvent(QMouseEvent*) {}
 void ShogiView::mouseReleaseEvent(QMouseEvent*) {}
 void ShogiView::resizeEvent(QResizeEvent*) {}
 void ShogiView::wheelEvent(QWheelEvent*) {}
-bool ShogiView::eventFilter(QObject*, QEvent*) { return false; }
 
 // === ElideLabel スタブ ===
 // shogiview.h が elidelabel.h をインクルードするため必要

@@ -47,6 +47,10 @@ public:
     // 新API: 本譜＋全変化をまとめて抽出（コメントも格納）
     [[nodiscard]] static bool parseWithVariations(const QString& usenPath, KifParseResult& out, QString* errorMessage = nullptr);
 
+    // テキスト（貼り付けた棋譜など）版
+    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
+    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
+
     // USENファイルから「対局情報」を抽出して順序付きで返す
     // 注意: USENは基本的にメタ情報を含まないため、ファイル名から推測するか空を返す
     static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);

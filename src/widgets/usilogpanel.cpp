@@ -2,7 +2,6 @@
 /// @brief USI通信ログパネルクラスの実装
 
 #include "usilogpanel.h"
-#include "logviewfontmanager.h"
 #include "buttonstyles.h"
 #include "applicationfonts.h"
 #include "elidelabel.h"
@@ -66,6 +65,7 @@ void relaxToolbarWidth(QWidget* toolbar)
 
 UsiLogPanel::UsiLogPanel(QObject* parent)
     : QObject(parent)
+    , m_fontSize(AnalysisSettings::usiLogFontSize, 8, 24)
 {
 }
 
@@ -106,7 +106,7 @@ QWidget* UsiLogPanel::buildUi(QWidget* parent)
     buildCommandBar();
     layout->addWidget(m_commandBar);
 
-    initFontManager();
+    applyFontSize();
     updateLogActions();
 
     return m_container;
@@ -315,29 +315,27 @@ void UsiLogPanel::buildCommandBar()
 
 // ===================== フォント管理 =====================
 
-void UsiLogPanel::initFontManager()
+void UsiLogPanel::applyFontSize()
 {
-    m_fontSize = qBound(8, AnalysisSettings::usiLogFontSize(), 24);
-    m_fontManager = std::make_unique<LogViewFontManager>(m_fontSize, m_logView);
-    m_fontManager->setPostApplyCallback([this](int size) {
-        QFont font = m_commandInput->font();
-        font.setPointSize(size);
-        m_commandInput->setFont(font);
-        m_btnFontDecrease->setEnabled(size > 8);
-        m_btnFontIncrease->setEnabled(size < 24);
-        AnalysisSettings::usiLogFontSize.set(size);
-    });
-    m_fontManager->apply();
+    const int size = m_fontSize.fontSize();
+    QFont logFont = m_logView->font();
+    logFont.setPointSize(size);
+    m_logView->setFont(logFont);
+    QFont font = m_commandInput->font();
+    font.setPointSize(size);
+    m_commandInput->setFont(font);
+    m_btnFontDecrease->setEnabled(size > 8);
+    m_btnFontIncrease->setEnabled(size < 24);
 }
 
 void UsiLogPanel::onFontIncrease()
 {
-    m_fontManager->increase();
+    if (m_fontSize.increase()) applyFontSize();
 }
 
 void UsiLogPanel::onFontDecrease()
 {
-    m_fontManager->decrease();
+    if (m_fontSize.decrease()) applyFontSize();
 }
 
 // ===================== イベント処理 =====================

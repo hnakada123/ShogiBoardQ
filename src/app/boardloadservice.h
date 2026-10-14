@@ -6,11 +6,12 @@
 
 #include <QObject>
 #include <QString>
-#include <functional>
 
 class ShogiGameController;
 class ShogiView;
 class BoardSyncPresenter;
+class KifuNavigationCoordinator;
+class TurnStateSyncService;
 
 /**
  * @brief SFEN文字列からの盤面適用とハイライト同期を担当するサービス
@@ -28,9 +29,8 @@ public:
         ShogiView* view = nullptr;                        ///< 将棋盤ビュー（非所有）
         BoardSyncPresenter* boardSync = nullptr;          ///< 盤面同期プレゼンタ（非所有）
         QString* currentSfenStr = nullptr;                ///< 現在局面SFEN文字列（外部所有）
-        std::function<void()> setCurrentTurn;             ///< 手番表示更新コールバック
-        std::function<void()> ensureBoardSyncPresenter;   ///< BoardSyncPresenter 遅延初期化
-        std::function<void()> beginBranchNavGuard;        ///< 分岐ナビガード開始
+        TurnStateSyncService* turnSync = nullptr;         ///< 手番表示の更新（非所有）
+        KifuNavigationCoordinator* kifuNav = nullptr;     ///< 分岐ナビ中の同期抑止（非所有）
     };
 
     explicit BoardLoadService(QObject* parent = nullptr);

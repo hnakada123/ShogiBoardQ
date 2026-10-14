@@ -8,12 +8,13 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <functional>
 
 #include "playmode.h"
 #include "gamerecordmodel.h"  // GameRecordModel::ExportContext
 #include "kifuclipboardservice.h"  // KifuClipboardService::ExportContext
 
+struct AppState;
+class KifuNavigationState;
 class GameRecordModel;
 class KifuRecordListModel;
 class GameInfoPaneController;
@@ -41,18 +42,11 @@ public:
         TimeControlController* timeController = nullptr;
         ShogiGameController* gameController = nullptr;
 
-        // 状態値
-        QString startSfenStr;
-        PlayMode playMode = PlayMode::NotStarted;
-        QString humanName1;
-        QString humanName2;
-        QString engineName1;
-        QString engineName2;
-        int currentMoveIndex = 0;
+        const AppState* state = nullptr;               ///< 開始局面・対局モード・対局者名
+        const KifuNavigationState* navState = nullptr; ///< 表示中の手数（分岐ツリーのカーソル）
     };
 
     void setDependencies(const Deps& deps);
-    void setPrepareCallback(std::function<void()> callback);
 
     // --------------------------------------------------------
     // クリップボードコピー
@@ -106,7 +100,6 @@ private:
     QString generateBodText(const PositionData& pos) const;
 
     Deps m_deps;
-    std::function<void()> m_prepareCallback;
 };
 
 #endif // KIFUEXPORTCLIPBOARD_H

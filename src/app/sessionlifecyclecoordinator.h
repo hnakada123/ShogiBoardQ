@@ -2,36 +2,36 @@
 #define SESSIONLIFECYCLECOORDINATOR_H
 
 /// @file sessionlifecyclecoordinator.h
-/// @brief セッションライフサイクル（リセット・終局処理）を管理するコーディネータの定義
+/// @brief セッションのライフサイクル（リセット・開始・終局）を管理するコーディネータの定義
 
 #include <QObject>
 #include <QString>
-#include <QStringList>
-#include <functional>
 
 #include "gamestartcoordinator.h"
+#include "mainwindowresetservice.h"
 #include "matchcoordinator.h"
-#include "playmode.h"
 
+struct AppState;
 class ConsecutiveGamesController;
-class MatchCoordinator;
+class CsaGameWiring;
+class GameStateController;
+class JosekiWindowWiring;
 class PlayerInfoWiring;
+class PreStartCleanupHandler;
 class ReplayController;
 class ShogiGameController;
 class ShogiView;
-class GameStateController;
 class TimeControlController;
+class UiStatePolicyManager;
 
 /**
- * @brief セッションのライフサイクル（リセット・終局処理）を管理するコーディネータ
+ * @brief セッションのライフサイクル（リセット・開始・終局）を管理する
  *
- * MainWindow から resetToInitialState / resetGameState / onMatchGameEnded の
- * オーケストレーションを分離し、セッション状態遷移の責務を集約する。
+ * - resetToInitialState: 「新規」の完全リセット
+ * - prepareNextGame: 連続対局の次局の準備
+ * - handleGameStarted / handleGameEnded / handleGameEndProcessed: 司令塔・開始担当からの通知
  *
- * - resetToInitialState: 「新規」メニュー操作時の完全リセットシーケンス
- * - resetGameState: ゲーム状態変数のクリアとコントローラリセット
- * - handleGameEnded: 終局時刻反映・UI更新
- * - handleGameEndProcessed: 終局表示・保存後の連続対局判定
+ * 部品はすべて MainWindowComposer が起動時に作って渡す（非所有）。状態は AppState を直接読み書きする。
  */
 class SessionLifecycleCoordinator : public QObject
 {
@@ -39,79 +39,66 @@ class SessionLifecycleCoordinator : public QObject
 
 public:
     struct Deps {
-        // --- コントローラ（resetGameState で使用） ---
-        ReplayController* replayController = nullptr;       ///< リプレイコントローラ（非所有）
-        ShogiGameController* gameController = nullptr;      ///< ゲームコントローラ（非所有）
-        GameStateController* gameStateController = nullptr; ///< ゲーム状態コントローラ（非所有）
-        QStringList* sfenRecord = nullptr;                  ///< SFEN履歴（非所有）
-
-        // --- 状態ポインタ（resetToInitialState で直接操作） ---
-        PlayMode* playMode = nullptr;           ///< プレイモード（外部所有）
-        QString* startSfenStr = nullptr;        ///< 開始局面SFEN（外部所有）
-        QString* currentSfenStr = nullptr;      ///< 現在局面SFEN（外部所有）
-
-        // --- MainWindow に残る処理のコールバック ---
-        std::function<void()> clearGameStateFields;       ///< m_state/m_player/m_kifu のフィールドクリア
-        std::function<void()> resetEngineState;           ///< エンジン・通信の停止
-        std::function<void()> performPreStartCleanup;     ///< 対局開始前クリーンアップ本体
-        std::function<void()> clearSessionDependentUi;    ///< セッション依存UIのクリア
-        std::function<void(const QString&)> resetModels;  ///< データモデルのクリア
-        std::function<void(const QString&)> resetUiState; ///< UI要素の状態リセット
-
-        // --- startNewGame 用コールバック ---
-        std::function<void()> clearEvalState;             ///< 評価グラフ・スコア・ライブ表示のクリア
-        std::function<void()> unlockGameOverStyle;        ///< 対局終了スタイルロック解除
-        std::function<void()> startGame;                  ///< 対局開始（MatchCoordinator初期化含む）
-        std::function<void()> updateJosekiWindow;         ///< 定跡ウィンドウ更新
-        std::function<void()> commitLiveGameSessionIfActive; ///< アクティブなライブセッションの確定
-
-        // --- handleGameEnded 用 ---
-        TimeControlController* timeController = nullptr;              ///< 時間制御コントローラ（非所有）
-        ConsecutiveGamesController* consecutiveGamesController = nullptr; ///< 連続対局コントローラ（非所有）
-        std::function<void(const QDateTime&)> updateEndTime;          ///< 終了時刻をゲーム情報に反映
-        std::function<void()> startNextConsecutiveGame;               ///< 次の連続対局を開始
-
-        // --- applyTimeControl 用 ---
-        MatchCoordinator* match = nullptr;                            ///< 対局進行の司令塔（非所有）
-        ShogiView* shogiView = nullptr;                               ///< 盤面ビュー（非所有）
-        GameStartCoordinator::TimeSettings* lastTimeControl = nullptr; ///< 前回の時間設定（外部所有）
-        std::function<void(const GameStartCoordinator::TimeSettings&)> updateGameInfoWithTimeControl; ///< 対局情報ドックへの持ち時間反映
+        AppState* state = nullptr;
+        MatchCoordinator* match = nullptr;
+        CsaGameWiring* csaGameWiring = nullptr;
+        ReplayController* replayController = nullptr;
+        ShogiGameController* gameController = nullptr;
+        GameStateController* gameStateController = nullptr;
+        TimeControlController* timeController = nullptr;
+        ConsecutiveGamesController* consecutiveGamesController = nullptr;
+        ShogiView* shogiView = nullptr;
+        PreStartCleanupHandler* preStartCleanupHandler = nullptr;
+        PlayerInfoWiring* playerInfoWiring = nullptr;
+        JosekiWindowWiring* josekiWiring = nullptr;
+        UiStatePolicyManager* uiStatePolicy = nullptr;
+        MainWindowResetService::SessionUiDeps sessionUi;   ///< 対局ごとに消すログ・思考表示
+        MainWindowResetService::ModelResetDeps models;     ///< 「新規」で作り直す棋譜まわり
     };
 
     explicit SessionLifecycleCoordinator(QObject* parent = nullptr);
 
     void updateDeps(const Deps& deps);
 
-    /// セッションを初期状態にリセットする（メニュー「新規」アクション用）
+    /// セッションを初期状態にリセットする（メニュー「新規」。未保存の確認は呼び出し側）
     void resetToInitialState();
 
-    /// ゲーム状態をリセットする（状態変数クリア＋コントローラリセット）
+    /// 対局の状態（モード・対局者名・作業用の履歴）とコントローラをリセットする
     void resetGameState();
 
-    /// 対局開始前のクリーンアップとセッション依存UIのクリアを行う
-    void performPreStartCleanup();
     /// 連続対局の次局を独立した棋譜・開始局面として準備する
     void prepareNextGame(const QString& startSfen);
 
-    /// 新規対局を開始する（再開判定・評価グラフ初期化・開始呼び出し）
-    void startNewGame();
 
-    /// 時間設定を適用する（保存・時計設定・UI反映）
+    /// 棋譜まわりのモデルを sfen の局面から作り直す
+    void resetModels(const QString& sfen);
+
+    /// 棋譜を読み込む前に、前の対局のログ・グラフ・コメントを消す
+    void clearUiBeforeKifuLoad();
+
+public slots:
+    /// 対局開始前のクリーンアップとセッション依存 UI のクリア
+    void performPreStartCleanup();
+    /// 時間設定を適用する（保存・時計設定・対局情報への反映）
     void applyTimeControl(const GameStartCoordinator::TimeSettings& tc);
-
-    /// 対局開始後の UI/状態同期を行う
+    /// 対局開始後の状態同期
     void handleGameStarted(const MatchCoordinator::StartOptions& opt);
-
-    /// ライブ対局セッションが有効ならコミットする
+    /// ライブ対局セッションが有効なら確定する
     void commitLiveGameSessionIfActive();
-
-    /// 終局処理（終局時刻反映）
+    /// 終局処理（UI ロック・終局時刻）
     void handleGameEnded(const MatchCoordinator::GameEndInfo& info);
-    /// 終局表示・棋譜保存後に連続対局を予約する
+    /// 終局表示・棋譜保存の後に、連続対局の次局を予約する
     void handleGameEndProcessed(const MatchCoordinator::GameEndInfo& info);
+    /// 評価値グラフとスコアを消す
+    void clearEvalState();
 
 private:
+    void clearSessionDependentUi();
+    void resetUiState(const QString& sfen);
+    void stopEnginesAndNetwork();
+
     Deps m_deps;
+    GameStartCoordinator::TimeSettings m_lastTimeControl;  ///< 連続対局の次局に引き継ぐ時間設定
 };
 
 #endif // SESSIONLIFECYCLECOORDINATOR_H

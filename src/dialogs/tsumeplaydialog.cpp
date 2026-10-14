@@ -7,6 +7,7 @@
 #include "sfenutils.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
+#include "boardviewerwidget.h"
 #include "tsumeshogisettings.h"
 #include "tsumeprogressstore.h"
 #include "tsumesolutionreplay.h"
@@ -23,7 +24,6 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
-#include <QWheelEvent>
 #include <algorithm>
 
 TsumePlayDialog::TsumePlayDialog(QWidget* parent)
@@ -44,7 +44,7 @@ TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     applyFontSize();
     const auto preferences = TsumeshogiSettings::playPreferences();
     DialogUtils::restoreDialogSize(this, preferences.size);
-    m_timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
+    m_problemUi.timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
     m_view->setSquareSize(std::clamp(preferences.squareSize, 20, 150));
     m_boardRotated = preferences.boardRotated;
     updateTimeLimit();
@@ -63,7 +63,7 @@ TsumePlayDialog::~TsumePlayDialog()
     m_session->cancel();
     auto preferences = TsumeshogiSettings::playPreferences();
     preferences.size = size();
-    preferences.timeoutSec = m_timeout->value();
+    preferences.timeoutSec = m_problemUi.timeout->value();
     preferences.squareSize = m_view->squareSize();
     preferences.boardRotated = m_boardRotated;
     TsumeshogiSettings::setPlayPreferences(preferences);
@@ -88,91 +88,76 @@ void TsumePlayDialog::buildUi()
 {
     auto* layout = new QVBoxLayout(this);
     auto* controls = new QHBoxLayout;
-    m_header = new QLabel(this);
-    m_header->setObjectName(QStringLiteral("tsumeHeader"));
-    m_header->setWordWrap(true);
-    controls->addWidget(m_header, 1);
-    m_previousProblem = new QPushButton(tr("前の問題"), this);
-    m_nextProblem = new QPushButton(tr("次の問題"), this);
-    m_previousProblem->setObjectName(QStringLiteral("tsumePreviousProblem"));
-    m_nextProblem->setObjectName(QStringLiteral("tsumeNextProblem"));
-    connect(m_previousProblem, &QPushButton::clicked, this, &TsumePlayDialog::previousProblemRequested);
-    connect(m_nextProblem, &QPushButton::clicked, this, &TsumePlayDialog::nextProblemRequested);
-    for (auto* button : {m_previousProblem, m_nextProblem}) {
+    m_problemUi.header = new QLabel(this);
+    m_problemUi.header->setObjectName(QStringLiteral("tsumeHeader"));
+    m_problemUi.header->setWordWrap(true);
+    controls->addWidget(m_problemUi.header, 1);
+    m_problemUi.previous = new QPushButton(tr("前の問題"), this);
+    m_problemUi.next = new QPushButton(tr("次の問題"), this);
+    m_problemUi.previous->setObjectName(QStringLiteral("tsumePreviousProblem"));
+    m_problemUi.next->setObjectName(QStringLiteral("tsumeNextProblem"));
+    connect(m_problemUi.previous, &QPushButton::clicked, this, &TsumePlayDialog::previousProblemRequested);
+    connect(m_problemUi.next, &QPushButton::clicked, this, &TsumePlayDialog::nextProblemRequested);
+    for (auto* button : {m_problemUi.previous, m_problemUi.next}) {
         button->setAutoDefault(false);
         button->setEnabled(false);
         controls->addWidget(button);
     }
     controls->addSpacing(12);
     controls->addWidget(new QLabel(tr("判定時間:"), this));
-    m_timeout = new QSpinBox(this);
-    m_timeout->setObjectName(QStringLiteral("tsumeTimeLimit"));
-    m_timeout->setRange(1, 600);
-    m_timeout->setSuffix(tr(" 秒"));
-    connect(m_timeout, &QSpinBox::valueChanged, this, &TsumePlayDialog::updateTimeLimit);
-    controls->addWidget(m_timeout);
+    m_problemUi.timeout = new QSpinBox(this);
+    m_problemUi.timeout->setObjectName(QStringLiteral("tsumeTimeLimit"));
+    m_problemUi.timeout->setRange(1, 600);
+    m_problemUi.timeout->setSuffix(tr(" 秒"));
+    connect(m_problemUi.timeout, &QSpinBox::valueChanged, this, &TsumePlayDialog::updateTimeLimit);
+    controls->addWidget(m_problemUi.timeout);
     layout->addLayout(controls);
-    m_history = new QLabel(this);
-    m_history->setWordWrap(true);
-    layout->addWidget(m_history);
+    m_problemUi.history = new QLabel(this);
+    m_problemUi.history->setWordWrap(true);
+    layout->addWidget(m_problemUi.history);
 
     auto* instructions = new QLabel(tr("王手を続け、表示された手数以内に詰ませてください。別解も判定します。"), this);
     instructions->setWordWrap(true);
-    m_information = new QStackedWidget(this);
-    m_information->setObjectName(QStringLiteral("tsumeInformation"));
-    m_information->addWidget(instructions);
+    m_infoUi.stack = new QStackedWidget(this);
+    m_infoUi.stack->setObjectName(QStringLiteral("tsumeInformation"));
+    m_infoUi.stack->addWidget(instructions);
     auto* solutionPage = new QWidget(this);
     auto* solutionLayout = new QVBoxLayout(solutionPage);
     solutionLayout->setContentsMargins(0, 0, 0, 0);
     solutionLayout->setSpacing(4);
-    m_solutionStatus = new QLabel(tr("正解手順:"), this);
-    m_solutionStatus->setObjectName(QStringLiteral("tsumeSolutionStatus"));
-    solutionLayout->addWidget(m_solutionStatus);
-    m_solutionText = new QPlainTextEdit(this);
-    m_solutionText->setObjectName(QStringLiteral("tsumeSolutionText"));
-    m_solutionText->setAccessibleName(tr("正解手順"));
-    m_solutionText->setReadOnly(true);
-    solutionLayout->addWidget(m_solutionText, 1);
-    m_information->addWidget(solutionPage);
-    layout->addWidget(m_information);
+    m_infoUi.solutionStatus = new QLabel(tr("正解手順:"), this);
+    m_infoUi.solutionStatus->setObjectName(QStringLiteral("tsumeSolutionStatus"));
+    solutionLayout->addWidget(m_infoUi.solutionStatus);
+    m_infoUi.solutionText = new QPlainTextEdit(this);
+    m_infoUi.solutionText->setObjectName(QStringLiteral("tsumeSolutionText"));
+    m_infoUi.solutionText->setAccessibleName(tr("正解手順"));
+    m_infoUi.solutionText->setReadOnly(true);
+    solutionLayout->addWidget(m_infoUi.solutionText, 1);
+    m_infoUi.stack->addWidget(solutionPage);
+    layout->addWidget(m_infoUi.stack);
     buildBoardControls(layout);
-    m_view = new ShogiView(this);
-    m_view->setObjectName(QStringLiteral("tsumeBoard"));
-    m_view->setBoard(m_game->board());
-    m_view->setPieces();
-    m_view->setClockEnabled(false);
-    m_view->setMouseClickMode(true);
-    m_view->setNameFontScale(0.3);
-    m_view->installEventFilter(this);
-    m_interaction = new BoardInteractionController(m_view, m_game, this);
-    // 「表示」→「指せるマスを表示」の設定に従う（メイン画面と同じ）
-    m_interaction->setLegalMovesVisible(AppSettings::legalMovesVisible());
-    connect(m_view, &ShogiView::clicked, m_interaction, &BoardInteractionController::onLeftClick);
-    connect(m_view, &ShogiView::rightClicked, m_interaction, &BoardInteractionController::onRightClick);
-    connect(m_interaction, &BoardInteractionController::moveRequested, this, &TsumePlayDialog::requestMove);
-    layout->addWidget(m_view, 1, Qt::AlignHCenter);
 
-    m_status = new QLabel(this);
-    m_status->setObjectName(QStringLiteral("tsumeStatus"));
-    m_status->setWordWrap(true);
-    m_status->setMinimumHeight(45);
-    layout->addWidget(m_status);
+    m_infoUi.status = new QLabel(this);
+    m_infoUi.status->setObjectName(QStringLiteral("tsumeStatus"));
+    m_infoUi.status->setWordWrap(true);
+    m_infoUi.status->setMinimumHeight(45);
+    layout->addWidget(m_infoUi.status);
     buildActionControls(layout);
     auto* buttons = new QHBoxLayout;
-    m_fontDecrease = new QToolButton(this);
-    m_fontDecrease->setObjectName(QStringLiteral("tsumePlayFontDecrease"));
-    m_fontDecrease->setText(QStringLiteral("A-"));
-    m_fontDecrease->setToolTip(tr("文字サイズを縮小"));
-    m_fontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    m_fontIncrease = new QToolButton(this);
-    m_fontIncrease->setObjectName(QStringLiteral("tsumePlayFontIncrease"));
-    m_fontIncrease->setText(QStringLiteral("A+"));
-    m_fontIncrease->setToolTip(tr("文字サイズを拡大"));
-    m_fontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_fontDecrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontDecrease);
-    connect(m_fontIncrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontIncrease);
-    buttons->addWidget(m_fontDecrease);
-    buttons->addWidget(m_fontIncrease);
+    auto* fontDecrease = new QToolButton(this);
+    fontDecrease->setObjectName(QStringLiteral("tsumePlayFontDecrease"));
+    fontDecrease->setText(QStringLiteral("A-"));
+    fontDecrease->setToolTip(tr("文字サイズを縮小"));
+    fontDecrease->setStyleSheet(ButtonStyles::fontButton());
+    auto* fontIncrease = new QToolButton(this);
+    fontIncrease->setObjectName(QStringLiteral("tsumePlayFontIncrease"));
+    fontIncrease->setText(QStringLiteral("A+"));
+    fontIncrease->setToolTip(tr("文字サイズを拡大"));
+    fontIncrease->setStyleSheet(ButtonStyles::fontButton());
+    connect(fontDecrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontDecrease);
+    connect(fontIncrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontIncrease);
+    buttons->addWidget(fontDecrease);
+    buttons->addWidget(fontIncrease);
     buttons->addStretch();
     auto* close = new QPushButton(tr("一覧に戻る"), this);
     close->setObjectName(QStringLiteral("tsumeBackToCollection"));
@@ -191,60 +176,56 @@ void TsumePlayDialog::setProblem(const TsumeProblem& problem, int number, const 
     m_problem = problem;
     m_number = number;
     m_store = store;
-    m_timeout->setValue(timeoutSec);
+    m_problemUi.timeout->setValue(timeoutSec);
     m_session->configureEngine(enginePath, store);
     selectProblem();
 }
 
 void TsumePlayDialog::setProblemNavigation(bool hasPrevious, bool hasNext)
 {
-    m_previousProblem->setEnabled(hasPrevious);
-    m_nextProblem->setEnabled(hasNext);
+    m_problemUi.previous->setEnabled(hasPrevious);
+    m_problemUi.next->setEnabled(hasNext);
 }
 
 int TsumePlayDialog::timeoutSec() const
 {
-    return m_timeout->value();
+    return m_problemUi.timeout->value();
 }
 
 void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
 {
-    auto* row = new QHBoxLayout;
-    row->setSpacing(4);
-    // 絵文字の ➖➕ は Qt 6.7（Linux 版の AppImage）で ☒ になるため、全角の －＋ を使う。
-    auto* reduce = new QPushButton(QStringLiteral("－"), this);
-    reduce->setObjectName(QStringLiteral("tsumeReduceBoard"));
-    reduce->setToolTip(tr("将棋盤を縮小する"));
-    reduce->setAccessibleName(reduce->toolTip());
-    auto* enlarge = new QPushButton(QStringLiteral("＋"), this);
-    enlarge->setObjectName(QStringLiteral("tsumeEnlargeBoard"));
-    enlarge->setToolTip(tr("将棋盤を拡大する"));
-    enlarge->setAccessibleName(enlarge->toolTip());
-    auto* flip = new QPushButton(tr("盤面の回転"), this);
-    flip->setObjectName(QStringLiteral("tsumeFlipBoard"));
-    for (auto* button : {reduce, enlarge, flip}) {
-        button->setStyleSheet(ButtonStyles::secondaryNeutral());
-        button->setAutoDefault(false);
-        row->addWidget(button);
-    }
-    connect(reduce, &QPushButton::clicked, this, &TsumePlayDialog::onReduceBoard);
-    connect(enlarge, &QPushButton::clicked, this, &TsumePlayDialog::onEnlargeBoard);
-    connect(flip, &QPushButton::clicked, this, &TsumePlayDialog::onFlipBoard);
-    row->addStretch();
-    m_modeButton = new QStackedWidget(this);
-    m_modeButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    m_showSolution = new QPushButton(tr("正解手順"), this);
-    m_showSolution->setObjectName(QStringLiteral("tsumeShowSolution"));
-    m_showSolution->setAutoDefault(false);
-    connect(m_showSolution, &QPushButton::clicked, this, &TsumePlayDialog::solutionFirst);
-    m_modeButton->addWidget(m_showSolution);
-    m_returnToGame = new QPushButton(tr("対局に戻る"), this);
-    m_returnToGame->setObjectName(QStringLiteral("tsumeReturnToGame"));
-    m_returnToGame->setAutoDefault(false);
-    connect(m_returnToGame, &QPushButton::clicked, this, &TsumePlayDialog::returnToGame);
-    m_modeButton->addWidget(m_returnToGame);
-    row->addWidget(m_modeButton);
-    layout->addLayout(row);
+    // 盤と、縮小・拡大・回転の操作列（盤のモデルは対局の盤を使う）
+    m_viewer = new BoardViewerWidget(BoardViewerWidget::ZoomToolbar | BoardViewerWidget::FitWindowOnZoom,
+                                     BoardViewerWidget::ButtonLabels::Symbols, m_game->board(), this);
+    m_view = m_viewer->view();
+    m_view->setObjectName(QStringLiteral("tsumeBoard"));
+    m_view->setMouseClickMode(true);
+    m_viewer->reduceButton()->setObjectName(QStringLiteral("tsumeReduceBoard"));
+    m_viewer->enlargeButton()->setObjectName(QStringLiteral("tsumeEnlargeBoard"));
+    m_viewer->flipButton()->setObjectName(QStringLiteral("tsumeFlipBoard"));
+    connect(m_viewer, &BoardViewerWidget::boardTransformAboutToChange, this, &TsumePlayDialog::cancelBoardSelection);
+    connect(m_viewer, &BoardViewerWidget::flipToggled, this, &TsumePlayDialog::onFlipToggled);
+    m_interaction = new BoardInteractionController(m_view, m_game, this);
+    // 「表示」→「指せるマスを表示」の設定に従う（メイン画面と同じ）
+    m_interaction->setLegalMovesVisible(AppSettings::legalMovesVisible());
+    connect(m_view, &ShogiView::clicked, m_interaction, &BoardInteractionController::onLeftClick);
+    connect(m_view, &ShogiView::rightClicked, m_interaction, &BoardInteractionController::onRightClick);
+    connect(m_interaction, &BoardInteractionController::moveRequested, this, &TsumePlayDialog::requestMove);
+
+    m_replayUi.modeButton = new QStackedWidget(this);
+    m_replayUi.modeButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    m_replayUi.showSolution = new QPushButton(tr("正解手順"), this);
+    m_replayUi.showSolution->setObjectName(QStringLiteral("tsumeShowSolution"));
+    m_replayUi.showSolution->setAutoDefault(false);
+    connect(m_replayUi.showSolution, &QPushButton::clicked, this, &TsumePlayDialog::solutionFirst);
+    m_replayUi.modeButton->addWidget(m_replayUi.showSolution);
+    m_replayUi.returnToGame = new QPushButton(tr("対局に戻る"), this);
+    m_replayUi.returnToGame->setObjectName(QStringLiteral("tsumeReturnToGame"));
+    m_replayUi.returnToGame->setAutoDefault(false);
+    connect(m_replayUi.returnToGame, &QPushButton::clicked, this, &TsumePlayDialog::returnToGame);
+    m_replayUi.modeButton->addWidget(m_replayUi.returnToGame);
+    m_viewer->toolbarLayout()->addWidget(m_replayUi.modeButton);
+    layout->addWidget(m_viewer, 1);
 }
 
 void TsumePlayDialog::cancelBoardSelection()
@@ -254,47 +235,15 @@ void TsumePlayDialog::cancelBoardSelection()
     m_interaction->clearSelectionHighlight();
 }
 
-void TsumePlayDialog::onEnlargeBoard()
-{
-    cancelBoardSelection();
-    m_view->enlargeBoard(false);
-    adjustSize();
-}
-
-void TsumePlayDialog::onReduceBoard()
-{
-    cancelBoardSelection();
-    m_view->reduceBoard(false);
-    adjustSize();
-}
-
 void TsumePlayDialog::applyBoardOrientation()
 {
-    const bool flipped = !m_session->attackerIsBlack() != m_boardRotated;
-    m_view->setFlipMode(flipped);
-    if (flipped) m_view->setPiecesFlip();
-    else m_view->setPieces();
+    m_viewer->setFlipped(!m_session->attackerIsBlack() != m_boardRotated);
 }
 
-void TsumePlayDialog::onFlipBoard()
+void TsumePlayDialog::onFlipToggled(bool flipped)
 {
-    cancelBoardSelection();
-    m_boardRotated = !m_boardRotated;
-    applyBoardOrientation();
-}
-
-bool TsumePlayDialog::eventFilter(QObject* watched, QEvent* event)
-{
-    if (watched == m_view && event->type() == QEvent::Wheel) {
-        auto* wheel = static_cast<QWheelEvent*>(event);
-        if (wheel->modifiers() & Qt::ControlModifier) {
-            if (wheel->angleDelta().y() > 0) onEnlargeBoard();
-            else if (wheel->angleDelta().y() < 0) onReduceBoard();
-            wheel->accept();
-            return true;
-        }
-    }
-    return QDialog::eventFilter(watched, event);
+    // 回転ボタンで変えた向きを、攻め方から見た向きとの違いとして覚える
+    m_boardRotated = flipped != !m_session->attackerIsBlack();
 }
 
 void TsumePlayDialog::onFontIncrease()
@@ -309,22 +258,12 @@ void TsumePlayDialog::onFontDecrease()
 
 void TsumePlayDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    QFont f = font();
-    f.setPointSize(m_fontHelper.fontSize());
-    setFont(f);
-    const auto widgets = findChildren<QWidget*>();
-    for (QWidget* widget : widgets) {
-        // 盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整する。
-        if (widget != m_view && !m_view->isAncestorOf(widget)) widget->setFont(f);
-    }
+    // 盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整する。
+    const QFontMetrics metrics(m_fontHelper.applyTo(this, {m_view}));
     // 案内文と棋譜は同じ領域で切り替える。棋譜の行数やモードで盤面を動かさない。
-    m_information->setFixedHeight(std::max(70, QFontMetrics(f).lineSpacing() * 4 + 8));
+    m_infoUi.stack->setFixedHeight(std::max(70, metrics.lineSpacing() * 4 + 8));
     // 大きい文字でも案内の折返しで盤下の領域が伸縮しないように余裕を確保する。
-    m_status->setMinimumHeight(std::max(45, QFontMetrics(f).lineSpacing() * 3));
-    m_fontDecrease->setEnabled(m_fontHelper.fontSize() > 8);
-    m_fontIncrease->setEnabled(m_fontHelper.fontSize() < 24);
-    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize());
+    m_infoUi.status->setMinimumHeight(std::max(45, metrics.lineSpacing() * 3));
 }
 
 void TsumePlayDialog::selectProblem()
@@ -336,7 +275,7 @@ void TsumePlayDialog::selectProblem()
     m_attemptRecorded = false;
     m_solvedRecorded = false;
     m_totalPlies = 0;
-    m_header->setText(tr("第%1問 — 詰み手数を確認しています…").arg(m_number));
+    m_problemUi.header->setText(tr("第%1問 — 詰み手数を確認しています…").arg(m_number));
     m_interaction->cancelPendingClick();
     m_interaction->clearAllHighlights();
     m_view->endDrag();
@@ -411,28 +350,28 @@ void TsumePlayDialog::updateState()
     using State = TsumeGameSession::State;
     const auto state = m_session->state();
     m_interaction->setMoveInputEnabled(!m_reviewing && state == State::Ready);
-    m_restart->setEnabled(!m_reviewing && !m_problem.sfen.isEmpty());
-    m_undo->setEnabled(!m_reviewing && m_session->canUndo());
-    m_stop->setEnabled(m_reviewing ? m_solution->loading() : state == State::Thinking);
-    m_retry->setEnabled(m_reviewing ? !m_solution->loading() && !m_solution->available() : state == State::Paused);
-    m_stop->setVisible(m_stop->isEnabled());
-    m_retry->setVisible(m_retry->isEnabled());
+    m_actionUi.restart->setEnabled(!m_reviewing && !m_problem.sfen.isEmpty());
+    m_actionUi.undo->setEnabled(!m_reviewing && m_session->canUndo());
+    m_actionUi.stop->setEnabled(m_reviewing ? m_solution->loading() : state == State::Thinking);
+    m_actionUi.retry->setEnabled(m_reviewing ? !m_solution->loading() && !m_solution->available() : state == State::Paused);
+    m_actionUi.stop->setVisible(m_actionUi.stop->isEnabled());
+    m_actionUi.retry->setVisible(m_actionUi.retry->isEnabled());
     if (!m_reviewing && state == State::Ready) {
         if (!m_totalPlies) m_totalPlies = m_session->remainingPlies();
-        m_header->setText(tr("第%1問 — %2手詰 ／ 玉方: Hayanagi").arg(m_number).arg(m_totalPlies));
+        m_problemUi.header->setText(tr("第%1問 — %2手詰 ／ 玉方: Hayanagi").arg(m_number).arg(m_totalPlies));
         if (!m_attemptRecorded) {
             m_attemptRecorded = true;
             if (m_store) m_store->recordAttempt(TsumeCollection::positionId(m_problem.sfen));
         }
-        m_status->setText(tr("あなたの手番です。残り%1手以内で詰ませてください。").arg(m_session->remainingPlies()));
+        m_infoUi.status->setText(tr("あなたの手番です。残り%1手以内で詰ませてください。").arg(m_session->remainingPlies()));
     }
-    else if (state == State::Thinking) m_status->setText(tr("詰みと玉方の応手を確認しています…"));
-    else if (state == State::Paused) m_status->setText(tr("判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。"));
+    else if (state == State::Thinking) m_infoUi.status->setText(tr("詰みと玉方の応手を確認しています…"));
+    else if (state == State::Paused) m_infoUi.status->setText(tr("判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。"));
     if (m_store && !m_problem.sfen.isEmpty()) {
         const auto progress = m_store->progress(TsumeCollection::positionId(m_problem.sfen));
-        m_history->setText(progress.solves > 0 ? tr("正答済み ／ 挑戦%1回・正答%2回").arg(progress.attempts).arg(progress.solves)
+        m_problemUi.history->setText(progress.solves > 0 ? tr("正答済み ／ 挑戦%1回・正答%2回").arg(progress.attempts).arg(progress.solves)
                                              : tr("未正答 ／ 挑戦%1回").arg(progress.attempts));
-        if (!m_store->error().isEmpty()) m_history->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
+        if (!m_store->error().isEmpty()) m_problemUi.history->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
     }
     updateReplayControls();
 }
@@ -459,7 +398,7 @@ void TsumePlayDialog::showOutcome(TsumeGameSession::Outcome outcome, int remaini
         break;
     case Outcome::InvalidProblem: message = tr("この局面は王手の連続で詰ませられません。別の問題を選んでください。"); break;
     }
-    m_status->setText(message);
+    m_infoUi.status->setText(message);
     if (outcome == Outcome::NoMate || outcome == Outcome::TooLong) {
         // 玉方の応手を描いた盤面を1秒間確認できるようにしてから通知する（応手の描き直しは
         // 予約済みで、タイマーが鳴る前にイベントループが描くので、ここで同期描画はしない）。
@@ -480,10 +419,10 @@ void TsumePlayDialog::showPendingOutcome()
 
 void TsumePlayDialog::rejectMove()
 {
-    m_status->setText(tr("王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。"));
+    m_infoUi.status->setText(tr("王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。"));
 }
 
 void TsumePlayDialog::updateTimeLimit()
 {
-    m_session->setTimeLimit(m_timeout->value() * 1000);
+    m_session->setTimeLimit(m_problemUi.timeout->value() * 1000);
 }

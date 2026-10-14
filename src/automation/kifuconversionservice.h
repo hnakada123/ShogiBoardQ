@@ -59,7 +59,7 @@ private:
         QList<KifGameInfoItem> gameInfo;
         QStringList warnings;
     };
-    static bool parseFile(const QString& path, Format format, Parsed& out, QString* error);
+    static bool parseText(const QString& content, Format format, Parsed& out, QString* error);
     static Format detectFormatFromContent(const QString& content);
     /// 各手後の SFEN と指し手データが無い行を USI 手順から補完する
     static void completeLine(KifLine& line, const QString& baseSfen);

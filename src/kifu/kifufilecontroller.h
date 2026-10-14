@@ -18,6 +18,7 @@ class QProgressDialog;
 class KifuPasteDialog;
 class GameRecordModel;
 class GameInfoPaneController;
+class ReplayController;
 
 /**
  * @brief 棋譜ファイルI/O操作を担当するコントローラ
@@ -36,21 +37,14 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;           ///< 親ウィジェット（ダイアログ表示用）
         QStatusBar* statusBar = nullptr;           ///< ステータスバー
-        GameInfoPaneController* gameInfo = nullptr;
-        QString* saveFileName = nullptr;           ///< 上書き保存先パス（外部所有）。読み込み成功時に更新、貼り付け・局面反映時にクリア
-
-        // --- 準備コールバック ---
-        std::function<void()> clearUiBeforeKifuLoad;           ///< UI状態クリア
-        std::function<void(bool)> setReplayMode;               ///< リプレイモード設定
-        std::function<void()> ensurePlayerInfoAndGameInfo;     ///< PlayerInfoWiring+GameInfoController 確保
-        std::function<void()> ensureGameRecordModel;           ///< GameRecordModel 確保
-        std::function<void()> ensureKifuExportController;      ///< KifuExportController 確保
-        std::function<void()> updateKifuExportDependencies;    ///< KifuExportController 依存更新
-        std::function<KifuLoadCoordinator*()> ensureKifuLoadCoordinator; ///< KifuLoadCoordinator 確保（初回だけ生成）
-
-        // --- ゲッター ---
-        std::function<GameRecordModel*()> getGameRecordModel;          ///< 未保存変更を確認する棋譜モデル
-        std::function<KifuExportController*()> getKifuExportController; ///< KifuExportController 取得
+        GameInfoPaneController* gameInfo = nullptr; ///< 対局情報（未保存の確認と読み込み先）
+        QString* saveFileName = nullptr;           ///< 上書き保存先パス（AppState）。読み込み成功時に更新、貼り付け・局面反映時にクリア
+        GameRecordModel* gameRecord = nullptr;     ///< 未保存変更を確認する棋譜モデル
+        KifuExportController* exportController = nullptr;  ///< 保存・書き出し
+        KifuLoadCoordinator* loadCoordinator = nullptr;    ///< 読み込み（全部の読み込みで1つを使い回す）
+        ReplayController* replayController = nullptr;      ///< 読み込んだ棋譜は再生モードで見る
+        /// 棋譜を読み込む前に前の対局のログ・グラフ・コメントを消す（SessionLifecycleCoordinator）
+        std::function<void()> clearUiBeforeKifuLoad;
     };
 
     explicit KifuFileController(QObject* parent = nullptr);

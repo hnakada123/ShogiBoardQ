@@ -13,22 +13,132 @@
 #include "logcategories.h"
 #include <QMap>
 
-// ===== public =====
+namespace {
+
+QString turnMark(bool blackToMove)
+{
+    return blackToMove ? QStringLiteral("▲") : QStringLiteral("△");
+}
+
+bool readKifText(const QString& path, QString& text, QString* warn)
+{
+    QString usedEnc;
+    return KifReader::readAllTextAuto(path, text, &usedEnc, warn);
+}
+
+/// KIF の1つの手順（本譜または1つの変化）を lines[begin, end) から読む。
+/// line.disp の先頭は開始局面の項目（ply 0）。表示用の指し手と USI の指し手は同じ走査で作る。
+/// 読めない指し手があれば、その手の前で手順を打ち切り warn に記録する。
+void parseKifBlock(const QStringList& lines, qsizetype begin, qsizetype end,
+                   const QString& baseSfen, int startPly, const QString& prevUsi,
+                   KifLine& line, QString* warn)
+{
+    using namespace KifuParseCommon;
+
+    // 手順の1手目が「同」のときは、分岐元に至る直前の指し手の移動先を使う
+    int prevToFile = 0, prevToRank = 0;
+    KifLexer::usiDestination(prevUsi, prevToFile, prevToRank);
+    bool blackToMove = !baseSfen.contains(QStringLiteral(" w "));
+    int moveIndex = startPly - 1;
+    bool firstMoveFound = false;
+    bool ended = false;
+    QString openingComment, openingBookmark, comment;
+    line.baseSfen = baseSfen;
+    line.startPly = startPly;
+
+    for (qsizetype n = begin; n < end; ++n) {
+        QString lineStr = lines.at(n).trimmed();
+
+        if (tryHandleCommentLine(lineStr, firstMoveFound, comment, openingComment)) continue;
+        if (tryHandleBookmarkLine(lineStr, firstMoveFound, line.disp, openingBookmark)) continue;
+        if (ended || lineStr.isEmpty() || isKifSkippableHeaderLine(lineStr) || isBoardHeaderOrFrame(lineStr))
+            continue;
+
+        // 1行に複数の指し手が書かれていることがある
+        while (!lineStr.isEmpty()) {
+            const auto optDigits = KifLexer::startsWithMoveNumber(lineStr);
+            if (!optDigits) break;
+            int i = *optDigits;
+            while (i < lineStr.size() && lineStr.at(i).isSpace()) ++i;
+            if (i >= lineStr.size()) break;
+
+            QString rest = lineStr.mid(i).trimmed();
+            QRegularExpressionMatch tm;
+            QString timeText;
+            int nextMoveStartIdx = -1;
+            QString inlineComment;
+            KifLexer::stripTimeAndNextMove(rest, lineStr, i, tm, timeText, nextMoveStartIdx);
+            KifLexer::stripInlineComment(rest, inlineComment);
+            KifLexer::advanceToNextMove(lineStr, i, tm, nextMoveStartIdx);
+
+            if (!firstMoveFound) {
+                firstMoveFound = true;
+                line.disp.push_back(createOpeningDisplayItem(openingComment, openingBookmark));
+            }
+            if (rest.isEmpty()) continue;
+
+            QString term;
+            if (isTerminalWordExact(rest, &term)) {
+                flushCommentToLastItem(comment, line.disp);
+                auto item = KifLexer::buildTerminalItem(++moveIndex, term, timeText, tm);
+                item.prettyMove = turnMark(blackToMove) + term;
+                line.disp.push_back(item);
+                if (!inlineComment.isEmpty()) appendLine(comment, inlineComment);
+                line.endsWithTerminal = true;
+                ended = true;
+                break;
+            }
+
+            QString usi;
+            if (!KifLexer::convertMoveLine(rest, usi, prevToFile, prevToRank)) {
+                if (warn) {
+                    *warn += QStringLiteral("KIF: cannot parse move %1: %2\n")
+                                 .arg(moveIndex + 1).arg(lines.at(n).trimmed());
+                }
+                ended = true;
+                break;
+            }
+            flushCommentToLastItem(comment, line.disp);
+            line.disp.push_back(createMoveDisplayItem(++moveIndex, turnMark(blackToMove) + rest, timeText));
+            line.usiMoves << usi;
+            if (!inlineComment.isEmpty()) appendLine(comment, inlineComment);
+            blackToMove = !blackToMove;
+        }
+    }
+
+    finalizeDisplayItems(comment, line.disp, openingComment, openingBookmark);
+    line.sfenList = SfenPositionTracer::buildSfenRecord(baseSfen, line.usiMoves, false);
+    line.gameMoves = SfenPositionTracer::buildGameMoves(baseSfen, line.usiMoves);
+}
+
+} // namespace
+
+// ===== テキスト =====
+
 QString KifToSfenConverter::mapHandicapToSfen(const QString& label) {
     return NotationUtils::mapHandicapToSfen(label);
 }
 
-QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QString* detectedLabel)
+QString KifToSfenConverter::detectInitialSfenFromText(const QString& text, QString* detectedLabel)
 {
-    QString usedEnc, warn;
-    QStringList lines;
-    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, &warn)) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return NotationUtils::mapHandicapToSfen(QStringLiteral("平手"));
-    }
+    return detectInitialSfenFromLines(KifReader::splitLines(text), detectedLabel);
+}
 
+bool KifToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
+{
+    return parseLines(KifReader::splitLines(text), out, errorMessage);
+}
+
+QList<KifGameInfoItem> KifToSfenConverter::extractGameInfoFromText(const QString& text)
+{
+    return extractGameInfoFromLines(KifReader::splitLines(text));
+}
+
+QString KifToSfenConverter::detectInitialSfenFromLines(const QStringList& lines, QString* detectedLabel)
+{
     // 先に BOD を試す
     QString bodSfen;
+    QString warn;
     if (buildInitialSfenFromBod(lines, bodSfen, detectedLabel, &warn)) {
         qCDebug(lcKifu).noquote() << "BOD detected. sfen =" << bodSfen;
         return bodSfen;
@@ -64,379 +174,43 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
     return initial;
 }
 
-QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& kifPath,
-                                                                QString* errorMessage)
-{
-    QList<KifDisplayItem> out;
-    QString usedEnc;
-    QStringList lines;
-    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) return out;
-
-    QString openingCommentBuf;
-    QString openingBookmarkBuf;
-    QString commentBuf;
-    int moveIndex = 0;
-    bool firstMoveFound = false;
-
-    bool blackToMove = !detectInitialSfenFromFile(kifPath).contains(QStringLiteral(" w "));
-
-    for (const QString& raw : std::as_const(lines)) {
-        QString lineStr = raw.trimmed();
-
-        if (KifuParseCommon::tryHandleCommentLine(lineStr, firstMoveFound, commentBuf, openingCommentBuf))
-            continue;
-        if (KifuParseCommon::tryHandleBookmarkLine(lineStr, firstMoveFound, out, openingBookmarkBuf))
-            continue;
-
-        if (lineStr.isEmpty() || KifuParseCommon::isKifSkippableHeaderLine(lineStr)
-            || KifuParseCommon::isBoardHeaderOrFrame(lineStr)) continue;
-        if (KifLexer::variationHeaderRe().match(lineStr).hasMatch()) break;
-
-        // --- 1行に含まれる指し手をループ処理 ---
-        while (!lineStr.isEmpty()) {
-            const auto optDigits = KifLexer::startsWithMoveNumber(lineStr);
-            if (!optDigits) break;
-            int i = *optDigits;
-            while (i < lineStr.size() && lineStr.at(i).isSpace()) ++i;
-            if (i >= lineStr.size()) break;
-
-            QString rest = lineStr.mid(i).trimmed();
-            QRegularExpressionMatch tm;
-            QString timeText;
-            int nextMoveStartIdx = -1;
-
-            KifLexer::stripTimeAndNextMove(rest, lineStr, i, tm, timeText, nextMoveStartIdx);
-            KifLexer::stripInlineComment(rest, commentBuf);
-            KifLexer::advanceToNextMove(lineStr, i, tm, nextMoveStartIdx);
-
-            // 最初の指し手が見つかった時に開始局面エントリを挿入
-            if (!firstMoveFound) {
-                firstMoveFound = true;
-                out.push_back(KifuParseCommon::createOpeningDisplayItem(openingCommentBuf, openingBookmarkBuf));
-            }
-
-            // 終局語?
-            QString term;
-            if (KifuParseCommon::isTerminalWordExact(rest, &term)) {
-                KifuParseCommon::flushCommentToLastItem(commentBuf, out);
-                ++moveIndex;
-                auto item = KifLexer::buildTerminalItem(moveIndex, term, timeText, tm);
-                item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + term;
-                out.push_back(item);
-                lineStr.clear();
-                break;
-            }
-
-            // 通常手
-            if (!rest.isEmpty()) {
-                KifuParseCommon::flushCommentToLastItem(commentBuf, out);
-                ++moveIndex;
-                const QString prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + rest;
-                out.push_back(KifuParseCommon::createMoveDisplayItem(moveIndex, prettyMove, timeText));
-                blackToMove = !blackToMove;
-            }
-        }
-    }
-
-    KifuParseCommon::finalizeDisplayItems(commentBuf, out, openingCommentBuf, openingBookmarkBuf);
-
-    return out;
-}
-
-QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* errorMessage)
-{
-    QStringList out;
-    QString usedEnc;
-    QStringList lines;
-    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) return out;
-
-    int prevToFile = 0, prevToRank = 0;
-
-    for (const QString& raw : std::as_const(lines)) {
-        QString lineStr = raw.trimmed();
-
-        if (KifuParseCommon::isKifCommentLine(lineStr) || KifuParseCommon::isBookmarkLine(lineStr)) continue;
-        if (lineStr.isEmpty() || KifuParseCommon::isKifSkippableHeaderLine(lineStr)
-            || KifuParseCommon::isBoardHeaderOrFrame(lineStr)) continue;
-        if (KifLexer::variationHeaderRe().match(lineStr).hasMatch()) break;
-        if (KifuParseCommon::containsAnyTerminal(lineStr)) break;
-
-        // --- 1行複数指し手ループ ---
-        while (!lineStr.isEmpty()) {
-            const auto optDigits = KifLexer::startsWithMoveNumber(lineStr);
-            if (!optDigits) break;
-            int i = *optDigits;
-            while (i < lineStr.size() && lineStr.at(i).isSpace()) ++i;
-            if (i >= lineStr.size()) break;
-
-            QString rest = lineStr.mid(i).trimmed();
-            QRegularExpressionMatch tm;
-            QString timeText;
-            int nextMoveStartIdx = -1;
-
-            KifLexer::stripTimeAndNextMove(rest, lineStr, i, tm, timeText, nextMoveStartIdx);
-
-            // インラインコメント除去
-            int cIdx = static_cast<int>(rest.indexOf(QChar(u'*')));
-            if (cIdx < 0) cIdx = static_cast<int>(rest.indexOf(QChar(u'＊')));
-            if (cIdx >= 0) rest = rest.left(cIdx).trimmed();
-
-            // USI変換
-            QString usi;
-            if (KifLexer::convertMoveLine(rest, usi, prevToFile, prevToRank)) {
-                out << usi;
-            } else {
-                if (errorMessage) *errorMessage += QStringLiteral("[skip ?] %1\n").arg(raw);
-            }
-
-            KifLexer::advanceToNextMove(lineStr, i, tm, nextMoveStartIdx);
-        }
-    }
-
-    qCDebug(lcKifu).noquote() << QStringLiteral("moves = %1").arg(out.size());
-    return out;
-}
-
-bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
-                                             KifParseResult& out,
-                                             QString* errorMessage)
+bool KifToSfenConverter::parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage)
 {
     out = KifParseResult{};
 
-    // フェーズ1: 本譜抽出
-    extractMainLine(kifPath, out, errorMessage);
-
-    // フェーズ2: 変化抽出用にファイル読み込み
-    QString usedEnc;
-    QStringList lines;
-    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) {
-        return false;
+    // 「変化：N手」の行で手順を区切る（最初の区切りまでが本譜）
+    QList<qsizetype> boundaries;
+    for (qsizetype i = 0; i < lines.size(); ++i) {
+        if (KifLexer::variationHeaderCaptureRe().match(lines.at(i)).hasMatch()) boundaries.append(i);
     }
+    boundaries.append(lines.size());
 
-    // フェーズ3: 変化ブロックの収集と解析
-    QList<KifVariation> vars;
-    QStringList varPrevUsi;  // vars と同じ並び：各変化の分岐元に至る直前の指し手
-    int i = 0;
+    parseKifBlock(lines, 0, boundaries.first(), detectInitialSfenFromLines(lines), 1, QString(),
+                  out.mainline, errorMessage);
 
-    while (i < lines.size()) {
-        const QString l = lines.at(i).trimmed();
-        if (l.isEmpty() || KifuParseCommon::isKifSkippableHeaderLine(l)
-            || KifuParseCommon::isBoardHeaderOrFrame(l)) { ++i; continue; }
-
-        const QRegularExpressionMatch m = KifLexer::variationHeaderCaptureRe().match(l);
-        if (!m.hasMatch()) { ++i; continue; }
-
-        const int startPly = KifuParseCommon::flexDigitsToIntNoDetach(m.captured(1));
-
-        // ブロック行の収集（次の変化ヘッダまたは空行まで）
-        ++i;
-        QStringList block;
-        for (; i < lines.size(); ++i) {
-            const QString s = lines.at(i).trimmed();
-            if (s.isEmpty()) break;
-            if (s.startsWith(QStringLiteral("変化"))) break;
-            block << s;
+    for (qsizetype b = 0; b + 1 < boundaries.size(); ++b) {
+        const auto match = KifLexer::variationHeaderCaptureRe().match(lines.at(boundaries.at(b)));
+        const int startPly = KifuParseCommon::flexDigitsToIntNoDetach(match.captured(1));
+        const auto base = KifuParseCommon::findVariationBase(out.mainline, out.variations, startPly);
+        if (!base) {
+            if (errorMessage) *errorMessage += QStringLiteral("KIF: invalid variation start: %1\n").arg(startPly);
+            continue;
         }
-
-        // 分岐元の局面SFENと、変化の1手目が「同」のときの基準になる直前の指し手を特定
-        QString prevUsi;
-        const QString baseSfen = findBranchBaseSfen(vars, varPrevUsi, out.mainline, startPly - 1, &prevUsi);
-
-        // 変化ブロック解析
-        vars.push_back(parseVariationBlock(block, startPly, baseSfen, prevUsi));
-        varPrevUsi.push_back(prevUsi);
+        KifVariation variation;
+        variation.startPly = startPly;
+        parseKifBlock(lines, boundaries.at(b) + 1, boundaries.at(b + 1), base->sfen, startPly, base->prevUsi,
+                      variation.line, errorMessage);
+        KifuParseCommon::mergeOpeningIntoFirstMove(variation.line);
+        out.variations.append(variation);
     }
 
-    out.variations = vars;
+    qCDebug(lcKifu).noquote() << "parsed: mainline moves =" << out.mainline.usiMoves.size()
+                              << "variations =" << out.variations.size();
     return true;
 }
 
-void KifToSfenConverter::extractMainLine(const QString& kifPath,
-                                          KifParseResult& out,
-                                          QString* errorMessage)
+QList<KifGameInfoItem> KifToSfenConverter::extractGameInfoFromLines(const QStringList& lines)
 {
-    QString teai;
-    out.mainline.baseSfen = detectInitialSfenFromFile(kifPath, &teai);
-    out.mainline.disp     = extractMovesWithTimes(kifPath, errorMessage);
-    out.mainline.usiMoves = convertFile(kifPath, errorMessage);
-
-    out.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
-        out.mainline.baseSfen, out.mainline.usiMoves, false);
-    qCDebug(lcKifu).noquote() << "mainline sfenList built: size=" << out.mainline.sfenList.size();
-}
-
-QString KifToSfenConverter::findBranchBaseSfen(const QList<KifVariation>& vars,
-                                                const QStringList& varPrevUsi,
-                                                const KifLine& mainLine,
-                                                int branchPointPly,
-                                                QString* prevUsi)
-{
-    if (prevUsi) prevUsi->clear();
-
-    // まず既存の分岐から探す
-    for (qsizetype vi = vars.size() - 1; vi >= 0; --vi) {
-        const KifVariation& prevVar = vars.at(vi);
-        if (prevVar.startPly <= branchPointPly && !prevVar.line.sfenList.isEmpty()) {
-            const qsizetype idx = branchPointPly - (prevVar.startPly - 1);
-            if (idx >= 0 && idx < prevVar.line.sfenList.size()) {
-                qCDebug(lcKifu).noquote()
-                    << "variation baseSfen from variation" << vi
-                    << "(startPly=" << prevVar.startPly << ")";
-                if (prevUsi) {
-                    // idx == 0 は分岐元そのもの：その変化の直前の指し手を引き継ぐ
-                    if (idx == 0) {
-                        *prevUsi = varPrevUsi.value(vi);
-                    } else if (idx - 1 < prevVar.line.usiMoves.size()) {
-                        *prevUsi = prevVar.line.usiMoves.at(idx - 1);
-                    }
-                }
-                return prevVar.line.sfenList.at(idx);
-            }
-        }
-    }
-
-    // 分岐から見つからなければ本譜から探す
-    if (branchPointPly >= 0 && branchPointPly < mainLine.sfenList.size()) {
-        qCDebug(lcKifu).noquote() << "variation baseSfen from mainline";
-        if (prevUsi && branchPointPly >= 1 && branchPointPly - 1 < mainLine.usiMoves.size()) {
-            *prevUsi = mainLine.usiMoves.at(branchPointPly - 1);
-        }
-        return mainLine.sfenList.at(branchPointPly);
-    }
-
-    qCDebug(lcKifu).noquote() << "variation baseSfen: NOT FOUND";
-    return {};
-}
-
-KifVariation KifToSfenConverter::parseVariationBlock(const QStringList& blockLines,
-                                                      int startPly,
-                                                      const QString& baseSfen,
-                                                      const QString& prevUsi)
-{
-    KifVariation var;
-    var.startPly = startPly;
-    var.line.baseSfen = baseSfen;
-
-    extractMovesFromBlock(blockLines, startPly, var.line, prevUsi);
-
-    if (!var.line.baseSfen.isEmpty() && !var.line.usiMoves.isEmpty()) {
-        var.line.sfenList = SfenPositionTracer::buildSfenRecord(
-            var.line.baseSfen, var.line.usiMoves, false);
-        var.line.gameMoves = SfenPositionTracer::buildGameMoves(
-            var.line.baseSfen, var.line.usiMoves);
-        qCDebug(lcKifu).noquote() << "variation startPly=" << var.startPly
-                           << "sfenList built: size=" << var.line.sfenList.size()
-                           << "gameMoves built: size=" << var.line.gameMoves.size();
-    }
-
-    return var;
-}
-
-void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
-                                                int startPly,
-                                                KifLine& line,
-                                                const QString& prevUsi)
-{
-    // 変化の1手目が「同」のときは、分岐元に至る直前の指し手の移動先を使う
-    int prevToFile = 0, prevToRank = 0;
-    KifLexer::usiDestination(prevUsi, prevToFile, prevToRank);
-    int moveIndex = startPly - 1;
-    bool blackToMove = !line.baseSfen.contains(QStringLiteral(" w "));
-    QString commentBuf;
-    bool firstMoveFound = false;
-
-    for (const QString& raw : std::as_const(blockLines)) {
-        QString lineStr = raw;
-
-        if (KifuParseCommon::isKifCommentLine(lineStr)) {
-            const QString c = lineStr.mid(1).trimmed();
-            KifuParseCommon::appendLine(commentBuf, c);
-            continue;
-        }
-
-        if (KifuParseCommon::isBookmarkLine(lineStr)) {
-            const QString name = lineStr.mid(1).trimmed();
-            if (!name.isEmpty() && !line.disp.isEmpty()) {
-                KifuParseCommon::appendLine(line.disp.last().bookmark, name);
-            }
-            continue;
-        }
-
-        if (lineStr.isEmpty() || KifuParseCommon::isKifSkippableHeaderLine(lineStr)
-            || KifuParseCommon::isBoardHeaderOrFrame(lineStr)) continue;
-
-        // 1行複数手ループ
-        while (!lineStr.isEmpty()) {
-            const auto optDigits = KifLexer::startsWithMoveNumber(lineStr);
-            if (!optDigits) break;
-            int j = *optDigits;
-            while (j < lineStr.size() && lineStr.at(j).isSpace()) ++j;
-            if (j >= lineStr.size()) break;
-
-            QString rest = lineStr.mid(j).trimmed();
-            QRegularExpressionMatch tm;
-            QString timeText;
-            int nextMoveStartIdx = -1;
-
-            KifLexer::stripTimeAndNextMove(rest, lineStr, j, tm, timeText, nextMoveStartIdx);
-            KifLexer::stripInlineComment(rest, commentBuf);
-
-            // 終局語
-            QString term;
-            if (KifuParseCommon::isTerminalWordExact(rest, &term)) {
-                KifuParseCommon::flushCommentToLastItem(commentBuf, line.disp, 0);
-                ++moveIndex;
-                auto item = KifLexer::buildTerminalItem(moveIndex, term, timeText, tm);
-                item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + term;
-                line.disp.push_back(item);
-                lineStr.clear();
-                break;
-            }
-
-            // 通常手
-            if (!commentBuf.isEmpty() && firstMoveFound && !line.disp.isEmpty()) {
-                KifuParseCommon::appendLine(line.disp.last().comment, commentBuf);
-                commentBuf.clear();
-            } else if (firstMoveFound) {
-                commentBuf.clear();
-            }
-
-            firstMoveFound = true;
-
-            ++moveIndex;
-            const QString prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + rest;
-            line.disp.push_back(KifuParseCommon::createMoveDisplayItem(moveIndex, prettyMove, timeText));
-            blackToMove = !blackToMove;
-
-            // USI変換
-            QString usi;
-            if (KifLexer::convertMoveLine(rest, usi, prevToFile, prevToRank)) {
-                line.usiMoves << usi;
-            }
-
-            KifLexer::advanceToNextMove(lineStr, j, tm, nextMoveStartIdx);
-        }
-    }
-
-    // 最後の指し手の後に残っているコメントを付与
-    if (!commentBuf.isEmpty() && !line.disp.isEmpty()) {
-        KifuParseCommon::appendLine(line.disp.last().comment, commentBuf);
-    }
-}
-
-// ===== extractGameInfo =====
-
-QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePath)
-{
-    if (filePath.isEmpty()) return {};
-
-    QString usedEnc, warn;
-    QStringList lines;
-    if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
-        qCWarning(lcKifu).noquote() << "read failed:" << filePath << "warn:" << warn;
-        return {};
-    }
-
     static const QRegularExpression kLineLooksLikeMoveNo(
         QStringLiteral("^\\s*[0-9０-９]+\\s")
     );
@@ -446,10 +220,54 @@ QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePa
     });
 }
 
+// ===== ファイル =====
+
+QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QString* detectedLabel)
+{
+    QString text, warn;
+    if (!readKifText(kifPath, text, &warn)) {
+        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
+        return NotationUtils::mapHandicapToSfen(QStringLiteral("平手"));
+    }
+    return detectInitialSfenFromText(text, detectedLabel);
+}
+
+QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* errorMessage)
+{
+    KifParseResult result;
+    return parseWithVariations(kifPath, result, errorMessage) ? result.mainline.usiMoves : QStringList();
+}
+
+QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& kifPath, QString* errorMessage)
+{
+    KifParseResult result;
+    return parseWithVariations(kifPath, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
+}
+
+bool KifToSfenConverter::parseWithVariations(const QString& kifPath, KifParseResult& out, QString* errorMessage)
+{
+    out = KifParseResult{};
+    QString text;
+    if (!readKifText(kifPath, text, errorMessage)) return false;
+    return parseText(text, out, errorMessage);
+}
+
+QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePath)
+{
+    if (filePath.isEmpty()) return {};
+    QString text, warn;
+    if (!readKifText(filePath, text, &warn)) {
+        qCWarning(lcKifu).noquote() << "read failed:" << filePath << "warn:" << warn;
+        return {};
+    }
+    return extractGameInfoFromText(text);
+}
+
 QMap<QString, QString> KifToSfenConverter::extractGameInfoMap(const QString& filePath)
 {
     return KifuParseCommon::toGameInfoMap(extractGameInfo(filePath));
 }
+
 bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
                                                  QString& outSfen,
                                                  QString* detectedLabel,
@@ -479,7 +297,7 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
     }
 
     const QString board = boardRows.join(QLatin1Char('/'));
-    const QString hands = KifLexer::buildHandsSfen(handB, handW);
+    const QString hands = KifuParseCommon::buildHandsSfen(handB, handW);
     outSfen = QStringLiteral("%1 %2 %3 %4")
                   .arg(board, QString(turn), hands, QString::number(moveNumber));
 

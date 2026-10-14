@@ -5,7 +5,6 @@
 
 #include "csaenginecontroller.h"
 #include "csamoveconverter.h"
-#include "csamoveprogresshandler.h"
 #include "logcategories.h"
 #include "parsecommon.h"
 #include "sfencsapositionconverter.h"
@@ -40,7 +39,7 @@ void CsaGameCoordinator::setupInitialPosition()
 
     QString parseError;
     auto startSfen = SfenCsaPositionConverter::fromCsaPositionLines(
-        m_gameSummary.positionLines, &parseError);
+        m_progress.summary.positionLines, &parseError);
     if (!startSfen || startSfen->isEmpty()) {
         qCWarning(lcNetwork).noquote()
             << "CSA position parse failed. fallback to hirate. error=" << parseError;
@@ -54,29 +53,30 @@ void CsaGameCoordinator::setupInitialPosition()
     const QString boardSfen = m_gameController->board()->convertBoardToSfen();
     const QString standSfen = m_gameController->board()->convertStandToSfen();
     const QString currentPlayerStr = turnToSfen(m_gameController->board()->currentPlayer());
-    m_startSfen = QString("%1 %2 %3 1").arg(boardSfen, currentPlayerStr, standSfen);
+    CsaGameProgress& p = m_progress;
+    p.startSfen = QString("%1 %2 %3 1").arg(boardSfen, currentPlayerStr, standSfen);
 
     if (m_sfenHistory) {
         m_sfenHistory->clear();
-        m_sfenHistory->append(m_startSfen);
+        m_sfenHistory->append(p.startSfen);
     }
 
-    const bool isHirate = (m_startSfen.trimmed() == hiratePosition);
-    m_positionStr = isHirate
+    const bool isHirate = (p.startSfen.trimmed() == hiratePosition);
+    p.positionCommand = isHirate
         ? QStringLiteral("position startpos")
-        : QStringLiteral("position sfen %1").arg(m_startSfen);
-    m_usiMoves.clear();
-    m_initialPrettyMoves.clear();
-    m_prevToFile = 0;
-    m_prevToRank = 0;
+        : QStringLiteral("position sfen %1").arg(p.startSfen);
+    p.usiMoves.clear();
+    p.prevToFile = 0;
+    p.prevToRank = 0;
+    m_initialRecords.clear();
 
     int replayMoveCount = 0;
-    for (const QString& move : std::as_const(m_gameSummary.moves)) {
+    for (const QString& move : std::as_const(p.summary.moves)) {
         const bool isPromotion = isInitialPromotionMove(move, m_gameController);
         const QString prettyMove = CsaMoveConverter::csaToPretty(
-            move, isPromotion, m_prevToFile, m_prevToRank, replayMoveCount);
+            move, isPromotion, p.prevToFile, p.prevToRank, replayMoveCount);
 
-        if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, m_usiMoves, m_sfenHistory,
+        if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, p.usiMoves, m_sfenHistory,
                                                 replayMoveCount)) {
             qCWarning(lcNetwork).noquote()
                 << "Failed to replay CSA move from Game_Summary:" << move;
@@ -87,13 +87,19 @@ void CsaGameCoordinator::setupInitialPosition()
         }
 
         if (move.length() >= 5) {
-            m_prevToFile = move[3].digitValue();
-            m_prevToRank = move[4].digitValue();
+            p.prevToFile = move[3].digitValue();
+            p.prevToRank = move[4].digitValue();
         }
-        m_initialPrettyMoves.append(prettyMove);
+        // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
+        RecordEntry entry;
+        entry.displayText = prettyMove.trimmed();
+        entry.mover = move.startsWith(QLatin1Char('+')) ? Turn::Black : Turn::White;
+        entry.time = p.initialMoveTime(replayMoveCount);
+        fillRecordPosition(entry, p.usiMoves.value(replayMoveCount));
+        m_initialRecords.append(entry);
         ++replayMoveCount;
     }
-    m_moveCount = replayMoveCount;
+    p.moveCount = replayMoveCount;
 
     if (m_view) {
         m_view->update();
@@ -102,42 +108,16 @@ void CsaGameCoordinator::setupInitialPosition()
 
 void CsaGameCoordinator::setupClock()
 {
-    const CsaClient::GameSummary& s = m_gameSummary;
-
-    // 再開局面（仕様 3.2.3）: 初期局面と規定の持時間から、Game_Summary の指し手が
-    // 既に完了した状態にする。各手の消費時間を引き、各手番の開始時に加算時間を足す
-    int remainingBlackMs = s.totalTimeMs(true);
-    int remainingWhiteMs = s.totalTimeMs(false);
-    int consumedBlackMs = 0;
-    int consumedWhiteMs = 0;
-    for (int i = 0; i < s.moves.size(); ++i) {
-        const bool black = s.moves.at(i).startsWith(QLatin1Char('+'));
-        int& remaining = black ? remainingBlackMs : remainingWhiteMs;
-        int& consumed = black ? consumedBlackMs : consumedWhiteMs;
-        const int consumedMs = s.positionMoveConsumedMs(i);
-        remaining += s.incrementMs(black);
-        consumed += consumedMs;
-        // 残り時間を超えた分は秒読みで指したものとして、残りは 0 にする（仕様 3.2.2.1）
-        remaining = qMax(0, remaining - consumedMs);
-    }
-
-    const bool blackToMove = (s.toMove == QStringLiteral("+"));
-    // 手番側には、これから始まる手番の加算時間を足す
-    if (blackToMove) remainingBlackMs += s.incrementMs(true);
-    else remainingWhiteMs += s.incrementMs(false);
-
-    m_initialBlackTimeMs = s.totalTimeMs(true);
-    m_initialWhiteTimeMs = s.totalTimeMs(false);
-    m_blackTotalTimeMs = consumedBlackMs;
-    m_whiteTotalTimeMs = consumedWhiteMs;
-    m_blackRemainingMs = remainingBlackMs;
-    m_whiteRemainingMs = remainingWhiteMs;
+    // 再開局面（仕様 3.2.3）: 初期局面と規定の持時間から、Game_Summary の指し手が既に完了した状態にする
+    m_progress.startClockFromSummary();
 
     if (!m_clock) {
         return;
     }
 
-    CsaMoveProgressHandler::startDisplayClock(m_clock, s, remainingBlackMs, remainingWhiteMs);
+    const CsaClient::GameSummary& s = m_progress.summary;
+    const bool blackToMove = (s.toMove == QStringLiteral("+"));
+    startDisplayClock(m_clock, s, m_progress.blackRemainingMs, m_progress.whiteRemainingMs);
     // 終局の裁定はサーバーを正とし、表示用時計の時間切れで対局を終了しない。
     m_clock->setLoseOnTimeout(false);
     m_clock->setCurrentPlayer(blackToMove ? Turn::Black : Turn::White);
@@ -226,10 +206,9 @@ void CsaGameCoordinator::logGameConditions(const CsaClient::GameSummary& summary
 
 void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& summary)
 {
-    m_gameSummary = summary;
-    m_isBlackSide = summary.isBlackTurn();
     // 終局後も同じ接続で次の対局条件を受けるので、前局の記録はここで消す
-    resetGameTracking();
+    m_progress = CsaGameProgress::forSummary(summary);
+    m_initialRecords.clear();
 
     emit logMessage(tr("対局条件を受信しました"));
     emit logMessage(tr("先手: %1, 後手: %2").arg(summary.blackName, summary.whiteName));
@@ -261,19 +240,6 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
 
     emit logMessage(tr("対局条件に同意します..."));
     if (!m_initializingEngine) m_client->agree(summary.gameId);
-}
-
-RecordTime CsaGameCoordinator::initialMoveTime(int index) const
-{
-    // 再開局面の各手の消費時間と、その側の累計（「１手 / 合計」の表記）
-    const CsaClient::GameSummary& s = m_gameSummary;
-    if (index < 0 || index >= s.moves.size()) return {};
-    const bool black = s.moves.at(index).startsWith(QLatin1Char('+'));
-    qint64 totalMs = 0;
-    for (int i = 0; i <= index; ++i) {
-        if (s.moves.at(i).startsWith(QLatin1Char('+')) == black) totalMs += s.positionMoveConsumedMs(i);
-    }
-    return RecordTime::fromMilliseconds(s.positionMoveConsumedMs(index), totalMs);
 }
 
 // ============================================================
@@ -316,60 +282,9 @@ void CsaGameCoordinator::reconnectForNextGame()
     connectForGame();
 }
 
-void CsaGameCoordinator::ensureMoveProgressHandler()
-{
-    if (m_moveProgressHandler) return;
-    m_moveProgressHandler = std::make_unique<CsaMoveProgressHandler>();
-
-    CsaMoveProgressHandler::Refs refs;
-    refs.gameController = [this]() -> ShogiGameController* { return m_gameController; };
-    refs.clock = [this]() -> ShogiClock* { return m_clock; };
-    refs.engineController = [this]() { return m_engineController; };
-    refs.sfenHistory = [this]() { return m_sfenHistory; };
-    refs.client = m_client;
-    refs.gameState = &m_gameState;
-    refs.playerType = &m_playerType;
-    refs.isBlackSide = &m_isBlackSide;
-    refs.isMyTurn = &m_isMyTurn;
-    refs.moveCount = &m_moveCount;
-    refs.prevToFile = &m_prevToFile;
-    refs.prevToRank = &m_prevToRank;
-    refs.blackTotalTimeMs = &m_blackTotalTimeMs;
-    refs.whiteTotalTimeMs = &m_whiteTotalTimeMs;
-    refs.blackRemainingMs = &m_blackRemainingMs;
-    refs.whiteRemainingMs = &m_whiteRemainingMs;
-    refs.usiMoves = &m_usiMoves;
-    refs.positionStr = &m_positionStr;
-    refs.gameSummary = &m_gameSummary;
-    refs.thinkingMarginMs = &m_thinkingMarginMs;
-    m_moveProgressHandler->setRefs(refs);
-
-    CsaMoveProgressHandler::Hooks hooks;
-    hooks.logMessage = [this](const QString& msg, bool isError) {
-        emit logMessage(msg, isError);
-    };
-    hooks.failGame = [this](const QString& msg) { failGame(msg); };
-    hooks.moveMade = [this](const QString& csa, const QString& usi,
-                            const QString& pretty, int ms) {
-        emit moveMade(csa, usi, pretty, ms);
-    };
-    hooks.turnChanged = [this](bool myTurn) { emit turnChanged(myTurn); };
-    hooks.moveHighlightRequested = [this](const QPoint& f, const QPoint& t) {
-        emit moveHighlightRequested(f, t);
-    };
-    hooks.moveAppliedToBoard = [this]() { emit moveAppliedToBoard(); };
-    hooks.engineScoreUpdated = [this](int scoreCp, int ply, const QString& mate) {
-        emit engineScoreUpdated(scoreCp, ply, mate);
-    };
-    hooks.performResign = [this]() { performResign(); };
-    m_moveProgressHandler->setHooks(hooks);
-}
-
 void CsaGameCoordinator::cleanup()
 {
-    if (m_moveProgressHandler) {
-        m_moveProgressHandler->clearPendingVerdict();
-    }
+    clearPendingVerdict();
     if (m_engineController) {
         m_engineController->cleanup();
     }

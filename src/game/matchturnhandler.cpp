@@ -121,7 +121,6 @@ void MatchTurnHandler::flipBoard()
 
 void MatchTurnHandler::updateTurnDisplay(Turn p)
 {
-    *m_refs.currentTurn = p;
     if (m_hooks.updateTurnDisplayCb) m_hooks.updateTurnDisplayCb(p);
 }
 

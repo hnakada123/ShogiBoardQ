@@ -194,6 +194,6 @@ PositionEditCoordinator callback(false) ─► transitionToIdle()
 ## 設計上の注意点
 
 - **テーブル駆動**: 新しい状態やUI要素の追加は `buildPolicyTable()` にエントリを追加するだけ
-- **遅延生成対応**: `updateDeps()` で依存オブジェクトを後から注入可能（`ensure*()` パターンと親和性が高い）
+- **依存の注入**: 生成（`MainWindowComposer::createServices()`）の後、`MainWindowComposer::wireFoundation()` が `updateDeps()` で依存オブジェクトを渡す（[composition-root.md](composition-root.md)）
 - **表示メニュー**: 全状態で常に有効のため、テーブルには含めていない
 - **対局中の盤面クリック**: `setMoveInputEnabled(false)` で無効化するが、対局中は `BoardInteractionController` の `isHumanTurnCallback` による手番チェックが別途機能する

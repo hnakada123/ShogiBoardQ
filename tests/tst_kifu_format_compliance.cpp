@@ -457,6 +457,61 @@ private slots:
         QVERIFY2(reread.moves.last().prettyMove.contains(terminal), qPrintable(reread.moves.last().prettyMove));
         QVERIFY(reread.lines.join(QLatin1Char('\n')).contains(terminal));
     }
+
+    // 貼り付けたテキストは一時ファイルを作らず、各形式のテキスト版の入口で読む
+    void parseTextEveryFormat_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QStringList>("moves");
+        const QStringList two{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+        QTest::newRow("kif") << QStringLiteral("手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n") << two;
+        QTest::newRow("ki2") << QStringLiteral("▲７六歩 △３四歩\n") << two;
+        QTest::newRow("csa") << QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n") << two;
+        QTest::newRow("jkf") << QStringLiteral(R"({"header":{},"moves":[{},)"
+            R"({"move":{"from":{"x":7,"y":7},"to":{"x":7,"y":6},"piece":"FU","color":0}},)"
+            R"({"move":{"from":{"x":3,"y":3},"to":{"x":3,"y":4},"piece":"FU","color":1}}]})") << two;
+        QTest::newRow("usi") << QStringLiteral("position startpos moves 7g7f 3c3d") << two;
+        QTest::newRow("usen") << QStringLiteral("~0.7ku2jm.") << two;
+    }
+
+    void parseTextEveryFormat()
+    {
+        QFETCH(QString, text);
+        QFETCH(QStringList, moves);
+        const auto loaded = KifuLoadParser::parseText(text);
+        QVERIFY2(loaded.success, qPrintable(loaded.error + loaded.warning));
+        QVERIFY(loaded.filePath.isEmpty());
+        QCOMPARE(loaded.record.mainline.usiMoves, moves);
+    }
+
+    // テキストの読み込みに失敗したときのメッセージに一時ファイル名を出さない
+    void parseTextFailureHasNoFileName()
+    {
+        const auto loaded = KifuLoadParser::parseText(QStringLiteral(R"({"moves":42})"));
+        QVERIFY(!loaded.success);
+        QVERIFY2(!loaded.error.contains(QStringLiteral("shogi_paste")), qPrintable(loaded.error));
+        QVERIFY2(!loaded.error.contains(QStringLiteral(".jkf")), qPrintable(loaded.error));
+    }
+
+    // ファイルは1回読んでテキスト版に渡す（同じ内容なら同じ結果）
+    void parseFileMatchesParseContent()
+    {
+        const QString text = QStringLiteral("手合割：平手\n先手：A\n手数----指手---------消費時間--\n"
+            "1 ７六歩(77)\n2 ３四歩(33)\n3 投了\n\n変化：2手\n2 ８四歩(83)\n");
+        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/parse_XXXXXX.kif"));
+        QVERIFY(file.open());
+        file.write(text.toUtf8());
+        file.close();
+        const auto fromFile = KifuLoadParser::parseFile(file.fileName());
+        const auto fromText = KifuLoadParser::parseContent(text, KifuFileReader::KifuFormat::KIF);
+        QVERIFY2(fromFile.success, qPrintable(fromFile.error));
+        QVERIFY2(fromText.success, qPrintable(fromText.error));
+        QCOMPARE(fromFile.filePath, file.fileName());
+        QCOMPARE(fromText.record.mainline.usiMoves, fromFile.record.mainline.usiMoves);
+        QCOMPARE(fromText.record.variations.size(), 1);
+        QCOMPARE(fromText.gameInfo.size(), fromFile.gameInfo.size());
+        QCOMPARE(fromText.initialSfen, fromFile.initialSfen);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestKifuFormatCompliance)

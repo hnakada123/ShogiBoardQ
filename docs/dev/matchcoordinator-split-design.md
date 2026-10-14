@@ -6,6 +6,8 @@
 
 > **2026-10-14 追記（手番の表し方）:** 対局者（先手・後手）はすべて `Turn` で表す。`MatchCoordinator::Player`（P1/P2）と、敗者の先後を表す `setGameOver(info, loserIsP1, ...)` の引数・`GameOverState::lastLoserIsP1` は削除した（敗者は `lastInfo.loser`）。評価値のフック `appendEvalP1`／`appendEvalP2` は、エンジンの手番を受ける `appendEval(Turn)` の1つにした。`EngineLifecycleManager::Hooks` の `renderBoardFromGc`・`appendEvalP1`・`appendEvalP2` は使われていなかったので削除した。どこからも呼ばれていなかった `markTurnEpochNowFor()`・`turnEpochFor()`・`recomputeClockSnapshot()`（`MatchTimekeeper` と司令塔の転送）と `GameEndHandler::Hooks::turnEpochFor` も削除した（終局行の考慮時間は時計の値を使う）。以下のこれらの記述は分割当時の記録である。
 
+> **2026-10-15 追記（合成ルート化）:** 司令塔は子ハンドラをコンストラクタで全部作る（`createEngineManager()`・`createTimekeeper()`・`createUndoHandler()`・`createMatchTurnHandler()`・`createAnalysisSession()`・`createGameEndHandler()`・`createGameStartOrchestrator()`）。以下の `ensure*()`（遅延生成）の記述は当時の記録である。司令塔の手番のコピー `m_cur` は削除し、手番は `ShogiGameController` の現在の手番だけを使う。`prepareAndStartGame()`・`resetPositionHistory()` も削除し、対局の開始（ダイアログ・連続対局・再開）はすべて `GameStartCoordinator::finishStart()` を通る。フックは `MainWindowComposer::buildMatchHooks()`・`buildUndoHooks()`（`src/app/mainwindowcomposer_game.cpp`）が組み立てる。`MainWindowMatchAdapter` と `MainWindowServiceRegistry` は削除した（[composition-root.md](composition-root.md)）。`isHumanSide` は `PlayModePolicyService` だけが判定する。
+
 ## 1. 現状サマリ
 
 | ファイル | 行数 | 備考 |
@@ -153,7 +155,7 @@ Hooks (matchcoordinator.h:105-195):
 
   ゲーム初期化/棋譜:
    16. initializeNewGame(sfenStart)      → MainWindowMatchAdapter
-   17. appendKifuLine(text, elapsed)     → GameRecordUpdateService
+   17. appendRecord(RecordEntry)         → GameRecordUpdateService
    18. appendEvalP1()                    → EvaluationGraphController
    19. appendEvalP2()                    → EvaluationGraphController
    20. autoSaveKifu(dir, mode, ...)      → KifuFileController
@@ -172,7 +174,7 @@ Hooks (matchcoordinator.h:105-195):
 |-----------|-------------------|
 | EngineLifecycleManager | log, renderBoardFromGc, appendEvalP1, appendEvalP2 |
 | MatchTimekeeper | remainingMsFor, incrementMsFor, byoyomiMs |
-| GameEndHandler | appendKifuLine, showGameOverDialog, log, autoSaveKifu (間接) |
+| GameEndHandler | appendRecord, showGameOverDialog, log, autoSaveKifu (間接) |
 | GameStartOrchestrator | initializeNewGame, setPlayersNames, setEngineNames, setGameActions, renderBoardFromGc |
 | AnalysisSessionHandler | showGameOverDialog, setEngineNames |
 | MC 自身 | updateTurnDisplay, setGameActions, renderBoardFromGc, sendStopToEngine, log, showGameOverDialog |
@@ -320,7 +322,7 @@ struct EngineHooks {
 /// ゲーム初期化・棋譜系コールバック
 struct GameHooks {
     std::function<void(const QString&)> initializeNewGame;
-    std::function<void(const QString&, const QString&)> appendKifuLine;
+    std::function<void(const RecordEntry&)> appendRecord;
     std::function<void()> appendEvalP1;
     std::function<void()> appendEvalP2;
     std::function<void(const QString&, PlayMode,

@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 // GUIの思考タブの表に「時間」「深さ」「ノード数」「評価値」「読み筋」をセットするためのクラス
 class ShogiInfoRecord : public QObject
@@ -48,6 +49,11 @@ public:
 
     // USI形式の読み筋を設定する。
     void setUsiPv(const QString& usiPv);
+
+    // エンジンが送った読み筋（局面との照合前の USI 形式の指し手）を取得・設定する。
+    // usiPv() が空のとき（局面と合わない手があったとき）の読み筋ダイアログに使う。
+    QStringList enginePv() const { return m_enginePv; }
+    void setEnginePv(const QStringList& moves) { m_enginePv = moves; }
 
     // 読み筋の開始局面SFENを取得する。
     QString baseSfen() const;
@@ -101,6 +107,9 @@ private:
 
     // 現在の読み筋（USI形式）
     QString m_usiPv;
+
+    // エンジンが送った読み筋（USI形式の指し手）
+    QStringList m_enginePv;
 
     // 読み筋の開始局面SFEN
     QString m_baseSfen;

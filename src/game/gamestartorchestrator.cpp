@@ -294,9 +294,7 @@ void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions& opt)
     // HvE/HvH 共通の安全策
     *m_refs.currentMoveIndex = 0;
 
-    // 司令塔の内部手番も GC に同期（既存互換）
-    *m_refs.currentTurn = startSide;
-    if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(*m_refs.currentTurn);
+    if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(startSide);
 }
 
 // ------------------------------------------------------------------
@@ -480,21 +478,3 @@ void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(
 // 対局開始メインエントリ
 // ============================================================
 
-void GameStartOrchestrator::prepareAndStartGame(PlayMode mode,
-                                                 const QString& startSfenStr,
-                                                 const QStringList* sfenRecord,
-                                                 const StartGameDialogData* dlg,
-                                                 Turn bottomSide)
-{
-    // 1) オプション構築
-    StartOptions opt = buildStartOptions(mode, startSfenStr, sfenRecord, dlg);
-
-    // 2) 人間を手前へ（必要なら反転）
-    ensureHumanAtBottomIfApplicable(dlg, bottomSide);
-
-    // 3) 対局の構成と開始
-    configureAndStart(opt);
-
-    // 4) 初手がエンジン手番なら go→bestmove
-    if (m_hooks.startInitialEngineMoveIfNeeded) m_hooks.startInitialEngineMoveIfNeeded();
-}

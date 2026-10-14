@@ -8,7 +8,6 @@
 #include <QObject>
 #include <QString>
 
-#include <functional>
 
 class MatchCoordinator;
 class EngineAnalysisTab;
@@ -30,7 +29,7 @@ public:
      *
      * 司令塔は作り直されることがあるので、ポインタを控えずに送信のたびに取得する。
      */
-    void setMatchProvider(std::function<MatchCoordinator*()> provider);
+    void setMatchCoordinator(MatchCoordinator* match) { m_match = match; }
     void setAnalysisTab(EngineAnalysisTab* tab);
 
 public slots:
@@ -44,7 +43,7 @@ public slots:
 private:
     void appendStatus(const QString& text);
 
-    std::function<MatchCoordinator*()> m_matchProvider;
+    MatchCoordinator* m_match = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
 };
 

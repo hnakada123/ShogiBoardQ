@@ -13,8 +13,6 @@
  */
 namespace CsaFormatter {
 
-QString removeTurnMarker(const QString& move);
-bool isTerminalMove(const QString& move);
 QString extractCsaTimeToken(const QString& timeText);
 QString csaResultCode(const QString& terminalMove);
 QString convertToCsaDateTime(const QString& dateTimeStr);

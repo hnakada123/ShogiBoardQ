@@ -84,9 +84,6 @@ bool convertMoveLine(const QString& moveText, QString& usi,
 /// BOD持駒行を解析して駒数マップに追加
 void parseBodHandsLine(const QString& line, QMap<Piece, int>& outCounts, bool isBlack);
 
-/// 持駒マップからSFEN形式の持駒文字列を生成
-QString buildHandsSfen(const QMap<Piece, int>& black, const QMap<Piece, int>& white);
-
 /// BOD行を収集して rowByRank マップに格納
 bool collectBodRows(const QStringList& lines, QMap<QChar, QString>& rowByRank,
                     QString* detectedLabel = nullptr);

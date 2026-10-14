@@ -24,7 +24,6 @@ ConsiderationWiring::ConsiderationWiring(const Deps& deps, QObject* parent)
     , m_commLogModel(deps.commLogModel)
     , m_playMode(deps.playMode)
     , m_currentSfenStr(deps.currentSfenStr)
-    , m_ensureDialogCoordinator(deps.ensureDialogCoordinator)
 {
 }
 
@@ -40,7 +39,6 @@ void ConsiderationWiring::updateDeps(const Deps& deps)
     m_commLogModel = deps.commLogModel;
     m_playMode = deps.playMode;
     m_currentSfenStr = deps.currentSfenStr;
-    m_ensureDialogCoordinator = deps.ensureDialogCoordinator;
     if (m_uiController) ensureUIController();
 }
 
@@ -82,11 +80,6 @@ void ConsiderationWiring::displayConsiderationDialog()
     if (m_match && m_match->isEngineShutdownInProgress()) {
         qCDebug(lcUi) << "displayConsiderationDialog engine shutdown in progress, ignoring";
         return;
-    }
-
-    // m_dialogCoordinatorが未初期化の場合、コールバックで遅延初期化を実行
-    if (!m_dialogCoordinator && m_ensureDialogCoordinator) {
-        m_ensureDialogCoordinator();
     }
 
     if (m_dialogCoordinator) {

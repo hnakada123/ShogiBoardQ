@@ -99,12 +99,6 @@ public slots:
      */
     void onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml);
 
-signals:
-    /**
-     * @brief GameRecordModelの初期化が必要な時に発行
-     */
-    void ensureGameRecordModelRequested();
-
 private:
     CommentEditorPanel* m_commentEditor = nullptr;
     RecordPane* m_recordPane = nullptr;

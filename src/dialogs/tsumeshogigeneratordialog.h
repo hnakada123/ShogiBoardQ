@@ -86,56 +86,52 @@ private:
     QString formatElapsedTime(qint64 ms) const;
     QString exportLine(int row) const;
 
-    // エンジン設定
-    QComboBox* m_comboEngine = nullptr;
-    QPushButton* m_btnEngineSetting = nullptr;
+    /// エンジンと生成設定（スクロールできる上段）
+    struct SettingsPanel {
+        QComboBox* engine = nullptr;
+        QPushButton* engineSettings = nullptr;
+        QScrollArea* scroll = nullptr;
+        QSpinBox* targetMoves = nullptr;
+        QSpinBox* maxAttack = nullptr;
+        QSpinBox* maxDefend = nullptr;
+        QSpinBox* attackRange = nullptr;
+        QSpinBox* timeout = nullptr;
+        QSpinBox* maxPositions = nullptr;
+        QCheckBox* allowFinalAlternatives = nullptr; ///< 主手順の最終手の複数解を許容するか
+        QToolButton* help = nullptr;
+        QLabel* helpText = nullptr;
+        QPushButton* restoreDefaults = nullptr;
+    };
+    /// 開始・停止と進み具合
+    struct ProgressPanel {
+        QPushButton* start = nullptr;
+        QPushButton* stop = nullptr;
+        QLabel* counts = nullptr;
+        QLabel* elapsed = nullptr;
+        QLabel* status = nullptr;
+        QLabel* verification = nullptr;
+        QProgressBar* bar = nullptr;
+    };
+    /// 結果一覧と書き出し（SFEN に詰み手順を付加するか・保存・コピー）
+    struct ResultsPanel {
+        QTableWidget* table = nullptr;
+        QLabel* emptyText = nullptr;
+        QCheckBox* includePv = nullptr;
+        QPushButton* save = nullptr;
+        QPushButton* copySelected = nullptr;
+        QPushButton* copyAll = nullptr;
+    };
+    /// 最下段: 文字サイズと閉じる
+    struct FooterPanel {
+        QToolButton* fontDecrease = nullptr;
+        QToolButton* fontIncrease = nullptr;
+        QPushButton* close = nullptr;
+    };
 
-    // 生成設定
-    QScrollArea* m_settingsScroll = nullptr;
-    QSpinBox* m_spinTargetMoves = nullptr;
-    QSpinBox* m_spinMaxAttack = nullptr;
-    QSpinBox* m_spinMaxDefend = nullptr;
-    QSpinBox* m_spinAttackRange = nullptr;
-    QSpinBox* m_spinTimeout = nullptr;
-    QSpinBox* m_spinMaxPositions = nullptr;
-    QCheckBox* m_checkAllowFinalAlternatives = nullptr; ///< 主手順の最終手の複数解を許容するか
-    QToolButton* m_btnHelp = nullptr;
-    QLabel* m_labelHelp = nullptr;
-
-    // 制御ボタン
-    QPushButton* m_btnStart = nullptr;
-    QPushButton* m_btnStop = nullptr;
-
-    // プログレス表示
-    QLabel* m_labelProgress = nullptr;
-    QLabel* m_labelElapsed = nullptr;
-    QLabel* m_labelStatus = nullptr;
-    QLabel* m_labelVerification = nullptr;
-    QProgressBar* m_progressBar = nullptr;
-
-    // 結果テーブル
-    QTableWidget* m_tableResults = nullptr;
-    QLabel* m_labelEmptyResults = nullptr;
-
-    // フォントボタン
-    QToolButton* m_btnFontDecrease = nullptr;
-    QToolButton* m_btnFontIncrease = nullptr;
-
-    // 既定値に戻すボタン
-    QPushButton* m_btnRestoreDefaults = nullptr;
-
-    // 出力オプション（SFEN に詰み手順を付加するか）
-    QCheckBox* m_checkIncludePv = nullptr;
-
-    // ファイル保存ボタン
-    QPushButton* m_btnSaveToFile = nullptr;
-
-    // コピーボタン
-    QPushButton* m_btnCopySelected = nullptr;
-    QPushButton* m_btnCopyAll = nullptr;
-
-    // 閉じるボタン
-    QPushButton* m_btnClose = nullptr;
+    SettingsPanel m_settingsUi;
+    ProgressPanel m_progressUi;
+    ResultsPanel m_resultsUi;
+    FooterPanel m_footerUi;
 
     // エンジンリスト
     QList<Engine> m_engineList;

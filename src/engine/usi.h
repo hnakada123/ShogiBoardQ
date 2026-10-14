@@ -26,24 +26,23 @@
 #include "shogigamecontroller.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
+#include "thinkinginforow.h"
+#include "usiinfo.h"
 
 class UsiMatchHandler;
 class ShogiClock;
 
 /**
- * @brief USIプロトコル通信を管理するファサードクラス
+ * @brief GUI から使う USI エンジン1台の窓口
  *
- * このクラスは後方互換性のために元のUsiクラスのインターフェースを維持しながら、
- * 内部実装を以下の3つのクラスに委譲する:
- * - EngineProcessManager: QProcessの管理
- * - UsiProtocolHandler: USIプロトコルの送受信
- * - ThinkingInfoPresenter: GUIへの表示更新
+ * 対局・検討・棋譜解析・詰み探索の要求を受け、次のクラスに委譲する:
+ * - UsiEngineSession / EngineProcessManager: プロセスと初期化（usi〜readyok）
+ * - UsiProtocolHandler: USIコマンドの送信と受信行の解釈（info は UsiInfo にする）
+ * - ThinkingInfoPresenter: UsiInfo を思考タブの行（ThinkingInfoRow）にする
+ * - UsiMatchHandler: 対局の position/go/bestmove
  *
- * 設計上の注意:
- * - 単一責任原則（SRP）に基づくクラス分割
- * - シグナル/スロットによる疎結合な設計
- * - 既存コードとの後方互換性を維持
- *
+ * 送信は用途ごとの型付きメソッドを使う。任意の文字列を送れるのは、利用者が入力する
+ * USI コンソール（sendConsoleCommand）だけにする。
  */
 class Usi : public QObject
 {
@@ -71,15 +70,13 @@ public:
                  QObject* parent = nullptr);
     ~Usi() override;
 
-    // --- 公開インターフェース（後方互換性のため維持）---
-    
+    // --- 状態の参照 ---
+
     QString scoreStr() const;
     bool isResignMove() const;
     bool isWinMove() const;           ///< bestmove win（入玉宣言勝ち）を受信したか
     int lastScoreCp() const;
     QString lastScoreMate() const;
-    QString pvKanjiStr() const;
-    void setPvKanjiStr(const QString& newPvKanjiStr);
 
     void initializeAndStartEngineCommunication(QString& engineFile, QString& enginename);
 
@@ -90,15 +87,19 @@ public:
     /// 対局中の「すぐ指させる」。準備中に保留した position・go は残し、それを送った後で stop を送る
     void requestImmediateMove();
 
-    void executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV = 1);
-
     /// 検討用コマンド送信（非ブロッキング）
     /// position + go infinite を送信し、タイムアウト時に stop を送信するタイマーをセット
     /// bestmove の待機は行わず、シグナル経由で通知を受ける
     void sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV = 1);
 
-    void setPreviousFileTo(int newPreviousFileTo);
-    void setPreviousRankTo(int newPreviousRankTo);
+    /// 棋譜解析の1局面: position を送り、go infinite で探索を始める（停止は sendStopCommand）
+    void sendPositionAndGoInfinite(const QString& positionStr);
+
+    /// setoption name <name> value <value> を送る（初期化中なら完了後に送る）
+    void sendSetOptionCommand(const QString& name, const QString& value);
+
+    /// 直前の指し手の行き先（読み筋の最初の手の「同」表記に使う。無ければ {0, 0}）
+    void setPreviousMove(BoardSquare to);
 
     // 開始局面に至った最後の指し手（USI形式）を設定する。
     // 読み筋表示ウィンドウでのハイライト用。
@@ -129,7 +130,8 @@ public:
     /// 現在実行中のエンジンファイルパスを取得
     QString currentEnginePath() const;
 
-    void sendRaw(const QString& command) const;
+    /// 利用者が USI コンソールに入力したコマンドをそのまま送る。アプリの処理は型付きの送信メソッドを使う
+    void sendConsoleCommand(const QString& command);
 
     /// エンジンプロセスが起動中かどうかを返す
     bool isEngineRunning() const;
@@ -187,11 +189,8 @@ signals:
     void usiOkReceived();                             ///< usiok受信完了（ProtocolHandler → 外部）
     void readyOkReceived();                           ///< readyok受信完了（ProtocolHandler → 外部）
     void bestMoveReceived();                          ///< bestmove受信（ProtocolHandler → 外部）
-    void infoLineReceived(const QString& line);       ///< info行受信通知（ProtocolHandler → 外部）
-    void thinkingInfoUpdated(const QString& time, const QString& depth,
-                             const QString& nodes, const QString& score,
-                             const QString& pvKanjiStr, const QString& usiPv,
-                             const QString& baseSfen, int multipv, int scoreCp); ///< 思考情報更新（Presenter → 外部）
+    void infoReceived(const UsiInfo& info);           ///< info受信通知（ProtocolHandler → AnalysisFlowController）
+    void thinkingInfoUpdated(const ThinkingInfoRow& row); ///< 思考情報更新（Presenter → 外部）
 
 private:
     bool deferUntilReady(std::function<void()> action) const;
@@ -215,10 +214,8 @@ private:
 
     // --- 状態 ---
 
-    int m_previousFileTo = 0;                        ///< 前回の指し手の移動先筋
-    int m_previousRankTo = 0;                        ///< 前回の指し手の移動先段
+    BoardSquare m_previousMove;                      ///< 直前の指し手の行き先
     bool m_gameoverSent = false;                     ///< gameover送信済みフラグ（重複送信防止）
-    QString m_pvKanjiStr;                            ///< 読み筋の漢字表記
     QPointer<ShogiEngineThinkingModel> m_considerationModel; ///< 検討タブ用モデルへの参照（非所有）
     int m_considerationMaxMultiPV = 1;               ///< 検討タブの最大MultiPV値
     QTimer* m_analysisStopTimer = nullptr;           ///< 検討停止タイマー（所有、動的生成）
@@ -245,15 +242,10 @@ private slots:
     void onHashUsageUpdated(const QString& hashUsage);
     void onCommLogAppended(const QString& log);
     void onClearThinkingInfoRequested();
-    /// 解析停止タイマー発火時の処理（executeAnalysisCommunication用）
-    void onAnalysisStopTimeout();
     /// 検討停止タイマー発火時の処理（sendAnalysisCommands用）
     void onConsiderationStopTimeout();
     /// 思考情報を思考タブ・検討タブ・外部へ中継する
-    void onThinkingInfoUpdated(const QString& time, const QString& depth,
-                               const QString& nodes, const QString& score,
-                               const QString& pvKanjiStr, const QString& usiPv,
-                               const QString& baseSfen, int multipv, int scoreCp);
+    void onThinkingInfoUpdated(const ThinkingInfoRow& row);
 };
 
 #endif // USI_H

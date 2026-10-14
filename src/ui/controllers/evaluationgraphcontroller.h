@@ -7,11 +7,12 @@
 
 #include <QObject>
 
-#include <functional>
 #include <QList>
 
 class MatchCoordinator;
 class EvaluationChartWidget;
+class KifuBranchTree;
+class KifuNavigationState;
 
 /**
  * @brief EvaluationGraphController - 評価値グラフの管理クラス
@@ -50,11 +51,11 @@ public:
     void setSfenRecord(QStringList* sfenRecord);
 
     /**
-     * @brief 表示中の棋譜の長さ（手数。横軸の長さ）を返す関数を設定する
+     * @brief 横軸の長さ（表示中の手順の手数）を求める分岐ツリーと表示位置を設定する
      *
-     * 棋譜の正本（分岐ツリーの表示中の手順）の行数から求める。
+     * 棋譜の正本（分岐ツリーの表示中の手順）の行数（終局行を含む）- 1 を長さとする。
      */
-    void setRecordLengthProvider(std::function<int()> provider);
+    void setNavigation(const KifuBranchTree* tree, const KifuNavigationState* navState);
 
     // --------------------------------------------------------
     // エンジン名の設定
@@ -140,7 +141,10 @@ private:
     EvaluationChartWidget* m_evalChart = nullptr;
     MatchCoordinator* m_match = nullptr;
     QStringList* m_sfenHistory = nullptr;
-    std::function<int()> m_recordLength;
+    const KifuBranchTree* m_branchTree = nullptr;
+    const KifuNavigationState* m_navState = nullptr;
+
+    int recordLength() const;
 
     // エンジン名
     QString m_engine1Name;

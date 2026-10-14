@@ -189,7 +189,7 @@ resign
 
 | 文字列 | 出所 | 意味・期待値の例 |
 |---|---|---|
-| `appendKifuLine ENTER: text=` | GameRecordUpdateService | 記録された手。人間手＋応手＋投了の数と一致すること |
+| `appendRecord: text=` | GameRecordUpdateService | 記録された手。人間手＋応手＋投了の数と一致すること |
 | `HvE engineTurnNow=` | HumanVsEngineStrategy | 人間手の後のエンジン手番判定。毎回 `true` |
 | `addMove: added to tree` / `addMove: reused existing node` | LiveGameSession | ツリーへの追加／指し直しによる再利用 |
 | `startLiveGameSession: started from node, ply=` | PreStartCleanupHandler | 途中局面からの開始手数 |
@@ -202,7 +202,7 @@ resign
 | `[WARN]` | 全般 | 警告の総数 |
 
 ```bash
-echo "moves=$(grep -c 'appendKifuLine ENTER' "$S/moves.log") \
+echo "moves=$(grep -c 'appendRecord: text=' "$S/moves.log") \
 turn=$(grep -o 'HvE engineTurnNow= [a-z]*' "$S/moves.log" | sort | uniq -c | tr '\n' ' ') \
 rebuild=$(grep -c 'rebuildBranchTree: m_rows.size' "$S/moves.log") \
 setSfen=$(grep -c 'shogiboard_sfen.cpp.*setSfen:' "$S/moves.log") \

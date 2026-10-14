@@ -12,9 +12,8 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <cstdio>
-#define private public
 #include "mainwindow.h"
-#undef private
+#include "mainwindowcomposer.h"
 #include "applicationfonts.h"
 #include "startgamedialog.h"
 #include "settingscommon.h"
@@ -155,7 +154,7 @@ private slots:
         if (m_stage == 5) {
             if (m_elapsed.elapsed() - m_gameEndTime >= 1500) {
                 if (m_scenario.contains("resume-")) {
-                    auto* match = m_window.m_match;
+                    auto* match = m_window.composer().parts().match;
                     if (!match || !match->interruptedGame()) {
                         qCritical() << "MISSING_INTERRUPTED_GAME";
                         QCoreApplication::exit(5);

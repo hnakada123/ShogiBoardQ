@@ -1,171 +1,45 @@
 /// @file mainwindow.cpp
-/// @brief MainWindow — UIルートの Facade 実装
-///
-/// コンストラクタ/デストラクタは MainWindowLifecyclePipeline に委譲し、
-/// 各スロットはサービスへの転送のみ行う。
-/// Qt イベントの中継と依存参照の組み立てをここに残す。
-/// 業務ロジック・UI詳細ロジック・依存生成ロジックは
-/// MainWindowServiceRegistry または専用クラスに移譲済み。
+/// @brief MainWindow の実装（部品の組み立ては MainWindowComposer）
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-// --- Pipeline / Registry ---
-#include "mainwindowlifecyclepipeline.h"
-#include "mainwindowserviceregistry.h"
+#include "mainwindowcomposer.h"
 
-// --- unique_ptr メンバの完全型（デストラクタ用） ---
-#include "mainwindowownedtypes.h"
 #include <QCloseEvent>
-#include <QTimer>
-#ifdef QT_DEBUG
-#include "debugscreenshotwiring.h"
-#endif
+#include <QCoreApplication>
 
-// --- QPointer<T> の完全型（QPointer<T> -> T* 変換に必要） ---
-#include "boardinteractioncontroller.h"    // IWYU pragma: keep
-#include "boardsyncpresenter.h"            // IWYU pragma: keep
-#include "kifuloadcoordinator.h"           // IWYU pragma: keep
-#include "positioneditcontroller.h"        // IWYU pragma: keep
-
-// MainWindow を初期化し、主要コンポーネントを構築する。
-// 起動フローの詳細は MainWindowLifecyclePipeline::runStartup() を参照。
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , ui(std::make_unique<Ui::MainWindow>())
+    , m_composer(std::make_unique<MainWindowComposer>(*this, *ui))
 {
-    m_registry = std::make_unique<MainWindowServiceRegistry>(*this);
-    m_pipeline = m_registry->createLifecyclePipeline();
-    m_pipeline->runStartup();
+    m_composer->compose();
 }
 
-// 終了フローの詳細は MainWindowLifecyclePipeline::runShutdown() を参照。
 MainWindow::~MainWindow()
 {
-    m_pipeline->runShutdown();
+    m_composer->shutdown();
 }
 
-// 待ったボタンを押すと、2手戻る。
-void MainWindow::undoLastTwoMoves()
-{
-    m_registry->undoLastTwoMoves();
-}
-
-void MainWindow::updateJosekiWindow()
-{
-    m_registry->updateJosekiWindow();
-}
-
-// TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
-void MainWindow::onTurnManagerChanged(Turn now)
-{
-    m_registry->onTurnManagerChanged(now);
-}
-
-// 現在の手番を設定する。
-void MainWindow::setCurrentTurn()
-{
-    m_registry->setCurrentTurn();
-}
-
-// 設定ファイルにGUI全体のウィンドウサイズを書き込む。
-// また、将棋盤のマスサイズも書き込む。その後、GUIを終了する。
-void MainWindow::saveSettingsAndClose()
-{
-    m_pipeline->requestClose();
-}
-
-// 自動化 API の待ち受けを開始する（ServiceRegistryへ委譲）。
 void MainWindow::startAutomationServer(const QString& socketPath)
 {
-    m_registry->ensureAutomationServer(socketPath);
+    m_composer->startAutomationServer(socketPath);
 }
 
-// GUIを初期画面表示に戻す（ServiceRegistryへ委譲）。
-void MainWindow::resetToInitialState()
+void MainWindow::quitWithoutConfirmation()
 {
-    m_registry->resetToInitialState();
+    m_skipCloseConfirmation = true;
+    if (close()) QCoreApplication::quit();
 }
 
-// ゲーム状態変数のリセット（ServiceRegistryへ委譲）。
-void MainWindow::resetGameState()
-{
-    m_registry->resetGameState();
-}
-
-// `displayGameRecord`: Game Record を表示する（GameRecordLoadService に委譲）。
-void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
-{
-    m_registry->displayGameRecord(disp);
-}
-
-// `closeEvent`: 親クラスでイベント受理を確認してから shutdown を実行する。
 void MainWindow::closeEvent(QCloseEvent* e)
 {
-    if (!m_pipeline->confirmClose()) {
+    if (!m_skipCloseConfirmation && !m_composer->confirmClose()) {
         e->ignore();
         return;
     }
     QMainWindow::closeEvent(e);
-    if (!e->isAccepted())
-        return;
-    m_pipeline->runShutdown();
-}
-
-void MainWindow::beginPositionEditing()
-{
-    m_registry->handleBeginPositionEditing();
-}
-
-void MainWindow::finishPositionEditing()
-{
-    m_registry->handleFinishPositionEditing();
-}
-
-void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
-{
-    m_registry->handleMoveRequested(from, to);
-}
-
-// 再生モードの切替を ServiceRegistry へ委譲
-void MainWindow::setReplayMode(bool on)
-{
-    m_registry->setReplayMode(on);
-}
-
-void MainWindow::loadBoardFromSfen(const QString& sfen)
-{
-    m_registry->loadBoardFromSfen(sfen);
-}
-
-void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen)
-{
-    m_registry->loadBoardWithHighlights(currentSfen, prevSfen);
-}
-
-void MainWindow::onMoveCommitted(Turn mover, int ply)
-{
-    m_registry->handleMoveCommitted(static_cast<int>(mover), ply);
-}
-
-// `refreshPlayModePolicyDeps`: PlayModePolicyService の依存を最新に更新する。
-// 以下のタイミングで呼び出すこと:
-//   - 起動完了直後（initializeEarlyServices）
-//   - 司令塔の生成直後（MainWindowServiceRegistry::initMatchCoordinator）
-void MainWindow::refreshPlayModePolicyDeps()
-{
-    if (!m_playModePolicy) return;
-    PlayModePolicyService::Deps policyDeps;
-    policyDeps.playMode = &m_state.playMode;
-    policyDeps.gameController = m_gameController;
-    policyDeps.match = m_match;
-    policyDeps.csaGameCoordinator = [this]() { return m_registry ? m_registry->csaGameCoordinator() : nullptr; };
-    policyDeps.canRecordVariationMove = [this]() { return m_registry && m_registry->canRecordVariationMove(); };
-    m_playModePolicy->updateDeps(policyDeps);
-}
-
-// `onRecordPaneMainRowChanged`: Record Pane Main Row Changed のイベント受信時処理を行う。
-void MainWindow::onRecordPaneMainRowChanged(int row)
-{
-    m_registry->onRecordPaneMainRowChanged(row);
+    if (!e->isAccepted()) return;
+    m_composer->shutdown();
 }

@@ -413,24 +413,8 @@ void CsaWaitingDialog::onFontDecrease()
 
 void CsaWaitingDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    const int size = m_fontHelper.fontSize();
-    QFont f = font();
-    f.setPointSize(size);
-    setFont(f);
-
-    const QList<QWidget*> widgets = findChildren<QWidget*>();
-    for (QWidget* widget : std::as_const(widgets)) {
-        if (widget && widget->window() == this) {
-            widget->setFont(f);
-        }
-    }
-
-    if (m_statusLabel) {
-        QFont boldFont = f;
-        boldFont.setBold(true);
-        boldFont.setPointSize(size + 2);
-        m_statusLabel->setFont(boldFont);
-    }
-    DialogUtils::updateFontButtons(this, size);
+    QFont statusFont = m_fontHelper.applyTo(this);
+    statusFont.setBold(true);
+    statusFont.setPointSize(m_fontHelper.fontSize() + 2);
+    if (m_statusLabel) m_statusLabel->setFont(statusFont);
 }

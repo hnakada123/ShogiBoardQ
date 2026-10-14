@@ -3,6 +3,7 @@
 #include <QFile>
 #include <algorithm>
 
+#include "usiinfoparser.h"
 #include "boardcoordinates.h"
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
@@ -338,10 +339,11 @@ private slots:
         QCOMPARE(h.presenter.baseSfen(),
                  QStringLiteral("lnsgkgsnl/1r5b1/p1ppppppp/1p7/9/7P1/PPPPPPP1P/1B5R1/LNSGKGSNL w - 1"));
         QSignalSpy rows(&h.presenter, &ThinkingInfoPresenter::thinkingInfoUpdated);
-        h.presenter.processInfoLine(QStringLiteral("info depth 1 score cp 0 pv 8d8e 2f2e 8e8f"));
+        h.presenter.processInfo(*UsiInfoParser::parse(QStringLiteral("info depth 1 score cp 0 pv 8d8e 2f2e 8e8f")));
         QCOMPARE(rows.count(), 1);
-        QCOMPARE(rows.at(0).at(4).toString(), QStringLiteral("△８五歩(84)▲２五歩(26)△８六歩(85)"));
-        QCOMPARE(rows.at(0).at(5).toString(), QStringLiteral("8d8e 2f2e 8e8f"));
+        const auto row = qvariant_cast<ThinkingInfoRow>(rows.at(0).at(0));
+        QCOMPARE(row.pvKanji, QStringLiteral("△８五歩(84)▲２五歩(26)△８六歩(85)"));
+        QCOMPARE(row.usiPv, QStringLiteral("8d8e 2f2e 8e8f"));
     }
     void receivedBeforeDeadlineSurvivesUiDelay()
     {

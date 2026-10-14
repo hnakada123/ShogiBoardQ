@@ -110,7 +110,6 @@ private slots:
             QStringLiteral("commLogModel"),
             QStringLiteral("playMode"),
             QStringLiteral("currentSfenStr"),
-            QStringLiteral("ensureDialogCoordinator"),
         };
         for (const auto& field : std::as_const(fields)) {
             QVERIFY2(m_wiringSrc.contains(QStringLiteral("deps.") + field),

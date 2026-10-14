@@ -4,6 +4,7 @@
 #include "gamerecordupdateservice.h"
 
 #include "matchcoordinator.h"
+#include "gamerecordmodel.h"
 #include "livegamesession.h"
 #include "livegamesessionupdater.h"
 #include "logcategories.h"
@@ -18,16 +19,17 @@ GameRecordUpdateService::GameRecordUpdateService(Deps deps, QObject* parent)
 void GameRecordUpdateService::appendRecord(const RecordEntry& entry)
 {
     if (entry.displayText.isEmpty()) return;
+    qCDebug(lcApp).noquote() << "appendRecord: text=" << entry.displayText;
     if (m_deps.match && m_deps.match->gameOverState().moveAppended) return;
     RecordEntry recorded = entry;
     if (recorded.sfen.isEmpty() && m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty())
         recorded.sfen = m_deps.sfenRecord->last();
 
     auto* updater = m_deps.liveSessionUpdater;
-    updater->ensureSessionStarted();
+    updater->startSessionIfNeeded();
     if (!m_deps.liveGameSession->canAddMove()) return;
     recorded.time = m_deps.liveGameSession->continuedTime(recorded.time);
-    if (m_deps.markGameRecordDirty) m_deps.markGameRecordDirty();
+    if (m_deps.gameRecord) m_deps.gameRecord->markDirty();
     updater->appendRecord(recorded);
 }
 

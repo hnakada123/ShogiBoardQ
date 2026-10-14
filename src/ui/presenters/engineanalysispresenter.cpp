@@ -4,7 +4,6 @@
 #include "engineanalysispresenter.h"
 #include "tablemodelutils.h"
 #include "kifumovedelegate.h"
-#include "logviewfontmanager.h"
 
 #include <QTableView>
 #include <QHeaderView>
@@ -271,45 +270,37 @@ void EngineAnalysisPresenter::reapplyViewTuning(QTableView* v, QAbstractItemMode
 
 void EngineAnalysisPresenter::initThinkingFontManager()
 {
-    m_thinkingFontSize = AnalysisSettings::thinkingFontSize();
-    m_thinkingFontManager = std::make_unique<LogViewFontManager>(m_thinkingFontSize, nullptr);
-    m_thinkingFontManager->setPostApplyCallback([this](int size) {
-        QFont font;
-        font.setPointSize(size);
+    m_thinkingFontSize.emplace(AnalysisSettings::thinkingFontSize, 8, 24);
+    if (m_thinkingFontSize->fontSize() != 10) applyThinkingFontSize();
+}
 
-        if (m_info1) m_info1->setFontSize(size);
-        if (m_info2) m_info2->setFontSize(size);
+void EngineAnalysisPresenter::applyThinkingFontSize()
+{
+    const int size = m_thinkingFontSize->fontSize();
+    QFont font;
+    font.setPointSize(size);
 
-        const QString headerStyle = TableStyles::thinking(size);
+    if (m_info1) m_info1->setFontSize(size);
+    if (m_info2) m_info2->setFontSize(size);
 
-        if (m_view1) {
-            m_view1->setFont(font);
-            m_view1->setStyleSheet(headerStyle);
-            const int rowHeight = KifuMoveDelegate::textHeight(m_view1->font()) + 4;
-            m_view1->verticalHeader()->setDefaultSectionSize(rowHeight);
-        }
-        if (m_view2) {
-            m_view2->setFont(font);
-            m_view2->setStyleSheet(headerStyle);
-            const int rowHeight = KifuMoveDelegate::textHeight(m_view2->font()) + 4;
-            m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
-        }
-
-        AnalysisSettings::thinkingFontSize.set(size);
-    });
-    if (m_thinkingFontSize != 10) {
-        m_thinkingFontManager->apply();
+    const QString headerStyle = TableStyles::thinking(size);
+    for (QTableView* view : {m_view1, m_view2}) {
+        if (!view) continue;
+        view->setFont(font);
+        view->setStyleSheet(headerStyle);
+        const int rowHeight = KifuMoveDelegate::textHeight(view->font()) + 4;
+        view->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
 }
 
 void EngineAnalysisPresenter::onThinkingFontIncrease()
 {
-    m_thinkingFontManager->increase();
+    if (m_thinkingFontSize && m_thinkingFontSize->increase()) applyThinkingFontSize();
 }
 
 void EngineAnalysisPresenter::onThinkingFontDecrease()
 {
-    m_thinkingFontManager->decrease();
+    if (m_thinkingFontSize && m_thinkingFontSize->decrease()) applyThinkingFontSize();
 }
 
 // ===================== スロット =====================

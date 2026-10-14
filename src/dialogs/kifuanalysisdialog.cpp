@@ -344,42 +344,11 @@ void KifuAnalysisDialog::applyRangeLabels()
 // フォントサイズを適用
 void KifuAnalysisDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    const int size = m_fontHelper.fontSize();
-    QFont f = font();
-    f.setPointSize(size);
-    setFont(f);
-
-    // コンストラクタ中は setFont() による子ウィジェットへのフォント伝播が
-    // 遅延するため、全子ウィジェットに明示的にフォントを設定する
-    const QList<QWidget*> widgets = findChildren<QWidget*>();
-    for (QWidget* widget : std::as_const(widgets)) {
-        if (widget) {
-            widget->setFont(f);
-        }
-    }
-
     // セクション見出しラベルを太字にする
-    QFont boldFont = f;
+    QFont boldFont = m_fontHelper.applyTo(this);
     boldFont.setBold(true);
-    ui->labelSectionEngine->setFont(boldFont);
-    ui->labelSectionRange->setFont(boldFont);
-    ui->labelSectionTime->setFont(boldFont);
-    ui->btnFontDecrease->setEnabled(size > 8);
-    ui->btnFontIncrease->setEnabled(size < 24);
-    const int buttonWidth = qMax(40, fontMetrics().horizontalAdvance(QStringLiteral("A+")) + 20);
-    ui->btnFontDecrease->setFixedWidth(buttonWidth);
-    ui->btnFontIncrease->setFixedWidth(buttonWidth);
-
-    // コンボボックスのポップアップリストにも反映する
-    const QList<QComboBox*> comboBoxes = findChildren<QComboBox*>();
-    for (QComboBox* comboBox : std::as_const(comboBoxes)) {
-        if (comboBox && comboBox->view()) {
-            comboBox->view()->setFont(f);
-        }
-    }
+    for (QLabel* label : {ui->labelSectionEngine, ui->labelSectionRange, ui->labelSectionTime}) label->setFont(boldFont);
     ui->mainLayout->invalidate();
     QTimer::singleShot(0, this, &KifuAnalysisDialog::updateMinimumSize);
-    DialogUtils::updateFontButtons(this, size);
     DialogUtils::fitWrappedLabels(this);
 }

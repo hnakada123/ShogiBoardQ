@@ -395,6 +395,36 @@ private slots:
 
         QVERIFY(true);
     }
+    // テキスト版の入口（貼り付けた棋譜を一時ファイルなしで読む）
+    void parseText_matchesFile()
+    {
+        const QString text = QStringLiteral(
+            "手合割：平手\n先手：A\n▲７六歩 △３四歩 ▲２六歩\n変化：2手\n△８四歩\n");
+        QTemporaryFile file;
+        QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("ki2")));
+        KifParseResult fromFile, fromText;
+        QString error;
+        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), fromFile, &error), qPrintable(error));
+        QVERIFY2(Ki2ToSfenConverter::parseText(text, fromText, &error), qPrintable(error));
+        QCOMPARE(fromText.mainline.usiMoves, fromFile.mainline.usiMoves);
+        QCOMPARE(fromText.variations.size(), 1);
+        QCOMPARE(fromText.variations[0].line.usiMoves, QStringList({QStringLiteral("8c8d")}));
+        QCOMPARE(Ki2ToSfenConverter::extractGameInfoFromText(text).size(), 2);
+        QCOMPARE(Ki2ToSfenConverter::detectInitialSfenFromText(text), kHirateSfen);
+    }
+
+    // 変化の開始局面は KIF と同じ規則で探す（直前の変化が届かなければ本譜）
+    void variationBase_fallsBackToMainline()
+    {
+        KifParseResult result;
+        QString error;
+        QVERIFY2(Ki2ToSfenConverter::parseText(QStringLiteral(
+            "▲７六歩 △３四歩 ▲２六歩 △８四歩 ▲２五歩\n変化：3手\n▲６六歩\n変化：5手\n▲６八銀\n"),
+            result, &error), qPrintable(error));
+        QCOMPARE(result.variations.size(), 2);
+        QCOMPARE(result.variations[1].line.baseSfen, result.mainline.sfenList.at(4));
+        QCOMPARE(result.variations[1].line.usiMoves, QStringList({QStringLiteral("7i6h")}));
+    }
 };
 
 QTEST_MAIN(TestKi2Converter)

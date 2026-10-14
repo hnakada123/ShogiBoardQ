@@ -2,6 +2,7 @@
 /// @brief 棋譜解析の条件・分岐コンテキストの収集と解析フローへの橋渡し
 
 #include "dialogcoordinator.h"
+#include "shogiview.h"
 #include "analysisflowcontroller.h"
 #include "evaluationchartwidget.h"
 #include "gameinfopanecontroller.h"
@@ -97,8 +98,8 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
     params.presenter = m_kifuAnalysisCtx.presenter;
 
     // GUI本体の盤面反転状態を取得
-    if (m_kifuAnalysisCtx.getBoardFlipped) {
-        params.boardFlipped = m_kifuAnalysisCtx.getBoardFlipped();
+    if (m_kifuAnalysisCtx.shogiView) {
+        params.boardFlipped = m_kifuAnalysisCtx.shogiView->flipMode();
     }
 
     qCDebug(lcUi).noquote() << "showKifuAnalysisDialogFromContext:"

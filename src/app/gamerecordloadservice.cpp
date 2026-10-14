@@ -9,6 +9,11 @@
 #include <QLoggingCategory>
 Q_DECLARE_LOGGING_CATEGORY(lcApp)
 
+GameRecordLoadService::GameRecordLoadService(QObject* parent)
+    : QObject(parent)
+{
+}
+
 void GameRecordLoadService::updateDeps(const Deps& deps)
 {
     m_deps = deps;
@@ -22,21 +27,12 @@ void GameRecordLoadService::loadGameRecord(const QList<KifDisplayItem>& disp)
     // 棋譜の正本は分岐ツリー。対局の局面列・指し手列は読み込みでは触らず、
     // 対局開始時に表示中の手順から作り直す（MainWindowGameStartService）
 
-    // RecordPresenter を遅延初期化
-    GameRecordPresenter* presenter = nullptr;
-    if (m_deps.ensureRecordPresenter) {
-        presenter = m_deps.ensureRecordPresenter();
-    }
+    GameRecordPresenter* presenter = m_deps.recordPresenter;
     if (!presenter) return;
 
     const int rowCount = static_cast<int>(disp.size());
 
-    // GameRecordModel を遅延初期化してデータ設定
-    GameRecordModel* model = nullptr;
-    if (m_deps.ensureGameRecordModel) {
-        model = m_deps.ensureGameRecordModel();
-    }
-    if (model) {
+    if (GameRecordModel* model = m_deps.gameRecord) {
         model->initializeFromDisplayItems(disp, rowCount);
     }
     qCDebug(lcApp).noquote() << QStringLiteral("GameRecordModel init: %1 ms").arg(timer.elapsed());

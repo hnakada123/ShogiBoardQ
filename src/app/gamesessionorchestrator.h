@@ -5,12 +5,18 @@
 /// @brief UI 起点の対局操作を集約するオーケストレータ
 
 #include <QObject>
-#include <functional>
 
 #include "gamestartcoordinator.h"
 #include "matchcoordinator.h"
 
-class CsaGameCoordinator;
+class CsaGameWiring;
+class GameRecordModel;
+class KifuFileController;
+class PlayerInfoWiring;
+class SessionLifecycleCoordinator;
+class ShogiView;
+class TimeControlController;
+class UiStatePolicyManager;
 class DialogCoordinator;
 class GameStateController;
 class KifuBranchTree;
@@ -34,33 +40,34 @@ class GameSessionOrchestrator : public QObject
 
 public:
     struct Deps {
-        // === Controllers（使うときに取得する。遅延生成のものは取得時に作る） ===
-        std::function<GameStateController*()> gameStateController;
-        std::function<GameStartCoordinator*()> gameStart;
-        std::function<DialogCoordinator*()> dialogCoordinator;
-        std::function<CsaGameCoordinator*()> csaGameCoordinator;   ///< 通信対局をしていなければ nullptr
-        std::function<MatchCoordinator*()> match;                 ///< 起動の途中で作られる（以後は変わらない）
-
-        // === Core objects（安定ポインタ） ===
+        // === 部品（MainWindowComposer が起動時に作って渡す。非所有） ===
+        GameStateController* gameStateController = nullptr;
+        GameStartCoordinator* gameStart = nullptr;
+        DialogCoordinator* dialogCoordinator = nullptr;
+        CsaGameWiring* csaGameWiring = nullptr;          ///< 通信対局の司令塔は最初の CSA 対局で作られる
+        MatchCoordinator* match = nullptr;
         ReplayController* replayController = nullptr;
         ShogiGameController* gameController = nullptr;
         KifuRecordListModel* kifuModel = nullptr;
+        UiStatePolicyManager* uiStatePolicy = nullptr;   ///< 中断した対局の再開ボタン
+        SessionLifecycleCoordinator* sessionLifecycle = nullptr;
+        KifuFileController* kifuFileController = nullptr; ///< 未保存の棋譜の確認
+        PlayerInfoWiring* playerInfoWiring = nullptr;    ///< 再開時に終局時刻を消す
+        TimeControlController* timeController = nullptr;
+        ShogiView* shogiView = nullptr;
+        GameRecordModel* gameRecord = nullptr;
 
-        // === State pointers（MainWindow の状態フィールドへの直接ポインタ） ===
+        // === 状態（AppState のフィールド） ===
         PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
         QString* startSfenStr = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;   ///< 対局の指し手列（開始時に表示中の手順から作り直す）
-        Turn* bottomSide = nullptr;      ///< 盤の手前に表示している側
+        Turn* bottomSide = nullptr;              ///< 盤の手前に表示している側
 
-        // === Branch navigation ===
+        // === 分岐ナビゲーション ===
         KifuBranchTree* branchTree = nullptr;
         KifuNavigationState* navState = nullptr;
         LiveGameSession* liveSession = nullptr;
-        std::function<void(bool)> setResumeAvailable;
-        std::function<void()> prepareResumeUi;
-
-        std::function<bool()> confirmDiscardUnsavedKifu;
     };
 
     explicit GameSessionOrchestrator(QObject* parent = nullptr);

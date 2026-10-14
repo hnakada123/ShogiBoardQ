@@ -62,7 +62,6 @@ struct OrcTestHarness {
     // Refs用の実体
     PlayMode playMode = PlayMode::NotStarted;
     int maxMoves = 0;
-    Turn currentTurn = Turn::Black;
     int currentMoveIndex = 0;
     bool autoSaveKifu = false;
     QString kifuSaveDir;
@@ -79,7 +78,6 @@ struct OrcTestHarness {
         refs.gc = &gc;
         refs.playMode = &playMode;
         refs.maxMoves = &maxMoves;
-        refs.currentTurn = &currentTurn;
         refs.currentMoveIndex = &currentMoveIndex;
         refs.autoSaveKifu = &autoSaveKifu;
         refs.kifuSaveDir = &kifuSaveDir;
@@ -162,10 +160,6 @@ private slots:
     void configureAndStart_archivesHistory();
     void configureAndStart_historyCapAt10();
 
-    // === Section E: prepareAndStartGame ===
-
-    void prepareAndStartGame_callsConfigureAndStart();
-    void prepareAndStartGame_callsStartInitialEngineMove();
 
     // === Section F: ensureHumanAtBottomIfApplicable ===
 
@@ -295,7 +289,6 @@ void Tst_GameStartOrchestrator::configureAndStart_senteSfen_turnsP1()
 
     h.orc.configureAndStart(opt);
 
-    QCOMPARE(h.currentTurn, Turn::Black);
     QCOMPARE(OrcTracker::lastTurnDisplayPlayer, Turn::Black);
 }
 
@@ -309,7 +302,6 @@ void Tst_GameStartOrchestrator::configureAndStart_goteSfen_turnsP2()
 
     h.orc.configureAndStart(opt);
 
-    QCOMPARE(h.currentTurn, Turn::White);
     QCOMPARE(OrcTracker::lastTurnDisplayPlayer, Turn::White);
 }
 
@@ -392,39 +384,6 @@ void Tst_GameStartOrchestrator::configureAndStart_historyCapAt10()
 
     // Should be capped at 10 (oldest removed)
     QVERIFY(h.allGameHistories.size() <= 10);
-}
-
-// ============================================================
-// Section E: prepareAndStartGame
-// ============================================================
-
-void Tst_GameStartOrchestrator::prepareAndStartGame_callsConfigureAndStart()
-{
-    OrcTestHarness h;
-    h.orc.prepareAndStartGame(
-        PlayMode::HumanVsHuman,
-        QStringLiteral("startpos"),
-        nullptr,
-        nullptr,
-        Turn::Black);
-
-    // configureAndStart should have been called (hooks invoked)
-    QVERIFY(OrcTracker::clearGameOverStateCalled);
-    QVERIFY(OrcTracker::createAndStartModeStrategyCalled);
-    QCOMPARE(h.playMode, PlayMode::HumanVsHuman);
-}
-
-void Tst_GameStartOrchestrator::prepareAndStartGame_callsStartInitialEngineMove()
-{
-    OrcTestHarness h;
-    h.orc.prepareAndStartGame(
-        PlayMode::EvenHumanVsEngine,
-        QStringLiteral("startpos"),
-        nullptr,
-        nullptr,
-        Turn::Black);
-
-    QVERIFY(OrcTracker::startInitialEngineMoveIfNeededCalled);
 }
 
 // ============================================================

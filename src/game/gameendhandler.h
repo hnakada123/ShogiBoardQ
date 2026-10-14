@@ -39,7 +39,7 @@ public:
 
     /**
      * @brief MatchCoordinator の内部状態への参照群
-     * @note MC::ensureGameEndHandler() で設定される。動的に変化するポインタは
+     * @note MC::createGameEndHandler() で設定される。動的に変化するポインタは
      *       プロバイダ関数経由で取得する。
      */
     struct Refs {
@@ -59,9 +59,9 @@ public:
      * 終局処理の各フェーズ（投了/時間切れ/千日手 → 結果表示 → 棋譜追記 → 自動保存）で
      * MC の状態更新や GUI 操作を行うために使用する。
      *
-     * @note MC::ensureGameEndHandler() で lambda 経由で設定される。
-     *       appendKifuLine, showGameOverDialog は MC::Hooks からのパススルー。
-     * @see MatchCoordinator::ensureGameEndHandler
+     * @note MatchCoordinator::createGameEndHandler() で設定される。
+     *       appendRecord, showGameOverDialog は MC::Hooks からのパススルー。
+     * @see MatchCoordinator::createGameEndHandler
      */
     struct Hooks {
         /// @brief HvE 時の人間側タイマーを停止する
@@ -73,7 +73,7 @@ public:
         std::function<Usi*()> primaryEngine;
 
         /// @brief 棋譜に1行追記する（終局行: "▲投了" 等）
-        /// @note 配線元: MC→m_hooks.appendKifuLine (パススルー)
+        /// @note 配線元: MC→m_hooks.game.appendRecord (パススルー)
         std::function<void(const RecordEntry&)> appendRecord;
 
         /// @brief 終局結果ダイアログを表示する
@@ -92,6 +92,8 @@ public:
     explicit GameEndHandler(QObject* parent = nullptr);
 
     void setRefs(const Refs& refs);
+    /// 時計を差し替える（対局開始で時計が替わったとき）
+    void setClock(ShogiClock* clock) { m_refs.clock = clock; }
     void setHooks(const Hooks& hooks);
 
     // --- 終局処理 API ---
@@ -130,8 +132,6 @@ private:
     QString resultMessage(const GameEndInfo& info) const;
     bool usesHandicapNames() const;
 
-    /// USI gameover コマンド送信ヘルパー
-    void sendRawToEngineHelper(Usi* which, const QString& cmd);
 
     Refs m_refs;
     Hooks m_hooks;

@@ -126,7 +126,6 @@ PvClickController::~PvClickController() = default;
 
 void PvClickController::setThinkingModels(ShogiEngineThinkingModel*, ShogiEngineThinkingModel*) {}
 void PvClickController::setConsiderationModel(ShogiEngineThinkingModel*) {}
-void PvClickController::setLogModels(UsiCommLogModel*, UsiCommLogModel*) {}
 void PvClickController::setStateRefs(const StateRefs&) {}
 void PvClickController::setShogiView(ShogiView*) {}
 
@@ -138,11 +137,6 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
 }
 
 void PvClickController::onPvDialogFinished(int) {}
-
-QStringList PvClickController::searchUsiMovesFromLog(UsiCommLogModel*) const
-{
-    return {};
-}
 
 QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
 {
@@ -164,8 +158,6 @@ UsiCommandController::UsiCommandController(QObject* parent)
     : QObject(parent)
 {
 }
-
-void UsiCommandController::setMatchProvider(std::function<MatchCoordinator*()>) {}
 
 void UsiCommandController::setAnalysisTab(EngineAnalysisTab*) {}
 

@@ -3,45 +3,14 @@
 
 #include "usiexporter.h"
 #include "logcategories.h"
+#include "kifuexportcommon.h"
 
 // ========================================
 // ヘルパ関数
 // ========================================
 
-// ヘルパ関数: 指し手から手番記号（▲△）を除去
-static QString removeTurnMarker(const QString& move)
-{
-    QString result = move;
-    if (result.startsWith(QStringLiteral("▲")) || result.startsWith(QStringLiteral("△"))) {
-        result = result.mid(1);
-    }
-    return result;
-}
-
-// ヘルパ関数: 終局語を判定
-static bool isTerminalMove(const QString& move)
-{
-    static const QStringList terminals = {
-        QStringLiteral("投了"),
-        QStringLiteral("中断"),
-        QStringLiteral("持将棋"),
-        QStringLiteral("千日手"),
-        QStringLiteral("切れ負け"),
-        QStringLiteral("時間切れ"),  // 対局で時間切れになったときの終局語
-        QStringLiteral("反則勝ち"),
-        QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"),
-        QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"),
-        QStringLiteral("詰み"),
-        QStringLiteral("不詰")
-    };
-    const QString stripped = removeTurnMarker(move);
-    for (const QString& t : terminals) {
-        if (stripped.contains(t)) return true;
-    }
-    return false;
-}
+using KifuExportCommon::isTerminalMove;
+using KifuExportCommon::removeTurnMarker;
 
 static QString getUsiTerminalCode(const QString& terminalMove)
 {

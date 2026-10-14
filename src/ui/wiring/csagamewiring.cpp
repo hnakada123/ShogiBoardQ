@@ -1,409 +1,147 @@
 /// @file csagamewiring.cpp
-/// @brief CSA通信対局配線クラスの実装
+/// @brief CSA通信対局の配線と画面への反映を担当するクラスの実装
 
 #include "csagamewiring.h"
-#include "uistatepolicymanager.h"
-#include "gamerecordupdateservice.h"
-#include "sfenpositiontracer.h"
-#include "uinotificationservice.h"
 
-#include "logcategories.h"
-#include <QMessageBox>
-#include <QStatusBar>
-#include <QModelIndex>
-#include <QTableView>
-#include <QWidget>
-
-#include "playmode.h"
-#include "csagamecoordinator.h"
-#include "csamoveconverter.h"
-#include "parsecommon.h"
-#include "csagamedialog.h"
-#include "csawaitingdialog.h"
-#include "shogigamecontroller.h"
-#include "shogiboard.h"
-#include "shogiview.h"
-#include "kifurecordlistmodel.h"
-#include "recordpane.h"
 #include "boardinteractioncontroller.h"
-#include "kifudisplay.h"
-#include "engineanalysistab.h"
 #include "boardsetupcontroller.h"
+#include "csagamedialog.h"
+#include "csamoveconverter.h"
+#include "csawaitingdialog.h"
+#include "engineanalysistab.h"
+#include "gamerecordupdateservice.h"
+#include "logcategories.h"
+#include "shogiview.h"
 #include "timecontrolcontroller.h"
+#include "uinotificationservice.h"
+#include "uistatepolicymanager.h"
+
+#include <QStatusBar>
 
 CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
     , m_coordinator(deps.coordinator)
     , m_gameController(deps.gameController)
     , m_shogiView(deps.shogiView)
-    , m_kifuRecordModel(deps.kifuRecordModel)
-    , m_recordPane(deps.recordPane)
     , m_boardController(deps.boardController)
     , m_statusBar(deps.statusBar)
     , m_sfenHistory(deps.sfenRecord)
+    , m_gameMoves(deps.gameMoves)
     , m_analysisTab(deps.analysisTab)
     , m_boardSetupController(deps.boardSetupController)
     , m_usiCommLog(deps.usiCommLog)
     , m_engineThinking(deps.engineThinking)
     , m_timeController(deps.timeController)
-    , m_gameMoves(deps.gameMoves)
     , m_playMode(deps.playMode)
     , m_parentWidget(deps.parentWidget)
     , m_prepareRecord(deps.prepareRecord)
-    , m_syncPly(deps.syncPly)
     , m_recordGameEnd(deps.recordGameEnd)
     , m_saveKifuToPath(deps.saveKifuToPath)
     , m_setBoardFlipped(deps.setBoardFlipped)
 {
 }
 
+// ============================================================
+// 配線
+// ============================================================
+
 void CsaGameWiring::setCoordinator(CsaGameCoordinator* coordinator)
 {
-    if (m_coordinator == coordinator) {
-        return;
-    }
-
-    if (m_coordinator) {
-        disconnect(m_coordinator, nullptr, this, nullptr);
-    }
-
+    if (m_coordinator == coordinator) return;
+    unwire();
     m_coordinator = coordinator;
 }
 
 void CsaGameWiring::wire()
 {
-    if (!m_coordinator) {
+    CsaGameCoordinator* const c = m_coordinator;
+    if (!c) {
         qCWarning(lcUi) << "wire: coordinator is null";
         return;
     }
 
-    connect(m_coordinator, &CsaGameCoordinator::gameStarted,
-            this, &CsaGameWiring::onGameStarted, Qt::UniqueConnection);
-    connect(m_coordinator, &CsaGameCoordinator::gameEnded,
-            this, &CsaGameWiring::onGameEnded, Qt::UniqueConnection);
-    connect(m_coordinator, &CsaGameCoordinator::moveMade,
-            this, &CsaGameWiring::onMoveMade, Qt::UniqueConnection);
-    connect(m_coordinator, &CsaGameCoordinator::turnChanged,
-            this, &CsaGameWiring::onTurnChanged, Qt::UniqueConnection);
-    connect(m_coordinator, &CsaGameCoordinator::logMessage,
-            this, &CsaGameWiring::onLogMessage, Qt::UniqueConnection);
-    connect(m_coordinator, &CsaGameCoordinator::moveHighlightRequested,
-            this, &CsaGameWiring::onMoveHighlightRequested, Qt::UniqueConnection);
-    connect(m_coordinator, &CsaGameCoordinator::errorOccurred,
-            this, &CsaGameWiring::errorMessageRequested, Qt::UniqueConnection);
-    connect(m_coordinator, &CsaGameCoordinator::moveAppliedToBoard,
+    // 画面の切り替え（開始・終局・手番・ログのステータスバー表示）
+    connect(c, &CsaGameCoordinator::gameStarted, this, &CsaGameWiring::onGameStarted, Qt::UniqueConnection);
+    connect(c, &CsaGameCoordinator::gameEnded, this, &CsaGameWiring::onGameEnded, Qt::UniqueConnection);
+    connect(c, &CsaGameCoordinator::turnChanged, this, &CsaGameWiring::onTurnChanged, Qt::UniqueConnection);
+    connect(c, &CsaGameCoordinator::logMessage, this, &CsaGameWiring::onLogMessage, Qt::UniqueConnection);
+    connect(c, &CsaGameCoordinator::moveAppliedToBoard,
             this, &CsaGameWiring::moveAppliedToBoard, Qt::UniqueConnection);
 
-    // PlayMode変更・対局終了ダイアログを内部で処理
-    connect(this, &CsaGameWiring::playModeChanged,
-            this, &CsaGameWiring::onPlayModeChangedInternal, Qt::UniqueConnection);
-    connect(this, &CsaGameWiring::showGameEndDialogRequested,
-            this, &CsaGameWiring::showGameEndDialogInternal, Qt::UniqueConnection);
-
-    qCDebug(lcUi) << "wire: connected all signals";
+    // 司令塔のシグナルを実際の受け手へ直接つなぐ
+    if (m_recordService) {
+        connect(c, &CsaGameCoordinator::recordEntryReady,
+                m_recordService, &GameRecordUpdateService::appendRecord, Qt::UniqueConnection);
+        connect(c, &CsaGameCoordinator::recordEntryReady,
+                m_recordService, &GameRecordUpdateService::updateCurrentSfenAfterMove, Qt::UniqueConnection);
+    }
+    if (m_boardController) {
+        connect(c, &CsaGameCoordinator::moveHighlightRequested,
+                m_boardController, &BoardInteractionController::showMoveHighlights, Qt::UniqueConnection);
+    }
+    if (m_notifService) {
+        connect(c, &CsaGameCoordinator::errorOccurred,
+                m_notifService, &UiNotificationService::displayErrorMessage, Qt::UniqueConnection);
+    }
+    if (m_analysisTab) {
+        connect(c, &CsaGameCoordinator::connectionStateChanged,
+                m_analysisTab, &EngineAnalysisTab::setCsaConnected, Qt::UniqueConnection);
+        connect(c, &CsaGameCoordinator::csaCommLogAppended,
+                m_analysisTab, &EngineAnalysisTab::appendCsaLog, Qt::UniqueConnection);
+        connect(m_analysisTab, &EngineAnalysisTab::csaRawCommandRequested,
+                c, &CsaGameCoordinator::sendRawCommand, Qt::UniqueConnection);
+    }
+    if (m_boardSetupController) {
+        connect(m_boardSetupController, &BoardSetupController::csaMoveRequested,
+                c, &CsaGameCoordinator::onHumanMove, Qt::UniqueConnection);
+    }
 }
 
 void CsaGameWiring::unwire()
 {
-    if (!m_coordinator) return;
-
-    disconnect(m_coordinator, nullptr, this, nullptr);
-    qCDebug(lcUi) << "unwire: disconnected all signals";
+    CsaGameCoordinator* const c = m_coordinator;
+    if (!c) return;
+    disconnect(c, nullptr, this, nullptr);
+    if (m_recordService) disconnect(c, nullptr, m_recordService, nullptr);
+    if (m_boardController) disconnect(c, nullptr, m_boardController, nullptr);
+    if (m_notifService) disconnect(c, nullptr, m_notifService, nullptr);
+    if (m_analysisTab) {
+        disconnect(c, nullptr, m_analysisTab, nullptr);
+        disconnect(m_analysisTab, nullptr, c, nullptr);
+    }
+    if (m_boardSetupController) disconnect(m_boardSetupController, nullptr, c, nullptr);
 }
 
-void CsaGameWiring::onGameStarted(const QString& blackName, const QString& whiteName,
-                                  const QStringList& initialPrettyMoves)
+void CsaGameWiring::wireExternalSignals(UiStatePolicyManager* uiPolicy,
+                                        GameRecordUpdateService* recordService,
+                                        UiNotificationService* notifService)
 {
-    qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
-
-    // 終局後も同じ接続で次の対局が始まるので、盤面入力の振り分けを通信対局に戻す
-    Q_EMIT playModeChanged(static_cast<int>(PlayMode::CsaNetworkMode));
-    applyAutoFlip();
-    // 対局情報と棋譜の書き出しに使う持ち時間と開始日時を、サーバーの対局条件で置き換える
-    if (m_timeController && m_coordinator) {
-        const CsaClient::GameSummary& s = m_coordinator->gameSummary();
-        m_timeController->beginGameWithTimeControl(s.timeControl());
-    }
-
-    if (m_prepareRecord && m_sfenHistory && !m_sfenHistory->isEmpty()) {
-        const QStringList positions = *m_sfenHistory;
-        m_prepareRecord(positions.first(), blackName, whiteName);
-        *m_sfenHistory = positions;
-    }
-
-    // ナビゲーション無効化を要求
-    Q_EMIT disableNavigationRequested();
-
-    // 将棋盤横のプレイヤー名ラベルを更新
-    if (m_shogiView) {
-        m_shogiView->setBlackPlayerName(QStringLiteral("▲") + blackName);
-        m_shogiView->setWhitePlayerName(QStringLiteral("▽") + whiteName);
-    }
-
-    // 棋譜モデルをクリア
-    if (m_kifuRecordModel) {
-        m_kifuRecordModel->clearAllItems();
-        // 見出し行を追加
-        m_kifuRecordModel->appendItem(
-            new KifuDisplay(tr("=== 開始局面 ==="),
-                            tr("（１手 / 合計）")));
-    }
-
-    for (qsizetype i = 0; i < initialPrettyMoves.size(); ++i) {
-        const QString sfen = m_sfenHistory ? m_sfenHistory->value(i + 1) : QString();
-        if (m_gameMoves && m_gameMoves->size() == i && m_coordinator && m_sfenHistory)
-            m_gameMoves->append(SfenPositionTracer::buildGameMoves(
-                m_sfenHistory->value(i), {m_coordinator->usiMoves().value(i)}));
-        // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
-        const RecordTime elapsed = m_coordinator ? m_coordinator->initialMoveTime(static_cast<int>(i)) : RecordTime{};
-        appendInitialKifuLine(initialPrettyMoves.at(i), elapsed, sfen);
-        if (m_kifuRecordModel && m_coordinator) {
-            if (auto* item = m_kifuRecordModel->item(static_cast<int>(i + 1))) {
-                item->beforeSfen = m_sfenHistory ? m_sfenHistory->value(i) : QString();
-                item->usiMove = m_coordinator->usiMoves().value(i);
-            }
-        }
-    }
-
-    // 手数カウンタを、Game_Summary に含まれていた既存手順の末尾へ合わせる
-    const int initialMoveCount = static_cast<int>(initialPrettyMoves.size());
-    m_activePly = initialMoveCount;
-
-    if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0) {
-        const int currentRow = m_kifuRecordModel->rowCount() - 1;
-        m_activePly = currentRow;
-        m_kifuRecordModel->setCurrentHighlightRow(currentRow);
-
-        if (m_recordPane && m_recordPane->kifuView()) {
-            const QModelIndex idx = m_kifuRecordModel->index(currentRow, 0);
-            m_recordPane->kifuView()->setCurrentIndex(idx);
-            m_recordPane->kifuView()->scrollTo(idx);
-        }
-    }
-
-    if (m_shogiView) m_shogiView->update();
-    if (m_syncPly) m_syncPly(m_activePly);
-
-    // ステータスバーに表示
-    if (m_statusBar) m_statusBar->showMessage(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
-}
-
-void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
-                                CsaClient::GameEndCause cause,
-                                int consumedTimeMs)
-{
-    const QString resultText = CsaMoveConverter::gameResultToString(result);
-    const QString causeText = CsaMoveConverter::gameEndCauseToString(cause);
-
-    qCDebug(lcUi) << "onGameEnded:" << resultText << "(" << causeText << ")"
-                  << "consumedTimeMs=" << consumedTimeMs;
-
-    if (!m_coordinator) return;
-
-    // 敗者の判定
-    const bool iAmLoser = (result == CsaClient::GameResult::Lose);
-    const bool isBlackSide = m_coordinator->isBlackSide();
-    const bool loserIsBlack = (iAmLoser == isBlackSide);
-
-    // 終局行テキストを生成（連続王手の千日手は終局した局面の手番で決まるので、最後の SFEN から手番を取る）
-    const bool isDraw = (result == CsaClient::GameResult::Draw);
-    const QString lastSfen = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
-    const bool blackToMove = lastSfen.isEmpty() ? (m_coordinator->isMyTurn() == isBlackSide)
-                                                : (lastSfen.section(QLatin1Char(' '), 1, 1) != QLatin1String("w"));
-    RecordEntry ending = buildEndRecord(cause, loserIsBlack, isDraw, blackToMove);
-
-    // 消費時間は終局行を行った手番側（入玉宣言勝ちは宣言した勝者、連続王手の千日手は終局した局面の手番側）
-    const bool moverIsBlack = (cause == CsaClient::GameEndCause::OuteSennichite) ? blackToMove
-        : (cause == CsaClient::GameEndCause::Jishogi && !isDraw) ? !loserIsBlack : loserIsBlack;
-    const int totalMs = moverIsBlack ? m_coordinator->blackTotalTimeMs()
-                                     : m_coordinator->whiteTotalTimeMs();
-
-    ending.time = RecordTime::fromMilliseconds(consumedTimeMs, qint64(totalMs) + consumedTimeMs);
-
-    // 棋譜欄に追加
-    Q_EMIT recordAppendRequested(ending);
-    if (m_recordGameEnd) m_recordGameEnd();
-
-    // m_sfenHistoryにも終局行用のダミーエントリを追加
-    if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
-        qCDebug(lcUi) << "onGameEnded: appending last SFEN to sfenRecord";
-        m_sfenHistory->append(m_sfenHistory->last());
-    }
-
-    // 手数を更新
-    if (m_kifuRecordModel) {
-        const int currentRow = m_kifuRecordModel->rowCount() - 1;
-        m_activePly = currentRow;
-
-        // 棋譜欄で終局行を選択状態にする
-        if (m_recordPane && m_recordPane->kifuView()) {
-            QModelIndex idx = m_kifuRecordModel->index(currentRow, 0);
-            m_recordPane->kifuView()->setCurrentIndex(idx);
-            m_recordPane->kifuView()->scrollTo(idx);
-        }
-    }
-
-    // 次の対局が始まる前に、終局までの棋譜を書き出す
-    autoSaveRecord();
-
-    // 対局終了ダイアログを表示
-    const QString message =
-        tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText);
-
-    // プレイモードをリセット
-    Q_EMIT playModeChanged(0);  // NotStarted
-
-    // ナビゲーション有効化を要求
-    Q_EMIT enableNavigationRequested();
-    if (m_syncPly) m_syncPly(m_activePly);
-    Q_EMIT showGameEndDialogRequested(tr("対局終了"), message);
-
-    // ステータスバーに表示
-    if (m_statusBar) {
-        m_statusBar->showMessage(tr("対局終了: %1 (%2)").arg(resultText, causeText), 5000);
-    }
-}
-
-void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
-                               const QString& prettyMove, int consumedTimeMs)
-{
-    qCDebug(lcUi) << "onMoveMade:" << prettyMove;
-
-    if (!m_coordinator) return;
-
-    // CSA形式から手番を判定
-    const bool isBlackMove = (csaMove.length() > 0 && csaMove[0] == QLatin1Char('+'));
-
-    // 累計消費時間を取得
-    const int totalMs = isBlackMove ? m_coordinator->blackTotalTimeMs()
-                                    : m_coordinator->whiteTotalTimeMs();
-    RecordEntry entry;
-    entry.displayText = prettyMove;
-    entry.mover = isBlackMove ? Turn::Black : Turn::White;
-    entry.time = RecordTime::fromMilliseconds(consumedTimeMs, totalMs);
-
-    // 棋譜欄に追記
-    if (m_gameMoves && m_sfenHistory && m_sfenHistory->size() >= 2
-        && m_gameMoves->size() + 1 == m_coordinator->usiMoves().size())
-        m_gameMoves->append(SfenPositionTracer::buildGameMoves(
-            m_sfenHistory->at(m_sfenHistory->size() - 2), {usiMove}));
-    const int previousRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : 0;
-    if (m_gameMoves && !m_gameMoves->isEmpty()) entry.move = m_gameMoves->last();
-    if (m_sfenHistory && !m_sfenHistory->isEmpty()) entry.sfen = m_sfenHistory->last();
-    Q_EMIT recordAppendRequested(entry);
-    if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > previousRows
-        && m_sfenHistory && m_sfenHistory->size() >= 2) {
-        if (auto* item = m_kifuRecordModel->item(m_kifuRecordModel->rowCount() - 1)) {
-            item->beforeSfen = m_sfenHistory->at(m_sfenHistory->size() - 2);
-            item->usiMove = usiMove;
-        }
-    }
-
-    // 手数を更新
-    if (m_kifuRecordModel) {
-        const int currentRow = m_kifuRecordModel->rowCount() - 1;
-        m_activePly = currentRow;
-    }
-    if (m_syncPly) m_syncPly(m_activePly);
-
-    // 盤面の変化（盤・駒台・ハイライト・手番の札）はそれぞれ変わった所だけ描き直されるので、
-    // ここで盤全体を描き直さない。
-}
-
-void CsaGameWiring::onTurnChanged(bool isMyTurn)
-{
-    qCDebug(lcUi) << "onTurnChanged: myTurn =" << isMyTurn;
-
-    if (!m_coordinator) return;
-
-    // 手番表示の更新（ステータスバーで表示）
-    const bool isBlackTurn = m_coordinator->isBlackSide() ? isMyTurn : !isMyTurn;
-    const QString turnText = isBlackTurn ? tr("先手番") : tr("後手番");
-
-    if (m_statusBar) {
-        m_statusBar->showMessage(turnText, 2000);
-    }
-}
-
-void CsaGameWiring::onLogMessage(const QString& message, bool isError)
-{
-    if (isError) {
-        qCWarning(lcUi) << message;
-    } else {
-        qCDebug(lcUi) << message;
-    }
-
-    if (m_statusBar) {
-        m_statusBar->showMessage(message, 3000);
-    }
-}
-
-void CsaGameWiring::onMoveHighlightRequested(const QPoint& from, const QPoint& to)
-{
-    qCDebug(lcUi) << "onMoveHighlightRequested: from=" << from << "to=" << to;
-
-    if (m_boardController) {
-        m_boardController->showMoveHighlights(from, to);
-    }
-}
-
-RecordEntry CsaGameWiring::buildEndRecord(CsaClient::GameEndCause cause, bool loserIsBlack,
-                                          bool isDraw, bool blackToMove) const
-{
-    using Cause = CsaClient::GameEndCause;
-    TerminalType type = TerminalType::Interrupt;
-    bool side = loserIsBlack;
-    bool neutral = false;
-    switch (cause) {
-    case Cause::Resign: type = TerminalType::Resign; break;
-    case Cause::TimeUp: type = TerminalType::Timeout; break;
-    case Cause::IllegalMove:
-    case Cause::IllegalAction: type = TerminalType::IllegalLoss; break;
-    case Cause::OuteSennichite:
-        side = blackToMove;
-        type = loserIsBlack == blackToMove ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
-        break;
-    case Cause::Sennichite: type = TerminalType::Repetition; neutral = true; break;
-    case Cause::Jishogi:
-        type = isDraw ? TerminalType::Impasse : TerminalType::DeclarationWin;
-        side = !loserIsBlack;
-        neutral = isDraw;
-        break;
-    case Cause::MaxMoves: type = TerminalType::MaxMoves; neutral = true; break;
-    default: neutral = true; break;
-    }
-    auto entry = RecordEntry::ending(type, side ? Turn::Black : Turn::White);
-    if (neutral) entry.displayText.remove(0, 1);
-    return entry;
-}
-
-void CsaGameWiring::onWaitingCancelled()
-{
-    qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
-
-    // コーディネータの対局を停止
-    if (m_coordinator) {
-        m_coordinator->stopGame();
-    }
-
-    // プレイモードを未開始状態に戻す
-    Q_EMIT playModeChanged(0);  // NotStarted
-
-    // ステータスバーに通知
-    if (m_statusBar) {
-        m_statusBar->showMessage(tr("通信対局をキャンセルしました"), 3000);
-    }
+    unwire();
+    m_uiPolicy = uiPolicy;
+    m_recordService = recordService;
+    m_notifService = notifService;
+    if (m_coordinator) wire();
 }
 
 void CsaGameWiring::setAnalysisTab(EngineAnalysisTab* tab)
 {
+    if (m_analysisTab == tab) return;
+    unwire();
     m_analysisTab = tab;
+    if (m_coordinator) wire();
 }
 
 void CsaGameWiring::setBoardSetupController(BoardSetupController* controller)
 {
+    if (m_boardSetupController == controller) return;
+    unwire();
     m_boardSetupController = controller;
+    if (m_coordinator) wire();
 }
+
+// ============================================================
+// 対局の開始
+// ============================================================
 
 bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
 {
@@ -412,11 +150,9 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         return false;
     }
 
-    // CSA通信対局コーディネータが未作成の場合は作成する
+    // 通信対局の司令塔は最初の通信対局で作る（ローカル対局しか使わない起動では作らない）
     if (!m_coordinator) {
         m_coordinator = new CsaGameCoordinator(this);
-
-        // 依存オブジェクトを設定
         CsaGameCoordinator::Dependencies deps;
         deps.gameController = m_gameController;
         deps.view = m_shogiView;
@@ -426,42 +162,14 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         deps.usiCommLog = m_usiCommLog;
         deps.engineThinking = m_engineThinking;
         m_coordinator->setDependencies(deps);
-
-        // シグナル配線
         wire();
-
-        // CSA通信ログをEngineAnalysisTabに転送
-        if (m_analysisTab) {
-            connect(m_coordinator, &CsaGameCoordinator::connectionStateChanged,
-                    m_analysisTab, &EngineAnalysisTab::setCsaConnected,
-                    Qt::UniqueConnection);
-            connect(m_coordinator, &CsaGameCoordinator::csaCommLogAppended,
-                    m_analysisTab, &EngineAnalysisTab::appendCsaLog,
-                    Qt::UniqueConnection);
-            // EngineAnalysisTabからのCSAコマンド送信シグナルを接続
-            connect(m_analysisTab, &EngineAnalysisTab::csaRawCommandRequested,
-                    m_coordinator, &CsaGameCoordinator::sendRawCommand,
-                    Qt::UniqueConnection);
-        }
-
-        // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
-        if (m_boardSetupController) {
-            connect(m_boardSetupController, &BoardSetupController::csaMoveRequested,
-                    m_coordinator, &CsaGameCoordinator::onHumanMove,
-                    Qt::UniqueConnection);
-        }
     }
 
     // 対局開始オプションを設定（詳細設定もここで控える）
     const CsaGameCoordinator::StartOptions options = buildStartOptions(dialog);
+    setPlayMode(PlayMode::CsaNetworkMode);
 
-    // プレイモード変更を通知
-    Q_EMIT playModeChanged(static_cast<int>(PlayMode::CsaNetworkMode));
-
-    // 待機ダイアログを作成
     CsaWaitingDialog waitingDialog(m_coordinator, parent);
-
-    // キャンセル要求時の処理を接続
     connect(&waitingDialog, &CsaWaitingDialog::cancelRequested,
             this, &CsaGameWiring::onWaitingCancelled);
 
@@ -470,43 +178,85 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
 
     // 待機ダイアログを表示（対局開始またはエラーまでブロック）
     const int result = waitingDialog.exec();
-    const bool started =
-        (result == QDialog::Accepted
-         && m_coordinator
-         && m_coordinator->gameState() == CsaGameCoordinator::GameState::InGame);
+    const bool started = (result == QDialog::Accepted && m_coordinator
+                          && m_coordinator->gameState() == CsaGameCoordinator::GameState::InGame);
     if (!started) {
-        Q_EMIT playModeChanged(static_cast<int>(PlayMode::NotStarted));
-        if (m_coordinator
-            && m_coordinator->gameState() != CsaGameCoordinator::GameState::Idle) {
+        setPlayMode(PlayMode::NotStarted);
+        if (m_coordinator && m_coordinator->gameState() != CsaGameCoordinator::GameState::Idle) {
             m_coordinator->stopGame();
         }
     }
-
     return started;
 }
 
-void CsaGameWiring::wireExternalSignals(UiStatePolicyManager* uiPolicy,
-                                          GameRecordUpdateService* recordService,
-                                          UiNotificationService* notifService)
+void CsaGameWiring::onWaitingCancelled()
 {
-    m_recordService = recordService;
+    qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
+    if (m_coordinator) m_coordinator->stopGame();
+    setPlayMode(PlayMode::NotStarted);
+    if (m_statusBar) m_statusBar->showMessage(tr("通信対局をキャンセルしました"), 3000);
+}
 
-    if (uiPolicy) {
-        connect(this, &CsaGameWiring::disableNavigationRequested,
-                uiPolicy, &UiStatePolicyManager::transitionToDuringCsaGame,
-                Qt::UniqueConnection);
-        connect(this, &CsaGameWiring::enableNavigationRequested,
-                uiPolicy, &UiStatePolicyManager::transitionToIdle,
-                Qt::UniqueConnection);
+// ============================================================
+// 司令塔からの通知
+// ============================================================
+
+void CsaGameWiring::onGameStarted(const QString& blackName, const QString& whiteName,
+                                  const QList<RecordEntry>& initialRecords)
+{
+    qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
+
+    // 終局後も同じ接続で次の対局が始まるので、盤面入力の振り分けを通信対局に戻す
+    setPlayMode(PlayMode::CsaNetworkMode);
+    applyAutoFlip();
+    // 対局情報と棋譜の書き出しに使う持ち時間と開始日時を、サーバーの対局条件で置き換える
+    if (m_timeController && m_coordinator) {
+        m_timeController->beginGameWithTimeControl(m_coordinator->gameSummary().timeControl());
     }
-    if (recordService) {
-        connect(this, &CsaGameWiring::recordAppendRequested,
-                recordService, &GameRecordUpdateService::appendRecord,
-                Qt::UniqueConnection);
+    if (m_prepareRecord && m_coordinator) m_prepareRecord(m_coordinator->startSfen(), blackName, whiteName);
+    if (m_uiPolicy) m_uiPolicy->transitionToDuringCsaGame();
+
+    if (m_shogiView) {
+        m_shogiView->setBlackPlayerName(QStringLiteral("▲") + blackName);
+        m_shogiView->setWhitePlayerName(QStringLiteral("▽") + whiteName);
     }
-    if (notifService) {
-        connect(this, &CsaGameWiring::errorMessageRequested,
-                notifService, &UiNotificationService::displayErrorMessage,
-                Qt::UniqueConnection);
+
+    // 再開局面の既存手順を棋譜へ入れる（以後の着手は司令塔の recordEntryReady が直接届く）
+    if (m_recordService) {
+        for (const RecordEntry& entry : initialRecords) m_recordService->appendRecord(entry);
+        m_recordService->updateCurrentSfenAfterMove();
     }
+
+    if (m_shogiView) m_shogiView->update();
+    if (m_statusBar) m_statusBar->showMessage(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
+}
+
+void CsaGameWiring::onGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
+{
+    const QString resultText = CsaMoveConverter::gameResultToString(result);
+    const QString causeText = CsaMoveConverter::gameEndCauseToString(cause);
+    qCDebug(lcUi) << "onGameEnded:" << resultText << "(" << causeText << ")" << "consumedTimeMs=" << consumedTimeMs;
+
+    // 終局行は司令塔が棋譜へ渡し済み。終局日時を入れてから、次の対局が始まる前に書き出す
+    if (m_recordGameEnd) m_recordGameEnd();
+    autoSaveRecord();
+
+    setPlayMode(PlayMode::NotStarted);
+    if (m_uiPolicy) m_uiPolicy->transitionToIdle();
+    showGameEndDialog(tr("対局終了"), tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText));
+    if (m_statusBar) m_statusBar->showMessage(tr("対局終了: %1 (%2)").arg(resultText, causeText), 5000);
+}
+
+void CsaGameWiring::onTurnChanged(bool isMyTurn)
+{
+    if (!m_coordinator || !m_statusBar) return;
+    const bool isBlackTurn = m_coordinator->isBlackSide() ? isMyTurn : !isMyTurn;
+    m_statusBar->showMessage(isBlackTurn ? tr("先手番") : tr("後手番"), 2000);
+}
+
+void CsaGameWiring::onLogMessage(const QString& message, bool isError)
+{
+    if (isError) qCWarning(lcUi) << message;
+    else qCDebug(lcUi) << message;
+    if (m_statusBar) m_statusBar->showMessage(message, 3000);
 }

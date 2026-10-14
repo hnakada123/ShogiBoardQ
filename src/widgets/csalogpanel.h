@@ -5,7 +5,8 @@
 /// @brief CSA通信ログパネルクラスの定義
 
 #include <QObject>
-#include <memory>
+
+#include "fontsizehelper.h"
 
 class QWidget;
 class QPlainTextEdit;
@@ -13,8 +14,6 @@ class QToolButton;
 class QPushButton;
 class QLineEdit;
 class QLabel;
-
-class LogViewFontManager;
 
 /**
  * @brief CSA通信ログの表示・操作を担うパネル
@@ -54,15 +53,14 @@ private slots:
 private:
     void buildToolbar();
     void buildCommandBar();
-    void initFontManager();
+    void applyFontSize();
 
     QWidget* m_container = nullptr;
     QWidget* m_toolbar = nullptr;
     QPlainTextEdit* m_logView = nullptr;
     QToolButton* m_btnFontIncrease = nullptr;
     QToolButton* m_btnFontDecrease = nullptr;
-    int m_fontSize = 10;
-    std::unique_ptr<LogViewFontManager> m_fontManager;
+    FontSizeHelper m_fontSize;   ///< ログ・コマンド入力の文字の大きさ（変更のたびに保存する）
 
     QWidget* m_commandBar = nullptr;
     QPushButton* m_btnSendToServer = nullptr;

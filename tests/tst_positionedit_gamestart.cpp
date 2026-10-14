@@ -114,17 +114,17 @@ private slots:
     }
 
     // ============================================================
-    // C) ensureBranchTreeRoot テスト（修正後）
+    // C) prepareBranchTreeRoot テスト（修正後）
     // ============================================================
 
     /// 既にルートがある場合、SFENが異なれば更新する
-    void ensureBranchTreeRoot_updatesWhenDifferent()
+    void prepareBranchTreeRoot_updatesWhenDifferent()
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         QCOMPARE(tree.root()->sfen(), kHirateSfen);
 
-        // 修正後の ensureBranchTreeRoot ロジック
+        // 修正後の prepareBranchTreeRoot ロジック
         QString startSfenStr = kEditedSfen;
         QString rootSfen = kHirateSfen;
         if (!startSfenStr.trimmed().isEmpty()) {
@@ -141,7 +141,7 @@ private slots:
     }
 
     /// 既にルートがあり同じSFENの場合、更新しない
-    void ensureBranchTreeRoot_noUpdateWhenSame()
+    void prepareBranchTreeRoot_noUpdateWhenSame()
     {
         KifuBranchTree tree;
         tree.setRootSfen(kEditedSfen);
@@ -322,7 +322,7 @@ private slots:
         KifuBranchTree branchTree;
         branchTree.setRootSfen(kHirateSfen);
 
-        // === Step 4: performCleanup → ensureBranchTreeRoot (修正後) ===
+        // === Step 4: performCleanup → prepareBranchTreeRoot (修正後) ===
         {
             QString rootSfen = kHirateSfen;
             if (!m_startSfenStr.trimmed().isEmpty()) {
@@ -527,7 +527,7 @@ private slots:
         KifuBranchTree branchTree;
         branchTree.setRootSfen(kHirateSfen);
 
-        // --- performCleanup → ensureBranchTreeRoot (修正後) ---
+        // --- performCleanup → prepareBranchTreeRoot (修正後) ---
         {
             QString rootSfen = kHirateSfen;
             if (!m_startSfenStr.trimmed().isEmpty()) {

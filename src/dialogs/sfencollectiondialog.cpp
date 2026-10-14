@@ -3,22 +3,19 @@
 
 #include "sfencollectiondialog.h"
 #include "buttonstyles.h"
-#include "shogiview.h"
+#include "boardviewerwidget.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "shogiview.h"
 #include "gamesettings.h"
 #include "dialogutils.h"
 #include "dialogfontscale.h"
 #include "sfenutils.h"
 
 #include <QVBoxLayout>
-#include <QScrollArea>
-#include <QScreen>
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
 #include <QCloseEvent>
-#include <QWheelEvent>
 #include <QTimer>
 #include <QMenu>
 
@@ -35,9 +32,7 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     // 前回保存されたウィンドウサイズを読み込む
     DialogUtils::restoreDialogSize(this, GameSettings::sfenCollectionDialogSize());
 
-    // UIを構築
     buildUi();
-    m_shogiView->setProperty("dialogFontScaleExcluded", true);
     DialogFontScale::install(this, QStringLiteral("sfenCollection"));
 
     // 最近使ったファイルリストを読み込み
@@ -45,31 +40,27 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     updateRecentFilesMenu();
 
     // 前回保存された将棋盤マスサイズを復元
-    int savedSquareSize = GameSettings::sfenCollectionSquareSize();
+    const int savedSquareSize = GameSettings::sfenCollectionSquareSize();
     if (savedSquareSize >= 20 && savedSquareSize <= 150) {
-        m_shogiView->setSquareSize(savedSquareSize);
+        m_viewer->view()->setSquareSize(savedSquareSize);
     }
 
-    // 初期盤面（平手初期局面）を設定
-    m_board->setSfen(SfenUtils::hirateSfen());
-    m_shogiView->updateBoardSize();
-    hideClockLabels();
-
-    // ボタン状態を初期化（ファイル未読み込み状態）
-    updateButtonStates();
+    // 初期盤面（平手初期局面）を表示する。局面集はまだ無い
+    m_viewer->board()->setSfen(SfenUtils::hirateSfen());
+    m_viewer->fitToBoard();
 
     // レイアウト確定後に自動調整
-    QTimer::singleShot(0, this, &SfenCollectionDialog::adjustWindowToContents);
+    QTimer::singleShot(0, m_viewer, &BoardViewerWidget::fitToBoard);
 }
 
 void SfenCollectionDialog::buildUi()
 {
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(8, 8, 8, 8);
     mainLayout->setSpacing(8);
 
     // ファイルを開くボタン + ファイル名ラベル
-    QHBoxLayout* fileLayout = new QHBoxLayout();
+    auto* fileLayout = new QHBoxLayout();
     fileLayout->setSpacing(8);
 
     m_btnOpenFile = new QPushButton(tr("ファイルを開く"), this);
@@ -98,105 +89,17 @@ void SfenCollectionDialog::buildUi()
 
     mainLayout->addLayout(fileLayout);
 
-    // 将棋盤拡大・縮小ボタン
-    QHBoxLayout* zoomLayout = new QHBoxLayout();
-    zoomLayout->setSpacing(4);
-
-    m_btnReduce = new QPushButton(tr("縮小"), this);
-    m_btnReduce->setToolTip(tr("将棋盤を縮小する"));
-    m_btnReduce->setStyleSheet(ButtonStyles::secondaryNeutral());
-    connect(m_btnReduce, &QPushButton::clicked,
-            this, &SfenCollectionDialog::onReduceBoard);
-    zoomLayout->addWidget(m_btnReduce);
-
-    m_btnEnlarge = new QPushButton(tr("拡大"), this);
-    m_btnEnlarge->setToolTip(tr("将棋盤を拡大する"));
-    m_btnEnlarge->setStyleSheet(ButtonStyles::secondaryNeutral());
-    connect(m_btnEnlarge, &QPushButton::clicked,
-            this, &SfenCollectionDialog::onEnlargeBoard);
-    zoomLayout->addWidget(m_btnEnlarge);
-
-    m_btnFlip = new QPushButton(tr("盤面の回転"), this);
-    m_btnFlip->setToolTip(tr("盤面を回転する"));
-    m_btnFlip->setStyleSheet(ButtonStyles::secondaryNeutral());
-    connect(m_btnFlip, &QPushButton::clicked,
-            this, &SfenCollectionDialog::onFlipBoard);
-    zoomLayout->addWidget(m_btnFlip);
-
-    zoomLayout->addStretch();
-    mainLayout->addLayout(zoomLayout);
-
-    // 将棋盤
-    m_board = new ShogiBoard(9, 9, this);
-    m_shogiView = new ShogiView(this);
-    m_shogiView->setMouseClickMode(false);
-    m_shogiView->setNameFontScale(0.30);
-
-    m_shogiView->setPieces();
-    m_shogiView->setBoard(m_board);
-
-    // Ctrl+ホイールイベントを横取り
-    m_shogiView->installEventFilter(this);
-
-    m_shogiView->setBlackPlayerName(tr("先手"));
-    m_shogiView->setWhitePlayerName(tr("後手"));
-
-    auto* boardScroll = new QScrollArea(this);
-    boardScroll->setObjectName(QStringLiteral("boardScrollArea"));
-    boardScroll->setFrameShape(QFrame::NoFrame);
-    boardScroll->setAlignment(Qt::AlignCenter);
-    boardScroll->setMinimumSize(300, 300);
-    boardScroll->setWidget(m_shogiView);
-    mainLayout->addWidget(boardScroll, 1);
-
-    // 局面ラベル
-    m_positionLabel = new QLabel(tr("局面集が読み込まれていません"), this);
-    m_positionLabel->setWordWrap(true);
-    m_positionLabel->setAlignment(Qt::AlignCenter);
-    m_positionLabel->setStyleSheet(QStringLiteral(
-        "QLabel { font-weight: bold; padding: 4px; }"));
-    mainLayout->addWidget(m_positionLabel);
-
-    // ナビゲーションボタン
-    QHBoxLayout* navLayout = new QHBoxLayout();
-    navLayout->setSpacing(8);
-
-    m_btnFirst = new QPushButton(tr("最初"), this);
-    m_btnFirst->setMinimumWidth(80);
-    m_btnFirst->setToolTip(tr("最初の局面に移動"));
-    m_btnFirst->setStyleSheet(ButtonStyles::wideNavigationButton());
-    connect(m_btnFirst, &QPushButton::clicked,
-            this, &SfenCollectionDialog::onGoFirst);
-    navLayout->addWidget(m_btnFirst);
-
-    m_btnBack = new QPushButton(tr("前へ"), this);
-    m_btnBack->setMinimumWidth(80);
-    m_btnBack->setToolTip(tr("前の局面に移動"));
-    m_btnBack->setStyleSheet(ButtonStyles::wideNavigationButton());
-    connect(m_btnBack, &QPushButton::clicked,
-            this, &SfenCollectionDialog::onGoBack);
-    navLayout->addWidget(m_btnBack);
-
-    m_btnForward = new QPushButton(tr("次へ"), this);
-    m_btnForward->setMinimumWidth(80);
-    m_btnForward->setToolTip(tr("次の局面に移動"));
-    m_btnForward->setStyleSheet(ButtonStyles::wideNavigationButton());
-    connect(m_btnForward, &QPushButton::clicked,
-            this, &SfenCollectionDialog::onGoForward);
-    navLayout->addWidget(m_btnForward);
-
-    m_btnLast = new QPushButton(tr("最後"), this);
-    m_btnLast->setMinimumWidth(80);
-    m_btnLast->setToolTip(tr("最後の局面に移動"));
-    m_btnLast->setStyleSheet(ButtonStyles::wideNavigationButton());
-    connect(m_btnLast, &QPushButton::clicked,
-            this, &SfenCollectionDialog::onGoLast);
-    navLayout->addWidget(m_btnLast);
-
-    mainLayout->addLayout(navLayout);
+    // 盤・拡大縮小・回転・局面送り
+    m_viewer = new BoardViewerWidget(BoardViewerWidget::ZoomToolbar | BoardViewerWidget::Navigation
+                                         | BoardViewerWidget::ScrollArea | BoardViewerWidget::FitWindowOnZoom,
+                                     BoardViewerWidget::ButtonLabels::Words, nullptr, this);
+    m_viewer->setPositionText(tr("局面集が読み込まれていません"));
+    connect(m_viewer, &BoardViewerWidget::currentIndexChanged,
+            this, &SfenCollectionDialog::onCurrentIndexChanged);
+    mainLayout->addWidget(m_viewer, 1);
 
     // 選択・閉じるボタン
-    QHBoxLayout* actionLayout = new QHBoxLayout();
+    auto* actionLayout = new QHBoxLayout();
     actionLayout->setSpacing(8);
     actionLayout->addStretch();
 
@@ -204,11 +107,12 @@ void SfenCollectionDialog::buildUi()
     m_btnSelect->setMinimumWidth(100);
     m_btnSelect->setToolTip(tr("現在の局面をメインGUIに反映する"));
     m_btnSelect->setStyleSheet(ButtonStyles::primaryAction());
+    m_btnSelect->setEnabled(false);
     connect(m_btnSelect, &QPushButton::clicked,
             this, &SfenCollectionDialog::onSelectClicked);
     actionLayout->addWidget(m_btnSelect);
 
-    QPushButton* closeBtn = new QPushButton(tr("閉じる"), this);
+    auto* closeBtn = new QPushButton(tr("閉じる"), this);
     closeBtn->setMinimumWidth(100);
     closeBtn->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(closeBtn, &QPushButton::clicked,
@@ -218,165 +122,21 @@ void SfenCollectionDialog::buildUi()
     mainLayout->addLayout(actionLayout);
 }
 
-void SfenCollectionDialog::updateBoardDisplay()
+void SfenCollectionDialog::onCurrentIndexChanged(int index)
 {
-    if (m_sfenList.isEmpty() || m_currentIndex < 0 || m_currentIndex >= m_sfenList.size()) {
-        return;
-    }
-
-    // 盤は変わったマスだけを描き直すので、全体の描き直しは頼まない
-    const QString& sfen = m_sfenList.at(m_currentIndex);
-    m_board->setSfen(sfen);
-
-    // 手番表示を更新
-    bool isBlackTurn = !sfen.contains(QStringLiteral(" w "));
-    m_shogiView->setActiveSide(isBlackTurn);
-    m_shogiView->updateTurnIndicator(isBlackTurn ? Turn::Black
-                                                  : Turn::White);
-
-    // 位置ラベルを更新
-    m_positionLabel->setText(tr("局面: %1 / %2").arg(m_currentIndex + 1).arg(m_sfenList.size()));
-}
-
-void SfenCollectionDialog::updateButtonStates()
-{
-    const bool hasData = !m_sfenList.isEmpty();
-    const bool canGoBack = hasData && m_currentIndex > 0;
-    const bool canGoForward = hasData && m_currentIndex < m_sfenList.size() - 1;
-
-    m_btnFirst->setEnabled(canGoBack);
-    m_btnBack->setEnabled(canGoBack);
-    m_btnForward->setEnabled(canGoForward);
-    m_btnLast->setEnabled(canGoForward);
-    m_btnSelect->setEnabled(hasData);
-}
-
-void SfenCollectionDialog::onGoFirst()
-{
-    if (!m_sfenList.isEmpty()) {
-        m_currentIndex = 0;
-        updateBoardDisplay();
-        updateButtonStates();
-    }
-}
-
-void SfenCollectionDialog::onGoBack()
-{
-    if (m_currentIndex > 0) {
-        --m_currentIndex;
-        updateBoardDisplay();
-        updateButtonStates();
-    }
-}
-
-void SfenCollectionDialog::onGoForward()
-{
-    if (m_currentIndex < m_sfenList.size() - 1) {
-        ++m_currentIndex;
-        updateBoardDisplay();
-        updateButtonStates();
-    }
-}
-
-void SfenCollectionDialog::onGoLast()
-{
-    if (!m_sfenList.isEmpty()) {
-        m_currentIndex = static_cast<int>(m_sfenList.size()) - 1;
-        updateBoardDisplay();
-        updateButtonStates();
-    }
-}
-
-void SfenCollectionDialog::onEnlargeBoard()
-{
-    if (m_shogiView) {
-        m_shogiView->enlargeBoard(false);
-        adjustWindowToContents();
-    }
-}
-
-void SfenCollectionDialog::onReduceBoard()
-{
-    if (m_shogiView) {
-        m_shogiView->reduceBoard(false);
-        adjustWindowToContents();
-    }
-}
-
-void SfenCollectionDialog::onFlipBoard()
-{
-    if (!m_shogiView) return;
-
-    const bool flipped = !m_shogiView->flipMode();
-    m_shogiView->setFlipMode(flipped);
-    if (flipped) {
-        m_shogiView->setPiecesFlip();
-    } else {
-        m_shogiView->setPieces();
-    }
-    m_shogiView->update();
+    m_viewer->setPositionText(tr("局面: %1 / %2").arg(index + 1).arg(m_viewer->count()));
 }
 
 void SfenCollectionDialog::onSelectClicked()
 {
-    if (!m_sfenList.isEmpty() && m_currentIndex >= 0 && m_currentIndex < m_sfenList.size()) {
-        emit positionSelected(m_sfenList.at(m_currentIndex));
-    }
-}
-
-bool SfenCollectionDialog::eventFilter(QObject* watched, QEvent* event)
-{
-    if (watched == m_shogiView && event->type() == QEvent::Wheel) {
-        QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
-        if (wheelEvent->modifiers() & Qt::ControlModifier) {
-            const int delta = wheelEvent->angleDelta().y();
-            if (delta > 0) {
-                onEnlargeBoard();
-            } else if (delta < 0) {
-                onReduceBoard();
-            }
-            return true;
-        }
-    }
-    return QDialog::eventFilter(watched, event);
-}
-
-void SfenCollectionDialog::hideClockLabels()
-{
-    if (m_shogiView) {
-        m_shogiView->setClockEnabled(false);
-    }
-}
-
-void SfenCollectionDialog::saveWindowSize()
-{
-    DialogUtils::saveDialogSize(this, GameSettings::sfenCollectionDialogSize);
-}
-
-void SfenCollectionDialog::adjustWindowToContents()
-{
-    if (m_shogiView) {
-        m_shogiView->updateBoardSize();
-        hideClockLabels();
-        // スクロール領域の中の盤は自動では大きさが変わらないため、マスの大きさに合わせる
-        m_shogiView->resize(m_shogiView->sizeHint());
-    }
-    // 通常表示は盤全体が入る寸法を優先し、小さい画面ではスクロールで補う。
-    // 拡大・縮小の直後はスクロールバーが出ていることがあるため、ビューポートではなく
-    // スクロール領域（枠なし）の大きさから盤以外の部分の寸法を求める。
-    layout()->activate();
-    auto* scroll = findChild<QScrollArea*>(QStringLiteral("boardScrollArea"));
-    const QSize controls = size() - scroll->size();
-    const QSize available = screen()->availableGeometry().size() - QSize(40, 80);
-    resize((m_shogiView->size() + controls).boundedTo(available));
+    const QString sfen = m_viewer->currentSfen();
+    if (!sfen.isEmpty()) emit positionSelected(sfen);
 }
 
 void SfenCollectionDialog::closeEvent(QCloseEvent* event)
 {
-    saveWindowSize();
+    DialogUtils::saveDialogSize(this, GameSettings::sfenCollectionDialogSize);
     saveRecentFiles();
-    if (m_shogiView) {
-        GameSettings::sfenCollectionSquareSize.set(m_shogiView->squareSize());
-    }
+    GameSettings::sfenCollectionSquareSize.set(m_viewer->view()->squareSize());
     QDialog::closeEvent(event);
 }

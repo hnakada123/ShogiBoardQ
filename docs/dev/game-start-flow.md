@@ -2,7 +2,7 @@
 
 本ドキュメントでは、GUIの「対局」メニューから「対局開始」をクリックし、実際に対局が始まるまでに実行される関数とその内容を時系列で説明する。
 
-先手・後手はすべて `Turn`（`Turn::Black`／`Turn::White`、`src/core/shogitypes.h`）で表す。部品の生成と配線は `MainWindowServiceRegistry`（`src/app/mainwindowserviceregistry.*`、`src/app/gamesubregistry*.cpp`、`src/app/mainwindow*registry.cpp`）が行う。
+先手・後手はすべて `Turn`（`Turn::Black`／`Turn::White`、`src/core/shogitypes.h`）で表す。部品は起動時に `MainWindowComposer`（`src/app/mainwindowcomposer*.cpp`）が全部作って配線する（[composition-root.md](composition-root.md)）。共有する状態（対局モード・開始局面・局面列など）は `AppState`（`src/common/appstate.h`）に置く。
 
 ## 全体フロー図
 
@@ -31,11 +31,12 @@ GameStartCoordinator::initializeGame(Ctx)
     │  7) prepare() → 時計の初期化
     │  8) playerNamesResolved / consecutiveGamesConfigured シグナル発行
     │  9) start(StartParams) → 対局開始
-    │  10) 時計開始 + エンジン初手
     │
     ▼
 GameStartCoordinator::start(StartParams)
     │  時間の決まりの正規化・時計への適用依頼
+    │  configureAndStart() の後、finishStart() で
+    │  開始の通知 → 開始行の選択 → 時計開始 → エンジン初手
     │
     ▼
 MatchCoordinator::configureAndStart(StartOptions)
@@ -67,7 +68,7 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
                  gso, &GameSessionOrchestrator::initializeGame, Qt::UniqueConnection);
 ```
 
-ユーザーがメニュー「対局」→「対局開始」をクリックすると、`actionStartGame` の `triggered` シグナルが発火し、`GameSessionOrchestrator::initializeGame()` スロットが呼ばれる。`GameActionsWiring` は `UiActionsWiring` が作り、`GameSessionOrchestrator` は `MainWindowServiceRegistry::ensureGameSessionOrchestrator()`（`src/app/gamesubregistry_session.cpp`）が作る。
+ユーザーがメニュー「対局」→「対局開始」をクリックすると、`actionStartGame` の `triggered` シグナルが発火し、`GameSessionOrchestrator::initializeGame()` スロットが呼ばれる。`GameActionsWiring` は `UiActionsWiring` が作り、`GameSessionOrchestrator` は起動時に `MainWindowComposer::createServices()` が作り、`MainWindowComposer::wireGame()` が依存を渡す。
 
 ---
 
@@ -81,10 +82,10 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
 
 1. **GameStartCoordinatorの取得**
    ```cpp
-   auto* gameStart = get(m_deps.gameStart);  // 取得関数が、まだ無ければ作ってから返す
+   auto* gameStart = m_deps.gameStart;
    if (!gameStart) return;
    ```
-   `Deps::gameStart` はレジストリが渡す取得関数で、`MainWindowServiceRegistry::ensureGameStartCoordinator()`（`src/app/gamesubregistry.cpp`）を呼んでから返す。`GameStartCoordinator` は1つだけで、`MatchCoordinatorWiring::ensureMenuGameStartCoordinator()` が作り、`MatchCoordinatorWiring` が持つ（Qtの親）。
+   `Deps::gameStart` は `GameStartCoordinator` のポインタである。`GameStartCoordinator` は1つだけで、起動時に `MainWindowComposer::wireMatchCoordinator()` から `MatchCoordinatorWiring::createMenuGameStartCoordinator()` が作り、`MatchCoordinatorWiring` が持つ（Qtの親）。
 
 2. **対局開始ダイアログの表示**
    ```cpp
@@ -97,8 +98,8 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
    }
    const StartGameDialogData dialogData = extractDialogData(dlg);
 
-   if (dialogData.startingPositionNumber != 0 && m_deps.confirmDiscardUnsavedKifu
-       && !m_deps.confirmDiscardUnsavedKifu()) return;
+   if (dialogData.startingPositionNumber != 0 && m_deps.kifuFileController
+       && !m_deps.kifuFileController->confirmDiscardUnsaved()) return;
    ```
    `hasEditedStart` は、開始SFEN（`startSfenStr`）か局面列の先頭が平手でも `"startpos"` でもないときに true になる。ダイアログの値は `extractDialogData()` が `StartGameDialogData`（`src/game/startgamedatabridge.h`）に写す。game 層はダイアログを参照せず、この値だけを受け取る。プリセット（平手・駒落ち）で始めるときは、未保存の棋譜を捨ててよいか確かめる。
 
@@ -146,7 +147,7 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, errorMessage);
    }
    ```
-   `Deps::bottomSide` は MainWindow の `m_player.bottomSide`（`PlayerState`、`src/app/mainwindowstate.h`。盤の手前に表示している側）を指す。開始局面が対局に使えないとき（3章のステップ2）は、`initializeGame()` が返したメッセージを警告として出す。
+   `Deps::bottomSide` は `AppState::bottomSide`（`src/common/appstate.h`。盤の手前に表示している側）を指す。開始局面が対局に使えないとき（3章のステップ2）は、`initializeGame()` が返したメッセージを警告として出す。
 
 ### Ctx構造体の内容
 
@@ -412,31 +413,13 @@ emit consecutiveGamesConfigured(consecutiveGames, switchTurn);
 StartParams params;
 params.opt  = opt;
 params.tc   = tc;
-params.autoStartEngineMove = false;  // 初手goはまだ呼ばない
-
+params.autoStartEngineMove = true;
+params.selectKifuRow = startingRow;   // 現在局面から始めるときの開始行（-1 なら選ばない）
 start(params);
-```
-
-`start()` の内容は5章。その後、現在局面から開始した場合（`startingRow >= 0`）は `requestSelectKifuRow(startingRow)` を発行し、棋譜欄の開始行を選ばせる（`KifuNavigationCoordinator::selectKifuRow()`）。
-
-### ステップ10: 時計開始とエンジン初手
-
-```cpp
-if (m_match) {
-    if (c.clock && m_match->clock() != c.clock) {
-        m_match->setClock(c.clock);
-    }
-    if (ShogiClock* clk = m_match->clock()) {
-        clk->startClock();
-    }
-    // 初手がエンジン手番なら go を起動（1回だけ）
-    m_match->startInitialEngineMoveIfNeeded();
-}
 return true;
 ```
 
-- 時計をMatchCoordinatorに関連付けて開始する
-- 手番の側がエンジンなら、初手の思考を要求する（8章）
+`start()` の内容は5章。開始行の選択・時計の開始・エンジンの初手は、`start()` の最後の `finishStart()` が行う（5章のステップ7）。
 
 ---
 
@@ -521,21 +504,21 @@ StartOptionsを受け取り、MatchCoordinatorへ対局開始を指示する。
 6. **対局開始**
    ```cpp
    m_match->configureAndStart(params.opt);
+   finishStart(params.opt, params.selectKifuRow, params.autoStartEngineMove);
    ```
 
-7. **初手go（`params.autoStartEngineMove` のときだけ）**
+7. **開始の仕上げ（`finishStart()`）**
    ```cpp
-   if (params.autoStartEngineMove) {
-       m_match->startInitialEngineMoveIfNeeded();
-   }
+   emit started(opt);
+   if (selectKifuRow >= 0) emit requestSelectKifuRow(selectKifuRow);
+   if (!startClockAndFirstMove) return;
+   if (ShogiClock* clock = m_match->clock()) clock->startClock();
+   m_match->startInitialEngineMoveIfNeeded();   // 初手がエンジン手番なら go を起動（1回だけ）
    ```
-   ダイアログ経由では false で、初手はステップ10で要求する。連続対局の2局目以降は true。
-
-8. **完了通知**
-   ```cpp
-   emit started(params.opt);
-   ```
-   `UiStatePolicyManager::transitionToDuringGame()`（メニューなどを対局中の状態にする）、`SessionLifecycleCoordinator::handleGameStarted()`（PlayMode と現在局面SFENの更新、定跡ウィンドウの更新、連続対局への通知）、`GameSessionOrchestrator::discardInterruptedGame()` がこの順に受ける（`MatchCoordinatorWiring::connectGameStartSignals()` がつないだ順）。
+   対局の開始（ダイアログ・連続対局の2局目以降・中断した対局の再開 `resumeInterruptedGame()`）は、すべてこの関数で終わる。順番は「開始の通知 → 開始行の選択 → 時計の開始 → エンジンの初手」である。
+   - `started` は `UiStatePolicyManager::transitionToDuringGame()`（メニューなどを対局中の状態にする）、`SessionLifecycleCoordinator::handleGameStarted()`（PlayMode と現在局面SFENの更新、定跡ウィンドウの更新、連続対局への通知）、`GameSessionOrchestrator::discardInterruptedGame()` がこの順に受ける（`MatchCoordinatorWiring::connectGameStartSignals()` がつないだ順）
+   - 現在局面から開始した場合（`selectKifuRow >= 0`）は `requestSelectKifuRow` で棋譜欄の開始行を選ばせる（`KifuNavigationCoordinator::selectKifuRow()`）
+   - 手番の側がエンジンなら、初手の思考を要求する（8章）
 
 ---
 
@@ -545,7 +528,7 @@ StartOptionsを受け取り、MatchCoordinatorへ対局開始を指示する。
 
 対局進行の司令塔（MatchCoordinator）による対局開始の中核処理。実際の手順は `GameStartOrchestrator`（非QObject、MatchCoordinator が `unique_ptr` で持つ）が、MatchCoordinator の状態への参照（Refs）とコールバック（Hooks）を使って行う。
 
-`configureAndStart()` を呼ぶ経路には、ここで説明する `GameStartCoordinator::start()` のほかに `MatchCoordinator::prepareAndStartGame(mode, startSfen, sfenRecord, dlg, Turn bottomSide)` がある。こちらは `buildStartOptions()` → `ensureHumanAtBottomIfApplicable()` → `configureAndStart()` → `startInitialEngineMoveIfNeeded()` を続けて行い、起動時の `SessionLifecycleCoordinator::startNewGame()` → `MainWindowServiceRegistry::startGameSession()` がダイアログの値なし（`dlg == nullptr`）で呼ぶ。
+`configureAndStart()` を呼ぶのは `GameStartCoordinator::start()` だけである（以前あった `MatchCoordinator::prepareAndStartGame()` と起動時の仮の対局開始は 2026-10-15 に削除した）。
 
 ### ステップ6.0: 中断した対局の破棄と指し手列の整理
 
@@ -555,7 +538,6 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     discardInterruptedGame();
     m_lastStartOptions = opt;
     alignGameMovesWithSfenHistory();   // 指し手列を「局面列の件数 - 1」件に切り詰める
-    ensureGameStartOrchestrator();
     m_gameStartOrchestrator->configureAndStart(opt);
 }
 ```
@@ -622,11 +604,11 @@ if (m_hooks.setPlayersNames)   m_hooks.setPlayersNames(QString(), QString());
 if (m_hooks.setEngineNames)    m_hooks.setEngineNames(opt.engineName1, opt.engineName2);
 ```
 
-`GameStartOrchestrator::Hooks` のこれらは、`MatchCoordinator::ensureGameStartOrchestrator()` が `MatchCoordinatorHooks`（`src/game/matchcoordinatorhooks.h`）の `game.initializeNewGame`・`ui.setPlayersNames`・`ui.setEngineNames` をそのまま渡したものである。`MatchCoordinatorHooks` は `MainWindowServiceRegistry::buildMatchHooks()`（`src/app/gamesubregistry_wiring.cpp`）が組み立てる:
+`GameStartOrchestrator::Hooks` のこれらは、`MatchCoordinator::createGameStartOrchestrator()`（コンストラクタから呼ぶ）が `MatchCoordinatorHooks`（`src/game/matchcoordinatorhooks.h`）の `game.initializeNewGame`・`ui.setPlayersNames`・`ui.setEngineNames` をそのまま渡したものである。`MatchCoordinatorHooks` は `MainWindowComposer::buildMatchHooks()`（`src/app/mainwindowcomposer_game.cpp`）が組み立てる:
 
 | Hook | 呼び先 | 処理内容 |
 |---|---|---|
-| `game.initializeNewGame` | `MainWindowMatchAdapter::initializeNewGameHook()` | 盤をリセットして開始SFENを適用し、盤を描き直し、対局者名・エンジン名の表示を更新 |
+| `game.initializeNewGame` | `buildMatchHooks()` のラムダ | 盤をリセットして開始SFENを適用し、盤を描き直し、対局者名・エンジン名の表示を更新 |
 | `ui.setPlayersNames` | `PlayerInfoWiring::onSetPlayersNames()` | 盤の対局者名ラベルと対局情報の先手・後手を設定（ここでは空文字列を渡す） |
 | `ui.setEngineNames` | `PlayerInfoWiring::onSetEngineNames()` | エンジン名を通信ログ・思考タブ・評価値グラフに設定。対局のモードなら盤の対局者名と対局情報も更新 |
 
@@ -634,16 +616,17 @@ if (m_hooks.setEngineNames)    m_hooks.setEngineNames(opt.engineName1, opt.engin
 
 #### initializeNewGame Hookの詳細
 
-`MainWindowMatchAdapter::initializeNewGameHook()`（`src/app/mainwindowmatchadapter.cpp`）は `MainWindowCoreInitCoordinator::initializeNewGame()` を呼び、盤を `ShogiView::applyBoardAndRender()` で描き直し、`PlayerInfoWiring` の `applyPlayersNamesForMode()`・`applyEngineNamesToLogModels()`・`applySecondEngineVisibility()` で表示名を更新する。
+`MainWindowComposer::buildMatchHooks()` が組み立てるラムダは、`ShogiGameController::newGame()` で盤を開始局面にし、盤を `ShogiView::applyBoardAndRender()` で描き直し、`PlayerInfoWiring` の `applyPlayersNamesForMode()`・`applyEngineNamesToLogModels()`・`applySecondEngineVisibility()` で表示名を更新する。
 
 ```cpp
-void MainWindowCoreInitCoordinator::initializeNewGame(QString& startSfenStr)
-{
-    auto* gc = m_deps.gameController ? *m_deps.gameController : nullptr;
-    if (gc) {
-        gc->newGame(startSfenStr);
-    }
-}
+hooks.game.initializeNewGame = [this](const QString& sfen) {
+    QString start = sfen;
+    m_c.gameController->newGame(start);
+    if (m_c.gameController->board()) m_c.shogiView->applyBoardAndRender(m_c.gameController->board());
+    m_c.playerInfoWiring->applyPlayersNamesForMode();
+    m_c.playerInfoWiring->applyEngineNamesToLogModels();
+    m_c.playerInfoWiring->applySecondEngineVisibility();
+};
 ```
 
 - `ShogiGameController::newGame()` で盤を作り直して開始SFENを適用し、SFENの手番を `setCurrentPlayer()` で反映する。前の対局の最終手も消す
@@ -657,15 +640,12 @@ if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
 *m_refs.currentMoveIndex = 0;
 
-*m_refs.currentTurn =
-    (startSide == Turn::White) ? Turn::White
-                               : Turn::Black;
-if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(*m_refs.currentTurn);
+if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(startSide);
 ```
 
 - SFENの手番フィールド（`b` or `w`。`"position sfen ..."` の形にも対応）から開始手番を判定する
 - ShogiGameControllerに手番を設定し、盤面を描画する
-- 手数を0に戻し、司令塔の手番（`MatchCoordinator::m_cur`）を開始手番にして手番表示を更新する（`MatchTurnHandler::updateTurnDisplay()` → `ui.updateTurnDisplay` → `MainWindow::onTurnManagerChanged()`）
+- 手数を0に戻し、手番表示を更新する（`MatchTurnHandler::updateTurnDisplay()` → `ui.updateTurnDisplay` → `TurnStateSyncService::onTurnManagerChanged()`）。司令塔は手番のコピーを持たない。手番は GC の現在の手番だけが持つ
 
 ### ステップ6.6: position文字列の初期化
 
@@ -726,17 +706,13 @@ case PlayMode::HumanVsHuman:
 **ファイル:** `src/game/humanvshumanstrategy.cpp`
 
 ```cpp
-const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
-
-m_ctx.setCurrentTurn(side);
-
+// 手番の単一ソースは GC（currentTurn() は GC の手番を返す）
 if (m_ctx.hooks().ui.renderBoardFromGc)
     m_ctx.hooks().ui.renderBoardFromGc();
 m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 ```
 
-- GCから現在の手番を取得し、司令塔の手番（`m_cur`）を同期
-- 盤面描画と手番表示を更新
+- 盤面描画と手番表示を更新する。手番は GC の現在の手番（`StrategyContext::currentTurn()`）を使う
 
 エンジンの起動は不要。ユーザーのクリック入力を待つ。
 
@@ -779,11 +755,9 @@ HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
    ```
    起動は非同期で、ここでは完了を待たない（8章）。
 
-6. **手番の確立と盤面描画**
+6. **盤面描画と手番表示**
    ```cpp
-   const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
-   m_ctx.setCurrentTurn(side);
-
+   // 手番の単一ソースは GC（currentTurn() は GC の手番を返す）
    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
    m_ctx.updateTurnDisplay(m_ctx.currentTurn());
    ```
@@ -795,7 +769,7 @@ HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
 `start()` の前に、6.7 で `EngineLifecycleManager::initEnginesForEvE()` が既存のエンジンを破棄して2つのエンジン（`usi1` を先手、`usi2` を後手）を作り、投了・入玉宣言を手番ごとに配線し、`initializeAndStartEngineFor(Turn::Black, ...)`／`(Turn::White, ...)` で両方を起動する。
 
 1. **時計の開始**（EvEでは初手からタイマーを動かすため、ここで時計を開始）
-2. **手番の同期**: GCの手番（開始SFENの手番）を司令塔の手番にして表示する。駒落ちのプリセットのように開始SFENが後手番なら、後手（上手）から始まる
+2. **手番の表示**: GCの手番（開始SFENの手番）を表示する。駒落ちのプリセットのように開始SFENが後手番なら、後手（上手）から始まる
 3. **EvE用position文字列の初期化**（`initPositionStringsForEvE()`。中断からの再開でなければ）。`HandicapEngineVsEngine` で開始局面の盤が平手の初期配置でなければ `position sfen <SFEN> moves`、それ以外は `position startpos moves`
 4. **両エンジンの `engineInitialized` と `matchMoveReady` を接続し、`kickNextEvETurn()` を呼ぶ**
 
@@ -865,9 +839,7 @@ BoardInteractionController::onLeftClick(pt)
     ├─ 1回目クリック: 駒を選択してハイライト表示
     └─ 2回目クリック: moveRequested(from, to) シグナル発行
     ↓
-MainWindow::onMoveRequested(from, to)（MainWindowSignalRouter::connectMoveRequested() が接続）
-    ↓
-MainWindowServiceRegistry::handleMoveRequested(from, to)
+MainWindowActions::handleMoveRequested(from, to)（MainWindowComposer::connectSignals() が接続）
     ↓
 BoardSetupController::onMoveRequested(from, to)
     ↓
@@ -897,7 +869,7 @@ HumanVsEngineStrategy::onEngineMoveReady()
 手番が人間に戻る → 次のクリックを待つ
 ```
 
-`MatchCoordinatorHooks::Game::appendEval(Turn side)` は、`side` が先手ならエンジン1の、後手ならエンジン2の評価値グラフを描き直す（`MainWindowServiceRegistry::buildMatchHooks()`）。
+`MatchCoordinatorHooks::Game::appendEval(Turn side)` は、`side` が先手ならエンジン1の、後手ならエンジン2の評価値グラフを描き直す（`MainWindowComposer::buildMatchHooks()`）。
 
 ### ターン同期の仕組み
 
@@ -908,13 +880,11 @@ TurnManager::set(Turn)
     ↓
 TurnManager::changed(Turn)
     ↓
-MainWindow::onTurnManagerChanged(Turn)
-    → MainWindowServiceRegistry::onTurnManagerChanged()
-    → TurnStateSyncService::onTurnManagerChanged()
+TurnStateSyncService::onTurnManagerChanged(Turn)
        時計の手番（ShogiClock::setCurrentPlayer(Turn)）、GCの手番、盤の手番表示（ShogiView::updateTurnIndicator()）を更新
 ```
 
-`TurnSyncBridge::wire()` が GC → TurnManager と TurnManager → MainWindow の2つの接続を行い、GCの手番で初期同期する。`MainWindowServiceRegistry::prepareTurnSyncBridge()` が起動時に呼ぶ。
+`TurnManager` は `TurnStateSyncService` が持つ。TurnManager → `onTurnManagerChanged()` の接続はコンストラクタで、GC → TurnManager の接続は `updateDeps()`（`MainWindowComposer::wireGame()` から）で行う。起動時の初期同期は `MainWindowComposer::finalizeUi()` の `TurnStateSyncService::setCurrentTurn()` が行う。
 
 時計の時間切れは `ShogiClock::playerTimeOut(Turn)` で、`TimeControlController::onClockPlayerTimeOut()` が `MatchCoordinator::handlePlayerTimeOut(Turn)` に渡す。
 
@@ -927,7 +897,9 @@ MainWindow::onTurnManagerChanged(Turn)
 | 対局ダイアログ | `src/dialogs/startgamedialog.h` | `src/dialogs/startgamedialog.cpp`, `src/dialogs/startgamedialog_settings.cpp`, `src/dialogs/startgamedialog_time.cpp` |
 | ダイアログの値 | `src/game/startgamedatabridge.h` | （ヘッダーのみ） |
 | MainWindow | `src/app/mainwindow.h` | `src/app/mainwindow.cpp` |
-| 部品の生成と配線 | `src/app/mainwindowserviceregistry.h` | `src/app/mainwindowserviceregistry.cpp`, `src/app/gamesubregistry*.cpp`, `src/app/mainwindow*registry.cpp` |
+| 部品の生成と配線（合成ルート） | `src/app/mainwindowcomposer.h`, `src/app/mainwindowcomponents.h` | `src/app/mainwindowcomposer.cpp`, `src/app/mainwindowcomposer_*.cpp` |
+| 共有する状態 | `src/common/appstate.h` | （ヘッダーのみ） |
+| 盤・メニューの操作の振り分け | `src/app/mainwindowactions.h` | `src/app/mainwindowactions.cpp` |
 | 対局ライフサイクル（対局開始の入口） | `src/app/gamesessionorchestrator.h` | `src/app/gamesessionorchestrator.cpp` |
 | 対局開始前の局面列の作り直し・Ctx構築 | `src/app/mainwindowgamestartservice.h` | `src/app/mainwindowgamestartservice.cpp` |
 | 対局開始前クリーンアップ | `src/app/prestartcleanuphandler.h` | `src/app/prestartcleanuphandler.cpp` |
@@ -943,14 +915,12 @@ MainWindow::onTurnManagerChanged(Turn)
 | ターン進行・Strategy の管理 | `src/game/matchturnhandler.h` | `src/game/matchturnhandler.cpp` |
 | モード別の Strategy | `src/game/gamemodestrategy.h`, `src/game/strategycontext.h` | `src/game/humanvshumanstrategy.cpp`, `src/game/humanvsenginestrategy.cpp`, `src/game/enginevsenginestrategy.cpp` |
 | エンジンの生成・起動・投了の配線 | `src/game/enginelifecyclemanager.h` | `src/game/enginelifecyclemanager.cpp` |
-| 司令塔のフックの受け手 | `src/app/mainwindowmatchadapter.h` | `src/app/mainwindowmatchadapter.cpp` |
-| 新しい対局の盤の初期化 | `src/app/mainwindowcoreinitcoordinator.h` | `src/app/mainwindowcoreinitcoordinator.cpp` |
+| 司令塔のフックの組み立て | `src/app/mainwindowcomposer.h` | `src/app/mainwindowcomposer_game.cpp` |
 | ゲームコントローラ | `src/game/shogigamecontroller.h` | `src/game/shogigamecontroller.cpp` |
 | 手番の型 | `src/core/shogitypes.h` | （ヘッダーのみ） |
 | 対局モード | `src/core/playmode.h` | （ヘッダーのみ） |
 | ターンマネージャ | `src/game/turnmanager.h` | `src/game/turnmanager.cpp` |
-| ターン同期ブリッジ | `src/game/turnsyncbridge.h` | `src/game/turnsyncbridge.cpp` |
-| 手番の表示の同期 | `src/app/turnstatesyncservice.h` | `src/app/turnstatesyncservice.cpp` |
+| 手番の表示の同期（TurnManager を持つ） | `src/app/turnstatesyncservice.h` | `src/app/turnstatesyncservice.cpp` |
 | 対局アクション配線 | `src/ui/wiring/gameactionswiring.h` | `src/ui/wiring/gameactionswiring.cpp` |
 | 盤面操作コントローラ | `src/board/boardinteractioncontroller.h` | `src/board/boardinteractioncontroller.cpp` |
 | 着手要求の処理 | `src/ui/controllers/boardsetupcontroller.h` | `src/ui/controllers/boardsetupcontroller.cpp` |

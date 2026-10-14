@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 136
+- CTest ケース数: 137
 - 取得コマンド: `ctest --test-dir build -N`
 
 ## テスト一覧
@@ -111,35 +111,36 @@
 102. `tst_dialog_appearance`
 103. `tst_automation_dispatcher`
 104. `tst_nyugyoku_judgement`
-105. `tst_usi_info_line_parser`
-106. `tst_sfen_validation_service`
-107. `tst_game_info_pane`
-108. `tst_kifu_conversion_service`
-109. `tst_kifu_format_compliance`
-110. `tst_board_image_renderer`
-111. `tst_tsume_diversity_python`
-112. `tst_tsume_collection_audit_python`
-113. `tst_mcp_python`
-114. `tst_background_tasks`
-115. `tst_memory_lifecycle`
-116. `tst_evaluationchart`
-117. `tst_csalogpanel`
-118. `tst_usilogpanel`
-119. `tst_kifupresentation`
-120. `tst_legal_move_highlights`
-121. `tst_board_drag_repaint`
-122. `tst_move_record_updates`
-123. `tst_thinking_display_updates`
-124. `tst_thinking_display_updates_scaled`
-125. `tst_thinking_display_updates_scaled15`
-126. `tst_application_style`
-127. `tst_application_rendering`
-128. `tst_table_header_view`
-129. `tst_layout_boundary_widget`
-130. `tst_incremental_table_view`
-131. `tst_incremental_table_view_scaled`
-132. `tst_candidate_arrows`
-133. `tst_i18n_workflows`
-134. `tst_applicationlogging`
-135. `tst_service_initialization`
-136. `tst_automation_security`
+105. `tst_usiinfoparser`
+106. `tst_pvnotationformatter`
+107. `tst_sfen_validation_service`
+108. `tst_game_info_pane`
+109. `tst_kifu_conversion_service`
+110. `tst_kifu_format_compliance`
+111. `tst_board_image_renderer`
+112. `tst_tsume_diversity_python`
+113. `tst_tsume_collection_audit_python`
+114. `tst_mcp_python`
+115. `tst_background_tasks`
+116. `tst_memory_lifecycle`
+117. `tst_evaluationchart`
+118. `tst_csalogpanel`
+119. `tst_usilogpanel`
+120. `tst_kifupresentation`
+121. `tst_legal_move_highlights`
+122. `tst_board_drag_repaint`
+123. `tst_move_record_updates`
+124. `tst_thinking_display_updates`
+125. `tst_thinking_display_updates_scaled`
+126. `tst_thinking_display_updates_scaled15`
+127. `tst_application_style`
+128. `tst_application_rendering`
+129. `tst_table_header_view`
+130. `tst_layout_boundary_widget`
+131. `tst_incremental_table_view`
+132. `tst_incremental_table_view_scaled`
+133. `tst_candidate_arrows`
+134. `tst_i18n_workflows`
+135. `tst_applicationlogging`
+136. `tst_service_initialization`
+137. `tst_automation_security`

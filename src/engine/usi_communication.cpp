@@ -63,16 +63,17 @@ void Usi::prepareAnalysisSession(const QString& positionStr, int multiPV)
     m_protocolHandler->sendPosition(positionStr);
 
     // MultiPV を設定（常に送信して、前回の設定をリセット）
-    m_protocolHandler->sendRaw(QStringLiteral("setoption name MultiPV value %1").arg(multiPV));
+    m_protocolHandler->sendSetOption(QStringLiteral("MultiPV"), QString::number(multiPV));
 
     m_presenter->requestClearThinkingInfo();
-    m_protocolHandler->sendRaw("go infinite");
+    m_protocolHandler->sendGoInfinite();
 }
 
-void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV)
+void Usi::sendPositionAndGoInfinite(const QString& positionStr)
 {
-    // 後方互換API。現在はUIブロック回避のため非ブロッキングで処理する。
-    sendAnalysisCommands(positionStr, byoyomiMilliSec, multiPV);
+    if (deferUntilReady([this, positionStr]() { sendPositionAndGoInfinite(positionStr); })) return;
+    m_protocolHandler->sendPosition(positionStr);
+    m_protocolHandler->sendGoInfinite();
 }
 
 void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV)

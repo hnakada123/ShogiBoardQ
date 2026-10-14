@@ -3,12 +3,10 @@
 
 #include "kifucontentbuilder.h"
 #include "kifurecordlistmodel.h"
+#include "kifuexportcommon.h"
 #include <QRegularExpression>
 
-static inline QString fwColonLine(const QString& key, const QString& val)
-{
-    return QStringLiteral("%1：%2").arg(key, val);
-}
+using KifuExportCommon::fwColonLine;
 
 QStringList KifuContentBuilder::buildKifuDataList(const KifuExportContext& ctx)
 {

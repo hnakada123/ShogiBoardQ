@@ -19,7 +19,7 @@ class KifuRecordListModel;
 class ShogiView;
 class MatchCoordinator;
 class EvaluationGraphController;
-class CsaGameCoordinator;
+class CsaGameWiring;
 
 /**
  * @brief 棋譜欄の行変更ハンドラ
@@ -41,7 +41,7 @@ public:
         EvaluationGraphController* evalGraphController = nullptr; ///< 評価値グラフ制御（非所有）
         QString* currentSfenStr = nullptr;                  ///< 現在局面SFEN文字列（外部所有）
         bool* skipBoardSyncForBranchNav = nullptr;          ///< 分岐ナビ中の盤面同期スキップフラグ（外部所有）
-        CsaGameCoordinator* csaGameCoordinator = nullptr;  ///< CSA対局コーディネータ（非所有）
+        CsaGameWiring* csaGameWiring = nullptr;            ///< CSA 通信対局（司令塔は最初の CSA 対局で作られる。非所有）
         PlayMode* playMode = nullptr;                       ///< 対局モード（外部所有）
         MatchCoordinator* match = nullptr;                  ///< 対局調整（非所有）
     };

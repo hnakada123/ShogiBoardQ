@@ -2,6 +2,7 @@
 /// @brief 棋譜欄行変更ハンドラクラスの実装
 
 #include "recordnavigationhandler.h"
+#include "csagamewiring.h"
 
 #include "logcategories.h"
 #include "kifunavigationcontroller.h"
@@ -73,8 +74,8 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     }
 
     // CSA対局進行中は盤面がサーバーと同期されるため、ユーザー操作による盤面変更を抑止する
-    if (m_deps.csaGameCoordinator) {
-        if (m_deps.csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame) {
+    if (const CsaGameCoordinator* csa = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr) {
+        if (csa->gameState() == CsaGameCoordinator::GameState::InGame) {
             qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (CSA game in progress)";
             return;
         }

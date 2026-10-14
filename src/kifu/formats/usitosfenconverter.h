@@ -65,6 +65,15 @@ public:
                                            QString* terminalCode,
                                            QString* warn);
 
+    // テキスト（貼り付けた棋譜など）版。最初の position/SFEN らしき行を対象にする
+    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
+    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
+    [[nodiscard]] static bool parseUsiText(const QString& text,
+                                           QString& baseSfen,
+                                           QStringList& usiMoves,
+                                           QString* terminalCode,
+                                           QString* warn);
+
     // USIファイルから「対局情報」を抽出して順序付きで返す
     // 注意: USIは基本的にメタ情報を含まないため、ファイル名から推測するか空を返す
     static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
@@ -80,6 +89,13 @@ private:
 
     // USIファイルを読み込み、解析対象の行を返す
     static bool readUsiFile(const QString& filePath, QString& content, QString* warn);
+    // 行の中から解析対象の行（最初の position/SFEN らしき行、なければ最初の非空行）を選ぶ
+    static bool selectPositionLine(const QStringList& lines, QString& content, QString* warn);
+    // 開始局面の SFEN から表示用の手合のラベルを決める
+    static QString labelForBaseSfen(const QString& baseSfen);
+    // 解析済みの開始局面・指し手・終局コードから本譜を組み立てる
+    static void buildResult(const QString& baseSfen, const QStringList& usiMoves,
+                            const QString& terminalCode, KifParseResult& out);
 
     // ---- USI 文字列解析 ----
 

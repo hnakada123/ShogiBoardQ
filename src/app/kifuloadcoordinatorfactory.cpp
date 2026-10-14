@@ -2,7 +2,7 @@
 /// @brief KifuLoadCoordinator の生成・配線ロジック
 
 #include "kifuloadcoordinatorfactory.h"
-#include "mainwindow.h"
+#include "gamerecordloadservice.h"
 #include "kifuloadcoordinator.h"
 #include "playerinfowiring.h"
 #include "gameinfopanecontroller.h"
@@ -15,7 +15,7 @@
 KifuLoadCoordinator* KifuLoadCoordinatorFactory::createAndWire(const Params& p)
 {
     // Lifetime: owned by MainWindow (QObject parent=p.parent)
-    // Created: once on the first kifu load (KifuSubRegistry::ensureKifuLoadCoordinator), never recreated
+    // Created: once at startup (MainWindowComposer::wireKifu), never recreated
     auto* coordinator = new KifuLoadCoordinator(
         /* gameInfoTable       */ p.gameInfoController ? p.gameInfoController->tableWidget() : nullptr,
         /* recordPane          */ p.recordPane,
@@ -45,9 +45,9 @@ KifuLoadCoordinator* KifuLoadCoordinatorFactory::createAndWire(const Params& p)
     coordinator->setShogiView(p.shogiView);
 
     // UI更新通知
-    if (p.mainWindow) {
+    if (p.recordLoad) {
         QObject::connect(coordinator, &KifuLoadCoordinator::displayGameRecord,
-                         p.mainWindow, &MainWindow::displayGameRecord, Qt::UniqueConnection);
+                         p.recordLoad, &GameRecordLoadService::loadGameRecord, Qt::UniqueConnection);
     }
     if (p.kifuNavCoordinator) {
         QObject::connect(coordinator, &KifuLoadCoordinator::syncBoardAndHighlightsAtRow,

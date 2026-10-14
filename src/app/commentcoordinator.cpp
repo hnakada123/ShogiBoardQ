@@ -72,11 +72,6 @@ void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComme
         return;
     }
 
-    // GameRecordModel がない場合は初期化を要求
-    if (!m_gameRecord) {
-        emit ensureGameRecordModelRequested();
-    }
-
     // GameRecordModel を使ってコメントを更新
     if (m_gameRecord) {
         m_gameRecord->setComment(effectiveIndex, newComment);
@@ -129,11 +124,6 @@ void CommentCoordinator::onBookmarkEditRequested()
             m_statusBar->showMessage(tr("手を選択してください"), 3000);
         }
         return;
-    }
-
-    // GameRecordModel がない場合は初期化を要求
-    if (!m_gameRecord) {
-        emit ensureGameRecordModelRequested();
     }
 
     // 現在のしおりテキストを取得

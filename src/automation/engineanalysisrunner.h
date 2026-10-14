@@ -10,7 +10,7 @@
 #include <QString>
 #include <QTimer>
 
-#include "usiinfolineparser.h"
+#include "usiinfo.h"
 
 class UsiEngineSession;
 
@@ -40,17 +40,17 @@ public:
     void stop();
 
     /// MultiPV 番号ごとの最新の読み筋
-    QMap<int, UsiInfoLine> latestLines() const { return m_latest; }
+    QMap<int, UsiInfo> latestLines() const { return m_latest; }
     qint64 elapsedMs() const { return m_elapsed.isValid() ? m_elapsed.elapsed() : 0; }
 
 signals:
-    void lineUpdated(const UsiInfoLine& line);
+    void lineUpdated(const UsiInfo& line);
     void finished(const QString& bestmove, const QString& ponder);
     void errorOccurred(const QString& message);
 
 private slots:
     void onSessionReady();
-    void onInfoLine(const QString& line);
+    void onInfo(const UsiInfo& info);
     void onBestMove();
     void onThinkTimeout();
     void onNoResponse();
@@ -63,7 +63,7 @@ private:
     QTimer m_thinkTimer;
     QTimer m_noResponseTimer;
     QElapsedTimer m_elapsed;
-    QMap<int, UsiInfoLine> m_latest;
+    QMap<int, UsiInfo> m_latest;
     bool m_done = false;
     bool m_searchStarted = false;
     Request m_request;

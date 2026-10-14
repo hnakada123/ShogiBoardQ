@@ -18,7 +18,6 @@ class RecordPaneWiring : public QObject {
 public:
     struct Deps {
         QWidget*             parent = nullptr;         // 親（通常は MainWindow の central）
-        QObject*             ctx = nullptr;            // RecordPane::mainRowChanged などを受ける QObject（MainWindow*）
         KifuRecordListModel* recordModel = nullptr;    // 棋譜モデル
         KifuBranchListModel* branchModel = nullptr;    // 分岐候補モデル
         CommentCoordinator*  commentCoordinator = nullptr; // しおり編集接続先

@@ -199,6 +199,7 @@ QString JishogiScoreDialog::ruleText(const JishogiCalculator::PlayerScore& score
 
 void JishogiScoreDialog::applyFontSize()
 {
+    // 文字サイズを変えるのは点数表（m_content）だけ。ダイアログの操作部は標準の大きさのまま
     DialogUtils::standardizeDialog(this);
     QFont contentFont = font();
     contentFont.setPointSize(m_fontHelper.fontSize());
@@ -218,10 +219,8 @@ void JishogiScoreDialog::applyFontSize()
             label->setMinimumWidth(textWidth + 2 * label->margin() + 2);
         }
     }
-    m_fontDecrease->setEnabled(m_fontHelper.fontSize() > kMinFontSize);
-    m_fontIncrease->setEnabled(m_fontHelper.fontSize() < kMaxFontSize);
     m_fontSizeLabel->setText(tr("%1 pt").arg(m_fontHelper.fontSize()));
-    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize());
+    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize(), kMinFontSize, kMaxFontSize);
 }
 
 void JishogiScoreDialog::decreaseFontSize()

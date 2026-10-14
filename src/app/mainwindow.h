@@ -5,234 +5,44 @@
 /// @brief MainWindow の宣言
 
 #include <QMainWindow>
-#include <QPointer>
 #include <memory>
 
-#include "kifdisplayitem.h"
-#include "gamestartcoordinator.h"
-#include "shogigamecontroller.h"
-#include "mainwindowstate.h"
-
-// --- 前方宣言 ---
-class QTimer;
-class MatchCoordinator;
-class RecordPane;
-class EngineAnalysisTab;
-class BoardInteractionController;
-class KifuLoadCoordinator;
-class PositionEditController;
-class JishogiScoreDialogController;
-class NyugyokuDeclarationHandler;
-class ConsecutiveGamesController;
-class LanguageController;
-class ConsiderationWiring;
-class DockLayoutManager;
-class DockCreationService;
-class CommentCoordinator;
+class MainWindowComposer;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-class ShogiView;
-class EvaluationChartWidget;
-class BoardSyncPresenter;
-class BoardLoadService;
-class ConsiderationPositionService;
-class AnalysisResultsPresenter;
-class GameRecordPresenter;
-class TimeDisplayPresenter;
-class GameInfoPaneController;
-class EvaluationGraphController;
-class TimeControlController;
-class ReplayController;
-class DialogCoordinator;
-class KifuExportController;
-class KifuFileController;
-class GameStateController;
-class PlayerInfoController;
-class BoardSetupController;
-class PvClickController;
-class CsaGameWiring;
-class JosekiWindowWiring;
-class PlayerInfoWiring;
-class DialogLaunchWiring;
-class UsiCommandController;
-class RecordNavigationHandler;
-class RecordNavigationWiring;
-class UiStatePolicyManager;
-class LiveGameSessionUpdater;
-class KifuNavigationCoordinator;
-class BranchNavigationWiring;
-class PlayModePolicyService;
-class GameRecordUpdateService;
-class UiNotificationService;
-class UndoFlowService;
-class TurnStateSyncService;
-class GameRecordLoadService;
-class GameSessionOrchestrator;
-class SessionLifecycleCoordinator;
-class MainWindowServiceRegistry;
-class MainWindowSignalRouter;
-class MainWindowAppearanceController;
-class MainWindowMatchAdapter;
-class MainWindowCoreInitCoordinator;
-class MatchCoordinatorWiring;
-class MainWindowLifecyclePipeline;
-class AutomationServer;
-
-#ifdef QT_DEBUG
-class DebugScreenshotWiring;
-#endif
-
-/// @brief アプリ全体の UI と対局進行を束ねるファサード
+/**
+ * @brief アプリのメインウィンドウ
+ *
+ * 部品の生成・配線・状態は MainWindowComposer が持つ。MainWindow はウィンドウ固有の
+ * 責務（.ui の保持、閉じるときの確認と終了処理）だけを受け持つ。
+ */
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-    friend class MainWindowServiceRegistry; friend class MainWindowFoundationRegistry;
-    friend class KifuSubRegistry;
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override;
-    EvaluationChartWidget* evalChart() const { return m_evalChart; }
 
-public:
-    void saveSettingsAndClose();
-    void resetToInitialState();
-    void resetGameState();
-    void updateJosekiWindow();
-    void undoLastTwoMoves();
-    void beginPositionEditing();
-    void finishPositionEditing();
-    void onRecordPaneMainRowChanged(int row);
-    void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen);
-    void setCurrentTurn();
-    void displayGameRecord(const QList<KifDisplayItem>& disp);
-    void onMoveRequested(const QPoint& from, const QPoint& to);
-    void onMoveCommitted(Turn mover, int ply);
-    /// 自動化 API（--automation）の待ち受けを開始する（ServiceRegistry へ委譲）
+    /// 自動化 API（--automation）の待ち受けを開始する
     void startAutomationServer(const QString& socketPath);
 
+    /// 未保存の確認をせずに閉じてアプリを終了する（自動化 API の終了要求用）
+    void quitWithoutConfirmation();
+
+    /// 部品と状態（テストと自動化 API から参照する）
+    MainWindowComposer& composer() { return *m_composer; }
+
 protected:
-    std::unique_ptr<Ui::MainWindow> ui;
     void closeEvent(QCloseEvent* event) override;
 
-private slots:
-    void onTurnManagerChanged(Turn now);
-    void setReplayMode(bool on);
-    void loadBoardFromSfen(const QString& sfen);
-
 private:
-    // --- 状態集約構造体（定義は mainwindowstate.h） ---
-    DockWidgets m_docks;
-    PlayerState m_player;
-    DataModels m_models;
-    BranchNavigation m_branchNav;
-    KifuState m_kifu;
-    GameState m_state;
-
-    // --- ServiceRegistry / SignalRouter ---
-    std::unique_ptr<MainWindowServiceRegistry> m_registry;
-    std::unique_ptr<MainWindowSignalRouter> m_signalRouter;
-    std::unique_ptr<MainWindowAppearanceController> m_appearanceController;
-    std::unique_ptr<MainWindowLifecyclePipeline> m_pipeline;
-    std::unique_ptr<MainWindowMatchAdapter> m_matchAdapter;
-    std::unique_ptr<MainWindowCoreInitCoordinator> m_coreInit;
-
-    // --- 将棋盤 / コントローラ ---
-    ShogiView* m_shogiView = nullptr;
-    ShogiGameController* m_gameController = nullptr;
-    // Lifecycle: Created once in ensureBoardSetupController(), destroyed with parent
-    QPointer<BoardInteractionController> m_boardController;
-
-    // --- UI 構成 ---
-    QTabWidget* m_tab = nullptr;
-    QWidget* m_central = nullptr;
-    RecordPane* m_recordPane = nullptr;
-    EngineAnalysisTab* m_analysisTab = nullptr;
-    EvaluationChartWidget* m_evalChart = nullptr;
-
-    // --- 試合進行 ---
-    // Lifecycle: created once at startup by MatchCoordinatorWiring (owned there), never recreated
-    MatchCoordinator* m_match = nullptr;
-    GameStartCoordinator::TimeSettings m_lastTimeControl;
-    ReplayController* m_replayController = nullptr;
-    std::unique_ptr<EvaluationGraphController> m_evalGraphController;
-    std::unique_ptr<QTimer> m_evalChartResizeTimer;
-
-    // --- コーディネータ / プレゼンタ ---
-    TimeControlController* m_timeController = nullptr;
-    GameInfoPaneController* m_gameInfoController = nullptr;
-    // Lifecycle: Created once by KifuSubRegistry::ensureKifuLoadCoordinator(), reused for every load
-    QPointer<KifuLoadCoordinator> m_kifuLoadCoordinator;
-    // Lifecycle: Created once in FoundationRegistry, destroyed with parent
-    QPointer<PositionEditController> m_posEdit;
-    // Lifecycle: Created once in FoundationRegistry, destroyed with parent
-    QPointer<BoardSyncPresenter> m_boardSync;
-    BoardLoadService* m_boardLoadService = nullptr;
-    ConsiderationPositionService* m_considerationPositionService = nullptr;
-    std::unique_ptr<AnalysisResultsPresenter> m_analysisPresenter;
-    // Lifecycle: created once by MatchCoordinatorWiring (child of it), never recreated
-    GameStartCoordinator* m_gameStart = nullptr;
-    GameRecordPresenter* m_recordPresenter = nullptr;
-    TimeDisplayPresenter* m_timePresenter = nullptr;
-    // --- Registry経由でのみアクセスされるポインタ群（定義は mainwindowstate.h） ---
-    RegistryParts m_registryParts;
-    DialogCoordinator* m_dialogCoordinator = nullptr;
-
-    // --- 棋譜ファイル / ゲーム状態 ---
-    KifuFileController* m_kifuFileController = nullptr;
-    std::unique_ptr<KifuExportController> m_kifuExportController;
-    GameStateController* m_gameStateController = nullptr;
-    std::unique_ptr<PlayModePolicyService> m_playModePolicy;
-    PlayerInfoController* m_playerInfoController = nullptr;
-
-    // --- 盤面操作 / 局面編集 ---
-    BoardSetupController* m_boardSetupController = nullptr;
-    PvClickController* m_pvClickController = nullptr;
-    // --- 通信対局 / ウィンドウ配線 ---
-    std::unique_ptr<CsaGameWiring> m_csaGameWiring;
-    std::unique_ptr<JosekiWindowWiring> m_josekiWiring;
-    PlayerInfoWiring* m_playerInfoWiring = nullptr;
-    DialogLaunchWiring* m_dialogLaunchWiring = nullptr;
-    std::unique_ptr<MatchCoordinatorWiring> m_matchWiring;
-
-    // --- 補助コントローラ群 ---
-    std::unique_ptr<JishogiScoreDialogController> m_jishogiController;
-    std::unique_ptr<NyugyokuDeclarationHandler> m_nyugyokuHandler;
-    ConsecutiveGamesController* m_consecutiveGamesController = nullptr;
-    std::unique_ptr<LanguageController> m_languageController;
-    ConsiderationWiring* m_considerationWiring = nullptr;
-    std::unique_ptr<DockLayoutManager> m_dockLayoutManager;
-    std::unique_ptr<DockCreationService> m_dockCreationService;
-    // Lifecycle: Created once in FoundationRegistry, destroyed with parent
-    QPointer<CommentCoordinator> m_commentCoordinator;
-    std::unique_ptr<UsiCommandController> m_usiCommandController;
-    RecordNavigationWiring* m_recordNavWiring = nullptr;
-    UiStatePolicyManager* m_uiStatePolicy = nullptr;
-    std::unique_ptr<LiveGameSessionUpdater> m_liveGameSessionUpdater;
-    std::unique_ptr<GameRecordUpdateService> m_gameRecordUpdateService;
-    UiNotificationService* m_notificationService = nullptr;
-    std::unique_ptr<UndoFlowService> m_undoFlowService;
-    std::unique_ptr<GameRecordLoadService> m_gameRecordLoadService;
-    std::unique_ptr<TurnStateSyncService> m_turnStateSync;
-    std::unique_ptr<BranchNavigationWiring> m_branchNavWiring;
-    std::unique_ptr<KifuNavigationCoordinator> m_kifuNavCoordinator;
-    SessionLifecycleCoordinator* m_sessionLifecycle = nullptr;
-    GameSessionOrchestrator* m_gameSessionOrchestrator = nullptr;
-
-#ifdef QT_DEBUG
-    std::unique_ptr<DebugScreenshotWiring> m_debugScreenshotWiring;
-#endif
-
-    // Lifecycle: Created once in ensureAutomationServer() when --automation is given, destroyed with parent
-    AutomationServer* m_automationServer = nullptr;
-
-    // --- 終了フラグ ---
-    bool m_isShuttingDown = false;
-
-    void refreshPlayModePolicyDeps();
+    std::unique_ptr<Ui::MainWindow> ui;
+    std::unique_ptr<MainWindowComposer> m_composer;
+    bool m_skipCloseConfirmation = false;
 };
 
 #endif // MAINWINDOW_H

@@ -7,7 +7,6 @@
 
 #include <QObject>
 #include <QMetaObject>
-#include <functional>
 #include <memory>
 
 #include "matchcoordinator.h"
@@ -33,6 +32,7 @@ class KifuRecordListModel;
 class MainWindowAppearanceController;
 class KifuNavigationCoordinator;
 class BranchNavigationWiring;
+class UsiCommandController;
 
 /**
  * @brief MatchCoordinator関連のUI配線を担当するクラス
@@ -84,21 +84,14 @@ public:
         KifuRecordListModel* kifuRecordModel = nullptr;
 
         // --- Pre-built hooks（MainWindow が構築） ---
-        MatchCoordinator::Hooks hooks;             ///< MC 用コールバック群（MainWindowServiceRegistry::buildMatchHooks）
+        MatchCoordinator::Hooks hooks;             ///< MC 用コールバック群（MainWindowComposer::buildMatchHooks）
         MatchCoordinator::UndoHooks undoHooks;      ///< UNDO 用コールバック群
 
-        // --- 遅延初期化コールバック ---
-        /// @note 各 ensure* は MainWindowServiceRegistry 内の対応メソッドに束縛される
-        std::function<void()> ensureTimeController;            ///< TimeControlController 遅延初期化
-        std::function<void()> ensureEvaluationGraphController; ///< EvaluationGraphController 遅延初期化
-        std::function<void()> ensureUsiCommandController;      ///< UsiCommandController 遅延初期化
-        std::function<void()> connectBoardClicks;              ///< 盤面クリック接続
-        std::function<void()> connectMoveRequested;            ///< moveRequested シグナル接続
-
-        // --- 遅延初期化オブジェクトのゲッター ---
-        std::function<ShogiClock*()> getClock;                            ///< ShogiClock 取得
-        std::function<TimeControlController*()> getTimeController;        ///< TimeControlController 取得
-        std::function<EvaluationGraphController*()> getEvalGraphController; ///< EvaluationGraphController 取得
+        // --- 司令塔とつなぐ部品（起動時に作られている。非所有） ---
+        ShogiClock* clock = nullptr;
+        TimeControlController* timeController = nullptr;
+        EvaluationGraphController* evalGraphController = nullptr;
+        UsiCommandController* usiCommandController = nullptr;
     };
 
     explicit MatchCoordinatorWiring(QObject* parent = nullptr);
@@ -109,23 +102,18 @@ public:
     /**
      * @brief シグナルの受け手を登録する（司令塔を作る initializeSession より前に1回だけ呼ぶ）
      *
-     * 受け手は、司令塔（createMatchCoordinator）と GameStartCoordinator（ensureMenuGameStartCoordinator）を
+     * 受け手は、司令塔（createMatchCoordinator）と GameStartCoordinator（createMenuGameStartCoordinator）を
      * 作るときに、それぞれのシグナルへ直接つなぐ。どちらも一度だけ作るので、つなぐのも一度だけである。
      */
     void setSignalTargets(const SignalTargets& targets);
 
-    /**
-     * @brief メニュー操作用 GameStartCoordinator を遅延生成し、シグナルを受け手へつなぐ
-     *
-     * MainWindowServiceRegistry::ensureGameStartCoordinator() から委譲される。
-     */
-    void ensureMenuGameStartCoordinator();
+    /// メニュー操作用 GameStartCoordinator を作り、シグナルを受け手へつなぐ（司令塔を作った後に1回だけ呼ぶ）
+    void createMenuGameStartCoordinator();
 
     /**
-     * @brief MatchCoordinator を初回だけ作り、実行時の依存（モデル・時計・盤操作など）を結び直す
+     * @brief MatchCoordinator を作り、実行時の依存（モデル・時計・盤操作など）を結ぶ
      *
-     * MainWindowServiceRegistry::initMatchCoordinator() から呼ばれる。司令塔は作り直さない。
-     * 2回目以降は局面の履歴を初期状態に戻す（MatchCoordinator::resetPositionHistory）。
+     * MainWindowComposer が起動時に1回だけ呼ぶ。2回目以降は何もしない（司令塔は作り直さない）。
      * @return 依存（盤・ゲームコントローラ）が揃っていれば true
      */
     bool initializeSession();
@@ -165,15 +153,10 @@ private:
     MatchCoordinator::Hooks m_hooks;
     MatchCoordinator::UndoHooks m_undoHooks;
 
-    std::function<void()> m_ensureTimeController;
-    std::function<void()> m_ensureEvaluationGraphController;
-    std::function<void()> m_ensureUsiCommandController;
-    std::function<void()> m_connectBoardClicks;
-    std::function<void()> m_connectMoveRequested;
-
-    std::function<ShogiClock*()> m_getClock;
-    std::function<TimeControlController*()> m_getTimeController;
-    std::function<EvaluationGraphController*()> m_getEvalGraphController;
+    ShogiClock* m_clock = nullptr;
+    TimeControlController* m_timeController = nullptr;
+    EvaluationGraphController* m_evalGraphController = nullptr;
+    UsiCommandController* m_usiCommandController = nullptr;
 
     SignalTargets m_targets;
 

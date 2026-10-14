@@ -7,7 +7,6 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <functional>
 
 class RecordPane;
 class KifuRecordListModel;
@@ -18,6 +17,8 @@ class KifuBranchTree;
 class MatchCoordinator;
 class EngineAnalysisTab;
 class UiStatePolicyManager;
+class TurnStateSyncService;
+class JosekiWindowWiring;
 enum class PlayMode;
 
 /**
@@ -55,19 +56,14 @@ public:
         EngineAnalysisTab* analysisTab = nullptr;              ///< エンジン解析タブ（非所有）
         UiStatePolicyManager* uiStatePolicy = nullptr;         ///< UI状態ポリシーマネージャ（非所有）
 
-        // --- Callbacks ---
-        /// @note 各コールバックは MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps で設定
-        std::function<void()> setCurrentTurn;                  ///< 手番表示更新（TurnStateSyncService 経由）
-        std::function<void()> updateJosekiWindow;              ///< 定跡ウィンドウ更新
-        std::function<void()> ensureBoardSyncPresenter;        ///< BoardSyncPresenter 遅延初期化
+        // --- 連動して更新する部品 ---
+        TurnStateSyncService* turnSync = nullptr;              ///< 手番表示の更新（非所有）
+        JosekiWindowWiring* josekiWiring = nullptr;            ///< 定跡ウィンドウの更新（非所有）
     };
 
     explicit KifuNavigationCoordinator(QObject* parent = nullptr);
 
     void updateDeps(const Deps& deps);
-
-    /// 遅延生成したプレゼンターを依存スナップショットへ反映する。
-    void setBoardSyncPresenter(BoardSyncPresenter* presenter) { m_deps.boardSync = presenter; }
 
     /// 棋譜読込後の盤面を、古い分岐選択の抑止状態に影響されず表示する。
     void syncLoadedPositionAtRow(int ply);

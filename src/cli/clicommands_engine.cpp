@@ -41,7 +41,7 @@ public:
     int exitCode() const { return m_exitCode; }
 
 public slots:
-    void onLine(const UsiInfoLine& line) { CliOutput::printEvent(QStringLiteral("info"), line.toJson()); }
+    void onLine(const UsiInfo& line) { CliOutput::printEvent(QStringLiteral("info"), line.toJson()); }
     void onFinished(const QString& bestmove, const QString& ponder)
     {
         QJsonObject obj;

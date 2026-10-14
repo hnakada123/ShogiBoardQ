@@ -41,8 +41,8 @@ public:
      *
      * エンジンの投了・勝ち宣言を MC に知らせる。
      *
-     * @note MC::ensureEngineManager() で設定される。
-     * @see MatchCoordinator::ensureEngineManager
+     * @note MC::createEngineManager() で設定される。
+     * @see MatchCoordinator::createEngineManager
      */
     struct Hooks {
         /// @brief エンジン投了を MC に通知する（side: 投了したエンジンの手番）
@@ -117,7 +117,6 @@ private slots:
 
 private:
     void disconnectArbiterSignals(Usi* engine);
-    void sendRawTo(Usi* which, const QString& cmd);
 
     Refs m_refs;
     Hooks m_hooks;

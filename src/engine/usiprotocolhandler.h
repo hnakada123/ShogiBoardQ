@@ -19,6 +19,7 @@
 #include "shogitypes.h"
 #include "usimove.h"
 #include "usigotime.h"
+#include "usiinfo.h"
 
 class EngineProcessManager;
 
@@ -99,6 +100,7 @@ public:
     void sendGoMate(int timeMs, bool infinite = false);
     void sendGoDepth(int depth);              ///< go depth <x> - 指定深さまで探索
     void sendGoMovetime(int timeMs);          ///< go movetime <x> - 指定時間(ms)探索
+    void sendGoInfinite();                    ///< go infinite - stop まで探索（検討・棋譜解析）
 
     /// go searchmoves <move1> ... <movei> [infinite] - 指定した手のみを探索
     /// @param moves 探索対象の手（USI形式、例: "7g7f", "8h2b+"）
@@ -117,7 +119,9 @@ public:
     void sendQuit();
     void sendSetOption(const QString& name, const QString& value);
     void sendSetOption(const QString& name, const QString& value, const QString& type);
-    void sendRaw(const QString& command);
+
+    /// 利用者が入力した任意のコマンド（USIコンソール）をそのまま送る。アプリの処理は型付きの送信メソッドを使う
+    void sendConsoleCommand(const QString& command);
 
     // --- 指し手処理 ---
 
@@ -163,7 +167,7 @@ signals:
     void bestMoveWinReceived();        ///< bestmove win 入玉宣言勝ち受信（Handler → MatchCoordinator）
     void stopOrPonderhitSent();        ///< stop/ponderhit送信完了
     void errorOccurred(const QString& message); ///< エラー発生（Handler → Usi）
-    void infoLineReceived(const QString& line); ///< info行受信（Handler → AnalysisCoordinator）
+    void infoReceived(const UsiInfo& info);    ///< info行受信（Handler → ThinkingInfoPresenter / AnalysisCoordinator）
 
     // --- 詰将棋結果 ---
     void checkmateSolved(const QStringList& pvMoves); ///< 詰みあり（Handler → TsumeSearchFlowController）
@@ -201,7 +205,7 @@ private:
     void beginMainSearch();
     void beginCandidateSearch(bool pondering);
     void invalidateCandidate();
-    void updateCandidate(const QString& line);
+    void updateCandidate(const UsiInfo& info);
     SearchCandidate m_searchCandidate;
 
 

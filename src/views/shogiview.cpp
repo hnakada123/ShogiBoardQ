@@ -5,7 +5,6 @@
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
 #include "appsettings.h"
-#include "elidelabel.h"
 #include "shogigamecontroller.h"
 #include "logcategories.h"
 #include "sfenutils.h"
@@ -14,34 +13,8 @@
 
 #include <QColor>
 #include <QPainter>
-#include <QFont>
-#include <QFontMetrics>
-#include <QDebug>
 #include <QSizePolicy>
-#include <QLayout>
 #include <QLabel>
-#include <QProxyStyle>
-
-namespace {
-
-// 対局者名の吹き出しだけ、標準のツールチップより早く表示する。
-class PlayerNameLabelStyle final : public QProxyStyle
-{
-public:
-    explicit PlayerNameLabelStyle(QWidget* label)
-    {
-        setParent(label);
-    }
-
-    int styleHint(StyleHint hint, const QStyleOption* option, const QWidget* widget,
-                  QStyleHintReturn* returnData) const override
-    {
-        if (hint == SH_ToolTip_WakeUpDelay) return 200;
-        return QProxyStyle::styleHint(hint, option, widget, returnData);
-    }
-};
-
-} // namespace
 
 // Highlight基底クラスのデストラクタ（out-of-line定義でweak-vtables警告を回避）
 ShogiView::Highlight::~Highlight() {}
@@ -54,9 +27,9 @@ ShogiView::ShogiView(QWidget *parent)
     : QWidget(parent),
     m_board(nullptr),
     m_errorOccurred(false),
-    m_highlighting(new ShogiViewHighlighting(this, this))
+    m_highlighting(new ShogiViewHighlighting(this, this)),
+    m_chrome(new BoardChromeWidget(this))
 {
-    // ハイライト/矢印/手番表示の管理クラスを生成
     m_boardColors = BoardAppearance::instance().colors();
     m_boardVisuals = BoardAppearance::instance().visuals();
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged,
@@ -80,59 +53,9 @@ ShogiView::ShogiView(QWidget *parent)
     // 盤面は背景の画像で自分の範囲をすべて塗るため、描き直しのたびに親の下地を塗らせない。
     setAttribute(Qt::WA_OpaquePaintEvent);
 
-    // ───────────────────────────────── 時計・名前ラベル（先手：黒） ─────────────────────────────────
-    m_blackClockLabel = new QLabel(QStringLiteral("00:00:00"), this);
-    m_blackClockLabel->setObjectName(QStringLiteral("blackClockLabel"));
-    m_blackClockLabel->setAlignment(Qt::AlignCenter);
-    m_blackClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-    m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
-    {
-        QFont f = font();
-        f.setStyleName(QString());
-        f.setItalic(false);
-        f.setBold(true);
-        f.setPointSizeF(qMax(8.0, m_layout.squareSize() * 0.45));
-        m_blackClockLabel->setFont(f);
-    }
-
-    m_blackNameLabel = new ElideLabel(this);
-    m_blackNameLabel->setObjectName(QStringLiteral("blackNameLabel"));
-    m_blackNameLabel->setElideMode(Qt::ElideRight);
-    m_blackNameLabel->setWordWrap(true);
-    m_blackNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_blackNameLabel->setStyle(new PlayerNameLabelStyle(m_blackNameLabel));
-
-    // ───────────────────────────────── 名前ラベル（後手：白） ─────────────────────────────────
-    m_whiteNameLabel = new ElideLabel(this);
-    m_whiteNameLabel->setObjectName(QStringLiteral("whiteNameLabel"));
-    m_whiteNameLabel->setElideMode(Qt::ElideRight);
-    m_whiteNameLabel->setWordWrap(true);
-    m_whiteNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_whiteNameLabel->setStyle(new PlayerNameLabelStyle(m_whiteNameLabel));
-
-    // ───────────────────────────────── 時計ラベル（後手：白） ─────────────────────────────────
-    m_whiteClockLabel = new QLabel(QStringLiteral("00:00:00"), this);
-    m_whiteClockLabel->setObjectName(QStringLiteral("whiteClockLabel"));
-    m_whiteClockLabel->setAlignment(Qt::AlignCenter);
-    m_whiteClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-    m_whiteClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
-    {
-        QFont f = font();
-        f.setStyleName(QString());
-        f.setItalic(false);
-        f.setBold(true);
-        f.setPointSizeF(qMax(8.0, m_layout.squareSize() * 0.45));
-        m_whiteClockLabel->setFont(f);
-    }
-
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
-
-    // 起動直後の見た目を整える
-    m_highlighting->applyStartupTypography();
-
-    m_blackNameLabel->installEventFilter(this);
-    m_whiteNameLabel->installEventFilter(this);
+    // 対局者カード・時計・手番の札は盤に重ねた BoardChromeWidget が表示する
+    connect(m_chrome, &BoardChromeWidget::pieceBoxSideClicked, this, &ShogiView::setPieceBoxSide);
+    relayoutChrome();
 
     connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged,
             this, &ShogiView::refreshPieceImages);
@@ -173,7 +96,7 @@ void ShogiView::setBoard(ShogiBoard* board)
     updateGeometry();
 
     qCDebug(lcView) << "setBoard complete, m_board now:" << m_board;
-    relayoutTurnLabels();
+    relayoutChrome();
     emit positionChanged();
 }
 
@@ -190,11 +113,6 @@ QSize ShogiView::fieldSize() const
 {
     return m_layout.fieldSize();
 }
-
-ElideLabel* ShogiView::blackNameLabel() const { return m_blackNameLabel; }
-QLabel* ShogiView::blackClockLabel() const { return m_blackClockLabel; }
-ElideLabel* ShogiView::whiteNameLabel() const { return m_whiteNameLabel; }
-QLabel* ShogiView::whiteClockLabel() const { return m_whiteClockLabel; }
 
 bool ShogiView::positionEditMode() const { return m_interaction.positionEditMode(); }
 int  ShogiView::squareSize() const { return m_layout.squareSize(); }
@@ -219,8 +137,7 @@ void ShogiView::setFieldSize(QSize fieldSize)
 
     updateGeometry();
 
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
+    relayoutChrome();
 }
 
 QSize ShogiView::sizeHint() const
@@ -313,7 +230,7 @@ void ShogiView::recalcLayoutParams()
 {
     m_layout.recalcLayoutParams(font());
     invalidateFieldRectCache();
-    relayoutTurnLabels();
+    relayoutChrome();
 }
 
 void ShogiView::applyBoardScaleChange(bool emitSignal)
@@ -321,8 +238,6 @@ void ShogiView::applyBoardScaleChange(bool emitSignal)
     invalidateFieldRectCache();
     recalcLayoutParams();
     updateGeometry();
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
 
     if (emitSignal) {
         emit fieldSizeChanged(m_layout.fieldSize());
@@ -387,18 +302,8 @@ void ShogiView::setPositionEditMode(bool positionEditMode)
 {
     if (m_interaction.positionEditMode() == positionEditMode) return;
 
-    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
-    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
-    const bool blackTurnShown = (tlBlack && tlBlack->isVisible());
-    const bool whiteTurnShown = (tlWhite && tlWhite->isVisible());
-
     m_interaction.setPositionEditMode(positionEditMode);
-
-    relayoutTurnLabels();
-
-    if (tlBlack) { tlBlack->setVisible(blackTurnShown); tlBlack->raise(); }
-    if (tlWhite) { tlWhite->setVisible(whiteTurnShown); tlWhite->raise(); }
-
+    relayoutChrome();
     update();
 }
 
@@ -407,8 +312,6 @@ void ShogiView::setStandGapCols(double cols)
     m_layout.setStandGapCols(cols);
     recalcLayoutParams();
     updateGeometry();
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
     update();
 }
 
@@ -416,25 +319,11 @@ void ShogiView::setFlipMode(bool newFlipMode)
 {
     if (m_layout.flipMode() == newFlipMode) return;
 
-    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
-    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
-    const bool blackShown = (tlBlack && tlBlack->isVisible());
-    const bool whiteShown = (tlWhite && tlWhite->isVisible());
-
     m_layout.setFlipMode(newFlipMode);
     invalidateFieldRectCache();
     refreshPieceImages();
-
-    refreshNameLabels();
-
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
-
-    relayoutTurnLabels();
-
-    if (tlBlack) { tlBlack->setVisible(blackShown); tlBlack->raise(); }
-    if (tlWhite) { tlWhite->setVisible(whiteShown); tlWhite->raise(); }
-
+    // 名前の向きのマークとカードの上下も入れ替わる
+    relayoutChrome();
     update();
 }
 
@@ -465,22 +354,6 @@ void ShogiView::shogiProblemInitialPosition()
     update();
 }
 
-void ShogiView::setClockEnabled(bool enabled)
-{
-    m_clockEnabled = enabled;
-    relayoutTurnLabels();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 手番・ハイライトスタイル
-// ─────────────────────────────────────────────────────────────────────────────
-
-void ShogiView::setActiveSide(bool blackTurn)     { m_highlighting->setActiveSide(blackTurn); }
-void ShogiView::setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff)
-{
-    m_highlighting->setHighlightStyle(bgOn, fgOn, fgOff);
-}
-
 void ShogiView::setRankFontScale(double scale)
 {
     m_layout.setRankFontScale(scale);
@@ -491,10 +364,8 @@ void ShogiView::updateBoardSize()
 {
     setFieldSize(QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio)));
     updateGeometry();
-    relayoutTurnLabels();
+    relayoutChrome();
 }
-
-void ShogiView::setUrgencyVisuals(Urgency u) { m_highlighting->setUrgencyVisuals(u); }
 
 QImage ShogiView::toImage(qreal scale)
 {
@@ -533,14 +404,4 @@ void ShogiView::configureFixedSizing(int squarePx)
     const int s = (squarePx > 0) ? squarePx : squareSize();
     m_layout.setSquareSize(s);
     applyBoardScaleChange(false);
-}
-
-void ShogiView::applyClockUrgency(qint64 activeRemainMs)
-{
-    m_highlighting->applyClockUrgency(activeRemainMs);
-}
-
-void ShogiView::clearTurnHighlight()
-{
-    m_highlighting->clearTurnHighlight();
 }

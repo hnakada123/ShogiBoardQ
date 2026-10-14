@@ -11,6 +11,8 @@
 #include "shogiview.h"
 #include "uistatepolicymanager.h"
 #include "csagamecoordinator.h"
+#include "csagamewiring.h"
+#include "kifunavigationstate.h"
 #include <QMetaEnum>
 
 #include <QCoreApplication>
@@ -79,7 +81,7 @@ QString playModeName(PlayMode mode)
 
 QStringList AutomationCommands::currentLinePositions(const AutomationContext& context)
 {
-    auto* model = context.gameRecordModel ? context.gameRecordModel() : nullptr;
+    auto* model = context.gameRecordModel;
     if (model && model->branchTree() && !model->branchTree()->isEmpty()) {
         const auto lines = model->branchTree()->allLines();
         const int line = model->activeRow();
@@ -94,19 +96,24 @@ QStringList AutomationCommands::currentLinePositions(const AutomationContext& co
 
 RecordLine AutomationCommands::currentRecordLine(const AutomationContext& context)
 {
-    auto* model = context.gameRecordModel ? context.gameRecordModel() : nullptr;
+    auto* model = context.gameRecordModel;
     if (!model || !model->branchTree() || model->branchTree()->isEmpty()) return {};
     const auto lines = model->branchTree()->allLines();
     const int line = model->activeRow();
     if (line < 0 || line >= lines.size()) return {};
-    const int ply = context.currentPly ? context.currentPly() : 0;
+    const int ply = context.currentPly();
     return KifuBranchTree::toRecordLine(lines.at(line).nodes, ply);
+}
+
+int AutomationContext::currentPly() const
+{
+    return navState ? navState->currentPly() : 0;
 }
 
 QString AutomationCommands::currentSfen(const AutomationContext& context)
 {
     const QStringList record = currentLinePositions(context);
-    const int index = context.currentPly ? context.currentPly() : 0;
+    const int index = context.currentPly();
     if (index >= 0 && index < record.size()) {
         return record.at(index);
     }
@@ -115,7 +122,7 @@ QString AutomationCommands::currentSfen(const AutomationContext& context)
         return board->convertBoardToSfen() + QLatin1Char(' ') + turnToSfen(board->currentPlayer())
                + QLatin1Char(' ') + board->convertStandToSfen() + QStringLiteral(" 1");
     }
-    return context.currentSfenStr ? *context.currentSfenStr : QString();
+    return context.state ? context.state->currentSfenStr : QString();
 }
 
 void AutomationCommands::registerAll(AutomationDispatcher& dispatcher, const AutomationContext& context)
@@ -148,23 +155,23 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
 
     dispatcher.registerMethod(QStringLiteral("app.state"), [context](const QJsonObject&) {
         QJsonObject result;
-        UiStatePolicyManager* policy = context.uiStatePolicy ? context.uiStatePolicy() : nullptr;
+        UiStatePolicyManager* policy = context.uiStatePolicy;
         result[QStringLiteral("ui_state")] = policy ? uiStateName(policy->currentState()) : QStringLiteral("unknown");
-        result[QStringLiteral("play_mode")] = context.playMode ? playModeName(*context.playMode) : QStringLiteral("unknown");
-        const int ply = context.currentPly ? context.currentPly() : 0;
+        result[QStringLiteral("play_mode")] = context.state ? playModeName(context.state->playMode) : QStringLiteral("unknown");
+        const int ply = context.currentPly();
         result[QStringLiteral("current_ply")] = ply;
         const QStringList record = currentLinePositions(context);
         result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(record.size()) - 1);
-        result[QStringLiteral("kifu_file")] = context.saveFileName ? *context.saveFileName : QString();
-        auto* fileController = context.kifuFileController ? context.kifuFileController() : nullptr;
+        result[QStringLiteral("kifu_file")] = context.state ? context.state->saveFileName : QString();
+        auto* fileController = context.kifuFileController;
         result[QStringLiteral("dirty")] = fileController && fileController->hasUnsavedChanges();
         result[QStringLiteral("board_flipped")] = context.shogiView && context.shogiView->flipMode();
         result[QStringLiteral("sfen")] = currentSfen(context);
         QJsonObject engines;
-        engines[QStringLiteral("black")] = context.engineName1 ? *context.engineName1 : QString();
-        engines[QStringLiteral("white")] = context.engineName2 ? *context.engineName2 : QString();
+        engines[QStringLiteral("black")] = context.state ? context.state->engineName1 : QString();
+        engines[QStringLiteral("white")] = context.state ? context.state->engineName2 : QString();
         result[QStringLiteral("engines")] = engines;
-        if (auto* csa = context.csaGameCoordinator ? context.csaGameCoordinator() : nullptr) {
+        if (auto* csa = context.csaGameWiring ? context.csaGameWiring->coordinator() : nullptr) {
             result[QStringLiteral("csa")] = QJsonObject{
                 {QStringLiteral("state"), QString::fromLatin1(QMetaEnum::fromType<CsaGameCoordinator::GameState>()
                     .valueToKey(static_cast<quint64>(csa->gameState())))},

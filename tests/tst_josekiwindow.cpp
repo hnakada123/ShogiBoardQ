@@ -18,6 +18,7 @@
 #include "josekisettings.h"
 // private メンバへは JosekiWindow の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "josekiwindow.h"
+#include "josekibooksession.h"
 #include "josekirepository.h"
 #include "josekipresenter.h"
 #include "josekimergedialog.h"
@@ -399,10 +400,10 @@ QString TestJosekiWindow::initialSfen()
 
 bool TestJosekiWindow::seedWindow(JosekiWindow &window, const QString &path)
 {
-    window.m_pendingAutoLoad = false;
+    window.m_pendingAutoLoadPath.clear();
     const QString key = JosekiPresenter::normalizeSfen(initialSfen());
-    window.m_repository->addMove(key, {QStringLiteral("7g7f"), QStringLiteral("none"), 10, 32, 1, {}});
-    window.m_repository->ensureSfenWithPly(key, initialSfen());
+    window.m_session->repository()->addMove(key, {QStringLiteral("7g7f"), QStringLiteral("none"), 10, 32, 1, {}});
+    window.m_session->repository()->ensureSfenWithPly(key, initialSfen());
     if (!window.saveToFile(path)) return false;
     window.applySavedFilePath(path);
     window.setCurrentSfen(initialSfen());
@@ -459,7 +460,7 @@ void TestJosekiWindow::testBusyBlocksEditsAndMerge()
     QTRY_VERIFY(!window.isIoBusy());
     QVERIFY(window.m_tableWidget->isEnabled());
     QVERIFY(merge->isEnabled());
-    QVERIFY(!window.m_modified);
+    QVERIFY(!window.m_session->isModified());
     const auto saved = JosekiRepository::parseFromFile(path);
     QVERIFY(saved.success);
     const auto moves = saved.josekiData.value(JosekiPresenter::normalizeSfen(initialSfen()));
@@ -482,7 +483,7 @@ void TestJosekiWindow::testFileSwitchClosesMerge()
     const QString path = m_tempDir.filePath(QStringLiteral("source.db"));
     const QString target = m_tempDir.filePath(QStringLiteral("target.db"));
     QVERIFY(seedWindow(window, path));
-    QVERIFY(window.m_repository->saveToFile(target));
+    QVERIFY(window.m_session->repository()->saveToFile(target));
     window.setKifuDataForMerge({initialSfen()}, {QStringLiteral("2g2f")}, {}, 1);
     QPointer<JosekiMergeDialog> merge = window.findChild<JosekiMergeDialog*>();
     QVERIFY(merge && merge->isVisible());
@@ -523,13 +524,13 @@ void TestJosekiWindow::testMergeSaveFailureAndRetry()
     QCOMPARE(results.last().last().toBool(), false);
     QVERIFY(table->item(0, 3)->text().isEmpty());
     QVERIFY(table->cellWidget(0, 2)->isEnabled());
-    QVERIFY(window.m_modified);
+    QVERIFY(window.m_session->isModified());
     QCOMPARE(window.m_currentMoves.first().frequency, 1);
     QVERIFY(QDir().mkpath(directory));
     qobject_cast<QPushButton*>(table->cellWidget(0, 2))->click();
     QCOMPARE(results.last().last().toBool(), true);
     QVERIFY(!table->cellWidget(0, 2)->isEnabled());
-    QVERIFY(!window.m_modified);
+    QVERIFY(!window.m_session->isModified());
     const auto saved = JosekiRepository::parseFromFile(path);
     QVERIFY(saved.success);
     QCOMPARE(saved.josekiData.value(JosekiPresenter::normalizeSfen(initialSfen())).first().frequency, 2);
@@ -632,7 +633,7 @@ void TestJosekiWindow::testHistoryKeepsOnlyLoadedFiles()
     JosekiWindow window;
     const QString book = m_tempDir.filePath(QStringLiteral("history.db"));
     QVERIFY(seedWindow(window, book));
-    window.m_recentFiles.clear();
+    window.m_session->clearRecentFiles();
     const QString broken = m_tempDir.filePath(QStringLiteral("broken.db"));
     QFile file(broken);
     QVERIFY(file.open(QIODevice::WriteOnly));
@@ -648,11 +649,11 @@ void TestJosekiWindow::testHistoryKeepsOnlyLoadedFiles()
     window.loadAndApplyFileAsync(broken);
     QTRY_VERIFY(!window.isIoBusy() && m_messageSeen);
     responder.stop();
-    QVERIFY(!window.m_recentFiles.contains(broken));
+    QVERIFY(!window.m_session->recentFiles().contains(broken));
 
     window.loadAndApplyFileAsync(book);
     QTRY_VERIFY(!window.isIoBusy());
-    QCOMPARE(window.m_recentFiles.value(0), book);
+    QCOMPARE(window.m_session->recentFiles().value(0), book);
 }
 
 /// 「履歴をクリア」の後は、開き直すか保存するまで次回の自動読込の対象にしない
@@ -677,7 +678,7 @@ void TestJosekiWindow::testDirtyStatusSurvivesRefresh()
     window.setModified(true);
     window.updateJosekiDisplay();
     QCOMPARE(window.m_fileStatusLabel->text(), QStringLiteral("未保存"));
-    window.m_repository->clear();
+    window.m_session->repository()->clear();
     window.updateJosekiDisplay();
     QCOMPARE(window.m_fileStatusLabel->text(), QStringLiteral("未保存"));
     window.setModified(false);
@@ -712,7 +713,7 @@ void TestJosekiWindow::testConfirmClose()
     const auto disk = JosekiRepository::parseFromFile(path);
     QVERIFY(disk.success);
     QCOMPARE(disk.josekiData.value(key).first().value, saved ? 99 : 10);
-    QCOMPARE(window.m_modified, !saved);
+    QCOMPARE(window.m_session->isModified(), !saved);
 }
 
 void TestJosekiWindow::testConfirmCloseSavesNewFile()
@@ -727,7 +728,7 @@ void TestJosekiWindow::testConfirmCloseSavesNewFile()
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
     QVERIFY(window.confirmClose());
     QVERIFY(!window.isIoBusy());
-    QVERIFY(!window.m_modified);
+    QVERIFY(!window.m_session->isModified());
     QVERIFY(JosekiRepository::parseFromFile(m_newSavePath).success);
     m_newSavePath.clear();
 }
@@ -936,10 +937,10 @@ void TestJosekiWindow::testAddKeepsTargetPosition()
     window.setCurrentSfen(initialSfen());
     QTimer::singleShot(0, this, &TestJosekiWindow::acceptMoveAfterPositionChange);
     window.onAddMoveButtonClicked();
-    const auto moves = window.m_repository->movesForPosition(JosekiPresenter::normalizeSfen(initialSfen()));
+    const auto moves = window.m_session->repository()->movesForPosition(JosekiPresenter::normalizeSfen(initialSfen()));
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves.first().move, QStringLiteral("7g7f"));
-    QVERIFY(!window.m_repository->containsPosition(JosekiPresenter::normalizeSfen(window.m_currentSfen)));
+    QVERIFY(!window.m_session->repository()->containsPosition(JosekiPresenter::normalizeSfen(window.m_currentSfen)));
 }
 
 /// 同じ局面が続けて設定されたときは表の行（ボタン）を作り直さない。人間が指せるかが

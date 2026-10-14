@@ -4,7 +4,7 @@
 #include "viewactionswiring.h"
 #include "ui_mainwindow.h"
 #include "gamesessionorchestrator.h"
-#include "mainwindow.h"
+#include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
 #include "dialoglaunchwiring.h"
 #include "boardimageexporter.h"
@@ -27,20 +27,20 @@ void ViewActionsWiring::copyEvalGraphToClipboard()
 
 void ViewActionsWiring::saveShogiBoardImage()
 {
-    BoardImageExporter::saveImage(m_d.mw, m_d.shogiView);
+    BoardImageExporter::saveImage(m_d.window, m_d.shogiView);
 }
 
 void ViewActionsWiring::saveEvaluationGraphImage()
 {
     if (!m_d.evalChart) return;
-    BoardImageExporter::saveImage(m_d.mw, m_d.evalChart->chartViewWidget(),
+    BoardImageExporter::saveImage(m_d.window, m_d.evalChart->chartViewWidget(),
                                   QStringLiteral("EvalGraph"));
 }
 
 void ViewActionsWiring::showBoardAppearance()
 {
     if (!m_boardColorDialog) {
-        m_boardColorDialog = new BoardColorDialog(m_d.mw);
+        m_boardColorDialog = new BoardColorDialog(m_d.window);
         m_boardColorDialog->setAttribute(Qt::WA_DeleteOnClose);
     }
     m_boardColorDialog->show();
@@ -50,14 +50,14 @@ void ViewActionsWiring::showBoardAppearance()
 
 void ViewActionsWiring::showFontSettings()
 {
-    FontSettingsDialog dialog(m_d.mw);
+    FontSettingsDialog dialog(m_d.window);
     dialog.exec();
 }
 
 void ViewActionsWiring::wire()
 {
     auto* ui  = m_d.ui;
-    auto* mw  = m_d.mw;
+    auto* mw  = m_d.actions;
     auto* dlw = m_d.dlw;
     auto* gso = m_d.gso;
     auto* app = m_d.appearance;
@@ -86,7 +86,7 @@ void ViewActionsWiring::wire()
     QObject::connect(ui->actionMenuWindow,                 &QAction::triggered, dlw, &DialogLaunchWiring::displayMenuWindow,    Qt::UniqueConnection);
     QObject::connect(ui->actionEnlargeBoard,               &QAction::triggered, app, &MainWindowAppearanceController::onActionEnlargeBoardTriggered, Qt::UniqueConnection);
     QObject::connect(ui->actionShrinkBoard,                &QAction::triggered, app, &MainWindowAppearanceController::onActionShrinkBoardTriggered,  Qt::UniqueConnection);
-    QObject::connect(ui->actionUndoMove,                   &QAction::triggered, mw, &MainWindow::undoLastTwoMoves,              Qt::UniqueConnection);
+    QObject::connect(ui->actionUndoMove,                   &QAction::triggered, mw, &MainWindowActions::undoLastTwoMoves,              Qt::UniqueConnection);
     QObject::connect(ui->actionSaveBoardImage,             &QAction::triggered, this, &ViewActionsWiring::saveShogiBoardImage,           Qt::UniqueConnection);
     QObject::connect(ui->actionSaveEvaluationGraph,        &QAction::triggered, this, &ViewActionsWiring::saveEvaluationGraphImage,      Qt::UniqueConnection);
 

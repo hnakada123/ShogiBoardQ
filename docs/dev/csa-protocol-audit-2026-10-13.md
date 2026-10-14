@@ -1,6 +1,8 @@
 # CSAサーバープロトコル V1.2.1 準拠監査（2026-10-13）
 
-対象は `src/network/`（CsaClient・CsaGameCoordinator・CsaMoveProgressHandler）と CSA 接続ダイアログ。
+対象は `src/network/`（CsaClient・CsaGameCoordinator・当時の CsaMoveProgressHandler）と CSA 接続ダイアログ。
+
+> 2026-10-15 追記: `CsaMoveProgressHandler` は `CsaGameCoordinator` に戻した（`csagamecoordinator_moves.cpp`）。1局ぶんの手数・持ち時間・指し手列は値型 `CsaGameProgress`（`csagameprogress.h`）が持ち、終局原因から終局行（TerminalType）への対応も `CsaGameProgress::endRecord` に移した。以下の関数名は当時のもの。
 参照仕様は [CSA TCP/IPプロトコル1.2.1](https://www.computer-shogi.org/protocol/tcp_ip_server_121.html)。
 仕様の 3.1〜3.5 を項目ごとに実装と突き合わせ、見つかった12件をすべて修正した。
 
@@ -17,7 +19,7 @@
 
 | 仕様 | 問題 | 修正 |
 |---|---|---|
-| 3.4 不正な着手・書式 | 相手の指し手行を解釈できないと即「中断」で切断し、続く `#ILLEGAL_MOVE` `#WIN` を捨てていた | 解釈できない指し手行は裁定待ちにし、結果行で勝敗を決める。5秒以内に裁定が無いときだけ中断（`CsaMoveProgressHandler::deferVerdict`） |
+| 3.4 不正な着手・書式 | 相手の指し手行を解釈できないと即「中断」で切断し、続く `#ILLEGAL_MOVE` `#WIN` を捨てていた | 解釈できない指し手行は裁定待ちにし、結果行で勝敗を決める。5秒以内に裁定が無いときだけ中断（当時 `CsaMoveProgressHandler::deferVerdict`、現在は `CsaGameCoordinator::deferVerdict`） |
 | 3.2.3 再開局面 | Position 内の指し手の `,T` を捨て、持時間を初期値に戻していた | 各手の消費時間を保持（`GameSummary::moveConsumedTimes`）。消費時間と各手番の加算を順に適用して残り時間を求め、棋譜欄にも時間を付ける |
 | 3.1 / 3.4 終局後 | `GameOver` に留まり、次の Game_Summary を無視し、切断時に LOGOUT も送らなかった | `GameOver` を対局待ちとして扱い、次の対局条件を受けて同じ接続で対局を続ける。エンジンは終局で quit するので次局で起動し直す。切断時は LOGOUT を送る |
 | 3.2.2 時間無制限 | Time 階層の省略を「持時間0秒の制限あり」として扱い、エンジンには `btime 0` を渡していた | 双方無制限なら消費時間を数える時計にする。エンジン対局ではローカル対局と同じ方針で REJECT する |

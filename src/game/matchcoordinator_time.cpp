@@ -2,6 +2,7 @@
 /// @brief MatchCoordinator 時間管理転送メソッド
 
 #include "matchcoordinator.h"
+#include "gameendhandler.h"
 #include "matchtimekeeper.h"
 #include "shogiclock.h"
 
@@ -9,21 +10,21 @@
 
 void MatchCoordinator::setClock(ShogiClock* clock)
 {
-    ensureTimekeeper();
     m_timekeeper->setClock(clock);
+    m_gameEndHandler->setClock(clock);
 }
 
 void MatchCoordinator::pokeTimeUpdateNow()
 {
-    if (m_timekeeper) m_timekeeper->pokeTimeUpdateNow();
+    m_timekeeper->pokeTimeUpdateNow();
 }
 
 ShogiClock* MatchCoordinator::clock()
 {
-    return m_timekeeper ? m_timekeeper->clock() : nullptr;
+    return m_timekeeper->clock();
 }
 
 const ShogiClock* MatchCoordinator::clock() const
 {
-    return m_timekeeper ? m_timekeeper->clockConst() : nullptr;
+    return m_timekeeper->clockConst();
 }

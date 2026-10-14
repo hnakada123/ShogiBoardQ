@@ -4,6 +4,7 @@
 #include "boardsyncpresenter.h"
 #include "boardcoordinates.h"
 #include "boardinteractioncontroller.h"
+#include "kifunavigationstate.h"
 #include "logcategories.h"
 #include "sfendiffutils.h"
 #include "shogiboard.h"
@@ -15,13 +16,13 @@ BoardSyncPresenter::BoardSyncPresenter(const Deps& d, QObject* parent)
     , m_gc(d.gc)
     , m_view(d.view)
     , m_bic(d.bic)
-    , m_currentLine(d.currentLine)
+    , m_navState(d.navState)
 {
 }
 
 void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 {
-    const RecordLine line = m_currentLine ? m_currentLine() : RecordLine{};
+    const RecordLine line = m_navState ? m_navState->currentRecordLine() : RecordLine{};
     if (line.isEmpty() || !m_gc || !m_gc->board()) {
         qCDebug(lcUi) << "syncBoardAndHighlightsAtRow ABORT: ply=" << ply;
         return;

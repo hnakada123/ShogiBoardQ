@@ -3,6 +3,8 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
+#include <QFileInfo>
+#include <QRegularExpression>
 #include <QMap>
 #include <QTextStream>
 
@@ -155,7 +157,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxFriendClasses = 3; // 現行: 3 (2026-03-07)
+        constexpr int maxFriendClasses = 0; // 部品は MainWindowComposer が持つ（2026-10-15）
 
         // 同一行に複数 friend class が並ぶケースも正しくカウントする
         const QRegularExpression pattern(
@@ -196,31 +198,6 @@ private slots:
 
         QVERIFY2(count <= maxEnsureMethods,
                  qPrintable(QStringLiteral("MainWindow ensure* count: %1 (limit: %2)")
-                                .arg(count)
-                                .arg(maxEnsureMethods)));
-    }
-
-    // ================================================================
-    // c-2) ServiceRegistry ensure* 上限テスト
-    // ================================================================
-    void serviceRegistryEnsureLimit()
-    {
-        const QString headerPath =
-            QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindowserviceregistry.h");
-        constexpr int maxEnsureMethods = 25; // 実測値: 23 (2026-03-06)
-
-        const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure)"));
-        const int count = countMatchingLines(headerPath, pattern);
-
-        QVERIFY2(count >= 0, "Failed to read mainwindowserviceregistry.h");
-
-        qDebug().noquote()
-            << QStringLiteral("KPI: sr_ensure_methods = %1 (limit: %2)")
-                   .arg(count)
-                   .arg(maxEnsureMethods);
-
-        QVERIFY2(count <= maxEnsureMethods,
-                 qPrintable(QStringLiteral("ServiceRegistry ensure* count: %1 (limit: %2)")
                                 .arg(count)
                                 .arg(maxEnsureMethods)));
     }
@@ -522,55 +499,40 @@ private slots:
     }
 
     // ================================================================
-    // i) サブレジストリ ensure* 上限テスト
-    //    各サブレジストリの ensure* メソッド数が上限以下であることを検証
+    // i) app 層の遅延生成禁止
+    //    部品は MainWindowComposer が起動時に依存順で作る。ensure*（必要になったら作る）を app 層に置かない
     // ================================================================
-    void subRegistryEnsureLimits()
+    void appLayerHasNoLazyEnsure()
     {
-        struct RegistryLimit {
-            const char* headerFile;
-            const char* name;
-            int maxEnsure;
-        };
-
-        const RegistryLimit registries[] = {
-            {"src/app/mainwindowfoundationregistry.h", "FoundationRegistry", 15},
-            {"src/app/kifusubregistry.h",              "KifuSubRegistry",     8},
-        };
-
-        const QString sourceDir = QStringLiteral(SOURCE_DIR);
-        const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure)"));
-
-        QStringList violations;
-
-        for (const auto& reg : registries) {
-            const QString headerPath = sourceDir + QStringLiteral("/") + QString::fromLatin1(reg.headerFile);
-            const int count = countMatchingLines(headerPath, pattern);
-
-            QVERIFY2(count >= 0,
-                     qPrintable(QStringLiteral("Failed to read %1").arg(QString::fromLatin1(reg.headerFile))));
-
-            qDebug().noquote()
-                << QStringLiteral("KPI: %1_ensure = %2 (limit: %3)")
-                       .arg(QString::fromLatin1(reg.name))
-                       .arg(count)
-                       .arg(reg.maxEnsure);
-
-            if (count > reg.maxEnsure) {
-                violations.append(
-                    QStringLiteral("%1 ensure* count: %2 (limit: %3)")
-                        .arg(QString::fromLatin1(reg.name))
-                        .arg(count)
-                        .arg(reg.maxEnsure));
-            }
+        const QString appDir = QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app");
+        const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure\w*\()"));
+        QStringList offenders;
+        QDirIterator it(appDir, {QStringLiteral("*.h")}, QDir::Files);
+        while (it.hasNext()) {
+            const QString path = it.next();
+            const int count = countMatchingLines(path, pattern);
+            if (count > 0) offenders.append(QStringLiteral("%1: %2").arg(QFileInfo(path).fileName()).arg(count));
         }
+        qDebug().noquote() << QStringLiteral("KPI: app_ensure_methods = %1 files").arg(offenders.size());
+        QVERIFY2(offenders.isEmpty(), qPrintable(offenders.join(QStringLiteral(", "))));
+    }
 
-        if (!violations.isEmpty()) {
-            QString msg = QStringLiteral("Sub-registry ensure* limit violations:\n");
-            for (const auto &v : std::as_const(violations))
-                msg += QStringLiteral("  ") + v + QStringLiteral("\n");
-            QFAIL(qPrintable(msg));
+    // ================================================================
+    // j) テストは非公開メンバを覗かない
+    //    `#define private public` を使わず、MainWindow::composer() などの公開 API で検証する
+    // ================================================================
+    void testsDoNotRedefinePrivate()
+    {
+        const QString testsDir = QStringLiteral(SOURCE_DIR) + QStringLiteral("/tests");
+        const QRegularExpression pattern(QStringLiteral(R"(^\s*#\s*define\s+private\s+public)"));
+        QStringList offenders;
+        QDirIterator it(testsDir, {QStringLiteral("*.cpp"), QStringLiteral("*.h")}, QDir::Files,
+                        QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QString path = it.next();
+            if (countMatchingLines(path, pattern) > 0) offenders.append(QFileInfo(path).fileName());
         }
+        QVERIFY2(offenders.isEmpty(), qPrintable(offenders.join(QStringLiteral(", "))));
     }
 
     // ================================================================

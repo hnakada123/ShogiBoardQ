@@ -95,39 +95,6 @@ private:
 
 private slots:
     // ================================================================
-    // 1. ensure* メソッドの冪等性ガード
-    // ================================================================
-
-
-    /// KifuSubRegistry の ensure* メソッドが冪等性ガードを持つこと
-    void kifuSubRegistryEnsureMethodsHaveIdempotentGuards()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/kifusubregistry.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read kifusubregistry source");
-
-        const QStringList ensureMethods = {
-            QStringLiteral("KifuSubRegistry::ensureKifuExportController()"),
-            QStringLiteral("KifuSubRegistry::ensureKifuLoadCoordinator()"),
-            QStringLiteral("KifuSubRegistry::ensureGameRecordModel()"),
-            QStringLiteral("KifuSubRegistry::ensureJosekiWiring()"),
-        };
-
-        for (const QString& method : std::as_const(ensureMethods)) {
-            const auto range = findFunctionBody(lines, method);
-            QVERIFY2(range.first >= 0,
-                      qPrintable(QStringLiteral("Method '%1' not found").arg(method)));
-
-            const QString body = bodyText(lines, range.first, range.second);
-            const bool hasGuard = body.contains(QRegularExpression(
-                QStringLiteral(R"(if\s*\(\s*!?\s*m_mw\.m_[\w.]+\s*\))")));
-            QVERIFY2(hasGuard,
-                      qPrintable(QStringLiteral("Method '%1' lacks idempotent guard")
-                                     .arg(method)));
-        }
-    }
-
-    // ================================================================
     // 3. ポインタ安全性
     // ================================================================
 
@@ -172,26 +139,24 @@ private slots:
     // 4. 二重実行防止パターン
     // ================================================================
 
-    /// LifecyclePipeline の runShutdown が二重実行で安全であること（構造確認）
+    /// 終了処理（MainWindowComposer::shutdown）が二重実行で安全で、司令塔の有無を確かめること（構造確認）
     void shutdownDoubleCallProtectionPattern()
     {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
+        const QStringList lines = readSourceLines(QStringLiteral("src/app/mainwindowcomposer.cpp"));
+        QVERIFY2(!lines.isEmpty(), "Failed to read composer source");
 
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
-        QVERIFY2(range.first >= 0, "runShutdown() function not found");
+        const auto range = findFunctionBody(lines, QStringLiteral("MainWindowComposer::shutdown()"));
+        QVERIFY2(range.first >= 0, "shutdown() function not found");
 
         const QString body = bodyText(lines, range.first, range.second);
-        QVERIFY2(body.contains(QStringLiteral("runOnce(m_shutdownDone)")),
-                 "runShutdown must use the guarded shutdown sequence");
+        QVERIFY2(body.contains(QStringLiteral("if (m_shutdownDone) return;")),
+                 "shutdown must return on the second call");
+        QVERIFY2(body.contains(QStringLiteral("if (m_c.match)")),
+                 "shutdown should check the match coordinator before destroyEngines()");
 
-        // エンジン停止のコールバックは未生成の MatchCoordinator も扱えること
-        const QString wiring = readSourceFile(
-            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
-        QVERIFY2(wiring.contains(QStringLiteral("if (m_mw.m_match)")),
-                 "Shutdown wiring should check m_match before destroyEngines()");
+        const QString header = readSourceFile(QStringLiteral("src/app/mainwindowcomposer.h"));
+        QVERIFY2(header.contains(QStringLiteral("bool m_shutdownDone = false;")),
+                 "m_shutdownDone should be initialized to false in header");
     }
 
     // ================================================================
@@ -461,44 +426,6 @@ private slots:
         }
         QVERIFY2(criticalReturn >= 0 && childCreation >= 0 && criticalReturn < childCreation,
                   "Critical dependency return should precede child wiring creation");
-    }
-
-    // ================================================================
-    // 11. LifecyclePipeline 二重初期化防止テスト（拡充）
-    // ================================================================
-
-    /// LifecyclePipeline の runStartup がオブジェクト生成を含み、
-    /// runShutdown のガードフラグが初期値 false であること
-    void lifecyclePipelineDoubleInitProtection()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
-
-        // runStartup に基盤オブジェクト生成ステップがあること
-        {
-            const auto range = findFunctionBody(
-                lines, QStringLiteral("MainWindowLifecyclePipeline::runStartup()"));
-            QVERIFY2(range.first >= 0, "runStartup() not found");
-
-            const QString body = bodyText(lines, range.first, range.second);
-            QVERIFY2(body.contains(QStringLiteral("MainWindowStartupSequence(m_deps.startup).run()")),
-                     "runStartup must execute the injected startup sequence");
-            const QString wiring = readSourceFile(
-                QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
-            QVERIFY(wiring.contains(QStringLiteral("startup.createFoundationObjects =")));
-        }
-
-        // m_shutdownDone の初期値が false であること（ヘッダーの構造検証）
-        {
-            const QString header = readSourceFile(
-                QStringLiteral("src/app/mainwindowlifecyclepipeline.h"));
-            QVERIFY2(!header.isEmpty(), "Failed to read pipeline header");
-
-            QVERIFY2(header.contains(QStringLiteral("m_shutdownDone"))
-                         && header.contains(QStringLiteral("false")),
-                      "m_shutdownDone should be initialized to false in header");
-        }
     }
 
     // ================================================================

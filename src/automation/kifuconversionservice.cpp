@@ -7,18 +7,18 @@
 #include "gamerecordmodel.h"
 #include "jkftosfenconverter.h"
 #include "ki2tosfenconverter.h"
-#include "kifreader.h"
 #include "kiftosfenconverter.h"
 #include "kifubranchtree.h"
 #include "kifubranchtreebuilder.h"
 #include "kifufilereader.h"
+#include "kifuloadparser.h"
+#include "kifreader.h"
 #include "sfenpositiontracer.h"
 #include "sfenutils.h"
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
 
 #include <QFileInfo>
-#include <QTemporaryFile>
 
 using Format = KifuConversionService::Format;
 
@@ -94,43 +94,41 @@ void KifuConversionService::completeLine(KifLine& line, const QString& baseSfen)
     }
 }
 
-bool KifuConversionService::parseFile(const QString& path, Format format, Parsed& out, QString* error)
+bool KifuConversionService::parseText(const QString& content, Format format, Parsed& out, QString* error)
 {
     QString warn;
     QString label;
     bool ok = false;
     switch (format) {
     case Format::Kif:
-        out.initialSfen = KifToSfenConverter::detectInitialSfenFromFile(path, &label);
-        ok = KifToSfenConverter::parseWithVariations(path, out.result, &warn);
-        out.gameInfo = KifToSfenConverter::extractGameInfo(path);
+        out.initialSfen = KifToSfenConverter::detectInitialSfenFromText(content, &label);
+        ok = KifToSfenConverter::parseText(content, out.result, &warn);
+        out.gameInfo = KifToSfenConverter::extractGameInfoFromText(content);
         break;
     case Format::Ki2:
-        out.initialSfen = Ki2ToSfenConverter::detectInitialSfenFromFile(path, &label);
-        ok = Ki2ToSfenConverter::parseWithVariations(path, out.result, &warn);
-        out.gameInfo = Ki2ToSfenConverter::extractGameInfo(path);
+        out.initialSfen = Ki2ToSfenConverter::detectInitialSfenFromText(content, &label);
+        ok = Ki2ToSfenConverter::parseText(content, out.result, &warn);
+        out.gameInfo = Ki2ToSfenConverter::extractGameInfoFromText(content);
         break;
     case Format::Csa:
-        ok = CsaToSfenConverter::parse(path, out.result, &warn);
+        ok = CsaToSfenConverter::parseText(content, out.result, &warn);
         out.initialSfen = out.result.mainline.baseSfen;
-        out.gameInfo = CsaToSfenConverter::extractGameInfo(path);
+        out.gameInfo = CsaToSfenConverter::extractGameInfoFromText(content);
         break;
     case Format::Jkf:
-        out.initialSfen = JkfToSfenConverter::detectInitialSfenFromFile(path, &label);
-        ok = JkfToSfenConverter::parseWithVariations(path, out.result, &warn);
-        out.gameInfo = JkfToSfenConverter::extractGameInfo(path);
+        out.initialSfen = JkfToSfenConverter::detectInitialSfenFromText(content, &label);
+        ok = JkfToSfenConverter::parseText(content, out.result, &warn);
+        out.gameInfo = JkfToSfenConverter::extractGameInfoFromText(content);
         break;
     case Format::Usen:
-        out.initialSfen = UsenToSfenConverter::detectInitialSfenFromFile(path, &label);
-        ok = UsenToSfenConverter::parseWithVariations(path, out.result, &warn);
-        out.gameInfo = UsenToSfenConverter::extractGameInfo(path);
+        out.initialSfen = UsenToSfenConverter::detectInitialSfenFromText(content, &label);
+        ok = UsenToSfenConverter::parseText(content, out.result, &warn);
         break;
     case Format::Usi:
     case Format::Auto:
     case Format::Sfen:
-        out.initialSfen = UsiToSfenConverter::detectInitialSfenFromFile(path, &label);
-        ok = UsiToSfenConverter::parseWithVariations(path, out.result, &warn);
-        out.gameInfo = UsiToSfenConverter::extractGameInfo(path);
+        out.initialSfen = UsiToSfenConverter::detectInitialSfenFromText(content, &label);
+        ok = UsiToSfenConverter::parseText(content, out.result, &warn);
         break;
     }
     if (!warn.trimmed().isEmpty()) out.warnings.append(warn.trimmed());
@@ -157,12 +155,11 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
         return result;
     }
 
-    // 入力形式の決定と、文字列入力の一時ファイル化
+    // 入力形式の決定と、入力の読み込み（ファイルは1回だけ読む）
     Format inputFormat = request.inputFormat;
-    QString path = request.inputPath;
-    std::unique_ptr<QTemporaryFile> temp;
+    QString content;
     if (!request.text.isEmpty()) {
-        QString content = request.text;
+        content = request.text;
         if (KifuFileReader::detectFormat(content) == KifuFileReader::KifuFormat::BOD) {
             QString sfen;
             QString warn;
@@ -174,39 +171,35 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
             inputFormat = Format::Usi;
         }
         if (inputFormat == Format::Auto) inputFormat = detectFormatFromContent(content);
-        const auto fmt = inputFormat == Format::Csa ? KifuFileReader::KifuFormat::CSA
-                       : inputFormat == Format::Ki2 ? KifuFileReader::KifuFormat::KI2
-                       : inputFormat == Format::Jkf ? KifuFileReader::KifuFormat::JKF
-                       : inputFormat == Format::Usen ? KifuFileReader::KifuFormat::USEN
-                       : inputFormat == Format::Usi ? KifuFileReader::KifuFormat::USI
-                                                    : KifuFileReader::KifuFormat::KIF;
-        temp = KifuFileReader::createTempFile(fmt, content);
-        if (!temp) {
-            result.error = QStringLiteral("Failed to create a temporary file");
-            return result;
-        }
-        path = temp->fileName();
     } else {
+        const QString& path = request.inputPath;
         if (!QFileInfo::exists(path)) {
             result.error = QStringLiteral("Input file does not exist: %1").arg(path);
             return result;
         }
         if (inputFormat == Format::Auto) inputFormat = formatFromPath(path);
+        // 形式が分からなければ自動判別で読み、内容から判定する（CSA は CSA の文字コード宣言で読み直す）
+        const auto readFormat = inputFormat == Format::Csa ? KifuFileReader::KifuFormat::CSA
+                                                           : KifuFileReader::KifuFormat::KIF;
+        QString warn;
+        if (!KifuLoadParser::readFileText(path, readFormat, content, &warn)) {
+            result.error = QStringLiteral("Failed to read %1: %2").arg(path, warn);
+            return result;
+        }
         if (inputFormat == Format::Auto) {
-            QStringList lines;
-            QString warn;
-            if (!KifReader::readAllLinesAuto(path, lines, nullptr, &warn)) {
+            inputFormat = detectFormatFromContent(KifReader::splitLines(content).join(QLatin1Char('\n')));
+            if (inputFormat == Format::Csa
+                && !KifuLoadParser::readFileText(path, KifuFileReader::KifuFormat::CSA, content, &warn)) {
                 result.error = QStringLiteral("Failed to read %1: %2").arg(path, warn);
                 return result;
             }
-            inputFormat = detectFormatFromContent(lines.join(QLatin1Char('\n')));
         }
     }
     result.inputFormat = inputFormat;
 
     Parsed parsed;
     QString error;
-    if (!parseFile(path, inputFormat, parsed, &error)) {
+    if (!parseText(content, inputFormat, parsed, &error)) {
         result.error = error;
         result.warnings = parsed.warnings;
         return result;

@@ -8,8 +8,9 @@
 #include <QPointer>
 
 namespace Ui { class MainWindow; }
+class MainWindowActions;
+class QWidget;
 class GameSessionOrchestrator;
-class MainWindow;
 class DialogLaunchWiring;
 class MainWindowAppearanceController;
 class ShogiView;
@@ -17,7 +18,7 @@ class EvaluationChartWidget;
 class BoardColorDialog;
 
 /**
- * @brief 盤操作・表示関連のQActionをMainWindowスロットに接続するクラス
+ * @brief 盤操作・表示関連のQActionを担当の部品へ接続するクラス
  *
  * Flip, Enlarge, Shrink, CopyBoard, CopyEvalGraph,
  * ImmediateMove, MenuWindow, UndoMove, SaveBoardImage,
@@ -28,7 +29,8 @@ class ViewActionsWiring : public QObject {
 public:
     struct Deps {
         Ui::MainWindow* ui = nullptr;
-        MainWindow* mw = nullptr;
+        QWidget* window = nullptr;               ///< ダイアログの親
+        MainWindowActions* actions = nullptr;    ///< 利用者操作の振り分け先
         DialogLaunchWiring* dlw = nullptr;
         GameSessionOrchestrator* gso = nullptr; ///< 対局ライフサイクルオーケストレータ
         MainWindowAppearanceController* appearance = nullptr; ///< UI外観コントローラ

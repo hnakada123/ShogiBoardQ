@@ -7,6 +7,8 @@
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "boardsyncpresenter.h"
+#include "kifunavigationcoordinator.h"
+#include "turnstatesyncservice.h"
 #include "logcategories.h"
 
 BoardLoadService::BoardLoadService(QObject* parent)
@@ -34,7 +36,7 @@ void BoardLoadService::loadFromSfen(const QString& sfen)
         // ビューに反映
         m_deps.view->applyBoardAndRender(m_deps.gc->board());
         // 手番表示を更新
-        if (m_deps.setCurrentTurn) m_deps.setCurrentTurn();
+        if (m_deps.turnSync) m_deps.turnSync->setCurrentTurn();
         // 現在のSFEN文字列を更新
         if (m_deps.currentSfenStr) *m_deps.currentSfenStr = sfen;
 
@@ -50,17 +52,16 @@ void BoardLoadService::loadFromSfen(const QString& sfen)
 void BoardLoadService::loadWithHighlights(const QString& currentSfen, const QString& prevSfen)
 {
     // 分岐由来の局面切替では通常同期との競合を避けるため、ガードを立てる。
-    if (m_deps.beginBranchNavGuard) m_deps.beginBranchNavGuard();
+    if (m_deps.kifuNav) m_deps.kifuNav->beginBranchNavGuard();
 
     // 盤面更新とハイライト計算は BoardSyncPresenter に委譲する。
-    if (m_deps.ensureBoardSyncPresenter) m_deps.ensureBoardSyncPresenter();
     if (m_deps.boardSync) {
         m_deps.boardSync->loadBoardWithHighlights(currentSfen, prevSfen);
     }
 
     // 手番表示を更新
     if (!currentSfen.isEmpty()) {
-        if (m_deps.setCurrentTurn) m_deps.setCurrentTurn();
+        if (m_deps.turnSync) m_deps.turnSync->setCurrentTurn();
         if (m_deps.currentSfenStr) *m_deps.currentSfenStr = currentSfen;
     }
 }

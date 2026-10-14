@@ -6,8 +6,6 @@
 #include "logcategories.h"
 
 #include <QFileInfo>
-
-#include <QDir>
 #include <QRegularExpression>
 
 namespace KifuFileReader {
@@ -122,30 +120,6 @@ KifuFormat detectFormat(const QString& content)
     // 不明な場合はKIFとして試す
     qCDebug(lcKifu).noquote() << "format unknown, trying KIF";
     return KifuFormat::KIF;
-}
-
-static QString tempFileTemplate(KifuFormat fmt)
-{
-    QString path = QDir::tempPath() + QStringLiteral("/shogi_paste_XXXXXX");
-    switch (fmt) {
-    case KifuFormat::KIF:  return path + QStringLiteral(".kif");
-    case KifuFormat::KI2:  return path + QStringLiteral(".ki2");
-    case KifuFormat::CSA:  return path + QStringLiteral(".csa");
-    case KifuFormat::USI:  return path + QStringLiteral(".usi");
-    case KifuFormat::JKF:  return path + QStringLiteral(".jkf");
-    case KifuFormat::USEN: return path + QStringLiteral(".usen");
-    default:               return path + QStringLiteral(".kif");
-    }
-}
-
-std::unique_ptr<QTemporaryFile> createTempFile(KifuFormat fmt, const QString& content)
-{
-    auto file = std::make_unique<QTemporaryFile>(tempFileTemplate(fmt));
-    if (!file->open()) return nullptr;
-    const QByteArray data = content.toUtf8();
-    if (file->write(data) != data.size() || !file->flush()) return nullptr;
-    file->close();
-    return file;
 }
 
 } // namespace KifuFileReader

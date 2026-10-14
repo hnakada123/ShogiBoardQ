@@ -12,6 +12,16 @@
 #include "usiprotocolhandler.h"
 #include "thinkinginfopresenter.h"
 #include "engineprocessmanager.h"
+#include "usiinfo.h"
+
+
+namespace {
+/// infoReceived の引数を取り出す
+UsiInfo infoAt(const QSignalSpy& spy, qsizetype index)
+{
+    return qvariant_cast<UsiInfo>(spy.at(index).at(0));
+}
+} // namespace
 
 class TestUsiProtocolHandler : public QObject
 {
@@ -138,80 +148,91 @@ private slots:
     void infoLine_depthScoreCpPv()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         const QString line = QStringLiteral(
             "info depth 20 seldepth 30 score cp 150 nodes 1000000 nps 500000 pv 7g7f 3c3d 2g2f");
         handler.onDataReceived(line);
 
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toString(), line);
+        const UsiInfo info = infoAt(spy, 0);
+        QCOMPARE(info.depth, 20);
+        QCOMPARE(info.seldepth, 30);
+        QVERIFY(info.score.isCp());
+        QCOMPARE(info.score.value, 150);
+        QCOMPARE(info.nodes, 1000000LL);
+        QCOMPARE(info.nps, 500000LL);
+        QCOMPARE(info.pv, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
     }
 
     void infoLine_scoreMate()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         const QString line = QStringLiteral(
             "info depth 15 score mate 5 pv 5e5d 4a3b 5d5c");
         handler.onDataReceived(line);
 
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toString(), line);
+        QVERIFY(infoAt(spy, 0).score.isMate());
+        QCOMPARE(infoAt(spy, 0).score.value, 5);
+        QCOMPARE(infoAt(spy, 0).pv.size(), 3);
     }
 
     void infoLine_multipv1()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         const QString line = QStringLiteral(
             "info depth 10 multipv 1 score cp 100 pv 7g7f 3c3d");
         handler.onDataReceived(line);
 
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toString(), line);
+        QCOMPARE(infoAt(spy, 0).multipv, 1);
     }
 
     void infoLine_multipv2()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         const QString line = QStringLiteral(
             "info depth 10 multipv 2 score cp -50 pv 2g2f 8c8d");
         handler.onDataReceived(line);
 
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toString(), line);
+        QCOMPARE(infoAt(spy, 0).multipv, 2);
+        QCOMPARE(infoAt(spy, 0).score.value, -50);
     }
 
     void infoLine_string()
     {
-        // info string は UsiProtocolHandler レベルでは通常の info 行と同じ扱い
-        // （フィルタリングは ThinkingInfoPresenter 側で行われる）
+        // info string も info として通知し、本文は string に入る（読み筋にはしない）
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         const QString line = QStringLiteral("info string evaluation started");
         handler.onDataReceived(line);
 
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toString(), line);
+        QCOMPARE(infoAt(spy, 0).string, QStringLiteral("evaluation started"));
+        QVERIFY(!infoAt(spy, 0).hasPv());
     }
 
     void infoLine_noScore()
     {
         // score がない info 行でもシグナルは発行される
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         const QString line = QStringLiteral("info depth 5 nodes 100");
         handler.onDataReceived(line);
 
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toString(), line);
+        QCOMPARE(infoAt(spy, 0).depth, 5);
+        QVERIFY(!infoAt(spy, 0).hasScore());
     }
 
     // ================================================================
@@ -377,10 +398,10 @@ private slots:
         handler.onDataReceived(QStringLiteral("checkmate S*1b 2a3a R*2a"));
 
         QCOMPARE(rows.count(), 1);
-        QVERIFY(rows.at(0).at(3).toString().contains(QStringLiteral("3")));        // 詰み手数
-        QCOMPARE(rows.at(0).at(4).toString(),
-                 QStringLiteral("▲１二銀打△３一玉(21)▲２一飛打"));               // 読み筋
-        QCOMPARE(rows.at(0).at(5).toString(), QStringLiteral("S*1b 2a3a R*2a"));   // USI の読み筋
+        const auto row = qvariant_cast<ThinkingInfoRow>(rows.at(0).at(0));
+        QVERIFY(row.score.contains(QStringLiteral("3")));                           // 詰み手数
+        QCOMPARE(row.pvKanji, QStringLiteral("▲１二銀打△３一玉(21)▲２一飛打"));    // 読み筋
+        QCOMPARE(row.usiPv, QStringLiteral("S*1b 2a3a R*2a"));                      // USI の読み筋
         QCOMPARE(solved.count(), 1);
     }
 
@@ -488,7 +509,7 @@ private slots:
     {
         // option name 行はオプション名を記録するのみでシグナルは発行しない
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
         QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
 
         handler.onDataReceived(
@@ -499,6 +520,20 @@ private slots:
         QCOMPARE(spyBest.count(), 0);
     }
 
+    void optionAndIdName_recorded()
+    {
+        // usi〜usiok で報告されたオプションの定義行と id name を覚える
+        UsiProtocolHandler handler;
+        handler.onDataReceived(QStringLiteral("id name Mock Engine 1.0"));
+        handler.onDataReceived(QStringLiteral("option name Multi PV type spin default 1 min 1 max 500"));
+        handler.onDataReceived(QStringLiteral("option name Broken"));
+
+        QCOMPARE(handler.reportedEngineName(), QStringLiteral("Mock Engine 1.0"));
+        QCOMPARE(handler.reportedOptionLine(QStringLiteral("Multi PV")),
+                 QStringLiteral("option name Multi PV type spin default 1 min 1 max 500"));
+        QVERIFY(handler.reportedOptionLine(QStringLiteral("Broken")).isEmpty());
+    }
+
     // ================================================================
     // 6. 不正入力への耐性
     // ================================================================
@@ -506,7 +541,7 @@ private slots:
     void invalidInput_emptyLine()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
         QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
         QSignalSpy spyError(&handler, &UsiProtocolHandler::errorOccurred);
 
@@ -536,7 +571,7 @@ private slots:
     void invalidInput_unknownCommand()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
         QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
         QSignalSpy spyReady(&handler, &UsiProtocolHandler::readyOkReceived);
         QSignalSpy spyUsi(&handler, &UsiProtocolHandler::usiOkReceived);
@@ -570,7 +605,7 @@ private slots:
         UsiProtocolHandler handler;
         handler.markHardTimeout();
 
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
         QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
         QSignalSpy spyReady(&handler, &UsiProtocolHandler::readyOkReceived);
 
@@ -588,7 +623,7 @@ private slots:
         UsiProtocolHandler handler;
         handler.markHardTimeout();
 
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
         handler.onDataReceived(QStringLiteral("info depth 5"));
         QCOMPARE(spyInfo.count(), 0);
 
@@ -605,7 +640,7 @@ private slots:
     {
         UsiProtocolHandler handler;
         EngineProcessManager processManager;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         handler.setProcessManager(&processManager);
         handler.setProcessManager(&processManager);
@@ -623,7 +658,7 @@ private slots:
         UsiProtocolHandler handler;
         EngineProcessManager oldManager;
         EngineProcessManager newManager;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         handler.setProcessManager(&oldManager);
         handler.setProcessManager(&newManager);
@@ -638,7 +673,7 @@ private slots:
         QVERIFY(newInvoked);
 
         QCOMPARE(spyInfo.count(), 1);
-        QCOMPARE(spyInfo.at(0).at(0).toString(), QStringLiteral("info depth 4"));
+        QCOMPARE(infoAt(spyInfo, 0).depth, 4);
     }
 
     // ================================================================
@@ -737,7 +772,7 @@ private slots:
         QFETCH(int, expectedErrorCount);
 
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
         QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
         QSignalSpy spyError(&handler, &UsiProtocolHandler::errorOccurred);
 
@@ -799,7 +834,7 @@ private slots:
     void invalidInfo_scoreMissingValue()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         // "score cp" with no numeric value
         handler.onDataReceived(QStringLiteral("info depth 10 score cp"));
@@ -811,7 +846,7 @@ private slots:
     void invalidInfo_scoreNonNumeric()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         // "score cp ABC" — non-numeric value
         handler.onDataReceived(QStringLiteral("info depth 10 score cp ABC pv 7g7f"));
@@ -822,7 +857,7 @@ private slots:
     void invalidInfo_scoreMateNegative()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         // "score mate -3" — negative mate (opponent has checkmate)
         handler.onDataReceived(QStringLiteral("info depth 10 score mate -3 pv 5e5d"));
@@ -837,7 +872,7 @@ private slots:
     void invalidOption_unknownType()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
         QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
 
         handler.onDataReceived(
@@ -851,7 +886,7 @@ private slots:
     void invalidOption_noType()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         handler.onDataReceived(QStringLiteral("option name SomeOption"));
 
@@ -862,7 +897,7 @@ private slots:
     void invalidOption_emptyName()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         handler.onDataReceived(QStringLiteral("option name  type check default false"));
 
@@ -1132,7 +1167,7 @@ private slots:
     void option_veryLongName()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         // 非常に長いオプション名でもクラッシュしない
         QString longName = QString(1000, QChar('X'));
@@ -1146,7 +1181,7 @@ private slots:
     {
         // オプション名にスペースが含まれる場合（"Multi PV" 等）
         UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
 
         handler.onDataReceived(
             QStringLiteral("option name Multi PV type spin default 1 min 1 max 500"));
@@ -1258,7 +1293,7 @@ private slots:
     {
         // "info " の後に何もない
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         handler.onDataReceived(QStringLiteral("info "));
 
@@ -1269,7 +1304,7 @@ private slots:
     {
         // info行にNULLバイトが含まれる場合
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         QString line = QStringLiteral("info depth 10");
         line.insert(5, QChar('\0'));
@@ -1283,7 +1318,7 @@ private slots:
     {
         // multipv の値が非常に大きい
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
 
         handler.onDataReceived(
             QStringLiteral("info depth 1 multipv 999999 score cp 0 pv 7g7f"));

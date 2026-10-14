@@ -8,6 +8,8 @@
 #include <QDialog>
 #include <memory>
 
+#include "fontsizehelper.h"
+
 namespace Ui {
 class EngineRegistrationDialog;
 }
@@ -56,8 +58,8 @@ private:
     std::unique_ptr<Ui::EngineRegistrationDialog> ui;
     std::unique_ptr<EngineRegistrationHandler> m_handler;
 
-    // 現在のフォントサイズ
-    int m_fontSize = 0;
+    // フォントサイズ（A-/A+）
+    FontSizeHelper m_fontHelper;
 
     // シグナル・スロットの接続を行う。
     void initializeSignals() const;

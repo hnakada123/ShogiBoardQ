@@ -172,8 +172,8 @@ void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString&
     applyBranchMarksForCurrentLine();
 
     if (branchTreeManager && branchTree != nullptr && !branchTree->isEmpty()) {
-        // 分岐ツリーの行データは treeChanged を受けた KifuDisplayCoordinator が
-        // KifuDisplayPresenter::buildBranchTreeRows() で構築済み。ここでは開始局面の
+        // 分岐ツリーは treeChanged を受けた KifuDisplayCoordinator が
+        // BranchTreeManager::setBranchTree() で描画済み。ここでは開始局面の
         // ハイライトと中央表示のみ行う。
         branchTreeManager->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
     }

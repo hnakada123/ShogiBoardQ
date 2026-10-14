@@ -8,6 +8,7 @@
 #include "enginesettingsconstants.h"
 #include "enginepondersettings.h"
 #include "settingscommon.h"
+#include "usiinfoparser.h"
 
 #include <QSettings>
 #include <QRegularExpression>
@@ -239,12 +240,17 @@ void UsiProtocolHandler::sendGoMovetime(int timeMs)
     sendCommand(QStringLiteral("go movetime %1").arg(timeMs));
 }
 
+void UsiProtocolHandler::sendGoInfinite()
+{
+    beginMainSearch();
+    sendCommand(QStringLiteral("go infinite"));
+}
+
 void UsiProtocolHandler::sendGoSearchmoves(const QStringList& moves, bool infinite)
 {
     if (moves.isEmpty()) {
         qCWarning(lcEngine) << "sendGoSearchmoves: 手リストが空、go infiniteを送信";
-        beginMainSearch();
-        sendCommand(QStringLiteral("go infinite"));
+        sendGoInfinite();
         return;
     }
     beginMainSearch();
@@ -348,7 +354,7 @@ void UsiProtocolHandler::sendSetOption(const QString& name, const QString& value
     sendSetOption(name, value);
 }
 
-void UsiProtocolHandler::sendRaw(const QString& command)
+void UsiProtocolHandler::sendConsoleCommand(const QString& command)
 {
     sendCommand(command);
 }
@@ -378,9 +384,15 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     }
 
     if (line.startsWith(QStringLiteral("info"))) {
-        updateCandidate(line);
+        // info 行の解釈はここで一度だけ行い、受け手には型付きの値を渡す
+        const std::optional<UsiInfo> info = UsiInfoParser::parse(line);
+        if (!info) {
+            qCDebug(lcEngine) << "[drop-info] (unreadable)" << line.left(60);
+            return;
+        }
+        updateCandidate(*info);
         qCDebug(lcEngine) << "info行受信:" << line.left(60);
-        emit infoLineReceived(line);
+        emit infoReceived(*info);
         return;
     }
 
@@ -391,21 +403,15 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
         return;
     }
 
-    if (line.startsWith(QStringLiteral("option name "))) {
-        // エンジンが報告したオプション名を記録（usi〜usiok間）
-        // 形式: "option name <name> type <type> ..."
-        const qsizetype nameStart = 12; // "option name " の長さ
-        qsizetype typePos = line.indexOf(QStringLiteral(" type "), nameStart);
-        if (typePos > nameStart) {
-            const QString name = line.mid(nameStart, typePos - nameStart);
-            m_reportedOptions.insert(name);
-            m_reportedOptionLines.insert(name, trimmed);
-        }
+    // エンジンが報告したオプションを記録する（usi〜usiok間）
+    if (const auto option = UsiInfoParser::parseOptionDeclaration(line)) {
+        m_reportedOptions.insert(option->name);
+        m_reportedOptionLines.insert(option->name, trimmed);
         return;
     }
 
-    if (trimmed.startsWith(QStringLiteral("id name "))) {
-        m_reportedEngineName = trimmed.mid(8);
+    if (const auto name = UsiInfoParser::parseIdName(line)) {
+        m_reportedEngineName = *name;
         return;
     }
 

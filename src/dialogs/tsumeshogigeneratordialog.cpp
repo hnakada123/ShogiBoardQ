@@ -52,26 +52,26 @@ void TsumeshogiGeneratorDialog::showEvent(QShowEvent* event)
 {
     QDialog::showEvent(event);
     // 説明を開いたまま閉じた場合も、次に開いたとき設定欄を隠さない（配置が決まってから調整する）
-    if (m_btnHelp->isChecked()) QTimer::singleShot(0, this, &TsumeshogiGeneratorDialog::fitSettingsArea);
+    if (m_settingsUi.help->isChecked()) QTimer::singleShot(0, this, &TsumeshogiGeneratorDialog::fitSettingsArea);
 }
 
 void TsumeshogiGeneratorDialog::connectDialogSignals()
 {
-    connect(m_btnStart, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onStartClicked);
-    connect(m_btnStop, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onStopClicked);
-    connect(m_btnSaveToFile, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onSaveToFile);
-    connect(m_btnCopySelected, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopySelected);
-    connect(m_btnCopyAll, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopyAll);
-    connect(m_btnClose, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::close);
-    connect(m_btnFontIncrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontIncrease);
-    connect(m_btnFontDecrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontDecrease);
-    connect(m_btnRestoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
-    connect(m_btnEngineSetting, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
-    connect(m_tableResults, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
-    connect(m_tableResults, &QTableWidget::activated, this, &TsumeshogiGeneratorDialog::onResultTableActivated);
-    connect(m_tableResults, &QTableWidget::itemSelectionChanged, this, &TsumeshogiGeneratorDialog::updateResultActions);
-    connect(m_spinMaxPositions, &QSpinBox::valueChanged, this, &TsumeshogiGeneratorDialog::updateProgressBar);
-    connect(m_btnHelp, &QToolButton::toggled, this, &TsumeshogiGeneratorDialog::toggleHelp);
+    connect(m_progressUi.start, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onStartClicked);
+    connect(m_progressUi.stop, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onStopClicked);
+    connect(m_resultsUi.save, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onSaveToFile);
+    connect(m_resultsUi.copySelected, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopySelected);
+    connect(m_resultsUi.copyAll, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopyAll);
+    connect(m_footerUi.close, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::close);
+    connect(m_footerUi.fontIncrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontIncrease);
+    connect(m_footerUi.fontDecrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontDecrease);
+    connect(m_settingsUi.restoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
+    connect(m_settingsUi.engineSettings, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
+    connect(m_resultsUi.table, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
+    connect(m_resultsUi.table, &QTableWidget::activated, this, &TsumeshogiGeneratorDialog::onResultTableActivated);
+    connect(m_resultsUi.table, &QTableWidget::itemSelectionChanged, this, &TsumeshogiGeneratorDialog::updateResultActions);
+    connect(m_settingsUi.maxPositions, &QSpinBox::valueChanged, this, &TsumeshogiGeneratorDialog::updateProgressBar);
+    connect(m_settingsUi.help, &QToolButton::toggled, this, &TsumeshogiGeneratorDialog::toggleHelp);
 
     connect(m_generator, &TsumeshogiGenerator::positionFound,
             this, &TsumeshogiGeneratorDialog::onPositionFound);
@@ -99,7 +99,7 @@ void TsumeshogiGeneratorDialog::readEngineNameAndDir()
         engine.name = entry.name;
         engine.path = entry.path;
         engine.author = entry.author;
-        m_comboEngine->addItem(engine.name);
+        m_settingsUi.engine->addItem(engine.name);
         m_engineList.append(engine);
     }
 }
@@ -109,7 +109,7 @@ void TsumeshogiGeneratorDialog::loadSettings()
     const int engineIndex =
         EngineListSettings::restoreSelection(EngineListSettings::tsumeshogiGeneratorSelection(), m_engineList);
     if (engineIndex >= 0) {
-        m_comboEngine->setCurrentIndex(engineIndex);
+        m_settingsUi.engine->setCurrentIndex(engineIndex);
     }
 
     // 旧バージョンで偶数が保存されていた場合に備えて奇数に補正する
@@ -117,41 +117,41 @@ void TsumeshogiGeneratorDialog::loadSettings()
     if (targetMoves % 2 == 0) {
         targetMoves = qMax(1, targetMoves - 1);
     }
-    m_spinTargetMoves->setValue(targetMoves);
-    m_spinMaxAttack->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces());
-    m_spinMaxDefend->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces());
-    m_spinAttackRange->setValue(TsumeshogiSettings::tsumeshogiGeneratorAttackRange());
-    m_spinTimeout->setValue(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec());
-    m_spinMaxPositions->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions());
-    m_checkIncludePv->setChecked(TsumeshogiSettings::tsumeshogiGeneratorIncludePv());
-    m_checkAllowFinalAlternatives->setChecked(TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives());
-    m_btnHelp->setChecked(TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded());
+    m_settingsUi.targetMoves->setValue(targetMoves);
+    m_settingsUi.maxAttack->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces());
+    m_settingsUi.maxDefend->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces());
+    m_settingsUi.attackRange->setValue(TsumeshogiSettings::tsumeshogiGeneratorAttackRange());
+    m_settingsUi.timeout->setValue(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec());
+    m_settingsUi.maxPositions->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions());
+    m_resultsUi.includePv->setChecked(TsumeshogiSettings::tsumeshogiGeneratorIncludePv());
+    m_settingsUi.allowFinalAlternatives->setChecked(TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives());
+    m_settingsUi.help->setChecked(TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded());
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()
 {
     DialogUtils::saveDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize);
     TsumeshogiSettings::tsumeshogiGeneratorFontSize.set(m_fontHelper.fontSize());
-    const int engineIndex = m_comboEngine->currentIndex();
+    const int engineIndex = m_settingsUi.engine->currentIndex();
     if (engineIndex >= 0 && engineIndex < m_engineList.size()) {
         EngineListSettings::saveSelection(EngineListSettings::tsumeshogiGeneratorSelection(),
                                           m_engineList.at(engineIndex).name);
     }
-    TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.set(m_spinTargetMoves->value());
-    TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.set(m_spinMaxAttack->value());
-    TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.set(m_spinMaxDefend->value());
-    TsumeshogiSettings::tsumeshogiGeneratorAttackRange.set(m_spinAttackRange->value());
-    TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.set(m_spinTimeout->value());
-    TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.set(m_spinMaxPositions->value());
-    TsumeshogiSettings::tsumeshogiGeneratorIncludePv.set(m_checkIncludePv->isChecked());
-    TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives.set(m_checkAllowFinalAlternatives->isChecked());
-    TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded.set(m_btnHelp->isChecked());
+    TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.set(m_settingsUi.targetMoves->value());
+    TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.set(m_settingsUi.maxAttack->value());
+    TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.set(m_settingsUi.maxDefend->value());
+    TsumeshogiSettings::tsumeshogiGeneratorAttackRange.set(m_settingsUi.attackRange->value());
+    TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.set(m_settingsUi.timeout->value());
+    TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.set(m_settingsUi.maxPositions->value());
+    TsumeshogiSettings::tsumeshogiGeneratorIncludePv.set(m_resultsUi.includePv->isChecked());
+    TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives.set(m_settingsUi.allowFinalAlternatives->isChecked());
+    TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded.set(m_settingsUi.help->isChecked());
 }
 
 void TsumeshogiGeneratorDialog::onStartClicked()
 {
     if (m_running) return;
-    const int engineIndex = m_comboEngine->currentIndex();
+    const int engineIndex = m_settingsUi.engine->currentIndex();
     if (engineIndex < 0 || engineIndex >= m_engineList.size()) {
         QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
         return;
@@ -161,16 +161,16 @@ void TsumeshogiGeneratorDialog::onStartClicked()
     TsumeshogiGenerator::Settings settings;
     settings.enginePath = m_engineList.at(engineIndex).path;
     settings.engineName = m_engineList.at(engineIndex).name;
-    settings.targetMoves = m_spinTargetMoves->value();
-    settings.timeoutMs = m_spinTimeout->value() * 1000;
-    settings.maxPositionsToFind = m_spinMaxPositions->value();
-    settings.allowFinalMoveAlternatives = m_checkAllowFinalAlternatives->isChecked();
-    settings.posGenSettings.maxAttackPieces = m_spinMaxAttack->value();
-    settings.posGenSettings.maxDefendPieces = m_spinMaxDefend->value();
-    settings.posGenSettings.attackRange = m_spinAttackRange->value();
+    settings.targetMoves = m_settingsUi.targetMoves->value();
+    settings.timeoutMs = m_settingsUi.timeout->value() * 1000;
+    settings.maxPositionsToFind = m_settingsUi.maxPositions->value();
+    settings.allowFinalMoveAlternatives = m_settingsUi.allowFinalAlternatives->isChecked();
+    settings.posGenSettings.maxAttackPieces = m_settingsUi.maxAttack->value();
+    settings.posGenSettings.maxDefendPieces = m_settingsUi.maxDefend->value();
+    settings.posGenSettings.attackRange = m_settingsUi.attackRange->value();
 
     // 結果テーブルをクリア
-    m_tableResults->setRowCount(0);
+    m_resultsUi.table->setRowCount(0);
 
     // ファイル保存時のコメントヘッダ用に、この実行の設定と開始日時を控える
     m_lastRunSettings = settings;

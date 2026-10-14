@@ -28,22 +28,18 @@
 #include "tsumeshogigeneratordialog.h"
 #include "tsumecollectiondialog.h"
 #include "evaluationchartwidget.h"
+#include "kifufilecontroller.h"
 #include "logcategories.h"
 
-DialogLaunchWiring::DialogLaunchWiring(Deps deps, QObject* parent)
+DialogLaunchWiring::DialogLaunchWiring(const Deps& deps, QObject* parent)
     : QObject(parent)
-    , m_deps(std::move(deps))
+    , m_deps(deps)
 {
-}
-
-void DialogLaunchWiring::updateDeps(Deps deps)
-{
-    m_deps = std::move(deps);
 }
 
 void DialogLaunchWiring::displayVersionInformation()
 {
-    auto* dc = m_deps.getDialogCoordinator ? m_deps.getDialogCoordinator() : nullptr;
+    auto* dc = m_deps.dialogCoordinator;
     if (dc) {
         dc->showVersionInformation();
     }
@@ -51,7 +47,7 @@ void DialogLaunchWiring::displayVersionInformation()
 
 void DialogLaunchWiring::displayEngineSettingsDialog()
 {
-    auto* dc = m_deps.getDialogCoordinator ? m_deps.getDialogCoordinator() : nullptr;
+    auto* dc = m_deps.dialogCoordinator;
     if (dc) {
         dc->showEngineSettingsDialog();
     }
@@ -59,13 +55,13 @@ void DialogLaunchWiring::displayEngineSettingsDialog()
 
 bool DialogLaunchWiring::choosePromotion()
 {
-    auto* dc = m_deps.getDialogCoordinator ? m_deps.getDialogCoordinator() : nullptr;
+    auto* dc = m_deps.dialogCoordinator;
     return dc && dc->showPromotionDialog();
 }
 
 void DialogLaunchWiring::displayJishogiScoreDialog()
 {
-    auto* sv = m_deps.getShogiView ? m_deps.getShogiView() : nullptr;
+    auto* sv = m_deps.shogiView;
     if (!sv || !sv->board()) {
         QMessageBox::warning(m_deps.parentWidget,
                              QCoreApplication::translate("MainWindow", "エラー"),
@@ -73,7 +69,7 @@ void DialogLaunchWiring::displayJishogiScoreDialog()
         return;
     }
 
-    auto* jc = m_deps.getJishogiController ? m_deps.getJishogiController() : nullptr;
+    auto* jc = m_deps.jishogiController;
     if (jc) {
         jc->showDialog(m_deps.parentWidget, sv->board());
     }
@@ -81,12 +77,12 @@ void DialogLaunchWiring::displayJishogiScoreDialog()
 
 void DialogLaunchWiring::handleNyugyokuDeclaration()
 {
-    CsaGameCoordinator* csa = m_deps.getCsaGameCoordinator ? m_deps.getCsaGameCoordinator() : nullptr;
+    CsaGameCoordinator* csa = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
     if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
         // 成否はサーバーが判定する。誤操作で負けないよう、ローカル対局と同じく確認する
         if (csa->isMyTurn()) {
             // 駒落ちはローカル対局と同じく、対局情報の見出しに合わせて下手・上手と呼ぶ
-            const MatchCoordinator* match = m_deps.getMatch ? m_deps.getMatch() : nullptr;
+            const MatchCoordinator* match = m_deps.match;
             const QString declarer = NyugyokuJudgement::declarerName(
                 csa->isBlackSide(), match && match->usesHandicapNames());
             if (!DialogUtils::confirmAction(
@@ -103,7 +99,7 @@ void DialogLaunchWiring::handleNyugyokuDeclaration()
         csa->declareWin();
         return;
     }
-    auto* sv = m_deps.getShogiView ? m_deps.getShogiView() : nullptr;
+    auto* sv = m_deps.shogiView;
     if (!sv || !sv->board()) {
         QMessageBox::warning(m_deps.parentWidget,
                              QCoreApplication::translate("MainWindow", "エラー"),
@@ -111,10 +107,10 @@ void DialogLaunchWiring::handleNyugyokuDeclaration()
         return;
     }
 
-    auto* nh = m_deps.getNyugyokuHandler ? m_deps.getNyugyokuHandler() : nullptr;
+    auto* nh = m_deps.nyugyokuHandler;
     if (nh) {
-        auto* gc = m_deps.getGameController ? m_deps.getGameController() : nullptr;
-        auto* match = m_deps.getMatch ? m_deps.getMatch() : nullptr;
+        auto* gc = m_deps.gameController;
+        auto* match = m_deps.match;
         nh->setGameController(gc);
         nh->setMatchCoordinator(match);
         nh->handleDeclaration(m_deps.parentWidget, sv->board(),
@@ -126,17 +122,17 @@ void DialogLaunchWiring::displayTsumeShogiSearchDialog()
 {
     *m_deps.playMode = PlayMode::TsumiSearchMode;
 
-    auto* dc = m_deps.getDialogCoordinator ? m_deps.getDialogCoordinator() : nullptr;
+    auto* dc = m_deps.dialogCoordinator;
     if (!dc) return;
 
     // 詰み探索開始直前に DialogCoordinator の依存（モデル・解析タブ・司令塔）を渡す。
     // DialogCoordinator は司令塔より先に作られることがあるため、ここで最新の値にそろえる。
-    auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
+    auto* analysisTab = m_deps.analysisTab;
     DialogCoordinator::Deps dcDeps;
-    dcDeps.matchCoordinator = m_deps.getMatch ? m_deps.getMatch() : nullptr;
+    dcDeps.matchCoordinator = m_deps.match;
     dcDeps.considerationTabManager = analysisTab ? analysisTab->considerationTabManager() : nullptr;
-    dcDeps.logModel = m_deps.getLineEditModel1 ? m_deps.getLineEditModel1() : nullptr;
-    dcDeps.thinkingModel = m_deps.getModelThinking1 ? m_deps.getModelThinking1() : nullptr;
+    dcDeps.logModel = m_deps.lineEditModel1;
+    dcDeps.thinkingModel = m_deps.modelThinking1;
     dc->updateDeps(dcDeps);
 
     dc->showTsumeSearchDialogFromContext();
@@ -146,7 +142,7 @@ void DialogLaunchWiring::displayTsumePlayDialog()
 {
     TsumeCollectionDialog dialog(m_deps.parentWidget);
     // 詰将棋対局の指し手でも、本譜の対局と同じ駒音を鳴らす（オフなら PieceSoundPlayer 側で鳴らない）
-    if (auto* player = m_deps.getPieceSoundPlayer ? m_deps.getPieceSoundPlayer() : nullptr)
+    if (auto* player = m_deps.pieceSoundPlayer)
         connect(&dialog, &TsumeCollectionDialog::movePlayed, player, &PieceSoundPlayer::playMoveSound);
     dialog.exec();
 }
@@ -160,7 +156,7 @@ void DialogLaunchWiring::displayTsumeshogiGeneratorDialog()
 void DialogLaunchWiring::displayMenuWindow()
 {
     // ドックの表示/非表示をトグル（ドックが未作成ならゲッターが作る）
-    QDockWidget* dock = m_deps.getMenuWindowDock ? m_deps.getMenuWindowDock() : nullptr;
+    QDockWidget* dock = m_deps.menuWindowDock;
     if (!dock) return;
     if (dock->isVisible()) {
         dock->hide();
@@ -182,18 +178,18 @@ void DialogLaunchWiring::displayCsaGameDialog()
 
     // ダイアログを表示する
     if (dlg->exec() == QDialog::Accepted) {
-        if (m_deps.confirmDiscardUnsavedKifu && !m_deps.confirmDiscardUnsavedKifu()) return;
+        if (m_deps.kifuFileController && !m_deps.kifuFileController->confirmDiscardUnsaved()) return;
         // CsaGameWiringを確保
-        auto* csaWiring = m_deps.getCsaGameWiring ? m_deps.getCsaGameWiring() : nullptr;
+        auto* csaWiring = m_deps.csaGameWiring;
         if (!csaWiring) {
             qCWarning(lcUi).noquote() << "displayCsaGameDialog: CsaGameWiring is null";
             return;
         }
 
         // BoardSetupControllerを確保して設定
-        auto* bsc = m_deps.getBoardSetupController ? m_deps.getBoardSetupController() : nullptr;
+        auto* bsc = m_deps.boardSetupController;
         csaWiring->setBoardSetupController(bsc);
-        auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
+        auto* analysisTab = m_deps.analysisTab;
         csaWiring->setAnalysisTab(analysisTab);
 
         // CSA対局を開始（ロジックはCsaGameWiringに委譲）。司令塔は CsaGameWiring が作って持つ
@@ -216,34 +212,34 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
     // 解析モードに遷移
     *m_deps.playMode = PlayMode::AnalysisMode;
 
-    auto* dc = m_deps.getDialogCoordinator ? m_deps.getDialogCoordinator() : nullptr;
+    auto* dc = m_deps.dialogCoordinator;
     if (!dc) return;
 
     // 依存オブジェクトを確保
-    auto* gameInfo = m_deps.getGameInfoController ? m_deps.getGameInfoController() : nullptr;
-    auto* ap = m_deps.getAnalysisPresenter ? m_deps.getAnalysisPresenter() : nullptr;
+    auto* gameInfo = m_deps.gameInfoController;
+    auto* ap = m_deps.analysisPresenter;
 
     // 解析に必要な依存オブジェクトを設定
-    KifuAnalysisListModel* analysisModel = m_deps.getAnalysisModel ? m_deps.getAnalysisModel() : nullptr;
-    auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
+    KifuAnalysisListModel* analysisModel = m_deps.analysisModel;
+    auto* analysisTab = m_deps.analysisTab;
     DialogCoordinator::Deps dcDeps;
-    dcDeps.matchCoordinator = m_deps.getMatch ? m_deps.getMatch() : nullptr;
+    dcDeps.matchCoordinator = m_deps.match;
     dcDeps.analysisModel = analysisModel;
     dcDeps.considerationTabManager = analysisTab ? analysisTab->considerationTabManager() : nullptr;
-    dcDeps.logModel = m_deps.getLineEditModel1 ? m_deps.getLineEditModel1() : nullptr;
-    dcDeps.thinkingModel = m_deps.getModelThinking1 ? m_deps.getModelThinking1() : nullptr;
+    dcDeps.logModel = m_deps.lineEditModel1;
+    dcDeps.thinkingModel = m_deps.modelThinking1;
     dc->updateDeps(dcDeps);
 
     // 棋譜解析コンテキストを更新（遅延初期化されたオブジェクトを反映）
     DialogCoordinator::KifuAnalysisContext kifuCtx;
-    kifuCtx.recordModel = m_deps.getKifuRecordModel ? m_deps.getKifuRecordModel() : nullptr;
-    kifuCtx.navState = m_deps.getNavState ? m_deps.getNavState() : nullptr;
-    kifuCtx.gameController = m_deps.getGameController ? m_deps.getGameController() : nullptr;
+    kifuCtx.recordModel = m_deps.kifuRecordModel;
+    kifuCtx.navState = m_deps.navState;
+    kifuCtx.gameController = m_deps.gameController;
     kifuCtx.gameInfoController = gameInfo;
-    kifuCtx.evalChart = m_deps.getEvalChart ? m_deps.getEvalChart() : nullptr;
+    kifuCtx.evalChart = m_deps.evalChart;
     kifuCtx.presenter = ap;
-    auto* sv = m_deps.getShogiView ? m_deps.getShogiView() : nullptr;
-    kifuCtx.getBoardFlipped = [sv]() { return sv ? sv->flipMode() : false; };
+    auto* sv = m_deps.shogiView;
+    kifuCtx.shogiView = sv;
     dc->setKifuAnalysisContext(kifuCtx);
 
     // コンテキストから自動パラメータ構築してダイアログを表示
@@ -271,13 +267,13 @@ void DialogLaunchWiring::onCsaEngineScoreUpdatedInternal(int scoreCp, int ply, c
 {
     qCDebug(lcUi).noquote() << "onCsaEngineScoreUpdatedInternal: scoreCp=" << scoreCp << "ply=" << ply;
 
-    auto* evalChart = m_deps.getEvalChart ? m_deps.getEvalChart() : nullptr;
+    auto* evalChart = m_deps.evalChart;
     if (!evalChart) {
         qCDebug(lcUi).noquote() << "onCsaEngineScoreUpdatedInternal: evalChart is NULL";
         return;
     }
 
-    auto* csaCoord = m_deps.getCsaGameCoordinator ? m_deps.getCsaGameCoordinator() : nullptr;
+    auto* csaCoord = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
     if (csaCoord) {
         if (csaCoord->isBlackSide()) {
             evalChart->appendScoreP1(ply, scoreCp, false, mate);
@@ -289,7 +285,7 @@ void DialogLaunchWiring::onCsaEngineScoreUpdatedInternal(int scoreCp, int ply, c
 
 void DialogLaunchWiring::displayPieceSoundSettingsDialog()
 {
-    auto* player = m_deps.getPieceSoundPlayer ? m_deps.getPieceSoundPlayer() : nullptr;
+    auto* player = m_deps.pieceSoundPlayer;
     if (!player) return;
 
     PieceSoundSettingsDialog dialog(player, m_deps.parentWidget);

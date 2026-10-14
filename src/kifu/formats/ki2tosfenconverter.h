@@ -21,6 +21,14 @@
 class Ki2ToSfenConverter
 {
 public:
+    // テキスト（貼り付けた棋譜など）
+    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
+    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
+    [[nodiscard]] static bool parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage = nullptr);
+    static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);
+    static QList<KifGameInfoItem> extractGameInfoFromLines(const QStringList& lines);
+
+    // ファイル（文字コードを判別して読み、テキスト版に渡す）
     static QString detectInitialSfenFromFile(const QString& ki2Path, QString* detectedLabel = nullptr);
     static QStringList convertFile(const QString& ki2Path, QString* errorMessage = nullptr);
     static QList<KifDisplayItem> extractMovesWithTimes(const QString& ki2Path, QString* errorMessage = nullptr);

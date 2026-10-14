@@ -10,13 +10,12 @@
 #include <QStringList>
 #include <QList>
 
-#include <functional>
 
 #include "playmode.h"
 #include "recordline.h"
 
+class KifuNavigationState;
 class ShogiEngineThinkingModel;
-class UsiCommLogModel;
 class ShogiView;
 
 /**
@@ -42,7 +41,7 @@ public:
         const QString* engineName2 = nullptr;
         const QString* currentSfenStr = nullptr;
         const QString* startSfenStr = nullptr;
-        std::function<RecordLine()> currentLine;                  ///< 表示中の手順（分岐ツリー）
+        const KifuNavigationState* navState = nullptr;          ///< 表示中の手順（分岐ツリー）
     };
 
     explicit PvClickController(QObject* parent = nullptr);
@@ -53,7 +52,6 @@ public:
     // --------------------------------------------------------
     void setThinkingModels(ShogiEngineThinkingModel* model1, ShogiEngineThinkingModel* model2);
     void setConsiderationModel(ShogiEngineThinkingModel* model);
-    void setLogModels(UsiCommLogModel* log1, UsiCommLogModel* log2);
     void setStateRefs(const StateRefs& refs);
     void setShogiView(ShogiView* view);
 
@@ -70,11 +68,6 @@ public slots:
 
 private:
     void onPvDialogFinished(int result);
-
-    /**
-     * @brief USI形式の読み筋をログから検索
-     */
-    QStringList searchUsiMovesFromLog(UsiCommLogModel* logModel) const;
 
     /**
      * @brief 現在の局面SFENを取得（フォールバック付き）
@@ -100,8 +93,6 @@ private:
     ShogiEngineThinkingModel* m_modelThinking1 = nullptr;
     ShogiEngineThinkingModel* m_modelThinking2 = nullptr;
     ShogiEngineThinkingModel* m_considerationModel = nullptr;
-    UsiCommLogModel* m_lineEditModel1 = nullptr;
-    UsiCommLogModel* m_lineEditModel2 = nullptr;
     RecordLine m_line;                                   ///< クリック時点の表示中の手順
     ShogiView* m_shogiView = nullptr;                    ///< 盤面反転状態取得用
 
