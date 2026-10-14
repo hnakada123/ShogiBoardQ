@@ -527,7 +527,7 @@ add_shogi_test(tst_preset_gamestart_cleanup
     test_stubs_cleanup.cpp
     ${TEST_STUBS}
     ${SRC}/app/prestartcleanuphandler.cpp
-    ${SRC}/game/prestartcleanuphandler.h
+    ${SRC}/app/prestartcleanuphandler.h
     ${SRC}/engine/usicommlogmodel.cpp
     ${SRC}/models/kifurecordlistmodel.cpp
     ${SRC}/models/kifubranchlistmodel.cpp

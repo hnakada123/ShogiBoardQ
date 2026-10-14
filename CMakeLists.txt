@@ -259,6 +259,7 @@ set(SRC_APP
     src/app/mainwindowmatchadapter.cpp
     src/app/mainwindowmatchadapter.h
     src/app/prestartcleanuphandler.cpp
+    src/app/prestartcleanuphandler.h
     src/app/mainwindowresetservice.cpp
     src/app/mainwindowresetservice.h
     src/app/mainwindowstate.h
@@ -354,8 +355,6 @@ set(SRC_GAME
     src/game/nyugyokujudgement.h
     src/game/piecemoverules.cpp
     src/game/piecemoverules.h
-    src/game/prestartcleanuphandler.h
-    src/game/promotionflow.h
     src/game/sennichitedetector.cpp
     src/game/sennichitedetector.h
     src/game/shogigamecontroller.cpp
@@ -642,6 +641,7 @@ set(SRC_UI
     src/ui/coordinators/positioneditcoordinator.cpp
     src/ui/coordinators/positioneditcoordinator.h
     src/ui/coordinators/promotionflow.cpp
+    src/ui/coordinators/promotionflow.h
     src/ui/coordinators/uistatepolicymanager.cpp
     src/ui/coordinators/uistatepolicymanager.h
     src/ui/presenters/boardsyncpresenter.cpp

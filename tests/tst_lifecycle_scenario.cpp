@@ -303,17 +303,6 @@ private slots:
                   "Reset must reset UI/models");
     }
 
-    /// PreStartCleanupHandler が対局前クリーンアップを担当すること
-    void phase5_preStartCleanupHandlerExists()
-    {
-        const QString header = readSourceFile(
-            QStringLiteral("src/game/prestartcleanuphandler.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read cleanup handler header");
-
-        QVERIFY2(header.contains(QStringLiteral("performCleanup")),
-                  "Must have performCleanup method");
-    }
-
     // ================================================================
     // Phase 6: 再対局フロー
     //   SLC::startNewGame() → ServiceRegistry::startGameSession() → MC::prepareAndStartGame()
@@ -440,7 +429,7 @@ private slots:
             QStringLiteral("src/game/matchcoordinator.h"),
             QStringLiteral("src/game/gamestartorchestrator.h"),
             QStringLiteral("src/game/gameendhandler.h"),
-            QStringLiteral("src/game/prestartcleanuphandler.h"),
+            QStringLiteral("src/app/prestartcleanuphandler.h"),
             QStringLiteral("src/kifu/kifuexportcontroller.h"),
         };
 

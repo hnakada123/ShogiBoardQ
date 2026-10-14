@@ -930,7 +930,7 @@ MainWindow::onTurnManagerChanged(Turn)
 | 部品の生成と配線 | `src/app/mainwindowserviceregistry.h` | `src/app/mainwindowserviceregistry.cpp`, `src/app/gamesubregistry*.cpp`, `src/app/mainwindow*registry.cpp` |
 | 対局ライフサイクル（対局開始の入口） | `src/app/gamesessionorchestrator.h` | `src/app/gamesessionorchestrator.cpp` |
 | 対局開始前の局面列の作り直し・Ctx構築 | `src/app/mainwindowgamestartservice.h` | `src/app/mainwindowgamestartservice.cpp` |
-| 対局開始前クリーンアップ | `src/game/prestartcleanuphandler.h` | `src/app/prestartcleanuphandler.cpp` |
+| 対局開始前クリーンアップ | `src/app/prestartcleanuphandler.h` | `src/app/prestartcleanuphandler.cpp` |
 | 開始前の整理・時間設定・開始通知の受け手 | `src/app/sessionlifecyclecoordinator.h` | `src/app/sessionlifecyclecoordinator.cpp` |
 | 表示中の手順の値 | `src/kifu/recordline.h` | （ヘッダーのみ） |
 | 対局開始コーディネータ | `src/game/gamestartcoordinator.h` | `src/game/gamestartcoordinator.cpp`, `src/game/gamestartcoordinator_dialogflow.cpp` |

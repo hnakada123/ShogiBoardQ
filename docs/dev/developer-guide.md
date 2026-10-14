@@ -76,6 +76,8 @@
 | 2026-10-14 | 使われていなかった時間切れの投了シグナル（`ShogiClock::resignationTriggered`）と、編集開始の局面の候補の `resumeSfenStr` を削除したのに合わせて §5.5・§13 を更新 |
 | 2026-10-14 | 司令塔と `GameStartCoordinator` のシグナルを受け手へ直接つなぐようにしたのに合わせて §6.2（シグナルの接続先の表、UI・Game のフックをシグナルにしない理由）・§6.9・§6.10・§6.11・§14.4 を更新 |
 | 2026-10-14 | 古い記述を今のコードに合わせて更新（§1.2・§1.4・§17.1 のソースの列挙、§1.6 の規模の表、§4.1 の ConsiderationWiring の例、§4.4・§10.4 の UiActionsWiring の例、§13.6 の局面編集の API、§14.2 のメンバーの表、§14.5.1 を TestAutomationHelper から自動化 API に、§14.6 のスロット構造、§14.7 の行数、第16章を4言語と `ApplicationTranslations` に、§17.3 をレジストリへの追加手順に） |
+| 2026-10-14 | §1.5 のディレクトリの木を今の構成に合わせて更新（プロジェクトルートに `Hayanagi/`・`mcp/`・`data/`・`packaging/` など、`src/` に `automation/`・`cli/` と主要なファイルを追加。存在しない `enginesettingscoordinator`・`navigationpresenter`・`recordpresenter`・`gamelayoutbuilder`・`branchrowdelegate` を削除） |
+| 2026-10-14 | `prestartcleanuphandler.h` を `src/app/`、`promotionflow.h` を `src/ui/coordinators/` に移し、ヘッダーとソースを同じディレクトリにしたのに合わせて §1.5・§6.1・§6.5・§6.8 を更新。§1.8 のテスト構成を今の `tests/` に合わせて書き直し（存在しない `fakes/`・`tst_prestartcleanuphandler.cpp` などを削除） |
 
 <!-- chapter-0-end -->
 
@@ -209,51 +211,84 @@ qt_add_executable(shogiboardq-cli ${SRC_CLI} resources/shogiboardq.qrc)
 
 ### 1.5 ディレクトリ構造
 
+主なファイルとディレクトリだけを載せる（2026-10-14 時点）。ソースの全体は `CMakeLists.txt` の `SRC_*`（[1.4節](#14-cmakeビルド構成の概要)）、規模は [1.6節](#16-コード規模) を参照。
+
 #### プロジェクトルート
 
 ```
 ShogiBoardQ/
-├── CMakeLists.txt          # トップレベルビルド構成
-├── CLAUDE.md               # 開発ガイドライン
+├── CMakeLists.txt          # トップレベルビルド構成（ソースは SRC_* に列挙）
+├── CMakePresets.json       # CMake のプリセット
+├── CLAUDE.md               # 開発ガイドライン（AGENTS.md・GEMINI.md は他の AI 向けの同様の文書）
 ├── README.md               # プロジェクト概要
+├── LICENSE                 # ライセンス
 ├── .clang-tidy             # 静的解析設定
+├── .github/                # CI（workflows/）、Issue・PR のテンプレート
+├── cmake/                  # CMake の補助ファイル
+├── Hayanagi/               # 詰将棋エンジン（git submodule。USI エンジンと、詰将棋対局の相手として組み込む）
 ├── src/                    # ソースコード（後述）
-├── tests/                  # テストコード
+├── tests/                  # テストコード（tst_*.cpp と、スタブの test_stubs_*.cpp）
+│   ├── fixtures/           #   テスト用の棋譜など
+│   └── gui/                #   GUI シナリオ・GUI フロー・エンジン終了のハーネス（xvfb-run の上で実行）
+├── mcp/                    # MCP サーバー（Python。shogiboardq-cli と自動化 API を使う）
 ├── resources/              # リソースファイル
 │   ├── shogiboardq.qrc     # Qt リソース定義ファイル
+│   ├── tsumeshogi.qrc      # 同梱の詰将棋問題集の検査結果のリソース定義
 │   ├── icons/              # アプリケーションアイコン
 │   ├── images/
 │   │   ├── actions/        # メニュー/ツールバーアイコン
 │   │   └── pieces/         # 駒画像
-│   ├── platform/           # プラットフォーム固有ファイル
-│   └── translations/       # 翻訳ファイル（.ts）
-├── docs/                   # ドキュメント
-├── scripts/                # ユーティリティスクリプト
+│   ├── sounds/             # 駒音
+│   ├── licenses/           # 同梱するライセンス文書
+│   ├── platform/           # プラットフォーム固有ファイル（app.rc・.desktop）
+│   ├── translations/       # 翻訳ファイル（4言語の .ts と、未翻訳数のベースライン）
+│   └── include-baseline.txt # include 数の上限（scripts/check-include-counts.sh）
+├── data/tsumeshogi/        # 詰将棋問題集（3〜13手詰、各1000題）と検査結果
+├── docs/                   # 公開サイト（index.html・guide/・en/・zh-cn/・zh-tw/）と開発文書（dev/）
+├── packaging/arch/         # Arch Linux のパッケージ定義
+├── scripts/                # ビルド・配布・検査のスクリプト
 └── build/                  # ビルド出力（git管理外）
 ```
 
 #### ソースコード（`src/`）
 
-ヘッダファイル（`.h`）は対応するソースファイル（`.cpp`）と同じディレクトリに配置される。
+ヘッダファイル（`.h`）は対応するソースファイル（`.cpp`）と同じディレクトリに配置される。`foo.cpp/.h` は `foo.cpp` と `foo.h`、`foo*.cpp` は `foo.cpp` と `foo_*.cpp` に分割したファイルを表す。
 
 ```
 src/
 ├── app/                            # アプリケーションエントリーポイントと部品の生成・起動手順
 │   ├── main.cpp                    #   エントリーポイント
-│   ├── mainwindow.cpp/.h/.ui       #   メインウィンドウ（ハブ/ファサード）
+│   ├── mainwindow.cpp/.h/.ui       #   メインウィンドウ（部品を持ち、処理はレジストリへ委譲）
+│   ├── mainwindowstate.h           #   MainWindow の状態の構造体（モデル・ドック・分岐ナビ・棋譜・対局）
 │   ├── mainwindowserviceregistry.cpp/.h # ensure*（部品の生成と依存更新）と主要操作の集約
-│   ├── gamesubregistry*.cpp        #   同レジストリの対局系（司令塔・対局開始・セッション）
+│   ├── gamesubregistry*.cpp        #   同レジストリの対局系（時計・対局開始・セッション・司令塔の配線）
+│   ├── mainwindowuiregistry.cpp    #   同レジストリの UI 系（同じく analysis・board・automation の *registry.cpp）
+│   ├── mainwindowuibootstrapper.cpp #  同レジストリの起動時の UI 構築（ドックは mainwindowdockbootstrapper.cpp）
+│   ├── mainwindowlifecyclewiring.cpp # 同レジストリの起動・終了の配線
 │   ├── mainwindowfoundationregistry.cpp/.h # 複数の領域が使う部品の ensure*
 │   ├── kifusubregistry.cpp/.h      #   棋譜系の ensure*（読み込み・保存・分岐ナビ・定跡）
 │   ├── mainwindowlifecyclepipeline.cpp/.h # 起動・終了の手順
+│   ├── mainwindowmatchadapter.cpp/.h #  司令塔のフックの受け先（盤の描画・ハイライト・終局の表示）
+│   ├── gamesessionorchestrator*.cpp/.h # UI 起点の対局操作（開始・投了・中断・再開）
+│   ├── sessionlifecyclecoordinator.cpp/.h # 対局の開始・終局・リセットの後処理
+│   ├── prestartcleanuphandler.cpp/.h # 対局開始前のクリーンアップ（棋譜欄・分岐・ログ・時計表示・評価値グラフ）
+│   ├── playmodepolicyservice.cpp/.h #  プレイモード依存の判定
+│   ├── turnstatesyncservice.cpp/.h #   手番同期（TurnManager/GC/View/時計）
+│   ├── gamerecordupdateservice.cpp/.h # 棋譜追記・ライブセッション更新
+│   ├── boardloadservice.cpp/.h     #   SFEN盤面適用・ハイライト同期
+│   ├── kifunavigationcoordinator.cpp/.h # 棋譜ナビゲーション同期
 │   ├── commentcoordinator.cpp/.h   #   コメント機能の調整
 │   └── dockcreationservice.cpp/.h  #   ドックウィジェット生成
 │
 ├── core/                           # 純粋なゲームロジック（Qt GUI非依存）
-│   ├── shogiboard.cpp/.h           #   盤面状態・駒管理
-│   ├── shogimove.cpp/.h            #   指し手の表現
-│   ├── enginemovevalidator.cpp/.h  #   合法手判定（内部は fmv*.cpp/.h）
+│   ├── shogitypes.h                #   手番（Turn）と駒（Piece）
+│   ├── shogiboard*.cpp/.h          #   盤面状態・駒台
+│   ├── usimove.h                   #   USI と1対1に対応する指し手（UsiMove）
+│   ├── shogimove.cpp/.h            #   指した手の記録（動かした駒・取った駒を含む）
+│   ├── boardcoordinates.h          #   盤面表示の座標と USI の指し手の対応
+│   ├── enginemovevalidator.cpp/.h  #   合法手判定（内部は fmv*.cpp/.h のビットボード）
 │   ├── shogiclock.cpp/.h           #   対局時計
+│   ├── timecontrol.h               #   持ち時間の決まり（持ち時間・秒読み・加算・遅延）
 │   ├── shoginotation.h             #   棋譜の表記（筋・段・駒の名前・CSA の駒種）
 │   ├── kifmovetext.h               #   KIF 形式の指し手の文字列
 │   ├── sfenutils.h                 #   SFEN文字列操作
@@ -261,26 +296,35 @@ src/
 │   └── legalmovestatus.h           #   合法手判定の状態
 │
 ├── game/                           # 対局管理
-│   ├── matchcoordinator.cpp/.h     #   対局全体の司令塔
-│   ├── shogigamecontroller.cpp/.h  #   ゲームフロー制御
-│   ├── gamestartcoordinator.cpp/.h #   対局開始フロー
+│   ├── matchcoordinator*.cpp/.h    #   対局全体の司令塔
+│   ├── matchcoordinatorhooks.h     #   司令塔から上位層へのフック
+│   ├── matchturnhandler.cpp/.h     #   手番の進行と、対局モード別の Strategy の管理
+│   ├── gamemodestrategy.h          #   対局モード別の Strategy（実装は humanvs*strategy・enginevsenginestrategy）
+│   ├── gamestartorchestrator.cpp/.h #  司令塔の対局開始の段取り
+│   ├── gameendhandler*.cpp/.h      #   終局処理
+│   ├── enginelifecyclemanager.cpp/.h # エンジンの生成と破棄
+│   ├── matchtimekeeper.cpp/.h      #   時計の配線と残り時間の通知
+│   ├── sennichitedetector.cpp/.h   #   千日手の検出
+│   ├── shogigamecontroller.cpp/.h  #   ゲームフロー制御（指し手の検証と盤への適用）
+│   ├── gamestartcoordinator*.cpp/.h #  対局開始フロー（ダイアログから開始まで）
 │   ├── gamestatecontroller.cpp/.h  #   ゲーム状態制御
 │   ├── turnmanager.cpp/.h          #   手番管理
 │   ├── turnsyncbridge.cpp/.h       #   手番同期ブリッジ
-│   ├── promotionflow.cpp/.h        #   成/不成の選択フロー
-│   ├── prestartcleanuphandler.cpp/.h # 対局前クリーンアップ
 │   └── consecutivegamescontroller.cpp/.h # 連続対局制御
 │
 ├── kifu/                           # 棋譜管理
 │   ├── gamerecordmodel.cpp/.h      #   棋譜データモデル
 │   ├── kifubranchnode.cpp/.h       #   分岐ノード
-│   ├── kifubranchtree.cpp/.h       #   分岐ツリー
-│   ├── kifubranchtreebuilder.cpp/.h#   分岐ツリー構築
-│   ├── livegamesession.cpp/.h      #   リアルタイム記録セッション
+│   ├── kifubranchtree*.cpp/.h      #   分岐ツリー（棋譜の正本）
+│   ├── kifubranchtreebuilder.cpp/.h #  分岐ツリー構築
+│   ├── livegamesession.cpp/.h      #   対局中の記録セッション
 │   ├── kifuloadcoordinator.cpp/.h  #   棋譜読み込み調整
+│   ├── kifufilecontroller.cpp/.h   #   棋譜ファイルの操作（開く・保存・上書き・貼り付け・自動保存）
 │   ├── kifusavecoordinator.cpp/.h  #   棋譜保存調整
 │   ├── kifuioservice.cpp/.h        #   棋譜ファイルI/O
+│   ├── shiftjiscodec.cpp/.h        #   Shift_JIS（CP932）の変換
 │   ├── kifuexportcontroller.cpp/.h #   棋譜エクスポート制御
+│   ├── kifuexportmetadata.cpp/.h   #   棋譜出力のヘッダー（対局者・手合割など）
 │   ├── kifuclipboardservice.cpp/.h #   クリップボード操作
 │   ├── kifucontentbuilder.cpp/.h   #   棋譜コンテンツ構築
 │   ├── kifunavigationstate.cpp/.h  #   ナビゲーション状態（棋譜のカーソル）
@@ -295,23 +339,32 @@ src/
 │       ├── ki2tosfenconverter.cpp/.h   #   KI2 → SFEN
 │       ├── csatosfenconverter.cpp/.h   #   CSA → SFEN
 │       ├── jkftosfenconverter.cpp/.h   #   JKF → SFEN
-│       ├── usentosfenconverter.cpp/.h  #   USEN → SFEN
-│       └── usitosfenconverter.cpp/.h   #   USI → SFEN
+│       ├── usentosfenconverter*.cpp/.h #   USEN → SFEN
+│       ├── usitosfenconverter.cpp/.h   #   USI → SFEN
+│       ├── kiflexer*.cpp/.h            #   KIF の字句解析（ki2lexer・csalexer も同様）
+│       ├── kifexporter.cpp/.h          #   KIF の書き出し（ki2・csa・jkf・usen・usi の *exporter も同様）
+│       └── bodtextgenerator.cpp/.h     #   BOD（局面図）の文字列
 │
 ├── analysis/                       # 解析機能
 │   ├── analysiscoordinator.cpp/.h  #   解析オーケストレーション
-│   ├── analysisflowcontroller.cpp/.h # 解析フロー制御
+│   ├── analysisflowcontroller*.cpp/.h # 棋譜解析のフロー制御
 │   ├── considerationflowcontroller.cpp/.h # 検討モード制御
 │   ├── considerationmodeuicontroller.cpp/.h # 検討UI制御
-│   ├── tsumesearchflowcontroller.cpp/.h # 詰将棋探索制御
+│   ├── tsumesearchflowcontroller.cpp/.h # 詰み探索制御
+│   ├── tsumeshogigenerator*.cpp/.h #   詰将棋局面の自動生成
+│   ├── tsumecollection.cpp/.h      #   詰将棋問題集のファイルの読み込みと検証
+│   ├── tsumegamesession.cpp/.h     #   詰将棋対局（応手は Hayanagi）
 │   ├── analysisresultspresenter.cpp/.h # 解析結果表示
 │   └── kifuanalysislistmodel.cpp/.h # 棋譜解析リストモデル
 │
 ├── engine/                         # USIエンジン連携
-│   ├── usi.cpp/.h                  #   エンジンファサード
-│   ├── usiprotocolhandler.cpp/.h   #   USIプロトコル処理
-│   ├── engineprocessmanager.cpp/.h #   エンジンプロセス管理
-│   ├── enginesettingscoordinator.cpp/.h # エンジン設定調整
+│   ├── usi*.cpp/.h                 #   エンジンファサード（Usi）
+│   ├── usiprotocolhandler*.cpp/.h  #   USIプロトコル処理
+│   ├── usimatchhandler.cpp/.h      #   対局・解析での USI のやり取り（position/go/bestmove）
+│   ├── usigotime.cpp/.h            #   go の時間の計算
+│   ├── usienginesession.cpp/.h     #   GUI モデルを持たない USI 接続（自動化・CLI 用）
+│   ├── engineprocessmanager*.cpp/.h #  エンジンプロセス管理
+│   ├── tsumemateengine.cpp/.h      #   詰み判定エンジン（KomoringHeights）
 │   ├── shogiengineinfoparser.cpp/.h # エンジン情報パース
 │   ├── shogienginethinkingmodel.cpp/.h # 思考情報Qtモデル
 │   ├── thinkinginfopresenter.cpp/.h # 思考情報表示
@@ -321,11 +374,14 @@ src/
 │   └── enginesettingsconstants.h   #   エンジン設定定数
 │
 ├── network/                        # CSA通信対局
-│   ├── csaclient.cpp/.h            #   CSAプロトコルクライアント
-│   └── csagamecoordinator.cpp/.h   #   CSA対局調整
+│   ├── csaclient*.cpp/.h           #   CSAプロトコルクライアント
+│   ├── csagamecoordinator*.cpp/.h  #   CSA対局調整
+│   ├── csaenginecontroller.cpp/.h  #   通信対局で指すエンジンの制御
+│   ├── csamoveprogresshandler.cpp/.h # 指し手の進行
+│   └── csamoveconverter*.cpp/.h    #   CSA・USI・SFEN の指し手の変換
 │
 ├── navigation/                     # ナビゲーション
-│   ├── kifunavigationcontroller.cpp/.h # 棋譜ナビゲーション制御
+│   ├── kifunavigationcontroller*.cpp/.h # 棋譜ナビゲーション制御
 │   └── recordnavigationhandler.cpp/.h # レコードペイン行変更ハンドラ
 │
 ├── board/                          # 盤面操作
@@ -335,52 +391,74 @@ src/
 │   └── sfenpositiontracer.cpp/.h   #   SFEN局面追跡
 │
 ├── ui/                             # UI層
+│   ├── sfendiffutils.h             #   2つの局面（SFEN）の盤上の差分
 │   ├── presenters/                 #   MVPプレゼンター層
 │   │   ├── boardsyncpresenter.cpp/.h   # 盤面同期
 │   │   ├── evalgraphpresenter.cpp/.h   # 評価グラフ
-│   │   ├── navigationpresenter.cpp/.h  # ナビゲーション表示
-│   │   ├── recordpresenter.cpp/.h      # 棋譜表示
+│   │   ├── gamerecordpresenter.cpp/.h  # 棋譜表示
+│   │   ├── kifudisplaypresenter*.cpp/.h # 棋譜表示データの構築
+│   │   ├── engineanalysispresenter.cpp/.h # 思考ビュー
 │   │   └── timedisplaypresenter.cpp/.h # 時間表示
 │   ├── controllers/                #   UIイベントハンドラ
-│   │   ├── boardsetupcontroller.cpp/.h     # 盤面セットアップ
+│   │   ├── boardsetupcontroller.cpp/.h     # 盤面セットアップ（着手要求の振り分け）
+│   │   ├── mainwindowappearancecontroller.cpp/.h # 盤の拡大・縮小・反転とウィンドウの外観
 │   │   ├── evaluationgraphcontroller.cpp/.h # 評価グラフ制御
-│   │   ├── languagecontroller.cpp/.h       # 言語切替制御
+│   │   ├── candidatearrowcontroller.cpp/.h # 候補手の矢印
+│   │   ├── branchtreeeditcontroller.cpp/.h # 分岐ツリーの編集
+│   │   ├── languagecontroller.cpp/.h       # 言語・棋譜表記の切替
 │   │   ├── playerinfocontroller.cpp/.h     # 対局者情報制御
 │   │   ├── pvclickcontroller.cpp/.h        # PVクリック制御
 │   │   ├── replaycontroller.cpp/.h         # リプレイ制御
 │   │   ├── timecontrolcontroller.cpp/.h    # 時間制御
 │   │   ├── usicommandcontroller.cpp/.h     # USIコマンド制御
+│   │   ├── settingsresetcontroller.cpp/.h  # 設定の初期化
 │   │   ├── nyugyokudeclarationhandler.cpp/.h # 入玉宣言処理
 │   │   └── jishogiscoredialogcontroller.cpp/.h # 持将棋スコア
 │   ├── wiring/                     #   シグナル/スロット接続
-│   │   ├── uiactionswiring.cpp/.h      # UIアクション接続
+│   │   ├── mainwindowsignalrouter.cpp/.h # MainWindow まわりの配線の集約
+│   │   ├── uiactionswiring.cpp/.h      # UIアクション接続（file・game・edit・view の *actionswiring）
+│   │   ├── dialoglaunchwiring.cpp/.h   # ダイアログ起動
+│   │   ├── dialogcoordinatorwiring.cpp/.h # DialogCoordinator の生成と配線
 │   │   ├── analysistabwiring.cpp/.h    # 解析タブ接続
 │   │   ├── considerationwiring.cpp/.h  # 検討モード接続
-│   │   ├── csagamewiring.cpp/.h        # CSA対局接続
+│   │   ├── csagamewiring*.cpp/.h       # CSA対局接続
 │   │   ├── playerinfowiring.cpp/.h     # 対局者情報接続
 │   │   ├── recordpanewiring.cpp/.h     # 棋譜ペイン接続
+│   │   ├── recordnavigationwiring.cpp/.h # 棋譜ナビゲーション接続
+│   │   ├── branchnavigationwiring.cpp/.h # 分岐ナビゲーション接続
 │   │   ├── menuwindowwiring.cpp/.h     # メニューウィンドウ接続
 │   │   ├── matchcoordinatorwiring.cpp/.h # 司令塔の生成と配線
 │   │   └── josekiwindowwiring.cpp/.h   # 定跡ウィンドウ接続
 │   └── coordinators/               #   UI調整
-│       ├── dialogcoordinator.cpp/.h     # ダイアログ調整
-│       ├── gamelayoutbuilder.cpp/.h     # ゲームレイアウト構築
+│       ├── uistatepolicymanager.cpp/.h  # 状態ごとの UI の有効・無効（状態表）
+│       ├── dialogcoordinator*.cpp/.h    # ダイアログ調整
 │       ├── docklayoutmanager.cpp/.h     # ドックレイアウト管理
-│       ├── kifudisplaycoordinator.cpp/.h # 棋譜表示調整
+│       ├── kifudisplaycoordinator*.cpp/.h # 棋譜表示調整
+│       ├── kifuselectionsync.cpp/.h     # 棋譜の選択状態の同期
 │       ├── positioneditcoordinator.cpp/.h # 局面編集調整
+│       ├── promotionflow.cpp/.h         # 成/不成の選択ダイアログ
 │       └── aboutcoordinator.cpp/.h      # バージョン情報調整
 │
 ├── views/                          # Qt Graphics View
-│   └── shogiview.cpp/.h            #   将棋盤描画ビュー
+│   ├── shogiview*.cpp/.h           #   将棋盤描画ビュー（描画・イベント・駒台などに分割）
+│   ├── shogiviewlayout.cpp/.h      #   盤面のレイアウト計算
+│   ├── shogiviewinteraction.cpp/.h #   盤面の操作（クリック・ドラッグ）
+│   ├── shogiviewhighlighting.cpp/.h #  ハイライト・矢印・手番表示
+│   ├── piecepainter.cpp/.h         #   駒の描画（倍率と影）
+│   └── boardsurfacepainter.cpp/.h  #   盤・駒台の木肌と縁の描画
 │
 ├── widgets/                        # カスタムQtウィジェット
-│   ├── recordpane.cpp/.h           #   棋譜表示ペイン
-│   ├── engineanalysistab.cpp/.h    #   エンジン解析タブ
-│   ├── evaluationchartwidget.cpp/.h #  評価値グラフウィジェット
+│   ├── recordpane*.cpp/.h          #   棋譜表示ペイン
+│   ├── engineanalysistab*.cpp/.h   #   エンジン解析タブ
+│   ├── branchtreemanager*.cpp/.h   #   分岐ツリーの表示
+│   ├── considerationtabmanager*.cpp/.h # 検討タブ
+│   ├── evaluationchartwidget*.cpp/.h #  評価値グラフウィジェット
 │   ├── kifudisplay.cpp/.h          #   棋譜表示ウィジェット
 │   ├── kifubranchdisplay.cpp/.h    #   分岐表示ウィジェット
-│   ├── gameinfopanecontroller.cpp/.h # 対局情報ペイン制御
+│   ├── gameinfopanecontroller*.cpp/.h # 対局情報ペイン制御
 │   ├── engineinfowidget.cpp/.h     #   エンジン情報ウィジェット
+│   ├── usilogpanel.cpp/.h          #   USI通信ログパネル（CSA は csalogpanel）
+│   ├── commenteditorpanel.cpp/.h   #   棋譜コメント編集パネル
 │   ├── kifuanalysisresultsdisplay.cpp/.h # 棋譜解析結果表示
 │   ├── menubuttonwidget.cpp/.h     #   メニューボタン
 │   ├── collapsiblegroupbox.cpp/.h  #   折りたたみグループボックス
@@ -388,24 +466,31 @@ src/
 │   ├── flowlayout.cpp/.h           #   フローレイアウト
 │   ├── globaltooltip.cpp/.h        #   グローバルツールチップ
 │   ├── apptooltipfilter.cpp/.h     #   ツールチップフィルタ
-│   ├── branchrowdelegate.cpp/.h    #   分岐行デリゲート
 │   ├── longlongspinbox.cpp/.h      #   long long対応スピンボックス
 │   └── numericrightaligncommadelegate.h # 数値右寄せデリゲート
 │
 ├── dialogs/                        # ダイアログ実装
-│   ├── startgamedialog.cpp/.h/.ui  #   対局開始ダイアログ
+│   ├── startgamedialog*.cpp/.h/.ui #   対局開始ダイアログ
 │   ├── kifuanalysisdialog.cpp/.h/.ui # 棋譜解析ダイアログ
-│   ├── csagamedialog.cpp/.h/.ui    #   CSA対局接続ダイアログ
+│   ├── csagamedialog*.cpp/.h/.ui   #   CSA対局接続ダイアログ
 │   ├── engineregistrationdialog.cpp/.h/.ui # エンジン登録ダイアログ
 │   ├── changeenginesettingsdialog.cpp/.h/.ui # エンジン設定変更
 │   ├── promotedialog.cpp/.h/.ui    #   成/不成選択ダイアログ
 │   ├── versiondialog.cpp/.h/.ui    #   バージョン情報ダイアログ
-│   ├── tsumeshogisearchdialog.cpp/.h # 詰将棋探索ダイアログ
+│   ├── tsumeshogisearchdialog.cpp/.h/.ui # 詰み探索ダイアログ
+│   ├── tsumeshogigeneratordialog*.cpp/.h # 詰将棋局面生成ダイアログ
+│   ├── tsumecollectiondialog*.cpp/.h #  詰将棋問題集（一覧から選んで解く）
+│   ├── tsumeplaydialog*.cpp/.h     #   詰将棋を解く画面
+│   ├── boardcolordialog*.cpp/.h    #   外観（駒・盤・背景・駒台・対局者情報）
+│   ├── fontsettingsdialog.cpp/.h   #   GUI 共通の書体
+│   ├── piecesoundsettingsdialog.cpp/.h # 駒音の設定
+│   ├── jishogiscoredialog.cpp/.h   #   持将棋の点数
+│   ├── sfencollectiondialog*.cpp/.h #  SFEN局面集ビューア
 │   ├── pvboarddialog.cpp/.h        #   読み筋盤面ダイアログ
 │   ├── kifupastedialog.cpp/.h      #   棋譜貼り付けダイアログ
 │   ├── csawaitingdialog.cpp/.h     #   CSA待機ダイアログ
 │   ├── menuwindow.cpp/.h           #   メニューウィンドウ
-│   ├── josekiwindow.cpp/.h         #   定跡ウィンドウ
+│   ├── josekiwindow*.cpp/.h        #   定跡ウィンドウ
 │   ├── josekimergedialog.cpp/.h    #   定跡結合ダイアログ
 │   └── josekimovedialog.cpp/.h     #   定跡移動ダイアログ
 │
@@ -419,13 +504,44 @@ src/
 │   ├── settingscommon.cpp/.h       #   設定ファイルのパスと共有QSettings
 │   ├── appsettings.h, gamesettings.h, ... # ドメイン別の設定の宣言の表
 │   ├── settingsservice.h           #   ドメイン別ヘッダーをまとめて取り込むだけのヘッダー
+│   ├── apppaths.h                  #   設定・データ・キャッシュの置き場所
+│   ├── applicationtranslations.cpp/.h # 起動時の言語と翻訳の読み込み
+│   ├── boardappearance.cpp/.h      #   全盤面に共通する配色
+│   ├── pieceimageprovider.cpp/.h   #   全盤面で共有する駒画像
+│   ├── piecesoundplayer.cpp/.h     #   駒音の再生
+│   ├── enginelistsettings.cpp/.h   #   登録エンジン一覧の読み込み
+│   ├── uinotificationservice.cpp/.h #  エラー通知ダイアログ
 │   ├── playernameservice.cpp/.h    #   対局者名解決サービス
 │   └── timecontrolutil.cpp/.h      #   時間制御ユーティリティ
 │
-└── common/                         # 共有ユーティリティ
-    ├── errorbus.cpp/.h             #   エラー通知バス
-    ├── jishogicalculator.cpp/.h    #   持将棋点数計算
-    └── tsumepositionutil.cpp/.h    #   詰将棋局面ユーティリティ
+├── common/                         # 共有ユーティリティ
+│   ├── kifupresentation.cpp/.h     #   表示用の指し手・座標の表記（言語と表記の設定に合わせる）
+│   ├── applicationfonts.cpp/.h     #   表示言語に応じた書体
+│   ├── dialogutils.cpp/.h          #   ダイアログの大きさの保存・復元など
+│   ├── fontsizehelper.cpp/.h       #   A-/A+ のフォントサイズ調整
+│   ├── logcategories.cpp/.h        #   ログカテゴリ
+│   ├── boardconstants.h            #   盤の座標・サイズの定数
+│   ├── errorbus.cpp/.h             #   エラー通知バス
+│   ├── jishogicalculator.cpp/.h    #   持将棋点数計算
+│   └── tsumepositionutil.cpp/.h    #   詰将棋局面ユーティリティ
+│
+├── automation/                     # 自動化 API（--automation）と、CLI と共有する GUI 非依存のサービス
+│   ├── automationserver.cpp/.h     #   QLocalServer で改行区切りの JSON-RPC 2.0 を待ち受け
+│   ├── automationdispatcher.cpp/.h #   JSON-RPC の解析とメソッド表（GUI 非依存）
+│   ├── automationcommands*.cpp/.h  #   app・position・kifu・ui などのメソッド
+│   ├── automationactionpolicy.cpp/.h # 実行してよい QAction の許可リスト
+│   ├── kifuconversionservice.cpp/.h #  棋譜の形式変換
+│   ├── sfenvalidationservice.cpp/.h #  SFEN の妥当性検査
+│   ├── boardimagerenderer.cpp/.h   #   SFEN から盤面画像を描画
+│   ├── engineanalysisrunner.cpp/.h #   登録エンジンで1局面を解析
+│   ├── matesearchrunner.cpp/.h     #   登録エンジンで詰み探索
+│   └── tsumeverificationrunner.cpp/.h # 余詰の検査
+│
+└── cli/                            # shogiboardq-cli（GUI を起動しない JSON 出力コマンド。mcp/ が使う）
+    ├── main.cpp                    #   エントリーポイント
+    ├── clicommands*.cpp/.h         #   各コマンド
+    ├── cliargs.cpp/.h              #   引数の解釈（局面・エンジン・数値）
+    └── clioutput.cpp/.h            #   JSON 出力
 ```
 
 ### 1.6 コード規模
@@ -482,14 +598,22 @@ resources/
 
 ```
 tests/
-├── CMakeLists.txt                      # テスト用ビルド構成
-├── fakes/                              # テスト用モック/フェイク実装
-├── tst_kifudisplaycoordinator.cpp      # 棋譜表示調整テスト
-├── tst_livegamesession.cpp             # ライブゲームセッションテスト
-└── tst_prestartcleanuphandler.cpp      # 対局前クリーンアップテスト
+├── CMakeLists.txt                  # テスト用ビルド構成（add_shogi_test で1本ずつ登録する）
+├── tst_*.cpp                       # 単体テスト。多くは shogiboardq_static にリンクする
+├── test_stubs_*.cpp                # 一部の部品だけを組み立てるテスト用のスタブ
+├── kifu_test_helper.h ほか          # テスト共通の補助
+├── mock_*.cpp                      # テスト用の偽エンジン（USI・詰み探索）
+├── test_*.py                       # scripts/ の Python スクリプトのテスト
+├── fixtures/                       # テスト用の棋譜（KIF・KI2・CSA・JKF・USEN・USI）と局面集
+├── tsumeshogi_stubs/               # 詰将棋の生成器のテスト用のスタブ
+└── gui/                            # GUI シナリオ・GUI フロー・エンジン終了のハーネス
 ```
 
-テストの詳細はテストファイル（`tests/`）を参照。
+2026-10-14 時点で、`tst_*.cpp` は127本、`ctest` に登録したテストは135件（MCP サーバーの Python テスト `tst_mcp_python` を含む）。実行方法は次のとおり。
+
+- 単体テスト: `ctest --test-dir build -j8 -E tst_mcp_python`
+- MCP サーバーのテスト: `python3 -m pytest -q mcp/tests`（`mcp/tests/`）
+- GUI のテスト: `python3 tests/gui/prepare.py` でビルドしてから、`xvfb-run` の上で `tests/gui/run.py` などを実行する（`tests/gui/README.md`）
 
 ### 1.9 開発環境
 
@@ -2474,11 +2598,11 @@ game層（`src/game/`）は対局のライフサイクル全体を管理する�
 | **MatchCoordinator** | `matchcoordinator.h/.cpp` | 対局進行の司令塔。エンジン通信・時計・棋譜記録・終局判定を統括 |
 | **ShogiGameController** | `shogigamecontroller.h/.cpp` | 盤面状態の管理、指し手の合法性検証と適用 |
 | **GameStartCoordinator** | `gamestartcoordinator.h/.cpp` | 対局開始フローのオーケストレーション |
-| **PreStartCleanupHandler** | `prestartcleanuphandler.h/.cpp` | 対局開始前のUI/状態クリーンアップ |
+| **PreStartCleanupHandler** | `app/prestartcleanuphandler.h/.cpp` | 対局開始前のUI/状態クリーンアップ（UI の部品を扱うので `app/` に置く） |
 | **GameStateController** | `gamestatecontroller.h/.cpp` | 終局処理・投了/中断・人間/エンジン判定 |
 | **TurnManager** | `turnmanager.h/.cpp` | 手番の単一ソース（Single Source of Truth） |
 | **TurnSyncBridge** | `turnsyncbridge.h/.cpp` | GC ↔ TurnManager ↔ UI の手番同期配線 |
-| **PromotionFlow** | `promotionflow.h/.cpp` | 成り/不成の選択ダイアログ表示 |
+| **PromotionFlow** | `ui/coordinators/promotionflow.h/.cpp` | 成り/不成の選択ダイアログ表示（ダイアログを出すので `ui/coordinators/` に置く） |
 | **ConsecutiveGamesController** | `consecutivegamescontroller.h/.cpp` | 連続対局の進行管理と手番入れ替え |
 
 ### 6.2 MatchCoordinator — 司令塔
@@ -2763,7 +2887,7 @@ struct TimeSettings {
 
 `PreStartCleanupHandler` は対局開始前に UI とデータモデルを初期状態にリセットする。
 
-**ソース**: `src/game/prestartcleanuphandler.h`, `src/app/prestartcleanuphandler.cpp`
+**ソース**: `src/app/prestartcleanuphandler.h`, `src/app/prestartcleanuphandler.cpp`
 
 #### 接続方法
 
@@ -2971,7 +3095,7 @@ TurnManager::changed     ──▶ MainWindow::onTurnManagerChanged
 
 `PromotionFlow` は駒の成り/不成をユーザーに問い合わせるシンプルなユーティリティクラスである。
 
-**ソース**: `src/game/promotionflow.h`, `src/ui/coordinators/promotionflow.cpp`
+**ソース**: `src/ui/coordinators/promotionflow.h`, `src/ui/coordinators/promotionflow.cpp`
 
 ```cpp
 class PromotionFlow final {
