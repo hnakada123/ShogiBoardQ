@@ -28,6 +28,7 @@
 #include "mainwindow.h"
 #undef private
 #include "matchcoordinator.h"
+#include "shogiviewhighlighting.h"
 #include "usi.h"
 #include "kifurecordlistmodel.h"
 #include "kifunavigationstate.h"
@@ -158,6 +159,26 @@ private slots:
         }
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         KifuPresentation::configure("ja_JP", "auto", false);
+    }
+    // 対局中に盤を反転しても、時計の残り時間と手番の側の表示はそのまま
+    void flipBoardKeepsClockDisplay() {
+        startWindowGame();
+        auto* view = window->findChild<ShogiView*>();
+        QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(7, 7));
+        QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(7, 6));
+        QTRY_COMPARE(window->m_match->sfenRecordPtr()->size(), 2);
+        QTRY_VERIFY(!view->highlighting()->blackActive());
+        const QString blackText = view->blackClockLabel()->text();
+        const QString whiteText = view->whiteClockLabel()->text();
+        QVERIFY(blackText.startsWith(QStringLiteral("00:0")) && blackText != QStringLiteral("00:00:00"));
+        QVERIFY(whiteText != QStringLiteral("00:00:00"));
+
+        child<QAction>(*window, "actionFlipBoard")->trigger();
+
+        QVERIFY(view->flipMode());
+        QCOMPARE(view->blackClockLabel()->text(), blackText);
+        QCOMPARE(view->whiteClockLabel()->text(), whiteText);
+        QVERIFY(!view->highlighting()->blackActive());
     }
     void resumeInterruptedGame_data() {
         QTest::addColumn<int>("mode");

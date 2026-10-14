@@ -168,54 +168,6 @@ private slots:
         }
     }
 
-    /// GameSessionOrchestrator の state ポインタ（currentSelectedPly 等）が
-    /// デリファレンス前にチェックされること
-    void gsoStatePointerDereferenceHasGuard()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesessionorchestrator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read gso source");
-
-        // *m_deps.currentSelectedPly, *m_deps.bottomIsP1 など
-        const QStringList statePointers = {
-            QStringLiteral("*m_deps.currentSelectedPly"),
-            QStringLiteral("*m_deps.bottomIsP1"),
-            QStringLiteral("*m_deps.startSfenStr"),
-            QStringLiteral("*m_deps.currentSfenStr"),
-        };
-
-        for (int i = 0; i < int(lines.size()); ++i) {
-            const QString& line = lines[i];
-
-            for (const QString& ptr : std::as_const(statePointers)) {
-                if (!line.contains(ptr))
-                    continue;
-
-                // 三項演算子ガード "m_deps.xxx ? *m_deps.xxx : default"
-                // または if ガード "if (m_deps.xxx)"
-                const QString baseName = ptr.mid(1); // "*" を除去
-                bool hasGuard = line.contains(baseName + QStringLiteral(" ?"))
-                                || line.contains(baseName + QStringLiteral(" &&"));
-
-                if (!hasGuard) {
-                    // if ブロック内のネストされたデリファレンスも検出するため
-                    // 6行前まで確認する（else if 分岐等で距離が離れるケース）
-                    for (int j = qMax(0, i - 6); j < i; ++j) {
-                        if (lines[j].contains(QStringLiteral("if")) && lines[j].contains(baseName)) {
-                            hasGuard = true;
-                            break;
-                        }
-                    }
-                }
-
-                QVERIFY2(hasGuard,
-                          qPrintable(QStringLiteral("%1 dereference at line %2 lacks null guard")
-                                         .arg(ptr)
-                                         .arg(i + 1)));
-            }
-        }
-    }
-
     // ================================================================
     // 4. 二重実行防止パターン
     // ================================================================

@@ -119,13 +119,13 @@ public:
                                           const QStringList* sfenRecord,
                                           const StartGameDialogData* dlg);
 
-    void ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, bool bottomIsP1);
+    void ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, Turn bottomSide);
 
     void prepareAndStartGame(PlayMode mode,
                              const QString& startSfenStr,
                              const QStringList* sfenRecord,
                              const StartGameDialogData* dlg,
-                             bool bottomIsP1);
+                             Turn bottomSide);
 
 private:
     /// 過去対局の履歴探索結果

@@ -192,7 +192,7 @@ bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
     MatchCoordinator::StartOptions opt =
         m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, &c.dialogData);
 
-    m_match->ensureHumanAtBottomIfApplicable(&c.dialogData, c.bottomIsP1);
+    m_match->ensureHumanAtBottomIfApplicable(&c.dialogData, c.bottomSide);
 
     // --- 6) 時間設定を構築（GameStartOptionsBuilder に委譲） ---
     const TimeSettings tc = GameStartOptionsBuilder::buildTimeControl(c.dialogData);

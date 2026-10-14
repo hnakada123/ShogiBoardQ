@@ -51,8 +51,7 @@ struct StrategyTestHarness {
     QPoint lastHighlightTo;
     int appendKifuLineCount = 0;
     QStringList appendedKifuTexts;
-    bool appendEvalP1Called = false;
-    bool appendEvalP2Called = false;
+    QList<Turn> appendEvalSides;   ///< appendEval フックが受け取ったエンジンの手番
 
     std::unique_ptr<MatchCoordinator> mc;
 
@@ -100,8 +99,7 @@ struct StrategyTestHarness {
             ++appendKifuLineCount;
             appendedKifuTexts.append(text);
         };
-        deps.hooks.game.appendEvalP1 = [this]() { appendEvalP1Called = true; };
-        deps.hooks.game.appendEvalP2 = [this]() { appendEvalP2Called = true; };
+        deps.hooks.game.appendEval = [this](Turn side) { appendEvalSides.append(side); };
         deps.hooks.game.autoSaveKifu = [](const QString&) {};
 
         mc = std::make_unique<MatchCoordinator>(deps);
@@ -117,8 +115,7 @@ struct StrategyTestHarness {
         lastHighlightTo = QPoint();
         appendKifuLineCount = 0;
         appendedKifuTexts.clear();
-        appendEvalP1Called = false;
-        appendEvalP2Called = false;
+        appendEvalSides.clear();
     }
 };
 
@@ -152,7 +149,7 @@ private slots:
     void hve_armAndDisarmTimer();
     void hve_initializationClock_data();
     void hve_initializationClock();
-    void hve_startInitialMove_engineIsP1();
+    void hve_startInitialMove_engineIsBlack();
     void hve_startInitialMove_noMoveWhenHumanTurn();
     void hve_onHumanMove_showsHighlightAndAppendsKifu();
     void hve_onHumanMove_maxMovesReachedByHuman_data();
@@ -391,7 +388,7 @@ void Tst_GameStrategy::hve_needsEngine_returnsTrue()
 {
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
     QVERIFY(hve.needsEngine());
@@ -402,7 +399,7 @@ void Tst_GameStrategy::hve_start_createsUsiEngine()
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
 
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
     hve.start();
@@ -419,7 +416,7 @@ void Tst_GameStrategy::hve_start_callsRenderAndUpdateTurnHooks()
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
 
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
     hve.start();
@@ -433,7 +430,7 @@ void Tst_GameStrategy::hve_armAndDisarmTimer()
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
 
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
 
@@ -451,7 +448,7 @@ void Tst_GameStrategy::hve_armAndDisarmTimer()
 
 void Tst_GameStrategy::hve_initializationClock_data()
 {
-    QTest::addColumn<bool>("engineIsP1");
+    QTest::addColumn<bool>("engineIsBlack");
     QTest::addColumn<bool>("humanToMove");
     QTest::newRow("human-black") << false << true;
     QTest::newRow("human-white") << true << true;
@@ -461,13 +458,13 @@ void Tst_GameStrategy::hve_initializationClock_data()
 
 void Tst_GameStrategy::hve_initializationClock()
 {
-    QFETCH(bool, engineIsP1);
+    QFETCH(bool, engineIsBlack);
     QFETCH(bool, humanToMove);
     StrategyTestHarness h;
-    h.mc->setPlayMode(engineIsP1 ? PlayMode::EvenEngineVsHuman : PlayMode::EvenHumanVsEngine);
-    const bool blackToMove = engineIsP1 != humanToMove;
+    h.mc->setPlayMode(engineIsBlack ? PlayMode::EvenEngineVsHuman : PlayMode::EvenHumanVsEngine);
+    const bool blackToMove = engineIsBlack != humanToMove;
     h.gc.setCurrentPlayer(blackToMove ? Turn::Black : Turn::White);
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), engineIsP1,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), engineIsBlack ? Turn::Black : Turn::White,
                              QStringLiteral("/dummy/engine"), QStringLiteral("TestEngine"));
     hve.start();
     auto* engine = h.mc->strategyCtx().primaryEngine();
@@ -486,13 +483,13 @@ void Tst_GameStrategy::hve_initializationClock()
     QCOMPARE(StrategyTracker::requestMatchMoveCount, humanToMove ? 0 : 1);
 }
 
-void Tst_GameStrategy::hve_startInitialMove_engineIsP1()
+void Tst_GameStrategy::hve_startInitialMove_engineIsBlack()
 {
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenEngineVsHuman);
     h.gc.setCurrentPlayer(Turn::Black);
 
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), true,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::Black,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
     hve.start();
@@ -500,7 +497,7 @@ void Tst_GameStrategy::hve_startInitialMove_engineIsP1()
     h.resetTrackers();
     StrategyTracker::applyMoveReturnValue = true;
 
-    // Engine is P1, GC says Player1 to move → engine should attempt initial move
+    // エンジンが先手で、先手の手番 → エンジンに初手を求める
     hve.startInitialMoveIfNeeded();
 
     // 送信時は盤面を変更せず、応答を受信してから着手する。
@@ -508,6 +505,9 @@ void Tst_GameStrategy::hve_startInitialMove_engineIsP1()
     emit h.mc->strategyCtx().primaryEngine()->matchMoveReady(
         *UsiMove::parse(u"7g7f"), QStringLiteral("position startpos moves 7g7f"), {});
     QVERIFY(StrategyTracker::applyMoveCallCount > 0);
+    // 指したエンジンの手番（先手）の評価値をグラフに追記する
+    QCOMPARE(h.appendEvalSides.size(), 1);
+    QCOMPARE(h.appendEvalSides.first(), Turn::Black);
 }
 
 void Tst_GameStrategy::hve_startInitialMove_noMoveWhenHumanTurn()
@@ -516,7 +516,7 @@ void Tst_GameStrategy::hve_startInitialMove_noMoveWhenHumanTurn()
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
     h.gc.setCurrentPlayer(Turn::Black);
 
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
     hve.start();
@@ -537,7 +537,7 @@ void Tst_GameStrategy::hve_onHumanMove_showsHighlightAndAppendsKifu()
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
     h.gc.setCurrentPlayer(Turn::White);
 
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
     hve.start();
@@ -580,7 +580,7 @@ void Tst_GameStrategy::hve_onHumanMove_maxMovesReachedByHuman()
     h.mc->configureAndStart(opt);
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
 
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
     hve.start();
@@ -604,7 +604,7 @@ void Tst_GameStrategy::hve_onEngineMove_recordsMoveBeforeSennichite()
     StrategyTestHarness h;
     h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
 
-    HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+    HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                QStringLiteral("/dummy/engine"),
                                QStringLiteral("TestEngine"));
     hve.start();
@@ -627,6 +627,8 @@ void Tst_GameStrategy::hve_onEngineMove_recordsMoveBeforeSennichite()
 
     // 千日手を成立させたエンジンの手も棋譜と盤面に反映してから終局する
     QCOMPARE(h.appendKifuLineCount, 1);
+    QCOMPARE(h.appendEvalSides.size(), 1);
+    QCOMPARE(h.appendEvalSides.first(), Turn::White);
     QVERIFY(h.showMoveHighlightsCalled);
     QVERIFY(h.renderBoardCalled);
 }
@@ -742,7 +744,7 @@ void Tst_GameStrategy::policy_humanTurn_onlyWhileGameInProgress()
 
     // 終局後はプレイモードが残っていても盤上の着手を受け付けない（棋譜に記録されないため）。
     MatchCoordinator::GameEndInfo info;
-    h.mc->setGameOver(info, true);
+    h.mc->setGameOver(info);
     QVERIFY(h.mc->gameOverState().isOver);
     QVERIFY(!policy.isHumanTurnNow());
 
@@ -792,7 +794,7 @@ void Tst_GameStrategy::allStrategies_canBeCreatedViaContext()
     // HumanVsEngine (engine is P2)
     {
         h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
-        HumanVsEngineStrategy hve(h.mc->strategyCtx(), false,
+        HumanVsEngineStrategy hve(h.mc->strategyCtx(), Turn::White,
                                    QStringLiteral("/dummy/engine"),
                                    QStringLiteral("TestEngine"));
         QVERIFY(hve.needsEngine());

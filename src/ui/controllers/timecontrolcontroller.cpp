@@ -83,10 +83,9 @@ void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeSet
 
     // 3) 表示更新（決まりは時計が持ち、エンジンの思考時間も時計から求める）
     if (m_timePresenter && clk) {
-        const qint64 p1 = clk->remainingMs(Turn::Black);
-        const qint64 p2 = clk->remainingMs(Turn::White);
-        const bool p1turn = true;  // 呼び出し元で手番更新済みの想定
-        m_timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
+        // 時計の手番は applyToClock が開始局面の手番に合わせている
+        m_timePresenter->onMatchTimeUpdated(clk->remainingMs(Turn::Black), clk->remainingMs(Turn::White),
+                                            clk->currentPlayer(), /*urgencyMs*/ 0);
     }
     if (shogiView) {
         shogiView->update();

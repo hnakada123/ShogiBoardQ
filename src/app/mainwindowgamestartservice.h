@@ -41,7 +41,7 @@ public:
         QString* startSfenStr = nullptr;
         int selectedPly = 0;
         bool isReplayMode = false;
-        bool bottomIsP1 = true;
+        Turn bottomSide = Turn::Black;   ///< 盤の手前に表示している側
     };
 
     /// initializeGame 実行前に SFEN 関連状態を準備する

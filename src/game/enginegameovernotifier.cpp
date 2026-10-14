@@ -19,10 +19,10 @@ bool isHvE(PlayMode mode)
 }
 
 // 人間対エンジンではエンジンは常に usi1。先手・下手を持つかはモードで決まる
-bool hveEngineIsP1(PlayMode mode)
+Turn hveEngineSide(PlayMode mode)
 {
-    return mode == PlayMode::EvenEngineVsHuman ||
-           mode == PlayMode::HandicapEngineVsHuman;
+    return (mode == PlayMode::EvenEngineVsHuman || mode == PlayMode::HandicapEngineVsHuman)
+        ? Turn::Black : Turn::White;
 }
 
 bool isEvE(PlayMode mode)
@@ -47,7 +47,7 @@ void sendQuitPair(Usi* engine, GameOverResult result, const RawSender& sendRaw)
 } // namespace
 
 void notifyResignation(PlayMode playMode,
-                       bool loserIsP1,
+                       Turn loser,
                        Usi* usi1,
                        Usi* usi2,
                        const RawSender& sendRaw)
@@ -57,22 +57,22 @@ void notifyResignation(PlayMode playMode,
     }
 
     if (isHvE(playMode)) {
-        const bool engineLost = loserIsP1 == hveEngineIsP1(playMode);
+        const bool engineLost = loser == hveEngineSide(playMode);
         sendQuitPair(usi1, engineLost ? GameOverResult::Lose : GameOverResult::Win, sendRaw);
         return;
     }
 
     if (isEvE(playMode)) {
-        Usi* winner = loserIsP1 ? usi2 : usi1;
-        Usi* loser = loserIsP1 ? usi1 : usi2;
-        sendQuitPair(loser, GameOverResult::Lose, sendRaw);
-        sendQuitPair(winner, GameOverResult::Win, sendRaw);
+        Usi* winnerEngine = loser == Turn::Black ? usi2 : usi1;
+        Usi* loserEngine = loser == Turn::Black ? usi1 : usi2;
+        sendQuitPair(loserEngine, GameOverResult::Lose, sendRaw);
+        sendQuitPair(winnerEngine, GameOverResult::Win, sendRaw);
     }
 }
 
 void notifyNyugyoku(PlayMode playMode,
                     bool isDraw,
-                    bool loserIsP1,
+                    Turn loser,
                     Usi* usi1,
                     Usi* usi2,
                     const RawSender& sendRaw)
@@ -86,7 +86,7 @@ void notifyNyugyoku(PlayMode playMode,
             sendQuitPair(usi1, GameOverResult::Draw, sendRaw);
             return;
         }
-        const bool engineLost = loserIsP1 == hveEngineIsP1(playMode);
+        const bool engineLost = loser == hveEngineSide(playMode);
         sendQuitPair(usi1, engineLost ? GameOverResult::Lose : GameOverResult::Win, sendRaw);
         return;
     }
@@ -97,10 +97,10 @@ void notifyNyugyoku(PlayMode playMode,
             sendQuitPair(usi2, GameOverResult::Draw, sendRaw);
             return;
         }
-        Usi* winner = loserIsP1 ? usi2 : usi1;
-        Usi* loser = loserIsP1 ? usi1 : usi2;
-        sendQuitPair(winner, GameOverResult::Win, sendRaw);
-        sendQuitPair(loser, GameOverResult::Lose, sendRaw);
+        Usi* winnerEngine = loser == Turn::Black ? usi2 : usi1;
+        Usi* loserEngine = loser == Turn::Black ? usi1 : usi2;
+        sendQuitPair(winnerEngine, GameOverResult::Win, sendRaw);
+        sendQuitPair(loserEngine, GameOverResult::Lose, sendRaw);
     }
 }
 

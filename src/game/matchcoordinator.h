@@ -184,7 +184,7 @@ public:
     void clearGameOverState();
 
     /// 終局状態を設定する
-    void setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce = true);
+    void setGameOver(const GameEndInfo& info, bool appendMoveOnce = true);
 
     /// 棋譜に終局手を一意追記後に通知する
     void markGameOverMoveAppended();
@@ -225,14 +225,14 @@ public:
                                    const StartGameDialogData* dlg) const;
 
     /// 人間を手前に配置する
-    void ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, bool bottomIsP1);
+    void ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, Turn bottomSide);
 
     /// 準備→開始→必要なら初手goまでを一括実行する
     void prepareAndStartGame(PlayMode mode,
                              const QString& startSfenStr,
                              const QStringList* sfenRecord,
                              const StartGameDialogData* dlg,
-                             bool bottomIsP1);
+                             Turn bottomSide);
 
     // --- 時間/手番・終局の処理 ---
 
@@ -304,12 +304,12 @@ signals:
 
     /**
      * @brief 時計更新通知
-     * @param p1ms 先手残りms
-     * @param p2ms 後手残りms
-     * @param p1turn 現在手番が先手ならtrue
+     * @param blackMs 先手残りms
+     * @param whiteMs 後手残りms
+     * @param sideToMove 現在の手番
      * @param urgencyMs 盤の緊急カラー用ms（非緊急ならINT64_MAX）
      */
-    void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+    void timeUpdated(qint64 blackMs, qint64 whiteMs, Turn sideToMove, qint64 urgencyMs);
 
     void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
     void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);

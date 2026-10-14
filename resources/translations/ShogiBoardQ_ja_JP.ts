@@ -3713,48 +3713,48 @@ ABC abc 0123456789</translation>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="130"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1の投了。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="132"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="131"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1の時間切れ。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="133"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>最大手数に達しました。持将棋です。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="136"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1の入玉宣言。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="138"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="137"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1の反則負け。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="140"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="139"/>
         <source>千日手が成立しました。</source>
         <translation>千日手が成立しました。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="142"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="141"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1の連続王手の千日手。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="145"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="144"/>
         <source>対局が終了しました。</source>
         <translation>対局が終了しました。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler.cpp" line="157"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="153"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="156"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="152"/>
         <source>対局終了</source>
         <translation>対局終了</translation>
     </message>
@@ -7581,12 +7581,12 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>エンジン2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchtimekeeper.cpp" line="124"/>
+        <location filename="../../src/game/matchtimekeeper.cpp" line="122"/>
         <source>先手番</source>
         <translation>先手番</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchtimekeeper.cpp" line="124"/>
+        <location filename="../../src/game/matchtimekeeper.cpp" line="122"/>
         <source>後手番</source>
         <translation>後手番</translation>
     </message>
@@ -9081,8 +9081,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TimeDisplayPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="75"/>
-        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="77"/>
+        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="76"/>
+        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="78"/>
         <source>消費 %1</source>
         <translation>消費 %1</translation>
     </message>

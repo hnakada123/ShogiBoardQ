@@ -212,11 +212,8 @@ void MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo()
     if (flipped) view->setPiecesFlip();
     else         view->setPieces();
 
-    TimeDisplayPresenter* tp = m_deps.timePresenter;
-    if (tp && m_deps.lastP1Ms && m_deps.lastP2Ms && m_deps.lastP1Turn) {
-        tp->onMatchTimeUpdated(
-            *m_deps.lastP1Ms, *m_deps.lastP2Ms, *m_deps.lastP1Turn, /*urgencyMs(未使用)*/ 0);
-    }
+    // 反転で付け直した手番・緊急度の見た目を、最後に受け取った時計の値で戻す
+    if (TimeDisplayPresenter* tp = m_deps.timePresenter) tp->refresh();
 
     view->update();
     qCDebug(lcApp) << "flipBoardAndUpdatePlayerInfo LEAVE";
@@ -224,8 +221,8 @@ void MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo()
 
 void MainWindowAppearanceController::onBoardFlipped(bool /*nowFlipped*/)
 {
-    if (m_deps.bottomIsP1) {
-        *m_deps.bottomIsP1 = !(*m_deps.bottomIsP1);
+    if (m_deps.bottomSide) {
+        *m_deps.bottomSide = (*m_deps.bottomSide == Turn::Black) ? Turn::White : Turn::Black;
     }
 
     flipBoardAndUpdatePlayerInfo();

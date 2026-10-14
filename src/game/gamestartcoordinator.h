@@ -89,7 +89,7 @@ public:
         qint64*              initialTimeP1MsOut = nullptr;   ///< 先手初期ms出力先（NULLなら無視）
         qint64*              initialTimeP2MsOut = nullptr;   ///< 後手初期ms出力先（NULLなら無視）
 
-        bool bottomIsP1 = true;                              ///< 手前が先手か
+        Turn bottomSide = Turn::Black;                       ///< 盤の手前に表示している側
     };
 
     // --- メインAPI ---
@@ -154,9 +154,6 @@ signals:
                              int playMode);
 
     // --- MatchCoordinatorシグナルの転送 ---
-
-    /// 時計更新（MatchCoordinator::timeUpdated の再送出）
-    void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
 
     /// 終局手の棋譜追記要求（MatchCoordinator::requestAppendGameOverMove の再送出）
     void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);

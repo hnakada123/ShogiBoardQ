@@ -72,13 +72,11 @@ void GameStateController::handleBreakOffGame()
 // 終局処理
 // ============================================================
 
-void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne)
+void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, Turn loser)
 {
     if (!m_match || !m_match->gameOverState().isOver) return;
 
-    m_match->appendGameOverLineAndMark(
-        cause,
-        loserIsPlayerOne ? Turn::Black : Turn::White);
+    m_match->appendGameOverLineAndMark(cause, loser);
 
     // UI 後処理
     if (m_hooks.updateBoardView) {
@@ -159,8 +157,7 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
     }
 
     // 棋譜追記＋時間確定
-    const bool loserIsP1 = (info.loser == Turn::Black);
-    setGameOverMove(info.cause, loserIsP1);
+    setGameOverMove(info.cause, info.loser);
 
     // UIの後処理
     if (m_hooks.enableArrowButtons) {
@@ -219,6 +216,5 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
 
 void GameStateController::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)
 {
-    const bool loserIsP1 = (info.loser == Turn::Black);
-    setGameOverMove(info.cause, loserIsP1);
+    setGameOverMove(info.cause, info.loser);
 }

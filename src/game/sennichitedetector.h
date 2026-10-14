@@ -19,8 +19,8 @@ public:
     enum class Result {
         None,                 ///< 千日手ではない
         Draw,                 ///< 千日手（引き分け）
-        ContinuousCheckByP1,  ///< 先手の連続王手 → 先手の反則負け
-        ContinuousCheckByP2   ///< 後手の連続王手 → 後手の反則負け
+        ContinuousCheckByBlack,  ///< 先手の連続王手 → 先手の反則負け
+        ContinuousCheckByWhite   ///< 後手の連続王手 → 後手の反則負け
     };
 
     /**

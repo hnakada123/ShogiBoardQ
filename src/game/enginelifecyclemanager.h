@@ -39,25 +39,12 @@ public:
     /**
      * @brief エンジン管理用コールバック群
      *
-     * エンジンの思考結果適用・投了/勝ち宣言検出時に MC の状態更新や GUI 操作を行う。
-     * log, renderBoardFromGc, appendEvalP1/P2 は MC::Hooks からのパススルー。
+     * エンジンの投了・勝ち宣言を MC に知らせる。
      *
      * @note MC::ensureEngineManager() で設定される。
      * @see MatchCoordinator::ensureEngineManager
      */
     struct Hooks {
-        /// @brief GC の盤面状態を View に反映する
-        /// @note 配線元: MC→m_hooks.renderBoardFromGc (パススルー)
-        std::function<void()> renderBoardFromGc;
-
-        /// @brief P1着手確定時に評価値グラフを更新する
-        /// @note 配線元: MC→m_hooks.appendEvalP1 (パススルー)
-        std::function<void()> appendEvalP1;
-
-        /// @brief P2着手確定時に評価値グラフを更新する
-        /// @note 配線元: MC→m_hooks.appendEvalP2 (パススルー)
-        std::function<void()> appendEvalP2;
-
         /// @brief エンジン投了を MC に通知する（side: 投了したエンジンの手番）
         /// @note 配線元: MC lambda → MC::handleEngineResign
         std::function<void(Turn)> onEngineResign;

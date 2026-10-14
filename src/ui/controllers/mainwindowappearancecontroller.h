@@ -7,6 +7,8 @@
 #include <QObject>
 #include <QSize>
 
+#include "shogitypes.h"
+
 class ShogiView;
 class MatchCoordinator;
 class TimeDisplayPresenter;
@@ -39,10 +41,7 @@ public:
         ShogiView* shogiView = nullptr;
         TimeDisplayPresenter* timePresenter = nullptr;
         MatchCoordinator* match = nullptr;          ///< 起動の途中で作られる。作った後に updateDeps し直す
-        bool* bottomIsP1 = nullptr;
-        bool* lastP1Turn = nullptr;
-        qint64* lastP1Ms = nullptr;
-        qint64* lastP2Ms = nullptr;
+        Turn* bottomSide = nullptr;      ///< 盤の手前に表示している側（反転で入れ替える）
     };
 
     explicit MainWindowAppearanceController(QObject* parent = nullptr);

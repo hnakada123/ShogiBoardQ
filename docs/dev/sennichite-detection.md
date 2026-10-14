@@ -28,12 +28,12 @@ checkAndHandleSennichite()     ← MatchCoordinator
     │       └─ 4回以上 → checkContinuousCheck()
     │               │
     │               ├─ 3回目〜4回目の間の各局面で王手判定
-    │               ├─ 全て先手の王手 → ContinuousCheckByP1
-    │               ├─ 全て後手の王手 → ContinuousCheckByP2
+    │               ├─ 全て先手の王手 → ContinuousCheckByBlack
+    │               ├─ 全て後手の王手 → ContinuousCheckByWhite
     │               └─ それ以外 → Draw
     │
     ├─ Result::Draw → handleSennichite()
-    ├─ Result::ContinuousCheckByP1/P2 → handleOuteSennichite()
+    ├─ Result::ContinuousCheckByBlack/ByWhite → handleOuteSennichite(Turn::Black / Turn::White)
     └─ Result::None → 通常続行
 ```
 
@@ -64,8 +64,8 @@ checkAndHandleSennichite()     ← MatchCoordinator
 enum class Result {
     None,                 // 千日手ではない
     Draw,                 // 千日手（引き分け）
-    ContinuousCheckByP1,  // 先手の連続王手 → 先手の反則負け
-    ContinuousCheckByP2   // 後手の連続王手 → 後手の反則負け
+    ContinuousCheckByBlack,  // 先手の連続王手 → 先手の反則負け
+    ContinuousCheckByWhite   // 後手の連続王手 → 後手の反則負け
 };
 
 /// sfenRecord の最新局面が4回目の出現かチェック
@@ -124,7 +124,7 @@ enum class Cause : int {
 |----------|------|
 | `checkAndHandleSennichite()` | 千日手チェックのエントリポイント。EvE/HvE/HvH に応じた SFEN 履歴を選択して判定。終局した場合 `true` を返す |
 | `handleSennichite()` | 通常千日手の終局処理。`handleMaxMovesJishogi()` と同パターン。エンジンへ `gameover draw` を送信 |
-| `handleOuteSennichite(bool p1Loses)` | 連続王手千日手の終局処理。勝敗が確定するため、エンジンへ `gameover win`/`lose` を送信 |
+| `handleOuteSennichite(Turn loser)` | 連続王手千日手の終局処理（loser は王手を続けた側）。勝敗が確定するため、エンジンへ `gameover win`/`lose` を送信 |
 
 ### 検出呼び出しポイント
 

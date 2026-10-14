@@ -69,9 +69,7 @@ void ReplayController::setReplayMode(bool on)
             m_view->clearTurnHighlight();  // 中立に
         } else {
             // 対局に戻る: 現手番・残時間から再適用
-            const bool p1turn = (m_gc &&
-                                 m_gc->currentPlayer() == Turn::Black);
-            m_view->setActiveSide(p1turn);
+            m_view->setActiveSide(m_gc && m_gc->currentPlayer() == Turn::Black);
 
             // Urgency は時計側の更新イベントで再適用させる
             if (m_clock) {

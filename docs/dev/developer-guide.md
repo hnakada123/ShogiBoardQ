@@ -72,6 +72,7 @@
 | 2026-10-14 | §15.2 指し手実行フローの図・役割の表・補足を今の流れに書き直し（着手要求は `BoardSetupController` が振り分け、盤の再描画は `ShogiBoard` のシグナル、棋譜の追記は `GameRecordUpdateService`。存在しない `boardChanged` シグナル・違法手の「エラー通知」・`decidePromotion()` などを削除） |
 | 2026-10-14 | 盤の着手の流れの記述を今のコードに合わせて更新（§3.5 のデータフロー概要、§6.2 の司令塔の責務の表、§6.7 の `TurnManager` の変換メソッド・`TurnSyncBridge` の接続・手番切替の図、§6.8 の PromotionFlow の呼ばれ方とソースの場所、§10.3 の BoardSetupController の処理フロー、§10.6 の UI層全体のデータフロー。存在しない `engineMoveOnce()`・`onHumanMove_HvE()`・`decidePromotion()`・`setMandatoryPromotionFlag()`・`squareClicked`・`TurnManager::setFromGc()` などを削除） |
 | 2026-10-14 | 対局者（先手・後手）を `Turn` にまとめたのに合わせて §4・§5.5・§6.2・§6.7・§6.9・§10 を更新（`MatchPlayer`（P1/P2）を削除。時計の API は `Turn` で受け、時間切れは `playerTimeOut(Turn)` の1つのシグナル。エンジンの投了・勝ち宣言・反則はエンジンの手番で受ける。`TurnManager::toClockPlayer()` を削除） |
+| 2026-10-14 | 先後を `bool` で持っていたもの（`engineIsP1`・`loserIsP1`・`lastLoserIsP1`・`bottomIsP1`・`appendEvalP1/P2`・`p1turn`）を `Turn` にしたのに合わせて §4・§6.2・§6.3・§10 を更新（§6.2 の `configureAndStart()` の流れと §6.3 の図を、Strategy を作る今の流れに書き直し。盤の反転で時計の表示を描き直す `TimeDisplayPresenter::refresh()` を追記） |
 
 <!-- chapter-0-end -->
 
@@ -1541,8 +1542,7 @@ struct MatchCoordinatorHooks {
     struct Game {
         std::function<void(const QString& sfenStart)> initializeNewGame;
         std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
-        std::function<void()> appendEvalP1;
-        std::function<void()> appendEvalP2;
+        std::function<void(Turn side)> appendEval;                                 ///< エンジンの手のあとの評価値追記
         std::function<void(const QString& saveDir)> autoSaveKifu;                  ///< 棋譜自動保存
     };
 
@@ -2507,8 +2507,7 @@ enum class Cause : int {
 |-----------|------|
 | `mode` | 対局モード（`PlayMode`） |
 | `sfenStart` | 開始局面のSFEN文字列 |
-| `engineName1/2`, `enginePath1/2` | エンジンの表示名と実行パス |
-| `engineIsP1`, `engineIsP2` | エンジンの先手/後手フラグ（HvE用） |
+| `engineName1/2`, `enginePath1/2` | エンジンの表示名と実行パス（人間対エンジンでは、エンジンが先手なら1、後手なら2を使う） |
 | `maxMoves` | 最大手数（0＝無制限） |
 | `autoSaveKifu`, `kifuSaveDir` | 棋譜自動保存の設定 |
 | `humanName1/2` | 人間対局者名 |
@@ -2529,8 +2528,7 @@ struct GameOverState {
     bool        isOver       = false;   // 終局済みか
     bool        moveAppended = false;   // 棋譜に終局手を追記済みか
     bool        hasLast      = false;   // 直近の終局情報があるか
-    bool        lastLoserIsP1= false;   // 直近の敗者が先手か
-    GameEndInfo lastInfo;               // 直近の終局情報
+    GameEndInfo lastInfo;               // 直近の終局情報（敗者は lastInfo.loser）
     QDateTime   when;                   // 終局日時
 };
 ```
@@ -2555,8 +2553,7 @@ struct MatchCoordinatorHooks {   // MatchCoordinator::Hooks はこの型の別�
     struct Game {
         std::function<void(const QString&)> initializeNewGame;                  // 新規対局GUI初期化
         std::function<void(const QString&, const QString&)> appendKifuLine;     // 棋譜行追記
-        std::function<void()> appendEvalP1;                                     // P1着手後に評価値追記
-        std::function<void()> appendEvalP2;                                     // P2着手後に評価値追記
+        std::function<void(Turn)> appendEval;                                   // エンジンの手のあとに、その手番の評価値を追記
         std::function<void(const QString&)> autoSaveKifu;                       // 棋譜自動保存
     };
     UI ui;
@@ -2592,35 +2589,32 @@ struct Deps {
 
 #### configureAndStart() — モード別起動ルーティング
 
-`configureAndStart()` は `StartOptions` を受け取り、対局モードに応じて適切な起動処理に分岐する中核メソッドである。
+`configureAndStart()` は `StartOptions` を受け取り、対局モードに応じて適切な起動処理に分岐する中核メソッドである。実体は `GameStartOrchestrator::configureAndStart()` にあり、モード別の起動は `MatchTurnHandler::createAndStartModeStrategy()` が対局モードの Strategy を作って `start()` する。
 
 ```
-configureAndStart(opt)
+configureAndStart(opt)                       GameStartOrchestrator
   │
-  ├── 1. 前回対局の position 履歴を保存
-  ├── 2. 過去対局履歴から一致する開始局面を探索
-  ├── 3. GameOverState をクリア
-  ├── 4. Hooks 経由で GUI 初期化
-  │     ├── initializeNewGame(sfenStart)
-  │     ├── setPlayersNames()
-  │     └── setEngineNames()
-  ├── 5. SFEN から開始手番を決定 → GC に設定
-  ├── 6. position 文字列の初期化
+  ├── 1. syncAndSearchGameHistory()      直前の position 履歴を保存し、過去の対局から開始局面の一致を探す
+  ├── 2. applyStartOptionsAndHooks()
+  │     ├── 終局状態をクリア、対局モード・最大手数・棋譜自動保存を設定
+  │     ├── Hooks 経由で GUI 初期化（initializeNewGame・setPlayersNames・setEngineNames）
+  │     └── SFEN から開始手番を決めて GC と内部手番 m_cur に設定し、手番表示を更新
+  ├── 3. buildPositionStringsFromHistory()  position 文字列の初期化
   │
-  └── 7. PlayMode に応じた起動ルート
-        ├── EvE → initEnginesForEvE() → startEngineVsEngine()
-        ├── HvE → startHumanVsEngine(engineIsP1)
-        ├── EvH → startHumanVsEngine(engineIsP1=true)
-        └── HvH → startHumanVsHuman()
+  └── 4. createAndStartModeStrategy(opt)    MatchTurnHandler
+        ├── EvE → initEnginesForEvE() → エンジン2つを起動 → EngineVsEngineStrategy
+        ├── EvH → HumanVsEngineStrategy(エンジンの手番 = Turn::Black, enginePath1)
+        ├── HvE → HumanVsEngineStrategy(エンジンの手番 = Turn::White, enginePath2)
+        └── HvH → HumanVsHumanStrategy
 ```
 
-各起動ルートの処理内容:
+各起動ルートの処理内容（Strategy の `start()`）:
 
-| 起動ルート | メソッド | 処理内容 |
+| 起動ルート | Strategy | 処理内容 |
 |-----------|---------|---------|
-| **HvH** | `startHumanVsHuman()` | GC の手番を確認し、盤面描画と手番表示を更新するだけ |
-| **HvE** | `startHumanVsEngine()` | 既存エンジン破棄→USI生成→投了/宣言勝ち配線→エンジン起動→手番設定 |
-| **EvE** | `startEngineVsEngine()` | 両エンジン起動→時計開始→手番に応じて先手/後手から初手 go を送信 |
+| **HvH** | `HumanVsHumanStrategy` | GC の手番を内部手番に写し、盤面描画と手番表示を更新するだけ |
+| **HvE / EvH** | `HumanVsEngineStrategy` | 既存エンジン破棄→USI生成（手番によらず usi1）→投了・宣言勝ちをエンジンの手番で配線→エンジン起動→手番設定 |
+| **EvE** | `EngineVsEngineStrategy` | 時計開始→手番設定→position 文字列の初期化→手番の側のエンジンへ go を送信 |
 
 #### 主要シグナル
 
@@ -2628,8 +2622,7 @@ configureAndStart(opt)
 |---------|-------|------|
 | `gameEnded(GameEndInfo)` | GameStartCoordinator, GameStateController | 終局通知 |
 | `gameOverStateChanged(GameOverState)` | GameStateController | 終局状態変更通知 |
-| `timeUpdated(p1ms, p2ms, p1turn, urgencyMs)` | UI層（時計表示） | 残り時間の定期更新 |
-| `timesForUSIUpdated(bMs, wMs)` | MainWindow | USI計算時間の更新 |
+| `timeUpdated(blackMs, whiteMs, sideToMove, urgencyMs)` | TimeDisplayPresenter（時計表示） | 残り時間の定期更新 |
 | `boardFlipped(bool)` | GameStartCoordinator | 盤面反転通知 |
 | `requestAppendGameOverMove(GameEndInfo)` | GameStateController | 終局手の棋譜追記要求 |
 | `considerationModeEnded()` | UI層 | 検討モード終了通知 |
@@ -2664,16 +2657,16 @@ sequenceDiagram
     MC->>GC: setCurrentPlayer(startSide)
 
     alt HvH
-        MC->>MC: startHumanVsHuman()
-    else HvE
-        MC->>MC: startHumanVsEngine(opt, engineIsP1)
-        MC->>USI: new Usi(...)
-        MC->>USI: initializeAndStartEngineFor(side, path, name)
+        MC->>MC: HumanVsHumanStrategy::start()
+    else HvE / EvH
+        MC->>MC: HumanVsEngineStrategy::start()（エンジンの手番を受け取る）
+        MC->>USI: new Usi(...)（usi1）
+        MC->>USI: initializeAndStartEngineFor(エンジンの手番, path, name)
     else EvE
-        MC->>MC: startEngineVsEngine(opt)
         MC->>USI: initEnginesForEvE()
+        MC->>MC: EngineVsEngineStrategy::start()
         MC->>Clock: startClock()
-        MC->>USI: go (先手エンジンへ)
+        MC->>USI: go (手番の側のエンジンへ)
     end
 
     GSC->>MC: startInitialEngineMoveIfNeeded()
@@ -5155,12 +5148,14 @@ EvalGraphPresenter::appendSecondaryScore(scoreCp, match);  // 後手エンジン
 | **秒読み緊急表示** | `ShogiClock` の秒読み状態を検出し、残り時間が少ない場合にスタイルを変更 |
 
 ```
-MatchCoordinator::timeUpdated(p1ms, p2ms, p1turn, urgencyMs)
+MatchCoordinator::timeUpdated(blackMs, whiteMs, sideToMove, urgencyMs)
   → TimeDisplayPresenter::onMatchTimeUpdated()
-     → fmt_hhmmss() で時間文字列に変換
-     → applyTurnHighlights() で手番ハイライト
-     → updateUrgencyStyles() で秒読み緊急表示
+     → fmt_hhmmss() で時間文字列に変換（最後の値と手番を覚えておく）
+     → updateUrgencyStyles() で手番ハイライトと秒読み緊急表示
      → ShogiView に反映
+
+盤を反転したとき（MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo）
+  → TimeDisplayPresenter::refresh() で、覚えておいた値と手番で描き直す
 ```
 
 ### 10.3 Controllers — UIイベント処理

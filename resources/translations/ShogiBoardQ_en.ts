@@ -4282,48 +4282,48 @@ Each screen keeps its current text size.</translation>
         <translation>Uwate</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="130"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="132"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="131"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="134"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="133"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="136"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="138"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="137"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="140"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="139"/>
         <source>千日手が成立しました。</source>
         <translation>Sennichite (draw by repetition).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="142"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="141"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="145"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="144"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler.cpp" line="157"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="153"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="156"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="152"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
@@ -9325,12 +9325,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchtimekeeper.cpp" line="124"/>
+        <location filename="../../src/game/matchtimekeeper.cpp" line="122"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchtimekeeper.cpp" line="124"/>
+        <location filename="../../src/game/matchtimekeeper.cpp" line="122"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -11003,8 +11003,8 @@ The engine would treat its available time as 0 seconds and move almost without t
 <context>
     <name>TimeDisplayPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="75"/>
-        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="77"/>
+        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="76"/>
+        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="78"/>
         <source>消費 %1</source>
         <translation>Used %1</translation>
     </message>

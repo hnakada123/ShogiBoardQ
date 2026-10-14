@@ -42,8 +42,8 @@ struct MatchCoordinatorHooks {
     struct Game {
         std::function<void(const QString& sfenStart)> initializeNewGame;
         std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
-        std::function<void()> appendEvalP1;
-        std::function<void()> appendEvalP2;
+        /// エンジンが指したあとに、そのエンジン（side の手番）の評価値をグラフに追記する
+        std::function<void(Turn side)> appendEval;
         std::function<void(const QString& saveDir)> autoSaveKifu;
     };
 

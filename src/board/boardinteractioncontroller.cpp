@@ -186,9 +186,9 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
 
     // 盤編集モードでないとき、相手の駒台は触らせない
     if (!m_view->positionEditMode()) {
-        const bool p1Turn = (m_gc->currentPlayer() == Turn::Black);
-        const bool isMyStand = ( (p1Turn && file == kBlackStandFile) ||
-                                (!p1Turn && file == kWhiteStandFile) );
+        const Turn turn = m_gc->currentPlayer();
+        const bool isMyStand = (turn == Turn::Black && file == kBlackStandFile)
+                               || (turn == Turn::White && file == kWhiteStandFile);
         if ((file >= kBlackStandFile) && !isMyStand) {
             m_clickPoint = QPoint();
             finalizeDrag();

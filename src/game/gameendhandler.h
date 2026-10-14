@@ -110,7 +110,7 @@ public:
     void handleMaxMovesJishogi();
     bool checkAndHandleSennichite();
     void handleSennichite();
-    void handleOuteSennichite(bool p1Loses);
+    void handleOuteSennichite(Turn loser);
 
     void appendBreakOffLineAndMark();
     void appendGameOverLineAndMark(Cause cause, Turn loser);
@@ -118,7 +118,7 @@ public:
     // --- 終局状態管理（MC から移譲） ---
 
     void clearGameOverState();
-    void setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce = true);
+    void setGameOver(const GameEndInfo& info, bool appendMoveOnce = true);
     void markGameOverMoveAppended();
 
 signals:

@@ -197,10 +197,6 @@ void MainWindowResetService::clearGameStateFields(GameState& state, PlayerState&
     player.engineName1.clear();
     player.engineName2.clear();
 
-    player.lastP1Turn = true;
-    player.lastP1Ms = 0;
-    player.lastP2Ms = 0;
-
     kifu.saveFileName.clear();
 
     state.skipBoardSyncForBranchNav = false;

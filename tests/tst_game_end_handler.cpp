@@ -197,8 +197,8 @@ private slots:
     // === Section F: 千日手 ===
 
     void handleSennichite_setsState();
-    void handleOuteSennichite_p1Loses();
-    void handleOuteSennichite_p2Loses();
+    void handleOuteSennichite_blackLoses();
+    void handleOuteSennichite_whiteLoses();
 
     // === Section G: 棋譜追記 ===
 
@@ -236,7 +236,6 @@ void Tst_GameEndHandler::handleResign_p1Turn_p1Loses()
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
     QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
-    QVERIFY(h.gameOver.lastLoserIsP1);
     QVERIFY(EndTracker::showGameOverDialogCalled);
     QVERIFY(EndTracker::autoSaveKifuCalled);
 }
@@ -249,7 +248,6 @@ void Tst_GameEndHandler::handleResign_p2Turn_p2Loses()
 
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
     QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
-    QVERIFY(!h.gameOver.lastLoserIsP1);
 }
 
 void Tst_GameEndHandler::handleResign_alreadyOver_ignored()
@@ -354,7 +352,6 @@ void Tst_GameEndHandler::handleNyugyokuDeclaration_success_opponentLoses()
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
     // P1 declares and wins → P2 loses
     QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
-    QVERIFY(!h.gameOver.lastLoserIsP1);
 }
 
 void Tst_GameEndHandler::handleNyugyokuDeclaration_draw_jishogi()
@@ -557,7 +554,7 @@ void Tst_GameEndHandler::drawLine_usesSideToMove()
 
 void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove_data()
 {
-    QTest::addColumn<bool>("p1Loses");
+    QTest::addColumn<bool>("blackLoses");
     QTest::addColumn<int>("sideToMove");
     QTest::addColumn<QString>("expectedLine");
     QTest::addColumn<QString>("expectedEpoch");
@@ -574,7 +571,7 @@ void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
 {
     // 連続王手の千日手は棋譜形式に終局語が無いので、手番側の「反則勝ち／反則負け」で記録し、
     // 保存しても王手を続けた側の負けが残るようにする
-    QFETCH(bool, p1Loses);
+    QFETCH(bool, blackLoses);
     QFETCH(int, sideToMove);
     QFETCH(QString, expectedLine);
     QFETCH(QString, expectedEpoch);
@@ -592,11 +589,11 @@ void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
     };
     h.handler.setHooks(hooks);
 
-    h.handler.handleOuteSennichite(p1Loses);
+    h.handler.handleOuteSennichite(blackLoses ? Turn::Black : Turn::White);
 
     QCOMPARE(EndTracker::lastAppendedLine, expectedLine);
     QCOMPARE(EndTracker::events, QStringList{expectedEpoch});
-    QCOMPARE(h.gameOver.lastInfo.loser, p1Loses ? Turn::Black : Turn::White);
+    QCOMPARE(h.gameOver.lastInfo.loser, blackLoses ? Turn::Black : Turn::White);
 }
 
 // ============================================================
@@ -614,26 +611,24 @@ void Tst_GameEndHandler::handleSennichite_setsState()
     QVERIFY(EndTracker::showGameOverDialogCalled);
 }
 
-void Tst_GameEndHandler::handleOuteSennichite_p1Loses()
+void Tst_GameEndHandler::handleOuteSennichite_blackLoses()
 {
     EndTestHarness h;
-    h.handler.handleOuteSennichite(true);
+    h.handler.handleOuteSennichite(Turn::Black);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::OuteSennichite);
     QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
-    QVERIFY(h.gameOver.lastLoserIsP1);
 }
 
-void Tst_GameEndHandler::handleOuteSennichite_p2Loses()
+void Tst_GameEndHandler::handleOuteSennichite_whiteLoses()
 {
     EndTestHarness h;
-    h.handler.handleOuteSennichite(false);
+    h.handler.handleOuteSennichite(Turn::White);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::OuteSennichite);
     QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
-    QVERIFY(!h.gameOver.lastLoserIsP1);
 }
 
 // ============================================================

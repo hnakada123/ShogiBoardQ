@@ -131,7 +131,7 @@ void GameStateController::setHooks(const Hooks&) {}
 void GameStateController::setPlayMode(PlayMode) {}
 void GameStateController::handleResignation() {}
 void GameStateController::handleBreakOffGame() {}
-void GameStateController::setGameOverMove(MatchCoordinator::Cause, bool) {}
+void GameStateController::setGameOverMove(MatchCoordinator::Cause, Turn) {}
 bool GameStateController::isHvH() const { return false; }
 bool GameStateController::isHumanSide(Turn) const { return true; }
 bool GameStateController::isGameOver() const { return false; }
@@ -196,7 +196,7 @@ bool MatchCoordinator::undoTwoPlies() { return false; }
 void MatchCoordinator::initializeAndStartEngineFor(Turn, const QString&, const QString&) {}
 void MatchCoordinator::destroyEngines(bool) {}
 void MatchCoordinator::clearGameOverState() {}
-void MatchCoordinator::setGameOver(const GameEndInfo&, bool, bool) {}
+void MatchCoordinator::setGameOver(const GameEndInfo&, bool) {}
 void MatchCoordinator::markGameOverMoveAppended() {}
 void MatchCoordinator::startAnalysis(const AnalysisOptions&) {}
 void MatchCoordinator::stopAnalysisEngine() {}
@@ -206,8 +206,8 @@ Usi* MatchCoordinator::primaryEngine() const { return nullptr; }
 Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
 void MatchCoordinator::configureAndStart(const StartOptions&) {}
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialogData*) const { return {}; }
-void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
-void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
+void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, Turn) {}
+void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, Turn) {}
 void MatchCoordinator::handlePlayerTimeOut(Turn) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Turn) {}
@@ -467,7 +467,7 @@ void TimeControlController::onClockPlayerTimeOut(Turn) {}
 
 TimeDisplayPresenter::TimeDisplayPresenter(ShogiView*, QObject* parent) : QObject(parent) {}
 void TimeDisplayPresenter::setClock(ShogiClock*) {}
-void TimeDisplayPresenter::onMatchTimeUpdated(qint64, qint64, bool, qint64) {}
+void TimeDisplayPresenter::onMatchTimeUpdated(qint64, qint64, Turn, qint64) {}
 
 // ============================================================
 // BoardInteractionController スタブ
@@ -627,8 +627,8 @@ void GameStartOrchestrator::setRefs(const Refs&) {}
 void GameStartOrchestrator::setHooks(const Hooks&) {}
 void GameStartOrchestrator::configureAndStart(const StartOptions&) {}
 GameStartOrchestrator::StartOptions GameStartOrchestrator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialogData*) { return {}; }
-void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
-void GameStartOrchestrator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
+void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, Turn) {}
+void GameStartOrchestrator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, Turn) {}
 GameStartOrchestrator::HistorySearchResult GameStartOrchestrator::syncAndSearchGameHistory(const QString&) { return {}; }
 void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions&) {}
 void GameStartOrchestrator::buildPositionStringsFromHistory(const StartOptions&, const QString&, const HistorySearchResult&) {}
@@ -649,7 +649,7 @@ void GameEndHandler::handleBreakOff() {}
 void GameEndHandler::handleMaxMovesJishogi() {}
 bool GameEndHandler::checkAndHandleSennichite() { return false; }
 void GameEndHandler::handleSennichite() {}
-void GameEndHandler::handleOuteSennichite(bool) {}
+void GameEndHandler::handleOuteSennichite(Turn) {}
 void GameEndHandler::appendBreakOffLineAndMark() {}
 void GameEndHandler::appendGameOverLineAndMark(Cause, Turn) {}
 void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo&) {}

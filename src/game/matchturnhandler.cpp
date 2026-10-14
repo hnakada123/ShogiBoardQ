@@ -59,14 +59,14 @@ void MatchTurnHandler::createAndStartModeStrategy(const StartOptions& opt)
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
         m_strategy = std::make_unique<HumanVsEngineStrategy>(
-            *m_strategyCtx, true, opt.enginePath1, opt.engineName1);
+            *m_strategyCtx, Turn::Black, opt.enginePath1, opt.engineName1);
         m_strategy->start();
         break;
 
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
         m_strategy = std::make_unique<HumanVsEngineStrategy>(
-            *m_strategyCtx, false, opt.enginePath2, opt.engineName2);
+            *m_strategyCtx, Turn::White, opt.enginePath2, opt.engineName2);
         m_strategy->start();
         break;
 

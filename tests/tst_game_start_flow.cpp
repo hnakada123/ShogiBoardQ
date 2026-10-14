@@ -66,7 +66,6 @@ struct TestHarness {
         GameStartCoordinator::StartParams p;
         p.opt.mode = PlayMode::EvenHumanVsEngine;
         p.opt.sfenStart = kHirateSfen;
-        p.opt.engineIsP2 = true;
         p.opt.enginePath2 = QStringLiteral("/path/to/engine");
         p.opt.engineName2 = QStringLiteral("TestEngine");
         p.autoStartEngineMove = false;
@@ -79,8 +78,6 @@ struct TestHarness {
         GameStartCoordinator::StartParams p;
         p.opt.mode = PlayMode::EvenEngineVsEngine;
         p.opt.sfenStart = kHirateSfen;
-        p.opt.engineIsP1 = true;
-        p.opt.engineIsP2 = true;
         p.opt.enginePath1 = QStringLiteral("/path/to/engine1");
         p.opt.enginePath2 = QStringLiteral("/path/to/engine2");
         p.opt.engineName1 = QStringLiteral("Engine1");

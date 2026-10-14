@@ -22,9 +22,6 @@ struct MatchStartOptions {
     QString engineName2;                   ///< エンジン2表示名
     QString enginePath2;                   ///< エンジン2実行パス
 
-    bool engineIsP1 = false;               ///< エンジンが先手か（HvE）
-    bool engineIsP2 = false;               ///< エンジンが後手か（HvE）
-
     int maxMoves = 0;                      ///< 最大手数（0=無制限）
 
     bool autoSaveKifu = false;             ///< 棋譜自動保存フラグ
