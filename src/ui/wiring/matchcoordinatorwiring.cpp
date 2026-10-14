@@ -19,7 +19,6 @@
 #include "shogiview.h"
 #include "candidatearrowcontroller.h"
 #include "kifurecordlistmodel.h"
-#include "shogiclock.h"
 #include "kifunavigationcoordinator.h"
 #include "branchnavigationwiring.h"
 
@@ -154,15 +153,6 @@ void MatchCoordinatorWiring::bindRuntimeDependencies()
     auto* timeCtl = m_getTimeController ? m_getTimeController() : nullptr;
     if (timeCtl) {
         timeCtl->setMatchCoordinator(m_match.get());
-    }
-
-    // Clock → 投了シグナルの配線
-    ShogiClock* clock = m_getClock ? m_getClock() : nullptr;
-    if (clock) {
-        if (m_clockConn) { QObject::disconnect(m_clockConn); m_clockConn = {}; }
-        m_clockConn = connect(clock, &ShogiClock::resignationTriggered,
-                              this, &MatchCoordinatorWiring::resignationTriggered,
-                              Qt::UniqueConnection);
     }
 
     // 盤クリックの配線
@@ -347,9 +337,6 @@ void MatchCoordinatorWiring::wireForwardingSignals(const ForwardingTargets& targ
                          Qt::UniqueConnection);
         QObject::connect(this, &MatchCoordinatorWiring::gameStarted,
                          targets.gameSession, &GameSessionOrchestrator::discardInterruptedGame,
-                         Qt::UniqueConnection);
-        QObject::connect(this, &MatchCoordinatorWiring::resignationTriggered,
-                         targets.gameSession, &GameSessionOrchestrator::onResignationTriggered,
                          Qt::UniqueConnection);
     }
 

@@ -220,14 +220,12 @@ private slots:
         ShogiClock clock;
         clock.setTimeControl(rules(0, 0, 1, 1, 0, 0));
         QSignalSpy timeout(&clock, &ShogiClock::playerTimeOut);
-        QSignalSpy resignation(&clock, &ShogiClock::resignationTriggered);
         clock.startClock();
         QTest::qSleep(1020);
         clock.finishTurn();
         QVERIFY(clock.isGameOver());
         QCOMPARE(timeout.count(), 1);
         QCOMPARE(timeout.first().first().value<Turn>(), Turn::Black);
-        QCOMPARE(resignation.count(), 0);
     }
 
     // 時間切れの知らせは、時間が切れた側（手番の側）を渡す

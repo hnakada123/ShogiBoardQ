@@ -96,7 +96,6 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
     coordinator->setNavigationState(m_mw.m_branchNav.navState);
     coordinator->setStartSfenStr(&m_mw.m_state.startSfenStr);
     coordinator->setCurrentSfenStr(&m_mw.m_state.currentSfenStr);
-    coordinator->setResumeSfenStr(&m_mw.m_state.resumeSfenStr);
     coordinator->setOnMainRowGuard(&m_mw.m_kifu.onMainRowGuard);
 
     coordinator->setApplyEditMenuStateCallback([this](bool editing) {
@@ -285,7 +284,6 @@ void MainWindowServiceRegistry::resetRecordForEditedPosition()
                                   board->convertStandToSfen());
     m_mw.m_state.startSfenStr = sfen;
     m_mw.m_state.currentSfenStr = sfen;
-    m_mw.m_state.resumeSfenStr.clear();
     m_mw.m_kifu.gameMoves.clear();
 
     MainWindowResetService::ModelResetDeps deps;

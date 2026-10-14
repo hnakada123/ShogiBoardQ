@@ -943,7 +943,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
 }
 ```
 
-終局行の考慮時間は、その行を行った側（入玉宣言勝ちでは宣言した勝者、千日手・持将棋・連続王手の千日手では手番の側、それ以外は敗者）について、時計の `considerationMs()` を `setConsiderationTimeMs()` → `commitMove()` で確定し、`considerationAndTotalTime()` を棋譜欄に書く（`turnEpochFor()` が手番の始めの時刻を返すときはそこからの経過時間を使うが、今は `markTurnEpochNowFor()` を呼ぶ所がない）。
+終局行の考慮時間は、その行を行った側（入玉宣言勝ちでは宣言した勝者、千日手・持将棋・連続王手の千日手では手番の側、それ以外は敗者）のものである。時計を止めた時点で手番側の経過が考慮時間に精算されているので、その考慮時間を `commitMove()` で確定し、`considerationAndTotalTime()` を棋譜欄に書く。
 
 `markGameOverMoveAppended()` が呼ばれると `GameOverState::moveAppended` が `true` になり、`gameOverStateChanged` シグナルが再発行される。これにより `GameStateController::onGameOverStateChanged()` が呼ばれ、リプレイモードへの遷移が行われる（7.2）。
 

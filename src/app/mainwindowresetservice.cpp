@@ -189,7 +189,6 @@ void MainWindowResetService::resetUiState(const UiResetDeps& deps,
 
 void MainWindowResetService::clearGameStateFields(GameState& state, PlayerState& player, KifuState& kifu) const
 {
-    state.resumeSfenStr.clear();
     state.errorOccurred = false;
 
     player.humanName1.clear();

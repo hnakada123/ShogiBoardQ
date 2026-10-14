@@ -4,7 +4,7 @@
 
 > **2026-10-13 追記（配線層の整理）:** 司令塔は起動時に一度だけ作り、作り直さない。`MatchCoordinatorWiring::initializeSession()` が初回に作り（`createMatchCoordinator()`）、2回目以降は `setEngineModels()`・`resetPositionHistory()` と依存の結び直し（`bindRuntimeDependencies()`）だけを行う。`MatchCoordinatorHooksFactory`・`MainWindowMatchWiringDepsService`・`GameSessionFacade` は削除した。フックは `MainWindowServiceRegistry::buildMatchHooks()`・`buildUndoHooks()` が、呼ばれた時点の部品を読むラムダとして組み立てる。`Hooks::Engine`（`sendStopToEngine`）も削除し、`MatchTurnHandler` には司令塔が自分の `sendStopToEngine()` を渡す。以下の `MatchCoordinatorHooksFactory::buildHooks()` などの記述は当時の記録である（現在の構成は [開発者ガイド](developer-guide.md) の 6.2 と 14.4）。
 
-> **2026-10-14 追記（手番の表し方）:** 対局者（先手・後手）はすべて `Turn` で表す。`MatchCoordinator::Player`（P1/P2）と、敗者の先後を表す `setGameOver(info, loserIsP1, ...)` の引数・`GameOverState::lastLoserIsP1` は削除した（敗者は `lastInfo.loser`）。評価値のフック `appendEvalP1`／`appendEvalP2` は、エンジンの手番を受ける `appendEval(Turn)` の1つにした。`EngineLifecycleManager::Hooks` の `renderBoardFromGc`・`appendEvalP1`・`appendEvalP2` は使われていなかったので削除した。以下のこれらの記述は分割当時の記録である。
+> **2026-10-14 追記（手番の表し方）:** 対局者（先手・後手）はすべて `Turn` で表す。`MatchCoordinator::Player`（P1/P2）と、敗者の先後を表す `setGameOver(info, loserIsP1, ...)` の引数・`GameOverState::lastLoserIsP1` は削除した（敗者は `lastInfo.loser`）。評価値のフック `appendEvalP1`／`appendEvalP2` は、エンジンの手番を受ける `appendEval(Turn)` の1つにした。`EngineLifecycleManager::Hooks` の `renderBoardFromGc`・`appendEvalP1`・`appendEvalP2` は使われていなかったので削除した。どこからも呼ばれていなかった `markTurnEpochNowFor()`・`turnEpochFor()`・`recomputeClockSnapshot()`（`MatchTimekeeper` と司令塔の転送）と `GameEndHandler::Hooks::turnEpochFor` も削除した（終局行の考慮時間は時計の値を使う）。以下のこれらの記述は分割当時の記録である。
 
 ## 1. 現状サマリ
 

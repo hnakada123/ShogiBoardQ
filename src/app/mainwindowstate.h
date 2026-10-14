@@ -112,7 +112,6 @@ struct RegistryParts {
 struct GameState {
     QString startSfenStr = SfenUtils::hirateSfen();
     QString currentSfenStr = QStringLiteral("startpos");
-    QString resumeSfenStr;
     bool errorOccurred = false;
     PlayMode playMode = PlayMode::NotStarted;
     bool skipBoardSyncForBranchNav = false;

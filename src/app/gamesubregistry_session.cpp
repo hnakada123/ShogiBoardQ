@@ -203,7 +203,6 @@ void MainWindowServiceRegistry::refreshCoreInitDeps()
     deps.gameController = &m_mw.m_gameController;
     deps.shogiView = &m_mw.m_shogiView;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
-    deps.resumeSfenStr = &m_mw.m_state.resumeSfenStr;
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.parent = &m_mw;
     deps.setupBoardInteractionController = [this]() { setupBoardInteractionController(); };

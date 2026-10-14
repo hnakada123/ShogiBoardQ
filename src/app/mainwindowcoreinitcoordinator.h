@@ -34,7 +34,6 @@ public:
 
         // --- 状態参照 ---
         QString* startSfenStr = nullptr;
-        QString* resumeSfenStr = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
 
         // --- 親ウィジェット ---

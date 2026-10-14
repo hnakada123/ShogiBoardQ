@@ -44,6 +44,20 @@ void reset()
 
 } // namespace EndTracker
 
+namespace {
+
+// 終局行の消費時間がどちらの側のものかを見分けるため、先手・後手で違う考慮時間を時計に入れる
+const QString kBlackElapsed = QStringLiteral("01:01/00:01:01");  // 先手の考慮61秒
+const QString kWhiteElapsed = QStringLiteral("02:02/00:02:02");  // 後手の考慮122秒
+
+void setDistinctConsideration(ShogiClock& clock)
+{
+    clock.setConsiderationTimeMs(Turn::Black, 61000);
+    clock.setConsiderationTimeMs(Turn::White, 122000);
+}
+
+} // namespace
+
 extern ShogiBoard* g_stubGameBoard;
 extern NyugyokuJudgement::Result g_stubNyugyokuResult;
 extern bool g_stubNyugyokuHandicapNames;
@@ -81,7 +95,6 @@ struct EndTestHarness {
             EndTracker::disarmHumanTimerCalled = true;
         };
         hooks.primaryEngine = []() -> Usi* { return nullptr; };
-        hooks.turnEpochFor = [](Turn) -> qint64 { return -1; };
         hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
             ++EndTracker::appendKifuLineCount;
             EndTracker::lastAppendedLine = line;
@@ -456,20 +469,17 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime(
     // 入玉勝ちの行は宣言した勝者の手番の行なので、勝者の消費時間を記録する
     EndTestHarness h;
     h.gameOver.isOver = true;
+    setDistinctConsideration(h.clock);
     GameEndHandler::Hooks hooks;
-    hooks.turnEpochFor = [](Turn p) -> qint64 {
-        EndTracker::events.append(p == Turn::Black ? QStringLiteral("epoch-P1")
-                                                            : QStringLiteral("epoch-P2"));
-        return -1;
-    };
-    hooks.appendKifuLine = [](const QString& line, const QString&) {
+    hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
         EndTracker::lastAppendedLine = line;
+        EndTracker::lastAppendedElapsed = elapsed;
     };
     h.handler.setHooks(hooks);
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::NyugyokuWin, Turn::White);
 
     QCOMPARE(EndTracker::lastAppendedLine, QStringLiteral("▲入玉勝ち"));
-    QCOMPARE(EndTracker::events, QStringList{QStringLiteral("epoch-P1")});
+    QCOMPARE(EndTracker::lastAppendedElapsed, kBlackElapsed);
 }
 
 // ============================================================
@@ -515,12 +525,12 @@ void Tst_GameEndHandler::drawLine_usesSideToMove_data()
     QTest::addColumn<bool>("sennichite");
     QTest::addColumn<int>("sideToMove");
     QTest::addColumn<QString>("expectedLine");
-    QTest::addColumn<QString>("expectedEpoch");
+    QTest::addColumn<QString>("expectedElapsed");
 
-    QTest::newRow("jishogi-white-to-move") << false << 2 << QStringLiteral("△持将棋") << QStringLiteral("epoch-P2");
-    QTest::newRow("jishogi-black-to-move") << false << 1 << QStringLiteral("▲持将棋") << QStringLiteral("epoch-P1");
-    QTest::newRow("sennichite-white-to-move") << true << 2 << QStringLiteral("△千日手") << QStringLiteral("epoch-P2");
-    QTest::newRow("sennichite-black-to-move") << true << 1 << QStringLiteral("▲千日手") << QStringLiteral("epoch-P1");
+    QTest::newRow("jishogi-white-to-move") << false << 2 << QStringLiteral("△持将棋") << kWhiteElapsed;
+    QTest::newRow("jishogi-black-to-move") << false << 1 << QStringLiteral("▲持将棋") << kBlackElapsed;
+    QTest::newRow("sennichite-white-to-move") << true << 2 << QStringLiteral("△千日手") << kWhiteElapsed;
+    QTest::newRow("sennichite-black-to-move") << true << 1 << QStringLiteral("▲千日手") << kBlackElapsed;
 }
 
 void Tst_GameEndHandler::drawLine_usesSideToMove()
@@ -530,18 +540,15 @@ void Tst_GameEndHandler::drawLine_usesSideToMove()
     QFETCH(bool, sennichite);
     QFETCH(int, sideToMove);
     QFETCH(QString, expectedLine);
-    QFETCH(QString, expectedEpoch);
+    QFETCH(QString, expectedElapsed);
 
     EndTestHarness h;
     h.gc.setCurrentPlayer(sideToMove == 1 ? Turn::Black : Turn::White);
+    setDistinctConsideration(h.clock);
     GameEndHandler::Hooks hooks;
-    hooks.turnEpochFor = [](Turn p) -> qint64 {
-        EndTracker::events.append(p == Turn::Black ? QStringLiteral("epoch-P1")
-                                                            : QStringLiteral("epoch-P2"));
-        return -1;
-    };
-    hooks.appendKifuLine = [](const QString& line, const QString&) {
+    hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
         EndTracker::lastAppendedLine = line;
+        EndTracker::lastAppendedElapsed = elapsed;
     };
     h.handler.setHooks(hooks);
 
@@ -549,7 +556,7 @@ void Tst_GameEndHandler::drawLine_usesSideToMove()
     else            h.handler.handleMaxMovesJishogi();
 
     QCOMPARE(EndTracker::lastAppendedLine, expectedLine);
-    QCOMPARE(EndTracker::events, QStringList{expectedEpoch});
+    QCOMPARE(EndTracker::lastAppendedElapsed, expectedElapsed);
 }
 
 void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove_data()
@@ -557,14 +564,14 @@ void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove_data()
     QTest::addColumn<bool>("blackLoses");
     QTest::addColumn<int>("sideToMove");
     QTest::addColumn<QString>("expectedLine");
-    QTest::addColumn<QString>("expectedEpoch");
+    QTest::addColumn<QString>("expectedElapsed");
 
     // 王手をかけた手で千日手になると、手番は勝った側（反則勝ち）
-    QTest::newRow("black-checks-white-to-move") << true << 2 << QStringLiteral("△反則勝ち") << QStringLiteral("epoch-P2");
-    QTest::newRow("white-checks-black-to-move") << false << 1 << QStringLiteral("▲反則勝ち") << QStringLiteral("epoch-P1");
+    QTest::newRow("black-checks-white-to-move") << true << 2 << QStringLiteral("△反則勝ち") << kWhiteElapsed;
+    QTest::newRow("white-checks-black-to-move") << false << 1 << QStringLiteral("▲反則勝ち") << kBlackElapsed;
     // 王手を逃げた手で千日手になると、手番は王手を続けた側（反則負け）
-    QTest::newRow("black-checks-black-to-move") << true << 1 << QStringLiteral("▲反則負け") << QStringLiteral("epoch-P1");
-    QTest::newRow("white-checks-white-to-move") << false << 2 << QStringLiteral("△反則負け") << QStringLiteral("epoch-P2");
+    QTest::newRow("black-checks-black-to-move") << true << 1 << QStringLiteral("▲反則負け") << kBlackElapsed;
+    QTest::newRow("white-checks-white-to-move") << false << 2 << QStringLiteral("△反則負け") << kWhiteElapsed;
 }
 
 void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
@@ -574,25 +581,22 @@ void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
     QFETCH(bool, blackLoses);
     QFETCH(int, sideToMove);
     QFETCH(QString, expectedLine);
-    QFETCH(QString, expectedEpoch);
+    QFETCH(QString, expectedElapsed);
 
     EndTestHarness h;
     h.gc.setCurrentPlayer(sideToMove == 1 ? Turn::Black : Turn::White);
+    setDistinctConsideration(h.clock);
     GameEndHandler::Hooks hooks;
-    hooks.turnEpochFor = [](Turn p) -> qint64 {
-        EndTracker::events.append(p == Turn::Black ? QStringLiteral("epoch-P1")
-                                                            : QStringLiteral("epoch-P2"));
-        return -1;
-    };
-    hooks.appendKifuLine = [](const QString& line, const QString&) {
+    hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
         EndTracker::lastAppendedLine = line;
+        EndTracker::lastAppendedElapsed = elapsed;
     };
     h.handler.setHooks(hooks);
 
     h.handler.handleOuteSennichite(blackLoses ? Turn::Black : Turn::White);
 
     QCOMPARE(EndTracker::lastAppendedLine, expectedLine);
-    QCOMPARE(EndTracker::events, QStringList{expectedEpoch});
+    QCOMPARE(EndTracker::lastAppendedElapsed, expectedElapsed);
     QCOMPARE(h.gameOver.lastInfo.loser, blackLoses ? Turn::Black : Turn::White);
 }
 

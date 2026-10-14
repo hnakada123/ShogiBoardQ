@@ -53,7 +53,6 @@ public:
     void setNavigationState(const KifuNavigationState* state);
     void setStartSfenStr(QString* startSfenStr);
     void setCurrentSfenStr(QString* currentSfenStr);
-    void setResumeSfenStr(QString* resumeSfenStr);
     void setOnMainRowGuard(bool* onMainRowGuard);
 
     // --------------------------------------------------------
@@ -106,7 +105,6 @@ private:
     const KifuNavigationState* m_navState = nullptr;
     QString* m_startSfenStr = nullptr;
     QString* m_currentSfenStr = nullptr;
-    QString* m_resumeSfenStr = nullptr;
     bool* m_onMainRowGuard = nullptr;
 
     EditActions m_editActions;

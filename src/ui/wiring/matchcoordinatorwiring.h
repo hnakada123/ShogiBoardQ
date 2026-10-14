@@ -156,11 +156,6 @@ signals:
     void matchGameEnded(const MatchCoordinator::GameEndInfo& info);
     void gameEndProcessed(const MatchCoordinator::GameEndInfo& info);
 
-    // --- ShogiClock シグナルの転送 ---
-
-    /// 時間切れ投了通知
-    void resignationTriggered();
-
     // --- メニュー GameStartCoordinator シグナルの転送 ---
 
     /// 対局開始前クリーンアップ要求
@@ -226,7 +221,6 @@ private:
     // --- 内部管理オブジェクト ---
     GameStartCoordinator* m_menuGameStart = nullptr;
     std::unique_ptr<MatchCoordinator> m_match;
-    QMetaObject::Connection m_clockConn;
 };
 
 #endif // MATCHCOORDINATORWIRING_H

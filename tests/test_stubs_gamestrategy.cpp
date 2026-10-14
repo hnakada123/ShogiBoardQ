@@ -154,12 +154,6 @@ void MatchTimekeeper::setRefs(const Refs&) {}
 void MatchTimekeeper::setClock(ShogiClock* c) { m_clock = c; }
 ShogiClock* MatchTimekeeper::clock() const { return m_clock; }
 const ShogiClock* MatchTimekeeper::clockConst() const { return m_clock; }
-void MatchTimekeeper::markTurnEpochNowFor(Turn, qint64) {}
-qint64 MatchTimekeeper::turnEpochFor(Turn) const { return -1; }
-void MatchTimekeeper::recomputeClockSnapshot(QString& t, QString& p1, QString& p2) const
-{
-    t.clear(); p1.clear(); p2.clear();
-}
 void MatchTimekeeper::pokeTimeUpdateNow() {}
 void MatchTimekeeper::onClockTick() {}
 void MatchTimekeeper::wireClock() {}

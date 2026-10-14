@@ -226,7 +226,6 @@ void MatchCoordinator::ensureGameEndHandler()
     GameEndHandler::Hooks hooks;
     hooks.disarmHumanTimerIfNeeded = [this]() { disarmHumanTimerIfNeeded(); };
     hooks.primaryEngine     = [this]() -> Usi* { return primaryEngine(); };
-    hooks.turnEpochFor      = [this](Turn p) -> qint64 { return turnEpochFor(p); };
     hooks.appendKifuLine    = m_hooks.game.appendKifuLine;
     hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
     hooks.usesHandicapNames = m_hooks.ui.usesHandicapNames;

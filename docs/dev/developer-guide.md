@@ -73,6 +73,7 @@
 | 2026-10-14 | 盤の着手の流れの記述を今のコードに合わせて更新（§3.5 のデータフロー概要、§6.2 の司令塔の責務の表、§6.7 の `TurnManager` の変換メソッド・`TurnSyncBridge` の接続・手番切替の図、§6.8 の PromotionFlow の呼ばれ方とソースの場所、§10.3 の BoardSetupController の処理フロー、§10.6 の UI層全体のデータフロー。存在しない `engineMoveOnce()`・`onHumanMove_HvE()`・`decidePromotion()`・`setMandatoryPromotionFlag()`・`squareClicked`・`TurnManager::setFromGc()` などを削除） |
 | 2026-10-14 | 対局者（先手・後手）を `Turn` にまとめたのに合わせて §4・§5.5・§6.2・§6.7・§6.9・§10 を更新（`MatchPlayer`（P1/P2）を削除。時計の API は `Turn` で受け、時間切れは `playerTimeOut(Turn)` の1つのシグナル。エンジンの投了・勝ち宣言・反則はエンジンの手番で受ける。`TurnManager::toClockPlayer()` を削除） |
 | 2026-10-14 | 先後を `bool` で持っていたもの（`engineIsP1`・`loserIsP1`・`lastLoserIsP1`・`bottomIsP1`・`appendEvalP1/P2`・`p1turn`）を `Turn` にしたのに合わせて §4・§6.2・§6.3・§10 を更新（§6.2 の `configureAndStart()` の流れと §6.3 の図を、Strategy を作る今の流れに書き直し。盤の反転で時計の表示を描き直す `TimeDisplayPresenter::refresh()` を追記） |
+| 2026-10-14 | 使われていなかった時間切れの投了シグナル（`ShogiClock::resignationTriggered`）と、編集開始の局面の候補の `resumeSfenStr` を削除したのに合わせて §5.5・§13 を更新 |
 
 <!-- chapter-0-end -->
 
@@ -2302,7 +2303,6 @@ commitMove(player)
 |---------|-------|------|
 | `timeUpdated()` | TimeDisplayPresenter | 残り時間の表示更新 |
 | `playerTimeOut(Turn)` | TimeControlController → `MatchCoordinator::handlePlayerTimeOut()` | 時間切れ通知（引数は時間が切れた側） |
-| `resignationTriggered()` | MatchCoordinator | 時間切れによる投了 |
 
 ### 5.6 PlayMode — 対局モード列挙
 
@@ -6806,7 +6806,7 @@ onMoveApplied(from, to, success):
 ```
 beginPositionEditing(context):
   1. 編集開始SFENの決定:
-     currentSfenStr → displayedSfen（表示中の局面）→ resumeSfenStr → 盤面状態
+     currentSfenStr → displayedSfen（表示中の局面）→ 盤面状態
      の優先順位で取得
   2. SFEN正規化: toMinimalSfen() で4フィールド形式に統一
   3. 手番/手数の強制上書き: forceTurnAndPly() で表示中の盤面の手番に合わせる

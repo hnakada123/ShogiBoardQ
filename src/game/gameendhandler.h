@@ -71,10 +71,6 @@ public:
         /// @note 配線元: MC lambda → m_usi1
         std::function<Usi*()> primaryEngine;
 
-        /// @brief 指定プレイヤーの手番開始エポック（ms）を返す
-        /// @note 配線元: MC lambda → ShogiClock::turnEpochFor
-        std::function<qint64(Turn)> turnEpochFor;
-
         /// @brief 棋譜に1行追記する（終局行: "▲投了" 等）
         /// @note 配線元: MC→m_hooks.appendKifuLine (パススルー)
         std::function<void(const QString&, const QString&)> appendKifuLine;

@@ -137,11 +137,6 @@ public:
     /// SFEN履歴への参照を取得する（const版）
     const QStringList* sfenRecordPtr() const { return m_sfenHistory; }
 
-    // --- ターン計測（KIF表示用） ---
-
-    void   markTurnEpochNowFor(Turn side, qint64 nowMs = -1);
-    qint64 turnEpochFor(Turn side) const;
-
     // --- HvH: ターン計測 ---
 
     void armTurnTimerIfNeeded();
@@ -272,9 +267,6 @@ public:
 
     /// 時計を差し替える（後からの配線用）
     void setClock(ShogiClock* clock);
-
-    /// 時計スナップショットを再計算する（手番テキスト・残り時間文字列）
-    void recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const;
 
     void setPlayMode(PlayMode m);
 
