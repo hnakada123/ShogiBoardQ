@@ -12,7 +12,6 @@
 #include "kifuloadcoordinator.h"            // IWYU pragma: keep (QPointer の完全型)
 #include "playerinfowiring.h"
 #include "kifufilecontroller.h"
-#include "playmodepolicyservice.h"
 
 void MainWindowServiceRegistry::initializeDialogLaunchWiring()
 {
@@ -51,9 +50,6 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
         return m_mw.m_docks.menuWindow;
     };
     d.getCsaGameCoordinator = [this]() { return csaGameCoordinator(); };
-
-    // CsaGameCoordinator 生成後に PlayModePolicyService の依存を更新
-    d.onCsaGameCoordinatorUpdated = [this]() { m_mw.refreshPlayModePolicyDeps(); };
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated

@@ -25,7 +25,8 @@ public:
         PlayMode* playMode = nullptr;
         ShogiGameController* gameController = nullptr;
         MatchCoordinator* match = nullptr;
-        CsaGameCoordinator* csaGameCoordinator = nullptr;
+        /// CSA 通信対局の司令塔（呼ばれた時点のもの。通信対局を始めるまでは nullptr）
+        std::function<CsaGameCoordinator*()> csaGameCoordinator;
         /// 対局していないとき、盤上の着手を棋譜の変化として受け付けるか
         std::function<bool()> canRecordVariationMove;
     };

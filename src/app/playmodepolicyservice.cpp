@@ -36,13 +36,11 @@ bool PlayModePolicyService::isHumanTurnNow() const
         return isGameActivelyInProgress() && m_deps.gameController
                && m_deps.gameController->currentPlayer() == Turn::White;
 
-    case PlayMode::CsaNetworkMode:
-        if (m_deps.csaGameCoordinator) {
-            return m_deps.csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame
-                && m_deps.csaGameCoordinator->isHumanPlayer()
-                && m_deps.csaGameCoordinator->isMyTurn();
-        }
-        return false;
+    case PlayMode::CsaNetworkMode: {
+        const CsaGameCoordinator* csa = m_deps.csaGameCoordinator ? m_deps.csaGameCoordinator() : nullptr;
+        return csa && csa->gameState() == CsaGameCoordinator::GameState::InGame
+            && csa->isHumanPlayer() && csa->isMyTurn();
+    }
 
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine:

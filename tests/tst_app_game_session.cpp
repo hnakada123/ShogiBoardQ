@@ -7,9 +7,14 @@
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <memory>
+// 通信対局の司令塔の手番の状態は、サーバーとのやり取りでしか変わらないため、テストでは直接設定する
+#define private public
+#include "csagamecoordinator.h"
+#undef private
 #include "gamesessionorchestrator.h"
 #include "gamestatecontroller.h"
-#include "csagamecoordinator.h"
+#include "playmodepolicyservice.h"
 #include "replaycontroller.h"
 #include "settingscommon.h"
 #include "sfenutils.h"
@@ -153,6 +158,36 @@ private slots:
         h.session.handleBreakOffGame();
         QCOMPARE(h.ensured, 0);
         QVERIFY(!h.match->gameOverState().isOver);
+    }
+
+    /// 通信対局の盤上の着手は、そのときの司令塔の手番で受け付ける。司令塔は最初の通信対局を始めるときに
+    /// 作られるが、判定の依存を更新し直さなくても後から作られたものを使う
+    void csaHumanTurnUsesCurrentCoordinator()
+    {
+        ShogiGameController gc;
+        PlayMode mode = PlayMode::CsaNetworkMode;
+        std::unique_ptr<CsaGameCoordinator> csa;
+        PlayModePolicyService policy;
+        PlayModePolicyService::Deps deps;
+        deps.playMode = &mode;
+        deps.gameController = &gc;
+        deps.csaGameCoordinator = [&csa]() { return csa.get(); };
+        policy.updateDeps(deps);
+        QVERIFY(!policy.isHumanTurnNow());
+
+        csa = std::make_unique<CsaGameCoordinator>();
+        csa->m_gameState = CsaGameCoordinator::GameState::InGame;
+        csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
+        csa->m_isMyTurn = true;
+        QVERIFY(policy.isHumanTurnNow());
+        csa->m_isMyTurn = false;
+        QVERIFY(!policy.isHumanTurnNow());
+        csa->m_isMyTurn = true;
+        csa->m_playerType = CsaGameCoordinator::PlayerType::Engine;
+        QVERIFY(!policy.isHumanTurnNow());
+        csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
+        csa->m_gameState = CsaGameCoordinator::GameState::GameOver;
+        QVERIFY(!policy.isHumanTurnNow());
     }
 
     void controllerReplacementIsObserved()
