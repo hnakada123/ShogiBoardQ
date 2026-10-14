@@ -21,6 +21,7 @@
 | `humanplay.py` | 対局中に人間（先手）側の手を Hayanagi に考えさせ、盤のクリックで指す |
 | `kwin_capture.sh` | ウィンドウ枠（KDE の装飾）付きで撮るための入れ子の KWin を、普段の環境から隔離して実行する |
 | `shoot_tables.py` | 思考表・検討タブの表が主な題材の画像（検討ページ・ドックの既定配置・詰み探索の思考タブ・ホームのメイン画像・対局の思考タブ）を言語ごとに撮る。`docs/images` と同じ並びで書き出す |
+| `shoot_csa.py` | ローカルの shogi-server で4言語のCSA設定・待機・対局・終局を撮影する。floodgateは設定画面だけを撮り、公開サーバーには接続しない |
 | `sample_kifu/` | 画像に写る見本の棋譜（▲鈴木・▽山田、105行）。`mkkif.py` が `full.usi` から言語別の KIF（`sample-<言語>.kif`・ホーム用の `main-<言語>.kif`）を書き出す。1〜50手目（`first50.usi`）は画像から読み取った手順、51手目以降は `continue_game.py` でやねうら王に指させた |
 
 ## 典型的な使い方
@@ -76,3 +77,14 @@ python3 scripts/docs/shoot_tables.py en game docs/images
 5. `XDG_CONFIG_HOME=$W/cfg XDG_CACHE_HOME=$W/cache chromium --headless=new --user-data-dir=$W/profile --screenshot=out.png --window-size=1280,4000 file://…`
    （`W` は作業フォルダ。付けないと `~/.cache/chromium-headless` に一時フォルダが残る）で表示を確かめ、
    `python3 scripts/docs/check_links.py guide/<ページ>.html` でリンク切れを確認する。
+
+## CSA通信対局の画像の撮り直し
+
+```bash
+xvfb-run -a -s '-screen 0 1920x1440x24' python3 scripts/docs/shoot_csa.py \
+  --server /path/to/shogi-server
+```
+
+4言語それぞれ8枚を `docs/images/{,en/,zh-cn/,zh-tw/}csa-game/` に保存します。
+`--languages ja_JP en` のように対象言語を指定できます。起動には既存の `launch.sh` を使い、
+サーバーの記録とアプリの設定は `/tmp` に隔離します。終了後は今回起動したアプリとサーバーを停止します。
