@@ -158,7 +158,7 @@ void MainWindowServiceRegistry::ensureRecordNavigationHandler()
     deps.evalGraphController = m_mw.m_evalGraphController.get();
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     deps.skipBoardSyncForBranchNav = &m_mw.m_state.skipBoardSyncForBranchNav;
-    deps.csaGameCoordinator = m_mw.m_csaGameCoordinator;
+    deps.csaGameCoordinator = csaGameCoordinator();
     deps.playMode = &m_mw.m_state.playMode;
     deps.match = m_mw.m_match;
 

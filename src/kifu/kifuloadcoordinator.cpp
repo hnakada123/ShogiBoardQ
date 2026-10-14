@@ -54,11 +54,10 @@ void KifuLoadCoordinator::initApplyService()
     refs.recordPane = m_recordPane;
     refs.kifuRecordModel = m_kifuRecordModel;
     refs.kifuBranchModel = m_kifuBranchModel;
-    refs.shogiView = &m_shogiView;
-    refs.branchTreeManager = &m_branchTreeManager;
-    refs.branchTree = &m_branchTree;
-    refs.navState = &m_navState;
-    refs.treeParent = this;
+    refs.shogiView = [this]() { return m_shogiView; };
+    refs.branchTreeManager = [this]() { return m_branchTreeManager; };
+    refs.branchTree = [this]() { return m_branchTree; };
+    refs.navState = [this]() { return m_navState; };
     m_applyService->setRefs(refs);
 
     KifuApplyService::Hooks hooks;

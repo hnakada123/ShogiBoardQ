@@ -1044,14 +1044,10 @@ set_target_properties(tst_app_ui_state_policy PROPERTIES
 )
 
 # ============================================================
-# Unit 26: App Branch Navigation (BranchNavigationWiring 構造契約テスト)
+# Unit 26: App Branch Navigation (BranchNavigationWiring の配線を実物の部品で確かめる)
 # ============================================================
-add_shogi_test(tst_app_branch_navigation
-    tst_app_branch_navigation.cpp
-)
-target_compile_definitions(tst_app_branch_navigation PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
+add_shogi_test(tst_app_branch_navigation tst_app_branch_navigation.cpp)
+target_link_libraries(tst_app_branch_navigation PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 27: Wiring Contracts (MatchCoordinatorWiring シグナル転送契約テスト)

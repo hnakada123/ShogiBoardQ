@@ -72,13 +72,15 @@ private:
 ShogiGameController* gc = nullptr;   // 起動後は変わらない
 ```
 
-#### ダブルポインタ（遅延生成される依存）
+#### ゲッター（遅延生成される依存・差し替わる依存）
 
 ```cpp
-GameStartCoordinator** gameStart = nullptr;  // ensure*() で生成後にポインタが書き込まれる
+std::function<GameStartCoordinator*()> gameStart;  // 呼ばれた時点の部品を返す（必要なら ensure*() で作る）
 ```
 
-呼び出し側（通常は MainWindow）の `T*` メンバへのポインタ。`ensure*()` で生成された後、`*gameStart` が非 null になる。
+使うときに呼んで、その時点の部品を受け取る。以前は呼び出し側の `T*` メンバへのポインタ（`T**`）を渡していたが、
+今は使わない。受け取った側が相手の変数に書き込む形（生成先の出力引数）にもしない。部品はレジストリが作って渡すか、
+作った部品を返す関数にする。
 
 #### 状態ポインタ（上位層の状態を直接参照）
 

@@ -165,6 +165,25 @@ private slots:
         QCOMPARE(errors.size(), 1);
         QCOMPARE(h.positions(), before);
     }
+    /// 局面の読み込みは、後から渡された分岐ツリー（棋譜の正本）に入る。
+    /// ツリーを渡されていなければ読み込まず、自分だけのツリーも作らない
+    void positionLoadUsesTheSharedTree()
+    {
+        const QString position = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
+        KifuLoadCoordinator loader{nullptr, nullptr, nullptr, nullptr};
+        QVERIFY(!loader.loadPositionFromSfen(position));
+        QVERIFY(loader.findChildren<KifuBranchTree*>().isEmpty());
+
+        KifuBranchTree tree;
+        KifuNavigationState nav;
+        nav.setTree(&tree);
+        loader.setBranchTree(&tree);
+        loader.setNavigationState(&nav);
+        QVERIFY(loader.loadPositionFromSfen(QStringLiteral("sfen ") + position));
+        QCOMPARE(tree.root()->sfen(), position);
+        QCOMPARE(nav.currentNode(), tree.root());
+        QVERIFY(loader.findChildren<KifuBranchTree*>().isEmpty());
+    }
     void destructionDoesNotWaitForParsing()
     {
         auto h = std::make_unique<KifuHarness>();

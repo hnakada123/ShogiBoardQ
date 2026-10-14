@@ -26,6 +26,8 @@ public:
                              QObject* parent = nullptr);
 
     // ===== ensure* =====
+    /// 分岐ツリー・表示中の手順・ナビゲーション・表示コーディネータ・ライブセッションを作る（起動時に1回）
+    void createBranchNavigationParts();
     void ensureBranchNavigationWiring();
     void ensureKifuFileController();
     void ensureKifuExportController();

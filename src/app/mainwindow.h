@@ -42,7 +42,6 @@ class ConsiderationPositionService;
 class AnalysisResultsPresenter;
 class GameRecordPresenter;
 class TimeDisplayPresenter;
-class SfenCollectionDialog;
 class GameInfoPaneController;
 class EvaluationGraphController;
 class TimeControlController;
@@ -54,8 +53,6 @@ class GameStateController;
 class PlayerInfoController;
 class BoardSetupController;
 class PvClickController;
-class CsaGameDialog;
-class CsaGameCoordinator;
 class CsaGameWiring;
 class JosekiWindowWiring;
 class PlayerInfoWiring;
@@ -155,12 +152,6 @@ private:
     RecordPane* m_recordPane = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
     EvaluationChartWidget* m_evalChart = nullptr;
-
-    // --- ダイアログ / 補助ウィンドウ ---
-    CsaGameDialog* m_csaGameDialog = nullptr;
-    // Lifecycle: Created once on first dialog open, destroyed with parent
-    QPointer<SfenCollectionDialog> m_sfenCollectionDialog;
-    CsaGameCoordinator* m_csaGameCoordinator = nullptr;
 
     // --- 試合進行 ---
     // Lifecycle: created once at startup by MatchCoordinatorWiring (owned there), never recreated

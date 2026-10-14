@@ -53,14 +53,11 @@ public:
         KifuRecordListModel* kifuRecordModel = nullptr;
         KifuBranchListModel* kifuBranchModel = nullptr;
 
-        // セッター経由で変化するポインタ（二重ポインタ）
-        ShogiView** shogiView = nullptr;
-        BranchTreeManager** branchTreeManager = nullptr;
-        KifuBranchTree** branchTree = nullptr;
-        KifuNavigationState** navState = nullptr;
-
-        // KifuBranchTree 作成時の親オブジェクト
-        QObject* treeParent = nullptr;
+        // セッター経由で変化する部品（呼ばれた時点の値を返す。未設定なら nullptr）
+        std::function<ShogiView*()> shogiView;
+        std::function<BranchTreeManager*()> branchTreeManager;
+        std::function<KifuBranchTree*()> branchTree;
+        std::function<KifuNavigationState*()> navState;
     };
 
     /**
@@ -112,6 +109,14 @@ private:
     void applyBranchTree(const KifParseResult& res, const QString& initialSfen);
     void addGameInfoTabIfMissing();
     QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
+
+    ShogiView* currentView() const { return m_refs.shogiView ? m_refs.shogiView() : nullptr; }
+    BranchTreeManager* currentTreeManager() const
+    {
+        return m_refs.branchTreeManager ? m_refs.branchTreeManager() : nullptr;
+    }
+    KifuBranchTree* currentTree() const { return m_refs.branchTree ? m_refs.branchTree() : nullptr; }
+    KifuNavigationState* currentNavState() const { return m_refs.navState ? m_refs.navState() : nullptr; }
 
     Refs m_refs;
     Hooks m_hooks;

@@ -7062,15 +7062,15 @@ MainWindow（ハブ / ファサード）
 
 #### 分岐ナビゲーション
 
-棋譜の分岐構造を管理するクラス群。
+棋譜の分岐構造を管理するクラス群。起動時（14.4 のステップ 5 の分岐ナビの初期化）に `KifuSubRegistry::createBranchNavigationParts()` が1回だけ作り、MainWindow が親として持つ。`BranchNavigationWiring` は作られたものを受け取って配線するだけである。
 
 | 変数 | クラス | 役割 |
 |------|--------|------|
-| `m_branchTree` | `KifuBranchTree` | 分岐ツリーデータ |
-| `m_navState` | `KifuNavigationState` | ナビゲーション状態 |
-| `m_kifuNavController` | `KifuNavigationController` | ナビゲーション操作 |
-| `m_displayCoordinator` | `KifuDisplayCoordinator` | 棋譜表示調整 |
-| `m_liveGameSession` | `LiveGameSession` | リアルタイム対局セッション |
+| `m_branchNav.branchTree` | `KifuBranchTree` | 分岐ツリーデータ |
+| `m_branchNav.navState` | `KifuNavigationState` | ナビゲーション状態 |
+| `m_branchNav.kifuNavController` | `KifuNavigationController` | ナビゲーション操作 |
+| `m_branchNav.displayCoordinator` | `KifuDisplayCoordinator` | 棋譜表示調整 |
+| `m_branchNav.liveGameSession` | `LiveGameSession` | リアルタイム対局セッション |
 
 ---
 
@@ -7088,7 +7088,9 @@ MainWindow（ハブ / ファサード）
 - `ConsiderationWiring` は、生成済みのUIコントローラにも更新した依存を渡す。
 - `PreStartCleanupHandler::updateDependencies()` は参照だけを更新する。棋譜の消去は `performCleanup()` で行う。
 
-後から作られる部品や差し替わる値は、Deps に入れたゲッター（`std::function`）で使うときに読む。たとえば `GameSessionOrchestrator::Deps` のコントローラ取得関数は、遅延生成のもの（`gameStateController`・`gameStart`・`dialogCoordinator`）を取得時に作り、`csaGameCoordinator`・`match` はその時点の値を返す。二重ポインタ（`T**`）は、生成先を受け取る出力引数（`BranchNavigationWiring`・`DialogLaunchWiring`・`MainWindowCoreInitCoordinator`）と、内部の受け渡し（`KifuApplyService`・`CsaMoveProgressHandler`）にだけ残る。
+後から作られる部品や差し替わる値は、Deps に入れたゲッター（`std::function`）で使うときに読む。たとえば `GameSessionOrchestrator::Deps` のコントローラ取得関数は、遅延生成のもの（`gameStateController`・`gameStart`・`dialogCoordinator`）を取得時に作り、`csaGameCoordinator`・`match` はその時点の値を返す。子ハンドラの Refs でも、親が後から差し替えるポインタ（`KifuApplyService` の分岐ツリーや盤、`CsaMoveProgressHandler` のエンジンや時計）は、その時点の値を返す関数で受ける。
+
+二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。部品はレジストリが作って渡す（分岐ナビゲーションの部品、`ShogiGameController`・`ShogiView`、棋譜解析の結果のモデル）。配線クラスだけが使うダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その配線クラス（`DialogLaunchWiring`）が持つ。CSA 通信対局の司令塔は `CsaGameWiring` が作って持ち、ほかの部品は `MainWindowServiceRegistry::csaGameCoordinator()` で読む。
 
 レジストリ内の状態消去・エンジンリセットは `MainWindowResetService` へ委譲する。
 `ensure*()` は生成と接続の準備を担当し、実際の操作をサービス側に保つ。
@@ -7105,12 +7107,12 @@ MainWindow::MainWindow()
  ├─ m_registry = MainWindowServiceRegistry
  ├─ m_pipeline = m_registry->createLifecyclePipeline()
  └─ m_pipeline->runStartup()
-     ├─ 1. createFoundationObjects    // SignalRouter、通信ログ・検討タブのモデル、ui->setupUi()
+     ├─ 1. createFoundationObjects    // SignalRouter、通信ログ・検討タブ・棋譜解析の結果のモデル、ui->setupUi()
      ├─ 2. setupUiSkeleton            // 外観コントローラ、セントラルウィジェット、ツールバー
-     ├─ 3. initializeCoreComponents   // MainWindowCoreInitCoordinator（GC・ShogiView・盤）
+     ├─ 3. initializeCoreComponents   // GC・ShogiView を作り、MainWindowCoreInitCoordinator で盤を初期化
      ├─ 4. initializeEarlyServices    // PlayModePolicyService、TimeDisplayPresenter、ensureTimeController()
      │                                //   外観コントローラに盤と時間表示を渡す（refreshAppearanceDeps()）
-     ├─ 5. buildGamePanels            // 棋譜欄・ドック・解析タブ・分岐ナビの構築
+     ├─ 5. buildGamePanels            // 棋譜欄・ドック・解析タブ・分岐ナビ（部品の生成と配線）の構築
      │     └─ SessionLifecycleCoordinator::startNewGame()
      │           └─ startGameSession() → initMatchCoordinator()   // ここで MatchCoordinator を作る（1回だけ）
      ├─ 6. restoreWindowAndSync       // ウィンドウサイズと起動時レイアウトの復元

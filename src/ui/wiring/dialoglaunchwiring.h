@@ -23,7 +23,6 @@ class CsaGameWiring;
 class CsaGameDialog;
 class CsaGameCoordinator;
 class BoardSetupController;
-class PlayerInfoWiring;
 class AnalysisResultsPresenter;
 class EngineAnalysisTab;
 class UsiCommLogModel;
@@ -63,7 +62,7 @@ public:
         std::function<NyugyokuDeclarationHandler*()> getNyugyokuHandler;
         std::function<CsaGameWiring*()> getCsaGameWiring;
         std::function<BoardSetupController*()> getBoardSetupController;
-        std::function<PlayerInfoWiring*()> getPlayerInfoWiring;
+        std::function<GameInfoPaneController*()> getGameInfoController;
         std::function<AnalysisResultsPresenter*()> getAnalysisPresenter;
         std::function<EngineAnalysisTab*()> getAnalysisTab;
         std::function<UsiCommLogModel*()> getLineEditModel1;
@@ -72,24 +71,13 @@ public:
         std::function<KifuNavigationState*()> getNavState;
         std::function<EvaluationChartWidget*()> getEvalChart;
         std::function<PieceSoundPlayer*()> getPieceSoundPlayer;
+        std::function<KifuAnalysisListModel*()> getAnalysisModel;
+        std::function<QDockWidget*()> getMenuWindowDock;
 
-        // メソッドが生成/代入するオブジェクト (ダブルポインタ)
-        CsaGameDialog** csaGameDialog = nullptr;
-        CsaGameCoordinator** csaGameCoordinator = nullptr;
-        GameInfoPaneController** gameInfoController = nullptr;
-        KifuAnalysisListModel** analysisModel = nullptr;
-
-        // メニューウィンドウドック
-        QDockWidget** menuWindowDock = nullptr;
-        std::function<void()> createMenuWindowDock;
-
-        // 局面集ダイアログ
-        QPointer<SfenCollectionDialog>* sfenCollectionDialog = nullptr;
-
-        // CSA通信対局のエンジン評価値グラフ用
+        // CSA通信対局の司令塔（最初の CSA 対局を始めるまでは nullptr）
         std::function<CsaGameCoordinator*()> getCsaGameCoordinator;
 
-        // CsaGameCoordinator 生成後の依存更新コールバック
+        // CSA通信対局の開始を試みた後（司令塔ができた後）の依存更新コールバック
         std::function<void()> onCsaGameCoordinatorUpdated;
     };
 
@@ -123,6 +111,10 @@ private slots:
 
 private:
     Deps m_deps;
+    // Lifecycle: Created once on first open (parent=parentWidget), reused afterwards
+    QPointer<CsaGameDialog> m_csaGameDialog;
+    // Lifecycle: Created on open, deleted on close (WA_DeleteOnClose)
+    QPointer<SfenCollectionDialog> m_sfenCollectionDialog;
 };
 
 #endif // DIALOGLAUNCHWIRING_H

@@ -30,31 +30,29 @@ void BranchNavigationWiring::updateDeps(const Deps& deps)
 
 void BranchNavigationWiring::initialize()
 {
-    createModels();
-    wireSignals();
+    if (m_initialized || m_deps.displayCoordinator == nullptr || m_deps.kifuNavController == nullptr) {
+        return;
+    }
+    m_initialized = true;
+
+    connectNavigationButtons();
+    configureDisplayCoordinator();
+    connectDisplaySignals();
     wireBranchEditing();
 }
 
-// --- アクセサヘルパー（ポインタのポインタを安全に逆参照）---
-
-static KifuBranchTree* tree(const BranchNavigationWiring::Deps& d) { return d.branchTree ? *d.branchTree : nullptr; }
-static KifuNavigationState* navSt(const BranchNavigationWiring::Deps& d) { return d.navState ? *d.navState : nullptr; }
-static KifuNavigationController* navCtl(const BranchNavigationWiring::Deps& d) { return d.kifuNavController ? *d.kifuNavController : nullptr; }
-static KifuDisplayCoordinator* dispCo(const BranchNavigationWiring::Deps& d) { return d.displayCoordinator ? *d.displayCoordinator : nullptr; }
-static LiveGameSession* liveSess(const BranchNavigationWiring::Deps& d) { return d.liveGameSession ? *d.liveGameSession : nullptr; }
-
 void BranchNavigationWiring::wireBranchEditing()
 {
-    if (tree(m_deps) == nullptr || navCtl(m_deps) == nullptr) return;
+    if (m_deps.branchTree == nullptr || m_deps.kifuNavController == nullptr) return;
 
     if (m_editController == nullptr) {
         m_editController = new BranchTreeEditController(this);
     }
     BranchTreeEditController::Deps deps;
-    deps.tree = tree(m_deps);
-    deps.navState = navSt(m_deps);
-    deps.navController = navCtl(m_deps);
-    deps.liveSession = liveSess(m_deps);
+    deps.tree = m_deps.branchTree;
+    deps.navState = m_deps.navState;
+    deps.navController = m_deps.kifuNavController;
+    deps.liveSession = m_deps.liveGameSession;
     deps.parentWidget = m_deps.analysisTab;
     deps.markGameRecordDirty = m_deps.markGameRecordDirty;
     QString* startSfen = m_deps.startSfenStr;
@@ -70,69 +68,24 @@ void BranchNavigationWiring::wireBranchEditing()
     }
 }
 
-void BranchNavigationWiring::createModels()
+void BranchNavigationWiring::connectNavigationButtons()
 {
-    if (!m_deps.branchTree) return;
+    if (m_deps.recordPane == nullptr) return;
 
-    // ツリーの作成
-    if (*m_deps.branchTree == nullptr) {
-        *m_deps.branchTree = new KifuBranchTree(parent());
-    }
-
-    // ナビゲーション状態の作成
-    if (*m_deps.navState == nullptr) {
-        *m_deps.navState = new KifuNavigationState(parent());
-        (*m_deps.navState)->setTree(*m_deps.branchTree);
-    }
-
-    // ナビゲーションコントローラの作成
-    if (*m_deps.kifuNavController == nullptr) {
-        *m_deps.kifuNavController = new KifuNavigationController(parent());
-        (*m_deps.kifuNavController)->setTreeAndState(*m_deps.branchTree, *m_deps.navState);
-
-        // ボタン接続（RecordPaneが存在する場合）
-        if (m_deps.recordPane != nullptr) {
-            KifuNavigationController::Buttons buttons;
-            buttons.first = m_deps.recordPane->firstButton();
-            buttons.back10 = m_deps.recordPane->back10Button();
-            buttons.prev = m_deps.recordPane->prevButton();
-            buttons.next = m_deps.recordPane->nextButton();
-            buttons.fwd10 = m_deps.recordPane->fwd10Button();
-            buttons.last = m_deps.recordPane->lastButton();
-            (*m_deps.kifuNavController)->connectButtons(buttons);
-            qCDebug(lcApp).noquote() << "BranchNavigationWiring::createModels: buttons connected";
-        }
-    }
-
-    // ライブゲームセッションの作成
-    if (*m_deps.liveGameSession == nullptr) {
-        *m_deps.liveGameSession = new LiveGameSession(parent());
-        (*m_deps.liveGameSession)->setTree(*m_deps.branchTree);
-    }
-}
-
-void BranchNavigationWiring::wireSignals()
-{
-    if (!m_deps.displayCoordinator) return;
-
-    qCDebug(lcApp).noquote() << "BranchNavigationWiring::wireSignals: displayCoordinator="
-                             << (dispCo(m_deps) ? "exists" : "null");
-    if (dispCo(m_deps) != nullptr) {
-        return;
-    }
-
-    qCDebug(lcApp).noquote() << "BranchNavigationWiring::wireSignals: creating KifuDisplayCoordinator";
-    *m_deps.displayCoordinator = new KifuDisplayCoordinator(
-        tree(m_deps), navSt(m_deps), navCtl(m_deps), parent());
-
-    configureDisplayCoordinator();
-    connectDisplaySignals();
+    KifuNavigationController::Buttons buttons;
+    buttons.first = m_deps.recordPane->firstButton();
+    buttons.back10 = m_deps.recordPane->back10Button();
+    buttons.prev = m_deps.recordPane->prevButton();
+    buttons.next = m_deps.recordPane->nextButton();
+    buttons.fwd10 = m_deps.recordPane->fwd10Button();
+    buttons.last = m_deps.recordPane->lastButton();
+    m_deps.kifuNavController->connectButtons(buttons);
+    qCDebug(lcApp).noquote() << "BranchNavigationWiring::connectNavigationButtons: buttons connected";
 }
 
 void BranchNavigationWiring::configureDisplayCoordinator()
 {
-    auto* dc = dispCo(m_deps);
-    if (!dc) return;
+    KifuDisplayCoordinator* dc = m_deps.displayCoordinator;
 
     dc->setRecordPane(m_deps.recordPane);
     dc->setRecordModel(m_deps.kifuRecordModel);
@@ -159,16 +112,15 @@ void BranchNavigationWiring::configureDisplayCoordinator()
 
     dc->wireSignals();
 
-    if (liveSess(m_deps) != nullptr) {
-        dc->setLiveGameSession(liveSess(m_deps));
+    if (m_deps.liveGameSession != nullptr) {
+        dc->setLiveGameSession(m_deps.liveGameSession);
     }
 }
 
 void BranchNavigationWiring::connectDisplaySignals()
 {
-    auto* dc = dispCo(m_deps);
-    auto* nc = navCtl(m_deps);
-    if (!dc || !nc) return;
+    KifuDisplayCoordinator* dc = m_deps.displayCoordinator;
+    KifuNavigationController* nc = m_deps.kifuNavController;
 
     // 盤面とハイライト更新シグナルを転送
     connect(dc, &KifuDisplayCoordinator::boardWithHighlightsRequired,
@@ -204,19 +156,19 @@ void BranchNavigationWiring::onBranchTreeBuilt()
     qCDebug(lcApp) << "BranchNavigationWiring::onBranchTreeBuilt: updating navigation system";
 
     // 新しいナビゲーションシステムを更新
-    if (navSt(m_deps) != nullptr && tree(m_deps) != nullptr) {
-        navSt(m_deps)->setTree(tree(m_deps));
+    if (m_deps.navState != nullptr && m_deps.branchTree != nullptr) {
+        m_deps.navState->setTree(m_deps.branchTree);
     }
 
     // 表示コーディネーターにツリー変更を通知
-    if (dispCo(m_deps) != nullptr) {
-        dispCo(m_deps)->onTreeChanged();
+    if (m_deps.displayCoordinator != nullptr) {
+        m_deps.displayCoordinator->onTreeChanged();
     }
 
-    if (m_deps.gameRecordModel != nullptr && tree(m_deps) != nullptr) {
-        m_deps.gameRecordModel->setBranchTree(tree(m_deps));
-        if (navSt(m_deps) != nullptr) {
-            m_deps.gameRecordModel->setNavigationState(navSt(m_deps));
+    if (m_deps.gameRecordModel != nullptr && m_deps.branchTree != nullptr) {
+        m_deps.gameRecordModel->setBranchTree(m_deps.branchTree);
+        if (m_deps.navState != nullptr) {
+            m_deps.gameRecordModel->setNavigationState(m_deps.navState);
         }
     }
 }
@@ -224,20 +176,20 @@ void BranchNavigationWiring::onBranchTreeBuilt()
 void BranchNavigationWiring::onBranchNodeActivated(int row, int ply)
 {
     qCDebug(lcApp).noquote() << "BranchNavigationWiring::onBranchNodeActivated ENTER row=" << row << "ply=" << ply;
-    if (navCtl(m_deps) == nullptr) {
+    if (m_deps.kifuNavController == nullptr) {
         qCDebug(lcApp).noquote() << "BranchNavigationWiring::onBranchNodeActivated: kifuNavController is null";
         return;
     }
 
-    navCtl(m_deps)->handleBranchNodeActivated(row, ply);
+    m_deps.kifuNavController->handleBranchNodeActivated(row, ply);
     qCDebug(lcApp).noquote() << "BranchNavigationWiring::onBranchNodeActivated LEAVE";
 }
 
 void BranchNavigationWiring::onBranchTreeResetForNewGame()
 {
-    auto* ls = liveSess(m_deps);
-    auto* bt = tree(m_deps);
-    auto* ns = navSt(m_deps);
+    LiveGameSession* ls = m_deps.liveGameSession;
+    KifuBranchTree* bt = m_deps.branchTree;
+    KifuNavigationState* ns = m_deps.navState;
 
     // 前の対局のライブゲームセッションが残っていれば破棄する（新しいセッションは、
     // この後の開始前の整理 performCleanup() が新しい根から始める）

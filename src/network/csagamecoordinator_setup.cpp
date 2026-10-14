@@ -322,10 +322,10 @@ void CsaGameCoordinator::ensureMoveProgressHandler()
     m_moveProgressHandler = std::make_unique<CsaMoveProgressHandler>();
 
     CsaMoveProgressHandler::Refs refs;
-    refs.gameController = &m_gameController;
-    refs.view = &m_view;
-    refs.clock = &m_clock;
-    refs.engineController = &m_engineController;
+    refs.gameController = [this]() -> ShogiGameController* { return m_gameController; };
+    refs.clock = [this]() -> ShogiClock* { return m_clock; };
+    refs.engineController = [this]() { return m_engineController; };
+    refs.sfenHistory = [this]() { return m_sfenHistory; };
     refs.client = m_client;
     refs.gameState = &m_gameState;
     refs.playerType = &m_playerType;
@@ -339,7 +339,6 @@ void CsaGameCoordinator::ensureMoveProgressHandler()
     refs.blackRemainingMs = &m_blackRemainingMs;
     refs.whiteRemainingMs = &m_whiteRemainingMs;
     refs.usiMoves = &m_usiMoves;
-    refs.sfenHistory = &m_sfenHistory;
     refs.positionStr = &m_positionStr;
     refs.gameSummary = &m_gameSummary;
     refs.thinkingMarginMs = &m_thinkingMarginMs;

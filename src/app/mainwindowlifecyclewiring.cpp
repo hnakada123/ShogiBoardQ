@@ -9,6 +9,7 @@
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowserviceregistry.h"
 #include "shogienginethinkingmodel.h"
+#include "kifuanalysislistmodel.h"
 #include "kifusubregistry.h"
 #include "mainwindowsignalrouter.h"
 #include "usicommlogmodel.h"
@@ -113,6 +114,8 @@ void MainWindowServiceRegistry::createFoundationObjectsForLifecycle()
     m_mw.m_models.commLog2 = new UsiCommLogModel(&m_mw);
     // 検討タブの思考情報モデル。検討・読み筋表示・矢印が同じものを使うので最初に作る
     m_mw.m_models.consideration = new ShogiEngineThinkingModel(&m_mw);
+    // 棋譜解析の結果。解析を始めるたびに中身を消して使い回す
+    m_mw.m_models.analysis = new KifuAnalysisListModel(&m_mw);
 
     m_mw.ui->setupUi(&m_mw);
 }
@@ -148,6 +151,15 @@ void MainWindowServiceRegistry::refreshAppearanceDeps()
 
 void MainWindowServiceRegistry::initializeCoreComponentsForLifecycle()
 {
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once at startup, never recreated
+    if (!m_mw.m_gameController) {
+        m_mw.m_gameController = new ShogiGameController(&m_mw);
+    }
+    if (!m_mw.m_shogiView) {
+        m_mw.m_shogiView = new ShogiView(&m_mw);
+    }
+
     // コア部品（GC, View, 盤モデル etc.）をコーディネータで初期化
     ensureCoreInitCoordinator();
     m_mw.m_coreInit->initialize();

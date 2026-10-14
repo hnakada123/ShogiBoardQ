@@ -2809,7 +2809,7 @@ Cause: %2</translation>
 <context>
     <name>CsaMoveProgressHandler</name>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="152"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="153"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>Opponent&apos;s move: %1 (Time: %2ms)</translation>
     </message>
@@ -2832,18 +2832,18 @@ Cause: %2</translation>
         <translation type="vanished">Invalid coordinates in server move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="173"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="352"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="174"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="356"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>Failed to apply move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="174"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="175"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>Cannot apply server move to board: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="210"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="211"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>Move confirmed: %1 (Time: %2ms)</translation>
     </message>
@@ -2874,42 +2874,42 @@ Cause: %2</translation>
         <translation>The server&apos;s ruling did not arrive</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="160"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="161"/>
         <source>サーバーからの指し手を解釈できません: %1</source>
         <translation>Cannot interpret the move from the server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="218"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="219"/>
         <source>サーバーからの指し手確認を解釈できません: %1</source>
         <translation>Cannot interpret the move confirmation from the server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="232"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="233"/>
         <source>指し手確認の変換に失敗しました: %1</source>
         <translation>Failed to convert move confirmation: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="233"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="234"/>
         <source>サーバーからの指し手確認を変換できません: %1</source>
         <translation>Cannot convert move confirmation from server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="308"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="311"/>
         <source>エンジンが思考中...</source>
         <translation>Engine is thinking...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="322"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="325"/>
         <source>エンジンが投了しました</source>
         <translation>Engine resigned</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="329"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="332"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>Engine did not return a valid move</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="336"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="340"/>
         <source>盤面が取得できませんでした</source>
         <translation>Could not get board state</translation>
     </message>
@@ -2918,17 +2918,17 @@ Cause: %2</translation>
         <translation type="vanished">Failed to convert drop piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="344"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="348"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>Failed to convert move piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="348"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="352"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA format move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="353"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="357"/>
         <source>エンジンの指し手を盤面に適用できません: %1</source>
         <translation>Cannot apply the engine&apos;s move to the board: %1</translation>
     </message>
@@ -6150,7 +6150,7 @@ Do you want to save them?</translation>
         <translation>Invalid SFEN format.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuapplyservice.cpp" line="68"/>
+        <location filename="../../src/kifu/kifuapplyservice.cpp" line="72"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
@@ -6523,7 +6523,7 @@ Do you want to save them?</translation>
         <translation>Failed to load game record file: %1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="137"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="136"/>
         <source>棋譜の読み込みで警告があります:
 %1</source>
         <translation>Warning while loading game record:
@@ -7882,14 +7882,14 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="73"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="112"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="71"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="109"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="74"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="113"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="72"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="110"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
@@ -8750,13 +8750,13 @@ Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="94"/>
         <source>入玉宣言確認</source>
         <translation>Confirm Entering King Declaration</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="98"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="95"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -8768,7 +8768,7 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="97"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="102"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="99"/>
         <source>宣言する</source>
         <translation>Declare</translation>
     </message>

@@ -30,10 +30,20 @@
 #include "matchcoordinator.h"
 #include "kifuloadcoordinator.h"
 #include "kifufilecontroller.h"
+#include "dialoglaunchwiring.h"
+#include "kifuanalysislistmodel.h"
+#include "kifudisplaycoordinator.h"
+#include "kifunavigationcontroller.h"
+#include "livegamesession.h"
+#include "recordpane.h"
+#include "sfencollectiondialog.h"
+#include "shogiview.h"
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QDockWidget>
 #include <QMessageBox>
+#include <QPushButton>
 
 class TestServiceInitialization : public QObject
 {
@@ -203,6 +213,79 @@ private slots:
         QVERIFY(m_answered);
         QCOMPARE(started.count(), 1);
         registry->handleFinishPositionEditing();
+    }
+
+    /// 盤・分岐ナビゲーション・棋譜解析の結果は、起動時にレジストリが1回だけ作って MainWindow が持つ。
+    /// 部品どうしは同じものを指し、分岐ナビゲーションの初期化をやり直しても作り直さず、配線も重ならない
+    void startupPartsAreCreatedOnceAndShared()
+    {
+        MainWindow window;
+        auto* registry = window.m_registry.get();
+        const BranchNavigation& nav = window.m_branchNav;
+        QCOMPARE(window.findChildren<ShogiGameController*>(), QList<ShogiGameController*>{window.m_gameController});
+        QVERIFY(window.findChildren<ShogiView*>().contains(window.m_shogiView));
+        QCOMPARE(window.m_shogiView->board(), window.m_gameController->board());
+        QCOMPARE(window.findChildren<KifuBranchTree*>(), QList<KifuBranchTree*>{nav.branchTree});
+        QCOMPARE(window.findChildren<KifuNavigationState*>(), QList<KifuNavigationState*>{nav.navState});
+        QCOMPARE(window.findChildren<KifuNavigationController*>(),
+                 QList<KifuNavigationController*>{nav.kifuNavController});
+        QCOMPARE(window.findChildren<KifuDisplayCoordinator*>(), QList<KifuDisplayCoordinator*>{nav.displayCoordinator});
+        QCOMPARE(window.findChildren<LiveGameSession*>(), QList<LiveGameSession*>{nav.liveGameSession});
+        QCOMPARE(nav.kifuNavController->tree(), nav.branchTree);
+        QCOMPARE(nav.kifuNavController->state(), nav.navState);
+        QVERIFY(window.m_models.analysis);
+        QCOMPARE(window.m_models.analysis->parent(), &window);
+        // CSA 通信対局の司令塔は、最初の対局を始めるまで作らない
+        QVERIFY(registry->csaGameCoordinator() == nullptr);
+
+        registry->initializeBranchNavigationClasses();
+        QCOMPARE(window.findChildren<KifuBranchTree*>(), QList<KifuBranchTree*>{nav.branchTree});
+
+        registry->kifu()->ensureKifuFileController();
+        QVERIFY(window.m_kifuFileController->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")));
+        nav.kifuNavController->goToFirst();
+        QCOMPARE(nav.navState->currentPly(), 0);
+        QPushButton* next = window.m_recordPane->nextButton();
+        QVERIFY(next->isEnabled());
+        next->click();
+        QCOMPARE(nav.navState->currentPly(), 1);
+    }
+
+    /// 局面集ビューアは開いている間は1つだけで、もう一度開こうとすると前面に出す。閉じれば次は作り直す
+    void sfenCollectionViewerIsReusedWhileOpen()
+    {
+        MainWindow window;
+        DialogLaunchWiring* dialogs = window.m_dialogLaunchWiring;
+        QVERIFY(dialogs);
+
+        dialogs->displaySfenCollectionViewer();
+        dialogs->displaySfenCollectionViewer();
+        QCOMPARE(window.findChildren<SfenCollectionDialog*>().size(), 1);
+        const QPointer<SfenCollectionDialog> first = window.findChild<SfenCollectionDialog*>();
+        first->close();
+        QTRY_VERIFY(first.isNull());
+
+        dialogs->displaySfenCollectionViewer();
+        const QList<SfenCollectionDialog*> reopened = window.findChildren<SfenCollectionDialog*>();
+        QCOMPARE(reopened.size(), 1);
+        reopened.first()->close();
+    }
+
+    /// メニューウィンドウの操作は、起動時に作ったドックの表示と非表示を切り替える
+    void menuWindowActionTogglesTheDock()
+    {
+        MainWindow window;
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QDockWidget* dock = window.m_docks.menuWindow;
+        QVERIFY(dock);
+        const bool wasVisible = dock->isVisible();
+
+        window.m_dialogLaunchWiring->displayMenuWindow();
+        QCOMPARE(dock->isVisible(), !wasVisible);
+        window.m_dialogLaunchWiring->displayMenuWindow();
+        QCOMPARE(dock->isVisible(), wasVisible);
+        QCOMPARE(window.m_docks.menuWindow, dock);
     }
 
 private:

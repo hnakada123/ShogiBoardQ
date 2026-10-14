@@ -232,7 +232,6 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
     if (m_mw.m_csaGameWiring) return;
 
     CsaGameWiring::Dependencies deps;
-    deps.coordinator = m_mw.m_csaGameCoordinator;
     deps.gameController = m_mw.m_gameController;
     deps.shogiView = m_mw.m_shogiView;
     deps.kifuRecordModel = m_mw.m_models.kifuRecord;
@@ -312,6 +311,11 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
             Qt::UniqueConnection);
 
     qCDebug(lcApp).noquote() << "ensureCsaGameWiring_: created and connected";
+}
+
+CsaGameCoordinator* MainWindowServiceRegistry::csaGameCoordinator() const
+{
+    return m_mw.m_csaGameWiring ? m_mw.m_csaGameWiring->coordinator() : nullptr;
 }
 
 // ---------------------------------------------------------------------------
