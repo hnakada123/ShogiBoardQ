@@ -10,9 +10,6 @@
 
 namespace SettingsKeys {
 
-// --- General ---
-inline constexpr char kSettingsVersion[]                 = "General/settingsVersion";
-
 // --- UI ---
 inline constexpr char kUsiLogCommandTarget[]             = "UsiLog/commandTarget";
 inline constexpr char kPieceStyle[]                      = "UI/pieceStyle";
@@ -97,9 +94,6 @@ inline constexpr char kTsumePlayBoardRotated[] = "TsumePlay/boardRotated";
 inline constexpr char kTsumeshogiGeneratorEngineName[]        = "TsumeshogiGenerator/engineName";
 /// 以前の版が保存していたエンジンの番号（読むだけ）
 inline constexpr char kTsumeshogiGeneratorEngineIndex[]       = "TsumeshogiGenerator/engineIndex";
-
-// --- Settings version ---
-inline constexpr int kCurrentSettingsVersion = 1;
 
 } // namespace SettingsKeys
 

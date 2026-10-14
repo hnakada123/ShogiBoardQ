@@ -24,6 +24,7 @@ class QGraphicsSimpleTextItem;
 class QKeyEvent;
 class QMenu;
 class QPoint;
+class QPen;
 
 /**
  * @brief 分岐ツリーのグラフ構築・ハイライト・クリック検出を担うマネージャ
@@ -151,6 +152,10 @@ private:
 
     qreal m_columnSpacing = 110.0;
     // --- 描画 ---
+    /// 枝の線（通常）
+    static QPen edgePen();
+    /// 枝の線（選んでいる手順）
+    static QPen pathEdgePen();
     void rebuildBranchTree();
     void computeLayout();
     qreal laneY(int lane) const;

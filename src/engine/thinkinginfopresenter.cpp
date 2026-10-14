@@ -210,10 +210,14 @@ void ThinkingInfoPresenter::emitSearchedHand(const ShogiEngineInfoParser* info)
         m_searchedAlwaysOrigin = style.alwaysOrigin;
     }
     const QString key = info->searchedHand() + QChar(0) + info->searchedUsi();
-    auto it = m_searchedLabels.constFind(key);
-    if (it == m_searchedLabels.cend())
-        it = m_searchedLabels.insert(key, KifuPresentation::label(info->searchedHand(), m_baseSfen, info->searchedUsi()));
-    emit searchedMoveUpdated(it.value());
+    const auto it = m_searchedLabels.constFind(key);
+    if (it != m_searchedLabels.cend()) {
+        emit searchedMoveUpdated(it.value());
+        return;
+    }
+    const QString label = KifuPresentation::label(info->searchedHand(), m_baseSfen, info->searchedUsi());
+    m_searchedLabels.insert(key, label);
+    emit searchedMoveUpdated(label);
 }
 
 void ThinkingInfoPresenter::emitDepth(const ShogiEngineInfoParser* info)

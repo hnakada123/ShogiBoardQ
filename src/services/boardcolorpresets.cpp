@@ -10,23 +10,23 @@ BoardColorPreset preset(const QString& name, QRgb background, QRgb board, QRgb s
 QList<BoardThemePreset> BoardColorPresets::themes()
 {
     BoardColors ink;
-    ink.background = QColor("#303b38");
-    ink.board = QColor("#e1c68e");
-    ink.stand = QColor("#86715a");
-    ink.cardBackground = QColor("#3e4b44");
-    ink.cardBorder = QColor("#58665b");
-    ink.activeCardBorder = ink.turnBackground = ink.turnBorder = QColor("#7d9878");
-    ink.nameText = ink.clockText = QColor("#e5e7d9");
-    ink.clockWarningText = QColor("#f2cf83");
-    ink.clockCriticalText = QColor("#ffa397");
+    ink.background = QColor(0x303b38);
+    ink.board = QColor(0xe1c68e);
+    ink.stand = QColor(0x86715a);
+    ink.cardBackground = QColor(0x3e4b44);
+    ink.cardBorder = QColor(0x58665b);
+    ink.activeCardBorder = ink.turnBackground = ink.turnBorder = QColor(0x7d9878);
+    ink.nameText = ink.clockText = QColor(0xe5e7d9);
+    ink.clockWarningText = QColor(0xf2cf83);
+    ink.clockCriticalText = QColor(0xffa397);
     BoardColors amber;
-    amber.background = QColor("#39352f");
-    amber.board = QColor("#e3b161");
-    amber.stand = QColor("#a26a37");
-    amber.cardBackground = QColor("#eee4cf");
-    amber.cardBorder = QColor("#bdab87");
-    amber.activeCardBorder = amber.turnBackground = amber.turnBorder = QColor("#8c6937");
-    amber.nameText = amber.clockText = QColor("#483c29");
+    amber.background = QColor(0x39352f);
+    amber.board = QColor(0xe3b161);
+    amber.stand = QColor(0xa26a37);
+    amber.cardBackground = QColor(0xeee4cf);
+    amber.cardBorder = QColor(0xbdab87);
+    amber.activeCardBorder = amber.turnBackground = amber.turnBorder = QColor(0x8c6937);
+    amber.nameText = amber.clockText = QColor(0x483c29);
     return {{QStringLiteral("kaya"), tr("榧と畳"), BoardColors{}},
             {QStringLiteral("ink"), tr("墨と榧"), ink},
             {QStringLiteral("amber"), tr("琥珀"), amber}};

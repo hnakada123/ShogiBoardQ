@@ -164,7 +164,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                     result[QStringLiteral("line")] = 0;
                 }
                 int emitted = 0;
-                for (const KifDisplayItem& item : items) {
+                for (const KifDisplayItem& item : std::as_const(items)) {
                     if (item.ply < fromPly) continue;
                     if (emitted >= maxMoves) { truncated = true; break; }
                     QJsonObject move;

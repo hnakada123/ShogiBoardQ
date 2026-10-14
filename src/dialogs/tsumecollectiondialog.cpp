@@ -92,7 +92,8 @@ void TsumeCollectionDialog::buildUi()
     m_engine = new QComboBox(this);
     m_engine->setObjectName(QStringLiteral("tsumeMateEngine"));
     m_engine->addItem(tr("Hayanagi（内蔵・31手まで）"), QString());
-    for (const auto& engine : EngineListSettings::loadEngines()) {
+    const auto engines = EngineListSettings::loadEngines();
+    for (const auto& engine : engines) {
         if (engine.name.contains(QStringLiteral("KomoringHeights"), Qt::CaseInsensitive)) m_engine->addItem(engine.name, engine.path);
     }
     engineRow->addWidget(m_engine, 1);

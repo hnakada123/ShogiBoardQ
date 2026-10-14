@@ -150,7 +150,8 @@ QLineEdit* GameInfoPaneController::activeEditor() const
 {
     if (!m_table) return nullptr;
     // 終局ダイアログなどへフォーカスが移った後にも、入力欄が残ることがある。
-    for (auto* editor : m_table->findChildren<QLineEdit*>()) {
+    const auto editors = m_table->findChildren<QLineEdit*>();
+    for (auto* editor : editors) {
         if (editor->isVisibleTo(m_table)) return editor;
     }
     return nullptr;

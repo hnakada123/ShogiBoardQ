@@ -94,9 +94,6 @@ private slots:
     /// フォントサイズを1段階縮小する
     void decreaseFontSize();
     
-    /// ドックサイズを設定へ保存する
-    void saveWindowSize();
-
     void saveColumnWidth(int column, int oldSize, int newSize);
 
 private:

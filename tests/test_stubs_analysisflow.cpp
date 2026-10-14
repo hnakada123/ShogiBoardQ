@@ -146,7 +146,6 @@ void AnalysisResultsPresenter::onTableClicked(const QModelIndex&) {}
 void AnalysisResultsPresenter::onTableSelectionChanged(const QModelIndex&, const QModelIndex&) {}
 void AnalysisResultsPresenter::increaseFontSize() {}
 void AnalysisResultsPresenter::decreaseFontSize() {}
-void AnalysisResultsPresenter::saveWindowSize() {}
 void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel*) {}
 void AnalysisResultsPresenter::setupHeaderConfiguration() {}
 void AnalysisResultsPresenter::connectModelSignals(KifuAnalysisListModel*) {}

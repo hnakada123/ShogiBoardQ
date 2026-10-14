@@ -71,8 +71,10 @@ QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)
     const QJsonArray handsData = data[QStringLiteral("hands")].toArray();
     if ((color != 0 && color != 1) || boardData.size() != 9 || handsData.size() != 2) return {};
     for (const auto& column : boardData) {
-        if (!column.isArray() || column.toArray().size() != 9) return {};
-        for (const auto& value : column.toArray()) {
+        if (!column.isArray()) return {};
+        const QJsonArray cells = column.toArray();
+        if (cells.size() != 9) return {};
+        for (const auto& value : cells) {
             if (!value.isObject()) return {};
             const auto cell = value.toObject();
             if (cell.isEmpty()) continue;

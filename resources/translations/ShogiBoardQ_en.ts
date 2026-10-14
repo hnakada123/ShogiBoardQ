@@ -547,13 +547,13 @@ Analyzed moves: %1</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="108"/>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="230"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="235"/>
         <source>将棋盤</source>
         <translation>Board</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="109"/>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="230"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="235"/>
         <source>駒台</source>
         <translation>Piece stands</translation>
     </message>
@@ -613,7 +613,7 @@ Analyzed moves: %1</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="117"/>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="168"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="172"/>
         <source>手番</source>
         <translation>Turn</translation>
     </message>
@@ -866,17 +866,17 @@ Analyzed moves: %1</translation>
         <translation>Sumi (Ink)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="173"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="177"/>
         <source>▲先手</source>
         <translation>▲Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="214"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="218"/>
         <source>アルファベット</source>
         <translation>Alphabet</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="238"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="243"/>
         <source>%1の見本（%2種類）</source>
         <translation>%1 samples (%2 styles)</translation>
     </message>
@@ -885,57 +885,57 @@ Analyzed moves: %1</translation>
         <translation type="vanished">All Pieces (21 styles)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="213"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="217"/>
         <source>すべての駒（%1種類）</source>
         <translation>All Pieces (%1 styles)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="214"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="218"/>
         <source>虎斑</source>
         <translation>Tiger Grain</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="214"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="218"/>
         <source>木肌</source>
         <translation>Natural Wood</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="214"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="218"/>
         <source>淡色</source>
         <translation>Light Colors</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="214"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="218"/>
         <source>深色</source>
         <translation>Dark Colors</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="214"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="218"/>
         <source>意匠</source>
         <translation>Symbolic</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="214"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="218"/>
         <source>チェス</source>
         <translation>Chess</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="229"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="234"/>
         <source>駒</source>
         <translation>Pieces</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="230"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="235"/>
         <source>対局者情報</source>
         <translation>Players</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="230"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="235"/>
         <source>背景</source>
         <translation>Background</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="237"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="242"/>
         <source>手番・対局者名・持ち時間の見本（20種類）</source>
         <translation>Turn, player names, and clocks (20 styles)</translation>
     </message>
@@ -944,47 +944,47 @@ Analyzed moves: %1</translation>
         <translation type="vanished">%1 samples (20 styles)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="260"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="266"/>
         <source>詳細</source>
         <translation>Details</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="270"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="276"/>
         <source>おすすめの組み合わせ</source>
         <translation>Suggested Combinations</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="273"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="279"/>
         <source>自由な組み合わせ</source>
         <translation>Custom Combination</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="278"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="284"/>
         <source>プレビュー</source>
         <translation>Preview</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="282"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="288"/>
         <source>初期局面</source>
         <translation>Starting Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="282"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="288"/>
         <source>成駒・持駒の見本</source>
         <translation>Promoted and Captured Pieces</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="284"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="290"/>
         <source>盤面反転</source>
         <translation>Flip Board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="374"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="380"/>
         <source>カスタム</source>
         <translation>Custom</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="376"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="382"/>
         <source>駒：%1
 将棋盤：%2&#x3000;／&#x3000;背景：%5
 駒台：%3&#x3000;／&#x3000;対局者情報：%4</source>
@@ -1165,17 +1165,17 @@ This cannot be undone.</translation>
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="158"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="166"/>
         <source>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</source>
         <translation>&lt;p&gt;(Double-click to expand)&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="461"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="469"/>
         <source>%1手目</source>
         <translation>Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="259"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="267"/>
         <source>開始局面</source>
         <translation>Starting Position</translation>
     </message>
@@ -4346,7 +4346,7 @@ Each screen keeps its current text size.</translation>
         <translation>Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="296"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="297"/>
         <source>破棄して続行</source>
         <translation>Discard and Continue</translation>
     </message>
@@ -4470,12 +4470,12 @@ Each screen keeps its current text size.</translation>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="293"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="294"/>
         <source>未保存の対局情報</source>
         <translation>Unsaved Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="294"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="295"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
         <translation>The game info has been edited but not saved yet.
@@ -8434,12 +8434,12 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MenuButtonWidget</name>
     <message>
-        <location filename="../../src/widgets/menubuttonwidget.cpp" line="133"/>
+        <location filename="../../src/widgets/menubuttonwidget.cpp" line="134"/>
         <source>お気に入りに追加</source>
         <translation>Add to favorites</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menubuttonwidget.cpp" line="141"/>
+        <location filename="../../src/widgets/menubuttonwidget.cpp" line="142"/>
         <source>お気に入りから削除</source>
         <translation>Remove from favorites</translation>
     </message>
@@ -8477,7 +8477,7 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/menuwindow.cpp" line="96"/>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="341"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="343"/>
         <source>お気に入り編集</source>
         <translation>Edit favorites</translation>
     </message>
@@ -8502,17 +8502,17 @@ Please restart the application to apply the changes.</translation>
         <translation>Favorites</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="326"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="328"/>
         <source>お気に入りはまだありません。「お気に入り編集」を押して、各タブの項目を追加してください。</source>
         <translation>No favorites yet. Choose “Edit favorites” to add items from each tab.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="327"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="329"/>
         <source>該当する項目がありません。</source>
         <translation>No matching items.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="341"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="343"/>
         <source>編集完了</source>
         <translation>Done editing</translation>
     </message>
@@ -10988,7 +10988,7 @@ The engine would treat its available time as 0 seconds and move almost without t
 <context>
     <name>ThinkingInfoPresenter</name>
     <message>
-        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="355"/>
+        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="359"/>
         <source>詰み</source>
         <translation>Checkmate</translation>
     </message>
@@ -11045,83 +11045,83 @@ The engine would treat its available time as 0 seconds and move almost without t
         <translation>Hayanagi (built-in, up to 31 plies)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="99"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="100"/>
         <source>判定時間:</source>
         <translation>Search time:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="103"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="104"/>
         <source> 秒</source>
         <translation> sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="106"/>
         <source>このページを再判定</source>
         <translation>Recheck this page</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="116"/>
         <source>表示件数:</source>
         <translation>Per page:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="120"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="121"/>
         <source>挑戦状況:</source>
         <translation>Progress:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="124"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="125"/>
         <source>すべて</source>
         <translation>All</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="124"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="125"/>
         <location filename="../../src/dialogs/tsumecollectiondialog_analysis.cpp" line="52"/>
         <source>未挑戦</source>
         <translation>Not attempted</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="124"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="125"/>
         <source>挑戦済み・未正答</source>
         <translation>Attempted, unsolved</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="124"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="125"/>
         <source>正答済み</source>
         <translation>Solved</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="145"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="146"/>
         <source>文字サイズを縮小</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="150"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="151"/>
         <source>文字サイズを拡大</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="156"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="157"/>
         <source>最初</source>
         <translation>First</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="157"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="158"/>
         <source>前ページ</source>
         <translation>Previous</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="158"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="159"/>
         <source>次ページ</source>
         <translation>Next</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="160"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="161"/>
         <source>最後</source>
         <translation>Last</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="174"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="175"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>

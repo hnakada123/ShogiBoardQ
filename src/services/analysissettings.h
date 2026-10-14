@@ -76,9 +76,6 @@ inline const Setting<int> kifuAnalysisFontSize{"KifuAnalysis/fontSize", 0};
 QList<int> kifuAnalysisColumnWidths();
 void setKifuAnalysisColumnWidths(const QList<int>& widths);
 
-/// 棋譜解析結果ウィンドウのサイズ（デフォルト: 1100x600）
-inline const Setting<QSize> kifuAnalysisResultsWindowSize{"KifuAnalysis/resultsWindowSize", QSize(1100, 600)};
-
 /// 1手あたりの思考時間・秒（デフォルト: 3）
 inline const Setting<int> kifuAnalysisByoyomiSec{"KifuAnalysis/byoyomiSec", 3};
 

@@ -134,7 +134,8 @@ void ShogiView::onBoardReset()
             if (!shown || *shown != m_board->pieceCharacter(file, rank)) update(fieldPaintRect(QPoint(file, rank)));
         }
     }
-    for (const QChar pieceChar : QStringLiteral("PLNSGBRKplnsgbrk")) {
+    const QString standPieces = QStringLiteral("PLNSGBRKplnsgbrk");
+    for (const QChar pieceChar : standPieces) {
         const Piece piece = charToPiece(pieceChar);
         const auto shown = m_shownStandCounts.constFind(piece);
         if (shown == m_shownStandCounts.cend() || shown.value() != m_board->pieceStandCount(piece))

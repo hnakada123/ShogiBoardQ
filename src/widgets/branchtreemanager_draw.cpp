@@ -33,8 +33,6 @@ constexpr qreal kRadius = 8.0;
 constexpr qreal kHeaderHeight = 22.0;   ///< 手数見出しの帯の高さ
 constexpr int kTooltipCommentChars = 400;
 
-const QPen kEdgePen(QColor(90, 90, 90), 1.0);
-
 bool isTerminalText(const QString& text)
 {
     static const QStringList kTerminalKeywords = {
@@ -64,6 +62,16 @@ static void debugFontInfo(const QFont &font, const QString &context)
 }
 
 // ===================== ノード/エッジ描画 =====================
+
+QPen BranchTreeManager::edgePen()
+{
+    return QPen(QColor(90, 90, 90), 1.0);
+}
+
+QPen BranchTreeManager::pathEdgePen()
+{
+    return QPen(QColor(40, 110, 210), 2.6);
+}
 
 QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const KifDisplayItem& entry)
 {
@@ -197,7 +205,7 @@ void BranchTreeManager::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
         path.lineTo(toRect.left(), by);
     }
 
-    auto* edge = m_scene->addPath(path, kEdgePen);
+    auto* edge = m_scene->addPath(path, edgePen());
     edge->setZValue(0);
 
     const int prevId = from->data(ROLE_NODE_ID).toInt();

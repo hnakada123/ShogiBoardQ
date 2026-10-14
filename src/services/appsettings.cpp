@@ -186,15 +186,20 @@ void setBoardVisuals(const BoardVisuals& visuals)
 }
 
 namespace {
-const QStringList kAppearanceSections{
-    QStringLiteral("pieces"), QStringLiteral("board"), QStringLiteral("background"),
-    QStringLiteral("stand"), QStringLiteral("information"), QStringLiteral("details")};
+/// 外観ダイアログのタブの保存名（タブの並び順）
+const QStringList& appearanceSectionNames()
+{
+    static const QStringList names{
+        QStringLiteral("pieces"), QStringLiteral("board"), QStringLiteral("background"),
+        QStringLiteral("stand"), QStringLiteral("information"), QStringLiteral("details")};
+    return names;
+}
 }
 
 int appearanceSection()
 {
     const auto saved = SettingsCommon::openSettings().value(SettingsKeys::kAppearanceSection, "pieces").toString();
-    const int index = static_cast<int>(kAppearanceSections.indexOf(saved));
+    const int index = static_cast<int>(appearanceSectionNames().indexOf(saved));
     if (index >= 0) return index;
     // 背景タブの追加前に保存した番号も、同じ項目を開くよう引き継ぐ。
     bool ok = false;
@@ -206,7 +211,7 @@ int appearanceSection()
 void setAppearanceSection(int index)
 {
     SettingsCommon::openSettings().setValue(SettingsKeys::kAppearanceSection,
-                                            kAppearanceSections.at(qBound(0, index, 5)));
+                                            appearanceSectionNames().at(qBound(0, index, 5)));
 }
 
 int appearancePieceFilter()
@@ -238,23 +243,6 @@ void saveWindowAndBoard(QWidget* mainWindow, int boardSquareSize)
     if (s.status() != QSettings::NoError) {
         qWarning("AppSettings: Failed to save settings (status=%d)", static_cast<int>(s.status()));
     }
-}
-
-// --- マイグレーション ---
-
-void migrateSettingsIfNeeded()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    const int version = s.value(SettingsKeys::kSettingsVersion, 0).toInt();
-    if (version >= SettingsKeys::kCurrentSettingsVersion) {
-        return;
-    }
-
-    // 将来のマイグレーション処理をここに追加:
-    // if (version < 2) { ... }
-    // if (version < 3) { ... }
-
-    s.setValue(SettingsKeys::kSettingsVersion, SettingsKeys::kCurrentSettingsVersion);
 }
 
 } // namespace AppSettings
