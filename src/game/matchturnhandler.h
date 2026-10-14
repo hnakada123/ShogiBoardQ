@@ -32,7 +32,6 @@ public:
 
     struct Refs {
         ShogiGameController* gc = nullptr;
-        Turn* currentTurn = nullptr;
         PlayMode* playMode = nullptr;
         QString* positionStr1 = nullptr;
         QString* positionPonder1 = nullptr;

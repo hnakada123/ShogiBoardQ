@@ -6,14 +6,14 @@
 
 
 #include <QObject>
-#include <functional>
 #include <QString>
 #include <QStringList>
 #include <QPoint>
 
-#include "recordline.h"
 
 class JosekiWindow;
+class KifuNavigationState;
+class PlayModePolicyService;
 class QDockWidget;
 class ShogiGameController;
 
@@ -41,11 +41,12 @@ public:
         QWidget* parentWidget = nullptr;
         ShogiGameController* gameController = nullptr;
         QString* currentSfenStr = nullptr;
-        /// 表示中の手順（分岐ツリーの KifuNavigationState::currentRecordLine）
-        std::function<RecordLine()> currentLine;
-        /// 盤面クリックと同じ「人間が今指せるか」の判定（PlayModePolicyService::isHumanTurnNow）
-        std::function<bool()> isHumanTurnNow;
+        /// 表示中の手順（分岐ツリー）。棋譜のマージに使う
+        const KifuNavigationState* navState = nullptr;
     };
+
+    /// 盤面クリックと同じ「人間が今指せるか」の判定元（対局モードの判定サービスは後で作られる）
+    void setPlayModePolicy(const PlayModePolicyService* policy) { m_playModePolicy = policy; }
 
     /**
      * @brief コンストラクタ
@@ -130,8 +131,8 @@ private:
     QWidget* m_parentWidget = nullptr;
     ShogiGameController* m_gameController = nullptr;
     QString* m_currentSfenStr = nullptr;
-    std::function<RecordLine()> m_currentLine;
-    std::function<bool()> m_isHumanTurnNow;
+    const KifuNavigationState* m_navState = nullptr;
+    const PlayModePolicyService* m_playModePolicy = nullptr;
 
     // 内部オブジェクト
     JosekiWindow* m_josekiWindow = nullptr;

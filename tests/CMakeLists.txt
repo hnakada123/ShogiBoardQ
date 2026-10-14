@@ -477,9 +477,9 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/dialogs/josekiwindowio.cpp
     ${SRC}/dialogs/josekiwindowmerge.cpp
     ${SRC}/dialogs/josekiwindowui.cpp
-    ${SRC}/dialogs/josekiwindowui_status.cpp
-    ${SRC}/dialogs/josekipresenter.cpp
-    ${SRC}/dialogs/josekirepository.cpp
+    ${SRC}/kifu/josekibooksession.cpp
+    ${SRC}/kifu/josekipresenter.cpp
+    ${SRC}/kifu/josekirepository.cpp
     ${SRC}/dialogs/josekimovedialog.cpp
     ${SRC}/dialogs/josekimoveinputwidget.cpp
     ${SRC}/dialogs/josekimergedialog.cpp
@@ -696,6 +696,7 @@ add_shogi_test(tst_analysisflow
     ${SRC}/analysis/analysisresulthandler_dialog.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
     ${SRC}/analysis/considerationflowcontroller.cpp
+    ${SRC}/engine/usiinfoparser.cpp
     ${SRC}/common/errorbus.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
@@ -998,15 +999,6 @@ add_shogi_test(tst_settings_reset
 set_tests_properties(tst_settings_reset PROPERTIES TIMEOUT 20)
 
 # ============================================================
-# Unit 22: App Lifecycle Pipeline (起動/終了順序・終了確認の実行時テスト)
-# ============================================================
-add_shogi_test(tst_app_lifecycle_pipeline
-    tst_app_lifecycle_pipeline.cpp
-    ${SRC}/app/mainwindowlifecyclepipeline.cpp
-    ${SRC}/app/mainwindowlifecyclesequence.cpp
-)
-
-# ============================================================
 # Unit 23: App Game Session (実サービスによる対局操作フロー)
 # ============================================================
 add_shogi_test(tst_app_game_session
@@ -1109,6 +1101,14 @@ add_shogi_test(tst_wiring_csagame
 target_link_libraries(tst_wiring_csagame PRIVATE shogiboardq_static)
 
 # ============================================================
+# Unit 31b: CsaGameCoordinator 指し手進行・棋譜行（偽 CSA サーバー）
+# ============================================================
+add_shogi_test(tst_csagamecoordinator
+    tst_csagamecoordinator.cpp
+)
+target_link_libraries(tst_csagamecoordinator PRIVATE shogiboardq_static)
+
+# ============================================================
 # Unit 32: AnalysisTabWiring 配線契約テスト（ソース解析型）
 # ============================================================
 add_shogi_test(tst_wiring_analysistab
@@ -1178,8 +1178,8 @@ add_shogi_test(tst_lifecycle_runtime
 add_shogi_test(tst_joseki_repository
     tst_joseki_repository.cpp
     ${TEST_STUBS}
-    ${SRC}/dialogs/josekirepository.cpp
-    ${SRC}/dialogs/josekipresenter.cpp
+    ${SRC}/kifu/josekirepository.cpp
+    ${SRC}/kifu/josekipresenter.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
@@ -1210,6 +1210,7 @@ add_shogi_test(tst_tsumeshogi_generator
 # 詰将棋局面生成のファイル保存に付けるコメントヘッダ（バージョン・生成日時・生成設定）
 add_shogi_test(tst_tsumeshogi_export_header
     tst_tsumeshogi_export_header.cpp
+    ${SRC}/analysis/tsumecollectionwriter.cpp
     ${SRC}/analysis/tsumeshogiexportheaderbuilder.cpp
 )
 
@@ -1221,6 +1222,7 @@ add_shogi_test(tst_analysis_coordinator
     test_stubs_analysis_coordinator.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
+    ${SRC}/engine/usiinfoparser.cpp
     ${SRC}/analysis/kifuanalysislistmodel.cpp
     ${SRC}/analysis/analysisresulthandler.cpp
     ${SRC}/analysis/analysisresulthandler_dialog.cpp
@@ -1276,6 +1278,7 @@ add_shogi_test(tst_sfen_collection
     ${SRC}/widgets/elidelabel.h
     ${SRC}/dialogs/sfencollectiondialog.cpp
     ${SRC}/dialogs/sfencollectiondialog_io.cpp
+    ${SRC}/widgets/boardviewerwidget.cpp
     ${SRC}/automation/sfenvalidationservice.cpp
     ${SRC}/common/dialogfontscale.cpp
     ${SRC}/common/dialogutils.cpp
@@ -1372,9 +1375,9 @@ target_link_libraries(engineregistration_test_engine PRIVATE Qt6::Core)
 
 add_shogi_test(tst_engineregistrationhandler
     tst_engineregistrationhandler.cpp
-    ${SRC}/dialogs/engineregistrationhandler.cpp
-    ${SRC}/dialogs/usioptionlineparser.cpp
-    ${SRC}/dialogs/engineregistrationworker.cpp
+    ${SRC}/engine/engineregistrationhandler.cpp
+    ${SRC}/engine/usioptionlineparser.cpp
+    ${SRC}/engine/engineregistrationworker.cpp
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/settingscommon.cpp
     ${SRC}/common/logcategories.cpp
@@ -1421,10 +1424,9 @@ add_shogi_test(tst_turn_state_sync
     ${SRC}/views/boardsurfacepainter.cpp
     ${SRC}/views/piecepainter.cpp
     ${SRC}/views/shogiview_events.cpp
-    ${SRC}/views/shogiview_labels.cpp
     ${SRC}/views/shogiview_stand.cpp
     ${SRC}/views/shogiview_piecebox.cpp
-    ${SRC}/views/shogiview_turnui.cpp
+    ${SRC}/views/boardchromewidget.cpp
     ${SRC}/views/shogiviewhighlighting.cpp
     ${SRC}/views/shogiviewinteraction.cpp
     ${SRC}/views/shogiviewlayout.cpp
@@ -1555,8 +1557,11 @@ target_link_libraries(tst_automation_dispatcher PRIVATE shogiboardq_static)
 add_shogi_test(tst_nyugyoku_judgement tst_nyugyoku_judgement.cpp)
 target_link_libraries(tst_nyugyoku_judgement PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_usi_info_line_parser tst_usi_info_line_parser.cpp)
-target_link_libraries(tst_usi_info_line_parser PRIVATE shogiboardq_static)
+# info 行の解析（UsiInfoParser）と、読み筋の漢字表記（PvNotationFormatter）
+add_shogi_test(tst_usiinfoparser tst_usiinfoparser.cpp)
+target_link_libraries(tst_usiinfoparser PRIVATE shogiboardq_static)
+add_shogi_test(tst_pvnotationformatter tst_pvnotationformatter.cpp)
+target_link_libraries(tst_pvnotationformatter PRIVATE shogiboardq_static)
 
 add_shogi_test(tst_sfen_validation_service tst_sfen_validation_service.cpp)
 target_link_libraries(tst_sfen_validation_service PRIVATE shogiboardq_static)
@@ -1639,7 +1644,7 @@ add_shogi_test(tst_evaluationchart
 add_shogi_test(tst_csalogpanel
     tst_csalogpanel.cpp
     ${SRC}/widgets/csalogpanel.cpp
-    ${SRC}/widgets/logviewfontmanager.cpp
+    ${SRC}/common/fontsizehelper.cpp
     ${SRC}/common/applicationfonts.cpp
     ${SRC}/services/settingscommon.cpp
 )
@@ -1648,7 +1653,7 @@ add_shogi_test(tst_csalogpanel
 add_shogi_test(tst_usilogpanel
     tst_usilogpanel.cpp
     ${SRC}/widgets/usilogpanel.cpp
-    ${SRC}/widgets/logviewfontmanager.cpp
+    ${SRC}/common/fontsizehelper.cpp
     ${SRC}/widgets/elidelabel.cpp
     ${SRC}/engine/usicommlogmodel.cpp
     ${SRC}/common/applicationfonts.cpp

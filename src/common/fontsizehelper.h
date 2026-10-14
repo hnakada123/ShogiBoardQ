@@ -3,10 +3,12 @@
 
 #include <functional>
 
+#include "dialogutils.h"
 #include "setting.h"
 
 /// ダイアログのフォントサイズ増減を管理するヘルパー。
-/// 状態管理（clamp + save）のみ担当。applyFontSize() はダイアログ側で実装する。
+/// 状態管理（clamp + save）と、ダイアログ全体への適用（applyTo）を担当する。
+/// ダイアログ側の applyFontSize() は applyTo() を呼び、固有の調整だけを書く。
 class FontSizeHelper {
 public:
     struct Config {
@@ -33,6 +35,13 @@ public:
 
     /// 現在のフォントサイズを返す。
     int fontSize() const;
+
+    /// ダイアログ全体に現在の文字サイズを適用し、適用したフォントを返す（DialogUtils::applyFontSize）。
+    /// 盤面など自前で文字の大きさを決めるウィジェットは excluded に渡す。
+    QFont applyTo(QWidget* dialog, const QList<QWidget*>& excluded = {}) const
+    {
+        return DialogUtils::applyFontSize(dialog, m_fontSize, m_minSize, m_maxSize, excluded);
+    }
 
 private:
     int m_fontSize;

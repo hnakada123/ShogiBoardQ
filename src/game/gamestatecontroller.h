@@ -48,10 +48,6 @@ public:
     void setKifuRecordModel(KifuRecordListModel* model);
     void setHooks(const Hooks& hooks);
 
-    // --- 状態設定 ---
-    void setPlayMode(PlayMode mode);
-    PlayMode playMode() const { return m_playMode; }
-
     // --- 投了・中断処理 ---
     void handleResignation();
     void handleBreakOffGame();
@@ -65,9 +61,6 @@ public:
      */
     void setGameOverMove(MatchCoordinator::Cause cause, Turn loser);
 
-    // --- 人間/エンジン判定 ---
-    bool isHvH() const;
-    bool isHumanSide(Turn p) const;
     bool isGameOver() const;
 
 public slots:
@@ -85,7 +78,6 @@ private:
     TimeControlController* m_timeController = nullptr;  ///< 非所有
     KifuRecordListModel* m_kifuRecordModel = nullptr;   ///< 非所有
 
-    PlayMode m_playMode = PlayMode::NotStarted; ///< 現在のプレイモード
 
     Hooks m_hooks;  ///< UI操作コールバック群
 };

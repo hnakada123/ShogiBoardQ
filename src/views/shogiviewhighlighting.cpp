@@ -1,15 +1,10 @@
 /// @file shogiviewhighlighting.cpp
-/// @brief 将棋盤面のハイライト・矢印・手番表示の実装
+/// @brief 将棋盤面のハイライト・矢印の実装
 
 #include "shogiviewhighlighting.h"
 #include "shogiviewlayout.h"
 
 #include <QPainter>
-#include <QLabel>
-#include <QFrame>
-#include <QDebug>
-
-#include "logcategories.h"
 
 ShogiViewHighlighting::ShogiViewHighlighting(ShogiView* view, QObject* parent)
     : QObject(parent)
@@ -101,147 +96,6 @@ QRect ShogiViewHighlighting::arrowsPaintRect(const QList<ShogiView::Arrow>& arro
 }
 
 
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 手番ハイライト
-// ─────────────────────────────────────────────────────────────────────────────
-
-void ShogiViewHighlighting::applyTurnHighlight(bool blackIsActive)
-{
-    qCDebug(lcView) << "applyTurnHighlight: blackIsActive=" << blackIsActive
-                     << "m_blackActive(before)=" << m_blackActive;
-
-    m_blackActive = blackIsActive;
-    m_urgency = Urgency::Normal;
-    setUrgencyVisuals(Urgency::Normal);
-}
-
-void ShogiViewHighlighting::setActiveSide(bool blackTurn)
-{
-    qCDebug(lcView) << "setActiveSide: blackTurn=" << blackTurn;
-    m_blackActive = blackTurn;
-    applyTurnHighlight(m_blackActive);
-}
-
-void ShogiViewHighlighting::setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff)
-{
-    m_highlightBg    = bgOn;
-    m_highlightFgOn  = fgOn;
-    m_highlightFgOff = fgOff;
-    applyTurnHighlight(m_blackActive);
-}
-
-void ShogiViewHighlighting::clearTurnHighlight()
-{
-    if (m_view->gameOverStyleLock()) return;
-    m_turnHighlightActive = false;
-    m_urgency = Urgency::Normal;
-    refreshPlayerStyles();
-}
-
-void ShogiViewHighlighting::setActiveIsBlack(bool activeIsBlack)
-{
-    m_blackActive = activeIsBlack;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 緊急度表示
-// ─────────────────────────────────────────────────────────────────────────────
-
-void ShogiViewHighlighting::setUrgencyVisuals(Urgency u)
-{
-    m_turnHighlightActive = true;
-    m_urgency = u;
-    qCDebug(lcView) << "setUrgencyVisuals: urgency=" << static_cast<int>(u)
-                     << "m_blackActive=" << m_blackActive;
-
-    refreshPlayerStyles();
-}
-
-void ShogiViewHighlighting::refreshPlayerStyles()
-{
-    const auto& colors = m_view->boardColors();
-    auto stylePlayer = [&](bool black) {
-        const std::size_t side = black ? 0 : 1;
-        const bool active = m_turnHighlightActive && m_blackActive == black;
-        // 枠と手番の札は一度作ったら作り直さないので、探すのは最初だけにする
-        if (!m_playerCards[side])
-            m_playerCards[side] = m_view->findChild<QFrame*>(black ? QStringLiteral("blackPlayerCard")
-                                                                   : QStringLiteral("whitePlayerCard"));
-        if (!m_turnBadges[side])
-            m_turnBadges[side] = m_view->findChild<QLabel*>(black ? QStringLiteral("turnLabelBlack")
-                                                                  : QStringLiteral("turnLabelWhite"));
-        QFrame* card = m_playerCards[side];
-        QLabel* badge = m_turnBadges[side];
-        CachedStyleSheet* styleSheets = &m_playerStyleSheets[side * PlayerStyleCount];
-        const QColor overrideText = active ? m_highlightFgOn : m_highlightFgOff;
-        const QColor nameColor = overrideText.isValid() ? overrideText : colors.nameText;
-        QColor clockColor = overrideText.isValid() ? overrideText : colors.clockText;
-        if (active && m_urgency == Urgency::Warn10) clockColor = colors.clockWarningText;
-        if (active && m_urgency == Urgency::Warn5) clockColor = colors.clockCriticalText;
-        setLabelStyle(black ? m_view->blackNameLabel() : m_view->whiteNameLabel(),
-                      nameColor, colors.nameBackground, colors.nameBorder, false, styleSheets[NameStyle]);
-        setLabelStyle(black ? m_view->blackClockLabel() : m_view->whiteClockLabel(),
-                      clockColor, colors.clockBackground, colors.clockBorder, true, styleSheets[ClockStyle]);
-        if (card) {
-            const QColor background = m_highlightBg.isValid() ? m_highlightBg : colors.cardBackground;
-            const QColor border = active ? colors.activeCardBorder : colors.cardBorder;
-            CachedStyleSheet& cache = styleSheets[CardStyle];
-            if (cache.update({background.rgba(), border.rgba(), 0}, active ? 2 : 1)) {
-                cache.css = QStringLiteral(
-                    "QFrame#%1 { background:%2; border:%3px solid %4; border-radius:6px; }")
-                    .arg(card->objectName(), toRgba(background))
-                    .arg(active ? 2 : 1)
-                    .arg(toRgba(border));
-            }
-            if (card->styleSheet() != cache.css) card->setStyleSheet(cache.css);
-        }
-        if (badge) {
-            CachedStyleSheet& cache = styleSheets[BadgeStyle];
-            if (cache.update({colors.turnText.rgba(), colors.turnBackground.rgba(), colors.turnBorder.rgba()}, 0)) {
-                cache.css = QStringLiteral(
-                    "color:%1; background:%2; border:1px solid %3; border-radius:4px; padding:0px; font-weight:700;")
-                    .arg(toRgba(colors.turnText), toRgba(colors.turnBackground), toRgba(colors.turnBorder));
-            }
-            if (badge->styleSheet() != cache.css) badge->setStyleSheet(cache.css);
-            badge->setVisible(active && m_view->board());
-        }
-    };
-    stylePlayer(true);
-    stylePlayer(false);
-}
-
-void ShogiViewHighlighting::applyClockUrgency(qint64 activeRemainMs)
-{
-    Urgency next = Urgency::Normal;
-    if      (activeRemainMs <= ShogiView::kWarn5Ms)  next = Urgency::Warn5;
-    else if (activeRemainMs <= ShogiView::kWarn10Ms) next = Urgency::Warn10;
-
-    if (next != m_urgency) {
-        m_urgency = next;
-        setUrgencyVisuals(m_urgency);
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 起動時スタイル
-// ─────────────────────────────────────────────────────────────────────────────
-
-void ShogiViewHighlighting::applyStartupTypography()
-{
-    m_urgency = Urgency::Normal;
-    m_turnHighlightActive = false;
-    refreshPlayerStyles();
-}
-
-void ShogiViewHighlighting::refreshBackgroundColors()
-{
-    m_highlightBg = QColor();
-    m_highlightFgOn = QColor();
-    m_highlightFgOff = QColor();
-    if (m_turnHighlightActive) setUrgencyVisuals(m_urgency);
-    else applyStartupTypography();
-}
 
 void ShogiViewHighlighting::drawHighlights(QPainter& painter, const QRegion& dirty)
 {
@@ -349,36 +203,4 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
     }
 
     painter.restore();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ラベルスタイルヘルパ
-// ─────────────────────────────────────────────────────────────────────────────
-
-QString ShogiViewHighlighting::toRgba(const QColor& c)
-{
-    return QStringLiteral("rgba(%1,%2,%3,%4)")
-        .arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alpha());
-}
-
-bool ShogiViewHighlighting::CachedStyleSheet::update(const std::array<QRgb, 3>& newColors, int newVariant)
-{
-    if (variant == newVariant && colors == newColors) return false;
-    colors = newColors;
-    variant = newVariant;
-    return true;
-}
-
-void ShogiViewHighlighting::setLabelStyle(QLabel* lbl, const QColor& fg, const QColor& bg,
-                                         const QColor& border, bool bold, CachedStyleSheet& cache)
-{
-    if (!lbl) return;
-    if (cache.update({fg.rgba(), bg.rgba(), border.rgba()}, bold ? 1 : 0)) {
-        cache.css = QStringLiteral(
-            "color:%1; background:%2; border:%4px solid %3; border-radius:2px; padding:0px; font-weight:%5;")
-            .arg(toRgba(fg), toRgba(bg), toRgba(border))
-            .arg(border.alpha() == 0 ? 0 : 1)
-            .arg(bold ? QStringLiteral("700") : QStringLiteral("400"));
-    }
-    if (lbl->styleSheet() != cache.css) lbl->setStyleSheet(cache.css);
 }

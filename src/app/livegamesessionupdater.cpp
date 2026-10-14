@@ -16,7 +16,7 @@ void LiveGameSessionUpdater::updateDeps(const Deps& deps)
     m_deps = deps;
 }
 
-void LiveGameSessionUpdater::ensureSessionStarted()
+void LiveGameSessionUpdater::startSessionIfNeeded()
 {
     if (m_deps.liveSession == nullptr || m_deps.branchTree == nullptr) {
         return;
@@ -28,7 +28,7 @@ void LiveGameSessionUpdater::ensureSessionStarted()
 
     // ルートノードが必要（performCleanup で作成済みのはず）
     if (m_deps.branchTree->root() == nullptr) {
-        qCWarning(lcApp).noquote() << "ensureSessionStarted: root is null, cannot start session";
+        qCWarning(lcApp).noquote() << "startSessionIfNeeded: root is null, cannot start session";
         return;
     }
 
@@ -43,21 +43,21 @@ void LiveGameSessionUpdater::ensureSessionStarted()
         KifuBranchNode* branchPoint = m_deps.branchTree->findBySfen(currentSfen);
         if (branchPoint != nullptr) {
             m_deps.liveSession->startFromNode(branchPoint);
-            qCDebug(lcApp).noquote() << "ensureSessionStarted: started from node, ply=" << branchPoint->ply();
+            qCDebug(lcApp).noquote() << "startSessionIfNeeded: started from node, ply=" << branchPoint->ply();
         } else {
             // ノードが見つからない場合はルートから開始
-            qCWarning(lcApp).noquote() << "ensureSessionStarted: branchPoint not found for sfen, starting from root";
+            qCWarning(lcApp).noquote() << "startSessionIfNeeded: branchPoint not found for sfen, starting from root";
             m_deps.liveSession->startFromRoot();
         }
     } else {
         // 新規対局: ルートから開始
         m_deps.liveSession->startFromRoot();
-        qCDebug(lcApp).noquote() << "ensureSessionStarted: session started from root";
+        qCDebug(lcApp).noquote() << "startSessionIfNeeded: session started from root";
     }
 }
 
 void LiveGameSessionUpdater::appendRecord(const RecordEntry& entry)
 {
-    ensureSessionStarted();
+    startSessionIfNeeded();
     if (m_deps.liveSession && m_deps.liveSession->canAddMove()) m_deps.liveSession->appendRecord(entry);
 }

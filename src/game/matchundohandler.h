@@ -49,7 +49,7 @@ public:
      *
      * 2手戻し操作後に盤面ハイライトと手番表示を更新するために使用。
      *
-     * @note MainWindowServiceRegistry::buildUndoHooks() が組み立てる。
+     * @note MainWindowComposer::buildUndoHooks() が組み立てる。
      */
     struct UndoHooks {
         /// @brief 指定手数のハイライトを表示する
@@ -57,7 +57,7 @@ public:
         std::function<void(int /*ply*/)> updateHighlightsForPly;
 
         /// @brief 手番表示と時計表示を現在の状態に更新する
-        /// @note 配線元: MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay
+        /// @note 配線元: MainWindowComposer::buildUndoHooks → TurnStateSyncService::updateTurnAndTimekeepingDisplay
         std::function<void()> updateTurnAndTimekeepingDisplay;
 
         /// @brief 指定プレイヤーが人間側かどうかを判定する

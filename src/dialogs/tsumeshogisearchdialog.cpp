@@ -150,20 +150,9 @@ void TsumeShogiSearchDialog::onFontDecrease()
 
 void TsumeShogiSearchDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    const int size = m_fontHelper.fontSize();
-    QFont dialogFont = font();
-    dialogFont.setPointSize(size);
-    DialogUtils::applyFontToAllChildren(this, dialogFont);
-    ui->comboBoxEngine1->view()->setFont(dialogFont);
-    ui->toolButtonFontDecrease->setEnabled(size > 8);
-    ui->toolButtonFontIncrease->setEnabled(size < 24);
-    const int buttonWidth = qMax(40, fontMetrics().horizontalAdvance(QStringLiteral("A+")) + 20);
-    ui->toolButtonFontDecrease->setFixedWidth(buttonWidth);
-    ui->toolButtonFontIncrease->setFixedWidth(buttonWidth);
+    m_fontHelper.applyTo(this);
     ui->mainLayout->invalidate();
     QTimer::singleShot(0, this, &TsumeShogiSearchDialog::updateMinimumSize);
-    DialogUtils::updateFontButtons(this, size);
 }
 
 void TsumeShogiSearchDialog::updateMinimumSize()

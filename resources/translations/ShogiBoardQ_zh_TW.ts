@@ -4,34 +4,34 @@
 <context>
     <name>AnalysisFlowController</name>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="53"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="54"/>
         <location filename="../../src/analysis/analysisflowcontroller_dialog.cpp" line="57"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation>內部錯誤：局面記錄尚未準備好。請先載入棋譜。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="57"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="58"/>
         <location filename="../../src/analysis/analysisflowcontroller_dialog.cpp" line="61"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation>內部錯誤：分析模型尚未準備好。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="61"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="62"/>
         <source>内部エラー: Usi インスタンスが未初期化です。</source>
         <translation>內部錯誤：USI 實例尚未初始化。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="224"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="232"/>
         <source>エンジン選択が不正です。</source>
         <translation>引擎選擇無效。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="245"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="253"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>引擎初始化失敗。請檢查引擎設定。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="424"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="423"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎錯誤：%1</translation>
     </message>
@@ -121,44 +121,44 @@
 <context>
     <name>AnalysisSessionHandler</name>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="323"/>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="375"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="321"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="373"/>
         <source>詰み探索</source>
         <translation>搜尋詰棋</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="323"/>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="339"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="321"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="337"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎錯誤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="339"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="337"/>
         <source>検討</source>
         <translation>研究</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="384"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="382"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>找到詰棋（%1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="389"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="387"/>
         <source>詰みなし</source>
         <translation>無詰</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="394"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="392"/>
         <source>（エンジン側）未実装</source>
         <translation>（引擎）尚未實現</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="400"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="398"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>未能在限定時間內判定詰棋</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="408"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="406"/>
         <source>探索が完了しました</source>
         <translation>搜尋完成</translation>
     </message>
@@ -463,19 +463,55 @@
 <context>
     <name>BoardAppearancePreview</name>
     <message>
-        <location filename="../../src/dialogs/boardappearancepreview.cpp" line="14"/>
+        <location filename="../../src/dialogs/boardappearancepreview.cpp" line="16"/>
         <source>選択した組み合わせのプレビュー</source>
         <translation>預覽所選組合</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardappearancepreview.cpp" line="19"/>
+        <source>先手</source>
+        <translation type="vanished">先手</translation>
+    </message>
+    <message>
+        <source>後手</source>
+        <translation type="vanished">後手</translation>
+    </message>
+</context>
+<context>
+    <name>BoardChromeWidget</name>
+    <message>
+        <location filename="../../src/views/boardchromewidget.cpp" line="194"/>
+        <source>手番</source>
+        <translation>行棋方</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/boardchromewidget.cpp" line="323"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardappearancepreview.cpp" line="20"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="323"/>
         <source>後手</source>
         <translation>後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/boardchromewidget.cpp" line="324"/>
+        <source>先手の駒を配置（手番は変更しません）</source>
+        <translation>放置先手棋子（不改變行棋方）</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/boardchromewidget.cpp" line="324"/>
+        <source>後手の駒を配置（手番は変更しません）</source>
+        <translation>放置後手棋子（不改變行棋方）</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/boardchromewidget.cpp" line="399"/>
+        <source>編集終了</source>
+        <translation>結束編輯</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/boardchromewidget.cpp" line="401"/>
+        <source>局面編集を終了し、この局面を開始局面にします</source>
+        <translation>結束局面編輯，並將此局面作為初始局面</translation>
     </message>
 </context>
 <context>
@@ -973,6 +1009,89 @@
     </message>
 </context>
 <context>
+    <name>BoardViewerWidget</name>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="39"/>
+        <source>先手</source>
+        <translation>先手</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="40"/>
+        <source>後手</source>
+        <translation>後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="81"/>
+        <source>縮小</source>
+        <translation>縮小</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="81"/>
+        <source>将棋盤を縮小する</source>
+        <translation>縮小棋盤</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="82"/>
+        <source>拡大</source>
+        <translation>放大</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="82"/>
+        <source>将棋盤を拡大する</source>
+        <translation>放大棋盤</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="83"/>
+        <source>盤面の回転</source>
+        <translation>翻轉棋盤</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="83"/>
+        <source>盤面を回転する</source>
+        <translation>翻轉棋盤</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="108"/>
+        <source>最初</source>
+        <translation>第一局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="108"/>
+        <source>最初の局面に移動</source>
+        <translation>跳到第一局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="109"/>
+        <source>前へ</source>
+        <translation>上一局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="109"/>
+        <source>前の局面に移動</source>
+        <translation>跳到上一局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="110"/>
+        <source>次へ</source>
+        <translation>下一局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="110"/>
+        <source>次の局面に移動</source>
+        <translation>跳到下一局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="111"/>
+        <source>最後</source>
+        <translation>最後局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/boardviewerwidget.cpp" line="111"/>
+        <source>最後の局面に移動</source>
+        <translation>跳到最後局面</translation>
+    </message>
+</context>
+<context>
     <name>BranchTreeEditController</name>
     <message>
         <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="115"/>
@@ -1015,17 +1134,17 @@
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="166"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="162"/>
         <source>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</source>
         <translation>&lt;p&gt;（按兩下展開）&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="469"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="399"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="267"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="253"/>
         <source>開始局面</source>
         <translation>初始局面</translation>
     </message>
@@ -1141,32 +1260,32 @@
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="87"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="82"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>已更新註解（第 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="129"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="124"/>
         <source>手を選択してください</source>
         <translation>請選擇著法</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="148"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="138"/>
         <source>しおりを編集</source>
         <translation>編輯書籤</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="149"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="139"/>
         <source>しおり名（手数: %1）:</source>
         <translation>書籤名稱（第 %1 手）：</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="164"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="154"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>已刪除書籤（第 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="166"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="156"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>已設定書籤（第 %1 手）</translation>
     </message>
@@ -1342,123 +1461,123 @@
 <context>
     <name>ConsiderationTabManager</name>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="67"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="63"/>
         <source>フォントサイズを小さくする</source>
         <translation>縮小字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="76"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="72"/>
         <source>フォントサイズを大きくする</source>
         <translation>放大字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="84"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="80"/>
         <source>検討に使用するエンジンを選択します</source>
         <translation>選擇用於研究的引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="92"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="88"/>
         <source>エンジン設定</source>
         <translation>引擎設定</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="94"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="90"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation>設定所選引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="101"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="97"/>
         <source>時間無制限</source>
         <translation>不限時</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="103"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="99"/>
         <source>時間制限なしで検討します</source>
         <translation>不限時研究</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="108"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="104"/>
         <source>検討時間</source>
         <translation>研究時間</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="110"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="106"/>
         <source>指定した秒数まで検討します</source>
         <translation>研究至指定秒數</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="119"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="115"/>
         <source>検討時間（秒）を指定します</source>
         <translation>設定研究時間（秒）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="124"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="120"/>
         <source>秒まで</source>
         <translation>秒</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="280"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="276"/>
         <source>表示</source>
         <translation>顯示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="361"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="355"/>
         <source>経過: 000:00</source>
         <translation>已用時：000:00</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="207"/>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="227"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="127"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="123"/>
         <source>経過: 0:00</source>
         <translation>已用時：0:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="129"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="125"/>
         <source>検討開始からの経過時間</source>
         <translation>研究開始後的經過時間</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="138"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="134"/>
         <source>候補手の数</source>
         <translation>候選著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="142"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="138"/>
         <source>%1手</source>
         <translation>%1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="145"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="141"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation>指定按評價值從高到低顯示的候選著法數量</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="148"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="144"/>
         <source>矢印表示</source>
         <translation>顯示箭頭</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="150"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="146"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation>在棋盤上顯示最佳著法的箭頭</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="263"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="158"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="372"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="154"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="366"/>
         <source>検討開始</source>
         <translation>開始研究</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="264"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="159"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="155"/>
         <source>検討を開始します</source>
         <translation>開始分析</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="255"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="372"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="366"/>
         <source>検討中止</source>
         <translation>停止</translation>
     </message>
@@ -1594,181 +1713,181 @@
 <context>
     <name>CsaGameCoordinator</name>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="79"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="80"/>
         <source>対局中は新しい対局を開始できません</source>
         <translation>對局中無法開始新對局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="292"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="258"/>
         <source>サーバー %1:%2 に接続中...</source>
         <translation>正在連線到伺服器 %1:%2...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="151"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="185"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="201"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="211"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="136"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="170"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="186"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="196"/>
         <source>相手の手番です</source>
         <translation>對手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="164"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="165"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="149"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="150"/>
         <source>CSA指し手の生成に失敗しました。</source>
         <translation>生成 CSA 著法失敗。</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="216"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="201"/>
         <source>対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります</source>
         <translation>對局條件中沒有入玉宣言規則（Declaration:Jishogi）。宣言可能被判為犯規負</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="232"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="217"/>
         <source>接続完了。ログイン中...</source>
         <translation>已連線。正在登入...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="246"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="231"/>
         <source>サーバーが切断しました。%1秒後に再接続します</source>
         <translation>伺服器已中斷連線。%1 秒後重新連線</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="252"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="237"/>
         <source>サーバーから切断されました</source>
         <translation>已中斷與伺服器的連線</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="264"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="249"/>
         <source>エラー: %1</source>
         <translation>錯誤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="288"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="273"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation>登入成功。正在等待對局...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="298"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="283"/>
         <source>ログイン失敗: %1</source>
         <translation>登入失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="306"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="291"/>
         <source>ログアウト完了</source>
         <translation>已登出</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="184"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="164"/>
         <source>未対応の Format です: %1</source>
         <translation>不支援的 Format：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="188"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="168"/>
         <source>時間無制限の対局はエンジンでは行えません</source>
         <translation>引擎無法進行無時間限制的對局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="196"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="176"/>
         <source>持時間: 無制限</source>
         <translation>持時：無限制</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="205"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="185"/>
         <source>, 遅延: %1秒</source>
         <translation>，延遲：%1 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="206"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="186"/>
         <source>, 最少消費: %1秒</source>
         <translation>，每手最少用時：%1 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="208"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="188"/>
         <source>先手の</source>
         <translation>先手的</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="208"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="188"/>
         <source>後手の</source>
         <translation>後手的</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="214"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="194"/>
         <source>最大手数: %1手</source>
         <translation>最大手數：%1 手</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="217"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="197"/>
         <source>入玉宣言ルール: %1</source>
         <translation>入玉宣言規則：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="218"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="198"/>
         <source>入玉宣言ルール: なし</source>
         <translation>入玉宣言規則：無</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="220"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="200"/>
         <source>未知のプロトコルバージョンです: %1</source>
         <translation>未知的通訊協定版本：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="223"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="203"/>
         <source>Protocol_Mode が Server ではありません: %1</source>
         <translation>Protocol_Mode 不是 Server：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="234"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="213"/>
         <source>対局条件を受信しました</source>
         <translation>已收到對局條件</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="235"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="214"/>
         <source>先手: %1, 後手: %2</source>
         <translation>先手：%1，後手：%2</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="299"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="265"/>
         <source>予定の対局数（%1局）を終えたのでログアウトします</source>
         <translation>已完成預定的 %1 局對局，正在登出</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="304"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="270"/>
         <source>%1/%2局</source>
         <translation>第 %1/%2 局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="305"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="271"/>
         <source>%1局目まで終了</source>
         <translation>已完成 %1 局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="307"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="273"/>
         <source>次の対局条件を待ちます（%1）</source>
         <translation>等待下一局的對局條件（%1）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="315"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="281"/>
         <source>次の対局のために再接続します（%1局目まで終了）</source>
         <translation>為下一局重新連線（已完成 %1 局）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="201"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="181"/>
         <source>持時間: %1秒, 秒読み: %2秒, 加算: %3秒</source>
         <translation>持時：%1 秒，讀秒：%2 秒，加時：%3 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="241"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="220"/>
         <source>予定の対局数を終えているので、対局条件を拒否します</source>
         <translation>預定的對局已完成，拒絕對局條件</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="250"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="229"/>
         <source>対局条件を拒否します: %1</source>
         <translation>拒絕對局條件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="469"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="446"/>
         <source>エンジンが入玉宣言を選択しました</source>
         <translation>引擎選擇入玉宣言</translation>
     </message>
@@ -1777,42 +1896,42 @@
         <translation type="vanished">持時：%1 秒，讀秒：%2 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="262"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="241"/>
         <source>対局条件に同意します...</source>
         <translation>正在同意對局條件...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="314"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="299"/>
         <source>対局開始！</source>
         <translation>對局開始！</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="338"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="322"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation>對局被拒絕（ID：%1，拒絕方：%2）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="401"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="374"/>
         <source>対局終了: %1 (%2)</source>
         <translation>對局結束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="430"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="407"/>
         <source>対局が中断されました</source>
         <translation>對局已中斷</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="435"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="412"/>
         <source>[RECV] %1</source>
         <translation>[接收] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="441"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="418"/>
         <source>[SEND] %1</source>
         <translation>[傳送] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="460"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="437"/>
         <source>エンジンが投了を選択しました</source>
         <translation>引擎選擇認輸</translation>
     </message>
@@ -1825,6 +1944,102 @@
         <location filename="../../src/network/csagamecoordinator_setup.cpp" line="84"/>
         <source>サーバーから受信した初期局面データが不正です: %1</source>
         <translation>伺服器傳送了無效的初始局面資料：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="22"/>
+        <source>サーバーの裁定を待ちます</source>
+        <translation>等待伺服器的裁定</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="51"/>
+        <source>サーバーの裁定が届きませんでした</source>
+        <translation>未收到伺服器的裁定</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="59"/>
+        <source>不正な形式の指し手を受信しました: %1</source>
+        <translation>收到格式無效的著法：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="75"/>
+        <source>不正な座標の指し手を受信しました: %1</source>
+        <translation>收到座標無效的著法：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="156"/>
+        <source>相手の指し手: %1 (消費時間: %2ms)</source>
+        <translation>對手著法：%1（用時：%2 毫秒）</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="164"/>
+        <source>サーバーからの指し手を解釈できません: %1</source>
+        <translation>無法解析來自伺服器的著法：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="173"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="289"/>
+        <source>指し手の適用に失敗しました: %1</source>
+        <translation>套用著法失敗：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="174"/>
+        <source>サーバーからの指し手を盤面に適用できません: %1</source>
+        <translation>無法將伺服器著法套用到棋盤：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="196"/>
+        <source>指し手確認: %1 (消費時間: %2ms)</source>
+        <translation>著法已確認：%1（用時：%2 毫秒）</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="204"/>
+        <source>サーバーからの指し手確認を解釈できません: %1</source>
+        <translation>無法解析來自伺服器的著法確認：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="213"/>
+        <source>指し手確認の変換に失敗しました: %1</source>
+        <translation>轉換著法確認失敗：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="214"/>
+        <source>サーバーからの指し手確認を変換できません: %1</source>
+        <translation>無法轉換伺服器的著法確認：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="249"/>
+        <source>エンジンが思考中...</source>
+        <translation>引擎思考中...</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="262"/>
+        <source>エンジンが投了しました</source>
+        <translation>引擎認輸</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="268"/>
+        <source>エンジンが有効な指し手を返しませんでした</source>
+        <translation>引擎未傳回有效著法</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="274"/>
+        <source>盤面が取得できませんでした</source>
+        <translation>無法取得棋盤狀態</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="282"/>
+        <source>指し手の駒種変換に失敗しました</source>
+        <translation>轉換移動棋子種類失敗</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="286"/>
+        <source>CSA形式の指し手: %1</source>
+        <translation>CSA 格式著法：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="290"/>
+        <source>エンジンの指し手を盤面に適用できません: %1</source>
+        <translation>無法將引擎的著法套用到棋盤：%1</translation>
     </message>
 </context>
 <context>
@@ -2265,22 +2480,20 @@
 <context>
     <name>CsaGameWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="148"/>
         <source>=== 開始局面 ===</source>
-        <translation>=== 初始局面 ===</translation>
+        <translation type="vanished">=== 初始局面 ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="149"/>
         <source>（１手 / 合計）</source>
-        <translation>（每手／累計）</translation>
+        <translation type="vanished">（每手／累計）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="188"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="231"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA 網路對局開始：%1 對 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="251"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="246"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -2291,22 +2504,22 @@
 原因：%2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="259"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="246"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="263"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="247"/>
         <source>対局終了: %1 (%2)</source>
         <translation>對局結束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="254"/>
         <source>先手番</source>
         <translation>先手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="254"/>
         <source>後手番</source>
         <translation>後手行棋</translation>
     </message>
@@ -2343,22 +2556,22 @@
         <translation type="vanished">初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="394"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="197"/>
         <source>通信対局をキャンセルしました</source>
         <translation>網路對局已取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="78"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="75"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
         <translation>無法建立自動儲存資料夾：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="100"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="97"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>已自動儲存棋譜：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="102"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="99"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>自動儲存棋譜失敗：%1</translation>
     </message>
@@ -2514,43 +2727,36 @@
 <context>
     <name>CsaMoveProgressHandler</name>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="153"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
-        <translation>對手著法：%1（用時：%2 毫秒）</translation>
+        <translation type="vanished">對手著法：%1（用時：%2 毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="76"/>
         <source>不正な形式の指し手を受信しました: %1</source>
-        <translation>收到格式無效的著法：%1</translation>
+        <translation type="vanished">收到格式無效的著法：%1</translation>
     </message>
     <message>
         <source>サーバーからの指し手形式が不正です: %1</source>
         <translation type="vanished">伺服器著法格式無效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="95"/>
         <source>不正な座標の指し手を受信しました: %1</source>
-        <translation>收到座標無效的著法：%1</translation>
+        <translation type="vanished">收到座標無效的著法：%1</translation>
     </message>
     <message>
         <source>サーバーからの指し手の座標が不正です: %1</source>
         <translation type="vanished">伺服器著法座標無效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="174"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="356"/>
         <source>指し手の適用に失敗しました: %1</source>
-        <translation>套用著法失敗：%1</translation>
+        <translation type="vanished">套用著法失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="175"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
-        <translation>無法將伺服器著法套用到棋盤：%1</translation>
+        <translation type="vanished">無法將伺服器著法套用到棋盤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="211"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
-        <translation>著法已確認：%1（用時：%2 毫秒）</translation>
+        <translation type="vanished">著法已確認：%1（用時：%2 毫秒）</translation>
     </message>
     <message>
         <source>不正な形式の指し手確認を受信しました: %1</source>
@@ -2569,73 +2775,60 @@
         <translation type="vanished">伺服器著法確認座標無效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="39"/>
         <source>サーバーの裁定を待ちます</source>
-        <translation>等待伺服器的裁定</translation>
+        <translation type="vanished">等待伺服器的裁定</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="68"/>
         <source>サーバーの裁定が届きませんでした</source>
-        <translation>未收到伺服器的裁定</translation>
+        <translation type="vanished">未收到伺服器的裁定</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="161"/>
         <source>サーバーからの指し手を解釈できません: %1</source>
-        <translation>無法解析來自伺服器的著法：%1</translation>
+        <translation type="vanished">無法解析來自伺服器的著法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="219"/>
         <source>サーバーからの指し手確認を解釈できません: %1</source>
-        <translation>無法解析來自伺服器的著法確認：%1</translation>
+        <translation type="vanished">無法解析來自伺服器的著法確認：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="233"/>
         <source>指し手確認の変換に失敗しました: %1</source>
-        <translation>轉換著法確認失敗：%1</translation>
+        <translation type="vanished">轉換著法確認失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="234"/>
         <source>サーバーからの指し手確認を変換できません: %1</source>
-        <translation>無法轉換伺服器的著法確認：%1</translation>
+        <translation type="vanished">無法轉換伺服器的著法確認：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="311"/>
         <source>エンジンが思考中...</source>
-        <translation>引擎思考中...</translation>
+        <translation type="vanished">引擎思考中...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="325"/>
         <source>エンジンが投了しました</source>
-        <translation>引擎認輸</translation>
+        <translation type="vanished">引擎認輸</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="332"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
-        <translation>引擎未傳回有效著法</translation>
+        <translation type="vanished">引擎未傳回有效著法</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="340"/>
         <source>盤面が取得できませんでした</source>
-        <translation>無法取得棋盤狀態</translation>
+        <translation type="vanished">無法取得棋盤狀態</translation>
     </message>
     <message>
         <source>駒打ちの駒種変換に失敗しました</source>
         <translation type="vanished">轉換打入棋子種類失敗</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="348"/>
         <source>指し手の駒種変換に失敗しました</source>
-        <translation>轉換移動棋子種類失敗</translation>
+        <translation type="vanished">轉換移動棋子種類失敗</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="352"/>
         <source>CSA形式の指し手: %1</source>
-        <translation>CSA 格式著法：%1</translation>
+        <translation type="vanished">CSA 格式著法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="357"/>
         <source>エンジンの指し手を盤面に適用できません: %1</source>
-        <translation>無法將引擎的著法套用到棋盤：%1</translation>
+        <translation type="vanished">無法將引擎的著法套用到棋盤：%1</translation>
     </message>
 </context>
 <context>
@@ -2772,12 +2965,12 @@
 <context>
     <name>DialogUtils</name>
     <message>
-        <location filename="../../src/common/dialogutils.cpp" line="48"/>
+        <location filename="../../src/common/dialogutils.cpp" line="72"/>
         <source>文字を小さくする</source>
         <translation>縮小字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/common/dialogutils.cpp" line="49"/>
+        <location filename="../../src/common/dialogutils.cpp" line="73"/>
         <source>文字を大きくする</source>
         <translation>放大字型大小</translation>
     </message>
@@ -3225,17 +3418,17 @@
         <translation type="vanished">此引擎已註冊。請先刪除現有註冊。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="277"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="276"/>
         <source>USI_Hash option added.</source>
         <translation>已新增 USI_Hash 選項。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="291"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="290"/>
         <source>オプション行の形式が無効です。</source>
         <translation>選項行格式無效。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="310"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="309"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation>發現重複的引擎選項。</translation>
     </message>
@@ -3243,32 +3436,32 @@
 <context>
     <name>EngineRegistrationWorker</name>
     <message>
-        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="91"/>
+        <location filename="../../src/engine/engineregistrationworker.cpp" line="91"/>
         <source>エンジンファイルが見つかりません: %1</source>
         <translation>找不到引擎檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="100"/>
+        <location filename="../../src/engine/engineregistrationworker.cpp" line="100"/>
         <source>エンジンを起動中...</source>
         <translation>正在啟動引擎...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="109"/>
+        <location filename="../../src/engine/engineregistrationworker.cpp" line="109"/>
         <source>エンジンの起動に失敗しました: %1</source>
         <translation>啟動引擎失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="113"/>
+        <location filename="../../src/engine/engineregistrationworker.cpp" line="113"/>
         <source>USI通信中...</source>
         <translation>正在進行 USI 通訊...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="160"/>
+        <location filename="../../src/engine/engineregistrationworker.cpp" line="160"/>
         <source>エンジン名(id name)を取得できませんでした</source>
         <translation>無法取得引擎名稱 (id name)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="173"/>
+        <location filename="../../src/engine/engineregistrationworker.cpp" line="173"/>
         <source>エンジンからの応答がタイムアウトしました</source>
         <translation>引擎回應逾時</translation>
     </message>
@@ -3539,68 +3732,68 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameEndHandler</name>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="93"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="92"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="93"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="92"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="94"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="93"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="94"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="93"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="101"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="100"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1認輸。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="103"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="102"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1超時。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="105"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="104"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>已達到最大手數。持將棋（和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="107"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="106"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1作出入玉宣言。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="109"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="108"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1犯規。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="111"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="110"/>
         <source>千日手が成立しました。</source>
         <translation>千日手成立（重複局面和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="113"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="112"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1連續王手千日手。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="116"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="115"/>
         <source>対局が終了しました。</source>
         <translation>對局已結束。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler.cpp" line="156"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="124"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="141"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="123"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
     </message>
@@ -3778,13 +3971,13 @@ ABC abc 0123456789</translation>
 請透過「編輯 → 開始編輯局面」修正。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="261"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="267"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="265"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="271"/>
         <source>=== 開始局面 ===</source>
         <translation>=== 初始局面 ===</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="267"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="271"/>
         <source>（１手 / 合計）</source>
         <translation>（每手／累計）</translation>
     </message>
@@ -3945,7 +4138,7 @@ ABC abc 0123456789</translation>
         <translation>還需 %1 點</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="223"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="222"/>
         <source>%1 pt</source>
         <translation>%1 點</translation>
     </message>
@@ -4202,7 +4395,7 @@ ABC abc 0123456789</translation>
         <translation>著法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="354"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="339"/>
         <source>定跡手: %1</source>
         <translation>定跡著法：%1</translation>
     </message>
@@ -4275,7 +4468,7 @@ ABC abc 0123456789</translation>
 <context>
     <name>JosekiPresenter</name>
     <message>
-        <location filename="../../src/dialogs/josekipresenter.cpp" line="35"/>
+        <location filename="../../src/kifu/josekipresenter.cpp" line="49"/>
         <source>なし</source>
         <translation>無</translation>
     </message>
@@ -4283,12 +4476,12 @@ ABC abc 0123456789</translation>
 <context>
     <name>JosekiRepository</name>
     <message>
-        <location filename="../../src/dialogs/josekirepository.cpp" line="160"/>
+        <location filename="../../src/kifu/josekirepository.cpp" line="160"/>
         <source>ファイルを開けませんでした: %1</source>
         <translation>無法開啟檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekirepository.cpp" line="259"/>
+        <location filename="../../src/kifu/josekirepository.cpp" line="259"/>
         <source>このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。
 ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。
 
@@ -4299,7 +4492,7 @@ ABC abc 0123456789</translation>
 檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekirepository.cpp" line="267"/>
+        <location filename="../../src/kifu/josekirepository.cpp" line="267"/>
         <source>定跡ファイルにSFEN行が見つかりませんでした。
 
 やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。
@@ -4312,7 +4505,7 @@ YaneuraOu 定跡格式需要以「sfen 」開頭的局面行。
 檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekirepository.cpp" line="275"/>
+        <location filename="../../src/kifu/josekirepository.cpp" line="275"/>
         <source>定跡ファイルに有効な指し手行が見つかりませんでした。
 
 やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド
@@ -4327,13 +4520,13 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
 檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekirepository.cpp" line="308"/>
-        <location filename="../../src/dialogs/josekirepository.cpp" line="358"/>
+        <location filename="../../src/kifu/josekirepository.cpp" line="308"/>
+        <location filename="../../src/kifu/josekirepository.cpp" line="358"/>
         <source>ファイルを保存できませんでした: %1</source>
         <translation>無法儲存檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekirepository.cpp" line="352"/>
+        <location filename="../../src/kifu/josekirepository.cpp" line="352"/>
         <source>ファイル書き込み中にエラーが発生しました: %1</source>
         <translation>寫入檔案時發生錯誤：%1</translation>
     </message>
@@ -4341,69 +4534,69 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
 <context>
     <name>JosekiWindow</name>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="58"/>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="111"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="88"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="520"/>
         <source>定跡ウィンドウ</source>
         <translation>定跡視窗</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="73"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="102"/>
         <source>ファイル</source>
         <translation>檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="78"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="103"/>
         <source>新規</source>
         <translation>新建</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="79"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="103"/>
         <source>新しい空の定跡ファイルを作成</source>
         <translation>建立空白定跡檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="84"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="105"/>
         <source>開く</source>
         <translation>開啟</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="85"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="105"/>
         <source>定跡ファイル(.db)を開く</source>
         <translation>開啟定跡檔案 (.db)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="90"/>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="150"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="241"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="107"/>
         <source>保存</source>
         <translation>儲存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="91"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="107"/>
         <source>現在のファイルに上書き保存</source>
         <translation>儲存到目前檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="97"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="110"/>
         <source>別名保存</source>
         <translation>另存為</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="98"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="110"/>
         <source>別の名前で保存</source>
         <translation>以新名稱儲存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="103"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="112"/>
         <source>履歴</source>
         <translation>歷史記錄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="104"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="112"/>
         <source>最近使ったファイルを開く</source>
         <translation>開啟最近使用的檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="113"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="122"/>
         <source>表示</source>
         <translation>顯示</translation>
     </message>
@@ -4413,274 +4606,272 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="125"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="124"/>
         <source>フォントサイズを拡大</source>
         <translation>放大字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="260"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="237"/>
         <source>※ 追加・編集・削除後は「保存」ボタンで定跡ファイルに保存してください</source>
         <translation>新增、編輯或刪除著法後，請按一下「儲存」以儲存定跡檔案。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="118"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="123"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="119"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="123"/>
         <source>フォントサイズを縮小</source>
         <translation>縮小字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="130"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="125"/>
         <source>自動読込</source>
         <translation>自動載入</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="131"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="126"/>
         <source>定跡ウィンドウ表示時に前回のファイルを自動で読み込む</source>
         <translation>開啟定跡視窗時自動載入上次的檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="137"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="135"/>
         <source>操作</source>
         <translation>操作</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="142"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="136"/>
         <source>＋追加</source>
         <translation>＋新增</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="143"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="136"/>
         <source>現在の局面に定跡手を追加</source>
         <translation>為目前局面新增定跡著法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="148"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="138"/>
         <source>マージ ▼</source>
         <translation>合併 ▼</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="149"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="139"/>
         <source>棋譜から定跡をマージ</source>
         <translation>將棋譜合併到定跡庫</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="157"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="146"/>
         <source>現在の棋譜から</source>
         <translation>從目前棋譜</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="158"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="147"/>
         <source>棋譜ファイルから</source>
         <translation>從棋譜檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="397"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="162"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="313"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="149"/>
         <source>■ 停止</source>
         <translation>■ 停止</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="163"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="149"/>
         <source>定跡表示を停止/再開</source>
         <translation>停止／恢復定跡顯示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="171"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="159"/>
         <source>ファイル:</source>
         <translation>檔案：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="172"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="160"/>
         <source>未選択</source>
         <translation>未選擇</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="184"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="172"/>
         <source>局面:</source>
         <translation>局面：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="221"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="185"/>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="81"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="103"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="173"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="499"/>
         <source>(未設定)</source>
         <translation>（未設定）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="188"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="176"/>
         <source>詳細</source>
         <translation>詳細</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="189"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="177"/>
         <source>SFENの詳細を表示/非表示</source>
         <translation>顯示／隱藏 SFEN 詳情</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="220"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="205"/>
         <source>No.</source>
         <translation>序號</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="220"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="265"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="436"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="205"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="242"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="398"/>
         <source>着手</source>
         <translation>執行</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="220"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="205"/>
         <source>定跡手</source>
         <translation>定跡著法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="220"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="205"/>
         <source>予想応手</source>
         <translation>預期應手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="220"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="437"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="205"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="399"/>
         <source>編集</source>
         <translation>編輯</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="221"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="268"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="438"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="206"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="245"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="400"/>
         <source>削除</source>
         <translation>刪除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="221"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="206"/>
         <source>評価値</source>
         <translation>評價值</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="221"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="206"/>
         <source>深さ</source>
         <translation>深度</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="221"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="206"/>
         <source>出現頻度</source>
         <translation>次數</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="221"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="206"/>
         <source>コメント</source>
         <translation>註解</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="267"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="244"/>
         <source>編集...</source>
         <translation>編輯...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="270"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="247"/>
         <source>指し手をコピー</source>
         <translation>複製著法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="363"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="327"/>
         <source> (未読込)</source>
         <translation>（未載入）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="142"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="233"/>
         <source>処理中</source>
         <translation>處理中</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="142"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="233"/>
         <source>ファイルの読み込み/保存が完了するまでお待ちください。</source>
         <translation>請等待檔案載入或儲存完成。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="109"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="46"/>
         <source>定跡ファイルを開く</source>
         <translation>開啟定跡檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="110"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="35"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="77"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="27"/>
         <source>定跡ファイル (*.db);;すべてのファイル (*)</source>
         <translation>定跡檔案 (*.db);;所有檔案 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="199"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="24"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="144"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="188"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="66"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="101"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="112"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="116"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="152"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="169"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="180"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="49"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="87"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="98"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="411"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="373"/>
         <source>定跡: (該当なし)</source>
         <translation>定跡：（無符合）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="409"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="371"/>
         <source>定跡SFEN: %1</source>
         <translation>定跡 SFEN：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="439"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="401"/>
         <source>ダブルクリックで着手</source>
         <translation>按兩下執行著法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="400"/>
-        <location filename="../../src/dialogs/josekiwindowui.cpp" line="354"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="313"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="319"/>
         <source>▶ 再開</source>
         <translation>▶ 恢復</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="35"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="466"/>
         <source>✓読込済</source>
         <translation>✓已載入</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="48"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="476"/>
         <source>ファイル: %1</source>
         <translation>檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="50"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="476"/>
         <source>ファイル: 未選択</source>
         <translation>檔案：未選擇</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="51"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="477"/>
         <source>局面数: %1</source>
         <translation>局面數：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="53"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="478"/>
         <source>【停止中】</source>
         <translation>[已停止]</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="55"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="478"/>
         <source>定跡: %1件</source>
         <translation>定跡：%1 條</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="416"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="134"/>
         <source>着手エラー</source>
         <translation>著法錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="417"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="135"/>
         <source>定跡手「%1」を指すことができませんでした。
 
 この定跡手は現在の局面では合法手ではない可能性があります。
@@ -4691,28 +4882,29 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
 定跡資料可能存在錯誤。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="121"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="55"/>
         <source>新規ファイル（未保存）</source>
         <translation>新檔案（未儲存）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="34"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="263"/>
         <source>定跡ファイルを保存</source>
         <translation>儲存定跡</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="125"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="226"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="226"/>
         <source>定跡</source>
         <translation>定跡</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="32"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="463"/>
         <source>未保存</source>
         <translation>未儲存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="355"/>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="147"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="233"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="238"/>
         <source>確認</source>
         <translation>確認</translation>
     </message>
@@ -4723,188 +4915,183 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
 放棄修改嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="151"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="242"/>
         <source>破棄</source>
         <translation>放棄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="152"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="243"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="158"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="84"/>
         <source>（履歴なし）</source>
         <translation>（無歷史記錄）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="169"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="94"/>
         <source>履歴をクリア</source>
         <translation>清除歷史記錄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="184"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="104"/>
         <source>最近使ったファイル履歴をクリアしました</source>
         <translation>已清除最近使用的檔案歷史</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="199"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="116"/>
         <source>ファイルが見つかりません: %1</source>
         <translation>找不到檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="299"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="197"/>
         <source>削除する</source>
         <translation>刪除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="332"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="215"/>
         <source>定跡手追加</source>
         <translation>新增定跡著法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="333"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="216"/>
         <source>局面が設定されていません。
 将棋盤で局面を表示してから定跡手を追加してください。</source>
         <translation>尚未設定局面。
 請先在棋盤上顯示局面，再新增定跡著法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="356"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="234"/>
         <source>指し手「%1」は既に登録されています。
 上書きしますか？</source>
         <translation>著法「%1」已註冊。
 覆寫嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="358"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="236"/>
         <source>上書きする</source>
         <translation>覆寫</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="432"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="458"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="150"/>
         <source>定跡手は、対局中の自分の手番か、対局していないときに指せます。</source>
         <translation>定跡著法可在對局中輪到自己時，或不在對局中時執行。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="298"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="196"/>
         <source>削除確認</source>
         <translation>確認刪除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="299"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="197"/>
         <source>定跡手「%1」を削除しますか？</source>
         <translation>刪除定跡著法「%1」嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="70"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="271"/>
         <source>保存先の指定</source>
         <translation>指定儲存位置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="71"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="272"/>
         <source>定跡ファイルの保存先が設定されていません。
 OKを選択すると保存先が指定できます。</source>
         <translation>尚未設定定跡儲存位置。
 請選擇「確定」以指定儲存位置。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="76"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="277"/>
         <source>定跡ファイルの保存先を指定</source>
         <translation>指定定跡儲存位置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="130"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="136"/>
         <source>読み込み中...</source>
         <translation>正在載入...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="170"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="144"/>
         <source>保存中...</source>
         <translation>正在儲存...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="432"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="458"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="30"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="35"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="64"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="70"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="150"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="27"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="47"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="58"/>
         <source>情報</source>
         <translation>資訊</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="30"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="64"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="27"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="47"/>
         <source>棋譜に指し手がありません。</source>
         <translation>棋譜中沒有著法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="35"/>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="70"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="58"/>
         <source>登録可能な指し手がありません。</source>
         <translation>沒有可註冊的著法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="56"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="39"/>
         <source>棋譜ファイルを選択</source>
         <translation>選擇棋譜檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="57"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="40"/>
         <source>KIF形式 (*.kif *.kifu);;すべてのファイル (*)</source>
         <translation>KIF 檔案 (*.kif *.kifu);;所有檔案 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="66"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="49"/>
         <source>棋譜ファイルの読み込みに失敗しました。
 %1</source>
         <translation>載入棋譜檔案失敗。
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="78"/>
+        <location filename="../../src/dialogs/josekiwindowmerge.cpp" line="52"/>
         <source>棋譜から定跡にマージ - %1</source>
         <translation>將棋譜合併到定跡庫 - %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="61"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="483"/>
         <source>定跡表示を停止しています。「再開」で表示を再開します。</source>
         <translation>定跡顯示已暫停。按一下「恢復」重新顯示定跡著法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="63"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="485"/>
         <source>将棋盤で局面を表示すると、その局面の定跡を確認できます。</source>
         <translation>在棋盤上顯示局面，即可查看其定跡著法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="65"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="487"/>
         <source>「開く」で定跡ファイルを読み込むと、表示中の局面の定跡手が表示されます。
 「新規」で新しい定跡ファイルを作ることもできます。</source>
         <translation>按一下「開啟」讀取定跡檔案後，會顯示目前局面的定跡著法。
 也可以按一下「新建」建立新的定跡檔案。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="68"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="490"/>
         <source>この局面には定跡が登録されていません。
 「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。</source>
         <translation>此局面沒有定跡著法。
 可透過「新增」輸入著法，或透過「合併」匯入棋譜。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="87"/>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="89"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="504"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="89"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="504"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="99"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="508"/>
         <source>初期配置</source>
         <translation>初始局面</translation>
     </message>
@@ -4913,22 +5100,22 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">讓子</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="103"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="512"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="104"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="513"/>
         <source>%1 (%2番)</source>
         <translation>%1（%2行棋）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="106"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="515"/>
         <source>局面SFEN: %1</source>
         <translation>局面 SFEN：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="148"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="239"/>
         <source>定跡データに未保存の変更があります。
 保存しますか？</source>
         <translation>定跡資料有尚未儲存的修改。
@@ -4939,7 +5126,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">目前輪到引擎行棋，無法執行著法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="473"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="287"/>
         <source>「%1」をコピーしました</source>
         <translation>已複製「%1」</translation>
     </message>
@@ -5206,7 +5393,7 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/kifu/kifuapplyservice.cpp" line="118"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="137"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="170"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>解析 BOD 格式失敗。%1</translation>
     </message>
@@ -5240,110 +5427,110 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuExportClipboard</name>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="148"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="145"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>複製到剪貼簿失敗</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="157"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="165"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="153"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="161"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>沒有 KIF 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="162"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="158"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 KIF 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="174"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="182"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="169"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="177"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>沒有 KI2 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="179"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="174"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 KI2 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="196"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="190"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>沒有 CSA 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="200"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="194"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
         <translation>已將 CSA 格式棋譜複製到剪貼簿（CSA 格式不支援變化，僅包含主線）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="201"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="195"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 CSA 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="214"/>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="250"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="207"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="242"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>沒有 USI 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="218"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="211"/>
         <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
         <translation>已將 USI 格式棋譜複製到剪貼簿（USI 格式不支援變化，僅包含主線）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="219"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="212"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 USI 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="254"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="246"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>已將截至目前著法的 USI 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="267"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="258"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>沒有 JKF 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="271"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="262"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 JKF 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="284"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="274"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>沒有 USEN 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="288"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="278"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 USEN 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="297"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="286"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>沒有 SFEN 格式局面資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="302"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="291"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>已將 SFEN 格式局面複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="311"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="299"/>
         <source>BOD形式の局面データがありません</source>
         <translation>沒有 BOD 格式局面資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="317"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="305"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>解析 SFEN 格式失敗</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="322"/>
+        <location filename="../../src/kifu/kifuexportclipboard.cpp" line="310"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>已將 BOD 格式局面複製到剪貼簿</translation>
     </message>
@@ -5351,50 +5538,50 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuExportController</name>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="110"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="208"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="209"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="95"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="192"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="193"/>
         <source>棋譜データがありません</source>
         <translation>沒有棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="148"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="133"/>
         <source>棋譜を保存しました: %1</source>
         <translation>棋譜已儲存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="220"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="204"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>棋譜已覆寫儲存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="140"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="160"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="125"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="145"/>
         <source>KIF Save Error</source>
         <translation>KIF 儲存錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="260"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="242"/>
         <source>自動保存先ディレクトリが指定されていません</source>
         <translation>未指定自動儲存目錄</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="265"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="247"/>
         <source>棋譜データがありません（自動保存をスキップ）</source>
         <translation>沒有棋譜資料（跳過自動儲存）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="272"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="254"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation>棋譜資料為空，已跳過自動儲存</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="292"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="274"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>棋譜已自動儲存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="298"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="280"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>自動儲存棋譜失敗：%1</translation>
     </message>
@@ -5420,32 +5607,32 @@ OKを選択すると保存先が指定できます。</source>
         <translation>棋譜檔案 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;KIF 檔案 (*.kif *.kifu);;KI2 檔案 (*.ki2 *.ki2u);;CSA 檔案 (*.csa);;JKF 檔案 (*.jkf *.json);;USI/SFEN 檔案 (*.usi *.sfen);;USEN 檔案 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="145"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="137"/>
         <source>棋譜を読み込み中...</source>
         <translation>正在載入棋譜...</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="145"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="137"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="167"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="159"/>
         <source>棋譜を取り込みました</source>
         <translation>棋譜已匯入</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="188"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="180"/>
         <source>局面を反映しました</source>
         <translation>局面已套用</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="190"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="182"/>
         <source>局面の反映に失敗しました</source>
         <translation>套用局面失敗</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="195"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="187"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>套用局面失敗（內部錯誤）</translation>
     </message>
@@ -5453,9 +5640,15 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuLoadCoordinator</name>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="77"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="45"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="110"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>載入棋譜檔案失敗：%1%2</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="109"/>
+        <source>棋譜の読み込みに失敗しました。%1</source>
+        <translation>載入棋譜失敗。%1</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="136"/>
@@ -5465,14 +5658,13 @@ OKを選択すると保存先が指定できます。</source>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="124"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="157"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>要貼上的文字為空。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="142"/>
         <source>一時ファイルの作成に失敗しました。</source>
-        <translation>建立暫存檔案失敗。</translation>
+        <translation type="vanished">建立暫存檔案失敗。</translation>
     </message>
 </context>
 <context>
@@ -5555,7 +5747,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifupastedialog.cpp" line="255"/>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="243"/>
         <source>%1 pt</source>
         <translation>%1 點</translation>
     </message>
@@ -6515,14 +6707,14 @@ OKを選択すると保存先が指定できます。</source>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="71"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="109"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="67"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="105"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="72"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="110"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="68"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="106"/>
         <source>盤面データがありません。</source>
         <translation>沒有棋盤資料。</translation>
     </message>
@@ -6785,13 +6977,13 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="94"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="90"/>
         <source>入玉宣言確認</source>
         <translation>確認入玉宣言</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="94"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="95"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="91"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -6803,7 +6995,7 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="97"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="99"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="95"/>
         <source>宣言する</source>
         <translation>宣言</translation>
     </message>
@@ -7053,22 +7245,22 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PlayerInfoWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="70"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="74"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="71"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="75"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="321"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="325"/>
         <source>無制限</source>
         <translation>不限時</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="322"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="326"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>對局：▲%1 △%2（%3 開始，用時 %4）</translation>
     </message>
@@ -7132,80 +7324,68 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PvBoardDialog</name>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="37"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="33"/>
         <source>読み筋表示</source>
         <translation>主要變化顯示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="86"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="178"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="73"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="87"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="179"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="74"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="140"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="141"/>
         <source>将棋盤を縮小する</source>
-        <translation>縮小棋盤</translation>
+        <translation type="vanished">縮小棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="147"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="148"/>
         <source>将棋盤を拡大する</source>
-        <translation>放大棋盤</translation>
+        <translation type="vanished">放大棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="153"/>
         <source>盤面の回転</source>
-        <translation>翻轉棋盤</translation>
+        <translation type="vanished">翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="154"/>
         <source>盤面を回転する</source>
-        <translation>翻轉棋盤</translation>
+        <translation type="vanished">翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="205"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="206"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="116"/>
         <source>最初の局面に戻る</source>
         <translation>跳到初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="213"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="214"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="116"/>
         <source>1手戻る</source>
         <translation>後退一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="221"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="222"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="116"/>
         <source>1手進む</source>
         <translation>前進一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="229"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="230"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="116"/>
         <source>最後の局面まで進む</source>
         <translation>跳到最終局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="238"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="122"/>
         <source>閉じる</source>
         <translation>關閉</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="277"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="143"/>
         <source>手数: %1 / %2</source>
         <translation>手數：%1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="279"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="145"/>
         <source> (開始局面)</source>
         <translation>（初始局面）</translation>
     </message>
@@ -7213,20 +7393,20 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PvClickController</name>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="310"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="315"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="320"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="324"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="330"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="271"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="276"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="281"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="285"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="291"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="311"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="316"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="321"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="325"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="331"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="272"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="277"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="282"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="286"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="292"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
@@ -7822,12 +8002,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>（每手／累計）</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchturnhandler.cpp" line="225"/>
+        <location filename="../../src/game/matchturnhandler.cpp" line="224"/>
         <source>対局中断</source>
         <translation>對局已中斷</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchturnhandler.cpp" line="226"/>
+        <location filename="../../src/game/matchturnhandler.cpp" line="225"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎錯誤：%1</translation>
     </message>
@@ -7945,13 +8125,13 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>RecordPaneWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="55"/>
-        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="58"/>
+        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="49"/>
+        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="52"/>
         <source>=== 開始局面 ===</source>
         <translation>=== 初始局面 ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="59"/>
+        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="53"/>
         <source>（１手 / 合計）</source>
         <translation>（每手／累計）</translation>
     </message>
@@ -7999,160 +8179,144 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>SfenCollectionDialog</name>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="32"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="29"/>
         <source>局面集ビューア</source>
         <translation>SFEN 局面集檢視器</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="75"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="66"/>
         <source>ファイルを開く</source>
         <translation>開啟檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="76"/>
-        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="63"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="67"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="65"/>
         <source>SFEN局面集ファイルを開く</source>
         <translation>開啟 SFEN 局面集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="82"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="73"/>
         <source>履歴</source>
         <translation>歷史記錄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="83"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="74"/>
         <source>最近使ったファイルを開く</source>
         <translation>開啟最近使用的檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="91"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="82"/>
         <source>「ファイルを開く」から局面集を選んでください。</source>
         <translation>選擇「開啟檔案」載入局面集。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="105"/>
         <source>縮小</source>
-        <translation>縮小</translation>
+        <translation type="vanished">縮小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="106"/>
         <source>将棋盤を縮小する</source>
-        <translation>縮小棋盤</translation>
+        <translation type="vanished">縮小棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="112"/>
         <source>拡大</source>
-        <translation>放大</translation>
+        <translation type="vanished">放大</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="113"/>
         <source>将棋盤を拡大する</source>
-        <translation>放大棋盤</translation>
+        <translation type="vanished">放大棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="119"/>
         <source>盤面の回転</source>
-        <translation>翻轉棋盤</translation>
+        <translation type="vanished">翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="120"/>
         <source>盤面を回転する</source>
-        <translation>翻轉棋盤</translation>
+        <translation type="vanished">翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="141"/>
         <source>先手</source>
-        <translation>先手</translation>
+        <translation type="vanished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="142"/>
         <source>後手</source>
-        <translation>後手</translation>
+        <translation type="vanished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="153"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="96"/>
         <source>局面集が読み込まれていません</source>
         <translation>尚未載入局面集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="164"/>
         <source>最初</source>
-        <translation>第一局面</translation>
+        <translation type="vanished">第一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="166"/>
         <source>最初の局面に移動</source>
-        <translation>跳到第一局面</translation>
+        <translation type="vanished">跳到第一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="172"/>
         <source>前へ</source>
-        <translation>上一局面</translation>
+        <translation type="vanished">上一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="174"/>
         <source>前の局面に移動</source>
-        <translation>跳到上一局面</translation>
+        <translation type="vanished">跳到上一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="180"/>
         <source>次へ</source>
-        <translation>下一局面</translation>
+        <translation type="vanished">下一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="182"/>
         <source>次の局面に移動</source>
-        <translation>跳到下一局面</translation>
+        <translation type="vanished">跳到下一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="188"/>
         <source>最後</source>
-        <translation>最後局面</translation>
+        <translation type="vanished">最後局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="190"/>
         <source>最後の局面に移動</source>
-        <translation>跳到最後局面</translation>
+        <translation type="vanished">跳到最後局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="106"/>
         <source>選択</source>
         <translation>選擇</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="205"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="108"/>
         <source>現在の局面をメインGUIに反映する</source>
         <translation>將目前局面套用到主棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="211"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="115"/>
         <source>閉じる</source>
         <translation>關閉</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="65"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="67"/>
         <source>テキストファイル (*.txt *.sfen);;すべてのファイル (*)</source>
         <translation>文字檔案 (*.txt *.sfen);;所有檔案 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="78"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="80"/>
         <source>ファイルを開けませんでした: %1</source>
         <translation>無法開啟檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="92"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="93"/>
         <source>%1 には局面がありません。
 1行に1局面のSFENを書いたファイルを選んでください。</source>
         <translation>%1 中沒有局面。
 請選擇每行寫有一個 SFEN 局面的檔案。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="102"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="101"/>
         <source>ファイル: %1</source>
         <translation>檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="238"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="127"/>
         <source>局面: %1 / %2</source>
         <translation>局面：%1 / %2</translation>
     </message>
@@ -8167,14 +8331,14 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>清除歷史記錄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="77"/>
-        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="91"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="79"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="92"/>
         <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="206"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="101"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="100"/>
         <source>ファイル: %1（読めない %2 行を飛ばしました）</source>
         <translation>檔案：%1（已略過無法讀取的 %2 行）</translation>
     </message>
@@ -8285,42 +8449,35 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="62"/>
         <source>手番</source>
-        <translation>行棋方</translation>
+        <translation type="vanished">行棋方</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="176"/>
         <source>編集終了</source>
-        <translation>結束編輯</translation>
+        <translation type="vanished">結束編輯</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="178"/>
         <source>局面編集を終了し、この局面を開始局面にします</source>
-        <translation>結束局面編輯，並將此局面作為初始局面</translation>
+        <translation type="vanished">結束局面編輯，並將此局面作為初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_piecebox.cpp" line="61"/>
         <source>先手</source>
-        <translation>先手</translation>
+        <translation type="vanished">先手</translation>
+    </message>
+    <message>
+        <source>後手</source>
+        <translation type="vanished">後手</translation>
+    </message>
+    <message>
+        <source>先手の駒を配置（手番は変更しません）</source>
+        <translation type="vanished">放置先手棋子（不改變行棋方）</translation>
+    </message>
+    <message>
+        <source>後手の駒を配置（手番は変更しません）</source>
+        <translation type="vanished">放置後手棋子（不改變行棋方）</translation>
     </message>
     <message>
         <location filename="../../src/views/shogiview_piecebox.cpp" line="62"/>
-        <source>後手</source>
-        <translation>後手</translation>
-    </message>
-    <message>
-        <location filename="../../src/views/shogiview_piecebox.cpp" line="63"/>
-        <source>先手の駒を配置（手番は変更しません）</source>
-        <translation>放置先手棋子（不改變行棋方）</translation>
-    </message>
-    <message>
-        <location filename="../../src/views/shogiview_piecebox.cpp" line="64"/>
-        <source>後手の駒を配置（手番は変更しません）</source>
-        <translation>放置後手棋子（不改變行棋方）</translation>
-    </message>
-    <message>
-        <location filename="../../src/views/shogiview_piecebox.cpp" line="114"/>
         <source>駒箱</source>
         <translation>棋子盒</translation>
     </message>
@@ -8449,7 +8606,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="545"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="499"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="454"/>
         <source>共通の時間設定</source>
         <translation>雙方共用用時規則</translation>
     </message>
@@ -8670,18 +8827,18 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>恢復預設值</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="56"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="59"/>
         <source>対局開始</source>
         <translation>開始對局</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="58"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="61"/>
         <source>設定を保存して対局を開始します。</source>
         <translation>儲存設定並開始對局。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="207"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="208"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="210"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="211"/>
         <source>人間</source>
         <translation>人類</translation>
     </message>
@@ -8712,37 +8869,37 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>用時規則</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="344"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="347"/>
         <source>情報</source>
         <translation>資訊</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="344"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="347"/>
         <source>人間が選択されています。</source>
         <translation>已選擇人類對局者。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="351"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="354"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="351"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="354"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>尚未選擇將棋引擎。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="499"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="454"/>
         <source>先手／下手の時間設定</source>
         <translation>先手／下手用時規則</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="505"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="460"/>
         <source>設定を保存しました</source>
         <translation>設定已儲存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="519"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="474"/>
         <source>棋譜保存先を選択</source>
         <translation>選擇棋譜儲存位置</translation>
     </message>
@@ -8750,7 +8907,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ThinkingInfoPresenter</name>
     <message>
-        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="359"/>
+        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="296"/>
         <source>詰み</source>
         <translation>詰棋</translation>
     </message>
@@ -9109,17 +9266,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="133"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="236"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="217"/>
         <source>正解手順</source>
         <translation>解答</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="165"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="150"/>
         <source>文字サイズを縮小</source>
         <translation>縮小字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="170"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="155"/>
         <source>文字サイズを拡大</source>
         <translation>放大字型大小</translation>
     </message>
@@ -9139,7 +9296,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>重試搜尋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="177"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="162"/>
         <source>一覧に戻る</source>
         <translation>返回題集</translation>
     </message>
@@ -9149,113 +9306,110 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>重新開始此題</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="217"/>
         <source>将棋盤を縮小する</source>
-        <translation>縮小棋盤</translation>
+        <translation type="vanished">縮小棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="221"/>
         <source>将棋盤を拡大する</source>
-        <translation>放大棋盤</translation>
+        <translation type="vanished">放大棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="223"/>
         <source>盤面の回転</source>
-        <translation>翻轉棋盤</translation>
+        <translation type="vanished">翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="339"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="278"/>
         <source>第%1問 — 詰み手数を確認しています…</source>
         <translation>題目 %1 — 正在驗證詰棋手數…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="429"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="368"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>正在驗證詰棋及防守著法…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="457"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="396"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>搜尋尚未完成，您的著法未被判錯。請增加時間後重試。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="346"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="347"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="285"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="286"/>
         <source>あなた</source>
         <translation>您</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="364"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="303"/>
         <source>成りの選択</source>
         <translation>升變</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="364"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="303"/>
         <source>成りますか？</source>
         <translation>將此棋子升變嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="365"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="304"/>
         <source>成る</source>
         <translation>成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="366"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="305"/>
         <source>成らない</source>
         <translation>不成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="422"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="361"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>題目 %1 — %2 手詰／防守：Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="427"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="366"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>輪到您行棋。請在剩餘 %1 手內完成詰棋。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="430"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="369"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>搜尋已暫停。請增加搜尋時間後重試，或退回一手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="433"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="372"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>已解答／嘗試 %1 次，解答 %2 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="434"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="373"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>未解答／嘗試 %1 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="435"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="374"/>
         <source>履歴を保存できません: %1</source>
         <translation>無法儲存進度：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="447"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="386"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>正確！您已將死防守方玉將。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="454"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="393"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>此應手可避免詰棋，無法透過連續王手強制將死。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="455"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="394"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>此應手可避免在剩餘 %1 手內被將死。請退回一手後重試。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="460"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="399"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>此局面無法透過連續王手強制將死。請選擇其他題目。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="483"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="422"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>請走合法的王手。禁止二步、打步詰及己方玉將仍被王手的著法。</translation>
     </message>
@@ -9281,7 +9435,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>最終將死局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="241"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="222"/>
         <source>対局に戻る</source>
         <translation>繼續解題</translation>
     </message>
@@ -9807,16 +9961,15 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="156"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="86"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="104"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="127"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="261"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="85"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="108"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="241"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="156"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="261"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="241"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>尚未選擇將棋引擎。</translation>
     </message>
@@ -9826,75 +9979,74 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>正在啟動引擎</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="54"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="53"/>
         <source>表示</source>
         <translation>顯示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="55"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="54"/>
         <source>盤面と詰み手順を表示します。行のダブルクリック、または Enter キーでも開けます。</source>
         <translation>顯示棋盤與解答。也可按兩下一行或按 Enter。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="69"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="68"/>
         <source>探索済み: %1 局面 / 採択: %2 局面</source>
         <translation>已搜尋：%1 個局面／已接受：%2 個局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="70"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="69"/>
         <source>経過時間: %1</source>
         <translation>已用時：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="77"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="76"/>
         <source>停止しました（%1 局面を採択）</source>
         <translation>已停止（接受 %1 個局面）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="78"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="77"/>
         <source>生成完了（%1 局面を採択）</source>
         <translation>生成完成（接受 %1 個局面）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="85"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="84"/>
         <source>エラー: %1</source>
         <translation>錯誤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="95"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="94"/>
         <source>SFENをファイルに保存</source>
         <translation>儲存 SFEN 到檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="97"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="96"/>
         <source>テキストファイル (*.txt);;すべてのファイル (*)</source>
         <translation>文字檔案 (*.txt);;所有檔案 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="105"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="128"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="108"/>
         <source>ファイルを保存できませんでした: %1</source>
         <translation>無法儲存檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="200"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="180"/>
         <source>攻方</source>
         <translation>進攻方</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="200"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="180"/>
         <source>玉方</source>
         <translation>防守方</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="214"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="194"/>
         <source>条件に合う局面を探索しています。
 採択した局面から順に表示します。</source>
         <translation>正在搜尋符合條件的局面。
 找到後將在此顯示已接受的局面。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="215"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="195"/>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog_ui.cpp" line="239"/>
         <source>生成した局面がここに表示されます。
 設定を確認して「開始」を押してください。</source>
@@ -9902,12 +10054,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 請檢查設定並按一下「開始」。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="225"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="205"/>
         <source>%v / %m 局面</source>
         <translation>%v / %m 個局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="225"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="205"/>
         <source>%1 局面（無制限）</source>
         <translation>%1 個局面（不限）</translation>
     </message>
@@ -9917,27 +10069,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>空閒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="330"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="288"/>
         <source>探索中</source>
         <translation>搜尋中</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="335"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="293"/>
         <source>トリミング中（候補 %1/%2）</source>
         <translation>精簡中（候選 %1/%2）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="340"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="298"/>
         <source>余詰検査中（問い合わせ %1 回）</source>
         <translation>正在檢查餘詰（%1 次查詢）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="345"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="303"/>
         <source>検査で除外: %1 局面（うち判定不能: %2 局面）</source>
         <translation>驗證排除：%1 個局面（其中 %2 個未確定）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="351"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="309"/>
         <source>状態: %1</source>
         <translation>狀態：%1</translation>
     </message>
@@ -9963,7 +10115,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="301"/>
+        <location filename="../../src/engine/usi.cpp" line="282"/>
         <source>Engine file path is empty.</source>
         <translation>引擎檔案路徑為空。</translation>
     </message>
@@ -9986,7 +10138,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>UsiCommandController</name>
     <message>
-        <location filename="../../src/ui/controllers/usicommandcontroller.cpp" line="50"/>
+        <location filename="../../src/ui/controllers/usicommandcontroller.cpp" line="45"/>
         <source>%1: エンジンが起動していません</source>
         <translation>%1：引擎未執行</translation>
     </message>
@@ -10098,7 +10250,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>等待 readyok 逾時</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="432"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="438"/>
         <source>Invalid bestmove format: %1</source>
         <translation>bestmove 格式無效：%1</translation>
     </message>

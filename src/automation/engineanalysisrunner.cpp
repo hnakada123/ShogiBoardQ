@@ -20,8 +20,8 @@ EngineAnalysisRunner::EngineAnalysisRunner(QObject* parent)
     connect(&m_noResponseTimer, &QTimer::timeout, this, &EngineAnalysisRunner::onNoResponse);
     connect(m_session, &UsiEngineSession::ready, this, &EngineAnalysisRunner::onSessionReady);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &EngineAnalysisRunner::onSessionError);
-    connect(m_session->handler(), &UsiProtocolHandler::infoLineReceived,
-            this, &EngineAnalysisRunner::onInfoLine);
+    connect(m_session->handler(), &UsiProtocolHandler::infoReceived,
+            this, &EngineAnalysisRunner::onInfo);
     connect(m_session->handler(), &UsiProtocolHandler::bestMoveReceived,
             this, &EngineAnalysisRunner::onBestMove);
 }
@@ -45,7 +45,7 @@ void EngineAnalysisRunner::onSessionReady()
     UsiProtocolHandler* handler = m_session->handler();
     handler->sendSetOption(QStringLiteral("MultiPV"), QString::number(qMax(1, request.multiPv)));
     handler->sendPosition(request.positionCommand);
-    handler->sendRaw(QStringLiteral("go infinite"));
+    handler->sendGoInfinite();
     m_elapsed.start();
     m_thinkTimer.start(qMax(100, request.thinkMs));
 }
@@ -58,10 +58,9 @@ void EngineAnalysisRunner::stop()
     onThinkTimeout();
 }
 
-void EngineAnalysisRunner::onInfoLine(const QString& line)
+void EngineAnalysisRunner::onInfo(const UsiInfo& info)
 {
     if (m_done) return;
-    const UsiInfoLine info = UsiInfoLineParser::parse(line);
     if (!info.hasPv()) return;
     m_latest.insert(info.multipv, info);
     emit lineUpdated(info);

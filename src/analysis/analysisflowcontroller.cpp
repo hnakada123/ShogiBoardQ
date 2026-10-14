@@ -16,6 +16,7 @@
 #include <QObject>
 #include <QtGlobal>
 #include <QPointer>
+#include <limits>
 
 #include "logcategories.h"
 
@@ -145,13 +146,20 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
         m_coord, &AnalysisCoordinator::analysisFinished,
         this,    &AnalysisFlowController::onAnalysisFinished);
 
-    // (A) AC → エンジンへ USI 文字列を橋渡し（毎回再接続）
-    if (m_connCoordRequestSendUsi) {
-        QObject::disconnect(m_connCoordRequestSendUsi);
+    // (A) AC の送信要求 → エンジンの型付き送信（毎回再接続）
+    for (QMetaObject::Connection* conn : {&m_connCoordRequestSetOption, &m_connCoordRequestSearch,
+                                          &m_connCoordRequestStop}) {
+        if (*conn) QObject::disconnect(*conn);
     }
-    m_connCoordRequestSendUsi = QObject::connect(
-        m_coord, &AnalysisCoordinator::requestSendUsiCommand,
-        m_usi,   &Usi::sendRaw);
+    m_connCoordRequestSetOption = QObject::connect(
+        m_coord, &AnalysisCoordinator::requestSetOption,
+        m_usi,   &Usi::sendSetOptionCommand);
+    m_connCoordRequestSearch = QObject::connect(
+        m_coord, &AnalysisCoordinator::requestSearch,
+        m_usi,   &Usi::sendPositionAndGoInfinite);
+    m_connCoordRequestStop = QObject::connect(
+        m_coord, &AnalysisCoordinator::requestStop,
+        m_usi,   &Usi::sendStopCommand);
 
     // (B-1) Usi::bestMoveReceived → AC へ直接通知
     if (m_connUsiBestMove) {
@@ -161,13 +169,13 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
         m_usi, &Usi::bestMoveReceived,
         this,  &AnalysisFlowController::onBestMoveReceived);
 
-    // (B-2) Usi::infoLineReceived → AC へ直接通知
-    if (m_connUsiInfoLine) {
-        QObject::disconnect(m_connUsiInfoLine);
+    // (B-2) Usi::infoReceived → AC へ直接通知
+    if (m_connUsiInfo) {
+        QObject::disconnect(m_connUsiInfo);
     }
-    m_connUsiInfoLine = QObject::connect(
-        m_usi, &Usi::infoLineReceived,
-        this,  &AnalysisFlowController::onInfoLineReceived);
+    m_connUsiInfo = QObject::connect(
+        m_usi, &Usi::infoReceived,
+        this,  &AnalysisFlowController::onInfoReceived);
 
     // (B-3) Usi::thinkingInfoUpdated → 漢字PV取得用
     if (m_connUsiThinkingInfo) {
@@ -327,43 +335,34 @@ void AnalysisFlowController::onBestMoveReceived()
     m_coord->onEngineBestmoveReceived(QString());
 }
 
-void AnalysisFlowController::onInfoLineReceived(const QString& line)
+void AnalysisFlowController::onInfoReceived(const UsiInfo& info)
 {
-    // info行を受け取り、AnalysisCoordinatorに転送
-    // 漢字PV変換はThinkingInfoPresenterが行い、onThinkingInfoUpdated_で受け取る
-    qCDebug(lcAnalysis).noquote() << "onInfoLineReceived: line=" << line.left(80);
+    // info を受け取り、AnalysisCoordinatorに転送
+    // 漢字PV変換はThinkingInfoPresenterが行い、onThinkingInfoUpdatedで受け取る
     if (!m_coord) {
-        qCDebug(lcAnalysis).noquote() << "onInfoLineReceived: m_coord is null!";
+        qCDebug(lcAnalysis).noquote() << "onInfoReceived: m_coord is null!";
         return;
     }
 
-    m_coord->onEngineInfoLine(line);
+    m_coord->onEngineInfo(info);
 }
 
-void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, const QString& /*depth*/,
-                                                    const QString& /*nodes*/, const QString& /*score*/,
-                                                    const QString& pvKanjiStr, const QString& /*usiPv*/,
-                                                    const QString& /*baseSfen*/, int /*multipv*/, int /*scoreCp*/)
+void AnalysisFlowController::onThinkingInfoUpdated(const ThinkingInfoRow& row)
 {
-    if (!pvKanjiStr.isEmpty()) {
-        m_resultHandler->updatePendingPvKanji(pvKanjiStr);
+    if (!row.pvKanji.isEmpty()) {
+        m_resultHandler->updatePendingPvKanji(row.pvKanji);
     }
 }
 
 // onPositionPrepared() は analysisflowcontroller_position.cpp に実装
 
-void AnalysisFlowController::onAnalysisProgress(int ply, int /*depth*/, int /*seldepth*/,
-                                                 int scoreCp, int mate,
-                                                 const QString& pv, const QString& raw)
+void AnalysisFlowController::onAnalysisProgress(int ply, const UsiInfo& info)
 {
-    const QStringList tokens = raw.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    const qsizetype scoreIndex = tokens.indexOf(QStringLiteral("score"));
-    QString rawMate;
-    if (scoreIndex >= 0 && scoreIndex + 2 < tokens.size()
-        && tokens.at(scoreIndex + 1) == QStringLiteral("mate")) {
-        rawMate = tokens.at(scoreIndex + 2);
-    }
-    m_resultHandler->updatePending(ply, scoreCp, mate, pv, rawMate);
+    // scoreCp 未設定は INT_MIN、mate=0 は手数の情報なし（"mate +" / "mate -" は mateText で渡す）
+    const int scoreCp = info.score.isCp() ? info.score.value : std::numeric_limits<int>::min();
+    const int mate = info.score.isMate() ? info.score.value : 0;
+    m_resultHandler->updatePending(ply, scoreCp, mate, info.pv.join(QLatin1Char(' ')),
+                                   info.score.mateText());
 }
 
 

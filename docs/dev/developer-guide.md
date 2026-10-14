@@ -25,7 +25,7 @@
 | [第1章](#第1章-プロジェクト概要とビルド手順) | プロジェクト概要とビルド手順 | 機能紹介、ビルド方法、ディレクトリ構造 |
 | [第2章](#第2章-将棋のドメイン知識) | 将棋のドメイン知識 | SFEN、USI記法、駒表現、座標系 |
 | [第3章](#第3章-アーキテクチャ全体図) | アーキテクチャ全体図 | レイヤー構造、データフロー、MainWindowの位置づけ |
-| [第4章](#第4章-設計パターンとコーディング規約) | 設計パターンとコーディング規約 | Deps構造体、ensure*()、Wiring、MVP、コード規約 |
+| [第4章](#第4章-設計パターンとコーディング規約) | 設計パターンとコーディング規約 | Deps構造体、合成ルート、Wiring、MVP、コード規約 |
 | [第5章](#第5章-core層純粋なゲームロジック) | core層：純粋なゲームロジック | ShogiBoard、ShogiMove、EngineMoveValidator |
 | [第6章](#第6章-game層対局管理) | game層：対局管理 | MatchCoordinator、TurnManager、GameStateController |
 | [第7章](#第7章-engine層usiエンジン連携) | engine層：USIエンジン連携 | Usiファサード、プロトコルハンドラ、思考情報表示 |
@@ -35,7 +35,7 @@
 | [第11章](#第11章-viewswidgetsdialogs層qt-ui部品) | views/widgets/dialogs層：Qt UI部品 | ShogiView描画、ウィジェット、ダイアログ |
 | [第12章](#第12章-network層とservices層) | network層とservices層 | CSA通信、設定サービス、時間管理 |
 | [第13章](#第13章-navigation層とboard層) | navigation層とboard層 | 棋譜ナビゲーション、盤面操作 |
-| [第14章](#第14章-mainwindowの役割と構造) | MainWindowの役割と構造 | ensure*()群、委譲パターン、リファクタリング経緯 |
+| [第14章](#第14章-mainwindowの役割と構造) | MainWindowの役割と構造 | MainWindowComposer・部品の一覧・AppState、起動手順、リファクタリング経緯 |
 | [第15章](#第15章-機能フロー詳解) | 機能フロー詳解 | 5大ユースケースのシーケンス図 |
 | [第16章](#第16章-国際化i18nと翻訳) | 国際化（i18n）と翻訳 | Qt Linguist、LanguageController |
 | [第17章](#第17章-新機能の追加ガイド) | 新機能の追加ガイド | 実践チュートリアル |
@@ -78,6 +78,7 @@
 | 2026-10-14 | 古い記述を今のコードに合わせて更新（§1.2・§1.4・§17.1 のソースの列挙、§1.6 の規模の表、§4.1 の ConsiderationWiring の例、§4.4・§10.4 の UiActionsWiring の例、§13.6 の局面編集の API、§14.2 のメンバーの表、§14.5.1 を TestAutomationHelper から自動化 API に、§14.6 のスロット構造、§14.7 の行数、第16章を4言語と `ApplicationTranslations` に、§17.3 をレジストリへの追加手順に） |
 | 2026-10-14 | §1.5 のディレクトリの木を今の構成に合わせて更新（プロジェクトルートに `Hayanagi/`・`mcp/`・`data/`・`packaging/` など、`src/` に `automation/`・`cli/` と主要なファイルを追加。存在しない `enginesettingscoordinator`・`navigationpresenter`・`recordpresenter`・`gamelayoutbuilder`・`branchrowdelegate` を削除） |
 | 2026-10-14 | `prestartcleanuphandler.h` を `src/app/`、`promotionflow.h` を `src/ui/coordinators/` に移し、ヘッダーとソースを同じディレクトリにしたのに合わせて §1.5・§6.1・§6.5・§6.8 を更新。§1.8 のテスト構成を今の `tests/` に合わせて書き直し（存在しない `fakes/`・`tst_prestartcleanuphandler.cpp` などを削除） |
+| 2026-10-15 | レジストリ構成（`MainWindowServiceRegistry`・`MainWindowFoundationRegistry`・`KifuSubRegistry` と `ensure*()`、`MainWindowLifecyclePipeline`、`MainWindowSignalRouter`、`MainWindowMatchAdapter`、`TurnSyncBridge`、`mainwindowstate.h` など）を合成ルート（`MainWindowComposer`・`MainWindowComponents`・`AppState`・`MainWindowActions`）に置き換えたのに合わせて更新。§1.5・§1.6、§3.3、§4.2（合成ルートでの組み立てに書き直し）、§4.3、§6.2〜§6.4（司令塔はコンストラクタで子の部品を全部作る、手番のコピー `m_cur` の削除、開始は `GameStartCoordinator::finishStart()` に集約）、§6.7（`TurnStateSyncService`）、§6.9（判定は `PlayModePolicyService`）、§8.7・§8.9、§10、§13、第14章（MainWindow・部品の一覧・共有状態・起動の手順・`MainWindowActions` に書き直し）、§15.1・§15.2、§16.5、§17.3〜§17.8、第18章 |
 
 <!-- chapter-0-end -->
 
@@ -258,22 +259,17 @@ ShogiBoardQ/
 src/
 ├── app/                            # アプリケーションエントリーポイントと部品の生成・起動手順
 │   ├── main.cpp                    #   エントリーポイント
-│   ├── mainwindow.cpp/.h/.ui       #   メインウィンドウ（部品を持ち、処理はレジストリへ委譲）
-│   ├── mainwindowstate.h           #   MainWindow の状態の構造体（モデル・ドック・分岐ナビ・棋譜・対局）
-│   ├── mainwindowserviceregistry.cpp/.h # ensure*（部品の生成と依存更新）と主要操作の集約
-│   ├── gamesubregistry*.cpp        #   同レジストリの対局系（時計・対局開始・セッション・司令塔の配線）
-│   ├── mainwindowuiregistry.cpp    #   同レジストリの UI 系（同じく analysis・board・automation の *registry.cpp）
-│   ├── mainwindowuibootstrapper.cpp #  同レジストリの起動時の UI 構築（ドックは mainwindowdockbootstrapper.cpp）
-│   ├── mainwindowlifecyclewiring.cpp # 同レジストリの起動・終了の配線
-│   ├── mainwindowfoundationregistry.cpp/.h # 複数の領域が使う部品の ensure*
-│   ├── kifusubregistry.cpp/.h      #   棋譜系の ensure*（読み込み・保存・分岐ナビ・定跡）
-│   ├── mainwindowlifecyclepipeline.cpp/.h # 起動・終了の手順
-│   ├── mainwindowmatchadapter.cpp/.h #  司令塔のフックの受け先（盤の描画・ハイライト・終局の表示）
+│   ├── mainwindow.cpp/.h/.ui       #   メインウィンドウ（.ui と閉じるときの確認・終了処理だけ）
+│   ├── mainwindowcomposer*.cpp/.h  #   合成ルート。部品を起動時に全部作って結ぶ（create / wire / game / finalize / automation）
+│   ├── mainwindowcomponents.h      #   部品の一覧（MainWindowComposer が持つ）
+│   ├── mainwindowactions.cpp/.h    #   メニュー・盤・棋譜欄の操作を担当の部品へ振り分けるスロット
+│   ├── mainwindowresetservice.cpp/.h # 「新規」などで初期状態に戻す
+│   ├── mainwindowgamestartservice.cpp/.h # 対局開始前の準備
 │   ├── gamesessionorchestrator*.cpp/.h # UI 起点の対局操作（開始・投了・中断・再開）
 │   ├── sessionlifecyclecoordinator.cpp/.h # 対局の開始・終局・リセットの後処理
 │   ├── prestartcleanuphandler.cpp/.h # 対局開始前のクリーンアップ（棋譜欄・分岐・ログ・時計表示・評価値グラフ）
 │   ├── playmodepolicyservice.cpp/.h #  プレイモード依存の判定
-│   ├── turnstatesyncservice.cpp/.h #   手番同期（TurnManager/GC/View/時計）
+│   ├── turnstatesyncservice.cpp/.h #   手番同期（TurnManager を持ち、GC/View/時計と合わせる）
 │   ├── gamerecordupdateservice.cpp/.h # 棋譜追記・ライブセッション更新
 │   ├── boardloadservice.cpp/.h     #   SFEN盤面適用・ハイライト同期
 │   ├── kifunavigationcoordinator.cpp/.h # 棋譜ナビゲーション同期
@@ -309,7 +305,6 @@ src/
 │   ├── gamestartcoordinator*.cpp/.h #  対局開始フロー（ダイアログから開始まで）
 │   ├── gamestatecontroller.cpp/.h  #   ゲーム状態制御
 │   ├── turnmanager.cpp/.h          #   手番管理
-│   ├── turnsyncbridge.cpp/.h       #   手番同期ブリッジ
 │   └── consecutivegamescontroller.cpp/.h # 連続対局制御
 │
 ├── kifu/                           # 棋譜管理
@@ -332,6 +327,10 @@ src/
 │   ├── kifreader.cpp/.h            #   棋譜ファイル読み込み
 │   ├── shogiinforecord.cpp/.h      #   対局情報レコード
 │   ├── kifdisplayitem.h            #   棋譜表示アイテム定義
+│   ├── josekirepository.cpp/.h     #   定跡ファイル（YANEURAOU-DB2016）の解析・保存とデータ保持
+│   ├── josekibooksession.cpp/.h    #   開いている定跡ファイル（パス・変更状態・履歴・非同期の読み書き）
+│   ├── josekipresenter.cpp/.h      #   定跡手の追加・編集・削除、マージ候補、局面の要約
+│   ├── josekitypes.h, josekiioresult.h # 定跡の値型と、読み書きの結果（スレッド間の値オブジェクト）
 │   ├── kifparsetypes.h             #   棋譜パース型定義
 │   ├── kifutypes.h                 #   棋譜共通型定義
 │   └── formats/                    #   フォーマット変換器
@@ -353,6 +352,7 @@ src/
 │   ├── tsumesearchflowcontroller.cpp/.h # 詰み探索制御
 │   ├── tsumeshogigenerator*.cpp/.h #   詰将棋局面の自動生成
 │   ├── tsumecollection.cpp/.h      #   詰将棋問題集のファイルの読み込みと検証
+│   ├── tsumecollectionwriter.cpp/.h #  詰将棋局面の一覧の書き出し（局面生成のファイル保存）
 │   ├── tsumegamesession.cpp/.h     #   詰将棋対局（応手は Hayanagi）
 │   ├── analysisresultspresenter.cpp/.h # 解析結果表示
 │   └── kifuanalysislistmodel.cpp/.h # 棋譜解析リストモデル
@@ -364,6 +364,9 @@ src/
 │   ├── usigotime.cpp/.h            #   go の時間の計算
 │   ├── usienginesession.cpp/.h     #   GUI モデルを持たない USI 接続（自動化・CLI 用）
 │   ├── engineprocessmanager*.cpp/.h #  エンジンプロセス管理
+│   ├── engineregistrationhandler.cpp/.h # エンジン登録（ワーカースレッド・USI オプション解析・設定の保存）
+│   ├── engineregistrationworker.cpp/.h #  エンジン登録でエンジンを起動して usi に答えさせるワーカー
+│   ├── usioptionlineparser.cpp/.h  #   USI の option 行の解析
 │   ├── tsumemateengine.cpp/.h      #   詰み判定エンジン（KomoringHeights）
 │   ├── shogiengineinfoparser.cpp/.h # エンジン情報パース
 │   ├── shogienginethinkingmodel.cpp/.h # 思考情報Qtモデル
@@ -375,9 +378,9 @@ src/
 │
 ├── network/                        # CSA通信対局
 │   ├── csaclient*.cpp/.h           #   CSAプロトコルクライアント
-│   ├── csagamecoordinator*.cpp/.h  #   CSA対局調整
+│   ├── csagamecoordinator*.cpp/.h  #   CSA対局調整（_moves.cpp が指し手の進行）
+│   ├── csagameprogress.cpp/.h      #   1局ぶんの進行（持ち時間・手数・棋譜行・終局行）の値型
 │   ├── csaenginecontroller.cpp/.h  #   通信対局で指すエンジンの制御
-│   ├── csamoveprogresshandler.cpp/.h # 指し手の進行
 │   └── csamoveconverter*.cpp/.h    #   CSA・USI・SFEN の指し手の変換
 │
 ├── navigation/                     # ナビゲーション
@@ -441,16 +444,17 @@ src/
 │
 ├── views/                          # Qt Graphics View
 │   ├── shogiview*.cpp/.h           #   将棋盤描画ビュー（描画・イベント・駒台などに分割）
+│   ├── boardchromewidget.cpp/.h    #   盤に重ねる対局者カード（名前・時計・手番の札）・編集終了ボタン・駒箱の先後切り替え
 │   ├── shogiviewlayout.cpp/.h      #   盤面のレイアウト計算
 │   ├── shogiviewinteraction.cpp/.h #   盤面の操作（クリック・ドラッグ）
-│   ├── shogiviewhighlighting.cpp/.h #  ハイライト・矢印・手番表示
+│   ├── shogiviewhighlighting.cpp/.h #  ハイライト・矢印
 │   ├── piecepainter.cpp/.h         #   駒の描画（倍率と影）
 │   └── boardsurfacepainter.cpp/.h  #   盤・駒台の木肌と縁の描画
 │
 ├── widgets/                        # カスタムQtウィジェット
 │   ├── recordpane*.cpp/.h          #   棋譜表示ペイン
 │   ├── engineanalysistab*.cpp/.h   #   エンジン解析タブ
-│   ├── branchtreemanager*.cpp/.h   #   分岐ツリーの表示
+│   ├── branchtreemanager*.cpp/.h   #   分岐ツリーの表示（KifuBranchTree を読むだけの観察者）
 │   ├── considerationtabmanager*.cpp/.h # 検討タブ
 │   ├── evaluationchartwidget*.cpp/.h #  評価値グラフウィジェット
 │   ├── kifudisplay.cpp/.h          #   棋譜表示ウィジェット
@@ -463,6 +467,7 @@ src/
 │   ├── menubuttonwidget.cpp/.h     #   メニューボタン
 │   ├── collapsiblegroupbox.cpp/.h  #   折りたたみグループボックス
 │   ├── elidelabel.cpp/.h           #   省略ラベル
+│   ├── boardviewerwidget.cpp/.h    #   盤と縮小・拡大・回転・局面送り（読み筋・局面集・詰将棋・外観の見本で共通）
 │   ├── flowlayout.cpp/.h           #   フローレイアウト
 │   ├── globaltooltip.cpp/.h        #   グローバルツールチップ
 │   ├── apptooltipfilter.cpp/.h     #   ツールチップフィルタ
@@ -490,7 +495,7 @@ src/
 │   ├── kifupastedialog.cpp/.h      #   棋譜貼り付けダイアログ
 │   ├── csawaitingdialog.cpp/.h     #   CSA待機ダイアログ
 │   ├── menuwindow.cpp/.h           #   メニューウィンドウ
-│   ├── josekiwindow*.cpp/.h        #   定跡ウィンドウ
+│   ├── josekiwindow*.cpp/.h        #   定跡ウィンドウ（画面のみ。データは kifu/joseki*）
 │   ├── josekimergedialog.cpp/.h    #   定跡結合ダイアログ
 │   └── josekimovedialog.cpp/.h     #   定跡移動ダイアログ
 │
@@ -515,10 +520,11 @@ src/
 │   └── timecontrolutil.cpp/.h      #   時間制御ユーティリティ
 │
 ├── common/                         # 共有ユーティリティ
+│   ├── appstate.h                  #   部品どうしで共有する状態（対局モード・局面・対局者名・対局中の棋譜）
 │   ├── kifupresentation.cpp/.h     #   表示用の指し手・座標の表記（言語と表記の設定に合わせる）
 │   ├── applicationfonts.cpp/.h     #   表示言語に応じた書体
 │   ├── dialogutils.cpp/.h          #   ダイアログの大きさの保存・復元など
-│   ├── fontsizehelper.cpp/.h       #   A-/A+ のフォントサイズ調整
+│   ├── fontsizehelper.cpp/.h       #   A-/A+ のフォントサイズ調整（applyTo でダイアログ全体に適用）
 │   ├── logcategories.cpp/.h        #   ログカテゴリ
 │   ├── boardconstants.h            #   盤の座標・サイズの定数
 │   ├── errorbus.cpp/.h             #   エラー通知バス
@@ -550,7 +556,7 @@ src/
 
 | ディレクトリ | ファイル数 | 行数 | 概要 |
 |-------------|-----------|------|------|
-| `app/` | 68 | 9,067 | メインウィンドウ、エントリーポイント、レジストリ |
+| `app/` | 50 | 6,326 | メインウィンドウ、エントリーポイント、合成ルート（この行だけ 2026-10-15 時点） |
 | `core/` | 32 | 5,119 | 純粋ゲームロジック |
 | `game/` | 61 | 8,862 | 対局管理 |
 | `kifu/` | 54 | 7,772 | 棋譜管理（formatsを除く） |
@@ -1099,7 +1105,7 @@ ShogiBoardQは以下の5つのレイヤーで構成される。下位レイヤ�
 ```mermaid
 graph TB
     subgraph "プレゼンテーション層"
-        MW["MainWindow<br/>(ハブ/ファサード)"]
+        MW["MainWindow / MainWindowComposer<br/>(合成ルート)"]
         UI["ui/<br/>presenters / controllers<br/>wiring / coordinators"]
         VWD["views/ widgets/ dialogs/"]
     end
@@ -1189,44 +1195,44 @@ graph TB
 - `game/` → `ui/`: ドメインサービス層がUI部品を直接操作してはならない
 - `services/` → `game/`: 横断サービスがドメインロジックに依存してはならない
 
-> **例外**: MainWindowは全層を横断するハブであるため、全てのレイヤーへの参照を持つ。これは設計上の意図的な選択であり、MainWindowがファサードとして各層を接続する役割を担うためである（3.3節参照）。
+> **例外**: 合成ルート（`MainWindowComposer`）は全層の部品を作って結ぶため、全てのレイヤーへの参照を持つ。これは設計上の意図的な選択である（3.3節参照）。
 
-### 3.3 MainWindowの「ハブ/ファサード」としての位置づけ
+### 3.3 MainWindow と合成ルート（MainWindowComposer）
 
-MainWindow（`src/app/mainwindow.h/.cpp`）は、ShogiBoardQ全体のUI起点であると同時に、各レイヤーのコンポーネントを接続するハブとして動作する。
+MainWindow（`src/app/mainwindow.h/.cpp`）は約50行で、`.ui` と閉じるときの確認・終了処理だけを持つ。
+各レイヤーの部品を作って結ぶのは合成ルートの `MainWindowComposer`（`src/app/mainwindowcomposer*.cpp`）である。
+詳しい規則は [composition-root.md](composition-root.md) を参照。
 
 ```mermaid
 graph LR
-    subgraph "MainWindow (ファサード)"
-        MW_CORE["ensure*() 群<br/>遅延初期化"]
-        MW_WIRE["シグナル/スロット<br/>接続ハブ"]
-        MW_STATE["PlayMode<br/>状態管理"]
-    end
+    MW["MainWindow<br/>(.ui・終了確認)"] --> COMP["MainWindowComposer<br/>(合成ルート)"]
+    COMP --> PARTS["MainWindowComponents<br/>(部品の一覧)"]
+    COMP --> STATE["AppState<br/>(共有状態)"]
 
-    USER["ユーザー操作<br/>(メニュー/ボタン)"] --> MW_CORE
-    MW_CORE --> MC["MatchCoordinator<br/>(対局司令塔)"]
-    MW_CORE --> KLC["KifuLoadCoordinator<br/>(棋譜読込)"]
-    MW_CORE --> GSC["GameStartCoordinator<br/>(対局開始)"]
-    MW_CORE --> AC["AnalysisCoordinator<br/>(解析)"]
-    MW_CORE --> DC["DialogCoordinator<br/>(ダイアログ)"]
+    USER["ユーザー操作<br/>(メニュー/盤/棋譜欄)"] --> ACT["MainWindowActions<br/>/ UiActionsWiring"]
+    ACT --> MC["MatchCoordinator<br/>(対局司令塔)"]
+    ACT --> KFC["KifuFileController<br/>(棋譜の読み書き)"]
+    ACT --> GSO["GameSessionOrchestrator<br/>(対局操作)"]
+    ACT --> DC["DialogCoordinator<br/>(ダイアログ)"]
+    ACT --> BSC["BoardSetupController<br/>(盤の操作)"]
 
-    MW_WIRE --> SV["ShogiView<br/>(盤面描画)"]
-    MW_WIRE --> RP["RecordPane<br/>(棋譜欄)"]
-    MW_WIRE --> EC["EvalChart<br/>(評価値グラフ)"]
-    MW_WIRE --> EAT["EngineAnalysisTab<br/>(解析タブ)"]
+    PARTS -.-> SV["ShogiView<br/>(盤面描画)"]
+    PARTS -.-> RP["RecordPane<br/>(棋譜欄)"]
+    PARTS -.-> EC["EvalChart<br/>(評価値グラフ)"]
+    PARTS -.-> EAT["EngineAnalysisTab<br/>(解析タブ)"]
 
     MC --> SGC["ShogiGameController"]
     MC --> USI["Usi (エンジン)"]
 ```
 
-#### MainWindowの設計原則
+#### 設計原則
 
-1. **直接ロジックは最小化**: MainWindow自身にはビジネスロジックを書かず、`ensure*()` で遅延生成した専用クラスへ委譲する
-2. **接続ハブ**: 各コントローラ/コーディネータ間のシグナル/スロット接続を MainWindow に集約する
-3. **同期点**: 盤面、棋譜行、手番、評価値グラフの同期処理を MainWindow で行う
-4. **遅延初期化**: 約40個の `ensure*()` メソッドで、必要になるまでオブジェクトを生成しない
+1. **MainWindow にロジックを書かない**: MainWindow は `MainWindowComposer` を作って `compose()` を呼ぶだけである
+2. **部品は起動時に全部作る**: `MainWindowComposer::compose()` が全部品を依存順に1回だけ作り、それから依存を結ぶ。遅延生成（`ensure*()`）はない
+3. **状態は1か所**: 対局モード・局面・対局者名・対局中の棋譜などの共有状態は `AppState`（`src/common/appstate.h`）だけに置く。部品はそこへのポインタを受け取る
+4. **操作の受け口**: メニュー・盤・棋譜欄の操作は `UiActionsWiring` と `MainWindowActions` が受け、担当の部品へ振り分ける
 
-#### MainWindowが接続する主要コンポーネント
+#### 合成ルートが作る主要コンポーネント
 
 | カテゴリ | コンポーネント | 役割 |
 |---------|-------------|------|
@@ -1315,7 +1321,7 @@ NotStarted ──→ CsaNetworkMode
     └──── 通信終了 ←┘
 ```
 
-全てのモードは終了時に `NotStarted` に戻る。PlayModeの遷移は `MainWindow::m_playMode` で管理され、`GameStartCoordinator` や `MatchCoordinator` が遷移をトリガーする。
+全てのモードは終了時に `NotStarted` に戻る。PlayMode は `AppState::playMode`（`src/common/appstate.h`）に1つだけ置かれ、`GameStartCoordinator` や `MatchCoordinator` が遷移をトリガーする。
 
 ### 3.5 データフロー概要
 
@@ -1337,7 +1343,7 @@ sequenceDiagram
     User->>SV: マウスクリック<br/>(駒選択→移動先)
     SV->>BIC: clicked(QPoint)
     BIC->>BIC: 駒の選択と合法な移動先の表示<br/>(EngineMoveValidator)
-    BIC->>BSC: moveRequested(from, to)<br/>(MainWindow 経由)
+    BIC->>BSC: moveRequested(from, to)<br/>(MainWindowActions 経由)
     BSC->>SGC: validateAndMove()
     SGC->>SGC: 合法手判定・成り/不成の選択<br/>(EngineMoveValidator・PromotionFlow)
     SGC->>SB: applyUsiMove()
@@ -1358,7 +1364,7 @@ sequenceDiagram
 #### フロー解説
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`clicked` シグナルで `BoardInteractionController` に盤の座標を通知する。1回目のクリックで駒を選び、設定により `EngineMoveValidator` で合法な移動先を光らせる
-2. **着手要求**: 2回目のクリックで `moveRequested` を発行する。`MainWindow` は `MainWindowServiceRegistry` を通して `BoardSetupController` に渡すだけである
+2. **着手要求**: 2回目のクリックで `moveRequested` を発行する。`MainWindowActions::handleMoveRequested()` が対局モードを渡してから `BoardSetupController::onMoveRequested()` を呼ぶ
 3. **合法手判定と適用**: `ShogiGameController::validateAndMove()` が `EngineMoveValidator` で合法手かを判定し、成り・不成の両方が合法なら `PromotionFlow` のダイアログで選ばせ、`ShogiBoard::applyUsiMove()` で盤を更新する
 4. **表示の同期**:
    - `ShogiView`: `ShogiBoard` の `dataChanged`／`standChanged` シグナルで、変わったマスと駒台だけを描き直す。移動元・移動先のハイライトは `BoardInteractionController` が付ける
@@ -1371,7 +1377,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant User as ユーザー
-    participant MW as MainWindow
+    participant MW as KifuFile<br/>Controller
     participant KLC as KifuLoad<br/>Coordinator
     participant CONV as Format<br/>Converter
     participant SB as ShogiBoard
@@ -1397,14 +1403,14 @@ sequenceDiagram
 
 ### 3.6 アーキテクチャの設計判断
 
-#### なぜMainWindowがハブなのか
+#### なぜMainWindowを薄くするのか
 
-Qt Widgetsアプリケーションでは、`QMainWindow` がメニューバー、ツールバー、ドックウィジェット、セントラルウィジェットの所有者であるため、UI操作の起点が自然とMainWindowに集中する。ShogiBoardQでは、この構造を活かしつつ以下の戦略で複雑さを管理している:
+Qt Widgetsアプリケーションでは、`QMainWindow` がメニューバー、ツールバー、ドックウィジェット、セントラルウィジェットの所有者であるため、UI操作の起点が自然とMainWindowに集中する。ShogiBoardQでは、部品の生成と配線を合成ルート（`MainWindowComposer`）に移し、以下の戦略で複雑さを管理している:
 
 - **Wiring クラス**: 機能別のシグナル/スロット接続をカプセル化（`CsaGameWiring`, `PlayerInfoWiring` 等）
 - **Coordinator クラス**: 複数コンポーネントにまたがる操作を調整（`GameStartCoordinator`, `DialogCoordinator` 等）
 - **Presenter クラス**: Model→View の表示更新ロジックを分離（`BoardSyncPresenter`, `RecordPresenter` 等）
-- **ensure*() パターン**: 遅延初期化により、必要になるまでオブジェクトを生成しない
+- **合成ルート**: `MainWindowComposer` が起動時に部品を全部作ってから結ぶ（[composition-root.md](composition-root.md)）
 
 これらのパターンの詳細は[第4章](#第4章-設計パターンとコーディング規約)で解説する。
 
@@ -1432,7 +1438,7 @@ Qt Widgetsアプリケーションでは、`QMainWindow` がメニューバー�
 クラスが必要とする外部オブジェクト（依存）を1つの構造体にまとめ、コンストラクタや `updateDeps()` メソッドで一括注入する。これにより以下の利点が得られる:
 
 - **依存の明示化**: クラスが何に依存しているかがヘッダの `Deps` 定義を見るだけで分かる
-- **遅延初期化との親和性**: MainWindowの `ensure*()` でオブジェクトが段階的に生成されるため、後から依存を差し替える必要がある
+- **合成ルートでの組み立て**: `MainWindowComposer` が全部品を作ったあとで、各部品の `Deps` を組んで渡す
 - **テスト容易性**: テスト時にモックやスタブを `Deps` 経由で注入できる
 
 #### 基本構造
@@ -1484,7 +1490,6 @@ public:
         UsiCommLogModel* commLogModel = nullptr;
         PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
-        std::function<void()> ensureDialogCoordinator;  ///< DialogCoordinator 遅延初期化コールバック
     };
 
     explicit ConsiderationWiring(const Deps& deps, QObject* parent = nullptr);
@@ -1493,11 +1498,11 @@ public:
 };
 ```
 
-> **注目**: `std::function<void()> ensureDialogCoordinator` は遅延初期化コールバックである。Wiringクラスが自分では `ensureDialogCoordinator()` を呼べないため、レジストリ側の遅延初期化関数を `std::function` 経由で注入する。このパターンについては [4.3節](#43-hooksstdfunction-コールバックパターン) で詳述する。
+> **注目**: `playMode` と `currentSfenStr` は `AppState`（`src/common/appstate.h`）のフィールドを指す。状態のコピーを部品に持たず、合成ルートが持つ `AppState` を読む。`DialogCoordinator` とは互いを参照するので、`Deps` には入れずに両方を作ったあとで `setDialogCoordinator()` で渡す（[4.2節](#42-合成ルートでの組み立て)）。
 
 #### updateDeps() メソッドの実装
 
-`updateDeps()` は全フィールドを新しい値で上書きする。遅延初期化により依存オブジェクトが後から生成された場合に呼ばれる。
+`updateDeps()` は全フィールドを新しい値で上書きする。コンストラクタで `Deps` を受け取れないクラス（作ったあとで依存がそろうもの）は、合成ルートの `wire*()` から1回だけ呼ばれる。
 
 ```cpp
 // src/ui/wiring/considerationwiring.cpp
@@ -1514,7 +1519,6 @@ void ConsiderationWiring::updateDeps(const Deps& deps)
     m_commLogModel = deps.commLogModel;
     m_playMode = deps.playMode;
     m_currentSfenStr = deps.currentSfenStr;
-    m_ensureDialogCoordinator = deps.ensureDialogCoordinator;
     if (m_uiController) ensureUIController();
 }
 ```
@@ -1541,62 +1545,60 @@ struct Deps {
 };
 ```
 
-### 4.2 ensure*() 遅延初期化パターン
+### 4.2 合成ルートでの組み立て
 
 #### 目的
 
-`ensure*()` メソッドは MainWindow ではなくレジストリ（`MainWindowServiceRegistry`・`MainWindowFoundationRegistry`・`KifuSubRegistry`、合わせて約50個）にあり、各コンポーネントを**初めて必要になった時点**で生成する。これにより:
+アプリの部品は、合成ルートの `MainWindowComposer`（`src/app/mainwindowcomposer*.cpp`）が起動時に全部作る。部品を初めて使うときに作る遅延生成（`ensure*()`）は使わない。これにより:
 
-- **起動時間の短縮**: 全オブジェクトを起動時に生成しない
-- **循環依存の回避**: AがBに依存し、BがAに依存する場合も、使用時点で双方が存在すれば問題ない
-- **メモリ節約**: 使用しない機能のオブジェクトは生成されない
+- **作る順番が1か所で決まる**: `MainWindowComposer::compose()` を読めば、何がどの順で作られるか分かる
+- **依存をポインタで渡せる**: 全部品を作ってから結ぶので、生成前の部品を指すための `std::function<X*()>` のゲッターや、後から依存を差し替える `refresh*Deps()` が要らない
+- **相互参照も結べる**: 互いを参照する部品も、両方を作ってから渡せばよい
 
-#### 生成と依存更新の契約
+置き換えの経緯と規則の全文は [composition-root.md](composition-root.md) を参照。
 
-依存先が対局・読み込み・UI生成で変わるコンポーネントは、次の順で処理する。
+#### 起動の3段階
 
-1. 未生成なら一度だけ生成する。
-2. 既存インスタンスにも、最新の参照とコールバックを設定する。
-3. シグナル接続は初回のみ、または `Qt::UniqueConnection` で重複を防ぐ。
+`MainWindowComposer::compose()` は次の順に呼ぶ。
 
-レジストリは生成を `create*()`、依存更新を `refresh*Deps()` に分ける（[レジストリ境界仕様](registry-boundary.md) の「ensure* の2段構造パターン」）。
-更新時には、対局・解析の進行状態を初期化しない。
-依存を持たない `PositionEditController` などの生成専用メソッドは、生成済みなら復帰してよい。
+| 段階 | メソッド | ファイル |
+|---|---|---|
+| 1. 生成 | `createModels()` → `setupUiSkeleton()` → `createBoardAndGameController()` → `createPanelsAndDocks()` → `createBranchNavigation()` → `createRecordAndPlayerInfo()` → `createSecondaryDocks()` → `createServices()` | `mainwindowcomposer_create.cpp` |
+| 2. 依存の注入 | `wireFoundation()` → `wireMatchCoordinator()` → `wireCsaGame()` → `wireKifu()` → `wireUi()` → `wireDialogs()` → `wireGame()` | `mainwindowcomposer_wire.cpp`・`mainwindowcomposer_game.cpp` |
+| 3. 接続と初期表示 | `connectSignals()` → `finalizeUi()` | `mainwindowcomposer_finalize.cpp` |
+
+部品は `MainWindowComponents`（`src/app/mainwindowcomponents.h`）のメンバとして持ち、共有状態は `AppState`（`src/common/appstate.h`）に置く。どちらも `MainWindowComposer` が持つ。
+
+#### 規則
+
+1. 新しい部品は `MainWindowComponents` にメンバを足し、`create*()` のどれか（多くは `createServices()`）で1回だけ作る。QObject は MainWindow を親にした生ポインタ、QObject でないものは `std::unique_ptr` で持つ。
+2. 依存は部品のポインタで渡す。`std::function<X*()>` のゲッターや `ensure*` コールバックは使わない。
+3. 状態は `AppState` に置き、部品は `&m_state.playMode` のようにフィールドへのポインタを受け取る。部品のメンバに状態のコピーを持たない。
+4. `std::function` は、上位へ操作を委ねる「フック」にだけ使う（[4.3節](#43-hooksstdfunction-コールバックパターン)）。
+5. テストは `MainWindow::composer().parts()` と `composer().state()` で部品と状態を読む。
+
+`tests/tst_structural_kpi.cpp` の `appLayerHasNoLazyEnsure` が app 層に `ensure*` がないことを、`testsDoNotRedefinePrivate` がテストで `#define private public` を使っていないことを確かめる。
+
+#### 例: 互いを参照する部品
+
+検討モードの配線（`ConsiderationWiring`）とダイアログの司令塔（`DialogCoordinator`）は互いを参照する。両方を作ってから渡す。
 
 ```cpp
-// src/app/gamesubregistry_wiring.cpp
-void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
-{
-    if (!m_mw.m_matchWiring) {
-        createMatchCoordinatorWiring();   // 生成と、シグナルの受け手の登録（初回だけ）
-    }
-    refreshMatchWiringDeps();             // 最新の部品とフックを渡し直す
-}
+// src/app/mainwindowcomposer_wire.cpp（wireDialogs）
+m_c.dialogCoordinatorWiring->wire(dc);
+m_c.dialogCoordinator = m_c.dialogCoordinatorWiring->coordinator();
+// 検討モードの配線とダイアログの司令塔は互いを参照する。両方できたのでここで渡す
+m_c.considerationWiring->setDialogCoordinator(m_c.dialogCoordinator);
 ```
 
-#### レジストリの ensure*() 一覧（主要なもの）
+#### 例外
 
-| メソッド | 生成するクラス | 分類 |
-|---------|-------------|------|
-| `ensureBoardSyncPresenter()` | `BoardSyncPresenter` | Presenter |
-| `ensureRecordPresenter()` | `GameRecordPresenter` | Presenter |
-| `ensureAnalysisPresenter()` | `AnalysisResultsPresenter` | Presenter |
-| `ensureGameStartCoordinator()` | `GameStartCoordinator` | Coordinator |
-| `ensureDialogCoordinator()` | `DialogCoordinator` | Coordinator |
-| `ensurePositionEditCoordinator()` | `PositionEditCoordinator` | Coordinator |
-| `ensureConsiderationWiring()` | `ConsiderationWiring` | Wiring |
-| `ensureCsaGameWiring()` | `CsaGameWiring` | Wiring |
-| `ensurePlayerInfoWiring()` | `PlayerInfoWiring` | Wiring |
-| `ensureGameStateController()` | `GameStateController` | Controller |
-| `ensureReplayController()` | `ReplayController` | Controller |
-| `ensureLanguageController()` | `LanguageController` | Controller |
-| `ensureMatchCoordinatorWiring()` | `MatchCoordinatorWiring`（司令塔は `initMatchCoordinator()` で作る） | Wiring |
-| `ensureKifuLoadCoordinator()` | `KifuLoadCoordinator`（最初の読み込みで作り、以後使い回す） | Coordinator |
-| `ensureGameRecordModel()` | `GameRecordModel` | データモデル |
+- `CsaGameWiring` は最初の CSA 通信対局で司令塔（`CsaGameCoordinator`）を作る。使う側は `CsaGameWiring*` を持ち、`coordinator()` でそのときの司令塔を読む。
+- `AutomationServer` は `--automation` 指定時だけ `MainWindowComposer::startAutomationServer()` で作る。
 
-#### Wiringクラス内での ensure*() パターン
+#### 部品の中で持つ下位部品
 
-Wiringクラスが内部で所有するコントローラにも同じパターンを適用する:
+部品が自分の中に持つ下位の部品は、部品自身が作ってよい。たとえば `ConsiderationWiring` は検討モードの UI コントローラを初めて使うときに作る:
 
 ```cpp
 // src/ui/wiring/considerationwiring.cpp
@@ -1620,41 +1622,7 @@ void ConsiderationWiring::ensureUIController()
 }
 ```
 
-#### 遅延初期化の依存ギャップ問題
-
-コードをMainWindowからWiringクラスへ抽出する際、元のメソッド内にあった `ensure*()` 呼び出しがWiringクラスからはアクセスできなくなる。この問題は `Deps` に `std::function` コールバックを追加することで解決する:
-
-```cpp
-// Deps に遅延初期化コールバックを定義
-struct Deps {
-    // ...
-    std::function<void()> ensureDialogCoordinator;  // 遅延初期化コールバック
-};
-
-// 使用側（Wiringクラス）
-void ConsiderationWiring::displayConsiderationDialog()
-{
-    // m_dialogCoordinator が未初期化の場合、コールバックで遅延初期化を実行
-    if (!m_dialogCoordinator && m_ensureDialogCoordinator) {
-        m_ensureDialogCoordinator();  // MainWindowServiceRegistry::ensureDialogCoordinator() が呼ばれる
-    }
-    // ... 以降、m_dialogCoordinator を使用
-}
-```
-
-レジストリ側で `Deps` を構築する際にコールバックをバインドする:
-
-```cpp
-// src/app/mainwindowanalysisregistry.cpp
-ConsiderationWiring::Deps deps;
-deps.ensureDialogCoordinator = [this]() {
-    ensureDialogCoordinator();
-    if (m_mw.m_considerationWiring)
-        m_mw.m_considerationWiring->setDialogCoordinator(m_mw.m_dialogCoordinator);
-};
-```
-
-> **注意**: この `std::function` は `connect()` のラムダ禁止ルールとは無関係である。`connect()` でのラムダ禁止はシグナル/スロット接続に限定されたルールであり、`Deps` 構造体内のコールバック注入は許容される。
+app 層（`src/app/`）にはこの形の `ensure*` を置かない。
 
 ### 4.3 Hooks/std::function コールバックパターン
 
@@ -1686,7 +1654,7 @@ struct MatchCoordinatorHooks {
     /// ゲーム初期化・棋譜系
     struct Game {
         std::function<void(const QString& sfenStart)> initializeNewGame;
-        std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
+        std::function<void(const RecordEntry&)> appendRecord;                    ///< 棋譜の1行（指し手・考慮時間）を追記
         std::function<void(Turn side)> appendEval;                                 ///< エンジンの手のあとの評価値追記
         std::function<void(const QString& saveDir)> autoSaveKifu;                  ///< 棋譜自動保存
     };
@@ -1696,7 +1664,7 @@ struct MatchCoordinatorHooks {
 };
 ```
 
-フックは `MainWindowServiceRegistry::buildMatchHooks()`（UNDO 用は `buildUndoHooks()`）が組み立てる。司令塔は一度だけ作るので、各フックは組み立てたときのポインタを写さない。レジストリ自身（`this`）か一度だけ作るアダプタ（`MainWindowMatchAdapter`）を捕まえ、呼ばれた時点の部品を読む。エンジンへの stop 送信はフックに置かず、`MatchTurnHandler` には司令塔が自分の `sendStopToEngine()` を渡す。
+フックは `MainWindowComposer::buildMatchHooks()`（UNDO 用は `buildUndoHooks()`、どちらも `src/app/mainwindowcomposer_game.cpp`）が組み立てる。各フックは合成ルート自身（`this`）を捕まえ、`m_c`（`MainWindowComponents`）の部品を呼ぶ。エンジンへの stop 送信はフックに置かず、`MatchTurnHandler` には司令塔が自分の `sendStopToEngine()` を渡す。
 
 #### Hooks と Deps の使い分け
 
@@ -1758,13 +1726,14 @@ class UiActionsWiring : public QObject {
     Q_OBJECT
 public:
     struct Deps {
-        Ui::MainWindow* ui = nullptr;           ///< UIオブジェクト
-        QObject*        ctx = nullptr;          ///< 受け側オブジェクト（MainWindow*）
-        DialogLaunchWiring* dlw = nullptr;      ///< ダイアログ起動配線
+        Ui::MainWindow* ui = nullptr;       ///< UIオブジェクト
+        QWidget*        window = nullptr;    ///< ダイアログの親
+        MainWindowActions* actions = nullptr; ///< 利用者操作の振り分け先
+        DialogLaunchWiring* dlw = nullptr;   ///< ダイアログ起動配線
         DialogCoordinatorWiring* dcw = nullptr; ///< DialogCoordinator配線（解析中止用）
         KifuFileController* kfc = nullptr;      ///< 棋譜ファイル操作コントローラ
         GameSessionOrchestrator* gso = nullptr; ///< 対局ライフサイクルオーケストレータ
-        // ... 外観・盤・評価値グラフ・棋譜エクスポートの取得関数
+        // ... 外観コントローラ・盤・評価値グラフ・棋譜エクスポート（すべてポインタ）
     };
 
     explicit UiActionsWiring(Deps d, QObject* parent = nullptr);
@@ -1786,8 +1755,8 @@ private:
 
 void FileActionsWiring::wire()
 {
-    // ファイル/アプリ。MainWindow に残っているのは終了だけで、ほかは担当クラスへ直接つなぐ
-    QObject::connect(ui->actionQuit,         &QAction::triggered, mw,  &MainWindow::saveSettingsAndClose,          Qt::UniqueConnection);
+    // ファイル/アプリ。終了は MainWindowActions、ほかは担当クラスへ直接つなぐ
+    QObject::connect(ui->actionQuit,         &QAction::triggered, mw,  &MainWindowActions::requestQuit,            Qt::UniqueConnection);
     QObject::connect(ui->actionSaveAs,       &QAction::triggered, kfc, &KifuFileController::saveKifuToFile,        Qt::UniqueConnection);
     QObject::connect(ui->actionOpenKifuFile, &QAction::triggered, kfc, &KifuFileController::chooseAndLoadKifuFile, Qt::UniqueConnection);
 }
@@ -1947,13 +1916,17 @@ class ErrorBus final : public QObject {
 public:
     static ErrorBus& instance();
 
-    /// エラーメッセージを発行する
-    void postError(const QString& message) {
-        emit errorOccurred(message);
-    }
+    /// 深刻度付きメッセージを発行する（messagePosted を出す。Error/Critical では errorOccurred も出す）
+    void postMessage(ErrorBus::ErrorLevel level, const QString& message);
+
+    /// エラーメッセージを発行する（postMessage(ErrorLevel::Error, message) と同じ）
+    void postError(const QString& message);
 
 signals:
-    /// エラーが発生した（→ MainWindow::onErrorBusOccurred）
+    /// 深刻度付きメッセージが発行された（→ UiNotificationService::displayMessage）
+    void messagePosted(ErrorBus::ErrorLevel level, const QString& message);
+
+    /// エラーが発生した（後方互換。Error/Critical で発火）
     void errorOccurred(const QString& message);
 
 private:
@@ -1979,17 +1952,17 @@ ErrorBus& ErrorBus::instance() {
 ErrorBus::instance().postError(tr("エンジンの起動に失敗しました"));
 ```
 
-**エラーの受信**（MainWindowで接続）:
+**エラーの受信**（`MainWindowComposer::connectSignals()` で接続）:
 
 ```cpp
-connect(&ErrorBus::instance(), &ErrorBus::errorOccurred,
-        this, &MainWindow::displayErrorMessage);
+connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
+        m_c.notificationService, &UiNotificationService::displayMessage);
 ```
 
 #### 設計上のポイント
 
 - ドメインサービス層（`engine/`, `kifu/` 等）がUIに依存せずにエラーを通知できる
-- MainWindowが `errorOccurred` シグナルを受けてダイアログ表示を行う
+- `UiNotificationService` が `messagePosted` シグナルを受けて、深刻度に応じた表示を行う
 - `Q_DISABLE_COPY_MOVE` でコピー/ムーブを禁止し、シングルトンの一意性を保証する
 
 ### 4.7 コーディング規約
@@ -2582,8 +2555,8 @@ game層（`src/game/`）は対局のライフサイクル全体を管理する�
 │                  └──────────────┘                               │
 │                                                                 │
 │  ┌──────────────────────┐    ┌──────────────────────┐          │
-│  │  TurnManager         │◀──▶│  TurnSyncBridge      │          │
-│  │  (手番の単一ソース)   │    │  (手番同期配線)       │          │
+│  │  TurnManager         │◀───│  TurnStateSyncService│          │
+│  │  (手番表示の通知元)   │    │  (app/。手番同期)     │          │
 │  └──────────────────────┘    └──────────────────────┘          │
 │                                                                 │
 │  ┌──────────────────────────────┐                               │
@@ -2599,15 +2572,16 @@ game層（`src/game/`）は対局のライフサイクル全体を管理する�
 | **ShogiGameController** | `shogigamecontroller.h/.cpp` | 盤面状態の管理、指し手の合法性検証と適用 |
 | **GameStartCoordinator** | `gamestartcoordinator.h/.cpp` | 対局開始フローのオーケストレーション |
 | **PreStartCleanupHandler** | `app/prestartcleanuphandler.h/.cpp` | 対局開始前のUI/状態クリーンアップ（UI の部品を扱うので `app/` に置く） |
-| **GameStateController** | `gamestatecontroller.h/.cpp` | 終局処理・投了/中断・人間/エンジン判定 |
-| **TurnManager** | `turnmanager.h/.cpp` | 手番の単一ソース（Single Source of Truth） |
-| **TurnSyncBridge** | `turnsyncbridge.h/.cpp` | GC ↔ TurnManager ↔ UI の手番同期配線 |
+| **GameStateController** | `gamestatecontroller.h/.cpp` | 終局処理・投了/中断（人間/エンジンの判定は `PlayModePolicyService`） |
+| **TurnManager** | `turnmanager.h/.cpp` | 手番の表現の変換と、手番変更の通知（`TurnStateSyncService` が持つ） |
 | **PromotionFlow** | `ui/coordinators/promotionflow.h/.cpp` | 成り/不成の選択ダイアログ表示（ダイアログを出すので `ui/coordinators/` に置く） |
 | **ConsecutiveGamesController** | `consecutivegamescontroller.h/.cpp` | 連続対局の進行管理と手番入れ替え |
 
 ### 6.2 MatchCoordinator — 司令塔
 
-`MatchCoordinator` は対局全体のライフサイクルを管理するハブクラスであり、game層の中核を成す。`MatchCoordinatorWiring` が `std::unique_ptr` で持ち、起動時に一度だけ作る。作り直さないので、`MainWindow::m_match` は終了まで同じ司令塔を指す（[14.4節](#144-コンストラクタの処理フロー)）。
+`MatchCoordinator` は対局全体のライフサイクルを管理するハブクラスであり、game層の中核を成す。`MatchCoordinatorWiring` が `std::unique_ptr` で持ち、起動時（`MainWindowComposer::wireMatchCoordinator()`）に一度だけ作る。作り直さないので、`MainWindowComponents::match` は終了まで同じ司令塔を指す（[14.4節](#144-起動の手順)）。
+
+司令塔の子の部品（エンジン管理・時間管理・UNDO・手番の進行・検討・終局処理・対局開始）も、司令塔のコンストラクタが `createEngineManager()`・`createTimekeeper()`・`createUndoHandler()`・`createMatchTurnHandler()`・`createAnalysisSession()`・`createGameEndHandler()`・`createGameStartOrchestrator()` の順に全部作る。後から作り直さない。
 
 **ソース**: `src/game/matchcoordinator.h`, `src/game/matchcoordinator.cpp`
 
@@ -2617,7 +2591,7 @@ game層（`src/game/`）は対局のライフサイクル全体を管理する�
 |------|------|
 | **対局開始** | `configureAndStart()` でモード別の初期化と開始処理を実行 |
 | **エンジン管理** | USIエンジンの生成・初期化・破棄（`initializeAndStartEngineFor()`, `destroyEngines()`） |
-| **手番管理** | 内部手番 `m_cur`（`Turn`）の管理と表示更新 |
+| **手番管理** | 手番は `ShogiGameController` の `currentPlayer()` だけを正とし、司令塔はコピーを持たない。表示はフック `updateTurnDisplay` で更新する |
 | **時間管理** | ShogiClock との連携、USI go コマンド用の時間計算 |
 | **指し手進行** | 人間の着手後の処理（`onHumanMove()`）とエンジンの初手（`startInitialEngineMoveIfNeeded()`）を、`MatchTurnHandler` を通して対局モードの Strategy（`HumanVsHumanStrategy`・`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）に渡す。エンジンの手は Strategy が `Usi::matchMoveReady` で受け取り、`ShogiGameController::applyMove()` で指す |
 | **終局判定** | 投了・時間切れ・中断・入玉宣言・持将棋の各終局パターンの処理 |
@@ -2696,7 +2670,7 @@ struct MatchCoordinatorHooks {   // MatchCoordinator::Hooks はこの型の別�
     };
     struct Game {
         std::function<void(const QString&)> initializeNewGame;                  // 新規対局GUI初期化
-        std::function<void(const QString&, const QString&)> appendKifuLine;     // 棋譜行追記
+        std::function<void(const RecordEntry&)> appendRecord;                  // 棋譜行追記
         std::function<void(Turn)> appendEval;                                   // エンジンの手のあとに、その手番の評価値を追記
         std::function<void(const QString&)> autoSaveKifu;                       // 棋譜自動保存
     };
@@ -2707,13 +2681,13 @@ struct MatchCoordinatorHooks {   // MatchCoordinator::Hooks はこの型の別�
 
 エンジンへの送信（stop など）はフックに置かない。`MatchTurnHandler` などの子ハンドラには、司令塔が自分のメソッド（`sendStopToEngine()` など）を渡す。
 
-Hooks はコンストラクタで `Deps` 構造体経由で注入される。`MainWindowServiceRegistry::buildMatchHooks()` が組み立て、`MatchCoordinatorWiring` が司令塔を作るときに渡す。司令塔は一度だけ作るので、各フックは組み立てたときのポインタを写さず、呼ばれた時点の部品を読む。
+Hooks はコンストラクタで `Deps` 構造体経由で注入される。`MainWindowComposer::buildMatchHooks()` が組み立て、`MatchCoordinatorWiring` が司令塔を作るときに渡す。各フックは合成ルート（`this`）を捕まえ、`MainWindowComponents` の部品を呼ぶ。
 
 戻り値のない通知（`updateTurnDisplay`・`showMoveHighlights`・`appendEval` など）も、シグナルにせずフックのままにしている（2026-10-14 に検討）。理由は次の3つである。
 
 - どのフックも受け手が1つで、呼んだ場所で処理が終わっていることを前提に次へ進む（[Deps/Hooks/Refs パターン](done/deps-hooks-refs-pattern.md) の 6.2。複数の受け手に知らせるものはシグナルにする）
 - フックの多くは、QObject でない子（`MatchTurnHandler`・`GameStartOrchestrator`・各 Strategy）がそのまま受け取って呼ぶ。シグナルにしても、子に渡す関数は残る
-- 受け手の側に、引数の合うスロットがないものが多い（`MainWindowMatchAdapter` は QObject でない。`appendEval` は手番でグラフを選ぶ）。`connect()` にラムダを使わない規約のもとでは、スロットを足す分だけコードが増える
+- 受け手の側に、引数の合うスロットがないものが多い（`appendEval` は手番でグラフを選ぶ。`renderBoardFromGc` は GC の盤を `ShogiView` に渡す）。`connect()` にラムダを使わない規約のもとでは、スロットを足す分だけコードが増える
 
 > **Note**: `Hooks` の `std::function` はシグナル/スロットの `connect()` とは異なるコールバック注入パターンである。CLAUDE.md の「connect() でラムダを使わない」ルールは `connect()` の話であり、Deps/Hooks 構造体への `std::function` 注入は許容されている。
 
@@ -2735,7 +2709,7 @@ struct Deps {
 };
 ```
 
-すべてのポインタは非所有（non-owning）であり、寿命は MainWindow 側で管理される。
+すべてのポインタは非所有（non-owning）であり、寿命は合成ルート（`MainWindowComposer`）側で管理される。`sfenRecord`・`gameMoves` は `AppState` のフィールドを指す。
 
 #### configureAndStart() — モード別起動ルーティング
 
@@ -2748,7 +2722,7 @@ configureAndStart(opt)                       GameStartOrchestrator
   ├── 2. applyStartOptionsAndHooks()
   │     ├── 終局状態をクリア、対局モード・最大手数・棋譜自動保存を設定
   │     ├── Hooks 経由で GUI 初期化（initializeNewGame・setPlayersNames・setEngineNames）
-  │     └── SFEN から開始手番を決めて GC と内部手番 m_cur に設定し、手番表示を更新
+  │     └── SFEN から開始手番を決めて GC に設定し、手番表示を更新
   ├── 3. buildPositionStringsFromHistory()  position 文字列の初期化
   │
   └── 4. createAndStartModeStrategy(opt)    MatchTurnHandler
@@ -2762,7 +2736,7 @@ configureAndStart(opt)                       GameStartOrchestrator
 
 | 起動ルート | Strategy | 処理内容 |
 |-----------|---------|---------|
-| **HvH** | `HumanVsHumanStrategy` | GC の手番を内部手番に写し、盤面描画と手番表示を更新するだけ |
+| **HvH** | `HumanVsHumanStrategy` | 盤面描画と手番表示（GC の手番）を更新するだけ |
 | **HvE / EvH** | `HumanVsEngineStrategy` | 既存エンジン破棄→USI生成（手番によらず usi1）→投了・宣言勝ちをエンジンの手番で配線→エンジン起動→手番設定 |
 | **EvE** | `EngineVsEngineStrategy` | 時計開始→手番設定→position 文字列の初期化→手番の側のエンジンへ go を送信 |
 
@@ -2788,7 +2762,7 @@ configureAndStart(opt)                       GameStartOrchestrator
 
 ```mermaid
 sequenceDiagram
-    participant UI as MainWindow / StartGameDialog
+    participant UI as GameSessionOrchestrator / StartGameDialog
     participant GSC as GameStartCoordinator
     participant PCH as PreStartCleanupHandler
     participant MC as MatchCoordinator
@@ -2824,12 +2798,16 @@ sequenceDiagram
         MC->>USI: go (手番の側のエンジンへ)
     end
 
-    GSC->>MC: startInitialEngineMoveIfNeeded()
-    Note over MC: 初手がエンジン手番なら go を発行
-
+    Note over GSC: finishStart()
     GSC-->>UI: started(opt) [signal]
     Note over UI: ナビゲーション無効化、<br/>対局中UIに切替
+    GSC-->>UI: requestSelectKifuRow(row) [signal]<br/>（現在局面から始めるときだけ）
+    GSC->>Clock: startClock()
+    GSC->>MC: startInitialEngineMoveIfNeeded()
+    Note over MC: 初手がエンジン手番なら go を発行
 ```
+
+対局の開始は、対局ダイアログからの開始・連続対局の次局・中断した対局の再開（`resumeInterruptedGame()`）のどれも、最後に `GameStartCoordinator::finishStart()` を通る。`finishStart()` は「`started` の通知 → 棋譜欄の開始行の選択 → 時計の開始 → エンジンの初手」の順に行う（`StartParams::autoStartEngineMove` が false なら時計と初手は行わない）。
 
 ### 6.4 GameStartCoordinator — 対局開始コーディネータ
 
@@ -2875,11 +2853,11 @@ struct TimeSettings {
 | メソッド | 説明 |
 |---------|------|
 | `prepare(Request)` | 開始前の時計/表示ポリシーを適用。`requestPreStartCleanup` シグナルを発行 |
-| `start(StartParams)` | バリデーション→TimeControl正規化→時計適用→`configureAndStart()`→完了通知 |
+| `start(StartParams)` | バリデーション→TimeControl正規化→時計適用→`configureAndStart()`→`finishStart()` |
 | `initializeGame(Ctx)` | ダイアログ表示→対局開始までの一連のフロー |
 | `setTimerAndStart(Ctx)` | 時計を設定し対局を開始 |
 
-`GameStartCoordinator` は1つだけ存在する。最初に必要になったとき（`MainWindowServiceRegistry::ensureGameStartCoordinator()` から）`MatchCoordinatorWiring::ensureMenuGameStartCoordinator()` が作り、親は `MatchCoordinatorWiring` である。司令塔は作成時に `Deps::match` で受け取る。
+`GameStartCoordinator` は1つだけ存在する。起動時に `MainWindowComposer::wireMatchCoordinator()` が、司令塔を作った直後に `MatchCoordinatorWiring::createMenuGameStartCoordinator()` で作る。親は `MatchCoordinatorWiring` である。司令塔は作成時に `Deps::match` で受け取る。
 
 `start()` メソッドの時間制御正規化では、秒読みとフィッシャーが同時に指定された場合に秒読みを優先してフィッシャー加算を0にクリアする。
 
@@ -2937,7 +2915,7 @@ performCleanup()
   ├── selectStartRow()
   │     棋譜欄の先頭行を選択（黄色ハイライト）
   │
-  ├── ensureBranchTreeRoot()
+  ├── prepareBranchTreeRoot()
   │     分岐ツリーのルートノードが存在しなければ作成
   │
   └── startLiveGameSession()
@@ -3007,15 +2985,15 @@ commitMove()
 
 | シグナル | 接続先 | 用途 |
 |---------|-------|------|
-| `currentPlayerChanged(Turn)` | TurnManager（TurnSyncBridge が接続）、BoardInteractionController | 手番変更通知。盤の操作は1回目のクリックを取り消す |
-| `moveCommitted(Turn, int)` | MainWindow::onMoveCommitted、PieceSoundPlayer | 着手確定通知（棋譜・表示の更新と駒音） |
+| `currentPlayerChanged(Turn)` | TurnManager（`TurnStateSyncService` が接続）、BoardInteractionController | 手番変更通知。盤の操作は1回目のクリックを取り消す |
+| `moveCommitted(Turn, int)` | MainWindowActions::handleMoveCommitted、PieceSoundPlayer | 着手確定通知（棋譜・表示の更新と駒音） |
 | `endDragSignal()` | ShogiView::endDrag | 駒のドラッグ表示を終える |
 
-### 6.7 TurnManager / TurnSyncBridge — 手番管理
+### 6.7 TurnManager / TurnStateSyncService — 手番管理
 
-#### TurnManager — 手番の単一ソース
+#### TurnManager — 手番の表現の変換と通知
 
-`TurnManager` は手番の「Single Source of Truth」として機能し、異なるサブシステム間の手番表現を変換する。
+手番の正は `ShogiGameController` の `currentPlayer()` である（司令塔は手番のコピーを持たない）。`TurnManager` は手番の表現を変換し、手番が変わったことを時計・盤・手番表示へ知らせる。`TurnStateSyncService`（`src/app/turnstatesyncservice.h`）が自分の子として作って持つ。
 
 **ソース**: `src/game/turnmanager.h`, `src/game/turnmanager.cpp`
 
@@ -3029,7 +3007,7 @@ commitMove()
              └──────┬───────┘
                     │ changed(Turn) [signal]
                     ▼
-       MainWindow::onTurnManagerChanged()
+       TurnStateSyncService::onTurnManagerChanged()
 ```
 
 各変換メソッド:
@@ -3044,19 +3022,19 @@ commitMove()
 
 `set()` は後手以外を先手にそろえ、値が変わったとき（と最初の設定のとき）だけ `changed()` シグナルを発行する。
 
-#### TurnSyncBridge — 手番同期の配線
+#### TurnStateSyncService — 手番同期の配線
 
-`TurnSyncBridge` は GC・TurnManager・MainWindow 間の手番同期を一箇所に集約する静的ユーティリティクラスである。
+`TurnStateSyncService`（app 層）は GC・TurnManager・時計・盤の手番表示の同期を一箇所に集約する。コンストラクタで `TurnManager` を作り、`updateDeps()` で GC の手番変更を `TurnManager` へつなぐ。
 
-**ソース**: `src/game/turnsyncbridge.h`, `src/game/turnsyncbridge.cpp`
+**ソース**: `src/app/turnstatesyncservice.h`, `src/app/turnstatesyncservice.cpp`
 
 ```cpp
-// TurnSyncBridge::wire() が構築する接続
-GC::currentPlayerChanged ──▶ TurnManager::set
-TurnManager::changed     ──▶ MainWindow::onTurnManagerChanged
+// TurnStateSyncService が構築する接続
+GC::currentPlayerChanged ──▶ TurnManager::set                         // updateDeps()
+TurnManager::changed     ──▶ TurnStateSyncService::onTurnManagerChanged // コンストラクタ
 ```
 
-`wire()` は `Qt::UniqueConnection` を使用して重複接続を防止し、呼び出し時に初期同期（`tm->set(gc->currentPlayer())`）も行う。
+`onTurnManagerChanged()` は時計の手番（`ShogiClock::setCurrentPlayer()`）、GC の手番、盤の手番表示（`ShogiView::updateTurnIndicator()`）を合わせる。`setCurrentTurn()` は、対局中なら GC の手番、それ以外なら盤面 SFEN の手番を正として `TurnManager` と GC をそろえる（起動時の初期表示でも `MainWindowComposer::finalizeUi()` から呼ぶ）。
 
 #### 人間/エンジンの手番切替
 
@@ -3114,7 +3092,7 @@ public:
 
 ### 6.9 GameStateController — ゲーム状態管理
 
-`GameStateController` は終局処理・投了/中断・人間/エンジン判定を担うコントローラである。MainWindow から終局関連の処理を分離する目的で作られた。
+`GameStateController` は終局処理・投了/中断を担うコントローラである。MainWindow から終局関連の処理を分離する目的で作られた。対局モードのコピーは持たない（人間/エンジンの判定は `PlayModePolicyService` が `AppState::playMode` を読んで行う）。
 
 **ソース**: `src/game/gamestatecontroller.h`, `src/game/gamestatecontroller.cpp`
 
@@ -3125,7 +3103,6 @@ public:
 | **投了処理** | `handleResignation()` → `MatchCoordinator::handleResign()` に委譲 |
 | **中断処理** | `handleBreakOffGame()` → `MatchCoordinator::handleBreakOff()` に委譲 |
 | **終局後処理** | 棋譜追記、UIの閲覧モードへの遷移、矢印ボタン有効化 |
-| **人間/エンジン判定** | `isHvH()`, `isHumanSide(Turn)` を `PlayMode` から判定 |
 | **終局判定** | `isGameOver()` で `MatchCoordinator` の状態を参照 |
 
 #### シグナル接続
@@ -3154,7 +3131,7 @@ MatchCoordinator::requestAppendGameOverMove
 
 #### コールバック設定
 
-GameStateController は MainWindow への委譲を `Hooks` 構造体の `std::function` で行う。主なもの:
+GameStateController は上位層への委譲を `Hooks` 構造体の `std::function` で行う（`MainWindowComposer::wireGame()` が組み立てる）。主なもの:
 
 | フック | 用途 |
 |-------------|------|
@@ -3163,19 +3140,29 @@ GameStateController は MainWindow への委譲を `Hooks` 構造体の `std::fu
 | `syncCursorToPly(int)` | 表示中の手数（分岐ツリーのカーソル）を指定の手数に合わせる（`KifuNavigationCoordinator::syncNavStateToPly()`） |
 | `updateBoardView` / `setGameOverStyleLock` / `setMouseClickMode` / `removeHighlightAllData` / `setKifuViewSingleSelection` | 盤面ビュー・棋譜欄の表示の切替 |
 
-#### isHumanSide() の判定ロジック
+#### 人間/エンジンの判定（PlayModePolicyService）
+
+対局モードによる判定は `PlayModePolicyService`（`src/app/playmodepolicyservice.h`）の1か所にある。`isHvH()`・`isHumanTurnNow()`・`isGameActivelyInProgress()` などと並んで、`isHumanSide(Turn)` は `AppState::playMode` を読んで判定する。
 
 ```cpp
-bool isHumanSide(Turn p) const {
-    switch (m_playMode) {
-    case HumanVsHuman:          return true;              // 両方人間
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine: return (p == Turn::Black); // 先手のみ人間
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman: return (p == Turn::White); // 後手のみ人間
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:return false;              // 両方エンジン
-    default:                    return true;
+bool PlayModePolicyService::isHumanSide(Turn p) const
+{
+    if (!m_deps.playMode)
+        return false;
+
+    switch (*m_deps.playMode) {
+    case PlayMode::HumanVsHuman:
+        return true;                      // 両方人間
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
+        return (p == Turn::Black);        // 先手のみ人間
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
+        return (p == Turn::White);        // 後手のみ人間
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
+    default:
+        return false;                     // 両方エンジン・対局外
     }
 }
 ```
@@ -3227,8 +3214,8 @@ startNextGame()
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                                                                      │
-│  UI (MainWindow)                                                     │
-│    │ ensure*() で生成                                                 │
+│  合成ルート (MainWindowComposer)                                     │
+│    │ 起動時に全部作る                                                 │
 │    │                                                                  │
 │    ├── GameStartCoordinator                                          │
 │    │     │                                                            │
@@ -3247,8 +3234,8 @@ startNextGame()
 │    ├── GameStateController (終局処理)                                  │
 │    │     └── MatchCoordinator の終局シグナルをハンドリング             │
 │    │                                                                  │
-│    ├── TurnManager / TurnSyncBridge (手番同期)                        │
-│    │     └── GC ↔ TurnManager ↔ MainWindow                           │
+│    ├── TurnStateSyncService / TurnManager (手番同期)                  │
+│    │     └── GC → TurnManager → 時計・盤の手番表示                    │
 │    │                                                                  │
 │    └── ConsecutiveGamesController (連続対局)                           │
 │          └── shouldStartNextGame() で次局判定                          │
@@ -3313,12 +3300,13 @@ UsiProtocolHandler::onDataReceived()    Usi::onDataReceived()
     ├─ "usiok"  → emit usiOkReceived()     └─ Presenter::logReceivedData()
     ├─ "readyok"→ emit readyOkReceived()         │ emit commLogAppended()
     ├─ "bestmove"→ emit bestMoveReceived()        ▼
-    ├─ "info"   → emit infoLineReceived()   UsiCommLogModel
+    ├─ "info"   → UsiInfoParser::parse()   UsiCommLogModel
+    │              emit infoReceived(UsiInfo)
     │              Presenter::onInfoReceived()
     │                   │ (50msバッファリング後)
     │                   ▼
-    │              processInfoLineInternal()
-    │                   │ emit thinkingInfoUpdated()
+    │              processInfo(UsiInfo)
+    │                   │ emit thinkingInfoUpdated(ThinkingInfoRow)
     │                   ▼
     │              Usi::onThinkingInfoUpdated()
     │                   ├─ ThinkingModel::prependItem()
@@ -3471,8 +3459,11 @@ onDataReceived(line)
   │     └── 通常手   → m_bestMove に格納、ponder手も取得
   │     └── emit bestMoveReceived()
   │
-  ├── "info ..." → emit infoLineReceived()
-  │                 Presenter::onInfoReceived()
+  ├── "info ..." → UsiInfoParser::parse() → emit infoReceived(UsiInfo)
+  │                 Presenter::onInfoReceived() / AnalysisFlowController
+  │
+  ├── "option name ..." → UsiInfoParser::parseOptionDeclaration()（報告されたオプションを記録）
+  ├── "id name ..."     → UsiInfoParser::parseIdName()
   │
   ├── "readyok" → emit readyOkReceived()
   │
@@ -3526,7 +3517,7 @@ ProtocolHandler → Usi（シグナル再発行）
   ├── bestMoveResignReceived → bestMoveResignReceived
   ├── bestMoveWinReceived    → bestMoveWinReceived
   ├── errorOccurred     → errorOccurred
-  ├── infoLineReceived  → infoLineReceived
+  ├── infoReceived      → infoReceived
   └── checkmate*        → checkmate*（4種）
 
 Presenter → Usi（モデル更新の中継）
@@ -3549,16 +3540,16 @@ Presenter → Usi（モデル更新の中継）
 | `bestMoveReceived()` | bestmove 受信 | MatchCoordinator |
 | `bestMoveResignReceived()` | 投了 | MatchCoordinator |
 | `bestMoveWinReceived()` | 入玉宣言勝ち | MatchCoordinator |
-| `errorOccurred(message)` | エンジンエラー | MainWindow（エラーダイアログ） |
-| `infoLineReceived(line)` | info 行受信 | AnalysisCoordinator |
-| `thinkingInfoUpdated(...)` | 思考情報更新 | 評価値グラフ、UI |
+| `errorOccurred(message)` | エンジンエラー | MatchCoordinator（`EngineLifecycleManager`）、AnalysisFlowController、CsaEngineController など |
+| `infoReceived(UsiInfo)` | info 受信（解析済み） | ThinkingInfoPresenter、AnalysisFlowController |
+| `thinkingInfoUpdated(ThinkingInfoRow)` | 思考情報更新 | 評価値グラフ、UI |
 | `checkmateSolved(pvMoves)` | 詰みあり | TsumeSearchFlowController |
 | `checkmateNoMate()` | 不詰 | TsumeSearchFlowController |
 
 #### onThinkingInfoUpdated() のモデル更新
 
 ```
-onThinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr, usiPv, baseSfen, multipv, scoreCp)
+onThinkingInfoUpdated(row)   // ThinkingInfoRow（時間・深さ・ノード数・評価値・漢字の読み筋・USI の読み筋・エンジンの読み筋・局面・multipv・評価値の整数）
   │
   ├── 思考タブ: m_thinkingModel->prependItem(record)
   │     └── 新しい思考情報を先頭に追加（時系列の逆順）
@@ -3566,19 +3557,19 @@ onThinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr, usiPv, baseSfen, mu
   ├── 検討タブ: m_considerationModel->updateByMultipv(record, maxMultiPV)
   │     └── MultiPV番号に基づいて行を更新/挿入
   │
-  └── emit thinkingInfoUpdated(...)  ← 外部への通知
+  └── emit thinkingInfoUpdated(row)  ← 外部への通知
 ```
 
 ### 7.6 ThinkingInfoPresenter — 思考情報の解析と表示
 
 **ソース**: `src/engine/thinkinginfopresenter.h`, `src/engine/thinkinginfopresenter.cpp`
 
-#### info行のバッファリング
+#### info のバッファリング
 
-高頻度で到着する info 行を 50ms 間隔でバッチ処理し、GUI の更新頻度を抑える。
+高頻度で到着する info（解析済みの `UsiInfo`）を 50ms 間隔でバッチ処理し、GUI の更新頻度を抑える。
 
 ```
-onInfoReceived(line)                     ← UsiProtocolHandler から呼ばれる
+onInfoReceived(info)                     ← UsiProtocolHandler::infoReceived から呼ばれる
   │
   ├── m_infoBuffer に追加
   │
@@ -3588,19 +3579,18 @@ onInfoReceived(line)                     ← UsiProtocolHandler から呼ばれ�
 flushInfoBuffer()
   │
   ├── バッファを swap で取り出し
-  └── 各行に対して processInfoLineInternal() を実行
+  └── 各 info に対して processInfo() を実行
 ```
 
-#### processInfoLineInternal() の処理フロー
+#### processInfo() の処理フロー
 
 ```
-processInfoLineInternal(line)
+processInfo(info)
   │
-  ├── 1. ShogiEngineInfoParser を生成
-  │     ├── 前回指し手の座標を設定
-  │     └── 思考開始時の手番を設定（SFENから抽出済み）
+  ├── 1. PvNotationFormatter に前回指し手の座標を設定
+  │     （思考開始局面は setBaseSfen で設定済み）
   │
-  ├── 2. parseEngineOutputAndUpdateState() でinfo行を解析
+  ├── 2. format(info) で読み筋・探索手を漢字表記にする
   │     └── 盤面コピー上で指し手をシミュレートし、漢字読み筋を生成
   │
   ├── 3. GUI項目のシグナルを発行
@@ -3615,7 +3605,7 @@ processInfoLineInternal(line)
   │           ├── score cp → 解析モードなら後手側で符号反転
   │           └── score mate → 詰み評価値（±31111）を設定
   │
-  └── 5. thinkingInfoUpdated シグナルを発行
+  └── 5. thinkingInfoUpdated(ThinkingInfoRow) シグナルを発行
         └── multipv=1 のみ評価値グラフを更新
 ```
 
@@ -3629,43 +3619,45 @@ processInfoLineInternal(line)
 ⚠ E1: warning: ...                     （エラー：⚠）
 ```
 
-### 7.7 ShogiEngineInfoParser — info行パーサ
+### 7.7 UsiInfoParser と PvNotationFormatter — info の解析と読み筋の表記
 
-**ソース**: `src/engine/shogiengineinfoparser.h`, `src/engine/shogiengineinfoparser.cpp`
+**ソース**: `src/engine/usiinfo.h`, `src/engine/usiinfoparser.h/.cpp`, `src/engine/pvnotationformatter.h/.cpp`
 
-USI エンジンが出力する `info` 行のトークンを順に解析し、各サブコマンド（depth, score cp, pv 等）の値を取得するとともに、読み筋（PV）を漢字表記に変換するクラスである。
+info 行の解釈はアプリ全体で `UsiInfoParser::parse()` の1か所にまとめる。`UsiProtocolHandler` が受信時に1回だけ解析し、
+`infoReceived(const UsiInfo&)` で配る。思考タブ（`ThinkingInfoPresenter`）、棋譜解析（`AnalysisCoordinator`）、
+自動化・CLI（`EngineAnalysisRunner`）、候補手の矢印（`UsiProtocolHandler::updateCandidate`）は、どれもこの値を使う。
+`UsiInfo` は盤面や GUI に依存しない値型で、CLI・MCP サーバー向けの JSON（`toJson()`）も持つ。
 
-#### 解析対象のサブコマンド
+#### UsiInfo の項目
 
-| サブコマンド | アクセサ | 説明 |
-|-------------|---------|------|
-| `depth` | `depth()` | 探索深さ |
-| `seldepth` | `seldepth()` | 選択的探索深さ |
-| `multipv` | `multipv()` | MultiPV インデックス（1が最良） |
-| `nodes` | `nodes()` | 探索ノード数 |
-| `nps` | `nps()` | Nodes Per Second |
-| `time` | `time()` | 経過時間（ms） |
-| `score cp` | `scoreCp()` | 評価値（centipawn） |
-| `score mate` | `scoreMate()` | 詰み手数 |
-| `hashfull` | `hashfull()` | ハッシュ使用率（千分率） |
-| `pv` | `pvKanjiStr()` / `pvUsiStr()` | 読み筋（漢字/USI形式） |
-| `currmove` | `searchedHand()` / `searchedUsi()` | 現在探索中の手（漢字/USI形式） |
+| サブコマンド | 項目 | 未指定のとき |
+|-------------|------|-------------|
+| `depth` / `seldepth` | `depth` / `seldepth` | -1 |
+| `multipv` | `multipv` | 1 |
+| `time` / `nodes` / `nps` | `timeMs` / `nodes` / `nps` | -1 |
+| `hashfull` | `hashfull`（千分率） | -1 |
+| `score cp` / `score mate` | `score`（`UsiScore`: `kind` = Cp/Mate、`value`、`bound` = None/Lower/Upper、`mateCountKnown`） | `kind` = None |
+| `currmove` | `currmove` | 空 |
+| `pv` | `pv`（USI 形式の指し手の `QStringList`。行末まで） | 空 |
+| `string` | `string`（行末までの本文。中の `pv` などは読まない） | 空 |
 
-#### 評価値の境界
+`score mate +` / `score mate -` のように手数を省く場合は `value` = 0、`mateCountKnown` = false で、`mateText()` は `"+"` / `"-"` を返す。
+数でない値や知らない語は飛ばす。先頭の語が `info` でない行は `std::nullopt` になる。
 
-```cpp
-enum class EvaluationBound {
-    None,        // 確定値
-    LowerBound,  // 下限値（lowerbound）: 表示に "++" を付加
-    UpperBound   // 上限値（upperbound）: 表示に "--" を付加
-};
-```
+同じファイルの `parseOptionDeclaration()`（`option name <name> type <type> ...`）と `parseIdName()`（`id name <name>`）は、
+usi〜usiok の間にエンジンが報告したオプションと名前を記録するときに使う。
+
+#### PvNotationFormatter — 読み筋の漢字表記
+
+`UsiInfo` の `pv` と `currmove` を、思考を始めた局面の上で進めて漢字表記にする（盤面に結び付いた表示用の変換だけを持つ）。
+結果は `pvKanjiStr()`（漢字表記）、`pvUsiStr()`（局面に合った手までの USI 形式）、`searchedHand()` / `searchedUsi()`（探索手）。
+評価値の表示（`"120++"`、`"3手詰"`）と評価値グラフ用の整数は `ThinkingInfoPresenter` が `UsiScore` から作る（lowerbound は "++"、upperbound は "--"）。
 
 #### 読み筋（PV）の漢字変換処理
 
 読み筋は、思考を始めた局面から日本語にする。局面は `setPosition(sfen)` で設定する（`ThinkingInfoPresenter::setBaseSfen` が呼ぶ）。
-パーサはその局面を `ShogiBoard` に持ち、`parseEngineOutputAndUpdateState()` の中の `parsePvAndSimulateMoves()` が
-info 行ごとに作業用の盤へ写して（`ShogiBoard::copyPositionFrom`）、指し手を順に進める。
+`PvNotationFormatter` はその局面を `ShogiBoard` に持ち、`format()` の中の `formatPv()` が
+info ごとに作業用の盤へ写して（`ShogiBoard::copyPositionFrom`）、指し手を順に進める。
 
 ```
 入力: "7g7f 3c3d 8h2b+ 3a2b B*4e"（平手）
@@ -4347,7 +4339,7 @@ struct KifuExportMetadata {
 
 棋譜ファイルの読み込みからUI反映までを統括するコーディネータ。6つのファイル形式と、テキスト貼り付けによる自動判定読み込みに対応する。パース（`KifuLoadParser`）と、結果をモデル・UIに当てはめる処理（`KifuApplyService`）は別のクラスにある。
 
-最初の読み込みのときに `KifuSubRegistry::ensureKifuLoadCoordinator()` が一度だけ作り（親は MainWindow）、以後のすべての読み込みに使う。`KifuFileController` は `Deps::ensureKifuLoadCoordinator` で取得する。読み込み中に次の読み込みを始めると、前の読み込みは `KifuLoadCoordinator` 自身が打ち切る。
+起動時に `MainWindowComposer::wireKifu()` が `KifuLoadCoordinatorFactory::createAndWire()` で一度だけ作り（親は MainWindow）、以後のすべての読み込みに使う。`KifuFileController` は `Deps::loadCoordinator` でポインタを受け取る。読み込み中に次の読み込みを始めると、前の読み込みは `KifuLoadCoordinator` 自身が打ち切る。
 
 #### 読み込みフロー
 
@@ -4437,11 +4429,13 @@ struct Dependencies {
     GameInfoPaneController* gameInfoController;
     TimeControlController* timeController;
     ShogiGameController* gameController;
-    // ... 状態値（開始SFEN・対局モード・対局者名・表示中のライン・currentMoveIndex など）
+
+    const AppState* state;               // 開始局面・対局モード・対局者名（書き出すたびに読む）
+    const KifuNavigationState* navState; // 表示中の手順と手数
 };
 ```
 
-`setPrepareCallback()` で設定されたコールバックが、保存・コピー操作の直前に呼ばれ、依存オブジェクトの最新状態を反映する（`KifuSubRegistry::updateKifuExportDeps()`）。`currentMoveIndex` は分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から取る。
+依存は起動時に `MainWindowComposer` が `setDependencies()` で1回だけ渡す。開始局面・対局モード・対局者名は値を写さず、書き出すたびに `AppState` から読む。表示中の手数は分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から取る。
 CSA・USEN・USI の書き出しに使う USI の指し手は、対局の局面列・指し手列ではなく `GameRecordModel::collectMainlineUsiForExport()`（分岐ツリーの本譜）から取る。クリップボード操作は `KifuExportClipboard` に委ね、依存は `Dependencies` から写した `KifuExportClipboard::Deps` で渡す。
 
 #### 主要メソッド
@@ -4549,9 +4543,14 @@ static bool parseWithVariations(const QString& path, KifParseResult& out, QStrin
 
 // 対局情報の抽出
 static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
+
+// テキスト版（貼り付けた棋譜など。ファイル版はファイルを読んでこれらに渡す）
+static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
+static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
+static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);
 ```
 
-`parseWithVariations()` が最も包括的なAPIであり、`KifuLoadCoordinator` はこのメソッドを経由して棋譜を読み込む。
+`parseWithVariations()` / `parseText()` が最も包括的なAPIである。`KifuLoadParser` はファイルを1回だけ読み、テキスト版の `parseText()` などを呼ぶ（貼り付けも同じ経路で、一時ファイルは作らない）。CSA は `parse()` / `parseText()`、USEN は対局情報を持たない。
 
 #### KI2形式の移動元推測
 
@@ -4711,14 +4710,13 @@ sendAnalyzeForPly(ply)
         ▼
 sendGoCommand()           ←── FlowController が positionPrepared 受信後に呼ぶ
   │
-  ├── send(m_pendingPosCmd)     // "position sfen ..." を送信
-  ├── send("go infinite")       // 思考開始
+  ├── emit requestSearch(m_pendingPosCmd)  // "position sfen ..." と go infinite の送信を要求
   └── m_stopTimer.start(movetimeMs)  // タイマー開始
         │
         ▼ movetimeMs 経過
 onStopTimerTimeout()
   │
-  └── send("stop")              // 思考停止を要求
+  └── emit requestStop()        // 思考停止を要求
         │
         ▼ エンジンが応答
 onEngineBestmoveReceived()
@@ -4728,20 +4726,11 @@ onEngineBestmoveReceived()
         └── 全手完了   → emit analysisFinished(Idle)
 ```
 
-#### info 行の解析
+#### info の受け取り
 
-`onEngineInfoLine()` でUSIの `info` 行を正規表現で解析し、`analysisProgress` シグナルで結果を伝搬する。
-
-```cpp
-// 解析される主要フィールド
-struct ParsedInfo {
-    int depth;      // 探索深さ
-    int seldepth;   // 選択的探索深さ
-    int scoreCp;    // 評価値（centipawn）
-    int mate;       // 詰み手数（正=自分の勝ち、負=相手の勝ち）
-    QString pv;     // 読み筋（USI形式の指し手列）
-};
-```
+`onEngineInfo(const UsiInfo&)` で解析済みの info を受け取り、解析中なら `analysisProgress(ply, info)` で伝える。
+info 行の解釈は `UsiInfoParser`（第7章）が行い、このクラスは正規表現などで行を読み直さない。
+`AnalysisFlowController::onAnalysisProgress` は `UsiScore` から評価値・詰み手数（`"+"` / `"-"` を含む表記）を取り出す。
 
 5つの `QRegularExpression` を `Q_GLOBAL_STATIC_WITH_ARGS` で静的に定義し、パフォーマンスを最適化している。
 
@@ -4749,10 +4738,12 @@ struct ParsedInfo {
 
 | シグナル | 発火タイミング | 用途 |
 |---------|--------------|------|
-| `requestSendUsiCommand(line)` | USIコマンド送信時 | 外部の `Usi::sendRaw()` に接続 |
+| `requestSetOption(name, value)` | MultiPV の設定時 | `Usi::sendSetOptionCommand()` に接続 |
+| `requestSearch(positionCommand)` | 局面の探索開始時 | `Usi::sendPositionAndGoInfinite()` に接続 |
+| `requestStop()` | 思考時間の経過・中止時 | `Usi::sendStopCommand()` に接続 |
 | `analysisStarted(startPly, endPly, mode)` | 解析開始時 | UI の状態更新 |
 | `analysisFinished(mode)` | 解析完了・中止時 | UI のリセット |
-| `analysisProgress(ply, depth, seldepth, scoreCp, mate, pv, rawInfoLine)` | info 行受信時 | 結果の蓄積 |
+| `analysisProgress(ply, UsiInfo)` | info 受信時 | 結果の蓄積 |
 | `positionPrepared(ply, positionCmd)` | 局面準備完了時 | 盤面表示の更新 |
 
 ### 9.4 ConsiderationFlowController — 検討モードのフロー制御
@@ -4909,12 +4900,13 @@ runWithDialog(deps, parent)
         ├── AnalysisCoordinator を作成（または再利用）
         │
         ├── シグナル接続
-        │     ├── AC::requestSendUsiCommand → Usi::sendRaw
+        │     ├── AC::requestSetOption / requestSearch / requestStop
+        │     │     → Usi::sendSetOptionCommand / sendPositionAndGoInfinite / sendStopCommand
         │     ├── AC::analysisProgress → this::onAnalysisProgress
         │     ├── AC::positionPrepared → this::onPositionPrepared
         │     ├── AC::analysisFinished → this::onAnalysisFinished
         │     ├── Usi::bestMoveReceived → this::onBestMoveReceived
-        │     ├── Usi::infoLineReceived → AC::onEngineInfoLine
+        │     ├── Usi::infoReceived → AC::onEngineInfo
         │     ├── Usi::thinkingInfoUpdated → this::onThinkingInfoUpdated
         │     ├── Presenter::stopRequested → this::stop
         │     └── Presenter::rowDoubleClicked → this::onResultRowDoubleClicked
@@ -5127,7 +5119,7 @@ analysis層のフローコントローラは、エンジンとの通信経路が
   └── AnalysisFlowController
         │
         ├── 専用 Usi インスタンスを作成・所有（または外部提供）
-        ├── AnalysisCoordinator::requestSendUsiCommand → Usi::sendRaw
+        ├── AnalysisCoordinator の送信要求 → Usi の型付き送信メソッド
         └── 独自の position/go infinite/stop サイクルを実行
 ```
 
@@ -5192,7 +5184,7 @@ graph TB
 
     Model["Model層\n(GameController, MatchCoordinator,\nGameRecordModel 等)"]
     View["View層\n(ShogiView, RecordPane,\nEngineAnalysisTab 等)"]
-    MW["MainWindow"]
+    MW["MainWindowComposer"]
 
     Model -->|データ変更| Presenters
     Presenters -->|表示更新| View
@@ -5200,8 +5192,8 @@ graph TB
     Controllers -->|状態変更| Model
     Wiring -.->|connect()| Presenters
     Wiring -.->|connect()| Controllers
-    MW -->|ensure*()で生成| Wiring
-    MW -->|ensure*()で生成| Coordinators
+    MW -->|起動時に生成| Wiring
+    MW -->|起動時に生成| Coordinators
     Coordinators -->|複数オブジェクト調整| Presenters
     Coordinators -->|複数オブジェクト調整| Controllers
 ```
@@ -5288,8 +5280,11 @@ EvalGraphPresenter::appendSecondaryScore(scoreCp, match);  // 後手エンジン
   → QTableView::selectionModel()::currentChanged
      → GameRecordPresenter::onKifuCurrentRowChanged()
         → currentRowChanged(row, comment) シグナル
-           → MainWindow::onRecordRowChanged()
-              → 盤面更新、分岐候補更新、コメント表示
+           → CommentCoordinator::handleRecordRowChangeRequest()
+              → コメント表示
+
+（盤面の更新は RecordPane::mainRowChanged → MainWindowActions::onRecordPaneMainRowChanged()
+  → RecordNavigationHandler::onMainRowChanged() が行う）
 ```
 
 #### TimeDisplayPresenter — 対局時計
@@ -5350,7 +5345,7 @@ setupBoardInteractionController()
   │     ShogiView::rightClicked → BoardInteractionController::onRightClick
   └── Ctrl+ホイールで盤の大きさを変えるフィルタを付ける
 
-onMoveRequested(from, to)    ← MainWindowServiceRegistry::handleMoveRequested() から
+onMoveRequested(from, to)    ← MainWindowActions::handleMoveRequested() から
   ├── 局面編集モード → PositionEditController::applyEditMove()
   ├── 対局していないとき → 棋譜の変化として記録（コールバック経由）
   └── それ以外 → ShogiGameController::validateAndMove()
@@ -5358,13 +5353,13 @@ onMoveRequested(from, to)    ← MainWindowServiceRegistry::handleMoveRequested(
        ├── HvH・HvE → MatchCoordinator::onHumanMove()
        └── 通信対局 → csaMoveRequested シグナル発行
 
-onMoveCommitted(mover, ply)  ← MainWindowServiceRegistry::handleMoveCommitted() から
-  └── EvE のとき、指した側の評価値グラフを描き直す（コールバック経由）
+onMoveCommitted(mover, ply)  ← MainWindowActions::handleMoveCommitted() から
+  └── EvE のとき、指した側の評価値グラフを描き直す（EvaluationGraphController）
 ```
 
-着手要求（`BoardInteractionController::moveRequested`）はこのクラスではつながない。`MainWindowSignalRouter::connectMoveRequested()` が `MainWindow::onMoveRequested` につなぎ、`MainWindowServiceRegistry::handleMoveRequested()` が `onMoveRequested()` を呼ぶ（15.2 節）。
+着手要求（`BoardInteractionController::moveRequested`）はこのクラスではつながない。`MainWindowComposer::connectSignals()` が `MainWindowActions::handleMoveRequested` につなぎ、そこから対局モードを渡して `onMoveRequested()` を呼ぶ（15.2 節）。
 
-コールバック（`std::function`）は、`MainWindowServiceRegistry::ensureBoardSetupController()` が `setEnsurePositionEditCallback()`・`setVariationInputCallbacks()`・`setRedrawEngine1GraphCallback()` 等で渡す。
+部品は `MainWindowComposer` が `setShogiView()`・`setGameController()`・`setMatchCoordinator()`・`setEvaluationGraphController()` などでポインタとして渡す。関数で受け取るのは、棋譜の変化として記録するかを決める `setVariationInputCallbacks()`（中身は `MainWindowActions::canRecordVariationMove()`・`recordVariationMove()`）だけである。
 
 #### EvaluationGraphController — 評価値グラフ
 
@@ -5490,15 +5485,15 @@ public:
 
 **ソース**: `src/ui/wiring/uiactionswiring.h`, `src/ui/wiring/uiactionswiring.cpp`
 
-`Ui::MainWindow` が持つ全ての `QAction`（ファイル操作、対局、盤操作、解析、表示など）を、担当するクラスのスロットに接続する。`MainWindowSignalRouter::connectAllActions()` が起動時に1回だけ作って `wire()` を呼ぶ。
+`Ui::MainWindow` が持つ全ての `QAction`（ファイル操作、対局、盤操作、解析、表示など）を、担当するクラスのスロットに接続する。`MainWindowComposer::connectSignals()` が起動時に1回だけ作って `wire()` を呼ぶ。
 
 ```
 wire()
-  ├── FileActionsWiring  → KifuFileController（開く・保存）、DialogLaunchWiring、MainWindow（終了）
+  ├── FileActionsWiring  → KifuFileController（開く・保存）、DialogLaunchWiring、MainWindowActions（終了）
   ├── GameActionsWiring  → GameSessionOrchestrator（対局・投了・中断・再開）、DialogLaunchWiring、
-  │                        DialogCoordinatorWiring（棋譜解析の中止）、MainWindow（新規・局面編集）
+  │                        DialogCoordinatorWiring（棋譜解析の中止）、MainWindowActions（新規・局面編集）
   ├── EditActionsWiring  → KifuExportController（棋譜・局面のコピー）、KifuFileController（貼り付け）
-  └── ViewActionsWiring  → MainWindowAppearanceController（盤の拡大・縮小・反転）、MainWindow（待った）など
+  └── ViewActionsWiring  → MainWindowAppearanceController（盤の拡大・縮小・反転）、MainWindowActions（待った）など
 ```
 
 #### ConsiderationWiring — 検討モード配線
@@ -5509,7 +5504,7 @@ wire()
 
 ```
 displayConsiderationDialog()
-  ├── ensureDialogCoordinator() コールバック
+  ├── DialogCoordinator に司令塔と検討タブを渡す（起動時に setDialogCoordinator() で受け取ったもの）
   ├── DialogCoordinator::startConsiderationFromContext()
   └── シグナル接続
        ├── onModeStarted() → 検討モデルクリア、矢印表示初期化
@@ -5525,24 +5520,21 @@ displayConsiderationDialog()
 
 **ソース**: `src/ui/wiring/csagamewiring.h`, `src/ui/wiring/csagamewiring.cpp`
 
-CSA通信対局に特有のシグナル/スロット接続を管理する。`wire()` で対局開始時に接続し、`unwire()` で対局終了時に解除する動的な接続ライフサイクルを持つ。
+最初の CSA 通信対局で `CsaGameCoordinator` を作り、そのシグナルを実際の受け手へ直接つなぐ（中継シグナルを持たない）。`wire()` は何度呼んでも1本だけつなぎ、`unwire()` で外す。
 
 ```
-wire()                              unwire()
-  ├── onGameStarted                   └── 全ての connect() を disconnect()
-  ├── onMoveMade
-  ├── onTurnChanged
-  ├── onGameEnded
-  └── onLogMessage
-
-startCsaGame(dialog, parent)
-  ├── CsaGameCoordinator を生成（または再利用）
-  ├── CsaGameDialog の設定を Coordinator に渡す
-  ├── wire() で接続
-  └── Coordinator::start() で対局開始
+wire()
+  ├── recordEntryReady       → GameRecordUpdateService::appendRecord / updateCurrentSfenAfterMove
+  ├── moveHighlightRequested → BoardInteractionController::showMoveHighlights
+  ├── errorOccurred          → UiNotificationService::displayErrorMessage
+  ├── connectionStateChanged / csaCommLogAppended → EngineAnalysisTab
+  ├── moveAppliedToBoard     → CsaGameWiring::moveAppliedToBoard（駒音。起動時に PieceSoundPlayer へ接続済み）
+  └── gameStarted / gameEnded / turnChanged / logMessage → 自身（画面の切り替え）
 ```
 
-**シグナル群**: `disableNavigationRequested`, `enableNavigationRequested`, `appendKifuLineRequested` など、MainWindow 側のスロットに接続されるシグナルを発行する。
+指し手の進行と棋譜行の組み立て（終局原因の TerminalType への対応を含む）は `CsaGameCoordinator` と値型 `CsaGameProgress` が行う。配線側に残るのは、プレイモード・UI 状態・対局者名・盤の反転・ステータスバー・結果の表示・棋譜の自動保存だけ。
+
+**シグナル**: 外へ出すシグナルは、司令塔の `moveAppliedToBoard` を転送する `moveAppliedToBoard` だけである。司令塔は最初の通信対局で作られるので、起動時につなぐ駒音再生（`PieceSoundPlayer`）はこちらを購読する。
 
 #### PlayerInfoWiring — プレイヤー情報配線
 
@@ -5625,7 +5617,7 @@ KifuNavigationController からのシグナル
 KifuDisplayCoordinator
   ├── onNavigationCompleted(node)
   │     ├── RecordPane: 棋譜リストの選択行を更新
-  │     ├── BranchTreeManager: ツリー上の強調表示を更新
+  │     ├── BranchTreeManager: ツリー上の強調表示を更新（表示は setBranchTree(tree) でツリーを渡し、ツリーから描く）
   │     ├── KifuBranchListModel: 分岐候補を更新
   │     └── boardWithHighlightsRequired シグナル → 盤面更新
   │
@@ -5730,9 +5722,9 @@ BoardInteractionController::onLeftClick(point)
   ▼
 BoardInteractionController::moveRequested(from, to) シグナル
   │
-  ▼ [Wiring: MainWindowSignalRouter::connectMoveRequested() が接続]
-MainWindow::onMoveRequested(from, to)
-  │  └── MainWindowServiceRegistry::handleMoveRequested()
+  ▼ [Wiring: MainWindowComposer::connectSignals() が接続]
+MainWindowActions::handleMoveRequested(from, to)
+  │  └── 対局モード（AppState::playMode）を BoardSetupController に渡す
   ▼ [Controller]
 BoardSetupController::onMoveRequested(from, to)
   │
@@ -5740,7 +5732,7 @@ BoardSetupController::onMoveRequested(from, to)
   │     ├── ShogiBoard::applyUsiMove()
   │     │     └── [View] ShogiView が dataChanged / standChanged で変わったマスを再描画
   │     └── moveCommitted(mover, ply) シグナル
-  │           └── MainWindow::onMoveCommitted() → MainWindowServiceRegistry::handleMoveCommitted()
+  │           └── MainWindowActions::handleMoveCommitted()
   │                 ├── [Controller] BoardSetupController::onMoveCommitted()（EvE なら評価値グラフを再描画）
   │                 ├── [Service] GameRecordUpdateService::updateCurrentSfenAfterMove()
   │                 └── 定跡ウィンドウの更新
@@ -5749,7 +5741,7 @@ BoardSetupController::onMoveRequested(from, to)
   │     └── 移動元・移動先のハイライト（違法手なら駒の選択を解除）
   │
   └── MatchCoordinator::onHumanMove()  ← game層
-        └── Strategy → [Service] GameRecordUpdateService::appendKifuLine()
+        └── Strategy → StrategyContext::completeMove → [Service] GameRecordUpdateService::appendRecord()
               └── RecordPane（棋譜欄）に棋譜行追加
 ```
 
@@ -5768,7 +5760,7 @@ BoardSetupController::onMoveRequested(from, to)
 
 #### 11.1.1 概要
 
-ShogiView は QWidget を直接継承した **カスタムペイントウィジェット** であり、盤面・駒・駒台・ハイライト・矢印・ラベル等をすべて `paintEvent()` 内の QPainter で描画する。QGraphicsView は使用しない（EngineAnalysisTab の分岐ツリーでは QGraphicsView を使用する）。
+ShogiView は QWidget を直接継承した **カスタムペイントウィジェット** であり、盤面・駒・駒台・ハイライト・矢印・段筋ラベルをすべて `paintEvent()` 内の QPainter で描画する。対局者カード（名前・時計・手番の札）と「編集終了」ボタン・駒箱の先後切り替えは描かず、子として重ねた `BoardChromeWidget` が持つ（11.1.6）。QGraphicsView は使用しない（EngineAnalysisTab の分岐ツリーでは QGraphicsView を使用する）。
 
 主な責務は以下のとおり。
 
@@ -5780,7 +5772,7 @@ ShogiView は QWidget を直接継承した **カスタムペイントウィジ�
 | ハイライト | FieldHighlight による移動可能マスの色付け表示 |
 | 矢印 | Arrow 構造体によるエンジン最善手の可視化 |
 | ドラッグ&ドロップ | 駒のつまみ上げ・移動先判定 |
-| ラベル | 時計（QLabel）・プレイヤー名（ElideLabel）を子ウィジェットとして配置 |
+| 対局者カードの配置 | 盤・駒台の位置を `BoardChromeWidget::setBoardLayout()` に渡す（`relayoutChrome()`） |
 | リサイズ | `fitBoardToWidget()` でウィジェットサイズに自動追従 |
 
 #### 11.1.2 レンダリングレイヤー順序
@@ -5830,8 +5822,9 @@ static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098（縦/�
 | `setArrows() / clearArrows()` | 矢印（最善手表示）の設定・クリア |
 | `setFlipMode(bool)` | 反転表示の切り替え |
 | `setPositionEditMode(bool)` | 局面編集モードの ON/OFF |
-| `setActiveSide(bool)` | 手番表示（名前ラベルの配色切替） |
-| `applyClockUrgency(qint64)` | 残時間に応じた時計配色変更（10秒/5秒警告） |
+| `chrome()` | 対局者カード・時計・手番の札（`BoardChromeWidget`）。新しいコードはこちらを直接使う |
+| `setActiveSide(bool)` | 手番表示（`BoardChromeWidget` へ転送） |
+| `applyClockUrgency(qint64)` | 残時間に応じた時計配色変更（10秒/5秒警告。`BoardChromeWidget` へ転送） |
 | `enlargeBoard() / reduceBoard()` | 盤の拡大/縮小（±1px） |
 | `toImage(qreal)` | 現在の盤面を QImage として出力 |
 
@@ -5841,14 +5834,21 @@ static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098（縦/�
 
 **矢印** は `Arrow` 構造体で表現される。移動元・移動先座標、優先順位（1=最善手）、色を持ち、検討機能で複数の候補手を盤上に視覚化する。駒打ちの場合は `dropPiece` フィールドに駒種を格納する。
 
-#### 11.1.6 時計と手番表示
+#### 11.1.6 対局者カード・時計・手番表示（BoardChromeWidget）
 
-時計テキストは `QLabel`（`m_blackClockLabel`, `m_whiteClockLabel`）、プレイヤー名は `ElideLabel`（`m_blackNameLabel`, `m_whiteNameLabel`）として子ウィジェットに配置される。手番側のラベルは黄色背景＋青文字でハイライトされ、残時間に応じて段階的に配色が変化する。
+`src/views/boardchromewidget.h`
+
+対局者カード（`blackPlayerCard` / `whitePlayerCard` の QFrame）、名前（`ElideLabel`）、時計（`QLabel`）、手番の札（`turnLabelBlack` / `turnLabelWhite`）、局面編集の「編集終了」ボタン（`editExitButton`）、駒箱の先後切り替え（`pieceBoxBlackButton` / `pieceBoxWhiteButton`）は、`BoardChromeWidget` が持つ。
+
+- ShogiView の子として盤と同じ大きさで重ね、部品のある範囲だけをマスク（`setMask`）で残す。それ以外のクリック・描画は下の ShogiView に届くので、盤の入力はそのまま。
+- ShogiView は盤・駒台の位置（`BoardChromeWidget::BoardLayout`：マスの大きさ・駒台・盤の範囲・反転）を `setBoardLayout()` で渡すだけ。カードは駒台の外側に置き、駒箱はカード（`visibleCardRect()`）の下に置く。
+- 手番・時計の警告・配色の上書き・終局時の表示維持（`setGameOverStyleLock`）の状態もここにあり、`BoardAppearance::colorsChanged` を自分で受けて配色を合わせる。スタイルシートは色の組ごとに覚えて使い回す。
+- ShogiView の `setBlackPlayerName()`・`setBlackClockText()`・`setActiveSide()`・`blackClockLabel()` などは互換のための1行の転送。部品は ShogiView の子孫なので `findChild` と `grab()`（盤面画像の書き出し）にも含まれる。
 
 ```
-Urgency::Normal → 黄色背景 + 青文字（通常）
-Urgency::Warn10 → 黄色背景 + 青文字 + 青枠（残10秒）
-Urgency::Warn5  → 黄色背景 + 赤文字 + 赤枠（残5秒）
+Urgency::Normal → 通常の時計の色
+Urgency::Warn10 → 警告色（残10秒）
+Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 ```
 
 ---
@@ -5860,7 +5860,7 @@ Urgency::Warn5  → 黄色背景 + 赤文字 + 赤枠（残5秒）
 | クラス名 | 基底クラス | 配置場所 | 機能 |
 |---------|-----------|---------|------|
 | RecordPane | QWidget | MainWindow 左ペイン | 棋譜一覧（QTableView）＋分岐候補一覧＋ナビゲーションボタン＋コメント欄 |
-| EngineAnalysisTab | QWidget | MainWindow 右ペイン（QTabWidget） | 思考情報・検討・USI/CSAログ・コメント・分岐ツリーの各タブ |
+| EngineAnalysisTab | QWidget | MainWindow 右ペイン（QTabWidget） | 思考情報・検討・USI/CSAログ・コメント・分岐ツリーの各タブ。検討タブの操作は中継せず、呼び出し側が `considerationTabManager()` で `ConsiderationTabManager` を取り出して呼ぶ |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線） |
 | EngineInfoWidget | QWidget | EngineAnalysisTab 内（各エンジン情報エリア） | エンジン情報表示（予想手列、探索深さ、ノード数、NPS、ハッシュ使用率） |
 | GameInfoPaneController | QObject | MainWindow タブ（対局情報タブ） | 対局情報テーブルの管理（QTableWidget）、編集・Undo/Redo・フォント変更 |
@@ -6348,8 +6348,8 @@ sequenceDiagram
     Note over Server,Client: 対局中（指し手のやり取り）
     Server-->>Client: -3334FU,T5
     Client-->>Coord: moveReceived(move, 5000ms)
-    Coord->>Coord: applyMoveToBoard()
-    Coord-->>UI: moveMade() / turnChanged()
+    Coord->>Coord: applyMoveToBoard() / CsaGameProgress::recordMoveTime()
+    Coord-->>UI: turnChanged() / recordEntryReady(entry) → GameRecordUpdateService
 
     UI->>Coord: onHumanMove(from, to, promote)
     Coord->>Client: sendMove(+7776FU)
@@ -6360,14 +6360,14 @@ sequenceDiagram
     Note over Server,Client: 対局終了
     Server-->>Client: #RESIGN / #WIN
     Client-->>Coord: gameEnded(Win, Resign)
-    Coord-->>UI: gameEnded("勝ち", "投了")
+    Coord-->>UI: recordEntryReady(終局行) / gameEnded(Win, Resign)
 ```
 
 #### 時計管理の仕組み
 
 CSA通信対局では、サーバーが権威的な消費時間（`T` に続く数値）を通知する。CsaGameCoordinatorはこの情報をもとにGUI側の時計を補正する。
 
-1. **残り時間の追跡**: `m_blackRemainingMs` / `m_whiteRemainingMs` でサーバーからの累積消費時間を追跡
+1. **残り時間の追跡**: 値型 `CsaGameProgress`（`blackRemainingMs` / `whiteRemainingMs`・累計）でサーバーからの消費時間と加算を追跡
 2. **時計の補正**: 対局開始時に対局条件（`GameSummary::timeControl()`）を `ShogiClock::setTimeControl()` で渡し、着手ごとにサーバーの消費時間を反映した残り時間を `ShogiClock::setRemainingTimes()` で合わせる
 3. **手番の切替**: 指し手確認後に `setCurrentPlayer()` で相手側の時計に切り替え、`startClock()` でGUI上のカウントダウンを開始
 
@@ -6393,8 +6393,8 @@ struct Dependencies {
     ShogiClock* clock = nullptr;                   // 時計（非所有）
     BoardInteractionController* boardController = nullptr;
     KifuRecordListModel* recordModel = nullptr;
-    QStringList* sfenRecord = nullptr;         // MainWindowと共有
-    QVector<ShogiMove>* gameMoves = nullptr;   // MainWindowと共有
+    QStringList* sfenRecord = nullptr;         // AppState と共有
+    QList<ShogiMove>* gameMoves = nullptr;     // AppState と共有
     UsiCommLogModel* usiCommLog = nullptr;     // USI通信ログ
     ShogiEngineThinkingModel* engineThinking = nullptr;
 };
@@ -6410,9 +6410,8 @@ CsaGameCoordinatorのシグナルとMainWindowのUI要素を接続する配線�
 
 #### 役割
 
-- CsaGameCoordinatorの各シグナルをUIスロットに配線（`wire()` / `unwire()`）
-- 指し手確定時の棋譜欄更新（`onMoveMade()`）
-- 対局開始/終了時のナビゲーション無効化/有効化
+- CsaGameCoordinatorの各シグナルを実際の受け手へ直接配線（`wire()` / `unwire()`）。棋譜行（`recordEntryReady`）は `GameRecordUpdateService` へ直接届く
+- 対局開始/終了時のプレイモード・UI状態（`UiStatePolicyManager`）の切り替え、結果の表示、棋譜の自動保存
 - CsaGameDialogからの対局開始処理（`startCsaGame()`）
 - 待機ダイアログ（CsaWaitingDialog）の管理
 
@@ -6727,7 +6726,7 @@ handleBranchNodeActivated(row, ply):
 
 | シグナル | 接続先 | 内容 |
 |---------|-------|------|
-| `navigationCompleted(node)` | MainWindow | ナビゲーション完了通知 |
+| `navigationCompleted(node)` | KifuDisplayCoordinator | ナビゲーション完了通知 |
 | `boardUpdateRequired(sfen)` | BoardSyncPresenter | 盤面SFEN更新 |
 | `recordHighlightRequired(ply)` | RecordPresenter | 棋譜欄ハイライト |
 | `branchTreeHighlightRequired(lineIdx, ply)` | BranchTreeManager | 分岐ツリーハイライト |
@@ -6765,7 +6764,7 @@ handleBranchNodeActivated(row, ply):
 
 **ソース**: `src/navigation/recordnavigationhandler.h/.cpp`
 
-棋譜欄（RecordPane）の行選択が変わったときの処理を担当する。MainWindow の `onRecordPaneMainRowChanged` から分離されたロジック。
+棋譜欄（RecordPane）の行選択が変わったときの処理を担当する。`MainWindowActions::onRecordPaneMainRowChanged()` が未更新のコメントを確かめてから `onMainRowChanged()` を呼ぶ。
 
 #### Deps構造体
 
@@ -6813,12 +6812,12 @@ onMainRowChanged(row):
 
 | シグナル | 接続先 | 発火条件 |
 |---------|-------|---------|
-| `boardSyncRequired(ply)` | MainWindow | 本譜の盤面同期 |
-| `branchBoardSyncRequired(sfen, prevSfen)` | MainWindow | 分岐ラインの盤面同期 |
-| `enableArrowButtonsRequired()` | MainWindow | 矢印ボタンの有効化 |
-| `turnUpdateRequired()` | MainWindow | 手番表示の更新 |
-| `josekiUpdateRequired()` | MainWindow | 定跡ウィンドウの更新 |
-| `buildPositionRequired(row)` | MainWindow | 検討モード用局面構築 |
+| `boardSyncRequired(ply)` | KifuNavigationCoordinator::syncBoardAndHighlightsAtRow | 本譜の盤面同期 |
+| `branchBoardSyncRequired(sfen, prevSfen)` | BoardLoadService::loadWithHighlights | 分岐ラインの盤面同期 |
+| `enableArrowButtonsRequired()` | UiStatePolicyManager::enableNavigationIfAllowed | 矢印ボタンの有効化 |
+| `turnUpdateRequired()` | TurnStateSyncService::setCurrentTurn | 手番表示の更新 |
+| `josekiUpdateRequired()` | JosekiWindowWiring::updateJosekiWindow | 定跡ウィンドウの更新 |
+| `buildPositionRequired(row)` | ConsiderationPositionService::handleBuildPositionRequired | 検討モード用局面構築 |
 
 ### 13.4 ナビゲーションフロー図
 
@@ -7131,172 +7130,140 @@ buildSfenRecord(initialSfen, usiMoves, hasTerminal):
 
 ### 14.1 設計思想: "MainWindow should stay lean"
 
-CLAUDE.md に明記されているとおり、ShogiBoardQ の設計原則は **「MainWindow は痩せた状態を保つ」** ことである。MainWindow は UI 表示の起点であり、各コントローラ/コーディネータへの処理委譲のハブとして機能する。直接ロジックは最小限にとどめ、具体的な処理は専用クラスへ移譲する。
+CLAUDE.md に明記されているとおり、ShogiBoardQ の設計原則は **「MainWindow は痩せた状態を保つ」** ことである。2026-10-15 からは、部品の生成・配線・状態を合成ルートの `MainWindowComposer` に移し、MainWindow は `.ui` の保持と、閉じるときの確認・終了処理だけを持つ。合成ルートの規則は [composition-root.md](composition-root.md) にまとめてある。
 
 ```
-MainWindow（ハブ / ファサード）
-  ├─ ensure*() で遅延生成 → 専用コントローラ/コーディネータ
-  ├─ connect() でシグナル配線 → 委譲先クラスのスロット
-  └─ UI骨格の構築（ドック、タブ、ツールバー）
+MainWindow（.ui・閉じるときの確認と終了処理）
+  └─ MainWindowComposer（合成ルート）
+       ├─ MainWindowComponents  部品の一覧（起動時に全部作る）
+       ├─ AppState              部品どうしで共有する状態（1か所だけ）
+       └─ compose()             生成 → 依存の注入 → シグナル接続と初期表示
 ```
 
-この原則に基づき、当初 5,368 行あった `mainwindow.cpp` はリファクタリングにより約 170 行まで削減されている（2026-10-14 時点。詳細は [14.7節](#147-リファクタリング経緯) を参照）。
+メニュー・盤・棋譜欄の操作は MainWindow を経由しない。`UiActionsWiring` と `MainWindowActions` が受けて、担当の部品へ振り分ける（[14.6節](#146-操作の受け口mainwindowactions)）。
+
+`mainwindow.cpp` は当初 5,368 行あったが、今は約 45 行である（2026-10-15 時点。詳細は [14.7節](#147-リファクタリング経緯) を参照）。
+
+```cpp
+// src/app/mainwindow.cpp
+MainWindow::MainWindow(QWidget* parent)
+    : QMainWindow(parent)
+    , ui(std::make_unique<Ui::MainWindow>())
+    , m_composer(std::make_unique<MainWindowComposer>(*this, *ui))
+{
+    m_composer->compose();
+}
+```
 
 ---
 
-### 14.2 メンバ変数のグループ分け
+### 14.2 部品と状態の置き場
 
-`mainwindow.h` のメンバ変数は機能別にグループ化されている。以下に主要なカテゴリを示す。
+MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自動化 API からの終了で確認を出さない）の3つだけである。部品と状態は `MainWindowComposer` が持ち、`composer().parts()` と `composer().state()` で読める（テストと自動化 API が使う）。
 
-#### 基本状態 / ゲーム状態
+#### AppState — 共有状態
 
-対局の進行状況を追跡する変数群。`src/app/mainwindowstate.h` の構造体にまとめ、`m_state`（`GameState`）と `m_kifu`（`KifuState`）として持つ。
+`AppState`（`src/common/appstate.h`）は、部品どうしで共有する状態の唯一の置き場である。部品は組み立て時に `AppState` か、そのフィールドへのポインタを受け取る。部品のメンバに状態のコピーを持たない。
 
-| 変数 | 型 | 役割 |
+| フィールド | 型 | 役割 |
 |------|----|------|
-| `m_state.startSfenStr` | `QString` | 開始局面の SFEN 文字列 |
-| `m_state.currentSfenStr` | `QString` | 現在の局面の SFEN 文字列 |
-| `m_state.playMode` | `PlayMode` | 現在のプレイモード（NotStarted, HvE 等） |
-| `m_kifu.sfenRecord` | `QStringList` | 対局の局面列（`MatchCoordinator` にポインタで渡す。対局開始時に表示中の手順から作り直す） |
-| `m_kifu.gameMoves` | `QList<ShogiMove>` | 対局の指し手列（同上） |
+| `playMode` | `PlayMode` | 現在の対局・解析モード（判定は `PlayModePolicyService`） |
+| `startSfenStr` | `QString` | 開始局面（完全な SFEN） |
+| `currentSfenStr` | `QString` | 表示中の局面 |
+| `errorOccurred` | `bool` | エラー表示中（通知の重複を避ける） |
+| `skipBoardSyncForBranchNav` | `bool` | 分岐ナビ中は棋譜欄の行変更で盤を同期しない |
+| `humanName1/2`・`engineName1/2` | `QString` | 対局者名 |
+| `bottomSide` | `Turn` | 盤の手前に表示している側（盤の反転で入れ替わる） |
+| `sfenRecord` | `QStringList` | 対局の局面列（`MatchCoordinator` にポインタで渡す。対局開始時に表示中の手順から作り直す） |
+| `gameMoves` | `QList<ShogiMove>` | 対局の指し手列（同上） |
+| `onMainRowGuard` | `bool` | 棋譜欄の行変更を自分で起こしている間 true |
+| `saveFileName` | `QString` | 上書き保存先 |
 
-表示中の手数は MainWindow の変数ではなく、分岐ツリーのカーソル（`m_branchNav.navState` の `KifuNavigationState::currentPly()`）が持つ。棋譜の正本は分岐ツリー（`m_branchNav.branchTree`）である。
+表示中の手数は `AppState` ではなく、分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）が持つ。棋譜の正本は分岐ツリー（`KifuBranchTree`）で、`sfenRecord`・`gameMoves` は対局中だけ使う作業用の履歴である。
 
-#### コントローラ / コーディネータ群
+#### MainWindowComponents — 部品の一覧
 
-`ensure*()` で遅延生成される委譲先クラス群。多くは MainWindow が所有する（`&m_mw` を親に指定するか `std::unique_ptr` で持つ）。`m_match` と `m_gameStart` は `MatchCoordinatorWiring` が所有し、MainWindow は非所有のポインタだけを持つ。代表的なものを以下に示す。
+`MainWindowComponents`（`src/app/mainwindowcomponents.h`）は、起動時に `MainWindowComposer` が作る部品の一覧である。QObject は MainWindow を親にした生ポインタ（親が破棄する）、QObject でないものは `std::unique_ptr` で持つ。どれも起動時に1回だけ作り、作り直さない。
 
-| 変数 | クラス | 責務 |
-|------|--------|------|
-| `m_match` | `MatchCoordinator` | 対局進行の司令塔（起動時に一度だけ作る） |
-| `m_gameStart` | `GameStartCoordinator` | 対局開始フロー全体の調整（1つだけ。最初に使うときに作る） |
-| `m_dialogCoordinator` | `DialogCoordinator` | 各種ダイアログの表示と管理 |
-| `m_kifuLoadCoordinator` | `KifuLoadCoordinator` | 棋譜読み込みフロー（最初の読み込みで作り、以後使い回す） |
-| `m_gameStateController` | `GameStateController` | ゲーム状態遷移の管理 |
-| `m_evalGraphController` | `EvaluationGraphController` | 評価値グラフの管理 |
-| `m_boardSync` | `BoardSyncPresenter` | 盤面と内部状態の同期 |
-| `m_recordPresenter` | `GameRecordPresenter` | 棋譜表示の管理 |
-| `m_csaGameWiring` | `CsaGameWiring` | CSA 通信対局の UI 配線 |
-| `m_considerationWiring` | `ConsiderationWiring` | 検討モードの UI 配線 |
-| `m_playerInfoWiring` | `PlayerInfoWiring` | 対局者情報の UI 配線 |
-| `m_matchWiring` | `MatchCoordinatorWiring` | 司令塔と `GameStartCoordinator` の生成・配線（両方を所有する） |
-| `m_dockCreationService` | `DockCreationService` | ドックウィジェット生成 |
-| `m_commentCoordinator` | `CommentCoordinator` | コメント機能の管理 |
+| グループ | 主なメンバ |
+|---------|-----------|
+| モデル | `kifuRecord`・`kifuBranch`・`thinking1/2`・`consideration`・`analysis`・`commLog1/2`・`gameRecord` |
+| 盤・対局の芯 | `gameController`（`ShogiGameController`）・`shogiView`・`boardController`（`BoardSetupController` が作る） |
+| 画面部品 | `central`・`tab`・`recordPane`・`analysisTab`・`evalChart`・`docks`（`DockWidgets`、12 個のドック） |
+| 分岐ナビゲーション | `branchTree`・`navState`・`kifuNavController`・`displayCoordinator`・`liveGameSession` |
+| 対局 | `matchWiring`（`MatchCoordinatorWiring`。`match` と `gameStart` を所有）・`timeController`・`gameStateController`・`gameSessionOrchestrator`・`sessionLifecycle`・`playModePolicy`・`turnStateSync`・`undoFlowService`・`csaGameWiring` など |
+| 棋譜 | `branchNavWiring`・`kifuNavCoordinator`・`gameRecordUpdateService`・`gameRecordLoadService`・`kifuExportController`・`kifuFileController`・`kifuLoadCoordinator`・`josekiWiring` など |
+| UI | `actions`（`MainWindowActions`）・`actionsWiring`（`UiActionsWiring`）・`dialogCoordinator`・`dialogLaunchWiring`・`considerationWiring`・`playerInfoWiring`・`uiStatePolicy`・`commentCoordinator`・`recordPresenter`・`boardSync`・`boardLoadService`・`posEditCoordinator` など |
+| 自動化 | `automationServer`（`--automation` 指定時だけ） |
 
-#### モデル群
-
-データバインディングに使用される Qt モデル。
-
-| 変数 | クラス | 役割 |
-|------|--------|------|
-| `m_models.kifuRecord` | `KifuRecordListModel` | 棋譜レコードリスト |
-| `m_models.kifuBranch` | `KifuBranchListModel` | 分岐リスト |
-| `m_models.thinking1/2` | `ShogiEngineThinkingModel` | エンジン思考情報 |
-| `m_models.consideration` | `ShogiEngineThinkingModel` | 検討タブ専用モデル |
-| `m_models.analysis` | `KifuAnalysisListModel` | 棋譜解析結果 |
-| `m_models.commLog1/2` | `UsiCommLogModel` | USI 通信ログ |
-| `m_models.gameRecord` | `GameRecordModel` | 棋譜データの中央管理 |
-
-モデルは `src/app/mainwindowstate.h` の `DataModels` にまとめて持つ。
-
-#### UI ウィジェット / ドック
-
-画面に表示される UI 部品とドックウィジェット。
-
-| 変数 | 役割 |
-|------|------|
-| `m_shogiView` | 将棋盤ビュー |
-| `m_tab` | メインタブウィジェット |
-| `m_recordPane` | 棋譜欄ウィジェット |
-| `m_analysisTab` | エンジン解析タブ |
-| `m_evalChart` | 評価値グラフ |
-| `m_docks.evalChart` | 評価値グラフ用ドック |
-| `m_docks.recordPane` | 棋譜欄用ドック |
-| `m_docks.gameInfo` | 対局情報ドック |
-| `m_docks.thinking` | 思考ドック |
-| `m_docks.comment` | 棋譜コメントドック |
-| `m_docks.branchTree` | 分岐ツリードック |
-
-ドックウィジェットは合計 12 個あり、`src/app/mainwindowstate.h` の `DockWidgets`（`m_docks`）に `QDockWidget*` としてまとめて持つ（ほかに検討・USI通信ログ・CSA通信ログ・メニューウィンドウ・定跡ウィンドウ・棋譜解析結果）。
-
-#### 分岐ナビゲーション
-
-棋譜の分岐構造を管理するクラス群。起動時（14.4 のステップ 5 の分岐ナビの初期化）に `KifuSubRegistry::createBranchNavigationParts()` が1回だけ作り、MainWindow が親として持つ。`BranchNavigationWiring` は作られたものを受け取って配線するだけである。
-
-| 変数 | クラス | 役割 |
-|------|--------|------|
-| `m_branchNav.branchTree` | `KifuBranchTree` | 分岐ツリーデータ |
-| `m_branchNav.navState` | `KifuNavigationState` | ナビゲーション状態 |
-| `m_branchNav.kifuNavController` | `KifuNavigationController` | ナビゲーション操作 |
-| `m_branchNav.displayCoordinator` | `KifuDisplayCoordinator` | 棋譜表示調整 |
-| `m_branchNav.liveGameSession` | `LiveGameSession` | リアルタイム対局セッション |
+`match`（司令塔）と `gameStart`（`GameStartCoordinator`）は `matchWiring` が所有し、`MainWindowComponents` は非所有のポインタだけを持つ。
 
 ---
 
-### 14.3 ensure*() による遅延生成と依存更新
+### 14.3 依存の渡し方
 
-`MainWindowServiceRegistry`（実装は `gamesubregistry*.cpp`・`mainwindowanalysisregistry.cpp`・`mainwindowboardregistry.cpp`・`mainwindowuiregistry.cpp` などに分割）、
-`MainWindowFoundationRegistry`、`KifuSubRegistry` が、利用時点の依存を集めて部品を生成し、依存を渡す。
-生成済みオブジェクトを再利用し、可変の依存は呼び出しのたびに更新する。共通の契約は [4.2節](#42-ensure-遅延初期化パターン) を参照。
+`MainWindowComposer` は全部品を作ってから依存を結ぶ。そのため次の形になる。共通の規則は [4.2節](#42-合成ルートでの組み立て) を参照。
 
-- `MatchCoordinator` は作り直さない。`initMatchCoordinator()` を2回目以降に呼ぶと、既存の司令塔に依存を結び直す（[14.4節](#144-コンストラクタの処理フロー)）。
-- `KifuLoadCoordinator` は最初の読み込みで作り、以後の読み込みに使い回す（[8.7節](#87-kifuloadcoordinator--棋譜読み込みフロー)）。
-- `GameStateController`、`BoardSetupController`、`PositionEditCoordinator` は、最新の対局・時計・局面編集コントローラを参照する。
-- `CommentCoordinator` と `GameRecordPresenter` は、最新の棋譜モデル・コメント欄へ接続する。
-- `DialogCoordinatorWiring` はコンテキストを更新し、初回のシグナル配線を重複させない。
-- `ConsiderationWiring` は、生成済みのUIコントローラにも更新した依存を渡す。
-- `PreStartCleanupHandler::updateDependencies()` は参照だけを更新する。棋譜の消去は `performCleanup()` で行う。
+- **依存はポインタで渡す**: 部品は `Deps` 構造体か `set*()` で、ほかの部品のポインタを受け取る。たとえば `GameSessionOrchestrator::Deps` は `gameStateController`・`gameStart`・`dialogCoordinator`・`match` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
+- **状態は AppState を指す**: `PlayMode*`・`QString*` などは `&m_state.playMode` のように `AppState` のフィールドを指す。`KifuExportController`・`AutomationContext` は `AppState` 全体を受け取り、使うときに読む。
+- **互いを参照する部品**: 両方を作ってから渡す（例: `ConsiderationWiring::setDialogCoordinator()`）。
+- **`std::function` はフックだけ**: 上位へ操作を委ねるフック（`MatchCoordinator::Hooks`・`GameStateController::Hooks` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。
 
-後から作られる部品や差し替わる値は、Deps に入れたゲッター（`std::function`）で使うときに読む。たとえば `GameSessionOrchestrator::Deps` のコントローラ取得関数は、遅延生成のもの（`gameStateController`・`gameStart`・`dialogCoordinator`）を取得時に作り、`csaGameCoordinator`・`match` はその時点の値を返す。子ハンドラの Refs でも、親が後から差し替えるポインタ（`KifuApplyService` の分岐ツリーや盤、`CsaMoveProgressHandler` のエンジンや時計）は、その時点の値を返す関数で受ける。
+子ハンドラの Refs では、親が後から差し替えるポインタ（`KifuApplyService` の分岐ツリーや盤）を、その時点の値を返す関数で受けるものが残っている。これは部品の内部の話で、合成ルートの規則とは別である。
 
-二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。部品はレジストリが作って渡す（分岐ナビゲーションの部品、`ShogiGameController`・`ShogiView`、棋譜解析の結果のモデル）。配線クラスだけが使うダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その配線クラス（`DialogLaunchWiring`）が持つ。CSA 通信対局の司令塔は `CsaGameWiring` が作って持ち、ほかの部品は `MainWindowServiceRegistry::csaGameCoordinator()` で読む。
+二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。配線クラスだけが使うダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その配線クラス（`DialogLaunchWiring`）が持つ。
 
-レジストリ内の状態消去・エンジンリセットは `MainWindowResetService` へ委譲する。
-`ensure*()` は生成と接続の準備を担当し、実際の操作をサービス側に保つ。
+**例外**:
 
-`tst_service_initialization` は本体のMainWindowを使い、繰り返しの生成要求で
-インスタンスが増えないこと、依存の差し替えと局面編集が機能することを確認する。
+- CSA 通信対局の司令塔（`CsaGameCoordinator`）は、最初の CSA 通信対局で `CsaGameWiring` が作る。ほかの部品は `CsaGameWiring*` を持ち、`coordinator()` でそのときの司令塔を読む（`GameSessionOrchestrator`・`PlayModePolicyService`・`AutomationContext` など）。
+- `AutomationServer` は `--automation` 指定時だけ作る（[14.5.1](#1451-automationserver自動化-api)）。
 
-### 14.4 コンストラクタの処理フロー
+「新規」・対局開始前・棋譜読み込み前の状態とモデルの消去は `MainWindowResetService` が行う。`SessionLifecycleCoordinator::resetToInitialState()` もこのサービスで初期状態に戻す。
 
-MainWindow のコンストラクタは `MainWindowServiceRegistry` を作り、`createLifecyclePipeline()` で組み立てた `MainWindowLifecyclePipeline` の `runStartup()` を呼ぶだけである。起動手順は `MainWindowStartupSequence` が次の8段階の順に実行する（各段階の中身は `src/app/mainwindowlifecyclewiring.cpp` と `mainwindowuibootstrapper.cpp`）。この順序を崩すと null 参照や初期表示の不整合が起きやすい。
+`tst_service_initialization` は本体の MainWindow を使い、部品が1回だけ作られてシグナルが重複してつながらないこと、司令塔と棋譜読み込み担当が1つだけであることなどを確かめる。
+
+### 14.4 起動の手順
+
+`MainWindowComposer::compose()` が次の順に呼ぶ。この順序を崩すと null 参照や初期表示の不整合が起きやすい。
 
 ```
 MainWindow::MainWindow()
- ├─ m_registry = MainWindowServiceRegistry
- ├─ m_pipeline = m_registry->createLifecyclePipeline()
- └─ m_pipeline->runStartup()
-     ├─ 1. createFoundationObjects    // SignalRouter、通信ログ・検討タブ・棋譜解析の結果のモデル、ui->setupUi()
-     ├─ 2. setupUiSkeleton            // 外観コントローラ、セントラルウィジェット、ツールバー
-     ├─ 3. initializeCoreComponents   // GC・ShogiView を作り、MainWindowCoreInitCoordinator で盤を初期化
-     ├─ 4. initializeEarlyServices    // PlayModePolicyService、TimeDisplayPresenter、ensureTimeController()
-     │                                //   外観コントローラに盤と時間表示を渡す（refreshAppearanceDeps()）
-     ├─ 5. buildGamePanels            // 棋譜欄・ドック・解析タブ・分岐ナビ（部品の生成と配線）の構築
-     │     └─ SessionLifecycleCoordinator::startNewGame()
-     │           └─ startGameSession() → initMatchCoordinator()   // ここで MatchCoordinator を作る（1回だけ）
-     ├─ 6. restoreWindowAndSync       // ウィンドウサイズと起動時レイアウトの復元
-     ├─ 7. connectSignals             // MainWindowSignalRouter::connectAll()、ツールチップ
-     └─ 8. finalizeAndConfigureUi     // UI状態をアイドルに、言語・駒音・ドック管理、評価値グラフ用タイマー
-           └─ finalizeCoordinators()
-                 └─ initMatchCoordinator()   // 司令塔は作らず、依存を結び直す
+ ├─ m_composer = MainWindowComposer(*this, *ui)
+ └─ m_composer->compose()
+     │  1) 生成（mainwindowcomposer_create.cpp）
+     ├─ createModels()                 // 棋譜欄・分岐・検討・棋譜解析・通信ログのモデル、ui->setupUi()
+     ├─ setupUiSkeleton()              // 外観コントローラ、セントラルウィジェット、ツールバー
+     ├─ createBoardAndGameController() // GC と ShogiView、時計と時間表示、局面編集と盤操作（BoardSetupController）
+     ├─ createPanelsAndDocks()         // 棋譜欄・盤のセントラル配置・エンジン解析タブ（思考モデル1・2もここ）
+     ├─ createBranchNavigation()       // 分岐ツリー・カーソル・ナビゲーション・ライブ対局セッション
+     ├─ createRecordAndPlayerInfo()    // GameRecordModel、対局者情報、解析用ドック、評価値グラフ
+     ├─ createSecondaryDocks()         // メニューウィンドウ・定跡ウィンドウ・棋譜解析結果のドック
+     ├─ createServices()               // 共通基盤・対局・棋譜・UI のサービス（MainWindowActions を含む）
+     │
+     │  2) 依存の注入（mainwindowcomposer_wire.cpp・mainwindowcomposer_game.cpp）
+     ├─ wireFoundation()               // 共通基盤
+     ├─ wireMatchCoordinator()         // 司令塔と GameStartCoordinator を作る（1回だけ）
+     ├─ wireCsaGame()                  // CSA 通信対局
+     ├─ wireKifu()                     // 棋譜の読み込み・保存・分岐ナビ
+     ├─ wireUi()                       // 盤操作・局面編集・検討・棋譜欄の行変更など
+     ├─ wireDialogs()                  // ダイアログの司令塔と起動配線
+     ├─ wireGame()                     // 対局の進行・終局・セッション
+     │
+     │  3) 接続と初期表示（mainwindowcomposer_finalize.cpp）
+     ├─ connectSignals()               // UiActionsWiring、盤・棋譜欄・局面編集・定跡などのシグナル
+     └─ finalizeUi()                   // 初期局面の描画、対局者名、手番、ウィンドウとドックの復元、アイドル状態
 ```
 
-**司令塔（MatchCoordinator）の生成**: `MainWindowServiceRegistry::initMatchCoordinator()` は `MatchCoordinatorWiring::initializeSession()` を呼ぶ。
+**司令塔（MatchCoordinator）の生成**: `wireMatchCoordinator()` は、先に `MatchCoordinatorWiring::setSignalTargets()` でシグナルの受け手を登録し、`updateDeps()` でフック（`buildMatchHooks()`・`buildUndoHooks()`）と部品を渡してから `initializeSession()` を呼ぶ。
 
-- 初回（ステップ 5）は `createMatchCoordinator()` で司令塔を作り、司令塔のシグナル（終局・中断・盤面反転など）を受け手へ直接つなぐ（`connectMatchSignals()`、一度だけ）。受け手は `createMatchCoordinatorWiring()` が先に `MatchCoordinatorWiring::setSignalTargets()` で登録しておく。`GameStartCoordinator` のシグナルも、作るとき（`ensureMenuGameStartCoordinator()`）に同じ受け手へつなぐ（`connectGameStartSignals()`）。
-- 2回目以降（ステップ 8）は司令塔を作り直さない。`MatchCoordinator::setEngineModels()` で思考情報・通信ログのモデルを渡し直し、`MatchCoordinator::resetPositionHistory()` で起動途中の仮の対局開始が残した局面の履歴を捨てる。
-- どちらの場合も `bindRuntimeDependencies()` が、起動の途中で作られる部品との接続を結び直す（候補手の矢印、USIコマンド、PlayMode、評価値グラフ、UNDO、時間表示、時計の時間切れ、盤クリック、着手要求）。何度呼んでも接続が重ならないよう `Qt::UniqueConnection` を使う。
+- 司令塔は起動時に1回だけ作り、作り直さない。作るときに司令塔のシグナル（終局・中断・盤面反転など）を受け手へ直接つなぐ（`connectMatchSignals()`）。
+- 続いて `createMenuGameStartCoordinator()` で `GameStartCoordinator` を作り、そのシグナルも同じ受け手へつなぐ（`connectGameStartSignals()`）。
+- 司令塔ができたあとで、司令塔を使う部品（`MainWindowAppearanceController`・`GameRecordUpdateService` など）に渡す。
 - 同じシグナルの受け手は、`connectMatchSignals()` がつないだ順に呼ばれる。`gameEnded` は `SessionLifecycleCoordinator::handleGameEnded()`（終局の記録）→ `UiStatePolicyManager::transitionToIdle()`（アイドルへの遷移）の順、`requestAppendGameOverMove` は終局手の追記 → ライブセッションの確定の順である（`tests/tst_wiring_contracts.cpp` が順を確かめる）。
 
-以前は起動中に司令塔を2回（ステップ 5 と 8）作っていた。現在は一度だけ作り、`MainWindowAppearanceController` にも作った直後に渡す（`refreshAppearanceDeps()`）。
+以前は起動の途中で仮の対局開始（`startNewGame()`）を行って司令塔を作り、最後にもう一度依存を結び直していた。今は起動時に対局を始めず、`finalizeUi()` が初期局面・対局者名・手番を表示する。
 
-初期化順序の原則:
-1. **UI 骨格**（central / toolbar）を最初に構築
-2. **コア部品**（GameController / ShogiView / Clock）を生成
-3. **ドック・各タブ**を構築
-4. **設定復元とシグナル配線**を最後に実行
-
-この順序により、シグナル配線時にはすべての UI 部品が存在することが保証される。
+**終了**: `MainWindow::closeEvent()` が `MainWindowComposer::confirmClose()`（未保存の棋譜・定跡の確認）を呼び、閉じるときに `shutdown()` でウィンドウ・盤・ドックの設定を保存してエンジンを止める。`shutdown()` は2回目以降は何もしない（デストラクタからも呼ばれる）。
 
 ---
 
@@ -7304,11 +7271,11 @@ MainWindow::MainWindow()
 
 #### 14.5.1 AutomationServer（自動化 API）
 
-**ファイル**: `src/automation/automationserver.h/.cpp`、`src/app/mainwindowautomationregistry.cpp`
+**ファイル**: `src/automation/automationserver.h/.cpp`、`src/app/mainwindowcomposer_automation.cpp`
 
-`ShogiBoardQ --automation` で起動したときだけ、`MainWindowServiceRegistry::ensureAutomationServer()` が作る（親は MainWindow）。`QLocalServer` で改行区切りの JSON-RPC 2.0 を待ち受け、局面・棋譜・UI の操作を外部から行えるようにする。MCP サーバー（`mcp/`）と GUI のテスト（`tests/gui/`）がこれを使う。
+`ShogiBoardQ --automation` で起動したときだけ、`MainWindowComposer::startAutomationServer()`（`MainWindow::startAutomationServer()` から呼ぶ）が作る（親は MainWindow）。`QLocalServer` で改行区切りの JSON-RPC 2.0 を待ち受け、局面・棋譜・UI の操作を外部から行えるようにする。MCP サーバー（`mcp/`）と GUI のテスト（`tests/gui/`）がこれを使う。
 
-部品は `AutomationContext` に詰めて渡し、メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。設計は [MCP サーバーの設計](mcp-server.md) を参照。
+部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。設計は [MCP サーバーの設計](mcp-server.md) を参照。
 
 > 以前は MainWindow から切り出した `TestAutomationHelper`（`startTestGame()`・`makeTestMove()` など）があったが、2026-02-08 に削除した。外部からアプリを操作するときは、今はこの自動化 API を使う。
 
@@ -7332,12 +7299,12 @@ DockCreationService
   └─ createAnalysisResultsDock()  → 棋譜解析結果ドック
 ```
 
-**依存設定**: setter メソッドで個別に設定する方式。
+**依存設定**: setter メソッドで個別に設定する方式。`MainWindowComposer` の生成段階（`mainwindowcomposer_create.cpp`）で渡す。
 
 ```cpp
-m_dockCreationService->setDisplayMenu(ui->Display);
-m_dockCreationService->setEvalChart(m_evalChart);
-m_dockCreationService->setRecordPane(m_recordPane);
+m_c.dockCreationService->setDisplayMenu(m_ui.Display);
+m_c.dockCreationService->setRecordPane(m_c.recordPane);
+m_c.dockCreationService->setAnalysisTab(m_c.analysisTab);
 // ...
 ```
 
@@ -7354,34 +7321,28 @@ m_dockCreationService->setRecordPane(m_recordPane);
 - `onCommentUpdated()` — UI からのコメント更新を処理
 - `onGameRecordCommentChanged()` / `onBookmarkChanged()` — GameRecordModel の変更シグナルから表示を更新
 
-編集する手数は、`setNavigationState()` で受け取った分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から決める。
-
-**遅延初期化ギャップの解決**:
-
-CommentCoordinator は `GameRecordModel` が必要になることがあるが、`GameRecordModel` は遅延生成される。この問題を解決するため、`ensureGameRecordModelRequested` シグナルを定義し、MainWindow 側で接続する。
-
-```cpp
-// MainWindowFoundationRegistry::ensureCommentCoordinator() 内
-connect(m_mw.m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
-        m_serviceRegistry->kifu(), &KifuSubRegistry::ensureGameRecordModel, Qt::UniqueConnection);
-```
-
-CommentCoordinator は `GameRecordModel` の生成方法を知らないが、シグナル発行によりレジストリの `ensure*()` を間接的に呼び出せる。
+編集する手数は、`setNavigationState()` で受け取った分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から決める。`GameRecordModel` は起動時に作られているので、`setGameRecordModel()` でポインタを受け取るだけである（以前あった、モデルの遅延生成を頼むシグナルは削除した）。
 
 ---
 
-### 14.6 MainWindow のスロット構造
+### 14.6 操作の受け口（MainWindowActions）
 
-MainWindow が受けるのは、ほかの部品から呼ばれる少数の公開メソッドと、3つの private スロットだけである。どれも `MainWindowServiceRegistry` などへ委譲する短い関数である。
+MainWindow はスロットを持たない。メニュー・盤・棋譜欄の操作のうち、複数の部品にまたがるものは `MainWindowActions`（`src/app/mainwindowactions.h`）のスロットが受け、担当の部品へ振り分ける。部品は `MainWindowActions::Deps` でポインタとして受け取る（すべて非所有）。
 
-| カテゴリ | メソッド | 接続元 |
-|----------|---------|--------|
-| メニュー操作 | `resetToInitialState()`、`beginPositionEditing()`、`finishPositionEditing()`、`undoLastTwoMoves()`、`saveSettingsAndClose()` | `GameActionsWiring`・`ViewActionsWiring`・`FileActionsWiring`（`UiActionsWiring` の子） |
-| 盤の操作 | `onMoveRequested()`、`onMoveCommitted()` | `MainWindowSignalRouter`、`KifuSubRegistry` |
-| 棋譜欄と盤の同期 | `onRecordPaneMainRowChanged()`、`loadBoardWithHighlights()`、`setCurrentTurn()`、`updateJosekiWindow()`、`displayGameRecord()` | `RecordPaneWiring`・`RecordNavigationWiring`・`BranchNavigationWiring`・`KifuLoadCoordinator` |
-| private スロット | `onTurnManagerChanged()`、`setReplayMode()`、`loadBoardFromSfen()` | `TurnManager`（`TurnSyncBridge`）、`GameStateController` のフック、`BranchNavigationWiring` |
+| カテゴリ | スロット | 接続元 | 振り分け先 |
+|----------|---------|--------|-----------|
+| メニュー操作 | `resetToInitialState()` | `GameActionsWiring`（新規） | 未保存の確認 → `SessionLifecycleCoordinator::resetToInitialState()` |
+| メニュー操作 | `beginPositionEditing()`、`finishPositionEditing()` | `GameActionsWiring`（局面編集） | 未保存の確認 → `PositionEditCoordinator` |
+| メニュー操作 | `undoLastTwoMoves()` | `ViewActionsWiring`（待った） | `UndoFlowService` |
+| メニュー操作 | `requestQuit()` | `FileActionsWiring`（終了） | ウィンドウを閉じる（確認は `MainWindow::closeEvent()`） |
+| 盤の操作 | `handleMoveRequested()` | `BoardInteractionController::moveRequested`、`JosekiWindowWiring::moveRequested` | 対局モードを渡して `BoardSetupController::onMoveRequested()` |
+| 盤の操作 | `handleMoveCommitted()` | `ShogiGameController::moveCommitted` | `BoardSetupController::onMoveCommitted()`、現在局面の更新、定跡ウィンドウ |
+| 棋譜欄 | `onRecordPaneMainRowChanged()` | `RecordPane::mainRowChanged` | 未更新のコメントの確認 → `RecordNavigationHandler::onMainRowChanged()` |
+| 局面編集 | `resetRecordForEditedPosition()` | `PositionEditCoordinator` の開始・終了シグナル | 編集局面を開始局面にして棋譜まわりを作り直す |
 
-ファイルの読み書き・対局・ダイアログなど、ほとんどのメニュー操作は MainWindow を経由しない。`UiActionsWiring` の子（`FileActionsWiring` など）が、担当するクラス（`KifuFileController`・`GameSessionOrchestrator`・`DialogLaunchWiring` など）のスロットへ直接つなぐ。矢印ボタンなどの有効・無効は `UiStatePolicyManager` が状態ごとに決める（[UI状態ポリシー](ui-state-policy.md)）。
+盤上の着手を棋譜の変化として記録するかどうかは、`canRecordVariationMove()`・`recordVariationMove()` が決める（`BoardSetupController::setVariationInputCallbacks()` に渡す）。
+
+ファイルの読み書き・対局・ダイアログなど、ほとんどのメニュー操作は `MainWindowActions` も経由しない。`UiActionsWiring` の子（`FileActionsWiring` など）が、担当するクラス（`KifuFileController`・`GameSessionOrchestrator`・`DialogLaunchWiring` など）のスロットへ直接つなぐ。矢印ボタンなどの有効・無効は `UiStatePolicyManager` が状態ごとに決める（[UI状態ポリシー](ui-state-policy.md)）。
 
 ---
 
@@ -7397,15 +7358,18 @@ MainWindow は段階的にリファクタリングされ、ロジックが専用
 | 第1次完了後 | 4,388 行 | 721 行 |
 | 第2次完了後 | 約 4,180 行 | 725 行 |
 | 委譲の完了後（Task 65） | 379 行 | 545 行 |
-| 現在（2026-10-14） | 171 行 | 238 行 |
+| レジストリ構成（2026-10-14） | 171 行 | 238 行 |
+| 合成ルート構成（2026-10-15） | 45 行 | 48 行 |
 
-部品の生成と依存の更新は `MainWindowServiceRegistry`（`gamesubregistry*.cpp`・`mainwindow*registry.cpp`）と `MainWindowFoundationRegistry`・`KifuSubRegistry` に移り、MainWindow には委譲するだけの短い関数が残っている。
+2026-10-14 までは、部品の生成と依存の更新をレジストリ（`MainWindowServiceRegistry`・`MainWindowFoundationRegistry`・`KifuSubRegistry`、約50個の `ensure*()`）が行っていた。部品を初めて使うときに作る構成だったため、生成前の部品を指すゲッター（`std::function<X*()>`）、依存を渡し直す `refresh*Deps()`、MainWindow の非公開メンバを書き換える `friend` が積み重なっていた。2026-10-15 にこれを合成ルート（`MainWindowComposer`）に置き換えた。理由と規則は [composition-root.md](composition-root.md) を参照。
 
 #### 主な移譲先と内容
 
 | 移譲先クラス | 移譲された責務 |
 |-------------|---------------|
-| `MainWindowServiceRegistry` ほか | `ensure*()` による部品の生成と依存の更新、主要な操作 |
+| `MainWindowComposer` | 部品の生成・依存の注入・シグナル接続・初期表示・終了処理 |
+| `MainWindowActions` | メニュー・盤・棋譜欄の操作の振り分け |
+| `AppState` | 対局モード・局面・対局者名・対局中の棋譜などの共有状態 |
 | `DockCreationService` | ドックウィジェットの生成・設定復元・メニュー登録 |
 | `CommentCoordinator` | `broadcastComment()`, コメント更新・同期処理 |
 | `ConsiderationWiring` | 検討モードの UI 配線（ダイアログ↔エンジン間の接続） |
@@ -7419,8 +7383,9 @@ MainWindow は段階的にリファクタリングされ、ロジックが専用
 
 1. **ラッパーメソッドの除去**: MainWindow が単にメソッド呼び出しを中継するだけのラッパーは、`connect()` を委譲先クラスへ直接接続することで削除
 2. **デッドコードの除去**: どのシグナルにも接続されておらず、直接呼び出しもないスロットを特定して削除
-3. **コールバックによる間接呼び出し**: 委譲先クラスが MainWindow の `ensure*()` を呼ぶ必要がある場合、`std::function` コールバックを Deps に含めて解決
-4. **状態表による UI の有効・無効**: 以前は `enableArrowButtons()` などを多数のクラスから MainWindow へつないでいたが、`UiStatePolicyManager` の状態表に置き換えて MainWindow から削除した
+3. **起動時に全部作る**: 遅延生成（`ensure*()`）をやめ、合成ルートが全部品を作ってからポインタで結ぶ。`tst_structural_kpi` の `appLayerHasNoLazyEnsure` が app 層に `ensure*` が戻らないことを確かめる
+4. **状態は1か所**: 状態のコピー（司令塔の手番 `m_cur`、`GameStateController` の対局モードなど）をやめ、`AppState` と `ShogiGameController` の手番だけを正とする
+5. **状態表による UI の有効・無効**: 以前は `enableArrowButtons()` などを多数のクラスから MainWindow へつないでいたが、`UiStatePolicyManager` の状態表に置き換えて MainWindow から削除した
 
 <!-- chapter-14-end -->
 
@@ -7440,32 +7405,34 @@ MainWindow は段階的にリファクタリングされ、ロジックが専用
 ```mermaid
 sequenceDiagram
     participant User as ユーザー
-    participant MW as MainWindow
+    participant GSO as GameSessionOrchestrator
     participant SGD as StartGameDialog
     participant GSC as GameStartCoordinator
     participant PSCH as PreStartCleanupHandler
     participant MC as MatchCoordinator
     participant USI as Usi
 
-    User->>MW: メニュー「新規対局」選択
-    MW->>SGD: ダイアログ表示
+    User->>GSO: メニュー「対局」選択<br/>（GameActionsWiring が initializeGame() へ接続）
+    GSO->>SGD: ダイアログ表示
     User->>SGD: 対局設定を入力しOK
-    SGD->>MW: ダイアログ結果を返却
-    MW->>GSC: prepare(Request)
+    SGD-->>GSO: ダイアログ結果
+    Note over GSO: 表示中の手順から局面列・指し手列を作り直す<br/>（MainWindowGameStartService）
+    GSO->>GSC: initializeGame(Ctx)
+    GSC->>GSC: prepare(Request)
     GSC-->>PSCH: requestPreStartCleanup シグナル
     PSCH->>PSCH: performCleanup()
     Note over PSCH: 盤面/ハイライト初期化<br/>棋譜モデルクリア<br/>USIログリセット<br/>時計リセット<br/>評価値グラフ初期化
-    MW->>GSC: start(StartParams)
+    GSC->>GSC: start(StartParams)
     GSC->>MC: configureAndStart(StartOptions)
-    MC->>MC: initializePositionStringsForStart(sfen)
-    MC->>USI: initializeAndStartEngineCommunication()
+    MC->>USI: initializeAndStartEngineFor()（エンジンを使うモード）
     Note over USI: エンジンプロセス起動<br/>usi → usiok<br/>isready → readyok
-    MC->>MC: startInitialEngineMoveIfNeeded()
+    Note over GSC: finishStart()
+    GSC-->>GSO: started シグナル（受け手は SessionLifecycleCoordinator・UiStatePolicyManager など）
+    Note over GSO: ナビゲーション無効化<br/>対局中UI状態へ遷移
+    GSC->>MC: 時計の開始 → startInitialEngineMoveIfNeeded()
     alt エンジンが先手の場合
         MC->>USI: go (時間パラメータ)
     end
-    GSC-->>MW: started シグナル
-    Note over MW: ナビゲーション無効化<br/>対局中UI状態へ遷移
 ```
 
 **主要クラスの役割:**
@@ -7480,7 +7447,8 @@ sequenceDiagram
 
 **補足:**
 - `GameStartCoordinator::prepare()` は時計の適用と`requestPreStartCleanup`シグナルの発行を行う。クリーンアップの実体は`PreStartCleanupHandler`に完全委譲されている
-- `configureAndStart()` 内部では対局モード（HvH / HvE / EvE）に応じて `startHumanVsHuman()` / `startHumanVsEngine()` / `startEngineVsEngine()` に分岐する
+- 対局ダイアログからの開始・連続対局の次局・中断した対局の再開は、どれも最後に `GameStartCoordinator::finishStart()` を通る（`started` の通知 → 棋譜欄の開始行の選択 → 時計の開始 → エンジンの初手）
+- `configureAndStart()` 内部では、`MatchTurnHandler::createAndStartModeStrategy()` が対局モード（HvH / HvE / EvE）に応じた Strategy を作って `start()` する（6.2 節）
 - EvEモードでは2つの`Usi`インスタンスが生成され、交互にgo/bestmoveを繰り返す
 
 ---
@@ -7494,7 +7462,7 @@ sequenceDiagram
     participant User as ユーザー
     participant SV as ShogiView
     participant BIC as BoardInteractionController
-    participant MW as MainWindow
+    participant MW as MainWindowActions
     participant BSC as BoardSetupController
     participant SGC as ShogiGameController
     participant MV as EngineMoveValidator
@@ -7511,7 +7479,7 @@ sequenceDiagram
     User->>SV: 盤面クリック（2回目: 移動先指定）
     SV-->>BIC: clicked シグナル → onLeftClick()
     BIC-->>MW: moveRequested(from, to) シグナル
-    MW->>BSC: onMoveRequested()<br/>（MainWindowServiceRegistry 経由）
+    MW->>BSC: onMoveRequested()<br/>（対局モードを渡してから）
 
     BSC->>SGC: validateAndMove()
     SGC->>MV: isLegalMove()（盤の配列・駒台・指し手）
@@ -7527,7 +7495,7 @@ sequenceDiagram
         BSC->>BIC: onMoveApplied(from, to, true)
         Note over BIC: 赤(移動元)/黄(移動先)ハイライト
         BSC->>MC: onHumanMove(from, to, 棋譜の文字列)
-        MC->>GRU: appendKifuLine()（考慮時間つきで棋譜欄に追記）
+        MC->>GRU: appendRecord()（考慮時間つきで棋譜欄に追記）
 
         alt エンジン手番（HvEモード）
             MC->>USI: requestHumanReply()（position + go）
@@ -7555,7 +7523,7 @@ sequenceDiagram
 | `GameRecordUpdateService` | 棋譜欄（`KifuRecordListModel`）への追記とライブセッションの更新 |
 
 **補足:**
-- `MainWindow` は着手要求を `MainWindowServiceRegistry::handleMoveRequested()` に渡すだけで、判定と後処理は `BoardSetupController::onMoveRequested()` が行う
+- `MainWindowActions::handleMoveRequested()` は対局モード（`AppState::playMode`）を渡して `BoardSetupController::onMoveRequested()` を呼ぶだけで、判定と後処理は `BoardSetupController` が行う
 - 成り・不成は `ShogiGameController::validateAndMove()` が決める。両方とも合法なら成りダイアログ（`setPromotionChooser()` で渡す `DialogLaunchWiring::choosePromotion()`）で選ばせ、成りだけが合法（行き所のない駒）なら成る（6.6 節）
 - `MatchCoordinator::onHumanMove()` は `MatchTurnHandler` を通して対局モードの Strategy（HvE なら `HumanVsEngineStrategy`）に渡す。HvE では考慮時間を確定して棋譜に追記したあと、`Usi::requestHumanReply()` でエンジンに position と go を送り、`matchMoveReady` シグナルで応手を受け取る
 - HvHモードでは Strategy が考慮時間と棋譜を記録し、手番が交互に切り替わるだけで、エンジンとの通信はない。通信対局では `BoardSetupController` が `csaMoveRequested` シグナルで手をサーバーへ送る
@@ -7680,7 +7648,7 @@ sequenceDiagram
 
 | クラス | 責務 |
 |--------|------|
-| `EngineAnalysisTab` | 検討タブUI。エンジン選択・時間設定・MultiPV設定・検討開始/中止ボタン |
+| `EngineAnalysisTab` | 検討タブUI（中身は `ConsiderationTabManager`。`considerationTabManager()` で取り出す）。エンジン選択・時間設定・MultiPV設定・検討開始/中止ボタン |
 | `ConsiderationWiring` | 検討モード関連のシグナル/スロット配線。UIコントローラの管理 |
 | `ConsiderationFlowController` | 検討パラメータの組み立てと`MatchCoordinator`への委譲 |
 | `MatchCoordinator` | 検討エンジンの起動・停止・局面変更時の再起動を管理 |
@@ -8066,27 +8034,20 @@ sequenceDiagram
 - **排他選択**: `QActionGroup` により、5つの言語オプション（システム/日本語/英語/简体中文/繁體中文）は常に1つだけが選択される
 - **同一言語の再選択を無視**: `changeLanguage()` は現在の設定と同じ値が指定された場合、何もしない
 
-#### MainWindowとの統合
+#### 合成ルートとの統合
 
-LanguageControllerは `MainWindowFoundationRegistry::ensureLanguageController()` で生成される（起動の最終段で呼ばれる）。
+LanguageController は `MainWindowComposer::createServices()` で作り、`wireFoundation()` でメニューのアクションを渡す。
 
 ```cpp
-void MainWindowFoundationRegistry::ensureLanguageController()
-{
-    if (m_mw.m_languageController) return;
-
-    m_mw.m_languageController = std::make_unique<LanguageController>();
-    m_mw.m_languageController->setParentWidget(&m_mw);
-    m_mw.m_languageController->setActions(
-        m_mw.ui->actionLanguageSystem,
-        m_mw.ui->actionLanguageJapanese,
-        m_mw.ui->actionLanguageEnglish,
-        m_mw.ui->actionLanguageChineseSimplified,
-        m_mw.ui->actionLanguageChineseTraditional);
-    m_mw.m_languageController->setNotationActions(
-        m_mw.ui->actionNotationAuto, m_mw.ui->actionNotationJapanese,
-        m_mw.ui->actionNotationWestern, m_mw.ui->actionNotationOrigin, m_mw.ui->actionNotationHelp);
-}
+// src/app/mainwindowcomposer_wire.cpp（wireFoundation）
+// 言語メニュー（相互排他）と表記
+m_c.languageController->setParentWidget(&m_window);
+m_c.languageController->setActions(
+    m_ui.actionLanguageSystem, m_ui.actionLanguageJapanese, m_ui.actionLanguageEnglish,
+    m_ui.actionLanguageChineseSimplified, m_ui.actionLanguageChineseTraditional);
+m_c.languageController->setNotationActions(
+    m_ui.actionNotationAuto, m_ui.actionNotationJapanese,
+    m_ui.actionNotationWestern, m_ui.actionNotationOrigin, m_ui.actionNotationHelp);
 ```
 
 `setActions()`・`setNotationActions()` の内部で各アクションの `triggered` シグナルと対応するスロットが接続されるため、呼び出し側での追加的な `connect()` は不要である。
@@ -8272,7 +8233,6 @@ Wiringクラスは第4章で解説した「Deps構造体パターン」に従う
 /// @brief 棋譜タグ機能の配線クラスの定義
 
 #include <QObject>
-#include <functional>
 
 class QWidget;
 class KifuTagModel;
@@ -8285,7 +8245,7 @@ class KifuTagDialog;
  * - タグ編集ダイアログの表示制御
  * - タグモデルとUIの接続
  *
- * Deps構造体で必要なオブジェクトを受け取り、updateDeps()で再設定可能。
+ * Deps構造体で必要なオブジェクトを受け取る（合成ルートが起動時に1回渡す）。
  */
 class KifuTagWiring : public QObject
 {
@@ -8296,7 +8256,6 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;       ///< 親ウィジェット（非所有）
         KifuTagModel* tagModel = nullptr;      ///< タグモデル（非所有）
-        std::function<void()> ensureTagModel;   ///< 遅延初期化コールバック
     };
 
     explicit KifuTagWiring(const Deps& deps, QObject* parent = nullptr);
@@ -8319,7 +8278,6 @@ signals:
 private:
     QWidget* m_parentWidget = nullptr;
     KifuTagModel* m_tagModel = nullptr;
-    std::function<void()> m_ensureTagModel;
 };
 
 #endif // KIFUTAGWIRING_H
@@ -8346,7 +8304,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
     , m_tagModel(deps.tagModel)
-    , m_ensureTagModel(deps.ensureTagModel)
 {
 }
 
@@ -8354,9 +8311,6 @@ void KifuTagWiring::updateDeps(const Deps& deps)
 {
     m_parentWidget = deps.parentWidget;
     m_tagModel = deps.tagModel;
-    if (deps.ensureTagModel) {
-        m_ensureTagModel = deps.ensureTagModel;
-    }
 }
 
 // ============================================================
@@ -8365,10 +8319,6 @@ void KifuTagWiring::updateDeps(const Deps& deps)
 
 void KifuTagWiring::showTagEditDialog()
 {
-    // タグモデルが未初期化の場合、コールバックで遅延初期化を実行
-    if (!m_tagModel && m_ensureTagModel) {
-        m_ensureTagModel();
-    }
     if (!m_tagModel) return;
 
     KifuTagDialog dialog(m_tagModel, m_parentWidget);
@@ -8389,102 +8339,61 @@ void KifuTagWiring::onTagsChanged()
 |------|--------|
 | **Deps のフィールド** | 全て `nullptr` または適切なデフォルト値で初期化 |
 | **コンストラクタ** | 初期化リストで `Deps` の値をメンバーにコピー |
-| **updateDeps()** | 全フィールドを上書き。`std::function` は有効な場合のみ更新 |
+| **updateDeps()** | 全フィールドを上書き。作ったあとで依存がそろうクラスだけが持つ |
 | **ファイルヘッダー** | `@file` と `@brief` の2行（commenting-style-guide.md §2） |
 | **クラスコメント** | `@brief` + 責務の箇条書き（commenting-style-guide.md §3） |
 
-### 17.3 レジストリにensure*()メソッドを追加
+### 17.3 合成ルートに部品を追加
 
-部品の生成と依存の設定は、MainWindow ではなくレジストリで行う。MainWindow には `ensure*()` を置かない（`tst_structural_kpi` の `mainWindowEnsureLimit` が 0 個であることを確かめる）。どのレジストリに足すかは [レジストリ境界仕様](registry-boundary.md) に従う。棋譜タグは棋譜系なので `KifuSubRegistry` に足す。
+部品の生成と依存の設定は、MainWindow ではなく合成ルート（`MainWindowComposer`）で行う。部品は起動時に1回だけ作り、`ensure*()` は使わない（[4.2節](#42-合成ルートでの組み立て)、[composition-root.md](composition-root.md)）。
 
-#### 1. mainwindow.h にメンバーを宣言
-
-```cpp
-// src/app/mainwindow.h に追加（レジストリは MainWindow の friend なので private に置く）
-
-private:
-    // --- 棋譜タグ ---
-    KifuTagWiring* m_kifuTagWiring = nullptr;
-    KifuTagModel* m_kifuTagModel = nullptr;
-```
-
-> **ポイント**: 前方宣言 `class KifuTagWiring;` をヘッダ冒頭の前方宣言セクションに追加する。`#include` ではなく前方宣言を使うことで、ヘッダの依存関係を最小化する。
-
-#### 2. レジストリに ensure*() を宣言・実装
-
-依存の更新が要る部品は、生成（`create*`）と依存の更新（`refresh*Deps`）に分ける（[レジストリ境界仕様](registry-boundary.md) の「ensure* の2段構造パターン」）。
+#### 1. MainWindowComponents にメンバーを宣言
 
 ```cpp
-// src/app/kifusubregistry.h に追加
-public:
-    void ensureKifuTagWiring();
-    void refreshKifuTagWiringDeps();
-private:
-    void createKifuTagWiring();
-```
+// src/app/mainwindowcomponents.h に追加
 
-```cpp
-// src/app/kifusubregistry.cpp に追加
+class KifuTagModel;
+class KifuTagWiring;
 
-void KifuSubRegistry::ensureKifuTagWiring()
-{
-    if (!m_mw.m_kifuTagWiring) {
-        createKifuTagWiring();
-    }
-    refreshKifuTagWiringDeps();   // 生成済みでも最新の部品を渡し直す
-}
-
-void KifuSubRegistry::createKifuTagWiring()
-{
-    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
-    // Created: once on first use, never recreated
-    m_mw.m_kifuTagWiring = new KifuTagWiring(KifuTagWiring::Deps{}, &m_mw);
-
-    // 配線は作ったときに1回だけ行う（§17.4）
-    connect(m_mw.ui->actionEditTags, &QAction::triggered,
-            m_mw.m_kifuTagWiring, &KifuTagWiring::showTagEditDialog);
-}
-
-void KifuSubRegistry::refreshKifuTagWiringDeps()
-{
-    if (!m_mw.m_kifuTagWiring) return;
-
-    KifuTagWiring::Deps deps;
-    deps.parentWidget = &m_mw;
-    deps.tagModel = m_mw.m_kifuTagModel;
-    deps.ensureTagModel = [this]() {
-        if (!m_mw.m_kifuTagModel) {
-            // Lifetime: owned by MainWindow (QObject parent=&m_mw)
-            m_mw.m_kifuTagModel = new KifuTagModel(&m_mw);
-        }
-        refreshKifuTagWiringDeps();   // 作ったモデルを渡し直す
-    };
-    m_mw.m_kifuTagWiring->updateDeps(deps);
-}
-```
-
-`ensure*()` の3つの処理:
-
-| 処理 | 内容 | 対応するコード |
-|------|------|-------------|
-| ① 生成（初回だけ） | MainWindow を親にして作る | `createKifuTagWiring()` |
-| ② 配線（初回だけ） | 作った直後にシグナルをつなぐ | `createKifuTagWiring()` の `connect()` |
-| ③ 依存の更新（毎回） | `Deps` を作り直して渡す | `refreshKifuTagWiringDeps()` |
-
-レジストリごとの `ensure*()` の数には上限がある（`tst_structural_kpi` の `serviceRegistryEnsureLimit`・`subRegistryEnsureLimits`）。上限に達しているときは、既存の `ensure*()` をまとめられないか先に検討し、上限を上げる場合はその理由をレビューで説明する（[レジストリ境界仕様](registry-boundary.md)）。`refresh*Deps()` は数えない。
-
-#### 3. 呼び出し箇所の追加
-
-`ensure*()` は必要になった時点で呼ぶ。メニューアクションのように起動直後から使える必要があるものは、起動の最終段（`MainWindowServiceRegistry::finalizeAndConfigureUiForLifecycle()`）で呼ぶ。
-
-```cpp
-// src/app/mainwindowlifecyclewiring.cpp
-void MainWindowServiceRegistry::finalizeAndConfigureUiForLifecycle()
-{
+struct MainWindowComponents {
     // ...
-    m_kifu->ensureKifuTagWiring();
-}
+    // --- 棋譜 ---
+    KifuTagModel* kifuTagModel = nullptr;
+    KifuTagWiring* kifuTagWiring = nullptr;
+};
 ```
+
+> **ポイント**: 前方宣言をヘッダ冒頭の前方宣言セクションに追加する。`#include` ではなく前方宣言を使うことで、ヘッダの依存関係を最小化する。QObject は MainWindow を親にした生ポインタ、QObject でないものは `std::unique_ptr` で持つ。
+
+#### 2. 生成段階で作る
+
+```cpp
+// src/app/mainwindowcomposer_create.cpp（createServices の「棋譜」の段）
+
+// Lifetime: MainWindow の子（親が破棄する）。起動時に1回だけ作る
+m_c.kifuTagModel = new KifuTagModel(&m_window);
+```
+
+#### 3. 依存の注入段階で依存を渡す
+
+ほかの部品がそろってから `Deps` を組んで渡す。依存が生成段階でそろうなら、作るときにコンストラクタへ渡してもよい。
+
+```cpp
+// src/app/mainwindowcomposer_wire.cpp（wireKifu）
+
+KifuTagWiring::Deps td;
+td.parentWidget = &m_window;
+td.tagModel = m_c.kifuTagModel;
+m_c.kifuTagWiring = new KifuTagWiring(td, &m_window);
+```
+
+状態が要るときは、値を写さずに `AppState` のフィールドへのポインタ（`&m_state.startSfenStr` など）を渡す。部品を `std::function<X*()>` のゲッターで渡さない。
+
+#### 4. シグナルをつなぐ
+
+部品どうしのシグナルは `connectSignals()`（`mainwindowcomposer_finalize.cpp`）でつなぐ（§17.4）。
+
+`tst_structural_kpi` の `appLayerHasNoLazyEnsure` が app 層に `ensure*` がないことを確かめる。テストから部品を読むときは `MainWindow::composer().parts().kifuTagWiring` を使う。
 
 ### 17.4 Wiringクラスでシグナル/スロット接続
 
@@ -8493,17 +8402,18 @@ void MainWindowServiceRegistry::finalizeAndConfigureUiForLifecycle()
 #### 接続コードの例
 
 ```cpp
-// KifuSubRegistry::createKifuTagWiring() 内（作ったときに1回だけ）
+// src/app/mainwindowcomposer_finalize.cpp（connectSignals）
 
 // メニューアクション → KifuTagWiring のスロット
-connect(m_mw.ui->actionEditTags, &QAction::triggered,
-        m_mw.m_kifuTagWiring, &KifuTagWiring::showTagEditDialog);
+connect(m_ui.actionEditTags, &QAction::triggered,
+        m_c.kifuTagWiring, &KifuTagWiring::showTagEditDialog);
 
 // KifuTagWiring のシグナル → 棋譜ファイル操作のスロット
-ensureKifuFileController();
-connect(m_mw.m_kifuTagWiring, &KifuTagWiring::saveRequested,
-        m_mw.m_kifuFileController, &KifuFileController::overwriteKifuFile);
+connect(m_c.kifuTagWiring, &KifuTagWiring::saveRequested,
+        m_c.kifuFileController, &KifuFileController::overwriteKifuFile);
 ```
+
+メニューのアクションの多くは、`UiActionsWiring` の子（`FileActionsWiring` など）でつないでいる。既存のメニューに足すなら、そちらに書く。
 
 #### 接続時の注意事項
 
@@ -8511,11 +8421,11 @@ connect(m_mw.m_kifuTagWiring, &KifuTagWiring::saveRequested,
 |--------|------|-----|
 | ラムダ禁止 | 接続の追跡を困難にするため | `connect(a, &A::sig, [this](){...})` は使わない |
 | `Qt::UniqueConnection` | 重複接続を防ぐ（`wire()` で一括接続する場合） | `connect(..., Qt::UniqueConnection)` |
-| 接続先のコメント | コードを追わずに接続関係を把握できるようにする | `/// タグ変更の保存を要求（→ MainWindow）` |
+| 接続先のコメント | コードを追わずに接続関係を把握できるようにする | `/// タグ変更の保存を要求（→ KifuFileController）` |
 
 #### Wiringクラス内の内部接続
 
-Wiringクラスが内部にコントローラを持つ場合、`ensure*()` 内でコントローラのシグナルを接続する。
+Wiringクラスが内部にコントローラを持つ場合、コントローラを作るところ（Wiring クラスの中の `ensure*()` など）でコントローラのシグナルを接続する。app 層の外の部品が自分の中に持つ下位の部品は、この形で作ってよい。
 
 ```cpp
 void KifuTagWiring::ensureTagController()
@@ -8574,6 +8484,15 @@ void KifuTagDialog::closeEvent(QCloseEvent* event)
 ```
 
 A-/A+ ボタンのスロットでは `m_fontHelper.increase()` / `decrease()` が `true` を返したときだけ `applyFontSize()` を呼ぶ（`KifuPasteDialog` と同じ形）。
+
+`applyFontSize()` の本体は `m_fontHelper.applyTo(this)` の1行を基本にする。`applyTo` は `DialogUtils::applyFontSize` を呼び、余白・ボタンの標準化、全子ウィジェット（コンボボックスの一覧・ダイアログのメニューを含む）へのフォント設定、A-/A+ ボタンの有効状態と寸法の更新をまとめて行い、適用したフォントを返す。盤面など文字の大きさを自分で決めるウィジェットは `applyTo(this, {m_view})` のように除外し、太字の見出しなどダイアログ固有の調整だけを戻り値のフォントから作る。
+
+```cpp
+void KifuTagDialog::applyFontSize()
+{
+    m_fontHelper.applyTo(this);
+}
+```
 
 #### 設定項目を追加するときの規約
 
@@ -8687,7 +8606,7 @@ lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translatio
  * - タグ編集ダイアログの表示制御
  * - タグモデルとUIの接続
  *
- * Deps構造体で必要なオブジェクトを受け取り、updateDeps()で再設定可能。
+ * Deps構造体で必要なオブジェクトを受け取る（合成ルートが起動時に1回渡す）。
  */
 class KifuTagWiring : public QObject
 ```
@@ -8714,7 +8633,6 @@ public slots:
 private:
     QWidget* m_parentWidget = nullptr;     ///< 親ウィジェット（非所有）
     KifuTagModel* m_tagModel = nullptr;    ///< タグモデル（非所有）
-    std::function<void()> m_ensureTagModel; ///< タグモデル遅延初期化コールバック
 ```
 
 #### .cpp 内のインラインコメント（§9）
@@ -8723,9 +8641,9 @@ private:
 
 ```cpp
 // 良い例: なぜそうするかを説明
-// タグモデルが未初期化の場合、コールバックで遅延初期化を実行
-if (!m_tagModel && m_ensureTagModel) {
-    m_ensureTagModel();
+// 保存はダイアログで OK を押したときだけ。キャンセルでは棋譜を書き換えない
+if (dialog.exec() == QDialog::Accepted) {
+    emit saveRequested();
 }
 
 // 悪い例: コードの繰り返し
@@ -8771,8 +8689,8 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | # | 確認項目 | 参照 |
 |---|---------|------|
 | 6 | `Deps` 構造体で依存を注入しているか | 第4章 §4.1 |
-| 7 | `ensure*()` メソッドにガードを入れているか | 第4章 §4.2 |
-| 8 | 遅延初期化の依存ギャップに対処しているか（`std::function` コールバック） | 第4章 §4.2 |
+| 7 | 部品を `MainWindowComponents` に足し、合成ルートで1回だけ作っているか（app 層に `ensure*()` を置かない） | 第4章 §4.2 |
+| 8 | 依存をポインタで渡しているか（`std::function<X*()>` のゲッターを使わず、状態は `AppState` を指す） | 第4章 §4.2 |
 | 9 | MainWindowへのロジック追加を最小限にしているか | CLAUDE.md Design Principles |
 | 10 | ポインタの所有権をコメントで明記しているか | commenting-style-guide.md §6 |
 
@@ -8815,9 +8733,9 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
    ├─ コンストラクタ / updateDeps() を実装
    └─ スロットメソッドを実装
      │
-③ レジストリに ensure*() メソッドを追加（§17.3）
-   ├─ mainwindow.h にメンバーを宣言
-   ├─ 担当のレジストリに ensure*() / create*() / refresh*Deps() を実装
+③ 合成ルートに部品を追加（§17.3）
+   ├─ mainwindowcomponents.h にメンバーを宣言
+   ├─ MainWindowComposer の create*() で作り、wire*() で依存を渡す
    └─ CMakeLists.txt の SRC_* に新しいファイルを列挙（§1.4）
      │
 ④ シグナル / スロット接続を追加（§17.4）
@@ -8910,7 +8828,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 
 ### 18.3 クラス名逆引き一覧
 
-全主要クラス・名前空間をアルファベット順に掲載する。「種別」列の凡例: C=クラス, NS=名前空間。
+全主要クラス・名前空間をアルファベット順に掲載する。「種別」列の凡例: C=クラス, S=構造体（値型）, NS=名前空間。
 
 | 名前 | 種別 | ディレクトリ | 説明 | 解説章 |
 |------|------|-------------|------|--------|
@@ -8920,6 +8838,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | AnalysisFlowController | C | analysis | 棋譜解析フローの制御 | 第9章 |
 | AnalysisResultsPresenter | C | analysis | 解析結果の表示プレゼンター | 第9章 |
 | AnalysisTabWiring | C | ui/wiring | 解析タブのシグナル/スロット配線 | 第10章 |
+| AppState | S | common | 部品どうしで共有する状態の唯一の置き場（対局モード・局面・対局者名・対局中の棋譜） | 第14章 |
 | AppToolTipFilter | C | widgets | アプリ全体のツールチップフィルタ | 第11章 |
 | BoardImageExporter | C | board | 盤面画像のクリップボードコピー・ファイル保存 | 第13章 |
 | BoardInteractionController | C | board | 盤面クリック・ドラッグ操作とハイライト制御 | 第13章 |
@@ -8992,13 +8911,13 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | KifuPasteDialog | C | dialogs | 棋譜ペーストダイアログ | 第11章 |
 | KifuRecordListModel | C | models | 棋譜レコードリストモデル | 第11章 |
 | KifuSaveCoordinator | NS | kifu | 棋譜ファイル保存の統合調整 | 第8章 |
-| KifuSubRegistry | C | app | 棋譜系（読み込み・保存・分岐ナビ・定跡）の ensure* | 第8章, 第14章 |
 | LanguageController | C | ui/controllers | アプリ言語切替の制御 | 第10章, 第16章 |
 | LiveGameSession | C | kifu | 対局中の棋譜一時記録セッション | 第8章 |
 | LongLongSpinBox | C | widgets | 64ビット整数スピンボックス | 第11章 |
-| MainWindow | C | app | メインウィンドウ（ファサード/ハブ） | 第3章, 第10章, 第14章 |
-| MainWindowFoundationRegistry | C | app | 複数の領域が使う部品の ensure* | 第14章 |
-| MainWindowServiceRegistry | C | app | ensure*（部品の生成と依存更新）・起動手順・主要操作の集約 | 第4章, 第14章 |
+| MainWindow | C | app | メインウィンドウ（.ui と閉じるときの確認・終了処理） | 第3章, 第14章 |
+| MainWindowActions | C | app | メニュー・盤・棋譜欄の操作を担当の部品へ振り分けるスロット | 第14章, 第15章 |
+| MainWindowComponents | S | app | 合成ルートが起動時に作る部品の一覧 | 第4章, 第14章 |
+| MainWindowComposer | C | app | 合成ルート。部品の生成・依存の注入・シグナル接続・初期表示 | 第3章, 第4章, 第14章 |
 | MatchCoordinator | C | game | 対局進行の司令塔（マスターコントローラ） | 第6章 |
 | MatchCoordinatorWiring | C | ui/wiring | 司令塔の生成（一度だけ）と配線、GameStartCoordinator の生成 | 第6章, 第14章 |
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
@@ -9006,6 +8925,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | MenuWindowWiring | C | ui/wiring | メニューウィンドウのシグナル/スロット配線 | 第10章 |
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
 | NyugyokuDeclarationHandler | C | ui/controllers | 入玉宣言の処理ハンドラ | 第10章 |
+| PlayModePolicyService | C | app | 対局モードによる判定（人間の手番か、対局中かなど）の唯一の場所 | 第6章 |
 | PlayerInfoController | C | ui/controllers | プレイヤー情報表示の制御 | 第10章 |
 | PlayerInfoWiring | C | ui/wiring | プレイヤー情報のシグナル/スロット配線 | 第10章 |
 | PlayerNameService | C | services | プレイヤー名解決サービス | 第12章 |
@@ -9016,6 +8936,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | PromotionFlow | C | game | 成/不成選択フロー | 第6章 |
 | PvBoardDialog | C | dialogs | 読み筋盤面表示ダイアログ | 第11章 |
 | PvClickController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
+| PvNotationFormatter | C | engine | UsiInfo の読み筋・探索手を局面の上で漢字表記にする | 第7章 |
 | RecordLine | C | kifu | 分岐ツリーの1本の手順の値（局面列・指し手・表記・表示中の手数） | 第8章 |
 | RecordNavigationHandler | C | navigation | 棋譜ペイン行変更ハンドラ | 第13章 |
 | RecordPane | C | widgets | 棋譜ペインウィジェット | 第11章 |
@@ -9027,7 +8948,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | SfenUtils | NS | core | SFEN文字列のユーティリティ（ヘッダーオンリー） | 第2章, 第5章 |
 | ShogiBoard | C | core | 将棋盤・駒台の状態管理 | 第5章 |
 | ShogiClock | C | core | 対局時計・時間管理 | 第5章 |
-| ShogiEngineInfoParser | C | engine | USIエンジンinfo行のパーサー | 第7章 |
 | ShogiEngineThinkingModel | C | engine | エンジン思考結果リストモデル（6列） | 第7章 |
 | ShogiGameController | C | game | 対局進行・盤面更新・合法手検証 | 第6章 |
 | ShogiInfoRecord | C | kifu | USIエンジン思考情報レコード | 第7章, 第8章 |
@@ -9035,6 +8955,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | ShogiView | C | views | 将棋盤の描画・レンダリングビュー | 第11章 |
 | StartGameDialog | C | dialogs | 対局開始設定ダイアログ | 第11章 |
 | ThinkingInfoPresenter | C | engine | 思考情報のGUI表示プレゼンター | 第7章 |
+| ThinkingInfoRow | S | engine | 思考タブの1行分の表示データ | 第7章 |
 | TimeControlController | C | ui/controllers | 持ち時間・時計表示の制御 | 第10章 |
 | TimeControlUtil | NS | services | 持ち時間設定のユーティリティ | 第12章 |
 | TimeDisplayPresenter | C | ui/presenters | 時間表示更新プレゼンター | 第10章 |
@@ -9042,12 +8963,14 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | TsumeSearchFlowController | C | analysis | 詰将棋探索フローの制御 | 第9章 |
 | TsumeShogiSearchDialog | C | dialogs | 詰将棋探索ダイアログ | 第11章 |
 | TurnManager | C | game | 手番管理・形式変換 | 第6章 |
-| TurnSyncBridge | C | game | GameController/TurnManager/UI間の手番同期 | 第6章 |
+| TurnStateSyncService | C | app | TurnManager を持ち、GC・時計・盤の手番表示を同期 | 第6章 |
 | UiActionsWiring | C | ui/wiring | メニュー・ツールバーアクションのシグナル/スロット配線 | 第10章 |
 | UsenToSfenConverter | C | kifu/formats | USEN形式→SFEN変換器 | 第8章 |
-| Usi | C | engine | USIプロトコル通信ファサード | 第7章 |
+| Usi | C | engine | GUI から使う USI エンジン1台の窓口（型付きの送信メソッド） | 第7章 |
 | UsiCommLogModel | C | engine | USI通信ログ・エンジン情報モデル | 第7章 |
 | UsiCommandController | C | ui/controllers | USIエンジンコマンド送信の制御 | 第10章 |
+| UsiInfo | S | engine | info 行を解析した値（UsiScore を含む） | 第7章 |
+| UsiInfoParser | NS | engine | info・option・id 行の解析（GUI・盤面に依存しない） | 第7章 |
 | UsiProtocolHandler | C | engine | USIプロトコルの送受信管理 | 第7章 |
 | UsiToSfenConverter | C | kifu/formats | USI形式→SFEN変換器 | 第8章 |
 | VersionDialog | C | dialogs | バージョン情報ダイアログ | 第11章 |
@@ -9082,7 +9005,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | gamestartcoordinator | 第6章 | 対局開始フロー |
 | gamestatecontroller | 第6章 | 対局状態・終局処理 |
 | turnmanager | 第6章 | 手番管理 |
-| turnsyncbridge | 第6章 | 手番同期ブリッジ |
 | promotionflow | 第6章 | 成/不成フロー |
 | prestartcleanuphandler | 第6章 | 対局前クリーンアップ |
 | consecutivegamescontroller | 第6章 | 連続対局制御 |
@@ -9293,6 +9215,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
+| appstate | 第14章 | 部品どうしで共有する状態（`AppState`） |
 | errorbus | 第4章, 第12章 | エラー通知バス |
 | jishogicalculator | 第12章 | 持将棋点数計算 |
 | tsumepositionutil | 第9章, 第12章 | 詰将棋局面ユーティリティ |
@@ -9302,11 +9225,12 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | main | 第1章 | アプリケーションエントリーポイント |
-| mainwindow | 第3章, 第10章, 第14章 | メインウィンドウ（ハブ） |
-| mainwindowserviceregistry | 第4章, 第14章 | ensure*・起動手順・主要操作（実装は gamesubregistry*.cpp などに分割） |
-| mainwindowfoundationregistry | 第14章 | 複数の領域が使う部品の ensure* |
-| kifusubregistry | 第8章, 第14章 | 棋譜系の ensure* |
-| mainwindowlifecyclepipeline | 第14章 | 起動・終了の手順 |
+| mainwindow | 第3章, 第14章 | メインウィンドウ（.ui と閉じるときの確認・終了処理） |
+| mainwindowcomposer | 第3章, 第4章, 第14章 | 合成ルート（実装は mainwindowcomposer_create / wire / game / finalize / automation に分割） |
+| mainwindowcomponents | 第14章 | 部品の一覧 |
+| mainwindowactions | 第14章, 第15章 | メニュー・盤・棋譜欄の操作の振り分け |
+| turnstatesyncservice | 第6章 | 手番同期（TurnManager を持つ） |
+| playmodepolicyservice | 第6章 | 対局モードによる判定 |
 | commentcoordinator | 第14章 | コメント調整 |
 | dockcreationservice | 第14章 | ドック生成サービス |
 
@@ -9339,7 +9263,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | 5層アーキテクチャ | 第3章 | §3.1 |
 | PlayMode列挙体（13モード） | 第3章 | §3.3 |
 | Deps構造体パターン | 第4章 | §4.1 |
-| ensure*()遅延初期化 | 第4章 | §4.2 |
+| 合成ルート（MainWindowComposer） | 第4章 | §4.2 |
 | Hooks/std::functionコールバック | 第4章 | §4.3 |
 | Wiringパターン | 第4章 | §4.3 |
 | MVP分割（Presenter/Controller/Coordinator） | 第4章 | §4.4 |
@@ -9358,7 +9282,8 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | ShogiViewの描画パイプライン | 第11章 | §11.1 |
 | CSAプロトコル状態遷移 | 第12章 | §12.1 |
 | 設定の宣言の表（`Setting<T>`）とINI永続化 | 第12章 | §12.5 |
-| MainWindowのensure*()群（約40メソッド） | 第14章 | §14.2 |
+| MainWindowComponents と AppState | 第14章 | §14.2 |
+| 起動の手順 | 第14章 | §14.4 |
 | リファクタリング経緯 | 第14章 | §14.4 |
 | ユースケースシーケンス図（5パターン） | 第15章 | §15.1–§15.5 |
 | Qt Linguistワークフロー | 第16章 | §16.1 |

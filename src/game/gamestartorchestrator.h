@@ -18,7 +18,7 @@ class ShogiGameController;
  * @brief 対局開始フロー（オプション構築・履歴探索・position文字列構築）を担当する
  *
  * MatchCoordinator から対局開始に関わるロジックを分離し、
- * configureAndStart / buildStartOptions / prepareAndStartGame を統合的に扱う。
+ * configureAndStart / buildStartOptions を統合的に扱う。
  *
  * MatchCoordinator 内部状態への参照は Refs struct で受け取り、
  * MC メソッドへの委譲は Hooks struct のコールバックで実行する。
@@ -35,7 +35,6 @@ public:
         // 可変状態
         PlayMode* playMode = nullptr;
         int* maxMoves = nullptr;
-        Turn* currentTurn = nullptr;
         int* currentMoveIndex = nullptr;
 
         // 棋譜自動保存設定
@@ -57,9 +56,9 @@ public:
      * 対局開始フロー (configureAndStart) で MC の状態更新や GUI 操作を行うために使用。
      * 前半5つは MC::Hooks からのパススルー、後半6つは MC メソッドへの直接コールバック。
      *
-     * @note MC::ensureGameStartOrchestrator() で設定される。
+     * @note MC::createGameStartOrchestrator() で設定される。
      *       GameStartOrchestrator は非 QObject のため Signal/Slot は使用不可。
-     * @see MatchCoordinator::ensureGameStartOrchestrator
+     * @see MatchCoordinator::createGameStartOrchestrator
      */
     struct Hooks {
         // --- MC::Hooks パススルー ---
@@ -121,11 +120,6 @@ public:
 
     void ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, Turn bottomSide);
 
-    void prepareAndStartGame(PlayMode mode,
-                             const QString& startSfenStr,
-                             const QStringList* sfenRecord,
-                             const StartGameDialogData* dlg,
-                             Turn bottomSide);
 
 private:
     /// 過去対局の履歴探索結果

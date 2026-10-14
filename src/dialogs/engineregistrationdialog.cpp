@@ -21,7 +21,7 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     : QDialog(parent),
     ui(std::make_unique<Ui::EngineRegistrationDialog>()),
     m_handler(std::make_unique<EngineRegistrationHandler>(this)),
-    m_fontSize(EngineDialogSettings::engineRegistrationFontSize())
+    m_fontHelper(EngineDialogSettings::engineRegistrationFontSize, 8, 20, 1)
 {
     // Qt Designerで作成されたUIをプログラムのウィンドウに読み込み、初期化する。
     ui->setupUi(this);
@@ -254,35 +254,17 @@ void EngineRegistrationDialog::updateSelectionState()
 // フォントサイズを増加する
 void EngineRegistrationDialog::increaseFontSize()
 {
-    if (m_fontSize < 20) {  // 最大サイズを20に制限
-        m_fontSize++;
-        applyFontSize();
-        EngineDialogSettings::engineRegistrationFontSize.set(m_fontSize);
-    }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 // フォントサイズを減少する
 void EngineRegistrationDialog::decreaseFontSize()
 {
-    if (m_fontSize > 8) {  // 最小サイズを8に制限
-        m_fontSize--;
-        applyFontSize();
-        EngineDialogSettings::engineRegistrationFontSize.set(m_fontSize);
-    }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // すべてのウィジェットにフォントサイズを適用する
 void EngineRegistrationDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    QFont font = this->font();
-    font.setPointSize(m_fontSize);
-    this->setFont(font);
-
-    // すべての子ウィジェットにフォントを明示的に設定する（KDE Breezeでは親の設定が伝搬しないため）
-    const auto widgets = findChildren<QWidget*>();
-    for (QWidget* widget : std::as_const(widgets)) {
-        widget->setFont(font);
-    }
-    DialogUtils::updateFontButtons(this, m_fontSize, 8, 20);
+    m_fontHelper.applyTo(this);
 }

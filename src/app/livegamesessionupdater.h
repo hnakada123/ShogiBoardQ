@@ -34,7 +34,7 @@ public:
      * 途中局面の場合は SFEN から分岐ポイントを探し、
      * 見つかればそのノードから、見つからなければルートから開始する。
      */
-    void ensureSessionStarted();
+    void startSessionIfNeeded();
 
     /// セッションが未開始なら開始し、型付きの指し手を追加する。
     void appendRecord(const RecordEntry& entry);

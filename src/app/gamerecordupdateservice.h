@@ -11,6 +11,7 @@
 #include <QList>
 #include <functional>
 
+class GameRecordModel;
 class MatchCoordinator;
 class LiveGameSessionUpdater;
 class LiveGameSession;
@@ -24,7 +25,7 @@ class GameRecordUpdateService : public QObject
 public:
     struct Deps {
         // 起動時に注入する依存
-        std::function<void()> markGameRecordDirty;
+        GameRecordModel* gameRecord = nullptr;           ///< 追記したら棋譜を未保存にする
         LiveGameSessionUpdater* liveSessionUpdater = nullptr;
 
         // Object pointers

@@ -9,9 +9,9 @@
 #include <QTimer>
 #include <memory>
 // 通信対局の司令塔の手番の状態は、サーバーとのやり取りでしか変わらないため、テストでは直接設定する
-#define private public
+// （CsaGameCoordinator が TestAppGameSession を friend にしている）
 #include "csagamecoordinator.h"
-#undef private
+#include "csagamewiring.h"
 #include "gamesessionorchestrator.h"
 #include "gamestatecontroller.h"
 #include "playmodepolicyservice.h"
@@ -43,10 +43,8 @@ struct SessionHarness {
     std::unique_ptr<MatchCoordinator> matchOwner;
     MatchCoordinator* match = nullptr;
     GameStateController state;
-    GameStateController* statePtr = nullptr;
     GameSessionOrchestrator session;
     GameSessionOrchestrator::Deps deps;
-    int ensured = 0;
 
     SessionHarness()
     {
@@ -64,9 +62,8 @@ struct SessionHarness {
         match = matchOwner.get();
         match->setPlayMode(mode);
         state.setMatchCoordinator(match);
-        deps.match = [this]() { return match; };
-        // 対局状態コントローラは取得時に作る（遅延生成）
-        deps.gameStateController = [this]() { ++ensured; statePtr = &state; return statePtr; };
+        deps.match = match;
+        deps.gameStateController = &state;
         deps.gameController = &gc;
         deps.startSfenStr = &start;
         deps.currentSfenStr = &current;
@@ -106,30 +103,22 @@ private slots:
 
     void missingDependenciesAreSafe()
     {
+        // 部品を渡していなくても、操作は何もせずに戻る（null を読まない）
         GameSessionOrchestrator session;
-        int starts = 0, states = 0, dialogs = 0;
-        GameSessionOrchestrator::Deps deps;
-        deps.gameStart = [&]() -> GameStartCoordinator* { ++starts; return nullptr; };
-        deps.gameStateController = [&]() -> GameStateController* { ++states; return nullptr; };
-        deps.dialogCoordinator = [&]() -> DialogCoordinator* { ++dialogs; return nullptr; };
-        session.updateDeps(deps);
+        session.updateDeps(GameSessionOrchestrator::Deps{});
         session.initializeGame();
         session.handleResignation();
         session.handleBreakOffGame();
         session.movePieceImmediately();
         session.stopTsumeSearch();
         session.openWebsiteInExternalBrowser();
-        QCOMPARE(starts, 1);
-        QCOMPARE(states, 2);
-        QCOMPARE(dialogs, 1);
     }
 
-    void resignationUsesLazilyCreatedController()
+    void resignationEndsTheMatch()
     {
         SessionHarness h;
         QSignalSpy ended(h.match, &MatchCoordinator::gameEnded);
         h.session.handleResignation();
-        QCOMPARE(h.ensured, 1);
         QCOMPARE(ended.count(), 1);
         QCOMPARE(h.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
         QCOMPARE(h.match->gameOverState().lastInfo.loser, Turn::Black);
@@ -137,12 +126,11 @@ private slots:
         QCOMPARE(ended.count(), 1);
     }
 
-    void interruptionUsesLazilyCreatedController()
+    void interruptionEndsTheMatch()
     {
         SessionHarness h;
         QSignalSpy ended(h.match, &MatchCoordinator::gameEnded);
         h.session.handleBreakOffGame();
-        QCOMPARE(h.ensured, 1);
         QCOMPARE(ended.count(), 1);
         QCOMPARE(h.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
     }
@@ -151,12 +139,13 @@ private slots:
     {
         SessionHarness h;
         CsaGameCoordinator csa;
+        CsaGameWiring csaWiring(CsaGameWiring::Dependencies{});
+        csaWiring.setCoordinator(&csa);
         h.mode = PlayMode::CsaNetworkMode;
-        h.deps.csaGameCoordinator = [&csa]() { return &csa; };
+        h.deps.csaGameWiring = &csaWiring;
         h.session.updateDeps(h.deps);
         h.session.handleResignation();
         h.session.handleBreakOffGame();
-        QCOMPARE(h.ensured, 0);
         QVERIFY(!h.match->gameOverState().isOver);
     }
 
@@ -167,15 +156,17 @@ private slots:
         ShogiGameController gc;
         PlayMode mode = PlayMode::CsaNetworkMode;
         std::unique_ptr<CsaGameCoordinator> csa;
+        CsaGameWiring csaWiring(CsaGameWiring::Dependencies{});
         PlayModePolicyService policy;
         PlayModePolicyService::Deps deps;
         deps.playMode = &mode;
         deps.gameController = &gc;
-        deps.csaGameCoordinator = [&csa]() { return csa.get(); };
+        deps.csaGameWiring = &csaWiring;
         policy.updateDeps(deps);
         QVERIFY(!policy.isHumanTurnNow());
 
         csa = std::make_unique<CsaGameCoordinator>();
+        csaWiring.setCoordinator(csa.get());
         csa->m_gameState = CsaGameCoordinator::GameState::InGame;
         csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
         csa->m_isMyTurn = true;
@@ -190,25 +181,12 @@ private slots:
         QVERIFY(!policy.isHumanTurnNow());
     }
 
-    void controllerReplacementIsObserved()
-    {
-        SessionHarness first, second;
-        GameStateController* active = &first.state;
-        auto deps = first.deps;
-        deps.gameStateController = [&active]() { return active; };
-        first.session.updateDeps(deps);
-        active = &second.state;
-        first.session.handleResignation();
-        QVERIFY(!first.match->gameOverState().isOver);
-        QVERIFY(second.match->gameOverState().isOver);
-    }
-
     void startDialogCancellationKeepsGame()
     {
         SessionHarness h;
         GameStartCoordinator starter({h.match});
         auto deps = h.deps;
-        deps.gameStart = [&starter]() { return &starter; };
+        deps.gameStart = &starter;
         h.session.updateDeps(deps);
         QSignalSpy cleanup(&starter, &GameStartCoordinator::requestPreStartCleanup);
         m_acceptDialog = false;
@@ -236,7 +214,7 @@ private slots:
                 &recorder, &StartSignalRecorder::onPreStartCleanup);
         connect(&starter, &GameStartCoordinator::requestBranchTreeResetForNewGame,
                 &recorder, &StartSignalRecorder::onBranchTreeReset);
-        h.deps.gameStart = [&starter]() { return &starter; };
+        h.deps.gameStart = &starter;
         h.session.updateDeps(h.deps);
         m_acceptDialog = true;
         m_dialogSeen = false;
@@ -258,7 +236,7 @@ private slots:
         settings.sync();
         SessionHarness h;
         GameStartCoordinator starter({h.match});
-        h.deps.gameStart = [&starter]() { return &starter; };
+        h.deps.gameStart = &starter;
         h.deps.startSfenStr = nullptr;
         h.deps.currentSfenStr = nullptr;
         h.deps.bottomSide = nullptr;
@@ -294,7 +272,7 @@ private slots:
         ReplayController replayController;
         replayController.setReplayMode(replay);
         GameStartCoordinator starter({h.match});
-        h.deps.gameStart = [&starter]() { return &starter; };
+        h.deps.gameStart = &starter;
         h.deps.replayController = &replayController;
         h.session.updateDeps(h.deps);
         m_acceptDialog = true;

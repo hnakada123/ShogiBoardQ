@@ -6,7 +6,6 @@
 
 #include <QObject>
 #include <QString>
-#include <functional>
 
 class KifuBranchTree;
 class KifuNavigationState;
@@ -32,7 +31,7 @@ class BranchTreeEditController;
  * - 分岐ノード操作イベントの処理
  *
  * 分岐ツリー・ナビゲーション状態・コントローラ・表示コーディネータ・ライブセッションは
- * レジストリ（KifuSubRegistry::createBranchNavigationParts）が起動時に1回作って渡す。
+ * MainWindowComposer::createBranchNavigation が起動時に1回作って渡す。
  */
 class BranchNavigationWiring : public QObject
 {
@@ -53,8 +52,6 @@ public:
         ShogiGameController* gameController = nullptr;  ///< ゲームコントローラ
         CommentCoordinator* commentCoordinator = nullptr; ///< コメントコーディネータ
         QString* startSfenStr = nullptr;                ///< 開始SFEN文字列
-        std::function<void()> ensureCommentCoordinator; ///< CommentCoordinator遅延初期化コールバック
-        std::function<void()> markGameRecordDirty;      ///< 分岐の編集後に棋譜を未保存にする
     };
 
     explicit BranchNavigationWiring(QObject* parent = nullptr);

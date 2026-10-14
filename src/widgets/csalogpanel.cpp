@@ -2,7 +2,6 @@
 /// @brief CSA通信ログパネルクラスの実装
 
 #include "csalogpanel.h"
-#include "logviewfontmanager.h"
 #include "buttonstyles.h"
 #include "applicationfonts.h"
 
@@ -33,6 +32,7 @@ void relaxToolbarWidth(QWidget* toolbar)
 
 CsaLogPanel::CsaLogPanel(QObject* parent)
     : QObject(parent)
+    , m_fontSize(NetworkSettings::csaLogFontSize, 8, 24)
 {
 }
 
@@ -60,7 +60,7 @@ QWidget* CsaLogPanel::buildUi(QWidget* parent)
     buildCommandBar();
     layout->addWidget(m_commandBar);
     setConnected(m_connected);
-    initFontManager();
+    applyFontSize();
 
     return m_container;
 }
@@ -149,7 +149,7 @@ void CsaLogPanel::buildCommandBar()
 
     {
         QFont cmdFont;
-        cmdFont.setPointSize(m_fontSize);
+        cmdFont.setPointSize(m_fontSize.fontSize());
         m_btnSendToServer->setFont(cmdFont);
         m_commandInput->setFont(cmdFont);
     }
@@ -191,28 +191,28 @@ void CsaLogPanel::copyLog()
 
 // ===================== フォント管理 =====================
 
-void CsaLogPanel::initFontManager()
+void CsaLogPanel::applyFontSize()
 {
-    m_fontSize = NetworkSettings::csaLogFontSize();
-    m_fontManager = std::make_unique<LogViewFontManager>(m_fontSize, m_logView);
-    m_fontManager->setPostApplyCallback([this](int size) {
-        QFont font;
-        font.setPointSize(size);
-        if (m_btnSendToServer) m_btnSendToServer->setFont(font);
-        if (m_commandInput) m_commandInput->setFont(font);
-        NetworkSettings::csaLogFontSize.set(size);
-    });
-    m_fontManager->apply();
+    const int size = m_fontSize.fontSize();
+    if (m_logView) {
+        QFont logFont = m_logView->font();
+        logFont.setPointSize(size);
+        m_logView->setFont(logFont);
+    }
+    QFont font;
+    font.setPointSize(size);
+    if (m_btnSendToServer) m_btnSendToServer->setFont(font);
+    if (m_commandInput) m_commandInput->setFont(font);
 }
 
 void CsaLogPanel::onFontIncrease()
 {
-    m_fontManager->increase();
+    if (m_fontSize.increase()) applyFontSize();
 }
 
 void CsaLogPanel::onFontDecrease()
 {
-    m_fontManager->decrease();
+    if (m_fontSize.decrease()) applyFontSize();
 }
 
 // ===================== イベント処理 =====================

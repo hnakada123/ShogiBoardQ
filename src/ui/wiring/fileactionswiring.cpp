@@ -4,7 +4,7 @@
 #include "fileactionswiring.h"
 #include "ui_mainwindow.h"
 #include "gamesessionorchestrator.h"
-#include "mainwindow.h"
+#include "mainwindowactions.h"
 #include "dialoglaunchwiring.h"
 #include "kifufilecontroller.h"
 #include "logcategories.h"
@@ -13,7 +13,7 @@
 void FileActionsWiring::wire()
 {
     auto* ui  = m_d.ui;
-    auto* mw  = m_d.mw;
+    auto* mw  = m_d.actions;
     auto* dlw = m_d.dlw;
     auto* kfc = m_d.kfc;
     auto* gso = m_d.gso;
@@ -30,7 +30,7 @@ void FileActionsWiring::wire()
     }
 
     // ファイル/アプリ
-    QObject::connect(ui->actionQuit,         &QAction::triggered, mw,  &MainWindow::saveSettingsAndClose,              Qt::UniqueConnection);
+    QObject::connect(ui->actionQuit,         &QAction::triggered, mw,  &MainWindowActions::requestQuit,              Qt::UniqueConnection);
     QObject::connect(ui->actionSaveAs,       &QAction::triggered, kfc, &KifuFileController::saveKifuToFile,            Qt::UniqueConnection);
     QObject::connect(ui->actionSave,         &QAction::triggered, kfc, &KifuFileController::overwriteKifuFile,         Qt::UniqueConnection);
     QObject::connect(ui->actionOpenKifuFile, &QAction::triggered, kfc, &KifuFileController::chooseAndLoadKifuFile,     Qt::UniqueConnection);

@@ -30,7 +30,7 @@ private slots:
         ThinkingInfoPresenter presenter;
         presenter.setGameController(&game);
         UsiProtocolHandler protocol;
-        connect(&protocol, &UsiProtocolHandler::infoLineReceived, &presenter, &ThinkingInfoPresenter::onInfoReceived);
+        connect(&protocol, &UsiProtocolHandler::infoReceived, &presenter, &ThinkingInfoPresenter::onInfoReceived);
         connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoPresenter::setBaseSfen);
         // 読み筋履歴のパーサにも実局面を渡す。
         protocol.setBaseSfen(SfenUtils::hirateSfen());
@@ -65,7 +65,7 @@ private slots:
     {
         ThinkingInfoPresenter presenter;
         UsiProtocolHandler protocol;
-        connect(&protocol, &UsiProtocolHandler::infoLineReceived, &presenter, &ThinkingInfoPresenter::onInfoReceived);
+        connect(&protocol, &UsiProtocolHandler::infoReceived, &presenter, &ThinkingInfoPresenter::onInfoReceived);
         connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoPresenter::setBaseSfen);
         protocol.onDataReceived("bestmove 7g7f ponder 3c3d");
         protocol.setBaseSfen(SfenUtils::hirateSfen());

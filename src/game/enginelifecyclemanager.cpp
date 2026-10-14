@@ -259,8 +259,3 @@ void EngineLifecycleManager::sendStopToEngine(Usi* which)
     which->requestImmediateMove();
 }
 
-void EngineLifecycleManager::sendRawTo(Usi* which, const QString& cmd)
-{
-    if (!which) return;
-    which->sendRaw(cmd);
-}

@@ -7,7 +7,6 @@
 #include <QObject>
 #include <QStringList>
 #include <QList>
-#include <functional>
 
 #include "playmode.h"
 
@@ -24,6 +23,8 @@ class GameInfoPaneController;
 class EvaluationChartWidget;
 class AnalysisResultsPresenter;
 class ConsiderationWiring;
+class KifuNavigationController;
+class ShogiView;
 class UiStatePolicyManager;
 class EngineAnalysisTab;
 struct ShogiMove;
@@ -48,33 +49,32 @@ public:
         ShogiGameController* gameController = nullptr; ///< ゲーム制御（非所有）
 
         // --- 検討・詰み探索・棋譜解析で共有（手順は分岐ツリーから取る） ---
-        QString* startSfenStr = nullptr;               ///< 開始局面SFEN文字列（外部所有）
+        QString* startSfenStr = nullptr;               ///< 開始局面SFEN文字列（AppState）
         KifuRecordListModel* kifuRecordModel = nullptr; ///< 棋譜リストモデル（非所有）
-        QString* currentSfenStr = nullptr;             ///< 手順が無いときに使う現在局面SFEN（外部所有）
+        QString* currentSfenStr = nullptr;             ///< 手順が無いときに使う現在局面SFEN（AppState）
         KifuNavigationState* navState = nullptr;       ///< 表示中の手順（分岐ツリー、非所有）
-        ShogiEngineThinkingModel* considerationModel = nullptr;  ///< 検討タブの思考情報モデル（外部所有）
+        ShogiEngineThinkingModel* considerationModel = nullptr;  ///< 検討タブの思考情報モデル（非所有）
 
-        // --- KifuAnalysisContext 固有 ---
+        // --- 棋譜解析 ---
         GameInfoPaneController* gameInfoController = nullptr; ///< 対局情報コントローラ（非所有）
         EvaluationChartWidget* evalChart = nullptr;    ///< 評価値グラフ（非所有）
         AnalysisResultsPresenter* presenter = nullptr; ///< 解析結果プレゼンタ（非所有）
-        std::function<bool()> getBoardFlipped;         ///< 盤面反転状態取得コールバック
+        const ShogiView* shogiView = nullptr;          ///< 盤の反転状態を解析ダイアログに合わせる（非所有）
+        KifuNavigationController* kifuNavController = nullptr; ///< 解析した手へ棋譜欄を移す（非所有）
 
-        // --- 遅延初期化コールバック ---
-        std::function<ConsiderationWiring*()> getConsiderationWiring; ///< ConsiderationWiring取得
-        std::function<UiStatePolicyManager*()> getUiStatePolicyManager; ///< UiStatePolicyManager取得
+        // --- シグナルの接続先 ---
+        ConsiderationWiring* considerationWiring = nullptr;  ///< 検討モードの配線（非所有）
+        UiStatePolicyManager* uiStatePolicy = nullptr;       ///< UI 状態（非所有）
 
-        // --- 解析イベントハンドラ用 ---
-        EvaluationChartWidget* evalChartWidget = nullptr;   ///< 評価値グラフ（非所有）
         EngineAnalysisTab* analysisTab = nullptr;           ///< エンジン解析タブ（非所有）
-        PlayMode* playMode = nullptr;                       ///< プレイモード（外部所有）
-        std::function<void(int, int)> navigateKifuViewToLine;     ///< 棋譜ビューの行遷移コールバック
+        PlayMode* playMode = nullptr;                       ///< プレイモード（AppState）
     };
 
     explicit DialogCoordinatorWiring(QObject* parent = nullptr);
 
     /// DialogCoordinator を必要に応じて生成し、依存関係を更新する
-    void ensure(const Deps& deps);
+    /// DialogCoordinator を作り、シグナルとコンテキストを設定する（1回だけ呼ぶ）
+    void wire(const Deps& deps);
 
     /// DialogCoordinator を返す（未生成時は nullptr）
     DialogCoordinator* coordinator() const { return m_coordinator; }
@@ -99,7 +99,7 @@ private:
     EvaluationChartWidget* m_evalChartWidget = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
     PlayMode* m_playMode = nullptr;
-    std::function<void(int, int)> m_navigateKifuViewToLine;
+    KifuNavigationController* m_kifuNavController = nullptr;
 };
 
 #endif // DIALOGCOORDINATORWIRING_H

@@ -107,12 +107,12 @@ static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEnco
 
 // --- public API ------------------------------------------------------------
 
-bool readAllLinesAuto(const QString& filePath,
-                      QStringList& outLines,
-                      QString* usedEncoding,
-                      QString* warn)
+bool readAllTextAuto(const QString& filePath,
+                     QString& outText,
+                     QString* usedEncoding,
+                     QString* warn)
 {
-    outLines.clear();
+    outText.clear();
 
     QFile f(filePath);
     if (!f.open(QIODevice::ReadOnly)) {
@@ -153,13 +153,32 @@ bool readAllLinesAuto(const QString& filePath,
     }
 
     if (usedEncoding) {
-        qCDebug(lcKifu).noquote() << QStringLiteral("readAllLinesAuto: encoding = %1, bytes = %2")
+        qCDebug(lcKifu).noquote() << QStringLiteral("readAllTextAuto: encoding = %1, bytes = %2")
                                           .arg(*usedEncoding)
                                           .arg(bytes.size());
     }
 
-    splitByNewlines(text, outLines);
+    outText = std::move(text);
     return true;
+}
+
+bool readAllLinesAuto(const QString& filePath,
+                      QStringList& outLines,
+                      QString* usedEncoding,
+                      QString* warn)
+{
+    outLines.clear();
+    QString text;
+    if (!readAllTextAuto(filePath, text, usedEncoding, warn)) return false;
+    outLines = splitLines(text);
+    return true;
+}
+
+QStringList splitLines(const QString& text)
+{
+    QStringList lines;
+    splitByNewlines(text, lines);
+    return lines;
 }
 
 } // namespace KifReader

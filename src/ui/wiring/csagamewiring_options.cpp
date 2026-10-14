@@ -1,13 +1,10 @@
 /// @file csagamewiring_options.cpp
-/// @brief CSA通信対局配線の補助処理（接続ダイアログの詳細設定・棋譜の自動保存・盤の反転・棋譜行の追記）
+/// @brief CSA通信対局配線の補助処理（接続ダイアログの詳細設定・棋譜の自動保存・盤の反転・結果の表示）
 
 #include "csagamewiring.h"
 
 #include "csagamecoordinator.h"
 #include "csagamedialog.h"
-#include "gamerecordupdateservice.h"
-#include "kifudisplay.h"
-#include "kifurecordlistmodel.h"
 #include "logcategories.h"
 #include "playmode.h"
 
@@ -105,15 +102,12 @@ void CsaGameWiring::autoSaveRecord()
     }
 }
 
-void CsaGameWiring::onPlayModeChangedInternal(int mode)
+void CsaGameWiring::setPlayMode(PlayMode mode)
 {
-    if (m_playMode) {
-        *m_playMode = static_cast<PlayMode>(mode);
-    }
-    qCDebug(lcUi) << "onPlayModeChangedInternal: mode=" << mode;
+    if (m_playMode) *m_playMode = mode;
 }
 
-void CsaGameWiring::showGameEndDialogInternal(const QString& title, const QString& message)
+void CsaGameWiring::showGameEndDialog(const QString& title, const QString& message)
 {
     // 対局を続けるときは、結果の表示が次の対局の開始を止めないようにする
     if (m_coordinator && m_coordinator->moreGamesWanted()) {
@@ -124,37 +118,4 @@ void CsaGameWiring::showGameEndDialogInternal(const QString& title, const QStrin
         return;
     }
     QMessageBox::information(m_parentWidget, title, message);
-}
-
-void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const RecordTime& time, const QString& sfen)
-{
-    const QString trimmed = prettyMove.trimmed();
-    if (trimmed.isEmpty()) {
-        return;
-    }
-
-    const int beforeRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1;
-    if (m_recordService) {
-        RecordEntry entry;
-        entry.displayText = trimmed;
-        entry.sfen = sfen;
-        entry.time = time;
-        if (m_gameMoves && !m_gameMoves->isEmpty()) entry.move = m_gameMoves->last();
-        m_recordService->appendRecord(entry);
-    }
-
-    const bool appendedByService = m_kifuRecordModel && m_kifuRecordModel->rowCount() > beforeRows;
-    if (!appendedByService && m_kifuRecordModel) {
-        m_kifuRecordModel->appendItem(new KifuDisplay(buildNumberedKifuLine(trimmed), time.toText()));
-    }
-}
-
-QString CsaGameWiring::buildNumberedKifuLine(const QString& prettyMove) const
-{
-    const int moveRows = m_kifuRecordModel ? qMax(0, m_kifuRecordModel->rowCount() - 1) : 0;
-
-    const int nextMoveNumber = moveRows + 1;
-    const QString moveNumberStr = QString::number(nextMoveNumber);
-    const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
-    return spaces + moveNumberStr + QLatin1Char(' ') + prettyMove;
 }

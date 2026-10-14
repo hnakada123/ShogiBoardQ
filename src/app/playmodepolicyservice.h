@@ -10,7 +10,7 @@
 
 enum class PlayMode;
 class MatchCoordinator;
-class CsaGameCoordinator;
+class CsaGameWiring;
 
 /**
  * @brief プレイモード依存の判定ロジックを集約する純粋ロジッククラス
@@ -26,7 +26,7 @@ public:
         ShogiGameController* gameController = nullptr;
         MatchCoordinator* match = nullptr;
         /// CSA 通信対局の司令塔（呼ばれた時点のもの。通信対局を始めるまでは nullptr）
-        std::function<CsaGameCoordinator*()> csaGameCoordinator;
+        CsaGameWiring* csaGameWiring = nullptr;     ///< 通信対局の司令塔は最初の CSA 対局で作られる
         /// 対局していないとき、盤上の着手を棋譜の変化として受け付けるか
         std::function<bool()> canRecordVariationMove;
     };

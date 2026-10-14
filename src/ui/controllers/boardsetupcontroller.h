@@ -17,6 +17,7 @@ class ShogiView;
 class BoardInteractionController;
 class MatchCoordinator;
 class PositionEditController;
+class EvaluationGraphController;
 struct ShogiMove;
 
 /**
@@ -75,19 +76,15 @@ public:
     // --------------------------------------------------------
     // コールバック設定
     // --------------------------------------------------------
-    using EnsurePositionEditCallback = std::function<void()>;
-    using RedrawEngine1GraphCallback = std::function<void(int ply)>;
-    using RedrawEngine2GraphCallback = std::function<void(int ply)>;
     /// 対局していないときの盤上の着手を棋譜の変化として扱うか
     using IsVariationInputCallback = std::function<bool()>;
     /// 盤上の着手を変化として記録する（合法手で記録できたら true）
     using RecordVariationMoveCallback = std::function<bool(QPoint& from, QPoint& to)>;
 
-    void setEnsurePositionEditCallback(EnsurePositionEditCallback cb);
     void setVariationInputCallbacks(IsVariationInputCallback isVariationInput,
                                     RecordVariationMoveCallback recordVariationMove);
-    void setRedrawEngine1GraphCallback(RedrawEngine1GraphCallback cb);
-    void setRedrawEngine2GraphCallback(RedrawEngine2GraphCallback cb);
+    /// EvE で着手のたびに評価値グラフを描き直す先
+    void setEvaluationGraphController(EvaluationGraphController* controller) { m_evalGraph = controller; }
 
 public slots:
     /**
@@ -126,11 +123,9 @@ private:
     QString m_lastMove;
 
     // コールバック
-    EnsurePositionEditCallback m_ensurePositionEdit;
     IsVariationInputCallback m_isVariationInput;
     RecordVariationMoveCallback m_recordVariationMove;
-    RedrawEngine1GraphCallback m_redrawEngine1Graph;
-    RedrawEngine2GraphCallback m_redrawEngine2Graph;
+    EvaluationGraphController* m_evalGraph = nullptr;
 };
 
 #endif // BOARDSETUPCONTROLLER_H

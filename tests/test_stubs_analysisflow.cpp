@@ -28,7 +28,7 @@
 #include "shogienginethinkingmodel.h"
 #include "engineprocessmanager.h"
 #include "thinkinginfopresenter.h"
-#include "shogiengineinfoparser.h"
+#include "pvnotationformatter.h"
 #include "matchcoordinator.h"
 #include "pvboarddialog.h"
 #include "branchtreemanager.h"
@@ -48,17 +48,15 @@ QString Usi::scoreStr() const { return {}; }
 bool Usi::isResignMove() const { return false; }
 bool Usi::isWinMove() const { return false; }
 int Usi::lastScoreCp() const { return 0; }
-QString Usi::pvKanjiStr() const { return {}; }
-void Usi::setPvKanjiStr(const QString&) {}
 void Usi::initializeAndStartEngineCommunication(QString&, QString&) {}
 void Usi::sendGameOverCommand(GameOverResult) {}
 void Usi::sendQuitCommand() {}
 void Usi::sendGameOverWinAndQuitCommands() {}
 void Usi::sendStopCommand() {}
-void Usi::executeAnalysisCommunication(QString&, int, int) {}
 void Usi::sendAnalysisCommands(const QString&, int, int) {}
-void Usi::setPreviousFileTo(int) {}
-void Usi::setPreviousRankTo(int) {}
+void Usi::sendPositionAndGoInfinite(const QString&) {}
+void Usi::sendSetOptionCommand(const QString&, const QString&) {}
+void Usi::setPreviousMove(BoardSquare) {}
 void Usi::setLastUsiMove(const QString&) {}
 qint64 Usi::lastBestmoveElapsedMs() const { return 0; }
 void Usi::sendGameOverLoseAndQuitCommands() {}
@@ -72,7 +70,7 @@ void Usi::markHardTimeout() {}
 void Usi::clearHardTimeout() {}
 bool Usi::isIgnoring() const { return false; }
 QString Usi::currentEnginePath() const { return {}; }
-void Usi::sendRaw(const QString&) const {}
+void Usi::sendConsoleCommand(const QString&) {}
 bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}
 void Usi::setLogModel(UsiCommLogModel*) {}
@@ -95,11 +93,8 @@ void Usi::onNpsUpdated(const QString&) {}
 void Usi::onHashUsageUpdated(const QString&) {}
 void Usi::onCommLogAppended(const QString&) {}
 void Usi::onClearThinkingInfoRequested() {}
-void Usi::onAnalysisStopTimeout() {}
 void Usi::onConsiderationStopTimeout() {}
-void Usi::onThinkingInfoUpdated(const QString&, const QString&, const QString&,
-                                 const QString&, const QString&, const QString&,
-                                 const QString&, int, int) {}
+void Usi::onThinkingInfoUpdated(const ThinkingInfoRow&) {}
 
 // === KifuAnalysisDialog スタブ ===
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget* parent)
@@ -314,13 +309,13 @@ void ThinkingInfoPresenter::setAnalysisMode(bool) {}
 void ThinkingInfoPresenter::setPreviousMove(int, int) {}
 void ThinkingInfoPresenter::setBaseSfen(const QString&) {}
 QString ThinkingInfoPresenter::baseSfen() const { return {}; }
-void ThinkingInfoPresenter::processInfoLine(const QString&) {}
+void ThinkingInfoPresenter::processInfo(const UsiInfo&) {}
 void ThinkingInfoPresenter::requestClearThinkingInfo() {}
 void ThinkingInfoPresenter::flushInfoBuffer() {}
 void ThinkingInfoPresenter::logSentCommand(const QString&, const QString&) {}
 void ThinkingInfoPresenter::logReceivedData(const QString&, const QString&) {}
 void ThinkingInfoPresenter::logStderrData(const QString&, const QString&) {}
-void ThinkingInfoPresenter::onInfoReceived(const QString&) {}
+void ThinkingInfoPresenter::onInfoReceived(const UsiInfo&) {}
 
 // === PvBoardDialog スタブ ===
 #include "pvboardcontroller.h"
@@ -332,16 +327,9 @@ void PvBoardDialog::setPlayerNames(const QString&, const QString&) {}
 void PvBoardDialog::setLastMove(const QString&) {}
 void PvBoardDialog::setPrevSfenForHighlight(const QString&) {}
 void PvBoardDialog::setFlipMode(bool) {}
-void PvBoardDialog::onGoFirst() {}
-void PvBoardDialog::onGoBack() {}
-void PvBoardDialog::onGoForward() {}
-void PvBoardDialog::onGoLast() {}
-void PvBoardDialog::onEnlargeBoard() {}
-void PvBoardDialog::onReduceBoard() {}
-void PvBoardDialog::onFlipBoard() {}
+void PvBoardDialog::onPlyChanged(int) {}
 void PvBoardDialog::onHighlightsCleared() {}
 void PvBoardDialog::closeEvent(QCloseEvent*) {}
-bool PvBoardDialog::eventFilter(QObject*, QEvent*) { return false; }
 
 // === ShogiViewLayout / ShogiViewInteraction スタブ ===
 #include "shogiviewlayout.h"
@@ -367,7 +355,6 @@ void ShogiView::mouseMoveEvent(QMouseEvent*) {}
 void ShogiView::mouseReleaseEvent(QMouseEvent*) {}
 void ShogiView::resizeEvent(QResizeEvent*) {}
 void ShogiView::wheelEvent(QWheelEvent*) {}
-bool ShogiView::eventFilter(QObject*, QEvent*) { return false; }
 
 // === ElideLabel スタブ ===
 ElideLabel::ElideLabel(QWidget* parent) : QLabel(parent) {}

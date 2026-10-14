@@ -1,6 +1,7 @@
 #include "sfencsapositionconverter.h"
 #include "shoginotation.h"
 #include "sfenutils.h"
+#include "parsecommon.h"
 
 #include <QChar>
 #include <QMap>
@@ -10,11 +11,6 @@
 namespace SfenCsaPositionConverter {
 namespace {
 
-QString defaultSfen()
-{
-    return SfenUtils::hirateSfen();
-}
-
 /// CSA の駒種を SFEN のトークン（成駒は "+P" の形）にする。読めなければ空
 QString sfenTokenFromCode(bool isSente, const QString& piece)
 {
@@ -23,40 +19,16 @@ QString sfenTokenFromCode(bool isSente, const QString& piece)
     return isPromoted(p) ? QStringLiteral("+") + pieceToChar(demote(p)) : QString(pieceToChar(p));
 }
 
-/// 持ち駒の CSA の駒種を SFEN 文字（先手の大文字。成駒は元の駒）にする。読めなければ空
-QChar csaHandPieceToSfenChar(const QString& piece)
+/// 持ち駒の CSA の駒種を先手の駒（成駒は元の駒）にする。読めなければ Piece::None
+Piece csaHandPiece(const QString& piece)
 {
-    const Piece p = demote(ShogiNotation::pieceFromCsaCode(piece));
-    return p == Piece::None ? QChar() : pieceToChar(p);
+    return demote(ShogiNotation::pieceFromCsaCode(piece));
 }
 
 QString csaCodeFromSfenPiece(QChar piece, bool promoted)
 {
     const Piece base = charToPiece(piece.toUpper());
     return ShogiNotation::csaPieceCode(promoted ? promote(base) : base);
-}
-
-QString buildHandsSfen(const QMap<QChar, int>& blackHands, const QMap<QChar, int>& whiteHands)
-{
-    const QChar order[] = {
-        QLatin1Char('R'), QLatin1Char('B'), QLatin1Char('G'), QLatin1Char('S'),
-        QLatin1Char('N'), QLatin1Char('L'), QLatin1Char('P')
-    };
-
-    QString out;
-    for (QChar p : order) {
-        const int count = blackHands.value(p, 0);
-        if (count <= 0) continue;
-        if (count > 1) out += QString::number(count);
-        out += p;
-    }
-    for (QChar p : order) {
-        const int count = whiteHands.value(p, 0);
-        if (count <= 0) continue;
-        if (count > 1) out += QString::number(count);
-        out += p.toLower();
-    }
-    return out.isEmpty() ? QStringLiteral("-") : out;
 }
 
 bool parsePiLine(const QString& line, QStringList* ranks)
@@ -132,12 +104,12 @@ std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString
         if (outError) {
             *outError = QStringLiteral("empty csa lines; using default start position");
         }
-        return defaultSfen();
+        return SfenUtils::hirateSfen();
     }
 
     QStringList rankSfen(9, QStringLiteral("9"));
-    QMap<QChar, int> blackHands;
-    QMap<QChar, int> whiteHands;
+    QMap<Piece, int> blackHands;
+    QMap<Piece, int> whiteHands;
     QString turn = QStringLiteral("b");
     bool hasBoardRows = false;
 
@@ -186,12 +158,12 @@ std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString
 
         if (line.startsWith(QStringLiteral("P+")) || line.startsWith(QStringLiteral("P-"))) {
             const bool isSente = line.at(1) == QLatin1Char('+');
-            QMap<QChar, int>& hands = isSente ? blackHands : whiteHands;
+            QMap<Piece, int>& hands = isSente ? blackHands : whiteHands;
             for (int i = 2; i + 3 < line.size(); i += 4) {
                 if (line.mid(i, 2) != QStringLiteral("00")) continue;
                 const QString piece = line.mid(i + 2, 2);
-                const QChar base = csaHandPieceToSfenChar(piece);
-                if (!base.isNull()) {
+                const Piece base = csaHandPiece(piece);
+                if (base != Piece::None) {
                     hands[base] = hands.value(base, 0) + 1;
                 }
             }
@@ -222,7 +194,7 @@ std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString
     }
 
     const QString board = rankSfen.join(QLatin1Char('/'));
-    const QString hands = buildHandsSfen(blackHands, whiteHands);
+    const QString hands = KifuParseCommon::buildHandsSfen(blackHands, whiteHands);
     return QStringLiteral("%1 %2 %3 1").arg(board, turn, hands);
 }
 

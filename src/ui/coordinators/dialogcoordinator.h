@@ -14,6 +14,7 @@
 
 #include "kifparsetypes.h"
 
+class ShogiView;
 class QWidget;
 class MatchCoordinator;
 class UsiCommLogModel;
@@ -224,7 +225,7 @@ public:
         GameInfoPaneController* gameInfoController = nullptr;
         EvaluationChartWidget* evalChart = nullptr;
         AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
-        std::function<bool()> getBoardFlipped;  // GUI本体の盤面反転状態取得コールバック
+        const ShogiView* shogiView = nullptr;   // GUI本体の盤（反転状態を解析ダイアログの盤に合わせる）
     };
 
     /**

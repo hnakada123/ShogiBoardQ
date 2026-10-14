@@ -6,7 +6,6 @@
 
 #include <QObject>
 #include <QPointer>
-#include <functional>
 #include <utility>
 
 #include "playmode.h"
@@ -34,6 +33,7 @@ class KifuAnalysisListModel;
 class GameInfoPaneController;
 class SfenCollectionDialog;
 class PieceSoundPlayer;
+class KifuFileController;
 
 /**
  * @brief ダイアログ起動関連のUI配線を担当するクラス
@@ -48,40 +48,36 @@ class DialogLaunchWiring : public QObject
     Q_OBJECT
 
 public:
+    /// 依存（すべて非所有。MainWindowComposer が起動時に作って渡す）
     struct Deps {
         QWidget* parentWidget = nullptr;
-        std::function<bool()> confirmDiscardUnsavedKifu;
-        PlayMode* playMode = nullptr;
+        KifuFileController* kifuFileController = nullptr;  ///< 未保存の棋譜の確認
+        PlayMode* playMode = nullptr;                      ///< AppState::playMode
 
-        // 遅延初期化ゲッター (ensure + return)
-        std::function<DialogCoordinator*()> getDialogCoordinator;
-        std::function<ShogiGameController*()> getGameController;
-        std::function<MatchCoordinator*()> getMatch;
-        std::function<ShogiView*()> getShogiView;
-        std::function<JishogiScoreDialogController*()> getJishogiController;
-        std::function<NyugyokuDeclarationHandler*()> getNyugyokuHandler;
-        std::function<CsaGameWiring*()> getCsaGameWiring;
-        std::function<BoardSetupController*()> getBoardSetupController;
-        std::function<GameInfoPaneController*()> getGameInfoController;
-        std::function<AnalysisResultsPresenter*()> getAnalysisPresenter;
-        std::function<EngineAnalysisTab*()> getAnalysisTab;
-        std::function<UsiCommLogModel*()> getLineEditModel1;
-        std::function<ShogiEngineThinkingModel*()> getModelThinking1;
-        std::function<KifuRecordListModel*()> getKifuRecordModel;
-        std::function<KifuNavigationState*()> getNavState;
-        std::function<EvaluationChartWidget*()> getEvalChart;
-        std::function<PieceSoundPlayer*()> getPieceSoundPlayer;
-        std::function<KifuAnalysisListModel*()> getAnalysisModel;
-        std::function<QDockWidget*()> getMenuWindowDock;
-
-        // CSA通信対局の司令塔（最初の CSA 対局を始めるまでは nullptr）
-        std::function<CsaGameCoordinator*()> getCsaGameCoordinator;
+        DialogCoordinator* dialogCoordinator = nullptr;
+        ShogiGameController* gameController = nullptr;
+        MatchCoordinator* match = nullptr;
+        ShogiView* shogiView = nullptr;
+        JishogiScoreDialogController* jishogiController = nullptr;
+        NyugyokuDeclarationHandler* nyugyokuHandler = nullptr;
+        CsaGameWiring* csaGameWiring = nullptr;            ///< 通信対局の司令塔は最初の CSA 対局で作られる
+        BoardSetupController* boardSetupController = nullptr;
+        GameInfoPaneController* gameInfoController = nullptr;
+        AnalysisResultsPresenter* analysisPresenter = nullptr;
+        EngineAnalysisTab* analysisTab = nullptr;
+        UsiCommLogModel* lineEditModel1 = nullptr;
+        ShogiEngineThinkingModel* modelThinking1 = nullptr;
+        KifuRecordListModel* kifuRecordModel = nullptr;
+        KifuNavigationState* navState = nullptr;
+        EvaluationChartWidget* evalChart = nullptr;
+        PieceSoundPlayer* pieceSoundPlayer = nullptr;
+        KifuAnalysisListModel* analysisModel = nullptr;
+        QDockWidget* menuWindowDock = nullptr;
     };
 
-    explicit DialogLaunchWiring(Deps deps, QObject* parent = nullptr);
+    explicit DialogLaunchWiring(const Deps& deps, QObject* parent = nullptr);
     ~DialogLaunchWiring() override = default;
 
-    void updateDeps(Deps deps);
 
     /// 成りダイアログで成り・不成を選ばせる（成るなら true）。ShogiGameController の成りの選び方に使う
     bool choosePromotion();

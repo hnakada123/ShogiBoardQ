@@ -50,27 +50,6 @@ private slots:
         QCOMPARE(KifuFileReader::detectFormat(text), expected);
     }
 
-    void temporaryFilesAreUniqueAndRemoved()
-    {
-        QString path1, path2;
-        {
-            auto first = KifuFileReader::createTempFile(KifuFileReader::KifuFormat::KIF, QStringLiteral("先手：一人目"));
-            auto second = KifuFileReader::createTempFile(KifuFileReader::KifuFormat::KIF, QStringLiteral("先手：二人目"));
-            QVERIFY(first);
-            QVERIFY(second);
-            path1 = first->fileName();
-            path2 = second->fileName();
-            QVERIFY(path1 != path2);
-            QFile file1(path1), file2(path2);
-            QVERIFY(file1.open(QIODevice::ReadOnly));
-            QVERIFY(file2.open(QIODevice::ReadOnly));
-            QCOMPARE(QString::fromUtf8(file1.readAll()), QStringLiteral("先手：一人目"));
-            QCOMPARE(QString::fromUtf8(file2.readAll()), QStringLiteral("先手：二人目"));
-        }
-        QVERIFY(!QFile::exists(path1));
-        QVERIFY(!QFile::exists(path2));
-    }
-
     // 拡張子で決まる形式と、.json・未知の拡張子の内容による判定
     void detectFileFormat_data()
     {

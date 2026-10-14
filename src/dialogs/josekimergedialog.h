@@ -17,17 +17,7 @@
 #include <QCloseEvent>
 
 #include "fontsizehelper.h"
-
-/**
- * @brief 棋譜からの定跡マージ用エントリ
- */
-struct KifuMergeEntry {
-    int ply;              ///< 手数
-    QString sfen;         ///< この手を指す前の局面SFEN
-    QString usiMove;      ///< USI形式の指し手
-    QString japaneseMove; ///< 日本語表記の指し手
-    bool isCurrentMove;   ///< 現在選択中の指し手かどうか
-};
+#include "josekitypes.h"
 
 /**
  * @brief 定跡マージダイアログクラス

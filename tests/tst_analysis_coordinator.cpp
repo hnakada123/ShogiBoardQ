@@ -9,6 +9,7 @@
 #include <QStringList>
 #include <limits>
 
+#include "usiinfoparser.h"
 #include "analysiscoordinator.h"
 #include "analysisresulthandler.h"
 #include "kifuanalysislistmodel.h"
@@ -37,9 +38,9 @@ private slots:
     void stop_returnsToIdle();
 
     // --- エンジン応答処理 ---
-    void onEngineInfoLine_scorecp_emitsProgress();
-    void onEngineInfoLine_scoremate_emitsProgress();
-    void onEngineInfoLine_noScore_noProgress();
+    void onEngineInfo_scorecp_emitsProgress();
+    void onEngineInfo_scoremate_emitsProgress();
+    void onEngineInfo_noScore_emitsProgress();
     void onEngineBestmove_single_emitsFinished();
     void onEngineBestmove_range_advancesToNextPly();
 
@@ -142,7 +143,7 @@ void TestAnalysisCoordinator::stop_returnsToIdle()
 
 // === エンジン応答処理テスト ===
 
-void TestAnalysisCoordinator::onEngineInfoLine_scorecp_emitsProgress()
+void TestAnalysisCoordinator::onEngineInfo_scorecp_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
@@ -157,23 +158,22 @@ void TestAnalysisCoordinator::onEngineInfoLine_scorecp_emitsProgress()
 
     QSignalSpy spy(&coord, &AnalysisCoordinator::analysisProgress);
 
-    const QString infoLine = QStringLiteral("info depth 10 seldepth 15 score cp 123 pv 7g7f 3c3d");
-    coord.onEngineInfoLine(infoLine);
+    coord.onEngineInfo(*UsiInfoParser::parse(QStringLiteral("info depth 10 seldepth 15 score cp 123 pv 7g7f 3c3d")));
 
     QCOMPARE(spy.count(), 1);
 
-    // 引数の検証: ply, depth, seldepth, scoreCp, mate, pv, rawInfoLine
+    // 引数の検証: ply, info
     const auto args = spy.at(0);
-    QCOMPARE(args.at(0).toInt(), 1);     // ply
-    QCOMPARE(args.at(1).toInt(), 10);    // depth
-    QCOMPARE(args.at(2).toInt(), 15);    // seldepth
-    QCOMPARE(args.at(3).toInt(), 123);   // scoreCp
-    QCOMPARE(args.at(4).toInt(), 0);     // mate（cpの場合は0）
-    QVERIFY(args.at(5).toString().contains(QStringLiteral("7g7f")));  // pv
-    QCOMPARE(args.at(6).toString(), infoLine);  // rawInfoLine
+    QCOMPARE(args.at(0).toInt(), 1);
+    const auto info = qvariant_cast<UsiInfo>(args.at(1));
+    QCOMPARE(info.depth, 10);
+    QCOMPARE(info.seldepth, 15);
+    QVERIFY(info.score.isCp());
+    QCOMPARE(info.score.value, 123);
+    QCOMPARE(info.pv, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
 }
 
-void TestAnalysisCoordinator::onEngineInfoLine_scoremate_emitsProgress()
+void TestAnalysisCoordinator::onEngineInfo_scoremate_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
@@ -188,19 +188,19 @@ void TestAnalysisCoordinator::onEngineInfoLine_scoremate_emitsProgress()
 
     QSignalSpy spy(&coord, &AnalysisCoordinator::analysisProgress);
 
-    const QString infoLine = QStringLiteral("info depth 20 score mate 5 pv 7g7f 3c3d 8h2b+");
-    coord.onEngineInfoLine(infoLine);
+    coord.onEngineInfo(*UsiInfoParser::parse(QStringLiteral("info depth 20 score mate 5 pv 7g7f 3c3d 8h2b+")));
 
     QCOMPARE(spy.count(), 1);
 
     const auto args = spy.at(0);
-    QCOMPARE(args.at(0).toInt(), 0);     // ply
-    QCOMPARE(args.at(1).toInt(), 20);    // depth
-    QCOMPARE(args.at(3).toInt(), std::numeric_limits<int>::min());  // scoreCp（mate時はINT_MIN）
-    QCOMPARE(args.at(4).toInt(), 5);     // mate
+    QCOMPARE(args.at(0).toInt(), 0);
+    const auto info = qvariant_cast<UsiInfo>(args.at(1));
+    QCOMPARE(info.depth, 20);
+    QVERIFY(info.score.isMate());
+    QCOMPARE(info.score.value, 5);
 }
 
-void TestAnalysisCoordinator::onEngineInfoLine_noScore_noProgress()
+void TestAnalysisCoordinator::onEngineInfo_noScore_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
@@ -211,21 +211,23 @@ void TestAnalysisCoordinator::onEngineInfoLine_noScore_noProgress()
     opt.movetimeMs = 5000;
     coord.setOptions(opt);
 
-    coord.startAnalyzeSingle(0);
-
     QSignalSpy spy(&coord, &AnalysisCoordinator::analysisProgress);
 
-    // パース不能な info 行でも analysisProgress は発火される（raw表示用）
-    const QString infoLine = QStringLiteral("info string hello world");
-    coord.onEngineInfoLine(infoLine);
+    // 解析開始前の info は捨てる
+    coord.onEngineInfo(*UsiInfoParser::parse(QStringLiteral("info depth 3 pv 7g7f")));
+    QCOMPARE(spy.count(), 0);
+
+    coord.startAnalyzeSingle(0);
+
+    // 評価値も読み筋もない info（info string）も進捗として渡す（受け手が使う項目を選ぶ）
+    coord.onEngineInfo(*UsiInfoParser::parse(QStringLiteral("info string hello world")));
 
     QCOMPARE(spy.count(), 1);
-    // パース不能時は depth=-1, scoreCp=INT_MIN, mate=0, pv=empty
-    const auto args = spy.at(0);
-    QCOMPARE(args.at(1).toInt(), -1);    // depth
-    QCOMPARE(args.at(3).toInt(), std::numeric_limits<int>::min());  // scoreCp
-    QCOMPARE(args.at(4).toInt(), 0);     // mate
-    QVERIFY(args.at(5).toString().isEmpty());  // pv
+    const auto info = qvariant_cast<UsiInfo>(spy.at(0).at(1));
+    QCOMPARE(info.depth, -1);
+    QVERIFY(!info.hasScore());
+    QVERIFY(!info.hasPv());
+    QCOMPARE(info.string, QStringLiteral("hello world"));
 }
 
 void TestAnalysisCoordinator::onEngineBestmove_single_emitsFinished()
@@ -294,16 +296,17 @@ void TestAnalysisCoordinator::sendGoCommand_emitsRequestSendUsiCommand()
 
     coord.startAnalyzeSingle(1);
 
-    QSignalSpy spy(&coord, &AnalysisCoordinator::requestSendUsiCommand);
+    QSignalSpy spy(&coord, &AnalysisCoordinator::requestSearch);
 
-    // sendGoCommand で position + go infinite が送信される
+    // sendGoCommand で position + go infinite の送信を要求する
     coord.sendGoCommand();
 
-    QVERIFY(spy.count() >= 2);
-    // 最初のコマンドは "position startpos moves 7g7f"
+    QCOMPARE(spy.count(), 1);
     QVERIFY(spy.at(0).at(0).toString().startsWith(QStringLiteral("position")));
-    // 2番目は "go infinite"
-    QCOMPARE(spy.at(1).at(0).toString(), QStringLiteral("go infinite"));
+
+    // 要求は1回だけ（保留中の position は使い切る）
+    coord.sendGoCommand();
+    QCOMPARE(spy.count(), 1);
 }
 
 void TestAnalysisCoordinator::setOptions_multiPV_sendSetoption()
@@ -318,20 +321,14 @@ void TestAnalysisCoordinator::setOptions_multiPV_sendSetoption()
     opt.multiPV = 3;
     coord.setOptions(opt);
 
-    QSignalSpy spy(&coord, &AnalysisCoordinator::requestSendUsiCommand);
+    QSignalSpy spy(&coord, &AnalysisCoordinator::requestSetOption);
 
     coord.startAnalyzeSingle(0);
 
-    // multiPV>1 の場合、setoption コマンドが送信される
-    bool found = false;
-    for (int i = 0; i < spy.count(); ++i) {
-        const QString cmd = spy.at(i).at(0).toString();
-        if (cmd.contains(QStringLiteral("setoption name MultiPV value 3"))) {
-            found = true;
-            break;
-        }
-    }
-    QVERIFY(found);
+    // multiPV>1 の場合、MultiPV の setoption を要求する
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("MultiPV"));
+    QCOMPARE(spy.at(0).at(1).toString(), QStringLiteral("3"));
 }
 
 // === AnalysisResultHandler テスト ===

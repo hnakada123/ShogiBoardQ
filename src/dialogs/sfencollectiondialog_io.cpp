@@ -2,6 +2,8 @@
 /// @brief SFEN局面集ビューアのファイル読み込み・行の解析・最近使ったファイル
 
 #include "sfencollectiondialog.h"
+#include "boardviewerwidget.h"
+#include <QPushButton>
 #include "gamesettings.h"
 #include "sfenvalidationservice.h"
 
@@ -84,17 +86,14 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
     file.close();
 
     // 局面が1つもないファイルでは、表示中の局面集をそのまま残す
-    const QList<QString> previousList = m_sfenList;
-    const int skippedLines = parseSfenLines(text);
-    if (m_sfenList.isEmpty()) {
-        m_sfenList = previousList;
+    int skippedLines = 0;
+    const QStringList sfens = parseSfenLines(text, &skippedLines);
+    if (sfens.isEmpty()) {
         QMessageBox::warning(this, tr("エラー"),
                              tr("%1 には局面がありません。\n"
                                 "1行に1局面のSFENを書いたファイルを選んでください。").arg(fi.fileName()));
         return false;
     }
-
-    m_currentIndex = 0;
 
     // ファイル名ラベルを更新（局面として読めなかった行があれば数を添える）
     m_fileLabel->setText(skippedLines > 0
@@ -109,15 +108,15 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
     addToRecentFiles(filePath);
     saveRecentFiles();
 
-    updateBoardDisplay();
-    updateButtonStates();
+    m_viewer->setSfenList(sfens);
+    m_btnSelect->setEnabled(true);
     return true;
 }
 
-int SfenCollectionDialog::parseSfenLines(const QString& text)
+QStringList SfenCollectionDialog::parseSfenLines(const QString& text, int* skippedLines)
 {
-    m_sfenList.clear();
-    int skippedLines = 0;
+    QStringList sfens;
+    int skipped = 0;
 
     const QStringList lines = text.split('\n', Qt::SkipEmptyParts);
     for (const QString& line : std::as_const(lines)) {
@@ -133,12 +132,13 @@ int SfenCollectionDialog::parseSfenLines(const QString& text)
 
         const QString sfen = sfenFromLine(trimmed);
         if (sfen.isEmpty()) {
-            ++skippedLines;
+            ++skipped;
         } else {
-            m_sfenList.append(sfen);
+            sfens.append(sfen);
         }
     }
-    return skippedLines;
+    if (skippedLines) *skippedLines = skipped;
+    return sfens;
 }
 
 void SfenCollectionDialog::addToRecentFiles(const QString& filePath)

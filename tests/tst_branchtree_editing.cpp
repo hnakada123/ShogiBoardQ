@@ -323,7 +323,7 @@ private slots:
         BranchTreeManager manager;
         manager.setView(&view);
         manager.setCompactLayout(true);
-        manager.setBranchTreeRows(KifuDisplayPresenter::buildBranchTreeRows(&f.tree));
+        manager.setBranchTree(&f.tree);
 
         // ライン: 0=本譜, 1=A(5手目から), 2=B(2手目から), 3=C(Bの3手目から)
         QCOMPARE(manager.rowCount(), 4);
@@ -345,7 +345,7 @@ private slots:
         BranchTreeManager manager;
         manager.setView(&view);
         manager.setCompactLayout(true);
-        manager.setBranchTreeRows(KifuDisplayPresenter::buildBranchTreeRows(&f.tree));
+        manager.setBranchTree(&f.tree);
 
         QVERIFY(manager.isRowCollapsible(2));
         QVERIFY(!manager.isRowCollapsible(3));
@@ -356,7 +356,7 @@ private slots:
         QCOMPARE(manager.laneForRow(3), -1);     // 先の変化も隠れる
 
         // 折りたたみはツリーを作り直しても保たれる
-        manager.setBranchTreeRows(KifuDisplayPresenter::buildBranchTreeRows(&f.tree));
+        manager.setBranchTree(&f.tree);
         QVERIFY(manager.isRowCollapsed(2));
 
         // 隠れた手を表示すると展開される
@@ -373,7 +373,7 @@ private slots:
         BranchTreeManager manager;
         manager.setView(&view);
         manager.setCompactLayout(true);
-        manager.setBranchTreeRows(KifuDisplayPresenter::buildBranchTreeRows(&f.tree));
+        manager.setBranchTree(&f.tree);
         QSignalSpy activated(&manager, &BranchTreeManager::branchNodeActivated);
 
         manager.highlightBranchTreeAt(0, 5);
@@ -404,6 +404,47 @@ private slots:
         manager.setBranchTreeClickEnabled(false);
         QTest::keyClick(&view, Qt::Key_Right);
         QCOMPARE(activated.count(), count);
+    }
+
+    // 図形はツリーのノード ID を持ち、分岐前の手は親の行の図形を強調する。
+    // 手順の末尾に1手増えただけなら作り直さずに描き足す
+    void manager_readsTreeDirectly()
+    {
+        Fixture f;
+        QGraphicsView view;
+        BranchTreeManager manager;
+        manager.setView(&view);
+        manager.setBranchTree(&f.tree);
+
+        QCOMPARE(manager.nodeIdFor(0, 0), f.tree.root()->nodeId());
+        QCOMPARE(manager.nodeIdFor(0, 3), f.main.at(3)->nodeId());
+        QCOMPARE(manager.nodeIdFor(1, 5), f.a5->nodeId());
+        QCOMPARE(manager.nodeIdFor(1, 3), -1);   // 分岐前の手は本譜の行に描く
+        QCOMPARE(manager.rowDispCount(1), 7);
+
+        manager.highlightBranchTreeAt(1, 3);
+        QCOMPARE(manager.lastHighlightedRow(), 0);
+        QCOMPARE(manager.lastHighlightedPly(), 3);
+        manager.highlightBranchTreeAt(1, 6);
+        QCOMPARE(manager.lastHighlightedRow(), 1);
+
+        const int rebuilds = manager.rebuildCount();
+        KifuBranchNode* a7 = f.add(f.a6, QStringLiteral("a7"));
+        manager.setBranchTree(&f.tree);
+        QCOMPARE(manager.rebuildCount(), rebuilds);
+        QCOMPARE(manager.nodeIdFor(1, 7), a7->nodeId());
+        QCOMPARE(manager.rowDispCount(1), 8);
+
+        // 新しい変化ができたときは作り直す
+        f.add(f.a5, QStringLiteral("x6"));
+        manager.setBranchTree(&f.tree);
+        QCOMPARE(manager.rebuildCount(), rebuilds + 1);
+        QCOMPARE(manager.rowCount(), f.tree.lineCount());
+
+        // ツリーを外すと開始局面だけになる
+        manager.setBranchTree(nullptr);
+        QCOMPARE(manager.rowCount(), 0);
+        QCOMPARE(manager.nodeIdFor(0, 1), -1);
     }
 
     void manager_zoomIsClamped()

@@ -15,10 +15,10 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
     dispatcher.registerMethod(QStringLiteral("position.get"), [context](const QJsonObject&) {
         QJsonObject result;
         const QStringList record = currentLinePositions(context);
-        const int ply = context.currentPly ? context.currentPly() : 0;
+        const int ply = context.currentPly();
         result[QStringLiteral("sfen")] = currentSfen(context);
         QString start = !record.isEmpty() ? record.first()
-                                                     : (context.startSfenStr ? *context.startSfenStr : QString());
+                                                     : (context.state ? context.state->startSfenStr : QString());
         result[QStringLiteral("start_sfen")] = SfenUtils::normalizeStart(start);
         result[QStringLiteral("ply")] = ply;
         // 表示中の手数までの指し手（分岐ツリーの各手から取る）
@@ -35,7 +35,7 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
             throw AutomationError(AutomationErrorCode::InvalidParams,
                                   QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
         }
-        KifuFileController* controller = context.kifuFileController ? context.kifuFileController() : nullptr;
+        KifuFileController* controller = context.kifuFileController;
         if (!controller) {
             throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu controller is unavailable"));
         }

@@ -220,31 +220,12 @@ bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
 
     qCDebug(lcGame).noquote() << "startGameAfterDialog: AFTER playerNamesResolved, BEFORE start()";
 
-    // --- 9) 対局開始（時計設定のみ、初手goはまだ呼ばない） ---
+    // --- 9) 対局開始。現在局面から始めるときは開始行を選び、時計を動かして初手を指す ---
     StartParams params;
     params.opt  = opt;
     params.tc   = tc;
-    params.autoStartEngineMove = false;
-
+    params.autoStartEngineMove = true;
+    params.selectKifuRow = startingRow;
     start(params);
-    qCDebug(lcGame).noquote() << "startGameAfterDialog: AFTER start()";
-
-    // --- 9.5) 現在局面から開始の場合、開始行を選択するよう通知 ---
-    if (startingRow >= 0) {
-        qCDebug(lcGame).noquote() << "emit requestSelectKifuRow(" << startingRow << ")";
-        emit requestSelectKifuRow(startingRow);
-    }
-
-    // --- 10) 時計の関連付けと開始、その後エンジン初手 ---
-    if (m_match) {
-        if (c.clock && m_match->clock() != c.clock) {
-            m_match->setClock(c.clock);
-        }
-        if (ShogiClock* clk = m_match->clock()) {
-            clk->startClock();
-        }
-        // 初手がエンジン手番なら go を起動（1回だけ）
-        m_match->startInitialEngineMoveIfNeeded();
-    }
     return true;
 }

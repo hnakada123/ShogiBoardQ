@@ -6,16 +6,8 @@
 #include "logcategories.h"
 #include "branchtreemanager.h"
 
-#include <QRegularExpression>
-#include <QGlobalStatic>
 #include <limits>
-
-// Q_GLOBAL_STATICを使用してexit-time-destructorを回避
-Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reDepth, (QStringLiteral(R"((?:^|\s)depth\s+(\d+))")))
-Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reSel, (QStringLiteral(R"((?:^|\s)seldepth\s+(\d+))")))
-Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reScoreCp, (QStringLiteral(R"((?:^|\s)score\s+cp\s+(-?\d+))")))
-Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reScoreMate, (QStringLiteral(R"((?:^|\s)score\s+mate\s+(-?\d+))")))
-Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, rePv, (QStringLiteral(R"((?:^|\s)pv\s+(.+)$)")))
+#include <utility>
 
 AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
@@ -62,7 +54,7 @@ void AnalysisCoordinator::startAnalyzeRange()
 
     // MultiPV は setoption で設定（対応エンジンのみ有効）
     if (m_opt.multiPV > 1) {
-        send(QStringLiteral("setoption name MultiPV value %1").arg(m_opt.multiPV));
+        emit requestSetOption(QStringLiteral("MultiPV"), QString::number(m_opt.multiPV));
     }
     // 念のため isready → readyok を待ちたければ、呼び出し側で同期を取ること
     // ここでは簡易化して直ちに開始
@@ -84,7 +76,7 @@ void AnalysisCoordinator::startAnalyzeSingle(int ply)
     m_opt.endPly   = m_opt.startPly;
 
     if (m_opt.multiPV > 1) {
-        send(QStringLiteral("setoption name MultiPV value %1").arg(m_opt.multiPV));
+        emit requestSetOption(QStringLiteral("MultiPV"), QString::number(m_opt.multiPV));
     }
     startSingle(m_opt.startPly);
 }
@@ -96,7 +88,7 @@ void AnalysisCoordinator::stop()
     m_stopTimer.stop();
 
     // USI の明示停止
-    send(QStringLiteral("stop"));
+    emit requestStop();
 
     m_running = false;
     m_mode = Idle;
@@ -177,12 +169,9 @@ void AnalysisCoordinator::sendGoCommand()
 
     qCDebug(lcAnalysis).noquote() << "sendGoCommand: sending position and go infinite commands";
 
-    // positionコマンドを送信
-    send(m_pendingPosCmd);
-    m_pendingPosCmd.clear();
-
-    // go infiniteコマンドを送信（USIプロトコル準拠）
-    send(QStringLiteral("go infinite"));
+    // position と go infinite の送信を要求する
+    const QString positionCommand = std::exchange(m_pendingPosCmd, QString());
+    emit requestSearch(positionCommand);
 
     // 設定された思考時間後にstopを送信するタイマーを開始
     m_stopTimer.start(m_opt.movetimeMs);
@@ -194,28 +183,15 @@ void AnalysisCoordinator::sendGoCommand()
 }
 
 
-void AnalysisCoordinator::onEngineInfoLine(const QString& line)
+void AnalysisCoordinator::onEngineInfo(const UsiInfo& info)
 {
-    qCDebug(lcAnalysis).noquote() << "onEngineInfoLine: m_running=" << m_running << "m_currentPly=" << m_currentPly;
+    qCDebug(lcAnalysis).noquote() << "onEngineInfo: m_running=" << m_running << "m_currentPly=" << m_currentPly;
     if (!m_running) return;
     if (m_currentPly < 0) return;
 
-    // "info ..." 以外は無視
-    if (!line.startsWith(QStringLiteral("info"))) return;
-
-    ParsedInfo p;
-    if (!parseInfoUSI(line, &p)) {
-        // パース不能でも raw を進捗として流しておくと UI 側で全文表示に使える
-        qCDebug(lcAnalysis).noquote() << "onEngineInfoLine: parse failed, emitting raw";
-        emit analysisProgress(m_currentPly, -1, -1,
-                              std::numeric_limits<int>::min(), 0,
-                              QString(), line);
-        return;
-    }
-
-    qCDebug(lcAnalysis).noquote() << "emitting analysisProgress: ply=" << m_currentPly << "scoreCp=" << p.scoreCp << "pv=" << p.pv.left(30);
-    emit analysisProgress(m_currentPly, p.depth, p.seldepth,
-                          p.scoreCp, p.mate, p.pv, line);
+    qCDebug(lcAnalysis).noquote() << "emitting analysisProgress: ply=" << m_currentPly
+                                  << "depth=" << info.depth << "pv=" << info.pv.size();
+    emit analysisProgress(m_currentPly, info);
 }
 
 void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
@@ -224,65 +200,12 @@ void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
 
     // 定跡の場合（info行なしでbestmoveが来た場合）でも結果を通知
     // m_currentPly は sendAnalyzeForPly_ で設定済み
-    // 通常の解析では onEngineInfoLine でanalysisProgressが発行済みだが、
+    // 通常の解析では onEngineInfo でanalysisProgressが発行済みだが、
     // 定跡の場合は発行されていないので、空の結果を通知
     // （AnalysisFlowController側で定跡かどうかを判断できるようにする）
 
     // "bestmove ..." を受けたら次へ
     nextPlyOrFinish();
-}
-
-bool AnalysisCoordinator::parseInfoUSI(const QString& line, ParsedInfo* out)
-{
-    // ざっくりとした USI info 行のパース：
-    // 例）info depth 20 seldepth 34 score cp 23 pv 7g7f 3c3d ...
-    //     info depth 25 score mate 3 pv ...
-    // 必要十分ではないが実用的な範囲で抽出
-    if (!out) return false;
-
-    int depth = -1, seldepth = -1, scoreCp = std::numeric_limits<int>::min(), mate = 0;
-    QString pv;
-
-    // depth
-    {
-        auto m = reDepth->match(line);
-        if (m.hasMatch()) depth = m.captured(1).toInt();
-    }
-    // seldepth
-    {
-        auto m = reSel->match(line);
-        if (m.hasMatch()) seldepth = m.captured(1).toInt();
-    }
-    // score
-    {
-        auto mCp   = reScoreCp->match(line);
-        auto mMate = reScoreMate->match(line);
-        if (mCp.hasMatch()) {
-            scoreCp = mCp.captured(1).toInt();
-        } else if (mMate.hasMatch()) {
-            mate = mMate.captured(1).toInt(); // 詰みまでの手数（正負で先後）
-        }
-    }
-    // pv
-    {
-        auto m = rePv->match(line);
-        if (m.hasMatch()) pv = m.captured(1).trimmed();
-    }
-
-    if (depth < 0 && seldepth < 0 && scoreCp == std::numeric_limits<int>::min() && mate == 0 && pv.isEmpty()) {
-        return false;
-    }
-    out->depth    = depth;
-    out->seldepth = seldepth;
-    out->scoreCp  = scoreCp;
-    out->mate     = mate;
-    out->pv       = pv;
-    return true;
-}
-
-void AnalysisCoordinator::send(const QString& line)
-{
-    emit requestSendUsiCommand(line);
 }
 
 void AnalysisCoordinator::onStopTimerTimeout()
@@ -293,5 +216,5 @@ void AnalysisCoordinator::onStopTimerTimeout()
                                   << m_opt.movetimeMs << "ms";
 
     // stopコマンドを送信（bestmoveが返ってきたらonEngineBestmoveReceived_で処理される）
-    send(QStringLiteral("stop"));
+    emit requestStop();
 }

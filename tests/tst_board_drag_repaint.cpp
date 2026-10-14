@@ -18,6 +18,7 @@
 #include "pieceimageprovider.h"
 #include "playmode.h"
 #include "pvboarddialog.h"
+#include "boardviewerwidget.h"
 #include "sfencollectiondialog.h"
 #include "sfenvalidationservice.h"
 #include "shogiboard.h"
@@ -588,17 +589,18 @@ private slots:
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         auto* view = dialog.findChild<ShogiView*>();
-        QVERIFY(view != nullptr);
+        auto* viewer = dialog.findChild<BoardViewerWidget*>();
+        QVERIFY(view != nullptr && viewer != nullptr);
         settle();
 
         int ply = 0;
         const QList<QPair<const char*, int>> steps = {
-            {"onGoForward", 1}, {"onGoForward", 2}, {"onGoForward", 3}, {"onGoForward", 4},
-            {"onGoBack", 3}, {"onGoFirst", 0}, {"onGoLast", 4},
+            {"goForward", 1}, {"goForward", 2}, {"goForward", 3}, {"goForward", 4},
+            {"goBack", 3}, {"goFirst", 0}, {"goLast", 4},
         };
         for (const auto& step : steps) {
             const char* slot = step.first;  // ラムダで捕捉するため（構造化束縛の捕捉は C++20）
-            verifyPartialStep(*view, [&] { QVERIFY(QMetaObject::invokeMethod(&dialog, slot)); },
+            verifyPartialStep(*view, [&] { QVERIFY(QMetaObject::invokeMethod(viewer, slot)); },
                               QStringLiteral("%1 from ply %2").arg(QLatin1String(slot)).arg(ply));
             if (QTest::currentTestFailed()) return;
             ply = step.second;
@@ -625,8 +627,9 @@ private slots:
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         auto* view = dialog.findChild<ShogiView*>();
+        auto* viewer = dialog.findChild<BoardViewerWidget*>();
         auto* menu = dialog.findChild<QMenu*>(QStringLiteral("sfenCollectionRecentMenu"));
-        QVERIFY(view != nullptr && menu != nullptr && !menu->actions().isEmpty());
+        QVERIFY(view != nullptr && viewer != nullptr && menu != nullptr && !menu->actions().isEmpty());
         menu->actions().constFirst()->trigger();
         settle();
         QCOMPARE(stalePixels(*view), 0);
@@ -634,12 +637,12 @@ private slots:
 
         int index = 0;
         const QList<QPair<const char*, int>> steps = {
-            {"onGoForward", 1}, {"onGoForward", 2}, {"onGoForward", 3}, {"onGoForward", 4},
-            {"onGoBack", 3}, {"onGoFirst", 0}, {"onGoLast", 4},
+            {"goForward", 1}, {"goForward", 2}, {"goForward", 3}, {"goForward", 4},
+            {"goBack", 3}, {"goFirst", 0}, {"goLast", 4},
         };
         for (const auto& step : steps) {
             const char* slot = step.first;  // ラムダで捕捉するため（構造化束縛の捕捉は C++20）
-            verifyPartialStep(*view, [&] { QVERIFY(QMetaObject::invokeMethod(&dialog, slot)); },
+            verifyPartialStep(*view, [&] { QVERIFY(QMetaObject::invokeMethod(viewer, slot)); },
                               QStringLiteral("%1 from %2").arg(QLatin1String(slot)).arg(index));
             if (QTest::currentTestFailed()) return;
             index = step.second;

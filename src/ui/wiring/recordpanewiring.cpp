@@ -5,7 +5,6 @@
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
 #include "kifudisplay.h"
-#include "mainwindow.h"
 #include "commentcoordinator.h"
 
 #include <QModelIndex>
@@ -22,12 +21,7 @@ void RecordPaneWiring::buildUiAndWire()
     if (!m_pane) {
         m_pane = new RecordPane(m_d.parent);
 
-        // MainWindow へ「メイン行変更」を通知（こちらは MainWindow にスロットあり）
-        if (auto* mw = qobject_cast<MainWindow*>(m_d.ctx)) {
-            QObject::connect(m_pane, &RecordPane::mainRowChanged,
-                             mw,     &MainWindow::onRecordPaneMainRowChanged,
-                             Qt::UniqueConnection);
-        }
+        // 「メイン行変更」は MainWindowComposer が MainWindowActions へつなぐ
         if (m_d.commentCoordinator) {
             QObject::connect(m_pane, &RecordPane::bookmarkEditRequested,
                              m_d.commentCoordinator, &CommentCoordinator::onBookmarkEditRequested,

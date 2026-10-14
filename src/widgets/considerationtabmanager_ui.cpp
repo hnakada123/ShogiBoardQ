@@ -4,7 +4,6 @@
 #include "considerationtabmanager.h"
 #include "tablemodelutils.h"
 #include "kifumovedelegate.h"
-#include "logviewfontmanager.h"
 #include "buttonstyles.h"
 #include "engineinfowidget.h"
 #include "flowlayout.h"
@@ -35,15 +34,12 @@
 
 void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
 {
-    // SettingsServiceからフォントサイズを読み込み
-    m_considerationFontSize = AnalysisSettings::considerationFontSize();
-
     buildToolbarControls(parentWidget);
     layoutToolbar();
     buildConsiderationView(parentWidget);
 
-    // フォントマネージャーの初期化・適用
-    initFontManager();
+    // 保存されている文字の大きさを適用
+    applyFontSize();
 
     // parentWidget のレイアウトに追加
     auto* layout = qobject_cast<QVBoxLayout*>(parentWidget->layout());
@@ -197,7 +193,7 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
     m_considerationInfo = new EngineInfoWidget(parentWidget, false);
     m_considerationInfo->setObjectName(QStringLiteral("considerationInfo"));
     m_considerationInfo->setWidgetIndex(2);
-    m_considerationInfo->setFontSize(m_considerationFontSize);
+    m_considerationInfo->setFontSize(m_considerationFontSize.fontSize());
     m_considerationInfo->setColumnWidths(AnalysisSettings::engineInfoColumnWidths(2));
     connect(m_considerationInfo, &EngineInfoWidget::columnWidthChanged,
             this, &ConsiderationTabManager::saveInfoColumnWidths);
@@ -319,78 +315,72 @@ void ConsiderationTabManager::onConsiderationViewClicked(const QModelIndex& inde
 
 void ConsiderationTabManager::onConsiderationFontIncrease()
 {
-    m_considerationFontManager->increase();
+    if (m_considerationFontSize.increase()) applyFontSize();
 }
 
 void ConsiderationTabManager::onConsiderationFontDecrease()
 {
-    m_considerationFontManager->decrease();
+    if (m_considerationFontSize.decrease()) applyFontSize();
 }
 
-void ConsiderationTabManager::initFontManager()
+void ConsiderationTabManager::applyFontSize()
 {
-    m_considerationFontManager = std::make_unique<LogViewFontManager>(m_considerationFontSize, nullptr);
-    m_considerationFontManager->setPostApplyCallback([this](int size) {
-        m_considerationFontSize = size;
-        QFont font;
-        font.setPointSize(size);
+    const int size = m_considerationFontSize.fontSize();
+    QFont font;
+    font.setPointSize(size);
 
-        // ツールバー要素のフォントサイズ更新
-        // A+/A- ボタンはフォントサイズに合わせてボタンサイズも更新
-        {
-            const QFontMetrics fm(font);
-            const int btnW = qMax(36, fm.horizontalAdvance(QStringLiteral("A+")) + 8);
-            const int btnH = qMax(24, fm.height() + 4);
-            if (m_btnConsiderationFontDecrease) {
-                m_btnConsiderationFontDecrease->setFont(font);
-                m_btnConsiderationFontDecrease->setFixedSize(btnW, btnH);
-            }
-            if (m_btnConsiderationFontIncrease) {
-                m_btnConsiderationFontIncrease->setFont(font);
-                m_btnConsiderationFontIncrease->setFixedSize(btnW, btnH);
-            }
+    // ツールバー要素のフォントサイズ更新
+    // A+/A- ボタンはフォントサイズに合わせてボタンサイズも更新
+    {
+        const QFontMetrics fm(font);
+        const int btnW = qMax(36, fm.horizontalAdvance(QStringLiteral("A+")) + 8);
+        const int btnH = qMax(24, fm.height() + 4);
+        if (m_btnConsiderationFontDecrease) {
+            m_btnConsiderationFontDecrease->setFont(font);
+            m_btnConsiderationFontDecrease->setFixedSize(btnW, btnH);
         }
-        if (m_engineComboBox) m_engineComboBox->setFont(font);
-        if (m_btnEngineSettings) m_btnEngineSettings->setFont(font);
-        if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setFont(font);
-        if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setFont(font);
-        if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setFont(font);
-        if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setFont(font);
-        if (m_elapsedTimeLabel) {
-            m_elapsedTimeLabel->setFont(font);
-            m_elapsedTimeLabel->setMinimumWidth(QFontMetrics(font).horizontalAdvance(tr("経過: 000:00")));
+        if (m_btnConsiderationFontIncrease) {
+            m_btnConsiderationFontIncrease->setFont(font);
+            m_btnConsiderationFontIncrease->setFixedSize(btnW, btnH);
         }
-        if (m_multiPVLabel) m_multiPVLabel->setFont(font);
-        if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
-        if (m_showArrowsCheckBox) m_showArrowsCheckBox->setFont(font);
-        if (m_btnStopConsideration) {
-            m_btnStopConsideration->setFont(font);
-            // 開始・中止で幅が変わるとツールバーの折り返しが変わり、下の表が上下に動くため、
-            // 長い方の表示に合わせる
-            const QString currentText = m_btnStopConsideration->text();
-            int width = 0;
-            for (const QString& text : {tr("検討開始"), tr("検討中止")}) {
-                m_btnStopConsideration->setText(text);
-                width = qMax(width, m_btnStopConsideration->sizeHint().width());
-            }
-            m_btnStopConsideration->setText(currentText);
-            m_btnStopConsideration->setMinimumWidth(width);
+    }
+    if (m_engineComboBox) m_engineComboBox->setFont(font);
+    if (m_btnEngineSettings) m_btnEngineSettings->setFont(font);
+    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setFont(font);
+    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setFont(font);
+    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setFont(font);
+    if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setFont(font);
+    if (m_elapsedTimeLabel) {
+        m_elapsedTimeLabel->setFont(font);
+        m_elapsedTimeLabel->setMinimumWidth(QFontMetrics(font).horizontalAdvance(tr("経過: 000:00")));
+    }
+    if (m_multiPVLabel) m_multiPVLabel->setFont(font);
+    if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
+    if (m_showArrowsCheckBox) m_showArrowsCheckBox->setFont(font);
+    if (m_btnStopConsideration) {
+        m_btnStopConsideration->setFont(font);
+        // 開始・中止で幅が変わるとツールバーの折り返しが変わり、下の表が上下に動くため、
+        // 長い方の表示に合わせる
+        const QString currentText = m_btnStopConsideration->text();
+        int width = 0;
+        for (const QString& text : {tr("検討開始"), tr("検討中止")}) {
+            m_btnStopConsideration->setText(text);
+            width = qMax(width, m_btnStopConsideration->sizeHint().width());
         }
+        m_btnStopConsideration->setText(currentText);
+        m_btnStopConsideration->setMinimumWidth(width);
+    }
 
-        if (m_considerationInfo) m_considerationInfo->setFontSize(size);
+    if (m_considerationInfo) m_considerationInfo->setFontSize(size);
 
-        const QString headerStyle = TableStyles::thinking(size);
+    const QString headerStyle = TableStyles::thinking(size);
 
-        if (m_considerationView) {
-            const QSignalBlocker blocker(m_considerationView->horizontalHeader());
-            m_considerationView->setFont(font);
-            m_considerationView->setStyleSheet(headerStyle);
-            const int rowHeight = KifuMoveDelegate::textHeight(m_considerationView->font()) + 4;
-            m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
-            applyViewColumnWidths();
-        }
-
-        AnalysisSettings::considerationFontSize.set(size);
-    });
-    m_considerationFontManager->apply();
+    if (m_considerationView) {
+        const QSignalBlocker blocker(m_considerationView->horizontalHeader());
+        m_considerationView->setFont(font);
+        m_considerationView->setStyleSheet(headerStyle);
+        const int rowHeight = KifuMoveDelegate::textHeight(m_considerationView->font()) + 4;
+        m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
+        applyViewColumnWidths();
+    }
 }

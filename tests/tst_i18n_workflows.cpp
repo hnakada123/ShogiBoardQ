@@ -25,7 +25,7 @@
 #include "shogiinforecord.h"
 #include "pvboardcontroller.h"
 #include "pvboarddialog.h"
-#include "csagamewiring.h"
+#include "csagameprogress.h"
 #include "kifuconversionservice.h"
 #include "sfenpositiontracer.h"
 #include "analysisresulthandler.h"
@@ -381,11 +381,7 @@ private slots:
         if (western) QCOMPARE(board.currentMoveText(), QStringLiteral("▲P-7f"));
 
         // Network game results must stay canonical even with a translated UI.
-        CsaGameCoordinator csa;
-        CsaGameWiring::Dependencies csaDeps;
-        csaDeps.coordinator = &csa;
-        CsaGameWiring csaWiring(csaDeps);
-        QSignalSpy endLines(&csaWiring, &CsaGameWiring::recordAppendRequested);
+        CsaGameProgress csa;  // 自分は先手。終局した局面は後手番
         using Cause = CsaClient::GameEndCause;
         const QList<QPair<Cause, TerminalType>> endings = {
             {Cause::Resign, TerminalType::Resign}, {Cause::TimeUp, TerminalType::Timeout},
@@ -394,22 +390,13 @@ private slots:
             {Cause::Sennichite, TerminalType::Repetition}, {Cause::Jishogi, TerminalType::DeclarationWin},
             {Cause::MaxMoves, TerminalType::MaxMoves}, {Cause::Chudan, TerminalType::Interrupt}};
         for (const auto& ending : endings) {
-            QVERIFY(QMetaObject::invokeMethod(&csaWiring, "onGameEnded", Qt::DirectConnection,
-                Q_ARG(CsaClient::GameResult, CsaClient::GameResult::Lose),
-                Q_ARG(CsaClient::GameEndCause, ending.first), Q_ARG(int, 0)));
-            QCOMPARE(endLines.size(), 1);
-            QCOMPARE(endLines.takeFirst().at(0).value<RecordEntry>().terminal, ending.second);
+            QCOMPARE(csa.endRecord(CsaClient::GameResult::Lose, ending.first, false, 0).terminal, ending.second);
         }
         // 入玉宣言は宣言した勝者の印を付け（保存時に勝者を判定するため）、点数による引き分けは持将棋
-        QVERIFY(QMetaObject::invokeMethod(&csaWiring, "onGameEnded", Qt::DirectConnection,
-            Q_ARG(CsaClient::GameResult, CsaClient::GameResult::Lose),
-            Q_ARG(CsaClient::GameEndCause, Cause::Jishogi), Q_ARG(int, 0)));
-        QCOMPARE(endLines.takeFirst().at(0).value<RecordEntry>().displayText,
-                 (csa.isBlackSide() ? QStringLiteral("△") : QStringLiteral("▲")) + QStringLiteral("入玉勝ち"));
-        QVERIFY(QMetaObject::invokeMethod(&csaWiring, "onGameEnded", Qt::DirectConnection,
-            Q_ARG(CsaClient::GameResult, CsaClient::GameResult::Draw),
-            Q_ARG(CsaClient::GameEndCause, Cause::Jishogi), Q_ARG(int, 0)));
-        QCOMPARE(endLines.takeFirst().at(0).value<RecordEntry>().displayText, QStringLiteral("持将棋"));
+        QCOMPARE(csa.endRecord(CsaClient::GameResult::Lose, Cause::Jishogi, false, 0).displayText,
+                 QStringLiteral("△入玉勝ち"));
+        QCOMPARE(csa.endRecord(CsaClient::GameResult::Draw, Cause::Jishogi, false, 0).displayText,
+                 QStringLiteral("持将棋"));
 
         GameInfoPaneController metadata;
         QScopedPointer<QWidget> container(metadata.containerWidget());

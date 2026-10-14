@@ -60,7 +60,6 @@ bool MatchCoordinator::resumeInterruptedGame()
     m_positionStrHistory = state->positionHistory;
     // 時計のスナップショットは持ち時間の決まりと時間切れの扱いも含む
     clock()->restoreSnapshot(state->clock);
-    ensureMatchTurnHandler();
     m_turnHandler->createAndStartModeStrategy(state->options);
     armTurnTimerIfNeeded();
     // 対局開始通知でUIを整えてから、呼び出し側が初手探索を起動する。

@@ -2,6 +2,7 @@
 /// @brief 局面編集コーディネータクラスの実装
 
 #include "positioneditcoordinator.h"
+#include "uistatepolicymanager.h"
 #include "kifunavigationstate.h"
 
 #include <QAction>
@@ -82,20 +83,6 @@ void PositionEditCoordinator::setOnMainRowGuard(bool* onMainRowGuard)
 }
 
 // --------------------------------------------------------
-// コールバック設定
-// --------------------------------------------------------
-
-void PositionEditCoordinator::setApplyEditMenuStateCallback(ApplyEditMenuStateCallback cb)
-{
-    m_applyEditMenuState = std::move(cb);
-}
-
-void PositionEditCoordinator::setEnsurePositionEditCallback(EnsurePositionEditCallback cb)
-{
-    m_ensurePositionEdit = std::move(cb);
-}
-
-// --------------------------------------------------------
 // 編集用アクションの設定
 // --------------------------------------------------------
 
@@ -110,10 +97,6 @@ void PositionEditCoordinator::setEditActions(const EditActions& actions)
 
 void PositionEditCoordinator::beginPositionEditing()
 {
-    if (m_ensurePositionEdit) {
-        m_ensurePositionEdit();
-    }
-
     if (!m_posEdit || !m_shogiView || !m_gameController) return;
 
     PositionEditController::BeginEditContext ctx;
@@ -131,9 +114,7 @@ void PositionEditCoordinator::beginPositionEditing()
 
     // メニュー表示：編集メニューに遷移
     ctx.onEnterEditMenu = [this]() {
-        if (m_applyEditMenuState) {
-            m_applyEditMenuState(true);
-        }
+        if (m_uiStatePolicy) m_uiStatePolicy->transitionToDuringPositionEdit();
     };
 
     // 「編集終了」ボタン表示
@@ -192,10 +173,6 @@ void PositionEditCoordinator::finishPositionEditing()
         *m_onMainRowGuard = true;
     }
 
-    if (m_ensurePositionEdit) {
-        m_ensurePositionEdit();
-    }
-
     if (!m_posEdit || !m_shogiView || !m_gameController) {
         if (m_onMainRowGuard) {
             *m_onMainRowGuard = prevGuard;
@@ -223,9 +200,7 @@ void PositionEditCoordinator::finishPositionEditing()
 
     // メニューを元に戻す
     ctx.onLeaveEditMenu = [this]() {
-        if (m_applyEditMenuState) {
-            m_applyEditMenuState(false);
-        }
+        if (m_uiStatePolicy) m_uiStatePolicy->transitionToIdle();
     };
 
     // 実行

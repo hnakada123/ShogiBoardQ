@@ -14,6 +14,7 @@
 #include "evaluationgraphcontroller.h"
 #include "timecontrolcontroller.h"
 #include "timedisplaypresenter.h"
+#include "usicommandcontroller.h"
 #include "uistatepolicymanager.h"
 #include "boardinteractioncontroller.h"
 #include "shogiview.h"
@@ -49,23 +50,10 @@ void MatchCoordinatorWiring::updateDeps(const Deps& deps)
     m_hooks = deps.hooks;
     m_undoHooks = deps.undoHooks;
 
-    if (deps.ensureTimeController)
-        m_ensureTimeController = deps.ensureTimeController;
-    if (deps.ensureEvaluationGraphController)
-        m_ensureEvaluationGraphController = deps.ensureEvaluationGraphController;
-    if (deps.ensureUsiCommandController)
-        m_ensureUsiCommandController = deps.ensureUsiCommandController;
-    if (deps.connectBoardClicks)
-        m_connectBoardClicks = deps.connectBoardClicks;
-    if (deps.connectMoveRequested)
-        m_connectMoveRequested = deps.connectMoveRequested;
-
-    if (deps.getClock)
-        m_getClock = deps.getClock;
-    if (deps.getTimeController)
-        m_getTimeController = deps.getTimeController;
-    if (deps.getEvalGraphController)
-        m_getEvalGraphController = deps.getEvalGraphController;
+    m_clock = deps.clock;
+    m_timeController = deps.timeController;
+    m_evalGraphController = deps.evalGraphController;
+    m_usiCommandController = deps.usiCommandController;
 }
 
 void MatchCoordinatorWiring::setSignalTargets(const SignalTargets& targets)
@@ -78,17 +66,9 @@ bool MatchCoordinatorWiring::initializeSession()
     // 依存が揃っていない場合は何もしない
     if (!m_gc || !m_view) return false;
 
-    // まず時計を用意（nullでも可だが、あれば渡す）
-    if (m_ensureTimeController) m_ensureTimeController();
-
-    // 司令塔は初回だけ作る。2回目以降（起動の最終段など）は作り直さず、実行時の依存を結び直し、
-    // 起動途中の仮の対局開始で残った局面の履歴を捨てる
-    if (!m_match) {
-        createMatchCoordinator();
-    } else {
-        m_match->setEngineModels(m_comm1, m_think1, m_comm2, m_think2);
-        m_match->resetPositionHistory();
-    }
+    // 司令塔は1回だけ作る（作り直さない）
+    if (m_match) return true;
+    createMatchCoordinator();
     bindRuntimeDependencies();
     return true;
 }
@@ -99,7 +79,7 @@ void MatchCoordinatorWiring::bindRuntimeDependencies()
         arrows->setMatchCoordinator(m_match.get());
 
     // USIコマンドコントローラへ司令塔を反映
-    if (m_ensureUsiCommandController) m_ensureUsiCommandController();
+    if (m_usiCommandController) m_usiCommandController->setMatchCoordinator(m_match.get());
 
     // PlayMode を司令塔へ伝達
     if (m_match && m_playMode) {
@@ -107,8 +87,7 @@ void MatchCoordinatorWiring::bindRuntimeDependencies()
     }
 
     // 評価値グラフコントローラへの反映
-    if (m_ensureEvaluationGraphController) m_ensureEvaluationGraphController();
-    auto* evalCtl = m_getEvalGraphController ? m_getEvalGraphController() : nullptr;
+    auto* evalCtl = m_evalGraphController;
     if (evalCtl) {
         evalCtl->setMatchCoordinator(m_match.get());
         // m_sfenRecord は MC 生成前に取得されるため nullptr になり得る。
@@ -135,16 +114,10 @@ void MatchCoordinatorWiring::bindRuntimeDependencies()
     }
 
     // TimeController へ MatchCoordinator を反映
-    auto* timeCtl = m_getTimeController ? m_getTimeController() : nullptr;
+    auto* timeCtl = m_timeController;
     if (timeCtl) {
         timeCtl->setMatchCoordinator(m_match.get());
     }
-
-    // 盤クリックの配線
-    if (m_connectBoardClicks) m_connectBoardClicks();
-
-    // 人間操作 → 合法判定＆適用の配線
-    if (m_connectMoveRequested) m_connectMoveRequested();
 
     // 既定モード（必要に応じて開始時に上書き）
     if (m_boardController)
@@ -155,7 +128,7 @@ void MatchCoordinatorWiring::createMatchCoordinator()
 {
     MatchCoordinator::Deps deps;
     deps.gc    = m_gc;
-    deps.clock = m_getClock ? m_getClock() : nullptr;
+    deps.clock = m_clock;
     deps.comm1  = m_comm1;
     deps.think1 = m_think1;
     deps.comm2  = m_comm2;
@@ -211,7 +184,7 @@ void MatchCoordinatorWiring::connectMatchSignals()
     }
 }
 
-void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
+void MatchCoordinatorWiring::createMenuGameStartCoordinator()
 {
     if (m_menuGameStart) return;
 

@@ -77,7 +77,9 @@ private slots:
             QStringLiteral("engineName1"),
             QStringLiteral("engineName2"),
             QStringLiteral("startSfenStr"),
-            QStringLiteral("getTimeController"),
+            QStringLiteral("timeController"),
+            QStringLiteral("gameRecord"),
+            QStringLiteral("liveGameSession"),
         };
         for (const auto& field : std::as_const(fields)) {
             QVERIFY2(m_wiringSrc.contains(QStringLiteral("deps.") + field),

@@ -10,8 +10,7 @@
 #include <memory>
 #include "shogiview.h"
 
-class ShogiBoard;
-class QPushButton;
+class BoardViewerWidget;
 class QLabel;
 class PvBoardController;
 
@@ -21,8 +20,8 @@ class PvBoardController;
  * 思考タブの読み筋をクリックすると、このダイアログが開き、
  * 1手進む/戻るボタンで読み筋の盤面を再現できる。
  *
- * ロジック（ナビゲーション状態、SFEN履歴、ハイライト座標計算）は
- * PvBoardController に委譲し、本クラスはUI表示のみを担当する。
+ * ロジック（SFEN履歴、指し手の表記、ハイライト座標計算）は PvBoardController に、
+ * 盤と拡大縮小・回転・局面送りの操作は BoardViewerWidget に委譲し、本クラスは組み立てのみを担当する。
  */
 class PvBoardDialog : public QDialog
 {
@@ -67,65 +66,29 @@ public:
     void setFlipMode(bool flipped);
 
 private slots:
-    /// 最初に戻る
-    void onGoFirst();
-    /// 1手戻る
-    void onGoBack();
-    /// 1手進む
-    void onGoForward();
-    /// 最後まで進む
-    void onGoLast();
-    /// 将棋盤を拡大
-    void onEnlargeBoard();
-    /// 将棋盤を縮小
-    void onReduceBoard();
-    /// 盤面を回転
-    void onFlipBoard();
+    /// 局面送りで表示する手数が変わった
+    void onPlyChanged(int ply);
     /// ShogiView のハイライト配列がクリアされたときに所有ポインタを同期する
     void onHighlightsCleared();
 
 private:
     /// UIを構築
     void buildUi();
-    /// ボタンの有効/無効を更新
-    void updateButtonStates();
-    /// 盤面を現在の手数で更新
-    void updateBoardDisplay();
-    /// 時計ラベルを非表示にする
-    void hideClockLabels();
+    /// 手数ラベルと直前の手のハイライトを更新
+    void updatePlyDisplay();
     /// 現在の手のハイライトを更新
     void updateMoveHighlights();
     /// ハイライトをクリア
     void clearMoveHighlights();
-    /// ウィンドウサイズを保存
-    void saveWindowSize();
-    /// レイアウト確定後にウィンドウサイズを調整
-    void adjustWindowToContents();
 
 protected:
     /// ウィンドウを閉じる際にサイズを保存
     void closeEvent(QCloseEvent* event) override;
-    /// ShogiViewのCtrl+ホイールイベントを横取りして処理
-    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     std::unique_ptr<PvBoardController> m_controller;
 
-    ShogiView* m_shogiView = nullptr;
-    ShogiBoard* m_board = nullptr;
-
-    QString m_blackPlayerName;    ///< 先手の対局者名
-    QString m_whitePlayerName;    ///< 後手の対局者名
-
-    // UI要素
-    QPushButton* m_btnFirst = nullptr;
-    QPushButton* m_btnBack = nullptr;
-    QPushButton* m_btnForward = nullptr;
-    QPushButton* m_btnLast = nullptr;
-    QPushButton* m_btnEnlarge = nullptr;  ///< 将棋盤拡大ボタン
-    QPushButton* m_btnReduce = nullptr;   ///< 将棋盤縮小ボタン
-    QPushButton* m_btnFlip = nullptr;     ///< 盤面回転ボタン
-    QLabel* m_plyLabel = nullptr;
+    BoardViewerWidget* m_viewer = nullptr;  ///< 盤・拡大縮小・回転・局面送り
     QLabel* m_pvLabel = nullptr;
 
     // ハイライト用

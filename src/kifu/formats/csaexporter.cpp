@@ -6,6 +6,7 @@
 #include "shoginotation.h"
 #include "sfenpositiontracer.h"
 #include "csaformatter.h"
+#include "kifuexportcommon.h"
 #include "gameinfokeys.h"
 #include "gamerecordmodel.h"
 #include "kifdisplayitem.h"
@@ -229,7 +230,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         }
 
         // 終局語の判定
-        if (CsaFormatter::isTerminalMove(moveText)) {
+        if (KifuExportCommon::isTerminalMove(moveText)) {
             qCDebug(lcKifu).noquote() << "toCsaLines: 終局語検出: moveText =" << moveText;
             terminalMove = moveText;
             const QString resultCode = CsaFormatter::csaResultCode(moveText);

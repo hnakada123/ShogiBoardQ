@@ -28,8 +28,8 @@ public:
     ShogiGameController* gc() { return c_.m_gc; }
     ShogiClock* clock() { return c_.m_timekeeper ? c_.m_timekeeper->clock() : nullptr; }
 
-    Turn currentTurn() const { return c_.m_cur; }
-    void setCurrentTurn(Turn p) { c_.m_cur = p; }
+    /// 手番（対局中の正は GC）
+    Turn currentTurn() const { return c_.m_gc ? c_.m_gc->currentPlayer() : Turn::Black; }
 
     PlayMode playMode() const { return c_.m_playMode; }
     int maxMoves() const { return c_.m_maxMoves; }
@@ -80,7 +80,6 @@ public:
     // ---- public メソッド委譲 ----
 
     bool checkAndHandleSennichite() {
-        c_.ensureGameEndHandler();
         return c_.m_gameEndHandler->checkAndHandleSennichite();
     }
     void destroyEngines(bool clearModels = true) { c_.destroyEngines(clearModels); }

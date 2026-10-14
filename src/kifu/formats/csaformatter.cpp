@@ -2,6 +2,7 @@
 /// @brief CSA形式の文字列生成ヘルパ関数の実装
 
 #include "csaformatter.h"
+#include "kifuexportcommon.h"
 
 #include <QRegularExpression>
 
@@ -10,21 +11,6 @@
 // ========================================
 
 namespace CsaFormatter {
-
-QString removeTurnMarker(const QString& move)
-{
-    QString result = move;
-    if (result.startsWith(QStringLiteral("▲")) || result.startsWith(QStringLiteral("△"))) {
-        result = result.mid(1);
-    }
-    return result;
-}
-
-bool isTerminalMove(const QString& move)
-{
-    return !csaResultCode(move).isEmpty()
-        || move.contains(QStringLiteral("不戦勝")) || move.contains(QStringLiteral("不戦敗"));
-}
 
 QString extractCsaTimeToken(const QString& timeText)
 {
@@ -51,7 +37,7 @@ QString extractCsaTimeToken(const QString& timeText)
 
 QString csaResultCode(const QString& terminalMove)
 {
-    const QString move = removeTurnMarker(terminalMove);
+    const QString move = KifuExportCommon::removeTurnMarker(terminalMove);
 
     if (move.contains(QStringLiteral("投了"))) return QStringLiteral("%TORYO");
     if (move.contains(QStringLiteral("中断"))) return QStringLiteral("%CHUDAN");

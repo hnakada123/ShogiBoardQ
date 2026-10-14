@@ -7,7 +7,6 @@
 #include <QObject>
 
 namespace Ui { class MainWindow; }
-class MainWindow;
 class DialogLaunchWiring;
 class KifuExportController;
 class KifuFileController;

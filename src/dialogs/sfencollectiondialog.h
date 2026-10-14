@@ -9,8 +9,7 @@
 #include <QList>
 #include <QStringList>
 
-class ShogiView;
-class ShogiBoard;
+class BoardViewerWidget;
 class QPushButton;
 class QLabel;
 class QMenu;
@@ -41,20 +40,8 @@ signals:
 private slots:
     /// ファイルを開くダイアログを表示
     void onOpenFileClicked();
-    /// 最初の局面に移動
-    void onGoFirst();
-    /// 前の局面に移動
-    void onGoBack();
-    /// 次の局面に移動
-    void onGoForward();
-    /// 最後の局面に移動
-    void onGoLast();
-    /// 将棋盤を拡大
-    void onEnlargeBoard();
-    /// 将棋盤を縮小
-    void onReduceBoard();
-    /// 盤面の回転
-    void onFlipBoard();
+    /// 表示する局面が変わったときに位置ラベルを更新
+    void onCurrentIndexChanged(int index);
     /// 選択ボタン押下時の処理
     void onSelectClicked();
     /// 最近使ったファイルメニューの項目がクリックされたときのスロット
@@ -65,20 +52,10 @@ private slots:
 private:
     /// UIを構築
     void buildUi();
-    /// ファイルを読み込み、行ごとにパースしてm_sfenListを構築
+    /// ファイルを読み込み、行ごとにパースして盤に渡す
     bool loadFromFile(const QString& filePath);
-    /// テキストを行ごとにパースしてm_sfenListを構築し、局面として読めなかった行の数を返す
-    int parseSfenLines(const QString& text);
-    /// 盤面を現在のインデックスで更新
-    void updateBoardDisplay();
-    /// ボタンの有効/無効を更新
-    void updateButtonStates();
-    /// 時計ラベルを非表示にする
-    void hideClockLabels();
-    /// ウィンドウサイズを保存
-    void saveWindowSize();
-    /// レイアウト確定後にウィンドウサイズを調整
-    void adjustWindowToContents();
+    /// テキストを行ごとにパースして局面の一覧を返す。局面として読めなかった行の数を skippedLines に返す
+    static QStringList parseSfenLines(const QString& text, int* skippedLines = nullptr);
     /// 最近使ったファイルリストにファイルパスを追加
     void addToRecentFiles(const QString& filePath);
     /// 最近使ったファイルメニューを更新
@@ -87,17 +64,11 @@ private:
     void saveRecentFiles();
 
 protected:
-    /// ウィンドウを閉じる際にサイズを保存
+    /// ウィンドウを閉じる際にサイズ・履歴・盤の大きさを保存
     void closeEvent(QCloseEvent* event) override;
-    /// ShogiViewのCtrl+ホイールイベントを横取りして処理
-    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-    ShogiView* m_shogiView = nullptr;
-    ShogiBoard* m_board = nullptr;
-
-    QList<QString> m_sfenList;    ///< パース済みSFEN局面リスト
-    int m_currentIndex = 0;         ///< 現在表示中の局面インデックス (0-based)
+    BoardViewerWidget* m_viewer = nullptr;  ///< 盤・拡大縮小・回転・局面送り
 
     // 最近使ったファイル
     QStringList m_recentFiles;            ///< 最近使ったファイルリスト（最大5件）
@@ -106,15 +77,7 @@ private:
 
     // UI要素
     QPushButton* m_btnOpenFile = nullptr;
-    QPushButton* m_btnFirst = nullptr;
-    QPushButton* m_btnBack = nullptr;
-    QPushButton* m_btnForward = nullptr;
-    QPushButton* m_btnLast = nullptr;
-    QPushButton* m_btnEnlarge = nullptr;
-    QPushButton* m_btnReduce = nullptr;
-    QPushButton* m_btnFlip = nullptr;
     QPushButton* m_btnSelect = nullptr;
-    QLabel* m_positionLabel = nullptr;  ///< 「局面: N / Total」表示
     QLabel* m_fileLabel = nullptr;      ///< 読み込んだファイル名表示
 };
 

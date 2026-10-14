@@ -1,5 +1,7 @@
 # developer-guide.md 作成用プロンプト集
 
+> 2026-10-15 注記: レジストリ層（`MainWindowServiceRegistry` など）と `TurnSyncBridge` は `MainWindowComposer`・`TurnStateSyncService` に置き換えた（[composition-root.md](composition-root.md)）。本文は当時の記録である。
+
 各プロンプトを1セッションずつ実行してください。
 セッション間は `/clear` で区切ります。
 

@@ -104,3 +104,5 @@ syncBoardAndHighlightsAtRow ABORT: sfenRecord*= 0x0 sfenRecord.empty?= true
 ### 修正
 - `BoardSyncPresenter::setSfenRecord()` を追加
 - `ensureBoardSyncPresenter()` で毎回 sfenRecord ポインタを同期
+
+> 2026-10-15 注記: 今の `BoardSyncPresenter` は sfenRecord を持たず、分岐ツリーのカーソル（`KifuNavigationState`）から局面を読む。`ensureBoardSyncPresenter()` を含むレジストリ層は `MainWindowComposer` に置き換えた（[composition-root.md](composition-root.md)）。上の記述は当時の記録である。

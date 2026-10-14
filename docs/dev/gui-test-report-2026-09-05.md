@@ -1,5 +1,7 @@
 # GUI自動テスト・不具合修正結果（2026-09-05）
 
+> 2026-10-15 注記: レジストリ層（`MainWindowServiceRegistry`・`mainwindowuiregistry.cpp` など）は `MainWindowComposer` に置き換えた（[composition-root.md](composition-root.md)）。本文は当時の記録である。
+
 初回のGUIテストで報告した5種類の不具合を修正した。修正確認中に見つかったBODの誤判定、編集中の手番同期漏れ、検討再開時の二重起動、初期局面のUSIコマンドの誤りも修正対象に含めた。
 
 ## 修正内容

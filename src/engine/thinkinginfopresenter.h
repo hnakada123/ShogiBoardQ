@@ -13,14 +13,17 @@
 #include <QPointer>
 #include <memory>
 
-class ShogiEngineInfoParser;
+#include "thinkinginforow.h"
+#include "usiinfo.h"
+
+class PvNotationFormatter;
 class ShogiGameController;
 
 /**
  * @brief 思考情報のGUI表示を管理するPresenterクラス
  *
  * 責務:
- * - info行の解析結果をシグナルで通知
+ * - 解析済みの info（UsiInfo）を表示用の行（ThinkingInfoRow）に変換してシグナルで通知
  * - 評価値の計算と更新
  * - 思考情報の通知
  * - USI通信ログの通知
@@ -64,13 +67,13 @@ public:
 
     // --- info処理 ---
     
-    /// info行を処理してシグナルを発行
-    void processInfoLine(const QString& line);
+    /// info を処理してシグナルを発行（バッファを通さない）
+    void processInfo(const UsiInfo& info);
     
     /// 思考情報のクリアをリクエスト
     void requestClearThinkingInfo();
     
-    /// バッファリングされたinfo行をフラッシュ
+    /// バッファリングされたinfoをフラッシュ
     void flushInfoBuffer();
 
     // --- 通信ログ ---
@@ -97,22 +100,14 @@ public:
     QString pvKanjiStr() const { return m_pvKanjiStr; }
 
 public slots:
-    /// info行を受信（バッファリング）
-    void onInfoReceived(const QString& line);
+    /// info を受信（50ms ごとにまとめて処理する）
+    void onInfoReceived(const UsiInfo& info);
 
 signals:
     // --- 思考情報関連シグナル ---
     
     /// 思考情報更新シグナル（→ Usi::onThinkingInfoUpdated）
-    /// pvKanjiStr: 漢字表記の読み筋
-    /// usiPv: USI形式の読み筋（スペース区切り）
-    /// baseSfen: 思考開始時の局面SFEN
-    /// multipv: MultiPV番号（1から始まる、1が最良）
-    /// scoreCp: 評価値（整数、センチポーン）
-    void thinkingInfoUpdated(const QString& time, const QString& depth,
-                             const QString& nodes, const QString& score,
-                             const QString& pvKanjiStr, const QString& usiPv,
-                             const QString& baseSfen, int multipv, int scoreCp);
+    void thinkingInfoUpdated(const ThinkingInfoRow& row);
     
     /// 思考情報クリアリクエストシグナル（→ Usi::onClearThinkingInfoRequested）
     void clearThinkingInfoRequested();
@@ -142,21 +137,18 @@ signals:
     void commLogAppended(const QString& log);
 
 private:
-    /// info行を処理する内部メソッド
-    void processInfoLineInternal(const QString& line);
-
     /// シグナル発行ヘルパメソッド
-    void emitSearchedHand(const ShogiEngineInfoParser* info);
-    void emitDepth(const ShogiEngineInfoParser* info);
-    void emitNodes(const ShogiEngineInfoParser* info);
-    void emitNps(const ShogiEngineInfoParser* info);
-    void emitHashfull(const ShogiEngineInfoParser* info);
+    void emitSearchedHand();
+    void emitDepth(const UsiInfo& info);
+    void emitNodes(const UsiInfo& info);
+    void emitNps(const UsiInfo& info);
+    void emitHashfull(const UsiInfo& info);
 
-    /// 評価値計算
-    int calculateScoreInt(const ShogiEngineInfoParser* info) const;
-    void updateAnalysisModeAndScore(const ShogiEngineInfoParser* info, int& scoreInt);
+    /// 評価値計算（score cp の表示文字列を m_scoreStr に入れ、整数値を返す）
+    int updateCpScore(const UsiInfo& info);
     void updateLastScore(int scoreInt);
-    void updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt);
+    /// 評価値・詰み手数を更新し、行に出す評価値の表示文字列と整数値を返す
+    void updateEvaluationInfo(const UsiInfo& info, QString& scoreText, int& scoreInt);
 
 private:
     ShogiGameController* m_gameController = nullptr; ///< 非所有。ゲームコントローラ参照
@@ -181,9 +173,9 @@ private:
     bool m_searchedAlwaysOrigin = false;
     QHash<QString, QString> m_searchedLabels;  ///< 探索手（漢字表記 + U+0000 + USI形式）→ 表示
 
-    QStringList m_infoBuffer;           ///< info行バッファ
+    QList<UsiInfo> m_infoBuffer;        ///< infoバッファ
     bool m_flushScheduled = false;      ///< フラッシュ予約済みフラグ
-    std::unique_ptr<ShogiEngineInfoParser> m_infoParser; ///< 再利用するinfoパーサ
+    std::unique_ptr<PvNotationFormatter> m_formatter; ///< 読み筋を漢字表記にする（局面を持つので再利用）
 };
 
 #endif // THINKINGINFOPRESENTER_H

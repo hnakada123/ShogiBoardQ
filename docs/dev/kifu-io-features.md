@@ -161,6 +161,10 @@ USEN Files (*.usen)
   - `detectFormat(text)` — 形式の自動判定
 - **`KifuLoadCoordinator`** (`src/kifu/kifuloadcoordinator.h/.cpp`)
   - `loadKifuFromString(content)` — 自動判定した形式で読み込み
+- **`KifuLoadParser`** (`src/kifu/kifuloadparser.h/.cpp`)
+  - `parseText(content)` — 形式を判定し、SFEN・BOD は局面だけを返す。それ以外は `parseContent(content, format)` でテキストのまま解析する（一時ファイルは作らない）
+  - `parseFile(path)` — ファイルを1回だけ読み（CSA は CSA の文字コード宣言、それ以外は自動判別）、同じ `parseContent` に渡す
+  - 各形式の変換器はテキスト版の入口（`parseText` / `detectInitialSfenFromText` / `extractGameInfoFromText`）を持ち、ファイル版はファイルを読んでテキスト版に渡す薄い関数
 
 ---
 

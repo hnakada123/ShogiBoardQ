@@ -20,6 +20,12 @@ QString UsenToSfenConverter::detectInitialSfenFromFile(const QString& usenPath, 
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
         return SfenUtils::hirateSfen();
     }
+    return detectInitialSfenFromText(content, detectedLabel);
+}
+
+QString UsenToSfenConverter::detectInitialSfenFromText(const QString& text, QString* detectedLabel)
+{
+    const QString content = text.trimmed();
 
     // ~ の位置を探す
     const qsizetype tildePos = content.indexOf(QChar('~'));
@@ -76,9 +82,20 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
     if (!readUsenFile(usenPath, content, errorMessage)) {
         return false;
     }
+    return parseText(content, out, errorMessage);
+}
+
+bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
+{
+    out = KifParseResult{};
+    const QString content = text.trimmed();
+    if (content.isEmpty()) {
+        if (errorMessage) *errorMessage = QStringLiteral("USEN: empty text");
+        return false;
+    }
 
     // 初期局面を取得
-    const QString initialSfen = detectInitialSfenFromFile(usenPath, nullptr);
+    const QString initialSfen = detectInitialSfenFromText(content, nullptr);
 
     // 本譜と分岐を分離
     QString mainlineUsen;

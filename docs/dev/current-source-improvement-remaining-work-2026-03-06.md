@@ -1,5 +1,7 @@
 # Current Source Improvement Remaining Work (2026-03-06)
 
+> 2026-10-15 注記: この文書の残作業はもう不要である。レジストリ層（`MainWindowServiceRegistry`・`ensure*` など）は `MainWindowComposer` に置き換えた（[composition-root.md](composition-root.md)）。本文は当時の記録である。
+
 ## 目的
 
 `app/` 層の再整理のうち、Phase 3 以降の残作業をそのまま再開できる形で残す。

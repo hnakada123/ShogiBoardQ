@@ -18,6 +18,7 @@ class PositionEditController;
 class MatchCoordinator;
 class ReplayController;
 class QAction;
+class UiStatePolicyManager;
 
 /**
  * @brief PositionEditCoordinator - 局面編集の調整クラス
@@ -55,14 +56,8 @@ public:
     void setCurrentSfenStr(QString* currentSfenStr);
     void setOnMainRowGuard(bool* onMainRowGuard);
 
-    // --------------------------------------------------------
-    // コールバック設定
-    // --------------------------------------------------------
-    using ApplyEditMenuStateCallback = std::function<void(bool)>;
-    using EnsurePositionEditCallback = std::function<void()>;
-
-    void setApplyEditMenuStateCallback(ApplyEditMenuStateCallback cb);
-    void setEnsurePositionEditCallback(EnsurePositionEditCallback cb);
+    /// 編集の開始・終了でメニューの状態を切り替える先
+    void setUiStatePolicy(UiStatePolicyManager* policy) { m_uiStatePolicy = policy; }
 
     // --------------------------------------------------------
     // 編集用アクションの設定
@@ -113,8 +108,7 @@ private:
     QMetaObject::Connection m_exitBtnConnection;
 
     // コールバック
-    ApplyEditMenuStateCallback m_applyEditMenuState;
-    EnsurePositionEditCallback m_ensurePositionEdit;
+    UiStatePolicyManager* m_uiStatePolicy = nullptr;
 };
 
 #endif // POSITIONEDITCOORDINATOR_H

@@ -33,8 +33,16 @@ public:
     static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
     static QString mapPresetToSfen(const QString& preset);
 
+    // テキスト（貼り付けた棋譜など）
+    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
+    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
+    static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);
+
 private:
     static bool loadJsonFile(const QString& filePath, QJsonObject& root, QString* warn);
+    static bool parseJson(const QByteArray& data, QJsonObject& root, QString* warn);
+    static bool parseRoot(const QJsonObject& root, KifParseResult& out, QString* errorMessage);
+    static QList<KifGameInfoItem> gameInfoFromRoot(const QJsonObject& root);
     static QString buildInitialSfen(const QJsonObject& root, QString* detectedLabel = nullptr);
     static bool parseMovesArray(const QJsonArray& movesArray,
                                 const QString& baseSfen,

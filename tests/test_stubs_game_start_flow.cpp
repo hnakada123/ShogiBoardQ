@@ -37,7 +37,7 @@
 #include "usi.h"
 #include "usimatchhandler.h"
 #include "thinkinginfopresenter.h"
-#include "shogiengineinfoparser.h"
+#include "pvnotationformatter.h"
 #include "boardinteractioncontroller.h"
 #include "settingscommon.h"
 #include "evaluationchartwidget.h"
@@ -81,7 +81,7 @@ MatchCoordinator::~MatchCoordinator() = default;
 
 MatchCoordinator::StrategyContext& MatchCoordinator::strategyCtx()
 {
-    ensureMatchTurnHandler();
+    if (!m_turnHandler) createMatchTurnHandler();
     return m_turnHandler->strategyCtx();
 }
 
@@ -147,7 +147,6 @@ void MatchCoordinator::updateConsiderationMultiPV(int) {}
 bool MatchCoordinator::updateConsiderationPosition(const QString&, int, int, const QString&) { return false; }
 Usi* MatchCoordinator::primaryEngine() const { return nullptr; }
 Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
-void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, Turn) {}
 void MatchCoordinator::handlePlayerTimeOut(Turn) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Turn) {}
@@ -160,10 +159,10 @@ bool MatchCoordinator::undoTwoPlies() { return false; }
 void MatchCoordinator::initEnginesForEvE(const QString&, const QString&) {}
 
 // private methods
-void MatchCoordinator::ensureUndoHandler() {}
-void MatchCoordinator::ensureEngineManager() {}
-void MatchCoordinator::ensureTimekeeper() {}
-void MatchCoordinator::ensureMatchTurnHandler() {}
+void MatchCoordinator::createUndoHandler() {}
+void MatchCoordinator::createEngineManager() {}
+void MatchCoordinator::createTimekeeper() {}
+void MatchCoordinator::createMatchTurnHandler() {}
 
 // ============================================================
 // MatchTurnHandler スタブ
@@ -193,9 +192,9 @@ void MatchTurnHandler::handlePlayerTimeOut(Turn) {}
 void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
 void MatchTurnHandler::handleUsiError(const QString&) {}
 
-void MatchCoordinator::ensureGameStartOrchestrator() {}
-void MatchCoordinator::ensureAnalysisSession() {}
-void MatchCoordinator::ensureGameEndHandler() {}
+void MatchCoordinator::createGameStartOrchestrator() {}
+void MatchCoordinator::createAnalysisSession() {}
+void MatchCoordinator::createGameEndHandler() {}
 EngineLifecycleManager* MatchCoordinator::engineManager() { return nullptr; }
 bool MatchCoordinator::isEngineShutdownInProgress() const { return false; }
 
@@ -257,7 +256,6 @@ void ShogiView::mouseMoveEvent(QMouseEvent*) {}
 void ShogiView::mouseReleaseEvent(QMouseEvent*) {}
 void ShogiView::resizeEvent(QResizeEvent*) {}
 void ShogiView::wheelEvent(QWheelEvent*) {}
-bool ShogiView::eventFilter(QObject*, QEvent*) { return false; }
 void ShogiView::initializeToFlatStartingPosition() {}
 void ShogiView::removeHighlightAllData() {}
 void ShogiView::applyBoardAndRender(ShogiBoard*) {}
@@ -384,17 +382,15 @@ QString Usi::scoreStr() const { return {}; }
 bool Usi::isResignMove() const { return false; }
 bool Usi::isWinMove() const { return false; }
 int Usi::lastScoreCp() const { return 0; }
-QString Usi::pvKanjiStr() const { return {}; }
-void Usi::setPvKanjiStr(const QString&) {}
 void Usi::initializeAndStartEngineCommunication(QString&, QString&) {}
 void Usi::sendGameOverCommand(GameOverResult) {}
 void Usi::sendQuitCommand() {}
 void Usi::sendGameOverWinAndQuitCommands() {}
 void Usi::sendStopCommand() {}
-void Usi::executeAnalysisCommunication(QString&, int, int) {}
 void Usi::sendAnalysisCommands(const QString&, int, int) {}
-void Usi::setPreviousFileTo(int) {}
-void Usi::setPreviousRankTo(int) {}
+void Usi::sendPositionAndGoInfinite(const QString&) {}
+void Usi::sendSetOptionCommand(const QString&, const QString&) {}
+void Usi::setPreviousMove(BoardSquare) {}
 void Usi::setLastUsiMove(const QString&) {}
 qint64 Usi::lastBestmoveElapsedMs() const { return 0; }
 void Usi::sendGameOverLoseAndQuitCommands() {}
@@ -408,7 +404,7 @@ void Usi::markHardTimeout() {}
 void Usi::clearHardTimeout() {}
 bool Usi::isIgnoring() const { return false; }
 QString Usi::currentEnginePath() const { return {}; }
-void Usi::sendRaw(const QString&) const {}
+void Usi::sendConsoleCommand(const QString&) {}
 bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}
 void Usi::setLogModel(UsiCommLogModel*) {}
@@ -431,11 +427,8 @@ void Usi::onNpsUpdated(const QString&) {}
 void Usi::onHashUsageUpdated(const QString&) {}
 void Usi::onCommLogAppended(const QString&) {}
 void Usi::onClearThinkingInfoRequested() {}
-void Usi::onAnalysisStopTimeout() {}
 void Usi::onConsiderationStopTimeout() {}
-void Usi::onThinkingInfoUpdated(const QString&, const QString&, const QString&,
-                                 const QString&, const QString&, const QString&,
-                                 const QString&, int, int) {}
+void Usi::onThinkingInfoUpdated(const ThinkingInfoRow&) {}
 
 // ============================================================
 // UsiCommLogModel / ShogiEngineThinkingModel スタブ
@@ -531,13 +524,13 @@ void ThinkingInfoPresenter::setAnalysisMode(bool) {}
 void ThinkingInfoPresenter::setPreviousMove(int, int) {}
 void ThinkingInfoPresenter::setBaseSfen(const QString&) {}
 QString ThinkingInfoPresenter::baseSfen() const { return {}; }
-void ThinkingInfoPresenter::processInfoLine(const QString&) {}
+void ThinkingInfoPresenter::processInfo(const UsiInfo&) {}
 void ThinkingInfoPresenter::requestClearThinkingInfo() {}
 void ThinkingInfoPresenter::flushInfoBuffer() {}
 void ThinkingInfoPresenter::logSentCommand(const QString&, const QString&) {}
 void ThinkingInfoPresenter::logReceivedData(const QString&, const QString&) {}
 void ThinkingInfoPresenter::logStderrData(const QString&, const QString&) {}
-void ThinkingInfoPresenter::onInfoReceived(const QString&) {}
+void ThinkingInfoPresenter::onInfoReceived(const UsiInfo&) {}
 
 // ============================================================
 // BoardInteractionController スタブ
@@ -581,16 +574,9 @@ void PvBoardDialog::setPlayerNames(const QString&, const QString&) {}
 void PvBoardDialog::setLastMove(const QString&) {}
 void PvBoardDialog::setPrevSfenForHighlight(const QString&) {}
 void PvBoardDialog::setFlipMode(bool) {}
-void PvBoardDialog::onGoFirst() {}
-void PvBoardDialog::onGoBack() {}
-void PvBoardDialog::onGoForward() {}
-void PvBoardDialog::onGoLast() {}
-void PvBoardDialog::onEnlargeBoard() {}
-void PvBoardDialog::onReduceBoard() {}
-void PvBoardDialog::onFlipBoard() {}
+void PvBoardDialog::onPlyChanged(int) {}
 void PvBoardDialog::onHighlightsCleared() {}
 void PvBoardDialog::closeEvent(QCloseEvent*) {}
-bool PvBoardDialog::eventFilter(QObject*, QEvent*) { return false; }
 
 // ============================================================
 // UsiProtocolHandler スタブ

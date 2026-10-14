@@ -36,7 +36,7 @@ int totalPlies(const AutomationContext& context)
 
 KifuFileController* requireFileController(const AutomationContext& context)
 {
-    KifuFileController* controller = context.kifuFileController ? context.kifuFileController() : nullptr;
+    KifuFileController* controller = context.kifuFileController;
     if (!controller) {
         throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu controller is unavailable"));
     }
@@ -58,7 +58,7 @@ QJsonObject loadResult(const AutomationContext& context)
     result[QStringLiteral("total_plies")] = totalPlies(context);
     const QStringList record = AutomationCommands::currentLinePositions(context);
     result[QStringLiteral("start_sfen")] = record.isEmpty() ? QString() : record.first();
-    result[QStringLiteral("kifu_file")] = context.saveFileName ? *context.saveFileName : QString();
+    result[QStringLiteral("kifu_file")] = context.state ? context.state->saveFileName : QString();
     return result;
 }
 
@@ -137,7 +137,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         result[QStringLiteral("total_plies")] = totalPlies(context);
 
         if (format == QLatin1String("moves")) {
-            GameRecordModel* model = context.gameRecordModel ? context.gameRecordModel() : nullptr;
+            GameRecordModel* model = context.gameRecordModel;
             QJsonArray moves;
             bool truncated = false;
             if (model) {
@@ -195,7 +195,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             throw AutomationError(AutomationErrorCode::InvalidParams,
                                   QStringLiteral("format must be one of moves, kif, ki2, csa, jkf, usen, usi"));
         }
-        KifuExportController* exporter = context.kifuExportController ? context.kifuExportController() : nullptr;
+        KifuExportController* exporter = context.kifuExportController;
         if (!exporter) {
             throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu exporter is unavailable"));
         }
@@ -212,14 +212,14 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             throw AutomationError(AutomationErrorCode::InvalidParams,
                                   QStringLiteral("ply %1 is beyond the last move (%2)").arg(ply).arg(total));
         }
-        KifuNavigationController* nav = context.navigationController ? context.navigationController() : nullptr;
+        KifuNavigationController* nav = context.navigationController;
         if (!nav || !context.branchTree || context.branchTree->isEmpty()) {
             throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("No record is loaded"),
                                   QStringLiteral("Load a record with kifu.load first"));
         }
         nav->goToPly(ply);
         QJsonObject result;
-        result[QStringLiteral("ply")] = context.currentPly ? context.currentPly() : ply;
+        result[QStringLiteral("ply")] = context.navState ? context.currentPly() : ply;
         result[QStringLiteral("sfen")] = currentSfen(context);
         return result;
     });

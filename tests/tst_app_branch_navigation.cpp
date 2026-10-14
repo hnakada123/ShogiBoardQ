@@ -41,7 +41,6 @@ struct BranchNavigationParts {
     RecordPane recordPane;
     GameRecordModel gameRecord;
     QString startSfen = kHirateSfen;
-    int ensureCommentCalls = 0;
 
     BranchNavigationParts()
     {
@@ -75,7 +74,6 @@ struct BranchNavigationParts {
         d.kifuBranchModel = &branchModel;
         d.gameRecordModel = &gameRecord;
         d.startSfenStr = &startSfen;
-        d.ensureCommentCoordinator = [this]() { ++ensureCommentCalls; };
         return d;
     }
 };
@@ -116,7 +114,6 @@ private slots:
         parts.recordPane.firstButton()->click();
         QCOMPARE(parts.navState.currentNode(), parts.tree.root());
         QCOMPARE(plyChanged.last().at(0).toInt(), 0);
-        QCOMPARE(parts.ensureCommentCalls, 1);
     }
 
     void initializeTwiceDoesNotDuplicateConnections()
@@ -134,7 +131,6 @@ private slots:
         QCOMPARE(parts.navState.currentPly(), 1);
         QCOMPARE(board.count(), 1);
         QCOMPARE(handled.count(), 1);
-        QCOMPARE(parts.ensureCommentCalls, 1);
     }
 
     void initializeWaitsUntilThePartsArePassed()

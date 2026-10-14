@@ -53,8 +53,9 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
         // ply=0は開始局面なので直前の指し手なし
         // ply>=1の場合、その局面に至った指し手はrecordModel->item(ply)（ply番目の指し手）
         const bool hasDestination = lastUsiMove.size() >= 4;
-        m_usi->setPreviousFileTo(hasDestination ? lastUsiMove.at(2).digitValue() : 0);
-        m_usi->setPreviousRankTo(hasDestination ? lastUsiMove.at(3).unicode() - 'a' + 1 : 0);
+        m_usi->setPreviousMove(hasDestination
+                                   ? BoardSquare{lastUsiMove.at(2).digitValue(), lastUsiMove.at(3).unicode() - 'a' + 1}
+                                   : BoardSquare{});
 
         // SFENから手番を抽出してGameControllerに設定
         // 形式: "盤面 手番 駒台 手数" 例: "lnsgkgsnl/... b - 1"

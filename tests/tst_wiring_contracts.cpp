@@ -70,7 +70,7 @@ private:
             deps.view = &view;
             mcw.updateDeps(deps);
             mcw.initializeSession();
-            mcw.ensureMenuGameStartCoordinator();
+            mcw.createMenuGameStartCoordinator();
         }
 
         MatchCoordinator* match() const { return mcw.match(); }
@@ -269,7 +269,7 @@ private slots:
         deps.view = &view;
         mcw.updateDeps(deps);
         QVERIFY(mcw.initializeSession());
-        mcw.ensureMenuGameStartCoordinator();
+        mcw.createMenuGameStartCoordinator();
 
         emit mcw.match()->gameEnded(MatchCoordinator::GameEndInfo{});
         emit mcw.menuGameStartCoordinator()->started(MatchCoordinator::StartOptions{});
@@ -301,7 +301,7 @@ private slots:
         GameStartCoordinator* first = f.gameStart();
         QVERIFY(first);
 
-        f.mcw.ensureMenuGameStartCoordinator();
+        f.mcw.createMenuGameStartCoordinator();
 
         QCOMPARE(f.gameStart(), first);
     }

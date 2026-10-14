@@ -32,7 +32,6 @@ void EngineVsEngineStrategy::start()
     }
 
     // 駒落ちの場合、SFENで手番が「w」（後手番）になっている。GC の手番は SFEN に従う
-    m_ctx.setCurrentTurn(m_ctx.gc()->currentPlayer());
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
     if (!m_opt.resumeFromBreakOff) initPositionStringsForEvE(m_opt.sfenStart);
@@ -137,8 +136,7 @@ void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     m_ctx.syncOpponentPosition(p1ToMove ? 1 : 2, position);
     const QPoint to = BoardCoordinates::toSquare(move);
     if (receiver) {
-        receiver->setPreviousFileTo(to.x());
-        receiver->setPreviousRankTo(to.y());
+        receiver->setPreviousMove(BoardSquare{to.x(), to.y()});
     }
     if (!m_ctx.applyEngineMove(move, p1ToMove ? Turn::Black : Turn::White,
                                mover->lastBestmoveElapsedMs(), false)) return;

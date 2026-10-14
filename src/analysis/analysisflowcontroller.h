@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "analysiscoordinator.h"
+#include "thinkinginforow.h"
 
 class AnalysisResultHandler;
 class KifuAnalysisDialog;
@@ -95,22 +96,17 @@ private slots:
     /// `bestmove`受信時に保留中結果を確定する
     void onBestMoveReceived();
 
-    /// `info`行受信時に最新の評価値/PVを更新する
-    void onInfoLineReceived(const QString& line);
+    /// info 受信時に AnalysisCoordinator へ渡す
+    void onInfoReceived(const UsiInfo& info);
 
     /// 思考情報更新を受けて漢字PV等を保持する
-    void onThinkingInfoUpdated(const QString& time, const QString& depth,
-                                const QString& nodes, const QString& score,
-                                const QString& pvKanjiStr, const QString& usiPv,
-                                const QString& baseSfen, int multipv, int scoreCp);
+    void onThinkingInfoUpdated(const ThinkingInfoRow& row);
 
     /// 局面準備通知を受けて盤面データを同期する
     void onPositionPrepared(int ply, const QString& sfen);
 
     /// AnalysisCoordinatorの解析進捗通知を受けて一時結果を更新する
-    void onAnalysisProgress(int ply, int depth, int seldepth,
-                             int scoreCp, int mate,
-                             const QString& pv, const QString& raw);
+    void onAnalysisProgress(int ply, const UsiInfo& info);
 
     /// 解析完了通知時に最終状態を反映する
     void onAnalysisFinished(AnalysisCoordinator::Mode mode);
@@ -164,9 +160,11 @@ private:
     QMetaObject::Connection m_connCoordAnalysisProgress;
     QMetaObject::Connection m_connCoordPositionPrepared;
     QMetaObject::Connection m_connCoordAnalysisFinished;
-    QMetaObject::Connection m_connCoordRequestSendUsi;
+    QMetaObject::Connection m_connCoordRequestSetOption;
+    QMetaObject::Connection m_connCoordRequestSearch;
+    QMetaObject::Connection m_connCoordRequestStop;
     QMetaObject::Connection m_connUsiBestMove;
-    QMetaObject::Connection m_connUsiInfoLine;
+    QMetaObject::Connection m_connUsiInfo;
     QMetaObject::Connection m_connUsiThinkingInfo;
     QMetaObject::Connection m_connUsiError;
 };

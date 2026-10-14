@@ -3,7 +3,6 @@
 
 #include "editactionswiring.h"
 #include "ui_mainwindow.h"
-#include "mainwindow.h"
 #include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
 #include "dialoglaunchwiring.h"

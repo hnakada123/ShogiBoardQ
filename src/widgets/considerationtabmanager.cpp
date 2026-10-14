@@ -4,7 +4,6 @@
 #include "considerationtabmanager.h"
 #include "enginelistsettings.h"
 #include "engineinfowidget.h"
-#include "logviewfontmanager.h"
 #include "logcategories.h"
 #include "analysissettings.h"
 
@@ -20,6 +19,7 @@
 
 ConsiderationTabManager::ConsiderationTabManager(QObject* parent)
     : QObject(parent)
+    , m_considerationFontSize(AnalysisSettings::considerationFontSize, 8, 24)
 {
 }
 

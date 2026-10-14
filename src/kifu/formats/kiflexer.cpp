@@ -64,7 +64,7 @@ const QRegularExpression& variationHeaderRe()
 const QRegularExpression& variationHeaderCaptureRe()
 {
     static const auto& re = *[]() {
-        static const QRegularExpression r(QStringLiteral("^\\s*変化[:：]\\s*([0-9０-９]+)手"));
+        static const QRegularExpression r(QStringLiteral("^\\s*変化[:：]\\s*([0-9０-９]+)\\s*手"));
         return &r;
     }();
     return re;

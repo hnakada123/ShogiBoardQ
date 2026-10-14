@@ -2,30 +2,30 @@
 #define AUTOMATIONCONTEXT_H
 
 /// @file automationcontext.h
-/// @brief 自動化 API のメソッド実装に注入する MainWindow 側依存（Deps 構造体）
+/// @brief 自動化 API のメソッド実装に渡すアプリ側の状態と部品
 
 #include <QString>
 #include <QStringList>
 #include <functional>
 
-#include "playmode.h"
+#include "appstate.h"
 
 class QMainWindow;
 class ShogiGameController;
 class ShogiView;
 class KifuBranchTree;
+class KifuNavigationState;
 class KifuNavigationController;
 class UiStatePolicyManager;
 class KifuFileController;
 class KifuExportController;
 class GameRecordModel;
-class CsaGameCoordinator;
+class CsaGameWiring;
 
 /**
- * @brief 自動化 API が参照する MainWindow の状態とコントローラ（すべて非所有）
+ * @brief 自動化 API が参照するアプリの状態と部品（すべて非所有）
  *
- * 遅延生成されるオブジェクトは `std::function` のプロバイダで受け取り、呼び出し時に `ensure*` を通す。
- * 生成は `MainWindowServiceRegistry::ensureAutomationServer()` が行う。
+ * 部品は起動時に全部作られているので、そのまま指す。設定されていないもの（テストなど）は nullptr。
  */
 struct AutomationContext {
     QMainWindow* mainWindow = nullptr;
@@ -33,28 +33,23 @@ struct AutomationContext {
     ShogiView* shogiView = nullptr;
     KifuBranchTree* branchTree = nullptr;
 
-    // MainWindow の状態（読み取り）
-    PlayMode* playMode = nullptr;
-    QString* startSfenStr = nullptr;
-    QString* currentSfenStr = nullptr;
-    QString* saveFileName = nullptr;
-    QString* engineName1 = nullptr;
-    QString* engineName2 = nullptr;
+    const AppState* state = nullptr;                          ///< 対局モード・局面・保存先・エンジン名
+    const KifuNavigationState* navState = nullptr;            ///< 表示中の手数（分岐ツリーのカーソル）
+    KifuNavigationController* navigationController = nullptr;
+    UiStatePolicyManager* uiStatePolicy = nullptr;
+    KifuFileController* kifuFileController = nullptr;
+    KifuExportController* kifuExportController = nullptr;
+    GameRecordModel* gameRecordModel = nullptr;
+    CsaGameWiring* csaGameWiring = nullptr;                   ///< 通信対局の司令塔は最初の CSA 対局で作られる
 
-    // 差し替わる・遅延生成されるオブジェクトのプロバイダ
-    std::function<int()> currentPly;                               ///< 表示中の手数（分岐ツリーのカーソル）
-    std::function<KifuNavigationController*()> navigationController;
-    std::function<UiStatePolicyManager*()> uiStatePolicy;
-    std::function<KifuFileController*()> kifuFileController;       ///< ensure 済みを返す
-    std::function<KifuExportController*()> kifuExportController;   ///< ensure + 依存更新済みを返す
-    std::function<GameRecordModel*()> gameRecordModel;             ///< ensure 済みを返す
-    std::function<CsaGameCoordinator*()> csaGameCoordinator;
-
-    // 上位層の操作
+    // メニューウィンドウ（dialogs 層）の操作。automation 層からは直接触れないので関数で受け取る
     std::function<QStringList()> menuFavorites;
     std::function<QStringList()> availableMenuActions;
     std::function<void(const QStringList&)> setMenuFavorites;
     std::function<void()> quitApplication;
+
+    /// 表示中の手数（navState が無ければ 0）
+    int currentPly() const;
 };
 
 #endif // AUTOMATIONCONTEXT_H

@@ -4,6 +4,7 @@
 #include "jkftosfenconverter.h"
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
+#include "kifreader.h"
 #include "sfenpositiontracer.h"
 #include "sfenutils.h"
 
@@ -20,61 +21,93 @@ Format formatForPath(const QString& path)
 }
 }
 
+bool KifuLoadParser::readFileText(const QString& path, Format format, QString& outText, QString* warn)
+{
+    if (format == Format::CSA) return CsaToSfenConverter::readFileText(path, outText, warn);
+    QString encoding;
+    return KifReader::readAllTextAuto(path, outText, &encoding, warn);
+}
+
 KifuLoadResult KifuLoadParser::parseFile(const QString& path, Format format, const CancelFlag& cancel)
 {
-    KifuLoadResult result;
-    result.filePath = path;
-    if (canceled(cancel)) return result;
+    if (canceled(cancel)) {
+        KifuLoadResult result;
+        result.filePath = path;
+        return result;
+    }
     if (format == Format::Unknown) format = formatForPath(path);
+    QString text;
+    QString warning;
+    if (!readFileText(path, format, text, &warning)) {
+        KifuLoadResult result;
+        result.filePath = path;
+        result.warning = warning;
+        result.error = QCoreApplication::translate("KifuLoadCoordinator", "棋譜ファイルの読み込みに失敗しました: %1%2")
+                           .arg(QFileInfo(path).fileName(), QLatin1Char('\n') + warning);
+        return result;
+    }
+    KifuLoadResult result = parseContent(text, format, cancel, QFileInfo(path).fileName());
+    result.filePath = path;
+    if (!warning.isEmpty()) result.warning.prepend(warning);
+    return result;
+}
+
+KifuLoadResult KifuLoadParser::parseContent(const QString& content, Format format, const CancelFlag& cancel,
+                                            const QString& sourceName)
+{
+    KifuLoadResult result;
+    if (canceled(cancel)) return result;
     auto& record = result.record;
     auto* warning = &result.warning;
     auto* label = &result.teaiLabel;
     switch (format) {
     case Format::KI2:
-        result.initialSfen = KifToSfenConverter::detectInitialSfenFromFile(path, label);
-        result.success = Ki2ToSfenConverter::parseWithVariations(path, record, warning);
-        if (result.success) result.gameInfo = Ki2ToSfenConverter::extractGameInfo(path);
+        result.initialSfen = Ki2ToSfenConverter::detectInitialSfenFromText(content, label);
+        result.success = Ki2ToSfenConverter::parseText(content, record, warning);
+        if (result.success) result.gameInfo = Ki2ToSfenConverter::extractGameInfoFromText(content);
         break;
     case Format::CSA:
-        result.success = CsaToSfenConverter::parse(path, record, warning);
+        result.success = CsaToSfenConverter::parseText(content, record, warning);
         result.initialSfen = record.mainline.baseSfen;
         result.teaiLabel = SfenUtils::isHirateStart(result.initialSfen)
             ? QStringLiteral("平手") : QStringLiteral("局面指定");
-        if (result.success) result.gameInfo = CsaToSfenConverter::extractGameInfo(path);
+        if (result.success) result.gameInfo = CsaToSfenConverter::extractGameInfoFromText(content);
         break;
     case Format::JKF:
-        result.initialSfen = JkfToSfenConverter::detectInitialSfenFromFile(path, label);
-        result.success = JkfToSfenConverter::parseWithVariations(path, record, warning);
-        if (result.success) result.gameInfo = JkfToSfenConverter::extractGameInfo(path);
+        result.initialSfen = JkfToSfenConverter::detectInitialSfenFromText(content, label);
+        result.success = JkfToSfenConverter::parseText(content, record, warning);
+        if (result.success) result.gameInfo = JkfToSfenConverter::extractGameInfoFromText(content);
         break;
     case Format::USEN:
-        result.initialSfen = UsenToSfenConverter::detectInitialSfenFromFile(path, label);
-        result.success = UsenToSfenConverter::parseWithVariations(path, record, warning);
-        if (result.success) result.gameInfo = UsenToSfenConverter::extractGameInfo(path);
+        result.initialSfen = UsenToSfenConverter::detectInitialSfenFromText(content, label);
+        result.success = UsenToSfenConverter::parseText(content, record, warning);
         break;
-    case Format::USI: {
+    case Format::USI:
+    case Format::SFEN: {
         QString base;
         QStringList moves;
         QString terminal;
-        if (UsiToSfenConverter::parseUsiFile(path, base, moves, &terminal, warning)
+        if (UsiToSfenConverter::parseUsiText(content, base, moves, &terminal, warning)
             && moves.isEmpty() && terminal.isEmpty()) {
             result.success = true;
             result.positionOnly = base;
             return result;
         }
-        result.initialSfen = UsiToSfenConverter::detectInitialSfenFromFile(path, label);
-        result.success = UsiToSfenConverter::parseWithVariations(path, record, warning);
+        result.initialSfen = UsiToSfenConverter::detectInitialSfenFromText(content, label);
+        result.success = UsiToSfenConverter::parseText(content, record, warning);
         break;
     }
     default:
-        result.initialSfen = KifToSfenConverter::detectInitialSfenFromFile(path, label);
-        result.success = KifToSfenConverter::parseWithVariations(path, record, warning);
-        if (result.success) result.gameInfo = KifToSfenConverter::extractGameInfo(path);
+        result.initialSfen = KifToSfenConverter::detectInitialSfenFromText(content, label);
+        result.success = KifToSfenConverter::parseText(content, record, warning);
+        if (result.success) result.gameInfo = KifToSfenConverter::extractGameInfoFromText(content);
         break;
     }
     if (!result.success) {
         const QString detail = result.warning.isEmpty() ? QString() : QLatin1Char('\n') + result.warning;
-        result.error = QCoreApplication::translate("KifuLoadCoordinator", "棋譜ファイルの読み込みに失敗しました: %1%2").arg(QFileInfo(path).fileName(), detail);
+        result.error = sourceName.isEmpty()
+            ? QCoreApplication::translate("KifuLoadCoordinator", "棋譜の読み込みに失敗しました。%1").arg(detail)
+            : QCoreApplication::translate("KifuLoadCoordinator", "棋譜ファイルの読み込みに失敗しました: %1%2").arg(sourceName, detail);
         return result;
     }
     if (canceled(cancel)) return result;
@@ -137,11 +170,5 @@ KifuLoadResult KifuLoadParser::parseText(const QString& content, const CancelFla
         if (!result.success) result.error = QCoreApplication::translate("KifuApplyService", "BOD形式の解析に失敗しました。%1").arg(result.warning);
         return result;
     }
-    const auto file = KifuFileReader::createTempFile(format, content);
-    if (!file) {
-        result.error = QCoreApplication::translate("KifuLoadCoordinator", "一時ファイルの作成に失敗しました。");
-        return result;
-    }
-    // 一時ファイルは解析が終わるまで、このワーカー内で所有する。
-    return parseFile(file->fileName(), format, cancel);
+    return parseContent(content, format, cancel);
 }

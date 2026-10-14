@@ -26,7 +26,6 @@ struct BranchLine;
  * KifuDisplayCoordinatorから分離された責務:
  * - 棋譜欄モデルの構築（populateRecordModel, populateRecordModelFromPath）
  * - 分岐マーク計算（populateBranchMarks）
- * - 分岐ツリー行データ構築（buildBranchTreeRows）
  * - 表示一致性検証（captureDisplaySnapshot, verifyDisplayConsistencyDetailed等）
  */
 class KifuDisplayPresenter
@@ -100,15 +99,6 @@ public:
      * @brief 分岐マークを計算して棋譜欄モデルに設定する
      */
     void populateBranchMarks();
-
-    // === 分岐ツリー行データ構築 ===
-
-    /**
-     * @brief ツリーからBranchTreeManager用の行データを構築する
-     * @param tree 分岐ツリー
-     * @return ResolvedRowLite のリスト
-     */
-    static QList<BranchTreeManager::ResolvedRowLite> buildBranchTreeRows(KifuBranchTree* tree);
 
     // === 一致性検証 ===
 

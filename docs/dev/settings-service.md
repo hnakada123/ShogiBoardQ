@@ -203,7 +203,7 @@ MyDialog::~MyDialog()
 
 実際のコードでは `KifuPasteDialog`（`src/dialogs/kifupastedialog.cpp`）が同じ形になっている。
 
-- `FontSizeHelper(const Setting<int>&, int min = 8, int max = 24, int step = 1)`（`src/common/fontsizehelper.h`）は、宣言から初期値を読んで範囲内に収め、`increase()` / `decrease()` で変わるたびに同じ宣言へ保存する。文字の反映（`applyFontSize()`）はダイアログ側で書く
+- `FontSizeHelper(const Setting<int>&, int min = 8, int max = 24, int step = 1)`（`src/common/fontsizehelper.h`）は、宣言から初期値を読んで範囲内に収め、`increase()` / `decrease()` で変わるたびに同じ宣言へ保存する。文字の反映は `applyTo(dialog)`（`DialogUtils::applyFontSize`）で、ダイアログ側の `applyFontSize()` には固有の調整だけを書く
 - `DialogUtils::restoreDialogSize(QWidget*, const Setting<QSize>&)` は、幅・高さとも 100 を超える保存値だけを適用する。`DialogUtils::saveDialogSize(const QWidget*, const Setting<QSize>&)` は現在のサイズを保存する（`src/common/dialogutils.h`）
 
 ### INI キーの命名

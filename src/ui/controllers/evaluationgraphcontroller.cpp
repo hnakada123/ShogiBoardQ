@@ -2,6 +2,8 @@
 /// @brief 評価値グラフコントローラクラスの実装
 
 #include "evaluationgraphcontroller.h"
+#include "kifubranchtree.h"
+#include "kifunavigationstate.h"
 
 #include "logcategories.h"
 #include <QTimer>
@@ -41,9 +43,18 @@ void EvaluationGraphController::setSfenRecord(QStringList* sfenRecord)
 // エンジン名の設定
 // --------------------------------------------------------
 
-void EvaluationGraphController::setRecordLengthProvider(std::function<int()> provider)
+void EvaluationGraphController::setNavigation(const KifuBranchTree* tree, const KifuNavigationState* navState)
 {
-    m_recordLength = std::move(provider);
+    m_branchTree = tree;
+    m_navState = navState;
+}
+
+int EvaluationGraphController::recordLength() const
+{
+    if (!m_branchTree || !m_navState) return 0;
+    const QList<BranchLine> lines = m_branchTree->allLines();
+    const int index = m_navState->currentLineIndex();
+    return (index >= 0 && index < lines.size()) ? static_cast<int>(lines.at(index).nodes.size()) - 1 : 0;
 }
 
 void EvaluationGraphController::setEngine1Name(const QString& name)
@@ -294,6 +305,6 @@ void EvaluationGraphController::setCurrentPly(int ply)
 
     // 記録の長さには現在手数も含める。棋譜の長さだけを先に渡すと横軸がいったん縮み、
     // 直後の setCurrentPly で元に戻って目盛りを2回作り直す（手ごとに数十ミリ秒かかる）。
-    if (m_recordLength) m_evalChart->setRecordLength(qMax(m_recordLength(), ply));
+    m_evalChart->setRecordLength(qMax(recordLength(), ply));
     m_evalChart->setCurrentPly(ply);
 }

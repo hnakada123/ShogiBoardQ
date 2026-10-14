@@ -282,17 +282,11 @@ void JosekiMergeDialog::onFontSizeDecrease()
 
 void JosekiMergeDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    const int size = m_fontHelper.fontSize();
-    QFont font = this->font();
-    font.setPointSize(size);
-    DialogUtils::applyFontToAllChildren(this, font);
-
+    const QFont font = m_fontHelper.applyTo(this);
     m_tableWidget->horizontalHeader()->setFont(font);
-    m_tableWidget->verticalHeader()->setDefaultSectionSize(fontMetrics().height() + 16);
+    m_tableWidget->verticalHeader()->setDefaultSectionSize(QFontMetrics(font).height() + 16);
     m_tableWidget->resizeRowsToContents();
     m_tableWidget->resizeColumnsToContents();
-    DialogUtils::updateFontButtons(this, size, 8, 20);
 }
 
 QString JosekiMergeDialog::normalizeSfen(const QString &sfen) const

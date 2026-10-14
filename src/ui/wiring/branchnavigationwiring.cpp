@@ -2,6 +2,8 @@
 /// @brief 分岐ナビゲーション配線クラスの実装
 
 #include "branchnavigationwiring.h"
+
+#include <functional>
 #include "branchtreeeditcontroller.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
@@ -54,7 +56,10 @@ void BranchNavigationWiring::wireBranchEditing()
     deps.navController = m_deps.kifuNavController;
     deps.liveSession = m_deps.liveGameSession;
     deps.parentWidget = m_deps.analysisTab;
-    deps.markGameRecordDirty = m_deps.markGameRecordDirty;
+    // 分岐の編集後に棋譜を未保存にする
+    if (m_deps.gameRecordModel != nullptr) {
+        deps.markGameRecordDirty = std::bind(&GameRecordModel::markDirty, m_deps.gameRecordModel);
+    }
     QString* startSfen = m_deps.startSfenStr;
     deps.startPositionSfen = [startSfen]() { return startSfen ? *startSfen : QString(); };
     deps.treeRootCreated = std::bind(&BranchNavigationWiring::onBranchTreeBuilt, this);
@@ -131,9 +136,6 @@ void BranchNavigationWiring::connectDisplaySignals()
             this, &BranchNavigationWiring::boardSfenChanged);
 
     // コメント表示シグナルを接続
-    if (m_deps.ensureCommentCoordinator) {
-        m_deps.ensureCommentCoordinator();
-    }
     if (m_deps.commentCoordinator) {
         connect(dc, &KifuDisplayCoordinator::commentUpdateRequired,
                 m_deps.commentCoordinator, &CommentCoordinator::onNavigationCommentUpdate);

@@ -2,6 +2,7 @@
 /// @brief プレイモード依存の判定ロジックを集約するサービスの実装
 
 #include "playmodepolicyservice.h"
+#include "csagamewiring.h"
 #include "matchcoordinator.h"
 #include "csagamecoordinator.h"
 #include "playmode.h"
@@ -37,7 +38,7 @@ bool PlayModePolicyService::isHumanTurnNow() const
                && m_deps.gameController->currentPlayer() == Turn::White;
 
     case PlayMode::CsaNetworkMode: {
-        const CsaGameCoordinator* csa = m_deps.csaGameCoordinator ? m_deps.csaGameCoordinator() : nullptr;
+        const CsaGameCoordinator* csa = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
         return csa && csa->gameState() == CsaGameCoordinator::GameState::InGame
             && csa->isHumanPlayer() && csa->isMyTurn();
     }
@@ -92,6 +93,10 @@ bool PlayModePolicyService::isGameActivelyInProgress() const
     case PlayMode::HandicapEngineVsHuman:
     case PlayMode::HandicapEngineVsEngine:
         return m_deps.match && !m_deps.match->gameOverState().isOver;
+    case PlayMode::CsaNetworkMode: {
+        const CsaGameCoordinator* csa = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
+        return csa && csa->gameState() == CsaGameCoordinator::GameState::InGame;
+    }
     default:
         return false;
     }

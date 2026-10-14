@@ -6,6 +6,7 @@
 #include "considerationpositionresolver.h"
 #include "kifunavigationstate.h"
 #include "engineanalysistab.h"
+#include "considerationtabmanager.h"
 #include "logcategories.h"
 #include "matchcoordinator.h"
 #include "playmode.h"
@@ -51,7 +52,7 @@ void ConsiderationPositionService::handleBuildPositionRequired(int row)
             params.lastUsiMove)) {
         // ポジションが変更された場合、経過時間タイマーをリセットして再開
         if (m_deps.analysisTab) {
-            m_deps.analysisTab->startElapsedTimer();
+            m_deps.analysisTab->considerationTabManager()->startElapsedTimer();
         }
     }
 }

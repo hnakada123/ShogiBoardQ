@@ -20,7 +20,10 @@
 // 初期化
 // ============================================================
 
-StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(std::make_unique<Ui::StartGameDialog>())
+StartGameDialog::StartGameDialog(QWidget *parent)
+    : QDialog(parent)
+    , ui(std::make_unique<Ui::StartGameDialog>())
+    , m_fontHelper(GameSettings::startGameDialogFontSize, MinFontSize, MaxFontSize, 1)
 {
     ui->setupUi(this);
     // スクロール位置にかかわらず文字サイズを戻せるよう、操作を固定フッターへ移す。
@@ -57,7 +60,7 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(std::mak
     startButton->setDefault(true);
     startButton->setToolTip(tr("設定を保存して対局を開始します。"));
 
-    loadFontSizeSettings();
+    applyFontSize();
     loadEngineConfigurations();
     populatePlayerComboBoxes();
     loadGameSettings();
@@ -376,66 +379,18 @@ void StartGameDialog::onSecondPlayerSettingsClicked()
 
 void StartGameDialog::increaseFontSize()
 {
-    if (m_fontSize < MaxFontSize) {
-        m_fontSize++;
-        applyFontSize(m_fontSize);
-        saveFontSizeSettings();
-    }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 void StartGameDialog::decreaseFontSize()
 {
-    if (m_fontSize > MinFontSize) {
-        m_fontSize--;
-        applyFontSize(m_fontSize);
-        saveFontSizeSettings();
-    }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
-void StartGameDialog::applyFontSize(int size)
+void StartGameDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    QFont font = this->font();
-    font.setPointSize(size);
-    this->setFont(font);
-
     // QScrollArea 配下を含め、ダイアログ内の全ウィジェットへ明示適用する
-    ui->scrollArea->setFont(font);
-    ui->scrollAreaWidgetContents->setFont(font);
-
-    const QList<QWidget*> widgets = findChildren<QWidget*>();
-    for (QWidget* widget : std::as_const(widgets)) {
-        if (widget) {
-            widget->setFont(font);
-        }
-    }
-
-    // コンボボックスのドロップダウンリストにも反映
-    const QList<QComboBox*> comboBoxes = findChildren<QComboBox*>();
-    for (QComboBox* comboBox : std::as_const(comboBoxes)) {
-        if (comboBox && comboBox->view()) {
-            comboBox->view()->setFont(font);
-        }
-    }
-    ui->pushButtonFontSizeDown->setEnabled(size > MinFontSize);
-    ui->pushButtonFontSizeUp->setEnabled(size < MaxFontSize);
-    DialogUtils::updateFontButtons(this, size, MinFontSize, MaxFontSize);
-}
-
-void StartGameDialog::loadFontSizeSettings()
-{
-    m_fontSize = GameSettings::startGameDialogFontSize();
-
-    // 範囲内に収める
-    if (m_fontSize < MinFontSize) m_fontSize = MinFontSize;
-    if (m_fontSize > MaxFontSize) m_fontSize = MaxFontSize;
-
-    applyFontSize(m_fontSize);
-}
-
-void StartGameDialog::saveFontSizeSettings()
-{
-    GameSettings::startGameDialogFontSize.set(m_fontSize);
+    m_fontHelper.applyTo(this);
 }
 
 // ============================================================

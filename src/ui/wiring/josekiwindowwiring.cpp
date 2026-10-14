@@ -8,16 +8,18 @@
 #include "josekiwindow.h"
 #include "shogigamecontroller.h"
 #include "boardcoordinates.h"
+#include "kifunavigationstate.h"
+#include "playmodepolicyservice.h"
 
 #include <QDockWidget>
+#include <functional>
 
 JosekiWindowWiring::JosekiWindowWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
     , m_gameController(deps.gameController)
     , m_currentSfenStr(deps.currentSfenStr)
-    , m_currentLine(deps.currentLine)
-    , m_isHumanTurnNow(deps.isHumanTurnNow)
+    , m_navState(deps.navState)
 {
 }
 
@@ -79,7 +81,7 @@ bool JosekiWindowWiring::determineHumanCanPlay() const
 {
     // 盤面クリックと同じ判定を使う。対局中は人間の手番だけ、対局外（終局後を含む）は
     // 指した手を棋譜の変化として記録できる待機中だけ指せる
-    return m_isHumanTurnNow && m_isHumanTurnNow();
+    return m_playModePolicy && m_playModePolicy->isHumanTurnNow();
 }
 
 void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
@@ -136,7 +138,7 @@ void JosekiWindowWiring::onRequestKifuDataForMerge()
     }
 
     // 表示中の手順（分岐を選んでいればその分岐）の局面・指し手・表記をそろえて渡す
-    const RecordLine line = m_currentLine ? m_currentLine() : RecordLine{};
+    const RecordLine line = m_navState ? m_navState->currentRecordLine() : RecordLine{};
     qCDebug(lcUi) << "onRequestKifuDataForMerge: moves=" << line.moveCount()
                   << "currentPly=" << line.currentPly;
     m_josekiWindow->setKifuDataForMerge(line.sfens, line.usiMoves(), line.displayTexts, line.currentPly);

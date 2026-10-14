@@ -66,6 +66,17 @@ QString JkfToSfenConverter::detectInitialSfenFromFile(const QString& jkfPath, QS
     return buildInitialSfen(root, detectedLabel);
 }
 
+QString JkfToSfenConverter::detectInitialSfenFromText(const QString& text, QString* detectedLabel)
+{
+    QJsonObject root;
+    QString warn;
+    if (!parseJson(text.toUtf8(), root, &warn)) {
+        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
+        return JkfMoveParser::presetToSfen(QStringLiteral("HIRATE"));
+    }
+    return buildInitialSfen(root, detectedLabel);
+}
+
 QStringList JkfToSfenConverter::convertFile(const QString& jkfPath, QString* errorMessage)
 {
     KifParseResult result;
@@ -88,7 +99,19 @@ bool JkfToSfenConverter::parseWithVariations(const QString& jkfPath,
     if (!loadJsonFile(jkfPath, root, errorMessage)) {
         return false;
     }
+    return parseRoot(root, out, errorMessage);
+}
 
+bool JkfToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
+{
+    out = KifParseResult{};
+    QJsonObject root;
+    if (!parseJson(text.toUtf8(), root, errorMessage)) return false;
+    return parseRoot(root, out, errorMessage);
+}
+
+bool JkfToSfenConverter::parseRoot(const QJsonObject& root, KifParseResult& out, QString* errorMessage)
+{
     QString detectedLabel;
     out.mainline.baseSfen = buildInitialSfen(root, &detectedLabel);
     out.mainline.startPly = 1;
@@ -110,13 +133,23 @@ bool JkfToSfenConverter::parseWithVariations(const QString& jkfPath,
 
 QList<KifGameInfoItem> JkfToSfenConverter::extractGameInfo(const QString& filePath)
 {
-    QList<KifGameInfoItem> ordered;
-
     QJsonObject root;
     QString warn;
-    if (!loadJsonFile(filePath, root, &warn)) {
-        return ordered;
-    }
+    if (!loadJsonFile(filePath, root, &warn)) return {};
+    return gameInfoFromRoot(root);
+}
+
+QList<KifGameInfoItem> JkfToSfenConverter::extractGameInfoFromText(const QString& text)
+{
+    QJsonObject root;
+    QString warn;
+    if (!parseJson(text.toUtf8(), root, &warn)) return {};
+    return gameInfoFromRoot(root);
+}
+
+QList<KifGameInfoItem> JkfToSfenConverter::gameInfoFromRoot(const QJsonObject& root)
+{
+    QList<KifGameInfoItem> ordered;
 
     if (!root.contains(QStringLiteral("header"))) {
         return ordered;
@@ -150,7 +183,13 @@ bool JkfToSfenConverter::loadJsonFile(const QString& filePath, QJsonObject& root
 
     const QByteArray data = file.readAll();
     file.close();
+    return parseJson(data, root, warn);
+}
 
+bool JkfToSfenConverter::parseJson(const QByteArray& rawData, QJsonObject& root, QString* warn)
+{
+    // UTF-8 の BOM は JSON の解析前に除く
+    const QByteArray data = rawData.startsWith("\xEF\xBB\xBF") ? rawData.mid(3) : rawData;
     QJsonParseError parseError;
     const QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
 

@@ -4,7 +4,7 @@
 #include "gameactionswiring.h"
 #include "ui_mainwindow.h"
 #include "gamesessionorchestrator.h"
-#include "mainwindow.h"
+#include "mainwindowactions.h"
 #include "dialoglaunchwiring.h"
 #include "dialogcoordinatorwiring.h"
 #include "logcategories.h"
@@ -12,7 +12,7 @@
 void GameActionsWiring::wire()
 {
     auto* ui  = m_d.ui;
-    auto* mw  = m_d.mw;
+    auto* mw  = m_d.actions;
     auto* dlw = m_d.dlw;
     auto* dcw = m_d.dcw;
     auto* gso = m_d.gso;
@@ -29,7 +29,7 @@ void GameActionsWiring::wire()
     }
 
     // 対局
-    QObject::connect(ui->actionNewGame,      &QAction::triggered, mw,  &MainWindow::resetToInitialState,  Qt::UniqueConnection);
+    QObject::connect(ui->actionNewGame,      &QAction::triggered, mw,  &MainWindowActions::resetToInitialState,  Qt::UniqueConnection);
     QObject::connect(ui->actionStartGame,    &QAction::triggered, gso, &GameSessionOrchestrator::initializeGame,    Qt::UniqueConnection);
     QObject::connect(ui->actionCSA,          &QAction::triggered, dlw, &DialogLaunchWiring::displayCsaGameDialog, Qt::UniqueConnection);
     QObject::connect(ui->actionResign,       &QAction::triggered, gso, &GameSessionOrchestrator::handleResignation, Qt::UniqueConnection);
@@ -43,8 +43,8 @@ void GameActionsWiring::wire()
     QObject::connect(ui->actionPieceSoundSettings,   &QAction::triggered, dlw, &DialogLaunchWiring::displayPieceSoundSettingsDialog,   Qt::UniqueConnection);
     QObject::connect(ui->actionAnalyzeKifu,          &QAction::triggered, dlw, &DialogLaunchWiring::displayKifuAnalysisDialog,         Qt::UniqueConnection);
     QObject::connect(ui->actionCancelAnalyzeKifu,    &QAction::triggered, dcw, &DialogCoordinatorWiring::cancelKifuAnalysis,           Qt::UniqueConnection);
-    QObject::connect(ui->actionStartEditPosition,    &QAction::triggered, mw,  &MainWindow::beginPositionEditing,                     Qt::UniqueConnection);
-    QObject::connect(ui->actionEndEditPosition,      &QAction::triggered, mw,  &MainWindow::finishPositionEditing,                    Qt::UniqueConnection);
+    QObject::connect(ui->actionStartEditPosition,    &QAction::triggered, mw,  &MainWindowActions::beginPositionEditing,                     Qt::UniqueConnection);
+    QObject::connect(ui->actionEndEditPosition,      &QAction::triggered, mw,  &MainWindowActions::finishPositionEditing,                    Qt::UniqueConnection);
     QObject::connect(ui->actionTsumeShogiSearch,     &QAction::triggered, dlw, &DialogLaunchWiring::displayTsumeShogiSearchDialog,    Qt::UniqueConnection);
     QObject::connect(ui->actionStopTsumeSearch,      &QAction::triggered, gso, &GameSessionOrchestrator::stopTsumeSearch,              Qt::UniqueConnection);
     QObject::connect(ui->actionTsumeshogiGenerator,  &QAction::triggered, dlw, &DialogLaunchWiring::displayTsumeshogiGeneratorDialog, Qt::UniqueConnection);

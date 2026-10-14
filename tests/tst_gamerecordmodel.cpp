@@ -24,6 +24,8 @@
 #include "sfenpositiontracer.h"
 #include "livegamesession.h"
 #include "kifuexportclipboard.h"
+#include "appstate.h"
+#include "kifunavigationstate.h"
 #include "kifuexportmetadata.h"
 #include "kifu_test_helper.h"
 #include "kifuloadparser.h"
@@ -281,7 +283,8 @@ private slots:
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
         const QStringList lines = model.toKifLines(ctx);
-        QVERIFY2(lines.contains(QStringLiteral("まで1手で%1の勝ち").arg(winner)), qPrintable(lines.join('\n')));
+        // KIF も Kifu for Windows と同じく、入玉宣言は終局の種類を明記する
+        QVERIFY2(lines.contains(QStringLiteral("まで1手で%1の入玉勝ち").arg(winner)), qPrintable(lines.join('\n')));
     }
 
     void handicapTurnsAndWinner_data()
@@ -496,7 +499,7 @@ private slots:
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = initial;
         const QStringList kif = model.toKifLines(ctx);
-        QVERIFY2(kif.contains(QStringLiteral("まで1手で上手の勝ち")), qPrintable(kif.join(QLatin1Char('\n'))));
+        QVERIFY2(kif.contains(QStringLiteral("まで1手で時間切れにより上手の勝ち")), qPrintable(kif.join(QLatin1Char('\n'))));
         const QStringList ki2 = model.toKi2Lines(ctx);
         QVERIFY2(ki2.contains(QStringLiteral("まで1手で時間切れにより上手の勝ち")), qPrintable(ki2.join(QLatin1Char('\n'))));
         QVERIFY(!ki2.contains(QStringLiteral("▲時間切れ")));
@@ -548,9 +551,14 @@ private slots:
         model.setBranchTree(&tree);
         KifuExportClipboard exporter(nullptr);
         KifuExportClipboard::Deps deps;
+        AppState state;
+        state.startSfenStr = startSfen;
+        KifuNavigationState nav;
+        nav.setTree(&tree);
+        nav.setCurrentNode(tree.findByPlyOnMainLine(1));
         deps.gameRecord = &model;
-        deps.startSfenStr = startSfen;
-        deps.currentMoveIndex = 1;
+        deps.state = &state;
+        deps.navState = &nav;
         exporter.setDependencies(deps);
         QVERIFY(exporter.copyBodToClipboard());
         const QStringList bod = QApplication::clipboard()->text().split(QLatin1Char('\n'));
@@ -650,8 +658,13 @@ private slots:
         model.setBranchTree(&tree);
         KifuExportClipboard exporter(nullptr);
         KifuExportClipboard::Deps deps;
+        AppState state;
+        state.startSfenStr = anchor->sfen();
+        KifuNavigationState nav;
+        nav.setTree(&tree);
         deps.gameRecord = &model;
-        deps.startSfenStr = anchor->sfen();
+        deps.state = &state;
+        deps.navState = &nav;
         exporter.setDependencies(deps);
         if (format == QStringLiteral("csa")) QVERIFY(exporter.copyCsaToClipboard());
         else if (format == QStringLiteral("usi")) QVERIFY(exporter.copyUsiToClipboard());
@@ -674,8 +687,7 @@ private slots:
         QCOMPARE(model.collectMainlineUsiForExport(), expected);
 
         // 現在手までのUSIコピーでは、本譜の先頭から指定手数に制限する。
-        deps.currentMoveIndex = 1;
-        exporter.setDependencies(deps);
+        nav.setCurrentNode(tree.findByPlyOnMainLine(1));
         QVERIFY(exporter.copyUsiCurrentToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos moves 7g7f"));
     }
@@ -694,8 +706,10 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         KifuExportClipboard exporter(nullptr);
         KifuExportClipboard::Deps deps;
+        AppState state;
+        state.startSfenStr = kHirateSfen;
         deps.gameRecord = &model;
-        deps.startSfenStr = kHirateSfen;
+        deps.state = &state;
         exporter.setDependencies(deps);
         QVERIFY(exporter.copyUsiToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos"));

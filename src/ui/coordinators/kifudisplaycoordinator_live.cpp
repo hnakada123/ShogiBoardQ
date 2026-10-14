@@ -2,7 +2,6 @@
 /// @brief 棋譜表示コーディネータ - ライブ対局セッション処理
 
 #include "kifudisplaycoordinator.h"
-#include "kifupresentation.h"
 #include "kifudisplaypresenter.h"
 #include "kifuselectionsync.h"
 #include "kifubranchtree.h"
@@ -116,14 +115,7 @@ bool KifuDisplayCoordinator::appendLiveNodeToBranchTree(KifuBranchNode* liveNode
         return false;
     }
 
-    KifDisplayItem item;
-    item.prettyMove = liveNode->displayText();
-    item.beforeSfen = liveNode->parent() ? liveNode->parent()->sfen() : QString();
-    item.usiMove = liveNode->isTerminal() ? QString() : KifuPresentation::usiMove(liveNode->move());
-    item.terminal = liveNode->isTerminal();
-    item.timeText = liveNode->timeText();
-    item.comment = liveNode->comment();
-    if (!m_branchTreeManager->appendNodeToRow(*lineIndex, liveNode->ply(), item, liveNode->sfen())) {
+    if (!m_branchTreeManager->appendNode(liveNode)) {
         return false;
     }
     m_branchTreeNodeCount = nodeCount;

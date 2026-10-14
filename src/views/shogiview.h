@@ -8,14 +8,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ShogiView
 // 盤（9x9）と駒台を描画・操作する Qt ウィジェット。
-// - 反転表示、局面編集モード、ドラッグ＆ドロップ、ハイライト表示、時計/名前ラベル表示などを提供
+// - 反転表示、局面編集モード、ドラッグ＆ドロップ、ハイライト表示などを提供
 // - ShogiBoard（局面モデル）と接続して動作
 // 設計メモ：
 //  * QPainter の state 汚染を最小化するため、描画ヘルパは極力ローカルで save/restore する方針
 //  * 駒台の疑似座標として file=10/11 を使用（左/右のスタンド列）
-//  * ラベル（時計/名前）はウィジェット子として配置し、レイアウトは本クラスで制御
+//  * 対局者カード（名前・時計・手番の札）と編集用ボタンは BoardChromeWidget が持つ。
+//    本クラスは盤・駒台の位置を渡すだけで、名前・時計・手番の操作は chrome() へ転送する
 // ─────────────────────────────────────────────────────────────────────────────
 
+#include "boardchromewidget.h"
 #include "elidelabel.h"
 #include "shogigamecontroller.h"
 #include "shogiviewinteraction.h"
@@ -30,17 +32,13 @@
 #include <QPointer>
 #include <QRegion>
 #include <QWidget>
-#include <QPushButton>
 
 #include <optional>
 
 // 前方宣言（ヘッダ依存を軽減）
 class ShogiBoard;
 class ShogiViewHighlighting;
-class GlobalToolTip;
 class QLabel;
-class QFrame;
-class QToolButton;
 class QPainter;
 class QEvent;
 class QMouseEvent;
@@ -211,6 +209,9 @@ public:
     // 手番表示（true=先手手番, false=後手手番）
     void setActiveSide(bool blackTurn);
 
+    // 対局者カード・時計・手番の札・編集用ボタン
+    BoardChromeWidget* chrome() const { return m_chrome; }
+
     // 手番ハイライト配色（任意）
     void setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff);
 
@@ -229,16 +230,16 @@ public:
 
     // 対局終了時のスタイル維持（trueの間はclearTurnHighlightを無視）
     void setGameOverStyleLock(bool locked);
-    bool gameOverStyleLock() const { return m_gameOverStyleLock; }
+    bool gameOverStyleLock() const;
 
     // ── 状態管理
-    enum class Urgency { Normal, Warn10, Warn5 };
+    using Urgency = BoardChromeWidget::Urgency;
 
     // しきい値（ミリ秒）
-    static constexpr qint64 kWarn10Ms = 10'000;
-    static constexpr qint64 kWarn5Ms  = 5'000;
+    static constexpr qint64 kWarn10Ms = BoardChromeWidget::kWarn10Ms;
+    static constexpr qint64 kWarn5Ms  = BoardChromeWidget::kWarn5Ms;
 
-    // ハイライト/矢印/手番表示の管理クラスへのアクセサ
+    // ハイライト/矢印の管理クラスへのアクセサ
     ShogiViewHighlighting* highlighting() const;
 
     void setUrgencyVisuals(Urgency u);
@@ -273,7 +274,6 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void resizeEvent(QResizeEvent* e) override;
     void wheelEvent(QWheelEvent* e) override;  // Ctrl+ホイールで拡大縮小
-    bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private:
     // ───────────────────────────── サイズ自動調整 ────────────────────────────
@@ -308,7 +308,6 @@ private:
     void drawPieceBoxBackground(QPainter* painter);
     void drawPieceBoxPieces(QPainter* painter);
     void relayoutPieceBoxSideSelector();
-    void onPieceBoxSideClicked(int id);
 
     // ドラッグ中の駒描画は m_interaction に委譲
 
@@ -316,17 +315,9 @@ private:
     void drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const;
     void drawCountedPiece(QPainter* painter, const QRect& rect, const QIcon& icon, int count) const;
 
-    // 駒台の段→駒文字マッピング
-    QChar rankToBlackShogiPiece(const int file, const int rank) const;
-    QChar rankToWhiteShogiPiece(const int file, const int rank) const;
-
-    // ───────────────────────────── ラベルとレイアウト ──────────────────────
-    void updateBlackClockLabelGeometry();   // 黒側ラベルのジオメトリ更新
-    void updateWhiteClockLabelGeometry();   // 白側ラベルのジオメトリ更新
-
-    // フォントを矩形にフィットさせる（時計用）
-    void fitLabelFontToRect(QLabel* label, const QString& text,
-                            const QRect& rect, int paddingPx = 2);
+    // ───────────────────────────── 対局者カードの配置 ──────────────────────
+    /// 盤・駒台の位置を BoardChromeWidget に渡して、カード・駒箱の切り替えを置き直す
+    void relayoutChrome();
 
     // レイアウト委譲ヘルパ（m_board 経由で盤サイズを渡す）
     QRect blackStandBoundingRect() const;
@@ -336,10 +327,6 @@ private:
     int   standInnerEdgePx(bool rightSide) const;
     void  recalcLayoutParams();
     void  applyBoardScaleChange(bool emitSignal);
-
-    // 名前ラベル/ツールチップ
-    void    refreshNameLabels();                 // 向きマーク付与の表示更新
-    static QString stripMarks(const QString&);   // ▲▼▽△ の除去
 
 private:
     // ───────────────────────────── 内部状態（モデル/描画/入力） ────────────────
@@ -406,43 +393,17 @@ private:
     mutable QHash<quint64, QRect> m_fieldRectCache;
     mutable bool m_fieldRectCacheValid = false;
 
-    // ラベル（子ウィジェット）
-    QFrame*     m_blackPlayerCard { nullptr };
-    QFrame*     m_whitePlayerCard { nullptr };
-    QLabel*     m_blackClockLabel { nullptr };
-    QLabel*     m_whiteClockLabel { nullptr };
-    ElideLabel* m_blackNameLabel  { nullptr };
-    ElideLabel* m_whiteNameLabel  { nullptr };
-    bool        m_clockEnabled    { true };    // 時計表示の有効/無効
-
-    // プレイヤー名（装飾抜きの素の文字列）
-    QString m_blackNameBase;
-    QString m_whiteNameBase;
-
     // 入力/ドラッグ（ShogiViewInteraction に委譲）
     ShogiViewInteraction m_interaction;
-    QToolButton* m_pieceBoxBlackButton = nullptr;
-    QToolButton* m_pieceBoxWhiteButton = nullptr;
-
 
     // エラー状態
     bool   m_errorOccurred { false };
 
-    // 自前ツールチップ
-    GlobalToolTip* m_tooltip = nullptr;
-
-    // ハイライト/矢印/手番表示の管理クラス
+    // ハイライト/矢印の管理クラス
     ShogiViewHighlighting* m_highlighting = nullptr;
 
-    bool m_gameOverStyleLock = false;  // 対局終了時のスタイル維持
-
-    void ensureTurnLabels();
-    void relayoutTurnLabels();
-
-    void ensureAndPlaceEditExitButton();
-
-    void styleEditExitButton(QPushButton* btn);
-    void fitEditExitButtonFont(QPushButton* btn, int maxWidth);
+    // 対局者カード・時計・手番の札・編集用ボタン（子ウィジェットとして盤に重ねる）
+    BoardChromeWidget* m_chrome = nullptr;
 };
 
 #endif // SHOGIVIEW_H

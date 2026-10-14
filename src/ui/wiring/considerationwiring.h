@@ -7,7 +7,6 @@
 
 #include <QObject>
 #include <QString>
-#include <functional>
 
 #include "playmode.h"
 
@@ -48,7 +47,6 @@ public:
         UsiCommLogModel* commLogModel = nullptr;
         PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
-        std::function<void()> ensureDialogCoordinator;  ///< DialogCoordinator 遅延初期化コールバック
     };
 
     explicit ConsiderationWiring(const Deps& deps, QObject* parent = nullptr);
@@ -56,7 +54,7 @@ public:
 
     void updateDeps(const Deps& deps);
 
-    /// DialogCoordinator の遅延初期化完了後にポインタだけを更新する
+    /// ダイアログの司令塔を渡す（互いを参照するので、両方を作った後に MainWindowComposer が呼ぶ）
     void setDialogCoordinator(DialogCoordinator* dc);
 
     /// MatchCoordinator（起動時に一度だけ作る）を渡す。司令塔より先にこのクラスができた場合に使う
@@ -126,7 +124,6 @@ private:
     UsiCommLogModel* m_commLogModel = nullptr;
     PlayMode* m_playMode = nullptr;
     QString* m_currentSfenStr = nullptr;
-    std::function<void()> m_ensureDialogCoordinator;
 
     ConsiderationModeUIController* m_uiController = nullptr;
 };

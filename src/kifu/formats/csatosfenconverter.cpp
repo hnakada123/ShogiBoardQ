@@ -18,7 +18,7 @@
 // ファイル読込
 // ============================================================
 
-bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QStringList& outLines, QString* warn)
+bool CsaToSfenConverter::readFileText(const QString& path, QString& outText, QString* warn)
 {
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly)) {
@@ -62,9 +62,17 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
         }
     }
 
-    text.replace("\r\n", "\n");
-    text.replace("\r", "\n");
-    outLines.clear();
+    outText = std::move(text);
+    return true;
+}
+
+QStringList CsaToSfenConverter::splitStatements(const QString& rawText, QString* warn)
+{
+    QString text = rawText;
+    if (!text.isEmpty() && text.front() == QChar(0xFEFF)) text.remove(0, 1);
+    text.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+    text.replace(QLatin1Char('\r'), QLatin1Char('\n'));
+    QStringList outLines;
     // 初期配置を含めてマルチステートメントを展開する。コメントと文字列値の
     // カンマは本文として保持し、複数対局の指し手を一つの棋譜に混ぜない。
     const QStringList physicalLines = text.split(QLatin1Char('\n'));
@@ -73,7 +81,7 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
             line = line.trimmed();
             if (line == QLatin1String("/")) {
                 if (warn) *warn += QStringLiteral("CSA: only the first game in the file is loaded.\n");
-                return true;
+                return outLines;
             }
             const qsizetype comma = line.indexOf(QLatin1Char(','));
             if (comma < 0 || line.startsWith(QLatin1Char('\''))
@@ -85,7 +93,7 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
             line = line.mid(comma + 1);
         }
     }
-    return true;
+    return outLines;
 }
 
 // ============================================================
@@ -94,11 +102,17 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
 
 QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePath)
 {
-    QList<KifGameInfoItem> items;
-    QStringList lines;
+    QString text;
     QString warn;
+    if (!readFileText(filePath, text, &warn)) return {};
+    return extractGameInfoFromText(text);
+}
 
-    if (!readAllLinesDetectEncoding(filePath, lines, &warn)) return items;
+QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfoFromText(const QString& text)
+{
+    QList<KifGameInfoItem> items;
+    QString warn;
+    const QStringList lines = splitStatements(text, &warn);
 
     for (const QString& rawLine : std::as_const(lines)) {
         const QString line = rawLine.trimmed();
@@ -276,8 +290,14 @@ static void handleCsaTimeToken(const QString& token, CsaParseState& st)
 
 bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QString* warn)
 {
-    QStringList lines;
-    if (!readAllLinesDetectEncoding(filePath, lines, warn)) return false;
+    QString text;
+    if (!readFileText(filePath, text, warn)) return false;
+    return parseText(text, out, warn);
+}
+
+bool CsaToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* warn)
+{
+    const QStringList lines = splitStatements(text, warn);
 
     out.mainline.baseSfen.clear();
     out.mainline.usiMoves.clear();
@@ -300,7 +320,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         s = s.trimmed();
         if (s.isEmpty()) continue;
 
-        const QStringList tokens{s}; // readAllLinesDetectEncodingで展開済み
+        const QStringList tokens{s}; // splitStatements で展開済み
         for (const QString& tokenRaw : std::as_const(tokens)) {
             const QString token = tokenRaw.trimmed();
             if (token.isEmpty()) continue;

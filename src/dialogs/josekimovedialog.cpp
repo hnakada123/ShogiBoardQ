@@ -24,7 +24,7 @@
 
 JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     : QDialog(parent)
-    , m_fontSize(JosekiSettings::josekiMoveDialogFontSize())
+    , m_fontHelper(JosekiSettings::josekiMoveDialogFontSize, 8, 18, 1)
 {
     setupUi(isEdit);
 
@@ -310,42 +310,27 @@ void JosekiMoveDialog::setComment(const QString &comment)
 
 void JosekiMoveDialog::onFontSizeIncrease()
 {
-    if (m_fontSize < 18) {
-        m_fontSize++;
-        applyFontSize();
-        JosekiSettings::josekiMoveDialogFontSize.set(m_fontSize);
-    }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 void JosekiMoveDialog::onFontSizeDecrease()
 {
-    if (m_fontSize > 8) {
-        m_fontSize--;
-        applyFontSize();
-        JosekiSettings::josekiMoveDialogFontSize.set(m_fontSize);
-    }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void JosekiMoveDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    QFont font = this->font();
-    font.setPointSize(m_fontSize);
-
-    DialogUtils::applyFontToAllChildren(this, font);
-
+    const QFont font = m_fontHelper.applyTo(this);
     // 入力ウィジェットのプレビューラベルに拡大フォントを適用
     m_moveInput->applyFont(font);
     m_nextMoveInput->applyFont(font);
-
     // 編集対象の定跡手ラベルも更新
     if (m_editMoveLabel) {
         QFont editFont = font;
-        editFont.setPointSize(m_fontSize + 4);
+        editFont.setPointSize(m_fontHelper.fontSize() + 4);
         editFont.setBold(true);
         m_editMoveLabel->setFont(editFont);
     }
-    DialogUtils::updateFontButtons(this, m_fontSize, 8, 18);
 }
 
 void JosekiMoveDialog::setEditMoveDisplay(const QString &japaneseMove)

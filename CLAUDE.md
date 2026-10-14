@@ -44,8 +44,9 @@ cmake --build build --target translations
 - **app/**: アプリケーションエントリーポイントと委譲先サービス
   - `main.cpp` - Entry point
   - `mainwindow.cpp/.h/.ui` - Main window
-  - `mainwindowserviceregistry.cpp/.h` - ensure*（部品の生成と依存更新）と主要操作の集約。実装は `gamesubregistry*.cpp`・`mainwindow*registry.cpp` に分割。共通部品は `mainwindowfoundationregistry`、棋譜系は `kifusubregistry`
-  - `mainwindowuibootstrapper.cpp` - UI初期化ステップのオーケストレーション（`MainWindowServiceRegistry` の分割ファイル）
+  - `mainwindowcomposer.cpp/.h` - 合成ルート。起動時に全部品を依存順に作り、依存を注入し、シグナルをつなぐ（実装は `mainwindowcomposer_*.cpp` に分割）。設計: `docs/dev/composition-root.md`
+  - `mainwindowcomponents.h` - 合成ルートが作る部品の一覧。状態は `src/common/appstate.h` の `AppState` に1つだけ置く
+  - `mainwindowactions.cpp/.h` - メニュー・盤・棋譜欄からの利用者操作の振り分け先
   - `playmodepolicyservice.cpp/.h` - プレイモード依存の判定ロジック
   - `turnstatesyncservice.cpp/.h` - 手番同期（TurnManager/GC/View/時計）
   - `gamerecordupdateservice.cpp/.h` - 棋譜追記・ライブセッション更新

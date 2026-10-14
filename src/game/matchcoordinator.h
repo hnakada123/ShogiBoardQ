@@ -111,11 +111,6 @@ public:
     void setEngineModels(UsiCommLogModel* comm1, ShogiEngineThinkingModel* think1,
                          UsiCommLogModel* comm2, ShogiEngineThinkingModel* think2);
 
-    /// エンジンへ送る局面の履歴と手番・手数を初期状態に戻す
-    ///
-    /// 司令塔は起動時に一度だけ作り、以後は使い回す。起動処理の途中で行う仮の対局開始が残した
-    /// position 文字列や過去の対局履歴を、起動の最後にここで捨てる。
-    void resetPositionHistory();
 
     /// 中断を処理する（UI→司令塔）
     void handleBreakOff();
@@ -222,12 +217,6 @@ public:
     /// 人間を手前に配置する
     void ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, Turn bottomSide);
 
-    /// 準備→開始→必要なら初手goまでを一括実行する
-    void prepareAndStartGame(PlayMode mode,
-                             const QString& startSfenStr,
-                             const QStringList* sfenRecord,
-                             const StartGameDialogData* dlg,
-                             Turn bottomSide);
 
     // --- 時間/手番・終局の処理 ---
 
@@ -320,9 +309,9 @@ private:
 
     using EngineModelPair = EngineLifecycleManager::EngineModelPair;
 
-    void ensureEngineManager();  ///< エンジンマネージャの遅延生成
-    void ensureTimekeeper();     ///< 時計マネージャの遅延生成
-    void ensureMatchTurnHandler(); ///< ターン進行ハンドラの遅延生成
+    void createEngineManager();
+    void createTimekeeper();
+    void createMatchTurnHandler();
     EngineLifecycleManager::Refs buildEngineLifecycleRefs();
     EngineLifecycleManager::Hooks buildEngineLifecycleHooks();
     void configureMatchTurnHandler();
@@ -346,8 +335,6 @@ private:
 
     // --- ターン進行ハンドラ ---
     std::unique_ptr<MatchTurnHandler> m_turnHandler; ///< ターン進行・ストラテジー管理
-
-    Turn m_cur = Turn::Black; ///< 現在手番
 
     // --- モデル ---
 
@@ -395,22 +382,22 @@ private:
     // --- 検討・詰み探索セッション管理 ---
 
     std::unique_ptr<AnalysisSessionHandler> m_analysisSession; ///< 検討・詰み探索ハンドラ
-    void ensureAnalysisSession();             ///< ハンドラの遅延生成
+    void createAnalysisSession();
 
     // --- 終局処理ハンドラ ---
 
     GameEndHandler* m_gameEndHandler = nullptr; ///< 終局処理ハンドラ（Qt parent 管理）
-    void ensureGameEndHandler();               ///< ハンドラの遅延生成
+    void createGameEndHandler();
 
     // --- 対局開始オーケストレータ ---
 
     std::unique_ptr<GameStartOrchestrator> m_gameStartOrchestrator; ///< 対局開始オーケストレータ
-    void ensureGameStartOrchestrator();        ///< オーケストレータの遅延生成
+    void createGameStartOrchestrator();
 
     // --- UNDO ---
 
     std::unique_ptr<MatchUndoHandler> m_undoHandler; ///< UNDO処理ハンドラ
-    void ensureUndoHandler();                        ///< ハンドラの遅延生成
+    void createUndoHandler();
 
     // --- USI position履歴 ---
 

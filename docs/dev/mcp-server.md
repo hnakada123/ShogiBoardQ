@@ -254,12 +254,12 @@ ShogiBoardQ --automation [--automation-socket PATH]
 |---|---|---|
 | `AutomationServer` | `src/automation/automationserver.{h,cpp}` | `QLocalServer` の待ち受け、接続ごとの行バッファ、応答の書き出し、エンドポイント情報の作成・削除 |
 | `AutomationDispatcher` | `src/automation/automationdispatcher.{h,cpp}` | JSON-RPC 2.0 の解析・検証、メソッド表、エラー応答の生成（GUI 非依存で単体テスト可能） |
-| `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体（非所有ポインタとコールバックのみ） |
+| `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（`AppState`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのは dialogs 層のメニューウィンドウのお気に入りと終了要求だけ |
 | `AutomationCommands*` | `src/automation/automationcommands_{app,position,kifu,ui}.cpp` | 各メソッドの実装。既存の `KifuFileController` / `KifuExportController` / `KifuNavigationController` / `UiStatePolicyManager` / `ScreenshotService` を呼ぶ |
 | `AutomationActionPolicy` | `src/automation/automationactionpolicy.{h,cpp}` | `QAction` の許可リスト |
 | `ScreenshotService` | `src/services/screenshotservice.{h,cpp}` | 旧 `DebugScreenshotService` をリリースでも使える形にしたもの。F12 配線（`DebugScreenshotWiring`）はデバッグビルド専用のまま |
 
-MainWindow には `startAutomationServer(socketPath)` の委譲メソッドだけを追加し、生成と依存注入は `MainWindowServiceRegistry::ensureAutomationServer()`（`src/app/mainwindowautomationregistry.cpp`）で行う。`KifuFileController` には確認ダイアログを出さない非対話 API（`loadKifuFile`、`loadKifuText`、`applySfenPosition`、`saveKifuToPath`、`hasUnsavedChanges`）を追加し、`KifuExportController` には `exportLines(format)` を追加する。
+MainWindow には `startAutomationServer(socketPath)` の委譲メソッドだけを追加し、生成と依存注入は `MainWindowComposer::startAutomationServer()`（`src/app/mainwindowcomposer_automation.cpp`）で行う（[composition-root.md](composition-root.md)）。`KifuFileController` には確認ダイアログを出さない非対話 API（`loadKifuFile`、`loadKifuText`、`applySfenPosition`、`saveKifuToPath`、`hasUnsavedChanges`）を追加し、`KifuExportController` には `exportLines(format)` を追加する。
 
 ## 5. MCP サーバー（Python）
 
@@ -342,7 +342,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 | ディレクトリ | 内容 |
 |---|---|
-| `src/automation/` | 共通サービス（`KifuConversionService`、`SfenValidationService`、`BoardImageRenderer`、`UsiInfoLineParser`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`）と自動化 API（`AutomationServer` ほか） |
+| `src/automation/` | 共通サービス（`KifuConversionService`、`SfenValidationService`、`BoardImageRenderer`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`）と自動化 API（`AutomationServer` ほか） |
 | `src/cli/` | `shogiboardq-cli` のエントリーポイントとコマンド実装（`CliCommands*`）。JSON 出力と stdin の `stop` 監視 |
 | `mcp/` | Python パッケージとテスト |
 
@@ -355,7 +355,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 | `tst_automation_dispatcher` | C++（Qt Test） | JSON-RPC の解析・エラーコード・メソッド表 |
 | `tst_kifu_conversion_service` | C++ | fixtures の KIF/KI2/CSA/JKF/USI/USEN を相互変換し、手順・初期局面・SFEN 列を検証 |
 | `tst_sfen_validation_service` | C++ | 妥当／不正な SFEN、王手検出、合法手数 |
-| `tst_usi_info_line_parser` | C++ | `info` 行の解析（multipv、score cp/mate、bound、pv） |
+| `tst_usiinfoparser` | C++ | `info` 行の解析（`src/engine/usiinfoparser`。multipv、score cp/mate、bound、pv、info string、崩れた行）と JSON 出力 |
 | `tst_board_image_renderer` | C++ | offscreen で PNG を生成しサイズと非空を検証 |
 | `mock_mate_engine` | 補助実行ファイル | `go mate <ms>` に Hayanagi の詰み探索で答える USI エンジン（生成・余詰検査・詰み探索の結合テスト用） |
 | `tst_mcp_python` | pytest（CTest から実行） | `mcp` SDK のクライアントで stdio サーバーを起動し、段階 1 ツール（CLI）と段階 2 ツール（`QT_QPA_PLATFORM=offscreen` で起動したアプリ）を呼ぶ。エンジンは `hayanagi`（解析）と `mock_mate_engine`（詰み）を一時設定ファイルに登録して使う |

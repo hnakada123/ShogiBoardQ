@@ -2,14 +2,15 @@
 /// @brief MainWindow の状態初期化ロジックの実装
 
 #include "mainwindowresetservice.h"
-#include "mainwindowstate.h"
-#include "matchcoordinator.h"
-#include "csagamecoordinator.h"
-#include "consecutivegamescontroller.h"
+#include "appstate.h"
+#include "commentcoordinator.h"
+#include "josekiwindowwiring.h"
+#include "playerinfowiring.h"
 
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "engineanalysistab.h"
+#include "considerationtabmanager.h"
 #include "engineinfowidget.h"
 #include "kifuanalysislistmodel.h"
 #include "evaluationchartwidget.h"
@@ -58,13 +59,13 @@ void MainWindowResetService::clearSessionDependentUi(const SessionUiDeps& deps) 
         if (deps.analysisTab->info2()) {
             deps.analysisTab->info2()->setDisplayNameFallback(QString());
         }
-        if (deps.analysisTab->considerationInfo()) {
-            deps.analysisTab->considerationInfo()->setModel(nullptr);
+        if (deps.analysisTab->considerationTabManager()->considerationInfo()) {
+            deps.analysisTab->considerationTabManager()->considerationInfo()->setModel(nullptr);
         }
 
-        deps.analysisTab->setConsiderationEngineName(QString());
-        deps.analysisTab->resetElapsedTimer();
-        deps.analysisTab->setConsiderationRunning(false);
+        deps.analysisTab->considerationTabManager()->setConsiderationEngineName(QString());
+        deps.analysisTab->considerationTabManager()->resetElapsedTimer();
+        deps.analysisTab->considerationTabManager()->setConsiderationRunning(false);
     }
 
     if (deps.analysisModel) {
@@ -82,8 +83,8 @@ void MainWindowResetService::clearUiBeforeKifuLoad(const SessionUiDeps& deps) co
     if (deps.evalGraphController) {
         deps.evalGraphController->clearScores();
     }
-    if (deps.broadcastComment) {
-        deps.broadcastComment(QString(), true);
+    if (deps.commentCoordinator) {
+        deps.commentCoordinator->broadcastComment(QString(), true);
     }
 }
 
@@ -174,47 +175,28 @@ void MainWindowResetService::resetUiState(const UiResetDeps& deps,
     }
 
     // 前の対局者名を残さない（対局情報の初期値「先手」「後手」を表示する）
-    if (deps.syncBoardNamesWithGameInfo) {
-        deps.syncBoardNamesWithGameInfo();
+    if (deps.playerInfoWiring) {
+        deps.playerInfoWiring->syncBoardNamesWithGameInfo();
     }
 
     if (deps.uiStatePolicy) {
         deps.uiStatePolicy->transitionToIdle();
     }
 
-    if (deps.updateJosekiWindow) {
-        deps.updateJosekiWindow();
+    if (deps.josekiWiring) {
+        deps.josekiWiring->updateJosekiWindow();
     }
 }
 
-void MainWindowResetService::clearGameStateFields(GameState& state, PlayerState& player, KifuState& kifu) const
+void MainWindowResetService::clearGameStateFields(AppState& state) const
 {
     state.errorOccurred = false;
-
-    player.humanName1.clear();
-    player.humanName2.clear();
-    player.engineName1.clear();
-    player.engineName2.clear();
-
-    kifu.saveFileName.clear();
-
+    state.humanName1.clear();
+    state.humanName2.clear();
+    state.engineName1.clear();
+    state.engineName2.clear();
+    state.saveFileName.clear();
     state.skipBoardSyncForBranchNav = false;
-    kifu.onMainRowGuard = false;
-
-    kifu.gameMoves.clear();
-}
-
-void MainWindowResetService::resetEngineState(MatchCoordinator* match, CsaGameCoordinator* csa,
-                                              ConsecutiveGamesController* consecutive) const
-{
-    if (match) {
-        match->stopAnalysisEngine();
-        match->clearGameOverState();
-    }
-    if (csa) {
-        csa->stopGame();
-    }
-    if (consecutive) {
-        consecutive->reset();
-    }
+    state.onMainRowGuard = false;
+    state.gameMoves.clear();
 }

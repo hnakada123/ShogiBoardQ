@@ -102,16 +102,20 @@ void GameStartCoordinator::start(const StartParams& params)
 
     // --- 3) 対局をセットアップ & 開始 ---
     m_match->configureAndStart(params.opt);
+    finishStart(params.opt, params.selectKifuRow, params.autoStartEngineMove);
+}
 
-    // --- 4) 初手がエンジン手番なら go を起動 ---
-    if (params.autoStartEngineMove) {
-        m_match->startInitialEngineMoveIfNeeded();
-    }
-
-    // --- 5) 完了通知 ---
-    emit started(params.opt);
-    qCDebug(lcGame).noquote() << "started: mode="
-                       << static_cast<int>(params.opt.mode);
+void GameStartCoordinator::finishStart(const MatchCoordinator::StartOptions& opt, int selectKifuRow,
+                                       bool startClockAndFirstMove)
+{
+    // 開始の通知 → 開始行の選択 → 時計 → 初手 の順。対局の開始はすべてここを通る
+    emit started(opt);
+    qCDebug(lcGame).noquote() << "started: mode=" << static_cast<int>(opt.mode);
+    if (selectKifuRow >= 0) emit requestSelectKifuRow(selectKifuRow);
+    if (!startClockAndFirstMove) return;
+    if (ShogiClock* clock = m_match->clock()) clock->startClock();
+    // 初手がエンジン手番なら go を起動（1回だけ）
+    m_match->startInitialEngineMoveIfNeeded();
 }
 
 // ============================================================
@@ -361,9 +365,6 @@ bool GameStartCoordinator::resumeInterruptedGame()
     const auto opt = m_match->interruptedGame()->options;
     const int ply = static_cast<int>(m_match->interruptedGame()->sfens.size() - 1);
     if (!m_match->resumeInterruptedGame()) return false;
-    emit started(opt);
-    emit requestSelectKifuRow(ply);
-    if (m_match->clock()) m_match->clock()->startClock();
-    m_match->startInitialEngineMoveIfNeeded();
+    finishStart(opt, ply, true);
     return true;
 }

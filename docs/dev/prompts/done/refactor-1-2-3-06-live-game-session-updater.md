@@ -38,7 +38,7 @@ public:
     void updateDeps(const Deps& deps);
 
     // ensureLiveGameSessionStarted() から移植
-    void ensureSessionStarted();
+    void startSessionIfNeeded();
 
     // updateGameRecord() の LiveGameSession 更新部分から移植
     void appendMove(const ShogiMove& move, const QString& moveText, const QString& elapsedTime);
@@ -47,7 +47,7 @@ public:
 
 ### 3. 既存ロジックの移植
 
-#### ensureLiveGameSessionStarted() → ensureSessionStarted()
+#### ensureLiveGameSessionStarted() → startSessionIfNeeded()
 
 `MainWindow::ensureLiveGameSessionStarted()` (mainwindow.cpp) のロジックをそのまま移植:
 - `liveGameSession` と `branchTree` の null チェック
@@ -60,7 +60,7 @@ public:
 #### updateGameRecord() 後半 → appendMove()
 
 `MainWindow::updateGameRecord()` の LiveGameSession 更新部分（`if (m_branchNav.liveGameSession != nullptr ...)` 以降）を移植:
-- セッション未開始なら `ensureSessionStarted()` を呼ぶ
+- セッション未開始なら `startSessionIfNeeded()` を呼ぶ
 - SFEN を board から構築（`convertBoardToSfen()`, `convertStandToSfen()`, 手番, 手数）
 - フォールバック: board がなければ `sfenRecord->last()` を使用
 - `liveGameSession->addMove(move, moveText, sfen, elapsedTime)` を実行
@@ -106,7 +106,7 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 void MainWindow::ensureLiveGameSessionStarted()
 {
     ensureLiveGameSessionUpdater();
-    m_liveGameSessionUpdater->ensureSessionStarted();
+    m_liveGameSessionUpdater->startSessionIfNeeded();
 }
 ```
 

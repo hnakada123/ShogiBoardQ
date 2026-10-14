@@ -11,6 +11,8 @@
 #include <QTimer>
 #include <limits>
 
+#include "usiinfo.h"
+
 class BranchTreeManager;
 
 /**
@@ -18,8 +20,8 @@ class BranchTreeManager;
  *
  * 各手数に対応する局面コマンド列を順に処理し、エンジンからの
  * `info`/`bestmove` を受けて解析結果を通知する。
- * エンジン送信は `requestSendUsiCommand` シグナルへ委譲し、
- * 実際の送信実装とは疎結合に保つ。
+ * エンジンへの送信は用途ごとの要求シグナル（requestSetOption / requestSearch / requestStop）へ委譲し、
+ * 実際の送信実装とは疎結合に保つ。info は解析済みの UsiInfo で受け取る。
  *
  */
 class AnalysisCoordinator : public QObject
@@ -78,21 +80,20 @@ public:
     int currentPly() const { return m_currentPly; }
 
 signals:
-    /// USIコマンド送信を要求する（→ Usi::sendRaw）
-    void requestSendUsiCommand(const QString& line);
+    /// setoption の送信を要求する（→ Usi::sendSetOptionCommand）
+    void requestSetOption(const QString& name, const QString& value);
+
+    /// 局面の探索開始（position + go infinite）を要求する（→ Usi::sendPositionAndGoInfinite）
+    void requestSearch(const QString& positionCommand);
+
+    /// 探索の停止を要求する（→ Usi::sendStopCommand）
+    void requestStop();
 
     /// 解析終了を通知する（→ AnalysisFlowController::onAnalysisFinished）
     void analysisFinished(AnalysisCoordinator::Mode mode);
 
     /// 解析進捗を通知する（→ AnalysisFlowController::onAnalysisProgress）
-    /// scoreCp未設定時はINT_MIN、mate=0は詰み情報なし
-    void analysisProgress(int ply,
-                          int depth,
-                          int seldepth,
-                          int scoreCp,
-                          int mate,
-                          const QString& pv,
-                          const QString& rawInfoLine);
+    void analysisProgress(int ply, const UsiInfo& info);
 
     /// 解析対象局面の準備完了を通知する（→ AnalysisFlowController::onPositionPrepared）
     /// GUI更新後にgo送信するための2段階通知
@@ -101,8 +102,8 @@ signals:
 public:
     // --- AnalysisFlowController から呼ばれるメソッド ---
 
-    /// エンジンの`info ...`行を受け取る（AnalysisFlowController::onInfoLineReceivedから呼出）
-    void onEngineInfoLine(const QString& line);
+    /// エンジンの info を受け取る（AnalysisFlowController::onInfoReceivedから呼出）
+    void onEngineInfo(const UsiInfo& info);
 
     /// エンジンの`bestmove ...`を受け取る（AnalysisFlowController::onBestMoveReceivedから呼出）
     void onEngineBestmoveReceived(const QString& line);
@@ -111,15 +112,6 @@ public:
     void sendGoCommand();
 
 private:
-    /// `info`行から抽出した最小限の解析情報
-    struct ParsedInfo {
-        int depth    = -1;                                ///< 深さ（未設定時-1）
-        int seldepth = -1;                                ///< 補助深さ（未設定時-1）
-        int scoreCp  = std::numeric_limits<int>::min();   ///< 評価値（未設定時INT_MIN）
-        int mate     = 0;                                 ///< 詰み手数（0は詰み情報なし）
-        QString pv;                                       ///< 読み筋（USI）
-    };
-
     Deps    m_deps;                  ///< 依存オブジェクト
     Options m_opt;                   ///< 現在の解析オプション
 
@@ -136,10 +128,6 @@ private:
     void startSingle(int ply);
     void nextPlyOrFinish();
     void sendAnalyzeForPly(int ply);
-    static bool parseInfoUSI(const QString& line, ParsedInfo* out);
-
-    /// `requestSendUsiCommand`発行をまとめるヘルパ
-    void send(const QString& line);
 
 private slots:
     /// stopタイマー満了時に`stop`を送信する

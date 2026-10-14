@@ -4,8 +4,7 @@
 #include <QImage>
 #include <QWidget>
 
-class ShogiBoard;
-class ShogiView;
+class BoardViewerWidget;
 
 /// 実際の対局画面と同じ描画を使う、操作できない独立した見本盤。
 class BoardAppearancePreview : public QWidget
@@ -25,8 +24,7 @@ protected:
     void paintEvent(QPaintEvent* event) override;
 
 private:
-    ShogiBoard* m_board;
-    ShogiView* m_view;
+    BoardViewerWidget* m_viewer;  ///< 画面に出さない盤（描いた画像だけを表示する）
     QImage m_image;
 };
 

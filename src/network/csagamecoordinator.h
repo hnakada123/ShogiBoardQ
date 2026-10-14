@@ -6,25 +6,25 @@
 
 
 #include <QObject>
-#include "recordtime.h"
 #include <QString>
 #include <QStringList>
 #include <QList>
 #include <QPointer>
+#include <QPoint>
 #include <QTimer>
-#include <memory>
 
 #include "csaclient.h"
+#include "csaenginecontroller.h"
+#include "csagameprogress.h"
+#include "recordentry.h"
 #include "shogimove.h"
-
-class CsaMoveProgressHandler;
+#include "usimove.h"
 
 class ShogiGameController;
 class ShogiView;
 class ShogiClock;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
-class CsaEngineController;
 
 /**
  * @brief CSA通信対局コーディネータクラス
@@ -41,11 +41,20 @@ class CsaEngineController;
  * 責務:
  * - CSAクライアントとGUIコンポーネントの橋渡し
  * - 対局フローの制御（接続→ログイン→対局→終了→次の対局条件待ち）
+ * - 指し手の進行（相手の手・自分の手の確認・エンジン思考。csagamecoordinator_moves.cpp）
  * - 時間管理のGUIへの反映
+ * - 棋譜行（RecordEntry）の組み立て。着手・終局ごとに recordEntryReady を1回発行する
+ *
+ * 1局ぶんの手数・持ち時間・指し手列は値型 CsaGameProgress（m_progress）が持ち、
+ * 時間の計算や終局行の組み立てはその関数が値で返す。
+ *
+ * 解釈できない指し手行（不正な書式・盤面に適用できない手）は、サーバーが続けて送る
+ * #ILLEGAL_MOVE などの裁定を待つ（仕様 3.4）。裁定が届かなければ中断として終局させる。
  */
 class CsaGameCoordinator : public QObject
 {
     Q_OBJECT
+    friend class TestAppGameSession;  ///< 手番の状態はサーバーとのやり取りでしか変わらないため、テストで直接設定する
 
 public:
     /**
@@ -126,12 +135,16 @@ public:
     bool isMyTurn() const;
     bool isBlackSide() const;
     bool isHumanPlayer() const { return m_playerType == PlayerType::Human; }
-    int blackTotalTimeMs() const { return m_blackTotalTimeMs; }
-    int whiteTotalTimeMs() const { return m_whiteTotalTimeMs; }
-    int blackRemainingMs() const { return m_blackRemainingMs; }
-    int whiteRemainingMs() const { return m_whiteRemainingMs; }
+    int blackTotalTimeMs() const { return m_progress.blackTotalMs; }
+    int whiteTotalTimeMs() const { return m_progress.whiteTotalMs; }
+    int blackRemainingMs() const { return m_progress.blackRemainingMs; }
+    int whiteRemainingMs() const { return m_progress.whiteRemainingMs; }
+    /// 1局ぶんの進行（手数・持ち時間・指し手列）
+    const CsaGameProgress& progress() const { return m_progress; }
     /// 受信した対局条件（Game_Summary）。持ち時間は CsaClient::GameSummary の各関数で単位換算する
-    const CsaClient::GameSummary& gameSummary() const { return m_gameSummary; }
+    const CsaClient::GameSummary& gameSummary() const { return m_progress.summary; }
+    /// 対局の開始局面（SFEN）
+    QString startSfen() const { return m_progress.startSfen; }
     void requestChudan();
     void declareWin();
     /// エンジンが自分の手番で思考中なら、すぐ指させる
@@ -139,9 +152,7 @@ public:
 
     void sendRawCommand(const QString& command);
     QString username() const { return m_options.username; }
-    const QStringList& usiMoves() const { return m_usiMoves; }
-    /// 再開局面の index 手目の消費時間と累計の表記（棋譜欄用）
-    RecordTime initialMoveTime(int index) const;
+    const QStringList& usiMoves() const { return m_progress.usiMoves; }
 
     /// この接続でまだ対局を続けるか（対局数の上限に達していない）
     bool moreGamesWanted() const;
@@ -157,15 +168,28 @@ public:
      */
     static QString unsupportedConditionReason(const CsaClient::GameSummary& summary, PlayerType playerType);
 
+    /**
+     * @brief 対局開始時に表示用時計を CSA の持時間に合わせる
+     *
+     * 双方とも時間無制限なら消費時間を数える時計にする。以後は着手ごとに残り時間だけを合わせる。
+     */
+    static void startDisplayClock(ShogiClock* clock, const CsaClient::GameSummary& summary,
+                                  qint64 blackRemainingMs, qint64 whiteRemainingMs);
+
+    /// 裁定が届かないときに中断とみなすまでの時間
+    static constexpr int kVerdictTimeoutMs = 5000;
+
 signals:
     void connectionStateChanged(bool connected);
     void gameStateChanged(CsaGameCoordinator::GameState state);
     void errorOccurred(const QString& message);
+    /// 対局が始まった。initialRecords は Game_Summary に含まれていた既存手順の棋譜行
     void gameStarted(const QString& blackName, const QString& whiteName,
-                     const QStringList& initialPrettyMoves);
+                     const QList<RecordEntry>& initialRecords);
+    /// 対局が終わった。終局行は直前の recordEntryReady で通知済み
     void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
-    void moveMade(const QString& csaMove, const QString& usiMove,
-                  const QString& prettyMove, int consumedTimeMs);
+    /// 棋譜行が確定した（対局中の着手ごと・終局時に1回ずつ）。局面列（sfenRecord）は更新済み
+    void recordEntryReady(const RecordEntry& entry);
     void turnChanged(bool isMyTurn);
     void moveHighlightRequested(const QPoint& from, const QPoint& to);
     /// 盤面に着手が反映された（相手の指し手・自エンジンの指し手。人間の指し手は
@@ -203,6 +227,8 @@ private slots:
     void onEngineControllerWinDeclaration();
     void onEngineControllerInitialized();
     void onEngineControllerError(const QString& message);
+    void onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result);
+    void onVerdictTimeout();
 
 private:
     void setGameState(GameState state);
@@ -211,17 +237,32 @@ private:
     void performResign();
     void failGame(const QString& message);
     void cleanup();
-    void ensureMoveProgressHandler();
     /// エンジンを起動し、readyok まで AGREE を保留する
     void startEngine();
-    /// 1局ぶんの進行・時間の記録を初期化する（接続開始時と対局条件の受信時）
-    void resetGameTracking();
     /// 受信した対局条件の持時間・手数制限・宣言ルールをログに出す
     void logGameConditions(const CsaClient::GameSummary& summary);
     /// 現在のオプションでサーバーへ接続し、ログイン以降の流れを始める
     void connectForGame();
     /// 終局後の対局数の扱い（上限に達したらログアウト、残っていれば次を待つ）
     void handleGameCountAfterEnd();
+
+    // --- 指し手の進行（csagamecoordinator_moves.cpp） ---
+    void startEngineThinking();
+    /// 着手後に表示用時計をサーバーが示した残り時間に合わせ、次の手番の時計を動かす
+    void syncClockAfterMove(bool startMyTurnClock);
+    /// 指し手行の書式・座標を確認し、問題があれば通知文を返す（問題なければ空）
+    QString validateMoveText(const QString& move, QPoint* from, QPoint* to) const;
+    /// 解釈できない指し手行を記録し、サーバーの裁定を待つ
+    void deferVerdict(const QString& logText, const QString& failureText);
+    /// 裁定待ちのまま次の行が来たら、続行できないとして終局させる
+    bool failIfVerdictPending();
+    /// 解釈できなかった指し手の裁定待ちを取り消す（終局・切断時）
+    void clearPendingVerdict();
+    /// 着手を記録して通知する（手数・手番・ハイライト・棋譜行）
+    void finishMove(const QString& csaMove, const QString& usiMove, bool isPromotion,
+                    int consumedTimeMs, const QPoint& from, const QPoint& to, bool nowMyTurn);
+    /// 局面列の末尾2つ（指す前・指した後）から棋譜行の盤面の値を埋める
+    void fillRecordPosition(RecordEntry& entry, const QString& usiMove) const;
 
     CsaClient* m_client;
     CsaEngineController* m_engineController = nullptr;
@@ -244,30 +285,16 @@ private:
     QTimer* m_reconnectTimer;            ///< 終局後の再接続までの待ち
     StartOptions m_options;
 
-    CsaClient::GameSummary m_gameSummary;
-    bool m_isBlackSide = true;
+    CsaGameProgress m_progress;          ///< 1局ぶんの進行（対局条件の受信で作り直す）
     bool m_isMyTurn = false;
-    int m_moveCount = 0;
-    int m_blackTotalTimeMs = 0;
-    int m_whiteTotalTimeMs = 0;
-    int m_prevToFile = 0;
-    int m_prevToRank = 0;
+    QList<RecordEntry> m_initialRecords; ///< 再開局面の既存手順（gameStarted で渡す）
 
-    int m_initialBlackTimeMs = 0;
-    int m_initialWhiteTimeMs = 0;
-    int m_blackRemainingMs = 0;
-    int m_whiteRemainingMs = 0;
-    int m_resignConsumedTimeMs = 0;
-
-    QString m_positionStr;
-    QStringList m_usiMoves;
-    QStringList m_initialPrettyMoves;
-
-    QString m_startSfen;
     QStringList* m_sfenHistory = nullptr;
     QList<ShogiMove>* m_gameMoves = nullptr;
 
-    std::unique_ptr<CsaMoveProgressHandler> m_moveProgressHandler;
+    QTimer* m_verdictTimer;              ///< 裁定待ちのタイムアウト
+    QString m_pendingFailureText;        ///< 裁定が届かなかったときの終局理由（空なら待ちなし）
+    UsiMove m_sentMove;                  ///< 最後にサーバーへ送った自分の指し手
 
     static constexpr int kReconnectDelayMs = 3000; ///< 終局後の再接続までの待ち時間
 };

@@ -2,64 +2,60 @@
 /// @brief 棋譜ナビゲーション配線クラスの実装
 
 #include "recordnavigationwiring.h"
-#include "mainwindow.h"
-#include "recordnavigationhandler.h"
-#include "kifunavigationcoordinator.h"
+
+#include "boardloadservice.h"
 #include "considerationpositionservice.h"
+#include "josekiwindowwiring.h"
+#include "kifunavigationcoordinator.h"
+#include "recordnavigationhandler.h"
+#include "turnstatesyncservice.h"
 #include "uistatepolicymanager.h"
 
 RecordNavigationWiring::RecordNavigationWiring(QObject* parent)
     : QObject(parent)
 {}
 
-void RecordNavigationWiring::ensure(const Deps& deps, const WiringTargets& targets)
+void RecordNavigationWiring::wire(const Deps& deps, const WiringTargets& targets)
 {
-    m_mainWindow = deps.mainWindow;
+    if (m_handler) return;
+    m_handler = new RecordNavigationHandler(this);
 
-    const bool firstTime = !m_handler;
-    if (firstTime) {
-        m_handler = new RecordNavigationHandler(this);
-        wireSignals(targets);
-    }
+    RecordNavigationHandler::Deps hd;
+    hd.navState = deps.navState;
+    hd.branchTree = deps.branchTree;
+    hd.displayCoordinator = deps.displayCoordinator;
+    hd.kifuRecordModel = deps.kifuRecordModel;
+    hd.shogiView = deps.shogiView;
+    hd.evalGraphController = deps.evalGraphController;
+    hd.currentSfenStr = deps.currentSfenStr;
+    hd.skipBoardSyncForBranchNav = deps.skipBoardSyncForBranchNav;
+    hd.csaGameWiring = deps.csaGameWiring;
+    hd.playMode = deps.playMode;
+    hd.match = deps.match;
+    m_handler->updateDeps(hd);
 
-    bindDeps(deps);
-}
-
-void RecordNavigationWiring::wireSignals(const WiringTargets& targets)
-{
     if (targets.kifuNav) {
         connect(m_handler, &RecordNavigationHandler::boardSyncRequired,
                 targets.kifuNav, &KifuNavigationCoordinator::syncBoardAndHighlightsAtRow);
     }
-    connect(m_handler, &RecordNavigationHandler::branchBoardSyncRequired,
-            m_mainWindow, &MainWindow::loadBoardWithHighlights);
+    if (targets.boardLoad) {
+        connect(m_handler, &RecordNavigationHandler::branchBoardSyncRequired,
+                targets.boardLoad, &BoardLoadService::loadWithHighlights);
+    }
     if (targets.uiStatePolicy) {
         connect(m_handler, &RecordNavigationHandler::enableArrowButtonsRequired,
                 targets.uiStatePolicy, &UiStatePolicyManager::enableNavigationIfAllowed);
     }
-    connect(m_handler, &RecordNavigationHandler::turnUpdateRequired,
-            m_mainWindow, &MainWindow::setCurrentTurn);
-    connect(m_handler, &RecordNavigationHandler::josekiUpdateRequired,
-            m_mainWindow, &MainWindow::updateJosekiWindow);
+    if (targets.turnSync) {
+        connect(m_handler, &RecordNavigationHandler::turnUpdateRequired,
+                targets.turnSync, &TurnStateSyncService::setCurrentTurn);
+    }
+    if (targets.josekiWiring) {
+        connect(m_handler, &RecordNavigationHandler::josekiUpdateRequired,
+                targets.josekiWiring, &JosekiWindowWiring::updateJosekiWindow);
+    }
     if (targets.considerationPosition) {
         connect(m_handler, &RecordNavigationHandler::buildPositionRequired,
                 targets.considerationPosition, &ConsiderationPositionService::handleBuildPositionRequired);
     }
-}
-
-void RecordNavigationWiring::bindDeps(const Deps& deps)
-{
-    RecordNavigationHandler::Deps handlerDeps;
-    handlerDeps.navState = deps.navState;
-    handlerDeps.branchTree = deps.branchTree;
-    handlerDeps.displayCoordinator = deps.displayCoordinator;
-    handlerDeps.kifuRecordModel = deps.kifuRecordModel;
-    handlerDeps.shogiView = deps.shogiView;
-    handlerDeps.evalGraphController = deps.evalGraphController;
-    handlerDeps.currentSfenStr = deps.currentSfenStr;
-    handlerDeps.skipBoardSyncForBranchNav = deps.skipBoardSyncForBranchNav;
-    handlerDeps.csaGameCoordinator = deps.csaGameCoordinator;
-    handlerDeps.playMode = deps.playMode;
-    handlerDeps.match = deps.match;
-    m_handler->updateDeps(handlerDeps);
 }

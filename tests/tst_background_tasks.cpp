@@ -13,6 +13,7 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "usi.h"
+#include "usicommlogmodel.h"
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "enginepondersettings.h"
@@ -53,6 +54,31 @@ QString fixture(const QString& name)
     return QCoreApplication::applicationDirPath() + QStringLiteral("/fixtures/") + name;
 }
 }
+
+/// Usi の通信ログに書かれた行を順に残す（送ったコマンドを確かめる）
+class CommLogRecorder : public QObject
+{
+    Q_OBJECT
+public:
+    explicit CommLogRecorder(UsiCommLogModel* model) : m_model(model)
+    {
+        connect(model, &UsiCommLogModel::usiCommLogChanged, this, &CommLogRecorder::record);
+    }
+    QStringList sentCommands() const
+    {
+        QStringList sent;
+        for (const QString& line : std::as_const(m_lines)) {
+            const qsizetype colon = line.indexOf(QStringLiteral(": "));
+            if (line.startsWith(QStringLiteral("▶ ")) && colon > 0) sent << line.mid(colon + 2);
+        }
+        return sent;
+    }
+public slots:
+    void record() { m_lines << m_model->usiCommLog(); }
+private:
+    UsiCommLogModel* m_model;
+    QStringList m_lines;
+};
 
 class TestBackgroundTasks : public QObject
 {
@@ -230,7 +256,7 @@ private slots:
         QElapsedTimer elapsed;
         elapsed.start();
         QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        engine.sendRaw(QStringLiteral("setoption name ReplyDelay value 250"));
+        engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("250"));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
                                 TestTime::byoyomiTiming(5000, 300000, 0));
         QVERIFY(elapsed.elapsed() < 200);
@@ -307,7 +333,7 @@ private slots:
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         QTRY_COMPARE(ready.size(), 1);
-        engine.sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
+        engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
                                 TestTime::byoyomiTiming(5000, 300000, 0));
         engine.cancelCurrentOperation();
@@ -359,7 +385,7 @@ private slots:
         const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 300000);
         for (Usi* engine : {&engine1, bothEngines ? &engine2 : nullptr}) {
             if (!engine) continue;
-            engine->sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
+            engine->sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
             engine->requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
         }
         QTest::qWait(30);
@@ -426,18 +452,17 @@ private slots:
         pondering.requestMatchMove(position, {}, timing);
         QTRY_COMPARE(ponderingMoves.size(), 1);
         QVERIFY(!ponderingMoves.first().at(2).toString().isEmpty());
-        thinking.sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
+        thinking.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
         thinking.requestMatchMove(position, {}, timing);
         QTest::qWait(30);
         const auto existing = qApp->findChildren<QProcess*>();
         const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
         Usi* p1 = loserIsBlack ? &thinking : &pondering;
         Usi* p2 = loserIsBlack ? &pondering : &thinking;
-        const auto sendRaw = [](Usi* engine, const QString& command) { engine->sendRaw(command); };
         if (nyugyoku)
-            EngineGameOverNotifier::notifyNyugyoku(PlayMode::EvenEngineVsEngine, false, loser, p1, p2, sendRaw);
+            EngineGameOverNotifier::notifyNyugyoku(PlayMode::EvenEngineVsEngine, false, loser, p1, p2);
         else
-            EngineGameOverNotifier::notifyResignation(PlayMode::EvenEngineVsEngine, loser, p1, p2, sendRaw);
+            EngineGameOverNotifier::notifyResignation(PlayMode::EvenEngineVsEngine, loser, p1, p2);
         QList<QPointer<QProcess>> retiring;
         for (auto* child : qApp->findChildren<QProcess*>())
             if (!existing.contains(child)) retiring.append(child);
@@ -474,13 +499,24 @@ private slots:
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        Usi engine(nullptr, nullptr, &game);
-        QStringList sent;
-        const auto sendRaw = [&sent](Usi*, const QString& command) { sent << command; };
         const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
-        EngineGameOverNotifier::notifyResignation(mode, loser, &engine, nullptr, sendRaw);
-        EngineGameOverNotifier::notifyNyugyoku(mode, false, loser, &engine, nullptr, sendRaw);
-        QCOMPARE(sent, QStringList({expected, expected}));
+        QStringList gameOvers;
+        // 終局の通知の後はエンジンを閉じるので、勝敗の通知ごとにエンジンを起動する
+        for (int i = 0; i < 2; ++i) {
+            UsiCommLogModel log;
+            CommLogRecorder recorder(&log);
+            Usi engine(&log, nullptr, &game);
+            QSignalSpy ready(&engine, &Usi::engineInitialized);
+            QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+            QTRY_COMPARE(ready.size(), 1);
+            if (i == 0)
+                EngineGameOverNotifier::notifyResignation(mode, loser, &engine, nullptr);
+            else
+                EngineGameOverNotifier::notifyNyugyoku(mode, false, loser, &engine, nullptr);
+            for (const QString& command : recorder.sentCommands())
+                if (command.startsWith(QStringLiteral("gameover "))) gameOvers << command;
+        }
+        QCOMPARE(gameOvers, QStringList({expected, expected}));
     }
 
     void exitWhileThinkingReportsError()

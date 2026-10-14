@@ -6,6 +6,7 @@
 #include "dialogorchestrator.h"
 #include "evaluationchartwidget.h"
 #include "engineanalysistab.h"
+#include "kifunavigationcontroller.h"
 #include "logcategories.h"
 
 #include <limits>
@@ -14,18 +15,17 @@ DialogCoordinatorWiring::DialogCoordinatorWiring(QObject* parent)
     : QObject(parent)
 {}
 
-void DialogCoordinatorWiring::ensure(const Deps& deps)
+void DialogCoordinatorWiring::wire(const Deps& deps)
 {
-    m_evalChartWidget = deps.evalChartWidget;
+    if (m_coordinator) return;
+
+    m_evalChartWidget = deps.evalChart;
     m_analysisTab = deps.analysisTab;
     m_playMode = deps.playMode;
-    m_navigateKifuViewToLine = deps.navigateKifuViewToLine;
+    m_kifuNavController = deps.kifuNavController;
 
-    const bool firstTime = !m_coordinator;
-    if (firstTime) {
-        m_coordinator = new DialogCoordinator(deps.parentWidget, deps.parentWidget);
-        wireSignals(deps);
-    }
+    m_coordinator = new DialogCoordinator(deps.parentWidget, deps.parentWidget);
+    wireSignals(deps);
 
     DialogCoordinator::Deps dcDeps;
     dcDeps.matchCoordinator = deps.match;
@@ -37,8 +37,7 @@ void DialogCoordinatorWiring::ensure(const Deps& deps)
 void DialogCoordinatorWiring::wireSignals(const Deps& deps)
 {
     // 検討モード関連シグナルをオーケストレータ経由で接続
-    ConsiderationWiring* considerationWiring = deps.getConsiderationWiring();
-    DialogOrchestrator::wireConsiderationSignals(m_coordinator, considerationWiring);
+    DialogOrchestrator::wireConsiderationSignals(m_coordinator, deps.considerationWiring);
 
     // 解析進捗シグナルを自身のスロットに接続
     connect(m_coordinator, &DialogCoordinator::analysisProgressReported,
@@ -56,8 +55,7 @@ void DialogCoordinatorWiring::wireSignals(const Deps& deps)
     }
 
     // UI状態遷移シグナルをオーケストレータ経由で接続
-    UiStatePolicyManager* uiStatePolicy = deps.getUiStatePolicyManager();
-    DialogOrchestrator::wireUiStateSignals(m_coordinator, uiStatePolicy);
+    DialogOrchestrator::wireUiStateSignals(m_coordinator, deps.uiStatePolicy);
 }
 
 void DialogCoordinatorWiring::bindContexts(const Deps& deps)
@@ -85,7 +83,7 @@ void DialogCoordinatorWiring::bindContexts(const Deps& deps)
     kifuCtx.gameInfoController = deps.gameInfoController;
     kifuCtx.evalChart = deps.evalChart;
     kifuCtx.presenter = deps.presenter;
-    kifuCtx.getBoardFlipped = deps.getBoardFlipped;
+    kifuCtx.shogiView = deps.shogiView;
     m_coordinator->setKifuAnalysisContext(kifuCtx);
 }
 
@@ -140,5 +138,5 @@ void DialogCoordinatorWiring::onKifuAnalysisStarted(int lineIndex)
 
 void DialogCoordinatorWiring::onAnalysisPositionSelected(int lineIndex, int ply)
 {
-    if (m_navigateKifuViewToLine) m_navigateKifuViewToLine(lineIndex, ply);
+    if (m_kifuNavController) m_kifuNavController->goToLine(lineIndex, ply);
 }

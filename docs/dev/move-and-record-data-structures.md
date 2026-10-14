@@ -36,7 +36,7 @@ JKF の書き出し（`JkfExporter`・`JkfFormatter`）も、分岐ツリーの�
 
 CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・00AL）を `ShogiBoard` に組み立て、指し手を `UsiMove` として
 盤に適用する。移動元の駒と指し手の駒種が合わない手・持っていない駒を打つ手は読まない。
-思考情報の読み筋の漢字化（`ShogiEngineInfoParser`）も、思考を始めた局面（`ThinkingInfoPresenter::setBaseSfen`）を
+思考情報の読み筋の漢字化（`PvNotationFormatter`）も、思考を始めた局面（`ThinkingInfoPresenter::setBaseSfen`）を
 `ShogiBoard` に持ち、info 行ごとに作業用の盤へ写して（`ShogiBoard::copyPositionFrom`）指し手を進め、`KifMoveText::append` で書く。
 詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeshogiGenerator`）も `ShogiBoard` で局面を持つ。
 
@@ -580,8 +580,9 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
 2. QItemSelectionModel::currentRowChanged
      → RecordPane::onKifuCurrentRowChanged(row)
      → emit RecordPane::mainRowChanged(row)
-3. RecordPaneWiring により MainWindow::onRecordPaneMainRowChanged(row) に接続
-4. MainWindow → RecordNavigationHandler::onMainRowChanged(row)
+3. MainWindowComposer::connectSignals() により MainWindowActions::onRecordPaneMainRowChanged(row) に接続
+   （編集中のコメントがあれば、移る前に確認する）
+4. MainWindowActions → RecordNavigationHandler::onMainRowChanged(row)
    a. 表示中の手順（分岐ツリーの表示中のライン）から row 行目の局面と直前の局面を取る（lineSfenAt）
       - 取れた場合: emit branchBoardSyncRequired(currentSfen, prevSfen)
         → BoardSyncPresenter::loadBoardWithHighlights() で将棋盤を更新（ハイライト付き）
@@ -618,7 +619,7 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
    a. クリック位置の QGraphicsPathItem を特定
    b. ノードに埋め込まれた ROLE_ROW, ROLE_PLY を取得
    c. emit EngineAnalysisTab::branchNodeActivated(row, ply)
-3. MainWindow::onBranchNodeActivated(row, ply)
+3. BranchNavigationWiring::onBranchNodeActivated(row, ply)（AnalysisTabWiring が接続）
    → KifuNavigationController::handleBranchNodeActivated(row, ply)
    a. 本譜行（row==0）で分岐前の共有ノードをクリックした場合:
       現在の分岐ライン上にとどまる（effectiveRow = currentLine）
@@ -858,14 +859,17 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
      （同期版の loadKifuFromFile() なども applyLoadResult() を通る）
 
 2. KIF パーサが KifParseResult を生成（KifuLoadResult::record）
-   KifToSfenConverter::parseWithVariations()
+   KifuLoadParser::parseFile() がファイルを1回読み、parseContent() → KifToSfenConverter::parseText()
+     （行に分けて1回の走査で本譜と各変化を読む。表示データと USI の指し手は同じ走査で作るので並びがずれない）
      ├─ mainline: KifLine（本譜の指し手列・SFEN列・表示データ）
-     └─ variations: QVector<KifVariation>（分岐リスト）
+     └─ variations: QVector<KifVariation>（分岐リスト。開始局面は KifuParseCommon::findVariationBase()
+        が後に書かれた変化から順に探し、届かなければ本譜から取る。KI2 も同じ規則）
 
 3. KifuApplyService::applyParsedResult() → applyToRecordView()
    a. 対局情報の表示（populateGameInfo・applyPlayersFromGameInfo。applyLoadResult が先に呼ぶ）
    b. displayGameRecord(disp) フック
-      → MainWindow::displayGameRecord() → GameRecordLoadService::loadGameRecord()
+      → KifuLoadCoordinator::displayGameRecord シグナル → GameRecordLoadService::loadGameRecord()
+        （KifuLoadCoordinatorFactory::createAndWire() が接続）
         → GameRecordModel::initializeFromDisplayItems()
         → GameRecordPresenter::displayAndWire() で棋譜欄に行を表示
    c. 対局の局面列・指し手列（sfenRecord / gameMoves）は書かない
@@ -937,7 +941,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
       → 棋譜欄には0手目〜30手目のみが表示される
       （現在の局面から始めない場合は、ここで navState->goToRoot() でカーソルを開始局面へ戻す）
 
-   d. ensureBranchTreeRoot()
+   d. prepareBranchTreeRoot()
       → ルートは読み込み時に作成済みなので何もしない
       → 既存のツリー（本譜＋分岐）はそのまま保持される
 
@@ -1018,7 +1022,7 @@ root → 1手目 → ... → 30手目 → 31手目(本譜) → ... → 100手目
       → 棋譜欄を全クリアし、「=== 開始局面 ===」ヘッダ行のみ追加
       → navState->goToRoot() でカーソルを開始局面へ戻す
 
-   d. ensureBranchTreeRoot()
+   d. prepareBranchTreeRoot()
       → 根は 1-b で開始局面にしてあるので作り直さない
          （根が無いときや局面が違うときは startSfenStr から作る）
 
@@ -1082,7 +1086,7 @@ root → 1手目 → 2手目 → ... → 80手目 → [投了]
       - pathToNode(20手目) で経路取得: [root, 1手目, ..., 20手目]
       - 棋譜欄を経路のノードで再構築（0〜20手目を表示）
 
-   d. ensureBranchTreeRoot()
+   d. prepareBranchTreeRoot()
       → ルートは前回対局時に作成済み → 何もしない
       → 前回の本譜（80手＋投了）はツリーにそのまま残る
 

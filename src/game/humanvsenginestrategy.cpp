@@ -67,9 +67,7 @@ void HumanVsEngineStrategy::start()
     // USI エンジンを起動（path/name 必須）
     m_ctx.initializeAndStartEngineFor(m_engineSide, m_enginePath, m_engineName);
 
-    // --- 手番の単一ソースを確立：GC → m_cur → 表示 ---
-    const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
-    m_ctx.setCurrentTurn(side);
+    // 手番の単一ソースは GC（currentTurn() は GC の手番を返す）
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
@@ -99,8 +97,7 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& /*humanFrom*/,
                                                      const QPoint& humanTo)
 {
     if (Usi* eng = m_ctx.primaryEngine()) {
-        eng->setPreviousFileTo(humanTo.x());
-        eng->setPreviousRankTo(humanTo.y());
+        eng->setPreviousMove(BoardSquare{humanTo.x(), humanTo.y()});
     }
 
 

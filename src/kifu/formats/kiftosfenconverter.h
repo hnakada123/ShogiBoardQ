@@ -12,54 +12,51 @@
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 
+/**
+ * @brief KIF形式の棋譜を解析し、USI形式やGUI用データに変換するクラス
+ *
+ * 棋譜は1回だけ行に分けて読み、本譜と各変化を1回の走査で KifParseResult にする
+ * （表示用の指し手と USI の指し手は同じ走査で作るので、並びが必ずそろう）。
+ * ファイル版の関数は文字コードを判別して読み、テキスト版の関数に渡す。
+ */
 class KifToSfenConverter
 {
 public:
-    // 既存API：本譜の初期SFEN（手合割から判定）
+    // ---- テキスト（貼り付けた棋譜など） ----
+
+    /// 開始局面のSFEN（局面図、なければ手合割から判定）
+    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
+
+    /// 本譜＋全変化をまとめて抽出（コメント・しおりも格納）
+    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
+
+    /// 「対局情報」を抽出して順序付きで返す（同一キーは改行で連結、値中の「\n」は改行に変換）
+    static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);
+
+    // ---- 行に分けたテキスト ----
+
+    static QString detectInitialSfenFromLines(const QStringList& lines, QString* detectedLabel = nullptr);
+    [[nodiscard]] static bool parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage = nullptr);
+    static QList<KifGameInfoItem> extractGameInfoFromLines(const QStringList& lines);
+
+    // ---- ファイル（読み込んでテキスト版に渡す） ----
+
     static QString detectInitialSfenFromFile(const QString& kifPath, QString* detectedLabel = nullptr);
-
-    // 既存API：本譜のUSI列のみを抽出（終局/中断で打ち切り）
+    /// 本譜のUSI列のみ（parseWithVariations の本譜）
     static QStringList convertFile(const QString& kifPath, QString* errorMessage = nullptr);
-
-    // 既存API：本譜の「指し手＋時間」（コメントも格納）を抽出
+    /// 本譜の「指し手＋時間」（parseWithVariations の本譜）
     static QList<KifDisplayItem> extractMovesWithTimes(const QString& kifPath, QString* errorMessage = nullptr);
-
-    // 新API：本譜＋全変化をまとめて抽出（コメントも格納）
     [[nodiscard]] static bool parseWithVariations(const QString& kifPath, KifParseResult& out, QString* errorMessage = nullptr);
-
-    // 手合→初期SFEN（ユーザー提供のマップ）
-    static QString mapHandicapToSfen(const QString& label);
-
-    // 追加: KIFファイルから「対局情報」を抽出して順序付きで返す
-    //   - ファイル全体を走査して「： or :」の区切りを持つ行を収集
-    //   - 同一キーが複数回出る場合は値を改行で連結（備考など）
-    //   - 値中の「\n」文字列は実改行に変換
     static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
-
-    // 追加（任意）：キー→値 へ高速アクセスしたい場合のマップ版
     static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
+
+    // ---- 局面 ----
+
+    /// 手合→初期SFEN
+    static QString mapHandicapToSfen(const QString& label);
 
     [[nodiscard]] static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
                                         QString* detectedLabel = nullptr, QString* warn = nullptr);
-
-private:
-    // ---------- parseWithVariations ヘルパ ----------
-    static void extractMainLine(const QString& kifPath, KifParseResult& out, QString* errorMessage);
-    /// 分岐元の局面と、その局面に至る直前の指し手（「同」の解決用、USI形式）を求める。
-    /// @param varPrevUsi vars と同じ並びで、各変化の分岐元に至る直前の指し手
-    static QString findBranchBaseSfen(const QList<KifVariation>& vars,
-                                      const QStringList& varPrevUsi,
-                                      const KifLine& mainLine,
-                                      int branchPointPly,
-                                      QString* prevUsi = nullptr);
-    static KifVariation parseVariationBlock(const QStringList& blockLines,
-                                            int startPly,
-                                            const QString& baseSfen,
-                                            const QString& prevUsi = QString());
-    static void extractMovesFromBlock(const QStringList& blockLines,
-                                      int startPly,
-                                      KifLine& line,
-                                      const QString& prevUsi = QString());
 };
 
 #endif // KIFTOSFENCONVERTER_H

@@ -92,9 +92,9 @@ bool AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
                 QObject::disconnect(m_connUsiBestMove);
                 m_connUsiBestMove = {};
             }
-            if (m_connUsiInfoLine) {
-                QObject::disconnect(m_connUsiInfoLine);
-                m_connUsiInfoLine = {};
+            if (m_connUsiInfo) {
+                QObject::disconnect(m_connUsiInfo);
+                m_connUsiInfo = {};
             }
             if (m_connUsiThinkingInfo) {
                 QObject::disconnect(m_connUsiThinkingInfo);

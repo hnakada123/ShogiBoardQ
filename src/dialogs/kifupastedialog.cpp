@@ -233,32 +233,18 @@ void KifuPasteDialog::updateClipboardAction()
 
 void KifuPasteDialog::applyFontSize()
 {
-    DialogUtils::standardizeDialog(this);
-    const int size = m_fontHelper.fontSize();
-    QFont font = this->font();
-    font.setPointSize(size);
-    setFont(font);
-
     // テキストエディタには等幅フォントを維持
+    const int size = m_fontHelper.fontSize();
+    const QFont font = m_fontHelper.applyTo(this, {m_textEdit});
     QFont monoFont = m_textEdit->font();
     monoFont.setPointSize(size);
     m_textEdit->setFont(monoFont);
     m_textEdit->setMinimumHeight(qMax(120, QFontMetrics(monoFont).lineSpacing() * 4 + 20));
-
-    // 全子ウィジェットにフォントを適用
-    const auto widgets = findChildren<QWidget*>();
-    for (QWidget* widget : std::as_const(widgets)) {
-        if (widget && widget != m_textEdit) {
-            widget->setFont(font);
-        }
-    }
     m_fontSizeLabel->setText(tr("%1 pt").arg(size));
-    m_btnFontSizeDown->setEnabled(size > kMinimumFontSize);
-    m_btnFontSizeUp->setEnabled(size < kMaximumFontSize);
-    const int buttonHeight = qMax(32, QFontMetrics(font).height() + 12);
-    for (auto* button : {m_btnPaste, m_btnClear, m_btnFontSizeDown, m_btnFontSizeUp, m_btnImport, m_btnCancel}) {
-        button->setMinimumHeight(buttonHeight);
-        button->setMinimumWidth(qMax(36, QFontMetrics(font).horizontalAdvance(button->text()) + 24));
+    const QFontMetrics metrics(font);
+    for (auto* button : {m_btnPaste, m_btnClear, m_btnImport, m_btnCancel}) {
+        button->setMinimumHeight(qMax(32, metrics.height() + 12));
+        button->setMinimumWidth(qMax(36, metrics.horizontalAdvance(button->text()) + 24));
     }
 
     // 明示した固定の最小サイズだけでは、大きな文字でレイアウトが重なる。
@@ -269,5 +255,4 @@ void KifuPasteDialog::applyFontSize()
     const int minimumWidth = qMax(kMinimumSize.width(), contentsMinimum.width());
     const int minimumHeight = qMax(contentsMinimum.height(), layout()->totalHeightForWidth(minimumWidth));
     setMinimumSize(minimumWidth, qMax(kMinimumSize.height(), minimumHeight));
-    DialogUtils::updateFontButtons(this, size, kMinimumFontSize, kMaximumFontSize);
 }

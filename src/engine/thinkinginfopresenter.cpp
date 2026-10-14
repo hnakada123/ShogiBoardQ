@@ -4,7 +4,7 @@
 #include "thinkinginfopresenter.h"
 #include "kifupresentation.h"
 #include "usi.h"
-#include "shogiengineinfoparser.h"
+#include "pvnotationformatter.h"
 #include "shogigamecontroller.h"
 
 #include <QTimer>
@@ -14,7 +14,7 @@
 ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent)
     : QObject(parent)
     , m_locale(QLocale::English)
-    , m_infoParser(std::make_unique<ShogiEngineInfoParser>())
+    , m_formatter(std::make_unique<PvNotationFormatter>())
 {
 }
 
@@ -48,7 +48,7 @@ void ThinkingInfoPresenter::setBaseSfen(const QString& sfen)
 {
     m_baseSfen = sfen;
     // 読み筋の手番の印（▲△）は、この局面の手番から決まる
-    m_infoParser->setPosition(sfen);
+    m_formatter->setPosition(sfen);
 }
 
 QString ThinkingInfoPresenter::baseSfen() const
@@ -65,9 +65,9 @@ QString ThinkingInfoPresenter::mateScoreText(const QString& plies)
 // info処理
 // ============================================================
 
-void ThinkingInfoPresenter::onInfoReceived(const QString& line)
+void ThinkingInfoPresenter::onInfoReceived(const UsiInfo& info)
 {
-    m_infoBuffer.append(line);
+    m_infoBuffer.append(info);
 
     if (!m_flushScheduled) {
         m_flushScheduled = true;
@@ -79,69 +79,53 @@ void ThinkingInfoPresenter::flushInfoBuffer()
 {
     m_flushScheduled = false;
 
-    QStringList batch;
+    QList<UsiInfo> batch;
     batch.swap(m_infoBuffer);
 
-    for (const QString& line : std::as_const(batch)) {
-        if (!line.isEmpty()) {
-            processInfoLineInternal(line);
-        }
+    for (const UsiInfo& info : std::as_const(batch)) {
+        processInfo(info);
     }
 }
 
-void ThinkingInfoPresenter::processInfoLine(const QString& line)
-{
-    processInfoLineInternal(line);
-}
-
-void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
+void ThinkingInfoPresenter::processInfo(const UsiInfo& info)
 {
     // 処理フロー:
-    // 1. 再利用するShogiEngineInfoParserに前回指し手を設定
-    // 2. info行をパースし、思考開始局面の上で読み筋を日本語にする
-    // 3. 探索手・深さ・ノード数・NPS・ハッシュ使用率のシグナルを発行
-    // 4. 評価値/詰み手数を更新
-    // 5. 有効な情報があれば思考タブ向けの統合シグナルを発行
+    // 1. 思考開始局面の上で読み筋・探索手を日本語にする
+    // 2. 探索手・深さ・ノード数・NPS・ハッシュ使用率のシグナルを発行
+    // 3. 評価値/詰み手数を更新
+    // 4. 有効な情報があれば思考タブ向けの行を発行
 
-    qCDebug(lcEngine) << "processInfoLine: prevFile=" << m_previousFileTo << "prevRank=" << m_previousRankTo;
+    qCDebug(lcEngine) << "processInfo: prevFile=" << m_previousFileTo << "prevRank=" << m_previousRankTo;
 
-    int scoreInt = 0;
+    m_formatter->setPreviousMove(BoardSquare{m_previousFileTo, m_previousRankTo});
+    m_formatter->format(info);
 
-    ShogiEngineInfoParser* info = m_infoParser.get();
-    if (!info) {
-        return;
-    }
-
-    info->setPreviousMove(BoardSquare{m_previousFileTo, m_previousRankTo});
-    info->parseEngineOutputAndUpdateState(line);
-
-    // シグナル経由でGUI項目を更新
-    emitSearchedHand(info);
+    emitSearchedHand();
     emitDepth(info);
     emitNodes(info);
     emitNps(info);
     emitHashfull(info);
 
-    // 評価値/詰み手数の更新
-    updateEvaluationInfo(info, scoreInt);
+    QString scoreText;
+    int scoreInt = 0;
+    updateEvaluationInfo(info, scoreText, scoreInt);
 
-    // 思考タブへ追記するシグナルを発行
-    if (!info->time().isEmpty() || !info->depth().isEmpty() ||
-        !info->nodes().isEmpty() || !info->score().isEmpty() ||
-        !info->pvKanjiStr().isEmpty()) {
-
-        // multipv値を取得（空の場合は1とみなす）
-        int multipv = 1;
-        if (!info->multipv().isEmpty()) {
-            multipv = info->multipv().toInt();
-            if (multipv < 1) multipv = 1;
-        }
-
-        emit thinkingInfoUpdated(info->time(), info->depth(),
-                                 info->nodes(), info->score(),
-                                 info->pvKanjiStr(), info->pvUsiStr(),
-                                 m_baseSfen, multipv, scoreInt);
+    ThinkingInfoRow row;
+    row.time = info.timeMs >= 0 ? QString::number(info.timeMs) : QString();
+    row.depth = info.depth >= 0 ? QString::number(info.depth) : QString();
+    row.nodes = info.nodes >= 0 ? QString::number(info.nodes) : QString();
+    row.score = scoreText;
+    row.pvKanji = m_formatter->pvKanjiStr();
+    if (row.time.isEmpty() && row.depth.isEmpty() && row.nodes.isEmpty()
+        && row.score.isEmpty() && row.pvKanji.isEmpty()) {
+        return;
     }
+    row.usiPv = m_formatter->pvUsiStr();
+    row.enginePv = info.pv;
+    row.baseSfen = m_baseSfen;
+    row.multipv = qMax(1, info.multipv);
+    row.scoreCp = scoreInt;
+    emit thinkingInfoUpdated(row);
 }
 
 void ThinkingInfoPresenter::requestClearThinkingInfo()
@@ -193,11 +177,12 @@ void ThinkingInfoPresenter::logStderrData(const QString& prefix, const QString& 
 // シグナル発行ヘルパメソッド
 // ============================================================
 
-void ThinkingInfoPresenter::emitSearchedHand(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitSearchedHand()
 {
-    if (info->searchedHand().isEmpty()) return;
+    const QString hand = m_formatter->searchedHand();
+    if (hand.isEmpty()) return;
 
-    // info 行ごとに呼ばれ、同じ手が何度も届く。英語表記では局面を読み直して表記を作るので、
+    // info ごとに呼ばれ、同じ手が何度も届く。英語表記では局面を読み直して表記を作るので、
     // 局面と表記の設定が同じ間は、手ごとに作った表示を使う
     constexpr qsizetype kMaxSearchedLabels = 128;
     const auto style = KifuPresentation::options();
@@ -209,53 +194,47 @@ void ThinkingInfoPresenter::emitSearchedHand(const ShogiEngineInfoParser* info)
         m_searchedNotation = notation;
         m_searchedAlwaysOrigin = style.alwaysOrigin;
     }
-    const QString key = info->searchedHand() + QChar(0) + info->searchedUsi();
+    const QString usi = m_formatter->searchedUsi();
+    const QString key = hand + QChar(0) + usi;
     const auto it = m_searchedLabels.constFind(key);
     if (it != m_searchedLabels.cend()) {
         emit searchedMoveUpdated(it.value());
         return;
     }
-    const QString label = KifuPresentation::label(info->searchedHand(), m_baseSfen, info->searchedUsi());
+    const QString label = KifuPresentation::label(hand, m_baseSfen, usi);
     m_searchedLabels.insert(key, label);
     emit searchedMoveUpdated(label);
 }
 
-void ThinkingInfoPresenter::emitDepth(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitDepth(const UsiInfo& info)
 {
-    if (info->depth().isEmpty()) return;
+    if (info.depth < 0) return;
 
-    QString depthStr;
-    if (info->seldepth().isEmpty()) {
-        depthStr = info->depth();
-    } else {
-        depthStr = info->depth() + "/" + info->seldepth();
+    QString depthStr = QString::number(info.depth);
+    if (info.seldepth >= 0) {
+        depthStr += QLatin1Char('/') + QString::number(info.seldepth);
     }
     emit searchDepthUpdated(depthStr);
 }
 
-void ThinkingInfoPresenter::emitNodes(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitNodes(const UsiInfo& info)
 {
-    if (info->nodes().isEmpty()) return;
-
-    unsigned long long nodes = info->nodes().toULongLong();
-    emit nodeCountUpdated(m_locale.toString(nodes));
+    if (info.nodes < 0) return;
+    emit nodeCountUpdated(m_locale.toString(info.nodes));
 }
 
-void ThinkingInfoPresenter::emitNps(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitNps(const UsiInfo& info)
 {
-    if (info->nps().isEmpty()) return;
-
-    unsigned long long nps = info->nps().toULongLong();
-    emit npsUpdated(m_locale.toString(nps));
+    if (info.nps < 0) return;
+    emit npsUpdated(m_locale.toString(info.nps));
 }
 
-void ThinkingInfoPresenter::emitHashfull(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitHashfull(const UsiInfo& info)
 {
-    if (info->hashfull().isEmpty()) {
-        emit hashUsageUpdated("");
+    if (info.hashfull < 0) {
+        emit hashUsageUpdated(QString());
     } else {
-        unsigned long long hash = info->hashfull().toULongLong() / 10;
-        emit hashUsageUpdated(QString::number(hash) + "%");
+        emit hashUsageUpdated(QString::number(info.hashfull / 10) + QLatin1Char('%'));
     }
 }
 
@@ -267,48 +246,28 @@ void ThinkingInfoPresenter::emitHashfull(const ShogiEngineInfoParser* info)
 // VALUE_SUPERIOR == 28000, PawnValue == 90, centi-pawn換算で100/90倍 → 約31111
 static constexpr int SCORE_MATE_VALUE = 31111;
 
-int ThinkingInfoPresenter::calculateScoreInt(const ShogiEngineInfoParser* info) const
+int ThinkingInfoPresenter::updateCpScore(const UsiInfo& info)
 {
-    int scoreInt = 0;
-
-    // score mate の値がプラス（勝ち）または "+" の場合
-    if ((info->scoreMate().toLongLong() > 0) || (info->scoreMate() == "+")) {
-        scoreInt = SCORE_MATE_VALUE;
-    }
-    // score mate の値がマイナス（負け）または "-" の場合
-    else if ((info->scoreMate().toLongLong() < 0) || (info->scoreMate() == "-")) {
-        scoreInt = -SCORE_MATE_VALUE;
-    }
-
-    return scoreInt;
-}
-
-void ThinkingInfoPresenter::updateAnalysisModeAndScore(const ShogiEngineInfoParser* info, int& scoreInt)
-{
+    const int cp = info.score.value;
     if (!m_gameController) {
-        m_scoreStr = info->scoreCp();
-        scoreInt = m_scoreStr.toInt();
-        return;
+        m_scoreStr = QString::number(cp);
+        return cp;
     }
 
     if (m_analysisMode) {
-        if (m_gameController->currentPlayer() == Turn::Black) {
-            scoreInt = info->scoreCp().toInt();
-            m_scoreStr = info->scoreCp();
-        } else if (m_gameController->currentPlayer() == Turn::White) {
-            scoreInt = -info->scoreCp().toInt();
-            m_scoreStr = QString::number(scoreInt);
-        }
-    } else {
-        m_scoreStr = info->scoreCp();
-        scoreInt = m_scoreStr.toInt();
-
-        if (info->evaluationBound() == ShogiEngineInfoParser::EvaluationBound::LowerBound) {
-            m_scoreStr += "++";
-        } else if (info->evaluationBound() == ShogiEngineInfoParser::EvaluationBound::UpperBound) {
-            m_scoreStr += "--";
-        }
+        // 棋譜解析では先手から見た値にする
+        const int scoreInt = m_gameController->currentPlayer() == Turn::White ? -cp : cp;
+        m_scoreStr = QString::number(scoreInt);
+        return scoreInt;
     }
+
+    m_scoreStr = QString::number(cp);
+    if (info.score.bound == UsiScore::Bound::Lower) {
+        m_scoreStr += QStringLiteral("++");
+    } else if (info.score.bound == UsiScore::Bound::Upper) {
+        m_scoreStr += QStringLiteral("--");
+    }
+    return cp;
 }
 
 void ThinkingInfoPresenter::updateLastScore(int scoreInt)
@@ -317,81 +276,52 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
     
     // 表示範囲外の値も保持し、チャート側で端のマーカーとして描画する。
     m_lastScoreCp = scoreInt;
-
-    qCDebug(lcEngine) << "updateLastScore: after=" << m_lastScoreCp;
-
 }
 
-void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt)
+void ThinkingInfoPresenter::updateEvaluationInfo(const UsiInfo& info, QString& scoreText, int& scoreInt)
 {
     // 処理フロー:
-    // 1. multipv番号を確認し、1（または空）のみグラフ更新対象とする
-    // 2. scoreCpが空の場合 → scoreMateを確認し詰み評価値を計算
-    //    - scoreMateも空なら何もしない
-    //    - 詰み表示文字列を生成し、multipv1ならグラフ更新
-    // 3. scoreCpがある場合 → 解析モードに応じて符号反転し評価値を算出
-    //    - multipv1ならグラフ・PV文字列を更新
+    // 1. multipv 1 のみ評価値グラフ更新対象とする（2以降は思考タブの表示だけ）
+    // 2. score mate → 詰み評価値（±31111）と「N手詰」の表示
+    // 3. score cp → 解析モードに応じて符号反転し評価値を算出
 
-    // multipv 1（1行目）の場合のみ評価値グラフを更新
-    // multipvが空の場合も更新（単一PVモードの場合）
-    const QString multipv = info->multipv();
-    const QString scoreCp = info->scoreCp();
-    
-    qCDebug(lcEngine) << "updateEvaluationInfo: multipv=" << multipv
-                      << "scoreCp=" << scoreCp
+    const bool isMultipv1 = info.multipv == 1;
+
+    qCDebug(lcEngine) << "updateEvaluationInfo: multipv=" << info.multipv
                       << "before=" << m_lastScoreCp;
-    
-    // multipv 2以降の場合は、思考タブの表示用にscoreをセットするが、
-    // 評価値グラフ（m_lastScoreCp）は更新しない
-    const bool isMultipv1 = multipv.isEmpty() || multipv == "1";
-    
-    if (info->scoreCp().isEmpty()) {
-        // score mate の場合
-        if (info->scoreMate().isEmpty()) {
-            // スコア情報がない場合は何もしない
-            return;
-        }
-        
-        scoreInt = calculateScoreInt(info);
-        
-        QString scoreMate = info->scoreMate();
-        if ((scoreMate == "+") || (scoreMate == "-")) {
-            scoreMate = tr("詰み");
-        } else {
-            scoreMate = mateScoreText(scoreMate);
-        }
-        
-        info->setScore(scoreMate);
-        
-        // multipv 1 の場合のみ評価値グラフを更新
+
+    if (info.score.isMate()) {
+        scoreInt = info.score.mateSign() * SCORE_MATE_VALUE;
+        const QString mate = info.score.mateText();
+        scoreText = info.score.mateCountKnown ? mateScoreText(mate) : tr("詰み");
+
         if (isMultipv1) {
-            m_scoreStr = info->scoreMate();
+            m_scoreStr = mate;
             m_lastScoreCp = scoreInt;
-            m_lastScoreMate = info->scoreMate();
+            m_lastScoreMate = mate;
         }
-    } else {
-        // score cp の場合
-        updateAnalysisModeAndScore(info, scoreInt);
-        info->setScore(m_scoreStr);
-        
-        // multipv 1 の場合のみ評価値グラフを更新
+    } else if (info.score.isCp()) {
+        scoreInt = updateCpScore(info);
+        scoreText = m_scoreStr;
+
         if (isMultipv1) {
-            m_pvKanjiStr = info->pvKanjiStr();
+            m_pvKanjiStr = m_formatter->pvKanjiStr();
             qCDebug(lcEngine) << "評価値更新: scoreInt=" << scoreInt << "scoreStr=" << m_scoreStr;
             m_lastScoreMate.clear();
             updateLastScore(scoreInt);
-        } else {
-            qCDebug(lcEngine) << "multipv=" << multipv << "グラフ更新スキップ（表示用のみ）";
         }
     }
-    
-    qCDebug(lcEngine) << "updateEvaluationInfo完了: lastScoreCp=" << m_lastScoreCp;
 }
 
 void ThinkingInfoPresenter::presentCheckmate(const QStringList& pv)
 {
     // info を省略するエンジンでも詰み手順を履歴に残す。通信結果から表示への変換はここで行う。
     flushInfoBuffer();
-    processInfoLine(QStringLiteral("info score mate %1 pv %2")
-                        .arg(pv.size()).arg(pv.join(QLatin1Char(' '))));
+    UsiInfo info;
+    info.score.kind = UsiScore::Kind::Mate;
+    info.score.value = static_cast<int>(pv.size());
+    info.score.mateCountKnown = true;
+    info.score.mateWin = true;
+    info.pv = pv;
+    processInfo(info);
 }

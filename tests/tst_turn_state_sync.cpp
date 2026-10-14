@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <memory>
 
 #include "timecontrol_test_helper.h"
 #include <QTemporaryDir>
@@ -24,24 +25,22 @@ class TestTurnStateSync : public QObject
     Q_OBJECT
 
     QTemporaryDir m_config;
-    TurnStateSyncService m_sync;
+    std::unique_ptr<TurnStateSyncService> m_sync;   ///< 盤ごとに作り直す（TurnManager の初期手番をそろえる）
+    ShogiView* m_activeView = nullptr;   ///< 手番側の強調を付ける盤（本番では時間表示が付ける）
 
     void configure(ShogiGameController& gc, ShogiView& view, ShogiClock& clock,
                    QObject& turnParent, const bool& gameActive)
     {
+        m_sync = std::make_unique<TurnStateSyncService>();
         TurnStateSyncService::Deps deps;
         deps.gameController = &gc;
         deps.shogiView = &view;
-        deps.turnManagerParent = &turnParent;
+        deps.clock = &clock;
         deps.isGameActivelyInProgress = [&gameActive]() { return gameActive; };
-        deps.updateTurnStatus = [&view, &clock](Turn player) {
-            clock.setCurrentPlayer(player);
-            view.setActiveSide(player == Turn::Black);
-        };
-        deps.onTurnManagerCreated = [this](TurnManager* tm) {
-            connect(tm, &TurnManager::changed, this, &TestTurnStateSync::onTurnChanged);
-        };
-        m_sync.updateDeps(deps);
+        m_sync->updateDeps(deps);
+        Q_UNUSED(turnParent);
+        m_activeView = &view;
+        connect(m_sync->turnManager(), &TurnManager::changed, this, &TestTurnStateSync::onTurnChanged);
     }
 
     static void verifyTurn(ShogiView& view, ShogiGameController& gc, bool blackTurn)
@@ -49,7 +48,7 @@ class TestTurnStateSync : public QObject
         QCOMPARE(gc.currentPlayer(), blackTurn ? Turn::Black
                                               : Turn::White);
         QCOMPARE(view.board()->currentPlayer(), blackTurn ? Turn::Black : Turn::White);
-        QCOMPARE(view.highlighting()->blackActive(), blackTurn);
+        QCOMPARE(view.chrome()->blackActive(), blackTurn);
 
         const auto* blackLabel = view.findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
         const auto* whiteLabel = view.findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
@@ -86,7 +85,7 @@ class TestTurnStateSync : public QObject
 private slots:
     void onTurnChanged(Turn player)
     {
-        m_sync.onTurnManagerChanged(player);
+        if (m_activeView) m_activeView->setActiveSide(player == Turn::Black);
     }
 
     void initTestCase()
@@ -108,7 +107,7 @@ private slots:
         // 無制限対局は累積消費時間なので、残り時間と区別できるよう「消費」を付ける。
         QCOMPARE(view.blackClockLabel()->text(), QStringLiteral("消費 00:00:01"));
         QCOMPARE(view.whiteClockLabel()->text(), QStringLiteral("消費 00:00:00"));
-        QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
+        QCOMPARE(view.chrome()->urgency(), ShogiView::Urgency::Normal);
         clock.commitMove(Turn::Black);
         clock.setCurrentPlayer(Turn::White);
         clock.setMeasuredConsiderationTime(Turn::White, 2999);
@@ -164,13 +163,13 @@ private slots:
         clock.setTimeControl(TestTime::rules(mainSec, 60, byoyomiSec, byoyomiSec, incrementSec, incrementSec));
         if (enterByoyomi) clock.commitMove(Turn::Black);
         presenter.onMatchTimeUpdated(remainingMs, 60000, Turn::Black, 0);
-        QCOMPARE(view.highlighting()->urgency(), expected);
+        QCOMPARE(view.chrome()->urgency(), expected);
         // 相手の手番の時計は警告しない。時間無制限の対局も警告しない。
         presenter.onMatchTimeUpdated(remainingMs, 60000, Turn::White, 0);
-        QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
+        QCOMPARE(view.chrome()->urgency(), ShogiView::Urgency::Normal);
         clock.setTimeControl(TestTime::rules(0, 0, 0, 0, 0, 0));
         presenter.onMatchTimeUpdated(0, 0, Turn::Black, 0);
-        QCOMPARE(view.highlighting()->urgency(), ShogiView::Urgency::Normal);
+        QCOMPARE(view.chrome()->urgency(), ShogiView::Urgency::Normal);
     }
 
     void navigationAfterGameEnd_data()
@@ -205,12 +204,12 @@ private slots:
         QObject turnParent;
         bool gameActive = true;
         configure(gc, view, clock, turnParent, gameActive);
-        m_sync.setCurrentTurn();
+        m_sync->setCurrentTurn();
 
         // ライブ対局から終局後の閲覧へ。終局時の表示維持も実環境と揃える。
         gc.board()->setSfen(sfens.last());
         gc.setCurrentPlayer(whiteStart ? Turn::Black : Turn::White);
-        m_sync.setCurrentTurn();
+        m_sync->setCurrentTurn();
         gameActive = false;
         view.setGameOverStyleLock(true);
 
@@ -219,7 +218,7 @@ private slots:
         for (const int ply : {0, 1, 2, 3, 3, 2, 1, 0, 3, 0}) {
             gc.board()->setSfen(sfens.at(ply));
             view.applyBoardAndRender(gc.board());
-            m_sync.setCurrentTurn();
+            m_sync->setCurrentTurn();
             verifyTurn(view, gc, (ply % 2 == 0) != whiteStart);
         }
     }
@@ -257,7 +256,7 @@ private slots:
         configure(gc, view, clock, turnParent, gameActive);
         for (bool black : {true, false}) {
             gc.setCurrentPlayer(black ? Turn::Black : Turn::White);
-            m_sync.setCurrentTurn();
+            m_sync->setCurrentTurn();
             verifyTurn(view, gc, black);
             const auto* badge = view.findChild<QLabel*>(black ? "turnLabelBlack" : "turnLabelWhite");
             QCOMPARE(badge->palette().color(QPalette::WindowText), custom.turnText);
@@ -344,7 +343,7 @@ private slots:
             QCOMPARE(view.whiteNameLabel()->palette().color(QPalette::WindowText), activeText);
             QCOMPARE(view.blackNameLabel()->palette().color(QPalette::WindowText), inactiveText);
             QCOMPARE(card(true)->palette().color(QPalette::Window), background);
-            view.highlighting()->refreshBackgroundColors();
+            view.chrome()->refreshBackgroundColors();
             QCOMPARE(view.whiteNameLabel()->palette().color(QPalette::WindowText), custom.nameText);
             QCOMPARE(card(true)->palette().color(QPalette::Window), custom.cardBackground);
             // 配色を変えると、覚えていた文字列ではなく新しい色になる
@@ -376,12 +375,12 @@ private slots:
         gc.setCurrentPlayer(Turn::White);
         // 同期前の古い盤面手番より、対局制御側の手番を優先する。
         gc.board()->setSfen(initialSfen);
-        m_sync.setCurrentTurn();
-        const auto* tm = turnParent.findChild<TurnManager*>();
+        m_sync->setCurrentTurn();
+        const auto* tm = m_sync->turnManager();
         QVERIFY(tm);
         QCOMPARE(tm->side(), Turn::White);
         QCOMPARE(gc.currentPlayer(), Turn::White);
-        QVERIFY(!view.highlighting()->blackActive());
+        QVERIFY(!view.chrome()->blackActive());
         QVERIFY(!view.findChild<QLabel*>(QStringLiteral("turnLabelWhite"))->isHidden());
     }
     // 長いエンジン名が2行に折り返しても、2行目が欠けず残り時間と重ならない

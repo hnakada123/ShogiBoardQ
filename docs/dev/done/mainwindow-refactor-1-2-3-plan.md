@@ -138,13 +138,13 @@ public:
     explicit LiveGameSessionUpdater(const Deps& deps);
 
     void appendLiveMove(const AppendInput& in);
-    void ensureSessionStarted(const QString& currentSfenStr);
+    void startSessionIfNeeded(const QString& currentSfenStr);
 };
 ```
 
 ### 既存メソッドからの移行先
 
-- `MainWindow::ensureLiveGameSessionStarted` -> `LiveGameSessionUpdater::ensureSessionStarted`
+- `MainWindow::ensureLiveGameSessionStarted` -> `LiveGameSessionUpdater::startSessionIfNeeded`
 - `MainWindow::updateGameRecord` 後半 (LiveGameSession 更新部) -> `LiveGameSessionUpdater::appendLiveMove`
 
 ### 段階的リファクタ手順

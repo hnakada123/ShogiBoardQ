@@ -1,56 +1,52 @@
 /// @file josekiwindow.cpp
-/// @brief 定跡ウィンドウクラスの実装（薄い View 層）
-/// setupUi() / applyFontSize() は josekiwindowui.cpp に分離
-/// ファイルI/O / 非同期処理は josekiwindowio.cpp に分離
+/// @brief 定跡ウィンドウクラスの実装（薄い View 層: 利用者の操作）
+/// 画面の構築と表示は josekiwindowui.cpp、ファイル操作は josekiwindowio.cpp、
 /// 棋譜からのマージは josekiwindowmerge.cpp に分離
 
 #include "josekiwindow.h"
 #include "dialogutils.h"
-#include "josekirepository.h"
-#include "josekipresenter.h"
-
-#include <QCloseEvent>
-#include <QShowEvent>
-#include <QDockWidget>
-
+#include "josekibooksession.h"
 #include "josekimovedialog.h"
-#include "josekimergedialog.h"
+#include "josekipresenter.h"
+#include "josekirepository.h"
 #include "josekisettings.h"
 #include "sfenpositiontracer.h"
 #include "sfenutils.h"
 
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QFileInfo>
-#include <QDir>
-#include <QLocale>
-#include <QClipboard>
+#include <QAction>
 #include <QApplication>
-#include <QTimer>
-#include <memory>
+#include <QClipboard>
+#include <QCloseEvent>
+#include <QDockWidget>
+#include <QLabel>
+#include <QMenu>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QShowEvent>
+#include <QTableWidget>
 
 JosekiWindow::JosekiWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)
-    , m_repository(std::make_unique<JosekiRepository>())
-    , m_presenter(new JosekiPresenter(m_repository.get(), this))
+    , m_session(new JosekiBookSession(this))
+    , m_presenter(new JosekiPresenter(m_session->repository(), this))
     , m_fontHelper(JosekiSettings::josekiWindowFontSize, 6, 24, 1)
 {
     setupUi();
+    connect(m_presenter, &JosekiPresenter::modifiedChanged, m_session, &JosekiBookSession::setModified);
+    connect(m_session, &JosekiBookSession::modifiedChanged, this, &JosekiWindow::onModifiedChanged);
+    connect(m_session, &JosekiBookSession::busyChanged, this, &JosekiWindow::onBusyChanged);
+    connect(m_session, &JosekiBookSession::recentFilesChanged, this, &JosekiWindow::updateRecentFilesMenu);
+    connect(m_session, &JosekiBookSession::loaded, this, &JosekiWindow::onBookLoaded);
+    connect(m_session, &JosekiBookSession::loadFailed, this, &JosekiWindow::onBookLoadFailed);
+    connect(m_session, &JosekiBookSession::saved, this, &JosekiWindow::onBookSaved);
+    connect(m_session, &JosekiBookSession::saveFailed, this, &JosekiWindow::onBookSaveFailed);
     loadSettings();
-    connect(m_presenter, &JosekiPresenter::modifiedChanged, this, &JosekiWindow::setModified);
-
-    connect(&m_loadWatcher, &QFutureWatcher<JosekiLoadResult>::finished,
-            this, &JosekiWindow::onAsyncLoadFinished);
-    connect(&m_saveWatcher, &QFutureWatcher<JosekiSaveResult>::finished,
-            this, &JosekiWindow::onAsyncSaveFinished);
 }
 
 JosekiWindow::~JosekiWindow()
 {
-    if (m_ioBusy) {
-        QApplication::restoreOverrideCursor();
-        m_ioBusy = false;
-    }
+    // 読み書きの途中で閉じたときは待機カーソルを戻す（ワーカーは値の写しで動くので待たない）
+    if (m_session->isBusy()) QApplication::restoreOverrideCursor();
 }
 
 // ============================================================
@@ -83,129 +79,15 @@ void JosekiWindow::showEvent(QShowEvent *event)
     updateJosekiDisplay();
 }
 
-void JosekiWindow::onFontSizeIncrease()
+bool JosekiWindow::confirmClose()
 {
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void JosekiWindow::onFontSizeDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
+    if (!confirmDiscardChanges()) return false;
+    saveSettings();
+    return true;
 }
 
 // ============================================================
-// ファイル操作スロット
-// ============================================================
-
-void JosekiWindow::onOpenButtonClicked()
-{
-    if (isIoBusy()) return;
-    if (!confirmDiscardChanges()) return;
-
-    QString startDir;
-    if (!m_currentFilePath.isEmpty()) startDir = QFileInfo(m_currentFilePath).absolutePath();
-
-    QString filePath = QFileDialog::getOpenFileName(
-        this, tr("定跡ファイルを開く"), startDir,
-        tr("定跡ファイル (*.db);;すべてのファイル (*)"));
-
-    if (!filePath.isEmpty()) loadAndApplyFileAsync(filePath);
-}
-
-void JosekiWindow::onNewButtonClicked()
-{
-    if (!confirmDiscardChanges()) return;
-    closeMergeDialogs();
-    m_repository->clear();
-    m_currentFilePath.clear();
-    m_filePathLabel->setText(tr("新規ファイル（未保存）"));
-    m_filePathLabel->setStyleSheet(QStringLiteral("color: blue;"));
-    setModified(false);
-    updateStatusDisplay();
-    updateJosekiDisplay();
-}
-
-void JosekiWindow::onSaveButtonClicked()
-{
-    if (isIoBusy()) return;
-    if (m_currentFilePath.isEmpty()) { onSaveAsButtonClicked(); return; }
-    saveToFileAsync(m_currentFilePath);
-}
-
-void JosekiWindow::onSaveAsButtonClicked()
-{
-    if (isIoBusy()) return;
-    const QString filePath = selectSaveFilePath();
-    if (!filePath.isEmpty()) saveToFileAsync(filePath);
-}
-
-// ============================================================
-// 最近使ったファイル
-// ============================================================
-
-void JosekiWindow::addToRecentFiles(const QString &filePath)
-{
-    m_recentFiles.removeAll(filePath);
-    m_recentFiles.prepend(filePath);
-    while (m_recentFiles.size() > 5) m_recentFiles.removeLast();
-    updateRecentFilesMenu();
-}
-
-void JosekiWindow::updateRecentFilesMenu()
-{
-    m_recentFilesMenu->clear();
-    if (m_recentFiles.isEmpty()) {
-        QAction *emptyAction = m_recentFilesMenu->addAction(tr("（履歴なし）"));
-        emptyAction->setEnabled(false);
-        return;
-    }
-    for (const QString &filePath : std::as_const(m_recentFiles)) {
-        QAction *action = m_recentFilesMenu->addAction(QFileInfo(filePath).fileName());
-        action->setData(filePath);
-        action->setToolTip(filePath);
-        connect(action, &QAction::triggered, this, &JosekiWindow::onRecentFileClicked);
-    }
-    m_recentFilesMenu->addSeparator();
-    connect(m_recentFilesMenu->addAction(tr("履歴をクリア")),
-            &QAction::triggered, this, &JosekiWindow::onClearRecentFilesClicked);
-}
-
-void JosekiWindow::onClearRecentFilesClicked()
-{
-    if (isIoBusy()) return;
-
-    m_recentFiles.clear();
-    // 「履歴をクリア」は最近使ったファイルのみを対象とし、
-    // 現在の編集中データ（未保存変更を含む）は保持する。
-    updateRecentFilesMenu();
-    saveSettings();  // 履歴にないファイルは前回のファイルとして記録しない（次回は自動読込しない）
-
-    if (m_statusLabel) {
-        m_statusLabel->setText(tr("最近使ったファイル履歴をクリアしました"));
-        QTimer::singleShot(2000, this, &JosekiWindow::onRestoreStatusDisplay);
-    }
-}
-
-void JosekiWindow::onRecentFileClicked()
-{
-    if (isIoBusy()) return;
-
-    QAction *action = qobject_cast<QAction*>(sender());
-    if (!action) return;
-    QString filePath = action->data().toString();
-    if (filePath.isEmpty() || !confirmDiscardChanges()) return;
-
-    if (!QFileInfo::exists(filePath)) {
-        QMessageBox::warning(this, tr("エラー"), tr("ファイルが見つかりません: %1").arg(filePath));
-        m_recentFiles.removeAll(filePath);
-        updateRecentFilesMenu();
-        return;
-    }
-    loadAndApplyFileAsync(filePath);
-}
-
-// ============================================================
-// 局面設定
+// 局面と着手の可否
 // ============================================================
 
 void JosekiWindow::setCurrentSfen(const QString &sfen)
@@ -222,7 +104,7 @@ void JosekiWindow::setCurrentSfen(const QString &sfen)
 
     // 1手ごとに複数の経路から同じ局面が届く。表に出している局面と同じで、人間が指せるかも
     // 変わらなければ作り直さない（定跡データの変更は、変更した処理が自分で表示を更新する）
-    if (sameSfen && !m_pendingAutoLoad && m_displayedSfen == m_currentSfen) {
+    if (sameSfen && m_pendingAutoLoadPath.isEmpty() && m_displayedSfen == m_currentSfen) {
         const bool couldPlay = m_humanCanPlay;
         refreshHumanCanPlay();
         if (m_humanCanPlay == couldPlay) return;
@@ -246,170 +128,6 @@ void JosekiWindow::setHumanCanPlay(bool canPlay)
     if (m_humanCanPlay != canPlay) { m_humanCanPlay = canPlay; updateJosekiDisplay(); }
 }
 
-// ============================================================
-// 定跡手操作（統合ヘルパー）
-// ============================================================
-
-void JosekiWindow::editMoveAt(int row)
-{
-    if (isIoBusy()) return;
-    if (row < 0 || row >= m_currentMoves.size()) return;
-
-    QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
-    if (!m_repository->containsPosition(normalizedSfen)) return;
-
-    const JosekiMove currentMove = m_currentMoves.at(row);
-    SfenPositionTracer tracer;
-    (void)tracer.setFromSfen(m_currentSfen);
-    QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer);
-
-    JosekiMoveDialog dialog(this, true);
-    dialog.setMove(currentMove.move);
-    dialog.setNextMove(currentMove.nextMove);
-    dialog.setCurrentSfen(m_currentSfen);
-    dialog.setValue(currentMove.value);
-    dialog.setDepth(currentMove.depth);
-    dialog.setFrequency(currentMove.frequency);
-    dialog.setComment(currentMove.comment);
-    dialog.setEditMoveDisplay(japaneseMoveStr);
-    if (dialog.exec() != QDialog::Accepted) return;
-
-    m_presenter->editMove(normalizedSfen, currentMove.move,
-                          dialog.value(), dialog.depth(), dialog.frequency(), dialog.comment(), dialog.nextMove());
-    setModified(true);
-    updateJosekiDisplay();
-}
-
-void JosekiWindow::deleteMoveAt(int row)
-{
-    if (isIoBusy()) return;
-    if (row < 0 || row >= m_currentMoves.size()) return;
-
-    QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
-    if (!m_repository->containsPosition(normalizedSfen)) return;
-
-    const JosekiMove currentMove = m_currentMoves.at(row);
-
-    // 日本語表記で確認（ボタンからの場合）
-    SfenPositionTracer tracer;
-    (void)tracer.setFromSfen(m_currentSfen);
-    QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer);
-
-    if (!DialogUtils::confirmAction(this, tr("削除確認"),
-                                    tr("定跡手「%1」を削除しますか？").arg(japaneseMoveStr), tr("削除する"))) {
-        return;
-    }
-
-    const QList<JosekiMove> &repoMoves = m_repository->movesForPosition(normalizedSfen);
-    for (int i = 0; i < repoMoves.size(); ++i) {
-        if (repoMoves[i].move == currentMove.move) {
-            m_presenter->deleteMove(normalizedSfen, i);
-            break;
-        }
-    }
-    setModified(true);
-    updateJosekiDisplay();
-}
-
-// ============================================================
-// 定跡手操作スロット
-// ============================================================
-
-void JosekiWindow::onPlayButtonClicked()
-{
-    QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (!button) return;
-    bool ok;
-    int row = button->property("row").toInt(&ok);
-    if (!ok || row < 0 || row >= m_currentMoves.size()) return;
-    emit josekiMoveSelected(m_currentMoves[row].move);
-}
-
-void JosekiWindow::onAddMoveButtonClicked()
-{
-    if (isIoBusy()) return;
-    if (m_currentSfen.isEmpty()) {
-        QMessageBox::warning(this, tr("定跡手追加"),
-            tr("局面が設定されていません。\n将棋盤で局面を表示してから定跡手を追加してください。"));
-        return;
-    }
-
-    const QString targetSfen = m_currentSfen;
-    JosekiMoveDialog dialog(this, false);
-    dialog.setCurrentSfen(targetSfen);
-    if (dialog.exec() != QDialog::Accepted) return;
-
-    JosekiMove newMove;
-    newMove.move = dialog.move();
-    newMove.nextMove = dialog.nextMove();
-    newMove.value = dialog.value();
-    newMove.depth = dialog.depth();
-    newMove.frequency = dialog.frequency();
-    newMove.comment = dialog.comment();
-
-    QString normalizedSfen = JosekiPresenter::normalizeSfen(targetSfen);
-
-    if (m_presenter->hasDuplicateMove(normalizedSfen, newMove.move)) {
-        SfenPositionTracer tracer;
-        (void)tracer.setFromSfen(targetSfen);
-        if (!DialogUtils::confirmAction(this, tr("確認"),
-                tr("指し手「%1」は既に登録されています。\n上書きしますか？")
-                    .arg(JosekiPresenter::usiMoveToJapanese(newMove.move, tracer)),
-                tr("上書きする"))) {
-            return;
-        }
-        m_repository->removeMoveByUsi(normalizedSfen, newMove.move);
-    }
-
-    m_presenter->addMove(normalizedSfen, targetSfen, newMove);
-    setModified(true);
-    updateJosekiDisplay();
-}
-
-void JosekiWindow::onEditButtonClicked()
-{
-    QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (!button) return;
-    bool ok;
-    int row = button->property("row").toInt(&ok);
-    if (ok) editMoveAt(row);
-}
-
-void JosekiWindow::onDeleteButtonClicked()
-{
-    QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (!button) return;
-    bool ok;
-    int row = button->property("row").toInt(&ok);
-    if (ok) deleteMoveAt(row);
-}
-
-void JosekiWindow::onAutoLoadCheckBoxChanged(Qt::CheckState state)
-{
-    m_autoLoadEnabled = (state == Qt::Checked);
-    JosekiSettings::josekiWindowAutoLoadEnabled.set(m_autoLoadEnabled);
-}
-
-void JosekiWindow::onStopButtonClicked()
-{
-    m_displayEnabled = !m_stopButton->isChecked();
-    if (m_displayEnabled) {
-        m_stopButton->setText(tr("■ 停止"));
-        updateJosekiDisplay();
-    } else {
-        m_stopButton->setText(tr("▶ 再開"));
-        clearTable();
-    }
-    JosekiSettings::josekiWindowDisplayEnabled.set(m_displayEnabled);
-    updateStatusDisplay();
-}
-
-void JosekiWindow::onSfenDetailToggled(bool checked)
-{
-    m_sfenDetailWidget->setVisible(checked);
-    JosekiSettings::josekiWindowSfenDetailVisible.set(checked);
-}
-
 void JosekiWindow::onMoveResult(bool success, const QString &usiMove)
 {
     if (!success) {
@@ -421,37 +139,11 @@ void JosekiWindow::onMoveResult(bool success, const QString &usiMove)
 }
 
 // ============================================================
-// テーブルイベント
+// 定跡手の操作
 // ============================================================
 
-void JosekiWindow::onTableDoubleClicked(int row, int column)
+void JosekiWindow::playMoveAt(int row)
 {
-    Q_UNUSED(column);
-    refreshHumanCanPlay();
-    if (!m_humanCanPlay) {
-        QMessageBox::information(this, tr("情報"), tr("定跡手は、対局中の自分の手番か、対局していないときに指せます。"));
-        return;
-    }
-    if (row >= 0 && row < m_currentMoves.size())
-        emit josekiMoveSelected(m_currentMoves[row].move);
-}
-
-void JosekiWindow::onTableContextMenu(const QPoint &pos)
-{
-    if (isIoBusy()) return;
-    QModelIndex index = m_tableWidget->indexAt(pos);
-    if (!index.isValid()) return;
-    int row = index.row();
-    if (row < 0 || row >= m_currentMoves.size()) return;
-    refreshHumanCanPlay();
-    m_actionPlay->setEnabled(m_humanCanPlay);
-    m_tableWidget->selectRow(row);
-    m_tableContextMenu->exec(m_tableWidget->viewport()->mapToGlobal(pos));
-}
-
-void JosekiWindow::onContextMenuPlay()
-{
-    int row = m_tableWidget->currentRow();
     if (row < 0 || row >= m_currentMoves.size()) return;
     refreshHumanCanPlay();
     if (!m_humanCanPlay) {
@@ -461,18 +153,174 @@ void JosekiWindow::onContextMenuPlay()
     emit josekiMoveSelected(m_currentMoves[row].move);
 }
 
+void JosekiWindow::editMoveAt(int row)
+{
+    if (isIoBusy()) return;
+    if (row < 0 || row >= m_currentMoves.size()) return;
+
+    const QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
+    if (!m_session->repository()->containsPosition(normalizedSfen)) return;
+
+    const JosekiMove currentMove = m_currentMoves.at(row);
+    SfenPositionTracer tracer;
+    (void)tracer.setFromSfen(m_currentSfen);
+
+    JosekiMoveDialog dialog(this, true);
+    dialog.setMove(currentMove.move);
+    dialog.setNextMove(currentMove.nextMove);
+    dialog.setCurrentSfen(m_currentSfen);
+    dialog.setValue(currentMove.value);
+    dialog.setDepth(currentMove.depth);
+    dialog.setFrequency(currentMove.frequency);
+    dialog.setComment(currentMove.comment);
+    dialog.setEditMoveDisplay(JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer));
+    if (dialog.exec() != QDialog::Accepted) return;
+
+    m_presenter->editMove(normalizedSfen, currentMove.move,
+                          dialog.value(), dialog.depth(), dialog.frequency(), dialog.comment(), dialog.nextMove());
+    updateJosekiDisplay();
+}
+
+void JosekiWindow::deleteMoveAt(int row)
+{
+    if (isIoBusy()) return;
+    if (row < 0 || row >= m_currentMoves.size()) return;
+
+    const QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
+    if (!m_session->repository()->containsPosition(normalizedSfen)) return;
+
+    const JosekiMove currentMove = m_currentMoves.at(row);
+    SfenPositionTracer tracer;
+    (void)tracer.setFromSfen(m_currentSfen);
+    const QString japaneseMove = JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer);
+    if (!DialogUtils::confirmAction(this, tr("削除確認"),
+                                    tr("定跡手「%1」を削除しますか？").arg(japaneseMove), tr("削除する"))) {
+        return;
+    }
+
+    const QList<JosekiMove> &repoMoves = m_session->repository()->movesForPosition(normalizedSfen);
+    for (int i = 0; i < repoMoves.size(); ++i) {
+        if (repoMoves[i].move == currentMove.move) {
+            m_presenter->deleteMove(normalizedSfen, i);
+            break;
+        }
+    }
+    updateJosekiDisplay();
+}
+
+void JosekiWindow::onAddMoveButtonClicked()
+{
+    if (isIoBusy()) return;
+    if (m_currentSfen.isEmpty()) {
+        QMessageBox::warning(this, tr("定跡手追加"),
+            tr("局面が設定されていません。\n将棋盤で局面を表示してから定跡手を追加してください。"));
+        return;
+    }
+
+    // ダイアログを開いている間に局面が進んでも、開いたときの局面に追加する
+    const QString targetSfen = m_currentSfen;
+    JosekiMoveDialog dialog(this, false);
+    dialog.setCurrentSfen(targetSfen);
+    if (dialog.exec() != QDialog::Accepted) return;
+
+    const JosekiMove newMove{dialog.move(), dialog.nextMove(), dialog.value(),
+                             dialog.depth(), dialog.frequency(), dialog.comment()};
+    const QString normalizedSfen = JosekiPresenter::normalizeSfen(targetSfen);
+
+    if (m_presenter->hasDuplicateMove(normalizedSfen, newMove.move)) {
+        SfenPositionTracer tracer;
+        (void)tracer.setFromSfen(targetSfen);
+        if (!DialogUtils::confirmAction(this, tr("確認"),
+                tr("指し手「%1」は既に登録されています。\n上書きしますか？")
+                    .arg(JosekiPresenter::usiMoveToJapanese(newMove.move, tracer)),
+                tr("上書きする"))) {
+            return;
+        }
+        m_session->repository()->removeMoveByUsi(normalizedSfen, newMove.move);
+    }
+
+    m_presenter->addMove(normalizedSfen, targetSfen, newMove);
+    updateJosekiDisplay();
+}
+
+void JosekiWindow::onPlayButtonClicked()
+{
+    if (auto *button = qobject_cast<QPushButton*>(sender())) playMoveAt(button->property("row").toInt());
+}
+
+void JosekiWindow::onEditButtonClicked()
+{
+    if (auto *button = qobject_cast<QPushButton*>(sender())) editMoveAt(button->property("row").toInt());
+}
+
+void JosekiWindow::onDeleteButtonClicked()
+{
+    if (auto *button = qobject_cast<QPushButton*>(sender())) deleteMoveAt(button->property("row").toInt());
+}
+
+void JosekiWindow::onTableDoubleClicked(int row, int column)
+{
+    Q_UNUSED(column);
+    playMoveAt(row);
+}
+
+void JosekiWindow::onTableContextMenu(const QPoint &pos)
+{
+    if (isIoBusy()) return;
+    const QModelIndex index = m_tableWidget->indexAt(pos);
+    if (!index.isValid() || index.row() >= m_currentMoves.size()) return;
+    refreshHumanCanPlay();
+    m_actionPlay->setEnabled(m_humanCanPlay);
+    m_tableWidget->selectRow(index.row());
+    m_tableContextMenu->exec(m_tableWidget->viewport()->mapToGlobal(pos));
+}
+
+void JosekiWindow::onContextMenuPlay() { playMoveAt(m_tableWidget->currentRow()); }
 void JosekiWindow::onContextMenuEdit() { editMoveAt(m_tableWidget->currentRow()); }
 void JosekiWindow::onContextMenuDelete() { deleteMoveAt(m_tableWidget->currentRow()); }
 
 void JosekiWindow::onContextMenuCopyMove()
 {
-    int row = m_tableWidget->currentRow();
+    const int row = m_tableWidget->currentRow();
     if (row < 0 || row >= m_currentMoves.size()) return;
     QApplication::clipboard()->setText(m_currentMoves[row].move);
-    if (m_statusLabel) {
-        m_statusLabel->setText(tr("「%1」をコピーしました").arg(m_currentMoves[row].move));
-        QTimer::singleShot(2000, this, &JosekiWindow::onRestoreStatusDisplay);
-    }
+    showTransientStatus(tr("「%1」をコピーしました").arg(m_currentMoves[row].move));
+}
+
+// ============================================================
+// 表示の設定
+// ============================================================
+
+void JosekiWindow::onFontSizeIncrease()
+{
+    if (m_fontHelper.increase()) applyFontSize();
+}
+
+void JosekiWindow::onFontSizeDecrease()
+{
+    if (m_fontHelper.decrease()) applyFontSize();
+}
+
+void JosekiWindow::onAutoLoadCheckBoxChanged(Qt::CheckState state)
+{
+    m_autoLoadEnabled = (state == Qt::Checked);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(m_autoLoadEnabled);
+}
+
+void JosekiWindow::onStopButtonClicked()
+{
+    m_displayEnabled = !m_stopButton->isChecked();
+    m_stopButton->setText(m_displayEnabled ? tr("■ 停止") : tr("▶ 再開"));
+    if (m_displayEnabled) updateJosekiDisplay();
+    else clearTable();
+    JosekiSettings::josekiWindowDisplayEnabled.set(m_displayEnabled);
+    updateStatusDisplay();
+}
+
+void JosekiWindow::onSfenDetailToggled(bool checked)
+{
+    m_sfenDetailWidget->setVisible(checked);
+    JosekiSettings::josekiWindowSfenDetailVisible.set(checked);
 }
 
 void JosekiWindow::onRestoreStatusDisplay() { updateStatusDisplay(); }

@@ -68,7 +68,7 @@ QWidget* EngineAnalysisTab::createBranchTreePage(QWidget*) { return nullptr; }
 void EngineAnalysisTab::setModels(ShogiEngineThinkingModel*, ShogiEngineThinkingModel*,
                                    UsiCommLogModel*, UsiCommLogModel*) {}
 QTabWidget* EngineAnalysisTab::tab() const { return nullptr; }
-void EngineAnalysisTab::setBranchTreeRows(const QList<ResolvedRowLite>&) {}
+void EngineAnalysisTab::setBranchTree(KifuBranchTree*) {}
 void EngineAnalysisTab::highlightBranchTreeAt(int, int, bool) {}
 void EngineAnalysisTab::setSecondEngineVisible(bool) {}
 void EngineAnalysisTab::setEngine1ThinkingModel(ShogiEngineThinkingModel*) {}
@@ -82,29 +82,10 @@ void EngineAnalysisTab::appendUsiLogStatus(const QString&) {}
 BranchTreeManager* EngineAnalysisTab::branchTreeManager() { return nullptr; }
 CommentEditorPanel* EngineAnalysisTab::commentEditor() { return nullptr; }
 ConsiderationTabManager* EngineAnalysisTab::considerationTabManager() { return nullptr; }
-EngineInfoWidget* EngineAnalysisTab::considerationInfo() const { return nullptr; }
-QTableView* EngineAnalysisTab::considerationView() const { return nullptr; }
-void EngineAnalysisTab::setConsiderationThinkingModel(ShogiEngineThinkingModel*) {}
 void EngineAnalysisTab::switchToConsiderationTab() {}
 void EngineAnalysisTab::switchToThinkingTab() {}
-int EngineAnalysisTab::considerationMultiPV() const { return 1; }
-void EngineAnalysisTab::setConsiderationMultiPV(int) {}
 void EngineAnalysisTab::clearThinkingViewSelection(int) {}
-void EngineAnalysisTab::setConsiderationTimeLimit(bool, int) {}
-void EngineAnalysisTab::setConsiderationEngineName(const QString&) {}
-void EngineAnalysisTab::startElapsedTimer() {}
-void EngineAnalysisTab::stopElapsedTimer() {}
-void EngineAnalysisTab::resetElapsedTimer() {}
-void EngineAnalysisTab::setConsiderationRunning(bool) {}
 void EngineAnalysisTab::setConsiderationStartEnabled(bool) {}
-void EngineAnalysisTab::loadEngineList() {}
-int EngineAnalysisTab::selectedEngineIndex() const { return 0; }
-QString EngineAnalysisTab::selectedEngineName() const { return {}; }
-bool EngineAnalysisTab::isUnlimitedTime() const { return false; }
-int EngineAnalysisTab::byoyomiSec() const { return 0; }
-void EngineAnalysisTab::loadConsiderationTabSettings() {}
-void EngineAnalysisTab::saveConsiderationTabSettings() {}
-bool EngineAnalysisTab::isShowArrowsChecked() const { return false; }
 bool EngineAnalysisTab::hasUnsavedComment() const { return false; }
 bool EngineAnalysisTab::confirmDiscardUnsavedComment() { return true; }
 void EngineAnalysisTab::clearCommentDirty() {}
@@ -153,7 +134,6 @@ void ShogiView::mouseMoveEvent(QMouseEvent*) {}
 void ShogiView::mouseReleaseEvent(QMouseEvent*) {}
 void ShogiView::resizeEvent(QResizeEvent*) {}
 void ShogiView::wheelEvent(QWheelEvent*) {}
-bool ShogiView::eventFilter(QObject*, QEvent*) { return false; }
 
 // ============================================================
 // ElideLabel スタブ

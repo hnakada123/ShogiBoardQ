@@ -219,7 +219,7 @@ private slots:
         h.currentSfenStr = QStringLiteral("startpos");
         h.handler->performCleanup();
 
-        // performCleanup後もルートノードは存在する（ensureBranchTreeRoot による）
+        // performCleanup後もルートノードは存在する（prepareBranchTreeRoot による）
         QVERIFY(h.branchTree.root() != nullptr);
     }
 

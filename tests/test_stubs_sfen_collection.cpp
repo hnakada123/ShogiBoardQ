@@ -141,7 +141,6 @@ void ShogiView::mouseMoveEvent(QMouseEvent*) {}
 void ShogiView::mouseReleaseEvent(QMouseEvent*) {}
 void ShogiView::resizeEvent(QResizeEvent*) {}
 void ShogiView::wheelEvent(QWheelEvent*) {}
-bool ShogiView::eventFilter(QObject*, QEvent*) { return false; }
 void ShogiView::fitBoardToWidget() {}
 void ShogiView::drawFiles(QPainter*) {}
 void ShogiView::drawFile(QPainter*, int) const {}
@@ -160,24 +159,12 @@ void ShogiView::drawPiecesBlackStandInNormalMode(QPainter*) {}
 void ShogiView::drawPiecesWhiteStandInNormalMode(QPainter*) {}
 void ShogiView::drawPiecesStandFeatures(QPainter*) {}
 void ShogiView::drawStandPieceIcon(QPainter*, const QRect&, QChar) const {}
-QChar ShogiView::rankToBlackShogiPiece(int, int) const { return {}; }
-QChar ShogiView::rankToWhiteShogiPiece(int, int) const { return {}; }
-void ShogiView::updateBlackClockLabelGeometry() {}
-void ShogiView::updateWhiteClockLabelGeometry() {}
-void ShogiView::fitLabelFontToRect(QLabel*, const QString&, const QRect&, int) {}
 QRect ShogiView::blackStandBoundingRect() const { return {}; }
 QRect ShogiView::whiteStandBoundingRect() const { return {}; }
 int ShogiView::boardLeftPx() const { return 0; }
 int ShogiView::boardRightPx() const { return 0; }
 int ShogiView::standInnerEdgePx(bool) const { return 0; }
 void ShogiView::recalcLayoutParams() {}
-void ShogiView::refreshNameLabels() {}
-QString ShogiView::stripMarks(const QString& s) { return s; }
-void ShogiView::ensureTurnLabels() {}
-void ShogiView::relayoutTurnLabels() {}
-void ShogiView::ensureAndPlaceEditExitButton() {}
-void ShogiView::styleEditExitButton(QPushButton*) {}
-void ShogiView::fitEditExitButtonFont(QPushButton*, int) {}
 
 // ===================== ShogiGameController stubs =====================
 #include "shogigamecontroller.h"

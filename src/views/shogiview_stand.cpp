@@ -13,6 +13,8 @@
 #include <QFontMetrics>
 #include <QtMath>
 
+#include <array>
+
 // 駒台セル（1マス）の描画矩形を算出するユーティリティ。
 // 役割：盤上の基準マス矩形（fieldRect）から、先手/後手の駒台側に水平オフセットした矩形を返す。
 static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int offsetY, const QRect& fieldRect, bool leftSide)
@@ -36,6 +38,28 @@ static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int off
     return adjustedRect;
 }
 
+namespace {
+// 駒台のセル（基準盤マス file=1/2, rank=6..9）に置く先手の駒。
+// 後手の駒台は同じ並びを180度回したもの（file と rank を反転し、小文字にする）。
+constexpr std::array<std::array<char, 4>, 2> kBlackStandPieces{{
+    {'K', 'B', 'S', 'L'},   // file=1（rank=6..9）
+    {'R', 'G', 'N', 'P'},   // file=2（rank=6..9）
+}};
+
+/// 駒台セル（基準盤マス）に置く駒文字。駒台のセルでなければ空白
+QChar standPieceAt(bool black, int file, int rank)
+{
+    if (!black) {
+        file = 3 - file;
+        rank = 10 - rank;
+    }
+    if (file < 1 || file > 2 || rank < 6 || rank > 9) return QLatin1Char(' ');
+    const QChar piece = QLatin1Char(kBlackStandPieces[static_cast<std::size_t>(file - 1)]
+                                                     [static_cast<std::size_t>(rank - 6)]);
+    return black ? piece : piece.toLower();
+}
+} // namespace
+
 QRect ShogiView::standPieceRect(QChar pieceChar) const
 {
     if (!m_board || pieceChar == QLatin1Char(' ')) return {};
@@ -44,8 +68,7 @@ QRect ShogiView::standPieceRect(QChar pieceChar) const
     const int firstRank = black ? 6 : 1;
     for (int rank = firstRank; rank < firstRank + 4; ++rank) {
         for (int file = 1; file <= 2; ++file) {
-            const QChar cellPiece = black ? rankToBlackShogiPiece(file, rank)
-                                         : rankToWhiteShogiPiece(file, rank);
+            const QChar cellPiece = standPieceAt(black, file, rank);
             if (cellPiece == pieceChar) {
                 return makeStandCellRect(m_layout.flipMode(), black ? m_layout.param1() : m_layout.param2(),
                                          m_layout.offsetX(), m_layout.offsetY(), cachedFieldRect(file, rank), black);
@@ -292,7 +315,7 @@ void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int
         m_layout.offsetX(), m_layout.offsetY(),
         fieldRect, /*leftSide=*/true);
 
-    QChar value = rankToBlackShogiPiece(file, rank);
+    const QChar value = standPieceAt(true, file, rank);
     drawStandPieceIcon(painter, adjustedRect, value);
 }
 
@@ -305,61 +328,6 @@ void ShogiView::drawWhiteStandPiece(QPainter* painter, const int file, const int
         m_layout.offsetX(), m_layout.offsetY(),
         fieldRect, /*leftSide=*/false);
 
-    QChar value = rankToWhiteShogiPiece(file, rank);
+    const QChar value = standPieceAt(false, file, rank);
     drawStandPieceIcon(painter, adjustedRect, value);
-}
-
-// 駒台の段→駒文字マッピング
-QChar ShogiView::rankToBlackShogiPiece(const int file, const int rank) const
-{
-    // 右列(file=1): K, B, S, L
-    if (file == 1) {
-        switch (rank) {
-        case 6: return 'K';
-        case 7: return 'B';
-        case 8: return 'S';
-        case 9: return 'L';
-        default: return ' ';
-        }
-    }
-    // 左列(file=2): R, G, N, P
-    else if (file == 2) {
-        switch (rank) {
-        case 6: return 'R';
-        case 7: return 'G';
-        case 8: return 'N';
-        case 9: return 'P';
-        default: return ' ';
-        }
-    }
-    else {
-        return ' ';
-    }
-}
-
-QChar ShogiView::rankToWhiteShogiPiece(const int file, const int rank) const
-{
-    // 左列(file=1): r, g, n, p
-    if (file == 1) {
-        switch (rank) {
-        case 4: return 'r';
-        case 3: return 'g';
-        case 2: return 'n';
-        case 1: return 'p';
-        default: return ' ';
-        }
-    }
-    // 右列(file=2): k, b, s, l
-    else if (file == 2) {
-        switch (rank) {
-        case 4: return 'k';
-        case 3: return 'b';
-        case 2: return 's';
-        case 1: return 'l';
-        default: return ' ';
-        }
-    }
-    else {
-        return ' ';
-    }
 }

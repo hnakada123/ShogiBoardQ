@@ -31,12 +31,6 @@ void GameEndHandler::setHooks(const Hooks& hooks)
 
 // --- private ヘルパー ---
 
-void GameEndHandler::sendRawToEngineHelper(Usi* which, const QString& cmd)
-{
-    if (!which) return;
-    which->sendRaw(cmd);
-}
-
 // --- 投了 ---
 
 void GameEndHandler::handleResign()
@@ -51,13 +45,10 @@ void GameEndHandler::handleResign()
     info.loser = (m_refs.gc && m_refs.gc->currentPlayer() == Turn::Black)
                      ? Turn::Black : Turn::White;
 
-    auto rawSender = [this](Usi* which, const QString& cmd) {
-        sendRawToEngineHelper(which, cmd);
-    };
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser, u1, u2, rawSender);
+        *m_refs.playMode, info.loser, u1, u2);
 
     setGameOver(info, true);
     displayResultsAndUpdateGui(info);
@@ -72,13 +63,10 @@ void GameEndHandler::handleEngineResign(Turn side)
     info.cause = Cause::Resignation;
     info.loser = side;
 
-    auto rawSender = [this](Usi* which, const QString& cmd) {
-        sendRawToEngineHelper(which, cmd);
-    };
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser, u1, u2, rawSender);
+        *m_refs.playMode, info.loser, u1, u2);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 
@@ -96,14 +84,11 @@ void GameEndHandler::handleEngineIllegalMove(Turn side)
     info.cause = Cause::IllegalMove;
     info.loser = side;
 
-    auto rawSender = [this](Usi* which, const QString& cmd) {
-        sendRawToEngineHelper(which, cmd);
-    };
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     // 投了と同じく、負けた側に gameover lose、相手に gameover win を送る
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser, u1, u2, rawSender);
+        *m_refs.playMode, info.loser, u1, u2);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 
@@ -193,13 +178,10 @@ void GameEndHandler::handleNyugyokuDeclaration(Turn declarer, bool success, bool
         info.loser = declarer;
     }
 
-    auto rawSender = [this](Usi* which, const QString& cmd) {
-        sendRawToEngineHelper(which, cmd);
-    };
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyNyugyoku(
-        *m_refs.playMode, isDraw, info.loser, u1, u2, rawSender);
+        *m_refs.playMode, isDraw, info.loser, u1, u2);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 

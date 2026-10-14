@@ -2,12 +2,12 @@
 /// @brief 読み筋クリックコントローラクラスの実装
 
 #include "pvclickcontroller.h"
+#include "kifunavigationstate.h"
 
 #include "logcategories.h"
 
 #include "shogienginethinkingmodel.h"
 #include "shogiview.h"
-#include "usicommlogmodel.h"
 #include "shogiinforecord.h"
 #include "pvboarddialog.h"
 #include "sfenutils.h"
@@ -41,12 +41,6 @@ void PvClickController::setThinkingModels(ShogiEngineThinkingModel* model1, Shog
     m_modelThinking2 = model2;
 }
 
-void PvClickController::setLogModels(UsiCommLogModel* log1, UsiCommLogModel* log2)
-{
-    m_lineEditModel1 = log1;
-    m_lineEditModel2 = log2;
-}
-
 void PvClickController::setConsiderationModel(ShogiEngineThinkingModel* model)
 {
     m_considerationModel = model;
@@ -78,7 +72,7 @@ void PvClickController::syncFromRefs()
         m_currentSfenStr = *m_stateRefs.currentSfenStr;
     if (m_stateRefs.startSfenStr)
         m_startSfenStr = *m_stateRefs.startSfenStr;
-    m_line = m_stateRefs.currentLine ? m_stateRefs.currentLine() : RecordLine{};
+    m_line = m_stateRefs.navState ? m_stateRefs.navState->currentRecordLine() : RecordLine{};
     m_boardFlipped = m_shogiView ? m_shogiView->flipMode() : false;
 }
 
@@ -121,20 +115,13 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
         return;
     }
 
-    // USI形式の読み筋を取得
-    QString usiPvStr = record->usiPv();
-    QStringList usiMoves;
-    if (!usiPvStr.isEmpty()) {
-        usiMoves = usiPvStr.split(' ', Qt::SkipEmptyParts);
-        qCDebug(lcUi) << "onPvRowClicked: usiMoves from record:" << usiMoves;
-    }
-
-    // USI moves が空の場合、UsiCommLogModel から検索を試みる
+    // USI形式の読み筋を取得（局面に合った手まで）。局面と合わない手があって残っていなければ、
+    // その行の info でエンジンが送った読み筋をそのまま使う
+    QStringList usiMoves = record->usiPv().split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (usiMoves.isEmpty()) {
-        // engineIndex: 0=エンジン1, 1=エンジン2, 2=検討タブ（エンジン1のログを使用）
-        UsiCommLogModel* logModel = (engineIndex == 1) ? m_lineEditModel2 : m_lineEditModel1;
-        usiMoves = searchUsiMovesFromLog(logModel);
+        usiMoves = record->enginePv();
     }
+    qCDebug(lcUi) << "onPvRowClicked: usiMoves from record:" << usiMoves;
 
     //重要: 読み筋（PV）が生成された時点の局面を使用する
     // record->baseSfen() は読み筋生成時の局面SFENを保持している
@@ -245,32 +232,6 @@ void PvClickController::resolveHighlightContext(const QString& currentSfen,
     if (lastUsiMove.isEmpty()) {
         lastUsiMove = m_line.usiMove(ply).toString();
     }
-}
-
-QStringList PvClickController::searchUsiMovesFromLog(UsiCommLogModel* logModel) const
-{
-    QStringList usiMoves;
-    if (!logModel) return usiMoves;
-
-    QString fullLog = logModel->usiCommLog();
-    QStringList lines = fullLog.split('\n');
-
-    // 後ろから検索して、該当する深さの info pv を探す
-    for (qsizetype i = lines.size() - 1; i >= 0; --i) {
-        const QString& line = lines.at(i);
-        if (line.contains(QStringLiteral("info ")) && line.contains(QStringLiteral(" pv "))) {
-            qsizetype pvPos = line.indexOf(QStringLiteral(" pv "));
-            if (pvPos >= 0) {
-                QString pvPart = line.mid(pvPos + 4).trimmed();
-                usiMoves = pvPart.split(' ', Qt::SkipEmptyParts);
-                if (!usiMoves.isEmpty()) {
-                    qCDebug(lcUi) << "found usiMoves from log:" << usiMoves;
-                    break;
-                }
-            }
-        }
-    }
-    return usiMoves;
 }
 
 QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const

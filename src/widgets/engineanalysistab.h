@@ -4,7 +4,6 @@
 /// @file engineanalysistab.h
 /// @brief エンジン解析タブクラスの定義
 
-
 #include <QWidget>
 #include <QList>
 #include <QPointer>
@@ -52,11 +51,8 @@ public:
     // 既存コードの m_tab をそのまま使えるように（ドックモードでは使用しない）
     QTabWidget* tab() const;
 
-    // --- 分岐ツリー：BranchTreeManager への型エイリアス ---
-    using ResolvedRowLite = BranchTreeManager::ResolvedRowLite;
-
-    // ツリーの全行データをセット（row=0:本譜、row=1..:分岐）（BranchTreeManager へ委譲）
-    void setBranchTreeRows(const QList<ResolvedRowLite>& rows);
+    // 表示する棋譜ツリーを設定（row=0:本譜、row=1..:分岐）（BranchTreeManager へ委譲）
+    void setBranchTree(KifuBranchTree* tree);
 
     // ツリー上で (row, ply) をハイライト（必要なら centerOn）（BranchTreeManager へ委譲）
     void highlightBranchTreeAt(int row, int ply, bool centerOn=false);
@@ -93,58 +89,17 @@ public:
     CommentEditorPanel* commentEditor();
     ConsiderationTabManager* considerationTabManager();
 
-    // 検討タブ用アクセサ（ConsiderationTabManager へ委譲）
-    EngineInfoWidget* considerationInfo() const;
-    QTableView*       considerationView() const;
-
-    // 検討タブ用モデル設定（ConsiderationTabManager へ委譲）
-    void setConsiderationThinkingModel(ShogiEngineThinkingModel* m);
-
     // 検討タブに切り替える
     void switchToConsiderationTab();
 
     // 思考タブに切り替える
     void switchToThinkingTab();
 
-    // 検討タブの候補手の数を取得/設定（ConsiderationTabManager へ委譲）
-    int considerationMultiPV() const;
-    void setConsiderationMultiPV(int value);
+    // 思考・検討の表の選択を外す（読み筋ダイアログを閉じたとき）
     void clearThinkingViewSelection(int engineIndex);
-
-    // 検討タブの時間設定を表示（ConsiderationTabManager へ委譲）
-    void setConsiderationTimeLimit(bool unlimited, int byoyomiSec);
-
-    // 検討タブのエンジン名を設定（ConsiderationTabManager へ委譲）
-    void setConsiderationEngineName(const QString& name);
-
-    // 検討タブの経過時間タイマー制御（ConsiderationTabManager へ委譲）
-    void startElapsedTimer();
-    void stopElapsedTimer();
-    void resetElapsedTimer();
-
-    // 検討実行状態の設定（ボタン表示切替用）（ConsiderationTabManager へ委譲）
-    void setConsiderationRunning(bool running);
 
     // 検討開始ボタンの有効/無効（対局状態ポリシーから使用）
     void setConsiderationStartEnabled(bool enabled);
-
-    // エンジンリストを読み込み（ConsiderationTabManager へ委譲）
-    void loadEngineList();
-
-    // エンジン選択を取得（ConsiderationTabManager へ委譲）
-    int selectedEngineIndex() const;
-    QString selectedEngineName() const;
-
-    // 時間設定を取得（ConsiderationTabManager へ委譲）
-    bool isUnlimitedTime() const;
-    int byoyomiSec() const;
-
-    // 検討タブの設定を復元/保存（ConsiderationTabManager へ委譲）
-    void loadConsiderationTabSettings();
-    void saveConsiderationTabSettings();
-
-    // 矢印表示チェックボックスの状態を取得（ConsiderationTabManager へ委譲）
-    bool isShowArrowsChecked() const;
 
     // 未保存の編集があるかチェック（CommentEditorPanel へ委譲）
     bool hasUnsavedComment() const;

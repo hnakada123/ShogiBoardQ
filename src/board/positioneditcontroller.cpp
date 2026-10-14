@@ -7,6 +7,7 @@
 #include "shogigamecontroller.h"
 #include "boardinteractioncontroller.h"
 
+#include <QPushButton>
 #include <QStringList>
 #include <QRegularExpression>
 #include <Qt>

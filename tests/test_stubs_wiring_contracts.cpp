@@ -72,7 +72,7 @@ void SessionLifecycleCoordinator::performPreStartCleanup()
 {
     TestTracker::calls << QStringLiteral("SLC::performPreStartCleanup");
 }
-void SessionLifecycleCoordinator::startNewGame() {}
+void SessionLifecycleCoordinator::clearEvalState() {}
 void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::TimeSettings&)
 {
     TestTracker::calls << QStringLiteral("SLC::applyTimeControl");
@@ -100,12 +100,9 @@ void GameStateController::setMatchCoordinator(MatchCoordinator*) {}
 void GameStateController::setTimeController(TimeControlController*) {}
 void GameStateController::setKifuRecordModel(KifuRecordListModel*) {}
 void GameStateController::setHooks(const Hooks&) {}
-void GameStateController::setPlayMode(PlayMode) {}
 void GameStateController::handleResignation() {}
 void GameStateController::handleBreakOffGame() {}
 void GameStateController::setGameOverMove(MatchCoordinator::Cause, Turn) {}
-bool GameStateController::isHvH() const { return false; }
-bool GameStateController::isHumanSide(Turn) const { return true; }
 bool GameStateController::isGameOver() const { return false; }
 void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo&) {}
 void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOverState&)
@@ -149,7 +146,6 @@ MatchCoordinator::StrategyContext& MatchCoordinator::strategyCtx()
 
 void MatchCoordinator::updateUsiPtrs(Usi*, Usi*) {}
 void MatchCoordinator::setEngineModels(UsiCommLogModel*, ShogiEngineThinkingModel*, UsiCommLogModel*, ShogiEngineThinkingModel*) {}
-void MatchCoordinator::resetPositionHistory() {}
 void MatchCoordinator::setPlayMode(PlayMode) {}
 void MatchCoordinator::setUndoBindings(const UndoRefs&, const UndoHooks&) {}
 void MatchCoordinator::handleResign() {}
@@ -177,7 +173,6 @@ Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
 void MatchCoordinator::configureAndStart(const StartOptions&) {}
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialogData*) const { return {}; }
 void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, Turn) {}
-void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, Turn) {}
 void MatchCoordinator::handlePlayerTimeOut(Turn) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Turn) {}
@@ -193,9 +188,9 @@ bool MatchCoordinator::isEngineShutdownInProgress() const { return false; }
 EngineLifecycleManager* MatchCoordinator::engineManager() { return nullptr; }
 void MatchCoordinator::pokeTimeUpdateNow() {}
 void MatchCoordinator::onUsiError(const QString&) {}
-void MatchCoordinator::ensureEngineManager() {}
-void MatchCoordinator::ensureTimekeeper() {}
-void MatchCoordinator::ensureMatchTurnHandler() {}
+void MatchCoordinator::createEngineManager() {}
+void MatchCoordinator::createTimekeeper() {}
+void MatchCoordinator::createMatchTurnHandler() {}
 
 // ============================================================
 // MatchTurnHandler スタブ
@@ -224,10 +219,10 @@ void MatchTurnHandler::forceImmediateMove() {}
 void MatchTurnHandler::handlePlayerTimeOut(Turn) {}
 void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
 void MatchTurnHandler::handleUsiError(const QString&) {}
-void MatchCoordinator::ensureAnalysisSession() {}
-void MatchCoordinator::ensureGameEndHandler() {}
-void MatchCoordinator::ensureGameStartOrchestrator() {}
-void MatchCoordinator::ensureUndoHandler() {}
+void MatchCoordinator::createAnalysisSession() {}
+void MatchCoordinator::createGameEndHandler() {}
+void MatchCoordinator::createGameStartOrchestrator() {}
+void MatchCoordinator::createUndoHandler() {}
 
 // ============================================================
 // GameStartCoordinator スタブ
@@ -487,7 +482,6 @@ void ShogiView::mouseMoveEvent(QMouseEvent*) {}
 void ShogiView::mouseReleaseEvent(QMouseEvent*) {}
 void ShogiView::resizeEvent(QResizeEvent*) {}
 void ShogiView::wheelEvent(QWheelEvent*) {}
-bool ShogiView::eventFilter(QObject*, QEvent*) { return false; }
 void ShogiView::initializeToFlatStartingPosition() {}
 void ShogiView::removeHighlightAllData() {}
 
@@ -539,7 +533,6 @@ void EngineLifecycleManager::onBlackEngineResign() {}
 void EngineLifecycleManager::onWhiteEngineResign() {}
 void EngineLifecycleManager::onBlackEngineWin() {}
 void EngineLifecycleManager::onWhiteEngineWin() {}
-void EngineLifecycleManager::sendRawTo(Usi*, const QString&) {}
 
 // ============================================================
 // MatchTimekeeper スタブ
@@ -601,7 +594,6 @@ void GameStartOrchestrator::setHooks(const Hooks&) {}
 void GameStartOrchestrator::configureAndStart(const StartOptions&) {}
 GameStartOrchestrator::StartOptions GameStartOrchestrator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialogData*) { return {}; }
 void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, Turn) {}
-void GameStartOrchestrator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, Turn) {}
 GameStartOrchestrator::HistorySearchResult GameStartOrchestrator::syncAndSearchGameHistory(const QString&) { return {}; }
 void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions&) {}
 void GameStartOrchestrator::buildPositionStringsFromHistory(const StartOptions&, const QString&, const HistorySearchResult&) {}
@@ -626,7 +618,6 @@ void GameEndHandler::handleOuteSennichite(Turn) {}
 void GameEndHandler::appendBreakOffLineAndMark() {}
 void GameEndHandler::appendGameOverLineAndMark(Cause, Turn) {}
 void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo&) {}
-void GameEndHandler::sendRawToEngineHelper(Usi*, const QString&) {}
 
 // ============================================================
 // ShogiViewLayout / ShogiViewInteraction スタブ

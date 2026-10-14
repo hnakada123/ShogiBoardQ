@@ -7,7 +7,8 @@
 #include <QObject>
 #include <QMetaObject>
 #include <QString>
-#include <memory>
+
+#include "fontsizehelper.h"
 
 class QWidget;
 class QTableView;
@@ -22,7 +23,6 @@ class QCheckBox;
 class QModelIndex;
 
 class EngineInfoWidget;
-class LogViewFontManager;
 class ShogiEngineThinkingModel;
 
 /**
@@ -88,7 +88,7 @@ public:
     void setStartConsiderationEnabled(bool enabled);
 
     // フォントサイズ（外部からの取得用）
-    int considerationFontSize() const { return m_considerationFontSize; }
+    int considerationFontSize() const { return m_considerationFontSize.fontSize(); }
 
 signals:
     // 検討タブの候補手の数変更シグナル
@@ -131,7 +131,7 @@ private:
     void buildToolbarControls(QWidget* parentWidget);
     void layoutToolbar();
     void buildConsiderationView(QWidget* parentWidget);
-    void initFontManager();
+    void applyFontSize();
     void applyViewColumnWidths();
     void updateTimeControls();
 
@@ -156,8 +156,7 @@ private:
     QComboBox* m_multiPVComboBox = nullptr;
     QToolButton* m_btnStopConsideration = nullptr;
     QCheckBox* m_showArrowsCheckBox = nullptr;
-    int m_considerationFontSize = 10;
-    std::unique_ptr<LogViewFontManager> m_considerationFontManager;
+    FontSizeHelper m_considerationFontSize;   ///< 検討タブの文字の大きさ（変更のたびに保存する）
     bool m_considerationRunning = false;
     bool m_startConsiderationEnabled = true;
     QMetaObject::Connection m_stopButtonConnection;

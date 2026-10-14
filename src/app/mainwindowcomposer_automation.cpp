@@ -1,0 +1,66 @@
+/// @file mainwindowcomposer_automation.cpp
+/// @brief 自動化 API（--automation）のサーバー生成
+
+#include "mainwindowcomposer.h"
+#include "mainwindow.h"
+
+#include "automationcommands.h"
+#include "automationcontext.h"
+#include "automationserver.h"
+#include "csagamewiring.h"
+#include "menuwindow.h"
+#include "menuwindowwiring.h"
+#include "logcategories.h"
+
+#include <QTextStream>
+
+#include <cstdio>
+
+// 自動化 API のサーバーを生成し、状態と部品を渡して待ち受けを始める。
+// 生成は1回だけ。失敗しても GUI の起動は続ける。
+void MainWindowComposer::startAutomationServer(const QString& socketPath)
+{
+    if (m_c.automationServer) return;
+
+    auto* server = new AutomationServer(&m_window);
+
+    AutomationContext ctx;
+    ctx.mainWindow = &m_window;
+    ctx.gameController = m_c.gameController;
+    ctx.shogiView = m_c.shogiView;
+    ctx.branchTree = m_c.branchTree;
+    ctx.state = &m_state;
+    ctx.navState = m_c.navState;
+    ctx.navigationController = m_c.kifuNavController;
+    ctx.uiStatePolicy = m_c.uiStatePolicy;
+    ctx.kifuFileController = m_c.kifuFileController;
+    ctx.kifuExportController = m_c.kifuExportController.get();
+    ctx.gameRecordModel = m_c.gameRecord;
+    ctx.csaGameWiring = m_c.csaGameWiring.get();
+    ctx.menuFavorites = [this]() {
+        const MenuWindow* menu = m_c.menuWiring->menuWindow();
+        return menu ? menu->favorites() : QStringList{};
+    };
+    ctx.availableMenuActions = [this]() {
+        const MenuWindow* menu = m_c.menuWiring->menuWindow();
+        return menu ? menu->availableActions() : QStringList{};
+    };
+    ctx.setMenuFavorites = [this](const QStringList& names) {
+        if (MenuWindow* menu = m_c.menuWiring->menuWindow()) menu->setFavorites(names);
+    };
+    ctx.quitApplication = [this]() {
+        // 自動化からの終了では未保存確認ダイアログを出さない
+        m_window.quitWithoutConfirmation();
+    };
+    AutomationCommands::registerAll(server->dispatcher(), ctx);
+
+    QString error;
+    if (!server->listen(socketPath, &error)) {
+        qCWarning(lcApp) << "automation API not started:" << error;
+        QTextStream(stderr) << "automation: " << error << '\n';
+        server->deleteLater();
+        return;
+    }
+    m_c.automationServer = server;
+    QTextStream(stdout) << "automation: listening on " << server->socketPath() << Qt::endl;
+}

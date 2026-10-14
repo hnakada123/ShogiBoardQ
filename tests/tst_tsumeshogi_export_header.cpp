@@ -3,7 +3,10 @@
 
 #include <QtTest>
 
+#include "tsumecollectionwriter.h"
 #include "tsumeshogiexportheaderbuilder.h"
+
+#include <QTemporaryDir>
 
 class TestTsumeshogiExportHeader : public QObject
 {
@@ -68,6 +71,35 @@ private slots:
         QCOMPARE(lines.at(7), QStringLiteral("# 探索時間/局面: 2.5 秒"));
         QCOMPARE(lines.at(8), QStringLiteral("# 生成上限: 無制限"));
         QCOMPARE(lines.at(9), QStringLiteral("# 余詰検査: 最終手の複数解を許容しない"));
+    }
+
+    /// 手順を付けると USI の position 構文に合わせて " moves " の後に並べる。手順が無ければ局面だけ
+    void writerLineAppendsPvOnlyWhenRequested()
+    {
+        const QString sfen = QStringLiteral("4k4/9/4P4/9/9/9/9/9/9 b G 1");
+        const QStringList pv{QStringLiteral("G*5b")};
+        QCOMPARE(TsumeCollectionWriter::line(sfen, pv, false), sfen);
+        QCOMPARE(TsumeCollectionWriter::line(sfen, pv, true), sfen + QStringLiteral(" moves G*5b"));
+        QCOMPARE(TsumeCollectionWriter::line(sfen, {}, true), sfen);
+    }
+
+    /// コメント行の後に局面を1行ずつ書き、空の行は書かない。書けない場所では理由を返し、ファイルを作らない
+    void writerSavesHeaderAndLines()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("positions.txt"));
+        QVERIFY(TsumeCollectionWriter::save(path, {QStringLiteral("# header")},
+                                            {QStringLiteral("a"), QString(), QStringLiteral("b")}));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly | QIODevice::Text));
+        QCOMPARE(QString::fromUtf8(file.readAll()), QStringLiteral("# header\na\nb\n"));
+
+        const QString missing = dir.filePath(QStringLiteral("no-such-dir/positions.txt"));
+        QString error;
+        QVERIFY(!TsumeCollectionWriter::save(missing, {}, {QStringLiteral("a")}, &error));
+        QVERIFY(!error.isEmpty());
+        QVERIFY(!QFile::exists(missing));
     }
 };
 

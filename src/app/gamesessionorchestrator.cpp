@@ -5,6 +5,8 @@
 #include "kifunavigationstate.h"
 
 #include "csagamecoordinator.h"
+#include "csagamewiring.h"
+#include "kifufilecontroller.h"
 #include "dialogcoordinator.h"
 #include "errorbus.h"
 #include "gamestatecontroller.h"
@@ -20,9 +22,6 @@
 #include <utility>
 
 namespace {
-
-template<typename T>
-T* get(const std::function<T*()>& getter) { return getter ? getter() : nullptr; }
 
 bool detectHasEditedStart(const QString* startSfenStr, const QStringList* sfenRecord)
 {
@@ -106,10 +105,10 @@ void GameSessionOrchestrator::updateDeps(const Deps& deps)
 
 void GameSessionOrchestrator::initializeGame()
 {
-    auto* gameStart = get(m_deps.gameStart);
+    auto* gameStart = m_deps.gameStart;
     if (!gameStart) return;
 
-    auto* match = get(m_deps.match);
+    auto* match = m_deps.match;
     QStringList* sfenRecord = match ? match->sfenRecordPtr() : nullptr;
 
     const bool hasEditedStart = detectHasEditedStart(m_deps.startSfenStr, sfenRecord);
@@ -124,8 +123,8 @@ void GameSessionOrchestrator::initializeGame()
 
     const StartGameDialogData dialogData = extractDialogData(dlg);
 
-    if (dialogData.startingPositionNumber != 0 && m_deps.confirmDiscardUnsavedKifu
-        && !m_deps.confirmDiscardUnsavedKifu()) return;
+    if (dialogData.startingPositionNumber != 0 && m_deps.kifuFileController
+        && !m_deps.kifuFileController->confirmDiscardUnsaved()) return;
 
     // 表示中の手数（分岐ツリーのカーソル）から開始する
     const RecordLine line = m_deps.navState ? m_deps.navState->currentRecordLine() : RecordLine{};
@@ -167,13 +166,13 @@ void GameSessionOrchestrator::initializeGame()
 
 void GameSessionOrchestrator::handleResignation()
 {
-    auto* csa = get(m_deps.csaGameCoordinator);
+    auto* csa = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
     if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
         csa->onResign();
         return;
     }
 
-    auto* gsc = get(m_deps.gameStateController);
+    auto* gsc = m_deps.gameStateController;
     if (gsc) {
         gsc->handleResignation();
     }
@@ -181,12 +180,12 @@ void GameSessionOrchestrator::handleResignation()
 
 void GameSessionOrchestrator::handleBreakOffGame()
 {
-    auto* csa = get(m_deps.csaGameCoordinator);
+    auto* csa = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
     if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
         csa->requestChudan();
         return;
     }
-    auto* gsc = get(m_deps.gameStateController);
+    auto* gsc = m_deps.gameStateController;
     if (gsc) {
         gsc->handleBreakOffGame();
     }
@@ -194,12 +193,12 @@ void GameSessionOrchestrator::handleBreakOffGame()
 
 void GameSessionOrchestrator::movePieceImmediately()
 {
-    auto* csa = get(m_deps.csaGameCoordinator);
+    auto* csa = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
     if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
         csa->forceImmediateMove();
         return;
     }
-    auto* mc = get(m_deps.match);
+    auto* mc = m_deps.match;
     if (mc) {
         mc->forceImmediateMove();
     }
@@ -209,7 +208,7 @@ void GameSessionOrchestrator::stopTsumeSearch()
 {
     qCDebug(lcApp).noquote() << "stopTsumeSearch called";
 
-    auto* mc = get(m_deps.match);
+    auto* mc = m_deps.match;
     if (mc) {
         mc->stopAnalysisEngine();
     }
@@ -217,7 +216,7 @@ void GameSessionOrchestrator::stopTsumeSearch()
 
 void GameSessionOrchestrator::openWebsiteInExternalBrowser()
 {
-    auto* dc = get(m_deps.dialogCoordinator);
+    auto* dc = m_deps.dialogCoordinator;
     if (dc) {
         dc->openProjectWebsite();
     }

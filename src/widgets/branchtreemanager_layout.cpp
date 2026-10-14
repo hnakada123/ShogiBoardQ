@@ -20,9 +20,9 @@ bool BranchTreeManager::isRowCollapsed(int row) const
 bool BranchTreeManager::isRowCollapsible(int row) const
 {
     if (row < 1 || row >= m_rows.size()) return false;
-    const ResolvedRowLite& rv = m_rows.at(row);
+    const RowInfo& rv = m_rows.at(row);
     if (rv.headNodeId < 0) return false;
-    if (rv.disp.size() - 1 > qMax(1, rv.startPly)) return true;
+    if (rv.length - 1 > qMax(1, rv.startPly)) return true;
     for (qsizetype r = 1; r < m_rows.size(); ++r) {
         if (m_rows.at(r).parent == row) return true;
     }
@@ -51,7 +51,7 @@ void BranchTreeManager::setRowCollapsed(int row, bool collapsed)
             hlPly = qMax(1, m_rows.at(row).startPly);
         }
         const auto it = m_nodeIndex.constFind(qMakePair(hlRow, hlPly));
-        if (it != m_nodeIndex.cend()) highlightNodeId(it.value()->data(ROLE_NODE_ID).toInt(), false);
+        if (it != m_nodeIndex.cend()) highlightItem(it.value(), false);
     }
 }
 
@@ -79,8 +79,8 @@ bool BranchTreeManager::isRowHidden(int row) const
 int BranchTreeManager::lastVisiblePly(int row) const
 {
     if (row < 0 || row >= m_rows.size()) return -1;
-    const ResolvedRowLite& rv = m_rows.at(row);
-    const int last = static_cast<int>(rv.disp.size()) - 1;
+    const RowInfo& rv = m_rows.at(row);
+    const int last = rv.length - 1;
     if (row >= 1 && isRowCollapsed(row)) return qMin(last, qMax(1, rv.startPly));
     return last;
 }
@@ -89,8 +89,8 @@ int BranchTreeManager::hiddenNodeCount(int row) const
 {
     if (!isRowCollapsed(row)) return 0;
     const auto ownMoves = [this](int r) {
-        const ResolvedRowLite& rv = m_rows.at(r);
-        return qMax(0, static_cast<int>(rv.disp.size()) - qMax(1, rv.startPly));
+        const RowInfo& rv = m_rows.at(r);
+        return qMax(0, rv.length - qMax(1, rv.startPly));
     };
     int count = qMax(0, ownMoves(row) - 1);
     // 先の変化（この行を祖先に持つ行）の手も数える

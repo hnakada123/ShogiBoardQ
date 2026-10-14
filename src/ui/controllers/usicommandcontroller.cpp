@@ -16,11 +16,6 @@ UsiCommandController::UsiCommandController(QObject* parent)
 {
 }
 
-void UsiCommandController::setMatchProvider(std::function<MatchCoordinator*()> provider)
-{
-    m_matchProvider = std::move(provider);
-}
-
 void UsiCommandController::setAnalysisTab(EngineAnalysisTab* tab)
 {
     m_analysisTab = tab;
@@ -37,13 +32,13 @@ void UsiCommandController::sendCommand(int target, const QString& command)
 {
     qCDebug(lcUi).noquote() << "sendCommand: target=" << target << "command=" << command;
 
-    MatchCoordinator* match = m_matchProvider ? m_matchProvider() : nullptr;
+    MatchCoordinator* match = m_match;
     Usi* usi1 = match ? match->primaryEngine() : nullptr;
     Usi* usi2 = match ? match->secondaryEngine() : nullptr;
 
     const auto sendIfReady = [this, &command](Usi* engine, const QString& label) {
         if (engine && engine->isEngineRunning()) {
-            engine->sendRaw(command);
+            engine->sendConsoleCommand(command);
             qCDebug(lcUi).noquote() << "Sent to" << label << ":" << command;
         } else {
             qCDebug(lcUi).noquote() << label << "is not available or not running";

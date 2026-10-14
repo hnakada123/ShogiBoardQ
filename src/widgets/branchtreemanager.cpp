@@ -2,6 +2,8 @@
 /// @brief 分岐ツリー管理クラスの実装（状態管理・ハイライト・イベント処理）
 
 #include "branchtreemanager.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
 #include "analysissettings.h"
 #include "logcategories.h"
 
@@ -15,7 +17,6 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QNativeGestureEvent>
-#include <QQueue>
 #include <QSet>
 #include <QTransform>
 #include <QScrollBar>
@@ -68,22 +69,68 @@ void BranchTreeManager::setView(QGraphicsView* view)
 
 // ===================== 公開API =====================
 
-void BranchTreeManager::setBranchTreeRows(const QList<ResolvedRowLite>& rows)
+void BranchTreeManager::setBranchTree(KifuBranchTree* tree)
 {
+    const bool sameTree = tree != nullptr && tree == m_tree;
+    m_tree = tree;
     // 盤上で手を指したときなど、1つの手順の末尾に1手増えただけならその手だけを描き足す。
     // 全体の作り直しは手数に比例して重く、指すたびに行うと着手が遅くなる。
-    if (appendSingleMove(rows)) return;
+    if (sameTree && appendSingleMove()) return;
 
-    m_rows = rows;
-
+    syncRowsFromTree();
     // 消えた変化の折りたたみ状態は捨てる
     QSet<int> heads;
-    for (const auto& row : std::as_const(m_rows)) {
+    for (const RowInfo& row : std::as_const(m_rows)) {
         if (row.headNodeId >= 0) heads.insert(row.headNodeId);
     }
     m_collapsedHeads.intersect(heads);
 
     rebuildBranchTree();
+}
+
+void BranchTreeManager::syncRowsFromTree()
+{
+    m_rows.clear();
+    if (!m_tree) return;
+    const QList<BranchLine> lines = m_tree->allLines();
+    // ノードを最初に含むライン（そのノードを描く行）
+    QHash<const KifuBranchNode*, int> ownerRow;
+    m_rows.reserve(lines.size());
+    for (qsizetype lineIdx = 0; lineIdx < lines.size(); ++lineIdx) {
+        const BranchLine& line = lines.at(lineIdx);
+        RowInfo row;
+        row.startPly = line.branchPly > 0 ? line.branchPly : 1;
+        row.length = static_cast<int>(line.nodes.size());
+        // 変化の先頭の手（折りたたみ状態をツリーの再構築後も保つためのキー）
+        if (lineIdx > 0 && row.startPly < line.nodes.size()) {
+            row.headNodeId = line.nodes.at(row.startPly)->nodeId();
+        }
+        if (line.branchPoint != nullptr) row.parent = ownerRow.value(line.branchPoint, -1);
+        for (const KifuBranchNode* node : line.nodes) {
+            if (!ownerRow.contains(node)) ownerRow.insert(node, static_cast<int>(lineIdx));
+        }
+        m_rows.append(row);
+    }
+}
+
+void BranchTreeManager::rememberTreeState()
+{
+    m_syncedRevision = m_tree ? m_tree->revision() : 0;
+    m_syncedNodeCount = m_tree ? m_tree->nodeCount() : -1;
+}
+
+const KifuBranchNode* BranchTreeManager::nodeAt(int row, int ply) const
+{
+    if (!m_tree || row < 0 || ply < 0) return nullptr;
+    const QList<BranchLine> lines = m_tree->allLines();
+    if (row >= lines.size()) return nullptr;
+    const QList<KifuBranchNode*>& nodes = lines.at(row).nodes;
+    return ply < nodes.size() ? nodes.at(ply) : nullptr;
+}
+
+QGraphicsPathItem* BranchTreeManager::itemForNode(const KifuBranchNode* node) const
+{
+    return node ? m_itemByNodeId.value(node->nodeId(), nullptr) : nullptr;
 }
 
 void BranchTreeManager::highlightBranchTreeAt(int row, int ply, bool centerOn)
@@ -93,59 +140,33 @@ void BranchTreeManager::highlightBranchTreeAt(int row, int ply, bool centerOn)
         rebuildBranchTree();
     }
 
-    auto it = m_nodeIndex.find(qMakePair(row, ply));
-    if (it != m_nodeIndex.end()) {
-        highlightNodeId(it.value()->data(ROLE_NODE_ID).toInt(), centerOn);
-        return;
-    }
-
-    const int nid = graphFallbackToPly(row, ply);
-    if (nid > 0) {
-        highlightNodeId(nid, centerOn);
-    }
+    // 分岐より前の手は親の行に描いてあるので、ツリーのノードから図形を引く
+    QGraphicsPathItem* item = itemForNode(nodeAt(row, ply));
+    if (!item) item = m_nodeIndex.value(qMakePair(row, ply), nullptr);
+    if (item) highlightItem(item, centerOn);
 }
 
-namespace {
-bool sameDisplayItem(const KifDisplayItem& a, const KifDisplayItem& b)
+bool BranchTreeManager::appendSingleMove()
 {
-    return a == b && a.beforeSfen == b.beforeSfen && a.usiMove == b.usiMove && a.terminal == b.terminal;
-}
-} // namespace
-
-bool BranchTreeManager::appendSingleMove(const QList<ResolvedRowLite>& rows)
-{
-    if (!m_scene || m_rows.isEmpty() || rows.size() != m_rows.size()) return false;
-
-    int grownRow = -1;
-    for (qsizetype i = 0; i < rows.size(); ++i) {
-        const ResolvedRowLite& now = rows.at(i);
-        const ResolvedRowLite& before = m_rows.at(i);
-        if (now.startPly != before.startPly || now.parent != before.parent || now.headNodeId != before.headNodeId
-            || now.sfen.size() != now.disp.size() || before.sfen.size() != before.disp.size()) {
-            return false;
-        }
-        const qsizetype common = before.disp.size();
-        if (now.disp.size() == common + 1 && grownRow < 0) {
-            grownRow = static_cast<int>(i);
-        } else if (now.disp.size() != common) {
-            return false;
-        }
-        for (qsizetype ply = 0; ply < common; ++ply) {
-            if (!sameDisplayItem(now.disp.at(ply), before.disp.at(ply)) || now.sfen.at(ply) != before.sfen.at(ply))
-                return false;
-        }
+    if (!m_scene || !m_tree || m_rows.isEmpty() || m_syncedNodeCount < 0) return false;
+    // 構造の変更が「1ノードの追加」1回だけで、ラインの数が変わっていないこと
+    if (m_tree->nodeCount() != m_syncedNodeCount + 1 || m_tree->revision() != m_syncedRevision + 1
+        || m_tree->lineCount() != m_rows.size()) {
+        return false;
     }
-    // 何も増えていない（表記の切り替えなど）ときは全体を作り直す
-    if (grownRow < 0) return false;
-
-    const ResolvedRowLite& grown = rows.at(grownRow);
-    const int ply = static_cast<int>(grown.disp.size()) - 1;
-    return appendNodeToRow(grownRow, ply, grown.disp.last(), grown.sfen.last());
+    // 増えた葉は、どれかのラインの末尾で、まだ描いていないノード
+    const QList<BranchLine> lines = m_tree->allLines();
+    for (const BranchLine& line : lines) {
+        const KifuBranchNode* last = line.nodes.isEmpty() ? nullptr : line.nodes.constLast();
+        if (last && !itemForNode(last)) return appendNode(last);
+    }
+    return false;
 }
 
 int BranchTreeManager::nodeIdFor(int row, int ply) const
 {
-    return m_nodeIdByRowPly.value(qMakePair(row, ply), -1);
+    const QGraphicsPathItem* item = m_nodeIndex.value(qMakePair(row, ply), nullptr);
+    return item ? item->data(ROLE_NODE_ID).toInt() : -1;
 }
 
 // ===================== 表示設定 =====================
@@ -179,48 +200,6 @@ void BranchTreeManager::applyZoom()
     updateStickyHeader();
 }
 
-// ===================== グラフAPI =====================
-
-void BranchTreeManager::clearBranchGraph()
-{
-    m_nodeIdByRowPly.clear();
-    m_nodesById.clear();
-    m_nextIds.clear();
-    m_prevIdOf.clear();
-    m_edgeInto.clear();
-    m_highlightedEdges.clear();
-    m_rowEntryNode.clear();
-    m_nextNodeId = 1;
-    m_lastHighlightedRow = -1;
-    m_lastHighlightedPly = -1;
-}
-
-int BranchTreeManager::registerNode(int row, int ply, QGraphicsPathItem* item)
-{
-    if (!item) return -1;
-    const int id = m_nextNodeId++;
-
-    BranchGraphNode n;
-    n.row  = row;
-    n.ply  = ply;
-    n.item = item;
-
-    m_nodesById.insert(id, n);
-    m_nodeIdByRowPly.insert(qMakePair(row, ply), id);
-
-    if (!m_rowEntryNode.contains(row))
-        m_rowEntryNode.insert(row, id);
-
-    return id;
-}
-
-void BranchTreeManager::linkEdge(int prevId, int nextId)
-{
-    if (prevId <= 0 || nextId <= 0) return;
-    m_nextIds[prevId].push_back(nextId);
-    m_prevIdOf.insert(nextId, prevId);
-}
-
 // ===================== 親行解決 =====================
 
 int BranchTreeManager::resolveParentRowForVariation(int row) const
@@ -241,11 +220,8 @@ int BranchTreeManager::resolveParentRowForVariation(int row) const
 
 // ===================== ハイライト =====================
 
-void BranchTreeManager::highlightNodeId(int nodeId, bool centerOn)
+void BranchTreeManager::highlightItem(QGraphicsPathItem* item, bool centerOn)
 {
-    if (nodeId <= 0) return;
-    const auto node = m_nodesById.value(nodeId);
-    QGraphicsPathItem* item = node.item;
     if (!item) return;
 
     if (m_prevSelected) {
@@ -260,24 +236,22 @@ void BranchTreeManager::highlightNodeId(int nodeId, bool centerOn)
     item->setPen(QPen(Qt::black, 1.8));
     item->setZValue(20);
     m_prevSelected = item;
-    m_lastHighlightedRow = node.row;
-    m_lastHighlightedPly = node.ply;
+    m_lastHighlightedRow = item->data(ROLE_ROW).toInt();
+    m_lastHighlightedPly = item->data(ROLE_PLY).toInt();
 
-    highlightPathTo(nodeId);
+    highlightPathTo(m_tree ? m_tree->nodeAt(item->data(ROLE_NODE_ID).toInt()) : nullptr);
     scrollToNode(item, centerOn);
 }
 
-void BranchTreeManager::highlightPathTo(int nodeId)
+void BranchTreeManager::highlightPathTo(const KifuBranchNode* node)
 {
-    // 開始局面から現在の手までの経路の辺を目立たせる。
+    // 開始局面から現在の手までの経路（ツリーの親をたどる）の辺を目立たせる。
     // 1手ごとに呼ばれ、経路の長さは手数に比例する。前回の経路と開始局面の側から比べ、
     // 違う部分の辺だけを戻す・付ける（続けて指すときは1本）。全部を戻してから付け直すと、
     // 共通の辺でもペンと重なり順が2回変わり、そのたびに Qt が辺の輪郭を計算し直していた。
     QList<QGraphicsPathItem*> path;  // 現在の手 → 開始局面 の順
-    int current = nodeId;
-    for (int guard = 0; current > 0 && guard <= m_nodesById.size(); ++guard) {
-        if (QGraphicsPathItem* edge = m_edgeInto.value(current, nullptr)) path.append(edge);
-        current = m_prevIdOf.value(current, -1);
+    for (const KifuBranchNode* current = node; current; current = current->parent()) {
+        if (QGraphicsPathItem* edge = m_edgeInto.value(current->nodeId(), nullptr)) path.append(edge);
     }
 
     // 開始局面の側（末尾）から共通している辺の数
@@ -325,78 +299,3 @@ void BranchTreeManager::scrollToCurrentNode()
 {
     scrollToNode(m_prevSelected, false);
 }
-
-// ===================== フォールバック探索 =====================
-
-int BranchTreeManager::graphFallbackToPly(int row, int targetPly) const
-{
-    const int direct = nodeIdFor(row, targetPly);
-    if (direct > 0) return direct;
-
-    if (row >= 1 && row < m_rows.size()) {
-        const int startPly = qMax(1, m_rows.at(row).startPly);
-        if (targetPly < startPly) {
-            const int parentRow = resolveParentRowForVariation(row);
-            return graphFallbackToPly(parentRow, targetPly);
-        }
-    }
-
-    int seedId = -1;
-    for (int p = targetPly; p >= 0; --p) {
-        seedId = nodeIdFor(row, p);
-        if (seedId > 0) break;
-    }
-    if (seedId <= 0) {
-        seedId = m_rowEntryNode.value(row, -1);
-    }
-
-    if (seedId > 0) {
-        QQueue<int> q;
-        QSet<int> seen;
-        q.enqueue(seedId);
-        seen.insert(seedId);
-
-        while (!q.isEmpty()) {
-            const int cur = q.dequeue();
-            const auto node = m_nodesById.value(cur);
-            if (node.ply == targetPly) return cur;
-
-            const auto nexts = m_nextIds.value(cur);
-            for (int nx : nexts) {
-                if (!seen.contains(nx)) {
-                    seen.insert(nx);
-                    q.enqueue(nx);
-                }
-            }
-        }
-    }
-
-    if (row >= 1 && row < m_rows.size()) {
-        const int parentRow = resolveParentRowForVariation(row);
-        if (parentRow != row) {
-            const int viaParent = graphFallbackToPly(parentRow, targetPly);
-            if (viaParent > 0) return viaParent;
-        }
-    }
-
-    {
-        int seed0 = nodeIdFor(0, targetPly);
-        if (seed0 <= 0) seed0 = m_rowEntryNode.value(0, -1);
-        if (seed0 > 0) {
-            QQueue<int> q;
-            QSet<int> seen;
-            q.enqueue(seed0);
-            seen.insert(seed0);
-            while (!q.isEmpty()) {
-                const int cur = q.dequeue();
-                const auto node = m_nodesById.value(cur);
-                if (node.ply == targetPly) return cur;
-                const auto nexts = m_nextIds.value(cur);
-                for (int nx : nexts) if (!seen.contains(nx)) { seen.insert(nx); q.enqueue(nx); }
-            }
-        }
-    }
-
-    return -1;
-}
-

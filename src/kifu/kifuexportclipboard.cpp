@@ -2,6 +2,8 @@
 /// @brief 棋譜クリップボードコピー機能の実装
 
 #include "kifuexportclipboard.h"
+#include "appstate.h"
+#include "kifunavigationstate.h"
 
 #include <QClipboard>
 #include <QApplication>
@@ -29,11 +31,6 @@ void KifuExportClipboard::setDependencies(const Deps& deps)
     m_deps = deps;
 }
 
-void KifuExportClipboard::setPrepareCallback(std::function<void()> callback)
-{
-    m_prepareCallback = std::move(callback);
-}
-
 // --------------------------------------------------------
 // ユーティリティ
 // --------------------------------------------------------
@@ -52,12 +49,12 @@ GameRecordModel::ExportContext KifuExportClipboard::buildExportContext() const
         ctx.gameInfoProvided = true;
     }
     ctx.startSfen = m_deps.gameRecord
-        ? m_deps.gameRecord->initialSfenForExport(m_deps.startSfenStr) : m_deps.startSfenStr;
-    ctx.playMode = m_deps.playMode;
-    ctx.human1 = m_deps.humanName1;
-    ctx.human2 = m_deps.humanName2;
-    ctx.engine1 = m_deps.engineName1;
-    ctx.engine2 = m_deps.engineName2;
+        ? m_deps.gameRecord->initialSfenForExport(m_deps.state->startSfenStr) : m_deps.state->startSfenStr;
+    ctx.playMode = m_deps.state->playMode;
+    ctx.human1 = m_deps.state->humanName1;
+    ctx.human2 = m_deps.state->humanName2;
+    ctx.engine1 = m_deps.state->engineName1;
+    ctx.engine2 = m_deps.state->engineName2;
 
     // 時間制御情報
     if (m_deps.timeController) {
@@ -78,7 +75,7 @@ bool KifuExportClipboard::hasBranches() const
 int KifuExportClipboard::currentPly() const
 {
     // 表示中の手数（分岐ツリーのカーソル）。対局中はカーソルが最新の手を指している
-    return qMax(0, m_deps.currentMoveIndex);
+    return m_deps.navState ? qMax(0, m_deps.navState->currentPly()) : 0;
 }
 
 QString KifuExportClipboard::lineSfenAt(int ply) const
@@ -151,7 +148,6 @@ bool KifuExportClipboard::setClipboardText(const QString& text, const QString& s
 
 bool KifuExportClipboard::copyKifToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     if (!m_deps.gameRecord) {
         Q_EMIT statusMessage(tr("KIF形式の棋譜データがありません"), 3000);
@@ -168,7 +164,6 @@ bool KifuExportClipboard::copyKifToClipboard()
 
 bool KifuExportClipboard::copyKi2ToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     if (!m_deps.gameRecord) {
         Q_EMIT statusMessage(tr("KI2形式の棋譜データがありません"), 3000);
@@ -185,7 +180,6 @@ bool KifuExportClipboard::copyKi2ToClipboard()
 
 bool KifuExportClipboard::copyCsaToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     QStringList csaLines;
     if (m_deps.gameRecord) {
@@ -203,7 +197,6 @@ bool KifuExportClipboard::copyCsaToClipboard()
 
 bool KifuExportClipboard::copyUsiToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     QStringList usiLines;
     if (m_deps.gameRecord) {
@@ -221,7 +214,6 @@ bool KifuExportClipboard::copyUsiToClipboard()
 
 bool KifuExportClipboard::copyUsiCurrentToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     QStringList usiLines;
     if (m_deps.gameRecord) {
@@ -256,7 +248,6 @@ bool KifuExportClipboard::copyUsiCurrentToClipboard()
 
 bool KifuExportClipboard::copyJkfToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     QStringList jkfLines;
     if (m_deps.gameRecord) {
@@ -273,7 +264,6 @@ bool KifuExportClipboard::copyJkfToClipboard()
 
 bool KifuExportClipboard::copyUsenToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     QStringList usenLines;
     if (m_deps.gameRecord) {
@@ -290,7 +280,6 @@ bool KifuExportClipboard::copyUsenToClipboard()
 
 bool KifuExportClipboard::copySfenToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     PositionData pos = currentPositionData();
     if (pos.sfenStr.isEmpty()) {
@@ -304,7 +293,6 @@ bool KifuExportClipboard::copySfenToClipboard()
 
 bool KifuExportClipboard::copyBodToClipboard()
 {
-    if (m_prepareCallback) m_prepareCallback();
 
     PositionData pos = currentPositionData();
     if (pos.sfenStr.isEmpty()) {

@@ -338,9 +338,7 @@ QString formatTimeText(const QJsonObject& timeObj, qint64& cumSec)
         totalSec = cumSec;
     }
 
-    return KifuParseCommon::formatTimeMS(nowSec * 1000)
-           + QLatin1Char('/')
-           + KifuParseCommon::formatTimeHMS(totalSec * 1000);
+    return KifuParseCommon::formatTimeText(nowSec * 1000, totalSec * 1000);
 }
 
 // --- コメント・修飾語 ---

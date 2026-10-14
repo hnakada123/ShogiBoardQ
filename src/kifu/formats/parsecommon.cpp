@@ -468,4 +468,58 @@ void finalizeDisplayItems(QString& commentBuf, QList<KifDisplayItem>& items,
     }
 }
 
+QString buildHandsSfen(const QMap<Piece, int>& black, const QMap<Piece, int>& white)
+{
+    static const Piece order[] = {Piece::BlackRook, Piece::BlackBishop, Piece::BlackGold,
+                                  Piece::BlackSilver, Piece::BlackKnight, Piece::BlackLance, Piece::BlackPawn};
+    QString s;
+    for (const bool gote : {false, true}) {
+        const QMap<Piece, int>& counts = gote ? white : black;
+        for (const Piece p : order) {
+            const int cnt = counts.value(p, 0);
+            if (cnt <= 0) continue;
+            if (cnt > 1) s += QString::number(cnt);
+            s += pieceToChar(gote ? toWhite(p) : p);
+        }
+    }
+    return s.isEmpty() ? QStringLiteral("-") : s;
+}
+
+std::optional<VariationBase> findVariationBase(const KifLine& mainline,
+                                               const QList<KifVariation>& variations,
+                                               int startPly)
+{
+    const int branchPly = startPly - 1;  // 分岐元の局面の手数
+    if (branchPly < 0) return std::nullopt;
+
+    // 後から書かれた変化から探す（同じ手数から始まる兄弟の変化は分岐元にならない）
+    for (qsizetype vi = variations.size() - 1; vi >= 0; --vi) {
+        const KifVariation& var = variations.at(vi);
+        if (var.startPly > branchPly) continue;
+        const qsizetype idx = branchPly - (var.startPly - 1);
+        if (idx < 1 || idx >= var.line.sfenList.size()) continue;
+        return VariationBase{var.line.sfenList.at(idx), var.line.usiMoves.value(idx - 1)};
+    }
+
+    if (branchPly < mainline.sfenList.size()) {
+        return VariationBase{mainline.sfenList.at(branchPly),
+                             branchPly >= 1 ? mainline.usiMoves.value(branchPly - 1) : QString()};
+    }
+    return std::nullopt;
+}
+
+void mergeOpeningIntoFirstMove(KifLine& line)
+{
+    if (line.disp.isEmpty() || line.disp.first().ply != 0) return;
+    const KifDisplayItem opening = line.disp.takeFirst();
+    if (line.disp.isEmpty()) return;
+    KifDisplayItem& first = line.disp.first();
+    QString comment = opening.comment;
+    QString bookmark = opening.bookmark;
+    if (!first.comment.isEmpty()) appendLine(comment, first.comment);
+    if (!first.bookmark.isEmpty()) appendLine(bookmark, first.bookmark);
+    first.comment = comment;
+    first.bookmark = bookmark;
+}
+
 } // namespace KifuParseCommon

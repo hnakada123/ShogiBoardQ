@@ -3,6 +3,7 @@
 
 // private メンバへは SfenCollectionDialog の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "sfencollectiondialog.h"
+#include "boardviewerwidget.h"
 
 #include <QtTest>
 #include <QAbstractButton>
@@ -57,8 +58,8 @@ private slots:
     void parseSfenLines_validSfen_parsesCorrectCount()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(validSfenText());
-        QCOMPARE(dlg.m_sfenList.size(), 3);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(validSfenText()));
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 3);
     }
 
     void parseSfenLines_emptyLines_skipped()
@@ -71,41 +72,41 @@ private slots:
             "  \n"
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2\n"
             "\n");
-        dlg.parseSfenLines(text);
-        QCOMPARE(dlg.m_sfenList.size(), 2);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(text));
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 2);
     }
 
     void parseSfenLines_singleLine_parsesOne()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-        QCOMPARE(dlg.m_sfenList.size(), 1);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")));
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 1);
     }
 
     void parseSfenLines_empty_noPositions()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(QString());
-        QCOMPARE(dlg.m_sfenList.size(), 0);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(QString()));
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 0);
     }
 
     void parseSfenLines_sfenPrefix_stripped()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(
-            QStringLiteral("sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-        QCOMPARE(dlg.m_sfenList.size(), 1);
-        QVERIFY(dlg.m_sfenList.first().startsWith(QStringLiteral("lnsgkgsnl")));
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(
+            QStringLiteral("sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")));
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 1);
+        QVERIFY(dlg.m_viewer->sfenList().first().startsWith(QStringLiteral("lnsgkgsnl")));
     }
 
     void parseSfenLines_positionSfenPrefix_stripped()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(QStringLiteral(
-            "position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-        QCOMPARE(dlg.m_sfenList.size(), 1);
-        QVERIFY(dlg.m_sfenList.first().startsWith(QStringLiteral("lnsgkgsnl")));
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(QStringLiteral(
+            "position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")));
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 1);
+        QVERIFY(dlg.m_viewer->sfenList().first().startsWith(QStringLiteral("lnsgkgsnl")));
     }
 
     void parseSfenLines_invalidLine_skipped()
@@ -116,20 +117,21 @@ private slots:
             "not valid\n"
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1\n"
             "only three parts\n");
-        dlg.parseSfenLines(text);
-        QCOMPARE(dlg.m_sfenList.size(), 1);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(text));
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 1);
     }
 
     void parseSfenLines_usiPositionCommands_applyMoves()
     {
         SfenCollectionDialog dlg;
         // startpos と USI の position コマンドは moves を指した後の局面にする
-        const int skipped = dlg.parseSfenLines(QStringLiteral(
+        int skipped = 0;
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(QStringLiteral(
             "startpos\n"
             "position startpos moves 7g7f 3c3d\n"
-            "position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2 moves 3c3d\n"));
+            "position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2 moves 3c3d\n"), &skipped));
         QCOMPARE(skipped, 0);
-        QCOMPARE(dlg.m_sfenList, QList<QString>({
+        QCOMPARE(dlg.m_viewer->sfenList(), QList<QString>({
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
             QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3"),
             QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3"),
@@ -140,11 +142,12 @@ private slots:
     {
         SfenCollectionDialog dlg;
         // 詰将棋局面生成が手順を含めて保存した行（SFEN の後に moves と解答手順）は SFEN の局面にする
-        const int skipped = dlg.parseSfenLines(QStringLiteral(
+        int skipped = 0;
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(QStringLiteral(
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f 3c3d\n"
-            "sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 2g2f\n"));
+            "sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 2g2f\n"), &skipped));
         QCOMPARE(skipped, 0);
-        QCOMPARE(dlg.m_sfenList, QList<QString>({
+        QCOMPARE(dlg.m_viewer->sfenList(), QList<QString>({
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
         }));
@@ -154,13 +157,14 @@ private slots:
     {
         SfenCollectionDialog dlg;
         // 4語以上でも局面として読めない行（駒の記号・手番の誤り、指せない手）は数えて飛ばす
-        const int skipped = dlg.parseSfenLines(QStringLiteral(
+        int skipped = 0;
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(QStringLiteral(
             "abc def ghi jkl\n"
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL x - 1\n"
             "position startpos moves 7g7e\n"
-            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1\n"));
+            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1\n"), &skipped));
         QCOMPARE(skipped, 3);
-        QCOMPARE(dlg.m_sfenList.size(), 1);
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 1);
     }
 
     void parseSfenLines_commentLines_skipped()
@@ -174,9 +178,9 @@ private slots:
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1\n"
             "  # 目標手数: 3 手詰\n"
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2\n");
-        dlg.parseSfenLines(text);
-        QCOMPARE(dlg.m_sfenList.size(), 2);
-        QVERIFY(dlg.m_sfenList.at(0).startsWith(QStringLiteral("lnsgkgsnl/")));
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(text));
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 2);
+        QVERIFY(dlg.m_viewer->sfenList().at(0).startsWith(QStringLiteral("lnsgkgsnl/")));
     }
 
     // ── ファイルロードテスト ──────────────────────────────
@@ -185,8 +189,8 @@ private slots:
     {
         SfenCollectionDialog dlg;
         QVERIFY(loadTextViaFile(dlg, validSfenText()));
-        QCOMPARE(dlg.m_sfenList.size(), 3);
-        QCOMPARE(dlg.m_currentIndex, 0);
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 3);
+        QCOMPARE(dlg.m_viewer->currentIndex(), 0);
     }
 
     void loadFromFile_emptyFile_returnsFalse()
@@ -202,7 +206,7 @@ private slots:
     {
         SfenCollectionDialog dlg;
         QVERIFY(loadTextViaFile(dlg, validSfenText()));
-        dlg.onGoForward();
+        dlg.m_viewer->goForward();
         const QString fileText = dlg.m_fileLabel->text();
 
         // 局面が1つもないファイルは、知らせたうえで表示中の局面集を残す
@@ -210,8 +214,8 @@ private slots:
         QTimer::singleShot(0, this, &TestSfenCollection::closeMessageBox);
         QVERIFY(!loadTextViaFile(dlg, QStringLiteral("hello\nworld\n")));
         QVERIFY(!m_messageText.isEmpty());
-        QCOMPARE(dlg.m_sfenList.size(), 3);
-        QCOMPARE(dlg.m_currentIndex, 1);
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 3);
+        QCOMPARE(dlg.m_viewer->currentIndex(), 1);
         QCOMPARE(dlg.m_fileLabel->text(), fileText);
         QVERIFY(dlg.m_btnSelect->isEnabled());
     }
@@ -220,7 +224,7 @@ private slots:
     {
         SfenCollectionDialog dlg;
         QVERIFY(loadTextViaFile(dlg, validSfenText() + QStringLiteral("abc def ghi jkl\n")));
-        QCOMPARE(dlg.m_sfenList.size(), 3);
+        QCOMPARE(dlg.m_viewer->sfenList().size(), 3);
         QVERIFY(dlg.m_fileLabel->text().contains(QStringLiteral("読めない 1 行を飛ばしました")));
 
         QVERIFY(loadTextViaFile(dlg, validSfenText()));
@@ -232,55 +236,55 @@ private slots:
     void navigation_goLast_selectsLast()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(validSfenText());
-        dlg.m_currentIndex = 0;
-        dlg.onGoLast();
-        QCOMPARE(dlg.m_currentIndex, 2);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(validSfenText()));
+        dlg.m_viewer->setCurrentIndex(0);
+        dlg.m_viewer->goLast();
+        QCOMPARE(dlg.m_viewer->currentIndex(), 2);
     }
 
     void navigation_goFirst_selectsFirst()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(validSfenText());
-        dlg.m_currentIndex = 2;
-        dlg.onGoFirst();
-        QCOMPARE(dlg.m_currentIndex, 0);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(validSfenText()));
+        dlg.m_viewer->setCurrentIndex(2);
+        dlg.m_viewer->goFirst();
+        QCOMPARE(dlg.m_viewer->currentIndex(), 0);
     }
 
     void navigation_goForward_advances()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(validSfenText());
-        dlg.m_currentIndex = 0;
-        dlg.onGoForward();
-        QCOMPARE(dlg.m_currentIndex, 1);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(validSfenText()));
+        dlg.m_viewer->setCurrentIndex(0);
+        dlg.m_viewer->goForward();
+        QCOMPARE(dlg.m_viewer->currentIndex(), 1);
     }
 
     void navigation_goBack_retreats()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(validSfenText());
-        dlg.m_currentIndex = 2;
-        dlg.onGoBack();
-        QCOMPARE(dlg.m_currentIndex, 1);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(validSfenText()));
+        dlg.m_viewer->setCurrentIndex(2);
+        dlg.m_viewer->goBack();
+        QCOMPARE(dlg.m_viewer->currentIndex(), 1);
     }
 
     void navigation_goForward_atEnd_staysAtEnd()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(validSfenText());
-        dlg.m_currentIndex = 2;
-        dlg.onGoForward();
-        QCOMPARE(dlg.m_currentIndex, 2);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(validSfenText()));
+        dlg.m_viewer->setCurrentIndex(2);
+        dlg.m_viewer->goForward();
+        QCOMPARE(dlg.m_viewer->currentIndex(), 2);
     }
 
     void navigation_goBack_atStart_staysAtStart()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(validSfenText());
-        dlg.m_currentIndex = 0;
-        dlg.onGoBack();
-        QCOMPARE(dlg.m_currentIndex, 0);
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(validSfenText()));
+        dlg.m_viewer->setCurrentIndex(0);
+        dlg.m_viewer->goBack();
+        QCOMPARE(dlg.m_viewer->currentIndex(), 0);
     }
 
     // ── シグナルテスト ───────────────────────────────────
@@ -288,8 +292,8 @@ private slots:
     void positionSelected_emitsCorrectSfen()
     {
         SfenCollectionDialog dlg;
-        dlg.parseSfenLines(validSfenText());
-        dlg.m_currentIndex = 1;
+        dlg.m_viewer->setSfenList(SfenCollectionDialog::parseSfenLines(validSfenText()));
+        dlg.m_viewer->setCurrentIndex(1);
 
         QSignalSpy spy(&dlg, &SfenCollectionDialog::positionSelected);
         dlg.onSelectClicked();
