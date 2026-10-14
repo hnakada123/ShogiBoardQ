@@ -55,8 +55,6 @@ void MatchCoordinatorWiring::updateDeps(const Deps& deps)
         m_ensureEvaluationGraphController = deps.ensureEvaluationGraphController;
     if (deps.ensureUsiCommandController)
         m_ensureUsiCommandController = deps.ensureUsiCommandController;
-    if (deps.ensureUiStatePolicyManager)
-        m_ensureUiStatePolicyManager = deps.ensureUiStatePolicyManager;
     if (deps.connectBoardClicks)
         m_connectBoardClicks = deps.connectBoardClicks;
     if (deps.connectMoveRequested)
@@ -68,8 +66,11 @@ void MatchCoordinatorWiring::updateDeps(const Deps& deps)
         m_getTimeController = deps.getTimeController;
     if (deps.getEvalGraphController)
         m_getEvalGraphController = deps.getEvalGraphController;
-    if (deps.getUiStatePolicy)
-        m_getUiStatePolicy = deps.getUiStatePolicy;
+}
+
+void MatchCoordinatorWiring::setSignalTargets(const SignalTargets& targets)
+{
+    m_targets = targets;
 }
 
 bool MatchCoordinatorWiring::initializeSession()
@@ -124,22 +125,6 @@ void MatchCoordinatorWiring::bindRuntimeDependencies()
 
         m_match->setUndoBindings(u, m_undoHooks);
 
-        // 検討モード終了・詰み探索終了時にUI状態を「アイドル」に遷移
-        if (m_ensureUiStatePolicyManager) m_ensureUiStatePolicyManager();
-        auto* uiPolicy = m_getUiStatePolicy ? m_getUiStatePolicy() : nullptr;
-        if (uiPolicy) {
-            connect(m_match.get(), &MatchCoordinator::considerationModeEnded,
-                    uiPolicy, &UiStatePolicyManager::transitionToIdle,
-                    Qt::UniqueConnection);
-            connect(m_match.get(), &MatchCoordinator::tsumeSearchModeEnded,
-                    uiPolicy, &UiStatePolicyManager::transitionToIdle,
-                    Qt::UniqueConnection);
-            // 対局終了時にUI状態を「アイドル」に遷移（終局処理への転送より後に接続する）
-            connect(m_match.get(), &MatchCoordinator::gameEnded,
-                    uiPolicy, &UiStatePolicyManager::transitionToIdle,
-                    Qt::UniqueConnection);
-        }
-
         // timeUpdated → TimeDisplayPresenter（直接配線）。時間表示は起動の途中で作られるので、
         // 結び直すたびに接続する（同じ組の接続は UniqueConnection で1本に保つ）
         if (m_timePresenter) {
@@ -183,27 +168,47 @@ void MatchCoordinatorWiring::createMatchCoordinator()
     // Created: once (first initializeSession), never recreated
     m_match = std::make_unique<MatchCoordinator>(deps, nullptr);
 
-    // --- MC シグナル → MCW シグナルへ直接配線 ---
-    connect(m_match.get(), &MatchCoordinator::requestAppendGameOverMove,
-            this,    &MatchCoordinatorWiring::requestAppendGameOverMove,
-            Qt::UniqueConnection);
-    connect(m_match.get(), &MatchCoordinator::gameInterrupted,
-            this, &MatchCoordinatorWiring::gameInterrupted, Qt::UniqueConnection);
+    connectMatchSignals();
+}
 
-    connect(m_match.get(), &MatchCoordinator::boardFlipped,
-            this,    &MatchCoordinatorWiring::boardFlipped,
-            Qt::UniqueConnection);
+void MatchCoordinatorWiring::connectMatchSignals()
+{
+    MatchCoordinator* mc = m_match.get();
 
-    connect(m_match.get(), &MatchCoordinator::gameOverStateChanged,
-            this,    &MatchCoordinatorWiring::gameOverStateChanged,
-            Qt::UniqueConnection);
-
-    connect(m_match.get(), &MatchCoordinator::gameEnded,
-            this,    &MatchCoordinatorWiring::matchGameEnded,
-            Qt::UniqueConnection);
-    connect(m_match.get(), &MatchCoordinator::gameEndProcessed,
-            this,    &MatchCoordinatorWiring::gameEndProcessed,
-            Qt::UniqueConnection);
+    // 終局手の追記（GameStateController）→ ライブセッションの確定（SessionLifecycleCoordinator）の順。
+    // 確定は追記した終局手を含めて行う
+    if (auto* gsc = m_targets.gameStateController) {
+        connect(mc, &MatchCoordinator::requestAppendGameOverMove,
+                gsc, &GameStateController::onRequestAppendGameOverMove);
+        connect(mc, &MatchCoordinator::gameOverStateChanged,
+                gsc, &GameStateController::onGameOverStateChanged);
+    }
+    if (auto* slc = m_targets.sessionLifecycle) {
+        connect(mc, &MatchCoordinator::requestAppendGameOverMove,
+                slc, &SessionLifecycleCoordinator::commitLiveGameSessionIfActive);
+        connect(mc, &MatchCoordinator::gameEnded,
+                slc, &SessionLifecycleCoordinator::handleGameEnded);
+        connect(mc, &MatchCoordinator::gameEndProcessed,
+                slc, &SessionLifecycleCoordinator::handleGameEndProcessed);
+    }
+    // 終局の記録（handleGameEnded）のあとで、UI状態を「アイドル」に戻す。
+    // 検討モード・詰み探索の終了でも「アイドル」に戻す
+    if (auto* uiPolicy = m_targets.uiStatePolicy) {
+        connect(mc, &MatchCoordinator::gameEnded,
+                uiPolicy, &UiStatePolicyManager::transitionToIdle);
+        connect(mc, &MatchCoordinator::considerationModeEnded,
+                uiPolicy, &UiStatePolicyManager::transitionToIdle);
+        connect(mc, &MatchCoordinator::tsumeSearchModeEnded,
+                uiPolicy, &UiStatePolicyManager::transitionToIdle);
+    }
+    if (auto* appearance = m_targets.appearance) {
+        connect(mc, &MatchCoordinator::boardFlipped,
+                appearance, &MainWindowAppearanceController::onBoardFlipped);
+    }
+    if (auto* gameSession = m_targets.gameSession) {
+        connect(mc, &MatchCoordinator::gameInterrupted,
+                gameSession, &GameSessionOrchestrator::onGameInterrupted);
+    }
 }
 
 void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
@@ -241,126 +246,45 @@ void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
         m_menuGameStart->setViewHooks(vh);
     }
 
-    // --- 11 connect: GameStartCoordinator → 転送シグナル / 内部配線 ---
-
-    // 対局開始前クリーンアップ
-    connect(m_menuGameStart, &GameStartCoordinator::requestPreStartCleanup,
-            this, &MatchCoordinatorWiring::requestPreStartCleanup,
-            Qt::UniqueConnection);
-
-    // 時間制御の適用
-    connect(m_menuGameStart, &GameStartCoordinator::requestApplyTimeControl,
-            this, &MatchCoordinatorWiring::requestApplyTimeControl,
-            Qt::UniqueConnection);
-
-    // 対局者名確定
-    connect(m_menuGameStart, &GameStartCoordinator::playerNamesResolved,
-            this, &MatchCoordinatorWiring::menuPlayerNamesResolved,
-            Qt::UniqueConnection);
-
-    // 連続対局設定
-    connect(m_menuGameStart, &GameStartCoordinator::consecutiveGamesConfigured,
-            this, &MatchCoordinatorWiring::consecutiveGamesConfigured,
-            Qt::UniqueConnection);
-
-    // 対局開始時にUI状態を「対局中」に遷移
-    if (m_ensureUiStatePolicyManager) m_ensureUiStatePolicyManager();
-    auto* uiPolicy = m_getUiStatePolicy ? m_getUiStatePolicy() : nullptr;
-    if (uiPolicy) {
-        connect(m_menuGameStart, &GameStartCoordinator::started,
-                uiPolicy, &UiStatePolicyManager::transitionToDuringGame,
-                Qt::UniqueConnection);
-    }
-
-    // 対局開始通知を転送
-    connect(m_menuGameStart, &GameStartCoordinator::started,
-            this, &MatchCoordinatorWiring::gameStarted,
-            Qt::UniqueConnection);
-
-    // 盤面反転シグナルを転送
-    connect(m_menuGameStart, &GameStartCoordinator::boardFlipped,
-            this, &MatchCoordinatorWiring::boardFlipped,
-            Qt::UniqueConnection);
-
-    // 棋譜欄の行選択要求
-    connect(m_menuGameStart, &GameStartCoordinator::requestSelectKifuRow,
-            this, &MatchCoordinatorWiring::requestSelectKifuRow,
-            Qt::UniqueConnection);
-
-    // 分岐ツリーリセット要求
-    connect(m_menuGameStart, &GameStartCoordinator::requestBranchTreeResetForNewGame,
-            this, &MatchCoordinatorWiring::requestBranchTreeResetForNewGame,
-            Qt::UniqueConnection);
+    connectGameStartSignals();
 }
 
-void MatchCoordinatorWiring::wireForwardingSignals(const ForwardingTargets& targets)
+void MatchCoordinatorWiring::connectGameStartSignals()
 {
-    // --- MatchCoordinator/Clock 転送シグナル ---
-    // 終局手追記後にライブセッションを commit する必要があるため、
-    // GameStateController → SessionLifecycleCoordinator の順で接続する。
-    if (targets.gameStateController) {
-        QObject::connect(this, &MatchCoordinatorWiring::requestAppendGameOverMove,
-                         targets.gameStateController, &GameStateController::onRequestAppendGameOverMove,
-                         Qt::UniqueConnection);
-        QObject::connect(this, &MatchCoordinatorWiring::gameOverStateChanged,
-                         targets.gameStateController, &GameStateController::onGameOverStateChanged,
-                         Qt::UniqueConnection);
-    }
-    if (targets.sessionLifecycle) {
-        QObject::connect(this, &MatchCoordinatorWiring::requestAppendGameOverMove,
-                         targets.sessionLifecycle, &SessionLifecycleCoordinator::commitLiveGameSessionIfActive,
-                         Qt::UniqueConnection);
-        QObject::connect(this, &MatchCoordinatorWiring::matchGameEnded,
-                         targets.sessionLifecycle, &SessionLifecycleCoordinator::handleGameEnded,
-                         Qt::UniqueConnection);
-        QObject::connect(this, &MatchCoordinatorWiring::gameEndProcessed,
-                         targets.sessionLifecycle, &SessionLifecycleCoordinator::handleGameEndProcessed,
-                         Qt::UniqueConnection);
-        QObject::connect(this, &MatchCoordinatorWiring::requestPreStartCleanup,
-                         targets.sessionLifecycle, &SessionLifecycleCoordinator::performPreStartCleanup,
-                         Qt::UniqueConnection);
-        QObject::connect(this, &MatchCoordinatorWiring::requestApplyTimeControl,
-                         targets.sessionLifecycle, &SessionLifecycleCoordinator::applyTimeControl,
-                         Qt::UniqueConnection);
-        QObject::connect(this, &MatchCoordinatorWiring::gameStarted,
-                         targets.sessionLifecycle, &SessionLifecycleCoordinator::handleGameStarted,
-                         Qt::UniqueConnection);
-    }
-    if (targets.appearance) {
-        QObject::connect(this, &MatchCoordinatorWiring::boardFlipped,
-                         targets.appearance, &MainWindowAppearanceController::onBoardFlipped,
-                         Qt::UniqueConnection);
-    }
-    if (targets.gameSession) {
-        QObject::connect(this, &MatchCoordinatorWiring::gameInterrupted,
-                         targets.gameSession, &GameSessionOrchestrator::onGameInterrupted,
-                         Qt::UniqueConnection);
-        QObject::connect(this, &MatchCoordinatorWiring::gameStarted,
-                         targets.gameSession, &GameSessionOrchestrator::discardInterruptedGame,
-                         Qt::UniqueConnection);
-    }
+    GameStartCoordinator* gsc = m_menuGameStart;
 
-    // --- メニュー GameStartCoordinator 転送シグナル ---
-    if (targets.playerInfo) {
-        QObject::connect(this, &MatchCoordinatorWiring::menuPlayerNamesResolved,
-                         targets.playerInfo, &PlayerInfoWiring::onMenuPlayerNamesResolved,
-                         Qt::UniqueConnection);
+    // 対局開始の通知は、UI状態を「対局中」にする → 開始局面とモードの反映 → 中断した対局の破棄 の順。
+    // UiStatePolicyManager は、モードを MainWindow 側の状態ではなく司令塔から読む
+    if (auto* uiPolicy = m_targets.uiStatePolicy) {
+        connect(gsc, &GameStartCoordinator::started,
+                uiPolicy, &UiStatePolicyManager::transitionToDuringGame);
     }
-    if (targets.consecutiveGamesController) {
-        QObject::connect(this, &MatchCoordinatorWiring::consecutiveGamesConfigured,
-                         targets.consecutiveGamesController, &ConsecutiveGamesController::configure,
-                         Qt::UniqueConnection);
+    if (auto* slc = m_targets.sessionLifecycle) {
+        connect(gsc, &GameStartCoordinator::started,
+                slc, &SessionLifecycleCoordinator::handleGameStarted);
+        connect(gsc, &GameStartCoordinator::requestPreStartCleanup,
+                slc, &SessionLifecycleCoordinator::performPreStartCleanup);
+        connect(gsc, &GameStartCoordinator::requestApplyTimeControl,
+                slc, &SessionLifecycleCoordinator::applyTimeControl);
     }
-
-    // --- ナビゲーション ---
-    if (targets.kifuNav) {
-        QObject::connect(this, &MatchCoordinatorWiring::requestSelectKifuRow,
-                         targets.kifuNav, &KifuNavigationCoordinator::selectKifuRow,
-                         Qt::UniqueConnection);
+    if (auto* gameSession = m_targets.gameSession) {
+        connect(gsc, &GameStartCoordinator::started,
+                gameSession, &GameSessionOrchestrator::discardInterruptedGame);
     }
-    if (targets.branchNav) {
-        QObject::connect(this, &MatchCoordinatorWiring::requestBranchTreeResetForNewGame,
-                         targets.branchNav, &BranchNavigationWiring::onBranchTreeResetForNewGame,
-                         Qt::UniqueConnection);
+    if (auto* playerInfo = m_targets.playerInfo) {
+        connect(gsc, &GameStartCoordinator::playerNamesResolved,
+                playerInfo, &PlayerInfoWiring::onMenuPlayerNamesResolved);
+    }
+    if (auto* consecutive = m_targets.consecutiveGamesController) {
+        connect(gsc, &GameStartCoordinator::consecutiveGamesConfigured,
+                consecutive, &ConsecutiveGamesController::configure);
+    }
+    if (auto* kifuNav = m_targets.kifuNav) {
+        connect(gsc, &GameStartCoordinator::requestSelectKifuRow,
+                kifuNav, &KifuNavigationCoordinator::selectKifuRow);
+    }
+    if (auto* branchNav = m_targets.branchNav) {
+        connect(gsc, &GameStartCoordinator::requestBranchTreeResetForNewGame,
+                branchNav, &BranchNavigationWiring::onBranchTreeResetForNewGame);
     }
 }

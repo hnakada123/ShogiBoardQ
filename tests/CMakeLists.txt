@@ -1050,7 +1050,7 @@ add_shogi_test(tst_app_branch_navigation tst_app_branch_navigation.cpp)
 target_link_libraries(tst_app_branch_navigation PRIVATE shogiboardq_static)
 
 # ============================================================
-# Unit 27: Wiring Contracts (MatchCoordinatorWiring シグナル転送契約テスト)
+# Unit 27: Wiring Contracts (MatchCoordinatorWiring の配線契約テスト。シグナルが受け手へ届く順)
 # ============================================================
 add_shogi_test(tst_wiring_contracts
     tst_wiring_contracts.cpp

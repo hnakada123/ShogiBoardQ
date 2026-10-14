@@ -1,11 +1,10 @@
 /// @file tst_wiring_contracts.cpp
-/// @brief MatchCoordinatorWiring のシグナル転送契約テスト
+/// @brief MatchCoordinatorWiring の配線契約テスト
 ///
-/// wireForwardingSignals() と ensureMenuGameStartCoordinator() が
-/// 正しくシグナルを転送するかを検証する。
+/// 司令塔（MatchCoordinator）と GameStartCoordinator のシグナルが、登録した受け手へ
+/// 決まった順で届くかを検証する。受け手はスタブで、呼ばれた順を TestTracker::calls に記録する。
 
 #include <QtTest/QtTest>
-#include <QSignalSpy>
 
 #include "matchcoordinatorwiring.h"
 #include "matchcoordinator.h"
@@ -18,25 +17,14 @@
 #include "playerinfowiring.h"
 #include "kifunavigationcoordinator.h"
 #include "branchnavigationwiring.h"
+#include "uistatepolicymanager.h"
 #include "shogiview.h"
 #include "shogigamecontroller.h"
 
 // TestTracker は test_stubs_wiring_contracts.cpp で定義
 namespace TestTracker {
-    extern bool onRequestAppendGameOverMoveCalled;
-    extern bool commitLiveGameSessionIfActiveCalled;
-    extern bool onBoardFlippedCalled;
-    extern bool onGameOverStateChangedCalled;
-    extern bool onMatchGameEndedCalled;
-    extern bool onGameEndProcessedCalled;
-    extern bool onPreStartCleanupRequestedCalled;
-    extern bool onApplyTimeControlRequestedCalled;
-    extern bool onMenuPlayerNamesResolvedCalled;
-    extern bool onConsecutiveGamesConfiguredCalled;
-    extern bool onGameStartedCalled;
-    extern bool selectKifuRowCalled;
-    extern bool onBranchTreeResetForNewGameCalled;
-    extern int  selectKifuRowValue;
+    extern QStringList calls;
+    extern int selectKifuRowValue;
     extern void reset();
 }
 
@@ -45,336 +33,277 @@ class TestWiringContracts : public QObject
     Q_OBJECT
 
 private:
-    /// wireForwardingSignals テスト用の共通セットアップ
-    struct ForwardingFixture {
-        MatchCoordinatorWiring mcw;
+    /// 受け手をすべて登録し、司令塔と GameStartCoordinator を作った状態
+    struct WiredFixture {
         GameSessionOrchestrator gso;
         SessionLifecycleCoordinator slc;
         GameStateController gsc;
         ConsecutiveGamesController cgc;
         MainWindowAppearanceController appearance;
+        PlayerInfoWiring::Dependencies piDeps;
+        PlayerInfoWiring playerInfo{piDeps};
         KifuNavigationCoordinator kifuNav;
         BranchNavigationWiring branchNav;
+        UiStatePolicyManager uiPolicy;
+        ShogiGameController gc;
+        ShogiView view;
+        MatchCoordinatorWiring mcw;
 
-        ForwardingFixture()
+        WiredFixture()
         {
             TestTracker::reset();
 
-            MatchCoordinatorWiring::ForwardingTargets targets;
+            MatchCoordinatorWiring::SignalTargets targets;
             targets.gameSession = &gso;
             targets.sessionLifecycle = &slc;
             targets.gameStateController = &gsc;
             targets.consecutiveGamesController = &cgc;
             targets.appearance = &appearance;
-            targets.kifuNav    = &kifuNav;
-            targets.branchNav  = &branchNav;
-            // targets.playerInfo は別途テスト
+            targets.playerInfo = &playerInfo;
+            targets.kifuNav = &kifuNav;
+            targets.branchNav = &branchNav;
+            targets.uiStatePolicy = &uiPolicy;
+            mcw.setSignalTargets(targets);
 
-            mcw.wireForwardingSignals(targets);
+            MatchCoordinatorWiring::Deps deps;
+            deps.gc = &gc;
+            deps.view = &view;
+            mcw.updateDeps(deps);
+            mcw.initializeSession();
+            mcw.ensureMenuGameStartCoordinator();
         }
-    };
 
-    /// PlayerInfoWiring 用 ForwardingFixture
-    struct PlayerInfoForwardingFixture {
-        MatchCoordinatorWiring mcw;
-        GameSessionOrchestrator gso;
-        PlayerInfoWiring::Dependencies piDeps;
-        PlayerInfoWiring piw{piDeps};
-
-        PlayerInfoForwardingFixture()
-        {
-            TestTracker::reset();
-
-            MatchCoordinatorWiring::ForwardingTargets targets;
-            targets.playerInfo = &piw;
-
-            mcw.wireForwardingSignals(targets);
-        }
+        MatchCoordinator* match() const { return mcw.match(); }
+        GameStartCoordinator* gameStart() const { return mcw.menuGameStartCoordinator(); }
     };
 
 private slots:
     // ================================================================
-    // wireForwardingSignals テスト群
+    // 司令塔のシグナル
     // ================================================================
 
-    void wireForwarding_requestAppendGameOverMove_reachesGscAndSlc()
+    void match_requestAppendGameOverMove_appendsBeforeCommit()
     {
-        ForwardingFixture f;
+        WiredFixture f;
+        QVERIFY(f.match());
 
-        emit f.mcw.requestAppendGameOverMove(MatchCoordinator::GameEndInfo{});
+        emit f.match()->requestAppendGameOverMove(MatchCoordinator::GameEndInfo{});
 
-        QVERIFY(TestTracker::onRequestAppendGameOverMoveCalled);
-        QVERIFY(TestTracker::commitLiveGameSessionIfActiveCalled);
+        // 終局手を棋譜に足してから、その手を含めてライブセッションを確定する
+        const QStringList expected = {
+            QStringLiteral("GSC::onRequestAppendGameOverMove"),
+            QStringLiteral("SLC::commitLiveGameSessionIfActive"),
+        };
+        QCOMPARE(TestTracker::calls, expected);
     }
 
-    void wireForwarding_boardFlipped_reachesAppearance()
+    void match_gameEnded_recordsBeforeReturningToIdle()
     {
-        ForwardingFixture f;
+        WiredFixture f;
 
-        emit f.mcw.boardFlipped(true);
+        emit f.match()->gameEnded(MatchCoordinator::GameEndInfo{});
 
-        QVERIFY(TestTracker::onBoardFlippedCalled);
+        // 終局の記録（時計の停止・終局時刻）→ UI状態を「アイドル」へ（docs/dev/ui-state-policy.md）
+        const QStringList expected = {
+            QStringLiteral("SLC::handleGameEnded"),
+            QStringLiteral("UiPolicy::transitionToIdle"),
+        };
+        QCOMPARE(TestTracker::calls, expected);
     }
 
-    void wireForwarding_gameOverStateChanged_reachesGsc()
+    void match_gameEnded_orderKeptAfterSessionRebind()
     {
-        ForwardingFixture f;
+        WiredFixture f;
+        // 起動の最終段などで2回目以降の initializeSession が呼ばれても、接続は増えず順も変わらない
+        QVERIFY(f.mcw.initializeSession());
+        QVERIFY(f.mcw.initializeSession());
 
-        emit f.mcw.gameOverStateChanged(MatchCoordinator::GameOverState{});
+        emit f.match()->gameEnded(MatchCoordinator::GameEndInfo{});
 
-        QVERIFY(TestTracker::onGameOverStateChangedCalled);
+        const QStringList expected = {
+            QStringLiteral("SLC::handleGameEnded"),
+            QStringLiteral("UiPolicy::transitionToIdle"),
+        };
+        QCOMPARE(TestTracker::calls, expected);
     }
 
-    void wireForwarding_matchGameEnded_reachesSlc()
+    void match_gameEndProcessed_reachesSessionLifecycle()
     {
-        ForwardingFixture f;
+        WiredFixture f;
 
-        emit f.mcw.matchGameEnded(MatchCoordinator::GameEndInfo{});
+        emit f.match()->gameEndProcessed(MatchCoordinator::GameEndInfo{});
 
-        QVERIFY(TestTracker::onMatchGameEndedCalled);
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("SLC::handleGameEndProcessed")});
     }
 
-    void wireForwarding_gameEndProcessed_reachesSlc()
+    void match_gameOverStateChanged_reachesGameStateController()
     {
-        ForwardingFixture f;
-        emit f.mcw.gameEndProcessed(MatchCoordinator::GameEndInfo{});
-        QVERIFY(TestTracker::onGameEndProcessedCalled);
+        WiredFixture f;
+
+        emit f.match()->gameOverStateChanged(MatchCoordinator::GameOverState{});
+
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("GSC::onGameOverStateChanged")});
     }
 
-    void wireForwarding_requestPreStartCleanup_reachesSlc()
+    void match_analysisModesEnded_returnToIdle()
     {
-        ForwardingFixture f;
+        WiredFixture f;
 
-        emit f.mcw.requestPreStartCleanup();
+        emit f.match()->considerationModeEnded();
+        emit f.match()->tsumeSearchModeEnded();
 
-        QVERIFY(TestTracker::onPreStartCleanupRequestedCalled);
+        const QStringList expected = {
+            QStringLiteral("UiPolicy::transitionToIdle"),
+            QStringLiteral("UiPolicy::transitionToIdle"),
+        };
+        QCOMPARE(TestTracker::calls, expected);
     }
 
-    void wireForwarding_requestApplyTimeControl_reachesSlc()
+    void match_boardFlipped_reachesAppearance()
     {
-        ForwardingFixture f;
+        WiredFixture f;
 
-        emit f.mcw.requestApplyTimeControl(GameStartCoordinator::TimeSettings{});
+        emit f.match()->boardFlipped(true);
 
-        QVERIFY(TestTracker::onApplyTimeControlRequestedCalled);
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("Appearance::onBoardFlipped")});
     }
 
-    void wireForwarding_menuPlayerNamesResolved_reachesPlayerInfo()
+    void match_gameInterrupted_reachesGameSession()
     {
-        PlayerInfoForwardingFixture f;
+        WiredFixture f;
 
-        emit f.mcw.menuPlayerNamesResolved(
-            QStringLiteral("human1"), QStringLiteral("human2"),
-            QStringLiteral("engine1"), QStringLiteral("engine2"), 1);
+        emit f.match()->gameInterrupted();
 
-        QVERIFY(TestTracker::onMenuPlayerNamesResolvedCalled);
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("GSO::onGameInterrupted")});
     }
 
-    void wireForwarding_consecutiveGamesConfigured_reachesCgc()
+    // ================================================================
+    // GameStartCoordinator のシグナル
+    // ================================================================
+
+    void gameStart_started_entersGameBeforeSessionUpdates()
     {
-        ForwardingFixture f;
+        WiredFixture f;
+        QVERIFY(f.gameStart());
 
-        emit f.mcw.consecutiveGamesConfigured(5, true);
+        emit f.gameStart()->started(MatchCoordinator::StartOptions{});
 
-        QVERIFY(TestTracker::onConsecutiveGamesConfiguredCalled);
+        // UI状態を「対局中」に → 開始局面とモードの反映 → 中断した対局の破棄
+        const QStringList expected = {
+            QStringLiteral("UiPolicy::transitionToDuringGame"),
+            QStringLiteral("SLC::handleGameStarted"),
+            QStringLiteral("GSO::discardInterruptedGame"),
+        };
+        QCOMPARE(TestTracker::calls, expected);
     }
 
-    void wireForwarding_gameStarted_reachesSlc()
+    void gameStart_requestPreStartCleanup_reachesSessionLifecycle()
     {
-        ForwardingFixture f;
+        WiredFixture f;
 
-        emit f.mcw.gameStarted(MatchCoordinator::StartOptions{});
+        emit f.gameStart()->requestPreStartCleanup();
 
-        QVERIFY(TestTracker::onGameStartedCalled);
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("SLC::performPreStartCleanup")});
     }
 
-    void wireForwarding_requestSelectKifuRow_reachesKifuNav()
+    void gameStart_requestApplyTimeControl_reachesSessionLifecycle()
     {
-        ForwardingFixture f;
+        WiredFixture f;
 
-        emit f.mcw.requestSelectKifuRow(42);
+        emit f.gameStart()->requestApplyTimeControl(GameStartCoordinator::TimeSettings{});
 
-        QVERIFY(TestTracker::selectKifuRowCalled);
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("SLC::applyTimeControl")});
+    }
+
+    void gameStart_playerNamesResolved_reachesPlayerInfo()
+    {
+        WiredFixture f;
+
+        emit f.gameStart()->playerNamesResolved(
+            QStringLiteral("h1"), QStringLiteral("h2"),
+            QStringLiteral("e1"), QStringLiteral("e2"), 0);
+
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("PlayerInfo::onMenuPlayerNamesResolved")});
+    }
+
+    void gameStart_consecutiveGamesConfigured_reachesConsecutiveGames()
+    {
+        WiredFixture f;
+
+        emit f.gameStart()->consecutiveGamesConfigured(5, true);
+
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("CGC::configure")});
+    }
+
+    void gameStart_requestSelectKifuRow_reachesKifuNav()
+    {
+        WiredFixture f;
+
+        emit f.gameStart()->requestSelectKifuRow(42);
+
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("KifuNav::selectKifuRow")});
         QCOMPARE(TestTracker::selectKifuRowValue, 42);
     }
 
-    void wireForwarding_requestBranchTreeReset_reachesBranchNav()
+    void gameStart_requestBranchTreeReset_reachesBranchNav()
     {
-        ForwardingFixture f;
+        WiredFixture f;
 
-        emit f.mcw.requestBranchTreeResetForNewGame();
+        emit f.gameStart()->requestBranchTreeResetForNewGame();
 
-        QVERIFY(TestTracker::onBranchTreeResetForNewGameCalled);
+        QCOMPARE(TestTracker::calls, QStringList{QStringLiteral("BranchNav::onBranchTreeResetForNewGame")});
     }
 
     // ================================================================
-    // wireForwardingSignals 防御テスト
+    // 生成と防御
     // ================================================================
 
-    void wireForwarding_nullTargets_doesNotCrash()
+    void noTargets_signalsDoNotCrash()
     {
-        MatchCoordinatorWiring mcw;
-        MatchCoordinatorWiring::ForwardingTargets targets;
-        mcw.wireForwardingSignals(targets);
-    }
-
-    // ================================================================
-    // ensureMenuGameStartCoordinator テスト群
-    // ================================================================
-
-    void ensureMenuGSC_createsCoordinator()
-    {
-        MatchCoordinatorWiring mcw;
-
-        // 最低限の Deps をセットアップ（m_gc, m_view が必要）
+        TestTracker::reset();
         ShogiGameController gc;
         ShogiView view;
+        MatchCoordinatorWiring mcw;
         MatchCoordinatorWiring::Deps deps;
         deps.gc   = &gc;
         deps.view = &view;
         mcw.updateDeps(deps);
-
-        QVERIFY(mcw.menuGameStartCoordinator() == nullptr);
-
+        QVERIFY(mcw.initializeSession());
         mcw.ensureMenuGameStartCoordinator();
 
-        QVERIFY(mcw.menuGameStartCoordinator() != nullptr);
+        emit mcw.match()->gameEnded(MatchCoordinator::GameEndInfo{});
+        emit mcw.menuGameStartCoordinator()->started(MatchCoordinator::StartOptions{});
+
+        QVERIFY(TestTracker::calls.isEmpty());
+    }
+
+    void initializeSession_withoutBoard_createsNothing()
+    {
+        MatchCoordinatorWiring mcw;
+
+        QVERIFY(!mcw.initializeSession());
+        QVERIFY(mcw.match() == nullptr);
+    }
+
+    void initializeSession_keepsSameCoordinator()
+    {
+        WiredFixture f;
+        MatchCoordinator* first = f.match();
+
+        QVERIFY(f.mcw.initializeSession());
+
+        QCOMPARE(f.match(), first);
     }
 
     void ensureMenuGSC_idempotent()
     {
-        MatchCoordinatorWiring mcw;
-        ShogiGameController gc;
-        ShogiView view;
-        MatchCoordinatorWiring::Deps deps;
-        deps.gc   = &gc;
-        deps.view = &view;
-        mcw.updateDeps(deps);
+        WiredFixture f;
+        GameStartCoordinator* first = f.gameStart();
+        QVERIFY(first);
 
-        mcw.ensureMenuGameStartCoordinator();
-        auto* first = mcw.menuGameStartCoordinator();
+        f.mcw.ensureMenuGameStartCoordinator();
 
-        mcw.ensureMenuGameStartCoordinator();
-        auto* second = mcw.menuGameStartCoordinator();
-
-        QCOMPARE(first, second);
-    }
-
-    void ensureMenuGSC_requestPreStartCleanup_forwarded()
-    {
-        MatchCoordinatorWiring mcw;
-        ShogiGameController gc;
-        ShogiView view;
-        MatchCoordinatorWiring::Deps deps;
-        deps.gc   = &gc;
-        deps.view = &view;
-        mcw.updateDeps(deps);
-
-        mcw.ensureMenuGameStartCoordinator();
-
-        QSignalSpy spy(&mcw, &MatchCoordinatorWiring::requestPreStartCleanup);
-
-        emit mcw.menuGameStartCoordinator()->requestPreStartCleanup();
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void ensureMenuGSC_started_forwarded()
-    {
-        MatchCoordinatorWiring mcw;
-        ShogiGameController gc;
-        ShogiView view;
-        MatchCoordinatorWiring::Deps deps;
-        deps.gc   = &gc;
-        deps.view = &view;
-        mcw.updateDeps(deps);
-
-        mcw.ensureMenuGameStartCoordinator();
-
-        QSignalSpy spy(&mcw, &MatchCoordinatorWiring::gameStarted);
-
-        emit mcw.menuGameStartCoordinator()->started(MatchCoordinator::StartOptions{});
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void ensureMenuGSC_playerNamesResolved_forwarded()
-    {
-        MatchCoordinatorWiring mcw;
-        ShogiGameController gc;
-        ShogiView view;
-        MatchCoordinatorWiring::Deps deps;
-        deps.gc   = &gc;
-        deps.view = &view;
-        mcw.updateDeps(deps);
-
-        mcw.ensureMenuGameStartCoordinator();
-
-        QSignalSpy spy(&mcw, &MatchCoordinatorWiring::menuPlayerNamesResolved);
-
-        emit mcw.menuGameStartCoordinator()->playerNamesResolved(
-            QStringLiteral("h1"), QStringLiteral("h2"),
-            QStringLiteral("e1"), QStringLiteral("e2"), 0);
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void ensureMenuGSC_boardFlipped_forwarded()
-    {
-        MatchCoordinatorWiring mcw;
-        ShogiGameController gc;
-        ShogiView view;
-        MatchCoordinatorWiring::Deps deps;
-        deps.gc   = &gc;
-        deps.view = &view;
-        mcw.updateDeps(deps);
-
-        mcw.ensureMenuGameStartCoordinator();
-
-        QSignalSpy spy(&mcw, &MatchCoordinatorWiring::boardFlipped);
-
-        emit mcw.menuGameStartCoordinator()->boardFlipped(true);
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void ensureMenuGSC_requestSelectKifuRow_forwarded()
-    {
-        MatchCoordinatorWiring mcw;
-        ShogiGameController gc;
-        ShogiView view;
-        MatchCoordinatorWiring::Deps deps;
-        deps.gc   = &gc;
-        deps.view = &view;
-        mcw.updateDeps(deps);
-
-        mcw.ensureMenuGameStartCoordinator();
-
-        QSignalSpy spy(&mcw, &MatchCoordinatorWiring::requestSelectKifuRow);
-
-        emit mcw.menuGameStartCoordinator()->requestSelectKifuRow(7);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toInt(), 7);
-    }
-
-    void ensureMenuGSC_requestBranchTreeReset_forwarded()
-    {
-        MatchCoordinatorWiring mcw;
-        ShogiGameController gc;
-        ShogiView view;
-        MatchCoordinatorWiring::Deps deps;
-        deps.gc   = &gc;
-        deps.view = &view;
-        mcw.updateDeps(deps);
-
-        mcw.ensureMenuGameStartCoordinator();
-
-        QSignalSpy spy(&mcw, &MatchCoordinatorWiring::requestBranchTreeResetForNewGame);
-
-        emit mcw.menuGameStartCoordinator()->requestBranchTreeResetForNewGame();
-
-        QCOMPARE(spy.count(), 1);
+        QCOMPARE(f.gameStart(), first);
     }
 };
 

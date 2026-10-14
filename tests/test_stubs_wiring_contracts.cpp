@@ -46,42 +46,16 @@
 #include "gameendhandler.h"
 
 // ============================================================
-// TestTracker — slot 呼び出しを追跡する名前空間
+// TestTracker — 受け手のスロットが呼ばれた順を記録する名前空間
 // ============================================================
 
 namespace TestTracker {
-    // wireForwardingSignals 経由の呼び出し追跡
-    bool onRequestAppendGameOverMoveCalled = false;
-    bool commitLiveGameSessionIfActiveCalled = false;
-    bool onBoardFlippedCalled = false;
-    bool onGameOverStateChangedCalled = false;
-    bool onMatchGameEndedCalled = false;
-    bool onGameEndProcessedCalled = false;
-    bool onPreStartCleanupRequestedCalled = false;
-    bool onApplyTimeControlRequestedCalled = false;
-    bool onMenuPlayerNamesResolvedCalled = false;
-    bool onConsecutiveGamesConfiguredCalled = false;
-    bool onGameStartedCalled = false;
-    bool selectKifuRowCalled = false;
-    bool onBranchTreeResetForNewGameCalled = false;
-
+    QStringList calls;  ///< 呼ばれたスロット（"クラスの略称::メソッド名"、呼ばれた順）
     int selectKifuRowValue = -1;
 
     void reset()
     {
-        onRequestAppendGameOverMoveCalled = false;
-        commitLiveGameSessionIfActiveCalled = false;
-        onBoardFlippedCalled = false;
-        onGameOverStateChangedCalled = false;
-        onMatchGameEndedCalled = false;
-        onGameEndProcessedCalled = false;
-        onPreStartCleanupRequestedCalled = false;
-        onApplyTimeControlRequestedCalled = false;
-        onMenuPlayerNamesResolvedCalled = false;
-        onConsecutiveGamesConfiguredCalled = false;
-        onGameStartedCalled = false;
-        selectKifuRowCalled = false;
-        onBranchTreeResetForNewGameCalled = false;
+        calls.clear();
         selectKifuRowValue = -1;
     }
 }
@@ -96,28 +70,28 @@ void SessionLifecycleCoordinator::resetToInitialState() {}
 void SessionLifecycleCoordinator::resetGameState() {}
 void SessionLifecycleCoordinator::performPreStartCleanup()
 {
-    TestTracker::onPreStartCleanupRequestedCalled = true;
+    TestTracker::calls << QStringLiteral("SLC::performPreStartCleanup");
 }
 void SessionLifecycleCoordinator::startNewGame() {}
 void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::TimeSettings&)
 {
-    TestTracker::onApplyTimeControlRequestedCalled = true;
+    TestTracker::calls << QStringLiteral("SLC::applyTimeControl");
 }
 void SessionLifecycleCoordinator::handleGameStarted(const MatchCoordinator::StartOptions&)
 {
-    TestTracker::onGameStartedCalled = true;
+    TestTracker::calls << QStringLiteral("SLC::handleGameStarted");
 }
 void SessionLifecycleCoordinator::commitLiveGameSessionIfActive()
 {
-    TestTracker::commitLiveGameSessionIfActiveCalled = true;
+    TestTracker::calls << QStringLiteral("SLC::commitLiveGameSessionIfActive");
 }
 void SessionLifecycleCoordinator::handleGameEndProcessed(const MatchCoordinator::GameEndInfo&)
 {
-    TestTracker::onGameEndProcessedCalled = true;
+    TestTracker::calls << QStringLiteral("SLC::handleGameEndProcessed");
 }
 void SessionLifecycleCoordinator::handleGameEnded(const MatchCoordinator::GameEndInfo&)
 {
-    TestTracker::onMatchGameEndedCalled = true;
+    TestTracker::calls << QStringLiteral("SLC::handleGameEnded");
 }
 
 GameStateController::GameStateController(QObject* parent) : QObject(parent) {}
@@ -136,11 +110,11 @@ bool GameStateController::isGameOver() const { return false; }
 void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo&) {}
 void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOverState&)
 {
-    TestTracker::onGameOverStateChangedCalled = true;
+    TestTracker::calls << QStringLiteral("GSC::onGameOverStateChanged");
 }
 void GameStateController::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo&)
 {
-    TestTracker::onRequestAppendGameOverMoveCalled = true;
+    TestTracker::calls << QStringLiteral("GSC::onRequestAppendGameOverMove");
 }
 
 ConsecutiveGamesController::ConsecutiveGamesController(QObject* parent) : QObject(parent) {}
@@ -149,7 +123,7 @@ void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator*) 
 void ConsecutiveGamesController::setPerformPreStartCleanup(std::function<void(const QString&)>) {}
 void ConsecutiveGamesController::configure(int, bool)
 {
-    TestTracker::onConsecutiveGamesConfiguredCalled = true;
+    TestTracker::calls << QStringLiteral("CGC::configure");
 }
 void ConsecutiveGamesController::onGameStarted(const MatchCoordinator::StartOptions&,
                                                const GameStartCoordinator::TimeSettings&) {}
@@ -287,8 +261,14 @@ void GameSessionOrchestrator::initializeGame() {}
 void GameSessionOrchestrator::handleResignation() {}
 void GameSessionOrchestrator::handleBreakOffGame() {}
 void GameSessionOrchestrator::handleResumeGame() {}
-void GameSessionOrchestrator::onGameInterrupted() {}
-void GameSessionOrchestrator::discardInterruptedGame() {}
+void GameSessionOrchestrator::onGameInterrupted()
+{
+    TestTracker::calls << QStringLiteral("GSO::onGameInterrupted");
+}
+void GameSessionOrchestrator::discardInterruptedGame()
+{
+    TestTracker::calls << QStringLiteral("GSO::discardInterruptedGame");
+}
 void GameSessionOrchestrator::movePieceImmediately() {}
 void GameSessionOrchestrator::stopTsumeSearch() {}
 void GameSessionOrchestrator::openWebsiteInExternalBrowser() {}
@@ -314,7 +294,7 @@ void MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo() {}
 
 void MainWindowAppearanceController::onBoardFlipped(bool)
 {
-    TestTracker::onBoardFlippedCalled = true;
+    TestTracker::calls << QStringLiteral("Appearance::onBoardFlipped");
 }
 
 void MainWindowAppearanceController::onActionFlipBoardTriggered() {}
@@ -350,7 +330,7 @@ void PlayerInfoWiring::onPlayerNamesResolved(const QString&, const QString&, con
 void PlayerInfoWiring::onMenuPlayerNamesResolved(const QString&, const QString&,
                                                   const QString&, const QString&, int)
 {
-    TestTracker::onMenuPlayerNamesResolvedCalled = true;
+    TestTracker::calls << QStringLiteral("PlayerInfo::onMenuPlayerNamesResolved");
 }
 
 void PlayerInfoWiring::ensurePlayerInfoController() {}
@@ -368,7 +348,7 @@ void KifuNavigationCoordinator::handleBranchNodeHandled(int, const QString&, int
 
 void KifuNavigationCoordinator::selectKifuRow(int row)
 {
-    TestTracker::selectKifuRowCalled = true;
+    TestTracker::calls << QStringLiteral("KifuNav::selectKifuRow");
     TestTracker::selectKifuRowValue = row;
 }
 
@@ -387,7 +367,7 @@ void BranchNavigationWiring::onBranchNodeActivated(int, int) {}
 
 void BranchNavigationWiring::onBranchTreeResetForNewGame()
 {
-    TestTracker::onBranchTreeResetForNewGameCalled = true;
+    TestTracker::calls << QStringLiteral("BranchNav::onBranchTreeResetForNewGame");
 }
 
 // ============================================================
@@ -397,8 +377,14 @@ void BranchNavigationWiring::onBranchTreeResetForNewGame()
 UiStatePolicyManager::UiStatePolicyManager(QObject* parent) : QObject(parent) {}
 void UiStatePolicyManager::applyState(AppState) {}
 void UiStatePolicyManager::setResumeAvailable(bool) {}
-void UiStatePolicyManager::transitionToIdle() {}
-void UiStatePolicyManager::transitionToDuringGame() {}
+void UiStatePolicyManager::transitionToIdle()
+{
+    TestTracker::calls << QStringLiteral("UiPolicy::transitionToIdle");
+}
+void UiStatePolicyManager::transitionToDuringGame()
+{
+    TestTracker::calls << QStringLiteral("UiPolicy::transitionToDuringGame");
+}
 void UiStatePolicyManager::transitionToDuringAnalysis() {}
 void UiStatePolicyManager::transitionToDuringCsaGame() {}
 void UiStatePolicyManager::transitionToDuringTsumeSearch() {}
