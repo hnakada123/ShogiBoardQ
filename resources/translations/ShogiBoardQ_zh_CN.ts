@@ -3479,68 +3479,68 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameEndHandler</name>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="121"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="98"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="121"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="98"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="122"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="99"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="122"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="99"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="106"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1认输。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="131"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="108"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1超时。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="133"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="110"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>已达到最大手数。持将棋（和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="135"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="112"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1作出入玉宣言。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="137"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="114"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1犯规。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="139"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="116"/>
         <source>千日手が成立しました。</source>
         <translation>千日手成立（重复局面和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="141"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="118"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1连续王手千日手。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="144"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="121"/>
         <source>対局が終了しました。</source>
         <translation>对局已结束。</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler.cpp" line="156"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="152"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
         <source>対局終了</source>
         <translation>对局结束</translation>
     </message>
@@ -7237,14 +7237,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation>引擎2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchtimekeeper.cpp" line="122"/>
         <source>先手番</source>
-        <translation>先手行棋</translation>
+        <translation type="vanished">先手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchtimekeeper.cpp" line="122"/>
         <source>後手番</source>
-        <translation>后手行棋</translation>
+        <translation type="vanished">后手行棋</translation>
     </message>
     <message>
         <source>The rank must be a value between 1 and 9. (got %1)</source>

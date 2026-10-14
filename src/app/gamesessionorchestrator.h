@@ -77,7 +77,6 @@ public slots:
     void movePieceImmediately();
     void stopTsumeSearch();
     void openWebsiteInExternalBrowser();
-    void onResignationTriggered();
 
 private:
     Deps m_deps;

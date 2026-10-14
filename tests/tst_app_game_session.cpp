@@ -16,6 +16,17 @@
 #include "shogiclock.h"
 #include "startgamedialog.h"
 
+/// 対局開始の調整役が出すシグナルの順を記録する
+class StartSignalRecorder : public QObject
+{
+    Q_OBJECT
+public:
+    QStringList events;
+public slots:
+    void onPreStartCleanup() { events.append(QStringLiteral("cleanup")); }
+    void onBranchTreeReset() { events.append(QStringLiteral("branch-reset")); }
+};
+
 namespace {
 struct SessionHarness {
     ShogiGameController gc;
@@ -100,12 +111,11 @@ private slots:
         session.initializeGame();
         session.handleResignation();
         session.handleBreakOffGame();
-        session.onResignationTriggered();
         session.movePieceImmediately();
         session.stopTsumeSearch();
         session.openWebsiteInExternalBrowser();
         QCOMPARE(starts, 1);
-        QCOMPARE(states, 3);
+        QCOMPARE(states, 2);
         QCOMPARE(dialogs, 1);
     }
 
@@ -113,7 +123,7 @@ private slots:
     {
         SessionHarness h;
         QSignalSpy ended(h.match, &MatchCoordinator::gameEnded);
-        h.session.onResignationTriggered();
+        h.session.handleResignation();
         QCOMPARE(h.ensured, 1);
         QCOMPARE(ended.count(), 1);
         QCOMPARE(h.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
@@ -173,6 +183,33 @@ private slots:
         QVERIFY(m_dialogSeen);
         QCOMPARE(cleanup.count(), 0);
         QVERIFY(!h.match->gameOverState().isOver);
+    }
+
+    // 手合割（平手）から始めるとき、開始前の整理は分岐ツリーのリセットのあとに1回だけ行う
+    void presetStartCleansUpOnceAfterBranchReset()
+    {
+        auto& settings = SettingsCommon::openSettings();
+        settings.clear();
+        settings.setValue("GameSettings/isHuman1", true);
+        settings.setValue("GameSettings/isHuman2", true);
+        settings.setValue("GameSettings/startingPositionNumber", 1);
+        settings.sync();
+        SessionHarness h;
+        GameStartCoordinator starter({h.match});
+        StartSignalRecorder recorder;
+        connect(&starter, &GameStartCoordinator::requestPreStartCleanup,
+                &recorder, &StartSignalRecorder::onPreStartCleanup);
+        connect(&starter, &GameStartCoordinator::requestBranchTreeResetForNewGame,
+                &recorder, &StartSignalRecorder::onBranchTreeReset);
+        h.deps.gameStart = [&starter]() { return &starter; };
+        h.session.updateDeps(h.deps);
+        m_acceptDialog = true;
+        m_dialogSeen = false;
+        QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
+        h.session.initializeGame();
+        QVERIFY(m_dialogSeen);
+        QCOMPARE(recorder.events, QStringList({QStringLiteral("branch-reset"), QStringLiteral("cleanup")}));
+        QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);
     }
 
     // 局面の文字列と盤の手前の側を渡されていなくても、対局を始められる（null を読まない）

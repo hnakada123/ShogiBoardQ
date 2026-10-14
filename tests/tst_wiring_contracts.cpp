@@ -28,7 +28,6 @@ namespace TestTracker {
     extern bool onBoardFlippedCalled;
     extern bool onGameOverStateChangedCalled;
     extern bool onMatchGameEndedCalled;
-    extern bool onResignationTriggeredCalled;
     extern bool onGameEndProcessedCalled;
     extern bool onPreStartCleanupRequestedCalled;
     extern bool onApplyTimeControlRequestedCalled;
@@ -133,15 +132,6 @@ private slots:
         emit f.mcw.matchGameEnded(MatchCoordinator::GameEndInfo{});
 
         QVERIFY(TestTracker::onMatchGameEndedCalled);
-    }
-
-    void wireForwarding_resignationTriggered_reachesGso()
-    {
-        ForwardingFixture f;
-
-        emit f.mcw.resignationTriggered();
-
-        QVERIFY(TestTracker::onResignationTriggeredCalled);
     }
 
     void wireForwarding_gameEndProcessed_reachesSlc()

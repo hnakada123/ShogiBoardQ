@@ -254,17 +254,12 @@ if (startingPosNumber == 0) {
 ```cpp
 startSfen = GameStartOptionsBuilder::startingPositionSfen(startingPosNumber);
 
-if (c.currentSfenStr) {
-    *c.currentSfenStr = QStringLiteral("startpos");
-}
-emit requestPreStartCleanup();
-
 prepareInitialPosition(c);
 
 emit requestBranchTreeResetForNewGame();
 ```
 
-プリセットのSFENは `GameStartOptionsBuilder::startingPositionSfen()`（`src/game/gamestartoptionsbuilder.cpp`）の表から取る。`currentSfenStr` を `"startpos"` にしておくのは、開始前の整理（`PreStartCleanupHandler::shouldStartFromCurrentPosition()`）に現在局面からの開始と判定させず、棋譜欄などをすべて消させるためである。
+プリセットのSFENは `GameStartOptionsBuilder::startingPositionSfen()`（`src/game/gamestartoptionsbuilder.cpp`）の表から取る。開始前の整理はここでは行わず、ステップ7の `prepare()` で1回だけ行う。
 
 `prepareInitialPosition()` の処理:
 - `startSfenStr` と `currentSfenStr` を選ばれた手合割のSFENにする
@@ -272,7 +267,7 @@ emit requestBranchTreeResetForNewGame();
 - 局面列をクリアして開始SFENを追加
 - ハイライトをクリア
 
-`prepareInitialPosition()` の後、`requestBranchTreeResetForNewGame` シグナルを発行する。`BranchNavigationWiring::onBranchTreeResetForNewGame()` が、開始前の整理（`PreStartCleanupHandler::performCleanup()`）で始めたライブセッションを破棄し、分岐ツリーの根を `startSfenStr`（選んだ手合割の開始局面）にする。Ctx は棋譜読み込み担当（`KifuLoadCoordinator`）を持たない。
+`prepareInitialPosition()` の後、`requestBranchTreeResetForNewGame` シグナルを発行する。`BranchNavigationWiring::onBranchTreeResetForNewGame()` が、前の対局のライブセッションが残っていれば破棄し、分岐ツリーの根を `startSfenStr`（選んだ手合割の開始局面）にしてカーソルを根に戻す。Ctx は棋譜読み込み担当（`KifuLoadCoordinator`）を持たない。
 
 #### 開始局面プリセット一覧
 
@@ -392,13 +387,14 @@ Request req;
 req.dialogData  = c.dialogData;
 req.startSfen   = seedSfen;
 req.clock       = c.clock ? c.clock : m_match->clock();
-// 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み
+// 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み。
+// 手合割からの開始時は、ここで1回だけクリーンアップする
 req.skipCleanup = (startingPosNumber == 0);
 
 prepare(req);
 ```
 
-プリセットから開始する場合は `skipCleanup` が false なので、`prepare()` の中で `requestPreStartCleanup` がもう一度発行される。`prepare()` の内容は4章。
+プリセットから開始する場合は `skipCleanup` が false なので、`prepare()` の中で `requestPreStartCleanup` を発行する（プリセットからの開始で整理を行うのはこの1回だけ）。このとき開始局面と現在局面はどちらも手合割の局面で、カーソルは根（手数0）にあるので、`PreStartCleanupHandler::shouldStartFromCurrentPosition()` は現在局面からの開始と判定しない。整理は棋譜欄などをすべて消し、新しい根からライブセッションを始める。`prepare()` の内容は4章。
 
 ### ステップ8: 対局者名の通知
 
@@ -647,16 +643,10 @@ void MainWindowCoreInitCoordinator::initializeNewGame(QString& startSfenStr)
     if (gc) {
         gc->newGame(startSfenStr);
     }
-
-    GameStartOptionsBuilder::applyResumePositionIfAny(
-        gc,
-        m_deps.resumeSfenStr ? *m_deps.resumeSfenStr : QString(),
-        {});
 }
 ```
 
 - `ShogiGameController::newGame()` で盤を作り直して開始SFENを適用し、SFENの手番を `setCurrentPlayer()` で反映する。前の対局の最終手も消す
-- 再開用のSFEN（MainWindow の `m_state.resumeSfenStr`）が空でなければ、その局面を盤に適用する
 
 ### ステップ6.5: 開始手番の決定
 

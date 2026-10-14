@@ -7,8 +7,6 @@
 #include "parsecommon.h"
 #include "logcategories.h"
 
-#include <QDateTime>
-
 // --- 棋譜追記 ---
 
 void GameEndHandler::appendBreakOffLineAndMark()
@@ -20,19 +18,8 @@ void GameEndHandler::appendBreakOffLineAndMark()
     const QString line = (gcTurn == Turn::Black) ? QStringLiteral("▲中断") : QStringLiteral("△中断");
 
     if (m_refs.clock) {
+        // 止めた時点までの経過を手番側の考慮時間に精算し、その考慮時間で確定する
         m_refs.clock->stopClock();
-
-        const qint64 epochMs = m_hooks.turnEpochFor ? m_hooks.turnEpochFor(gcTurn) : -1;
-        qint64 considerMs = 0;
-        if (epochMs > 0) {
-            const qint64 now = QDateTime::currentMSecsSinceEpoch();
-            considerMs = now - epochMs;
-            if (considerMs < 0) considerMs = 0;
-        } else {
-            considerMs = m_refs.clock->considerationMs(gcTurn);
-        }
-
-        m_refs.clock->setConsiderationTimeMs(gcTurn, considerMs);
         m_refs.clock->commitMove(gcTurn);
     }
 
@@ -87,17 +74,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
     const Turn mover = (cause == Cause::NyugyokuWin)
                              ? (loser == Turn::Black ? Turn::White : Turn::Black)
                              : lineOwner;
-    const qint64 epochMs = m_hooks.turnEpochFor ? m_hooks.turnEpochFor(mover) : -1;
-    qint64 considerMs = 0;
-    if (epochMs > 0) {
-        const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        considerMs = now - epochMs;
-        if (considerMs < 0) considerMs = 0;
-    } else {
-        considerMs = m_refs.clock->considerationMs(mover);
-    }
-
-    m_refs.clock->setConsiderationTimeMs(mover, considerMs);
+    // 時計は上で止めて考慮時間を精算済み。その考慮時間で確定する
     m_refs.clock->commitMove(mover);
 
     const QString elapsed = m_refs.clock->considerationAndTotalTime(mover);

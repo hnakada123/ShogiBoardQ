@@ -239,7 +239,8 @@ void BranchNavigationWiring::onBranchTreeResetForNewGame()
     auto* bt = tree(m_deps);
     auto* ns = navSt(m_deps);
 
-    // performCleanup() が開始したライブゲームセッションを破棄
+    // 前の対局のライブゲームセッションが残っていれば破棄する（新しいセッションは、
+    // この後の開始前の整理 performCleanup() が新しい根から始める）
     if (ls && ls->isActive()) {
         ls->discard();
     }

@@ -106,15 +106,11 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     QString baseSfen = c.currentSfenStr ? *c.currentSfenStr : QString();
     if (baseSfen.isEmpty()) baseSfen = c.displayedSfen;
     if (baseSfen.isEmpty()) {
-        if (c.resumeSfenStr && !c.resumeSfenStr->isEmpty()) {
-            baseSfen = *c.resumeSfenStr;
-        } else {
-            baseSfen = QStringLiteral("%1 %2 %3 %4")
-                           .arg(board->convertBoardToSfen(),
-                                turnToSfen(board->currentPlayer()),
-                                board->convertStandToSfen(),
-                                QString::number(1));
-        }
+        baseSfen = QStringLiteral("%1 %2 %3 %4")
+                       .arg(board->convertBoardToSfen(),
+                            turnToSfen(board->currentPlayer()),
+                            board->convertStandToSfen(),
+                            QString::number(1));
     }
 
     // 最小SFENへ正規化し、手番/手数を強制上書き

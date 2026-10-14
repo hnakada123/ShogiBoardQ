@@ -134,8 +134,6 @@ void MatchCoordinator::flipBoard() {}
 void MatchCoordinator::updateUsiPtrs(Usi*, Usi*) {}
 void MatchCoordinator::handleBreakOff() {}
 void MatchCoordinator::handleNyugyokuDeclaration(Turn, bool, bool) {}
-void MatchCoordinator::markTurnEpochNowFor(Turn, qint64) {}
-qint64 MatchCoordinator::turnEpochFor(Turn) const { return -1; }
 void MatchCoordinator::armTurnTimerIfNeeded() {}
 void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Turn) {}
 void MatchCoordinator::disarmHumanTimerIfNeeded() {}
@@ -195,7 +193,6 @@ void MatchTurnHandler::handlePlayerTimeOut(Turn) {}
 void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
 void MatchTurnHandler::handleUsiError(const QString&) {}
 
-void MatchCoordinator::recomputeClockSnapshot(QString&, QString&, QString&) const {}
 void MatchCoordinator::ensureGameStartOrchestrator() {}
 void MatchCoordinator::ensureAnalysisSession() {}
 void MatchCoordinator::ensureGameEndHandler() {}

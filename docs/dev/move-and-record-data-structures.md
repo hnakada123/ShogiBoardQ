@@ -991,34 +991,40 @@ root → 1手目 → ... → 30手目 → 31手目(本譜) → ... → 100手目
 
 ### 8.3 棋譜読み込みなしで直接対局した場合
 
-メニューから新規対局を開始すると、空のツリーから対局が始まる。
+メニューから手合割（平手・駒落ち）を選んで新規対局を開始すると、分岐ツリーを作り直し、開始局面の根だけの状態から対局が始まる。
 
 ```
 1. GameSessionOrchestrator::initializeGame()
    → MainWindowGameStartService::prepareForInitializeGame()
      （表示中の手順から局面列・指し手列を作り直す。手順が空なら何もしない）
-   → GameStartCoordinator::initializeGame(Ctx)
-   → emit requestPreStartCleanup()
+   → GameStartCoordinator::initializeGame(Ctx)（手合割から開始）
+     a. prepareInitialPosition()
+        → startSfenStr・currentSfenStr を手合割の開始局面にし、局面列を開始局面の1件にする
+     b. emit requestBranchTreeResetForNewGame()
+        → BranchNavigationWiring::onBranchTreeResetForNewGame()
+           前の対局のライブセッションが残っていれば破棄し、
+           tree->setRootSfen(開始局面) でツリーを作り直して、カーソルを根へ戻す
+     c. prepare() → emit requestPreStartCleanup()
+        （手合割からの開始で整理を行うのはこの1回だけ）
 
 2. PreStartCleanupHandler::performCleanup()
    a. 現在位置を保存
-      - m_savedCurrentSfen = "" または "startpos"
+      - m_savedCurrentSfen = 手合割の開始局面
       - m_savedSelectedPly = navState->currentPly()（0）
 
    b. isStartFromCurrentPosition() = false
-      （currentSfen が空または初期局面）
+      （開始局面と現在局面が同じで、手数が0）
 
    c. cleanupKifuModel(false) → 0
       → 棋譜欄を全クリアし、「=== 開始局面 ===」ヘッダ行のみ追加
       → navState->goToRoot() でカーソルを開始局面へ戻す
 
    d. ensureBranchTreeRoot()
-      → KifuBranchTree が空なので、ルートノードを新規作成
-      → tree->setRootSfen(平手初期SFEN)
-         （startSfenStr が設定されていればそちらを使用）
+      → 根は 1-b で開始局面にしてあるので作り直さない
+         （根が無いときや局面が違うときは startSfenStr から作る）
 
    e. startLiveGameSession()
-      - isNewGame = true（SFENが空 or "startpos" or 平手初期局面）
+      - 根に子が無く、手数が0なので新規対局として扱う
       → LiveGameSession::startFromRoot()
          ├─ m_branchPoint = nullptr
          ├─ m_sfens = [ルートのSFEN]

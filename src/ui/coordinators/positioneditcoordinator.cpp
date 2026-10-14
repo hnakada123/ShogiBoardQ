@@ -76,11 +76,6 @@ void PositionEditCoordinator::setCurrentSfenStr(QString* currentSfenStr)
     m_currentSfenStr = currentSfenStr;
 }
 
-void PositionEditCoordinator::setResumeSfenStr(QString* resumeSfenStr)
-{
-    m_resumeSfenStr = resumeSfenStr;
-}
-
 void PositionEditCoordinator::setOnMainRowGuard(bool* onMainRowGuard)
 {
     m_onMainRowGuard = onMainRowGuard;
@@ -133,7 +128,6 @@ void PositionEditCoordinator::beginPositionEditing()
 
     ctx.startSfenStr    = m_startSfenStr;
     ctx.currentSfenStr  = m_currentSfenStr;
-    ctx.resumeSfenStr   = m_resumeSfenStr;
 
     // メニュー表示：編集メニューに遷移
     ctx.onEnterEditMenu = [this]() {

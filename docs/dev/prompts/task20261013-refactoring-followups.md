@@ -316,8 +316,6 @@ GUI を使うテストは、必ず `xvfb-run` の上で実行してください�
 - `docs/dev/game-start-flow.md`：プリセットのコード片に `c2.startDlg` が残っています。対局時計のパスと行番号も古いです。
 - `docs/dev/move-and-record-data-structures.md`
   - 1.2〜1.4 の座標と QChar の盤の説明が古いです。
-  - 8.3 に、プリセットで始めるときの流れが書かれていません。`requestBranchTreeResetForNewGame` がライブセッションを
-    捨て、最初の着手で `LiveGameSessionUpdater` が作り直す流れです。
 
 ### コード
 

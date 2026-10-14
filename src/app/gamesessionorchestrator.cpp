@@ -222,8 +222,3 @@ void GameSessionOrchestrator::openWebsiteInExternalBrowser()
         dc->openProjectWebsite();
     }
 }
-
-void GameSessionOrchestrator::onResignationTriggered()
-{
-    handleResignation();
-}

@@ -118,18 +118,13 @@ bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
         // 平手/駒落ちプリセット（GameStartOptionsBuilder のテーブルを使用）
         startSfen = GameStartOptionsBuilder::startingPositionSfen(startingPosNumber);
 
-        // プリセット局面は新規対局なので、全UIコンポーネントをクリアする。
-        // shouldStartFromCurrentPosition() が false を返すよう
-        // currentSfenStr を "startpos" に設定してフルクリアを強制する。
-        if (c.currentSfenStr) {
-            *c.currentSfenStr = QStringLiteral("startpos");
-        }
-        emit requestPreStartCleanup();
-
+        // 開始局面・現在局面を手合割の局面にする
         prepareInitialPosition(c);
 
-        // 平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセット
-        // （根は選んだ手合割の開始局面。開始前の整理で始めたライブセッションも破棄する）
+        // 平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセットする
+        // （根は選んだ手合割の開始局面。前の対局のライブセッションが残っていれば破棄する）。
+        // 開始前の整理は prepare() で1回だけ行う。開始局面と現在局面が同じで手数が0なので
+        // 全UIコンポーネントをクリアし、新しい根からライブセッションを始める
         emit requestBranchTreeResetForNewGame();
     }
 
@@ -202,7 +197,8 @@ bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
     req.dialogData  = c.dialogData;
     req.startSfen   = seedSfen;
     req.clock       = c.clock ? c.clock : m_match->clock();
-    // 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み
+    // 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み。
+    // 手合割からの開始時は、ここで1回だけクリーンアップする
     req.skipCleanup = (startingPosNumber == 0);
 
     prepare(req);

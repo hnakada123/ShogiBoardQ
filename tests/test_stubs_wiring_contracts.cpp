@@ -57,7 +57,6 @@ namespace TestTracker {
     bool onGameOverStateChangedCalled = false;
     bool onMatchGameEndedCalled = false;
     bool onGameEndProcessedCalled = false;
-    bool onResignationTriggeredCalled = false;
     bool onPreStartCleanupRequestedCalled = false;
     bool onApplyTimeControlRequestedCalled = false;
     bool onMenuPlayerNamesResolvedCalled = false;
@@ -76,7 +75,6 @@ namespace TestTracker {
         onGameOverStateChangedCalled = false;
         onMatchGameEndedCalled = false;
         onGameEndProcessedCalled = false;
-        onResignationTriggeredCalled = false;
         onPreStartCleanupRequestedCalled = false;
         onApplyTimeControlRequestedCalled = false;
         onMenuPlayerNamesResolvedCalled = false;
@@ -186,8 +184,6 @@ void MatchCoordinator::handleEngineWin(Turn) {}
 void MatchCoordinator::flipBoard() {}
 void MatchCoordinator::handleBreakOff() {}
 void MatchCoordinator::handleNyugyokuDeclaration(Turn, bool, bool) {}
-void MatchCoordinator::markTurnEpochNowFor(Turn, qint64) {}
-qint64 MatchCoordinator::turnEpochFor(Turn) const { return 0; }
 void MatchCoordinator::armTurnTimerIfNeeded() {}
 void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Turn) {}
 void MatchCoordinator::disarmHumanTimerIfNeeded() {}
@@ -218,7 +214,6 @@ void MatchCoordinator::handleMaxMovesJishogi() {}
 ShogiClock* MatchCoordinator::clock() { return nullptr; }
 const ShogiClock* MatchCoordinator::clock() const { return nullptr; }
 void MatchCoordinator::setClock(ShogiClock*) {}
-void MatchCoordinator::recomputeClockSnapshot(QString&, QString&, QString&) const {}
 void MatchCoordinator::initEnginesForEvE(const QString&, const QString&) {}
 bool MatchCoordinator::isEngineShutdownInProgress() const { return false; }
 EngineLifecycleManager* MatchCoordinator::engineManager() { return nullptr; }
@@ -297,11 +292,6 @@ void GameSessionOrchestrator::discardInterruptedGame() {}
 void GameSessionOrchestrator::movePieceImmediately() {}
 void GameSessionOrchestrator::stopTsumeSearch() {}
 void GameSessionOrchestrator::openWebsiteInExternalBrowser() {}
-
-void GameSessionOrchestrator::onResignationTriggered()
-{
-    TestTracker::onResignationTriggeredCalled = true;
-}
 
 // ============================================================
 // MainWindowAppearanceController スタブ（TestTracker 連動）
@@ -574,9 +564,6 @@ void MatchTimekeeper::setRefs(const Refs&) {}
 void MatchTimekeeper::setClock(ShogiClock*) {}
 ShogiClock* MatchTimekeeper::clock() const { return nullptr; }
 const ShogiClock* MatchTimekeeper::clockConst() const { return nullptr; }
-void MatchTimekeeper::markTurnEpochNowFor(Turn, qint64) {}
-qint64 MatchTimekeeper::turnEpochFor(Turn) const { return 0; }
-void MatchTimekeeper::recomputeClockSnapshot(QString&, QString&, QString&) const {}
 void MatchTimekeeper::pokeTimeUpdateNow() {}
 void MatchTimekeeper::onClockTick() {}
 void MatchTimekeeper::wireClock() {}

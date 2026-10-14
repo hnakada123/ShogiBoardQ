@@ -144,9 +144,6 @@ signals:
     /// 時間切れ通知。player は時間が切れた側（→ TimeControlController）
     void playerTimeOut(Turn player);
 
-    /// 時間切れによる投了トリガー（→ MatchCoordinator）
-    void resignationTriggered();
-
 private:
     static int index(Turn player) { return player == Turn::White ? 1 : 0; }
     SideState& side(Turn player) { return m_side[index(player)]; }

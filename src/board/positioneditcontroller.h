@@ -41,7 +41,6 @@ public:
 
         QString* startSfenStr   = nullptr; ///< 開始SFEN文字列（任意）
         QString* currentSfenStr = nullptr; ///< 現在SFEN文字列（任意）
-        QString* resumeSfenStr  = nullptr; ///< 再開SFEN文字列（任意）
 
         std::function<void()> onShowEditExitButton; ///< 「編集終了」ボタン表示コールバック
         std::function<void()> onEnterEditMenu; ///< 編集メニュー切替コールバック

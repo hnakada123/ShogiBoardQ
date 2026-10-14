@@ -7,15 +7,6 @@
 
 // --- 時間管理転送 ---
 
-void MatchCoordinator::markTurnEpochNowFor(Turn side, qint64 nowMs) {
-    ensureTimekeeper();
-    m_timekeeper->markTurnEpochNowFor(side, nowMs);
-}
-
-qint64 MatchCoordinator::turnEpochFor(Turn side) const {
-    return m_timekeeper ? m_timekeeper->turnEpochFor(side) : -1;
-}
-
 void MatchCoordinator::setClock(ShogiClock* clock)
 {
     ensureTimekeeper();
@@ -35,10 +26,4 @@ ShogiClock* MatchCoordinator::clock()
 const ShogiClock* MatchCoordinator::clock() const
 {
     return m_timekeeper ? m_timekeeper->clockConst() : nullptr;
-}
-
-void MatchCoordinator::recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const
-{
-    if (m_timekeeper) { m_timekeeper->recomputeClockSnapshot(turnText, p1, p2); return; }
-    turnText.clear(); p1.clear(); p2.clear();
 }
