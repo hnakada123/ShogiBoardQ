@@ -197,11 +197,7 @@ void DialogLaunchWiring::displayCsaGameDialog()
         csaWiring->setAnalysisTab(analysisTab);
 
         // CSA対局を開始（ロジックはCsaGameWiringに委譲）。司令塔は CsaGameWiring が作って持つ
-        const bool started = csaWiring->startCsaGame(dlg, m_deps.parentWidget);
-        if (m_deps.onCsaGameCoordinatorUpdated) {
-            m_deps.onCsaGameCoordinatorUpdated();
-        }
-        if (!started) return;
+        if (!csaWiring->startCsaGame(dlg, m_deps.parentWidget)) return;
 
         // CSA対局でエンジンを使用する場合、評価値グラフ更新用のシグナル接続
         CsaGameCoordinator* coord = csaWiring->coordinator();

@@ -76,9 +76,6 @@ public:
 
         // CSA通信対局の司令塔（最初の CSA 対局を始めるまでは nullptr）
         std::function<CsaGameCoordinator*()> getCsaGameCoordinator;
-
-        // CSA通信対局の開始を試みた後（司令塔ができた後）の依存更新コールバック
-        std::function<void()> onCsaGameCoordinatorUpdated;
     };
 
     explicit DialogLaunchWiring(Deps deps, QObject* parent = nullptr);
