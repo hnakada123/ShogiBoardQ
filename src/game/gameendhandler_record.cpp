@@ -4,7 +4,6 @@
 #include "gameendhandler.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
-#include "parsecommon.h"
 #include "logcategories.h"
 
 // --- 棋譜追記 ---
@@ -15,7 +14,6 @@ void GameEndHandler::appendBreakOffLineAndMark()
     if (m_refs.gameOver->moveAppended) return;
 
     const Turn gcTurn = m_refs.gc ? m_refs.gc->currentPlayer() : Turn::White;
-    const QString line = (gcTurn == Turn::Black) ? QStringLiteral("▲中断") : QStringLiteral("△中断");
 
     if (m_refs.clock) {
         // 止めた時点までの経過を手番側の考慮時間に精算し、その考慮時間で確定する
@@ -23,12 +21,12 @@ void GameEndHandler::appendBreakOffLineAndMark()
         m_refs.clock->commitMove(gcTurn);
     }
 
-    QString elapsed;
+    RecordTime elapsed;
     if (m_refs.clock) {
-        elapsed = m_refs.clock->considerationAndTotalTime(gcTurn);
+        elapsed = m_refs.clock->recordTime(gcTurn);
     }
 
-    if (m_hooks.appendKifuLine) m_hooks.appendKifuLine(line, elapsed);
+    if (m_hooks.appendRecord) m_hooks.appendRecord(RecordEntry::ending(TerminalType::Interrupt, gcTurn, elapsed));
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
     markGameOverMoveAppended();
 }
@@ -37,7 +35,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
 {
     if (!m_refs.gameOver->isOver) return;
     if (m_refs.gameOver->moveAppended) return;
-    if (!m_refs.clock || !m_hooks.appendKifuLine) {
+    if (!m_refs.clock || !m_hooks.appendRecord) {
         markGameOverMoveAppended();
         return;
     }
@@ -51,22 +49,18 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
         lineOwner = m_refs.gc->currentPlayer();
     }
 
-    QString line;
-    const QString mark = (lineOwner == Turn::Black) ? QStringLiteral("▲") : QStringLiteral("△");
-    const QString winMark = (loser == Turn::Black) ? QStringLiteral("△") : QStringLiteral("▲");
-
+    TerminalType terminal = TerminalType::None;
     switch (cause) {
-    case Cause::Jishogi:        line = QStringLiteral("%1持将棋").arg(mark); break;
-    case Cause::NyugyokuWin:    line = QStringLiteral("%1入玉勝ち").arg(winMark); break;
-    case Cause::IllegalMove:    line = QStringLiteral("%1反則負け").arg(mark); break;
-    case Cause::Sennichite:     line = QStringLiteral("%1千日手").arg(mark); break;
-    // 棋譜形式に連続王手の千日手の終局語は無いので、王手を続けた側の反則として記録する
+    case Cause::Jishogi: terminal = TerminalType::Impasse; break;
+    case Cause::NyugyokuWin: terminal = TerminalType::DeclarationWin; break;
+    case Cause::IllegalMove: terminal = TerminalType::IllegalLoss; break;
+    case Cause::Sennichite: terminal = TerminalType::Repetition; break;
     case Cause::OuteSennichite:
-        line = KifuParseCommon::foulTerminalMove(loser == Turn::Black, lineOwner == Turn::Black);
+        terminal = loser == lineOwner ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
         break;
-    case Cause::BreakOff:       line = QStringLiteral("%1中断").arg(mark); break;
-    case Cause::Resignation:    line = QStringLiteral("%1投了").arg(mark); break;
-    case Cause::Timeout:        line = QStringLiteral("%1時間切れ").arg(mark); break;
+    case Cause::BreakOff: terminal = TerminalType::Interrupt; break;
+    case Cause::Resignation: terminal = TerminalType::Resign; break;
+    case Cause::Timeout: terminal = TerminalType::Timeout; break;
     }
 
     // 終局行の消費時間は、その行（投了・宣言など）を行った手番側のもの。
@@ -77,9 +71,9 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
     // 時計は上で止めて考慮時間を精算済み。その考慮時間で確定する
     m_refs.clock->commitMove(mover);
 
-    const QString elapsed = m_refs.clock->considerationAndTotalTime(mover);
+    const RecordTime elapsed = m_refs.clock->recordTime(mover);
 
-    m_hooks.appendKifuLine(line, elapsed);
+    m_hooks.appendRecord(RecordEntry::ending(terminal, mover, elapsed));
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
     markGameOverMoveAppended();
 }

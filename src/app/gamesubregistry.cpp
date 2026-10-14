@@ -51,6 +51,7 @@ void MainWindowServiceRegistry::ensureTimeController()
 
 void MainWindowServiceRegistry::ensureReplayController()
 {
+    if (m_runtimeServicesReady) return;
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
     if (!m_mw.m_replayController) {
@@ -68,6 +69,10 @@ void MainWindowServiceRegistry::ensureReplayController()
 
 void MainWindowServiceRegistry::ensureGameStateController()
 {
+    if (m_runtimeServicesReady) {
+        m_mw.m_gameStateController->setPlayMode(m_mw.m_state.playMode);
+        return;
+    }
     m_foundation->ensureUiStatePolicyManager();
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
@@ -145,6 +150,7 @@ void MainWindowServiceRegistry::setCurrentTurn()
 
 void MainWindowServiceRegistry::prepareTurnStateSyncService()
 {
+    if (m_runtimeServicesReady) return;
     if (!m_mw.m_turnStateSync) {
         createTurnStateSyncService();
     }
@@ -196,6 +202,7 @@ void MainWindowServiceRegistry::undoLastTwoMoves()
 
 void MainWindowServiceRegistry::prepareUndoFlowService()
 {
+    if (m_runtimeServicesReady) return;
     if (m_mw.m_isShuttingDown) return;
     if (!m_mw.m_undoFlowService) {
         createUndoFlowService();

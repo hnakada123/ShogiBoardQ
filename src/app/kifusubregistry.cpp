@@ -211,40 +211,17 @@ void KifuSubRegistry::ensureKifuExportController()
 
 void KifuSubRegistry::ensureGameRecordUpdateService()
 {
-    if (!m_mw.m_gameRecordUpdateService) {
-        createGameRecordUpdateService();
-    }
-    refreshGameRecordUpdateDeps();
-}
-
-void KifuSubRegistry::createGameRecordUpdateService()
-{
-    m_mw.m_gameRecordUpdateService = std::make_unique<GameRecordUpdateService>();
-}
-
-void KifuSubRegistry::refreshGameRecordUpdateDeps()
-{
-    if (!m_mw.m_gameRecordUpdateService) return;
-
+    if (m_mw.m_gameRecordUpdateService) return;
+    m_registry->ensureLiveGameSessionUpdater();
+    ensureGameRecordModel();
     GameRecordUpdateService::Deps deps;
-    deps.ensureRecordPresenter = [this]() -> GameRecordPresenter* {
-        m_registry->ensureRecordPresenter();
-        return m_mw.m_recordPresenter;
-    };
-    deps.ensureLiveGameSessionUpdater = [this]() -> LiveGameSessionUpdater* {
-        m_registry->ensureLiveGameSessionUpdater();
-        return m_mw.m_liveGameSessionUpdater.get();
-    };
-    deps.markGameRecordDirty = [this]() {
-        ensureGameRecordModel();
-        m_mw.m_models.gameRecord->markDirty();
-    };
+    deps.liveSessionUpdater = m_mw.m_liveGameSessionUpdater.get();
+    deps.markGameRecordDirty = [model = m_mw.m_models.gameRecord]() { model->markDirty(); };
     deps.match = m_mw.m_match;
     deps.liveGameSession = m_mw.m_branchNav.liveGameSession;
-    deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
-    m_mw.m_gameRecordUpdateService->updateDeps(deps);
+    m_mw.m_gameRecordUpdateService = std::make_unique<GameRecordUpdateService>(deps);
 }
 
 // ---------------------------------------------------------------------------

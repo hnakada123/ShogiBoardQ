@@ -89,45 +89,32 @@ KifuBranchNode* KifuBranchTree::createNode()
     return node;
 }
 
-KifuBranchNode* KifuBranchTree::addMove(KifuBranchNode* parent,
-                                        const ShogiMove& move,
-                                        const QString& displayText,
-                                        const QString& sfen,
-                                        const QString& timeText)
+KifuBranchNode* KifuBranchTree::addMove(KifuBranchNode* parent, const ShogiMove& move,
+                                       const QString& displayText, const QString& sfen,
+                                       const QString& timeText)
 {
-    if (parent == nullptr) {
-        return nullptr;
-    }
+    return addRecord(parent, RecordEntry::imported(move, displayText, sfen, timeText));
+}
 
-    // 終局手には子を追加できない
-    if (parent->isTerminal()) {
-        return nullptr;
-    }
+KifuBranchNode* KifuBranchTree::addRecord(KifuBranchNode* parent, const RecordEntry& entry)
+{
+    auto* node = insertRecord(parent, entry);
+    if (node) notifyTreeChanged();
+    return node;
+}
 
+KifuBranchNode* KifuBranchTree::insertRecord(KifuBranchNode* parent, const RecordEntry& entry)
+{
+    if (!parent || parent->isTerminal()) return nullptr;
     auto* node = createNode();
     node->setPly(parent->ply() + 1);
-    node->setDisplayText(displayText);
-    node->setTimeText(timeText);
-
-    // 終局手かどうかを判定
-    const TerminalType termType = detectTerminalType(displayText);
-    node->setTerminalType(termType);
-
-    if (termType != TerminalType::None) {
-        // 終局手は盤面を変化させないため、追加経路によらず親と同じ局面を持たせる。
-        // 渡された move は直前の手など無関係な値のことがあるので保持しない。
-        node->setSfen(parent->sfen());
-        node->setMove(ShogiMove());
-    } else {
-        node->setSfen(sfen);
-        node->setMove(move);
-    }
-
+    node->setDisplayText(entry.displayText);
+    node->setTime(entry.time);
+    node->setTerminalType(entry.terminal);
+    node->setSfen(entry.isTerminal() ? parent->sfen() : entry.sfen);
+    node->setMove(entry.isTerminal() ? ShogiMove{} : entry.move);
     parent->addChild(node);
     invalidateLineCache();
-
-    notifyTreeChanged();
-
     return node;
 }
 
@@ -136,28 +123,11 @@ KifuBranchNode* KifuBranchTree::addTerminalMove(KifuBranchNode* parent,
                                                 const QString& displayText,
                                                 const QString& timeText)
 {
-    if (parent == nullptr) {
-        return nullptr;
-    }
-
-    // 終局手には子を追加できない
-    if (parent->isTerminal()) {
-        return nullptr;
-    }
-
-    auto* node = createNode();
-    node->setPly(parent->ply() + 1);
-    node->setDisplayText(displayText);
-    node->setSfen(parent->sfen());  // 終局手は盤面変化なし
-    node->setTimeText(timeText);
-    node->setTerminalType(type);
-
-    parent->addChild(node);
-    invalidateLineCache();
-
-    notifyTreeChanged();
-
-    return node;
+    RecordEntry entry;
+    entry.terminal = type;
+    entry.displayText = displayText;
+    entry.time = RecordTime::fromText(timeText);
+    return addRecord(parent, entry);
 }
 
 KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
@@ -166,38 +136,7 @@ KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
                                               const QString& sfen,
                                               const QString& timeText)
 {
-    if (parent == nullptr) {
-        return nullptr;
-    }
-
-    // 終局手には子を追加できない
-    if (parent->isTerminal()) {
-        return nullptr;
-    }
-
-    auto* node = createNode();
-    node->setPly(parent->ply() + 1);
-    node->setDisplayText(displayText);
-    node->setTimeText(timeText);
-
-    // 終局手かどうかを判定
-    const TerminalType termType = detectTerminalType(displayText);
-    node->setTerminalType(termType);
-
-    if (termType != TerminalType::None) {
-        // 終局手は盤面を変化させないため、追加経路によらず親と同じ局面を持たせる。
-        // 渡された move は直前の手など無関係な値のことがあるので保持しない。
-        node->setSfen(parent->sfen());
-        node->setMove(ShogiMove());
-    } else {
-        node->setSfen(sfen);
-        node->setMove(move);
-    }
-
-    parent->addChild(node);
-    invalidateLineCache();
-
-    return node;
+    return insertRecord(parent, RecordEntry::imported(move, displayText, sfen, timeText));
 }
 
 void KifuBranchTree::beginBatchUpdate()

@@ -9,11 +9,106 @@
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
+class SessionObserver : public QObject
+{
+    Q_OBJECT
+public:
+    LiveGameSession* session = nullptr;
+    int notifications = 0;
+    bool consistent = true;
+public slots:
+    void treeChanged()
+    {
+        ++notifications;
+        const auto* node = session->liveNode();
+        consistent = consistent && node && node->ply() == session->totalPly()
+            && node->sfen() == session->currentSfen()
+            && session->moveCount() == session->moves().size()
+            && node->isTerminal() == !session->canAddMove();
+    }
+};
+
 class TestLiveGameSession : public QObject
 {
     Q_OBJECT
 
 private slots:
+    void typedRecordsAreAtomicAndIndependentOfLabel()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromRoot();
+        SessionObserver observer;
+        observer.session = &session;
+        connect(&tree, &KifuBranchTree::treeChanged, &observer, &SessionObserver::treeChanged);
+        RecordEntry move;
+        move.displayText = QStringLiteral("投了という文字を含む通常手");
+        move.sfen = QStringLiteral("next-sfen");
+        move.time = RecordTime::fromMilliseconds(1250, 1250);
+        session.appendRecord(move);
+        QVERIFY(session.canAddMove());
+        QCOMPARE(session.liveNode()->terminalType(), TerminalType::None);
+        QCOMPARE(session.liveNode()->time().elapsedMs, 1250);
+        auto ending = RecordEntry::ending(TerminalType::Timeout, Turn::White);
+        ending.displayText = QStringLiteral("localized ending");
+        session.appendRecord(ending);
+        QCOMPARE(session.liveNode()->terminalType(), TerminalType::Timeout);
+        QCOMPARE(session.currentSfen(), move.sfen);
+        QVERIFY(!session.canAddMove());
+        QVERIFY(observer.consistent);
+        QCOMPARE(observer.notifications, 2);
+        session.appendRecord(move);
+        QCOMPARE(observer.notifications, 2);
+        QCOMPARE(session.moveCount(), 2);
+    }
+
+    void typedRecordsReuseByValue()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto ending = RecordEntry::ending(TerminalType::Resign, Turn::Black);
+        auto* original = tree.addRecord(tree.root(), ending);
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromRoot();
+        ending.displayText = QStringLiteral("Resigned");
+        session.appendRecord(ending);
+        QCOMPARE(session.liveNode(), original);
+        QCOMPARE(tree.nodeCount(), 2);
+        session.discard();
+        session.startFromRoot();
+        RecordEntry normal;
+        normal.displayText = QStringLiteral("投了");
+        normal.sfen = QStringLiteral("different position");
+        session.appendRecord(normal);
+        QVERIFY(session.liveNode() != original);
+        QVERIFY(!session.liveNode()->isTerminal());
+        QVERIFY(session.canAddMove());
+        QCOMPARE(tree.nodeCount(), 3);
+    }
+
+    void recordTimeParsesAtImportBoundary()
+    {
+        const auto time = RecordTime::fromText(QStringLiteral("( 1:02.345/12:34:56.789)"));
+        QVERIFY(time.valid);
+        QCOMPARE(time.elapsedMs, 62345);
+        QCOMPARE(time.totalMs, 45296789);
+        QCOMPARE(time.toText(), QStringLiteral("( 1:02.345/12:34:56.789)"));
+        const auto generated = RecordTime::fromMilliseconds(time.elapsedMs, time.totalMs);
+        QCOMPARE(generated.toText(), QStringLiteral("01:02.345/12:34:56.789"));
+        const auto roundTrip = RecordTime::fromText(generated.toText());
+        QCOMPARE(roundTrip.elapsedMs, time.elapsedMs);
+        QCOMPARE(roundTrip.totalMs, time.totalMs);
+        for (const auto* invalid : {"-", "01:99/00:00:00", "-1:00/00:00:00", "1:00/1:2",
+                                   "9223372036854775807:00/00:00:00", "00:00/00:00:00.x"}) {
+            const auto unknown = RecordTime::fromText(QString::fromLatin1(invalid));
+            QVERIFY(!unknown.valid);
+            QCOMPARE(unknown.toText(), QString::fromLatin1(invalid));
+        }
+    }
+
     void startFromRoot()
     {
         KifuBranchTree tree;
@@ -225,8 +320,8 @@ private slots:
         QVERIFY(terminal->isTerminal());
         QCOMPARE(terminal->sfen(), n1->sfen());
         QCOMPARE(terminal->timeText(), QStringLiteral("0:05"));
-        // セッション側の局面履歴は渡された値のまま
-        QCOMPARE(session.currentSfen(), QStringLiteral("board1 w - 3"));
+        // 正本とセッションは終局行でも同じ局面を観測する。
+        QCOMPARE(session.currentSfen(), terminal->sfen());
     }
 
     void addMove_terminalStopsFurtherMoves()

@@ -21,6 +21,7 @@
 class CsaGameCoordinator;
 class KifuSubRegistry;
 class MainWindow;
+class MainWindowActions;
 class MainWindowFoundationRegistry;
 class MainWindowLifecyclePipeline;
 class QString;
@@ -191,6 +192,10 @@ private:
     bool queryIsHumanSide(Turn player);
     void updateTurnStatus(Turn currentPlayer);
     void resetRecordForEditedPosition();
+
+    void assembleRuntimeServices();
+    std::unique_ptr<MainWindowActions> m_actions;
+    bool m_runtimeServicesReady = false;
 
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）
     MainWindowFoundationRegistry* m_foundation;  ///< 共通基盤レジストリ（子オブジェクト）

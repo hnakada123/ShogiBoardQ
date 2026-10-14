@@ -292,7 +292,6 @@ void Usi::sendPositionAndGoMateCommands(int, QString&) {}
 void Usi::cancelCurrentOperation() {}
 void Usi::setupConnections() {}
 
-void Usi::onProcessError(QProcess::ProcessError, const QString&) {}
 void Usi::onCommandSent(const QString&) {}
 void Usi::onDataReceived(const QString&) {}
 void Usi::onStderrReceived(const QString&) {}
@@ -496,9 +495,7 @@ QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::In
 #include "moc_analysissessionhandler.cpp"
 
 bool Usi::startAndInitializeEngineAsync(const QString&, const QString&) { return true; }
-void Usi::onProcessStarted() {}
-void Usi::onEngineInitialized(bool) {}
-void Usi::onStartTimeout() {}
+void Usi::onEngineInitialized() {}
 void Usi::requestMatchMove(const QString&, const QString&, const UsiTimingParams&) {}
 void Usi::requestHumanReply(QString&, const QString&, const UsiMove&, const UsiTimingParams&, QStringList&) {}
 
@@ -507,4 +504,3 @@ void UsiProtocolHandler::onInitializationReadyOk() {}
 void UsiProtocolHandler::onInitializationTimeout() {}
 
 void Usi::onProtocolError(const QString&) {}
-void Usi::onProcessExited() {}

@@ -369,7 +369,8 @@ private slots:
         UsiProtocolHandler handler;
         ThinkingInfoPresenter presenter;
         presenter.setBaseSfen(sfen);
-        handler.setPresenter(&presenter);
+        connect(&handler, &UsiProtocolHandler::checkmateSolved,
+                &presenter, &ThinkingInfoPresenter::presentCheckmate);
         QSignalSpy rows(&presenter, &ThinkingInfoPresenter::thinkingInfoUpdated);
         QSignalSpy solved(&handler, &UsiProtocolHandler::checkmateSolved);
 

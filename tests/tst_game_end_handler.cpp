@@ -95,7 +95,9 @@ struct EndTestHarness {
             EndTracker::disarmHumanTimerCalled = true;
         };
         hooks.primaryEngine = []() -> Usi* { return nullptr; };
-        hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
+        hooks.appendRecord = [](const RecordEntry& entry) {
+        const QString line = entry.displayText;
+        const QString elapsed = entry.time.toText();
             ++EndTracker::appendKifuLineCount;
             EndTracker::lastAppendedLine = line;
             EndTracker::lastAppendedElapsed = elapsed;
@@ -471,7 +473,9 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime(
     h.gameOver.isOver = true;
     setDistinctConsideration(h.clock);
     GameEndHandler::Hooks hooks;
-    hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
+    hooks.appendRecord = [](const RecordEntry& entry) {
+        const QString line = entry.displayText;
+        const QString elapsed = entry.time.toText();
         EndTracker::lastAppendedLine = line;
         EndTracker::lastAppendedElapsed = elapsed;
     };
@@ -546,7 +550,9 @@ void Tst_GameEndHandler::drawLine_usesSideToMove()
     h.gc.setCurrentPlayer(sideToMove == 1 ? Turn::Black : Turn::White);
     setDistinctConsideration(h.clock);
     GameEndHandler::Hooks hooks;
-    hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
+    hooks.appendRecord = [](const RecordEntry& entry) {
+        const QString line = entry.displayText;
+        const QString elapsed = entry.time.toText();
         EndTracker::lastAppendedLine = line;
         EndTracker::lastAppendedElapsed = elapsed;
     };
@@ -587,7 +593,9 @@ void Tst_GameEndHandler::outeSennichiteLine_recordsFoulBySideToMove()
     h.gc.setCurrentPlayer(sideToMove == 1 ? Turn::Black : Turn::White);
     setDistinctConsideration(h.clock);
     GameEndHandler::Hooks hooks;
-    hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
+    hooks.appendRecord = [](const RecordEntry& entry) {
+        const QString line = entry.displayText;
+        const QString elapsed = entry.time.toText();
         EndTracker::lastAppendedLine = line;
         EndTracker::lastAppendedElapsed = elapsed;
     };

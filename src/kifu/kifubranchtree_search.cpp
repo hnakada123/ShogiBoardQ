@@ -100,11 +100,18 @@ KifuBranchNode* KifuBranchTree::findMatchingChild(KifuBranchNode* parent,
                                                   const QString& displayText,
                                                   const QString& sfen) const
 {
+    return findMatchingChild(parent, RecordEntry::imported(move, displayText, sfen, {}));
+}
+
+KifuBranchNode* KifuBranchTree::findMatchingChild(KifuBranchNode* parent, const RecordEntry& entry) const
+{
     if (parent == nullptr) {
         return nullptr;
     }
 
-    const TerminalType termType = detectTerminalType(displayText);
+    const TerminalType termType = entry.terminal;
+    const auto& sfen = entry.sfen;
+    const auto& move = entry.move;
 
     for (KifuBranchNode* child : parent->children()) {
         if (termType != TerminalType::None) {

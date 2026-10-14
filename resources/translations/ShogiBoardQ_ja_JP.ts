@@ -2435,12 +2435,12 @@
         <translation>対局終了: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="316"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
         <source>先手番</source>
         <translation>先手番</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="316"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
         <source>後手番</source>
         <translation>後手番</translation>
     </message>
@@ -2477,7 +2477,7 @@
         <translation type="vanished">開始局面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="380"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="394"/>
         <source>通信対局をキャンセルしました</source>
         <translation>通信対局をキャンセルしました</translation>
     </message>
@@ -3753,68 +3753,68 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameEndHandler</name>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="98"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="93"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="98"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="93"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="99"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="94"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="99"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="94"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="106"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="101"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1の投了。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="108"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="103"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1の時間切れ。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="110"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="105"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>最大手数に達しました。持将棋です。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="112"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="107"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1の入玉宣言。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="114"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="109"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1の反則負け。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="116"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="111"/>
         <source>千日手が成立しました。</source>
         <translation>千日手が成立しました。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="118"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="113"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1の連続王手の千日手。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="121"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="116"/>
         <source>対局が終了しました。</source>
         <translation>対局が終了しました。</translation>
     </message>
     <message>
         <location filename="../../src/game/gameendhandler.cpp" line="156"/>
-        <location filename="../../src/game/gameendhandler_record.cpp" line="129"/>
+        <location filename="../../src/game/gameendhandler_record.cpp" line="124"/>
         <source>対局終了</source>
         <translation>対局終了</translation>
     </message>
@@ -10413,22 +10413,22 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="311"/>
+        <location filename="../../src/engine/usi.cpp" line="301"/>
         <source>Engine file path is empty.</source>
         <translation>エンジンのファイルパスが指定されていません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="47"/>
+        <location filename="../../src/engine/usi.cpp" line="41"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>エンジンから指し手（bestmove）が返ってきません（タイムアウト）。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi_async.cpp" line="50"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="73"/>
         <source>Engine exited unexpectedly.</source>
         <translation>エンジンが予期せず終了しました。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi_async.cpp" line="55"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="67"/>
         <source>Failed to start engine: %1</source>
         <translation>エンジンの起動に失敗しました: %1</translation>
     </message>
@@ -10538,22 +10538,22 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="111"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="102"/>
         <source>Timeout waiting for usiok</source>
         <translation>エンジンから usiok が返ってきません（タイムアウト）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="112"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="103"/>
         <source>Timeout waiting for readyok</source>
         <translation>エンジンから readyok が返ってきません（タイムアウト）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="442"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="432"/>
         <source>Invalid bestmove format: %1</source>
         <translation>エンジンの指し手（bestmove）の形式が正しくありません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="52"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="43"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>エンジンの指し手（bestmove）の形式が正しくありません: 「%1」</translation>
     </message>

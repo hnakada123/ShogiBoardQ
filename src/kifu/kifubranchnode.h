@@ -9,35 +9,8 @@
 
 #include "shogimove.h"
 
-/**
- * @brief 終局手の種類
- *
- */
-enum class TerminalType {
-    None,           ///< 通常の指し手（終局手ではない）
-    Resign,         ///< 投了
-    Checkmate,      ///< 詰み
-    Repetition,     ///< 千日手
-    PerpetualCheck, ///< 王手千日手（棋譜ファイルの終局語。対局では王手を続けた側の反則として記録する）
-    Impasse,        ///< 持将棋
-    Timeout,        ///< 切れ負け
-    IllegalWin,     ///< 反則勝ち
-    IllegalLoss,    ///< 反則負け
-    Forfeit,        ///< 不戦敗
-    Interrupt,      ///< 中断
-    NoCheckmate,    ///< 不詰（詰将棋用）
-    DeclarationWin, ///< 入玉宣言勝ち
-    Draw,          ///< 引き分け
-    MaxMoves,      ///< 最大手数到達
-    Error          ///< エラー
-};
-
-/**
- * @brief 終局手の種類を文字列から検出する
- * @param displayText 表示テキスト（例: "△投了"）
- * @return 検出された終局手の種類
- */
-TerminalType detectTerminalType(const QString& displayText);
+#include "terminaltype.h"
+#include "recordtime.h"
 
 /**
  * @brief 分岐ツリーのノードクラス
@@ -81,8 +54,10 @@ public:
     QString bookmark() const { return m_bookmark; }
     void setBookmark(const QString& bookmark) { m_bookmark = bookmark; }
 
-    QString timeText() const { return m_timeText; }
-    void setTimeText(const QString& time) { m_timeText = time; }
+    QString timeText() const { return m_time.toText(); }
+    const RecordTime& time() const { return m_time; }
+    void setTime(const RecordTime& time) { m_time = time; }
+    void setTimeText(const QString& time) { m_time = RecordTime::fromText(time); }
 
     TerminalType terminalType() const { return m_terminalType; }
     void setTerminalType(TerminalType type) { m_terminalType = type; }
@@ -131,7 +106,7 @@ private:
     ShogiMove m_move;                                   ///< 指し手データ
     QString m_comment;                                  ///< コメント
     QString m_bookmark;                                 ///< しおり
-    QString m_timeText;                                 ///< 消費時間テキスト
+    RecordTime m_time;                                 ///< 消費時間テキスト
     TerminalType m_terminalType = TerminalType::None;   ///< 終局手の種類
 
     KifuBranchNode* m_parent = nullptr;                 ///< 親ノード（非所有）

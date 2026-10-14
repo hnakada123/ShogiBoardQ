@@ -5,55 +5,38 @@
 /// @brief 棋譜追記・ライブセッション更新ロジックを集約するサービスの定義
 
 #include <QObject>
+#include "recordentry.h"
 #include <QString>
 #include <QStringList>
 #include <QList>
 #include <functional>
 
 class MatchCoordinator;
-class GameRecordPresenter;
 class LiveGameSessionUpdater;
 class LiveGameSession;
 struct ShogiMove;
 
-/**
- * @brief 棋譜追記・ライブセッション更新ロジックを集約するサービス
- *
- * MainWindow から appendKifuLine / updateGameRecord / onMoveCommitted の後半処理を分離し、
- * 棋譜モデル更新・LiveGameSession 連携・USI 指し手記録を一元管理する。
- */
+/// 確定した指し手を正本へ追加する。表示は正本の変更通知を購読する。
 class GameRecordUpdateService : public QObject
 {
     Q_OBJECT
 
 public:
     struct Deps {
-        // Lazy-init callbacks（呼び出し時に ensure + ポインタ返却）
+        // 起動時に注入する依存
         std::function<void()> markGameRecordDirty;
-        std::function<GameRecordPresenter*()> ensureRecordPresenter;
-        std::function<LiveGameSessionUpdater*()> ensureLiveGameSessionUpdater;
+        LiveGameSessionUpdater* liveSessionUpdater = nullptr;
 
         // Object pointers
         MatchCoordinator* match = nullptr;
         LiveGameSession* liveGameSession = nullptr;
 
         // State pointers
-        QList<ShogiMove>* gameMoves = nullptr;
         QString* currentSfenStr = nullptr;
         QStringList* sfenRecord = nullptr;
     };
 
-    explicit GameRecordUpdateService(QObject* parent = nullptr);
-
-    void updateDeps(const Deps& deps);
-
-    /**
-     * @brief Game Record を更新する
-     * @param moveText 指し手テキスト（空の場合はスキップ）
-     * @param clockElapsedTime 時計の消費時間（累計は棋譜の直前の累計から続けて記録する）
-     */
-    void updateGameRecord(const QString& moveText, const QString& clockElapsedTime,
-                          const QString& recordedSfen = QString());
+    explicit GameRecordUpdateService(Deps deps, QObject* parent = nullptr);
 
     /**
      * @brief 着手後に currentSfen を局面列の最後（指した後の局面）に更新する
@@ -63,15 +46,10 @@ public:
     void updateCurrentSfenAfterMove();
 
 public slots:
-    /**
-     * @brief 棋譜1行の追記を記録更新フローへ橋渡しする
-     * @param text 指し手テキスト
-     * @param clockElapsedTime 時計の消費時間（累計は棋譜の直前の累計から続けて記録する）
-     */
-    void appendKifuLine(const QString& text, const QString& elapsedTime);
+    void appendRecord(const RecordEntry& entry);
 
 private:
-    Deps m_deps;
+    const Deps m_deps;
 };
 
 #endif // GAMERECORDUPDATESERVICE_H

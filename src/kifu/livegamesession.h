@@ -13,14 +13,15 @@
 #include "kifubranchnode.h"
 #include "kifdisplayitem.h"
 #include "shogimove.h"
+#include "recordentry.h"
 
 class KifuBranchTree;
 
 /**
  * @brief ライブ対局のセッションを管理するクラス
  *
- * 途中局面からの対局開始に対応し、指し手を一時的に記録して
- * 対局終了時に分岐ツリーにコミットする。
+ * 指し手を分岐ツリーへ即時追加し、全データが揃ってから通知する。
+ * 途中開始・待った・既存手の再利用を管理し、commit でセッションを終了する。
  */
 class LiveGameSession : public QObject
 {
@@ -99,6 +100,9 @@ public:
      *
      * 終局手を追加すると canAddMove() が false になり、以降の追加は無視される。
      */
+    void appendRecord(const RecordEntry& entry);
+    RecordTime continuedTime(const RecordTime& time) const;
+
     void addMove(const ShogiMove& move, const QString& displayText,
                  const QString& sfen, const QString& elapsed);
 
@@ -139,7 +143,7 @@ public:
     /**
      * @brief 追加した手数
      */
-    int moveCount() const { return static_cast<int>(m_moves.size()); }
+    int moveCount() const { return static_cast<int>(m_entries.size()); }
 
     /**
      * @brief 総手数（anchorPly + moveCount）
@@ -149,7 +153,7 @@ public:
     /**
      * @brief 追加した手のリストを取得
      */
-    QList<KifDisplayItem> moves() const { return m_moves; }
+    QList<KifDisplayItem> moves() const;
 
     /**
      * @brief 最新局面のSFENを取得
@@ -200,9 +204,8 @@ private:
     KifuBranchTree* m_tree = nullptr;
     KifuBranchNode* m_liveParent = nullptr;  // ツリー内の現在位置を追跡（リアルタイム更新用）
 
-    QList<KifDisplayItem> m_moves;
-    QList<ShogiMove> m_gameMoves;
-    QStringList m_sfens;
+    QList<RecordEntry> m_entries;
+    QString m_anchorSfen;
     QSet<int> m_createdNodeIds;  ///< このセッションが追加したノード（既存手の再利用は含めない）
     QSet<int> m_undoneNodeIds;   ///< 待ったで取り消した、このセッションの手順の先頭ノード
     QString m_firstMoveNote;     ///< 次に新しく作るノードへ付けるコメント（棋譜の途中から続けた対局の情報）

@@ -1081,20 +1081,8 @@ add_dependencies(tst_matchcoordinator mock_usi_match)
 # ============================================================
 # Unit 29: GameStrategy (対局モード別Strategy群テスト)
 # ============================================================
-add_shogi_test(tst_gamestrategy
-    tst_gamestrategy.cpp
-    test_stubs_gamestrategy.cpp
-    ${SRC}/game/matchcoordinator.cpp
-    ${SRC}/game/matchcoordinator_resume.cpp
-    ${SRC}/game/matchcoordinator_engine.cpp
-    ${SRC}/game/matchcoordinator_time.cpp
-    ${SRC}/game/humanvshumanstrategy.cpp
-    ${SRC}/game/humanvsenginestrategy.cpp
-    ${SRC}/game/enginevsenginestrategy.cpp
-    ${SRC}/app/playmodepolicyservice.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiclock.cpp
-)
+add_shogi_test(tst_gamestrategy tst_gamestrategy.cpp)
+target_link_libraries(tst_gamestrategy PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 30: App Error Handling (異常系・防御パターン構造契約テスト)
@@ -1113,14 +1101,12 @@ target_compile_definitions(tst_app_error_handling PRIVATE
 )
 
 # ============================================================
-# Unit 31: CsaGameWiring 配線契約テスト（ソース解析型）
+# Unit 31: CsaGameWiring 配線テスト（本体のシグナル・状態遷移）
 # ============================================================
 add_shogi_test(tst_wiring_csagame
     tst_wiring_csagame.cpp
 )
-target_compile_definitions(tst_wiring_csagame PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
+target_link_libraries(tst_wiring_csagame PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 32: AnalysisTabWiring 配線契約テスト（ソース解析型）
@@ -1163,9 +1149,8 @@ target_compile_definitions(tst_wiring_playerinfo PRIVATE
 add_shogi_test(tst_lifecycle_scenario
     tst_lifecycle_scenario.cpp
 )
-target_compile_definitions(tst_lifecycle_scenario PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
+target_link_libraries(tst_lifecycle_scenario PRIVATE shogiboardq_static)
+target_sources(tst_lifecycle_scenario PRIVATE ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
 
 # ============================================================
 # Unit 36: Wiring Slot Coverage (接続漏れ/重複検出テスト、ソース解析型)

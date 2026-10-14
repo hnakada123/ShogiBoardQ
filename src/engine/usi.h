@@ -20,6 +20,7 @@
 #include "usimove.h"
 
 #include "engineprocessmanager.h"
+#include "usienginesession.h"
 #include "usiprotocolhandler.h"
 #include "thinkinginfopresenter.h"
 #include "shogigamecontroller.h"
@@ -161,7 +162,7 @@ public:
 
     /// 要求受付を返す。実際の初期化完了は engineInitialized、失敗は errorOccurred で通知する。
     [[nodiscard]] bool startAndInitializeEngineAsync(const QString& engineFile, const QString& enginename);
-    bool isInitializing() const { return m_initializing; }
+    bool isInitializing() const { return m_session && m_session->isInitializing(); }
     void requestMatchMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
     /// 人間の指し手を局面に加えて、エンジンに次の手を考えさせる
     void requestHumanReply(QString& position, const QString& ponder, const UsiMove& humanMove,
@@ -194,15 +195,14 @@ signals:
 
 private:
     bool deferUntilReady(std::function<void()> action) const;
-    bool m_initializing = false;
     quint64 m_asyncGeneration = 0;
     mutable std::vector<std::function<void()>> m_pendingActions;
-    QTimer m_startTimer;
 
     // --- 内部コンポーネント ---
 
-    std::unique_ptr<EngineProcessManager> m_processManager;  ///< エンジンプロセス管理（所有）
-    std::unique_ptr<UsiProtocolHandler> m_protocolHandler;    ///< USIプロトコル送受信（所有）
+    UsiEngineSession* m_session = nullptr; ///< GUI/CLI 共通の接続ライフサイクル
+    EngineProcessManager* m_processManager = nullptr; ///< session 所有
+    UsiProtocolHandler* m_protocolHandler = nullptr; ///< session 所有
     std::unique_ptr<ThinkingInfoPresenter> m_presenter;       ///< GUI表示更新（所有）
     std::unique_ptr<UsiMatchHandler> m_matchHandler;          ///< 対局通信・盤面データ管理（所有）
 
@@ -231,13 +231,8 @@ private:
     void prepareAnalysisSession(const QString& positionStr, int multiPV);
 
 private slots:
-    void onProcessStarted();
     void onProtocolError(const QString& message);
-    void onProcessExited();
-    void onEngineInitialized(bool success);
-    void onStartTimeout();
-    /// エンジンプロセスエラー時のクリーンアップ処理
-    void onProcessError(QProcess::ProcessError error, const QString& message);
+    void onEngineInitialized();
     void onCommandSent(const QString& command);
     void onDataReceived(const QString& line);
     void onStderrReceived(const QString& line);

@@ -155,7 +155,7 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
             m_gameMoves->append(SfenPositionTracer::buildGameMoves(
                 m_sfenHistory->value(i), {m_coordinator->usiMoves().value(i)}));
         // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
-        const QString elapsed = m_coordinator ? m_coordinator->initialMoveElapsedText(static_cast<int>(i)) : QString();
+        const RecordTime elapsed = m_coordinator ? m_coordinator->initialMoveTime(static_cast<int>(i)) : RecordTime{};
         appendInitialKifuLine(initialPrettyMoves.at(i), elapsed, sfen);
         if (m_kifuRecordModel && m_coordinator) {
             if (auto* item = m_kifuRecordModel->item(static_cast<int>(i + 1))) {
@@ -210,7 +210,7 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
     const QString lastSfen = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
     const bool blackToMove = lastSfen.isEmpty() ? (m_coordinator->isMyTurn() == isBlackSide)
                                                 : (lastSfen.section(QLatin1Char(' '), 1, 1) != QLatin1String("w"));
-    const QString endLine = buildEndLineText(cause, loserIsBlack, isDraw, blackToMove);
+    RecordEntry ending = buildEndRecord(cause, loserIsBlack, isDraw, blackToMove);
 
     // 消費時間は終局行を行った手番側（入玉宣言勝ちは宣言した勝者、連続王手の千日手は終局した局面の手番側）
     const bool moverIsBlack = (cause == CsaClient::GameEndCause::OuteSennichite) ? blackToMove
@@ -218,10 +218,10 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
     const int totalMs = moverIsBlack ? m_coordinator->blackTotalTimeMs()
                                      : m_coordinator->whiteTotalTimeMs();
 
-    const QString elapsedStr = KifuParseCommon::formatTimeText(consumedTimeMs, totalMs + consumedTimeMs);
+    ending.time = RecordTime::fromMilliseconds(consumedTimeMs, qint64(totalMs) + consumedTimeMs);
 
     // 棋譜欄に追加
-    Q_EMIT appendKifuLineRequested(endLine, elapsedStr);
+    Q_EMIT recordAppendRequested(ending);
     if (m_recordGameEnd) m_recordGameEnd();
 
     // m_sfenHistoryにも終局行用のダミーエントリを追加
@@ -277,7 +277,10 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
     // 累計消費時間を取得
     const int totalMs = isBlackMove ? m_coordinator->blackTotalTimeMs()
                                     : m_coordinator->whiteTotalTimeMs();
-    const QString elapsedStr = KifuParseCommon::formatTimeText(consumedTimeMs, totalMs);
+    RecordEntry entry;
+    entry.displayText = prettyMove;
+    entry.mover = isBlackMove ? Turn::Black : Turn::White;
+    entry.time = RecordTime::fromMilliseconds(consumedTimeMs, totalMs);
 
     // 棋譜欄に追記
     if (m_gameMoves && m_sfenHistory && m_sfenHistory->size() >= 2
@@ -285,7 +288,9 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
         m_gameMoves->append(SfenPositionTracer::buildGameMoves(
             m_sfenHistory->at(m_sfenHistory->size() - 2), {usiMove}));
     const int previousRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : 0;
-    Q_EMIT appendKifuLineRequested(prettyMove, elapsedStr);
+    if (m_gameMoves && !m_gameMoves->isEmpty()) entry.move = m_gameMoves->last();
+    if (m_sfenHistory && !m_sfenHistory->isEmpty()) entry.sfen = m_sfenHistory->last();
+    Q_EMIT recordAppendRequested(entry);
     if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > previousRows
         && m_sfenHistory && m_sfenHistory->size() >= 2) {
         if (auto* item = m_kifuRecordModel->item(m_kifuRecordModel->rowCount() - 1)) {
@@ -342,25 +347,34 @@ void CsaGameWiring::onMoveHighlightRequested(const QPoint& from, const QPoint& t
     }
 }
 
-QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw, bool blackToMove) const
+RecordEntry CsaGameWiring::buildEndRecord(CsaClient::GameEndCause cause, bool loserIsBlack,
+                                          bool isDraw, bool blackToMove) const
 {
-    const QString mark = loserIsBlack ? QStringLiteral("▲") : QStringLiteral("△");
-    const QString winMark = loserIsBlack ? QStringLiteral("△") : QStringLiteral("▲");
-
-    // Keep the record canonical; the presentation layer translates the terminal label.
     using Cause = CsaClient::GameEndCause;
+    TerminalType type = TerminalType::Interrupt;
+    bool side = loserIsBlack;
+    bool neutral = false;
     switch (cause) {
-    case Cause::Resign: return mark + QStringLiteral("投了");
-    case Cause::TimeUp: return mark + QStringLiteral("切れ負け");
+    case Cause::Resign: type = TerminalType::Resign; break;
+    case Cause::TimeUp: type = TerminalType::Timeout; break;
     case Cause::IllegalMove:
-    case Cause::IllegalAction: return mark + QStringLiteral("反則負け");
-    case Cause::OuteSennichite: return KifuParseCommon::foulTerminalMove(loserIsBlack, blackToMove);
-    case Cause::Sennichite: return QStringLiteral("千日手");
-    // 入玉宣言は宣言した勝者の印を付ける（棋譜の保存時に勝者を判定するため）。点数による引き分けは持将棋
-    case Cause::Jishogi: return isDraw ? QStringLiteral("持将棋") : winMark + QStringLiteral("入玉勝ち");
-    case Cause::MaxMoves: return QStringLiteral("最大手数到達");
-    default: return QStringLiteral("中断");
+    case Cause::IllegalAction: type = TerminalType::IllegalLoss; break;
+    case Cause::OuteSennichite:
+        side = blackToMove;
+        type = loserIsBlack == blackToMove ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
+        break;
+    case Cause::Sennichite: type = TerminalType::Repetition; neutral = true; break;
+    case Cause::Jishogi:
+        type = isDraw ? TerminalType::Impasse : TerminalType::DeclarationWin;
+        side = !loserIsBlack;
+        neutral = isDraw;
+        break;
+    case Cause::MaxMoves: type = TerminalType::MaxMoves; neutral = true; break;
+    default: neutral = true; break;
     }
+    auto entry = RecordEntry::ending(type, side ? Turn::Black : Turn::White);
+    if (neutral) entry.displayText.remove(0, 1);
+    return entry;
 }
 
 void CsaGameWiring::onWaitingCancelled()
@@ -486,8 +500,8 @@ void CsaGameWiring::wireExternalSignals(UiStatePolicyManager* uiPolicy,
                 Qt::UniqueConnection);
     }
     if (recordService) {
-        connect(this, &CsaGameWiring::appendKifuLineRequested,
-                recordService, &GameRecordUpdateService::appendKifuLine,
+        connect(this, &CsaGameWiring::recordAppendRequested,
+                recordService, &GameRecordUpdateService::appendRecord,
                 Qt::UniqueConnection);
     }
     if (notifService) {

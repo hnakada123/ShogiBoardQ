@@ -2,7 +2,7 @@
 #define USIENGINESESSION_H
 
 /// @file usienginesession.h
-/// @brief GUI モデルを持たない USI エンジン接続（自動化・CLI 用）
+/// @brief GUI と CLI が共用する USI エンジン接続
 
 #include <QObject>
 #include <QProcess>
@@ -15,8 +15,7 @@ class UsiProtocolHandler;
 /**
  * @brief `EngineProcessManager` と `UsiProtocolHandler` を束ね、起動・初期化・終了を行う
  *
- * `Usi` ファサードは思考タブ用のプレゼンタと盤面データを必要とするため、
- * 自動化・CLI ではこのクラスでプロトコルハンドラを直接使う。
+ * GUI の `Usi` ファサードと自動化・CLI は同じ接続ライフサイクルを使う。
  * startAsync() は起動とusiok/readyokをシグナルで処理する。
  */
 class UsiEngineSession : public QObject
@@ -34,6 +33,8 @@ public:
     /// quit を送ってプロセスを止める（未起動なら何もしない）
     void quit();
     bool isRunning() const;
+    bool isInitializing() const { return m_initializing; }
+    void cancelCurrentOperation();
 
     UsiProtocolHandler* handler() const { return m_handler; }
     EngineProcessManager* process() const { return m_process; }

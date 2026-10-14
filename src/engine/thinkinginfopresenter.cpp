@@ -387,3 +387,11 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
     
     qCDebug(lcEngine) << "updateEvaluationInfo完了: lastScoreCp=" << m_lastScoreCp;
 }
+
+void ThinkingInfoPresenter::presentCheckmate(const QStringList& pv)
+{
+    // info を省略するエンジンでも詰み手順を履歴に残す。通信結果から表示への変換はここで行う。
+    flushInfoBuffer();
+    processInfoLine(QStringLiteral("info score mate %1 pv %2")
+                        .arg(pv.size()).arg(pv.join(QLatin1Char(' '))));
+}

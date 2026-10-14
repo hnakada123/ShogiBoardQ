@@ -226,7 +226,7 @@ void MatchCoordinator::ensureGameEndHandler()
     GameEndHandler::Hooks hooks;
     hooks.disarmHumanTimerIfNeeded = [this]() { disarmHumanTimerIfNeeded(); };
     hooks.primaryEngine     = [this]() -> Usi* { return primaryEngine(); };
-    hooks.appendKifuLine    = m_hooks.game.appendKifuLine;
+    hooks.appendRecord = m_hooks.game.appendRecord;
     hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
     hooks.usesHandicapNames = m_hooks.ui.usesHandicapNames;
     hooks.autoSaveKifuIfEnabled = [this]() {

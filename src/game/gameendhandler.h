@@ -4,6 +4,7 @@
 /// @file gameendhandler.h
 /// @brief 終局処理ハンドラの定義
 
+#include "recordentry.h"
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -73,7 +74,7 @@ public:
 
         /// @brief 棋譜に1行追記する（終局行: "▲投了" 等）
         /// @note 配線元: MC→m_hooks.appendKifuLine (パススルー)
-        std::function<void(const QString&, const QString&)> appendKifuLine;
+        std::function<void(const RecordEntry&)> appendRecord;
 
         /// @brief 終局結果ダイアログを表示する
         /// @note 配線元: MC→m_hooks.showGameOverDialog (パススルー)

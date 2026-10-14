@@ -6,6 +6,7 @@
 
 #include <QJsonObject>
 #include <QString>
+#include "recordtime.h"
 
 #include "kifubranchnode.h"
 #include "shogitypes.h"
@@ -19,7 +20,7 @@ class ShogiBoard;
 namespace JkfFormatter {
 
 /// 消費時間の文字列（"(mm:ss/HH:MM:SS)"）から JKF の time（now・total）を作る
-QJsonObject parseTimeToJkf(const QString& timeText);
+QJsonObject timeToJkf(const RecordTime& time);
 
 /// 開始局面の SFEN から JKF の initial.data（board・color・hands）を作る。読めない SFEN は空
 QJsonObject sfenToJkfData(const QString& sfen);

@@ -305,11 +305,6 @@ bool GameEndHandler::checkAndHandleSennichite()
     if (m_refs.gameOver->isOver) return false;
 
     const QStringList* rec = m_refs.sfenHistory;
-    if (m_refs.strategyProvider) {
-        if (auto* eve = dynamic_cast<EngineVsEngineStrategy*>(m_refs.strategyProvider())) {
-            rec = eve->sfenRecordForEvE();
-        }
-    }
     if (!rec || rec->size() < 4) return false;
 
     const auto result = SennichiteDetector::check(*rec);

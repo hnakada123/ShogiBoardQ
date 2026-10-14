@@ -16,29 +16,23 @@
 Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
          ShogiGameController* gameController, QObject* parent)
     : QObject(parent)
-    , m_processManager(std::make_unique<EngineProcessManager>())
-    , m_protocolHandler(std::make_unique<UsiProtocolHandler>())
+    , m_session(new UsiEngineSession(this))
+    , m_processManager(m_session->process())
+    , m_protocolHandler(m_session->handler())
     , m_presenter(std::make_unique<ThinkingInfoPresenter>())
-    , m_matchHandler(std::make_unique<UsiMatchHandler>(m_protocolHandler.get(),
+    , m_matchHandler(std::make_unique<UsiMatchHandler>(m_protocolHandler,
                                                        m_presenter.get(),
                                                        gameController))
     , m_commLogModel(model)
     , m_thinkingModel(modelThinking)
     , m_gameController(gameController)
 {
-    m_startTimer.setSingleShot(true);
-    connect(&m_startTimer, &QTimer::timeout, this, &Usi::onStartTimeout);
-    connect(m_processManager.get(), &EngineProcessManager::processExited, this, &Usi::onProcessExited);
-    connect(m_processManager.get(), &EngineProcessManager::processStarted, this, &Usi::onProcessStarted);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::initializationFinished, this, &Usi::onEngineInitialized);
+    connect(m_session, &UsiEngineSession::ready, this, &Usi::onEngineInitialized);
+    connect(m_session, &UsiEngineSession::errorOccurred, this, &Usi::onProtocolError);
     setupConnections();
 
     // Presenterにゲームコントローラのみを設定（モデルへの直接依存を排除）
     m_presenter->setGameController(gameController);
-
-    m_protocolHandler->setProcessManager(m_processManager.get());
-    m_protocolHandler->setPresenter(m_presenter.get());
-    m_protocolHandler->setGameController(gameController);
 
     // UsiMatchHandlerのフック設定
     m_matchHandler->setHooks({
@@ -60,13 +54,13 @@ Usi::~Usi()
         // m_analysisStopTimer は this を parent に持つため、Qt親子モデルにより自動解放される
     }
     // デストラクタ時はモデルクリアをスキップ（モデルが既に破棄されている可能性があるため）
-    m_processManager->stopProcessAsync();
+    m_session->quit();
     // m_presenter->requestClearThinkingInfo() は呼ばない
 }
 
 void Usi::setupConnections()
 {
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::searchCandidateChanged,
+    connect(m_protocolHandler, &UsiProtocolHandler::searchCandidateChanged,
             this, &Usi::searchCandidateChanged);
     // 処理フロー:
     // 1. ProcessManager → Usi（プロセスイベント転送）
@@ -74,39 +68,44 @@ void Usi::setupConnections()
     // 3. Presenter → Usi（GUI表示更新の中継）
 
     // ProcessManagerからのシグナル
-    connect(m_processManager.get(), &EngineProcessManager::processError,
-            this, &Usi::onProcessError);
-    connect(m_processManager.get(), &EngineProcessManager::commandSent,
+    connect(m_processManager, &EngineProcessManager::commandSent,
             this, &Usi::onCommandSent);
-    connect(m_processManager.get(), &EngineProcessManager::dataReceived,
+    connect(m_processManager, &EngineProcessManager::dataReceived,
             this, &Usi::onDataReceived);
-    connect(m_processManager.get(), &EngineProcessManager::stderrReceived,
+    connect(m_processManager, &EngineProcessManager::stderrReceived,
             this, &Usi::onStderrReceived);
 
+    connect(m_protocolHandler, &UsiProtocolHandler::positionChanged,
+            m_presenter.get(), &ThinkingInfoPresenter::setBaseSfen);
+    connect(m_protocolHandler, &UsiProtocolHandler::searchStarted,
+            m_presenter.get(), &ThinkingInfoPresenter::requestClearThinkingInfo);
+    connect(m_protocolHandler, &UsiProtocolHandler::infoLineReceived,
+            m_presenter.get(), &ThinkingInfoPresenter::onInfoReceived);
+    connect(m_protocolHandler, &UsiProtocolHandler::checkmateSolved,
+            m_presenter.get(), &ThinkingInfoPresenter::presentCheckmate);
+
     // ProtocolHandlerからのシグナル
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::usiOkReceived,
+    connect(m_protocolHandler, &UsiProtocolHandler::usiOkReceived,
             this, &Usi::usiOkReceived);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::readyOkReceived,
+    connect(m_protocolHandler, &UsiProtocolHandler::readyOkReceived,
             this, &Usi::readyOkReceived);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveReceived,
+    connect(m_protocolHandler, &UsiProtocolHandler::bestMoveReceived,
             this, &Usi::onMatchBestMoveReceived);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveReceived,
+    connect(m_protocolHandler, &UsiProtocolHandler::bestMoveReceived,
             this, &Usi::bestMoveReceived);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveResignReceived,
+    connect(m_protocolHandler, &UsiProtocolHandler::bestMoveResignReceived,
             this, &Usi::bestMoveResignReceived);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveWinReceived,
+    connect(m_protocolHandler, &UsiProtocolHandler::bestMoveWinReceived,
             this, &Usi::bestMoveWinReceived);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::errorOccurred,
-            this, &Usi::onProtocolError);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::infoLineReceived,
+    connect(m_protocolHandler, &UsiProtocolHandler::infoLineReceived,
             this, &Usi::infoLineReceived);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::checkmateSolved,
+    connect(m_protocolHandler, &UsiProtocolHandler::checkmateSolved,
             this, &Usi::checkmateSolved);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::checkmateNoMate,
+    connect(m_protocolHandler, &UsiProtocolHandler::checkmateNoMate,
             this, &Usi::checkmateNoMate);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::checkmateNotImplemented,
+    connect(m_protocolHandler, &UsiProtocolHandler::checkmateNotImplemented,
             this, &Usi::checkmateNotImplemented);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::checkmateUnknown,
+    connect(m_protocolHandler, &UsiProtocolHandler::checkmateUnknown,
             this, &Usi::checkmateUnknown);
 
     // Presenterからのシグナル（View層への間接的な更新）
@@ -131,13 +130,6 @@ void Usi::setupConnections()
 // ============================================================
 // プロセスイベントスロット実装
 // ============================================================
-
-void Usi::onProcessError(QProcess::ProcessError error, const QString& message)
-{
-    Q_UNUSED(error)
-    cleanupEngineProcessAndThread();
-    emit errorOccurred(message);
-}
 
 void Usi::onCommandSent(const QString& command)
 {
@@ -293,11 +285,9 @@ void Usi::setLogModel(UsiCommLogModel* m)
 void Usi::cancelCurrentOperation()
 {
     ++m_asyncGeneration;
-    m_startTimer.stop();
-    m_initializing = false;
     m_pendingActions.clear();
     m_matchHandler->cancelAsync();
-    m_protocolHandler->cancelCurrentOperation();
+    m_session->cancelCurrentOperation();
 }
 
 // ============================================================
@@ -318,11 +308,7 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
 void Usi::cleanupEngineProcessAndThread(bool clearThinking)
 {
     cancelCurrentOperation();
-    // エンジンプロセスが実行中の場合は quit コマンドを送信してから停止
-    if (m_processManager->isRunning()) {
-        m_protocolHandler->sendQuit();
-    }
-    m_processManager->stopProcessAsync();
+    m_session->quit();
     if (clearThinking) {
         m_presenter->requestClearThinkingInfo();
     }
@@ -340,12 +326,12 @@ void Usi::sendGameOverCommand(GameOverResult result)
 void Usi::sendQuitCommand()
 {
     cancelCurrentOperation();
-    m_protocolHandler->sendQuit();
+    m_session->quit();
 }
 
 void Usi::sendStopCommand()
 {
-    if (m_initializing) { m_pendingActions.clear(); return; }
+    if (isInitializing()) { m_pendingActions.clear(); return; }
     m_protocolHandler->sendStop();
     // 検討モデルはクリアしない（再開時に必要なため）
     // モデルのクリアはエンジン破棄時に自動的に行われる
@@ -410,7 +396,7 @@ void Usi::setBaseSfen(const QString& sfen)
 {
     qCDebug(lcEngine) << "setBaseSfen:" << sfen.left(50);
     if (m_presenter) {
-        m_presenter->setBaseSfen(sfen);
+        m_protocolHandler->setBaseSfen(sfen);
     }
 }
 
@@ -439,7 +425,7 @@ void Usi::sendGameOverLoseAndQuitCommands()
         m_gameoverSent = true;
     }
 
-    m_protocolHandler->sendQuit();
+    m_session->quit();
 }
 
 void Usi::sendGameOverWinAndQuitCommands()
@@ -451,5 +437,5 @@ void Usi::sendGameOverWinAndQuitCommands()
         m_gameoverSent = true;
     }
 
-    m_protocolHandler->sendQuit();
+    m_session->quit();
 }

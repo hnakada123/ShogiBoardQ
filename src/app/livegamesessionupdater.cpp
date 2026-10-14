@@ -56,48 +56,8 @@ void LiveGameSessionUpdater::ensureSessionStarted()
     }
 }
 
-void LiveGameSessionUpdater::appendMove(const ShogiMove& move, const QString& moveText, const QString& elapsedTime,
-                                      const QString& recordedSfen)
+void LiveGameSessionUpdater::appendRecord(const RecordEntry& entry)
 {
-    if (m_deps.liveSession == nullptr) {
-        return;
-    }
-
-    // セッションが未開始の場合は遅延開始
-    if (!m_deps.liveSession->isActive()) {
-        ensureSessionStarted();
-    }
-
-    if (!m_deps.liveSession->isActive()) {
-        return;
-    }
-
-    // 再生済みの初期手順では指定された局面を、それ以外では現在の盤面を記録する。
-    QString sfen = recordedSfen;
-    if (sfen.isEmpty() && m_deps.gameController && m_deps.gameController->board()) {
-        ShogiBoard* board = m_deps.gameController->board();
-        // 完全な SFEN を構築: <盤面> <手番> <持ち駒> <手数>
-        const QString boardPart = board->convertBoardToSfen();
-        // 手番は GC を正とする（盤面モデルの手番は GC から同期されるが、単一ソースは GC）
-        const QString turnPart =
-            (m_deps.gameController->currentPlayer() == Turn::White)
-                ? QStringLiteral("w")
-                : QStringLiteral("b");
-        QString standPart = board->convertStandToSfen();
-        if (standPart.isEmpty()) {
-            standPart = QStringLiteral("-");
-        }
-        // 追加する手の手数は totalPly + 1、SFEN の第4フィールドは次の手数。
-        const int moveCount = m_deps.liveSession->totalPly() + 2;
-        sfen = QStringLiteral("%1 %2 %3 %4")
-                   .arg(boardPart, turnPart, standPart, QString::number(moveCount));
-        qCDebug(lcApp).noquote() << "appendMove: constructed full SFEN for LiveGameSession"
-                           << "sfen=" << sfen.left(80);
-    } else if (sfen.isEmpty() && m_deps.sfenRecord != nullptr && !m_deps.sfenRecord->isEmpty()) {
-        // フォールバック: 盤面がない場合は sfenRecord を使用
-        sfen = m_deps.sfenRecord->last();
-        qCWarning(lcApp) << "appendMove: fallback to sfenRecord (no board)";
-    }
-
-    m_deps.liveSession->addMove(move, moveText, sfen, elapsedTime);
+    ensureSessionStarted();
+    if (m_deps.liveSession && m_deps.liveSession->canAddMove()) m_deps.liveSession->appendRecord(entry);
 }

@@ -21,34 +21,9 @@ EngineVsEngineStrategy::EngineVsEngineStrategy(MatchCoordinator::StrategyContext
 {
 }
 
-// ============================================================
-// EvE用SFEN/指し手コンテナへのアクセサ
-// ============================================================
-
-QStringList* EngineVsEngineStrategy::sfenRecordForEvE()
-{
-    return m_ctx.sfenHistory() ? m_ctx.sfenHistory() : &m_eveSfenRecord;
-}
-
-QList<ShogiMove>& EngineVsEngineStrategy::gameMovesForEvE()
-{
-    // 棋譜欄の表記変換・USI指し手列・ライブセッションが参照する共有リストへ記録する。
-    return m_ctx.sfenHistory() ? m_ctx.gameMovesRef() : m_eveGameMoves;
-}
-
-// ============================================================
-// 対局開始
-// ============================================================
-
 void EngineVsEngineStrategy::start()
 {
     if (!m_ctx.usi1() || !m_ctx.usi2() || !m_ctx.gc()) return;
-
-    // EvE 用の内部棋譜コンテナを初期化
-    m_eveSfenRecord.clear();
-    m_eveGameMoves.clear();
-    m_eveMoveIndex = m_opt.resumeFromBreakOff && m_ctx.sfenHistory()
-        ? static_cast<int>(m_ctx.sfenHistory()->size() - 1) : 0;
 
     // EvE対局で初手からタイマーを動作させるため、ここで時計を開始する
     if (m_ctx.clock()) {
@@ -85,11 +60,6 @@ void EngineVsEngineStrategy::onHumanMove(const QPoint& /*from*/, const QPoint& /
 
 void EngineVsEngineStrategy::initPositionStringsForEvE(const QString& sfenStart)
 {
-    m_ctx.positionStr1().clear();
-    m_ctx.positionPonder1().clear();
-    m_ctx.positionStr2().clear();
-    m_ctx.positionPonder2().clear();
-
     // 平手の場合は startpos を使用、駒落ちの場合は sfen を使用
     static const QString kStartBoard =
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
@@ -121,8 +91,8 @@ void EngineVsEngineStrategy::initPositionStringsForEvE(const QString& sfenStart)
     } else {
         base = QStringLiteral("position startpos moves");
     }
-    m_ctx.positionStr1() = base;
-    m_ctx.positionStr2() = base;
+    m_ctx.setEnginePosition(1, base, {});
+    m_ctx.setEnginePosition(2, base, {});
 }
 
 // ============================================================
@@ -149,13 +119,8 @@ void EngineVsEngineStrategy::kickNextEvETurn()
     const bool p1ToMove = (m_ctx.gc()->currentPlayer() == Turn::Black);
     Usi* mover    = p1ToMove ? m_ctx.usi1() : m_ctx.usi2();
 
-    QString& pos    = p1ToMove ? m_ctx.positionStr1()     : m_ctx.positionStr2();
-    QString& ponder = p1ToMove ? m_ctx.positionPonder1()  : m_ctx.positionPonder2();
-
-    // 思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める
-    const UsiTimingParams timing;
     m_waitingForMove = true;
-    mover->requestMatchMove(pos, ponder, timing);
+    m_ctx.requestEngineMove(mover, p1ToMove ? 1 : 2);
 }
 
 void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
@@ -167,56 +132,16 @@ void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     if (sender() != mover) return;
     m_waitingForMove = false;
     Usi* receiver = p1ToMove ? m_ctx.usi2() : m_ctx.usi1();
-    (p1ToMove ? m_ctx.positionStr1() : m_ctx.positionStr2()) = position;
-    (p1ToMove ? m_ctx.positionPonder1() : m_ctx.positionPonder2()) = ponder;
-    QString rec;
-    const Turn moverTurn = p1ToMove ? Turn::Black : Turn::White;
-    const QPoint from = BoardCoordinates::fromSquare(move, moverTurn);
+    m_ctx.setEnginePosition(p1ToMove ? 1 : 2, position, ponder);
+    // 次の探索用の局面を両エンジンで共有する。
+    m_ctx.syncOpponentPosition(p1ToMove ? 1 : 2, position);
     const QPoint to = BoardCoordinates::toSquare(move);
-
-    // 次の手を渡す。反則手は盤に指さず、指したエンジンの反則負けにする
-    int nextEve = m_eveMoveIndex + 1;
-    if (!m_ctx.gc()->applyMove(move, rec, nextEve, sfenRecordForEvE(), gameMovesForEvE())) {
-        m_ctx.handleEngineIllegalMove(moverTurn);
-        return;
-    }
-    m_eveMoveIndex = nextEve;
-
-    // 相手側のポジション文字列を同期
-    if (p1ToMove) {
-        m_ctx.positionStr2() = m_ctx.positionStr1();
-    } else {
-        m_ctx.positionStr1() = m_ctx.positionStr2();
-    }
-
-    if (m_ctx.clock()) {
-        m_ctx.clock()->setMeasuredConsiderationTime(moverTurn, mover ? mover->lastBestmoveElapsedMs() : 0);
-        m_ctx.clock()->commitMove(moverTurn);
-    }
-    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec, m_ctx.clock()->considerationAndTotalTime(moverTurn));
-    }
-
     if (receiver) {
         receiver->setPreviousFileTo(to.x());
         receiver->setPreviousRankTo(to.y());
     }
-
-    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
-    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(from, to);
-    m_ctx.updateTurnDisplay(m_ctx.gc()->currentPlayer());
-
-    // 千日手チェック
-    if (m_ctx.checkAndHandleSennichite()) return;
-
-    // 最大手数チェック（人間を含む対局と同じく、棋譜全体の手数で判定する。
-    // 途中局面から開始した場合も、開始からの手数ではなく総手数が上限に達したら止める）
-    const QStringList* history = m_ctx.sfenHistory();
-    const int plies = history ? static_cast<int>(history->size() - 1) : m_eveMoveIndex;
-    if (m_ctx.maxMoves() > 0 && plies >= m_ctx.maxMoves()) {
-        m_ctx.handleMaxMovesJishogi();
-        return;
-    }
+    if (!m_ctx.applyEngineMove(move, p1ToMove ? Turn::Black : Turn::White,
+                               mover->lastBestmoveElapsedMs(), false)) return;
 
     QTimer::singleShot(0, this, &EngineVsEngineStrategy::kickNextEvETurn);
 }

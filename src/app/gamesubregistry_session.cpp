@@ -15,6 +15,7 @@
 #include "consecutivegamescontroller.h"
 #include "csagamecoordinator.h"
 #include "gamesessionorchestrator.h"
+#include "gamestatecontroller.h"
 #include "kifuloadcoordinator.h"
 #include "livegamesession.h"
 #include "livegamesessionupdater.h"
@@ -36,6 +37,7 @@
 
 void MainWindowServiceRegistry::ensurePreStartCleanupHandler()
 {
+    if (m_runtimeServicesReady) return;
     PreStartCleanupHandler::Dependencies deps;
     deps.boardController = m_mw.m_boardController;
     deps.shogiView = m_mw.m_shogiView;
@@ -80,9 +82,8 @@ void MainWindowServiceRegistry::startLiveGameSessionIfNeeded()
 
 void MainWindowServiceRegistry::ensureLiveGameSessionUpdater()
 {
-    if (!m_mw.m_liveGameSessionUpdater) {
-        createLiveGameSessionUpdater();
-    }
+    if (m_mw.m_liveGameSessionUpdater) return;
+    createLiveGameSessionUpdater();
     refreshLiveGameSessionUpdaterDeps();
 }
 
@@ -98,7 +99,6 @@ void MainWindowServiceRegistry::refreshLiveGameSessionUpdaterDeps()
     LiveGameSessionUpdater::Deps deps;
     deps.liveSession = m_mw.m_branchNav.liveGameSession;
     deps.branchTree = m_mw.m_branchNav.branchTree;
-    deps.gameController = m_mw.m_gameController;
     deps.sfenRecord = &m_mw.m_kifu.sfenRecord;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     m_mw.m_liveGameSessionUpdater->updateDeps(deps);
@@ -110,6 +110,7 @@ void MainWindowServiceRegistry::refreshLiveGameSessionUpdaterDeps()
 
 void MainWindowServiceRegistry::ensureGameSessionOrchestrator()
 {
+    if (m_runtimeServicesReady) return;
     if (!m_mw.m_gameSessionOrchestrator) {
         createGameSessionOrchestrator();
     }
@@ -132,11 +133,10 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
 
     // === Controllers（使うときに取得。遅延生成のものはここで作る） ===
     deps.gameStateController = [this]() -> GameStateController* {
-        ensureGameStateController();
+        if (m_mw.m_gameStateController) m_mw.m_gameStateController->setPlayMode(m_mw.m_state.playMode);
         return m_mw.m_gameStateController;
     };
     deps.gameStart = [this]() -> GameStartCoordinator* {
-        ensureGameStartCoordinator();
         return m_mw.m_gameStart;
     };
     deps.dialogCoordinator = [this]() -> DialogCoordinator* {
@@ -184,6 +184,7 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
 
 void MainWindowServiceRegistry::ensureCoreInitCoordinator()
 {
+    if (m_runtimeServicesReady) return;
     if (!m_mw.m_coreInit) {
         createCoreInitCoordinator();
     }
@@ -228,6 +229,7 @@ void MainWindowServiceRegistry::refreshCoreInitDeps()
 
 void MainWindowServiceRegistry::ensureSessionLifecycleCoordinator()
 {
+    if (m_runtimeServicesReady) return;
     if (!m_mw.m_sessionLifecycle) {
         createSessionLifecycleCoordinator();
     }

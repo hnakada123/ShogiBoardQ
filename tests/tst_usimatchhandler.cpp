@@ -41,7 +41,6 @@ public:
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
         protocol.setProcessManager(&process);
-        protocol.setGameController(&game);
         match.setClock(&clock);
         match.setHooks({[this] { ++errors; protocol.cancelCurrentOperation(); },
             [this](const UsiMove& move, const QString& result, const QString& nextPonder) {

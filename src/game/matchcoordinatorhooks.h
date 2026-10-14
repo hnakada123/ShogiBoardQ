@@ -7,6 +7,7 @@
 /// MatchCoordinator から上位層（MainWindow/Wiring層）への逆方向呼び出しに使用。
 /// MatchCoordinator::Hooks は本型の using エイリアス。
 
+#include "recordentry.h"
 #include <functional>
 
 #include <QString>
@@ -41,7 +42,7 @@ struct MatchCoordinatorHooks {
     /// ゲーム初期化・棋譜系コールバック
     struct Game {
         std::function<void(const QString& sfenStart)> initializeNewGame;
-        std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
+        std::function<void(const RecordEntry&)> appendRecord;
         /// エンジンが指したあとに、そのエンジン（side の手番）の評価値をグラフに追記する
         std::function<void(Turn side)> appendEval;
         std::function<void(const QString& saveDir)> autoSaveKifu;

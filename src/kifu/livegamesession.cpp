@@ -7,48 +7,8 @@
 
 #include "logcategories.h"
 
-#include <QRegularExpression>
-
-namespace {
-
-/// 消費時間表記 "mm:ss/HH:MM:SS" を秒に分解する。形式が違えば false
-bool parseElapsedText(const QString& text, int* considerSec, int* totalSec)
-{
-    static const QRegularExpression re(QStringLiteral("^\\s*(\\d+):(\\d{2})\\s*/\\s*(\\d+):(\\d{2}):(\\d{2})\\s*$"));
-    const QRegularExpressionMatch m = re.match(text);
-    if (!m.hasMatch()) return false;
-    if (considerSec) *considerSec = m.captured(1).toInt() * 60 + m.captured(2).toInt();
-    if (totalSec) {
-        *totalSec = m.captured(3).toInt() * 3600 + m.captured(4).toInt() * 60 + m.captured(5).toInt();
-    }
-    return true;
-}
-
-QString formatElapsedText(int considerSec, int totalSec)
-{
-    auto z2 = [](int v) { return QStringLiteral("%1").arg(v, 2, 10, QLatin1Char('0')); };
-    return z2(considerSec / 60) + QLatin1Char(':') + z2(considerSec % 60) + QLatin1Char('/')
-           + z2(totalSec / 3600) + QLatin1Char(':') + z2((totalSec / 60) % 60) + QLatin1Char(':')
-           + z2(totalSec % 60);
-}
-
-/// 対局の累計時間を、棋譜上で同じ側が直前に指した手の累計から続ける。
-/// 時計の累計は対局開始からの値なので、棋譜の途中から対局すると累計が 0 から数え直されてしまう。
-QString continueCumulativeTime(const KifuBranchNode* parent, const QString& elapsed)
-{
-    int considerSec = 0;
-    if (!parseElapsedText(elapsed, &considerSec, nullptr)) return elapsed;
-
-    // 親は相手の手、その親が同じ側の直前の手
-    const KifuBranchNode* sameSide = (parent != nullptr) ? parent->parent() : nullptr;
-    int previousTotal = 0;
-    if (sameSide != nullptr && sameSide->ply() > 0) {
-        parseElapsedText(sameSide->timeText(), nullptr, &previousTotal);
-    }
-    return formatElapsedText(considerSec, previousTotal + considerSec);
-}
-
-} // namespace
+#include <limits>
+#include <utility>
 
 LiveGameSession::LiveGameSession(QObject* parent)
     : QObject(parent)
@@ -83,10 +43,10 @@ void LiveGameSession::startFromNode(KifuBranchNode* branchPoint)
 
     // 起点のSFENを記録
     if (m_branchPoint != nullptr) {
-        m_sfens.append(m_branchPoint->sfen());
+        m_anchorSfen = m_branchPoint->sfen();
         qCDebug(lcKifu).noquote() << "startFromNode: recorded anchor sfen from branchPoint";
     } else if (m_tree != nullptr && m_tree->root() != nullptr) {
-        m_sfens.append(m_tree->root()->sfen());
+        m_anchorSfen = m_tree->root()->sfen();
         qCDebug(lcKifu).noquote() << "startFromNode: recorded anchor sfen from root";
     }
 
@@ -112,10 +72,7 @@ int LiveGameSession::anchorPly() const
 
 QString LiveGameSession::anchorSfen() const
 {
-    if (m_sfens.isEmpty()) {
-        return QString();
-    }
-    return m_sfens.first();
+    return m_anchorSfen;
 }
 
 bool LiveGameSession::canStartFrom(KifuBranchNode* node)
@@ -129,6 +86,13 @@ bool LiveGameSession::canStartFrom(KifuBranchNode* node)
 void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
                                const QString& sfen, const QString& elapsed)
 {
+    appendRecord(RecordEntry::imported(move, displayText, sfen, elapsed));
+}
+
+void LiveGameSession::appendRecord(const RecordEntry& entry)
+{
+    const auto& displayText = entry.displayText;
+    const auto& sfen = entry.sfen;
     qCDebug(lcKifu).noquote() << "addMove ENTER displayText=" << displayText
                        << "sfen=" << sfen.left(60);
 
@@ -137,14 +101,13 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
         return;
     }
 
-    const int ply = anchorPly() + static_cast<int>(m_moves.size()) + 1;
+    const int ply = anchorPly() + static_cast<int>(m_entries.size()) + 1;
     qCDebug(lcKifu).noquote() << "addMove: ply=" << ply
                        << "anchorPly=" << anchorPly()
-                       << "movesSize=" << m_moves.size();
+                       << "movesSize=" << m_entries.size();
 
-    // リアルタイムでツリーに追加（treeChanged を発火しない quiet 版を使用）
-    // treeChanged が発火すると KifuDisplayCoordinator::onTreeChanged() が呼ばれ、
-    // 棋譜モデルが再構築されて HvE 対局に干渉する
+    // ツリーとセッションの更新が揃ってから変更通知を発行する。
+    if (m_tree) m_tree->beginBatchUpdate();
     if (m_tree != nullptr) {
         KifuBranchNode* parent = m_liveParent;
         if (parent == nullptr) {
@@ -161,14 +124,13 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
             // 対局後に途中局面へ戻って同じ手を指し直したときに、
             // 同一の手を表す兄弟ノード（重複分岐）ができるのを防ぐ。
             // 既存ノードのコメント・消費時間はそのまま維持する。
-            KifuBranchNode* existing = m_tree->findMatchingChild(parent, move, displayText, sfen);
+            KifuBranchNode* existing = m_tree->findMatchingChild(parent, entry);
             if (existing != nullptr) {
                 m_liveParent = existing;
                 qCDebug(lcKifu).noquote() << "addMove: reused existing node ply=" << existing->ply()
                                    << "displayText=" << existing->displayText();
             } else {
-                // addMoveQuiet() を使用: treeChanged は発火しない
-                m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
+                m_liveParent = m_tree->addRecord(parent, entry);
                 if (m_liveParent != nullptr) {
                     m_createdNodeIds.insert(m_liveParent->nodeId());
                     // 棋譜の途中から続けた対局の情報は、新しく作った最初の手に残す
@@ -186,23 +148,21 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
         }
     }
 
-    KifDisplayItem item;
-    item.prettyMove = displayText;
-    item.beforeSfen = m_sfens.isEmpty() ? anchorSfen() : m_sfens.last();
-    item.terminal = detectTerminalType(displayText) != TerminalType::None;
-    item.usiMove = item.terminal ? QString() : KifuPresentation::usiMove(move);
-    item.timeText = elapsed;
-    item.ply = ply;
-    m_moves.append(item);
+    if (m_tree && !m_liveParent) {
+        m_tree->endBatchUpdate();
+        return;
+    }
 
-    m_gameMoves.append(move);
-    m_sfens.append(sfen);
+    RecordEntry recorded = entry;
+    if (m_liveParent) recorded.sfen = m_liveParent->sfen();
+    m_entries.append(recorded);
 
     // 終局手を追加したらセッションは終了状態（これ以上の追加は canAddMove() で拒否）
-    if (detectTerminalType(displayText) != TerminalType::None) {
+    if (entry.isTerminal()) {
         m_hasTerminal = true;
     }
 
+    if (m_tree) m_tree->endBatchUpdate();
     emit moveAdded(ply, displayText);
 
     // 分岐マーク（「+」）は表示中ラインの経路から KifuDisplayCoordinator が計算する。
@@ -212,21 +172,24 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
     qCDebug(lcKifu).noquote() << "addMove LEAVE";
 }
 
-QString LiveGameSession::continuedElapsedText(const QString& clockElapsed) const
+RecordTime LiveGameSession::continuedTime(const RecordTime& time) const
 {
-    if (!m_active || m_tree == nullptr) {
-        return clockElapsed;
-    }
-    const KifuBranchNode* parent = m_liveParent;
-    if (parent == nullptr) {
-        parent = (m_branchPoint != nullptr) ? m_branchPoint : m_tree->root();
-    }
-    return continueCumulativeTime(parent, clockElapsed);
+    if (!m_active || !m_tree || !time.valid) return time;
+    const KifuBranchNode* parent = m_liveParent ? m_liveParent : (m_branchPoint ? m_branchPoint : m_tree->root());
+    const KifuBranchNode* sameSide = parent ? parent->parent() : nullptr;
+    const qint64 previous = sameSide && sameSide->time().valid ? sameSide->time().totalMs : 0;
+    return RecordTime::fromMilliseconds(time.elapsedMs, previous > std::numeric_limits<qint64>::max() - time.elapsedMs
+        ? std::numeric_limits<qint64>::max() : previous + time.elapsedMs);
+}
+
+QString LiveGameSession::continuedElapsedText(const QString& elapsed) const
+{
+    return continuedTime(RecordTime::fromText(elapsed)).toText();
 }
 
 bool LiveGameSession::canUndoMoves(int count) const
 {
-    if (!m_active || m_hasTerminal || count <= 0 || count > m_moves.size()) {
+    if (!m_active || m_hasTerminal || count <= 0 || count > m_entries.size()) {
         return false;
     }
     if (m_tree == nullptr) {
@@ -265,11 +228,7 @@ bool LiveGameSession::undoMoves(int count)
         }
         m_liveParent = target;
     }
-    m_moves.resize(m_moves.size() - count);
-    m_gameMoves.resize(m_gameMoves.size() - count);
-    if (m_sfens.size() >= count) {
-        m_sfens.resize(m_sfens.size() - count);
-    }
+    m_entries.resize(m_entries.size() - count);
     emit movesUndone();
     return true;
 }
@@ -310,7 +269,7 @@ KifuBranchNode* LiveGameSession::commit()
     }
 
     // 追加する指し手がない場合は何もしない
-    if (m_moves.isEmpty()) {
+    if (m_entries.isEmpty()) {
         discard();
         return nullptr;
     }
@@ -339,21 +298,9 @@ KifuBranchNode* LiveGameSession::commit()
 
     // 各指し手をツリーに追加（treeChanged は最後に1回だけ発火させる）
     m_tree->beginBatchUpdate();
-    for (int i = 0; i < m_moves.size(); ++i) {
-        const KifDisplayItem& item = m_moves.at(i);
-        const ShogiMove& move = m_gameMoves.at(i);
-        const QString sfen = (i + 1 < m_sfens.size()) ? m_sfens.at(i + 1) : QString();
-
-        // 終局手かどうかを判定
-        TerminalType termType = detectTerminalType(item.prettyMove);
-
-        if (termType != TerminalType::None) {
-            // 終局手
-            lastNode = m_tree->addTerminalMove(lastNode, termType, item.prettyMove, item.timeText);
-        } else {
-            // 通常の指し手
-            lastNode = m_tree->addMove(lastNode, move, item.prettyMove, sfen, item.timeText);
-        }
+    for (const RecordEntry& entry : std::as_const(m_entries)) {
+        lastNode = m_tree->addRecord(lastNode, entry);
+        if (!lastNode) break;
     }
     m_tree->endBatchUpdate();
 
@@ -372,15 +319,32 @@ void LiveGameSession::discard()
 
 int LiveGameSession::totalPly() const
 {
-    return anchorPly() + static_cast<int>(m_moves.size());
+    return anchorPly() + static_cast<int>(m_entries.size());
 }
 
 QString LiveGameSession::currentSfen() const
 {
-    if (m_sfens.isEmpty()) {
-        return QString();
+    return m_entries.isEmpty() ? m_anchorSfen : m_entries.last().sfen;
+}
+
+QList<KifDisplayItem> LiveGameSession::moves() const
+{
+    QList<KifDisplayItem> result;
+    result.reserve(m_entries.size());
+    QString before = m_anchorSfen;
+    int ply = anchorPly();
+    for (const auto& entry : m_entries) {
+        KifDisplayItem item;
+        item.prettyMove = entry.displayText;
+        item.beforeSfen = before;
+        item.terminal = entry.isTerminal();
+        item.usiMove = entry.isTerminal() ? QString() : KifuPresentation::usiMove(entry.move);
+        item.timeText = entry.time.toText();
+        item.ply = ++ply;
+        result.append(item);
+        before = entry.sfen;
     }
-    return m_sfens.last();
+    return result;
 }
 
 int LiveGameSession::currentLineIndex() const
@@ -412,9 +376,8 @@ void LiveGameSession::reset()
     m_hasTerminal = false;
     m_branchPoint = nullptr;
     m_liveParent = nullptr;
-    m_moves.clear();
-    m_gameMoves.clear();
-    m_sfens.clear();
+    m_entries.clear();
+    m_anchorSfen.clear();
     m_createdNodeIds.clear();
     m_undoneNodeIds.clear();
     m_firstMoveNote.clear();

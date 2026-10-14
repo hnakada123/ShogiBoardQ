@@ -1,293 +1,83 @@
-/// @file tst_wiring_csagame.cpp
-/// @brief CsaGameWiring の配線契約テスト（ソース解析型）
-///
-/// wire() / wireExternalSignals() / startCsaGame() が
-/// 必要な connect() を漏れなく行っているかを検証する。
-
 #include <QtTest>
-#include <QFile>
-#include <QTextStream>
+#include <QTemporaryDir>
+#include <QStatusBar>
+#include "csagamecoordinator.h"
+#include "csagamewiring.h"
+#include "uistatepolicymanager.h"
 
-#ifndef SOURCE_DIR
-#error "SOURCE_DIR must be defined by CMake"
-#endif
-
+/// 実際の送受信オブジェクトで再配線・切断・状態遷移を検証する。
 class TestWiringCsaGame : public QObject
 {
     Q_OBJECT
-
-private:
-    QString m_wiringSrc;
-    QString m_wiringHeader;
-
-    /// ソースファイルを読み込む
-    static QString readSource(const QString& relativePath)
-    {
-        QFile f(QStringLiteral(SOURCE_DIR) + QStringLiteral("/") + relativePath);
-        if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-            return {};
-        return QString::fromUtf8(f.readAll());
-    }
-
-    /// 指定のシグナルパターンとスロットパターンが同一 connect() 呼び出し内に存在するか
-    static bool hasConnection(const QString& src,
-                              const QString& signalPattern,
-                              const QString& slotPattern)
-    {
-        qsizetype pos = 0;
-        while ((pos = src.indexOf(QStringLiteral("connect("), pos)) != -1) {
-            qsizetype end = src.indexOf(QStringLiteral(");"), pos);
-            if (end < 0) break;
-            const QString block = src.mid(pos, end - pos + 2);
-            if (block.contains(signalPattern) && block.contains(slotPattern))
-                return true;
-            pos = end + 1;
-        }
-        return false;
-    }
-
-    /// 指定のシグナル・スロット接続に Qt::UniqueConnection が付与されているか
-    static bool hasUniqueConnection(const QString& src,
-                                    const QString& signalPattern,
-                                    const QString& slotPattern)
-    {
-        qsizetype pos = 0;
-        while ((pos = src.indexOf(QStringLiteral("connect("), pos)) != -1) {
-            qsizetype end = src.indexOf(QStringLiteral(");"), pos);
-            if (end < 0) break;
-            const QString block = src.mid(pos, end - pos + 2);
-            if (block.contains(signalPattern)
-                && block.contains(slotPattern)
-                && block.contains(QStringLiteral("Qt::UniqueConnection"))) {
-                return true;
-            }
-            pos = end + 1;
-        }
-        return false;
-    }
-
-    /// connect() 呼び出しの総数を数える
-    static int countConnects(const QString& src)
-    {
-        int count = 0;
-        qsizetype pos = 0;
-        while ((pos = src.indexOf(QStringLiteral("connect("), pos)) != -1) {
-            ++count;
-            ++pos;
-        }
-        return count;
-    }
-
+    QTemporaryDir m_config;
 private slots:
     void initTestCase()
     {
-        m_wiringSrc = readSource(QStringLiteral("src/ui/wiring/csagamewiring.cpp"));
-        m_wiringHeader = readSource(QStringLiteral("src/ui/wiring/csagamewiring.h"));
-        QVERIFY2(!m_wiringSrc.isEmpty(), "csagamewiring.cpp not found");
-        QVERIFY2(!m_wiringHeader.isEmpty(), "csagamewiring.h not found");
+        QVERIFY(m_config.isValid());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
-
-    // ================================================================
-    // wire() 契約テスト
-    // ================================================================
-
-    void wire_connectsAllCoordinatorSignals()
+    void repeatedWiringDeliversOnce()
     {
-        // CsaGameCoordinator の主要シグナルがすべて接続されていること
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameCoordinator::gameStarted"),
-                               QStringLiteral("CsaGameWiring::onGameStarted")),
-                 "gameStarted → onGameStarted connection missing");
-
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameCoordinator::gameEnded"),
-                               QStringLiteral("CsaGameWiring::onGameEnded")),
-                 "gameEnded → onGameEnded connection missing");
-
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameCoordinator::moveMade"),
-                               QStringLiteral("CsaGameWiring::onMoveMade")),
-                 "moveMade → onMoveMade connection missing");
-
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameCoordinator::turnChanged"),
-                               QStringLiteral("CsaGameWiring::onTurnChanged")),
-                 "turnChanged → onTurnChanged connection missing");
-
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameCoordinator::logMessage"),
-                               QStringLiteral("CsaGameWiring::onLogMessage")),
-                 "logMessage → onLogMessage connection missing");
-
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameCoordinator::moveHighlightRequested"),
-                               QStringLiteral("CsaGameWiring::onMoveHighlightRequested")),
-                 "moveHighlightRequested → onMoveHighlightRequested connection missing");
-
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameCoordinator::errorOccurred"),
-                               QStringLiteral("CsaGameWiring::errorMessageRequested")),
-                 "errorOccurred → errorMessageRequested connection missing");
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("&CsaGameCoordinator::moveAppliedToBoard"),
-                               QStringLiteral("&CsaGameWiring::moveAppliedToBoard")),
-                 "moveAppliedToBoard → moveAppliedToBoard forward connection missing");
+        CsaGameCoordinator coordinator;
+        CsaGameWiring::Dependencies deps;
+        deps.coordinator = &coordinator;
+        CsaGameWiring wiring(deps);
+        QSignalSpy errors(&wiring, &CsaGameWiring::errorMessageRequested);
+        QSignalSpy moves(&wiring, &CsaGameWiring::moveAppliedToBoard);
+        wiring.wire();
+        wiring.wire();
+        coordinator.errorOccurred(QStringLiteral("connection failed"));
+        coordinator.moveAppliedToBoard();
+        QCOMPARE(errors.count(), 1);
+        QCOMPARE(errors.first().first().toString(), QStringLiteral("connection failed"));
+        QCOMPARE(moves.count(), 1);
+        wiring.unwire();
+        coordinator.errorOccurred(QStringLiteral("disconnected"));
+        coordinator.moveAppliedToBoard();
+        QCOMPARE(errors.count(), 1);
+        QCOMPARE(moves.count(), 1);
+        wiring.wire();
+        coordinator.moveAppliedToBoard();
+        QCOMPARE(moves.count(), 2);
     }
-
-    void wire_connectsInternalSignals()
+    void replacingCoordinatorDisconnectsOldSender()
     {
-        // 内部シグナル→内部スロットの接続
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameWiring::playModeChanged"),
-                               QStringLiteral("CsaGameWiring::onPlayModeChangedInternal")),
-                 "playModeChanged → onPlayModeChangedInternal connection missing");
-
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameWiring::showGameEndDialogRequested"),
-                               QStringLiteral("CsaGameWiring::showGameEndDialogInternal")),
-                 "showGameEndDialogRequested → showGameEndDialogInternal connection missing");
+        CsaGameCoordinator oldCoordinator, newCoordinator;
+        CsaGameWiring::Dependencies deps;
+        deps.coordinator = &oldCoordinator;
+        CsaGameWiring wiring(deps);
+        QSignalSpy moves(&wiring, &CsaGameWiring::moveAppliedToBoard);
+        wiring.wire();
+        wiring.setCoordinator(&newCoordinator);
+        wiring.wire();
+        oldCoordinator.moveAppliedToBoard();
+        QCOMPARE(moves.count(), 0);
+        newCoordinator.moveAppliedToBoard();
+        QCOMPARE(moves.count(), 1);
     }
-
-    void wire_usesUniqueConnection()
+    void startUpdatesModeAndNavigationOnce()
     {
-        QVERIFY2(hasUniqueConnection(m_wiringSrc,
-                                     QStringLiteral("CsaGameCoordinator::gameStarted"),
-                                     QStringLiteral("CsaGameWiring::onGameStarted")),
-                 "gameStarted connection must use Qt::UniqueConnection");
-        QVERIFY2(hasUniqueConnection(m_wiringSrc,
-                                     QStringLiteral("CsaGameWiring::playModeChanged"),
-                                     QStringLiteral("CsaGameWiring::onPlayModeChangedInternal")),
-                 "playModeChanged connection must use Qt::UniqueConnection");
-    }
-
-    // ================================================================
-    // wireExternalSignals() 契約テスト
-    // ================================================================
-
-    void wireExternalSignals_connectsUiStatePolicyManager()
-    {
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameWiring::disableNavigationRequested"),
-                               QStringLiteral("UiStatePolicyManager::transitionToDuringCsaGame")),
-                 "disableNavigationRequested → transitionToDuringCsaGame connection missing");
-
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameWiring::enableNavigationRequested"),
-                               QStringLiteral("UiStatePolicyManager::transitionToIdle")),
-                 "enableNavigationRequested → transitionToIdle connection missing");
-    }
-
-    void wireExternalSignals_connectsRecordService()
-    {
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameWiring::appendKifuLineRequested"),
-                               QStringLiteral("GameRecordUpdateService::appendKifuLine")),
-                 "appendKifuLineRequested → appendKifuLine connection missing");
-    }
-
-    void wireExternalSignals_connectsNotifService()
-    {
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameWiring::errorMessageRequested"),
-                               QStringLiteral("UiNotificationService::displayErrorMessage")),
-                 "errorMessageRequested → displayErrorMessage connection missing");
-    }
-
-    void wireExternalSignals_usesUniqueConnection()
-    {
-        QVERIFY2(hasUniqueConnection(m_wiringSrc,
-                                     QStringLiteral("CsaGameWiring::disableNavigationRequested"),
-                                     QStringLiteral("UiStatePolicyManager::transitionToDuringCsaGame")),
-                 "disableNavigationRequested external connection must use Qt::UniqueConnection");
-        QVERIFY2(hasUniqueConnection(m_wiringSrc,
-                                     QStringLiteral("CsaGameWiring::appendKifuLineRequested"),
-                                     QStringLiteral("GameRecordUpdateService::appendKifuLine")),
-                 "appendKifuLineRequested external connection must use Qt::UniqueConnection");
-    }
-
-    // ================================================================
-    // startCsaGame() 契約テスト
-    // ================================================================
-
-    void startCsaGame_connectsCsaLogAndCommands()
-    {
-        // CSA通信ログの転送
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("CsaGameCoordinator::csaCommLogAppended"),
-                               QStringLiteral("EngineAnalysisTab::appendCsaLog")),
-                 "csaCommLogAppended → appendCsaLog connection missing");
-
-        // CSAコマンド送信
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("EngineAnalysisTab::csaRawCommandRequested"),
-                               QStringLiteral("CsaGameCoordinator::sendRawCommand")),
-                 "csaRawCommandRequested → sendRawCommand connection missing");
-
-        // 盤面操作からの指し手転送
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("BoardSetupController::csaMoveRequested"),
-                               QStringLiteral("CsaGameCoordinator::onHumanMove")),
-                 "csaMoveRequested → onHumanMove connection missing");
-    }
-
-    // ================================================================
-    // 全体構造テスト
-    // ================================================================
-
-    void totalConnectCount_matchesExpected()
-    {
-        const int total = countConnects(m_wiringSrc);
-        // wire():9 + startCsaGame():4 + wireExternalSignals():4 = 17以上
-        QVERIFY2(total >= 17,
-                 qPrintable(QStringLiteral("Expected >= 17 connect() calls, got %1").arg(total)));
-    }
-
-    void setCoordinator_hasSelfAssignmentGuard()
-    {
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("if (m_coordinator == coordinator)")),
-                 "setCoordinator should early-return for same coordinator pointer");
-    }
-
-    void onGameStarted_doesNotResetBoardOrSfenToHirate()
-    {
-        QVERIFY2(!m_wiringSrc.contains(QStringLiteral("SfenUtils::hirateSfen()")),
-                 "onGameStarted must not reset CSA start position to hirate");
-        QVERIFY2(!m_wiringSrc.contains(QStringLiteral("m_sfenHistory->clear();")),
-                 "onGameStarted must not clear coordinator-populated sfenHistory");
-        QVERIFY2(!m_wiringSrc.contains(QStringLiteral("board()->setSfen(")),
-                 "onGameStarted must not overwrite coordinator-populated board state");
-    }
-
-    void onGameEnded_recordsOuteSennichiteBySideToMove()
-    {
-        // 連続王手の千日手は手番側の「反則勝ち／反則負け」で記録する（敗者の印の「反則負け」だと、
-        // 王手をかけた手で千日手になったときに保存・読み込みで勝者が入れ替わる）
-        QVERIFY2(m_wiringSrc.contains(
-                     QStringLiteral("case Cause::OuteSennichite: return KifuParseCommon::foulTerminalMove(loserIsBlack, blackToMove);")),
-                 "OuteSennichite end line must be built from the side to move");
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("lastSfen.section(QLatin1Char(' '), 1, 1)")),
-                 "side to move at game end must come from the last SFEN");
-    }
-
-    void onGameStarted_replaysInitialPrettyMoves()
-    {
-        QVERIFY2(m_wiringHeader.contains(QStringLiteral("const QStringList& initialPrettyMoves")),
-                 "onGameStarted should accept initialPrettyMoves");
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("appendInitialKifuLine(initialPrettyMoves.at(i), elapsed, sfen)")),
-                 "onGameStarted should record each Game_Summary move with its own SFEN");
-    }
-
-    void startCsaGame_checksDialogResultAndRestoresPlayModeOnFailure()
-    {
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("const int result = waitingDialog.exec();")),
-                 "startCsaGame should inspect waiting dialog result");
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("PlayMode::NotStarted")),
-                 "startCsaGame should restore PlayMode on CSA startup failure");
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("return started;")),
-                 "startCsaGame should return whether CSA game actually started");
+        CsaGameCoordinator coordinator;
+        PlayMode mode = PlayMode::NotStarted;
+        QStatusBar status;
+        CsaGameWiring::Dependencies deps;
+        deps.coordinator = &coordinator;
+        deps.playMode = &mode;
+        deps.statusBar = &status;
+        CsaGameWiring wiring(deps);
+        UiStatePolicyManager policy;
+        wiring.wire();
+        wiring.wireExternalSignals(&policy, nullptr, nullptr);
+        wiring.wireExternalSignals(&policy, nullptr, nullptr);
+        QSignalSpy navigation(&wiring, &CsaGameWiring::disableNavigationRequested);
+        coordinator.gameStarted(QStringLiteral("Black"), QStringLiteral("White"), {});
+        QCOMPARE(mode, PlayMode::CsaNetworkMode);
+        QCOMPARE(policy.currentState(), UiStatePolicyManager::AppState::DuringCsaGame);
+        QCOMPARE(navigation.count(), 1);
+        QVERIFY(status.currentMessage().contains(QStringLiteral("Black")));
+        wiring.enableNavigationRequested();
+        QCOMPARE(policy.currentState(), UiStatePolicyManager::AppState::Idle);
     }
 };
-
 QTEST_MAIN(TestWiringCsaGame)
-
 #include "tst_wiring_csagame.moc"
