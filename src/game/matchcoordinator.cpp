@@ -73,9 +73,6 @@ EngineLifecycleManager::Refs MatchCoordinator::buildEngineLifecycleRefs()
 EngineLifecycleManager::Hooks MatchCoordinator::buildEngineLifecycleHooks()
 {
     EngineLifecycleManager::Hooks hooks;
-    hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
-    hooks.appendEvalP1 = m_hooks.game.appendEvalP1;
-    hooks.appendEvalP2 = m_hooks.game.appendEvalP2;
     hooks.onEngineResign = [this](Turn side) { handleEngineResign(side); };
     hooks.onEngineWin = [this](Turn side) { handleEngineWin(side); };
     return hooks;
@@ -175,7 +172,7 @@ void MatchCoordinator::configureAnalysisSession()
                 this, &MatchCoordinator::onUsiError, Qt::UniqueConnection);
         m_engineManager->wireResignToArbiter(usi, Turn::Black);
         m_engineManager->wireWinToArbiter(usi, Turn::Black);
-        usi->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), opt.engineName);
+        usi->setLogIdentity(QStringLiteral("[E1]"), QString(), opt.engineName);
         usi->setSquelchResignLogging(false);
         return usi;
     };
@@ -375,10 +372,10 @@ void MatchCoordinator::clearGameOverState()
     m_gameEndHandler->clearGameOverState();
 }
 
-void MatchCoordinator::setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce)
+void MatchCoordinator::setGameOver(const GameEndInfo& info, bool appendMoveOnce)
 {
     ensureGameEndHandler();
-    m_gameEndHandler->setGameOver(info, loserIsP1, appendMoveOnce);
+    m_gameEndHandler->setGameOver(info, appendMoveOnce);
 }
 
 void MatchCoordinator::markGameOverMoveAppended()
@@ -418,20 +415,20 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     return GameStartOrchestrator::buildStartOptions(mode, startSfenStr, sfenRecord, dlg);
 }
 
-void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, bool bottomIsP1)
+void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, Turn bottomSide)
 {
     ensureGameStartOrchestrator();
-    m_gameStartOrchestrator->ensureHumanAtBottomIfApplicable(dlg, bottomIsP1);
+    m_gameStartOrchestrator->ensureHumanAtBottomIfApplicable(dlg, bottomSide);
 }
 
 void MatchCoordinator::prepareAndStartGame(PlayMode mode,
                                            const QString& startSfenStr,
                                            const QStringList* sfenRecord,
                                            const StartGameDialogData* dlg,
-                                           bool bottomIsP1)
+                                           Turn bottomSide)
 {
     ensureGameStartOrchestrator();
-    m_gameStartOrchestrator->prepareAndStartGame(mode, startSfenStr, sfenRecord, dlg, bottomIsP1);
+    m_gameStartOrchestrator->prepareAndStartGame(mode, startSfenStr, sfenRecord, dlg, bottomSide);
 }
 
 // --- ターン進行（MatchTurnHandler へ委譲） ---

@@ -92,6 +92,6 @@ GameStartCoordinator::Ctx MainWindowGameStartService::buildContext(const Context
     c.startSfenStr = deps.startSfenStr;
     c.selectedPly = deps.selectedPly;
     c.isReplayMode = deps.isReplayMode;
-    c.bottomIsP1 = deps.bottomIsP1;
+    c.bottomSide = deps.bottomSide;
     return c;
 }

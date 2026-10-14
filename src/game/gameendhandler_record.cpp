@@ -120,9 +120,8 @@ QString GameEndHandler::resultMessage(const GameEndInfo& info) const
     const bool handicapNames = usesHandicapNames();
     const QString blackJP = handicapNames ? tr("下手") : tr("先手");
     const QString whiteJP = handicapNames ? tr("上手") : tr("後手");
-    const bool loserIsP1 = (info.loser == Turn::Black);
-    const QString loserJP = loserIsP1 ? blackJP : whiteJP;
-    const QString winnerJP = loserIsP1 ? whiteJP : blackJP;
+    const QString loserJP = (info.loser == Turn::Black) ? blackJP : whiteJP;
+    const QString winnerJP = (info.loser == Turn::Black) ? whiteJP : blackJP;
 
     QString msg;
     switch (info.cause) {

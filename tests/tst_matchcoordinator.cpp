@@ -78,8 +78,7 @@ struct MCTestHarness {
         deps.hooks.game.appendKifuLine = [this](const QString&, const QString&) {
             ++appendKifuLineCount;
         };
-        deps.hooks.game.appendEvalP1 = []() {};
-        deps.hooks.game.appendEvalP2 = []() {};
+        deps.hooks.game.appendEval = [](Turn) {};
         deps.hooks.game.autoSaveKifu = [](const QString&) {};
 
         mc = std::make_unique<MatchCoordinator>(deps);
@@ -216,13 +215,12 @@ void Tst_MatchCoordinator::setGameOver_setsStateAndEmitsSignals()
     info.cause = MatchCoordinator::Cause::Resignation;
     info.loser = Turn::Black;
 
-    h.mc->setGameOver(info, true);
+    h.mc->setGameOver(info);
 
     // 状態確認
     const auto& st = h.mc->gameOverState();
     QVERIFY(st.isOver);
     QVERIFY(st.hasLast);
-    QVERIFY(st.lastLoserIsP1);
     QCOMPARE(st.lastInfo.cause, MatchCoordinator::Cause::Resignation);
     QCOMPARE(st.lastInfo.loser, Turn::Black);
 
@@ -239,19 +237,19 @@ void Tst_MatchCoordinator::setGameOver_doubleCallIgnored()
     info.cause = MatchCoordinator::Cause::Resignation;
     info.loser = Turn::Black;
 
-    h.mc->setGameOver(info, true);
+    h.mc->setGameOver(info);
 
     QSignalSpy endedSpy(h.mc.get(), &MatchCoordinator::gameEnded);
     QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
 
     // 2回目は無視される
     info.loser = Turn::White;
-    h.mc->setGameOver(info, false);
+    h.mc->setGameOver(info);
 
     QCOMPARE(endedSpy.count(), 0);
     QCOMPARE(stateSpy.count(), 0);
     // 最初の値が残っている
-    QVERIFY(h.mc->gameOverState().lastLoserIsP1);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
 }
 
 void Tst_MatchCoordinator::setGameOver_emitsRequestAppendGameOverMove()
@@ -263,7 +261,7 @@ void Tst_MatchCoordinator::setGameOver_emitsRequestAppendGameOverMove()
     info.cause = MatchCoordinator::Cause::Timeout;
     info.loser = Turn::White;
 
-    h.mc->setGameOver(info, false, true);  // appendMoveOnce=true
+    h.mc->setGameOver(info, true);  // appendMoveOnce=true
 
     QCOMPARE(appendSpy.count(), 1);
     auto receivedInfo = appendSpy.first().first().value<MatchCoordinator::GameEndInfo>();
@@ -279,7 +277,7 @@ void Tst_MatchCoordinator::clearGameOverState_clearsAndEmitsSignal()
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Resignation;
     info.loser = Turn::Black;
-    h.mc->setGameOver(info, true);
+    h.mc->setGameOver(info);
     QVERIFY(h.mc->gameOverState().isOver);
 
     QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
@@ -310,7 +308,7 @@ void Tst_MatchCoordinator::markGameOverMoveAppended_marksAndEmitsSignal()
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Resignation;
     info.loser = Turn::Black;
-    h.mc->setGameOver(info, true, false);  // appendMoveOnce=false
+    h.mc->setGameOver(info, false);  // appendMoveOnce=false
 
     QVERIFY(!h.mc->gameOverState().moveAppended);
 
@@ -339,7 +337,7 @@ void Tst_MatchCoordinator::markGameOverMoveAppended_doubleCallIgnored()
     MatchCoordinator::GameEndInfo info;
     info.cause = MatchCoordinator::Cause::Resignation;
     info.loser = Turn::Black;
-    h.mc->setGameOver(info, true, false);
+    h.mc->setGameOver(info, false);
     h.mc->markGameOverMoveAppended();
     QVERIFY(h.mc->gameOverState().moveAppended);
 
@@ -549,7 +547,7 @@ void Tst_MatchCoordinator::gameEnded_signalCarriesCorrectInfo()
     info.cause = MatchCoordinator::Cause::Timeout;
     info.loser = Turn::White;
 
-    h.mc->setGameOver(info, false);
+    h.mc->setGameOver(info);
 
     QCOMPARE(spy.count(), 1);
     auto receivedInfo = spy.first().first().value<MatchCoordinator::GameEndInfo>();
@@ -566,13 +564,13 @@ void Tst_MatchCoordinator::gameOverStateChanged_signalCarriesState()
     info.cause = MatchCoordinator::Cause::Sennichite;
     info.loser = Turn::Black;
 
-    h.mc->setGameOver(info, true);
+    h.mc->setGameOver(info);
 
     QCOMPARE(spy.count(), 1);
     auto state = spy.first().first().value<MatchCoordinator::GameOverState>();
     QVERIFY(state.isOver);
     QVERIFY(state.hasLast);
-    QVERIFY(state.lastLoserIsP1);
+    QCOMPARE(state.lastInfo.loser, Turn::Black);
 }
 
 // ============================================================
@@ -587,7 +585,6 @@ void Tst_MatchCoordinator::humanVsEngine_engineStartFailure_breaksOffAfterStart(
     opt.sfenStart = SfenUtils::hirateSfen();
     opt.engineName2 = QStringLiteral("MissingEngine");
     opt.enginePath2 = m_config.filePath(QStringLiteral("missing-engine"));
-    opt.engineIsP2 = true;
     h.mc->configureAndStart(opt);
 
     // 起動の失敗は開始処理の中で通知されるが、中断は開始処理を終えてから行う
@@ -631,7 +628,6 @@ void Tst_MatchCoordinator::humanVsEngine_engineExit_breaksOff()
     opt.sfenStart = SfenUtils::hirateSfen();
     opt.engineName1 = QStringLiteral("ExitingEngine");
     opt.enginePath1 = mockMatchEnginePath();
-    opt.engineIsP1 = true;
     h.mc->configureAndStart(opt);
     h.mc->startInitialEngineMoveIfNeeded();
 

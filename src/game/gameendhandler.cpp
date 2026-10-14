@@ -57,9 +57,9 @@ void GameEndHandler::handleResign()
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser == Turn::Black, u1, u2, rawSender);
+        *m_refs.playMode, info.loser, u1, u2, rawSender);
 
-    setGameOver(info, info.loser == Turn::Black, true);
+    setGameOver(info, true);
     displayResultsAndUpdateGui(info);
 }
 
@@ -78,12 +78,11 @@ void GameEndHandler::handleEngineResign(Turn side)
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser == Turn::Black, u1, u2, rawSender);
+        *m_refs.playMode, info.loser, u1, u2, rawSender);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 
-    const bool loserIsP1 = (info.loser == Turn::Black);
-    setGameOver(info, loserIsP1, true);
+    setGameOver(info, true);
     displayResultsAndUpdateGui(info);
 }
 
@@ -104,11 +103,11 @@ void GameEndHandler::handleEngineIllegalMove(Turn side)
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     // 投了と同じく、負けた側に gameover lose、相手に gameover win を送る
     EngineGameOverNotifier::notifyResignation(
-        *m_refs.playMode, info.loser == Turn::Black, u1, u2, rawSender);
+        *m_refs.playMode, info.loser, u1, u2, rawSender);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 
-    setGameOver(info, info.loser == Turn::Black, true);
+    setGameOver(info, true);
     displayResultsAndUpdateGui(info);
 }
 
@@ -117,7 +116,7 @@ void GameEndHandler::handleTimeout(Turn loser)
     if (m_refs.gameOver->isOver) return;
 
     const GameEndInfo info{Cause::Timeout, loser};
-    setGameOver(info, loser == Turn::Black, true);
+    setGameOver(info, true);
     if (m_refs.clock) {
         m_refs.clock->markGameOver();
         m_refs.clock->stopClock();
@@ -200,12 +199,11 @@ void GameEndHandler::handleNyugyokuDeclaration(Turn declarer, bool success, bool
     Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
     Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyNyugyoku(
-        *m_refs.playMode, isDraw, info.loser == Turn::Black, u1, u2, rawSender);
+        *m_refs.playMode, isDraw, info.loser, u1, u2, rawSender);
     if (u1) u1->setSquelchResignLogging(true);
     if (u2) u2->setSquelchResignLogging(true);
 
-    const bool loserIsP1 = (info.loser == Turn::Black);
-    setGameOver(info, loserIsP1, true);
+    setGameOver(info, true);
     if (m_hooks.autoSaveKifuIfEnabled) m_hooks.autoSaveKifuIfEnabled();
     emit gameEndProcessed(info);
 }
@@ -294,7 +292,7 @@ void GameEndHandler::handleMaxMovesJishogi()
     info.cause = Cause::Jishogi;
     info.loser = Turn::Black;
 
-    setGameOver(info, true, true);
+    setGameOver(info, true);
 
     appendGameOverLineAndMark(Cause::Jishogi, Turn::Black);
     displayResultsAndUpdateGui(info);
@@ -321,11 +319,11 @@ bool GameEndHandler::checkAndHandleSennichite()
     case SennichiteDetector::Result::Draw:
         handleSennichite();
         return true;
-    case SennichiteDetector::Result::ContinuousCheckByP1:
-        handleOuteSennichite(true);
+    case SennichiteDetector::Result::ContinuousCheckByBlack:
+        handleOuteSennichite(Turn::Black);
         return true;
-    case SennichiteDetector::Result::ContinuousCheckByP2:
-        handleOuteSennichite(false);
+    case SennichiteDetector::Result::ContinuousCheckByWhite:
+        handleOuteSennichite(Turn::White);
         return true;
     }
     return false;
@@ -361,21 +359,19 @@ void GameEndHandler::handleSennichite()
     info.cause = Cause::Sennichite;
     info.loser = Turn::Black;
 
-    setGameOver(info, true, true);
+    setGameOver(info, true);
 
     appendGameOverLineAndMark(Cause::Sennichite, Turn::Black);
     displayResultsAndUpdateGui(info);
 }
 
-void GameEndHandler::handleOuteSennichite(bool p1Loses)
+void GameEndHandler::handleOuteSennichite(Turn loser)
 {
     if (m_refs.gameOver->isOver) return;
 
-    const Turn loser = p1Loses ? Turn::Black : Turn::White;
-    const Turn winner = p1Loses ? Turn::White : Turn::Black;
+    const Turn winner = (loser == Turn::Black) ? Turn::White : Turn::Black;
 
-    qCInfo(lcGame) << "handleOuteSennichite(): continuous check by"
-                   << (p1Loses ? "P1(sente)" : "P2(gote)");
+    qCInfo(lcGame) << "handleOuteSennichite(): continuous check by" << loser;
 
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
 
@@ -397,10 +393,10 @@ void GameEndHandler::handleOuteSennichite(bool p1Loses)
         }
     } else {
         if (Usi* eng = m_hooks.primaryEngine ? m_hooks.primaryEngine() : nullptr) {
-            const bool engineIsP1 =
+            const bool engineIsBlack =
                 (*m_refs.playMode == PlayMode::EvenEngineVsHuman) ||
                 (*m_refs.playMode == PlayMode::HandicapEngineVsHuman);
-            const Turn engineSide = engineIsP1 ? Turn::Black : Turn::White;
+            const Turn engineSide = engineIsBlack ? Turn::Black : Turn::White;
             const auto result = (winner == engineSide) ? GameOverResult::Win : GameOverResult::Lose;
             eng->sendGameOverCommand(result); eng->sendQuitCommand(); eng->setSquelchResignLogging(true);
         }
@@ -410,7 +406,7 @@ void GameEndHandler::handleOuteSennichite(bool p1Loses)
     info.cause = Cause::OuteSennichite;
     info.loser = loser;
 
-    setGameOver(info, p1Loses, true);
+    setGameOver(info, true);
 
     appendGameOverLineAndMark(Cause::OuteSennichite, loser);
     displayResultsAndUpdateGui(info);
@@ -428,7 +424,7 @@ void GameEndHandler::clearGameOverState()
     }
 }
 
-void GameEndHandler::setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce)
+void GameEndHandler::setGameOver(const GameEndInfo& info, bool appendMoveOnce)
 {
     if (m_refs.gameOver->isOver) {
         qCDebug(lcGame) << "setGameOver() ignored: already over";
@@ -443,7 +439,6 @@ void GameEndHandler::setGameOver(const GameEndInfo& info, bool loserIsP1, bool a
 
     m_refs.gameOver->isOver        = true;
     m_refs.gameOver->hasLast       = true;
-    m_refs.gameOver->lastLoserIsP1 = loserIsP1;
     m_refs.gameOver->lastInfo      = info;
     m_refs.gameOver->when          = QDateTime::currentDateTime();
 

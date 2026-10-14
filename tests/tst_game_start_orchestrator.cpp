@@ -156,7 +156,6 @@ private slots:
     void buildStartOptions_setsMode();
     void buildStartOptions_setsSfenStart();
     void buildStartOptions_sfenFromRecord();
-    void buildStartOptions_engineIsP1_forEvH();
 
     // === Section D: 対局履歴の蓄積 ===
 
@@ -171,6 +170,8 @@ private slots:
     // === Section F: ensureHumanAtBottomIfApplicable ===
 
     void ensureHumanAtBottom_noDialog_noFlip();
+    void ensureHumanAtBottom_flipsOnlyWhenHumanIsNotAtBottom_data();
+    void ensureHumanAtBottom_flipsOnlyWhenHumanIsNotAtBottom();
 
     // === Section G: position文字列の初期化（フォールバック） ===
 
@@ -347,18 +348,6 @@ void Tst_GameStartOrchestrator::buildStartOptions_sfenFromRecord()
     QCOMPARE(opt.sfenStart, record.first());
 }
 
-void Tst_GameStartOrchestrator::buildStartOptions_engineIsP1_forEvH()
-{
-    auto opt = GameStartOrchestrator::buildStartOptions(
-        PlayMode::EvenEngineVsHuman,
-        QStringLiteral("startpos"),
-        nullptr,
-        nullptr);
-
-    QVERIFY(opt.engineIsP1);
-    QVERIFY(!opt.engineIsP2);
-}
-
 // ============================================================
 // Section D: 対局履歴の蓄積
 // ============================================================
@@ -417,7 +406,7 @@ void Tst_GameStartOrchestrator::prepareAndStartGame_callsConfigureAndStart()
         QStringLiteral("startpos"),
         nullptr,
         nullptr,
-        true);
+        Turn::Black);
 
     // configureAndStart should have been called (hooks invoked)
     QVERIFY(OrcTracker::clearGameOverStateCalled);
@@ -433,7 +422,7 @@ void Tst_GameStartOrchestrator::prepareAndStartGame_callsStartInitialEngineMove(
         QStringLiteral("startpos"),
         nullptr,
         nullptr,
-        true);
+        Turn::Black);
 
     QVERIFY(OrcTracker::startInitialEngineMoveIfNeededCalled);
 }
@@ -445,9 +434,36 @@ void Tst_GameStartOrchestrator::prepareAndStartGame_callsStartInitialEngineMove(
 void Tst_GameStartOrchestrator::ensureHumanAtBottom_noDialog_noFlip()
 {
     OrcTestHarness h;
-    h.orc.ensureHumanAtBottomIfApplicable(nullptr, true);
+    h.orc.ensureHumanAtBottomIfApplicable(nullptr, Turn::Black);
 
     QVERIFY(!OrcTracker::flipBoardCalled);
+}
+
+void Tst_GameStartOrchestrator::ensureHumanAtBottom_flipsOnlyWhenHumanIsNotAtBottom_data()
+{
+    QTest::addColumn<bool>("humanIsBlack");
+    QTest::addColumn<bool>("bottomIsBlack");
+    QTest::addColumn<bool>("expectFlip");
+    QTest::newRow("human-black-at-bottom") << true << true << false;
+    QTest::newRow("human-black-at-top") << true << false << true;
+    QTest::newRow("human-white-at-top") << false << true << true;
+    QTest::newRow("human-white-at-bottom") << false << false << false;
+}
+
+void Tst_GameStartOrchestrator::ensureHumanAtBottom_flipsOnlyWhenHumanIsNotAtBottom()
+{
+    // 「人を手前に表示する」とき、人間の側が手前でなければ1回だけ反転する
+    QFETCH(bool, humanIsBlack);
+    QFETCH(bool, bottomIsBlack);
+    QFETCH(bool, expectFlip);
+    OrcTestHarness h;
+    StartGameDialogData dlg;
+    dlg.isShowHumanInFront = true;
+    dlg.isHuman1 = humanIsBlack;
+    dlg.isHuman2 = !humanIsBlack;
+    h.orc.ensureHumanAtBottomIfApplicable(&dlg, bottomIsBlack ? Turn::Black : Turn::White);
+
+    QCOMPARE(OrcTracker::flipBoardCalled, expectFlip);
 }
 
 // ============================================================

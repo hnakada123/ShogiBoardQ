@@ -79,12 +79,8 @@ void TurnStateSyncService::updateTurnAndTimekeepingDisplay()
     // 時計の再描画（Presenterに現在値を流し直し）
     ShogiClock* clk = m_deps.timeController ? m_deps.timeController->clock() : nullptr;
     if (m_deps.timePresenter && clk) {
-        const qint64 p1 = clk->remainingMs(Turn::Black);
-        const qint64 p2 = clk->remainingMs(Turn::White);
-        const bool p1turn =
-            (m_deps.gameController
-                 ? (m_deps.gameController->currentPlayer() == Turn::Black)
-                 : true);
-        m_deps.timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
+        const Turn sideToMove = m_deps.gameController ? m_deps.gameController->currentPlayer() : Turn::Black;
+        m_deps.timePresenter->onMatchTimeUpdated(clk->remainingMs(Turn::Black), clk->remainingMs(Turn::White),
+                                                 sideToMove, /*urgencyMs*/ 0);
     }
 }

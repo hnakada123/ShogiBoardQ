@@ -21,7 +21,7 @@ class HumanVsEngineStrategy : public QObject, public GameModeStrategy {
     Q_OBJECT
 public:
     HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
-                          bool engineIsP1,
+                          Turn engineSide,
                           QString enginePath,
                           QString engineName);
 
@@ -52,7 +52,7 @@ private:
     void finishHumanTimerInternal();
 
     MatchCoordinator::StrategyContext& m_ctx;
-    bool m_engineIsP1;
+    Turn m_engineSide;                 ///< エンジンの手番（人間はその相手）
     QString m_enginePath;
     QString m_engineName;
     QElapsedTimer m_humanTurnTimer;

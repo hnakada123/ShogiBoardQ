@@ -175,6 +175,32 @@ private slots:
         QVERIFY(!h.match->gameOverState().isOver);
     }
 
+    // 局面の文字列と盤の手前の側を渡されていなくても、対局を始められる（null を読まない）
+    void newGameWithoutPositionAndBoardSidePointers()
+    {
+        auto& settings = SettingsCommon::openSettings();
+        settings.clear();
+        settings.setValue("GameSettings/isHuman1", true);
+        settings.setValue("GameSettings/isHuman2", true);
+        settings.setValue("GameSettings/startingPositionNumber", 1);
+        settings.sync();
+        SessionHarness h;
+        GameStartCoordinator starter({h.match});
+        h.deps.gameStart = [&starter]() { return &starter; };
+        h.deps.startSfenStr = nullptr;
+        h.deps.currentSfenStr = nullptr;
+        h.deps.bottomSide = nullptr;
+        h.session.updateDeps(h.deps);
+        m_acceptDialog = true;
+        m_dialogSeen = false;
+        QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
+        h.session.initializeGame();
+        QVERIFY(m_dialogSeen);
+        QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);
+        QVERIFY(!h.history.isEmpty());
+        QCOMPARE(h.history.first(), SfenUtils::hirateSfen());
+    }
+
     void newGameStartsMatchClockFromLiveOrReplay_data()
     {
         QTest::addColumn<bool>("replay");

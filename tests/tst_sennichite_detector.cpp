@@ -58,14 +58,14 @@ private slots:
         using R = SennichiteDetector::Result;
         // 12手目で開始局面が4回目。先手の王手を後手が逃げた手で成立する
         QTest::newRow("black-checks-completed-by-escape") << buildRecord(kBlackChecks, 0, 12)
-                                                          << int(R::ContinuousCheckByP1);
+                                                          << int(R::ContinuousCheckByBlack);
         // 王手をかけた局面から始めると、先手の王手の手で成立する
         QTest::newRow("black-checks-completed-by-check") << buildRecord(kBlackChecks, 1, 12)
-                                                         << int(R::ContinuousCheckByP1);
+                                                         << int(R::ContinuousCheckByBlack);
         QTest::newRow("white-checks-completed-by-escape") << buildRecord(kWhiteChecks, 0, 12)
-                                                          << int(R::ContinuousCheckByP2);
+                                                          << int(R::ContinuousCheckByWhite);
         QTest::newRow("white-checks-completed-by-check") << buildRecord(kWhiteChecks, 1, 12)
-                                                         << int(R::ContinuousCheckByP2);
+                                                         << int(R::ContinuousCheckByWhite);
         QTest::newRow("no-checks-is-draw") << buildRecord(kKingsShuffle, 0, 12) << int(R::Draw);
         // 3回目まではまだ千日手ではない
         QTest::newRow("third-occurrence") << buildRecord(kBlackChecks, 0, 8) << int(R::None);

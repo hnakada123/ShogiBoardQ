@@ -91,7 +91,7 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     return opt;
 }
 
-void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
+void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, Turn) {}
 void MatchCoordinator::handleResign() {}
 void MatchCoordinator::handleEngineResign(Turn) {}
 void MatchCoordinator::handleEngineWin(Turn) {}
@@ -106,7 +106,7 @@ void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Turn) {}
 void MatchCoordinator::disarmHumanTimerIfNeeded() {}
 void MatchCoordinator::initializeAndStartEngineFor(Turn, const QString&, const QString&) {}
 void MatchCoordinator::destroyEngines(bool) {}
-void MatchCoordinator::setGameOver(const GameEndInfo&, bool, bool) {}
+void MatchCoordinator::setGameOver(const GameEndInfo&, bool) {}
 void MatchCoordinator::markGameOverMoveAppended() {}
 void MatchCoordinator::startAnalysis(const AnalysisOptions&) {}
 void MatchCoordinator::stopAnalysisEngine() {}
@@ -114,7 +114,7 @@ void MatchCoordinator::updateConsiderationMultiPV(int) {}
 bool MatchCoordinator::updateConsiderationPosition(const QString&, int, int, const QString&) { return false; }
 Usi* MatchCoordinator::primaryEngine() const { return nullptr; }
 Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
-void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
+void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, Turn) {}
 void MatchCoordinator::handlePlayerTimeOut(Turn) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Turn) {}

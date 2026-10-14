@@ -60,10 +60,7 @@ struct PlayerState {
     QString humanName2;
     QString engineName1;
     QString engineName2;
-    bool bottomIsP1 = true;
-    bool lastP1Turn = true;
-    qint64 lastP1Ms = 0;
-    qint64 lastP2Ms = 0;
+    Turn bottomSide = Turn::Black;   ///< 盤の手前に表示している側（盤の反転で入れ替わる）
 };
 
 /// データモデル群

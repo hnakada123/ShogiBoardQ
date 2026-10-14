@@ -282,7 +282,7 @@ GUI を使うテストは、必ず `xvfb-run` の上で実行してください�
   `tests/tst_wiring_contracts.cpp` が転送を確かめているので、合わせて直してください。
 - **フックからシグナルへ**：`MatchCoordinatorHooks`（`src/game/matchcoordinatorhooks.h`）の `UI` と `Game` には、
   `std::function` のフックが並んでいます。このうち通知だけのもの（戻り値がなく、呼び出し側が結果を待たないもの。
-  `updateTurnDisplay`、`showMoveHighlights`、`appendEvalP1/P2` など）は、MatchCoordinator のシグナルにできます。
+  `updateTurnDisplay`、`showMoveHighlights`、`appendEval` など）は、MatchCoordinator のシグナルにできます。
   問い合わせ（`usesHandicapNames` など、戻り値を使うもの）はフックのまま残します。
 
 どちらも、実施する価値があるかを読んで判断し、判断の理由を報告してください。実施するときは、

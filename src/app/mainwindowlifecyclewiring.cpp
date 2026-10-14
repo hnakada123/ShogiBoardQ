@@ -142,10 +142,7 @@ void MainWindowServiceRegistry::refreshAppearanceDeps()
     appDeps.shogiView = m_mw.m_shogiView;
     appDeps.timePresenter = m_mw.m_timePresenter;
     appDeps.match = m_mw.m_match;
-    appDeps.bottomIsP1 = &m_mw.m_player.bottomIsP1;
-    appDeps.lastP1Turn = &m_mw.m_player.lastP1Turn;
-    appDeps.lastP1Ms = &m_mw.m_player.lastP1Ms;
-    appDeps.lastP2Ms = &m_mw.m_player.lastP2Ms;
+    appDeps.bottomSide = &m_mw.m_player.bottomSide;
     m_mw.m_appearanceController->updateDeps(appDeps);
 }
 

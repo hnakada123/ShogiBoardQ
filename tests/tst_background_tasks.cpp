@@ -301,13 +301,13 @@ private slots:
     }
     void gameOverCancelsLateMoveAndReapsBothEngines_data()
     {
-        QTest::addColumn<bool>("loserIsP1");
+        QTest::addColumn<bool>("loserIsBlack");
         QTest::addColumn<bool>("nyugyoku");
-        for (bool loserIsP1 : {false, true}) {
+        for (bool loserIsBlack : {false, true}) {
             for (bool nyugyoku : {false, true}) {
                 QTest::newRow(qPrintable(QStringLiteral("%1-loser-%2")
-                    .arg(nyugyoku ? "nyugyoku" : "resign").arg(loserIsP1 ? "p1" : "p2")))
-                    << loserIsP1 << nyugyoku;
+                    .arg(nyugyoku ? "nyugyoku" : "resign").arg(loserIsBlack ? "p1" : "p2")))
+                    << loserIsBlack << nyugyoku;
             }
         }
     }
@@ -384,7 +384,7 @@ private slots:
     }
     void gameOverCancelsLateMoveAndReapsBothEngines()
     {
-        QFETCH(bool, loserIsP1);
+        QFETCH(bool, loserIsBlack);
         QFETCH(bool, nyugyoku);
         EnginePonderSettings::save(engineName, true, true);
         ShogiGameController game;
@@ -411,13 +411,14 @@ private slots:
         thinking.requestMatchMove(position, {}, timing);
         QTest::qWait(30);
         const auto existing = qApp->findChildren<QProcess*>();
-        Usi* p1 = loserIsP1 ? &thinking : &pondering;
-        Usi* p2 = loserIsP1 ? &pondering : &thinking;
+        const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
+        Usi* p1 = loserIsBlack ? &thinking : &pondering;
+        Usi* p2 = loserIsBlack ? &pondering : &thinking;
         const auto sendRaw = [](Usi* engine, const QString& command) { engine->sendRaw(command); };
         if (nyugyoku)
-            EngineGameOverNotifier::notifyNyugyoku(PlayMode::EvenEngineVsEngine, false, loserIsP1, p1, p2, sendRaw);
+            EngineGameOverNotifier::notifyNyugyoku(PlayMode::EvenEngineVsEngine, false, loser, p1, p2, sendRaw);
         else
-            EngineGameOverNotifier::notifyResignation(PlayMode::EvenEngineVsEngine, loserIsP1, p1, p2, sendRaw);
+            EngineGameOverNotifier::notifyResignation(PlayMode::EvenEngineVsEngine, loser, p1, p2, sendRaw);
         QList<QPointer<QProcess>> retiring;
         for (auto* child : qApp->findChildren<QProcess*>())
             if (!existing.contains(child)) retiring.append(child);
@@ -435,7 +436,7 @@ private slots:
     void gameOverResultFollowsEngineSeat_data()
     {
         QTest::addColumn<PlayMode>("mode");
-        QTest::addColumn<bool>("loserIsP1");
+        QTest::addColumn<bool>("loserIsBlack");
         QTest::addColumn<QString>("expected");
         // 人間対エンジンではエンジンは常に usi1。先手・下手のエンジンが負けたら lose を送る
         QTest::newRow("engine-white-wins") << PlayMode::EvenHumanVsEngine << true << "gameover win";
@@ -449,7 +450,7 @@ private slots:
     void gameOverResultFollowsEngineSeat()
     {
         QFETCH(PlayMode, mode);
-        QFETCH(bool, loserIsP1);
+        QFETCH(bool, loserIsBlack);
         QFETCH(QString, expected);
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
@@ -457,8 +458,9 @@ private slots:
         Usi engine(nullptr, nullptr, &game);
         QStringList sent;
         const auto sendRaw = [&sent](Usi*, const QString& command) { sent << command; };
-        EngineGameOverNotifier::notifyResignation(mode, loserIsP1, &engine, nullptr, sendRaw);
-        EngineGameOverNotifier::notifyNyugyoku(mode, false, loserIsP1, &engine, nullptr, sendRaw);
+        const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
+        EngineGameOverNotifier::notifyResignation(mode, loser, &engine, nullptr, sendRaw);
+        EngineGameOverNotifier::notifyNyugyoku(mode, false, loser, &engine, nullptr, sendRaw);
         QCOMPARE(sent, QStringList({expected, expected}));
     }
 

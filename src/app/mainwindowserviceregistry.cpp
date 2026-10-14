@@ -57,5 +57,5 @@ void MainWindowServiceRegistry::startGameSession()
         m_mw.m_state.startSfenStr,
         sfenRecord,
         nullptr,
-        m_mw.m_player.bottomIsP1);
+        m_mw.m_player.bottomSide);
 }

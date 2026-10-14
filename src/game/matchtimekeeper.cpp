@@ -78,21 +78,20 @@ void MatchTimekeeper::emitTimeUpdateFromClock()
 {
     if (!m_clock || !m_refs.gc) return;
 
-    const qint64 p1ms = m_clock->remainingMs(Turn::Black);
-    const qint64 p2ms = m_clock->remainingMs(Turn::White);
+    const qint64 blackMs = m_clock->remainingMs(Turn::Black);
+    const qint64 whiteMs = m_clock->remainingMs(Turn::White);
     const Turn side = m_refs.gc->currentPlayer();
-    const bool p1turn = (side == Turn::Black);
 
     const bool enableUrgency = !m_clock->hasByoyomi(side) || m_clock->byoyomiApplied(side);
 
-    const qint64 activeMs = p1turn ? p1ms : p2ms;
+    const qint64 activeMs = (side == Turn::Black) ? blackMs : whiteMs;
     const qint64 urgencyMs = enableUrgency ? activeMs
                                            : std::numeric_limits<qint64>::max();
 
-    qCDebug(lcGame) << "emit timeUpdated p1ms=" << p1ms << " p2ms=" << p2ms
-             << " p1turn=" << p1turn << " urgencyMs=" << urgencyMs;
+    qCDebug(lcGame) << "emit timeUpdated blackMs=" << blackMs << " whiteMs=" << whiteMs
+             << " sideToMove=" << side << " urgencyMs=" << urgencyMs;
 
-    emit timeUpdated(p1ms, p2ms, p1turn, urgencyMs);
+    emit timeUpdated(blackMs, whiteMs, side, urgencyMs);
 }
 
 // ============================================================
@@ -120,8 +119,7 @@ void MatchTimekeeper::recomputeClockSnapshot(QString& turnText, QString& p1, QSt
     if (!m_clock) return;
 
     if (m_refs.gc) {
-        const bool p1Turn = (m_refs.gc->currentPlayer() == Turn::Black);
-        turnText = p1Turn ? QObject::tr("先手番") : QObject::tr("後手番");
+        turnText = (m_refs.gc->currentPlayer() == Turn::Black) ? QObject::tr("先手番") : QObject::tr("後手番");
     }
 
     const qint64 t1ms = qMax<qint64>(0, m_clock->remainingMs(Turn::Black));

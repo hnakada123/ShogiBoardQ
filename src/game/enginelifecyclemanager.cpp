@@ -240,8 +240,8 @@ void EngineLifecycleManager::initEnginesForEvE(const QString& engineName1,
     wireWinToArbiter(m_usi1, Turn::Black);
     wireWinToArbiter(m_usi2, Turn::White);
 
-    m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), engineName1);
-    m_usi2->setLogIdentity(QStringLiteral("[E2]"), QStringLiteral("P2"), engineName2);
+    m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("black"), engineName1);
+    m_usi2->setLogIdentity(QStringLiteral("[E2]"), QStringLiteral("white"), engineName2);
     m_usi1->setSquelchResignLogging(false);
     m_usi2->setSquelchResignLogging(false);
 

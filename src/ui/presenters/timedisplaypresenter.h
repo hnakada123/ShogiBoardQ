@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QString>
 
+#include "shogitypes.h"
+
 class ShogiView;
 class ShogiClock;
 
@@ -20,21 +22,25 @@ public:
     // ShogiClock を設定（秒読み状態の判定に使用）
     void setClock(ShogiClock* clock);
 
+    /// 最後に受け取った残り時間と手番で表示を描き直す（盤を反転したときなど）。まだ受け取っていなければ何もしない
+    void refresh();
+
 public slots:
     // MatchCoordinator::timeUpdated から接続
-    void onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+    void onMatchTimeUpdated(qint64 blackMs, qint64 whiteMs, Turn sideToMove, qint64 urgencyMs);
 
 private:
-    void applyTurnHighlights(bool p1turn);
-    void updateUrgencyStyles(bool p1turn);
+    void updateUrgencyStyles(Turn sideToMove);
 
     static inline QString fmt_hhmmss(qint64 ms);
 
 private:
     ShogiView*  m_view  = nullptr;
     ShogiClock* m_clock = nullptr;
-    qint64      m_lastP1Ms = 0;
-    qint64      m_lastP2Ms = 0;
+    qint64      m_lastBlackMs = 0;
+    qint64      m_lastWhiteMs = 0;
+    Turn        m_lastSideToMove = Turn::Black;
+    bool        m_hasLastValues = false;    ///< onMatchTimeUpdated を一度でも受け取ったか
 };
 
 #endif // TIMEDISPLAYPRESENTER_H

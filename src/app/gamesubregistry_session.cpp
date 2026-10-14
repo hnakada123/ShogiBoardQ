@@ -156,7 +156,7 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
-    deps.bottomIsP1 = &m_mw.m_player.bottomIsP1;
+    deps.bottomSide = &m_mw.m_player.bottomSide;
 
     // === Branch navigation ===
     deps.branchTree = m_mw.m_branchNav.branchTree;

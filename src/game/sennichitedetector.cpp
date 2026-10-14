@@ -61,10 +61,10 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
 
     // 一方の指し手がすべて王手かどうかは、その側が指した直後の局面（相手の手番の局面）だけで数える。
     // 王手をかけた側の手番の局面まで分母に入れると、毎手王手でも成立しない
-    int p1CheckCount = 0;   // 先手が王手をかけた回数（後手番で後手の玉が王手されている回数）
-    int p2CheckCount = 0;   // 後手が王手をかけた回数（先手番で先手の玉が王手されている回数）
-    int p1Moves = 0;        // thirdIdx と fourthIdx の間で先手が指した手の数（後手番の局面数）
-    int p2Moves = 0;        // 同じく後手が指した手の数（先手番の局面数）
+    int blackCheckCount = 0;   // 先手が王手をかけた回数（後手番で後手の玉が王手されている回数）
+    int whiteCheckCount = 0;   // 後手が王手をかけた回数（先手番で先手の玉が王手されている回数）
+    int blackMoves = 0;        // thirdIdx と fourthIdx の間で先手が指した手の数（後手番の局面数）
+    int whiteMoves = 0;        // 同じく後手が指した手の数（先手番の局面数）
 
     // thirdIdx+1 から fourthIdx までの局面を調べる
     // thirdIdx+1 は3回目の出現の直後（次の手が指された局面）
@@ -84,23 +84,23 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
         const bool inCheck = validator.checkIfKingInCheck(turn, board.boardData()) > 0;
         if (sideToMoveIsBlack) {
             // 先手番の局面 = 直前に後手が指した
-            ++p2Moves;
-            if (inCheck) ++p2CheckCount;
+            ++whiteMoves;
+            if (inCheck) ++whiteCheckCount;
         } else {
             // 後手番の局面 = 直前に先手が指した
-            ++p1Moves;
-            if (inCheck) ++p1CheckCount;
+            ++blackMoves;
+            if (inCheck) ++blackCheckCount;
         }
     }
 
     // 一方が全ての手で王手を続けていたら連続王手の千日手
-    if (p1Moves > 0 && p1CheckCount == p1Moves) {
-        qCInfo(lcGame) << "Sennichite: continuous check by P1 (sente)";
-        return Result::ContinuousCheckByP1;
+    if (blackMoves > 0 && blackCheckCount == blackMoves) {
+        qCInfo(lcGame) << "Sennichite: continuous check by black (sente)";
+        return Result::ContinuousCheckByBlack;
     }
-    if (p2Moves > 0 && p2CheckCount == p2Moves) {
-        qCInfo(lcGame) << "Sennichite: continuous check by P2 (gote)";
-        return Result::ContinuousCheckByP2;
+    if (whiteMoves > 0 && whiteCheckCount == whiteMoves) {
+        qCInfo(lcGame) << "Sennichite: continuous check by white (gote)";
+        return Result::ContinuousCheckByWhite;
     }
 
     qCInfo(lcGame) << "Sennichite: draw by repetition";

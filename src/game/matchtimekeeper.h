@@ -54,7 +54,7 @@ public slots:
     void pokeTimeUpdateNow();
 
 signals:
-    void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+    void timeUpdated(qint64 blackMs, qint64 whiteMs, Turn sideToMove, qint64 urgencyMs);
 
 private slots:
     void onClockTick();

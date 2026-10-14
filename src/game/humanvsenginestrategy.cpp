@@ -13,12 +13,12 @@
 #include "logcategories.h"
 
 HumanVsEngineStrategy::HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
-                                               bool engineIsP1,
+                                               Turn engineSide,
                                                QString enginePath,
                                                QString engineName)
     : QObject(ctx.coordinatorAsParent())
     , m_ctx(ctx)
-    , m_engineIsP1(engineIsP1)
+    , m_engineSide(engineSide)
     , m_enginePath(std::move(enginePath))
     , m_engineName(std::move(engineName))
 {
@@ -30,7 +30,7 @@ HumanVsEngineStrategy::HumanVsEngineStrategy(MatchCoordinator::StrategyContext& 
 
 void HumanVsEngineStrategy::start()
 {
-    qCDebug(lcGame) << "[Match] Start HvE (engineIsP1=" << m_engineIsP1 << ")";
+    qCDebug(lcGame) << "[Match] Start HvE (engineSide=" << m_engineSide << ")";
 
     // 以前のエンジンは破棄（安全化）
     m_ctx.destroyEngines();
@@ -52,13 +52,14 @@ void HumanVsEngineStrategy::start()
     m_ctx.setUsi2(nullptr); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
     // 投了・入玉宣言勝ちは、エンジンの手番の知らせとして配線する
-    const Turn engineSide = m_engineIsP1 ? Turn::Black : Turn::White;
-    m_ctx.wireResignToArbiter(m_ctx.usi1(), engineSide);
-    m_ctx.wireWinToArbiter(m_ctx.usi1(), engineSide);
+    m_ctx.wireResignToArbiter(m_ctx.usi1(), m_engineSide);
+    m_ctx.wireWinToArbiter(m_ctx.usi1(), m_engineSide);
 
-    // ログ識別（UI 表示用）
+    // ログ識別（UI の通信ログは枠の E1、デバッグログは手番も付ける）
     if (m_ctx.usi1()) {
-        m_ctx.usi1()->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), dispName);
+        m_ctx.usi1()->setLogIdentity(QStringLiteral("[E1]"),
+                                     m_engineSide == Turn::Black ? QStringLiteral("black") : QStringLiteral("white"),
+                                     dispName);
         m_ctx.usi1()->setSquelchResignLogging(false);
     }
 
@@ -66,7 +67,7 @@ void HumanVsEngineStrategy::start()
     connect(m_ctx.usi1(), &Usi::matchMoveReady, this, &HumanVsEngineStrategy::onEngineMoveReady);
 
     // USI エンジンを起動（path/name 必須）
-    m_ctx.initializeAndStartEngineFor(engineSide, m_enginePath, m_engineName);
+    m_ctx.initializeAndStartEngineFor(m_engineSide, m_enginePath, m_engineName);
 
     // --- 手番の単一ソースを確立：GC → m_cur → 表示 ---
     const Turn side = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::Black;
@@ -85,8 +86,7 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
                                           const QPoint& humanTo,
                                           const QString& prettyMove)
 {
-    const bool humanIsP1 =
-        (m_ctx.playMode() == PlayMode::EvenHumanVsEngine) || (m_ctx.playMode() == PlayMode::HandicapHumanVsEngine);
+    const Turn humanSide = (m_engineSide == Turn::Black) ? Turn::White : Turn::Black;
 
     // 0) 人間手のハイライト
     if (m_ctx.hooks().ui.showMoveHighlights) {
@@ -95,7 +95,6 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
 
     // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
     if (ShogiClock* clock = m_ctx.clock()) {
-        const Turn humanSide = humanIsP1 ? Turn::Black : Turn::White;
         clock->commitMove(humanSide);
         if (m_ctx.hooks().game.appendKifuLine) {
             m_ctx.hooks().game.appendKifuLine(prettyMove, clock->considerationAndTotalTime(humanSide));
@@ -107,7 +106,7 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
 
     // 「次の手番」ラベルをエンジン側に切り替える
     // （TurnSyncBridge 経由のシグナルは棋譜追記中の再入で確実に到達しない場合がある）
-    m_ctx.updateTurnDisplay(humanIsP1 ? Turn::White : Turn::Black);
+    m_ctx.updateTurnDisplay(m_engineSide);
 
     // 2) 以降（エンジン go → bestmove → 盤/棋譜反映）は2引数版に委譲
     //    finishHumanTimerInternal() は2引数版の先頭で呼ばれるが、二重でも実害が出ない想定。
@@ -148,8 +147,6 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
         eng->setPreviousRankTo(humanTo.y());
     }
 
-    const Turn engineSeat =
-        m_engineIsP1 ? Turn::Black : Turn::White;
 
     // 千日手チェック（人間の手の後）
     if (m_ctx.checkAndHandleSennichite()) return;
@@ -160,9 +157,9 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
         return;
     }
 
-    const bool engineTurnNow = (m_ctx.gc() && (m_ctx.gc()->currentPlayer() == engineSeat));
+    const bool engineTurnNow = (m_ctx.gc() && (m_ctx.gc()->currentPlayer() == m_engineSide));
     qCDebug(lcGame).noquote() << "HvE engineTurnNow=" << engineTurnNow
-                             << " engineSeat=" << int(engineSeat);
+                             << " engineSide=" << m_engineSide;
     if (!engineTurnNow) { if (!m_ctx.gameOverState().isOver) armTurnTimerIfNeeded(); return; }
 
     Usi* eng = m_ctx.primaryEngine();
@@ -191,12 +188,11 @@ void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     const int mcCur = m_ctx.currentMoveIndex();
     QString rec;
     int nextIdx = mcCur + 1;
-    const Turn engineTurn = m_engineIsP1 ? Turn::Black : Turn::White;
-    const QPoint eFrom = BoardCoordinates::fromSquare(move, engineTurn);
+    const QPoint eFrom = BoardCoordinates::fromSquare(move, m_engineSide);
     const QPoint eTo = BoardCoordinates::toSquare(move);
     // 反則手は盤に指さず、エンジンの反則負けにする
     if (!m_ctx.gc()->applyMove(move, rec, nextIdx, m_ctx.sfenHistory(), m_ctx.gameMovesRef())) {
-        m_ctx.handleEngineIllegalMove(m_engineIsP1 ? Turn::Black : Turn::White);
+        m_ctx.handleEngineIllegalMove(m_engineSide);
         return;
     }
     m_ctx.setCurrentMoveIndex(nextIdx);
@@ -222,14 +218,9 @@ void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
     // エンジン着手後の評価値追加
-    qCDebug(lcGame) << "onHumanMove: about to call appendEval, engineIsP1=" << m_engineIsP1;
-    if (m_engineIsP1) {
-        qCDebug(lcGame) << "onHumanMove: calling appendEvalP1, hook set=" << (m_ctx.hooks().game.appendEvalP1 ? "YES" : "NO");
-        if (m_ctx.hooks().game.appendEvalP1) m_ctx.hooks().game.appendEvalP1();
-    } else {
-        qCDebug(lcGame) << "onHumanMove: calling appendEvalP2, hook set=" << (m_ctx.hooks().game.appendEvalP2 ? "YES" : "NO");
-        if (m_ctx.hooks().game.appendEvalP2) m_ctx.hooks().game.appendEvalP2();
-    }
+    qCDebug(lcGame) << "onHumanMove: calling appendEval, engineSide=" << m_engineSide
+                    << "hook set=" << (m_ctx.hooks().game.appendEval ? "YES" : "NO");
+    if (m_ctx.hooks().game.appendEval) m_ctx.hooks().game.appendEval(m_engineSide);
 
     // 千日手チェック（エンジンの手の後）。手を棋譜と盤面に反映してから判定し、終局行をその後に記録する
     if (m_ctx.checkAndHandleSennichite()) return;
@@ -291,11 +282,8 @@ void HumanVsEngineStrategy::startInitialMoveIfNeeded()
     if (m_waitingForMove) return;
     if (!m_ctx.gc()) return;
 
-    const auto sideToMove = m_ctx.gc()->currentPlayer();
-    const auto engineSide = m_engineIsP1 ? Turn::Black
-                                        : Turn::White;
     // 人間の初手は、相手エンジンの初期化中も計時を続ける。
-    if (sideToMove != engineSide) return;
+    if (m_ctx.gc()->currentPlayer() != m_engineSide) return;
 
     m_initialMoveRequested = true;
     if (m_ctx.primaryEngine() && m_ctx.primaryEngine()->isInitializing()) {

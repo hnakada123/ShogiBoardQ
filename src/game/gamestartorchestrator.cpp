@@ -295,9 +295,7 @@ void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions& opt)
     *m_refs.currentMoveIndex = 0;
 
     // 司令塔の内部手番も GC に同期（既存互換）
-    *m_refs.currentTurn =
-        (startSide == Turn::White) ? Turn::White
-                                                    : Turn::Black;
+    *m_refs.currentTurn = startSide;
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(*m_refs.currentTurn);
 }
 
@@ -397,13 +395,6 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
         opt.sfenStart.clear();
     }
 
-    // --- エンジン座席（PlayMode から）
-    const bool engineIsP1 =
-        (mode == PlayMode::EvenEngineVsHuman) ||
-        (mode == PlayMode::HandicapEngineVsHuman);
-    opt.engineIsP1 = engineIsP1;
-    opt.engineIsP2 = !engineIsP1;
-
     // --- 対局ダイアログあり：そのまま採用
     if (dlg) {
         const auto& engines = dlg->engineList;
@@ -459,7 +450,7 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
 // ============================================================
 
 void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(
-    const StartGameDialogData* dlg, bool bottomIsP1)
+    const StartGameDialogData* dlg, Turn bottomSide)
 {
     if (!dlg) return;
 
@@ -477,8 +468,9 @@ void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(
         return;
     }
 
-    // 「現在の向き（bottomIsP1）」と「人間が先手か？」が食い違っていたら1回だけ反転
-    const bool needFlip = (humanP1 != bottomIsP1);
+    // 手前に表示している側と人間の側が食い違っていたら1回だけ反転
+    const Turn humanSide = humanP1 ? Turn::Black : Turn::White;
+    const bool needFlip = (humanSide != bottomSide);
     if (needFlip) {
         if (m_hooks.flipBoard) m_hooks.flipBoard();
     }
@@ -492,13 +484,13 @@ void GameStartOrchestrator::prepareAndStartGame(PlayMode mode,
                                                  const QString& startSfenStr,
                                                  const QStringList* sfenRecord,
                                                  const StartGameDialogData* dlg,
-                                                 bool bottomIsP1)
+                                                 Turn bottomSide)
 {
     // 1) オプション構築
     StartOptions opt = buildStartOptions(mode, startSfenStr, sfenRecord, dlg);
 
     // 2) 人間を手前へ（必要なら反転）
-    ensureHumanAtBottomIfApplicable(dlg, bottomIsP1);
+    ensureHumanAtBottomIfApplicable(dlg, bottomSide);
 
     // 3) 対局の構成と開始
     configureAndStart(opt);

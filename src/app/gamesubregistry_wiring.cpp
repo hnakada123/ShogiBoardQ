@@ -157,11 +157,10 @@ MatchCoordinator::Hooks MainWindowServiceRegistry::buildMatchHooks()
             m_mw.m_gameRecordUpdateService->appendKifuLine(text, elapsed);
         }
     };
-    hooks.game.appendEvalP1 = [this]() {
-        if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine1Graph(-1);
-    };
-    hooks.game.appendEvalP2 = [this]() {
-        if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine2Graph(-1);
+    hooks.game.appendEval = [this](Turn side) {
+        if (!m_mw.m_evalGraphController) return;
+        if (side == Turn::Black) m_mw.m_evalGraphController->redrawEngine1Graph(-1);
+        else m_mw.m_evalGraphController->redrawEngine2Graph(-1);
     };
     hooks.game.autoSaveKifu = [this](const QString& saveDir) {
         m_kifu->ensureKifuFileController();

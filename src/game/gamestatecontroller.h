@@ -63,7 +63,7 @@ public:
      * @param cause 終局原因
      * @param loserIsPlayerOne 敗者がPlayer1かどうか
      */
-    void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
+    void setGameOverMove(MatchCoordinator::Cause cause, Turn loser);
 
     // --- 人間/エンジン判定 ---
     bool isHvH() const;

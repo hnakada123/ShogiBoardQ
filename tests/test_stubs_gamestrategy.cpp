@@ -185,10 +185,10 @@ void GameEndHandler::appendBreakOffLineAndMark() {}
 void GameEndHandler::handleMaxMovesJishogi() { ++StrategyTracker::maxMovesJishogiCount; }
 bool GameEndHandler::checkAndHandleSennichite() { return StrategyTracker::sennichiteDetected; }
 void GameEndHandler::handleSennichite() {}
-void GameEndHandler::handleOuteSennichite(bool) {}
+void GameEndHandler::handleOuteSennichite(Turn) {}
 // 終局状態の有無で振る舞いが変わる判定（PlayModePolicyService）を検証できるよう、状態だけは反映する。
 void GameEndHandler::clearGameOverState() { if (m_refs.gameOver) *m_refs.gameOver = {}; }
-void GameEndHandler::setGameOver(const GameEndInfo&, bool, bool) { if (m_refs.gameOver) m_refs.gameOver->isOver = true; }
+void GameEndHandler::setGameOver(const GameEndInfo&, bool) { if (m_refs.gameOver) m_refs.gameOver->isOver = true; }
 void GameEndHandler::markGameOverMoveAppended() {}
 
 // ============================================================
@@ -213,9 +213,9 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
     return opt;
 }
 
-void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
+void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, Turn) {}
 void GameStartOrchestrator::prepareAndStartGame(PlayMode, const QString&,
-                                                 const QStringList*, const StartGameDialogData*, bool) {}
+                                                 const QStringList*, const StartGameDialogData*, Turn) {}
 
 // ============================================================
 // MatchUndoHandler スタブ
@@ -276,8 +276,8 @@ QString SennichiteDetector::positionKey(const QString& sfen)
 // ============================================================
 
 namespace EngineGameOverNotifier {
-void notifyResignation(PlayMode, bool, Usi*, Usi*, const RawSender&) {}
-void notifyNyugyoku(PlayMode, bool, bool, Usi*, Usi*, const RawSender&) {}
+void notifyResignation(PlayMode, Turn, Usi*, Usi*, const RawSender&) {}
+void notifyNyugyoku(PlayMode, bool, Turn, Usi*, Usi*, const RawSender&) {}
 }
 
 // ============================================================

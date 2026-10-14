@@ -155,7 +155,7 @@ void GameSessionOrchestrator::initializeGame()
     ctx.startSfenStr = m_deps.startSfenStr;
     ctx.selectedPly = selectedPly;
     ctx.isReplayMode = m_deps.replayController ? m_deps.replayController->isReplayMode() : false;
-    ctx.bottomIsP1 = m_deps.bottomIsP1 ? *m_deps.bottomIsP1 : true;
+    ctx.bottomSide = m_deps.bottomSide ? *m_deps.bottomSide : Turn::Black;
 
     GameStartCoordinator::Ctx c = gameStartService.buildContext(ctx);
     c.dialogData = dialogData;

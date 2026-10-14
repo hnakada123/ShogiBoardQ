@@ -38,7 +38,6 @@ struct MatchGameOverState {
     bool             isOver        = false;  ///< 終局済みか
     bool             moveAppended  = false;  ///< 棋譜に終局手を追記済みか
     bool             hasLast       = false;  ///< 直近の終局情報があるか
-    bool             lastLoserIsP1 = false;  ///< 直近の敗者が先手か
     MatchGameEndInfo lastInfo;               ///< 直近の終局情報
     QDateTime        when;                   ///< 終局日時
 };

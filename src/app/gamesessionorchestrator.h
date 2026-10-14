@@ -51,7 +51,7 @@ public:
         QString* currentSfenStr = nullptr;
         QString* startSfenStr = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;   ///< 対局の指し手列（開始時に表示中の手順から作り直す）
-        bool* bottomIsP1 = nullptr;
+        Turn* bottomSide = nullptr;      ///< 盤の手前に表示している側
 
         // === Branch navigation ===
         KifuBranchTree* branchTree = nullptr;
