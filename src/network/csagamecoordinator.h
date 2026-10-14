@@ -89,6 +89,7 @@ public:
     struct StartOptions {
         QString host;
         int port = 4081;
+        CsaClient::Transport transport = CsaClient::Transport::Plain;
         QString username;
         QString password;
         PlayerType playerType = PlayerType::Human;

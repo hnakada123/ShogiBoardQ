@@ -71,10 +71,10 @@ def resolve_read_path(raw: str, what: str = "path") -> Path:
 
 def resolve_write_path(raw: str, overwrite: bool, what: str = "output_path") -> Path:
     path = _require_absolute(raw, what)
-    resolved = _check_allowed(path.parent) / path.name
+    resolved = _check_allowed(path)
     if resolved.exists():
-        if resolved.is_dir():
-            raise ToolError("invalid_path", f"{what} is a directory: {raw}")
+        if not resolved.is_file():
+            raise ToolError("invalid_path", f"{what} is not a regular file: {raw}")
         if not overwrite:
             raise ToolError(
                 "file_exists",

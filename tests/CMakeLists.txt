@@ -977,6 +977,8 @@ add_shogi_test(tst_csaprotocol
     ${EMV_SOURCES}
 )
 
+target_compile_definitions(tst_csaprotocol PRIVATE SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
 # ============================================================
 # Unit 21: Settings Roundtrip (全ドメイン設定の保存→復元)
 # ============================================================
@@ -1734,3 +1736,6 @@ set_tests_properties(tst_applicationlogging PROPERTIES TIMEOUT 20)
 add_shogi_test(tst_service_initialization tst_service_initialization.cpp)
 target_sources(tst_service_initialization PRIVATE ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
 target_link_libraries(tst_service_initialization PRIVATE shogiboardq_static)
+
+add_shogi_test(tst_automation_security tst_automation_security.cpp)
+target_link_libraries(tst_automation_security PRIVATE shogiboardq_static)

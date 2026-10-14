@@ -44,6 +44,7 @@ public:
     struct ServerHistory
     {
         QString host;       ///< 接続先ホスト
+        bool useTls = false;
         int port;           ///< ポート番号
         QString id;         ///< ログインID
     };
@@ -86,6 +87,7 @@ public:
      * @return ポート番号
      */
     int port() const;
+    bool useTls() const;
 
     /**
      * @brief ログインIDを取得

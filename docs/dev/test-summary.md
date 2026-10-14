@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 135
+- CTest ケース数: 136
 - 取得コマンド: `ctest --test-dir build -N`
 
 ## テスト一覧
@@ -142,3 +142,4 @@
 133. `tst_i18n_workflows`
 134. `tst_applicationlogging`
 135. `tst_service_initialization`
+136. `tst_automation_security`

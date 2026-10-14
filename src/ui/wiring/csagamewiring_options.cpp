@@ -33,6 +33,7 @@ CsaGameCoordinator::StartOptions CsaGameWiring::buildStartOptions(const CsaGameD
 {
     CsaGameCoordinator::StartOptions options;
     options.host = dialog->host();
+    options.transport = dialog->useTls() ? CsaClient::Transport::Tls : CsaClient::Transport::Plain;
     options.port = dialog->port();
     options.username = dialog->loginId();
     // shogi-server のゲーム名と手番の希望は LOGIN のパスワード欄に載せる

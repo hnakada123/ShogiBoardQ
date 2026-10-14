@@ -28,6 +28,9 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
     , m_fontHelper(NetworkSettings::csaGameDialogFontSize, 8, 24, 1)
 {
     ui->setupUi(this);
+    // 機密性は表示モードから独立させる。GUIで表示しても自動化APIへは公開しない。
+    ui->lineEditPassword->setProperty("automationSensitive", true);
+    ui->checkBoxShowPassword->setProperty("automationSensitive", true);
     populateAutoSaveFormats();
 
     // フォントサイズを適用
@@ -80,6 +83,8 @@ void CsaGameDialog::connectSignalsAndSlots()
              ui->checkBoxKeepAlive, ui->checkBoxAutoSave, ui->radioButtonGamesCount}) {
         connect(toggle, &QAbstractButton::toggled, this, &CsaGameDialog::updateFormState);
     }
+    connect(ui->comboBoxTransport, &QComboBox::currentIndexChanged,
+            this, &CsaGameDialog::updateFormState);
     // 対局開始ボタン
     connect(ui->pushButtonStart, &QPushButton::clicked,
             this, &CsaGameDialog::onAccepted);
@@ -201,6 +206,7 @@ QString CsaGameDialog::validationMessage() const
 
 void CsaGameDialog::updateFormState()
 {
+    ui->labelPlaintextWarning->setVisible(!useTls());
     const bool engine = ui->radioButtonEngine->isChecked();
     ui->comboBoxEngine->setEnabled(engine && ui->comboBoxEngine->count() > 0);
     ui->pushButtonEngineSettings->setEnabled(engine && ui->comboBoxEngine->currentIndex() >= 0);
@@ -280,6 +286,7 @@ void CsaGameDialog::onServerHistoryChanged(int index)
     const ServerHistory& history = m_serverHistory.at(index - 1);
     ui->lineEditHost->setText(history.host);
     ui->spinBoxPort->setValue(history.port);
+    ui->comboBoxTransport->setCurrentIndex(history.useTls ? 1 : 0);
     ui->lineEditId->setText(history.id);
     ui->lineEditPassword->clear();
 }
@@ -331,6 +338,11 @@ QString CsaGameDialog::host() const
 int CsaGameDialog::port() const
 {
     return m_port;
+}
+
+bool CsaGameDialog::useTls() const
+{
+    return ui->comboBoxTransport->currentIndex() == 1;
 }
 
 QString CsaGameDialog::loginId() const

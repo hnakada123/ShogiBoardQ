@@ -10,7 +10,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QTcpSocket>
+#include <QSslSocket>
 #include <QTimer>
 
 #include "timecontrol.h"
@@ -166,14 +166,18 @@ public:
 
     // --- 接続管理 ---
 
+    /// 通常のCSA（平文）を既定とし、TLSも選択可能。
+    enum class Transport { Tls, Plain };
+
     /**
      * @brief サーバーに接続する
      * @param host ホスト名またはIPアドレス
      * @param port ポート番号
+     * @param transport 通常のCSA（平文）、またはTLS接続
      *
      * LOGOUT の応答待ちで接続が残っているときは、待たずに切ってから接続する。
      */
-    void connectToServer(const QString& host, int port);
+    void connectToServer(const QString& host, int port, Transport transport = Transport::Plain);
 
     /**
      * @brief サーバーから切断する
@@ -423,6 +427,7 @@ private:
 
     /// 応答を待たずに接続を破棄する。すぐ再接続する前提で Disconnected は通知しない
     void abortConnection();
+    void rejectOversizedInput();
 
     /// LOGOUT 応答を受けた時の処理
     void handleLogoutResponse();
@@ -450,14 +455,20 @@ private:
     int consumedTimeUnitsAfterComma(const QString& line, qsizetype commaPos) const;
 
 private:
-    QTcpSocket* m_socket;               ///< TCPソケット
+    QSslSocket* m_socket;               ///< TLS対応ソケット
     QTimer* m_connectionTimer;          ///< 接続タイムアウト用タイマー
     QTimer* m_logoutTimer;              ///< LOGOUT:completed 待ちタイマー
     QTimer* m_keepAliveTimer;           ///< 対局中のキープアライブタイマー（送信ごとに再起動）
     QElapsedTimer m_lastSendTimer;      ///< 直前の送信からの経過時間（手動キープアライブの間隔規定用）
     ConnectionState m_connectionState = ConnectionState::Disconnected; ///< 接続状態
-    QString m_receiveBuffer;            ///< 受信バッファ
+    QByteArray m_receiveBuffer;         ///< UTF-8デコード前の受信バッファ
 
+    Transport m_transport = Transport::Plain;
+    qsizetype m_summaryBytes = 0;
+    int m_summaryLines = 0;
+    static constexpr qsizetype kMaxLineBytes = 64 * 1024;
+    static constexpr qsizetype kMaxSummaryBytes = 2 * 1024 * 1024;
+    static constexpr int kMaxSummaryLines = 20000;
     GameSummary m_gameSummary;          ///< 対局情報
     bool m_isMyTurn = false;            ///< 自分の手番かどうか
     bool m_awaitingMoveConfirmation = false; ///< 送った指し手・意思表示の確認待ち

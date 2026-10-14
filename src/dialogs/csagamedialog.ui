@@ -203,6 +203,24 @@
             </property>
            </widget>
           </item>
+          <item row="7" column="0">
+           <widget class="QLabel" name="labelTransport">
+            <property name="text"><string>接続方式</string></property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QComboBox" name="comboBoxTransport">
+            <property name="toolTip"><string>TLSは対応サーバーでのみ使用できます。サーバー証明書を検証して接続します。</string></property>
+            <item><property name="text"><string>通常のCSA（平文）</string></property></item>
+            <item><property name="text"><string>TLS（暗号化）</string></property></item>
+           </widget>
+          </item>
+          <item row="8" column="0" colspan="2">
+           <widget class="QLabel" name="labelPlaintextWarning">
+            <property name="text"><string>注意：通常のCSA接続では、ID・パスワード・対局内容が暗号化されずに送信されます。他のサービスと同じパスワードを使用しないでください。</string></property>
+            <property name="wordWrap"><bool>true</bool></property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

@@ -13,6 +13,7 @@ constexpr auto kCsaServerHistoryArray = "CsaServerHistory";
 constexpr auto kKeyHost = "host";
 constexpr auto kKeyPort = "port";
 constexpr auto kKeyId = "id";
+constexpr auto kKeyUseTls = "useTls";
 } // namespace
 
 // 設定ファイルからサーバー接続履歴を読み込む
@@ -33,6 +34,7 @@ void CsaGameDialog::loadServerHistory()
         history.host = settings.value(kKeyHost).toString();
         history.port = settings.value(kKeyPort, 4081).toInt();
         history.id = settings.value(kKeyId).toString();
+        history.useTls = settings.value(kKeyUseTls, false).toBool();
         m_serverHistory.append(history);
     }
 
@@ -46,6 +48,7 @@ void CsaGameDialog::saveServerHistory()
     ServerHistory current;
     current.host = ui->lineEditHost->text().trimmed();
     current.port = ui->spinBoxPort->value();
+    current.useTls = useTls();
     current.id = ui->lineEditId->text().trimmed();
 
     // 空の場合は保存しない
@@ -56,7 +59,7 @@ void CsaGameDialog::saveServerHistory()
     // 同じ設定が既にあるか確認し、あれば削除（最新を先頭に移動するため）
     for (int i = 0; i < m_serverHistory.size(); ++i) {
         const ServerHistory& h = m_serverHistory.at(i);
-        if (h.host == current.host && h.port == current.port && h.id == current.id) {
+        if (h.host == current.host && h.port == current.port && h.id == current.id && h.useTls == current.useTls) {
             m_serverHistory.removeAt(i);
             break;
         }
@@ -79,6 +82,7 @@ void CsaGameDialog::saveServerHistory()
         const ServerHistory& h = m_serverHistory.at(i);
         settings.setValue(kKeyHost, h.host);
         settings.setValue(kKeyPort, h.port);
+        settings.setValue(kKeyUseTls, h.useTls);
         settings.setValue(kKeyId, h.id);
     }
     settings.endArray();
@@ -123,6 +127,7 @@ void CsaGameDialog::loadGameSettings()
     // サーバー設定
     ui->lineEditHost->setText(NetworkSettings::csaHost());
     ui->spinBoxPort->setValue(NetworkSettings::csaPort());
+    ui->comboBoxTransport->setCurrentIndex(NetworkSettings::csaUseTls() ? 1 : 0);
     ui->lineEditId->setText(NetworkSettings::csaId());
     ui->lineEditPassword->clear();
     NetworkSettings::csaLegacyPassword.remove();
@@ -139,6 +144,7 @@ void CsaGameDialog::saveGameSettings()
     // サーバー設定
     NetworkSettings::csaHost.set(ui->lineEditHost->text().trimmed());
     NetworkSettings::csaPort.set(ui->spinBoxPort->value());
+    NetworkSettings::csaUseTls.set(useTls());
     NetworkSettings::csaId.set(ui->lineEditId->text().trimmed());
     NetworkSettings::csaLegacyPassword.remove();
 }

@@ -18,6 +18,7 @@
 #include <QImage>
 #include <QJsonArray>
 #include <QMainWindow>
+#include <QLineEdit>
 #include <QMouseEvent>
 
 namespace {
@@ -177,6 +178,16 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         const QString target = AutomationParams::optionalString(params, QStringLiteral("target"), QStringLiteral("main"));
         const QString outputDir = AutomationParams::optionalString(params, QStringLiteral("output_dir"));
         QWidget* window = requireWindow(context, target);
+        // A revealed secret must not leak through a screenshot of this window or a child dialog.
+        for (QWidget* visible : AutomationWidgets::visibleWindows()) {
+            const auto edits = visible->findChildren<QLineEdit*>();
+            for (auto* edit : edits) {
+                if (edit->isVisible() && AutomationWidgets::isSensitive(edit)
+                    && edit->echoMode() == QLineEdit::Normal && !edit->text().isEmpty())
+                    throw AutomationError(AutomationErrorCode::NotAllowed,
+                                          QStringLiteral("Hide sensitive text before taking a screenshot"));
+            }
+        }
         ScreenshotService service(context.mainWindow);
         if (!outputDir.isEmpty()) {
             if (!QFileInfo(outputDir).isAbsolute()) {

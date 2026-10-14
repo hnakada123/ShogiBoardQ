@@ -32,7 +32,9 @@ INSTRUCTIONS = (
     "ShogiBoardQ tools. Positions are SFEN strings ('startpos' = initial position) and moves are USI "
     "(e.g. 7g7f, P*5e). Engines are referenced by the name shown by list_engines. Long operations "
     "(analyze_position, search_mate, generate_tsume) return a job_id; poll the matching *_status tool. "
-    "File paths must be absolute and inside the allowed directories. Tools whose name refers to the app "
+    "File paths must be absolute and inside the allowed directories. Generic GUI mutation tools require "
+    "the operator to set SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1; GUI operations then have full app permissions. "
+    "Use dedicated kifu/position tools in restricted mode. Tools whose name refers to the app "
     "(get_app_state, load_kifu, trigger_action, capture_screenshot, ...) need a running ShogiBoardQ started "
     "with --automation; the server launches one when SHOGIBOARDQ_EXECUTABLE is set."
 )

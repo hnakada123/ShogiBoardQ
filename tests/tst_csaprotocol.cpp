@@ -9,6 +9,10 @@
 #include <QtTest>
 #include <QCoreApplication>
 #include <QTcpServer>
+#include <QSslServer>
+#include <QSslConfiguration>
+#include <QSslKey>
+#include <QFile>
 #include <QTcpSocket>
 #include <algorithm>
 
@@ -964,7 +968,7 @@ private slots:
     {
         CsaClient client;
 
-        client.m_receiveBuffer = QStringLiteral("partial");
+        client.m_receiveBuffer = QByteArrayLiteral("partial");
         client.m_gameSummary.gameId = QStringLiteral("game-id");
         client.m_isMyTurn = true;
         client.m_inGameSummary = true;
@@ -1565,7 +1569,7 @@ private:
 
     static bool bringToWaiting(CsaClient& client, LocalServer& server)
     {
-        client.connectToServer(QStringLiteral("127.0.0.1"), server.port());
+        client.connectToServer(QStringLiteral("127.0.0.1"), server.port(), CsaClient::Transport::Plain);
         if (!server.accept()) return false;
         if (!QTest::qWaitFor([&client] { return client.connectionState() == CsaClient::ConnectionState::Connected; }, 3000)) return false;
         client.login(QStringLiteral("user"), QStringLiteral("pass"));
@@ -1595,6 +1599,160 @@ private:
     }
 
 private slots:
+    void csaClient_tlsCertificateVerification_data()
+    {
+        QTest::addColumn<bool>("trustCertificate");
+        QTest::addColumn<bool>("wrongHostname");
+        QTest::newRow("trusted") << true << false;
+        QTest::newRow("untrusted") << false << false;
+        QTest::newRow("wrong-hostname") << true << true;
+    }
+
+    void csaClient_tlsCertificateVerification()
+    {
+        if (!QSslSocket::supportsSsl()) QSKIP("TLS backend is not installed");
+        QFETCH(bool, trustCertificate);
+        QFETCH(bool, wrongHostname);
+        QFile certFile(QStringLiteral(SOURCE_DIR "/tests/fixtures/tls/server-cert.pem"));
+        QFile keyFile(QStringLiteral(SOURCE_DIR "/tests/fixtures/tls/server-key.pem"));
+        QVERIFY(certFile.open(QIODevice::ReadOnly));
+        QVERIFY(keyFile.open(QIODevice::ReadOnly));
+        const QSslCertificate cert(&certFile, QSsl::Pem);
+        const QSslKey key(&keyFile, QSsl::Rsa, QSsl::Pem);
+        QVERIFY(!cert.isNull());
+        QVERIFY(!key.isNull());
+        QSslConfiguration serverConfig = QSslConfiguration::defaultConfiguration();
+        serverConfig.setLocalCertificate(cert);
+        serverConfig.setPrivateKey(key);
+        serverConfig.setPeerVerifyMode(QSslSocket::VerifyNone); // No client certificate required.
+        QSslServer server;
+        server.setSslConfiguration(serverConfig);
+        QVERIFY(server.listen(QHostAddress::LocalHost));
+        CsaClient client;
+        QSignalSpy errors(&client, &CsaClient::errorOccurred);
+        QSignalSpy states(&client, &CsaClient::connectionStateChanged);
+        if (trustCertificate) {
+            QSslConfiguration clientConfig = client.m_socket->sslConfiguration();
+            clientConfig.addCaCertificate(cert); // Trust only in this test client, never globally.
+            client.m_socket->setSslConfiguration(clientConfig);
+        }
+        if (wrongHostname) client.m_socket->setPeerVerifyName(QStringLiteral("wrong.invalid"));
+        client.connectToServer(QStringLiteral("127.0.0.1"), server.serverPort(), CsaClient::Transport::Tls);
+        if (!trustCertificate || wrongHostname) {
+            QTRY_VERIFY(!errors.isEmpty());
+            QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+            for (const auto& state : states)
+                QVERIFY(qvariant_cast<CsaClient::ConnectionState>(state.at(0)) != CsaClient::ConnectionState::Connected);
+            return;
+        }
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Connected);
+        QVERIFY(client.m_socket->isEncrypted());
+        QTRY_VERIFY(server.hasPendingConnections());
+        auto* peer = server.nextPendingConnection();
+        client.login(QStringLiteral("audit-user"), QStringLiteral("audit-secret"));
+        QTRY_VERIFY(peer->canReadLine());
+        QCOMPARE(peer->readLine(), QByteArrayLiteral("LOGIN audit-user audit-secret\n"));
+        QVERIFY(errors.isEmpty());
+    }
+
+    void csaClient_defaultPlaintextSupportsLocalhost()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        client.connectToServer(QStringLiteral("localhost"), server.port());
+        QVERIFY(server.accept());
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Connected);
+        QVERIFY(!client.m_socket->isEncrypted());
+        client.login(QStringLiteral("audit-user"), QStringLiteral("audit-secret"));
+        QTRY_VERIFY(server.peer->canReadLine());
+        QCOMPARE(server.peer->readLine(), QByteArrayLiteral("LOGIN audit-user audit-secret\n"));
+    }
+
+    void csaClient_tlsDoesNotLoginBeforeHandshake()
+    {
+        if (!QSslSocket::supportsSsl()) QSKIP("TLS backend is not installed");
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        client.connectToServer(QStringLiteral("127.0.0.1"), server.port(), CsaClient::Transport::Tls);
+        QVERIFY(server.accept());
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Connecting);
+        client.login(QStringLiteral("audit-user"), QStringLiteral("audit-secret"));
+        client.sendRawCommand(QStringLiteral("LOGIN audit-user audit-secret"));
+        QTest::qWait(50);
+        const QByteArray received = server.peer->readAll();
+        QVERIFY(!received.contains("LOGIN"));
+        QVERIFY(!received.contains("audit-secret"));
+        client.onConnectionTimeout();
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+    }
+
+    void csaClient_oversizedLineDisconnects_data()
+    {
+        QTest::addColumn<bool>("newline");
+        QTest::newRow("unterminated") << false;
+        QTest::newRow("terminated") << true;
+    }
+
+    void csaClient_oversizedLineDisconnects()
+    {
+        QFETCH(bool, newline);
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QVERIFY(bringToWaiting(client, server));
+        QSignalSpy errors(&client, &CsaClient::errorOccurred);
+        QByteArray input(CsaClient::kMaxLineBytes + 1, 'x');
+        if (newline) input += '\n';
+        server.peer->write(input);
+        server.peer->flush();
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+        QCOMPARE(errors.count(), 1);
+        QVERIFY(client.m_receiveBuffer.isEmpty());
+    }
+
+    void csaClient_summaryLimits_data()
+    {
+        QTest::addColumn<bool>("byteLimit");
+        QTest::newRow("lines") << false;
+        QTest::newRow("bytes") << true;
+    }
+
+    void csaClient_summaryLimits()
+    {
+        QFETCH(bool, byteLimit);
+        CsaClient client;
+        client.m_connectionState = CsaClient::ConnectionState::LoggedIn;
+        QSignalSpy errors(&client, &CsaClient::errorOccurred);
+        client.processLine(QStringLiteral("BEGIN Game_Summary"));
+        client.processLine(QStringLiteral("BEGIN Position"));
+        const QString line = byteLimit ? QString(CsaClient::kMaxLineBytes, QLatin1Char('P')) : QStringLiteral("P+");
+        const int count = byteLimit ? 33 : CsaClient::kMaxSummaryLines;
+        for (int i = 0; i < count && client.m_inGameSummary; ++i) client.processGameSummary(line);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+        QCOMPARE(errors.count(), 1);
+        QVERIFY(client.gameSummary().positionLines.isEmpty());
+    }
+
+    void csaClient_fragmentedUtf8AndMultipleLines()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QVERIFY(bringToWaiting(client, server));
+        QSignalSpy received(&client, &CsaClient::rawMessageReceived);
+        const QByteArray bytes = QStringLiteral("監査").toUtf8();
+        server.peer->write(bytes.left(1));
+        server.peer->flush();
+        QTRY_COMPARE(client.m_receiveBuffer.size(), 1);
+        server.peer->write(bytes.mid(1) + "\r\nOK\n");
+        server.peer->flush();
+        QTRY_COMPARE(received.count(), 2);
+        QCOMPARE(received.at(0).at(0).toString(), QStringLiteral("監査"));
+        QCOMPARE(received.at(1).at(0).toString(), QStringLiteral("OK"));
+    }
+
     void csaClient_socket_logoutWaitsForCompleted()
     {
         LocalServer server;
@@ -1665,7 +1823,7 @@ private slots:
         states.clear();
 
         // 応答待ちのまま再接続すると、Disconnected を通知せずに Connecting へ進む
-        client.connectToServer(QStringLiteral("127.0.0.1"), server.port());
+        client.connectToServer(QStringLiteral("127.0.0.1"), server.port(), CsaClient::Transport::Plain);
         QCOMPARE(qvariant_cast<CsaClient::ConnectionState>(states.at(0).at(0)), CsaClient::ConnectionState::Connecting);
         QVERIFY(server.accept());
         QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Connected);

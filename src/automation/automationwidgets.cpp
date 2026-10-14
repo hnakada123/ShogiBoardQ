@@ -169,7 +169,7 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
         return true;
     }
     if (auto* edit = qobject_cast<QLineEdit*>(w)) {
-        obj[QStringLiteral("text")] = edit->echoMode() == QLineEdit::Normal
+        obj[QStringLiteral("text")] = !AutomationWidgets::isSensitive(edit)
             ? edit->text() : QStringLiteral("*****");
         obj[QStringLiteral("placeholder")] = edit->placeholderText();
         return true;
@@ -351,8 +351,18 @@ QWidget* requireWindow(const AutomationContext& context, const QString& target)
     return window;
 }
 
-void requireInteractive(QWidget* widget, bool allowPopup)
+bool isSensitive(const QWidget* widget)
 {
+    if (!widget) return false;
+    if (widget->property("automationSensitive").toBool()) return true;
+    const auto* edit = qobject_cast<const QLineEdit*>(widget);
+    return edit && edit->echoMode() != QLineEdit::Normal;
+}
+
+void requireInteractive(QWidget* widget, bool allowPopup, bool allowSensitiveWrite)
+{
+    if (isSensitive(widget) && !(allowSensitiveWrite && qobject_cast<QLineEdit*>(widget)))
+        throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Sensitive controls are not accessible through automation"));
     if (widget) {
         const QString action = widgetActionName(widget);
         if (!action.isEmpty() && !AutomationActionPolicy::isAllowed(action))

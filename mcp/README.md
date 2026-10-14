@@ -22,6 +22,7 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `SHOGIBOARDQ_CLI` | `shogiboardq-cli` のパス。未指定なら `SHOGIBOARDQ_EXECUTABLE` と同じディレクトリ、次に `PATH` を探します |
 | `SHOGIBOARDQ_EXECUTABLE` | `ShogiBoardQ` のパス。アプリ操作系ツールで起動中のアプリが無いとき `--automation` 付きで起動します |
 | `SHOGIBOARDQ_AUTOMATION_SOCKET` | 自動化ソケットのパス（アプリ側の `--automation-socket` と共通） |
+| `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI` | `1` のとき汎用GUI操作を許可します。既定は無効。GUI経由のファイル操作・エンジン登録にはディレクトリ制限が適用されないため、アプリと同等の権限を与える設定です |
 | `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（`:` 区切り、Windows は `;`）。既定はホームディレクトリ |
 | `SHOGIBOARDQ_OUTPUT_DIR` | スクリーンショットなど出力先未指定時のディレクトリ。既定は一時ディレクトリ配下の `shogiboardq-mcp` |
 | `SHOGIBOARDQ_QUIT_APP_ON_EXIT` | `1` のとき、サーバーが起動したアプリをサーバー終了時に閉じ、終了を待ちます。応答しない場合はその子プロセスだけを強制終了します（既定は残す） |
@@ -79,7 +80,13 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 
 CSA待機画面の「通信ログ」を開いた後、次の操作でコマンドを送信できます。
 `submit=true` は単一行のテキスト入力欄だけに対応し、通常の Enter キー入力として処理します。
-パスワード表示を無効にした入力欄は読み取り時に伏せ字となり、書き込みも拒否します。
+汎用GUI操作（`trigger_action`、`click_widget`、`set_widget_value`、`click_table_cell`、
+`edit_table_cell`、`click_dialog_button`、`select_menu_action`）は、起動環境で
+`SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` を指定した場合だけ使えます。通常の棋譜読み書きは
+`load_kifu` / `save_kifu` を使ってください。この設定をツール呼び出しで変更することはできません。
+CSAパスワードは表示状態に関係なく読み取り時に伏せ字となり、APIから表示を切り替える操作も拒否します。
+入力は `set_widget_value` で直接指定でき、応答には値を含めません。利用者が手動でパスワードを表示中は
+スクリーンショットを拒否します。
 
 ```text
 set_widget_value(target="csaWaitingLogWindow", widget="csaWaitingCommandInput", value="LOGOUT", submit=true)
@@ -333,9 +340,20 @@ Windows と macOS には Xvfb がありません。MCP サーバーの環境変�
 ## 安全性
 
 - 自動化 API は `ShogiBoardQ --automation` を付けたときだけ有効で、ソケットは所有者のみアクセスできます。ネットワークには公開しません。
-- ファイル引数は絶対パスのみ受け付け、`SHOGIBOARDQ_ALLOWED_DIRS`（既定はホーム）の外は拒否します。既存ファイルは `overwrite: true` が無ければ上書きしません。
+- 専用ツールのファイル引数は最終シンボリックリンク先まで検査します。絶対パスのみ受け付け、`SHOGIBOARDQ_ALLOWED_DIRS`（既定はホーム）の外は拒否します。既存ファイルは `overwrite: true` が無ければ上書きしません。
 - エンジンは ShogiBoardQ に登録済みの名前だけを受け付け、任意の実行ファイルパスは受け付けません。
-- `trigger_action` は許可リスト方式で、終了・上書き保存・Webサイトを開く動作は実行しません。言語切替と名前付きレイアウト管理には対応しています。
+- 汎用GUI操作は既定で無効です。有効化するとGUI経由ではファイル制限を保証しません。ローカル自動化ソケットも同一OSユーザーの信頼された操作用であり、MCPのファイル制限とは別です。
+- `trigger_action` は汎用GUI操作を有効化した場合も許可リスト方式で、終了・上書き保存・Webサイトを開く動作は実行しません。言語切替と名前付きレイアウト管理には対応しています。
+
+## CSA接続の安全性
+
+CSAは通常のCSA（平文）が既定です。設定画面には、ID・パスワード・対局内容が
+暗号化されないことと、他のサービスのパスワードを使い回さないよう注意を表示します。
+TLS対応サーバーには「TLS（暗号化）」を選択できます。TLSでは証明書とホスト名を検証し、
+接続失敗時も平文へ自動切替しません。
+接続方式は設定と接続履歴に保存します。方式の保存がない設定・履歴は通常のCSAになります。
+
+受信行は64 KiB、Game_Summary全体は2 MiBかつ20,000行までとし、超過時は切断します。
 
 ## テスト
 

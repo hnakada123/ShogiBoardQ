@@ -16,7 +16,8 @@ struct AutomationContext;
 namespace AutomationWidgets {
 
 QWidget* requireWindow(const AutomationContext& context, const QString& target);
-void requireInteractive(QWidget* widget, bool allowPopup = false);
+bool isSensitive(const QWidget* widget);
+void requireInteractive(QWidget* widget, bool allowPopup = false, bool allowSensitiveWrite = false);
 /// 名前がない／重複するQObjectにも、寿命中変わらない識別子を割り当てる。
 QString selector(QObject* object);
 QWidget* findWidget(QWidget* root, const QString& nameOrSelector);

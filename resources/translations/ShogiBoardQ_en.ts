@@ -1687,24 +1687,43 @@ Discard the changes and move?</translation>
 <context>
     <name>CsaClient</name>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="128"/>
+        <location filename="../../src/network/csaclient.cpp" line="133"/>
         <source>既に接続中です</source>
         <translation>Already connected</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="137"/>
+        <location filename="../../src/network/csaclient.cpp" line="142"/>
         <source>ポート番号が不正です: %1</source>
         <translation>Invalid port number: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="180"/>
+        <source>平文接続はループバックIPアドレスのみ使用できます。リモート接続にはTLSまたは暗号化トンネルを使用してください。</source>
+        <translation type="vanished">Plaintext connections require a loopback IP address. Use TLS or an encrypted tunnel for remote connections.</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csaclient.cpp" line="147"/>
+        <source>TLSを利用できません。SSLライブラリを確認してください。</source>
+        <translation>TLS is unavailable. Check the SSL libraries.</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csaclient.cpp" line="193"/>
         <source>サーバーに接続されていません</source>
         <translation>Not connected to server</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="205"/>
+        <location filename="../../src/network/csaclient.cpp" line="199"/>
+        <source>安全な接続が確立されていないためログインを中止しました。</source>
+        <translation>Login was cancelled because a secure connection has not been established.</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csaclient.cpp" line="223"/>
         <source>対局条件を受信していません</source>
         <translation>Game conditions not received</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csaclient.cpp" line="344"/>
+        <source>CSA受信データが上限を超えたため切断しました。</source>
+        <translation>Disconnected because the CSA receive limit was exceeded.</translation>
     </message>
     <message>
         <location filename="../../src/network/csaclient_commands.cpp" line="24"/>
@@ -1717,7 +1736,7 @@ Discard the changes and move?</translation>
         <translation>Not sent while waiting for the server to confirm the previous command: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="240"/>
+        <location filename="../../src/network/csaclient.cpp" line="258"/>
         <source>対局中ではありません</source>
         <translation>No game in progress</translation>
     </message>
@@ -1736,12 +1755,12 @@ Discard the changes and move?</translation>
         <translation type="vanished">Not your turn</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="328"/>
+        <location filename="../../src/network/csaclient.cpp" line="354"/>
         <source>接続がタイムアウトしました</source>
         <translation>Connection timed out</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="381"/>
+        <location filename="../../src/network/csaclient.cpp" line="407"/>
         <source>メッセージの送信に失敗しました: %1</source>
         <translation>Failed to send message: %1</translation>
     </message>
@@ -2139,27 +2158,27 @@ Discard the changes and move?</translation>
         <translation type="vanished">For shogi-server, enter game-name,password (e.g. test-600-10,pw). Passwords are not saved.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="516"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="534"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="519"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="537"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="526"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="544"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="529"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="547"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="549"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="567"/>
         <source>接続</source>
         <translation>Connect</translation>
     </message>
@@ -2199,168 +2218,205 @@ Discard the changes and move?</translation>
         <translation>Select from history</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="226"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="208"/>
+        <source>接続方式</source>
+        <translation>Connection security</translation>
+    </message>
+    <message>
+        <source>TLSは証明書を検証します。TLS非対応サーバーには暗号化トンネルを用意し、ループバックIPアドレスに接続してください。</source>
+        <translation type="vanished">TLS verifies the server certificate. For servers without TLS, set up an encrypted tunnel and connect to its loopback IP address.</translation>
+    </message>
+    <message>
+        <source>TLS（推奨）</source>
+        <translation type="vanished">TLS (recommended)</translation>
+    </message>
+    <message>
+        <source>ローカル接続（暗号化トンネル用）</source>
+        <translation type="vanished">Local connection (for encrypted tunnels)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="213"/>
+        <source>TLSは対応サーバーでのみ使用できます。サーバー証明書を検証して接続します。</source>
+        <translation>TLS requires server support and verifies the server certificate.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="214"/>
+        <source>通常のCSA（平文）</source>
+        <translation>Standard CSA (plaintext)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="215"/>
+        <source>TLS（暗号化）</source>
+        <translation>TLS (encrypted)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="220"/>
+        <source>注意：通常のCSA接続では、ID・パスワード・対局内容が暗号化されずに送信されます。他のサービスと同じパスワードを使用しないでください。</source>
+        <translation>Warning: Standard CSA sends your ID, password, and game data without encryption. Do not reuse a password from another service.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="244"/>
         <source>詳細</source>
         <translation>Advanced</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="232"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="250"/>
         <source>接続の維持</source>
         <translation>Keeping the connection alive</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="238"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="256"/>
         <source>対局中に空行を送って接続を維持する</source>
         <translation>Send empty lines during a game to keep the connection alive</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="241"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="259"/>
         <source>CSAプロトコルのキープアライブ（LFだけの行）です。直前の送信から指定の秒数が経つと送ります。</source>
         <translation>The CSA protocol keep-alive (a line with only LF). It is sent when the given number of seconds has passed since the previous transmission.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="251"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="269"/>
         <source>間隔</source>
         <translation>Interval</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="258"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="276"/>
         <source>仕様では直前の送信から30秒以上空ける必要があります。</source>
         <translation>The protocol requires at least 30 seconds after the previous transmission.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="261"/>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="373"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="279"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="391"/>
         <source> 秒</source>
         <translation> sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="277"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="295"/>
         <source>TCPキープアライブを使う（無通信のときにOSがパケットを送る）</source>
         <translation>Use TCP keep-alive (the OS sends packets while the connection is idle)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="290"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="308"/>
         <source>対局</source>
         <translation>Games</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="296"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="314"/>
         <source>対局数</source>
         <translation>Number of games</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="303"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="321"/>
         <source>1局</source>
         <translation>One game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="313"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="331"/>
         <source>指定回数</source>
         <translation>Fixed number</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="320"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="338"/>
         <source> 局</source>
         <translation> games</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="336"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="354"/>
         <source>無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="343"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="361"/>
         <source>終局後にサーバーが切断したら再接続して次の対局を待つ</source>
         <translation>Reconnect and wait for the next game when the server disconnects after a game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="346"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="364"/>
         <source>shogi-server は終局のたびに切断します。対局数が残っているときだけ再接続します。</source>
         <translation>shogi-server disconnects after every game. The client reconnects only while games remain.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="353"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="371"/>
         <source>後手のときは盤を反転する</source>
         <translation>Flip the board when playing White</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="363"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="381"/>
         <source>思考時間の余裕</source>
         <translation>Thinking time margin</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="370"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="388"/>
         <source>通信の遅延に備えて、エンジンに渡す秒読みと残り時間から差し引く秒数です（エンジン対局のみ）。</source>
         <translation>Seconds subtracted from the byoyomi and remaining time given to the engine, to allow for network delay (engine games only).</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="392"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="410"/>
         <source>棋譜の自動保存</source>
         <translation>Automatic record saving</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="398"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="416"/>
         <source>終局時に棋譜を自動保存する</source>
         <translation>Save the game record automatically when a game ends</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="405"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="423"/>
         <source>保存先</source>
         <translation>Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="412"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="430"/>
         <source>フォルダ</source>
         <translation>Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="419"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="437"/>
         <source>参照...</source>
         <translation>Browse...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="426"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="444"/>
         <source>形式</source>
         <translation>Format</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="439"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="457"/>
         <source>shogi-server</source>
         <translation>shogi-server</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="445"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="463"/>
         <source>ゲーム名</source>
         <translation>Game name</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="452"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="470"/>
         <source>shogi-server の「名前-持時間-秒読み」形式のゲーム名です。空欄ならサーバーの既定のゲームに入ります。</source>
         <translation>The shogi-server game name in the form name-time-byoyomi. Leave it empty to join the server&apos;s default game.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="455"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="473"/>
         <source>例: floodgate-300-10F（空欄なら既定）</source>
         <translation>e.g. floodgate-300-10F (empty for the default)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="462"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="480"/>
         <source>手番の希望</source>
         <translation>Preferred side</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="470"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="488"/>
         <source>指定なし</source>
         <translation>No preference</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="475"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="493"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="480"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="498"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -2426,7 +2482,7 @@ Discard the changes and move?</translation>
         <translation type="vanished">Start Game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="559"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="577"/>
         <source>キャンセル</source>
         <translation>Cancel</translation>
     </message>
@@ -2435,97 +2491,101 @@ Discard the changes and move?</translation>
         <translation type="vanished">Input Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog_settings.cpp" line="93"/>
+        <location filename="../../src/dialogs/csagamedialog_settings.cpp" line="97"/>
         <source>新しい接続先</source>
         <translation>New connection</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="159"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="164"/>
         <source>KIF (Shift_JIS, .kif)</source>
         <translation>KIF (Shift_JIS, .kif)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="160"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="165"/>
         <source>KIF (UTF-8, .kifu)</source>
         <translation>KIF (UTF-8, .kifu)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="161"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="166"/>
         <source>KI2 (.ki2)</source>
         <translation>KI2 (.ki2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="162"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="167"/>
         <source>CSA (.csa)</source>
         <translation>CSA (.csa)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="168"/>
         <source>JKF (.jkf)</source>
         <translation>JKF (.jkf)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="164"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="169"/>
         <source>USI (.usi)</source>
         <translation>USI (.usi)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="170"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="175"/>
         <source>「設定」→「エンジン設定」からエンジンを登録してください。</source>
         <translation>Register an engine under Settings → Engine Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="175"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="180"/>
         <source>接続先ホストを入力してください。</source>
         <translation>Please enter the host address.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="176"/>
+        <source>ローカル接続には127.0.0.1または::1などのループバックIPアドレスを指定してください。</source>
+        <translation type="vanished">For a local connection, enter a loopback IP address such as 127.0.0.1 or ::1.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="181"/>
         <source>IDを入力してください。</source>
         <translation>Please enter the ID.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="177"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="182"/>
         <source>パスワードを入力してください。</source>
         <translation>Please enter the password.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="180"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="185"/>
         <source>接続先ホスト・ID・パスワードに空白や改行は使用できません。</source>
         <translation>Host, ID and password cannot contain whitespace or line breaks.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="186"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="191"/>
         <source>IDは英数字・「_」・「-」のみを使い、32文字以内で入力してください。</source>
         <translation>The ID may contain only letters, digits, &quot;_&quot; and &quot;-&quot;, up to 32 characters.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="190"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="195"/>
         <source>パスワードは半角の英数字・記号のみを使い、32文字以内で入力してください。</source>
         <translation>The password may contain only ASCII letters, digits and symbols, up to 32 characters.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="194"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="199"/>
         <source>ゲーム名は「名前-持時間-秒読み」の形式で入力してください（例: floodgate-300-10F）。</source>
         <translation>Enter the game name as name-time-byoyomi (e.g. floodgate-300-10F).</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="197"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="202"/>
         <source>棋譜の自動保存先フォルダを指定してください。</source>
         <translation>Choose the folder for automatically saved records.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="219"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="225"/>
         <source>接続後、対局相手を待ちます。</source>
         <translation>After connecting, wait for an opponent.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="301"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="308"/>
         <source>棋譜の自動保存先</source>
         <translation>Folder for automatically saved records</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="311"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="318"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
@@ -2536,7 +2596,7 @@ Discard the changes and move?</translation>
 Please register an engine from Tools → Engine Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="311"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="318"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
@@ -2639,17 +2699,17 @@ Cause: %2</translation>
         <translation>Network game cancelled</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="77"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="78"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
         <translation>Cannot create the folder for automatic saving: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="99"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="100"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Record saved automatically: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="101"/>
+        <location filename="../../src/ui/wiring/csagamewiring_options.cpp" line="102"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Automatic saving of the record failed: %1</translation>
     </message>
