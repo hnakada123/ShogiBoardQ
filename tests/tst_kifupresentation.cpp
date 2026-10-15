@@ -3,6 +3,7 @@
 #include "kifupresentation.h"
 #include "sfenreplay.h"
 #include "sfenutils.h"
+#include "test_replay.h"
 
 using namespace KifuPresentation;
 
@@ -56,7 +57,7 @@ private slots:
         whiteStart.replace(" b ", " w ");
         QCOMPARE(pv(whiteStart, "3c3d 7g7f", "△３四歩(33)▲７六歩(77)"), QStringLiteral("△P-3d ▲P-7f"));
         QCOMPARE(label("   1 ▲７六歩(77)+", hirate, "7g7f"), QStringLiteral("   1 ▲P-7f [+]"));
-        const auto moves = SfenReplay::buildGameMoves(hirate, {"7g7f", "3c3d", "8h2b+"});
+        const auto moves = TestReplay::buildGameMoves(hirate, {"7g7f", "3c3d", "8h2b+"});
         QCOMPARE(usiMove(moves.at(2)), QStringLiteral("8h2b+"));
         configure("zh_CN", "auto", false);
         const QString canonical = QStringLiteral("▲同　飛成(28)");

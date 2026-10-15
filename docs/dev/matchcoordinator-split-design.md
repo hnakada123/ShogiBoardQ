@@ -48,7 +48,7 @@ struct Deps {
 | 待った | `undoTwoPlies()` |
 | 終局 | `handleResign()`、`handleBreakOff()`、`handlePlayerTimeOut()`、`handleNyugyokuDeclaration()`、`clearGameOverState()`。private の `handleEngineResign()`・`handleEngineWin()`・`handleEngineIllegalMove()`・`handleEngineError()`・`checkAndHandleSennichite()`・`handleMaxMovesJishogi()`、記録の `finishGame()`・`appendTerminalRecord()`、知らせの `announceResult()`・`resultMessage()` |
 | 時計 | `clock()`、`pokeTimeUpdateNow()`、private の `emitTimeUpdate()` |
-| 読み取り | `record()`、`currentPly()`、`options()`、`players()`、`hasStarted()`、`isHumanSide()`、`gameOverState()`、`isGameOver()`、`interruptedGame()`、`usesHandicapNames()` |
+| 読み取り | `record()`、`currentPly()`、`options()`、`players()`、`isHumanSide()`、`gameOverState()`、`isGameOver()`、`interruptedGame()`、`usesHandicapNames()` |
 
 終局処理はどれも、エンジンへの通知（`EngineLifecycleManager::notifyGameOver()`）→ `finishGame()`（終局状態の確定・終局行の追記・`gameEnded`）→ `announceResult()`（結果の知らせ・自動保存の依頼・`gameEndProcessed`）の順に進む。中断は `announceResult()` を呼ばず、入玉宣言は結果を呼び出し側のダイアログで知らせる。流れの詳細は [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
 

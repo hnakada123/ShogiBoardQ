@@ -108,9 +108,6 @@ signals:
     /// ナビゲーション完了を通知する（Controller → MainWindow）
     void navigationCompleted(KifuBranchNode* newNode);
 
-    /// 盤面SFEN更新を要求する（Controller → BoardSyncPresenter）
-    void boardUpdateRequired(const QString& sfen);
-
     /// 棋譜欄ハイライト更新を要求する（Controller → RecordPresenter）
     void recordHighlightRequired(int ply);
 

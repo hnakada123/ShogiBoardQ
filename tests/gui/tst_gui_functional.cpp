@@ -66,7 +66,6 @@
 #include "evaluationchartwidget.h"
 #include "evaluationchartview.h"
 #include "branchtreemanager.h"
-#include "sfenreplay.h"
 #include "settingscommon.h"
 #include "appsettings.h"
 #include "applicationfonts.h"
@@ -103,6 +102,7 @@
 #include "tsumeshogigeneratordialog.h"
 #include "usi.h"
 #include "kifupresentation.h"
+#include "../test_replay.h"
 
 class GuiAudit : public QObject
 {
@@ -3009,7 +3009,7 @@ private slots:
 
         QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         if (!humanIsBlack) moves.append(QStringLiteral("2g2f"));
-        const QStringList sfens = SfenReplay::buildSfenRecord(
+        const QStringList sfens = TestReplay::buildSfenRecord(
             initial + QStringLiteral(" b - 1"), moves, /*hasTerminal=*/true);
         QCOMPARE(sfens.size(), model->rowCount());
 
@@ -3147,7 +3147,7 @@ private slots:
         QVERIFY(recordModel->index(lastPly + 1, 0).data().toString().contains(QStringLiteral("投了")));
         QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         if (!humanIsBlack) moves.append(QStringLiteral("2g2f"));
-        const auto sfens = SfenReplay::buildSfenRecord(initial + QStringLiteral(" b - 1"), moves, false);
+        const auto sfens = TestReplay::buildSfenRecord(initial + QStringLiteral(" b - 1"), moves, false);
         auto* graph = window->composer().parts().evalChart;
         auto* tree = window->findChild<BranchTreeManager*>();
         QVERIFY(graph && tree);

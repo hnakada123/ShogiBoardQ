@@ -20,7 +20,6 @@
 #include "jkftosfenconverter.h"
 #include "usitosfenconverter.h"
 #include "usentosfenconverter.h"
-#include "sfenreplay.h"
 #include "livegamesession.h"
 #include "kifuexportclipboard.h"
 #include "appstate.h"
@@ -29,6 +28,7 @@
 #include "kifu_test_helper.h"
 #include "kifuloadparser.h"
 #include "kifubranchtreebuilder.h"
+#include "test_replay.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -42,8 +42,8 @@ private:
                                        const QString& usi, const QString& pretty,
                                        const QString& time = {})
     {
-        const QStringList positions = SfenReplay::buildSfenRecord(parent->sfen(), {usi}, false);
-        const QList<ShogiMove> moves = SfenReplay::buildGameMoves(parent->sfen(), {usi});
+        const QStringList positions = TestReplay::buildSfenRecord(parent->sfen(), {usi}, false);
+        const QList<ShogiMove> moves = TestReplay::buildGameMoves(parent->sfen(), {usi});
         return tree.addMove(parent, moves.value(0), pretty, positions.last(), time);
     }
 
@@ -225,7 +225,7 @@ private slots:
         QVERIFY2(parsed, qPrintable(error));
         QCOMPARE(result.mainline.baseSfen, initial);
         QCOMPARE(result.mainline.usiMoves(), usi);
-        QCOMPARE(SfenReplay::buildSfenRecord(result.mainline.baseSfen, result.mainline.usiMoves(), false).last(), tip->sfen());
+        QCOMPARE(TestReplay::buildSfenRecord(result.mainline.baseSfen, result.mainline.usiMoves(), false).last(), tip->sfen());
     }
 
     void kifBodUsesDeclaredTurn_data()
@@ -640,12 +640,12 @@ private slots:
         const QString newUsi = branch ? QStringLiteral("8c8d") : QStringLiteral("2g2f");
         const QString newPretty = branch ? QStringLiteral("△８四歩(83)") : QStringLiteral("▲２六歩(27)");
         QStringList sessionUsi = {newUsi};
-        QStringList sessionSfens = SfenReplay::buildSfenRecord(anchor->sfen(), sessionUsi, false);
+        QStringList sessionSfens = TestReplay::buildSfenRecord(anchor->sfen(), sessionUsi, false);
 
         LiveGameSession session;
         session.setTree(&tree);
         session.startFromNode(anchor);
-        session.addMove(SfenReplay::buildGameMoves(anchor->sfen(), sessionUsi).value(0),
+        session.addMove(TestReplay::buildGameMoves(anchor->sfen(), sessionUsi).value(0),
                         newPretty, sessionSfens.last(), QStringLiteral("00:05/00:00:05"));
         QVERIFY(session.commit());
 

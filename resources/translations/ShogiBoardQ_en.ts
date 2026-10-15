@@ -9,8 +9,8 @@
     </message>
     <message>
         <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="46"/>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="197"/>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="221"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="195"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="219"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>The game record selected for analysis is invalid.</translation>
     </message>
@@ -24,7 +24,7 @@
         <translation type="vanished">Internal error: USI instance is not initialized.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="203"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="201"/>
         <source>エンジン選択が不正です。</source>
         <translation>Invalid engine selection.</translation>
     </message>
@@ -46,7 +46,7 @@
         <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="181"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="179"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -10547,12 +10547,12 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">An error occurred in ShogiBoard::validateSfenString. The last part of the SFEN string must be a positive integer (indicating the next move number).</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="709"/>
+        <location filename="../../src/core/shogiboard.cpp" line="707"/>
         <source>SFEN board parse error: %1</source>
         <translation>SFEN board parse error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="714"/>
+        <location filename="../../src/core/shogiboard.cpp" line="712"/>
         <source>SFEN piece stand parse error: %1</source>
         <translation>SFEN piece stand parse error: %1</translation>
     </message>
@@ -12113,12 +12113,12 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="195"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="210"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>The engine does not support mate search.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="221"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="236"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>Generation was aborted because the engine is not responding.</translation>
     </message>
@@ -12594,6 +12594,7 @@ Check the settings and press Start.</translation>
         <translation>Engine exited unexpectedly.</translation>
     </message>
     <message>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="91"/>
         <location filename="../../src/engine/usienginesession.cpp" line="67"/>
         <source>Failed to start engine: %1</source>
         <translation>Failed to start engine: %1</translation>

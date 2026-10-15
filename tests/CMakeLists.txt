@@ -977,7 +977,8 @@ add_dependencies(tst_tsume_play hayanagi mock_tsume_engine)
 # 生成時の唯一解検査と、通常・停止・エラー経路の採択条件
 add_shogi_test(tst_tsumeshogi_verification
     tst_tsumeshogi_verification.cpp
-    tsumeshogi_stubs/usi.h
+    tsumeshogi_stubs/usienginesession.h
+    tsumeshogi_stubs/usiprotocolhandler.h
     ${SRC}/analysis/tsumeshogiverifier.cpp
     ${SRC}/analysis/tsumeshogigenerator.cpp
     ${SRC}/analysis/tsumeshogipositiongenerator.cpp

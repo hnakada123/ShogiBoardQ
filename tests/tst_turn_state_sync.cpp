@@ -7,7 +7,6 @@
 
 #include "elidelabel.h"
 #include "boardappearance.h"
-#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
@@ -17,6 +16,7 @@
 #include "turnmanager.h"
 #include "timedisplaypresenter.h"
 #include "turnstatesyncservice.h"
+#include "test_replay.h"
 
 Q_DECLARE_METATYPE(ShogiView::Urgency)
 
@@ -191,7 +191,7 @@ private slots:
         const QStringList moves = whiteStart
             ? QStringList{QStringLiteral("3c3d"), QStringLiteral("7g7f"), QStringLiteral("8c8d")}
             : QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")};
-        const QStringList sfens = SfenReplay::buildSfenRecord(initialSfen, moves, false);
+        const QStringList sfens = TestReplay::buildSfenRecord(initialSfen, moves, false);
         QCOMPARE(sfens.size(), 4);
 
         ShogiGameController gc;

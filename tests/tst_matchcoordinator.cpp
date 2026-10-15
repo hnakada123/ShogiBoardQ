@@ -11,6 +11,7 @@
 #include "match_test_helper.h"
 #include "terminaltype.h"
 #include "usi.h"
+#include "test_replay.h"
 
 class Tst_MatchCoordinator : public QObject
 {
@@ -91,7 +92,7 @@ MatchCoordinator::StartOptions humanVsEngine(bool engineIsBlack, const QString& 
 void Tst_MatchCoordinator::initialState_notStartedAndNotOver()
 {
     MatchHarness h;
-    QVERIFY(!h.mc->hasStarted());
+    QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     const auto& st = h.mc->gameOverState();
     QVERIFY(!st.isOver);
     QVERIFY(!st.hasLast);
@@ -110,7 +111,6 @@ void Tst_MatchCoordinator::start_preparesHumanGame()
     QSignalSpy prepared(h.mc.get(), &MatchCoordinator::gamePrepared);
     h.startHumanVsHuman();
     QCOMPARE(prepared.count(), 1);
-    QVERIFY(h.mc->hasStarted());
     QVERIFY(h.mc->players().humanVsHuman());
     QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
     QCOMPARE(h.gc.currentPlayer(), Turn::Black);
@@ -125,8 +125,8 @@ void Tst_MatchCoordinator::start_keepsRecordLineUpToCurrentPly()
     MatchHarness h;
     MatchCoordinator::StartOptions opt;
     opt.recordLine = RecordLine::fromPositions(
-        SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), {"7g7f", "3c3d", "2g2f"}, false),
-        SfenReplay::buildGameMoves(SfenUtils::hirateSfen(), {"7g7f", "3c3d", "2g2f"}));
+        TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), {"7g7f", "3c3d", "2g2f"}, false),
+        TestReplay::buildGameMoves(SfenUtils::hirateSfen(), {"7g7f", "3c3d", "2g2f"}));
     opt.recordLine.currentPly = 2;
     h.start(opt);
     // 表示中の手（2手目）までを対局の手順にし、後続の手は捨てる
@@ -351,8 +351,8 @@ void Tst_MatchCoordinator::undoTwoPlies_onlyOnHumanTurn()
     MatchHarness h;
     MatchCoordinator::StartOptions opt = humanVsEngine(false, MatchHarness::mockEnginePath(), QStringLiteral("UndoTest"));
     const QStringList opening{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
-    opt.recordLine = RecordLine::fromPositions(SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), opening, false),
-                                               SfenReplay::buildGameMoves(SfenUtils::hirateSfen(), opening));
+    opt.recordLine = RecordLine::fromPositions(TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), opening, false),
+                                               TestReplay::buildGameMoves(SfenUtils::hirateSfen(), opening));
     opt.recordLine.currentPly = 2;
     h.mc->start(opt);
     QVERIFY(h.playHuman(QStringLiteral("2g2f")));

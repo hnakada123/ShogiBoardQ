@@ -23,9 +23,9 @@
 #include "branchtreemanager.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
-#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "shogiclock.h"
+#include "test_replay.h"
 
 namespace {
 
@@ -206,7 +206,7 @@ private slots:
         QCOMPARE(h.tree.nodeCount(), count + 1);
         QCOMPARE(h.tree.lineCount(), 1);
         // 同じ局面へ戻るので、駒取り・駒打ちを含めて全盤面と持ち駒が一致する。
-        QCOMPARE(h.line().sfens(), SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), opening.mid(0, count), false));
+        QCOMPARE(h.line().sfens(), TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), opening.mid(0, count), false));
     }
 
     void repeatedUndoStopsAtRoot()

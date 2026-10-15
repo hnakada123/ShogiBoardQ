@@ -14,8 +14,8 @@
 #include "kifunavigationcontroller.h"
 #include "shogienginethinkingmodel.h"
 #include "pvboarddialog.h"
-#include "sfenreplay.h"
 #include "gamesession.h"
+#include "test_replay.h"
 
 class TestWiringAnalysisTab : public QObject {
     Q_OBJECT
@@ -58,8 +58,8 @@ private slots:
         auto& p = window.composer().parts();
         p.gameSession->resetToInitialState();
         const QStringList usi{"7g7f"};
-        const auto moves = SfenReplay::buildGameMoves(SfenUtils::hirateSfen(), usi);
-        const auto sfens = SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
+        const auto moves = TestReplay::buildGameMoves(SfenUtils::hirateSfen(), usi);
+        const auto sfens = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
         auto* node = p.branchTree->addMove(p.branchTree->root(), moves.first(), QStringLiteral("▲７六歩"), sfens.last());
         QVERIFY(node);
         emit p.analysisTab->branchNodeActivated(0, 1);

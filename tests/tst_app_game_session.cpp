@@ -187,7 +187,7 @@ private slots:
         p.gameSession->startGameFromDialog();
         QVERIFY(m_dialogSeen);
         QCOMPARE(cleanup.count(), 0);
-        QVERIFY(!p.match->hasStarted());
+        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
         QVERIFY(!p.match->gameOverState().isOver);
     }
 
@@ -202,7 +202,7 @@ private slots:
                 &recorder, &StartSignalRecorder::onPreStartCleanup);
         startFromDialog(window);
         QCOMPARE(recorder.events, QStringList({QStringLiteral("cleanup")}));
-        QVERIFY(p.match->hasStarted() && p.match->players().humanVsHuman());
+        QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
         QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
     }
@@ -227,7 +227,8 @@ private slots:
         QVERIFY(clock->remainingMs(Turn::Black) > 0);
         // 棋譜再生から開始した場合も、新しい対局の時計を動かす。
         QVERIFY(clock->isRunning());
-        QVERIFY(p.match->hasStarted() && p.match->players().humanVsHuman());
+        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
         p.gameSession->breakOff();
     }

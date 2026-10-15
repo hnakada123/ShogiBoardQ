@@ -9,8 +9,8 @@
     </message>
     <message>
         <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="46"/>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="197"/>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="221"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="195"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="219"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>解析対象の棋譜データが不正です。</translation>
     </message>
@@ -24,7 +24,7 @@
         <translation type="vanished">内部エラー: Usi インスタンスが未初期化です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="203"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="201"/>
         <source>エンジン選択が不正です。</source>
         <translation>エンジン選択が不正です。</translation>
     </message>
@@ -42,7 +42,7 @@
         <translation type="obsolete">後手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="181"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="179"/>
         <source>エンジンエラー: %1</source>
         <translation>エンジンエラー: %1</translation>
     </message>
@@ -8780,12 +8780,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiBoard</name>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="709"/>
+        <location filename="../../src/core/shogiboard.cpp" line="707"/>
         <source>SFEN board parse error: %1</source>
         <translation>SFEN盤面の解析エラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="714"/>
+        <location filename="../../src/core/shogiboard.cpp" line="712"/>
         <source>SFEN piece stand parse error: %1</source>
         <translation>SFEN持ち駒の解析エラー: %1</translation>
     </message>
@@ -10263,12 +10263,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="195"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="210"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>エンジンが詰み探索に対応していません。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="221"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="236"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>エンジンが応答しないため生成を中止しました。</translation>
     </message>
@@ -10720,6 +10720,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>エンジンが予期せず終了しました。</translation>
     </message>
     <message>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="91"/>
         <location filename="../../src/engine/usienginesession.cpp" line="67"/>
         <source>Failed to start engine: %1</source>
         <translation>エンジンの起動に失敗しました: %1</translation>

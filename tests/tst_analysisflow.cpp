@@ -12,7 +12,6 @@
 
 #include "analysisflowcontroller.h"
 #include "analysiscoordinator.h"
-#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "considerationflowcontroller.h"
 #include "enginesettingsconstants.h"
@@ -28,6 +27,7 @@
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
+#include "test_replay.h"
 
 
 namespace {
@@ -84,7 +84,7 @@ public:
 
         // 平手の開始局面 + 2手分
         usiMoves << QStringLiteral("7g7f") << QStringLiteral("3c3d");
-        sfenRecord = SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), usiMoves, false);
+        sfenRecord = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), usiMoves, false);
 
         usi = new Usi(&logModel, &thinkingModel, nullptr);
     }
@@ -97,7 +97,7 @@ public:
     AnalysisFlowController::Deps makeDeps()
     {
         AnalysisFlowController::Deps d;
-        d.line = RecordLine::fromPositions(sfenRecord, SfenReplay::buildGameMoves(sfenRecord.first(), usiMoves));
+        d.line = RecordLine::fromPositions(sfenRecord, TestReplay::buildGameMoves(sfenRecord.first(), usiMoves));
         d.line.currentPly = 0;
         d.analysisModel = &analysisModel;
         d.usi = usi;

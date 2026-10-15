@@ -11,7 +11,7 @@
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
 #include "kiftosfenconverter.h"
-#include "sfenreplay.h"
+#include "test_replay.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -231,7 +231,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
 
-        const QStringList sfens = SfenReplay::buildSfenRecord(kHirateSfen, moves, false).mid(1);
+        const QStringList sfens = TestReplay::buildSfenRecord(kHirateSfen, moves, false).mid(1);
 
         ShogiMove dummyMove;
         auto* current = tree.root();

@@ -2,8 +2,10 @@
 /// @brief 詰将棋局面自動生成オーケストレータの実装
 
 #include "tsumeshogigenerator.h"
-#include "usi.h"
+#include "usienginesession.h"
+#include "usiprotocolhandler.h"
 
+#include <QCoreApplication>
 #include <QtConcurrentRun>
 
 #include <atomic>
@@ -63,26 +65,32 @@ void TsumeshogiGenerator::start(const Settings& settings)
     m_screenUnknownCount = 0;
     emit verificationStatsUpdated(0, 0);
 
-    // Usi インスタンスを作成（モデル不要、ゲームコントローラ不要）。所有は parent（this）
-    m_usi = new Usi(nullptr, nullptr, this);
-
-    // checkmate シグナルを接続
-    connect(m_usi, &Usi::checkmateSolved,
+    // エンジンとの接続を作る（思考情報の表示は使わない）。所有は parent（this）
+    m_engine = new UsiEngineSession(this);
+    UsiProtocolHandler* handler = m_engine->handler();
+    connect(handler, &UsiProtocolHandler::checkmateSolved,
             this, &TsumeshogiGenerator::onCheckmateSolved);
-    connect(m_usi, &Usi::checkmateNoMate,
+    connect(handler, &UsiProtocolHandler::checkmateNoMate,
             this, &TsumeshogiGenerator::onCheckmateNoMate);
-    connect(m_usi, &Usi::checkmateNotImplemented,
+    connect(handler, &UsiProtocolHandler::checkmateNotImplemented,
             this, &TsumeshogiGenerator::onCheckmateNotImplemented);
-    connect(m_usi, &Usi::checkmateUnknown,
+    connect(handler, &UsiProtocolHandler::checkmateUnknown,
             this, &TsumeshogiGenerator::onCheckmateUnknown);
-    connect(m_usi, &Usi::errorOccurred,
+    connect(m_engine, &UsiEngineSession::errorOccurred,
             this, &TsumeshogiGenerator::onEngineError);
+    connect(m_engine, &UsiEngineSession::ready, this, &TsumeshogiGenerator::onEngineInitialized);
 
-    connect(m_usi, &Usi::engineInitialized, this, &TsumeshogiGenerator::onEngineInitialized);
     // 起動要求中の即時エラーで二重に後始末しないようにする。
     m_starting = true;
     m_stopRequestedDuringStart = false;
-    const bool started = m_usi->startEngine(settings.enginePath, settings.engineName);
+    QString startError;
+    const bool started = m_engine->startAsync(settings.enginePath, settings.engineName, &startError);
+    if (!started) {
+        // 起動できなかった理由は接続が知らせる（無いときは接続と同じ文言にする）
+        onEngineError(startError.isEmpty()
+                          ? QCoreApplication::translate("Usi", "Failed to start engine: %1").arg(settings.enginePath)
+                          : startError);
+    }
     m_starting = false;
 
     if (!started || m_stopRequestedDuringStart) {
@@ -93,12 +101,19 @@ void TsumeshogiGenerator::start(const Settings& settings)
         return;
     }
 
-    if (!m_usi->isInitializing()) onEngineInitialized();
+    if (!m_engine->isInitializing()) onEngineInitialized();
+}
+
+void TsumeshogiGenerator::sendMateSearch(const QString& positionStr, int timeLimitMs)
+{
+    UsiProtocolHandler* handler = m_engine->handler();
+    handler->sendPosition(positionStr);
+    handler->sendGoMate(timeLimitMs);
 }
 
 void TsumeshogiGenerator::onEngineInitialized()
 {
-    if (m_phase != Phase::Searching || !m_usi) return;
+    if (m_phase != Phase::Searching || !m_engine) return;
 
     // キャンセルフラグを初期化
     m_cancelFlag = makeCancelFlag();
@@ -120,10 +135,10 @@ void TsumeshogiGenerator::stop()
     if (m_phase == Phase::Idle) return;
 
     if (m_starting) {
-        // エンジン初期化の待機ループ中。ここで Usi を破棄すると初期化処理が
+        // エンジン初期化の待機ループ中。ここで接続を破棄すると初期化処理が
         // 解放済みオブジェクトに触れるため、待機を中断させて start() 側で後始末する
         m_stopRequestedDuringStart = true;
-        if (m_usi) m_usi->cancelCurrentOperation();
+        if (m_engine) m_engine->cancelCurrentOperation();
         return;
     }
 
@@ -226,7 +241,7 @@ void TsumeshogiGenerator::onSafetyTimeout()
     // エンジン無応答 → 探索を止めて応答を待つ。次の局面は応答を受け取ってから送る。
     // 先に次を送ると、遅れて届いた前局面の応答を新しい局面の結果として誤採択してしまう
     m_awaitingStopResponse = true;
-    m_usi->sendStopCommand();
+    m_engine->handler()->sendStop();
     m_safetyTimer.start(kStopResponseTimeoutMs);
 }
 
@@ -311,7 +326,7 @@ void TsumeshogiGenerator::generateAndSendNext()
     QString positionStr = QStringLiteral("position sfen ") + m_currentSfen;
 
     // エンジンに送信
-    m_usi->sendMateSearch(positionStr, m_settings.timeoutMs);
+    sendMateSearch(positionStr, m_settings.timeoutMs);
 
     // 安全タイマーを設定
     m_safetyTimer.start(m_settings.timeoutMs + kSafetyMarginMs);
@@ -378,13 +393,14 @@ void TsumeshogiGenerator::cleanup()
     m_verifiedSfen.clear();
     m_verifiedPv.clear();
 
-    if (m_usi) {
-        m_usi->cleanupEngineProcessAndThread();
-        // Usi のシグナル処理中（エンジン応答・エラー通知）に呼ばれることがあるため
+    if (m_engine) {
+        m_engine->quit();
+        // 接続のシグナル処理中（エンジン応答・エラー通知）に呼ばれることがあるため
         // 同期削除は行わず、切断してから遅延削除する（this が親なので取りこぼしはない）
-        disconnect(m_usi, nullptr, this, nullptr);
-        m_usi->deleteLater();
-        m_usi = nullptr;
+        disconnect(m_engine->handler(), nullptr, this, nullptr);
+        disconnect(m_engine, nullptr, this, nullptr);
+        m_engine->deleteLater();
+        m_engine = nullptr;
     }
 
     // バッチ生成状態をクリア
@@ -509,7 +525,7 @@ void TsumeshogiGenerator::tryNextTrimCandidate()
 void TsumeshogiGenerator::sendTrimmingCheck(const QString& modifiedSfen)
 {
     QString positionStr = QStringLiteral("position sfen ") + modifiedSfen;
-    m_usi->sendMateSearch(positionStr, m_settings.timeoutMs);
+    sendMateSearch(positionStr, m_settings.timeoutMs);
 
     m_safetyTimer.start(m_settings.timeoutMs + kSafetyMarginMs);
 }
@@ -657,7 +673,7 @@ void TsumeshogiGenerator::continueVerification()
     m_verificationAwaiting = true;
     emit verificationProgress(++m_verificationQueries);
     QString position = QStringLiteral("position sfen ") + sfen;
-    m_usi->sendMateSearch(position, timeout);
+    sendMateSearch(position, timeout);
     m_safetyTimer.start(timeout + 5000);
 }
 

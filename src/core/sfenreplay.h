@@ -47,12 +47,6 @@ Result replay(const QString& initialSfen, const QStringList& usiMoves);
 /// 読めなければ空
 QString sfenFromPositionCommand(const QString& positionCommand);
 
-/// 開始局面と各手の後の局面（hasTerminal のとき終局の行のために最後を複製する）。指せなければ空
-QStringList buildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal);
-
-/// 各手（動かした駒・取った駒つき）。指せない手があれば空
-QList<ShogiMove> buildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
-
 } // namespace SfenReplay
 
 #endif // SFENREPLAY_H

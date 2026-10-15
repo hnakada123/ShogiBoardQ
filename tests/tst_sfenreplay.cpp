@@ -5,6 +5,7 @@
 #include "shogiboard.h"
 #include "sfenreplay.h"
 #include "shogimove.h"
+#include "test_replay.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -31,8 +32,8 @@ private slots:
         QCOMPARE(result.failedPly, 3);
         QCOMPARE(result.moves.size(), 2);
         QVERIFY(result.error.contains(QStringLiteral("Source square is empty")));
-        QVERIFY(SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), moves, false).isEmpty());
-        QVERIFY(SfenReplay::buildGameMoves(SfenUtils::hirateSfen(), moves).isEmpty());
+        QVERIFY(TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), moves, false).isEmpty());
+        QVERIFY(TestReplay::buildGameMoves(SfenUtils::hirateSfen(), moves).isEmpty());
         const auto invalidStart = SfenReplay::replay(QStringLiteral("invalid"), {});
         QCOMPARE(invalidStart.failedPly, 0);
         QVERIFY(invalidStart.moves.isEmpty());
@@ -52,7 +53,7 @@ private slots:
                                    QStringLiteral("2f2e"), QStringLiteral("8d8e"), QStringLiteral("2e2d"),
                                    QStringLiteral("2c2d"), QStringLiteral("2h2d"), QStringLiteral("8e8f"),
                                    QStringLiteral("8g8f"), QStringLiteral("8b8f")};
-        const QStringList record = SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), moves, false);
+        const QStringList record = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), moves, false);
         QCOMPARE(record.size(), moves.size() + 1);
         QCOMPARE(record.last().section(QLatin1Char(' '), 2, 2), QStringLiteral("B2Pb2p"));  // 以前は "Bb2P2p" と書いていた
     }
@@ -116,7 +117,7 @@ private slots:
 
     void positionAfter_bishopPromote()
     {
-        const QStringList record = SfenReplay::buildSfenRecord(
+        const QStringList record = TestReplay::buildSfenRecord(
             kHirateSfen, {QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("8h2b+")}, false);
         QCOMPARE(record.size(), 4);
 
@@ -141,7 +142,7 @@ private slots:
     void buildGameMoves()
     {
         const QStringList usiMoves = {QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")};
-        const QList<ShogiMove> gameMoves = SfenReplay::buildGameMoves(kHirateSfen, usiMoves);
+        const QList<ShogiMove> gameMoves = TestReplay::buildGameMoves(kHirateSfen, usiMoves);
         QCOMPARE(gameMoves.size(), 3);
 
         QCOMPARE(gameMoves[0].move.toString(), QStringLiteral("7g7f"));
@@ -152,7 +153,7 @@ private slots:
     void buildSfenRecord()
     {
         const QStringList record =
-            SfenReplay::buildSfenRecord(kHirateSfen, {QStringLiteral("7g7f"), QStringLiteral("3c3d")}, false);
+            TestReplay::buildSfenRecord(kHirateSfen, {QStringLiteral("7g7f"), QStringLiteral("3c3d")}, false);
         // 開始局面と2手の後の局面
         QCOMPARE(record.size(), 3);
         QCOMPARE(record[0], kHirateSfen);

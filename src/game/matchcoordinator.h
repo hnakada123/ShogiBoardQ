@@ -74,8 +74,6 @@ public:
     const StartOptions& options() const { return m_session.options(); }
     /// 対局者（人間・エンジンの組と名前）
     const MatchPlayers& players() const { return m_session.players(); }
-    /// 一度でも対局を始めたか
-    bool hasStarted() const { return m_session.started(); }
     bool isHumanSide(Turn side) const;
 
     /// 終局の知らせで対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
