@@ -132,6 +132,8 @@ public:
             && m_client->connectionState() != CsaClient::ConnectionState::Connecting
             && m_client->isConnected();
     }
+    enum class TurnState { MyTurn, AwaitingConfirmation, OpponentTurn };
+    TurnState turnState() const;
     bool isMyTurn() const;
     bool isBlackSide() const;
     bool isHumanPlayer() const { return m_playerType == PlayerType::Human; }
@@ -192,15 +194,14 @@ signals:
     void recordEntryReady(const RecordEntry& entry);
     void turnChanged(bool isMyTurn);
     void moveHighlightRequested(const QPoint& from, const QPoint& to);
-    /// 盤面に着手が反映された（相手の指し手・自エンジンの指し手。人間の指し手は
-    /// ShogiGameController::moveCommitted で通知される）
+    /// サーバーが確認した手の盤面・履歴・棋譜・時計を確定した
     void moveAppliedToBoard();
     void logMessage(const QString& message, bool isError = false);
     void csaCommLogAppended(const QString& line);
     void engineScoreUpdated(int scoreCp, int ply, const QString& mate);
 
 public slots:
-    void onHumanMove(const QPoint& from, const QPoint& to, bool promote);
+    void onHumanMove(const QPoint& from, const QPoint& to);
     void onResign();
 
 private slots:
@@ -259,10 +260,11 @@ private:
     /// 解釈できなかった指し手の裁定待ちを取り消す（終局・切断時）
     void clearPendingVerdict();
     /// 着手を記録して通知する（手数・手番・ハイライト・棋譜行）
-    void finishMove(const QString& csaMove, const QString& usiMove, bool isPromotion,
+    void finishMove(const QString& csaMove, bool isPromotion,
                     int consumedTimeMs, const QPoint& from, const QPoint& to, bool nowMyTurn);
-    /// 局面列の末尾2つ（指す前・指した後）から棋譜行の盤面の値を埋める
-    void fillRecordPosition(RecordEntry& entry, const QString& usiMove) const;
+    /// 同じ確定経路で人間・エンジン・相手の着手を記録する。
+    bool applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn);
+    void fillRecordPosition(RecordEntry& entry) const;
 
     CsaClient* m_client;
     CsaEngineController* m_engineController = nullptr;
@@ -294,7 +296,6 @@ private:
 
     QTimer* m_verdictTimer;              ///< 裁定待ちのタイムアウト
     QString m_pendingFailureText;        ///< 裁定が届かなかったときの終局理由（空なら待ちなし）
-    UsiMove m_sentMove;                  ///< 最後にサーバーへ送った自分の指し手
 
     static constexpr int kReconnectDelayMs = 3000; ///< 終局後の再接続までの待ち時間
 };

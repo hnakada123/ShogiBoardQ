@@ -89,13 +89,7 @@ private:
     // 3文字のbase36から指し手番号（0-46655の範囲）を取得
     static int base36ToMoveIndex(const QString& threeChars);
 
-    // 本譜/変化のデータを構築（共通パイプライン使用版）
-    static void buildKifLine(const QStringList& usiMoves,
-                             const QString& baseSfen,
-                             int startPly,
-                             const QString& terminalCode,
-                             KifLine& outLine,
-                             QString* warn);
+
 };
 
 #endif // USENTOSFENCONVERTER_H

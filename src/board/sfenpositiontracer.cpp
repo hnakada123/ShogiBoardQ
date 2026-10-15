@@ -182,50 +182,58 @@ QString SfenPositionTracer::tokenAt(int file, int row) const
 // 局面列構築ユーティリティ
 // ======================================================================
 
-QStringList SfenPositionTracer::buildSfenRecord(const QString& initialSfen,
-                                                const QStringList& usiMoves,
-                                                bool hasTerminal)
+SfenPositionTracer::ReplayResult SfenPositionTracer::replay(const QString& initialSfen,
+                                                            const QStringList& usiMoves)
 {
+    ReplayResult result;
     SfenPositionTracer tracer;
-    // 初期SFENのセットに失敗したら平手初期局面でフォールバック
     if (!tracer.setFromSfen(initialSfen)) {
-        (void)tracer.setFromSfen(SfenUtils::hirateSfen());
+        result.failedPly = 0;
+        result.error = QStringLiteral("Invalid initial SFEN: %1").arg(initialSfen);
+        return result;
     }
-
-    QStringList list;
-    list << tracer.toSfenString(); // 開始局面
-
-    for (const QString& mv : std::as_const(usiMoves)) {
-        (void)tracer.applyUsiMove(mv);
-        list << tracer.toSfenString(); // 各手後の局面
+    result.initialSfen = tracer.toSfenString();
+    for (const QString& text : usiMoves) {
+        const auto usi = UsiMove::parse(text);
+        const Turn mover = tracer.blackToMove() ? Turn::Black : Turn::White;
+        ReplayedMove step;
+        step.beforeSfen = tracer.toSfenString();
+        if (usi) {
+            const Piece moving = usi->isDrop() ? usi->dropPieceFor(mover)
+                                               : tracer.pieceAt(usi->from.file, usi->from.rank);
+            const Piece captured = tracer.pieceAt(usi->to.file, usi->to.rank);
+            step.move = ShogiMove::fromUsiMove(*usi, mover, moving, captured);
+        }
+        const bool emptySource = usi && !usi->isDrop() && step.move.movingPiece == Piece::None;
+        if (!usi || emptySource || !tracer.applyUsiMove(text)) {
+            result.failedPly = static_cast<int>(result.moves.size()) + 1;
+            result.error = !usi ? QStringLiteral("Invalid USI move: %1").arg(text)
+                : emptySource ? QStringLiteral("Source square is empty: %1").arg(text)
+                              : QStringLiteral("Move cannot be applied: %1").arg(text);
+            return result;
+        }
+        step.sfen = tracer.toSfenString();
+        result.moves.append(step);
     }
-    if (hasTerminal) {
-        // 終局/中断の表示を楽にするため、末尾に同一局面をもう1つ追加
-        list << tracer.toSfenString();
-    }
-    return list;
+    return result;
 }
 
-QList<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen,
-                                                      const QStringList& usiMoves)
+QStringList SfenPositionTracer::buildSfenRecord(const QString& initialSfen,
+                                                const QStringList& usiMoves, bool hasTerminal)
 {
-    QList<ShogiMove> out;
-    out.reserve(usiMoves.size());
+    const auto result = replay(initialSfen, usiMoves);
+    if (!result.success()) return {};
+    QStringList sfens{result.initialSfen};
+    for (const auto& move : result.moves) sfens.append(move.sfen);
+    if (hasTerminal) sfens.append(sfens.last());
+    return sfens;
+}
 
-    SfenPositionTracer tracer;
-    (void)tracer.setFromSfen(initialSfen);
-
-    for (const QString& usi : std::as_const(usiMoves)) {
-        // 動く前の盤面から移動駒・取った駒を決める。読めない手は記録せずに局面だけ進める
-        if (const auto move = UsiMove::parse(usi)) {
-            const Turn mover = tracer.blackToMove() ? Turn::Black : Turn::White;
-            const Piece moving = move->isDrop() ? move->dropPieceFor(mover)
-                                                : tracer.pieceAt(move->from.file, move->from.rank);
-            const Piece captured = move->isDrop() ? Piece::None : tracer.pieceAt(move->to.file, move->to.rank);
-            out.push_back(ShogiMove::fromUsiMove(*move, mover, moving, captured));
-        }
-        (void)tracer.applyUsiMove(usi);
-    }
-
-    return out;
+QList<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen, const QStringList& usiMoves)
+{
+    const auto result = replay(initialSfen, usiMoves);
+    if (!result.success()) return {};
+    QList<ShogiMove> moves;
+    for (const auto& move : result.moves) moves.append(move.move);
+    return moves;
 }

@@ -94,8 +94,8 @@ private:
     // 開始局面の SFEN から表示用の手合のラベルを決める
     static QString labelForBaseSfen(const QString& baseSfen);
     // 解析済みの開始局面・指し手・終局コードから本譜を組み立てる
-    static void buildResult(const QString& baseSfen, const QStringList& usiMoves,
-                            const QString& terminalCode, KifParseResult& out);
+    static bool buildResult(const QString& baseSfen, const QStringList& usiMoves,
+                            const QString& terminalCode, KifParseResult& out, QString* error);
 
     // ---- USI 文字列解析 ----
 
@@ -111,13 +111,7 @@ private:
                                        QString* terminalCode,
                                        QString* warn);
 
-    // 本譜/変化のデータを構築（共通パイプライン使用版）
-    static void buildKifLine(const QStringList& usiMoves,
-                             const QString& baseSfen,
-                             int startPly,
-                             const QString& terminalCode,
-                             KifLine& outLine,
-                             QString* warn);
+
 };
 
 #endif // USITOSFENCONVERTER_H

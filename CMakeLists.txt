@@ -479,6 +479,8 @@ set(SRC_ANALYSIS
     src/analysis/tsumepositionanalyzer.h
     src/analysis/tsumesolutionreplay.cpp
     src/analysis/tsumesolutionreplay.h
+    src/analysis/analysisjob.cpp
+    src/analysis/analysisjob.h
     src/analysis/analysiscoordinator.cpp
     src/analysis/analysiscoordinator.h
     src/analysis/analysisflowcontroller.cpp

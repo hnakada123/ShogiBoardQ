@@ -83,6 +83,7 @@ public slots:
     /// 棋譜解析の中止
     void cancelKifuAnalysis();
     /// 棋譜解析の進捗を受け取る
+    void onKifuAnalysisPositionPrepared(int ply);
     void onKifuAnalysisProgress(int ply, int scoreCp, const QString& mate);
     /// 棋譜解析結果リストの行選択時に該当局面へ遷移する
     void onKifuAnalysisResultRowSelected(int row);

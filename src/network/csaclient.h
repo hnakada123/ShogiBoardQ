@@ -226,11 +226,13 @@ public:
     /**
      * @brief 指し手を送信する
      * @param move CSA形式の指し手（例: "+7776FU"）
+     * @return ソケットに送信して確認待ちに入った場合 true
      *
      * 自分の手番で、直前の送信がサーバーに確認されているときだけ送る。
      * それ以外は commandRejected() を発行する（手番外の送信は #ILLEGAL_ACTION で負けになる）。
      */
-    void sendMove(const QString& move);
+    bool sendMove(const QString& move);
+    bool awaitingMoveConfirmation() const { return m_awaitingMoveConfirmation; }
 
     /**
      * @brief 生のコマンドを送信する（デバッグ/テスト用）

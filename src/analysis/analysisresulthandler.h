@@ -8,6 +8,7 @@
 #include <QCoreApplication>
 #include <QString>
 #include <QStringList>
+#include "recordline.h"
 
 class KifuAnalysisListModel;
 class KifuRecordListModel;
@@ -27,9 +28,7 @@ public:
     /// 外部参照オブジェクト
     struct Refs {
         KifuAnalysisListModel* analysisModel = nullptr;  ///< 解析結果モデル（非所有）
-        QStringList* sfenHistory = nullptr;              ///< 局面コマンド列（非所有）
-        KifuRecordListModel* recordModel = nullptr;      ///< 棋譜表示モデル（非所有）
-        QStringList* usiMoves = nullptr;                 ///< USI形式指し手列（非所有）
+        const RecordLine* line = nullptr;               ///< 実行が所有する解析対象
         AnalysisCoordinator* coord = nullptr;            ///< 解析コーディネータ（非所有）
         AnalysisResultsPresenter* presenter = nullptr;   ///< 結果表示プレゼンタ（非所有）
         QString blackPlayerName;                         ///< 先手名

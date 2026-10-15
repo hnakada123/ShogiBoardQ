@@ -156,6 +156,12 @@ LegalMoveStatus ShogiGameController::legalStatus(const UsiMove& move, Turn mover
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, int moveNumber,
                                           QStringList* sfenHistory, QList<ShogiMove>& gameMoves)
 {
+    const auto move = prepareMove(outFrom, outTo);
+    return move && applyRecordedMove(*move, record, moveNumber, sfenHistory, gameMoves);
+}
+
+std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, const QPoint& outTo)
+{
     // 成れない手や不合法手でも、この着手の成り指定を後続の手に持ち越さない。
     const bool forcedPromotionMode = std::exchange(m_forcedPromotionMode, false);
     const bool forcedPromotionValue = std::exchange(m_forcedPromotionValue, false);
@@ -163,7 +169,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     if (!board() || (currentPlayer() != Turn::Black && currentPlayer() != Turn::White)) {
         qCWarning(lcGame) << "validateAndMove: no board or no side to move.";
         emit endDragSignal();
-        return false;
+        return std::nullopt;
     }
 
     const int fileFrom = outFrom.x();
@@ -180,7 +186,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     if (!candidate) {
         qCWarning(lcGame) << "validateAndMove: invalid coordinates" << outFrom << outTo;
         emit endDragSignal();
-        return false;
+        return std::nullopt;
     }
 
     const Turn mover = currentPlayer();
@@ -189,7 +195,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     if (moving == Piece::None) {
         qCWarning(lcGame) << "validateAndMove: the source square is empty.";
         emit endDragSignal();
-        return false;
+        return std::nullopt;
     }
     const Piece captured = board()->pieceCharacter(candidate->to.file, candidate->to.rank);
 
@@ -204,11 +210,11 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
         move.promote = true;
     } else if (!status.nonPromotingMoveExists) {
         emit endDragSignal();
-        return false;
+        return std::nullopt;
     }
     emit endDragSignal();
 
-    return commitMove(move, mover, moving, captured, record, moveNumber, sfenHistory, gameMoves);
+    return move;
 }
 
 bool ShogiGameController::applyMove(const UsiMove& move, QString& record, int moveNumber,
@@ -235,6 +241,19 @@ bool ShogiGameController::applyMove(const UsiMove& move, QString& record, int mo
         return false;
     }
 
+    return commitMove(move, mover, moving, captured, record, moveNumber, sfenHistory, gameMoves);
+}
+
+bool ShogiGameController::applyRecordedMove(const UsiMove& move, QString& record, int moveNumber,
+                                            QStringList* sfenHistory, QList<ShogiMove>& gameMoves)
+{
+    if (!board() || !move.isValid() || (currentPlayer() != Turn::Black && currentPlayer() != Turn::White))
+        return false;
+    const Turn mover = currentPlayer();
+    const Piece moving = move.isDrop() ? move.dropPieceFor(mover)
+                                       : board()->pieceCharacter(move.from.file, move.from.rank);
+    if (moving == Piece::None) return false;
+    const Piece captured = board()->pieceCharacter(move.to.file, move.to.rank);
     return commitMove(move, mover, moving, captured, record, moveNumber, sfenHistory, gameMoves);
 }
 

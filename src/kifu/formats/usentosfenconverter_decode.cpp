@@ -346,28 +346,3 @@ QString UsenToSfenConverter::decodeBase36Move(const QString& base36str)
 
     return usi;
 }
-
-void UsenToSfenConverter::buildKifLine(const QStringList& usiMoves,
-                                        const QString& baseSfen,
-                                        int startPly,
-                                        const QString& terminalCode,
-                                        KifLine& outLine,
-                                        QString* warn)
-{
-    Q_UNUSED(warn)
-
-    outLine.startPly = startPly;
-    outLine.usiMoves = usiMoves;
-    outLine.disp.clear();
-
-    // 共通パイプラインで指し手アイテムを構築
-    int plyNumber = KifuParseCommon::buildUsiMoveDisplayItems(
-        usiMoves, baseSfen, startPly, outLine.disp);
-
-    // 終局理由
-    if (!terminalCode.isEmpty()) {
-        outLine.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
-        outLine.endsWithTerminal = true;
-    }
-}

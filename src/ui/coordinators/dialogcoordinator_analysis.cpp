@@ -8,7 +8,7 @@
 #include "gameinfopanecontroller.h"
 #include "kifunavigationstate.h"
 #include "kifuloadcoordinator.h"
-#include "kifunavigationstate.h"
+#include "kifurecordlistmodel.h"
 #include "logcategories.h"
 
 void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
@@ -20,6 +20,8 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     // Flow の用意（遅延生成）
     if (!m_analysisFlow) {
         m_analysisFlow = new AnalysisFlowController(this);
+        connect(m_analysisFlow, &AnalysisFlowController::analysisPositionPrepared,
+                this, &DialogCoordinator::analysisPositionPrepared);
         // シグナル中継（Flow → DialogCoordinator → MainWindow）
         connect(m_analysisFlow, &AnalysisFlowController::analysisStarted,
                 this, &DialogCoordinator::analysisStarted);
@@ -33,8 +35,7 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
 
     // 依存を詰めて Flow へ一任
     AnalysisFlowController::Deps d;
-    d.sfenRecord = params.sfenRecord;
-    d.recordModel = params.recordModel;
+    d.line = params.line;
     d.analysisModel = m_analysisModel;
     d.logModel = m_logModel;
     d.thinkingModel = m_thinkingModel;
@@ -44,7 +45,6 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.lineIndex = params.lineIndex;
     d.blackPlayerName = params.blackPlayerName;
     d.whitePlayerName = params.whitePlayerName;
-    d.usiMoves = params.usiMoves;
     d.boardFlipped = params.boardFlipped;
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 
@@ -74,17 +74,20 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
 
     // パラメータを構築
     KifuAnalysisParams params;
-    params.recordModel = m_kifuAnalysisCtx.recordModel;
     params.gameController = m_kifuAnalysisCtx.gameController;
 
     // 表示中の手順（分岐ツリー。分岐を選んでいればその分岐、対局中はライブの手も含む）を解析する。
     // 終局行（投了など）は手順に含まれない。Flow が開始時にコピーするので、ここでの一時的な値でよい
     const RecordLine line = m_kifuAnalysisCtx.navState ? m_kifuAnalysisCtx.navState->currentRecordLine()
                                                        : RecordLine{};
-    QStringList lineSfens = line.sfens;
-    QStringList lineMoves = line.usiMoves();
-    params.sfenRecord = &lineSfens;
-    params.usiMoves = &lineMoves;
+    params.line = line;
+    // 表示ラベル（手数番号・分岐記号）はこの画面境界で値にする。
+    // 解析中に棋譜欄を切り替えても、解析実行はモデルを参照しない。
+    if (const auto* model = m_kifuAnalysisCtx.recordModel) {
+        for (int ply = 1; ply <= params.line.displayTexts.size() && ply < model->rowCount(); ++ply) {
+            if (const auto* item = model->item(ply)) params.line.displayTexts[ply - 1] = item->currentMove();
+        }
+    }
     params.activePly = line.currentPly;
     params.lineIndex = m_kifuAnalysisCtx.navState ? m_kifuAnalysisCtx.navState->currentLineIndex() : 0;
 

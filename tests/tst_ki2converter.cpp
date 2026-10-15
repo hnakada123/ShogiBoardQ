@@ -51,16 +51,16 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves, QStringList({"7g7f", "3c3d", "2g2f"}));
+        QCOMPARE(result.mainline.usiMoves(), QStringList({"7g7f", "3c3d", "2g2f"}));
         QCOMPARE(result.variations.size(), 2);
         QCOMPARE(result.variations[0].startPly, 2);
-        QCOMPARE(result.variations[0].line.usiMoves, QStringList({"8c8d", "1g1f"}));
-        QCOMPARE(result.variations[0].line.disp[0].comment, QStringLiteral("分岐コメント"));
-        QCOMPARE(result.variations[0].line.disp[0].bookmark, QStringLiteral("分岐しおり"));
+        QCOMPARE(result.variations[0].line.usiMoves(), QStringList({"8c8d", "1g1f"}));
+        QCOMPARE(result.variations[0].line.displayItems()[0].comment, QStringLiteral("分岐コメント"));
+        QCOMPARE(result.variations[0].line.displayItems()[0].bookmark, QStringLiteral("分岐しおり"));
         QCOMPARE(result.variations[1].startPly, 3);
-        QCOMPARE(result.variations[1].line.usiMoves, QStringList({"9g9f"}));
-        QCOMPARE(result.variations[1].line.baseSfen, result.variations[0].line.sfenList[1]);
-        QCOMPARE(Ki2ToSfenConverter::convertFile(file.fileName()), result.mainline.usiMoves);
+        QCOMPARE(result.variations[1].line.usiMoves(), QStringList({"9g9f"}));
+        QCOMPARE(result.variations[1].line.baseSfen, result.variations[0].line.sfenList()[1]);
+        QCOMPARE(Ki2ToSfenConverter::convertFile(file.fileName()), result.mainline.usiMoves());
         QCOMPARE(Ki2ToSfenConverter::extractMovesWithTimes(file.fileName()).size(), 4);
     }
 
@@ -73,8 +73,8 @@ private slots:
         QString error;
         QVERIFY(!Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error));
         QVERIFY(!error.isEmpty());
-        QVERIFY(result.mainline.disp.isEmpty());
-        QVERIFY(result.mainline.usiMoves.isEmpty());
+        QVERIFY(result.mainline.displayItems().isEmpty());
+        QVERIFY(result.mainline.usiMoves().isEmpty());
         QVERIFY(Ki2ToSfenConverter::convertFile(file.fileName()).isEmpty());
         QVERIFY(Ki2ToSfenConverter::extractMovesWithTimes(file.fileName()).isEmpty());
     }
@@ -204,12 +204,12 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(Ki2ToSfenConverter::parseWithVariations(fixturePath(file), result, &error), qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves, mainline);
+        QCOMPARE(result.mainline.usiMoves(), mainline);
         QStringList firstMoves;
         for (const KifVariation& variation : std::as_const(result.variations)) {
             QCOMPARE(variation.startPly, 1);
-            QCOMPARE(variation.line.usiMoves.size(), 1);
-            firstMoves << variation.line.usiMoves.first();
+            QCOMPARE(variation.line.usiMoves().size(), 1);
+            firstMoves << variation.line.usiMoves().first();
         }
         QCOMPARE(firstMoves, variations);
     }
@@ -259,9 +259,9 @@ private slots:
         QString error;
         bool ok = Ki2ToSfenConverter::parseWithVariations(
             fixturePath(QStringLiteral("nonexistent.ki2")), result, &error);
-        // KI2 converter reads file internally; non-existent file returns ok=true with 0 moves
-        Q_UNUSED(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 0);
+        QVERIFY(!ok);
+        QVERIFY(!error.isEmpty());
+        QCOMPARE(result.mainline.usiMoves().size(), 0);
     }
 
     void detectInitialSfen_nonExistentFile()
@@ -368,13 +368,13 @@ private slots:
         (void)Ki2ToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)Ki2ToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool success = Ki2ToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
 
         (void)Ki2ToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
         (void)Ki2ToSfenConverter::extractGameInfo(tmp.fileName());
         (void)Ki2ToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
 
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, error);
     }
 
     // ========================================
@@ -391,9 +391,10 @@ private slots:
         (void)Ki2ToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)Ki2ToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
 
-        QVERIFY(true);
+        QCOMPARE(result.mainline.moveCount(), 1500);
+        KifuTestHelper::verifyParsedRecord(true, result, error);
     }
     // テキスト版の入口（貼り付けた棋譜を一時ファイルなしで読む）
     void parseText_matchesFile()
@@ -406,9 +407,9 @@ private slots:
         QString error;
         QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), fromFile, &error), qPrintable(error));
         QVERIFY2(Ki2ToSfenConverter::parseText(text, fromText, &error), qPrintable(error));
-        QCOMPARE(fromText.mainline.usiMoves, fromFile.mainline.usiMoves);
+        QCOMPARE(fromText.mainline.usiMoves(), fromFile.mainline.usiMoves());
         QCOMPARE(fromText.variations.size(), 1);
-        QCOMPARE(fromText.variations[0].line.usiMoves, QStringList({QStringLiteral("8c8d")}));
+        QCOMPARE(fromText.variations[0].line.usiMoves(), QStringList({QStringLiteral("8c8d")}));
         QCOMPARE(Ki2ToSfenConverter::extractGameInfoFromText(text).size(), 2);
         QCOMPARE(Ki2ToSfenConverter::detectInitialSfenFromText(text), kHirateSfen);
     }
@@ -422,8 +423,8 @@ private slots:
             "▲７六歩 △３四歩 ▲２六歩 △８四歩 ▲２五歩\n変化：3手\n▲６六歩\n変化：5手\n▲６八銀\n"),
             result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 2);
-        QCOMPARE(result.variations[1].line.baseSfen, result.mainline.sfenList.at(4));
-        QCOMPARE(result.variations[1].line.usiMoves, QStringList({QStringLiteral("7i6h")}));
+        QCOMPARE(result.variations[1].line.baseSfen, result.mainline.sfenList().at(4));
+        QCOMPARE(result.variations[1].line.usiMoves(), QStringList({QStringLiteral("7i6h")}));
     }
 };
 

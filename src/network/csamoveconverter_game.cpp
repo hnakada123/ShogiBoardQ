@@ -102,7 +102,7 @@ QString CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause cause)
 
 bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameController* gc,
                                         QStringList& usiMoves, QStringList* sfenHistory,
-                                        int moveCount)
+                                        int moveCount, QList<ShogiMove>* gameMoves)
 {
     if (!gc || !gc->board()) {
         return false;
@@ -134,27 +134,12 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
         move.from = BoardSquare{fromFile, fromRank};
         move.promote = isPromotionMove(csaMove, board);
     }
-    if (!move.isValid() || !board->applyUsiMove(move, mover)) {
-        return false;
-    }
-    const QString usiMove = move.toString();
-
-    gc->changeCurrentPlayer();
-
-    // USI形式の指し手をリストに追加
-    usiMoves.append(usiMove);
-
-    // SFEN記録を更新
-    QString boardSfen = board->convertBoardToSfen();
-    QString standSfen = board->convertStandToSfen();
-    QString currentPlayerStr = (gc->currentPlayer() == Turn::Black)
-                               ? QStringLiteral("b") : QStringLiteral("w");
-    QString fullSfen = QString("%1 %2 %3 %4")
-                           .arg(boardSfen, currentPlayerStr, standSfen)
-                           .arg(moveCount + 2);
-    if (sfenHistory) {
-        sfenHistory->append(fullSfen);
-    }
-
+    if (!move.isValid() || mover != gc->currentPlayer()
+        || usiToCsa(move.toString(), mover == Turn::Black, board) != csaMove.left(7)) return false;
+    QList<ShogiMove> unusedMoves;
+    QString display;
+    if (!gc->applyRecordedMove(move, display, moveCount + 1, sfenHistory,
+                               gameMoves ? *gameMoves : unusedMoves)) return false;
+    usiMoves.append(move.toString());
     return true;
 }

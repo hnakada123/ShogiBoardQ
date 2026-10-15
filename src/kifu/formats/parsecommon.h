@@ -17,6 +17,18 @@
 
 namespace KifuParseCommon {
 
+/// 形式固有の字句読み取り中だけ使う。公開結果は resolve() で1手単位にまとめる。
+struct KifLineDraft {
+    int startPly = 1;
+    QString baseSfen;
+    QStringList usiMoves;
+    QList<KifDisplayItem> disp;
+    bool endsWithTerminal = false;
+    QString previousUsi;
+    bool resolve(KifLine& out, QString* error) const;
+};
+
+
 int asciiDigitToInt(QChar c);
 int zenkakuDigitToInt(QChar c);
 int flexDigitToIntNoDetach(QChar c);

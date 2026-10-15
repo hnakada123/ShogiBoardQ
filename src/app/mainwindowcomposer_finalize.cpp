@@ -126,8 +126,6 @@ void MainWindowComposer::connectSignals()
             m_c.kifuFileController, &KifuFileController::onSfenCollectionPositionSelected);
     connect(m_c.kifuExportController.get(), &KifuExportController::statusMessage,
             m_ui.statusbar, &QStatusBar::showMessage);
-    connect(m_c.csaGameWiring.get(), &CsaGameWiring::moveAppliedToBoard,
-            m_c.pieceSoundPlayer, &PieceSoundPlayer::playMoveSound);
     connect(m_ui.actionPieceSound, &QAction::toggled, m_c.pieceSoundPlayer, &PieceSoundPlayer::setEnabled);
     connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
             m_c.notificationService, &UiNotificationService::displayMessage);

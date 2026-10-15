@@ -219,7 +219,7 @@ private slots:
         QVERIFY(!saved.contains("Time loss"));
         const auto reloaded = KifuLoadParser::parseText(saved);
         QVERIFY2(reloaded.success, qPrintable(reloaded.error));
-        QCOMPARE(reloaded.record.mainline.usiMoves, usiMoves);
+        QCOMPARE(reloaded.record.mainline.usiMoves(), usiMoves);
         KifuBranchTree reopened;
         KifuBranchTreeBuilder::buildFromKifParseResult(&reopened, reloaded.record, reloaded.initialSfen);
         QCOMPARE(reopened.mainLine().last()->terminalType(), TerminalType::Timeout);
@@ -239,8 +239,10 @@ private slots:
         AnalysisResultHandler handler;
         AnalysisResultHandler::Refs refs;
         refs.analysisModel = &model;
-        refs.sfenHistory = &history;
-        refs.usiMoves = &moves;
+        RecordLine line;
+        line.sfens = history;
+        line.moves = SfenPositionTracer::buildGameMoves(initial, moves);
+        refs.line = &line;
         handler.setRefs(refs);
         KifuPresentation::configure("en", "auto", false);
         handler.updatePending(0, 100, 0, "3c3d 7g7f");
@@ -411,7 +413,7 @@ private slots:
         QVERIFY(expected.contains(QStringLiteral("独自タグ：次の値")));
         const auto reread = KifuLoadParser::parseText(expected.join('\n'));
         QVERIFY2(reread.success, qPrintable(reread.error));
-        QCOMPARE(reread.record.mainline.usiMoves, imported.record.mainline.usiMoves);
+        QCOMPARE(reread.record.mainline.usiMoves(), imported.record.mainline.usiMoves());
 
         // All existing save formats must be independent of presentation settings.
         using Format = KifuConversionService::Format;

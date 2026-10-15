@@ -110,7 +110,7 @@ void CsaGameCoordinator::stopGame()
 
 bool CsaGameCoordinator::isMyTurn() const
 {
-    return m_isMyTurn;
+    return turnState() == TurnState::MyTurn && m_pendingFailureText.isEmpty();
 }
 
 bool CsaGameCoordinator::isBlackSide() const
@@ -118,44 +118,22 @@ bool CsaGameCoordinator::isBlackSide() const
     return m_progress.isBlackSide;
 }
 
-void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool promote)
+CsaGameCoordinator::TurnState CsaGameCoordinator::turnState() const
 {
-    qCDebug(lcNetwork) << "onHumanMove called: from=" << from << "to=" << to << "promote=" << promote;
-    qCDebug(lcNetwork) << "gameState=" << static_cast<int>(m_gameState)
-                       << "isMyTurn=" << m_isMyTurn
-                       << "playerType=" << static_cast<int>(m_playerType)
-                       << "isBlackSide=" << m_progress.isBlackSide;
+    if (m_client->awaitingMoveConfirmation()) return TurnState::AwaitingConfirmation;
+    return m_isMyTurn ? TurnState::MyTurn : TurnState::OpponentTurn;
+}
 
-    if (m_gameState != GameState::InGame) {
-        qCDebug(lcNetwork) << "Not in game state, returning";
+void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to)
+{
+    if (m_gameState != GameState::InGame || !isMyTurn() || !isHumanPlayer() || !m_gameController)
         return;
-    }
-
-    if (!m_isMyTurn) {
-        qCDebug(lcNetwork) << "Not my turn, returning";
-        emit errorOccurred(tr("相手の手番です"));
-        return;
-    }
-
-    if (m_playerType != PlayerType::Human) {
-        qCDebug(lcNetwork) << "Not human player, returning";
-        return;
-    }
-
-    ShogiBoard* board = m_gameController ? m_gameController->board() : nullptr;
-    QString csaMove = CsaMoveConverter::boardToCSA(from, to, promote, m_progress.isBlackSide, board);
-    if (csaMove.isEmpty()) {
-        qCWarning(lcNetwork) << "Failed to build CSA move from board coordinates";
-        emit errorOccurred(tr("CSA指し手の生成に失敗しました。"));
-        emit logMessage(tr("CSA指し手の生成に失敗しました。"), true);
-        return;
-    }
-    qCDebug(lcNetwork) << "Generated CSA move:" << csaMove;
-
-    // 盤のクリック操作で指した手（成り・不成を含む）を、指し手確認のために控える
-    if (m_gameController) m_sentMove = m_gameController->lastMove();
-    m_client->sendMove(csaMove);
-    qCDebug(lcNetwork) << "Move sent to server";
+    const auto move = m_gameController->prepareMove(from, to);
+    // 成り選択のモーダル処理中に対局が終了することもある。
+    if (!move || m_gameState != GameState::InGame || !isMyTurn()) return;
+    const QString csaMove = CsaMoveConverter::usiToCsa(move->toString(), m_progress.isBlackSide,
+                                                     m_gameController->board());
+    if (!csaMove.isEmpty() && m_client->sendMove(csaMove)) emit turnChanged(false);
 }
 
 void CsaGameCoordinator::onResign()
@@ -166,7 +144,7 @@ void CsaGameCoordinator::onResign()
 void CsaGameCoordinator::performResign()
 {
     if (m_gameState != GameState::InGame) return;
-    if (!m_isMyTurn) {
+    if (!isMyTurn()) {
         emit errorOccurred(tr("相手の手番です"));
         return;
     }
@@ -182,7 +160,7 @@ void CsaGameCoordinator::performResign()
 void CsaGameCoordinator::requestChudan()
 {
     if (m_gameState != GameState::InGame) return;
-    if (!m_isMyTurn) {
+    if (!isMyTurn()) {
         emit errorOccurred(tr("相手の手番です"));
         return;
     }
@@ -192,7 +170,7 @@ void CsaGameCoordinator::requestChudan()
 void CsaGameCoordinator::declareWin()
 {
     if (m_gameState != GameState::InGame) return;
-    if (!m_isMyTurn) {
+    if (!isMyTurn()) {
         emit errorOccurred(tr("相手の手番です"));
         return;
     }
@@ -205,7 +183,7 @@ void CsaGameCoordinator::declareWin()
 
 void CsaGameCoordinator::forceImmediateMove()
 {
-    if (m_gameState != GameState::InGame || m_playerType != PlayerType::Engine || !m_isMyTurn) return;
+    if (m_gameState != GameState::InGame || m_playerType != PlayerType::Engine || !isMyTurn()) return;
     if (m_engineController) m_engineController->stopThinking();
 }
 

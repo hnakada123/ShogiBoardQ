@@ -6,8 +6,6 @@
 #include "analysisresultspresenter.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisresultsdisplay.h"
-#include "kifudisplay.h"
-#include "kifurecordlistmodel.h"
 #include "pvboarddialog.h"
 #include "sfenutils.h"
 
@@ -40,12 +38,8 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
     }
 
     QString baseSfen = item->sfen();
-    if (baseSfen.isEmpty() && m_refs.sfenHistory && row < m_refs.sfenHistory->size()) {
-        baseSfen = SfenUtils::normalizePositionLikeSfen(m_refs.sfenHistory->at(row));
-    }
-    if (baseSfen.isEmpty()) {
-        baseSfen = SfenUtils::hirateSfen();
-    }
+    // 各結果は対象局面を保持している。表示行番号を手数として再解釈しない。
+    if (baseSfen.isEmpty()) return;
 
     QStringList usiMoves;
     const QString usiPvStr = item->usiPv();
@@ -67,14 +61,6 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
     dlg->setFlipMode(m_refs.boardFlipped);
 
     QString lastMove = item->lastUsiMove();
-    if (lastMove.isEmpty()) {
-        const int ply = row;
-        if (m_refs.recordModel && ply > 0 && ply < m_refs.recordModel->rowCount()) {
-            if (KifuDisplay* moveDisp = m_refs.recordModel->item(ply)) {
-                lastMove = moveDisp->usiMove;
-            }
-        }
-    }
     if (!lastMove.isEmpty()) {
         dlg->setLastMove(lastMove);
     }

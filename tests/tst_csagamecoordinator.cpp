@@ -11,6 +11,9 @@
 #include <algorithm>
 
 #include "csagamecoordinator.h"
+#include "boardsetupcontroller.h"
+#include "playmodepolicyservice.h"
+#include "matchcoordinator.h"
 #include "csagameprogress.h"
 #include "csagamewiring.h"
 #include "gamerecordupdateservice.h"
@@ -84,7 +87,7 @@ struct Harness {
     }
 
     /// ログインから START まで進める（持時間 600 秒・加算 10 秒）
-    bool start(const QByteArray& yourTurn, const QList<QByteArray>& positionMoves = {})
+    bool start(const QByteArray& yourTurn, const QList<QByteArray>& positionMoves = {}, bool engine = false)
     {
         if (!server.listen()) return false;
         CsaGameCoordinator::StartOptions options;
@@ -92,6 +95,11 @@ struct Harness {
         options.port = server.port();
         options.username = QStringLiteral("user");
         options.password = QStringLiteral("pass");
+        if (engine) {
+            options.playerType = CsaGameCoordinator::PlayerType::Engine;
+            options.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+            options.engineName = QStringLiteral("CSA test engine");
+        }
         options.keepAliveEnabled = false;
         options.gameLimit = 0;  // 終局後に LOGOUT せず、結果表示もモーダルにしない
         coordinator.startGame(options);
@@ -125,19 +133,15 @@ struct Harness {
         }, 3000);
     }
 
-    /// 盤のクリック操作で指したのと同じ状態にしてから、司令塔に人間の手を渡す
+    /// 確認前の盤面は変えず、指し手の要求だけを渡す。
     void playHumanMove(const QString& usi, const QPoint& from, const QPoint& to)
     {
         const auto move = UsiMove::parse(usi);
         QVERIFY(move.has_value());
-        QVERIFY(gc.board()->applyUsiMove(*move, gc.currentPlayer()));
-        gc.changeCurrentPlayer();
-        sfenRecord.append(gc.board()->convertBoardToSfen() + QLatin1Char(' ')
-                          + (gc.currentPlayer() == Turn::Black ? QStringLiteral("b") : QStringLiteral("w"))
-                          + QLatin1Char(' ') + gc.board()->convertStandToSfen()
-                          + QLatin1Char(' ') + QString::number(sfenRecord.size()));
-        coordinator.onHumanMove(from, to, false);
+        gc.setForcedPromotion(true, move->promote);
+        coordinator.onHumanMove(from, to);
     }
+
 };
 
 RecordEntry entryAt(const QSignalSpy& spy, int index)
@@ -153,6 +157,100 @@ class TestCsaGameCoordinator : public QObject
     QTemporaryDir m_config;
 
 private slots:
+    void engineMoveIsCommittedOnlyOnConfirmation()
+    {
+        Harness h;
+        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
+        QSignalSpy committed(&h.gc, &ShogiGameController::moveCommitted);
+        QVERIFY(h.start("-", {}, true));
+        h.server.send("+7776FU,T1");
+        QVERIFY(h.server.waitForLine(QStringLiteral("-8384FU")));
+        QCOMPARE(records.size(), 1);
+        QCOMPARE(committed.size(), 1);
+        QCOMPARE(h.sfenRecord.size(), 2);
+        QCOMPARE(h.gameMoves.size(), 1);
+        QCOMPARE(h.gc.board()->pieceCharacter(8, 3), Piece::WhitePawn);
+        QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
+        h.server.send("-8384FU,T2");
+        QTRY_COMPARE(records.size(), 2);
+        QCOMPARE(committed.size(), 2);
+        QCOMPARE(h.sfenRecord.size(), 3);
+        QCOMPARE(h.gameMoves.size(), 2);
+        QCOMPARE(h.gc.board()->pieceCharacter(8, 4), Piece::WhitePawn);
+        QCOMPARE(entryAt(records, 1).move.toUsiMove().toString(), QStringLiteral("8c8d"));
+    }
+
+    void rejectedUnconfirmedMoveLeavesOriginalPosition()
+    {
+        Harness h;
+        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
+        QVERIFY(h.start("+"));
+        const QString initial = h.sfenRecord.first();
+        h.playHumanMove(QStringLiteral("7g7f"), QPoint(7, 7), QPoint(7, 6));
+        QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
+        h.server.send("#ILLEGAL_MOVE");
+        h.server.send("#LOSE");
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        QCOMPARE(records.size(), 1);
+        QVERIFY(entryAt(records, 0).isTerminal());
+        QCOMPARE(h.sfenRecord.last(), initial);
+        QVERIFY(h.gameMoves.isEmpty());
+        QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
+    }
+
+    void pendingConfirmationKeepsBoardAndHistoryUnchanged()
+    {
+        Harness h;
+        QVERIFY(h.start("+"));
+        PlayMode mode = PlayMode::CsaNetworkMode;
+        CsaGameWiring wiring(CsaGameWiring::Dependencies{});
+        wiring.setCoordinator(&h.coordinator);
+        PlayModePolicyService policy;
+        PlayModePolicyService::Deps deps;
+        deps.playMode = &mode;
+        deps.gameController = &h.gc;
+        deps.csaGameWiring = &wiring;
+        policy.updateDeps(deps);
+        MatchCoordinator::Deps matchDeps;
+        matchDeps.gc = &h.gc;
+        matchDeps.clock = &h.clock;
+        matchDeps.sfenRecord = &h.sfenRecord;
+        matchDeps.gameMoves = &h.gameMoves;
+        MatchCoordinator match(matchDeps);
+        match.setPlayMode(mode);
+        BoardSetupController input;
+        input.setGameController(&h.gc);
+        input.setMatchCoordinator(&match);
+        input.setSfenRecord(&h.sfenRecord);
+        input.setGameMoves(&h.gameMoves);
+        connect(&input, &BoardSetupController::csaMoveRequested,
+                &h.coordinator, &CsaGameCoordinator::onHumanMove);
+        QVERIFY(policy.isHumanTurnNow());
+        input.onMoveRequested(QPoint(7, 7), QPoint(7, 6));
+        QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
+        QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
+        QVERIFY(!policy.isHumanTurnNow());
+        QCOMPARE(h.sfenRecord.size(), 1);
+        QCOMPARE(h.gameMoves.size(), 0);
+        QCOMPARE(h.gc.currentPlayer(), Turn::Black);
+        QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
+        // UI の許可判定を通らない追加要求も、履歴や盤面を変更しない。
+        input.onMoveRequested(QPoint(2, 7), QPoint(2, 6));
+        input.onMoveRequested(QPoint(3, 3), QPoint(3, 4));
+        QCOMPARE(h.sfenRecord.size(), 1);
+        QCOMPARE(h.gameMoves.size(), 0);
+        h.server.send("+7776FU,T5");
+        QTRY_COMPARE(h.coordinator.progress().moveCount, 1);
+        QCOMPARE(h.sfenRecord.size(), 2);
+        QCOMPARE(h.gameMoves.size(), 1);
+        QCOMPARE(h.gc.board()->pieceCharacter(7, 6), Piece::BlackPawn);
+        QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::OpponentTurn);
+        h.server.send("-3334FU,T2");
+        QTRY_VERIFY(policy.isHumanTurnNow());
+        QCOMPARE(h.sfenRecord.size(), 3);
+        QCOMPARE(h.gameMoves.size(), 2);
+    }
+
     void initTestCase()
     {
         QVERIFY(m_config.isValid());
@@ -191,7 +289,7 @@ private slots:
         QCOMPARE(h.coordinator.progress().moveCount, 1);
         QVERIFY(!h.coordinator.isMyTurn());
         QCOMPARE(turns.last().at(0).toBool(), false);
-        QCOMPARE(applied.size(), 0);  // 人間の手の駒音は盤の操作側で鳴らす
+        QCOMPARE(applied.size(), 1);  // 確認時に人間の手も一度だけ通知する
         QCOMPARE(h.gameMoves.size(), 1);
 
         h.server.send("-3334FU,T7");
@@ -207,7 +305,7 @@ private slots:
         QCOMPARE(h.coordinator.progress().moveCount, 2);
         QVERIFY(h.coordinator.isMyTurn());
         QCOMPARE(turns.last().at(0).toBool(), true);
-        QCOMPARE(applied.size(), 1);
+        QCOMPARE(applied.size(), 2);
         QCOMPARE(h.coordinator.usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
         QCOMPARE(h.sfenRecord.size(), 3);
         QCOMPARE(theirs.sfen, h.sfenRecord.last());
@@ -390,7 +488,7 @@ private slots:
         QCOMPARE(live.moves().size(), 3);
         QVERIFY(live.moves().at(2).terminal);
         QCOMPARE(live.moves().at(2).prettyMove, QStringLiteral("▲投了"));
-        QCOMPARE(sounds.size(), 1);
+        QCOMPARE(sounds.size(), 2);
     }
 };
 

@@ -180,9 +180,9 @@ private slots:
         bool ok = UsiToSfenConverter::parseWithVariations(
             fixturePath(QStringLiteral("test_resign.usi")), result, &error);
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 2);
-        QCOMPARE(result.mainline.usiMoves.at(0), QStringLiteral("7g7f"));
-        QCOMPARE(result.mainline.usiMoves.at(1), QStringLiteral("3c3d"));
+        QCOMPARE(result.mainline.usiMoves().size(), 2);
+        QCOMPARE(result.mainline.usiMoves().at(0), QStringLiteral("7g7f"));
+        QCOMPARE(result.mainline.usiMoves().at(1), QStringLiteral("3c3d"));
     }
 
     // ========================================
@@ -498,8 +498,7 @@ private slots:
         tmp.close();
 
         QString sfen = UsiToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
-        // Should return hirate or empty
-        Q_UNUSED(sfen);
+        QCOMPARE(sfen, kHirateSfen);
     }
 
     // ========================================
@@ -516,8 +515,7 @@ private slots:
     void terminalCodeToJapanese_empty()
     {
         QString result = UsiToSfenConverter::terminalCodeToJapanese(QString());
-        // Empty input should not crash
-        Q_UNUSED(result);
+        QVERIFY(result.isEmpty());
     }
 
     // ========================================
@@ -624,13 +622,13 @@ private slots:
         (void)UsiToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)UsiToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool success = UsiToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
 
         (void)UsiToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
         (void)UsiToSfenConverter::extractGameInfo(tmp.fileName());
         (void)UsiToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
 
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, error);
     }
 
     // ========================================
@@ -647,9 +645,10 @@ private slots:
         (void)UsiToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)UsiToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY2(UsiToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
 
-        QVERIFY(true);
+        QCOMPARE(result.mainline.moveCount(), 1500);
+        KifuTestHelper::verifyParsedRecord(true, result, error);
     }
 };
 

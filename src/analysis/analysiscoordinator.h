@@ -13,7 +13,6 @@
 
 #include "usiinfo.h"
 
-class BranchTreeManager;
 
 /**
  * @brief 指定局面群のUSI解析実行を管理するコーディネータ
@@ -39,7 +38,6 @@ public:
         int  endPly     = -1;    ///< 解析終了手数（-1は末尾まで）
         int  movetimeMs = 1000;  ///< 1局面あたりの思考時間（ms）
         int  multiPV    = 1;     ///< MultiPVの本数（`setoption`で設定）
-        bool centerTree = true;  ///< 進捗時に分岐ツリーをセンタリングするか
     };
 
     /**
@@ -57,9 +55,6 @@ public:
 
     /// 依存オブジェクトを更新する
     void setDeps(const Deps& d);
-
-    /// 分岐ツリーマネージャー参照を設定する（非所有）
-    void setBranchTreeManager(BranchTreeManager* manager);
 
     /// 解析オプションを設定する
     void setOptions(const Options& opt);
@@ -96,7 +91,7 @@ signals:
     void analysisProgress(int ply, const UsiInfo& info);
 
     /// 解析対象局面の準備完了を通知する（→ AnalysisFlowController::onPositionPrepared）
-    /// GUI更新後にgo送信するための2段階通知
+    /// 表示用通知。受信者がいなくても探索を開始する。
     void positionPrepared(int ply, const QString& positionCmd);
 
 public:
@@ -108,9 +103,6 @@ public:
     /// エンジンの`bestmove ...`を受け取る（AnalysisFlowController::onBestMoveReceivedから呼出）
     void onEngineBestmoveReceived(const QString& line);
 
-    /// 局面表示更新完了後に`position`/`go`を送信する（AnalysisFlowController::onPositionPreparedから呼出）
-    void sendGoCommand();
-
 private:
     Deps    m_deps;                  ///< 依存オブジェクト
     Options m_opt;                   ///< 現在の解析オプション
@@ -120,7 +112,6 @@ private:
     int  m_currentPly = -1;          ///< 現在解析中の手数
     QString m_pendingPosCmd;         ///< `sendGoCommand()`待機中の`position`コマンド
 
-    BranchTreeManager* m_branchTreeManager = nullptr;  ///< 分岐ツリーマネージャー参照（非所有）
     QTimer m_stopTimer;                         ///< `go infinite`後に`stop`送信するタイマー
 
     // --- 内部処理 ---
@@ -128,6 +119,7 @@ private:
     void startSingle(int ply);
     void nextPlyOrFinish();
     void sendAnalyzeForPly(int ply);
+    void sendGoCommand();
 
 private slots:
     /// stopタイマー満了時に`stop`を送信する

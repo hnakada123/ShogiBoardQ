@@ -294,18 +294,13 @@ void TestAnalysisCoordinator::sendGoCommand_emitsRequestSendUsiCommand()
     opt.movetimeMs = 5000;
     coord.setOptions(opt);
 
-    coord.startAnalyzeSingle(1);
-
     QSignalSpy spy(&coord, &AnalysisCoordinator::requestSearch);
-
-    // sendGoCommand で position + go infinite の送信を要求する
-    coord.sendGoCommand();
-
+    // UI からの呼び返しがなくても、開始時に探索要求が一度だけ発行される。
+    coord.startAnalyzeSingle(1);
     QCOMPARE(spy.count(), 1);
     QVERIFY(spy.at(0).at(0).toString().startsWith(QStringLiteral("position")));
-
-    // 要求は1回だけ（保留中の position は使い切る）
-    coord.sendGoCommand();
+    coord.stop();
+    coord.onEngineBestmoveReceived({});
     QCOMPARE(spy.count(), 1);
 }
 

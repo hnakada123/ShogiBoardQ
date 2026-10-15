@@ -57,6 +57,21 @@ public:
     /// 指定マスのトークンを返す（file: 1..9, row: 0..8 が 'a'..'i'。範囲外は空文字列）
     QString tokenAt(int file, int row) const;
 
+    struct ReplayedMove {
+        ShogiMove move;
+        QString beforeSfen;
+        QString sfen;
+    };
+    struct ReplayResult {
+        QList<ReplayedMove> moves;
+        QString initialSfen;
+        int failedPly = -1; ///< -1 は成功、0 は初期局面、1以上は復元できなかった手数
+        QString error;
+        bool success() const { return failedPly < 0; }
+    };
+    /// 各手を一度だけ適用し、対応する指し手と局面をまとめて返す。
+    static ReplayResult replay(const QString& initialSfen, const QStringList& usiMoves);
+
     // --- 局面列構築ユーティリティ ---
 
     /// 初期SFENとUSI手列から局面列を構築する（hasTerminal==trueのとき終局用に末尾を複製）

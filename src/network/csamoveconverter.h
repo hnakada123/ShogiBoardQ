@@ -13,6 +13,7 @@
 #include "csaclient.h"
 
 class ShogiGameController;
+struct ShogiMove;
 class ShogiBoard;
 
 /**
@@ -70,7 +71,7 @@ public:
     /// CSA形式の指し手を盤面に適用する（ビュー更新は行わない）
     static bool applyMoveToBoard(const QString& csaMove, ShogiGameController* gc,
                                  QStringList& usiMoves, QStringList* sfenHistory,
-                                 int moveCount);
+                                 int moveCount, QList<ShogiMove>* gameMoves = nullptr);
 };
 
 #endif // CSAMOVECONVERTER_H

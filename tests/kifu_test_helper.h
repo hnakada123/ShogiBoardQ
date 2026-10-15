@@ -5,8 +5,40 @@
 #include <QByteArray>
 #include <QTemporaryFile>
 #include <QDir>
+#include "kifparsetypes.h"
+#include "shogiboard.h"
 
 namespace KifuTestHelper {
+
+// 異常入力でも、成功した結果は盤面へ復元でき、失敗には理由があることを確かめる。
+inline void verifyParsedRecord(bool success, const KifParseResult& result, const QString& diagnostic)
+{
+    if (!success) {
+        QVERIFY2(!diagnostic.isEmpty(), "Failed import must explain why it failed");
+        return;
+    }
+    QList<KifLine> lines{result.mainline};
+    for (const auto& variation : result.variations) lines.append(variation.line);
+    for (const auto& line : lines) {
+        ShogiBoard board;
+        QVERIFY2(board.trySetSfen(line.baseSfen), qPrintable(line.baseSfen));
+        QString previous = line.baseSfen;
+        bool terminalSeen = false;
+        for (const auto& entry : line.entries) {
+            QVERIFY(!terminalSeen);
+            QVERIFY2(board.trySetSfen(entry.record.sfen), qPrintable(entry.record.sfen));
+            if (entry.record.isTerminal()) {
+                terminalSeen = true;
+                QCOMPARE(entry.record.sfen, previous);
+            } else {
+                QVERIFY(entry.record.move.movingPiece != Piece::None);
+                QVERIFY(entry.record.move.toUsiMove().isValid());
+                QVERIFY(entry.record.sfen != previous);
+            }
+            previous = entry.record.sfen;
+        }
+    }
+}
 
 // QTest データ行に境界値入力パターンを追加する。
 // 呼び出し前に QTest::addColumn<QByteArray>("fileContent") が必要。
@@ -76,7 +108,10 @@ inline QByteArray generateLongKifContent(int moveCount)
     for (int i = 1; i <= moveCount; ++i) {
         content.append("   ");
         content.append(QByteArray::number(i));
-        content.append(" ７六歩(77)   ( 0:01/00:00:01)\n");
+        static const char* const cycle[] = {"５八玉(59)", "５二玉(51)", "５九玉(58)", "５一玉(52)"};
+        content.append(" ");
+        content.append(cycle[(i - 1) % 4]);
+        content.append("   ( 0:01/00:00:01)\n");
     }
     return content;
 }
@@ -86,7 +121,8 @@ inline QByteArray generateLongKi2Content(int moveCount)
 {
     QByteArray content = "手合割：平手\n";
     for (int i = 0; i < moveCount; ++i) {
-        content.append(i % 2 == 0 ? "▲７六歩　" : "△３四歩　");
+        static const char* const cycle[] = {"▲５八玉　", "△５二玉　", "▲５九玉　", "△５一玉　"};
+        content.append(cycle[i % 4]);
         if ((i + 1) % 6 == 0)
             content.append("\n");
     }
@@ -111,7 +147,8 @@ inline QByteArray generateLongUsiContent(int moveCount)
 {
     QByteArray content = "position startpos moves";
     for (int i = 0; i < moveCount; ++i) {
-        content.append(i % 2 == 0 ? " 7g7f" : " 3c3d");
+        static const char* const cycle[] = {" 5i5h", " 5a5b", " 5h5i", " 5b5a"};
+        content.append(cycle[i % 4]);
     }
     content.append("\n");
     return content;
@@ -122,11 +159,12 @@ inline QByteArray generateLongJkfContent(int moveCount)
 {
     QByteArray content = R"({"moves": [{})";
     for (int i = 0; i < moveCount; ++i) {
-        if (i % 2 == 0) {
-            content.append(R"(, {"move": {"to": {"x": 7, "y": 6}, "from": {"x": 7, "y": 7}, "piece": "FU", "color": 0}})");
-        } else {
-            content.append(R"(, {"move": {"to": {"x": 3, "y": 4}, "from": {"x": 3, "y": 3}, "piece": "FU", "color": 1}})");
-        }
+        static const char* const cycle[] = {
+            R"(, {"move": {"to": {"x": 5, "y": 8}, "from": {"x": 5, "y": 9}, "piece": "OU", "color": 0}})",
+            R"(, {"move": {"to": {"x": 5, "y": 2}, "from": {"x": 5, "y": 1}, "piece": "OU", "color": 1}})",
+            R"(, {"move": {"to": {"x": 5, "y": 9}, "from": {"x": 5, "y": 8}, "piece": "OU", "color": 0}})",
+            R"(, {"move": {"to": {"x": 5, "y": 1}, "from": {"x": 5, "y": 2}, "piece": "OU", "color": 1}})"};
+        content.append(cycle[i % 4]);
     }
     content.append("]}");
     return content;
@@ -137,7 +175,8 @@ inline QByteArray generateLongUsenContent(int tripletCount)
 {
     QByteArray content = "~0.";
     for (int i = 0; i < tripletCount; ++i) {
-        content.append("7ku");
+        static const char* const cycle[] = {"9lq", "0iq", "8hq", "1mq"};
+        content.append(cycle[i % 4]);
     }
     content.append("\n");
     return content;

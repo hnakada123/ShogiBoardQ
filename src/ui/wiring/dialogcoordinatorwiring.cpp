@@ -40,6 +40,8 @@ void DialogCoordinatorWiring::wireSignals(const Deps& deps)
     DialogOrchestrator::wireConsiderationSignals(m_coordinator, deps.considerationWiring);
 
     // 解析進捗シグナルを自身のスロットに接続
+    connect(m_coordinator, &DialogCoordinator::analysisPositionPrepared,
+            this, &DialogCoordinatorWiring::onKifuAnalysisPositionPrepared, Qt::UniqueConnection);
     connect(m_coordinator, &DialogCoordinator::analysisProgressReported,
             this, &DialogCoordinatorWiring::onKifuAnalysisProgress);
 
@@ -107,14 +109,12 @@ void DialogCoordinatorWiring::onKifuAnalysisProgress(int ply, int scoreCp, const
 {
     qCDebug(lcUi) << "onKifuAnalysisProgress: ply=" << ply << "scoreCp=" << scoreCp;
 
-    // 1) 棋譜欄の該当行をハイライトし、盤面を更新
-    onAnalysisPositionSelected(m_coordinator ? m_coordinator->analysisLineIndex() : 0, ply);
+    if (m_evalChartWidget) m_evalChartWidget->appendScoreP1Buffered(ply, scoreCp, false, mate);
+}
 
-    // 2) 評価値グラフに評価値をプロット（バッチ更新で描画負荷を軽減）
-    static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
-    if (scoreCp != POSITION_ONLY_MARKER && m_evalChartWidget) {
-        m_evalChartWidget->appendScoreP1Buffered(ply, scoreCp, false, mate);
-    }
+void DialogCoordinatorWiring::onKifuAnalysisPositionPrepared(int ply)
+{
+    onAnalysisPositionSelected(m_coordinator ? m_coordinator->analysisLineIndex() : 0, ply);
 }
 
 void DialogCoordinatorWiring::onKifuAnalysisResultRowSelected(int row)

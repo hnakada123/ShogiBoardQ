@@ -29,9 +29,9 @@ bool readKifText(const QString& path, QString& text, QString* warn)
 /// KIF の1つの手順（本譜または1つの変化）を lines[begin, end) から読む。
 /// line.disp の先頭は開始局面の項目（ply 0）。表示用の指し手と USI の指し手は同じ走査で作る。
 /// 読めない指し手があれば、その手の前で手順を打ち切り warn に記録する。
-void parseKifBlock(const QStringList& lines, qsizetype begin, qsizetype end,
+bool parseKifBlock(const QStringList& lines, qsizetype begin, qsizetype end,
                    const QString& baseSfen, int startPly, const QString& prevUsi,
-                   KifLine& line, QString* warn)
+                   KifLine& outLine, QString* warn)
 {
     using namespace KifuParseCommon;
 
@@ -43,6 +43,7 @@ void parseKifBlock(const QStringList& lines, qsizetype begin, qsizetype end,
     bool firstMoveFound = false;
     bool ended = false;
     QString openingComment, openingBookmark, comment;
+    KifuParseCommon::KifLineDraft line;
     line.baseSfen = baseSfen;
     line.startPly = startPly;
 
@@ -107,8 +108,7 @@ void parseKifBlock(const QStringList& lines, qsizetype begin, qsizetype end,
     }
 
     finalizeDisplayItems(comment, line.disp, openingComment, openingBookmark);
-    line.sfenList = SfenPositionTracer::buildSfenRecord(baseSfen, line.usiMoves, false);
-    line.gameMoves = SfenPositionTracer::buildGameMoves(baseSfen, line.usiMoves);
+    return line.resolve(outLine, warn);
 }
 
 } // namespace
@@ -185,8 +185,8 @@ bool KifToSfenConverter::parseLines(const QStringList& lines, KifParseResult& ou
     }
     boundaries.append(lines.size());
 
-    parseKifBlock(lines, 0, boundaries.first(), detectInitialSfenFromLines(lines), 1, QString(),
-                  out.mainline, errorMessage);
+    if (!parseKifBlock(lines, 0, boundaries.first(), detectInitialSfenFromLines(lines), 1, QString(),
+                  out.mainline, errorMessage)) return false;
 
     for (qsizetype b = 0; b + 1 < boundaries.size(); ++b) {
         const auto match = KifLexer::variationHeaderCaptureRe().match(lines.at(boundaries.at(b)));
@@ -199,13 +199,13 @@ bool KifToSfenConverter::parseLines(const QStringList& lines, KifParseResult& ou
         KifVariation variation;
         variation.startPly = startPly;
         variation.parentVariation = base->parentVariation;
-        parseKifBlock(lines, boundaries.at(b) + 1, boundaries.at(b + 1), base->sfen, startPly, base->prevUsi,
-                      variation.line, errorMessage);
+        if (!parseKifBlock(lines, boundaries.at(b) + 1, boundaries.at(b + 1), base->sfen, startPly, base->prevUsi,
+                      variation.line, errorMessage)) return false;
         KifuParseCommon::mergeOpeningIntoFirstMove(variation.line);
         out.variations.append(variation);
     }
 
-    qCDebug(lcKifu).noquote() << "parsed: mainline moves =" << out.mainline.usiMoves.size()
+    qCDebug(lcKifu).noquote() << "parsed: mainline moves =" << out.mainline.usiMoves().size()
                               << "variations =" << out.variations.size();
     return true;
 }
@@ -236,13 +236,13 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
 QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(kifPath, result, errorMessage) ? result.mainline.usiMoves : QStringList();
+    return parseWithVariations(kifPath, result, errorMessage) ? result.mainline.usiMoves() : QStringList();
 }
 
 QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& kifPath, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(kifPath, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
+    return parseWithVariations(kifPath, result, errorMessage) ? result.mainline.displayItems() : QList<KifDisplayItem>();
 }
 
 bool KifToSfenConverter::parseWithVariations(const QString& kifPath, KifParseResult& out, QString* errorMessage)

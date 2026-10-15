@@ -258,10 +258,9 @@ private slots:
 
     void mapPresetToSfen_unknown()
     {
-        // Unknown preset should return some fallback
+        // Unknown presets use the documented hirate fallback.
         QString sfen = JkfToSfenConverter::mapPresetToSfen(QStringLiteral("UNKNOWN_PRESET"));
-        // Should not crash; may return hirate or empty
-        Q_UNUSED(sfen);
+        QCOMPARE(sfen, kHirateSfen);
     }
 
     // ========================================
@@ -297,8 +296,7 @@ private slots:
         QString error;
         // Must not crash regardless of JSON structure
         QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
-        Q_UNUSED(moves);
-        QVERIFY(true);
+        QVERIFY(moves.isEmpty());
     }
 
     void extractMovesWithTimes_invalidColorFallsBackSafely()
@@ -341,7 +339,7 @@ private slots:
         QString error;
         const bool ok = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
         QVERIFY(ok);
-        QVERIFY(!result.mainline.disp.isEmpty());
+        QVERIFY(!result.mainline.displayItems().isEmpty());
         QVERIFY(error.contains(QStringLiteral("out-of-range color")));
     }
     // ========================================
@@ -365,12 +363,12 @@ private slots:
         (void)JkfToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool success = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
 
         (void)JkfToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
         (void)JkfToSfenConverter::extractGameInfo(tmp.fileName());
 
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, error);
     }
 
     // ========================================
@@ -387,9 +385,10 @@ private slots:
         (void)JkfToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY2(JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
 
-        QVERIFY(true);
+        QCOMPARE(result.mainline.moveCount(), 1500);
+        KifuTestHelper::verifyParsedRecord(true, result, error);
     }
 };
 

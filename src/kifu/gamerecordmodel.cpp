@@ -168,34 +168,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
 
 QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
 {
-    QList<KifDisplayItem> result;
-
-    // 優先0: KifuBranchTree から取得（新システム）
-    if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
-        // 本譜は常にlineIndex=0（ナビゲーション状態に依存しない）
-        constexpr int lineIndex = 0;
-
-        result = m_branchTree->displayItemsForLine(lineIndex);
-        qCDebug(lcKifu).noquote() << "collectMainlineForExport: from BranchTree"
-                                  << "lineIndex=" << lineIndex << "items=" << result.size();
-
-        // 空でない結果が得られた場合は返す
-        if (!result.isEmpty()) {
-            return result;
-        }
-    }
-
-    // ツリー未構築時の編集を反映
-    for (qsizetype i = 0; i < result.size(); ++i) {
-        if (i < m_comments.size() && !m_comments[i].isEmpty()) {
-            result[i].comment = m_comments[i];
-        }
-        if (i < m_bookmarks.size() && !m_bookmarks[i].isEmpty()) {
-            result[i].bookmark = m_bookmarks[i];
-        }
-    }
-
-    return result;
+    return m_branchTree ? m_branchTree->displayItemsForLine(0) : QList<KifDisplayItem>();
 }
 
 QStringList GameRecordModel::collectMainlineUsiForExport() const

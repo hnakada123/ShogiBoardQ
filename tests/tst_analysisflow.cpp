@@ -12,6 +12,8 @@
 
 #include "analysisflowcontroller.h"
 #include "analysiscoordinator.h"
+#include "sfenpositiontracer.h"
+#include "sfenutils.h"
 #include "considerationflowcontroller.h"
 #include "enginesettingsconstants.h"
 #include "usi.h"
@@ -71,10 +73,8 @@ public:
         writeConsiderationEngineSettings(QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match"), QStringLiteral("AnalysisTest"));
 
         // 平手の開始局面 + 2手分
-        sfenRecord << QStringLiteral("position startpos")
-                   << QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 2")
-                   << QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 3");
         usiMoves << QStringLiteral("7g7f") << QStringLiteral("3c3d");
+        sfenRecord = SfenPositionTracer::buildSfenRecord(SfenUtils::hirateSfen(), usiMoves, false);
 
         usi = new Usi(&logModel, &thinkingModel, &gameController, nullptr);
     }
@@ -87,8 +87,8 @@ public:
     AnalysisFlowController::Deps makeDeps()
     {
         AnalysisFlowController::Deps d;
-        d.sfenRecord = &sfenRecord;
-        d.usiMoves = &usiMoves;
+        d.line.sfens = sfenRecord;
+        d.line.moves = SfenPositionTracer::buildGameMoves(sfenRecord.first(), usiMoves);
         d.analysisModel = &analysisModel;
         d.usi = usi;
         d.logModel = &logModel;
@@ -122,6 +122,51 @@ class TestAnalysisFlow : public QObject
     QTemporaryDir m_config;
 
 private slots:
+    void jobRunsWithoutUiAndOwnsSnapshot()
+    {
+        TestHelper h;
+        AnalysisRequest request;
+        request.line = h.makeDeps().line;
+        request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        request.engineName = QStringLiteral("HeadlessAnalysis");
+        request.options.endPly = 2;
+        AnalysisJob job(request, {h.usi, &h.logModel, &h.thinkingModel, &h.gameController});
+        QSignalSpy positions(&job, &AnalysisJob::positionPrepared);
+        QSignalSpy results(&job, &AnalysisJob::resultReady);
+        QSignalSpy finished(&job, &AnalysisJob::finished);
+        request.line.sfens.clear();
+        request.line.moves.clear();
+        QVERIFY(job.start());
+        QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 5000);
+        QCOMPARE(positions.size(), 3);
+        QCOMPARE(results.size(), 3);
+        QCOMPARE(job.line().sfens, h.sfenRecord);
+        QVERIFY(!job.isRunning());
+        job.stop();
+        emit h.usi->engineInitialized();
+        emit h.usi->bestMoveReceived();
+        QCOMPARE(finished.size(), 1);
+        QCOMPARE(results.size(), 3);
+    }
+
+    void stoppedJobIgnoresInitializationAndResults()
+    {
+        TestHelper h;
+        AnalysisRequest request;
+        request.line = h.makeDeps().line;
+        request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        AnalysisJob job(request, {h.usi, &h.logModel, &h.thinkingModel, &h.gameController});
+        QSignalSpy positions(&job, &AnalysisJob::positionPrepared);
+        QSignalSpy finished(&job, &AnalysisJob::finished);
+        QVERIFY(job.start());
+        job.stop();
+        emit h.usi->engineInitialized();
+        emit h.usi->bestMoveReceived();
+        QCOMPARE(positions.size(), 0);
+        QCOMPARE(finished.size(), 1);
+        QVERIFY(!job.isRunning());
+    }
+
     void considerationRestartCoalescesAndStopCancelsQueuedWork()
     {
         MatchCoordinator match(MatchCoordinator::Deps{});
@@ -279,14 +324,12 @@ void TestAnalysisFlow::startWhileRunning()
     h.startAnalysis(ctrl);
     QVERIFY(ctrl.isRunning());
 
-    // 再度 start() を呼んでもクラッシュしないことを検証
-    // 注: AnalysisCoordinator::startAnalyzeRange() 内部で前回の解析を stop() するため
-    //     analysisFinished → onAnalysisFinished が発火し m_running=false になる。
-    //     その後 m_coord->startAnalyzeRange() が新しい解析を開始するが、
-    //     FlowController の m_running は既に false のまま。
-    //     （テスト用USIプロセスは実際の探索を行わず応答するため）
+    QSignalSpy stopped(&ctrl, &AnalysisFlowController::analysisStopped);
     h.startAnalysis(ctrl);
-    // 二重起動が安全に処理されること（クラッシュしないこと）を主に検証
+    QVERIFY(ctrl.isRunning());
+    QCOMPARE(stopped.count(), 1);
+    ctrl.stop();
+    QCOMPARE(stopped.count(), 2);
 }
 
 // === 2. シグナル発火テスト ===
@@ -338,16 +381,12 @@ void TestAnalysisFlow::positionPreparedEmitsProgress()
 {
     TestHelper h;
     AnalysisFlowController ctrl;
-
-    // start() 内で positionPrepared → analysisProgressReported が同期的に発火されるので
-    // spy を start() の前に設定する
-    QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisProgressReported);
+    QSignalSpy positions(&ctrl, &AnalysisFlowController::analysisPositionPrepared);
+    QSignalSpy scores(&ctrl, &AnalysisFlowController::analysisProgressReported);
     h.startAnalysis(ctrl);
-
-    // start() → coordinator.startAnalyzeRange() → sendAnalyzeForPly() →
-    // positionPrepared → onPositionPrepared → analysisProgressReported
-    QTRY_VERIFY_WITH_TIMEOUT(spy.count() >= 1, 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(positions.count() >= 1, 5000);
     ctrl.stop();
+    QCOMPARE(scores.count(), 0); // 評価のない結果や盤面移動を評価値として通知しない。
 }
 
 // === 3. エラー時の状態回復テスト ===
@@ -357,13 +396,13 @@ void TestAnalysisFlow::startWithNullSfenRecord()
     TestHelper h;
     AnalysisFlowController ctrl;
     auto deps = h.makeDeps();
-    deps.sfenRecord = nullptr; // null に設定
+    deps.line = {};
 
     KifuAnalysisDialog dlg;
     ctrl.start(deps, &dlg);
 
     QVERIFY(!ctrl.isRunning());
-    QVERIFY(h.lastError.contains(QStringLiteral("sfenRecord")));
+    QVERIFY(h.lastError.contains(QStringLiteral("棋譜データ")));
 }
 
 void TestAnalysisFlow::startWithEmptySfenRecord()
@@ -372,13 +411,13 @@ void TestAnalysisFlow::startWithEmptySfenRecord()
     AnalysisFlowController ctrl;
     QStringList empty;
     auto deps = h.makeDeps();
-    deps.sfenRecord = &empty; // 空リスト
+    deps.line.sfens = empty;
 
     KifuAnalysisDialog dlg;
     ctrl.start(deps, &dlg);
 
     QVERIFY(!ctrl.isRunning());
-    QVERIFY(h.lastError.contains(QStringLiteral("sfenRecord")));
+    QVERIFY(h.lastError.contains(QStringLiteral("棋譜データ")));
 }
 
 void TestAnalysisFlow::startWithNullAnalysisModel()
@@ -401,12 +440,12 @@ void TestAnalysisFlow::startWithNullUsi()
     AnalysisFlowController ctrl;
     auto deps = h.makeDeps();
     deps.usi = nullptr;
-
     KifuAnalysisDialog dlg;
     ctrl.start(deps, &dlg);
-
+    QVERIFY(ctrl.isRunning()); // 未指定なら実行がエンジンを所有する。
+    QVERIFY(h.lastError.isEmpty());
+    ctrl.stop();
     QVERIFY(!ctrl.isRunning());
-    QVERIFY(h.lastError.contains(QStringLiteral("Usi")));
 }
 
 void TestAnalysisFlow::startWithNullDialog()

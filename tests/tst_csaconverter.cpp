@@ -34,8 +34,8 @@ private slots:
         bool ok = CsaToSfenConverter::parse(
             fixturePath(QStringLiteral("test_basic.csa")), result, &warn);
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 7);
-        QCOMPARE(result.mainline.usiMoves, kExpectedUsiMoves);
+        QCOMPARE(result.mainline.usiMoves().size(), 7);
+        QCOMPARE(result.mainline.usiMoves(), kExpectedUsiMoves);
     }
 
     void extractGameInfo()
@@ -66,8 +66,8 @@ private slots:
         bool ok = CsaToSfenConverter::parse(
             fixturePath(QStringLiteral("test_basic.csa")), result, &warn);
         QVERIFY(ok);
-        QVERIFY(result.mainline.usiMoves.size() >= 1);
-        QCOMPARE(result.mainline.usiMoves.at(0), QStringLiteral("7g7f"));
+        QVERIFY(result.mainline.usiMoves().size() >= 1);
+        QCOMPARE(result.mainline.usiMoves().at(0), QStringLiteral("7g7f"));
     }
 
     // ========================================
@@ -82,8 +82,8 @@ private slots:
             fixturePath(QStringLiteral("test_drop.csa")), result, &warn);
         QVERIFY(ok);
         // Moves: +7776FU, -3334FU, +8822UM, -3122GI, +0055KA
-        QVERIFY(result.mainline.usiMoves.size() >= 5);
-        QCOMPARE(result.mainline.usiMoves.at(4), QStringLiteral("B*5e"));
+        QVERIFY(result.mainline.usiMoves().size() >= 5);
+        QCOMPARE(result.mainline.usiMoves().at(4), QStringLiteral("B*5e"));
     }
 
     // ========================================
@@ -98,8 +98,8 @@ private slots:
             fixturePath(QStringLiteral("test_promote.csa")), result, &warn);
         QVERIFY(ok);
         // Moves: +7776FU, -3334FU, +8822UM
-        QVERIFY(result.mainline.usiMoves.size() >= 3);
-        QCOMPARE(result.mainline.usiMoves.at(2), QStringLiteral("8h2b+"));
+        QVERIFY(result.mainline.usiMoves().size() >= 3);
+        QCOMPARE(result.mainline.usiMoves().at(2), QStringLiteral("8h2b+"));
     }
 
     // ========================================
@@ -114,8 +114,8 @@ private slots:
             fixturePath(QStringLiteral("test_various_pieces.csa")), result, &warn);
         QVERIFY(ok);
         // Move 5: +8977KE (knight from 8,9 to 7,7 as KE, no promotion)
-        QVERIFY(result.mainline.usiMoves.size() >= 5);
-        QCOMPARE(result.mainline.usiMoves.at(4), QStringLiteral("8i7g"));
+        QVERIFY(result.mainline.usiMoves().size() >= 5);
+        QCOMPARE(result.mainline.usiMoves().at(4), QStringLiteral("8i7g"));
     }
 
     // ========================================
@@ -130,27 +130,27 @@ private slots:
             fixturePath(QStringLiteral("test_various_pieces.csa")), result, &warn);
         QVERIFY(ok);
         // +7776FU -> 7g7f (pawn)
-        QCOMPARE(result.mainline.usiMoves.at(0), QStringLiteral("7g7f"));
+        QCOMPARE(result.mainline.usiMoves().at(0), QStringLiteral("7g7f"));
         // -8384FU -> 8c8d (pawn)
-        QCOMPARE(result.mainline.usiMoves.at(1), QStringLiteral("8c8d"));
+        QCOMPARE(result.mainline.usiMoves().at(1), QStringLiteral("8c8d"));
         // +1716FU -> 1g1f (pawn)
-        QCOMPARE(result.mainline.usiMoves.at(2), QStringLiteral("1g1f"));
+        QCOMPARE(result.mainline.usiMoves().at(2), QStringLiteral("1g1f"));
         // -8485FU -> 8d8e (pawn)
-        QCOMPARE(result.mainline.usiMoves.at(3), QStringLiteral("8d8e"));
+        QCOMPARE(result.mainline.usiMoves().at(3), QStringLiteral("8d8e"));
         // +8977KE -> 8i7g (knight)
-        QCOMPARE(result.mainline.usiMoves.at(4), QStringLiteral("8i7g"));
+        QCOMPARE(result.mainline.usiMoves().at(4), QStringLiteral("8i7g"));
         // -4132KI -> 4a3b (gold)
-        QCOMPARE(result.mainline.usiMoves.at(5), QStringLiteral("4a3b"));
+        QCOMPARE(result.mainline.usiMoves().at(5), QStringLiteral("4a3b"));
         // +9998KY -> 9i9h (lance)
-        QCOMPARE(result.mainline.usiMoves.at(6), QStringLiteral("9i9h"));
+        QCOMPARE(result.mainline.usiMoves().at(6), QStringLiteral("9i9h"));
         // -6152KI -> 6a5b (gold)
-        QCOMPARE(result.mainline.usiMoves.at(7), QStringLiteral("6a5b"));
+        QCOMPARE(result.mainline.usiMoves().at(7), QStringLiteral("6a5b"));
         // +2726FU -> 2g2f (pawn)
-        QCOMPARE(result.mainline.usiMoves.at(8), QStringLiteral("2g2f"));
+        QCOMPARE(result.mainline.usiMoves().at(8), QStringLiteral("2g2f"));
         // -5142OU -> 5a4b (king)
-        QCOMPARE(result.mainline.usiMoves.at(9), QStringLiteral("5a4b"));
+        QCOMPARE(result.mainline.usiMoves().at(9), QStringLiteral("5a4b"));
         // +8855KA -> 8h5e (bishop)
-        QCOMPARE(result.mainline.usiMoves.at(10), QStringLiteral("8h5e"));
+        QCOMPARE(result.mainline.usiMoves().at(10), QStringLiteral("8h5e"));
     }
 
     // ========================================
@@ -182,9 +182,9 @@ private slots:
         // 2-piece handicap: no rook/bishop for white, gote moves first
         QCOMPARE(result.mainline.baseSfen,
                  QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
-        QVERIFY(result.mainline.usiMoves.size() >= 2);
-        QCOMPARE(result.mainline.usiMoves.at(0), QStringLiteral("3c3d"));
-        QCOMPARE(result.mainline.usiMoves.at(1), QStringLiteral("7g7f"));
+        QVERIFY(result.mainline.usiMoves().size() >= 2);
+        QCOMPARE(result.mainline.usiMoves().at(0), QStringLiteral("3c3d"));
+        QCOMPARE(result.mainline.usiMoves().at(1), QStringLiteral("7g7f"));
     }
 
     // ========================================
@@ -217,7 +217,7 @@ private slots:
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Should still succeed (parse returns true even with no moves)
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 0);
+        QCOMPARE(result.mainline.usiMoves().size(), 0);
     }
 
     // ========================================
@@ -237,7 +237,7 @@ private slots:
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Parse succeeds but the invalid move is skipped
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 0);
+        QCOMPARE(result.mainline.usiMoves().size(), 0);
         QVERIFY(!warn.isEmpty());
     }
 
@@ -258,7 +258,7 @@ private slots:
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Line without +/- is ignored (not a move line)
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 0);
+        QCOMPARE(result.mainline.usiMoves().size(), 0);
     }
 
     // ========================================
@@ -277,7 +277,7 @@ private slots:
         QString warn;
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 0);
+        QCOMPARE(result.mainline.usiMoves().size(), 0);
         QVERIFY(!warn.isEmpty());
     }
 
@@ -296,10 +296,9 @@ private slots:
         KifParseResult result;
         QString warn;
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
-        // Parser should still handle this (may fail at position parse)
-        // Just verify it doesn't crash
-        Q_UNUSED(ok);
-        Q_UNUSED(warn);
+        QVERIFY2(ok, qPrintable(warn));
+        QVERIFY(result.mainline.entries.isEmpty());
+        QCOMPARE(result.mainline.baseSfen, QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1"));
     }
 
     // ========================================
@@ -337,9 +336,9 @@ private slots:
         QString warn;
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 2);
+        QCOMPARE(result.mainline.usiMoves().size(), 2);
         // Display items should include the opening item + 2 moves + result
-        QVERIFY(result.mainline.disp.size() >= 4);
+        QVERIFY(result.mainline.displayItems().size() >= 4);
     }
 
     // ========================================
@@ -359,7 +358,7 @@ private slots:
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         QVERIFY(ok);
         // First move should succeed, second fails, third succeeds
-        QVERIFY(result.mainline.usiMoves.size() >= 1);
+        QVERIFY(result.mainline.usiMoves().size() >= 1);
     }
 
     // ========================================
@@ -413,12 +412,12 @@ private slots:
         QString warn;
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 3);
-        QCOMPARE(result.mainline.disp.size(), 5);
-        QCOMPARE(result.mainline.disp[1].timeText, QStringLiteral("00:30/00:00:30"));
-        QCOMPARE(result.mainline.disp[2].timeText, QStringLiteral("00:15/00:00:15"));
-        QCOMPARE(result.mainline.disp[3].timeText, QStringLiteral("00:45/00:01:15"));
-        QCOMPARE(result.mainline.disp[4].timeText, QStringLiteral("00:05/00:00:20"));
+        QCOMPARE(result.mainline.usiMoves().size(), 3);
+        QCOMPARE(result.mainline.displayItems().size(), 5);
+        QCOMPARE(result.mainline.displayItems()[1].timeText, QStringLiteral("00:30/00:00:30"));
+        QCOMPARE(result.mainline.displayItems()[2].timeText, QStringLiteral("00:15/00:00:15"));
+        QCOMPARE(result.mainline.displayItems()[3].timeText, QStringLiteral("00:45/00:01:15"));
+        QCOMPARE(result.mainline.displayItems()[4].timeText, QStringLiteral("00:05/00:00:20"));
     }
 
     // ========================================
@@ -475,8 +474,8 @@ private slots:
         KifParseResult result;
         QString warn;
         // Must not crash regardless of input
-        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
-        QVERIFY(true);
+        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        KifuTestHelper::verifyParsedRecord(success, result, warn);
     }
     // ========================================
     // 異常入力テスト: 不正なバージョン行
@@ -493,8 +492,10 @@ private slots:
         KifParseResult result;
         QString warn;
         // Must not crash; unexpected version should be handled gracefully
-        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
-        QVERIFY(true);
+        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        KifuTestHelper::verifyParsedRecord(success, result, warn);
+        QVERIFY(success);
+        QCOMPARE(result.mainline.usiMoves(), QStringList{QStringLiteral("7g7f")});
     }
 
     // ========================================
@@ -512,9 +513,11 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Must not crash
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, warn);
+        QVERIFY(success);
+        QCOMPARE(result.mainline.usiMoves(), QStringList{QStringLiteral("7g7f")});
     }
 
     // ========================================
@@ -531,9 +534,10 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Must not crash with out-of-range or non-numeric coordinates
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, warn);
+        QVERIFY(result.mainline.entries.isEmpty());
     }
 
     // ========================================
@@ -553,7 +557,7 @@ private slots:
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Must not crash; unknown special moves should be ignored or handled
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 2);
+        QCOMPARE(result.mainline.usiMoves().size(), 2);
     }
 
     // ========================================
@@ -590,7 +594,7 @@ private slots:
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Must not crash; special results should be handled
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 2);
+        QCOMPARE(result.mainline.usiMoves().size(), 2);
     }
 
     // ========================================
@@ -607,9 +611,10 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Must not crash
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, warn);
+        QVERIFY(result.mainline.entries.isEmpty());
     }
 
     // ========================================
@@ -627,9 +632,10 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Must not crash
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, warn);
+        QVERIFY(result.mainline.entries.isEmpty());
     }
     // ========================================
     // 境界値テスト: 全APIに対する異常入力耐性
@@ -650,11 +656,11 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
 
         (void)CsaToSfenConverter::extractGameInfo(tmp.fileName());
 
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, warn);
     }
 
     // ========================================
@@ -670,8 +676,8 @@ private slots:
         KifParseResult result;
         QString warn;
         QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
-        QCOMPARE(result.mainline.usiMoves.size(), 1500);
-        QCOMPARE(result.mainline.usiMoves.last(), QStringLiteral("5b5a"));
+        QCOMPARE(result.mainline.usiMoves().size(), 1500);
+        QCOMPARE(result.mainline.usiMoves().last(), QStringLiteral("5b5a"));
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
     }
 
@@ -772,9 +778,9 @@ private slots:
         QString warn;
         QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
-        QCOMPARE(result.mainline.usiMoves, usi);
+        QCOMPARE(result.mainline.usiMoves(), usi);
         QStringList texts;
-        for (qsizetype i = 1; i < result.mainline.disp.size(); ++i) texts.append(result.mainline.disp.at(i).prettyMove);
+        for (qsizetype i = 1; i < result.mainline.displayItems().size(); ++i) texts.append(result.mainline.displayItems().at(i).prettyMove);
         QCOMPARE(texts, pretty);
     }
 
@@ -803,7 +809,7 @@ private slots:
         KifParseResult result;
         QString warn;
         QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
-        QVERIFY(result.mainline.usiMoves.isEmpty());
+        QVERIFY(result.mainline.usiMoves().isEmpty());
         QVERIFY2(warn.contains(QStringLiteral("does not match the position")), qPrintable(warn));
     }
 };

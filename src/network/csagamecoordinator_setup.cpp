@@ -13,6 +13,7 @@
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
+#include <QSignalBlocker>
 
 namespace {
 bool isInitialPromotionMove(const QString& csaMove, ShogiGameController* gameController)
@@ -35,6 +36,7 @@ void CsaGameCoordinator::setupInitialPosition()
         return;
     }
 
+    const QSignalBlocker replayNotifications(m_gameController);
     const QString hiratePosition = SfenUtils::hirateSfen();
 
     QString parseError;
@@ -77,7 +79,7 @@ void CsaGameCoordinator::setupInitialPosition()
             move, isPromotion, p.prevToFile, p.prevToRank, replayMoveCount);
 
         if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, p.usiMoves, m_sfenHistory,
-                                                replayMoveCount)) {
+                                                replayMoveCount, m_gameMoves)) {
             qCWarning(lcNetwork).noquote()
                 << "Failed to replay CSA move from Game_Summary:" << move;
             emit logMessage(tr("初期局面の指し手再生に失敗しました: %1").arg(move), true);
@@ -95,7 +97,7 @@ void CsaGameCoordinator::setupInitialPosition()
         entry.displayText = prettyMove.trimmed();
         entry.mover = move.startsWith(QLatin1Char('+')) ? Turn::Black : Turn::White;
         entry.time = p.initialMoveTime(replayMoveCount);
-        fillRecordPosition(entry, p.usiMoves.value(replayMoveCount));
+        fillRecordPosition(entry);
         m_initialRecords.append(entry);
         ++replayMoveCount;
     }
