@@ -196,13 +196,13 @@ private slots:
 
     void comments_preserveParagraphs()
     {
-        const QString path = fixturePath(QStringLiteral("test_kiou_comments.kif"));
+        const QString path = fixturePath(QStringLiteral("test_synthetic_comments.kif"));
         QString error;
         const auto items = KifToSfenConverter::extractMovesWithTimes(path, &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QVERIFY(!items.isEmpty());
-        QVERIFY(items.first().comment.contains(QStringLiteral("\n\n【棋王戦第３局｜ABEMA】")));
-        QVERIFY(items.at(1).comment.contains(QStringLiteral("\n\n【対局開始】")));
+        QVERIFY(items.first().comment.contains(QStringLiteral("\n\n【テスト用リンク｜コメント表示】")));
+        QVERIFY(items.at(1).comment.contains(QStringLiteral("\n\n【初手の確認】")));
 
         KifParseResult result;
         QVERIFY2(KifToSfenConverter::parseWithVariations(path, result, &error), qPrintable(error));
@@ -360,18 +360,17 @@ private slots:
     }
 
     // KIF → parseWithVariations → KifuBranchTreeBuilder → node comments テスト
-    void realKif_commentsTransferToBranchTree()
+    void syntheticKif_commentsTransferToBranchTree()
     {
-        const QString path = fixturePath(QStringLiteral("test_kiou_comments.kif"));
-        if (!QFile::exists(path)) {
-            QSKIP("test_kiou_comments.kif not found in fixtures");
-        }
+        const QString path = fixturePath(QStringLiteral("test_synthetic_comments.kif"));
+        QVERIFY2(QFile::exists(path), "test_synthetic_comments.kif not found in fixtures");
 
         // 1. パース
         KifParseResult result;
         QString error;
         bool ok = KifToSfenConverter::parseWithVariations(path, result, &error);
         QVERIFY2(ok, qPrintable(QStringLiteral("Parse failed: ") + error));
+        QCOMPARE(result.mainline.usiMoves.size(), 96);
         QVERIFY2(!result.mainline.disp.isEmpty(), "No display items parsed");
 
         // 2. KifDisplayItem にコメントがあることを確認

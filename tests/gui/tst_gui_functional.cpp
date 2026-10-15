@@ -3503,7 +3503,7 @@ private slots:
         settings.setValue("path", engine);
         settings.endArray();
         const QString kifu = qEnvironmentVariable("ANALYSIS_AUDIT_KIF",
-            QStringLiteral(REPO "/tests/fixtures/test_kiou_comments.kif"));
+            QStringLiteral(REPO "/tests/fixtures/test_synthetic_comments.kif"));
         armDialog("file", kifu);
         click("actionOpenKifuFile");
         QTRY_VERIFY_WITH_TIMEOUT(record()->kifuView()->model()->rowCount() > 14, 3000);
@@ -3594,7 +3594,7 @@ private slots:
         QVERIFY(!initialKif.contains(QStringLiteral("未設定")));
 
         table->setColumnWidth(0, 160);
-        armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_kiou_comments.kif"));
+        armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_synthetic_comments.kif"));
         click("actionOpenKifuFile");
         QVERIFY(dialogHandled);
         QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 90);
@@ -3659,7 +3659,7 @@ private slots:
 
     void commentPresentation()
     {
-        armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_kiou_comments.kif"));
+        armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_synthetic_comments.kif"));
         click("actionOpenKifuFile");
         QVERIFY(dialogHandled);
         auto* table = record()->kifuView();
@@ -3679,7 +3679,7 @@ private slots:
         QTRY_COMPARE(panel->currentMoveIndex(), 0);
         QCOMPARE(position->text(), QStringLiteral("開始局面"));
         QVERIFY(!apply->isEnabled());
-        QVERIFY(edit->toPlainText().contains(QStringLiteral("\n\n【棋王戦第３局｜ABEMA】")));
+        QVERIFY(edit->toPlainText().contains(QStringLiteral("\n\n【テスト用リンク｜コメント表示】")));
         QVERIFY(edit->document()->firstBlock().blockFormat().lineHeight() >= 130);
         const QString opening = edit->toPlainText();
         QCOMPARE(table->model()->data(table->model()->index(0, 3)).toString(), opening.simplified());
@@ -3688,7 +3688,7 @@ private slots:
         QCOMPARE(tooltip.toPlainText(), opening);
 
         // 通常クリックでは選択・編集でき、Ctrl+クリックだけがリンクを開く。
-        auto cursor = edit->document()->find(QStringLiteral("https://abema.tv/"));
+        auto cursor = edit->document()->find(QStringLiteral("https://example.com/"));
         QVERIFY(!cursor.isNull());
         cursor.setPosition(cursor.selectionStart() + 5);
         edit->setTextCursor(cursor);
@@ -3700,7 +3700,7 @@ private slots:
         QVERIFY(urls.isEmpty());
         QTest::mouseClick(edit->viewport(), Qt::LeftButton, Qt::ControlModifier, linkPoint);
         QCOMPARE(urls.size(), 1);
-        QCOMPARE(urls.first(), QUrl("https://abema.tv/channels/shogi/slots/CmppFMdYCe6dn7"));
+        QCOMPARE(urls.first(), QUrl("https://example.com/shogiboardq/comments"));
         QVERIFY(!panel->hasUnsavedComment());
         edit->moveCursor(QTextCursor::Start);
         edit->verticalScrollBar()->setValue(0);
@@ -3709,7 +3709,7 @@ private slots:
 
         // 空行は保存・再読込後も残る。
         const QString saved = copy("actionCopyKIF");
-        QVERIFY(saved.contains(QStringLiteral("\n*\n*【棋王戦第３局｜ABEMA】")));
+        QVERIFY(saved.contains(QStringLiteral("\n*\n*【テスト用リンク｜コメント表示】")));
         click("actionNewGame");
         paste(saved);
         QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
