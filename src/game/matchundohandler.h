@@ -32,9 +32,6 @@ public:
     struct Refs {
         ShogiGameController* gc = nullptr;
         QStringList* sfenHistory = nullptr;
-        QString* positionStr1 = nullptr;
-        QString* positionPonder1 = nullptr;
-        QStringList* positionStrHistory = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
     };
 
@@ -84,12 +81,9 @@ public:
     /// 2手分のUNDOを実行する
     [[nodiscard]] bool undoTwoPlies();
 
-    /// 平手初期SFENの簡易判定
-    [[nodiscard]] static bool isStandardStartposSfen(const QString& sfen);
 
 private:
     bool tryRemoveLastItems(QObject* model, int n);
-    static QString buildPositionAfterUndo(const QString& prevFull, const QString& targetSfen);
 
     Refs m_refs;
     Hooks m_hooks;

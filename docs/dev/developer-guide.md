@@ -228,7 +228,7 @@ ShogiBoardQ/
 ├── cmake/                  # CMake の補助ファイル
 ├── Hayanagi/               # 詰将棋エンジン（git submodule。USI エンジンと、詰将棋対局の相手として組み込む）
 ├── src/                    # ソースコード（後述）
-├── tests/                  # テストコード（tst_*.cpp と、スタブの test_stubs_*.cpp）
+├── tests/                  # テストコード（tst_*.cpp と、外部エンジンの mock_*.cpp）
 │   ├── fixtures/           #   テスト用の棋譜など
 │   └── gui/                #   GUI シナリオ・GUI フロー・エンジン終了のハーネス（xvfb-run の上で実行）
 ├── mcp/                    # MCP サーバー（Python。shogiboardq-cli と自動化 API を使う）
@@ -264,7 +264,6 @@ src/
 │   ├── mainwindowcomponents.h      #   部品の一覧（MainWindowComposer が持つ）
 │   ├── mainwindowactions.cpp/.h    #   メニュー・盤・棋譜欄の操作を担当の部品へ振り分けるスロット
 │   ├── mainwindowresetservice.cpp/.h # 「新規」などで初期状態に戻す
-│   ├── mainwindowgamestartservice.cpp/.h # 対局開始前の準備
 │   ├── gamesessionorchestrator*.cpp/.h # UI 起点の対局操作（開始・投了・中断・再開）
 │   ├── sessionlifecyclecoordinator.cpp/.h # 対局の開始・終局・リセットの後処理
 │   ├── prestartcleanuphandler.cpp/.h # 対局開始前のクリーンアップ（棋譜欄・分岐・ログ・時計表示・評価値グラフ）
@@ -606,7 +605,7 @@ resources/
 tests/
 ├── CMakeLists.txt                  # テスト用ビルド構成（add_shogi_test で1本ずつ登録する）
 ├── tst_*.cpp                       # 単体テスト。多くは shogiboardq_static にリンクする
-├── test_stubs_*.cpp                # 一部の部品だけを組み立てるテスト用のスタブ
+├── mock_usi_match.cpp              # 本体のUSI通信経路で使うテスト用エンジン
 ├── kifu_test_helper.h ほか          # テスト共通の補助
 ├── mock_*.cpp                      # テスト用の偽エンジン（USI・詰み探索）
 ├── test_*.py                       # scripts/ の Python スクリプトのテスト
@@ -4466,15 +4465,14 @@ CSA・USEN・USI の書き出しに使う USI の指し手は、対局の局面�
 ```
 KifuNavigationState
   │
-  ├── m_currentNode          … 現在表示中のノード（カーソル）
-  ├── m_preferredLineIndex   … 優先ライン（-1=未設定）
-  └── m_lastSelectedChildAtBranch  … QHash<nodeId, childIndex>
-                                     分岐点ごとに最後に選んだ子を記憶
+  ├── m_currentNodeId        … 現在表示中のノードID（参照時に解決）
+  └── m_selectedChildIds     … QHash<parentNodeId, childNodeId>
+                               分岐点ごとに最後に選んだ子を記憶
 ```
 
 #### 優先ライン（Preferred Line）
 
-分岐を選択した時に `setPreferredLineIndex(lineIndex)` で設定される。分岐点より前に戻っても維持されるため、「進む」操作時に以前選択した分岐を辿ることができる。`resetPreferredLineIndex()` で本譜に戻る。
+`setPreferredLineIndex(lineIndex)` は行番号をノードIDの経路へ変換して記憶する。分岐点より前に戻っても維持され、兄弟を並べ替えても選択した手順を辿る。現在の行番号はこの経路から求める。`resetPreferredLineIndex()` で選択記憶を消去する。
 
 #### 分岐選択の記憶
 
@@ -6742,10 +6740,9 @@ handleBranchNodeActivated(row, ply):
 
 | メンバ | 型 | 役割 |
 |-------|---|------|
-| `m_currentNode` | `KifuBranchNode*` | 現在位置のノード |
+| `m_currentNodeId` | `int` | 現在位置のノードID |
 | `m_tree` | `KifuBranchTree*` | 分岐ツリーへの参照 |
-| `m_lastSelectedChildAtBranch` | `QHash<int, int>` | 分岐点ごとに選んだ子の記憶 |
-| `m_preferredLineIndex` | `int` | 優先ラインインデックス（-1=未設定） |
+| `m_selectedChildIds` | `QHash<int, int>` | 分岐点IDから選んだ子IDへの対応 |
 
 #### 主要メソッド
 

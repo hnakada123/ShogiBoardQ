@@ -5,6 +5,9 @@
 /// 正しい GameEndInfo を生成し、正しいフックを呼び出すことを検証する。
 
 #include <QTest>
+#include <QSettings>
+#include "settingscommon.h"
+#include "sfenutils.h"
 #include <QSignalSpy>
 #include "gameendhandler.h"
 #include "shogiclock.h"
@@ -45,6 +48,16 @@ void reset()
 } // namespace EndTracker
 
 namespace {
+// 先手玉は敵陣にあり、敵陣15枚と持ち駒で28点。
+const QString blackWin = QStringLiteral(
+    "5+B+RGS/6GKS/+P+P+P+P+P+P+P+P+P/9/p1p1p1p1p/1s1g1g1s1/2n3n1n/1r2k4/2b6 b NL3P3lp 1");
+void setRule(int rule)
+{
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+    settings.setValue(QStringLiteral("GameSettings/jishogiRule"), rule);
+    settings.sync();
+}
+
 
 // 終局行の消費時間がどちらの側のものかを見分けるため、先手・後手で違う考慮時間を時計に入れる
 const QString kBlackElapsed = QStringLiteral("01:01/00:01:01");  // 先手の考慮61秒
@@ -58,9 +71,6 @@ void setDistinctConsideration(ShogiClock& clock)
 
 } // namespace
 
-extern ShogiBoard* g_stubGameBoard;
-extern NyugyokuJudgement::Result g_stubNyugyokuResult;
-extern bool g_stubNyugyokuHandicapNames;
 
 // ============================================================
 // テストハーネス
@@ -71,21 +81,23 @@ struct EndTestHarness {
     // Refs用の実体
     ShogiGameController gc;
     ShogiClock clock;
-    PlayMode playMode = PlayMode::HumanVsHuman;
-    MatchCoordinator::GameOverState gameOver;
+    MatchSessionState session;
+    const MatchGameOverState& gameOver = session.gameOver();
     QStringList sfenHistory;
 
-    EndTestHarness()
+    explicit EndTestHarness(bool withBoard = true)
     {
         EndTracker::reset();
+        QString initial = SfenUtils::hirateSfen();
+        if (withBoard) gc.newGame(initial);
 
         GameEndHandler::Refs refs;
         refs.gc = &gc;
         refs.clock = &clock;
         refs.usi1Provider = []() -> Usi* { return nullptr; };
         refs.usi2Provider = []() -> Usi* { return nullptr; };
-        refs.playMode = &playMode;
-        refs.gameOver = &gameOver;
+        session.setPlayMode(PlayMode::HumanVsHuman);
+        refs.session = &session;
         refs.strategyProvider = nullptr;
         refs.sfenHistory = &sfenHistory;
         handler.setRefs(refs);
@@ -268,7 +280,7 @@ void Tst_GameEndHandler::handleResign_p2Turn_p2Loses()
 void Tst_GameEndHandler::handleResign_alreadyOver_ignored()
 {
     EndTestHarness h;
-    h.gameOver.isOver = true;
+    h.session.finish({MatchCause::Resignation, Turn::Black});
     QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
     h.handler.handleResign();
 
@@ -283,7 +295,7 @@ void Tst_GameEndHandler::handleResign_alreadyOver_ignored()
 void Tst_GameEndHandler::handleEngineResign_engine1_p1Loses()
 {
     EndTestHarness h;
-    h.playMode = PlayMode::EvenHumanVsEngine;
+    h.session.setPlayMode(PlayMode::EvenHumanVsEngine);
     h.handler.handleEngineResign(Turn::Black);
 
     QVERIFY(h.gameOver.isOver);
@@ -294,7 +306,7 @@ void Tst_GameEndHandler::handleEngineResign_engine1_p1Loses()
 void Tst_GameEndHandler::handleEngineResign_engine2_p2Loses()
 {
     EndTestHarness h;
-    h.playMode = PlayMode::EvenHumanVsEngine;
+    h.session.setPlayMode(PlayMode::EvenHumanVsEngine);
     h.handler.handleEngineResign(Turn::White);
 
     QVERIFY(h.gameOver.isOver);
@@ -335,7 +347,7 @@ void Tst_GameEndHandler::handleBreakOff_emitsGameEnded()
 void Tst_GameEndHandler::handleBreakOff_alreadyOver_ignored()
 {
     EndTestHarness h;
-    h.gameOver.isOver = true;
+    h.session.finish({MatchCause::Resignation, Turn::Black});
     QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
 
     h.handler.handleBreakOff();
@@ -393,7 +405,7 @@ void Tst_GameEndHandler::handleNyugyokuDeclaration_fail_declarerLoses()
 void Tst_GameEndHandler::handleNyugyokuDeclaration_alreadyOver_ignored()
 {
     EndTestHarness h;
-    h.gameOver.isOver = true;
+    h.session.finish({MatchCause::Resignation, Turn::Black});
     QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
     h.handler.handleNyugyokuDeclaration(Turn::Black, true, false);
 
@@ -404,13 +416,15 @@ void Tst_GameEndHandler::handleEngineWin_showsGameOverMessage()
 {
     // エンジンの入玉宣言（bestmove win）は宣言ダイアログを通らないため、対局終了を知らせる
     EndTestHarness h;
-    h.handler.handleEngineWin(Turn::White);
+    h.gc.board()->setSfen(blackWin);
+    setRule(NyugyokuJudgement::Rule27);
+    h.handler.handleEngineWin(Turn::Black);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
-    QCOMPARE(h.gameOver.lastInfo.loser, Turn::Black);
+    QCOMPARE(h.gameOver.lastInfo.loser, Turn::White);
     QVERIFY(EndTracker::showGameOverDialogCalled);
-    QVERIFY(EndTracker::lastDialogMsg.contains(QStringLiteral("後手の入玉宣言")));
+    QVERIFY(EndTracker::lastDialogMsg.contains(QStringLiteral("先手の入玉宣言")));
     QCOMPARE(EndTracker::events.count(QStringLiteral("save")), 1);
 }
 
@@ -433,20 +447,15 @@ void Tst_GameEndHandler::handleEngineWin_judgesDeclaration()
     QFETCH(int, cause);
     QFETCH(int, loser);
     EndTestHarness h;
-    ShogiBoard board;
-    g_stubGameBoard = &board;
-    g_stubNyugyokuResult = {};
-    g_stubNyugyokuResult.success = success;
-    g_stubNyugyokuResult.isDraw = isDraw;
-    g_stubNyugyokuResult.message = QStringLiteral("判定の説明");
-    h.handler.handleEngineWin(Turn::White);
-    g_stubGameBoard = nullptr;
+    h.gc.board()->setSfen(success ? blackWin : SfenUtils::hirateSfen());
+    setRule(isDraw ? NyugyokuJudgement::Rule24 : NyugyokuJudgement::Rule27);
+    h.handler.handleEngineWin(Turn::Black);
 
     QVERIFY(h.gameOver.isOver);
     QCOMPARE(int(h.gameOver.lastInfo.cause), cause);
-    QCOMPARE(int(h.gameOver.lastInfo.loser), loser);
+    QCOMPARE(int(h.gameOver.lastInfo.loser), loser == int(Turn::Black) ? int(Turn::White) : int(Turn::Black));
     QCOMPARE(EndTracker::lastDialogTitle, QStringLiteral("入玉宣言結果"));
-    QCOMPARE(EndTracker::lastDialogMsg, QStringLiteral("判定の説明"));
+    QVERIFY(EndTracker::lastDialogMsg.contains(QStringLiteral("先手の入玉宣言")));
 }
 
 void Tst_GameEndHandler::handleEngineWin_passesHandicapNames()
@@ -454,23 +463,18 @@ void Tst_GameEndHandler::handleEngineWin_passesHandicapNames()
     // 駒落ちでは入玉宣言結果の説明も宣言側を下手・上手と呼ぶ
     EndTestHarness h;
     EndTracker::handicapNames = true;
-    ShogiBoard board;
-    g_stubGameBoard = &board;
-    g_stubNyugyokuResult = {};
-    g_stubNyugyokuResult.success = true;
-    g_stubNyugyokuHandicapNames = false;
-    h.handler.handleEngineWin(Turn::White);
-    g_stubGameBoard = nullptr;
-
+    h.gc.board()->setSfen(blackWin);
+    setRule(NyugyokuJudgement::Rule27);
+    h.handler.handleEngineWin(Turn::Black);
     QVERIFY(h.gameOver.isOver);
-    QVERIFY(g_stubNyugyokuHandicapNames);
+    QVERIFY(EndTracker::lastDialogMsg.contains(QStringLiteral("下手の入玉宣言")));
 }
 
 void Tst_GameEndHandler::appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime()
 {
     // 入玉勝ちの行は宣言した勝者の手番の行なので、勝者の消費時間を記録する
     EndTestHarness h;
-    h.gameOver.isOver = true;
+    h.session.finish({MatchCause::Resignation, Turn::Black});
     setDistinctConsideration(h.clock);
     GameEndHandler::Hooks hooks;
     hooks.appendRecord = [](const RecordEntry& entry) {
@@ -517,7 +521,7 @@ void Tst_GameEndHandler::handleMaxMovesJishogi_appendsKifuLine()
 void Tst_GameEndHandler::handleMaxMovesJishogi_alreadyOver_ignored()
 {
     EndTestHarness h;
-    h.gameOver.isOver = true;
+    h.session.finish({MatchCause::Resignation, Turn::Black});
     h.handler.handleMaxMovesJishogi();
 
     QVERIFY(!EndTracker::showGameOverDialogCalled);
@@ -650,7 +654,7 @@ void Tst_GameEndHandler::handleOuteSennichite_whiteLoses()
 void Tst_GameEndHandler::appendGameOverLineAndMark_resignation_p1()
 {
     EndTestHarness h;
-    h.gameOver.isOver = true;  // must be over for append to work
+    h.session.finish({MatchCause::Resignation, Turn::Black});  // must be over for append to work
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Resignation,
                                          Turn::Black);
 
@@ -663,7 +667,7 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_resignation_p1()
 void Tst_GameEndHandler::appendGameOverLineAndMark_timeout_p2()
 {
     EndTestHarness h;
-    h.gameOver.isOver = true;
+    h.session.finish({MatchCause::Resignation, Turn::Black});
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Timeout,
                                          Turn::White);
 
@@ -675,14 +679,14 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_timeout_p2()
 void Tst_GameEndHandler::appendGameOverLineAndMark_doubleCallGuard()
 {
     EndTestHarness h;
-    h.gameOver.isOver = true;
+    h.session.finish({MatchCause::Resignation, Turn::Black});
 
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Resignation,
                                          Turn::Black);
     int firstCount = EndTracker::appendKifuLineCount;
 
     // Simulate that moveAppended was marked
-    h.gameOver.moveAppended = true;
+    h.session.markTerminalRecorded();
 
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Resignation,
                                          Turn::Black);
@@ -693,7 +697,7 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_doubleCallGuard()
 void Tst_GameEndHandler::appendGameOverLineAndMark_notOver_ignored()
 {
     EndTestHarness h;
-    h.gameOver.isOver = false;
+    h.session.clearGameOver();
     h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::Resignation,
                                          Turn::Black);
     QCOMPARE(EndTracker::appendKifuLineCount, 0);
@@ -702,7 +706,7 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_notOver_ignored()
 void Tst_GameEndHandler::appendBreakOffLineAndMark_p1Turn()
 {
     EndTestHarness h;
-    h.gameOver.isOver = true;
+    h.session.finish({MatchCause::Resignation, Turn::Black});
     h.gc.setCurrentPlayer(Turn::Black);
     h.handler.appendBreakOffLineAndMark();
 
@@ -788,7 +792,7 @@ void Tst_GameEndHandler::resultMessage_followsHandicapNames()
     QFETCH(bool, handicapNames);
     QFETCH(int, cause);
     QFETCH(QString, message);
-    EndTestHarness h;
+    EndTestHarness h(cause != int(MatchCoordinator::Cause::NyugyokuWin));
     EndTracker::handicapNames = handicapNames;
     switch (static_cast<MatchCoordinator::Cause>(cause)) {
     case MatchCoordinator::Cause::Timeout:

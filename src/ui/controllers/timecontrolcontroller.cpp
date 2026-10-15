@@ -67,19 +67,11 @@ void TimeControlController::setTimeDisplayPresenter(TimeDisplayPresenter* presen
 // 時間設定適用ヘルパー
 // --------------------------------------------------------
 
-void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeSettings& tc,
-                                             const QString& startSfen,
-                                             const QString& currentSfen,
-                                             ShogiView* shogiView)
+void TimeControlController::presentTimeControl(const GameStartCoordinator::TimeSettings& tc,
+                                               ShogiView* shogiView)
 {
-    // 1) 設定を保存し、開始時刻を記録
-    recordTimeControl(tc.enabled ? tc.rules : TimeControl{});
-    recordGameStartTime();
-
-    // 2) 時計へ適用
-    ensureClock();
+    beginGameWithTimeControl(tc.rules);
     ShogiClock* clk = clock();
-    TimeControlUtil::applyToClock(clk, tc, startSfen, currentSfen);
 
     // 3) 表示更新（決まりは時計が持ち、エンジンの思考時間も時計から求める）
     if (m_timePresenter && clk) {

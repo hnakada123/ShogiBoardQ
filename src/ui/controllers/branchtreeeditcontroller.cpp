@@ -202,11 +202,7 @@ bool BranchTreeEditController::apply(Operation operation, KifuBranchNode* node, 
 
 void BranchTreeEditController::refreshAfterEdit(KifuBranchNode* current)
 {
-    // ライン番号が変わるため、記憶している分岐の選択を捨てて現在の手から表示し直す
-    if (m_deps.navState != nullptr) {
-        m_deps.navState->resetPreferredLineIndex();
-        m_deps.navState->clearLineSelectionMemory();
-    }
+    // 選択経路はノードIDで保持され、並べ替え後も同じ手順を指す。
     if (m_deps.navController != nullptr && current != nullptr) {
         m_deps.navController->goToNode(current);
     }

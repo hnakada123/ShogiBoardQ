@@ -2,6 +2,9 @@
 /// @brief KifuConversionService のユニットテスト（fixtures の各形式を相互変換する）
 
 #include <QtTest>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 #include "kifuconversionservice.h"
 #include "sfenutils.h"
@@ -36,6 +39,55 @@ private:
     }
 
 private slots:
+    void transposedPositionsKeepVariationParent_data()
+    {
+        QTest::addColumn<int>("format");
+        QTest::newRow("jkf") << static_cast<int>(Format::Jkf);
+        QTest::newRow("kif") << static_cast<int>(Format::Kif);
+        QTest::newRow("ki2") << static_cast<int>(Format::Ki2);
+        QTest::newRow("usen") << static_cast<int>(Format::Usen);
+    }
+
+    void transposedPositionsKeepVariationParent()
+    {
+        QFETCH(int, format);
+        auto move = [](int fromX, int fromY, int toX, int toY, int color) {
+            return QJsonObject{{"move", QJsonObject{{"color", color}, {"piece", "FU"},
+                {"from", QJsonObject{{"x", fromX}, {"y", fromY}}},
+                {"to", QJsonObject{{"x", toX}, {"y", toY}}}}}};
+        };
+        auto branchLast = move(6, 7, 6, 6, 0);
+        branchLast["forks"] = QJsonArray{QJsonArray{move(5, 7, 5, 6, 0)}};
+        const QJsonArray branch{move(2, 7, 2, 6, 0), move(8, 3, 8, 4, 1),
+                                move(7, 7, 7, 6, 0), move(3, 3, 3, 4, 1), branchLast};
+        auto first = move(7, 7, 7, 6, 0);
+        first["forks"] = QJsonArray{branch};
+        const QJsonObject record{{"initial", QJsonObject{{"preset", "HIRATE"}}},
+            {"moves", QJsonArray{QJsonObject{}, first, move(3, 3, 3, 4, 1),
+                                 move(2, 7, 2, 6, 0), move(8, 3, 8, 4, 1), move(2, 6, 2, 5, 0)}}};
+        KifuConversionService::Request request;
+        request.text = QString::fromUtf8(QJsonDocument(record).toJson());
+        request.inputFormat = Format::Jkf;
+        request.outputFormat = static_cast<Format>(format);
+        const auto encoded = KifuConversionService::convert(request);
+        QVERIFY2(encoded.ok, qPrintable(encoded.error));
+        request.text = encoded.lines.join(QLatin1Char('\n'));
+        request.inputFormat = request.outputFormat;
+        request.outputFormat = Format::Jkf;
+        const auto decoded = KifuConversionService::convert(request);
+        QVERIFY2(decoded.ok, qPrintable(decoded.error));
+        const auto moves = QJsonDocument::fromJson(decoded.lines.join(QLatin1Char('\n')).toUtf8())
+                               .object().value("moves").toArray();
+        QCOMPARE(moves.size(), 6);
+        QVERIFY(moves.at(5).toObject().value("forks").toArray().isEmpty());
+        const auto forks = moves.at(1).toObject().value("forks").toArray();
+        QCOMPARE(forks.size(), 1);
+        const auto nested = forks.at(0).toArray().at(4).toObject().value("forks").toArray();
+        QCOMPARE(nested.size(), 1);
+        QCOMPARE(nested.at(0).toArray().at(0).toObject().value("move").toObject()
+                     .value("to").toObject().value("x").toInt(), 5);
+    }
+
     void kifToUsiKeepsMainline()
     {
         const auto result = convertFile(QStringLiteral("test_basic.kif"), Format::Usi);

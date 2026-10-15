@@ -186,29 +186,3 @@ void BranchNavigationWiring::onBranchNodeActivated(int row, int ply)
     m_deps.kifuNavController->handleBranchNodeActivated(row, ply);
     qCDebug(lcApp).noquote() << "BranchNavigationWiring::onBranchNodeActivated LEAVE";
 }
-
-void BranchNavigationWiring::onBranchTreeResetForNewGame()
-{
-    LiveGameSession* ls = m_deps.liveGameSession;
-    KifuBranchTree* bt = m_deps.branchTree;
-    KifuNavigationState* ns = m_deps.navState;
-
-    // 前の対局のライブゲームセッションが残っていれば破棄する（新しいセッションは、
-    // この後の開始前の整理 performCleanup() が新しい根から始める）
-    if (ls && ls->isActive()) {
-        ls->discard();
-    }
-    // resetToInitialState() と同じパターンで分岐ツリーを直接リセット
-    if (bt) {
-        if (ns) {
-            ns->setCurrentNode(nullptr);
-            ns->resetPreferredLineIndex();
-        }
-        if (m_deps.startSfenStr) {
-            bt->setRootSfen(*m_deps.startSfenStr);
-        }
-        if (ns) {
-            ns->goToRoot();
-        }
-    }
-}

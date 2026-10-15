@@ -72,9 +72,6 @@ public slots:
     /// 分岐ツリーのノード活性化を処理する（BranchTreeManager::branchNodeActivated に接続）
     void onBranchNodeActivated(int row, int ply);
 
-    /// 新規対局開始時の分岐ツリーリセット
-    void onBranchTreeResetForNewGame();
-
 signals:
     /// 棋譜欄の選択シグナルを抑止した移動でも、グラフの現在手数を同期する
     void currentPlyChanged(int ply);

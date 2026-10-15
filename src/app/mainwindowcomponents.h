@@ -59,7 +59,6 @@ class KifuExportController;
 class KifuFileController;
 class KifuLoadCoordinator;
 class KifuNavigationCoordinator;
-class LiveGameSessionUpdater;
 
 // UI
 class AnalysisResultsPresenter;
@@ -182,7 +181,6 @@ struct MainWindowComponents {
     // --- 棋譜 ---
     std::unique_ptr<BranchNavigationWiring> branchNavWiring;
     std::unique_ptr<KifuNavigationCoordinator> kifuNavCoordinator;
-    std::unique_ptr<LiveGameSessionUpdater> liveGameSessionUpdater;
     std::unique_ptr<GameRecordUpdateService> gameRecordUpdateService;
     std::unique_ptr<GameRecordLoadService> gameRecordLoadService;
     std::unique_ptr<KifuExportController> kifuExportController;

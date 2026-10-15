@@ -633,7 +633,7 @@ m_ctx.applyEngineMove(move, mover, elapsedMs, appendEvaluation);  // completeMov
 - `rec`: 指し手の日本語表記（例: `"▲７六歩(77)"`）
 - 第2引数: 考慮時間と累計時間（例: `"00:03/00:00:06"`）
 
-フックは `MainWindowComposer::buildMatchHooks()`（`src/app/mainwindowcomposer_game.cpp`）が設定し、`GameRecordUpdateService::appendRecord()` を呼ぶ。`GameRecordUpdateService` は棋譜欄（`GameRecordPresenter::appendMoveLine()`）とライブ対局セッション（`LiveGameSessionUpdater::appendMove()`）に追記する。終局行の追記が済んだ後は何も追記しない。
+フックは `MainWindowComposer::buildMatchHooks()`（`src/app/mainwindowcomposer_game.cpp`）が設定し、`GameRecordUpdateService::appendRecord()` を呼ぶ。`GameRecordUpdateService` は棋譜欄（`GameRecordPresenter::appendMoveLine()`）とライブ対局セッション（`LiveGameSession::appendRecord()`）に追記する。終局行の追記が済んだ後は何も追記しない。
 
 ### 4.3 指し手リストの管理
 
@@ -642,12 +642,11 @@ m_ctx.applyEngineMove(move, mover, elapsedMs, appendEvaluation);  // completeMov
 ```cpp
 QList<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト
 QList<ShogiMove>* m_externalGameMoves = nullptr; ///< 外部共有の指し手リスト（非所有、Deps経由）
-int m_currentMoveIndex = 0;              ///< 現在の手数インデックス
 ```
 
-指し手リストは `gameMovesRef()` で読み、外部共有のリスト（`Deps::gameMoves`、`AppState::gameMoves`）があればそちらを使う。`configureAndStart()` は、指し手リストを SFEN 履歴の手数までに切り詰める（`alignGameMovesWithSfenHistory()`）。
+指し手リストは `gameMovesRef()` で読み、外部共有のリスト（`Deps::gameMoves`、`AppState::gameMoves`）があればそちらを使う。`configureAndStart()` は、確定済みの `RecordLine` から選択位置までの指し手と局面列を反映する。
 
-手数の数え方は Strategy ごとに違う。人間対エンジンは `m_currentMoveIndex` を SFEN 履歴の件数 - 1 に合わせて進め、人間同士は SFEN 履歴の件数 - 1 を使う。エンジン同士は `EngineVsEngineStrategy::m_eveMoveIndex` を `applyMove()` に渡す手数に使い、最大手数は SFEN 履歴の件数 - 1 で判定する。
+現在の手数は全 Strategy が共通して局面列の件数 - 1 から求める。`MatchStrategyContext::applyEngineMove()` と `completeHumanMove()` が一手の確定処理を共有し、最大手数判定にも同じ値を使う。対局設定・モード・終局状態は `MatchSessionState` が所有する。
 
 ### 4.4 着手確定の通知（moveCommitted）
 

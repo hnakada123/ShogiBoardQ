@@ -47,12 +47,3 @@ void Usi::requestMatchMove(const QString& position, const QString& ponder, const
     m_matchHandler->setClock(m_matchClock);
     m_matchHandler->requestMove(position, ponder, timing);
 }
-
-void Usi::requestHumanReply(QString& position, const QString& ponder, const UsiMove& humanMove,
-                            const UsiTimingParams& timing, QStringList& history)
-{
-    if (!position.contains(QStringLiteral(" moves"))) position += QStringLiteral(" moves");
-    position += QLatin1Char(' ') + humanMove.toString();
-    history.append(position);
-    requestMatchMove(position, ponder, timing);
-}

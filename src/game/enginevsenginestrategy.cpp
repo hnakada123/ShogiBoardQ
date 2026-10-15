@@ -13,11 +13,9 @@
 #include <QTimer>
 
 EngineVsEngineStrategy::EngineVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
-                                                 MatchCoordinator::StartOptions opt,
                                                  QObject* parent)
     : QObject(parent)
     , m_ctx(ctx)
-    , m_opt(std::move(opt))
 {
 }
 
@@ -34,7 +32,6 @@ void EngineVsEngineStrategy::start()
     // 駒落ちの場合、SFENで手番が「w」（後手番）になっている。GC の手番は SFEN に従う
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
-    if (!m_opt.resumeFromBreakOff) initPositionStringsForEvE(m_opt.sfenStart);
 
     connect(m_ctx.usi1(), &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextEvETurn, Qt::UniqueConnection);
     connect(m_ctx.usi2(), &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextEvETurn, Qt::UniqueConnection);
@@ -51,47 +48,6 @@ void EngineVsEngineStrategy::onHumanMove(const QPoint& /*from*/, const QPoint& /
                                            const QString& /*prettyMove*/)
 {
     // EvE では人間の手はないため空実装
-}
-
-// ============================================================
-// EvE用position文字列の初期化
-// ============================================================
-
-void EngineVsEngineStrategy::initPositionStringsForEvE(const QString& sfenStart)
-{
-    // 平手の場合は startpos を使用、駒落ちの場合は sfen を使用
-    static const QString kStartBoard =
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-
-    QString base;
-    if (m_ctx.playMode() == PlayMode::HandicapEngineVsEngine && !sfenStart.isEmpty()) {
-        // SFENから盤面部分を抽出して平手かどうか判定
-        QString checkSfen = sfenStart;
-        if (checkSfen.startsWith(QLatin1String("position sfen "))) {
-            checkSfen = checkSfen.mid(QStringLiteral("position sfen ").size()).trimmed();
-        }
-        const QStringList tok = checkSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        const bool isStandardStart = (!tok.isEmpty() && tok[0] == kStartBoard);
-
-        if (!isStandardStart) {
-            // 駒落ち：position sfen <sfen> moves の形式を使用
-            if (sfenStart.startsWith(QLatin1String("position "))) {
-                base = sfenStart;
-                // 末尾に " moves" がなければ追加
-                if (!base.contains(QLatin1String(" moves"))) {
-                    base += QStringLiteral(" moves");
-                }
-            } else {
-                base = QStringLiteral("position sfen ") + sfenStart + QStringLiteral(" moves");
-            }
-        } else {
-            base = QStringLiteral("position startpos moves");
-        }
-    } else {
-        base = QStringLiteral("position startpos moves");
-    }
-    m_ctx.setEnginePosition(1, base, {});
-    m_ctx.setEnginePosition(2, base, {});
 }
 
 // ============================================================
@@ -123,7 +79,7 @@ void EngineVsEngineStrategy::kickNextEvETurn()
 }
 
 void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
-                                               const QString& position, const QString& ponder)
+                                               const QString& /*position*/, const QString& ponder)
 {
     if (!m_waitingForMove || m_ctx.gameOverState().isOver || !m_ctx.gc()) return;
     const bool p1ToMove = m_ctx.gc()->currentPlayer() == Turn::Black;
@@ -131,9 +87,7 @@ void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
     if (sender() != mover) return;
     m_waitingForMove = false;
     Usi* receiver = p1ToMove ? m_ctx.usi2() : m_ctx.usi1();
-    m_ctx.setEnginePosition(p1ToMove ? 1 : 2, position, ponder);
-    // 次の探索用の局面を両エンジンで共有する。
-    m_ctx.syncOpponentPosition(p1ToMove ? 1 : 2, position);
+    m_ctx.setEnginePonder(p1ToMove ? 1 : 2, ponder);
     const QPoint to = BoardCoordinates::toSquare(move);
     if (receiver) {
         receiver->setPreviousMove(BoardSquare{to.x(), to.y()});

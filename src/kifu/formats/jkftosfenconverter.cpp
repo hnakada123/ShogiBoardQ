@@ -259,8 +259,9 @@ namespace {
 // 分岐にはその手を指す前の局面・移動先・累計時間を引き継ぐ。
 bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly,
                   int prevToX, int prevToY, std::array<qint64, 2> cumSec,
-                  bool isMainline, KifLine& line, QList<KifVariation>& variations, QString* warn)
+                  int parentVariation, KifLine& line, QList<KifVariation>& variations, QString* warn)
 {
+    const bool isMainline = parentVariation < 0;
     line.baseSfen = baseSfen;
     line.startPly = firstPly;
     line.sfenList = {baseSfen};
@@ -287,11 +288,13 @@ bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
             }
             KifVariation variation;
             variation.startPly = ply;
-            QList<KifVariation> nested;
-            if (!parseJkfLine(fork.toArray(), tracer.toSfenString(), ply, prevToX, prevToY,
-                              cumSec, false, variation.line, nested, warn)) return false;
+            variation.parentVariation = parentVariation;
+            const int index = static_cast<int>(variations.size());
             variations.append(variation);
-            variations.append(nested);
+            // 再帰中にも配列が伸びるので、要素への参照を渡さずローカルの手順を完成させる。
+            if (!parseJkfLine(fork.toArray(), tracer.toSfenString(), ply, prevToX, prevToY,
+                              cumSec, index, variation.line, variations, warn)) return false;
+            variations[index] = std::move(variation);
         }
 
         const QString comment = JkfMoveParser::extractCommentsFromMoveObj(obj);
@@ -346,5 +349,5 @@ bool JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                                         const QString& baseSfen, KifLine& mainline,
                                         QList<KifVariation>& variations, QString* warn)
 {
-    return parseJkfLine(movesArray, baseSfen, 1, 0, 0, {0, 0}, true, mainline, variations, warn);
+    return parseJkfLine(movesArray, baseSfen, 1, 0, 0, {0, 0}, -1, mainline, variations, warn);
 }

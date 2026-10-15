@@ -12,7 +12,7 @@
 #include "gamestatecontroller.h"
 #include "logcategories.h"
 #include "kifubranchtree.h"
-#include "mainwindowgamestartservice.h"
+#include "kifubranchnode.h"
 #include "matchcoordinator.h"
 #include "replaycontroller.h"
 #include "sfenutils.h"
@@ -128,35 +128,15 @@ void GameSessionOrchestrator::initializeGame()
 
     // 表示中の手数（分岐ツリーのカーソル）から開始する
     const RecordLine line = m_deps.navState ? m_deps.navState->currentRecordLine() : RecordLine{};
-    const int selectedPly = m_deps.navState ? m_deps.navState->currentPly() : 0;
+    GameStartCoordinator::Ctx c;
+    c.clock = match ? match->clock() : nullptr;
+    c.currentSfenStr = m_deps.currentSfenStr;
+    c.startSfenStr = m_deps.startSfenStr;
+    c.recordLine = line;
+    c.startNodeId = m_deps.navState && m_deps.navState->currentNode()
+        ? m_deps.navState->currentNode()->nodeId() : -1;
+    c.bottomSide = m_deps.bottomSide ? *m_deps.bottomSide : Turn::Black;
 
-    MainWindowGameStartService::PrepareDeps prep;
-    prep.line = line;
-    prep.sfenRecord = sfenRecord;
-    prep.gameMoves = m_deps.gameMoves;
-    prep.currentSfenStr = m_deps.currentSfenStr;
-
-    const MainWindowGameStartService gameStartService;
-    gameStartService.prepareForInitializeGame(prep);
-
-    qCDebug(lcApp).noquote() << "initializeGame: FINAL currentSfenStr="
-                             << (m_deps.currentSfenStr ? m_deps.currentSfenStr->left(50) : QStringLiteral("null"))
-                             << " startSfenStr="
-                             << (m_deps.startSfenStr ? m_deps.startSfenStr->left(50) : QStringLiteral("null"))
-                             << " selectedPly=" << selectedPly;
-
-    MainWindowGameStartService::ContextDeps ctx;
-    ctx.gc = m_deps.gameController;
-    ctx.clock = match ? match->clock() : nullptr;
-    ctx.sfenRecord = sfenRecord;
-    ctx.kifuModel = m_deps.kifuModel;
-    ctx.currentSfenStr = m_deps.currentSfenStr;
-    ctx.startSfenStr = m_deps.startSfenStr;
-    ctx.selectedPly = selectedPly;
-    ctx.isReplayMode = m_deps.replayController ? m_deps.replayController->isReplayMode() : false;
-    ctx.bottomSide = m_deps.bottomSide ? *m_deps.bottomSide : Turn::Black;
-
-    GameStartCoordinator::Ctx c = gameStartService.buildContext(ctx);
     c.dialogData = dialogData;
     QString errorMessage;
     if (!gameStart->initializeGame(c, errorMessage) && !errorMessage.isEmpty()) {

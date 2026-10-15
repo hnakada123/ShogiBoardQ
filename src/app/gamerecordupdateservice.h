@@ -13,7 +13,6 @@
 
 class GameRecordModel;
 class MatchCoordinator;
-class LiveGameSessionUpdater;
 class LiveGameSession;
 struct ShogiMove;
 
@@ -26,7 +25,6 @@ public:
     struct Deps {
         // 起動時に注入する依存
         GameRecordModel* gameRecord = nullptr;           ///< 追記したら棋譜を未保存にする
-        LiveGameSessionUpdater* liveSessionUpdater = nullptr;
 
         // Object pointers
         MatchCoordinator* match = nullptr;

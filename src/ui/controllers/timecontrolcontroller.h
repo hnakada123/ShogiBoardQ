@@ -70,10 +70,7 @@ public:
      * @param currentSfen 現在のSFEN（「現在の局面から」開始時に使用）
      * @param shogiView UI再描画対象（nullの場合はスキップ）
      */
-    void applyTimeControl(const GameStartCoordinator::TimeSettings& tc,
-                          const QString& startSfen,
-                          const QString& currentSfen,
-                          ShogiView* shogiView = nullptr);
+    void presentTimeControl(const GameStartCoordinator::TimeSettings& tc, ShogiView* shogiView);
 
     // --------------------------------------------------------
     // 時間制御設定

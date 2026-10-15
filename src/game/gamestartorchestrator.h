@@ -9,52 +9,36 @@
 #include <QList>
 #include <functional>
 
-#include "matchcoordinator.h"
+#include "matchsessionstate.h"
 #include "startgamedatabridge.h"
 
 class ShogiGameController;
 
 /**
- * @brief 対局開始フロー（オプション構築・履歴探索・position文字列構築）を担当する
+ * @brief 対局開始フロー（オプション構築・開始状態の適用）を担当する
  *
  * MatchCoordinator から対局開始に関わるロジックを分離し、
  * configureAndStart / buildStartOptions を統合的に扱う。
  *
- * MatchCoordinator 内部状態への参照は Refs struct で受け取り、
+ * 対局状態の所有者 MatchSessionState と盤を Refs で受け取り、
  * MC メソッドへの委譲は Hooks struct のコールバックで実行する。
  */
 class GameStartOrchestrator
 {
 public:
-    using StartOptions = MatchCoordinator::StartOptions;
+    using StartOptions = MatchStartOptions;
 
-    /// MatchCoordinator の内部状態への参照群
+    /// 開始状態を適用するサービス
     struct Refs {
         ShogiGameController* gc = nullptr;
 
-        // 可変状態
-        PlayMode* playMode = nullptr;
-        int* maxMoves = nullptr;
-        int* currentMoveIndex = nullptr;
-
-        // 棋譜自動保存設定
-        bool* autoSaveKifu = nullptr;
-        QString* kifuSaveDir = nullptr;
-
-        // USI position 文字列
-        QString* positionStr1 = nullptr;
-        QString* positionPonder1 = nullptr;
-        QStringList* positionStrHistory = nullptr;
-
-        // 対局履歴
-        QList<QStringList>* allGameHistories = nullptr;
+        MatchSessionState* session = nullptr;
     };
 
     /**
      * @brief MatchCoordinator メソッドへのコールバック群
      *
      * 対局開始フロー (configureAndStart) で MC の状態更新や GUI 操作を行うために使用。
-     * 前半5つは MC::Hooks からのパススルー、後半6つは MC メソッドへの直接コールバック。
      *
      * @note MC::createGameStartOrchestrator() で設定される。
      *       GameStartOrchestrator は非 QObject のため Signal/Slot は使用不可。
@@ -89,10 +73,6 @@ public:
         /// @note 配線元: MC lambda → MC::updateTurnDisplay (内部で m_hooks.updateTurnDisplay を呼ぶ)
         std::function<void(Turn)> updateTurnDisplay;
 
-        /// @brief 開始局面から USI position 文字列を初期化する
-        /// @note 配線元: MC lambda → initPositionStringsFromSfen
-        std::function<void(const QString&)> initializePositionStringsForStart;
-
         /// @brief PlayMode に応じた GameModeStrategy を生成し開始する
         /// @note 配線元: MC lambda → MC::createAndStartModeStrategy
         std::function<void(const StartOptions&)> createAndStartModeStrategy;
@@ -101,9 +81,6 @@ public:
         /// @note 配線元: MC lambda → MC::flipBoard
         std::function<void()> flipBoard;
 
-        /// @brief エンジンが先手の場合に初手の思考を開始する
-        /// @note 配線元: MC lambda → MC::startInitialEngineMoveIfNeeded
-        std::function<void()> startInitialEngineMoveIfNeeded;
     };
 
     void setRefs(const Refs& refs);
@@ -122,21 +99,6 @@ public:
 
 
 private:
-    /// 過去対局の履歴探索結果
-    struct HistorySearchResult {
-        QString bestBaseFull;      ///< 一致したゲームのフルposition文字列
-        int bestGameIdx  = -1;     ///< 一致したゲームのインデックス
-        int bestMatchPly = -1;     ///< 一致した手数
-    };
-
-    HistorySearchResult syncAndSearchGameHistory(const QString& targetSfen);
-    void applyStartOptionsAndHooks(const StartOptions& opt);
-    void buildPositionStringsFromHistory(const StartOptions& opt,
-                                         const QString& targetSfen,
-                                         const HistorySearchResult& searchResult);
-
-    static constexpr int kMaxGameHistories = 10;
-
     Refs m_refs;
     Hooks m_hooks;
 };

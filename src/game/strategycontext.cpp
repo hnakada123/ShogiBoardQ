@@ -5,34 +5,31 @@
 #include "boardcoordinates.h"
 #include "usi.h"
 
-bool MatchCoordinator::StrategyContext::completeHumanMove(
+bool MatchStrategyContext::completeHumanMove(
     Turn mover, const QString& text, const QPoint& from, const QPoint& to)
 {
     return completeMove(mover, text, from, to, false);
 }
 
-bool MatchCoordinator::StrategyContext::applyEngineMove(
+bool MatchStrategyContext::applyEngineMove(
     const UsiMove& move, Turn mover, qint64 elapsedMs, bool appendEvaluation)
 {
-    if (!c_.m_gc || c_.m_gameOver.isOver) return false;
+    if (!m_deps.gc || gameOverState().isOver) return false;
     QString text;
-    int nextPly = c_.m_currentMoveIndex + 1;
-    if (!c_.m_gc->applyMove(move, text, nextPly, c_.m_sfenHistory, c_.gameMovesRef())) {
-        c_.handleEngineIllegalMove(mover);
+    int nextPly = currentMoveIndex() + 1;
+    if (!m_deps.gc->applyMove(move, text, nextPly, m_deps.sfens, *m_deps.moves)) {
+        handleEngineIllegalMove(mover);
         return false;
     }
-    c_.m_currentMoveIndex = nextPly;
     if (auto* clk = clock()) clk->setMeasuredConsiderationTime(mover, elapsedMs);
     return completeMove(mover, text, BoardCoordinates::fromSquare(move, mover),
                         BoardCoordinates::toSquare(move), appendEvaluation);
 }
 
-bool MatchCoordinator::StrategyContext::completeMove(
+bool MatchStrategyContext::completeMove(
     Turn mover, const QString& text, const QPoint& from, const QPoint& to, bool appendEvaluation)
 {
-    if (c_.m_gameOver.isOver) return false;
-    if (c_.m_sfenHistory)
-        c_.m_currentMoveIndex = static_cast<int>(qMax<qsizetype>(0, c_.m_sfenHistory->size() - 1));
+    if (gameOverState().isOver) return false;
 
     RecordEntry entry;
     entry.mover = mover;
@@ -43,44 +40,35 @@ bool MatchCoordinator::StrategyContext::completeMove(
         entry.time = clk->recordTime(mover);
         clk->setConsiderationTimeMs(mover, 0);
     }
-    const auto& moves = c_.gameMovesRef();
+    const auto& moves = *m_deps.moves;
     if (!moves.isEmpty()) entry.move = moves.last();
-    if (c_.m_sfenHistory && !c_.m_sfenHistory->isEmpty()) entry.sfen = c_.m_sfenHistory->last();
-    if (c_.m_hooks.game.appendRecord) c_.m_hooks.game.appendRecord(entry);
-    if (c_.m_hooks.ui.renderBoardFromGc) c_.m_hooks.ui.renderBoardFromGc();
-    if (c_.m_hooks.ui.showMoveHighlights) c_.m_hooks.ui.showMoveHighlights(from, to);
-    updateTurnDisplay(c_.m_gc ? c_.m_gc->currentPlayer() : (mover == Turn::Black ? Turn::White : Turn::Black));
-    c_.pokeTimeUpdateNow();
-    if (appendEvaluation && c_.m_hooks.game.appendEval) c_.m_hooks.game.appendEval(mover);
+    if (m_deps.sfens && !m_deps.sfens->isEmpty()) entry.sfen = m_deps.sfens->last();
+    if (m_deps.hooks.game.appendRecord) m_deps.hooks.game.appendRecord(entry);
+    if (m_deps.hooks.ui.renderBoardFromGc) m_deps.hooks.ui.renderBoardFromGc();
+    if (m_deps.hooks.ui.showMoveHighlights) m_deps.hooks.ui.showMoveHighlights(from, to);
+    updateTurnDisplay(m_deps.gc ? m_deps.gc->currentPlayer() : (mover == Turn::Black ? Turn::White : Turn::Black));
+    pokeTimeUpdateNow();
+    if (appendEvaluation && m_deps.hooks.game.appendEval) m_deps.hooks.game.appendEval(mover);
     if (checkAndHandleSennichite()) return false;
-    if (c_.m_maxMoves > 0 && c_.m_currentMoveIndex >= c_.m_maxMoves) {
-        c_.handleMaxMovesJishogi();
+    if (maxMoves() > 0 && currentMoveIndex() >= maxMoves()) {
+        handleMaxMovesJishogi();
         return false;
     }
-    return !c_.m_gameOver.isOver;
+    return !gameOverState().isOver;
 }
 
-void MatchCoordinator::StrategyContext::setEnginePosition(int slot, const QString& position, const QString& ponder)
+void MatchStrategyContext::requestEngineMove(Usi* engine, int slot)
 {
-    (slot == 1 ? c_.m_positionStr1 : c_.m_positionStr2) = position;
-    (slot == 1 ? c_.m_positionPonder1 : c_.m_positionPonder2) = ponder;
+    if (!engine) return;
+    RecordLine line;
+    line.sfens = *m_deps.sfens;
+    line.moves = *m_deps.moves;
+    engine->requestMatchMove(line.positionCommand(currentMoveIndex()), m_deps.session->ponder(slot), {});
 }
 
-void MatchCoordinator::StrategyContext::syncOpponentPosition(int moverSlot, const QString& position)
+void MatchStrategyContext::initializeAndStartEngineFor(Turn side, const QString& path, const QString& name)
 {
-    (moverSlot == 1 ? c_.m_positionStr2 : c_.m_positionStr1) = position;
-}
-
-void MatchCoordinator::StrategyContext::requestEngineMove(Usi* engine, int slot)
-{
-    QString& position = slot == 1 ? c_.m_positionStr1 : c_.m_positionStr2;
-    if (!position.startsWith(QLatin1String("position "))) position = QStringLiteral("position startpos moves");
-    engine->requestMatchMove(position, slot == 1 ? c_.m_positionPonder1 : c_.m_positionPonder2, {});
-}
-
-void MatchCoordinator::StrategyContext::requestHumanReply(Usi* engine, const UsiMove& humanMove)
-{
-    if (!c_.m_positionStr1.startsWith(QLatin1String("position ")))
-        c_.m_positionStr1 = QStringLiteral("position startpos moves");
-    engine->requestHumanReply(c_.m_positionStr1, c_.m_positionPonder1, humanMove, {}, c_.m_positionStrHistory);
+    m_deps.engines->initializeAndStartEngineFor(side, path, name);
+    if (usi1()) usi1()->setMatchClock(clock());
+    if (usi2()) usi2()->setMatchClock(clock());
 }

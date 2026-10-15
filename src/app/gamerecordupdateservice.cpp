@@ -6,14 +6,13 @@
 #include "matchcoordinator.h"
 #include "gamerecordmodel.h"
 #include "livegamesession.h"
-#include "livegamesessionupdater.h"
 #include "logcategories.h"
 #include <utility>
 
 GameRecordUpdateService::GameRecordUpdateService(Deps deps, QObject* parent)
     : QObject(parent), m_deps(std::move(deps))
 {
-    Q_ASSERT(m_deps.liveGameSession && m_deps.liveSessionUpdater);
+    Q_ASSERT(m_deps.liveGameSession);
 }
 
 void GameRecordUpdateService::appendRecord(const RecordEntry& entry)
@@ -25,12 +24,10 @@ void GameRecordUpdateService::appendRecord(const RecordEntry& entry)
     if (recorded.sfen.isEmpty() && m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty())
         recorded.sfen = m_deps.sfenRecord->last();
 
-    auto* updater = m_deps.liveSessionUpdater;
-    updater->startSessionIfNeeded();
     if (!m_deps.liveGameSession->canAddMove()) return;
     recorded.time = m_deps.liveGameSession->continuedTime(recorded.time);
     if (m_deps.gameRecord) m_deps.gameRecord->markDirty();
-    updater->appendRecord(recorded);
+    m_deps.liveGameSession->appendRecord(recorded);
 }
 
 void GameRecordUpdateService::updateCurrentSfenAfterMove()

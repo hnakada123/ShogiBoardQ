@@ -198,6 +198,7 @@ bool KifToSfenConverter::parseLines(const QStringList& lines, KifParseResult& ou
         }
         KifVariation variation;
         variation.startPly = startPly;
+        variation.parentVariation = base->parentVariation;
         parseKifBlock(lines, boundaries.at(b) + 1, boundaries.at(b + 1), base->sfen, startPly, base->prevUsi,
                       variation.line, errorMessage);
         KifuParseCommon::mergeOpeningIntoFirstMove(variation.line);

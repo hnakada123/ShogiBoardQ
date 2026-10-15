@@ -2124,12 +2124,12 @@ Discard the changes and move?</translation>
     <message>
         <location filename="../../src/network/csagamecoordinator_moves.cpp" line="22"/>
         <source>サーバーの裁定を待ちます</source>
-        <translation>Waiting for the server's ruling</translation>
+        <translation>Waiting for the server&apos;s ruling</translation>
     </message>
     <message>
         <location filename="../../src/network/csagamecoordinator_moves.cpp" line="51"/>
         <source>サーバーの裁定が届きませんでした</source>
-        <translation>The server's ruling did not arrive</translation>
+        <translation>The server&apos;s ruling did not arrive</translation>
     </message>
     <message>
         <location filename="../../src/network/csagamecoordinator_moves.cpp" line="59"/>
@@ -2175,7 +2175,7 @@ Discard the changes and move?</translation>
     <message>
         <location filename="../../src/network/csagamecoordinator_moves.cpp" line="290"/>
         <source>エンジンの指し手を盤面に適用できません: %1</source>
-        <translation>Cannot apply the engine's move to the board: %1</translation>
+        <translation>Cannot apply the engine&apos;s move to the board: %1</translation>
     </message>
     <message>
         <source>勝ち</source>
@@ -4726,15 +4726,12 @@ Current counts: Black %1, White %2
 Use Edit → Start Position Editing to correct the position.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="265"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="271"/>
         <source>=== 開始局面 ===</source>
-        <translation>=== Starting Position ===</translation>
+        <translation type="vanished">=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="271"/>
         <source>（１手 / 合計）</source>
-        <translation>(per move / total)</translation>
+        <translation type="vanished">(per move / total)</translation>
     </message>
     <message>
         <source>An error occurred in GameStartCoordinator::determinePlayMode. There is a mistake in the game options.</source>
@@ -5843,7 +5840,6 @@ There may be an error in the opening book data.</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowio.cpp" line="226"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="226"/>
         <source>定跡</source>
         <translation>Joseki</translation>
     </message>
@@ -6343,7 +6339,13 @@ Do you want to save them?</translation>
 <context>
     <name>KifuApplyService</name>
     <message>
-        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="103"/>
+        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="76"/>
+        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="87"/>
+        <source>棋譜の分岐元または開始手数が不正です。</source>
+        <translation>The game record has an invalid variation parent or starting ply.</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="112"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>Load failed: Could not get moves from %1.</translation>
     </message>
@@ -9332,12 +9334,12 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PreStartCleanupHandler</name>
     <message>
-        <location filename="../../src/app/prestartcleanuphandler.cpp" line="215"/>
+        <location filename="../../src/app/prestartcleanuphandler.cpp" line="134"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/app/prestartcleanuphandler.cpp" line="216"/>
+        <location filename="../../src/app/prestartcleanuphandler.cpp" line="134"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
@@ -10118,12 +10120,12 @@ Do you want to continue?</translation>
         <translation>(per move / total)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchturnhandler.cpp" line="224"/>
+        <location filename="../../src/game/matchturnhandler.cpp" line="203"/>
         <source>対局中断</source>
         <translation>Game interrupted</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchturnhandler.cpp" line="225"/>
+        <location filename="../../src/game/matchturnhandler.cpp" line="204"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>

@@ -51,6 +51,7 @@
 #include <QTabWidget>
 #include <QVBoxLayout>
 #include "mainwindow.h"
+#include "mainwindowcomposer.h"
 #include "shogiview.h"
 #include "shogiviewlayout.h"
 #include "shogiviewhighlighting.h"
@@ -1604,7 +1605,7 @@ private slots:
         const QString beforeHand = board()->board()->convertStandToSfen();
         const Turn beforeTurn = board()->board()->currentPlayer();
 
-        auto* evalChart = window->evalChart(); QVERIFY(evalChart);
+        auto* evalChart = window->composer().parts().evalChart; QVERIFY(evalChart);
         const int xAxisLimit = evalChart->xAxisLimit();
         const int yAxisLimit = evalChart->yAxisLimit();
         evalChart->appendScoreP1(1, 150);
@@ -2338,7 +2339,7 @@ private slots:
     }
     void evaluationGraphNavigation()
     {
-        auto* graph = window->evalChart();
+        auto* graph = window->composer().parts().evalChart;
         QVERIFY(graph);
         for (auto* dock : window->findChildren<QDockWidget*>()) {
             if (dock->widget() == graph) { dock->show(); dock->raise(); }
@@ -3090,7 +3091,7 @@ private slots:
     void evaluationGraphAppearance()
     {
         sampleGame();
-        auto* graph = window->evalChart();
+        auto* graph = window->composer().parts().evalChart;
         QVERIFY(graph);
         graph->setAutomaticRange(true);
         graph->setLabelFontSize(10);
@@ -3147,7 +3148,7 @@ private slots:
         QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         if (!humanIsBlack) moves.append(QStringLiteral("2g2f"));
         const auto sfens = SfenPositionTracer::buildSfenRecord(initial + QStringLiteral(" b - 1"), moves, false);
-        auto* graph = window->evalChart();
+        auto* graph = window->composer().parts().evalChart;
         auto* tree = window->findChild<BranchTreeManager*>();
         QVERIFY(graph && tree);
         if (realAnalysis) {
@@ -3274,13 +3275,13 @@ private slots:
         QCOMPARE(record()->kifuView()->currentIndex().row(), 3);
         QCOMPARE(tree->lastHighlightedRow(), 1);
         QCOMPARE(tree->lastHighlightedPly(), 3);
-        QCOMPARE(window->evalChart()->currentPly(), 3);
+        QCOMPARE(window->composer().parts().evalChart->currentPly(), 3);
         QCOMPARE(boardSfen(), branchBoard);
         // 本譜を表示して条件ダイアログをキャンセルしても、結果の分岐を保持する。
         tree->branchNodeActivated(0, 4);
         armDialog("auto");
         click("actionAnalyzeKifu");
-        auto* graph = window->evalChart();
+        auto* graph = window->composer().parts().evalChart;
         QTRY_COMPARE(graph->countP1(), 2);
         auto* chartView = static_cast<EvaluationChartView*>(graph->chartViewWidget());
         QLineSeries* scores = nullptr;
@@ -3306,7 +3307,7 @@ private slots:
     void engineAnalysisCancelPreservesGraph()
     {
         sampleGame();
-        auto* graph = window->evalChart();
+        auto* graph = window->composer().parts().evalChart;
         graph->appendScoreP1(1, 75);
         graph->appendScoreP2(2, -120);
         graph->setCurrentPly(2);

@@ -72,12 +72,21 @@ bool KifuApplyService::applyParsedResult(
         return false;
     }
 
+    if (!KifuBranchTreeBuilder::validateVariations(res)) {
+        if (m_hooks.errorOccurred) m_hooks.errorOccurred(tr("棋譜の分岐元または開始手数が不正です。"));
+        return false;
+    }
+
     // 棋譜の正本は分岐ツリー。対局の局面列・指し手列はここでは触らず、対局開始時に
-    // 表示中の手順から作り直す（MainWindowGameStartService::prepareForInitializeGame）
+    // 表示中の手順から作り直す（MatchCoordinator::configureAndStart）
     applyToRecordView(res, filePath, teaiLabel, parseWarn);
     logStep("applyToRecordView");
 
-    applyBranchTree(res, initialSfen);
+    if (!applyBranchTree(res, initialSfen)) {
+        *m_refs.loadingKifu = false;
+        if (m_hooks.errorOccurred) m_hooks.errorOccurred(tr("棋譜の分岐元または開始手数が不正です。"));
+        return false;
+    }
     logStep("applyBranchTree");
 
     *m_refs.loadingKifu = false;
@@ -145,7 +154,7 @@ void KifuApplyService::applyToRecordView(const KifParseResult& res, const QStrin
     KifuApplyLogger::logImportSummary(filePath, res.mainline.usiMoves, disp, teaiLabel, parseWarn, QString());
 }
 
-void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString& initialSfen)
+bool KifuApplyService::applyBranchTree(const KifParseResult& res, const QString& initialSfen)
 {
     KifuBranchTree* const branchTree = currentTree();
     KifuNavigationState* const navState = currentNavState();
@@ -157,11 +166,12 @@ void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString&
         }
         // 構築中の treeChanged を抑止し、ナビ状態をルートへ戻してから1回だけ発火させる
         branchTree->beginBatchUpdate();
-        KifuBranchTreeBuilder::buildFromKifParseResult(branchTree, res, initialSfen);
+        const bool built = KifuBranchTreeBuilder::buildFromKifParseResult(branchTree, res, initialSfen);
         if (navState != nullptr) {
             navState->goToRoot();
         }
         branchTree->endBatchUpdate();
+        if (!built) return false;
         qCDebug(lcKifu).noquote() << "KifuBranchTree built: nodeCount=" << branchTree->nodeCount()
                                   << "lineCount=" << branchTree->lineCount();
         if (m_hooks.branchTreeBuilt) {
@@ -186,4 +196,5 @@ void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString&
             view->setEnabled(false);
         }
     }
+    return true;
 }

@@ -25,7 +25,7 @@ void GameRecordLoadService::loadGameRecord(const QList<KifDisplayItem>& disp)
     timer.start();
 
     // 棋譜の正本は分岐ツリー。対局の局面列・指し手列は読み込みでは触らず、
-    // 対局開始時に表示中の手順から作り直す（MainWindowGameStartService）
+    // 対局開始時に表示中の手順から作り直す（MatchCoordinator）
 
     GameRecordPresenter* presenter = m_deps.recordPresenter;
     if (!presenter) return;

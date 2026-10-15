@@ -359,9 +359,8 @@ class KifuBranchListModel : public AbstractListModel<KifuBranchDisplay> {
 ```cpp
 class KifuNavigationState : public QObject {
     KifuBranchTree*  m_tree;                       // 参照するツリー
-    KifuBranchNode*  m_currentNode;                // 現在のノード（カーソル）
-    QHash<int, int>  m_lastSelectedChildAtBranch;  // 分岐点nodeId → 選んだ子のインデックス
-    int              m_preferredLineIndex = -1;    // 優先ライン（-1=未設定）
+    int             m_currentNodeId = -1;         // 現在のノードID
+    QHash<int, int>  m_selectedChildIds;            // 分岐点ID → 選んだ子のID
 };
 ```
 
@@ -382,12 +381,12 @@ class KifuNavigationState : public QObject {
 
 ユーザーが分岐を選択すると、その選択が記憶される:
 
-- `rememberChildSelection(branchPoint, childIndex)`: 分岐点で選んだ子（`childAt()` の添字）を記録
+- `rememberChildSelection(branchPoint, childIndex)`: 添字を子のノードIDへ変換して記録
 - `lastSelectedChildAt(branchPoint)`: 記録された子を取得（未選択は0=最初の子）
 - `rememberPathSelections(node)`: ルートから `node` までの経路上の全分岐点で、経路が通る子を記録
-- `preferredLineIndex`: 分岐選択時に設定され、分岐点より前に戻っても維持される
+- `preferredLineIndex()`: 記憶した経路から現在の表示行番号を計算する互換API。行番号を独立した状態として保存しない
 
-これにより、分岐を選んだ状態で開始局面まで戻り、再度進めた場合に同じ分岐を自動的に辿ることができる。
+これにより、開始局面へ戻ってから再度進めても同じ分岐を辿る。兄弟の並べ替えや削除でも選択したノードは変わらない。現在ノードも参照時にIDで引き直し、削除済みノードを参照しない。ツリーをクリアしてもノードIDは再利用しない。
 
 ### 4.3 カーソルを動かす所
 
@@ -862,10 +861,11 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
    KifuLoadParser::parseFile() がファイルを1回読み、parseContent() → KifToSfenConverter::parseText()
      （行に分けて1回の走査で本譜と各変化を読む。表示データと USI の指し手は同じ走査で作るので並びがずれない）
      ├─ mainline: KifLine（本譜の指し手列・SFEN列・表示データ）
-     └─ variations: QVector<KifVariation>（分岐リスト。開始局面は KifuParseCommon::findVariationBase()
-        が後に書かれた変化から順に探し、届かなければ本譜から取る。KI2 も同じ規則）
+     └─ variations: QList<KifVariation>（分岐リスト。parentVariation に親の手順を記録。
+        KIF/KI2 は findVariationBase() で復元した親、JKF/USEN は形式上の親を保持する）
 
-3. KifuApplyService::applyParsedResult() → applyToRecordView()
+3. KifuApplyService::applyParsedResult()
+   → validateVariations() で親指定と開始手数を検証してから applyToRecordView()
    a. 対局情報の表示（populateGameInfo・applyPlayersFromGameInfo。applyLoadResult が先に呼ぶ）
    b. displayGameRecord(disp) フック
       → KifuLoadCoordinator::displayGameRecord シグナル → GameRecordLoadService::loadGameRecord()
@@ -879,13 +879,12 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
    a. navState->setCurrentNode(nullptr)  // ダングリングポインタ防止
    b. KifuBranchTreeBuilder::buildFromKifParseResult(tree, result, sfen)
       ├─ tree->clear() + tree->setRootSfen(initialSfen)
-      ├─ addKifLineToTree(tree, mainline, 1)  // 本譜
+      ├─ addKifLineToTree(tree, mainline, {root})  // 本譜
       │   → root → move1 → move2 → ... → endNode
       └─ for each variation:
-           addKifLineToTree(tree, var.line, var.startPly)
-             i.  findBySfen(baseSfen) で分岐点を検索
-             ii. フォールバック: findByPlyOnMainLine(startPly-1)
-             iii. 分岐点の子としてノードを追加
+           i.  parentVariation で親の手順を取得（-1 は本譜）
+           ii. 親の経路から startPly-1 手目までを取得
+           iii. その経路末尾に変化を追加。同一SFENの別経路とは混同しない
    c. navState->goToRoot()  // ナビゲーション状態を初期化
       （構築中の treeChanged は beginBatchUpdate()/endBatchUpdate() で1回にまとめる）
    d. branchTreeBuilt フック
@@ -908,213 +907,39 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 
 ### 8.2 棋譜読み込み後、途中局面から対局した場合
 
-読み込んだ棋譜の途中の手（例: 30手目）を選択した状態で対局を開始すると、
-既存のツリーに新しい分岐が作成される。
+`GameSessionOrchestrator` は `currentRecordLine()` と現在ノードIDを取得し、
+`GameStartCoordinator` に渡す。コーディネータは開始位置までの局面列・指し手を切り出し、
+玉の存在などを検証してから `GameStartPreparation::CurrentPosition` を発行する。
+検証に失敗した場合は棋譜・時計・セッションを変更しない。
 
-```
-前提: KIF読み込み済み。ユーザーが30手目を選択中（分岐ツリーのカーソルが30手目のノードにある）。
+`PreStartCleanupHandler` は指定ノードIDから棋譜欄を再構築する。
+`SessionLifecycleCoordinator` がそのノードから `LiveGameSession` を開始し、
+`MatchCoordinator` は確定済み `RecordLine` を対局の局面列・指し手列へ反映する。
+USI の `position` はこの手順から生成するため、同じ局面に至る別の分岐を選んでも手順を取り違えない。
+SFENの手数欄とツリー上の手数も混同しない。
 
-1. GameSessionOrchestrator::initializeGame()（対局開始ダイアログの OK 後）
-   a. line = navState->currentRecordLine()   // 表示中の手順。本譜でも分岐でもよい
-      selectedPly = navState->currentPly()   // 30
-   b. MainWindowGameStartService::prepareForInitializeGame()
-      → rebuildMatchHistoryFromLine()
-         ├─ sfenRecord = line.sfens[0..30]  // 開始局面〜30手目の後の局面（31件）
-         └─ gameMoves  = line.moves[0..30)  // 1〜30手目（30件）
-      → currentSfenStr = sfenRecord[30]
-      0手目（開始局面）から始める場合も同じく作り直す（sfenRecord は1件、gameMoves は空）
+### 8.3 平手・駒落ちで新しく対局した場合
 
-2. GameStartCoordinator::initializeGame(Ctx) → prepareDataCurrentPosition()
-   → emit requestPreStartCleanup()
-   → PreStartCleanupHandler::performCleanup()
-   a. 現在位置を保存（棋譜欄を作り直すと行選択の通知でカーソルが動くので、最初に控える）
-      - m_savedCurrentSfen = 30手目のSFEN
-      - m_savedSelectedPly = navState->currentPly() = 30
-      - m_savedCurrentNode = navState->currentNode()（30手目のノード）
+`GameStartPreparation::NewGame` に開始局面を明示する。
+クリーンアップでツリーのルートを作成し、ライフサイクル管理側がライブセッションを開始する。
+`MatchSessionState` が開始オプション・対局モード・終局状態・ponder候補をまとめて所有する。
+持ち時間は `GameStartCoordinator::start()` で一度設定し、表示側は設定を表示するだけにする。
 
-   b. isStartFromCurrentPosition() = true
-      （selectedPly=30 > 0 かつ currentSfen ≠ 初期局面）
-
-   c. cleanupKifuModel(true) → 30（保持した最後の行）
-      - pathToNode(branchPoint) でルート→30手目の経路を取得
-      - 棋譜欄をクリアし、経路上のノード（0〜30手目）で再構築
-      → 棋譜欄には0手目〜30手目のみが表示される
-      （現在の局面から始めない場合は、ここで navState->goToRoot() でカーソルを開始局面へ戻す）
-
-   d. prepareBranchTreeRoot()
-      → ルートは読み込み時に作成済みなので何もしない
-      → 既存のツリー（本譜＋分岐）はそのまま保持される
-
-   e. startLiveGameSession()
-      - isNewGame = false（SFENが初期局面ではない）
-      - hasExistingMoves = true（読み込んだ棋譜がある）
-      - savedPly = 30 > 0
-      → savedCurrentNode（30手目のノード）を branchPoint とする
-      → LiveGameSession::startFromNode(branchPoint)
-         ├─ m_branchPoint = 30手目のノード
-         ├─ m_sfens = [30手目のSFEN]
-         └─ emit sessionStarted(branchPoint)
-            → KifuDisplayCoordinator::onLiveGameSessionStarted() がカーソルを分岐点（30手目のノード）に合わせる
-
-3. 開始SFENの seed（GameStartCoordinator::initializeGame のステップ3.5）
-   → sfenRecord の 0..selectedPly を残し、末尾を正規化した開始SFENに置き換える
-
-4. MatchCoordinator::configureAndStart()
-   a. alignGameMovesWithSfenHistory()
-      → gameMoves を sfenRecord.size() - 1 件にそろえる（この例では手順 1 で30件にしてあるので変わらない。
-        手順 3 やプリセットからの開始で局面列が短くなったときは、その長さまで切り詰める）
-        （開始する局面より後の手が残っていると、moveCommitted の手数や待ったが前の手を数えてしまうため）
-   b. 30手目のSFENを使って盤面を初期化
-
-5. 対局中の指し手追加（各手ごとに繰り返し）
-   LiveGameSession::addMove(move, displayText, sfen, elapsed)
-   a. ply = anchorPly(30) + moveCount + 1  → 31, 32, 33, ...
-   b. parent = m_liveParent（初回は m_branchPoint = 30手目のノード）
-   c. tree->addMoveQuiet(parent, move, displayText, sfen, elapsed)
-      → 30手目ノードの子として新ノードを追加
-      → 既存の31手目（本譜）と並列する分岐として作成される
-   d. m_liveParent = 新ノード（次の手の親になる）
-   e. emit moveAdded()
-      → 棋譜欄に新しい行が追加される（行は GameRecordPresenter が棋譜欄のモデルに足す）
-      → KifuDisplayCoordinator::onLiveGameMoveAdded() がカーソルを新ノードに合わせる
-
-6. 対局終了時
-   LiveGameSession::commit()
-   → m_liveParent が既にツリーに追加済みなので、そのまま返す
-   → emit sessionCommitted(lastNode)
-```
-
-**対局後のツリー構造（例: 本譜100手、30手目から分岐して5手指した場合）**:
-
-```
-root → 1手目 → ... → 30手目 → 31手目(本譜) → ... → 100手目
-                          │
-                          └→ 31手目(分岐) → 32手目 → ... → 35手目
-```
-
-### 8.3 棋譜読み込みなしで直接対局した場合
-
-メニューから手合割（平手・駒落ち）を選んで新規対局を開始すると、分岐ツリーを作り直し、開始局面の根だけの状態から対局が始まる。
-
-```
-1. GameSessionOrchestrator::initializeGame()
-   → MainWindowGameStartService::prepareForInitializeGame()
-     （表示中の手順から局面列・指し手列を作り直す。手順が空なら何もしない）
-   → GameStartCoordinator::initializeGame(Ctx)（手合割から開始）
-     a. prepareInitialPosition()
-        → startSfenStr・currentSfenStr を手合割の開始局面にし、局面列を開始局面の1件にする
-     b. emit requestBranchTreeResetForNewGame()
-        → BranchNavigationWiring::onBranchTreeResetForNewGame()
-           前の対局のライブセッションが残っていれば破棄し、
-           tree->setRootSfen(開始局面) でツリーを作り直して、カーソルを根へ戻す
-     c. prepare() → emit requestPreStartCleanup()
-        （手合割からの開始で整理を行うのはこの1回だけ）
-
-2. PreStartCleanupHandler::performCleanup()
-   a. 現在位置を保存
-      - m_savedCurrentSfen = 手合割の開始局面
-      - m_savedSelectedPly = navState->currentPly()（0）
-
-   b. isStartFromCurrentPosition() = false
-      （開始局面と現在局面が同じで、手数が0）
-
-   c. cleanupKifuModel(false) → 0
-      → 棋譜欄を全クリアし、「=== 開始局面 ===」ヘッダ行のみ追加
-      → navState->goToRoot() でカーソルを開始局面へ戻す
-
-   d. prepareBranchTreeRoot()
-      → 根は 1-b で開始局面にしてあるので作り直さない
-         （根が無いときや局面が違うときは startSfenStr から作る）
-
-   e. startLiveGameSession()
-      - 根に子が無く、手数が0なので新規対局として扱う
-      → LiveGameSession::startFromRoot()
-         ├─ m_branchPoint = nullptr
-         ├─ m_sfens = [ルートのSFEN]
-         └─ emit sessionStarted(nullptr)
-
-3. MatchCoordinator::configureAndStart()
-   → alignGameMovesWithSfenHistory() で gameMoves を局面列にそろえる（局面列は開始局面の1件なので空になる）
-   → initializeNewGame(sfenStart) で盤面を初期化
-   → 対局モードに応じたエンジン起動
-
-4. 対局中の指し手追加（各手ごとに繰り返し）
-   LiveGameSession::addMove(move, displayText, sfen, elapsed)
-   a. ply = anchorPly(0) + moveCount + 1  → 1, 2, 3, ...
-   b. parent = m_liveParent（初回は root）
-   c. tree->addMoveQuiet(parent, move, ...)
-      → ルートの子として本譜のノードが作成される
-   d. m_liveParent = 新ノード
-   e. emit moveAdded()
-
-5. 対局終了時
-   LiveGameSession::addTerminalMove(type, displayText, elapsed)
-   → 終局手を記録（SFENは前回と同じ、盤面変化なし）
-   LiveGameSession::commit()
-   → emit sessionCommitted(lastNode)
-```
-
-**対局後のツリー構造（例: 80手で投了）**:
-
-```
-root → 1手目 → 2手目 → ... → 80手目 → [投了]
-```
+リセットには別の `GameStartPreparation::Reset` を用い、ライブセッションを開始しない。
+共有SFENや文字列の特殊値から新規対局・途中再開・リセットを推測する処理はない。
 
 ### 8.4 対局後に途中局面から再度対局した場合
 
-前回の対局のツリーを保持したまま、途中局面から新しい分岐を作成する。
-データフローは「8.2 棋譜読み込み後、途中局面から対局」と同じ。
+8.2と同じ処理で、前回の手順を残したまま選択ノードから対局する。
+新しい手は `LiveGameSession::addMove()` により、そのノードの子として追加される。
 
-```
-前提: 直接対局（8.3）で80手まで進んだ後、20手目を選択して再度対局開始。
-
-1. GameSessionOrchestrator::initializeGame()
-   → rebuildMatchHistoryFromLine()
-      ├─ sfenRecord = 開始局面〜20手目の後の局面（21件）
-      └─ gameMoves  = 1〜20手目（前回の対局の21〜80手目は残らない）
-   → GameStartCoordinator::initializeGame(Ctx)
-   → emit requestPreStartCleanup()
-
-2. PreStartCleanupHandler::performCleanup()
-   a. 現在位置を保存
-      - m_savedCurrentNode = 20手目のノード（前回対局で作成されたツリーのノード）
-      - m_savedSelectedPly = navState->currentPly() = 20
-
-   b. isStartFromCurrentPosition() = true
-
-   c. cleanupKifuModel(true) → 20
-      - pathToNode(20手目) で経路取得: [root, 1手目, ..., 20手目]
-      - 棋譜欄を経路のノードで再構築（0〜20手目を表示）
-
-   d. prepareBranchTreeRoot()
-      → ルートは前回対局時に作成済み → 何もしない
-      → 前回の本譜（80手＋投了）はツリーにそのまま残る
-
-   e. startLiveGameSession()
-      → LiveGameSession::startFromNode(20手目のノード)
-         ├─ m_branchPoint = 20手目のノード
-         └─ emit sessionStarted(branchPoint)
-
-3. MatchCoordinator::configureAndStart()
-   → alignGameMovesWithSfenHistory() で gameMoves を20件にそろえる
-
-4. 対局中の指し手追加
-   LiveGameSession::addMove(...)
-   → ply = 20 + moveCount + 1  → 21, 22, 23, ...
-   → 20手目ノードの子として新ノードを追加
-   → 既存の21手目（前回の本譜）と並列する分岐
-
-5. 対局終了
-   LiveGameSession::commit()
-```
-
-**対局後のツリー構造（例: 20手目から分岐して40手目で投了）**:
-
-```
+```text
 root → 1手目 → ... → 20手目 → 21手目(前回本譜) → ... → 80手目 → [投了]
                           │
                           └→ 21手目(今回分岐) → ... → 40手目 → [投了]
 ```
+
+開始処理の詳細と責務は [game-start-flow.md](game-start-flow.md) を参照。
 
 ### 8.5 対局中に「待った」をした場合
 
@@ -1190,11 +1015,12 @@ struct KifLine {
 struct KifVariation {
     int startPly;              // 変化開始手数
     KifLine line;              // 変化の手順
+    int parentVariation = -1;  // -1=本譜、その他=先に定義された変化の添字
 };
 
 struct KifParseResult {
     KifLine mainline;                  // 本譜
-    QVector<KifVariation> variations;  // 変化リスト
+    QList<KifVariation> variations;    // 親が子より先に並ぶ変化リスト
 };
 ```
 

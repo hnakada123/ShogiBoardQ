@@ -2,6 +2,7 @@
 /// @brief 対局系（司令塔・開始・終局・手番・CSA 通信対局）の依存の注入
 
 #include "mainwindowcomposer.h"
+#include "livegamesession.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -24,7 +25,6 @@
 #include "kifufilecontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifunavigationcoordinator.h"
-#include "livegamesessionupdater.h"
 #include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
 #include "matchcoordinatorwiring.h"
@@ -175,7 +175,6 @@ void MainWindowComposer::wireMatchCoordinator()
     // 棋譜追記（司令塔の終局状態を見るので、司令塔の後に作る）
     GameRecordUpdateService::Deps rd;
     rd.gameRecord = m_c.gameRecord;
-    rd.liveSessionUpdater = m_c.liveGameSessionUpdater.get();
     rd.match = m_c.match;
     rd.liveGameSession = m_c.liveGameSession;
     rd.currentSfenStr = &m_state.currentSfenStr;
@@ -228,7 +227,7 @@ void MainWindowComposer::wireCsaGame()
             startTime, black, white, KifuExportMetadataBuilder::handicapLabel(startSfen), tc->timeControl());
         m_state.sfenRecord = positions;
         m_state.gameMoves = moves;
-        m_c.liveGameSessionUpdater->startSessionIfNeeded();
+        m_c.liveGameSession->startFromRoot();
     };
     deps.recordGameEnd = [this]() {
         m_c.timeController->recordGameEndTime();
@@ -315,14 +314,6 @@ void MainWindowComposer::wireGame()
     ud.sfenRecord = &m_state.sfenRecord;
     ud.currentSfenStr = &m_state.currentSfenStr;
     m_c.undoFlowService->updateDeps(ud);
-
-    // ライブセッション
-    LiveGameSessionUpdater::Deps ld;
-    ld.liveSession = m_c.liveGameSession;
-    ld.branchTree = m_c.branchTree;
-    ld.sfenRecord = &m_state.sfenRecord;
-    ld.currentSfenStr = &m_state.currentSfenStr;
-    m_c.liveGameSessionUpdater->updateDeps(ld);
 
     // 連続対局
     m_c.consecutiveGamesController->setTimeController(m_c.timeController);

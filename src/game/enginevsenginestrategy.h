@@ -27,7 +27,6 @@ class EngineVsEngineStrategy : public QObject, public GameModeStrategy {
 
 public:
     EngineVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
-                           MatchCoordinator::StartOptions opt,
                            QObject* parent = nullptr);
 
     void start() override;
@@ -41,12 +40,10 @@ private slots:
     void onEngineMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
 
 private:
-    void initPositionStringsForEvE(const QString& sfenStart);
     bool m_waitingForMove = false;
     bool m_waitingInitialization = false;
 
     MatchCoordinator::StrategyContext& m_ctx;
-    MatchCoordinator::StartOptions m_opt;
 
 };
 

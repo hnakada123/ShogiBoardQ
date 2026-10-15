@@ -19,20 +19,6 @@ set(SRC ${CMAKE_SOURCE_DIR}/src)
 # fixtures と同じディレクトリへ出力する（applicationDirPath() から fixtures や mock を探すため）
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
 
-# Stubs for missing symbols (logging categories)
-set(TEST_STUBS
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_stubs.cpp
-    ${SRC}/common/dialogutils.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/fontsizehelper.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/kifu/formats/parsecommon.cpp
-    ${SRC}/kifu/formats/parsemoveformat.cpp
-    ${SRC}/kifu/formats/sfencsapositionconverter.cpp
-    ${SRC}/kifu/formats/notationutils.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
-)
-
 # Common include directories for all tests
 set(TEST_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -112,26 +98,15 @@ macro(add_shogi_test NAME)
     add_test(NAME ${NAME} COMMAND ${NAME})
     # ヘッドレスCI環境でもWidgetsテストを実行できるようにする
     set_tests_properties(${NAME} PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;SHOGIBOARDQ_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/${NAME};XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/${NAME}"
     )
 endmacro()
 
 # ============================================================
 # Unit 1: Core Data Structures
 # ============================================================
-add_shogi_test(tst_coredatastructures
-    tst_coredatastructures.cpp
-    ${TEST_STUBS}
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${EMV_SOURCES}
-    ${SRC}/game/turnmanager.cpp
-    ${SRC}/game/shogigamecontroller.cpp
-    ${SRC}/game/piecemoverules.cpp
-    ${SRC}/common/jishogicalculator.cpp
-)
+add_shogi_test(tst_coredatastructures tst_coredatastructures.cpp)
+target_link_libraries(tst_coredatastructures PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 1b: ErrorBus (severity levels)
@@ -271,103 +246,26 @@ add_shogi_test(tst_kifu_file_reader
 # ============================================================
 # Unit 5: KIF / KI2 Converters
 # ============================================================
-add_shogi_test(tst_kifconverter
-    tst_kifconverter.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/formats/kiftosfenconverter.cpp
-    ${SRC}/kifu/formats/kiflexer.cpp
-    ${SRC}/kifu/formats/kiflexer_bod.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_edit.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchtreebuilder.cpp
-    ${SRC}/common/errorbus.cpp
-)
+add_shogi_test(tst_kifconverter tst_kifconverter.cpp)
+target_link_libraries(tst_kifconverter PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_ki2converter
-    tst_ki2converter.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/formats/ki2tosfenconverter.cpp
-    ${SRC}/kifu/formats/ki2lexer.cpp
-    ${SRC}/kifu/formats/ki2movenotation.cpp
-    ${EMV_SOURCES}
-    ${SRC}/kifu/formats/kiftosfenconverter.cpp
-    ${SRC}/kifu/formats/kiflexer.cpp
-    ${SRC}/kifu/formats/kiflexer_bod.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-)
+add_shogi_test(tst_ki2converter tst_ki2converter.cpp)
+target_link_libraries(tst_ki2converter PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 6: CSA / JKF / USI / USEN Converters
 # ============================================================
-add_shogi_test(tst_csaconverter
-    tst_csaconverter.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/formats/csalexer.cpp
-    ${SRC}/kifu/formats/csalexer_position.cpp
-    ${SRC}/kifu/formats/csatosfenconverter.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-)
+add_shogi_test(tst_csaconverter tst_csaconverter.cpp)
+target_link_libraries(tst_csaconverter PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_jkfconverter
-    tst_jkfconverter.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/formats/jkfmoveparser.cpp
-    ${SRC}/kifu/formats/jkftosfenconverter.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-)
+add_shogi_test(tst_jkfconverter tst_jkfconverter.cpp)
+target_link_libraries(tst_jkfconverter PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_usiconverter
-    tst_usiconverter.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/formats/usitosfenconverter.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-)
+add_shogi_test(tst_usiconverter tst_usiconverter.cpp)
+target_link_libraries(tst_usiconverter PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_usenconverter
-    tst_usenconverter.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/formats/usentosfenconverter.cpp
-    ${SRC}/kifu/formats/usentosfenconverter_decode.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-)
+add_shogi_test(tst_usenconverter tst_usenconverter.cpp)
+target_link_libraries(tst_usenconverter PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 7: KifuBranchTree + LiveGameSession + Navigation
@@ -386,37 +284,11 @@ add_shogi_test(tst_kifubranchtree
     ${SRC}/core/shogiboard_sfen.cpp
 )
 
-add_shogi_test(tst_livegamesession
-    tst_livegamesession.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/livegamesession.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_edit.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_livegamesession tst_livegamesession.cpp)
+target_link_libraries(tst_livegamesession PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_navigation
-    tst_navigation.cpp
-    ${TEST_STUBS}
-    ${SRC}/navigation/kifunavigationcontroller.cpp
-    ${SRC}/navigation/kifunavigationcontroller_branch.cpp
-    ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_edit.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_navigation tst_navigation.cpp)
+target_link_libraries(tst_navigation PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 7b: Generic List Model Ownership
@@ -469,112 +341,27 @@ target_link_libraries(tst_kifu_comment_sync PRIVATE shogiboardq_static)
 # ============================================================
 # Unit 9: JosekiWindow Settings Persistence
 # ============================================================
-add_shogi_test(tst_josekiwindow
-    tst_josekiwindow.cpp
-    ${EMV_SOURCES}
-    ${TEST_STUBS}
-    ${SRC}/dialogs/josekiwindow.cpp
-    ${SRC}/dialogs/josekiwindowio.cpp
-    ${SRC}/dialogs/josekiwindowmerge.cpp
-    ${SRC}/dialogs/josekiwindowui.cpp
-    ${SRC}/kifu/josekibooksession.cpp
-    ${SRC}/kifu/josekipresenter.cpp
-    ${SRC}/kifu/josekirepository.cpp
-    ${SRC}/dialogs/josekimovedialog.cpp
-    ${SRC}/dialogs/josekimoveinputwidget.cpp
-    ${SRC}/dialogs/josekimergedialog.cpp
-    ${SRC}/widgets/itemtextcutter.cpp
-    ${SRC}/widgets/itemtextpainter.cpp
-    ${SRC}/widgets/itemtextdelegate.cpp
-    ${SETTINGS_SOURCES}
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/formats/kiftosfenconverter.cpp
-    ${SRC}/kifu/formats/kiflexer.cpp
-    ${SRC}/kifu/formats/kiflexer_bod.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-)
+add_shogi_test(tst_josekiwindow tst_josekiwindow.cpp)
+target_link_libraries(tst_josekiwindow PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 10: Position Edit → Game Start Flow
 # ============================================================
-add_shogi_test(tst_positionedit_gamestart
-    tst_positionedit_gamestart.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_edit.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/kifu/livegamesession.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_positionedit_gamestart tst_positionedit_gamestart.cpp ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
+target_link_libraries(tst_positionedit_gamestart PRIVATE shogiboardq_static)
+target_link_libraries(tst_positionedit_gamestart PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 10b: Preset Game Start → Cleanup Flow
 # ============================================================
-add_shogi_test(tst_preset_gamestart_cleanup
-    tst_preset_gamestart_cleanup.cpp
-    test_stubs_cleanup.cpp
-    ${TEST_STUBS}
-    ${SRC}/app/prestartcleanuphandler.cpp
-    ${SRC}/app/prestartcleanuphandler.h
-    ${SRC}/engine/usicommlogmodel.cpp
-    ${SRC}/models/kifurecordlistmodel.cpp
-    ${SRC}/models/kifubranchlistmodel.cpp
-    ${SRC}/widgets/kifudisplay.cpp
-    ${SRC}/widgets/kifubranchdisplay.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_edit.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/kifu/livegamesession.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_preset_gamestart_cleanup tst_preset_gamestart_cleanup.cpp)
+target_link_libraries(tst_preset_gamestart_cleanup PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 11: Integration / Stress Tests
 # ============================================================
-add_shogi_test(tst_integration
-    tst_integration.cpp
-    ${TEST_STUBS}
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${EMV_SOURCES}
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/game/shogigamecontroller.cpp
-    ${SRC}/game/piecemoverules.cpp
-    ${SRC}/game/turnmanager.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_edit.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/kifu/livegamesession.cpp
-    ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/navigation/kifunavigationcontroller.cpp
-    ${SRC}/navigation/kifunavigationcontroller_branch.cpp
-    ${SRC}/kifu/formats/kiftosfenconverter.cpp
-    ${SRC}/kifu/formats/kiflexer.cpp
-    ${SRC}/kifu/formats/kiflexer_bod.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-)
+add_shogi_test(tst_integration tst_integration.cpp)
+target_link_libraries(tst_integration PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 13: USI Protocol Handler
@@ -597,80 +384,15 @@ add_dependencies(tst_usimatchhandler mock_usi_match)
 # ============================================================
 # Unit 12: UI Display Consistency (Board / Record / Branch Tree)
 # ============================================================
-set(UI_DISPLAY_TEST_SOURCES
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/ui/coordinators/kifudisplaycoordinator.cpp
-    ${SRC}/ui/coordinators/kifudisplaycoordinator_live.cpp
-    ${SRC}/ui/coordinators/kifudisplaycoordinator_nav.cpp
-    ${SRC}/ui/coordinators/kifuselectionsync.cpp
-    ${SRC}/ui/presenters/kifudisplaypresenter.cpp
-    ${SRC}/ui/presenters/kifudisplaypresenter_verify.cpp
-    ${SRC}/navigation/kifunavigationcontroller.cpp
-    ${SRC}/navigation/kifunavigationcontroller_branch.cpp
-    ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_edit.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/kifu/livegamesession.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/models/kifurecordlistmodel.cpp
-    ${SRC}/models/kifubranchlistmodel.cpp
-    ${SRC}/widgets/kifudisplay.cpp
-    ${SRC}/widgets/kifubranchdisplay.cpp
-    ${SRC}/widgets/recordhighlightdelegate.cpp
-    ${SRC}/widgets/itemtextcutter.cpp
-    ${SRC}/widgets/itemtextpainter.cpp
-    ${SRC}/widgets/itemtextdelegate.cpp
-    ${SRC}/widgets/incrementaltableview.cpp
-    ${SRC}/widgets/tableheaderview.cpp
-    ${SRC}/widgets/recordpane.cpp
-    ${SRC}/widgets/recordpane_branch.cpp
-    ${SRC}/widgets/recordpaneappearancemanager.cpp
-    ${SRC}/widgets/branchtreemanager.cpp
-    ${SRC}/widgets/branchtreemanager_draw.cpp
-    ${SRC}/widgets/branchtreemanager_input.cpp
-    ${SRC}/widgets/branchtreemanager_layout.cpp
-    ${SETTINGS_SOURCES}
-    ${SRC}/board/sfenpositiontracer.cpp
-)
 
-add_shogi_test(tst_ui_display_consistency
-    tst_ui_display_consistency.cpp
-    test_stubs_ui_display.cpp
-    ${UI_DISPLAY_TEST_SOURCES}
-)
+add_shogi_test(tst_ui_display_consistency tst_ui_display_consistency.cpp)
+target_link_libraries(tst_ui_display_consistency PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_branchtree_editing
-    tst_branchtree_editing.cpp
-    test_stubs_ui_display.cpp
-    ${UI_DISPLAY_TEST_SOURCES}
-    ${EMV_SOURCES}
-    ${SRC}/ui/controllers/branchtreeeditcontroller.cpp
-    ${SRC}/common/dialogutils.cpp
-    ${SRC}/game/shogigamecontroller.cpp
-    ${SRC}/game/piecemoverules.cpp
-)
+add_shogi_test(tst_branchtree_editing tst_branchtree_editing.cpp)
+target_link_libraries(tst_branchtree_editing PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_undo_flow
-    tst_undo_flow.cpp
-    test_stubs_undo_flow.cpp
-    test_stubs_ui_display.cpp
-    ${UI_DISPLAY_TEST_SOURCES}
-    ${EMV_SOURCES}
-    ${SRC}/app/undoflowservice.cpp
-    ${SRC}/app/livegamesessionupdater.cpp
-    ${SRC}/game/matchundohandler.cpp
-    ${SRC}/core/shogiclock.cpp
-    ${SRC}/game/shogigamecontroller.cpp
-    ${SRC}/game/piecemoverules.cpp
-    ${SRC}/game/turnmanager.cpp
-    ${SRC}/ui/presenters/gamerecordpresenter.cpp
-)
+add_shogi_test(tst_undo_flow tst_undo_flow.cpp)
+target_link_libraries(tst_undo_flow PRIVATE shogiboardq_static)
 qt_add_resources(tst_undo_flow undo_test_icons
     PREFIX "/images/actions"
     BASE "${CMAKE_SOURCE_DIR}/resources/images/actions"
@@ -684,25 +406,8 @@ qt_add_resources(tst_undo_flow undo_test_icons
 # ============================================================
 # Unit 14: AnalysisFlowController
 # ============================================================
-add_shogi_test(tst_analysisflow
-    tst_analysisflow.cpp
-    test_stubs_analysisflow.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/common/fontsizehelper.cpp
-    ${SRC}/analysis/analysisflowcontroller.cpp
-    ${SRC}/analysis/analysisflowcontroller_dialog.cpp
-    ${SRC}/analysis/analysisflowcontroller_position.cpp
-    ${SRC}/analysis/analysisresulthandler.cpp
-    ${SRC}/analysis/analysisresulthandler_dialog.cpp
-    ${SRC}/analysis/analysiscoordinator.cpp
-    ${SRC}/analysis/considerationflowcontroller.cpp
-    ${SRC}/engine/usiinfoparser.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/services/enginelistsettings.cpp
-)
+add_shogi_test(tst_analysisflow tst_analysisflow.cpp)
+target_link_libraries(tst_analysisflow PRIVATE shogiboardq_static)
 set_target_properties(tst_analysisflow PROPERTIES
     AUTOUIC ON
     AUTOUIC_SEARCH_PATHS "${SRC}/dialogs"
@@ -711,15 +416,8 @@ set_target_properties(tst_analysisflow PROPERTIES
 # ============================================================
 # Unit 15: Game Start Flow (GameStartCoordinator)
 # ============================================================
-add_shogi_test(tst_game_start_flow
-    tst_game_start_flow.cpp
-    test_stubs_game_start_flow.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/game/gamestartcoordinator.cpp
-    ${SRC}/game/gamestartoptionsbuilder.cpp
-    ${SRC}/services/playernameservice.cpp
-    ${SRC}/core/shogiclock.cpp
-)
+add_shogi_test(tst_game_start_flow tst_game_start_flow.cpp)
+target_link_libraries(tst_game_start_flow PRIVATE shogiboardq_static)
 
 add_shogi_test(tst_startgamedialog
     tst_startgamedialog.cpp
@@ -768,14 +466,8 @@ set_target_properties(tst_enginepondersettings PROPERTIES
 # ============================================================
 # Unit 18: Game End Handler (GameEndHandler)
 # ============================================================
-add_shogi_test(tst_game_end_handler
-    tst_game_end_handler.cpp
-    test_stubs_game_end_handler.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/game/gameendhandler.cpp
-    ${SRC}/game/gameendhandler_record.cpp
-    ${SRC}/core/shogiclock.cpp
-)
+add_shogi_test(tst_game_end_handler tst_game_end_handler.cpp)
+target_link_libraries(tst_game_end_handler PRIVATE shogiboardq_static)
 
 # 千日手・連続王手の千日手の判定（SennichiteDetector）
 add_shogi_test(tst_sennichite_detector
@@ -793,20 +485,8 @@ add_shogi_test(tst_sennichite_detector
 # ============================================================
 # Unit 19: Game Start Orchestrator (GameStartOrchestrator)
 # ============================================================
-add_shogi_test(tst_game_start_orchestrator
-    tst_game_start_orchestrator.cpp
-    test_stubs_game_start_orchestrator.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/game/gamestartorchestrator.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiclock.cpp
-    ${SRC}/services/enginelistsettings.cpp
-)
+add_shogi_test(tst_game_start_orchestrator tst_game_start_orchestrator.cpp)
+target_link_libraries(tst_game_start_orchestrator PRIVATE shogiboardq_static)
 
 # ============================================================
 # EngineMoveValidator テストスイート
@@ -925,16 +605,8 @@ add_shogi_test(tst_enginemovevalidator_crosscheck
 # ============================================================
 # Unit: ParseCommon (棋譜共通ユーティリティ)
 # ============================================================
-add_shogi_test(tst_parsecommon
-    tst_parsecommon.cpp
-    ${TEST_STUBS}
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_parsecommon tst_parsecommon.cpp)
+target_link_libraries(tst_parsecommon PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 16: Layer Dependency Verification (レイヤ間依存方向の検証)
@@ -959,24 +631,8 @@ target_compile_definitions(tst_structural_kpi PRIVATE
 # ============================================================
 # Unit 20: CSA Protocol (CsaClient / CsaMoveConverter / SfenCsaPositionConverter)
 # ============================================================
-add_shogi_test(tst_csaprotocol
-    tst_csaprotocol.cpp
-    ${TEST_STUBS}
-    ${SRC}/network/csaclient.cpp
-    ${SRC}/network/csaclient_parser.cpp
-    ${SRC}/network/csaclient_commands.cpp
-    ${SRC}/network/csamoveconverter.cpp
-    ${SRC}/network/csamoveconverter_game.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/game/shogigamecontroller.cpp
-    ${SRC}/game/piecemoverules.cpp
-    ${SRC}/game/turnmanager.cpp
-    ${SRC}/common/jishogicalculator.cpp
-    ${EMV_SOURCES}
-)
+add_shogi_test(tst_csaprotocol tst_csaprotocol.cpp)
+target_link_libraries(tst_csaprotocol PRIVATE shogiboardq_static)
 
 target_compile_definitions(tst_csaprotocol PRIVATE SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
@@ -1019,19 +675,8 @@ target_compile_definitions(tst_app_kifu_load PRIVATE
 # ============================================================
 # Unit 25: App UI State Policy (UiStatePolicyManager 状態遷移テスト)
 # ============================================================
-add_shogi_test(tst_app_ui_state_policy
-    tst_app_ui_state_policy.cpp
-    test_stubs_ui_state_policy.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/ui/coordinators/uistatepolicymanager.cpp
-    ${SRC}/widgets/recordpaneappearancemanager.cpp
-    ${SRC}/services/settingscommon.cpp
-    ${SRC}/app/mainwindow.ui
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_app_ui_state_policy tst_app_ui_state_policy.cpp)
+target_link_libraries(tst_app_ui_state_policy PRIVATE shogiboardq_static)
 set_target_properties(tst_app_ui_state_policy PROPERTIES
     AUTOUIC ON
     AUTOUIC_SEARCH_PATHS "${SRC}/app;${SRC}/dialogs"
@@ -1046,22 +691,8 @@ target_link_libraries(tst_app_branch_navigation PRIVATE shogiboardq_static)
 # ============================================================
 # Unit 27: Wiring Contracts (MatchCoordinatorWiring の配線契約テスト。シグナルが受け手へ届く順)
 # ============================================================
-add_shogi_test(tst_wiring_contracts
-    tst_wiring_contracts.cpp
-    test_stubs_wiring_contracts.cpp
-    ${SRC}/app/sessionlifecyclecoordinator.h
-    ${SRC}/game/gamestatecontroller.h
-    ${SRC}/game/consecutivegamescontroller.h
-    ${SRC}/ui/wiring/matchcoordinatorwiring.cpp
-    ${SRC}/widgets/kifudisplay.cpp
-    ${SRC}/models/kifurecordlistmodel.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiclock.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_wiring_contracts tst_wiring_contracts.cpp)
+target_link_libraries(tst_wiring_contracts PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 28: MatchCoordinator (対局進行コーディネータ主要フロー)
@@ -1111,17 +742,8 @@ target_link_libraries(tst_csagamecoordinator PRIVATE shogiboardq_static)
 # ============================================================
 # Unit 32: AnalysisTabWiring 配線契約テスト（ソース解析型）
 # ============================================================
-add_shogi_test(tst_wiring_analysistab
-    tst_wiring_analysistab.cpp
-    test_stubs_ui_state_policy.cpp
-    test_stubs_analysistabwiring.cpp
-    ${SRC}/ui/wiring/analysistabwiring.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_wiring_analysistab tst_wiring_analysistab.cpp)
+target_link_libraries(tst_wiring_analysistab PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 33: ConsiderationWiring 配線契約テスト（ソース解析型）
@@ -1165,32 +787,14 @@ target_compile_definitions(tst_wiring_slot_coverage PRIVATE
 # ============================================================
 # Unit 37: Lifecycle Runtime (PlayModePolicyService の Deps 未設定時の既定値)
 # ============================================================
-add_shogi_test(tst_lifecycle_runtime
-    tst_lifecycle_runtime.cpp
-    test_stubs_lifecycle_runtime.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/app/playmodepolicyservice.cpp
-)
+add_shogi_test(tst_lifecycle_runtime tst_lifecycle_runtime.cpp)
+target_link_libraries(tst_lifecycle_runtime PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: JosekiRepository + JosekiPresenter テスト
 # ============================================================
-add_shogi_test(tst_joseki_repository
-    tst_joseki_repository.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/josekirepository.cpp
-    ${SRC}/kifu/josekipresenter.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/formats/kiftosfenconverter.cpp
-    ${SRC}/kifu/formats/kiflexer.cpp
-    ${SRC}/kifu/formats/kiflexer_bod.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-)
+add_shogi_test(tst_joseki_repository tst_joseki_repository.cpp)
+target_link_libraries(tst_joseki_repository PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: TsumeshogiPositionGenerator + TsumePositionUtil テスト
@@ -1217,38 +821,14 @@ add_shogi_test(tst_tsumeshogi_export_header
 # ============================================================
 # Unit: AnalysisCoordinator + AnalysisResultHandler テスト
 # ============================================================
-add_shogi_test(tst_analysis_coordinator
-    tst_analysis_coordinator.cpp
-    test_stubs_analysis_coordinator.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/analysis/analysiscoordinator.cpp
-    ${SRC}/engine/usiinfoparser.cpp
-    ${SRC}/analysis/kifuanalysislistmodel.cpp
-    ${SRC}/analysis/analysisresulthandler.cpp
-    ${SRC}/analysis/analysisresulthandler_dialog.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-)
+add_shogi_test(tst_analysis_coordinator tst_analysis_coordinator.cpp)
+target_link_libraries(tst_analysis_coordinator PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: ConsiderationPositionResolver テスト
 # ============================================================
-add_shogi_test(tst_consideration_resolver
-    tst_consideration_resolver.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/considerationpositionresolver.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_edit.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifunavigationstate.cpp
-)
+add_shogi_test(tst_consideration_resolver tst_consideration_resolver.cpp)
+target_link_libraries(tst_consideration_resolver PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: 詰み探索フロー統合テスト
@@ -1271,26 +851,8 @@ add_shogi_test(tst_image_export
 # ============================================================
 # Unit: SfenCollectionDialog テスト
 # ============================================================
-add_shogi_test(tst_sfen_collection
-    tst_sfen_collection.cpp
-    test_stubs_sfen_collection.cpp
-    ${SRC}/views/shogiview.h
-    ${SRC}/widgets/elidelabel.h
-    ${SRC}/dialogs/sfencollectiondialog.cpp
-    ${SRC}/dialogs/sfencollectiondialog_io.cpp
-    ${SRC}/widgets/boardviewerwidget.cpp
-    ${SRC}/automation/sfenvalidationservice.cpp
-    ${SRC}/common/dialogfontscale.cpp
-    ${SRC}/common/dialogutils.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/fontsizehelper.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SETTINGS_SOURCES}
-)
+add_shogi_test(tst_sfen_collection tst_sfen_collection.cpp)
+target_link_libraries(tst_sfen_collection PRIVATE shogiboardq_static)
 target_include_directories(tst_sfen_collection PRIVATE ${SRC}/automation)
 target_link_libraries(tst_sfen_collection PRIVATE hayanagi_tsume)
 
@@ -1405,43 +967,8 @@ add_shogi_test(tst_piece_sound_processor
 )
 
 # 終局後の棋譜閲覧における手番ラベル・背景色の連動を実際のビューで検証する
-add_shogi_test(tst_turn_state_sync
-    tst_turn_state_sync.cpp
-    test_stubs_turn_state_sync.cpp
-    ${SRC}/app/turnstatesyncservice.cpp
-    ${SRC}/game/turnmanager.cpp
-    ${SRC}/game/shogigamecontroller.cpp
-    ${SRC}/game/piecemoverules.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiclock.cpp
-    ${EMV_SOURCES}
-    ${SRC}/views/shogiview.cpp
-    ${SRC}/views/shogiview_state.cpp
-    ${SRC}/views/shogiview_draw.cpp
-    ${SRC}/views/boardsurfacepainter.cpp
-    ${SRC}/views/piecepainter.cpp
-    ${SRC}/views/shogiview_events.cpp
-    ${SRC}/views/shogiview_stand.cpp
-    ${SRC}/views/shogiview_piecebox.cpp
-    ${SRC}/views/boardchromewidget.cpp
-    ${SRC}/views/shogiviewhighlighting.cpp
-    ${SRC}/views/shogiviewinteraction.cpp
-    ${SRC}/views/shogiviewlayout.cpp
-    ${SRC}/widgets/elidelabel.cpp
-    ${SRC}/widgets/globaltooltip.cpp
-    ${SRC}/ui/presenters/timedisplaypresenter.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
-    ${SRC}/services/boardappearance.cpp
-    ${SRC}/services/pieceimageprovider.cpp
-    ${SRC}/services/appsettings.cpp
-    ${SRC}/services/settingscommon.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/logcategories.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../resources/shogiboardq.qrc
-)
+add_shogi_test(tst_turn_state_sync tst_turn_state_sync.cpp)
+target_link_libraries(tst_turn_state_sync PRIVATE shogiboardq_static)
 
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)
 add_executable(bench_movevalidator
@@ -1729,3 +1256,11 @@ target_link_libraries(tst_service_initialization PRIVATE shogiboardq_static)
 
 add_shogi_test(tst_automation_security tst_automation_security.cpp)
 target_link_libraries(tst_automation_security PRIVATE shogiboardq_static)
+
+# 実体の配線とプロセスを使う回帰テスト
+foreach(test_name IN ITEMS tst_wiring_contracts tst_wiring_analysistab)
+    target_sources(${test_name} PRIVATE ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
+endforeach()
+add_dependencies(tst_game_start_orchestrator mock_usi_match)
+add_dependencies(tst_game_start_flow mock_usi_match)
+add_dependencies(tst_analysisflow mock_usi_match)

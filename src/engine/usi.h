@@ -166,9 +166,6 @@ public:
     [[nodiscard]] bool startAndInitializeEngineAsync(const QString& engineFile, const QString& enginename);
     bool isInitializing() const { return m_session && m_session->isInitializing(); }
     void requestMatchMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
-    /// 人間の指し手を局面に加えて、エンジンに次の手を考えさせる
-    void requestHumanReply(QString& position, const QString& ponder, const UsiMove& humanMove,
-                           const UsiTimingParams& timing, QStringList& history);
 
     void executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec);
     void sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr);

@@ -35,7 +35,7 @@ void KifuBranchTree::clear()
     qDeleteAll(m_nodeById);
     m_nodeById.clear();
     m_root = nullptr;
-    m_nextNodeId = 1;
+    // 同じツリーの寿命中はIDを再利用しない。古いカーソルが新しいノードを指すのを防ぐ。
 }
 
 void KifuBranchTree::setRootSfen(const QString& sfen)

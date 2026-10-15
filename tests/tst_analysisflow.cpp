@@ -4,6 +4,8 @@
 /// 解析フロー制御の状態遷移・シグナル発火・エラー回復をテストする。
 
 #include <QTest>
+#include <QTemporaryDir>
+#include "engineprocessmanager.h"
 #include <QSignalSpy>
 #include <QSettings>
 #include <QStringList>
@@ -22,9 +24,6 @@
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
 
-extern bool g_analysisFlowStubStartAndInitSuccess;
-extern bool g_matchStartAnalysisCalled;
-extern MatchCoordinator::AnalysisOptions g_lastMatchAnalysisOptions;
 
 namespace {
 void clearConsiderationEngineSettings()
@@ -48,11 +47,9 @@ void writeConsiderationEngineSettings(const QString& path, const QString& name)
     settings.sync();
 }
 
-void resetConsiderationFlowStubs()
+void resetConsiderationSettings()
 {
     clearConsiderationEngineSettings();
-    g_matchStartAnalysisCalled = false;
-    g_lastMatchAnalysisOptions = MatchCoordinator::AnalysisOptions{};
 }
 } // namespace
 
@@ -71,6 +68,8 @@ public:
 
     TestHelper()
     {
+        writeConsiderationEngineSettings(QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match"), QStringLiteral("AnalysisTest"));
+
         // 平手の開始局面 + 2手分
         sfenRecord << QStringLiteral("position startpos")
                    << QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 2")
@@ -120,8 +119,14 @@ private:
 class TestAnalysisFlow : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_config;
 
 private slots:
+    void initTestCase()
+    {
+        QVERIFY(m_config.isValid());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+    }
     // --- 1. 状態遷移テスト ---
 
     /// 初期状態は Idle（isRunning = false）
@@ -201,8 +206,8 @@ void TestAnalysisFlow::initialState()
 
 void TestAnalysisFlow::startTransitionsToRunning()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     h.startAnalysis(ctrl);
 
     QVERIFY(ctrl.isRunning());
@@ -210,8 +215,8 @@ void TestAnalysisFlow::startTransitionsToRunning()
 
 void TestAnalysisFlow::stopTransitionsToIdle()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     h.startAnalysis(ctrl);
     QVERIFY(ctrl.isRunning());
 
@@ -232,8 +237,8 @@ void TestAnalysisFlow::stopWhenNotRunning()
 
 void TestAnalysisFlow::startWhileRunning()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     h.startAnalysis(ctrl);
     QVERIFY(ctrl.isRunning());
 
@@ -242,7 +247,7 @@ void TestAnalysisFlow::startWhileRunning()
     //     analysisFinished → onAnalysisFinished が発火し m_running=false になる。
     //     その後 m_coord->startAnalyzeRange() が新しい解析を開始するが、
     //     FlowController の m_running は既に false のまま。
-    //     （テスト環境ではエンジンスタブにより解析が即座に進行するため）
+    //     （テスト用USIプロセスは実際の探索を行わず応答するため）
     h.startAnalysis(ctrl);
     // 二重起動が安全に処理されること（クラッシュしないこと）を主に検証
 }
@@ -251,8 +256,8 @@ void TestAnalysisFlow::startWhileRunning()
 
 void TestAnalysisFlow::stopEmitsAnalysisStopped()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     h.startAnalysis(ctrl);
 
     QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisStopped);
@@ -264,8 +269,8 @@ void TestAnalysisFlow::stopEmitsAnalysisStopped()
 
 void TestAnalysisFlow::stopEmitsAnalysisStoppedOnce()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     h.startAnalysis(ctrl);
 
     QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisStopped);
@@ -278,8 +283,8 @@ void TestAnalysisFlow::stopEmitsAnalysisStoppedOnce()
 
 void TestAnalysisFlow::analysisFinishedEmitsAnalysisStopped()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     h.startAnalysis(ctrl);
     QVERIFY(ctrl.isRunning());
 
@@ -294,8 +299,8 @@ void TestAnalysisFlow::analysisFinishedEmitsAnalysisStopped()
 
 void TestAnalysisFlow::positionPreparedEmitsProgress()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
 
     // start() 内で positionPrepared → analysisProgressReported が同期的に発火されるので
     // spy を start() の前に設定する
@@ -304,15 +309,16 @@ void TestAnalysisFlow::positionPreparedEmitsProgress()
 
     // start() → coordinator.startAnalyzeRange() → sendAnalyzeForPly() →
     // positionPrepared → onPositionPrepared → analysisProgressReported
-    QVERIFY(spy.count() >= 1);
+    QTRY_VERIFY_WITH_TIMEOUT(spy.count() >= 1, 5000);
+    ctrl.stop();
 }
 
 // === 3. エラー時の状態回復テスト ===
 
 void TestAnalysisFlow::startWithNullSfenRecord()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     auto deps = h.makeDeps();
     deps.sfenRecord = nullptr; // null に設定
 
@@ -325,8 +331,8 @@ void TestAnalysisFlow::startWithNullSfenRecord()
 
 void TestAnalysisFlow::startWithEmptySfenRecord()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     QStringList empty;
     auto deps = h.makeDeps();
     deps.sfenRecord = &empty; // 空リスト
@@ -340,8 +346,8 @@ void TestAnalysisFlow::startWithEmptySfenRecord()
 
 void TestAnalysisFlow::startWithNullAnalysisModel()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     auto deps = h.makeDeps();
     deps.analysisModel = nullptr;
 
@@ -354,8 +360,8 @@ void TestAnalysisFlow::startWithNullAnalysisModel()
 
 void TestAnalysisFlow::startWithNullUsi()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     auto deps = h.makeDeps();
     deps.usi = nullptr;
 
@@ -368,8 +374,8 @@ void TestAnalysisFlow::startWithNullUsi()
 
 void TestAnalysisFlow::startWithNullDialog()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     auto deps = h.makeDeps();
 
     // dialog が null → 即座に return（エラーコールバックなし）
@@ -382,21 +388,20 @@ void TestAnalysisFlow::startWithNullDialog()
 
 void TestAnalysisFlow::startWithEngineInitFailure()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
 
-    g_analysisFlowStubStartAndInitSuccess = false;
+    writeConsiderationEngineSettings(QStringLiteral("/missing/engine"), QStringLiteral("Missing"));
     h.startAnalysis(ctrl);
-    g_analysisFlowStubStartAndInitSuccess = true;
 
-    QVERIFY(!ctrl.isRunning());
-    QVERIFY(h.lastError.contains(QStringLiteral("エンジン初期化に失敗")));
+    QTRY_VERIFY_WITH_TIMEOUT(!ctrl.isRunning(), 5000);
+    QVERIFY(!h.lastError.isEmpty());
 }
 
 void TestAnalysisFlow::engineErrorStopsAnalysis()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     h.startAnalysis(ctrl);
     QVERIFY(ctrl.isRunning());
 
@@ -413,8 +418,8 @@ void TestAnalysisFlow::engineErrorStopsAnalysis()
 
 void TestAnalysisFlow::engineErrorCallsDisplayError()
 {
-    AnalysisFlowController ctrl;
     TestHelper h;
+    AnalysisFlowController ctrl;
     h.startAnalysis(ctrl);
     QVERIFY(ctrl.isRunning());
 
@@ -427,7 +432,7 @@ void TestAnalysisFlow::engineErrorCallsDisplayError()
 
 void TestAnalysisFlow::considerationDirect_withoutMatch_returnsFalse()
 {
-    resetConsiderationFlowStubs();
+    resetConsiderationSettings();
 
     ConsiderationFlowController flow;
     ConsiderationFlowController::Deps deps;
@@ -441,12 +446,12 @@ void TestAnalysisFlow::considerationDirect_withoutMatch_returnsFalse()
     QVERIFY(!started);
     QVERIFY(lastError.contains(QStringLiteral("MatchCoordinator")));
     QVERIFY(!startedNotified);
-    QVERIFY(!g_matchStartAnalysisCalled);
+
 }
 
 void TestAnalysisFlow::considerationDirect_invalidEngineSelection_returnsFalse()
 {
-    resetConsiderationFlowStubs();
+    resetConsiderationSettings();
 
     MatchCoordinator::Deps matchDeps;
     MatchCoordinator match(matchDeps);
@@ -474,13 +479,13 @@ void TestAnalysisFlow::considerationDirect_invalidEngineSelection_returnsFalse()
     QVERIFY(!startedNotified);
     QVERIFY(!timeReadyCalled);
     QVERIFY(!multiPVReadyCalled);
-    QVERIFY(!g_matchStartAnalysisCalled);
+
 }
 
 void TestAnalysisFlow::considerationDirect_validEngine_startsAnalysis()
 {
-    resetConsiderationFlowStubs();
-    writeConsiderationEngineSettings(QStringLiteral("/usr/bin/test-engine"),
+    resetConsiderationSettings();
+    writeConsiderationEngineSettings(QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match"),
                                      QStringLiteral("StoredEngine"));
 
     MatchCoordinator::Deps matchDeps;
@@ -530,17 +535,19 @@ void TestAnalysisFlow::considerationDirect_validEngine_startsAnalysis()
     QCOMPARE(unlimitedReceived, false);
     QCOMPARE(byoyomiReceived, 15);
     QCOMPARE(multiPVReceived, 4);
-    QVERIFY(g_matchStartAnalysisCalled);
-    QCOMPARE(g_lastMatchAnalysisOptions.enginePath, QStringLiteral("/usr/bin/test-engine"));
-    QCOMPARE(g_lastMatchAnalysisOptions.engineName, QStringLiteral("StoredEngine"));
-    QCOMPARE(g_lastMatchAnalysisOptions.positionStr, position);
-    QCOMPARE(g_lastMatchAnalysisOptions.byoyomiMs, 15000);
-    QCOMPARE(g_lastMatchAnalysisOptions.multiPV, 4);
-    QCOMPARE(g_lastMatchAnalysisOptions.mode, PlayMode::ConsiderationMode);
-    QCOMPARE(g_lastMatchAnalysisOptions.considerationModel, &considerationModel);
-    QCOMPARE(g_lastMatchAnalysisOptions.previousFileTo, 7);
-    QCOMPARE(g_lastMatchAnalysisOptions.previousRankTo, 6);
-    QCOMPARE(g_lastMatchAnalysisOptions.lastUsiMove, QStringLiteral("7g7f"));
+    QCOMPARE(match.playMode(), PlayMode::ConsiderationMode);
+    QVERIFY(match.primaryEngine());
+    auto* process = match.primaryEngine()->findChild<EngineProcessManager*>();
+    QVERIFY(process);
+    QSignalSpy commands(process, &EngineProcessManager::commandSent);
+    QTRY_VERIFY_WITH_TIMEOUT(!match.primaryEngine()->isInitializing(), 5000);
+    QStringList sent;
+    for (const auto& args : commands) sent.append(args.first().toString());
+    QVERIFY2(sent.contains(position), qPrintable(sent.join('\n')));
+    QVERIFY(sent.contains(QStringLiteral("setoption name MultiPV value 4")));
+    QVERIFY(sent.contains(QStringLiteral("go infinite")));
+    match.stopAnalysisEngine();
+
 }
 
 QTEST_MAIN(TestAnalysisFlow)

@@ -139,6 +139,7 @@ bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QS
     // USEN形式では各分岐は「直前に記述された手順」からの派生として扱う。
     // lastLineUsiMoves は直前に記述された手順の全USI指し手列を保持する。
     QStringList lastLineUsiMoves = mainUsiMoves;
+    QList<int> lastLineOwners(mainUsiMoves.size(), -1);
 
     for (const auto& var : std::as_const(variations)) {
         const int startPly = var.first;
@@ -155,6 +156,11 @@ bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QS
 
         // 直前の手順から分岐点までの指し手を取得
         const int offset = startPly - 1;  // 0-indexed
+        if (offset < 0 || offset > lastLineUsiMoves.size()) {
+            if (errorMessage) *errorMessage = QStringLiteral("USEN: invalid variation start: %1").arg(startPly);
+            out = KifParseResult{};
+            return false;
+        }
         QStringList prefixMoves;
         for (int i = 0; i < offset && i < lastLineUsiMoves.size(); ++i) {
             prefixMoves.append(lastLineUsiMoves[i]);
@@ -171,6 +177,7 @@ bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QS
 
         KifVariation kifVar;
         kifVar.startPly = startPly;
+        kifVar.parentVariation = offset > 0 ? lastLineOwners.at(offset - 1) : -1;
         kifVar.line.baseSfen = varTracer.toSfenString();
         kifVar.line.usiMoves = varUsiMoves;
 
@@ -186,14 +193,17 @@ bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QS
             kifVar.line.endsWithTerminal = true;
         }
 
-        // sfenList を構築（ツリービルダーが findBySfen で正しい分岐点を見つけるために必要）
+        // 各手の後の局面を構築。分岐元は parentVariation と startPly で指定済み。
         kifVar.line.sfenList = SfenPositionTracer::buildSfenRecord(
             kifVar.line.baseSfen, varUsiMoves, !varTerminal.isEmpty());
 
+        const int index = static_cast<int>(out.variations.size());
         out.variations.push_back(kifVar);
 
         // 直前の手順を更新: prefix + 今回の分岐の指し手
         lastLineUsiMoves = prefixMoves + varUsiMoves;
+        lastLineOwners = lastLineOwners.mid(0, offset);
+        lastLineOwners.append(QList<int>(varUsiMoves.size(), index));
     }
 
     return true;

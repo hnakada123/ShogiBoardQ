@@ -49,8 +49,6 @@ void PreStartCleanupHandler::updateDependencies(const Dependencies& deps)
     m_evalChart = deps.evalChart;
     m_evalGraphController = deps.evalGraphController;
     m_recordPane = deps.recordPane;
-    m_startSfenStr = deps.startSfenStr;
-    m_currentSfenStr = deps.currentSfenStr;
     m_liveGameSession = deps.liveGameSession;
     m_branchTree = deps.branchTree;
     m_navState = deps.navState;
@@ -60,100 +58,42 @@ void PreStartCleanupHandler::updateDependencies(const Dependencies& deps)
 // メインクリーンアップ
 // ============================================================
 
-void PreStartCleanupHandler::performCleanup()
+KifuBranchNode* PreStartCleanupHandler::performCleanup(const GameStartPreparation& preparation)
 {
-    qCDebug(lcGame).noquote() << "performCleanup: start"
-                       << "m_startSfenStr=" << (m_startSfenStr ? m_startSfenStr->left(50) : "(null)")
-                       << "m_currentSfenStr=" << (m_currentSfenStr ? m_currentSfenStr->left(50) : "(null)")
-                       << "currentPly=" << (m_navState ? m_navState->currentPly() : -1);
+    const bool preserve = preparation.mode == GameStartPreparation::Mode::CurrentPosition;
+    KifuBranchNode* node = preserve && m_branchTree
+        ? m_branchTree->nodeAt(preparation.startNodeId) : nullptr;
+    // 存在しないノードから別の分岐や同じSFENを探し直さない。
+    if (preserve && preparation.startNodeId >= 0 && !node) return nullptr;
+    if (m_liveGameSession && m_liveGameSession->isActive()) m_liveGameSession->discard();
 
-    // m_currentSfenStr を保存（selectStartRow() で変更される前に）
-    // この値は startLiveGameSession() で分岐点を探すために使用される
-    m_savedCurrentSfen = m_currentSfenStr ? *m_currentSfenStr : QString();
-    // 表示中の手数は分岐ツリーのカーソル（KifuNavigationState）が正。棋譜欄を作り直すと
-    // 行選択の通知でカーソルが動くので、最初に控えた値を以降の判定に使う
-    m_savedSelectedPly = m_navState ? m_navState->currentPly() : 0;
-
-    // ユーザーが選択しているノードを直接保存
-    // SFENで検索すると、同じ局面が複数存在する場合に誤ったノードが返される可能性がある
-    m_savedCurrentNode = (m_navState != nullptr) ? m_navState->currentNode() : nullptr;
-
-    qCDebug(lcGame).noquote() << "performCleanup: saved sfen=" << m_savedCurrentSfen.left(50)
-                       << "saved ply=" << m_savedSelectedPly
-                       << "saved node=" << (m_savedCurrentNode ? m_savedCurrentNode->displayText() : "(null)");
-
-    resolveTerminalStartNode();
-
+    if (node && node->isTerminal() && node->parent()) {
+        KifuBranchNode* terminal = node;
+        node = node->parent();
+        if (m_navState) m_navState->setCurrentNode(node);
+        if (terminal->terminalType() == TerminalType::Interrupt && terminal->childCount() == 0) {
+            m_branchTree->removeLeaf(terminal);
+        }
+    }
+    if (m_branchTree && (!preserve || !node)) {
+        if (m_navState) {
+            m_navState->setCurrentNode(nullptr);
+            m_navState->clearLineSelectionMemory();
+        }
+        m_branchTree->setRootSfen(SfenUtils::normalizeStart(preparation.rootSfen));
+        node = m_branchTree->root();
+    }
+    const int ply = node ? node->ply() : 0;
+    if (m_navState) m_navState->setCurrentNode(node);
     clearBoardAndHighlights();
     clearClockDisplay();
-
-    const bool startFromCurrentPos = isStartFromCurrentPosition();
-
-    const int keepRow = cleanupKifuModel(startFromCurrentPos);
-    // 新しい対局は開始局面から表示する。途中局面から始めるときは選んでいた局面のまま
-    if (!startFromCurrentPos && m_navState != nullptr) {
-        m_navState->goToRoot();
-    }
+    cleanupKifuModel(node);
     clearBranchModel();
-
     resetUsiLogModels();
     resetTimeControl();
-    resetEvaluationGraph();
-    selectStartRow();
-
-    prepareBranchTreeRoot();
-
-    if (m_branchTree != nullptr && m_branchTree->root() != nullptr) {
-        qCDebug(lcGame).noquote() << "performCleanup: branchTree has"
-                           << m_branchTree->root()->childCount() << "children"
-                           << "lineCount=" << m_branchTree->lineCount();
-    }
-
-    // ライブゲームセッションを開始（途中局面からの場合は分岐点を設定）
-    startLiveGameSession();
-
-    qCDebug(lcGame).noquote()
-        << "performCleanup: startFromCurrentPos=" << startFromCurrentPos
-        << " keepRow=" << keepRow
-        << " rows(after)=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
-}
-
-// ============================================================
-// 個別クリーンアップ処理
-// ============================================================
-
-void PreStartCleanupHandler::resolveTerminalStartNode()
-{
-    KifuBranchNode* terminal = m_savedCurrentNode;
-    if (terminal == nullptr || !terminal->isTerminal() || terminal->parent() == nullptr) {
-        return;
-    }
-    KifuBranchNode* parent = terminal->parent();
-    if (!isStartFromCurrentPosition()) {
-        return;
-    }
-
-    // 以降の処理（棋譜欄の再構築・セッション開始・開始行の選択）を直前の局面で揃える
-    m_savedCurrentNode = parent;
-    m_savedSelectedPly = parent->ply();
-    if (m_navState != nullptr) m_navState->setCurrentNode(parent);
-
-    // 「中断」は対局の途中経過なので、続きを指せば同じ手順に続ける（新しい分岐にしない）
-    if (m_branchTree != nullptr && terminal->terminalType() == TerminalType::Interrupt
-        && terminal->childCount() == 0) {
-        m_branchTree->removeLeaf(terminal);
-        qCDebug(lcGame).noquote() << "resolveTerminalStartNode: removed interrupt node, continue from ply="
-                                  << parent->ply();
-    }
-}
-
-bool PreStartCleanupHandler::isStartFromCurrentPosition() const
-{
-    if (!m_startSfenStr || !m_currentSfenStr) {
-        return false;
-    }
-
-    return shouldStartFromCurrentPosition(*m_startSfenStr, *m_currentSfenStr, m_savedSelectedPly);
+    resetEvaluationGraph(preserve, ply);
+    selectStartRow(ply);
+    return node;
 }
 
 void PreStartCleanupHandler::clearBoardAndHighlights()
@@ -171,50 +111,27 @@ void PreStartCleanupHandler::clearClockDisplay()
     }
 }
 
-int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos)
+void PreStartCleanupHandler::cleanupKifuModel(KifuBranchNode* startNode)
 {
-    if (!m_kifuRecordModel) return 0;
-
-    if (startFromCurrentPos && m_branchTree) {
-        // ユーザーが選択していたノードを直接使用
-        KifuBranchNode* branchPoint = m_savedCurrentNode;
-
-        // savedNode が利用できない場合のみ、SFENで検索（フォールバック）
-        if (branchPoint == nullptr && !m_savedCurrentSfen.isEmpty()) {
-            branchPoint = m_branchTree->findBySfen(m_savedCurrentSfen);
-        }
-
-        // 終局手（投了など）のノードが選択されていた場合は、その親ノードから再開
-        if (branchPoint != nullptr && branchPoint->isTerminal()) {
-            branchPoint = branchPoint->parent();
-        }
-
-        if (branchPoint != nullptr) {
-            QList<KifuBranchNode*> path = m_branchTree->pathToNode(branchPoint);
-            m_kifuRecordModel->clearAllItems();
-
-            // 1行ずつ追加すると棋譜欄が毎回全行の幅を測り直すため、まとめて追加する
-            QList<KifuDisplay*> items;
-            items.reserve(path.size());
-            for (KifuBranchNode* node : std::as_const(path)) {
-                auto* item = new KifuDisplay(node->displayText(), node->timeText(), node->comment());
-                if (node->parent() && !node->isTerminal()) {
-                    item->beforeSfen = node->parent()->sfen();
-                    item->usiMove = KifuPresentation::usiMove(node->move());
-                }
-                items.append(item);
-            }
-            m_kifuRecordModel->appendItems(items);
-            return branchPoint->ply();
-        }
-    }
-
-    // 平手/手合割など「新規初期局面から開始」またはフォールバック
+    if (!m_kifuRecordModel) return;
     m_kifuRecordModel->clearAllItems();
+    if (startNode && m_branchTree) {
+        const auto path = m_branchTree->pathToNode(startNode);
+        QList<KifuDisplay*> items;
+        items.reserve(path.size());
+        for (KifuBranchNode* node : path) {
+            auto* item = new KifuDisplay(node->displayText(), node->timeText(), node->comment());
+            if (node->parent() && !node->isTerminal()) {
+                item->beforeSfen = node->parent()->sfen();
+                item->usiMove = KifuPresentation::usiMove(node->move());
+            }
+            items.append(item);
+        }
+        m_kifuRecordModel->appendItems(items);
+        return;
+    }
     m_kifuRecordModel->appendItem(
-        new KifuDisplay(tr("=== 開始局面 ==="),
-                        tr("（１手 / 合計）")));
-    return 0;
+        new KifuDisplay(tr("=== 開始局面 ==="), tr("（１手 / 合計）")));
 }
 
 void PreStartCleanupHandler::clearBranchModel()
@@ -253,10 +170,9 @@ void PreStartCleanupHandler::resetTimeControl()
     }
 }
 
-void PreStartCleanupHandler::resetEvaluationGraph()
+void PreStartCleanupHandler::resetEvaluationGraph(bool preserve, int ply)
 {
-    const bool startFromCurrentPos = isStartFromCurrentPosition();
-    if (!startFromCurrentPos) {
+    if (!preserve) {
         if (m_evalChart) {
             m_evalChart->clearAll();
         }
@@ -265,158 +181,21 @@ void PreStartCleanupHandler::resetEvaluationGraph()
         }
     } else {
         if (m_evalGraphController) {
-            m_evalGraphController->trimToPly(qMax(0, m_savedSelectedPly));
+            m_evalGraphController->trimToPly(ply);
         }
     }
 }
 
-void PreStartCleanupHandler::selectStartRow()
+void PreStartCleanupHandler::selectStartRow(int row)
 {
-    if (!m_recordPane || !m_kifuRecordModel || m_kifuRecordModel->rowCount() <= 0) return;
+    if (!m_kifuRecordModel || m_kifuRecordModel->rowCount() <= 0) return;
+    m_kifuRecordModel->setCurrentHighlightRow(row);
+    if (!m_recordPane) return;
 
     if (auto* view = m_recordPane->kifuView()) {
         if (auto* sel = view->selectionModel()) {
-            const QModelIndex idx = m_kifuRecordModel->index(0, 0);
+            const QModelIndex idx = m_kifuRecordModel->index(row, 0);
             sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
         }
     }
-    m_kifuRecordModel->setCurrentHighlightRow(0);
-}
-
-// ============================================================
-// ライブゲームセッション
-// ============================================================
-
-void PreStartCleanupHandler::startLiveGameSession()
-{
-    qCDebug(lcGame).noquote() << "startLiveGameSession: ENTER"
-                       << "liveGameSession=" << static_cast<void*>(m_liveGameSession)
-                       << "branchTree=" << static_cast<void*>(m_branchTree);
-
-    if (m_liveGameSession == nullptr || m_branchTree == nullptr) {
-        qCDebug(lcGame).noquote() << "startLiveGameSession: liveGameSession or branchTree is null";
-        return;
-    }
-
-    qCDebug(lcGame).noquote() << "startLiveGameSession: branchTree->root()="
-                       << static_cast<void*>(m_branchTree->root());
-
-    // アクティブなセッションがあれば破棄
-    if (m_liveGameSession->isActive()) {
-        m_liveGameSession->discard();
-    }
-
-    // 保存した値を使用（selectStartRow() で変更される前の値）
-    const QString savedSfen = m_savedCurrentSfen.trimmed();
-    const int savedPly = m_savedSelectedPly;
-    KifuBranchNode* savedNode = m_savedCurrentNode;
-
-    qCDebug(lcGame).noquote() << "startLiveGameSession: using saved sfen=" << savedSfen.left(50)
-                       << "savedPly=" << savedPly
-                       << "savedNode=" << (savedNode ? savedNode->displayText() : "(null)");
-
-    // "startpos" または初期局面SFENの場合は新規対局として扱う
-    bool isNewGame = savedSfen.isEmpty() ||
-                     savedSfen == QStringLiteral("startpos") ||
-                     SfenUtils::isHirateStart(savedSfen);
-
-    qCDebug(lcGame).noquote() << "startLiveGameSession:"
-                       << "isNewGame=" << isNewGame
-                       << "savedPly=" << savedPly;
-
-    bool hasExistingMoves = m_branchTree->root() != nullptr && m_branchTree->root()->childCount() > 0;
-
-    if (!isNewGame && hasExistingMoves && savedPly > 0) {
-        // ユーザーが選択していたノードを直接使用
-        // SFENで検索すると、同じ局面が複数存在する場合に誤ったノードが返される
-        KifuBranchNode* branchPoint = savedNode;
-
-        // savedNode が利用できない場合のみ、SFENで検索（フォールバック）
-        if (branchPoint == nullptr && !savedSfen.isEmpty()) {
-            branchPoint = m_branchTree->findBySfen(savedSfen);
-            qCDebug(lcGame).noquote() << "startLiveGameSession: fallback to findBySfen, result="
-                               << static_cast<void*>(branchPoint)
-                               << "ply=" << (branchPoint ? branchPoint->ply() : -1);
-        }
-
-        qCDebug(lcGame).noquote() << "startLiveGameSession: branchPoint="
-                           << static_cast<void*>(branchPoint)
-                           << "ply=" << (branchPoint ? branchPoint->ply() : -1)
-                           << "isTerminal=" << (branchPoint ? branchPoint->isTerminal() : false);
-
-        // 終局手の場合は親ノードを分岐点として使用
-        if (branchPoint != nullptr && branchPoint->isTerminal()) {
-            branchPoint = branchPoint->parent();
-            qCDebug(lcGame).noquote() << "startLiveGameSession: terminal node, using parent="
-                               << static_cast<void*>(branchPoint)
-                               << "ply=" << (branchPoint ? branchPoint->ply() : -1);
-        }
-
-        if (branchPoint != nullptr && branchPoint->ply() > 0) {
-            m_liveGameSession->startFromNode(branchPoint);
-
-            // m_currentSfenStr を branchPoint の SFEN で更新
-            // GameStartCoordinator::prepareDataCurrentPosition() で盤面が正しい位置にリセットされる
-            if (m_currentSfenStr != nullptr) {
-                *m_currentSfenStr = branchPoint->sfen();
-                qCDebug(lcGame).noquote() << "startLiveGameSession: updated m_currentSfenStr to branchPoint sfen="
-                                   << branchPoint->sfen().left(60);
-            }
-
-            qCDebug(lcGame).noquote() << "startLiveGameSession: started from node, ply=" << branchPoint->ply()
-                               << "displayText=" << branchPoint->displayText();
-            return;
-        }
-        qCDebug(lcGame).noquote() << "startLiveGameSession: branchPoint not found or is root, treating as new game";
-    }
-
-    // 新規対局または途中局面が見つからない場合
-    {
-        if (m_branchTree->root() == nullptr) {
-            QString rootSfen = SfenUtils::hirateSfen();
-            if (m_startSfenStr != nullptr && !m_startSfenStr->trimmed().isEmpty()) {
-                rootSfen = *m_startSfenStr;
-            }
-            m_branchTree->setRootSfen(rootSfen);
-            qCDebug(lcGame).noquote() << "startLiveGameSession: created root node with sfen=" << rootSfen;
-        }
-
-        m_liveGameSession->startFromRoot();
-        qCDebug(lcGame).noquote() << "startLiveGameSession: started from root (new game)";
-    }
-}
-
-void PreStartCleanupHandler::prepareBranchTreeRoot()
-{
-    if (m_branchTree == nullptr) {
-        return;
-    }
-
-    QString rootSfen = SfenUtils::hirateSfen();
-    if (m_startSfenStr != nullptr && !m_startSfenStr->trimmed().isEmpty()) {
-        rootSfen = *m_startSfenStr;
-    }
-
-    if (m_branchTree->root() != nullptr) {
-        // ルートが既に存在する場合でも、局面が異なれば更新する（手数の表記違いでは作り直さない）
-        if (SfenUtils::normalizeSfenKey(m_branchTree->root()->sfen()) != SfenUtils::normalizeSfenKey(rootSfen)) {
-            // setRootSfen()は旧ノードを削除してtreeChangedを同期通知する。
-            // 通知先が古い選択ノードを参照しないよう、先に切り離す。
-            m_savedCurrentNode = nullptr;
-            if (m_navState) {
-                m_navState->setCurrentNode(nullptr);
-                m_navState->resetPreferredLineIndex();
-                m_navState->clearLineSelectionMemory();
-            }
-            m_branchTree->setRootSfen(rootSfen);
-            if (m_navState) m_navState->goToRoot();
-            qCDebug(lcGame).noquote() << "prepareBranchTreeRoot: updated root sfen=" << rootSfen;
-        } else {
-            qCDebug(lcGame).noquote() << "prepareBranchTreeRoot: root already exists with correct sfen";
-        }
-        return;
-    }
-
-    m_branchTree->setRootSfen(rootSfen);
-    qCDebug(lcGame).noquote() << "prepareBranchTreeRoot: created root with sfen=" << rootSfen;
 }

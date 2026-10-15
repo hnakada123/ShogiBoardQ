@@ -2,7 +2,9 @@
 /// @brief 対局進行コーディネータ（司令塔）クラスの実装
 
 #include "matchcoordinator.h"
+#include "sfenutils.h"
 #include "matchturnhandler.h"
+#include "strategycontext.h"
 #include "matchtimekeeper.h"
 #include "matchundohandler.h"
 #include "gameendhandler.h"
@@ -45,9 +47,9 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     m_timekeeper->setClock(d.clock);
 
     createUndoHandler();
+    createGameEndHandler();
     createMatchTurnHandler();
     createAnalysisSession();
-    createGameEndHandler();
     createGameStartOrchestrator();
 }
 
@@ -96,7 +98,17 @@ void MatchCoordinator::createTimekeeper()
 
 void MatchCoordinator::createMatchTurnHandler()
 {
-    m_turnHandler = std::make_unique<MatchTurnHandler>(*this);
+    MatchStrategyContext::Deps deps;
+    deps.gc = m_gc;
+    deps.session = &m_session;
+    deps.engines = m_engineManager;
+    deps.timekeeper = m_timekeeper;
+    deps.gameEnd = m_gameEndHandler;
+    deps.sfens = m_sfenHistory;
+    deps.moves = &gameMovesRef();
+    deps.hooks = m_hooks;
+    deps.parent = this;
+    m_turnHandler = std::make_unique<MatchTurnHandler>(std::make_unique<MatchStrategyContext>(deps));
     configureMatchTurnHandler();
 }
 
@@ -111,11 +123,7 @@ void MatchCoordinator::configureMatchTurnHandler()
 {
     MatchTurnHandler::Refs refs;
     refs.gc = m_gc;
-    refs.playMode = &m_playMode;
-    refs.positionStr1 = &m_positionStr1;
-    refs.positionPonder1 = &m_positionPonder1;
-    refs.positionStrHistory = &m_positionStrHistory;
-    refs.gameOver = &m_gameOver;
+    refs.session = &m_session;
     refs.mcAsParent = this;
     m_turnHandler->setRefs(refs);
 
@@ -209,8 +217,7 @@ void MatchCoordinator::createGameEndHandler()
     refs.clock     = m_timekeeper->clock();
     refs.usi1Provider = [this]() -> Usi* { return m_engineManager->usi1(); };
     refs.usi2Provider = [this]() -> Usi* { return m_engineManager->usi2(); };
-    refs.playMode  = &m_playMode;
-    refs.gameOver  = &m_gameOver;
+    refs.session = &m_session;
     refs.strategyProvider = [this]() -> GameModeStrategy* {
         return m_turnHandler->strategy();
     };
@@ -225,9 +232,9 @@ void MatchCoordinator::createGameEndHandler()
     hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
     hooks.usesHandicapNames = m_hooks.ui.usesHandicapNames;
     hooks.autoSaveKifuIfEnabled = [this]() {
-        if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.game.autoSaveKifu) {
-            qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;
-            m_hooks.game.autoSaveKifu(m_kifuSaveDir);
+        if (m_session.options().autoSaveKifu && !m_session.options().kifuSaveDir.isEmpty() && m_hooks.game.autoSaveKifu) {
+            qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_session.options().kifuSaveDir;
+            m_hooks.game.autoSaveKifu(m_session.options().kifuSaveDir);
         }
     };
     m_gameEndHandler->setHooks(hooks);
@@ -239,15 +246,7 @@ void MatchCoordinator::createGameStartOrchestrator()
 
     GameStartOrchestrator::Refs refs;
     refs.gc                 = m_gc;
-    refs.playMode           = &m_playMode;
-    refs.maxMoves           = &m_maxMoves;
-    refs.currentMoveIndex   = &m_currentMoveIndex;
-    refs.autoSaveKifu       = &m_autoSaveKifu;
-    refs.kifuSaveDir        = &m_kifuSaveDir;
-    refs.positionStr1       = &m_positionStr1;
-    refs.positionPonder1    = &m_positionPonder1;
-    refs.positionStrHistory = &m_positionStrHistory;
-    refs.allGameHistories   = &m_allGameHistories;
+    refs.session = &m_session;
     m_gameStartOrchestrator->setRefs(refs);
 
     GameStartOrchestrator::Hooks hooks;
@@ -259,14 +258,10 @@ void MatchCoordinator::createGameStartOrchestrator()
     hooks.updateTurnDisplay  = [this](Turn p) {
         m_turnHandler->updateTurnDisplay(p);
     };
-    hooks.initializePositionStringsForStart = [this](const QString& s) {
-        m_turnHandler->initPositionStringsFromSfen(s);
-    };
     hooks.createAndStartModeStrategy = [this](const StartOptions& opt) {
         m_turnHandler->createAndStartModeStrategy(opt);
     };
     hooks.flipBoard = [this]() { flipBoard(); };
-    hooks.startInitialEngineMoveIfNeeded = [this]() { startInitialEngineMoveIfNeeded(); };
     m_gameStartOrchestrator->setHooks(hooks);
 }
 
@@ -277,9 +272,6 @@ void MatchCoordinator::createUndoHandler()
     MatchUndoHandler::Refs refs;
     refs.gc                = m_gc;
     refs.sfenHistory       = m_sfenHistory;
-    refs.positionStr1      = &m_positionStr1;
-    refs.positionPonder1   = &m_positionPonder1;
-    refs.positionStrHistory = &m_positionStrHistory;
     refs.gameMoves         = &gameMovesRef();
     m_undoHandler->setRefs(refs);
 
@@ -324,10 +316,10 @@ void MatchCoordinator::handleNyugyokuDeclaration(Turn declarer, bool success, bo
 
 void MatchCoordinator::handleBreakOff()
 {
-    if (m_gameOver.isOver) return;
+    if (m_session.gameOver().isOver) return;
     captureInterruptedGame();
     // 時計の精算時に時間切れが確定した場合、中断に上書きしない。
-    if (m_gameOver.isOver) return;
+    if (m_session.gameOver().isOver) return;
     m_engineManager->disconnectArbiterSignals();
 
     m_gameEndHandler->handleBreakOff();
@@ -364,20 +356,19 @@ void MatchCoordinator::markGameOverMoveAppended()
 void MatchCoordinator::configureAndStart(const StartOptions& opt)
 {
     discardInterruptedGame();
-    m_lastStartOptions = opt;
-    alignGameMovesWithSfenHistory();
-    m_gameStartOrchestrator->configureAndStart(opt);
-}
-
-void MatchCoordinator::alignGameMovesWithSfenHistory()
-{
-    // 指し手列は局面列（開始局面＋各手の後の局面）とそろえる。対局開始の準備で局面列は
-    // 開始する局面までに切り詰められるので、それより後の手（前の対局や読み込んだ棋譜の続き）を捨てる。
-    // 残すと手数（moveCommitted の ply）や2手戻しが前の対局の手を数えてしまう
-    if (!m_sfenHistory) return;
-    QList<ShogiMove>& moves = gameMovesRef();
-    const qsizetype keep = qMax<qsizetype>(0, m_sfenHistory->size() - 1);
-    if (moves.size() > keep) moves.resize(keep);
+    StartOptions resolved = opt;
+    if (resolved.recordLine.isEmpty()) {
+        const QString initial = SfenUtils::normalizePositionLikeSfen(opt.sfenStart);
+        resolved.recordLine.sfens = {initial.isEmpty() ? SfenUtils::hirateSfen() : initial};
+    }
+    const int ply = qBound(0, resolved.recordLine.currentPly, resolved.recordLine.moveCount());
+    resolved.recordLine.currentPly = ply;
+    resolved.recordLine.sfens = resolved.recordLine.sfens.mid(0, ply + 1);
+    resolved.recordLine.moves = resolved.recordLine.moves.mid(0, ply);
+    resolved.sfenStart = resolved.recordLine.sfens.last();
+    *m_sfenHistory = resolved.recordLine.sfens;
+    gameMovesRef() = resolved.recordLine.moves;
+    m_gameStartOrchestrator->configureAndStart(resolved);
 }
 
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
@@ -427,7 +418,7 @@ void MatchCoordinator::disarmHumanTimerIfNeeded() {
 }
 
 void MatchCoordinator::handlePlayerTimeOut(Turn player) {
-    if (m_gameOver.isOver) return;
+    if (m_session.gameOver().isOver) return;
     m_turnHandler->handlePlayerTimeOut(player);
     m_gameEndHandler->handleTimeout(player);
 }
@@ -451,8 +442,6 @@ bool MatchCoordinator::undoTwoPlies()
     if (!m_undoHandler->undoTwoPlies()) {
         return false;
     }
-    if (m_sfenHistory) {
-        m_currentMoveIndex = static_cast<int>(qMax(qsizetype(0), m_sfenHistory->size() - 1));
-    }
+    m_session.clearPonder();
     return true;
 }

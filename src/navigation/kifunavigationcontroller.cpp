@@ -77,68 +77,10 @@ void KifuNavigationController::goToFirst()
 
 void KifuNavigationController::goToLast()
 {
-    qCDebug(lcNavigation).noquote() << "goToLast ENTER currentPly=" << (m_state ? m_state->currentPly() : -1);
-
-    if (m_state == nullptr || m_tree == nullptr) {
-        qCDebug(lcNavigation).noquote() << "goToLast: early return (null state/tree)";
-        return;
-    }
-
-    KifuBranchNode* node = m_state->currentNode();
-    if (node == nullptr) {
-        qCDebug(lcNavigation).noquote() << "goToLast: currentNode is null, returning";
-        return;
-    }
-
-    // 優先ラインのパスを取得（allLines() に基づく高速ルックアップ用）
-    QSet<KifuBranchNode*> linePathNodes;
-    if (m_tree != nullptr) {
-        int lineIdx = m_state->preferredLineIndex();
-        if (lineIdx < 0) lineIdx = m_state->currentLineIndex();
-        if (lineIdx >= 0) {
-            QList<BranchLine> lines = m_tree->allLines();
-            if (lineIdx < lines.size()) {
-                for (KifuBranchNode* n : std::as_const(lines.at(lineIdx).nodes)) {
-                    linePathNodes.insert(n);
-                }
-            }
-        }
-    }
-
-    // 現在のラインの終端まで進む
-    while (node->childCount() > 0) {
-        KifuBranchNode* nextNode = nullptr;
-
-        // 優先ラインのパスに合致する子を探す
-        if (!linePathNodes.isEmpty() && node->childCount() > 1) {
-            for (int i = 0; i < node->childCount(); ++i) {
-                if (linePathNodes.contains(node->childAt(i))) {
-                    nextNode = node->childAt(i);
-                    qCDebug(lcNavigation).noquote() << "goToLast: at ply=" << node->ply()
-                                                    << "using allLines path childIndex=" << i;
-                    break;
-                }
-            }
-        }
-
-        // フォールバック: lastSelectedChildAt または先頭の子
-        if (nextNode == nullptr) {
-            int selectedLine = m_state->lastSelectedChildAt(node);
-            qCDebug(lcNavigation).noquote() << "goToLast: at ply=" << node->ply()
-                                            << "childCount=" << node->childCount()
-                                            << "selectedLine=" << selectedLine;
-            if (selectedLine < node->childCount()) {
-                nextNode = node->childAt(selectedLine);
-            } else {
-                nextNode = node->childAt(0);
-            }
-        }
-
-        node = nextNode;
-    }
-
+    if (!m_state || !m_state->currentNode()) return;
+    auto* node = m_state->currentNode();
+    while (auto* next = m_state->nextNode(node)) node = next;
     m_state->setCurrentNode(node);
-    qCDebug(lcNavigation).noquote() << "goToLast LEAVE ply=" << node->ply();
     emitUpdateSignals();
 }
 
@@ -204,65 +146,7 @@ void KifuNavigationController::goForward(int count)
 
 KifuBranchNode* KifuNavigationController::findForwardNode() const
 {
-    qCDebug(lcNavigation).noquote() << "findForwardNode ENTER";
-
-    if (m_state == nullptr) {
-        qCDebug(lcNavigation).noquote() << "findForwardNode: m_state is null";
-        return nullptr;
-    }
-
-    KifuBranchNode* current = m_state->currentNode();
-    if (current == nullptr || current->childCount() == 0) {
-        qCDebug(lcNavigation).noquote() << "findForwardNode: current is null or no children";
-        return nullptr;
-    }
-
-    qCDebug(lcNavigation).noquote() << "findForwardNode: current ply=" << current->ply()
-                                    << "childCount=" << current->childCount();
-
-    // 優先ラインが設定されている場合、allLines() のパスに合致する子を優先する。
-    // lastSelectedChildAt は child index であり allLines() のライン path と一致しない
-    // ケースがあるため、分岐がある場合はライン path を正とする。
-    if (current->childCount() > 1 && m_tree != nullptr) {
-        int lineIdx = m_state->preferredLineIndex();
-        if (lineIdx < 0) lineIdx = m_state->currentLineIndex();
-        if (lineIdx >= 0) {
-            QList<BranchLine> lines = m_tree->allLines();
-            if (lineIdx < lines.size()) {
-                const BranchLine& line = lines.at(lineIdx);
-                const int nextPly = current->ply() + 1;
-                for (KifuBranchNode* node : std::as_const(line.nodes)) {
-                    if (node->ply() == nextPly && node->parent() == current) {
-                        qCDebug(lcNavigation).noquote() << "findForwardNode: using allLines path"
-                                                        << "lineIdx=" << lineIdx
-                                                        << "childPly=" << node->ply()
-                                                        << "childDisplayText=" << node->displayText();
-                        return node;
-                    }
-                }
-                qCDebug(lcNavigation).noquote() << "findForwardNode: allLines path did not find child on line" << lineIdx;
-            }
-        }
-    }
-
-    // 分岐がある場合、最後に選択したラインを優先
-    int selectedLine = m_state->lastSelectedChildAt(current);
-    qCDebug(lcNavigation).noquote() << "findForwardNode: lastSelectedChildAt=" << selectedLine;
-
-    if (selectedLine < current->childCount()) {
-        KifuBranchNode* child = current->childAt(selectedLine);
-        qCDebug(lcNavigation).noquote() << "findForwardNode: using selectedLine"
-                                        << "childPly=" << (child ? child->ply() : -1)
-                                        << "childSfen=" << (child ? child->sfen().left(40) : "(null)");
-        return child;
-    }
-
-    // フォールバック: 最初の子（本譜）
-    KifuBranchNode* firstChild = current->childAt(0);
-    qCDebug(lcNavigation).noquote() << "findForwardNode: fallback to child(0)"
-                                    << "childPly=" << (firstChild ? firstChild->ply() : -1)
-                                    << "childSfen=" << (firstChild ? firstChild->sfen().left(40) : "(null)");
-    return firstChild;
+    return m_state ? m_state->nextNode(m_state->currentNode()) : nullptr;
 }
 
 void KifuNavigationController::goToNode(KifuBranchNode* node)

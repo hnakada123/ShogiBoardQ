@@ -193,32 +193,6 @@ void MatchCoordinatorWiring::createMenuGameStartCoordinator()
 
     m_menuGameStart = new GameStartCoordinator(d, this);
 
-    // ViewHooks: ShogiView 操作をコールバックで注入
-    {
-        GameStartCoordinator::ViewHooks vh;
-        vh.initializeToFlatStartingPosition = [this]() {
-            if (m_view) m_view->initializeToFlatStartingPosition();
-        };
-        vh.removeHighlightAllData = [this]() {
-            if (m_view) m_view->removeHighlightAllData();
-        };
-        vh.applyResumePosition = [](ShogiGameController* gc, const QString& sfen) {
-            GameStartOptionsBuilder::applyResumePositionIfAny(
-                gc, sfen, {});
-        };
-        vh.addKifuHeaderItem = [this](const QString& move, const QString& time, bool prepend) {
-            if (m_kifuRecordModel) {
-                auto* item = new KifuDisplay(move, time);
-                if (prepend) {
-                    m_kifuRecordModel->prependItem(item);
-                } else {
-                    m_kifuRecordModel->appendItem(item);
-                }
-            }
-        };
-        m_menuGameStart->setViewHooks(vh);
-    }
-
     connectGameStartSignals();
 }
 
@@ -255,9 +229,5 @@ void MatchCoordinatorWiring::connectGameStartSignals()
     if (auto* kifuNav = m_targets.kifuNav) {
         connect(gsc, &GameStartCoordinator::requestSelectKifuRow,
                 kifuNav, &KifuNavigationCoordinator::selectKifuRow);
-    }
-    if (auto* branchNav = m_targets.branchNav) {
-        connect(gsc, &GameStartCoordinator::requestBranchTreeResetForNewGame,
-                branchNav, &BranchNavigationWiring::onBranchTreeResetForNewGame);
     }
 }

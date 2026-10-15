@@ -1,5 +1,16 @@
 # MatchCoordinator 分割設計書（ISSUE-010）
 
+## 現在の状態管理（2026-10-15）
+
+- `MatchSessionState` が対局設定・モード・終了状態・先読み局面を所有する。開始・終局・終局手の記録を操作として公開し、各フィールドへの可変ポインタを共有しない。
+- `MatchStrategyContext` は独立したクラスで、必要なサービスを依存として受け取る。`MatchCoordinator::StrategyContext` は互換用の型エイリアスであり、ネストクラスのprivateアクセスは使わない。
+- 開始手順は `MatchStartOptions::recordLine` で受け取る。過去対局の検索、USI position文字列の履歴、独立した現在手数カウンターは削除した。
+- `position` コマンドは確定済み棋譜から生成する。待ったと中断再開も同じ棋譜を使う。
+- 開始前の処理は `GameStartPreparation` で新規・現在局面・画面リセットを区別する。時計設定は開始担当が一度だけ行う。
+
+現在の開始順序とテストは [対局開始フロー](game-start-flow.md) を参照。以下は過去の分割設計と変更履歴であり、削除済みのメンバーやAPIを含む。
+
+
 > **2026-10-13 追記:** 時間の決まりと `go` の時間の計算は司令塔（MatchCoordinator・MatchTimekeeper）から外した。決まりは時計（`ShogiClock`）が持ち、`go` の時間はエンジンにつないだ時計から `UsiGoTimeCalculator` が求める。以下の `setTimeControlConfig()`・`computeGoTimes()`・`remainingMsFor` などの記述は分割当時の記録である（現在の構成は [時間設定の仕様](game-time-control-spec.md) の「時間の決まりの持ち方」）。
 
 > **2026-10-13 追記（配線層の整理）:** 司令塔は起動時に一度だけ作り、作り直さない。`MatchCoordinatorWiring::initializeSession()` が初回に作り（`createMatchCoordinator()`）、2回目以降は `setEngineModels()`・`resetPositionHistory()` と依存の結び直し（`bindRuntimeDependencies()`）だけを行う。`MatchCoordinatorHooksFactory`・`MainWindowMatchWiringDepsService`・`GameSessionFacade` は削除した。フックは `MainWindowServiceRegistry::buildMatchHooks()`・`buildUndoHooks()` が、呼ばれた時点の部品を読むラムダとして組み立てる。`Hooks::Engine`（`sendStopToEngine`）も削除し、`MatchTurnHandler` には司令塔が自分の `sendStopToEngine()` を渡す。以下の `MatchCoordinatorHooksFactory::buildHooks()` などの記述は当時の記録である（現在の構成は [開発者ガイド](developer-guide.md) の 6.2 と 14.4）。
