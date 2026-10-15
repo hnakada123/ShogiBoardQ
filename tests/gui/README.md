@@ -88,7 +88,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 `enginePostGameAnalysis` は実GUIで先手／後手として対局・投了した後、全局面と最終局面の再解析を実行します。終局行の除外、結果とグラフの評価値一致、盤面・棋譜・グラフ・ツリー・移動ボタンの同期を確認し、Hayanagiを使うケースも実行します。
 `engineAnalysisBranch` は分岐の解析対象・指し手と局面の一致、本譜へ移動後の結果選択、キャンセル後のグラフから元の分岐への復帰を検証し、`analysis-branch-synchronized.png` を保存します。
 `engineAnalysisCancelPreservesGraph` は条件ダイアログをキャンセルしても既存の2系列と選択手数が保持されることを確認します。
-`engineAnalysisRecord` はビルド済みのHayanagiと棋王戦の棋譜で開始局面から14手目までを解析し、局面移動と読み筋盤面の表示を確認します。`ANALYSIS_AUDIT_KIF` で入力棋譜を指定できます。`analysis-settings.png`、`analysis-settings-large.png`、`analysis-layout.png`、`analysis-narrow.png`、`analysis-record.png` を保存します。
+`engineAnalysisRecord` はビルド済みのHayanagiと自作のテスト棋譜で開始局面から14手目までを解析し、局面移動と読み筋盤面の表示を確認します。`ANALYSIS_AUDIT_KIF` で入力棋譜を指定できます。`analysis-settings.png`、`analysis-settings-large.png`、`analysis-layout.png`、`analysis-narrow.png`、`analysis-record.png` を保存します。
 
 各シナリオは独立したプロセスで実行し、35秒でタイムアウトする。通常のアプリ設定は使用せず、テスト用一時ディレクトリに隔離する。結果は`build/gui-audit/`に保存される。
 
@@ -157,7 +157,9 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_collect
 
 `evaluationGraphAppearance` は実MainWindow内で2系列・詰み・選択手数を表示し、`evaluation-graph-main.png` とグラフ単体の `evaluation-graph-export.png` を保存します。自動範囲・手動固定・目盛りの間引き・詰みの先後・ホバー・設定保存・待ったの詳細は CTest の `tst_evaluationchart` で検証します。
 
-`commentPresentation` は棋王戦の棋譜で段落・開始局面のコメント列・全文ツールチップ・Ctrl＋クリックでのリンク操作・空行の保存と再読込を確認し、`comment-presentation.png` を保存します。`commentEditing` は空コメントの表示、書式付きクリップボードからのテキスト貼り付け、Ctrl＋Enterでの更新、記号・URL・段落を含む本文の保存と再読込、コメント削除を検証します。
+`commentPresentation` は自作のテスト棋譜で段落・開始局面のコメント列・全文ツールチップ・Ctrl＋クリックでのリンク操作・空行の保存と再読込を確認し、`comment-presentation.png` を保存します。`commentEditing` は空コメントの表示、書式付きクリップボードからのテキスト貼り付け、Ctrl＋Enterでの更新、記号・URL・段落を含む本文の保存と再読込、コメント削除を検証します。
+
+`tests/fixtures/test_synthetic_comments.kif` は、定跡を使わずHayanagiの合法手から固定シード（20261015）で選んだ96手と中断行、独自に作成した対局情報・コメントを含む架空の棋譜です。実在の棋譜や解説文は使用していません。Shift_JIS・CRLF、長文・空行・複数段落、`example.com` のテスト用URLを含め、文字コードの読込と表示・保存の検証に使用します。
 
 `gameInfoPresentation` は対局情報の起動時の9項目と未開始・未設定の案内、新規作成時の初期化、案内文を含めないKIF出力、棋譜読込後の表示、入力途中からの更新、備考のKIF出力と再読込、項目列幅の保持、狭いドックでの操作ボタンの折り返し、文字拡大を検証します。`game-info-startup.png`・`game-info-loaded.png`・`game-info-narrow.png`・`game-info-large-font.png` を保存します。編集状態に応じたボタンの有効化、Ctrl＋Enter、行削除のUndo/Redo、全文ツールチップ、設定復元は CTest の `tst_game_info_pane` で検証します。
 
