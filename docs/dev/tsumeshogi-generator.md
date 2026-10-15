@@ -26,7 +26,7 @@ TsumeshogiGeneratorDialog
   │    ├─ TsumeshogiCandidateScreener  ← 事前選別（ワーカースレッド。内部で TsumeshogiPositionGenerator を使用）
   │    │    └─ TsumeshogiPositionGenerator  ← ランダム局面生成
   │    ├─ TsumeshogiVerifier        ← 余詰検査（Hayanagiの合法手生成を利用）
-  │    └─ Usi                          ← エンジン通信（詰探索）
+  │    └─ UsiEngineSession             ← エンジン通信（詰探索。position・go mate・stop を UsiProtocolHandler で送る）
   │
   signals: positionFound / progressUpdated / finished / errorOccurred
 ```
@@ -337,7 +337,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
 - 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。`TsumeCollection::parse` と `SfenCollectionDialog::parseSfenLines` は `#` 始まりの行を読み飛ばす。
 - ファイル保存は `QSaveFile` で書き込み完了を確認してから置き換える。閉じる・Escでも生成を停止して設定を保存する。
-- ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、`Usi` は開始ごとに生成・終了時に `deleteLater` で破棄する。
+- ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、エンジンとの接続（`UsiEngineSession`。画面の思考情報は使わない）は開始ごとに生成・終了時に `deleteLater` で破棄する。
 
 ## 設定パラメータ一覧
 
@@ -368,7 +368,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 検査中の `checkmate` は長さがN手かにかかわらず、現在の問い合わせへの詰み応答として扱う。
 - 検査中の `nomate` はその攻手を否定するために使用し、`timeout` は判定不能として使用する。
 - 安全タイマーで送ったstopの後に来る応答は捨て、検査ではUnknownとして処理する。
-- 終了時は検査続行タイマーを止め、問い合わせ・検証結果を破棄する。旧Usiのシグナルは切断する。
+- 終了時は検査続行タイマーを止め、問い合わせ・検証結果を破棄する。旧接続のシグナルは切断する。
 
 `tests/tst_tsumeshogi_verification.cpp` が第2・4問の初手、途中手、最終手、長い別解、
 判定不能、不正PV、駒除去の再検査、通常・停止・エラー時の出力条件を検査する。

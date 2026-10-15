@@ -354,7 +354,6 @@ void KifuNavigationController::emitUpdateSignals()
                                     << "lineIndex=" << m_state->currentLineIndex();
 
     emit navigationCompleted(node);
-    emit boardUpdateRequired(node->sfen());
     emit recordHighlightRequired(node->ply());
     emit branchTreeHighlightRequired(m_state->currentLineIndex(), node->ply());
     emit branchCandidatesUpdateRequired(m_state->branchCandidatesAtCurrent());

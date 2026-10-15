@@ -17,14 +17,14 @@
         <translation type="vanished">内部错误：USI 实例尚未初始化。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="203"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="201"/>
         <source>エンジン選択が不正です。</source>
         <translation>引擎选择无效。</translation>
     </message>
     <message>
         <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="46"/>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="197"/>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="221"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="195"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="219"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>用于分析的棋谱数据无效。</translation>
     </message>
@@ -34,7 +34,7 @@
         <translation>引擎初始化失败。请检查引擎设置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="181"/>
+        <location filename="../../src/ui/coordinators/analysisflowcontroller.cpp" line="179"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎错误：%1</translation>
     </message>
@@ -8427,12 +8427,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiBoard</name>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="709"/>
+        <location filename="../../src/core/shogiboard.cpp" line="707"/>
         <source>SFEN board parse error: %1</source>
         <translation>SFEN 棋盘解析错误：%1</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="714"/>
+        <location filename="../../src/core/shogiboard.cpp" line="712"/>
         <source>SFEN piece stand parse error: %1</source>
         <translation>SFEN 持驹解析错误：%1</translation>
     </message>
@@ -9836,12 +9836,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="195"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="210"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>该引擎不支持诘棋搜索。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="221"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="236"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>引擎无响应，已终止生成。</translation>
     </message>
@@ -10289,6 +10289,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>引擎意外退出。</translation>
     </message>
     <message>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="91"/>
         <location filename="../../src/engine/usienginesession.cpp" line="67"/>
         <source>Failed to start engine: %1</source>
         <translation>启动引擎失败：%1</translation>

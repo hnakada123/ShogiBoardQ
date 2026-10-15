@@ -19,7 +19,7 @@
 
 #include "threadtypes.h"
 
-class Usi;
+class UsiEngineSession;
 
 /**
  * @brief 詰将棋局面自動生成のオーケストレーション
@@ -27,7 +27,7 @@ class Usi;
  * ランダム局面生成→内蔵探索による事前選別→エンジン詰み探索→結果フィルタリングのループを制御する。
  * 有効局面発見後は不要駒トリミングを行い、全ての1枚除去の判定が完了した局面だけを出力する。
  * 判定不能・中断時は採択しない。大域的な最少駒数を保証するものではない。
- * Usiインスタンスを直接作成・管理し、signal-drivenループで次々に局面を送信する。
+ * エンジンとは画面を持たない接続（UsiEngineSession）でつなぎ、signal-drivenループで次々に局面を送信する。
  */
 class TsumeshogiGenerator : public QObject
 {
@@ -113,9 +113,11 @@ private:
     void startTrimmingPhase(const QString& sfen, const QStringList& pv);
     void tryNextTrimCandidate();
     void sendTrimmingCheck(const QString& modifiedSfen);
+    /// position と go mate を送る
+    void sendMateSearch(const QString& positionStr, int timeLimitMs);
     void finishTrimmingPhase();
 
-    Usi* m_usi = nullptr; ///< 詰み探索エンジン（parent ownership。破棄は cleanup() の deleteLater）
+    UsiEngineSession* m_engine = nullptr; ///< 詰み探索エンジンとの接続（parent ownership。破棄は cleanup() の deleteLater）
     Settings m_settings;
 
     QString m_currentSfen;       ///< 現在探索中のSFEN文字列

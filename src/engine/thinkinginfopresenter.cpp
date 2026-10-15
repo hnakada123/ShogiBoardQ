@@ -28,11 +28,6 @@ ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
 // 状態設定
 // ============================================================
 
-void ThinkingInfoPresenter::setAnalysisMode(bool mode)
-{
-    m_analysisMode = mode;
-}
-
 void ThinkingInfoPresenter::setPreviousMove(int fileTo, int rankTo)
 {
     m_previousFileTo = fileTo;
@@ -244,14 +239,6 @@ static constexpr int SCORE_MATE_VALUE = 31111;
 int ThinkingInfoPresenter::updateCpScore(const UsiInfo& info)
 {
     const int cp = info.score.value;
-    if (m_analysisMode) {
-        // 棋譜解析では先手から見た値にする（読み筋の開始局面の手番で符号を決める）
-        const bool whiteToMove = m_baseSfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w");
-        const int scoreInt = whiteToMove ? -cp : cp;
-        m_scoreStr = QString::number(scoreInt);
-        return scoreInt;
-    }
-
     m_scoreStr = QString::number(cp);
     if (info.score.bound == UsiScore::Bound::Lower) {
         m_scoreStr += QStringLiteral("++");

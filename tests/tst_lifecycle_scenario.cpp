@@ -8,9 +8,9 @@
 #include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
 #include "livegamesession.h"
-#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "appsettings.h"
+#include "test_replay.h"
 
 class TestLifecycleScenario : public QObject {
     Q_OBJECT
@@ -38,8 +38,8 @@ private slots:
         parts.gameSession->resetToInitialState();
         const QString initial = SfenUtils::hirateSfen();
         const QStringList usi{"7g7f", "3c3d"};
-        const auto moves = SfenReplay::buildGameMoves(initial, usi);
-        const auto positions = SfenReplay::buildSfenRecord(initial, usi, false);
+        const auto moves = TestReplay::buildGameMoves(initial, usi);
+        const auto positions = TestReplay::buildSfenRecord(initial, usi, false);
         for (int game = 0; game < 2; ++game) {
             parts.gameSession->prepareStart({GameStartPreparation::Mode::NewGame, initial, -1});
             QVERIFY(session->canAddMove());

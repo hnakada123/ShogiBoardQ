@@ -559,7 +559,6 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
 │                                                                    │
 │  emitUpdateSignals():                                              │
 │  emit: navigationCompleted(node)                                   │
-│  emit: boardUpdateRequired(sfen)                                   │
 │  emit: recordHighlightRequired(ply)                                │
 │  emit: branchTreeHighlightRequired(lineIndex, ply)                 │
 │  emit: branchCandidatesUpdateRequired(candidates)                  │
@@ -595,7 +594,7 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
 
 `branchNodeHandled` は `BranchNavigationWiring` を経て `KifuNavigationCoordinator::handleBranchNodeHandled()` に届き、
 表示中の局面（`AppState::currentSfenStr`）・定跡ウィンドウ・検討中のエンジンの局面を合わせる。
-`boardUpdateRequired` をつないでいる所は無い（盤は `boardWithHighlightsRequired` で描く）。
+盤は `boardWithHighlightsRequired` で描く（以前の `boardUpdateRequired` は受け手が無かったので削除した）。
 
 ### 6.3 ナビゲーション操作の流れ
 

@@ -69,7 +69,6 @@ private slots:
         p.playerInfo->onMatchPlayersResolved(humanEngine);
         QCOMPARE(state.activity.activity(), AppActivityState::Activity::Idle);
         QVERIFY(!state.currentMatchPlayers());
-        QVERIFY(!p.match->hasStarted());
         GameStartCoordinator::Ctx ctx;
         ctx.dialogData.startingPositionNumber = 1;
         ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;

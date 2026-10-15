@@ -89,23 +89,4 @@ QString sfenFromPositionCommand(const QString& positionCommand)
     return board.toSfen();
 }
 
-QStringList buildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal)
-{
-    const Result result = replay(initialSfen, usiMoves);
-    if (!result.success()) return {};
-    QStringList sfens{result.initialSfen};
-    for (const Step& step : result.moves) sfens.append(step.sfen);
-    if (hasTerminal) sfens.append(sfens.last());
-    return sfens;
-}
-
-QList<ShogiMove> buildGameMoves(const QString& initialSfen, const QStringList& usiMoves)
-{
-    const Result result = replay(initialSfen, usiMoves);
-    if (!result.success()) return {};
-    QList<ShogiMove> moves;
-    for (const Step& step : result.moves) moves.append(step.move);
-    return moves;
-}
-
 } // namespace SfenReplay

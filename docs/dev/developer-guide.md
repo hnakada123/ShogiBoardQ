@@ -80,6 +80,7 @@
 | 2026-10-14 | `prestartcleanuphandler.h` を `src/app/`、`promotionflow.h` を `src/ui/coordinators/` に移し、ヘッダーとソースを同じディレクトリにしたのに合わせて §1.5・§6.1・§6.5・§6.8 を更新。§1.8 のテスト構成を今の `tests/` に合わせて書き直し（存在しない `fakes/`・`tst_prestartcleanuphandler.cpp` などを削除） |
 | 2026-10-15 | レジストリ構成（`MainWindowServiceRegistry`・`MainWindowFoundationRegistry`・`KifuSubRegistry` と `ensure*()`、`MainWindowLifecyclePipeline`、`MainWindowSignalRouter`、`MainWindowMatchAdapter`、`TurnSyncBridge`、`mainwindowstate.h` など）を合成ルート（`MainWindowComposer`・`MainWindowComponents`・`AppState`・`MainWindowActions`）に置き換えたのに合わせて更新。§1.5・§1.6、§3.3、§4.2（合成ルートでの組み立てに書き直し）、§4.3、§6.2〜§6.4（司令塔はコンストラクタで子の部品を全部作る、手番のコピー `m_cur` の削除、開始は `GameStartCoordinator::finishStart()` に集約）、§6.7（`TurnStateSyncService`）、§6.9（判定は `PlayModePolicyService`）、§8.7・§8.9、§10、§13、第14章（MainWindow・部品の一覧・共有状態・起動の手順・`MainWindowActions` に書き直し）、§15.1・§15.2、§16.5、§17.3〜§17.8、第18章 |
 | 2026-10-15 | 対局・検討・棋譜の構造の整理に合わせて全章を更新。§3.4・§5.6 を `PlayMode` から動作状態（`AppActivityState`）と対局者（`MatchPlayers`）に、§4.3 を司令塔のシグナルと `MatchRecordSink` に、§6.9 を `GameSession` に、§9.5 を `ConsiderationUiController` に、§12.7 を `PlayerInfoPresenter` に、§13.8 を `SfenReplay` に書き直し。§3.1・§3.2 を `tests/tst_layer_dependencies.cpp` の層の順に、§2.1・§2.4・§5.3・§5.4 を `UsiMove`（1始まりの `BoardSquare`）で持つ `ShogiMove` と今の `EngineMoveValidator` の API に、§1.5・§1.6 と第18章を移動したファイル（棋譜・解析の UI フローは `src/ui/coordinators/` など）に合わせて更新 |
+| 2026-10-15 | 今のコードに合わせて更新。§13.8 の `SfenReplay::buildSfenRecord()`・`buildGameMoves()` をテスト用の `TestReplay`（`tests/test_replay.h`）に、詰将棋の局面生成が `Usi` ではなく `UsiEngineSession` と `UsiProtocolHandler` を使うのに合わせて §7.1・§7.5・§9.7 を直し、削除した `MatchCoordinator::hasStarted()`・`KifuNavigationController::boardUpdateRequired` の記述を除く。§1.8 のテストの数、§7.3〜§7.8（シャットダウン状態、`SearchPhase::StoppingPonder`、info のバッファと評価値、思考の表の列）、§8.5 のコメントの流れ、§8.10 のカーソルを動かす部品、§10.3 の持将棋の点数ダイアログ、§11.2・§11.5（ドックへの配置、デリゲート、ElideLabel の既定、AppToolTipFilter の装着先）、§12.5 の INI の例を更新 |
 
 <!-- chapter-0-end -->
 
@@ -615,15 +616,15 @@ tests/
 ├── CMakeLists.txt                  # テスト用ビルド構成（add_shogi_test で1本ずつ登録する）
 ├── tst_*.cpp                       # 単体テスト。多くは shogiboardq_static にリンクする
 ├── mock_usi_match.cpp              # 本体のUSI通信経路で使うテスト用エンジン
-├── kifu_test_helper.h ほか          # テスト共通の補助
+├── kifu_test_helper.h ほか          # テスト共通の補助（test_replay.h は手順から局面列・指し手列を作る TestReplay）
 ├── mock_*.cpp                      # テスト用の偽エンジン（USI・詰み探索）
 ├── test_*.py                       # scripts/ の Python スクリプトのテスト
 ├── fixtures/                       # テスト用の棋譜（KIF・KI2・CSA・JKF・USEN・USI）と局面集
-├── tsumeshogi_stubs/               # 詰将棋の生成器のテスト用のスタブ
+├── tsumeshogi_stubs/               # 詰将棋の生成器のテスト用のスタブ（usienginesession.h・usiprotocolhandler.h）
 └── gui/                            # GUI シナリオ・GUI フロー・エンジン終了のハーネス
 ```
 
-2026-10-14 時点で、`tst_*.cpp` は127本、`ctest` に登録したテストは135件（MCP サーバーの Python テスト `tst_mcp_python` を含む）。実行方法は次のとおり。
+2026-10-15 時点で、`tst_*.cpp` は129本、`ctest` に登録したテストは137件（MCP サーバーの Python テスト `tst_mcp_python` を含む。除くと136件）。実行方法は次のとおり。
 
 - 単体テスト: `ctest --test-dir build -j8 -E tst_mcp_python`
 - MCP サーバーのテスト: `python3 -m pytest -q mcp/tests`（`mcp/tests/`）
@@ -2636,7 +2637,7 @@ struct GameOverState {
 };
 ```
 
-`moveAppended` フラグは棋譜への終局手（「投了」「中断」等）の二重追記を防ぐガードとして機能する。開始の設定・対局者・終局状態は `MatchSessionState`（`src/game/matchsessionstate.h`）が持ち、司令塔は `options()`・`players()`・`gameOverState()`・`hasStarted()` で読ませる。
+`moveAppended` フラグは棋譜への終局手（「投了」「中断」等）の二重追記を防ぐガードとして機能する。開始の設定・対局者・終局状態は `MatchSessionState`（`src/game/matchsessionstate.h`）が持ち、司令塔は `options()`・`players()`・`gameOverState()` で読ませる。
 
 #### シグナルと MatchRecordSink — 上位層への知らせ
 
@@ -3271,7 +3272,7 @@ engine層は **単一責任原則（SRP）** に基づき、以下の3つのク�
 | `EngineProcessManager` | `src/engine/engineprocessmanager.h/.cpp` | QProcess のライフサイクル管理。コマンド送信、標準出力/エラーの行単位読み取り、シャットダウン状態の管理 |
 | `UsiProtocolHandler` | `src/engine/usiprotocolhandler.h/.cpp` | USI コマンドの生成・送信、レスポンス（usiok, readyok, bestmove, info, checkmate）の解析、待機処理 |
 | `ThinkingInfoPresenter` | `src/engine/thinkinginfopresenter.h/.cpp` | info 行の解析結果を GUI 向けシグナルに変換。評価値の計算、漢字読み筋の生成、通信ログの整形 |
-| `UsiEngineSession` | `src/engine/usienginesession.h/.cpp` | 上の2つを束ね、起動・初期化（usi〜readyok）・終了を行う。GUI の `Usi` と自動化・CLI が共用する |
+| `UsiEngineSession` | `src/engine/usienginesession.h/.cpp` | 上の2つを束ね、起動・初期化（usi〜readyok）・終了を行う。GUI の `Usi` と自動化・CLI が共用し、思考タブを使わない詰将棋の局面生成（`TsumeshogiGenerator`）や詰み判定（`TsumeMateEngine`）も直接使う |
 | `UsiMatchHandler` | `src/engine/usimatchhandler.h/.cpp` | 対局の position/go/bestmove、先読み（ponder）、bestmove の応答待ち |
 
 #### シグナル伝搬の流れ
@@ -3363,7 +3364,7 @@ enum class ShutdownState {
 };
 ```
 
-quit コマンド送信後、エンジンが出力する残りの応答を制御するために使用される。`IgnoreAllExceptInfoString` 状態では、指定行数分の `info string` 応答のみを許可し、残行数が 0 になると `IgnoreAll` に遷移する。
+quit コマンド送信後、エンジンが出力する残りの応答を制御するために使用される。`UsiProtocolHandler::sendQuit()` は `IgnoreAllExceptInfoString` にして残行数を1にする。この状態では残行数分の `info string` 応答のみを許可し、残行数が 0 になると `IgnoreAll` に遷移する。`stopProcessAsync()` とプロセスの終了（`onProcessFinished()`）では `IgnoreAll` になる。`Running` のままプロセスが終わったとき（予期しない終了）だけ `processExited` を発行する。
 
 #### 主要メソッド
 
@@ -3372,7 +3373,7 @@ quit コマンド送信後、エンジンが出力する残りの応答を制御
 | `startProcessAsync(engineFile)` | ファイル検証後に起動要求を出す。完了は `processStarted` で通知 |
 | `stopProcessAsync()` | プロセスの所有権を終了処理へ移し、quit → terminate → kill をタイマーで進める。管理元の破棄後も回収する |
 | `sendCommand(command)` | コマンド文字列を UTF-8 で書き込み、`commandSent` シグナルを発行 |
-| `setLogIdentity(tag, side, name)` | ログ出力用の識別情報を設定（例: `[E1/▲] YaneuraOu`） |
+| `setLogIdentity(tag, side, name)` | ログ出力用の識別情報を設定（例: `[E1/black] YaneuraOu`。対局のエンジンは手番を `black`／`white` で付ける） |
 
 #### 標準出力の読み取り
 
@@ -3381,8 +3382,8 @@ quit コマンド送信後、エンジンが出力する残りの応答を制御
 ```
 onReadyReadStdout()
   │
-  ├── 行ごとに読み取り（最大 kMaxLinesPerChunk = 64）
-  │     ├── "id name ..." → ログの識別に使うエンジン名を記録（未設定のときだけ）
+  ├── 行ごとに読み取り（最大 kMaxLinesPerChunk = 64。空行は飛ばす）
+  │     ├── "id name ..." → ログの識別に使うエンジン名を記録（未設定のときだけ。行は下の判定へ進む）
   │     ├── ShutdownState::IgnoreAll → 破棄
   │     ├── ShutdownState::IgnoreAllExceptInfoString
   │     │     └── "info string" のみ通過、残行数をデクリメント
@@ -3401,13 +3402,14 @@ USI プロトコルのコマンド生成・レスポンス解析・非同期初�
 
 ```cpp
 enum class SearchPhase {
-    Idle,    // 待機中
-    Main,    // 本探索中（go送信後）
-    Ponder   // 先読み中（go ponder送信後）
+    Idle,           // 待機中
+    Main,           // 本探索中（go送信後）
+    Ponder,         // 先読み中（go ponder送信後）
+    StoppingPonder  // 先読みのstop送信後、bestmove回収待ち
 };
 ```
 
-`sendGo()` で `Main` に、`sendGoPonder()` で `Ponder` に遷移する。`sendPonderHit()` は `Ponder` → `Main` に切り替える（予想手が的中した場合）。
+`sendGo()`（`go depth`・`go movetime`・`go infinite`・`go searchmoves` の各送信も同じ）で `Main` に、`sendGoPonder()` で `Ponder` に遷移する。`sendPonderHit()` は `Ponder` → `Main` に切り替える（予想手が的中した場合）。先読み中の `sendStop()` は `StoppingPonder` にする。bestmove の受信と `cancelCurrentOperation()` で `Idle` に戻る。
 
 #### 主要コマンド送信メソッド
 
@@ -3440,16 +3442,19 @@ onDataReceived(line)
   ├── "checkmate ..." → handleCheckmateLine()
   │     ├── "nomate"         → emit checkmateNoMate()
   │     ├── "notimplemented" → emit checkmateNotImplemented()
-  │     ├── 空/"unknown"     → emit checkmateUnknown()
+  │     ├── 空/"unknown"/"timeout" → emit checkmateUnknown()
   │     └── 手順あり          → emit checkmateSolved(pvMoves)
   │
   ├── "bestmove ..." → handleBestMoveLine()
+  │     ├── stop・キャンセルで世代が進んだ後の bestmove → 破棄
+  │     ├── 先読み（Ponder / StoppingPonder）の結果 → 予想手を消す（投了・宣言勝ちのシグナルは出さない）
   │     ├── "resign" → emit bestMoveResignReceived()（重複防止付き）
   │     ├── "win"    → emit bestMoveWinReceived()（重複防止付き）
   │     └── 通常手   → m_bestMove に格納、ponder手も取得
   │     └── emit bestMoveReceived()
   │
-  ├── "info ..." → UsiInfoParser::parse() → emit infoReceived(UsiInfo)
+  ├── "info ..." → UsiInfoParser::parse()（読めなければ破棄）→ updateCandidate()（候補手）
+  │                 → emit infoReceived(UsiInfo)
   │                 ThinkingInfoPresenter::onInfoReceived()、Usi::infoReceived（→ AnalysisJob）
   │
   ├── "option name ..." → UsiInfoParser::parseOptionDeclaration()（報告されたオプションを記録）
@@ -3477,7 +3482,7 @@ onDataReceived(line)
 
 **ソース**: `src/engine/usi.h`, `src/engine/usi.cpp`
 
-`Usi` クラスは GUI からエンジン1台を使う窓口である。対局（`HumanVsEngineStrategy`・`EngineVsEngineStrategy`。エンジンは `EngineLifecycleManager` が作る）、検討・詰み探索（`AnalysisSession`）、棋譜解析（`AnalysisJob`）、通信対局（`CsaEngineController`）、詰将棋の局面生成（`TsumeshogiGenerator`）が使う。内部のコンポーネント（7.1節の表）を持ち、シグナルの中継とモデル更新を行う。
+`Usi` クラスは GUI からエンジン1台を使う窓口である。対局（`HumanVsEngineStrategy`・`EngineVsEngineStrategy`。エンジンは `EngineLifecycleManager` が作る）、検討・詰み探索（`AnalysisSession`）、棋譜解析（`AnalysisJob`）、通信対局（`CsaEngineController`）が使う。詰将棋の局面生成（`TsumeshogiGenerator`）は `Usi` を使わず、`UsiEngineSession`（`m_engine`）を持って `UsiProtocolHandler` で position・go mate・stop を送り、詰み探索の結果も `UsiProtocolHandler` のシグナルで受ける。`Usi` は内部のコンポーネント（7.1節の表）を持ち、シグナルの中継とモデル更新を行う。
 
 #### コンストラクタと依存関係
 
@@ -3499,7 +3504,6 @@ Usi(UsiCommLogModel* model,                  // 通信ログモデル（非所�
 | `sendAnalysisCommands(position, byoyomiMs, multiPV)` | 検討の position + go infinite（時間が来たら stop） |
 | `sendPositionAndGoInfinite(position)` | 棋譜解析の1局面の探索 |
 | `startMateSearch(position, ms)` | 詰み探索を始める（思考タブを消し、読み筋はこの局面から表示する） |
-| `sendMateSearch(position, ms)` | position と go mate だけを送る（思考タブを使わない詰将棋の局面生成用） |
 | `sendSetOptionCommand(name, value)` / `sendConsoleCommand(command)` | setoption の送信 / USI コンソールの入力をそのまま送る |
 | `cancelCurrentOperation()` | 探索の世代を進め、保留中の要求と取消済みの結果を捨てる |
 
@@ -3546,16 +3550,16 @@ Presenter → Usi（モデル更新の中継）
 
 | シグナル | 用途 | 主な接続先 |
 |---------|------|----------|
-| `engineInitialized()` | 初期化（usi〜readyok）の完了 | 対局の Strategy、AnalysisJob、CsaEngineController、TsumeshogiGenerator |
+| `engineInitialized()` | 初期化（usi〜readyok）の完了 | 対局の Strategy、AnalysisJob、CsaEngineController |
 | `matchMoveReady(UsiMove, position, ponder)` | 対局の思考で指し手が決まった | HumanVsEngineStrategy・EngineVsEngineStrategy、CsaEngineController |
 | `bestMoveReceived()` | bestmove 受信 | AnalysisSession（検討・詰み探索）、AnalysisJob（棋譜解析） |
 | `bestMoveResignReceived()` | 投了 | EngineLifecycleManager（→ `engineResigned(Turn)` → MatchCoordinator）、CsaEngineController |
 | `bestMoveWinReceived()` | 入玉宣言勝ち | EngineLifecycleManager（→ `engineDeclaredWin(Turn)` → MatchCoordinator）、CsaEngineController |
-| `errorOccurred(message)` | エンジンエラー | EngineLifecycleManager（対局のエンジン。→ `engineError` → MatchCoordinator）、AnalysisSession、AnalysisJob、CsaEngineController、TsumeshogiGenerator |
+| `errorOccurred(message)` | エンジンエラー | EngineLifecycleManager（対局のエンジン。→ `engineError` → MatchCoordinator）、AnalysisSession、AnalysisJob、CsaEngineController |
 | `infoReceived(UsiInfo)` | info 受信（解析済み） | AnalysisJob |
 | `thinkingInfoUpdated(ThinkingInfoRow)` | 思考情報更新 | AnalysisJob（→ AnalysisFlowController） |
 | `searchCandidateChanged()` | 候補手が変わった | CandidateArrowController |
-| `checkmateSolved(pvMoves)` / `checkmateNoMate()` など | 詰み探索の結果 | AnalysisSession、TsumeshogiGenerator |
+| `checkmateSolved(pvMoves)` / `checkmateNoMate()` など | 詰み探索の結果 | AnalysisSession |
 
 #### onThinkingInfoUpdated() のモデル更新
 
@@ -3563,9 +3567,12 @@ Presenter → Usi（モデル更新の中継）
 onThinkingInfoUpdated(row)   // ThinkingInfoRow（時間・深さ・ノード数・評価値・漢字の読み筋・USI の読み筋・エンジンの読み筋・局面・multipv・評価値の整数）
   │
   ├── 思考タブ: m_thinkingModel->prependItem(record)
-  │     └── 新しい思考情報を先頭に追加（時系列の逆順）
+  │     ├── 漢字の読み筋が空の行は入れない（詰み探索の中間結果など）
+  │     ├── 先頭の行と内容が同じなら入れない
+  │     └── 新しい思考情報を先頭に追加（時系列の逆順）し、trimToMaxRows(500) で古い行を消す
   │
   ├── 検討タブ: m_considerationModel->updateByMultipv(record, maxMultiPV)
+  │     ├── 漢字の読み筋が空の行と、同じ multipv の行と内容が同じものは反映しない
   │     └── MultiPV番号に基づいて行を更新/挿入
   │
   └── emit thinkingInfoUpdated(row)  ← 外部への通知
@@ -3593,6 +3600,8 @@ flushInfoBuffer()
   └── 各 info に対して processInfo() を実行
 ```
 
+`requestClearThinkingInfo()`（探索の開始時に `searchStarted` から呼ばれる）はバッファに残った info も捨てる。棋譜解析（`AnalysisJob`）は bestmove を受けたとき、評価値グラフ（`EvaluationGraphController`）は評価値を描く前に、`Usi::flushThinkingInfoBuffer()` でバッファを処理して最後の値を確定させる。
+
 #### processInfo() の処理フロー
 
 ```
@@ -3604,21 +3613,25 @@ processInfo(info)
   ├── 2. format(info) で読み筋・探索手を漢字表記にする
   │     └── 盤面コピー上で指し手をシミュレートし、漢字読み筋を生成
   │
-  ├── 3. GUI項目のシグナルを発行
-  │     ├── searchedMoveUpdated  → 探索手
+  ├── 3. GUI項目のシグナルを発行（Usi が UsiCommLogModel に入れる）
+  │     ├── searchedMoveUpdated  → 探索手（表記の設定に合わせた表示）
   │     ├── searchDepthUpdated   → 深さ（depth/seldepth）
   │     ├── nodeCountUpdated     → ノード数（カンマ区切り）
   │     ├── npsUpdated           → NPS（カンマ区切り）
-  │     └── hashUsageUpdated     → ハッシュ使用率（%表示）
+  │     └── hashUsageUpdated     → ハッシュ使用率（hashfull の千分率を % で表示。無ければ空）
   │
   ├── 4. 評価値の更新
   │     └── updateEvaluationInfo()
-  │           ├── score cp → 棋譜解析モードなら、読み筋の開始局面が後手番のとき符号反転（先手から見た値）
-  │           └── score mate → 詰み評価値（±31111）を設定
+  │           ├── score cp → 値をそのまま使い（手番側から見た値）、lowerbound は "++"、upperbound は "--" を付ける
+  │           ├── score mate → 詰み評価値（±31111）と「N手詰」（手数が無ければ「詰み」）
+  │           └── multipv=1 のときだけ lastScoreCp() / lastScoreMate() を更新
+  │                 （評価値グラフの EvaluationGraphController と CsaEngineController が読む）
   │
   └── 5. thinkingInfoUpdated(ThinkingInfoRow) シグナルを発行
-        └── multipv=1 のみ評価値グラフを更新
+        └── 時間・深さ・ノード数・評価値・読み筋がすべて空なら発行しない
 ```
+
+`checkmateSolved` は `presentCheckmate(pv)` にもつながっている。バッファを先に処理してから、詰み手順を score mate の info として `processInfo()` に通し、info を出さないエンジンでも詰み手順を思考タブに残す。
 
 #### 通信ログの整形
 
@@ -3647,12 +3660,12 @@ info 行の解釈はアプリ全体で `UsiInfoParser::parse()` の1か所にま
 | `multipv` | `multipv` | 1 |
 | `time` / `nodes` / `nps` | `timeMs` / `nodes` / `nps` | -1 |
 | `hashfull` | `hashfull`（千分率） | -1 |
-| `score cp` / `score mate` | `score`（`UsiScore`: `kind` = Cp/Mate、`value`、`bound` = None/Lower/Upper、`mateCountKnown`） | `kind` = None |
+| `score cp` / `score mate` | `score`（`UsiScore`: `kind` = Cp/Mate、`value`、`bound` = None/Lower/Upper、`mateCountKnown`、`mateWin`） | `kind` = None |
 | `currmove` | `currmove` | 空 |
 | `pv` | `pv`（USI 形式の指し手の `QStringList`。行末まで） | 空 |
 | `string` | `string`（行末までの本文。中の `pv` などは読まない） | 空 |
 
-`score mate +` / `score mate -` のように手数を省く場合は `value` = 0、`mateCountKnown` = false で、`mateText()` は `"+"` / `"-"` を返す。
+`score mate +` / `score mate -` のように手数を省く場合は `value` = 0、`mateCountKnown` = false、勝ち負けは `mateWin`（`+` が true）で、`mateText()` は `"+"` / `"-"` を返す。
 数でない値や知らない語は飛ばす。先頭の語が `info` でない行は `std::nullopt` になる。
 
 同じファイルの `parseOptionDeclaration()`（`option name <name> type <type> ...`）と `parseIdName()`（`id name <name>`）は、
@@ -3698,20 +3711,22 @@ info ごとに作業用の盤へ写して（`ShogiBoard::copyPositionFrom`）、
 
 | 列番号 | ヘッダ | データソース | 備考 |
 |--------|--------|-------------|------|
-| 0 | 時間 | `ShogiInfoRecord::time()` | 経過時間 |
-| 1 | 深さ | `ShogiInfoRecord::depth()` | depth/seldepth |
-| 2 | ノード数 | `ShogiInfoRecord::nodes()` | カンマ区切り |
-| 3 | 評価値 | `ShogiInfoRecord::score()` | cp値または詰み手数 |
-| 4 | 盤面 | 固定文字列「表示」 | ボタン風セル（青背景・白文字） |
-| 5 | 読み筋 | `ShogiInfoRecord::pv()` | 漢字表記の読み筋 |
+| 0 | 時間(ms) | `ShogiInfoRecord::time()` | info の `time`（ミリ秒） |
+| 1 | 深さ | `ShogiInfoRecord::depth()` | info の `depth`（seldepth は付けない） |
+| 2 | ノード数 | `ShogiInfoRecord::nodes()` | info の `nodes` |
+| 3 | 評価値 | `ShogiInfoRecord::score()` | cp値（"++"/"--" 付きもある）または「N手詰」 |
+| 4 | 盤面 | 固定文字列「表示」（中央揃え） | ビューが `PvBoardButtonDelegate` で角丸のボタン風に描く |
+| 5 | 読み筋 | `ShogiInfoRecord::displayPv()` | 表記の設定に合わせた読み筋（ツールチップは移動元付きの全文） |
 
-列4（盤面）はクリックすると、その読み筋の局面を盤面に表示する機能に対応する。`baseSfen` と `usiPv` から局面を再現する。
+モデルは数を区切りなしの文字列で持つ。列0〜3はビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（思考タブは `EngineAnalysisPresenter`、検討タブは `ConsiderationTabManager` が設定する）。depth/seldepth の形の深さは、表ではなく `UsiCommLogModel` 側の欄（7.6節の手順3）に出る。
+
+列4（盤面）をクリックすると、`PvClickController::onPvRowClicked()` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。`baseSfen` と `usiPv`（空ならエンジンが送った `enginePv`）から局面をたどる。
 
 #### 2つの更新モード
 
 | モード | メソッド | 用途 |
 |--------|---------|------|
-| 通常モード | `prependItem(record)` | 思考タブ：新しい情報を先頭に追加（時系列の逆順表示） |
+| 通常モード | `prependItem(record)` | 思考タブ：新しい情報を先頭に追加（時系列の逆順表示）。`Usi` が `trimToMaxRows(500)` で古い行を消す |
 | MultiPVモード | `updateByMultipv(record, maxMultiPV)` | 検討タブ：multipv 番号に基づいて行を更新/挿入 |
 
 #### updateByMultipv() のロジック
@@ -4246,13 +4261,21 @@ struct KifParseResult {
 #### データフロー
 
 ```
+CommentCoordinator::onCommentUpdated(moveIndex, comment)  ← コメント欄（CommentEditorPanel）の更新
+  │   手数は表示中の手（KifuNavigationState::currentPly()）を優先する
+  ▼
 setComment(ply, comment)
   │
   ├── 表示中の分岐（KifuNavigationState::currentLineIndex()）の ply 番目のノードに保存
-  │     （ツリー未構築時のみ内部配列）
-  └── commentChanged(ply, comment)
-        └── CommentCoordinator が棋譜欄とコメント欄を更新
+  │     （ツリー未構築時のみ内部配列。ツリーがあってその手数のノードが無ければ何もしない）
+  └── 内容が変わったときだけ isDirty() を立てて commentChanged(ply, comment)
+        └── CommentCoordinator::onGameRecordCommentChanged（合成ルートが接続）
+              ├── 棋譜欄: KifuRecordListModel の ply 行のコメントを書き換え、
+              │           コメント列（列3）の dataChanged を出す
+              └── コメント欄: broadcastComment() で CommentEditorPanel の本文と手数を更新
 ```
+
+しおり（`setBookmark()` → `bookmarkChanged`）も同じ流れで、`CommentCoordinator::onBookmarkChanged` が棋譜欄のしおり列（列2）を更新する。
 
 #### ExportContext — 出力コンテキスト
 
@@ -4527,7 +4550,7 @@ KifuNavigationState
 | 記憶 | `lastSelectedChildAt(node)` | 分岐点で最後に選んだ子を取得 |
 | 記憶 | `rememberPathSelections(node)` | 経路上の全分岐点の選択を記憶 |
 
-`KifuNavigationState` はシグナルを持たない。カーソルを動かすのは `KifuNavigationController`（ナビゲーション操作）、`KifuDisplayCoordinator`（棋譜欄のクリック・対局の開始・着手・待った）、`KifuApplyService`（棋譜の読み込み）、`PreStartCleanupHandler`（新規対局の開始前）などで、表示の更新は `KifuNavigationController` のシグナル（13.1）で行う。
+`KifuNavigationState` はシグナルを持たない。カーソルを動かすのは `KifuNavigationController`（ナビゲーション操作。棋譜欄の行の選択も `KifuDisplayCoordinator` から `goToLine()` でここを通る）、`KifuDisplayCoordinator`（対局の開始・着手・待った。対局中は盤を動かさずカーソルとハイライトだけを最新手に合わせる）、`KifuApplyService`（棋譜の読み込み）、`PreStartCleanupHandler`（新規対局の開始前）、`GameSession`（中断した対局の再開と、`MainWindowResetService::resetModels()` を通した初期状態へのリセット）などで、表示の更新は `KifuNavigationController` のシグナル（13.1）で行う。
 
 ### 8.11 フォーマット変換器一覧
 
@@ -5015,7 +5038,7 @@ runWithDialog(deps, parent)
 
 #### USIコマンドの違い
 
-通常の解析が `go infinite` + タイマーで `stop` を送信するのに対し、詰将棋探索は `go mate <time>`（時間指定なしは `go mate infinite`）を使用する。`Usi::sendMateSearch()` が position と go mate を送る。エンジンは以下の応答を返す。
+通常の解析が `go infinite` + タイマーで `stop` を送信するのに対し、詰将棋探索は `go mate <time>`（時間指定なしは `go mate infinite`）を使用する。`Usi::startMateSearch()` が position と go mate を送る（送信だけの `sendMateSearch()` は private）。エンジンは以下の応答を返す。
 
 | 応答 | 意味 | 対応シグナル |
 |------|------|------------|
@@ -5487,7 +5510,7 @@ onPvRowClicked(engineIndex, row)
 | `LanguageController` | 言語メニュー（システム・日本語・英語・簡体字・繁体字）と棋譜表記のメニューを処理し、言語を変えたら再起動を案内する |
 | `UsiCommandController` | `EngineAnalysisTab` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineLifecycleManager` の E1・E2）のエンジンに送る。エンジン未起動時はステータスログにエラーを表示する |
 | `NyugyokuDeclarationHandler` | 入玉宣言を行う（`handleDeclaration()`）。24点法・27点法の2ルールで判定し、結果をダイアログで表示して `MatchCoordinator::handleNyugyokuDeclaration()` で終局させる |
-| `JishogiScoreDialogController` | 持将棋スコアの計算結果をダイアログで表示する。各プレイヤーの駒点数・敵陣駒数・王の位置などの条件判定結果を一覧表示する |
+| `JishogiScoreDialogController` | 表示中の局面の点数を `JishogiCalculator::calculate()` で数え、先後の王手を `EngineMoveValidator::isInCheck()` で調べて、`JishogiScoreDialog`（`src/dialogs/`）をモーダルで開く。ダイアログは先手・後手の2列の表で、宣言点数（敵陣の駒＋持ち駒）・総点数（盤上の全駒＋持ち駒）・玉が敵陣にいるか・敵陣に玉以外の駒が10枚以上あるか（枚数つき）・王手がかかっていないか・24点法と27点法の判定（条件未達・点数不足・宣言時の結果と、足りない点数）を出す。点数の数え方と規則の説明、A-/A+（`GameSettings::jishogiScoreFontSize`）と「結果をコピー」もある |
 | `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと USI 文字列を `UsiMove::parse()` と `BoardCoordinates` で盤座標にし、`moveRequested` シグナルで `MainWindowActions::handleMoveRequested` に渡す。着手できたかは局面（`AppState::currentSfenStr`）が変わったかで判定する。定跡へのマージには、表示中の手順（`RecordLine`）の局面・USI の指し手・表記を渡す。人間の手番かどうかは `HumanTurnPolicy` に聞く |
 | `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作り（初回だけ）、押されたボタンの `QAction` を `actionTriggered` で知らせる |
 | `BranchTreeEditController` | 分岐ツリーの右クリックメニューで分岐を編集する（本譜にする・並べ替え・削除）。対局していないときの盤上の着手を、現在の手の次の手（変化）として記録する |
@@ -5934,16 +5957,16 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 
 | クラス名 | 基底クラス | 配置場所 | 機能 |
 |---------|-----------|---------|------|
-| RecordPane | QWidget | MainWindow 左ペイン | 棋譜一覧（QTableView）＋分岐候補一覧＋ナビゲーションボタン＋コメント欄 |
-| EngineAnalysisTab | QWidget | MainWindow 右ペイン（QTabWidget） | 思考情報・検討・USI/CSAログ・コメント・分岐ツリーの各タブ。検討タブの操作は中継せず、呼び出し側が `considerationTabManager()` で `ConsiderationTabManager` を取り出して呼ぶ。思考タブの表示は `EngineAnalysisPresenter` に分けている |
-| BranchTreeManager | QObject | EngineAnalysisTab の分岐ツリータブ | 分岐ツリーを QGraphicsView に描く（`KifuBranchTree` を読むだけの観察者）。構築・入力は `branchtreemanager.cpp`、描画は `branchtreemanager_draw.cpp`。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
+| RecordPane | QWidget | 棋譜ドック（既定は右側） | 棋譜一覧（QTableView。指し手・消費時間・しおり・コメントの列と、列の表示の切り替え）＋分岐候補一覧（折りたたみ可）＋ナビゲーションボタン＋文字サイズ・しおり編集のボタン。コメントの編集欄は持たない（棋譜コメントのドック） |
+| EngineAnalysisTab | QWidget | 下部のドック群（タブにまとめる） | 思考・検討・USI通信ログ・CSA通信ログ・棋譜コメント・分岐ツリーの各ページを `createThinkingPage()` などで作り、`DockCreationService` がページごとに別のドックに載せる（`buildUi()` の QTabWidget は使わない）。検討タブの操作は中継せず、呼び出し側が `considerationTabManager()` で `ConsiderationTabManager` を取り出して呼ぶ。思考タブの表示は `EngineAnalysisPresenter` に分けている |
+| BranchTreeManager | QObject | 分岐ツリーのドック（EngineAnalysisTab のページ） | 分岐ツリーを QGraphicsView に描く（`KifuBranchTree` を読むだけの観察者）。構築・入力は `branchtreemanager.cpp`、描画は `branchtreemanager_draw.cpp`。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線） |
-| EngineInfoWidget | QWidget | EngineAnalysisTab 内（各エンジン情報エリア） | エンジン情報表示（予想手列、探索深さ、ノード数、NPS、ハッシュ使用率） |
-| GameInfoPaneController | QObject | 対局情報ドック | 対局情報テーブルの管理（QTableWidget）、編集・Undo/Redo・フォント変更。`PlayerInfoPresenter` が作って持つ |
-| KifuDisplay | QObject | モデルデータ（`src/models/`） | 棋譜1手分のデータ保持（指し手・消費時間・コメント） |
+| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。列幅は保存する |
+| GameInfoPaneController | QObject | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報テーブルの管理（QTableWidget）、編集・Undo/Redo・フォント変更。`PlayerInfoPresenter` が作って持つ |
+| KifuDisplay | QObject | モデルデータ（`src/models/`） | 棋譜1手分のデータ保持（指し手・消費時間・コメント・しおり） |
 | KifuBranchDisplay | QObject | モデルデータ（`src/models/`） | 分岐候補1手分のデータ保持（指し手テキスト） |
-| KifuAnalysisResultsDisplay | QObject | モデルデータ（`src/models/`） | 棋譜解析結果の保持（評価値・読み筋・局面SFEN） |
-| MenuWindow | QWidget | 独立ウィンドウ（`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
+| KifuAnalysisResultsDisplay | QObject | モデルデータ（`src/models/`） | 棋譜解析結果の保持（指し手・候補手・評価値・評価値の差・読み筋（漢字・USI）・局面SFEN） |
+| MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
 | MenuButtonWidget | QWidget | MenuWindow 内 | QAction をアイコン＋テキストで表示するカスタムボタン、D&D対応 |
 
 #### 汎用部品
@@ -5964,7 +5987,12 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 
 | クラス名 | 基底クラス | 機能 |
 |---------|-----------|------|
-| NumericRightAlignCommaDelegate | QStyledItemDelegate | テーブル内の数値を3桁カンマ区切り＋右寄せ表示 |
+| ItemTextDelegate | QStyledItemDelegate | 見た目は QStyledItemDelegate と同じで、項目の文字を `ItemTextPainter` に描かせる（下の各デリゲートの基底） |
+| NumericRightAlignCommaDelegate | ItemTextDelegate | テーブル内の数値を3桁カンマ区切り＋右寄せ表示（思考・検討の表の列0〜3、解析結果の表） |
+| PvTextDelegate | ItemTextDelegate | 読み筋のように長い文字列の列を軽く描く |
+| KifuMoveDelegate | ItemTextDelegate | 指し手の列を、指し手用の字形を選んで描く（エンジン情報欄・定跡ウィンドウなど） |
+| RecordHighlightDelegate | ItemTextDelegate | 棋譜欄・分岐候補欄の現在行の目印とセルの大きさのキャッシュ |
+| PvBoardButtonDelegate | QStyledItemDelegate | 読み筋の「表示」セルを角丸のボタン風に描く（思考・検討の表、解析結果、詰将棋の局面生成の結果） |
 
 ---
 
@@ -6080,17 +6108,17 @@ void CsaWaitingDialog::setupUi()
 src/widgets/collapsiblegroupbox.h / .cpp
 ```
 
-折りたたみ可能なグループボックス。クリックでコンテンツエリアの展開/折りたたみを切り替える。
+折りたたみ可能なグループボックス。見出しのボタンのクリックでコンテンツエリアの展開/折りたたみを切り替える。エンジン設定ダイアログのオプションのカテゴリ（`EngineSettingsOptionHandler`）で使う。
 
 ```
-┌─ タイトル [▼] ────────┐     ┌─ タイトル [▶] ─┐
+┌─ ▼ タイトル ──────────┐     ┌─ ▶ タイトル ───┐
 │  コンテンツエリア        │  →  └─────────────────┘
 │  (QVBoxLayout)          │       （折りたたみ時）
 └─────────────────────────┘
 ```
 
 - `contentLayout()` でコンテンツエリアの QVBoxLayout を取得し、任意のウィジェットを追加
-- `setExpanded(bool)` で状態制御
+- `setExpanded(bool)` で状態制御（`maximumHeight` を 200ms のアニメーションで変える）
 - `expandedChanged(bool)` シグナルで外部に通知
 
 #### 11.5.2 ElideLabel
@@ -6099,11 +6127,11 @@ src/widgets/collapsiblegroupbox.h / .cpp
 src/widgets/elidelabel.h / .cpp
 ```
 
-テキストがラベル幅に収まらない場合にエリプシス（...）を表示し、ホバー時に横スクロールで全文を閲覧可能にするカスタム QLabel。ShogiView のプレイヤー名表示で使用される。
+テキストがラベル幅に収まらない場合にエリプシス（...）を表示し、ホバー時に横スクロールで全文を閲覧可能にするカスタム QLabel。盤の対局者名（`BoardChromeWidget`。`ShogiView::blackNameLabel()` などで取り出せる）、USI通信ログのエンジン名、棋譜解析結果のエンジン名で使用される。
 
 機能:
 - `setFullText()` でフルテキストを設定、幅超過時に自動省略
-- `setElideMode(Qt::TextElideMode)` で省略位置を変更（デフォルト: 右端）
+- `setElideMode(Qt::TextElideMode)` で省略位置を変更（デフォルト: 中央。対局者名と USI通信ログのエンジン名は右端にしている）
 - `setSlideOnHover(true)` でマウスホバー時の自動横スクロールを有効化
 - `setManualPanEnabled(true)` でドラッグによる手動パンを有効化
 
@@ -6117,7 +6145,7 @@ src/widgets/apptooltipfilter.h / .cpp
 Qt 標準のツールチップは OS やテーマに依存して見た目が不統一になりやすい。本プロジェクトでは以下の構成で統一的なツールチップを実現している。
 
 - **GlobalToolTip**: QFrame ベースの軽量ポップアップ。`showText(QPoint, QString)` でグローバル座標にプレーンテキストを表示。XSS 対策として HTML タグをエスケープする
-- **AppToolTipFilter**: QObject のイベントフィルタ。`installOn(QWidget*)` でルート以下の全ウィジェットに一括装着し、`QEvent::ToolTip` を横取りして GlobalToolTip に差し替える
+- **AppToolTipFilter**: QObject のイベントフィルタ。`QEvent::ToolTip` を横取りして GlobalToolTip に差し替える。`installOn(QWidget*)` はルートと、その下のメニューバー・ツールバー・メニュー・ツールボタンに装着する（ほかの子ウィジェットや後から足した子には付かない）。アプリでは `MainWindowAppearanceController::installAppToolTips()` がツールバーのボタンに装着している
 
 #### 11.5.4 LongLongSpinBox
 
@@ -6125,7 +6153,7 @@ Qt 標準のツールチップは OS やテーマに依存して見た目が不�
 src/widgets/longlongspinbox.h / .cpp
 ```
 
-Qt の QSpinBox は `int` 範囲（約±21億）しか扱えないため、USI エンジンの option で `qlonglong` 範囲が必要な場合のためのカスタムスピンボックス。QAbstractSpinBox を継承し、`stepBy()` / `validate()` を自前実装している。
+Qt の QSpinBox は `int` 範囲（約±21億）しか扱えないため、USI エンジンの option で `qlonglong` 範囲が必要な場合のためのカスタムスピンボックス（エンジン設定ダイアログの spin 型のオプションに使う）。QAbstractSpinBox を継承し、`stepBy()` / `validate()` を自前実装している。
 
 #### 11.5.5 FlowLayout
 
@@ -6133,7 +6161,7 @@ Qt の QSpinBox は `int` 範囲（約±21億）しか扱えないため、USI �
 src/widgets/flowlayout.h / .cpp
 ```
 
-Qt の公式サンプルコードを参考にした自動折り返しレイアウト。MenuWindow 内でメニューボタンを水平に並べ、ウィンドウ幅が不足すると自動で次の行に折り返す。`heightForWidth()` をオーバーライドして、QLayout のサイズヒント計算に対応している。
+Qt の公式サンプルコードを参考にした自動折り返しレイアウト。MenuWindow 内でメニューボタンを水平に並べ、ウィンドウ幅が不足すると自動で次の行に折り返す（対局情報と検討のツールバーにも使う）。`heightForWidth()` をオーバーライドして、QLayout のサイズヒント計算に対応している。
 
 #### 11.5.6 カスタムウィジェット設計の共通パターン
 
@@ -6141,7 +6169,7 @@ Qt の公式サンプルコードを参考にした自動折り返しレイア�
 
 **1. buildUi() による初期化**
 
-コンストラクタで `buildUi()` を呼び出し、ウィジェットツリーの構築を分離する。RecordPane、EngineAnalysisTab、GameInfoPaneController、PvBoardDialog 等が採用している。
+コンストラクタで `buildUi()` を呼び出し、ウィジェットツリーの構築を分離する。RecordPane、GameInfoPaneController、PvBoardDialog、SfenCollectionDialog、TsumeCollectionDialog、TsumePlayDialog 等が採用している。EngineAnalysisTab は `buildUi()` を呼ばず、ドックごとのページを `createThinkingPage()` などで作る。
 
 **2. フォントサイズの永続化**
 
@@ -6149,11 +6177,11 @@ Qt の公式サンプルコードを参考にした自動折り返しレイア�
 
 **3. イベントフィルタの活用**
 
-`eventFilter()` をオーバーライドし、子ウィジェットのイベントを横取りするパターンが多い。ShogiView ではホイールイベントで拡大縮小、EngineAnalysisTab では分岐ツリーのクリック検出、AppToolTipFilter ではツールチップの差し替えに使用される。
+`eventFilter()` をオーバーライドし、子ウィジェットのイベントを横取りするパターンが多い。BranchTreeManager では分岐ツリーのビューのクリック・キー操作・大きさの変化の検出、AppToolTipFilter ではツールチップの差し替えに使用される。ShogiView の Ctrl+ホイールでの拡大縮小は `wheelEvent()` の上書きで行う。
 
 **4. デリゲートによる描画カスタマイズ**
 
-QTableView / QTreeView の表示をカスタマイズする場合は QStyledItemDelegate を継承する。`NumericRightAlignCommaDelegate` は数値の3桁区切り右寄せを担当する。
+QTableView / QTreeView の表示をカスタマイズする場合は QStyledItemDelegate を継承する。文字を描く列のデリゲートは、文字の配置を覚えて描く `ItemTextDelegate`（QStyledItemDelegate の派生）を継承する。`NumericRightAlignCommaDelegate` は数値の3桁区切り右寄せ、`PvBoardButtonDelegate` は読み筋の「表示」セルを担当する（11.2 のデリゲートの表）。
 
 <!-- chapter-11-end -->
 
@@ -6512,7 +6540,7 @@ CsaGameCoordinatorのシグナルとMainWindowのUI要素を接続する配線�
 
 #### INIファイルの場所と構造
 
-INIファイルの場所は `SettingsCommon::settingsFilePath()` が `QStandardPaths::AppConfigLocation` から決める（Linux は `~/.config/ShogiBoardQ/ShogiBoardQ.ini`）。環境変数 `SHOGIBOARDQ_CONFIG_HOME` を指定すると、その下の `ShogiBoardQ` フォルダを使う。読み書きは `SettingsCommon::openSettings()` が返す、アプリ全体で1つの `QSettings` を通る。
+INIファイルの場所は `SettingsCommon::settingsFilePath()` が `AppPaths::configDirectory()`（`src/services/apppaths.h`。既定は `QStandardPaths::AppConfigLocation`）から決める（Linux は `~/.config/ShogiBoardQ/ShogiBoardQ.ini`）。環境変数 `SHOGIBOARDQ_CONFIG_HOME` を指定すると、その下の `ShogiBoardQ` フォルダを使う。読み書きは `SettingsCommon::openSettings()` が返す、アプリ全体で1つの `QSettings` を通る。
 
 ```ini
 [SizeRelated]
@@ -6563,7 +6591,7 @@ floating=false
 visible=true
 
 [CustomDockLayouts]
-layout1=<base64エンコードされた状態>
+layout1=@ByteArray(<QMainWindow::saveState() のバイト列>)
 ```
 
 主要なグループと設定項目:
@@ -6811,12 +6839,11 @@ handleBranchNodeActivated(row, ply):
 
 #### emitUpdateSignals() — 更新シグナルの一括発行
 
-全ナビゲーション操作の末尾で呼ばれ、6つのシグナルを発行する。接続は `KifuDisplayCoordinator::wireSignals()` と `BranchNavigationWiring`、合成ルートの `connectSignals()`（`mainwindowcomposer_finalize.cpp`）にある。
+全ナビゲーション操作の末尾で呼ばれ、5つのシグナルを発行する。接続は `KifuDisplayCoordinator::wireSignals()` と `BranchNavigationWiring`、合成ルートの `connectSignals()`（`mainwindowcomposer_finalize.cpp`）にある。
 
 | シグナル | 接続先 | 内容 |
 |---------|-------|------|
 | `navigationCompleted(node)` | KifuDisplayCoordinator::onNavigationCompleted | 棋譜欄を表示中のラインに合わせ、`boardWithHighlightsRequired(currentSfen, prevSfen)` で盤とハイライトの更新を頼む（→ `BoardLoadService::loadWithHighlights()`） |
-| `boardUpdateRequired(sfen)` | （本体では未接続） | 盤面SFEN。盤は `navigationCompleted` の経路で更新する |
 | `recordHighlightRequired(ply)` | KifuDisplayCoordinator、BranchNavigationWiring::currentPlyChanged | 棋譜欄ハイライト、評価値グラフの縦線（`EvaluationGraphController::setCurrentPly()`） |
 | `branchTreeHighlightRequired(lineIdx, ply)` | KifuDisplayCoordinator | 分岐ツリーハイライト |
 | `branchCandidatesUpdateRequired(candidates)` | KifuDisplayCoordinator | 分岐候補欄更新 |
@@ -7144,10 +7171,7 @@ applyLenient(board, usiMove):
 | `positionAfter(sfen, usiMove)` | 局面から1手指した後の局面（指せなければ空）。定跡ウィンドウ・候補手の矢印・エンジンの最善手の後の局面に使う |
 | `replay(initialSfen, usiMoves)` | 開始局面から手を順に指し、各手と前後の局面を `Result` にまとめる。棋譜の読み込み（`KifuParseCommon::KifLineDraft::resolve()`）が使う |
 | `sfenFromPositionCommand(positionCommand)` | USI の `position startpos moves ...`／`position sfen ... moves ...` の局面（読めなければ空）。エンジン連携（`Usi`・`UsiProtocolHandler`・`UsiMatchHandler`）が使う |
-| `buildSfenRecord(initialSfen, usiMoves, hasTerminal)` | 開始局面と各手の後の局面の列。`hasTerminal` が `true` のとき終局の行のために最後の局面を複製する |
-| `buildGameMoves(initialSfen, usiMoves)` | 各手（動かした駒・取った駒つきの `ShogiMove`）の列 |
-
-`buildSfenRecord()`・`buildGameMoves()` は本体では使わず、テストが手順の局面列や指し手列を作るのに使う。
+テストが手順の局面列や指し手列を作るときは、`tests/test_replay.h` の `TestReplay::buildSfenRecord(initialSfen, usiMoves, hasTerminal)`（開始局面と各手の後の局面の列。`hasTerminal` が `true` のとき終局の行のために最後の局面を複製する）と `TestReplay::buildGameMoves(initialSfen, usiMoves)`（各手の `ShogiMove` の列）を使う。どちらも `replay()` の結果を並べるだけのテスト用の関数で、本体の `SfenReplay` には無い。
 
 #### replay() の処理フロー
 
@@ -7162,7 +7186,7 @@ replay(initialSfen, usiMoves):
      d. 指した後の局面を sfen に取り、moves に足す
   戻り値: Result（moves・initialSfen・failedPly・error）
 
-buildSfenRecord() は replay() の結果から [開始局面, 1手目後, 2手目後, ..., (終局の行の複製)] を作る。
+テストの TestReplay::buildSfenRecord() は replay() の結果から [開始局面, 1手目後, 2手目後, ..., (終局の行の複製)] を作る。
 ```
 
 ### 13.9 navigation層とboard層の協調

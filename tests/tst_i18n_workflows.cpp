@@ -33,6 +33,7 @@
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisresultsdisplay.h"
 #include "kifuanalysisdialog.h"
+#include "test_replay.h"
 
 class TestI18nWorkflows : public QObject
 {
@@ -169,8 +170,8 @@ private slots:
         KifuPresentation::configure(language, "auto", false);
         const QString initial = SfenUtils::hirateSfen();
         const QStringList usiMoves = QStringList{"7g7f", "3c3d"}.mid(0, plies);
-        auto moves = SfenReplay::buildGameMoves(initial, usiMoves);
-        auto history = SfenReplay::buildSfenRecord(initial, usiMoves, false);
+        auto moves = TestReplay::buildGameMoves(initial, usiMoves);
+        auto history = TestReplay::buildSfenRecord(initial, usiMoves, false);
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         auto* node = tree.root();
@@ -242,7 +243,7 @@ private slots:
         AnalysisResultHandler handler;
         AnalysisResultHandler::Refs refs;
         refs.analysisModel = &model;
-        RecordLine line = RecordLine::fromPositions(history, SfenReplay::buildGameMoves(initial, moves));
+        RecordLine line = RecordLine::fromPositions(history, TestReplay::buildGameMoves(initial, moves));
         refs.line = &line;
         handler.setRefs(refs);
         KifuPresentation::configure("en", "auto", false);

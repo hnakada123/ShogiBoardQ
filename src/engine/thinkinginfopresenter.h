@@ -43,9 +43,6 @@ public:
 
     // --- 状態設定 ---
     
-    /// 棋譜解析モードを設定
-    void setAnalysisMode(bool mode);
-    
     /// 前回の指し手の座標を設定
     void setPreviousMove(int fileTo, int rankTo);
 
@@ -146,7 +143,6 @@ private:
 
 private:
 
-    bool m_analysisMode = false;       ///< 棋譜解析モードフラグ
     int m_previousFileTo = 0;           ///< 前回の指し手の筋
     int m_previousRankTo = 0;           ///< 前回の指し手の段
 

@@ -13,16 +13,16 @@
 #include "kifu_test_helper.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
-#include "sfenreplay.h"
 #include "sfenutils.h"
+#include "test_replay.h"
 
 namespace {
 
 /// 指し手を足す。表示の文字列には USI をそのまま入れる（書き出しが表示の文字列を使わないことも確かめる）
 KifuBranchNode* addMove(KifuBranchTree& tree, KifuBranchNode* parent, const QString& usi)
 {
-    const QStringList positions = SfenReplay::buildSfenRecord(parent->sfen(), {usi}, false);
-    const QList<ShogiMove> moves = SfenReplay::buildGameMoves(parent->sfen(), {usi});
+    const QStringList positions = TestReplay::buildSfenRecord(parent->sfen(), {usi}, false);
+    const QList<ShogiMove> moves = TestReplay::buildGameMoves(parent->sfen(), {usi});
     return tree.addMove(parent, moves.value(0), usi, positions.last());
 }
 

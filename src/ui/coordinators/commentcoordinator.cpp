@@ -96,7 +96,7 @@ void CommentCoordinator::onGameRecordCommentChanged(int ply, const QString& comm
         }
     }
 
-    // 現在表示中のコメントを更新（両方のコメント欄に反映）
+    // 表示中のコメント欄（CommentEditorPanel）を更新
     broadcastComment(comment, /*asHtml=*/true);
 }
 

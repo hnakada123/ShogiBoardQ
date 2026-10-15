@@ -160,8 +160,6 @@ public:
 
     /// 詰み探索を始める（思考タブを消し、読み筋はこの局面から表示する）
     void startMateSearch(const QString& positionStr, int timeLimitMs);
-    /// position と go mate だけを送る（思考タブを使わない詰将棋の局面生成用）
-    void sendMateSearch(const QString& positionStr, int timeLimitMs);
     void cancelCurrentOperation();
 
 signals:
@@ -183,6 +181,8 @@ signals:
     void thinkingInfoUpdated(const ThinkingInfoRow& row); ///< 思考情報更新（Presenter → 外部）
 
 private:
+    /// position と go mate を送る（startMateSearch から使う。思考タブには触らない）
+    void sendMateSearch(const QString& positionStr, int timeLimitMs);
     bool deferUntilReady(std::function<void()> action) const;
     quint64 m_asyncGeneration = 0;
     mutable std::vector<std::function<void()>> m_pendingActions;
