@@ -7,7 +7,7 @@
 
 void MatchCoordinator::captureInterruptedGame()
 {
-    switch (m_playMode) {
+    switch (m_session.playMode()) {
     case PlayMode::HumanVsHuman:
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::EvenEngineVsHuman:
@@ -22,15 +22,13 @@ void MatchCoordinator::captureInterruptedGame()
     if (!clock() || !m_gc || !m_sfenHistory || m_sfenHistory->isEmpty()) return;
     auto state = std::make_unique<InterruptedGameState>();
     state->clock = clock()->pauseAndSnapshot();
-    if (m_gameOver.isOver) return;
-    state->options = m_lastStartOptions;
-    state->options.mode = m_playMode;
+    if (m_session.gameOver().isOver) return;
+    state->options = m_session.options();
+    state->options.mode = m_session.playMode();
     state->options.sfenStart = m_sfenHistory->last();
     state->options.resumeFromBreakOff = true;
     state->sfens = *m_sfenHistory;
     state->moves = gameMovesRef();
-    state->position = m_positionStr1;
-    state->positionHistory = m_positionStrHistory;
     state->previousFile = m_gc->previousMoveDestination().x();
     state->previousRank = m_gc->previousMoveDestination().y();
     m_interruptedGame = std::move(state);
@@ -46,18 +44,13 @@ bool MatchCoordinator::resumeInterruptedGame()
     if (!m_interruptedGame || !clock() || !m_gc || !m_gc->board()) return false;
     auto state = std::move(m_interruptedGame);
     clearGameOverState();
-    m_playMode = state->options.mode;
+    m_session.begin(state->options);
     m_gc->board()->setSfen(state->options.sfenStart);
     m_gc->setCurrentPlayer(state->clock.currentPlayer);
     m_gc->resetResult();
     m_gc->setPreviousMoveDestination(QPoint(state->previousFile, state->previousRank));
     *m_sfenHistory = state->sfens;
     gameMovesRef() = state->moves;
-    m_currentMoveIndex = static_cast<int>(state->sfens.size() - 1);
-    m_positionStr1 = m_positionStr2 = state->position;
-    // 先読みは停止済み。確定局面から新しい探索を開始する。
-    m_positionPonder1 = m_positionPonder2 = state->position;
-    m_positionStrHistory = state->positionHistory;
     // 時計のスナップショットは持ち時間の決まりと時間切れの扱いも含む
     clock()->restoreSnapshot(state->clock);
     m_turnHandler->createAndStartModeStrategy(state->options);

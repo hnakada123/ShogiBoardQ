@@ -44,6 +44,7 @@ struct KifLine {
 struct KifVariation {
     int startPly = 1;  ///< 変化開始手数（例: 「変化：65手」なら 65）
     KifLine line;      ///< 変化の手順
+    int parentVariation = -1; ///< 分岐元の手順。-1 は本譜、それ以外は variations の先行要素
 };
 
 /**

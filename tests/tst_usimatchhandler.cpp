@@ -382,7 +382,7 @@ private slots:
         QVERIFY(!h.commands.contains(QStringLiteral("ponderhit")));
         QVERIFY(!h.commands.contains(QStringLiteral("stop")));
     }
-    void humanMoveApiRecognizesPonderHit()
+    void committedPositionRecognizesPonderHit()
     {
         EnginePonderSettings::save(QStringLiteral("MatchTest"), true, true);
         ShogiGameController game;
@@ -395,22 +395,21 @@ private slots:
         QVERIFY(engine.startAndInitializeEngineAsync(mockPath(), QStringLiteral("MatchTest")));
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         QString position = QStringLiteral("position startpos");
-        QStringList history;
         // 時計がないので、残り時間と秒読みを条件で渡す
         UsiTimingParams timing;
         timing.timeControl.black.byoyomiMs = timing.timeControl.white.byoyomiMs = 5000;
         timing.btimeMs = 300000;
-        engine.requestHumanReply(position, {}, *UsiMove::parse(u"7g7f"), timing, history);
-        QCOMPARE(history, QStringList{QStringLiteral("position startpos moves 7g7f")});
+        position += QStringLiteral(" moves 7g7f");
+        engine.requestMatchMove(position, {}, timing);
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 1, 5000);
         QCOMPARE(moves.first().at(0).value<UsiMove>().to, (BoardSquare{8, 4}));
         position = moves.first().at(1).toString();
         const QString ponder = moves.first().at(2).toString();
-        engine.requestHumanReply(position, ponder, *UsiMove::parse(u"2g2f"), timing, history);
+        position += QStringLiteral(" 2g2f");
+        QCOMPARE(position, ponder);
+        engine.requestMatchMove(position, ponder, timing);
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 2, 5000);
         QCOMPARE(moves.last().at(0).value<UsiMove>().to, (BoardSquare{3, 4}));
-        QCOMPARE(history.size(), 2);
-        QCOMPARE(history.last(), ponder);
         engine.cleanupEngineProcessAndThread();
     }
     void actualDeadlineRejectsLateMove()

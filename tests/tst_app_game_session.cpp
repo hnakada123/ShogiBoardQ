@@ -212,8 +212,6 @@ private slots:
         StartSignalRecorder recorder;
         connect(&starter, &GameStartCoordinator::requestPreStartCleanup,
                 &recorder, &StartSignalRecorder::onPreStartCleanup);
-        connect(&starter, &GameStartCoordinator::requestBranchTreeResetForNewGame,
-                &recorder, &StartSignalRecorder::onBranchTreeReset);
         h.deps.gameStart = &starter;
         h.session.updateDeps(h.deps);
         m_acceptDialog = true;
@@ -221,7 +219,7 @@ private slots:
         QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
         h.session.initializeGame();
         QVERIFY(m_dialogSeen);
-        QCOMPARE(recorder.events, QStringList({QStringLiteral("branch-reset"), QStringLiteral("cleanup")}));
+        QCOMPARE(recorder.events, QStringList({QStringLiteral("cleanup")}));
         QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);
     }
 

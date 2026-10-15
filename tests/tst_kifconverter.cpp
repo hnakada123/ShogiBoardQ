@@ -29,6 +29,35 @@ private:
     }
 
 private slots:
+    void invalidVariationDoesNotReplaceExistingRecord_data()
+    {
+        QTest::addColumn<int>("parent");
+        QTest::addColumn<int>("startPly");
+        QTest::newRow("self-parent") << 0 << 1;
+        QTest::newRow("unknown-parent") << 5 << 1;
+        QTest::newRow("negative-parent") << -2 << 1;
+        QTest::newRow("zero-ply") << -1 << 0;
+        QTest::newRow("past-end") << -1 << 9;
+    }
+    void invalidVariationDoesNotReplaceExistingRecord()
+    {
+        QFETCH(int, parent);
+        QFETCH(int, startPly);
+        KifuBranchTree tree;
+        tree.setRootSfen(QStringLiteral("original"));
+        const int rootId = tree.root()->nodeId();
+        QSignalSpy changed(&tree, &KifuBranchTree::treeChanged);
+        KifParseResult result;
+        KifVariation variation;
+        variation.parentVariation = parent;
+        variation.startPly = startPly;
+        result.variations.append(variation);
+        QVERIFY(!KifuBranchTreeBuilder::buildFromKifParseResult(&tree, result, QStringLiteral("replacement")));
+        QCOMPARE(tree.root()->nodeId(), rootId);
+        QCOMPARE(tree.root()->sfen(), QStringLiteral("original"));
+        QCOMPARE(changed.count(), 0);
+    }
+
     void detectInitialSfen()
     {
         QString sfen = KifToSfenConverter::detectInitialSfenFromFile(
@@ -492,6 +521,7 @@ private slots:
         // 変化B: 変化A の3手目の局面（投了の直前）から4手目で分岐
         KifVariation varB;
         varB.startPly = 4;
+        varB.parentVariation = 0;
         varB.line.startPly = 4;
         varB.line.disp = { item(QStringLiteral("△８四歩"), 4) };
         varB.line.sfenList = { QStringLiteral("a3 w - 4"), QStringLiteral("b4 b - 5") };

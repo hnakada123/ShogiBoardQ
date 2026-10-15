@@ -16,9 +16,9 @@
 #include <QDebug>
 
 
-MatchTurnHandler::MatchTurnHandler(MatchCoordinator& mc)
+MatchTurnHandler::MatchTurnHandler(std::unique_ptr<MatchStrategyContext> context)
+    : m_strategyCtx(std::move(context))
 {
-    m_strategyCtx = std::make_unique<MatchCoordinator::StrategyContext>(mc);
 }
 
 MatchTurnHandler::~MatchTurnHandler() = default;
@@ -41,7 +41,7 @@ GameModeStrategy* MatchTurnHandler::strategy() const
 void MatchTurnHandler::createAndStartModeStrategy(const StartOptions& opt)
 {
     m_strategy.reset();
-    switch (*m_refs.playMode) {
+    switch (m_refs.session->playMode()) {
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine: {
         if (m_hooks.initEnginesForEvE)
@@ -51,7 +51,7 @@ void MatchTurnHandler::createAndStartModeStrategy(const StartOptions& opt)
             m_hooks.initAndStartEngine(Turn::White, opt.enginePath2, opt.engineName2);
         }
         m_strategy = std::make_unique<EngineVsEngineStrategy>(
-            *m_strategyCtx, opt, m_refs.mcAsParent);
+            *m_strategyCtx, m_refs.mcAsParent);
         m_strategy->start();
         break;
     }
@@ -78,7 +78,7 @@ void MatchTurnHandler::createAndStartModeStrategy(const StartOptions& opt)
     default:
         qCWarning(lcGame).noquote()
             << "configureAndStart: unexpected playMode="
-            << static_cast<int>(*m_refs.playMode);
+            << static_cast<int>(m_refs.session->playMode());
         break;
     }
 }
@@ -124,37 +124,16 @@ void MatchTurnHandler::updateTurnDisplay(Turn p)
     if (m_hooks.updateTurnDisplayCb) m_hooks.updateTurnDisplayCb(p);
 }
 
-void MatchTurnHandler::initPositionStringsFromSfen(const QString& sfenBase)
-{
-    m_refs.positionStr1->clear();
-    m_refs.positionPonder1->clear();
-    m_refs.positionStrHistory->clear();
-
-    if (sfenBase.isEmpty()) {
-        *m_refs.positionStr1    = QStringLiteral("position startpos moves");
-        *m_refs.positionPonder1 = *m_refs.positionStr1;
-    } else if (sfenBase.startsWith(QLatin1String("position "))) {
-        *m_refs.positionStr1    = sfenBase;
-        *m_refs.positionPonder1 = sfenBase;
-    } else if (MatchUndoHandler::isStandardStartposSfen(sfenBase)) {
-        *m_refs.positionStr1    = QStringLiteral("position startpos");
-        *m_refs.positionPonder1 = *m_refs.positionStr1;
-    } else {
-        *m_refs.positionStr1    = QStringLiteral("position sfen %1").arg(sfenBase);
-        *m_refs.positionPonder1 = *m_refs.positionStr1;
-    }
-}
-
 // --- 対局進行 ---
 
 void MatchTurnHandler::forceImmediateMove()
 {
-    if (!m_refs.gc || !m_refs.playMode || !m_hooks.sendStopToEngine) return;
-    if (m_refs.gameOver && m_refs.gameOver->isOver) return;
+    if (!m_refs.gc || !m_refs.session || !m_hooks.sendStopToEngine) return;
+    if (m_refs.session && m_refs.session->gameOver().isOver) return;
 
     const Turn player = m_refs.gc->currentPlayer();
     // 人間の手番に「すぐ指させる」を押しても先読みは停止しない。
-    switch (*m_refs.playMode) {
+    switch (m_refs.session->playMode()) {
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
         if (player != Turn::White) return;
@@ -171,8 +150,8 @@ void MatchTurnHandler::forceImmediateMove()
     }
 
     const bool isEvE =
-        (*m_refs.playMode == PlayMode::EvenEngineVsEngine) ||
-        (*m_refs.playMode == PlayMode::HandicapEngineVsEngine);
+        (m_refs.session->playMode() == PlayMode::EvenEngineVsEngine) ||
+        (m_refs.session->playMode() == PlayMode::HandicapEngineVsEngine);
 
     if (isEvE) {
         Usi* eng = (m_refs.gc->currentPlayer() == Turn::Black)
@@ -210,8 +189,8 @@ void MatchTurnHandler::handleUsiError(const QString& msg)
         return;
     }
 
-    if (!m_refs.gameOver->isOver) {
-        switch (*m_refs.playMode) {
+    if (!m_refs.session->gameOver().isOver) {
+        switch (m_refs.session->playMode()) {
         case PlayMode::EvenHumanVsEngine:
         case PlayMode::EvenEngineVsHuman:
         case PlayMode::EvenEngineVsEngine:

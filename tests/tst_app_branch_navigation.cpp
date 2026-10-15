@@ -20,6 +20,7 @@
 #include "kifurecordlistmodel.h"
 #include "livegamesession.h"
 #include "recordpane.h"
+#include "prestartcleanuphandler.h"
 #include "shogimove.h"
 
 namespace {
@@ -174,7 +175,6 @@ private slots:
         QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
         wiring.onBranchNodeActivated(0, 1);
         wiring.onBranchTreeBuilt();
-        wiring.onBranchTreeResetForNewGame();
         QCOMPARE(handled.count(), 0);
     }
 
@@ -205,7 +205,12 @@ private slots:
         QVERIFY(parts.liveSession.isActive());
         parts.startSfen = kNoLanceSfen;
 
-        wiring.onBranchTreeResetForNewGame();
+        PreStartCleanupHandler::Dependencies cleanupDeps;
+        cleanupDeps.liveGameSession = &parts.liveSession;
+        cleanupDeps.branchTree = &parts.tree;
+        cleanupDeps.navState = &parts.navState;
+        PreStartCleanupHandler cleanup(cleanupDeps);
+        cleanup.performCleanup({GameStartPreparation::Mode::NewGame, parts.startSfen, -1});
 
         QVERIFY(!parts.liveSession.isActive());
         QCOMPARE(parts.tree.root()->sfen(), kNoLanceSfen);

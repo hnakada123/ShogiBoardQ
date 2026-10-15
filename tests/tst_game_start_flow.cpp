@@ -13,15 +13,9 @@
 #include "shogiclock.h"
 #include "playmode.h"
 #include "kifurecordlistmodel.h"
-
-// test_stubs_game_start_flow.cpp で定義されたテスト追跡用変数
-namespace TestTracker {
-    extern bool configureAndStartCalled;
-    extern bool startInitialEngineMoveIfNeededCalled;
-    extern bool clearGameOverStateCalled;
-    extern MatchCoordinator::StartOptions lastStartOptions;
-    extern void reset();
-}
+#include "shogigamecontroller.h"
+#include "usi.h"
+#include <QTemporaryDir>
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -35,13 +29,21 @@ struct TestHarness {
     GameStartCoordinator* gsc = nullptr;
 
     ShogiClock clock;
+    ShogiGameController gc;
+    int initializedCount = 0;
 
     TestHarness()
     {
+        matchDeps.gc = &gc;
+        matchDeps.clock = &clock;
+        matchDeps.hooks.game.initializeNewGame = [this](const QString& sfen) {
+            ++initializedCount;
+            QString position = sfen;
+            gc.newGame(position);
+        };
         match = new MatchCoordinator(matchDeps);
         gscDeps.match = match;
         gsc = new GameStartCoordinator(gscDeps);
-        TestTracker::reset();
     }
 
     ~TestHarness()
@@ -66,7 +68,7 @@ struct TestHarness {
         GameStartCoordinator::StartParams p;
         p.opt.mode = PlayMode::EvenHumanVsEngine;
         p.opt.sfenStart = kHirateSfen;
-        p.opt.enginePath2 = QStringLiteral("/path/to/engine");
+        p.opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         p.opt.engineName2 = QStringLiteral("TestEngine");
         p.autoStartEngineMove = false;
         return p;
@@ -78,8 +80,8 @@ struct TestHarness {
         GameStartCoordinator::StartParams p;
         p.opt.mode = PlayMode::EvenEngineVsEngine;
         p.opt.sfenStart = kHirateSfen;
-        p.opt.enginePath1 = QStringLiteral("/path/to/engine1");
-        p.opt.enginePath2 = QStringLiteral("/path/to/engine2");
+        p.opt.enginePath1 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        p.opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         p.opt.engineName1 = QStringLiteral("Engine1");
         p.opt.engineName2 = QStringLiteral("Engine2");
         p.autoStartEngineMove = true;
@@ -87,7 +89,7 @@ struct TestHarness {
     }
 };
 
-/// start() が時計へ適用を頼んだ時間設定を受け取る（頼まなければ count は 0）
+/// start() が適用後に通知した時間設定を受け取る。
 struct AppliedTimeControl {
     int count = 0;
     GameStartCoordinator::TimeSettings last;
@@ -97,21 +99,62 @@ static AppliedTimeControl startAndCaptureTimeControl(GameStartCoordinator* gsc,
                                                      const GameStartCoordinator::StartParams& params)
 {
     AppliedTimeControl applied;
-    const auto connection = QObject::connect(gsc, &GameStartCoordinator::requestApplyTimeControl, gsc,
-                                             [&applied](const GameStartCoordinator::TimeSettings& tc) {
-                                                 ++applied.count;
-                                                 applied.last = tc;
-                                             });
+    QSignalSpy spy(gsc, &GameStartCoordinator::requestApplyTimeControl);
     gsc->start(params);
-    QObject::disconnect(connection);
+    applied.count = static_cast<int>(spy.count());
+    if (!spy.isEmpty()) {
+        applied.last = qvariant_cast<GameStartCoordinator::TimeSettings>(spy.last().at(0));
+    }
     return applied;
 }
 
 class TestGameStartFlow : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_config;
 
 private slots:
+    void initTestCase()
+    {
+        QVERIFY(m_config.isValid());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+    }
+    void initializeGameValidatesBeforeCleanup()
+    {
+        TestHarness h;
+        QString invalid = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
+        const QString original = invalid;
+        GameStartCoordinator::Ctx ctx;
+        ctx.currentSfenStr = &invalid;
+        ctx.dialogData.startingPositionNumber = 0;
+        ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
+        QSignalSpy cleanup(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
+        QSignalSpy time(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
+        QString error;
+        QVERIFY(!h.gsc->initializeGame(ctx, error));
+        QVERIFY(!error.isEmpty());
+        QCOMPARE(cleanup.count(), 0);
+        QCOMPARE(time.count(), 0);
+        QCOMPARE(invalid, original);
+        QCOMPARE(h.initializedCount, 0);
+    }
+    void initializeGameAppliesCleanupAndClockOnce()
+    {
+        TestHarness h;
+        GameStartCoordinator::Ctx ctx;
+        ctx.dialogData.startingPositionNumber = 1;
+        ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
+        ctx.dialogData.basicTimeMinutes1 = 5;
+        QSignalSpy cleanup(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
+        QSignalSpy time(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
+        QString error;
+        QVERIFY(h.gsc->initializeGame(ctx, error));
+        QCOMPARE(cleanup.count(), 1);
+        QCOMPARE(time.count(), 1);
+        QCOMPARE(h.initializedCount, 1);
+        QCOMPARE(h.clock.timeControl().black.mainMs, 300000);
+        QVERIFY(h.clock.isRunning());
+    }
     void timeoutChoiceSurvivesTimeControlNormalization_data()
     {
         QTest::addColumn<bool>("loseOnTimeout");
@@ -313,7 +356,7 @@ private slots:
         h.gsc->start(p);
 
         QCOMPARE(spy.count(), 0);
-        QVERIFY(!TestTracker::configureAndStartCalled);
+        QVERIFY(!(h.initializedCount > 0));
     }
 
     // ============================================================
@@ -354,8 +397,8 @@ private slots:
 
         QCOMPARE(started.count(), 0);
         QCOMPARE(timeControl.count(), 0);
-        QVERIFY(!TestTracker::configureAndStartCalled);
-        QVERIFY(!TestTracker::startInitialEngineMoveIfNeededCalled);
+        QVERIFY(!(h.initializedCount > 0));
+        QVERIFY(!h.clock.isRunning());
     }
 
     void start_validKings_data()
@@ -380,7 +423,7 @@ private slots:
         QSignalSpy started(h.gsc, &GameStartCoordinator::started);
         h.gsc->start(p);
         QCOMPARE(started.count(), 1);
-        QVERIFY(TestTracker::configureAndStartCalled);
+        QVERIFY((h.initializedCount > 0));
     }
 
     void start_hvh_emitsStartedSignal()
@@ -392,8 +435,8 @@ private slots:
         h.gsc->start(p);
 
         QCOMPARE(spy.count(), 1);
-        QVERIFY(TestTracker::configureAndStartCalled);
-        QCOMPARE(TestTracker::lastStartOptions.mode, PlayMode::HumanVsHuman);
+        QVERIFY((h.initializedCount > 0));
+        QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);
     }
 
     void start_hve_configuresCalled()
@@ -405,8 +448,8 @@ private slots:
         h.gsc->start(p);
 
         QCOMPARE(spy.count(), 1);
-        QVERIFY(TestTracker::configureAndStartCalled);
-        QCOMPARE(TestTracker::lastStartOptions.mode, PlayMode::EvenHumanVsEngine);
+        QVERIFY((h.initializedCount > 0));
+        QCOMPARE(h.match->playMode(), PlayMode::EvenHumanVsEngine);
     }
 
     void start_eve_triggersInitialEngineMove()
@@ -416,9 +459,10 @@ private slots:
         auto p = h.makeEveParams();
         h.gsc->start(p);
 
-        QVERIFY(TestTracker::configureAndStartCalled);
-        QVERIFY2(TestTracker::startInitialEngineMoveIfNeededCalled,
-                 "EvE should trigger initial engine move");
+        QVERIFY((h.initializedCount > 0));
+        QVERIFY(h.match->primaryEngine());
+        QSignalSpy ready(h.match->primaryEngine(), &Usi::matchMoveReady);
+        QTRY_VERIFY_WITH_TIMEOUT(!ready.isEmpty(), 5000);
     }
 
     void start_hvh_noInitialEngineMove()
@@ -429,7 +473,7 @@ private slots:
         p.autoStartEngineMove = false;
         h.gsc->start(p);
 
-        QVERIFY(!TestTracker::startInitialEngineMoveIfNeededCalled);
+        QVERIFY(!h.clock.isRunning());
     }
 
     // ============================================================
@@ -502,7 +546,7 @@ private slots:
 
     void start_noTimeControlWhenAllZero()
     {
-        // 全て0の場合、requestApplyTimeControl は発火しない
+        // 全て0でも前局の時間制限を解除するため、一度通知する
         TestHarness h;
         QSignalSpy tcSpy(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
 
@@ -517,7 +561,7 @@ private slots:
 
         h.gsc->start(p);
 
-        QCOMPARE(tcSpy.count(), 0);
+        QCOMPARE(tcSpy.count(), 1);
     }
 
     void start_asymmetricTimeControl()
@@ -545,35 +589,9 @@ private slots:
     // E) prepare() シグナルテスト
     // ============================================================
 
-    void prepare_emitsPreStartCleanup()
-    {
-        TestHarness h;
-        QSignalSpy spy(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
 
-        GameStartCoordinator::Request req;
-        req.startSfen = kHirateSfen;
-        req.clock = &h.clock;
-        req.skipCleanup = false;
 
-        h.gsc->prepare(req);
 
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void prepare_skipCleanup_noCleanupSignal()
-    {
-        TestHarness h;
-        QSignalSpy spy(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
-
-        GameStartCoordinator::Request req;
-        req.startSfen = kHirateSfen;
-        req.clock = &h.clock;
-        req.skipCleanup = true;
-
-        h.gsc->prepare(req);
-
-        QCOMPARE(spy.count(), 0);
-    }
 
     // ============================================================
     // F) 連続対局設定（StartOptions プロパティ検証）
@@ -588,113 +606,21 @@ private slots:
 
         h.gsc->start(p);
 
-        QVERIFY(TestTracker::configureAndStartCalled);
-        QCOMPARE(TestTracker::lastStartOptions.maxMoves, 256);
+        QVERIFY((h.initializedCount > 0));
+        QCOMPARE(h.match->maxMoves(), 256);
     }
 
-    void start_autoSaveKifuPassedThrough()
-    {
-        TestHarness h;
 
-        auto p = h.makeHvhParams();
-        p.opt.autoSaveKifu = true;
-        p.opt.kifuSaveDir = QStringLiteral("/tmp/kifu");
-
-        h.gsc->start(p);
-
-        QVERIFY(TestTracker::configureAndStartCalled);
-        QVERIFY(TestTracker::lastStartOptions.autoSaveKifu);
-        QCOMPARE(TestTracker::lastStartOptions.kifuSaveDir, QStringLiteral("/tmp/kifu"));
-    }
 
     // ============================================================
-    // G) prepareDataCurrentPosition / prepareInitialPosition
+    // G) 開始要求の検証と一度だけの適用
     // ============================================================
 
-    void prepareInitialPosition_setsCorrectSfen()
-    {
-        // prepareInitialPosition は startSfenStr/currentSfenStr を更新する
-        TestHarness h;
 
-        QString startSfen;
-        QString currentSfen;
-        QStringList sfenRecord;
-        KifuRecordListModel kifuModel;
 
-        // dialogData.startingPositionNumber のデフォルトは 1（平手）
-        GameStartCoordinator::Ctx ctx;
-        ctx.gc = nullptr;
-        ctx.startSfenStr = &startSfen;
-        ctx.currentSfenStr = &currentSfen;
-        ctx.sfenRecord = &sfenRecord;
-        ctx.kifuModel = &kifuModel;
 
-        h.gsc->prepareInitialPosition(ctx);
 
-        // 平手 SFEN が設定されているべき
-        QCOMPARE(startSfen, kHirateSfen);
-        QCOMPARE(currentSfen, kHirateSfen);
-        // sfenRecord にも SFEN がシードされる
-        QCOMPARE(sfenRecord.size(), 1);
-        QCOMPARE(sfenRecord.at(0), kHirateSfen);
-    }
 
-    void prepareInitialPosition_kifuModelGetsHeader()
-    {
-        TestHarness h;
-
-        QString startSfen;
-        QString currentSfen;
-        QStringList sfenRecord;
-        KifuRecordListModel kifuModel;
-
-        // ViewHooks を設定してモデルへの追加を可能にする
-        GameStartCoordinator::ViewHooks vh;
-        vh.addKifuHeaderItem = [&kifuModel](const QString& move, const QString& time, bool prepend) {
-            auto* item = new KifuDisplay(move, time);
-            if (prepend) {
-                kifuModel.prependItem(item);
-            } else {
-                kifuModel.appendItem(item);
-            }
-        };
-        h.gsc->setViewHooks(vh);
-
-        GameStartCoordinator::Ctx ctx;
-        ctx.startSfenStr = &startSfen;
-        ctx.currentSfenStr = &currentSfen;
-        ctx.sfenRecord = &sfenRecord;
-        ctx.kifuModel = &kifuModel;
-
-        h.gsc->prepareInitialPosition(ctx);
-
-        // 棋譜モデルにヘッダ行が追加されているべき
-        QCOMPARE(kifuModel.rowCount(), 1);
-    }
-
-    void prepareDataCurrentPosition_setsBaseSfen()
-    {
-        TestHarness h;
-
-        // 途中局面のSFEN
-        const QString midGameSfen =
-            QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2");
-
-        QString startSfen = kHirateSfen;
-        QString currentSfen = midGameSfen;
-
-        GameStartCoordinator::Ctx ctx;
-        ctx.gc = nullptr;
-        ctx.startSfenStr = &startSfen;
-        ctx.currentSfenStr = &currentSfen;
-
-        h.gsc->prepareDataCurrentPosition(ctx);
-
-        // currentSfenStr が baseSfen に設定されるべき
-        QCOMPARE(currentSfen, midGameSfen);
-        // clearGameOverState が呼ばれたはず
-        QVERIFY(TestTracker::clearGameOverStateCalled);
-    }
 
     // ============================================================
     // H) PlayMode 判定: エッジケース

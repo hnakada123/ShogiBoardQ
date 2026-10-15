@@ -5,6 +5,7 @@
 /// @brief 対局開始前クリーンアップハンドラクラスの定義
 
 #include <QObject>
+#include "startoptions.h"
 #include <QString>
 #include <QHash>
 #include <QMap>
@@ -28,7 +29,6 @@ class KifuNavigationState;
  *
  * 責務:
  * - 盤面/ハイライトのビジュアル初期化
- * - 「現在の局面から開始」判定
  * - 棋譜モデルの部分削除または全消去
  * - 手数トラッキング更新
  * - 分岐モデルクリア
@@ -56,10 +56,6 @@ public:
         EvaluationGraphController* evalGraphController = nullptr; ///< 評価値グラフコントローラ（非所有）
         RecordPane* recordPane = nullptr;                       ///< 棋譜ペイン（非所有）
 
-        // --- MainWindowの状態変数への参照 ---
-        QString* startSfenStr = nullptr;                        ///< 開始SFEN文字列
-        QString* currentSfenStr = nullptr;                      ///< 現在SFEN文字列
-
         // --- 分岐ツリー関連 ---
         LiveGameSession* liveGameSession = nullptr;             ///< ライブゲームセッション（非所有）
         KifuBranchTree* branchTree = nullptr;                   ///< 分岐ツリー（非所有）
@@ -70,77 +66,18 @@ public:
     ~PreStartCleanupHandler() override = default;
     void updateDependencies(const Dependencies& deps);
 
-public slots:
-    /// 対局開始前のクリーンアップを実行する（→ GameStartCoordinator::requestPreStartCleanup）
-    void performCleanup();
-
-public:
-    /**
-     * @brief 「現在の局面から開始」かどうかの判定ロジック
-     *
-     * テスト用に公開している。startSfenが残っていても
-     * selectedPlyが進んでいれば現在局面開始とみなす。
-     *
-     */
-    static bool shouldStartFromCurrentPosition(const QString& startSfen,
-                                               const QString& currentSfen,
-                                               int selectedPly)
-    {
-        const QString cur = currentSfen.trimmed();
-        const QString start = startSfen.trimmed();
-
-        if (cur.isEmpty()) {
-            return false;
-        }
-
-        if (start.isEmpty()) {
-            return true;
-        }
-
-        // startSfen が残っていても、選択手数が進んでいれば現在局面開始とみなす
-        if (selectedPly > 0 && cur != QStringLiteral("startpos")) {
-            return true;
-        }
-
-        return false;
-    }
+    /// 表示と棋譜を開始要求に合わせる。ライブセッションの開始は呼び出し側が行う。
+    KifuBranchNode* performCleanup(const GameStartPreparation& preparation);
 
 private:
-    // --- クリーンアップ個別処理 ---
-
     void clearBoardAndHighlights();
     void clearClockDisplay();
-
-    /**
-     * @brief 棋譜モデルをクリーンアップする
-     * @param startFromCurrentPos 現在の局面から開始するか
-     * @return 保持した最後の行番号（開始局面だけなら0）
-     */
-    int cleanupKifuModel(bool startFromCurrentPos);
-
+    void cleanupKifuModel(KifuBranchNode* startNode);
     void clearBranchModel();
     void resetUsiLogModels();
     void resetTimeControl();
-
-    /// 評価値グラフを初期化またはトリムする
-    void resetEvaluationGraph();
-
-    /// 棋譜欄の開始行を選択する（黄色ハイライト）
-    void selectStartRow();
-
-    bool isStartFromCurrentPosition() const;
-
-    /// 選択中のノードが終局手なら、その直前の局面を開始位置にする。
-    /// 末尾の「中断」は対局の続きとして取り除き、新しい手を同じ手順に続ける。
-    void resolveTerminalStartNode();
-
-    // --- ライブゲームセッション ---
-
-    /// ライブゲームセッションを開始し、分岐ツリーへのリアルタイム更新を有効にする
-    void startLiveGameSession();
-
-    /// 分岐ツリーのルートノードを作成する（セッションは開始しない）
-    void prepareBranchTreeRoot();
+    void resetEvaluationGraph(bool preserve, int ply);
+    void selectStartRow(int row);
 
     // --- メンバー変数 ---
 
@@ -155,22 +92,13 @@ private:
     EvaluationGraphController* m_evalGraphController = nullptr; ///< 評価値グラフコントローラ（非所有）
     RecordPane* m_recordPane = nullptr;                         ///< 棋譜ペイン（非所有）
 
-    // --- MainWindow状態変数への参照 ---
-
-    QString* m_startSfenStr = nullptr;         ///< 開始SFEN文字列への参照
-    QString* m_currentSfenStr = nullptr;       ///< 現在SFEN文字列への参照
-
     // --- 分岐ツリー関連 ---
 
     LiveGameSession* m_liveGameSession = nullptr;  ///< ライブゲームセッション（非所有）
     KifuBranchTree* m_branchTree = nullptr;        ///< 分岐ツリー（非所有）
     KifuNavigationState* m_navState = nullptr;     ///< ナビゲーション状態（非所有）
 
-    // --- performCleanup()用の一時保存値 ---
 
-    QString m_savedCurrentSfen;                    ///< cleanup開始時のSFEN（selectStartRow前に保存）
-    int m_savedSelectedPly = 0;                    ///< cleanup開始時の選択手数
-    KifuBranchNode* m_savedCurrentNode = nullptr;  ///< cleanup開始時に選択されていたノード
 };
 
 #endif // PRESTARTCLEANUPHANDLER_H

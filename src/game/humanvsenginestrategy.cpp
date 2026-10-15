@@ -110,16 +110,16 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& /*humanFrom*/,
     if (!eng || !m_ctx.gc() || !m_ctx.sfenHistory()) { if (!m_ctx.gameOverState().isOver) armTurnTimerIfNeeded(); return; }
 
     m_waitingForMove = true;
-    m_ctx.requestHumanReply(eng, m_ctx.gc()->lastMove());
+    m_ctx.requestEngineMove(eng, 1);
 }
 
 void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
-                                              const QString& position, const QString& ponder)
+                                              const QString& /*position*/, const QString& ponder)
 {
     Usi* eng = m_ctx.primaryEngine();
     if (!m_waitingForMove || sender() != eng || m_ctx.gameOverState().isOver || !m_ctx.gc()) return;
     m_waitingForMove = false;
-    m_ctx.setEnginePosition(1, position, ponder);
+    m_ctx.setEnginePonder(1, ponder);
     if (m_ctx.applyEngineMove(move, m_engineSide, eng->lastBestmoveElapsedMs(), true))
         armTurnTimerIfNeeded();
 }

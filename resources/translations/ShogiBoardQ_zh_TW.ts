@@ -3971,15 +3971,12 @@ ABC abc 0123456789</translation>
 請透過「編輯 → 開始編輯局面」修正。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="265"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="271"/>
         <source>=== 開始局面 ===</source>
-        <translation>=== 初始局面 ===</translation>
+        <translation type="vanished">=== 初始局面 ===</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="271"/>
         <source>（１手 / 合計）</source>
-        <translation>（每手／累計）</translation>
+        <translation type="vanished">（每手／累計）</translation>
     </message>
 </context>
 <context>
@@ -4893,7 +4890,6 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowio.cpp" line="226"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="226"/>
         <source>定跡</source>
         <translation>定跡</translation>
     </message>
@@ -5373,7 +5369,13 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuApplyService</name>
     <message>
-        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="103"/>
+        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="76"/>
+        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="87"/>
+        <source>棋譜の分岐元または開始手数が不正です。</source>
+        <translation>棋譜的分支來源或起始手數無效。</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="112"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>載入失敗：無法從 %1 取得著法。</translation>
     </message>
@@ -7288,12 +7290,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PreStartCleanupHandler</name>
     <message>
-        <location filename="../../src/app/prestartcleanuphandler.cpp" line="215"/>
+        <location filename="../../src/app/prestartcleanuphandler.cpp" line="134"/>
         <source>=== 開始局面 ===</source>
         <translation>=== 初始局面 ===</translation>
     </message>
     <message>
-        <location filename="../../src/app/prestartcleanuphandler.cpp" line="216"/>
+        <location filename="../../src/app/prestartcleanuphandler.cpp" line="134"/>
         <source>（１手 / 合計）</source>
         <translation>（每手／累計）</translation>
     </message>
@@ -8002,12 +8004,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>（每手／累計）</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchturnhandler.cpp" line="224"/>
+        <location filename="../../src/game/matchturnhandler.cpp" line="203"/>
         <source>対局中断</source>
         <translation>對局已中斷</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchturnhandler.cpp" line="225"/>
+        <location filename="../../src/game/matchturnhandler.cpp" line="204"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎錯誤：%1</translation>
     </message>

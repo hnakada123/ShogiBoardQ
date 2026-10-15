@@ -17,7 +17,6 @@
 #include "kifudisplaycoordinator.h"
 #include "kifunavigationstate.h"
 #include "livegamesession.h"
-#include "livegamesessionupdater.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "gameinfopanecontroller.h"
@@ -182,11 +181,6 @@ private slots:
         LiveGameSession session;
         session.setTree(&tree);
         session.startFromNode(node);
-        LiveGameSessionUpdater updater;
-        LiveGameSessionUpdater::Deps liveDeps;
-        liveDeps.liveSession = &session;
-        liveDeps.sfenRecord = &history;
-        updater.updateDeps(liveDeps);
         KifuRecordListModel rows;
         GameRecordPresenter presenter({&rows, nullptr});
         presenter.presentGameRecord(tree.displayItemsForLine(0));
@@ -200,7 +194,6 @@ private slots:
         GameRecordUpdateService::Deps deps;
         deps.sfenRecord = &history;
         deps.liveGameSession = &session;
-        deps.liveSessionUpdater = &updater;
         GameRecordUpdateService service(deps);
         const QString terminal = (plies == 2 ? QStringLiteral("▲") : QStringLiteral("△"))
             + QStringLiteral("時間切れ");

@@ -160,7 +160,7 @@ private slots:
     void eveRejectsHumanInput()
     {
         StrategyHarness h;
-        EngineVsEngineStrategy strategy(h.match->strategyCtx(), MatchStartOptions{});
+        EngineVsEngineStrategy strategy(h.match->strategyCtx());
         strategy.onHumanMove({}, {}, "unexpected");
         QVERIFY(h.records.isEmpty());
         QVERIFY(h.moves.isEmpty());

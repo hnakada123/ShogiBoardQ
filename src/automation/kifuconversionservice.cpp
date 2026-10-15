@@ -216,7 +216,10 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
 
     // 一時的な分岐ツリーと棋譜モデルを組み立てて既存のエクスポータで出力する
     KifuBranchTree tree;
-    KifuBranchTreeBuilder::buildFromKifParseResult(&tree, parsed.result, parsed.initialSfen);
+    if (!KifuBranchTreeBuilder::buildFromKifParseResult(&tree, parsed.result, parsed.initialSfen)) {
+        result.error = QStringLiteral("Invalid variation parent or starting ply");
+        return result;
+    }
     GameRecordModel model;
     model.setBranchTree(&tree);
 

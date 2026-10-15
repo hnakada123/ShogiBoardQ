@@ -106,7 +106,7 @@ private:
                               bool hasTerminal, const char* callerTag);
     void applyToRecordView(const KifParseResult& res, const QString& filePath,
                            const QString& teaiLabel, const QString& parseWarn);
-    void applyBranchTree(const KifParseResult& res, const QString& initialSfen);
+    bool applyBranchTree(const KifParseResult& res, const QString& initialSfen);
     void addGameInfoTabIfMissing();
     QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
 

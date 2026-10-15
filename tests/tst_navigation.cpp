@@ -33,6 +33,48 @@ private:
     }
 
 private slots:
+    void selectedPathSurvivesReorderingAndSiblingDeletion()
+    {
+        KifuBranchTree tree;
+        buildTestTree(tree);
+        KifuNavigationState state;
+        KifuNavigationController controller;
+        controller.setTreeAndState(&tree, &state);
+        controller.goToLine(1, 2);
+        auto* parent = state.currentNode();
+        auto* main = parent->childAt(0);
+        auto* selected = parent->childAt(1);
+        const int selectedId = selected->nodeId();
+        QVERIFY(tree.moveChild(selected, 0));
+        QCOMPARE(state.currentLineIndex(), 0);
+        controller.goForward();
+        QCOMPARE(state.currentNode()->nodeId(), selectedId);
+        QVERIFY(tree.removeSubtree(main));
+        controller.goBack();
+        controller.goForward();
+        QCOMPARE(state.currentNode()->nodeId(), selectedId);
+        controller.goToLast();
+        QCOMPARE(state.currentNode()->sfen(), QStringLiteral("bsfen2"));
+    }
+
+    void removedCursorNeverAliasesNewNodes()
+    {
+        KifuBranchTree tree;
+        buildTestTree(tree);
+        KifuNavigationState state;
+        state.setTree(&tree);
+        state.setCurrentNode(tree.findByPlyOnMainLine(3));
+        const int oldId = state.currentNode()->nodeId();
+        QVERIFY(tree.removeSubtree(state.currentNode()));
+        QCOMPARE(state.currentNode(), nullptr);
+        tree.setRootSfen(kHirateSfen);
+        QVERIFY(tree.root()->nodeId() != oldId);
+        QCOMPARE(state.currentNode(), nullptr);
+        state.goToRoot();
+        QCOMPARE(state.currentNode(), tree.root());
+        QCOMPARE(state.currentLineIndex(), 0);
+    }
+
     void explicitLineNavigationPreservesBranchAtSharedPositions()
     {
         KifuBranchTree tree;

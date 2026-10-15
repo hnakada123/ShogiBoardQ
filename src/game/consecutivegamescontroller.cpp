@@ -134,11 +134,8 @@ void ConsecutiveGamesController::launchPreparedNextGame()
         m_performPreStartCleanup(m_lastStartOptions.sfenStart);
     }
 
-    if (m_timeController) {
-        ShogiClock* clk = m_timeController->clock();
-        TimeControlUtil::applyToClock(clk, m_lastTimeControl,
-                                      m_lastStartOptions.sfenStart, QString());
-    }
+    // 次局は独立した棋譜として同じ開始局面から始める。
+    m_lastStartOptions.recordLine = {};
 
     GameStartCoordinator::StartParams params;
     params.opt = m_lastStartOptions;

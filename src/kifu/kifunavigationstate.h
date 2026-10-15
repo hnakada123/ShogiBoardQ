@@ -41,7 +41,7 @@ public:
     /**
      * @brief 現在のノードを取得
      */
-    KifuBranchNode* currentNode() const { return m_currentNode; }
+    KifuBranchNode* currentNode() const;
 
     /**
      * @brief 現在の手数を取得
@@ -50,33 +50,37 @@ public:
 
     /**
      * @brief 現在のラインインデックスを取得（0=本譜、1以降=分岐）
-     * 分岐点より前にいる場合でも、優先ラインが設定されていればそれを返す
+     * 選択したノードIDの経路から、その時点の行番号を導出する。
      */
     int currentLineIndex() const;
 
     /**
-     * @brief 優先ラインインデックスを設定
+     * @brief 表示行に対応する経路を選択（保存するのはノードID）
      * 分岐を選択した時に呼び出す。分岐点より前に戻っても維持される。
      */
     void setPreferredLineIndex(int lineIndex);
 
     /**
-     * @brief 優先ラインインデックスをリセット（本譜に戻る時に呼び出す）
+     * @brief 経路の選択記憶を消去する
      */
     void resetPreferredLineIndex();
 
     /**
      * @brief 分岐点での子選択の記憶をクリア（本譜に戻る時に呼び出す）
      *
-     * 分岐点での選択記憶（m_lastSelectedChildAtBranch）をクリアします。
+     * 分岐点での選択記憶（ノードIDで保持する経路）をクリアします。
      * これにより、本譜に戻った後のナビゲーションで正しく本譜を辿ります。
      */
     void clearLineSelectionMemory();
 
     /**
-     * @brief 優先ラインインデックスを取得（デバッグ用）
+     * @brief 現在の経路に対応する分岐行番号。本譜は -1（互換API）
      */
-    int preferredLineIndex() const { return m_preferredLineIndex; }
+    int preferredLineIndex() const;
+
+    /// 選択した経路で次に進むノード。表示上の行番号には依存しない。
+    KifuBranchNode* nextNode(KifuBranchNode* node) const;
+    QList<KifuBranchNode*> selectedPath() const;
 
     /**
      * @brief 現在位置のSFENを取得
@@ -138,8 +142,8 @@ public:
 
     // === 分岐点での子選択の記憶 ===
     // 「戻る→進む」で直前に通った分岐を辿れるよう、分岐点ごとに
-    // どの子（childAt のインデックス）を選んだかを記憶する。
-    // allLines() のラインインデックスとは別物なので注意。
+    // どの子（安定したノードID）を選んだかを記憶する。
+    // 引数と返値のインデックスは、呼び出した時点でノードIDから変換する。
 
     /**
      * @brief 分岐点で選んだ子を記憶
@@ -165,14 +169,11 @@ public:
 
 private:
     KifuBranchTree* m_tree = nullptr;
-    KifuBranchNode* m_currentNode = nullptr;
+    int m_currentNodeId = -1;
 
-    // 分岐点のnodeId -> 選んだ子のインデックス
-    QHash<int, int> m_lastSelectedChildAtBranch;
-
-    // 優先ラインインデックス（分岐選択時に設定、分岐点より前に戻っても維持）
-    // -1 = 未設定（ノードのlineIndexを使用）
-    int m_preferredLineIndex = -1;
+    // 分岐点のノードID → 選んだ子のノードID。並べ替えで意味が変わらない。
+    // ライン番号はこの経路から表示時に導出し、別の状態として保持しない。
+    QHash<int, int> m_selectedChildIds;
 };
 
 #endif // KIFUNAVIGATIONSTATE_H

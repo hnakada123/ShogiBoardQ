@@ -78,7 +78,7 @@ public:
 
 public slots:
     /// 対局開始前のクリーンアップとセッション依存 UI のクリア
-    void performPreStartCleanup();
+    void performPreStartCleanup(const GameStartPreparation& preparation);
     /// 時間設定を適用する（保存・時計設定・対局情報への反映）
     void applyTimeControl(const GameStartCoordinator::TimeSettings& tc);
     /// 対局開始後の状態同期

@@ -1,499 +1,125 @@
-/// @file tst_game_start_orchestrator.cpp
-/// @brief GameStartOrchestrator 単体テスト
-///
-/// configureAndStart / buildStartOptions / ensureHumanAtBottomIfApplicable の
-/// テストケース。非 QObject クラスのため Signal/Slot 検証は不要。
-
-#include <QTest>
+/// 対局開始には指定された手順だけを使用する。USIプロセスまで実物の経路で検証する。
+#include <QtTest>
+#include <QTemporaryDir>
 #include "gamestartorchestrator.h"
-#include "shogigamecontroller.h"
-#include "settingscommon.h"
+#include "matchcoordinator.h"
+#include "strategycontext.h"
+#include "sfenpositiontracer.h"
+#include "shogiclock.h"
+#include "usi.h"
 
-// ============================================================
-// テスト用トラッカー
-// ============================================================
-namespace OrcTracker {
-
-bool clearGameOverStateCalled = false;
-bool initializeNewGameCalled = false;
-bool setPlayersNamesCalled = false;
-bool setEngineNamesCalled = false;
-bool renderBoardFromGcCalled = false;
-bool createAndStartModeStrategyCalled = false;
-bool flipBoardCalled = false;
-bool startInitialEngineMoveIfNeededCalled = false;
-bool initializePositionStringsForStartCalled = false;
-bool updateTurnDisplayCalled = false;
-
-Turn lastTurnDisplayPlayer;
-MatchCoordinator::StartOptions lastStrategyOptions;
-QString lastInitSfen;
-QString lastEngineName1;
-QString lastEngineName2;
-
-void reset()
-{
-    clearGameOverStateCalled = false;
-    initializeNewGameCalled = false;
-    setPlayersNamesCalled = false;
-    setEngineNamesCalled = false;
-    renderBoardFromGcCalled = false;
-    createAndStartModeStrategyCalled = false;
-    flipBoardCalled = false;
-    startInitialEngineMoveIfNeededCalled = false;
-    initializePositionStringsForStartCalled = false;
-    updateTurnDisplayCalled = false;
-    lastTurnDisplayPlayer = Turn::Black;
-    lastStrategyOptions = {};
-    lastInitSfen.clear();
-    lastEngineName1.clear();
-    lastEngineName2.clear();
-}
-
-} // namespace OrcTracker
-
-// ============================================================
-// テストハーネス
-// ============================================================
-struct OrcTestHarness {
-    GameStartOrchestrator orc;
-    ShogiGameController gc;
-
-    // Refs用の実体
-    PlayMode playMode = PlayMode::NotStarted;
-    int maxMoves = 0;
-    int currentMoveIndex = 0;
-    bool autoSaveKifu = false;
-    QString kifuSaveDir;
-    QString positionStr1;
-    QString positionPonder1;
-    QStringList positionStrHistory;
-    QList<QStringList> allGameHistories;
-
-    OrcTestHarness()
-    {
-        OrcTracker::reset();
-
-        GameStartOrchestrator::Refs refs;
-        refs.gc = &gc;
-        refs.playMode = &playMode;
-        refs.maxMoves = &maxMoves;
-        refs.currentMoveIndex = &currentMoveIndex;
-        refs.autoSaveKifu = &autoSaveKifu;
-        refs.kifuSaveDir = &kifuSaveDir;
-        refs.positionStr1 = &positionStr1;
-        refs.positionPonder1 = &positionPonder1;
-        refs.positionStrHistory = &positionStrHistory;
-        refs.allGameHistories = &allGameHistories;
-        orc.setRefs(refs);
-
-        GameStartOrchestrator::Hooks hooks;
-        hooks.clearGameOverState = []() {
-            OrcTracker::clearGameOverStateCalled = true;
-        };
-        hooks.initializeNewGame = [](const QString& sfen) {
-            OrcTracker::initializeNewGameCalled = true;
-            OrcTracker::lastInitSfen = sfen;
-        };
-        hooks.setPlayersNames = [](const QString&, const QString&) {
-            OrcTracker::setPlayersNamesCalled = true;
-        };
-        hooks.setEngineNames = [](const QString& e1, const QString& e2) {
-            OrcTracker::setEngineNamesCalled = true;
-            OrcTracker::lastEngineName1 = e1;
-            OrcTracker::lastEngineName2 = e2;
-        };
-        hooks.renderBoardFromGc = []() {
-            OrcTracker::renderBoardFromGcCalled = true;
-        };
-        hooks.updateTurnDisplay = [](Turn p) {
-            OrcTracker::updateTurnDisplayCalled = true;
-            OrcTracker::lastTurnDisplayPlayer = p;
-        };
-        hooks.initializePositionStringsForStart = [](const QString&) {
-            OrcTracker::initializePositionStringsForStartCalled = true;
-        };
-        hooks.createAndStartModeStrategy = [](const MatchCoordinator::StartOptions& opt) {
-            OrcTracker::createAndStartModeStrategyCalled = true;
-            OrcTracker::lastStrategyOptions = opt;
-        };
-        hooks.flipBoard = []() {
-            OrcTracker::flipBoardCalled = true;
-        };
-        hooks.startInitialEngineMoveIfNeeded = []() {
-            OrcTracker::startInitialEngineMoveIfNeededCalled = true;
-        };
-        orc.setHooks(hooks);
-    }
-};
-
-// ============================================================
-// テストクラス
-// ============================================================
-class Tst_GameStartOrchestrator : public QObject
+class TestGameStartOrchestrator : public QObject
 {
     Q_OBJECT
-
+    QTemporaryDir m_config;
 private slots:
-    // === Section A: configureAndStart 基本フロー ===
-
-    void configureAndStart_setsPlayMode();
-    void configureAndStart_setsMaxMoves();
-    void configureAndStart_setsAutoSaveKifu();
-    void configureAndStart_setsPlayerNames();
-    void configureAndStart_callsAllHooks();
-    void configureAndStart_setsCurrentMoveIndexToZero();
-
-    // === Section B: 手番決定 ===
-
-    void configureAndStart_senteSfen_turnsP1();
-    void configureAndStart_goteSfen_turnsP2();
-
-    // === Section C: buildStartOptions（static） ===
-
-    void buildStartOptions_setsMode();
-    void buildStartOptions_setsSfenStart();
-    void buildStartOptions_sfenFromRecord();
-
-    // === Section D: 対局履歴の蓄積 ===
-
-    void configureAndStart_archivesHistory();
-    void configureAndStart_historyCapAt10();
-
-
-    // === Section F: ensureHumanAtBottomIfApplicable ===
-
-    void ensureHumanAtBottom_noDialog_noFlip();
-    void ensureHumanAtBottom_flipsOnlyWhenHumanIsNotAtBottom_data();
-    void ensureHumanAtBottom_flipsOnlyWhenHumanIsNotAtBottom();
-
-    // === Section G: position文字列の初期化（フォールバック） ===
-
-    void configureAndStart_noHistory_fallback();
-
-    // === Section H: 再開始（終局後の再対局） ===
-
-    void restart_afterGameEnd_clearsGameOverState();
-    void restart_afterGameEnd_secondGameHistoryArchived();
-};
-
-// ============================================================
-// Section A: configureAndStart 基本フロー
-// ============================================================
-
-void Tst_GameStartOrchestrator::configureAndStart_setsPlayMode()
-{
-    OrcTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-
-    h.orc.configureAndStart(opt);
-
-    QCOMPARE(h.playMode, PlayMode::HumanVsHuman);
-}
-
-void Tst_GameStartOrchestrator::configureAndStart_setsMaxMoves()
-{
-    OrcTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("startpos");
-    opt.maxMoves = 256;
-
-    h.orc.configureAndStart(opt);
-
-    QCOMPARE(h.maxMoves, 256);
-}
-
-void Tst_GameStartOrchestrator::configureAndStart_setsAutoSaveKifu()
-{
-    OrcTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("startpos");
-    opt.autoSaveKifu = true;
-    opt.kifuSaveDir = QStringLiteral("/tmp/kifu");
-
-    h.orc.configureAndStart(opt);
-
-    QVERIFY(h.autoSaveKifu);
-    QCOMPARE(h.kifuSaveDir, QStringLiteral("/tmp/kifu"));
-}
-
-void Tst_GameStartOrchestrator::configureAndStart_setsPlayerNames()
-{
-    OrcTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::EvenHumanVsEngine;
-    opt.sfenStart = QStringLiteral("startpos");
-    opt.humanName1 = QStringLiteral("Player1");
-    opt.humanName2 = QStringLiteral("Player2");
-    opt.engineName1 = QStringLiteral("Engine1");
-    opt.engineName2 = QStringLiteral("Engine2");
-
-    h.orc.configureAndStart(opt);
-
-    QCOMPARE(OrcTracker::lastStrategyOptions.humanName1, QStringLiteral("Player1"));
-    QCOMPARE(OrcTracker::lastStrategyOptions.humanName2, QStringLiteral("Player2"));
-    QCOMPARE(OrcTracker::lastEngineName1, QStringLiteral("Engine1"));
-    QCOMPARE(OrcTracker::lastEngineName2, QStringLiteral("Engine2"));
-}
-
-void Tst_GameStartOrchestrator::configureAndStart_callsAllHooks()
-{
-    OrcTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("startpos");
-    opt.engineName1 = QStringLiteral("E1");
-    opt.engineName2 = QStringLiteral("E2");
-
-    h.orc.configureAndStart(opt);
-
-    QVERIFY(OrcTracker::clearGameOverStateCalled);
-    QVERIFY(OrcTracker::initializeNewGameCalled);
-    QVERIFY(OrcTracker::setPlayersNamesCalled);
-    QVERIFY(OrcTracker::setEngineNamesCalled);
-    QVERIFY(OrcTracker::renderBoardFromGcCalled);
-    QVERIFY(OrcTracker::updateTurnDisplayCalled);
-    QVERIFY(OrcTracker::createAndStartModeStrategyCalled);
-    QCOMPARE(OrcTracker::lastEngineName1, QStringLiteral("E1"));
-    QCOMPARE(OrcTracker::lastEngineName2, QStringLiteral("E2"));
-}
-
-void Tst_GameStartOrchestrator::configureAndStart_setsCurrentMoveIndexToZero()
-{
-    OrcTestHarness h;
-    h.currentMoveIndex = 42;
-
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("startpos");
-
-    h.orc.configureAndStart(opt);
-
-    QCOMPARE(h.currentMoveIndex, 0);
-}
-
-// ============================================================
-// Section B: 手番決定
-// ============================================================
-
-void Tst_GameStartOrchestrator::configureAndStart_senteSfen_turnsP1()
-{
-    OrcTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-
-    h.orc.configureAndStart(opt);
-
-    QCOMPARE(OrcTracker::lastTurnDisplayPlayer, Turn::Black);
-}
-
-void Tst_GameStartOrchestrator::configureAndStart_goteSfen_turnsP2()
-{
-    OrcTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    // SFEN with "w" (gote's turn)
-    opt.sfenStart = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-
-    h.orc.configureAndStart(opt);
-
-    QCOMPARE(OrcTracker::lastTurnDisplayPlayer, Turn::White);
-}
-
-// ============================================================
-// Section C: buildStartOptions（static）
-// ============================================================
-
-void Tst_GameStartOrchestrator::buildStartOptions_setsMode()
-{
-    auto opt = GameStartOrchestrator::buildStartOptions(
-        PlayMode::EvenEngineVsEngine,
-        QStringLiteral("startpos"),
-        nullptr,
-        nullptr);
-
-    QCOMPARE(opt.mode, PlayMode::EvenEngineVsEngine);
-}
-
-void Tst_GameStartOrchestrator::buildStartOptions_setsSfenStart()
-{
-    const QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    auto opt = GameStartOrchestrator::buildStartOptions(
-        PlayMode::HumanVsHuman, sfen, nullptr, nullptr);
-
-    QCOMPARE(opt.sfenStart, sfen);
-}
-
-void Tst_GameStartOrchestrator::buildStartOptions_sfenFromRecord()
-{
-    QStringList record;
-    record << QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/9/LNSGKGSNL b - 1");
-
-    auto opt = GameStartOrchestrator::buildStartOptions(
-        PlayMode::HumanVsHuman, QString(), &record, nullptr);
-
-    QCOMPARE(opt.sfenStart, record.first());
-}
-
-// ============================================================
-// Section D: 対局履歴の蓄積
-// ============================================================
-
-void Tst_GameStartOrchestrator::configureAndStart_archivesHistory()
-{
-    OrcTestHarness h;
-    // Simulate previous game's position history
-    h.positionStr1 = QStringLiteral("position startpos moves 7g7f");
-    h.positionStrHistory.append(QStringLiteral("position startpos"));
-
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("startpos");
-
-    h.orc.configureAndStart(opt);
-
-    // Previous history should be archived
-    QCOMPARE(h.allGameHistories.size(), 1);
-}
-
-void Tst_GameStartOrchestrator::configureAndStart_historyCapAt10()
-{
-    OrcTestHarness h;
-
-    // Pre-fill with 10 games
-    for (int i = 0; i < 10; ++i) {
-        QStringList hist;
-        hist << QStringLiteral("position startpos moves 7g7f");
-        h.allGameHistories.append(hist);
+    void initTestCase()
+    {
+        QVERIFY(m_config.isValid());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
+    void selectedLineReachesEngine_data()
+    {
+        QTest::addColumn<QStringList>("moves");
+        QTest::addColumn<int>("counter");
+        QTest::addColumn<QString>("expectedPosition");
+        QTest::newRow("main") << QStringList{"7g7f", "3c3d", "2g2f", "8c8d"} << 1
+            << QStringLiteral("position startpos moves 7g7f 3c3d 2g2f");
+        QTest::newRow("transposed-variation") << QStringList{"2g2f", "8c8d", "7g7f", "3c3d"} << 1
+            << QStringLiteral("position startpos moves 2g2f 8c8d 7g7f");
+        QTest::newRow("non-one-sfen-counter") << QStringList{"2g2f", "8c8d", "7g7f", "3c3d"} << 41
+            << QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 41 moves 2g2f 8c8d 7g7f");
+    }
+    void selectedLineReachesEngine()
+    {
+        QFETCH(QStringList, moves);
+        QFETCH(int, counter);
+        QFETCH(QString, expectedPosition);
+        QString initial = SfenUtils::hirateSfen();
+        initial = initial.left(initial.lastIndexOf(' ') + 1) + QString::number(counter);
+        RecordLine line;
+        line.sfens = SfenPositionTracer::buildSfenRecord(initial, moves, false);
+        line.moves = SfenPositionTracer::buildGameMoves(initial, moves);
+        line.currentPly = 3; // 後続の4手目を含めない
+        ShogiGameController game;
+        ShogiClock clock;
+        MatchCoordinator::Deps deps;
+        deps.gc = &game;
+        deps.clock = &clock;
+        deps.hooks.game.initializeNewGame = [&game](const QString& sfen) {
+            QString position = sfen;
+            game.newGame(position);
+        };
+        MatchCoordinator match(deps);
+        // 別の対局が先に存在しても、開始要求で指定した手順を使う。
+        MatchStartOptions old;
+        old.mode = PlayMode::HumanVsHuman;
+        old.sfenStart = SfenUtils::hirateSfen();
+        match.configureAndStart(old);
+        MatchStartOptions options;
+        options.mode = PlayMode::HumanVsHuman;
+        options.recordLine = line;
+        options.sfenStart = line.sfens.at(3);
+        match.configureAndStart(options);
+        QCOMPARE(match.gameMoves().size(), 3);
+        QCOMPARE(*match.sfenRecordPtr(), line.sfens.mid(0, 4));
+        QCOMPARE(match.strategyCtx().currentMoveIndex(), 3);
 
-    // Simulate a current game in progress
-    h.positionStr1 = QStringLiteral("position startpos moves 2g2f");
-    h.positionStrHistory.append(QStringLiteral("position startpos"));
-
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("startpos");
-
-    h.orc.configureAndStart(opt);
-
-    // Should be capped at 10 (oldest removed)
-    QVERIFY(h.allGameHistories.size() <= 10);
-}
-
-// ============================================================
-// Section F: ensureHumanAtBottomIfApplicable
-// ============================================================
-
-void Tst_GameStartOrchestrator::ensureHumanAtBottom_noDialog_noFlip()
-{
-    OrcTestHarness h;
-    h.orc.ensureHumanAtBottomIfApplicable(nullptr, Turn::Black);
-
-    QVERIFY(!OrcTracker::flipBoardCalled);
-}
-
-void Tst_GameStartOrchestrator::ensureHumanAtBottom_flipsOnlyWhenHumanIsNotAtBottom_data()
-{
-    QTest::addColumn<bool>("humanIsBlack");
-    QTest::addColumn<bool>("bottomIsBlack");
-    QTest::addColumn<bool>("expectFlip");
-    QTest::newRow("human-black-at-bottom") << true << true << false;
-    QTest::newRow("human-black-at-top") << true << false << true;
-    QTest::newRow("human-white-at-top") << false << true << true;
-    QTest::newRow("human-white-at-bottom") << false << false << false;
-}
-
-void Tst_GameStartOrchestrator::ensureHumanAtBottom_flipsOnlyWhenHumanIsNotAtBottom()
-{
-    // 「人を手前に表示する」とき、人間の側が手前でなければ1回だけ反転する
-    QFETCH(bool, humanIsBlack);
-    QFETCH(bool, bottomIsBlack);
-    QFETCH(bool, expectFlip);
-    OrcTestHarness h;
-    StartGameDialogData dlg;
-    dlg.isShowHumanInFront = true;
-    dlg.isHuman1 = humanIsBlack;
-    dlg.isHuman2 = !humanIsBlack;
-    h.orc.ensureHumanAtBottomIfApplicable(&dlg, bottomIsBlack ? Turn::Black : Turn::White);
-
-    QCOMPARE(OrcTracker::flipBoardCalled, expectFlip);
-}
-
-// ============================================================
-// Section G: position文字列の初期化（フォールバック）
-// ============================================================
-
-void Tst_GameStartOrchestrator::configureAndStart_noHistory_fallback()
-{
-    OrcTestHarness h;
-
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-
-    h.orc.configureAndStart(opt);
-
-    // No matching history → fallback to initializePositionStringsForStart
-    QVERIFY(OrcTracker::initializePositionStringsForStartCalled);
-}
-
-// ============================================================
-// Section H: 再開始（終局後の再対局）
-// ============================================================
-
-void Tst_GameStartOrchestrator::restart_afterGameEnd_clearsGameOverState()
-{
-    OrcTestHarness h;
-
-    // First game
-    MatchCoordinator::StartOptions opt1;
-    opt1.mode = PlayMode::HumanVsHuman;
-    opt1.sfenStart = QStringLiteral("startpos");
-    h.orc.configureAndStart(opt1);
-
-    OrcTracker::clearGameOverStateCalled = false;
-
-    // Second game (restart after end)
-    MatchCoordinator::StartOptions opt2;
-    opt2.mode = PlayMode::EvenHumanVsEngine;
-    opt2.sfenStart = QStringLiteral("startpos");
-    h.orc.configureAndStart(opt2);
-
-    QVERIFY(OrcTracker::clearGameOverStateCalled);
-    QCOMPARE(h.playMode, PlayMode::EvenHumanVsEngine);
-}
-
-void Tst_GameStartOrchestrator::restart_afterGameEnd_secondGameHistoryArchived()
-{
-    OrcTestHarness h;
-
-    // First game: set up position strings as if a game was played
-    MatchCoordinator::StartOptions opt1;
-    opt1.mode = PlayMode::HumanVsHuman;
-    opt1.sfenStart = QStringLiteral("startpos");
-    h.orc.configureAndStart(opt1);
-
-    // Simulate playing moves
-    h.positionStr1 = QStringLiteral("position startpos moves 7g7f 3c3d");
-    h.positionStrHistory.clear();
-    h.positionStrHistory.append(QStringLiteral("position startpos moves 7g7f 3c3d"));
-
-    // Second game start (should archive first game)
-    MatchCoordinator::StartOptions opt2;
-    opt2.mode = PlayMode::HumanVsHuman;
-    opt2.sfenStart = QStringLiteral("startpos");
-    h.orc.configureAndStart(opt2);
-
-    // The first game's history should be archived
-    QVERIFY(!h.allGameHistories.isEmpty());
-}
-
-// ============================================================
-QTEST_MAIN(Tst_GameStartOrchestrator)
+        Usi engine(nullptr, nullptr, &game);
+        QSignalSpy initialized(&engine, &Usi::engineInitialized);
+        QSignalSpy ready(&engine, &Usi::matchMoveReady);
+        QVERIFY(engine.startAndInitializeEngineAsync(
+            QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match"), QStringLiteral("StartTest")));
+        QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
+        match.strategyCtx().requestEngineMove(&engine, 1);
+        QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
+        const QString bestMove = qvariant_cast<UsiMove>(ready.first().at(0)).toString();
+        QCOMPARE(ready.first().at(1).toString(), expectedPosition + QLatin1Char(' ') + bestMove);
+        engine.cleanupEngineProcessAndThread();
+    }
+    void startOptionsAndNames()
+    {
+        StartGameDialogData data;
+        data.humanName1 = QStringLiteral("先手名");
+        data.humanName2 = QStringLiteral("後手名");
+        data.maxMoves = 128;
+        data.autoSaveKifu = true;
+        data.kifuSaveDir = m_config.path();
+        const auto options = GameStartOrchestrator::buildStartOptions(
+            PlayMode::HumanVsHuman, SfenUtils::hirateSfen(), nullptr, &data);
+        MatchSessionState state;
+        GameStartOrchestrator orchestrator;
+        orchestrator.setRefs({nullptr, &state});
+        GameStartOrchestrator::Hooks hooks;
+        QStringList names;
+        hooks.setPlayersNames = [&names](const QString& black, const QString& white) { names = {black, white}; };
+        orchestrator.setHooks(hooks);
+        orchestrator.configureAndStart(options);
+        QCOMPARE(state.playMode(), PlayMode::HumanVsHuman);
+        QCOMPARE(state.maxMoves(), 128);
+        QVERIFY(state.options().autoSaveKifu);
+        QCOMPARE(state.options().kifuSaveDir, m_config.path());
+        QCOMPARE(names, (QStringList{data.humanName1, data.humanName2}));
+    }
+    void humanSideControlsFlip()
+    {
+        GameStartOrchestrator orchestrator;
+        GameStartOrchestrator::Hooks hooks;
+        int flips = 0;
+        hooks.flipBoard = [&flips] { ++flips; };
+        orchestrator.setHooks(hooks);
+        StartGameDialogData data;
+        data.isHuman1 = false;
+        data.isHuman2 = true;
+        data.isShowHumanInFront = true;
+        orchestrator.ensureHumanAtBottomIfApplicable(&data, Turn::Black);
+        QCOMPARE(flips, 1);
+        orchestrator.ensureHumanAtBottomIfApplicable(&data, Turn::White);
+        QCOMPARE(flips, 1);
+        data.isHuman1 = true;
+        orchestrator.ensureHumanAtBottomIfApplicable(&data, Turn::Black);
+        QCOMPARE(flips, 1);
+    }
+};
+QTEST_MAIN(TestGameStartOrchestrator)
 #include "tst_game_start_orchestrator.moc"

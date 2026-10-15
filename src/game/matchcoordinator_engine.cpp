@@ -47,7 +47,7 @@ void MatchCoordinator::destroyEngines(bool clearModels)
 
 void MatchCoordinator::setPlayMode(PlayMode m)
 {
-    m_playMode = m;
+    m_session.setPlayMode(m);
     emit playModeChanged();
 }
 

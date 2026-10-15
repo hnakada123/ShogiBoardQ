@@ -533,6 +533,9 @@ private slots:
         QCOMPARE(comments.count(), 0);
         QCOMPARE(bookmarks.count(), 0);
         nav.goToRoot();
+        // 開始局面に戻っても選択した分岐を表示する。本譜への切替は明示する。
+        QVERIFY(model.comment(6).isEmpty());
+        nav.clearLineSelectionMemory();
         QCOMPARE(model.comment(6), QStringLiteral("本譜のみ"));
         QCOMPARE(model.bookmark(6), QStringLiteral("本譜のしおり"));
     }

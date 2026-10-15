@@ -52,9 +52,10 @@ struct RecordLine {
     QString positionCommand(int ply) const
     {
         if (isEmpty()) return {};
-        const QString start = SfenUtils::isHirateStart(startSfen())
+        const QString initial = SfenUtils::normalizePositionLikeSfen(startSfen());
+        const QString start = initial == SfenUtils::hirateSfen()
             ? QStringLiteral("position startpos")
-            : QStringLiteral("position sfen ") + SfenUtils::normalizeStart(startSfen());
+            : QStringLiteral("position sfen ") + initial;
         const QStringList played = usiMoves(qMax(0, ply));
         return played.isEmpty() ? start : start + QStringLiteral(" moves ") + played.join(QLatin1Char(' '));
     }

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16...3.28)
 # アプリケーションバージョン (CalVer: YYYY.MM.DD)
 # CMake の project VERSION / バンドル埋め込み / APP_VERSION マクロで共通利用する。
 # リリースする日にだけ、その日の日付に上げる（docs/dev/versioning.md）。
-set(APP_VERSION "2026.10.14")
+set(APP_VERSION "2026.10.15")
 
 project(ShogiBoardQ VERSION ${APP_VERSION} LANGUAGES CXX)
 
@@ -243,12 +243,8 @@ set(SRC_APP
     src/app/turnstatesyncservice.h
     src/app/undoflowservice.cpp
     src/app/undoflowservice.h
-    src/app/livegamesessionupdater.cpp
-    src/app/livegamesessionupdater.h
     src/app/mainwindowactions.h
     src/app/mainwindowactions.cpp
-    src/app/mainwindowgamestartservice.cpp
-    src/app/mainwindowgamestartservice.h
     src/app/prestartcleanuphandler.cpp
     src/app/prestartcleanuphandler.h
     src/app/mainwindowresetservice.cpp
@@ -308,6 +304,7 @@ set(SRC_GAME
     src/game/gameendhandler_record.cpp
     src/game/gameendhandler.h
     src/game/gamestartorchestrator.cpp
+    src/game/matchsessionstate.h
     src/game/gamestartorchestrator.h
     src/game/matchtimekeeper.cpp
     src/game/matchtimekeeper.h

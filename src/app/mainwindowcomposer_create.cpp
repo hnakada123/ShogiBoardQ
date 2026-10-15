@@ -45,7 +45,6 @@
 #include "kifurecordlistmodel.h"
 #include "languagecontroller.h"
 #include "livegamesession.h"
-#include "livegamesessionupdater.h"
 #include "mainwindowappearancecontroller.h"
 #include "matchcoordinatorwiring.h"
 #include "menuwindowwiring.h"
@@ -393,15 +392,12 @@ void MainWindowComposer::createServices()
     pc.evalChart = m_c.evalChart;
     pc.evalGraphController = m_c.evalGraphController.get();
     pc.recordPane = m_c.recordPane;
-    pc.startSfenStr = &m_state.startSfenStr;
-    pc.currentSfenStr = &m_state.currentSfenStr;
     pc.liveGameSession = m_c.liveGameSession;
     pc.branchTree = m_c.branchTree;
     pc.navState = m_c.navState;
     m_c.preStartCleanupHandler = new PreStartCleanupHandler(pc, &m_window);
 
     // 棋譜
-    m_c.liveGameSessionUpdater = std::make_unique<LiveGameSessionUpdater>();
     m_c.gameRecordLoadService = std::make_unique<GameRecordLoadService>();
     m_c.branchNavWiring = std::make_unique<BranchNavigationWiring>();
     m_c.kifuFileController = new KifuFileController(&m_window);

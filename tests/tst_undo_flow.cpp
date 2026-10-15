@@ -7,8 +7,8 @@
 
 #include "undoflowservice.h"
 #include "matchundohandler.h"
+#include "recordline.h"
 #include "livegamesession.h"
-#include "livegamesessionupdater.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
@@ -48,12 +48,15 @@ struct Harness {
     UndoFlowService flow;
     ShogiClock clock;
     int timerRestarts = 0;
-    LiveGameSessionUpdater updater;
     QStringList sfens;
     QList<ShogiMove> moves;
-    QString position = QStringLiteral("position startpos");
-    QString ponder;
-    QStringList positionHistory;
+    QString position() const
+    {
+        RecordLine line;
+        line.sfens = sfens;
+        line.moves = moves;
+        return line.positionCommand(line.moveCount());
+    }
     QString currentSfen;
     int highlightPly = -1;
     int undoCalls = 0;
@@ -89,9 +92,6 @@ struct Harness {
         refs.gc = &gc;
         refs.sfenHistory = &sfens;
         refs.gameMoves = &moves;
-        refs.positionStr1 = &position;
-        refs.positionPonder1 = &ponder;
-        refs.positionStrHistory = &positionHistory;
         handler.setRefs(refs);
         MatchUndoHandler::Hooks clockHooks;
         clockHooks.clockProvider = [this]() { return &clock; };
@@ -114,11 +114,6 @@ struct Harness {
         deps.currentSfenStr = &currentSfen;
         flow.updateDeps(deps);
 
-        LiveGameSessionUpdater::Deps updateDeps;
-        updateDeps.liveSession = &session;
-        updateDeps.branchTree = &tree;
-        updateDeps.sfenRecord = &sfens;
-        updater.updateDeps(updateDeps);
     }
 
     /// 着手し、その手の消費時間を時計に確定する（対局中の着手と同じ順序）
@@ -137,20 +132,16 @@ struct Harness {
     {
         const auto move = UsiMove::parse(usi);
         if (!move) return false;
-        const bool humanMove = gc.currentPlayer() == human;
         QString pretty;
         if (!gc.applyMove(*move, pretty, static_cast<int>(sfens.size()), &sfens, moves)) {
             return false;
         }
-        if (!position.contains(QStringLiteral(" moves "))) position += QStringLiteral(" moves");
-        position += QLatin1Char(' ') + usi;
-        if (humanMove) positionHistory.append(position);
         RecordEntry entry;
         entry.move = moves.last();
         entry.displayText = pretty;
         entry.sfen = sfens.last();
         entry.time = RecordTime::fromMilliseconds(1000, 1000);
-        updater.appendRecord(entry);
+        session.appendRecord(entry);
         currentSfen = sfens.last();
         return true;
     }
@@ -214,8 +205,7 @@ private slots:
         QVERIFY(h.dirty);
         const QString expectedPosition = count == 2 ? QStringLiteral("position startpos")
             : QStringLiteral("position startpos moves ") + opening.mid(0, count - 2).join(' ');
-        QCOMPARE(h.position, expectedPosition);
-        QCOMPARE(h.ponder, expectedPosition);
+        QCOMPARE(h.position(), expectedPosition);
         QVERIFY(h.play(opening.at(count - 2)));
         QVERIFY(h.play(opening.at(count - 1)));
         verifyPosition(h, count);
@@ -367,7 +357,7 @@ private slots:
         KifuBranchNode* undoneHead = h.session.liveNode()->parent();
         h.flow.undoLastTwoMoves();
         // 待ったの直後に投了しても、投了で終わる手順が本譜になる。
-        h.updater.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::Black,
+        h.session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::Black,
             RecordTime::fromMilliseconds(1000, 1000)));
         KifuBranchNode* end = h.session.commit();
         QVERIFY(end != nullptr && end->isTerminal());
@@ -389,10 +379,10 @@ private slots:
         QVERIFY(!h.dirty);
         QVERIFY(h.play(opening.at(1)));
         QVERIFY(h.play(opening.at(2))); // エンジンの応答待ちに相当する手番
-        const QString position = h.position;
+        const QString position = h.position();
         h.flow.undoLastTwoMoves();
         verifyPosition(h, 3);
-        QCOMPARE(h.position, position);
+        QCOMPARE(h.position(), position);
         QVERIFY(!h.dirty);
     }
 
@@ -404,10 +394,9 @@ private slots:
         QVERIFY(originalEnd != nullptr);
         auto* anchor = h.tree.findByPlyOnMainLine(2);
         h.sfens.resize(3);
-        h.moves.clear();
+        h.moves.resize(2);
         h.gc.board()->setSfen(h.sfens.last());
         h.gc.setCurrentPlayer(Turn::Black);
-        h.position = QStringLiteral("position sfen ") + h.sfens.last();
         h.session.startFromNode(anchor);
         // 同じ手を再利用しても、以前の棋譜のノードは削除しない。
         QVERIFY(h.play(opening.at(2)));
@@ -417,7 +406,7 @@ private slots:
         verifyPosition(h, 2);
         QCOMPARE(h.tree.nodeCount(), 5);
         QCOMPARE(h.tree.mainLine().last(), originalEnd);
-        QCOMPARE(h.position, QStringLiteral("position sfen ") + h.sfens.last());
+        QCOMPARE(h.position(), QStringLiteral("position startpos moves ") + opening.mid(0, 2).join(QLatin1Char(' ')));
         const int calls = h.undoCalls;
         h.flow.undoLastTwoMoves();
         QCOMPARE(h.undoCalls, calls); // 起点より前の棋譜を取り消さない

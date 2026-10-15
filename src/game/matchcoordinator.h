@@ -23,6 +23,7 @@
 #include "matchtypes.h"
 #include "interruptedgamestate.h"
 #include "startoptions.h"
+#include "matchsessionstate.h"
 #include "analysisoptions.h"
 #include "matchcoordinatorhooks.h"
 
@@ -36,6 +37,7 @@ class GameEndHandler;
 class GameStartOrchestrator;
 class MatchTimekeeper;
 class MatchTurnHandler;
+class MatchStrategyContext;
 
 /**
  * @brief 対局進行/終局/時計/USI送受のハブとなる司令塔クラス
@@ -48,7 +50,7 @@ class MatchCoordinator : public QObject {
     Q_OBJECT
 
 public:
-    class StrategyContext;
+    using StrategyContext = MatchStrategyContext;
     StrategyContext& strategyCtx();
     // --- 型定義 ---
 
@@ -168,7 +170,7 @@ public:
 
     // --- 終局状態管理 ---
 
-    const GameOverState& gameOverState() const { return m_gameOver; }
+    const GameOverState& gameOverState() const { return m_session.gameOver(); }
 
     /// 終局状態をクリアする（対局開始/局面編集開始時に呼ぶ）
     void clearGameOverState();
@@ -228,7 +230,7 @@ public:
 
     // --- PlayMode ---
 
-    PlayMode playMode() const { return m_playMode; }
+    PlayMode playMode() const { return m_session.playMode(); }
 
     /// 終局1回だけの棋譜追記と重複防止を一括処理する
     void appendGameOverLineAndMark(Cause cause, Turn loser);
@@ -247,7 +249,7 @@ public:
     /// 持将棋（最大手数到達）時の棋譜1行追記と終局処理
     void handleMaxMovesJishogi();
 
-    int maxMoves() const { return m_maxMoves; }
+    int maxMoves() const { return m_session.maxMoves(); }
 
     // --- ShogiClockアクセサ ---
 
@@ -336,19 +338,8 @@ private:
     // --- ターン進行ハンドラ ---
     std::unique_ptr<MatchTurnHandler> m_turnHandler; ///< ターン進行・ストラテジー管理
 
-    // --- モデル ---
+    MatchSessionState m_session;
 
-    PlayMode                 m_playMode = PlayMode::NotStarted; ///< 対局モード
-
-    // --- USI position文字列 ---
-
-    QString m_positionStr1, m_positionPonder1;  ///< エンジン1用
-    QString m_positionStr2, m_positionPonder2;  ///< エンジン2用
-
-    // --- 棋譜/SFEN記録 ---
-
-    int m_currentMoveIndex = 0;              ///< 現在の手数インデックス
-    StartOptions m_lastStartOptions;
     std::unique_ptr<InterruptedGameState> m_interruptedGame;
     void captureInterruptedGame();
     QStringList* m_sfenHistory = nullptr;     ///< SFEN履歴（共有ポインタ、非所有）
@@ -356,8 +347,6 @@ private:
     QList<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト
     QList<ShogiMove>* m_externalGameMoves = nullptr; ///< 外部共有の指し手リスト（非所有、Deps経由）
 
-    /// 指し手列を局面列の長さ（手数）までに切り詰める（対局開始時）
-    void alignGameMovesWithSfenHistory();
 
     // 外部共有ポインタが設定されていればそれを使う（Deps経由で注入）
     QList<ShogiMove>& gameMovesRef() {
@@ -366,18 +355,6 @@ private:
     const QList<ShogiMove>& gameMovesRef() const {
         return m_externalGameMoves ? *m_externalGameMoves : m_gameMoves;
     }
-
-    int m_maxMoves = 0;                       ///< 最大手数（0=無制限）
-
-    // --- 棋譜自動保存 ---
-
-    bool m_autoSaveKifu = false;              ///< 自動保存フラグ
-    QString m_kifuSaveDir;                    ///< 保存ディレクトリ
-
-    // --- 終局状態 ---
-
-    GameOverState m_gameOver;                 ///< 終局状態
-
 
     // --- 検討・詰み探索セッション管理 ---
 
@@ -399,13 +376,7 @@ private:
     std::unique_ptr<MatchUndoHandler> m_undoHandler; ///< UNDO処理ハンドラ
     void createUndoHandler();
 
-    // --- USI position履歴 ---
 
-    QStringList m_positionStrHistory;          ///< position文字列の履歴
-
-    // --- 対局履歴 ---
-
-    QList<QStringList> m_allGameHistories;  ///< 過去の対局履歴
 };
 
 #endif // MATCHCOORDINATOR_H

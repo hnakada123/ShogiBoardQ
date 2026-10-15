@@ -16,7 +16,6 @@
 #include "gamerecordupdateservice.h"
 #include "kifubranchtree.h"
 #include "livegamesession.h"
-#include "livegamesessionupdater.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
@@ -352,10 +351,8 @@ private slots:
         LiveGameSession live;
         live.setTree(&tree);
         QString currentSfen;
-        LiveGameSessionUpdater updater;
-        updater.updateDeps({&live, &tree, &h.sfenRecord, &currentSfen});
+        live.startFromRoot();
         GameRecordUpdateService::Deps rd;
-        rd.liveSessionUpdater = &updater;
         rd.liveGameSession = &live;
         rd.currentSfenStr = &currentSfen;
         rd.sfenRecord = &h.sfenRecord;

@@ -86,7 +86,7 @@
 
 **重点確認ポイント:**
 - `onMoveCommitted` → `updateGameRecord` → `appendMoveLine` のフロー
-- `LiveGameSessionUpdater::appendMove` → `LiveGameSession::addMove` による分岐ツリー（棋譜の正本）への指し手の記録（USI 形式の指し手はノードの手 `ShogiMove::toUsiMove()` から作る）
+- `GameRecordUpdateService::appendRecord` → `LiveGameSession::appendRecord` による分岐ツリー（棋譜の正本）への指し手の記録（USI 形式の指し手はノードの手 `ShogiMove::toUsiMove()` から作る）
 - 表示中の手数（`KifuNavigationState::currentPly()`、分岐ツリーのカーソル）が最新手に合うこと（`KifuDisplayCoordinator::onLiveGameMoveAdded`）
 - `AppState::currentSfenStr` の更新（`sfenRecord()->last()`）
 - `onTurnManagerChanged` による手番切替の正確さ

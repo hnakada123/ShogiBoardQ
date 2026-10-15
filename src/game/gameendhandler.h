@@ -47,8 +47,7 @@ public:
         ShogiClock* clock = nullptr;
         std::function<Usi*()> usi1Provider;          ///< エンジン1取得（動的に変わるためプロバイダ）
         std::function<Usi*()> usi2Provider;           ///< エンジン2取得
-        PlayMode* playMode = nullptr;
-        GameOverState* gameOver = nullptr;
+        MatchSessionState* session = nullptr;
         std::function<GameModeStrategy*()> strategyProvider; ///< 現在のStrategy取得
         QStringList* sfenHistory = nullptr;
     };

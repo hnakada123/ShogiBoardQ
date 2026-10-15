@@ -45,16 +45,12 @@ void SessionLifecycleCoordinator::resetToInitialState()
 {
     const QString hirateStartSfen = SfenUtils::hirateSfen();
 
-    // 「新規」のため局面情報を初期化してから完全クリーンアップを実行する。
-    // performCleanup() は表示中の手数が 0 より大きく currentSfenStr が
-    // 非初期局面の場合、棋譜を保持しようとする（途中局面開始の対局用）。
-    // currentSfenStr を初期局面にしておけば、表示中の手数によらず完全クリアになる。
-    m_deps.state->startSfenStr = hirateStartSfen;
-    m_deps.state->currentSfenStr = QStringLiteral("startpos");
     stopEnginesAndNetwork();
-    performPreStartCleanup();
+    performPreStartCleanup({GameStartPreparation::Mode::Reset, hirateStartSfen, -1});
     resetGameState();
     resetModels(hirateStartSfen);
+    m_deps.state->startSfenStr = hirateStartSfen;
+    m_deps.state->currentSfenStr = hirateStartSfen;
     resetUiState(hirateStartSfen);
 }
 
@@ -67,10 +63,13 @@ void SessionLifecycleCoordinator::resetGameState()
     m_deps.gameController->resetResult();
 }
 
-void SessionLifecycleCoordinator::performPreStartCleanup()
+void SessionLifecycleCoordinator::performPreStartCleanup(const GameStartPreparation& preparation)
 {
-    m_deps.preStartCleanupHandler->performCleanup();
+    KifuBranchNode* node = m_deps.preStartCleanupHandler->performCleanup(preparation);
     clearSessionDependentUi();
+    if (preparation.mode != GameStartPreparation::Mode::Reset && node && m_deps.models.liveGameSession) {
+        m_deps.models.liveGameSession->startFromNode(node);
+    }
 }
 
 void SessionLifecycleCoordinator::clearSessionDependentUi()
@@ -114,7 +113,7 @@ void SessionLifecycleCoordinator::prepareNextGame(const QString& startSfen)
 
     resetGameState();
     resetModels(sfen);
-    performPreStartCleanup();
+    performPreStartCleanup({GameStartPreparation::Mode::NewGame, sfen, -1});
     m_deps.shogiView->setGameOverStyleLock(false);
 }
 
@@ -129,8 +128,7 @@ void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::T
     // 連続対局用に時間設定を保存
     m_lastTimeControl = tc;
 
-    m_deps.timeController->applyTimeControl(
-        tc, m_deps.state->startSfenStr, m_deps.state->currentSfenStr, m_deps.shogiView);
+    m_deps.timeController->presentTimeControl(tc, m_deps.shogiView);
 
     // 対局情報ドックに持ち時間を追加
     if (tc.enabled) {

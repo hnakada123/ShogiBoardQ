@@ -15,35 +15,6 @@
 #include <QMetaMethod>
 
 // ============================================================
-// 静的ヘルパ
-// ============================================================
-
-bool MatchUndoHandler::isStandardStartposSfen(const QString& sfen)
-{
-    const QString canon = SfenUtils::hirateSfen();
-    return (!sfen.isEmpty() && sfen.trimmed() == canon);
-}
-
-// position の開始局面が途中局面でも、末尾の2手だけを取り除く。
-QString MatchUndoHandler::buildPositionAfterUndo(const QString& prevFull,
-                                                 const QString& targetSfen)
-{
-    const QString trimmed = prevFull.trimmed();
-    const qsizetype movesIndex = trimmed.indexOf(QStringLiteral(" moves "));
-    if (movesIndex >= 0) {
-        QStringList moves = trimmed.mid(movesIndex + 7).split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        if (moves.size() >= 2) {
-            moves.resize(moves.size() - 2);
-            const QString head = trimmed.left(movesIndex);
-            return moves.isEmpty() ? head : head + QStringLiteral(" moves ") + moves.join(QLatin1Char(' '));
-        }
-    }
-    return isStandardStartposSfen(targetSfen)
-        ? QStringLiteral("position startpos")
-        : QStringLiteral("position sfen %1").arg(targetSfen);
-}
-
-// ============================================================
 // Refs / Bindings
 // ============================================================
 
@@ -75,16 +46,6 @@ bool MatchUndoHandler::undoTwoPlies()
     if (!m_refs.gc || !m_refs.gc->board() || !srec || srec->size() < 3) return false;
     if (h_.isHumanSide && !h_.isHumanSide(m_refs.gc->currentPlayer())) return false;
 
-    // --- ロールバック前のフル position を退避 ---
-    QString prevFullPosition;
-    if (m_refs.positionStr1 && !m_refs.positionStr1->isEmpty()) {
-        // HvE の positionStrHistory は人間着手時の履歴なので、
-        // エンジンの応手まで含む現在値を優先する。
-        prevFullPosition = *m_refs.positionStr1;
-    } else if (m_refs.positionStrHistory && !m_refs.positionStrHistory->isEmpty()) {
-        prevFullPosition = m_refs.positionStrHistory->constLast();
-    }
-
     const int targetSfenIdx = static_cast<int>(srec->size()) - 3;
     const QString targetSfen = srec->at(targetSfenIdx);
 
@@ -112,29 +73,6 @@ bool MatchUndoHandler::undoTwoPlies()
     }
     if (srec && srec->size() >= 2) {
         srec->remove(srec->size() - 2, 2);
-    }
-
-    // --- USI用 position 履歴も2手ぶん巻き戻す ---
-    if (m_refs.positionStrHistory) {
-        if (m_refs.positionStrHistory->size() >= 2) {
-            m_refs.positionStrHistory->remove(m_refs.positionStrHistory->size() - 2, 2);
-        } else {
-            m_refs.positionStrHistory->clear();
-        }
-    }
-
-    // 巻き戻し後の現在ベースを厳密に再構成
-    const QString nextBase = buildPositionAfterUndo(prevFullPosition, targetSfen);
-
-    // 現在値と履歴に反映
-    if (m_refs.positionStr1) *m_refs.positionStr1 = nextBase;
-    if (m_refs.positionPonder1) *m_refs.positionPonder1 = nextBase;
-
-    if (m_refs.positionStrHistory) {
-        if (m_refs.positionStrHistory->isEmpty() || m_refs.positionStrHistory->constLast() != nextBase) {
-            m_refs.positionStrHistory->clear();
-            m_refs.positionStrHistory->append(nextBase);
-        }
     }
 
     // --- 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す ---

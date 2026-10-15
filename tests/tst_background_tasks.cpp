@@ -392,11 +392,12 @@ private slots:
 
         GameEndHandler handler;
         auto mode = bothEngines ? PlayMode::EvenEngineVsEngine : PlayMode::EvenHumanVsEngine;
-        MatchCoordinator::GameOverState gameOver;
+        MatchSessionState session;
+        session.setPlayMode(mode);
+        const auto& gameOver = session.gameOver();
         GameEndHandler::Refs refs;
         refs.gc = &game;
-        refs.playMode = &mode;
-        refs.gameOver = &gameOver;
+        refs.session = &session;
         refs.usi1Provider = [&engine1] { return &engine1; };
         refs.usi2Provider = [&engine2, bothEngines]() -> Usi* { return bothEngines ? &engine2 : nullptr; };
         handler.setRefs(refs);

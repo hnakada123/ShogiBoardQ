@@ -24,7 +24,6 @@
 #include "kifuexportcontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "languagecontroller.h"
-#include "livegamesessionupdater.h"
 #include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
 #include "matchcoordinatorwiring.h"

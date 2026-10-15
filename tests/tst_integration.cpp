@@ -237,9 +237,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
 
-        SfenPositionTracer tracer;
-        tracer.resetToStartpos();
-        QStringList sfens = tracer.generateSfensForMoves(moves);
+        const QStringList sfens = SfenPositionTracer::buildSfenRecord(kHirateSfen, moves, false).mid(1);
 
         ShogiMove dummyMove;
         auto* current = tree.root();

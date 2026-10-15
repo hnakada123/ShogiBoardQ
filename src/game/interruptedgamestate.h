@@ -12,8 +12,6 @@ struct InterruptedGameState {
     ShogiClock::Snapshot clock;
     QStringList sfens;
     QList<ShogiMove> moves;
-    QString position;
-    QStringList positionHistory;
     int previousFile = 0;
     int previousRank = 0;
 };

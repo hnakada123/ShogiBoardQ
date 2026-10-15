@@ -1,100 +1,66 @@
 /// @file kifubranchtreebuilder.cpp
-/// @brief 分岐ツリー構築ビルダークラスの実装
+/// @brief パース時に保持した親子関係から分岐ツリーを構築する
 
 #include "kifubranchtreebuilder.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifparsetypes.h"
 #include "kifdisplayitem.h"
-#include "logcategories.h"
 
-void KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
-                                                     const KifParseResult& result,
-                                                     const QString& startSfen)
+namespace {
+int displayMoveCount(const KifLine& line)
 {
-    if (tree == nullptr) {
-        return;
-    }
-
-    // ノード追加ごとに treeChanged が発火すると受信側（表示コーディネータ）が
-    // そのたびに全再構築を行うため、構築完了時に1回だけ発火させる
-    tree->beginBatchUpdate();
-
-    // ツリーをクリアして再構築
-    tree->clear();
-    tree->setRootSfen(startSfen);
-
-    // 本譜を追加
-    addKifLineToTree(tree, result.mainline, 1);
-
-    // 分岐を追加
-    for (const KifVariation& var : std::as_const(result.variations)) {
-        addKifLineToTree(tree, var.line, var.startPly);
-    }
-
-    tree->endBatchUpdate();
+    const bool opening = !line.disp.isEmpty()
+        && (line.disp.first().ply == 0 || line.disp.first().prettyMove.isEmpty());
+    return static_cast<int>(line.disp.size()) - (opening ? 1 : 0);
 }
 
-void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
-                                             const KifLine& line,
-                                             int startPly)
+int lastPlayablePly(const KifLine& line, int firstPly)
 {
-    if (tree == nullptr || tree->root() == nullptr) {
-        return;
+    const bool terminal = !line.disp.isEmpty()
+        && detectTerminalType(line.disp.last().prettyMove) != TerminalType::None;
+    return firstPly - 1 + displayMoveCount(line) - (terminal ? 1 : 0);
+}
+}
+
+bool KifuBranchTreeBuilder::validateVariations(const KifParseResult& result)
+{
+    // 不正な親指定では、既存の棋譜を変えない。親は本譜か先に定義された変化。
+    for (qsizetype i = 0; i < result.variations.size(); ++i) {
+        const auto& variation = result.variations.at(i);
+        const int parent = variation.parentVariation;
+        if (parent < -1 || parent >= i || variation.startPly < 1) return false;
+        const KifLine& line = parent < 0 ? result.mainline : result.variations.at(parent).line;
+        const int firstPly = parent < 0 ? 1 : result.variations.at(parent).startPly;
+        if (variation.startPly - 1 > lastPlayablePly(line, firstPly)) return false;
     }
 
-    qCDebug(lcKifu).noquote() << "addKifLineToTree: startPly=" << startPly
-                              << "disp.size=" << line.disp.size();
-    if (!line.disp.isEmpty()) {
-        qCDebug(lcKifu).noquote() << "first disp: ply=" << line.disp.at(0).ply
-                                  << "prettyMove=" << line.disp.at(0).prettyMove;
+    return true;
+}
+
+bool KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
+                                                   const KifParseResult& result,
+                                                   const QString& startSfen)
+{
+    if (!tree || !validateVariations(result)) return false;
+
+    tree->beginBatchUpdate();
+    tree->clear();
+    tree->setRootSfen(startSfen);
+    QList<QList<KifuBranchNode*>> paths;
+    paths.append(addKifLineToTree(tree, result.mainline, {tree->root()}));
+    for (const auto& variation : result.variations) {
+        const auto prefix = paths.at(variation.parentVariation + 1).mid(0, variation.startPly);
+        paths.append(addKifLineToTree(tree, variation.line, prefix));
     }
+    tree->endBatchUpdate();
+    return true;
+}
 
-    // 分岐開始点を見つける
-    KifuBranchNode* branchPoint = nullptr;
-    if (startPly <= 1) {
-        branchPoint = tree->root();
-        qCDebug(lcKifu).noquote() << "branchPoint = root";
-    } else {
-        // 分岐点を探す：baseSfen が分岐前の局面なので、それを使って正しいノードを見つける
-        // sfenList[0] が空の場合は line.baseSfen を使用する
-        QString baseSfen;
-        if (!line.sfenList.isEmpty()) {
-            baseSfen = line.sfenList.at(0);
-        } else if (!line.baseSfen.isEmpty()) {
-            baseSfen = line.baseSfen;
-        }
-
-        qCDebug(lcKifu).noquote() << "baseSfen=" << baseSfen
-                                  << "(sfenList.size=" << line.sfenList.size()
-                                  << "line.baseSfen=" << line.baseSfen << ")";
-
-        // まず SFEN で分岐点を探す（手数部分は findBySfen 側で無視される）。
-        // 分岐点は startPly-1 手目のはずなので手数で絞り込み、
-        // 手数が合わない場合のみ全手数を対象にする。
-        if (!baseSfen.isEmpty()) {
-            branchPoint = tree->findBySfen(baseSfen, startPly - 1);
-            if (branchPoint == nullptr) {
-                branchPoint = tree->findBySfen(baseSfen);
-            }
-            qCDebug(lcKifu).noquote() << "findBySfen() = "
-                                      << (branchPoint ? branchPoint->displayText() : "null");
-        }
-
-        // SFEN で見つからない場合は本譜から探す（フォールバック）
-        if (branchPoint == nullptr) {
-            branchPoint = tree->findByPlyOnMainLine(startPly - 1);
-            qCDebug(lcKifu).noquote() << "findByPlyOnMainLine(" << (startPly - 1) << ") = "
-                                      << (branchPoint ? branchPoint->displayText() : "null");
-        }
-
-        if (branchPoint == nullptr) {
-            branchPoint = tree->root();
-            qCDebug(lcKifu).noquote() << "fallback to root";
-        }
-    }
-
-    KifuBranchNode* currentNode = branchPoint;
+QList<KifuBranchNode*> KifuBranchTreeBuilder::addKifLineToTree(
+    KifuBranchTree* tree, const KifLine& line, QList<KifuBranchNode*> path)
+{
+    KifuBranchNode* currentNode = path.last();
 
     // 指し手を追加
     // disp[0]が開始局面エントリ（ply=0 または prettyMove が空）の場合はスキップ
@@ -131,9 +97,11 @@ void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
         }
 
         currentNode = tree->addMove(currentNode, move, item.prettyMove, sfen, item.timeText);
+        path.append(currentNode);
         if (currentNode != nullptr) {
             currentNode->setComment(item.comment);
             currentNode->setBookmark(item.bookmark);
         }
     }
+    return path;
 }

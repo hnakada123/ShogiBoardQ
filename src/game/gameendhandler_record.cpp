@@ -10,8 +10,8 @@
 
 void GameEndHandler::appendBreakOffLineAndMark()
 {
-    if (!m_refs.gameOver->isOver) return;
-    if (m_refs.gameOver->moveAppended) return;
+    if (!m_refs.session->gameOver().isOver) return;
+    if (m_refs.session->gameOver().moveAppended) return;
 
     const Turn gcTurn = m_refs.gc ? m_refs.gc->currentPlayer() : Turn::White;
 
@@ -33,8 +33,8 @@ void GameEndHandler::appendBreakOffLineAndMark()
 
 void GameEndHandler::appendGameOverLineAndMark(Cause cause, Turn loser)
 {
-    if (!m_refs.gameOver->isOver) return;
-    if (m_refs.gameOver->moveAppended) return;
+    if (!m_refs.session->gameOver().isOver) return;
+    if (m_refs.session->gameOver().moveAppended) return;
     if (!m_refs.clock || !m_hooks.appendRecord) {
         markGameOverMoveAppended();
         return;

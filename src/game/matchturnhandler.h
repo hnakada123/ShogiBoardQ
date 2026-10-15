@@ -32,11 +32,7 @@ public:
 
     struct Refs {
         ShogiGameController* gc = nullptr;
-        PlayMode* playMode = nullptr;
-        QString* positionStr1 = nullptr;
-        QString* positionPonder1 = nullptr;
-        QStringList* positionStrHistory = nullptr;
-        GameOverState* gameOver = nullptr;
+        MatchSessionState* session = nullptr;
         QObject* mcAsParent = nullptr;          ///< Strategy の QObject 親
     };
 
@@ -55,7 +51,7 @@ public:
         std::function<void(const QString&, const QString&)> showGameOverDialog;
     };
 
-    explicit MatchTurnHandler(MatchCoordinator& mc);
+    explicit MatchTurnHandler(std::unique_ptr<MatchStrategyContext> context);
     ~MatchTurnHandler();
 
     void setRefs(const Refs& refs);
@@ -80,7 +76,6 @@ public:
 
     void flipBoard();
     void updateTurnDisplay(Turn p);
-    void initPositionStringsFromSfen(const QString& sfenBase);
 
     // --- 対局進行 ---
 

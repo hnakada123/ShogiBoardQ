@@ -134,6 +134,7 @@ QString buildHandsSfen(const QMap<Piece, int>& black, const QMap<Piece, int>& wh
 struct VariationBase {
     QString sfen;
     QString prevUsi;
+    int parentVariation = -1;
 };
 
 // KIF/KI2共通：「変化：N手」の開始局面を、それまでに読んだ手順から求める。

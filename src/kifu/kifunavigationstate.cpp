@@ -1,221 +1,133 @@
 /// @file kifunavigationstate.cpp
-/// @brief 棋譜ナビゲーション状態管理クラスの実装
+/// @brief 現在位置と分岐の選択をノードIDで管理する
 
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
-#include "logcategories.h"
 
-KifuNavigationState::KifuNavigationState(QObject* parent)
-    : QObject(parent)
-{
-}
+KifuNavigationState::KifuNavigationState(QObject* parent) : QObject(parent) {}
 
 void KifuNavigationState::setTree(KifuBranchTree* tree)
 {
     m_tree = tree;
-    m_currentNode = nullptr;
-    m_lastSelectedChildAtBranch.clear();
-    m_preferredLineIndex = -1;  // ツリー設定時にリセット
+    m_currentNodeId = -1;
+    m_selectedChildIds.clear();
+    goToRoot();
+}
 
-    if (m_tree != nullptr && m_tree->root() != nullptr) {
-        setCurrentNode(m_tree->root());
-    }
+KifuBranchNode* KifuNavigationState::currentNode() const
+{
+    return m_tree ? m_tree->nodeAt(m_currentNodeId) : nullptr;
 }
 
 int KifuNavigationState::currentPly() const
 {
-    if (m_currentNode == nullptr) {
-        return 0;
-    }
-    return m_currentNode->ply();
+    const auto* node = currentNode();
+    return node ? node->ply() : 0;
+}
+
+QList<KifuBranchNode*> KifuNavigationState::selectedPath() const
+{
+    QList<KifuBranchNode*> path;
+    for (auto* node = m_tree ? m_tree->root() : nullptr; node; node = nextNode(node)) path.append(node);
+    return path;
 }
 
 int KifuNavigationState::currentLineIndex() const
 {
-    if (m_currentNode == nullptr) {
-        return 0;
-    }
+    const auto path = selectedPath();
+    return path.isEmpty() ? 0 : m_tree->findLineIndexForNode(path.last()).value_or(0);
+}
 
-    // 優先ラインが設定されている場合は、それを返す
-    // これにより、分岐を選択した後は分岐点より前に戻っても、
-    // または別のサブブランチにいても、選択したラインを維持できる
-    if (m_preferredLineIndex > 0) {
-        return m_preferredLineIndex;
-    }
-
-    // 優先ラインが設定されていない場合は、ツリーから正確なインデックスを取得
-    // KifuBranchNode::lineIndex() は最初の分岐点での子インデックスのみを返すため
-    // allLines() の順序（DFS順）と一致しない問題がある
-    if (m_tree != nullptr) {
-        const auto lineIndex = m_tree->findLineIndexForNode(m_currentNode);
-        if (lineIndex.has_value()) {
-            return *lineIndex;
-        }
-    }
-
-    // フォールバック: 本譜
-    return 0;
+int KifuNavigationState::preferredLineIndex() const
+{
+    const int index = currentLineIndex();
+    return index > 0 ? index : -1;
 }
 
 void KifuNavigationState::setPreferredLineIndex(int lineIndex)
 {
-    m_preferredLineIndex = lineIndex;
+    if (!m_tree) return;
+    const auto lines = m_tree->allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size() || lines.at(lineIndex).nodes.isEmpty()) return;
+    rememberPathSelections(lines.at(lineIndex).nodes.last());
 }
 
 void KifuNavigationState::resetPreferredLineIndex()
 {
-    m_preferredLineIndex = -1;
+    clearLineSelectionMemory();
 }
 
 void KifuNavigationState::rememberPathSelections(KifuBranchNode* node)
 {
-    for (KifuBranchNode* current = node; current != nullptr; current = current->parent()) {
-        KifuBranchNode* parent = current->parent();
-        if (parent == nullptr || parent->childCount() <= 1) {
-            continue;
-        }
-        for (int i = 0; i < parent->childCount(); ++i) {
-            if (parent->childAt(i) == current) {
-                rememberChildSelection(parent, i);
-                break;
-            }
-        }
+    for (auto* child = node; child && child->parent(); child = child->parent()) {
+        m_selectedChildIds.insert(child->parent()->nodeId(), child->nodeId());
     }
 }
 
 void KifuNavigationState::clearLineSelectionMemory()
 {
-    m_lastSelectedChildAtBranch.clear();
+    m_selectedChildIds.clear();
 }
 
 QString KifuNavigationState::currentSfen() const
 {
-    if (m_currentNode == nullptr) {
-        return QString();
-    }
-    return m_currentNode->sfen();
+    const auto* node = currentNode();
+    return node ? node->sfen() : QString();
 }
 
 void KifuNavigationState::setCurrentNode(KifuBranchNode* node)
 {
-    if (m_currentNode == node) {
-        qCDebug(lcKifu).noquote() << "setCurrentNode: same node, skipping";
-        return;
-    }
-
-    KifuBranchNode* oldNode = m_currentNode;
-
-    qCDebug(lcKifu).noquote() << "setCurrentNode: oldNode="
-                              << (oldNode ? QString::number(oldNode->nodeId()) : "null")
-                              << "preferredLineIndex=" << m_preferredLineIndex
-                              << "newNode=" << (node ? QString::number(node->nodeId()) : "null")
-                              << "newNodePly=" << (node ? node->ply() : -1)
-                              << "newNodeDisplayText=" << (node ? node->displayText() : "null");
-
-    m_currentNode = node;
+    m_currentNodeId = node ? node->nodeId() : -1;
+    rememberPathSelections(node);
 }
 
 void KifuNavigationState::goToRoot()
 {
-    if (m_tree != nullptr) {
-        setCurrentNode(m_tree->root());
-    }
+    setCurrentNode(m_tree ? m_tree->root() : nullptr);
 }
 
-bool KifuNavigationState::isOnMainLine() const
-{
-    // ノード単位の isMainLine()（親の最初の子か）ではなく、表示中ラインで判定する
-    return currentLineIndex() == 0;
-}
-
-bool KifuNavigationState::canGoForward() const
-{
-    if (m_currentNode == nullptr) {
-        return false;
-    }
-    // 子がいれば進める
-    return m_currentNode->childCount() > 0;
-}
-
-bool KifuNavigationState::canGoBack() const
-{
-    if (m_currentNode == nullptr) {
-        return false;
-    }
-    // 親がいれば戻れる
-    return m_currentNode->parent() != nullptr;
-}
+bool KifuNavigationState::isOnMainLine() const { return currentLineIndex() == 0; }
+bool KifuNavigationState::canGoForward() const { return nextNode(currentNode()) != nullptr; }
+bool KifuNavigationState::canGoBack() const { return currentNode() && currentNode()->parent(); }
 
 QList<KifuBranchNode*> KifuNavigationState::branchCandidatesAtCurrent() const
 {
-    QList<KifuBranchNode*> result;
-    if (m_currentNode == nullptr) return result;
-
-    KifuBranchNode* parent = m_currentNode->parent();
-    if (parent == nullptr) return result;
-
-    // 分岐候補は「親ノードの子」＝現在手の兄弟（同じ手数での別の指し手）
-    if (parent->childCount() > 1) {
-        result.reserve(parent->childCount());
-        for (int i = 0; i < parent->childCount(); ++i) {
-            result.append(parent->childAt(i));
-        }
-    }
-
-    return result;
+    const auto* node = currentNode();
+    const auto* parent = node ? node->parent() : nullptr;
+    return parent && parent->childCount() > 1 ? parent->children() : QList<KifuBranchNode*>{};
 }
 
 bool KifuNavigationState::hasBranchAtCurrent() const
 {
-    if (m_currentNode == nullptr) return false;
-    KifuBranchNode* parent = m_currentNode->parent();
-    if (parent == nullptr) return false;
-    return parent->childCount() > 1;
+    return !branchCandidatesAtCurrent().isEmpty();
 }
 
 void KifuNavigationState::rememberChildSelection(KifuBranchNode* branchPoint, int childIndex)
 {
-    if (branchPoint == nullptr) {
-        qCDebug(lcKifu).noquote() << "rememberChildSelection: branchPoint is null, returning";
-        return;
+    if (!branchPoint) return;
+    if (auto* child = branchPoint->childAt(childIndex))
+        m_selectedChildIds.insert(branchPoint->nodeId(), child->nodeId());
+}
+
+KifuBranchNode* KifuNavigationState::nextNode(KifuBranchNode* node) const
+{
+    if (!node) return nullptr;
+    const int selectedId = m_selectedChildIds.value(node->nodeId(), -1);
+    for (auto* child : node->children()) {
+        if (child->nodeId() == selectedId) return child;
     }
-    qCDebug(lcKifu).noquote() << "rememberChildSelection: nodeId=" << branchPoint->nodeId()
-                              << "ply=" << branchPoint->ply()
-                              << "childIndex=" << childIndex
-                              << "(childCount=" << branchPoint->childCount() << ")";
-    m_lastSelectedChildAtBranch.insert(branchPoint->nodeId(), childIndex);
+    return node->childAt(0);
 }
 
 int KifuNavigationState::lastSelectedChildAt(KifuBranchNode* branchPoint) const
 {
-    if (branchPoint == nullptr) {
-        qCDebug(lcKifu).noquote() << "lastSelectedChildAt: branchPoint is null, returning 0";
-        return 0;
-    }
-    const int result = m_lastSelectedChildAtBranch.value(branchPoint->nodeId(), 0);
-    qCDebug(lcKifu).noquote() << "lastSelectedChildAt: nodeId=" << branchPoint->nodeId()
-                              << "ply=" << branchPoint->ply()
-                              << "childCount=" << branchPoint->childCount()
-                              << "result=" << result
-                              << "(map size=" << m_lastSelectedChildAtBranch.size() << ")";
-    return result;
+    if (!branchPoint) return 0;
+    const auto* selected = nextNode(branchPoint);
+    return selected ? static_cast<int>(branchPoint->children().indexOf(selected)) : 0;
 }
 
 RecordLine KifuNavigationState::currentRecordLine() const
 {
-    if (m_tree == nullptr || m_tree->root() == nullptr) return {};
-
-    // 選んでいる分岐の手順。表示中の局面がその手順に無ければ、表示中の局面までの手順にする
-    QList<KifuBranchNode*> nodes;
-    const QList<BranchLine> lines = m_tree->allLines();
-    const int index = currentLineIndex();
-    if (index >= 0 && index < lines.size()
-        && (m_currentNode == nullptr || lines.at(index).nodes.contains(m_currentNode))) {
-        nodes = lines.at(index).nodes;
-    } else {
-        nodes = m_tree->pathToNode(m_currentNode != nullptr ? m_currentNode : m_tree->root());
-    }
-
-    return KifuBranchTree::toRecordLine(nodes, currentPly());
+    return KifuBranchTree::toRecordLine(selectedPath(), currentPly());
 }

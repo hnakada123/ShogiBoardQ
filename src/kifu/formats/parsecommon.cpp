@@ -498,7 +498,7 @@ std::optional<VariationBase> findVariationBase(const KifLine& mainline,
         if (var.startPly > branchPly) continue;
         const qsizetype idx = branchPly - (var.startPly - 1);
         if (idx < 1 || idx >= var.line.sfenList.size()) continue;
-        return VariationBase{var.line.sfenList.at(idx), var.line.usiMoves.value(idx - 1)};
+        return VariationBase{var.line.sfenList.at(idx), var.line.usiMoves.value(idx - 1), static_cast<int>(vi)};
     }
 
     if (branchPly < mainline.sfenList.size()) {

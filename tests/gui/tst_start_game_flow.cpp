@@ -501,8 +501,8 @@ private slots:
         auto* table = controller->tableWidget();
         QCOMPARE(table->rowCount(), 9);
         QVERIFY(table->item(1, 1)->text().isEmpty());
-        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("先手"));
-        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("後手"));
+        QVERIFY(table->item(2, 1)->text().isEmpty());
+        QVERIFY(table->item(3, 1)->text().isEmpty());
         table->item(6, 1)->setText(QStringLiteral("練習対局"));
         table->item(7, 1)->setText(QStringLiteral("自宅"));
         controller->applyChanges();

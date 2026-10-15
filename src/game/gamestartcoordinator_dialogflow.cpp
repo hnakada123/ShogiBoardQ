@@ -1,231 +1,56 @@
 /// @file gamestartcoordinator_dialogflow.cpp
-/// @brief GameStartCoordinator::initializeGame の実装（ダイアログ対話→対局開始フロー）
-
+/// @brief 開始要求を検証し、選択した手順を一度だけ適用する
 #include "gamestartcoordinator.h"
 #include "gamestartoptionsbuilder.h"
-#include "logcategories.h"
-#include "kifurecordlistmodel.h"
-#include "matchcoordinator.h"
-#include "shogiclock.h"
 #include "sfenutils.h"
-
-#include <QDebug>
-#include <QLoggingCategory>
-
-// ============================================================
-// 対局開始メインフロー（ダイアログ対話は app/ 層で完了済み）
-// ============================================================
 
 bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
 {
     errorMessage.clear();
     if (!m_match) return false;
 
-    qCDebug(lcGame).noquote() << "initializeGame: ENTER"
-                       << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null")
-                       << " c.startSfenStr=" << (c.startSfenStr ? c.startSfenStr->left(50) : "null")
-                       << " c.selectedPly=" << c.selectedPly
-                       << " c.sfenRecord size=" << (c.sfenRecord ? c.sfenRecord->size() : -1);
-
-    // --- 1) hasEditedStart 判定（ダイアログ表示・承認は呼び出し元 app/ 層で実施済み） ---
-    const auto detectEditedStartSfen = [&]() -> QString {
-        const auto isEditedStart = [&](const QString& raw) -> bool {
-            const QString s = raw.trimmed();
-            return !s.isEmpty()
-                   && !SfenUtils::isHirateStart(s)
-                   && s != QLatin1String("startpos");
-        };
-
-        if (c.startSfenStr && isEditedStart(*c.startSfenStr)) {
-            return c.startSfenStr->trimmed();
+    const bool fromCurrent = c.dialogData.startingPositionNumber == 0;
+    RecordLine line = fromCurrent ? c.recordLine : RecordLine{};
+    if (line.isEmpty()) {
+        QString sfen;
+        if (!fromCurrent) {
+            sfen = GameStartOptionsBuilder::startingPositionSfen(c.dialogData.startingPositionNumber);
+        } else if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
+            sfen = *c.currentSfenStr;
+        } else if (c.startSfenStr) {
+            sfen = *c.startSfenStr;
         }
-
-        // startSfenStr が途中で平手に戻ってしまうケースに備え、
-        // 局面履歴の先頭（開始局面）をフォールバックとして使用する。
-        if (c.sfenRecord && !c.sfenRecord->isEmpty() && isEditedStart(c.sfenRecord->first())) {
-            return c.sfenRecord->first().trimmed();
-        }
-
-        return QString();
-    };
-    const QString editedStartSfen = detectEditedStartSfen();
-
-    // --- 2) ダイアログ結果（app/ 層で抽出済み）から必要情報を取得 ---
-    const int initPosNo = c.dialogData.startingPositionNumber;
-    const bool p1Human   = c.dialogData.isHuman1;
-    const bool p2Human   = c.dialogData.isHuman2;
-
-    qCDebug(lcGame).noquote() << "initializeGame: after dialog, initPosNo=" << initPosNo;
-
-    // prepareDataCurrentPosition と同じ優先順で、実際に対局に使用する局面を検証する。
-    // 棋譜・対局情報のクリアや時計・エンジンの起動より前に中止する必要がある。
-    QString candidateSfen;
-    if (initPosNo != 0) {
-        candidateSfen = GameStartOptionsBuilder::startingPositionSfen(initPosNo);
-    } else if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
-        candidateSfen = *c.currentSfenStr;
-    } else if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
-        candidateSfen = *c.startSfenStr;
-    } else {
-        candidateSfen = QStringLiteral("startpos");
+        line.sfens = {GameStartOptionsBuilder::canonicalizeSfen(sfen)};
     }
-    if (!validateKingsForGame(candidateSfen, errorMessage)) return false;
+    const int ply = qBound(0, line.currentPly, qMin(line.moveCount(), static_cast<int>(line.sfens.size()) - 1));
+    line.currentPly = ply;
+    line.sfens = line.sfens.mid(0, ply + 1);
+    line.moves = line.moves.mid(0, ply);
+    const QString sfen = line.sfens.last();
+    if (!validateKingsForGame(sfen, errorMessage)) return false;
 
-    // ダイアログで確定した選択を尊重する。編集済み局面は、現在局面から
-    // 開始する場合の SFEN フォールバックにのみ使用する。
-
-    // --- 3) 開始SFENの決定 ---
-    const int startingPosNumber = initPosNo;
-
-    // 対局開始後に選択すべき棋譜行（現在局面から開始時に使用）
-    int startingRow = -1;
-
-    QString startSfen = editedStartSfen;
-    if (startSfen.isEmpty() && c.startSfenStr && !c.startSfenStr->isEmpty()) {
-        startSfen = *(c.startSfenStr);
-    }
-    qCDebug(lcGame).noquote() << "initializeGame: BEFORE prepareDataCurrentPosition"
-                       << " startSfen=" << startSfen.left(50)
-                       << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
-
-    if (startingPosNumber == 0) {
-        // 現在局面から開始。
-        // 読み込んだ棋譜や貼り付けた局面の開始局面は startSfenStr に反映されないことがある。
-        // 開始前クリーンアップは startSfenStr を開始局面として分岐ツリーの根を作り直すため、
-        // 棋譜の開始局面（局面履歴の先頭）に揃える。
-        if (c.startSfenStr && c.sfenRecord && !c.sfenRecord->isEmpty()) {
-            const QString recordStart = c.sfenRecord->first().trimmed();
-            if (!recordStart.isEmpty()
-                && SfenUtils::normalizeSfenKey(recordStart) != SfenUtils::normalizeSfenKey(*c.startSfenStr)) {
-                qCDebug(lcGame).noquote() << "initializeGame: startSfenStr follows the record start="
-                                          << recordStart.left(50);
-                *c.startSfenStr = recordStart;
-            }
-        }
-        prepareDataCurrentPosition(c);
-
-        qCDebug(lcGame).noquote() << "initializeGame: AFTER prepareDataCurrentPosition"
-                           << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
-
-        if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
-            startSfen = *(c.currentSfenStr);
-            qCDebug(lcGame).noquote() << "initializeGame: SET startSfen from currentSfenStr=" << startSfen.left(50);
-        } else if (startSfen.isEmpty()) {
-            startSfen = QStringLiteral("startpos");
-            qCDebug(lcGame).noquote() << "initializeGame: FALLBACK to startpos";
-        }
-    } else {
-        // 平手/駒落ちプリセット（GameStartOptionsBuilder のテーブルを使用）
-        startSfen = GameStartOptionsBuilder::startingPositionSfen(startingPosNumber);
-
-        // 開始局面・現在局面を手合割の局面にする
-        prepareInitialPosition(c);
-
-        // 平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセットする
-        // （根は選んだ手合割の開始局面。前の対局のライブセッションが残っていれば破棄する）。
-        // 開始前の整理は prepare() で1回だけ行う。開始局面と現在局面が同じで手数が0なので
-        // 全UIコンポーネントをクリアし、新しい根からライブセッションを始める
-        emit requestBranchTreeResetForNewGame();
-    }
-
-    // --- 3.5) 開始SFENを正規化してsfenRecordにseed ---
-    const QString seedSfen = GameStartOptionsBuilder::canonicalizeSfen(startSfen);
-
-    if (c.sfenRecord) {
-        // 現在局面から開始（startingPosNumber==0）の場合は
-        // 0..selectedPly を保全し、末尾を seedSfen に置換
-        if (startingPosNumber == 0 && !c.sfenRecord->isEmpty() && c.selectedPly >= 0) {
-            // c.selectedPly を常に基準として使用する。
-            // 分岐ツリーから特定の手を選択して対局開始する場合、
-            // 棋譜モデルの行数は前の対局の値を反映している可能性があるため。
-            int keepIdx = static_cast<int>(qBound(qsizetype(0), qsizetype(c.selectedPly), c.sfenRecord->size() - 1));
-            // 終局手（投了・中断など）を選んでいた場合、開始前の整理で棋譜欄は直前の局面までになる。
-            // 存在しない行を開始行にすると、選択が開始局面へ戻ってしまう。
-            if (c.kifuModel != nullptr && c.kifuModel->rowCount() > 0) {
-                keepIdx = qMin(keepIdx, c.kifuModel->rowCount() - 1);
-            }
-            const int takeLen = keepIdx + 1;
-
-            QStringList preserved;
-            preserved.reserve(takeLen);
-            for (int i = 0; i < takeLen; ++i) {
-                preserved.append(c.sfenRecord->at(i));
-            }
-            if (!preserved.isEmpty()) {
-                preserved[preserved.size() - 1] = seedSfen;
-            }
-
-            c.sfenRecord->clear();
-            c.sfenRecord->append(preserved);
-
-            startingRow = keepIdx;
-
-            qCDebug(lcGame).noquote()
-                << "seed-resume: kept(0.." << keepIdx << ") size=" << c.sfenRecord->size()
-                << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
-        } else {
-            c.sfenRecord->clear();
-            c.sfenRecord->append(seedSfen);
-
-            qCDebug(lcGame).noquote()
-                << "seed: sfenRecord*=" << static_cast<const void*>(c.sfenRecord)
-                << " size=" << c.sfenRecord->size()
-                << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
-        }
-    } else {
-        qCWarning(lcGame) << "seed: sfenRecord is null (cannot seed)";
-    }
-
-    // --- 4) PlayMode を SFEN手番と整合させて最終決定 ---
-    PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, seedSfen);
-    qCDebug(lcGame) << "Final PlayMode =" << static_cast<int>(mode) << "  startSfen=" << seedSfen;
-
-    // --- 5) StartOptions 構築 ---
-    if (!m_match) {
-        return false;
-    }
-    MatchCoordinator::StartOptions opt =
-        m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, &c.dialogData);
-
-    m_match->ensureHumanAtBottomIfApplicable(&c.dialogData, c.bottomSide);
-
-    // --- 6) 時間設定を構築（GameStartOptionsBuilder に委譲） ---
-    const TimeSettings tc = GameStartOptionsBuilder::buildTimeControl(c.dialogData);
-
-    // --- 7) 時計の準備と配線・起動は prepare() に委譲 ---
-    Request req;
-    req.dialogData  = c.dialogData;
-    req.startSfen   = seedSfen;
-    req.clock       = c.clock ? c.clock : m_match->clock();
-    // 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み。
-    // 手合割からの開始時は、ここで1回だけクリーンアップする
-    req.skipCleanup = (startingPosNumber == 0);
-
-    prepare(req);
-
-    // --- 8) 対局者名をMainWindowに通知（startの前に。EvE初手で評価値グラフが動くため） ---
-    const QString human1 = c.dialogData.humanName1;
-    const QString human2 = c.dialogData.humanName2;
-    const QString engine1 = opt.engineName1;
-    const QString engine2 = opt.engineName2;
-    qCDebug(lcGame).noquote() << "startGameAfterDialog: BEFORE playerNamesResolved";
-    qCDebug(lcGame).noquote() << "human1=" << human1 << " human2=" << human2 << " engine1=" << engine1 << " engine2=" << engine2;
-    emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
-
-    // --- 8.5) 連続対局設定を通知（EvE対局時のみ有効） ---
-    const int consecutiveGames = c.dialogData.consecutiveGames;
-    const bool switchTurn = c.dialogData.isSwitchTurnEachGame;
-    emit consecutiveGamesConfigured(consecutiveGames, switchTurn);
-    qCDebug(lcGame).noquote() << "consecutiveGames=" << consecutiveGames << " switchTurn=" << switchTurn;
-
-    qCDebug(lcGame).noquote() << "startGameAfterDialog: AFTER playerNamesResolved, BEFORE start()";
-
-    // --- 9) 対局開始。現在局面から始めるときは開始行を選び、時計を動かして初手を指す ---
+    const PlayMode mode = determinePlayModeAlignedWithTurn(
+        c.dialogData.startingPositionNumber, c.dialogData.isHuman1, c.dialogData.isHuman2, sfen);
     StartParams params;
-    params.opt  = opt;
-    params.tc   = tc;
-    params.autoStartEngineMove = true;
-    params.selectKifuRow = startingRow;
+    params.opt = m_match->buildStartOptions(mode, sfen, nullptr, &c.dialogData);
+    params.opt.recordLine = line;
+    params.tc = GameStartOptionsBuilder::buildTimeControl(c.dialogData);
+    params.announcePlayerNames = true;
+    params.selectKifuRow = ply;
+    if (!validate(params, errorMessage)) return false;
+
+    // ここまで共有状態に触れない。クリーンアップには開始方法とノードの識別子を渡す。
+    GameStartPreparation preparation;
+    preparation.mode = fromCurrent ? GameStartPreparation::Mode::CurrentPosition : GameStartPreparation::Mode::NewGame;
+    preparation.rootSfen = line.startSfen();
+    preparation.startNodeId = fromCurrent ? c.startNodeId : -1;
+    emit requestPreStartCleanup(preparation);
+
+    if (c.startSfenStr) *c.startSfenStr = line.startSfen();
+    if (c.currentSfenStr) *c.currentSfenStr = sfen;
+    if (c.clock) m_match->setClock(c.clock);
+    m_match->ensureHumanAtBottomIfApplicable(&c.dialogData, c.bottomSide);
+    emit consecutiveGamesConfigured(c.dialogData.consecutiveGames, c.dialogData.isSwitchTurnEachGame);
     start(params);
     return true;
 }

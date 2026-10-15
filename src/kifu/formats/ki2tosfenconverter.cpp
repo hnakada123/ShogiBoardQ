@@ -180,6 +180,7 @@ bool Ki2ToSfenConverter::parseLines(const QStringList& lines, KifParseResult& ou
         if (const auto previous = UsiMove::parse(base->prevUsi)) previousTo = previous->to;
         KifVariation variation;
         variation.startPly = start;
+        variation.parentVariation = base->parentVariation;
         const auto blockLines = lines.mid(boundaries[block] + 1, boundaries[block + 1] - boundaries[block] - 1);
         if (!parseKi2Block(blockLines, base->sfen, start, previousTo, variation.line, errorMessage)) return false;
         KifuParseCommon::mergeOpeningIntoFirstMove(variation.line);
