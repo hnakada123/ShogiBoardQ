@@ -5,7 +5,8 @@
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
 #include "kifreader.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "sfenutils.h"
 
 #include <QCoreApplication>

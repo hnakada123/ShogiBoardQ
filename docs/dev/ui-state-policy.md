@@ -10,15 +10,20 @@
 
 ## アプリケーション状態（AppState）
 
+状態は `AppActivityState::Activity`（`src/common/appactivitystate.h`）で、値は `AppState::activity` に1つだけ置く
+（`UiStatePolicyManager::AppState` はこの列挙の別名）。`UiStatePolicyManager` は `AppActivityState::changed` を受けて
+全UI要素にポリシーを適用し直すので、`MatchCoordinator`・`AnalysisSession`・`CsaGameWiring` などが
+`setActivity()` で状態を変えたときにも表示が切り替わる。
+
 | 状態 | 説明 | 遷移トリガー |
 |---|---|---|
 | **Idle** | 待機状態（起動直後・各モード終了後） | 各モード終了シグナル |
 | **DuringGame** | 対局中 | `GameStartCoordinator::started` |
 | **DuringAnalysis** | 棋譜解析中 | `DialogCoordinator::analysisModeStarted` |
-| **DuringCsaGame** | CSA通信対局中 | `CsaGameWiring::disableNavigationRequested` |
+| **DuringCsaGame** | CSA通信対局中 | `CsaGameCoordinator::gameStarted`（`CsaGameWiring::onGameStarted()`） |
 | **DuringTsumeSearch** | 詰み探索中 | `DialogCoordinator::tsumeSearchModeStarted` |
 | **DuringConsideration** | 検討中 | `DialogCoordinator::considerationModeStarted` |
-| **DuringPositionEdit** | 局面編集中 | `PositionEditCoordinator` コールバック |
+| **DuringPositionEdit** | 局面編集中 | `PositionEditCoordinator` のコールバック（`onEnterEditMenu`） |
 
 ## 状態遷移図
 
@@ -39,7 +44,7 @@
         └─────┬─────┘      │   │   │   │    │（局面編集中） │
               │            │   │   │   │    └───────┬───────┘
    gameEnded               │   │   │   │            │
-   enableArrowButtons      │   │   │   │       コールバック
+   gameOverStateChanged    │   │   │   │       コールバック
               │            │   │   │   │            │
               └─────►Idle◄─┘   │   │   └──◄─────────┘
                      ▲  ▲      │   │
@@ -69,9 +74,11 @@
 | **Enabled (E)** | 表示＋有効（クリック可能） |
 | **Disabled (D)** | 表示＋無効（グレーアウト） |
 | **Hidden (H)** | 非表示 |
-| **Shown (S)** | 表示＋有効（Hidden の対として使用） |
 
 ## 状態テーブル（有効/無効マトリクス）
+
+表は `uistatepolicymanager.cpp` のコンパイル時の表 `kRules` で、UI要素ごとに「有効にする状態の集合」と
+「それ以外の状態で無効にする（Disable）か隠す（Hide）か」を宣言している。メニュー項目との対応は `kActions`。
 
 ### ファイルメニュー
 
@@ -82,23 +89,25 @@
 | 上書き保存 | E | D | D | D | E | E | D |
 | 名前を付けて保存 | E | D | D | D | E | E | D |
 | 盤面画像保存 | E | E | E | E | E | E | E |
+| 評価値グラフ画像保存 | E | E | E | E | E | E | E |
 | 終了 | E | E | E | E | E | E | E |
 
 ### 編集メニュー
 
 | UI要素 | Idle | 対局中 | 解析中 | CSA中 | 詰み探索中 | 検討中 | 局面編集中 |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 棋譜コピー（KIF/KI2/CSA/JKF） | E | D | D | D | E | E | D |
-| 局面コピー（USI/USEN/SFEN/BOD） | E | E | E | E | E | E | E |
+| 棋譜コピー（KIF/KI2/CSA/JKF/USI全て/USEN） | E | D | D | D | E | E | D |
+| 局面コピー（USI現在の指し手まで/SFEN/BOD） | E | E | E | E | E | E | E |
 | 棋譜貼り付け | E | D | D | D | D | D | D |
 | SFEN集ビューア | E | D | D | D | D | D | D |
 | 盤面画像コピー | E | E | E | E | E | E | E |
-| 局面編集開始 | S | H | H | H | H | H | H |
-| 局面編集終了 | H | H | H | H | H | H | S |
-| 平手初期配置 | H | H | H | H | H | H | S |
-| 詰将棋初期配置 | H | H | H | H | H | H | S |
-| 全駒を駒台へ | H | H | H | H | H | H | S |
-| 手番変更 | H | H | H | H | H | H | S |
+| 評価値グラフ画像コピー | E | E | E | E | E | E | E |
+| 局面編集開始 | E | H | H | H | H | H | H |
+| 局面編集終了 | H | H | H | H | H | H | E |
+| 平手初期配置 | H | H | H | H | H | H | E |
+| 詰将棋初期配置 | H | H | H | H | H | H | E |
+| 全駒を駒台へ | H | H | H | H | H | H | E |
+| 手番変更 | H | H | H | H | H | H | E |
 
 ### 対局メニュー
 
@@ -110,6 +119,7 @@
 | 待った | D | E | D | D | D | D | D |
 | すぐ指させる | D | E | D | E | D | D | D |
 | 中断 | D | E | D | E | D | D | D |
+| 再開 | E | D | D | D | D | D | D |
 | 棋譜解析 | E | D | D | D | D | D | D |
 | 棋譜解析中止 | D | D | E | D | D | D | D |
 | 詰み探索 | E | D | D | D | D | D | D |
@@ -123,6 +133,7 @@
 | UI要素 | Idle | 対局中 | 解析中 | CSA中 | 詰み探索中 | 検討中 | 局面編集中 |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | エンジン設定 | E | D | D | D | D | E | D |
+| 設定を初期値に戻す | E | D | D | D | D | D | D |
 
 ### ウィジェット
 
@@ -135,6 +146,9 @@
 | 検討ドック「検討開始」ボタン | E | D | E | D | E | E | E |
 
 **補足**:
+- 表のほかに条件が付く項目がある（`effectivePolicy()`）。待った・投了・入玉宣言は、ローカル対局では人間が参加しているときだけ有効
+  （`Deps::localGameHasHuman`。エンジン同士の対局では無効。CSA通信対局の投了・入玉宣言はこの条件を見ない）。
+  再開は中断した対局があるときだけ有効（`setResumeAvailable()`）
 - 「ナビゲーションボタン」と「棋譜欄クリック」は `RecordPane::setNavigationEnabled()` で一括制御
 - 「分岐ツリークリック」は `EngineAnalysisTab::setBranchTreeClickEnabled()` で制御
 - 「盤面クリック」は `BoardInteractionController::setMoveInputEnabled()` で制御（対局中の手番チェックは `isHumanTurnCallback` で別途実施）
@@ -145,24 +159,24 @@
 
 ```
 GameStartCoordinator::started ──────────► transitionToDuringGame()
-MatchCoordinator::gameEnded ────────────► transitionToIdle()  （SessionLifecycleCoordinator::handleGameEnded より後に接続）
-GameStateController callback ───────────► transitionToIdle()
+MatchCoordinator::gameOverStateChanged ─► GameSession::onGameOverStateChanged() → transitionToIdle()  （終局の行を棋譜に書いた後）
+MatchCoordinator::gameEnded ────────────► GameSession::onGameEnded() → transitionToIdle()
 
 DialogCoordinator::analysisModeStarted ─► transitionToDuringAnalysis()
 DialogCoordinator::analysisModeEnded ───► transitionToIdle()  （ダイアログキャンセル時 or 解析完了/中止時）
 
 DialogCoordinator::tsumeSearchModeStarted ► transitionToDuringTsumeSearch()
 DialogCoordinator::tsumeSearchModeEnded ──► transitionToIdle()  （ダイアログキャンセル時）
-MatchCoordinator::tsumeSearchModeEnded ──► transitionToIdle()  （探索完了/中止時）
+AnalysisSession::tsumeSearchModeEnded ───► transitionToIdle()  （探索完了/中止時）
 
 DialogCoordinator::considerationModeStarted ► transitionToDuringConsideration()
-MatchCoordinator::considerationModeEnded ──► transitionToIdle()
+AnalysisSession::considerationModeEnded ───► transitionToIdle()
 
-CsaGameWiring::disableNavigationRequested ► transitionToDuringCsaGame()
-CsaGameWiring::enableNavigationRequested ─► transitionToIdle()
+CsaGameCoordinator::gameStarted ─► CsaGameWiring::onGameStarted() → transitionToDuringCsaGame()
+CsaGameCoordinator::gameEnded ───► CsaGameWiring::onGameEnded() → transitionToIdle()
 
-PositionEditCoordinator callback(true) ──► transitionToDuringPositionEdit()
-PositionEditCoordinator callback(false) ─► transitionToIdle()
+PositionEditCoordinator onEnterEditMenu ─► transitionToDuringPositionEdit()
+PositionEditCoordinator onLeaveEditMenu ─► transitionToIdle()
 ```
 
 ## エンジンエラー時の復旧パス
@@ -171,29 +185,29 @@ PositionEditCoordinator callback(false) ─► transitionToIdle()
 
 ```
 【対局中】
-  Usi::errorOccurred → MatchCoordinator::onUsiError()
-    → handleBreakOff() → gameEnded()
-    → MatchCoordinator::gameEnded → transitionToIdle()
+  Usi::errorOccurred → EngineLifecycleManager::engineError
+    → MatchCoordinator::handleEngineError() → handleBreakOff() → gameEnded
+    → GameSession::onGameEnded() → transitionToIdle()
 
 【棋譜解析中】
-  Usi::errorOccurred → AnalysisFlowController::onEngineError()
+  Usi::errorOccurred → AnalysisJob::errorOccurred → AnalysisFlowController::onEngineError()
     → stop() → analysisStopped()
     → DialogCoordinator::analysisModeEnded → transitionToIdle()
 
 【詰み探索中】
-  Usi::errorOccurred → MatchCoordinator::onUsiError()
-    → tsumeSearchModeEnded → transitionToIdle()
+  Usi::errorOccurred → AnalysisSession::onEngineError()
+    → stop() → tsumeSearchModeEnded → transitionToIdle()
 
 【検討中】
-  Usi::errorOccurred → MatchCoordinator::onUsiError()
-    → considerationModeEnded → transitionToIdle()
+  Usi::errorOccurred → AnalysisSession::onEngineError()
+    → stop() → considerationModeEnded → transitionToIdle()
 ```
 
-**注意**: CSA通信対局は `CsaGameCoordinator` / `CsaGameWiring` が独自にエラー管理するため、`MatchCoordinator::onUsiError()` では対象外。
+**注意**: CSA通信対局は `CsaGameCoordinator` / `CsaGameWiring` が独自にエラー管理するため、`MatchCoordinator::handleEngineError()` では対象外。
 
 ## 設計上の注意点
 
-- **テーブル駆動**: 新しい状態やUI要素の追加は `buildPolicyTable()` にエントリを追加するだけ
-- **依存の注入**: 生成（`MainWindowComposer::createServices()`）の後、`MainWindowComposer::wireFoundation()` が `updateDeps()` で依存オブジェクトを渡す（[composition-root.md](composition-root.md)）
+- **テーブル駆動**: UI要素を足すときは `UiElement` に値を足し、`kRules` に同じ順で規則を、メニュー項目なら `kActions` に対応する `QAction` を足す。`kRules` が全要素を宣言順に並べていることは `static_assert` で確かめる
+- **依存の注入**: 生成（`MainWindowComposer::createServices()`）の後、`MainWindowComposer::wireFoundation()` が `updateDeps()` で依存オブジェクトを渡す（[composition-root.md](composition-root.md)）。`Deps::localGameHasHuman` は司令塔の対局者（`MatchCoordinator::isHumanSide()`）から決める
 - **表示メニュー**: 全状態で常に有効のため、テーブルには含めていない
-- **対局中の盤面クリック**: `setMoveInputEnabled(false)` で無効化するが、対局中は `BoardInteractionController` の `isHumanTurnCallback` による手番チェックが別途機能する
+- **対局中の盤面クリック**: 対局中も `setMoveInputEnabled(true)` のままにし、人間の手番かどうかは `BoardInteractionController` の `isHumanTurnCallback` が別途判定する

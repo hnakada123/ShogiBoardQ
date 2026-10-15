@@ -12,7 +12,7 @@
 
 #include "analysisflowcontroller.h"
 #include "analysiscoordinator.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "considerationflowcontroller.h"
 #include "enginesettingsconstants.h"
@@ -20,7 +20,10 @@
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
 #include "kifurecordlistmodel.h"
-#include "matchcoordinator.h"
+#include "analysissession.h"
+#include "appactivitystate.h"
+#include "enginelifecyclemanager.h"
+#include "shogiclock.h"
 #include "settingscommon.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
@@ -28,6 +31,14 @@
 
 
 namespace {
+/// 検討・詰み探索のセッションと、それが使うエンジンの枠
+struct AnalysisHarness {
+    ShogiClock clock;
+    AppActivityState activity;
+    EngineLifecycleManager engines{&clock};
+    AnalysisSession session{AnalysisSession::Deps{&engines, &activity}};
+};
+
 void clearConsiderationEngineSettings()
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
@@ -64,7 +75,6 @@ public:
     KifuAnalysisListModel analysisModel;
     UsiCommLogModel logModel;
     ShogiEngineThinkingModel thinkingModel;
-    ShogiGameController gameController;
     Usi* usi = nullptr;
     QString lastError;
 
@@ -74,9 +84,9 @@ public:
 
         // 平手の開始局面 + 2手分
         usiMoves << QStringLiteral("7g7f") << QStringLiteral("3c3d");
-        sfenRecord = SfenPositionTracer::buildSfenRecord(SfenUtils::hirateSfen(), usiMoves, false);
+        sfenRecord = SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), usiMoves, false);
 
-        usi = new Usi(&logModel, &thinkingModel, &gameController, nullptr);
+        usi = new Usi(&logModel, &thinkingModel, nullptr);
     }
 
     ~TestHelper()
@@ -87,13 +97,12 @@ public:
     AnalysisFlowController::Deps makeDeps()
     {
         AnalysisFlowController::Deps d;
-        d.line.sfens = sfenRecord;
-        d.line.moves = SfenPositionTracer::buildGameMoves(sfenRecord.first(), usiMoves);
+        d.line = RecordLine::fromPositions(sfenRecord, SfenReplay::buildGameMoves(sfenRecord.first(), usiMoves));
+        d.line.currentPly = 0;
         d.analysisModel = &analysisModel;
         d.usi = usi;
         d.logModel = &logModel;
         d.thinkingModel = &thinkingModel;
-        d.gameController = &gameController;
         d.activePly = 0;
         d.blackPlayerName = QStringLiteral("先手");
         d.whitePlayerName = QStringLiteral("後手");
@@ -130,17 +139,16 @@ private slots:
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         request.engineName = QStringLiteral("HeadlessAnalysis");
         request.options.endPly = 2;
-        AnalysisJob job(request, {h.usi, &h.logModel, &h.thinkingModel, &h.gameController});
+        AnalysisJob job(request, {h.usi, &h.logModel, &h.thinkingModel});
         QSignalSpy positions(&job, &AnalysisJob::positionPrepared);
         QSignalSpy results(&job, &AnalysisJob::resultReady);
         QSignalSpy finished(&job, &AnalysisJob::finished);
-        request.line.sfens.clear();
-        request.line.moves.clear();
+        request.line = RecordLine{};
         QVERIFY(job.start());
         QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 5000);
         QCOMPARE(positions.size(), 3);
         QCOMPARE(results.size(), 3);
-        QCOMPARE(job.line().sfens, h.sfenRecord);
+        QCOMPARE(job.line().sfens(), h.sfenRecord);
         QVERIFY(!job.isRunning());
         job.stop();
         emit h.usi->engineInitialized();
@@ -155,7 +163,7 @@ private slots:
         AnalysisRequest request;
         request.line = h.makeDeps().line;
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        AnalysisJob job(request, {h.usi, &h.logModel, &h.thinkingModel, &h.gameController});
+        AnalysisJob job(request, {h.usi, &h.logModel, &h.thinkingModel});
         QSignalSpy positions(&job, &AnalysisJob::positionPrepared);
         QSignalSpy finished(&job, &AnalysisJob::finished);
         QVERIFY(job.start());
@@ -169,24 +177,25 @@ private slots:
 
     void considerationRestartCoalescesAndStopCancelsQueuedWork()
     {
-        MatchCoordinator match(MatchCoordinator::Deps{});
-        MatchCoordinator::AnalysisOptions options;
-        options.mode = PlayMode::ConsiderationMode;
+        AnalysisHarness h;
+        AnalysisSession& session = h.session;
+        AnalysisOptions options;
+        options.mode = AnalysisOptions::Mode::Consideration;
         options.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         options.engineName = QStringLiteral("RestartTest");
         options.positionStr = QStringLiteral("position startpos");
-        QSignalSpy waiting(&match, &MatchCoordinator::considerationWaitingStarted);
-        QSignalSpy ended(&match, &MatchCoordinator::considerationModeEnded);
-        match.startAnalysis(options);
-        QVERIFY(match.primaryEngine());
-        auto* process = match.primaryEngine()->findChild<EngineProcessManager*>();
+        QSignalSpy waiting(&session, &AnalysisSession::considerationWaitingStarted);
+        QSignalSpy ended(&session, &AnalysisSession::considerationModeEnded);
+        QVERIFY(session.start(options));
+        QVERIFY(session.engine());
+        auto* process = session.engine()->findChild<EngineProcessManager*>();
         QVERIFY(process);
         QSignalSpy commands(process, &EngineProcessManager::commandSent);
         QTRY_VERIFY_WITH_TIMEOUT(waiting.count() == 1, 5000);
         commands.clear();
-        QVERIFY(match.updateConsiderationPosition(QStringLiteral("position startpos moves 7g7f")));
-        QVERIFY(match.updateConsiderationPosition(QStringLiteral("position startpos moves 2g2f")));
-        match.updateConsiderationMultiPV(3);
+        QVERIFY(session.updatePosition(QStringLiteral("position startpos moves 7g7f"), {}, {}));
+        QVERIFY(session.updatePosition(QStringLiteral("position startpos moves 2g2f"), {}, {}));
+        session.updateMultiPV(3);
         QTRY_VERIFY_WITH_TIMEOUT(waiting.count() == 2, 5000);
         QStringList sent;
         for (const auto& args : commands) sent.append(args.first().toString());
@@ -194,13 +203,13 @@ private slots:
         QCOMPARE(sent.count(QStringLiteral("position startpos moves 2g2f")), 1);
         QCOMPARE(sent.count(QStringLiteral("go infinite")), 1);
         QVERIFY(sent.contains(QStringLiteral("setoption name MultiPV value 3")));
-        QVERIFY(match.updateConsiderationPosition(QStringLiteral("position startpos moves 7g7f 3c3d")));
-        match.stopAnalysisEngine();
+        QVERIFY(session.updatePosition(QStringLiteral("position startpos moves 7g7f 3c3d"), {}, {}));
+        session.stop();
         QCoreApplication::processEvents();
         QCOMPARE(ended.count(), 1);
-        QCOMPARE(match.playMode(), PlayMode::NotStarted);
-        QVERIFY(!match.primaryEngine());
-        match.stopAnalysisEngine();
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+        QVERIFY(!session.engine());
+        session.stop();
         QCOMPARE(ended.count(), 1);
     }
 
@@ -268,8 +277,8 @@ private slots:
 
     // --- 4. ConsiderationFlowController ---
 
-    /// MatchCoordinator 未設定時は開始せずエラーを返す
-    void considerationDirect_withoutMatch_returnsFalse();
+    /// 検討のセッションが未設定のときは開始せずエラーを返す
+    void considerationDirect_withoutSession_returnsFalse();
 
     /// 無効なエンジン設定では開始通知を出さず false を返す
     void considerationDirect_invalidEngineSelection_returnsFalse();
@@ -409,9 +418,8 @@ void TestAnalysisFlow::startWithEmptySfenRecord()
 {
     TestHelper h;
     AnalysisFlowController ctrl;
-    QStringList empty;
     auto deps = h.makeDeps();
-    deps.line.sfens = empty;
+    deps.line = RecordLine{};
 
     KifuAnalysisDialog dlg;
     ctrl.start(deps, &dlg);
@@ -506,7 +514,7 @@ void TestAnalysisFlow::engineErrorCallsDisplayError()
     QVERIFY(h.lastError.contains(QStringLiteral("Engine crashed")));
 }
 
-void TestAnalysisFlow::considerationDirect_withoutMatch_returnsFalse()
+void TestAnalysisFlow::considerationDirect_withoutSession_returnsFalse()
 {
     resetConsiderationSettings();
 
@@ -520,7 +528,7 @@ void TestAnalysisFlow::considerationDirect_withoutMatch_returnsFalse()
     const bool started = flow.runDirect(deps, {}, QStringLiteral("position startpos"));
 
     QVERIFY(!started);
-    QVERIFY(lastError.contains(QStringLiteral("MatchCoordinator")));
+    QVERIFY(lastError.contains(QStringLiteral("検討のセッション")));
     QVERIFY(!startedNotified);
 
 }
@@ -529,8 +537,7 @@ void TestAnalysisFlow::considerationDirect_invalidEngineSelection_returnsFalse()
 {
     resetConsiderationSettings();
 
-    MatchCoordinator::Deps matchDeps;
-    MatchCoordinator match(matchDeps);
+    AnalysisHarness h;
 
     ConsiderationFlowController flow;
     ConsiderationFlowController::Deps deps;
@@ -538,7 +545,7 @@ void TestAnalysisFlow::considerationDirect_invalidEngineSelection_returnsFalse()
     bool startedNotified = false;
     bool timeReadyCalled = false;
     bool multiPVReadyCalled = false;
-    deps.match = &match;
+    deps.session = &h.session;
     deps.onStarted = [&startedNotified]() { startedNotified = true; };
     deps.onError = [&lastError](const QString& msg) { lastError = msg; };
     deps.onTimeSettingsReady = [&timeReadyCalled](bool, int) { timeReadyCalled = true; };
@@ -564,8 +571,7 @@ void TestAnalysisFlow::considerationDirect_validEngine_startsAnalysis()
     writeConsiderationEngineSettings(QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match"),
                                      QStringLiteral("StoredEngine"));
 
-    MatchCoordinator::Deps matchDeps;
-    MatchCoordinator match(matchDeps);
+    AnalysisHarness h;
 
     ShogiEngineThinkingModel considerationModel;
     ConsiderationFlowController flow;
@@ -577,7 +583,7 @@ void TestAnalysisFlow::considerationDirect_validEngine_startsAnalysis()
     int byoyomiReceived = 0;
     int multiPVReceived = 0;
     QString lastError;
-    deps.match = &match;
+    deps.session = &h.session;
     deps.considerationModel = &considerationModel;
     deps.onStarted = [&startedNotified]() { startedNotified = true; };
     deps.onError = [&lastError](const QString& msg) { lastError = msg; };
@@ -596,8 +602,7 @@ void TestAnalysisFlow::considerationDirect_validEngine_startsAnalysis()
     params.unlimitedTime = false;
     params.byoyomiSec = 15;
     params.multiPV = 4;
-    params.previousFileTo = 7;
-    params.previousRankTo = 6;
+    params.previousTo = BoardSquare{7, 6};
     params.lastUsiMove = QStringLiteral("7g7f");
 
     const QString position = QStringLiteral("position startpos moves 7g7f");
@@ -611,18 +616,19 @@ void TestAnalysisFlow::considerationDirect_validEngine_startsAnalysis()
     QCOMPARE(unlimitedReceived, false);
     QCOMPARE(byoyomiReceived, 15);
     QCOMPARE(multiPVReceived, 4);
-    QCOMPARE(match.playMode(), PlayMode::ConsiderationMode);
-    QVERIFY(match.primaryEngine());
-    auto* process = match.primaryEngine()->findChild<EngineProcessManager*>();
+    QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringConsideration);
+    QVERIFY(h.session.isConsidering());
+    QVERIFY(h.session.engine());
+    auto* process = h.session.engine()->findChild<EngineProcessManager*>();
     QVERIFY(process);
     QSignalSpy commands(process, &EngineProcessManager::commandSent);
-    QTRY_VERIFY_WITH_TIMEOUT(!match.primaryEngine()->isInitializing(), 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(!h.session.engine()->isInitializing(), 5000);
     QStringList sent;
     for (const auto& args : commands) sent.append(args.first().toString());
     QVERIFY2(sent.contains(position), qPrintable(sent.join('\n')));
     QVERIFY(sent.contains(QStringLiteral("setoption name MultiPV value 4")));
     QVERIFY(sent.contains(QStringLiteral("go infinite")));
-    match.stopAnalysisEngine();
+    h.session.stop();
 
 }
 

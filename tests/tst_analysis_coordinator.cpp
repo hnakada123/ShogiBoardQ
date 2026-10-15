@@ -70,7 +70,7 @@ void TestAnalysisCoordinator::initialState_isIdle()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     QCOMPARE(coord.currentPly(), -1);
@@ -80,7 +80,7 @@ void TestAnalysisCoordinator::startAnalyzeRange_emitsPositionPrepared()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -102,7 +102,7 @@ void TestAnalysisCoordinator::startAnalyzeSingle_emitsPositionPrepared()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -121,7 +121,7 @@ void TestAnalysisCoordinator::stop_returnsToIdle()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -147,7 +147,7 @@ void TestAnalysisCoordinator::onEngineInfo_scorecp_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -177,7 +177,7 @@ void TestAnalysisCoordinator::onEngineInfo_scoremate_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -204,7 +204,7 @@ void TestAnalysisCoordinator::onEngineInfo_noScore_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -234,7 +234,7 @@ void TestAnalysisCoordinator::onEngineBestmove_single_emitsFinished()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -258,7 +258,7 @@ void TestAnalysisCoordinator::onEngineBestmove_range_advancesToNextPly()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -287,7 +287,7 @@ void TestAnalysisCoordinator::sendGoCommand_emitsRequestSendUsiCommand()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -308,7 +308,7 @@ void TestAnalysisCoordinator::setOptions_multiPV_sendSetoption()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -369,7 +369,7 @@ void TestAnalysisCoordinator::commitPendingResult_bookMove_clearsUsiPv()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.sfenRecord = &sfenRecord;
+    deps.positions = sfenRecord;
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
     opt.movetimeMs = 1000;

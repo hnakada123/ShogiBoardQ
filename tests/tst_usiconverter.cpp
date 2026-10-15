@@ -189,18 +189,13 @@ private slots:
     // Normal: terminal code to Japanese
     // ========================================
 
-    void terminalCodeToJapanese()
+    void terminalFromCode()
     {
-        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("resign")),
-                 QStringLiteral("投了"));
-        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("break")),
-                 QStringLiteral("中断"));
-        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("rep_draw")),
-                 QStringLiteral("千日手"));
-        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("timeout")),
-                 QStringLiteral("切れ負け"));
-        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("win")),
-                 QStringLiteral("入玉勝ち"));
+        QCOMPARE(UsiToSfenConverter::terminalFromCode(QStringLiteral("resign")), TerminalType::Resign);
+        QCOMPARE(UsiToSfenConverter::terminalFromCode(QStringLiteral("break")), TerminalType::Interrupt);
+        QCOMPARE(UsiToSfenConverter::terminalFromCode(QStringLiteral("rep_draw")), TerminalType::Repetition);
+        QCOMPARE(UsiToSfenConverter::terminalFromCode(QStringLiteral("timeout")), TerminalType::Timeout);
+        QCOMPARE(UsiToSfenConverter::terminalFromCode(QStringLiteral("win")), TerminalType::DeclarationWin);
     }
 
     // ========================================
@@ -505,17 +500,10 @@ private slots:
     // Normal: terminal codes
     // ========================================
 
-    void terminalCodeToJapanese_unknown()
+    void terminalFromCode_unknownIsError()
     {
-        // Unknown code should return the code itself or a fallback
-        QString result = UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("unknown_code"));
-        QVERIFY(!result.isEmpty());
-    }
-
-    void terminalCodeToJapanese_empty()
-    {
-        QString result = UsiToSfenConverter::terminalCodeToJapanese(QString());
-        QVERIFY(result.isEmpty());
+        QCOMPARE(UsiToSfenConverter::terminalFromCode(QStringLiteral("unknown_code")), TerminalType::Error);
+        QCOMPARE(UsiToSfenConverter::terminalFromCode(QString()), TerminalType::Error);
     }
 
     // ========================================

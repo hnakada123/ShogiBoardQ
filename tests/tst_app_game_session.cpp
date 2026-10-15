@@ -1,8 +1,8 @@
 /// @file tst_app_game_session.cpp
-/// @brief 実際の対局サービスを使うUI操作フローの回帰テスト
+/// @brief 実際の対局サービス（本体の合成ルートで組み立てた GameSession）を使うUI操作フローの回帰テスト
 #include <QtTest>
-#include <QComboBox>
 #include <QDialogButtonBox>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -10,16 +10,22 @@
 #include <memory>
 // 通信対局の司令塔の手番の状態は、サーバーとのやり取りでしか変わらないため、テストでは直接設定する
 // （CsaGameCoordinator が TestAppGameSession を friend にしている）
+#include "appstate.h"
 #include "csagamecoordinator.h"
 #include "csagamewiring.h"
-#include "gamesessionorchestrator.h"
-#include "gamestatecontroller.h"
-#include "playmodepolicyservice.h"
+#include "gamesession.h"
+#include "gamestartcoordinator.h"
+#include "mainwindow.h"
+#include "mainwindowcomposer.h"
+#include "matchcoordinator.h"
+#include "humanturnpolicy.h"
 #include "replaycontroller.h"
 #include "settingscommon.h"
 #include "sfenutils.h"
 #include "shogiclock.h"
+#include "shogigamecontroller.h"
 #include "startgamedialog.h"
+#include "timecontrolcontroller.h"
 
 /// 対局開始の調整役が出すシグナルの順を記録する
 class StartSignalRecorder : public QObject
@@ -29,49 +35,7 @@ public:
     QStringList events;
 public slots:
     void onPreStartCleanup() { events.append(QStringLiteral("cleanup")); }
-    void onBranchTreeReset() { events.append(QStringLiteral("branch-reset")); }
 };
-
-namespace {
-struct SessionHarness {
-    ShogiGameController gc;
-    ShogiClock clock;
-    QStringList history;
-    QString start = SfenUtils::hirateSfen();
-    QString current = start;
-    PlayMode mode = PlayMode::HumanVsHuman;
-    std::unique_ptr<MatchCoordinator> matchOwner;
-    MatchCoordinator* match = nullptr;
-    GameStateController state;
-    GameSessionOrchestrator session;
-    GameSessionOrchestrator::Deps deps;
-
-    SessionHarness()
-    {
-        gc.newGame(start);
-        gc.setCurrentPlayer(Turn::Black);
-        MatchCoordinator::Deps matchDeps;
-        matchDeps.gc = &gc;
-        matchDeps.clock = &clock;
-        matchDeps.sfenRecord = &history;
-        matchDeps.hooks.game.initializeNewGame = [this](const QString& sfen) {
-            QString position = sfen;
-            gc.newGame(position);
-        };
-        matchOwner = std::make_unique<MatchCoordinator>(matchDeps);
-        match = matchOwner.get();
-        match->setPlayMode(mode);
-        state.setMatchCoordinator(match);
-        deps.match = match;
-        deps.gameStateController = &state;
-        deps.gameController = &gc;
-        deps.startSfenStr = &start;
-        deps.currentSfenStr = &current;
-        deps.playMode = &mode;
-        session.updateDeps(deps);
-    }
-};
-}
 
 class TestAppGameSession : public QObject
 {
@@ -79,13 +43,33 @@ class TestAppGameSession : public QObject
     QTemporaryDir m_config;
     bool m_acceptDialog = false;
     bool m_dialogSeen = false;
+    QTimer m_messageCloser;
 
-private slots:
-    void initTestCase()
+    static void humanVsHumanSettings(int basicMinutes = 0)
     {
-        QVERIFY(m_config.isValid());
-        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
-        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+        auto& settings = SettingsCommon::openSettings();
+        settings.clear();
+        settings.setValue("GameSettings/isHuman1", true);
+        settings.setValue("GameSettings/isHuman2", true);
+        settings.setValue("GameSettings/startingPositionNumber", 1);
+        if (basicMinutes > 0) settings.setValue("GameSettings/basicTimeMinutes1", basicMinutes);
+        settings.sync();
+    }
+
+    /// 対局開始ダイアログから人間同士の対局を始める
+    void startFromDialog(MainWindow& window)
+    {
+        m_acceptDialog = true;
+        m_dialogSeen = false;
+        QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
+        window.composer().parts().gameSession->startGameFromDialog();
+        QVERIFY(m_dialogSeen);
+    }
+
+public:
+    void closeMessageBoxes()
+    {
+        if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) box->accept();
     }
 
     void respondToStartDialog()
@@ -101,52 +85,60 @@ private slots:
         else dialog->reject();
     }
 
-    void missingDependenciesAreSafe()
+private slots:
+    void initTestCase()
     {
-        // 部品を渡していなくても、操作は何もせずに戻る（null を読まない）
-        GameSessionOrchestrator session;
-        session.updateDeps(GameSessionOrchestrator::Deps{});
-        session.initializeGame();
-        session.handleResignation();
-        session.handleBreakOffGame();
-        session.movePieceImmediately();
-        session.stopTsumeSearch();
-        session.openWebsiteInExternalBrowser();
+        QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+        // 終局の知らせ（メッセージボックス）は出たらすぐ閉じる
+        m_messageCloser.setInterval(10);
+        connect(&m_messageCloser, &QTimer::timeout, this, &TestAppGameSession::closeMessageBoxes);
+        m_messageCloser.start();
     }
 
     void resignationEndsTheMatch()
     {
-        SessionHarness h;
-        QSignalSpy ended(h.match, &MatchCoordinator::gameEnded);
-        h.session.handleResignation();
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        startFromDialog(window);
+        QSignalSpy ended(p.match, &MatchCoordinator::gameEnded);
+        p.gameSession->resign();
         QCOMPARE(ended.count(), 1);
-        QCOMPARE(h.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-        QCOMPARE(h.match->gameOverState().lastInfo.loser, Turn::Black);
-        h.session.handleResignation();
+        QCOMPARE(p.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
+        QCOMPARE(p.match->gameOverState().lastInfo.loser, Turn::Black);
+        p.gameSession->resign();
         QCOMPARE(ended.count(), 1);
+        // 終局の行を書き、待機中に戻る
+        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
     }
 
     void interruptionEndsTheMatch()
     {
-        SessionHarness h;
-        QSignalSpy ended(h.match, &MatchCoordinator::gameEnded);
-        h.session.handleBreakOffGame();
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        startFromDialog(window);
+        QSignalSpy ended(p.match, &MatchCoordinator::gameEnded);
+        p.gameSession->breakOff();
         QCOMPARE(ended.count(), 1);
-        QCOMPARE(h.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+        QCOMPARE(p.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
     }
 
     void networkCommandsDoNotEndLocalMatch()
     {
-        SessionHarness h;
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        startFromDialog(window);
         CsaGameCoordinator csa;
-        CsaGameWiring csaWiring(CsaGameWiring::Dependencies{});
-        csaWiring.setCoordinator(&csa);
-        h.mode = PlayMode::CsaNetworkMode;
-        h.deps.csaGameWiring = &csaWiring;
-        h.session.updateDeps(h.deps);
-        h.session.handleResignation();
-        h.session.handleBreakOffGame();
-        QVERIFY(!h.match->gameOverState().isOver);
+        p.csaGameWiring->setCoordinator(&csa);
+        window.composer().state().activity.setActivity(AppActivityState::Activity::DuringCsaGame);
+        p.gameSession->resign();
+        p.gameSession->breakOff();
+        QVERIFY(!p.match->gameOverState().isOver);
+        p.csaGameWiring->setCoordinator(nullptr);
     }
 
     /// 通信対局の盤上の着手は、そのときの司令塔の手番で受け付ける。司令塔は最初の通信対局を始めるときに
@@ -154,12 +146,13 @@ private slots:
     void csaHumanTurnUsesCurrentCoordinator()
     {
         ShogiGameController gc;
-        PlayMode mode = PlayMode::CsaNetworkMode;
+        AppActivityState activity;
+        activity.setActivity(AppActivityState::Activity::DuringCsaGame);
         std::unique_ptr<CsaGameCoordinator> csa;
         CsaGameWiring csaWiring(CsaGameWiring::Dependencies{});
-        PlayModePolicyService policy;
-        PlayModePolicyService::Deps deps;
-        deps.playMode = &mode;
+        HumanTurnPolicy policy;
+        HumanTurnPolicy::Deps deps;
+        deps.activity = &activity;
         deps.gameController = &gc;
         deps.csaGameWiring = &csaWiring;
         policy.updateDeps(deps);
@@ -169,84 +162,49 @@ private slots:
         csaWiring.setCoordinator(csa.get());
         csa->m_gameState = CsaGameCoordinator::GameState::InGame;
         csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
-        csa->m_isMyTurn = true;
+        csa->m_client->m_isMyTurn = true;
         QVERIFY(policy.isHumanTurnNow());
-        csa->m_isMyTurn = false;
+        csa->m_client->m_isMyTurn = false;
         QVERIFY(!policy.isHumanTurnNow());
-        csa->m_isMyTurn = true;
+        csa->m_client->m_isMyTurn = true;
         csa->m_playerType = CsaGameCoordinator::PlayerType::Engine;
         QVERIFY(!policy.isHumanTurnNow());
         csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
         csa->m_gameState = CsaGameCoordinator::GameState::GameOver;
         QVERIFY(!policy.isHumanTurnNow());
+        csaWiring.setCoordinator(nullptr);
     }
 
     void startDialogCancellationKeepsGame()
     {
-        SessionHarness h;
-        GameStartCoordinator starter({h.match});
-        auto deps = h.deps;
-        deps.gameStart = &starter;
-        h.session.updateDeps(deps);
-        QSignalSpy cleanup(&starter, &GameStartCoordinator::requestPreStartCleanup);
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QSignalSpy cleanup(p.gameStart, &GameStartCoordinator::requestPreStartCleanup);
         m_acceptDialog = false;
         m_dialogSeen = false;
         QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
-        h.session.initializeGame();
+        p.gameSession->startGameFromDialog();
         QVERIFY(m_dialogSeen);
         QCOMPARE(cleanup.count(), 0);
-        QVERIFY(!h.match->gameOverState().isOver);
+        QVERIFY(!p.match->hasStarted());
+        QVERIFY(!p.match->gameOverState().isOver);
     }
 
-    // 手合割（平手）から始めるとき、開始前の整理は分岐ツリーのリセットのあとに1回だけ行う
-    void presetStartCleansUpOnceAfterBranchReset()
+    // 手合割（平手）から始めるとき、開始前の整理は1回だけ行い、平手の局面から始める
+    void presetStartCleansUpOnce()
     {
-        auto& settings = SettingsCommon::openSettings();
-        settings.clear();
-        settings.setValue("GameSettings/isHuman1", true);
-        settings.setValue("GameSettings/isHuman2", true);
-        settings.setValue("GameSettings/startingPositionNumber", 1);
-        settings.sync();
-        SessionHarness h;
-        GameStartCoordinator starter({h.match});
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
         StartSignalRecorder recorder;
-        connect(&starter, &GameStartCoordinator::requestPreStartCleanup,
+        connect(p.gameStart, &GameStartCoordinator::requestPreStartCleanup,
                 &recorder, &StartSignalRecorder::onPreStartCleanup);
-        h.deps.gameStart = &starter;
-        h.session.updateDeps(h.deps);
-        m_acceptDialog = true;
-        m_dialogSeen = false;
-        QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
-        h.session.initializeGame();
-        QVERIFY(m_dialogSeen);
+        startFromDialog(window);
         QCOMPARE(recorder.events, QStringList({QStringLiteral("cleanup")}));
-        QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);
-    }
-
-    // 局面の文字列と盤の手前の側を渡されていなくても、対局を始められる（null を読まない）
-    void newGameWithoutPositionAndBoardSidePointers()
-    {
-        auto& settings = SettingsCommon::openSettings();
-        settings.clear();
-        settings.setValue("GameSettings/isHuman1", true);
-        settings.setValue("GameSettings/isHuman2", true);
-        settings.setValue("GameSettings/startingPositionNumber", 1);
-        settings.sync();
-        SessionHarness h;
-        GameStartCoordinator starter({h.match});
-        h.deps.gameStart = &starter;
-        h.deps.startSfenStr = nullptr;
-        h.deps.currentSfenStr = nullptr;
-        h.deps.bottomSide = nullptr;
-        h.session.updateDeps(h.deps);
-        m_acceptDialog = true;
-        m_dialogSeen = false;
-        QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
-        h.session.initializeGame();
-        QVERIFY(m_dialogSeen);
-        QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);
-        QVERIFY(!h.history.isEmpty());
-        QCOMPARE(h.history.first(), SfenUtils::hirateSfen());
+        QVERIFY(p.match->hasStarted() && p.match->players().humanVsHuman());
+        QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
+        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
     }
 
     void newGameStartsMatchClockFromLiveOrReplay_data()
@@ -259,32 +217,19 @@ private slots:
     void newGameStartsMatchClockFromLiveOrReplay()
     {
         QFETCH(bool, replay);
-        auto& settings = SettingsCommon::openSettings();
-        settings.clear();
-        settings.setValue("GameSettings/isHuman1", true);
-        settings.setValue("GameSettings/isHuman2", true);
-        settings.setValue("GameSettings/startingPositionNumber", 1);
-        settings.setValue("GameSettings/basicTimeMinutes1", 5);
-        settings.sync();
-        SessionHarness h;
-        ReplayController replayController;
-        replayController.setReplayMode(replay);
-        GameStartCoordinator starter({h.match});
-        h.deps.gameStart = &starter;
-        h.deps.replayController = &replayController;
-        h.session.updateDeps(h.deps);
-        m_acceptDialog = true;
-        m_dialogSeen = false;
-        QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
-        h.session.initializeGame();
-        QVERIFY(m_dialogSeen);
-        QCOMPARE(h.match->clock(), &h.clock);
-        QVERIFY(h.clock.remainingMs(Turn::Black) > 0);
+        humanVsHumanSettings(5);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        p.replayController->setReplayMode(replay);
+        startFromDialog(window);
+        ShogiClock* clock = p.timeController->clock();
+        QCOMPARE(p.match->clock(), clock);
+        QVERIFY(clock->remainingMs(Turn::Black) > 0);
         // 棋譜再生から開始した場合も、新しい対局の時計を動かす。
-        QVERIFY(h.clock.isRunning());
-        QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);
-        QVERIFY(!h.history.isEmpty());
-        QCOMPARE(h.history.first(), SfenUtils::hirateSfen());
+        QVERIFY(clock->isRunning());
+        QVERIFY(p.match->hasStarted() && p.match->players().humanVsHuman());
+        QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
+        p.gameSession->breakOff();
     }
 };
 

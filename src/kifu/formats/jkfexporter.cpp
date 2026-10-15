@@ -112,7 +112,7 @@ static QJsonArray buildJkfMoves(const KifuBranchNode* first, ShogiBoard& board, 
             const QString special = JkfFormatter::terminalToJkfSpecial(node->terminalType(), node->terminalSide());
             if (!special.isEmpty()) entry[QStringLiteral("special")] = special;
         } else {
-            const UsiMove move = node->move().toUsiMove();
+            const UsiMove move = node->move().move;
             const bool applicable = synced && move.isValid();
             if (applicable) entry[QStringLiteral("move")] = JkfFormatter::moveToJkf(board, mover, move, previousTo);
             if (applicable && board.applyUsiMove(move, mover)) {

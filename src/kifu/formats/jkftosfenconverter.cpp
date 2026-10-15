@@ -7,7 +7,8 @@
 #include "jkftosfenconverter.h"
 #include "jkfmoveparser.h"
 #include "parsecommon.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 
 #include <array>
 
@@ -265,8 +266,8 @@ bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
     KifuParseCommon::KifLineDraft line;
     line.baseSfen = baseSfen;
     line.startPly = firstPly;
-    SfenPositionTracer tracer;
-    if (!tracer.setFromSfen(baseSfen)) return line.resolve(outLine, warn);
+    ShogiBoard board;
+    if (!board.trySetSfen(baseSfen)) return line.resolve(outLine, warn);
     int ply = firstPly;
     if (isMainline) line.disp.append(KifuParseCommon::createOpeningDisplayItem({}, {}));
 
@@ -292,7 +293,7 @@ bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
             const int index = static_cast<int>(variations.size());
             variations.append(variation);
             // 再帰中にも配列が伸びるので、要素への参照を渡さずローカルの手順を完成させる。
-            if (!parseJkfLine(fork.toArray(), tracer.toSfenString(), ply, prevToX, prevToY,
+            if (!parseJkfLine(fork.toArray(), board.toSfen(), ply, prevToX, prevToY,
                               cumSec, index, variation.line, variations, warn)) return false;
             variations[index] = std::move(variation);
         }
@@ -300,15 +301,13 @@ bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
         const QString comment = JkfMoveParser::extractCommentsFromMoveObj(obj);
         if (obj.contains(QStringLiteral("special"))) {
             const QString special = obj[QStringLiteral("special")].toString();
-            QString label = JkfMoveParser::specialToJapanese(special);
-            const bool blackToMove = tracer.toSfenString().contains(QStringLiteral(" b "));
-            if ((special == QLatin1String("+ILLEGAL_ACTION") && !blackToMove)
-                || (special == QLatin1String("-ILLEGAL_ACTION") && blackToMove)) label = QStringLiteral("反則勝ち");
-            auto item = KifuParseCommon::createTerminalDisplayItem(ply, label);
-            item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + label;
+            const Turn side = board.currentPlayer();
+            TerminalType terminal = KifuParseCommon::csaSpecialToTerminal(special, side);
+            if (terminal == TerminalType::None) terminal = TerminalType::Error;
+            auto item = KifuParseCommon::createTerminalDisplayItem(ply, terminal, side);
             item.comment = comment;
             if (obj.contains(QStringLiteral("time"))) {
-                item.timeText = JkfMoveParser::formatTimeText(obj[QStringLiteral("time")].toObject(), cumSec[blackToMove ? 0 : 1]);
+                item.timeText = JkfMoveParser::formatTimeText(obj[QStringLiteral("time")].toObject(), cumSec[side == Turn::Black ? 0 : 1]);
             }
             line.disp.append(item);
             line.endsWithTerminal = true;
@@ -336,7 +335,7 @@ bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
         line.disp.append(item);
         if (!usi.isEmpty()) {
             line.usiMoves.append(usi);
-            if (!tracer.applyUsiMove(usi)) {
+            if (!SfenReplay::applyLenient(board, usi)) {
                 appendWarning(warn, QStringLiteral("Cannot restore move %1: %2").arg(ply).arg(usi));
                 return false;
             }

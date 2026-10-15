@@ -79,16 +79,16 @@ public:
                            const QString& timeText = QString());
 
     /**
-     * @brief 終局手を追加する
+     * @brief 終局手を追加する（表記は終局語の表から作る）
      * @param parent 親ノード
      * @param type 終局手の種類
-     * @param displayText 表示テキスト
+     * @param side 終局を記録した側
      * @param timeText 消費時間テキスト
      * @return 作成されたノード
      */
     KifuBranchNode* addTerminalMove(KifuBranchNode* parent,
                                     TerminalType type,
-                                    const QString& displayText,
+                                    Turn side,
                                     const QString& timeText = QString());
 
     /**

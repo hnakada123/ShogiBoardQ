@@ -2,26 +2,21 @@
 #define GAMESTARTOPTIONSBUILDER_H
 
 /// @file gamestartoptionsbuilder.h
-/// @brief ダイアログ値解釈・PlayMode判定・開始局面プリセットを担うユーティリティ
+/// @brief 対局開始ダイアログの値の解釈（時間・対局者）と開始局面プリセット
 
 #include <QString>
-#include <functional>
 
 #include "gamestartcoordinator.h"
-#include "playmode.h"
 #include "startgamedatabridge.h"
+#include "startoptions.h"
 
-class ShogiGameController;
-class ShogiBoard;
 
 /**
  * @brief 対局開始パラメータの構築を担う static ユーティリティクラス
  *
  * GameStartCoordinator から以下の責務を分離:
- *  - ダイアログの値解釈（時間設定 / PlayMode の抽出）
- *  - PlayMode 判定ロジック
+ *  - ダイアログの値解釈（時間設定・対局者）
  *  - 開始局面プリセットテーブル
- *  - 対局者名・盤面適用のユーティリティ
  */
 class GameStartOptionsBuilder
 {
@@ -33,22 +28,10 @@ public:
     /// StartGameDialogData から時間設定を組み立てる（秒読みと加算が両方あれば秒読みを使う）
     static TimeSettings buildTimeControl(const StartGameDialogData& data);
 
-    // --- PlayMode 判定 ---
+    // --- 対局者 ---
 
-    /// 平手/駒落ち × 人/エンジン から PlayMode を決定する
-    static PlayMode determinePlayMode(int initPositionNumber,
-                                      bool isPlayer1Human,
-                                      bool isPlayer2Human);
-
-    /// StartGameDialogData の状態から PlayMode を決定する
-    static PlayMode determinePlayModeFromDialog(const StartGameDialogData& data);
-
-    /// SFENの手番とダイアログ設定を整合させてPlayModeを決定する
-    static PlayMode determinePlayModeAlignedWithTurn(
-        int initPositionNumber,
-        bool isPlayer1Human,
-        bool isPlayer2Human,
-        const QString& startSfen);
+    /// ダイアログで選んだ対局者（人間・エンジンと名前）。人間とエンジンの両方に印があれば人間とする
+    static MatchPlayers playersFromDialog(const StartGameDialogData& data);
 
     // --- 開始局面プリセット ---
 
@@ -63,15 +46,12 @@ public:
     /// "startpos" や空文字列を平手SFENに正規化する
     static QString canonicalizeSfen(const QString& sfen);
 
-    // --- ユーティリティ ---
+    /// 対局開始ダイアログの設定から、対局の開始の設定を作る
+    static MatchStartOptions buildStartOptions(const QString& startSfen, const StartGameDialogData& dlg);
 
-    /// 再開SFENが指定されていれば盤へ適用し、必要なら描画コールバックを呼ぶ
-    static void applyResumePositionIfAny(ShogiGameController* gc,
-                                         const QString& resumeSfen,
-                                         const std::function<void(ShogiBoard*)>& renderBoard);
+    /// 「人を手前に表示する」で盤を反転するか（人間対エンジンで、人間の側が手前でないとき）
+    static bool needsHumanAtBottomFlip(const StartGameDialogData& dlg, Turn bottomSide);
 
-private:
-    static QChar turnFromSfen(const QString& sfen);
 };
 
 #endif // GAMESTARTOPTIONSBUILDER_H

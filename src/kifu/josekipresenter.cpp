@@ -8,7 +8,8 @@
 #include "kifupresentation.h"
 #include "josekirepository.h"
 #include "josekitypes.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "kiftosfenconverter.h"
 #include "kifdisplayitem.h"
 #include "logcategories.h"
@@ -42,20 +43,20 @@ JosekiPresenter::PositionInfo JosekiPresenter::describePosition(const QString &s
     return info;
 }
 
-QString JosekiPresenter::usiMoveToJapanese(const QString &usiMove,
-                                            const SfenPositionTracer &tracer)
+QString JosekiPresenter::usiMoveToJapanese(const QString &usiMove, const QString &sfen)
 {
     if (usiMove.isEmpty()) return QString();
     if (usiMove == QStringLiteral("none")) return tr("なし");
 
     if (KifuPresentation::options().notation == KifuPresentation::Notation::Western)
-        return KifuPresentation::move(tracer.toSfenString(), usiMove, KifuPresentation::options());
+        return KifuPresentation::move(sfen, usiMove, KifuPresentation::options());
 
-    const Turn mover = tracer.blackToMove() ? Turn::Black : Turn::White;
+    ShogiBoard board;
+    (void)board.trySetSfen(sfen);
+    const Turn mover = board.currentPlayer();
     const auto move = UsiMove::parse(usiMove);
     if (!move) return (mover == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△")) + usiMove;
-    const Piece moving = move->isDrop() ? move->dropPieceFor(mover)
-                                        : tracer.pieceAt(move->from.file, move->from.rank);
+    const Piece moving = move->isDrop() ? move->dropPieceFor(mover) : board.pieceAt(move->from);
     // 定跡の表は手ごとに独立しているので「同」は使わず、棋譜欄と同じ書式で書く
     return KifMoveText::format(mover, moving, *move);
 }
@@ -208,13 +209,12 @@ bool JosekiPresenter::buildMergeEntriesFromKifFile(const QString &kifFilePath,
     }
 
     QString before = mainline.baseSfen;
-    for (const auto& imported : mainline.entries) {
-        const auto& record = imported.record;
+    for (const auto& record : mainline.entries) {
         if (record.isTerminal()) break;
         KifuMergeEntry entry;
         entry.ply = static_cast<int>(entries.size()) + 1;
         entry.sfen = before;
-        entry.usiMove = record.move.toUsiMove().toString();
+        entry.usiMove = record.move.move.toString();
         entry.japaneseMove = KifuPresentation::label(record.displayText, before, entry.usiMove);
         entry.isCurrentMove = false;
         entries.append(entry);

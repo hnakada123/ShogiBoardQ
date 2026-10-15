@@ -20,11 +20,7 @@ ConsiderationPositionResolver::resolve(const RecordLine& line, int row, const QS
     const int ply = qBound(0, row, line.moveCount());
     params.position = line.positionCommand(ply);
     // 読み筋の1手目が直前の手と同じマスなら「同」と書くので、その手の移動先を渡す
-    const BoardSquare destination = line.destinationOf(ply);
-    if (destination.isValid()) {
-        params.previousFileTo = destination.file;
-        params.previousRankTo = destination.rank;
-    }
+    params.previousTo = line.destinationOf(ply);
     params.lastUsiMove = line.usiMove(ply).toString();
     return params;
 }

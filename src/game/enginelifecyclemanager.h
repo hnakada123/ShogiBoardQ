@@ -2,132 +2,104 @@
 #define ENGINELIFECYCLEMANAGER_H
 
 /// @file enginelifecyclemanager.h
-/// @brief エンジンライフサイクル管理クラスの定義
+/// @brief 対局で指すエンジンの生成・起動・破棄と、手番との対応
 
-#include "matchtypes.h"
 #include <QObject>
 #include <QString>
-#include <QPoint>
-#include <functional>
+#include <array>
+#include <optional>
 
-#include "playmode.h"
+#include "shogitypes.h"
 
 class Usi;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
-class ShogiGameController;
+class ShogiClock;
 
 /**
- * @brief USIエンジンの生成・破棄・シグナル配線・USI送信・指し手実行を担当するマネージャ
+ * @brief 対局で指すエンジン（最大2つ）を持ち、手番との対応を管理する
  *
- * MatchCoordinator からエンジン管理関連のロジックを分離する。
- * エンジンの所有権はこのクラスが管理し、投了・入玉宣言勝ちのシグナル配線も行う。
- *
- * MatchCoordinator 内部状態への参照は Refs struct で受け取り、
- * UIコールバックは Hooks struct で実行する。
+ * エンジンは表示の枠（E1・E2。思考情報と通信ログの表示先）に置き、どちらの手番を指すかを覚える。
+ * 人間対エンジンではエンジンは常に E1 に置く（後手を指すときも）。
+ * エンジンの投了・入玉宣言勝ちは、指している手番の知らせ（engineResigned・engineDeclaredWin）にする。
  */
 class EngineLifecycleManager : public QObject
 {
     Q_OBJECT
 
 public:
-    /// MatchCoordinator の内部状態への参照群
-    struct Refs {
-        ShogiGameController* gc = nullptr;
+    /// 思考情報・通信ログの表示先（E1・E2）
+    struct Models {
+        UsiCommLogModel* comm1 = nullptr;
+        ShogiEngineThinkingModel* think1 = nullptr;
+        UsiCommLogModel* comm2 = nullptr;
+        ShogiEngineThinkingModel* think2 = nullptr;
     };
+
+    /// clock: 対局の時計（エンジンが探索の時間を読む）
+    explicit EngineLifecycleManager(ShogiClock* clock, QObject* parent = nullptr);
+    ~EngineLifecycleManager() override;
+
+    void setModels(const Models& models);
+    const Models& models() const { return m_models; }
+
+    /// 枠（1=E1、2=E2）にエンジンを作り、side の手番を指させる（前にあったエンジンは破棄する）。
+    /// 検討・詰み探索のエンジンは手番を持たない（side は nullopt）
+    Usi* createEngine(int slot, std::optional<Turn> side, const QString& engineName);
+    /// 作ったエンジンのプロセスを起動して初期化する（初期化は非同期）
+    void startEngine(Usi* engine, const QString& enginePath, const QString& engineName);
+
+    /// side の手番を指すエンジン（人間の手番なら nullptr）
+    Usi* engineFor(Turn side) const;
+    /// 枠のエンジン（1=E1、2=E2）
+    Usi* engineInSlot(int slot) const;
+    /// 手番を指すエンジンの枠（エンジンが指さない手番は 0）
+    int slotFor(Turn side) const;
+
+    /// 全エンジンを破棄する（clearModels なら思考情報・通信ログの表示も消す）
+    void destroyEngines(bool clearModels = true);
 
     /**
-     * @brief エンジン管理用コールバック群
+     * @brief 終局をエンジンに知らせて終了させる
+     * @param loser 負けた側（引き分けは nullopt）
      *
-     * エンジンの投了・勝ち宣言を MC に知らせる。
-     *
-     * @note MC::createEngineManager() で設定される。
-     * @see MatchCoordinator::createEngineManager
+     * 探索を止めて gameover を送り、quit を送る（応答しなければ終了監視が強制終了する）。
      */
-    struct Hooks {
-        /// @brief エンジン投了を MC に通知する（side: 投了したエンジンの手番）
-        /// @note 配線元: MC lambda → MC::handleEngineResign
-        std::function<void(Turn)> onEngineResign;
+    void notifyGameOver(std::optional<Turn> loser);
 
-        /// @brief エンジン勝ち宣言を MC に通知する（side: 宣言したエンジンの手番）
-        /// @note 配線元: MC lambda → MC::handleEngineWin
-        std::function<void(Turn)> onEngineWin;
-    };
-
-    /// エンジンモデルペア
-    struct EngineModelPair {
-        UsiCommLogModel* comm = nullptr;
-        ShogiEngineThinkingModel* think = nullptr;
-    };
-
-    explicit EngineLifecycleManager(QObject* parent = nullptr);
-
-    void setRefs(const Refs& refs);
-    void setHooks(const Hooks& hooks);
-
-    // --- ライフサイクル ---
-
-    /// side はエンジンの手番。エンジンの枠は、先手なら usi1、後手なら usi2（空なら usi1）
-    void initializeAndStartEngineFor(Turn side,
-                                     const QString& enginePath,
-                                     const QString& engineName);
-    /// エンジンの枠（1=usi1, 2=usi2）のエンジンを破棄する
-    void destroyEngine(int idx, bool clearThinking = true);
-    void destroyEngines(bool clearModels = true);
-    void initEnginesForEvE(const QString& engineName1,
-                           const QString& engineName2);
-
-    // --- エンジンポインタ ---
-
-    Usi* usi1() const;
-    Usi* usi2() const;
-    void setUsi1(Usi* u);
-    void setUsi2(Usi* u);
-    void updateUsiPtrs(Usi* e1, Usi* e2);
-    bool isShutdownInProgress() const;
-    void setShutdownInProgress(bool v);
-
-    // --- モデル ---
-
-    EngineModelPair ensureEngineModels(int engineIndex);
-    void setModelPtrs(UsiCommLogModel* comm1, ShogiEngineThinkingModel* think1,
-                      UsiCommLogModel* comm2, ShogiEngineThinkingModel* think2);
-
-    // --- USI送信 ---
-
-    void sendStopToEngine(Usi* which);
-
-    // --- シグナル配線 ---
-
-    /// エンジンの投了・勝ち宣言を、side（そのエンジンの手番）の知らせとして MC に送る
-    void wireResignToArbiter(Usi* engine, Turn side);
-    void wireWinToArbiter(Usi* engine, Turn side);
+    /// 投了・入玉宣言勝ちの知らせを止める（中断の後に届く bestmove resign を終局にしない）
     void disconnectArbiterSignals();
+
+    bool isShutdownInProgress() const { return m_shutdownInProgress; }
+    void setShutdownInProgress(bool inProgress) { m_shutdownInProgress = inProgress; }
 
 signals:
     void enginesChanged();
-    /// 対局用に起動したエンジンのエラー（Usi::errorOccurred の転送）
+    /// side の手番を指すエンジンが投了した
+    void engineResigned(Turn side);
+    /// side の手番を指すエンジンが入玉宣言勝ちを宣言した
+    void engineDeclaredWin(Turn side);
+    /// 対局のエンジン（手番を持つエンジン）の起動の失敗・異常終了
     void engineError(const QString& message);
 
 private slots:
-    void onBlackEngineResign();
-    void onWhiteEngineResign();
-    void onBlackEngineWin();
-    void onWhiteEngineWin();
+    void onEngineResign();
+    void onEngineWin();
 
 private:
-    void disconnectArbiterSignals(Usi* engine);
+    struct Seat {
+        Usi* engine = nullptr;
+        std::optional<Turn> side;
+    };
+    Seat& seat(int slot) { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
+    const Seat& seat(int slot) const { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
+    std::optional<Turn> sideOf(const QObject* engine) const;
+    void destroySeat(Seat& seat, bool clearThinking);
 
-    Refs m_refs;
-    Hooks m_hooks;
-
-    Usi* m_usi1 = nullptr;
-    Usi* m_usi2 = nullptr;
-    UsiCommLogModel*          m_comm1  = nullptr;
-    ShogiEngineThinkingModel* m_think1 = nullptr;
-    UsiCommLogModel*          m_comm2  = nullptr;
-    ShogiEngineThinkingModel* m_think2 = nullptr;
-    bool m_engineShutdownInProgress = false;
+    ShogiClock* m_clock = nullptr;
+    Models m_models;
+    std::array<Seat, 2> m_seats;
+    bool m_shutdownInProgress = false;
 };
 
 #endif // ENGINELIFECYCLEMANAGER_H

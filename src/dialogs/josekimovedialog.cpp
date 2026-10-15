@@ -8,7 +8,8 @@
 #include "josekisettings.h"
 #include "enginemovevalidator.h"
 #include "shogiboard.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 
 #include <QDialogButtonBox>
 #include <QGroupBox>
@@ -176,16 +177,10 @@ namespace {
 bool isLegalMove(const QString &sfen, const QString &usi)
 {
     if (!JosekiMoveInputWidget::isValidUsiMove(usi)) return false;
-    SfenPositionTracer tracer;
-    if (!tracer.setFromSfen(sfen)) return false;
+    const auto move = UsiMove::parse(usi);
     ShogiBoard board;
-    board.setSfen(sfen);
-    auto moves = SfenPositionTracer::buildGameMoves(sfen, {usi});
-    if (moves.size() != 1) return false;
-    EngineMoveValidator validator;
-    const auto turn = tracer.blackToMove() ? Turn::Black : Turn::White;
-    const auto status = validator.isLegalMove(turn, board.boardData(), board.pieceStand(), moves.first());
-    return usi.endsWith(QLatin1Char('+')) ? status.promotingMoveExists : status.nonPromotingMoveExists;
+    if (!move || !board.trySetSfen(sfen)) return false;
+    return EngineMoveValidator::isLegal(EngineMoveValidator::load(board, board.currentPlayer()), *move);
 }
 } // namespace
 
@@ -199,9 +194,8 @@ QString JosekiMoveDialog::inputError() const
         if (!JosekiMoveInputWidget::isValidUsiMove(nextMove()))
             return tr("予想応手の移動元と移動先を別のマスに設定してください。");
         if (!m_currentSfen.isEmpty()) {
-            SfenPositionTracer tracer;
-            if (!tracer.setFromSfen(m_currentSfen) || !tracer.applyUsiMove(move())
-                || !isLegalMove(tracer.toSfenString(), nextMove()))
+            const QString after = SfenReplay::positionAfter(m_currentSfen, move());
+            if (after.isEmpty() || !isLegalMove(after, nextMove()))
                 return tr("予想応手が着手後の局面の合法手ではありません。");
         }
     }
@@ -214,10 +208,10 @@ void JosekiMoveDialog::updateValidation()
     m_moveErrorLabel->setText(error);
     m_moveErrorLabel->setVisible(!error.isEmpty());
     m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(error.isEmpty());
-    SfenPositionTracer tracer;
-    const bool validMove = !m_currentSfen.isEmpty() && isLegalMove(m_currentSfen, move())
-        && tracer.setFromSfen(m_currentSfen) && tracer.applyUsiMove(move());
-    m_nextMoveInput->setCurrentSfen(validMove ? tracer.toSfenString() : QString());
+    const QString after = (!m_currentSfen.isEmpty() && isLegalMove(m_currentSfen, move()))
+        ? SfenReplay::positionAfter(m_currentSfen, move()) : QString();
+    const bool validMove = !after.isEmpty();
+    m_nextMoveInput->setCurrentSfen(after);
     m_nextMoveInput->setEnabled(m_currentSfen.isEmpty() || validMove);
 }
 
@@ -241,10 +235,11 @@ void JosekiMoveDialog::setCurrentSfen(const QString &sfen)
 {
     m_currentSfen = sfen;
     m_moveInput->setCurrentSfen(sfen);
-    SfenPositionTracer tracer;
-    const bool valid = !sfen.isEmpty() && tracer.setFromSfen(sfen);
+    ShogiBoard board;
+    const bool valid = !sfen.isEmpty() && board.trySetSfen(sfen);
     m_positionLabel->setVisible(valid);
-    if (valid) m_positionLabel->setText(tr("登録する局面: %1番").arg(tracer.blackToMove() ? tr("先手") : tr("後手")));
+    if (valid)
+        m_positionLabel->setText(tr("登録する局面: %1番").arg(board.currentPlayer() == Turn::Black ? tr("先手") : tr("後手")));
     updateValidation();
 }
 

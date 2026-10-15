@@ -4,7 +4,8 @@
 #include "usimatchhandler.h"
 #include "logcategories.h"
 #include "usiprotocolhandler.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include <limits>
 
 namespace {
@@ -113,15 +114,17 @@ void UsiMatchHandler::onBestMoveReceived()
 
 UsiMatchHandler::SearchTiming UsiMatchHandler::searchTiming(const UsiTimingParams& timing, bool pondering) const
 {
-    if (m_hooks.readTiming) return m_hooks.readTiming(timing, pondering);
+    // エンジンの手番。先読みを始めるときは m_position に自分の指した手まで入っているので、その1手前の手番
+    const bool whiteToMove = SfenReplay::sfenFromPositionCommand(m_position).contains(QStringLiteral(" w "));
+    const Turn sideToMove = (whiteToMove != pondering) ? Turn::White : Turn::Black;
+    if (m_hooks.readTiming) return m_hooks.readTiming(timing, sideToMove, pondering);
     SearchTiming result;
     result.input.timeControl = timing.timeControl;
     result.input.btimeMs = timing.btimeMs;
     result.input.wtimeMs = timing.wtimeMs;
     result.input.extraMs = timing.extraMs;
     result.input.marginMs = timing.marginMs;
-    result.input.sideToMove = SfenPositionTracer::sfenFromPositionCommand(m_position).contains(QStringLiteral(" w "))
-        ? Turn::White : Turn::Black;
+    result.input.sideToMove = sideToMove;
     result.timeoutMs = static_cast<int>(qBound(qint64(1), UsiGoTimeCalculator::budgetMs(result.input),
                                               qint64(std::numeric_limits<int>::max())));
     return result;

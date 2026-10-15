@@ -20,7 +20,7 @@ class EngineAnalysisTab;
 class BranchNavigationWiring;
 class KifuNavigationCoordinator;
 class UiStatePolicyManager;
-class PlayerInfoWiring;
+class PlayerInfoPresenter;
 class UiNotificationService;
 class GameRecordLoadService;
 class RecordPane;
@@ -55,7 +55,7 @@ public:
         BranchNavigationWiring* branchNavWiring = nullptr;
         KifuNavigationCoordinator* kifuNavCoordinator = nullptr;
         UiStatePolicyManager* uiStatePolicy = nullptr;
-        PlayerInfoWiring* playerInfoWiring = nullptr;
+        PlayerInfoPresenter* playerInfo = nullptr;
         UiNotificationService* notificationService = nullptr;
     };
 

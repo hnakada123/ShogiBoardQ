@@ -1,6 +1,5 @@
 #include <QtTest>
 
-#include "shoginotation.h"
 #include "shogimove.h"
 
 class TestShogiMove : public QObject
@@ -8,132 +7,54 @@ class TestShogiMove : public QObject
     Q_OBJECT
 
 private slots:
-    // === Constructors ===
-
     void defaultConstructor()
     {
         ShogiMove m;
-        QCOMPARE(m.fromSquare, QPoint(0, 0));
-        QCOMPARE(m.toSquare, QPoint(0, 0));
+        QVERIFY(!m.move.isValid());
         QCOMPARE(m.movingPiece, Piece::None);
         QCOMPARE(m.capturedPiece, Piece::None);
-        QVERIFY(!m.isPromotion);
+        QVERIFY(!m.isPromotion());
+        QVERIFY(!m.isValid());
     }
 
-    void parameterConstructor()
+    void constructor_keepsMoveAndPieces()
     {
-        ShogiMove m(QPoint(7, 7), QPoint(7, 6), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(m.fromSquare, QPoint(7, 7));
-        QCOMPARE(m.toSquare, QPoint(7, 6));
-        QCOMPARE(m.movingPiece, Piece::BlackPawn);
-        QCOMPARE(m.capturedPiece, Piece::None);
-        QVERIFY(!m.isPromotion);
-    }
-
-    void parameterConstructor_withCapture()
-    {
-        ShogiMove m(QPoint(7, 7), QPoint(1, 1), Piece::BlackBishop, Piece::WhiteRook, true);
-        QCOMPARE(m.fromSquare, QPoint(7, 7));
-        QCOMPARE(m.toSquare, QPoint(1, 1));
+        ShogiMove m(UsiMove::fromString(u"8h2b+"), Piece::BlackBishop, Piece::WhiteRook);
+        QCOMPARE(m.move.from, (BoardSquare{8, 8}));
+        QCOMPARE(m.move.to, (BoardSquare{2, 2}));
         QCOMPARE(m.movingPiece, Piece::BlackBishop);
         QCOMPARE(m.capturedPiece, Piece::WhiteRook);
-        QVERIFY(m.isPromotion);
+        QVERIFY(m.isPromotion());
+        QVERIFY(!m.isDrop());
+        QVERIFY(m.isValid());
     }
 
-    // === Equality operator ===
-
-    void equality_sameMove()
+    void mover_followsMovingPieceColor()
     {
-        ShogiMove a(QPoint(7, 7), QPoint(7, 6), Piece::BlackPawn, Piece::None, false);
-        ShogiMove b(QPoint(7, 7), QPoint(7, 6), Piece::BlackPawn, Piece::None, false);
-        QVERIFY(a == b);
+        QCOMPARE(ShogiMove(UsiMove::fromString(u"7g7f"), Piece::BlackPawn).mover(), Turn::Black);
+        QCOMPARE(ShogiMove(UsiMove::fromString(u"3c3d"), Piece::WhitePawn).mover(), Turn::White);
+        QCOMPARE(ShogiMove(UsiMove::fromString(u"P*5e"), Piece::WhitePawn).mover(), Turn::White);
     }
 
-    void equality_differentFrom()
+    void equality()
     {
-        ShogiMove a(QPoint(7, 7), QPoint(7, 6), Piece::BlackPawn, Piece::None, false);
-        ShogiMove b(QPoint(6, 6), QPoint(7, 6), Piece::BlackPawn, Piece::None, false);
-        QVERIFY(!(a == b));
+        const ShogiMove a(UsiMove::fromString(u"7g7f"), Piece::BlackPawn);
+        QVERIFY(a == ShogiMove(UsiMove::fromString(u"7g7f"), Piece::BlackPawn));
+        QVERIFY(a != ShogiMove(UsiMove::fromString(u"7g7e"), Piece::BlackPawn));
+        QVERIFY(a != ShogiMove(UsiMove::fromString(u"7g7f"), Piece::BlackLance));
+        QVERIFY(a != ShogiMove(UsiMove::fromString(u"7g7f"), Piece::BlackPawn, Piece::WhitePawn));
+        QVERIFY(ShogiMove(UsiMove::fromString(u"5c5b"), Piece::BlackPawn)
+                != ShogiMove(UsiMove::fromString(u"5c5b+"), Piece::BlackPawn));
     }
 
-    void equality_differentTo()
+    void drop()
     {
-        ShogiMove a(QPoint(7, 7), QPoint(7, 6), Piece::BlackPawn, Piece::None, false);
-        ShogiMove b(QPoint(7, 7), QPoint(7, 5), Piece::BlackPawn, Piece::None, false);
-        QVERIFY(!(a == b));
-    }
-
-    void equality_differentPiece()
-    {
-        ShogiMove a(QPoint(4, 4), QPoint(4, 3), Piece::BlackPawn, Piece::None, false);
-        ShogiMove b(QPoint(4, 4), QPoint(4, 3), Piece::BlackLance, Piece::None, false);
-        QVERIFY(!(a == b));
-    }
-
-    void equality_differentPromotion()
-    {
-        ShogiMove a(QPoint(4, 2), QPoint(4, 1), Piece::BlackPawn, Piece::None, false);
-        ShogiMove b(QPoint(4, 2), QPoint(4, 1), Piece::BlackPawn, Piece::None, true);
-        QVERIFY(!(a == b));
-    }
-
-    void equality_differentCapture()
-    {
-        ShogiMove a(QPoint(4, 4), QPoint(4, 3), Piece::BlackRook, Piece::None, false);
-        ShogiMove b(QPoint(4, 4), QPoint(4, 3), Piece::BlackRook, Piece::WhitePawn, false);
-        QVERIFY(!(a == b));
-    }
-
-    // === Drop from piece stand ===
-
-    void dropMove_blackPieceStand()
-    {
-        // 先手駒台からの打ち: fromSquare.x() == 9
-        ShogiMove m(QPoint(9, 0), QPoint(4, 4), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(m.fromSquare.x(), 9);
-        QVERIFY(m.fromSquare.x() >= 9);
-    }
-
-    void dropMove_whitePieceStand()
-    {
-        // 後手駒台からの打ち: fromSquare.x() == 10
-        ShogiMove m(QPoint(10, 0), QPoint(4, 4), Piece::WhitePawn, Piece::None, false);
-        QCOMPARE(m.fromSquare.x(), 10);
-        QVERIFY(m.fromSquare.x() >= 9);
-    }
-
-    // === USI conversion (via ShogiUtils) ===
-
-    void usiConversion_normalMove()
-    {
-        ShogiMove m(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("7g7f"));
-    }
-
-    void usiConversion_promotionMove()
-    {
-        ShogiMove m(QPoint(7, 7), QPoint(1, 1), Piece::BlackBishop, Piece::WhiteRook, true);
-        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("8h2b+"));
-    }
-
-    void usiConversion_dropMove()
-    {
-        ShogiMove m(QPoint(9, 0), QPoint(4, 4), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("P*5e"));
-    }
-
-    void usiConversion_cornerMove()
-    {
-        // 1a → 9i (corner to corner)
-        ShogiMove m(QPoint(0, 0), QPoint(8, 8), Piece::BlackBishop, Piece::None, false);
-        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("1a9i"));
-    }
-
-    void usiConversion_whiteDropMove()
-    {
-        // 後手駒台からの打ち
-        ShogiMove m(QPoint(10, 0), QPoint(4, 4), Piece::WhitePawn, Piece::None, false);
-        QCOMPARE(m.toUsiMove().toString(), QStringLiteral("P*5e"));
+        const ShogiMove black(UsiMove::fromString(u"P*5e"), Piece::BlackPawn);
+        const ShogiMove white(UsiMove::fromString(u"P*5e"), Piece::WhitePawn);
+        QVERIFY(black.isDrop());
+        QCOMPARE(black.move.toString(), QStringLiteral("P*5e"));
+        QCOMPARE(white.move.toString(), QStringLiteral("P*5e"));
+        QVERIFY(black != white);
     }
 };
 

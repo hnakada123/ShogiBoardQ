@@ -1,6 +1,8 @@
 /// アプリと同じ配線を使い、終局通知時に棋譜・セッション・UIが確定済みか確認する。
 #include <QtTest>
 #include <QTemporaryDir>
+#include <QMessageBox>
+#include <QTimer>
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "gamestartcoordinator.h"
@@ -8,20 +10,22 @@
 #include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
 #include "livegamesession.h"
-#include "sessionlifecyclecoordinator.h"
+#include "gamesession.h"
+#include "matchcoordinator.h"
+#include "shogigamecontroller.h"
 #include "uistatepolicymanager.h"
 #include "shogiclock.h"
 #include "timecontrolcontroller.h"
 #include "consecutivegamescontroller.h"
 #include "boardsetupcontroller.h"
-#include "undoflowservice.h"
-#include "playerinfowiring.h"
+#include "playerinfopresenter.h"
 #include "kifunavigationstate.h"
 
 class TestWiringContracts : public QObject {
     Q_OBJECT
     QTemporaryDir m_config;
     MainWindowComponents* m_parts = nullptr;
+    QTimer m_messageCloser;
     bool m_endWasCommitted = false;
     int m_consistentMoves = 0;
 private slots:
@@ -29,8 +33,16 @@ private slots:
     {
         QVERIFY(m_config.isValid());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+        // 終局の知らせ（メッセージボックス）は出たらすぐ閉じる
+        m_messageCloser.setInterval(10);
+        connect(&m_messageCloser, &QTimer::timeout, this, &TestWiringContracts::closeMessageBoxes);
+        m_messageCloser.start();
     }
 public:
+    void closeMessageBoxes()
+    {
+        if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) box->accept();
+    }
     void observeMove(Turn, int ply)
     {
         const auto* node = m_parts->liveGameSession->liveNode();
@@ -52,27 +64,33 @@ private slots:
         m_parts = &p;
         m_consistentMoves = 0;
         // 名前の通知だけでは活動を開始しない。
-        p.playerInfoWiring->onPlayerNamesResolved({}, {}, {}, {}, int(PlayMode::EvenHumanVsEngine));
-        QCOMPARE(state.playMode, PlayMode::NotStarted);
-        QCOMPARE(p.match->playMode(), PlayMode::NotStarted);
+        MatchPlayers humanEngine;
+        humanEngine.whiteIsEngine = true;
+        p.playerInfo->onMatchPlayersResolved(humanEngine);
+        QCOMPARE(state.activity.activity(), AppActivityState::Activity::Idle);
+        QVERIFY(!state.currentMatchPlayers());
+        QVERIFY(!p.match->hasStarted());
         GameStartCoordinator::Ctx ctx;
         ctx.dialogData.startingPositionNumber = 1;
         ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
-        ctx.startSfenStr = &state.startSfenStr;
-        ctx.currentSfenStr = &state.currentSfenStr;
+        ctx.startSfen = state.startSfenStr;
+        ctx.currentSfen = state.currentSfenStr;
         QString error;
         QVERIFY2(p.gameStart->initializeGame(ctx, error), qPrintable(error));
         connect(p.gameController, &ShogiGameController::moveCommitted, this, &TestWiringContracts::observeMove);
         p.boardSetupController->onMoveRequested(QPoint(7, 7), QPoint(7, 6));
         p.boardSetupController->onMoveRequested(QPoint(3, 3), QPoint(3, 4));
         QCOMPARE(m_consistentMoves, 2);
-        QCOMPARE(state.sfenRecord.size(), 3);
-        p.undoFlowService->undoLastTwoMoves();
-        QCOMPARE(state.sfenRecord.size(), 1);
+        QCOMPARE(p.match->record().moveCount(), 2);
+        QCOMPARE(state.currentSfenStr, p.match->record().lastSfen());
+        p.gameSession->undoTwoMoves();
+        QCOMPARE(p.match->record().moveCount(), 0);
         QCOMPARE(p.liveGameSession->totalPly(), 0);
         QCOMPARE(p.navState->currentPly(), 0);
         QCOMPARE(p.kifuRecord->rowCount(), 1);
-        QCOMPARE(state.currentSfenStr, state.sfenRecord.first());
+        QCOMPARE(state.currentSfenStr, p.match->record().startSfen);
+        QVERIFY(p.gameRecord->isDirty());
+        p.gameRecord->clearDirty();
         m_parts = nullptr;
     }
     void startAndEndUseRealReceivers()
@@ -89,22 +107,25 @@ private slots:
         ctx.dialogData.basicTimeMinutes1 = 3;
         ctx.dialogData.humanName1 = QStringLiteral("太郎");
         ctx.dialogData.humanName2 = QStringLiteral("花子");
-        ctx.startSfenStr = &state.startSfenStr;
-        ctx.currentSfenStr = &state.currentSfenStr;
+        ctx.startSfen = state.startSfenStr;
+        ctx.currentSfen = state.currentSfenStr;
         QString error;
         QVERIFY2(p.gameStart->initializeGame(ctx, error), qPrintable(error));
         QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::AppState::DuringGame);
-        QCOMPARE(state.playMode, PlayMode::HumanVsHuman);
+        QCOMPARE(state.activity.activity(), AppActivityState::Activity::DuringGame);
+        QVERIFY(state.players.humanVsHuman());
+        QCOMPARE(state.players.name(Turn::Black), QStringLiteral("太郎"));
+        QCOMPARE(state.players.name(Turn::White), QStringLiteral("花子"));
         QVERIFY(p.liveGameSession->isActive());
         QCOMPARE(p.match->clock()->timeControl().black.mainMs, 180000);
         QCOMPARE(p.timeController->timeControl().black.mainMs, 180000);
         QVERIFY(p.timeController->gameStartDateTime().isValid());
 
-        p.match->setGameOver({MatchCause::Resignation, Turn::Black});
+        p.gameSession->resign();
         QVERIFY(m_endWasCommitted);
         QCOMPARE(p.kifuRecord->rowCount(), 2);
         QVERIFY(p.timeController->gameEndDateTime().isValid());
-        p.match->setGameOver({MatchCause::Resignation, Turn::Black});
+        p.gameSession->resign();
         QCOMPARE(p.kifuRecord->rowCount(), 2);
         p.gameRecord->clearDirty();
     }
@@ -114,7 +135,7 @@ private slots:
         auto& p = window.composer().parts();
         p.liveGameSession->startFromRoot();
         QVERIFY(p.liveGameSession->isActive());
-        p.sessionLifecycle->resetToInitialState();
+        p.gameSession->resetToInitialState();
         QVERIFY(!p.liveGameSession->isActive());
         QCOMPARE(p.branchTree->nodeCount(), 1);
         QCOMPARE(p.kifuRecord->rowCount(), 1);

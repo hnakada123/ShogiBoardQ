@@ -13,7 +13,10 @@
 #include <QSslSocket>
 #include <QTimer>
 
+#include "shogitypes.h"
 #include "timecontrol.h"
+
+#include <optional>
 
 /**
  * @brief CSAプロトコルクライアントクラス
@@ -38,6 +41,8 @@ class CsaClient : public QObject
 #ifdef SHOGIBOARDQ_TESTING
     /// テスト専用: tst_csaprotocol.cpp がパーサ内部状態を直接検証する
     friend class Tst_CsaProtocol;
+    /// テスト専用: tst_app_game_session.cpp が対局中の手番を直接設定する
+    friend class TestAppGameSession;
 #endif
 
 public:
@@ -125,8 +130,8 @@ public:
         QString gameId;             ///< 対局ID
         QString blackName;          ///< 先手名
         QString whiteName;          ///< 後手名
-        QString myTurn;             ///< こちら側の手番（+/-）
-        QString toMove;             ///< 最初の手番（+/-）
+        std::optional<Turn> myTurn; ///< こちら側の手番（Your_Turn。届かなければ無し）
+        Turn toMove = Turn::Black;  ///< 最初の手番（To_Move）
         bool rematchOnDraw;         ///< 引き分け時再対局するか
         int maxMoves;               ///< 最大手数（0=無制限）
 
@@ -142,7 +147,10 @@ public:
 
         GameSummary();
         void clear();
-        bool isBlackTurn() const { return myTurn == QStringLiteral("+"); }
+        /// こちらが先手（下手）か
+        bool isBlackSide() const { return myTurn == Turn::Black; }
+        /// こちらが最初に指すか
+        bool movesFirst() const { return myTurn == toMove; }
         const TimeControl& timeFor(bool black) const { return black ? timeBlack : timeWhite; }
         TimeControl& timeFor(bool black) { return black ? timeBlack : timeWhite; }
         int timeUnitMs(bool black) const { return timeFor(black).unitMs(); }
@@ -477,10 +485,16 @@ private:
     bool m_logoutPending = false;       ///< LOGOUT 送信済みで応答待ち
     bool m_keepAliveEnabled = true;     ///< 対局中に空行キープアライブを送るか
     bool m_tcpKeepAliveEnabled = true;  ///< OS の TCP キープアライブを使うか
-    bool m_inGameSummary = false;       ///< Game_Summary解析中フラグ
-    bool m_inTimeSection = false;       ///< Time解析中フラグ
-    bool m_inPositionSection = false;   ///< Position解析中フラグ
-    QString m_currentTimeSection;       ///< 現在のTimeセクション名（Time/Time+/Time-）
+    /// Game_Summary のどの階層を読んでいるか
+    enum class SummarySection {
+        Outside,    ///< Game_Summary の外
+        TopLevel,   ///< Game_Summary の直下
+        Time,       ///< BEGIN Time（双方の持時間）
+        TimeBlack,  ///< BEGIN Time+（先手の持時間）
+        TimeWhite,  ///< BEGIN Time-（後手の持時間）
+        Position    ///< BEGIN Position
+    };
+    SummarySection m_summarySection = SummarySection::Outside;
 
     QString m_pendingFirstResultLine;   ///< 最初の結果行（#で始まる行）を保持
     int m_endMoveConsumedTimeMs = 0;    ///< 終局手の消費時間（ミリ秒）

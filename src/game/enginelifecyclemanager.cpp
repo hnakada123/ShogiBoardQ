@@ -1,261 +1,154 @@
 /// @file enginelifecyclemanager.cpp
-/// @brief エンジンライフサイクル管理クラスの実装
+/// @brief 対局で指すエンジンの生成・起動・破棄と、手番との対応の実装
 
 #include "enginelifecyclemanager.h"
 
+#include "logcategories.h"
+#include "shogienginethinkingmodel.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
-#include "shogienginethinkingmodel.h"
-#include "shogigamecontroller.h"
-#include "logcategories.h"
 
-#include <QDebug>
-
-// ============================================================
-// 初期化
-// ============================================================
-
-EngineLifecycleManager::EngineLifecycleManager(QObject* parent)
+EngineLifecycleManager::EngineLifecycleManager(ShogiClock* clock, QObject* parent)
     : QObject(parent)
+    , m_clock(clock)
 {
 }
 
-void EngineLifecycleManager::setRefs(const Refs& refs) { m_refs = refs; }
-void EngineLifecycleManager::setHooks(const Hooks& hooks) { m_hooks = hooks; }
+EngineLifecycleManager::~EngineLifecycleManager() = default;
 
-void EngineLifecycleManager::setModelPtrs(UsiCommLogModel* comm1,
-                                          ShogiEngineThinkingModel* think1,
-                                          UsiCommLogModel* comm2,
-                                          ShogiEngineThinkingModel* think2)
+void EngineLifecycleManager::setModels(const Models& models)
 {
-    m_comm1 = comm1;
-    m_think1 = think1;
-    m_comm2 = comm2;
-    m_think2 = think2;
+    m_models = models;
 }
 
 // ============================================================
-// エンジンポインタ
+// 生成・起動
 // ============================================================
 
-Usi* EngineLifecycleManager::usi1() const { return m_usi1; }
-Usi* EngineLifecycleManager::usi2() const { return m_usi2; }
-void EngineLifecycleManager::setUsi1(Usi* u) { m_usi1 = u; emit enginesChanged(); }
-void EngineLifecycleManager::setUsi2(Usi* u) { m_usi2 = u; emit enginesChanged(); }
-
-void EngineLifecycleManager::updateUsiPtrs(Usi* e1, Usi* e2)
+Usi* EngineLifecycleManager::createEngine(int slot, std::optional<Turn> side, const QString& engineName)
 {
-    m_usi1 = e1;
-    m_usi2 = e2;
+    Seat& target = seat(slot);
+    destroySeat(target, false);
+
+    UsiCommLogModel* comm = (slot == 2) ? m_models.comm2 : m_models.comm1;
+    ShogiEngineThinkingModel* think = (slot == 2) ? m_models.think2 : m_models.think1;
+    const QString displayName = engineName.isEmpty() ? QStringLiteral("Engine") : engineName;
+    if (comm) comm->setEngineName(displayName);
+
+    auto* engine = new Usi(comm, think, this);
+    engine->setMatchClock(m_clock);
+    const QString sideTag = !side ? QString()
+        : (*side == Turn::Black ? QStringLiteral("black") : QStringLiteral("white"));
+    engine->setLogIdentity(slot == 2 ? QStringLiteral("[E2]") : QStringLiteral("[E1]"), sideTag, displayName);
+    engine->setSquelchResignLogging(false);
+    connect(engine, &Usi::bestMoveResignReceived, this, &EngineLifecycleManager::onEngineResign);
+    connect(engine, &Usi::bestMoveWinReceived, this, &EngineLifecycleManager::onEngineWin);
+    // 対局のエンジンの起動の失敗や異常終了を知らせる（起動の失敗は startEngine の中で届くことがある）。
+    // 検討・詰み探索のエンジンのエラーは、使う側（AnalysisSession）が直接受け取る
+    if (side) connect(engine, &Usi::errorOccurred, this, &EngineLifecycleManager::engineError);
+
+    target.engine = engine;
+    target.side = side;
     emit enginesChanged();
+    return engine;
 }
 
-bool EngineLifecycleManager::isShutdownInProgress() const { return m_engineShutdownInProgress; }
-void EngineLifecycleManager::setShutdownInProgress(bool v) { m_engineShutdownInProgress = v; }
+void EngineLifecycleManager::startEngine(Usi* engine, const QString& enginePath, const QString& engineName)
+{
+    // 失敗は Usi::errorOccurred で知らせる
+    if (engine) (void)engine->startEngine(enginePath, engineName);
+}
 
 // ============================================================
-// エンジン初期化・シグナル配線
+// 手番との対応
 // ============================================================
 
-void EngineLifecycleManager::initializeAndStartEngineFor(Turn side,
-                                                         const QString& enginePathIn,
-                                                         const QString& engineNameIn)
+Usi* EngineLifecycleManager::engineFor(Turn side) const
 {
-    // 人間対エンジンではエンジンが後手でも m_usi1 だけを使い、m_usi2 は空のままにする
-    // （呼び出し側は「後手側が空なら先手側」と扱う）。参照で受けると m_usi2 に同じエンジンが入り、
-    // E2 宛てのコマンドや後始末が同じエンジンへ二重に届く。
-    Usi* eng = (side == Turn::Black ? m_usi1 : m_usi2);
-
-    if (!eng) {
-        if (m_usi1 && !m_usi2) {
-            qCDebug(lcGame) << "[Match] fallback to m_usi1 for HvE";
-            eng = m_usi1;
-        } else {
-            qCWarning(lcGame) << "[Match] engine ptr is null (side=" << side << ")";
-            return;
-        }
+    for (const Seat& s : m_seats) {
+        if (s.engine && s.side == side) return s.engine;
     }
-
-    QString path = enginePathIn;
-    QString name = engineNameIn;
-
-    // 起動の失敗や対局中の異常終了を MatchCoordinator に知らせる。
-    // 起動の失敗はこの呼び出しの中で通知されることがある。
-    QObject::connect(eng, &Usi::errorOccurred,
-                     this, &EngineLifecycleManager::engineError,
-                     Qt::UniqueConnection);
-    eng->initializeAndStartEngineCommunication(path, name);
-
-    wireResignToArbiter(eng, side);
-    wireWinToArbiter(eng, side);
+    return nullptr;
 }
 
-void EngineLifecycleManager::wireResignToArbiter(Usi* engine, Turn side)
+Usi* EngineLifecycleManager::engineInSlot(int slot) const
 {
-    if (!engine) return;
+    return seat(slot).engine;
+}
 
-    QObject::disconnect(engine, &Usi::bestMoveResignReceived, this, nullptr);
+int EngineLifecycleManager::slotFor(Turn side) const
+{
+    if (seat(1).engine && seat(1).side == side) return 1;
+    if (seat(2).engine && seat(2).side == side) return 2;
+    return 0;
+}
 
-    if (side == Turn::Black) {
-        QObject::connect(engine, &Usi::bestMoveResignReceived,
-                         this,   &EngineLifecycleManager::onBlackEngineResign,
-                         Qt::UniqueConnection);
-    } else {
-        QObject::connect(engine, &Usi::bestMoveResignReceived,
-                         this,   &EngineLifecycleManager::onWhiteEngineResign,
-                         Qt::UniqueConnection);
+std::optional<Turn> EngineLifecycleManager::sideOf(const QObject* engine) const
+{
+    for (const Seat& s : m_seats) {
+        if (s.engine && s.engine == engine) return s.side;
     }
+    return std::nullopt;
 }
 
-void EngineLifecycleManager::wireWinToArbiter(Usi* engine, Turn side)
+void EngineLifecycleManager::onEngineResign()
 {
-    if (!engine) return;
-
-    QObject::disconnect(engine, &Usi::bestMoveWinReceived, this, nullptr);
-
-    if (side == Turn::Black) {
-        QObject::connect(engine, &Usi::bestMoveWinReceived,
-                         this,   &EngineLifecycleManager::onBlackEngineWin,
-                         Qt::UniqueConnection);
-    } else {
-        QObject::connect(engine, &Usi::bestMoveWinReceived,
-                         this,   &EngineLifecycleManager::onWhiteEngineWin,
-                         Qt::UniqueConnection);
-    }
+    if (const auto side = sideOf(sender())) emit engineResigned(*side);
 }
 
-void EngineLifecycleManager::onBlackEngineResign()
+void EngineLifecycleManager::onEngineWin()
 {
-    if (m_hooks.onEngineResign) m_hooks.onEngineResign(Turn::Black);
-}
-
-void EngineLifecycleManager::onWhiteEngineResign()
-{
-    if (m_hooks.onEngineResign) m_hooks.onEngineResign(Turn::White);
-}
-
-void EngineLifecycleManager::onBlackEngineWin()
-{
-    if (m_hooks.onEngineWin) m_hooks.onEngineWin(Turn::Black);
-}
-
-void EngineLifecycleManager::onWhiteEngineWin()
-{
-    if (m_hooks.onEngineWin) m_hooks.onEngineWin(Turn::White);
+    if (const auto side = sideOf(sender())) emit engineDeclaredWin(*side);
 }
 
 void EngineLifecycleManager::disconnectArbiterSignals()
 {
-    disconnectArbiterSignals(m_usi1);
-    disconnectArbiterSignals(m_usi2);
-}
-
-void EngineLifecycleManager::disconnectArbiterSignals(Usi* engine)
-{
-    if (!engine) return;
-    QObject::disconnect(engine, &Usi::bestMoveResignReceived, this, nullptr);
-    QObject::disconnect(engine, &Usi::bestMoveWinReceived, this, nullptr);
-}
-
-// ============================================================
-// エンジン破棄
-// ============================================================
-
-void EngineLifecycleManager::destroyEngine(int idx, bool clearThinking)
-{
-    Usi*& ref = (idx == 1 ? m_usi1 : m_usi2);
-    if (ref) {
-        disconnectArbiterSignals(ref);
-        QObject::disconnect(ref, &Usi::errorOccurred, this, nullptr);
-        ref->cleanupEngineProcessAndThread(clearThinking);
-        ref->deleteLater();
-        ref = nullptr;
-        emit enginesChanged();
+    for (const Seat& s : m_seats) {
+        if (!s.engine) continue;
+        disconnect(s.engine, &Usi::bestMoveResignReceived, this, nullptr);
+        disconnect(s.engine, &Usi::bestMoveWinReceived, this, nullptr);
     }
+}
+
+// ============================================================
+// 終局・破棄
+// ============================================================
+
+void EngineLifecycleManager::notifyGameOver(std::optional<Turn> loser)
+{
+    for (const Seat& s : m_seats) {
+        if (!s.engine || !s.side) continue;
+        const GameOverResult result = !loser ? GameOverResult::Draw
+            : (*loser == *s.side ? GameOverResult::Lose : GameOverResult::Win);
+        // 終局後の bestmove で着手・先読みを再開させない。quit に応答しない場合も
+        // 非同期の終了監視へ引き渡し、アプリを閉じるまでプロセスを残さない。
+        s.engine->setSquelchResignLogging(true);
+        s.engine->cancelCurrentOperation();
+        s.engine->sendStopCommand();
+        s.engine->sendGameOverCommand(result);
+        s.engine->cleanupEngineProcessAndThread(false);
+    }
+}
+
+void EngineLifecycleManager::destroySeat(Seat& target, bool clearThinking)
+{
+    Usi* engine = std::exchange(target.engine, nullptr);
+    target.side.reset();
+    if (!engine) return;
+    disconnect(engine, nullptr, this, nullptr);
+    engine->cleanupEngineProcessAndThread(clearThinking);
+    engine->deleteLater();
+    emit enginesChanged();
 }
 
 void EngineLifecycleManager::destroyEngines(bool clearModels)
 {
     qCDebug(lcGame).noquote() << "destroyEngines called, clearModels=" << clearModels;
-    destroyEngine(1, clearModels);
-    destroyEngine(2, clearModels);
-
+    for (Seat& s : m_seats) destroySeat(s, clearModels);
     if (clearModels) {
-        qCDebug(lcGame).noquote() << "destroyEngines clearing models";
-        if (m_comm1)  m_comm1->clear();
-        if (m_think1) m_think1->clearAllItems();
-        if (m_comm2)  m_comm2->clear();
-        if (m_think2) m_think2->clearAllItems();
-    } else {
-        qCDebug(lcGame).noquote() << "destroyEngines preserving models (clearModels=false)";
+        if (m_models.comm1) m_models.comm1->clear();
+        if (m_models.think1) m_models.think1->clearAllItems();
+        if (m_models.comm2) m_models.comm2->clear();
+        if (m_models.think2) m_models.think2->clearAllItems();
     }
 }
-
-// ============================================================
-// モデル管理
-// ============================================================
-
-EngineLifecycleManager::EngineModelPair EngineLifecycleManager::ensureEngineModels(int engineIndex)
-{
-    UsiCommLogModel*&          commRef  = (engineIndex == 1) ? m_comm1  : m_comm2;
-    ShogiEngineThinkingModel*& thinkRef = (engineIndex == 1) ? m_think1 : m_think2;
-
-    if (!commRef) {
-        commRef = new UsiCommLogModel(this);
-        qCWarning(lcGame) << "comm" << engineIndex << "fallback created";
-    }
-    if (!thinkRef) {
-        thinkRef = new ShogiEngineThinkingModel(this);
-        qCWarning(lcGame) << "think" << engineIndex << "fallback created";
-    }
-
-    return { commRef, thinkRef };
-}
-
-// ============================================================
-// EvE 初期化
-// ============================================================
-
-void EngineLifecycleManager::initEnginesForEvE(const QString& engineName1,
-                                                const QString& engineName2)
-{
-    destroyEngines();
-
-    auto [comm1, think1] = ensureEngineModels(1);
-    auto [comm2, think2] = ensureEngineModels(2);
-
-    const QString dispName1 = engineName1.isEmpty() ? QStringLiteral("Engine") : engineName1;
-    const QString dispName2 = engineName2.isEmpty() ? QStringLiteral("Engine") : engineName2;
-    comm1->setEngineName(dispName1);
-    comm2->setEngineName(dispName2);
-
-    m_usi1 = new Usi(comm1, think1, m_refs.gc, this);
-    m_usi2 = new Usi(comm2, think2, m_refs.gc, this);
-
-    m_usi1->resetResignNotified(); m_usi1->clearHardTimeout(); m_usi1->resetWinNotified();
-    m_usi2->resetResignNotified(); m_usi2->clearHardTimeout(); m_usi2->resetWinNotified();
-
-    wireResignToArbiter(m_usi1, Turn::Black);
-    wireResignToArbiter(m_usi2, Turn::White);
-    wireWinToArbiter(m_usi1, Turn::Black);
-    wireWinToArbiter(m_usi2, Turn::White);
-
-    m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("black"), engineName1);
-    m_usi2->setLogIdentity(QStringLiteral("[E2]"), QStringLiteral("white"), engineName2);
-    m_usi1->setSquelchResignLogging(false);
-    m_usi2->setSquelchResignLogging(false);
-
-    updateUsiPtrs(m_usi1, m_usi2);
-}
-
-// ============================================================
-// USI 送信
-// ============================================================
-
-void EngineLifecycleManager::sendStopToEngine(Usi* which)
-{
-    // 対局中の「すぐ指させる」（MatchTurnHandler::forceImmediateMove）から使う
-    if (!which) return;
-    which->requestImmediateMove();
-}
-

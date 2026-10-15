@@ -8,7 +8,8 @@
 #include "appsettings.h"
 #include "docklayoutmanager.h"
 #include "josekiwindow.h"
-#include "josekiwindowwiring.h"
+#include "josekiwindowcontroller.h"
+#include "enginelifecyclemanager.h"
 #include "kifufilecontroller.h"
 #include "shogiview.h"
 
@@ -19,18 +20,15 @@
 #include "dockcreationservice.h"
 #include "evaluationgraphcontroller.h"
 #include "gamerecordloadservice.h"
-#include "gamerecordupdateservice.h"
 #include "jishogiscoredialogcontroller.h"
 #include "kifuexportcontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "languagecontroller.h"
 #include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
-#include "matchcoordinatorwiring.h"
 #include "nyugyokudeclarationhandler.h"
-#include "playmodepolicyservice.h"
+#include "humanturnpolicy.h"
 #include "turnstatesyncservice.h"
-#include "undoflowservice.h"
 #include "usicommandcontroller.h"
 #ifdef QT_DEBUG
 #include "debugscreenshotwiring.h"
@@ -61,7 +59,6 @@ void MainWindowComposer::compose()
 
     // 2) 依存の注入。部品は全部できているので、相互参照も順序を気にせず結べる
     wireFoundation();
-    wireMatchCoordinator();
     wireCsaGame();
     wireKifu();
     wireUi();
@@ -84,18 +81,18 @@ void MainWindowComposer::shutdown()
         m_c.dockLayoutManager->saveDockStates();
     }
 
-    // エンジンが起動していれば quit を送って止める
-    if (m_c.match) {
-        m_c.match->destroyEngines();
+    // エンジンが起動していれば quit を送って止める（対局・検討のどちらのエンジンも）
+    if (m_c.engines) {
+        m_c.engines->destroyEngines();
     }
 
     // 終了処理中にモード判定を求められても、部品がない状態として扱う
-    m_c.playModePolicy.reset();
+    m_c.humanTurnPolicy.reset();
 }
 
 bool MainWindowComposer::confirmClose()
 {
     if (m_c.kifuFileController && !m_c.kifuFileController->confirmDiscardUnsaved()) return false;
-    JosekiWindow* joseki = m_c.josekiWiring ? m_c.josekiWiring->josekiWindow() : nullptr;
+    JosekiWindow* joseki = m_c.josekiController ? m_c.josekiController->josekiWindow() : nullptr;
     return !joseki || joseki->confirmClose();
 }

@@ -8,7 +8,8 @@
 #include "kifreader.h"
 #include "parsecommon.h"
 #include "notationutils.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "shogiboard.h"
 
 #include <QRegularExpression>
@@ -36,7 +37,7 @@ QString buildKi2PrettyMove(const QString& move, const std::optional<UsiMove>& us
 }
 
 // 終局語のKI2 DisplayItemを生成
-void handleKi2TerminalWord(const QString& term, int& moveIndex,
+void handleKi2TerminalWord(TerminalType terminal, Turn side, int& moveIndex,
                            QString& commentBuf, QList<KifDisplayItem>& out,
                            bool& firstMoveFound, bool& gameEnded,
                            const QString& openingCommentBuf,
@@ -49,7 +50,7 @@ void handleKi2TerminalWord(const QString& term, int& moveIndex,
     KifuParseCommon::flushCommentToLastItem(commentBuf, out);
 
     ++moveIndex;
-    out.push_back(KifuParseCommon::createTerminalDisplayItem(moveIndex, term));
+    out.push_back(KifuParseCommon::createTerminalDisplayItem(moveIndex, terminal, side));
     gameEnded = true;
 }
 
@@ -86,18 +87,15 @@ bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startP
         if (KifuParseCommon::tryHandleCommentLine(text, firstMoveFound, comment, openingComment)) continue;
         if (KifuParseCommon::tryHandleBookmarkLine(text, firstMoveFound, line.disp, openingBookmark)) continue;
         if (gameEnded) continue;
-        QString resultTerm;
+        TerminalType resultTerminal = TerminalType::None;
         int resultCount = 0;
         QStringList moves;
-        if (Ki2Lexer::parseResultLine(text, resultTerm, resultCount)) moves.append(resultTerm);
+        if (Ki2Lexer::parseResultLine(text, resultTerminal, resultCount)) moves.append(TerminalTypes::label(resultTerminal));
         else if (Ki2Lexer::isKi2MoveLine(text)) moves = Ki2Lexer::extractMovesFromLine(text);
         for (const QString& move : std::as_const(moves)) {
-            const QString mark = (mover == Turn::Black) ? QStringLiteral("▲") : QStringLiteral("△");
-            QString term;
-            if (KifuParseCommon::isTerminalWordContains(move, &term)) {
-                handleKi2TerminalWord(term, ply, comment, line.disp, firstMoveFound,
+            if (const TerminalType terminal = TerminalTypes::findWord(move); terminal != TerminalType::None) {
+                handleKi2TerminalWord(terminal, mover, ply, comment, line.disp, firstMoveFound,
                                       gameEnded, openingComment, openingBookmark);
-                line.disp.last().prettyMove = mark + term;
                 line.endsWithTerminal = true;
                 break;
             }
@@ -117,7 +115,7 @@ bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startP
             }
             KifuParseCommon::flushCommentToLastItem(comment, line.disp);
             line.usiMoves.append(usi ? usi->toString() : QStringLiteral("pass"));
-            line.disp.append(KifuParseCommon::createMoveDisplayItem(++ply, buildKi2PrettyMove(move, usi, mark)));
+            line.disp.append(KifuParseCommon::createMoveDisplayItem(++ply, buildKi2PrettyMove(move, usi, mover == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△"))));
             mover = (mover == Turn::Black) ? Turn::White : Turn::Black;
         }
     }

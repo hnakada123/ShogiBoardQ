@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <functional>
 
+struct AppState;
 class KifuNavigationState;
 class ShogiView;
 class ShogiGameController;
@@ -48,13 +49,12 @@ public:
     void setReplayController(ReplayController* replay);
 
     // --------------------------------------------------------
-    // 状態参照の設定（ポインタ経由）
+    // 状態の参照
     // --------------------------------------------------------
     /// 表示中の手数（分岐ツリーのカーソル）
     void setNavigationState(const KifuNavigationState* state);
-    void setStartSfenStr(QString* startSfenStr);
-    void setCurrentSfenStr(QString* currentSfenStr);
-    void setOnMainRowGuard(bool* onMainRowGuard);
+    /// 表示中の局面を読み、編集の開始・終了で開始局面を書く
+    void setAppState(AppState* state);
 
     /// 編集の開始・終了でメニューの状態を切り替える先
     void setUiStatePolicy(UiStatePolicyManager* policy) { m_uiStatePolicy = policy; }
@@ -98,9 +98,7 @@ private:
     ReplayController* m_replayController = nullptr;
 
     const KifuNavigationState* m_navState = nullptr;
-    QString* m_startSfenStr = nullptr;
-    QString* m_currentSfenStr = nullptr;
-    bool* m_onMainRowGuard = nullptr;
+    AppState* m_state = nullptr;
 
     EditActions m_editActions;
 

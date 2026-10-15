@@ -11,7 +11,7 @@
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
 #include "kiftosfenconverter.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -51,13 +51,11 @@ private slots:
         for (int game = 0; game < 100; ++game) {
             ShogiBoard board;
             board.setSfen(kHirateSfen);
-            EngineMoveValidator validator;
 
             Turn turn = Turn::Black;
 
             for (int moveNum = 0; moveNum < 300; ++moveNum) {
-                int legalCount = validator.generateLegalMoves(
-                    turn, board.boardData(), board.pieceStand());
+                int legalCount = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board, turn));
 
                 if (legalCount == 0) break; // Checkmate or stalemate
 
@@ -75,11 +73,10 @@ private slots:
                             const auto& data = board.boardData();
                             int idx = (rank - 1) * 9 + (file - 1);
                             if (data[idx] == Piece::BlackPawn) {
-                                ShogiMove m(QPoint(file - 1, rank - 1),
-                                           QPoint(file - 1, rank - 2),
-                                           Piece::BlackPawn, Piece::None, false);
-                                auto status = validator.isLegalMove(
-                                    turn, board.boardData(), board.pieceStand(), m);
+                                UsiMove m;
+                                m.from = BoardSquare{file, rank};
+                                m.to = BoardSquare{file, rank - 1};
+                                auto status = EngineMoveValidator::legalStatus(board, turn, m);
                                 if (status.nonPromotingMoveExists) {
                                     board.movePieceToSquare(Piece::BlackPawn,
                                                           file, rank, file, rank - 1, false);
@@ -119,9 +116,6 @@ private slots:
 
         // Build tree
         KifuBranchTree tree;
-        SfenPositionTracer tracer;
-        tracer.resetToStartpos();
-
         tree.setRootSfen(kHirateSfen);
         ShogiMove dummyMove;
 
@@ -237,7 +231,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
 
-        const QStringList sfens = SfenPositionTracer::buildSfenRecord(kHirateSfen, moves, false).mid(1);
+        const QStringList sfens = SfenReplay::buildSfenRecord(kHirateSfen, moves, false).mid(1);
 
         ShogiMove dummyMove;
         auto* current = tree.root();

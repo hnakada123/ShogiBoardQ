@@ -208,15 +208,30 @@ set(UI_FILES
 set(SRC_APP
     src/app/applicationlogging.cpp
     src/app/applicationlogging.h
-    src/app/commentcoordinator.cpp
-    src/app/commentcoordinator.h
+    src/app/boardloadservice.cpp
+    src/app/boardloadservice.h
     src/app/dockcreationservice.cpp
     src/app/dockcreationservice.h
-    src/app/gamesessionorchestrator.cpp
-    src/app/gamesessionorchestrator_resume.cpp
-    src/app/gamesessionorchestrator.h
+    src/app/editactionswiring.cpp
+    src/app/editactionswiring.h
+    src/app/fileactionswiring.cpp
+    src/app/fileactionswiring.h
+    src/app/gameactionswiring.cpp
+    src/app/gameactionswiring.h
+    src/app/gamerecordloadservice.cpp
+    src/app/gamerecordloadservice.h
+    src/app/gamesession.cpp
+    src/app/gamesession.h
+    src/app/humanturnpolicy.cpp
+    src/app/humanturnpolicy.h
+    src/app/kifuloadcoordinatorfactory.cpp
+    src/app/kifuloadcoordinatorfactory.h
+    src/app/kifunavigationcoordinator.cpp
+    src/app/kifunavigationcoordinator.h
     src/app/mainwindow.cpp
     src/app/mainwindow.h
+    src/app/mainwindowactions.cpp
+    src/app/mainwindowactions.h
     src/app/mainwindowcomponents.h
     src/app/mainwindowcomposer.cpp
     src/app/mainwindowcomposer.h
@@ -225,35 +240,21 @@ set(SRC_APP
     src/app/mainwindowcomposer_finalize.cpp
     src/app/mainwindowcomposer_game.cpp
     src/app/mainwindowcomposer_wire.cpp
-    src/app/kifuloadcoordinatorfactory.cpp
-    src/app/kifuloadcoordinatorfactory.h
-    src/app/kifunavigationcoordinator.cpp
-    src/app/kifunavigationcoordinator.h
-    src/app/sessionlifecyclecoordinator.cpp
-    src/app/sessionlifecyclecoordinator.h
-    src/app/boardloadservice.cpp
-    src/app/boardloadservice.h
-    src/app/considerationpositionservice.cpp
-    src/app/considerationpositionservice.h
-    src/app/gamerecordloadservice.cpp
-    src/app/gamerecordloadservice.h
-    src/app/gamerecordupdateservice.cpp
-    src/app/gamerecordupdateservice.h
-    src/app/turnstatesyncservice.cpp
-    src/app/turnstatesyncservice.h
-    src/app/undoflowservice.cpp
-    src/app/undoflowservice.h
-    src/app/mainwindowactions.h
-    src/app/mainwindowactions.cpp
-    src/app/prestartcleanuphandler.cpp
-    src/app/prestartcleanuphandler.h
     src/app/mainwindowresetservice.cpp
     src/app/mainwindowresetservice.h
-    src/app/playmodepolicyservice.cpp
-    src/app/playmodepolicyservice.h
+    src/app/prestartcleanuphandler.cpp
+    src/app/prestartcleanuphandler.h
+    src/app/turnstatesyncservice.cpp
+    src/app/turnstatesyncservice.h
+    src/app/uiactionswiring.cpp
+    src/app/uiactionswiring.h
+    src/app/viewactionswiring.cpp
+    src/app/viewactionswiring.h
 )
 
 set(SRC_CORE
+    src/core/boardconstants.h
+    src/core/boardcoordinates.h
     src/core/enginemovevalidator.cpp
     src/core/enginemovevalidator.h
     src/core/fmvattacks.cpp
@@ -269,69 +270,50 @@ set(SRC_CORE
     src/core/fmvposition.cpp
     src/core/fmvposition.h
     src/core/fmvtypes.h
+    src/core/kifmovetext.h
     src/core/legalmovestatus.h
-    src/core/playmode.h
+    src/core/matchplayers.h
+    src/core/recordtime.h
+    src/core/sfendiffutils.h
+    src/core/sfenreplay.cpp
+    src/core/sfenreplay.h
     src/core/sfenutils.h
     src/core/shogiboard.cpp
     src/core/shogiboard.h
-    src/core/shogiboard_edit.cpp
-    src/core/shogiboard_sfen.cpp
     src/core/shogiclock.cpp
     src/core/shogiclock.h
-    src/core/timecontrol.h
     src/core/shogimove.cpp
-    src/core/recordtime.h
-    src/core/terminaltype.h
-    src/kifu/recordentry.h
     src/core/shogimove.h
-    src/core/usimove.h
-    src/core/boardcoordinates.h
     src/core/shoginotation.h
-    src/core/kifmovetext.h
     src/core/shogitypes.h
+    src/core/terminaltype.cpp
+    src/core/terminaltype.h
+    src/core/timecontrol.h
+    src/core/usimove.h
 )
 
 set(SRC_GAME
-    src/game/analysissessionhandler.cpp
-    src/game/analysissessionhandler.h
     src/game/consecutivegamescontroller.cpp
     src/game/consecutivegamescontroller.h
-    src/game/enginegameovernotifier.cpp
-    src/game/enginegameovernotifier.h
     src/game/enginelifecyclemanager.cpp
     src/game/enginelifecyclemanager.h
-    src/game/gameendhandler.cpp
-    src/game/gameendhandler_record.cpp
-    src/game/gameendhandler.h
-    src/game/gamestartorchestrator.cpp
-    src/game/matchsessionstate.h
-    src/game/gamestartorchestrator.h
-    src/game/matchtimekeeper.cpp
-    src/game/matchtimekeeper.h
-    src/game/matchundohandler.cpp
-    src/game/matchundohandler.h
     src/game/enginevsenginestrategy.cpp
     src/game/enginevsenginestrategy.h
     src/game/gamemodestrategy.h
     src/game/gamestartcoordinator.cpp
     src/game/gamestartcoordinator.h
-    src/game/gamestartcoordinator_dialogflow.cpp
     src/game/gamestartoptionsbuilder.cpp
     src/game/gamestartoptionsbuilder.h
-    src/game/startgamedatabridge.h
-    src/game/gamestatecontroller.cpp
-    src/game/gamestatecontroller.h
     src/game/humanvsenginestrategy.cpp
     src/game/humanvsenginestrategy.h
     src/game/humanvshumanstrategy.cpp
     src/game/humanvshumanstrategy.h
+    src/game/interruptedgamestate.h
     src/game/matchcoordinator.cpp
-    src/game/matchcoordinator_resume.cpp
     src/game/matchcoordinator.h
-    src/game/matchcoordinator_engine.cpp
-    src/game/matchcoordinator_time.cpp
-    src/game/matchturnhandler.cpp
-    src/game/matchturnhandler.h
+    src/game/matchrecordsink.h
+    src/game/matchsessionstate.h
+    src/game/matchtypes.h
     src/game/nyugyokujudgement.cpp
     src/game/nyugyokujudgement.h
     src/game/piecemoverules.cpp
@@ -340,9 +322,10 @@ set(SRC_GAME
     src/game/sennichitedetector.h
     src/game/shogigamecontroller.cpp
     src/game/shogigamecontroller.h
-    src/game/strategycontext.cpp
-    src/game/strategycontext.h
-    src/game/matchsearchsnapshot.h
+    src/game/startgamedatabridge.h
+    src/game/startoptions.h
+    src/game/timecontrolutil.cpp
+    src/game/timecontrolutil.h
     src/game/timecontrolvalidator.cpp
     src/game/timecontrolvalidator.h
     src/game/turnmanager.cpp
@@ -350,13 +333,16 @@ set(SRC_GAME
 )
 
 set(SRC_KIFU
+    src/kifu/considerationpositionresolver.cpp
+    src/kifu/considerationpositionresolver.h
+    src/kifu/formats/bodtextgenerator.cpp
+    src/kifu/formats/bodtextgenerator.h
     src/kifu/formats/csaexporter.cpp
     src/kifu/formats/csaexporter.h
     src/kifu/formats/csaformatter.cpp
     src/kifu/formats/csaformatter.h
     src/kifu/formats/csalexer.cpp
     src/kifu/formats/csalexer.h
-    src/kifu/formats/csalexer_position.cpp
     src/kifu/formats/csatosfenconverter.cpp
     src/kifu/formats/csatosfenconverter.h
     src/kifu/formats/jkfexporter.cpp
@@ -377,85 +363,31 @@ set(SRC_KIFU
     src/kifu/formats/ki2tosfenconverter.h
     src/kifu/formats/kifexporter.cpp
     src/kifu/formats/kifexporter.h
-    src/kifu/formats/kifuexportcommon.cpp
-    src/kifu/formats/kifuexportcommon.h
     src/kifu/formats/kiflexer.cpp
     src/kifu/formats/kiflexer.h
-    src/kifu/formats/kiflexer_bod.cpp
     src/kifu/formats/kiftosfenconverter.cpp
     src/kifu/formats/kiftosfenconverter.h
+    src/kifu/formats/kifuexportcommon.cpp
+    src/kifu/formats/kifuexportcommon.h
     src/kifu/formats/notationutils.cpp
     src/kifu/formats/notationutils.h
     src/kifu/formats/parsecommon.cpp
     src/kifu/formats/parsecommon.h
     src/kifu/formats/parsemoveformat.cpp
     src/kifu/formats/parsemoveformat.h
-    src/kifu/formats/bodtextgenerator.cpp
-    src/kifu/formats/bodtextgenerator.h
     src/kifu/formats/sfencsapositionconverter.cpp
     src/kifu/formats/sfencsapositionconverter.h
     src/kifu/formats/usenexporter.cpp
     src/kifu/formats/usenexporter.h
     src/kifu/formats/usentosfenconverter.cpp
     src/kifu/formats/usentosfenconverter.h
-    src/kifu/formats/usentosfenconverter_decode.cpp
     src/kifu/formats/usiexporter.cpp
     src/kifu/formats/usiexporter.h
     src/kifu/formats/usitosfenconverter.cpp
     src/kifu/formats/usitosfenconverter.h
-    src/kifu/gamerecordmodel.cpp
-    src/kifu/kifuexportmetadata.cpp
-    src/kifu/gamerecordmodel.h
     src/kifu/gameinfokeys.h
-    src/kifu/kifdisplayitem.h
-    src/kifu/kifparsetypes.h
-    src/kifu/kifreader.cpp
-    src/kifu/kifreader.h
-    src/kifu/kifubranchtree.cpp
-    src/kifu/kifubranchtree_edit.cpp
-    src/kifu/kifubranchtree_search.cpp
-    src/kifu/kifubranchtree.h
-    src/kifu/kifubranchtreebuilder.cpp
-    src/kifu/kifubranchtreebuilder.h
-    src/kifu/kifubranchnode.cpp
-    src/kifu/kifubranchnode.h
-    src/kifu/kifuclipboardservice.cpp
-    src/kifu/kifuclipboardservice.h
-    src/kifu/considerationpositionresolver.cpp
-    src/kifu/considerationpositionresolver.h
-    src/kifu/kifucontentbuilder.cpp
-    src/kifu/kifucontentbuilder.h
-    src/kifu/kifuexportclipboard.cpp
-    src/kifu/kifuexportclipboard.h
-    src/kifu/kifuexportcontroller.cpp
-    src/kifu/kifuexportcontroller.h
-    src/kifu/kifufilecontroller.cpp
-    src/kifu/kifufilecontroller.h
-    src/kifu/kifuapplylogger.cpp
-    src/kifu/kifuapplylogger.h
-    src/kifu/kifuapplyservice.cpp
-    src/kifu/kifuapplyservice_apply.cpp
-    src/kifu/kifuapplyservice.h
-    src/kifu/kifufilereader.cpp
-    src/kifu/kifufilereader.h
-    src/kifu/kifuioservice.cpp
-    src/kifu/kifuioservice.h
-    src/kifu/kifuloadparser.cpp
-    src/kifu/kifuloadparser.h
-    src/kifu/kifuloadcoordinator.cpp
-    src/kifu/kifuloadcoordinator.h
-    src/kifu/kifunavigationstate.cpp
-    src/kifu/kifunavigationstate.h
-    src/kifu/recordline.h
-    src/kifu/kifusavecoordinator.cpp
-    src/kifu/kifusavecoordinator.h
-    src/kifu/kifutypes.h
-    src/kifu/livegamesession.cpp
-    src/kifu/livegamesession.h
-    src/kifu/shiftjiscodec.cpp
-    src/kifu/shiftjiscodec.h
-    src/kifu/shogiinforecord.cpp
-    src/kifu/shogiinforecord.h
+    src/kifu/gamerecordmodel.cpp
+    src/kifu/gamerecordmodel.h
     src/kifu/josekibooksession.cpp
     src/kifu/josekibooksession.h
     src/kifu/josekiioresult.h
@@ -464,54 +396,72 @@ set(SRC_KIFU
     src/kifu/josekirepository.cpp
     src/kifu/josekirepository.h
     src/kifu/josekitypes.h
+    src/kifu/kifdisplayitem.h
+    src/kifu/kifparsetypes.h
+    src/kifu/kifreader.cpp
+    src/kifu/kifreader.h
+    src/kifu/kifubranchnode.cpp
+    src/kifu/kifubranchnode.h
+    src/kifu/kifubranchtree.cpp
+    src/kifu/kifubranchtree.h
+    src/kifu/kifubranchtreebuilder.cpp
+    src/kifu/kifubranchtreebuilder.h
+    src/kifu/kifuexportmetadata.cpp
+    src/kifu/kifuexportmetadata.h
+    src/kifu/kifufilereader.cpp
+    src/kifu/kifufilereader.h
+    src/kifu/kifuioservice.cpp
+    src/kifu/kifuioservice.h
+    src/kifu/kifuloadparser.cpp
+    src/kifu/kifuloadparser.h
+    src/kifu/kifunavigationstate.cpp
+    src/kifu/kifunavigationstate.h
+    src/kifu/kifusavefile.cpp
+    src/kifu/kifusavefile.h
+    src/kifu/livegamesession.cpp
+    src/kifu/livegamesession.h
+    src/kifu/recordentry.h
+    src/kifu/recordline.h
+    src/kifu/shiftjiscodec.cpp
+    src/kifu/shiftjiscodec.h
+    src/kifu/shogiinforecord.cpp
+    src/kifu/shogiinforecord.h
 )
 
 set(SRC_ANALYSIS
     resources/tsumeshogi.qrc
+    src/analysis/analysiscoordinator.cpp
+    src/analysis/analysiscoordinator.h
+    src/analysis/analysisjob.cpp
+    src/analysis/analysisjob.h
+    src/analysis/analysisoptions.h
+    src/analysis/analysissession.cpp
+    src/analysis/analysissession.h
+    src/analysis/sfenvalidationservice.cpp
+    src/analysis/sfenvalidationservice.h
     src/analysis/tsumecollection.cpp
     src/analysis/tsumecollection.h
     src/analysis/tsumecollectionwriter.cpp
     src/analysis/tsumecollectionwriter.h
-    src/analysis/tsumethreadbudget.h
     src/analysis/tsumegamesession.cpp
     src/analysis/tsumegamesession.h
     src/analysis/tsumepositionanalyzer.cpp
     src/analysis/tsumepositionanalyzer.h
-    src/analysis/tsumesolutionreplay.cpp
-    src/analysis/tsumesolutionreplay.h
-    src/analysis/analysisjob.cpp
-    src/analysis/analysisjob.h
-    src/analysis/analysiscoordinator.cpp
-    src/analysis/analysiscoordinator.h
-    src/analysis/analysisflowcontroller.cpp
-    src/analysis/analysisflowcontroller_dialog.cpp
-    src/analysis/analysisflowcontroller.h
-    src/analysis/analysisflowcontroller_position.cpp
-    src/analysis/analysisresulthandler.cpp
-    src/analysis/analysisresulthandler_dialog.cpp
-    src/analysis/analysisresulthandler.h
-    src/analysis/analysisresultspresenter.cpp
-    src/analysis/analysisresultspresenter.h
-    src/analysis/considerationflowcontroller.cpp
-    src/analysis/considerationflowcontroller.h
-    src/analysis/considerationmodeuicontroller.cpp
-    src/analysis/considerationmodeuicontroller.h
-    src/analysis/kifuanalysislistmodel.cpp
-    src/analysis/kifuanalysislistmodel.h
-    src/analysis/tsumeshogigenerator.cpp
-    src/analysis/tsumeshogigenerator_sfen.cpp
-    src/analysis/tsumeshogigenerator_verification.cpp
-    src/analysis/tsumeshogigenerator.h
-    src/analysis/tsumeshogiverifier.cpp
-    src/analysis/tsumeshogiverifier.h
-    src/analysis/tsumeshogipositiongenerator.cpp
-    src/analysis/tsumeshogipositiongenerator.h
+    src/analysis/tsumeprogressstore.cpp
+    src/analysis/tsumeprogressstore.h
     src/analysis/tsumeshogicandidatescreener.cpp
     src/analysis/tsumeshogicandidatescreener.h
     src/analysis/tsumeshogiexportheaderbuilder.cpp
     src/analysis/tsumeshogiexportheaderbuilder.h
-    src/analysis/tsumesearchflowcontroller.cpp
-    src/analysis/tsumesearchflowcontroller.h
+    src/analysis/tsumeshogigenerator.cpp
+    src/analysis/tsumeshogigenerator.h
+    src/analysis/tsumeshogipositiongenerator.cpp
+    src/analysis/tsumeshogipositiongenerator.h
+    src/analysis/tsumeshogiverifier.cpp
+    src/analysis/tsumeshogiverifier.h
+    src/analysis/tsumesolutionreplay.cpp
+    src/analysis/tsumesolutionreplay.h
+    src/analysis/tsumethreadbudget.h
 )
 
 set(SRC_ENGINE
@@ -519,13 +469,12 @@ set(SRC_ENGINE
     src/engine/engineoptiondescriptions.h
     src/engine/engineoptions.h
     src/engine/engineprocessmanager.cpp
-    src/engine/engineprocessmanager_lifecycle.cpp
     src/engine/engineprocessmanager.h
     src/engine/engineregistrationhandler.cpp
     src/engine/engineregistrationhandler.h
     src/engine/engineregistrationworker.cpp
     src/engine/engineregistrationworker.h
-    src/engine/enginesettingsconstants.h
+    src/engine/matchsearchsnapshot.h
     src/engine/pvnotationformatter.cpp
     src/engine/pvnotationformatter.h
     src/engine/shogienginethinkingmodel.cpp
@@ -536,53 +485,45 @@ set(SRC_ENGINE
     src/engine/tsumemateengine.cpp
     src/engine/tsumemateengine.h
     src/engine/usi.cpp
-    src/engine/usi_async.cpp
     src/engine/usi.h
-    src/engine/usi_communication.cpp
-    src/engine/usi_slots.cpp
     src/engine/usicommlogmodel.cpp
-    src/engine/usimatchhandler.cpp
-    src/engine/usimatchhandler.h
-    src/engine/usitimingparams.h
-    src/engine/usigotime.cpp
-    src/engine/usigotime.h
+    src/engine/usicommlogmodel.h
     src/engine/usienginesession.cpp
     src/engine/usienginesession.h
-    src/engine/usicommlogmodel.h
+    src/engine/usigotime.cpp
+    src/engine/usigotime.h
     src/engine/usiinfo.h
     src/engine/usiinfoparser.cpp
     src/engine/usiinfoparser.h
-    src/engine/usiprotocolhandler.cpp
-    src/engine/usiprotocolhandler.h
-    src/engine/usiprotocolhandler_ops.cpp
+    src/engine/usimatchhandler.cpp
+    src/engine/usimatchhandler.h
     src/engine/usioptionlineparser.cpp
     src/engine/usioptionlineparser.h
+    src/engine/usiprotocolhandler.cpp
+    src/engine/usiprotocolhandler.h
+    src/engine/usitimingparams.h
 )
 
 set(SRC_NETWORK
     src/network/csaclient.cpp
     src/network/csaclient.h
-    src/network/csaclient_parser.cpp
     src/network/csaclient_commands.cpp
+    src/network/csaclient_parser.cpp
     src/network/csaenginecontroller.cpp
     src/network/csaenginecontroller.h
     src/network/csagamecoordinator.cpp
+    src/network/csagamecoordinator.h
     src/network/csagamecoordinator_moves.cpp
     src/network/csagamecoordinator_setup.cpp
-    src/network/csagamecoordinator.h
     src/network/csagameprogress.cpp
     src/network/csagameprogress.h
     src/network/csamoveconverter.cpp
-    src/network/csamoveconverter_game.cpp
     src/network/csamoveconverter.h
 )
 
 set(SRC_NAVIGATION
     src/navigation/kifunavigationcontroller.cpp
     src/navigation/kifunavigationcontroller.h
-    src/navigation/kifunavigationcontroller_branch.cpp
-    src/navigation/recordnavigationhandler.cpp
-    src/navigation/recordnavigationhandler.h
 )
 
 set(SRC_BOARD
@@ -592,126 +533,123 @@ set(SRC_BOARD
     src/board/boardinteractioncontroller.h
     src/board/positioneditcontroller.cpp
     src/board/positioneditcontroller.h
-    src/board/sfenpositiontracer.cpp
-    src/board/sfenpositiontracer.h
 )
 
 set(SRC_UI
-    src/ui/controllers/candidatearrowcontroller.cpp
-    src/ui/controllers/candidatearrowcontroller.h
-    src/ui/controllers/branchtreeeditcontroller.cpp
-    src/ui/controllers/branchtreeeditcontroller.h
     src/ui/controllers/boardsetupcontroller.cpp
     src/ui/controllers/boardsetupcontroller.h
+    src/ui/controllers/branchtreeeditcontroller.cpp
+    src/ui/controllers/branchtreeeditcontroller.h
+    src/ui/controllers/candidatearrowcontroller.cpp
+    src/ui/controllers/candidatearrowcontroller.h
+    src/ui/controllers/considerationuicontroller.cpp
+    src/ui/controllers/considerationuicontroller.h
     src/ui/controllers/evaluationgraphcontroller.cpp
     src/ui/controllers/evaluationgraphcontroller.h
     src/ui/controllers/jishogiscoredialogcontroller.cpp
     src/ui/controllers/jishogiscoredialogcontroller.h
+    src/ui/controllers/josekiwindowcontroller.cpp
+    src/ui/controllers/josekiwindowcontroller.h
     src/ui/controllers/languagecontroller.cpp
     src/ui/controllers/languagecontroller.h
-    src/ui/controllers/settingsresetcontroller.cpp
-    src/ui/controllers/settingsresetcontroller.h
     src/ui/controllers/mainwindowappearancecontroller.cpp
     src/ui/controllers/mainwindowappearancecontroller.h
+    src/ui/controllers/menuwindowcontroller.cpp
+    src/ui/controllers/menuwindowcontroller.h
     src/ui/controllers/nyugyokudeclarationhandler.cpp
     src/ui/controllers/nyugyokudeclarationhandler.h
-    src/ui/controllers/playerinfocontroller.cpp
-    src/ui/controllers/playerinfocontroller.h
-    src/ui/controllers/pvboardcontroller.cpp
-    src/ui/controllers/pvboardcontroller.h
     src/ui/controllers/pvclickcontroller.cpp
     src/ui/controllers/pvclickcontroller.h
     src/ui/controllers/replaycontroller.cpp
     src/ui/controllers/replaycontroller.h
+    src/ui/controllers/settingsresetcontroller.cpp
+    src/ui/controllers/settingsresetcontroller.h
     src/ui/controllers/timecontrolcontroller.cpp
     src/ui/controllers/timecontrolcontroller.h
     src/ui/controllers/usicommandcontroller.cpp
     src/ui/controllers/usicommandcontroller.h
     src/ui/coordinators/aboutcoordinator.cpp
     src/ui/coordinators/aboutcoordinator.h
+    src/ui/coordinators/analysisflowcontroller.cpp
+    src/ui/coordinators/analysisflowcontroller.h
+    src/ui/coordinators/commentcoordinator.cpp
+    src/ui/coordinators/commentcoordinator.h
+    src/ui/coordinators/considerationflowcontroller.cpp
+    src/ui/coordinators/considerationflowcontroller.h
     src/ui/coordinators/dialogcoordinator.cpp
-    src/ui/coordinators/dialogcoordinator_analysis.cpp
     src/ui/coordinators/dialogcoordinator.h
-    src/ui/coordinators/dialogorchestrator.cpp
-    src/ui/coordinators/dialogorchestrator.h
+    src/ui/coordinators/dialoglauncher.cpp
+    src/ui/coordinators/dialoglauncher.h
     src/ui/coordinators/docklayoutmanager.cpp
     src/ui/coordinators/docklayoutmanager.h
     src/ui/coordinators/dockuicoordinator.cpp
     src/ui/coordinators/dockuicoordinator.h
+    src/ui/coordinators/kifuapplylogger.cpp
+    src/ui/coordinators/kifuapplylogger.h
+    src/ui/coordinators/kifuapplyservice.cpp
+    src/ui/coordinators/kifuapplyservice.h
+    src/ui/coordinators/kifuclipboardservice.cpp
+    src/ui/coordinators/kifuclipboardservice.h
     src/ui/coordinators/kifudisplaycoordinator.cpp
     src/ui/coordinators/kifudisplaycoordinator.h
-    src/ui/coordinators/kifudisplaycoordinator_live.cpp
-    src/ui/coordinators/kifudisplaycoordinator_nav.cpp
+    src/ui/coordinators/kifuexportclipboard.cpp
+    src/ui/coordinators/kifuexportclipboard.h
+    src/ui/coordinators/kifuexportcontroller.cpp
+    src/ui/coordinators/kifuexportcontroller.h
+    src/ui/coordinators/kifufilecontroller.cpp
+    src/ui/coordinators/kifufilecontroller.h
+    src/ui/coordinators/kifuloadcoordinator.cpp
+    src/ui/coordinators/kifuloadcoordinator.h
+    src/ui/coordinators/kifusavecoordinator.cpp
+    src/ui/coordinators/kifusavecoordinator.h
     src/ui/coordinators/kifuselectionsync.cpp
     src/ui/coordinators/kifuselectionsync.h
     src/ui/coordinators/positioneditcoordinator.cpp
     src/ui/coordinators/positioneditcoordinator.h
     src/ui/coordinators/promotionflow.cpp
     src/ui/coordinators/promotionflow.h
+    src/ui/coordinators/recordnavigationhandler.cpp
+    src/ui/coordinators/recordnavigationhandler.h
+    src/ui/coordinators/tsumesearchflowcontroller.cpp
+    src/ui/coordinators/tsumesearchflowcontroller.h
     src/ui/coordinators/uistatepolicymanager.cpp
     src/ui/coordinators/uistatepolicymanager.h
+    src/ui/presenters/analysisresulthandler.cpp
+    src/ui/presenters/analysisresulthandler.h
+    src/ui/presenters/analysisresultspresenter.cpp
+    src/ui/presenters/analysisresultspresenter.h
     src/ui/presenters/boardsyncpresenter.cpp
     src/ui/presenters/boardsyncpresenter.h
-    src/ui/presenters/engineanalysispresenter.cpp
-    src/ui/presenters/engineanalysispresenter.h
-    src/ui/presenters/evalgraphpresenter.cpp
-    src/ui/presenters/evalgraphpresenter.h
     src/ui/presenters/gamerecordpresenter.cpp
     src/ui/presenters/gamerecordpresenter.h
     src/ui/presenters/kifudisplaypresenter.cpp
-    src/ui/presenters/kifudisplaypresenter_verify.cpp
     src/ui/presenters/kifudisplaypresenter.h
+    src/ui/presenters/playerinfopresenter.cpp
+    src/ui/presenters/playerinfopresenter.h
     src/ui/presenters/timedisplaypresenter.cpp
     src/ui/presenters/timedisplaypresenter.h
     src/ui/wiring/analysistabwiring.cpp
     src/ui/wiring/analysistabwiring.h
-    src/ui/wiring/considerationwiring.cpp
-    src/ui/wiring/considerationwiring.h
-    src/ui/wiring/csagamewiring.cpp
-    src/ui/wiring/csagamewiring.h
-    src/ui/wiring/csagamewiring_options.cpp
     src/ui/wiring/branchnavigationwiring.cpp
     src/ui/wiring/branchnavigationwiring.h
+    src/ui/wiring/csagamewiring.cpp
+    src/ui/wiring/csagamewiring.h
     src/ui/wiring/dialogcoordinatorwiring.cpp
     src/ui/wiring/dialogcoordinatorwiring.h
-    src/ui/wiring/dialoglaunchwiring.cpp
-    src/ui/wiring/dialoglaunchwiring.h
-    src/ui/wiring/editactionswiring.cpp
-    src/ui/wiring/editactionswiring.h
-    src/ui/wiring/fileactionswiring.cpp
-    src/ui/wiring/fileactionswiring.h
-    src/ui/wiring/gameactionswiring.cpp
-    src/ui/wiring/gameactionswiring.h
-    src/ui/wiring/josekiwindowwiring.cpp
-    src/ui/wiring/josekiwindowwiring.h
-    src/ui/wiring/matchcoordinatorwiring.cpp
-    src/ui/wiring/matchcoordinatorwiring.h
-    src/ui/wiring/menuwindowwiring.cpp
-    src/ui/wiring/menuwindowwiring.h
-    src/ui/wiring/playerinfowiring.cpp
-    src/ui/wiring/playerinfowiring.h
     src/ui/wiring/recordpanewiring.cpp
     src/ui/wiring/recordpanewiring.h
-    src/ui/wiring/uiactionswiring.cpp
-    src/ui/wiring/uiactionswiring.h
-    src/ui/wiring/viewactionswiring.cpp
-    src/ui/wiring/viewactionswiring.h
 )
 
 set(SRC_VIEWS
-    src/views/shogiview.cpp
-    src/views/shogiview.h
-    src/views/shogiview_state.cpp
-    src/views/shogiview_draw.cpp
+    src/views/boardchromewidget.cpp
+    src/views/boardchromewidget.h
     src/views/boardsurfacepainter.cpp
     src/views/boardsurfacepainter.h
     src/views/piecepainter.cpp
     src/views/piecepainter.h
-    src/views/shogiview_events.cpp
-    src/views/shogiview_stand.cpp
-    src/views/shogiview_piecebox.cpp
-    src/views/boardchromewidget.cpp
-    src/views/boardchromewidget.h
+    src/views/shogiview.cpp
+    src/views/shogiview.h
+    src/views/shogiview_draw.cpp
     src/views/shogiviewhighlighting.cpp
     src/views/shogiviewhighlighting.h
     src/views/shogiviewinteraction.cpp
@@ -721,119 +659,104 @@ set(SRC_VIEWS
 )
 
 set(SRC_WIDGETS
-    src/widgets/boardviewerwidget.cpp
-    src/widgets/boardviewerwidget.h
-    src/widgets/tsumepositionpreview.cpp
-    src/widgets/tsumepositionpreview.h
     src/widgets/apptooltipfilter.cpp
     src/widgets/apptooltipfilter.h
+    src/widgets/boardviewerwidget.cpp
+    src/widgets/boardviewerwidget.h
+    src/widgets/branchtreelayout.cpp
+    src/widgets/branchtreelayout.h
     src/widgets/branchtreemanager.cpp
     src/widgets/branchtreemanager.h
     src/widgets/branchtreemanager_draw.cpp
-    src/widgets/branchtreemanager_input.cpp
-    src/widgets/branchtreemanager_layout.cpp
     src/widgets/collapsiblegroupbox.cpp
     src/widgets/collapsiblegroupbox.h
     src/widgets/commenteditorpanel.cpp
     src/widgets/commenteditorpanel.h
     src/widgets/considerationtabmanager.cpp
     src/widgets/considerationtabmanager.h
-    src/widgets/considerationtabmanager_ui.cpp
     src/widgets/countspinbox.cpp
     src/widgets/countspinbox.h
     src/widgets/csalogpanel.cpp
     src/widgets/csalogpanel.h
+    src/widgets/dialogfontscale.cpp
+    src/widgets/dialogfontscale.h
+    src/widgets/dialogutils.cpp
+    src/widgets/dialogutils.h
     src/widgets/elidelabel.cpp
     src/widgets/elidelabel.h
+    src/widgets/engineanalysispresenter.cpp
+    src/widgets/engineanalysispresenter.h
     src/widgets/engineanalysistab.cpp
     src/widgets/engineanalysistab.h
-    src/widgets/engineanalysistab_consideration.cpp
     src/widgets/engineinfowidget.cpp
     src/widgets/engineinfowidget.h
     src/widgets/evaluationchartconfigurator.cpp
     src/widgets/evaluationchartconfigurator.h
-    src/widgets/evaluationchartwidget.cpp
-    src/widgets/evaluationchartwidget.h
-    src/widgets/evaluationchartwidget_data.cpp
-    src/widgets/evaluationchartwidget_tooltip.cpp
     src/widgets/evaluationchartview.cpp
     src/widgets/evaluationchartview.h
+    src/widgets/evaluationchartwidget.cpp
+    src/widgets/evaluationchartwidget.h
     src/widgets/flowlayout.cpp
     src/widgets/flowlayout.h
+    src/widgets/fontsizehelper.cpp
+    src/widgets/fontsizehelper.h
     src/widgets/gameinfopanecontroller.cpp
-    src/widgets/gameinfopanecontroller_edit.cpp
-    src/widgets/gameinfopanecontroller_ui.cpp
     src/widgets/gameinfopanecontroller.h
     src/widgets/globaltooltip.cpp
     src/widgets/globaltooltip.h
-    src/widgets/kifuanalysisresultsdisplay.cpp
-    src/widgets/kifuanalysisresultsdisplay.h
-    src/widgets/kifubranchdisplay.cpp
-    src/widgets/kifubranchdisplay.h
-    src/widgets/kifudisplay.cpp
-    src/widgets/kifudisplay.h
+    src/widgets/incrementaltableview.cpp
+    src/widgets/incrementaltableview.h
+    src/widgets/itemtextcutter.cpp
+    src/widgets/itemtextcutter.h
+    src/widgets/itemtextdelegate.cpp
+    src/widgets/itemtextdelegate.h
+    src/widgets/itemtextpainter.cpp
+    src/widgets/itemtextpainter.h
+    src/widgets/kifumovedelegate.h
+    src/widgets/layoutboundarywidget.cpp
+    src/widgets/layoutboundarywidget.h
     src/widgets/longlongspinbox.cpp
     src/widgets/longlongspinbox.h
     src/widgets/menubuttonwidget.cpp
     src/widgets/menubuttonwidget.h
     src/widgets/numericrightaligncommadelegate.h
-    src/widgets/pvboardbuttondelegate.h
-    src/widgets/pvtextdelegate.h
-    src/widgets/itemtextcutter.cpp
-    src/widgets/itemtextcutter.h
-    src/widgets/itemtextpainter.cpp
-    src/widgets/itemtextpainter.h
-    src/widgets/itemtextdelegate.cpp
-    src/widgets/itemtextdelegate.h
-    src/widgets/incrementaltableview.cpp
-    src/widgets/incrementaltableview.h
-    src/widgets/tableheaderview.cpp
-    src/widgets/tableheaderview.h
-    src/widgets/layoutboundarywidget.cpp
-    src/widgets/layoutboundarywidget.h
     src/widgets/opaquebackground.cpp
     src/widgets/opaquebackground.h
-    src/widgets/kifumovedelegate.h
+    src/widgets/pvboardbuttondelegate.h
+    src/widgets/pvtextdelegate.h
     src/widgets/recordhighlightdelegate.cpp
     src/widgets/recordhighlightdelegate.h
     src/widgets/recordpane.cpp
-    src/widgets/recordpane_branch.cpp
     src/widgets/recordpane.h
     src/widgets/recordpaneappearancemanager.cpp
     src/widgets/recordpaneappearancemanager.h
+    src/widgets/tableheaderview.cpp
+    src/widgets/tableheaderview.h
+    src/widgets/tsumepositionpreview.cpp
+    src/widgets/tsumepositionpreview.h
     src/widgets/usilogpanel.cpp
     src/widgets/usilogpanel.h
 )
 
 set(SRC_DIALOGS
-    src/dialogs/tsumeplaydialog.cpp
-    src/dialogs/tsumeplaydialog_replay.cpp
-    src/dialogs/tsumeplaydialog.h
-    src/dialogs/tsumecollectiondialog.cpp
-    src/dialogs/tsumecollectiondialog_navigation.cpp
-    src/dialogs/tsumecollectiondialog_analysis.cpp
-    src/dialogs/tsumecollectiondialog.h
     src/dialogs/boardappearancepreview.cpp
     src/dialogs/boardappearancepreview.h
-    src/dialogs/boardcolordialog_catalog.cpp
     src/dialogs/boardcolordialog.cpp
-    src/dialogs/boardcolordialog_appearance.cpp
     src/dialogs/boardcolordialog.h
-    src/dialogs/piecesoundsettingsdialog.cpp
-    src/dialogs/piecesoundsettingsdialog.h
-    src/dialogs/fontsettingsdialog.cpp
-    src/dialogs/fontsettingsdialog.h
     src/dialogs/changeenginesettingsdialog.cpp
     src/dialogs/changeenginesettingsdialog.h
-    src/dialogs/enginesettingsoptionhandler.cpp
-    src/dialogs/enginesettingsoptionhandler.h
     src/dialogs/csagamedialog.cpp
-    src/dialogs/csagamedialog_settings.cpp
     src/dialogs/csagamedialog.h
     src/dialogs/csawaitingdialog.cpp
     src/dialogs/csawaitingdialog.h
     src/dialogs/engineregistrationdialog.cpp
     src/dialogs/engineregistrationdialog.h
+    src/dialogs/enginesettingsoptionhandler.cpp
+    src/dialogs/enginesettingsoptionhandler.h
+    src/dialogs/fontsettingsdialog.cpp
+    src/dialogs/fontsettingsdialog.h
+    src/dialogs/jishogiscoredialog.cpp
+    src/dialogs/jishogiscoredialog.h
     src/dialogs/josekimergedialog.cpp
     src/dialogs/josekimergedialog.h
     src/dialogs/josekimovedialog.cpp
@@ -849,24 +772,25 @@ set(SRC_DIALOGS
     src/dialogs/kifuanalysisdialog.h
     src/dialogs/kifupastedialog.cpp
     src/dialogs/kifupastedialog.h
-    src/dialogs/jishogiscoredialog.cpp
-    src/dialogs/jishogiscoredialog.h
     src/dialogs/menuwindow.cpp
     src/dialogs/menuwindow.h
+    src/dialogs/piecesoundsettingsdialog.cpp
+    src/dialogs/piecesoundsettingsdialog.h
     src/dialogs/promotedialog.cpp
     src/dialogs/promotedialog.h
+    src/dialogs/pvboardcontroller.cpp
+    src/dialogs/pvboardcontroller.h
     src/dialogs/pvboarddialog.cpp
     src/dialogs/pvboarddialog.h
     src/dialogs/sfencollectiondialog.cpp
-    src/dialogs/sfencollectiondialog_io.cpp
     src/dialogs/sfencollectiondialog.h
     src/dialogs/startgamedialog.cpp
     src/dialogs/startgamedialog.h
-    src/dialogs/startgamedialog_settings.cpp
-    src/dialogs/startgamedialog_time.cpp
+    src/dialogs/tsumecollectiondialog.cpp
+    src/dialogs/tsumecollectiondialog.h
+    src/dialogs/tsumeplaydialog.cpp
+    src/dialogs/tsumeplaydialog.h
     src/dialogs/tsumeshogigeneratordialog.cpp
-    src/dialogs/tsumeshogigeneratordialog_ui.cpp
-    src/dialogs/tsumeshogigeneratordialog_actions.cpp
     src/dialogs/tsumeshogigeneratordialog.h
     src/dialogs/tsumeshogikanjibuilder.cpp
     src/dialogs/tsumeshogikanjibuilder.h
@@ -877,30 +801,48 @@ set(SRC_DIALOGS
 )
 
 set(SRC_MODELS
-    src/models/abstractlistmodel.h
+    src/models/kifuanalysislistmodel.cpp
+    src/models/kifuanalysislistmodel.h
+    src/models/kifuanalysisresultsdisplay.cpp
+    src/models/kifuanalysisresultsdisplay.h
+    src/models/kifubranchdisplay.cpp
+    src/models/kifubranchdisplay.h
     src/models/kifubranchlistmodel.cpp
     src/models/kifubranchlistmodel.h
+    src/models/kifudisplay.cpp
+    src/models/kifudisplay.h
     src/models/kifurecordlistmodel.cpp
     src/models/kifurecordlistmodel.h
 )
 
 set(SRC_SERVICES
+    src/services/analysissettings.cpp
+    src/services/analysissettings.h
+    src/services/applicationtranslations.cpp
+    src/services/applicationtranslations.h
+    src/services/apppaths.h
+    src/services/appsettings.cpp
+    src/services/appsettings.h
     src/services/boardappearance.cpp
     src/services/boardappearance.h
     src/services/boardappearancecatalog.cpp
     src/services/boardappearancecatalog.h
     src/services/boardcolorpresets.cpp
     src/services/boardcolorpresets.h
-    src/common/appstate.h
-    src/common/appactivitystate.h
-    src/common/boardcolors.h
-    src/common/boardvisuals.h
     src/services/debugscreenshotwiring.cpp
     src/services/debugscreenshotwiring.h
-    src/services/playernameservice.cpp
-    src/services/playernameservice.h
-    src/services/screenshotservice.cpp
-    src/services/screenshotservice.h
+    src/services/docksettings.cpp
+    src/services/docksettings.h
+    src/services/enginedialogsettings.h
+    src/services/enginelistsettings.cpp
+    src/services/enginelistsettings.h
+    src/services/enginepondersettings.cpp
+    src/services/enginepondersettings.h
+    src/services/enginesettingsconstants.h
+    src/services/gamesettings.h
+    src/services/josekisettings.cpp
+    src/services/josekisettings.h
+    src/services/networksettings.h
     src/services/pieceimageprovider.cpp
     src/services/pieceimageprovider.h
     src/services/piecesoundplayer.cpp
@@ -908,24 +850,8 @@ set(SRC_SERVICES
     src/services/piecesoundprocessor.cpp
     src/services/piecesoundprocessor.h
     src/services/piecesoundtone.h
-    src/services/analysissettings.cpp
-    src/services/analysissettings.h
-    src/services/applicationtranslations.cpp
-    src/services/applicationtranslations.h
-    src/services/appsettings.cpp
-    src/services/appsettings.h
-    src/services/docksettings.cpp
-    src/services/docksettings.h
-    src/services/enginedialogsettings.h
-    src/services/enginepondersettings.cpp
-    src/services/enginepondersettings.h
-    src/services/enginelistsettings.cpp
-    src/services/enginelistsettings.h
-    src/services/gamesettings.h
-    src/services/josekisettings.cpp
-    src/services/josekisettings.h
-    src/services/networksettings.h
-    src/services/apppaths.h
+    src/services/screenshotservice.cpp
+    src/services/screenshotservice.h
     src/services/setting.h
     src/services/settingscommon.cpp
     src/services/settingscommon.h
@@ -933,42 +859,36 @@ set(SRC_SERVICES
     src/services/settingsservice.h
     src/services/tsumeshogisettings.cpp
     src/services/tsumeshogisettings.h
-    src/services/tsumeprogressstore.cpp
-    src/services/tsumeprogressstore.h
-    src/services/timecontrolutil.cpp
-    src/services/timecontrolutil.h
     src/services/uinotificationservice.cpp
     src/services/uinotificationservice.h
 )
 
 set(SRC_COMMON
-    src/common/kifupresentation.cpp
-    src/common/kifupresentation.h
+    src/common/abstractlistmodel.h
+    src/common/appactivitystate.h
     src/common/applicationfonts.cpp
     src/common/applicationfonts.h
     src/common/applicationrendering.cpp
     src/common/applicationrendering.h
     src/common/applicationstyle.cpp
     src/common/applicationstyle.h
-    src/common/tsumeevaluation.h
-    src/common/boardconstants.h
+    src/common/appstate.h
+    src/common/boardcolors.h
+    src/common/boardvisuals.h
     src/common/branchtreeitemroles.h
     src/common/buttonstyles.h
-    src/common/tablestyles.h
-    src/common/tablemodelutils.h
-    src/common/threadtypes.h
-    src/common/dialogutils.cpp
-    src/common/dialogutils.h
-    src/common/dialogfontscale.cpp
-    src/common/dialogfontscale.h
-    src/common/fontsizehelper.cpp
-    src/common/fontsizehelper.h
     src/common/errorbus.cpp
     src/common/errorbus.h
     src/common/jishogicalculator.cpp
     src/common/jishogicalculator.h
+    src/common/kifupresentation.cpp
+    src/common/kifupresentation.h
     src/common/logcategories.cpp
     src/common/logcategories.h
+    src/common/tablemodelutils.h
+    src/common/tablestyles.h
+    src/common/threadtypes.h
+    src/common/tsumeevaluation.h
     src/common/tsumepositionutil.cpp
     src/common/tsumepositionutil.h
 )
@@ -979,12 +899,12 @@ set(SRC_AUTOMATION
     src/automation/automationactionpolicy.h
     src/automation/automationcommands.h
     src/automation/automationcommands_app.cpp
+    src/automation/automationcommands_dock.cpp
     src/automation/automationcommands_kifu.cpp
+    src/automation/automationcommands_navigation.cpp
     src/automation/automationcommands_position.cpp
     src/automation/automationcommands_ui.cpp
     src/automation/automationcommands_widget.cpp
-    src/automation/automationcommands_dock.cpp
-    src/automation/automationcommands_navigation.cpp
     src/automation/automationcontext.h
     src/automation/automationdispatcher.cpp
     src/automation/automationdispatcher.h
@@ -1003,8 +923,6 @@ set(SRC_AUTOMATION
     src/automation/kifuconversionservice.h
     src/automation/matesearchrunner.cpp
     src/automation/matesearchrunner.h
-    src/automation/sfenvalidationservice.cpp
-    src/automation/sfenvalidationservice.h
     src/automation/tsumeverificationrunner.cpp
     src/automation/tsumeverificationrunner.h
 )

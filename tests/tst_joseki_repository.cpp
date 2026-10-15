@@ -5,7 +5,8 @@
 #include <QTemporaryDir>
 #include <QProcess>
 #include <QProcessEnvironment>
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "sfenutils.h"
 #ifdef Q_OS_UNIX
 #include <csignal>
 #include <sys/resource.h>
@@ -366,13 +367,12 @@ void TestJosekiRepository::normalizeSfen_alreadyNormalized()
 void TestJosekiRepository::usiMoveToJapanese_promotedPiecesUseRecordNames()
 {
     // 成香・成桂・成銀は棋譜欄と同じく2文字で書く
-    SfenPositionTracer tracer;
-    QVERIFY(tracer.setFromSfen(QStringLiteral("4k4/9/9/9/9/5+L3/9/9/4K4 b - 1")));
-    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("4f5e"), tracer), QStringLiteral("▲５五成香(46)"));
-    QVERIFY(tracer.setFromSfen(QStringLiteral("4k4/9/9/9/9/9/9/4S4/4K4 w s 1")));
-    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("S*5e"), tracer), QStringLiteral("△５五銀打"));
-    QVERIFY(tracer.setFromSfen(QStringLiteral("4k4/9/2S6/9/9/9/9/9/4K4 b - 1")));
-    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("7c6b+"), tracer), QStringLiteral("▲６二銀成(73)"));
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("4f5e"), QStringLiteral("4k4/9/9/9/9/5+L3/9/9/4K4 b - 1")),
+             QStringLiteral("▲５五成香(46)"));
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("S*5e"), QStringLiteral("4k4/9/9/9/9/9/9/4S4/4K4 w s 1")),
+             QStringLiteral("△５五銀打"));
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("7c6b+"), QStringLiteral("4k4/9/2S6/9/9/9/9/9/4K4 b - 1")),
+             QStringLiteral("▲６二銀成(73)"));
 }
 
 void TestJosekiRepository::hasDuplicateMove_true()
@@ -497,18 +497,18 @@ void TestJosekiRepository::mergeFailure_canRetryWithoutDoubleCounting()
 
 void TestJosekiRepository::japaneseMove_usesPositionTurn()
 {
-    SfenPositionTracer tracer;
-    QVERIFY(tracer.setFromSfen(QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")));
-    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("3c3d"), tracer), QStringLiteral("△３四歩(33)"));
-    QVERIFY(tracer.applyUsiMove(QStringLiteral("3c3d")));
-    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("7g7f"), tracer), QStringLiteral("▲７六歩(77)"));
+    const QString start = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("3c3d"), start), QStringLiteral("△３四歩(33)"));
+    const QString next = SfenReplay::positionAfter(start, QStringLiteral("3c3d"));
+    QVERIFY(!next.isEmpty());
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("7g7f"), next), QStringLiteral("▲７六歩(77)"));
 }
 
 void TestJosekiRepository::japaneseMove_noneReply()
 {
-    SfenPositionTracer tracer;
-    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("none"), tracer), QStringLiteral("なし"));
-    QVERIFY(JosekiPresenter::usiMoveToJapanese(QString(), tracer).isEmpty());
+    const QString hirate = SfenUtils::hirateSfen();
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("none"), hirate), QStringLiteral("なし"));
+    QVERIFY(JosekiPresenter::usiMoveToJapanese(QString(), hirate).isEmpty());
 }
 
 QTEST_MAIN(TestJosekiRepository)

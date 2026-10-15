@@ -2,6 +2,7 @@
 /// @brief USI の info（UsiInfo）の読み筋・探索中の手を漢字表記にするクラスの実装
 
 #include "pvnotationformatter.h"
+#include "terminaltype.h"
 #include "kifmovetext.h"
 #include "logcategories.h"
 
@@ -104,7 +105,8 @@ void PvNotationFormatter::formatPv(const QStringList& pv)
         // 棋譜と同じ日本語表記にし、表示時に KifuPresentation が表記・言語に合わせる
         if (token == QLatin1String("resign") || token == QLatin1String("win")) {
             m_pvKanjiStr += QChar(mover == Turn::Black ? u'▲' : u'△');
-            m_pvKanjiStr += (token == QLatin1String("resign") ? QStringLiteral("投了") : QStringLiteral("入玉勝ち"));
+            m_pvKanjiStr += TerminalTypes::label(token == QLatin1String("resign") ? TerminalType::Resign
+                                                                                  : TerminalType::DeclarationWin);
             return;
         }
 

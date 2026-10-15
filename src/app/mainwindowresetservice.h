@@ -2,16 +2,14 @@
 #define MAINWINDOWRESETSERVICE_H
 
 /// @file mainwindowresetservice.h
-/// @brief 状態とモデルの初期化をまとめたサービス（SessionLifecycleCoordinator・MainWindowActions が使う）
+/// @brief 状態とモデルの初期化をまとめたサービス（GameSession・MainWindowActions が使う）
 
 #include <QString>
-#include <QStringList>
 
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class EngineAnalysisTab;
 class KifuAnalysisListModel;
-class EvaluationChartWidget;
 class EvaluationGraphController;
 class CommentCoordinator;
 
@@ -28,8 +26,8 @@ class LiveGameSession;
 class ShogiGameController;
 class ShogiView;
 class UiStatePolicyManager;
-class JosekiWindowWiring;
-class PlayerInfoWiring;
+class JosekiWindowController;
+class PlayerInfoPresenter;
 struct AppState;
 
 /**
@@ -48,7 +46,6 @@ public:
         ShogiEngineThinkingModel* consideration = nullptr;
         EngineAnalysisTab* analysisTab = nullptr;
         KifuAnalysisListModel* analysisModel = nullptr;
-        EvaluationChartWidget* evalChart = nullptr;
         EvaluationGraphController* evalGraphController = nullptr;
         CommentCoordinator* commentCoordinator = nullptr;   ///< コメント欄を空にする
     };
@@ -60,7 +57,6 @@ public:
         GameRecordModel* gameRecord = nullptr;
         EvaluationGraphController* evalGraphController = nullptr;
         TimeControlController* timeController = nullptr;
-        QStringList* sfenRecord = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
         KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
         KifuBranchTree* branchTree = nullptr;
@@ -71,8 +67,8 @@ public:
         ShogiGameController* gameController = nullptr;
         ShogiView* shogiView = nullptr;
         UiStatePolicyManager* uiStatePolicy = nullptr;
-        JosekiWindowWiring* josekiWiring = nullptr;
-        PlayerInfoWiring* playerInfoWiring = nullptr;  ///< 対局者名ラベルを初期化した対局情報に合わせる
+        JosekiWindowController* josekiController = nullptr;
+        PlayerInfoPresenter* playerInfo = nullptr;  ///< 対局者名ラベルを初期化した対局情報に合わせる
     };
 
     void clearGameStateFields(AppState& state) const;
@@ -83,7 +79,7 @@ public:
 
 private:
     void clearPresentationState(const ModelResetDeps& deps) const;
-    void clearGameDataModels(const ModelResetDeps& deps, const QString& hirateStartSfen) const;
+    void clearGameDataModels(const ModelResetDeps& deps) const;
     void resetBranchTreeForNewState(const ModelResetDeps& deps, const QString& hirateStartSfen) const;
 };
 

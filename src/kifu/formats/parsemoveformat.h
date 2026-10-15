@@ -10,12 +10,14 @@
 #include <QStringList>
 #include <QStringView>
 
+#include "terminaltype.h"
+
 struct KifDisplayItem;
 
 namespace KifuParseCommon {
 
 // 任意の開始手番と、分岐内の実手数から終局側を決める。
-KifDisplayItem createUsiTerminalDisplayItem(int ply, const QString& term,
+KifDisplayItem createUsiTerminalDisplayItem(int ply, TerminalType terminal,
                                            const QString& baseSfen, qsizetype moveCount);
 
 } // namespace KifuParseCommon

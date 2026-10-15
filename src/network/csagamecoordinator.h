@@ -17,11 +17,11 @@
 #include "csaenginecontroller.h"
 #include "csagameprogress.h"
 #include "recordentry.h"
+#include "recordline.h"
 #include "shogimove.h"
 #include "usimove.h"
 
 class ShogiGameController;
-class ShogiView;
 class ShogiClock;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
@@ -31,7 +31,7 @@ class ShogiEngineThinkingModel;
  *
  * CSAプロトコルを使用した通信対局の進行を管理するクラス。
  * CsaClientを通じてサーバーと通信し、GUI側の
- * ShogiGameController、ShogiView、ShogiClockなどと連携して
+ * ShogiGameController（盤と手番）、ShogiClock（時計）と連携して
  * 対局を進行させる。
  *
  * 対応する対局形態:
@@ -58,7 +58,10 @@ class CsaGameCoordinator : public QObject
 
 public:
     /**
-     * @brief 対局状態
+     * @brief 通信対局の進み具合（司令塔から見た状態）
+     *
+     * 接続の状態（CsaClient::ConnectionState）とは別に持つ。接続が切れても、終局後は再接続の判断のために
+     * GameOver のまま、ログイン失敗・不正な局面・対局中でない切断は Error として残す。
      */
     enum class GameState {
         Idle,               ///< 待機中
@@ -85,10 +88,7 @@ public:
      */
     struct Dependencies {
         ShogiGameController* gameController = nullptr;
-        ShogiView* view = nullptr;
         ShogiClock* clock = nullptr;
-        QStringList* sfenRecord = nullptr;
-        QList<ShogiMove>* gameMoves = nullptr;
         UsiCommLogModel* usiCommLog = nullptr;
         ShogiEngineThinkingModel* engineThinking = nullptr;
     };
@@ -146,7 +146,7 @@ public:
     /// 受信した対局条件（Game_Summary）。持ち時間は CsaClient::GameSummary の各関数で単位換算する
     const CsaClient::GameSummary& gameSummary() const { return m_progress.summary; }
     /// 対局の開始局面（SFEN）
-    QString startSfen() const { return m_progress.startSfen; }
+    QString startSfen() const { return m_progress.record.startSfen; }
     void requestChudan();
     void declareWin();
     /// エンジンが自分の手番で思考中なら、すぐ指させる
@@ -154,7 +154,8 @@ public:
 
     void sendRawCommand(const QString& command);
     QString username() const { return m_options.username; }
-    const QStringList& usiMoves() const { return m_progress.usiMoves; }
+    /// この対局の手順（開始局面と指した手）
+    const RecordLine& record() const { return m_progress.record; }
 
     /// この接続でまだ対局を続けるか（対局数の上限に達していない）
     bool moreGamesWanted() const;
@@ -190,12 +191,10 @@ signals:
                      const QList<RecordEntry>& initialRecords);
     /// 対局が終わった。終局行は直前の recordEntryReady で通知済み
     void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
-    /// 棋譜行が確定した（対局中の着手ごと・終局時に1回ずつ）。局面列（sfenRecord）は更新済み
+    /// 棋譜行が確定した（対局中の着手ごと・終局時に1回ずつ）。手順（record()）は更新済み
     void recordEntryReady(const RecordEntry& entry);
     void turnChanged(bool isMyTurn);
     void moveHighlightRequested(const QPoint& from, const QPoint& to);
-    /// サーバーが確認した手の盤面・履歴・棋譜・時計を確定した
-    void moveAppliedToBoard();
     void logMessage(const QString& message, bool isError = false);
     void csaCommLogAppended(const QString& line);
     void engineScoreUpdated(int scoreCp, int ply, const QString& mate);
@@ -260,17 +259,15 @@ private:
     /// 解釈できなかった指し手の裁定待ちを取り消す（終局・切断時）
     void clearPendingVerdict();
     /// 着手を記録して通知する（手数・手番・ハイライト・棋譜行）
-    void finishMove(const QString& csaMove, bool isPromotion,
+    void finishMove(const QString& csaMove, const RecordEntry& played, bool isPromotion,
                     int consumedTimeMs, const QPoint& from, const QPoint& to, bool nowMyTurn);
     /// 同じ確定経路で人間・エンジン・相手の着手を記録する。
     bool applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn);
-    void fillRecordPosition(RecordEntry& entry) const;
 
     CsaClient* m_client;
     CsaEngineController* m_engineController = nullptr;
 
     QPointer<ShogiGameController> m_gameController;
-    QPointer<ShogiView> m_view;
     QPointer<ShogiClock> m_clock;
 
     // エンジン初期化用（CsaEngineControllerに渡す）
@@ -288,11 +285,7 @@ private:
     StartOptions m_options;
 
     CsaGameProgress m_progress;          ///< 1局ぶんの進行（対局条件の受信で作り直す）
-    bool m_isMyTurn = false;
-    QList<RecordEntry> m_initialRecords; ///< 再開局面の既存手順（gameStarted で渡す）
 
-    QStringList* m_sfenHistory = nullptr;
-    QList<ShogiMove>* m_gameMoves = nullptr;
 
     QTimer* m_verdictTimer;              ///< 裁定待ちのタイムアウト
     QString m_pendingFailureText;        ///< 裁定が届かなかったときの終局理由（空なら待ちなし）

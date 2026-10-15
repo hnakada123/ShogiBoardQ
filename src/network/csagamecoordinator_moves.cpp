@@ -112,13 +112,8 @@ void CsaGameCoordinator::syncClockAfterMove(bool startMyTurnClock)
 // 着手の記録
 // ============================================================
 
-void CsaGameCoordinator::fillRecordPosition(RecordEntry& entry) const
-{
-    if (m_sfenHistory && !m_sfenHistory->isEmpty()) entry.sfen = m_sfenHistory->last();
-    if (m_gameMoves && !m_gameMoves->isEmpty()) entry.move = m_gameMoves->last();
-}
 
-void CsaGameCoordinator::finishMove(const QString& csaMove, bool isPromotion,
+void CsaGameCoordinator::finishMove(const QString& csaMove, const RecordEntry& played, bool isPromotion,
                                     int consumedTimeMs, const QPoint& from, const QPoint& to, bool nowMyTurn)
 {
     CsaGameProgress& p = m_progress;
@@ -126,19 +121,17 @@ void CsaGameCoordinator::finishMove(const QString& csaMove, bool isPromotion,
     p.recordMoveTime(isBlackMove, consumedTimeMs);
     syncClockAfterMove(nowMyTurn);
 
-    ++p.moveCount;
-    m_isMyTurn = nowMyTurn;
 
-    const QString prettyMove =
-        CsaMoveConverter::csaToPretty(csaMove, isPromotion, p.prevToFile, p.prevToRank, p.moveCount - 1);
-    p.prevToFile = to.x();
-    p.prevToRank = to.y();
-
+    const QString prettyMove = CsaMoveConverter::csaToPretty(csaMove, isPromotion, p.previousTo());
     RecordEntry entry = p.moveRecord(isBlackMove, prettyMove, consumedTimeMs);
-    fillRecordPosition(entry);
+    entry.move = played.move;
+    entry.sfen = played.sfen;
+    p.record.entries.append(entry);
     emit recordEntryReady(entry);
     emit turnChanged(nowMyTurn);
     emit moveHighlightRequested(from, to);
+    // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音・定跡ウィンドウ。通知は盤面の更新の後）
+    m_gameController->notifyMoveCommitted(isBlackMove ? Turn::Black : Turn::White, p.moveCount());
 }
 
 // ============================================================
@@ -158,14 +151,13 @@ bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTim
     const QSignalBlocker clockNotifications(m_clock);
     const auto update = m_gameController->positionUpdate();
     const bool isPromotion = CsaMoveConverter::isPromotionMove(move, m_gameController->board());
-    if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, m_progress.usiMoves, m_sfenHistory,
-                                           m_progress.moveCount, m_gameMoves)) {
+    const std::optional<RecordEntry> played = CsaMoveConverter::applyMoveToBoard(move, m_gameController);
+    if (!played) {
         deferVerdict(tr("指し手の適用に失敗しました: %1").arg(move),
                      tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
         return false;
     }
-    finishMove(move, isPromotion, consumedTimeMs, from, to, nowMyTurn);
-    emit moveAppliedToBoard();
+    finishMove(move, *played, isPromotion, consumedTimeMs, from, to, nowMyTurn);
     return true;
 }
 
@@ -193,10 +185,7 @@ void CsaGameCoordinator::startEngineThinking()
     }
 
     CsaEngineController::ThinkingParams params;
-    params.positionCmd = m_progress.positionCommand;
-    if (!m_progress.usiMoves.isEmpty()) {
-        params.positionCmd += QStringLiteral(" moves ") + m_progress.usiMoves.join(QLatin1Char(' '));
-    }
+    params.positionCmd = m_progress.positionCommand();
     params.timing = m_progress.engineTiming(m_thinkingMarginMs);
 
     emit logMessage(tr("エンジンが思考中..."), false);
@@ -240,6 +229,6 @@ void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::Thi
 
     if (m_client->sendMove(csaMove)) {
         emit turnChanged(false);
-        emit engineScoreUpdated(result.scoreCp, m_progress.moveCount + 1, result.scoreMate);
+        emit engineScoreUpdated(result.scoreCp, m_progress.moveCount() + 1, result.scoreMate);
     }
 }

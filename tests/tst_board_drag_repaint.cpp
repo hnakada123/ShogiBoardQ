@@ -16,7 +16,6 @@
 #include "boardinteractioncontroller.h"
 #include "gamesettings.h"
 #include "pieceimageprovider.h"
-#include "playmode.h"
 #include "pvboarddialog.h"
 #include "boardviewerwidget.h"
 #include "sfencollectiondialog.h"
@@ -160,16 +159,15 @@ class TestBoardDragRepaint : public QObject
         QString start = validSfen();
         gc.newGame(start);
         QStringList history{validSfen()};
-        QList<ShogiMove> moves;
-        int ply = 41;
         const QList<QPair<QPoint, QPoint>> game = {
             {QPoint(10, 6), QPoint(5, 5)}, {QPoint(8, 5), QPoint(8, 6)},
             {QPoint(8, 7), QPoint(8, 6)}, {QPoint(11, 9), QPoint(8, 5)},
         };
         for (const auto& [from, to] : game) {
             QPoint f = from, t = to;
-            QString record;
-            if (!gc.validateAndMove(f, t, record, ply++, &history, moves)) return {};
+            const std::optional<RecordEntry> played = gc.validateAndMove(f, t);
+            if (!played) return {};
+            history.append(played->sfen);
         }
         return history;
     }
@@ -474,9 +472,6 @@ private slots:
         QCoreApplication::processEvents();
 
         // 対局の着手: 角打ち・歩の突き・歩で取る・歩打ち
-        QStringList history{sfen()};
-        QList<ShogiMove> moves;
-        int ply = 41;
         const QList<QPair<QPoint, QPoint>> game = {
             {QPoint(10, 6), QPoint(5, 5)}, {QPoint(8, 5), QPoint(8, 6)},
             {QPoint(8, 7), QPoint(8, 6)}, {QPoint(11, 9), QPoint(8, 5)},
@@ -486,9 +481,8 @@ private slots:
             QCoreApplication::processEvents();
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
-            QString record;
-            const bool ok = ui.gc.validateAndMove(f, t, record, ply++, &history, moves);
-            QVERIFY2(ok, qPrintable(record));
+            const bool ok = ui.gc.validateAndMove(f, t).has_value();
+            QVERIFY(ok);
             ui.controller->onMoveApplied(f, t, ok);
             QCoreApplication::processEvents();
             QCOMPARE(stalePixels(ui), 0);
@@ -703,8 +697,6 @@ private slots:
         QVERIFY(sameAsNewBoard(ui.view));
 
         // 着手（角打ち・歩の突き・歩で取る・歩打ち）と、時計・手番・直前の指し手の表示の更新
-        QStringList history{sfen()};
-        QList<ShogiMove> moves;
         int ply = 41;
         const QList<QPair<QPoint, QPoint>> game = {
             {QPoint(10, 6), QPoint(5, 5)}, {QPoint(8, 5), QPoint(8, 6)},
@@ -715,9 +707,9 @@ private slots:
             settle();
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
-            QString record;
-            const bool ok = ui.gc.validateAndMove(f, t, record, ply++, &history, moves);
-            QVERIFY2(ok, qPrintable(record));
+            const bool ok = ui.gc.validateAndMove(f, t).has_value();
+            QVERIFY(ok);
+            ++ply;
             ui.controller->onMoveApplied(f, t, ok);
             ui.controller->showMoveHighlights(f, t);
             ui.view.setActiveSide(ply % 2 == 1);

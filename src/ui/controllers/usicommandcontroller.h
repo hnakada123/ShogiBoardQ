@@ -9,7 +9,7 @@
 #include <QString>
 
 
-class MatchCoordinator;
+class EngineLifecycleManager;
 class EngineAnalysisTab;
 
 /**
@@ -24,12 +24,8 @@ class UsiCommandController : public QObject
 public:
     explicit UsiCommandController(QObject* parent = nullptr);
 
-    /**
-     * @brief 送信先のエンジンを持つ司令塔の取得方法を設定する
-     *
-     * 司令塔は作り直されることがあるので、ポインタを控えずに送信のたびに取得する。
-     */
-    void setMatchCoordinator(MatchCoordinator* match) { m_match = match; }
+    /// 送信先のエンジンの枠（E1・E2。対局・検討で共有）
+    void setEngines(EngineLifecycleManager* engines) { m_engines = engines; }
     void setAnalysisTab(EngineAnalysisTab* tab);
 
 public slots:
@@ -43,7 +39,7 @@ public slots:
 private:
     void appendStatus(const QString& text);
 
-    MatchCoordinator* m_match = nullptr;
+    EngineLifecycleManager* m_engines = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
 };
 

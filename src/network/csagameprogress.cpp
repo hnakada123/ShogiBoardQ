@@ -7,7 +7,7 @@ CsaGameProgress CsaGameProgress::forSummary(const CsaClient::GameSummary& summar
 {
     CsaGameProgress progress;
     progress.summary = summary;
-    progress.isBlackSide = summary.isBlackTurn();
+    progress.isBlackSide = summary.isBlackSide();
     return progress;
 }
 
@@ -29,8 +29,7 @@ void CsaGameProgress::startClockFromSummary()
         remaining = qMax(0, remaining - consumedMs);
     }
 
-    const bool blackToMove = (s.toMove == QStringLiteral("+"));
-    if (blackToMove) remainingBlack += s.incrementMs(true);
+    if (s.toMove == Turn::Black) remainingBlack += s.incrementMs(true);
     else remainingWhite += s.incrementMs(false);
 
     blackTotalMs = consumedBlack;

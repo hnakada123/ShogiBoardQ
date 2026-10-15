@@ -253,7 +253,7 @@ private slots:
     void noMateIsNotCheckmate()
     {
         QString terminal;
-        QVERIFY(KifuParseCommon::isTerminalWordContains(QStringLiteral("▲不詰"), &terminal));
+        QCOMPARE(TerminalTypes::findWord(u"▲不詰", &terminal), TerminalType::NoCheckmate);
         QCOMPARE(terminal, QStringLiteral("不詰"));
     }
 
@@ -454,7 +454,8 @@ private slots:
         const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Kif);
         QVERIFY2(reread.ok, qPrintable(reread.error));
         QCOMPARE(reread.moves.size(), 3);
-        QVERIFY2(reread.moves.last().prettyMove.contains(terminal), qPrintable(reread.moves.last().prettyMove));
+        // 終局の種類が保たれる（棋譜欄の表記は終局語の表の語になる）
+        QCOMPARE(TerminalTypes::findWord(reread.moves.last().prettyMove), TerminalTypes::fromWord(terminal));
         QVERIFY(reread.lines.join(QLatin1Char('\n')).contains(terminal));
     }
 

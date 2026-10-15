@@ -1,7 +1,8 @@
 #include <QtTest>
 #include <QTranslator>
 #include "kifupresentation.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "sfenutils.h"
 
 using namespace KifuPresentation;
 
@@ -32,14 +33,14 @@ private slots:
     {
         const Options compact{Notation::Western, false};
         const Options full{Notation::Western, true};
-        SfenPositionTracer board;
-        QCOMPARE(move(board.toSfenString(), "7g7f", compact), QStringLiteral("▲P-7f"));
-        QCOMPARE(move(board.toSfenString(), "7g7f", full), QStringLiteral("▲P7g-7f"));
-        QVERIFY(board.applyUsiMove("7g7f"));
-        QCOMPARE(move(board.toSfenString(), "3c3d", compact), QStringLiteral("△P-3d"));
-        QVERIFY(board.applyUsiMove("3c3d"));
-        QCOMPARE(move(board.toSfenString(), "8h2b+", compact), QStringLiteral("▲Bx2b+"));
-        QCOMPARE(move(board.toSfenString(), "8h2b", compact), QStringLiteral("▲Bx2b="));
+        QString sfen = SfenUtils::hirateSfen();
+        QCOMPARE(move(sfen, "7g7f", compact), QStringLiteral("▲P-7f"));
+        QCOMPARE(move(sfen, "7g7f", full), QStringLiteral("▲P7g-7f"));
+        sfen = SfenReplay::positionAfter(sfen, "7g7f");
+        QCOMPARE(move(sfen, "3c3d", compact), QStringLiteral("△P-3d"));
+        sfen = SfenReplay::positionAfter(sfen, "3c3d");
+        QCOMPARE(move(sfen, "8h2b+", compact), QStringLiteral("▲Bx2b+"));
+        QCOMPARE(move(sfen, "8h2b", compact), QStringLiteral("▲Bx2b="));
         const QString promoted = "4k4/9/9/4+B4/9/9/9/9/4K4 b P 1";
         QCOMPARE(move(promoted, "5d4d", compact), QStringLiteral("▲+B-4d"));
         QCOMPARE(move(promoted, "P*7f", compact), QStringLiteral("▲P*7f"));
@@ -50,16 +51,16 @@ private slots:
     void handicapPvAndCanonicalPreservation()
     {
         configure("en", "auto", false);
-        SfenPositionTracer board;
-        QString whiteStart = board.toSfenString();
+        const QString hirate = SfenUtils::hirateSfen();
+        QString whiteStart = hirate;
         whiteStart.replace(" b ", " w ");
         QCOMPARE(pv(whiteStart, "3c3d 7g7f", "△３四歩(33)▲７六歩(77)"), QStringLiteral("△P-3d ▲P-7f"));
-        QCOMPARE(label("   1 ▲７六歩(77)+", board.toSfenString(), "7g7f"), QStringLiteral("   1 ▲P-7f [+]"));
-        const auto moves = SfenPositionTracer::buildGameMoves(board.toSfenString(), {"7g7f", "3c3d", "8h2b+"});
+        QCOMPARE(label("   1 ▲７六歩(77)+", hirate, "7g7f"), QStringLiteral("   1 ▲P-7f [+]"));
+        const auto moves = SfenReplay::buildGameMoves(hirate, {"7g7f", "3c3d", "8h2b+"});
         QCOMPARE(usiMove(moves.at(2)), QStringLiteral("8h2b+"));
         configure("zh_CN", "auto", false);
         const QString canonical = QStringLiteral("▲同　飛成(28)");
-        QCOMPARE(label(canonical, board.toSfenString(), "2h2b+"), canonical);
+        QCOMPARE(label(canonical, hirate, "2h2b+"), canonical);
     }
 
     void metadataPreservesUserContent()

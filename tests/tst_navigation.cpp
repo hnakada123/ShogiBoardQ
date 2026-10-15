@@ -108,7 +108,7 @@ private slots:
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
-        const ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
+        const ShogiMove move(UsiMove::fromString(u"7g7f"), Piece::BlackPawn);
         const QString after = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2");
         tree.addMove(tree.root(), move, QStringLiteral("７六歩"), after);
         KifuNavigationState state;
@@ -119,11 +119,13 @@ private slots:
         controller.goToPly(1);
         QCOMPARE(handled.count(), 1);
         QCOMPARE(handled.last().at(1).toString(), after);
-        QCOMPARE(handled.last().at(4).toString(), QStringLiteral("7g7f"));
+        QCOMPARE(handled.last().at(2).value<BoardSquare>(), (BoardSquare{7, 6}));
+        QCOMPARE(handled.last().at(3).toString(), QStringLiteral("7g7f"));
         controller.goToFirst();
         QCOMPARE(handled.count(), 2);
         QCOMPARE(handled.last().at(1).toString(), kHirateSfen);
-        QVERIFY(handled.last().at(4).toString().isEmpty());
+        QVERIFY(!handled.last().at(2).value<BoardSquare>().isValid());
+        QVERIFY(handled.last().at(3).toString().isEmpty());
         controller.goToLast();
         QCOMPARE(handled.count(), 3);
         QCOMPARE(handled.last().at(1).toString(), after);

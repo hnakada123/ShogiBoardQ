@@ -15,7 +15,6 @@
 #include "kifuexportmetadata.h"
 #include "kifparsetypes.h"
 #include "kifubranchtree.h"
-#include "playmode.h"
 
 class KifuNavigationState;
 class KifuBranchNode;

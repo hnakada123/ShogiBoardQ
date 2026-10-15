@@ -240,17 +240,9 @@ static void handleCsaResultCode(const QString& token, CsaParseState& st)
 {
     ensureOpeningItemAdded(st);
 
-    const QString sideMark = (st.turn == Turn::Black)
-        ? QStringLiteral("▲") : QStringLiteral("△");
-    QString label = CsaLexer::csaResultToLabel(token);
-    if (label.isEmpty()) label = token;
-    if ((token == QLatin1String("%+ILLEGAL_ACTION") && st.turn == Turn::White)
-        || (token == QLatin1String("%-ILLEGAL_ACTION") && st.turn == Turn::Black)) {
-        label = QStringLiteral("反則勝ち");
-    }
-
-    st.line.disp.append(
-        KifuParseCommon::createMoveDisplayItem(st.moveCount + 1, sideMark + label));
+    TerminalType terminal = KifuParseCommon::csaSpecialToTerminal(token, st.turn);
+    if (terminal == TerminalType::None) terminal = TerminalType::Error;
+    st.line.disp.append(KifuParseCommon::createTerminalDisplayItem(st.moveCount + 1, terminal, st.turn));
 
     st.lastDispIsResult = true;
     st.lastResultDispIndex = static_cast<int>(st.line.disp.size() - 1);

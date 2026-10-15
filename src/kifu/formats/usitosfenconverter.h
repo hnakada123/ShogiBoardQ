@@ -81,8 +81,8 @@ public:
     // キー→値 へ高速アクセスしたい場合のマップ版
     static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
 
-    // 終局理由コードから日本語表記に変換
-    static QString terminalCodeToJapanese(const QString& code);
+    // 終局理由コードから終局の種類にする（不明なコードは Error）
+    static TerminalType terminalFromCode(const QString& code);
 
 private:
     // ---- USI ファイル読み込み ----

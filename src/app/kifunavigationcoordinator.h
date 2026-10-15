@@ -6,14 +6,17 @@
 
 #include <QObject>
 #include <QString>
+
+#include "usimove.h"
+
+struct AppState;
 class ShogiView;
 class KifuNavigationState;
 class KifuNavigationController;
-class MatchCoordinator;
+class AnalysisSession;
 class EngineAnalysisTab;
 class UiStatePolicyManager;
-class JosekiWindowWiring;
-enum class PlayMode;
+class JosekiWindowController;
 
 /**
  * @brief 棋譜ナビゲーション同期コーディネータ
@@ -32,17 +35,16 @@ public:
         KifuNavigationController* navController = nullptr;
         KifuNavigationState* navState = nullptr;               ///< ナビゲーション状態（非所有）
 
-        // --- External state pointers ---
-        QString* currentSfenStr = nullptr;                     ///< 現在局面SFEN文字列（外部所有）
-        const PlayMode* playMode = nullptr;                    ///< 対局モード（外部所有）
+        // --- 共有状態 ---
+        AppState* state = nullptr;                             ///< 表示中の局面を書く（非所有）
 
         // --- Coordinators ---
-        MatchCoordinator* match = nullptr;                     ///< 対局調整（非所有）
+        AnalysisSession* analysis = nullptr;                   ///< 検討のセッション（非所有）
         EngineAnalysisTab* analysisTab = nullptr;              ///< エンジン解析タブ（非所有）
         UiStatePolicyManager* uiStatePolicy = nullptr;         ///< UI状態ポリシーマネージャ（非所有）
 
         // --- 連動して更新する部品 ---
-        JosekiWindowWiring* josekiWiring = nullptr;            ///< 定跡ウィンドウの更新（非所有）
+        JosekiWindowController* josekiController = nullptr;            ///< 定跡ウィンドウの更新（非所有）
     };
 
     explicit KifuNavigationCoordinator(QObject* parent = nullptr);
@@ -57,7 +59,7 @@ public:
 
     /// 分岐ノード処理完了後の盤面・ハイライト更新
     void handleBranchNodeHandled(int ply, const QString& sfen,
-                                 int previousFileTo, int previousRankTo,
+                                 BoardSquare previousTo,
                                  const QString& lastUsiMove);
 
     /// 棋譜欄の指定行を選択し盤面を同期する

@@ -13,7 +13,7 @@
 #include "commentcoordinator.h"
 #include "csagamewiring.h"
 #include "dialogcoordinatorwiring.h"
-#include "dialoglaunchwiring.h"
+#include "dialoglauncher.h"
 #include "docklayoutmanager.h"
 #include "engineanalysistab.h"
 #include "errorbus.h"
@@ -21,19 +21,19 @@
 #include "evaluationgraphcontroller.h"
 #include "gamerecordmodel.h"
 #include "gamerecordpresenter.h"
-#include "gamesessionorchestrator.h"
-#include "josekiwindowwiring.h"
+#include "analysissession.h"
+#include "gamesession.h"
+#include "josekiwindowcontroller.h"
 #include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
 #include "piecesoundplayer.h"
-#include "playerinfowiring.h"
+#include "playerinfopresenter.h"
 #include "positioneditcoordinator.h"
 #include "pvclickcontroller.h"
 #include "recordpane.h"
-#include "sessionlifecyclecoordinator.h"
 #include "settingsresetcontroller.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
@@ -59,10 +59,11 @@ void MainWindowComposer::connectSignals()
     ad.ui = &m_ui;
     ad.window = &m_window;
     ad.actions = actions;
-    ad.dlw = m_c.dialogLaunchWiring;
+    ad.dlw = m_c.dialogLauncher;
     ad.dcw = m_c.dialogCoordinatorWiring;
     ad.kfc = m_c.kifuFileController;
-    ad.gso = m_c.gameSessionOrchestrator;
+    ad.session = m_c.gameSession;
+    ad.analysis = m_c.analysisSession;
     ad.appearance = m_c.appearanceController.get();
     ad.shogiView = m_c.shogiView;
     ad.evalChart = m_c.evalChart;
@@ -72,7 +73,7 @@ void MainWindowComposer::connectSignals()
 
     // --- 盤・着手 ---
     // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる
-    m_c.gameController->setPromotionChooser(std::bind(&DialogLaunchWiring::choosePromotion, m_c.dialogLaunchWiring));
+    m_c.gameController->setPromotionChooser(std::bind(&DialogLauncher::choosePromotion, m_c.dialogLauncher));
     connect(m_c.gameController, &ShogiGameController::endDragSignal, m_c.shogiView, &ShogiView::endDrag);
     connect(m_c.gameController, &ShogiGameController::moveCommitted, actions, &MainWindowActions::handleMoveCommitted);
     connect(m_c.gameController, &ShogiGameController::moveCommitted,
@@ -107,22 +108,22 @@ void MainWindowComposer::connectSignals()
     connect(m_c.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
             actions, &MainWindowActions::resetRecordForEditedPosition);
     connect(m_c.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
-            m_c.sessionLifecycle, &SessionLifecycleCoordinator::clearEvalState);
+            m_c.gameSession, &GameSession::clearEvalState);
     connect(m_c.posEditCoordinator, &PositionEditCoordinator::positionEditingFinished,
             actions, &MainWindowActions::resetRecordForEditedPosition);
 
     // --- 定跡ウィンドウ ---
-    connect(m_c.josekiWiring.get(), &JosekiWindowWiring::moveRequested,
+    connect(m_c.josekiController.get(), &JosekiWindowController::moveRequested,
             actions, &MainWindowActions::handleMoveRequested);
-    connect(m_c.josekiWiring.get(), &JosekiWindowWiring::forcedPromotionRequested,
+    connect(m_c.josekiController.get(), &JosekiWindowController::forcedPromotionRequested,
             m_c.gameController, &ShogiGameController::setForcedPromotion);
 
     // --- その他 ---
-    connect(m_c.playerInfoWiring, &PlayerInfoWiring::tabCurrentChanged,
+    connect(m_c.playerInfo, &PlayerInfoPresenter::tabCurrentChanged,
             m_c.appearanceController.get(), &MainWindowAppearanceController::onTabCurrentChanged);
     connect(m_c.pvClickController, &PvClickController::pvDialogClosed,
             m_c.analysisTab, &EngineAnalysisTab::clearThinkingViewSelection);
-    connect(m_c.dialogLaunchWiring, &DialogLaunchWiring::sfenCollectionPositionSelected,
+    connect(m_c.dialogLauncher, &DialogLauncher::sfenCollectionPositionSelected,
             m_c.kifuFileController, &KifuFileController::onSfenCollectionPositionSelected);
     connect(m_c.kifuExportController.get(), &KifuExportController::statusMessage,
             m_ui.statusbar, &QStatusBar::showMessage);
@@ -147,13 +148,9 @@ void MainWindowComposer::connectSignals()
 
 void MainWindowComposer::finalizeUi()
 {
-    // 盤・駒台・手番と対局者名の初期表示（対局は始めない。対局者名は空にして対局情報の初期値を出す）
+    // 盤・駒台・手番と対局者名の初期表示（対局は始めない。盤の対局者名は対局情報の初期値「先手」「後手」）
     m_c.shogiView->applyBoardAndRender(m_c.gameController->board());
-    m_c.playerInfoWiring->applyPlayersNamesForMode();
-    m_c.playerInfoWiring->applyEngineNamesToLogModels();
-    m_c.playerInfoWiring->applySecondEngineVisibility();
-    m_c.playerInfoWiring->onSetPlayersNames(QString(), QString());
-    m_c.playerInfoWiring->onSetEngineNames(QString(), QString());
+    m_c.playerInfo->showMatchPlayers();
     m_c.turnStateSync->setCurrentTurn();
 
     // ウィンドウの大きさと、起動時のドックのレイアウト

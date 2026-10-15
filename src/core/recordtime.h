@@ -4,6 +4,7 @@
 #include <QString>
 #include <QStringList>
 #include <limits>
+#include <utility>
 
 /// 棋譜の一手の消費時間と累計。文字列の解析は棋譜の取り込み境界でだけ行う。
 struct RecordTime {
@@ -39,10 +40,10 @@ struct RecordTime {
                     fraction = component.mid(dot + 1);
                     component.truncate(dot);
                     if (fraction.isEmpty()) return false;
-                    for (QChar c : fraction) if (c < QLatin1Char('0') || c > QLatin1Char('9')) return false;
+                    for (QChar c : std::as_const(fraction)) if (c < QLatin1Char('0') || c > QLatin1Char('9')) return false;
                 }
                 if (component.isEmpty()) return false;
-                for (QChar c : component) if (c < QLatin1Char('0') || c > QLatin1Char('9')) return false;
+                for (QChar c : std::as_const(component)) if (c < QLatin1Char('0') || c > QLatin1Char('9')) return false;
                 bool ok = false;
                 const qint64 number = component.toLongLong(&ok);
                 if (!ok || number > std::numeric_limits<qint64>::max() / 1000 || (i > 0 && number >= 60)

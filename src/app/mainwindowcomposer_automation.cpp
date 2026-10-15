@@ -4,12 +4,13 @@
 #include "mainwindowcomposer.h"
 #include "mainwindow.h"
 
+#include "analysissession.h"
 #include "automationcommands.h"
 #include "automationcontext.h"
 #include "automationserver.h"
 #include "csagamewiring.h"
 #include "menuwindow.h"
-#include "menuwindowwiring.h"
+#include "menuwindowcontroller.h"
 #include "logcategories.h"
 
 #include <QTextStream>
@@ -30,6 +31,7 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
     ctx.shogiView = m_c.shogiView;
     ctx.branchTree = m_c.branchTree;
     ctx.state = &m_state;
+    ctx.analysis = m_c.analysisSession;
     ctx.navState = m_c.navState;
     ctx.navigationController = m_c.kifuNavController;
     ctx.uiStatePolicy = m_c.uiStatePolicy;
@@ -38,15 +40,15 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
     ctx.gameRecordModel = m_c.gameRecord;
     ctx.csaGameWiring = m_c.csaGameWiring.get();
     ctx.menuFavorites = [this]() {
-        const MenuWindow* menu = m_c.menuWiring->menuWindow();
+        const MenuWindow* menu = m_c.menuWindowController->menuWindow();
         return menu ? menu->favorites() : QStringList{};
     };
     ctx.availableMenuActions = [this]() {
-        const MenuWindow* menu = m_c.menuWiring->menuWindow();
+        const MenuWindow* menu = m_c.menuWindowController->menuWindow();
         return menu ? menu->availableActions() : QStringList{};
     };
     ctx.setMenuFavorites = [this](const QStringList& names) {
-        if (MenuWindow* menu = m_c.menuWiring->menuWindow()) menu->setFavorites(names);
+        if (MenuWindow* menu = m_c.menuWindowController->menuWindow()) menu->setFavorites(names);
     };
     ctx.quitApplication = [this]() {
         // 自動化からの終了では未保存確認ダイアログを出さない

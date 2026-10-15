@@ -46,7 +46,6 @@ void PreStartCleanupHandler::updateDependencies(const Dependencies& deps)
     m_lineEditModel1 = deps.lineEditModel1;
     m_lineEditModel2 = deps.lineEditModel2;
     m_timeController = deps.timeController;
-    m_evalChart = deps.evalChart;
     m_evalGraphController = deps.evalGraphController;
     m_recordPane = deps.recordPane;
     m_liveGameSession = deps.liveGameSession;
@@ -172,18 +171,9 @@ void PreStartCleanupHandler::resetTimeControl()
 
 void PreStartCleanupHandler::resetEvaluationGraph(bool preserve, int ply)
 {
-    if (!preserve) {
-        if (m_evalChart) {
-            m_evalChart->clearAll();
-        }
-        if (m_evalGraphController) {
-            m_evalGraphController->clearScores();
-        }
-    } else {
-        if (m_evalGraphController) {
-            m_evalGraphController->trimToPly(ply);
-        }
-    }
+    if (!m_evalGraphController) return;
+    if (preserve) m_evalGraphController->trimToPly(ply);
+    else m_evalGraphController->clear();
 }
 
 void PreStartCleanupHandler::selectStartRow(int row)

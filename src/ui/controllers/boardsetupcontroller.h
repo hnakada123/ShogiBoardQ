@@ -10,15 +10,12 @@
 #include <QPointer>
 #include <functional>
 
-#include "playmode.h"
-#include "shogigamecontroller.h"  // Turn
-
+class AppActivityState;
+class ShogiGameController;
 class ShogiView;
 class BoardInteractionController;
 class MatchCoordinator;
 class PositionEditController;
-class EvaluationGraphController;
-struct ShogiMove;
 
 /**
  * @brief BoardSetupController - 盤面操作配線管理クラス
@@ -43,15 +40,8 @@ public:
     void setShogiView(ShogiView* view);
     void setGameController(ShogiGameController* gc);
     void setMatchCoordinator(MatchCoordinator* match);
+    void setActivityState(AppActivityState* activity);
     void setPositionEditController(PositionEditController* posEdit);
-
-    // --------------------------------------------------------
-    // 状態設定
-    // --------------------------------------------------------
-    PlayMode playMode() const;
-
-    void setSfenRecord(QStringList* sfenRecord);
-    void setGameMoves(QList<ShogiMove>* gameMoves);
 
     // --------------------------------------------------------
     // BoardInteractionControllerアクセス
@@ -82,19 +72,12 @@ public:
 
     void setVariationInputCallbacks(IsVariationInputCallback isVariationInput,
                                     RecordVariationMoveCallback recordVariationMove);
-    /// EvE で着手のたびに評価値グラフを描き直す先
-    void setEvaluationGraphController(EvaluationGraphController* controller) { m_evalGraph = controller; }
 
 public slots:
     /**
      * @brief 着手要求を処理
      */
     void onMoveRequested(const QPoint& from, const QPoint& to);
-
-    /**
-     * @brief 着手確定時の処理
-     */
-    void onMoveCommitted(Turn mover, int ply);
 
 signals:
     /**
@@ -111,19 +94,14 @@ private:
     ShogiView* m_shogiView = nullptr;
     ShogiGameController* m_gameController = nullptr;
     QPointer<BoardInteractionController> m_boardController;
-    QPointer<MatchCoordinator> m_match;                  ///< 非所有（MCW が所有）
+    MatchCoordinator* m_match = nullptr;                 ///< 非所有（合成ルートが所有）
+    AppActivityState* m_activity = nullptr;              ///< 非所有
     PositionEditController* m_posEdit = nullptr;
     QObject* m_wheelFilter = nullptr;
-
-    QStringList* m_sfenHistory = nullptr;
-    QList<ShogiMove>* m_gameMoves = nullptr;
-
-    QString m_lastMove;
 
     // コールバック
     IsVariationInputCallback m_isVariationInput;
     RecordVariationMoveCallback m_recordVariationMove;
-    EvaluationGraphController* m_evalGraph = nullptr;
 };
 
 #endif // BOARDSETUPCONTROLLER_H

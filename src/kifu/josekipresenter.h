@@ -12,7 +12,6 @@
 class JosekiRepository;
 struct JosekiMove;
 struct KifuMergeEntry;
-class SfenPositionTracer;
 
 /**
  * @brief 定跡ウィンドウの操作ロジックを担当するプレゼンター
@@ -55,11 +54,10 @@ public:
     /**
      * @brief USI形式の指し手を日本語表記に変換する
      * @param usiMove USI形式の指し手
-     * @param tracer 現在局面をセットしたSfenPositionTracer
+     * @param sfen 指す前の局面
      * @return 日本語表記
      */
-    static QString usiMoveToJapanese(const QString &usiMove,
-                                     const SfenPositionTracer &tracer);
+    static QString usiMoveToJapanese(const QString &usiMove, const QString &sfen);
 
 
     // --- データ操作 ---

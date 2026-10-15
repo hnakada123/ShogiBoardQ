@@ -10,7 +10,8 @@
 #include "josekipresenter.h"
 #include "josekirepository.h"
 #include "josekisettings.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "sfenutils.h"
 
 #include <QAction>
@@ -162,9 +163,6 @@ void JosekiWindow::editMoveAt(int row)
     if (!m_session->repository()->containsPosition(normalizedSfen)) return;
 
     const JosekiMove currentMove = m_currentMoves.at(row);
-    SfenPositionTracer tracer;
-    (void)tracer.setFromSfen(m_currentSfen);
-
     JosekiMoveDialog dialog(this, true);
     dialog.setMove(currentMove.move);
     dialog.setNextMove(currentMove.nextMove);
@@ -173,7 +171,7 @@ void JosekiWindow::editMoveAt(int row)
     dialog.setDepth(currentMove.depth);
     dialog.setFrequency(currentMove.frequency);
     dialog.setComment(currentMove.comment);
-    dialog.setEditMoveDisplay(JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer));
+    dialog.setEditMoveDisplay(JosekiPresenter::usiMoveToJapanese(currentMove.move, m_currentSfen));
     if (dialog.exec() != QDialog::Accepted) return;
 
     m_presenter->editMove(normalizedSfen, currentMove.move,
@@ -190,9 +188,7 @@ void JosekiWindow::deleteMoveAt(int row)
     if (!m_session->repository()->containsPosition(normalizedSfen)) return;
 
     const JosekiMove currentMove = m_currentMoves.at(row);
-    SfenPositionTracer tracer;
-    (void)tracer.setFromSfen(m_currentSfen);
-    const QString japaneseMove = JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer);
+    const QString japaneseMove = JosekiPresenter::usiMoveToJapanese(currentMove.move, m_currentSfen);
     if (!DialogUtils::confirmAction(this, tr("削除確認"),
                                     tr("定跡手「%1」を削除しますか？").arg(japaneseMove), tr("削除する"))) {
         return;
@@ -228,11 +224,9 @@ void JosekiWindow::onAddMoveButtonClicked()
     const QString normalizedSfen = JosekiPresenter::normalizeSfen(targetSfen);
 
     if (m_presenter->hasDuplicateMove(normalizedSfen, newMove.move)) {
-        SfenPositionTracer tracer;
-        (void)tracer.setFromSfen(targetSfen);
         if (!DialogUtils::confirmAction(this, tr("確認"),
                 tr("指し手「%1」は既に登録されています。\n上書きしますか？")
-                    .arg(JosekiPresenter::usiMoveToJapanese(newMove.move, tracer)),
+                    .arg(JosekiPresenter::usiMoveToJapanese(newMove.move, targetSfen)),
                 tr("上書きする"))) {
             return;
         }

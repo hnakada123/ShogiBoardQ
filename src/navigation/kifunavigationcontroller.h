@@ -9,6 +9,8 @@
 #include <functional>
 #include <QList>
 
+#include "usimove.h"
+
 class KifuBranchTree;
 class KifuBranchNode;
 class KifuNavigationState;
@@ -126,12 +128,11 @@ signals:
      * @brief 移動先ノードの局面と直前手を通知する（全ナビゲーション経路共通）
      * @param ply 選択された手数
      * @param sfen ノードのSFEN（空なら更新不要）
-     * @param previousFileTo 移動先の筋（検討モード用、0=なし）
-     * @param previousRankTo 移動先の段（検討モード用、0=なし）
+     * @param previousTo 直前の手の移動先（検討モード用、開始局面は無効値）
      * @param lastUsiMove 最後の指し手USI表記（検討モード用）
      */
     void branchNodeHandled(int ply, const QString& sfen,
-                           int previousFileTo, int previousRankTo,
+                           BoardSquare previousTo,
                            const QString& lastUsiMove);
 
 private:

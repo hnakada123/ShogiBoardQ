@@ -16,7 +16,6 @@ class KifuRecordListModel;
 class KifuBranchListModel;
 class UsiCommLogModel;
 class TimeControlController;
-class EvaluationChartWidget;
 class EvaluationGraphController;
 class RecordPane;
 class LiveGameSession;
@@ -52,7 +51,6 @@ public:
         UsiCommLogModel* lineEditModel1 = nullptr;              ///< エンジン1のUSIログモデル（非所有）
         UsiCommLogModel* lineEditModel2 = nullptr;              ///< エンジン2のUSIログモデル（非所有）
         TimeControlController* timeController = nullptr;        ///< 時間制御コントローラ（非所有）
-        EvaluationChartWidget* evalChart = nullptr;             ///< 評価値グラフウィジェット（非所有）
         EvaluationGraphController* evalGraphController = nullptr; ///< 評価値グラフコントローラ（非所有）
         RecordPane* recordPane = nullptr;                       ///< 棋譜ペイン（非所有）
 
@@ -88,7 +86,6 @@ private:
     UsiCommLogModel* m_lineEditModel1 = nullptr;                ///< エンジン1 USIログ（非所有）
     UsiCommLogModel* m_lineEditModel2 = nullptr;                ///< エンジン2 USIログ（非所有）
     TimeControlController* m_timeController = nullptr;          ///< 時間制御コントローラ（非所有）
-    EvaluationChartWidget* m_evalChart = nullptr;               ///< 評価値グラフ（非所有）
     EvaluationGraphController* m_evalGraphController = nullptr; ///< 評価値グラフコントローラ（非所有）
     RecordPane* m_recordPane = nullptr;                         ///< 棋譜ペイン（非所有）
 

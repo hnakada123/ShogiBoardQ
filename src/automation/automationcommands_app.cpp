@@ -2,6 +2,7 @@
 /// @brief 自動化 API の app.* メソッドと共通ヘルパの実装
 
 #include "automationcommands.h"
+#include "analysissession.h"
 #include "automationdispatcher.h"
 #include "automationwidgets.h"
 #include "gamerecordmodel.h"
@@ -13,6 +14,7 @@
 #include "csagamecoordinator.h"
 #include "csagamewiring.h"
 #include "kifunavigationstate.h"
+#include "kifuexportmetadata.h"
 #include <QMetaEnum>
 
 #include <QCoreApplication>
@@ -57,24 +59,26 @@ QString uiStateName(UiStatePolicyManager::AppState state)
     return QStringLiteral("unknown");
 }
 
-QString playModeName(PlayMode mode)
+/// 自動化 API の play_mode（動作状態と、対局中なら対局者の組。駒落ちの対局は handicap_ を付ける）
+QString playModeName(const AppState& state)
 {
-    switch (mode) {
-    case PlayMode::NotStarted: return QStringLiteral("not_started");
-    case PlayMode::HumanVsHuman: return QStringLiteral("human_vs_human");
-    case PlayMode::EvenHumanVsEngine: return QStringLiteral("human_vs_engine");
-    case PlayMode::EvenEngineVsHuman: return QStringLiteral("engine_vs_human");
-    case PlayMode::EvenEngineVsEngine: return QStringLiteral("engine_vs_engine");
-    case PlayMode::HandicapEngineVsHuman: return QStringLiteral("handicap_engine_vs_human");
-    case PlayMode::HandicapHumanVsEngine: return QStringLiteral("handicap_human_vs_engine");
-    case PlayMode::HandicapEngineVsEngine: return QStringLiteral("handicap_engine_vs_engine");
-    case PlayMode::AnalysisMode: return QStringLiteral("analysis");
-    case PlayMode::ConsiderationMode: return QStringLiteral("consideration");
-    case PlayMode::TsumiSearchMode: return QStringLiteral("tsume_search");
-    case PlayMode::CsaNetworkMode: return QStringLiteral("csa_network");
-    case PlayMode::PlayModeError: return QStringLiteral("error");
+    using Activity = AppActivityState::Activity;
+    switch (state.activity.activity()) {
+    case Activity::Idle:
+    case Activity::DuringPositionEdit: return QStringLiteral("not_started");
+    case Activity::DuringAnalysis: return QStringLiteral("analysis");
+    case Activity::DuringConsideration: return QStringLiteral("consideration");
+    case Activity::DuringTsumeSearch: return QStringLiteral("tsume_search");
+    case Activity::DuringCsaGame: return QStringLiteral("csa_network");
+    case Activity::DuringGame: break;
     }
-    return QStringLiteral("unknown");
+    const MatchPlayers& players = state.players;
+    if (players.humanVsHuman()) return QStringLiteral("human_vs_human");
+    const QString seats = players.engineVsEngine() ? QStringLiteral("engine_vs_engine")
+                        : players.blackIsEngine  ? QStringLiteral("engine_vs_human")
+                                                 : QStringLiteral("human_vs_engine");
+    const bool handicap = KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(state.startSfenStr));
+    return handicap ? QStringLiteral("handicap_") + seats : seats;
 }
 
 } // namespace
@@ -157,7 +161,7 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         QJsonObject result;
         UiStatePolicyManager* policy = context.uiStatePolicy;
         result[QStringLiteral("ui_state")] = policy ? uiStateName(policy->currentState()) : QStringLiteral("unknown");
-        result[QStringLiteral("play_mode")] = context.state ? playModeName(context.state->playMode) : QStringLiteral("unknown");
+        result[QStringLiteral("play_mode")] = context.state ? playModeName(*context.state) : QStringLiteral("unknown");
         const int ply = context.currentPly();
         result[QStringLiteral("current_ply")] = ply;
         const QStringList record = currentLinePositions(context);
@@ -168,8 +172,15 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         result[QStringLiteral("board_flipped")] = context.shogiView && context.shogiView->flipMode();
         result[QStringLiteral("sfen")] = currentSfen(context);
         QJsonObject engines;
-        engines[QStringLiteral("black")] = context.state ? context.state->engineName1 : QString();
-        engines[QStringLiteral("white")] = context.state ? context.state->engineName2 : QString();
+        // 検討・詰み探索中はそのエンジン、それ以外は直近の対局のエンジン
+        const QString analysisEngine = context.analysis ? context.analysis->engineName() : QString();
+        if (!analysisEngine.isEmpty()) {
+            engines[QStringLiteral("black")] = analysisEngine;
+            engines[QStringLiteral("white")] = QString();
+        } else {
+            engines[QStringLiteral("black")] = context.state ? context.state->players.blackEngineName : QString();
+            engines[QStringLiteral("white")] = context.state ? context.state->players.whiteEngineName : QString();
+        }
         result[QStringLiteral("engines")] = engines;
         if (auto* csa = context.csaGameWiring ? context.csaGameWiring->coordinator() : nullptr) {
             result[QStringLiteral("csa")] = QJsonObject{

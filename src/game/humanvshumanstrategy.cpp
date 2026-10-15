@@ -2,44 +2,32 @@
 /// @brief 人間 vs 人間モードの Strategy 実装
 
 #include "humanvshumanstrategy.h"
-#include "strategycontext.h"
-#include "shogigamecontroller.h"
-#include "shogiclock.h"
-#include "logcategories.h"
 
-HumanVsHumanStrategy::HumanVsHumanStrategy(MatchCoordinator::StrategyContext& ctx)
-    : m_ctx(ctx)
+#include "logcategories.h"
+#include "shogiclock.h"
+
+HumanVsHumanStrategy::HumanVsHumanStrategy(MatchStrategyHost& host)
+    : m_host(host)
 {
 }
 
 void HumanVsHumanStrategy::start()
 {
     qCDebug(lcGame) << "[Match] Start HvH";
-
-    // 手番の単一ソースは GC（currentTurn() は GC の手番を返す）
-
-
-    // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
-    if (m_ctx.hooks().ui.renderBoardFromGc)
-        m_ctx.hooks().ui.renderBoardFromGc();
-    m_ctx.updateTurnDisplay(m_ctx.currentTurn());
+    m_host.refreshBoardAndTurn();
 }
 
-void HumanVsHumanStrategy::onHumanMove(const QPoint& from, const QPoint& to,
-                                        const QString& prettyMove)
+void HumanVsHumanStrategy::onHumanMove(const RecordEntry& played)
 {
-    const Turn after = m_ctx.gc() ? m_ctx.gc()->currentPlayer() : Turn::White;
-    const Turn mover = after == Turn::Black ? Turn::White : Turn::Black;
-    finishTurnTimerAndSetConsideration(mover);
-    if (m_ctx.completeHumanMove(mover, prettyMove, from, to)) armTurnTimerIfNeeded();
+    finishTurnTimer(played.mover);
+    if (m_host.completeHumanMove(played)) armTurnTimerIfNeeded();
 }
 
 void HumanVsHumanStrategy::armTurnTimerIfNeeded()
 {
-    if (!m_turnTimerArmed) {
-        m_turnTimer.start();
-        m_turnTimerArmed = true;
-    }
+    if (m_turnTimerArmed) return;
+    m_turnTimer.start();
+    m_turnTimerArmed = true;
 }
 
 void HumanVsHumanStrategy::disarmTurnTimer()
@@ -49,14 +37,10 @@ void HumanVsHumanStrategy::disarmTurnTimer()
     m_turnTimerArmed = false;
 }
 
-void HumanVsHumanStrategy::finishTurnTimerAndSetConsideration(Turn mover)
+void HumanVsHumanStrategy::finishTurnTimer(Turn mover)
 {
     if (!m_turnTimerArmed) return;
-
     const qint64 ms = m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
-
-    ShogiClock* clock = m_ctx.clock();
-    if (clock) clock->setMeasuredConsiderationTime(mover, ms);
-    m_turnTimer.invalidate();
-    m_turnTimerArmed = false;
+    if (ShogiClock* clock = m_host.clock()) clock->setMeasuredConsiderationTime(mover, ms);
+    disarmTurnTimer();
 }

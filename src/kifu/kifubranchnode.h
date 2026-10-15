@@ -7,6 +7,7 @@
 #include <QString>
 #include <QList>
 
+#include "recordentry.h"
 #include "shogimove.h"
 
 #include "terminaltype.h"
@@ -27,6 +28,9 @@ public:
 
     // --- ノード識別 ---
 
+    /// この行（指した手か終局）とコメント・しおり
+    const RecordEntry& record() const { return m_record; }
+
     int nodeId() const { return m_nodeId; }
     void setNodeId(int id) { m_nodeId = id; }
 
@@ -35,35 +39,36 @@ public:
     /// 手数を取得（0=開始局面、1以降=指し手）
     int ply() const { return m_ply; }
     void setPly(int ply) { m_ply = ply; }
+    void setRecord(const RecordEntry& record) { m_record = record; }
 
     /// 表示テキストを取得（例: "▲７六歩(77)"）
-    QString displayText() const { return m_displayText; }
-    void setDisplayText(const QString& text) { m_displayText = text; }
+    QString displayText() const { return m_record.displayText; }
+    void setDisplayText(const QString& text) { m_record.displayText = text; }
 
     /// この局面のSFENを取得
-    QString sfen() const { return m_sfen; }
-    void setSfen(const QString& sfen) { m_sfen = sfen; }
+    QString sfen() const { return m_record.sfen; }
+    void setSfen(const QString& sfen) { m_record.sfen = sfen; }
 
     /// この手を表すShogiMoveを取得（ply=0や終局手は無効）
-    ShogiMove move() const { return m_move; }
-    void setMove(const ShogiMove& move) { m_move = move; }
+    ShogiMove move() const { return m_record.move; }
+    void setMove(const ShogiMove& move) { m_record.move = move; }
 
-    QString comment() const { return m_comment; }
-    void setComment(const QString& comment) { m_comment = comment; }
+    QString comment() const { return m_record.comment; }
+    void setComment(const QString& comment) { m_record.comment = comment; }
 
-    QString bookmark() const { return m_bookmark; }
-    void setBookmark(const QString& bookmark) { m_bookmark = bookmark; }
+    QString bookmark() const { return m_record.bookmark; }
+    void setBookmark(const QString& bookmark) { m_record.bookmark = bookmark; }
 
-    QString timeText() const { return m_time.toText(); }
-    const RecordTime& time() const { return m_time; }
-    void setTime(const RecordTime& time) { m_time = time; }
-    void setTimeText(const QString& time) { m_time = RecordTime::fromText(time); }
+    QString timeText() const { return m_record.time.toText(); }
+    const RecordTime& time() const { return m_record.time; }
+    void setTime(const RecordTime& time) { m_record.time = time; }
+    void setTimeText(const QString& time) { m_record.time = RecordTime::fromText(time); }
 
-    TerminalType terminalType() const { return m_terminalType; }
-    void setTerminalType(TerminalType type) { m_terminalType = type; }
+    TerminalType terminalType() const { return m_record.terminal; }
+    void setTerminalType(TerminalType type) { m_record.terminal = type; }
 
-    Turn terminalSide() const { return m_terminalSide; }
-    void setTerminalSide(Turn side) { m_terminalSide = side; }
+    Turn terminalSide() const { return m_record.mover; }
+    void setTerminalSide(Turn side) { m_record.mover = side; }
 
     // --- ツリー構造 ---
 
@@ -90,7 +95,7 @@ public:
     int lineIndex() const;
 
     /// 終局手かどうか
-    bool isTerminal() const { return m_terminalType != TerminalType::None; }
+    bool isTerminal() const { return m_record.isTerminal(); }
 
     /// 盤面を変化させる指し手か（終局手やply=0でない）
     bool isActualMove() const { return !isTerminal() && m_ply > 0; }
@@ -104,16 +109,7 @@ public:
 private:
     int m_nodeId = -1;                                  ///< ノードID（ツリー内で一意）
     int m_ply = 0;                                      ///< 手数（0=開始局面）
-    QString m_displayText;                              ///< 表示テキスト
-    QString m_sfen;                                     ///< この局面のSFEN
-    ShogiMove m_move;                                   ///< 指し手データ
-    QString m_comment;                                  ///< コメント
-    QString m_bookmark;                                 ///< しおり
-    RecordTime m_time;                                 ///< 消費時間テキスト
-    TerminalType m_terminalType = TerminalType::None;   ///< 終局手の種類
-
-    Turn m_terminalSide = Turn::Black;                 ///< 終局を記録した側
-
+    RecordEntry m_record;                               ///< この行（指した手か終局）とコメント・しおり
     KifuBranchNode* m_parent = nullptr;                 ///< 親ノード（非所有）
     QList<KifuBranchNode*> m_children;                ///< 子ノードリスト（非所有、KifuBranchTreeが所有）
 };

@@ -1,5 +1,7 @@
 #include "kifupresentation.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
+#include "terminaltype.h"
 
 #include <QCoreApplication>
 #include <QLocale>
@@ -14,9 +16,23 @@ QString translated(const char* source)
     return QCoreApplication::translate("KifuPresentation", source);
 }
 
+/// マスの駒を SFEN のトークン（成駒は "+P" の形）にする。file: 1..9、row: 0..8（範囲外・空きは空）
+QString tokenAt(const ShogiBoard& board, int file, int row)
+{
+    const Piece piece = board.pieceAt(BoardSquare{file, row + 1});
+    if (piece == Piece::None) return {};
+    if (isPromoted(piece)) return QStringLiteral("+") + pieceToChar(demote(piece));
+    return QString(pieceToChar(piece));
+}
+
+QString tokenAtFileRank(const ShogiBoard& board, int file, QChar rankLetter)
+{
+    return tokenAt(board, file, rankLetter.toLower().unicode() - u'a');
+}
+
 // Candidate origins use movement geometry and intervening pieces. Including an
 // extra origin for a pinned candidate is harmless and keeps notation unambiguous.
-bool reaches(const SfenPositionTracer& board, const QString& token,
+bool reaches(const ShogiBoard& board, const QString& token,
              int file, int rank, int destFile, int destRank)
 {
     const int dx = destFile - file;
@@ -43,7 +59,7 @@ bool reaches(const SfenPositionTracer& board, const QString& token,
     const int rawDy = destRank - rank;
     const int sy = (rawDy > 0) - (rawDy < 0);
     for (int f = file + sx, r = rank + sy; f != destFile || r != destRank; f += sx, r += sy) {
-        if (!board.tokenAt(f, r).isEmpty()) return false;
+        if (!tokenAt(board, f, r).isEmpty()) return false;
     }
     return true;
 }
@@ -62,15 +78,15 @@ bool isUsiMove(QStringView usi)
     return file(usi.at(0)) && rank(usi.at(1)) && file(usi.at(2)) && rank(usi.at(3));
 }
 
-QString format(const SfenPositionTracer& board, const QString& usi, Options style, bool side)
+QString format(const ShogiBoard& board, const QString& usi, Options style, bool side)
 {
     if (!isUsiMove(usi)) return status(usi);
     const bool drop = usi.at(1) == QLatin1Char('*');
     const int df = usi.at(2).digitValue(), dr = usi.at(3).unicode() - 'a';
-    const QString token = drop ? QString(usi.at(0)) : board.tokenAtFileRank(usi.at(0).digitValue(), usi.at(1));
+    const QString token = drop ? QString(usi.at(0)) : tokenAtFileRank(board, usi.at(0).digitValue(), usi.at(1));
     if (token.isEmpty()) return usi; // Incomplete input: never invent a piece.
     const QString piece = token.toUpper();
-    QString result = side ? (board.blackToMove() ? QStringLiteral("▲") : QStringLiteral("△")) : QString();
+    QString result = side ? (board.currentPlayer() == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△")) : QString();
     if (style.notation == Notation::Japanese) {
         static const QStringList names = {QStringLiteral("歩"), QStringLiteral("香"), QStringLiteral("桂"), QStringLiteral("銀"), QStringLiteral("金"), QStringLiteral("角"), QStringLiteral("飛"), QStringLiteral("玉")};
         static const QStringList promoted = {QStringLiteral("と"), QStringLiteral("成香"), QStringLiteral("成桂"), QStringLiteral("成銀"), QStringLiteral("金"), QStringLiteral("馬"), QStringLiteral("龍"), QStringLiteral("玉")};
@@ -96,16 +112,16 @@ QString format(const SfenPositionTracer& board, const QString& usi, Options styl
     for (int f = 1; !origin && f <= 9; ++f) {
         for (int r = 0; !origin && r < 9; ++r) {
             if (f == fromFile && r == fromRow) continue;
-            if (board.tokenAt(f, r) == token && reaches(board, token, f, r, df, dr)) origin = true;
+            if (tokenAt(board, f, r) == token && reaches(board, token, f, r, df, dr)) origin = true;
         }
     }
     if (origin) result += usi.left(2);
-    result += board.tokenAtFileRank(df, usi.at(3)).isEmpty() ? QLatin1Char('-') : QLatin1Char('x');
+    result += tokenAtFileRank(board, df, usi.at(3)).isEmpty() ? QLatin1Char('-') : QLatin1Char('x');
     result += usi.mid(2, 2);
     if (usi.endsWith('+')) result += QLatin1Char('+');
     else if (!piece.startsWith('+') && QStringLiteral("PLNSBR").contains(piece)) {
         const int fromRank = usi.at(1).unicode() - 'a';
-        if (board.blackToMove() ? (fromRank <= 2 || dr <= 2) : (fromRank >= 6 || dr >= 6)) result += QLatin1Char('=');
+        if (board.currentPlayer() == Turn::Black ? (fromRank <= 2 || dr <= 2) : (fromRank >= 6 || dr >= 6)) result += QLatin1Char('=');
     }
     return result;
 }
@@ -140,31 +156,28 @@ QString rankLabel(int rank)
 QString usiMove(const ShogiMove& move)
 {
     if (move.movingPiece == Piece::None) return {};
-    const auto square = [](const QPoint& p) { return QString::number(p.x() + 1) + QChar('a' + p.y()); };
-    if (move.fromSquare.x() >= 9)
-        return QString(pieceToChar(demote(move.movingPiece)).toUpper()) + QLatin1Char('*') + square(move.toSquare);
-    return square(move.fromSquare) + square(move.toSquare) + (move.isPromotion ? QStringLiteral("+") : QString());
+    return move.move.toString();
 }
 
 QString move(const QString& beforeSfen, const QString& usi, Options style, bool includeSide)
 {
-    SfenPositionTracer board;
-    if (beforeSfen.isEmpty() || !board.setFromSfen(beforeSfen)) return usi;
+    ShogiBoard board;
+    if (beforeSfen.isEmpty() || !board.trySetSfen(beforeSfen)) return usi;
     return format(board, usi, style, includeSide);
 }
 
 QString pv(const QString& beforeSfen, const QString& usiMoves, const QString& japanese, bool fullOrigin)
 {
     if (current.notation == Notation::Japanese && !japanese.isEmpty()) return japanese;
-    SfenPositionTracer board;
-    if (beforeSfen.isEmpty() || !board.setFromSfen(beforeSfen)) return usiMoves.isEmpty() ? status(japanese) : usiMoves;
+    ShogiBoard board;
+    if (beforeSfen.isEmpty() || !board.trySetSfen(beforeSfen)) return usiMoves.isEmpty() ? status(japanese) : usiMoves;
     Options style = current;
     style.alwaysOrigin = fullOrigin || style.alwaysOrigin;
     QStringList result;
     const auto moves = usiMoves.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
     for (const auto& usi : moves) {
         result.append(format(board, usi, style, true));
-        if (!board.applyUsiMove(usi)) break;
+        if (!SfenReplay::applyLenient(board, usi)) break;
     }
     return result.isEmpty() ? status(japanese) : result.join(QLatin1Char(' '));
 }
@@ -182,39 +195,24 @@ QString label(const QString& canonical, const QString& beforeSfen, const QString
 
 QString status(const QString& canonical)
 {
-    static const char* const names[] = {
-        QT_TRANSLATE_NOOP("KifuPresentation", "投了"), QT_TRANSLATE_NOOP("KifuPresentation", "詰み"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "千日手"), QT_TRANSLATE_NOOP("KifuPresentation", "持将棋"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "切れ負け"), QT_TRANSLATE_NOOP("KifuPresentation", "反則勝ち"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "反則負け"), QT_TRANSLATE_NOOP("KifuPresentation", "不戦勝"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "不戦敗"), QT_TRANSLATE_NOOP("KifuPresentation", "中断"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "不詰"), QT_TRANSLATE_NOOP("KifuPresentation", "入玉勝ち"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "引き分け"), QT_TRANSLATE_NOOP("KifuPresentation", "最大手数"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "エラー"), QT_TRANSLATE_NOOP("KifuPresentation", "（定跡）")};
-    // 棋譜欄の表示のたびに呼ばれるため、原文の文字列は1回だけ作る（訳は表示言語に合わせて毎回引く）
-    static const QStringList decodedNames = [] {
-        QStringList list;
-        for (const char* name : names) list.append(QString::fromUtf8(name));
-        return list;
-    }();
     // Only a whole generated label (with optional move number/side), never free text.
     static const QRegularExpression prefix(QStringLiteral("^(\\s*[0-9]+\\s+)?([▲△☗☖]\\s*)?"));
     const auto match = prefix.match(canonical);
     QString tail = canonical.mid(match.capturedLength()).trimmed();
     const bool branch = tail.endsWith(QLatin1Char('+'));
     if (branch) tail.chop(1);
-    const QString original = tail;
-    if (tail == QStringLiteral("時間切れ")) tail = QStringLiteral("切れ負け");
-    if (tail == QStringLiteral("最大手数到達")) tail = QStringLiteral("最大手数");
-    if (tail == QStringLiteral("宣言勝ち") || tail == QStringLiteral("入玉宣言勝ち")) tail = QStringLiteral("入玉勝ち");
-    if (tail == QStringLiteral("詰")) tail = QStringLiteral("詰み");
-    for (qsizetype i = 0; i < decodedNames.size(); ++i) {
-        if (tail != decodedNames.at(i)) continue;
-        const QString text = translated(names[i]);
-        return match.captured() + (text == tail ? original : text)
-            + (branch ? (current.notation == Notation::Western ? QStringLiteral(" [+]") : QStringLiteral("+")) : QString());
+    QString text;
+    if (const TerminalType type = TerminalTypes::fromWord(tail); type != TerminalType::None) {
+        // 訳がなければ（日本語表示）、棋譜に書いてある語をそのまま出す
+        text = TerminalTypes::displayLabel(type);
+        if (text == TerminalTypes::label(type)) text = tail;
+    } else if (tail == QStringLiteral("（定跡）")) {
+        text = translated(QT_TRANSLATE_NOOP("KifuPresentation", "（定跡）"));
+    } else {
+        return canonical;
     }
-    return canonical;
+    return match.captured() + text
+        + (branch ? (current.notation == Notation::Western ? QStringLiteral(" [+]") : QStringLiteral("+")) : QString());
 }
 
 QString infoKey(const QString& canonical)

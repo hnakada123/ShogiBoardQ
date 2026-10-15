@@ -7,7 +7,7 @@
 
 #include "elidelabel.h"
 #include "boardappearance.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
@@ -191,7 +191,7 @@ private slots:
         const QStringList moves = whiteStart
             ? QStringList{QStringLiteral("3c3d"), QStringLiteral("7g7f"), QStringLiteral("8c8d")}
             : QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")};
-        const QStringList sfens = SfenPositionTracer::buildSfenRecord(initialSfen, moves, false);
+        const QStringList sfens = SfenReplay::buildSfenRecord(initialSfen, moves, false);
         QCOMPARE(sfens.size(), 4);
 
         ShogiGameController gc;

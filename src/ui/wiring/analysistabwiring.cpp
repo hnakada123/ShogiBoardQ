@@ -5,7 +5,7 @@
 
 #include "branchnavigationwiring.h"
 #include "commentcoordinator.h"
-#include "considerationwiring.h"
+#include "considerationuicontroller.h"
 #include "engineanalysistab.h"
 #include "pvclickcontroller.h"
 #include "shogienginethinkingmodel.h"
@@ -84,19 +84,19 @@ void AnalysisTabWiring::wireExternalSignals(const ExternalSignalDeps& deps)
             Qt::UniqueConnection);
     }
 
-    // 検討開始・エンジン設定・エンジン変更シグナルを ConsiderationWiring に接続
-    if (deps.considerationWiring) {
+    // 検討開始・エンジン設定・エンジン変更シグナルを ConsiderationUiController に接続
+    if (deps.considerationUi) {
         QObject::connect(
             m_analysisTab, &EngineAnalysisTab::startConsiderationRequested,
-            deps.considerationWiring, &ConsiderationWiring::displayConsiderationDialog,
+            deps.considerationUi, &ConsiderationUiController::startConsideration,
             Qt::UniqueConnection);
         QObject::connect(
             m_analysisTab, &EngineAnalysisTab::engineSettingsRequested,
-            deps.considerationWiring, &ConsiderationWiring::onEngineSettingsRequested,
+            deps.considerationUi, &ConsiderationUiController::onEngineSettingsRequested,
             Qt::UniqueConnection);
         QObject::connect(
             m_analysisTab, &EngineAnalysisTab::considerationEngineChanged,
-            deps.considerationWiring, &ConsiderationWiring::onEngineChanged,
+            deps.considerationUi, &ConsiderationUiController::onEngineChanged,
             Qt::UniqueConnection);
     }
 }

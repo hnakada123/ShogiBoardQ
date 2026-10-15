@@ -4,18 +4,17 @@
 #include "parsemoveformat.h"
 #include "parsecommon.h"
 #include "kifmovetext.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "usimove.h"
 
 namespace KifuParseCommon {
 
-KifDisplayItem createUsiTerminalDisplayItem(int ply, const QString& term,
+KifDisplayItem createUsiTerminalDisplayItem(int ply, TerminalType terminal,
                                            const QString& baseSfen, qsizetype moveCount)
 {
     const bool blackToMove = (moveCount % 2 == 0) != baseSfen.contains(QStringLiteral(" w "));
-    auto item = createTerminalDisplayItem(ply, term);
-    item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + term;
-    return item;
+    return createTerminalDisplayItem(ply, terminal, blackToMove ? Turn::Black : Turn::White);
 }
 
 } // namespace KifuParseCommon

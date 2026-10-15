@@ -11,6 +11,9 @@
 
 #include "shogitypes.h"
 #include "csaclient.h"
+#include "recordentry.h"
+
+#include <optional>
 
 class ShogiGameController;
 struct ShogiMove;
@@ -59,8 +62,8 @@ public:
     static Piece csaPieceToSfenPiece(const QString& csaPiece, bool isBlack);
 
     /// CSA形式の指し手を表示用文字列に変換する
-    static QString csaToPretty(const QString& csaMove, bool isPromotion,
-                               int prevToFile, int prevToRank, int moveCount);
+    /// @param previousTo 直前の手の移動先（「同」の判定用。初手は無効な升）
+    static QString csaToPretty(const QString& csaMove, bool isPromotion, BoardSquare previousTo);
 
     /// 対局結果をローカライズ済み文字列に変換する
     static QString gameResultToString(CsaClient::GameResult result);
@@ -68,10 +71,8 @@ public:
     /// 終局原因をローカライズ済み文字列に変換する
     static QString gameEndCauseToString(CsaClient::GameEndCause cause);
 
-    /// CSA形式の指し手を盤面に適用する（ビュー更新は行わない）
-    static bool applyMoveToBoard(const QString& csaMove, ShogiGameController* gc,
-                                 QStringList& usiMoves, QStringList* sfenHistory,
-                                 int moveCount, QList<ShogiMove>* gameMoves = nullptr);
+    /// CSA形式の指し手を盤面に適用する（ビュー更新は行わない）。指した手を返し、指せなければ nullopt
+    static std::optional<RecordEntry> applyMoveToBoard(const QString& csaMove, ShogiGameController* gc);
 };
 
 #endif // CSAMOVECONVERTER_H

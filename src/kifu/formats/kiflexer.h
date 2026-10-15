@@ -58,7 +58,7 @@ void advanceToNextMove(QString& lineStr, int skipOffset,
 // === 終局語 ===
 
 /// 終局語の表示アイテムを生成
-KifDisplayItem buildTerminalItem(int moveIndex, const QString& term,
+KifDisplayItem buildTerminalItem(int moveIndex, TerminalType type, Turn side,
                                  const QString& timeText, const QRegularExpressionMatch& tm);
 
 // === 指し手解析 ===

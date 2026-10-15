@@ -14,8 +14,8 @@
 #include "kifunavigationcontroller.h"
 #include "shogienginethinkingmodel.h"
 #include "pvboarddialog.h"
-#include "sfenpositiontracer.h"
-#include "sessionlifecyclecoordinator.h"
+#include "sfenreplay.h"
+#include "gamesession.h"
 
 class TestWiringAnalysisTab : public QObject {
     Q_OBJECT
@@ -56,10 +56,10 @@ private slots:
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        p.sessionLifecycle->resetToInitialState();
+        p.gameSession->resetToInitialState();
         const QStringList usi{"7g7f"};
-        const auto moves = SfenPositionTracer::buildGameMoves(SfenUtils::hirateSfen(), usi);
-        const auto sfens = SfenPositionTracer::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
+        const auto moves = SfenReplay::buildGameMoves(SfenUtils::hirateSfen(), usi);
+        const auto sfens = SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
         auto* node = p.branchTree->addMove(p.branchTree->root(), moves.first(), QStringLiteral("▲７六歩"), sfens.last());
         QVERIFY(node);
         emit p.analysisTab->branchNodeActivated(0, 1);
@@ -110,12 +110,12 @@ private slots:
         MainWindow window;
         m_seenDialog.clear();
         m_seenMessage.clear();
-        const auto previousMode = window.composer().state().playMode;
+        const auto previousActivity = window.composer().state().activity.activity();
         QTimer::singleShot(0, this, &TestWiringAnalysisTab::rejectModal);
         emit window.composer().parts().analysisTab->startConsiderationRequested();
         QCOMPARE(m_seenDialog, QStringLiteral("QMessageBox"));
         QCOMPARE(m_seenMessage, QStringLiteral("将棋エンジンが選択されていません。"));
-        QCOMPARE(window.composer().state().playMode, previousMode);
+        QCOMPARE(window.composer().state().activity.activity(), previousActivity);
     }
 };
 QTEST_MAIN(TestWiringAnalysisTab)

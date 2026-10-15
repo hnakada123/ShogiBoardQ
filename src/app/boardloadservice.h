@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QString>
 
+struct AppState;
 class ShogiGameController;
 class ShogiView;
 class BoardSyncPresenter;
@@ -28,7 +29,7 @@ public:
         ShogiGameController* gc = nullptr;               ///< ゲームコントローラ（非所有）
         ShogiView* view = nullptr;                        ///< 将棋盤ビュー（非所有）
         BoardSyncPresenter* boardSync = nullptr;          ///< 盤面同期プレゼンタ（非所有）
-        QString* currentSfenStr = nullptr;                ///< 現在局面SFEN文字列（外部所有）
+        AppState* state = nullptr;                        ///< 表示中の局面を書く（非所有）
         TurnStateSyncService* turnSync = nullptr;         ///< 手番表示の更新（非所有）
         KifuNavigationCoordinator* kifuNav = nullptr;     ///< 分岐ナビ中の同期抑止（非所有）
     };

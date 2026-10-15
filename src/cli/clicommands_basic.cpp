@@ -11,7 +11,7 @@
 #include "clioutput.h"
 #include "enginecatalog.h"
 #include "kifuconversionservice.h"
-#include "kifusavecoordinator.h"
+#include "kifusavefile.h"
 #include "sfenvalidationservice.h"
 
 #include <QCommandLineParser>
@@ -159,7 +159,7 @@ int CliCommands::convertKifu(const QStringList& args)
     if (outputPath.isEmpty()) {
         obj[QStringLiteral("text")] = result.lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
     } else {
-        if (!KifuSaveCoordinator::overwriteExisting(outputPath, result.lines, &error)) {
+        if (!KifuSaveFile::write(outputPath, result.lines, &error)) {
             return CliOutput::fail(QStringLiteral("io_error"), error);
         }
         obj[QStringLiteral("output_path")] = outputPath;

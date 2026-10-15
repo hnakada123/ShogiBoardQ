@@ -15,7 +15,6 @@
 class Usi;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
-class ShogiGameController;
 
 /**
  * @brief CSA通信対局用のUSIエンジンライフサイクル管理クラス
@@ -31,7 +30,6 @@ public:
     struct InitParams {
         QString enginePath;
         QString engineName;
-        ShogiGameController* gameController = nullptr;
         UsiCommLogModel* commLog = nullptr;
         ShogiEngineThinkingModel* thinkingModel = nullptr;
     };
@@ -82,7 +80,6 @@ private:
     QString m_engineName;
     Usi* m_engine = nullptr;
     QString m_ponderPosition; ///< 次の手番まで保持する予測局面
-    QPointer<ShogiGameController> m_gameController;
     QPointer<UsiCommLogModel> m_engineCommLog;
     QPointer<ShogiEngineThinkingModel> m_engineThinking;
 };

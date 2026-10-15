@@ -64,8 +64,8 @@ public:
     // USEN文字列から指し手列をデコード（エラー情報付き厳密版）
     static UsenDecodeResult decodeUsenMovesStrict(const QString& usenStr, QString* terminalOut = nullptr);
 
-    // 終局理由コードから日本語表記に変換
-    static QString terminalCodeToJapanese(const QString& code);
+    // 終局理由コードから終局の種類にする（不明なコードは Error）
+    static TerminalType terminalFromCode(const QString& code);
 
 private:
     // ---- USEN デコードヘルパ ----

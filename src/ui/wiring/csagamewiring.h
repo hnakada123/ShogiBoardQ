@@ -11,8 +11,7 @@
 #include <functional>
 
 #include "csagamecoordinator.h"
-#include "shogimove.h"
-#include "playmode.h"
+#include "appactivitystate.h"
 
 class ShogiGameController;
 class ShogiView;
@@ -25,7 +24,7 @@ class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class TimeControlController;
 class UiStatePolicyManager;
-class GameRecordUpdateService;
+class MatchRecordSink;
 class UiNotificationService;
 
 /**
@@ -33,7 +32,7 @@ class UiNotificationService;
  *
  * 責務:
  * - CsaGameCoordinator を最初の通信対局で作り、そのシグナルを実際の受け手へ直接つなぐ
- *   （棋譜行 → GameRecordUpdateService、指し手ハイライト → BoardInteractionController、
+ *   （棋譜行 → 棋譜の受け手（MatchRecordSink）、指し手ハイライト → BoardInteractionController、
  *    エラー → UiNotificationService、通信ログ → EngineAnalysisTab）
  * - 対局の開始・終局での画面の切り替え（プレイモード・UI状態・対局者名・盤の反転・
  *   ステータスバー・結果の表示・棋譜の自動保存）
@@ -55,15 +54,12 @@ public:
         ShogiView* shogiView = nullptr;
         BoardInteractionController* boardController = nullptr;
         QStatusBar* statusBar = nullptr;
-        QStringList* sfenRecord = nullptr;           ///< 司令塔に渡す局面列
-        QList<ShogiMove>* gameMoves = nullptr;       ///< 司令塔に渡す指し手列
         EngineAnalysisTab* analysisTab = nullptr;
         BoardSetupController* boardSetupController = nullptr;
         UsiCommLogModel* usiCommLog = nullptr;
         ShogiEngineThinkingModel* engineThinking = nullptr;
         TimeControlController* timeController = nullptr;
-        std::function<void(PlayMode)> changePlayMode;
-        const PlayMode* playMode = nullptr;                ///< 盤面入力の振り分けに使うプレイモード
+        AppActivityState* activity = nullptr;        ///< 通信対局中かどうか（盤の入力の振り分けに使う）
         QWidget* parentWidget = nullptr;             ///< 結果ダイアログの親
         /// 棋譜と対局情報を開始局面・対局者名で作り直し、ライブ記録を始める
         std::function<void(const QString&, const QString&, const QString&)> prepareRecord;
@@ -111,21 +107,12 @@ public:
     /**
      * @brief UI状態・棋譜・エラー通知の受け手を設定する
      * @param uiPolicy UI状態ポリシーマネージャ（対局中・待機の切り替え）
-     * @param recordService 棋譜追記サービス（司令塔の recordEntryReady を直接つなぐ）
+     * @param recordSink 棋譜の追記先（司令塔が確定した棋譜行を書く）
      * @param notifService エラー通知サービス（司令塔の errorOccurred を直接つなぐ）
      */
     void wireExternalSignals(UiStatePolicyManager* uiPolicy,
-                             GameRecordUpdateService* recordService,
+                             MatchRecordSink* recordSink,
                              UiNotificationService* notifService);
-
-signals:
-    /**
-     * @brief 盤面に着手が反映された（相手の指し手・自エンジンの指し手）
-     *
-     * CsaGameCoordinator::moveAppliedToBoard の転送シグナル。司令塔は最初の通信対局で作られるので、
-     * 起動時につなぐ駒音再生（PieceSoundPlayer）はこちらを購読する。
-     */
-    void moveAppliedToBoard();
 
 public slots:
     /**
@@ -134,6 +121,7 @@ public slots:
     void onWaitingCancelled();
 
 private slots:
+    void onRecordEntryReady(const RecordEntry& entry);
     void onGameStarted(const QString& blackName, const QString& whiteName,
                        const QList<RecordEntry>& initialRecords);
     void onGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
@@ -141,7 +129,7 @@ private slots:
     void onLogMessage(const QString& message, bool isError);
 
 private:
-    void setPlayMode(PlayMode mode);
+    void setActivity(AppActivityState::Activity activity);
     void showGameEndDialog(const QString& title, const QString& message);
     /// 接続ダイアログの入力から対局開始オプションを組み立て、配線側の設定（自動保存・盤反転）も控える
     CsaGameCoordinator::StartOptions buildStartOptions(const CsaGameDialog* dialog);
@@ -156,18 +144,15 @@ private:
     ShogiView* m_shogiView = nullptr;
     BoardInteractionController* m_boardController = nullptr;
     QStatusBar* m_statusBar = nullptr;
-    QStringList* m_sfenHistory = nullptr;
-    QList<ShogiMove>* m_gameMoves = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
     BoardSetupController* m_boardSetupController = nullptr;
     UsiCommLogModel* m_usiCommLog = nullptr;
     ShogiEngineThinkingModel* m_engineThinking = nullptr;
     TimeControlController* m_timeController = nullptr;
-    std::function<void(PlayMode)> m_changePlayMode;
-    const PlayMode* m_playMode = nullptr;
+    AppActivityState* m_activity = nullptr;
     QWidget* m_parentWidget = nullptr;
     UiStatePolicyManager* m_uiPolicy = nullptr;
-    GameRecordUpdateService* m_recordService = nullptr;
+    MatchRecordSink* m_recordSink = nullptr;
     UiNotificationService* m_notifService = nullptr;
     std::function<void(const QString&, const QString&, const QString&)> m_prepareRecord;
     std::function<void()> m_recordGameEnd;

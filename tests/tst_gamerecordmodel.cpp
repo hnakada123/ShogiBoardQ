@@ -8,7 +8,6 @@
 #include "bodtextgenerator.h"
 #include "csaformatter.h"
 #include "kifuclipboardservice.h"
-#include "kifucontentbuilder.h"
 
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
@@ -21,7 +20,7 @@
 #include "jkftosfenconverter.h"
 #include "usitosfenconverter.h"
 #include "usentosfenconverter.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "livegamesession.h"
 #include "kifuexportclipboard.h"
 #include "appstate.h"
@@ -43,8 +42,8 @@ private:
                                        const QString& usi, const QString& pretty,
                                        const QString& time = {})
     {
-        const QStringList positions = SfenPositionTracer::buildSfenRecord(parent->sfen(), {usi}, false);
-        const QList<ShogiMove> moves = SfenPositionTracer::buildGameMoves(parent->sfen(), {usi});
+        const QStringList positions = SfenReplay::buildSfenRecord(parent->sfen(), {usi}, false);
+        const QList<ShogiMove> moves = SfenReplay::buildGameMoves(parent->sfen(), {usi});
         return tree.addMove(parent, moves.value(0), pretty, positions.last(), time);
     }
 
@@ -226,7 +225,7 @@ private slots:
         QVERIFY2(parsed, qPrintable(error));
         QCOMPARE(result.mainline.baseSfen, initial);
         QCOMPARE(result.mainline.usiMoves(), usi);
-        QCOMPARE(SfenPositionTracer::buildSfenRecord(result.mainline.baseSfen, result.mainline.usiMoves(), false).last(), tip->sfen());
+        QCOMPARE(SfenReplay::buildSfenRecord(result.mainline.baseSfen, result.mainline.usiMoves(), false).last(), tip->sfen());
     }
 
     void kifBodUsesDeclaredTurn_data()
@@ -277,7 +276,9 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         auto* tip = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
-        tree.addTerminalMove(tip, TerminalType::DeclarationWin, terminal);
+        // 記号のない行は手番側（▲７六歩の次なので後手）
+        tree.addTerminalMove(tip, TerminalType::DeclarationWin,
+                             terminal.startsWith(QStringLiteral("▲")) ? Turn::Black : Turn::White);
         GameRecordModel model;
         model.setBranchTree(&tree);
         GameRecordModel::ExportContext ctx;
@@ -307,8 +308,7 @@ private slots:
         auto* tip = tree.root();
         if (moveCount >= 1) tip = addTestMove(tree, tip, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
         if (moveCount >= 2) tip = addTestMove(tree, tip, QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
-        tree.addTerminalMove(tip, TerminalType::Resign,
-                             moveCount % 2 == 0 ? QStringLiteral("△投了") : QStringLiteral("▲投了"));
+        tree.addTerminalMove(tip, TerminalType::Resign, moveCount % 2 == 0 ? Turn::White : Turn::Black);
         addTestMove(tree, tree.root(), QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
         GameRecordModel model;
         model.setBranchTree(&tree);
@@ -449,9 +449,10 @@ private slots:
         GameRecordModel model;
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");  // 角落ち
-        ctx.playMode = PlayMode::HandicapEngineVsEngine;
-        ctx.engine1 = QStringLiteral("下手エンジン");
-        ctx.engine2 = QStringLiteral("上手エンジン");
+        ctx.players.blackIsEngine = true;
+        ctx.players.whiteIsEngine = true;
+        ctx.players.blackEngineName = QStringLiteral("下手エンジン");
+        ctx.players.whiteEngineName = QStringLiteral("上手エンジン");
         ctx.timeControl = TimeControl{{60000, 2000, 0}, {120000, 3000, 0}};
         const QString kif = model.toKifLines(ctx).join(QLatin1Char('\n'));
         QVERIFY2(kif.contains(QStringLiteral("下手：下手エンジン")), qPrintable(kif));
@@ -493,7 +494,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         auto* tip = addTestMove(tree, tree.root(), QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
-        tree.addTerminalMove(tip, TerminalType::Timeout, QStringLiteral("▲時間切れ"));
+        tree.addTerminalMove(tip, TerminalType::Timeout, Turn::Black);
         GameRecordModel model;
         model.setBranchTree(&tree);
         GameRecordModel::ExportContext ctx;
@@ -595,12 +596,6 @@ private slots:
         QVERIFY(!kif.contains(QStringLiteral("開始日時：")));
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
         QVERIFY(!kif.contains(QStringLiteral("後手：")));
-        KifuExportContext legacy;
-        legacy.gameInfoProvided = true;
-        legacy.startSfen = kHirateSfen;
-        const QString legacyKif = KifuContentBuilder::buildKifuDataList(legacy).join(QLatin1Char('\n'));
-        QVERIFY(!legacyKif.contains(QStringLiteral("開始日時：")));
-        QVERIFY(!legacyKif.contains(QStringLiteral("先手：")));
         ctx.gameInfoProvided = false;
         QVERIFY(model.toKifLines(ctx).join(QLatin1Char('\n')).contains(QStringLiteral("開始日時：")));
     }
@@ -645,12 +640,12 @@ private slots:
         const QString newUsi = branch ? QStringLiteral("8c8d") : QStringLiteral("2g2f");
         const QString newPretty = branch ? QStringLiteral("△８四歩(83)") : QStringLiteral("▲２六歩(27)");
         QStringList sessionUsi = {newUsi};
-        QStringList sessionSfens = SfenPositionTracer::buildSfenRecord(anchor->sfen(), sessionUsi, false);
+        QStringList sessionSfens = SfenReplay::buildSfenRecord(anchor->sfen(), sessionUsi, false);
 
         LiveGameSession session;
         session.setTree(&tree);
         session.startFromNode(anchor);
-        session.addMove(SfenPositionTracer::buildGameMoves(anchor->sfen(), sessionUsi).value(0),
+        session.addMove(SfenReplay::buildGameMoves(anchor->sfen(), sessionUsi).value(0),
                         newPretty, sessionSfens.last(), QStringLiteral("00:05/00:00:05"));
         QVERIFY(session.commit());
 
@@ -697,7 +692,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
-        tree.addMove(first, ShogiMove(), QStringLiteral("△投了"), first->sfen());
+        tree.addTerminalMove(first, TerminalType::Resign, Turn::White);
         GameRecordModel model;
         model.setBranchTree(&tree);
         QCOMPARE(model.collectMainlineUsiForExport(), QStringList({QStringLiteral("7g7f")}));
@@ -1072,7 +1067,7 @@ private slots:
                                 QStringLiteral("( 0:01/00:00:03)"));
         auto* n5 = tree.addMove(n4, move, QStringLiteral("▲２五歩(26)"), QStringLiteral("s5"),
                                 QStringLiteral("( 0:01/00:00:04)"));
-        tree.addTerminalMove(n5, TerminalType::Resign, QStringLiteral("△投了"),
+        tree.addTerminalMove(n5, TerminalType::Resign, Turn::White,
                              QStringLiteral("( 0:03/00:00:06)"));
 
         // 変化：5手（本譜の▲２五歩の兄弟）
@@ -1080,7 +1075,7 @@ private slots:
                                 QStringLiteral("( 0:05/00:00:08)"));
         auto* v5b = tree.addMove(v5, move, QStringLiteral("△８五歩(84)"), QStringLiteral("v5b"),
                                  QStringLiteral("( 0:04/00:00:07)"));
-        tree.addTerminalMove(v5b, TerminalType::Resign, QStringLiteral("▲投了"),
+        tree.addTerminalMove(v5b, TerminalType::Resign, Turn::Black,
                              QStringLiteral("( 0:02/00:00:10)"));
 
         // 変化：3手（本譜の▲２六歩の兄弟1: ▲１六歩）
@@ -1240,9 +1235,9 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         auto* m1 = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
         auto* m2 = addTestMove(tree, m1, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
-        tree.addTerminalMove(m2, TerminalType::Checkmate, QStringLiteral("▲詰み"));
+        tree.addTerminalMove(m2, TerminalType::Checkmate, Turn::Black);
         auto* v2 = addTestMove(tree, m1, QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
-        tree.addTerminalMove(v2, TerminalType::Timeout, QStringLiteral("▲切れ負け"));
+        tree.addTerminalMove(v2, TerminalType::Timeout, Turn::Black);
         GameRecordModel model;
         model.setBranchTree(&tree);
         GameRecordModel::ExportContext ctx;
@@ -1259,7 +1254,7 @@ private slots:
         QVERIFY2(Ki2ToSfenConverter::parseWithVariations(ki2.fileName(), result, &error), qPrintable(error));
         QVERIFY(result.mainline.displayItems().last().prettyMove.contains(QStringLiteral("詰み")));
         QCOMPARE(result.variations.size(), 1);
-        QVERIFY(result.variations.at(0).line.displayItems().last().prettyMove.contains(QStringLiteral("切れ負け")));
+        QCOMPARE(result.variations.at(0).line.displayItems().last().terminalType, TerminalType::Timeout);
     }
 
     // 手合割：駒落ちの初期配置は名前で、それ以外の局面は「その他」

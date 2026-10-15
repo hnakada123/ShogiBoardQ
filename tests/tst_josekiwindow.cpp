@@ -24,7 +24,8 @@
 #include "josekimergedialog.h"
 #include "josekimovedialog.h"
 #include "josekimoveinputwidget.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "sfenutils.h"
 
 class TestJosekiWindow : public QObject
 {
@@ -924,9 +925,9 @@ void TestJosekiWindow::acceptMoveAfterPositionChange()
     QVERIFY(dialog);
     auto *window = qobject_cast<JosekiWindow*>(dialog->parentWidget());
     QVERIFY(window);
-    SfenPositionTracer tracer;
-    QVERIFY(tracer.applyUsiMove(QStringLiteral("2g2f")));
-    window->setCurrentSfen(tracer.toSfenString());
+    const QString afterMove = SfenReplay::positionAfter(SfenUtils::hirateSfen(), QStringLiteral("2g2f"));
+    QVERIFY(!afterMove.isEmpty());
+    window->setCurrentSfen(afterMove);
     dialog->setMove(QStringLiteral("7g7f"));
     dialog->accept();
 }

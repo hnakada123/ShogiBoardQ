@@ -376,9 +376,6 @@ QString modifierToRelative(QStringView modifiers)
     return relative;
 }
 
-QString specialToJapanese(const QString& special)
-{
-    return KifuParseCommon::csaSpecialToJapanese(special);
-}
+
 
 } // namespace JkfMoveParser

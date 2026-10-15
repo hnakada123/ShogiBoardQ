@@ -27,50 +27,19 @@ QString sanitizeForFileName(const QString& s, const QString& placeholder)
 
 } // namespace
 
-QString KifuIoService::makeDefaultSaveFileName(PlayMode mode,
-                                               const QString& human1,
-                                               const QString& human2,
-                                               const QString& engine1,
-                                               const QString& engine2,
-                                               const QDateTime& now,
-                                               const QString& ext)
+QString KifuIoService::makeDefaultSaveFileName(const MatchPlayers& players, const QDateTime& now, const QString& ext)
 {
     const QDateTime ts = now.isValid() ? now : QDateTime::currentDateTime();
     const QString stamp = ts.toString(QStringLiteral("yyyyMMdd_HHmmss"));
     const QString extension = ext.isEmpty() ? QStringLiteral("kifu") : ext;
 
-    auto mk = [&](const QString& p1, const QString& p2) -> QString {
-        const QString a = sanitizeForFileName(p1, QStringLiteral("P1"));
-        const QString b = sanitizeForFileName(p2, QStringLiteral("P2"));
-        return QStringLiteral("%1_%2_vs_%3.%4").arg(stamp, a, b, extension);
-    };
-
-    switch (mode) {
-    case PlayMode::HumanVsHuman:
-        return mk(human1, human2);
-    case PlayMode::EvenHumanVsEngine:      // 平手 P1: Human, P2: Engine
-        return mk(human1, engine2);
-    case PlayMode::EvenEngineVsHuman:      // 平手 P1: Engine, P2: Human
-        return mk(engine1, human2);
-    case PlayMode::EvenEngineVsEngine:     // 平手/駒落ち P1: Engine, P2: Engine
-        return mk(engine1, engine2);
-    case PlayMode::HandicapEngineVsHuman:  // 駒落ち P1: Engine(下手), P2: Human(上手)
-        return mk(engine1, human2);
-    case PlayMode::HandicapHumanVsEngine:  // 駒落ち P1: Human(下手), P2: Engine(上手)
-        return mk(human1, engine2);
-    case PlayMode::HandicapEngineVsEngine: // 駒落ち P1: Engine(下手), P2: Engine(上手)
-        return mk(engine1, engine2);
-    case PlayMode::AnalysisMode:
-        return QStringLiteral("%1_Analysis.%2").arg(stamp, extension);
-    case PlayMode::ConsiderationMode:
-        return QStringLiteral("%1_Consideration.%2").arg(stamp, extension);
-    case PlayMode::TsumiSearchMode:
-        return QStringLiteral("%1_TsumiSearch.%2").arg(stamp, extension);
-    case PlayMode::NotStarted:
-    case PlayMode::PlayModeError:
-    default:
-        return QStringLiteral("%1_Session.%2").arg(stamp, extension);
-    }
+    const QString black = players.name(Turn::Black);
+    const QString white = players.name(Turn::White);
+    // 対局をしていない（対局者の名前が無い）ときは、日時だけの名前にする
+    if (black.isEmpty() && white.isEmpty()) return QStringLiteral("%1_Session.%2").arg(stamp, extension);
+    return QStringLiteral("%1_%2_vs_%3.%4")
+        .arg(stamp, sanitizeForFileName(black, QStringLiteral("P1")),
+             sanitizeForFileName(white, QStringLiteral("P2")), extension);
 }
 
 QString KifuIoService::charactersNotInShiftJis(const QString& text, int maxCount)

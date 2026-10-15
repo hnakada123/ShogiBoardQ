@@ -1,78 +1,29 @@
 /// @file consecutivegamescontroller.cpp
-/// @brief 連続対局の進行管理と手番入れ替えの実装
+/// @brief エンジン同士の連続対局の実装
 
 #include "consecutivegamescontroller.h"
+
 #include "logcategories.h"
-#include "timecontrolcontroller.h"
-#include "shogiclock.h"
-#include "timecontrolutil.h"
-
-#include <QDebug>
-
-#include "matchcoordinator.h"
-#include <utility>
 
 namespace {
 constexpr int kNextGameDelayMs = 100;
 } // namespace
 
-// ============================================================
-// 生成・依存設定
-// ============================================================
-
 ConsecutiveGamesController::ConsecutiveGamesController(QObject* parent)
     : QObject(parent)
-    , m_delayTimer(new QTimer(this))
 {
-    m_delayTimer->setSingleShot(true);
-    connect(m_delayTimer, &QTimer::timeout, this, &ConsecutiveGamesController::launchPreparedNextGame);
+    m_delayTimer.setSingleShot(true);
+    connect(&m_delayTimer, &QTimer::timeout, this, &ConsecutiveGamesController::launchPreparedNextGame);
 }
-
-void ConsecutiveGamesController::setTimeController(TimeControlController* tc)
-{
-    m_timeController = tc;
-}
-
-void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator* gsc)
-{
-    m_gameStart = gsc;
-}
-
-void ConsecutiveGamesController::setPerformPreStartCleanup(std::function<void(const QString&)> cleanup)
-{
-    m_performPreStartCleanup = std::move(cleanup);
-}
-
-// ============================================================
-// 設定・状態管理
-// ============================================================
 
 void ConsecutiveGamesController::configure(int totalGames, bool switchTurn)
 {
-    qCDebug(lcGame).noquote() << "configure: totalGames=" << totalGames
-                       << " switchTurn=" << switchTurn;
-
-    m_delayTimer->stop();
+    qCDebug(lcGame).noquote() << "configure: totalGames=" << totalGames << " switchTurn=" << switchTurn;
+    m_delayTimer.stop();
     m_totalGames = qMax(1, totalGames);
     m_remainingGames = m_totalGames - 1;  // 最初の1局目は既に開始されている
     m_gameNumber = 1;
     m_switchTurnEachGame = switchTurn;
-}
-
-void ConsecutiveGamesController::onGameStarted(
-    const MatchCoordinator::StartOptions& opt,
-    const GameStartCoordinator::TimeSettings& tc)
-{
-    qCDebug(lcGame).noquote() << "onGameStarted: mode=" << static_cast<int>(opt.mode)
-                       << " sfenStart=" << opt.sfenStart;
-
-    m_lastStartOptions = opt;
-    m_lastTimeControl = tc;
-}
-
-bool ConsecutiveGamesController::shouldStartNextGame() const
-{
-    return m_remainingGames > 0;
 }
 
 void ConsecutiveGamesController::reset()
@@ -81,59 +32,31 @@ void ConsecutiveGamesController::reset()
     m_totalGames = 1;
     m_gameNumber = 1;
     m_switchTurnEachGame = false;
-    m_lastStartOptions = MatchCoordinator::StartOptions();
+    m_lastStartOptions = MatchStartOptions();
     m_lastTimeControl = GameStartCoordinator::TimeSettings();
-
-    if (m_delayTimer->isActive()) {
-        m_delayTimer->stop();
-    }
-}
-
-// ============================================================
-// 次局の準備・開始
-// ============================================================
-
-void ConsecutiveGamesController::prepareNextGameOptions()
-{
-    m_remainingGames--;
-    m_gameNumber++;
-
-    // 1局ごとに手番を入れ替える場合。持ち時間もエンジンと一緒に入れ替え、
-    // エンジンごとに時間差を付けた対局でも各エンジンが同じ持ち時間で指し続けるようにする。
-    if (m_switchTurnEachGame) {
-        std::swap(m_lastStartOptions.engineName1, m_lastStartOptions.engineName2);
-        std::swap(m_lastStartOptions.enginePath1, m_lastStartOptions.enginePath2);
-        std::swap(m_lastTimeControl.rules.black, m_lastTimeControl.rules.white);
-        qCDebug(lcGame) << "Switched engine sides and time controls for next game";
-    }
+    m_delayTimer.stop();
 }
 
 void ConsecutiveGamesController::startNextGame()
 {
-    qCDebug(lcGame).noquote() << "startNextGame: remaining=" << m_remainingGames
-                       << " gameNumber=" << m_gameNumber;
-
-    if (m_remainingGames <= 0 || m_delayTimer->isActive()) {
-        qCDebug(lcGame) << "No more consecutive games remaining.";
-        return;
-    }
-
+    qCDebug(lcGame).noquote() << "startNextGame: remaining=" << m_remainingGames << " gameNumber=" << m_gameNumber;
+    if (m_remainingGames <= 0 || m_delayTimer.isActive()) return;
     // 現在の終局処理・エンジン応答のスタックを抜けてから初期化する。
-    m_delayTimer->start(kNextGameDelayMs);
+    m_delayTimer.start(kNextGameDelayMs);
 }
 
 void ConsecutiveGamesController::launchPreparedNextGame()
 {
-    if (!m_gameStart) {
-        qCWarning(lcGame) << "launchPreparedNextGame: GameStartCoordinator is not ready";
-        return;
+    --m_remainingGames;
+    ++m_gameNumber;
+    // 1局ごとに手番を入れ替える場合。持ち時間もエンジンと一緒に入れ替え、
+    // エンジンごとに時間差を付けた対局でも各エンジンが同じ持ち時間で指し続けるようにする。
+    if (m_switchTurnEachGame) {
+        MatchPlayers& players = m_lastStartOptions.players;
+        std::swap(players.blackEngineName, players.whiteEngineName);
+        std::swap(m_lastStartOptions.enginePath1, m_lastStartOptions.enginePath2);
+        std::swap(m_lastTimeControl.rules.black, m_lastTimeControl.rules.white);
     }
-
-    prepareNextGameOptions();
-    if (m_performPreStartCleanup) {
-        m_performPreStartCleanup(m_lastStartOptions.sfenStart);
-    }
-
     // 次局は独立した棋譜として同じ開始局面から始める。
     m_lastStartOptions.recordLine = {};
 
@@ -142,5 +65,5 @@ void ConsecutiveGamesController::launchPreparedNextGame()
     params.tc = m_lastTimeControl;
     params.autoStartEngineMove = true;
     params.announcePlayerNames = true;
-    m_gameStart->start(params);
+    emit nextGameReady(params);
 }

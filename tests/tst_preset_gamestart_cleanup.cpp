@@ -5,7 +5,7 @@
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
 #include "livegamesession.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 
 struct CleanupHarness {
     KifuBranchTree tree;
@@ -19,8 +19,8 @@ struct CleanupHarness {
         nav.setTree(&tree);
         live.setTree(&tree);
         const QStringList usi{"7g7f", "3c3d", "2g2f"};
-        const auto moves = SfenPositionTracer::buildGameMoves(SfenUtils::hirateSfen(), usi);
-        const auto sfens = SfenPositionTracer::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
+        const auto moves = SfenReplay::buildGameMoves(SfenUtils::hirateSfen(), usi);
+        const auto sfens = SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
         live.startFromRoot();
         for (int i = 0; i < 3; ++i) live.addMove(moves.at(i), usi.at(i), sfens.at(i + 1), {});
         live.commit();

@@ -1,8 +1,7 @@
 /// @file tst_wiring_consideration.cpp
-/// @brief ConsiderationWiring の配線契約テスト（ソース解析型）
+/// @brief ConsiderationUiController の配線契約テスト（ソース解析型）
 ///
-/// ensureUIController() の内部 connect() と
-/// Deps 構造体の全フィールド参照を検証する。
+/// コンストラクタの connect() と Deps 構造体の全フィールド参照を検証する。
 
 #include <QtTest>
 #include <QFile>
@@ -57,22 +56,22 @@ private:
 private slots:
     void initTestCase()
     {
-        m_wiringSrc = readSource(QStringLiteral("src/ui/wiring/considerationwiring.cpp"));
-        m_wiringHeader = readSource(QStringLiteral("src/ui/wiring/considerationwiring.h"));
-        QVERIFY2(!m_wiringSrc.isEmpty(), "considerationwiring.cpp not found");
-        QVERIFY2(!m_wiringHeader.isEmpty(), "considerationwiring.h not found");
+        m_wiringSrc = readSource(QStringLiteral("src/ui/controllers/considerationuicontroller.cpp"));
+        m_wiringHeader = readSource(QStringLiteral("src/ui/controllers/considerationuicontroller.h"));
+        QVERIFY2(!m_wiringSrc.isEmpty(), "considerationuicontroller.cpp not found");
+        QVERIFY2(!m_wiringHeader.isEmpty(), "considerationuicontroller.h not found");
     }
 
     // ================================================================
-    // ensureUIController() 契約テスト
+    // コンストラクタの接続
     // ================================================================
 
-    void ensureUIController_connectsStopRequested()
+    void constructor_connectsStopRequested()
     {
         QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("ConsiderationModeUIController::stopRequested"),
-                               QStringLiteral("ConsiderationWiring::handleStopRequest")),
-                 "stopRequested → handleStopRequest connection missing");
+                               QStringLiteral("ConsiderationTabManager::stopConsiderationRequested"),
+                               QStringLiteral("ConsiderationUiController::stopConsideration")),
+                 "stopConsiderationRequested → stopConsideration connection missing");
     }
 
     void startRequested_usesAnalysisTabWiring()
@@ -80,16 +79,24 @@ private slots:
         const QString tabWiring = readSource(QStringLiteral("src/ui/wiring/analysistabwiring.cpp"));
         QVERIFY2(hasConnection(tabWiring,
                                QStringLiteral("EngineAnalysisTab::startConsiderationRequested"),
-                               QStringLiteral("ConsiderationWiring::displayConsiderationDialog")),
-                 "startConsiderationRequested → displayConsiderationDialog connection missing");
+                               QStringLiteral("ConsiderationUiController::startConsideration")),
+                 "startConsiderationRequested → startConsideration connection missing");
     }
 
-    void ensureUIController_connectsMultiPVChangeRequested()
+    void constructor_connectsMultiPVChanged()
     {
         QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("ConsiderationModeUIController::multiPVChangeRequested"),
-                               QStringLiteral("ConsiderationWiring::onMultiPVChangeRequested")),
-                 "multiPVChangeRequested → onMultiPVChangeRequested connection missing");
+                               QStringLiteral("ConsiderationTabManager::considerationMultiPVChanged"),
+                               QStringLiteral("ConsiderationUiController::onMultiPVChanged")),
+                 "considerationMultiPVChanged → onMultiPVChanged connection missing");
+    }
+
+    void constructor_connectsSessionEnd()
+    {
+        QVERIFY2(hasConnection(m_wiringSrc,
+                               QStringLiteral("AnalysisSession::considerationModeEnded"),
+                               QStringLiteral("ConsiderationUiController::onModeEnded")),
+                 "considerationModeEnded → onModeEnded connection missing");
     }
 
     // ================================================================
@@ -98,18 +105,15 @@ private slots:
 
     void depsFields_allReferencedInConstructor()
     {
-        // Deps の全フィールドがコンストラクタまたは updateDeps で参照されていること
+        // Deps の全フィールドがコンストラクタで参照されていること
         const QStringList fields = {
             QStringLiteral("parentWidget"),
             QStringLiteral("considerationTabManager"),
             QStringLiteral("thinkingInfo1"),
             QStringLiteral("shogiView"),
-            QStringLiteral("match"),
-            QStringLiteral("dialogCoordinator"),
+            QStringLiteral("session"),
             QStringLiteral("considerationModel"),
             QStringLiteral("commLogModel"),
-            QStringLiteral("playMode"),
-            QStringLiteral("currentSfenStr"),
         };
         for (const auto& field : std::as_const(fields)) {
             QVERIFY2(m_wiringSrc.contains(QStringLiteral("deps.") + field),
@@ -124,9 +128,9 @@ private slots:
     void totalConnectCount_matchesExpected()
     {
         const int total = countConnects(m_wiringSrc);
-        // ensureUIController(): 中止要求とMultiPV変更の2経路。開始はAnalysisTabWiringが担当。
-        QVERIFY2(total >= 2,
-                 qPrintable(QStringLiteral("Expected >= 2 connect() calls, got %1").arg(total)));
+        // 矢印・候補手の数・中止・検討の終了・待機の5経路。開始は AnalysisTabWiring が担当。
+        QVERIFY2(total >= 5,
+                 qPrintable(QStringLiteral("Expected >= 5 connect() calls, got %1").arg(total)));
     }
 };
 

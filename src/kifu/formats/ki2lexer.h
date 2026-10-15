@@ -11,6 +11,7 @@
 #include <optional>
 
 #include "shogitypes.h"
+#include "terminaltype.h"
 #include "usimove.h"
 
 namespace Ki2Lexer {
@@ -34,7 +35,7 @@ bool isResultLine(const QString& line);
 // === 結果行解析 ===
 
 /// 結果行を解析して終局語と手数を抽出
-bool parseResultLine(const QString& line, QString& terminalWord, int& moveCount);
+bool parseResultLine(const QString& line, TerminalType& terminal, int& moveCount);
 
 // === 指し手テキスト解析 ===
 

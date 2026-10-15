@@ -37,8 +37,8 @@ void CsaClient::GameSummary::clear()
     gameId.clear();
     blackName.clear();
     whiteName.clear();
-    myTurn.clear();
-    toMove = QStringLiteral("+");
+    myTurn.reset();
+    toMove = Turn::Black;
     rematchOnDraw = false;
     maxMoves = 0;
 
@@ -472,8 +472,5 @@ void CsaClient::resetSessionState()
     m_logoutTimer->stop();
     m_keepAliveTimer->stop();
     m_lastSendTimer.invalidate();
-    m_inGameSummary = false;
-    m_inTimeSection = false;
-    m_inPositionSection = false;
-    m_currentTimeSection.clear();
+    m_summarySection = SummarySection::Outside;
 }

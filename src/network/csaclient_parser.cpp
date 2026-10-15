@@ -17,6 +17,14 @@ bool parseNonNegativeIntField(const QString& key, const QString& value, int& out
     return true;
 }
 
+/// Your_Turn・To_Move の値（+ / -）
+std::optional<Turn> parseSideSymbol(const QString& value)
+{
+    if (value == QStringLiteral("+")) return Turn::Black;
+    if (value == QStringLiteral("-")) return Turn::White;
+    return std::nullopt;
+}
+
 constexpr int kRejectPrefixLength = 7;  // "REJECT:"
 } // namespace
 
@@ -29,7 +37,7 @@ void CsaClient::processLine(const QString& line)
     qCDebug(lcNetwork).noquote() << "Recv:" << line;
 
     // Game_Summary解析中
-    if (m_inGameSummary) {
+    if (m_summarySection != SummarySection::Outside) {
         processGameSummary(line);
         return;
     }
@@ -51,7 +59,7 @@ void CsaClient::processLine(const QString& line)
             QString gameId = line.mid(6);
             resetGameProgressState();
             setConnectionState(ConnectionState::InGame);
-            m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
+            m_isMyTurn = m_gameSummary.movesFirst();
             emit gameStarted(gameId);
         } else if (line.startsWith(QStringLiteral("REJECT:"))) {
             // 対局拒否
@@ -97,7 +105,7 @@ void CsaClient::processLoginResponse(const QString& line)
 void CsaClient::processWaitingLine(const QString& line)
 {
     if (line == QStringLiteral("BEGIN Game_Summary")) {
-        m_inGameSummary = true;
+        m_summarySection = SummarySection::TopLevel;
         m_summaryBytes = 0;
         m_summaryLines = 0;
         m_gameSummary.clear();
@@ -123,9 +131,7 @@ void CsaClient::processGameSummary(const QString& line)
 bool CsaClient::handleGameSummarySectionBoundary(const QString& line)
 {
     if (line == QStringLiteral("END Game_Summary")) {
-        m_inGameSummary = false;
-        m_inTimeSection = false;
-        m_inPositionSection = false;
+        m_summarySection = SummarySection::Outside;
         setConnectionState(ConnectionState::GameReady);
         emit gameSummaryReceived(m_gameSummary);
         return true;
@@ -133,39 +139,32 @@ bool CsaClient::handleGameSummarySectionBoundary(const QString& line)
 
     if (line == QStringLiteral("END Time") ||
         line == QStringLiteral("END Time+") ||
-        line == QStringLiteral("END Time-")) {
-        m_inTimeSection = false;
-        return true;
-    }
-
-    if (line == QStringLiteral("END Position")) {
-        m_inPositionSection = false;
+        line == QStringLiteral("END Time-") ||
+        line == QStringLiteral("END Position")) {
+        m_summarySection = SummarySection::TopLevel;
         return true;
     }
 
     if (line == QStringLiteral("BEGIN Time")) {
-        m_inTimeSection = true;
-        m_currentTimeSection = QStringLiteral("Time");
+        m_summarySection = SummarySection::Time;
         m_gameSummary.timeBlack.specified = true;
         m_gameSummary.timeWhite.specified = true;
         return true;
     }
     if (line == QStringLiteral("BEGIN Time+")) {
-        m_inTimeSection = true;
-        m_currentTimeSection = QStringLiteral("Time+");
+        m_summarySection = SummarySection::TimeBlack;
         m_gameSummary.hasIndividualTime = true;
         m_gameSummary.timeBlack.specified = true;
         return true;
     }
     if (line == QStringLiteral("BEGIN Time-")) {
-        m_inTimeSection = true;
-        m_currentTimeSection = QStringLiteral("Time-");
+        m_summarySection = SummarySection::TimeWhite;
         m_gameSummary.hasIndividualTime = true;
         m_gameSummary.timeWhite.specified = true;
         return true;
     }
     if (line == QStringLiteral("BEGIN Position")) {
-        m_inPositionSection = true;
+        m_summarySection = SummarySection::Position;
         return true;
     }
 
@@ -174,7 +173,11 @@ bool CsaClient::handleGameSummarySectionBoundary(const QString& line)
 
 bool CsaClient::handleGameSummaryTimeSectionLine(const QString& line)
 {
-    if (!m_inTimeSection) return false;
+    const SummarySection section = m_summarySection;
+    if (section != SummarySection::Time && section != SummarySection::TimeBlack
+        && section != SummarySection::TimeWhite) {
+        return false;
+    }
 
     const qsizetype colonPos = line.indexOf(QLatin1Char(':'));
     if (colonPos <= 0) return true;
@@ -183,8 +186,8 @@ bool CsaClient::handleGameSummaryTimeSectionLine(const QString& line)
     const QString value = line.mid(static_cast<int>(colonPos) + 1);
 
     // 共通の Time は双方に、Time+ は先手に、Time- は後手に書く
-    const bool toBlack = (m_currentTimeSection != QStringLiteral("Time-"));
-    const bool toWhite = (m_currentTimeSection != QStringLiteral("Time+"));
+    const bool toBlack = section != SummarySection::TimeWhite;
+    const bool toWhite = section != SummarySection::TimeBlack;
     const auto apply = [&](auto&& assign) {
         if (toBlack) assign(m_gameSummary.timeBlack);
         if (toWhite) assign(m_gameSummary.timeWhite);
@@ -213,7 +216,7 @@ bool CsaClient::handleGameSummaryTimeSectionLine(const QString& line)
 
 bool CsaClient::handleGameSummaryPositionSectionLine(const QString& line)
 {
-    if (!m_inPositionSection) return false;
+    if (m_summarySection != SummarySection::Position) return false;
 
     // P1-P9, P+, P-, +, - で始まる行は局面情報
     if (line.startsWith(QLatin1Char('P')) ||
@@ -257,9 +260,11 @@ void CsaClient::processGameSummaryGeneralInfoLine(const QString& line)
     } else if (key == QStringLiteral("Name-")) {
         m_gameSummary.whiteName = value;
     } else if (key == QStringLiteral("Your_Turn")) {
-        m_gameSummary.myTurn = value;
+        m_gameSummary.myTurn = parseSideSymbol(value);
+        if (!m_gameSummary.myTurn) qCWarning(lcNetwork) << "Invalid Your_Turn:" << value;
     } else if (key == QStringLiteral("To_Move")) {
-        m_gameSummary.toMove = value;
+        if (const auto side = parseSideSymbol(value)) m_gameSummary.toMove = *side;
+        else qCWarning(lcNetwork) << "Invalid To_Move:" << value;
     } else if (key == QStringLiteral("Rematch_On_Draw")) {
         m_gameSummary.rematchOnDraw = (value == QStringLiteral("YES"));
     } else if (key == QStringLiteral("Max_Moves")) {
@@ -288,7 +293,7 @@ void CsaClient::processGameMessage(const QString& line)
         // %TORYO,T4 形式。意思表示をしたのは手番側なので、その側の時間単位で換算する
         const qsizetype commaPos = line.indexOf(QLatin1Char(','));
         const int consumedTime = consumedTimeUnitsAfterComma(line, commaPos);
-        const bool moverIsBlack = m_isMyTurn ? m_gameSummary.isBlackTurn() : !m_gameSummary.isBlackTurn();
+        const bool moverIsBlack = m_isMyTurn ? m_gameSummary.isBlackSide() : !m_gameSummary.isBlackSide();
 
         // 終局手の消費時間を保存（ミリ秒に変換）
         m_endMoveConsumedTimeMs = consumedTime * m_gameSummary.timeUnitMs(moverIsBlack);
@@ -399,11 +404,7 @@ void CsaClient::processMoveLine(const QString& line)
     const bool wasMyTurn = m_isMyTurn;
 
     // 手番を更新（相手が指したら自分の手番に）
-    if (isBlackMove) {
-        m_isMyTurn = (m_gameSummary.myTurn == QStringLiteral("-"));
-    } else {
-        m_isMyTurn = (m_gameSummary.myTurn == QStringLiteral("+"));
-    }
+    m_isMyTurn = m_gameSummary.myTurn == (isBlackMove ? Turn::White : Turn::Black);
     m_awaitingMoveConfirmation = false;
 
     if (wasMyTurn) {

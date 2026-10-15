@@ -211,18 +211,22 @@ private slots:
         // 親と同じ局面SFENを持ち、無関係な ShogiMove を保持しない
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
-        const ShogiMove realMove(QPoint(2, 6), QPoint(2, 5), Piece::BlackPawn, Piece::None, false);
+        const ShogiMove realMove(UsiMove::fromString(u"3g3f"), Piece::BlackPawn);
         auto* n1 = tree.addMove(tree.root(), realMove, QStringLiteral("▲２六歩(27)"), QStringLiteral("board1 w - 2"));
 
         // KIF 本譜由来: SFEN が空
-        auto* t1 = tree.addMove(n1, realMove, QStringLiteral("△投了"), QString());
+        auto* t1 = tree.addTerminalMove(n1, TerminalType::Resign, Turn::White);
         QVERIFY(t1->isTerminal());
         QCOMPARE(t1->sfen(), n1->sfen());
         QCOMPARE(t1->move().movingPiece, Piece::None);
         QVERIFY(!t1->isActualMove());
+        QCOMPARE(t1->displayText(), QStringLiteral("△投了"));
 
-        // ライブ対局由来: 手数が進んだ SFEN が渡されても親の局面になる
-        auto* t2 = tree.addMoveQuiet(n1, realMove, QStringLiteral("△中断"), QStringLiteral("board1 w - 3"));
+        // 局面・指し手を持った終局の行を渡されても、親の局面になり指し手は持たない
+        RecordEntry interrupted = RecordEntry::ending(TerminalType::Interrupt, Turn::White);
+        interrupted.move = realMove;
+        interrupted.sfen = QStringLiteral("board1 w - 3");
+        auto* t2 = tree.addRecord(n1, interrupted);
         QVERIFY(t2->isTerminal());
         QCOMPARE(t2->sfen(), n1->sfen());
         QCOMPARE(t2->move().movingPiece, Piece::None);
@@ -243,7 +247,7 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("m1"), QStringLiteral("s1"));
         auto* n2 = tree.addMove(n1, move, QStringLiteral("m2"), QStringLiteral("s2"));
-        tree.addTerminalMove(n2, TerminalType::Resign, QStringLiteral("▲投了"));
+        tree.addTerminalMove(n2, TerminalType::Resign, Turn::Black);
         QCOMPARE(spy.count(), 0);           // 一括更新中は発火しない
         tree.endBatchUpdate();
         QCOMPARE(spy.count(), 1);           // 終了時に1回だけ
@@ -315,7 +319,7 @@ private slots:
         ShogiMove dummyMove;
         auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
         auto* n2 = tree.addMove(n1, dummyMove, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
-        auto* resign = tree.addMove(n2, dummyMove, QStringLiteral("▲投了"), QStringLiteral("board2 b - 4"));
+        auto* resign = tree.addTerminalMove(n2, TerminalType::Resign, Turn::Black);
         QVERIFY(resign->isTerminal());
 
         for (int i = 0; i < 20; ++i) {
@@ -396,7 +400,7 @@ private slots:
 
     void findMatchingChild_ignoresHandOrder()
     {
-        // ShogiBoard は持ち駒を駒種ごとに先後交互、SfenPositionTracer は先手分→後手分の順で出力する
+        // 以前のこのアプリは持ち駒を駒種ごとに先後交互に書いた。標準は先手分→後手分の順
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove dummyMove;
@@ -414,8 +418,8 @@ private slots:
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
-        const ShogiMove pawnMove(QPoint(2, 6), QPoint(2, 5), Piece::BlackPawn, Piece::None, false);
-        const ShogiMove otherMove(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
+        const ShogiMove pawnMove(UsiMove::fromString(u"3g3f"), Piece::BlackPawn);
+        const ShogiMove otherMove(UsiMove::fromString(u"7g7f"), Piece::BlackPawn);
         auto* n1 = tree.addMove(tree.root(), pawnMove, QStringLiteral("▲２六歩(27)"), QString());
 
         QCOMPARE(tree.findMatchingChild(tree.root(), pawnMove, QStringLiteral("▲２六歩(27)"), QString()), n1);
@@ -428,13 +432,14 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         ShogiMove dummyMove;
         auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("▲７六歩"), QStringLiteral("board w - 2"));
-        auto* resign = tree.addMove(n1, dummyMove, QStringLiteral("△投了"), QStringLiteral("board w - 3"));
+        auto* resign = tree.addTerminalMove(n1, TerminalType::Resign, Turn::White);
         QVERIFY(resign->isTerminal());
 
-        // 同じ種類の終局手は一致する
-        QCOMPARE(tree.findMatchingChild(n1, dummyMove, QStringLiteral("△投了"), QStringLiteral("board w - 3")), resign);
-        // 種類が違う終局手は一致しない
-        QVERIFY(tree.findMatchingChild(n1, dummyMove, QStringLiteral("△中断"), QStringLiteral("board w - 3")) == nullptr);
+        // 同じ種類・同じ側の終局手は一致する
+        QCOMPARE(tree.findMatchingChild(n1, RecordEntry::ending(TerminalType::Resign, Turn::White)), resign);
+        // 種類か側が違う終局手は一致しない
+        QVERIFY(tree.findMatchingChild(n1, RecordEntry::ending(TerminalType::Interrupt, Turn::White)) == nullptr);
+        QVERIFY(tree.findMatchingChild(n1, RecordEntry::ending(TerminalType::Resign, Turn::Black)) == nullptr);
         // 通常の指し手は、局面が同じでも終局手ノードとは一致しない
         QVERIFY(tree.findMatchingChild(n1, dummyMove, QStringLiteral("△３四歩"), QStringLiteral("board w - 3")) == nullptr);
         // 親が nullptr なら nullptr

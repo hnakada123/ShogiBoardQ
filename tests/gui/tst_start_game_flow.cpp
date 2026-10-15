@@ -27,6 +27,7 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "matchcoordinator.h"
+#include "enginelifecyclemanager.h"
 #include "shogiviewhighlighting.h"
 #include "usi.h"
 #include "kifurecordlistmodel.h"
@@ -34,7 +35,6 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifudisplaycoordinator.h"
-#include "matchcoordinatorwiring.h"
 #include "consecutivegamescontroller.h"
 #include <QTemporaryDir>
 #include <QDir>
@@ -165,7 +165,7 @@ private slots:
         auto* view = window->findChild<ShogiView*>();
         QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(7, 7));
         QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(7, 6));
-        QTRY_COMPARE(window->composer().parts().match->sfenRecordPtr()->size(), 2);
+        QTRY_COMPARE(window->composer().parts().match->record().sfens().size(), 2);
         QTRY_VERIFY(!view->chrome()->blackActive());
         const QString blackText = view->blackClockLabel()->text();
         const QString whiteText = view->whiteClockLabel()->text();
@@ -214,7 +214,7 @@ private slots:
                 QTest::qWait(150);
                 child<QAction>(*window, "actionMakeImmediateMove")->trigger();
             }
-            QTRY_COMPARE(window->composer().parts().match->sfenRecordPtr()->size(), ply + 2);
+            QTRY_COMPARE(window->composer().parts().match->record().sfens().size(), ply + 2);
         }
         QTest::qWait(250);
         child<QAction>(*window, "actionBreakOffGame")->trigger();
@@ -267,7 +267,7 @@ private slots:
         auto* resume = child<QAction>(*window, "actionResumeGame");
         QVERIFY(!resume->isEnabled());
         const auto playNext = [&]() {
-            const int ply = static_cast<int>(match->sfenRecordPtr()->size() - 1);
+            const int ply = static_cast<int>(match->record().sfens().size() - 1);
             const bool human = mode == 0 || (ply % 2 == 0 ? mode == 1 : mode == 2);
             if (human) {
                 const QList<QPair<QPoint, QPoint>> moves = {
@@ -281,10 +281,10 @@ private slots:
         };
         for (int ply = 0; ply < pausePly; ++ply) {
             playNext();
-            QTRY_COMPARE(match->sfenRecordPtr()->size(), ply + 2);
+            QTRY_COMPARE(match->record().sfens().size(), ply + 2);
         }
         QTest::qWait(160);
-        const auto history = *match->sfenRecordPtr();
+        const auto history = match->record().sfens();
         const auto board = view->board()->convertBoardToSfen();
         child<QAction>(*window, "actionBreakOffGame")->trigger();
         QVERIFY(match->gameOverState().isOver);
@@ -293,8 +293,10 @@ private slots:
         const auto saved = match->interruptedGame()->clock;
         QTest::qWait(250);
         QVERIFY(!clock->isRunning());
-        if (match->primaryEngine()) QVERIFY(!match->primaryEngine()->isEngineRunning());
-        if (match->secondaryEngine()) QVERIFY(!match->secondaryEngine()->isEngineRunning());
+        auto* engines = window->composer().parts().engines;
+        for (int slot : {1, 2}) {
+            if (Usi* engine = engines->engineInSlot(slot)) QVERIFY(!engine->isEngineRunning());
+        }
         // 中断中の棋譜閲覧が再開地点に影響しない。
         auto* table = window->findChild<RecordPane*>()->kifuView();
         table->selectRow(0);
@@ -302,7 +304,7 @@ private slots:
         resume->trigger();
         QVERIFY(!match->gameOverState().isOver);
         QVERIFY(!resume->isEnabled());
-        QCOMPARE(*match->sfenRecordPtr(), history);
+        QCOMPARE(match->record().sfens(), history);
         QCOMPARE(view->board()->convertBoardToSfen(), board);
         QCOMPARE(clock->currentPlayer(), saved.currentPlayer);
         QVERIFY(qAbs(clock->remainingMs(Turn::Black) - saved.of(Turn::Black).remainingMs) < 100);
@@ -316,8 +318,8 @@ private slots:
         QTest::qWait(150);
         QVERIFY(clock->isRunning());
         playNext();
-        QTRY_COMPARE(match->sfenRecordPtr()->size(), pausePly + 2);
-        QCOMPARE(match->sfenRecordPtr()->mid(0, history.size()), history);
+        QTRY_COMPARE(match->record().sfens().size(), pausePly + 2);
+        QCOMPARE(match->record().sfens().mid(0, history.size()), history);
         QVERIFY(!match->gameOverState().isOver);
         child<QAction>(*window, "actionBreakOffGame")->trigger();
         QVERIFY(resume->isEnabled());
@@ -501,8 +503,9 @@ private slots:
         auto* table = controller->tableWidget();
         QCOMPARE(table->rowCount(), 9);
         QVERIFY(table->item(1, 1)->text().isEmpty());
-        QVERIFY(table->item(2, 1)->text().isEmpty());
-        QVERIFY(table->item(3, 1)->text().isEmpty());
+        // 対局者は名前が決まるまで「先手」「後手」（GameInfoPaneController::resetGameInfo）
+        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("先手"));
+        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("後手"));
         table->item(6, 1)->setText(QStringLiteral("練習対局"));
         table->item(7, 1)->setText(QStringLiteral("自宅"));
         controller->applyChanges();
@@ -579,7 +582,7 @@ private slots:
         QVERIFY(clock);
         auto* record = window->findChild<RecordPane*>();
         const QString sfen = window->composer().state().currentSfenStr;
-        const QStringList history = *match->sfenRecordPtr();
+        const QStringList history = match->record().sfens();
         const auto box = view->board()->pieceBox();
         const auto hands = view->board()->pieceStand();
         const int rows = record->kifuView()->model()->rowCount();
@@ -587,9 +590,7 @@ private slots:
         const qint64 whiteTime = clock->remainingMainTimeMs(Turn::White);
         const qint64 engineLogSize = QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size();
         QSignalSpy ended(match, &MatchCoordinator::gameEnded);
-        auto* wiring = window->composer().parts().matchWiring.get();
-        QVERIFY(wiring);
-                auto* gameStart = wiring->menuGameStartCoordinator();
+        auto* gameStart = window->composer().parts().gameStart;
         QVERIFY(gameStart);
         QSignalSpy started(gameStart, &GameStartCoordinator::started);
         QSignalSpy cleaned(gameStart, &GameStartCoordinator::requestPreStartCleanup);
@@ -608,14 +609,13 @@ private slots:
         QCOMPARE(clock->remainingMainTimeMs(Turn::Black), blackTime);
         QCOMPARE(clock->remainingMainTimeMs(Turn::White), whiteTime);
         QCOMPARE(QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size(), engineLogSize);
-        QCOMPARE(window->composer().state().playMode, PlayMode::NotStarted);
-        QVERIFY(!window->composer().state().errorOccurred);
+        QCOMPARE(window->composer().state().activity.activity(), AppActivityState::Activity::Idle);
         QCOMPARE(view->board()->convertBoardToSfen(), boardSfen);
         QCOMPARE(view->board()->pieceBox(), box);
         QCOMPARE(view->board()->pieceStand(), hands);
         QCOMPARE(window->composer().state().currentSfenStr, sfen);
         QCOMPARE(window->composer().state().startSfenStr, sfen);
-        QCOMPARE(*match->sfenRecordPtr(), history);
+        QCOMPARE(match->record().sfens(), history);
         QCOMPARE(record->kifuView()->model()->rowCount(), rows);
         QVERIFY(!record->isNavigationDisabled());
         QVERIFY(child<QAction>(*window, "actionStartGame")->isEnabled());
@@ -655,7 +655,8 @@ private slots:
         QVERIFY2(!messages.join('\n').contains(QStringLiteral("対局を開始できません")),
                  qPrintable(messages.join('\n')));
         QVERIFY(window->composer().parts().match->clock()->isRunning());
-        QCOMPARE(window->composer().state().playMode, PlayMode::HumanVsHuman);
+        QCOMPARE(window->composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        QVERIFY(window->composer().state().players.humanVsHuman());
         auto* view = window->findChild<ShogiView*>();
         QCOMPARE(view->board()->convertBoardToSfen(), expectedBoard);
         if (preset == 0) {
@@ -695,7 +696,7 @@ private slots:
         settings.sync();
         startWindowGame();
         auto* match = window->composer().parts().match;
-        QVERIFY(match); QCOMPARE(match->maxMoves(),1);
+        QVERIFY(match); QCOMPARE(match->options().maxMoves,1);
         auto* board = window->findChild<ShogiView*>();
         auto* record = window->findChild<RecordPane*>();
         QVERIFY(record);

@@ -5,19 +5,19 @@
 /// @brief ダイアログコーディネータクラスの定義
 
 
-#include "recordline.h"
 #include <QObject>
-#include "recordline.h"
 #include <QString>
 #include <QStringList>
 #include <QList>
 #include <functional>
 
 #include "kifparsetypes.h"
+#include "recordline.h"
 
 class ShogiView;
+struct AppState;
 class QWidget;
-class MatchCoordinator;
+class AnalysisSession;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class KifuAnalysisListModel;
@@ -61,7 +61,7 @@ public:
      * @brief 依存オブジェクト群
      */
     struct Deps {
-        MatchCoordinator* matchCoordinator = nullptr;         ///< 対局調整（非所有）
+        AnalysisSession* analysisSession = nullptr;           ///< 検討・詰み探索のセッション（非所有）
         UsiCommLogModel* logModel = nullptr;                  ///< ログモデル（解析用、非所有）
         ShogiEngineThinkingModel* thinkingModel = nullptr;    ///< 思考モデル（解析用、非所有）
         KifuAnalysisListModel* analysisModel = nullptr;       ///< 解析モデル（非所有）
@@ -103,10 +103,8 @@ public:
      */
     bool showPromotionDialog();
 
-    /**
-     * @brief ゲームオーバーメッセージボックスを表示
-     */
-    void showGameOverMessage(const QString& title, const QString& message);
+    /// 知らせ（終局・検討の終了・詰み探索の結果）のメッセージボックスを表示する
+    void showInformation(const QString& title, const QString& message);
 
     // --------------------------------------------------------
     // 解析関連ダイアログ
@@ -123,8 +121,7 @@ public:
         int byoyomiSec = 20;               // 検討時間（秒）
         int multiPV = 1;                   // 候補手の数
         ShogiEngineThinkingModel* considerationModel = nullptr;  // 検討タブ用モデル
-        int previousFileTo = 0;            // 前回の移動先の筋（1-9, 0=未設定）
-        int previousRankTo = 0;            // 前回の移動先の段（1-9, 0=未設定）
+        BoardSquare previousTo;            // 局面に至った手の移動先（開始局面は無効値）
         QString lastUsiMove;               // 開始局面に至った最後の指し手（USI形式）
     };
 
@@ -140,8 +137,7 @@ public:
      */
     struct ConsiderationContext {
         ShogiGameController* gameController = nullptr;
-        QString* startSfenStr = nullptr;
-        const QString* currentSfenStr = nullptr;             // 手順が無いときに検討する局面
+        const AppState* state = nullptr;              // 手順が無いときに検討する局面（表示中・開始局面）
         class KifuNavigationState* navState = nullptr;       // 表示中の手順（分岐ツリー）
         ShogiEngineThinkingModel* considerationModel = nullptr;  // 検討タブの思考情報モデル（起動時に作られる）
     };
@@ -181,7 +177,7 @@ public:
      */
     struct TsumeSearchContext {
         KifuNavigationState* navState = nullptr;  // 表示中の手順（分岐ツリー）
-        QString* startSfenStr = nullptr;
+        const AppState* state = nullptr;   // 手順が無いときに探索する局面（開始局面）
     };
 
     /**
@@ -205,7 +201,6 @@ public:
         RecordLine line;
         int lineIndex = 0;        // 解析対象の分岐ライン
         int activePly = 0;
-        ShogiGameController* gameController = nullptr;  // 盤面情報取得用
         QString blackPlayerName;   // 先手対局者名
         QString whitePlayerName;   // 後手対局者名
         AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
@@ -220,7 +215,6 @@ public:
     struct KifuAnalysisContext {
         KifuRecordListModel* recordModel = nullptr;
         KifuNavigationState* navState = nullptr;   // 表示中の手順（分岐ツリー）
-        ShogiGameController* gameController = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
         EvaluationChartWidget* evalChart = nullptr;
         AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
@@ -321,7 +315,7 @@ signals:
 
 private:
     QWidget* m_parentWidget = nullptr;
-    MatchCoordinator* m_match = nullptr;
+    AnalysisSession* m_analysisSession = nullptr;
     UsiCommLogModel* m_logModel = nullptr;
     ShogiEngineThinkingModel* m_thinkingModel = nullptr;
     KifuAnalysisListModel* m_analysisModel = nullptr;

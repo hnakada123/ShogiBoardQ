@@ -6,6 +6,7 @@
 #include "ui_mainwindow.h"
 
 #include "analysisresultspresenter.h"
+#include "analysissession.h"
 #include "analysistabwiring.h"
 #include "boardinteractioncontroller.h"
 #include "boardloadservice.h"
@@ -13,18 +14,16 @@
 #include "boardsyncpresenter.h"
 #include "branchnavigationwiring.h"
 #include "commentcoordinator.h"
-#include "considerationpositionservice.h"
-#include "considerationwiring.h"
+#include "considerationuicontroller.h"
 #include "csagamewiring.h"
 #include "dialogcoordinatorwiring.h"
-#include "dialoglaunchwiring.h"
+#include "dialoglauncher.h"
 #include "engineanalysistab.h"
 #include "evaluationgraphcontroller.h"
 #include "gamerecordloadservice.h"
 #include "gamerecordmodel.h"
-#include "gamerecordupdateservice.h"
-#include "gamesessionorchestrator.h"
-#include "josekiwindowwiring.h"
+#include "gamesession.h"
+#include "josekiwindowcontroller.h"
 #include "kifubranchtree.h"
 #include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
@@ -35,19 +34,18 @@
 #include "kifunavigationstate.h"
 #include "languagecontroller.h"
 #include "livegamesession.h"
+#include "matchcoordinator.h"
 #include "mainwindowactions.h"
-#include "menuwindowwiring.h"
+#include "menuwindowcontroller.h"
 #include "nyugyokudeclarationhandler.h"
 #include "piecesoundplayer.h"
-#include "playerinfocontroller.h"
-#include "playerinfowiring.h"
+#include "playerinfopresenter.h"
 #include "positioneditcontroller.h"
 #include "positioneditcoordinator.h"
 #include "pvclickcontroller.h"
 #include "recordnavigationhandler.h"
 #include "recordpane.h"
 #include "replaycontroller.h"
-#include "sessionlifecyclecoordinator.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "timecontrolcontroller.h"
@@ -58,6 +56,7 @@
 #include "candidatearrowcontroller.h"
 
 #include <QAction>
+#include <functional>
 #include <QStatusBar>
 
 // ---------------------------------------------------------------------------
@@ -66,32 +65,27 @@
 
 void MainWindowComposer::wireFoundation()
 {
-    // UI 状態ポリシー。started 通知では MainWindow 側のモード同期より先に呼ばれるので、司令塔のモードを見る
+    // UI 状態ポリシー。待った・投了・入玉宣言を人間が参加する対局だけにするため、司令塔の対局者の組を見る
     UiStatePolicyManager::Deps ud;
     ud.ui = &m_ui;
     ud.activity = &m_state.activity;
     ud.recordPane = m_c.recordPane;
     ud.analysisTab = m_c.analysisTab;
     ud.boardController = m_c.boardController;
-    ud.getPlayMode = [this]() {
-        return m_c.match ? m_c.match->playMode() : PlayMode::NotStarted;
+    ud.localGameHasHuman = [this]() {
+        return m_c.match->isHumanSide(Turn::Black) || m_c.match->isHumanSide(Turn::White);
     };
     m_c.uiStatePolicy->updateDeps(ud);
 
     UiNotificationService::Deps nd;
-    nd.errorOccurred = &m_state.errorOccurred;
     nd.parentWidget = &m_window;
     m_c.notificationService->updateDeps(nd);
 
     // 評価値グラフ。表示中の手順の行数（終局行を含む）- 1 を長さとする
     m_c.evalGraphController->setEvalChart(m_c.evalChart);
-    m_c.evalGraphController->setSfenRecord(&m_state.sfenRecord);
     m_c.evalGraphController->setNavigation(m_c.branchTree, m_c.navState);
-    m_c.evalGraphController->setEngine1Name(m_state.engineName1);
-    m_c.evalGraphController->setEngine2Name(m_state.engineName2);
-    m_c.playerInfoController->setEvalGraphController(m_c.evalGraphController.get());
-    m_c.playerInfoController->setLogModels(m_c.commLog1, m_c.commLog2);
-    m_c.playerInfoController->setAnalysisTab(m_c.analysisTab);
+    m_c.playerInfo->setEvalGraphController(m_c.evalGraphController.get());
+    m_c.playerInfo->setLogModels(m_c.commLog1, m_c.commLog2);
 
     // コメント
     CommentCoordinator* cc = m_c.commentCoordinator;
@@ -128,12 +122,11 @@ void MainWindowComposer::wireKifu()
     kd.shogiView = m_c.shogiView;
     kd.navState = m_c.navState;
     kd.navController = m_c.kifuNavController;
-    kd.currentSfenStr = &m_state.currentSfenStr;
-    kd.playMode = &m_state.playMode;
-    kd.match = m_c.match;
+    kd.state = &m_state;
+    kd.analysis = m_c.analysisSession;
     kd.analysisTab = m_c.analysisTab;
     kd.uiStatePolicy = m_c.uiStatePolicy;
-    kd.josekiWiring = m_c.josekiWiring.get();
+    kd.josekiController = m_c.josekiController.get();
     m_c.kifuNavCoordinator->updateDeps(kd);
 
     BranchNavigationWiring::Deps bd;
@@ -149,7 +142,7 @@ void MainWindowComposer::wireKifu()
     bd.gameRecordModel = m_c.gameRecord;
     bd.gameController = m_c.gameController;
     bd.commentCoordinator = m_c.commentCoordinator;
-    bd.startSfenStr = &m_state.startSfenStr;
+    bd.state = &m_state;
     m_c.branchNavWiring->updateDeps(bd);
     m_c.branchNavWiring->initialize();
 
@@ -174,7 +167,7 @@ void MainWindowComposer::wireKifu()
     p.branchNavWiring = m_c.branchNavWiring.get();
     p.kifuNavCoordinator = m_c.kifuNavCoordinator.get();
     p.uiStatePolicy = m_c.uiStatePolicy;
-    p.playerInfoWiring = m_c.playerInfoWiring;
+    p.playerInfo = m_c.playerInfo;
     p.notificationService = m_c.notificationService;
     m_c.kifuLoadCoordinator = KifuLoadCoordinatorFactory::createAndWire(p);
 
@@ -193,12 +186,12 @@ void MainWindowComposer::wireKifu()
     fd.parentWidget = &m_window;
     fd.statusBar = m_ui.statusbar;
     fd.gameInfo = m_c.gameInfoController;
-    fd.saveFileName = &m_state.saveFileName;
+    fd.state = &m_state;
     fd.gameRecord = m_c.gameRecord;
     fd.exportController = m_c.kifuExportController.get();
     fd.loadCoordinator = m_c.kifuLoadCoordinator;
     fd.replayController = m_c.replayController;
-    fd.clearUiBeforeKifuLoad = [this]() { m_c.sessionLifecycle->clearUiBeforeKifuLoad(); };
+    fd.clearUiBeforeKifuLoad = std::bind(&GameSession::clearUiBeforeKifuLoad, m_c.gameSession);
     m_c.kifuFileController->updateDeps(fd);
 }
 
@@ -212,15 +205,13 @@ void MainWindowComposer::wireUi()
     bl.gc = m_c.gameController;
     bl.view = m_c.shogiView;
     bl.boardSync = m_c.boardSync;
-    bl.currentSfenStr = &m_state.currentSfenStr;
+    bl.state = &m_state;
     bl.turnSync = m_c.turnStateSync.get();
     bl.kifuNav = m_c.kifuNavCoordinator.get();
     m_c.boardLoadService->updateDeps(bl);
 
     // 盤操作
     BoardSetupController* bsc = m_c.boardSetupController;
-    bsc->setMatchCoordinator(m_c.match);
-    bsc->setEvaluationGraphController(m_c.evalGraphController.get());
 
     // 局面編集
     PositionEditCoordinator* pec = m_c.posEditCoordinator;
@@ -231,9 +222,7 @@ void MainWindowComposer::wireUi()
     pec->setMatchCoordinator(m_c.match);
     pec->setReplayController(m_c.replayController);
     pec->setNavigationState(m_c.navState);
-    pec->setStartSfenStr(&m_state.startSfenStr);
-    pec->setCurrentSfenStr(&m_state.currentSfenStr);
-    pec->setOnMainRowGuard(&m_state.onMainRowGuard);
+    pec->setAppState(&m_state);
     pec->setUiStatePolicy(m_c.uiStatePolicy);
     PositionEditCoordinator::EditActions actions;
     actions.actionReturnAllPiecesToStand = m_ui.actionReturnAllPiecesToStand;
@@ -247,43 +236,30 @@ void MainWindowComposer::wireUi()
     pv->setThinkingModels(m_c.thinking1, m_c.thinking2);
     pv->setConsiderationModel(m_c.consideration);
     PvClickController::StateRefs refs;
-    refs.playMode = &m_state.playMode;
-    refs.humanName1 = &m_state.humanName1;
-    refs.humanName2 = &m_state.humanName2;
-    refs.engineName1 = &m_state.engineName1;
-    refs.engineName2 = &m_state.engineName2;
-    refs.currentSfenStr = &m_state.currentSfenStr;
-    refs.startSfenStr = &m_state.startSfenStr;
+    refs.state = &m_state;
     refs.navState = m_c.navState;
     pv->setStateRefs(refs);
     pv->setShogiView(m_c.shogiView);
 
-    // 検討する局面
-    ConsiderationPositionService::Deps cd;
-    cd.playMode = &m_state.playMode;
-    cd.startSfenStr = &m_state.startSfenStr;
-    cd.navState = m_c.navState;
-    cd.match = m_c.match;
-    cd.analysisTab = m_c.analysisTab;
-    m_c.considerationPositionService->updateDeps(cd);
-
     // USI コマンド送信
-    m_c.usiCommandController->setMatchCoordinator(m_c.match);
     m_c.usiCommandController->setAnalysisTab(m_c.analysisTab);
-    m_c.analysisTab->setArrowController(CandidateArrowController::forView(m_c.shogiView));
+    // 候補手の矢印の表示状態を思考タブの設定欄に出し、設定が変わったら描き直す
+    CandidateArrowController* arrows = CandidateArrowController::forView(m_c.shogiView);
+    connect(arrows, &CandidateArrowController::displayStateChanged,
+            m_c.analysisTab, &EngineAnalysisTab::setArrowDisplayState);
+    connect(m_c.analysisTab, &EngineAnalysisTab::arrowSettingsChanged,
+            arrows, &CandidateArrowController::scheduleRefresh);
 
     // 検討モード（ダイアログの司令塔は wireDialogs で渡す）
-    ConsiderationWiring::Deps cw;
+    ConsiderationUiController::Deps cw;
     cw.parentWidget = &m_window;
     cw.considerationTabManager = m_c.analysisTab->considerationTabManager();
     cw.thinkingInfo1 = m_c.analysisTab->info1();
     cw.shogiView = m_c.shogiView;
-    cw.match = m_c.match;
+    cw.session = m_c.analysisSession;
     cw.considerationModel = m_c.consideration;
     cw.commLogModel = m_c.commLog1;
-    cw.playMode = &m_state.playMode;
-    cw.currentSfenStr = &m_state.currentSfenStr;
-    m_c.considerationWiring = new ConsiderationWiring(cw, &m_window);
+    m_c.considerationUi = new ConsiderationUiController(cw, &m_window);
 
     // 棋譜欄の行変更
     RecordNavigationHandler::Deps rd;
@@ -298,32 +274,29 @@ void MainWindowComposer::wireUi()
     ext.pvClickController = m_c.pvClickController;
     ext.commentCoordinator = m_c.commentCoordinator;
     ext.usiCommandController = m_c.usiCommandController.get();
-    ext.considerationWiring = m_c.considerationWiring;
+    ext.considerationUi = m_c.considerationUi;
     m_c.analysisWiring->wireExternalSignals(ext);
 
     // 起動後の利用者操作（着手・局面編集・待った・新規・棋譜欄の行変更）
     MainWindowActions::Deps ad;
+    ad.window = &m_window;
     ad.boardSetup = m_c.boardSetupController;
     ad.boardController = m_c.boardController;
     ad.branchWiring = m_c.branchNavWiring.get();
     ad.gameController = m_c.gameController;
     ad.view = m_c.shogiView;
     ad.uiPolicy = m_c.uiStatePolicy;
-    ad.recordUpdates = m_c.gameRecordUpdateService.get();
-    ad.gameSession = m_c.gameSessionOrchestrator;
-    ad.sessionLifecycle = m_c.sessionLifecycle;
+    ad.gameSession = m_c.gameSession;
     ad.positionEdit = m_c.posEditCoordinator;
     ad.comments = m_c.commentCoordinator;
     ad.displayCoordinator = m_c.displayCoordinator;
     ad.recordNavigation = m_c.recordNavHandler;
-    ad.undoFlow = m_c.undoFlowService.get();
     ad.kifuFileController = m_c.kifuFileController;
-    ad.josekiWiring = m_c.josekiWiring.get();
+    ad.josekiController = m_c.josekiController.get();
     ad.state = &m_state;
     ad.editedPositionReset.navState = m_c.navState;
     ad.editedPositionReset.displayCoordinator = m_c.displayCoordinator;
     ad.editedPositionReset.gameRecord = m_c.gameRecord;
-    ad.editedPositionReset.sfenRecord = &m_state.sfenRecord;
     ad.editedPositionReset.branchTree = m_c.branchTree;
     ad.editedPositionReset.liveGameSession = m_c.liveGameSession;
     m_c.actions = std::make_unique<MainWindowActions>(std::move(ad));
@@ -340,31 +313,32 @@ void MainWindowComposer::wireDialogs()
 {
     DialogCoordinatorWiring::Deps dc;
     dc.parentWidget = &m_window;
-    dc.match = m_c.match;
+    dc.analysisSession = m_c.analysisSession;
     dc.gameController = m_c.gameController;
-    dc.startSfenStr = &m_state.startSfenStr;
+    dc.state = &m_state;
     dc.kifuRecordModel = m_c.kifuRecord;
-    dc.currentSfenStr = &m_state.currentSfenStr;
     dc.navState = m_c.navState;
     dc.considerationModel = m_c.consideration;
+    dc.logModel = m_c.commLog1;
+    dc.thinkingModel = m_c.thinking1;
+    dc.analysisModel = m_c.analysis;
     dc.gameInfoController = m_c.gameInfoController;
     dc.evalChart = m_c.evalChart;
     dc.presenter = m_c.analysisPresenter.get();
     dc.shogiView = m_c.shogiView;
-    dc.considerationWiring = m_c.considerationWiring;
+    dc.considerationUi = m_c.considerationUi;
     dc.uiStatePolicy = m_c.uiStatePolicy;
     dc.analysisTab = m_c.analysisTab;
-    dc.playMode = &m_state.playMode;
     dc.kifuNavController = m_c.kifuNavController;
     m_c.dialogCoordinatorWiring->wire(dc);
     m_c.dialogCoordinator = m_c.dialogCoordinatorWiring->coordinator();
     // 検討モードの配線とダイアログの司令塔は互いを参照する。両方できたのでここで渡す
-    m_c.considerationWiring->setDialogCoordinator(m_c.dialogCoordinator);
+    m_c.considerationUi->setDialogCoordinator(m_c.dialogCoordinator);
 
-    DialogLaunchWiring::Deps dl;
+    DialogLauncher::Deps dl;
     dl.parentWidget = &m_window;
     dl.kifuFileController = m_c.kifuFileController;
-    dl.playMode = &m_state.playMode;
+    dl.activity = &m_state.activity;
     dl.dialogCoordinator = m_c.dialogCoordinator;
     dl.gameController = m_c.gameController;
     dl.match = m_c.match;
@@ -373,16 +347,10 @@ void MainWindowComposer::wireDialogs()
     dl.nyugyokuHandler = m_c.nyugyokuHandler.get();
     dl.csaGameWiring = m_c.csaGameWiring.get();
     dl.boardSetupController = m_c.boardSetupController;
-    dl.gameInfoController = m_c.gameInfoController;
-    dl.analysisPresenter = m_c.analysisPresenter.get();
     dl.analysisTab = m_c.analysisTab;
-    dl.lineEditModel1 = m_c.commLog1;
-    dl.modelThinking1 = m_c.thinking1;
-    dl.kifuRecordModel = m_c.kifuRecord;
-    dl.navState = m_c.navState;
     dl.evalChart = m_c.evalChart;
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
-    dl.analysisModel = m_c.analysis;
+    dl.usesHandicapNames = std::bind(&GameSession::usesHandicapNames, m_c.gameSession);
     dl.menuWindowDock = m_c.docks.menuWindow;
-    m_c.dialogLaunchWiring = new DialogLaunchWiring(dl, &m_window);
+    m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
 }

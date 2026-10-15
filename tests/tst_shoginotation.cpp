@@ -122,13 +122,10 @@ private slots:
         QCOMPARE(pv, QStringLiteral("▲２二角成(88)△同銀(31)"));
     }
 
-    // === ShogiMove::toUsiMove ===
-
-    void toUsiMove_invalidCoordinates()
+    void usiMove_invalidIsEmptyText()
     {
-        // 範囲外の移動先座標
-        ShogiMove m(QPoint(0, 0), QPoint(-1, 0), Piece::BlackPawn, Piece::None, false);
-        QCOMPARE(m.toUsiMove().toString(), QString());
+        QCOMPARE(UsiMove::fromString(u"0a1a").toString(), QString());
+        QCOMPARE(ShogiMove().move.toString(), QString());
     }
 };
 

@@ -1,5 +1,5 @@
 /// @file enginemovevalidator.cpp
-/// @brief EngineMoveValidator の実装（Context主経路 + 互換ラッパ）
+/// @brief 合法手の判定の実装
 
 #include "enginemovevalidator.h"
 
@@ -7,6 +7,7 @@
 #include "fmvconverter.h"
 #include "fmvlegalcore.h"
 #include "fmvlegalcore_internal.h"
+#include "shogiboard.h"
 
 namespace {
 fmv::LegalCore& legalCore()
@@ -16,37 +17,49 @@ fmv::LegalCore& legalCore()
 }
 } // namespace
 
-bool EngineMoveValidator::syncContext(Context& ctx,
-                                      Turn turn,
-                                      const QList<Piece>& boardData,
-                                      const QMap<Piece, int>& pieceStand) const
+// ---- 局面の読み込み ----
+
+EngineMoveValidator::Context EngineMoveValidator::load(const QList<Piece>& boardData,
+                                                       const QMap<Piece, int>& pieceStand,
+                                                       Turn turn)
 {
+    Context ctx;
     ctx.turn = turn;
     ctx.synced = fmv::Converter::toEnginePosition(ctx.pos, boardData, pieceStand);
-    return ctx.synced;
+    return ctx;
 }
 
-LegalMoveStatus EngineMoveValidator::isLegalMove(Context& ctx, ShogiMove& move) const
+EngineMoveValidator::Context EngineMoveValidator::load(const ShogiBoard& board, Turn turn)
+{
+    return load(board.boardData(), board.pieceStand(), turn);
+}
+
+// ---- 読み込んだ局面への問い合わせ ----
+
+LegalMoveStatus EngineMoveValidator::legalStatus(const Context& ctx, const UsiMove& move)
 {
     if (!ctx.synced) {
         return LegalMoveStatus(false, false);
     }
-
     fmv::ConvertedMove cm;
     if (!fmv::Converter::toEngineMove(cm, ctx.turn, ctx.pos, move)) {
         return LegalMoveStatus(false, false);
     }
-
     fmv::EnginePosition work = ctx.pos;
     const fmv::Color side = fmv::Converter::toColor(ctx.turn);
-
     if (cm.hasPromoteVariant) {
         return legalCore().checkMoveVariants(work, side, cm.nonPromote);
     }
     return legalCore().checkMove(work, side, cm.nonPromote);
 }
 
-int EngineMoveValidator::generateLegalMoves(Context& ctx) const
+bool EngineMoveValidator::isLegal(const Context& ctx, const UsiMove& move)
+{
+    const LegalMoveStatus status = legalStatus(ctx, move);
+    return move.promote ? status.promotingMoveExists : status.nonPromotingMoveExists;
+}
+
+int EngineMoveValidator::legalMoveCount(const Context& ctx)
 {
     if (!ctx.synced) {
         return 0;
@@ -55,7 +68,7 @@ int EngineMoveValidator::generateLegalMoves(Context& ctx) const
     return legalCore().countLegalMoves(work, fmv::Converter::toColor(ctx.turn));
 }
 
-QList<UsiMove> EngineMoveValidator::legalMoves(Context& ctx) const
+QList<UsiMove> EngineMoveValidator::legalMoves(const Context& ctx)
 {
     QList<UsiMove> out;
     if (!ctx.synced) {
@@ -71,7 +84,7 @@ QList<UsiMove> EngineMoveValidator::legalMoves(Context& ctx) const
     return out;
 }
 
-QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(Context& ctx) const
+QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(const Context& ctx)
 {
     QList<UsiMove> out;
     if (!ctx.synced) {
@@ -125,7 +138,7 @@ QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(Context& ctx) const
     return out;
 }
 
-int EngineMoveValidator::checkIfKingInCheck(Context& ctx) const
+int EngineMoveValidator::checkCount(const Context& ctx)
 {
     if (!ctx.synced) {
         return 0;
@@ -133,17 +146,40 @@ int EngineMoveValidator::checkIfKingInCheck(Context& ctx) const
     return legalCore().countChecksToKing(ctx.pos, fmv::Converter::toColor(ctx.turn));
 }
 
-#ifdef SHOGIBOARDQ_TESTING
-bool EngineMoveValidator::syncContext(SimulationContext& simulation,
-                                      Turn turn,
-                                      const QList<Piece>& boardData,
-                                      const QMap<Piece, int>& pieceStand) const
+// ---- 1回だけ問い合わせるときの省略形 ----
+
+LegalMoveStatus EngineMoveValidator::legalStatus(const ShogiBoard& board, Turn turn, const UsiMove& move)
 {
-    simulation.undoSize = 0;
-    return syncContext(simulation.context, turn, boardData, pieceStand);
+    return legalStatus(load(board, turn), move);
 }
 
-bool EngineMoveValidator::tryApplyMove(SimulationContext& simulation, ShogiMove& move) const
+QList<UsiMove> EngineMoveValidator::legalMoves(const ShogiBoard& board, Turn turn)
+{
+    return legalMoves(load(board, turn));
+}
+
+QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(const ShogiBoard& board, Turn turn)
+{
+    return pseudoLegalMoves(load(board, turn));
+}
+
+bool EngineMoveValidator::isInCheck(const ShogiBoard& board, Turn turn)
+{
+    return checkCount(load(board, turn)) > 0;
+}
+
+#ifdef SHOGIBOARDQ_TESTING
+bool EngineMoveValidator::syncContext(SimulationContext& simulation,
+                                      const QList<Piece>& boardData,
+                                      const QMap<Piece, int>& pieceStand,
+                                      Turn turn)
+{
+    simulation.undoSize = 0;
+    simulation.context = load(boardData, pieceStand, turn);
+    return simulation.context.synced;
+}
+
+bool EngineMoveValidator::tryApplyMove(SimulationContext& simulation, const UsiMove& move)
 {
     Context& ctx = simulation.context;
     if (!ctx.synced || simulation.undoSize >= SimulationContext::kUndoMax) {
@@ -157,7 +193,7 @@ bool EngineMoveValidator::tryApplyMove(SimulationContext& simulation, ShogiMove&
 
     const fmv::Color side = fmv::Converter::toColor(ctx.turn);
     fmv::UndoState undo;
-    const fmv::Move selected = move.isPromotion && cm.hasPromoteVariant ? cm.promote : cm.nonPromote;
+    const fmv::Move selected = move.promote && cm.hasPromoteVariant ? cm.promote : cm.nonPromote;
     if (!legalCore().tryApplyLegalMove(ctx.pos, side, selected, undo)) {
         return false;
     }
@@ -167,7 +203,7 @@ bool EngineMoveValidator::tryApplyMove(SimulationContext& simulation, ShogiMove&
     return true;
 }
 
-bool EngineMoveValidator::undoLastMove(SimulationContext& simulation) const
+bool EngineMoveValidator::undoLastMove(SimulationContext& simulation)
 {
     Context& ctx = simulation.context;
     if (!ctx.synced || simulation.undoSize <= 0) {
@@ -181,61 +217,3 @@ bool EngineMoveValidator::undoLastMove(SimulationContext& simulation) const
     return true;
 }
 #endif
-
-// ---- 互換ラッパ（毎回Contextを作る） ----
-
-LegalMoveStatus EngineMoveValidator::isLegalMove(Turn turn,
-                                                  const QList<Piece>& boardData,
-                                                  const QMap<Piece, int>& pieceStand,
-                                                  ShogiMove& currentMove) const
-{
-    Context ctx;
-    if (!syncContext(ctx, turn, boardData, pieceStand)) {
-        return LegalMoveStatus(false, false);
-    }
-    return isLegalMove(ctx, currentMove);
-}
-
-int EngineMoveValidator::generateLegalMoves(Turn turn,
-                                             const QList<Piece>& boardData,
-                                             const QMap<Piece, int>& pieceStand) const
-{
-    Context ctx;
-    if (!syncContext(ctx, turn, boardData, pieceStand)) {
-        return 0;
-    }
-    return generateLegalMoves(ctx);
-}
-
-QList<UsiMove> EngineMoveValidator::legalMoves(Turn turn,
-                                               const QList<Piece>& boardData,
-                                               const QMap<Piece, int>& pieceStand) const
-{
-    Context ctx;
-    if (!syncContext(ctx, turn, boardData, pieceStand)) {
-        return {};
-    }
-    return legalMoves(ctx);
-}
-
-QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(Turn turn,
-                                                     const QList<Piece>& boardData,
-                                                     const QMap<Piece, int>& pieceStand) const
-{
-    Context ctx;
-    if (!syncContext(ctx, turn, boardData, pieceStand)) {
-        return {};
-    }
-    return pseudoLegalMoves(ctx);
-}
-
-int EngineMoveValidator::checkIfKingInCheck(Turn turn,
-                                             const QList<Piece>& boardData) const
-{
-    Context ctx;
-    QMap<Piece, int> emptyStand;
-    if (!syncContext(ctx, turn, boardData, emptyStand)) {
-        return 0;
-    }
-    return checkIfKingInCheck(ctx);
-}

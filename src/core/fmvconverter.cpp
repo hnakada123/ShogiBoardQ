@@ -130,59 +130,6 @@ bool isPromotable(PieceType pt) noexcept
     }
 }
 
-/// 成駒→元駒 (case-preserving)
-char toBasePieceChar(char c) noexcept
-{
-    switch (c) {
-    case 'Q': return 'P';  case 'q': return 'p';
-    case 'M': return 'L';  case 'm': return 'l';
-    case 'O': return 'N';  case 'o': return 'n';
-    case 'T': return 'S';  case 't': return 's';
-    case 'C': return 'B';  case 'c': return 'b';
-    case 'U': return 'R';  case 'u': return 'r';
-    default: return c;
-    }
-}
-
-/// 駒台座標のRank（EngineMoveValidator互換）
-int expectedHandRank(const Turn ownerTurn, char rawPiece) noexcept
-{
-    char piece = toBasePieceChar(rawPiece);
-
-    if (ownerTurn == Turn::Black) {
-        switch (piece) {
-        case 'P': return 0;
-        case 'L': return 1;
-        case 'N': return 2;
-        case 'S': return 3;
-        case 'G': return 4;
-        case 'B': return 5;
-        case 'R': return 6;
-        default: return -1;
-        }
-    }
-
-    switch (piece) {
-    case 'r': return 2;
-    case 'b': return 3;
-    case 'g': return 4;
-    case 's': return 5;
-    case 'n': return 6;
-    case 'l': return 7;
-    case 'p': return 8;
-    default: return -1;
-    }
-}
-
-/// 駒charが手番に属するか
-bool belongsToTurn(const Turn turn, char c) noexcept
-{
-    if (turn == Turn::Black) {
-        return c >= 'A' && c <= 'Z';
-    }
-    return c >= 'a' && c <= 'z';
-}
-
 } // namespace
 
 bool Converter::toEnginePosition(EnginePosition& out,
@@ -216,73 +163,25 @@ bool Converter::toEnginePosition(EnginePosition& out,
 bool Converter::toEngineMove(ConvertedMove& out,
                              Turn turn,
                              const EnginePosition& pos,
-                             const ShogiMove& in)
+                             const UsiMove& move)
 {
     out = {};
-
-    int toX = in.toSquare.x();
-    int toY = in.toSquare.y();
-    if (toX < 0 || toX >= kBoardSize || toY < 0 || toY >= kBoardSize) {
+    if (!move.to.isValid()) {
         return false;
     }
-    Square toSq = toSquare(toX, toY);
+    const Square toSq = toSquare(move.to.file - 1, move.to.rank - 1);
 
-    // capturedPiece が指定されている場合は盤面実体と一致を要求
-    char capturedChar = static_cast<char>(in.capturedPiece);
-    if (capturedChar != kEmpty) {
-        char boardCaptured = pos.board[toSq];
-        if (capturedChar != boardCaptured) {
+    const Color sideColor = toColor(turn);
+    if (move.isDrop()) {
+        const Piece piece = move.dropPieceFor(turn);
+        const PieceType pt = pieceToPieceType(piece);
+        const HandType ht = pieceToHandType(static_cast<char>(piece));
+        if (pt == PieceType::PieceTypeNb || ht == HandType::HandTypeNb) {
             return false;
         }
-    }
-
-    int fromX = in.fromSquare.x();
-    int fromY = in.fromSquare.y();
-
-    // 打ち判定
-    // EngineMoveValidator::BLACK_HAND_FILE = 9, WHITE_HAND_FILE = 10 は
-    // ShogiMove の 0-indexed 座標系（盤上 0〜8、先手持ち駒 9、後手持ち駒 10）に対応する。
-    // ShogiBoard/UI 座標系の 1-indexed（先手駒台 10、後手駒台 11）とは異なる。
-    bool isDrop = (fromX == EngineMoveValidator::BLACK_HAND_FILE
-                   || fromX == EngineMoveValidator::WHITE_HAND_FILE);
-
-    if (isDrop) {
-        // 手番と駒台ファイル座標の一致チェック
-        int expectedFile = (turn == Turn::Black) ? EngineMoveValidator::BLACK_HAND_FILE
-                                                                : EngineMoveValidator::WHITE_HAND_FILE;
-        if (fromX != expectedFile) {
+        if (pos.hand[static_cast<std::size_t>(sideColor)][static_cast<std::size_t>(ht)] <= 0) {
             return false;
         }
-
-        char pieceChar = static_cast<char>(in.movingPiece);
-
-        // 駒が手番に属するかチェック
-        if (!belongsToTurn(turn, pieceChar)) {
-            return false;
-        }
-
-        // 駒台Rank座標の一致チェック
-        int expRank = expectedHandRank(turn, pieceChar);
-        if (expRank < 0 || fromY != expRank) {
-            return false;
-        }
-
-        PieceType pt = pieceToPieceType(in.movingPiece);
-        if (pt == PieceType::PieceTypeNb) {
-            return false;
-        }
-
-        // 持ち駒を実際に持っているかチェック
-        Color sideColor = toColor(turn);
-        HandType ht = pieceToHandType(pieceChar);
-        if (ht == HandType::HandTypeNb) {
-            return false;
-        }
-        int ci = static_cast<int>(sideColor);
-        if (pos.hand[ci][static_cast<std::size_t>(ht)] <= 0) {
-            return false;
-        }
-
         out.nonPromote.kind = MoveKind::Drop;
         out.nonPromote.from = kInvalidSquare;
         out.nonPromote.to = toSq;
@@ -293,31 +192,20 @@ bool Converter::toEngineMove(ConvertedMove& out,
     }
 
     // 盤上移動
-    if (fromX < 0 || fromX >= kBoardSize || fromY < 0 || fromY >= kBoardSize) {
+    if (!move.from.isValid()) {
         return false;
     }
-    Square fromSq = toSquare(fromX, fromY);
+    const Square fromSq = toSquare(move.from.file - 1, move.from.rank - 1);
 
     // 盤上の駒から実体を取得
-    char boardChar = pos.board[fromSq];
+    const char boardChar = pos.board[fromSq];
     if (boardChar == kEmpty) {
         return false;
     }
 
     Color pieceColor{};
     PieceType pieceType{};
-    if (!mapPieceChar(boardChar, pieceColor, pieceType)) {
-        return false;
-    }
-
-    // 手番チェック
-    Color expectedColor = toColor(turn);
-    if (pieceColor != expectedColor) {
-        return false;
-    }
-
-    // movingPiece が盤上の駒と一致するかチェック
-    if (boardChar != static_cast<char>(in.movingPiece)) {
+    if (!mapPieceChar(boardChar, pieceColor, pieceType) || pieceColor != sideColor) {
         return false;
     }
 
@@ -329,16 +217,11 @@ bool Converter::toEngineMove(ConvertedMove& out,
 
     // 成りバリアント
     if (isPromotable(pieceType)) {
-        int fromRank = squareRank(fromSq);
-        int toRank = squareRank(toSq);
-
-        bool inPromotionZone = false;
-        if (expectedColor == Color::Black) {
-            inPromotionZone = (fromRank <= 2 || toRank <= 2);
-        } else {
-            inPromotionZone = (fromRank >= 6 || toRank >= 6);
-        }
-
+        const int fromRank = squareRank(fromSq);
+        const int toRank = squareRank(toSq);
+        const bool inPromotionZone = (sideColor == Color::Black)
+            ? (fromRank <= 2 || toRank <= 2)
+            : (fromRank >= 6 || toRank >= 6);
         if (inPromotionZone) {
             out.promote = out.nonPromote;
             out.promote.promote = true;

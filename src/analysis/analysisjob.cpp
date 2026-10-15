@@ -6,13 +6,13 @@
 #include <utility>
 
 AnalysisJob::AnalysisJob(AnalysisRequest request, const Dependencies& deps, QObject* parent)
-    : QObject(parent), m_request(std::move(request)), m_coordinator({&m_request.line.sfens}), m_engine(deps.engine)
+    : QObject(parent), m_request(std::move(request)), m_coordinator({m_request.line.sfens()}), m_engine(deps.engine)
 {
     UsiCommLogModel* log = deps.log;
     if (!m_engine) {
         if (!log) log = new UsiCommLogModel(this);
         auto* thinking = deps.thinking ? deps.thinking : new ShogiEngineThinkingModel(this);
-        m_engine = new Usi(log, thinking, deps.gameController, this);
+        m_engine = new Usi(log, thinking, this);
     }
     if (log) log->setEngineName(m_request.engineName);
     m_engine->setLogIdentity(QStringLiteral("[E1]"), {}, m_request.engineName);
@@ -40,9 +40,9 @@ bool AnalysisJob::start()
 {
     if (m_state != State::Ready || !m_engine) return false;
     const auto& line = m_request.line;
-    if (line.isEmpty() || line.sfens.size() != line.moves.size() + 1) return false;
+    if (line.isEmpty()) return false;
     m_state = State::Initializing;
-    if (!m_engine->startAndInitializeEngineAsync(m_request.enginePath, m_request.engineName)) {
+    if (!m_engine->startEngine(m_request.enginePath, m_request.engineName)) {
         onFinished(AnalysisCoordinator::Idle);
         return false;
     }

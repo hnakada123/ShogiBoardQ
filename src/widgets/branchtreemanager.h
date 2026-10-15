@@ -5,6 +5,8 @@
 /// @brief EngineAnalysisTab から分離した分岐ツリー管理クラスの定義
 
 #include <QObject>
+
+#include "branchtreelayout.h"
 #include <QList>
 #include <QMap>
 #include <QPair>
@@ -79,7 +81,7 @@ public:
     void highlightBranchTreeAt(int row, int ply, bool centerOn = false);
 
     /// 描画済みの行（ライン）数
-    int rowCount() const { return static_cast<int>(m_rows.size()); }
+    int rowCount() const { return static_cast<int>(m_layout.rows.size()); }
 
     /// 指定行の手順の長さ（開始局面を含むので「描画済み最終手数 + 1」）
     int rowDispCount(int row) const;
@@ -139,14 +141,6 @@ protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private:
-    /// 行（ライン）の配置情報。手順そのものはツリーから引く
-    struct RowInfo {
-        int startPly = 1;      ///< この行に描く最初の手数（変化の先頭）
-        int parent   = -1;     ///< 分岐元の行
-        int headNodeId = -1;   ///< 変化の先頭の手の KifuBranchNode ID（折りたたみ状態の保持に使う）
-        int length = 0;        ///< 開始局面を含む手順の長さ
-    };
-
     /// ツリーの全ラインから行の配置情報を作り直す
     void syncRowsFromTree();
     /// 前回合わせたときから葉が1つ増えただけなら、その手を描き足して true を返す
@@ -165,11 +159,9 @@ private:
     /// 枝の線（選んでいる手順）
     static QPen pathEdgePen();
     void rebuildBranchTree();
-    void computeLayout();
     qreal laneY(int lane) const;
     QGraphicsPathItem* addNode(int row, int ply, const KifuBranchNode* node);
     void addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to);
-    int  resolveParentRowForVariation(int row) const;
     void highlightItem(QGraphicsPathItem* item, bool centerOn);
     void highlightPathTo(const KifuBranchNode* node);
     void scrollToNode(QGraphicsPathItem* item, bool centerOn);   ///< 表示中のときだけノードを見える位置へスクロールする
@@ -181,12 +173,6 @@ private:
     void updateStickyHeader();             ///< 縦にスクロールしても手数の見出しを上端に表示する
     void onVerticalScrolled(int value);
     void applyZoom();
-
-    // --- 折りたたみ ---
-    bool isRowHidden(int row) const;       ///< 祖先の変化が折りたたまれていて描画しない行
-    int  lastVisiblePly(int row) const;    ///< 行の描画する最後の手数
-    int  hiddenNodeCount(int row) const;   ///< 折りたたみで隠れている手の数
-    bool revealNode(int row, int ply);     ///< 指定ノードが隠れていれば折りたたみを解除する。解除したら true
 
     // --- 操作 ---
     bool handleKeyPress(QKeyEvent* event);
@@ -203,9 +189,7 @@ private:
     QPointer<KifuBranchTree> m_tree;
     quint64 m_syncedRevision = 0;                 ///< 描画に合わせたときの KifuBranchTree::revision()
     int m_syncedNodeCount = -1;                   ///< 描画に合わせたときのノード数
-    QList<RowInfo> m_rows;
-    QList<int> m_rowLane;                         ///< 行 → 段（隠れている行は -1）
-    int m_laneCount = 1;
+    BranchTreeLayout m_layout;                    ///< 行の配置・折りたたみ・段
     QMap<QPair<int,int>, QGraphicsPathItem*> m_nodeIndex;   ///< 描いた (行, 手数) → 図形
     QHash<int, QGraphicsPathItem*> m_itemByNodeId;          ///< KifuBranchNode ID → 図形
     QHash<int, QGraphicsSimpleTextItem*> m_plyLabels;   ///< 「n手目」の見出し（ply → item）
@@ -214,7 +198,6 @@ private:
     int m_rebuildCount = 0;
     bool m_compactLayout = true;
     int m_zoomPercent = 100;
-    QSet<int> m_collapsedHeads;                   ///< 折りたたんだ変化の先頭ノードID（KifuBranchNode）
 
     // --- 強調 ---
     QHash<int, QGraphicsPathItem*> m_edgeInto;   ///< KifuBranchNode ID → そのノードへ入る辺

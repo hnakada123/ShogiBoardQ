@@ -18,8 +18,7 @@ class ConsiderationPositionResolver
 public:
     struct UpdateParams {
         QString position;        ///< USI の position コマンド
-        int previousFileTo = 0;  ///< 直前の手の移動先の筋（1〜9。開始局面は0）
-        int previousRankTo = 0;  ///< 直前の手の移動先の段（1〜9。開始局面は0）
+        BoardSquare previousTo;  ///< 直前の手の移動先（開始局面は無効値）
         QString lastUsiMove;     ///< 直前の手（USI。開始局面は空）
     };
 

@@ -5,6 +5,7 @@
 #include <QStringView>
 #include "usimove.h"
 #include "parsecommon.h"
+#include "terminaltype.h"
 #include "shogitypes.h"
 
 class TestParseCommon : public QObject
@@ -24,29 +25,16 @@ private slots:
     void isBookmarkLine_normalLine();
 
     // ---- csaSpecialToJapanese ----
-    void csaSpecial_toryo();
-    void csaSpecial_chudan();
-    void csaSpecial_sennichite();
-    void csaSpecial_oute_sennichite();
-    void csaSpecial_jishogi();
-    void csaSpecial_timeUp();
-    void csaSpecial_illegalMove();
-    void csaSpecial_illegalAction();
-    void csaSpecial_plusIllegalAction();
-    void csaSpecial_kachi();
-    void csaSpecial_hikiwake();
-    void csaSpecial_maxMoves();
-    void csaSpecial_tsumi();
-    void csaSpecial_fuzumi();
-    void csaSpecial_error();
-    void csaSpecial_withPercentPrefix();
-    void csaSpecial_unknown();
 
     // ---- foulTerminalMove ----
-    void foulTerminalMove_data();
-    void foulTerminalMove();
 
     // ---- formatTimeMS ----
+    void csaSpecialToTerminal_data();
+    void csaSpecialToTerminal();
+    void csaSpecial_illegalActionDependsOnSide();
+    void terminalWords_readAliases();
+    void terminalWords_findInText();
+    void terminalWords_labelRoundTrip();
     void formatTimeMS_zero();
     void formatTimeMS_basic();
     void formatTimeMS_minutes();
@@ -83,12 +71,6 @@ private slots:
     void parseDigit_invalid();
 
     // ---- terminal words ----
-    void terminalWords_count();
-    void isTerminalWordExact_match();
-    void isTerminalWordExact_noMatch();
-    void isTerminalWordExact_withWhitespace();
-    void isTerminalWordContains_match();
-    void isTerminalWordContains_noMatch();
 
     // ---- mapKanjiPiece ----
     void mapKanjiPiece_pawn();
@@ -123,8 +105,6 @@ private slots:
     // ---- USI piece conversion ----
 
     // ---- containsAnyTerminal ----
-    void containsAnyTerminal_match();
-    void containsAnyTerminal_noMatch();
 
     // ---- table-driven: mapKanjiPiece abnormal ----
     void mapKanjiPiece_abnormal_data();
@@ -179,118 +159,26 @@ void TestParseCommon::isBookmarkLine_normalLine()
     QVERIFY(!KifuParseCommon::isBookmarkLine(QStringLiteral("1 ７六歩(77)")));
 }
 
-// ==== csaSpecialToJapanese ====
+// ==== csaSpecialToTerminal ====
 
-void TestParseCommon::csaSpecial_toryo()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("TORYO"), QString::fromUtf8("投了"));
-}
 
-void TestParseCommon::csaSpecial_chudan()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("CHUDAN"), QString::fromUtf8("中断"));
-}
 
-void TestParseCommon::csaSpecial_sennichite()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("SENNICHITE"), QString::fromUtf8("千日手"));
-}
 
-void TestParseCommon::csaSpecial_oute_sennichite()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("OUTE_SENNICHITE"), QString::fromUtf8("王手千日手"));
-}
 
-void TestParseCommon::csaSpecial_jishogi()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("JISHOGI"), QString::fromUtf8("持将棋"));
-}
 
-void TestParseCommon::csaSpecial_timeUp()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("TIME_UP"), QString::fromUtf8("切れ負け"));
-}
 
-void TestParseCommon::csaSpecial_illegalMove()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("ILLEGAL_MOVE"), QString::fromUtf8("反則負け"));
-}
 
-void TestParseCommon::csaSpecial_illegalAction()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("ILLEGAL_ACTION"), QString::fromUtf8("反則負け"));
-}
 
-void TestParseCommon::csaSpecial_plusIllegalAction()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("+ILLEGAL_ACTION"), QString::fromUtf8("反則負け"));
-}
 
-void TestParseCommon::foulTerminalMove_data()
-{
-    QTest::addColumn<bool>("offenderIsBlack");
-    QTest::addColumn<bool>("blackToMove");
-    QTest::addColumn<QString>("expected");
 
-    // 手番側が反則した側なら反則負け、直前の相手の手が反則なら手番側の反則勝ち
-    QTest::newRow("black-offends-black-to-move") << true << true << QString::fromUtf8("▲反則負け");
-    QTest::newRow("black-offends-white-to-move") << true << false << QString::fromUtf8("△反則勝ち");
-    QTest::newRow("white-offends-black-to-move") << false << true << QString::fromUtf8("▲反則勝ち");
-    QTest::newRow("white-offends-white-to-move") << false << false << QString::fromUtf8("△反則負け");
-}
 
-void TestParseCommon::foulTerminalMove()
-{
-    QFETCH(bool, offenderIsBlack);
-    QFETCH(bool, blackToMove);
-    QFETCH(QString, expected);
-    QCOMPARE(KifuParseCommon::foulTerminalMove(offenderIsBlack, blackToMove), expected);
-}
 
-void TestParseCommon::csaSpecial_kachi()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("KACHI"), QString::fromUtf8("入玉勝ち"));
-}
 
-void TestParseCommon::csaSpecial_hikiwake()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("HIKIWAKE"), QString::fromUtf8("引き分け"));
-}
 
-void TestParseCommon::csaSpecial_maxMoves()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("MAX_MOVES"), QString::fromUtf8("最大手数到達"));
-}
 
-void TestParseCommon::csaSpecial_tsumi()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("TSUMI"), QString::fromUtf8("詰み"));
-}
 
-void TestParseCommon::csaSpecial_fuzumi()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("FUZUMI"), QString::fromUtf8("不詰"));
-}
 
-void TestParseCommon::csaSpecial_error()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("ERROR"), QString::fromUtf8("エラー"));
-}
 
-void TestParseCommon::csaSpecial_withPercentPrefix()
-{
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("%TORYO"), QString::fromUtf8("投了"));
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("%SENNICHITE"), QString::fromUtf8("千日手"));
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("%+ILLEGAL_ACTION"), QString::fromUtf8("反則負け"));
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("%-ILLEGAL_ACTION"), QString::fromUtf8("反則負け"));
-}
-
-void TestParseCommon::csaSpecial_unknown()
-{
-    // 不明なコードはそのまま返される
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("UNKNOWN"), QStringLiteral("UNKNOWN"));
-    QCOMPARE(KifuParseCommon::csaSpecialToJapanese("%UNKNOWN"), QStringLiteral("%UNKNOWN"));
-}
 
 // ==== formatTimeMS ====
 
@@ -450,44 +338,12 @@ void TestParseCommon::parseDigit_invalid()
     QCOMPARE(KifuParseCommon::parseDigit(QChar(' ')), std::nullopt);
 }
 
-// ==== terminal words ====
 
-void TestParseCommon::terminalWords_count()
-{
-    QCOMPARE(KifuParseCommon::terminalWords().size(), 16u);
-}
 
-void TestParseCommon::isTerminalWordExact_match()
-{
-    QString norm;
-    QVERIFY(KifuParseCommon::isTerminalWordExact(QStringLiteral("投了"), &norm));
-    QCOMPARE(norm, QStringLiteral("投了"));
-}
 
-void TestParseCommon::isTerminalWordExact_noMatch()
-{
-    QVERIFY(!KifuParseCommon::isTerminalWordExact(QStringLiteral("開始")));
-}
 
-void TestParseCommon::isTerminalWordExact_withWhitespace()
-{
-    // Trimmed before matching
-    QString norm;
-    QVERIFY(KifuParseCommon::isTerminalWordExact(QStringLiteral("  投了  "), &norm));
-    QCOMPARE(norm, QStringLiteral("投了"));
-}
 
-void TestParseCommon::isTerminalWordContains_match()
-{
-    QString norm;
-    QVERIFY(KifuParseCommon::isTerminalWordContains(QStringLiteral("まで82手で投了"), &norm));
-    QCOMPARE(norm, QStringLiteral("投了"));
-}
 
-void TestParseCommon::isTerminalWordContains_noMatch()
-{
-    QVERIFY(!KifuParseCommon::isTerminalWordContains(QStringLiteral("普通のテキスト")));
-}
 
 // ==== mapKanjiPiece ====
 
@@ -678,19 +534,8 @@ void TestParseCommon::isBodHandsLine_normal()
 
 // ==== USI piece conversion ====
 
-// ==== containsAnyTerminal ====
 
-void TestParseCommon::containsAnyTerminal_match()
-{
-    QString matched;
-    QVERIFY(KifuParseCommon::containsAnyTerminal(QStringLiteral("まで82手で投了"), &matched));
-    QCOMPARE(matched, QStringLiteral("投了"));
-}
 
-void TestParseCommon::containsAnyTerminal_noMatch()
-{
-    QVERIFY(!KifuParseCommon::containsAnyTerminal(QStringLiteral("普通のテキスト")));
-}
 
 // ==== formatTimeHMS negative ====
 
@@ -771,6 +616,86 @@ void TestParseCommon::parseCoordinate_boundary()
     // USI のマスは筋・段の両方が読めるときだけ読める
     const auto square = UsiNotation::parseSquare(QString(fileChar) + rankChar);
     QCOMPARE(square.has_value(), fileValid && rankValid);
+}
+
+
+void TestParseCommon::csaSpecialToTerminal_data()
+{
+    QTest::addColumn<QString>("code");
+    QTest::addColumn<int>("type");
+    QTest::newRow("toryo") << QStringLiteral("TORYO") << int(TerminalType::Resign);
+    QTest::newRow("chudan") << QStringLiteral("CHUDAN") << int(TerminalType::Interrupt);
+    QTest::newRow("sennichite") << QStringLiteral("SENNICHITE") << int(TerminalType::Repetition);
+    QTest::newRow("oute") << QStringLiteral("OUTE_SENNICHITE") << int(TerminalType::PerpetualCheck);
+    QTest::newRow("jishogi") << QStringLiteral("JISHOGI") << int(TerminalType::Impasse);
+    QTest::newRow("timeup") << QStringLiteral("TIME_UP") << int(TerminalType::Timeout);
+    QTest::newRow("illegal-move") << QStringLiteral("ILLEGAL_MOVE") << int(TerminalType::IllegalLoss);
+    QTest::newRow("illegal-action") << QStringLiteral("ILLEGAL_ACTION") << int(TerminalType::IllegalLoss);
+    QTest::newRow("kachi") << QStringLiteral("KACHI") << int(TerminalType::DeclarationWin);
+    QTest::newRow("hikiwake") << QStringLiteral("HIKIWAKE") << int(TerminalType::Draw);
+    QTest::newRow("max-moves") << QStringLiteral("MAX_MOVES") << int(TerminalType::MaxMoves);
+    QTest::newRow("tsumi") << QStringLiteral("TSUMI") << int(TerminalType::Checkmate);
+    QTest::newRow("fuzumi") << QStringLiteral("FUZUMI") << int(TerminalType::NoCheckmate);
+    QTest::newRow("error") << QStringLiteral("ERROR") << int(TerminalType::Error);
+    QTest::newRow("percent") << QStringLiteral("%TORYO") << int(TerminalType::Resign);
+    QTest::newRow("unknown") << QStringLiteral("UNKNOWN") << int(TerminalType::None);
+    QTest::newRow("percent-unknown") << QStringLiteral("%UNKNOWN") << int(TerminalType::None);
+}
+
+void TestParseCommon::csaSpecialToTerminal()
+{
+    QFETCH(QString, code);
+    QFETCH(int, type);
+    QCOMPARE(int(KifuParseCommon::csaSpecialToTerminal(code, Turn::Black)), type);
+}
+
+void TestParseCommon::csaSpecial_illegalActionDependsOnSide()
+{
+    // 不正を行った側が手番側なら反則負け、相手なら手番側の反則勝ち
+    QCOMPARE(KifuParseCommon::csaSpecialToTerminal(QStringLiteral("%+ILLEGAL_ACTION"), Turn::Black),
+             TerminalType::IllegalLoss);
+    QCOMPARE(KifuParseCommon::csaSpecialToTerminal(QStringLiteral("%+ILLEGAL_ACTION"), Turn::White),
+             TerminalType::IllegalWin);
+    QCOMPARE(KifuParseCommon::csaSpecialToTerminal(QStringLiteral("%-ILLEGAL_ACTION"), Turn::Black),
+             TerminalType::IllegalWin);
+    QCOMPARE(KifuParseCommon::csaSpecialToTerminal(QStringLiteral("%-ILLEGAL_ACTION"), Turn::White),
+             TerminalType::IllegalLoss);
+}
+
+void TestParseCommon::terminalWords_readAliases()
+{
+    QCOMPARE(TerminalTypes::fromWord(u"投了"), TerminalType::Resign);
+    QCOMPARE(TerminalTypes::fromWord(u"  投了  "), TerminalType::Resign);
+    QCOMPARE(TerminalTypes::fromWord(u"切れ負け"), TerminalType::Timeout);
+    QCOMPARE(TerminalTypes::fromWord(u"時間切れ"), TerminalType::Timeout);
+    QCOMPARE(TerminalTypes::fromWord(u"詰"), TerminalType::Checkmate);
+    QCOMPARE(TerminalTypes::fromWord(u"宣言勝ち"), TerminalType::DeclarationWin);
+    QCOMPARE(TerminalTypes::fromWord(u"入玉宣言勝ち"), TerminalType::DeclarationWin);
+    QCOMPARE(TerminalTypes::fromWord(u"最大手数"), TerminalType::MaxMoves);
+    QCOMPARE(TerminalTypes::fromWord(u"開始"), TerminalType::None);
+    QCOMPARE(TerminalTypes::fromWord(u"まで82手で投了"), TerminalType::None);
+}
+
+void TestParseCommon::terminalWords_findInText()
+{
+    QString matched;
+    QCOMPARE(TerminalTypes::findWord(u"まで82手で投了", &matched), TerminalType::Resign);
+    QCOMPARE(matched, QStringLiteral("投了"));
+    // 長い語を先に調べる
+    QCOMPARE(TerminalTypes::findWord(u"▲不詰"), TerminalType::NoCheckmate);
+    QCOMPARE(TerminalTypes::findWord(u"△王手千日手"), TerminalType::PerpetualCheck);
+    QCOMPARE(TerminalTypes::findWord(u"普通のテキスト"), TerminalType::None);
+}
+
+void TestParseCommon::terminalWords_labelRoundTrip()
+{
+    for (int i = int(TerminalType::Resign); i <= int(TerminalType::ForfeitWin); ++i) {
+        const auto type = static_cast<TerminalType>(i);
+        const QString label = TerminalTypes::label(type);
+        QVERIFY2(!label.isEmpty(), qPrintable(QString::number(i)));
+        QCOMPARE(TerminalTypes::fromWord(label), type);
+    }
+    QVERIFY(TerminalTypes::label(TerminalType::None).isEmpty());
 }
 
 QTEST_MAIN(TestParseCommon)

@@ -12,11 +12,14 @@
 
 #include "csagamecoordinator.h"
 #include "boardsetupcontroller.h"
-#include "playmodepolicyservice.h"
+#include "humanturnpolicy.h"
+#include "enginelifecyclemanager.h"
 #include "matchcoordinator.h"
 #include "csagameprogress.h"
 #include "csagamewiring.h"
-#include "gamerecordupdateservice.h"
+#include "appstate.h"
+#include "gamerecordmodel.h"
+#include "gamesession.h"
 #include "kifubranchtree.h"
 #include "livegamesession.h"
 #include "sfenutils.h"
@@ -69,8 +72,6 @@ struct FakeCsaServer {
 struct Harness {
     ShogiGameController gc;
     ShogiClock clock;
-    QStringList sfenRecord;
-    QList<ShogiMove> gameMoves;
     CsaGameCoordinator coordinator;
     FakeCsaServer server;
 
@@ -81,10 +82,12 @@ struct Harness {
         CsaGameCoordinator::Dependencies deps;
         deps.gameController = &gc;
         deps.clock = &clock;
-        deps.sfenRecord = &sfenRecord;
-        deps.gameMoves = &gameMoves;
         coordinator.setDependencies(deps);
     }
+
+    /// 対局の手順（開始局面と、確認された手）
+    const RecordLine& line() const { return coordinator.record(); }
+    int moveCount() const { return coordinator.record().moveCount(); }
 
     /// ログインから START まで進める（持時間 600 秒・加算 10 秒）
     bool start(const QByteArray& yourTurn, const QList<QByteArray>& positionMoves = {}, bool engine = false)
@@ -167,17 +170,17 @@ private slots:
         QVERIFY(h.server.waitForLine(QStringLiteral("-8384FU")));
         QCOMPARE(records.size(), 1);
         QCOMPARE(committed.size(), 1);
-        QCOMPARE(h.sfenRecord.size(), 2);
-        QCOMPARE(h.gameMoves.size(), 1);
+        QCOMPARE(h.moveCount(), 1);
+        QCOMPARE(h.moveCount(), 1);
         QCOMPARE(h.gc.board()->pieceCharacter(8, 3), Piece::WhitePawn);
         QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
         h.server.send("-8384FU,T2");
         QTRY_COMPARE(records.size(), 2);
         QCOMPARE(committed.size(), 2);
-        QCOMPARE(h.sfenRecord.size(), 3);
-        QCOMPARE(h.gameMoves.size(), 2);
+        QCOMPARE(h.moveCount(), 2);
+        QCOMPARE(h.moveCount(), 2);
         QCOMPARE(h.gc.board()->pieceCharacter(8, 4), Piece::WhitePawn);
-        QCOMPARE(entryAt(records, 1).move.toUsiMove().toString(), QStringLiteral("8c8d"));
+        QCOMPARE(entryAt(records, 1).move.move.toString(), QStringLiteral("8c8d"));
     }
 
     void rejectedUnconfirmedMoveLeavesOriginalPosition()
@@ -185,7 +188,7 @@ private slots:
         Harness h;
         QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QVERIFY(h.start("+"));
-        const QString initial = h.sfenRecord.first();
+        const QString initial = h.line().startSfen;
         h.playHumanMove(QStringLiteral("7g7f"), QPoint(7, 7), QPoint(7, 6));
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         h.server.send("#ILLEGAL_MOVE");
@@ -193,8 +196,8 @@ private slots:
         QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
         QCOMPARE(records.size(), 1);
         QVERIFY(entryAt(records, 0).isTerminal());
-        QCOMPARE(h.sfenRecord.last(), initial);
-        QVERIFY(h.gameMoves.isEmpty());
+        QCOMPARE(h.line().lastSfen(), initial);
+        QCOMPARE(h.moveCount(), 0);
         QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
     }
 
@@ -202,27 +205,22 @@ private slots:
     {
         Harness h;
         QVERIFY(h.start("+"));
-        PlayMode mode = PlayMode::CsaNetworkMode;
+        AppActivityState activity;
+        activity.setActivity(AppActivityState::Activity::DuringCsaGame);
         CsaGameWiring wiring(CsaGameWiring::Dependencies{});
         wiring.setCoordinator(&h.coordinator);
-        PlayModePolicyService policy;
-        PlayModePolicyService::Deps deps;
-        deps.playMode = &mode;
+        HumanTurnPolicy policy;
+        HumanTurnPolicy::Deps deps;
+        deps.activity = &activity;
         deps.gameController = &h.gc;
         deps.csaGameWiring = &wiring;
         policy.updateDeps(deps);
-        MatchCoordinator::Deps matchDeps;
-        matchDeps.gc = &h.gc;
-        matchDeps.clock = &h.clock;
-        matchDeps.sfenRecord = &h.sfenRecord;
-        matchDeps.gameMoves = &h.gameMoves;
-        MatchCoordinator match(matchDeps);
-        match.setPlayMode(mode);
+        EngineLifecycleManager engines(&h.clock);
+        MatchCoordinator match({&h.gc, &h.clock, &activity, &engines});
         BoardSetupController input;
         input.setGameController(&h.gc);
         input.setMatchCoordinator(&match);
-        input.setSfenRecord(&h.sfenRecord);
-        input.setGameMoves(&h.gameMoves);
+        input.setActivityState(&activity);
         connect(&input, &BoardSetupController::csaMoveRequested,
                 &h.coordinator, &CsaGameCoordinator::onHumanMove);
         QVERIFY(policy.isHumanTurnNow());
@@ -230,25 +228,22 @@ private slots:
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
         QVERIFY(!policy.isHumanTurnNow());
-        QCOMPARE(h.sfenRecord.size(), 1);
-        QCOMPARE(h.gameMoves.size(), 0);
+        QCOMPARE(h.moveCount(), 0);
         QCOMPARE(h.gc.currentPlayer(), Turn::Black);
         QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
         // UI の許可判定を通らない追加要求も、履歴や盤面を変更しない。
         input.onMoveRequested(QPoint(2, 7), QPoint(2, 6));
         input.onMoveRequested(QPoint(3, 3), QPoint(3, 4));
-        QCOMPARE(h.sfenRecord.size(), 1);
-        QCOMPARE(h.gameMoves.size(), 0);
+        QCOMPARE(h.moveCount(), 0);
         h.server.send("+7776FU,T5");
-        QTRY_COMPARE(h.coordinator.progress().moveCount, 1);
-        QCOMPARE(h.sfenRecord.size(), 2);
-        QCOMPARE(h.gameMoves.size(), 1);
+        QTRY_COMPARE(h.coordinator.progress().moveCount(), 1);
+        QCOMPARE(h.moveCount(), 1);
         QCOMPARE(h.gc.board()->pieceCharacter(7, 6), Piece::BlackPawn);
         QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::OpponentTurn);
         h.server.send("-3334FU,T2");
         QTRY_VERIFY(policy.isHumanTurnNow());
-        QCOMPARE(h.sfenRecord.size(), 3);
-        QCOMPARE(h.gameMoves.size(), 2);
+        QCOMPARE(h.moveCount(), 2);
+        wiring.setCoordinator(nullptr);
     }
 
     void initTestCase()
@@ -264,14 +259,14 @@ private slots:
         Harness h;
         QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QSignalSpy turns(&h.coordinator, &CsaGameCoordinator::turnChanged);
-        QSignalSpy applied(&h.coordinator, &CsaGameCoordinator::moveAppliedToBoard);
+        QSignalSpy applied(&h.gc, &ShogiGameController::moveCommitted);
         QVERIFY(h.start("+"));
         QVERIFY(h.coordinator.isMyTurn());
         QVERIFY(h.coordinator.isBlackSide());
         // 手番の始めに加算する
         QCOMPARE(h.coordinator.blackRemainingMs(), 610000);
         QCOMPARE(h.coordinator.whiteRemainingMs(), 600000);
-        QCOMPARE(h.sfenRecord.size(), 1);
+        QCOMPARE(h.moveCount(), 0);
 
         h.playHumanMove(QStringLiteral("7g7f"), QPoint(7, 7), QPoint(7, 6));
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
@@ -282,15 +277,15 @@ private slots:
         QVERIFY(mine.displayText.contains(QStringLiteral("７六歩")));
         QCOMPARE(mine.time.elapsedMs, 5000);
         QCOMPARE(mine.time.totalMs, 5000);
-        QCOMPARE(mine.sfen, h.sfenRecord.last());
+        QCOMPARE(mine.sfen, h.line().lastSfen());
         QCOMPARE(h.coordinator.blackTotalTimeMs(), 5000);
         QCOMPARE(h.coordinator.blackRemainingMs(), 605000);
         QCOMPARE(h.coordinator.whiteRemainingMs(), 610000);
-        QCOMPARE(h.coordinator.progress().moveCount, 1);
+        QCOMPARE(h.coordinator.progress().moveCount(), 1);
         QVERIFY(!h.coordinator.isMyTurn());
         QCOMPARE(turns.last().at(0).toBool(), false);
         QCOMPARE(applied.size(), 1);  // 確認時に人間の手も一度だけ通知する
-        QCOMPARE(h.gameMoves.size(), 1);
+        QCOMPARE(h.moveCount(), 1);
 
         h.server.send("-3334FU,T7");
         QTRY_COMPARE(records.size(), 2);
@@ -302,15 +297,15 @@ private slots:
         QCOMPARE(h.coordinator.whiteTotalTimeMs(), 7000);
         QCOMPARE(h.coordinator.whiteRemainingMs(), 603000);
         QCOMPARE(h.coordinator.blackRemainingMs(), 615000);
-        QCOMPARE(h.coordinator.progress().moveCount, 2);
+        QCOMPARE(h.coordinator.progress().moveCount(), 2);
         QVERIFY(h.coordinator.isMyTurn());
         QCOMPARE(turns.last().at(0).toBool(), true);
         QCOMPARE(applied.size(), 2);
-        QCOMPARE(h.coordinator.usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
-        QCOMPARE(h.sfenRecord.size(), 3);
-        QCOMPARE(theirs.sfen, h.sfenRecord.last());
-        QCOMPARE(h.gameMoves.size(), 2);
-        QCOMPARE(theirs.move.toUsiMove().toString(), QStringLiteral("3c3d"));
+        QCOMPARE(h.coordinator.record().usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        QCOMPARE(h.moveCount(), 2);
+        QCOMPARE(theirs.sfen, h.line().lastSfen());
+        QCOMPARE(h.moveCount(), 2);
+        QCOMPARE(theirs.move.move.toString(), QStringLiteral("3c3d"));
     }
 
     /// 再開局面（Game_Summary の指し手）は棋譜行として gameStarted で渡し、手数と時間に数える
@@ -325,18 +320,18 @@ private slots:
         QCOMPARE(initial.size(), 2);
         QCOMPARE(initial.at(1).mover, Turn::White);
         QCOMPARE(initial.at(1).time.elapsedMs, 4000);
-        QCOMPARE(initial.at(1).sfen, h.sfenRecord.at(2));
+        QCOMPARE(initial.at(1).sfen, h.line().sfenAt(2));
         QCOMPARE(records.size(), 0);  // 既存手順は recordEntryReady では流さない
-        QCOMPARE(h.coordinator.progress().moveCount, 2);
+        QCOMPARE(h.coordinator.progress().moveCount(), 2);
         QCOMPARE(h.coordinator.blackTotalTimeMs(), 3000);
         QCOMPARE(h.coordinator.whiteTotalTimeMs(), 4000);
         // 先手: 600 + 10 - 3 + 10（今の手番の加算）、後手: 600 + 10 - 4
         QCOMPARE(h.coordinator.blackRemainingMs(), 617000);
         QCOMPARE(h.coordinator.whiteRemainingMs(), 606000);
-        QCOMPARE(h.gameMoves.size(), 2);
+        QCOMPARE(h.moveCount(), 2);
     }
 
-    /// サーバーの終局通知を終局行（TerminalType）にして、局面列も終局行のぶん伸ばす
+    /// サーバーの終局通知を終局行（TerminalType）にする。対局の手順は指した手だけで、終局行は棋譜の受け手へ渡す
     void endCauseMapsToTerminalType_data()
     {
         QTest::addColumn<QByteArray>("causeLine");
@@ -388,8 +383,7 @@ private slots:
         QCOMPARE(int(ending.terminal), terminal);
         QCOMPARE(ending.displayText, display);
         QCOMPARE(ending.time.elapsedMs, 6000);
-        QCOMPARE(h.sfenRecord.size(), 3);  // 開始局面・1手・終局行
-        QCOMPARE(h.sfenRecord.at(2), h.sfenRecord.at(1));
+        QCOMPARE(h.moveCount(), 1);
         QCOMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
     }
 
@@ -418,8 +412,8 @@ private slots:
     void progressTimeTracking()
     {
         CsaClient::GameSummary summary;
-        summary.myTurn = QStringLiteral("-");
-        summary.toMove = QStringLiteral("+");
+        summary.myTurn = Turn::White;
+        summary.toMove = Turn::Black;
         summary.timeBlack.specified = true;
         summary.timeBlack.totalTime = 60;
         summary.timeBlack.increment = 5;
@@ -448,13 +442,16 @@ private slots:
         tree.setRootSfen(SfenUtils::hirateSfen());
         LiveGameSession live;
         live.setTree(&tree);
-        QString currentSfen;
         live.startFromRoot();
-        GameRecordUpdateService::Deps rd;
-        rd.liveGameSession = &live;
-        rd.currentSfenStr = &currentSfen;
-        rd.sfenRecord = &h.sfenRecord;
-        GameRecordUpdateService recordService(rd);
+        // 棋譜の受け手（本体と同じ GameSession。追記に使う部品だけ渡す）
+        AppState state;
+        GameRecordModel gameRecord;
+        GameSession recordService;
+        GameSession::Deps sd;
+        sd.state = &state;
+        sd.liveSession = &live;
+        sd.gameRecord = &gameRecord;
+        recordService.setDeps(sd);
 
         CsaGameWiring::Dependencies wd;
         wd.coordinator = &h.coordinator;
@@ -463,16 +460,16 @@ private slots:
         wiring.wire();
         wiring.wire();  // 二重に配線しても1回だけ届く
         wiring.wireExternalSignals(nullptr, &recordService, nullptr);
-        QSignalSpy sounds(&wiring, &CsaGameWiring::moveAppliedToBoard);
+        QSignalSpy sounds(&h.gc, &ShogiGameController::moveCommitted);
 
         QVERIFY(h.start("-"));
         h.server.send("+7776FU,T1");
         QTRY_COMPARE(live.moves().size(), 1);
         QCOMPARE(sounds.size(), 1);
-        QCOMPARE(currentSfen, h.sfenRecord.last());
+        QCOMPARE(state.currentSfenStr, h.line().lastSfen());
         const KifDisplayItem first = live.moves().at(0);
         QCOMPARE(first.usiMove, QStringLiteral("7g7f"));
-        QCOMPARE(first.beforeSfen, h.sfenRecord.at(0));
+        QCOMPARE(first.beforeSfen, h.line().sfenAt(0));
 
         // 自分（後手）の手：人間の操作で盤を動かしてから送る
         h.playHumanMove(QStringLiteral("3c3d"), QPoint(3, 3), QPoint(3, 4));

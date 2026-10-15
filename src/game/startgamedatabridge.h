@@ -12,7 +12,7 @@
  *
  * dialogs/ 層の StartGameDialog への依存を game/ 層から排除するため、
  * ダイアログの入力値をフラットな値型として保持する。
- * 変換は app/ 層（GameSessionOrchestrator 等）でのみ行い、
+ * 変換は app/ 層（GameSession）でのみ行い、
  * game/ 層は本構造体のみを受け取る。
  */
 struct StartGameDialogData {

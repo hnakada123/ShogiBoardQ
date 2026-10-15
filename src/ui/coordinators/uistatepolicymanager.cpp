@@ -7,7 +7,6 @@
 #include "recordpane.h"
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
-#include "playmode.h"
 
 #include <QAction>
 #include "logcategories.h"
@@ -19,7 +18,6 @@
 UiStatePolicyManager::UiStatePolicyManager(QObject* parent)
     : QObject(parent)
 {
-    buildPolicyTable();
     connect(m_activity, &AppActivityState::changed, this, &UiStatePolicyManager::refreshActivity);
 }
 
@@ -33,182 +31,158 @@ void UiStatePolicyManager::updateDeps(const Deps& deps)
 }
 
 // ======================================================================
-// ポリシーテーブル構築
+// ポリシーの表
 // ======================================================================
 
-void UiStatePolicyManager::buildPolicyTable()
+namespace {
+
+using S = UiStatePolicyManager::AppState;
+using E = UiStatePolicyManager::UiElement;
+
+/// 状態の集合（AppState ごとに1ビット）
+using StateSet = unsigned;
+constexpr StateSet in(S state) { return 1u << static_cast<unsigned>(state); }
+constexpr StateSet kAllStates = in(S::Idle) | in(S::DuringGame) | in(S::DuringAnalysis) | in(S::DuringCsaGame)
+                              | in(S::DuringTsumeSearch) | in(S::DuringConsideration) | in(S::DuringPositionEdit);
+/// 盤と棋譜を見るだけの状態（局面を変える操作はしないが、棋譜の閲覧・保存はできる）
+constexpr StateSet kBrowsing = in(S::Idle) | in(S::DuringTsumeSearch) | in(S::DuringConsideration);
+constexpr StateSet kPlaying = in(S::DuringGame) | in(S::DuringCsaGame);
+
+enum class Off { Disable, Hide };
+
+/// UI要素ごとの規則: enabledIn の状態では有効、それ以外は off（無効または非表示）
+struct Rule {
+    E element;
+    StateSet enabledIn;
+    Off off;
+};
+
+// 並びは UiElement の宣言順（下の static_assert で確かめる）
+constexpr Rule kRules[] = {
+    // --- ファイルメニュー ---
+    {E::FileNew,                in(S::Idle),  Off::Disable},  // 新規・開く: 局面を変えるので待機中だけ
+    {E::FileOpen,               in(S::Idle),  Off::Disable},
+    {E::FileSave,               kBrowsing,    Off::Disable},
+    {E::FileSaveAs,             kBrowsing,    Off::Disable},
+    {E::FileSaveBoardImage,     kAllStates,   Off::Disable},
+    {E::FileSaveEvalGraph,      kAllStates,   Off::Disable},
+    {E::FileQuit,               kAllStates,   Off::Disable},
+    // --- 編集メニュー ---
+    {E::EditCopyKifu,           kBrowsing,    Off::Disable},
+    {E::EditCopyPosition,       kAllStates,   Off::Disable},
+    {E::EditPasteKifu,          in(S::Idle),  Off::Disable},
+    {E::EditSfenViewer,         in(S::Idle),  Off::Disable},
+    {E::EditCopyBoardImage,     kAllStates,   Off::Disable},
+    {E::EditCopyEvalGraphImage, kAllStates,   Off::Disable},
+    {E::EditStartPosition,      in(S::Idle),  Off::Hide},     // 局面編集の開始は待機中だけ出す
+    {E::EditEndPosition,        in(S::DuringPositionEdit), Off::Hide},  // 編集中だけ出す項目
+    {E::EditSetHirate,          in(S::DuringPositionEdit), Off::Hide},
+    {E::EditSetTsume,           in(S::DuringPositionEdit), Off::Hide},
+    {E::EditReturnAllToStand,   in(S::DuringPositionEdit), Off::Hide},
+    {E::EditChangeTurn,         in(S::DuringPositionEdit), Off::Hide},
+    // --- 対局メニュー ---
+    {E::GameStart,              in(S::Idle),  Off::Disable},
+    {E::GameCsa,                in(S::Idle),  Off::Disable},
+    {E::GameResign,             kPlaying,     Off::Disable},  // ローカル対局は人間が参加するときだけ（effectivePolicy）
+    {E::GameUndo,               in(S::DuringGame), Off::Disable},  // 同上
+    {E::GameMakeImmediate,      kPlaying,     Off::Disable},
+    {E::GameBreakOff,           kPlaying,     Off::Disable},
+    {E::GameResume,             in(S::Idle),  Off::Disable},  // 中断した対局があるときだけ（effectivePolicy）
+    {E::GameAnalyzeKifu,        in(S::Idle),  Off::Disable},
+    {E::GameCancelAnalysis,     in(S::DuringAnalysis), Off::Disable},
+    {E::GameTsumeSearch,        in(S::Idle),  Off::Disable},
+    {E::GameStopTsumeSearch,    in(S::DuringTsumeSearch), Off::Disable},
+    {E::GameTsumeshogiGenerator, in(S::Idle), Off::Disable},
+    {E::GameJishogiScore,       kAllStates,   Off::Disable},
+    {E::GameNyugyokuDeclaration, kPlaying,    Off::Disable},  // ローカル対局は人間が参加するときだけ（effectivePolicy）
+    // --- 設定メニュー ---
+    {E::SettingsEngine,         in(S::Idle) | in(S::DuringConsideration), Off::Disable},
+    {E::SettingsReset,          in(S::Idle),  Off::Disable},  // アプリを終了するので待機中だけ
+    // --- ウィジェット ---
+    {E::WidgetNavigation,       kBrowsing,    Off::Disable},
+    {E::WidgetBranchTree,       kBrowsing,    Off::Disable},
+    {E::WidgetBoardClick,       in(S::Idle) | kPlaying, Off::Disable},  // 対局中の手番は盤の側で判定する
+    {E::WidgetConsiderationStart, kAllStates & ~kPlaying, Off::Disable},
+};
+
+constexpr bool rulesFollowDeclarationOrder()
 {
-    using S = AppState;
-    using E = UiElement;
-    using P = Policy;
-
-    // ヘルパ: 全状態の特定要素にデフォルトポリシーを設定
-    auto setAll = [this](E elem, P policy) {
-        const auto states = {S::Idle, S::DuringGame, S::DuringAnalysis,
-                             S::DuringCsaGame, S::DuringTsumeSearch,
-                             S::DuringConsideration, S::DuringPositionEdit};
-        for (auto s : states) {
-            m_policyTable[s][elem] = policy;
-        }
-    };
-
-    // ヘルパ: 特定状態の特定要素にポリシーを設定
-    auto set = [this](S state, E elem, P policy) {
-        m_policyTable[state][elem] = policy;
-    };
-
-    // =====================================================================
-    // ファイルメニュー
-    // =====================================================================
-    // 新規/開く: Idle のみ有効（検討中・詰み探索中はゲーム状態変更不可）
-    for (E elem : {E::FileNew, E::FileOpen}) {
-        setAll(elem, P::Disabled);
-        set(S::Idle, elem, P::Enabled);
+    constexpr int count = static_cast<int>(E::Count);
+    if (static_cast<int>(sizeof(kRules) / sizeof(kRules[0])) != count) return false;
+    for (int i = 0; i < count; ++i) {
+        if (static_cast<int>(kRules[i].element) != i) return false;
     }
-    // 上書き保存/名前を付けて保存: Idle, 詰み探索中, 検討中で有効（状態を変更しない）
-    for (E elem : {E::FileSave, E::FileSaveAs}) {
-        setAll(elem, P::Disabled);
-        set(S::Idle,                elem, P::Enabled);
-        set(S::DuringTsumeSearch,   elem, P::Enabled);
-        set(S::DuringConsideration, elem, P::Enabled);
-    }
-    // 盤面画像保存/評価値グラフ画像保存/終了: 常に有効
-    setAll(E::FileSaveBoardImage, P::Enabled);
-    setAll(E::FileSaveEvalGraph,  P::Enabled);
-    setAll(E::FileQuit,           P::Enabled);
+    return true;
+}
+static_assert(rulesFollowDeclarationOrder(), "kRules must list every UiElement in declaration order");
 
-    // =====================================================================
-    // 編集メニュー
-    // =====================================================================
-    // 棋譜コピー: Idle, 詰み探索中, 検討中のみ有効
-    setAll(E::EditCopyKifu, P::Disabled);
-    set(S::Idle,              E::EditCopyKifu, P::Enabled);
-    set(S::DuringTsumeSearch, E::EditCopyKifu, P::Enabled);
-    set(S::DuringConsideration, E::EditCopyKifu, P::Enabled);
+/// メニュー項目と UI要素の対応（1つの要素が複数の項目をまとめることがある）
+struct ActionBinding {
+    E element;
+    QAction* Ui::MainWindow::* action;
+};
 
-    // 局面コピー: 常に有効
-    setAll(E::EditCopyPosition, P::Enabled);
+constexpr ActionBinding kActions[] = {
+    {E::FileNew,                 &Ui::MainWindow::actionNewGame},
+    {E::FileOpen,                &Ui::MainWindow::actionOpenKifuFile},
+    {E::FileSave,                &Ui::MainWindow::actionSave},
+    {E::FileSaveAs,              &Ui::MainWindow::actionSaveAs},
+    {E::FileSaveBoardImage,      &Ui::MainWindow::actionSaveBoardImage},
+    {E::FileSaveEvalGraph,       &Ui::MainWindow::actionSaveEvaluationGraph},
+    {E::FileQuit,                &Ui::MainWindow::actionQuit},
+    {E::EditCopyKifu,            &Ui::MainWindow::actionCopyKIF},
+    {E::EditCopyKifu,            &Ui::MainWindow::actionCopyKI2},
+    {E::EditCopyKifu,            &Ui::MainWindow::actionCopyCSA},
+    {E::EditCopyKifu,            &Ui::MainWindow::actionCopyJKF},
+    {E::EditCopyKifu,            &Ui::MainWindow::actionCopyUSIAll},
+    {E::EditCopyKifu,            &Ui::MainWindow::actionCopyUSEN},
+    {E::EditCopyPosition,        &Ui::MainWindow::actionCopyUSICurrent},
+    {E::EditCopyPosition,        &Ui::MainWindow::actionCopySFEN},
+    {E::EditCopyPosition,        &Ui::MainWindow::actionCopyBOD},
+    {E::EditPasteKifu,           &Ui::MainWindow::actionPasteKifu},
+    {E::EditSfenViewer,          &Ui::MainWindow::actionSfenCollectionViewer},
+    {E::EditCopyBoardImage,      &Ui::MainWindow::actionCopyBoardToClipboard},
+    {E::EditCopyEvalGraphImage,  &Ui::MainWindow::actionCopyEvalGraphToClipboard},
+    {E::EditStartPosition,       &Ui::MainWindow::actionStartEditPosition},
+    {E::EditEndPosition,         &Ui::MainWindow::actionEndEditPosition},
+    {E::EditSetHirate,           &Ui::MainWindow::actionSetHiratePosition},
+    {E::EditSetTsume,            &Ui::MainWindow::actionSetTsumePosition},
+    {E::EditReturnAllToStand,    &Ui::MainWindow::actionReturnAllPiecesToStand},
+    {E::EditChangeTurn,          &Ui::MainWindow::actionChangeTurn},
+    {E::GameStart,               &Ui::MainWindow::actionStartGame},
+    {E::GameCsa,                 &Ui::MainWindow::actionCSA},
+    {E::GameResign,              &Ui::MainWindow::actionResign},
+    {E::GameUndo,                &Ui::MainWindow::actionUndoMove},
+    {E::GameMakeImmediate,       &Ui::MainWindow::actionMakeImmediateMove},
+    {E::GameBreakOff,            &Ui::MainWindow::actionBreakOffGame},
+    {E::GameResume,              &Ui::MainWindow::actionResumeGame},
+    {E::GameAnalyzeKifu,         &Ui::MainWindow::actionAnalyzeKifu},
+    {E::GameCancelAnalysis,      &Ui::MainWindow::actionCancelAnalyzeKifu},
+    {E::GameTsumeSearch,         &Ui::MainWindow::actionTsumeShogiSearch},
+    {E::GameStopTsumeSearch,     &Ui::MainWindow::actionStopTsumeSearch},
+    {E::GameTsumeshogiGenerator, &Ui::MainWindow::actionTsumeshogiGenerator},
+    {E::GameJishogiScore,        &Ui::MainWindow::actionJishogiScore},
+    {E::GameNyugyokuDeclaration, &Ui::MainWindow::actionNyugyokuDeclaration},
+    {E::SettingsEngine,          &Ui::MainWindow::actionEngineSettings},
+    {E::SettingsReset,           &Ui::MainWindow::actionResetSettings},
+};
 
-    // 棋譜貼り付け: Idle のみ有効（検討中・詰み探索中はゲーム状態変更不可）
-    setAll(E::EditPasteKifu, P::Disabled);
-    set(S::Idle, E::EditPasteKifu, P::Enabled);
+void applyActionPolicy(QAction* action, UiStatePolicyManager::Policy policy)
+{
+    if (!action) return;
+    action->setVisible(policy != UiStatePolicyManager::Policy::Hidden);
+    if (policy != UiStatePolicyManager::Policy::Hidden)
+        action->setEnabled(policy == UiStatePolicyManager::Policy::Enabled);
+}
 
-    // SFEN集ビューア: Idle のみ有効（検討中・詰み探索中は局面読み込み不可）
-    setAll(E::EditSfenViewer, P::Disabled);
-    set(S::Idle, E::EditSfenViewer, P::Enabled);
+} // namespace
 
-    // 盤面画像コピー: 常に有効
-    setAll(E::EditCopyBoardImage, P::Enabled);
-
-    // 評価値グラフ画像コピー: 常に有効
-    setAll(E::EditCopyEvalGraphImage, P::Enabled);
-
-    // 局面編集開始: Idle のみ表示、それ以外は非表示
-    setAll(E::EditStartPosition, P::Hidden);
-    set(S::Idle, E::EditStartPosition, P::Shown);
-
-    // 局面編集終了/平手/詰将棋/全駒駒台/手番変更: 編集中のみ表示
-    for (E elem : {E::EditEndPosition, E::EditSetHirate, E::EditSetTsume,
-                   E::EditReturnAllToStand, E::EditChangeTurn}) {
-        setAll(elem, P::Hidden);
-        set(S::DuringPositionEdit, elem, P::Shown);
-    }
-
-    // =====================================================================
-    // 対局メニュー
-    // =====================================================================
-    // 対局/CSA通信対局: Idle のみ有効
-    for (E elem : {E::GameStart, E::GameCsa}) {
-        setAll(elem, P::Disabled);
-        set(S::Idle, elem, P::Enabled);
-    }
-
-    // 投了: 対局中/CSA中のみ有効（ローカル対局の人間参加条件は effectivePolicy で判定）
-    setAll(E::GameResign, P::Disabled);
-    set(S::DuringGame,    E::GameResign, P::Enabled);
-    set(S::DuringCsaGame, E::GameResign, P::Enabled);
-
-    // 待った: 対局中のみ有効（人間の参加条件は effectivePolicy で判定）
-    setAll(E::GameUndo, P::Disabled);
-    set(S::DuringGame, E::GameUndo, P::Enabled);
-
-    // すぐ指させる: 対局中/CSA中のみ有効
-    setAll(E::GameMakeImmediate, P::Disabled);
-    set(S::DuringGame,    E::GameMakeImmediate, P::Enabled);
-    set(S::DuringCsaGame, E::GameMakeImmediate, P::Enabled);
-
-    // 中断: 対局中/CSA中のみ有効
-    setAll(E::GameBreakOff, P::Disabled);
-    set(S::DuringGame,    E::GameBreakOff, P::Enabled);
-    set(S::DuringCsaGame, E::GameBreakOff, P::Enabled);
-    setAll(E::GameResume, P::Disabled);
-    set(S::Idle, E::GameResume, P::Enabled);
-
-    // 棋譜解析: Idle のみ有効
-    setAll(E::GameAnalyzeKifu, P::Disabled);
-    set(S::Idle, E::GameAnalyzeKifu, P::Enabled);
-
-    // 棋譜解析中止: 解析中のみ有効
-    setAll(E::GameCancelAnalysis, P::Disabled);
-    set(S::DuringAnalysis, E::GameCancelAnalysis, P::Enabled);
-
-    // 詰み探索: Idle のみ有効
-    setAll(E::GameTsumeSearch, P::Disabled);
-    set(S::Idle, E::GameTsumeSearch, P::Enabled);
-
-    // 詰み探索中止: 詰み探索中のみ有効
-    setAll(E::GameStopTsumeSearch, P::Disabled);
-    set(S::DuringTsumeSearch, E::GameStopTsumeSearch, P::Enabled);
-
-    // 詰将棋局面生成: Idle のみ有効
-    setAll(E::GameTsumeshogiGenerator, P::Disabled);
-    set(S::Idle, E::GameTsumeshogiGenerator, P::Enabled);
-
-    // 持将棋点数: 常に有効
-    setAll(E::GameJishogiScore, P::Enabled);
-
-    // 入玉宣言: 対局中/CSA中のみ有効
-    setAll(E::GameNyugyokuDeclaration, P::Disabled);
-    set(S::DuringGame,    E::GameNyugyokuDeclaration, P::Enabled);
-    set(S::DuringCsaGame, E::GameNyugyokuDeclaration, P::Enabled);
-
-    // =====================================================================
-    // 設定メニュー
-    // =====================================================================
-    // エンジン設定: Idle, 検討中のみ有効
-    setAll(E::SettingsEngine, P::Disabled);
-    set(S::Idle,                E::SettingsEngine, P::Enabled);
-    set(S::DuringConsideration, E::SettingsEngine, P::Enabled);
-
-    // 全設定の初期化はアプリケーションを終了するため、Idle のみ有効。
-    setAll(E::SettingsReset, P::Disabled);
-    set(S::Idle, E::SettingsReset, P::Enabled);
-
-    // =====================================================================
-    // ウィジェット
-    // =====================================================================
-    // ナビゲーション: Idle, 詰み探索中, 検討中のみ有効
-    setAll(E::WidgetNavigation, P::Disabled);
-    set(S::Idle,              E::WidgetNavigation, P::Enabled);
-    set(S::DuringTsumeSearch, E::WidgetNavigation, P::Enabled);
-    set(S::DuringConsideration, E::WidgetNavigation, P::Enabled);
-
-    // 分岐ツリー: Idle, 詰み探索中, 検討中のみ有効
-    setAll(E::WidgetBranchTree, P::Disabled);
-    set(S::Idle,              E::WidgetBranchTree, P::Enabled);
-    set(S::DuringTsumeSearch, E::WidgetBranchTree, P::Enabled);
-    set(S::DuringConsideration, E::WidgetBranchTree, P::Enabled);
-
-    // 盤面クリック（指し手入力）: 対局中/CSA中はisHumanTurnCbで手番制御するため有効にする
-    setAll(E::WidgetBoardClick, P::Disabled);
-    set(S::Idle,          E::WidgetBoardClick, P::Enabled);
-    set(S::DuringGame,    E::WidgetBoardClick, P::Enabled);
-    set(S::DuringCsaGame, E::WidgetBoardClick, P::Enabled);
-
-    // 検討開始ボタン: 対局中/CSA中は検討開始を禁止
-    setAll(E::WidgetConsiderationStart, P::Enabled);
-    set(S::DuringGame, E::WidgetConsiderationStart, P::Disabled);
-    set(S::DuringCsaGame, E::WidgetConsiderationStart, P::Disabled);
+UiStatePolicyManager::Policy UiStatePolicyManager::tablePolicy(AppState state, UiElement element)
+{
+    if (element == UiElement::Count) return Policy::Disabled;
+    const Rule& rule = kRules[static_cast<int>(element)];
+    if (rule.enabledIn & in(state)) return Policy::Enabled;
+    return rule.off == Off::Hide ? Policy::Hidden : Policy::Disabled;
 }
 
 // ======================================================================
@@ -222,25 +196,14 @@ UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement ele
     if (element == UiElement::GameUndo
         || ((element == UiElement::GameResign || element == UiElement::GameNyugyokuDeclaration)
             && currentState() == AppState::DuringGame)) {
-        const auto mode = m_deps.getPlayMode ? m_deps.getPlayMode() : PlayMode::NotStarted;
-        switch (mode) {
-        case PlayMode::HumanVsHuman:
-        case PlayMode::EvenHumanVsEngine:
-        case PlayMode::EvenEngineVsHuman:
-        case PlayMode::HandicapHumanVsEngine:
-        case PlayMode::HandicapEngineVsHuman:
-            break;
-        default:
-            return Policy::Disabled;
-        }
+        if (!m_deps.localGameHasHuman || !m_deps.localGameHasHuman()) return Policy::Disabled;
     }
-    return m_policyTable.value(currentState()).value(element, Policy::Enabled);
+    return tablePolicy(currentState(), element);
 }
 
 bool UiStatePolicyManager::isEnabled(UiElement element) const
 {
-    const auto policy = effectivePolicy(element);
-    return policy == Policy::Enabled || policy == Policy::Shown;
+    return effectivePolicy(element) == Policy::Enabled;
 }
 
 void UiStatePolicyManager::applyState(AppState state)
@@ -251,11 +214,11 @@ void UiStatePolicyManager::applyState(AppState state)
 
 void UiStatePolicyManager::refreshActivity()
 {
-    const auto state = currentState();
-    const auto policies = m_policyTable.value(state);
-    for (auto it = policies.constBegin(); it != policies.constEnd(); ++it)
-        applyPolicy(it.key(), effectivePolicy(it.key()));
-    emit stateChanged(state);
+    for (int i = 0; i < static_cast<int>(UiElement::Count); ++i) {
+        const auto element = static_cast<UiElement>(i);
+        applyPolicy(element, effectivePolicy(element));
+    }
+    emit stateChanged(currentState());
 }
 
 // ======================================================================
@@ -313,184 +276,29 @@ void UiStatePolicyManager::enableNavigationIfAllowed()
 // ポリシー適用（個別要素）
 // ======================================================================
 
-void UiStatePolicyManager::applyActionPolicy(QAction* action, Policy policy)
-{
-    if (!action) return;
-
-    switch (policy) {
-    case Policy::Enabled:
-        action->setVisible(true);
-        action->setEnabled(true);
-        break;
-    case Policy::Disabled:
-        action->setVisible(true);
-        action->setEnabled(false);
-        break;
-    case Policy::Hidden:
-        action->setVisible(false);
-        break;
-    case Policy::Shown:
-        action->setVisible(true);
-        action->setEnabled(true);
-        break;
-    }
-}
-
 void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
 {
-    auto* ui = m_deps.ui;
+    if (m_deps.ui) {
+        for (const ActionBinding& binding : kActions) {
+            if (binding.element == element) applyActionPolicy(m_deps.ui->*binding.action, policy);
+        }
+    }
 
+    const bool enabled = policy == Policy::Enabled;
     switch (element) {
-    // --- ファイルメニュー ---
-    case UiElement::FileNew:
-        applyActionPolicy(ui ? ui->actionNewGame : nullptr, policy);
-        break;
-    case UiElement::FileOpen:
-        applyActionPolicy(ui ? ui->actionOpenKifuFile : nullptr, policy);
-        break;
-    case UiElement::FileSave:
-        applyActionPolicy(ui ? ui->actionSave : nullptr, policy);
-        break;
-    case UiElement::FileSaveAs:
-        applyActionPolicy(ui ? ui->actionSaveAs : nullptr, policy);
-        break;
-    case UiElement::FileSaveBoardImage:
-        applyActionPolicy(ui ? ui->actionSaveBoardImage : nullptr, policy);
-        break;
-    case UiElement::FileSaveEvalGraph:
-        applyActionPolicy(ui ? ui->actionSaveEvaluationGraph : nullptr, policy);
-        break;
-    case UiElement::FileQuit:
-        applyActionPolicy(ui ? ui->actionQuit : nullptr, policy);
-        break;
-
-    // --- 編集メニュー（棋譜コピー系） ---
-    case UiElement::EditCopyKifu:
-        if (ui) {
-            applyActionPolicy(ui->actionCopyKIF, policy);
-            applyActionPolicy(ui->actionCopyKI2, policy);
-            applyActionPolicy(ui->actionCopyCSA, policy);
-            applyActionPolicy(ui->actionCopyJKF, policy);
-            applyActionPolicy(ui->actionCopyUSIAll, policy);
-            applyActionPolicy(ui->actionCopyUSEN, policy);
-        }
-        break;
-    case UiElement::EditCopyPosition:
-        if (ui) {
-            applyActionPolicy(ui->actionCopyUSICurrent, policy);
-            applyActionPolicy(ui->actionCopySFEN, policy);
-            applyActionPolicy(ui->actionCopyBOD, policy);
-        }
-        break;
-    case UiElement::EditPasteKifu:
-        applyActionPolicy(ui ? ui->actionPasteKifu : nullptr, policy);
-        break;
-    case UiElement::EditSfenViewer:
-        applyActionPolicy(ui ? ui->actionSfenCollectionViewer : nullptr, policy);
-        break;
-    case UiElement::EditCopyBoardImage:
-        applyActionPolicy(ui ? ui->actionCopyBoardToClipboard : nullptr, policy);
-        break;
-    case UiElement::EditCopyEvalGraphImage:
-        applyActionPolicy(ui ? ui->actionCopyEvalGraphToClipboard : nullptr, policy);
-        break;
-
-    // --- 編集メニュー（局面編集系） ---
-    case UiElement::EditStartPosition:
-        applyActionPolicy(ui ? ui->actionStartEditPosition : nullptr, policy);
-        break;
-    case UiElement::EditEndPosition:
-        applyActionPolicy(ui ? ui->actionEndEditPosition : nullptr, policy);
-        break;
-    case UiElement::EditSetHirate:
-        applyActionPolicy(ui ? ui->actionSetHiratePosition : nullptr, policy);
-        break;
-    case UiElement::EditSetTsume:
-        applyActionPolicy(ui ? ui->actionSetTsumePosition : nullptr, policy);
-        break;
-    case UiElement::EditReturnAllToStand:
-        applyActionPolicy(ui ? ui->actionReturnAllPiecesToStand : nullptr, policy);
-        break;
-    case UiElement::EditChangeTurn:
-        applyActionPolicy(ui ? ui->actionChangeTurn : nullptr, policy);
-        break;
-
-    // --- 対局メニュー ---
-    case UiElement::GameStart:
-        applyActionPolicy(ui ? ui->actionStartGame : nullptr, policy);
-        break;
-    case UiElement::GameCsa:
-        applyActionPolicy(ui ? ui->actionCSA : nullptr, policy);
-        break;
-    case UiElement::GameResign:
-        applyActionPolicy(ui ? ui->actionResign : nullptr, policy);
-        break;
-    case UiElement::GameUndo:
-        applyActionPolicy(ui ? ui->actionUndoMove : nullptr, policy);
-        break;
-    case UiElement::GameMakeImmediate:
-        applyActionPolicy(ui ? ui->actionMakeImmediateMove : nullptr, policy);
-        break;
-    case UiElement::GameBreakOff:
-        applyActionPolicy(ui ? ui->actionBreakOffGame : nullptr, policy);
-        break;
-    case UiElement::GameResume:
-        applyActionPolicy(ui ? ui->actionResumeGame : nullptr, policy);
-        break;
-    case UiElement::GameAnalyzeKifu:
-        applyActionPolicy(ui ? ui->actionAnalyzeKifu : nullptr, policy);
-        break;
-    case UiElement::GameCancelAnalysis:
-        applyActionPolicy(ui ? ui->actionCancelAnalyzeKifu : nullptr, policy);
-        break;
-    case UiElement::GameTsumeSearch:
-        applyActionPolicy(ui ? ui->actionTsumeShogiSearch : nullptr, policy);
-        break;
-    case UiElement::GameStopTsumeSearch:
-        applyActionPolicy(ui ? ui->actionStopTsumeSearch : nullptr, policy);
-        break;
-    case UiElement::GameTsumeshogiGenerator:
-        applyActionPolicy(ui ? ui->actionTsumeshogiGenerator : nullptr, policy);
-        break;
-    case UiElement::GameJishogiScore:
-        applyActionPolicy(ui ? ui->actionJishogiScore : nullptr, policy);
-        break;
-    case UiElement::GameNyugyokuDeclaration:
-        applyActionPolicy(ui ? ui->actionNyugyokuDeclaration : nullptr, policy);
-        break;
-
-    // --- 設定メニュー ---
-    case UiElement::SettingsEngine:
-        applyActionPolicy(ui ? ui->actionEngineSettings : nullptr, policy);
-        break;
-    case UiElement::SettingsReset:
-        applyActionPolicy(ui ? ui->actionResetSettings : nullptr, policy);
-        break;
-
-    // --- ウィジェット ---
     case UiElement::WidgetNavigation:
-        if (m_deps.recordPane) {
-            m_deps.recordPane->setNavigationEnabled(policy == Policy::Enabled);
-        }
+        if (m_deps.recordPane) m_deps.recordPane->setNavigationEnabled(enabled);
         break;
     case UiElement::WidgetBranchTree:
-        if (m_deps.analysisTab) {
-            m_deps.analysisTab->setBranchTreeClickEnabled(policy == Policy::Enabled);
-        }
+        if (m_deps.analysisTab) m_deps.analysisTab->setBranchTreeClickEnabled(enabled);
         break;
     case UiElement::WidgetBoardClick:
-        if (m_deps.boardController) {
-            m_deps.boardController->setMoveInputEnabled(policy == Policy::Enabled);
-        }
+        if (m_deps.boardController) m_deps.boardController->setMoveInputEnabled(enabled);
         break;
     case UiElement::WidgetConsiderationStart:
-        if (m_deps.analysisTab) {
-            const bool enabled = (policy == Policy::Enabled || policy == Policy::Shown);
-            m_deps.analysisTab->setConsiderationStartEnabled(enabled);
-        }
+        if (m_deps.analysisTab) m_deps.analysisTab->setConsiderationStartEnabled(enabled);
         break;
-
-    case UiElement::Count:
+    default:
         break;
     }
 }

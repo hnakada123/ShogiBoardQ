@@ -134,13 +134,11 @@ std::optional<UsiMove> resolve(const Ki2Lexer::MoveText& text, const ShogiBoard&
     const BoardSquare to = text.sameAsPrevious ? previousTo : text.to;
     if (!to.isValid() || text.piece == Piece::None) return std::nullopt;
 
-    const EngineMoveValidator validator;
-    const auto legal = resolveAmong(validator.legalMoves(mover, board.boardData(), board.pieceStand()),
-                                    text, board, to, mover);
+    const auto position = EngineMoveValidator::load(board, mover);
+    const auto legal = resolveAmong(EngineMoveValidator::legalMoves(position), text, board, to, mover);
     if (legal) return legal;
     // 合法手で決まらないのは、反則手を書いた棋譜。駒の動きだけで決める
-    return resolveAmong(validator.pseudoLegalMoves(mover, board.boardData(), board.pieceStand()),
-                        text, board, to, mover);
+    return resolveAmong(EngineMoveValidator::pseudoLegalMoves(position), text, board, to, mover);
 }
 
 Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move)
@@ -148,9 +146,9 @@ Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move)
     const Piece moving = move.isDrop() ? move.drop : toBlack(board.pieceAt(move.from));
 
     // 読み込みと同じく、反則手は駒の動きだけで決めた手の中で区別する
-    const EngineMoveValidator validator;
-    QList<UsiMove> moves = validator.legalMoves(mover, board.boardData(), board.pieceStand());
-    if (!moves.contains(move)) moves = validator.pseudoLegalMoves(mover, board.boardData(), board.pieceStand());
+    const auto position = EngineMoveValidator::load(board, mover);
+    QList<UsiMove> moves = EngineMoveValidator::legalMoves(position);
+    if (!moves.contains(move)) moves = EngineMoveValidator::pseudoLegalMoves(position);
 
     // 同じ駒で同じマスへ動ける移動元（成り・不成は区別しない）
     QList<BoardSquare> sources;

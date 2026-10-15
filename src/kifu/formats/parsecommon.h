@@ -13,6 +13,7 @@
 #include <optional>
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
+#include "terminaltype.h"
 #include "shogitypes.h"
 
 namespace KifuParseCommon {
@@ -34,9 +35,6 @@ int zenkakuDigitToInt(QChar c);
 int flexDigitToIntNoDetach(QChar c);
 int flexDigitsToIntNoDetach(QStringView text);
 
-const std::array<QString, 16>& terminalWords();
-bool isTerminalWordExact(QStringView text, QString* normalized = nullptr);
-bool isTerminalWordContains(QStringView text, QString* normalized = nullptr);
 
 struct KanjiPieceResult {
     Piece base;
@@ -66,9 +64,6 @@ KifDisplayItem createOpeningDisplayItem(const QString& comment, const QString& b
 // KIF/KI2共通：盤面枠行・ヘッダ行を判定（BODの数字行、罫線行、持駒見出し等）
 bool isBoardHeaderOrFrame(QStringView line);
 
-// KIF/KI2共通：終局語を含むか判定
-bool containsAnyTerminal(QStringView s, QString* matched = nullptr);
-
 // KIF/KI2共通：スキップ可能なヘッダ行かどうか判定
 bool isKifSkippableHeaderLine(QStringView line);
 
@@ -78,10 +73,10 @@ bool isKifCommentLine(QStringView s);
 // KIF/KI2共通：しおり行判定（先頭が '&'）
 bool isBookmarkLine(QStringView s);
 
-// CSA/JKF共通：CSA形式終局コード→日本語ラベル
-// %プレフィックスの有無を自動判別（%TORYO / TORYO 両対応）
-// マッチしない場合は入力文字列をそのまま返す
-QString csaSpecialToJapanese(const QString& code);
+// CSA/JKF共通：CSA形式の終局コード（%TORYO / TORYO の両方）を終局の種類にする。
+// %+ILLEGAL_ACTION / %-ILLEGAL_ACTION は、不正を行った側が手番側なら反則負け、相手なら反則勝ち。
+// 終局コードでなければ None
+TerminalType csaSpecialToTerminal(const QString& code, Turn sideToMove);
 
 // CSA/JKF共通：mm:ss形式の時間フォーマット（ミリ秒入力）
 QString formatTimeMS(qint64 ms);
@@ -98,14 +93,6 @@ QMap<QString, QString> toGameInfoMap(const QList<KifGameInfoItem>& items);
 // 全コンバータ共通：手番マーク生成（奇数手=▲、偶数手=△）
 inline QString tebanMark(int ply) {
     return (ply % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
-}
-
-// 全コンバータ共通：反則した側で勝敗が決まる終局（連続王手の千日手など）の終局語。
-// KIF の終局語は手番側の行なので、手番側の反則なら「反則負け」、直前の相手の手が反則なら
-// 「反則勝ち」にする（CSA の %ILLEGAL_MOVE と %+ILLEGAL_ACTION / %-ILLEGAL_ACTION に対応）
-inline QString foulTerminalMove(bool offenderIsBlack, bool blackToMove) {
-    const QString mark = blackToMove ? QStringLiteral("▲") : QStringLiteral("△");
-    return mark + ((offenderIsBlack == blackToMove) ? QStringLiteral("反則負け") : QStringLiteral("反則勝ち"));
 }
 
 // KIF/KI2共通：BOD持駒行判定（先手の持駒/後手の持駒/持ち駒）
@@ -127,8 +114,8 @@ bool tryHandleCommentLine(const QString& line, bool firstMoveFound,
 bool tryHandleBookmarkLine(const QString& line, bool firstMoveFound,
                            QList<KifDisplayItem>& items, QString& openingBookmarkBuf);
 
-// 終局語の表示アイテムを生成（時間情報なしの汎用版）
-KifDisplayItem createTerminalDisplayItem(int ply, const QString& term,
+// 終局の表示アイテムを生成する。表記は終局語の表（TerminalTypes）から作る
+KifDisplayItem createTerminalDisplayItem(int ply, TerminalType type, Turn side,
                                          const QString& timeText = QString());
 
 // 指し手の表示アイテムを生成

@@ -48,10 +48,10 @@ class TestMoveRecordUpdates : public QObject
         tree.setRootSfen(SfenUtils::hirateSfen());
         KifuBranchNode* node = tree.root();
         const ShogiMove moves[] = {
-            ShogiMove(QPoint(1, 7), QPoint(2, 7), Piece::BlackRook, Piece::None, false),
-            ShogiMove(QPoint(7, 1), QPoint(6, 1), Piece::WhiteRook, Piece::None, false),
-            ShogiMove(QPoint(2, 7), QPoint(1, 7), Piece::BlackRook, Piece::None, false),
-            ShogiMove(QPoint(6, 1), QPoint(7, 1), Piece::WhiteRook, Piece::None, false),
+            ShogiMove(UsiMove::fromString(u"2h3h"), Piece::BlackRook),
+            ShogiMove(UsiMove::fromString(u"8b7b"), Piece::WhiteRook),
+            ShogiMove(UsiMove::fromString(u"3h2h"), Piece::BlackRook),
+            ShogiMove(UsiMove::fromString(u"7b8b"), Piece::WhiteRook),
         };
         const QString texts[] = {QStringLiteral("▲３八飛(28)"), QStringLiteral("△７二飛(82)"),
                                  QStringLiteral("▲２八飛(38)"), QStringLiteral("△８二飛(72)")};
@@ -104,7 +104,7 @@ private slots:
 
         // 末尾に1手増えたときは、その1行だけを足す（全行を作り直さない）
         KifuBranchNode* next = tree.addMoveQuiet(
-            last, ShogiMove(QPoint(1, 7), QPoint(2, 7), Piece::BlackRook, Piece::None, false),
+            last, ShogiMove(UsiMove::fromString(u"2h3h"), Piece::BlackRook),
             QStringLiteral("▲３八飛(28)"), QStringLiteral("sfen-121"));
         state.setCurrentNode(next);
         presenter.populateRecordModel();
@@ -282,8 +282,6 @@ private slots:
         EvaluationChartWidget chart;
         EvaluationGraphController controller;
         controller.setEvalChart(&chart);
-        QStringList sfenHistory{SfenUtils::hirateSfen()};
-        controller.setSfenRecord(&sfenHistory);
 
         QSignalSpy axis(&chart, &EvaluationChartWidget::xAxisSettingsChanged);
         for (int ply = 1; ply <= 120; ++ply) controller.setCurrentPly(ply);

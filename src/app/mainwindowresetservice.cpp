@@ -4,8 +4,8 @@
 #include "mainwindowresetservice.h"
 #include "appstate.h"
 #include "commentcoordinator.h"
-#include "josekiwindowwiring.h"
-#include "playerinfowiring.h"
+#include "josekiwindowcontroller.h"
+#include "playerinfopresenter.h"
 
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
@@ -77,11 +77,8 @@ void MainWindowResetService::clearUiBeforeKifuLoad(const SessionUiDeps& deps) co
 {
     clearSessionDependentUi(deps);
 
-    if (deps.evalChart) {
-        deps.evalChart->clearAll();
-    }
     if (deps.evalGraphController) {
-        deps.evalGraphController->clearScores();
+        deps.evalGraphController->clear();
     }
     if (deps.commentCoordinator) {
         deps.commentCoordinator->broadcastComment(QString(), true);
@@ -92,7 +89,7 @@ void MainWindowResetService::resetModels(const ModelResetDeps& deps,
                                          const QString& hirateStartSfen) const
 {
     clearPresentationState(deps);
-    clearGameDataModels(deps, hirateStartSfen);
+    clearGameDataModels(deps);
     resetBranchTreeForNewState(deps, hirateStartSfen);
 }
 
@@ -111,8 +108,7 @@ void MainWindowResetService::clearPresentationState(const ModelResetDeps& deps) 
     }
 }
 
-void MainWindowResetService::clearGameDataModels(const ModelResetDeps& deps,
-                                                 const QString& hirateStartSfen) const
+void MainWindowResetService::clearGameDataModels(const ModelResetDeps& deps) const
 {
     if (deps.gameRecord) {
         deps.gameRecord->clear();
@@ -125,11 +121,6 @@ void MainWindowResetService::clearGameDataModels(const ModelResetDeps& deps,
 
     if (deps.timeController) {
         deps.timeController->clearGameEndTime();
-    }
-
-    if (deps.sfenRecord) {
-        deps.sfenRecord->clear();
-        deps.sfenRecord->append(hirateStartSfen);
     }
 
     if (deps.gameInfoController) {
@@ -175,27 +166,21 @@ void MainWindowResetService::resetUiState(const UiResetDeps& deps,
     }
 
     // 前の対局者名を残さない（対局情報の初期値「先手」「後手」を表示する）
-    if (deps.playerInfoWiring) {
-        deps.playerInfoWiring->syncBoardNamesWithGameInfo();
+    if (deps.playerInfo) {
+        deps.playerInfo->syncBoardNamesWithGameInfo();
     }
 
     if (deps.uiStatePolicy) {
         deps.uiStatePolicy->transitionToIdle();
     }
 
-    if (deps.josekiWiring) {
-        deps.josekiWiring->updateJosekiWindow();
+    if (deps.josekiController) {
+        deps.josekiController->updateJosekiWindow();
     }
 }
 
 void MainWindowResetService::clearGameStateFields(AppState& state) const
 {
-    state.errorOccurred = false;
-    state.humanName1.clear();
-    state.humanName2.clear();
-    state.engineName1.clear();
-    state.engineName2.clear();
+    state.players = {};
     state.saveFileName.clear();
-    state.onMainRowGuard = false;
-    state.gameMoves.clear();
 }

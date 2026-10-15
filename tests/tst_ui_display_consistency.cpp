@@ -14,7 +14,7 @@
 #include "kifudisplay.h"
 #include "recordpane.h"
 #include "branchtreemanager.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "shogiboard.h"
 #include "shogimove.h"
 #include "livegamesession.h"
@@ -69,7 +69,7 @@ private:
         };
 
         const QStringList mainSfens =
-            SfenPositionTracer::buildSfenRecord(kHirateSfen, mainUsiMoves, /*hasTerminal=*/false);
+            SfenReplay::buildSfenRecord(kHirateSfen, mainUsiMoves, /*hasTerminal=*/false);
         if (mainSfens.size() != mainUsiMoves.size() + 1) {
             qWarning("buildScenarioTree: main SFEN record size mismatch");
             return scenario;
@@ -101,7 +101,7 @@ private:
             QStringLiteral("▲６五歩(66)"),
         };
         const QStringList branchSfens =
-            SfenPositionTracer::buildSfenRecord(branchBaseSfen, branchUsiMoves, /*hasTerminal=*/false);
+            SfenReplay::buildSfenRecord(branchBaseSfen, branchUsiMoves, /*hasTerminal=*/false);
         if (branchSfens.size() != branchUsiMoves.size() + 1) {
             qWarning("buildScenarioTree: branch SFEN record size mismatch");
             return scenario;
@@ -295,7 +295,7 @@ private slots:
         QVERIFY(ply4 != nullptr);
         QCOMPARE(ply4->childAt(0), h.scenario.branchLeafNode);
         const QStringList nestedSfens =
-            SfenPositionTracer::buildSfenRecord(ply4->sfen(), { QStringLiteral("5g5f") }, false);
+            SfenReplay::buildSfenRecord(ply4->sfen(), { QStringLiteral("5g5f") }, false);
         QCOMPARE(nestedSfens.size(), 2);
         ShogiMove dummyMove;
         QVERIFY(h.tree.addMove(ply4, dummyMove, QStringLiteral("▲５六歩(57)"), nestedSfens.at(1)) != nullptr);
@@ -387,7 +387,7 @@ private slots:
         QSignalSpy sfenSpy(&h.coordinator, &KifuDisplayCoordinator::boardSfenChanged);
 
         const QString sfen4 =
-            SfenPositionTracer::buildSfenRecord(start->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+            SfenReplay::buildSfenRecord(start->sfen(), { QStringLiteral("4a3b") }, false).at(1);
         // 実アプリでは対局ロジックが盤面を更新し、GameRecordPresenter が棋譜欄に行を追加してから
         // LiveGameSession に手が入る。ここではその2つを模倣する。
         h.board.setSfen(sfen4);
@@ -417,7 +417,7 @@ private slots:
 
         // 2手目以降も同様
         const QString sfen5 =
-            SfenPositionTracer::buildSfenRecord(sfen4, { QStringLiteral("2f2e") }, false).at(1);
+            SfenReplay::buildSfenRecord(sfen4, { QStringLiteral("2f2e") }, false).at(1);
         h.board.setSfen(sfen5);
         h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲２五歩(26)"), QStringLiteral("0:02"),
                                                  QString(), QString(), &h.recordModel));
@@ -449,7 +449,7 @@ private slots:
         KifuBranchNode* a3 = h.scenario.branchFirstNode;   // ply 3 ▲６六歩
         QVERIFY(a3 != nullptr);
         const QString nestedSfen =
-            SfenPositionTracer::buildSfenRecord(a3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+            SfenReplay::buildSfenRecord(a3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
         ShogiMove dummyMove;
         QVERIFY(h.tree.addMove(a3, dummyMove, QStringLiteral("△３二金(41)"), nestedSfen) != nullptr);
         QCOMPARE(a3->childCount(), 2);
@@ -470,7 +470,7 @@ private slots:
         QVERIFY(h.recordModel.branchPlyMarks() == QSet<int>{3});
 
         const QString sfen6 =
-            SfenPositionTracer::buildSfenRecord(start->sfen(), { QStringLiteral("8d8e") }, false).at(1);
+            SfenReplay::buildSfenRecord(start->sfen(), { QStringLiteral("8d8e") }, false).at(1);
         h.board.setSfen(sfen6);
         h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   6 △８五歩(84)"), QStringLiteral("0:01"),
                                                  QString(), QString(), &h.recordModel));
@@ -496,7 +496,7 @@ private slots:
         QVERIFY(h.recordModel.branchPlyMarks() == QSet<int>{3});
 
         const QString sfen5b =
-            SfenPositionTracer::buildSfenRecord(main4->sfen(), { QStringLiteral("6g6f") }, false).at(1);
+            SfenReplay::buildSfenRecord(main4->sfen(), { QStringLiteral("6g6f") }, false).at(1);
         h.board.setSfen(sfen5b);
         h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲６六歩(67)"), QStringLiteral("0:01"),
                                                  QString(), QString(), &h.recordModel));
@@ -576,7 +576,7 @@ private slots:
         const int rebuildsBefore = h.branchTreeManager.rebuildCount();
         const int rowsBefore = h.branchTreeManager.rowCount();
 
-        const QString sfen6 = SfenPositionTracer::buildSfenRecord(main5->sfen(), { QStringLiteral("8d8e") }, false).at(1);
+        const QString sfen6 = SfenReplay::buildSfenRecord(main5->sfen(), { QStringLiteral("8d8e") }, false).at(1);
         h.board.setSfen(sfen6);
         h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   6 △８五歩(84)"), QString(), QString(), QString(), &h.recordModel));
         session.addMove(dummyMove, QStringLiteral("△８五歩(84)"), sfen6, QString());
@@ -588,7 +588,7 @@ private slots:
         QCOMPARE(h.branchTreeManager.lastHighlightedRow(), 0);
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 6);
 
-        const QString sfen7 = SfenPositionTracer::buildSfenRecord(sfen6, { QStringLiteral("6i7h") }, false).at(1);
+        const QString sfen7 = SfenReplay::buildSfenRecord(sfen6, { QStringLiteral("6i7h") }, false).at(1);
         h.board.setSfen(sfen7);
         h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   7 ▲７八金(69)"), QString(), QString(), QString(), &h.recordModel));
         session.addMove(dummyMove, QStringLiteral("▲７八金(69)"), sfen7, QString());
@@ -625,7 +625,7 @@ private slots:
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 3);
 
         // (3) 本譜3手目の局面から別の手 → 新規ライン: 全再構築で行が増える。続く手は差分追加
-        const QString sfen4b = SfenPositionTracer::buildSfenRecord(main3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+        const QString sfen4b = SfenReplay::buildSfenRecord(main3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
         h.board.setSfen(sfen4b);
         h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   4 △３二金(41)"), QString(), QString(), QString(), &h.recordModel));
         session2.addMove(dummyMove, QStringLiteral("△３二金(41)"), sfen4b, QString());
@@ -637,7 +637,7 @@ private slots:
         QVERIFY(h.branchTreeManager.nodeIdFor(newLine, 4) > 0);
         QCOMPARE(h.branchTreeManager.lastHighlightedRow(), newLine);
 
-        const QString sfen5b = SfenPositionTracer::buildSfenRecord(sfen4b, { QStringLiteral("2f2e") }, false).at(1);
+        const QString sfen5b = SfenReplay::buildSfenRecord(sfen4b, { QStringLiteral("2f2e") }, false).at(1);
         h.board.setSfen(sfen5b);
         h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲２五歩(26)"), QString(), QString(), QString(), &h.recordModel));
         session2.addMove(dummyMove, QStringLiteral("▲２五歩(26)"), sfen5b, QString());
@@ -662,7 +662,7 @@ private slots:
         const int rebuildsBefore = h.branchTreeManager.rebuildCount();
         const int rowsBefore = h.branchTreeManager.rowCount();
 
-        const QString sfen6 = SfenPositionTracer::buildSfenRecord(main5->sfen(), { QStringLiteral("8d8e") }, false).at(1);
+        const QString sfen6 = SfenReplay::buildSfenRecord(main5->sfen(), { QStringLiteral("8d8e") }, false).at(1);
         KifuBranchNode* added = h.tree.addMove(main5, ShogiMove(), QStringLiteral("△８五歩(84)"), sfen6);
         QVERIFY(added != nullptr);
         h.nav.goToNode(added);
@@ -677,7 +677,7 @@ private slots:
                  qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
 
         KifuBranchNode* main3 = h.tree.findByPlyOnMainLine(3);
-        const QString sfen4b = SfenPositionTracer::buildSfenRecord(main3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+        const QString sfen4b = SfenReplay::buildSfenRecord(main3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
         KifuBranchNode* branch = h.tree.addMove(main3, ShogiMove(), QStringLiteral("△３二金(41)"), sfen4b);
         QVERIFY(branch != nullptr);
         h.nav.goToNode(branch);

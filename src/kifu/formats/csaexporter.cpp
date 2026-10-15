@@ -4,7 +4,8 @@
 #include "csaexporter.h"
 #include "usimove.h"
 #include "shoginotation.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "csaformatter.h"
 #include "kifuexportcommon.h"
 #include "gameinfokeys.h"
@@ -50,8 +51,9 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
                                   << usiMoves.mid(0, qMin(5, usiMoves.size()));
     }
 
-    // 指し手の駒種（CSA は着手後の駒）を知るための局面
-    SfenPositionTracer position;
+    // 指し手の駒種（CSA は着手後の駒）を知るための局面（平手から始め、局面図があればその局面にする）
+    ShogiBoard position;
+    (void)position.trySetSfen(SfenUtils::hirateSfen());
 
     // 1) 文字コード宣言 (V3.0で追加)
     out << QStringLiteral("'CSA encoding=UTF-8");
@@ -177,7 +179,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             SfenCsaPositionConverter::toCsaPositionLines(ctx.startSfen, &convErr);
         if (csaPos && !csaPos->isEmpty()) {
             out << *csaPos;
-            (void)position.setFromSfen(ctx.startSfen);
+            (void)position.trySetSfen(ctx.startSfen);
         } else {
             qCWarning(lcKifu).noquote()
                 << "SFEN->CSA position conversion failed. fallback to PI. error=" << convErr;
@@ -259,9 +261,9 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         if (const auto move = UsiMove::parse(usiMove)) {
             const Turn mover = isSente ? Turn::Black : Turn::White;
             const Piece moving = move->isDrop() ? move->dropPieceFor(mover)
-                                                : position.pieceAt(move->from.file, move->from.rank);
+                                                : position.pieceAt(move->from);
             const QString csaPiece = ShogiNotation::csaPieceCode(move->promote ? promote(moving) : moving);
-            (void)position.applyUsiMove(usiMove);
+            (void)SfenReplay::applyLenient(position, usiMove);
             if (!csaPiece.isEmpty()) {
                 const QString from = move->isDrop()
                     ? QStringLiteral("00")

@@ -10,7 +10,6 @@
 #include "ui_mainwindow.h"
 
 #include "uistatepolicymanager.h"
-#include "playmode.h"
 
 class TestAppUiStatePolicy : public QObject
 {
@@ -43,27 +42,27 @@ private:
     }
 
 private slots:
-    void sharedActivityDrivesPolicyAndRetainsMatchConfiguration()
+    void sharedActivityDrivesPolicy()
     {
         AppActivityState activity;
         UiStatePolicyManager manager;
         UiStatePolicyManager::Deps deps;
         deps.activity = &activity;
-        deps.getPlayMode = [&] { return activity.playMode(); };
+        deps.localGameHasHuman = [] { return true; };
         manager.updateDeps(deps);
         QSignalSpy changed(&manager, &UiStatePolicyManager::stateChanged);
-        activity.setPlayMode(PlayMode::EvenHumanVsEngine);
+        activity.setActivity(AppActivityState::Activity::DuringGame);
         QCOMPARE(manager.currentState(), S::DuringGame);
         QVERIFY(manager.isEnabled(E::GameUndo));
         QCOMPARE(changed.count(), 1);
         manager.transitionToDuringConsideration();
-        QCOMPARE(activity.playMode(), PlayMode::ConsiderationMode);
+        QCOMPARE(activity.activity(), AppActivityState::Activity::DuringConsideration);
         QVERIFY(!manager.isEnabled(E::GameUndo));
         QCOMPARE(changed.count(), 2);
         manager.transitionToIdle();
-        QCOMPARE(activity.playMode(), PlayMode::NotStarted);
+        QCOMPARE(activity.activity(), AppActivityState::Activity::Idle);
         manager.transitionToDuringGame();
-        QCOMPARE(activity.playMode(), PlayMode::EvenHumanVsEngine);
+        QCOMPARE(activity.activity(), AppActivityState::Activity::DuringGame);
     }
 
     void settingsResetOnlyEnabledWhileIdle()
@@ -416,7 +415,7 @@ private slots:
     {
         UiStatePolicyManager mgr;
         UiStatePolicyManager::Deps deps;
-        deps.getPlayMode = []() { return PlayMode::HumanVsHuman; };
+        deps.localGameHasHuman = []() { return true; };
         mgr.updateDeps(deps);
         verifyEnabled(mgr, S::DuringGame, E::GameResign, "GameResign");
         verifyEnabled(mgr, S::DuringCsaGame, E::GameResign, "GameResign");
@@ -425,29 +424,16 @@ private slots:
         verifyDisabled(mgr, S::DuringTsumeSearch, E::GameResign, "GameResign");
     }
 
-    void localHumanActions_followPlayMode_data()
+    void localHumanActions_followPlayers_data()
     {
-        QTest::addColumn<PlayMode>("mode");
         QTest::addColumn<bool>("hasHuman");
-        QTest::newRow("human-human") << PlayMode::HumanVsHuman << true;
-        QTest::newRow("human-engine") << PlayMode::EvenHumanVsEngine << true;
-        QTest::newRow("engine-human") << PlayMode::EvenEngineVsHuman << true;
-        QTest::newRow("handicap-human-engine") << PlayMode::HandicapHumanVsEngine << true;
-        QTest::newRow("handicap-engine-human") << PlayMode::HandicapEngineVsHuman << true;
-        QTest::newRow("engine-engine") << PlayMode::EvenEngineVsEngine << false;
-        QTest::newRow("handicap-engine-engine") << PlayMode::HandicapEngineVsEngine << false;
-        QTest::newRow("not-started") << PlayMode::NotStarted << false;
-        QTest::newRow("analysis") << PlayMode::AnalysisMode << false;
-        QTest::newRow("consideration") << PlayMode::ConsiderationMode << false;
-        QTest::newRow("tsume-search") << PlayMode::TsumiSearchMode << false;
-        QTest::newRow("csa") << PlayMode::CsaNetworkMode << false;
-        QTest::newRow("error") << PlayMode::PlayModeError << false;
+        QTest::newRow("with-human") << true;
+        QTest::newRow("engines-only") << false;
     }
 
     /// 待った・ローカル対局の投了は人間が参加する場合のみ有効。中断は常に可能。
-    void localHumanActions_followPlayMode()
+    void localHumanActions_followPlayers()
     {
-        QFETCH(PlayMode, mode);
         QFETCH(bool, hasHuman);
         QMainWindow window;
         Ui::MainWindow ui;
@@ -462,7 +448,7 @@ private slots:
         QVERIFY(!mgr.isEnabled(E::GameResign));
         QVERIFY(!ui.actionResign->isEnabled());
 
-        deps.getPlayMode = [&mode]() { return mode; };
+        deps.localGameHasHuman = [&hasHuman]() { return hasHuman; };
         mgr.updateDeps(deps);
         for (const auto state : {S::Idle, S::DuringGame, S::DuringCsaGame, S::DuringAnalysis,
                                 S::DuringTsumeSearch, S::DuringConsideration,
@@ -482,13 +468,13 @@ private slots:
             QCOMPARE(ui.actionBreakOffGame->isEnabled(), canBreakOff);
         }
 
-        // 次の対局では最新のモードで有効・無効を再判定する。
-        mode = PlayMode::HumanVsHuman;
+        // 次の対局では最新の対局者で有効・無効を再判定する。
+        hasHuman = true;
         mgr.transitionToDuringGame();
         QVERIFY(ui.actionUndoMove->isEnabled());
         QVERIFY(ui.actionResign->isEnabled());
         mgr.transitionToIdle();
-        mode = PlayMode::EvenEngineVsEngine;
+        hasHuman = false;
         mgr.transitionToDuringGame();
         QVERIFY(!ui.actionUndoMove->isEnabled());
         QVERIFY(!ui.actionResign->isEnabled());
@@ -551,7 +537,7 @@ private slots:
     {
         UiStatePolicyManager mgr;
         UiStatePolicyManager::Deps deps;
-        deps.getPlayMode = []() { return PlayMode::HumanVsHuman; };
+        deps.localGameHasHuman = []() { return true; };
         mgr.updateDeps(deps);
         verifyEnabled(mgr, S::DuringGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
         verifyEnabled(mgr, S::DuringCsaGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");

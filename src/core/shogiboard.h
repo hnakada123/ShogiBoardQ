@@ -28,7 +28,7 @@ public:
     // --- 盤面アクセス ---
 
     /// 指定マスの駒を返す（盤上・駒台共通）
-    Piece pieceCharacter(const int file, const int rank);
+    Piece pieceCharacter(const int file, const int rank) const;
 
     /// 盤上のマスの駒（盤外のマスは None）
     Piece pieceAt(BoardSquare square) const;
@@ -37,10 +37,10 @@ public:
     void setPieceAt(BoardSquare square, Piece piece);
 
     /// 盤面データ（81マスの駒配列）を返す
-    const QList<Piece>& boardData() const;
+    const QList<Piece>& boardData() const { return m_boardData; }
 
     /// 駒台データを返す
-    const QMap<Piece, int>& pieceStand() const;
+    const QMap<Piece, int>& pieceStand() const { return m_pieceStand; }
 
     /// 指定駒の駒台枚数を返す（存在しない場合は0）
     int pieceStandCount(Piece piece) const;
@@ -59,10 +59,12 @@ public:
     int files() const { return m_files; }
     Turn currentPlayer() const;
 
-    /// 手番のみを更新する（盤面・持ち駒は変更しない）。
-    /// 盤面の手番は setSfen() 以外では変わらないため、対局中に盤面を SFEN から
-    /// 再設定しない場合は ShogiGameController が手番更新時にこれで同期する。
+    /// 手番のみを更新する（盤面・持ち駒は変更しない。局面編集の手番変更などに使う）
     void setCurrentPlayer(Turn turn);
+
+    /// 次に指す手の手数（SFEN の4つ目の欄）
+    int moveNumber() const { return m_moveNumber; }
+    void setMoveNumber(int moveNumber) { m_moveNumber = qMax(1, moveNumber); }
 
     // --- SFEN変換 ---
 
@@ -93,13 +95,13 @@ public:
     void copyPositionFrom(const ShogiBoard& other);
 
     /// 盤面をSFEN形式の文字列に変換する
-    QString convertBoardToSfen();
+    QString convertBoardToSfen() const;
 
     /// 駒台をSFEN形式の文字列に変換する
     QString convertStandToSfen() const;
 
-    /// 現局面のSFENレコードをリストに追加する
-    void addSfenRecord(Turn nextTurn, const int moveNumber, QStringList* m_sfenHistory);
+    /// 局面全体（盤・手番・持駒・手数）の SFEN
+    QString toSfen() const;
 
     // --- 駒操作 ---
 
@@ -111,13 +113,15 @@ public:
     void updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote);
 
     /**
-     * @brief USI の指し手を盤と駒台に適用する
+     * @brief USI の指し手を盤と駒台に適用し、手番を相手に渡して手数を1つ進める
      *
      * 合法手かどうかは確かめない（対局で確かめてから指す経路は ShogiGameController::applyMove）。
      * 移動元が空、駒台に打つ駒がない、打つ先が埋まっている指し手は適用せず false を返す。
      * @param mover 指す側（駒打ちの駒の色を決める）
      */
     bool applyUsiMove(const UsiMove& move, Turn mover);
+    /// 手番側の手として適用する
+    bool applyUsiMove(const UsiMove& move) { return applyUsiMove(move, m_currentPlayer); }
 
     /// 局面編集用: 指定マスの駒を成/不成に切り替える
     void promoteOrDemotePiece(const int fileFrom, const int rankFrom);
@@ -164,9 +168,11 @@ private:
     QList<Piece> m_boardData;     ///< 81マスの駒データ
     QMap<Piece, int> m_pieceStand;  ///< 駒台データ（駒 → 枚数）。玉を含む先後16種を常に持つ
     Turn m_currentPlayer = Turn::Black; ///< 現在の手番
+    int m_moveNumber = 1;               ///< 次に指す手の手数
 
     // --- 内部操作 ---
     void setData(const int file, const int rank, const Piece value);
+    void advanceTurn(Turn mover);
     void initBoard();
     bool setDataInternal(const int file, const int rank, const Piece value);
     Piece convertPieceChar(const Piece c) const;

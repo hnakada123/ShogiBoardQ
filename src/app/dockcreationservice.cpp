@@ -10,8 +10,8 @@
 #include "engineanalysistab.h"
 #include "gameinfopanecontroller.h"
 #include "analysisresultspresenter.h"
-#include "menuwindowwiring.h"
-#include "josekiwindowwiring.h"
+#include "menuwindowcontroller.h"
+#include "josekiwindowcontroller.h"
 #include "menuwindow.h"
 #include "josekiwindow.h"
 #include "docksettings.h"
@@ -225,7 +225,7 @@ void DockCreationService::createAnalysisDocks()
 QDockWidget* DockCreationService::createMenuWindowDock()
 {
     if (!m_menuWiring || !m_mainWindow) {
-        qWarning() << "[DockCreationService] createMenuWindowDock: menuWiring or mainWindow is null";
+        qWarning() << "[DockCreationService] createMenuWindowDock: menuWindowController or mainWindow is null";
         return nullptr;
     }
 
@@ -259,13 +259,13 @@ QDockWidget* DockCreationService::createMenuWindowDock()
 
 QDockWidget* DockCreationService::createJosekiWindowDock()
 {
-    if (!m_josekiWiring || !m_mainWindow) {
-        qWarning() << "[DockCreationService] createJosekiWindowDock: josekiWiring or mainWindow is null";
+    if (!m_josekiController || !m_mainWindow) {
+        qWarning() << "[DockCreationService] createJosekiWindowDock: josekiWindow or mainWindow is null";
         return nullptr;
     }
 
-    m_josekiWiring->ensureJosekiWindow();
-    JosekiWindow* josekiWindow = m_josekiWiring->josekiWindow();
+    m_josekiController->ensureJosekiWindow();
+    JosekiWindow* josekiWindow = m_josekiController->josekiWindow();
     if (!josekiWindow) {
         qWarning() << "[DockCreationService] createJosekiWindowDock: JosekiWindow is null";
         return nullptr;

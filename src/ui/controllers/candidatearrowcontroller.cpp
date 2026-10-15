@@ -1,11 +1,12 @@
 #include "candidatearrowcontroller.h"
 
-#include "usimove.h"
+#include "analysissession.h"
 #include "analysissettings.h"
+#include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
 #include "kifupresentation.h"
 #include "matchcoordinator.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "shogiboard.h"
 #include "shogienginethinkingmodel.h"
 #include "usi.h"
@@ -17,20 +18,6 @@ QString positionKey(const QString& sfen)
     return sfen.simplified().section(QLatin1Char(' '), 0, 2);
 }
 
-bool localEngineMatch(PlayMode mode)
-{
-    switch (mode) {
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-    case PlayMode::HandicapEngineVsHuman:
-    case PlayMode::HandicapEngineVsEngine:
-        return true;
-    default:
-        return false;
-    }
-}
 }
 
 CandidateArrowController* CandidateArrowController::forView(ShogiView* view)
@@ -48,22 +35,16 @@ CandidateArrowController::CandidateArrowController(ShogiView* view)
     connect(view, &ShogiView::positionChanged, this, &CandidateArrowController::scheduleRefresh);
 }
 
-void CandidateArrowController::setMatchCoordinator(MatchCoordinator* match)
+void CandidateArrowController::setSources(const Sources& sources)
 {
-    if (m_match == match) return;
-    if (m_match) {
-        disconnect(m_match, nullptr, this, nullptr);
-        disconnect(m_match->engineManager(), nullptr, this, nullptr);
-    }
-    m_match = match;
-    if (match) {
-        connect(match, &MatchCoordinator::playModeChanged, this, &CandidateArrowController::scheduleRefresh);
-        connect(match, &MatchCoordinator::gameOverStateChanged, this, &CandidateArrowController::scheduleRefresh);
-        connect(match, &MatchCoordinator::considerationModeEnded, this, &CandidateArrowController::endConsideration);
-        connect(match, &QObject::destroyed, this, &CandidateArrowController::scheduleRefresh);
-        connect(match->engineManager(), &EngineLifecycleManager::enginesChanged,
-                this, &CandidateArrowController::bindEngines);
-    }
+    // 部品は起動時に一度だけ作るので、つなぎ直しは要らない
+    Q_ASSERT(!m_sources.match && sources.match && sources.engines && sources.activity && sources.analysis);
+    m_sources = sources;
+    connect(sources.activity, &AppActivityState::changed, this, &CandidateArrowController::scheduleRefresh);
+    connect(sources.match, &MatchCoordinator::gameOverStateChanged, this, &CandidateArrowController::scheduleRefresh);
+    connect(sources.analysis, &AnalysisSession::considerationModeEnded,
+            this, &CandidateArrowController::endConsideration);
+    connect(sources.engines, &EngineLifecycleManager::enginesChanged, this, &CandidateArrowController::bindEngines);
     bindEngines();
 }
 
@@ -71,8 +52,8 @@ void CandidateArrowController::bindEngines()
 {
     for (const auto& engine : m_engines)
         if (engine) disconnect(engine, nullptr, this, nullptr);
-    m_engines = {m_match ? m_match->primaryEngine() : nullptr,
-                 m_match ? m_match->secondaryEngine() : nullptr};
+    m_engines = {m_sources.engines ? m_sources.engines->engineInSlot(1) : nullptr,
+                 m_sources.engines ? m_sources.engines->engineInSlot(2) : nullptr};
     for (const auto& engine : m_engines) {
         if (!engine) continue;
         connect(engine, &Usi::searchCandidateChanged, this, &CandidateArrowController::scheduleRefresh,
@@ -108,7 +89,7 @@ void CandidateArrowController::endConsideration()
 
 bool CandidateArrowController::considerationActive() const
 {
-    return m_considerationActive && (!m_match || m_match->playMode() == PlayMode::ConsiderationMode);
+    return m_considerationActive && (!m_sources.analysis || m_sources.analysis->isConsidering());
 }
 
 void CandidateArrowController::scheduleRefresh()
@@ -140,21 +121,19 @@ std::optional<ShogiView::Arrow> CandidateArrowController::arrowForMove(
 
 void CandidateArrowController::appendMatchArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen)
 {
-    if (!m_match || !localEngineMatch(m_match->playMode()) || m_match->gameOverState().isOver
-        || !AnalysisSettings::matchArrowsVisible()) return;
+    // エンジンが指す対局の最中だけ描く（通信対局・検討・解析のエンジンは対象外）
+    if (!m_sources.match || !m_sources.activity
+        || m_sources.activity->activity() != AppActivityState::Activity::DuringGame
+        || m_sources.match->isGameOver() || !AnalysisSettings::matchArrowsVisible()) return;
 
-    const Usi* previous = nullptr;
     for (const auto& engine : m_engines) {
-        // HvEでは両スロットが同じエンジンを指す場合がある。
-        if (!engine || engine == previous) continue;
-        previous = engine;
+        if (!engine) continue;
         const auto& candidate = engine->searchCandidate();
         if (!candidate.active || candidate.move.isEmpty()) continue;
         if (candidate.pondering) {
             if (!AnalysisSettings::ponderArrowsVisible() || candidate.predictedMove.isEmpty()) continue;
-            SfenPositionTracer predicted;
-            if (!predicted.setFromSfen(sfen) || !predicted.applyUsiMove(candidate.predictedMove)
-                || positionKey(predicted.toSfenString()) != positionKey(candidate.baseSfen)) continue;
+            const QString predicted = SfenReplay::positionAfter(sfen, candidate.predictedMove);
+            if (predicted.isEmpty() || positionKey(predicted) != positionKey(candidate.baseSfen)) continue;
         } else if (positionKey(candidate.baseSfen) != positionKey(sfen)) {
             continue;
         }
@@ -196,5 +175,5 @@ void CandidateArrowController::refresh()
         }
     }
     m_view->setArrows(arrows);
-    emit displayStateChanged();
+    emit displayStateChanged(considerationActive(), m_ponderDescription);
 }

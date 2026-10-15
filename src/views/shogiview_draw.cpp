@@ -1,5 +1,5 @@
 /// @file shogiview_draw.cpp
-/// @brief 盤全体の木肌・罫線・駒・座標の描画
+/// @brief ShogiView の描画（盤の木肌・罫線・駒・座標・駒台・駒箱）
 
 #include "shogiview.h"
 #include "kifupresentation.h"
@@ -17,6 +17,9 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QFont>
+#include "boardconstants.h"
+#include <QFontMetrics>
+#include <array>
 
 void ShogiView::drawRanks(QPainter* painter)
 {
@@ -319,4 +322,225 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
     painter->setPen(m_boardColors.grid);
     painter->drawText(label, Qt::AlignCenter, QString::number(file));
     painter->restore();
+}
+
+// ============================================================
+// 駒台の描画
+// ============================================================
+
+// 持駒の配置・当たり判定はセルのまま、木肌は駒台全体を通して描く。
+// 駒台の木肌は盤面の変わらない部分の画像（drawStaticLayer）に含める。
+void ShogiView::drawNormalModeStand(QPainter* painter)
+{
+    if (!m_board) return;
+    for (const auto& stand : {blackStandBoundingRect(), whiteStandBoundingRect()}) {
+        BoardSurfacePainter::draw(*painter, m_layout.standSurfaceRect(stand),
+                                  m_boardColors.stand, m_boardVisuals.standWoodGrain, fieldSize().width());
+    }
+}
+
+// 【通常対局モード：先手（左側）駒台のアイコンを 4×2 で描画】
+void ShogiView::drawPiecesBlackStandInNormalMode(QPainter* painter)
+{
+    const int ranks [4] = { 6, 7, 8, 9 };
+    for (const int rank : ranks) {
+        for (int file = 1; file <= 2; ++file) {
+            drawBlackStandPiece(painter, file, rank);
+        }
+    }
+}
+
+// 【通常対局モード：後手（右側）駒台のアイコンを 4×2 で描画】
+void ShogiView::drawPiecesWhiteStandInNormalMode(QPainter* painter)
+{
+    const int ranks [4] = { 4, 3, 2, 1 };
+    for (const int rank : ranks) {
+        for (int file = 1; file <= 2; ++file) {
+            drawWhiteStandPiece(painter, file, rank);
+        }
+    }
+}
+
+void ShogiView::drawPiecesStandFeatures(QPainter* painter)
+{
+    // 先手/後手の駒台にある「駒」と「枚数」を描画
+    drawPiecesBlackStandInNormalMode(painter);
+    drawPiecesWhiteStandInNormalMode(painter);
+    drawPieceBoxPieces(painter);
+}
+
+/**
+ * @brief 駒台の内側に駒・重なり・枚数表示を収める（最大3枚表示）。
+ */
+void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
+{
+    // 駒・枚数はセル内に切り抜いて描くため、セルが再描画範囲に掛からなければ省く。
+    if (!intersectsPaintRegion(adjustedRect)) return;
+    const Piece pieceKey = charToPiece(value);
+    const bool lifting = m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey);
+    const int count = lifting ? m_interaction.tempPieceStandCounts()[pieceKey] : m_board->pieceStandCount(pieceKey);
+    // 画面に出た枚数を記録する（持ち上げ中の一時的な枚数は局面と違うので記録しない）
+    if (lifting || !paintRegionCovers(adjustedRect)) m_shownStandCounts.remove(pieceKey);
+    else m_shownStandCounts.insert(pieceKey, count);
+    drawCountedPiece(painter, adjustedRect, piece(value), count);
+}
+
+void ShogiView::drawCountedPiece(QPainter* painter, const QRect& adjustedRect,
+                                 const QIcon& icon, int count) const
+{
+    if (count <= 0 || icon.isNull()) return;
+
+    const int cellW = adjustedRect.width();
+    const auto rendered = PiecePainter::image(icon, cellW, m_boardVisuals,
+                                               painter->device()->devicePixelRatioF());
+    if (rendered.bounds.isEmpty()) return;
+    const QRectF inner = m_layout.standPieceArea(adjustedRect);
+    const QSizeF canvas = rendered.pixmap.deviceIndependentSize();
+    const QPointF center(canvas.width() / 2, canvas.height() / 2);
+    // 影の右下への張り出しも左右・上下に同じ幅を予約し、駒本体は中央に保つ。
+    const qreal width = 2 * qMax(center.x() - rendered.bounds.left(), rendered.bounds.right() - center.x());
+    const qreal height = 2 * qMax(center.y() - rendered.bounds.top(), rendered.bounds.bottom() - center.y());
+    const int visible = qMin(count, 3);
+    const int steps = visible - 1;
+    const qreal minSpread = cellW * 0.02 * steps;
+    const qreal fit = qMin(1.0, qMin((inner.width() - minSpread) / width, inner.height() / height));
+    const qreal spread = qMin(cellW * 0.05 * steps, qMax(0.0, inner.width() - width * fit));
+    QRectF base(QPointF(), canvas * fit);
+    base.moveCenter(inner.center() + QPointF(spread / 2, 0));
+
+    painter->save();
+    painter->setClipRect(inner, Qt::IntersectClip);
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+    painter->setRenderHint(QPainter::Antialiasing, true);
+
+    // 奥(左)→手前(右)。表示は最大 visible 枚に限定
+    for (int i = 0; i < visible; ++i) {
+        const qreal shift = steps > 0 ? spread * (steps - i) / steps : 0;
+        painter->drawPixmap(base.translated(-shift, 0), rendered.pixmap, QRectF(rendered.pixmap.rect()));
+    }
+
+    // 右下バッジ（総数表示）
+    if (count >= 2) {
+        const QRectF topRect(base.topLeft() + rendered.bounds.topLeft() * fit,
+                             rendered.bounds.size() * fit);
+        const qreal margin = qMax(1.0, cellW * 0.02);
+        QFont f = painter->font();
+        int px = qBound(6, int(cellW * 0.34), 48);
+        f.setPixelSize(px);
+        f.setBold(true);
+        painter->setFont(f);
+
+        const QString text = QString::number(count);
+        QFontMetrics fm(f);
+        const int padX = qMax(1, cellW / 18);
+        const int padY = qMax(1, cellW / 22);
+        QSize tsz = fm.size(Qt::TextSingleLine, text);
+
+        const int maxBadgeW = qFloor(inner.width() - 2 * margin);
+        const int maxBadgeH = qFloor(inner.height() - 2 * margin);
+        while (px > 1 && (tsz.width() + padX * 2 > maxBadgeW || tsz.height() + padY * 2 > maxBadgeH)) {
+            f.setPixelSize(--px);
+            fm = QFontMetrics(f);
+            tsz = fm.size(Qt::TextSingleLine, text);
+        }
+        painter->setFont(f);
+
+        QRectF badge(0, 0, tsz.width() + padX * 2, tsz.height() + padY * 2);
+        badge.moveBottomRight(QPointF(
+            qBound(inner.left() + margin + badge.width(), topRect.right() - margin, inner.right() - margin),
+            qBound(inner.top() + margin + badge.height(), topRect.bottom() - margin, inner.bottom() - margin)));
+
+        const qreal radius = qMin(badge.width(), badge.height()) * 0.35;
+        QPen outline(m_boardColors.cardBorder, qMax(1.0, cellW / 60.0));
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(m_boardColors.cardBackground);
+        painter->drawRoundedRect(badge, radius, radius);
+
+        painter->setPen(outline);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRoundedRect(badge, radius, radius);
+
+        painter->setPen(m_boardColors.nameText);
+        painter->drawText(badge, Qt::AlignCenter, text);
+    }
+
+    painter->restore();
+}
+
+// 先手（黒）側の駒台セルに対応する「駒アイコン」を描画する。
+void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int rank) const
+{
+    const QRect fieldRect = cachedFieldRect(file, rank);
+    const QRect adjustedRect = m_layout.standCellRect(true, fieldRect);
+    const QChar value = ShogiViewLayout::standPieceAt(true, file, rank);
+    drawStandPieceIcon(painter, adjustedRect, value);
+}
+
+// 後手（白）側の駒台セルに対応する「駒アイコン」を描画する。
+void ShogiView::drawWhiteStandPiece(QPainter* painter, const int file, const int rank) const
+{
+    const QRect fieldRect = cachedFieldRect(file, rank);
+    const QRect adjustedRect = m_layout.standCellRect(false, fieldRect);
+    const QChar value = ShogiViewLayout::standPieceAt(false, file, rank);
+    drawStandPieceIcon(painter, adjustedRect, value);
+}
+
+// ============================================================
+// 駒箱の描画
+// ============================================================
+
+void ShogiView::drawPieceBoxBackground(QPainter* painter)
+{
+    const QRect box = pieceBoxRect();
+    if (box.isEmpty()) return;
+    // 駒箱は局面編集中だけ表示し、ラベルの文字も含むため、変わらない部分の画像には含めない。
+    const QRectF surface = m_layout.standSurfaceRect(box);
+    const QMarginsF shadow = BoardSurfacePainter::shadowMargins(fieldSize().width());
+    if (!intersectsPaintRegion(surface.marginsAdded(shadow).adjusted(-1, -1, 1, 1))) return;
+    BoardSurfacePainter::draw(*painter, surface, m_boardColors.stand, m_boardVisuals.standWoodGrain,
+                              fieldSize().width());
+    painter->save();
+    const QRect label = ShogiViewLayout::pieceBoxLabelRect(box);
+    QFont labelFont = painter->font();
+    labelFont.setPixelSize(qMax(1, label.height() - 2));
+    labelFont.setBold(true);
+    painter->setFont(labelFont);
+    painter->setPen(m_boardColors.grid);
+    painter->drawText(label, Qt::AlignCenter, tr("駒箱"));
+    painter->restore();
+}
+
+void ShogiView::drawPieceBoxPieces(QPainter* painter)
+{
+    if (pieceBoxRect().isEmpty()) return;
+    const auto counts = m_board->pieceBox();
+    for (int rank = 1; rank <= 8; ++rank) {
+        const Piece boxPiece = m_board->pieceCharacter(BoardConstants::kPieceBoxFile, rank);
+        int count = counts.value(boxPiece);
+        if (m_interaction.dragging() && m_interaction.dragFrom() == QPoint(BoardConstants::kPieceBoxFile, rank)) --count;
+        if (count <= 0) continue;
+        const Piece displayPiece = pieceBoxSide() == Turn::Black ? boxPiece : toWhite(boxPiece);
+        const QIcon icon = piece(pieceToChar(displayPiece));
+        const QRect cell = pieceBoxCellRect(rank);
+        if (!intersectsPaintRegion(cell)) continue;
+        const int numberWidth = qMax(1, cell.width() * 3 / 10);
+        painter->save();
+        painter->setClipRect(cell, Qt::IntersectClip);
+        PiecePainter::draw(*painter, icon, cell.adjusted(1, 1, -numberWidth, -1), m_boardVisuals);
+        if (count >= 2) {
+            // 小さい駒箱では駒を重ねず、文字に重ならない専用欄へ枚数を表示する。
+            const QRect numberRect(cell.right() - numberWidth, cell.top(), numberWidth, cell.height() / 2);
+            const QString number = QString::number(count);
+            QFont countFont = painter->font();
+            int pixels = qMax(1, cell.height() / 3);
+            countFont.setBold(true);
+            countFont.setPixelSize(pixels);
+            while (pixels > 1 && QFontMetrics(countFont).horizontalAdvance(number) > numberWidth)
+                countFont.setPixelSize(--pixels);
+            painter->setFont(countFont);
+            painter->setPen(m_boardColors.grid);
+            painter->drawText(numberRect, Qt::AlignCenter, number);
+        }
+        painter->restore();
+    }
 }

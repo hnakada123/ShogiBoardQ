@@ -5,8 +5,10 @@
 #include <QGraphicsView>
 #include <QTableView>
 
-#include "undoflowservice.h"
-#include "matchundohandler.h"
+#include "appactivitystate.h"
+#include "enginelifecyclemanager.h"
+#include "matchcoordinator.h"
+#include "matchrecordsink.h"
 #include "recordline.h"
 #include "livegamesession.h"
 #include "kifubranchtree.h"
@@ -21,9 +23,8 @@
 #include "branchtreemanager.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "sfenutils.h"
-#include "playmode.h"
 #include "shogiclock.h"
 
 namespace {
@@ -31,6 +32,26 @@ namespace {
 const QStringList opening = QStringLiteral(
     "7g7f 4a3b 2g2f 7a6b 2f2e 5a4a 2e2d 2c2d 2h2d P*2c").split(' ');
 
+/// 司令塔の棋譜の行をライブ対局のセッション（分岐ツリー）に書く受け手（GameSession と同じ）
+class LiveSessionSink final : public MatchRecordSink {
+public:
+    explicit LiveSessionSink(LiveGameSession& session) : m_session(session) {}
+    bool canAppendRecord() const override { return m_session.canAddMove(); }
+    void appendRecord(const RecordEntry& entry) override { m_session.appendRecord(entry); }
+    bool canUndoRecords(int count) const override
+    {
+        return !m_session.isActive() || m_session.canUndoMoves(count);
+    }
+    void undoRecords(int count) override
+    {
+        if (m_session.isActive()) QVERIFY(m_session.undoMoves(count));
+    }
+
+private:
+    LiveGameSession& m_session;
+};
+
+/// 人間対人間の対局を、本物の司令塔・ライブ対局のセッション・棋譜欄・分岐ツリーで進める
 struct Harness : QObject {
     KifuBranchTree tree;
     KifuNavigationState state;
@@ -44,39 +65,28 @@ struct Harness : QObject {
     ShogiGameController gc;
     LiveGameSession session;
     GameRecordPresenter presenter{{&record, &pane}};
-    MatchUndoHandler handler;
-    UndoFlowService flow;
     ShogiClock clock;
-    int timerRestarts = 0;
-    QStringList sfens;
-    QList<ShogiMove> moves;
-    QString position() const
-    {
-        RecordLine line;
-        line.sfens = sfens;
-        line.moves = moves;
-        return line.positionCommand(line.moveCount());
-    }
-    QString currentSfen;
+    AppActivityState activity;
+    EngineLifecycleManager engines{&clock};
+    LiveSessionSink sink{session};
+    std::unique_ptr<MatchCoordinator> match;
     int highlightPly = -1;
-    int undoCalls = 0;
-    bool dirty = false;
     bool coherentUndo = false;
+
+    const RecordLine& line() const { return match->record(); }
+    QString position() const { return line().positionCommand(line().moveCount()); }
+
     void observeUndo()
     {
-        coherentUndo = session.currentSfen() == sfens.last() && currentSfen == sfens.last()
-            && session.totalPly() == sfens.size() - 1 && moves.size() == sfens.size() - 1
+        coherentUndo = session.currentSfen() == line().lastSfen()
+            && session.totalPly() == line().moveCount()
             && state.currentNode() == session.liveNode();
     }
-    PlayMode mode = PlayMode::EvenHumanVsEngine;
-    Turn human = Turn::Black;
+    void observeHighlight(int ply) { highlightPly = ply; }
 
     Harness()
     {
-        QString initial = SfenUtils::hirateSfen();
-        gc.newGame(initial);
-        sfens.append(initial);
-        currentSfen = initial;
+        const QString initial = SfenUtils::hirateSfen();
         tree.setRootSfen(initial);
         nav.setTreeAndState(&tree, &state);
         pane.setModels(&record, &branches);
@@ -85,10 +95,7 @@ struct Harness : QObject {
         display.setRecordModel(&record);
         display.setBranchModel(&branches);
         display.setBranchTreeManager(&treeManager);
-        display.setBoardSfenProvider([this]() {
-            return QStringLiteral("%1 %2 %3 1").arg(gc.board()->convertBoardToSfen(),
-                turnToSfen(gc.board()->currentPlayer()), gc.board()->convertStandToSfen());
-        });
+        display.setBoardSfenProvider([this]() { return gc.board()->toSfen(); });
         display.setLiveGameSession(&session);
         display.wireSignals();
         display.onTreeChanged();
@@ -96,65 +103,45 @@ struct Harness : QObject {
         session.startFromRoot();
         QObject::connect(&session, &LiveGameSession::movesUndone, this, &Harness::observeUndo);
 
-        MatchUndoHandler::Refs refs;
-        refs.gc = &gc;
-        refs.sfenHistory = &sfens;
-        refs.gameMoves = &moves;
-        handler.setRefs(refs);
-        MatchUndoHandler::Hooks clockHooks;
-        clockHooks.clockProvider = [this]() { return &clock; };
-        clockHooks.restartHumanTurnTimer = [this]() { ++timerRestarts; };
-        handler.setHooks(clockHooks);
-        MatchUndoHandler::UndoRefs undoRefs;
-        MatchUndoHandler::UndoHooks hooks;
-        hooks.canUndoRecord = [this] { return session.canUndoMoves(2); };
-        hooks.commitRecordUndo = [this] {
-            currentSfen = sfens.last();
-            QVERIFY(session.undoMoves(2));
-        };
-        hooks.isHumanSide = [this](Turn player) { return player == human; };
-        hooks.updateHighlightsForPly = [this](int ply) { highlightPly = ply; };
-        handler.setUndoBindings(undoRefs, hooks);
-
-        UndoFlowService::Deps deps;
-        deps.undoTwoPlies = [this]() { ++undoCalls; return handler.undoTwoPlies(); };
-        deps.markGameRecordDirty = [this]() { dirty = true; };
-        deps.liveSession = &session;
-        deps.playMode = &mode;
-        deps.sfenRecord = &sfens;
-        flow.updateDeps(deps);
-
+        MatchCoordinator::Deps deps;
+        deps.gc = &gc;
+        deps.clock = &clock;
+        deps.activity = &activity;
+        deps.engines = &engines;
+        match = std::make_unique<MatchCoordinator>(deps);
+        match->setRecordSink(&sink);
+        QObject::connect(match.get(), &MatchCoordinator::movesUndone, this, &Harness::observeHighlight);
+        startFrom(RecordLine{initial, {}, 0});
     }
 
-    /// 着手し、その手の消費時間を時計に確定する（対局中の着手と同じ順序）
+    /// 手順 from の最後の局面から対局を始める
+    void startFrom(const RecordLine& from)
+    {
+        MatchStartOptions opt;
+        opt.recordLine = from;
+        opt.recordLine.currentPly = from.moveCount();
+        match->start(opt);
+    }
+
+    /// 着手し、その手の考慮時間を時計に確定する（対局中の着手と同じ経路）
     bool playTimed(const QString& usi, qint64 ms)
     {
-        const Turn player = gc.currentPlayer();
-        if (!play(usi)) return false;
-        clock.setCurrentPlayer(player);
-        clock.setMeasuredConsiderationTime(player, ms);
-        clock.commitMove(player);
-        clock.setCurrentPlayer(player == Turn::Black ? Turn::White : Turn::Black);
-        return true;
+        clock.setMeasuredConsiderationTime(gc.currentPlayer(), ms);
+        return play(usi);
     }
 
     bool play(const QString& usi)
     {
         const auto move = UsiMove::parse(usi);
         if (!move) return false;
-        QString pretty;
-        if (!gc.applyMove(*move, pretty, static_cast<int>(sfens.size()), &sfens, moves)) {
-            return false;
-        }
-        RecordEntry entry;
-        entry.move = moves.last();
-        entry.displayText = pretty;
-        entry.sfen = sfens.last();
-        entry.time = RecordTime::fromMilliseconds(1000, 1000);
-        session.appendRecord(entry);
-        currentSfen = sfens.last();
+        const auto update = gc.positionUpdate();
+        const std::optional<RecordEntry> played = gc.applyMove(*move);
+        if (!played) return false;
+        match->onHumanMove(*played);
         return true;
     }
+
+    bool undo() { return match->undoTwoPlies(); }
 };
 
 } // namespace
@@ -165,14 +152,14 @@ class TestUndoFlow : public QObject
 
     static void verifyPosition(Harness& h, int ply)
     {
-        QCOMPARE(h.sfens.size(), ply + 1);
+        QCOMPARE(h.line().moveCount(), ply);
         QCOMPARE(h.record.rowCount(), ply + 1);
         QCOMPARE(h.record.currentHighlightRow(), ply);
         QCOMPARE(h.pane.kifuView()->currentIndex().row(), ply);
         QCOMPARE(h.state.currentPly(), ply);
         QCOMPARE(h.session.totalPly(), ply);
-        QCOMPARE(h.session.currentSfen(), h.sfens.last());
-        QCOMPARE(h.currentSfen, h.sfens.last());
+        QCOMPARE(h.session.currentSfen(), h.line().lastSfen());
+        QCOMPARE(h.gc.board()->toSfen(), h.line().lastSfen());
         QCOMPARE(h.treeManager.lastHighlightedPly(), ply);
         QString reason;
         QVERIFY2(h.display.verifyDisplayConsistencyDetailed(&reason), qPrintable(reason));
@@ -182,38 +169,32 @@ private slots:
     void undoAndReplay_data()
     {
         QTest::addColumn<int>("count");
-        QTest::addColumn<bool>("humanBlack");
-        QTest::newRow("human-black-captures-and-drop") << 10 << true;
-        QTest::newRow("human-white") << 9 << false;
-        QTest::newRow("human-white-first-turn") << 3 << false;
-        QTest::newRow("back-to-root") << 2 << true;
+        QTest::newRow("black-to-move-captures-and-drop") << 10;
+        QTest::newRow("white-to-move") << 9;
+        QTest::newRow("white-first-turn") << 3;
+        QTest::newRow("back-to-root") << 2;
     }
 
     void undoAndReplay()
     {
         QFETCH(int, count);
-        QFETCH(bool, humanBlack);
         Harness h;
-        h.human = humanBlack ? Turn::Black : Turn::White;
-        h.mode = humanBlack ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
         for (int i = 0; i < count; ++i) QVERIFY(h.play(opening.at(i)));
-        const QString targetSfen = h.sfens.at(count - 2);
+        const QString targetSfen = h.line().sfenAt(count - 2);
         const int undoneId = h.session.liveNode()->nodeId();
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         verifyPosition(h, count - 2);
         QVERIFY(h.coherentUndo);
-        QCOMPARE(h.sfens.last(), targetSfen);
+        QCOMPARE(h.line().lastSfen(), targetSfen);
         // 取り消した手はツリーに残し、棋譜欄は現在手までを表示する。
         QCOMPARE(h.tree.nodeCount(), count + 1);
         QCOMPARE(h.tree.displayItemsForLine(0).size(), count + 1);
         QVERIFY(h.tree.nodeAt(undoneId) != nullptr);
-        QCOMPARE(h.moves.size(), count - 2);
         // 戻した局面までの指し手は、分岐ツリー（棋譜の正本）の表示中の手順から取れる
         const RecordLine line = h.state.currentRecordLine();
         QCOMPARE(line.currentPly, count - 2);
         QCOMPARE(line.usiMoves(line.currentPly), opening.mid(0, count - 2));
         QCOMPARE(h.highlightPly, count - 2);
-        QVERIFY(h.dirty);
         const QString expectedPosition = count == 2 ? QStringLiteral("position startpos")
             : QStringLiteral("position startpos moves ") + opening.mid(0, count - 2).join(' ');
         QCOMPARE(h.position(), expectedPosition);
@@ -225,7 +206,7 @@ private slots:
         QCOMPARE(h.tree.nodeCount(), count + 1);
         QCOMPARE(h.tree.lineCount(), 1);
         // 同じ局面へ戻るので、駒取り・駒打ちを含めて全盤面と持ち駒が一致する。
-        QCOMPARE(h.sfens, SfenPositionTracer::buildSfenRecord(SfenUtils::hirateSfen(), opening.mid(0, count), false));
+        QCOMPARE(h.line().sfens(), SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), opening.mid(0, count), false));
     }
 
     void repeatedUndoStopsAtRoot()
@@ -233,14 +214,12 @@ private slots:
         Harness h;
         for (const QString& move : opening) QVERIFY(h.play(move));
         for (int ply = 8; ply >= 0; ply -= 2) {
-            h.flow.undoLastTwoMoves();
+            QVERIFY(h.undo());
             verifyPosition(h, ply);
         }
-        h.dirty = false;
-        h.flow.undoLastTwoMoves();
+        QVERIFY(!h.undo());
         verifyPosition(h, 0);
         QCOMPARE(h.tree.nodeCount(), opening.size() + 1);
-        QVERIFY(!h.dirty);
         QVERIFY(h.play(QStringLiteral("2g2f")));
         QVERIFY(h.play(QStringLiteral("8c8d")));
         verifyPosition(h, 2);
@@ -270,12 +249,11 @@ private slots:
 
         const auto firstTurn = h.clock.pauseAndSnapshot();
         QVERIFY(h.playTimed(opening.at(0), 3000));
-        // エンジンの手番では「待った」できず、時計も変わらない
-        const auto engineTurn = h.clock.pauseAndSnapshot();
-        h.flow.undoLastTwoMoves();
+        // 1手だけでは「待った」できず、時計も変わらない
+        const auto afterFirstMove = h.clock.pauseAndSnapshot();
+        QVERIFY(!h.undo());
         verifyPosition(h, 1);
-        QCOMPARE(h.clock.pauseAndSnapshot().of(Turn::Black).remainingMs, engineTurn.of(Turn::Black).remainingMs);
-        QCOMPARE(h.timerRestarts, 0);
+        QCOMPARE(h.clock.pauseAndSnapshot().of(Turn::Black).remainingMs, afterFirstMove.of(Turn::Black).remainingMs);
 
         QVERIFY(h.playTimed(opening.at(1), 1000));
         const auto secondTurn = h.clock.pauseAndSnapshot();
@@ -283,23 +261,20 @@ private slots:
         QVERIFY(h.playTimed(opening.at(3), 2000));
         h.clock.setConsiderationTimeMs(Turn::Black, 700); // 考え中の時間も返す
 
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         verifyPosition(h, 2);
         verifyClock(secondTurn);
-        QCOMPARE(h.timerRestarts, 1);
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         verifyPosition(h, 0);
         verifyClock(firstTurn);
-        QCOMPARE(h.timerRestarts, 2);
-        h.flow.undoLastTwoMoves(); // 開始局面より前には戻らない
+        QVERIFY(!h.undo()); // 開始局面より前には戻らない
         verifyPosition(h, 0);
         verifyClock(firstTurn);
-        QCOMPARE(h.timerRestarts, 2);
 
         // 指し直した後の「待った」も、指し直した手の前へ戻る
         QVERIFY(h.playTimed(QStringLiteral("2g2f"), 4000));
         QVERIFY(h.playTimed(QStringLiteral("8c8d"), 1000));
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         verifyPosition(h, 0);
         verifyClock(firstTurn);
     }
@@ -310,7 +285,7 @@ private slots:
         for (int i = 0; i < 6; ++i) QVERIFY(h.play(opening.at(i)));
         KifuBranchNode* undoneHead = h.session.liveNode()->parent();
         const QString undoneText = undoneHead->displayText();
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         verifyPosition(h, 4);
         QCOMPARE(h.tree.lineCount(), 1);
         QVERIFY(h.play(QStringLiteral("6g6f")));
@@ -341,7 +316,7 @@ private slots:
         Harness h;
         for (int i = 0; i < 4; ++i) QVERIFY(h.play(opening.at(i)));
         KifuBranchNode* firstHead = h.session.liveNode()->parent();
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         QVERIFY(h.play(QStringLiteral("6g6f")));
         QVERIFY(h.play(QStringLiteral("8c8d")));
         KifuBranchNode* secondHead = h.session.liveNode()->parent();
@@ -350,7 +325,7 @@ private slots:
         QCOMPARE(branchPoint->childAt(1), firstHead);
 
         // 最初の手順に戻ると、その手順が再び本譜になる。
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         QVERIFY(h.play(opening.at(2)));
         QVERIFY(h.play(opening.at(3)));
         verifyPosition(h, 4);
@@ -366,7 +341,7 @@ private slots:
         Harness h;
         for (int i = 0; i < 4; ++i) QVERIFY(h.play(opening.at(i)));
         KifuBranchNode* undoneHead = h.session.liveNode()->parent();
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         // 待ったの直後に投了しても、投了で終わる手順が本譜になる。
         h.session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::Black,
             RecordTime::fromMilliseconds(1000, 1000)));
@@ -377,24 +352,16 @@ private slots:
         QCOMPARE(h.tree.lineCount(), 2);
     }
 
-    void insufficientMovesAndEngineTurnDoNotChangeState()
+    void insufficientMovesDoNotChangeState()
     {
         Harness h;
-        QVERIFY(!h.handler.undoTwoPlies());
-        h.flow.undoLastTwoMoves();
+        QVERIFY(!h.undo());
         QCOMPARE(h.record.rowCount(), 1);
         QVERIFY(h.play(opening.at(0)));
-        QVERIFY(!h.handler.undoTwoPlies());
-        h.flow.undoLastTwoMoves();
-        verifyPosition(h, 1);
-        QVERIFY(!h.dirty);
-        QVERIFY(h.play(opening.at(1)));
-        QVERIFY(h.play(opening.at(2))); // エンジンの応答待ちに相当する手番
         const QString position = h.position();
-        h.flow.undoLastTwoMoves();
-        verifyPosition(h, 3);
+        QVERIFY(!h.undo());
+        verifyPosition(h, 1);
         QCOMPARE(h.position(), position);
-        QVERIFY(!h.dirty);
     }
 
     void midgameUndoPreservesExistingContinuation()
@@ -404,28 +371,26 @@ private slots:
         auto* originalEnd = h.session.commit();
         QVERIFY(originalEnd != nullptr);
         auto* anchor = h.tree.findByPlyOnMainLine(2);
-        h.sfens.resize(3);
-        h.moves.resize(2);
-        h.gc.board()->setSfen(h.sfens.last());
-        h.gc.setCurrentPlayer(Turn::Black);
+        // 以前の棋譜の2手目の局面から対局を始める
+        RecordLine from = h.line().upTo(2);
+        h.startFrom(from);
         h.session.startFromNode(anchor);
         // 同じ手を再利用しても、以前の棋譜のノードは削除しない。
         QVERIFY(h.play(opening.at(2)));
         QVERIFY(h.play(opening.at(3)));
         QCOMPARE(h.session.liveNode(), originalEnd);
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         verifyPosition(h, 2);
         QCOMPARE(h.tree.nodeCount(), 5);
         QCOMPARE(h.tree.mainLine().last(), originalEnd);
         QCOMPARE(h.position(), QStringLiteral("position startpos moves ") + opening.mid(0, 2).join(QLatin1Char(' ')));
-        const int calls = h.undoCalls;
-        h.flow.undoLastTwoMoves();
-        QCOMPARE(h.undoCalls, calls); // 起点より前の棋譜を取り消さない
+        QVERIFY(!h.undo()); // 起点より前の棋譜を取り消さない
+        verifyPosition(h, 2);
         // 別の手を指し直すと以前の棋譜の分岐になり、取り消しても分岐として残る。
         QVERIFY(h.play(QStringLiteral("6g6f")));
         QVERIFY(h.play(QStringLiteral("8c8d")));
         QCOMPARE(h.tree.lineCount(), 2);
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         verifyPosition(h, 2);
         QCOMPARE(h.tree.lineCount(), 2);
         QCOMPARE(h.tree.mainLine().last(), originalEnd);
@@ -441,7 +406,7 @@ private slots:
     {
         Harness h;
         for (const QString& move : opening) QVERIFY(h.play(move));
-        h.flow.undoLastTwoMoves();
+        QVERIFY(h.undo());
         QVERIFY(h.play(QStringLiteral("2h2d")));
         QVERIFY(h.record.item(9)->currentMove().contains(QStringLiteral("同")));
     }

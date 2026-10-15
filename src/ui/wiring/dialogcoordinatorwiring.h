@@ -8,11 +8,11 @@
 #include <QStringList>
 #include <QList>
 
-#include "playmode.h"
 
 class QWidget;
+struct AppState;
 class DialogCoordinator;
-class MatchCoordinator;
+class AnalysisSession;
 class ShogiGameController;
 class KifuRecordListModel;
 class KifuBranchTree;
@@ -22,12 +22,13 @@ class KifuLoadCoordinator;
 class GameInfoPaneController;
 class EvaluationChartWidget;
 class AnalysisResultsPresenter;
-class ConsiderationWiring;
+class ConsiderationUiController;
 class KifuNavigationController;
 class ShogiView;
 class UiStatePolicyManager;
 class EngineAnalysisTab;
-struct ShogiMove;
+class UsiCommLogModel;
+class KifuAnalysisListModel;
 
 /**
  * @brief DialogCoordinator の生成・コンテキスト設定・シグナル配線を担当するクラス
@@ -35,7 +36,7 @@ struct ShogiMove;
  * 責務:
  * - DialogCoordinator の遅延生成
  * - 3つのコンテキスト構造体（Consideration, TsumeSearch, KifuAnalysis）の構築・設定
- * - シグナル/スロット接続（2 direct connect + DialogOrchestrator 経由 7 connect）
+ * - シグナル/スロット接続（解析の進捗・検討タブ・メニューの状態）
  */
 class DialogCoordinatorWiring : public QObject
 {
@@ -45,15 +46,17 @@ public:
     struct Deps {
         // --- 生成に必要な依存 ---
         QWidget* parentWidget = nullptr;               ///< 親ウィジェット（DialogCoordinator コンストラクタ用）
-        MatchCoordinator* match = nullptr;             ///< 対局調整（非所有）
+        AnalysisSession* analysisSession = nullptr;    ///< 検討・詰み探索のセッション（非所有）
         ShogiGameController* gameController = nullptr; ///< ゲーム制御（非所有）
 
         // --- 検討・詰み探索・棋譜解析で共有（手順は分岐ツリーから取る） ---
-        QString* startSfenStr = nullptr;               ///< 開始局面SFEN文字列（AppState）
+        const AppState* state = nullptr;               ///< 手順が無いときに使う表示中・開始局面（非所有）
         KifuRecordListModel* kifuRecordModel = nullptr; ///< 棋譜リストモデル（非所有）
-        QString* currentSfenStr = nullptr;             ///< 手順が無いときに使う現在局面SFEN（AppState）
         KifuNavigationState* navState = nullptr;       ///< 表示中の手順（分岐ツリー、非所有）
         ShogiEngineThinkingModel* considerationModel = nullptr;  ///< 検討タブの思考情報モデル（非所有）
+        UsiCommLogModel* logModel = nullptr;                     ///< E1 の通信ログ（詰み探索・棋譜解析、非所有）
+        ShogiEngineThinkingModel* thinkingModel = nullptr;       ///< E1 の思考情報（詰み探索・棋譜解析、非所有）
+        KifuAnalysisListModel* analysisModel = nullptr;          ///< 棋譜解析の結果（非所有）
 
         // --- 棋譜解析 ---
         GameInfoPaneController* gameInfoController = nullptr; ///< 対局情報コントローラ（非所有）
@@ -63,11 +66,10 @@ public:
         KifuNavigationController* kifuNavController = nullptr; ///< 解析した手へ棋譜欄を移す（非所有）
 
         // --- シグナルの接続先 ---
-        ConsiderationWiring* considerationWiring = nullptr;  ///< 検討モードの配線（非所有）
+        ConsiderationUiController* considerationUi = nullptr;  ///< 検討タブの表示（非所有）
         UiStatePolicyManager* uiStatePolicy = nullptr;       ///< UI 状態（非所有）
 
         EngineAnalysisTab* analysisTab = nullptr;           ///< エンジン解析タブ（非所有）
-        const PlayMode* playMode = nullptr;                       ///< プレイモード（AppState）
     };
 
     explicit DialogCoordinatorWiring(QObject* parent = nullptr);
@@ -99,7 +101,6 @@ private:
     // 解析イベントハンドラ用
     EvaluationChartWidget* m_evalChartWidget = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
-    const PlayMode* m_playMode = nullptr;
     KifuNavigationController* m_kifuNavController = nullptr;
 };
 

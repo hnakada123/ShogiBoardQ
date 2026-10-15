@@ -1,451 +1,559 @@
 /// @file matchcoordinator.cpp
-/// @brief 対局進行コーディネータ（司令塔）クラスの実装
+/// @brief ローカル対局の司令塔: 開始・一手の確定・エンジンへの思考の依頼・時計の通知
 
 #include "matchcoordinator.h"
-#include "sfenutils.h"
-#include "matchturnhandler.h"
-#include "strategycontext.h"
-#include "matchtimekeeper.h"
-#include "matchundohandler.h"
-#include "gameendhandler.h"
-#include "gamestartorchestrator.h"
-#include "analysissessionhandler.h"
-#include "shogiclock.h"
-#include "usi.h"
-#include "usicommlogmodel.h"
-#include "shogienginethinkingmodel.h"
-#include "shogigamecontroller.h"
+
+#include <QSignalBlocker>
+#include <limits>
+
+#include "appactivitystate.h"
+#include "boardcoordinates.h"
+#include "enginelifecyclemanager.h"
+#include "enginevsenginestrategy.h"
+#include "humanvsenginestrategy.h"
+#include "humanvshumanstrategy.h"
 #include "logcategories.h"
+#include "matchrecordsink.h"
+#include "sfenutils.h"
+#include "shogiboard.h"
+#include "shogiclock.h"
+#include "shogigamecontroller.h"
+#include "usi.h"
+#include "nyugyokujudgement.h"
+#include "sennichitedetector.h"
 
-#include <QObject>
-#include <QDebug>
+// ============================================================
+// 初期化
+// ============================================================
 
-
-// --- 初期化・破棄 ---
-
-MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
+MatchCoordinator::MatchCoordinator(const Deps& deps, QObject* parent)
     : QObject(parent)
-    , m_gc(d.gc)
-    , m_hooks(d.hooks)
-    , m_externalGameMoves(d.gameMoves)
+    , m_gc(deps.gc)
+    , m_clock(deps.clock)
+    , m_activity(deps.activity)
+    , m_engines(deps.engines)
 {
-    m_sfenHistory = d.sfenRecord ? d.sfenRecord : &m_sharedSfenRecord;
+    Q_ASSERT(m_gc && m_clock && m_activity && m_engines);
 
-    qCDebug(lcGame).noquote()
-        << "shared sfenRecord*=" << static_cast<const void*>(m_sfenHistory);
-
-    if (!d.sfenRecord) {
-        qCWarning(lcGame) << "Deps.sfenRecord is null. Using internal sfen history buffer.";
-    }
-
-    // 部品は依存の少ないものから順に、ここで全部作る（作り直さない）
-    createEngineManager();
-    m_engineManager->updateUsiPtrs(d.usi1, d.usi2);
-    m_engineManager->setModelPtrs(d.comm1, d.think1, d.comm2, d.think2);
-
-    createTimekeeper();
-    m_timekeeper->setClock(d.clock);
-
-    createUndoHandler();
-    createGameEndHandler();
-    createMatchTurnHandler();
-    createAnalysisSession();
-    createGameStartOrchestrator();
+    connect(m_engines, &EngineLifecycleManager::engineResigned, this, &MatchCoordinator::handleEngineResign);
+    connect(m_engines, &EngineLifecycleManager::engineDeclaredWin, this, &MatchCoordinator::handleEngineWin);
+    // 起動の失敗は対局開始の処理中に届くことがあるため、開始処理を終えてから中断する
+    connect(m_engines, &EngineLifecycleManager::engineError,
+            this, &MatchCoordinator::handleEngineError, Qt::QueuedConnection);
+    connect(m_clock, &ShogiClock::timeUpdated, this, &MatchCoordinator::emitTimeUpdate);
 }
 
 MatchCoordinator::~MatchCoordinator() = default;
 
-// --- 部品の生成（コンストラクタから1回だけ呼ぶ） ---
+// ============================================================
+// 開始
+// ============================================================
 
-void MatchCoordinator::createEngineManager()
+void MatchCoordinator::start(const StartOptions& opt)
 {
-    m_engineManager = new EngineLifecycleManager(this);
+    discardInterruptedGame();
 
-    m_engineManager->setRefs(buildEngineLifecycleRefs());
-    m_engineManager->setHooks(buildEngineLifecycleHooks());
+    StartOptions resolved = opt;
+    if (resolved.recordLine.isEmpty()) {
+        const QString initial = SfenUtils::normalizePositionLikeSfen(opt.sfenStart);
+        resolved.recordLine.startSfen = initial.isEmpty() ? SfenUtils::hirateSfen() : initial;
+    }
+    resolved.recordLine = resolved.recordLine.upTo(resolved.recordLine.currentPly);
+    resolved.sfenStart = resolved.recordLine.lastSfen();
 
-    // 起動の失敗は対局開始の処理中に届くことがあるため、開始処理を終えてから中断する
-    connect(m_engineManager, &EngineLifecycleManager::engineError,
-            this, &MatchCoordinator::onUsiError, Qt::QueuedConnection);
+    clearGameOverState();
+    m_session.begin(resolved);
+    m_record = resolved.recordLine;
+    m_activity->setActivity(AppActivityState::Activity::DuringGame);
+
+    m_gc->newGame(resolved.sfenStart);
+    emit gamePrepared(resolved);
+
+    createStrategy(resolved);
 }
 
-EngineLifecycleManager::Refs MatchCoordinator::buildEngineLifecycleRefs()
+void MatchCoordinator::beginPlay()
 {
-    EngineLifecycleManager::Refs refs;
-    refs.gc = m_gc;
-    return refs;
+    m_clock->startClock();
+    if (m_strategy) m_strategy->startInitialMoveIfNeeded();
 }
 
-EngineLifecycleManager::Hooks MatchCoordinator::buildEngineLifecycleHooks()
+void MatchCoordinator::createStrategy(const StartOptions& opt)
 {
-    EngineLifecycleManager::Hooks hooks;
-    hooks.onEngineResign = [this](Turn side) { handleEngineResign(side); };
-    hooks.onEngineWin = [this](Turn side) { handleEngineWin(side); };
-    return hooks;
+    m_strategy.reset();
+    const MatchPlayers& players = opt.players;
+    if (players.engineVsEngine()) {
+        m_strategy = std::make_unique<EngineVsEngineStrategy>(
+            strategyHost(), EngineVsEngineStrategy::Engines{opt.enginePath1, players.blackEngineName,
+                                                            opt.enginePath2, players.whiteEngineName});
+    } else if (players.blackIsEngine) {
+        m_strategy = std::make_unique<HumanVsEngineStrategy>(strategyHost(), Turn::Black, opt.enginePath1,
+                                                             players.blackEngineName);
+    } else if (players.whiteIsEngine) {
+        m_strategy = std::make_unique<HumanVsEngineStrategy>(strategyHost(), Turn::White, opt.enginePath2,
+                                                             players.whiteEngineName);
+    } else {
+        m_strategy = std::make_unique<HumanVsHumanStrategy>(strategyHost());
+    }
+    m_strategy->start();
 }
 
-void MatchCoordinator::createTimekeeper()
+bool MatchCoordinator::isHumanSide(Turn side) const
 {
-    m_timekeeper = new MatchTimekeeper(this);
-
-    MatchTimekeeper::Refs refs;
-    refs.gc = m_gc;
-    m_timekeeper->setRefs(refs);
-
-    connect(m_timekeeper, &MatchTimekeeper::timeUpdated,
-            this,         &MatchCoordinator::timeUpdated);
+    return m_session.started() && players().isHuman(side);
 }
 
-void MatchCoordinator::createMatchTurnHandler()
+// ============================================================
+// 着手
+// ============================================================
+
+bool MatchCoordinator::canAcceptMove() const
 {
-    MatchStrategyContext::Deps deps;
-    deps.gc = m_gc;
-    deps.session = &m_session;
-    deps.engines = m_engineManager;
-    deps.timekeeper = m_timekeeper;
-    deps.gameEnd = m_gameEndHandler;
-    deps.sfens = m_sfenHistory;
-    deps.moves = &gameMovesRef();
-    deps.hooks = m_hooks;
-    deps.parent = this;
-    m_turnHandler = std::make_unique<MatchTurnHandler>(std::make_unique<MatchStrategyContext>(deps));
-    configureMatchTurnHandler();
+    return !isGameOver() && (!m_sink || m_sink->canAppendRecord());
 }
 
-void MatchCoordinator::createAnalysisSession()
+void MatchCoordinator::onHumanMove(const RecordEntry& played)
 {
-    m_analysisSession = std::make_unique<AnalysisSessionHandler>(this);
-    connectAnalysisSessionSignals();
-    configureAnalysisSession();
+    if (m_strategy) m_strategy->onHumanMove(played);
 }
 
-void MatchCoordinator::configureMatchTurnHandler()
+bool MatchCoordinator::completeHumanMove(const RecordEntry& played)
 {
-    MatchTurnHandler::Refs refs;
-    refs.gc = m_gc;
-    refs.session = &m_session;
-    refs.mcAsParent = this;
-    m_turnHandler->setRefs(refs);
-
-    MatchTurnHandler::Hooks hooks;
-    hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
-    hooks.updateTurnDisplayCb = m_hooks.ui.updateTurnDisplay;
-    hooks.primaryEngine = [this]() -> Usi* { return primaryEngine(); };
-    hooks.secondaryEngine = [this]() -> Usi* { return secondaryEngine(); };
-    hooks.sendStopToEngine = [this](Usi* which) { sendStopToEngine(which); };
-    hooks.clockProvider = [this]() -> ShogiClock* { return clock(); };
-    hooks.initAndStartEngine = [this](Turn p, const QString& path, const QString& name) {
-        initializeAndStartEngineFor(p, path, name);
-    };
-    hooks.initEnginesForEvE = [this](const QString& n1, const QString& n2) {
-        initEnginesForEvE(n1, n2);
-    };
-    hooks.emitBoardFlipped = [this](bool f) { emit boardFlipped(f); };
-    hooks.handleBreakOff = [this]() { handleBreakOff(); };
-    hooks.handleEngineError = [this](const QString& msg) -> bool {
-        return m_analysisSession->handleEngineError(msg);
-    };
-    hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
-    m_turnHandler->setHooks(hooks);
+    return completeMove(played, false);
 }
 
-void MatchCoordinator::connectAnalysisSessionSignals()
+bool MatchCoordinator::applyEngineMove(const UsiMove& move, Turn mover, qint64 elapsedMs)
 {
-    connect(m_analysisSession.get(), &AnalysisSessionHandler::considerationModeEnded,
-            this, &MatchCoordinator::considerationModeEnded);
-    connect(m_analysisSession.get(), &AnalysisSessionHandler::tsumeSearchModeEnded,
-            this, &MatchCoordinator::tsumeSearchModeEnded);
-    connect(m_analysisSession.get(), &AnalysisSessionHandler::considerationWaitingStarted,
-            this, &MatchCoordinator::considerationWaitingStarted);
+    if (isGameOver() || (m_sink && !m_sink->canAppendRecord())) return false;
+    const auto update = m_gc->positionUpdate();
+    const std::optional<RecordEntry> played = m_gc->applyMove(move);
+    if (!played) {
+        handleEngineIllegalMove(mover);
+        return false;
+    }
+    m_clock->setMeasuredConsiderationTime(mover, elapsedMs);
+    return completeMove(*played, true);
 }
 
-void MatchCoordinator::configureAnalysisSession()
+bool MatchCoordinator::completeMove(RecordEntry played, bool engineMove)
 {
-    AnalysisSessionHandler::Hooks hooks;
-    hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
-    hooks.destroyEnginesKeepModels = [this]() { destroyEngines(false); };
-    hooks.isShutdownInProgress = [this]() -> bool {
-        return m_engineManager->isShutdownInProgress();
-    };
-    hooks.setPlayMode = [this](PlayMode mode) { setPlayMode(mode); };
-    hooks.destroyEnginesAll = [this]() { destroyEngines(); };
-    hooks.createAnalysisEngine = [this](const AnalysisOptions& opt) -> Usi* {
-        auto [comm, think] = m_engineManager->ensureEngineModels(1);
-        comm->setEngineName(opt.engineName);
-        Usi* usi = new Usi(comm, think, m_gc, this);
-        m_engineManager->setUsi1(usi);
-        connect(usi, &Usi::errorOccurred,
-                this, &MatchCoordinator::onUsiError, Qt::UniqueConnection);
-        usi->setLogIdentity(QStringLiteral("[E1]"), QString(), opt.engineName);
-        usi->setSquelchResignLogging(false);
-        return usi;
-    };
-    hooks.initAndStartEngine = [this](int, const QString& path, const QString& name) -> bool {
-        Usi* engine = primaryEngine();
-        if (!engine) return false;
-        engine->setMatchClock(clock());
-        return engine->startAndInitializeEngineAsync(path, name);
-    };
-    hooks.setEngineNames = [this](const QString& n1, const QString& n2) {
-        if (m_hooks.ui.setEngineNames) m_hooks.ui.setEngineNames(n1, n2);
-    };
-    hooks.setShutdownInProgress = [this](bool val) {
-        m_engineManager->setShutdownInProgress(val);
-    };
-    m_analysisSession->setHooks(hooks);
+    if (isGameOver()) return false;
+    const Turn mover = played.mover;
+    {
+        // 時計の値は一手を確定し終えてからまとめて知らせる
+        const QSignalBlocker clockNotifications(m_clock);
+        m_clock->commitMove(mover);
+        played.time = m_clock->recordTime(mover);
+        m_clock->setConsiderationTimeMs(mover, 0);
+        m_clock->setCurrentPlayer(m_gc->currentPlayer());
+    }
+    m_record.entries.append(played);
+    if (m_sink) m_sink->appendRecord(played);
+
+    emit boardChanged();
+    emit moveHighlightRequested(BoardCoordinates::fromSquare(played.move.move, mover),
+                                BoardCoordinates::toSquare(played.move.move));
+    emit turnChanged(m_gc->currentPlayer());
+    pokeTimeUpdateNow();
+    if (engineMove) emit engineMovePlayed(mover, currentPly());
+    m_gc->notifyMoveCommitted(mover, currentPly());
+
+    if (checkAndHandleSennichite()) return false;
+    if (m_session.maxMoves() > 0 && currentPly() >= m_session.maxMoves()) {
+        handleMaxMovesJishogi();
+        return false;
+    }
+    return !isGameOver();
 }
 
-void MatchCoordinator::createGameEndHandler()
+void MatchCoordinator::refreshBoardAndTurn()
 {
-    m_gameEndHandler = new GameEndHandler(this);
-
-    // シグナル転送（GameEndHandler → MatchCoordinator）
-    connect(m_gameEndHandler, &GameEndHandler::gameEnded,
-            this,             &MatchCoordinator::gameEnded);
-    connect(m_gameEndHandler, &GameEndHandler::gameEndProcessed,
-            this,             &MatchCoordinator::gameEndProcessed);
-    connect(m_gameEndHandler, &GameEndHandler::gameOverStateChanged,
-            this,             &MatchCoordinator::gameOverStateChanged);
-    connect(m_gameEndHandler, &GameEndHandler::requestAppendGameOverMove,
-            this,             &MatchCoordinator::requestAppendGameOverMove);
-
-    // Refs 設定
-    GameEndHandler::Refs refs;
-    refs.gc        = m_gc;
-    refs.clock     = m_timekeeper->clock();
-    refs.usi1Provider = [this]() -> Usi* { return m_engineManager->usi1(); };
-    refs.usi2Provider = [this]() -> Usi* { return m_engineManager->usi2(); };
-    refs.session = &m_session;
-    refs.strategyProvider = [this]() -> GameModeStrategy* {
-        return m_turnHandler->strategy();
-    };
-    refs.sfenHistory = m_sfenHistory;
-    m_gameEndHandler->setRefs(refs);
-
-    // Hooks 設定
-    GameEndHandler::Hooks hooks;
-    hooks.disarmHumanTimerIfNeeded = [this]() { disarmHumanTimerIfNeeded(); };
-    hooks.primaryEngine     = [this]() -> Usi* { return primaryEngine(); };
-    hooks.appendRecord = m_hooks.game.appendRecord;
-    hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
-    hooks.usesHandicapNames = m_hooks.ui.usesHandicapNames;
-    hooks.autoSaveKifuIfEnabled = [this]() {
-        if (m_session.options().autoSaveKifu && !m_session.options().kifuSaveDir.isEmpty() && m_hooks.game.autoSaveKifu) {
-            qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_session.options().kifuSaveDir;
-            m_hooks.game.autoSaveKifu(m_session.options().kifuSaveDir);
-        }
-    };
-    m_gameEndHandler->setHooks(hooks);
+    emit boardChanged();
+    emit turnChanged(m_gc->currentPlayer());
 }
 
-void MatchCoordinator::createGameStartOrchestrator()
+void MatchCoordinator::requestEngineMove(Turn side)
 {
-    m_gameStartOrchestrator = std::make_unique<GameStartOrchestrator>();
-
-    GameStartOrchestrator::Refs refs;
-    refs.gc                 = m_gc;
-    refs.session = &m_session;
-    m_gameStartOrchestrator->setRefs(refs);
-
-    GameStartOrchestrator::Hooks hooks;
-    hooks.initializeNewGame = m_hooks.game.initializeNewGame;
-    hooks.setPlayersNames   = m_hooks.ui.setPlayersNames;
-    hooks.setEngineNames    = m_hooks.ui.setEngineNames;
-    hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
-    hooks.clearGameOverState = [this]() { clearGameOverState(); };
-    hooks.updateTurnDisplay  = [this](Turn p) {
-        m_turnHandler->updateTurnDisplay(p);
-    };
-    hooks.createAndStartModeStrategy = [this](const StartOptions& opt) {
-        m_turnHandler->createAndStartModeStrategy(opt);
-    };
-    hooks.flipBoard = [this]() { flipBoard(); };
-    m_gameStartOrchestrator->setHooks(hooks);
+    Usi* engine = m_engines->engineFor(side);
+    if (!engine) return;
+    engine->requestMatchMove(m_record.positionCommand(currentPly()), m_session.ponder(side), {});
 }
 
-void MatchCoordinator::createUndoHandler()
+void MatchCoordinator::setEnginePonder(Turn side, const QString& ponder)
 {
-    m_undoHandler = std::make_unique<MatchUndoHandler>();
-
-    MatchUndoHandler::Refs refs;
-    refs.gc                = m_gc;
-    refs.sfenHistory       = m_sfenHistory;
-    refs.gameMoves         = &gameMovesRef();
-    m_undoHandler->setRefs(refs);
-
-    MatchUndoHandler::Hooks hooks;
-    hooks.clockProvider = [this]() { return clock(); };
-    hooks.restartHumanTurnTimer = [this]() {
-        disarmHumanTimerIfNeeded();
-        armTurnTimerIfNeeded();
-    };
-    m_undoHandler->setHooks(hooks);
+    m_session.setPonder(side, ponder);
 }
 
-// --- StrategyContext アクセサ ---
-
-MatchCoordinator::StrategyContext& MatchCoordinator::strategyCtx()
+void MatchCoordinator::forceImmediateMove()
 {
-    return m_turnHandler->strategyCtx();
+    if (isGameOver()) return;
+    // 人間の手番に「すぐ指させる」を押しても先読みは止めない
+    if (Usi* engine = m_engines->engineFor(m_gc->currentPlayer())) engine->requestImmediateMove();
 }
 
-// --- 投了・終局処理 ---
-
-void MatchCoordinator::handleResign() {
-    m_gameEndHandler->handleResign();
+void MatchCoordinator::disarmTurnTimer()
+{
+    if (m_strategy) m_strategy->disarmTurnTimer();
 }
 
-void MatchCoordinator::handleEngineResign(Turn side) {
-    m_gameEndHandler->handleEngineResign(side);
+// ============================================================
+// エンジン・時計
+// ============================================================
+
+void MatchCoordinator::pokeTimeUpdateNow()
+{
+    emitTimeUpdate();
 }
 
-void MatchCoordinator::handleEngineWin(Turn side) {
-    m_gameEndHandler->handleEngineWin(side);
+void MatchCoordinator::emitTimeUpdate()
+{
+    const qint64 blackMs = m_clock->remainingMs(Turn::Black);
+    const qint64 whiteMs = m_clock->remainingMs(Turn::White);
+    const Turn side = m_gc->currentPlayer();
+    const bool enableUrgency = !m_clock->hasByoyomi(side) || m_clock->byoyomiApplied(side);
+    const qint64 activeMs = (side == Turn::Black) ? blackMs : whiteMs;
+    emit timeUpdated(blackMs, whiteMs, side, enableUrgency ? activeMs : std::numeric_limits<qint64>::max());
 }
 
-void MatchCoordinator::handleEngineIllegalMove(Turn side) {
-    m_gameEndHandler->handleEngineIllegalMove(side);
+// ============================================================
+// ローカル対局の司令塔: 終局の判定・記録・知らせ
+// ============================================================
+
+namespace {
+Turn opponent(Turn side) { return side == Turn::Black ? Turn::White : Turn::Black; }
+} // namespace
+
+// ============================================================
+// 終局の原因ごとの処理
+// ============================================================
+
+void MatchCoordinator::handleResign()
+{
+    if (isGameOver()) return;
+    const GameEndInfo info{Cause::Resignation, m_gc->currentPlayer()};
+    m_engines->notifyGameOver(info.loser);
+    finishGame(info);
+    announceResult(info);
+}
+
+void MatchCoordinator::handleEngineResign(Turn side)
+{
+    if (isGameOver()) return;
+    m_clock->stopClock();
+    const GameEndInfo info{Cause::Resignation, side};
+    m_engines->notifyGameOver(info.loser);
+    finishGame(info);
+    announceResult(info);
+}
+
+void MatchCoordinator::handleEngineIllegalMove(Turn side)
+{
+    if (isGameOver()) return;
+    m_clock->stopClock();
+    // エンジンが反則手を返した。盤には指さずに、そのエンジンの反則負けとする
+    const GameEndInfo info{Cause::IllegalMove, side};
+    m_engines->notifyGameOver(info.loser);
+    finishGame(info);
+    announceResult(info);
+}
+
+void MatchCoordinator::handlePlayerTimeOut(Turn player)
+{
+    if (isGameOver()) return;
+    const GameEndInfo info{Cause::Timeout, player};
+    m_clock->markGameOver();
+    m_clock->stopClock();
+    disarmTurnTimer();
+    m_engines->notifyGameOver(info.loser);
+    finishGame(info);
+    announceResult(info);
+}
+
+void MatchCoordinator::handleEngineWin(Turn side)
+{
+    if (isGameOver()) return;
+    // エンジンの入玉宣言（bestmove win）も人間の宣言と同じく、盤面から条件と点数を判定する。
+    // 条件を満たさなければ宣言したエンジンの負け、24点法の24〜30点は持将棋。
+    const NyugyokuJudgement::Result result =
+        NyugyokuJudgement::judgeEngineDeclaration(*m_gc->board(), side == Turn::Black, m_handicapNames);
+    handleNyugyokuDeclaration(side, result.success, result.isDraw);
+    // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
+    if (isGameOver()) emit gameOverMessage(NyugyokuJudgement::resultTitle(), result.message);
 }
 
 void MatchCoordinator::handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw)
 {
-    m_gameEndHandler->handleNyugyokuDeclaration(declarer, success, isDraw);
+    if (isGameOver()) return;
+    qCInfo(lcGame) << "handleNyugyokuDeclaration(): declarer=" << declarer
+                   << " success=" << success << " isDraw=" << isDraw;
+    disarmTurnTimer();
+    m_clock->stopClock();
+
+    GameEndInfo info;
+    if (isDraw) {
+        info = {Cause::Jishogi, declarer};
+    } else if (success) {
+        info = {Cause::NyugyokuWin, opponent(declarer)};
+    } else {
+        info = {Cause::IllegalMove, declarer};
+    }
+    m_engines->notifyGameOver(isDraw ? std::nullopt : std::optional<Turn>(info.loser));
+    finishGame(info);
+    if (m_session.options().autoSaveKifu && !m_session.options().kifuSaveDir.isEmpty())
+        emit autoSaveRequested(m_session.options().kifuSaveDir);
+    emit gameEndProcessed(info);
 }
 
 void MatchCoordinator::handleBreakOff()
 {
-    if (m_session.gameOver().isOver) return;
+    if (isGameOver()) return;
     captureInterruptedGame();
     // 時計の精算時に時間切れが確定した場合、中断に上書きしない。
-    if (m_session.gameOver().isOver) return;
-    m_engineManager->disconnectArbiterSignals();
+    if (isGameOver()) return;
+    // 中断の後に届く bestmove resign を終局にしない
+    m_engines->disconnectArbiterSignals();
 
-    m_gameEndHandler->handleBreakOff();
+    const GameEndInfo info{Cause::BreakOff, m_gc->currentPlayer()};
+    m_clock->markGameOver();
+    m_clock->stopClock();
+    disarmTurnTimer();
+    // quit に応答しない場合も terminate/kill まで進める。中断後の思考表示は保持する。
+    m_engines->notifyGameOver(std::nullopt);
+    finishGame(info);
     if (m_interruptedGame) emit gameInterrupted();
-}
-
-void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Turn loser)
-{
-    m_gameEndHandler->appendGameOverLineAndMark(cause, loser);
 }
 
 void MatchCoordinator::handleMaxMovesJishogi()
 {
-    m_gameEndHandler->handleMaxMovesJishogi();
+    if (isGameOver()) return;
+    qCInfo(lcGame) << "handleMaxMovesJishogi(): max moves reached";
+    disarmTurnTimer();
+    m_engines->notifyGameOver(std::nullopt);
+    const GameEndInfo info{Cause::Jishogi, Turn::Black};
+    finishGame(info);
+    announceResult(info);
 }
 
-void MatchCoordinator::clearGameOverState()
+bool MatchCoordinator::checkAndHandleSennichite()
 {
-    m_gameEndHandler->clearGameOverState();
-}
-
-void MatchCoordinator::setGameOver(const GameEndInfo& info, bool appendMoveOnce)
-{
-    m_gameEndHandler->setGameOver(info, appendMoveOnce);
-}
-
-void MatchCoordinator::markGameOverMoveAppended()
-{
-    m_gameEndHandler->markGameOverMoveAppended();
-}
-
-// --- 対局開始フロー ---
-
-void MatchCoordinator::configureAndStart(const StartOptions& opt)
-{
-    discardInterruptedGame();
-    StartOptions resolved = opt;
-    if (resolved.recordLine.isEmpty()) {
-        const QString initial = SfenUtils::normalizePositionLikeSfen(opt.sfenStart);
-        resolved.recordLine.sfens = {initial.isEmpty() ? SfenUtils::hirateSfen() : initial};
-    }
-    const int ply = qBound(0, resolved.recordLine.currentPly, resolved.recordLine.moveCount());
-    resolved.recordLine.currentPly = ply;
-    resolved.recordLine.sfens = resolved.recordLine.sfens.mid(0, ply + 1);
-    resolved.recordLine.moves = resolved.recordLine.moves.mid(0, ply);
-    resolved.sfenStart = resolved.recordLine.sfens.last();
-    *m_sfenHistory = resolved.recordLine.sfens;
-    gameMovesRef() = resolved.recordLine.moves;
-    setPlayMode(resolved.mode);
-    m_gameStartOrchestrator->configureAndStart(resolved);
-}
-
-MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
-    PlayMode mode,
-    const QString& startSfenStr,
-    const QStringList* sfenRecord,
-    const StartGameDialogData* dlg) const
-{
-    return GameStartOrchestrator::buildStartOptions(mode, startSfenStr, sfenRecord, dlg);
-}
-
-void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, Turn bottomSide)
-{
-    m_gameStartOrchestrator->ensureHumanAtBottomIfApplicable(dlg, bottomSide);
-}
-
-// --- ターン進行（MatchTurnHandler へ委譲） ---
-
-void MatchCoordinator::flipBoard() {
-    m_turnHandler->flipBoard();
-}
-
-void MatchCoordinator::onHumanMove(const QPoint& from, const QPoint& to,
-                                   const QString& prettyMove)
-{
-    m_turnHandler->onHumanMove(from, to, prettyMove);
-}
-
-void MatchCoordinator::forceImmediateMove() {
-    m_turnHandler->forceImmediateMove();
-}
-
-void MatchCoordinator::startInitialEngineMoveIfNeeded() {
-    m_turnHandler->startInitialEngineMoveIfNeeded();
-}
-
-void MatchCoordinator::armTurnTimerIfNeeded() {
-    m_turnHandler->armTurnTimerIfNeeded();
-}
-
-void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Turn mover) {
-    m_turnHandler->finishTurnTimerAndSetConsiderationFor(mover);
-}
-
-void MatchCoordinator::disarmHumanTimerIfNeeded() {
-    m_turnHandler->disarmHumanTimerIfNeeded();
-}
-
-void MatchCoordinator::handlePlayerTimeOut(Turn player) {
-    if (m_session.gameOver().isOver) return;
-    m_turnHandler->handlePlayerTimeOut(player);
-    m_gameEndHandler->handleTimeout(player);
-}
-
-void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {
-    m_turnHandler->startMatchTimingAndMaybeInitialGo();
-}
-
-void MatchCoordinator::onUsiError(const QString& msg) {
-    m_turnHandler->handleUsiError(msg);
-}
-
-// --- UNDO ---
-
-void MatchCoordinator::setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks) {
-    m_undoHandler->setUndoBindings(refs, hooks);
-}
-
-bool MatchCoordinator::undoTwoPlies()
-{
-    if (!m_undoHandler->undoTwoPlies()) {
+    if (isGameOver() || m_record.moveCount() < 3) return false;
+    GameEndInfo info;
+    std::optional<Turn> loser;
+    switch (SennichiteDetector::check(m_record.sfens())) {
+    case SennichiteDetector::Result::None:
         return false;
+    case SennichiteDetector::Result::Draw:
+        qCInfo(lcGame) << "draw by repetition";
+        info = {Cause::Sennichite, Turn::Black};
+        break;
+    case SennichiteDetector::Result::ContinuousCheckByBlack:
+        info = {Cause::OuteSennichite, Turn::Black};
+        loser = Turn::Black;
+        break;
+    case SennichiteDetector::Result::ContinuousCheckByWhite:
+        info = {Cause::OuteSennichite, Turn::White};
+        loser = Turn::White;
+        break;
     }
-    m_session.clearPonder();
+    disarmTurnTimer();
+    m_engines->notifyGameOver(loser);
+    finishGame(info);
+    announceResult(info);
     return true;
 }
 
-bool MatchCoordinator::canAcceptMove() const
+void MatchCoordinator::handleEngineError(const QString& message)
 {
-    return !gameOverState().isOver && (!m_hooks.game.canAppendRecord || m_hooks.game.canAppendRecord());
+    if (isGameOver() || !m_strategy) return;
+    qCWarning(lcGame).noquote() << "[USI-ERROR]" << message;
+    for (Usi* engine : {m_engines->engineInSlot(1), m_engines->engineInSlot(2)}) {
+        if (engine) engine->cancelCurrentOperation();
+    }
+    if (!players().hasEngine()) return;
+    handleBreakOff();
+    emit gameOverMessage(tr("対局中断"), tr("エンジンエラー: %1").arg(message));
+}
+
+// ============================================================
+// 終局の記録
+// ============================================================
+
+void MatchCoordinator::clearGameOverState()
+{
+    const bool wasOver = isGameOver();
+    m_session.clearGameOver();
+    if (wasOver) emit gameOverStateChanged(m_session.gameOver());
+}
+
+void MatchCoordinator::finishGame(const GameEndInfo& info)
+{
+    if (!m_session.finish(info)) {
+        qCDebug(lcGame) << "finishGame() ignored: already over";
+        return;
+    }
+    emit gameOverStateChanged(m_session.gameOver());
+    appendTerminalRecord(info);
+    // 終局の行を棋譜に書いた後で、時刻と UI を更新させる
+    emit gameEnded(info);
+}
+
+void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
+{
+    m_clock->stopClock();
+
+    // 千日手・持将棋（引き分け）と連続王手の千日手の終局行は、終局した局面で手番の側の行として記録する。
+    // 棋譜ファイルを読み込んだときも終局行には手番側の印が付くので、それと合わせる
+    Turn lineOwner = info.loser;
+    if (info.cause == Cause::Sennichite || info.cause == Cause::Jishogi || info.cause == Cause::OuteSennichite)
+        lineOwner = m_gc->currentPlayer();
+
+    TerminalType terminal = TerminalType::None;
+    switch (info.cause) {
+    case Cause::Jishogi: terminal = TerminalType::Impasse; break;
+    case Cause::NyugyokuWin: terminal = TerminalType::DeclarationWin; break;
+    case Cause::IllegalMove: terminal = TerminalType::IllegalLoss; break;
+    case Cause::Sennichite: terminal = TerminalType::Repetition; break;
+    case Cause::OuteSennichite:
+        terminal = info.loser == lineOwner ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
+        break;
+    case Cause::BreakOff: terminal = TerminalType::Interrupt; break;
+    case Cause::Resignation: terminal = TerminalType::Resign; break;
+    case Cause::Timeout: terminal = TerminalType::Timeout; break;
+    }
+
+    // 終局行の消費時間は、その行（投了・宣言など）を行った手番側のもの。
+    // 入玉宣言勝ちでは宣言した勝者が手番側になる。
+    const Turn mover = (info.cause == Cause::NyugyokuWin) ? opponent(info.loser) : lineOwner;
+    m_clock->commitMove(mover);
+    const RecordEntry entry = RecordEntry::ending(terminal, mover, m_clock->recordTime(mover));
+    if (m_sink && m_sink->canAppendRecord()) m_sink->appendRecord(entry);
+    disarmTurnTimer();
+
+    if (m_session.markTerminalRecorded()) emit gameOverStateChanged(m_session.gameOver());
+}
+
+void MatchCoordinator::announceResult(const GameEndInfo& info)
+{
+    emit gameOverMessage(tr("対局終了"), resultMessage(info));
+    qCDebug(lcGame) << "Game ended";
+    if (m_session.options().autoSaveKifu && !m_session.options().kifuSaveDir.isEmpty()) {
+        qCInfo(lcGame) << "auto save: dir=" << m_session.options().kifuSaveDir;
+        emit autoSaveRequested(m_session.options().kifuSaveDir);
+    }
+    emit gameEndProcessed(info);
+}
+
+QString MatchCoordinator::resultMessage(const GameEndInfo& info) const
+{
+    // 駒落ちは棋譜の局面図・終局行と同じく下手・上手と呼ぶ
+    const QString blackJP = m_handicapNames ? tr("下手") : tr("先手");
+    const QString whiteJP = m_handicapNames ? tr("上手") : tr("後手");
+    const QString loserJP = (info.loser == Turn::Black) ? blackJP : whiteJP;
+    const QString winnerJP = (info.loser == Turn::Black) ? whiteJP : blackJP;
+
+    switch (info.cause) {
+    case Cause::Resignation:
+        return tr("%1の投了。%2の勝ちです。").arg(loserJP, winnerJP);
+    case Cause::Timeout:
+        return tr("%1の時間切れ。%2の勝ちです。").arg(loserJP, winnerJP);
+    case Cause::Jishogi:
+        return tr("最大手数に達しました。持将棋です。");
+    case Cause::IllegalMove:
+        return tr("%1の反則負け。%2の勝ちです。").arg(loserJP, winnerJP);
+    case Cause::Sennichite:
+        return tr("千日手が成立しました。");
+    case Cause::OuteSennichite:
+        return tr("%1の連続王手の千日手。%2の勝ちです。").arg(loserJP, winnerJP);
+    case Cause::NyugyokuWin:  // 入玉宣言は宣言の判定結果で知らせる
+    case Cause::BreakOff:     // 中断は知らせない
+        break;
+    }
+    return tr("対局が終了しました。");
+}
+
+// ============================================================
+// ローカル対局の司令塔: 待ったと、中断した対局の保存・再開
+// ============================================================
+
+// ============================================================
+// 待った
+// ============================================================
+
+bool MatchCoordinator::undoTwoPlies()
+{
+    // 開始局面を残すために2手分の手順が要る。人間の手番のときだけ戻す
+    if (isGameOver() || m_record.moveCount() < 2 || !m_gc->board()) return false;
+    if (!isHumanSide(m_gc->currentPlayer())) return false;
+    if (m_sink && !m_sink->canUndoRecords(2)) return false;
+
+    const auto update = m_gc->positionUpdate();
+    {
+        const QSignalBlocker clockNotifications(m_clock);
+        const int targetPly = currentPly() - 2;
+
+        // 盤面と手番を戻す。「同」表記の基準は、戻した局面に至った手の移動先
+        m_gc->board()->setSfen(m_record.sfenAt(targetPly));
+        m_gc->setCurrentPlayer(m_gc->board()->currentPlayer());
+        m_gc->setForcedPromotion(false);
+        m_gc->setPreviousMoveDestination(m_record.destinationOf(targetPly));
+        m_record.entries.resize(targetPly);
+
+        // 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す
+        m_clock->undo();
+        if (m_strategy) {
+            m_strategy->disarmTurnTimer();
+            m_strategy->armTurnTimerIfNeeded();
+        }
+        if (m_sink) m_sink->undoRecords(2);
+        m_session.clearPonder();
+    }
+    emit movesUndone(currentPly());
+    return true;
+}
+
+// ============================================================
+// 中断・再開
+// ============================================================
+
+void MatchCoordinator::captureInterruptedGame()
+{
+    if (!m_session.started()) return;
+    if (m_record.isEmpty()) return;
+
+    auto state = std::make_unique<InterruptedGameState>();
+    // 時計を止めて精算する（この間に時間切れになれば、中断ではなく時間切れで終局する）
+    state->clock = m_clock->pauseAndSnapshot();
+    if (isGameOver()) return;
+    state->options = m_session.options();
+    state->options.sfenStart = m_record.lastSfen();
+    state->options.resumeFromBreakOff = true;
+    state->record = m_record;
+    state->previousTo = m_gc->previousMoveDestination();
+    m_interruptedGame = std::move(state);
+}
+
+void MatchCoordinator::discardInterruptedGame()
+{
+    m_interruptedGame.reset();
+}
+
+bool MatchCoordinator::resumeInterruptedGame()
+{
+    if (!m_interruptedGame || !m_gc->board()) return false;
+    const auto state = std::move(m_interruptedGame);
+
+    clearGameOverState();
+    m_session.begin(state->options);
+    m_activity->setActivity(AppActivityState::Activity::DuringGame);
+    m_record = state->record;
+    m_gc->board()->setSfen(state->options.sfenStart);
+    m_gc->setCurrentPlayer(state->clock.currentPlayer);
+    m_gc->setPreviousMoveDestination(state->previousTo);
+    // 時計のスナップショットは持ち時間の決まりと時間切れの扱いも含む
+    m_clock->restoreSnapshot(state->clock);
+
+    createStrategy(state->options);
+    if (m_strategy) m_strategy->armTurnTimerIfNeeded();
+    // 対局開始通知でUIを整えてから、呼び出し側が初手探索を起動する。
+    return true;
 }

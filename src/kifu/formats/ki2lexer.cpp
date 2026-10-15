@@ -67,36 +67,16 @@ bool isResultLine(const QString& line)
 
 // === 結果行解析 ===
 
-bool parseResultLine(const QString& line, QString& terminalWord, int& moveCount)
+bool parseResultLine(const QString& line, TerminalType& terminal, int& moveCount)
 {
     const QRegularExpressionMatch m = resultPatternCaptureRe().match(line);
     if (!m.hasMatch()) return false;
     moveCount = KifuParseCommon::flexDigitsToIntNoDetach(m.captured(1));
 
-    static const std::pair<QString, QString> table[] = {
-        {QStringLiteral("千日手"), QStringLiteral("千日手")},
-        {QStringLiteral("持将棋"), QStringLiteral("持将棋")},
-        {QStringLiteral("中断"), QStringLiteral("中断")},
-        {QStringLiteral("切れ負け"), QStringLiteral("切れ負け")},
-        {QStringLiteral("時間切れ"), QStringLiteral("切れ負け")},
-        {QStringLiteral("反則勝ち"), QStringLiteral("反則勝ち")},
-        {QStringLiteral("反則負け"), QStringLiteral("反則負け")},
-        {QStringLiteral("入玉勝ち"), QStringLiteral("入玉勝ち")},
-        {QStringLiteral("不戦勝"), QStringLiteral("不戦勝")},
-        {QStringLiteral("不戦敗"), QStringLiteral("不戦敗")},
-        {QStringLiteral("不詰"), QStringLiteral("不詰")},
-        {QStringLiteral("詰み"), QStringLiteral("詰み")},
-        {QStringLiteral("詰"), QStringLiteral("詰み")},
-        {QStringLiteral("勝ち"), QStringLiteral("投了")},
-        {QStringLiteral("勝"), QStringLiteral("投了")},
-    };
-    for (const auto& [search, result] : table) {
-        if (line.contains(search)) {
-            terminalWord = result;
-            return true;
-        }
-    }
-    return false;
+    // 「まで77手で千日手」などは終局語の表で読む。「先手の勝ち」だけの行は投了とみなす
+    terminal = TerminalTypes::findWord(line);
+    if (terminal == TerminalType::None && line.contains(QChar(u'勝'))) terminal = TerminalType::Resign;
+    return terminal != TerminalType::None;
 }
 
 // === 指し手テキスト解析 ===

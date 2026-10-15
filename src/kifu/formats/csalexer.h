@@ -78,9 +78,6 @@ bool parseMoveLine(const QString& line, Turn mover, ShogiBoard& board, BoardSqua
 /// CSAコメント行を正規化（'先頭を除去、**読み筋/Floodgate形式を整形）
 QString normalizeCsaCommentLine(const QString& line);
 
-/// CSA終局コード（%TORYO等）→日本語ラベル（未知コードは空文字列）
-QString csaResultToLabel(const QString& token);
-
 /// T行から消費時間（ミリ秒）を解析
 std::optional<qint64> parseTimeTokenMs(const QString& token);
 

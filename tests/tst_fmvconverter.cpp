@@ -67,8 +67,8 @@ private slots:
         fmv::EnginePosition pos;
         fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
-        // 7六歩: (6,6) → (6,5)
-        ShogiMove sm(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
+        // 7六歩（内部の升は0始まり）
+        const UsiMove sm = UsiMove::fromString(u"7g7f");
         fmv::ConvertedMove cm;
         bool ok = fmv::Converter::toEngineMove(cm, Turn::Black, pos, sm);
         QVERIFY(ok);
@@ -90,8 +90,8 @@ private slots:
         fmv::EnginePosition pos;
         fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
-        // 先手銀打ち: 駒台(9,3) → (4,4)
-        ShogiMove sm(QPoint(9, 3), QPoint(4, 4), Piece::BlackSilver, Piece::None, false);
+        // 先手銀打ち
+        const UsiMove sm = UsiMove::fromString(u"S*5e");
         fmv::ConvertedMove cm;
         bool ok = fmv::Converter::toEngineMove(cm, Turn::Black, pos, sm);
         QVERIFY(ok);
@@ -111,8 +111,8 @@ private slots:
         fmv::EnginePosition pos;
         fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
-        // 5四歩→5三: (4,3)→(4,2) 3段目は敵陣なので成り可
-        ShogiMove sm(QPoint(4, 3), QPoint(4, 2), Piece::BlackPawn, Piece::None, false);
+        // 5四歩→5三: 3段目は敵陣なので成り可
+        const UsiMove sm = UsiMove::fromString(u"5d5c");
         fmv::ConvertedMove cm;
         bool ok = fmv::Converter::toEngineMove(cm, Turn::Black, pos, sm);
         QVERIFY(ok);

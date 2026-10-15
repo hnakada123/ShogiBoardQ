@@ -12,13 +12,15 @@
 #include "gameinfopanecontroller.h"
 #include "gamesettings.h"
 #include "gameinfokeys.h"
-#include "playerinfowiring.h"
+#include "playerinfopresenter.h"
 #include "gamerecordmodel.h"
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
 #include "analysissettings.h"
 #include "elidelabel.h"
 #include "shogiview.h"
+#include "appstate.h"
+#include "matchplayers.h"
 
 class TestGameInfoPane : public QObject
 {
@@ -378,24 +380,33 @@ private slots:
         auto* page = tab.createThinkingPage(&parent);
         const auto views = page->findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
         QCOMPARE(views.size(), 2);
-        PlayerInfoWiring::Dependencies deps;
+        AppState state;
+        PlayerInfoPresenter::Deps deps;
         deps.parentWidget = &parent;
-        PlayerInfoWiring wiring(deps);
+        deps.state = &state;
+        PlayerInfoPresenter wiring(deps);
         if (tabFirst) wiring.setAnalysisTab(&tab);
-        wiring.onPlayerNamesResolved({}, {}, "Engine A", "Engine B",
-                                     static_cast<int>(PlayMode::EvenEngineVsEngine));
+        MatchPlayers engines;
+        engines.blackIsEngine = true;
+        engines.whiteIsEngine = true;
+        engines.blackEngineName = QStringLiteral("Engine A");
+        engines.whiteEngineName = QStringLiteral("Engine B");
+        wiring.onMatchPlayersResolved(engines);
         if (!tabFirst) wiring.setAnalysisTab(&tab);
         QVERIFY(tab.info1()->isVisibleTo(page));
         QVERIFY(tab.info2()->isVisibleTo(page));
         QVERIFY(views.at(0)->isVisibleTo(page));
         QVERIFY(views.at(1)->isVisibleTo(page));
 
-        wiring.onPlayerNamesResolved("Human", {}, {}, "Engine B",
-                                     static_cast<int>(PlayMode::EvenHumanVsEngine));
+        MatchPlayers humanEngine;
+        humanEngine.whiteIsEngine = true;
+        humanEngine.blackHumanName = QStringLiteral("Human");
+        humanEngine.whiteEngineName = QStringLiteral("Engine B");
+        wiring.onMatchPlayersResolved(humanEngine);
+        QCOMPARE(state.players, humanEngine);
         QVERIFY(!tab.info2()->isVisibleTo(page));
         QVERIFY(!views.at(1)->isVisibleTo(page));
-        wiring.onPlayerNamesResolved({}, {}, "Engine A", "Engine B",
-                                     static_cast<int>(PlayMode::HandicapEngineVsEngine));
+        wiring.onMatchPlayersResolved(engines);
         QVERIFY(tab.info2()->isVisibleTo(page));
         QVERIFY(views.at(1)->isVisibleTo(page));
     }
@@ -431,17 +442,26 @@ private slots:
     {
         QWidget parent;
         ShogiView view;
-        PlayerInfoWiring::Dependencies deps;
+        AppState state;
+        PlayerInfoPresenter::Deps deps;
         deps.parentWidget = &parent;
         deps.shogiView = &view;
-        PlayerInfoWiring wiring(deps);
+        deps.state = &state;
+        PlayerInfoPresenter wiring(deps);
         wiring.addGameInfoTabAtStartup();
         QScopedPointer<QWidget> container(wiring.gameInfoController()->containerWidget());
         QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲先手"));
         QCOMPARE(view.whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
+        // 対局していないときの表示でも対局情報の名前を残す
+        wiring.showMatchPlayers();
+        QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(wiring.gameInfoController()->tableWidget()->item(2, 1)->text(), QStringLiteral("先手"));
 
         // 対局後の「新規」でも前の対局者名を残さない
-        wiring.onSetPlayersNames(QStringLiteral("太郎"), QStringLiteral("花子"));
+        MatchPlayers humans;
+        humans.blackHumanName = QStringLiteral("太郎");
+        humans.whiteHumanName = QStringLiteral("花子");
+        wiring.onMatchPlayersResolved(humans);
         QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲太郎"));
         wiring.gameInfoController()->resetGameInfo();
         wiring.syncBoardNamesWithGameInfo();
@@ -452,9 +472,9 @@ private slots:
     void startingGameKeepsMetadataAndPendingEdits()
     {
         QWidget parent;
-        PlayerInfoWiring::Dependencies deps;
+        PlayerInfoPresenter::Deps deps;
         deps.parentWidget = &parent;
-        PlayerInfoWiring wiring(deps);
+        PlayerInfoPresenter wiring(deps);
         wiring.addGameInfoTabAtStartup();
         auto* controller = wiring.gameInfoController();
         QScopedPointer<QWidget> container(controller->containerWidget());
