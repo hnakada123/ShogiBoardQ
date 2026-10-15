@@ -45,6 +45,7 @@ bool MatchCoordinator::resumeInterruptedGame()
     auto state = std::move(m_interruptedGame);
     clearGameOverState();
     m_session.begin(state->options);
+    setPlayMode(state->options.mode);
     m_gc->board()->setSfen(state->options.sfenStart);
     m_gc->setCurrentPlayer(state->clock.currentPlayer);
     m_gc->resetResult();

@@ -219,7 +219,6 @@ bool LiveGameSession::undoMoves(int count)
         undoneHead = undoneHead->parent();
     }
     KifuBranchNode* target = (undoneHead != nullptr) ? undoneHead->parent() : nullptr;
-    emit movesAboutToBeUndone(target);
 
     if (undoneHead != nullptr) {
         // 以前の棋譜にあった手を再利用して取り消した場合は、その棋譜の並び順を保つ。
@@ -338,6 +337,8 @@ QList<KifDisplayItem> LiveGameSession::moves() const
         item.prettyMove = entry.displayText;
         item.beforeSfen = before;
         item.terminal = entry.isTerminal();
+        item.terminalType = entry.terminal;
+        item.terminalSide = entry.mover;
         item.usiMove = entry.isTerminal() ? QString() : KifuPresentation::usiMove(entry.move);
         item.timeText = entry.time.toText();
         item.ply = ++ply;

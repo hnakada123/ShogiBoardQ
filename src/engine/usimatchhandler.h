@@ -32,26 +32,26 @@ class ShogiClock;
 class UsiMatchHandler : public QObject
 {
 public:
+    struct SearchTiming {
+        UsiGoTimeInput input;
+        int timeoutMs = 30 * 60 * 1000;
+        bool expired = false;
+    };
+
     /// コールバック定義（Usiファサードからの注入用）
     struct Hooks {
         std::function<void()> onBestmoveTimeout; ///< bestmoveタイムアウト時の処理
         std::function<void(const UsiMove&, const QString&, const QString&)> onMoveReady = {};
+        std::function<SearchTiming(const UsiTimingParams&, bool)> readTiming = {};
+        std::function<bool()> finishTurn = {}; ///< 時計を確定し、有効な応答ならtrue
+
     };
 
-    UsiMatchHandler(UsiProtocolHandler* protocolHandler,
-                    ThinkingInfoPresenter* presenter,
-                    ShogiGameController* gameController);
-
+    explicit UsiMatchHandler(UsiProtocolHandler* protocolHandler);
     void setHooks(const Hooks& hooks);
-    void setClock(ShogiClock* clock) { m_clock = clock; }
     void onBestMoveReceived();
     void requestMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
     void cancelAsync();
-
-    // --- 盤面データ管理 ---
-
-    /// 現在の盤面からSFEN文字列を計算する
-    QString computeBaseSfenFromBoard() const;
 
     // --- 最終指し手管理 ---
 
@@ -61,7 +61,7 @@ public:
 private:
     void startAsyncSearch();
     void onSearchTimeout();
-    int remainingTimeMs(const UsiTimingParams& timing) const;
+    SearchTiming searchTiming(const UsiTimingParams& timing, bool pondering = false) const;
     static constexpr int kUnlimitedSearchTimeoutMs = 30 * 60 * 1000; ///< 無制限対局の安全上限
     enum class Pending { None, PonderStop, Move };
     Pending m_pending = Pending::None;
@@ -75,23 +75,12 @@ private:
     void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr,
                                         const UsiTimingParams& timing);
 
-    /// 思考を始める時点の go の入力。時計があれば時計の決まりと残り時間を使う
-    UsiGoTimeInput goTimeInput(const UsiTimingParams& timing, bool pondering) const;
-
-    void updateBaseSfenForPonder();
-
-    // --- 内部参照（非所有）---
-
     UsiProtocolHandler* m_protocolHandler = nullptr;
-    ThinkingInfoPresenter* m_presenter = nullptr;
-    ShogiGameController* m_gameController = nullptr;
 
     // --- 状態 ---
 
     QString m_lastUsiMove;
     Hooks m_hooks;
-    ShogiClock* m_clock = nullptr;
-    bool m_acceptBestMove = false;
 };
 
 #endif // USIMATCHHANDLER_H

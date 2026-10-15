@@ -228,6 +228,7 @@ bool BranchTreeEditController::recordBoardMove(QPoint& from, QPoint& to, ShogiGa
 
     // 合法判定・成りの確認・指し手表記の生成は対局と同じ処理を使う。
     // 対局の棋譜（SFEN履歴・指し手列）は変えず、作業用の記録に書き込む
+    const auto update = gc->positionUpdate();
     QString sfen = parent->sfen();
     gc->board()->setSfen(sfen);
     gc->setCurrentPlayer(sfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w")

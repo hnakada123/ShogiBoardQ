@@ -6,13 +6,11 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "boardinteractioncontroller.h"
-#include "kifurecordlistmodel.h"
 #include "sfenutils.h"
 #include "sfendiffutils.h"
 #include "shogiclock.h"
 
-#include <QMetaObject>
-#include <QMetaMethod>
+#include <QSignalBlocker>
 
 // ============================================================
 // Refs / Bindings
@@ -30,8 +28,8 @@ void MatchUndoHandler::setHooks(const Hooks& hooks)
 
 void MatchUndoHandler::setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks)
 {
-    u_ = refs;
-    h_ = hooks;
+    m_uiRefs = refs;
+    m_undoHooks = hooks;
 }
 
 // ============================================================
@@ -44,7 +42,12 @@ bool MatchUndoHandler::undoTwoPlies()
     // エンジン応答待ちの入れ子イベントループからは巻き戻さない。
     QStringList* srec = m_refs.sfenHistory;
     if (!m_refs.gc || !m_refs.gc->board() || !srec || srec->size() < 3) return false;
-    if (h_.isHumanSide && !h_.isHumanSide(m_refs.gc->currentPlayer())) return false;
+    if (m_undoHooks.isHumanSide && !m_undoHooks.isHumanSide(m_refs.gc->currentPlayer())) return false;
+
+    if (m_undoHooks.canUndoRecord && !m_undoHooks.canUndoRecord()) return false;
+    const auto update = m_refs.gc->positionUpdate();
+    ShogiClock* clock = m_hooks.clockProvider ? m_hooks.clockProvider() : nullptr;
+    const QSignalBlocker clockNotifications(clock);
 
     const int targetSfenIdx = static_cast<int>(srec->size()) - 3;
     const QString targetSfen = srec->at(targetSfenIdx);
@@ -67,7 +70,6 @@ bool MatchUndoHandler::undoTwoPlies()
     }
 
     // --- 棋譜/モデル/履歴を末尾2件ずつ削除 ---
-    if (u_.recordModel) tryRemoveLastItems(u_.recordModel, 2);
     if (m_refs.gameMoves && m_refs.gameMoves->size() >= 2) {
         m_refs.gameMoves->remove(m_refs.gameMoves->size() - 2, 2);
     }
@@ -76,40 +78,25 @@ bool MatchUndoHandler::undoTwoPlies()
     }
 
     // --- 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す ---
-    if (ShogiClock* clock = m_hooks.clockProvider ? m_hooks.clockProvider() : nullptr) {
+    if (clock) {
         clock->undo();
     }
     if (m_hooks.restartHumanTurnTimer) m_hooks.restartHumanTurnTimer();
 
+    if (m_undoHooks.commitRecordUndo) m_undoHooks.commitRecordUndo();
+
     // --- 表示/ハイライトの同期 ---
-    if (u_.recordModel) u_.recordModel->setCurrentHighlightRow(targetSfenIdx);
-    if (u_.boardCtl) {
-        u_.boardCtl->cancelPendingClick();
-        u_.boardCtl->clearAllHighlights();
+    if (m_uiRefs.boardCtl) {
+        m_uiRefs.boardCtl->cancelPendingClick();
+        m_uiRefs.boardCtl->clearAllHighlights();
     }
-    if (h_.updateHighlightsForPly) h_.updateHighlightsForPly(targetSfenIdx);
-    if (h_.updateTurnAndTimekeepingDisplay) h_.updateTurnAndTimekeepingDisplay();
+    if (m_undoHooks.updateHighlightsForPly) m_undoHooks.updateHighlightsForPly(targetSfenIdx);
+    if (m_undoHooks.updateTurnAndTimekeepingDisplay) m_undoHooks.updateTurnAndTimekeepingDisplay();
 
     // --- 入力許可（人間手番なら盤クリックOK） ---
     const auto stm = m_refs.gc->currentPlayer();
-    const bool humanNow = h_.isHumanSide ? h_.isHumanSide(stm) : false;
-    if (h_.setMouseClickMode) h_.setMouseClickMode(humanNow);
+    const bool humanNow = m_undoHooks.isHumanSide ? m_undoHooks.isHumanSide(stm) : false;
+    if (m_undoHooks.setMouseClickMode) m_undoHooks.setMouseClickMode(humanNow);
 
     return true;
-}
-
-bool MatchUndoHandler::tryRemoveLastItems(QObject* model, int n)
-{
-    if (!model) return false;
-
-    if (auto* km = qobject_cast<KifuRecordListModel*>(model)) {
-        return km->removeLastItems(n);
-    }
-
-    const QMetaObject* mo = model->metaObject();
-    const int idx = mo->indexOfMethod("removeLastItems(int)");
-    if (idx < 0) return false;
-
-    bool ok = QMetaObject::invokeMethod(model, "removeLastItems", Q_ARG(int, n));
-    return ok;
 }

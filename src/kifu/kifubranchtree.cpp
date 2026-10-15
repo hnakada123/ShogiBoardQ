@@ -111,6 +111,7 @@ KifuBranchNode* KifuBranchTree::insertRecord(KifuBranchNode* parent, const Recor
     node->setDisplayText(entry.displayText);
     node->setTime(entry.time);
     node->setTerminalType(entry.terminal);
+    node->setTerminalSide(entry.mover);
     node->setSfen(entry.isTerminal() ? parent->sfen() : entry.sfen);
     node->setMove(entry.isTerminal() ? ShogiMove{} : entry.move);
     parent->addChild(node);
@@ -123,7 +124,7 @@ KifuBranchNode* KifuBranchTree::addTerminalMove(KifuBranchNode* parent,
                                                 const QString& displayText,
                                                 const QString& timeText)
 {
-    RecordEntry entry;
+    RecordEntry entry = RecordEntry::imported({}, displayText, parent ? parent->sfen() : QString(), timeText);
     entry.terminal = type;
     entry.displayText = displayText;
     entry.time = RecordTime::fromText(timeText);
@@ -411,6 +412,8 @@ QList<KifDisplayItem> KifuBranchTree::displayItemsForLine(int lineIndex) const
         item.beforeSfen = node->parent() ? node->parent()->sfen() : QString();
         item.usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
         item.terminal = node->isTerminal();
+        item.terminalType = node->terminalType();
+        item.terminalSide = node->terminalSide();
         item.comment = node->comment();
         item.bookmark = node->bookmark();
         item.timeText = node->timeText();

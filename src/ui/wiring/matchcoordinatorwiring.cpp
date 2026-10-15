@@ -99,7 +99,6 @@ void MatchCoordinatorWiring::bindRuntimeDependencies()
     // UndoBindings の設定
     if (m_match) {
         MatchCoordinator::UndoRefs u;
-        u.recordModel      = m_kifuRecordModel;
         u.boardCtl         = m_boardController;
 
         m_match->setUndoBindings(u, m_undoHooks);

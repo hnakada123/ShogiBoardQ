@@ -47,7 +47,7 @@ public:
         QWidget* parentWidget = nullptr;
         QTabWidget* tabWidget = nullptr;
         ShogiView* shogiView = nullptr;
-        PlayMode* playMode = nullptr;
+        const PlayMode* playMode = nullptr;
         QString* humanName1 = nullptr;
         QString* humanName2 = nullptr;
         QString* engineName1 = nullptr;
@@ -279,7 +279,7 @@ private:
     QWidget* m_parentWidget = nullptr;
     QTabWidget* m_tabWidget = nullptr;
     ShogiView* m_shogiView = nullptr;
-    PlayMode* m_playMode = nullptr;
+    const PlayMode* m_playMode = nullptr;
     QString* m_humanName1 = nullptr;
     QString* m_humanName2 = nullptr;
     QString* m_engineName1 = nullptr;

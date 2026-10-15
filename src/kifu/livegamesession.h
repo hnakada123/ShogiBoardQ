@@ -176,9 +176,6 @@ signals:
      */
     void moveAdded(int ply, const QString& displayText);
 
-    /// ノード削除前に現在位置の参照を残るノードへ移す。
-    void movesAboutToBeUndone(KifuBranchNode* target);
-
     /// 履歴とツリーの巻き戻し完了。棋譜欄・ツリー・選択位置を同期する。
     void movesUndone();
 

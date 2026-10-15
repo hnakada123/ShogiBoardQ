@@ -43,6 +43,29 @@ private:
     }
 
 private slots:
+    void sharedActivityDrivesPolicyAndRetainsMatchConfiguration()
+    {
+        AppActivityState activity;
+        UiStatePolicyManager manager;
+        UiStatePolicyManager::Deps deps;
+        deps.activity = &activity;
+        deps.getPlayMode = [&] { return activity.playMode(); };
+        manager.updateDeps(deps);
+        QSignalSpy changed(&manager, &UiStatePolicyManager::stateChanged);
+        activity.setPlayMode(PlayMode::EvenHumanVsEngine);
+        QCOMPARE(manager.currentState(), S::DuringGame);
+        QVERIFY(manager.isEnabled(E::GameUndo));
+        QCOMPARE(changed.count(), 1);
+        manager.transitionToDuringConsideration();
+        QCOMPARE(activity.playMode(), PlayMode::ConsiderationMode);
+        QVERIFY(!manager.isEnabled(E::GameUndo));
+        QCOMPARE(changed.count(), 2);
+        manager.transitionToIdle();
+        QCOMPARE(activity.playMode(), PlayMode::NotStarted);
+        manager.transitionToDuringGame();
+        QCOMPARE(activity.playMode(), PlayMode::EvenHumanVsEngine);
+    }
+
     void settingsResetOnlyEnabledWhileIdle()
     {
         QMainWindow window;

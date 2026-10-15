@@ -219,7 +219,7 @@ bool KifuExportClipboard::copyUsiCurrentToClipboard()
     if (m_deps.gameRecord) {
         const int limit = currentPly();
         QStringList moves = resolveUsiMoves().mid(0, limit);
-        QString terminal;
+        TerminalType terminal = TerminalType::None;
         if (auto* tree = m_deps.gameRecord->branchTree(); tree && !tree->isEmpty()) {
             const auto lines = tree->allLines();
             const int line = m_deps.gameRecord->activeRow();
@@ -227,14 +227,14 @@ bool KifuExportClipboard::copyUsiCurrentToClipboard()
                 QList<KifuBranchNode*> nodes;
                 for (KifuBranchNode* node : lines[line].nodes) {
                     if (node->ply() > limit) break;
-                    if (node->isTerminal()) { terminal = node->displayText(); break; }
+                    if (node->isTerminal()) { terminal = node->terminalType(); break; }
                     nodes.append(node);
                 }
                 moves = KifuBranchTree::toRecordLine(nodes).usiMoves();
             }
         } else {
             const auto disp = m_deps.gameRecord->collectMainlineForExport();
-            if (!disp.isEmpty() && disp.last().ply <= limit) terminal = disp.last().prettyMove;
+            if (!disp.isEmpty() && disp.last().ply <= limit) terminal = disp.last().terminalType;
         }
         usiLines = UsiExporter::exportPosition(buildExportContext().startSfen, moves, terminal);
     }

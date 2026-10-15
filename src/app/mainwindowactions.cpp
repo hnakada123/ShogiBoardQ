@@ -16,7 +16,7 @@
 #include "kifufilecontroller.h"
 #include "positioneditcoordinator.h"
 #include "recordnavigationhandler.h"
-#include "recordnavigationwiring.h"
+#include "recordnavigationhandler.h"
 #include "sessionlifecyclecoordinator.h"
 #include "shogiboard.h"
 #include "shogiview.h"
@@ -37,7 +37,6 @@ MainWindowActions::MainWindowActions(Deps deps, QObject* parent)
 
 void MainWindowActions::handleMoveRequested(const QPoint& from, const QPoint& to)
 {
-    m_deps.boardSetup->setPlayMode(m_deps.state->playMode);
     m_deps.boardSetup->onMoveRequested(from, to);
 }
 
@@ -60,7 +59,6 @@ bool MainWindowActions::recordVariationMove(QPoint& from, QPoint& to)
 
 void MainWindowActions::handleMoveCommitted(Turn mover, int ply)
 {
-    m_deps.boardSetup->setPlayMode(m_deps.state->playMode);
     m_deps.boardSetup->onMoveCommitted(mover, ply);
     m_deps.recordUpdates->updateCurrentSfenAfterMove();
     m_deps.josekiWiring->updateJosekiWindow();
@@ -74,7 +72,7 @@ void MainWindowActions::onRecordPaneMainRowChanged(int row)
         QTimer::singleShot(0, m_deps.displayCoordinator, &KifuDisplayCoordinator::restoreCurrentPositionHighlights);
         return;
     }
-    m_deps.recordNavigation->handler()->onMainRowChanged(row);
+    m_deps.recordNavigation->onMainRowChanged(row);
 }
 
 void MainWindowActions::beginPositionEditing()

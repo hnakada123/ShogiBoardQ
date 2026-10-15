@@ -6,27 +6,19 @@
 
 #include <QObject>
 #include <QString>
-#include <QStringList>
-
-class RecordPane;
-class KifuRecordListModel;
-class BoardSyncPresenter;
 class ShogiView;
 class KifuNavigationState;
-class KifuBranchTree;
+class KifuNavigationController;
 class MatchCoordinator;
 class EngineAnalysisTab;
 class UiStatePolicyManager;
-class TurnStateSyncService;
 class JosekiWindowWiring;
 enum class PlayMode;
 
 /**
  * @brief 棋譜ナビゲーション同期コーディネータ
  *
- * MainWindow から navigateKifuViewToRow / syncBoardAndHighlightsAtRow /
- * onBranchNodeHandled のロジックを集約し、本譜/分岐/検討モードの
- * 条件分岐を一元管理する。
+ * 移動要求を KifuNavigationController に委譲し、完了後の定跡・検討表示を更新する。
  */
 class KifuNavigationCoordinator : public QObject
 {
@@ -34,22 +26,15 @@ class KifuNavigationCoordinator : public QObject
 
 public:
     struct Deps {
-        // --- UI ---
-        RecordPane* recordPane = nullptr;                      ///< 棋譜欄ウィジェット（非所有）
-        KifuRecordListModel* kifuRecordModel = nullptr;        ///< 棋譜リストモデル（非所有）
-
-        // --- Board sync ---
-        BoardSyncPresenter* boardSync = nullptr;               ///< 盤面同期プレゼンタ（非所有）
         ShogiView* shogiView = nullptr;                        ///< 将棋盤ビュー（非所有）
 
         // --- Navigation state ---
+        KifuNavigationController* navController = nullptr;
         KifuNavigationState* navState = nullptr;               ///< ナビゲーション状態（非所有）
-        KifuBranchTree* branchTree = nullptr;                  ///< 分岐ツリー（非所有）
 
         // --- External state pointers ---
         QString* currentSfenStr = nullptr;                     ///< 現在局面SFEN文字列（外部所有）
-        bool* skipBoardSyncForBranchNav = nullptr;             ///< 分岐ナビ中の盤面同期スキップフラグ（外部所有）
-        PlayMode* playMode = nullptr;                          ///< 対局モード（外部所有）
+        const PlayMode* playMode = nullptr;                    ///< 対局モード（外部所有）
 
         // --- Coordinators ---
         MatchCoordinator* match = nullptr;                     ///< 対局調整（非所有）
@@ -57,7 +42,6 @@ public:
         UiStatePolicyManager* uiStatePolicy = nullptr;         ///< UI状態ポリシーマネージャ（非所有）
 
         // --- 連動して更新する部品 ---
-        TurnStateSyncService* turnSync = nullptr;              ///< 手番表示の更新（非所有）
         JosekiWindowWiring* josekiWiring = nullptr;            ///< 定跡ウィンドウの更新（非所有）
     };
 
@@ -65,14 +49,11 @@ public:
 
     void updateDeps(const Deps& deps);
 
-    /// 棋譜読込後の盤面を、古い分岐選択の抑止状態に影響されず表示する。
+    /// 棋譜読込後の指定局面を表示する。
     void syncLoadedPositionAtRow(int ply);
 
     /// 棋譜ビューを指定手数の行にスクロールし盤面を同期する
     void navigateToRow(int ply);
-
-    /// 指定手数の盤面・ハイライト・関連UI状態を同期する
-    void syncBoardAndHighlightsAtRow(int ply);
 
     /// 分岐ノード処理完了後の盤面・ハイライト更新
     void handleBranchNodeHandled(int ply, const QString& sfen,
@@ -84,13 +65,6 @@ public:
 
     /// ナビゲーション状態を手数に同期する
     void syncNavStateToPly(int selectedPly);
-
-    /// 分岐ナビゲーション中の盤面同期スキップガードを開始する
-    void beginBranchNavGuard();
-
-private slots:
-    /// 分岐ナビゲーションガードを解除する（QTimer::singleShot から呼ばれる）
-    void clearBranchNavGuard();
 
 private:
     Deps m_deps;

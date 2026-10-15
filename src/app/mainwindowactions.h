@@ -22,7 +22,7 @@ class KifuDisplayCoordinator;
 class KifuFileController;
 class PositionEditCoordinator;
 class QWidget;
-class RecordNavigationWiring;
+class RecordNavigationHandler;
 class SessionLifecycleCoordinator;
 class ShogiGameController;
 class ShogiView;
@@ -53,7 +53,7 @@ public:
         PositionEditCoordinator* positionEdit = nullptr;
         CommentCoordinator* comments = nullptr;
         KifuDisplayCoordinator* displayCoordinator = nullptr;
-        RecordNavigationWiring* recordNavigation = nullptr;
+        RecordNavigationHandler* recordNavigation = nullptr;
         UndoFlowService* undoFlow = nullptr;
         KifuFileController* kifuFileController = nullptr;  ///< 未保存の棋譜の確認
         JosekiWindowWiring* josekiWiring = nullptr;

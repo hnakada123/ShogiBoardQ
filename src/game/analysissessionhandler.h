@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QTimer>
 #include <QString>
 #include <QStringList>
 #include <functional>
@@ -181,21 +182,18 @@ private:
     // --- エンジン参照 ---
     QPointer<Usi> m_engine;                      ///< 現在のエンジン（非所有）
 
-    // --- モードフラグ ---
-    bool m_starting = false;                     ///< 初期化待機中の再入・破棄を防ぐ
-    bool m_startCancelled = false;               ///< 初期化中に受けた中止要求
-    QString m_startupError;                      ///< 初期化終了後に通知するエラー
-    bool m_inTsumeSearchMode = false;             ///< 詰み探索モード中か
-    bool m_inConsiderationMode = false;           ///< 検討モード中か
+    enum class Mode { None, Analysis, Consideration, Tsume };
+    enum class State { Idle, Starting, CancelStarting, Searching, StoppingSearch, RestartQueued, Waiting };
+    Mode m_mode = Mode::None;
+    State m_state = State::Idle;
+    QString m_startupError;
+    QTimer m_restartTimer;                       ///< 停止時に取り消す再開要求
 
     // --- 検討モード状態 ---
     QString m_positionStr;                        ///< 検討中のposition文字列
     int m_byoyomiMs = 0;                          ///< 検討の時間制限（ms）
     int m_multiPV = 1;                            ///< 検討の候補手数
     ShogiEngineThinkingModel* m_modelPtr = nullptr; ///< 検討タブ用モデル（非所有）
-    bool m_restartPending = false;                ///< 検討再開待ちフラグ
-    bool m_restartInProgress = false;             ///< 検討再開処理中フラグ（再入防止）
-    bool m_waiting = false;                       ///< 検討待機中フラグ
     int m_previousFileTo = 0;                     ///< 前回の移動先の筋
     int m_previousRankTo = 0;                     ///< 前回の移動先の段
     QString m_lastUsiMove;                        ///< 最後の指し手（USI形式）

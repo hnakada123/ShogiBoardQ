@@ -120,7 +120,6 @@ void DialogLaunchWiring::handleNyugyokuDeclaration()
 
 void DialogLaunchWiring::displayTsumeShogiSearchDialog()
 {
-    *m_deps.playMode = PlayMode::TsumiSearchMode;
 
     auto* dc = m_deps.dialogCoordinator;
     if (!dc) return;
@@ -209,8 +208,6 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
 {
     qCDebug(lcUi).noquote() << "displayKifuAnalysisDialog START";
 
-    // 解析モードに遷移
-    *m_deps.playMode = PlayMode::AnalysisMode;
 
     auto* dc = m_deps.dialogCoordinator;
     if (!dc) return;

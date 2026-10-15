@@ -18,6 +18,7 @@
 #include "shogiboard.h"
 #include "shogimove.h"
 #include "livegamesession.h"
+#include "recordnavigationhandler.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -174,6 +175,43 @@ private:
     };
 
 private slots:
+    void liveRecordSelectionDoesNotNavigate_data()
+    {
+        QTest::addColumn<bool>("ended");
+        QTest::newRow("discarded") << false;
+        QTest::newRow("terminal-recorded") << true;
+    }
+
+    void liveRecordSelectionDoesNotNavigate()
+    {
+        QFETCH(bool, ended);
+        UiHarness h;
+        LiveGameSession session;
+        session.setTree(&h.tree);
+        h.coordinator.setLiveGameSession(&session);
+        h.nav.goToNode(h.scenario.branchLeafNode);
+        session.startFromNode(h.scenario.branchLeafNode);
+        RecordNavigationHandler handler;
+        handler.updateDeps({&h.state, &h.coordinator, &session});
+        QSignalSpy navigated(&h.nav, &KifuNavigationController::navigationCompleted);
+        handler.onMainRowChanged(0);
+        QCOMPARE(h.state.currentNode(), h.scenario.branchLeafNode);
+        QCOMPARE(navigated.size(), 0);
+        if (ended) {
+            // 通信対局では終局後もセッションを保持するが、棋譜の閲覧は可能。
+            auto terminal = RecordEntry::ending(TerminalType::Resign, Turn::White);
+            terminal.sfen = h.scenario.branchLeafNode->sfen();
+            session.appendRecord(terminal);
+        } else {
+            session.discard();
+        }
+        handler.onMainRowChanged(0);
+        QCOMPARE(h.state.currentNode(), h.tree.root());
+        QCOMPARE(navigated.size(), 1);
+        QString reason;
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason), qPrintable(reason));
+    }
+
     /// 棋譜欄の指し手列の幅は、末尾に行を足すたびに全行を測り直した場合と同じになる
     /// （1手ごとに全行を測り直さず、足した行だけ測って今の幅と比べるため）
     void kifuColumnWidthMatchesFullMeasure()
@@ -277,14 +315,11 @@ private slots:
         QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
                  qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
 
-        // 経路2: 棋譜欄の行変更（onPositionChanged → syncBranchCandidatesForNode）
+        // 経路2: 棋譜欄の行変更（onPositionChanged → 共通ナビゲーション）
         h.nav.goToNode(ply4);
         QCoreApplication::processEvents();
         QVERIFY(!h.branchModel.hasBackToMainRow());   // ply 4 は分岐候補なし
-        // RecordNavigationHandler::onMainRowChanged と同じく、盤面と行ハイライトを
-        // 更新してから位置変更を通知する
-        h.board.setSfen(h.scenario.branchLeafNode->sfen());
-        h.recordModel.setCurrentHighlightRow(h.scenario.branchLeafNode->ply());
+        // 行選択の要求だけで盤面・ハイライトも同期される。
         h.coordinator.onPositionChanged(leafLineIndex, h.scenario.branchLeafNode->ply(), QString());
         QCOMPARE(h.state.currentNode(), h.scenario.branchLeafNode);
         QCOMPARE(h.branchModel.branchCandidateCount(), 2);
@@ -742,15 +777,15 @@ private slots:
         QVERIFY(reason.contains(QStringLiteral("分岐ツリーハイライト")));
     }
 
-    void detectsRecordMainBranchMismatch()
+    void rowSelectionUsesTheSameNodeNavigation()
     {
         UiHarness h;
         QVERIFY(h.scenario.branchFirstNode != nullptr);
         // 初期状態では本譜が棋譜欄に表示されている状態
         QCOMPARE(h.state.currentLineIndex(), 0);
 
-        // onPositionChanged は状態・分岐候補・分岐ツリーハイライトを更新するが、
-        // 棋譜欄モデルは再構築しない（本譜のまま）ため、意図的に不一致を作る。
+        // 行選択でも矢印と同じ通知を一度だけ出し、表示中のラインを含めて同期する。
+        QSignalSpy completed(&h.nav, &KifuNavigationController::navigationCompleted);
         const auto branchLine = h.tree.findLineIndexForNode(h.scenario.branchFirstNode);
         QVERIFY(branchLine.has_value() && *branchLine > 0);
         h.coordinator.onPositionChanged(
@@ -759,8 +794,13 @@ private slots:
             h.scenario.branchFirstNode->sfen());
 
         QString reason;
-        QVERIFY(!h.coordinator.verifyDisplayConsistencyDetailed(&reason));
-        QVERIFY(reason.contains(QStringLiteral("棋譜欄")));
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason), qPrintable(reason));
+        QCOMPARE(completed.count(), 1);
+        QCOMPARE(h.state.currentNode(), h.scenario.branchFirstNode);
+        // 存在しない行は他の分岐の同手数へ飛ばない。
+        h.coordinator.onPositionChanged(*branchLine, 999, {});
+        QCOMPARE(completed.count(), 1);
+        QCOMPARE(h.state.currentNode(), h.scenario.branchFirstNode);
     }
 
     // コメント表示テスト: goToNode（矢印キーナビゲーション）経路でコメントが通知されることを確認

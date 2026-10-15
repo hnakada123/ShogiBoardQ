@@ -48,8 +48,7 @@ public:
     // --------------------------------------------------------
     // 状態設定
     // --------------------------------------------------------
-    void setPlayMode(PlayMode mode);
-    PlayMode playMode() const { return m_playMode; }
+    PlayMode playMode() const;
 
     void setSfenRecord(QStringList* sfenRecord);
     void setGameMoves(QList<ShogiMove>* gameMoves);
@@ -116,7 +115,6 @@ private:
     PositionEditController* m_posEdit = nullptr;
     QObject* m_wheelFilter = nullptr;
 
-    PlayMode m_playMode = PlayMode::NotStarted;
     QStringList* m_sfenHistory = nullptr;
     QList<ShogiMove>* m_gameMoves = nullptr;
 

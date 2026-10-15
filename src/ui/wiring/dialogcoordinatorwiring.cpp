@@ -95,9 +95,6 @@ void DialogCoordinatorWiring::cancelKifuAnalysis()
         if (m_coordinator->isKifuAnalysisRunning()) {
             m_coordinator->stopKifuAnalysis();
 
-            if (m_playMode) {
-                *m_playMode = PlayMode::NotStarted;
-            }
 
             qCDebug(lcUi) << "cancelKifuAnalysis: analysis cancelled";
         } else {

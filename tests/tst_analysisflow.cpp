@@ -122,6 +122,43 @@ class TestAnalysisFlow : public QObject
     QTemporaryDir m_config;
 
 private slots:
+    void considerationRestartCoalescesAndStopCancelsQueuedWork()
+    {
+        MatchCoordinator match(MatchCoordinator::Deps{});
+        MatchCoordinator::AnalysisOptions options;
+        options.mode = PlayMode::ConsiderationMode;
+        options.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        options.engineName = QStringLiteral("RestartTest");
+        options.positionStr = QStringLiteral("position startpos");
+        QSignalSpy waiting(&match, &MatchCoordinator::considerationWaitingStarted);
+        QSignalSpy ended(&match, &MatchCoordinator::considerationModeEnded);
+        match.startAnalysis(options);
+        QVERIFY(match.primaryEngine());
+        auto* process = match.primaryEngine()->findChild<EngineProcessManager*>();
+        QVERIFY(process);
+        QSignalSpy commands(process, &EngineProcessManager::commandSent);
+        QTRY_VERIFY_WITH_TIMEOUT(waiting.count() == 1, 5000);
+        commands.clear();
+        QVERIFY(match.updateConsiderationPosition(QStringLiteral("position startpos moves 7g7f")));
+        QVERIFY(match.updateConsiderationPosition(QStringLiteral("position startpos moves 2g2f")));
+        match.updateConsiderationMultiPV(3);
+        QTRY_VERIFY_WITH_TIMEOUT(waiting.count() == 2, 5000);
+        QStringList sent;
+        for (const auto& args : commands) sent.append(args.first().toString());
+        QVERIFY(!sent.contains(QStringLiteral("position startpos moves 7g7f")));
+        QCOMPARE(sent.count(QStringLiteral("position startpos moves 2g2f")), 1);
+        QCOMPARE(sent.count(QStringLiteral("go infinite")), 1);
+        QVERIFY(sent.contains(QStringLiteral("setoption name MultiPV value 3")));
+        QVERIFY(match.updateConsiderationPosition(QStringLiteral("position startpos moves 7g7f 3c3d")));
+        match.stopAnalysisEngine();
+        QCoreApplication::processEvents();
+        QCOMPARE(ended.count(), 1);
+        QCOMPARE(match.playMode(), PlayMode::NotStarted);
+        QVERIFY(!match.primaryEngine());
+        match.stopAnalysisEngine();
+        QCOMPARE(ended.count(), 1);
+    }
+
     void initTestCase()
     {
         QVERIFY(m_config.isValid());

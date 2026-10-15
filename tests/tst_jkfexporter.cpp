@@ -84,6 +84,45 @@ class TestJkfExporter : public QObject
     Q_OBJECT
 
 private slots:
+    void terminalExportIgnoresDisplayText_data()
+    {
+        QTest::addColumn<int>("terminal");
+        QTest::addColumn<bool>("white");
+        for (int type = int(TerminalType::Resign); type <= int(TerminalType::ForfeitWin); ++type) {
+            QTest::newRow(qPrintable(QStringLiteral("black-%1").arg(type))) << type << false;
+            QTest::newRow(qPrintable(QStringLiteral("white-%1").arg(type))) << type << true;
+        }
+    }
+    void terminalExportIgnoresDisplayText()
+    {
+        QFETCH(int, terminal);
+        QFETCH(bool, white);
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
+        auto* node = tree.addRecord(tree.root(), RecordEntry::ending(static_cast<TerminalType>(terminal),
+                                                   white ? Turn::White : Turn::Black));
+        QVERIFY(node);
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext ctx;
+        ctx.startSfen = tree.root()->sfen();
+        const auto exportAll = [&] {
+            return QList<QStringList>{model.toKifLines(ctx), model.toKi2Lines(ctx), model.toCsaLines(ctx, {}),
+                model.toJkfLines(ctx), model.toUsiLines(ctx, {}), model.toUsenLines(ctx, {})};
+        };
+        const auto original = exportAll();
+        node->setDisplayText(QStringLiteral("display text has no result or side"));
+        QCOMPARE(exportAll(), original);
+        node->setDisplayText({});
+        QCOMPARE(exportAll(), original);
+        if (static_cast<TerminalType>(terminal) == TerminalType::IllegalWin) {
+            QVERIFY(model.toCsaLines(ctx, {}).contains(white ? QStringLiteral("%+ILLEGAL_ACTION")
+                                                         : QStringLiteral("%-ILLEGAL_ACTION")));
+            QVERIFY(model.toKi2Lines(ctx).contains(white ? QStringLiteral("まで0手で後手の反則勝ち")
+                                                       : QStringLiteral("まで0手で先手の反則勝ち")));
+        }
+    }
+
     /// 成・不成・打・同・取る手・修飾語と、変化（入れ子を含む）を、局面と指し手から書き、読み込むと同じ手順に戻る
     void movesRoundTripWithVariations()
     {

@@ -44,6 +44,5 @@ void Usi::requestMatchMove(const QString& position, const QString& ponder, const
 {
     if (deferUntilReady([this, position, ponder, timing]() { requestMatchMove(position, ponder, timing); })) return;
     m_considerationModel = nullptr;
-    m_matchHandler->setClock(m_matchClock);
     m_matchHandler->requestMove(position, ponder, timing);
 }

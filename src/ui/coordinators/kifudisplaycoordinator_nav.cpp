@@ -7,6 +7,7 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
+#include "kifunavigationcontroller.h"
 #include "kifurecordlistmodel.h"
 
 #include "logcategories.h"
@@ -73,11 +74,6 @@ bool KifuDisplayCoordinator::syncRecordViewToCurrentLine()
     return true;
 }
 
-void KifuDisplayCoordinator::onBoardUpdateRequired(const QString& sfen)
-{
-    Q_UNUSED(sfen);
-}
-
 void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
 {
     if (m_recordModel == nullptr) {
@@ -120,9 +116,10 @@ void KifuDisplayCoordinator::runPendingNavResultCheck()
     }
     m_pendingNavResultCheck = false;
 
-    const bool consistent = verifyDisplayConsistency();
+    QString reason;
+    const bool consistent = verifyDisplayConsistencyDetailed(&reason);
     if (!consistent) {
-        qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
+        qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:" << reason;
         qCDebug(lcUi).noquote() << consistencyReport();
     }
 
@@ -145,121 +142,16 @@ void KifuDisplayCoordinator::runPendingNavResultCheck()
 void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QString& sfen)
 {
     Q_UNUSED(sfen)
-    Q_UNUSED(lineIndex)
-
-    qCDebug(lcUi).noquote() << "onPositionChanged ENTER lineIndex=" << lineIndex << "ply=" << ply;
-
-    if (m_tree == nullptr || m_state == nullptr) {
-        qCDebug(lcUi).noquote() << "onPositionChanged LEAVE (no tree or state)";
+    if (!m_navController || !m_tree || !m_state) return;
+    const auto lines = m_tree->allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size() || ply < 0) return;
+    const auto& nodes = lines.at(lineIndex).nodes;
+    for (auto* node : nodes) {
+        if (node->ply() != ply) continue;
+        // 同手数でも分岐先が違えば移動する。範囲外を別ラインで補わない。
+        if (m_state->currentNode() != node) m_navController->goToLine(lineIndex, ply);
         return;
     }
-
-    KifuBranchNode* targetNode = nullptr;
-    QList<BranchLine> lines = m_tree->allLines();
-
-    // ply=0は開始局面（ルートノード）
-    if (ply == 0) {
-        targetNode = m_tree->root();
-        qCDebug(lcUi).noquote() << "ply=0: using root node";
-    } else if (!lines.isEmpty()) {
-        int currentLine = m_state->currentLineIndex();
-        if (currentLine < 0 || currentLine >= lines.size()) {
-            currentLine = 0;
-        }
-
-        qCDebug(lcUi).noquote() << "searching on line" << currentLine << "for ply" << ply;
-
-        const BranchLine& line = lines.at(currentLine);
-        for (KifuBranchNode* node : std::as_const(line.nodes)) {
-            if (node->ply() == ply) {
-                targetNode = node;
-                qCDebug(lcUi).noquote() << "found node on line" << currentLine
-                                   << "ply=" << ply << "displayText=" << node->displayText();
-                break;
-            }
-        }
-
-        // 現在のラインで見つからない場合、全ラインを検索
-        if (targetNode == nullptr) {
-            for (int li = 0; li < lines.size(); ++li) {
-                if (li == currentLine) continue;
-                for (KifuBranchNode* node : std::as_const(lines.at(li).nodes)) {
-                    if (node->ply() == ply) {
-                        targetNode = node;
-                        qCDebug(lcUi).noquote() << "found node on line" << li
-                                           << "(fallback) ply=" << ply;
-                        break;
-                    }
-                }
-                if (targetNode != nullptr) break;
-            }
-        }
-    }
-
-    if (targetNode == nullptr) {
-        qCDebug(lcUi).noquote() << "onPositionChanged LEAVE (target node not found for ply=" << ply << ")";
-        return;
-    }
-
-    qCDebug(lcUi).noquote() << "onPositionChanged: found node ply=" << targetNode->ply()
-                       << "displayText=" << targetNode->displayText()
-                       << "childCount=" << targetNode->childCount()
-                       << "parent=" << (targetNode->parent() ? "yes" : "null");
-
-    // 分岐点での選択を記憶
-    KifuBranchNode* nodeParent = targetNode->parent();
-    if (nodeParent != nullptr && nodeParent->childCount() > 1) {
-        for (int i = 0; i < nodeParent->childCount(); ++i) {
-            if (nodeParent->childAt(i) == targetNode) {
-                m_state->rememberChildSelection(nodeParent, i);
-                qCDebug(lcUi).noquote() << "onPositionChanged: remembered line selection at parent ply="
-                                   << nodeParent->ply() << "index=" << i;
-                break;
-            }
-        }
-    }
-
-    m_state->setCurrentNode(targetNode);
-
-    // 分岐候補の同期（KifuSelectionSyncに委譲）
-    m_selectionSync->syncBranchCandidatesForNode(targetNode);
-
-    // 分岐ツリーハイライトの同期（KifuSelectionSyncに委譲）
-    const int highlightLineIndex = m_selectionSync->syncBranchTreeHighlightForNode(
-        targetNode, ply, m_state->currentLineIndex());
-
-    // m_lastLineIndex を同期
-    const int oldLastLineIndex = m_lastLineIndex;
-    m_lastLineIndex = highlightLineIndex;
-    qCDebug(lcUi).noquote() << "onPositionChanged: synced m_lastLineIndex from" << oldLastLineIndex
-                       << "to" << m_lastLineIndex
-                       << "(model rowCount=" << (m_recordModel ? m_recordModel->rowCount() : -1) << ")";
-
-    // コメント表示の更新
-    {
-        const QString comment = targetNode->comment();
-        emit commentUpdateRequired(ply, comment, true);
-    }
-
-    // 位置変更完了時の一致性チェック
-    const bool consistent = verifyDisplayConsistency();
-    if (!consistent) {
-        qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
-        qCDebug(lcUi).noquote() << consistencyReport();
-    }
-
-    // NAV-RESULT サマリー（表示の状態の取得は、ログを出すときだけ）
-    if (lcUi().isDebugEnabled()) {
-        const DisplaySnapshot snap = captureDisplaySnapshot();
-        qCDebug(lcUi).noquote() << "NAV-RESULT: ply=" << snap.statePly
-                            << "line=" << snap.stateLineIndex
-                            << "recordHighlight=" << snap.modelHighlightRow
-                            << "treeHL=(" << snap.treeHighlightLineIndex << "," << snap.treeHighlightPly << ")"
-                            << "candidates=" << snap.branchCandidateCount
-                            << "consistent=" << (consistent ? "YES" : "NO");
-    }
-
-    qCDebug(lcUi).noquote() << "onPositionChanged LEAVE";
 }
 
 // ============================================================

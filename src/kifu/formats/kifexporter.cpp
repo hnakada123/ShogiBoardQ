@@ -34,7 +34,6 @@ using KifuExportCommon::appendKifBookmarks;
 using KifuExportCommon::appendKifComments;
 using KifuExportCommon::buildEndingLine;
 using KifuExportCommon::fwColonLine;
-using KifuExportCommon::isTerminalMove;
 using KifuExportCommon::removeTurnMarker;
 
 // ヘルパ関数: KIF形式の時間文字列にフォーマット（括弧付き）
@@ -94,12 +93,15 @@ static QString formatKifMoveLine(int moveNo, const QString& kifMove, const QStri
 // 手順のノードのうち fromPly 手目以降を KIF の指し手行として出力する。
 // 終局語を除いた最後の指し手の手数と終局語を返す（本譜の終局行に使う）。
 static void outputMoveNodes(const QList<KifuBranchNode*>& nodes, int fromPly, QStringList& out,
-                            int* lastActualMoveNo = nullptr, QString* terminalMove = nullptr)
+                            int* lastActualMoveNo = nullptr, const KifuBranchNode** terminalMove = nullptr)
 {
     for (KifuBranchNode* node : nodes) {
         if (node->ply() < fromPly) continue;
 
-        const QString moveText = node->displayText().trimmed();
+        QString moveText = node->isTerminal()
+            ? RecordEntry::ending(node->terminalType(), node->terminalSide()).displayText
+            : node->displayText().trimmed();
+        if (node->terminalType() == TerminalType::Timeout) moveText = QStringLiteral("切れ負け");
         if (moveText.isEmpty()) continue;
 
         // 分岐マーク: Kifu for Windows 準拠で、親の子リストで自分より後ろに兄弟がいれば '+'
@@ -110,8 +112,8 @@ static void outputMoveNodes(const QList<KifuBranchNode*>& nodes, int fromPly, QS
         appendKifBookmarks(node->bookmark(), out);
         appendKifComments(node->comment(), out);
 
-        if (isTerminalMove(moveText)) {
-            if (terminalMove) *terminalMove = moveText;
+        if (node->isTerminal()) {
+            if (terminalMove) *terminalMove = node;
         } else if (lastActualMoveNo) {
             *lastActualMoveNo = node->ply();
         }
@@ -167,11 +169,12 @@ QStringList KifExporter::exportLines(const GameRecordModel& model,
 
     // 5) 各指し手を出力（変化と同じ書き方）
     int lastActualMoveNo = 0;
-    QString terminalMove;
+    const KifuBranchNode* terminalMove = nullptr;
     outputMoveNodes(mainNodes, 1, out, &lastActualMoveNo, &terminalMove);
 
     // 6) 終了行（本譜のみ）
-    out << buildEndingLine(lastActualMoveNo, terminalMove, !ctx.startSfen.contains(QStringLiteral(" w ")),
+    out << buildEndingLine(lastActualMoveNo, terminalMove ? terminalMove->terminalType() : TerminalType::None,
+                           terminalMove ? terminalMove->terminalSide() : Turn::Black,
                            handicapNames);
 
     // 8) 変化（分岐）を出力（KifuBranchTree から）

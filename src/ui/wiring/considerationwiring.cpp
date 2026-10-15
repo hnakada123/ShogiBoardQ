@@ -87,13 +87,7 @@ void ConsiderationWiring::displayConsiderationDialog()
         dcDeps.matchCoordinator = m_match;
         dcDeps.considerationTabManager = m_considerationTabManager;
         m_dialogCoordinator->updateDeps(dcDeps);
-        // 検討開始前にモードを設定（onSetEngineNamesで検討タブにエンジン名を設定するため）
-        const PlayMode previousMode = *m_playMode;
-        *m_playMode = PlayMode::ConsiderationMode;
-        if (!m_dialogCoordinator->startConsiderationFromContext()) {
-            // 検討開始失敗時は元のモードに戻す
-            *m_playMode = previousMode;
-        }
+        m_dialogCoordinator->startConsiderationFromContext();
     }
     qCDebug(lcUi) << "displayConsiderationDialog EXIT";
 }

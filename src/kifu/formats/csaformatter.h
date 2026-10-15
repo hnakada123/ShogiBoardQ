@@ -6,6 +6,8 @@
 
 #include <QChar>
 #include <QString>
+#include "terminaltype.h"
+#include "shogitypes.h"
 #include <QStringList>
 
 /**
@@ -14,7 +16,7 @@
 namespace CsaFormatter {
 
 QString extractCsaTimeToken(const QString& timeText);
-QString csaResultCode(const QString& terminalMove);
+QString csaResultCode(TerminalType terminal, Turn side);
 QString convertToCsaDateTime(const QString& dateTimeStr);
 QString convertToCsaTime(const QString& timeStr);
 /// 対局情報の持ち時間を CSA の行にする。先後で違う持ち時間は $TIME+ と $TIME- の2行になる

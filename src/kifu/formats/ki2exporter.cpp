@@ -110,8 +110,8 @@ static void outputKi2VariationFromBranchLine(const BranchLine& line, const QStri
                 movesOnLine.clear();
             }
             // 終局手は本譜と同じく「まで…」の結果行で表す（KI2 では指し手として書かない）
-            out << (isTerminal ? buildEndingLine(node->ply() - 1, node->displayText().trimmed(),
-                                                 !startSfen.contains(QStringLiteral(" w ")), handicapNames)
+            out << (isTerminal ? buildEndingLine(node->ply() - 1, node->terminalType(),
+                                                 node->terminalSide(), handicapNames)
                                : ki2Move);
 
             appendKifBookmarks(bm, out);
@@ -185,7 +185,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
     // 5) 各指し手を出力（KI2形式）
     int moveNo = 1;
     int lastActualMoveNo = 0;
-    QString terminalMove;
+    const KifuBranchNode* terminalMove = nullptr;
     QStringList movesOnLine;  // 現在の行に蓄積する指し手
     bool lastMoveHadComment = false;
 
@@ -229,7 +229,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
         }
 
         if (isTerminal) {
-            terminalMove = node->displayText().trimmed();
+            terminalMove = node;
         } else {
             lastActualMoveNo = moveNo;
         }
@@ -242,9 +242,10 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
     }
 
     // 6) 終了行
-    out << buildEndingLine(lastActualMoveNo, terminalMove, !ctx.startSfen.contains(QStringLiteral(" w ")),
+    out << buildEndingLine(lastActualMoveNo, terminalMove ? terminalMove->terminalType() : TerminalType::None,
+                           terminalMove ? terminalMove->terminalSide() : Turn::Black,
                            handicapNames);
-    if (!terminalMove.isEmpty()) {
+    if (terminalMove) {
         appendKifBookmarks(mainNodes.last()->bookmark(), out);
         appendKifComments(mainNodes.last()->comment(), out);
     }

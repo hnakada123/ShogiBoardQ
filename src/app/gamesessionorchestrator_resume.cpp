@@ -60,7 +60,7 @@ void GameSessionOrchestrator::handleResumeGame()
     // ここで簡略な表示に作り直すと列幅が縮み、ウィンドウ全体が再配置される。
     m_deps.liveSession->startFromNode(node);
 
-    if (m_deps.playMode) *m_deps.playMode = state.options.mode;
+    m_deps.match->setPlayMode(state.options.mode);
     if (m_deps.currentSfenStr) *m_deps.currentSfenStr = state.options.sfenStart;
     if (m_deps.replayController) m_deps.replayController->setReplayMode(false);
     // 終局表示を解き、盤を操作できるようにして、終局時刻を消す

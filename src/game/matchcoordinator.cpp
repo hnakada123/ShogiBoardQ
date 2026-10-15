@@ -176,8 +176,6 @@ void MatchCoordinator::configureAnalysisSession()
         m_engineManager->setUsi1(usi);
         connect(usi, &Usi::errorOccurred,
                 this, &MatchCoordinator::onUsiError, Qt::UniqueConnection);
-        m_engineManager->wireResignToArbiter(usi, Turn::Black);
-        m_engineManager->wireWinToArbiter(usi, Turn::Black);
         usi->setLogIdentity(QStringLiteral("[E1]"), QString(), opt.engineName);
         usi->setSquelchResignLogging(false);
         return usi;
@@ -368,6 +366,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     resolved.sfenStart = resolved.recordLine.sfens.last();
     *m_sfenHistory = resolved.recordLine.sfens;
     gameMovesRef() = resolved.recordLine.moves;
+    setPlayMode(resolved.mode);
     m_gameStartOrchestrator->configureAndStart(resolved);
 }
 
@@ -444,4 +443,9 @@ bool MatchCoordinator::undoTwoPlies()
     }
     m_session.clearPonder();
     return true;
+}
+
+bool MatchCoordinator::canAcceptMove() const
+{
+    return !gameOverState().isOver && (!m_hooks.game.canAppendRecord || m_hooks.game.canAppendRecord());
 }

@@ -89,8 +89,6 @@ void KifuDisplayCoordinator::setLiveGameSession(LiveGameSession* session)
     if (m_liveSession != nullptr) {
         connect(m_liveSession, &LiveGameSession::moveAdded,
                 this, &KifuDisplayCoordinator::onLiveGameMoveAdded);
-        connect(m_liveSession, &LiveGameSession::movesAboutToBeUndone,
-                this, &KifuDisplayCoordinator::onLiveGameMovesAboutToBeUndone);
         connect(m_liveSession, &LiveGameSession::movesUndone,
                 this, &KifuDisplayCoordinator::onLiveGameMovesUndone);
         connect(m_liveSession, &LiveGameSession::sessionStarted,
@@ -131,7 +129,7 @@ KifuDisplayPresenter::TrackingState KifuDisplayCoordinator::trackingState() cons
     return {m_lastLineIndex,
             m_selectionSync->expectedTreeLineIndex(),
             m_selectionSync->expectedTreePly(),
-            (m_liveSession != nullptr && m_liveSession->isActive())};
+            (m_liveSession != nullptr && m_liveSession->canAddMove())};
 }
 
 void KifuDisplayCoordinator::wireSignals()
@@ -143,8 +141,6 @@ void KifuDisplayCoordinator::wireSignals()
     if (m_navController != nullptr) {
         connect(m_navController, &KifuNavigationController::navigationCompleted,
                 this, &KifuDisplayCoordinator::onNavigationCompleted);
-        connect(m_navController, &KifuNavigationController::boardUpdateRequired,
-                this, &KifuDisplayCoordinator::onBoardUpdateRequired);
         connect(m_navController, &KifuNavigationController::recordHighlightRequired,
                 this, &KifuDisplayCoordinator::onRecordHighlightRequired);
         connect(m_navController, &KifuNavigationController::branchTreeHighlightRequired,

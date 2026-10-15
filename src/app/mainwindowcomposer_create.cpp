@@ -56,7 +56,7 @@
 #include "positioneditcoordinator.h"
 #include "prestartcleanuphandler.h"
 #include "pvclickcontroller.h"
-#include "recordnavigationwiring.h"
+#include "recordnavigationhandler.h"
 #include "recordpane.h"
 #include "recordpanewiring.h"
 #include "replaycontroller.h"
@@ -408,7 +408,7 @@ void MainWindowComposer::createServices()
     m_c.considerationPositionService = new ConsiderationPositionService(&m_window);
     m_c.usiCommandController = std::make_unique<UsiCommandController>();
     m_c.dialogCoordinatorWiring = new DialogCoordinatorWiring(&m_window);
-    m_c.recordNavWiring = new RecordNavigationWiring(&m_window);
+    m_c.recordNavHandler = new RecordNavigationHandler(&m_window);
     m_c.posEditCoordinator = new PositionEditCoordinator(&m_window);
     m_c.boardLoadService = new BoardLoadService(&m_window);
 }

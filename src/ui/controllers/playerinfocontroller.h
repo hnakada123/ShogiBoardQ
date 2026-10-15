@@ -48,8 +48,6 @@ public:
     // --------------------------------------------------------
     // 状態設定
     // --------------------------------------------------------
-    void setPlayMode(PlayMode mode);
-    PlayMode playMode() const { return m_playMode; }
 
     void setHumanNames(const QString& name1, const QString& name2);
     void setEngineNames(const QString& name1, const QString& name2);
@@ -66,17 +64,17 @@ public:
     /**
      * @brief PlayModeに応じて将棋盤の対局者名ラベルを更新
      */
-    void applyPlayersNamesForMode();
+    void applyPlayersNamesForMode(PlayMode mode);
 
     /**
      * @brief エンジン名をログモデルに反映
      */
-    void applyEngineNamesToLogModels();
+    void applyEngineNamesToLogModels(PlayMode mode);
 
     /**
      * @brief EvE対局時に2番目のエンジン情報の表示を切り替え
      */
-    void updateSecondEngineVisibility();
+    void updateSecondEngineVisibility(PlayMode mode);
 
     /**
      * @brief 対局情報タブの先手・後手名を更新
@@ -86,7 +84,7 @@ public:
     /**
      * @brief 現在の対局に基づいて対局情報タブを更新
      */
-    void updateGameInfoForCurrentMatch();
+    void updateGameInfoForCurrentMatch(PlayMode mode);
 
     /**
      * @brief 元の対局情報を保存（棋譜読み込み時）
@@ -102,7 +100,7 @@ public slots:
     /**
      * @brief エンジン名設定フック（MatchCoordinatorから呼ばれる）
      */
-    void onSetEngineNames(const QString& e1, const QString& e2);
+    void onSetEngineNames(const QString& e1, const QString& e2, PlayMode mode);
 
     /**
      * @brief 対局者名確定時のスロット
@@ -112,7 +110,7 @@ public slots:
                                int playMode);
 
 private:
-    void resolveDisplayNames(QString& blackName, QString& whiteName, bool displayFallback = true) const;
+    void resolveDisplayNames(PlayMode mode, QString& blackName, QString& whiteName, bool displayFallback = true) const;
 
     ShogiView* m_shogiView = nullptr;
     GameInfoPaneController* m_gameInfoController = nullptr;
@@ -120,8 +118,8 @@ private:
     UsiCommLogModel* m_lineEditModel1 = nullptr;
     UsiCommLogModel* m_lineEditModel2 = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
+    bool m_secondEngineVisible = false; ///< タブの遅延生成にも引き継ぐ表示設定
 
-    PlayMode m_playMode = PlayMode::NotStarted;
     QString m_humanName1;
     QString m_humanName2;
     QString m_engineName1;

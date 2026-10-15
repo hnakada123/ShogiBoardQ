@@ -8,6 +8,7 @@
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "usimatchhandler.h"
+#include "matchsearchsnapshot.h"
 #include "timecontrol_test_helper.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
@@ -27,7 +28,7 @@ public:
     EngineProcessManager process;
     UsiProtocolHandler protocol;
     ThinkingInfoPresenter presenter;
-    UsiMatchHandler match{&protocol, &presenter, &game};
+    UsiMatchHandler match{&protocol};
     QStringList commands;
     QString position = QStringLiteral("position startpos moves 7g7f");
     QString ponder;
@@ -42,14 +43,18 @@ public:
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
         protocol.setProcessManager(&process);
-        match.setClock(&clock);
+        connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoPresenter::setBaseSfen);
         match.setHooks({[this] { ++errors; protocol.cancelCurrentOperation(); },
             [this](const UsiMove& move, const QString& result, const QString& nextPonder) {
                 lastTo = BoardCoordinates::toSquare(move);
                 position = result;
                 ponder = nextPonder;
                 ++completed;
-            }});
+            },
+            [this](const UsiTimingParams& timing, bool pondering) {
+                return matchSearchSnapshot(&clock, game.currentPlayer(), timing, pondering);
+            },
+            [this] { clock.finishTurn(); return !clock.isGameOver(); }});
         connect(&protocol, &UsiProtocolHandler::bestMoveReceived, this, &MatchHarness::acceptMove);
         connect(&process, &EngineProcessManager::commandSent, this, &MatchHarness::recordCommand);
     }
@@ -335,9 +340,9 @@ private slots:
         QVERIFY(h.start(mockPath()));
         QCOMPARE(h.reply(), QPoint(8, 4));
         QVERIFY(h.protocol.currentPhase() == UsiProtocolHandler::SearchPhase::Ponder);
-        // 対局の盤（平手・後手番）から、指した手 8c8d と予想手 2g2f を進めた局面
+        // 通信した局面（7g7f後）から、bestmoveと予測手を進めた局面。表示中の盤には依存しない。
         QCOMPARE(h.presenter.baseSfen(),
-                 QStringLiteral("lnsgkgsnl/1r5b1/p1ppppppp/1p7/9/7P1/PPPPPPP1P/1B5R1/LNSGKGSNL w - 1"));
+                 QStringLiteral("lnsgkgsnl/1r5b1/p1ppppppp/1p7/9/2P4P1/PP1PPPP1P/1B5R1/LNSGKGSNL w - 4"));
         QSignalSpy rows(&h.presenter, &ThinkingInfoPresenter::thinkingInfoUpdated);
         h.presenter.processInfo(*UsiInfoParser::parse(QStringLiteral("info depth 1 score cp 0 pv 8d8e 2f2e 8e8f")));
         QCOMPARE(rows.count(), 1);

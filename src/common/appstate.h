@@ -9,6 +9,7 @@
 #include <QStringList>
 
 #include "playmode.h"
+#include "appactivitystate.h"
 #include "sfenutils.h"
 #include "shogimove.h"
 #include "shogitypes.h"
@@ -22,11 +23,11 @@
  */
 struct AppState {
     // --- 対局 ---
-    PlayMode playMode = PlayMode::NotStarted;              ///< 現在の対局・解析モード
+    AppActivityState activity;
+    const PlayMode& playMode = activity.playModeRef();     ///< 読み取り専用の互換ビュー
     QString startSfenStr = SfenUtils::hirateSfen();        ///< 開始局面（完全な SFEN）
     QString currentSfenStr = QStringLiteral("startpos");   ///< 表示中の局面
     bool errorOccurred = false;                            ///< エラー表示中（通知の重複を避ける）
-    bool skipBoardSyncForBranchNav = false;                ///< 分岐ナビ中は棋譜欄の行変更で盤を同期しない
 
     // --- 対局者 ---
     QString humanName1;

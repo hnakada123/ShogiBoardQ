@@ -22,7 +22,8 @@ enum class TerminalType {
     DeclarationWin, ///< 入玉宣言勝ち
     Draw,          ///< 引き分け
     MaxMoves,      ///< 最大手数到達
-    Error          ///< エラー
+    Error,         ///< エラー
+    ForfeitWin     ///< 不戦勝
 };
 
 /**

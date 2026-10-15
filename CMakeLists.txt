@@ -342,6 +342,7 @@ set(SRC_GAME
     src/game/shogigamecontroller.h
     src/game/strategycontext.cpp
     src/game/strategycontext.h
+    src/game/matchsearchsnapshot.h
     src/game/timecontrolvalidator.cpp
     src/game/timecontrolvalidator.h
     src/game/turnmanager.cpp
@@ -687,8 +688,6 @@ set(SRC_UI
     src/ui/wiring/menuwindowwiring.h
     src/ui/wiring/playerinfowiring.cpp
     src/ui/wiring/playerinfowiring.h
-    src/ui/wiring/recordnavigationwiring.cpp
-    src/ui/wiring/recordnavigationwiring.h
     src/ui/wiring/recordpanewiring.cpp
     src/ui/wiring/recordpanewiring.h
     src/ui/wiring/uiactionswiring.cpp
@@ -891,6 +890,7 @@ set(SRC_SERVICES
     src/services/boardcolorpresets.cpp
     src/services/boardcolorpresets.h
     src/common/appstate.h
+    src/common/appactivitystate.h
     src/common/boardcolors.h
     src/common/boardvisuals.h
     src/services/debugscreenshotwiring.cpp

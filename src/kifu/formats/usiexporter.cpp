@@ -9,49 +9,23 @@
 // ヘルパ関数
 // ========================================
 
-using KifuExportCommon::isTerminalMove;
-using KifuExportCommon::removeTurnMarker;
-
-static QString getUsiTerminalCode(const QString& terminalMove)
+static QString getUsiTerminalCode(TerminalType terminal)
 {
-    const QString stripped = removeTurnMarker(terminalMove);
-
-    // 投了 → resign
-    if (stripped.contains(QStringLiteral("投了"))) {
-        return QStringLiteral("resign");
+    // 棋譜ファイル用の拡張。エンジンとのposition通信には含めない。
+    switch (terminal) {
+    case TerminalType::Resign: return QStringLiteral("resign");
+    case TerminalType::Interrupt: return QStringLiteral("break");
+    case TerminalType::PerpetualCheck:
+    case TerminalType::Repetition: return QStringLiteral("rep_draw");
+    case TerminalType::Impasse:
+    case TerminalType::Draw: return QStringLiteral("draw");
+    case TerminalType::Timeout: return QStringLiteral("timeout");
+    case TerminalType::DeclarationWin: return QStringLiteral("win");
+    case TerminalType::Checkmate: return QStringLiteral("checkmate");
+    case TerminalType::IllegalWin: return QStringLiteral("illegal_win");
+    case TerminalType::IllegalLoss: return QStringLiteral("lose");
+    default: return {};
     }
-    // 以下の終局コードは棋譜ファイル用の拡張であり、USIのposition通信には含めない。
-    if (stripped.contains(QStringLiteral("中断"))) {
-        return QStringLiteral("break");
-    }
-    // 千日手 → rep_draw
-    if (stripped.contains(QStringLiteral("千日手"))) {
-        return QStringLiteral("rep_draw");
-    }
-    // 持将棋・引き分け → draw
-    if (stripped.contains(QStringLiteral("持将棋")) || stripped.contains(QStringLiteral("引き分け"))) {
-        return QStringLiteral("draw");
-    }
-    // 切れ負け（対局の記録では「時間切れ」） → timeout
-    if (stripped.contains(QStringLiteral("切れ負け")) || stripped.contains(QStringLiteral("時間切れ"))) {
-        return QStringLiteral("timeout");
-    }
-    // 入玉勝ち → win
-    if (stripped.contains(QStringLiteral("入玉勝ち"))) {
-        return QStringLiteral("win");
-    }
-    // 詰み（棋譜ファイル用の拡張）
-    if (stripped.contains(QStringLiteral("詰み"))) {
-        return QStringLiteral("checkmate");
-    }
-    if (stripped.contains(QStringLiteral("反則勝ち"))) {
-        return QStringLiteral("illegal_win");
-    }
-    if (stripped.contains(QStringLiteral("反則負け"))) {
-        return QStringLiteral("lose");
-    }
-
-    return QString();
 }
 
 // ========================================
@@ -63,11 +37,11 @@ QStringList UsiExporter::exportLines(const GameRecordModel& model,
                                      const QStringList& usiMoves)
 {
     const QList<KifDisplayItem> disp = model.collectMainlineForExport();
-    return exportPosition(ctx.startSfen, usiMoves, disp.isEmpty() ? QString() : disp.last().prettyMove);
+    return exportPosition(ctx.startSfen, usiMoves, disp.isEmpty() ? TerminalType::None : disp.last().terminalType);
 }
 
 QStringList UsiExporter::exportPosition(const QString& startSfen, const QStringList& usiMoves,
-                                        const QString& terminalMove)
+                                        TerminalType terminal)
 {
     QStringList out;
 
@@ -89,8 +63,7 @@ QStringList UsiExporter::exportPosition(const QString& startSfen, const QStringL
     QStringList mainlineUsi = usiMoves;
 
     // 3) 終局コードを取得
-    QString terminalCode;
-    if (isTerminalMove(terminalMove)) terminalCode = getUsiTerminalCode(terminalMove);
+    const QString terminalCode = getUsiTerminalCode(terminal);
 
     // 4) position コマンド文字列を構築
     QString usiLine = positionStr;

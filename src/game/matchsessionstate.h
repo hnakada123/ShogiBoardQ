@@ -12,13 +12,12 @@ public:
     void begin(const MatchStartOptions& options)
     {
         m_options = options;
-        m_mode = options.mode;
         m_over = {};
         clearPonder();
     }
     const MatchStartOptions& options() const { return m_options; }
-    PlayMode playMode() const { return m_mode; }
-    void setPlayMode(PlayMode mode) { m_mode = mode; }
+    PlayMode playMode() const { return m_options.mode; }
+    void setPlayMode(PlayMode mode) { m_options.mode = mode; }
     int maxMoves() const { return m_options.maxMoves; }
     const MatchGameOverState& gameOver() const { return m_over; }
     void clearGameOver() { m_over = {}; }
@@ -43,7 +42,6 @@ public:
 
 private:
     MatchStartOptions m_options;
-    PlayMode m_mode = PlayMode::NotStarted;
     MatchGameOverState m_over;
     std::array<QString, 2> m_ponder;
 };

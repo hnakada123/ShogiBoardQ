@@ -217,7 +217,6 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         if (sfenParts.size() >= 2 && sfenParts[1] == QStringLiteral("w"))
             isSente = false;
     }
-    QString terminalMove;
     int processedMoves = 0;
     int skippedNoUsi = 0;
 
@@ -225,15 +224,14 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
 
-        if (moveText.isEmpty()) {
+        if (moveText.isEmpty() && it.terminalType == TerminalType::None) {
             continue;
         }
 
         // 終局語の判定
-        if (KifuExportCommon::isTerminalMove(moveText)) {
+        if (it.terminalType != TerminalType::None) {
             qCDebug(lcKifu).noquote() << "toCsaLines: 終局語検出: moveText =" << moveText;
-            terminalMove = moveText;
-            const QString resultCode = CsaFormatter::csaResultCode(moveText);
+            const QString resultCode = CsaFormatter::csaResultCode(it.terminalType, it.terminalSide);
             if (!resultCode.isEmpty()) {
                 out << resultCode;
                 out << CsaFormatter::extractCsaTimeToken(it.timeText);

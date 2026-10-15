@@ -196,7 +196,6 @@ void MainWindowResetService::clearGameStateFields(AppState& state) const
     state.engineName1.clear();
     state.engineName2.clear();
     state.saveFileName.clear();
-    state.skipBoardSyncForBranchNav = false;
     state.onMainRowGuard = false;
     state.gameMoves.clear();
 }

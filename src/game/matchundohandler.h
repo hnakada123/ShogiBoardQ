@@ -12,7 +12,6 @@
 #include "shogimove.h"
 #include "shogigamecontroller.h"
 
-class KifuRecordListModel;
 class BoardInteractionController;
 class ShogiClock;
 
@@ -37,18 +36,19 @@ public:
 
     /// UNDO に必要な外部参照（棋譜UI固有）
     struct UndoRefs {
-        KifuRecordListModel*        recordModel      = nullptr;
         BoardInteractionController* boardCtl          = nullptr;
     };
 
     /**
-     * @brief UNDO時のUIコールバック群
+     * @brief UNDO時の棋譜と表示へのコールバック群
      *
      * 2手戻し操作後に盤面ハイライトと手番表示を更新するために使用。
      *
      * @note MainWindowComposer::buildUndoHooks() が組み立てる。
      */
     struct UndoHooks {
+        std::function<bool()> canUndoRecord;
+        std::function<void()> commitRecordUndo;
         /// @brief 指定手数のハイライトを表示する
         /// @note 配線元: KifuNavigationCoordinator::syncBoardAndHighlightsAtRow
         std::function<void(int /*ply*/)> updateHighlightsForPly;
@@ -83,12 +83,11 @@ public:
 
 
 private:
-    bool tryRemoveLastItems(QObject* model, int n);
 
     Refs m_refs;
     Hooks m_hooks;
-    UndoRefs u_;
-    UndoHooks h_;
+    UndoRefs m_uiRefs;
+    UndoHooks m_undoHooks;
 };
 
 #endif // MATCHUNDOHANDLER_H

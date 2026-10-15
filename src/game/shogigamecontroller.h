@@ -24,6 +24,18 @@ class ShogiGameController : public QObject
     Q_OBJECT
 
 public:
+    /// 盤面・履歴・棋譜・時計を更新し終えるまで、着手と手番の通知を保留する。
+    class PositionUpdate {
+    public:
+        explicit PositionUpdate(ShogiGameController& owner) : m_owner(owner) { ++m_owner.m_updateDepth; }
+        ~PositionUpdate() { m_owner.endPositionUpdate(); }
+        PositionUpdate(const PositionUpdate&) = delete;
+        PositionUpdate& operator=(const PositionUpdate&) = delete;
+    private:
+        ShogiGameController& m_owner;
+    };
+    [[nodiscard]] PositionUpdate positionUpdate() { return PositionUpdate(*this); }
+
     // --- 列挙型 ---
 
     /// 対局結果
@@ -132,6 +144,12 @@ signals:
     void moveCommitted(Turn mover, int ply);
 
 private:
+    void endPositionUpdate();
+    int m_updateDepth = 0;
+    bool m_turnNotificationPending = false;
+    int m_committedPly = -1;
+    Turn m_committedMover = Turn::Black;
+
     // --- メンバー変数 ---
 
     std::unique_ptr<ShogiBoard> m_board; ///< 将棋盤（所有）

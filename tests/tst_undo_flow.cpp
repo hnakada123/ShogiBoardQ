@@ -31,7 +31,7 @@ namespace {
 const QStringList opening = QStringLiteral(
     "7g7f 4a3b 2g2f 7a6b 2f2e 5a4a 2e2d 2c2d 2h2d P*2c").split(' ');
 
-struct Harness {
+struct Harness : QObject {
     KifuBranchTree tree;
     KifuNavigationState state;
     KifuNavigationController nav;
@@ -61,6 +61,13 @@ struct Harness {
     int highlightPly = -1;
     int undoCalls = 0;
     bool dirty = false;
+    bool coherentUndo = false;
+    void observeUndo()
+    {
+        coherentUndo = session.currentSfen() == sfens.last() && currentSfen == sfens.last()
+            && session.totalPly() == sfens.size() - 1 && moves.size() == sfens.size() - 1
+            && state.currentNode() == session.liveNode();
+    }
     PlayMode mode = PlayMode::EvenHumanVsEngine;
     Turn human = Turn::Black;
 
@@ -87,6 +94,7 @@ struct Harness {
         display.onTreeChanged();
         session.setTree(&tree);
         session.startFromRoot();
+        QObject::connect(&session, &LiveGameSession::movesUndone, this, &Harness::observeUndo);
 
         MatchUndoHandler::Refs refs;
         refs.gc = &gc;
@@ -98,8 +106,12 @@ struct Harness {
         clockHooks.restartHumanTurnTimer = [this]() { ++timerRestarts; };
         handler.setHooks(clockHooks);
         MatchUndoHandler::UndoRefs undoRefs;
-        undoRefs.recordModel = &record;
         MatchUndoHandler::UndoHooks hooks;
+        hooks.canUndoRecord = [this] { return session.canUndoMoves(2); };
+        hooks.commitRecordUndo = [this] {
+            currentSfen = sfens.last();
+            QVERIFY(session.undoMoves(2));
+        };
         hooks.isHumanSide = [this](Turn player) { return player == human; };
         hooks.updateHighlightsForPly = [this](int ply) { highlightPly = ply; };
         handler.setUndoBindings(undoRefs, hooks);
@@ -108,10 +120,8 @@ struct Harness {
         deps.undoTwoPlies = [this]() { ++undoCalls; return handler.undoTwoPlies(); };
         deps.markGameRecordDirty = [this]() { dirty = true; };
         deps.liveSession = &session;
-        deps.recordPresenter = &presenter;
         deps.playMode = &mode;
         deps.sfenRecord = &sfens;
-        deps.currentSfenStr = &currentSfen;
         flow.updateDeps(deps);
 
     }
@@ -191,6 +201,7 @@ private slots:
         const int undoneId = h.session.liveNode()->nodeId();
         h.flow.undoLastTwoMoves();
         verifyPosition(h, count - 2);
+        QVERIFY(h.coherentUndo);
         QCOMPARE(h.sfens.last(), targetSfen);
         // 取り消した手はツリーに残し、棋譜欄は現在手までを表示する。
         QCOMPARE(h.tree.nodeCount(), count + 1);

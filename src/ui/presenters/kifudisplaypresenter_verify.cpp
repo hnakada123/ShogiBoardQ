@@ -148,7 +148,7 @@ bool KifuDisplayPresenter::verifyDisplayConsistencyDetailed(const TrackingState&
         }
 
         if (snapshot.statePly == 0) {
-            if (!snapshot.displayedMoveAtPly.contains(QStringLiteral("開始局面"))) {
+            if (snapshot.displayedMoveAtPly != QObject::tr("=== 開始局面 ===")) {
                 return fail(QStringLiteral("棋譜欄0行が開始局面ではありません: [%1]")
                             .arg(snapshot.displayedMoveAtPly));
             }
