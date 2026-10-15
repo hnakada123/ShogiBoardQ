@@ -1,15 +1,12 @@
 /// @file gamestartoptionsbuilder.cpp
-/// @brief ダイアログ値解釈・PlayMode判定・開始局面プリセットの実装
+/// @brief 対局開始ダイアログの値の解釈（時間・対局者）と開始局面プリセットの実装
 
 #include "gamestartoptionsbuilder.h"
-#include "logcategories.h"
-#include "shogiboard.h"
-#include "shogigamecontroller.h"
-#include "sfenutils.h"
 
-#include <QDebug>
-#include <QLoggingCategory>
 #include <array>
+
+#include "logcategories.h"
+#include "sfenutils.h"
 
 // ============================================================
 // TimeControl 構築
@@ -46,119 +43,21 @@ GameStartOptionsBuilder::buildTimeControl(const StartGameDialogData& data)
 }
 
 // ============================================================
-// PlayMode 判定
+// 対局者
 // ============================================================
 
-PlayMode GameStartOptionsBuilder::determinePlayMode(const int initPositionNumber,
-                                                    const bool isPlayer1Human,
-                                                    const bool isPlayer2Human)
+MatchPlayers GameStartOptionsBuilder::playersFromDialog(const StartGameDialogData& data)
 {
-    // 平手（=1）と駒落ち（!=1）で分岐
-    const bool isEven = (initPositionNumber == 1);
-
-    if (isEven) {
-        if (isPlayer1Human && isPlayer2Human)  return PlayMode::HumanVsHuman;
-        if (isPlayer1Human && !isPlayer2Human) return PlayMode::EvenHumanVsEngine;
-        if (!isPlayer1Human && isPlayer2Human) return PlayMode::EvenEngineVsHuman;
-        if (!isPlayer1Human && !isPlayer2Human) return PlayMode::EvenEngineVsEngine;
-    } else {
-        if (isPlayer1Human && isPlayer2Human)  return PlayMode::HumanVsHuman;
-        if (isPlayer1Human && !isPlayer2Human) return PlayMode::HandicapHumanVsEngine;
-        if (!isPlayer1Human && isPlayer2Human) return PlayMode::HandicapEngineVsHuman;
-        if (!isPlayer1Human && !isPlayer2Human) return PlayMode::HandicapEngineVsEngine;
-    }
-
-    return PlayMode::PlayModeError;
-}
-
-PlayMode GameStartOptionsBuilder::determinePlayModeFromDialog(const StartGameDialogData& data)
-{
-    const int  initPositionNumber = data.startingPositionNumber;
-    const bool isHuman1  = data.isHuman1;
-    const bool isHuman2  = data.isHuman2;
-    const bool isEngine1 = data.isEngine1;
-    const bool isEngine2 = data.isEngine2;
-
-    // 「Human と Engine の排他」を整形
-    const bool p1Human = (isHuman1  && !isEngine1);
-    const bool p2Human = (isHuman2  && !isEngine2);
-
-    const PlayMode mode = determinePlayMode(initPositionNumber, p1Human, p2Human);
-
-    if (mode == PlayMode::PlayModeError) {
-        qCWarning(lcGame).noquote() << "determinePlayModeFromDialog: PlayMode::PlayModeError"
-                             << "initPos=" << initPositionNumber
-                             << " p1Human=" << p1Human << " p2Human=" << p2Human
-                             << " (raw human/engine: "
-                             << isHuman1 << "/" << isEngine1 << ", "
-                             << isHuman2 << "/" << isEngine2 << ")";
-    }
-
-    return mode;
-}
-
-// ============================================================
-// SFEN手番抽出
-// ============================================================
-
-QChar GameStartOptionsBuilder::turnFromSfen(const QString& sfen)
-{
-    const QString s = sfen.trimmed();
-    if (s.isEmpty()) return QChar();
-
-    // 典型: "<board> b - 1" / "<board> w - 1"
-    const QStringList toks = s.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (toks.size() >= 2) {
-        const QString t = toks.at(1).toLower();
-        if (t == QLatin1String("b")) return QLatin1Char('b');
-        if (t == QLatin1String("w")) return QLatin1Char('w');
-    }
-    if (s.contains(QLatin1String(" b "))) return QLatin1Char('b');
-    if (s.contains(QLatin1String(" w "))) return QLatin1Char('w');
-    return QChar();
-}
-
-// ============================================================
-// PlayMode判定（SFEN手番整合版）
-// ============================================================
-
-PlayMode GameStartOptionsBuilder::determinePlayModeAlignedWithTurn(
-    int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human, const QString& startSfen)
-{
-    const QChar turn = turnFromSfen(startSfen);
-    const bool isEven = (initPositionNumber == 1);
-    const bool hvh = (isPlayer1Human && isPlayer2Human);
-    const bool eve = (!isPlayer1Human && !isPlayer2Human);
-    const bool oneVsEngine = !hvh && !eve;
-
-    if (isEven) {
-        if (hvh) return PlayMode::HumanVsHuman;
-        if (eve) return PlayMode::EvenEngineVsEngine;
-        if (oneVsEngine) {
-            if (turn == QLatin1Char('b')) {
-                return isPlayer1Human ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
-            }
-            if (turn == QLatin1Char('w')) {
-                return isPlayer2Human ? PlayMode::EvenEngineVsHuman : PlayMode::EvenHumanVsEngine;
-            }
-            // turnが取れない場合は座席で決定
-            return (isPlayer1Human && !isPlayer2Human) ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
-        }
-        return PlayMode::NotStarted;
-    } else {
-        if (hvh) return PlayMode::HumanVsHuman;
-        if (eve) return PlayMode::HandicapEngineVsEngine;
-        if (oneVsEngine) {
-            if (turn == QLatin1Char('b')) {
-                return isPlayer1Human ? PlayMode::HandicapHumanVsEngine : PlayMode::HandicapEngineVsHuman;
-            }
-            if (turn == QLatin1Char('w')) {
-                return isPlayer2Human ? PlayMode::HandicapEngineVsHuman : PlayMode::HandicapHumanVsEngine;
-            }
-            return (isPlayer1Human && !isPlayer2Human) ? PlayMode::HandicapHumanVsEngine : PlayMode::HandicapEngineVsHuman;
-        }
-        return PlayMode::NotStarted;
-    }
+    MatchPlayers players;
+    // 人間とエンジンの両方に印があるときは人間とする（ダイアログは排他だが、設定の読み違いに備える）
+    players.blackIsEngine = data.isEngine1 && !data.isHuman1;
+    players.whiteIsEngine = data.isEngine2 && !data.isHuman2;
+    players.blackHumanName = data.humanName1;
+    players.whiteHumanName = data.humanName2;
+    const auto& engines = data.engineList;
+    if (data.engineNumber1 >= 0 && data.engineNumber1 < engines.size()) players.blackEngineName = data.engineName1;
+    if (data.engineNumber2 >= 0 && data.engineNumber2 < engines.size()) players.whiteEngineName = data.engineName2;
+    return players;
 }
 
 // ============================================================
@@ -220,17 +119,27 @@ QString GameStartOptionsBuilder::canonicalizeSfen(const QString& sfen)
 }
 
 // ============================================================
-// ユーティリティ
+// 開始の設定
 // ============================================================
 
-void GameStartOptionsBuilder::applyResumePositionIfAny(ShogiGameController* gc,
-                                                       const QString& resumeSfen,
-                                                       const std::function<void(ShogiBoard*)>& renderBoard)
+MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const QString& startSfen, const StartGameDialogData& dlg)
 {
-    if (!gc || resumeSfen.isEmpty()) return;
+    MatchStartOptions opt;
+    opt.players = playersFromDialog(dlg);
+    opt.sfenStart = startSfen;
+    const auto& engines = dlg.engineList;
+    if (dlg.engineNumber1 >= 0 && dlg.engineNumber1 < engines.size()) opt.enginePath1 = engines.at(dlg.engineNumber1).path;
+    if (dlg.engineNumber2 >= 0 && dlg.engineNumber2 < engines.size()) opt.enginePath2 = engines.at(dlg.engineNumber2).path;
+    opt.maxMoves = dlg.maxMoves;
+    opt.autoSaveKifu = dlg.autoSaveKifu;
+    opt.kifuSaveDir = dlg.kifuSaveDir;
+    return opt;
+}
 
-    if (auto* b = gc->board()) {
-        b->setSfen(resumeSfen);
-        if (renderBoard) renderBoard(b);
-    }
+bool GameStartOptionsBuilder::needsHumanAtBottomFlip(const StartGameDialogData& dlg, Turn bottomSide)
+{
+    // 人間とエンジンの対局だけが対象（人間同士・エンジン同士はそのまま）
+    if (!dlg.isShowHumanInFront || dlg.isHuman1 == dlg.isHuman2) return false;
+    const Turn humanSide = dlg.isHuman1 ? Turn::Black : Turn::White;
+    return humanSide != bottomSide;
 }

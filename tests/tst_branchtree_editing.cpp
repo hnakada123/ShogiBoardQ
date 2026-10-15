@@ -12,6 +12,7 @@
 #include <QTimer>
 
 #include "branchtreeeditcontroller.h"
+#include "branchtreelayout.h"
 #include "branchtreemanager.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -336,6 +337,35 @@ private slots:
         QCOMPARE(manager.laneForRow(1), 1);
         QCOMPARE(manager.laneForRow(2), 2);
         QCOMPARE(manager.laneForRow(3), 3);
+    }
+
+    /// 行の折りたたみと段の割り当ては描画なしで決まる
+    void layout_collapseCountsAndReveals()
+    {
+        // 0=本譜(8手), 1=A(5手目から), 2=B(2手目から6手目まで), 3=C(Bの4手目から)
+        BranchTreeLayout layout;
+        layout.rows = {{1, -1, -1, 9}, {5, 0, 10, 7}, {2, 0, 20, 7}, {4, 2, 30, 6}};
+        layout.assignLanes(true);
+        QCOMPARE(layout.laneForRow(1), 1);
+        QCOMPARE(layout.laneForRow(2), 2);   // A と手数が重なるので下の段
+        QCOMPARE(layout.laneForRow(3), 3);
+        QCOMPARE(layout.laneCount(), 4);
+
+        QVERIFY(layout.isCollapsible(2));
+        QVERIFY(layout.setCollapsed(2, true));
+        QVERIFY(!layout.setCollapsed(2, true));  // 変わらなければ false
+        QVERIFY(layout.isHidden(3));
+        QCOMPARE(layout.lastVisiblePly(2), 2);
+        // B の続き（3〜6手目の4手）と C の手（4〜5手目の2手）
+        QCOMPARE(layout.hiddenNodeCount(2), 6);
+        layout.assignLanes(true);
+        QCOMPARE(layout.laneForRow(3), -1);
+
+        // 隠れた C の手を表示すると祖先の折りたたみを解く
+        QVERIFY(layout.reveal(3, 5));
+        QVERIFY(!layout.isCollapsed(2));
+        QVERIFY(!layout.reveal(3, 5));
+        QVERIFY(!layout.expandAll());
     }
 
     void manager_collapseHidesDescendants()

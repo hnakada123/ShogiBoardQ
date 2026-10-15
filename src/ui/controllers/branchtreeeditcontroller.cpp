@@ -11,7 +11,6 @@
 #include "kifupresentation.h"
 #include "livegamesession.h"
 #include "logcategories.h"
-#include "playmode.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogimove.h"
@@ -226,34 +225,23 @@ bool BranchTreeEditController::recordBoardMove(QPoint& from, QPoint& to, ShogiGa
     if (parent != nullptr && parent->isTerminal()) parent = parent->parent();
     if (parent == nullptr || parent->sfen().isEmpty()) return false;
 
-    // 合法判定・成りの確認・指し手表記の生成は対局と同じ処理を使う。
-    // 対局の棋譜（SFEN履歴・指し手列）は変えず、作業用の記録に書き込む
+    // 合法判定・成りの確認・指し手表記の生成は対局と同じ処理を使う
     const auto update = gc->positionUpdate();
-    QString sfen = parent->sfen();
-    gc->board()->setSfen(sfen);
-    gc->setCurrentPlayer(sfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w")
-                             ? Turn::White : Turn::Black);
-    gc->setPreviousMoveDestination(parent->isActualMove()
-        ? parent->move().toSquare + QPoint(1, 1) : QPoint());
+    gc->board()->setSfen(parent->sfen());
+    gc->setCurrentPlayer(gc->board()->currentPlayer());
+    gc->setPreviousMoveDestination(parent->isActualMove() ? parent->move().move.to : BoardSquare{});
 
-    QStringList history{sfen};
-    QList<ShogiMove> moves;
-    QString record;
     // 成り・不成は利用者に確認する
-    if (!gc->validateAndMove(from, to, record, parent->ply() + 1, &history, moves)
-        || moves.isEmpty() || history.size() < 2) {
-        return false;
-    }
+    const std::optional<RecordEntry> played = gc->validateAndMove(from, to);
+    if (!played) return false;
 
-    const ShogiMove& move = moves.last();
-    const QString newSfen = history.last();
-    KifuBranchNode* target = m_deps.tree->findMatchingChild(parent, move, record, newSfen);
+    KifuBranchNode* target = m_deps.tree->findMatchingChild(parent, *played);
     const bool created = (target == nullptr);
     if (created) {
-        target = m_deps.tree->addMove(parent, move, record, newSfen);
+        target = m_deps.tree->addRecord(parent, *played);
         if (target == nullptr) return false;
     }
-    qCDebug(lcUi).noquote() << "BranchTreeEditController: board move" << record
+    qCDebug(lcUi).noquote() << "BranchTreeEditController: board move" << played->displayText
                             << (created ? "added as a new move" : "matched an existing move");
 
     // 以前にクリックした手順（ライン）ではなく、指した手を含む手順を表示する

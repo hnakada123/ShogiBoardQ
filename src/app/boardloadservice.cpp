@@ -2,6 +2,7 @@
 /// @brief SFEN適用/分岐同期の盤面読み込みサービスの実装
 
 #include "boardloadservice.h"
+#include "appstate.h"
 
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
@@ -38,7 +39,7 @@ void BoardLoadService::loadFromSfen(const QString& sfen)
         // 手番表示を更新
         if (m_deps.turnSync) m_deps.turnSync->setCurrentTurn();
         // 現在のSFEN文字列を更新
-        if (m_deps.currentSfenStr) *m_deps.currentSfenStr = sfen;
+        if (m_deps.state) m_deps.state->currentSfenStr = sfen;
 
         qCDebug(lcApp) << "BoardLoadService::loadFromSfen: board updated successfully";
     } else {
@@ -59,6 +60,6 @@ void BoardLoadService::loadWithHighlights(const QString& currentSfen, const QStr
     // 手番表示を更新
     if (!currentSfen.isEmpty()) {
         if (m_deps.turnSync) m_deps.turnSync->setCurrentTurn();
-        if (m_deps.currentSfenStr) *m_deps.currentSfenStr = currentSfen;
+        if (m_deps.state) m_deps.state->currentSfenStr = currentSfen;
     }
 }

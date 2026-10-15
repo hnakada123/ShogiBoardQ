@@ -57,7 +57,6 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
     if (fourthIdx - thirdIdx < 2) return Result::Draw;
 
     ShogiBoard board;
-    EngineMoveValidator validator;
 
     // 一方の指し手がすべて王手かどうかは、その側が指した直後の局面（相手の手番の局面）だけで数える。
     // 王手をかけた側の手番の局面まで分母に入れると、毎手王手でも成立しない
@@ -81,7 +80,7 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
                                                    : Turn::White;
 
         // 手番側の玉が王手されているか（= 直前の相手の手が王手）
-        const bool inCheck = validator.checkIfKingInCheck(turn, board.boardData()) > 0;
+        const bool inCheck = EngineMoveValidator::isInCheck(board, turn);
         if (sideToMoveIsBlack) {
             // 先手番の局面 = 直前に後手が指した
             ++whiteMoves;

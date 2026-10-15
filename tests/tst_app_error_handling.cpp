@@ -95,47 +95,6 @@ private:
 
 private slots:
     // ================================================================
-    // 3. ポインタ安全性
-    // ================================================================
-
-    /// GameSessionOrchestrator の m_deps.playMode がデリファレンス前にチェックされること
-    void gsoPlayModeDereferenceHasGuard()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesessionorchestrator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read gso source");
-
-        // *m_deps.playMode が使われている全行で、同じ行または直前行に
-        // m_deps.playMode のチェックがあること
-        for (int i = 0; i < int(lines.size()); ++i) {
-            const QString& line = lines[i];
-
-            // *m_deps.playMode のデリファレンスを検出
-            if (!line.contains(QStringLiteral("*m_deps.playMode")))
-                continue;
-
-            // 同じ行に m_deps.playMode && ガードがあるか、
-            // 直前の if 文で m_deps.playMode を確認しているか
-            bool hasGuard = line.contains(QStringLiteral("m_deps.playMode &&"))
-                            || line.contains(QStringLiteral("m_deps.playMode ?"));
-
-            if (!hasGuard) {
-                // 3行以内の前方を確認
-                for (int j = qMax(0, i - 3); j < i; ++j) {
-                    if (lines[j].contains(QStringLiteral("if")) && lines[j].contains(QStringLiteral("m_deps.playMode"))) {
-                        hasGuard = true;
-                        break;
-                    }
-                }
-            }
-
-            QVERIFY2(hasGuard,
-                      qPrintable(QStringLiteral("*m_deps.playMode dereference at line %1 lacks null guard")
-                                     .arg(i + 1)));
-        }
-    }
-
-    // ================================================================
     // 4. 二重実行防止パターン
     // ================================================================
 
@@ -151,8 +110,8 @@ private slots:
         const QString body = bodyText(lines, range.first, range.second);
         QVERIFY2(body.contains(QStringLiteral("if (m_shutdownDone) return;")),
                  "shutdown must return on the second call");
-        QVERIFY2(body.contains(QStringLiteral("if (m_c.match)")),
-                 "shutdown should check the match coordinator before destroyEngines()");
+        QVERIFY2(body.contains(QStringLiteral("if (m_c.engines)")),
+                 "shutdown should check the engine seats before destroyEngines()");
 
         const QString header = readSourceFile(QStringLiteral("src/app/mainwindowcomposer.h"));
         QVERIFY2(header.contains(QStringLiteral("bool m_shutdownDone = false;")),
@@ -329,18 +288,18 @@ private slots:
         };
 
         const QList<WiringFile> wirings = {
-            {QStringLiteral("src/ui/wiring/gameactionswiring.cpp"),
+            {QStringLiteral("src/app/gameactionswiring.cpp"),
              QStringLiteral("GameActionsWiring::wire()"),
-             {QStringLiteral("dlw"), QStringLiteral("dcw"), QStringLiteral("gso")}},
-            {QStringLiteral("src/ui/wiring/fileactionswiring.cpp"),
+             {QStringLiteral("dlw"), QStringLiteral("dcw"), QStringLiteral("session"), QStringLiteral("analysis")}},
+            {QStringLiteral("src/app/fileactionswiring.cpp"),
              QStringLiteral("FileActionsWiring::wire()"),
-             {QStringLiteral("dlw"), QStringLiteral("kfc"), QStringLiteral("gso")}},
-            {QStringLiteral("src/ui/wiring/editactionswiring.cpp"),
+             {QStringLiteral("dlw"), QStringLiteral("kfc")}},
+            {QStringLiteral("src/app/editactionswiring.cpp"),
              QStringLiteral("EditActionsWiring::wire()"),
              {QStringLiteral("kec"), QStringLiteral("dlw"), QStringLiteral("kfc")}},
-            {QStringLiteral("src/ui/wiring/viewactionswiring.cpp"),
+            {QStringLiteral("src/app/viewactionswiring.cpp"),
              QStringLiteral("ViewActionsWiring::wire()"),
-             {QStringLiteral("dlw"), QStringLiteral("gso"), QStringLiteral("app")}},
+             {QStringLiteral("dlw"), QStringLiteral("session"), QStringLiteral("app")}},
         };
 
         for (const auto& w : std::as_const(wirings)) {
@@ -389,7 +348,7 @@ private slots:
     void uiActionsWiringHasCriticalDependencyCheck()
     {
         const QStringList lines = readSourceLines(
-            QStringLiteral("src/ui/wiring/uiactionswiring.cpp"));
+            QStringLiteral("src/app/uiactionswiring.cpp"));
         QVERIFY2(!lines.isEmpty(), "Failed to read uiactionswiring source");
 
         const auto range = findFunctionBody(
@@ -398,11 +357,12 @@ private slots:
 
         const QString body = bodyText(lines, range.first, range.second);
 
-        // dlw, dcw, gso の null チェック
+        // dlw, dcw, session, analysis の null チェック
         QVERIFY2(body.contains(QStringLiteral("!m_d.dlw"))
                      && body.contains(QStringLiteral("!m_d.dcw"))
-                     && body.contains(QStringLiteral("!m_d.gso")),
-                  "UiActionsWiring::wire() should check dlw, dcw, gso before child wiring creation");
+                     && body.contains(QStringLiteral("!m_d.session"))
+                     && body.contains(QStringLiteral("!m_d.analysis")),
+                  "UiActionsWiring::wire() should check dlw, dcw, session, analysis before child wiring creation");
 
         // qCWarning が Q_UNLIKELY の後にあること
         QVERIFY2(body.contains(QStringLiteral("Q_UNLIKELY(!m_d.dlw")),

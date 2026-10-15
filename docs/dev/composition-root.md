@@ -28,19 +28,21 @@
 | 段階 | ファイル | 内容 |
 |---|---|---|
 | 生成 | `mainwindowcomposer_create.cpp` | モデル → 画面の骨格 → 盤・時計 → 棋譜欄・解析タブ → 分岐ツリー → 対局者情報・ドック → 残りのサービス |
-| 依存の注入 | `mainwindowcomposer_wire.cpp`・`mainwindowcomposer_game.cpp` | 共通基盤 → 司令塔 → CSA 通信対局 → 棋譜 → UI → ダイアログ → 対局 |
+| 依存の注入 | `mainwindowcomposer_wire.cpp`・`mainwindowcomposer_game.cpp` | 共通基盤 → CSA 通信対局 → 棋譜 → UI → ダイアログ → 対局（司令塔 `MatchCoordinator` のシグナルは `connectMatchSignals()` でつなぐ） |
 | 接続と初期表示 | `mainwindowcomposer_finalize.cpp` | シグナル接続、初期局面、ウィンドウとドックの復元 |
 
-依存は「全部作ってから結ぶ」。互いを参照する部品（検討モードの配線とダイアログの司令塔など）も、
+依存は「全部作ってから結ぶ」。互いを参照する部品（検討タブの制御 `ConsiderationUiController` とダイアログの司令塔 `DialogCoordinator` など）も、
 作成順を気にせず結べる。
 
 ## 規則
 
 1. 新しい部品は `MainWindowComponents` にメンバを足し、`createServices()` などで1回だけ作る。
 2. 依存は部品のポインタで渡す。`std::function<X*()>` のゲッターや `ensure*` コールバックは使わない。
-3. 状態は `AppState` に置く。部品のメンバに状態のコピーを持たない（例: 対局モードは `AppState::playMode` だけ）。
-4. `std::function` は、上位へ操作を委ねる「フック」にだけ使う（例: `MatchCoordinator::Hooks`、
-   `UndoFlowService::Deps::undoTwoPlies`）。部品の取得には使わない。
+3. 状態は `AppState` に置く。部品のメンバに状態のコピーを持たない（例: アプリが何をしているかは `AppState::activity`、
+   最後に始めた対局の対局者は `AppState::players` だけ）。
+4. `std::function` は、上位へ操作を委ねる「フック」にだけ使う（例: `CsaGameWiring::Dependencies::saveKifuToPath`、
+   `HumanTurnPolicy::Deps::canRecordVariationMove`）。部品の取得には使わない。司令塔（`MatchCoordinator`）は
+   フックを持たず、シグナルと `MatchRecordSink`（対局の手順の受け手。実体は `GameSession`）で知らせる。
 5. 層の境界をまたぐときだけ関数で受け取る。例: `AutomationContext` は dialogs 層の
    メニューウィンドウを触れないので、お気に入りの取得・設定を関数で受け取る。
 6. テストは `MainWindow::composer().parts()` と `state()` で部品と状態を読む。`#define private public` は使わない。

@@ -5,7 +5,6 @@
 #include "shoginotation.h"
 #include "kiflexer.h"
 #include "kifreader.h"
-#include "board/sfenpositiontracer.h"
 #include "parsecommon.h"
 #include "notationutils.h"
 
@@ -78,12 +77,10 @@ bool parseKifBlock(const QStringList& lines, qsizetype begin, qsizetype end,
             }
             if (rest.isEmpty()) continue;
 
-            QString term;
-            if (isTerminalWordExact(rest, &term)) {
+            if (const TerminalType terminal = TerminalTypes::fromWord(rest); terminal != TerminalType::None) {
                 flushCommentToLastItem(comment, line.disp);
-                auto item = KifLexer::buildTerminalItem(++moveIndex, term, timeText, tm);
-                item.prettyMove = turnMark(blackToMove) + term;
-                line.disp.push_back(item);
+                line.disp.push_back(KifLexer::buildTerminalItem(++moveIndex, terminal,
+                                                                blackToMove ? Turn::Black : Turn::White, timeText, tm));
                 if (!inlineComment.isEmpty()) appendLine(comment, inlineComment);
                 line.endsWithTerminal = true;
                 ended = true;

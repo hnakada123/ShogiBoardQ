@@ -5,7 +5,8 @@
 #include "applicationfonts.h"
 #include "kifupresentation.h"
 #include "josekipresenter.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 
 #include <QButtonGroup>
 #include <QComboBox>
@@ -238,9 +239,9 @@ void JosekiMoveInputWidget::updatePreview()
 
     QString usi = buildUsiMove();
     m_usiLabel->setText(usi);
-    SfenPositionTracer tracer;
-    m_previewLabel->setText(!m_currentSfen.isEmpty() && tracer.setFromSfen(m_currentSfen)
-        ? JosekiPresenter::usiMoveToJapanese(usi, tracer)
+    ShogiBoard position;
+    m_previewLabel->setText(!m_currentSfen.isEmpty() && position.trySetSfen(m_currentSfen)
+        ? JosekiPresenter::usiMoveToJapanese(usi, m_currentSfen)
         : (KifuPresentation::options().notation == KifuPresentation::Notation::Western
                ? usi : usiToJapanese(usi)));
     emit moveChanged();

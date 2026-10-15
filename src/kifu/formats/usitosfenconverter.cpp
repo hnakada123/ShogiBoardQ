@@ -52,27 +52,27 @@
 
 namespace {
 
-// 終局理由コードのマッピング
+// 終局理由コードと終局の種類
 struct TerminalInfo {
     const char* code;
-    const char* japanese;
+    TerminalType type;
 };
 
 static const TerminalInfo kTerminalCodes[] = {
-    {"resign",     "投了"},
-    {"break",      "中断"},
-    {"rep_draw",   "千日手"},
-    {"draw",       "持将棋"},
-    {"timeout",    "切れ負け"},
-    {"win",        "入玉勝ち"},
-    {"lose",       "反則負け"},
-    {"sennichite", "千日手"},
-    {"checkmate",  "詰み"},
-    {"illegal_win", "反則勝ち"},
+    {"resign",     TerminalType::Resign},
+    {"break",      TerminalType::Interrupt},
+    {"rep_draw",   TerminalType::Repetition},
+    {"draw",       TerminalType::Impasse},
+    {"timeout",    TerminalType::Timeout},
+    {"win",        TerminalType::DeclarationWin},
+    {"lose",       TerminalType::IllegalLoss},
+    {"sennichite", TerminalType::Repetition},
+    {"checkmate",  TerminalType::Checkmate},
+    {"illegal_win", TerminalType::IllegalWin},
     // 過去のShogiBoardQが出力した独自終局コードも読み込む。
-    {"mate",       "詰み"},
-    {"illegal",    "反則負け"},
-    {nullptr, nullptr}
+    {"mate",       TerminalType::Checkmate},
+    {"illegal",    TerminalType::IllegalLoss},
+    {nullptr, TerminalType::None}
 };
 
 // 終局理由コードかどうかを判定（kTerminalCodesを参照して一貫性を保つ）
@@ -276,7 +276,7 @@ bool UsiToSfenConverter::buildResult(const QString& baseSfen, const QStringList&
     // 終局理由があれば追加
     if (!terminalCode.isEmpty()) {
         line.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
+            plyNumber + 1, terminalFromCode(terminalCode), baseSfen, usiMoves.size()));
         line.endsWithTerminal = true;
     }
     return line.resolve(out.mainline, error);
@@ -296,15 +296,14 @@ QMap<QString, QString> UsiToSfenConverter::extractGameInfoMap(const QString& fil
     return QMap<QString, QString>();
 }
 
-QString UsiToSfenConverter::terminalCodeToJapanese(const QString& code)
+TerminalType UsiToSfenConverter::terminalFromCode(const QString& code)
 {
     for (int i = 0; kTerminalCodes[i].code != nullptr; ++i) {
         if (code.compare(QString::fromLatin1(kTerminalCodes[i].code), Qt::CaseInsensitive) == 0) {
-            return QString::fromUtf8(kTerminalCodes[i].japanese);
+            return kTerminalCodes[i].type;
         }
     }
-    // 不明なコードはそのまま返す
-    return code;
+    return TerminalType::Error;
 }
 
 // ============================================================================

@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QSignalSpy>
 
+#include "appstate.h"
 #include "branchnavigationwiring.h"
 #include "gamerecordmodel.h"
 #include "kifubranchlistmodel.h"
@@ -41,7 +42,7 @@ struct BranchNavigationParts {
     KifuBranchListModel branchModel;
     RecordPane recordPane;
     GameRecordModel gameRecord;
-    QString startSfen = kHirateSfen;
+    AppState state;
 
     BranchNavigationParts()
     {
@@ -74,7 +75,7 @@ struct BranchNavigationParts {
         d.kifuRecordModel = &recordModel;
         d.kifuBranchModel = &branchModel;
         d.gameRecordModel = &gameRecord;
-        d.startSfenStr = &startSfen;
+        d.state = &state;
         return d;
     }
 };
@@ -203,14 +204,14 @@ private slots:
         QCOMPARE(parts.navState.preferredLineIndex(), 1);
         parts.liveSession.startFromRoot();
         QVERIFY(parts.liveSession.isActive());
-        parts.startSfen = kNoLanceSfen;
+        parts.state.startSfenStr = kNoLanceSfen;
 
         PreStartCleanupHandler::Dependencies cleanupDeps;
         cleanupDeps.liveGameSession = &parts.liveSession;
         cleanupDeps.branchTree = &parts.tree;
         cleanupDeps.navState = &parts.navState;
         PreStartCleanupHandler cleanup(cleanupDeps);
-        cleanup.performCleanup({GameStartPreparation::Mode::NewGame, parts.startSfen, -1});
+        cleanup.performCleanup({GameStartPreparation::Mode::NewGame, parts.state.startSfenStr, -1});
 
         QVERIFY(!parts.liveSession.isActive());
         QCOMPARE(parts.tree.root()->sfen(), kNoLanceSfen);

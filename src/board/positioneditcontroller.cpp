@@ -84,15 +84,15 @@ static QString forceTurnAndPly(const QString& minimalSfen, QChar turnBW, int ply
 // 編集ライフサイクル
 // ======================================================================
 
-void PositionEditController::beginPositionEditing(const BeginEditContext& c)
+QString PositionEditController::beginPositionEditing(const BeginEditContext& c)
 {
     // 処理フロー:
     // 1. 編集開始SFENを既存の棋譜/局面状態から決定
     // 2. SFENを正規化して盤面に適用、編集モードへ遷移
     // 3. ハイライト初期化、GC手番同期、UIコールバック呼び出し
 
-    if (!c.view || !c.gc) return;
-    if (!c.view->board()) return;
+    if (!c.view || !c.gc) return {};
+    if (!c.view->board()) return {};
 
     m_view = c.view;
     m_gc   = c.gc;
@@ -104,7 +104,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     const QChar desiredTurn = board->currentPlayer() == Turn::White ? QLatin1Char('w') : QLatin1Char('b');
 
     // 表示中の局面を編集する
-    QString baseSfen = c.currentSfenStr ? *c.currentSfenStr : QString();
+    QString baseSfen = c.currentSfen;
     if (baseSfen.isEmpty()) baseSfen = c.displayedSfen;
     if (baseSfen.isEmpty()) {
         baseSfen = QStringLiteral("%1 %2 %3 %4")
@@ -144,15 +144,12 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     // 「編集終了」ボタン表示
     if (c.onShowEditExitButton) c.onShowEditExitButton();
 
-    // startSfenStr にも記録
-    if (c.startSfenStr) {
-        *c.startSfenStr = c.recordStartSfen.isEmpty() ? adjusted : c.recordStartSfen;
-    }
+    return c.recordStartSfen.isEmpty() ? adjusted : c.recordStartSfen;
 }
 
-void PositionEditController::finishPositionEditing(const PositionEditController::FinishEditContext& c)
+QString PositionEditController::finishPositionEditing(const PositionEditController::FinishEditContext& c)
 {
-    if (!c.gc || !c.view || !c.view->board()) return;
+    if (!c.gc || !c.view || !c.view->board()) return {};
 
     ShogiBoard* board = c.view->board();
 
@@ -173,15 +170,6 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
     c.view->setMouseClickMode(false);
     c.view->update();
 
-    // 編集した局面が開始局面になる（棋譜と対局の局面列は、編集終了後の
-    // resetRecordForEditedPosition がこの局面から作り直す）
-    if (c.startSfenStr) {
-        *c.startSfenStr = sfenNow;
-    }
-
-    // 再開フラグを落とす
-    if (c.isResumeFromCurrent) *c.isResumeFromCurrent = false;
-
     // UI 後片付け
     if (c.bic) {
         if (m_prevBoardMode >= 0) {
@@ -201,6 +189,7 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
     m_gc   = c.gc;
     m_bic  = c.bic;
     m_prevBoardMode = -1;
+    return sfenNow;
 }
 
 // ======================================================================

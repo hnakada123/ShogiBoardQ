@@ -9,7 +9,7 @@
 #include "csamoveconverter.h"
 #include "csawaitingdialog.h"
 #include "engineanalysistab.h"
-#include "gamerecordupdateservice.h"
+#include "matchrecordsink.h"
 #include "logcategories.h"
 #include "shogiview.h"
 #include "timecontrolcontroller.h"
@@ -17,6 +17,13 @@
 #include "uistatepolicymanager.h"
 
 #include <QStatusBar>
+#include "appactivitystate.h"
+#include "csagamecoordinator.h"
+#include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
+#include <QMessageBox>
+#include <QRegularExpression>
 
 CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -25,15 +32,12 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     , m_shogiView(deps.shogiView)
     , m_boardController(deps.boardController)
     , m_statusBar(deps.statusBar)
-    , m_sfenHistory(deps.sfenRecord)
-    , m_gameMoves(deps.gameMoves)
     , m_analysisTab(deps.analysisTab)
     , m_boardSetupController(deps.boardSetupController)
     , m_usiCommLog(deps.usiCommLog)
     , m_engineThinking(deps.engineThinking)
     , m_timeController(deps.timeController)
-    , m_changePlayMode(deps.changePlayMode)
-    , m_playMode(deps.playMode)
+    , m_activity(deps.activity)
     , m_parentWidget(deps.parentWidget)
     , m_prepareRecord(deps.prepareRecord)
     , m_recordGameEnd(deps.recordGameEnd)
@@ -66,16 +70,9 @@ void CsaGameWiring::wire()
     connect(c, &CsaGameCoordinator::gameEnded, this, &CsaGameWiring::onGameEnded, Qt::UniqueConnection);
     connect(c, &CsaGameCoordinator::turnChanged, this, &CsaGameWiring::onTurnChanged, Qt::UniqueConnection);
     connect(c, &CsaGameCoordinator::logMessage, this, &CsaGameWiring::onLogMessage, Qt::UniqueConnection);
-    connect(c, &CsaGameCoordinator::moveAppliedToBoard,
-            this, &CsaGameWiring::moveAppliedToBoard, Qt::UniqueConnection);
 
     // 司令塔のシグナルを実際の受け手へ直接つなぐ
-    if (m_recordService) {
-        connect(c, &CsaGameCoordinator::recordEntryReady,
-                m_recordService, &GameRecordUpdateService::appendRecord, Qt::UniqueConnection);
-        connect(c, &CsaGameCoordinator::recordEntryReady,
-                m_recordService, &GameRecordUpdateService::updateCurrentSfenAfterMove, Qt::UniqueConnection);
-    }
+    connect(c, &CsaGameCoordinator::recordEntryReady, this, &CsaGameWiring::onRecordEntryReady, Qt::UniqueConnection);
     if (m_boardController) {
         connect(c, &CsaGameCoordinator::moveHighlightRequested,
                 m_boardController, &BoardInteractionController::showMoveHighlights, Qt::UniqueConnection);
@@ -103,7 +100,6 @@ void CsaGameWiring::unwire()
     CsaGameCoordinator* const c = m_coordinator;
     if (!c) return;
     disconnect(c, nullptr, this, nullptr);
-    if (m_recordService) disconnect(c, nullptr, m_recordService, nullptr);
     if (m_boardController) disconnect(c, nullptr, m_boardController, nullptr);
     if (m_notifService) disconnect(c, nullptr, m_notifService, nullptr);
     if (m_analysisTab) {
@@ -114,12 +110,12 @@ void CsaGameWiring::unwire()
 }
 
 void CsaGameWiring::wireExternalSignals(UiStatePolicyManager* uiPolicy,
-                                        GameRecordUpdateService* recordService,
+                                        MatchRecordSink* recordSink,
                                         UiNotificationService* notifService)
 {
     unwire();
     m_uiPolicy = uiPolicy;
-    m_recordService = recordService;
+    m_recordSink = recordSink;
     m_notifService = notifService;
     if (m_coordinator) wire();
 }
@@ -156,10 +152,7 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         m_coordinator = new CsaGameCoordinator(this);
         CsaGameCoordinator::Dependencies deps;
         deps.gameController = m_gameController;
-        deps.view = m_shogiView;
         deps.clock = m_timeController ? m_timeController->clock() : nullptr;
-        deps.sfenRecord = m_sfenHistory;
-        deps.gameMoves = m_gameMoves;
         deps.usiCommLog = m_usiCommLog;
         deps.engineThinking = m_engineThinking;
         m_coordinator->setDependencies(deps);
@@ -181,7 +174,7 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     const bool started = (result == QDialog::Accepted && m_coordinator
                           && m_coordinator->gameState() == CsaGameCoordinator::GameState::InGame);
     if (!started) {
-        setPlayMode(PlayMode::NotStarted);
+        setActivity(AppActivityState::Activity::Idle);
         if (m_coordinator && m_coordinator->gameState() != CsaGameCoordinator::GameState::Idle) {
             m_coordinator->stopGame();
         }
@@ -193,13 +186,18 @@ void CsaGameWiring::onWaitingCancelled()
 {
     qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
     if (m_coordinator) m_coordinator->stopGame();
-    setPlayMode(PlayMode::NotStarted);
+    setActivity(AppActivityState::Activity::Idle);
     if (m_statusBar) m_statusBar->showMessage(tr("通信対局をキャンセルしました"), 3000);
 }
 
 // ============================================================
 // 司令塔からの通知
 // ============================================================
+
+void CsaGameWiring::onRecordEntryReady(const RecordEntry& entry)
+{
+    if (m_recordSink) m_recordSink->appendRecord(entry);
+}
 
 void CsaGameWiring::onGameStarted(const QString& blackName, const QString& whiteName,
                                   const QList<RecordEntry>& initialRecords)
@@ -219,13 +217,12 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
     }
 
     // 再開局面の既存手順を棋譜へ入れる（以後の着手は司令塔の recordEntryReady が直接届く）
-    if (m_recordService) {
-        for (const RecordEntry& entry : initialRecords) m_recordService->appendRecord(entry);
-        m_recordService->updateCurrentSfenAfterMove();
+    if (m_recordSink) {
+        for (const RecordEntry& entry : initialRecords) m_recordSink->appendRecord(entry);
     }
 
     // 時計・再開棋譜の準備が揃ってから公開する。同じ接続での次局もここを通る。
-    setPlayMode(PlayMode::CsaNetworkMode);
+    setActivity(AppActivityState::Activity::DuringCsaGame);
     if (m_uiPolicy) m_uiPolicy->transitionToDuringCsaGame();
     if (m_shogiView) m_shogiView->update();
     if (m_statusBar) m_statusBar->showMessage(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
@@ -241,7 +238,7 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result, CsaClient::GameEnd
     if (m_recordGameEnd) m_recordGameEnd();
     autoSaveRecord();
 
-    setPlayMode(PlayMode::NotStarted);
+    setActivity(AppActivityState::Activity::Idle);
     if (m_uiPolicy) m_uiPolicy->transitionToIdle();
     showGameEndDialog(tr("対局終了"), tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText));
     if (m_statusBar) m_statusBar->showMessage(tr("対局終了: %1 (%2)").arg(resultText, causeText), 5000);
@@ -259,4 +256,113 @@ void CsaGameWiring::onLogMessage(const QString& message, bool isError)
     if (isError) qCWarning(lcUi) << message;
     else qCDebug(lcUi) << message;
     if (m_statusBar) m_statusBar->showMessage(message, 3000);
+}
+
+// ============================================================
+// CSA通信対局配線の補助処理（接続ダイアログの詳細設定・棋譜の自動保存・盤の反転・結果の表示）
+// ============================================================
+
+namespace {
+/// ファイル名に使えない文字を取り除く
+QString sanitizeFileNamePart(const QString& text)
+{
+    static const QRegularExpression forbidden(QStringLiteral("[\\\\/:*?\"<>|\\s]+"));
+    QString out = text;
+    out.replace(forbidden, QStringLiteral("_"));
+    return out.isEmpty() ? QStringLiteral("player") : out;
+}
+} // namespace
+
+CsaGameCoordinator::StartOptions CsaGameWiring::buildStartOptions(const CsaGameDialog* dialog)
+{
+    CsaGameCoordinator::StartOptions options;
+    options.host = dialog->host();
+    options.transport = dialog->useTls() ? CsaClient::Transport::Tls : CsaClient::Transport::Plain;
+    options.port = dialog->port();
+    options.username = dialog->loginId();
+    // shogi-server のゲーム名と手番の希望は LOGIN のパスワード欄に載せる
+    options.password = dialog->loginPassword();
+
+    if (dialog->isHuman()) {
+        options.playerType = CsaGameCoordinator::PlayerType::Human;
+    } else {
+        options.playerType = CsaGameCoordinator::PlayerType::Engine;
+        options.engineName = dialog->engineName();
+        options.enginePath = dialog->engineList().value(dialog->engineNumber()).path;
+    }
+
+    options.keepAliveEnabled = dialog->keepAliveEnabled();
+    options.keepAliveIntervalMs = dialog->keepAliveIntervalSec() * 1000;
+    options.tcpKeepAliveEnabled = dialog->tcpKeepAliveEnabled();
+    options.thinkingMarginMs = dialog->thinkingMarginSec() * 1000;
+    options.gameLimit = dialog->gameLimit();
+    options.reconnectAfterGame = dialog->reconnectAfterGame();
+
+    m_autoSaveEnabled = dialog->autoSaveEnabled();
+    m_autoSaveDir = dialog->autoSaveDir();
+    m_autoSaveFormat = dialog->autoSaveFormat();
+    m_autoFlipBoard = dialog->autoFlipBoard();
+    return options;
+}
+
+void CsaGameWiring::applyAutoFlip()
+{
+    if (!m_autoFlipBoard || !m_coordinator || !m_setBoardFlipped) return;
+    m_setBoardFlipped(!m_coordinator->isBlackSide());
+}
+
+void CsaGameWiring::autoSaveRecord()
+{
+    if (!m_autoSaveEnabled || !m_coordinator) return;
+    if (!m_saveKifuToPath) {
+        qCWarning(lcUi) << "autoSaveRecord: no save callback";
+        return;
+    }
+    if (m_autoSaveDir.isEmpty() || !QDir().mkpath(m_autoSaveDir)) {
+        const QString text = tr("棋譜の自動保存先を作成できません: %1").arg(m_autoSaveDir);
+        qCWarning(lcUi) << text;
+        if (m_statusBar) m_statusBar->showMessage(text, 5000);
+        return;
+    }
+
+    const CsaClient::GameSummary& summary = m_coordinator->gameSummary();
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss"));
+    const QString base = QStringLiteral("%1_%2_vs_%3")
+                             .arg(stamp, sanitizeFileNamePart(summary.blackName),
+                                  sanitizeFileNamePart(summary.whiteName));
+    const QString extension = m_autoSaveFormat.isEmpty() ? QStringLiteral("kif") : m_autoSaveFormat;
+    // 同じ秒に終わった対局があっても上書きしない
+    const QDir dir(m_autoSaveDir);
+    QString path = dir.filePath(base + QLatin1Char('.') + extension);
+    for (int serial = 2; QFileInfo::exists(path); ++serial) {
+        path = dir.filePath(QStringLiteral("%1_%2.%3").arg(base).arg(serial).arg(extension));
+    }
+
+    QString error;
+    if (m_saveKifuToPath(path, &error)) {
+        qCDebug(lcUi) << "autoSaveRecord: saved" << path;
+        if (m_statusBar) m_statusBar->showMessage(tr("棋譜を自動保存しました: %1").arg(path), 5000);
+    } else {
+        const QString text = tr("棋譜の自動保存に失敗しました: %1").arg(error.isEmpty() ? path : error);
+        qCWarning(lcUi) << text;
+        if (m_statusBar) m_statusBar->showMessage(text, 5000);
+    }
+}
+
+void CsaGameWiring::setActivity(AppActivityState::Activity activity)
+{
+    if (m_activity) m_activity->setActivity(activity);
+}
+
+void CsaGameWiring::showGameEndDialog(const QString& title, const QString& message)
+{
+    // 対局を続けるときは、結果の表示が次の対局の開始を止めないようにする
+    if (m_coordinator && m_coordinator->moreGamesWanted()) {
+        auto* box = new QMessageBox(QMessageBox::Information, title, message, QMessageBox::Ok, m_parentWidget);
+        box->setAttribute(Qt::WA_DeleteOnClose);
+        box->setModal(false);
+        box->show();
+        return;
+    }
+    QMessageBox::information(m_parentWidget, title, message);
 }

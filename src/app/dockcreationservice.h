@@ -16,8 +16,8 @@ class EvaluationChartWidget;
 class EngineAnalysisTab;
 class GameInfoPaneController;
 class AnalysisResultsPresenter;
-class MenuWindowWiring;
-class JosekiWindowWiring;
+class MenuWindowController;
+class JosekiWindowController;
 class ShogiEngineThinkingModel;
 class UsiCommLogModel;
 
@@ -41,8 +41,8 @@ public:
     void setAnalysisTab(EngineAnalysisTab* tab) { m_analysisTab = tab; }
     void setGameInfoController(GameInfoPaneController* controller) { m_gameInfoController = controller; }
     void setAnalysisPresenter(AnalysisResultsPresenter* presenter) { m_analysisPresenter = presenter; }
-    void setMenuWiring(MenuWindowWiring* wiring) { m_menuWiring = wiring; }
-    void setJosekiWiring(JosekiWindowWiring* wiring) { m_josekiWiring = wiring; }
+    void setMenuWiring(MenuWindowController* wiring) { m_menuWiring = wiring; }
+    void setJosekiController(JosekiWindowController* wiring) { m_josekiController = wiring; }
     void setModels(ShogiEngineThinkingModel* think1, ShogiEngineThinkingModel* think2,
                    UsiCommLogModel* log1, UsiCommLogModel* log2);
 
@@ -85,8 +85,8 @@ private:
     EngineAnalysisTab* m_analysisTab = nullptr;
     GameInfoPaneController* m_gameInfoController = nullptr;
     AnalysisResultsPresenter* m_analysisPresenter = nullptr;
-    MenuWindowWiring* m_menuWiring = nullptr;
-    JosekiWindowWiring* m_josekiWiring = nullptr;
+    MenuWindowController* m_menuWiring = nullptr;
+    JosekiWindowController* m_josekiController = nullptr;
     ShogiEngineThinkingModel* m_modelThinking1 = nullptr;
     ShogiEngineThinkingModel* m_modelThinking2 = nullptr;
     UsiCommLogModel* m_lineEditModel1 = nullptr;

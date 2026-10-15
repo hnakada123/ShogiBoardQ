@@ -58,7 +58,7 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 | `src/services/settingscommon.h/.cpp` | 設定ファイルのパス（`settingsFilePath()`）、アプリ全体で共有する `QSettings`（`openSettings()`）、全設定の消去（`resetAllSettings()`） |
 | ドメイン別ヘッダー（下表） | 設定項目の宣言の表。処理が要る項目の関数宣言もここに置く |
 | `src/services/settingskeys.h` | 関数として書いた項目と、機能ごとのエンジン選択（`EngineListSettings`）が使うキー定数。宣言の表の項目はキーを宣言に直接書くので、新しい項目のためにここへ定数を足さない |
-| `src/services/settingsservice.h` | ドメイン別ヘッダーをまとめて include するだけのヘッダー（関数はない。`settingsservice.cpp` も空）。新しいコードはドメイン別ヘッダーを直接 include する |
+| `src/services/settingsservice.h` | ドメイン別ヘッダーをまとめて include するだけのヘッダー（関数はなく、`.cpp` もない）。新しいコードはドメイン別ヘッダーを直接 include する |
 | `src/services/enginelistsettings.h/.cpp` | エンジン登録一覧の読み込みと、機能ごとに選んだエンジンの保存（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
 | `src/services/enginepondersettings.h/.cpp` | エンジンごとの GUI 先読み設定（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
 
@@ -140,7 +140,7 @@ GameSettings::commentFontSize.remove();                           // 保存値�
 宣言の既定値を空にしておき、読む側で `valueOr()` に渡す。
 
 ```cpp
-// src/dialogs/startgamedialog_settings.cpp
+// src/dialogs/startgamedialog.cpp
 namespace Saved = GameSettings::StartGame;
 ui->lineEditHumanName1->setText(Saved::player1.humanName.valueOr(tr("You")));
 ui->lineEditKifuSaveDir->setText(Saved::kifuSaveDir.valueOr(defaultKifuSaveDir()));  // ドキュメントフォルダ
@@ -153,10 +153,10 @@ ui->lineEditKifuSaveDir->setText(Saved::kifuSaveDir.valueOr(defaultKifuSaveDir()
 
 ```cpp
 Saved::player1.byoyomiSec.set(ui->byoyomiSec1->value());
-const QString name1 = GameSettings::StartGame::player1.engineName();  // GameStartOrchestrator（ダイアログなしの開始）
+const QString name = saved.engineName();  // savedPlayerIndex(const Saved::Player& saved, ...) は player1・player2 を同じ関数で読む
 ```
 
-`GameSettings::StartGame` の項目はダイアログ（`startgamedialog_settings.cpp`）のほか、`NyugyokuJudgement::configuredRule()`（`jishogiRule`）と `GameStartOrchestrator`（`player1/2.engineName`）も読む。
+`GameSettings::StartGame` の項目はダイアログ（`startgamedialog.cpp`）のほか、`NyugyokuJudgement::configuredRule()`（`jishogiRule`）も読む。
 
 ### 範囲を読む側で確かめる項目
 
@@ -203,8 +203,8 @@ MyDialog::~MyDialog()
 
 実際のコードでは `KifuPasteDialog`（`src/dialogs/kifupastedialog.cpp`）が同じ形になっている。
 
-- `FontSizeHelper(const Setting<int>&, int min = 8, int max = 24, int step = 1)`（`src/common/fontsizehelper.h`）は、宣言から初期値を読んで範囲内に収め、`increase()` / `decrease()` で変わるたびに同じ宣言へ保存する。文字の反映は `applyTo(dialog)`（`DialogUtils::applyFontSize`）で、ダイアログ側の `applyFontSize()` には固有の調整だけを書く
-- `DialogUtils::restoreDialogSize(QWidget*, const Setting<QSize>&)` は、幅・高さとも 100 を超える保存値だけを適用する。`DialogUtils::saveDialogSize(const QWidget*, const Setting<QSize>&)` は現在のサイズを保存する（`src/common/dialogutils.h`）
+- `FontSizeHelper(const Setting<int>&, int min = 8, int max = 24, int step = 1)`（`src/widgets/fontsizehelper.h`）は、宣言から初期値を読んで範囲内に収め、`increase()` / `decrease()` で変わるたびに同じ宣言へ保存する。文字の反映は `applyTo(dialog)`（`DialogUtils::applyFontSize`）で、ダイアログ側の `applyFontSize()` には固有の調整だけを書く
+- `DialogUtils::restoreDialogSize(QWidget*, const Setting<QSize>&)` は、幅・高さとも 100 を超える保存値だけを適用する。`DialogUtils::saveDialogSize(const QWidget*, const Setting<QSize>&)` は現在のサイズを保存する（`src/widgets/dialogutils.h`）
 
 ### INI キーの命名
 
@@ -272,11 +272,11 @@ settings.endArray();
 | ファイル | 関数 | データ |
 |---|---|---|
 | `src/services/enginelistsettings.cpp` | `EngineListSettings::loadEngines()` | `[Engines]` 配列（登録エンジンの名前・パス・作者）の読み込み |
-| `src/dialogs/engineregistrationhandler.cpp` | `saveEnginesToSettingsFile()`・`saveEngineOptionsToSettings()`・`removeEnginesGroup()`・`removeEngineNameGroup()` | 登録一覧と、エンジン名グループのオプション配列の書き込み・削除 |
+| `src/engine/engineregistrationhandler.cpp` | `saveEnginesToSettingsFile()`・`saveEngineOptionsToSettings()`・`removeEnginesGroup()`・`removeEngineNameGroup()` | 登録一覧と、エンジン名グループのオプション配列の書き込み・削除 |
 | `src/dialogs/enginesettingsoptionhandler.cpp` | `readEngineOptions()`・`saveOptionsToSettings()` | エンジン設定ダイアログでのオプション配列の読み書き |
 | `src/engine/usiprotocolhandler.cpp` | `loadEngineOptions()` | エンジン起動時にオプション配列を読み、`setoption` を組み立てる |
 | `src/services/enginepondersettings.cpp` | `EnginePonderSettings::load()`・`save()` | エンジン名グループの GUI 先読み設定と `USI_Ponder` の保存値の同期 |
-| `src/dialogs/csagamedialog_settings.cpp` | `loadServerHistory()`・`saveServerHistory()` | CSA通信対局の接続履歴 `CsaServerHistory` 配列（最大10件） |
+| `src/dialogs/csagamedialog.cpp` | `loadServerHistory()`・`saveServerHistory()` | CSA通信対局の接続履歴 `CsaServerHistory` 配列（最大10件） |
 
 列幅（`AnalysisSettings::engineInfoColumnWidths` など）とドックレイアウト名の一覧（`DockSettings::savedDockLayoutNames`）は、共有の `QSettings` で開いた配列・グループを同じ関数の中ですぐ閉じている。
 
@@ -287,7 +287,7 @@ settings.endArray();
 ## 7. エンジンの登録情報（EngineSettingsConstants）
 
 エンジンの登録情報（名前、パス、作者、オプション）は配列で保存するため、宣言の表ではなく [6章](#6-qsettings-を直接開く場合配列グループのデータ) の方法で読み書きする。
-INI キー名は `src/engine/enginesettingsconstants.h` に定数として定義されている。
+INI キー名は `src/services/enginesettingsconstants.h` に定数として定義されている。
 
 ```
 [Engines]

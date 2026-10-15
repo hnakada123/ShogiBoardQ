@@ -2,6 +2,7 @@
 /// @brief ダイアログコーディネータクラスの実装
 
 #include "dialogcoordinator.h"
+#include "appstate.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
 
@@ -14,7 +15,7 @@
 #include "promotionflow.h"
 #include "considerationflowcontroller.h"
 #include "tsumesearchflowcontroller.h"
-#include "matchcoordinator.h"
+#include "analysissession.h"
 #include "shogigamecontroller.h"
 #include "kifuanalysislistmodel.h"
 #include "considerationtabmanager.h"
@@ -26,6 +27,10 @@
 #include "kifurecordlistmodel.h"
 #include "considerationpositionresolver.h"
 #include "sfenutils.h"
+#include "shogiview.h"
+#include "analysisflowcontroller.h"
+#include "evaluationchartwidget.h"
+#include "gameinfopanecontroller.h"
 
 DialogCoordinator::DialogCoordinator(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
@@ -37,7 +42,7 @@ DialogCoordinator::~DialogCoordinator() = default;
 
 void DialogCoordinator::updateDeps(const Deps& deps)
 {
-    m_match = deps.matchCoordinator;
+    m_analysisSession = deps.analysisSession;
     m_logModel = deps.logModel;
     m_thinkingModel = deps.thinkingModel;
     m_analysisModel = deps.analysisModel;
@@ -65,7 +70,7 @@ bool DialogCoordinator::showPromotionDialog()
     return PromotionFlow::askPromote(m_parentWidget);
 }
 
-void DialogCoordinator::showGameOverMessage(const QString& title, const QString& message)
+void DialogCoordinator::showInformation(const QString& title, const QString& message)
 {
     QMessageBox::information(m_parentWidget, title, message);
 }
@@ -81,7 +86,7 @@ bool DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
     // Flow に一任
     ConsiderationFlowController flow(this);
     ConsiderationFlowController::Deps d;
-    d.match = m_match;
+    d.session = m_analysisSession;
     d.onStarted = [this]() {
         Q_EMIT considerationModeStarted();
     };
@@ -100,8 +105,7 @@ bool DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
     directParams.unlimitedTime = params.unlimitedTime;
     directParams.byoyomiSec = params.byoyomiSec;
     directParams.multiPV = params.multiPV;
-    directParams.previousFileTo = params.previousFileTo;
-    directParams.previousRankTo = params.previousRankTo;
+    directParams.previousTo = params.previousTo;
     directParams.lastUsiMove = params.lastUsiMove;
 
     return flow.runDirect(d, directParams, params.position);
@@ -117,7 +121,7 @@ void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
     TsumeSearchFlowController flow(this);
 
     TsumeSearchFlowController::Deps d;
-    d.match = m_match;
+    d.session = m_analysisSession;
     d.line = params.line;
     d.fallbackSfen = params.fallbackSfen;
     d.onError = [this](const QString& msg) { showFlowError(msg); };
@@ -146,14 +150,14 @@ bool DialogCoordinator::startConsiderationFromContext()
     // 表示中の手順（分岐ツリー）から、検討する局面と直前の手を決める
     const RecordLine line = m_considerationCtx.navState ? m_considerationCtx.navState->currentRecordLine()
                                                         : RecordLine{};
-    const QString fallbackSfen = (m_considerationCtx.currentSfenStr && !m_considerationCtx.currentSfenStr->isEmpty())
-        ? *m_considerationCtx.currentSfenStr
-        : (m_considerationCtx.startSfenStr ? *m_considerationCtx.startSfenStr : QString());
+    const AppState* state = m_considerationCtx.state;
+    const QString fallbackSfen = !state ? QString()
+        : (state->currentSfenStr.isEmpty() ? state->startSfenStr : state->currentSfenStr);
     const auto resolved = ConsiderationPositionResolver::resolve(line, line.currentPly, fallbackSfen);
 
     // 手番表示は検討する局面の手番に合わせる
     if (m_considerationCtx.gameController && !line.isEmpty()) {
-        const QString sfen = line.sfens.value(line.currentPly);
+        const QString sfen = line.sfenAt(line.currentPly);
         m_considerationCtx.gameController->setCurrentPlayer(sfenToTurn(sfen.section(QLatin1Char(' '), 1, 1)));
     }
 
@@ -173,8 +177,7 @@ bool DialogCoordinator::startConsiderationFromContext()
     params.byoyomiSec = m_considerationTabManager ? m_considerationTabManager->byoyomiSec() : 20;
     params.multiPV = m_considerationTabManager ? m_considerationTabManager->considerationMultiPV() : 1;
     params.considerationModel = m_considerationCtx.considerationModel;
-    params.previousFileTo = resolved.previousFileTo;
-    params.previousRankTo = resolved.previousRankTo;
+    params.previousTo = resolved.previousTo;
     params.lastUsiMove = resolved.lastUsiMove;
 
     qCDebug(lcUi).noquote() << "startConsiderationFromContext calling startConsiderationDirect"
@@ -200,7 +203,7 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
     // 表示中の手順（分岐ツリー）の、表示中の局面を探索する
     TsumeSearchParams params;
     if (m_tsumeSearchCtx.navState) params.line = m_tsumeSearchCtx.navState->currentRecordLine();
-    params.fallbackSfen = m_tsumeSearchCtx.startSfenStr ? *m_tsumeSearchCtx.startSfenStr : QString();
+    params.fallbackSfen = m_tsumeSearchCtx.state ? m_tsumeSearchCtx.state->startSfenStr : QString();
     showTsumeSearchDialog(params);
 }
 
@@ -208,4 +211,137 @@ void DialogCoordinator::showFlowError(const QString& message)
 {
     qCWarning(lcUi).noquote() << "Flow error:" << message;
     QMessageBox::warning(m_parentWidget, tr("エラー"), message);
+}
+
+// ============================================================
+// 棋譜解析の条件・分岐コンテキストの収集と解析フローへの橋渡し
+// ============================================================
+
+void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
+{
+    qCDebug(lcUi).noquote() << "showKifuAnalysisDialog: activePly=" << params.activePly;
+
+    Q_EMIT analysisModeStarted();
+
+    // Flow の用意（遅延生成）
+    if (!m_analysisFlow) {
+        m_analysisFlow = new AnalysisFlowController(this);
+        connect(m_analysisFlow, &AnalysisFlowController::analysisPositionPrepared,
+                this, &DialogCoordinator::analysisPositionPrepared);
+        // シグナル中継（Flow → DialogCoordinator → MainWindow）
+        connect(m_analysisFlow, &AnalysisFlowController::analysisStarted,
+                this, &DialogCoordinator::analysisStarted);
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisProgressReported,
+                         this, &DialogCoordinator::analysisProgressReported, Qt::UniqueConnection);
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisResultRowSelected,
+                         this, &DialogCoordinator::analysisResultRowSelected, Qt::UniqueConnection);
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisStopped,
+                         this, &DialogCoordinator::analysisModeEnded, Qt::UniqueConnection);
+    }
+
+    // 依存を詰めて Flow へ一任
+    AnalysisFlowController::Deps d;
+    d.line = params.line;
+    d.analysisModel = m_analysisModel;
+    d.logModel = m_logModel;
+    d.thinkingModel = m_thinkingModel;
+    d.presenter = params.presenter;  // 結果表示用プレゼンター
+    d.activePly = params.activePly;
+    d.lineIndex = params.lineIndex;
+    d.blackPlayerName = params.blackPlayerName;
+    d.whitePlayerName = params.whitePlayerName;
+    d.boardFlipped = params.boardFlipped;
+    d.displayError = [this](const QString& msg) { showFlowError(msg); };
+
+    if (m_kifuAnalysisCtx.evalChart) {
+        // 条件ダイアログのキャンセル時は対局中の評価値を保持する。
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisEngineNameChanged,
+                         m_kifuAnalysisCtx.evalChart, &EvaluationChartWidget::clearAll,
+                         Qt::UniqueConnection);
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisEngineNameChanged,
+                         m_kifuAnalysisCtx.evalChart, &EvaluationChartWidget::setEngine1Name,
+                         Qt::UniqueConnection);
+    }
+    const bool started = m_analysisFlow->runWithDialog(d, m_parentWidget);
+    if (!started) {
+        Q_EMIT analysisModeEnded();
+    }
+}
+
+void DialogCoordinator::setKifuAnalysisContext(const KifuAnalysisContext& ctx)
+{
+    m_kifuAnalysisCtx = ctx;
+}
+
+void DialogCoordinator::showKifuAnalysisDialogFromContext()
+{
+    qCDebug(lcUi).noquote() << "showKifuAnalysisDialogFromContext";
+
+    // パラメータを構築
+    KifuAnalysisParams params;
+
+    // 表示中の手順（分岐ツリー。分岐を選んでいればその分岐、対局中はライブの手も含む）を解析する。
+    // 終局行（投了など）は手順に含まれない。Flow が開始時にコピーするので、ここでの一時的な値でよい
+    const RecordLine line = m_kifuAnalysisCtx.navState ? m_kifuAnalysisCtx.navState->currentRecordLine()
+                                                       : RecordLine{};
+    params.line = line;
+    // 表示ラベル（手数番号・分岐記号）はこの画面境界で値にする。
+    // 解析中に棋譜欄を切り替えても、解析実行はモデルを参照しない。
+    if (const auto* model = m_kifuAnalysisCtx.recordModel) {
+        for (int ply = 1; ply <= params.line.moveCount() && ply < model->rowCount(); ++ply) {
+            if (const auto* item = model->item(ply)) params.line.entries[ply - 1].displayText = item->currentMove();
+        }
+    }
+    params.activePly = line.currentPly;
+    params.lineIndex = m_kifuAnalysisCtx.navState ? m_kifuAnalysisCtx.navState->currentLineIndex() : 0;
+
+    // 対局者名を取得（GameInfoPaneControllerから）
+    if (m_kifuAnalysisCtx.gameInfoController) {
+        const QList<KifGameInfoItem> items = m_kifuAnalysisCtx.gameInfoController->gameInfo();
+        extractPlayerNames(items, params.blackPlayerName, params.whitePlayerName);
+    }
+
+    // プレゼンターを設定
+    params.presenter = m_kifuAnalysisCtx.presenter;
+
+    // GUI本体の盤面反転状態を取得
+    if (m_kifuAnalysisCtx.shogiView) {
+        params.boardFlipped = m_kifuAnalysisCtx.shogiView->flipMode();
+    }
+
+    qCDebug(lcUi).noquote() << "showKifuAnalysisDialogFromContext:"
+                       << "blackPlayerName=" << params.blackPlayerName
+                       << "whitePlayerName=" << params.whitePlayerName;
+
+    showKifuAnalysisDialog(params);
+}
+
+void DialogCoordinator::extractPlayerNames(const QList<KifGameInfoItem>& gameInfo,
+                                           QString& outBlackName, QString& outWhiteName)
+{
+    for (const KifGameInfoItem& item : gameInfo) {
+        if (item.key == QStringLiteral("先手") || item.key == QStringLiteral("下手")) {
+            outBlackName = item.value;
+        } else if (item.key == QStringLiteral("後手") || item.key == QStringLiteral("上手")) {
+            outWhiteName = item.value;
+        }
+    }
+}
+
+void DialogCoordinator::stopKifuAnalysis()
+{
+    qCDebug(lcUi).noquote() << "stopKifuAnalysis called";
+    if (m_analysisFlow) {
+        m_analysisFlow->stop();
+    }
+}
+
+int DialogCoordinator::analysisLineIndex() const
+{
+    return m_analysisFlow ? m_analysisFlow->analysisLineIndex() : 0;
+}
+
+bool DialogCoordinator::isKifuAnalysisRunning() const
+{
+    return m_analysisFlow && m_analysisFlow->isRunning();
 }

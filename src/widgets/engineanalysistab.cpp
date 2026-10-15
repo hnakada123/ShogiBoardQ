@@ -8,7 +8,6 @@
 #include "usilogpanel.h"
 #include "csalogpanel.h"
 #include "engineanalysispresenter.h"
-#include "candidatearrowcontroller.h"
 #include "analysissettings.h"
 #include "buttonstyles.h"
 #include <QCheckBox>
@@ -296,15 +295,10 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
 
 QTabWidget* EngineAnalysisTab::tab() const { return m_tab; }
 
-void EngineAnalysisTab::setArrowController(CandidateArrowController* controller)
+void EngineAnalysisTab::setArrowDisplayState(bool considerationActive, const QString& ponderDescription)
 {
-    if (m_arrowController == controller) return;
-    if (m_arrowController) disconnect(m_arrowController, nullptr, this, nullptr);
-    m_arrowController = controller;
-    if (controller) {
-        connect(controller, &CandidateArrowController::displayStateChanged,
-                this, &EngineAnalysisTab::updateArrowControls);
-    }
+    m_arrowConsideration = considerationActive;
+    m_ponderDescription = ponderDescription;
     updateArrowControls();
 }
 
@@ -312,20 +306,20 @@ void EngineAnalysisTab::onMatchArrowsToggled(bool checked)
 {
     AnalysisSettings::matchArrowsVisible.set(checked);
     updateArrowControls();
-    if (m_arrowController) m_arrowController->scheduleRefresh();
+    emit arrowSettingsChanged();
 }
 
 void EngineAnalysisTab::onPonderArrowsToggled(bool checked)
 {
     AnalysisSettings::ponderArrowsVisible.set(checked);
     updateArrowControls();
-    if (m_arrowController) m_arrowController->scheduleRefresh();
+    emit arrowSettingsChanged();
 }
 
 void EngineAnalysisTab::updateArrowControls()
 {
     if (!m_matchArrows || !m_ponderArrows || !m_arrowDescription) return;
-    const bool consideration = m_arrowController && m_arrowController->considerationActive();
+    const bool consideration = m_arrowConsideration;
     m_matchArrows->setEnabled(!consideration);
     m_ponderArrows->setEnabled(!consideration && m_matchArrows->isChecked());
     QString description;
@@ -334,8 +328,8 @@ void EngineAnalysisTab::updateArrowControls()
     } else if (m_matchArrows->isChecked()) {
         description = tr("赤の実線：手番側");
         if (m_ponderArrows->isChecked()) description += tr(" ／ 青の破線：先読み側");
-        if (m_arrowController && !m_arrowController->ponderDescription().isEmpty())
-            description += QStringLiteral(" — ") + m_arrowController->ponderDescription();
+        if (!m_ponderDescription.isEmpty())
+            description += QStringLiteral(" — ") + m_ponderDescription;
     }
     m_arrowDescription->setText(description);
     m_arrowDescription->setVisible(!description.isEmpty());
@@ -538,4 +532,59 @@ void EngineAnalysisTab::clearThinkingViewSelection(int engineIndex)
 {
     ensurePresenter();
     m_presenter->clearThinkingViewSelection(engineIndex, considerationTabManager()->considerationView());
+}
+
+// ============================================================
+// EngineAnalysisTab の ConsiderationTabManager 委譲メソッド
+// ============================================================
+
+// ===================== ConsiderationTabManager 初期化・委譲 =====================
+
+void EngineAnalysisTab::ensureConsiderationTabManager()
+{
+    if (!m_considerationTabManager) {
+        m_considerationTabManager = new ConsiderationTabManager(this);
+        connect(m_considerationTabManager, &ConsiderationTabManager::considerationMultiPVChanged,
+                this, &EngineAnalysisTab::considerationMultiPVChanged);
+        connect(m_considerationTabManager, &ConsiderationTabManager::stopConsiderationRequested,
+                this, &EngineAnalysisTab::stopConsiderationRequested);
+        connect(m_considerationTabManager, &ConsiderationTabManager::startConsiderationRequested,
+                this, &EngineAnalysisTab::startConsiderationRequested);
+        connect(m_considerationTabManager, &ConsiderationTabManager::engineSettingsRequested,
+                this, &EngineAnalysisTab::engineSettingsRequested);
+        connect(m_considerationTabManager, &ConsiderationTabManager::considerationTimeSettingsChanged,
+                this, &EngineAnalysisTab::considerationTimeSettingsChanged);
+        connect(m_considerationTabManager, &ConsiderationTabManager::showArrowsChanged,
+                this, &EngineAnalysisTab::showArrowsChanged);
+        connect(m_considerationTabManager, &ConsiderationTabManager::considerationEngineChanged,
+                this, &EngineAnalysisTab::considerationEngineChanged);
+        connect(m_considerationTabManager, &ConsiderationTabManager::pvRowClicked,
+                this, &EngineAnalysisTab::pvRowClicked);
+    }
+}
+
+ConsiderationTabManager* EngineAnalysisTab::considerationTabManager()
+{
+    ensureConsiderationTabManager();
+    return m_considerationTabManager;
+}
+
+void EngineAnalysisTab::switchToConsiderationTab()
+{
+    if (m_tab && m_considerationTabIndex >= 0) {
+        m_tab->setCurrentIndex(m_considerationTabIndex);
+    }
+}
+
+void EngineAnalysisTab::switchToThinkingTab()
+{
+    if (m_tab) {
+        m_tab->setCurrentIndex(0);
+    }
+}
+
+void EngineAnalysisTab::setConsiderationStartEnabled(bool enabled)
+{
+    ensureConsiderationTabManager();
+    m_considerationTabManager->setStartConsiderationEnabled(enabled);
 }

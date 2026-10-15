@@ -13,7 +13,8 @@
 #include "kifufilereader.h"
 #include "kifuloadparser.h"
 #include "kifreader.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "sfenutils.h"
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
@@ -212,10 +213,9 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     GameRecordModel::ExportContext ctx;
     ctx.gameInfoItems = parsed.gameInfo;
     ctx.startSfen = result.initialSfen;
-    ctx.playMode = PlayMode::HumanVsHuman;
     for (const auto& item : std::as_const(parsed.gameInfo)) {
-        if (item.key == QStringLiteral("先手") || item.key == QStringLiteral("下手")) ctx.human1 = item.value;
-        if (item.key == QStringLiteral("後手") || item.key == QStringLiteral("上手")) ctx.human2 = item.value;
+        if (item.key == QStringLiteral("先手") || item.key == QStringLiteral("下手")) ctx.players.blackHumanName = item.value;
+        if (item.key == QStringLiteral("後手") || item.key == QStringLiteral("上手")) ctx.players.whiteHumanName = item.value;
     }
 
     switch (request.outputFormat) {

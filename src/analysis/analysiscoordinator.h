@@ -29,7 +29,7 @@ class AnalysisCoordinator : public QObject
 public:
     /// 依存オブジェクト
     struct Deps {
-        QStringList* sfenRecord = nullptr;  ///< 各plyの`position ...`コマンド列（非所有）
+        QStringList positions;  ///< 解析する局面（[ply]。SFEN か `position ...` コマンド）
     };
 
     /// 解析オプション

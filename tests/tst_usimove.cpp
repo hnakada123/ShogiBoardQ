@@ -128,15 +128,15 @@ private slots:
     void shogiMove_convertsBothWays()
     {
         const UsiMove drop = *UsiMove::parse(u"S*4d");
-        const ShogiMove recorded = ShogiMove::fromUsiMove(drop, Turn::White, Piece::WhiteSilver, Piece::None);
-        QCOMPARE(recorded.fromSquare, QPoint(10, 5));  // 0始まり: 後手の駒台・銀の段
-        QCOMPARE(recorded.toSquare, QPoint(3, 3));
-        QCOMPARE(recorded.toUsiMove(), drop);
+        const ShogiMove recorded(drop, Piece::WhiteSilver);
+        QCOMPARE(recorded.mover(), Turn::White);
+        QVERIFY(recorded.isDrop());
+        QCOMPARE(recorded.move, drop);
 
         const UsiMove promote = *UsiMove::parse(u"2c2b+");
-        const ShogiMove moved = ShogiMove::fromUsiMove(promote, Turn::Black, Piece::BlackPawn, Piece::WhiteBishop);
-        QVERIFY(moved.isPromotion);
-        QCOMPARE(moved.toUsiMove(), promote);
+        const ShogiMove moved(promote, Piece::BlackPawn, Piece::WhiteBishop);
+        QVERIFY(moved.isPromotion());
+        QCOMPARE(moved.move, promote);
     }
 };
 

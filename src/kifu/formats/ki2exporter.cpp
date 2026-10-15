@@ -41,7 +41,7 @@ static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, const QStri
             continue;
         }
         const bool needsText = node->ply() >= fromPly;
-        const UsiMove move = node->move().toUsiMove();
+        const UsiMove move = node->move().move;
         QString text;
         if (synced && move.isValid()) {
             if (needsText) text = Ki2MoveNotation::format(board, mover, move, previousTo);

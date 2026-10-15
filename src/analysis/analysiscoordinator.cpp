@@ -28,8 +28,8 @@ void AnalysisCoordinator::setOptions(const Options& opt)
 
 void AnalysisCoordinator::startAnalyzeRange()
 {
-    if (!m_deps.sfenRecord || m_deps.sfenRecord->isEmpty()) {
-        qCWarning(lcAnalysis) << "startAnalyzeRange: sfenRecord not ready";
+    if (m_deps.positions.isEmpty()) {
+        qCWarning(lcAnalysis) << "startAnalyzeRange: no positions";
         return;
     }
     if (m_running) stop();
@@ -38,7 +38,7 @@ void AnalysisCoordinator::startAnalyzeRange()
     m_running = true;
 
     // endPly 未指定なら末尾まで
-    const int last = static_cast<int>(m_deps.sfenRecord->size()) - 1;
+    const int last = static_cast<int>(m_deps.positions.size()) - 1;
     if (m_opt.endPly < 0 || m_opt.endPly > last) {
         m_opt.endPly = last;
     }
@@ -56,8 +56,8 @@ void AnalysisCoordinator::startAnalyzeRange()
 
 void AnalysisCoordinator::startAnalyzeSingle(int ply)
 {
-    if (!m_deps.sfenRecord || m_deps.sfenRecord->isEmpty()) {
-        qCWarning(lcAnalysis) << "startAnalyzeSingle: sfenRecord not ready";
+    if (m_deps.positions.isEmpty()) {
+        qCWarning(lcAnalysis) << "startAnalyzeSingle: no positions";
         return;
     }
     if (m_running) stop();
@@ -132,14 +132,13 @@ void AnalysisCoordinator::nextPlyOrFinish()
 void AnalysisCoordinator::sendAnalyzeForPly(int ply)
 {
     if (!m_running) return;
-    if (!m_deps.sfenRecord) return;
-    if (ply < 0 || ply >= m_deps.sfenRecord->size()) {
+    if (ply < 0 || ply >= m_deps.positions.size()) {
         qCWarning(lcAnalysis) << "sendAnalyzeForPly: index out of range" << ply;
         nextPlyOrFinish();
         return;
     }
 
-    const QString sfen = m_deps.sfenRecord->at(ply);
+    const QString sfen = m_deps.positions.at(ply);
 
     // 1) position sfen ... の形式でコマンドを準備
     //    startpos の場合はそのまま、それ以外は "position sfen ..." で送る

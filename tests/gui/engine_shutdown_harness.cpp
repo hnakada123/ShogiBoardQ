@@ -165,7 +165,7 @@ private slots:
                     m_searches = m_info = 0;
                     trigger("actionResumeGame");
                     auto* clock = match->clock();
-                    if (match->gameOverState().isOver || *match->sfenRecordPtr() != saved.sfens
+                    if (match->gameOverState().isOver || match->record().sfens() != saved.record.sfens()
                         || qAbs(clock->remainingMs(Turn::Black) - saved.clock.of(Turn::Black).remainingMs) > 100
                         || qAbs(clock->remainingMs(Turn::White) - saved.clock.of(Turn::White).remainingMs) > 100) {
                         qCritical() << "RESUME_STATE_MISMATCH";

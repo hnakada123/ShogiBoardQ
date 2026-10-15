@@ -1,5 +1,6 @@
 #include "parsecommon.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "kifmovetext.h"
 
 #include <QRegularExpression>
@@ -9,7 +10,7 @@ namespace KifuParseCommon {
 
 bool KifLineDraft::resolve(KifLine& out, QString* error) const
 {
-    const auto replay = SfenPositionTracer::replay(baseSfen, usiMoves);
+    const auto replay = SfenReplay::replay(baseSfen, usiMoves);
     if (!replay.success()) {
         if (error) *error += replay.failedPly > 0
             ? QStringLiteral("Cannot restore move %1: %2\n").arg(startPly + replay.failedPly - 1).arg(replay.error)
@@ -34,22 +35,28 @@ bool KifLineDraft::resolve(KifLine& out, QString* error) const
         const auto& step = replay.moves.at(i);
         const auto& item = disp.at(first + i);
         const Turn mover = step.beforeSfen.contains(QStringLiteral(" w ")) ? Turn::White : Turn::Black;
-        const auto usi = step.move.toUsiMove();
+        const auto& usi = step.move.move;
         const QString display = item.prettyMove.isEmpty()
             ? KifMoveText::format(mover, step.move.movingPiece, usi, previousTo) : item.prettyMove;
-        RecordEntry record{step.move, display, step.sfen, RecordTime::fromText(item.timeText), TerminalType::None, mover};
-        result.entries.append({record, item.comment, item.bookmark});
+        RecordEntry record = RecordEntry::played(step.move, display, step.sfen, RecordTime::fromText(item.timeText));
+        record.mover = mover;
+        record.comment = item.comment;
+        record.bookmark = item.bookmark;
+        result.entries.append(record);
         previousTo = usi.to;
     }
     if (endsWithTerminal) {
         const auto& item = disp.last();
-        const QString sfen = result.sfenAt(result.moveCount());
-        auto record = RecordEntry::imported({}, item.prettyMove, sfen, item.timeText);
-        if (!record.isTerminal()) {
+        TerminalType type = item.terminalType;
+        if (type == TerminalType::None) {
             if (error) *error += QStringLiteral("Unknown terminal record: %1\n").arg(item.prettyMove);
-            record.terminal = TerminalType::Error;
+            type = TerminalType::Error;
         }
-        result.entries.append({record, item.comment, item.bookmark});
+        RecordEntry record = RecordEntry::ending(type, item.terminalSide, RecordTime::fromText(item.timeText));
+        record.sfen = result.sfenAt(result.moveCount());
+        record.comment = item.comment;
+        record.bookmark = item.bookmark;
+        result.entries.append(record);
     }
     out = std::move(result);
     return true;
@@ -105,57 +112,6 @@ int flexDigitsToIntNoDetach(QStringView text)
         value = value * 10 + d;
     }
     return value;
-}
-
-const std::array<QString, 16>& terminalWords()
-{
-    static const std::array<QString, 16> words = {{
-        QStringLiteral("中断"),
-        QStringLiteral("投了"),
-        QStringLiteral("持将棋"),
-        QStringLiteral("千日手"),
-        QStringLiteral("切れ負け"),
-        QStringLiteral("時間切れ"),
-        QStringLiteral("反則勝ち"),
-        QStringLiteral("反則負け"),
-        QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"),
-        QStringLiteral("詰み"),
-        QStringLiteral("不詰"),
-        QStringLiteral("詰"),
-        QStringLiteral("入玉勝ち"),
-        QStringLiteral("宣言勝ち"),
-        QStringLiteral("入玉宣言勝ち")
-    }};
-    return words;
-}
-
-bool isTerminalWordExact(QStringView text, QString* normalized)
-{
-    const QStringView t = text.trimmed();
-    for (const QString& w : terminalWords()) {
-        if (t == w) {
-            if (normalized) {
-                *normalized = w;
-            }
-            return true;
-        }
-    }
-    return false;
-}
-
-bool isTerminalWordContains(QStringView text, QString* normalized)
-{
-    const QStringView t = text.trimmed();
-    for (const QString& w : terminalWords()) {
-        if (t == w || t.contains(w)) {
-            if (normalized) {
-                *normalized = w;
-            }
-            return true;
-        }
-    }
-    return false;
 }
 
 std::optional<KanjiPieceResult> mapKanjiPiece(QStringView text)
@@ -285,14 +241,6 @@ bool isBoardHeaderOrFrame(QStringView line)
     return false;
 }
 
-bool containsAnyTerminal(QStringView s, QString* matched)
-{
-    for (const QString& w : terminalWords()) {
-        if (s.contains(w)) { if (matched) *matched = w; return true; }
-    }
-    return false;
-}
-
 bool isKifSkippableHeaderLine(QStringView line)
 {
     if (line.isEmpty()) return true;
@@ -338,39 +286,39 @@ bool isBookmarkLine(QStringView s)
     return s.startsWith(QLatin1Char('&'));
 }
 
-QString csaSpecialToJapanese(const QString& code)
+TerminalType csaSpecialToTerminal(const QString& code, Turn sideToMove)
 {
     // %プレフィックスを除去して統一キーで検索
     QString key = code;
     if (key.startsWith(QLatin1Char('%'))) key = key.mid(1);
-    // +/-プレフィックスの ILLEGAL_ACTION にも対応
-    if (key.startsWith(QLatin1Char('+')) || key.startsWith(QLatin1Char('-'))) {
-        if (QStringView{key}.mid(1).startsWith(QLatin1String("ILLEGAL_ACTION")))
-            key = key.mid(1);
+    // %+ILLEGAL_ACTION / %-ILLEGAL_ACTION は不正を行った側。手番側でなければ手番側の反則勝ち
+    if ((key.startsWith(QLatin1Char('+')) || key.startsWith(QLatin1Char('-')))
+        && QStringView{key}.mid(1).startsWith(QLatin1String("ILLEGAL_ACTION"))) {
+        const Turn offender = key.startsWith(QLatin1Char('+')) ? Turn::Black : Turn::White;
+        return offender == sideToMove ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
     }
 
-    struct Entry { const char* key; const char* label; };
+    struct Entry { const char* key; TerminalType type; };
     static const Entry table[] = {
-        {"TORYO",            "投了"},
-        {"CHUDAN",           "中断"},
-        {"SENNICHITE",       "千日手"},
-        {"OUTE_SENNICHITE",  "王手千日手"},
-        {"JISHOGI",          "持将棋"},
-        {"TIME_UP",          "切れ負け"},
-        {"ILLEGAL_MOVE",     "反則負け"},
-        {"ILLEGAL_ACTION",   "反則負け"},
-        {"KACHI",            "入玉勝ち"},
-        {"HIKIWAKE",         "引き分け"},
-        {"MAX_MOVES",        "最大手数到達"},
-        {"TSUMI",            "詰み"},
-        {"FUZUMI",           "不詰"},
-        {"ERROR",            "エラー"},
+        {"TORYO",            TerminalType::Resign},
+        {"CHUDAN",           TerminalType::Interrupt},
+        {"OUTE_SENNICHITE",  TerminalType::PerpetualCheck},
+        {"SENNICHITE",       TerminalType::Repetition},
+        {"JISHOGI",          TerminalType::Impasse},
+        {"TIME_UP",          TerminalType::Timeout},
+        {"ILLEGAL_MOVE",     TerminalType::IllegalLoss},
+        {"ILLEGAL_ACTION",   TerminalType::IllegalLoss},
+        {"KACHI",            TerminalType::DeclarationWin},
+        {"HIKIWAKE",         TerminalType::Draw},
+        {"MAX_MOVES",        TerminalType::MaxMoves},
+        {"TSUMI",            TerminalType::Checkmate},
+        {"FUZUMI",           TerminalType::NoCheckmate},
+        {"ERROR",            TerminalType::Error},
     };
     for (const auto& e : table) {
-        if (key.startsWith(QLatin1String(e.key)))
-            return QString::fromUtf8(e.label);
+        if (key.startsWith(QLatin1String(e.key))) return e.type;
     }
-    return code;
+    return TerminalType::None;
 }
 
 QString formatTimeMS(qint64 ms)
@@ -486,13 +434,17 @@ bool tryHandleBookmarkLine(const QString& line, bool firstMoveFound,
     return true;
 }
 
-KifDisplayItem createTerminalDisplayItem(int ply, const QString& term,
+KifDisplayItem createTerminalDisplayItem(int ply, TerminalType type, Turn side,
                                          const QString& timeText)
 {
+    const RecordEntry entry = RecordEntry::ending(type, side);
     KifDisplayItem item;
-    item.prettyMove = tebanMark(ply) + term;
+    item.prettyMove = entry.displayText;
     item.timeText = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
     item.ply = ply;
+    item.terminal = true;
+    item.terminalType = type;
+    item.terminalSide = side;
     return item;
 }
 

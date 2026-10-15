@@ -2,23 +2,18 @@
 #define CONSECUTIVEGAMESCONTROLLER_H
 
 /// @file consecutivegamescontroller.h
-/// @brief 連続対局の進行管理と手番入れ替えを制御するコントローラ
-
+/// @brief エンジン同士の連続対局（局数・手番の入れ替え・次局の準備）
 
 #include <QObject>
-#include <QPointer>
 #include <QTimer>
-#include <functional>
-#include "matchcoordinator.h"
+
 #include "gamestartcoordinator.h"
 
-class ShogiClock;
-class TimeControlController;
-
 /**
- * @brief 連続対局の進行管理を行うコントローラ
+ * @brief エンジン同士の連続対局の局数と、次局の開始の設定を受け持つ
  *
- * 連続対局の設定保持、次の対局への自動遷移、手番入れ替えを担当する。
+ * 対局が終わるたびに残りの局数を数え、次局の設定（手番を入れ替えるならエンジンと持ち時間も入れ替える）を
+ * 作って nextGameReady で知らせる。次局を始めるのは受け手（GameSession）。
  */
 class ConsecutiveGamesController : public QObject
 {
@@ -27,54 +22,37 @@ class ConsecutiveGamesController : public QObject
 public:
     explicit ConsecutiveGamesController(QObject* parent = nullptr);
 
-    // --- 依存オブジェクトの設定 ---
-    void setTimeController(TimeControlController* tc);
-    void setGameStartCoordinator(GameStartCoordinator* gsc);
-    void setPerformPreStartCleanup(std::function<void(const QString&)> cleanup);
-
-    /**
-     * @brief 連続対局の設定を受け取る
-     * @param totalGames 合計対局数
-     * @param switchTurn 1局ごとに手番を入れ替えるか
-     */
+    /// 連続対局の局数と、1局ごとに手番を入れ替えるか（1局目の開始時）
     void configure(int totalGames, bool switchTurn);
+    /// 対局の時間の決まり（次局にも使う）
+    void setTimeSettings(const GameStartCoordinator::TimeSettings& tc) { m_lastTimeControl = tc; }
+    /// 対局が始まった（次局はこの設定から作る）
+    void onGameStarted(const MatchStartOptions& opt) { m_lastStartOptions = opt; }
 
-    /**
-     * @brief 対局開始時のオプションを保存する
-     * @param opt 対局開始オプション
-     * @param tc 時間制御設定
-     */
-    void onGameStarted(const MatchCoordinator::StartOptions& opt,
-                        const GameStartCoordinator::TimeSettings& tc);
-
-    /// @return 次の対局を開始すべきなら true
-    bool shouldStartNextGame() const;
-
+    bool shouldStartNextGame() const { return m_remainingGames > 0; }
     int currentGameNumber() const { return m_gameNumber; }  ///< 現在の対局番号（1始まり）
     int totalGames() const { return m_totalGames; }         ///< 合計対局数
-
     void reset();
 
 public slots:
+    /// 次局を準備する（いまの終局処理を抜けてから nextGameReady を出す）
     void startNextGame();
 
-private:
-    void prepareNextGameOptions();
+signals:
+    /// 次局の開始の設定ができた
+    void nextGameReady(const GameStartCoordinator::StartParams& params);
+
+private slots:
     void launchPreparedNextGame();
 
-    int m_remainingGames = 0;        ///< 残り対局数
-    int m_totalGames = 1;            ///< 合計対局数
-    int m_gameNumber = 1;            ///< 現在の対局番号（1始まり）
+private:
+    int m_remainingGames = 0;          ///< 残り対局数
+    int m_totalGames = 1;              ///< 合計対局数
+    int m_gameNumber = 1;              ///< 現在の対局番号（1始まり）
     bool m_switchTurnEachGame = false; ///< 1局ごとに手番を入れ替えるか
-
-    MatchCoordinator::StartOptions m_lastStartOptions;     ///< 直前の対局開始オプション
-    GameStartCoordinator::TimeSettings m_lastTimeControl;   ///< 直前の時間制御設定
-
-    TimeControlController* m_timeController = nullptr;  ///< 非所有
-    QPointer<GameStartCoordinator> m_gameStart;        ///< 非所有（MCW が所有）
-    std::function<void(const QString&)> m_performPreStartCleanup; ///< 次局開始局面で初期化
-
-    QTimer* m_delayTimer = nullptr; ///< 次局開始遅延用タイマー（所有: this）
+    MatchStartOptions m_lastStartOptions;                  ///< 直前の対局開始オプション
+    GameStartCoordinator::TimeSettings m_lastTimeControl;  ///< 直前の時間の決まり
+    QTimer m_delayTimer;               ///< 次局開始の遅延
 };
 
 #endif // CONSECUTIVEGAMESCONTROLLER_H

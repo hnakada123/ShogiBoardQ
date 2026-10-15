@@ -233,17 +233,15 @@ bool TsumeshogiPositionGenerator::needsPromotion(PieceType pt, int rank, bool is
 
 bool TsumeshogiPositionGenerator::isKingInCheck() const
 {
-    EngineMoveValidator validator;
     // 後手(WHITE)の玉に先手(BLACK)の駒から王手がかかっているか
-    return validator.checkIfKingInCheck(Turn::White, m_board.boardData()) > 0;
+    return EngineMoveValidator::isInCheck(m_board, Turn::White);
 }
 
 bool TsumeshogiPositionGenerator::isDefenderKingInCheck(const QString& sfen)
 {
     ShogiBoard board;
     if (!board.trySetSfen(sfen)) return false;
-    EngineMoveValidator validator;
-    return validator.checkIfKingInCheck(Turn::White, board.boardData()) > 0;
+    return EngineMoveValidator::isInCheck(board, Turn::White);
 }
 
 QString TsumeshogiPositionGenerator::buildSfen()

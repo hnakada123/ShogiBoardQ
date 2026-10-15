@@ -15,19 +15,16 @@ class BoardInteractionController;
 class BoardSetupController;
 class BranchNavigationWiring;
 class CommentCoordinator;
-class GameRecordUpdateService;
-class GameSessionOrchestrator;
-class JosekiWindowWiring;
+class GameSession;
+class JosekiWindowController;
 class KifuDisplayCoordinator;
 class KifuFileController;
 class PositionEditCoordinator;
 class QWidget;
 class RecordNavigationHandler;
-class SessionLifecycleCoordinator;
 class ShogiGameController;
 class ShogiView;
 class UiStatePolicyManager;
-class UndoFlowService;
 
 /**
  * @brief メニュー・盤・棋譜欄の操作を、担当の部品へ振り分ける
@@ -47,16 +44,13 @@ public:
         ShogiGameController* gameController = nullptr;
         ShogiView* view = nullptr;
         UiStatePolicyManager* uiPolicy = nullptr;
-        GameRecordUpdateService* recordUpdates = nullptr;
-        GameSessionOrchestrator* gameSession = nullptr;
-        SessionLifecycleCoordinator* sessionLifecycle = nullptr;
+        GameSession* gameSession = nullptr;
         PositionEditCoordinator* positionEdit = nullptr;
         CommentCoordinator* comments = nullptr;
         KifuDisplayCoordinator* displayCoordinator = nullptr;
         RecordNavigationHandler* recordNavigation = nullptr;
-        UndoFlowService* undoFlow = nullptr;
         KifuFileController* kifuFileController = nullptr;  ///< 未保存の棋譜の確認
-        JosekiWindowWiring* josekiWiring = nullptr;
+        JosekiWindowController* josekiController = nullptr;
         AppState* state = nullptr;
         MainWindowResetService::ModelResetDeps editedPositionReset;
     };
@@ -70,12 +64,11 @@ public:
 
 public slots:
     void handleMoveRequested(const QPoint& from, const QPoint& to);
-    void handleMoveCommitted(Turn mover, int ply);
+    void handleMoveCommitted();
     void onRecordPaneMainRowChanged(int row);
     void beginPositionEditing();
     void finishPositionEditing();
     void resetRecordForEditedPosition();
-    void undoLastTwoMoves();
     /// 「新規」。未保存の棋譜を確認してから初期状態に戻す
     void resetToInitialState();
     /// 「終了」。ウィンドウを閉じられたらアプリを終了する

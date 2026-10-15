@@ -7,6 +7,8 @@
 #include <QtConcurrentRun>
 
 #include <atomic>
+#include "shogiboard.h"
+#include <algorithm>
 
 namespace {
 /// エンジン無応答ガードの余裕時間(ms)
@@ -62,7 +64,7 @@ void TsumeshogiGenerator::start(const Settings& settings)
     emit verificationStatsUpdated(0, 0);
 
     // Usi インスタンスを作成（モデル不要、ゲームコントローラ不要）。所有は parent（this）
-    m_usi = new Usi(nullptr, nullptr, nullptr, this);
+    m_usi = new Usi(nullptr, nullptr, this);
 
     // checkmate シグナルを接続
     connect(m_usi, &Usi::checkmateSolved,
@@ -80,7 +82,7 @@ void TsumeshogiGenerator::start(const Settings& settings)
     // 起動要求中の即時エラーで二重に後始末しないようにする。
     m_starting = true;
     m_stopRequestedDuringStart = false;
-    const bool started = m_usi->startAndInitializeEngineAsync(settings.enginePath, settings.engineName);
+    const bool started = m_usi->startEngine(settings.enginePath, settings.engineName);
     m_starting = false;
 
     if (!started || m_stopRequestedDuringStart) {
@@ -309,7 +311,7 @@ void TsumeshogiGenerator::generateAndSendNext()
     QString positionStr = QStringLiteral("position sfen ") + m_currentSfen;
 
     // エンジンに送信
-    m_usi->sendPositionAndGoMateCommands(m_settings.timeoutMs, positionStr);
+    m_usi->sendMateSearch(positionStr, m_settings.timeoutMs);
 
     // 安全タイマーを設定
     m_safetyTimer.start(m_settings.timeoutMs + kSafetyMarginMs);
@@ -507,7 +509,7 @@ void TsumeshogiGenerator::tryNextTrimCandidate()
 void TsumeshogiGenerator::sendTrimmingCheck(const QString& modifiedSfen)
 {
     QString positionStr = QStringLiteral("position sfen ") + modifiedSfen;
-    m_usi->sendPositionAndGoMateCommands(m_settings.timeoutMs, positionStr);
+    m_usi->sendMateSearch(positionStr, m_settings.timeoutMs);
 
     m_safetyTimer.start(m_settings.timeoutMs + kSafetyMarginMs);
 }
@@ -521,4 +523,176 @@ void TsumeshogiGenerator::finishTrimmingPhase()
     m_phase = Phase::Searching;
     emit searchPhaseStarted();
     processResult(true, m_trimBasePv);
+}
+
+// ============================================================
+// TsumeshogiGenerator の駒を1枚除いた局面の作成（トリミング）の実装
+// ============================================================
+
+namespace {
+
+/// 局面の SFEN（手番は攻方=先手、手数は1に固定。詰将棋は常に攻方の手番から始まる）
+QString tsumeSfen(ShogiBoard& board)
+{
+    return board.convertBoardToSfen() + QStringLiteral(" b ") + board.convertStandToSfen() + QStringLiteral(" 1");
+}
+
+} // namespace
+
+QList<TsumeshogiGenerator::TrimCandidate>
+TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen)
+{
+    QList<TrimCandidate> candidates;
+    ShogiBoard board;
+    if (!board.trySetSfen(sfen)) {
+        return candidates;
+    }
+
+    // 盤上の駒を列挙（玉以外）。上の段から、段の中は9筋から順に並べる。
+    // 守方持駒は除去対象外だが、盤上の守方駒は除去可
+    for (int rank = 1; rank <= 9; ++rank) {
+        for (int file = 9; file >= 1; --file) {
+            const BoardSquare square{file, rank};
+            const Piece piece = board.pieceAt(square);
+            // 玉はスキップ（攻方玉は詰将棋では配置されないが念のため）
+            if (piece == Piece::None || toBlack(piece) == Piece::BlackKing) {
+                continue;
+            }
+            candidates.append(TrimCandidate{TrimCandidate::Board, square, piece});
+        }
+    }
+
+    // 攻方（先手）持駒を列挙（歩・香・桂・銀・金・角・飛の順）
+    static constexpr Piece kHandOrder[] = {
+        Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight, Piece::BlackSilver,
+        Piece::BlackGold, Piece::BlackBishop, Piece::BlackRook};
+    for (const Piece piece : kHandOrder) {
+        if (board.pieceStandCount(piece) > 0) {
+            candidates.append(TrimCandidate{TrimCandidate::Hand, BoardSquare{}, piece});
+        }
+    }
+
+    // 守方持駒は除去対象外（守方の防御資源を減らすのは不正）
+    return candidates;
+}
+
+QString TsumeshogiGenerator::removePieceFromSfen(
+    const QString& sfen, const TrimCandidate& candidate)
+{
+    ShogiBoard board;
+    if (!board.trySetSfen(sfen)) {
+        return sfen;
+    }
+
+    // 駒の総数を維持: 除去した駒は後手持駒に移動（生駒に戻す）
+    const Piece toDefenderHand = toWhite(toBlack(demote(candidate.piece)));
+    if (candidate.location == TrimCandidate::Board) {
+        if (board.pieceAt(candidate.square) == candidate.piece) {
+            board.setPieceAt(candidate.square, Piece::None);
+            board.addStandPiece(toDefenderHand);
+        }
+    } else if (board.consumeStandPiece(candidate.piece)) {
+        // 攻方持駒から1枚除去 → 後手持駒に移動
+        board.addStandPiece(toDefenderHand);
+    }
+
+    return tsumeSfen(board);
+}
+
+QStringList TsumeshogiGenerator::onePieceRemovedPositions(const QString& sfen)
+{
+    QStringList positions;
+    const auto candidates = enumerateRemovablePieces(sfen);
+    for (const auto& candidate : candidates) positions.append(removePieceFromSfen(sfen, candidate));
+    return positions;
+}
+
+// ============================================================
+// 生成した局面の検証
+// ============================================================
+
+void TsumeshogiGenerator::startVerification(const QString& sfen, Phase origin)
+{
+    m_verificationOrigin = origin;
+    m_verificationSfen = sfen;
+    m_verificationQueries = 0;
+    m_verificationAwaiting = false;
+    m_verificationElapsed.start();
+    m_verifier.start(sfen, m_settings.targetMoves, {m_settings.allowFinalMoveAlternatives});
+    m_phase = Phase::Verifying;
+    emit verificationProgress(0);
+    m_verificationStepTimer.start(0);
+}
+
+void TsumeshogiGenerator::submitVerification(TsumeshogiVerifier::Reply reply, const QStringList& pv)
+{
+    if (!m_verificationAwaiting) return;
+    m_verificationAwaiting = false;
+    m_verifier.submit(reply, pv);
+    m_verificationStepTimer.start(0);
+}
+
+void TsumeshogiGenerator::continueVerification()
+{
+    if (m_phase != Phase::Verifying || m_verificationAwaiting) return;
+    if (m_verificationElapsed.elapsed() >= m_settings.timeoutMs) m_verifier.abort();
+
+    const QString sfen = m_verifier.nextPosition();
+    if (m_verifier.result().status != TsumeshogiVerifier::Status::Running) {
+        finishVerification();
+        return;
+    }
+    if (sfen.isEmpty()) {
+        m_verificationStepTimer.start(0);
+        return;
+    }
+    const qint64 remaining = m_settings.timeoutMs - m_verificationElapsed.elapsed();
+    if (remaining <= 0) {
+        m_verifier.abort();
+        finishVerification();
+        return;
+    }
+    // 難しい1問だけで総予算を使い切らず、他の攻手の余詰も検出する。
+    const int timeout = static_cast<int>(std::min<qint64>(remaining, 1000));
+    m_verificationAwaiting = true;
+    emit verificationProgress(++m_verificationQueries);
+    QString position = QStringLiteral("position sfen ") + sfen;
+    m_usi->sendMateSearch(position, timeout);
+    m_safetyTimer.start(timeout + 5000);
+}
+
+void TsumeshogiGenerator::finishVerification()
+{
+    const auto result = m_verifier.result();
+    m_phase = m_verificationOrigin;
+    if (m_phase == Phase::Trimming
+        && (result.status == TsumeshogiVerifier::Status::Unknown
+            || result.status == TsumeshogiVerifier::Status::Invalid
+            || result.status == TsumeshogiVerifier::Status::WrongLength
+            || (result.status == TsumeshogiVerifier::Status::NoMate && m_trimProvenInTarget))) {
+        rejectInconclusiveTrim();
+        return;
+    }
+    if (result.status != TsumeshogiVerifier::Status::Unique) {
+        ++m_verificationRejected;
+        if (result.status == TsumeshogiVerifier::Status::Unknown)
+            ++m_verificationInconclusive;
+        emit verificationStatsUpdated(m_verificationRejected, m_verificationInconclusive);
+        if (m_phase == Phase::Searching) emit searchPhaseStarted();
+        advanceAfterFailure();
+        return;
+    }
+
+    m_verifiedSfen = m_verificationSfen;
+    m_verifiedPv = result.pv;
+    if (m_phase == Phase::Searching) {
+        startTrimmingPhase(m_verifiedSfen, m_verifiedPv);
+    } else {
+        m_trimBaseSfen = m_verifiedSfen;
+        m_trimBasePv = m_verifiedPv;
+        m_trimCandidates = enumerateRemovablePieces(m_trimBaseSfen);
+        m_trimCandidateIndex = 0;
+        m_trimComplete = false;
+        tryNextTrimCandidate();
+    }
 }

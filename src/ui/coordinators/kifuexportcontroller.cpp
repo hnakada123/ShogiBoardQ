@@ -1,0 +1,267 @@
+/// @file kifuexportcontroller.cpp
+/// @brief 棋譜エクスポートコントローラクラスの実装
+
+#include "kifuexportcontroller.h"
+#include "kifuexportclipboard.h"
+#include "appstate.h"
+#include "kifunavigationstate.h"
+
+#include <QWidget>
+#include <QStatusBar>
+#include "logcategories.h"
+#include <QMessageBox>
+#include <QDir>
+#include <QDateTime>
+
+#include "errorbus.h"
+#include "gamerecordmodel.h"
+#include "gameinfopanecontroller.h"
+#include "timecontrolcontroller.h"
+#include "replaycontroller.h"
+#include "kifusavecoordinator.h"
+#include "shogimove.h"
+#include "kifuioservice.h"
+
+KifuExportController::KifuExportController(QWidget* parentWidget, QObject* parent)
+    : QObject(parent)
+    , m_parentWidget(parentWidget)
+    , m_clipboard(new KifuExportClipboard(this))
+{
+    connect(m_clipboard, &KifuExportClipboard::statusMessage,
+            this, &KifuExportController::statusMessage);
+}
+
+KifuExportController::~KifuExportController() = default;
+
+void KifuExportController::setDependencies(const Dependencies& deps)
+{
+    m_deps = deps;
+    KifuExportClipboard::Deps cd;
+    cd.gameRecord = deps.gameRecord;
+    cd.kifuRecordModel = deps.kifuRecordModel;
+    cd.gameInfoController = deps.gameInfoController;
+    cd.timeController = deps.timeController;
+    cd.gameController = deps.gameController;
+    cd.state = deps.state;
+    cd.navState = deps.navState;
+    m_clipboard->setDependencies(cd);
+}
+
+// --------------------------------------------------------
+// ユーティリティ
+// --------------------------------------------------------
+
+QStringList KifuExportController::resolveUsiMoves() const
+{
+    // 棋譜の正本（分岐ツリー）の本譜。表示テキストと同じ手順になる
+    return m_deps.gameRecord ? m_deps.gameRecord->collectMainlineUsiForExport() : QStringList();
+}
+
+GameRecordModel::ExportContext KifuExportController::buildExportContext() const
+{
+    GameRecordModel::ExportContext ctx;
+    if (m_deps.gameInfoController) {
+        ctx.gameInfoItems = m_deps.gameInfoController->gameInfo();
+        ctx.gameInfoProvided = true;
+    }
+    ctx.startSfen = m_deps.gameRecord
+        ? m_deps.gameRecord->initialSfenForExport(m_deps.state->startSfenStr) : m_deps.state->startSfenStr;
+    ctx.players = m_deps.state->players;
+
+    // 時間制御情報
+    if (m_deps.timeController) {
+        ctx.timeControl = m_deps.timeController->timeControl();
+        ctx.gameStartDateTime = m_deps.timeController->gameStartDateTime();
+        ctx.gameEndDateTime = m_deps.timeController->gameEndDateTime();
+    }
+
+    return ctx;
+}
+
+// --------------------------------------------------------
+// ファイル保存
+// --------------------------------------------------------
+
+QString KifuExportController::saveToFile()
+{
+    if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
+
+    if (!m_deps.gameRecord) {
+        Q_EMIT statusMessage(tr("棋譜データがありません"), 3000);
+        return QString();
+    }
+    
+    // 分岐の有無を判定
+    const bool hasBranches = m_deps.gameRecord->branchTree()
+                             && m_deps.gameRecord->branchTree()->lineCount() > 1;
+
+    // 消費時間の有無を判定
+    bool hasTimeInfo = false;
+    if (KifuBranchTree* tree = m_deps.gameRecord->branchTree()) {
+        const auto mainNodes = tree->mainLine();
+        for (const auto* node : std::as_const(mainNodes)) {
+            if (!node->timeText().isEmpty()) {
+                hasTimeInfo = true;
+                break;
+            }
+        }
+    }
+
+    QString error;
+    const QString path = KifuSaveCoordinator::saveViaDialog(
+        m_parentWidget,
+        [this](KifuSaveFile::SaveFormat format) { return linesForFormat(format); },
+        KifuIoService::makeDefaultSaveFileName(m_deps.state->players, QDateTime::currentDateTime()),
+        hasBranches, hasTimeInfo, &error);
+
+    if (!error.isEmpty()) {
+        QMessageBox::warning(m_parentWidget, tr("KIF Save Error"), error);
+    }
+    
+    if (!path.isEmpty()) {
+        if (m_deps.gameInfoController) m_deps.gameInfoController->applyChanges();
+        if (m_deps.gameRecord) {
+            m_deps.gameRecord->clearDirty();
+        }
+        Q_EMIT statusMessage(tr("棋譜を保存しました: %1").arg(path), 5000);
+    }
+    
+    return path;
+}
+
+bool KifuExportController::overwriteFile(const QString& filePath)
+{
+    QString error;
+    const bool ok = writeToPath(filePath, m_parentWidget, &error);
+    // 確認ダイアログでキャンセルした場合は error が空
+    if (!ok && !error.isEmpty()) {
+        QMessageBox::warning(m_parentWidget, tr("KIF Save Error"), error);
+    }
+    return ok;
+}
+
+bool KifuExportController::saveToPathWithoutDialogs(const QString& filePath, QString* errorText)
+{
+    return writeToPath(filePath, nullptr, errorText);
+}
+
+bool KifuExportController::writeToPath(const QString& filePath, QWidget* dialogParent, QString* errorText)
+{
+    if (errorText) errorText->clear();
+    if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
+
+    if (filePath.isEmpty()) {
+        return false;
+    }
+
+    // 名前を付けて保存と同じ基準（拡張子）で保存形式を決める。
+    // KIF 固定で書くと .csa などに保存したファイルが KIF 内容で上書きされてしまう。
+    const KifuSaveFile::SaveFormat format = KifuSaveFile::saveFormatForPath(filePath);
+
+    QStringList lines;
+    if (m_deps.gameRecord) {
+        lines = linesForFormat(format);
+        qCDebug(lcKifu).noquote() << "overwriteFile: generated" << lines.size()
+                                  << "lines for" << filePath;
+    } else {
+        Q_EMIT statusMessage(tr("棋譜データがありません"), 3000);
+        if (errorText) *errorText = tr("棋譜データがありません");
+        return false;
+    }
+
+    const bool ok = KifuSaveCoordinator::overwriteExisting(dialogParent, filePath, lines, errorText);
+
+    if (ok) {
+        if (m_deps.gameInfoController) m_deps.gameInfoController->applyChanges();
+        if (m_deps.gameRecord) {
+            m_deps.gameRecord->clearDirty();
+        }
+        Q_EMIT statusMessage(tr("棋譜を上書き保存しました: %1").arg(filePath), 5000);
+    }
+
+    return ok;
+}
+
+QStringList KifuExportController::exportLines(KifuSaveFile::SaveFormat format)
+{
+    return linesForFormat(format);
+}
+
+QStringList KifuExportController::linesForFormat(KifuSaveFile::SaveFormat format) const
+{
+    if (!m_deps.gameRecord) return QStringList();
+
+    const GameRecordModel::ExportContext ctx = buildExportContext();
+    switch (format) {
+    case KifuSaveFile::SaveFormat::Ki2:
+        return m_deps.gameRecord->toKi2Lines(ctx);
+    case KifuSaveFile::SaveFormat::Csa:
+        return m_deps.gameRecord->toCsaLines(ctx, resolveUsiMoves());
+    case KifuSaveFile::SaveFormat::Jkf:
+        return m_deps.gameRecord->toJkfLines(ctx);
+    case KifuSaveFile::SaveFormat::Usen:
+        return m_deps.gameRecord->toUsenLines(ctx, resolveUsiMoves());
+    case KifuSaveFile::SaveFormat::Usi:
+        return m_deps.gameRecord->toUsiLines(ctx, resolveUsiMoves());
+    case KifuSaveFile::SaveFormat::Kif:
+        break;
+    }
+    return m_deps.gameRecord->toKifLines(ctx);
+}
+
+std::optional<QString> KifuExportController::autoSaveToDir(const QString& saveDir)
+{
+    if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
+
+    if (saveDir.isEmpty()) {
+        Q_EMIT statusMessage(tr("自動保存先ディレクトリが指定されていません"), 3000);
+        return std::nullopt;
+    }
+
+    if (!m_deps.gameRecord) {
+        Q_EMIT statusMessage(tr("棋譜データがありません（自動保存をスキップ）"), 3000);
+        return std::nullopt;
+    }
+
+    GameRecordModel::ExportContext ctx = buildExportContext();
+    QStringList kifLines = m_deps.gameRecord->toKifLines(ctx);
+    if (kifLines.isEmpty()) {
+        Q_EMIT statusMessage(tr("棋譜データが空のため自動保存をスキップしました"), 3000);
+        return std::nullopt;
+    }
+
+    // ファイル名生成
+    const QString fileName = KifuIoService::makeDefaultSaveFileName(m_deps.state->players, QDateTime::currentDateTime());
+
+    QString filePath = QDir(saveDir).filePath(fileName);
+
+    QString errorText;
+    const bool ok = KifuIoService::writeKifuFile(filePath, kifLines, &errorText);
+    if (ok) {
+        if (m_deps.gameInfoController) m_deps.gameInfoController->applyChanges();
+        if (m_deps.gameRecord) {
+            m_deps.gameRecord->clearDirty();
+        }
+        Q_EMIT statusMessage(tr("棋譜を自動保存しました: %1").arg(filePath), 5000);
+        return filePath;
+    }
+
+    qCWarning(lcKifu).noquote() << "autoSaveToDir failed:" << errorText;
+    ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error,
+        tr("棋譜の自動保存に失敗しました: %1").arg(errorText));
+    return std::nullopt;
+}
+
+// --------------------------------------------------------
+// クリップボードコピー（KifuExportClipboardへ委譲）
+// --------------------------------------------------------
+
+bool KifuExportController::copyKifToClipboard()         { return m_clipboard->copyKifToClipboard(); }
+bool KifuExportController::copyKi2ToClipboard()         { return m_clipboard->copyKi2ToClipboard(); }
+bool KifuExportController::copyCsaToClipboard()         { return m_clipboard->copyCsaToClipboard(); }
+bool KifuExportController::copyUsiToClipboard()         { return m_clipboard->copyUsiToClipboard(); }
+bool KifuExportController::copyUsiCurrentToClipboard()  { return m_clipboard->copyUsiCurrentToClipboard(); }
+bool KifuExportController::copyJkfToClipboard()         { return m_clipboard->copyJkfToClipboard(); }
+bool KifuExportController::copyUsenToClipboard()        { return m_clipboard->copyUsenToClipboard(); }
+bool KifuExportController::copySfenToClipboard()        { return m_clipboard->copySfenToClipboard(); }
+bool KifuExportController::copyBodToClipboard()         { return m_clipboard->copyBodToClipboard(); }

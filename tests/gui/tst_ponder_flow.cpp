@@ -28,7 +28,6 @@
 #include "enginepondersettings.h"
 #include "csaenginecontroller.h"
 #include "shogigamecontroller.h"
-#include "sfenpositiontracer.h"
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
 
@@ -409,14 +408,10 @@ private slots:
     void csaPonder()
     {
         QFETCH(bool, hit);
-        ShogiGameController gc;
-        QString sfen = m_initial;
-        gc.newGame(sfen);
         CsaEngineController controller;
         CsaEngineController::InitParams init;
         init.enginePath = QStringLiteral(AUDIT_DIR "/mock_usi.py");
         init.engineName = "Audit USI";
-        init.gameController = &gc;
         controller.initialize(init);
         QVERIFY(controller.isInitialized());
         CsaEngineController::ThinkingParams params;
@@ -432,8 +427,6 @@ private slots:
         QTRY_VERIFY(commands().join('\n').contains("go ponder "));
         const auto before = commands().size();
         const QString opponent = hit ? QStringLiteral("3c3d") : QStringLiteral("4c4d");
-        sfen = SfenPositionTracer::buildSfenRecord(m_initial, {"7g7f", opponent}, false).last();
-        gc.newGame(sfen);
         params.positionCmd = "position startpos moves 7g7f " + opponent;
         controller.thinkAsync(params);
         QTRY_COMPARE(results.size(), 1);
@@ -451,8 +444,6 @@ private slots:
         }
         // 再初期化では前局の予測を引き継がない。
         controller.cleanup();
-        sfen = m_initial;
-        gc.newGame(sfen);
         controller.initialize(init);
         params.positionCmd = "position startpos";
         const auto restart = commands().size();

@@ -24,11 +24,7 @@ private slots:
     }
     void latestCandidateAndSearchLifetime()
     {
-        ShogiGameController game;
-        QString initial = SfenUtils::hirateSfen();
-        game.newGame(initial);
         ThinkingInfoPresenter presenter;
-        presenter.setGameController(&game);
         UsiProtocolHandler protocol;
         connect(&protocol, &UsiProtocolHandler::infoReceived, &presenter, &ThinkingInfoPresenter::onInfoReceived);
         connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoPresenter::setBaseSfen);
@@ -114,7 +110,10 @@ private slots:
         auto* controller = CandidateArrowController::forView(&view);
         EngineAnalysisTab tab;
         tab.buildUi();
-        tab.setArrowController(controller);
+        connect(controller, &CandidateArrowController::displayStateChanged,
+                &tab, &EngineAnalysisTab::setArrowDisplayState);
+        connect(&tab, &EngineAnalysisTab::arrowSettingsChanged,
+                controller, &CandidateArrowController::scheduleRefresh);
         auto* master = tab.findChild<QCheckBox*>("matchArrows");
         auto* ponder = tab.findChild<QCheckBox*>("ponderArrows");
         QVERIFY(master && ponder);

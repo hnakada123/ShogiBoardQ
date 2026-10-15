@@ -1,22 +1,20 @@
 /// @file shogigamecontroller.cpp
-/// @brief 将棋の対局進行・盤面更新・合法手検証を管理するコントローラの実装
+/// @brief 対局の盤で指し手を確かめて指すコントローラの実装
 
 #include "shogigamecontroller.h"
-#include "boardconstants.h"
 
 #include <QPoint>
 #include <QDebug>
 #include <utility>
 
-#include "logcategories.h"
-#include "matchcoordinator.h"
-#include "piecemoverules.h"
-#include "shogiboard.h"
-#include "shogimove.h"
-#include "playmode.h"
+#include "boardconstants.h"
+#include "boardcoordinates.h"
+#include "enginemovevalidator.h"
 #include "kifmovetext.h"
 #include "legalmovestatus.h"
-#include "boardcoordinates.h"
+#include "logcategories.h"
+#include "piecemoverules.h"
+#include "shogiboard.h"
 
 // ============================================================
 // 初期化
@@ -34,49 +32,20 @@ ShogiBoard* ShogiGameController::board() const
     return m_board.get();
 }
 
-void ShogiGameController::newGame(QString& initialSfenString)
+void ShogiGameController::newGame(const QString& startSfen)
 {
-    qCDebug(lcGame) << "ShogiGameController::newGame called";
-    qCDebug(lcGame) << "  Initial SFEN:" << initialSfenString;
-    qCDebug(lcGame) << "  Current board ptr:" << m_board.get();
+    qCDebug(lcGame) << "ShogiGameController::newGame:" << startSfen;
 
-    setupBoard();
-
-    qCDebug(lcGame) << "  New board ptr after setupBoard:" << m_board.get();
-
-    board()->setSfen(initialSfenString);
-    setResult(NoResult);
+    m_board = std::make_unique<ShogiBoard>(9, 9);
+    board()->setSfen(startSfen);
     setForcedPromotion(false);
 
     // SFEN の手番フィールドから GC の手番を同期
-    const Turn boardTurn = board()->currentPlayer();
-    setCurrentPlayer(boardTurn);
+    setCurrentPlayer(board()->currentPlayer());
 
     // 前の対局の最終手の移動先が残ると「同」表記が誤表示されるためリセット
-    previousFileTo = 0;
-    previousRankTo = 0;
+    m_previousTo = BoardSquare{};
     m_lastMove = UsiMove{};
-}
-
-void ShogiGameController::setupBoard()
-{
-    m_board = std::make_unique<ShogiBoard>(9, 9);
-}
-
-// ============================================================
-// 対局結果
-// ============================================================
-
-void ShogiGameController::setResult(Result value)
-{
-    if (result() == value) return;
-
-    m_result = value;
-}
-
-void ShogiGameController::resetResult()
-{
-    m_result = NoResult;
 }
 
 // ============================================================
@@ -92,7 +61,6 @@ void ShogiGameController::setForcedPromotion(bool force, bool promote)
 {
     m_forcedPromotionMode = force;
     m_forcedPromotionValue = promote;
-    qCDebug(lcGame) << "setForcedPromotion: force=" << force << "promote=" << promote;
 }
 
 // ============================================================
@@ -103,41 +71,23 @@ void ShogiGameController::setCurrentPlayer(Turn player)
 {
     // 最初の設定は、既定の先手と同じでも知らせる（手番の表示を初めて合わせるため）
     if (m_sideToMoveSet && currentPlayer() == player) return;
-
     m_sideToMoveSet = true;
     m_currentPlayer = player;
-
-    // 盤面モデルの手番は setSfen() でしか更新されないため、GC の手番に追従させる。
-    // 対局中は盤面を SFEN から再設定しないので、これが無いと盤面から生成する SFEN
-    // （読み筋表示の基準局面・局面コピー・表示一致性検証）の手番が古いままになる。
-    if (board() != nullptr && (player == Turn::Black || player == Turn::White)) {
-        board()->setCurrentPlayer(player);
-    }
-
+    // 盤面の手番も合わせる（局面から作る SFEN の手番がずれないように）
+    if (board() != nullptr) board()->setCurrentPlayer(player);
     if (m_updateDepth > 0) m_turnNotificationPending = true;
     else emit currentPlayerChanged(m_currentPlayer);
-}
-
-void ShogiGameController::changeCurrentPlayer()
-{
-    setCurrentPlayer(currentPlayer() == Turn::Black ? Turn::White : Turn::Black);
 }
 
 // ============================================================
 // 棋譜文字列変換
 // ============================================================
 
-QString ShogiGameController::convertMoveToKanjiStr(Piece moving, const UsiMove& move)
+QString ShogiGameController::convertMoveToKanjiStr(Turn mover, Piece moving, const UsiMove& move)
 {
-    if (currentPlayer() != Turn::Black && currentPlayer() != Turn::White) {
-        qCWarning(lcGame) << "convertMoveToKanjiStr: current player is invalid.";
-        return QString();
-    }
     // 前手と同じマスへの移動は「同」表記にする
-    const Turn mover = currentPlayer();
-    const QString text = KifMoveText::format(mover, moving, move, BoardSquare{previousFileTo, previousRankTo});
-    previousFileTo = move.to.file;
-    previousRankTo = move.to.rank;
+    const QString text = KifMoveText::format(mover, moving, move, m_previousTo);
+    m_previousTo = move.to;
     return text;
 }
 
@@ -145,19 +95,15 @@ QString ShogiGameController::convertMoveToKanjiStr(Piece moving, const UsiMove& 
 // 指し手検証・盤面更新
 // ============================================================
 
-LegalMoveStatus ShogiGameController::legalStatus(const UsiMove& move, Turn mover, Piece moving, Piece captured) const
+LegalMoveStatus ShogiGameController::legalStatus(const UsiMove& move, Turn mover) const
 {
-    EngineMoveValidator validator;
-    ShogiMove probe = ShogiMove::fromUsiMove(move, mover, moving, captured);
-    probe.isPromotion = false;
-    return validator.isLegalMove(mover, board()->boardData(), board()->pieceStand(), probe);
+    return EngineMoveValidator::legalStatus(*board(), mover, move);
 }
 
-bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, int moveNumber,
-                                          QStringList* sfenHistory, QList<ShogiMove>& gameMoves)
+std::optional<RecordEntry> ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo)
 {
     const auto move = prepareMove(outFrom, outTo);
-    return move && applyRecordedMove(*move, record, moveNumber, sfenHistory, gameMoves);
+    return move ? applyRecordedMove(*move) : std::nullopt;
 }
 
 std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, const QPoint& outTo)
@@ -166,8 +112,8 @@ std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, c
     const bool forcedPromotionMode = std::exchange(m_forcedPromotionMode, false);
     const bool forcedPromotionValue = std::exchange(m_forcedPromotionValue, false);
 
-    if (!board() || (currentPlayer() != Turn::Black && currentPlayer() != Turn::White)) {
-        qCWarning(lcGame) << "validateAndMove: no board or no side to move.";
+    if (!board()) {
+        qCWarning(lcGame) << "validateAndMove: no board.";
         emit endDragSignal();
         return std::nullopt;
     }
@@ -197,11 +143,10 @@ std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, c
         emit endDragSignal();
         return std::nullopt;
     }
-    const Piece captured = board()->pieceCharacter(candidate->to.file, candidate->to.rank);
 
     // 成り・不成のどちらが合法かで決める。両方とも合法なら対局者に選ばせる
     // （定跡の手は成り・不成が決まっているので選ばせない）。
-    const LegalMoveStatus status = legalStatus(*candidate, mover, moving, captured);
+    const LegalMoveStatus status = legalStatus(*candidate, mover);
     UsiMove move = *candidate;
     if (status.promotingMoveExists && status.nonPromotingMoveExists) {
         move.promote = forcedPromotionMode ? forcedPromotionValue
@@ -217,69 +162,56 @@ std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, c
     return move;
 }
 
-bool ShogiGameController::applyMove(const UsiMove& move, QString& record, int moveNumber,
-                                    QStringList* sfenHistory, QList<ShogiMove>& gameMoves)
+std::optional<RecordEntry> ShogiGameController::applyMove(const UsiMove& move)
 {
-    if (!board() || !move.isValid() || (currentPlayer() != Turn::Black && currentPlayer() != Turn::White)) {
+    if (!board() || !move.isValid()) {
         qCWarning(lcGame).noquote() << "applyMove: rejected" << move.toString();
-        return false;
+        return std::nullopt;
     }
-
-    const Turn mover = currentPlayer();
-    const Piece moving = move.isDrop() ? move.dropPieceFor(mover)
-                                       : board()->pieceCharacter(move.from.file, move.from.rank);
-    if (moving == Piece::None) {
-        qCWarning(lcGame).noquote() << "applyMove: the source square is empty:" << move.toString();
-        return false;
-    }
-    const Piece captured = board()->pieceCharacter(move.to.file, move.to.rank);
-
     // エンジンの手も、人間の手と同じく合法手か確かめる（成り・不成も指し手どおりに判定する）
-    const LegalMoveStatus status = legalStatus(move, mover, moving, captured);
+    const LegalMoveStatus status = legalStatus(move, currentPlayer());
     if (move.promote ? !status.promotingMoveExists : !status.nonPromotingMoveExists) {
         qCWarning(lcGame).noquote() << "applyMove: illegal move" << move.toString();
-        return false;
+        return std::nullopt;
     }
-
-    return commitMove(move, mover, moving, captured, record, moveNumber, sfenHistory, gameMoves);
+    return commitMove(move);
 }
 
-bool ShogiGameController::applyRecordedMove(const UsiMove& move, QString& record, int moveNumber,
-                                            QStringList* sfenHistory, QList<ShogiMove>& gameMoves)
+std::optional<RecordEntry> ShogiGameController::applyRecordedMove(const UsiMove& move)
 {
-    if (!board() || !move.isValid() || (currentPlayer() != Turn::Black && currentPlayer() != Turn::White))
-        return false;
-    const Turn mover = currentPlayer();
-    const Piece moving = move.isDrop() ? move.dropPieceFor(mover)
-                                       : board()->pieceCharacter(move.from.file, move.from.rank);
-    if (moving == Piece::None) return false;
-    const Piece captured = board()->pieceCharacter(move.to.file, move.to.rank);
-    return commitMove(move, mover, moving, captured, record, moveNumber, sfenHistory, gameMoves);
+    if (!board() || !move.isValid()) return std::nullopt;
+    return commitMove(move);
 }
 
-bool ShogiGameController::commitMove(const UsiMove& move, Turn mover, Piece moving, Piece captured, QString& record,
-                                     int moveNumber, QStringList* sfenHistory, QList<ShogiMove>& gameMoves)
+std::optional<RecordEntry> ShogiGameController::commitMove(const UsiMove& move)
 {
     const auto update = positionUpdate();
-    const Turn nextPlayerTurn = (mover == Turn::Black) ? Turn::White : Turn::Black;
-
+    const Turn mover = currentPlayer();
+    const Piece moving = move.isDrop() ? move.dropPieceFor(mover) : board()->pieceAt(move.from);
+    if (moving == Piece::None) {
+        qCWarning(lcGame).noquote() << "commitMove: the source square is empty:" << move.toString();
+        return std::nullopt;
+    }
+    const Piece captured = board()->pieceAt(move.to);
     if (!board()->applyUsiMove(move, mover)) {
         qCWarning(lcGame).noquote() << "commitMove: the board rejected" << move.toString();
-        return false;
+        return std::nullopt;
     }
-    gameMoves.append(ShogiMove::fromUsiMove(move, mover, moving, captured));
-    board()->addSfenRecord(nextPlayerTurn, moveNumber, sfenHistory);
-    if (!sfenHistory) {
-        qCWarning(lcGame) << "commitMove: sfen history is null";
-    }
-
-    record = convertMoveToKanjiStr(moving, move);
+    RecordEntry entry = RecordEntry::played(ShogiMove(move, moving, captured),
+                                            convertMoveToKanjiStr(mover, moving, move), board()->toSfen());
     m_lastMove = move;
+    setCurrentPlayer(board()->currentPlayer());
+    return entry;
+}
 
+void ShogiGameController::notifyMoveCommitted(Turn mover, int ply)
+{
     m_committedMover = mover;
-    m_committedPly = static_cast<int>(gameMoves.size());
-    setCurrentPlayer(nextPlayerTurn);
-    return true;
+    m_committedPly = ply;
+    if (m_updateDepth == 0) {
+        m_committedPly = -1;
+        emit moveCommitted(mover, ply);
+    }
 }
 
 // ============================================================
@@ -324,51 +256,12 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
     return true;
 }
 
-
-// ============================================================
-// 対局結果
-// ============================================================
-
-void ShogiGameController::gameResult()
-{
-    if (currentPlayer() == Turn::White) {
-        setResult(Player1Wins);
-    }
-    else if (currentPlayer() == Turn::Black) {
-        setResult(Player2Wins);
-    }
-}
-
 void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileFrom, const int rankFrom) const
 {
     if (!board()) return;
 
     // 二歩や段の必成などの禁止形スキップは board 側で一括処理する
     board()->promoteOrDemotePiece(fileFrom, rankFrom);
-}
-
-
-
-// ============================================================
-// SFEN更新
-// ============================================================
-
-// ============================================================
-// 対局結果制御（時間切れ・投了・最終決定）
-// ============================================================
-
-void ShogiGameController::applyTimeoutLossFor(Turn loser)
-{
-    if (m_result != NoResult) return;
-    setResult(loser == Turn::Black ? Player2Wins : Player1Wins);
-}
-
-void ShogiGameController::finalizeGameResult()
-{
-    if (m_result != NoResult) return;
-
-    // 未確定の場合は currentPlayer に基づく既存ロジックで勝敗をセット
-    gameResult();
 }
 
 void ShogiGameController::endPositionUpdate()

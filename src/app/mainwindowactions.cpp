@@ -9,22 +9,17 @@
 #include "branchnavigationwiring.h"
 #include "branchtreeeditcontroller.h"
 #include "commentcoordinator.h"
-#include "gamerecordupdateservice.h"
-#include "gamesessionorchestrator.h"
-#include "josekiwindowwiring.h"
+#include "gamesession.h"
+#include "josekiwindowcontroller.h"
 #include "kifudisplaycoordinator.h"
 #include "kifufilecontroller.h"
 #include "positioneditcoordinator.h"
 #include "recordnavigationhandler.h"
-#include "recordnavigationhandler.h"
-#include "sessionlifecyclecoordinator.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "uistatepolicymanager.h"
-#include "undoflowservice.h"
 
 #include <QCoreApplication>
-#include <QScopedValueRollback>
 #include <QTimer>
 #include <QWidget>
 #include <utility>
@@ -57,11 +52,9 @@ bool MainWindowActions::recordVariationMove(QPoint& from, QPoint& to)
     return editor != nullptr && editor->recordBoardMove(from, to, m_deps.gameController);
 }
 
-void MainWindowActions::handleMoveCommitted(Turn mover, int ply)
+void MainWindowActions::handleMoveCommitted()
 {
-    m_deps.boardSetup->onMoveCommitted(mover, ply);
-    m_deps.recordUpdates->updateCurrentSfenAfterMove();
-    m_deps.josekiWiring->updateJosekiWindow();
+    m_deps.josekiController->updateJosekiWindow();
 }
 
 void MainWindowActions::onRecordPaneMainRowChanged(int row)
@@ -93,30 +86,20 @@ void MainWindowActions::resetRecordForEditedPosition()
 {
     if (!m_deps.view->board()) return;
 
-    // 行選択の通知で編集局面が以前の棋譜に巻き戻されるのを防ぐ
-    const QScopedValueRollback<bool> guard(m_deps.state->onMainRowGuard, true);
     ShogiBoard* board = m_deps.view->board();
-    const QString sfen = QStringLiteral("%1 %2 %3 1")
-                             .arg(board->convertBoardToSfen(),
-                                  turnToSfen(board->currentPlayer()),
-                                  board->convertStandToSfen());
+    board->setMoveNumber(1);
+    const QString sfen = board->toSfen();
     m_deps.state->startSfenStr = sfen;
     m_deps.state->currentSfenStr = sfen;
-    m_deps.state->gameMoves.clear();
 
     MainWindowResetService().resetModels(m_deps.editedPositionReset, sfen);
     m_deps.comments->broadcastComment(QString(), false);
 }
 
-void MainWindowActions::undoLastTwoMoves()
-{
-    m_deps.undoFlow->undoLastTwoMoves();
-}
-
 void MainWindowActions::resetToInitialState()
 {
     if (!m_deps.kifuFileController->confirmDiscardUnsaved()) return;
-    m_deps.sessionLifecycle->resetToInitialState();
+    m_deps.gameSession->resetToInitialState();
 }
 
 void MainWindowActions::requestQuit()

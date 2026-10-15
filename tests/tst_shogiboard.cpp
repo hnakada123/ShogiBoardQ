@@ -479,17 +479,27 @@ private slots:
         QVERIFY(board.isPieceAvailableOnStand(Piece::BlackPawn, 10));
     }
 
-    // === addSfenRecord ===
+    // === toSfen ===
 
-    void addSfenRecord_basic()
+    void toSfen_usesTurnAndMoveNumber()
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        QStringList history;
-        board.addSfenRecord(Turn::White, 0, &history);
-        QCOMPARE(history.size(), 1);
-        QVERIFY(history[0].contains(QStringLiteral("w")));
-        QVERIFY(history[0].endsWith(QStringLiteral("1")));
+        QCOMPARE(board.toSfen(), kHirateSfen);
+        board.setCurrentPlayer(Turn::White);
+        board.setMoveNumber(12);
+        QCOMPARE(board.toSfen(), QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 12"));
+    }
+
+    /// 指すと手番が替わり、手数が1つ進む
+    void applyUsiMove_advancesTurnAndMoveNumber()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        QVERIFY(board.applyUsiMove(*UsiMove::parse(QStringLiteral("7g7f"))));
+        QCOMPARE(board.currentPlayer(), Turn::White);
+        QCOMPARE(board.moveNumber(), 2);
+        QVERIFY(board.toSfen().endsWith(QStringLiteral(" w - 2")));
     }
 
     // === Mandatory promotion ===

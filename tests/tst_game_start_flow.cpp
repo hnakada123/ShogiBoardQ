@@ -1,47 +1,48 @@
 /// @file tst_game_start_flow.cpp
 /// @brief 対局開始フローの回帰テスト
 ///
-/// GameStartCoordinator の PlayMode 判定、start() バリデーション、
+/// 対局開始ダイアログからの対局者の読み取り、start() バリデーション、
 /// 時間制御正規化、シグナル発火をテストする。
 
 #include <QTest>
 #include <QSignalSpy>
 
+#include "appactivitystate.h"
+#include "enginelifecyclemanager.h"
 #include "gamestartcoordinator.h"
 #include "gamestartoptionsbuilder.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
-#include "playmode.h"
 #include "kifurecordlistmodel.h"
 #include "shogigamecontroller.h"
 #include "usi.h"
 #include <QTemporaryDir>
+#include <memory>
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
 /// テスト用ハーネス: GameStartCoordinator + MatchCoordinator のセットアップ
 struct TestHarness {
-    MatchCoordinator::Deps matchDeps;
-    MatchCoordinator* match = nullptr;
-
-    GameStartCoordinator::Deps gscDeps;
-    GameStartCoordinator* gsc = nullptr;
-
     ShogiClock clock;
     ShogiGameController gc;
-    int initializedCount = 0;
+    AppActivityState activity;
+    EngineLifecycleManager engines{&clock};
+
+    MatchCoordinator* match = nullptr;
+    GameStartCoordinator* gsc = nullptr;
+    std::unique_ptr<QSignalSpy> prepared;  ///< 対局を準備した回数（盤を開始局面にした）
 
     TestHarness()
     {
+        MatchCoordinator::Deps matchDeps;
         matchDeps.gc = &gc;
         matchDeps.clock = &clock;
-        matchDeps.hooks.game.initializeNewGame = [this](const QString& sfen) {
-            ++initializedCount;
-            QString position = sfen;
-            gc.newGame(position);
-        };
+        matchDeps.activity = &activity;
+        matchDeps.engines = &engines;
         match = new MatchCoordinator(matchDeps);
+        prepared = std::make_unique<QSignalSpy>(match, &MatchCoordinator::gamePrepared);
+        GameStartCoordinator::Deps gscDeps;
         gscDeps.match = match;
         gsc = new GameStartCoordinator(gscDeps);
     }
@@ -49,14 +50,17 @@ struct TestHarness {
     ~TestHarness()
     {
         delete gsc;
+        prepared.reset();
         delete match;
+        engines.destroyEngines();
     }
+
+    int initializedCount() const { return static_cast<int>(prepared->count()); }
 
     /// HvH平手の最小 StartParams を構築
     GameStartCoordinator::StartParams makeHvhParams()
     {
         GameStartCoordinator::StartParams p;
-        p.opt.mode = PlayMode::HumanVsHuman;
         p.opt.sfenStart = kHirateSfen;
         p.autoStartEngineMove = false;
         return p;
@@ -66,10 +70,10 @@ struct TestHarness {
     GameStartCoordinator::StartParams makeHveParams()
     {
         GameStartCoordinator::StartParams p;
-        p.opt.mode = PlayMode::EvenHumanVsEngine;
+        p.opt.players.whiteIsEngine = true;
         p.opt.sfenStart = kHirateSfen;
         p.opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        p.opt.engineName2 = QStringLiteral("TestEngine");
+        p.opt.players.whiteEngineName = QStringLiteral("TestEngine");
         p.autoStartEngineMove = false;
         return p;
     }
@@ -78,12 +82,13 @@ struct TestHarness {
     GameStartCoordinator::StartParams makeEveParams()
     {
         GameStartCoordinator::StartParams p;
-        p.opt.mode = PlayMode::EvenEngineVsEngine;
+        p.opt.players.blackIsEngine = true;
+        p.opt.players.whiteIsEngine = true;
         p.opt.sfenStart = kHirateSfen;
         p.opt.enginePath1 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         p.opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        p.opt.engineName1 = QStringLiteral("Engine1");
-        p.opt.engineName2 = QStringLiteral("Engine2");
+        p.opt.players.blackEngineName = QStringLiteral("Engine1");
+        p.opt.players.whiteEngineName = QStringLiteral("Engine2");
         p.autoStartEngineMove = true;
         return p;
     }
@@ -122,10 +127,9 @@ private slots:
     void initializeGameValidatesBeforeCleanup()
     {
         TestHarness h;
-        QString invalid = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
-        const QString original = invalid;
+        const QString invalid = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
         GameStartCoordinator::Ctx ctx;
-        ctx.currentSfenStr = &invalid;
+        ctx.currentSfen = invalid;
         ctx.dialogData.startingPositionNumber = 0;
         ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
         QSignalSpy cleanup(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
@@ -135,8 +139,7 @@ private slots:
         QVERIFY(!error.isEmpty());
         QCOMPARE(cleanup.count(), 0);
         QCOMPARE(time.count(), 0);
-        QCOMPARE(invalid, original);
-        QCOMPARE(h.initializedCount, 0);
+        QCOMPARE(h.initializedCount(), 0);
     }
     void initializeGameAppliesCleanupAndClockOnce()
     {
@@ -151,7 +154,7 @@ private slots:
         QVERIFY(h.gsc->initializeGame(ctx, error));
         QCOMPARE(cleanup.count(), 1);
         QCOMPARE(time.count(), 1);
-        QCOMPARE(h.initializedCount, 1);
+        QCOMPARE(h.initializedCount(), 1);
         QCOMPARE(h.clock.timeControl().black.mainMs, 300000);
         QVERIFY(h.clock.isRunning());
     }
@@ -183,144 +186,64 @@ private slots:
     }
 
     // ============================================================
-    // A) PlayMode 判定: determinePlayModeAlignedWithTurn()
-    //    （静的メソッド、純粋ロジック）
+    // A) 対局者の読み取り: playersFromDialog()
     // ============================================================
 
-    // --- 平手（initPositionNumber == 1）---
-
-    void playMode_even_hvh()
+    void players_fromDialog_data()
     {
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, true, true, kHirateSfen);
-        QCOMPARE(mode, PlayMode::HumanVsHuman);
+        QTest::addColumn<bool>("human1");
+        QTest::addColumn<bool>("engine1");
+        QTest::addColumn<bool>("human2");
+        QTest::addColumn<bool>("engine2");
+        QTest::addColumn<bool>("blackIsEngine");
+        QTest::addColumn<bool>("whiteIsEngine");
+        QTest::newRow("human-human") << true << false << true << false << false << false;
+        QTest::newRow("human-engine") << true << false << false << true << false << true;
+        QTest::newRow("engine-human") << false << true << true << false << true << false;
+        QTest::newRow("engine-engine") << false << true << false << true << true << true;
+        // 両方に印があるときは人間とする
+        QTest::newRow("both-marked") << true << true << true << true << false << false;
     }
 
-    void playMode_even_hve_senteTurn()
+    void players_fromDialog()
     {
-        // 先手:人間, 後手:エンジン, SFEN手番=先手(b)
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, true, false, kHirateSfen);
-        QCOMPARE(mode, PlayMode::EvenHumanVsEngine);
+        QFETCH(bool, human1);
+        QFETCH(bool, engine1);
+        QFETCH(bool, human2);
+        QFETCH(bool, engine2);
+        QFETCH(bool, blackIsEngine);
+        QFETCH(bool, whiteIsEngine);
+        StartGameDialogData data;
+        data.isHuman1 = human1;
+        data.isEngine1 = engine1;
+        data.isHuman2 = human2;
+        data.isEngine2 = engine2;
+        data.humanName1 = QStringLiteral("下手さん");
+        data.humanName2 = QStringLiteral("上手さん");
+        data.engineList = {StartGameDialogData::Engine{QStringLiteral("/a")},
+                           StartGameDialogData::Engine{QStringLiteral("/b")}};
+        data.engineNumber1 = 0;
+        data.engineNumber2 = 1;
+        data.engineName1 = QStringLiteral("A");
+        data.engineName2 = QStringLiteral("B");
+        const MatchPlayers players = GameStartOptionsBuilder::playersFromDialog(data);
+        QCOMPARE(players.blackIsEngine, blackIsEngine);
+        QCOMPARE(players.whiteIsEngine, whiteIsEngine);
+        QCOMPARE(players.name(Turn::Black), blackIsEngine ? QStringLiteral("A") : QStringLiteral("下手さん"));
+        QCOMPARE(players.name(Turn::White), whiteIsEngine ? QStringLiteral("B") : QStringLiteral("上手さん"));
     }
 
-    void playMode_even_evh_senteTurn()
+    /// 対局者は手番によらず座席（先手・後手）で決まる。駒落ちで上手（後手）から指す局面でも同じ
+    void players_doNotDependOnSideToMove()
     {
-        // 先手:エンジン, 後手:人間, SFEN手番=先手(b)
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, false, true, kHirateSfen);
-        QCOMPARE(mode, PlayMode::EvenEngineVsHuman);
-    }
-
-    void playMode_even_eve()
-    {
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, false, false, kHirateSfen);
-        QCOMPARE(mode, PlayMode::EvenEngineVsEngine);
-    }
-
-    void playMode_even_hve_goteTurn()
-    {
-        // 手番が後手(w)の場合:
-        // isPlayer1Human=true → 先手が人間なのにSFEN手番がw
-        // → turn == 'w' かつ isPlayer2Human == false
-        //    → p2 は人間でない → EvenHumanVsEngine
-        const QString goteSfen =
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, true, false, goteSfen);
-        QCOMPARE(mode, PlayMode::EvenHumanVsEngine);
-    }
-
-    void playMode_even_evh_goteTurn()
-    {
-        // 手番が後手(w), 先手:エンジン, 後手:人間
-        const QString goteSfen =
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, false, true, goteSfen);
-        QCOMPARE(mode, PlayMode::EvenEngineVsHuman);
-    }
-
-    void playMode_even_noTurnFallback()
-    {
-        // SFEN手番情報なし → 座席で判定
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, true, false, QStringLiteral("invalid_sfen"));
-        QCOMPARE(mode, PlayMode::EvenHumanVsEngine);
-    }
-
-    // --- 駒落ち（initPositionNumber != 1）---
-
-    void playMode_handicap_hvh()
-    {
-        // 二枚落ち SFEN (手番=後手)
-        const QString nimaiochiSfen =
-            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            7, true, true, nimaiochiSfen);
-        QCOMPARE(mode, PlayMode::HumanVsHuman);
-    }
-
-    void playMode_handicap_hve_goteTurn()
-    {
-        // 駒落ち: 先手が人間（下手）、後手がエンジン（上手）
-        // SFEN手番は後手(w) → HandicapHumanVsEngine
-        const QString nimaiochiSfen =
-            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            7, true, false, nimaiochiSfen);
-        // turn='w', isPlayer2Human=false → HandicapHumanVsEngine
-        QCOMPARE(mode, PlayMode::HandicapHumanVsEngine);
-    }
-
-    void playMode_handicap_evh_goteTurn()
-    {
-        // 駒落ち: 先手がエンジン、後手が人間
-        const QString nimaiochiSfen =
-            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            7, false, true, nimaiochiSfen);
-        QCOMPARE(mode, PlayMode::HandicapEngineVsHuman);
-    }
-
-    void playMode_handicap_eve()
-    {
-        const QString nimaiochiSfen =
-            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            7, false, false, nimaiochiSfen);
-        QCOMPARE(mode, PlayMode::HandicapEngineVsEngine);
-    }
-
-    void playMode_handicap_senteTurn()
-    {
-        // 駒落ちでも先手(b)表記があるSFEN
-        const QString handicapSenteStart =
-            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            7, true, false, handicapSenteStart);
-        // turn='b', isPlayer1Human=true → HandicapHumanVsEngine
-        QCOMPARE(mode, PlayMode::HandicapHumanVsEngine);
-    }
-
-    void playMode_allHandicapPositions()
-    {
-        // 各種駒落ちポジション番号(2-14)で EvE が正しく判定されることを確認
-        const QStringList handicapSfens = {
-            QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 香落ち
-            QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 角落ち
-            QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 飛車落ち
-            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 二枚落ち
-            QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),           // 十枚落ち
-        };
-        const int posNos[] = { 2, 4, 5, 7, 14 };
-
-        for (int i = 0; i < handicapSfens.size(); ++i) {
-            const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-                posNos[i], false, false, handicapSfens.at(i));
-            QCOMPARE(mode, PlayMode::HandicapEngineVsEngine);
-        }
+        StartGameDialogData data;
+        data.isHuman1 = true;
+        data.isEngine2 = true;
+        const QString handicap = GameStartOptionsBuilder::startingPositionSfen(7);
+        const MatchStartOptions opt = GameStartOptionsBuilder::buildStartOptions(handicap, data);
+        QCOMPARE(opt.sfenStart, handicap);
+        QVERIFY(opt.players.isHuman(Turn::Black));
+        QVERIFY(opt.players.isEngine(Turn::White));
     }
 
     // ============================================================
@@ -336,27 +259,11 @@ private slots:
         QSignalSpy spy(&gsc, &GameStartCoordinator::started);
 
         GameStartCoordinator::StartParams p;
-        p.opt.mode = PlayMode::HumanVsHuman;
         p.opt.sfenStart = kHirateSfen;
 
         gsc.start(p);
 
         QCOMPARE(spy.count(), 0);
-    }
-
-    void start_notStartedMode_noSignalEmitted()
-    {
-        // PlayMode::NotStarted の場合、started シグナルが発火しないこと
-        TestHarness h;
-        QSignalSpy spy(h.gsc, &GameStartCoordinator::started);
-
-        GameStartCoordinator::StartParams p;
-        p.opt.mode = PlayMode::NotStarted;
-
-        h.gsc->start(p);
-
-        QCOMPARE(spy.count(), 0);
-        QVERIFY(!(h.initializedCount > 0));
     }
 
     // ============================================================
@@ -397,7 +304,7 @@ private slots:
 
         QCOMPARE(started.count(), 0);
         QCOMPARE(timeControl.count(), 0);
-        QVERIFY(!(h.initializedCount > 0));
+        QVERIFY(!(h.initializedCount() > 0));
         QVERIFY(!h.clock.isRunning());
     }
 
@@ -423,7 +330,7 @@ private slots:
         QSignalSpy started(h.gsc, &GameStartCoordinator::started);
         h.gsc->start(p);
         QCOMPARE(started.count(), 1);
-        QVERIFY((h.initializedCount > 0));
+        QVERIFY((h.initializedCount() > 0));
     }
 
     void start_hvh_emitsStartedSignal()
@@ -435,8 +342,8 @@ private slots:
         h.gsc->start(p);
 
         QCOMPARE(spy.count(), 1);
-        QVERIFY((h.initializedCount > 0));
-        QCOMPARE(h.match->playMode(), PlayMode::HumanVsHuman);
+        QVERIFY((h.initializedCount() > 0));
+        QVERIFY(h.match->players().humanVsHuman());
     }
 
     void start_hve_configuresCalled()
@@ -448,8 +355,9 @@ private slots:
         h.gsc->start(p);
 
         QCOMPARE(spy.count(), 1);
-        QVERIFY((h.initializedCount > 0));
-        QCOMPARE(h.match->playMode(), PlayMode::EvenHumanVsEngine);
+        QVERIFY((h.initializedCount() > 0));
+        QVERIFY(h.match->players().isHuman(Turn::Black));
+        QVERIFY(h.match->players().isEngine(Turn::White));
     }
 
     void start_eve_triggersInitialEngineMove()
@@ -459,9 +367,9 @@ private slots:
         auto p = h.makeEveParams();
         h.gsc->start(p);
 
-        QVERIFY((h.initializedCount > 0));
-        QVERIFY(h.match->primaryEngine());
-        QSignalSpy ready(h.match->primaryEngine(), &Usi::matchMoveReady);
+        QVERIFY((h.initializedCount() > 0));
+        QVERIFY(h.engines.engineInSlot(1));
+        QSignalSpy ready(h.engines.engineInSlot(1), &Usi::matchMoveReady);
         QTRY_VERIFY_WITH_TIMEOUT(!ready.isEmpty(), 5000);
     }
 
@@ -606,8 +514,8 @@ private slots:
 
         h.gsc->start(p);
 
-        QVERIFY((h.initializedCount > 0));
-        QCOMPARE(h.match->maxMoves(), 256);
+        QVERIFY((h.initializedCount() > 0));
+        QCOMPARE(h.match->options().maxMoves, 256);
     }
 
 
@@ -621,26 +529,6 @@ private slots:
 
 
 
-
-    // ============================================================
-    // H) PlayMode 判定: エッジケース
-    // ============================================================
-
-    void playMode_emptySfen()
-    {
-        // 空のSFEN → フォールバック
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, true, false, QString());
-        QCOMPARE(mode, PlayMode::EvenHumanVsEngine);
-    }
-
-    void playMode_startpos()
-    {
-        // "startpos" 文字列 → 手番情報なし → フォールバック
-        const PlayMode mode = GameStartCoordinator::determinePlayModeAlignedWithTurn(
-            1, false, true, QStringLiteral("startpos"));
-        QCOMPARE(mode, PlayMode::EvenEngineVsHuman);
-    }
 
     // ============================================================
     // I) 複数回 start() を呼んでも安全

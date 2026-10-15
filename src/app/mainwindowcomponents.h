@@ -38,23 +38,21 @@ class KifuNavigationState;
 class LiveGameSession;
 
 // 対局
+class AnalysisSession;
 class ConsecutiveGamesController;
-class GameSessionOrchestrator;
+class EngineLifecycleManager;
+class GameSession;
 class GameStartCoordinator;
-class GameStateController;
 class MatchCoordinator;
-class MatchCoordinatorWiring;
 class PreStartCleanupHandler;
 class ReplayController;
-class SessionLifecycleCoordinator;
 class TimeControlController;
 class TimeDisplayPresenter;
 
 // 棋譜
 class BranchNavigationWiring;
 class GameRecordLoadService;
-class GameRecordUpdateService;
-class JosekiWindowWiring;
+class JosekiWindowController;
 class KifuExportController;
 class KifuFileController;
 class KifuLoadCoordinator;
@@ -67,12 +65,11 @@ class BoardLoadService;
 class BoardSetupController;
 class BoardSyncPresenter;
 class CommentCoordinator;
-class ConsiderationPositionService;
-class ConsiderationWiring;
+class ConsiderationUiController;
 class CsaGameWiring;
 class DialogCoordinator;
 class DialogCoordinatorWiring;
-class DialogLaunchWiring;
+class DialogLauncher;
 class DockCreationService;
 class DockLayoutManager;
 class EvaluationGraphController;
@@ -82,12 +79,11 @@ class JishogiScoreDialogController;
 class LanguageController;
 class MainWindowActions;
 class MainWindowAppearanceController;
-class MenuWindowWiring;
+class MenuWindowController;
 class NyugyokuDeclarationHandler;
 class PieceSoundPlayer;
-class PlayModePolicyService;
-class PlayerInfoController;
-class PlayerInfoWiring;
+class HumanTurnPolicy;
+class PlayerInfoPresenter;
 class PositionEditController;
 class PositionEditCoordinator;
 class PvClickController;
@@ -97,7 +93,6 @@ class TurnStateSyncService;
 class UiActionsWiring;
 class UiNotificationService;
 class UiStatePolicyManager;
-class UndoFlowService;
 class UsiCommandController;
 
 // 自動化
@@ -161,30 +156,27 @@ struct MainWindowComponents {
     KifuDisplayCoordinator* displayCoordinator = nullptr;
     LiveGameSession* liveGameSession = nullptr;
 
-    // --- 対局 ---
-    std::unique_ptr<MatchCoordinatorWiring> matchWiring;
-    MatchCoordinator* match = nullptr;                  ///< matchWiring が所有
-    GameStartCoordinator* gameStart = nullptr;          ///< matchWiring の子
+    // --- 対局・検討 ---
+    EngineLifecycleManager* engines = nullptr;          ///< エンジンの枠 E1・E2（対局と検討で共有）
+    MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
+    AnalysisSession* analysisSession = nullptr;         ///< 検討・詰み探索
+    GameStartCoordinator* gameStart = nullptr;
+    GameSession* gameSession = nullptr;                 ///< 対局の流れの UI 側（棋譜の受け手）
     TimeControlController* timeController = nullptr;
     TimeDisplayPresenter* timePresenter = nullptr;
     ReplayController* replayController = nullptr;
-    GameStateController* gameStateController = nullptr;
     ConsecutiveGamesController* consecutiveGamesController = nullptr;
     PreStartCleanupHandler* preStartCleanupHandler = nullptr;
-    GameSessionOrchestrator* gameSessionOrchestrator = nullptr;
-    SessionLifecycleCoordinator* sessionLifecycle = nullptr;
-    std::unique_ptr<PlayModePolicyService> playModePolicy;
+    std::unique_ptr<HumanTurnPolicy> humanTurnPolicy;
     std::unique_ptr<TurnStateSyncService> turnStateSync;
-    std::unique_ptr<UndoFlowService> undoFlowService;
     std::unique_ptr<CsaGameWiring> csaGameWiring;
 
     // --- 棋譜 ---
     std::unique_ptr<BranchNavigationWiring> branchNavWiring;
     std::unique_ptr<KifuNavigationCoordinator> kifuNavCoordinator;
-    std::unique_ptr<GameRecordUpdateService> gameRecordUpdateService;
     std::unique_ptr<GameRecordLoadService> gameRecordLoadService;
     std::unique_ptr<KifuExportController> kifuExportController;
-    std::unique_ptr<JosekiWindowWiring> josekiWiring;
+    std::unique_ptr<JosekiWindowController> josekiController;
     KifuFileController* kifuFileController = nullptr;
     KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
 
@@ -205,12 +197,11 @@ struct MainWindowComponents {
     UiActionsWiring* actionsWiring = nullptr;
     DialogCoordinatorWiring* dialogCoordinatorWiring = nullptr;
     DialogCoordinator* dialogCoordinator = nullptr;     ///< dialogCoordinatorWiring が作る
-    DialogLaunchWiring* dialogLaunchWiring = nullptr;
-    MenuWindowWiring* menuWiring = nullptr;
+    DialogLauncher* dialogLauncher = nullptr;
+    MenuWindowController* menuWindowController = nullptr;
     PieceSoundPlayer* pieceSoundPlayer = nullptr;
-    PlayerInfoWiring* playerInfoWiring = nullptr;
-    PlayerInfoController* playerInfoController = nullptr;   ///< playerInfoWiring が作る
-    GameInfoPaneController* gameInfoController = nullptr;   ///< playerInfoWiring が作る
+    PlayerInfoPresenter* playerInfo = nullptr;
+    GameInfoPaneController* gameInfoController = nullptr;   ///< playerInfo が作る
     UiStatePolicyManager* uiStatePolicy = nullptr;
     UiNotificationService* notificationService = nullptr;
     CommentCoordinator* commentCoordinator = nullptr;
@@ -221,8 +212,7 @@ struct MainWindowComponents {
     PositionEditController* posEdit = nullptr;
     PositionEditCoordinator* posEditCoordinator = nullptr;
     PvClickController* pvClickController = nullptr;
-    ConsiderationPositionService* considerationPositionService = nullptr;
-    ConsiderationWiring* considerationWiring = nullptr;
+    ConsiderationUiController* considerationUi = nullptr;
     RecordNavigationHandler* recordNavHandler = nullptr;
 
     // --- 自動化 ---

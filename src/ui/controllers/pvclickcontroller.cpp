@@ -2,6 +2,8 @@
 /// @brief 読み筋クリックコントローラクラスの実装
 
 #include "pvclickcontroller.h"
+
+#include "appstate.h"
 #include "kifunavigationstate.h"
 
 #include "logcategories.h"
@@ -58,20 +60,11 @@ void PvClickController::setShogiView(ShogiView* view)
 
 void PvClickController::syncFromRefs()
 {
-    if (m_stateRefs.playMode)
-        m_playMode = *m_stateRefs.playMode;
-    if (m_stateRefs.humanName1)
-        m_humanName1 = *m_stateRefs.humanName1;
-    if (m_stateRefs.humanName2)
-        m_humanName2 = *m_stateRefs.humanName2;
-    if (m_stateRefs.engineName1)
-        m_engineName1 = *m_stateRefs.engineName1;
-    if (m_stateRefs.engineName2)
-        m_engineName2 = *m_stateRefs.engineName2;
-    if (m_stateRefs.currentSfenStr)
-        m_currentSfenStr = *m_stateRefs.currentSfenStr;
-    if (m_stateRefs.startSfenStr)
-        m_startSfenStr = *m_stateRefs.startSfenStr;
+    if (const AppState* state = m_stateRefs.state) {
+        m_players = state->players;
+        m_currentSfenStr = state->currentSfenStr;
+        m_startSfenStr = state->startSfenStr;
+    }
     m_line = m_stateRefs.navState ? m_stateRefs.navState->currentRecordLine() : RecordLine{};
     m_boardFlipped = m_shogiView ? m_shogiView->flipMode() : false;
 }
@@ -129,7 +122,7 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     qCDebug(lcUi) << "onPvRowClicked: currentSfen=" << currentSfen;
     qCDebug(lcUi) << "onPvRowClicked: record->baseSfen()=" << record->baseSfen();
     qCDebug(lcUi) << "onPvRowClicked: record->lastUsiMove()=" << record->lastUsiMove();
-    qCDebug(lcUi) << "onPvRowClicked: line positions=" << m_line.sfens.size();
+    qCDebug(lcUi) << "onPvRowClicked: line positions=" << m_line.moveCount() + 1;
 
     // 起動時の局面に至った最後の手を設定（読み筋生成時に保存された情報）
     QString lastUsiMove = record->lastUsiMove();
@@ -219,8 +212,8 @@ void PvClickController::resolveHighlightContext(const QString& currentSfen,
     if (currentSfen.isEmpty()) return;
     const QString curNorm = normalizedSfen(currentSfen);
     int ply = -1;
-    for (int i = 0; i < m_line.sfens.size(); ++i) {
-        if (normalizedSfen(m_line.sfens.at(i)) == curNorm) {
+    for (int i = 0; i <= m_line.moveCount(); ++i) {
+        if (normalizedSfen(m_line.sfenAt(i)) == curNorm) {
             ply = i;
             break;
         }
@@ -228,7 +221,7 @@ void PvClickController::resolveHighlightContext(const QString& currentSfen,
     qCDebug(lcUi) << "onPvRowClicked: ply of base position in current line=" << ply;
     if (ply <= 0) return;
 
-    prevSfenForHighlight = m_line.sfens.at(ply - 1);
+    prevSfenForHighlight = m_line.sfenAt(ply - 1);
     if (lastUsiMove.isEmpty()) {
         lastUsiMove = m_line.usiMove(ply).toString();
     }
@@ -242,7 +235,7 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
     // 読み筋に局面が付いていなければ、表示中の局面とみなす
     const QString displayedSfen = !m_currentSfenStr.isEmpty()
         ? m_currentSfenStr
-        : m_line.sfens.value(m_line.currentPly).trimmed();
+        : m_line.sfenAt(m_line.currentPly).trimmed();
     if (currentSfen.isEmpty()) {
         currentSfen = displayedSfen;
     }
@@ -265,31 +258,8 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
 
 void PvClickController::resolvePlayerNames(QString& blackName, QString& whiteName) const
 {
-    switch (m_playMode) {
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
-        break;
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::HandicapEngineVsHuman:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
-        break;
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapEngineVsEngine:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
-        break;
-    case PlayMode::HumanVsHuman:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
-        break;
-    default:
-        blackName = m_humanName1.isEmpty() ? m_engineName1 : m_humanName1;
-        whiteName = m_humanName2.isEmpty() ? m_engineName2 : m_humanName2;
-        if (blackName.isEmpty()) blackName = tr("先手");
-        if (whiteName.isEmpty()) whiteName = tr("後手");
-        break;
-    }
+    blackName = m_players.name(Turn::Black);
+    whiteName = m_players.name(Turn::White);
+    if (blackName.isEmpty()) blackName = tr("先手");
+    if (whiteName.isEmpty()) whiteName = tr("後手");
 }

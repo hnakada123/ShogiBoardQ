@@ -38,12 +38,6 @@ void UiNotificationService::displayErrorMessage(const QString& message)
 void UiNotificationService::displayMessage(ErrorBus::ErrorLevel level, const QString& message)
 {
     // エラーを表示しても盤面の描画と操作は止めない（棋譜の読み込み失敗などは表示中の局面に影響しない）
-    if (level == ErrorBus::ErrorLevel::Error || level == ErrorBus::ErrorLevel::Critical) {
-        if (m_deps.errorOccurred) {
-            *m_deps.errorOccurred = true;
-        }
-    }
-
     if (s_activeCapture != nullptr) {
         const bool isError = level == ErrorBus::ErrorLevel::Error || level == ErrorBus::ErrorLevel::Critical;
         (isError ? s_activeCapture->m_errors : s_activeCapture->m_notices).append(message);

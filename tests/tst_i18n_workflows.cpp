@@ -13,7 +13,8 @@
 #include "kifubranchtree.h"
 #include "gamerecordmodel.h"
 #include "gamerecordpresenter.h"
-#include "gamerecordupdateservice.h"
+#include "appstate.h"
+#include "gamesession.h"
 #include "kifudisplaycoordinator.h"
 #include "kifunavigationstate.h"
 #include "livegamesession.h"
@@ -26,7 +27,8 @@
 #include "pvboarddialog.h"
 #include "csagameprogress.h"
 #include "kifuconversionservice.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "sfenutils.h"
 #include "analysisresulthandler.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisresultsdisplay.h"
@@ -165,11 +167,10 @@ private slots:
         QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_") + language + ".qm"));
         qApp->installTranslator(&translator);
         KifuPresentation::configure(language, "auto", false);
-        SfenPositionTracer board;
-        const QString initial = board.toSfenString();
+        const QString initial = SfenUtils::hirateSfen();
         const QStringList usiMoves = QStringList{"7g7f", "3c3d"}.mid(0, plies);
-        auto moves = SfenPositionTracer::buildGameMoves(initial, usiMoves);
-        auto history = SfenPositionTracer::buildSfenRecord(initial, usiMoves, false);
+        auto moves = SfenReplay::buildGameMoves(initial, usiMoves);
+        auto history = SfenReplay::buildSfenRecord(initial, usiMoves, false);
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         auto* node = tree.root();
@@ -191,10 +192,15 @@ private slots:
         display.setRecordModel(&rows);
         display.setLiveGameSession(&session);
         display.wireSignals();
-        GameRecordUpdateService::Deps deps;
-        deps.sfenRecord = &history;
-        deps.liveGameSession = &session;
-        GameRecordUpdateService service(deps);
+        // 棋譜の受け手（本体と同じ GameSession。追記に使う部品だけ渡す）
+        AppState state;
+        GameRecordModel recordModel;
+        GameSession service;
+        GameSession::Deps deps;
+        deps.state = &state;
+        deps.liveSession = &session;
+        deps.gameRecord = &recordModel;
+        service.setDeps(deps);
         const QString terminal = (plies == 2 ? QStringLiteral("▲") : QStringLiteral("△"))
             + QStringLiteral("時間切れ");
         service.appendRecord(RecordEntry::ending(TerminalType::Timeout,
@@ -227,21 +233,16 @@ private slots:
 
     void whiteStartAnalysisUsesPositionAndMoveIdentity()
     {
-        SfenPositionTracer board;
-        QString initial = board.toSfenString();
+        QString initial = SfenUtils::hirateSfen();
         initial.replace(" b ", " w ");
-        QVERIFY(board.setFromSfen(initial));
-        QStringList history{initial};
-        QVERIFY(board.applyUsiMove("3c3d"));
-        history.append(board.toSfenString());
+        QStringList history{initial, SfenReplay::positionAfter(initial, "3c3d")};
+        QVERIFY(!history.last().isEmpty());
         QStringList moves{QStringLiteral("3c3d")};
         KifuAnalysisListModel model;
         AnalysisResultHandler handler;
         AnalysisResultHandler::Refs refs;
         refs.analysisModel = &model;
-        RecordLine line;
-        line.sfens = history;
-        line.moves = SfenPositionTracer::buildGameMoves(initial, moves);
+        RecordLine line = RecordLine::fromPositions(history, SfenReplay::buildGameMoves(initial, moves));
         refs.line = &line;
         handler.setRefs(refs);
         KifuPresentation::configure("en", "auto", false);
@@ -254,7 +255,7 @@ private slots:
         QCOMPARE(model.index(1, 1).data().toString(), QStringLiteral("△P-3d"));
         QCOMPARE(model.index(1, 2).data().toString(), QStringLiteral("◯"));
         // Equal labels must not create a match between different positions.
-        model.item(1)->candidateSfen = board.toSfenString();
+        model.item(1)->candidateSfen = history.last();
         QVERIFY(model.index(1, 2).data().toString().isEmpty());
     }
 

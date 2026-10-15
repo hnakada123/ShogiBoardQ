@@ -37,10 +37,10 @@ public:
      * @brief 入玉宣言を実行する
      * @param parentWidget 親ウィジェット（ダイアログの親）
      * @param board 現在の盤面データ
-     * @param playMode 現在のプレイモード
+     * @param inLocalGame ローカルの対局中か
      * @return 宣言が実行されたかどうか（キャンセル時はfalse）
      */
-    bool handleDeclaration(QWidget* parentWidget, ShogiBoard* board, int playMode);
+    bool handleDeclaration(QWidget* parentWidget, ShogiBoard* board, bool inLocalGame);
 
 private:
     ShogiGameController* m_gameController = nullptr;

@@ -21,6 +21,7 @@ class KifuFileController;
 class KifuExportController;
 class GameRecordModel;
 class CsaGameWiring;
+class AnalysisSession;
 
 /**
  * @brief 自動化 API が参照するアプリの状態と部品（すべて非所有）
@@ -33,7 +34,8 @@ struct AutomationContext {
     ShogiView* shogiView = nullptr;
     KifuBranchTree* branchTree = nullptr;
 
-    const AppState* state = nullptr;                          ///< 対局モード・局面・保存先・エンジン名
+    const AppState* state = nullptr;                          ///< 動作状態・対局者・局面・保存先
+    const AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（エンジン名）
     const KifuNavigationState* navState = nullptr;            ///< 表示中の手数（分岐ツリーのカーソル）
     KifuNavigationController* navigationController = nullptr;
     UiStatePolicyManager* uiStatePolicy = nullptr;

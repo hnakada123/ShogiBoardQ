@@ -61,37 +61,17 @@ QList<KifGameInfoItem> KifuExportMetadataBuilder::collect(const KifuExportMetada
 
 void KifuExportMetadataBuilder::resolvePlayerNames(const KifuExportMetadata& ctx, QString& outBlack, QString& outWhite)
 {
-    switch (ctx.playMode) {
-    case PlayMode::HumanVsHuman:
-        outBlack = ctx.human1.isEmpty() ? QObject::tr("先手") : ctx.human1;
-        outWhite = ctx.human2.isEmpty() ? QObject::tr("後手") : ctx.human2;
-        break;
-    case PlayMode::EvenHumanVsEngine:
-        outBlack = ctx.human1.isEmpty()  ? QObject::tr("先手")   : ctx.human1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine") : ctx.engine2;
-        break;
-    case PlayMode::EvenEngineVsHuman:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine") : ctx.engine1;
-        outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
-        break;
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapEngineVsEngine:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine1") : ctx.engine1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine2") : ctx.engine2;
-        break;
-    case PlayMode::HandicapEngineVsHuman:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine") : ctx.engine1;
-        outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
-        break;
-    case PlayMode::HandicapHumanVsEngine:
-        outBlack = ctx.human1.isEmpty()  ? QObject::tr("先手")   : ctx.human1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine") : ctx.engine2;
-        break;
-    default:
-        outBlack = QObject::tr("先手");
-        outWhite = QObject::tr("後手");
-        break;
-    }
+    const MatchPlayers& players = ctx.players;
+    // 名前が無いときは、人間なら先手・後手、エンジンなら Engine（エンジン同士なら Engine1・Engine2）
+    const auto fallback = [&players](Turn side) {
+        if (!players.isEngine(side)) return side == Turn::Black ? QObject::tr("先手") : QObject::tr("後手");
+        if (!players.engineVsEngine()) return QObject::tr("Engine");
+        return side == Turn::Black ? QObject::tr("Engine1") : QObject::tr("Engine2");
+    };
+    outBlack = players.name(Turn::Black);
+    outWhite = players.name(Turn::White);
+    if (outBlack.isEmpty()) outBlack = fallback(Turn::Black);
+    if (outWhite.isEmpty()) outWhite = fallback(Turn::White);
 }
 
 QString KifuExportMetadataBuilder::handicapLabel(const QString& startSfen)

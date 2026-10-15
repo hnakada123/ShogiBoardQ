@@ -9,13 +9,13 @@ class Usi : public QObject
 {
     Q_OBJECT
 public:
-    Usi(void*, void*, void*, QObject* parent) : QObject(parent) {}
+    Usi(void*, void*, QObject* parent) : QObject(parent) {}
     bool isInitializing() const { return false; }
-    bool startAndInitializeEngineAsync(const QString&, const QString&) { return true; }
+    bool startEngine(const QString&, const QString&) { return true; }
     void cancelCurrentOperation() {}
     void cleanupEngineProcessAndThread(bool = true) {}
     void sendStopCommand() { ++stops; }
-    void sendPositionAndGoMateCommands(int timeout, QString& position)
+    void sendMateSearch(const QString& position, int timeout)
     {
         positions.append(position);
         timeouts.append(timeout);

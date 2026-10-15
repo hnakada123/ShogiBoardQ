@@ -29,6 +29,7 @@ namespace {
 // レイアウト定数（ノード配置・シーン範囲・ラベル位置で共有）
 constexpr qreal kBaseX  = 40.0;
 constexpr qreal kShiftX = 40.0;
+constexpr qreal kBaseY  = 40.0;
 constexpr qreal kStepY  = 56.0;
 constexpr qreal kRadius = 8.0;
 constexpr qreal kHeaderHeight = 22.0;   ///< 手数見出しの帯の高さ
@@ -150,11 +151,11 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const KifuBranch
     }
 
     // 折りたたんだ変化の先頭には、隠れている手の数を表示する
-    if (row >= 1 && isRowCollapsed(row) && ply == qMax(1, m_rows.at(row).startPly)) {
+    if (row >= 1 && isRowCollapsed(row) && ply == qMax(1, m_layout.rows.at(row).startPly)) {
         QPen dashed(Qt::black, 1.2);
         dashed.setStyle(Qt::DashLine);
         item->setPen(dashed);
-        auto* badge = m_scene->addSimpleText(QStringLiteral("▸ +%1").arg(hiddenNodeCount(row)), BADGE_FONT);
+        auto* badge = m_scene->addSimpleText(QStringLiteral("▸ +%1").arg(m_layout.hiddenNodeCount(row)), BADGE_FONT);
         badge->setParentItem(item);
         badge->setBrush(m_branchTree ? m_branchTree->palette().color(QPalette::Text) : QColor(Qt::black));
         const QRectF bbr = badge->boundingRect();
@@ -226,14 +227,14 @@ void BranchTreeManager::rebuildBranchTree()
     // 折りたたみの操作などで作り直すときも、その時点のツリーを描く
     syncRowsFromTree();
     rememberTreeState();
-    computeLayout();
+    m_layout.assignLanes(m_compactLayout);
     const QList<BranchLine> lines = m_tree ? m_tree->allLines() : QList<BranchLine>();
 
     const QFont LABEL_FONT(QApplication::font().family(), 10);
     m_columnSpacing = 110.0;
     for (qsizetype row = 0; row < lines.size(); ++row) {
         const QList<KifuBranchNode*>& nodes = lines.at(row).nodes;
-        for (qsizetype ply = qMax(1, m_rows.at(row).startPly); ply < nodes.size(); ++ply)
+        for (qsizetype ply = qMax(1, m_layout.rows.at(row).startPly); ply < nodes.size(); ++ply)
             m_columnSpacing = qMax(m_columnSpacing, requiredColumnSpacing(nodes.at(ply)));
     }
 
@@ -294,8 +295,8 @@ void BranchTreeManager::rebuildBranchTree()
         const int r = static_cast<int>(row);
         if (laneForRow(r) < 0) continue;   // 折りたたみで隠れている
         const QList<KifuBranchNode*>& nodes = lines.at(row).nodes;
-        const int startPly = qMax(1, m_rows.at(row).startPly);
-        const int lastPly = lastVisiblePly(r);
+        const int startPly = qMax(1, m_layout.rows.at(row).startPly);
+        const int lastPly = m_layout.lastVisiblePly(r);
         for (int ply = startPly; ply <= lastPly && ply < nodes.size(); ++ply) {
             const KifuBranchNode* node = nodes.at(ply);
             // 直前の手（分岐の先頭なら分岐元の手）。終局の手からは線を出さず、その前の手につなぐ
@@ -312,8 +313,8 @@ void BranchTreeManager::rebuildBranchTree()
             addEdge(prev, item);
         }
     }
-    qCDebug(lcUi).noquote() << "[BTM] rebuildBranchTree: rows=" << m_rows.size()
-                            << "lanes=" << m_laneCount << "compact=" << m_compactLayout;
+    qCDebug(lcUi).noquote() << "[BTM] rebuildBranchTree: rows=" << m_layout.rows.size()
+                            << "lanes=" << m_layout.laneCount() << "compact=" << m_compactLayout;
 
     // ===== 手数の見出し =====
     const int maxAbsPly = maxDrawnPly();
@@ -331,8 +332,8 @@ void BranchTreeManager::rebuildBranchTree()
 
 int BranchTreeManager::rowDispCount(int row) const
 {
-    if (row < 0 || row >= m_rows.size()) return 0;
-    return m_rows.at(row).length;
+    if (row < 0 || row >= m_layout.rows.size()) return 0;
+    return m_layout.rows.at(row).length;
 }
 
 bool BranchTreeManager::appendNode(const KifuBranchNode* node)
@@ -344,8 +345,8 @@ bool BranchTreeManager::appendNode(const KifuBranchNode* node)
     QGraphicsPathItem* prev = itemForNode(node->parent());
     if (!prev || prev->data(ROLE_PLY).toInt() != ply - 1) return false;
     const int row = prev->data(ROLE_ROW).toInt();
-    if (row < 0 || row >= m_rows.size()) return false;
-    RowInfo& rv = m_rows[row];
+    if (row < 0 || row >= m_layout.rows.size()) return false;
+    BranchTreeLayout::Row& rv = m_layout.rows[row];
     if (rv.length != ply || nodeAt(row, ply) != node) return false;
 
     // 折りたたみで隠れている行は全再構築に任せる（現在の手を見せるため展開される）
@@ -354,9 +355,9 @@ bool BranchTreeManager::appendNode(const KifuBranchNode* node)
     // 詰めた配置では、伸びた先に同じ段の別の変化があれば配置し直す
     if (m_compactLayout) {
         const int lane = laneForRow(row);
-        for (qsizetype other = 0; other < m_rows.size(); ++other) {
+        for (qsizetype other = 0; other < m_layout.rows.size(); ++other) {
             if (other == row || laneForRow(static_cast<int>(other)) != lane) continue;
-            const int otherStart = qMax(1, m_rows.at(other).startPly);
+            const int otherStart = qMax(1, m_layout.rows.at(other).startPly);
             if (otherStart > rv.startPly && otherStart <= ply + 1) return false;
         }
     }
@@ -419,10 +420,10 @@ void BranchTreeManager::removeMoveNumberLabel(int ply)
 void BranchTreeManager::updateSceneRect()
 {
     if (!m_scene) return;
-    const int mainLen = m_rows.isEmpty() ? 0 : qMax(0, m_rows.at(0).length - 1);
+    const int mainLen = m_layout.rows.isEmpty() ? 0 : qMax(0, m_layout.rows.at(0).length - 1);
     const int spanLen = qMax(mainLen, maxDrawnPly());
     const qreal width  = (kBaseX + kShiftX) + m_columnSpacing * qMax(40, spanLen + 6) + 40.0;
-    const qreal height = 30 + kStepY * static_cast<qreal>(qMax(2, m_laneCount + 1));
+    const qreal height = 30 + kStepY * static_cast<qreal>(qMax(2, m_layout.laneCount() + 1));
     m_scene->setSceneRect(QRectF(0, 0, width, height));
     if (m_headerBand) m_headerBand->setRect(QRectF(0, 0, width, kHeaderHeight));
     updateStickyHeader();
@@ -434,4 +435,9 @@ void BranchTreeManager::updateStickyHeader()
     // 見えている範囲の上端に帯を置く（スクロールしても手数が読める）
     const qreal visibleTop = m_branchTree->mapToScene(QPoint(0, 0)).y();
     m_headerBand->setY(qMax<qreal>(0.0, visibleTop));
+}
+
+qreal BranchTreeManager::laneY(int lane) const
+{
+    return kBaseY + qMax(0, lane) * kStepY;
 }

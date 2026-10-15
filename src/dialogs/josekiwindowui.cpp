@@ -11,7 +11,8 @@
 #include "kifumovedelegate.h"
 #include "kifupresentation.h"
 #include "logcategories.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "tablestyles.h"
 
 #include <QAction>
@@ -389,9 +390,6 @@ void JosekiWindow::rebuildTableRows(const QList<JosekiMove> &moves)
     if (rows == 0) return;
     m_tableWidget->scrollToTop();
 
-    SfenPositionTracer tracer;
-    (void)tracer.setFromSfen(m_currentSfen);
-
     QLocale locale = QLocale::system();
     locale.setNumberOptions(QLocale::DefaultNumberOptions);
     const QString buttonStyle = ButtonStyles::panelToolButton();
@@ -412,15 +410,13 @@ void JosekiWindow::rebuildTableRows(const QList<JosekiMove> &moves)
         else
             m_tableWidget->removeCellWidget(i, 1);
 
-        auto *moveItem = new QTableWidgetItem(JosekiPresenter::usiMoveToJapanese(move.move, tracer));
+        auto *moveItem = new QTableWidgetItem(JosekiPresenter::usiMoveToJapanese(move.move, m_currentSfen));
         moveItem->setTextAlignment(Qt::AlignCenter);
         moveItem->setToolTip(m_humanCanPlay ? move.move + QLatin1Char('\n') + doubleClickTip : move.move);
         m_tableWidget->setItem(i, 2, moveItem);
 
-        // 同じ局面を手ごとに解析し直さず、解析済みの局面を写して1手進める
-        SfenPositionTracer nextTracer = tracer;
-        (void)nextTracer.applyUsiMove(move.move);
-        auto *nextMoveItem = new QTableWidgetItem(JosekiPresenter::usiMoveToJapanese(move.nextMove, nextTracer));
+        const QString nextSfen = SfenReplay::positionAfter(m_currentSfen, move.move);
+        auto *nextMoveItem = new QTableWidgetItem(JosekiPresenter::usiMoveToJapanese(move.nextMove, nextSfen));
         nextMoveItem->setToolTip(move.nextMove);
         nextMoveItem->setTextAlignment(Qt::AlignCenter);
         m_tableWidget->setItem(i, 3, nextMoveItem);

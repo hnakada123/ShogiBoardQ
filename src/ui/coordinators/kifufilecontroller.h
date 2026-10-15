@@ -1,0 +1,113 @@
+#ifndef KIFUFILECONTROLLER_H
+#define KIFUFILECONTROLLER_H
+
+/// @file kifufilecontroller.h
+/// @brief 棋譜ファイル操作（開く・保存・上書き・貼り付け・自動保存）を担当するクラスの定義
+
+#include <QObject>
+#include <QPointer>
+#include <functional>
+
+
+struct AppState;
+class QWidget;
+class QStatusBar;
+class KifuExportController;
+class KifuLoadCoordinator;
+class QProgressDialog;
+class KifuPasteDialog;
+class GameRecordModel;
+class GameInfoPaneController;
+class ReplayController;
+
+/**
+ * @brief 棋譜ファイルI/O操作を担当するコントローラ
+ *
+ * 責務:
+ * - 棋譜ファイルの選択と読み込み
+ * - 棋譜ファイルの保存・上書き保存・自動保存
+ * - クリップボードからの棋譜貼り付け
+ * - SFEN局面の読み込み
+ */
+class KifuFileController : public QObject
+{
+    Q_OBJECT
+
+public:
+    struct Deps {
+        QWidget* parentWidget = nullptr;           ///< 親ウィジェット（ダイアログ表示用）
+        QStatusBar* statusBar = nullptr;           ///< ステータスバー
+        GameInfoPaneController* gameInfo = nullptr; ///< 対局情報（未保存の確認と読み込み先）
+        AppState* state = nullptr;                 ///< 上書き保存先（saveFileName）。読み込み成功時に更新、貼り付け・局面反映時にクリア
+        GameRecordModel* gameRecord = nullptr;     ///< 未保存変更を確認する棋譜モデル
+        KifuExportController* exportController = nullptr;  ///< 保存・書き出し
+        KifuLoadCoordinator* loadCoordinator = nullptr;    ///< 読み込み（全部の読み込みで1つを使い回す）
+        ReplayController* replayController = nullptr;      ///< 読み込んだ棋譜は再生モードで見る
+        /// 棋譜を読み込む前に前の対局のログ・グラフ・コメントを消す（SessionLifecycleCoordinator）
+        std::function<void()> clearUiBeforeKifuLoad;
+    };
+
+    explicit KifuFileController(QObject* parent = nullptr);
+
+    void updateDeps(const Deps& deps);
+
+    /// 未保存変更の確認。保存失敗・キャンセル時は呼び出し元の操作を中止する。
+    [[nodiscard]] bool confirmDiscardUnsaved();
+
+public slots:
+    /// 棋譜ファイルを選択して開く
+    void chooseAndLoadKifuFile();
+    /// 名前を付けて保存
+    void saveKifuToFile();
+    /// 上書き保存
+    void overwriteKifuFile();
+    /// クリップボードから棋譜を貼り付け
+    void pasteKifuFromClipboard();
+    /// 棋譜貼り付けダイアログからの取り込み
+    void onKifuPasteImportRequested(const QString& content);
+    /// SFEN局面集から選択された局面を反映
+    void onSfenCollectionPositionSelected(const QString& sfen);
+
+public:
+    /// 棋譜自動保存（MatchCoordinator フック用）
+    void autoSaveKifuToFile(const QString& saveDir);
+
+    // --- 自動化 API 用の非対話 API（確認ダイアログを出さない。未保存の確認は呼び出し側が行う）---
+
+    /// 未保存の変更があるか
+    bool hasUnsavedChanges() const;
+    /// 棋譜ファイルを読み込む（拡張子で形式を判定）。成功時は上書き保存先を更新する
+    [[nodiscard]] bool loadKifuFile(const QString& filePath);
+    /// 棋譜テキストを読み込む（形式は内容から判定）。上書き保存先はクリアする
+    [[nodiscard]] bool loadKifuText(const QString& content);
+    /// SFEN 局面を反映する。上書き保存先はクリアする
+    [[nodiscard]] bool applySfenPosition(const QString& sfen);
+    /// 指定パスへ保存する（形式は拡張子で決定）。ダイアログは出さず、失敗理由を errorText に返す。
+    /// 成功時は上書き保存先を更新する
+    [[nodiscard]] bool saveKifuToPath(const QString& filePath, QString* errorText = nullptr);
+
+private slots:
+    void onAsyncLoadFinished(bool success);
+
+private:
+    void startAsyncLoad(const QString& input, bool text);
+    void prepareForKifuLoad();
+
+    /// 拡張子に応じた読み込み関数へ振り分ける
+    /// @return 読み込みに成功した場合 true
+    [[nodiscard]] bool dispatchKifuLoad(const QString& filePath);
+
+    /// 上書き保存先パスを設定する（読み込み成功時に呼ぶ）
+    void setOverwriteTarget(const QString& filePath);
+
+    /// 上書き保存先パスをクリアする（ファイル由来でない棋譜・局面を反映した時に呼ぶ）
+    void clearOverwriteTarget();
+
+    Deps m_deps;
+    QPointer<KifuPasteDialog> m_kifuPasteDialog;
+    QPointer<QProgressDialog> m_loadProgress;
+    QString m_pendingLoadPath;
+    bool m_loadingText = false;
+};
+
+#endif // KIFUFILECONTROLLER_H

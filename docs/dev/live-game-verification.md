@@ -189,29 +189,27 @@ resign
 
 | 文字列 | 出所 | 意味・期待値の例 |
 |---|---|---|
-| `appendRecord: text=` | GameRecordUpdateService | 記録された手。人間手＋応手＋投了の数と一致すること |
-| `HvE engineTurnNow=` | HumanVsEngineStrategy | 人間手の後のエンジン手番判定。毎回 `true` |
+| `appendRecord: text=` | GameSession | 記録された手。人間手＋応手＋投了の数と一致すること |
 | `addMove: added to tree` / `addMove: reused existing node` | LiveGameSession | ツリーへの追加／指し直しによる再利用 |
-| `startLiveGameSession: started from node, ply=` | PreStartCleanupHandler | 途中局面からの開始手数 |
-| `rebuildBranchTree: m_rows.size` | BranchTreeManager | 分岐ツリーの全再構築。対局中は新規ライン発生時のみ |
-| `loadBoardWithHighlights ENTER` | BoardSyncPresenter | ナビゲーション経由の盤面再設定。対局中は 0 |
-| `syncBoardAndHighlightsAtRow ENTER` | KifuNavigationCoordinator | 棋譜欄行変更経由の盤面同期。対局中は 0 |
-| `shogiboard_sfen.cpp` かつ `setSfen:` | ShogiBoard | 盤面の SFEN 再設定そのもの。対局中は 0 |
-| `onPositionChanged ENTER` | KifuDisplayCoordinator | 棋譜欄行変更による位置同期。対局中は 0 |
+| `startFromNode ENTER branchPoint=` | LiveGameSession | 対局の開始局面のノード。途中局面からの開始手数は `branchPointPly=` |
+| `[BTM] rebuildBranchTree: rows=` | BranchTreeManager | 分岐ツリーの全再構築。対局中は新規ライン発生時のみ |
+| `goToNode ENTER` | KifuNavigationController | 棋譜閲覧の移動（盤面を SFEN から再設定する経路）。対局中は 0 |
+| `syncBoardAndHighlightsAtRow ply=` | BoardSyncPresenter | 手数を指定した盤面同期（棋譜の読み込み・待った）。待ったをしなければ対局中は 0 |
+| `shogiboard.cpp` かつ `setSfen:` | ShogiBoard | 盤面の SFEN 再設定そのもの。対局中は 0 |
 | `POST-NAVIGATION INCONSISTENCY` | KifuDisplayCoordinator | 表示一致性検証の警告。0 件。直後の `Reason:` 行に理由 |
 | `[WARN]` | 全般 | 警告の総数 |
 
 ```bash
 echo "moves=$(grep -c 'appendRecord: text=' "$S/moves.log") \
-turn=$(grep -o 'HvE engineTurnNow= [a-z]*' "$S/moves.log" | sort | uniq -c | tr '\n' ' ') \
-rebuild=$(grep -c 'rebuildBranchTree: m_rows.size' "$S/moves.log") \
-setSfen=$(grep -c 'shogiboard_sfen.cpp.*setSfen:' "$S/moves.log") \
+rebuild=$(grep -c 'rebuildBranchTree: rows=' "$S/moves.log") \
+setSfen=$(grep -c 'shogiboard.cpp.*setSfen:' "$S/moves.log") \
 inconsistency=$(grep -c 'POST-NAVIGATION INCONSISTENCY' "$S/moves.log") \
 warn=$(grep -c '\[WARN\]' "$S/moves.log")"
 grep -n "POST-NAVIGATION INCONSISTENCY" -A 12 "$S/moves.log" | grep "Reason:"
 ```
 
-対局終了（投了）ではセッションの commit は行われず、`sessionCommitted` は出ない。終局後にナビボタンで戻る・進むを行うと
+対局終了（投了など）では `GameSession::onGameEnded` がライブ対局のセッションを commit し、`onGameEnded: committing live game session` が出る
+（中断は再開できるよう commit しない）。終局後にナビボタンで戻る・進むを行うと
 `goBack LEAVE resultPly=` / `goForward: step ... displayText=` で辿った経路を確認できる。
 
 ## 7. スクリーンショットで確認する観点

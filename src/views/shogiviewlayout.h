@@ -5,6 +5,7 @@
 /// @brief 将棋盤面のレイアウト計算クラスの定義
 
 #include <QFont>
+#include <QPoint>
 #include <QRect>
 #include <QSize>
 
@@ -38,6 +39,14 @@ public:
 
     /// 後手（白）側駒台の外接矩形
     QRect whiteStandBoundingRect(int boardFiles, int boardRanks) const;
+
+    /// 駒台のセル。駒台は盤の基準マス（筋 1・2、先手は段 6〜9、後手は段 1〜4）を駒台側へ
+    /// 水平にずらして描く。baseField はその基準マスの矩形（盤の余白を足す前）
+    QRect standCellRect(bool black, const QRect& baseField) const;
+    /// 駒台の基準マスに置く駒文字（先手は大文字、後手は小文字）。駒台のセルでなければ空白
+    static QChar standPieceAt(bool black, int file, int rank);
+    /// 駒台の疑似座標（筋 10/11、段 1〜9）に対応する基準マス。対応しなければ (0, 0)
+    static QPoint standBaseCell(bool black, int pseudoRank);
 
     /// 駒箱は反転によらず左上から王・飛・角・金・銀・桂・香・歩の2列4段。
     static QRect pieceBoxCellRect(const QRect& box, int rank);

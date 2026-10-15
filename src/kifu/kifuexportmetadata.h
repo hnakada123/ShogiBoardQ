@@ -6,18 +6,14 @@
 
 #include <QDateTime>
 #include "kifparsetypes.h"
-#include "playmode.h"
+#include "matchplayers.h"
 #include "timecontrol.h"
 
 struct KifuExportMetadata {
     bool gameInfoProvided = false; ///< 空のメタデータも明示的な編集結果として扱う
     QList<KifGameInfoItem> gameInfoItems;  ///< 明示された対局情報（空でも gameInfoProvided なら採用）
     QString startSfen;
-    PlayMode playMode = PlayMode::NotStarted;
-    QString human1;
-    QString human2;
-    QString engine1;
-    QString engine2;
+    MatchPlayers players;  ///< 対局情報が無いときに書く対局者（名前が無ければ先手・後手・Engine）
 
     // --- 時間制御情報（CSA出力用） ---
     TimeControl timeControl;               ///< 持ち時間（双方とも時間制限がなければ書かない）

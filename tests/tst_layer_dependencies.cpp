@@ -23,45 +23,54 @@ private:
         QStringList forbiddenDirs;
     };
 
+    /// 下の層は上の層をインクルードしない。下から順に
+    /// common（ログ・エラー通知）・core → services → kifu・engine → game → analysis・network・navigation → models
+    /// → views・widgets・board → dialogs → ui → app。automation・cli は外側の入口
     static QList<LayerRule> layerRules()
     {
+        const auto dirs = [](std::initializer_list<const char*> names) {
+            QStringList list;
+            for (const char* name : names) list.append(QString::fromLatin1(name) + QLatin1Char('/'));
+            return list;
+        };
+        const QStringList gui = dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli"});
         return {
+            // ログの分類（logcategories）とエラーの通知（errorbus）は common の土台を使う
             {QStringLiteral("src/core"),
-             {QStringLiteral("app/"), QStringLiteral("ui/"), QStringLiteral("dialogs/"),
-              QStringLiteral("widgets/"), QStringLiteral("views/")}},
-            {QStringLiteral("src/analysis"),
-             {QStringLiteral("app/")}},
-            {QStringLiteral("src/kifu/formats"),
-             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/"),
-              QStringLiteral("views/")}},
-            {QStringLiteral("src/engine"),
-             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/"),
-              QStringLiteral("views/")}},
-            {QStringLiteral("src/game"),
-             {QStringLiteral("dialogs/"), QStringLiteral("widgets/"), QStringLiteral("views/")}},
-            {QStringLiteral("src/network"),
-             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/")}},
+             gui + dirs({"services", "kifu", "engine", "game", "analysis", "network", "navigation", "models"})},
+            {QStringLiteral("src/common"),
+             gui + dirs({"services", "kifu", "engine", "game", "analysis", "network", "navigation", "models"})},
+            {QStringLiteral("src/services"),
+             gui + dirs({"kifu", "engine", "game", "analysis", "network", "navigation", "models"})},
+            {QStringLiteral("src/kifu"), gui + dirs({"engine", "game", "analysis", "network", "navigation", "models"})},
+            {QStringLiteral("src/engine"), gui + dirs({"game", "analysis", "network", "navigation", "models"})},
+            {QStringLiteral("src/game"), gui + dirs({"analysis", "network", "navigation", "models"})},
+            {QStringLiteral("src/analysis"), gui + dirs({"network", "navigation", "models"})},
+            {QStringLiteral("src/network"), gui + dirs({"analysis", "navigation", "models"})},
+            {QStringLiteral("src/navigation"), gui + dirs({"analysis", "network", "models"})},
+            {QStringLiteral("src/models"), gui},
+            {QStringLiteral("src/views"), dirs({"app", "ui", "dialogs", "board", "automation", "cli"})},
+            {QStringLiteral("src/widgets"), dirs({"app", "ui", "dialogs", "board", "automation", "cli"})},
+            {QStringLiteral("src/board"), dirs({"app", "ui", "dialogs", "automation", "cli"})},
+            {QStringLiteral("src/dialogs"), dirs({"app", "ui", "automation", "cli"})},
+            {QStringLiteral("src/ui"), dirs({"app", "automation", "cli"})},
             // 自動化 API・CLI 共通サービスは MainWindow・ダイアログ・ウィジェットに依存しない
-            {QStringLiteral("src/automation"),
-             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/")}},
-            {QStringLiteral("src/cli"),
-             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/"),
-              QStringLiteral("views/"), QStringLiteral("ui/")}},
+            {QStringLiteral("src/automation"), dirs({"app", "dialogs", "widgets", "cli"})},
+            {QStringLiteral("src/cli"), dirs({"app", "dialogs", "widgets", "views", "ui"})},
         };
     }
 
-    /// 指定ディレクトリ直下の .h ファイル名セットを収集する（フラットinclude検出用）
+    /// 指定ディレクトリ（サブディレクトリを含む）の .h ファイル名セットを収集する（フラットinclude検出用）
     static QSet<QString> collectHeaderNames(const QString &rootDir, const QString &forbiddenDir)
     {
         QSet<QString> names;
         // forbiddenDir は "dialogs/" のような形式。src/ 配下にマップする
         const QString dirPath = rootDir + QStringLiteral("/src/") + forbiddenDir;
-        const QDir dir(dirPath);
-        if (!dir.exists())
+        if (!QDir(dirPath).exists())
             return names;
-        const QStringList headers = dir.entryList({QStringLiteral("*.h")}, QDir::Files);
-        for (const auto &h : std::as_const(headers))
-            names.insert(h);
+        QDirIterator it(dirPath, {QStringLiteral("*.h")}, QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext())
+            names.insert(QFileInfo(it.next()).fileName());
         return names;
     }
 

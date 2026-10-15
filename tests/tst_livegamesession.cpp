@@ -255,7 +255,7 @@ private slots:
         ShogiMove move;
         auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
         auto* n2 = tree.addMove(n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
-        tree.addMove(n2, move, QStringLiteral("▲投了"), QStringLiteral("board2 b - 4"));
+        tree.addTerminalMove(n2, TerminalType::Resign, Turn::Black);
         const int nodesBefore = tree.nodeCount();
 
         LiveGameSession session;
@@ -279,7 +279,7 @@ private slots:
         ShogiMove move;
         auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
         auto* n2 = tree.addMove(n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
-        auto* n3 = tree.addMove(n2, move, QStringLiteral("▲投了"), QStringLiteral("board2 b - 4"));
+        auto* n3 = tree.addTerminalMove(n2, TerminalType::Resign, Turn::Black);
 
         LiveGameSession session;
         session.setTree(&tree);
@@ -313,7 +313,7 @@ private slots:
         LiveGameSession session;
         session.setTree(&tree);
         session.startFromNode(n1);
-        session.addMove(move, QStringLiteral("△投了"), QStringLiteral("board1 w - 3"), QStringLiteral("0:05"));
+        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, RecordTime::fromText(QStringLiteral("0:05"))));
 
         KifuBranchNode* terminal = session.liveNode();
         QVERIFY(terminal != nullptr);
@@ -337,7 +337,7 @@ private slots:
         session.startFromNode(n1);
         QVERIFY(session.canAddMove());
 
-        session.addMove(move, QStringLiteral("△投了"), QStringLiteral("board1 w - 3"), QString());
+        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, RecordTime::fromText(QString())));
         QVERIFY(!session.canAddMove());
         KifuBranchNode* terminal = session.liveNode();
         QVERIFY(terminal != nullptr && terminal->isTerminal());
@@ -359,12 +359,12 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
         auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
-        auto* resign = tree.addMove(n1, move, QStringLiteral("△投了"), QStringLiteral("board1 w - 3"));
+        auto* resign = tree.addTerminalMove(n1, TerminalType::Resign, Turn::White);
 
         LiveGameSession session;
         session.setTree(&tree);
         session.startFromNode(n1);
-        session.addMove(move, QStringLiteral("△投了"), QStringLiteral("board1 w - 3"), QString());
+        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, RecordTime::fromText(QString())));
 
         QCOMPARE(n1->childCount(), 1);
         QCOMPARE(session.liveNode(), resign);

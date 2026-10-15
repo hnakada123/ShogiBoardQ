@@ -105,7 +105,7 @@ class TestTsumeshogiVerification : public QObject
         generator.m_settings.timeoutMs = 5000;
         generator.m_phase = TsumeshogiGenerator::Phase::Searching;
         generator.m_currentSfen = sfen;
-        generator.m_usi = new Usi(nullptr, nullptr, nullptr, &generator);
+        generator.m_usi = new Usi(nullptr, nullptr, &generator);
         generator.m_cancelFlag = makeCancelFlag();
         generator.m_elapsedTimer.start();
     }

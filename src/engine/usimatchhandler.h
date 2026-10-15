@@ -16,7 +16,6 @@
 #include "usigotime.h"
 #include "usimove.h"
 
-class ShogiGameController;
 class ThinkingInfoPresenter;
 class UsiProtocolHandler;
 class ShogiClock;
@@ -42,7 +41,8 @@ public:
     struct Hooks {
         std::function<void()> onBestmoveTimeout; ///< bestmoveタイムアウト時の処理
         std::function<void(const UsiMove&, const QString&, const QString&)> onMoveReady = {};
-        std::function<SearchTiming(const UsiTimingParams&, bool)> readTiming = {};
+        /// 時計から探索の時間を読む（sideToMove: エンジンの手番。先読みでも自分の手番）
+        std::function<SearchTiming(const UsiTimingParams&, Turn sideToMove, bool pondering)> readTiming = {};
         std::function<bool()> finishTurn = {}; ///< 時計を確定し、有効な応答ならtrue
 
     };

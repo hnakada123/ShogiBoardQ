@@ -5,7 +5,6 @@
 #include "csamoveconverter.h"
 #include "csaenginecontroller.h"
 #include "shogigamecontroller.h"
-#include "shogiview.h"
 #include "shogiclock.h"
 #include "shogiboard.h"
 #include "logcategories.h"
@@ -65,10 +64,7 @@ CsaGameCoordinator::~CsaGameCoordinator()
 void CsaGameCoordinator::setDependencies(const Dependencies& deps)
 {
     m_gameController = deps.gameController;
-    m_view = deps.view;
     m_clock = deps.clock;
-    m_sfenHistory = deps.sfenRecord;
-    m_gameMoves = deps.gameMoves;
     m_usiCommLog = deps.usiCommLog;
     m_engineThinking = deps.engineThinking;
 }
@@ -96,14 +92,13 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
 void CsaGameCoordinator::stopGame()
 {
     m_reconnectTimer->stop();
-    if (m_gameState == GameState::InGame && m_isMyTurn) {
+    if (m_gameState == GameState::InGame && m_client->isMyTurn()) {
         performResign();
     } else if (m_gameState == GameState::WaitingForAgree) {
         // 同意前に離れるときは対局条件を拒否してから（仕様 3.3）
         m_client->reject(m_progress.summary.gameId);
     }
     setGameState(GameState::Idle);
-    m_isMyTurn = false;
     if (m_clock) m_clock->stopClock();
     cleanup();
 }
@@ -120,8 +115,10 @@ bool CsaGameCoordinator::isBlackSide() const
 
 CsaGameCoordinator::TurnState CsaGameCoordinator::turnState() const
 {
+    // 手番はサーバーとのやり取りを解釈するクライアントが持つ。対局中でなければ自分の手番ではない
+    if (m_gameState != GameState::InGame) return TurnState::OpponentTurn;
     if (m_client->awaitingMoveConfirmation()) return TurnState::AwaitingConfirmation;
-    return m_isMyTurn ? TurnState::MyTurn : TurnState::OpponentTurn;
+    return m_client->isMyTurn() ? TurnState::MyTurn : TurnState::OpponentTurn;
 }
 
 void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to)
@@ -283,14 +280,15 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
     }
 
     const CsaClient::GameSummary& summary = m_progress.summary;
-    m_isMyTurn = (summary.myTurn == summary.toMove);
+    const bool myTurn = m_client->isMyTurn();
 
     setupClock();
 
-    emit gameStarted(summary.blackName, summary.whiteName, m_initialRecords);
-    emit turnChanged(m_isMyTurn);
+    // 始まった時点の手順は再開局面の既存手順だけ
+    emit gameStarted(summary.blackName, summary.whiteName, m_progress.record.entries);
+    emit turnChanged(myTurn);
 
-    if (m_playerType == PlayerType::Engine && m_isMyTurn) {
+    if (m_playerType == PlayerType::Engine && myTurn) {
         startEngineThinking();
     }
 }
@@ -309,10 +307,9 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     if (m_gameState != GameState::InGame) return;
     const bool isBlackSide = m_progress.isBlackSide;
     // 連続王手の千日手は終局した局面の手番で決まるので、最後の局面から手番を取る
-    const QString lastSfen = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
-    const bool blackToMove = lastSfen.isEmpty() ? (m_isMyTurn == isBlackSide)
+    const QString lastSfen = m_progress.record.lastSfen();
+    const bool blackToMove = lastSfen.isEmpty() ? (m_client->isMyTurn() == isBlackSide)
                                                 : (lastSfen.section(QLatin1Char(' '), 1, 1) != QLatin1String("w"));
-    m_isMyTurn = false;
     qCDebug(lcNetwork).noquote() << "onClientGameEnded ENTER:"
                                 << "result=" << static_cast<int>(result)
                                 << "cause=" << static_cast<int>(cause)
@@ -352,9 +349,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     emit logMessage(tr("対局終了: %1 (%2)").arg(resultStr, causeStr));
     setGameState(GameState::GameOver);
 
-    // 終局行を棋譜へ渡し、局面列にも終局行のぶんを足す（棋譜の行と局面列の位置をそろえる）
+    // 終局行を棋譜へ渡す（対局の手順は終局の行を含めない）
     emit recordEntryReady(m_progress.endRecord(result, cause, blackToMove, actualConsumedTimeMs));
-    if (m_sfenHistory && !m_sfenHistory->isEmpty()) m_sfenHistory->append(m_sfenHistory->last());
 
     // エンジンにgameoverとquitコマンドを送信
     if (m_engineController && m_engineController->isInitialized()) {

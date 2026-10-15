@@ -2,17 +2,17 @@
 /// @brief 盤面初期設定コントローラクラスの実装
 
 #include "boardsetupcontroller.h"
-#include "evaluationgraphcontroller.h"
 
 #include "logcategories.h"
 #include <QWheelEvent>
 #include <QEvent>
 
-#include "shogiview.h"
+#include "appactivitystate.h"
 #include "boardinteractioncontroller.h"
 #include "matchcoordinator.h"
 #include "positioneditcontroller.h"
-#include "shogimove.h"
+#include "shogigamecontroller.h"
+#include "shogiview.h"
 
 namespace {
 
@@ -89,28 +89,14 @@ void BoardSetupController::setMatchCoordinator(MatchCoordinator* match)
     m_match = match;
 }
 
+void BoardSetupController::setActivityState(AppActivityState* activity)
+{
+    m_activity = activity;
+}
+
 void BoardSetupController::setPositionEditController(PositionEditController* posEdit)
 {
     m_posEdit = posEdit;
-}
-
-// --------------------------------------------------------
-// 状態設定
-// --------------------------------------------------------
-
-PlayMode BoardSetupController::playMode() const
-{
-    return m_match ? m_match->playMode() : PlayMode::NotStarted;
-}
-
-void BoardSetupController::setSfenRecord(QStringList* sfenRecord)
-{
-    m_sfenHistory = sfenRecord;
-}
-
-void BoardSetupController::setGameMoves(QList<ShogiMove>* gameMoves)
-{
-    m_gameMoves = gameMoves;
 }
 
 // --------------------------------------------------------
@@ -179,8 +165,7 @@ void BoardSetupController::connectBoardClicks()
 
 void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 {
-    qCDebug(lcUi) << "onMoveRequested from=" << from << " to=" << to
-                 << " playMode()=" << int(playMode());
+    qCDebug(lcUi) << "onMoveRequested from=" << from << " to=" << to;
 
     // --- 編集モードは Controller へ丸投げ ---
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
@@ -200,82 +185,34 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         return;
     }
 
-    // ▼▼▼ 通常対局 ▼▼▼
-    if (!m_gameController) {
-        qCWarning(lcUi) << "m_gameController is null";
-        return;
-    }
-    if (!m_gameMoves) {
-        qCWarning(lcUi) << "m_gameMoves is null";
-        return;
-    }
+    const AppActivityState::Activity activity =
+        m_activity ? m_activity->activity() : AppActivityState::Activity::Idle;
 
-    const PlayMode modeNow = playMode();
-
-    if (modeNow == PlayMode::CsaNetworkMode) {
+    if (activity == AppActivityState::Activity::DuringCsaGame) {
         // 通信対局は確認を受けてから確定する。入力側は盤面や履歴を変更しない。
         Q_EMIT csaMoveRequested(from, to);
         if (m_boardController) m_boardController->onMoveApplied(from, to, false);
         return;
     }
-    if (m_match && !m_match->canAcceptMove()) return;
+
+    // ▼▼▼ 対局（人間の手番） ▼▼▼
+    if (!m_gameController || !m_match || activity != AppActivityState::Activity::DuringGame
+        || !m_match->canAcceptMove() || !m_match->isHumanSide(m_gameController->currentPlayer())) {
+        if (m_boardController) m_boardController->onMoveApplied(from, to, false);
+        return;
+    }
     const auto update = m_gameController->positionUpdate();
 
-    // validateAndMove は参照引数なのでローカルに退避
+    // validateAndMove は成りの選択などで座標を書き換えるのでローカルに退避
     QPoint hFrom = from, hTo = to;
+    const std::optional<RecordEntry> played = m_gameController->validateAndMove(hFrom, hTo);
 
-    // 次の着手番号は「記録サイズ」を信頼する
-    const int recSizeBefore = (m_sfenHistory ? static_cast<int>(m_sfenHistory->size()) : 0);
-    int nextIdx = qMax(1, recSizeBefore);
-
-    // 合法判定＆盤面反映
-    const bool ok = m_gameController->validateAndMove(
-        hFrom, hTo, m_lastMove, nextIdx, m_sfenHistory, *m_gameMoves);
-
-    if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
-    if (!ok) {
+    if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, played.has_value());
+    if (!played) {
         qCDebug(lcUi) << "validateAndMove failed (human move rejected)";
         return;
     }
 
-    // --- 対局モードごとの後処理 ---
-    switch (modeNow) {
-    case PlayMode::HumanVsHuman:
-        // 考慮時間の確定・棋譜への追記・千日手と最大手数の判定は Strategy が行う
-        qCDebug(lcUi) << "HvH: delegate post-human-move to MatchCoordinator";
-        if (m_match) {
-            m_match->onHumanMove(hFrom, hTo, m_lastMove);
-        }
-        break;
-
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::HandicapEngineVsHuman:
-        if (m_match) {
-            qCDebug(lcUi) << "HvE: forwarding to MatchCoordinator::onHumanMove";
-            m_match->onHumanMove(hFrom, hTo, m_lastMove);
-        }
-        break;
-
-    default:
-        qCDebug(lcUi) << "not a live play mode; skip post-handling";
-        break;
-    }
-}
-
-void BoardSetupController::onMoveCommitted(Turn mover, int ply)
-{
-    // EvE の評価グラフ更新
-    const bool isEvE =
-        (playMode() == PlayMode::EvenEngineVsEngine) ||
-        (playMode() == PlayMode::HandicapEngineVsEngine);
-
-    if (isEvE && m_evalGraph) {
-        if (mover == Turn::Black) {
-            m_evalGraph->redrawEngine1Graph(ply);
-        } else if (mover == Turn::White) {
-            m_evalGraph->redrawEngine2Graph(ply);
-        }
-    }
+    // 考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは対局の司令塔が行う
+    m_match->onHumanMove(*played);
 }

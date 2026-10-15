@@ -2,98 +2,75 @@
 /// @brief エンジン vs エンジンモードの Strategy 実装
 
 #include "enginevsenginestrategy.h"
-#include "boardcoordinates.h"
-#include "strategycontext.h"
-#include "shogigamecontroller.h"
-#include "shogiclock.h"
-#include "usi.h"
-#include "usitimingparams.h"
-#include "playmode.h"
 
 #include <QTimer>
 
-EngineVsEngineStrategy::EngineVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
-                                                 QObject* parent)
+#include "enginelifecyclemanager.h"
+#include "logcategories.h"
+#include "shogiclock.h"
+#include "shogigamecontroller.h"
+#include "usi.h"
+
+EngineVsEngineStrategy::EngineVsEngineStrategy(MatchStrategyHost& host, Engines engines, QObject* parent)
     : QObject(parent)
-    , m_ctx(ctx)
+    , m_host(host)
+    , m_engines(std::move(engines))
 {
 }
 
 void EngineVsEngineStrategy::start()
 {
-    if (!m_ctx.usi1() || !m_ctx.usi2() || !m_ctx.gc()) return;
+    EngineLifecycleManager& seats = m_host.engines();
+    seats.destroyEngines();
+    Usi* black = seats.createEngine(1, Turn::Black, m_engines.blackName);
+    Usi* white = seats.createEngine(2, Turn::White, m_engines.whiteName);
+    for (Usi* engine : {black, white}) {
+        connect(engine, &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextTurn);
+        connect(engine, &Usi::matchMoveReady, this, &EngineVsEngineStrategy::onEngineMoveReady);
+    }
+    seats.startEngine(black, m_engines.blackPath, m_engines.blackName);
+    seats.startEngine(white, m_engines.whitePath, m_engines.whiteName);
 
-    // EvE対局で初手からタイマーを動作させるため、ここで時計を開始する
-    if (m_ctx.clock()) {
-        m_ctx.clock()->startClock();
+    // 初手から時計を動かす（駒落ちでは後手番から始まる。手番は GC が SFEN に従う）
+    if (ShogiClock* clock = m_host.clock()) {
+        clock->startClock();
         qCDebug(lcGame) << "Clock started";
     }
-
-    // 駒落ちの場合、SFENで手番が「w」（後手番）になっている。GC の手番は SFEN に従う
-    m_ctx.updateTurnDisplay(m_ctx.currentTurn());
-
-
-    connect(m_ctx.usi1(), &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextEvETurn, Qt::UniqueConnection);
-    connect(m_ctx.usi2(), &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextEvETurn, Qt::UniqueConnection);
-    connect(m_ctx.usi1(), &Usi::matchMoveReady, this, &EngineVsEngineStrategy::onEngineMoveReady, Qt::UniqueConnection);
-    connect(m_ctx.usi2(), &Usi::matchMoveReady, this, &EngineVsEngineStrategy::onEngineMoveReady, Qt::UniqueConnection);
-    kickNextEvETurn();
+    m_host.refreshBoardAndTurn();
+    kickNextTurn();
 }
 
-// ============================================================
-// 人間の着手処理（EvEでは呼ばれない）
-// ============================================================
-
-void EngineVsEngineStrategy::onHumanMove(const QPoint& /*from*/, const QPoint& /*to*/,
-                                           const QString& /*prettyMove*/)
+void EngineVsEngineStrategy::kickNextTurn()
 {
-    // EvE では人間の手はないため空実装
-}
+    if (m_waitingForMove || m_host.isGameOver()) return;
+    Usi* black = m_host.engines().engineFor(Turn::Black);
+    Usi* white = m_host.engines().engineFor(Turn::White);
+    if (!black || !white) return;
 
-// ============================================================
-// EvE ターンループ
-// ============================================================
-
-void EngineVsEngineStrategy::kickNextEvETurn()
-{
-    if (m_waitingForMove || m_ctx.gameOverState().isOver) return;
-    if (m_ctx.playMode() != PlayMode::EvenEngineVsEngine
-        && m_ctx.playMode() != PlayMode::HandicapEngineVsEngine)
-        return;
-    if (!m_ctx.usi1() || !m_ctx.usi2() || !m_ctx.gc()) return;
-    if (m_ctx.usi1()->isInitializing() || m_ctx.usi2()->isInitializing()) {
+    if (black->isInitializing() || white->isInitializing()) {
         m_waitingInitialization = true;
-        if (m_ctx.clock()) m_ctx.clock()->stopClock();
+        if (ShogiClock* clock = m_host.clock()) clock->stopClock();
         return;
     }
     if (m_waitingInitialization) {
         m_waitingInitialization = false;
-        if (m_ctx.clock()) m_ctx.clock()->startClock();
+        if (ShogiClock* clock = m_host.clock()) clock->startClock();
     }
-
-    const bool p1ToMove = (m_ctx.gc()->currentPlayer() == Turn::Black);
-    Usi* mover    = p1ToMove ? m_ctx.usi1() : m_ctx.usi2();
-
     m_waitingForMove = true;
-    m_ctx.requestEngineMove(mover, p1ToMove ? 1 : 2);
+    m_host.requestEngineMove(m_host.gameController()->currentPlayer());
 }
 
-void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move,
-                                               const QString& /*position*/, const QString& ponder)
+void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move, const QString& /*position*/, const QString& ponder)
 {
-    if (!m_waitingForMove || m_ctx.gameOverState().isOver || !m_ctx.gc()) return;
-    const bool p1ToMove = m_ctx.gc()->currentPlayer() == Turn::Black;
-    Usi* mover = p1ToMove ? m_ctx.usi1() : m_ctx.usi2();
-    if (sender() != mover) return;
+    if (!m_waitingForMove || m_host.isGameOver()) return;
+    const Turn mover = m_host.gameController()->currentPlayer();
+    Usi* engine = m_host.engines().engineFor(mover);
+    if (sender() != engine) return;
     m_waitingForMove = false;
-    Usi* receiver = p1ToMove ? m_ctx.usi2() : m_ctx.usi1();
-    m_ctx.setEnginePonder(p1ToMove ? 1 : 2, ponder);
-    const QPoint to = BoardCoordinates::toSquare(move);
-    if (receiver) {
-        receiver->setPreviousMove(BoardSquare{to.x(), to.y()});
-    }
-    if (!m_ctx.applyEngineMove(move, p1ToMove ? Turn::Black : Turn::White,
-                               mover->lastBestmoveElapsedMs(), false)) return;
-
-    QTimer::singleShot(0, this, &EngineVsEngineStrategy::kickNextEvETurn);
+    m_host.setEnginePonder(mover, ponder);
+    // 相手のエンジンにも直前の手の行き先を知らせる（読み筋の「同」の判定に使う）
+    if (Usi* receiver = m_host.engines().engineFor(mover == Turn::Black ? Turn::White : Turn::Black))
+        receiver->setPreviousMove(move.to);
+    if (!m_host.applyEngineMove(move, mover, engine->lastBestmoveElapsedMs())) return;
+    QTimer::singleShot(0, this, &EngineVsEngineStrategy::kickNextTurn);
 }

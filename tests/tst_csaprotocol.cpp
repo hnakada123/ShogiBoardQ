@@ -72,11 +72,10 @@ private slots:
         ShogiGameController gc;
         QString start = QStringLiteral("lnsgkg1nl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b B 5");
         gc.newGame(start);
-        QStringList moves;
-        QStringList positions{start};
-        QVERIFY(CsaMoveConverter::applyMoveToBoard(QStringLiteral("+2231UM"), &gc, moves, &positions, 4));
-        QCOMPARE(moves, QStringList{QStringLiteral("2b3a")});
-        QVERIFY(positions.last().endsWith(QStringLiteral(" 6")));
+        const std::optional<RecordEntry> played = CsaMoveConverter::applyMoveToBoard(QStringLiteral("+2231UM"), &gc);
+        QVERIFY(played);
+        QCOMPARE(played->move.move.toString(), QStringLiteral("2b3a"));
+        QVERIFY(played->sfen.endsWith(QStringLiteral(" 6")));
     }
 
     // ========================================
@@ -153,7 +152,7 @@ private slots:
         gs.gameId = QStringLiteral("test-game-123");
         gs.blackName = QStringLiteral("Sente");
         gs.whiteName = QStringLiteral("Gote");
-        gs.myTurn = QStringLiteral("+");
+        gs.myTurn = Turn::Black;
         gs.timeBlack.totalTime = 600;
         gs.timeBlack.byoyomi = 30;
         gs.timeBlack.specified = true;
@@ -164,13 +163,13 @@ private slots:
         QVERIFY(gs.gameId.isEmpty());
         QVERIFY(gs.blackName.isEmpty());
         QVERIFY(gs.whiteName.isEmpty());
-        QVERIFY(gs.myTurn.isEmpty());
+        QVERIFY(!gs.myTurn.has_value());
         QCOMPARE(gs.timeBlack.totalTime, 0);
         QCOMPARE(gs.timeBlack.byoyomi, 0);
         QVERIFY(!gs.timeBlack.specified);
         QVERIFY(gs.isTimeUnlimited());
         QVERIFY(gs.moveConsumedTimes.isEmpty());
-        QCOMPARE(gs.toMove, QStringLiteral("+"));
+        QCOMPARE(gs.toMove, Turn::Black);
         QCOMPARE(gs.protocolMode, QStringLiteral("Server"));
         QCOMPARE(gs.timeBlack.timeUnit, QStringLiteral("1sec"));
         QCOMPARE(gs.maxMoves, 0);
@@ -182,18 +181,21 @@ private slots:
     // GameSummary: 手番判定
     // ========================================
 
-    void gameSummary_isBlackTurn()
+    void gameSummary_isBlackSide()
     {
         CsaClient::GameSummary gs;
 
-        gs.myTurn = QStringLiteral("+");
-        QVERIFY(gs.isBlackTurn());
+        gs.myTurn = Turn::Black;
+        QVERIFY(gs.isBlackSide());
+        QVERIFY(gs.movesFirst());
 
-        gs.myTurn = QStringLiteral("-");
-        QVERIFY(!gs.isBlackTurn());
+        gs.myTurn = Turn::White;
+        QVERIFY(!gs.isBlackSide());
+        QVERIFY(!gs.movesFirst());
 
-        gs.myTurn.clear();
-        QVERIFY(!gs.isBlackTurn());
+        gs.myTurn.reset();
+        QVERIFY(!gs.isBlackSide());
+        QVERIFY(!gs.movesFirst());
     }
 
     // ========================================
@@ -421,7 +423,7 @@ private slots:
     {
         // ▲７六歩(77) — 通常の移動
         QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+7776FU"), false, 0, 0, 0);
+            QStringLiteral("+7776FU"), false, BoardSquare{});
         QVERIFY(result.contains(QStringLiteral("▲")));
         QVERIFY(result.contains(QStringLiteral("歩")));
         QVERIFY(result.contains(QStringLiteral("(77)")));
@@ -431,7 +433,7 @@ private slots:
     {
         // △３四歩(33)
         QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("-3334FU"), false, 0, 0, 1);
+            QStringLiteral("-3334FU"), false, BoardSquare{});
         QVERIFY(result.contains(QStringLiteral("△")));
         QVERIFY(result.contains(QStringLiteral("歩")));
     }
@@ -440,7 +442,7 @@ private slots:
     {
         // ▲５五歩打
         QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+0055FU"), false, 0, 0, 5);
+            QStringLiteral("+0055FU"), false, BoardSquare{});
         QVERIFY(result.contains(QStringLiteral("打")));
         QVERIFY(result.contains(QStringLiteral("歩")));
     }
@@ -450,7 +452,7 @@ private slots:
         // 「同」表記 — 前の手の移動先と同じ座標への移動
         // -3334GI: from(3,3) to(3,4)、前の手が(3,4)への移動 → 同銀
         QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("-3334GI"), false, 3, 4, 2);
+            QStringLiteral("-3334GI"), false, BoardSquare{3, 4});
         QVERIFY(result.contains(QStringLiteral("同")));
         QVERIFY(result.contains(QStringLiteral("銀")));
         QVERIFY(result.contains(QStringLiteral("(33)")));  // 移動元
@@ -460,7 +462,7 @@ private slots:
     {
         // 成り: isPromotion=true の場合、成る前の駒名+「成」
         QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+8822UM"), true, 0, 0, 1);
+            QStringLiteral("+8822UM"), true, BoardSquare{});
         QVERIFY(result.contains(QStringLiteral("角")));  // 成る前の駒名
         QVERIFY(result.contains(QStringLiteral("成")));
     }
@@ -469,7 +471,7 @@ private slots:
     {
         // 短すぎる入力はそのまま返す
         QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+77"), false, 0, 0, 0);
+            QStringLiteral("+77"), false, BoardSquare{});
         QCOMPARE(result, QStringLiteral("+77"));
     }
 
@@ -775,7 +777,7 @@ private slots:
         QFETCH(QString, csaMove);
 
         // Must not crash regardless of input
-        (void)CsaMoveConverter::csaToPretty(csaMove, false, 0, 0, 0);
+        (void)CsaMoveConverter::csaToPretty(csaMove, false, BoardSquare{});
         QVERIFY(true);
     }
 
@@ -971,10 +973,7 @@ private slots:
         client.m_receiveBuffer = QByteArrayLiteral("partial");
         client.m_gameSummary.gameId = QStringLiteral("game-id");
         client.m_isMyTurn = true;
-        client.m_inGameSummary = true;
-        client.m_inTimeSection = true;
-        client.m_inPositionSection = true;
-        client.m_currentTimeSection = QStringLiteral("Time+");
+        client.m_summarySection = CsaClient::SummarySection::TimeBlack;
         client.m_pendingFirstResultLine = QStringLiteral("#RESIGN");
         client.m_endMoveConsumedTimeMs = 1234;
         client.m_connectionState = CsaClient::ConnectionState::InGame;
@@ -984,10 +983,7 @@ private slots:
         QVERIFY(client.m_receiveBuffer.isEmpty());
         QVERIFY(client.m_gameSummary.gameId.isEmpty());
         QVERIFY(!client.m_isMyTurn);
-        QVERIFY(!client.m_inGameSummary);
-        QVERIFY(!client.m_inTimeSection);
-        QVERIFY(!client.m_inPositionSection);
-        QVERIFY(client.m_currentTimeSection.isEmpty());
+        QCOMPARE(client.m_summarySection, CsaClient::SummarySection::Outside);
         QVERIFY(client.m_pendingFirstResultLine.isEmpty());
         QCOMPARE(client.m_endMoveConsumedTimeMs, 0);
         // 接続状態は resetSessionState() では変更しない
@@ -997,8 +993,7 @@ private slots:
     void csaClient_processGameSummary_invalidNumeric_keepsCurrentValues()
     {
         CsaClient client;
-        client.m_inTimeSection = true;
-        client.m_currentTimeSection = QStringLiteral("Time");
+        client.m_summarySection = CsaClient::SummarySection::Time;
         for (CsaClient::TimeControl* t : {&client.m_gameSummary.timeBlack, &client.m_gameSummary.timeWhite}) {
             t->totalTime = 600;
             t->byoyomi = 30;
@@ -1015,7 +1010,7 @@ private slots:
             QCOMPARE(t->delay, 5);
         }
 
-        client.m_inTimeSection = false;
+        client.m_summarySection = CsaClient::SummarySection::TopLevel;
         client.m_gameSummary.maxMoves = 256;
         client.processGameSummary(QStringLiteral("Max_Moves:not-a-number"));
         QCOMPARE(client.m_gameSummary.maxMoves, 256);
@@ -1252,20 +1247,13 @@ private slots:
     // 異常系: CsaMoveConverter csaToPretty 大きな moveCount
     // ========================================
 
-    void csaToPretty_largeMoveCount()
+    void csaToPretty_invalidPreviousSquare()
     {
-        // 非常に大きな手数でもクラッシュしない
-        QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+7776FU"), false, 0, 0, 999999);
+        // 盤外の直前の升でもクラッシュせず、「同」にしない
+        const QString result = CsaMoveConverter::csaToPretty(
+            QStringLiteral("+7776FU"), false, BoardSquare{0, 10});
         QVERIFY(!result.isEmpty());
-    }
-
-    void csaToPretty_negativeMoveCount()
-    {
-        // 負の手数でもクラッシュしない
-        QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+7776FU"), false, 0, 0, -1);
-        QVERIFY(!result.isEmpty());
+        QVERIFY(!result.contains(QStringLiteral("同")));
     }
 
     void csaMoveConverter_applyMoveToBoard_dropWithoutStandPieceFails()
@@ -1276,19 +1264,13 @@ private slots:
         gc.newGame(startSfen);
 
         QVERIFY(gc.board() != nullptr);
-        QStringList usiMoves;
-        QStringList sfenHistory;
 
         const Piece before = gc.board()->pieceCharacter(5, 5);
         QVERIFY(before == Piece::None);
 
-        const bool ok = CsaMoveConverter::applyMoveToBoard(
-            QStringLiteral("+0055FU"), &gc, usiMoves, &sfenHistory, 0);
-
-        QVERIFY(!ok);
-        QVERIFY(usiMoves.isEmpty());
-        QVERIFY(sfenHistory.isEmpty());
+        QVERIFY(!CsaMoveConverter::applyMoveToBoard(QStringLiteral("+0055FU"), &gc));
         QCOMPARE(gc.board()->pieceCharacter(5, 5), Piece::None);
+        QCOMPARE(gc.board()->toSfen(), startSfen);
     }
 
     // ========================================
@@ -1310,8 +1292,8 @@ private slots:
         QVERIFY(gs.gameId.isEmpty());
         QVERIFY(gs.blackName.isEmpty());
         QVERIFY(gs.whiteName.isEmpty());
-        QVERIFY(gs.myTurn.isEmpty());
-        QCOMPARE(gs.toMove, QStringLiteral("+"));
+        QVERIFY(!gs.myTurn.has_value());
+        QCOMPARE(gs.toMove, Turn::Black);
         QCOMPARE(gs.protocolMode, QStringLiteral("Server"));
         QCOMPARE(gs.timeBlack.timeUnit, QStringLiteral("1sec"));
         QCOMPARE(gs.timeBlack.totalTime, 0);
@@ -1348,7 +1330,7 @@ private slots:
     void csaClient_timeSections_keepPerSideFields()
     {
         CsaClient client;
-        client.m_inGameSummary = true;
+        client.m_summarySection = CsaClient::SummarySection::TopLevel;
         for (const char* line : {"BEGIN Time", "Time_Unit:1sec", "Total_Time:300", "Byoyomi:10",
                                  "Increment:5", "Delay:3", "Least_Time_Per_Move:1", "Time_Roundup:YES", "END Time",
                                  "BEGIN Time+", "Increment:7", "END Time+",
@@ -1403,7 +1385,7 @@ private slots:
     void csaClient_positionMoves_keepConsumedTimes()
     {
         CsaClient client;
-        client.m_inGameSummary = true;
+        client.m_summarySection = CsaClient::SummarySection::TopLevel;
         for (const char* line : {"BEGIN Time+", "Time_Unit:1msec", "END Time+",
                                  "BEGIN Position", "PI", "+", "+7776FU,T1500", "-3334FU,T6", "+2726FU",
                                  "END Position"}) {
@@ -1423,7 +1405,7 @@ private slots:
     {
         CsaClient client;
         client.m_connectionState = CsaClient::ConnectionState::InGame;
-        client.m_gameSummary.myTurn = QStringLiteral("+");
+        client.m_gameSummary.myTurn = Turn::Black;
         client.m_gameSummary.timeBlack.timeUnit = QStringLiteral("1msec");
         client.m_gameSummary.timeWhite.timeUnit = QStringLiteral("1sec");
         client.m_isMyTurn = true;
@@ -1478,8 +1460,8 @@ private slots:
     {
         CsaClient client;
         client.m_connectionState = CsaClient::ConnectionState::InGame;
-        client.m_gameSummary.myTurn = QStringLiteral("+");
-        client.m_gameSummary.toMove = QStringLiteral("+");
+        client.m_gameSummary.myTurn = Turn::Black;
+        client.m_gameSummary.toMove = Turn::Black;
         client.m_isMyTurn = true;
         client.m_awaitingMoveConfirmation = true;
         QSignalSpy ended(&client, &CsaClient::gameEnded);
@@ -1729,7 +1711,7 @@ private slots:
         client.processLine(QStringLiteral("BEGIN Position"));
         const QString line = byteLimit ? QString(CsaClient::kMaxLineBytes, QLatin1Char('P')) : QStringLiteral("P+");
         const int count = byteLimit ? 33 : CsaClient::kMaxSummaryLines;
-        for (int i = 0; i < count && client.m_inGameSummary; ++i) client.processGameSummary(line);
+        for (int i = 0; i < count && client.m_summarySection != CsaClient::SummarySection::Outside; ++i) client.processGameSummary(line);
         QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
         QCOMPARE(errors.count(), 1);
         QVERIFY(client.gameSummary().positionLines.isEmpty());

@@ -2,49 +2,42 @@
 #define ENGINEVSENGINESTRATEGY_H
 
 /// @file enginevsenginestrategy.h
-/// @brief エンジン vs エンジンモードの Strategy 実装
-
-#include "gamemodestrategy.h"
-#include "matchcoordinator.h"
+/// @brief エンジン vs エンジンモードの Strategy
 
 #include <QObject>
-#include <QStringList>
-#include <QList>
+#include <QString>
 
-#include "shogimove.h"
-
-class Usi;
+#include "gamemodestrategy.h"
 
 /**
- * @brief エンジン vs エンジンモードの対局ロジック
- *
- * MatchCoordinator から EvE 固有の処理（開始・初手・交互手番ループ）
- * を分離した Strategy 実装。QObject を継承して QTimer::singleShot の
- * スロット接続を可能にしている。
+ * @brief エンジン同士の対局。先手は E1、後手は E2 の枠のエンジンが指す
  */
 class EngineVsEngineStrategy : public QObject, public GameModeStrategy {
     Q_OBJECT
 
 public:
-    EngineVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
-                           QObject* parent = nullptr);
+    struct Engines {
+        QString blackPath;
+        QString blackName;
+        QString whitePath;
+        QString whiteName;
+    };
+
+    EngineVsEngineStrategy(MatchStrategyHost& host, Engines engines, QObject* parent = nullptr);
 
     void start() override;
-    void startInitialMoveIfNeeded() override { kickNextEvETurn(); }
-    void onHumanMove(const QPoint& from, const QPoint& to,
-                     const QString& prettyMove) override;
-    bool needsEngine() const override { return true; }
+    void startInitialMoveIfNeeded() override { kickNextTurn(); }
+    void onHumanMove(const RecordEntry& /*played*/) override {}
 
 private slots:
-    void kickNextEvETurn();
+    void kickNextTurn();
     void onEngineMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
 
 private:
+    MatchStrategyHost& m_host;
+    Engines m_engines;
     bool m_waitingForMove = false;
     bool m_waitingInitialization = false;
-
-    MatchCoordinator::StrategyContext& m_ctx;
-
 };
 
 #endif // ENGINEVSENGINESTRATEGY_H

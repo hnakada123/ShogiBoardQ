@@ -7,6 +7,9 @@
 #include <QObject>
 #include <QString>
 
+#include "usimove.h"
+
+struct AppState;
 class KifuBranchTree;
 class KifuNavigationState;
 class KifuNavigationController;
@@ -51,7 +54,7 @@ public:
         GameRecordModel* gameRecordModel = nullptr;     ///< ゲームレコードモデル
         ShogiGameController* gameController = nullptr;  ///< ゲームコントローラ
         CommentCoordinator* commentCoordinator = nullptr; ///< コメントコーディネータ
-        QString* startSfenStr = nullptr;                ///< 開始SFEN文字列
+        const AppState* state = nullptr;                ///< 開始局面（分岐ツリーを作るとき）
     };
 
     explicit BranchNavigationWiring(QObject* parent = nullptr);
@@ -79,9 +82,9 @@ signals:
     void boardWithHighlightsRequired(const QString& currentSfen, const QString& prevSfen);
     /// SFEN文字列から盤面更新が必要（→ MainWindow::loadBoardFromSfen へ接続）
     void boardSfenChanged(const QString& sfen);
-    /// 分岐ノード処理完了（→ MainWindow::onBranchNodeHandled へ接続）
+    /// 分岐ノード処理完了（→ KifuNavigationCoordinator::handleBranchNodeHandled へ接続）
     void branchNodeHandled(int ply, const QString& sfen,
-                           int previousFileTo, int previousRankTo,
+                           BoardSquare previousTo,
                            const QString& lastUsiMove);
 
 private:

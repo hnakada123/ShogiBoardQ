@@ -29,20 +29,20 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     }
 
     // 終局（投了など）の行は局面が増えないので、最後の局面を描いてハイライトを消す
-    const int maxIdx = static_cast<int>(line.sfens.size()) - 1;
+    const int maxIdx = line.moveCount();
     const bool isTerminalRow = ply > maxIdx;
     const int idx = qBound(0, ply, maxIdx);
     qCDebug(lcUi).noquote() << QStringLiteral("syncBoardAndHighlightsAtRow ply=%1 idx=%2 size=%3")
                                    .arg(ply).arg(idx).arg(maxIdx + 1);
 
-    applyBoard(line.sfens.at(idx));
+    applyBoard(line.sfenAt(idx));
 
     if (!m_bic) return;
     if (idx <= 0 || isTerminalRow) {
         m_bic->clearAllHighlights();
         return;
     }
-    showMoveHighlight(line.sfens.at(idx - 1), line.sfens.at(idx));
+    showMoveHighlight(line.sfenAt(idx - 1), line.sfenAt(idx));
 }
 
 void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen) const

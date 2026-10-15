@@ -61,9 +61,6 @@ QString relativeToModifier(const QString& relative);
 /// 修飾語（右/左/上/引/寄/直/打。"左上" のように並べたもの）から JKF relative 文字列（"LU"）を生成
 QString modifierToRelative(QStringView modifiers);
 
-/// 終局語を日本語に変換（parsecommon に委譲）
-QString specialToJapanese(const QString& special);
-
 } // namespace JkfMoveParser
 
 #endif // JKFMOVEPARSER_H

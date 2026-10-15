@@ -8,6 +8,8 @@
 #include "kifubranchtree.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
+#include "matchcoordinator.h"
+#include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
 
@@ -39,17 +41,19 @@ private slots:
         GameStartCoordinator::Ctx ctx;
         ctx.dialogData.startingPositionNumber = preset;
         ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
-        ctx.currentSfenStr = &state.currentSfenStr;
-        ctx.startSfenStr = &state.startSfenStr;
+        ctx.currentSfen = state.currentSfenStr;
+        ctx.startSfen = state.startSfenStr;
         ctx.recordLine = p.navState->currentRecordLine();
         ctx.startNodeId = p.branchTree->root()->nodeId();
         QString error;
         QVERIFY2(p.gameStart->initializeGame(ctx, error), qPrintable(error));
         const QString expected = preset == 0 ? edited : SfenUtils::hirateSfen();
         QCOMPARE(p.branchTree->root()->sfen(), expected);
-        QCOMPARE(p.match->sfenRecordPtr()->first(), expected);
+        QCOMPARE(p.match->record().startSfen, expected);
         QCOMPARE(p.gameController->currentPlayer(), preset == 0 ? Turn::White : Turn::Black);
-        p.match->setGameOver({MatchCause::Resignation, Turn::Black});
+        // 終局の知らせ（ダイアログ）を出さずに対局を終える
+        p.match->handleBreakOff();
+        QVERIFY(p.match->isGameOver());
         p.kifuNavController->goToFirst();
         QCOMPARE(p.navState->currentNode(), p.branchTree->root());
         QCOMPARE(state.currentSfenStr, expected);

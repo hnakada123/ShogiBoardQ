@@ -5,11 +5,13 @@
 #include <QTimer>
 #include <QThread>
 #include <QPointer>
+#include <memory>
+#include <optional>
 
 #include "kifuloadcoordinator.h"
 #include "kifuloadparser.h"
 #include "sfenutils.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "usi.h"
@@ -17,8 +19,10 @@
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "enginepondersettings.h"
-#include "enginegameovernotifier.h"
-#include "gameendhandler.h"
+#include "appactivitystate.h"
+#include "enginelifecyclemanager.h"
+#include "matchcoordinator.h"
+#include "shogiclock.h"
 #include "tsumethreadbudget.h"
 #include "tsumecollection.h"
 #include "tsume.h"
@@ -248,14 +252,14 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr, &game);
+        Usi engine(nullptr, nullptr);
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         const int ticks = m_ticks;
         QElapsedTimer elapsed;
         elapsed.start();
-        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("250"));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
                                 TestTime::byoyomiTiming(5000, 300000, 0));
@@ -277,9 +281,9 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr, &game);
+        Usi engine(nullptr, nullptr);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
                                 TestTime::byoyomiTiming(5000, 300000, 0));
         QVERIFY(engine.isInitializing());
@@ -302,11 +306,11 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr, &game);
+        Usi engine(nullptr, nullptr);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QSignalSpy resigns(&engine, &Usi::bestMoveResignReceived);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
-        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 0);
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
         QTRY_COMPARE(moves.size(), 1);
@@ -328,10 +332,10 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr, &game);
+        Usi engine(nullptr, nullptr);
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         QTRY_COMPARE(ready.size(), 1);
         engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
@@ -347,14 +351,8 @@ private slots:
     void gameOverCancelsLateMoveAndReapsBothEngines_data()
     {
         QTest::addColumn<bool>("loserIsBlack");
-        QTest::addColumn<bool>("nyugyoku");
-        for (bool loserIsBlack : {false, true}) {
-            for (bool nyugyoku : {false, true}) {
-                QTest::newRow(qPrintable(QStringLiteral("%1-loser-%2")
-                    .arg(nyugyoku ? "nyugyoku" : "resign").arg(loserIsBlack ? "p1" : "p2")))
-                    << loserIsBlack << nyugyoku;
-            }
-        }
+        QTest::newRow("loser-black") << true;
+        QTest::newRow("loser-white") << false;
     }
     void breakOffReapsUnresponsiveEngines_data()
     {
@@ -369,101 +367,96 @@ private slots:
         qputenv("SBQ_MATCH_STOP_DELAY_MS", "10000");
         qputenv("SBQ_MATCH_IGNORE_TERMINATE", "1");
         ShogiGameController game;
-        QString initial = SfenUtils::hirateSfen();
-        game.newGame(initial);
+        ShogiClock clock;
+        AppActivityState activity;
+        EngineLifecycleManager engines(&clock);
+        MatchCoordinator match({&game, &clock, &activity, &engines});
+        MatchStartOptions opt;
+        opt.sfenStart = SfenUtils::hirateSfen();
+        match.start(opt);
         game.setCurrentPlayer(Turn::White);
-        Usi engine1(nullptr, nullptr, &game), engine2(nullptr, nullptr, &game);
-        QSignalSpy ready1(&engine1, &Usi::engineInitialized);
-        QSignalSpy ready2(&engine2, &Usi::engineInitialized);
-        QSignalSpy moves1(&engine1, &Usi::matchMoveReady);
-        QSignalSpy moves2(&engine2, &Usi::matchMoveReady);
-        QVERIFY(engine1.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        if (bothEngines)
-            QVERIFY(engine2.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        // エンジンの枠に、後手（と先手）を指すエンジンを置く
+        Usi* engine1 = engines.createEngine(1, Turn::White, engineName);
+        Usi* engine2 = bothEngines ? engines.createEngine(2, Turn::Black, engineName) : nullptr;
+        QSignalSpy ready1(engine1, &Usi::engineInitialized);
+        QSignalSpy moves1(engine1, &Usi::matchMoveReady);
+        std::unique_ptr<QSignalSpy> ready2;
+        std::unique_ptr<QSignalSpy> moves2;
+        engines.startEngine(engine1, QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
+        if (engine2) {
+            ready2 = std::make_unique<QSignalSpy>(engine2, &Usi::engineInitialized);
+            moves2 = std::make_unique<QSignalSpy>(engine2, &Usi::matchMoveReady);
+            engines.startEngine(engine2, QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
+        }
         QTRY_COMPARE(ready1.size(), 1);
-        if (bothEngines) QTRY_COMPARE(ready2.size(), 1);
+        if (engine2) QTRY_COMPARE(ready2->size(), 1);
         const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 300000);
-        for (Usi* engine : {&engine1, bothEngines ? &engine2 : nullptr}) {
+        for (Usi* engine : {engine1, engine2}) {
             if (!engine) continue;
             engine->sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
             engine->requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
         }
         QTest::qWait(30);
 
-        GameEndHandler handler;
-        auto mode = bothEngines ? PlayMode::EvenEngineVsEngine : PlayMode::EvenHumanVsEngine;
-        MatchSessionState session;
-        session.setPlayMode(mode);
-        const auto& gameOver = session.gameOver();
-        GameEndHandler::Refs refs;
-        refs.gc = &game;
-        refs.session = &session;
-        refs.usi1Provider = [&engine1] { return &engine1; };
-        refs.usi2Provider = [&engine2, bothEngines]() -> Usi* { return bothEngines ? &engine2 : nullptr; };
-        handler.setRefs(refs);
-        GameEndHandler::Hooks hooks;
-        hooks.primaryEngine = [&engine1] { return &engine1; };
-        handler.setHooks(hooks);
-        QSignalSpy ended(&handler, &GameEndHandler::gameEnded);
+        QSignalSpy ended(&match, &MatchCoordinator::gameEnded);
         const auto existing = qApp->findChildren<QProcess*>();
         const int ticks = m_ticks;
         QElapsedTimer elapsed;
         elapsed.start();
-        handler.handleBreakOff();
-        handler.handleBreakOff();
+        match.handleBreakOff();
+        match.handleBreakOff();
         QVERIFY(elapsed.elapsed() < 200);
         QCOMPARE(ended.size(), 1);
-        QCOMPARE(gameOver.lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+        QCOMPARE(match.gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
         QList<QPointer<QProcess>> retiring;
         for (auto* process : qApp->findChildren<QProcess*>())
             if (!existing.contains(process)) retiring.append(process);
 
         // アプリは開いたまま。quitを送るだけではこの期限で終了できない。
         QTest::qWait(4500);
-        QVERIFY(!engine1.isEngineRunning());
-        QVERIFY(!engine2.isEngineRunning());
+        QVERIFY(!engine1->isEngineRunning());
+        QVERIFY(!engine2 || !engine2->isEngineRunning());
         QCOMPARE(retiring.size(), bothEngines ? 2 : 1);
         for (const auto& process : retiring) QTRY_VERIFY_WITH_TIMEOUT(process.isNull(), 1500);
         QCOMPARE(moves1.size(), 0);
-        QCOMPARE(moves2.size(), 0);
+        QVERIFY(!moves2 || moves2->isEmpty());
         QVERIFY(m_ticks > ticks + 10);
+        engines.destroyEngines();
     }
     void gameOverCancelsLateMoveAndReapsBothEngines()
     {
         QFETCH(bool, loserIsBlack);
-        QFETCH(bool, nyugyoku);
         EnginePonderSettings::save(engineName, true, true);
         ShogiGameController game;
-        QString initial = SfenUtils::hirateSfen();
-        game.newGame(initial);
+        ShogiClock clock;
+        game.newGame(SfenUtils::hirateSfen());
         game.setCurrentPlayer(Turn::White);
-        Usi thinking(nullptr, nullptr, &game), pondering(nullptr, nullptr, &game);
-        QSignalSpy thinkingReady(&thinking, &Usi::engineInitialized);
-        QSignalSpy ponderingReady(&pondering, &Usi::engineInitialized);
-        QSignalSpy thinkingMoves(&thinking, &Usi::matchMoveReady);
-        QSignalSpy ponderingMoves(&pondering, &Usi::matchMoveReady);
-        QSignalSpy thinkingErrors(&thinking, &Usi::errorOccurred);
-        QSignalSpy ponderingErrors(&pondering, &Usi::errorOccurred);
-        QVERIFY(thinking.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        QVERIFY(pondering.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        EngineLifecycleManager engines(&clock);
+        // 負けた側のエンジンは思考中、勝った側のエンジンは先読み中
+        const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
+        const Turn winner = loserIsBlack ? Turn::White : Turn::Black;
+        Usi* thinking = engines.createEngine(loserIsBlack ? 1 : 2, loser, engineName);
+        Usi* pondering = engines.createEngine(loserIsBlack ? 2 : 1, winner, engineName);
+        QSignalSpy thinkingReady(thinking, &Usi::engineInitialized);
+        QSignalSpy ponderingReady(pondering, &Usi::engineInitialized);
+        QSignalSpy thinkingMoves(thinking, &Usi::matchMoveReady);
+        QSignalSpy ponderingMoves(pondering, &Usi::matchMoveReady);
+        QSignalSpy thinkingErrors(thinking, &Usi::errorOccurred);
+        QSignalSpy ponderingErrors(pondering, &Usi::errorOccurred);
+        engines.startEngine(thinking, QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
+        engines.startEngine(pondering, QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
         QTRY_COMPARE(thinkingReady.size(), 1);
         QTRY_COMPARE(ponderingReady.size(), 1);
         const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 300000);
         const QString position = QStringLiteral("position startpos moves 7g7f");
-        pondering.requestMatchMove(position, {}, timing);
+        pondering->requestMatchMove(position, {}, timing);
         QTRY_COMPARE(ponderingMoves.size(), 1);
         QVERIFY(!ponderingMoves.first().at(2).toString().isEmpty());
-        thinking.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
-        thinking.requestMatchMove(position, {}, timing);
+        thinking->sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
+        thinking->requestMatchMove(position, {}, timing);
         QTest::qWait(30);
         const auto existing = qApp->findChildren<QProcess*>();
-        const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
-        Usi* p1 = loserIsBlack ? &thinking : &pondering;
-        Usi* p2 = loserIsBlack ? &pondering : &thinking;
-        if (nyugyoku)
-            EngineGameOverNotifier::notifyNyugyoku(PlayMode::EvenEngineVsEngine, false, loser, p1, p2);
-        else
-            EngineGameOverNotifier::notifyResignation(PlayMode::EvenEngineVsEngine, loser, p1, p2);
+        engines.notifyGameOver(loser);
         QList<QPointer<QProcess>> retiring;
         for (auto* child : qApp->findChildren<QProcess*>())
             if (!existing.contains(child)) retiring.append(child);
@@ -475,49 +468,48 @@ private slots:
         QCOMPARE(ponderingErrors.size(), 0);
         QCOMPARE(retiring.size(), 2);
         for (const auto& process : retiring) QTRY_VERIFY_WITH_TIMEOUT(process.isNull(), 5000);
-        QVERIFY(!thinking.isEngineRunning());
-        QVERIFY(!pondering.isEngineRunning());
+        QVERIFY(!thinking->isEngineRunning());
+        QVERIFY(!pondering->isEngineRunning());
+        engines.destroyEngines();
     }
-    void gameOverResultFollowsEngineSeat_data()
+    void gameOverResultFollowsEngineSide_data()
     {
-        QTest::addColumn<PlayMode>("mode");
+        QTest::addColumn<bool>("engineIsBlack");
         QTest::addColumn<bool>("loserIsBlack");
         QTest::addColumn<QString>("expected");
-        // 人間対エンジンではエンジンは常に usi1。先手・下手のエンジンが負けたら lose を送る
-        QTest::newRow("engine-white-wins") << PlayMode::EvenHumanVsEngine << true << "gameover win";
-        QTest::newRow("engine-white-loses") << PlayMode::EvenHumanVsEngine << false << "gameover lose";
-        QTest::newRow("engine-black-loses") << PlayMode::EvenEngineVsHuman << true << "gameover lose";
-        QTest::newRow("engine-black-wins") << PlayMode::EvenEngineVsHuman << false << "gameover win";
-        QTest::newRow("handicap-engine-lower-loses") << PlayMode::HandicapEngineVsHuman << true << "gameover lose";
-        QTest::newRow("handicap-engine-upper-loses") << PlayMode::HandicapHumanVsEngine << false << "gameover lose";
+        // エンジンの枠ではなく、エンジンが指す手番で勝ち負けを知らせる（人間対エンジンではエンジンは常に E1）
+        QTest::newRow("engine-white-wins") << false << true << "gameover win";
+        QTest::newRow("engine-white-loses") << false << false << "gameover lose";
+        QTest::newRow("engine-black-loses") << true << true << "gameover lose";
+        QTest::newRow("engine-black-wins") << true << false << "gameover win";
     }
 
-    void gameOverResultFollowsEngineSeat()
+    void gameOverResultFollowsEngineSide()
     {
-        QFETCH(PlayMode, mode);
+        QFETCH(bool, engineIsBlack);
         QFETCH(bool, loserIsBlack);
         QFETCH(QString, expected);
         ShogiGameController game;
-        QString initial = SfenUtils::hirateSfen();
-        game.newGame(initial);
-        const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
+        ShogiClock clock;
+        game.newGame(SfenUtils::hirateSfen());
         QStringList gameOvers;
-        // 終局の通知の後はエンジンを閉じるので、勝敗の通知ごとにエンジンを起動する
-        for (int i = 0; i < 2; ++i) {
+        // 終局の通知の後はエンジンを閉じるので、勝敗の通知ごとにエンジンを起動する（2回目は引き分け）
+        for (const std::optional<Turn> loser : {std::optional<Turn>(loserIsBlack ? Turn::Black : Turn::White),
+                                                std::optional<Turn>()}) {
             UsiCommLogModel log;
             CommLogRecorder recorder(&log);
-            Usi engine(&log, nullptr, &game);
-            QSignalSpy ready(&engine, &Usi::engineInitialized);
-            QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+            EngineLifecycleManager engines(&clock);
+            engines.setModels({&log, nullptr, nullptr, nullptr});
+            Usi* engine = engines.createEngine(1, engineIsBlack ? Turn::Black : Turn::White, engineName);
+            QSignalSpy ready(engine, &Usi::engineInitialized);
+            engines.startEngine(engine, QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
             QTRY_COMPARE(ready.size(), 1);
-            if (i == 0)
-                EngineGameOverNotifier::notifyResignation(mode, loser, &engine, nullptr);
-            else
-                EngineGameOverNotifier::notifyNyugyoku(mode, false, loser, &engine, nullptr);
+            engines.notifyGameOver(loser);
             for (const QString& command : recorder.sentCommands())
                 if (command.startsWith(QStringLiteral("gameover "))) gameOvers << command;
+            engines.destroyEngines(false);
         }
-        QCOMPARE(gameOvers, QStringList({expected, expected}));
+        QCOMPARE(gameOvers, QStringList({expected, QStringLiteral("gameover draw")}));
     }
 
     void exitWhileThinkingReportsError()
@@ -527,10 +519,10 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr, &game);
+        Usi engine(nullptr, nullptr);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
                                 TestTime::byoyomiTiming(5000, 300000, 0));
         QTRY_COMPARE(errors.size(), 1);

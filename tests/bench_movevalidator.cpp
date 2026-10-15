@@ -1,5 +1,5 @@
 /// @file bench_movevalidator.cpp
-/// @brief EngineMoveValidator パフォーマンスベンチマーク (compat wrapper vs Context API)
+/// @brief EngineMoveValidator パフォーマンスベンチマーク (毎回読み込む省略形 と 読み込んだ Context の使い回し)
 
 #include <QElapsedTimer>
 #include <QList>
@@ -45,30 +45,28 @@ BenchResult benchGenerateLegalMoves(const QString& sfen, int iterations,
     r.iterations = iterations;
     r.label = "generateLegalMoves";
 
-    // --- EngineMoveValidator (compat) ---
+    // --- 毎回読み込む ---
     {
-        EngineMoveValidator emv;
         QElapsedTimer timer;
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = emv.generateLegalMoves(eTurn, bd, ps);
+            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(bd, ps, eTurn));
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
     }
 
-    // --- EngineMoveValidator (Context) ---
+    // --- 読み込んだ Context を使い回す ---
     {
-        EngineMoveValidator emv;
         EngineMoveValidator::Context ctx;
-        (void)emv.syncContext(ctx, eTurn, bd, ps);
+        ctx = EngineMoveValidator::load(bd, ps, eTurn);
 
         QElapsedTimer timer;
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = emv.generateLegalMoves(ctx);
+            count = EngineMoveValidator::legalMoveCount(ctx);
         }
         r.engineContextMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -91,31 +89,29 @@ BenchResult benchCheckIfKingInCheck(const QString& sfen, int iterations,
     r.iterations = iterations;
     r.label = "checkIfKingInCheck";
 
-    // --- EngineMoveValidator (compat) ---
+    // --- 毎回読み込む ---
     {
-        EngineMoveValidator emv;
         QElapsedTimer timer;
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = emv.checkIfKingInCheck(eTurn, bd);
+            count = EngineMoveValidator::checkCount(EngineMoveValidator::load(bd, QMap<Piece, int>(), eTurn));
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
     }
 
-    // --- EngineMoveValidator (Context) ---
+    // --- 読み込んだ Context を使い回す ---
     {
-        EngineMoveValidator emv;
         EngineMoveValidator::Context ctx;
         QMap<Piece, int> emptyStand;
-        (void)emv.syncContext(ctx, eTurn, bd, emptyStand);
+        ctx = EngineMoveValidator::load(bd, emptyStand, eTurn);
 
         QElapsedTimer timer;
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = emv.checkIfKingInCheck(ctx);
+            count = EngineMoveValidator::checkCount(ctx);
         }
         r.engineContextMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -140,28 +136,26 @@ BenchResult benchIsLegalMove(const QString& sfen, int iterations,
     r.iterations = iterations;
     r.label = label;
 
-    // --- EngineMoveValidator (compat) ---
+    // --- 毎回読み込む ---
     {
-        EngineMoveValidator emv;
         QElapsedTimer timer;
         timer.start();
         for (int i = 0; i < iterations; ++i) {
-            auto st = emv.isLegalMove(eTurn, bd, ps, move);
+            auto st = EngineMoveValidator::legalStatus(EngineMoveValidator::load(bd, ps, eTurn), move.move);
             (void)st;
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
     }
 
-    // --- EngineMoveValidator (Context) ---
+    // --- 読み込んだ Context を使い回す ---
     {
-        EngineMoveValidator emv;
         EngineMoveValidator::Context ctx;
-        (void)emv.syncContext(ctx, eTurn, bd, ps);
+        ctx = EngineMoveValidator::load(bd, ps, eTurn);
 
         QElapsedTimer timer;
         timer.start();
         for (int i = 0; i < iterations; ++i) {
-            auto st = emv.isLegalMove(ctx, move);
+            auto st = EngineMoveValidator::legalStatus(ctx, move.move);
             (void)st;
         }
         r.engineContextMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
@@ -185,14 +179,13 @@ BenchResult benchSyncAndQuery(const QString& sfen, int iterations,
     r.iterations = iterations;
     r.label = "sync + generateLegalMoves";
 
-    // --- EngineMoveValidator (compat) ---
+    // --- 毎回読み込む ---
     {
-        EngineMoveValidator emv;
         QElapsedTimer timer;
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = emv.generateLegalMoves(eTurn, bd, ps);
+            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(bd, ps, eTurn));
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -200,14 +193,13 @@ BenchResult benchSyncAndQuery(const QString& sfen, int iterations,
 
     // --- EngineMoveValidator (Context: sync + query each iteration) ---
     {
-        EngineMoveValidator emv;
         QElapsedTimer timer;
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
             EngineMoveValidator::Context ctx;
-            (void)emv.syncContext(ctx, eTurn, bd, ps);
-            count = emv.generateLegalMoves(ctx);
+            ctx = EngineMoveValidator::load(bd, ps, eTurn);
+            count = EngineMoveValidator::legalMoveCount(ctx);
         }
         r.engineContextMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -233,30 +225,28 @@ BenchResult benchMidgame(int iterations)
     r.iterations = iterations;
     r.label = "midgame (with hand pieces)";
 
-    // --- EngineMoveValidator (compat) ---
+    // --- 毎回読み込む ---
     {
-        EngineMoveValidator emv;
         QElapsedTimer timer;
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = emv.generateLegalMoves(Turn::Black, bd, ps);
+            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(bd, ps, Turn::Black));
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
     }
 
-    // --- EngineMoveValidator (Context) ---
+    // --- 読み込んだ Context を使い回す ---
     {
-        EngineMoveValidator emv;
         EngineMoveValidator::Context ctx;
-        (void)emv.syncContext(ctx, Turn::Black, bd, ps);
+        ctx = EngineMoveValidator::load(bd, ps, Turn::Black);
 
         QElapsedTimer timer;
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = emv.generateLegalMoves(ctx);
+            count = EngineMoveValidator::legalMoveCount(ctx);
         }
         r.engineContextMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -286,7 +276,7 @@ int main()
     printResult(benchCheckIfKingInCheck(checkSfen, N * 10, Turn::Black));
 
     printResult(benchIsLegalMove(hirate, N * 10, Turn::Black,
-        ShogiMove(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false),
+        ShogiMove(UsiMove::fromString(u"7g7f"), Piece::BlackPawn),
         "isLegalMove (single move)"));
 
     printResult(benchSyncAndQuery(hirate, N, Turn::Black));
@@ -297,22 +287,22 @@ int main()
     printResult(benchIsLegalMove(
         QStringLiteral("lnsgkgsnl/1r5b1/pppp1pppp/4P4/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - 1"),
         N * 10, Turn::Black,
-        ShogiMove(QPoint(4, 3), QPoint(4, 2), Piece::BlackPawn, Piece::None, false),
+        ShogiMove(UsiMove::fromString(u"5d5c"), Piece::BlackPawn),
         "isLegalMove (optional promotion)"));
     printResult(benchIsLegalMove(
         QStringLiteral("1nsgkgsnl/Pr5b1/1pppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
         N * 10, Turn::Black,
-        ShogiMove(QPoint(8, 1), QPoint(8, 0), Piece::BlackPawn, Piece::None, false),
+        ShogiMove(UsiMove::fromString(u"9b9a"), Piece::BlackPawn),
         "isLegalMove (mandatory promotion)"));
     printResult(benchIsLegalMove(
         QStringLiteral("k8/9/4s4/4S4/9/9/9/9/4K4 b - 1"),
         N * 10, Turn::Black,
-        ShogiMove(QPoint(4, 3), QPoint(4, 2), Piece::BlackSilver, Piece::WhiteSilver, false),
+        ShogiMove(UsiMove::fromString(u"5d5c"), Piece::BlackSilver, Piece::WhiteSilver),
         "isLegalMove (promotion with capture)"));
     printResult(benchIsLegalMove(
         QStringLiteral("k3r4/9/9/4S4/9/9/9/9/4K4 b - 1"),
         N * 10, Turn::Black,
-        ShogiMove(QPoint(4, 3), QPoint(3, 2), Piece::BlackSilver, Piece::None, false),
+        ShogiMove(UsiMove::fromString(u"5d4c"), Piece::BlackSilver),
         "isLegalMove (pinned promotion)"));
 
     return 0;

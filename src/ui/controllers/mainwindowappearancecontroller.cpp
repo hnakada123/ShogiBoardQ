@@ -12,7 +12,6 @@
 #include <utility>
 
 #include "apptooltipfilter.h"
-#include "matchcoordinator.h"
 #include "appsettings.h"
 #include "shogiview.h"
 #include "timedisplaypresenter.h"
@@ -200,9 +199,8 @@ void MainWindowAppearanceController::performDeferredEvalChartResize()
     }
 }
 
-void MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo()
+void MainWindowAppearanceController::flipBoard()
 {
-    qCDebug(lcApp) << "flipBoardAndUpdatePlayerInfo ENTER";
     ShogiView* view = m_deps.shogiView;
     if (!view) return;
 
@@ -216,22 +214,6 @@ void MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo()
     if (TimeDisplayPresenter* tp = m_deps.timePresenter) tp->refresh();
 
     view->update();
-    qCDebug(lcApp) << "flipBoardAndUpdatePlayerInfo LEAVE";
-}
-
-void MainWindowAppearanceController::onBoardFlipped(bool /*nowFlipped*/)
-{
-    if (m_deps.bottomSide) {
-        *m_deps.bottomSide = (*m_deps.bottomSide == Turn::Black) ? Turn::White : Turn::Black;
-    }
-
-    flipBoardAndUpdatePlayerInfo();
-}
-
-void MainWindowAppearanceController::onActionFlipBoardTriggered()
-{
-    MatchCoordinator* match = m_deps.match;
-    if (match) match->flipBoard();
 }
 
 void MainWindowAppearanceController::onActionEnlargeBoardTriggered()

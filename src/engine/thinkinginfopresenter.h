@@ -17,7 +17,6 @@
 #include "usiinfo.h"
 
 class PvNotationFormatter;
-class ShogiGameController;
 
 /**
  * @brief 思考情報のGUI表示を管理するPresenterクラス
@@ -41,11 +40,6 @@ class ThinkingInfoPresenter : public QObject
 public:
     explicit ThinkingInfoPresenter(QObject* parent = nullptr);
     ~ThinkingInfoPresenter() override;
-
-    // --- 依存関係設定 ---
-    
-    /// ゲームコントローラを設定
-    void setGameController(ShogiGameController* controller);
 
     // --- 状態設定 ---
     
@@ -151,7 +145,6 @@ private:
     void updateEvaluationInfo(const UsiInfo& info, QString& scoreText, int& scoreInt);
 
 private:
-    ShogiGameController* m_gameController = nullptr; ///< 非所有。ゲームコントローラ参照
 
     bool m_analysisMode = false;       ///< 棋譜解析モードフラグ
     int m_previousFileTo = 0;           ///< 前回の指し手の筋

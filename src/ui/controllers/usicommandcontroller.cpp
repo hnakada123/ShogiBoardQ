@@ -5,7 +5,7 @@
 
 #include "logcategories.h"
 
-#include "matchcoordinator.h"
+#include "enginelifecyclemanager.h"
 #include "engineanalysistab.h"
 #include "usi.h"
 
@@ -32,9 +32,8 @@ void UsiCommandController::sendCommand(int target, const QString& command)
 {
     qCDebug(lcUi).noquote() << "sendCommand: target=" << target << "command=" << command;
 
-    MatchCoordinator* match = m_match;
-    Usi* usi1 = match ? match->primaryEngine() : nullptr;
-    Usi* usi2 = match ? match->secondaryEngine() : nullptr;
+    Usi* usi1 = m_engines ? m_engines->engineInSlot(1) : nullptr;
+    Usi* usi2 = m_engines ? m_engines->engineInSlot(2) : nullptr;
 
     const auto sendIfReady = [this, &command](Usi* engine, const QString& label) {
         if (engine && engine->isEngineRunning()) {

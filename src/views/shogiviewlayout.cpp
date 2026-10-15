@@ -2,6 +2,8 @@
 /// @brief 将棋盤面のレイアウト計算クラスの実装
 
 #include "shogiviewlayout.h"
+
+#include <array>
 #include "boardsurfacepainter.h"
 
 #include <QFontMetrics>
@@ -133,6 +135,49 @@ QRect ShogiViewLayout::pieceBoxSideSelectorRect(const QRect& box)
     if (box.isEmpty()) return {};
     const QRect label = pieceBoxLabelRect(box);
     return QRect(box.left(), label.bottom() + 1, box.width(), qMax(1, box.height() / 8));
+}
+
+namespace {
+// 駒台のセル（基準盤マス file=1/2, rank=6..9）に置く先手の駒。
+// 後手の駒台は同じ並びを180度回したもの（file と rank を反転し、小文字にする）。
+constexpr std::array<std::array<char, 4>, 2> kBlackStandPieces{{
+    {'K', 'B', 'S', 'L'},   // file=1（rank=6..9）
+    {'R', 'G', 'N', 'P'},   // file=2（rank=6..9）
+}};
+} // namespace
+
+QRect ShogiViewLayout::standCellRect(bool black, const QRect& baseField) const
+{
+    // 通常は先手の駒台が右、後手が左。反転すると入れ替わる
+    const int shift = black ? m_param1 : m_param2;
+    const bool towardRight = black != m_flipMode;
+    return QRect(baseField.left() + (towardRight ? shift : -shift) + m_offsetX,
+                 baseField.top() + offsetY(), baseField.width(), baseField.height());
+}
+
+QChar ShogiViewLayout::standPieceAt(bool black, int file, int rank)
+{
+    if (!black) {
+        file = 3 - file;
+        rank = 10 - rank;
+    }
+    if (file < 1 || file > 2 || rank < 6 || rank > 9) return QLatin1Char(' ');
+    const QChar piece = QLatin1Char(kBlackStandPieces[static_cast<std::size_t>(file - 1)]
+                                                     [static_cast<std::size_t>(rank - 6)]);
+    return black ? piece : piece.toLower();
+}
+
+QPoint ShogiViewLayout::standBaseCell(bool black, int pseudoRank)
+{
+    const int rank = pseudoRank;
+    if (black) {
+        if (rank == 7 || rank == 5 || rank == 3 || rank == 1) return {2, 6 + (7 - rank) / 2};
+        if (rank == 8 || rank == 6 || rank == 4 || rank == 2) return {1, 6 + (8 - rank) / 2};
+    } else {
+        if (rank == 3 || rank == 5 || rank == 7 || rank == 9) return {1, (11 - rank) / 2};
+        if (rank == 2 || rank == 4 || rank == 6 || rank == 8) return {2, (10 - rank) / 2};
+    }
+    return {0, 0};
 }
 
 QRect ShogiViewLayout::pieceBoxCellRect(const QRect& box, int rank)

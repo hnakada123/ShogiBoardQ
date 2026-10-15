@@ -33,7 +33,7 @@ void TurnStateSyncService::updateDeps(const Deps& deps)
 
 void TurnStateSyncService::setCurrentTurn()
 {
-    // 対局モードは終局後も残るため、実際の対局進行状態で同期元を選ぶ
+    // 対局者は終局後も残るため、実際の対局進行状態で同期元を選ぶ
     const bool gameActive = m_deps.isGameActivelyInProgress && m_deps.isGameActivelyInProgress();
 
     // ライブ対局中は GC を手番の単一ソースとする。盤面モデルの手番は GC の手番更新から

@@ -6,6 +6,7 @@
 #include "ui_mainwindow.h"
 
 #include "analysisresultspresenter.h"
+#include "analysissession.h"
 #include "analysistabwiring.h"
 #include "appsettings.h"
 #include "boardinteractioncontroller.h"
@@ -15,13 +16,13 @@
 #include "branchnavigationwiring.h"
 #include "commentcoordinator.h"
 #include "consecutivegamescontroller.h"
-#include "considerationpositionservice.h"
-#include "considerationwiring.h"
+#include "considerationuicontroller.h"
 #include "dialogcoordinatorwiring.h"
 #include "dockcreationservice.h"
 #include "docklayoutmanager.h"
 #include "docksettings.h"
 #include "dockuicoordinator.h"
+#include "enginelifecyclemanager.h"
 #include "engineanalysistab.h"
 #include "considerationtabmanager.h"
 #include "evaluationchartwidget.h"
@@ -29,10 +30,10 @@
 #include "gamerecordloadservice.h"
 #include "gamerecordmodel.h"
 #include "gamerecordpresenter.h"
-#include "gamesessionorchestrator.h"
-#include "gamestatecontroller.h"
+#include "gamesession.h"
+#include "gamestartcoordinator.h"
 #include "jishogiscoredialogcontroller.h"
-#include "josekiwindowwiring.h"
+#include "josekiwindowcontroller.h"
 #include "kifuanalysislistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchtree.h"
@@ -46,12 +47,12 @@
 #include "languagecontroller.h"
 #include "livegamesession.h"
 #include "mainwindowappearancecontroller.h"
-#include "matchcoordinatorwiring.h"
-#include "menuwindowwiring.h"
+#include "matchcoordinator.h"
+#include "menuwindowcontroller.h"
 #include "nyugyokudeclarationhandler.h"
 #include "piecesoundplayer.h"
-#include "playerinfowiring.h"
-#include "playmodepolicyservice.h"
+#include "playerinfopresenter.h"
+#include "humanturnpolicy.h"
 #include "positioneditcontroller.h"
 #include "positioneditcoordinator.h"
 #include "prestartcleanuphandler.h"
@@ -60,7 +61,6 @@
 #include "recordpane.h"
 #include "recordpanewiring.h"
 #include "replaycontroller.h"
-#include "sessionlifecyclecoordinator.h"
 #include "sfenutils.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
@@ -70,7 +70,6 @@
 #include "turnstatesyncservice.h"
 #include "uinotificationservice.h"
 #include "uistatepolicymanager.h"
-#include "undoflowservice.h"
 #include "usicommandcontroller.h"
 #include "usicommlogmodel.h"
 #include "logcategories.h"
@@ -133,7 +132,6 @@ void MainWindowComposer::createBoardAndGameController()
     if (m_c.shogiView->board() != m_c.gameController->board()) {
         m_c.shogiView->setBoard(m_c.gameController->board());
     }
-    m_state.gameMoves.clear();
 
     // 時間表示と時計
     m_c.timePresenter = new TimeDisplayPresenter(m_c.shogiView, &m_window);
@@ -148,8 +146,7 @@ void MainWindowComposer::createBoardAndGameController()
     m_c.boardSetupController->setShogiView(m_c.shogiView);
     m_c.boardSetupController->setGameController(m_c.gameController);
     m_c.boardSetupController->setPositionEditController(m_c.posEdit);
-    m_c.boardSetupController->setSfenRecord(&m_state.sfenRecord);
-    m_c.boardSetupController->setGameMoves(&m_state.gameMoves);
+    m_c.boardSetupController->setActivityState(&m_state.activity);
     m_c.boardSetupController->setupBoardInteractionController();
     m_c.boardController = m_c.boardSetupController->boardController();
 
@@ -189,7 +186,6 @@ void MainWindowComposer::createPanelsAndDocks()
     MainWindowAppearanceController::Deps ad;
     ad.shogiView = m_c.shogiView;
     ad.timePresenter = m_c.timePresenter;
-    ad.bottomSide = &m_state.bottomSide;
     m_c.appearanceController->updateDeps(ad);
     m_c.appearanceController->setupBoardInCenter();
 
@@ -243,25 +239,18 @@ void MainWindowComposer::createRecordAndPlayerInfo()
     m_c.gameRecord->setBranchTree(m_c.branchTree);
     m_c.gameRecord->setNavigationState(m_c.navState);
 
-    PlayerInfoWiring::Dependencies pw;
+    PlayerInfoPresenter::Deps pw;
     pw.parentWidget = &m_window;
     pw.tabWidget = m_c.tab;
     pw.shogiView = m_c.shogiView;
-    pw.playMode = &m_state.playMode;
-    pw.humanName1 = &m_state.humanName1;
-    pw.humanName2 = &m_state.humanName2;
-    pw.engineName1 = &m_state.engineName1;
-    pw.engineName2 = &m_state.engineName2;
-    pw.startSfenStr = &m_state.startSfenStr;
+    pw.state = &m_state;
     pw.timeController = m_c.timeController;
     pw.gameRecord = m_c.gameRecord;
     pw.liveGameSession = m_c.liveGameSession;
-    m_c.playerInfoWiring = new PlayerInfoWiring(pw, &m_window);
-    m_c.playerInfoWiring->setAnalysisTab(m_c.analysisTab);
-    m_c.playerInfoWiring->addGameInfoTabAtStartup();
-    m_c.playerInfoWiring->ensureGameInfoController();
-    m_c.gameInfoController = m_c.playerInfoWiring->gameInfoController();
-    m_c.playerInfoController = m_c.playerInfoWiring->playerInfoController();
+    m_c.playerInfo = new PlayerInfoPresenter(pw, &m_window);
+    m_c.playerInfo->setAnalysisTab(m_c.analysisTab);
+    m_c.playerInfo->addGameInfoTabAtStartup();
+    m_c.gameInfoController = m_c.playerInfo->gameInfoController();
 
     // 解析用ドック（対局情報・思考・検討・USIログ・CSAログ・コメント・分岐ツリー）
     m_c.dockCreationService->setAnalysisTab(m_c.analysisTab);
@@ -301,24 +290,24 @@ void MainWindowComposer::createRecordAndPlayerInfo()
 
 void MainWindowComposer::createSecondaryDocks()
 {
-    MenuWindowWiring::Dependencies md;
+    MenuWindowController::Dependencies md;
     md.parentWidget = &m_window;
     md.menuBar = m_window.menuBar();
-    m_c.menuWiring = new MenuWindowWiring(md, &m_window);
-    m_c.dockCreationService->setMenuWiring(m_c.menuWiring);
+    m_c.menuWindowController = new MenuWindowController(md, &m_window);
+    m_c.dockCreationService->setMenuWiring(m_c.menuWindowController);
     m_c.docks.menuWindow = m_c.dockCreationService->createMenuWindowDock();
 
-    // 定跡ウィンドウ。人間の手番かどうかは対局モードの判定サービスに聞く（wireGame で渡す）
-    JosekiWindowWiring::Dependencies jd;
+    // 定跡ウィンドウ。人間の手番かどうかは HumanTurnPolicy に聞く（wireGame で渡す）
+    JosekiWindowController::Dependencies jd;
     jd.parentWidget = &m_window;
     jd.gameController = m_c.gameController;
-    jd.currentSfenStr = &m_state.currentSfenStr;
+    jd.state = &m_state;
     jd.navState = m_c.navState;
-    m_c.josekiWiring = std::make_unique<JosekiWindowWiring>(jd);
-    m_c.dockCreationService->setJosekiWiring(m_c.josekiWiring.get());
+    m_c.josekiController = std::make_unique<JosekiWindowController>(jd);
+    m_c.dockCreationService->setJosekiController(m_c.josekiController.get());
     m_c.docks.josekiWindow = m_c.dockCreationService->createJosekiWindowDock();
     // ドックが前面に出ている間だけ更新する
-    if (m_c.docks.josekiWindow) m_c.josekiWiring->attachDock(m_c.docks.josekiWindow);
+    if (m_c.docks.josekiWindow) m_c.josekiController->attachDock(m_c.docks.josekiWindow);
 
     m_c.analysisPresenter = std::make_unique<AnalysisResultsPresenter>();
     m_c.dockCreationService->setAnalysisPresenter(m_c.analysisPresenter.get());
@@ -362,7 +351,7 @@ void MainWindowComposer::createServices()
     m_c.jishogiController = std::make_unique<JishogiScoreDialogController>();
     m_c.nyugyokuHandler = std::make_unique<NyugyokuDeclarationHandler>();
     m_c.pieceSoundPlayer = new PieceSoundPlayer(&m_window);
-    m_c.playModePolicy = std::make_unique<PlayModePolicyService>();
+    m_c.humanTurnPolicy = std::make_unique<HumanTurnPolicy>();
 
     BoardSyncPresenter::Deps bs;
     bs.gc = m_c.gameController;
@@ -371,15 +360,35 @@ void MainWindowComposer::createServices()
     bs.navState = m_c.navState;
     m_c.boardSync = new BoardSyncPresenter(bs, &m_window);
 
-    // 対局
+    // 対局・検討。エンジンの枠（E1・E2）は対局と検討で共有する（同時には動かない）
+    m_c.engines = new EngineLifecycleManager(m_c.timeController->clock(), &m_window);
+    EngineLifecycleManager::Models engineModels;
+    engineModels.comm1 = m_c.commLog1;
+    engineModels.think1 = m_c.thinking1;
+    engineModels.comm2 = m_c.commLog2;
+    engineModels.think2 = m_c.thinking2;
+    m_c.engines->setModels(engineModels);
+
+    MatchCoordinator::Deps md;
+    md.gc = m_c.gameController;
+    md.clock = m_c.timeController->clock();
+    md.activity = &m_state.activity;
+    md.engines = m_c.engines;
+    m_c.match = new MatchCoordinator(md, &m_window);
+    m_c.boardSetupController->setMatchCoordinator(m_c.match);
+
+    AnalysisSession::Deps sd;
+    sd.engines = m_c.engines;
+    sd.activity = &m_state.activity;
+    m_c.analysisSession = new AnalysisSession(sd, &m_window);
+
+    GameStartCoordinator::Deps gd;
+    gd.match = m_c.match;
+    m_c.gameStart = new GameStartCoordinator(gd, &m_window);
+    m_c.gameSession = new GameSession(&m_window);
     m_c.turnStateSync = std::make_unique<TurnStateSyncService>();
-    m_c.undoFlowService = std::make_unique<UndoFlowService>();
     m_c.replayController = new ReplayController(&m_window);
-    m_c.gameStateController = new GameStateController(&m_window);
     m_c.consecutiveGamesController = new ConsecutiveGamesController(&m_window);
-    m_c.gameSessionOrchestrator = new GameSessionOrchestrator(&m_window);
-    m_c.sessionLifecycle = new SessionLifecycleCoordinator(&m_window);
-    m_c.matchWiring = std::make_unique<MatchCoordinatorWiring>();
 
     PreStartCleanupHandler::Dependencies pc;
     pc.boardController = m_c.boardController;
@@ -389,7 +398,6 @@ void MainWindowComposer::createServices()
     pc.lineEditModel1 = m_c.commLog1;
     pc.lineEditModel2 = m_c.commLog2;
     pc.timeController = m_c.timeController;
-    pc.evalChart = m_c.evalChart;
     pc.evalGraphController = m_c.evalGraphController.get();
     pc.recordPane = m_c.recordPane;
     pc.liveGameSession = m_c.liveGameSession;
@@ -405,7 +413,6 @@ void MainWindowComposer::createServices()
 
     // UI
     m_c.pvClickController = new PvClickController(&m_window);
-    m_c.considerationPositionService = new ConsiderationPositionService(&m_window);
     m_c.usiCommandController = std::make_unique<UsiCommandController>();
     m_c.dialogCoordinatorWiring = new DialogCoordinatorWiring(&m_window);
     m_c.recordNavHandler = new RecordNavigationHandler(&m_window);

@@ -8,7 +8,6 @@
 
 #include "appstate.h"
 #include "mainwindowcomponents.h"
-#include "matchcoordinator.h"
 
 class MainWindow;
 class QString;
@@ -27,7 +26,7 @@ QT_END_NAMESPACE
  * - mainwindowcomposer.cpp          起動・終了の手順と終了確認
  * - mainwindowcomposer_create.cpp   部品の生成（モデル → 画面 → 盤 → サービス）
  * - mainwindowcomposer_wire.cpp     棋譜・UI 系の依存の注入
- * - mainwindowcomposer_game.cpp     対局系の依存の注入と司令塔のフック
+ * - mainwindowcomposer_game.cpp     対局・検討・通信対局の依存の注入とシグナル接続
  * - mainwindowcomposer_finalize.cpp シグナル接続と初期表示
  * - mainwindowcomposer_automation.cpp 自動化 API（--automation）
  */
@@ -74,11 +73,10 @@ private:
     void wireDialogs();
 
     // ===== 対局系（mainwindowcomposer_game.cpp） =====
-    void wireGame();
-    void wireMatchCoordinator();
     void wireCsaGame();
-    MatchCoordinator::Hooks buildMatchHooks();
-    MatchCoordinator::UndoHooks buildUndoHooks();
+    void wireGame();
+    void connectMatchSignals();
+    void connectAnalysisSignals();
 
     // ===== 接続と初期表示（mainwindowcomposer_finalize.cpp） =====
     void connectSignals();

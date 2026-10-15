@@ -50,11 +50,9 @@ QList<KifuBranchNode*> KifuBranchTreeBuilder::addKifLineToTree(
         if (!line.opening->comment.isEmpty()) currentNode->setComment(line.opening->comment);
         if (!line.opening->bookmark.isEmpty()) currentNode->setBookmark(line.opening->bookmark);
     }
-    for (const auto& item : line.entries) {
-        currentNode = tree->addRecord(currentNode, item.record);
+    for (const auto& record : line.entries) {
+        currentNode = tree->addRecord(currentNode, record);
         path.append(currentNode);
-        currentNode->setComment(item.comment);
-        currentNode->setBookmark(item.bookmark);
     }
     return path;
 }

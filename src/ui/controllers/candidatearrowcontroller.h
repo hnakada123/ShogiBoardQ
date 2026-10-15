@@ -7,6 +7,9 @@
 #include <optional>
 #include <array>
 
+class AnalysisSession;
+class AppActivityState;
+class EngineLifecycleManager;
 class MatchCoordinator;
 class ShogiEngineThinkingModel;
 class Usi;
@@ -18,7 +21,14 @@ class CandidateArrowController : public QObject
 public:
     static CandidateArrowController* forView(ShogiView* view);
     explicit CandidateArrowController(ShogiView* view);
-    void setMatchCoordinator(MatchCoordinator* match);
+    /// 矢印の元になる対局・エンジン・動作状態・検討のセッション（非所有）
+    struct Sources {
+        MatchCoordinator* match = nullptr;
+        EngineLifecycleManager* engines = nullptr;
+        AppActivityState* activity = nullptr;
+        AnalysisSession* analysis = nullptr;
+    };
+    void setSources(const Sources& sources);
     void setConsiderationState(bool active, bool show, ShogiEngineThinkingModel* model);
 
     static std::optional<ShogiView::Arrow> arrowForMove(const QString& move,
@@ -31,7 +41,8 @@ public slots:
     void refresh();
 
 signals:
-    void displayStateChanged();
+    /// 矢印の表示が変わった（検討中か・先読みの説明。思考タブの矢印の設定欄に出す）
+    void displayStateChanged(bool considerationActive, const QString& ponderDescription);
 
 private slots:
     void bindEngines();
@@ -40,7 +51,7 @@ private slots:
 private:
     void appendMatchArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen);
     QPointer<ShogiView> m_view;
-    QPointer<MatchCoordinator> m_match;
+    Sources m_sources;
     std::array<QPointer<Usi>, 2> m_engines;
     QPointer<ShogiEngineThinkingModel> m_considerationModel;
     bool m_considerationActive = false;

@@ -2,6 +2,7 @@
 /// @brief 局面編集コーディネータクラスの実装
 
 #include "positioneditcoordinator.h"
+#include "appstate.h"
 #include "uistatepolicymanager.h"
 #include "kifunavigationstate.h"
 
@@ -67,19 +68,9 @@ void PositionEditCoordinator::setNavigationState(const KifuNavigationState* stat
     m_navState = state;
 }
 
-void PositionEditCoordinator::setStartSfenStr(QString* startSfenStr)
+void PositionEditCoordinator::setAppState(AppState* state)
 {
-    m_startSfenStr = startSfenStr;
-}
-
-void PositionEditCoordinator::setCurrentSfenStr(QString* currentSfenStr)
-{
-    m_currentSfenStr = currentSfenStr;
-}
-
-void PositionEditCoordinator::setOnMainRowGuard(bool* onMainRowGuard)
-{
-    m_onMainRowGuard = onMainRowGuard;
+    m_state = state;
 }
 
 // --------------------------------------------------------
@@ -105,12 +96,11 @@ void PositionEditCoordinator::beginPositionEditing()
     ctx.bic        = m_boardController;
 
     const RecordLine line = m_navState ? m_navState->currentRecordLine() : RecordLine{};
-    ctx.displayedSfen   = line.sfens.value(line.currentPly);
-    ctx.recordStartSfen = line.startSfen();
+    ctx.displayedSfen   = line.sfenAt(line.currentPly);
+    ctx.recordStartSfen = line.startSfen;
     ctx.gameOver    = (m_match ? m_match->gameOverState().isOver : false);
 
-    ctx.startSfenStr    = m_startSfenStr;
-    ctx.currentSfenStr  = m_currentSfenStr;
+    if (m_state) ctx.currentSfen = m_state->currentSfenStr;
 
     // メニュー表示：編集メニューに遷移
     ctx.onEnterEditMenu = [this]() {
@@ -130,7 +120,8 @@ void PositionEditCoordinator::beginPositionEditing()
     };
 
     // 実行
-    m_posEdit->beginPositionEditing(ctx);
+    const QString startSfen = m_posEdit->beginPositionEditing(ctx);
+    if (m_state && !startSfen.isEmpty()) m_state->startSfenStr = startSfen;
 
     // 編集元の局面が確定した後に、棋譜の初期化を通知する。
     if (m_shogiView->positionEditMode()) {
@@ -166,27 +157,13 @@ void PositionEditCoordinator::beginPositionEditing()
 
 void PositionEditCoordinator::finishPositionEditing()
 {
-    // 自動同期を一時停止
-    bool prevGuard = false;
-    if (m_onMainRowGuard) {
-        prevGuard = *m_onMainRowGuard;
-        *m_onMainRowGuard = true;
-    }
-
-    if (!m_posEdit || !m_shogiView || !m_gameController) {
-        if (m_onMainRowGuard) {
-            *m_onMainRowGuard = prevGuard;
-        }
-        return;
-    }
+    if (!m_posEdit || !m_shogiView || !m_gameController) return;
 
     // Controller に委譲
     PositionEditController::FinishEditContext ctx;
     ctx.view       = m_shogiView;
     ctx.gc         = m_gameController;
     ctx.bic        = m_boardController;
-    ctx.startSfenStr        = m_startSfenStr;
-    ctx.isResumeFromCurrent = nullptr;
 
     // 「編集終了」ボタンの後片付け
     ctx.onHideEditExitButton = [this]() {
@@ -205,17 +182,14 @@ void PositionEditCoordinator::finishPositionEditing()
 
     // 実行
     const bool wasEditing = m_shogiView->positionEditMode();
-    m_posEdit->finishPositionEditing(ctx);
+    const QString editedSfen = m_posEdit->finishPositionEditing(ctx);
+    // 編集した局面が開始局面になる（棋譜と対局の局面列は positionEditingFinished を受けて作り直す）
+    if (m_state && !editedSfen.isEmpty()) m_state->startSfenStr = editedSfen;
     if (wasEditing && !m_shogiView->positionEditMode()) {
         emit positionEditingFinished();
     }
 
-    // 自動同期を再開
-    if (m_onMainRowGuard) {
-        *m_onMainRowGuard = prevGuard;
-    }
-
     qCDebug(lcUi) << "finishPositionEditing: editMode="
              << (m_shogiView ? m_shogiView->positionEditMode() : false)
-             << " m_startSfenStr=" << (m_startSfenStr ? *m_startSfenStr : QString());
+             << " startSfen=" << editedSfen;
 }

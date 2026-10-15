@@ -28,37 +28,34 @@ private slots:
         deps.coordinator = &coordinator;
         deps.statusBar = &status;
         CsaGameWiring wiring(deps);
-        QSignalSpy moves(&wiring, &CsaGameWiring::moveAppliedToBoard);
+        const QMetaMethod log = QMetaMethod::fromSignal(&CsaGameCoordinator::logMessage);
         wiring.wire();
         wiring.wire();
         emit coordinator.logMessage(QStringLiteral("connected"), false);
-        emit coordinator.moveAppliedToBoard();
         QCOMPARE(status.currentMessage(), QStringLiteral("connected"));
-        QCOMPARE(moves.count(), 1);
         wiring.unwire();
         emit coordinator.logMessage(QStringLiteral("disconnected"), false);
-        emit coordinator.moveAppliedToBoard();
         QCOMPARE(status.currentMessage(), QStringLiteral("connected"));
-        QCOMPARE(moves.count(), 1);
         wiring.wire();
-        emit coordinator.moveAppliedToBoard();
-        QCOMPARE(moves.count(), 2);
+        QVERIFY(QObject::disconnect(&coordinator, log, &wiring, QMetaMethod()));
+        QVERIFY(!QObject::disconnect(&coordinator, log, &wiring, QMetaMethod()));  // 1本だけ
     }
 
     void replacingCoordinatorDisconnectsOldSender()
     {
         CsaGameCoordinator oldCoordinator, newCoordinator;
+        QStatusBar status;
         CsaGameWiring::Dependencies deps;
         deps.coordinator = &oldCoordinator;
+        deps.statusBar = &status;
         CsaGameWiring wiring(deps);
-        QSignalSpy moves(&wiring, &CsaGameWiring::moveAppliedToBoard);
         wiring.wire();
         wiring.setCoordinator(&newCoordinator);
         wiring.wire();
-        emit oldCoordinator.moveAppliedToBoard();
-        QCOMPARE(moves.count(), 0);
-        emit newCoordinator.moveAppliedToBoard();
-        QCOMPARE(moves.count(), 1);
+        emit oldCoordinator.logMessage(QStringLiteral("old"), false);
+        QVERIFY(status.currentMessage().isEmpty());
+        emit newCoordinator.logMessage(QStringLiteral("new"), false);
+        QCOMPARE(status.currentMessage(), QStringLiteral("new"));
     }
 
     /// エラー・指し手ハイライトは中継せず、通知サービス・盤の操作へ1本ずつ直接つながる
@@ -87,19 +84,16 @@ private slots:
     void startUpdatesModeAndNavigationOnce()
     {
         CsaGameCoordinator coordinator;
-        PlayMode mode = PlayMode::NotStarted;
+        AppActivityState activity;
         QStatusBar status;
         int prepared = 0;
         CsaGameWiring::Dependencies deps;
         deps.coordinator = &coordinator;
-        deps.playMode = &mode;
-        deps.changePlayMode = [&mode, &prepared](PlayMode value) {
-            QCOMPARE(prepared, 1);
-            mode = value;
-        };
+        deps.activity = &activity;
         deps.statusBar = &status;
-        deps.prepareRecord = [&prepared, &mode](const QString&, const QString&, const QString&) {
-            QCOMPARE(mode, PlayMode::NotStarted);
+        deps.prepareRecord = [&prepared, &activity](const QString&, const QString&, const QString&) {
+            // 棋譜を作り直してから通信対局中にする
+            QCOMPARE(activity.activity(), AppActivityState::Activity::Idle);
             ++prepared;
         };
         CsaGameWiring wiring(deps);
@@ -108,7 +102,7 @@ private slots:
         wiring.wireExternalSignals(&policy, nullptr, nullptr);
         wiring.wireExternalSignals(&policy, nullptr, nullptr);
         emit coordinator.gameStarted(QStringLiteral("Black"), QStringLiteral("White"), {});
-        QCOMPARE(mode, PlayMode::CsaNetworkMode);
+        QCOMPARE(activity.activity(), AppActivityState::Activity::DuringCsaGame);
         QCOMPARE(policy.currentState(), UiStatePolicyManager::AppState::DuringCsaGame);
         QCOMPARE(prepared, 1);
         QVERIFY(status.currentMessage().contains(QStringLiteral("Black")));

@@ -20,8 +20,8 @@ const QString kAfter84 = QStringLiteral("lnsgkgsnl/1r5b1/p1pppppp1/1p7/9/2P6/PP1
 
 ShogiMove move(const char* usi, Turn mover, Piece moving)
 {
-    const auto parsed = UsiMove::parse(QString::fromLatin1(usi));
-    return ShogiMove::fromUsiMove(*parsed, mover, moving, Piece::None);
+    Q_UNUSED(mover)
+    return ShogiMove(UsiMove::fromString(QString::fromLatin1(usi)), moving);
 }
 
 /// 平手から ▲７六歩 △３四歩 ▲２六歩 の本譜と、2手目の分岐 △８四歩
@@ -81,8 +81,8 @@ void TestConsiderationResolver::startPosition_hasNoPreviousMove()
 
     QCOMPARE(line.currentPly, 0);
     QCOMPARE(r.position, QStringLiteral("position startpos"));
-    QCOMPARE(r.previousFileTo, 0);
-    QCOMPARE(r.previousRankTo, 0);
+    QCOMPARE(r.previousTo.file, 0);
+    QCOMPARE(r.previousTo.rank, 0);
     QVERIFY(r.lastUsiMove.isEmpty());
 }
 
@@ -104,8 +104,8 @@ void TestConsiderationResolver::previousMove_isTheMoveJustPlayed()
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
     QCOMPARE(r.lastUsiMove, QStringLiteral("3c3d"));
-    QCOMPARE(r.previousFileTo, 3);
-    QCOMPARE(r.previousRankTo, 4);
+    QCOMPARE(r.previousTo.file, 3);
+    QCOMPARE(r.previousTo.rank, 4);
 }
 
 void TestConsiderationResolver::rowOutOfRange_isClamped()
@@ -129,21 +129,21 @@ void TestConsiderationResolver::branch_usesDisplayedBranch()
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
     QCOMPARE(line.currentPly, 2);
-    QCOMPARE(line.sfens.value(2), kAfter84);
+    QCOMPARE(line.sfenAt(2), kAfter84);
     QCOMPARE(r.position, QStringLiteral("position startpos moves 7g7f 8c8d"));
     QCOMPARE(r.lastUsiMove, QStringLiteral("8c8d"));
-    QCOMPARE(r.previousFileTo, 8);
-    QCOMPARE(r.previousRankTo, 4);
+    QCOMPARE(r.previousTo.file, 8);
+    QCOMPARE(r.previousTo.rank, 4);
 }
 
 void TestConsiderationResolver::terminalMove_isNotPartOfLine()
 {
     SampleTree t;
-    KifuBranchNode* resign = t.tree.addTerminalMove(t.ply3, TerminalType::Resign, QStringLiteral("△投了"));
+    KifuBranchNode* resign = t.tree.addTerminalMove(t.ply3, TerminalType::Resign, Turn::White);
     const RecordLine line = t.lineAt(resign);
 
     QCOMPARE(line.moveCount(), 3);
-    QCOMPARE(line.displayTexts.size(), 3);
+    QCOMPARE(line.displayTexts().size(), 3);
     QCOMPARE(line.currentPly, 3);
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
     QCOMPARE(r.position, QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
@@ -181,8 +181,8 @@ void TestConsiderationResolver::dropMove_destinationIsDropSquare()
     const auto r = ConsiderationPositionResolver::resolve(nav.currentRecordLine(), 1);
 
     QCOMPARE(r.lastUsiMove, QStringLiteral("G*5c"));
-    QCOMPARE(r.previousFileTo, 5);
-    QCOMPARE(r.previousRankTo, 3);
+    QCOMPARE(r.previousTo.file, 5);
+    QCOMPARE(r.previousTo.rank, 3);
 }
 
 void TestConsiderationResolver::emptyLine_usesFallbackSfen()
@@ -203,7 +203,7 @@ void TestConsiderationResolver::emptyLine_withoutFallback_isStartpos()
     const auto r = ConsiderationPositionResolver::resolve(RecordLine{}, 3);
     QCOMPARE(r.position, QStringLiteral("position startpos"));
     QVERIFY(r.lastUsiMove.isEmpty());
-    QCOMPARE(r.previousFileTo, 0);
+    QCOMPARE(r.previousTo.file, 0);
 }
 
 QTEST_MAIN(TestConsiderationResolver)

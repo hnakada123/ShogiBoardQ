@@ -13,7 +13,7 @@ class EngineAnalysisTab;
 class ShogiEngineThinkingModel;
 class CommentCoordinator;
 class UsiCommandController;
-class ConsiderationWiring;
+class ConsiderationUiController;
 class PvClickController;
 class BranchNavigationWiring;
 
@@ -32,7 +32,7 @@ public:
         PvClickController* pvClickController = nullptr;
         CommentCoordinator* commentCoordinator = nullptr;
         UsiCommandController* usiCommandController = nullptr;
-        ConsiderationWiring* considerationWiring = nullptr;
+        ConsiderationUiController* considerationUi = nullptr;
     };
 
     explicit AnalysisTabWiring(const Deps& d, QObject* parent = nullptr);

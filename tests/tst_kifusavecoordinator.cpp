@@ -12,11 +12,12 @@
 #include <QTimer>
 
 #include "kifusavecoordinator.h"
+#include "kifusavefile.h"
 #include "kifuioservice.h"
 
-using KifuSaveCoordinator::SaveFormat;
+using KifuSaveFile::SaveFormat;
 
-Q_DECLARE_METATYPE(KifuSaveCoordinator::SaveFormat)
+Q_DECLARE_METATYPE(KifuSaveFile::SaveFormat)
 
 class SaveDialogResponder : public QObject
 {
@@ -119,7 +120,7 @@ private slots:
                 ++generated;
                 actual = format;
                 return QStringList{QStringLiteral("selected format only")};
-            }, PlayMode::NotStarted, {}, {}, {}, {}, false, false, &error);
+            }, QString(), false, false, &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(generated, responder.cancelFile ? 0 : 1);
         if (responder.cancelFile) QVERIFY(path.isEmpty());
@@ -157,7 +158,7 @@ private slots:
         if (dirty) QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
         const bool accepted = KifuSaveCoordinator::confirmDiscardUnsaved(nullptr, dirty, [&]() {
             ++saves;
-            return KifuSaveCoordinator::overwriteExisting(path, {QStringLiteral("unsaved record")});
+            return KifuSaveFile::write(path, {QStringLiteral("unsaved record")});
         });
         QCOMPARE(accepted, proceed);
         QCOMPARE(saves, dirty && answer == int(QMessageBox::Save) ? 1 : 0);
@@ -176,7 +177,7 @@ private slots:
             return !KifuSaveCoordinator::saveViaDialog(nullptr, [&](SaveFormat) {
                 ++generated;
                 return QStringList{QStringLiteral("unsaved record")};
-            }, PlayMode::NotStarted, {}, {}, {}, {}).isEmpty();
+            }, QString()).isEmpty();
         });
         QVERIFY(!accepted);
         QCOMPARE(generated, 0);
@@ -200,7 +201,7 @@ private slots:
         QFETCH(QString, path);
         QFETCH(QString, filter);
         QFETCH(QString, expected);
-        QCOMPARE(KifuSaveCoordinator::pathForSelectedFilter(path, filter), expected);
+        QCOMPARE(KifuSaveFile::pathForSelectedFilter(path, filter), expected);
     }
 
     void shiftJisFailurePreservesExistingFile()
@@ -214,7 +215,7 @@ private slots:
         QCOMPARE(file.write(original), original.size());
         file.close();
         QString error;
-        QVERIFY(!KifuSaveCoordinator::overwriteExisting(path, {QString::fromUtf8("棋譜😀")}, &error));
+        QVERIFY(!KifuSaveFile::write(path, {QString::fromUtf8("棋譜😀")}, &error));
         // ダイアログを出さない呼び出し（自動化 API・CLI）は、保存できない文字を示してエラーにする
         QVERIFY(error.contains(QString::fromUtf8("😀")));
         QCOMPARE(readAllBytes(path), original);
@@ -261,7 +262,7 @@ private slots:
             responder.respond();
         });
         QString error;
-        const bool ok = KifuSaveCoordinator::overwriteExisting(path, lines, &error, &parent);
+        const bool ok = KifuSaveCoordinator::overwriteExisting(&parent, path, lines, &error);
         QVERIFY(messageText.contains(QString::fromUtf8("您")));
         QVERIFY2(error.isEmpty(), qPrintable(error));  // キャンセルはエラーとして通知しない
         if (answer == QMessageBox::Save) {
@@ -288,8 +289,8 @@ private slots:
             }
         });
         QString error;
-        QVERIFY(KifuSaveCoordinator::overwriteExisting(
-            path, {QStringLiteral("#KIF version=2.0 encoding=UTF-8"), QString::fromUtf8("先手：鈴木")}, &error, &parent));
+        QVERIFY(KifuSaveCoordinator::overwriteExisting(&parent,
+            path, {QStringLiteral("#KIF version=2.0 encoding=UTF-8"), QString::fromUtf8("先手：鈴木")}, &error));
         QVERIFY(!asked);
         QVERIFY(readAllBytes(path).startsWith("#KIF version=2.0 encoding=Shift_JIS"));
     }
@@ -298,7 +299,7 @@ private slots:
     {
         QTemporaryDir dir;
         QString error;
-        QVERIFY(!KifuSaveCoordinator::overwriteExisting(dir.path(), {QStringLiteral("record")}, &error));
+        QVERIFY(!KifuSaveFile::write(dir.path(), {QStringLiteral("record")}, &error));
         QVERIFY(!error.isEmpty());
     }
 
@@ -326,7 +327,7 @@ private slots:
     {
         QFETCH(QString, path);
         QFETCH(SaveFormat, expected);
-        QCOMPARE(KifuSaveCoordinator::saveFormatForPath(path), expected);
+        QCOMPARE(KifuSaveFile::saveFormatForPath(path), expected);
     }
 
     void hasKnownSaveExtension()
@@ -339,25 +340,25 @@ private slots:
             QStringLiteral("A.KIF"),
         };
         for (const QString& name : known) {
-            QVERIFY2(KifuSaveCoordinator::hasKnownSaveExtension(QStringLiteral("/tmp/") + name),
+            QVERIFY2(KifuSaveFile::hasKnownSaveExtension(QStringLiteral("/tmp/") + name),
                      qPrintable(name));
         }
 
         // 保存形式を決められない拡張子は上書き対象にしない
-        QVERIFY(!KifuSaveCoordinator::hasKnownSaveExtension(QStringLiteral("/tmp/a.sfen")));
-        QVERIFY(!KifuSaveCoordinator::hasKnownSaveExtension(QStringLiteral("/tmp/a.txt")));
-        QVERIFY(!KifuSaveCoordinator::hasKnownSaveExtension(QStringLiteral("/tmp/a")));
-        QVERIFY(!KifuSaveCoordinator::hasKnownSaveExtension(QString()));
+        QVERIFY(!KifuSaveFile::hasKnownSaveExtension(QStringLiteral("/tmp/a.sfen")));
+        QVERIFY(!KifuSaveFile::hasKnownSaveExtension(QStringLiteral("/tmp/a.txt")));
+        QVERIFY(!KifuSaveFile::hasKnownSaveExtension(QStringLiteral("/tmp/a")));
+        QVERIFY(!KifuSaveFile::hasKnownSaveExtension(QString()));
     }
 
     void usesShiftJisForPath()
     {
-        QVERIFY(KifuSaveCoordinator::usesShiftJisForPath(QStringLiteral("/tmp/a.kif")));
-        QVERIFY(KifuSaveCoordinator::usesShiftJisForPath(QStringLiteral("/tmp/a.KI2")));
-        QVERIFY(!KifuSaveCoordinator::usesShiftJisForPath(QStringLiteral("/tmp/a.kifu")));
-        QVERIFY(!KifuSaveCoordinator::usesShiftJisForPath(QStringLiteral("/tmp/a.ki2u")));
-        QVERIFY(!KifuSaveCoordinator::usesShiftJisForPath(QStringLiteral("/tmp/a.csa")));
-        QVERIFY(!KifuSaveCoordinator::usesShiftJisForPath(QStringLiteral("/tmp/a.usi")));
+        QVERIFY(KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.kif")));
+        QVERIFY(KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.KI2")));
+        QVERIFY(!KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.kifu")));
+        QVERIFY(!KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.ki2u")));
+        QVERIFY(!KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.csa")));
+        QVERIFY(!KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.usi")));
     }
 
     // === 上書き保存 ===
@@ -376,7 +377,7 @@ private slots:
             QStringLiteral("+7776FU"),
         };
         QString err;
-        QVERIFY2(KifuSaveCoordinator::overwriteExisting(path, lines, &err), qPrintable(err));
+        QVERIFY2(KifuSaveFile::write(path, lines, &err), qPrintable(err));
 
         const QString text = readAllTextNormalized(path);
         QCOMPARE(text, lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
@@ -390,9 +391,9 @@ private slots:
         const QString path = dir.filePath(QStringLiteral("game.usi"));
 
         QString err;
-        QVERIFY(KifuSaveCoordinator::overwriteExisting(
+        QVERIFY(KifuSaveFile::write(
             path, {QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")}, &err));
-        QVERIFY(KifuSaveCoordinator::overwriteExisting(
+        QVERIFY(KifuSaveFile::write(
             path, {QStringLiteral("position startpos moves 7g7f")}, &err));
 
         QCOMPARE(readAllTextNormalized(path),
@@ -412,7 +413,7 @@ private slots:
             QStringLiteral("   1 ７六歩(77)"),
         };
         QString err;
-        QVERIFY2(KifuSaveCoordinator::overwriteExisting(path, lines, &err), qPrintable(err));
+        QVERIFY2(KifuSaveFile::write(path, lines, &err), qPrintable(err));
 
         const QString text = readAllTextNormalized(path);
         QCOMPARE(text, lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
@@ -436,7 +437,7 @@ private slots:
             QStringLiteral("   1 ７六歩(77)"),
         };
         QString err;
-        QVERIFY2(KifuSaveCoordinator::overwriteExisting(path, lines, &err), qPrintable(err));
+        QVERIFY2(KifuSaveFile::write(path, lines, &err), qPrintable(err));
 
         const QByteArray bytes = readAllBytes(path);
         QStringDecoder decoder("Shift-JIS");

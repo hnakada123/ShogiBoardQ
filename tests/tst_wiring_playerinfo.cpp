@@ -1,5 +1,5 @@
 /// @file tst_wiring_playerinfo.cpp
-/// @brief PlayerInfoWiring の配線契約テスト（軽量ソース検証）
+/// @brief PlayerInfoPresenter の配線契約テスト（軽量ソース検証）
 ///
 /// 実行依存を増やさない範囲で、配線契約とキー利用契約を検証する。
 
@@ -45,17 +45,17 @@ private:
 private slots:
     void initTestCase()
     {
-        m_wiringSrc = readSource(QStringLiteral("src/ui/wiring/playerinfowiring.cpp"));
-        m_wiringHeader = readSource(QStringLiteral("src/ui/wiring/playerinfowiring.h"));
-        QVERIFY2(!m_wiringSrc.isEmpty(), "playerinfowiring.cpp not found");
-        QVERIFY2(!m_wiringHeader.isEmpty(), "playerinfowiring.h not found");
+        m_wiringSrc = readSource(QStringLiteral("src/ui/presenters/playerinfopresenter.cpp"));
+        m_wiringHeader = readSource(QStringLiteral("src/ui/presenters/playerinfopresenter.h"));
+        QVERIFY2(!m_wiringSrc.isEmpty(), "playerinfopresenter.cpp not found");
+        QVERIFY2(!m_wiringHeader.isEmpty(), "playerinfopresenter.h not found");
     }
 
     void addGameInfoTab_connectsTabCurrentChanged()
     {
         QVERIFY2(hasConnection(m_wiringSrc,
                                QStringLiteral("QTabWidget::currentChanged"),
-                               QStringLiteral("PlayerInfoWiring::tabCurrentChanged")),
+                               QStringLiteral("PlayerInfoPresenter::tabCurrentChanged")),
                  "tabWidget currentChanged → tabCurrentChanged connection missing");
     }
 
@@ -71,12 +71,7 @@ private slots:
             QStringLiteral("parentWidget"),
             QStringLiteral("tabWidget"),
             QStringLiteral("shogiView"),
-            QStringLiteral("playMode"),
-            QStringLiteral("humanName1"),
-            QStringLiteral("humanName2"),
-            QStringLiteral("engineName1"),
-            QStringLiteral("engineName2"),
-            QStringLiteral("startSfenStr"),
+            QStringLiteral("state"),
             QStringLiteral("timeController"),
             QStringLiteral("gameRecord"),
             QStringLiteral("liveGameSession"),
@@ -85,19 +80,6 @@ private slots:
             QVERIFY2(m_wiringSrc.contains(QStringLiteral("deps.") + field),
                      qPrintable(QStringLiteral("Dependencies field '%1' not referenced").arg(field)));
         }
-    }
-
-    void ensureMethods_assignOwnedPointers()
-    {
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("void PlayerInfoWiring::ensureGameInfoController()")),
-                 "ensureGameInfoController definition missing");
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("m_gameInfoController =")),
-                 "ensureGameInfoController should assign m_gameInfoController");
-
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("void PlayerInfoWiring::ensurePlayerInfoController()")),
-                 "ensurePlayerInfoController definition missing");
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("m_playerInfoController =")),
-                 "ensurePlayerInfoController should assign m_playerInfoController");
     }
 
     void canonicalGameInfoKeys_areUsed()
@@ -120,10 +102,9 @@ private slots:
     void publicSlots_allDeclaredInHeader()
     {
         const QStringList slotNames = {
-            QStringLiteral("PlayerInfoWiring::onSetPlayersNames"),
-            QStringLiteral("PlayerInfoWiring::onSetEngineNames"),
-            QStringLiteral("PlayerInfoWiring::onPlayerNamesResolved"),
-            QStringLiteral("PlayerInfoWiring::onMenuPlayerNamesResolved"),
+            QStringLiteral("PlayerInfoPresenter::onMatchPlayersResolved"),
+            QStringLiteral("PlayerInfoPresenter::onAnalysisEngineNamesChanged"),
+            QStringLiteral("PlayerInfoPresenter::setOriginalGameInfo"),
         };
         for (const auto& name : std::as_const(slotNames)) {
             QVERIFY2(m_wiringSrc.contains(name),

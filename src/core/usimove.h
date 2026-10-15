@@ -43,6 +43,8 @@ struct UsiMove {
 
     /// USI 文字列を読む。前後の空白は無視する。形式が違えば nullopt
     static inline std::optional<UsiMove> parse(QStringView text);
+    /// 正しいと分かっている USI の文字列から作る（読めなければ無効な指し手）
+    static UsiMove fromString(QStringView text) { return parse(text).value_or(UsiMove{}); }
 
     /// USI 文字列にする（無効な指し手は空文字列）
     inline QString toString() const;

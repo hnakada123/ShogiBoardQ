@@ -1,0 +1,103 @@
+#ifndef ANALYSISSESSION_H
+#define ANALYSISSESSION_H
+
+/// @file analysissession.h
+/// @brief 検討・詰み探索（1つのエンジンで局面を調べる）のセッション
+
+#include <QObject>
+#include <QPointer>
+#include <QString>
+#include <QTimer>
+
+#include "analysisoptions.h"
+
+class AppActivityState;
+class EngineLifecycleManager;
+class ShogiEngineThinkingModel;
+class Usi;
+
+/**
+ * @brief 検討・詰み探索のセッション
+ *
+ * エンジンを E1 の枠に作って局面を調べる。検討は局面や候補手の数が変わるたびに探索をやり直し、
+ * 詰み探索は結果が出たら終わる。開始・停止・やり直しを1つの状態遷移として扱う。
+ * 対局（MatchCoordinator）とはエンジンの枠だけを共有する（同時には動かない）。
+ */
+class AnalysisSession : public QObject
+{
+    Q_OBJECT
+
+public:
+    struct Deps {
+        EngineLifecycleManager* engines = nullptr;  ///< エンジンの枠（必須、非所有）
+        AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
+    };
+
+    explicit AnalysisSession(const Deps& deps, QObject* parent = nullptr);
+
+    /// 検討・詰み探索を始める（前のセッションのエンジンは破棄する）
+    bool start(const AnalysisOptions& opt);
+    /// 終わらせてエンジンを破棄する（思考情報の表示は残す）
+    void stop();
+
+    bool isConsidering() const { return m_mode == Mode::Consideration; }
+    bool isTsumeSearching() const { return m_mode == Mode::Tsume; }
+    bool isShutdownInProgress() const;
+    /// 検討・詰み探索に使っているエンジン（使っていなければ nullptr）
+    Usi* engine() const;
+    /// 検討・詰み探索に使っているエンジンの名前（使っていなければ空）
+    QString engineName() const { return m_mode == Mode::None ? QString() : m_engineName; }
+
+    /// 検討中に候補手の数を変える
+    void updateMultiPV(int multiPV);
+    /**
+     * @brief 検討中に局面を変える（棋譜欄の別の手を選んだとき）
+     * @return true: やり直しを始めた, false: 検討中でないか同じ局面
+     */
+    bool updatePosition(const QString& positionStr, BoardSquare previousTo, const QString& lastUsiMove);
+
+signals:
+    void considerationModeEnded();
+    void tsumeSearchModeEnded();
+    /// 検討の探索が終わり、次の局面を待っている（経過時間の表示を止める）
+    void considerationWaitingStarted();
+    /// 枠 E1・E2 のエンジン名が変わった（検討・詰み探索は E1 だけ使う。エンジン名の表示を合わせる）
+    void engineNamesChanged(const QString& engine1, const QString& engine2);
+    /// 結果やエラーの知らせ（ダイアログ）
+    void messageRequested(const QString& title, const QString& message);
+
+private slots:
+    void onEngineError(const QString& message);
+    void onCheckmateSolved(const QStringList& pv);
+    void onCheckmateNoMate();
+    void onCheckmateNotImplemented();
+    void onCheckmateUnknown();
+    void onTsumeBestMoveReceived();
+    void onConsiderationBestMoveReceived();
+    void restartConsiderationDeferred();
+
+private:
+    enum class Mode { None, Consideration, Tsume };
+    enum class State { Idle, Starting, CancelStarting, Searching, StoppingSearch, RestartQueued, Waiting };
+
+    void startSearch();
+    void endSession();
+    void finalizeTsumeSearch(const QString& resultMessage);
+    void requestConsiderationRestart();
+
+    Deps m_deps;
+    QPointer<Usi> m_engine;
+    Mode m_mode = Mode::None;
+    State m_state = State::Idle;
+    QString m_startupError;
+    QString m_engineName;                         ///< 使っているエンジンの名前
+    QTimer m_restartTimer;                       ///< 停止時に取り消す再開要求
+    QString m_positionStr;                        ///< 検討中の position 文字列
+    int m_byoyomiMs = 0;                          ///< 検討の時間制限（ms）
+    int m_multiPV = 1;                            ///< 検討の候補手数
+    ShogiEngineThinkingModel* m_considerationModel = nullptr; ///< 検討タブ用モデル（非所有）
+    BoardSquare m_previousTo;                     ///< 局面に至った手の移動先
+    QString m_lastUsiMove;                        ///< 局面に至った手（USI形式）
+};
+
+#endif // ANALYSISSESSION_H

@@ -9,13 +9,15 @@
 #include "mainwindowcomposer.h"
 #include "csagamewiring.h"
 #include "branchnavigationwiring.h"
-#include "sessionlifecyclecoordinator.h"
+#include "analysissession.h"
+#include "enginelifecyclemanager.h"
+#include "gamesession.h"
+#include "gamestartcoordinator.h"
 #include "commentcoordinator.h"
 #include "gamerecordmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
-#include "gamestatecontroller.h"
 #include "gamerecordpresenter.h"
 #include "positioneditcoordinator.h"
 #include "prestartcleanuphandler.h"
@@ -24,13 +26,12 @@
 #include "dialogcoordinator.h"
 #include "boardsetupcontroller.h"
 #include "pvclickcontroller.h"
-#include "considerationwiring.h"
+#include "considerationuicontroller.h"
 #include "appsettings.h"
-#include "matchcoordinatorwiring.h"
 #include "matchcoordinator.h"
 #include "kifuloadcoordinator.h"
 #include "kifufilecontroller.h"
-#include "dialoglaunchwiring.h"
+#include "dialoglauncher.h"
 #include "kifuanalysislistmodel.h"
 #include "kifudisplaycoordinator.h"
 #include "kifunavigationcontroller.h"
@@ -87,14 +88,18 @@ private slots:
         auto& parts = window.composer().parts();
         QCOMPARE(window.findChildren<TimeControlController*>().size(), 1);
         QCOMPARE(window.findChildren<ReplayController*>().size(), 1);
-        QCOMPARE(window.findChildren<GameStateController*>().size(), 1);
+        QCOMPARE(window.findChildren<GameSession*>().size(), 1);
+        QCOMPARE(window.findChildren<MatchCoordinator*>().size(), 1);
+        QCOMPARE(window.findChildren<AnalysisSession*>().size(), 1);
+        QCOMPARE(window.findChildren<EngineLifecycleManager*>().size(), 1);
+        QCOMPARE(window.findChildren<GameStartCoordinator*>().size(), 1);
         QCOMPARE(window.findChildren<PreStartCleanupHandler*>().size(), 1);
         QCOMPARE(window.findChildren<GameRecordPresenter*>().size(), 1);
         QCOMPARE(window.findChildren<BoardSetupController*>().size(), 1);
         QCOMPARE(window.findChildren<PositionEditCoordinator*>().size(), 1);
         QCOMPARE(window.findChildren<PvClickController*>().size(), 1);
         QCOMPARE(window.findChildren<DialogCoordinator*>().size(), 1);
-        QCOMPARE(window.findChildren<ConsiderationWiring*>().size(), 1);
+        QCOMPARE(window.findChildren<ConsiderationUiController*>().size(), 1);
         QCOMPARE(window.findChildren<CommentCoordinator*>().size(), 1);
         auto* editing = window.findChild<PositionEditCoordinator*>();
         QSignalSpy started(editing, &PositionEditCoordinator::positionEditingStarted);
@@ -105,23 +110,24 @@ private slots:
         QCOMPARE(finished.count(), 1);
     }
 
-    /// 司令塔（MatchCoordinator）は起動時に一度だけ作り、作り直さない。起動の最終段や
-    /// 「新規」で初期化をやり直しても同じものを使い、それを持つ部品も同じものを指す
+    /// 司令塔（MatchCoordinator）・エンジンの枠・検討のセッションは起動時に一度だけ作り、作り直さない。
+    /// 「新規」で初期化をやり直しても同じものを使う
     void matchCoordinatorIsCreatedOnce()
     {
         MainWindow window;
         auto& parts = window.composer().parts();
         const QPointer<MatchCoordinator> first = parts.match;
-        QVERIFY(first);
-        QCOMPARE(parts.matchWiring->match(), first.data());
+        const QPointer<EngineLifecycleManager> engines = parts.engines;
+        const QPointer<AnalysisSession> analysis = parts.analysisSession;
+        QVERIFY(first && engines && analysis);
 
-        parts.matchWiring->initializeSession();
-        parts.sessionLifecycle->resetGameState();
-        parts.sessionLifecycle->resetToInitialState();
+        parts.gameSession->resetToInitialState();
+        parts.gameSession->resetToInitialState();
 
-        QVERIFY(first);
+        QVERIFY(first && engines && analysis);
         QCOMPARE(parts.match, first.data());
-        QCOMPARE(parts.matchWiring->match(), first.data());
+        QCOMPARE(parts.engines, engines.data());
+        QCOMPARE(parts.analysisSession, analysis.data());
     }
 
     /// 棋譜の読み込み担当は初回に1つだけ作り、以後の読み込み（ファイル・文字列・局面・非同期）で使い回す。
@@ -215,7 +221,7 @@ private slots:
     void sfenCollectionViewerIsReusedWhileOpen()
     {
         MainWindow window;
-        DialogLaunchWiring* dialogs = window.composer().parts().dialogLaunchWiring;
+        DialogLauncher* dialogs = window.composer().parts().dialogLauncher;
         QVERIFY(dialogs);
 
         dialogs->displaySfenCollectionViewer();
@@ -242,9 +248,9 @@ private slots:
         QVERIFY(dock);
         const bool wasVisible = dock->isVisible();
 
-        parts.dialogLaunchWiring->displayMenuWindow();
+        parts.dialogLauncher->displayMenuWindow();
         QCOMPARE(dock->isVisible(), !wasVisible);
-        parts.dialogLaunchWiring->displayMenuWindow();
+        parts.dialogLauncher->displayMenuWindow();
         QCOMPARE(dock->isVisible(), wasVisible);
         QCOMPARE(parts.docks.menuWindow, dock);
     }

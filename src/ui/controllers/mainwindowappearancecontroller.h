@@ -10,7 +10,6 @@
 #include "shogitypes.h"
 
 class ShogiView;
-class MatchCoordinator;
 class TimeDisplayPresenter;
 class QWidget;
 class QVBoxLayout;
@@ -40,8 +39,6 @@ public:
     struct Deps {
         ShogiView* shogiView = nullptr;
         TimeDisplayPresenter* timePresenter = nullptr;
-        MatchCoordinator* match = nullptr;          ///< 起動の途中で作られる。作った後に updateDeps し直す
-        Turn* bottomSide = nullptr;      ///< 盤の手前に表示している側（反転で入れ替える）
     };
 
     explicit MainWindowAppearanceController(QObject* parent = nullptr);
@@ -75,14 +72,8 @@ public slots:
     /// 評価値グラフの高さ調整を遅延実行する
     void performDeferredEvalChartResize();
 
-    /// 盤反転+プレイヤー情報更新
-    void flipBoardAndUpdatePlayerInfo();
-
-    /// 盤面反転完了後の後処理
-    void onBoardFlipped(bool nowFlipped);
-
-    /// 盤反転アクション
-    void onActionFlipBoardTriggered();
+    /// 盤を反転する（手前に表示する側を入れ替え、駒の向きと時計の見た目を合わせる）
+    void flipBoard();
 
     /// 盤拡大アクション
     void onActionEnlargeBoardTriggered();

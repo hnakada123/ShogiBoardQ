@@ -198,25 +198,14 @@ private slots:
     }
 
     // ========================================
-    // Normal: terminalCodeToJapanese
+    // Normal: terminalFromCode
     // ========================================
 
-    void terminalCodeToJapanese_resign()
+    void terminalFromCode()
     {
-        QCOMPARE(UsenToSfenConverter::terminalCodeToJapanese(QStringLiteral("r")),
-                 QStringLiteral("投了"));
-    }
-
-    void terminalCodeToJapanese_timeout()
-    {
-        QCOMPARE(UsenToSfenConverter::terminalCodeToJapanese(QStringLiteral("t")),
-                 QStringLiteral("切れ負け"));
-    }
-
-    void terminalCodeToJapanese_unknown()
-    {
-        QString result = UsenToSfenConverter::terminalCodeToJapanese(QStringLiteral("xyz"));
-        QCOMPARE(result, QStringLiteral("終了"));
+        QCOMPARE(UsenToSfenConverter::terminalFromCode(QStringLiteral("r")), TerminalType::Resign);
+        QCOMPARE(UsenToSfenConverter::terminalFromCode(QStringLiteral("t")), TerminalType::Timeout);
+        QCOMPARE(UsenToSfenConverter::terminalFromCode(QStringLiteral("xyz")), TerminalType::Error);
     }
 
     // ========================================

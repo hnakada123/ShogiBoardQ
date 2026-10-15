@@ -3,19 +3,20 @@
 
 #include "usi.h"
 #include "kifupresentation.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
+#include "shogiboard.h"
 #include "usimatchhandler.h"
 #include "matchsearchsnapshot.h"
 
 #include <QTimer>
 #include <utility>
+#include "shogiinforecord.h"
 
 // ============================================================
 // 構築・破棄
 // ============================================================
 
-Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
-         ShogiGameController* gameController, QObject* parent)
+Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking, QObject* parent)
     : QObject(parent)
     , m_session(new UsiEngineSession(this))
     , m_processManager(m_session->process())
@@ -24,14 +25,10 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
     , m_matchHandler(std::make_unique<UsiMatchHandler>(m_protocolHandler))
     , m_commLogModel(model)
     , m_thinkingModel(modelThinking)
-    , m_gameController(gameController)
 {
     connect(m_session, &UsiEngineSession::ready, this, &Usi::onEngineInitialized);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &Usi::onProtocolError);
     setupConnections();
-
-    // Presenterにゲームコントローラのみを設定（モデルへの直接依存を排除）
-    m_presenter->setGameController(gameController);
 
     // UsiMatchHandlerのフック設定
     m_matchHandler->setHooks({
@@ -42,9 +39,8 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
         /*.onMoveReady =*/ [this](const UsiMove& move, const QString& position, const QString& ponder) {
             emit matchMoveReady(move, position, ponder);
         },
-        [this](const UsiTimingParams& timing, bool pondering) {
-            return matchSearchSnapshot(m_matchClock, m_gameController ? m_gameController->currentPlayer() : Turn::Black,
-                                       timing, pondering);
+        [this](const UsiTimingParams& timing, Turn sideToMove, bool pondering) {
+            return matchSearchSnapshot(m_matchClock, sideToMove, timing, pondering);
         },
         [this]() {
             if (!m_matchClock) return true;
@@ -152,12 +148,11 @@ void Usi::onDataReceived(const QString& line)
 void Usi::onMatchBestMoveReceived()
 {
     if (m_commLogModel) {
-        SfenPositionTracer board;
         QString prediction;
-        if (!m_protocolHandler->predictedMove().isEmpty()
-            && board.setFromSfen(m_presenter->baseSfen())
-            && board.applyUsiMove(m_protocolHandler->bestMove())) {
-            prediction = KifuPresentation::move(board.toSfenString(), m_protocolHandler->predictedMove(), KifuPresentation::options());
+        const QString afterBest = m_protocolHandler->predictedMove().isEmpty()
+            ? QString() : SfenReplay::positionAfter(m_presenter->baseSfen(), m_protocolHandler->bestMove());
+        if (!afterBest.isEmpty()) {
+            prediction = KifuPresentation::move(afterBest, m_protocolHandler->predictedMove(), KifuPresentation::options());
         }
         m_commLogModel->setPredictiveMove(prediction);
     }
@@ -172,11 +167,6 @@ void Usi::onStderrReceived(const QString& line)
 // ============================================================
 // 公開インターフェース実装
 // ============================================================
-
-QString Usi::scoreStr() const
-{
-    return m_presenter->scoreStr();
-}
 
 bool Usi::isResignMove() const
 {
@@ -248,27 +238,9 @@ void Usi::clearHardTimeout()
     m_protocolHandler->clearHardTimeout();
 }
 
-bool Usi::isIgnoring() const
-{
-    return m_processManager->shutdownState() !=
-           EngineProcessManager::ShutdownState::Running;
-}
-
 QString Usi::currentEnginePath() const
 {
     return m_processManager->currentEnginePath();
-}
-
-void Usi::setThinkingModel(ShogiEngineThinkingModel* m)
-{
-    m_thinkingModel = m;
-    // Presenterはシグナル経由で更新するため、モデル参照は不要
-}
-
-void Usi::setLogModel(UsiCommLogModel* m)
-{
-    m_commLogModel = m;
-    // Presenterはシグナル経由で更新するため、モデル参照は不要
 }
 
 void Usi::cancelCurrentOperation()
@@ -282,17 +254,6 @@ void Usi::cancelCurrentOperation()
 // ============================================================
 // エンジン起動・初期化
 // ============================================================
-
-void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& enginename)
-{
-    if (engineFile.isEmpty()) {
-        cleanupEngineProcessAndThread();
-        emit errorOccurred(tr("Engine file path is empty."));
-        return;
-    }
-
-    (void)startAndInitializeEngineAsync(engineFile, enginename);
-}
 
 void Usi::cleanupEngineProcessAndThread(bool clearThinking)
 {
@@ -341,28 +302,6 @@ void Usi::setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV)
     qCDebug(lcEngine) << "setConsiderationModel: model=" << model << "maxMultiPV=" << m_considerationMaxMultiPV;
 
     // モデルをクリア
-    if (m_considerationModel) {
-        m_considerationModel->clearAllItems();
-    }
-}
-
-void Usi::updateConsiderationMultiPV(int multiPV)
-{
-    const int newMultiPV = qBound(1, multiPV, 10);
-    qCDebug(lcEngine) << "updateConsiderationMultiPV: old=" << m_considerationMaxMultiPV
-                      << "new=" << newMultiPV;
-
-    // 変更がない場合は何もしない
-    if (m_considerationMaxMultiPV == newMultiPV) {
-        return;
-    }
-
-    m_considerationMaxMultiPV = newMultiPV;
-
-    // エンジンにMultiPV設定を送信
-    sendSetOptionCommand(QStringLiteral("MultiPV"), QString::number(newMultiPV));
-
-    // モデルをクリアして新しいMultiPV設定で再表示
     if (m_considerationModel) {
         m_considerationModel->clearAllItems();
     }
@@ -431,4 +370,288 @@ void Usi::sendGameOverWinAndQuitCommands()
     }
 
     m_session->quit();
+}
+
+// ============================================================
+// USI初期化と対局要求の非同期制御
+// ============================================================
+
+bool Usi::startEngine(const QString& engineFile, const QString& engineName)
+{
+    if (engineFile.isEmpty()) {
+        cleanupEngineProcessAndThread();
+        emit errorOccurred(tr("Engine file path is empty."));
+        return false;
+    }
+    cancelCurrentOperation();
+    QString error;
+    if (!m_session->startAsync(engineFile, engineName, &error)) {
+        emit errorOccurred(error);
+        return false;
+    }
+    return true;
+}
+
+void Usi::onEngineInitialized()
+{
+    auto actions = std::exchange(m_pendingActions, {});
+    const QPointer<Usi> guard(this);
+    const auto generation = m_asyncGeneration;
+    for (auto& action : actions) {
+        action();
+        if (!guard || generation != m_asyncGeneration) return;
+    }
+    emit engineInitialized();
+}
+
+void Usi::onProtocolError(const QString& message)
+{
+    cleanupEngineProcessAndThread();
+    emit errorOccurred(message);
+}
+
+bool Usi::deferUntilReady(std::function<void()> action) const
+{
+    if (!isInitializing()) return false;
+    m_pendingActions.push_back(std::move(action));
+    return true;
+}
+
+void Usi::requestMatchMove(const QString& position, const QString& ponder, const UsiTimingParams& timing)
+{
+    if (deferUntilReady([this, position, ponder, timing]() { requestMatchMove(position, ponder, timing); })) return;
+    m_considerationModel = nullptr;
+    m_matchHandler->requestMove(position, ponder, timing);
+}
+
+// ============================================================
+// Usi クラスの通信処理実装（詰将棋・対局・解析）
+// ============================================================
+
+// ============================================================
+// 詰将棋関連
+// ============================================================
+
+void Usi::startMateSearch(const QString& positionStr, int timeLimitMs)
+{
+    if (deferUntilReady([this, positionStr, timeLimitMs]() { startMateSearch(positionStr, timeLimitMs); })) return;
+    const QString baseSfen = SfenReplay::sfenFromPositionCommand(positionStr);
+    if (!baseSfen.isEmpty()) m_presenter->setBaseSfen(baseSfen);
+    m_presenter->requestClearThinkingInfo();
+    sendMateSearch(positionStr, timeLimitMs);
+}
+
+void Usi::sendMateSearch(const QString& positionStr, int timeLimitMs)
+{
+    if (deferUntilReady([this, positionStr, timeLimitMs]() { sendMateSearch(positionStr, timeLimitMs); })) return;
+    m_protocolHandler->sendPosition(positionStr);
+    m_protocolHandler->sendGoMate(timeLimitMs);
+}
+
+// ============================================================
+// 棋譜解析
+// ============================================================
+
+void Usi::resetAnalysisStopTimer()
+{
+    if (!m_analysisStopTimer) {
+        return;
+    }
+    m_analysisStopTimer->stop();
+    m_analysisStopTimer->deleteLater();
+    m_analysisStopTimer = nullptr;
+}
+
+void Usi::prepareAnalysisSession(const QString& positionStr, int multiPV)
+{
+    resetAnalysisStopTimer();
+
+    // 思考開始時の局面SFENを保存（読み筋表示用）
+    const QString baseSfen = SfenReplay::sfenFromPositionCommand(positionStr);
+    if (!baseSfen.isEmpty()) m_presenter->setBaseSfen(baseSfen);
+    m_considerationMaxMultiPV = qBound(1, multiPV, 10);
+    m_protocolHandler->sendPosition(positionStr);
+
+    // MultiPV を設定（常に送信して、前回の設定をリセット）
+    m_protocolHandler->sendSetOption(QStringLiteral("MultiPV"), QString::number(multiPV));
+
+    m_presenter->requestClearThinkingInfo();
+    m_protocolHandler->sendGoInfinite();
+}
+
+void Usi::sendPositionAndGoInfinite(const QString& positionStr)
+{
+    if (deferUntilReady([this, positionStr]() { sendPositionAndGoInfinite(positionStr); })) return;
+    m_protocolHandler->sendPosition(positionStr);
+    m_protocolHandler->sendGoInfinite();
+}
+
+void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV)
+{
+    if (deferUntilReady([this, positionStr, byoyomiMilliSec, multiPV]() {
+        sendAnalysisCommands(positionStr, byoyomiMilliSec, multiPV);
+    })) return;
+    qCDebug(lcEngine) << "sendAnalysisCommands:"
+                      << "positionStr=" << positionStr
+                      << "byoyomiMilliSec=" << byoyomiMilliSec
+                      << "multiPV=" << multiPV;
+
+    prepareAnalysisSession(positionStr, multiPV);
+
+    // タイムアウト後にstop送信（byoyomiMilliSec > 0 の場合のみ）
+    // メンバータイマーを使用して、次回の sendAnalysisCommands でキャンセル可能にする
+    if (byoyomiMilliSec > 0) {
+        m_analysisStopTimer = new QTimer(this);
+        m_analysisStopTimer->setSingleShot(true);
+        connect(m_analysisStopTimer, &QTimer::timeout, this, &Usi::onConsiderationStopTimeout);
+        m_analysisStopTimer->start(byoyomiMilliSec);
+    }
+
+    // 応答はシグナルで受信する。
+    // bestmove はシグナル経由で通知される
+}
+
+// ============================================================
+// Usi クラスのモデル更新スロット実装
+// ============================================================
+
+namespace {
+constexpr int kMaxThinkingRows = 500;
+
+[[nodiscard]] bool isSameThinkingPayload(const ShogiInfoRecord* record,
+                                         const ThinkingInfoRow& row,
+                                         const QString& lastUsiMove)
+{
+    if (!record) {
+        return false;
+    }
+
+    // 頻繁に変化するフィールドを先に比較して早期リターン
+    return record->scoreCp() == row.scoreCp
+        && record->multipv() == row.multipv
+        && record->depth() == row.depth
+        && record->pv() == row.pvKanji
+        && record->time() == row.time
+        && record->nodes() == row.nodes
+        && record->score() == row.score
+        && record->usiPv() == row.usiPv
+        && record->enginePv() == row.enginePv
+        && record->baseSfen() == row.baseSfen
+        && record->lastUsiMove() == lastUsiMove;
+}
+
+ShogiInfoRecord* makeRecord(const ThinkingInfoRow& row, const QString& lastUsiMove)
+{
+    auto* record = new ShogiInfoRecord(row.time, row.depth, row.nodes, row.score, row.pvKanji);
+    record->setUsiPv(row.usiPv);
+    record->setEnginePv(row.enginePv);
+    record->setBaseSfen(row.baseSfen);
+    record->setLastUsiMove(lastUsiMove);
+    record->setMultipv(row.multipv);
+    record->setScoreCp(row.scoreCp);
+    return record;
+}
+} // anonymous namespace
+
+// ============================================================
+// モデル更新スロット実装（Presenter → CommLogModel/ThinkingModel転送）
+// ============================================================
+
+void Usi::onSearchedMoveUpdated(const QString& move)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setSearchedMove(move);
+    }
+}
+
+void Usi::onSearchDepthUpdated(const QString& depth)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setSearchDepth(depth);
+    }
+}
+
+void Usi::onNodeCountUpdated(const QString& nodes)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setNodeCount(nodes);
+    }
+}
+
+void Usi::onNpsUpdated(const QString& nps)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setNodesPerSecond(nps);
+    }
+}
+
+void Usi::onHashUsageUpdated(const QString& hashUsage)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setHashUsage(hashUsage);
+    }
+}
+
+void Usi::onCommLogAppended(const QString& log)
+{
+    if (m_commLogModel) {
+        m_commLogModel->appendUsiCommLog(log);
+    }
+}
+
+void Usi::onConsiderationStopTimeout()
+{
+    if (m_processManager && m_processManager->isRunning()) {
+        qCDebug(lcEngine) << "検討停止タイマー発火";
+        m_protocolHandler->sendStop();
+    }
+    resetAnalysisStopTimer();
+}
+
+void Usi::onClearThinkingInfoRequested()
+{
+    qCDebug(lcEngine) << "思考情報クリア要求";
+    if (m_thinkingModel) {
+        qCDebug(lcEngine) << "思考モデルクリア実行";
+        m_thinkingModel->clearAllItems();
+    }
+}
+
+void Usi::onThinkingInfoUpdated(const ThinkingInfoRow& row)
+{
+    // 処理フロー:
+    // 1. ShogiInfoRecordを生成して思考タブへ追記（先頭に追加）
+    // 2. 検討タブへ追記（MultiPVモードで行を更新/挿入）
+    // 3. 外部へシグナルで通知
+    const QString lastUsiMove = m_matchHandler->lastUsiMove();
+    qCDebug(lcEngine) << "思考情報更新: m_lastUsiMove=" << lastUsiMove
+                      << "baseSfen=" << row.baseSfen.left(50)
+                      << "multipv=" << row.multipv << "scoreCp=" << row.scoreCp;
+
+    // 思考タブへ追記（通常モード: 先頭に追加）
+    // 読み筋（PV）が空の行は表示しない（詰み探索の中間結果など）
+    if (m_thinkingModel && !row.pvKanji.isEmpty()) {
+        const ShogiInfoRecord* topRecord =
+            (m_thinkingModel->rowCount() > 0) ? m_thinkingModel->recordAt(0) : nullptr;
+        if (!isSameThinkingPayload(topRecord, row, lastUsiMove)) {
+            m_thinkingModel->prependItem(makeRecord(row, lastUsiMove));
+            m_thinkingModel->trimToMaxRows(kMaxThinkingRows);
+        }
+    }
+
+    // 検討タブへ追記（MultiPVモード: multipv値に基づいて行を更新/挿入）
+    // PV のない info（停止時の time/nodes だけの行など）は multipv 1 扱いになり、
+    // 最善手の行を空の読み筋で上書きしてしまうため反映しない
+    if (m_considerationModel && !row.pvKanji.isEmpty()) {
+        const auto existingRow = m_considerationModel->findRowByMultipv(row.multipv);
+        const ShogiInfoRecord* existingMultipvRecord = existingRow.has_value()
+            ? m_considerationModel->recordAt(*existingRow) : nullptr;
+
+        if (!isSameThinkingPayload(existingMultipvRecord, row, lastUsiMove)) {
+            m_considerationModel->updateByMultipv(makeRecord(row, lastUsiMove), m_considerationMaxMultiPV);
+        }
+    }
+
+    // 外部への通知
+    emit thinkingInfoUpdated(row);
 }

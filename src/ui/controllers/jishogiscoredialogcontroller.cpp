@@ -18,9 +18,8 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     if (!board) return;
 
     const auto result = JishogiCalculator::calculate(board->boardData(), board->pieceStand());
-    EngineMoveValidator validator;
-    const bool senteInCheck = validator.checkIfKingInCheck(Turn::Black, board->boardData()) > 0;
-    const bool goteInCheck = validator.checkIfKingInCheck(Turn::White, board->boardData()) > 0;
+    const bool senteInCheck = EngineMoveValidator::isInCheck(*board, Turn::Black);
+    const bool goteInCheck = EngineMoveValidator::isInCheck(*board, Turn::White);
 
     JishogiScoreDialog dialog(result, senteInCheck, goteInCheck, parentWidget);
     dialog.exec();

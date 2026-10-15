@@ -10,7 +10,6 @@
 class Usi;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
-class ShogiGameController;
 
 struct AnalysisRequest {
     RecordLine line;
@@ -29,7 +28,6 @@ public:
         Usi* engine = nullptr; ///< 指定時は借用。未指定ならこの実行が生成・所有する。
         UsiCommLogModel* log = nullptr;
         ShogiEngineThinkingModel* thinking = nullptr;
-        ShogiGameController* gameController = nullptr;
     };
     AnalysisJob(AnalysisRequest request, const Dependencies& deps, QObject* parent = nullptr);
     ~AnalysisJob() override;

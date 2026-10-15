@@ -11,10 +11,11 @@
 #include <QList>
 
 
-#include "playmode.h"
+#include "matchplayers.h"
 #include "recordline.h"
 
 class KifuNavigationState;
+struct AppState;
 class ShogiEngineThinkingModel;
 class ShogiView;
 
@@ -32,15 +33,9 @@ class PvClickController : public QObject
     Q_OBJECT
 
 public:
-    /// MainWindow の動的状態へのポインタ群（onPvRowClicked 呼び出し時に自動同期）
+    /// クリックしたときに読む状態（onPvRowClicked で写し取る）
     struct StateRefs {
-        const PlayMode* playMode = nullptr;
-        const QString* humanName1 = nullptr;
-        const QString* humanName2 = nullptr;
-        const QString* engineName1 = nullptr;
-        const QString* engineName2 = nullptr;
-        const QString* currentSfenStr = nullptr;
-        const QString* startSfenStr = nullptr;
+        const AppState* state = nullptr;                        ///< 対局者・表示中の局面・開始局面
         const KifuNavigationState* navState = nullptr;          ///< 表示中の手順（分岐ツリー）
     };
 
@@ -75,7 +70,7 @@ private:
     QString resolveCurrentSfen(const QString& baseSfen) const;
 
     /**
-     * @brief PlayModeに応じた対局者名を取得
+     * @brief 対局者名（最後に始めた対局の対局者。名前が無ければ先手・後手）を取得
      */
     void resolvePlayerNames(QString& blackName, QString& whiteName) const;
 
@@ -98,11 +93,7 @@ private:
 
     StateRefs m_stateRefs;                               ///< 動的状態へのポインタ群
 
-    PlayMode m_playMode = PlayMode::NotStarted;
-    QString m_humanName1;
-    QString m_humanName2;
-    QString m_engineName1;
-    QString m_engineName2;
+    MatchPlayers m_players;
     QString m_currentSfenStr;
     QString m_startSfenStr;
     bool m_boardFlipped = false;     ///< GUI本体の盤面反転状態

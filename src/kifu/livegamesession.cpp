@@ -86,7 +86,7 @@ bool LiveGameSession::canStartFrom(KifuBranchNode* node)
 void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
                                const QString& sfen, const QString& elapsed)
 {
-    appendRecord(RecordEntry::imported(move, displayText, sfen, elapsed));
+    appendRecord(RecordEntry::played(move, displayText, sfen, RecordTime::fromText(elapsed)));
 }
 
 void LiveGameSession::appendRecord(const RecordEntry& entry)

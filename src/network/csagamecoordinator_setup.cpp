@@ -12,7 +12,6 @@
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
-#include "shogiview.h"
 #include <QSignalBlocker>
 
 namespace {
@@ -48,38 +47,19 @@ void CsaGameCoordinator::setupInitialPosition()
         startSfen = hiratePosition;
     }
     m_gameController->board()->setSfen(*startSfen);
-    m_gameController->setCurrentPlayer(m_gameController->board()->currentPlayer() == Turn::Black
-        ? Turn::Black : Turn::White);
-    if (m_gameMoves) m_gameMoves->clear();
+    m_gameController->board()->setMoveNumber(1);
+    m_gameController->setCurrentPlayer(m_gameController->board()->currentPlayer());
 
-    const QString boardSfen = m_gameController->board()->convertBoardToSfen();
-    const QString standSfen = m_gameController->board()->convertStandToSfen();
-    const QString currentPlayerStr = turnToSfen(m_gameController->board()->currentPlayer());
     CsaGameProgress& p = m_progress;
-    p.startSfen = QString("%1 %2 %3 1").arg(boardSfen, currentPlayerStr, standSfen);
+    p.record = RecordLine{};
+    p.record.startSfen = m_gameController->board()->toSfen();
 
-    if (m_sfenHistory) {
-        m_sfenHistory->clear();
-        m_sfenHistory->append(p.startSfen);
-    }
-
-    const bool isHirate = (p.startSfen.trimmed() == hiratePosition);
-    p.positionCommand = isHirate
-        ? QStringLiteral("position startpos")
-        : QStringLiteral("position sfen %1").arg(p.startSfen);
-    p.usiMoves.clear();
-    p.prevToFile = 0;
-    p.prevToRank = 0;
-    m_initialRecords.clear();
-
-    int replayMoveCount = 0;
     for (const QString& move : std::as_const(p.summary.moves)) {
         const bool isPromotion = isInitialPromotionMove(move, m_gameController);
-        const QString prettyMove = CsaMoveConverter::csaToPretty(
-            move, isPromotion, p.prevToFile, p.prevToRank, replayMoveCount);
+        const QString prettyMove = CsaMoveConverter::csaToPretty(move, isPromotion, p.previousTo());
 
-        if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, p.usiMoves, m_sfenHistory,
-                                                replayMoveCount, m_gameMoves)) {
+        const std::optional<RecordEntry> played = CsaMoveConverter::applyMoveToBoard(move, m_gameController);
+        if (!played) {
             qCWarning(lcNetwork).noquote()
                 << "Failed to replay CSA move from Game_Summary:" << move;
             emit logMessage(tr("初期局面の指し手再生に失敗しました: %1").arg(move), true);
@@ -88,23 +68,11 @@ void CsaGameCoordinator::setupInitialPosition()
             return;
         }
 
-        if (move.length() >= 5) {
-            p.prevToFile = move[3].digitValue();
-            p.prevToRank = move[4].digitValue();
-        }
         // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
-        RecordEntry entry;
+        RecordEntry entry = *played;
         entry.displayText = prettyMove.trimmed();
-        entry.mover = move.startsWith(QLatin1Char('+')) ? Turn::Black : Turn::White;
-        entry.time = p.initialMoveTime(replayMoveCount);
-        fillRecordPosition(entry);
-        m_initialRecords.append(entry);
-        ++replayMoveCount;
-    }
-    p.moveCount = replayMoveCount;
-
-    if (m_view) {
-        m_view->update();
+        entry.time = p.initialMoveTime(p.moveCount());
+        p.record.entries.append(entry);
     }
 }
 
@@ -118,11 +86,10 @@ void CsaGameCoordinator::setupClock()
     }
 
     const CsaClient::GameSummary& s = m_progress.summary;
-    const bool blackToMove = (s.toMove == QStringLiteral("+"));
     startDisplayClock(m_clock, s, m_progress.blackRemainingMs, m_progress.whiteRemainingMs);
     // 終局の裁定はサーバーを正とし、表示用時計の時間切れで対局を終了しない。
     m_clock->setLoseOnTimeout(false);
-    m_clock->setCurrentPlayer(blackToMove ? Turn::Black : Turn::White);
+    m_clock->setCurrentPlayer(s.toMove);
     m_clock->startClock();
 }
 
@@ -149,7 +116,6 @@ void CsaGameCoordinator::startEngine()
     CsaEngineController::InitParams params;
     params.enginePath = m_options.enginePath;
     params.engineName = m_options.engineName;
-    params.gameController = m_gameController;
     params.commLog = m_usiCommLog;
     params.thinkingModel = m_engineThinking;
     // USI初期化の待機中にもTCPのGame_Summaryが届く。readyokを待って合意する。
@@ -210,7 +176,6 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
 {
     // 終局後も同じ接続で次の対局条件を受けるので、前局の記録はここで消す
     m_progress = CsaGameProgress::forSummary(summary);
-    m_initialRecords.clear();
 
     emit logMessage(tr("対局条件を受信しました"));
     emit logMessage(tr("先手: %1, 後手: %2").arg(summary.blackName, summary.whiteName));

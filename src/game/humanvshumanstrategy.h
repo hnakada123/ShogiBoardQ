@@ -2,34 +2,28 @@
 #define HUMANVSHUMANSTRATEGY_H
 
 /// @file humanvshumanstrategy.h
-/// @brief 人間 vs 人間モードの Strategy 実装
-
-#include "gamemodestrategy.h"
-#include "matchcoordinator.h"
+/// @brief 人間 vs 人間モードの Strategy
 
 #include <QElapsedTimer>
 
+#include "gamemodestrategy.h"
+
 /**
- * @brief 人間 vs 人間モードの対局ロジック
- *
- * MatchCoordinator から HvH 固有の処理（開始・着手後処理・ターンタイマー）
- * を分離した Strategy 実装。共通処理は StrategyContext 経由で呼ぶ。
+ * @brief 人間同士の対局。手番ごとの考慮時間を測って時計に渡す
  */
 class HumanVsHumanStrategy : public GameModeStrategy {
 public:
-    explicit HumanVsHumanStrategy(MatchCoordinator::StrategyContext& ctx);
+    explicit HumanVsHumanStrategy(MatchStrategyHost& host);
 
     void start() override;
-    void onHumanMove(const QPoint& from, const QPoint& to,
-                     const QString& prettyMove) override;
-    bool needsEngine() const override { return false; }
-
+    void onHumanMove(const RecordEntry& played) override;
     void armTurnTimerIfNeeded() override;
-    void finishTurnTimerAndSetConsideration(Turn mover) override;
     void disarmTurnTimer() override;
 
 private:
-    MatchCoordinator::StrategyContext& m_ctx;
+    void finishTurnTimer(Turn mover);
+
+    MatchStrategyHost& m_host;
     QElapsedTimer m_turnTimer;
     bool m_turnTimerArmed = false;
 };

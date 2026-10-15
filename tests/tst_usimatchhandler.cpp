@@ -51,8 +51,8 @@ public:
                 ponder = nextPonder;
                 ++completed;
             },
-            [this](const UsiTimingParams& timing, bool pondering) {
-                return matchSearchSnapshot(&clock, game.currentPlayer(), timing, pondering);
+            [this](const UsiTimingParams& timing, Turn sideToMove, bool pondering) {
+                return matchSearchSnapshot(&clock, sideToMove, timing, pondering);
             },
             [this] { clock.finishTurn(); return !clock.isGameOver(); }});
         connect(&protocol, &UsiProtocolHandler::bestMoveReceived, this, &MatchHarness::acceptMove);
@@ -394,10 +394,10 @@ private slots:
         QString sfen = SfenUtils::hirateSfen();
         game.newGame(sfen);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr, &game);
+        Usi engine(nullptr, nullptr);
         QSignalSpy initialized(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QVERIFY(engine.startAndInitializeEngineAsync(mockPath(), QStringLiteral("MatchTest")));
+        QVERIFY(engine.startEngine(mockPath(), QStringLiteral("MatchTest")));
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         QString position = QStringLiteral("position startpos");
         // 時計がないので、残り時間と秒読みを条件で渡す

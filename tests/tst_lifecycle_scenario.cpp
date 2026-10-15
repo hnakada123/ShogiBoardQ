@@ -3,13 +3,12 @@
 #include <QTemporaryDir>
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
-#include "sessionlifecyclecoordinator.h"
-#include "gamerecordupdateservice.h"
+#include "gamesession.h"
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
 #include "livegamesession.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "appsettings.h"
 
@@ -28,7 +27,7 @@ private slots:
     {
         MainWindow window;
         auto& parts = window.composer().parts();
-        auto* service = parts.gameRecordUpdateService.get();
+        auto* service = parts.gameSession;
         auto* session = parts.liveGameSession;
         auto* tree = parts.branchTree;
         auto* rows = parts.kifuRecord;
@@ -36,14 +35,13 @@ private slots:
         QVERIFY(service);
         QVERIFY(session);
         QVERIFY(model);
-        parts.sessionLifecycle->resetToInitialState();
+        parts.gameSession->resetToInitialState();
         const QString initial = SfenUtils::hirateSfen();
         const QStringList usi{"7g7f", "3c3d"};
-        const auto moves = SfenPositionTracer::buildGameMoves(initial, usi);
-        const auto positions = SfenPositionTracer::buildSfenRecord(initial, usi, false);
+        const auto moves = SfenReplay::buildGameMoves(initial, usi);
+        const auto positions = SfenReplay::buildSfenRecord(initial, usi, false);
         for (int game = 0; game < 2; ++game) {
-            parts.sessionLifecycle->performPreStartCleanup(
-                {GameStartPreparation::Mode::NewGame, initial, -1});
+            parts.gameSession->prepareStart({GameStartPreparation::Mode::NewGame, initial, -1});
             QVERIFY(session->canAddMove());
             QSignalSpy inserted(rows, &QAbstractItemModel::rowsInserted);
             QSignalSpy changed(tree, &KifuBranchTree::treeChanged);
@@ -80,10 +78,10 @@ private slots:
             QVERIFY(csa.contains("T1.250"));
             QVERIFY(jkf.contains("TORYO"));
             model->clearDirty();
-            parts.sessionLifecycle->resetToInitialState();
+            parts.gameSession->resetToInitialState();
             QCOMPARE(rows->rowCount(), 1);
             QCOMPARE(tree->nodeCount(), 1);
-            QCOMPARE(parts.gameRecordUpdateService.get(), service);
+            QCOMPARE(parts.gameSession, service);
         }
         model->clearDirty();
     }
@@ -91,9 +89,9 @@ private slots:
     {
         MainWindow window;
         auto& parts = window.composer().parts();
-        parts.sessionLifecycle->resetToInitialState();
+        parts.gameSession->resetToInitialState();
         parts.gameRecord->clearDirty();
-        parts.gameRecordUpdateService->appendRecord(
+        parts.gameSession->appendRecord(
             RecordEntry::ending(TerminalType::Resign, Turn::Black));
         QVERIFY(!parts.liveGameSession->isActive());
         QVERIFY(!parts.gameRecord->isDirty());

@@ -2,42 +2,38 @@
 #define SHOGIMOVE_H
 
 /// @file shogimove.h
-/// @brief 将棋の指し手データ構造体の定義
+/// @brief 指した手の記録（USI の指し手と、動かした駒・取った駒）
 
-#include <QPoint>
-#include <QList>
 #include <QDebug>
 #include "shogitypes.h"
 #include "usimove.h"
 
 /**
- * @brief 1手分の指し手情報を保持する構造体
+ * @brief 指した1手の記録
  *
- * 移動元・移動先の座標、動かした駒、取った駒、成りの有無を記録する。
- * 座標は0-indexed（0〜8が盤上、9/10が先手/後手の駒台）。
- *
+ * 指し手そのもの（移動元・移動先・成り・打つ駒）は UsiMove で持つ。筋・段は1始まり。
+ * 指す前の局面で決まる「動かした駒」「取った駒」を添える。
  */
 struct ShogiMove {
-    QPoint fromSquare{0, 0};   ///< 移動元の座標（盤上:0-8、駒台:9=先手,10=後手）
-    QPoint toSquare{0, 0};     ///< 移動先の座標（0-8）
-    Piece movingPiece = Piece::None;   ///< 動かした自分の駒（SFEN表記）
-    Piece capturedPiece = Piece::None; ///< 取った相手の駒（なければ None）
-    bool isPromotion = false;  ///< 成りフラグ
+    UsiMove move;                       ///< 指し手（成り・駒打ちを含む）
+    Piece movingPiece = Piece::None;    ///< 動かした駒（指す側の色の、成る前の駒）
+    Piece capturedPiece = Piece::None;  ///< 取った駒（なければ None）
 
-    ShogiMove();
-    ShogiMove(const QPoint &from, const QPoint &to, Piece moving, Piece captured, bool promotion);
+    ShogiMove() = default;
+    ShogiMove(const UsiMove& usiMove, Piece moving, Piece captured = Piece::None)
+        : move(usiMove), movingPiece(moving), capturedPiece(captured) {}
 
-    bool operator==(const ShogiMove& other) const;
+    bool isValid() const { return move.isValid() && movingPiece != Piece::None; }
+    bool isDrop() const { return move.isDrop(); }
+    bool isPromotion() const { return move.promote; }
+    /// 指した側（動かした駒の色）
+    Turn mover() const { return isWhitePiece(movingPiece) ? Turn::White : Turn::Black; }
 
-    /**
-     * @brief USI の指し手と、指す前の局面で決まる駒から記録用の指し手を作る
-     *
-     * 駒打ちの移動元は指す側の駒台（0始まりで先手9・後手10、段は駒台の並び）にする。
-     */
-    static ShogiMove fromUsiMove(const UsiMove& move, Turn mover, Piece moving, Piece captured);
-
-    /// USI の指し手にする
-    UsiMove toUsiMove() const;
+    friend bool operator==(const ShogiMove& a, const ShogiMove& b)
+    {
+        return a.move == b.move && a.movingPiece == b.movingPiece && a.capturedPiece == b.capturedPiece;
+    }
+    friend bool operator!=(const ShogiMove& a, const ShogiMove& b) { return !(a == b); }
 };
 
 QDebug operator<<(QDebug dbg, const ShogiMove& move);

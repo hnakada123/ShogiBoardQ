@@ -9,6 +9,7 @@
 
 #include "csaclient.h"
 #include "recordentry.h"
+#include "recordline.h"
 #include "recordtime.h"
 #include "usitimingparams.h"
 
@@ -23,19 +24,14 @@ struct CsaGameProgress {
     CsaClient::GameSummary summary;  ///< 受信した対局条件
     bool isBlackSide = true;         ///< 自分が先手か
 
-    int moveCount = 0;               ///< 指された手数（再開局面の手を含む）
-    int prevToFile = 0;              ///< 直前の手の移動先（「同」の判定用）
-    int prevToRank = 0;
+    /// この対局の手順（開始局面と指された手。再開局面の手を含み、終局の行は含めない）
+    RecordLine record;
 
     int blackTotalMs = 0;            ///< 先手の消費時間の累計
     int whiteTotalMs = 0;            ///< 後手の消費時間の累計
     int blackRemainingMs = 0;        ///< 先手の残り時間（サーバーの持時間の数え方）
     int whiteRemainingMs = 0;        ///< 後手の残り時間
     int resignConsumedMs = 0;        ///< 自分の投了時に時計から測った消費時間
-
-    QString startSfen;               ///< 開始局面
-    QString positionCommand;         ///< エンジンへ渡す position コマンド（moves の前まで）
-    QStringList usiMoves;            ///< 指された手（USI 形式。再開局面の手を含む）
 
     /// 対局条件を受けて、前局の記録を消す
     static CsaGameProgress forSummary(const CsaClient::GameSummary& summary);
@@ -56,6 +52,13 @@ struct CsaGameProgress {
      * 指した側の累計と残り時間を更新し、次の手番側に加算時間を足す（CSA の加算は手番の開始時）。
      */
     void recordMoveTime(bool blackMove, int consumedMs);
+
+    /// 指された手数（再開局面の手を含む）
+    int moveCount() const { return record.moveCount(); }
+    /// 直前の手の移動先（「同」の判定用。手が無ければ無効な升）
+    BoardSquare previousTo() const { return record.destinationOf(record.moveCount()); }
+    /// エンジンへ渡す今の局面の position コマンド
+    QString positionCommand() const { return record.positionCommand(record.moveCount()); }
 
     int totalMs(bool black) const { return black ? blackTotalMs : whiteTotalMs; }
     int remainingMs(bool black) const { return black ? blackRemainingMs : whiteRemainingMs; }

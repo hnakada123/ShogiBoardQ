@@ -21,41 +21,31 @@ struct KifGameInfoItem {
 
 // --- 分岐用データ構造 ---
 
-/**
- * @brief 1本の手順（分岐ライン）を表す構造体
- *
- */
-/// 取り込んだ1行。着手・終局・局面・注釈が常に一緒に移動する。
-struct ImportedRecordEntry {
-    RecordEntry record;
-    QString comment;
-    QString bookmark;
-};
-
+/// 1本の手順（本譜または変化）。取り込んだ行は着手・終局・局面・注釈を一緒に持つ
 struct KifLine {
     int startPly = 1;
     QString baseSfen;
     std::optional<KifDisplayItem> opening;
-    QList<ImportedRecordEntry> entries;
+    QList<RecordEntry> entries;
 
-    bool endsWithTerminal() const { return !entries.isEmpty() && entries.last().record.isTerminal(); }
+    bool endsWithTerminal() const { return !entries.isEmpty() && entries.last().isTerminal(); }
     int moveCount() const { return static_cast<int>(entries.size()) - (endsWithTerminal() ? 1 : 0); }
     QString sfenAt(int offset) const
     {
-        return offset == 0 ? baseSfen : (offset > 0 && offset <= moveCount() ? entries.at(offset - 1).record.sfen : QString());
+        return offset == 0 ? baseSfen : (offset > 0 && offset <= moveCount() ? entries.at(offset - 1).sfen : QString());
     }
     QStringList usiMoves() const
     {
         QStringList out;
         for (const auto& entry : entries)
-            if (!entry.record.isTerminal()) out.append(entry.record.move.toUsiMove().toString());
+            if (!entry.isTerminal()) out.append(entry.move.move.toString());
         return out;
     }
     QStringList sfenList() const
     {
         QStringList out{baseSfen};
         for (const auto& entry : entries)
-            if (!entry.record.isTerminal()) out.append(entry.record.sfen);
+            if (!entry.isTerminal()) out.append(entry.sfen);
         return out;
     }
     QList<KifDisplayItem> displayItems() const
@@ -64,15 +54,14 @@ struct KifLine {
         if (opening) out.append(*opening);
         QString before = baseSfen;
         int ply = startPly;
-        for (const auto& entry : entries) {
-            const auto& record = entry.record;
-            KifDisplayItem item(record.displayText, record.time.toText(), entry.comment, ply++);
-            item.bookmark = entry.bookmark;
+        for (const auto& record : entries) {
+            KifDisplayItem item(record.displayText, record.time.toText(), record.comment, ply++);
+            item.bookmark = record.bookmark;
             item.beforeSfen = before;
             item.terminal = record.isTerminal();
             item.terminalType = record.terminal;
             item.terminalSide = record.mover;
-            if (!item.terminal) item.usiMove = record.move.toUsiMove().toString();
+            if (!item.terminal) item.usiMove = record.move.move.toString();
             out.append(item);
             before = record.sfen;
         }

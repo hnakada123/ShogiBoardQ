@@ -96,28 +96,28 @@ private:
     const QStringList& kfcLines()
     {
         if (m_kfcLines.isEmpty())
-            m_kfcLines = readSourceLines(QStringLiteral("src/kifu/kifufilecontroller.cpp"));
+            m_kfcLines = readSourceLines(QStringLiteral("src/ui/coordinators/kifufilecontroller.cpp"));
         return m_kfcLines;
     }
 
     const QString& kfcHeader()
     {
         if (m_kfcHeader.isEmpty())
-            m_kfcHeader = readSourceFile(QStringLiteral("src/kifu/kifufilecontroller.h"));
+            m_kfcHeader = readSourceFile(QStringLiteral("src/ui/coordinators/kifufilecontroller.h"));
         return m_kfcHeader;
     }
 
     const QStringList& klcLines()
     {
         if (m_klcLines.isEmpty())
-            m_klcLines = readSourceLines(QStringLiteral("src/kifu/kifuloadcoordinator.cpp"));
+            m_klcLines = readSourceLines(QStringLiteral("src/ui/coordinators/kifuloadcoordinator.cpp"));
         return m_klcLines;
     }
 
     const QString& klcHeader()
     {
         if (m_klcHeader.isEmpty())
-            m_klcHeader = readSourceFile(QStringLiteral("src/kifu/kifuloadcoordinator.h"));
+            m_klcHeader = readSourceFile(QStringLiteral("src/ui/coordinators/kifuloadcoordinator.h"));
         return m_klcHeader;
     }
 
@@ -319,7 +319,7 @@ private slots:
 
         const QString body = bodyText(lines, range);
         QVERIFY2(body.contains(QStringLiteral("hasKnownSaveExtension")),
-                  "Must check the extension via KifuSaveCoordinator::hasKnownSaveExtension");
+                  "Must check the extension via KifuSaveFile::hasKnownSaveExtension");
         QVERIFY2(body.contains(QStringLiteral("saveFileName")),
                   "Must write to deps.saveFileName");
         QVERIFY2(body.contains(QStringLiteral("clear()")),

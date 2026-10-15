@@ -16,6 +16,18 @@
 #include <QMessageBox>
 #include <QClipboard>
 #include <QAbstractItemDelegate>
+#include <algorithm>
+#include <QSignalBlocker>
+#include "logcategories.h"
+#include "buttonstyles.h"
+#include "flowlayout.h"
+#include "kifupresentation.h"
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QMimeData>
+#include <QPushButton>
+#include <QStyledItemDelegate>
+#include <QToolButton>
 
 GameInfoPaneController::GameInfoPaneController(QObject* parent)
     : QObject(parent)
@@ -370,4 +382,435 @@ bool GameInfoPaneController::checkDirty() const
     }
 
     return false;
+}
+
+// ============================================================
+// 対局情報の編集履歴とクリップボード操作
+// ============================================================
+
+void GameInfoPaneController::undo()
+{
+    commitPendingEditor();
+    if (m_historyIndex > 0) restoreEditState(m_history[--m_historyIndex]);
+}
+
+void GameInfoPaneController::redo()
+{
+    commitPendingEditor();
+    if (m_historyIndex + 1 < m_history.size()) restoreEditState(m_history[++m_historyIndex]);
+}
+
+void GameInfoPaneController::cut()
+{
+    if (!m_table) return;
+    if (auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+        editor && m_table->isAncestorOf(editor)) { editor->cut(); return; }
+
+    QTableWidgetItem* item = m_table->currentItem();
+    if (item && (item->flags() & Qt::ItemIsEditable)) {
+        QApplication::clipboard()->setText(item->text());
+        item->setText(QString());
+    }
+}
+
+void GameInfoPaneController::copy()
+{
+    if (!m_table) return;
+    if (auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+        editor && m_table->isAncestorOf(editor)) { editor->copy(); return; }
+
+    QTableWidgetItem* item = m_table->currentItem();
+    if (item) {
+        QApplication::clipboard()->setText(item->text());
+    }
+}
+
+void GameInfoPaneController::paste()
+{
+    if (!m_table) return;
+    if (auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+        editor && m_table->isAncestorOf(editor)) { editor->paste(); return; }
+
+    QTableWidgetItem* item = m_table->currentItem();
+    if (item && (item->flags() & Qt::ItemIsEditable)) {
+        QString text = QApplication::clipboard()->text();
+        item->setText(text);
+    }
+}
+
+void GameInfoPaneController::addRow()
+{
+    if (!m_table) return;
+    commitPendingEditor();
+
+    const int newRow = m_table->rowCount();
+    m_table->blockSignals(true);
+    m_table->setRowCount(newRow + 1);
+
+    // 両列とも編集可能（ユーザー定義の項目のため）
+    auto* keyItem = new QTableWidgetItem();
+    auto* valueItem = new QTableWidgetItem();
+    m_table->setItem(newRow, 0, keyItem);
+    m_table->setItem(newRow, 1, valueItem);
+    m_table->blockSignals(false);
+
+    // 新しい行の項目名セルを選択して編集開始
+    m_table->setCurrentCell(newRow, 0);
+    m_table->editItem(keyItem);
+
+    // dirty状態を更新
+    onCellChanged(newRow, 0);
+}
+
+void GameInfoPaneController::applyChanges()
+{
+    if (!m_table) return;
+    commitPendingEditor();
+    if (!m_dirty) return;
+
+    // 現在のテーブル内容を取得
+    QList<KifGameInfoItem> currentItems = gameInfo();
+
+    // 元データを更新
+    m_originalItems = currentItems;
+    m_dirty = false;
+    updateEditingIndicator();
+
+    emit gameInfoUpdated(currentItems);
+
+    qCDebug(lcUi).noquote() << "[GameInfoPane] applyChanges: Game info updated, items=" << currentItems.size();
+}
+
+void GameInfoPaneController::removeRow()
+{
+    if (!m_table || !m_table->currentItem() || !m_table->currentItem()->isSelected()) return;
+    commitPendingEditor();
+    const int row = m_table->currentRow();
+    {
+        const QSignalBlocker blocker(m_table);
+        m_table->removeRow(row);
+        if (m_table->rowCount() > 0)
+            m_table->setCurrentCell(qMin(row, m_table->rowCount() - 1), 1);
+    }
+    onCellChanged(row, 0);
+}
+
+void GameInfoPaneController::onCellChanged(int row, int column)
+{
+    Q_UNUSED(row);
+    Q_UNUSED(column);
+
+    const auto state = editState();
+    if (m_history.isEmpty() || !(state == m_history[m_historyIndex])) {
+        while (m_history.size() > m_historyIndex + 1) m_history.removeLast();
+        m_history.append(state);
+        m_historyIndex = static_cast<int>(m_history.size()) - 1;
+    }
+
+    m_dirty = checkDirty();
+    updateTablePresentation();
+    updateEditingIndicator();
+}
+
+void GameInfoPaneController::commitPendingEditor()
+{
+    if (auto* editor = activeEditor()) {
+        // Enterキーではdelegateの確定が次のイベントループまで遅延する。
+        // 保存処理が直後にテーブルを読むため、通常の確定シグナルを同期的に送る。
+        auto* delegate = m_table->itemDelegateForIndex(m_table->currentIndex());
+        emit delegate->commitData(editor);
+        emit delegate->closeEditor(editor, QAbstractItemDelegate::NoHint);
+    }
+}
+
+QLineEdit* GameInfoPaneController::activeEditor() const
+{
+    if (!m_table) return nullptr;
+    // 終局ダイアログなどへフォーカスが移った後にも、入力欄が残ることがある。
+    const auto editors = m_table->findChildren<QLineEdit*>();
+    for (auto* editor : editors) {
+        if (editor->isVisibleTo(m_table)) return editor;
+    }
+    return nullptr;
+}
+
+GameInfoPaneController::EditState GameInfoPaneController::editState() const
+{
+    EditState state;
+    for (int row = 0; row < m_table->rowCount(); ++row) {
+        const auto* key = m_table->item(row, 0);
+        const auto* value = m_table->item(row, 1);
+        state.cells.append({key ? key->text() : QString(), value ? value->text() : QString()});
+        if (key && (key->flags() & Qt::ItemIsEditable)) state.editableKeys.insert(row);
+    }
+    return state;
+}
+
+void GameInfoPaneController::restoreEditState(const EditState& state)
+{
+    const QSignalBlocker blocker(m_table);
+    const int currentRow = m_table->currentRow();
+    const int currentColumn = m_table->currentColumn();
+    m_table->setRowCount(static_cast<int>(state.cells.size()));
+    for (int row = 0; row < state.cells.size(); ++row) {
+        auto* key = new QTableWidgetItem(state.cells[row].first);
+        if (!state.editableKeys.contains(row)) key->setFlags(key->flags() & ~Qt::ItemIsEditable);
+        m_table->setItem(row, 0, key);
+        m_table->setItem(row, 1, new QTableWidgetItem(state.cells[row].second));
+    }
+    if (!state.cells.isEmpty()) m_table->setCurrentCell(qBound(0, currentRow, m_table->rowCount() - 1), qMax(0, currentColumn));
+    m_dirty = checkDirty();
+    updateTablePresentation();
+    updateEditingIndicator();
+}
+
+void GameInfoPaneController::resetHistory()
+{
+    m_history = {editState()};
+    m_historyIndex = 0;
+}
+
+void GameInfoPaneController::updateGameInfoValue(const QString& key, const QString& value)
+{
+    commitPendingEditor();
+    const QSignalBlocker blocker(m_table);
+    int row = 0;
+    for (; row < m_table->rowCount(); ++row) {
+        if (m_table->item(row, 0) && m_table->item(row, 0)->text() == key) break;
+    }
+    if (row == m_table->rowCount()) {
+        m_table->insertRow(row);
+        auto* keyItem = new QTableWidgetItem(key);
+        keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
+        m_table->setItem(row, 0, keyItem);
+    }
+    m_table->setItem(row, 1, new QTableWidgetItem(value));
+
+    auto original = std::find_if(m_originalItems.begin(), m_originalItems.end(),
+                                 [&key](const auto& item) { return item.key == key; });
+    if (original == m_originalItems.end()) m_originalItems.append({key, value});
+    else original->value = value;
+    for (auto& state : m_history) {
+        auto cell = std::find_if(state.cells.begin(), state.cells.end(),
+                                 [&key](const auto& item) { return item.first == key; });
+        if (cell == state.cells.end()) state.cells.append({key, value});
+        else cell->second = value;
+    }
+    m_dirty = checkDirty();
+    updateTablePresentation();
+    updateEditingIndicator();
+}
+
+// ============================================================
+// 対局情報の表示と操作ボタンの状態管理
+// ============================================================
+
+namespace {
+constexpr int kPlaceholderRole = Qt::UserRole + 1;
+
+// 案内文は描画時だけ表示し、編集値・コピー・棋譜出力には含めない。
+class GameInfoValueDelegate : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option,
+                          const QModelIndex& index) const override
+    {
+        auto* editor = QStyledItemDelegate::createEditor(parent, option, index);
+        if (auto* input = qobject_cast<QLineEdit*>(editor))
+            input->setPlaceholderText(index.data(kPlaceholderRole).toString());
+        return editor;
+    }
+
+protected:
+    void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
+    {
+        QStyledItemDelegate::initStyleOption(option, index);
+        if (!option->text.isEmpty()) {
+            option->text = index.column() == 0 ? KifuPresentation::infoKey(option->text)
+                : KifuPresentation::infoValue(index.siblingAtColumn(0).data().toString(), option->text);
+            return;
+        }
+        option->text = index.data(kPlaceholderRole).toString();
+        option->features |= QStyleOptionViewItem::HasDisplay;
+        option->palette.setColor(QPalette::Text, option->palette.color(QPalette::PlaceholderText));
+    }
+};
+} // namespace
+
+void GameInfoPaneController::installValueDelegate()
+{
+    m_table->setItemDelegate(new GameInfoValueDelegate(m_table));
+}
+
+QString GameInfoPaneController::placeholderForKey(const QString& key) const
+{
+    if (key == GameInfoKeys::kGameDate || key == GameInfoKeys::kStartDateTime)
+        return m_beforeMatchStart ? tr("未開始（対局開始時に設定）") : tr("未設定");
+    if (key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kWhitePlayer
+        || key == GameInfoKeys::kShitatePlayer || key == GameInfoKeys::kUwatePlayer)
+        return tr("未設定（名前を入力できます）");
+    if (key == GameInfoKeys::kTimeControl)
+        return m_beforeMatchStart ? tr("未設定（対局設定から反映）") : tr("未設定");
+    if (key == GameInfoKeys::kEvent || key == GameInfoKeys::kSite || key == GameInfoKeys::kNote)
+        return tr("任意入力");
+    return {};
+}
+
+void GameInfoPaneController::buildToolbar()
+{
+    m_toolbar = new QWidget(m_container);
+    m_toolbar->setObjectName(QStringLiteral("gameInfoToolbar"));
+    m_toolbar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    auto* flow = new FlowLayout(m_toolbar, 6, 12, 6);
+    const auto group = [this, flow]() {
+        auto* widget = new QWidget(m_toolbar);
+        auto* layout = new QHBoxLayout(widget);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(4);
+        flow->addWidget(widget);
+        return layout;
+    };
+    const auto button = [this](QHBoxLayout* layout, const QString& name,
+                               const QString& text, const QString& tip,
+                               const QString& icon, void (GameInfoPaneController::*slot)()) {
+        auto* result = new QToolButton(layout->parentWidget());
+        result->setObjectName(name);
+        result->setText(text);
+        result->setToolTip(tip);
+        result->setAccessibleName(tip);
+        result->setFocusPolicy(Qt::NoFocus); // セルの編集中の選択範囲を保つ
+        result->setStyleSheet(ButtonStyles::panelToolButton());
+        result->setMinimumSize(32, 28);
+        if (!icon.isEmpty()) {
+            result->setIcon(QIcon(QStringLiteral(":/images/actions/") + icon + QStringLiteral(".svg")));
+            result->setIconSize(QSize(18, 18));
+        }
+        if (icon.isEmpty() && text.size() > 2)
+            result->setMinimumWidth(result->fontMetrics().horizontalAdvance(text) + 20);
+        connect(result, &QToolButton::clicked, this, slot);
+        layout->addWidget(result);
+        return result;
+    };
+    auto* fonts = group();
+    m_btnFontDecrease = button(fonts, QStringLiteral("gameInfoFontDecrease"), QStringLiteral("A-"),
+        tr("フォントサイズを小さくする"), {}, &GameInfoPaneController::decreaseFontSize);
+    m_btnFontIncrease = button(fonts, QStringLiteral("gameInfoFontIncrease"), QStringLiteral("A+"),
+        tr("フォントサイズを大きくする"), {}, &GameInfoPaneController::increaseFontSize);
+    auto* history = group();
+    m_btnUndo = button(history, QStringLiteral("gameInfoUndo"), {}, tr("元に戻す (Ctrl+Z)"),
+        QStringLiteral("editUndo"), &GameInfoPaneController::undo);
+    m_btnRedo = button(history, QStringLiteral("gameInfoRedo"), {}, tr("やり直す (Ctrl+Y)"),
+        QStringLiteral("editRedo"), &GameInfoPaneController::redo);
+    auto* clipboard = group();
+    m_btnCut = button(clipboard, QStringLiteral("gameInfoCut"), {}, tr("切り取り (Ctrl+X)"),
+        QStringLiteral("editCut"), &GameInfoPaneController::cut);
+    m_btnCopy = button(clipboard, QStringLiteral("gameInfoCopy"), {}, tr("コピー (Ctrl+C)"),
+        QStringLiteral("editCopy"), &GameInfoPaneController::copy);
+    m_btnPaste = button(clipboard, QStringLiteral("gameInfoPaste"), {}, tr("貼り付け (Ctrl+V)"),
+        QStringLiteral("editPaste"), &GameInfoPaneController::paste);
+    auto* rows = group();
+    m_btnAddRow = button(rows, QStringLiteral("gameInfoAddRow"), tr("行を追加"),
+        tr("新しい行を追加する"), {}, &GameInfoPaneController::addRow);
+    m_btnRemoveRow = button(rows, QStringLiteral("gameInfoRemoveRow"), tr("行を削除"),
+        tr("選択行を削除する（元に戻す操作で復元できます）"), {}, &GameInfoPaneController::removeRow);
+
+    auto* apply = group();
+    m_btnUpdate = new QPushButton(tr("対局情報更新"), m_toolbar);
+    m_btnUpdate->setObjectName(QStringLiteral("gameInfoApply"));
+    m_btnUpdate->setToolTip(tr("編集した対局情報を棋譜に反映する (Ctrl+Enter)"));
+    m_btnUpdate->setMinimumHeight(28);
+    m_btnUpdate->setStyleSheet(ButtonStyles::primaryAction());
+    connect(m_btnUpdate, &QPushButton::clicked, this, &GameInfoPaneController::applyChanges);
+    apply->addWidget(m_btnUpdate);
+
+    m_editingLabel = new QLabel(m_toolbar);
+    m_editingLabel->setObjectName(QStringLiteral("gameInfoEditing"));
+    // FlowLayout は sizeHint の幅で並べるため、折り返し可能なラベルは次の行に回ったとき
+    // 余白があっても短く折り返される。案内文は短いので1行で表示する。
+    m_editingLabel->setWordWrap(false);
+    flow->addWidget(m_editingLabel);
+}
+
+void GameInfoPaneController::observeEditor()
+{
+    if (!m_table || !m_toolbar) return;
+    if (auto* editor = activeEditor()) {
+        connect(editor, &QLineEdit::textChanged,
+                this, &GameInfoPaneController::updateEditingIndicator, Qt::UniqueConnection);
+        connect(editor, &QLineEdit::selectionChanged,
+                this, &GameInfoPaneController::updateEditingIndicator, Qt::UniqueConnection);
+    }
+    updateEditingIndicator();
+}
+
+void GameInfoPaneController::updateEditingIndicator()
+{
+    if (!m_table || !m_toolbar) return;
+    const auto* item = m_table->currentItem();
+    const bool selected = item && item->isSelected();
+    const bool editable = selected && (item->flags() & Qt::ItemIsEditable);
+    const auto* editor = activeEditor();
+    const bool pending = editor && item && editor->text() != item->text();
+    const bool hasText = editor ? editor->hasSelectedText() : selected && !item->text().isEmpty();
+    m_btnUndo->setEnabled(m_historyIndex > 0 || pending);
+    m_btnRedo->setEnabled(!pending && m_historyIndex + 1 < m_history.size());
+    m_btnCopy->setEnabled(hasText);
+    m_btnCut->setEnabled(editable && hasText);
+    const auto* mime = QApplication::clipboard()->mimeData();
+    m_btnPaste->setEnabled(editable && mime && mime->hasText());
+    m_btnRemoveRow->setEnabled(selected);
+    m_btnFontDecrease->setEnabled(m_fontSize > 8);
+    m_btnFontIncrease->setEnabled(m_fontSize < 24);
+    const bool dirty = isDirty();
+    m_btnUpdate->setEnabled(dirty);
+    m_editingLabel->setText(dirty ? tr("未反映の変更があります") : tr("内容をダブルクリックして編集"));
+    // フォーカスの移動やクリップボードの変化のたびに呼ばれる。同じスタイルシートでも付け直すと
+    // Qt はスタイルを適用し直して描き直すので、変わったときだけ付ける
+    const QString style = dirty
+        ? QStringLiteral("QLabel { color: #8a5800; font-weight: bold; }")
+        : QStringLiteral("QLabel { color: #596773; }");
+    if (m_editingLabel->styleSheet() != style) m_editingLabel->setStyleSheet(style);
+}
+
+void GameInfoPaneController::updateTablePresentation()
+{
+    if (!m_table) return;
+    const QSignalBlocker blocker(m_table);
+    int keyWidth = 120;
+    for (int row = 0; row < m_table->rowCount(); ++row) {
+        for (int column = 0; column < 2; ++column) {
+            auto* item = m_table->item(row, column);
+            if (!item) continue;
+            const auto* keyItem = m_table->item(row, 0);
+            const QString placeholder = column == 1 && keyItem
+                ? placeholderForKey(keyItem->text().trimmed()) : QString();
+            if (item->data(kPlaceholderRole).toString() != placeholder)
+                item->setData(kPlaceholderRole, placeholder);
+            const QString displayText = item->text().isEmpty() ? placeholder : column == 0
+                ? KifuPresentation::infoKey(item->text())
+                : KifuPresentation::infoValue(keyItem ? keyItem->text() : QString(), item->text());
+            if (item->data(Qt::AccessibleTextRole).toString() != displayText)
+                item->setData(Qt::AccessibleTextRole, displayText);
+            // ツールチップでは棋譜中のHTMLらしい文字列もそのまま表示する。
+            const QString tooltip = QStringLiteral("<qt>%1</qt>")
+                .arg(displayText.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>")));
+            if (item->toolTip() != tooltip) item->setToolTip(tooltip);
+            if (column == 0)
+                keyWidth = qMax(keyWidth, m_table->fontMetrics().horizontalAdvance(displayText) + 24);
+        }
+    }
+    m_table->setColumnWidth(0, m_keyColumnWidth > 0 ? m_keyColumnWidth : qMin(keyWidth, 320));
+    m_table->resizeRowsToContents();
+}
+
+void GameInfoPaneController::onColumnResized(int column, int oldSize, int newSize)
+{
+    Q_UNUSED(oldSize);
+    if (column == 0 && !m_table->signalsBlocked()) {
+        m_keyColumnWidth = newSize;
+        GameSettings::gameInfoKeyColumnWidth.set(newSize);
+    }
+    m_table->resizeRowsToContents();
 }

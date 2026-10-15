@@ -3,7 +3,8 @@
 
 #include "dialogcoordinatorwiring.h"
 #include "dialogcoordinator.h"
-#include "dialogorchestrator.h"
+#include "considerationuicontroller.h"
+#include "uistatepolicymanager.h"
 #include "evaluationchartwidget.h"
 #include "engineanalysistab.h"
 #include "kifunavigationcontroller.h"
@@ -21,14 +22,16 @@ void DialogCoordinatorWiring::wire(const Deps& deps)
 
     m_evalChartWidget = deps.evalChart;
     m_analysisTab = deps.analysisTab;
-    m_playMode = deps.playMode;
     m_kifuNavController = deps.kifuNavController;
 
     m_coordinator = new DialogCoordinator(deps.parentWidget, deps.parentWidget);
     wireSignals(deps);
 
     DialogCoordinator::Deps dcDeps;
-    dcDeps.matchCoordinator = deps.match;
+    dcDeps.analysisSession = deps.analysisSession;
+    dcDeps.logModel = deps.logModel;
+    dcDeps.thinkingModel = deps.thinkingModel;
+    dcDeps.analysisModel = deps.analysisModel;
     dcDeps.considerationTabManager = deps.analysisTab ? deps.analysisTab->considerationTabManager() : nullptr;
     m_coordinator->updateDeps(dcDeps);
     bindContexts(deps);
@@ -36,8 +39,15 @@ void DialogCoordinatorWiring::wire(const Deps& deps)
 
 void DialogCoordinatorWiring::wireSignals(const Deps& deps)
 {
-    // 検討モード関連シグナルをオーケストレータ経由で接続
-    DialogOrchestrator::wireConsiderationSignals(m_coordinator, deps.considerationWiring);
+    // 検討の開始・時間設定・候補手の数を検討タブへ
+    if (deps.considerationUi) {
+        connect(m_coordinator, &DialogCoordinator::considerationModeStarted,
+                deps.considerationUi, &ConsiderationUiController::onModeStarted, Qt::UniqueConnection);
+        connect(m_coordinator, &DialogCoordinator::considerationTimeSettingsReady,
+                deps.considerationUi, &ConsiderationUiController::onTimeSettingsReady, Qt::UniqueConnection);
+        connect(m_coordinator, &DialogCoordinator::considerationMultiPVReady,
+                deps.considerationUi, &ConsiderationUiController::onDialogMultiPVReady, Qt::UniqueConnection);
+    }
 
     // 解析進捗シグナルを自身のスロットに接続
     connect(m_coordinator, &DialogCoordinator::analysisPositionPrepared,
@@ -56,8 +66,19 @@ void DialogCoordinatorWiring::wireSignals(const Deps& deps)
                 this, &DialogCoordinatorWiring::onAnalysisPositionSelected, Qt::UniqueConnection);
     }
 
-    // UI状態遷移シグナルをオーケストレータ経由で接続
-    DialogOrchestrator::wireUiStateSignals(m_coordinator, deps.uiStatePolicy);
+    // 解析・詰み探索・検討の開始と終了でメニューの状態を切り替える
+    if (UiStatePolicyManager* policy = deps.uiStatePolicy) {
+        connect(m_coordinator, &DialogCoordinator::analysisModeStarted,
+                policy, &UiStatePolicyManager::transitionToDuringAnalysis, Qt::UniqueConnection);
+        connect(m_coordinator, &DialogCoordinator::analysisModeEnded,
+                policy, &UiStatePolicyManager::transitionToIdle, Qt::UniqueConnection);
+        connect(m_coordinator, &DialogCoordinator::tsumeSearchModeStarted,
+                policy, &UiStatePolicyManager::transitionToDuringTsumeSearch, Qt::UniqueConnection);
+        connect(m_coordinator, &DialogCoordinator::tsumeSearchModeEnded,
+                policy, &UiStatePolicyManager::transitionToIdle, Qt::UniqueConnection);
+        connect(m_coordinator, &DialogCoordinator::considerationModeStarted,
+                policy, &UiStatePolicyManager::transitionToDuringConsideration, Qt::UniqueConnection);
+    }
 }
 
 void DialogCoordinatorWiring::bindContexts(const Deps& deps)
@@ -65,8 +86,7 @@ void DialogCoordinatorWiring::bindContexts(const Deps& deps)
     // 検討コンテキストを設定
     DialogCoordinator::ConsiderationContext conCtx;
     conCtx.gameController = deps.gameController;
-    conCtx.startSfenStr = deps.startSfenStr;
-    conCtx.currentSfenStr = deps.currentSfenStr;
+    conCtx.state = deps.state;
     conCtx.navState = deps.navState;
     conCtx.considerationModel = deps.considerationModel;
     m_coordinator->setConsiderationContext(conCtx);
@@ -74,14 +94,13 @@ void DialogCoordinatorWiring::bindContexts(const Deps& deps)
     // 詰み探索コンテキストを設定
     DialogCoordinator::TsumeSearchContext tsumeCtx;
     tsumeCtx.navState = deps.navState;
-    tsumeCtx.startSfenStr = deps.startSfenStr;
+    tsumeCtx.state = deps.state;
     m_coordinator->setTsumeSearchContext(tsumeCtx);
 
     // 棋譜解析コンテキストを設定
     DialogCoordinator::KifuAnalysisContext kifuCtx;
     kifuCtx.recordModel = deps.kifuRecordModel;
     kifuCtx.navState = deps.navState;
-    kifuCtx.gameController = deps.gameController;
     kifuCtx.gameInfoController = deps.gameInfoController;
     kifuCtx.evalChart = deps.evalChart;
     kifuCtx.presenter = deps.presenter;

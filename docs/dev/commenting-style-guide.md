@@ -116,12 +116,12 @@ class Usi : public QObject
 
 ```cpp
 /**
- * @brief 検討モードのシグナル/スロット接続を管理するクラス
+ * @brief 棋譜ナビゲーション同期コーディネータ
  *
- * MainWindowから検討関連の接続ロジックを分離。
+ * 移動要求を KifuNavigationController に委譲し、完了後の定跡・検討表示を更新する。
  * Deps構造体で必要なオブジェクトを受け取り、updateDeps()で再設定可能。
  */
-class ConsiderationWiring : public QObject
+class KifuNavigationCoordinator : public QObject
 ```
 
 ---
@@ -499,7 +499,7 @@ public:
 
     /// 依存オブジェクト
     struct Deps {
-        QStringList* sfenRecord = nullptr;  ///< 局面コマンド列（非所有）
+        OtherClass* other = nullptr;  ///< 〇〇を担当する部品（非所有）
     };
 
     explicit MyClass(const Deps& d, QObject* parent = nullptr);

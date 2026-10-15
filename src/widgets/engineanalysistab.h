@@ -21,7 +21,6 @@ class ConsiderationTabManager;
 class UsiLogPanel;
 class CsaLogPanel;
 class EngineAnalysisPresenter;
-class CandidateArrowController;
 class QCheckBox;
 class QLabel;
 
@@ -34,7 +33,6 @@ public:
     ~EngineAnalysisTab() override;
 
     void buildUi();
-    void setArrowController(CandidateArrowController* controller);
 
     // 独立したドック用にページを作成
     // 各メソッドは独立したQWidgetを作成して返す（呼び出し側が親を設定）
@@ -119,11 +117,16 @@ public:
 
 public slots:
     void setAnalysisVisible(bool on);
+    /// 候補手の矢印の表示状態（検討中は対局の矢印の設定を使わない。先読みの説明を添える）
+    void setArrowDisplayState(bool considerationActive, const QString& ponderDescription);
     void setCommentHtml(const QString& html);
     // 現在の手数インデックスを設定
     void setCurrentMoveIndex(int index);
 
 signals:
+    /// 対局の矢印・先読みの矢印の表示設定が変わった（矢印を描き直す）
+    void arrowSettingsChanged();
+
     // ツリー上のノード（行row, 手ply）がクリックされた
     void branchNodeActivated(int row, int ply);
 
@@ -200,7 +203,8 @@ private:
     EngineAnalysisPresenter* m_presenter = nullptr;
     void ensurePresenter();
 
-    QPointer<CandidateArrowController> m_arrowController;
+    bool m_arrowConsideration = false;   ///< 検討中か（検討の矢印は検討タブで設定する）
+    QString m_ponderDescription;         ///< 先読みの矢印の説明
     QCheckBox* m_matchArrows = nullptr;
     QCheckBox* m_ponderArrows = nullptr;
     QLabel* m_arrowDescription = nullptr;

@@ -2,6 +2,7 @@
 /// @brief 分岐ナビゲーション配線クラスの実装
 
 #include "branchnavigationwiring.h"
+#include "appstate.h"
 
 #include <functional>
 #include "branchtreeeditcontroller.h"
@@ -60,8 +61,8 @@ void BranchNavigationWiring::wireBranchEditing()
     if (m_deps.gameRecordModel != nullptr) {
         deps.markGameRecordDirty = std::bind(&GameRecordModel::markDirty, m_deps.gameRecordModel);
     }
-    QString* startSfen = m_deps.startSfenStr;
-    deps.startPositionSfen = [startSfen]() { return startSfen ? *startSfen : QString(); };
+    const AppState* state = m_deps.state;
+    deps.startPositionSfen = [state]() { return state ? state->startSfenStr : QString(); };
     deps.treeRootCreated = std::bind(&BranchNavigationWiring::onBranchTreeBuilt, this);
     m_editController->updateDeps(deps);
     if (m_deps.analysisTab != nullptr) {

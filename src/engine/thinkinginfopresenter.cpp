@@ -5,7 +5,6 @@
 #include "kifupresentation.h"
 #include "usi.h"
 #include "pvnotationformatter.h"
-#include "shogigamecontroller.h"
 
 #include <QTimer>
 #include <memory>
@@ -24,10 +23,6 @@ ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
 // 依存関係設定
 // ============================================================
 
-void ThinkingInfoPresenter::setGameController(ShogiGameController* controller)
-{
-    m_gameController = controller;
-}
 
 // ============================================================
 // 状態設定
@@ -249,14 +244,10 @@ static constexpr int SCORE_MATE_VALUE = 31111;
 int ThinkingInfoPresenter::updateCpScore(const UsiInfo& info)
 {
     const int cp = info.score.value;
-    if (!m_gameController) {
-        m_scoreStr = QString::number(cp);
-        return cp;
-    }
-
     if (m_analysisMode) {
-        // 棋譜解析では先手から見た値にする
-        const int scoreInt = m_gameController->currentPlayer() == Turn::White ? -cp : cp;
+        // 棋譜解析では先手から見た値にする（読み筋の開始局面の手番で符号を決める）
+        const bool whiteToMove = m_baseSfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w");
+        const int scoreInt = whiteToMove ? -cp : cp;
         m_scoreStr = QString::number(scoreInt);
         return scoreInt;
     }

@@ -9,7 +9,7 @@
 
 #include <QString>
 
-#include "playmode.h"
+#include "matchplayers.h"
 #include "recordline.h"
 #include <QMetaType>
 
@@ -25,22 +25,18 @@ Q_DECLARE_METATYPE(GameStartPreparation)
 /// @brief 対局開始のための設定パラメータ
 /// @note MatchCoordinator::StartOptions は本型の using エイリアス。
 struct MatchStartOptions {
-    PlayMode mode = PlayMode::NotStarted;  ///< 対局モード
+    MatchPlayers players;                  ///< 対局者（人間・エンジンと名前）
     RecordLine recordLine;                 ///< 開始する手順と手数（過去の対局から推測しない）
     QString  sfenStart;                    ///< 開始SFEN
 
-    QString engineName1;                   ///< エンジン1表示名
-    QString enginePath1;                   ///< エンジン1実行パス
-    QString engineName2;                   ///< エンジン2表示名
-    QString enginePath2;                   ///< エンジン2実行パス
+    QString enginePath1;                   ///< 先手（下手）のエンジンの実行パス
+    QString enginePath2;                   ///< 後手（上手）のエンジンの実行パス
 
     int maxMoves = 0;                      ///< 最大手数（0=無制限）
 
     bool autoSaveKifu = false;             ///< 棋譜自動保存フラグ
     QString kifuSaveDir;                   ///< 棋譜保存ディレクトリ
 
-    QString humanName1;                    ///< 先手の人間対局者名
-    QString humanName2;                    ///< 後手の人間対局者名
     bool resumeFromBreakOff = false;        ///< 中断した手の途中から再開する
 };
 

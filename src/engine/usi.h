@@ -23,7 +23,7 @@
 #include "usienginesession.h"
 #include "usiprotocolhandler.h"
 #include "thinkinginfopresenter.h"
-#include "shogigamecontroller.h"
+#include "shogitypes.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "thinkinginforow.h"
@@ -65,20 +65,15 @@ public:
 
     // --- 構築・破棄 ---
     
-    explicit Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
-                 ShogiGameController* algorithm,
-                 QObject* parent = nullptr);
+    explicit Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking, QObject* parent = nullptr);
     ~Usi() override;
 
     // --- 状態の参照 ---
 
-    QString scoreStr() const;
     bool isResignMove() const;
     bool isWinMove() const;           ///< bestmove win（入玉宣言勝ち）を受信したか
     int lastScoreCp() const;
     QString lastScoreMate() const;
-
-    void initializeAndStartEngineCommunication(QString& engineFile, QString& enginename);
 
     void sendGameOverCommand(GameOverResult result);
     void sendQuitCommand();
@@ -118,14 +113,10 @@ public:
     /// このモデルはMultiPVモード（updateByMultipv）で更新される
     void setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV = 1);
 
-    /// 検討中にMultiPVを変更する
-    void updateConsiderationMultiPV(int multiPV);
-
     void resetResignNotified();
     void resetWinNotified();          ///< 入玉宣言勝ち通知フラグをリセット
     void markHardTimeout();
     void clearHardTimeout();
-    bool isIgnoring() const;
 
     /// 現在実行中のエンジンファイルパスを取得
     QString currentEnginePath() const;
@@ -135,9 +126,6 @@ public:
 
     /// エンジンプロセスが起動中かどうかを返す
     bool isEngineRunning() const;
-
-    void setThinkingModel(ShogiEngineThinkingModel* m);
-    void setLogModel(UsiCommLogModel* m);
 
     /**
      * @brief 基準SFENを設定する（読み筋を日本語にする局面）
@@ -162,13 +150,18 @@ public:
 
     void cleanupEngineProcessAndThread(bool clearThinking = true);
 
-    /// 要求受付を返す。実際の初期化完了は engineInitialized、失敗は errorOccurred で通知する。
-    [[nodiscard]] bool startAndInitializeEngineAsync(const QString& engineFile, const QString& enginename);
+    /**
+     * @brief エンジンを起動して初期化（usi〜readyok）を始める
+     * @return 起動の要求を受け付けたか。初期化の完了は engineInitialized、失敗は errorOccurred で通知する
+     */
+    [[nodiscard]] bool startEngine(const QString& engineFile, const QString& engineName);
     bool isInitializing() const { return m_session && m_session->isInitializing(); }
     void requestMatchMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
 
-    void executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec);
-    void sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr);
+    /// 詰み探索を始める（思考タブを消し、読み筋はこの局面から表示する）
+    void startMateSearch(const QString& positionStr, int timeLimitMs);
+    /// position と go mate だけを送る（思考タブを使わない詰将棋の局面生成用）
+    void sendMateSearch(const QString& positionStr, int timeLimitMs);
     void cancelCurrentOperation();
 
 signals:
@@ -206,8 +199,6 @@ private:
 
     QPointer<UsiCommLogModel> m_commLogModel;        ///< USI通信ログモデルへの参照（非所有）
     QPointer<ShogiEngineThinkingModel> m_thinkingModel; ///< 思考情報モデルへの参照（非所有）
-    ShogiGameController* m_gameController = nullptr;  ///< ゲームコントローラへの参照（非所有）
-    QString currentBoardSfen() const;
     ShogiClock* m_matchClock = nullptr; ///< ローカル対局の時間判定元（非所有）
 
     // --- 状態 ---

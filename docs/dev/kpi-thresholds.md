@@ -22,7 +22,7 @@
 | KPI | 閾値 | 設定日 | 根拠 |
 |---|---|---|---|
 | mainwindow_include_count | 14 | 2026-10-15 | 実測 5。部品の組み立てを MainWindowComposer に移した |
-| long_functions_over_100 | 60 | 2026-10-13 | 実測 53 件に対するラチェット上限 |
+| long_functions_over_100 | 60 | 2026-10-13 | 2026-10-13 の実測 53 件に対するラチェット上限（2026-10-15 の実測は 38 件） |
 
 files_over_550・files_over_500 の監視は 2026-10-13 に外した（files_over_1000 の根拠と同じ理由）。
 

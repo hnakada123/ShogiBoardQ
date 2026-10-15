@@ -5,6 +5,9 @@
 #include "kifubranchtree.h"
 #include <algorithm>
 #include <memory>
+#include "kifubranchnode.h"
+#include <QMap>
+#include <QStringList>
 
 KifuBranchTree::KifuBranchTree(QObject* parent)
     : QObject(parent)
@@ -93,7 +96,7 @@ KifuBranchNode* KifuBranchTree::addMove(KifuBranchNode* parent, const ShogiMove&
                                        const QString& displayText, const QString& sfen,
                                        const QString& timeText)
 {
-    return addRecord(parent, RecordEntry::imported(move, displayText, sfen, timeText));
+    return addRecord(parent, RecordEntry::played(move, displayText, sfen, RecordTime::fromText(timeText)));
 }
 
 KifuBranchNode* KifuBranchTree::addRecord(KifuBranchNode* parent, const RecordEntry& entry)
@@ -108,12 +111,13 @@ KifuBranchNode* KifuBranchTree::insertRecord(KifuBranchNode* parent, const Recor
     if (!parent || parent->isTerminal()) return nullptr;
     auto* node = createNode();
     node->setPly(parent->ply() + 1);
-    node->setDisplayText(entry.displayText);
-    node->setTime(entry.time);
-    node->setTerminalType(entry.terminal);
-    node->setTerminalSide(entry.mover);
-    node->setSfen(entry.isTerminal() ? parent->sfen() : entry.sfen);
-    node->setMove(entry.isTerminal() ? ShogiMove{} : entry.move);
+    RecordEntry record = entry;
+    if (record.isTerminal()) {
+        // 終局の行は盤を変えない。局面は直前のもの、指し手は持たない
+        record.sfen = parent->sfen();
+        record.move = ShogiMove{};
+    }
+    node->setRecord(record);
     parent->addChild(node);
     invalidateLineCache();
     return node;
@@ -121,14 +125,10 @@ KifuBranchNode* KifuBranchTree::insertRecord(KifuBranchNode* parent, const Recor
 
 KifuBranchNode* KifuBranchTree::addTerminalMove(KifuBranchNode* parent,
                                                 TerminalType type,
-                                                const QString& displayText,
+                                                Turn side,
                                                 const QString& timeText)
 {
-    RecordEntry entry = RecordEntry::imported({}, displayText, parent ? parent->sfen() : QString(), timeText);
-    entry.terminal = type;
-    entry.displayText = displayText;
-    entry.time = RecordTime::fromText(timeText);
-    return addRecord(parent, entry);
+    return addRecord(parent, RecordEntry::ending(type, side, RecordTime::fromText(timeText)));
 }
 
 KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
@@ -137,7 +137,7 @@ KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
                                               const QString& sfen,
                                               const QString& timeText)
 {
-    return insertRecord(parent, RecordEntry::imported(move, displayText, sfen, timeText));
+    return insertRecord(parent, RecordEntry::played(move, displayText, sfen, RecordTime::fromText(timeText)));
 }
 
 void KifuBranchTree::beginBatchUpdate()
@@ -200,11 +200,8 @@ RecordLine KifuBranchTree::toRecordLine(const QList<KifuBranchNode*>& nodes, int
     RecordLine line;
     for (const KifuBranchNode* node : std::as_const(nodes)) {
         if (node == nullptr || node->isTerminal()) continue;
-        line.sfens << node->sfen();
-        if (node->ply() > 0) {
-            line.moves << node->move();
-            line.displayTexts << node->displayText();
-        }
+        if (node->ply() == 0) line.startSfen = node->sfen();
+        else line.entries << node->record();
     }
     line.currentPly = qBound(0, currentPly, line.moveCount());
     return line;
@@ -446,4 +443,213 @@ bool KifuBranchTree::removeLeaf(KifuBranchNode* node)
     if (!removeLeafQuiet(node)) return false;
     notifyTreeChanged();
     return true;
+}
+
+// ============================================================
+// 分岐ツリーの編集（本譜にする・並べ替え・削除）の実装
+// ============================================================
+
+// ============================================================
+// 分岐の編集
+// ============================================================
+
+bool KifuBranchTree::moveChild(KifuBranchNode* child, int index)
+{
+    if (child == nullptr || child->parent() == nullptr) return false;
+    if (child->parent()->children().indexOf(child) == index) return false;
+    if (!moveChildQuiet(child, index)) return false;
+    notifyTreeChanged();
+    return true;
+}
+
+bool KifuBranchTree::promoteToMainLine(KifuBranchNode* node)
+{
+    if (node == nullptr || nodeAt(node->nodeId()) != node) return false;
+    bool changed = false;
+    const QList<KifuBranchNode*> path = pathToNode(node);
+    for (KifuBranchNode* n : path) {
+        if (n->parent() != nullptr && !n->isMainLine()) {
+            changed = moveChildQuiet(n, 0) || changed;
+        }
+    }
+    if (changed) notifyTreeChanged();
+    return changed;
+}
+
+bool KifuBranchTree::removeSubtree(KifuBranchNode* node)
+{
+    if (node == nullptr || node == m_root || node->parent() == nullptr || nodeAt(node->nodeId()) != node) {
+        return false;
+    }
+    node->parent()->removeChild(node);
+
+    // 子のリストは非所有なので、子を取り出してから親を解放する
+    QList<KifuBranchNode*> pending{node};
+    while (!pending.isEmpty()) {
+        KifuBranchNode* current = pending.takeLast();
+        pending.append(current->children());
+        std::unique_ptr<KifuBranchNode> removed(m_nodeById.take(current->nodeId()));
+    }
+    m_linesCache.clear();
+    invalidateLineCache();
+    notifyTreeChanged();
+    return true;
+}
+
+int KifuBranchTree::subtreeSize(const KifuBranchNode* node)
+{
+    if (node == nullptr) return 0;
+    int count = 0;
+    QList<const KifuBranchNode*> pending{node};
+    while (!pending.isEmpty()) {
+        const KifuBranchNode* current = pending.takeLast();
+        ++count;
+        for (const KifuBranchNode* child : current->children()) pending.append(child);
+    }
+    return count;
+}
+
+KifuBranchNode* KifuBranchTree::variationHead(KifuBranchNode* node)
+{
+    for (KifuBranchNode* n = node; n != nullptr && n->parent() != nullptr; n = n->parent()) {
+        if (n->parent()->childCount() > 1) return n;
+    }
+    return nullptr;
+}
+
+// ============================================================
+// 分岐ツリーデータモデル - 局面SFEN・指し手によるノード検索
+// ============================================================
+
+namespace {
+
+/// 持ち駒フィールドを駒種ごとの枚数に分解し、並び順に依存しない形へ正規化する。
+/// 以前の版の盤は駒種ごとに先後を交互に書いていたので、文字列のままでは
+/// 同じ持ち駒でも一致しないことがある（その版で保存した局面も比べられるようにする）。
+QString normalizeHands(const QString& hands)
+{
+    QMap<QChar, int> counts;
+    int pending = 0;
+    for (const QChar ch : hands) {
+        if (ch.isDigit()) {
+            pending = pending * 10 + ch.digitValue();
+        } else if (ch != QLatin1Char('-')) {
+            counts[ch] += (pending > 0) ? pending : 1;
+            pending = 0;
+        }
+    }
+
+    QString out;
+    for (auto it = counts.cbegin(); it != counts.cend(); ++it) {
+        if (it.value() > 1) {
+            out += QString::number(it.value());
+        }
+        out += it.key();
+    }
+    return out.isEmpty() ? QStringLiteral("-") : out;
+}
+
+/// 手数を除いた局面（盤面・手番・正規化した持ち駒）を比較用キーにする。
+/// 盤面・手番・持ち駒が揃っていない不完全な SFEN は空文字を返す。
+QString positionKey(const QString& sfen)
+{
+    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (parts.size() < 3) {
+        return QString();
+    }
+    return parts.at(0) + QLatin1Char(' ') + parts.at(1) + QLatin1Char(' ') + normalizeHands(parts.at(2));
+}
+
+/// 手数を除いた局面（盤面・手番・持ち駒）が一致するか。どちらかが不完全なら false
+bool isSamePosition(const QString& sfenA, const QString& sfenB)
+{
+    const QString keyA = positionKey(sfenA);
+    return !keyA.isEmpty() && keyA == positionKey(sfenB);
+}
+
+/// デフォルト構築された（駒種未設定の）ShogiMove でないか
+bool isValidMove(const ShogiMove& move)
+{
+    return move.isValid();
+}
+
+} // namespace
+
+KifuBranchNode* KifuBranchTree::findBySfen(const QString& sfen, int ply) const
+{
+    if (m_root == nullptr) {
+        return nullptr;
+    }
+
+    const QString targetKey = positionKey(sfen);
+    if (targetKey.isEmpty()) {
+        return nullptr;
+    }
+
+    // QHash の走査順に依存しないよう、ルートから深さ優先（先頭の子＝本譜を優先）で探す。
+    // 同じ局面が複数のラインにある場合は本譜、次に分岐順で先のラインが選ばれる。
+    QList<KifuBranchNode*> stack;
+    stack.append(m_root);
+    while (!stack.isEmpty()) {
+        KifuBranchNode* node = stack.takeLast();
+
+        // 終局手ノードは親と同じ局面を持つため対象外（局面を表すのは親ノード）
+        if (!node->isTerminal()
+            && (ply < 0 || node->ply() == ply)
+            && positionKey(node->sfen()) == targetKey) {
+            return node;
+        }
+
+        const QList<KifuBranchNode*>& children = node->children();
+        for (qsizetype i = children.size() - 1; i >= 0; --i) {
+            stack.append(children.at(i));
+        }
+    }
+
+    return nullptr;
+}
+
+KifuBranchNode* KifuBranchTree::findMatchingChild(KifuBranchNode* parent,
+                                                  const ShogiMove& move,
+                                                  const QString& displayText,
+                                                  const QString& sfen) const
+{
+    return findMatchingChild(parent, RecordEntry::played(move, displayText, sfen));
+}
+
+KifuBranchNode* KifuBranchTree::findMatchingChild(KifuBranchNode* parent, const RecordEntry& entry) const
+{
+    if (parent == nullptr) {
+        return nullptr;
+    }
+
+    const TerminalType termType = entry.terminal;
+    const auto& sfen = entry.sfen;
+    const auto& move = entry.move;
+
+    for (KifuBranchNode* child : parent->children()) {
+        if (termType != TerminalType::None) {
+            // 終局を宣言する側は必ずしも手番側ではない（反則勝ちなど）。
+            if (child->terminalType() == termType && child->terminalSide() == entry.mover) {
+                return child;
+            }
+            continue;
+        }
+
+        if (child->isTerminal()) {
+            continue;
+        }
+
+        // 同じ親から異なる手を指して同じ局面になることはないので、局面一致＝同じ手
+        if (isSamePosition(child->sfen(), sfen)) {
+            return child;
+        }
+
+        // KIF 本譜由来のノードなど SFEN が欠けている場合に備えて ShogiMove でも比較する
+        if (isValidMove(move) && isValidMove(child->move()) && child->move() == move) {
+            return child;
+        }
+    }
+
+    return nullptr;
 }

@@ -2,6 +2,7 @@
 /// @brief 盤面上のクリック・ドラッグ操作とハイライト管理の実装
 
 #include "boardinteractioncontroller.h"
+#include "boardcoordinates.h"
 
 #include "shogiview.h"
 #include "shogigamecontroller.h"
@@ -246,20 +247,15 @@ void BoardInteractionController::refreshLegalMoveHighlights()
         || (m_isHumanTurnCb && !m_isHumanTurnCb())) return;
 
     auto* board = m_view->board();
-    EngineMoveValidator validator;
-    EngineMoveValidator::Context context;
-    const auto turn = m_gc->currentPlayer() == Turn::Black
-        ? Turn::Black : Turn::White;
-    if (!validator.syncContext(context, turn, board->boardData(), board->pieceStand())) return;
+    const auto position = EngineMoveValidator::load(*board, m_gc->currentPlayer());
+    if (!position.synced) return;
 
-    const QPoint from = m_clickPoint - QPoint(1, 1);
-    const Piece piece = board->pieceCharacter(m_clickPoint.x(), m_clickPoint.y());
-    // 局面変換は1回だけ行い、成り・不成のどちらかが合法なマスを表示する。
+    // 局面の読み込みは1回だけ行い、成り・不成のどちらかが合法なマスを表示する。
     for (int rank = 1; rank <= 9; ++rank) {
         for (int file = 1; file <= 9; ++file) {
-            ShogiMove move(from, QPoint(file - 1, rank - 1), piece,
-                           board->pieceCharacter(file, rank), false);
-            const auto status = validator.isLegalMove(context, move);
+            const auto move = BoardCoordinates::usiMoveFromSquares(m_clickPoint, QPoint(file, rank), false);
+            if (!move) continue;
+            const auto status = EngineMoveValidator::legalStatus(position, *move);
             if (!status.nonPromotingMoveExists && !status.promotingMoveExists) continue;
             auto highlight = std::make_unique<ShogiView::FieldHighlight>(
                 file, rank, QColor(65, 155, 225, 105),

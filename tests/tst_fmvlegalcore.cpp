@@ -144,12 +144,11 @@ private slots:
 
         ShogiBoard board;
         board.setSfen(sfen);
-        EngineMoveValidator validator;
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
         const auto turn = white ? Turn::White : Turn::Black;
         const auto side = white ? fmv::Color::White : fmv::Color::Black;
-        QVERIFY(validator.syncContext(simulation, turn, board.boardData(), board.pieceStand()));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), turn));
         const fmv::EnginePosition original = ctx.pos;
 
         const QPoint to = white ? QPoint(8, 7) : QPoint(0, 1);
@@ -174,14 +173,14 @@ private slots:
         QCOMPARE(core.countLegalMoves(ctx.pos, side), moves.size);
         verifyPositionUnchanged(ctx.pos, original);
 
-        // GUIの互換API、Context API、適用APIで同じ結果になること。
-        ShogiMove move(white ? QPoint(EngineMoveValidator::WHITE_HAND_FILE, 8)
-                             : QPoint(EngineMoveValidator::BLACK_HAND_FILE, 0),
-                       to, white ? Piece::WhitePawn : Piece::BlackPawn, Piece::None, false);
-        const auto compatStatus = validator.isLegalMove(turn, board.boardData(), board.pieceStand(), move);
+        // 盤を受け取る省略形、読み込んだ Context、適用APIで同じ結果になること。
+        UsiMove move;
+        move.drop = Piece::BlackPawn;
+        move.to = BoardSquare{to.x() + 1, to.y() + 1};
+        const auto compatStatus = EngineMoveValidator::legalStatus(board, turn, move);
         QCOMPARE(compatStatus.nonPromotingMoveExists, legal);
         QVERIFY(!compatStatus.promotingMoveExists);
-        const auto contextStatus = validator.isLegalMove(ctx, move);
+        const auto contextStatus = EngineMoveValidator::legalStatus(ctx, move);
         QCOMPARE(contextStatus.nonPromotingMoveExists, legal);
         QVERIFY(!contextStatus.promotingMoveExists);
         verifyPositionUnchanged(ctx.pos, original);
@@ -194,11 +193,11 @@ private slots:
         QVERIFY(!variants.promotingMoveExists);
         verifyPositionUnchanged(ctx.pos, original);
 
-        const bool applied = validator.tryApplyMove(simulation, move);
+        const bool applied = EngineMoveValidator::tryApplyMove(simulation, move);
         QCOMPARE(applied, legal);
         if (applied) {
             QCOMPARE(simulation.undoSize, 1);
-            QVERIFY(validator.undoLastMove(simulation));
+            QVERIFY(EngineMoveValidator::undoLastMove(simulation));
         }
         QCOMPARE(ctx.turn, turn);
         QCOMPARE(simulation.undoSize, 0);
@@ -210,19 +209,18 @@ private slots:
         // 1三歩を1二へ進めて詰ませる手は、打ち歩詰めではない。
         ShogiBoard board;
         board.setSfen(QStringLiteral("8k/9/6NGP/9/9/9/9/9/K8 b - 1"));
-        EngineMoveValidator validator;
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
-        QVERIFY(validator.syncContext(simulation, Turn::Black, board.boardData(), board.pieceStand()));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), Turn::Black));
         const fmv::EnginePosition original = ctx.pos;
-        ShogiMove move(QPoint(0, 2), QPoint(0, 1), Piece::BlackPawn, Piece::None, false);
-        const auto status = validator.isLegalMove(ctx, move);
+        const UsiMove move = UsiMove::fromString(u"1c1b");
+        const auto status = EngineMoveValidator::legalStatus(ctx, move);
         QVERIFY(status.nonPromotingMoveExists);
         QVERIFY(status.promotingMoveExists);
-        QVERIFY(validator.tryApplyMove(simulation, move));
-        QCOMPARE(validator.checkIfKingInCheck(ctx), 1);
-        QCOMPARE(validator.generateLegalMoves(ctx), 0);
-        QVERIFY(validator.undoLastMove(simulation));
+        QVERIFY(EngineMoveValidator::tryApplyMove(simulation, move));
+        QCOMPARE(EngineMoveValidator::checkCount(ctx), 1);
+        QCOMPARE(EngineMoveValidator::legalMoveCount(ctx), 0);
+        QVERIFY(EngineMoveValidator::undoLastMove(simulation));
         verifyPositionUnchanged(ctx.pos, original);
     }
 
@@ -322,15 +320,14 @@ private slots:
         }
         const auto turn = white ? Turn::White : Turn::Black;
         const auto side = white ? fmv::Color::White : fmv::Color::Black;
-        EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
-        QVERIFY(validator.syncContext(ctx, turn, boardData, board.pieceStand()));
+        QVERIFY((ctx = EngineMoveValidator::load(boardData, board.pieceStand(), turn)).synced);
         ctx.pos.zobristKey = 0x123456789abcdef0ULL;
         const auto original = ctx.pos;
-        const auto fromSq = fmv::toSquare(from.x(), from.y());
-        const auto toSq = fmv::toSquare(to.x(), to.y());
-        ShogiMove move(from, to, static_cast<Piece>(ctx.pos.board[fromSq]),
-                       static_cast<Piece>(ctx.pos.board[toSq]), false);
+        // 表の升は内部の0始まり。USI の指し手は1始まり
+        UsiMove move;
+        move.from = BoardSquare{from.x() + 1, from.y() + 1};
+        move.to = BoardSquare{to.x() + 1, to.y() + 1};
         fmv::ConvertedMove cm;
         QVERIFY(fmv::Converter::toEngineMove(cm, turn, ctx.pos, move));
         fmv::LegalCore core;
@@ -344,18 +341,18 @@ private slots:
         verifyPositionUnchanged(ctx.pos, original);
 
         for (bool selectedPromotion : {false, true}) {
-            move.isPromotion = selectedPromotion;
+            move.promote = selectedPromotion;
             fmv::Move candidate = cm.nonPromote;
             candidate.promote = selectedPromotion;
             const auto combined = core.checkMoveVariants(ctx.pos, side, candidate);
             QCOMPARE(combined.nonPromotingMoveExists, nonPromoting);
             QCOMPARE(combined.promotingMoveExists, promoting);
             verifyPositionUnchanged(ctx.pos, original);
-            const auto contextStatus = validator.isLegalMove(ctx, move);
+            const auto contextStatus = EngineMoveValidator::legalStatus(ctx, move);
             QCOMPARE(contextStatus.nonPromotingMoveExists, nonPromoting);
             QCOMPARE(contextStatus.promotingMoveExists, promoting);
             verifyPositionUnchanged(ctx.pos, original);
-            const auto compatStatus = validator.isLegalMove(turn, boardData, board.pieceStand(), move);
+            const auto compatStatus = EngineMoveValidator::legalStatus(EngineMoveValidator::load(boardData, board.pieceStand(), turn), move);
             QCOMPARE(compatStatus.nonPromotingMoveExists, nonPromoting);
             QCOMPARE(compatStatus.promotingMoveExists, promoting);
         }

@@ -12,12 +12,14 @@ public:
     void begin(const MatchStartOptions& options)
     {
         m_options = options;
+        m_started = true;
         m_over = {};
         clearPonder();
     }
+    /// 一度でも対局を始めたか
+    bool started() const { return m_started; }
     const MatchStartOptions& options() const { return m_options; }
-    PlayMode playMode() const { return m_options.mode; }
-    void setPlayMode(PlayMode mode) { m_options.mode = mode; }
+    const MatchPlayers& players() const { return m_options.players; }
     int maxMoves() const { return m_options.maxMoves; }
     const MatchGameOverState& gameOver() const { return m_over; }
     void clearGameOver() { m_over = {}; }
@@ -36,12 +38,14 @@ public:
         m_over.moveAppended = true;
         return true;
     }
-    const QString& ponder(int slot) const { return m_ponder.at(slot == 2 ? 1 : 0); }
-    void setPonder(int slot, const QString& position) { m_ponder.at(slot == 2 ? 1 : 0) = position; }
+    /// side の手番のエンジンが先読みしている局面
+    const QString& ponder(Turn side) const { return m_ponder.at(side == Turn::White ? 1 : 0); }
+    void setPonder(Turn side, const QString& position) { m_ponder.at(side == Turn::White ? 1 : 0) = position; }
     void clearPonder() { m_ponder = {}; }
 
 private:
     MatchStartOptions m_options;
+    bool m_started = false;
     MatchGameOverState m_over;
     std::array<QString, 2> m_ponder;
 };

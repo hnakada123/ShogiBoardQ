@@ -1,160 +1,66 @@
 /// @file tst_matchcoordinator.cpp
 /// @brief MatchCoordinator 単体テスト
 ///
-/// 対局進行コーディネータ（司令塔）の主要フロー
-/// （初期状態・終局状態管理・盤面反転・デリゲーション）を検証する。
+/// 対局の司令塔の主要フロー（開始・着手の記録・終局の記録と知らせ・待った・エンジンの投了と異常）を、
+/// 本物の盤・時計・エンジンの枠と、棋譜の行を覚える受け手で検証する。
 
 #include <QTest>
 #include <QSignalSpy>
-#include "matchcoordinator.h"
-#include "shogigamecontroller.h"
-#include "shogiclock.h"
-#include "sfenutils.h"
-#include "usi.h"
 #include <QTemporaryDir>
 
-// ============================================================
-// テストハーネス
-// ============================================================
-struct MCTestHarness {
-    ShogiGameController gc;
-    ShogiClock clock;
-    QStringList sfenRecord;
-    QList<ShogiMove> gameMoves;
+#include "match_test_helper.h"
+#include "terminaltype.h"
+#include "usi.h"
 
-    // フック呼び出しトラッカー
-    bool updateTurnDisplayCalled = false;
-    Turn lastTurnPlayer = Turn::Black;
-    bool renderBoardCalled = false;
-    bool showGameOverDialogCalled = false;
-    int showGameOverDialogCount = 0;
-    QString lastDialogTitle;
-    QString lastDialogMessage;
-    bool initializeNewGameCalled = false;
-    int appendKifuLineCount = 0;
-
-    std::unique_ptr<MatchCoordinator> mc;
-
-    MCTestHarness()
-    {
-        QString initial = SfenUtils::hirateSfen();
-        gc.newGame(initial);
-        gc.setCurrentPlayer(Turn::Black);
-
-        MatchCoordinator::Deps deps;
-        deps.gc = &gc;
-        deps.clock = &clock;
-        deps.usi1 = nullptr;
-        deps.usi2 = nullptr;
-        deps.comm1 = nullptr;
-        deps.think1 = nullptr;
-        deps.comm2 = nullptr;
-        deps.think2 = nullptr;
-        deps.sfenRecord = &sfenRecord;
-        deps.gameMoves = &gameMoves;
-
-        // Hooks設定
-        deps.hooks.ui.updateTurnDisplay = [this](Turn p) {
-            updateTurnDisplayCalled = true;
-            lastTurnPlayer = p;
-        };
-        deps.hooks.ui.renderBoardFromGc = [this]() {
-            renderBoardCalled = true;
-        };
-        deps.hooks.ui.showGameOverDialog = [this](const QString& title, const QString& msg) {
-            showGameOverDialogCalled = true;
-            ++showGameOverDialogCount;
-            lastDialogTitle = title;
-            lastDialogMessage = msg;
-        };
-        deps.hooks.ui.setPlayersNames = [](const QString&, const QString&) {};
-        deps.hooks.ui.setEngineNames = [](const QString&, const QString&) {};
-        deps.hooks.ui.showMoveHighlights = [](const QPoint&, const QPoint&) {};
-
-
-        deps.hooks.game.initializeNewGame = [this](const QString&) {
-            initializeNewGameCalled = true;
-        };
-        deps.hooks.game.appendRecord = [this](const RecordEntry&) {
-            ++appendKifuLineCount;
-        };
-        deps.hooks.game.appendEval = [](Turn) {};
-        deps.hooks.game.autoSaveKifu = [](const QString&) {};
-
-        mc = std::make_unique<MatchCoordinator>(deps);
-    }
-};
-
-// ============================================================
-// テストクラス
-// ============================================================
 class Tst_MatchCoordinator : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_config;
 
 private slots:
-    void initTestCase() {
+    void initTestCase()
+    {
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
-    // === Section A: 初期状態 ===
-    void initialState_playModeIsNotStarted();
-    void initialState_gameOverStateIsCleared();
-    void initialState_gameMovesIsEmpty();
-    void gameMovesUsesSharedRecord();
 
-    // === Section B: 終局状態管理 ===
-    void setGameOver_setsStateAndEmitsSignals();
-    void setGameOver_doubleCallIgnored();
-    void setGameOver_emitsRequestAppendGameOverMove();
+    // === 初期状態 ===
+    void initialState_notStartedAndNotOver();
+
+    // === 開始 ===
+    void start_preparesHumanGame();
+    void start_keepsRecordLineUpToCurrentPly();
+
+    // === 着手 ===
+    void humanMove_isRecordedAndAnnounced();
+    void humanMove_rejectedWhenSinkIsClosed();
+
+    // === 終局の記録 ===
+    void resign_recordsTerminalAndAnnounces();
+    void resign_secondCallIgnored();
     void clearGameOverState_clearsAndEmitsSignal();
     void clearGameOverState_notOverNoSignal();
-    void markGameOverMoveAppended_marksAndEmitsSignal();
-    void markGameOverMoveAppended_notOverIgnored();
-    void markGameOverMoveAppended_doubleCallIgnored();
+    void breakOff_appendsTerminalOnceWithoutMessage();
+    void playerTimeOut_recordsTimeout();
+    void nyugyokuDeclaration_success_data();
+    void nyugyokuDeclaration_success();
 
-    // === Section C: 盤面反転 ===
-    void flipBoard_callsHookAndEmitsSignal();
+    // === 待った ===
+    void undoTwoPlies_restoresBoardAndRecord();
+    void undoTwoPlies_needsTwoMoves();
+    void undoTwoPlies_onlyOnHumanTurn();
 
-    // === Section D: PlayMode ===
-    void setPlayMode_roundTrip();
-
-    // === Section E: デリゲーション ===
-    void handleResign_endsGame();
-    void handleEngineResign_recordsLoser();
+    // === エンジン ===
     void humanVsEngine_engineResignLosesEngineSide_data();
     void humanVsEngine_engineResignLosesEngineSide();
-    void handleEngineWin_recordsWinner();
-    void handleBreakOff_appendsTerminalOnce();
-    void configureAndStart_preparesHumanGame();
-    void startAnalysis_initializesAndStopsRealSession();
-    void stopAnalysisEngine_isIdempotent();
-
-    // === Section F: handlePlayerTimeOut ===
-    void handlePlayerTimeOut_callsGcMethods();
-
-    // === Section G: シグナル検証 ===
-    void gameEnded_signalCarriesCorrectInfo();
-    void gameOverStateChanged_signalCarriesState();
-
-    // === Section H: 対局中のエンジンエラー ===
+    void humanVsEngine_engineWinIsJudgedOnBoard();
     void humanVsEngine_engineStartFailure_breaksOffAfterStart();
     void engineVsEngine_engineStartFailure_breaksOffOnce();
     void humanVsEngine_engineExit_breaksOff();
 };
 
 namespace {
-
-QString mockMatchEnginePath()
-{
-    QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-#ifdef Q_OS_WIN
-    path += QStringLiteral(".exe");
-#endif
-    return path;
-}
 
 /// テスト中だけ環境変数を設定する（失敗で抜けても戻す）
 struct ScopedEnv {
@@ -165,276 +71,322 @@ struct ScopedEnv {
     ScopedEnv& operator=(const ScopedEnv&) = delete;
 };
 
+MatchCoordinator::StartOptions humanVsEngine(bool engineIsBlack, const QString& path, const QString& name)
+{
+    MatchCoordinator::StartOptions opt;
+    opt.players.blackIsEngine = engineIsBlack;
+    opt.players.whiteIsEngine = !engineIsBlack;
+    opt.sfenStart = SfenUtils::hirateSfen();
+    (engineIsBlack ? opt.enginePath1 : opt.enginePath2) = path;
+    (engineIsBlack ? opt.players.blackEngineName : opt.players.whiteEngineName) = name;
+    return opt;
+}
+
 } // namespace
 
 // ============================================================
-// Section A: 初期状態
+// 初期状態
 // ============================================================
 
-void Tst_MatchCoordinator::initialState_playModeIsNotStarted()
+void Tst_MatchCoordinator::initialState_notStartedAndNotOver()
 {
-    MCTestHarness h;
-    QCOMPARE(h.mc->playMode(), PlayMode::NotStarted);
-}
-
-void Tst_MatchCoordinator::initialState_gameOverStateIsCleared()
-{
-    MCTestHarness h;
+    MatchHarness h;
+    QVERIFY(!h.mc->hasStarted());
     const auto& st = h.mc->gameOverState();
     QVERIFY(!st.isOver);
     QVERIFY(!st.hasLast);
     QVERIFY(!st.moveAppended);
-}
-
-void Tst_MatchCoordinator::initialState_gameMovesIsEmpty()
-{
-    MCTestHarness h;
-    QVERIFY(h.mc->gameMoves().isEmpty());
-}
-
-void Tst_MatchCoordinator::gameMovesUsesSharedRecord()
-{
-    MCTestHarness h;
-    h.gameMoves.append(ShogiMove(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false));
-    QCOMPARE(h.mc->gameMoves(), h.gameMoves);
-    h.gameMoves.clear();
-    QVERIFY(h.mc->gameMoves().isEmpty());
+    QCOMPARE(h.mc->currentPly(), 0);
+    QVERIFY(h.sink.records.isEmpty());
 }
 
 // ============================================================
-// Section B: 終局状態管理
+// 開始
 // ============================================================
 
-void Tst_MatchCoordinator::setGameOver_setsStateAndEmitsSignals()
+void Tst_MatchCoordinator::start_preparesHumanGame()
 {
-    MCTestHarness h;
-    QSignalSpy endedSpy(h.mc.get(), &MatchCoordinator::gameEnded);
-    QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
+    MatchHarness h;
+    QSignalSpy prepared(h.mc.get(), &MatchCoordinator::gamePrepared);
+    h.startHumanVsHuman();
+    QCOMPARE(prepared.count(), 1);
+    QVERIFY(h.mc->hasStarted());
+    QVERIFY(h.mc->players().humanVsHuman());
+    QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
+    QCOMPARE(h.gc.currentPlayer(), Turn::Black);
+    QCOMPARE(h.mc->record().startSfen, SfenUtils::hirateSfen());
+    QVERIFY(h.mc->isHumanSide(Turn::Black));
+    QVERIFY(h.mc->isHumanSide(Turn::White));
+    QVERIFY(!h.mc->isGameOver());
+}
 
-    MatchCoordinator::GameEndInfo info;
-    info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = Turn::Black;
+void Tst_MatchCoordinator::start_keepsRecordLineUpToCurrentPly()
+{
+    MatchHarness h;
+    MatchCoordinator::StartOptions opt;
+    opt.recordLine = RecordLine::fromPositions(
+        SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), {"7g7f", "3c3d", "2g2f"}, false),
+        SfenReplay::buildGameMoves(SfenUtils::hirateSfen(), {"7g7f", "3c3d", "2g2f"}));
+    opt.recordLine.currentPly = 2;
+    h.start(opt);
+    // 表示中の手（2手目）までを対局の手順にし、後続の手は捨てる
+    QCOMPARE(h.mc->currentPly(), 2);
+    QCOMPARE(h.mc->options().sfenStart, h.mc->record().lastSfen());
+    QCOMPARE(h.gc.currentPlayer(), Turn::Black);
+    QCOMPARE(h.gc.board()->toSfen(), h.mc->record().lastSfen());
+}
 
-    h.mc->setGameOver(info);
+// ============================================================
+// 着手
+// ============================================================
 
-    // 状態確認
+void Tst_MatchCoordinator::humanMove_isRecordedAndAnnounced()
+{
+    MatchHarness h;
+    h.startHumanVsHuman();
+    QSignalSpy board(h.mc.get(), &MatchCoordinator::boardChanged);
+    QSignalSpy turn(h.mc.get(), &MatchCoordinator::turnChanged);
+    QSignalSpy highlight(h.mc.get(), &MatchCoordinator::moveHighlightRequested);
+    QSignalSpy committed(&h.gc, &ShogiGameController::moveCommitted);
+
+    QVERIFY(h.playHuman(QStringLiteral("7g7f")));
+
+    QCOMPARE(h.mc->currentPly(), 1);
+    QCOMPARE(h.mc->record().usiMove(1).toString(), QStringLiteral("7g7f"));
+    QCOMPARE(h.sink.records.size(), 1);
+    QCOMPARE(h.sink.records.first().displayText, QStringLiteral("▲７六歩(77)"));
+    QCOMPARE(h.sink.records.first().mover, Turn::Black);
+    QCOMPARE(board.count(), 1);
+    QCOMPARE(turn.count(), 1);
+    QCOMPARE(turn.first().first().value<Turn>(), Turn::White);
+    QCOMPARE(highlight.count(), 1);
+    QCOMPARE(highlight.first().at(1).toPoint(), QPoint(7, 6));
+    QCOMPARE(committed.count(), 1);
+    QCOMPARE(committed.first().at(1).toInt(), 1);
+}
+
+void Tst_MatchCoordinator::humanMove_rejectedWhenSinkIsClosed()
+{
+    MatchHarness h;
+    h.startHumanVsHuman();
+    h.sink.acceptRecords = false;
+    // 棋譜に書けない（ライブ対局のセッションが終わった）ときは手を受け付けない
+    QVERIFY(!h.mc->canAcceptMove());
+}
+
+// ============================================================
+// 終局の記録
+// ============================================================
+
+void Tst_MatchCoordinator::resign_recordsTerminalAndAnnounces()
+{
+    MatchHarness h;
+    h.startHumanVsHuman();
+    QSignalSpy ended(h.mc.get(), &MatchCoordinator::gameEnded);
+    QSignalSpy state(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
+    QSignalSpy processed(h.mc.get(), &MatchCoordinator::gameEndProcessed);
+
+    h.mc->handleResign();
+
     const auto& st = h.mc->gameOverState();
     QVERIFY(st.isOver);
     QVERIFY(st.hasLast);
+    QVERIFY(st.moveAppended);
     QCOMPARE(st.lastInfo.cause, MatchCoordinator::Cause::Resignation);
     QCOMPARE(st.lastInfo.loser, Turn::Black);
-
-    // シグナル確認
-    QCOMPARE(endedSpy.count(), 1);
-    QCOMPARE(stateSpy.count(), 1);
+    // 終局した → 終局の行を書いた、の2回知らせる
+    QCOMPARE(state.count(), 2);
+    QCOMPARE(ended.count(), 1);
+    const auto info = ended.first().first().value<MatchCoordinator::GameEndInfo>();
+    QCOMPARE(info.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(info.loser, Turn::Black);
+    QCOMPARE(h.sink.records.size(), 1);
+    QCOMPARE(h.sink.records.first().terminal, TerminalType::Resign);
+    QCOMPARE(h.sink.records.first().mover, Turn::Black);
+    QCOMPARE(h.messageCount(), 1);
+    QCOMPARE(h.lastMessageTitle(), QStringLiteral("対局終了"));
+    QVERIFY(h.lastMessageText().contains(QStringLiteral("先手の投了")));
+    QCOMPARE(processed.count(), 1);
 }
 
-void Tst_MatchCoordinator::setGameOver_doubleCallIgnored()
+void Tst_MatchCoordinator::resign_secondCallIgnored()
 {
-    MCTestHarness h;
-
-    MatchCoordinator::GameEndInfo info;
-    info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = Turn::Black;
-
-    h.mc->setGameOver(info);
-
-    QSignalSpy endedSpy(h.mc.get(), &MatchCoordinator::gameEnded);
-    QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
-
-    // 2回目は無視される
-    info.loser = Turn::White;
-    h.mc->setGameOver(info);
-
-    QCOMPARE(endedSpy.count(), 0);
-    QCOMPARE(stateSpy.count(), 0);
-    // 最初の値が残っている
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
-}
-
-void Tst_MatchCoordinator::setGameOver_emitsRequestAppendGameOverMove()
-{
-    MCTestHarness h;
-    QSignalSpy appendSpy(h.mc.get(), &MatchCoordinator::requestAppendGameOverMove);
-
-    MatchCoordinator::GameEndInfo info;
-    info.cause = MatchCoordinator::Cause::Timeout;
-    info.loser = Turn::White;
-
-    h.mc->setGameOver(info, true);  // appendMoveOnce=true
-
-    QCOMPARE(appendSpy.count(), 1);
-    auto receivedInfo = appendSpy.first().first().value<MatchCoordinator::GameEndInfo>();
-    QCOMPARE(receivedInfo.cause, MatchCoordinator::Cause::Timeout);
-    QCOMPARE(receivedInfo.loser, Turn::White);
+    MatchHarness h;
+    h.startHumanVsHuman();
+    h.mc->handleResign();
+    QSignalSpy ended(h.mc.get(), &MatchCoordinator::gameEnded);
+    h.mc->handleResign();
+    h.mc->handleBreakOff();
+    QCOMPARE(ended.count(), 0);
+    QCOMPARE(h.sink.records.size(), 1);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
 }
 
 void Tst_MatchCoordinator::clearGameOverState_clearsAndEmitsSignal()
 {
-    MCTestHarness h;
-
-    // まず終局状態にする
-    MatchCoordinator::GameEndInfo info;
-    info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = Turn::Black;
-    h.mc->setGameOver(info);
-    QVERIFY(h.mc->gameOverState().isOver);
-
-    QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
+    MatchHarness h;
+    h.startHumanVsHuman();
+    h.mc->handleResign();
+    QSignalSpy state(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
 
     h.mc->clearGameOverState();
 
     QVERIFY(!h.mc->gameOverState().isOver);
     QVERIFY(!h.mc->gameOverState().hasLast);
-    QCOMPARE(stateSpy.count(), 1);
+    QCOMPARE(state.count(), 1);
 }
 
 void Tst_MatchCoordinator::clearGameOverState_notOverNoSignal()
 {
-    MCTestHarness h;
-    QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
-
-    // 既に isOver=false なので、シグナルは発火しない
+    MatchHarness h;
+    QSignalSpy state(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
     h.mc->clearGameOverState();
-
-    QCOMPARE(stateSpy.count(), 0);
+    QCOMPARE(state.count(), 0);
 }
 
-void Tst_MatchCoordinator::markGameOverMoveAppended_marksAndEmitsSignal()
+void Tst_MatchCoordinator::breakOff_appendsTerminalOnceWithoutMessage()
 {
-    MCTestHarness h;
+    MatchHarness h;
+    h.startHumanVsHuman();
+    QVERIFY(h.playHuman(QStringLiteral("7g7f")));
+    QSignalSpy interrupted(h.mc.get(), &MatchCoordinator::gameInterrupted);
 
-    // まず終局状態にする
-    MatchCoordinator::GameEndInfo info;
-    info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = Turn::Black;
-    h.mc->setGameOver(info, false);  // appendMoveOnce=false
+    h.mc->handleBreakOff();
 
-    QVERIFY(!h.mc->gameOverState().moveAppended);
-
-    QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
-
-    h.mc->markGameOverMoveAppended();
-
-    QVERIFY(h.mc->gameOverState().moveAppended);
-    QCOMPARE(stateSpy.count(), 1);
-}
-
-void Tst_MatchCoordinator::markGameOverMoveAppended_notOverIgnored()
-{
-    MCTestHarness h;
-    QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
-
-    h.mc->markGameOverMoveAppended();
-
-    QCOMPARE(stateSpy.count(), 0);
-}
-
-void Tst_MatchCoordinator::markGameOverMoveAppended_doubleCallIgnored()
-{
-    MCTestHarness h;
-
-    MatchCoordinator::GameEndInfo info;
-    info.cause = MatchCoordinator::Cause::Resignation;
-    info.loser = Turn::Black;
-    h.mc->setGameOver(info, false);
-    h.mc->markGameOverMoveAppended();
-    QVERIFY(h.mc->gameOverState().moveAppended);
-
-    QSignalSpy stateSpy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
-
-    // 2回目は無視される
-    h.mc->markGameOverMoveAppended();
-
-    QCOMPARE(stateSpy.count(), 0);
-}
-
-// ============================================================
-// Section C: 盤面反転
-// ============================================================
-
-void Tst_MatchCoordinator::flipBoard_callsHookAndEmitsSignal()
-{
-    MCTestHarness h;
-    QSignalSpy flipSpy(h.mc.get(), &MatchCoordinator::boardFlipped);
-
-    h.mc->flipBoard();
-
-    QVERIFY(h.renderBoardCalled);
-    QCOMPARE(flipSpy.count(), 1);
-    QCOMPARE(flipSpy.first().first().toBool(), true);
-}
-
-// ============================================================
-// Section D: PlayMode
-// ============================================================
-
-void Tst_MatchCoordinator::setPlayMode_roundTrip()
-{
-    MCTestHarness h;
-    QCOMPARE(h.mc->playMode(), PlayMode::NotStarted);
-
-    h.mc->setPlayMode(PlayMode::HumanVsHuman);
-    QCOMPARE(h.mc->playMode(), PlayMode::HumanVsHuman);
-
-    h.mc->setPlayMode(PlayMode::EvenHumanVsEngine);
-    QCOMPARE(h.mc->playMode(), PlayMode::EvenHumanVsEngine);
-
-    h.mc->setPlayMode(PlayMode::NotStarted);
-    QCOMPARE(h.mc->playMode(), PlayMode::NotStarted);
-}
-
-// ============================================================
-// Section E: デリゲーション
-// ============================================================
-
-void Tst_MatchCoordinator::handleResign_endsGame()
-{
-    MCTestHarness h;
-    h.mc->handleResign();
     QVERIFY(h.mc->gameOverState().isOver);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
-    QVERIFY(h.showGameOverDialogCalled);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+    QVERIFY(h.mc->gameOverState().moveAppended);
+    QCOMPARE(h.sink.records.size(), 2);
+    QCOMPARE(h.sink.records.last().terminal, TerminalType::Interrupt);
+    // 中断は知らせない。再開できる
+    QCOMPARE(h.messageCount(), 0);
+    QCOMPARE(interrupted.count(), 1);
+    QVERIFY(h.mc->interruptedGame());
+    QCOMPARE(h.mc->interruptedGame()->record.moveCount(), 1);
 }
 
-void Tst_MatchCoordinator::handleEngineResign_recordsLoser()
+void Tst_MatchCoordinator::playerTimeOut_recordsTimeout()
 {
-    MCTestHarness h;
-
-    h.mc->handleEngineResign(Turn::Black);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
-
-    h.mc->clearGameOverState();
-    h.mc->handleEngineResign(Turn::White);
+    MatchHarness h;
+    h.startHumanVsHuman();
+    h.mc->handlePlayerTimeOut(Turn::White);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Timeout);
     QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::White);
+    QCOMPARE(h.sink.records.last().terminal, TerminalType::Timeout);
+    QCOMPARE(h.sink.records.last().mover, Turn::White);
+    QVERIFY(h.lastMessageText().contains(QStringLiteral("後手の時間切れ")));
 }
+
+void Tst_MatchCoordinator::nyugyokuDeclaration_success_data()
+{
+    QTest::addColumn<bool>("success");
+    QTest::addColumn<bool>("isDraw");
+    QTest::addColumn<int>("cause");
+    QTest::addColumn<int>("loser");
+    QTest::addColumn<int>("terminal");
+    QTest::newRow("win") << true << false << int(MatchCause::NyugyokuWin) << int(Turn::White)
+                         << int(TerminalType::DeclarationWin);
+    QTest::newRow("draw") << false << true << int(MatchCause::Jishogi) << int(Turn::Black)
+                          << int(TerminalType::Impasse);
+    QTest::newRow("fail") << false << false << int(MatchCause::IllegalMove) << int(Turn::Black)
+                          << int(TerminalType::IllegalLoss);
+}
+
+void Tst_MatchCoordinator::nyugyokuDeclaration_success()
+{
+    QFETCH(bool, success);
+    QFETCH(bool, isDraw);
+    QFETCH(int, cause);
+    QFETCH(int, loser);
+    QFETCH(int, terminal);
+    MatchHarness h;
+    h.startHumanVsHuman();
+    QSignalSpy processed(h.mc.get(), &MatchCoordinator::gameEndProcessed);
+    h.mc->handleNyugyokuDeclaration(Turn::Black, success, isDraw);
+    QCOMPARE(int(h.mc->gameOverState().lastInfo.cause), cause);
+    QCOMPARE(int(h.mc->gameOverState().lastInfo.loser), loser);
+    QCOMPARE(int(h.sink.records.last().terminal), terminal);
+    // 宣言の結果は呼び出し側のダイアログで知らせるので、ここでは知らせない
+    QCOMPARE(h.messageCount(), 0);
+    QCOMPARE(processed.count(), 1);
+}
+
+// ============================================================
+// 待った
+// ============================================================
+
+void Tst_MatchCoordinator::undoTwoPlies_restoresBoardAndRecord()
+{
+    MatchHarness h;
+    h.startHumanVsHuman();
+    QVERIFY(h.playHuman(QStringLiteral("7g7f")));
+    QVERIFY(h.playHuman(QStringLiteral("3c3d")));
+    QVERIFY(h.playHuman(QStringLiteral("2g2f")));
+    QSignalSpy undone(h.mc.get(), &MatchCoordinator::movesUndone);
+
+    QVERIFY(h.mc->undoTwoPlies());
+
+    QCOMPARE(h.mc->currentPly(), 1);
+    QCOMPARE(h.sink.records.size(), 1);
+    QCOMPARE(undone.count(), 1);
+    QCOMPARE(undone.first().first().toInt(), 1);
+    QCOMPARE(h.gc.currentPlayer(), Turn::White);
+    QCOMPARE(h.gc.board()->toSfen(), h.mc->record().lastSfen());
+    // 次の手の「同」表記は、戻した局面に至った手（７六歩）の移動先を基準にする
+    QCOMPARE(h.gc.previousMoveDestination(), (BoardSquare{7, 6}));
+}
+
+void Tst_MatchCoordinator::undoTwoPlies_needsTwoMoves()
+{
+    MatchHarness h;
+    h.startHumanVsHuman();
+    QVERIFY(h.playHuman(QStringLiteral("7g7f")));
+    QVERIFY(!h.mc->undoTwoPlies());
+    QCOMPARE(h.mc->currentPly(), 1);
+    QCOMPARE(h.sink.records.size(), 1);
+}
+
+void Tst_MatchCoordinator::undoTwoPlies_onlyOnHumanTurn()
+{
+    MatchHarness h;
+    MatchCoordinator::StartOptions opt = humanVsEngine(false, MatchHarness::mockEnginePath(), QStringLiteral("UndoTest"));
+    const QStringList opening{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+    opt.recordLine = RecordLine::fromPositions(SfenReplay::buildSfenRecord(SfenUtils::hirateSfen(), opening, false),
+                                               SfenReplay::buildGameMoves(SfenUtils::hirateSfen(), opening));
+    opt.recordLine.currentPly = 2;
+    h.mc->start(opt);
+    QVERIFY(h.playHuman(QStringLiteral("2g2f")));
+    // エンジン（後手）の手番では待ったできない
+    QVERIFY(!h.mc->undoTwoPlies());
+    QCOMPARE(h.mc->currentPly(), 3);
+    QVERIFY(h.mc->strategyHost().applyEngineMove(*UsiMove::parse(u"8c8d"), Turn::White, 1000));
+    QVERIFY(h.mc->undoTwoPlies());
+    QCOMPARE(h.mc->currentPly(), 2);
+    QVERIFY(h.sink.records.isEmpty());
+}
+
+// ============================================================
+// エンジン
+// ============================================================
 
 void Tst_MatchCoordinator::humanVsEngine_engineResignLosesEngineSide_data()
 {
-    QTest::addColumn<int>("mode");
     QTest::addColumn<bool>("engineIsBlack");
-    QTest::newRow("engine-black") << int(PlayMode::EvenEngineVsHuman) << true;
-    QTest::newRow("engine-white") << int(PlayMode::EvenHumanVsEngine) << false;
+    QTest::newRow("engine-black") << true;
+    QTest::newRow("engine-white") << false;
 }
 
 void Tst_MatchCoordinator::humanVsEngine_engineResignLosesEngineSide()
 {
-    // 人間対エンジンでは、エンジンが後手でもエンジンの枠は1つ目（primaryEngine）を使う。
+    // 人間対エンジンでは、エンジンが後手でもエンジンの枠は E1 を使う。
     // そのエンジンの投了は、枠ではなくエンジンの手番の負けになる
-    QFETCH(int, mode);
     QFETCH(bool, engineIsBlack);
-    MCTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = static_cast<PlayMode>(mode);
-    opt.sfenStart = SfenUtils::hirateSfen();
-    (engineIsBlack ? opt.enginePath1 : opt.enginePath2) = mockMatchEnginePath();
-    (engineIsBlack ? opt.engineName1 : opt.engineName2) = QStringLiteral("ResignSideTest");
-    h.mc->configureAndStart(opt);
-    Usi* engine = h.mc->primaryEngine();
+    MatchHarness h;
+    h.mc->start(humanVsEngine(engineIsBlack, MatchHarness::mockEnginePath(), QStringLiteral("ResignSideTest")));
+    Usi* engine = h.engines.engineInSlot(1);
     QVERIFY(engine);
-    QCOMPARE(h.mc->secondaryEngine(), nullptr);
+    QCOMPARE(h.engines.engineInSlot(2), nullptr);
+    QCOMPARE(h.engines.engineFor(engineIsBlack ? Turn::Black : Turn::White), engine);
     QSignalSpy ready(engine, &Usi::engineInitialized);
     QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
 
@@ -445,197 +397,88 @@ void Tst_MatchCoordinator::humanVsEngine_engineResignLosesEngineSide()
     QCOMPARE(h.mc->gameOverState().lastInfo.loser, engineIsBlack ? Turn::Black : Turn::White);
 }
 
-void Tst_MatchCoordinator::handleEngineWin_recordsWinner()
+void Tst_MatchCoordinator::humanVsEngine_engineWinIsJudgedOnBoard()
 {
-    MCTestHarness h;
+    MatchHarness h;
+    h.mc->start(humanVsEngine(true, MatchHarness::mockEnginePath(), QStringLiteral("WinTest")));
+    Usi* engine = h.engines.engineInSlot(1);
+    QVERIFY(engine);
+    QSignalSpy ready(engine, &Usi::engineInitialized);
+    QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
 
     // エンジンの入玉宣言（bestmove win）も盤面で判定する。初期局面では条件を満たさず宣言側の負け
-    h.mc->handleEngineWin(Turn::Black);
+    emit engine->bestMoveWinReceived();
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::IllegalMove);
     QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
+    QCOMPARE(h.messageCount(), 1);
 
     // 先手玉２二、敵陣に15枚・持ち駒と合わせて28点（27点法で宣言勝ち）
-    h.mc->clearGameOverState();
-    QString entered = QStringLiteral(
+    MatchHarness h2;
+    MatchCoordinator::StartOptions opt = humanVsEngine(true, MatchHarness::mockEnginePath(), QStringLiteral("WinTest"));
+    opt.sfenStart = QStringLiteral(
         "5+B+RGS/6GKS/+P+P+P+P+P+P+P+P+P/9/p1p1p1p1p/1s1g1g1s1/2n3n1n/1r2k4/2b6 b NL3P3lp 1");
-    h.gc.newGame(entered);
-    h.mc->handleEngineWin(Turn::Black);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::White);
+    h2.mc->start(opt);
+    Usi* engine2 = h2.engines.engineInSlot(1);
+    QVERIFY(engine2);
+    QSignalSpy ready2(engine2, &Usi::engineInitialized);
+    QTRY_COMPARE_WITH_TIMEOUT(ready2.count(), 1, 5000);
+    emit engine2->bestMoveWinReceived();
+    QCOMPARE(h2.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
+    QCOMPARE(h2.mc->gameOverState().lastInfo.loser, Turn::White);
+    QCOMPARE(h2.sink.records.last().terminal, TerminalType::DeclarationWin);
 }
-
-void Tst_MatchCoordinator::handleBreakOff_appendsTerminalOnce()
-{
-    MCTestHarness h;
-    h.mc->handleBreakOff();
-    QVERIFY(h.mc->gameOverState().isOver);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
-    QVERIFY(h.mc->gameOverState().moveAppended);
-    QCOMPARE(h.appendKifuLineCount, 1);
-}
-
-void Tst_MatchCoordinator::configureAndStart_preparesHumanGame()
-{
-    MCTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::HumanVsHuman;
-    opt.sfenStart = SfenUtils::hirateSfen();
-    h.mc->configureAndStart(opt);
-    QCOMPARE(h.mc->playMode(), PlayMode::HumanVsHuman);
-    QCOMPARE(h.gc.currentPlayer(), Turn::Black);
-    QVERIFY(h.initializeNewGameCalled);
-    QVERIFY(!h.mc->gameOverState().isOver);
-}
-
-void Tst_MatchCoordinator::startAnalysis_initializesAndStopsRealSession()
-{
-    MCTestHarness h;
-    MatchCoordinator::AnalysisOptions opt;
-    opt.mode = PlayMode::ConsiderationMode;
-    opt.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-#ifdef Q_OS_WIN
-    opt.enginePath += QStringLiteral(".exe");
-#endif
-    opt.engineName = QStringLiteral("CoordinatorTest");
-    opt.positionStr = QStringLiteral("position startpos");
-    h.mc->startAnalysis(opt);
-    QVERIFY(h.mc->primaryEngine());
-    QSignalSpy ready(h.mc->primaryEngine(), &Usi::engineInitialized);
-    QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
-    QCOMPARE(h.mc->playMode(), PlayMode::ConsiderationMode);
-    QSignalSpy ended(h.mc.get(), &MatchCoordinator::considerationModeEnded);
-    h.mc->stopAnalysisEngine();
-    QCOMPARE(ended.count(), 1);
-    QCOMPARE(h.mc->primaryEngine(), nullptr);
-}
-
-void Tst_MatchCoordinator::stopAnalysisEngine_isIdempotent()
-{
-    MCTestHarness h;
-    QSignalSpy ended(h.mc.get(), &MatchCoordinator::considerationModeEnded);
-    h.mc->stopAnalysisEngine();
-    h.mc->stopAnalysisEngine();
-    QCOMPARE(h.mc->primaryEngine(), nullptr);
-    QCOMPARE(ended.count(), 0);
-}
-
-// ============================================================
-// Section F: handlePlayerTimeOut
-// ============================================================
-
-void Tst_MatchCoordinator::handlePlayerTimeOut_callsGcMethods()
-{
-    MCTestHarness h;
-    h.mc->handlePlayerTimeOut(Turn::Black);
-    QCOMPARE(h.gc.result(), ShogiGameController::Player2Wins);
-    h.gc.resetResult();
-    h.mc->clearGameOverState();
-    h.mc->handlePlayerTimeOut(Turn::White);
-    QCOMPARE(h.gc.result(), ShogiGameController::Player1Wins);
-}
-
-// ============================================================
-// Section G: シグナル検証
-// ============================================================
-
-void Tst_MatchCoordinator::gameEnded_signalCarriesCorrectInfo()
-{
-    MCTestHarness h;
-    QSignalSpy spy(h.mc.get(), &MatchCoordinator::gameEnded);
-
-    MatchCoordinator::GameEndInfo info;
-    info.cause = MatchCoordinator::Cause::Timeout;
-    info.loser = Turn::White;
-
-    h.mc->setGameOver(info);
-
-    QCOMPARE(spy.count(), 1);
-    auto receivedInfo = spy.first().first().value<MatchCoordinator::GameEndInfo>();
-    QCOMPARE(receivedInfo.cause, MatchCoordinator::Cause::Timeout);
-    QCOMPARE(receivedInfo.loser, Turn::White);
-}
-
-void Tst_MatchCoordinator::gameOverStateChanged_signalCarriesState()
-{
-    MCTestHarness h;
-    QSignalSpy spy(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
-
-    MatchCoordinator::GameEndInfo info;
-    info.cause = MatchCoordinator::Cause::Sennichite;
-    info.loser = Turn::Black;
-
-    h.mc->setGameOver(info);
-
-    QCOMPARE(spy.count(), 1);
-    auto state = spy.first().first().value<MatchCoordinator::GameOverState>();
-    QVERIFY(state.isOver);
-    QVERIFY(state.hasLast);
-    QCOMPARE(state.lastInfo.loser, Turn::Black);
-}
-
-// ============================================================
-// Section H: 対局中のエンジンエラー
-// ============================================================
 
 void Tst_MatchCoordinator::humanVsEngine_engineStartFailure_breaksOffAfterStart()
 {
-    MCTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::EvenHumanVsEngine;
-    opt.sfenStart = SfenUtils::hirateSfen();
-    opt.engineName2 = QStringLiteral("MissingEngine");
-    opt.enginePath2 = m_config.filePath(QStringLiteral("missing-engine"));
-    h.mc->configureAndStart(opt);
+    MatchHarness h;
+    const MatchCoordinator::StartOptions opt =
+        humanVsEngine(false, m_config.filePath(QStringLiteral("missing-engine")), QStringLiteral("MissingEngine"));
+    h.mc->start(opt);
 
     // 起動の失敗は開始処理の中で通知されるが、中断は開始処理を終えてから行う
-    QVERIFY(!h.showGameOverDialogCalled);
+    QCOMPARE(h.messageCount(), 0);
     QVERIFY(!h.mc->gameOverState().isOver);
 
-    QTRY_VERIFY_WITH_TIMEOUT(h.showGameOverDialogCalled, 1000);
-    QCOMPARE(h.lastDialogTitle, QStringLiteral("対局中断"));
-    QVERIFY2(h.lastDialogMessage.contains(opt.enginePath2), qPrintable(h.lastDialogMessage));
+    QTRY_VERIFY_WITH_TIMEOUT(h.messageCount() > 0, 1000);
+    QCOMPARE(h.lastMessageTitle(), QStringLiteral("対局中断"));
+    QVERIFY2(h.lastMessageText().contains(opt.enginePath2), qPrintable(h.lastMessageText()));
     QVERIFY(h.mc->gameOverState().isOver);
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
 }
 
 void Tst_MatchCoordinator::engineVsEngine_engineStartFailure_breaksOffOnce()
 {
-    MCTestHarness h;
+    MatchHarness h;
     MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::EvenEngineVsEngine;
+    opt.players.blackIsEngine = true;
+    opt.players.whiteIsEngine = true;
     opt.sfenStart = SfenUtils::hirateSfen();
-    opt.engineName1 = QStringLiteral("MissingEngine1");
+    opt.players.blackEngineName = QStringLiteral("MissingEngine1");
     opt.enginePath1 = m_config.filePath(QStringLiteral("missing-engine-1"));
-    opt.engineName2 = QStringLiteral("MissingEngine2");
+    opt.players.whiteEngineName = QStringLiteral("MissingEngine2");
     opt.enginePath2 = m_config.filePath(QStringLiteral("missing-engine-2"));
-    h.mc->configureAndStart(opt);
+    h.mc->start(opt);
 
-    QTRY_VERIFY_WITH_TIMEOUT(h.showGameOverDialogCalled, 1000);
+    QTRY_VERIFY_WITH_TIMEOUT(h.messageCount() > 0, 1000);
     QCoreApplication::processEvents();
     // 2つ目のエンジンのエラーは、中断した後なので知らせない
-    QCOMPARE(h.showGameOverDialogCount, 1);
-    QCOMPARE(h.lastDialogTitle, QStringLiteral("対局中断"));
-    QVERIFY2(h.lastDialogMessage.contains(opt.enginePath1), qPrintable(h.lastDialogMessage));
+    QCOMPARE(h.messageCount(), 1);
+    QCOMPARE(h.lastMessageTitle(), QStringLiteral("対局中断"));
+    QVERIFY2(h.lastMessageText().contains(opt.enginePath1), qPrintable(h.lastMessageText()));
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
 }
 
 void Tst_MatchCoordinator::humanVsEngine_engineExit_breaksOff()
 {
     const ScopedEnv exitOnGo("SBQ_MATCH_EXIT_ON_GO", "1");
-    MCTestHarness h;
-    MatchCoordinator::StartOptions opt;
-    opt.mode = PlayMode::EvenEngineVsHuman;
-    opt.sfenStart = SfenUtils::hirateSfen();
-    opt.engineName1 = QStringLiteral("ExitingEngine");
-    opt.enginePath1 = mockMatchEnginePath();
-    h.mc->configureAndStart(opt);
-    h.mc->startInitialEngineMoveIfNeeded();
+    MatchHarness h;
+    h.start(humanVsEngine(true, MatchHarness::mockEnginePath(), QStringLiteral("ExitingEngine")));
 
     // 起動は成功し、初手の go でエンジンが終了する
-    QTRY_VERIFY_WITH_TIMEOUT(h.showGameOverDialogCalled, 5000);
-    QCOMPARE(h.lastDialogTitle, QStringLiteral("対局中断"));
-    QVERIFY2(h.lastDialogMessage.contains(QStringLiteral("Engine exited unexpectedly.")),
-             qPrintable(h.lastDialogMessage));
+    QTRY_VERIFY_WITH_TIMEOUT(h.messageCount() > 0, 5000);
+    QCOMPARE(h.lastMessageTitle(), QStringLiteral("対局中断"));
+    QVERIFY2(h.lastMessageText().contains(QStringLiteral("Engine exited unexpectedly.")),
+             qPrintable(h.lastMessageText()));
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
 }
 

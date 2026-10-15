@@ -25,7 +25,17 @@ static KifLine testLine(const QList<KifDisplayItem>& display, const QStringList&
     for (qsizetype i = 0; i < display.size(); ++i) {
         const auto& item = display.at(i);
         const QString sfen = sfens.value(i + 1, sfens.last());
-        line.entries.append({RecordEntry::imported({}, item.prettyMove, sfen, item.timeText), item.comment, item.bookmark});
+        // テスト用の手順は表記だけで書くので、終局語の行を終局にする
+        const TerminalType terminal = TerminalTypes::findWord(item.prettyMove);
+        const Turn side = item.prettyMove.startsWith(QStringLiteral("△")) ? Turn::White : Turn::Black;
+        RecordEntry entry = terminal != TerminalType::None
+            ? RecordEntry::ending(terminal, side, RecordTime::fromText(item.timeText))
+            : RecordEntry::played({}, item.prettyMove, sfen, RecordTime::fromText(item.timeText));
+        entry.displayText = item.prettyMove;
+        entry.sfen = sfen;
+        entry.comment = item.comment;
+        entry.bookmark = item.bookmark;
+        line.entries.append(entry);
     }
     return line;
 }

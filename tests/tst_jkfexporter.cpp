@@ -13,7 +13,7 @@
 #include "kifu_test_helper.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
-#include "sfenpositiontracer.h"
+#include "sfenreplay.h"
 #include "sfenutils.h"
 
 namespace {
@@ -21,8 +21,8 @@ namespace {
 /// 指し手を足す。表示の文字列には USI をそのまま入れる（書き出しが表示の文字列を使わないことも確かめる）
 KifuBranchNode* addMove(KifuBranchTree& tree, KifuBranchNode* parent, const QString& usi)
 {
-    const QStringList positions = SfenPositionTracer::buildSfenRecord(parent->sfen(), {usi}, false);
-    const QList<ShogiMove> moves = SfenPositionTracer::buildGameMoves(parent->sfen(), {usi});
+    const QStringList positions = SfenReplay::buildSfenRecord(parent->sfen(), {usi}, false);
+    const QList<ShogiMove> moves = SfenReplay::buildGameMoves(parent->sfen(), {usi});
     return tree.addMove(parent, moves.value(0), usi, positions.last());
 }
 
@@ -133,7 +133,7 @@ private slots:
         const QStringList mainUsi = {"4d4c", "5b4c", "5h6h", "G*3c", "8h3c+", "4c3c", "P*3d"};
         QList<KifuBranchNode*> mainNodes{tree.root()};
         for (const QString& usi : mainUsi) mainNodes.append(addMove(tree, mainNodes.last(), usi));
-        tree.addTerminalMove(mainNodes.last(), TerminalType::Resign, QStringLiteral("△投了"));
+        tree.addTerminalMove(mainNodes.last(), TerminalType::Resign, Turn::White);
 
         // 1手目の変化（銀成）と、その中の2手目の変化（玉）
         auto* silverPromotes = addMove(tree, mainNodes.at(0), QStringLiteral("4d4c+"));
@@ -253,8 +253,7 @@ private slots:
         tree.setRootSfen(SfenUtils::hirateSfen());
         KifuBranchNode* tip = tree.root();
         if (plies > 0) tip = addMove(tree, tip, QStringLiteral("7g7f"));
-        const QString label = (plies % 2 == 0 ? QStringLiteral("▲") : QStringLiteral("△")) + word;
-        tree.addTerminalMove(tip, detectTerminalType(label), label);
+        tree.addTerminalMove(tip, TerminalTypes::fromWord(word), plies % 2 == 0 ? Turn::Black : Turn::White);
 
         const QByteArray json = exportJkf(tree, SfenUtils::hirateSfen());
         const QJsonArray moves = QJsonDocument::fromJson(json).object().value(QStringLiteral("moves")).toArray();
@@ -269,9 +268,9 @@ private slots:
         QCOMPARE(moves.size(), plies + 2);
         QCOMPARE(moves.last().toObject().value(QStringLiteral("special")).toString(), special);
         // 読み込むと同じ種類の終局になる（反則勝ち・負けは手番の印も同じ）
-        const QString reread = result.mainline.displayItems().last().prettyMove;
-        QCOMPARE(detectTerminalType(reread), detectTerminalType(label));
-        QCOMPARE(reread.left(1), label.left(1));
+        const KifDisplayItem reread = result.mainline.displayItems().last();
+        QCOMPARE(reread.terminalType, TerminalTypes::fromWord(word));
+        QCOMPARE(reread.terminalSide, plies % 2 == 0 ? Turn::Black : Turn::White);
     }
 
     /// 手合割の名前（preset）は、盤・手番・持ち駒が手合割の開始局面と同じときだけ書く

@@ -26,7 +26,6 @@ void CsaEngineController::initialize(const InitParams& params)
 {
     cleanup();
 
-    m_gameController = params.gameController;
     m_engineName = params.engineName;
 
     // ダイアログで選んだエンジンのパスを優先し、無ければ名前で登録一覧から引く
@@ -69,8 +68,7 @@ void CsaEngineController::initialize(const InitParams& params)
         m_engineThinking->clearAllItems();
     }
 
-    m_engine = new Usi(m_engineCommLog, m_engineThinking,
-                       m_gameController.data(), this);
+    m_engine = new Usi(m_engineCommLog, m_engineThinking, this);
 
     connect(m_engine, &Usi::matchMoveReady, this, &CsaEngineController::onMatchMoveReady);
     connect(m_engine, &Usi::engineInitialized, this, &CsaEngineController::onEngineInitialized);
@@ -81,7 +79,7 @@ void CsaEngineController::initialize(const InitParams& params)
             this, &CsaEngineController::onEngineWinDeclaration);
 
     m_engine->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("CSA"), params.engineName);
-    (void)m_engine->startAndInitializeEngineAsync(enginePath, params.engineName);
+    (void)m_engine->startEngine(enginePath, params.engineName);
 }
 
 void CsaEngineController::onEngineInitialized()
@@ -99,13 +97,13 @@ void CsaEngineController::onEngineError(const QString& message)
 
 void CsaEngineController::thinkAsync(const ThinkingParams& params)
 {
-    if (!m_engine || !m_gameController) return;
+    if (!m_engine) return;
     m_engine->requestMatchMove(params.positionCmd, m_ponderPosition, params.timing);
 }
 
 void CsaEngineController::onMatchMoveReady(const UsiMove& move, const QString&, const QString& ponder)
 {
-    if (!m_engine || sender() != m_engine || !m_gameController) return;
+    if (!m_engine || sender() != m_engine) return;
     m_ponderPosition = ponder;
     ThinkingResult result;
     result.move = move;

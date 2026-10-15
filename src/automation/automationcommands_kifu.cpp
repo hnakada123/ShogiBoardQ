@@ -10,7 +10,7 @@
 #include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
-#include "kifusavecoordinator.h"
+#include "kifusavefile.h"
 #include "sfenutils.h"
 #include "uinotificationservice.h"
 
@@ -118,13 +118,13 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             const QString message = error.isEmpty() ? QStringLiteral("Saving failed: %1").arg(path)
                                                     : QStringLiteral("Saving failed: %1: %2").arg(path, error);
             throw AutomationError(AutomationErrorCode::FileError, message,
-                                  KifuSaveCoordinator::usesShiftJisForPath(path)
+                                  KifuSaveFile::usesShiftJisForPath(path)
                                       ? QStringLiteral("Use a .kifu or .ki2u path to save as UTF-8")
                                       : QString());
         }
         QJsonObject result;
         result[QStringLiteral("path")] = path;
-        result[QStringLiteral("format")] = KifuSaveCoordinator::hasKnownSaveExtension(path) ? info.suffix().toLower() : QStringLiteral("kif");
+        result[QStringLiteral("format")] = KifuSaveFile::hasKnownSaveExtension(path) ? info.suffix().toLower() : QStringLiteral("kif");
         return result;
     });
 
@@ -183,13 +183,13 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             return result;
         }
 
-        static const QHash<QString, KifuSaveCoordinator::SaveFormat> formats = {
-            {QStringLiteral("kif"), KifuSaveCoordinator::SaveFormat::Kif},
-            {QStringLiteral("ki2"), KifuSaveCoordinator::SaveFormat::Ki2},
-            {QStringLiteral("csa"), KifuSaveCoordinator::SaveFormat::Csa},
-            {QStringLiteral("jkf"), KifuSaveCoordinator::SaveFormat::Jkf},
-            {QStringLiteral("usen"), KifuSaveCoordinator::SaveFormat::Usen},
-            {QStringLiteral("usi"), KifuSaveCoordinator::SaveFormat::Usi},
+        static const QHash<QString, KifuSaveFile::SaveFormat> formats = {
+            {QStringLiteral("kif"), KifuSaveFile::SaveFormat::Kif},
+            {QStringLiteral("ki2"), KifuSaveFile::SaveFormat::Ki2},
+            {QStringLiteral("csa"), KifuSaveFile::SaveFormat::Csa},
+            {QStringLiteral("jkf"), KifuSaveFile::SaveFormat::Jkf},
+            {QStringLiteral("usen"), KifuSaveFile::SaveFormat::Usen},
+            {QStringLiteral("usi"), KifuSaveFile::SaveFormat::Usi},
         };
         if (!formats.contains(format)) {
             throw AutomationError(AutomationErrorCode::InvalidParams,

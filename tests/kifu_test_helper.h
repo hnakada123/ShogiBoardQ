@@ -26,16 +26,16 @@ inline void verifyParsedRecord(bool success, const KifParseResult& result, const
         bool terminalSeen = false;
         for (const auto& entry : line.entries) {
             QVERIFY(!terminalSeen);
-            QVERIFY2(board.trySetSfen(entry.record.sfen), qPrintable(entry.record.sfen));
-            if (entry.record.isTerminal()) {
+            QVERIFY2(board.trySetSfen(entry.sfen), qPrintable(entry.sfen));
+            if (entry.isTerminal()) {
                 terminalSeen = true;
-                QCOMPARE(entry.record.sfen, previous);
+                QCOMPARE(entry.sfen, previous);
             } else {
-                QVERIFY(entry.record.move.movingPiece != Piece::None);
-                QVERIFY(entry.record.move.toUsiMove().isValid());
-                QVERIFY(entry.record.sfen != previous);
+                QVERIFY(entry.move.movingPiece != Piece::None);
+                QVERIFY(entry.move.move.isValid());
+                QVERIFY(entry.sfen != previous);
             }
-            previous = entry.record.sfen;
+            previous = entry.sfen;
         }
     }
 }

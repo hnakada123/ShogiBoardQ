@@ -4,7 +4,7 @@
 #include "kifuloadcoordinatorfactory.h"
 #include "gamerecordloadservice.h"
 #include "kifuloadcoordinator.h"
-#include "playerinfowiring.h"
+#include "playerinfopresenter.h"
 #include "gameinfopanecontroller.h"
 #include "engineanalysistab.h"
 #include "branchnavigationwiring.h"
@@ -58,10 +58,10 @@ KifuLoadCoordinator* KifuLoadCoordinatorFactory::createAndWire(const Params& p)
                          p.uiStatePolicy, &UiStatePolicyManager::enableNavigationIfAllowed, Qt::UniqueConnection);
     }
 
-    // 対局情報の元データを保存（PlayerInfoWiring経由）
-    if (p.playerInfoWiring) {
+    // 対局情報の元データを保存（PlayerInfoPresenter経由）
+    if (p.playerInfo) {
         QObject::connect(coordinator, &KifuLoadCoordinator::gameInfoPopulated,
-                         p.playerInfoWiring, &PlayerInfoWiring::setOriginalGameInfo, Qt::UniqueConnection);
+                         p.playerInfo, &PlayerInfoPresenter::setOriginalGameInfo, Qt::UniqueConnection);
     }
     if (p.notificationService) {
         QObject::connect(coordinator, &KifuLoadCoordinator::errorOccurred,

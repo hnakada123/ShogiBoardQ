@@ -6,10 +6,8 @@
 
 #include <QObject>
 #include "appactivitystate.h"
-#include <QHash>
 #include <functional>
 
-enum class PlayMode;
 class QAction;
 class RecordPane;
 class EngineAnalysisTab;
@@ -20,8 +18,9 @@ namespace Ui { class MainWindow; }
 /**
  * @brief アプリケーション状態ごとのUI要素ポリシーを一元管理するマネージャ
  *
- * (AppState, UiElement) → Policy の2次元テーブルで宣言的に管理し、
- * 状態遷移時に全UI要素のポリシーを一括適用する。
+ * UI要素ごとに「有効にする状態の集合」と「それ以外の状態で無効にするか隠すか」を
+ * コンパイル時の表（uistatepolicymanager.cpp の kRules）で宣言し、
+ * 状態が変わるたびに全UI要素へ一括適用する。
  */
 class UiStatePolicyManager : public QObject
 {
@@ -34,8 +33,7 @@ public:
     enum class Policy {
         Enabled,  ///< 表示+有効
         Disabled, ///< 表示+無効
-        Hidden,   ///< 非表示
-        Shown     ///< 表示+有効（Hidden の対）
+        Hidden    ///< 非表示
     };
 
     /// UI要素の識別子
@@ -98,7 +96,7 @@ public:
         RecordPane* recordPane = nullptr;
         EngineAnalysisTab* analysisTab = nullptr;
         BoardInteractionController* boardController = nullptr;
-        std::function<PlayMode()> getPlayMode;
+        std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
         AppActivityState* activity = nullptr;
     };
 
@@ -113,8 +111,11 @@ public:
     /// 現在の状態を返す
     AppState currentState() const { return m_activity->activity(); }
 
-    /// 指定要素が現在の状態で有効（Enabled/Shown）かを返す
+    /// 指定要素が現在の状態で有効かを返す
     bool isEnabled(UiElement element) const;
+
+    /// 表だけで決まるポリシー（再開の可否・人間の参加などの条件を除く）
+    static Policy tablePolicy(AppState state, UiElement element);
 
 public slots:
     void setResumeAvailable(bool available);
@@ -132,29 +133,20 @@ public slots:
 
 signals:
     /// 状態が変更されたときに発火する
-    void stateChanged(UiStatePolicyManager::AppState newState);
+    void stateChanged(AppActivityState::Activity newState);
 
 private:
-    /// ポリシーテーブルを構築する
-    void buildPolicyTable();
-
-    /// 対局モードによる制約を反映した現在のポリシーを返す
+    /// 再開の可否・人間の参加を反映した現在のポリシーを返す
     Policy effectivePolicy(UiElement element) const;
 
     /// 個別のUI要素にポリシーを適用する
     void applyPolicy(UiElement element, Policy policy);
-
-    /// QAction にポリシーを適用するヘルパ
-    void applyActionPolicy(QAction* action, Policy policy);
 
     Deps m_deps;
     AppActivityState m_defaultActivity;
     AppActivityState* m_activity = &m_defaultActivity;
     void refreshActivity();
     bool m_resumeAvailable = false;
-
-    /// ポリシーテーブル: state → (element → policy)
-    QHash<AppState, QHash<UiElement, Policy>> m_policyTable;
 };
 
 #endif // UISTATEPOLICYMANAGER_H

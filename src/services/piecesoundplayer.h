@@ -22,8 +22,8 @@ class QSoundEffect;
  *
  * 着手が盤面に反映されたタイミングで playMoveSound() を呼ぶ。
  * 接続元:
- * - ShogiGameController::moveCommitted（人間・ローカルエンジンの着手）
- * - CsaGameWiring::moveAppliedToBoard（通信対局の相手・自エンジンの着手）
+ * - ShogiGameController::moveCommitted（人間・エンジン・定跡・通信対局の着手。通信対局はサーバーが確認した手）
+ * - 詰将棋対局のダイアログ（独自の盤を使うので、その着手の知らせ）
  *
  * 無効のあいだは QSoundEffect を生成しないため、オーディオデバイスを開かない。
  * 音量は 0〜100 のパーセント値で扱い、対数スケールで QSoundEffect の振幅に変換する。

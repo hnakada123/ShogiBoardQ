@@ -20,7 +20,6 @@ class UiNotificationService : public QObject
 
 public:
     struct Deps {
-        bool* errorOccurred = nullptr;
         QWidget* parentWidget = nullptr;
     };
 

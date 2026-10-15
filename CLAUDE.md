@@ -44,53 +44,58 @@ cmake --build build --target translations
 - **app/**: アプリケーションエントリーポイントと委譲先サービス
   - `main.cpp` - Entry point
   - `mainwindow.cpp/.h/.ui` - Main window
-  - `mainwindowcomposer.cpp/.h` - 合成ルート。起動時に全部品を依存順に作り、依存を注入し、シグナルをつなぐ（実装は `mainwindowcomposer_*.cpp` に分割）。設計: `docs/dev/composition-root.md`
-  - `mainwindowcomponents.h` - 合成ルートが作る部品の一覧。状態は `src/common/appstate.h` の `AppState` に1つだけ置く
+  - `mainwindowcomposer.cpp/.h` - 合成ルート。起動時に全部品を依存順に作り、依存を注入し、シグナルをつなぐ（実装は `mainwindowcomposer_*.cpp` に段階ごとに分割）。設計: `docs/dev/composition-root.md`
+  - `mainwindowcomponents.h` - 合成ルートが作る部品の一覧。状態は `src/common/appstate.h` の `AppState` に1つだけ置く（部品には `AppState*` を渡し、個々のフィールドへのポインタは渡さない）
   - `mainwindowactions.cpp/.h` - メニュー・盤・棋譜欄からの利用者操作の振り分け先
-  - `playmodepolicyservice.cpp/.h` - プレイモード依存の判定ロジック
+  - `gamesession.cpp/.h` - 対局の開始・終局・再開と、対局の手順の棋譜への追記（`MatchRecordSink`）
+  - `humanturnpolicy.cpp/.h` - 盤を人間が操作できる手番か・対局が進行中かの判定
   - `turnstatesyncservice.cpp/.h` - 手番同期（TurnManager/GC/View/時計）
-  - `gamerecordupdateservice.cpp/.h` - 棋譜追記・ライブセッション更新
   - `boardloadservice.cpp/.h` - SFEN盤面適用・ハイライト同期
   - `kifunavigationcoordinator.cpp/.h` - 棋譜ナビゲーション同期
+  - `uiactionswiring` と `file/game/edit/viewactionswiring` - メニュー項目と処理の接続
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
-  - `shogiboard.cpp/.h` - Board state and piece management
-  - `shogimove.cpp/.h` - Move representation
-  - `enginemovevalidator.cpp/.h` - Move legality validation（`fmvlegalcore` のビットボード合法手生成を使う）
+  - `shogiboard.cpp/.h` - Board state and piece management（指し手の適用は `applyUsiMove` だけ）
+  - `shogimove.cpp/.h`・`usimove.h` - Move representation
+  - `enginemovevalidator.cpp/.h` - Move legality validation（`fmv::Converter` を境界に `fmvlegalcore` のビットボード合法手生成を使う）
+  - `sfenreplay.cpp/.h` - 指し手列から局面列を作る
+  - `matchplayers.h` - 対局者（先手・後手を人間とエンジンのどちらが指すかと名前）
   - `shogiclock.cpp/.h` - Game clock
   - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）
 
-- **game/**: ゲーム進行・対局管理
-  - `matchcoordinator.cpp/.h` - Match orchestration
+- **game/**: ゲーム進行・対局管理（GUI に依存しない）
+  - `matchcoordinator.cpp/.h` - 対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は `record()`、対局者は `players()`
+  - `humanvshumanstrategy` / `humanvsenginestrategy` / `enginevsenginestrategy` - 対局者の組ごとの進め方（`MatchStrategyHost` 経由）
+  - `enginelifecyclemanager.cpp/.h` - エンジンの枠 E1・E2（対局と検討で共有）
   - `shogigamecontroller.cpp/.h` - Game flow control
-  - `gamestartcoordinator.cpp/.h` - Game start flow
+  - `gamestartcoordinator.cpp/.h`・`gamestartoptionsbuilder` - 対局開始ダイアログの値の解釈と開始
   - `turnmanager.cpp/.h` - Turn management
 
-- **kifu/**: 棋譜関連
+- **kifu/**: 棋譜関連（GUI に依存しない）
   - `gamerecordmodel.cpp/.h` - Kifu data model
-  - `kifuloadcoordinator.cpp/.h` - Kifu loading
-  - `kifuioservice.cpp/.h` - Kifu file I/O
+  - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録
+  - `kifuioservice.cpp/.h`・`kifusavefile.cpp/.h` - Kifu file I/O
   - **formats/**: Format converters
     - `kiftosfenconverter`, `ki2tosfenconverter`, `csatosfenconverter`, etc.
 
-- **analysis/**: 解析機能
-  - `analysiscoordinator.cpp/.h` - Analysis orchestration
-  - `analysisflowcontroller.cpp/.h` - Analysis flow control
-  - `considerationflowcontroller.cpp/.h` - Consideration mode
+- **analysis/**: 解析機能（GUI に依存しない）
+  - `analysissession.cpp/.h` - 検討・詰み探索のセッション
+  - `analysiscoordinator.cpp/.h`・`analysisjob` - 棋譜解析
+  - `sfenvalidationservice`・`tsumeshogigenerator` など
 
-- **engine/**: USI (Universal Shogi Interface) エンジン連携
-  - `usi.cpp/.h` - Main engine interface
+- **engine/**: USI (Universal Shogi Interface) エンジン連携（対局の仕組みに依存しない）
+  - `usi.cpp/.h` - GUI から使うエンジン1台の窓口
+  - `usienginesession.cpp/.h` - 起動と初期化（usi〜readyok）。GUI と CLI の実行器が共有する
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
   - `engineprocessmanager.cpp/.h` - Engine process lifecycle
   - `usimatchhandler.cpp/.h` - 対局・解析での USI のやり取り（position/go/bestmove）
 
 - **network/**: CSA通信対局
-  - `csaclient.cpp/.h` - CSA protocol client
-  - `csagamecoordinator.cpp/.h` - CSA game coordination
+  - `csaclient.cpp/.h` - CSA protocol client（受信の解釈は `csaclient_parser.cpp`、送信は `csaclient_commands.cpp`）
+  - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間は `CsaGameProgress`）
 
 - **navigation/**: ナビゲーション機能
   - `kifunavigationcontroller.cpp/.h` - 棋譜ナビゲーション（ボタン・分岐）
-  - `recordnavigationhandler.cpp/.h` - 棋譜欄の行変更
 
 - **board/**: 盤面編集・操作
   - `boardinteractioncontroller.cpp/.h` - Board interaction
@@ -98,21 +103,22 @@ cmake --build build --target translations
   - `boardimageexporter.cpp/.h` - Board image export
 
 - **ui/**: UI層
-  - **presenters/**: MVP Presenter layer
-    - `evalgraphpresenter`, `gamerecordpresenter`, `boardsyncpresenter`, etc.
+  - **presenters/**: 表示への反映
+    - `playerinfopresenter`（対局者名・対局情報）, `gamerecordpresenter`, `boardsyncpresenter`, etc.
   - **controllers/**: UI event handlers
-    - `boardsetupcontroller`, `timecontrolcontroller`, `replaycontroller`, etc.
-  - **wiring/**: Signal/Slot connections
-    - `uiactionswiring`, `csagamewiring`, `analysistabwiring`, etc.
-  - **coordinators/**: UI coordination
-    - `dialogcoordinator`, `positioneditcoordinator`, etc.
+    - `boardsetupcontroller`, `considerationuicontroller`, `josekiwindowcontroller`, `menuwindowcontroller`, `replaycontroller`, etc.
+  - **wiring/**: 部品どうしのシグナル接続
+    - `csagamewiring`, `analysistabwiring`, `branchnavigationwiring`, etc.
+  - **coordinators/**: 複数の部品にまたがる UI の流れ
+    - `dialogcoordinator`, `dialoglauncher`, `kifuloadcoordinator`, `kifusavecoordinator`, `analysisflowcontroller`, `recordnavigationhandler`, `positioneditcoordinator`, etc.
+  - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
 
 - **views/**: Qt Graphics View for board rendering (`shogiview.cpp/.h`)
 - **automation/**: 自動化 API（`ShogiBoardQ --automation`）と、CLI・MCP サーバーが共有する GUI 非依存サービス（設計: `docs/dev/mcp-server.md`）
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）
   - `automationcommands_*.cpp` - app / position / kifu / ui の各メソッド、`automationactionpolicy` は QAction 許可リスト
-  - `kifuconversionservice`, `sfenvalidationservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner` - CLI と共有するサービス
+  - `kifuconversionservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner` - CLI と共有するサービス（局面の検証は `analysis/sfenvalidationservice`）
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
 - **widgets/**: Custom Qt widgets
 - **dialogs/**: Dialog implementations (with co-located .ui files)
@@ -224,6 +230,9 @@ MyDialog::~MyDialog()
 - When adding new features, prefer creating new classes in appropriate directories (`app/`, `controllers/`, `services/`, etc.) rather than adding code to MainWindow.
 - **Deps/Hooks/Refs パターン**: `docs/dev/done/deps-hooks-refs-pattern.md` に従う。依存注入に3種の構造体パターン（Deps=外部依存注入、Hooks=上位層へのコールバック、Refs=親状態への参照）を使い分ける
 - **スレッド安全性**: `docs/dev/threading-guidelines.md` に従う。UIアクセスはメインスレッド限定、ワーカーには値オブジェクトのみ渡す
+- **層の依存**: 下の層は上の層を include しない。順に core・common → services → kifu → engine → game → analysis・network・navigation → models → views・widgets → board → dialogs → ui → app。`automation`・`cli` は GUI に依存しない（規則は `tests/tst_layer_dependencies.cpp` が検査する）
+- **クラス名の役割**: `*Wiring` はシグナルの接続だけ、`*Presenter` は表示への反映、`*Controller` は利用者操作の処理、`*Coordinator` は複数の部品にまたがる流れ。役割が変わったら名前も変える
+- **ファイルの分割**: 1ファイル1000行の上限（`tests/tst_structural_kpi.cpp`）に近づいたら、行数で `_ui`・`_draw` などに機械的に分けず、責務を別のクラスに切り出す
 
 ## Code Style
 

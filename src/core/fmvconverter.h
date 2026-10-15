@@ -7,10 +7,9 @@
 #include <QMap>
 #include <QList>
 
-#include "enginemovevalidator.h"
+#include "shogitypes.h"
 #include "fmvposition.h"
 #include "fmvtypes.h"
-#include "shogimove.h"
 #include "usimove.h"
 
 namespace fmv {
@@ -28,10 +27,12 @@ public:
                                  const QList<Piece>& boardData,
                                  const QMap<Piece, int>& pieceStand);
 
+    /// USI の指し手を内部の指し手にする（成りの指定は見ず、成れる手は両方を入れる）。
+    /// 移動元が手番の駒でない、打つ駒を持っていない指し手は false
     static bool toEngineMove(ConvertedMove& out,
                              Turn turn,
                              const EnginePosition& pos,
-                             const ShogiMove& in);
+                             const UsiMove& move);
 
     static Color toColor(Turn t) noexcept;
 

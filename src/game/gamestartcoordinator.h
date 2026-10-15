@@ -54,12 +54,11 @@ public:
         bool announcePlayerNames = false;    ///< 対局者名を通知する（ダイアログを経ない連続対局の2局目以降）
     };
 
-    /// 対局開始に必要な入力と、検証後に更新する表示用SFEN
+    /// 対局開始に必要な入力
     struct Ctx {
-        ShogiClock*            clock = nullptr;              ///< 時計
         StartGameDialogData    dialogData;                   ///< 対局開始ダイアログから抽出したデータ
-        QString*               startSfenStr = nullptr;       ///< 開始SFEN文字列への参照
-        QString*               currentSfenStr = nullptr;     ///< 現在SFEN文字列への参照
+        QString currentSfen;  ///< 表示中の局面（現在局面から始めるとき、手順が無ければこの局面から）
+        QString startSfen;    ///< 表示中の棋譜の開始局面（currentSfen も空のときに使う）
 
         RecordLine recordLine;                              ///< 選択した手順のスナップショット
         int startNodeId = -1;                                ///< 分岐ツリー上の選択ノード
@@ -79,45 +78,32 @@ public:
     /// 対局開始フローを実行する。不正な開始局面では状態を変更せずエラーを返す。
     bool initializeGame(const Ctx& c, QString& errorMessage);
 
-    // --- ユーティリティ（GameStartOptionsBuilder へ委譲） ---
-
-    /// ダイアログ状態からPlayModeを決定する
-    PlayMode setPlayMode(const Ctx& c) const;
-
-    /// SFENの手番とダイアログ設定を整合させてPlayModeを決定する
-    static PlayMode determinePlayModeAlignedWithTurn(
-        int initPositionNumber,
-        bool isPlayer1Human,
-        bool isPlayer2Human,
-        const QString& startSfen
-        );
-
 
 signals:
     // --- 開始前フック ---
 
-    /// UI/状態を初期化してほしい（→ SessionLifecycleCoordinator::performPreStartCleanup → PreStartCleanupHandler::performCleanup）
+    /// UI/状態を初期化してほしい（→ GameSession::prepareStart → PreStartCleanupHandler::performCleanup）
     void requestPreStartCleanup(const GameStartPreparation& preparation);
 
-    /// 時計の設定適用後の通知（→ SessionLifecycleCoordinator::applyTimeControl）
+    /// 時計の設定適用後の通知（→ GameSession::applyTimeControl）
     void requestApplyTimeControl(const GameStartCoordinator::TimeSettings& tc);
 
     // --- 進捗通知 ---
 
-    /// 対局開始完了の通知（→ UiStatePolicyManager::transitionToDuringGame、SessionLifecycleCoordinator::handleGameStarted、
-    /// GameSessionOrchestrator::discardInterruptedGame の順）
+    /// 対局開始完了の通知（→ UiStatePolicyManager::transitionToDuringGame、GameSession::onGameStarted の順）
     void started(const MatchCoordinator::StartOptions& opt);
 
-    /// 対局者名が確定した時に発行される（→ PlayerInfoWiring::onMenuPlayerNamesResolved）
-    void playerNamesResolved(const QString& human1, const QString& human2,
-                             const QString& engine1, const QString& engine2,
-                             int playMode);
+    /// 対局者が確定した（→ PlayerInfoPresenter::onMatchPlayersResolved）
+    void playerNamesResolved(const MatchPlayers& players);
 
     /// 連続対局設定（EvE対局時のみ、totalGames=合計数, switchTurn=手番入替）
     void consecutiveGamesConfigured(int totalGames, bool switchTurn);
 
     /// 対局開始後に棋譜欄の指定行を選択する（現在局面から開始時に使用）
     void requestSelectKifuRow(int row);
+
+    /// 「人を手前に表示する」ために盤の反転を頼む（→ MainWindowAppearanceController）
+    void boardFlipRequested();
 
 
 private:
@@ -126,7 +112,7 @@ private:
     bool validate(const StartParams& params, QString& whyNot) const;
     bool validateKingsForGame(const QString& sfen, QString& whyNot) const;
 
-    QPointer<MatchCoordinator> m_match;       ///< 対局進行の司令塔（非所有、MCW が所有）
+    QPointer<MatchCoordinator> m_match;       ///< 対局進行の司令塔（非所有、合成ルートが所有）
 };
 
 Q_DECLARE_METATYPE(GameStartCoordinator::TimeSettings)
