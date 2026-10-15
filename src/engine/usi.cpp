@@ -5,6 +5,7 @@
 #include "kifupresentation.h"
 #include "sfenpositiontracer.h"
 #include "usimatchhandler.h"
+#include "matchsearchsnapshot.h"
 
 #include <QTimer>
 #include <utility>
@@ -20,9 +21,7 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
     , m_processManager(m_session->process())
     , m_protocolHandler(m_session->handler())
     , m_presenter(std::make_unique<ThinkingInfoPresenter>())
-    , m_matchHandler(std::make_unique<UsiMatchHandler>(m_protocolHandler,
-                                                       m_presenter.get(),
-                                                       gameController))
+    , m_matchHandler(std::make_unique<UsiMatchHandler>(m_protocolHandler))
     , m_commLogModel(model)
     , m_thinkingModel(modelThinking)
     , m_gameController(gameController)
@@ -42,6 +41,15 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
         },
         /*.onMoveReady =*/ [this](const UsiMove& move, const QString& position, const QString& ponder) {
             emit matchMoveReady(move, position, ponder);
+        },
+        [this](const UsiTimingParams& timing, bool pondering) {
+            return matchSearchSnapshot(m_matchClock, m_gameController ? m_gameController->currentPlayer() : Turn::Black,
+                                       timing, pondering);
+        },
+        [this]() {
+            if (!m_matchClock) return true;
+            m_matchClock->finishTurn();
+            return !m_matchClock->isGameOver();
         }
     });
 }

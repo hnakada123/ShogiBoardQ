@@ -6,26 +6,16 @@
 
 
 #include <QObject>
-#include <QList>
-#include <QStringList>
-
-#include "playmode.h"
-#include "shogigamecontroller.h"
 
 class KifuNavigationState;
-class KifuBranchTree;
 class KifuDisplayCoordinator;
-class KifuRecordListModel;
-class ShogiView;
-class MatchCoordinator;
-class EvaluationGraphController;
-class CsaGameWiring;
+class LiveGameSession;
 
 /**
  * @brief 棋譜欄の行変更ハンドラ
  *
  * MainWindowのonRecordPaneMainRowChangedから分離されたロジック。
- * 盤面同期、手番表示、検討モード連携、分岐候補更新を担当する。
+ * 対局中の行変更を除き、表示中のラインのノードへ移動要求を送る。
  */
 class RecordNavigationHandler : public QObject
 {
@@ -34,16 +24,8 @@ class RecordNavigationHandler : public QObject
 public:
     struct Deps {
         KifuNavigationState* navState = nullptr;          ///< ナビゲーション状態（非所有）
-        KifuBranchTree* branchTree = nullptr;              ///< 分岐ツリー（非所有）
         KifuDisplayCoordinator* displayCoordinator = nullptr; ///< 棋譜表示コーディネータ（非所有）
-        KifuRecordListModel* kifuRecordModel = nullptr;    ///< 棋譜リストモデル（非所有）
-        ShogiView* shogiView = nullptr;                    ///< 盤面ビュー（非所有）
-        EvaluationGraphController* evalGraphController = nullptr; ///< 評価値グラフ制御（非所有）
-        QString* currentSfenStr = nullptr;                  ///< 現在局面SFEN文字列（外部所有）
-        bool* skipBoardSyncForBranchNav = nullptr;          ///< 分岐ナビ中の盤面同期スキップフラグ（外部所有）
-        CsaGameWiring* csaGameWiring = nullptr;            ///< CSA 通信対局（司令塔は最初の CSA 対局で作られる。非所有）
-        PlayMode* playMode = nullptr;                       ///< 対局モード（外部所有）
-        MatchCoordinator* match = nullptr;                  ///< 対局調整（非所有）
+        LiveGameSession* liveSession = nullptr;          ///< 対局棋譜の更新状態（非所有）
     };
 
     explicit RecordNavigationHandler(QObject* parent = nullptr);
@@ -57,44 +39,8 @@ public slots:
      */
     void onMainRowChanged(int row);
 
-signals:
-    /**
-     * @brief 盤面とハイライトの更新が必要（→ MainWindow::onBoardSyncRequired）
-     */
-    void boardSyncRequired(int ply);
-
-    /**
-     * @brief 分岐ツリーからの盤面更新が必要（→ MainWindow::onBranchBoardSyncRequired）
-     */
-    void branchBoardSyncRequired(const QString& currentSfen, const QString& prevSfen);
-
-    /**
-     * @brief 矢印ボタンの有効化が必要（→ MainWindow::enableArrowButtons）
-     */
-    void enableArrowButtonsRequired();
-
-    /**
-     * @brief 手番表示の更新が必要（→ MainWindow::updateTurn）
-     */
-    void turnUpdateRequired();
-
-    /**
-     * @brief 定跡ウィンドウの更新が必要（→ MainWindow::updateJosekiWindow）
-     */
-    void josekiUpdateRequired();
-
-    /**
-     * @brief position文字列の構築が必要（検討モード用）（→ MainWindow::buildAndSendPosition）
-     * @param row 行番号
-     */
-    void buildPositionRequired(int row);
-
 private:
-    /// 表示中の手順の row 行目の局面と直前の局面（行が無ければ false）
-    bool lineSfenAt(int row, QString* sfen, QString* prevSfen) const;
-
     Deps m_deps;
-    bool m_mainRowChangeInProgress = false;
 };
 
 #endif // RECORDNAVIGATIONHANDLER_H

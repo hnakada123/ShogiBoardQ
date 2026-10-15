@@ -27,6 +27,7 @@ void GameRecordUpdateService::appendRecord(const RecordEntry& entry)
     if (!m_deps.liveGameSession->canAddMove()) return;
     recorded.time = m_deps.liveGameSession->continuedTime(recorded.time);
     if (m_deps.gameRecord) m_deps.gameRecord->markDirty();
+    updateCurrentSfenAfterMove();
     m_deps.liveGameSession->appendRecord(recorded);
 }
 

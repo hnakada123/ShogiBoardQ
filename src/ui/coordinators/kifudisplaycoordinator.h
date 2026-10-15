@@ -77,7 +77,6 @@ public slots:
     // === KifuNavigationControllerからのシグナルを受けるスロット ===
 
     void onNavigationCompleted(KifuBranchNode* node);
-    void onBoardUpdateRequired(const QString& sfen);
     void onRecordHighlightRequired(int ply);
     void onBranchTreeHighlightRequired(int lineIndex, int ply);
     // NOLINTNEXTLINE(clazy-fully-qualified-moc-types) -- QList<Ptr> false positive in clazy 1.17
@@ -93,7 +92,6 @@ public slots:
     // === ライブ対局セッションからのシグナル ===
 
     void onLiveGameMoveAdded(int ply, const QString& displayText);
-    void onLiveGameMovesAboutToBeUndone(KifuBranchNode* target);
     void onLiveGameMovesUndone();
     void onLiveGameSessionStarted(KifuBranchNode* branchPoint);
     void onLiveGameCommitted(KifuBranchNode* newLineEnd);

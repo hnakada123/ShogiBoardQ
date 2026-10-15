@@ -10,7 +10,6 @@
 enum class PlayMode;
 class EvaluationGraphController;
 class LiveGameSession;
-class GameRecordPresenter;
 
 /**
  * @brief 「待った」実行時の巻き戻し後処理を集約するサービス
@@ -25,11 +24,9 @@ public:
         std::function<bool()> undoTwoPlies;        ///< 2手戻す（司令塔。終局後は false を返す）
         std::function<void()> markGameRecordDirty; ///< 戻したら棋譜を未保存にする
         LiveGameSession* liveSession = nullptr;
-        GameRecordPresenter* recordPresenter = nullptr;
         EvaluationGraphController* evalGraphController = nullptr;
         const PlayMode* playMode = nullptr;
         QStringList* sfenRecord = nullptr;
-        QString* currentSfenStr = nullptr;
     };
 
     void updateDeps(const Deps& deps);

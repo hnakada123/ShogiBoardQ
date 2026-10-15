@@ -32,6 +32,7 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     , m_usiCommLog(deps.usiCommLog)
     , m_engineThinking(deps.engineThinking)
     , m_timeController(deps.timeController)
+    , m_changePlayMode(deps.changePlayMode)
     , m_playMode(deps.playMode)
     , m_parentWidget(deps.parentWidget)
     , m_prepareRecord(deps.prepareRecord)
@@ -167,7 +168,6 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
 
     // 対局開始オプションを設定（詳細設定もここで控える）
     const CsaGameCoordinator::StartOptions options = buildStartOptions(dialog);
-    setPlayMode(PlayMode::CsaNetworkMode);
 
     CsaWaitingDialog waitingDialog(m_coordinator, parent);
     connect(&waitingDialog, &CsaWaitingDialog::cancelRequested,
@@ -206,15 +206,12 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
 {
     qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
 
-    // 終局後も同じ接続で次の対局が始まるので、盤面入力の振り分けを通信対局に戻す
-    setPlayMode(PlayMode::CsaNetworkMode);
     applyAutoFlip();
     // 対局情報と棋譜の書き出しに使う持ち時間と開始日時を、サーバーの対局条件で置き換える
     if (m_timeController && m_coordinator) {
         m_timeController->beginGameWithTimeControl(m_coordinator->gameSummary().timeControl());
     }
     if (m_prepareRecord && m_coordinator) m_prepareRecord(m_coordinator->startSfen(), blackName, whiteName);
-    if (m_uiPolicy) m_uiPolicy->transitionToDuringCsaGame();
 
     if (m_shogiView) {
         m_shogiView->setBlackPlayerName(QStringLiteral("▲") + blackName);
@@ -227,6 +224,9 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
         m_recordService->updateCurrentSfenAfterMove();
     }
 
+    // 時計・再開棋譜の準備が揃ってから公開する。同じ接続での次局もここを通る。
+    setPlayMode(PlayMode::CsaNetworkMode);
+    if (m_uiPolicy) m_uiPolicy->transitionToDuringCsaGame();
     if (m_shogiView) m_shogiView->update();
     if (m_statusBar) m_statusBar->showMessage(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
 }

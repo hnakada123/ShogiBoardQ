@@ -35,32 +35,26 @@ QString extractCsaTimeToken(const QString& timeText)
     return QStringLiteral("T%1%2").arg(minutes * 60 + seconds).arg(fraction);
 }
 
-QString csaResultCode(const QString& terminalMove)
+QString csaResultCode(TerminalType terminal, Turn side)
 {
-    const QString move = KifuExportCommon::removeTurnMarker(terminalMove);
-
-    if (move.contains(QStringLiteral("投了"))) return QStringLiteral("%TORYO");
-    if (move.contains(QStringLiteral("中断"))) return QStringLiteral("%CHUDAN");
-    if (move.contains(QStringLiteral("千日手"))) return QStringLiteral("%SENNICHITE");
-    if (move.contains(QStringLiteral("持将棋"))) return QStringLiteral("%JISHOGI");
-    if (move.contains(QStringLiteral("切れ負け")) || move.contains(QStringLiteral("時間切れ")))
-        return QStringLiteral("%TIME_UP");
-    if (move.contains(QStringLiteral("反則勝ち")))
-        return terminalMove.startsWith(QStringLiteral("▲"))
-            ? QStringLiteral("%-ILLEGAL_ACTION") : QStringLiteral("%+ILLEGAL_ACTION");
-    if (move.contains(QStringLiteral("反則負け"))) return QStringLiteral("%ILLEGAL_MOVE");
-    if (move.contains(QStringLiteral("先手の反則"))) return QStringLiteral("%+ILLEGAL_ACTION");
-    if (move.contains(QStringLiteral("後手の反則"))) return QStringLiteral("%-ILLEGAL_ACTION");
-    if (move.contains(QStringLiteral("反則"))) return QStringLiteral("%ILLEGAL_MOVE");
-    if (move.contains(QStringLiteral("入玉勝ち")) || move.contains(QStringLiteral("宣言勝ち")))
-        return QStringLiteral("%KACHI");
-    if (move.contains(QStringLiteral("引き分け"))) return QStringLiteral("%HIKIWAKE");
-    if (move.contains(QStringLiteral("最大手数"))) return QStringLiteral("%MAX_MOVES");
-    if (move.contains(QStringLiteral("詰み"))) return QStringLiteral("%TSUMI");
-    if (move.contains(QStringLiteral("不詰"))) return QStringLiteral("%FUZUMI");
-    if (move.contains(QStringLiteral("エラー"))) return QStringLiteral("%ERROR");
-
-    return QString();
+    switch (terminal) {
+    case TerminalType::Resign: return QStringLiteral("%TORYO");
+    case TerminalType::Interrupt: return QStringLiteral("%CHUDAN");
+    case TerminalType::PerpetualCheck:
+    case TerminalType::Repetition: return QStringLiteral("%SENNICHITE");
+    case TerminalType::Impasse: return QStringLiteral("%JISHOGI");
+    case TerminalType::Timeout: return QStringLiteral("%TIME_UP");
+    case TerminalType::IllegalWin: return side == Turn::Black
+        ? QStringLiteral("%-ILLEGAL_ACTION") : QStringLiteral("%+ILLEGAL_ACTION");
+    case TerminalType::IllegalLoss: return QStringLiteral("%ILLEGAL_MOVE");
+    case TerminalType::DeclarationWin: return QStringLiteral("%KACHI");
+    case TerminalType::Draw: return QStringLiteral("%HIKIWAKE");
+    case TerminalType::MaxMoves: return QStringLiteral("%MAX_MOVES");
+    case TerminalType::Checkmate: return QStringLiteral("%TSUMI");
+    case TerminalType::NoCheckmate: return QStringLiteral("%FUZUMI");
+    case TerminalType::Error: return QStringLiteral("%ERROR");
+    default: return {};
+    }
 }
 
 QString convertToCsaDateTime(const QString& dateTimeStr)

@@ -24,6 +24,7 @@
 #include "interruptedgamestate.h"
 #include "startoptions.h"
 #include "matchsessionstate.h"
+#include "appactivitystate.h"
 #include "analysisoptions.h"
 #include "matchcoordinatorhooks.h"
 
@@ -230,12 +231,15 @@ public:
 
     // --- PlayMode ---
 
-    PlayMode playMode() const { return m_session.playMode(); }
+    PlayMode playMode() const { return m_activity->playMode(); }
+    PlayMode configuredPlayMode() const { return m_session.playMode(); }
+    void setActivityState(AppActivityState* state);
 
     /// 終局1回だけの棋譜追記と重複防止を一括処理する
     void appendGameOverLineAndMark(Cause cause, Turn loser);
 
     /// 人間着手後の後処理（Strategy へ委譲）
+    bool canAcceptMove() const;
     void onHumanMove(const QPoint& from, const QPoint& to,
                      const QString& prettyMove);
 
@@ -339,6 +343,8 @@ private:
     std::unique_ptr<MatchTurnHandler> m_turnHandler; ///< ターン進行・ストラテジー管理
 
     MatchSessionState m_session;
+    AppActivityState m_defaultActivity;
+    AppActivityState* m_activity = &m_defaultActivity;
 
     std::unique_ptr<InterruptedGameState> m_interruptedGame;
     void captureInterruptedGame();

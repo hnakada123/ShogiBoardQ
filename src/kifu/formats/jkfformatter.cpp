@@ -119,6 +119,7 @@ QString terminalToJkfSpecial(TerminalType type, Turn mover)
     case TerminalType::Draw:           return QStringLiteral("HIKIWAKE");
     case TerminalType::MaxMoves:       return QStringLiteral("MAX_MOVES");
     case TerminalType::Error:          return QStringLiteral("ERROR");
+    case TerminalType::ForfeitWin:
     case TerminalType::Forfeit:
     case TerminalType::None:
         break;

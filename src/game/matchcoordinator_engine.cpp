@@ -47,7 +47,9 @@ void MatchCoordinator::destroyEngines(bool clearModels)
 
 void MatchCoordinator::setPlayMode(PlayMode m)
 {
-    m_session.setPlayMode(m);
+    m_activity->setPlayMode(m);
+    // 対局者構成は活動を止めても保持する。解析モードで上書きしない。
+    if (m_activity->activity() == AppActivityState::Activity::DuringGame) m_session.setPlayMode(m);
     emit playModeChanged();
 }
 
@@ -95,4 +97,9 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
 {
     return m_analysisSession->updatePosition(primaryEngine(), newPositionStr,
                                              previousFileTo, previousRankTo, lastUsiMove);
+}
+
+void MatchCoordinator::setActivityState(AppActivityState* state)
+{
+    m_activity = state ? state : &m_defaultActivity;
 }

@@ -67,7 +67,7 @@ public:
         UiStatePolicyManager* uiStatePolicy = nullptr;       ///< UI 状態（非所有）
 
         EngineAnalysisTab* analysisTab = nullptr;           ///< エンジン解析タブ（非所有）
-        PlayMode* playMode = nullptr;                       ///< プレイモード（AppState）
+        const PlayMode* playMode = nullptr;                       ///< プレイモード（AppState）
     };
 
     explicit DialogCoordinatorWiring(QObject* parent = nullptr);
@@ -98,7 +98,7 @@ private:
     // 解析イベントハンドラ用
     EvaluationChartWidget* m_evalChartWidget = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
-    PlayMode* m_playMode = nullptr;
+    const PlayMode* m_playMode = nullptr;
     KifuNavigationController* m_kifuNavController = nullptr;
 };
 

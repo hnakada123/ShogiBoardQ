@@ -4,7 +4,6 @@
 #include "undoflowservice.h"
 
 #include "livegamesession.h"
-#include "gamerecordpresenter.h"
 #include "evaluationgraphcontroller.h"
 #include "playmode.h"
 
@@ -32,12 +31,6 @@ void UndoFlowService::undoLastTwoMoves()
 
     const int currentPly = m_deps.sfenRecord
         ? static_cast<int>(qMax(qsizetype(0), m_deps.sfenRecord->size() - 1)) : 0;
-    if (m_deps.currentSfenStr && m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
-        *m_deps.currentSfenStr = m_deps.sfenRecord->last();
-    }
-    // 表示中の手数（分岐ツリーのカーソル）は LiveGameSession::undoMoves が戻す
-    if (m_deps.recordPresenter) m_deps.recordPresenter->syncCurrentMoveIndexToLastRow();
-    if (live) m_deps.liveSession->undoMoves(2);
     if (m_deps.markGameRecordDirty) m_deps.markGameRecordDirty();
 
     if (!m_deps.evalGraphController || !m_deps.playMode) {

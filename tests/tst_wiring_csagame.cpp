@@ -93,8 +93,15 @@ private slots:
         CsaGameWiring::Dependencies deps;
         deps.coordinator = &coordinator;
         deps.playMode = &mode;
+        deps.changePlayMode = [&mode, &prepared](PlayMode value) {
+            QCOMPARE(prepared, 1);
+            mode = value;
+        };
         deps.statusBar = &status;
-        deps.prepareRecord = [&prepared](const QString&, const QString&, const QString&) { ++prepared; };
+        deps.prepareRecord = [&prepared, &mode](const QString&, const QString&, const QString&) {
+            QCOMPARE(mode, PlayMode::NotStarted);
+            ++prepared;
+        };
         CsaGameWiring wiring(deps);
         UiStatePolicyManager policy;
         wiring.wire();

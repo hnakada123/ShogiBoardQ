@@ -34,6 +34,7 @@ struct RecordEntry {
         case TerminalType::Timeout: label = QStringLiteral("時間切れ"); break;
         case TerminalType::IllegalWin: label = QStringLiteral("反則勝ち"); break;
         case TerminalType::IllegalLoss: label = QStringLiteral("反則負け"); break;
+        case TerminalType::ForfeitWin: label = QStringLiteral("不戦勝"); break;
         case TerminalType::Forfeit: label = QStringLiteral("不戦敗"); break;
         case TerminalType::Interrupt: label = QStringLiteral("中断"); break;
         case TerminalType::NoCheckmate: label = QStringLiteral("不詰"); break;
@@ -50,7 +51,14 @@ struct RecordEntry {
     static RecordEntry imported(const ShogiMove& move, const QString& display,
                                 const QString& sfen, const QString& time)
     {
-        return {move, display, sfen, RecordTime::fromText(time), detectTerminalType(display), Turn::Black};
+        const TerminalType type = detectTerminalType(display);
+        const bool whiteToMove = sfen.contains(QStringLiteral(" w "));
+        // 終局手では局面は変わらない。通常手のSFENは着手後なので逆の側。
+        Turn side = (type != TerminalType::None ? whiteToMove : !whiteToMove)
+            ? Turn::White : Turn::Black;
+        if (display.startsWith(QStringLiteral("▲"))) side = Turn::Black;
+        if (display.startsWith(QStringLiteral("△"))) side = Turn::White;
+        return {move, display, sfen, RecordTime::fromText(time), type, side};
     }
 };
 

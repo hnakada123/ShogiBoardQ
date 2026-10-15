@@ -22,7 +22,7 @@ class PlayModePolicyService
 {
 public:
     struct Deps {
-        PlayMode* playMode = nullptr;
+        const PlayMode* playMode = nullptr;
         ShogiGameController* gameController = nullptr;
         MatchCoordinator* match = nullptr;
         /// CSA 通信対局の司令塔（呼ばれた時点のもの。通信対局を始めるまでは nullptr）

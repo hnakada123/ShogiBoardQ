@@ -4,6 +4,7 @@
 #include "shogiclock.h"
 #include "boardcoordinates.h"
 #include "usi.h"
+#include <QSignalBlocker>
 
 bool MatchStrategyContext::completeHumanMove(
     Turn mover, const QString& text, const QPoint& from, const QPoint& to)
@@ -15,6 +16,8 @@ bool MatchStrategyContext::applyEngineMove(
     const UsiMove& move, Turn mover, qint64 elapsedMs, bool appendEvaluation)
 {
     if (!m_deps.gc || gameOverState().isOver) return false;
+    if (m_deps.hooks.game.canAppendRecord && !m_deps.hooks.game.canAppendRecord()) return false;
+    const auto update = m_deps.gc->positionUpdate();
     QString text;
     int nextPly = currentMoveIndex() + 1;
     if (!m_deps.gc->applyMove(move, text, nextPly, m_deps.sfens, *m_deps.moves)) {
@@ -31,6 +34,7 @@ bool MatchStrategyContext::completeMove(
 {
     if (gameOverState().isOver) return false;
 
+    const QSignalBlocker clockNotifications(clock());
     RecordEntry entry;
     entry.mover = mover;
     entry.displayText = text;
@@ -39,6 +43,7 @@ bool MatchStrategyContext::completeMove(
         clk->commitMove(mover);
         entry.time = clk->recordTime(mover);
         clk->setConsiderationTimeMs(mover, 0);
+        clk->setCurrentPlayer(m_deps.gc->currentPlayer());
     }
     const auto& moves = *m_deps.moves;
     if (!moves.isEmpty()) entry.move = moves.last();

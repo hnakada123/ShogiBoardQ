@@ -207,6 +207,7 @@ private:
     QPointer<UsiCommLogModel> m_commLogModel;        ///< USI通信ログモデルへの参照（非所有）
     QPointer<ShogiEngineThinkingModel> m_thinkingModel; ///< 思考情報モデルへの参照（非所有）
     ShogiGameController* m_gameController = nullptr;  ///< ゲームコントローラへの参照（非所有）
+    QString currentBoardSfen() const;
     ShogiClock* m_matchClock = nullptr; ///< ローカル対局の時間判定元（非所有）
 
     // --- 状態 ---

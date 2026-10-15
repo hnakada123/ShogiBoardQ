@@ -52,7 +52,7 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;
         KifuFileController* kifuFileController = nullptr;  ///< 未保存の棋譜の確認
-        PlayMode* playMode = nullptr;                      ///< AppState::playMode
+        const PlayMode* playMode = nullptr;                      ///< AppState::playMode
 
         DialogCoordinator* dialogCoordinator = nullptr;
         ShogiGameController* gameController = nullptr;

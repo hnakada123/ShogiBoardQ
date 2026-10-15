@@ -114,7 +114,8 @@ void ShogiGameController::setCurrentPlayer(Turn player)
         board()->setCurrentPlayer(player);
     }
 
-    emit currentPlayerChanged(m_currentPlayer);
+    if (m_updateDepth > 0) m_turnNotificationPending = true;
+    else emit currentPlayerChanged(m_currentPlayer);
 }
 
 void ShogiGameController::changeCurrentPlayer()
@@ -240,6 +241,7 @@ bool ShogiGameController::applyMove(const UsiMove& move, QString& record, int mo
 bool ShogiGameController::commitMove(const UsiMove& move, Turn mover, Piece moving, Piece captured, QString& record,
                                      int moveNumber, QStringList* sfenHistory, QList<ShogiMove>& gameMoves)
 {
+    const auto update = positionUpdate();
     const Turn nextPlayerTurn = (mover == Turn::Black) ? Turn::White : Turn::Black;
 
     if (!board()->applyUsiMove(move, mover)) {
@@ -255,12 +257,8 @@ bool ShogiGameController::commitMove(const UsiMove& move, Turn mover, Piece movi
     record = convertMoveToKanjiStr(moving, move);
     m_lastMove = move;
 
-    // 着手確定シグナル: 手番切替の「前」に出す
-    const Turn moverBefore = currentPlayer();
-    const int confirmedPly = static_cast<int>(gameMoves.size());
-    qCDebug(lcGame) << "emit moveCommitted mover=" << moverBefore << "ply=" << confirmedPly;
-    emit moveCommitted(moverBefore, confirmedPly);
-
+    m_committedMover = mover;
+    m_committedPly = static_cast<int>(gameMoves.size());
     setCurrentPlayer(nextPlayerTurn);
     return true;
 }
@@ -352,4 +350,18 @@ void ShogiGameController::finalizeGameResult()
 
     // 未確定の場合は currentPlayer に基づく既存ロジックで勝敗をセット
     gameResult();
+}
+
+void ShogiGameController::endPositionUpdate()
+{
+    if (--m_updateDepth != 0) return;
+    // 通知先から次の操作を始めても今回の通知内容は変わらない。
+    const bool turnChanged = m_turnNotificationPending;
+    const int ply = m_committedPly;
+    const Turn mover = m_committedMover;
+    const Turn turn = m_currentPlayer;
+    m_turnNotificationPending = false;
+    m_committedPly = -1;
+    if (turnChanged) emit currentPlayerChanged(turn);
+    if (ply >= 0) emit moveCommitted(mover, ply);
 }

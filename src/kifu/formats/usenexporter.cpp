@@ -10,13 +10,6 @@
 #include <QStringView>
 
 // ========================================
-// ヘルパ関数
-// ========================================
-
-using KifuExportCommon::isTerminalMove;
-using KifuExportCommon::removeTurnMarker;
-
-// ========================================
 // USEN形式エンコーディング
 // ========================================
 
@@ -144,19 +137,19 @@ static QString sfenToUsenPosition(const QString& sfen)
     return usen;
 }
 
-static QString getUsenTerminalCode(const QString& terminalMove)
+static QString getUsenTerminalCode(TerminalType terminal)
 {
-    const QString move = removeTurnMarker(terminalMove);
-
-    if (move.contains(QStringLiteral("反則"))) return QStringLiteral("i");
-    if (move.contains(QStringLiteral("投了"))) return QStringLiteral("r");
-    if (move.contains(QStringLiteral("時間切れ")) || move.contains(QStringLiteral("切れ負け")))
-        return QStringLiteral("t");
-    if (move.contains(QStringLiteral("中断"))) return QStringLiteral("p");
-    if (move.contains(QStringLiteral("持将棋")) || move.contains(QStringLiteral("千日手")))
-        return QStringLiteral("j");
-
-    return QString();
+    switch (terminal) {
+    case TerminalType::IllegalWin:
+    case TerminalType::IllegalLoss: return QStringLiteral("i");
+    case TerminalType::Resign: return QStringLiteral("r");
+    case TerminalType::Timeout: return QStringLiteral("t");
+    case TerminalType::Interrupt: return QStringLiteral("p");
+    case TerminalType::Impasse:
+    case TerminalType::PerpetualCheck:
+    case TerminalType::Repetition: return QStringLiteral("j");
+    default: return {};
+    }
 }
 
 // ========================================
@@ -189,10 +182,7 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
 
     // 終局語のチェック
     if (!disp.isEmpty()) {
-        const QString& lastMove = disp.last().prettyMove;
-        if (isTerminalMove(lastMove)) {
-            terminalCode = getUsenTerminalCode(lastMove);
-        }
+        terminalCode = getUsenTerminalCode(disp.last().terminalType);
     }
 
     // 本譜のUSEN文字列を構築
@@ -225,11 +215,10 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
 
             for (qsizetype i = line.branchPly; i < branchDisp.size(); ++i) {
                 const KifDisplayItem& item = branchDisp[i];
-                if (item.prettyMove.isEmpty()) continue;
 
                 // 終局語チェック
-                if (isTerminalMove(item.prettyMove)) {
-                    branchTerminal = getUsenTerminalCode(item.prettyMove);
+                if (item.terminalType != TerminalType::None) {
+                    branchTerminal = getUsenTerminalCode(item.terminalType);
                     break;
                 }
 

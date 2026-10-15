@@ -5,6 +5,7 @@
 /// @brief アプリケーション状態に応じたUI要素の有効/無効制御を一元管理するクラス
 
 #include <QObject>
+#include "appactivitystate.h"
 #include <QHash>
 #include <functional>
 
@@ -27,16 +28,7 @@ class UiStatePolicyManager : public QObject
     Q_OBJECT
 public:
     /// アプリケーション状態
-    enum class AppState {
-        Idle,                  ///< 待機状態
-        DuringGame,            ///< 対局中
-        DuringAnalysis,        ///< 棋譜解析中
-        DuringCsaGame,         ///< CSA通信対局中
-        DuringTsumeSearch,     ///< 詰み探索中
-        DuringConsideration,   ///< 検討中
-        DuringPositionEdit     ///< 局面編集中
-    };
-    Q_ENUM(AppState)
+    using AppState = AppActivityState::Activity;
 
     /// UI要素に適用するポリシー
     enum class Policy {
@@ -107,6 +99,7 @@ public:
         EngineAnalysisTab* analysisTab = nullptr;
         BoardInteractionController* boardController = nullptr;
         std::function<PlayMode()> getPlayMode;
+        AppActivityState* activity = nullptr;
     };
 
     explicit UiStatePolicyManager(QObject* parent = nullptr);
@@ -118,7 +111,7 @@ public:
     void applyState(AppState state);
 
     /// 現在の状態を返す
-    AppState currentState() const { return m_currentState; }
+    AppState currentState() const { return m_activity->activity(); }
 
     /// 指定要素が現在の状態で有効（Enabled/Shown）かを返す
     bool isEnabled(UiElement element) const;
@@ -155,7 +148,9 @@ private:
     void applyActionPolicy(QAction* action, Policy policy);
 
     Deps m_deps;
-    AppState m_currentState = AppState::Idle;
+    AppActivityState m_defaultActivity;
+    AppActivityState* m_activity = &m_defaultActivity;
+    void refreshActivity();
     bool m_resumeAvailable = false;
 
     /// ポリシーテーブル: state → (element → policy)

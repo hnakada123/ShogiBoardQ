@@ -2,6 +2,7 @@
 /// @brief Usi クラスの通信処理実装（詰将棋・対局・解析）
 
 #include "usi.h"
+#include "shogiboard.h"
 #include "usimatchhandler.h"
 #include "sfenpositiontracer.h"
 
@@ -20,7 +21,7 @@ void Usi::executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec)
     if (!baseSfen.isEmpty()) {
         m_presenter->setBaseSfen(baseSfen);
     } else {
-        const QString fallbackSfen = m_matchHandler->computeBaseSfenFromBoard();
+        const QString fallbackSfen = currentBoardSfen();
         if (!fallbackSfen.isEmpty()) {
             m_presenter->setBaseSfen(fallbackSfen);
         }
@@ -58,7 +59,7 @@ void Usi::prepareAnalysisSession(const QString& positionStr, int multiPV)
 
     // 思考開始時の局面SFENを保存（読み筋表示用）
     const QString baseSfen = SfenPositionTracer::sfenFromPositionCommand(positionStr);
-    m_presenter->setBaseSfen(!baseSfen.isEmpty() ? baseSfen : m_matchHandler->computeBaseSfenFromBoard());
+    m_presenter->setBaseSfen(!baseSfen.isEmpty() ? baseSfen : currentBoardSfen());
     m_considerationMaxMultiPV = qBound(1, multiPV, 10);
     m_protocolHandler->sendPosition(positionStr);
 
@@ -99,4 +100,12 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
 
     // 応答はシグナルで受信する。
     // bestmove はシグナル経由で通知される
+}
+
+QString Usi::currentBoardSfen() const
+{
+    if (!m_gameController || !m_gameController->board()) return {};
+    auto* board = m_gameController->board();
+    return board->convertBoardToSfen() + QLatin1Char(' ') + turnToSfen(board->currentPlayer())
+        + QLatin1Char(' ') + board->convertStandToSfen() + QStringLiteral(" 1");
 }

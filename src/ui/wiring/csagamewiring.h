@@ -62,7 +62,8 @@ public:
         UsiCommLogModel* usiCommLog = nullptr;
         ShogiEngineThinkingModel* engineThinking = nullptr;
         TimeControlController* timeController = nullptr;
-        PlayMode* playMode = nullptr;                ///< 盤面入力の振り分けに使うプレイモード
+        std::function<void(PlayMode)> changePlayMode;
+        const PlayMode* playMode = nullptr;                ///< 盤面入力の振り分けに使うプレイモード
         QWidget* parentWidget = nullptr;             ///< 結果ダイアログの親
         /// 棋譜と対局情報を開始局面・対局者名で作り直し、ライブ記録を始める
         std::function<void(const QString&, const QString&, const QString&)> prepareRecord;
@@ -162,7 +163,8 @@ private:
     UsiCommLogModel* m_usiCommLog = nullptr;
     ShogiEngineThinkingModel* m_engineThinking = nullptr;
     TimeControlController* m_timeController = nullptr;
-    PlayMode* m_playMode = nullptr;
+    std::function<void(PlayMode)> m_changePlayMode;
+    const PlayMode* m_playMode = nullptr;
     QWidget* m_parentWidget = nullptr;
     UiStatePolicyManager* m_uiPolicy = nullptr;
     GameRecordUpdateService* m_recordService = nullptr;

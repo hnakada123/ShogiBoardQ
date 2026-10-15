@@ -98,9 +98,9 @@ void BoardSetupController::setPositionEditController(PositionEditController* pos
 // 状態設定
 // --------------------------------------------------------
 
-void BoardSetupController::setPlayMode(PlayMode mode)
+PlayMode BoardSetupController::playMode() const
 {
-    m_playMode = mode;
+    return m_match ? m_match->playMode() : PlayMode::NotStarted;
 }
 
 void BoardSetupController::setSfenRecord(QStringList* sfenRecord)
@@ -180,7 +180,7 @@ void BoardSetupController::connectBoardClicks()
 void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 {
     qCDebug(lcUi) << "onMoveRequested from=" << from << " to=" << to
-                 << " m_playMode=" << int(m_playMode);
+                 << " playMode()=" << int(playMode());
 
     // --- 編集モードは Controller へ丸投げ ---
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
@@ -210,11 +210,10 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         return;
     }
 
-    const PlayMode matchMode = (m_match ? m_match->playMode() : PlayMode::NotStarted);
-    PlayMode modeNow = (matchMode != PlayMode::NotStarted) ? matchMode : m_playMode;
+    const PlayMode modeNow = playMode();
 
-    qCDebug(lcUi) << "effective modeNow=" << int(modeNow)
-                 << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
+    if (modeNow != PlayMode::CsaNetworkMode && m_match && !m_match->canAcceptMove()) return;
+    const auto update = m_gameController->positionUpdate();
 
     // validateAndMove は参照引数なのでローカルに退避
     QPoint hFrom = from, hTo = to;
@@ -274,8 +273,8 @@ void BoardSetupController::onMoveCommitted(Turn mover, int ply)
 {
     // EvE の評価グラフ更新
     const bool isEvE =
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine);
+        (playMode() == PlayMode::EvenEngineVsEngine) ||
+        (playMode() == PlayMode::HandicapEngineVsEngine);
 
     if (isEvE && m_evalGraph) {
         if (mover == Turn::Black) {

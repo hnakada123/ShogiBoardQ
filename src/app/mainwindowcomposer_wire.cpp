@@ -44,7 +44,7 @@
 #include "positioneditcontroller.h"
 #include "positioneditcoordinator.h"
 #include "pvclickcontroller.h"
-#include "recordnavigationwiring.h"
+#include "recordnavigationhandler.h"
 #include "recordpane.h"
 #include "replaycontroller.h"
 #include "sessionlifecyclecoordinator.h"
@@ -69,6 +69,7 @@ void MainWindowComposer::wireFoundation()
     // UI 状態ポリシー。started 通知では MainWindow 側のモード同期より先に呼ばれるので、司令塔のモードを見る
     UiStatePolicyManager::Deps ud;
     ud.ui = &m_ui;
+    ud.activity = &m_state.activity;
     ud.recordPane = m_c.recordPane;
     ud.analysisTab = m_c.analysisTab;
     ud.boardController = m_c.boardController;
@@ -124,19 +125,14 @@ void MainWindowComposer::wireFoundation()
 void MainWindowComposer::wireKifu()
 {
     KifuNavigationCoordinator::Deps kd;
-    kd.recordPane = m_c.recordPane;
-    kd.kifuRecordModel = m_c.kifuRecord;
-    kd.boardSync = m_c.boardSync;
     kd.shogiView = m_c.shogiView;
     kd.navState = m_c.navState;
-    kd.branchTree = m_c.branchTree;
+    kd.navController = m_c.kifuNavController;
     kd.currentSfenStr = &m_state.currentSfenStr;
-    kd.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
     kd.playMode = &m_state.playMode;
     kd.match = m_c.match;
     kd.analysisTab = m_c.analysisTab;
     kd.uiStatePolicy = m_c.uiStatePolicy;
-    kd.turnSync = m_c.turnStateSync.get();
     kd.josekiWiring = m_c.josekiWiring.get();
     m_c.kifuNavCoordinator->updateDeps(kd);
 
@@ -224,7 +220,6 @@ void MainWindowComposer::wireUi()
     // 盤操作
     BoardSetupController* bsc = m_c.boardSetupController;
     bsc->setMatchCoordinator(m_c.match);
-    bsc->setPlayMode(m_state.playMode);
     bsc->setEvaluationGraphController(m_c.evalGraphController.get());
 
     // 局面編集
@@ -291,26 +286,11 @@ void MainWindowComposer::wireUi()
     m_c.considerationWiring = new ConsiderationWiring(cw, &m_window);
 
     // 棋譜欄の行変更
-    RecordNavigationWiring::WiringTargets rt;
-    rt.kifuNav = m_c.kifuNavCoordinator.get();
-    rt.uiStatePolicy = m_c.uiStatePolicy;
-    rt.considerationPosition = m_c.considerationPositionService;
-    rt.boardLoad = m_c.boardLoadService;
-    rt.turnSync = m_c.turnStateSync.get();
-    rt.josekiWiring = m_c.josekiWiring.get();
-    RecordNavigationWiring::Deps rd;
+    RecordNavigationHandler::Deps rd;
     rd.navState = m_c.navState;
-    rd.branchTree = m_c.branchTree;
     rd.displayCoordinator = m_c.displayCoordinator;
-    rd.kifuRecordModel = m_c.kifuRecord;
-    rd.shogiView = m_c.shogiView;
-    rd.evalGraphController = m_c.evalGraphController.get();
-    rd.currentSfenStr = &m_state.currentSfenStr;
-    rd.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
-    rd.csaGameWiring = m_c.csaGameWiring.get();
-    rd.playMode = &m_state.playMode;
-    rd.match = m_c.match;
-    m_c.recordNavWiring->wire(rd, rt);
+    rd.liveSession = m_c.liveGameSession;
+    m_c.recordNavHandler->updateDeps(rd);
 
     // 解析タブの外部シグナル
     AnalysisTabWiring::ExternalSignalDeps ext;
@@ -335,7 +315,7 @@ void MainWindowComposer::wireUi()
     ad.positionEdit = m_c.posEditCoordinator;
     ad.comments = m_c.commentCoordinator;
     ad.displayCoordinator = m_c.displayCoordinator;
-    ad.recordNavigation = m_c.recordNavWiring;
+    ad.recordNavigation = m_c.recordNavHandler;
     ad.undoFlow = m_c.undoFlowService.get();
     ad.kifuFileController = m_c.kifuFileController;
     ad.josekiWiring = m_c.josekiWiring.get();

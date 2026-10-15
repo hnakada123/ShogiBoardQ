@@ -91,7 +91,7 @@ class PlayerInfoWiring;
 class PositionEditController;
 class PositionEditCoordinator;
 class PvClickController;
-class RecordNavigationWiring;
+class RecordNavigationHandler;
 class RecordPaneWiring;
 class TurnStateSyncService;
 class UiActionsWiring;
@@ -223,7 +223,7 @@ struct MainWindowComponents {
     PvClickController* pvClickController = nullptr;
     ConsiderationPositionService* considerationPositionService = nullptr;
     ConsiderationWiring* considerationWiring = nullptr;
-    RecordNavigationWiring* recordNavWiring = nullptr;
+    RecordNavigationHandler* recordNavHandler = nullptr;
 
     // --- 自動化 ---
     AutomationServer* automationServer = nullptr;       ///< --automation 指定時だけ作る

@@ -43,6 +43,7 @@
 #include "uinotificationservice.h"
 #include "uistatepolicymanager.h"
 #include "undoflowservice.h"
+#include "boardsyncpresenter.h"
 #include "usicommandcontroller.h"
 
 #include <QDateTime>
@@ -91,6 +92,7 @@ MatchCoordinator::Hooks MainWindowComposer::buildMatchHooks()
         m_c.playerInfoWiring->applyEngineNamesToLogModels();
         m_c.playerInfoWiring->applySecondEngineVisibility();
     };
+    hooks.game.canAppendRecord = [this]() { return m_c.liveGameSession->canAddMove(); };
     hooks.game.appendRecord = [this](const RecordEntry& entry) {
         if (m_c.gameRecordUpdateService) m_c.gameRecordUpdateService->appendRecord(entry);
     };
@@ -107,8 +109,15 @@ MatchCoordinator::Hooks MainWindowComposer::buildMatchHooks()
 MatchCoordinator::UndoHooks MainWindowComposer::buildUndoHooks()
 {
     MatchCoordinator::UndoHooks hooks;
+    hooks.canUndoRecord = [this]() { return m_c.liveGameSession->canUndoMoves(2); };
+    hooks.commitRecordUndo = [this]() {
+        m_c.gameRecordUpdateService->updateCurrentSfenAfterMove();
+        const bool undone = m_c.liveGameSession->undoMoves(2);
+        Q_ASSERT(undone);
+        Q_UNUSED(undone)
+    };
     hooks.updateHighlightsForPly = [this](int ply) {
-        m_c.kifuNavCoordinator->syncBoardAndHighlightsAtRow(ply);
+        m_c.boardSync->syncBoardAndHighlightsAtRow(ply);
     };
     hooks.updateTurnAndTimekeepingDisplay = [this]() {
         m_c.turnStateSync->updateTurnAndTimekeepingDisplay();
@@ -161,6 +170,7 @@ void MainWindowComposer::wireMatchCoordinator()
     // 司令塔は起動時に一度だけ作り、作り直さない
     m_c.matchWiring->initializeSession();
     m_c.match = m_c.matchWiring->match();
+    m_c.match->setActivityState(&m_state.activity);
     m_c.matchWiring->createMenuGameStartCoordinator();
     m_c.gameStart = m_c.matchWiring->menuGameStartCoordinator();
 
@@ -201,6 +211,7 @@ void MainWindowComposer::wireCsaGame()
     deps.timeController = m_c.timeController;
     deps.gameMoves = &m_state.gameMoves;
     deps.playMode = &m_state.playMode;
+    deps.changePlayMode = [this](PlayMode mode) { m_c.match->setPlayMode(mode); };
     deps.parentWidget = &m_window;
 
     deps.prepareRecord = [this](const QString& startSfen, const QString& black, const QString& white) {
@@ -308,11 +319,9 @@ void MainWindowComposer::wireGame()
     };
     ud.markGameRecordDirty = std::bind(&GameRecordModel::markDirty, m_c.gameRecord);
     ud.liveSession = m_c.liveGameSession;
-    ud.recordPresenter = m_c.recordPresenter;
     ud.evalGraphController = m_c.evalGraphController.get();
     ud.playMode = &m_state.playMode;
     ud.sfenRecord = &m_state.sfenRecord;
-    ud.currentSfenStr = &m_state.currentSfenStr;
     m_c.undoFlowService->updateDeps(ud);
 
     // 連続対局

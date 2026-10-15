@@ -20,11 +20,16 @@ UiStatePolicyManager::UiStatePolicyManager(QObject* parent)
     : QObject(parent)
 {
     buildPolicyTable();
+    connect(m_activity, &AppActivityState::changed, this, &UiStatePolicyManager::refreshActivity);
 }
 
 void UiStatePolicyManager::updateDeps(const Deps& deps)
 {
+    disconnect(m_activity, nullptr, this, nullptr);
     m_deps = deps;
+    m_activity = deps.activity ? deps.activity : &m_defaultActivity;
+    connect(m_activity, &AppActivityState::changed, this, &UiStatePolicyManager::refreshActivity);
+    refreshActivity();
 }
 
 // ======================================================================
@@ -216,7 +221,7 @@ UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement ele
     // 待った・投了・入玉宣言はローカル対局では人間が参加する場合だけ。エンジン同士では行わない
     if (element == UiElement::GameUndo
         || ((element == UiElement::GameResign || element == UiElement::GameNyugyokuDeclaration)
-            && m_currentState == AppState::DuringGame)) {
+            && currentState() == AppState::DuringGame)) {
         const auto mode = m_deps.getPlayMode ? m_deps.getPlayMode() : PlayMode::NotStarted;
         switch (mode) {
         case PlayMode::HumanVsHuman:
@@ -229,7 +234,7 @@ UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement ele
             return Policy::Disabled;
         }
     }
-    return m_policyTable.value(m_currentState).value(element, Policy::Enabled);
+    return m_policyTable.value(currentState()).value(element, Policy::Enabled);
 }
 
 bool UiStatePolicyManager::isEnabled(UiElement element) const
@@ -240,18 +245,17 @@ bool UiStatePolicyManager::isEnabled(UiElement element) const
 
 void UiStatePolicyManager::applyState(AppState state)
 {
-    qCDebug(lcUiPolicy).noquote()
-        << "applyState:" << static_cast<int>(state)
-        << "(from" << static_cast<int>(m_currentState) << ")";
+    if (currentState() == state) refreshActivity();
+    else m_activity->setActivity(state);
+}
 
-    m_currentState = state;
-
-    const auto& policies = m_policyTable.value(state);
-    for (auto it = policies.constBegin(); it != policies.constEnd(); ++it) {
+void UiStatePolicyManager::refreshActivity()
+{
+    const auto state = currentState();
+    const auto policies = m_policyTable.value(state);
+    for (auto it = policies.constBegin(); it != policies.constEnd(); ++it)
         applyPolicy(it.key(), effectivePolicy(it.key()));
-    }
-
-    Q_EMIT stateChanged(state);
+    emit stateChanged(state);
 }
 
 // ======================================================================

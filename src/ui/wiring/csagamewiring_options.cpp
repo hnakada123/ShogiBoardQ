@@ -104,7 +104,7 @@ void CsaGameWiring::autoSaveRecord()
 
 void CsaGameWiring::setPlayMode(PlayMode mode)
 {
-    if (m_playMode) *m_playMode = mode;
+    if (m_changePlayMode) m_changePlayMode(mode);
 }
 
 void CsaGameWiring::showGameEndDialog(const QString& title, const QString& message)

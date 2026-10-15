@@ -51,9 +51,6 @@ void BoardLoadService::loadFromSfen(const QString& sfen)
 
 void BoardLoadService::loadWithHighlights(const QString& currentSfen, const QString& prevSfen)
 {
-    // 分岐由来の局面切替では通常同期との競合を避けるため、ガードを立てる。
-    if (m_deps.kifuNav) m_deps.kifuNav->beginBranchNavGuard();
-
     // 盤面更新とハイライト計算は BoardSyncPresenter に委譲する。
     if (m_deps.boardSync) {
         m_deps.boardSync->loadBoardWithHighlights(currentSfen, prevSfen);

@@ -58,7 +58,7 @@ public:
         GameRecordModel* gameRecord = nullptr;
 
         // === 状態（AppState のフィールド） ===
-        PlayMode* playMode = nullptr;
+        const PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
         QString* startSfenStr = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;   ///< 対局の指し手列（開始時に表示中の手順から作り直す）

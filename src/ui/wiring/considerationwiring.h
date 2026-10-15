@@ -45,7 +45,7 @@ public:
         DialogCoordinator* dialogCoordinator = nullptr;
         ShogiEngineThinkingModel* considerationModel = nullptr;
         UsiCommLogModel* commLogModel = nullptr;
-        PlayMode* playMode = nullptr;
+        const PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
     };
 
@@ -122,7 +122,7 @@ private:
     DialogCoordinator* m_dialogCoordinator = nullptr;
     ShogiEngineThinkingModel* m_considerationModel = nullptr;
     UsiCommLogModel* m_commLogModel = nullptr;
-    PlayMode* m_playMode = nullptr;
+    const PlayMode* m_playMode = nullptr;
     QString* m_currentSfenStr = nullptr;
 
     ConsiderationModeUIController* m_uiController = nullptr;

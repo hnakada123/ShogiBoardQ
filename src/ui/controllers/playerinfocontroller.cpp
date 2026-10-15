@@ -69,16 +69,12 @@ void PlayerInfoController::setLogModels(UsiCommLogModel* log1, UsiCommLogModel* 
 void PlayerInfoController::setAnalysisTab(EngineAnalysisTab* tab)
 {
     m_analysisTab = tab;
+    if (m_analysisTab) m_analysisTab->setSecondEngineVisible(m_secondEngineVisible);
 }
 
 // --------------------------------------------------------
 // 状態設定
 // --------------------------------------------------------
-
-void PlayerInfoController::setPlayMode(PlayMode mode)
-{
-    m_playMode = mode;
-}
 
 void PlayerInfoController::setHumanNames(const QString& name1, const QString& name2)
 {
@@ -92,9 +88,9 @@ void PlayerInfoController::setEngineNames(const QString& name1, const QString& n
     m_engineName2 = name2;
 }
 
-void PlayerInfoController::resolveDisplayNames(QString& blackName, QString& whiteName, bool displayFallback) const
+void PlayerInfoController::resolveDisplayNames(PlayMode mode, QString& blackName, QString& whiteName, bool displayFallback) const
 {
-    switch (m_playMode) {
+    switch (mode) {
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
         blackName = m_humanName1;
@@ -129,26 +125,26 @@ void PlayerInfoController::resolveDisplayNames(QString& blackName, QString& whit
 // 対局者名更新処理
 // --------------------------------------------------------
 
-void PlayerInfoController::applyPlayersNamesForMode()
+void PlayerInfoController::applyPlayersNamesForMode(PlayMode mode)
 {
     if (!m_shogiView) return;
 
     QString blackName;
     QString whiteName;
-    resolveDisplayNames(blackName, whiteName);
+    resolveDisplayNames(mode, blackName, whiteName);
 
     m_shogiView->setBlackPlayerName(blackName);
     m_shogiView->setWhitePlayerName(whiteName);
 
 }
 
-void PlayerInfoController::applyEngineNamesToLogModels()
+void PlayerInfoController::applyEngineNamesToLogModels(PlayMode mode)
 {
-    qCDebug(lcUi).noquote() << "applyEngineNamesToLogModels: m_playMode=" << static_cast<int>(m_playMode)
+    qCDebug(lcUi).noquote() << "applyEngineNamesToLogModels: mode=" << static_cast<int>(mode)
                             << " m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
 
     const EngineNameMapping e =
-        PlayerNameService::computeEngineModels(m_playMode, m_engineName1, m_engineName2);
+        PlayerNameService::computeEngineModels(mode, m_engineName1, m_engineName2);
 
     qCDebug(lcUi).noquote() << "applyEngineNamesToLogModels: computed model1=" << e.model1 << " model2=" << e.model2;
 
@@ -162,16 +158,14 @@ void PlayerInfoController::applyEngineNamesToLogModels()
     }
 }
 
-void PlayerInfoController::updateSecondEngineVisibility()
+void PlayerInfoController::updateSecondEngineVisibility(PlayMode mode)
 {
-    if (!m_analysisTab) return;
-
     // EvE対局の場合のみ2番目のエンジン情報を表示
-    const bool isEvE =
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine);
+    m_secondEngineVisible =
+        (mode == PlayMode::EvenEngineVsEngine) ||
+        (mode == PlayMode::HandicapEngineVsEngine);
 
-    m_analysisTab->setSecondEngineVisible(isEvE);
+    if (m_analysisTab) m_analysisTab->setSecondEngineVisible(m_secondEngineVisible);
 }
 
 void PlayerInfoController::updateGameInfoPlayerNames(const QString& blackName, const QString& whiteName)
@@ -181,13 +175,13 @@ void PlayerInfoController::updateGameInfoPlayerNames(const QString& blackName, c
     }
 }
 
-void PlayerInfoController::updateGameInfoForCurrentMatch()
+void PlayerInfoController::updateGameInfoForCurrentMatch(PlayMode mode)
 {
     if (!m_gameInfoController) return;
 
     QString blackName;
     QString whiteName;
-    resolveDisplayNames(blackName, whiteName, false);
+    resolveDisplayNames(mode, blackName, whiteName, false);
 
     updateGameInfoPlayerNames(blackName, whiteName);
 }
@@ -218,12 +212,12 @@ void PlayerInfoController::onSetPlayersNames(const QString& p1, const QString& p
 
 }
 
-void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2)
+void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2, PlayMode mode)
 {
     qCDebug(lcUi).noquote() << "onSetEngineNames CALLED";
     qCDebug(lcUi).noquote() << "onSetEngineNames: e1=" << e1 << " e2=" << e2;
     qCDebug(lcUi).noquote() << "onSetEngineNames: current m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
-    qCDebug(lcUi).noquote() << "onSetEngineNames: current m_playMode=" << static_cast<int>(m_playMode);
+    qCDebug(lcUi).noquote() << "onSetEngineNames: current mode=" << static_cast<int>(mode);
 
     // メンバ変数に保存
     m_engineName1 = e1;
@@ -232,16 +226,16 @@ void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2
     qCDebug(lcUi).noquote() << "onSetEngineNames: after save m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
 
     // ログモデル名を更新
-    applyEngineNamesToLogModels();
+    applyEngineNamesToLogModels(mode);
 
     // EvE対局時に2番目のエンジン情報を表示
-    updateSecondEngineVisibility();
+    updateSecondEngineVisibility(mode);
 
     // 対局中は将棋盤の対局者名ラベルと対局情報タブを更新する。
     // 検討などでは読み込んだ棋譜の対局者名を残す。
-    if (hasMatchPlayers(m_playMode)) {
-        applyPlayersNamesForMode();
-        updateGameInfoForCurrentMatch();
+    if (hasMatchPlayers(mode)) {
+        applyPlayersNamesForMode(mode);
+        updateGameInfoForCurrentMatch(mode);
     }
 
     // 評価値グラフコントローラにもエンジン名を設定
@@ -272,18 +266,18 @@ void PlayerInfoController::onPlayerNamesResolved(const QString& human1, const QS
     m_humanName2 = human2;
     m_engineName1 = engine1;
     m_engineName2 = engine2;
-    m_playMode = static_cast<PlayMode>(playMode);
+    const auto mode = static_cast<PlayMode>(playMode);
 
     // 将棋盤の対局者名ラベルを更新
-    applyPlayersNamesForMode();
+    applyPlayersNamesForMode(mode);
 
     // エンジン名をログモデルに反映
-    applyEngineNamesToLogModels();
+    applyEngineNamesToLogModels(mode);
 
     // EvE対局時に2番目のエンジン情報を表示
-    updateSecondEngineVisibility();
+    updateSecondEngineVisibility(mode);
 
     // 対局情報タブを更新
-    updateGameInfoForCurrentMatch();
+    updateGameInfoForCurrentMatch(mode);
 
 }

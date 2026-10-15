@@ -115,8 +115,8 @@ KifuBranchNode* KifuBranchTree::findMatchingChild(KifuBranchNode* parent, const 
 
     for (KifuBranchNode* child : parent->children()) {
         if (termType != TerminalType::None) {
-            // 終局手は種類が同じなら同じ手（同じ親の下なので手番も同じ）
-            if (child->terminalType() == termType) {
+            // 終局を宣言する側は必ずしも手番側ではない（反則勝ちなど）。
+            if (child->terminalType() == termType && child->terminalSide() == entry.mover) {
                 return child;
             }
             continue;

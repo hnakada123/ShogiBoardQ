@@ -6,6 +6,8 @@
 
 #include <QString>
 #include <QStringList>
+#include "terminaltype.h"
+#include "shogitypes.h"
 
 namespace KifuExportCommon {
 
@@ -14,9 +16,6 @@ QString fwColonLine(const QString& key, const QString& value);
 
 /// 指し手の先頭の手番記号（▲△）を除く
 QString removeTurnMarker(const QString& move);
-
-/// 終局を表す指し手（投了・詰み・千日手・反則・引き分け・最大手数など）か
-bool isTerminalMove(const QString& move);
 
 /// しおり（改行区切り）を KIF/KI2 の「&名前」行として足す
 void appendKifBookmarks(const QString& bookmark, QStringList& out);
@@ -27,15 +26,15 @@ void appendKifComments(const QString& comment, QStringList& out);
 /**
  * @brief KIF/KI2 の終局行（「まで N手で…」）を作る
  * @param lastActualMoveNo 終局語を除いた最後の指し手の手数
- * @param terminalMove 終局語の指し手（手番記号付き。空なら手数だけの行）
- * @param initialBlackToMove 開始局面が先手番か
+ * @param terminal 終局の種類（Noneなら手数だけの行）
+ * @param side 終局を記録した側
  * @param handicapNames 駒落ちの呼び方（下手・上手）で書くか
  *
  * Kifu for Windows と同じく、投了は「まで N手で先手の勝ち」、詰みは「まで N手で詰み」と書き、
  * 時間切れ・反則・入玉宣言・不戦などは終局の種類を明記する（KI2 は終局語の行がないため、
  * この行から終局の種類を読み戻す）。
  */
-QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove, bool initialBlackToMove,
+QString buildEndingLine(int lastActualMoveNo, TerminalType terminal, Turn side,
                         bool handicapNames);
 
 } // namespace KifuExportCommon

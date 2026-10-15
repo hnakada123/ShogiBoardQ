@@ -72,7 +72,7 @@ public:
         ShogiEngineThinkingModel* think2 = nullptr;
         QStringList* sfenRecord = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
-        PlayMode* playMode = nullptr;
+        const PlayMode* playMode = nullptr;
 
         // --- GameStartCoordinator 配線用 ---
         TimeDisplayPresenter* timePresenter = nullptr;
@@ -142,7 +142,7 @@ private:
     UsiCommLogModel* m_comm2 = nullptr;
     ShogiEngineThinkingModel* m_think2 = nullptr;
     QStringList* m_sfenRecord = nullptr;
-    PlayMode* m_playMode = nullptr;
+    const PlayMode* m_playMode = nullptr;
 
     TimeDisplayPresenter* m_timePresenter = nullptr;
     BoardInteractionController* m_boardController = nullptr;

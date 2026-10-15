@@ -20,7 +20,7 @@ TerminalType detectTerminalType(const QString& displayText)
     if (displayText.contains(QStringLiteral("反則勝ち"))) return TerminalType::IllegalWin;
     if (displayText.contains(QStringLiteral("反則負け"))) return TerminalType::IllegalLoss;
     if (displayText.contains(QStringLiteral("不戦敗"))) return TerminalType::Forfeit;
-    if (displayText.contains(QStringLiteral("不戦勝"))) return TerminalType::Forfeit;
+    if (displayText.contains(QStringLiteral("不戦勝"))) return TerminalType::ForfeitWin;
     if (displayText.contains(QStringLiteral("中断"))) return TerminalType::Interrupt;
     if (displayText.contains(QStringLiteral("不詰"))) return TerminalType::NoCheckmate;
     if (displayText.contains(QStringLiteral("入玉勝ち"))

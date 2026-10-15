@@ -10,6 +10,8 @@
 #include <QList>
 
 #include <utility>
+#include "terminaltype.h"
+#include "shogitypes.h"
 
 /**
  * @brief 棋譜の1手分の表示情報を保持する構造体
@@ -25,10 +27,12 @@ struct KifDisplayItem
     QString bookmark;   ///< しおり
     int     ply = 0;    ///< 手数（0始まり）
 
-    // Structured display context. prettyMove remains canonical for file writers.
+    // 表示と保存で共有する型付き局面・終局情報。
     QString beforeSfen;
     QString usiMove;
     bool terminal = false;
+    TerminalType terminalType = TerminalType::None;
+    Turn terminalSide = Turn::Black;
 
     KifDisplayItem() = default;
 

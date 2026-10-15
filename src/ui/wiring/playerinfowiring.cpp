@@ -88,7 +88,6 @@ void PlayerInfoWiring::setAnalysisTab(EngineAnalysisTab* analysisTab)
     m_analysisTab = analysisTab;
     if (m_playerInfoController) {
         m_playerInfoController->setAnalysisTab(analysisTab);
-        m_playerInfoController->updateSecondEngineVisibility();
     }
 }
 
@@ -145,30 +144,27 @@ void PlayerInfoWiring::applyPlayersNamesForMode()
 {
     ensurePlayerInfoController();
     if (!m_playerInfoController) return;
-    if (m_playMode) m_playerInfoController->setPlayMode(*m_playMode);
     if (m_humanName1 && m_humanName2)
         m_playerInfoController->setHumanNames(*m_humanName1, *m_humanName2);
     if (m_engineName1 && m_engineName2)
         m_playerInfoController->setEngineNames(*m_engineName1, *m_engineName2);
-    m_playerInfoController->applyPlayersNamesForMode();
+    m_playerInfoController->applyPlayersNamesForMode(m_playMode ? *m_playMode : PlayMode::NotStarted);
 }
 
 void PlayerInfoWiring::applyEngineNamesToLogModels()
 {
     ensurePlayerInfoController();
     if (!m_playerInfoController) return;
-    if (m_playMode) m_playerInfoController->setPlayMode(*m_playMode);
     if (m_engineName1 && m_engineName2)
         m_playerInfoController->setEngineNames(*m_engineName1, *m_engineName2);
-    m_playerInfoController->applyEngineNamesToLogModels();
+    m_playerInfoController->applyEngineNamesToLogModels(m_playMode ? *m_playMode : PlayMode::NotStarted);
 }
 
 void PlayerInfoWiring::applySecondEngineVisibility()
 {
     ensurePlayerInfoController();
     if (!m_playerInfoController) return;
-    if (m_playMode) m_playerInfoController->setPlayMode(*m_playMode);
-    m_playerInfoController->updateSecondEngineVisibility();
+    m_playerInfoController->updateSecondEngineVisibility(m_playMode ? *m_playMode : PlayMode::NotStarted);
 }
 
 void PlayerInfoWiring::onSetPlayersNames(const QString& p1, const QString& p2)
@@ -183,10 +179,7 @@ void PlayerInfoWiring::onSetEngineNames(const QString& e1, const QString& e2)
 {
     ensurePlayerInfoController();
     if (m_playerInfoController) {
-        if (m_playMode) {
-            m_playerInfoController->setPlayMode(*m_playMode);
-        }
-        m_playerInfoController->onSetEngineNames(e1, e2);
+        m_playerInfoController->onSetEngineNames(e1, e2, m_playMode ? *m_playMode : PlayMode::NotStarted);
 
         // 外部参照も更新
         const QString newEngine1 = m_playerInfoController->engineName1();
@@ -228,16 +221,13 @@ void PlayerInfoWiring::updateGameInfoForCurrentMatch()
 {
     ensurePlayerInfoController();
     if (m_playerInfoController) {
-        if (m_playMode) {
-            m_playerInfoController->setPlayMode(*m_playMode);
-        }
         if (m_humanName1 && m_humanName2) {
             m_playerInfoController->setHumanNames(*m_humanName1, *m_humanName2);
         }
         if (m_engineName1 && m_engineName2) {
             m_playerInfoController->setEngineNames(*m_engineName1, *m_engineName2);
         }
-        m_playerInfoController->updateGameInfoForCurrentMatch();
+        m_playerInfoController->updateGameInfoForCurrentMatch(m_playMode ? *m_playMode : PlayMode::NotStarted);
     }
 }
 
@@ -252,7 +242,6 @@ void PlayerInfoWiring::onPlayerNamesResolved(const QString& human1, const QStrin
     if (m_humanName2) *m_humanName2 = human2;
     if (m_engineName1) *m_engineName1 = engine1;
     if (m_engineName2) *m_engineName2 = engine2;
-    if (m_playMode) *m_playMode = static_cast<PlayMode>(playMode);
 
     ensurePlayerInfoController();
     if (m_playerInfoController) {

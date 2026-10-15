@@ -48,12 +48,33 @@ struct StrategyHarness {
 class TestGameStrategy : public QObject {
     Q_OBJECT
     QTemporaryDir m_config;
+    StrategyHarness* m_observed = nullptr;
+    bool m_coherentMove = false;
+    void observeCommittedMove(Turn mover, int ply)
+    {
+        const auto& h = *m_observed;
+        m_coherentMove = mover == Turn::Black && ply == 1 && h.records.size() == 1
+            && h.game.currentPlayer() == Turn::White && h.sfens.size() == 2 && h.moves.size() == 1
+            && h.records.last().sfen == h.sfens.last()
+            && h.records.last().time.toText() == h.clock.recordTime(Turn::Black).toText();
+    }
 private slots:
     void initTestCase()
     {
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+    }
+    void committedNotificationSeesWholeMove()
+    {
+        StrategyHarness h;
+        m_observed = &h;
+        m_coherentMove = false;
+        h.match->setPlayMode(PlayMode::EvenEngineVsEngine);
+        connect(&h.game, &ShogiGameController::moveCommitted, this, &TestGameStrategy::observeCommittedMove);
+        QVERIFY(h.match->strategyCtx().applyEngineMove(*UsiMove::parse(u"7g7f"), Turn::Black, 3000, true));
+        QVERIFY(m_coherentMove);
+        m_observed = nullptr;
     }
     void acceptedMove_data()
     {

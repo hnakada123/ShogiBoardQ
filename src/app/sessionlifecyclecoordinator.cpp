@@ -56,7 +56,7 @@ void SessionLifecycleCoordinator::resetToInitialState()
 
 void SessionLifecycleCoordinator::resetGameState()
 {
-    m_deps.state->playMode = PlayMode::NotStarted;
+    m_deps.state->activity.setPlayMode(PlayMode::NotStarted);
     MainWindowResetService().clearGameStateFields(*m_deps.state);
     m_deps.replayController->setReplayMode(false);
     m_deps.replayController->setResumeFromCurrent(false);
@@ -138,7 +138,7 @@ void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::T
 
 void SessionLifecycleCoordinator::handleGameStarted(const MatchCoordinator::StartOptions& info)
 {
-    m_deps.state->playMode = info.mode;
+    m_deps.state->activity.setPlayMode(info.mode);
 
     if (!info.sfenStart.isEmpty()) {
         m_deps.state->currentSfenStr = info.sfenStart;
@@ -181,7 +181,7 @@ void SessionLifecycleCoordinator::handleGameEndProcessed(const MatchCoordinator:
     if (info.cause == MatchCoordinator::Cause::BreakOff) return;
 
     // 終局表示・保存が完了してから次局を予約する（EvE モードのみ）
-    const PlayMode mode = m_deps.state->playMode;
+    const PlayMode mode = m_deps.match->configuredPlayMode();
     const bool isEvE = (mode == PlayMode::EvenEngineVsEngine || mode == PlayMode::HandicapEngineVsEngine);
     if (isEvE && m_deps.consecutiveGamesController->shouldStartNextGame()) {
         qCDebug(lcApp) << "EvE game ended, starting next consecutive game...";

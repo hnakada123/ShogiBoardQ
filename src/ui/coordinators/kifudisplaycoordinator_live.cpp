@@ -40,7 +40,7 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
 
     // 対局中は盤面が対局ロジックによって既に更新されているため、
     // KifuNavigationController::goToNode() は使わない。goToNode() は棋譜閲覧用の経路で、
-    // 盤面を SFEN から再設定し、手番同期と分岐ナビガードまで走らせてしまう。
+    // 盤面を SFEN から再設定し、手番同期も行う。
     // ここではナビゲーション状態と各表示のハイライトだけを最新手に同期する。
     if (liveLineIndex > 0) {
         m_state->setPreferredLineIndex(liveLineIndex);
@@ -58,22 +58,14 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
     updateBranchCandidatesView();
 }
 
-void KifuDisplayCoordinator::onLiveGameMovesAboutToBeUndone(KifuBranchNode* target)
-{
-    if (m_state != nullptr) {
-        // setCurrentNode は旧ノードも参照するため、解放前に移動する。
-        m_state->setCurrentNode(target);
-        m_state->clearLineSelectionMemory();
-        m_state->resetPreferredLineIndex();
-    }
-}
-
 void KifuDisplayCoordinator::onLiveGameMovesUndone()
 {
     if (m_tree == nullptr || m_state == nullptr || m_liveSession == nullptr) {
         return;
     }
     KifuBranchNode* node = m_liveSession->liveNode();
+    m_state->setCurrentNode(node);
+    m_state->clearLineSelectionMemory();
     m_lastLineIndex = m_liveSession->currentLineIndex();
     m_state->setPreferredLineIndex(m_lastLineIndex);
     m_state->rememberPathSelections(node);

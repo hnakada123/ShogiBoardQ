@@ -149,6 +149,8 @@ void KifuSelectionSync::applyBranchCandidates(const QList<KifuBranchNode*>& cand
         item.beforeSfen = node->parent() ? node->parent()->sfen() : QString();
         item.usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
         item.terminal = node->isTerminal();
+        item.terminalType = node->terminalType();
+        item.terminalSide = node->terminalSide();
         item.timeText = node->timeText();
         items.append(item);
     }
@@ -242,6 +244,8 @@ void KifuSelectionSync::syncBranchCandidatesForNode(KifuBranchNode* targetNode)
             item.beforeSfen = sibling->parent() ? sibling->parent()->sfen() : QString();
             item.usiMove = sibling->isTerminal() ? QString() : KifuPresentation::usiMove(sibling->move());
             item.terminal = sibling->isTerminal();
+            item.terminalType = sibling->terminalType();
+            item.terminalSide = sibling->terminalSide();
             item.timeText = sibling->timeText();
             items.append(item);
         }

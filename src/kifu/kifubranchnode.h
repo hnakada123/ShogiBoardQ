@@ -62,6 +62,9 @@ public:
     TerminalType terminalType() const { return m_terminalType; }
     void setTerminalType(TerminalType type) { m_terminalType = type; }
 
+    Turn terminalSide() const { return m_terminalSide; }
+    void setTerminalSide(Turn side) { m_terminalSide = side; }
+
     // --- ツリー構造 ---
 
     /// 親ノードを取得（nullptr=ルート）
@@ -108,6 +111,8 @@ private:
     QString m_bookmark;                                 ///< しおり
     RecordTime m_time;                                 ///< 消費時間テキスト
     TerminalType m_terminalType = TerminalType::None;   ///< 終局手の種類
+
+    Turn m_terminalSide = Turn::Black;                 ///< 終局を記録した側
 
     KifuBranchNode* m_parent = nullptr;                 ///< 親ノード（非所有）
     QList<KifuBranchNode*> m_children;                ///< 子ノードリスト（非所有、KifuBranchTreeが所有）
