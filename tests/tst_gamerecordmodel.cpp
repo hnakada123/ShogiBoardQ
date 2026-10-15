@@ -187,7 +187,7 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves, usi);
+        QCOMPARE(result.mainline.usiMoves(), usi);
     }
 
     void allFormatsRoundTripCustomPosition()
@@ -225,8 +225,8 @@ private slots:
         else parsed = UsenToSfenConverter::parseWithVariations(file.fileName(), result, &error);
         QVERIFY2(parsed, qPrintable(error));
         QCOMPARE(result.mainline.baseSfen, initial);
-        QCOMPARE(result.mainline.usiMoves, usi);
-        QCOMPARE(SfenPositionTracer::buildSfenRecord(result.mainline.baseSfen, result.mainline.usiMoves, false).last(), tip->sfen());
+        QCOMPARE(result.mainline.usiMoves(), usi);
+        QCOMPARE(SfenPositionTracer::buildSfenRecord(result.mainline.baseSfen, result.mainline.usiMoves(), false).last(), tip->sfen());
     }
 
     void kifBodUsesDeclaredTurn_data()
@@ -330,13 +330,13 @@ private slots:
             ? KifToSfenConverter::parseWithVariations(file.fileName(), result, &error)
             : Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves.size(), moveCount);
-        QCOMPARE(result.mainline.disp[1].ply, 1);
-        QVERIFY(result.mainline.disp[1].prettyMove.startsWith(QStringLiteral("△")));
+        QCOMPARE(result.mainline.usiMoves().size(), moveCount);
+        QCOMPARE(result.mainline.displayItems()[1].ply, 1);
+        QVERIFY(result.mainline.displayItems()[1].prettyMove.startsWith(QStringLiteral("△")));
         QCOMPARE(result.variations.size(), 1);
-        QCOMPARE(result.variations[0].line.usiMoves, QStringList({"8c8d"}));
-        QCOMPARE(result.variations[0].line.disp[0].ply, 1);
-        QVERIFY(result.variations[0].line.disp[0].prettyMove.startsWith(QStringLiteral("△")));
+        QCOMPARE(result.variations[0].line.usiMoves(), QStringList({"8c8d"}));
+        QCOMPARE(result.variations[0].line.displayItems()[0].ply, 1);
+        QVERIFY(result.variations[0].line.displayItems()[0].prettyMove.startsWith(QStringLiteral("△")));
     }
 
     void usenWhiteToMoveBranchDrop()
@@ -358,7 +358,7 @@ private slots:
         QString error;
         QVERIFY2(UsenToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
-        QCOMPARE(result.variations[0].line.usiMoves, QStringList({"P*5e"}));
+        QCOMPARE(result.variations[0].line.usiMoves(), QStringList({"P*5e"}));
     }
 
     void jkfPromotedMinorPieces_data()
@@ -393,8 +393,8 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(JkfToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves, QStringList({"4f5e"}));
-        QCOMPARE(result.mainline.sfenList.last(), tree.mainLine().last()->sfen());
+        QCOMPARE(result.mainline.usiMoves(), QStringList({"4f5e"}));
+        QCOMPARE(result.mainline.sfenList().last(), tree.mainLine().last()->sfen());
     }
 
     void csaTimeUsesMinutesAndSeconds()
@@ -683,7 +683,7 @@ private slots:
         QStringList expected = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         if (!branch) expected.append(newUsi);
         QCOMPARE(result.mainline.baseSfen, kHirateSfen);
-        QCOMPARE(result.mainline.usiMoves, expected);
+        QCOMPARE(result.mainline.usiMoves(), expected);
         QCOMPARE(model.collectMainlineUsiForExport(), expected);
 
         // 現在手までのUSIコピーでは、本譜の先頭から指定手数に制限する。
@@ -765,14 +765,14 @@ private slots:
         else if (format == QStringLiteral("csa")) ok = CsaToSfenConverter::parse(tmp.fileName(), result, &error);
         else ok = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves, expectedMoves);
-        QVERIFY(result.mainline.disp.size() >= 3);
-        QCOMPARE(result.mainline.disp[0].comment.trimmed(), QStringLiteral("opening comment"));
-        QCOMPARE(result.mainline.disp[1].comment.trimmed(), QStringLiteral("first comment"));
-        QCOMPARE(result.mainline.disp[2].comment.trimmed(), QStringLiteral("last comment"));
+        QCOMPARE(result.mainline.usiMoves(), expectedMoves);
+        QVERIFY(result.mainline.displayItems().size() >= 3);
+        QCOMPARE(result.mainline.displayItems()[0].comment.trimmed(), QStringLiteral("opening comment"));
+        QCOMPARE(result.mainline.displayItems()[1].comment.trimmed(), QStringLiteral("first comment"));
+        QCOMPARE(result.mainline.displayItems()[2].comment.trimmed(), QStringLiteral("last comment"));
         if (format != QStringLiteral("ki2")) {
-            QVERIFY(result.mainline.disp[1].timeText.contains(QStringLiteral("00:12")));
-            QVERIFY(result.mainline.disp[2].timeText.contains(QStringLiteral("00:34")));
+            QVERIFY(result.mainline.displayItems()[1].timeText.contains(QStringLiteral("00:12")));
+            QVERIFY(result.mainline.displayItems()[2].timeText.contains(QStringLiteral("00:34")));
         }
     }
 
@@ -804,14 +804,14 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
+        QCOMPARE(result.mainline.usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
         QCOMPARE(result.variations.size(), 3);
         QCOMPARE(result.variations[0].startPly, 1);
-        QCOMPARE(result.variations[0].line.usiMoves, QStringList({QStringLiteral("2g2f")}));
+        QCOMPARE(result.variations[0].line.usiMoves(), QStringList({QStringLiteral("2g2f")}));
         QCOMPARE(result.variations[1].startPly, 2);
-        QCOMPARE(result.variations[1].line.usiMoves, QStringList({QStringLiteral("8c8d"), QStringLiteral("1g1f")}));
+        QCOMPARE(result.variations[1].line.usiMoves(), QStringList({QStringLiteral("8c8d"), QStringLiteral("1g1f")}));
         QCOMPARE(result.variations[2].startPly, 3);
-        QCOMPARE(result.variations[2].line.usiMoves, QStringList({QStringLiteral("1g1f")}));
+        QCOMPARE(result.variations[2].line.usiMoves(), QStringList({QStringLiteral("1g1f")}));
 
         // 分岐内の分岐も、代替される子の手に forks を付ける。
         addTestMove(tree, alternateSecond, QStringLiteral("9g9f"), QStringLiteral("▲９六歩(97)"));
@@ -826,9 +826,9 @@ private slots:
         QVERIFY2(JkfToSfenConverter::parseWithVariations(nestedFile.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 4);
         QCOMPARE(result.variations[2].startPly, 3);
-        QCOMPARE(result.variations[2].line.usiMoves, QStringList({"9g9f"}));
+        QCOMPARE(result.variations[2].line.usiMoves(), QStringList({"9g9f"}));
         QCOMPARE(result.variations[2].line.baseSfen, alternateSecond->sfen());
-        QCOMPARE(result.variations[2].line.sfenList.size(), 2);
+        QCOMPARE(result.variations[2].line.sfenList().size(), 2);
     }
 
     void jkfForks_sameDestinationUsesParentMove()
@@ -852,7 +852,7 @@ private slots:
         QVERIFY2(JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations[0].startPly, 4);
-        QCOMPARE(result.variations[0].line.usiMoves, QStringList({QStringLiteral("3a2b")}));
+        QCOMPARE(result.variations[0].line.usiMoves(), QStringList({QStringLiteral("3a2b")}));
     }
 
     // === Comment Management ===
@@ -1230,7 +1230,7 @@ private slots:
         QString error;
         QVERIFY2(Ki2ToSfenConverter::parseWithVariations(ki2.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
-        QCOMPARE(result.variations.at(0).line.usiMoves, QStringList({QStringLiteral("4a5b")}));
+        QCOMPARE(result.variations.at(0).line.usiMoves(), QStringList({QStringLiteral("4a5b")}));
     }
 
     // KI2 の結果行から終局の種類（詰み・切れ負けなど）を読み戻せる
@@ -1257,9 +1257,9 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(Ki2ToSfenConverter::parseWithVariations(ki2.fileName(), result, &error), qPrintable(error));
-        QVERIFY(result.mainline.disp.last().prettyMove.contains(QStringLiteral("詰み")));
+        QVERIFY(result.mainline.displayItems().last().prettyMove.contains(QStringLiteral("詰み")));
         QCOMPARE(result.variations.size(), 1);
-        QVERIFY(result.variations.at(0).line.disp.last().prettyMove.contains(QStringLiteral("切れ負け")));
+        QVERIFY(result.variations.at(0).line.displayItems().last().prettyMove.contains(QStringLiteral("切れ負け")));
     }
 
     // 手合割：駒落ちの初期配置は名前で、それ以外の局面は「その他」

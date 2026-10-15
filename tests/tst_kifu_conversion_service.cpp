@@ -8,6 +8,7 @@
 
 #include "kifuconversionservice.h"
 #include "sfenutils.h"
+#include "kifuloadparser.h"
 
 using Format = KifuConversionService::Format;
 
@@ -39,6 +40,32 @@ private:
     }
 
 private slots:
+    void unreplayableMoveIsRejected_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<int>("format");
+        QTest::newRow("usi-empty-source") << QStringLiteral("position startpos moves 7g7f 3c3d 7g7e") << int(Format::Usi);
+        QTest::newRow("kif-empty-source") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n3 ７五歩(77)\n") << int(Format::Kif);
+        QTest::newRow("kif-variation-empty-source") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n変化：3手\n3 ７五歩(77)\n") << int(Format::Kif);
+    }
+    void unreplayableMoveIsRejected()
+    {
+        QFETCH(QString, text);
+        QFETCH(int, format);
+        KifuConversionService::Request request;
+        request.text = text;
+        request.inputFormat = static_cast<Format>(format);
+        request.outputFormat = Format::Sfen;
+        const auto result = KifuConversionService::convert(request);
+        QVERIFY(!result.ok);
+        QVERIFY(result.error.contains(QStringLiteral("3")));
+        QVERIFY(result.error.contains(QStringLiteral("Source square is empty")));
+        QVERIFY(result.lines.isEmpty());
+        const auto loaded = KifuLoadParser::parseText(text);
+        QVERIFY(!loaded.success);
+        QVERIFY(!loaded.error.isEmpty());
+    }
+
     void transposedPositionsKeepVariationParent_data()
     {
         QTest::addColumn<int>("format");

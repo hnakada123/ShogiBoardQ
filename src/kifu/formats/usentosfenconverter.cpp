@@ -63,13 +63,13 @@ QString UsenToSfenConverter::detectInitialSfenFromText(const QString& text, QStr
 QStringList UsenToSfenConverter::convertFile(const QString& usenPath, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(usenPath, result, errorMessage) ? result.mainline.usiMoves : QStringList();
+    return parseWithVariations(usenPath, result, errorMessage) ? result.mainline.usiMoves() : QStringList();
 }
 
 QList<KifDisplayItem> UsenToSfenConverter::extractMovesWithTimes(const QString& usenPath, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(usenPath, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
+    return parseWithVariations(usenPath, result, errorMessage) ? result.mainline.displayItems() : QList<KifDisplayItem>();
 }
 
 bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
@@ -117,28 +117,24 @@ bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QS
     }
     const QStringList mainUsiMoves = decodedMain.moves;
 
-    // 本譜のKifLineを構築
-    out.mainline.baseSfen = initialSfen;
-    out.mainline.usiMoves = mainUsiMoves;
-
-    // 開始局面
-    out.mainline.disp.push_back(KifuParseCommon::createOpeningDisplayItem(QString(), QString()));
-
-    // 共通パイプラインで本譜の指し手アイテムを構築
-    int mainPlyNumber = KifuParseCommon::buildUsiMoveDisplayItems(
-        mainUsiMoves, initialSfen, 1, out.mainline.disp);
-
-    // 終局理由
+    KifuParseCommon::KifLineDraft main;
+    main.baseSfen = initialSfen;
+    main.usiMoves = mainUsiMoves;
+    main.disp.append(KifuParseCommon::createOpeningDisplayItem({}, {}));
+    for (qsizetype i = 0; i < mainUsiMoves.size(); ++i)
+        main.disp.append(KifuParseCommon::createMoveDisplayItem(static_cast<int>(i) + 1, {}));
     if (!mainTerminal.isEmpty()) {
-        out.mainline.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
-            mainPlyNumber + 1, terminalCodeToJapanese(mainTerminal), initialSfen, mainUsiMoves.size()));
-        out.mainline.endsWithTerminal = true;
+        main.disp.append(KifuParseCommon::createUsiTerminalDisplayItem(
+            static_cast<int>(mainUsiMoves.size()) + 1, terminalCodeToJapanese(mainTerminal), initialSfen, mainUsiMoves.size()));
+        main.endsWithTerminal = true;
     }
+    if (!main.resolve(out.mainline, errorMessage)) return false;
 
     // 分岐のデコード
     // USEN形式では各分岐は「直前に記述された手順」からの派生として扱う。
     // lastLineUsiMoves は直前に記述された手順の全USI指し手列を保持する。
     QStringList lastLineUsiMoves = mainUsiMoves;
+    QStringList lastLineSfens = out.mainline.sfenList();
     QList<int> lastLineOwners(mainUsiMoves.size(), -1);
 
     for (const auto& var : std::as_const(variations)) {
@@ -166,36 +162,23 @@ bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QS
             prefixMoves.append(lastLineUsiMoves[i]);
         }
 
-        // 分岐点の局面を再現する
-        SfenPositionTracer varTracer;
-        if (!varTracer.setFromSfen(initialSfen)) {
-            varTracer.resetToStartpos();
-        }
-        for (const QString& move : std::as_const(prefixMoves)) {
-            (void)varTracer.applyUsiMove(move);
-        }
-
         KifVariation kifVar;
         kifVar.startPly = startPly;
         kifVar.parentVariation = offset > 0 ? lastLineOwners.at(offset - 1) : -1;
-        kifVar.line.baseSfen = varTracer.toSfenString();
-        kifVar.line.usiMoves = varUsiMoves;
-
-        // 共通パイプラインで分岐の表示アイテムを構築
-        int varPlyNumber = KifuParseCommon::buildUsiMoveDisplayItems(
-            varUsiMoves, kifVar.line.baseSfen, startPly, kifVar.line.disp,
-            prefixMoves.isEmpty() ? QString() : prefixMoves.last());
-
-        // 分岐の終局理由
+        KifuParseCommon::KifLineDraft branch;
+        branch.startPly = startPly;
+        branch.baseSfen = lastLineSfens.at(offset);
+        branch.previousUsi = prefixMoves.isEmpty() ? QString() : prefixMoves.last();
+        branch.usiMoves = varUsiMoves;
+        for (qsizetype i = 0; i < varUsiMoves.size(); ++i)
+            branch.disp.append(KifuParseCommon::createMoveDisplayItem(startPly + static_cast<int>(i), {}));
         if (!varTerminal.isEmpty()) {
-            kifVar.line.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
-                varPlyNumber + 1, terminalCodeToJapanese(varTerminal), kifVar.line.baseSfen, varUsiMoves.size()));
-            kifVar.line.endsWithTerminal = true;
+            branch.disp.append(KifuParseCommon::createUsiTerminalDisplayItem(
+                startPly + static_cast<int>(varUsiMoves.size()), terminalCodeToJapanese(varTerminal), branch.baseSfen, varUsiMoves.size()));
+            branch.endsWithTerminal = true;
         }
-
-        // 各手の後の局面を構築。分岐元は parentVariation と startPly で指定済み。
-        kifVar.line.sfenList = SfenPositionTracer::buildSfenRecord(
-            kifVar.line.baseSfen, varUsiMoves, !varTerminal.isEmpty());
+        if (!branch.resolve(kifVar.line, errorMessage)) return false;
+        lastLineSfens = lastLineSfens.mid(0, offset) + kifVar.line.sfenList();
 
         const int index = static_cast<int>(out.variations.size());
         out.variations.push_back(kifVar);

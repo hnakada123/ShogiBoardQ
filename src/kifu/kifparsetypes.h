@@ -7,12 +7,10 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
+#include <optional>
 
-#include "shogimove.h"
-
-// KifDisplayItem は前方宣言に留める。
-// 実体定義を使う翻訳単位（.cpp）側でヘッダを include すること。
-struct KifDisplayItem;
+#include "recordentry.h"
+#include "kifdisplayitem.h"
 
 /// KIFの「(キーワード)：(内容)」行を表すペア
 ///
@@ -27,14 +25,59 @@ struct KifGameInfoItem {
  * @brief 1本の手順（分岐ライン）を表す構造体
  *
  */
+/// 取り込んだ1行。着手・終局・局面・注釈が常に一緒に移動する。
+struct ImportedRecordEntry {
+    RecordEntry record;
+    QString comment;
+    QString bookmark;
+};
+
 struct KifLine {
-    int startPly = 1;             ///< どの手目から開始か（例: 5）
-    QString baseSfen;             ///< 分岐開始局面（メインを startPly-1 まで進めたSFEN）
-    QStringList usiMoves;         ///< 分岐のUSI指し手列
-    QList<KifDisplayItem> disp;   ///< 表示用（▲△＋時間）: 先頭=分岐の最初の手
-    QStringList sfenList;         ///< base含む局面列（0=base, 以降=各手後）
-    QList<ShogiMove> gameMoves; ///< GUI用指し手列
-    bool endsWithTerminal = false; ///< 終局手で終わるか
+    int startPly = 1;
+    QString baseSfen;
+    std::optional<KifDisplayItem> opening;
+    QList<ImportedRecordEntry> entries;
+
+    bool endsWithTerminal() const { return !entries.isEmpty() && entries.last().record.isTerminal(); }
+    int moveCount() const { return static_cast<int>(entries.size()) - (endsWithTerminal() ? 1 : 0); }
+    QString sfenAt(int offset) const
+    {
+        return offset == 0 ? baseSfen : (offset > 0 && offset <= moveCount() ? entries.at(offset - 1).record.sfen : QString());
+    }
+    QStringList usiMoves() const
+    {
+        QStringList out;
+        for (const auto& entry : entries)
+            if (!entry.record.isTerminal()) out.append(entry.record.move.toUsiMove().toString());
+        return out;
+    }
+    QStringList sfenList() const
+    {
+        QStringList out{baseSfen};
+        for (const auto& entry : entries)
+            if (!entry.record.isTerminal()) out.append(entry.record.sfen);
+        return out;
+    }
+    QList<KifDisplayItem> displayItems() const
+    {
+        QList<KifDisplayItem> out;
+        if (opening) out.append(*opening);
+        QString before = baseSfen;
+        int ply = startPly;
+        for (const auto& entry : entries) {
+            const auto& record = entry.record;
+            KifDisplayItem item(record.displayText, record.time.toText(), entry.comment, ply++);
+            item.bookmark = entry.bookmark;
+            item.beforeSfen = before;
+            item.terminal = record.isTerminal();
+            item.terminalType = record.terminal;
+            item.terminalSide = record.mover;
+            if (!item.terminal) item.usiMove = record.move.toUsiMove().toString();
+            out.append(item);
+            before = record.sfen;
+        }
+        return out;
+    }
 };
 
 /**

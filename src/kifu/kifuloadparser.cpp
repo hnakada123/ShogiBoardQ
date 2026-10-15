@@ -113,39 +113,6 @@ KifuLoadResult KifuLoadParser::parseContent(const QString& content, Format forma
     if (canceled(cancel)) return result;
     if (result.initialSfen.isEmpty()) result.initialSfen = SfenUtils::hirateSfen();
     if (record.mainline.baseSfen.isEmpty()) record.mainline.baseSfen = result.initialSfen;
-    if (record.mainline.sfenList.isEmpty() && !record.mainline.usiMoves.isEmpty()) {
-        record.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
-            record.mainline.baseSfen, record.mainline.usiMoves, false);
-    }
-    for (auto& variation : record.variations) {
-        if (canceled(cancel)) break;
-        auto& line = variation.line;
-        if (!line.sfenList.isEmpty() || line.usiMoves.isEmpty()) continue;
-        const int ply = variation.startPly - 1;
-        if (line.baseSfen.isEmpty() && ply >= 0 && ply < record.mainline.sfenList.size())
-            line.baseSfen = record.mainline.sfenList.at(ply);
-        if (!line.baseSfen.isEmpty())
-            line.sfenList = SfenPositionTracer::buildSfenRecord(line.baseSfen, line.usiMoves, line.endsWithTerminal);
-    }
-    if (canceled(cancel)) return result;
-    // Attach display context once at the import boundary; writers still use canonical fields.
-    const auto attachContext = [](KifLine& parsed) {
-        if (parsed.gameMoves.size() != parsed.usiMoves.size())
-            parsed.gameMoves = SfenPositionTracer::buildGameMoves(parsed.baseSfen, parsed.usiMoves);
-        int moveIndex = 0;
-        const int first = !parsed.disp.isEmpty() && (parsed.disp.first().ply == 0 || parsed.disp.first().prettyMove.isEmpty()) ? 1 : 0;
-        for (qsizetype i = first; i < parsed.disp.size(); ++i) {
-            auto& item = parsed.disp[i];
-            if (moveIndex < parsed.usiMoves.size()) {
-                item.beforeSfen = parsed.sfenList.value(moveIndex);
-                item.usiMove = parsed.usiMoves.at(moveIndex++);
-            } else {
-                item.terminal = parsed.endsWithTerminal;
-            }
-        }
-    };
-    attachContext(record.mainline);
-    for (auto& variation : record.variations) attachContext(variation.line);
     return result;
 }
 

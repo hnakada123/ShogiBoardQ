@@ -80,13 +80,13 @@ QString JkfToSfenConverter::detectInitialSfenFromText(const QString& text, QStri
 QStringList JkfToSfenConverter::convertFile(const QString& jkfPath, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(jkfPath, result, errorMessage) ? result.mainline.usiMoves : QStringList();
+    return parseWithVariations(jkfPath, result, errorMessage) ? result.mainline.usiMoves() : QStringList();
 }
 
 QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& jkfPath, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(jkfPath, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
+    return parseWithVariations(jkfPath, result, errorMessage) ? result.mainline.displayItems() : QList<KifDisplayItem>();
 }
 
 bool JkfToSfenConverter::parseWithVariations(const QString& jkfPath,
@@ -259,14 +259,14 @@ namespace {
 // 分岐にはその手を指す前の局面・移動先・累計時間を引き継ぐ。
 bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly,
                   int prevToX, int prevToY, std::array<qint64, 2> cumSec,
-                  int parentVariation, KifLine& line, QList<KifVariation>& variations, QString* warn)
+                  int parentVariation, KifLine& outLine, QList<KifVariation>& variations, QString* warn)
 {
     const bool isMainline = parentVariation < 0;
+    KifuParseCommon::KifLineDraft line;
     line.baseSfen = baseSfen;
     line.startPly = firstPly;
-    line.sfenList = {baseSfen};
     SfenPositionTracer tracer;
-    (void)tracer.setFromSfen(baseSfen);
+    if (!tracer.setFromSfen(baseSfen)) return line.resolve(outLine, warn);
     int ply = firstPly;
     if (isMainline) line.disp.append(KifuParseCommon::createOpeningDisplayItem({}, {}));
 
@@ -336,12 +336,14 @@ bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
         line.disp.append(item);
         if (!usi.isEmpty()) {
             line.usiMoves.append(usi);
-            (void)tracer.applyUsiMove(usi);
-            line.sfenList.append(tracer.toSfenString());
+            if (!tracer.applyUsiMove(usi)) {
+                appendWarning(warn, QStringLiteral("Cannot restore move %1: %2").arg(ply).arg(usi));
+                return false;
+            }
         }
         ++ply;
     }
-    return true;
+    return line.resolve(outLine, warn);
 }
 } // namespace
 

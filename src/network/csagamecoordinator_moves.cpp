@@ -5,10 +5,10 @@
 
 #include "csamoveconverter.h"
 #include "logcategories.h"
-#include "sfenpositiontracer.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
+#include <QSignalBlocker>
 
 // ============================================================
 // 裁定待ち（解釈できない指し手行）
@@ -112,19 +112,13 @@ void CsaGameCoordinator::syncClockAfterMove(bool startMyTurnClock)
 // 着手の記録
 // ============================================================
 
-void CsaGameCoordinator::fillRecordPosition(RecordEntry& entry, const QString& usiMove) const
+void CsaGameCoordinator::fillRecordPosition(RecordEntry& entry) const
 {
-    if (!m_sfenHistory || m_sfenHistory->size() < 2) return;
-    const QString& before = m_sfenHistory->at(m_sfenHistory->size() - 2);
-    entry.sfen = m_sfenHistory->last();
-    const QList<ShogiMove> moves = SfenPositionTracer::buildGameMoves(before, {usiMove});
-    if (!moves.isEmpty()) entry.move = moves.first();
-    // 指し手列（AppState::gameMoves）は局面列と同じ手数にそろえる
-    if (m_gameMoves && m_gameMoves->size() + 1 == m_progress.usiMoves.size()) m_gameMoves->append(moves);
+    if (m_sfenHistory && !m_sfenHistory->isEmpty()) entry.sfen = m_sfenHistory->last();
     if (m_gameMoves && !m_gameMoves->isEmpty()) entry.move = m_gameMoves->last();
 }
 
-void CsaGameCoordinator::finishMove(const QString& csaMove, const QString& usiMove, bool isPromotion,
+void CsaGameCoordinator::finishMove(const QString& csaMove, bool isPromotion,
                                     int consumedTimeMs, const QPoint& from, const QPoint& to, bool nowMyTurn)
 {
     CsaGameProgress& p = m_progress;
@@ -134,8 +128,6 @@ void CsaGameCoordinator::finishMove(const QString& csaMove, const QString& usiMo
 
     ++p.moveCount;
     m_isMyTurn = nowMyTurn;
-    emit turnChanged(nowMyTurn);
-    emit moveHighlightRequested(from, to);
 
     const QString prettyMove =
         CsaMoveConverter::csaToPretty(csaMove, isPromotion, p.prevToFile, p.prevToRank, p.moveCount - 1);
@@ -143,90 +135,51 @@ void CsaGameCoordinator::finishMove(const QString& csaMove, const QString& usiMo
     p.prevToRank = to.y();
 
     RecordEntry entry = p.moveRecord(isBlackMove, prettyMove, consumedTimeMs);
-    fillRecordPosition(entry, usiMove);
+    fillRecordPosition(entry);
     emit recordEntryReady(entry);
+    emit turnChanged(nowMyTurn);
+    emit moveHighlightRequested(from, to);
 }
 
 // ============================================================
 // 相手の指し手受信
 // ============================================================
 
-void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
+bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn)
 {
-    emit logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
-
-    // 裁定待ちのまま次の指し手が来た（サーバーは対局を続けている）なら、盤面が合わないので続行できない
-    if (failIfVerdictPending()) return;
-
+    if (m_gameState != GameState::InGame || !m_gameController || failIfVerdictPending()) return false;
     QPoint from, to;
     const QString problem = validateMoveText(move, &from, &to);
     if (!problem.isEmpty()) {
         deferVerdict(problem, tr("サーバーからの指し手を解釈できません: %1").arg(move));
-        return;
+        return false;
     }
-
-    // 成り判定（盤面更新前に行う）
-    const bool isPromotion = m_gameController && CsaMoveConverter::isPromotionMove(move, m_gameController->board());
-
+    // 盤面・手番の通知は、棋譜と時計まで確定した後にまとめて送る。
+    const QSignalBlocker clockNotifications(m_clock);
+    const auto update = m_gameController->positionUpdate();
+    const bool isPromotion = CsaMoveConverter::isPromotionMove(move, m_gameController->board());
     if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, m_progress.usiMoves, m_sfenHistory,
-                                            m_progress.moveCount)) {
+                                           m_progress.moveCount, m_gameMoves)) {
         deferVerdict(tr("指し手の適用に失敗しました: %1").arg(move),
                      tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
-        return;
+        return false;
     }
-
-    // 盤・駒台の変化は ShogiBoard の通知で変わった所だけ描き直されるので、盤全体は描き直さない。
+    finishMove(move, isPromotion, consumedTimeMs, from, to, nowMyTurn);
     emit moveAppliedToBoard();
-
-    QString usiMove = CsaMoveConverter::csaToUsi(move);
-    if (!isPromotion && usiMove.endsWith(QLatin1Char('+'))) usiMove.chop(1);
-    finishMove(move, usiMove, isPromotion, consumedTimeMs, from, to, true);
-
-    if (m_playerType == PlayerType::Engine) {
-        startEngineThinking();
-    }
+    return true;
 }
 
-// ============================================================
-// 自分の指し手確認
-// ============================================================
+void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
+{
+    emit logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
+    if (applyConfirmedMove(move, consumedTimeMs, true) && m_playerType == PlayerType::Engine)
+        startEngineThinking();
+}
 
 void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs)
 {
     emit logMessage(tr("指し手確認: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
-
-    if (failIfVerdictPending()) return;
-
-    QPoint from, to;
-    const QString problem = validateMoveText(move, &from, &to);
-    if (!problem.isEmpty()) {
-        // 自分の送った手が不正な書式として切り出されて返った。続く #ILLEGAL_MOVE を待つ
-        deferVerdict(problem, tr("サーバーからの指し手確認を解釈できません: %1").arg(move));
-        return;
-    }
-
-    // CSA の駒種だけでは成った手か成駒を動かした手か分からないので、送った手の成り・不成に合わせる
-    QString usiMove = CsaMoveConverter::csaToUsi(move);
-    if (!m_sentMove.promote && usiMove.endsWith(QLatin1Char('+'))) usiMove.chop(1);
-    if (usiMove.isEmpty()) {
-        qCWarning(lcNetwork) << "Invalid confirmed CSA move payload:" << move;
-        deferVerdict(tr("指し手確認の変換に失敗しました: %1").arg(move),
-                     tr("サーバーからの指し手確認を変換できません: %1").arg(move));
-        return;
-    }
-    m_progress.usiMoves.append(usiMove);
-
-    // エンジンの指し手の場合のみ局面列を更新する（人間の手は盤の操作で追加済み）
-    if (m_playerType == PlayerType::Engine && m_gameController && m_gameController->board() && m_sfenHistory) {
-        ShogiBoard* const board = m_gameController->board();
-        const QString turn = (m_gameController->currentPlayer() == Turn::Black)
-                                 ? QStringLiteral("b") : QStringLiteral("w");
-        m_sfenHistory->append(QString("%1 %2 %3 %4")
-                                  .arg(board->convertBoardToSfen(), turn, board->convertStandToSfen())
-                                  .arg(m_progress.moveCount + 2));
-    }
-
-    finishMove(move, usiMove, m_sentMove.promote, consumedTimeMs, from, to, false);
+    applyConfirmedMove(move, consumedTimeMs, false);
 }
 
 // ============================================================
@@ -255,7 +208,7 @@ void CsaGameCoordinator::startEngineThinking()
 
 void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result)
 {
-    if (sender() != m_engineController || !m_isMyTurn) return;
+    if (sender() != m_engineController || !isMyTurn()) return;
     if (m_gameState != GameState::InGame) return;
 
     if (result.resign) {
@@ -285,16 +238,8 @@ void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::Thi
 
     emit logMessage(tr("CSA形式の指し手: %1").arg(csaMove), false);
 
-    if (!board->applyUsiMove(result.move, black ? Turn::Black : Turn::White)) {
-        emit logMessage(tr("指し手の適用に失敗しました: %1").arg(csaMove), true);
-        failGame(tr("エンジンの指し手を盤面に適用できません: %1").arg(csaMove));
-        return;
+    if (m_client->sendMove(csaMove)) {
+        emit turnChanged(false);
+        emit engineScoreUpdated(result.scoreCp, m_progress.moveCount + 1, result.scoreMate);
     }
-
-    m_gameController->changeCurrentPlayer();
-    emit moveAppliedToBoard();
-    emit engineScoreUpdated(result.scoreCp, m_progress.moveCount + 1, result.scoreMate);
-
-    m_sentMove = result.move;
-    m_client->sendMove(csaMove);
 }

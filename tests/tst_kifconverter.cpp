@@ -18,6 +18,18 @@ static const QStringList kExpectedUsiMoves = {
     QStringLiteral("6i7h")
 };
 
+static KifLine testLine(const QList<KifDisplayItem>& display, const QStringList& sfens)
+{
+    KifLine line;
+    line.baseSfen = sfens.first();
+    for (qsizetype i = 0; i < display.size(); ++i) {
+        const auto& item = display.at(i);
+        const QString sfen = sfens.value(i + 1, sfens.last());
+        line.entries.append({RecordEntry::imported({}, item.prettyMove, sfen, item.timeText), item.comment, item.bookmark});
+    }
+    return line;
+}
+
 class TestKifConverter : public QObject
 {
     Q_OBJECT
@@ -155,7 +167,7 @@ private slots:
         bool ok = KifToSfenConverter::parseWithVariations(
             fixturePath(QStringLiteral("test_basic.kif")), result, &error);
         QVERIFY2(ok, qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves.size(), 7);
+        QCOMPARE(result.mainline.usiMoves().size(), 7);
         QCOMPARE(result.variations.size(), 0);
     }
 
@@ -166,7 +178,7 @@ private slots:
         bool ok = KifToSfenConverter::parseWithVariations(
             fixturePath(QStringLiteral("test_branch.kif")), result, &error);
         QVERIFY2(ok, qPrintable(error));
-        QCOMPARE(result.mainline.usiMoves.size(), 7);
+        QCOMPARE(result.mainline.usiMoves().size(), 7);
         QCOMPARE(result.variations.size(), 2);
 
         // First variation starts at ply 3
@@ -206,8 +218,8 @@ private slots:
 
         KifParseResult result;
         QVERIFY2(KifToSfenConverter::parseWithVariations(path, result, &error), qPrintable(error));
-        QCOMPARE(result.mainline.disp.first().comment, items.first().comment);
-        QCOMPARE(result.mainline.disp.at(1).comment, items.at(1).comment);
+        QCOMPARE(result.mainline.displayItems().first().comment, items.first().comment);
+        QCOMPARE(result.mainline.displayItems().at(1).comment, items.at(1).comment);
     }
 
     void comments_extraction()
@@ -370,18 +382,18 @@ private slots:
         QString error;
         bool ok = KifToSfenConverter::parseWithVariations(path, result, &error);
         QVERIFY2(ok, qPrintable(QStringLiteral("Parse failed: ") + error));
-        QCOMPARE(result.mainline.usiMoves.size(), 96);
-        QVERIFY2(!result.mainline.disp.isEmpty(), "No display items parsed");
+        QCOMPARE(result.mainline.usiMoves().size(), 96);
+        QVERIFY2(!result.mainline.displayItems().isEmpty(), "No display items parsed");
 
         // 2. KifDisplayItem にコメントがあることを確認
         int dispCommentCount = 0;
-        for (const auto& item : std::as_const(result.mainline.disp)) {
+        for (const auto& item : result.mainline.displayItems()) {
             if (!item.comment.isEmpty()) {
                 ++dispCommentCount;
             }
         }
         qWarning("[TEST] KifDisplayItem comment count: %d / %lld total items",
-                 dispCommentCount, result.mainline.disp.size());
+                 dispCommentCount, result.mainline.displayItems().size());
         QVERIFY2(dispCommentCount > 0,
                  "No comments found in KifDisplayItem list");
 
@@ -427,15 +439,12 @@ private slots:
         };
 
         KifParseResult res;
-        res.mainline.disp = { item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
-                              item(QStringLiteral("▲投了"), 3) };
-        res.mainline.sfenList = { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"), QStringLiteral("b2 b - 3") };
+        res.mainline = testLine({ item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
+                              item(QStringLiteral("▲投了"), 3) }, { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"), QStringLiteral("b2 b - 3") });
         KifVariation var;
         var.startPly = 2;
         var.line.startPly = 2;
-        var.line.disp = { item(QStringLiteral("△８四歩"), 2), item(QStringLiteral("▲中断"), 3) };
-        var.line.sfenList = { QStringLiteral("b1 w - 2"), QStringLiteral("v2 b - 3"), QStringLiteral("v2 b - 3") };
-        var.line.endsWithTerminal = true;
+        var.line = testLine({ item(QStringLiteral("△８四歩"), 2), item(QStringLiteral("▲中断"), 3) }, { QStringLiteral("b1 w - 2"), QStringLiteral("v2 b - 3"), QStringLiteral("v2 b - 3") });
         res.variations = { var };
 
         KifuBranchTree tree;
@@ -471,15 +480,13 @@ private slots:
         };
 
         KifParseResult res;
-        res.mainline.disp = { item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
-                              item(QStringLiteral("▲２六歩"), 3) };
-        res.mainline.sfenList = { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"),
-                                  QStringLiteral("b2 b - 3"), QStringLiteral("b3 w - 4") };
+        res.mainline = testLine({ item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
+                              item(QStringLiteral("▲２六歩"), 3) }, { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"),
+                                  QStringLiteral("b2 b - 3"), QStringLiteral("b3 w - 4") });
         KifVariation var;
         var.startPly = 3;
         var.line.startPly = 3;
-        var.line.disp = { item(QStringLiteral("▲６六歩"), 3), item(QStringLiteral("△８四歩"), 4) };
-        var.line.sfenList = { QStringLiteral("b2 b - 3"), QStringLiteral("v3 w - 4"), QStringLiteral("v4 b - 5") };
+        var.line = testLine({ item(QStringLiteral("▲６六歩"), 3), item(QStringLiteral("△８四歩"), 4) }, { QStringLiteral("b2 b - 3"), QStringLiteral("v3 w - 4"), QStringLiteral("v4 b - 5") });
         res.variations = { var };
 
         KifuBranchTree tree;
@@ -503,27 +510,23 @@ private slots:
         };
 
         KifParseResult res;
-        res.mainline.disp = { item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
-                              item(QStringLiteral("▲６六歩"), 3) };
-        res.mainline.sfenList = { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"),
-                                  QStringLiteral("b2 b - 3"), QStringLiteral("b3 w - 4") };
+        res.mainline = testLine({ item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
+                              item(QStringLiteral("▲６六歩"), 3) }, { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"),
+                                  QStringLiteral("b2 b - 3"), QStringLiteral("b3 w - 4") });
 
         // 変化A: 本譜3手目の代わりに▲２六歩を指し、投了で終わる
         //（sfenList は終局手分として最終局面が重複する）
         KifVariation varA;
         varA.startPly = 3;
         varA.line.startPly = 3;
-        varA.line.disp = { item(QStringLiteral("▲２六歩"), 3), item(QStringLiteral("△投了"), 4) };
-        varA.line.sfenList = { QStringLiteral("b2 b - 3"), QStringLiteral("a3 w - 4"), QStringLiteral("a3 w - 4") };
-        varA.line.endsWithTerminal = true;
+        varA.line = testLine({ item(QStringLiteral("▲２六歩"), 3), item(QStringLiteral("△投了"), 4) }, { QStringLiteral("b2 b - 3"), QStringLiteral("a3 w - 4"), QStringLiteral("a3 w - 4") });
 
         // 変化B: 変化A の3手目の局面（投了の直前）から4手目で分岐
         KifVariation varB;
         varB.startPly = 4;
         varB.parentVariation = 0;
         varB.line.startPly = 4;
-        varB.line.disp = { item(QStringLiteral("△８四歩"), 4) };
-        varB.line.sfenList = { QStringLiteral("a3 w - 4"), QStringLiteral("b4 b - 5") };
+        varB.line = testLine({ item(QStringLiteral("△８四歩"), 4) }, { QStringLiteral("a3 w - 4"), QStringLiteral("b4 b - 5") });
 
         res.variations = { varA, varB };
 
@@ -560,8 +563,8 @@ private slots:
         QString error;
         QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
         // Must not crash; invalid piece may be skipped or produce an error
-        Q_UNUSED(moves);
-        QVERIFY(true);
+        QVERIFY(moves.isEmpty());
+        QVERIFY(!error.isEmpty());
     }
 
     // ========================================
@@ -582,8 +585,8 @@ private slots:
         QString error;
         QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
         // Must not crash; invalid coordinates should be handled gracefully
-        Q_UNUSED(moves);
-        QVERIFY(true);
+        QVERIFY(moves.isEmpty());
+        QVERIFY(!error.isEmpty());
     }
 
     // ========================================
@@ -605,8 +608,8 @@ private slots:
         QString error;
         QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
         // Must not crash (buffer overflow protection)
-        Q_UNUSED(moves);
-        QVERIFY(true);
+        QVERIFY(moves.isEmpty());
+        QVERIFY(!error.isEmpty());
     }
 
     // ========================================
@@ -630,8 +633,10 @@ private slots:
         KifParseResult result;
         QString error;
         // Must not crash even with a branch referencing a non-existent ply
-        (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
-        QVERIFY(true);
+        QVERIFY(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error));
+        QCOMPARE(result.mainline.moveCount(), 2);
+        QVERIFY(result.variations.isEmpty());
+        QVERIFY(!error.isEmpty());
     }
 
     // ========================================
@@ -653,8 +658,7 @@ private slots:
         QString error;
         QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
         // Must not crash even with truncated input
-        Q_UNUSED(moves);
-        QVERIFY(true);
+        QCOMPARE(moves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
     }
 
     // ========================================
@@ -694,8 +698,10 @@ private slots:
 
         QString error;
         // Must not crash regardless of input
-        (void)KifToSfenConverter::convertFile(tmp.fileName(), &error);
-        QVERIFY(true);
+        const auto moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        const QStringList expected = fileContent.contains("9999999")
+            ? QStringList{QStringLiteral("7g7f")} : QStringList{};
+        QCOMPARE(moves, expected);
     }
 
     // ========================================
@@ -718,9 +724,11 @@ private slots:
 
         KifParseResult result;
         QString error;
-        (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error));
         // Must not crash
-        QVERIFY(true);
+        QCOMPARE(result.mainline.moveCount(), 2);
+        QCOMPARE(result.variations.size(), 1);
+        QCOMPARE(result.variations.first().line.moveCount(), 0);
     }
     // ========================================
     // 境界値テスト: 全APIに対する異常入力耐性
@@ -743,13 +751,13 @@ private slots:
         (void)KifToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool success = KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
 
         (void)KifToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
         (void)KifToSfenConverter::extractGameInfo(tmp.fileName());
         (void)KifToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
 
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, error);
     }
 
     // ========================================
@@ -766,9 +774,10 @@ private slots:
         (void)KifToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY2(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
 
-        QVERIFY(true);
+        QCOMPARE(result.mainline.moveCount(), 1500);
+        KifuTestHelper::verifyParsedRecord(true, result, error);
     }
 
     // ========================================
@@ -799,12 +808,12 @@ private slots:
         QString error;
         QVERIFY2(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 2);
-        QCOMPARE(result.variations[0].line.usiMoves,
+        QCOMPARE(result.variations[0].line.usiMoves(),
                  QStringList({QStringLiteral("8h2b+"), QStringLiteral("3a2b")}));
         // 入れ子の変化の1手目「同　飛」は親の変化の3手目（２二角成）の地点
-        QCOMPARE(result.variations[1].line.usiMoves,
+        QCOMPARE(result.variations[1].line.usiMoves(),
                  QStringList({QStringLiteral("8b2b"), QStringLiteral("B*2b")}));
-        QCOMPARE(result.variations[1].line.sfenList.size(), 3);
+        QCOMPARE(result.variations[1].line.sfenList().size(), 3);
     }
 
     void parseWithVariations_mainlineParentSame()
@@ -825,7 +834,7 @@ private slots:
         QString error;
         QVERIFY2(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
-        QCOMPARE(result.variations[0].line.usiMoves, QStringList({QStringLiteral("8b2b")}));
+        QCOMPARE(result.variations[0].line.usiMoves(), QStringList({QStringLiteral("8b2b")}));
     }
 
     // 消費時間欄がない行の分岐マーク「+」は指し手の表記に含めない
@@ -848,12 +857,12 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
-        QCOMPARE(result.mainline.disp.size(), 4);
-        QCOMPARE(result.mainline.disp[1].prettyMove, QStringLiteral("▲７六歩(77)"));
-        QCOMPARE(result.mainline.disp[2].prettyMove, QStringLiteral("△３四歩(33)"));
-        QCOMPARE(result.mainline.usiMoves.size(), 3);
+        QCOMPARE(result.mainline.displayItems().size(), 4);
+        QCOMPARE(result.mainline.displayItems()[1].prettyMove, QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(result.mainline.displayItems()[2].prettyMove, QStringLiteral("△３四歩(33)"));
+        QCOMPARE(result.mainline.usiMoves().size(), 3);
         QCOMPARE(result.variations.size(), 2);
-        QCOMPARE(result.variations[0].line.disp.first().prettyMove, QStringLiteral("△８四歩(83)"));
+        QCOMPARE(result.variations[0].line.displayItems().first().prettyMove, QStringLiteral("△８四歩(83)"));
     }
     // ========================================
     // テキスト版の入口（貼り付けた棋譜を一時ファイルなしで読む）
@@ -870,12 +879,12 @@ private slots:
         QString fileError, textError;
         QVERIFY(KifToSfenConverter::parseWithVariations(path, fromFile, &fileError));
         QVERIFY(KifToSfenConverter::parseText(text, fromText, &textError));
-        QCOMPARE(fromText.mainline.usiMoves, fromFile.mainline.usiMoves);
-        QCOMPARE(fromText.mainline.sfenList, fromFile.mainline.sfenList);
+        QCOMPARE(fromText.mainline.usiMoves(), fromFile.mainline.usiMoves());
+        QCOMPARE(fromText.mainline.sfenList(), fromFile.mainline.sfenList());
         QCOMPARE(fromText.variations.size(), fromFile.variations.size());
         for (qsizetype i = 0; i < fromText.variations.size(); ++i) {
             QCOMPARE(fromText.variations[i].startPly, fromFile.variations[i].startPly);
-            QCOMPARE(fromText.variations[i].line.usiMoves, fromFile.variations[i].line.usiMoves);
+            QCOMPARE(fromText.variations[i].line.usiMoves(), fromFile.variations[i].line.usiMoves());
         }
         QCOMPARE(KifToSfenConverter::detectInitialSfenFromText(text), KifToSfenConverter::detectInitialSfenFromFile(path));
         QCOMPARE(KifToSfenConverter::extractGameInfoFromText(text).size(), KifToSfenConverter::extractGameInfo(path).size());
@@ -887,9 +896,9 @@ private slots:
             "手合割：平手\r\n手数----指手---------消費時間--\r\n   1 ７六歩(77)\r\n   2 ３四歩(33)\r\n   3 投了\r\n");
         KifParseResult result;
         QVERIFY(KifToSfenConverter::parseText(text, result));
-        QCOMPARE(result.mainline.usiMoves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
-        QVERIFY(result.mainline.endsWithTerminal);
-        QCOMPARE(result.mainline.disp.last().prettyMove, QStringLiteral("▲投了"));
+        QCOMPARE(result.mainline.usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        QVERIFY(result.mainline.endsWithTerminal());
+        QCOMPARE(result.mainline.displayItems().last().prettyMove, QStringLiteral("▲投了"));
     }
 
     // ========================================
@@ -903,9 +912,9 @@ private slots:
         QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
             "手合割：平手\n作者：詰将棋太郎\n手数----指手---------消費時間--\n"
             "   1 ７六歩(77)\n   2 ３四歩(33)\n"), result));
-        QCOMPARE(result.mainline.usiMoves.size(), 2);
-        QCOMPARE(result.mainline.disp.size(), 3);  // 開始局面 + 2手
-        QCOMPARE(result.mainline.sfenList.size(), 3);
+        QCOMPARE(result.mainline.usiMoves().size(), 2);
+        QCOMPARE(result.mainline.displayItems().size(), 3);  // 開始局面 + 2手
+        QCOMPARE(result.mainline.sfenList().size(), 3);
     }
 
     // 読めない指し手の前で手順を打ち切り、警告を残す（表示と USI がずれない）
@@ -915,8 +924,8 @@ private slots:
         QString warn;
         QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
             "手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 謎の手\n   3 ２六歩(27)\n"), result, &warn));
-        QCOMPARE(result.mainline.usiMoves, QStringList({QStringLiteral("7g7f")}));
-        QCOMPARE(result.mainline.disp.size(), 2);
+        QCOMPARE(result.mainline.usiMoves(), QStringList({QStringLiteral("7g7f")}));
+        QCOMPARE(result.mainline.displayItems().size(), 2);
         QVERIFY2(warn.contains(QStringLiteral("謎の手")), qPrintable(warn));
     }
 
@@ -926,9 +935,9 @@ private slots:
         KifParseResult result;
         QVERIFY(KifToSfenConverter::parseText(QStringLiteral(
             "手数----指手---------消費時間--\n   1 ７六歩(77) *角道を開ける\n   2 ３四歩(33) *同じく\n"), result));
-        QCOMPARE(result.mainline.disp.size(), 3);
-        QCOMPARE(result.mainline.disp[1].comment, QStringLiteral("角道を開ける"));
-        QCOMPARE(result.mainline.disp[2].comment, QStringLiteral("同じく"));
+        QCOMPARE(result.mainline.displayItems().size(), 3);
+        QCOMPARE(result.mainline.displayItems()[1].comment, QStringLiteral("角道を開ける"));
+        QCOMPARE(result.mainline.displayItems()[2].comment, QStringLiteral("同じく"));
     }
 
     // 変化の開始局面: 直前の変化が分岐点まで届かなければ本譜から取る
@@ -941,8 +950,8 @@ private slots:
             "\n変化：3手\n   3 ６六歩(67)\n"
             "\n変化：5手\n   5 ６八銀(79)\n"), result));
         QCOMPARE(result.variations.size(), 2);
-        QCOMPARE(result.variations[1].line.baseSfen, result.mainline.sfenList.at(4));
-        QCOMPARE(result.variations[1].line.usiMoves, QStringList({QStringLiteral("7i6h")}));
+        QCOMPARE(result.variations[1].line.baseSfen, result.mainline.sfenList().at(4));
+        QCOMPARE(result.variations[1].line.usiMoves(), QStringList({QStringLiteral("7i6h")}));
     }
 
     // 変化のコメント・しおりは最初の指し手に付き、開始局面の項目は残らない
@@ -954,11 +963,11 @@ private slots:
             "\n変化：2手\n   2 ８四歩(83)\n*分岐コメント\n&分岐しおり\n   3 ２六歩(27)\n"), result));
         QCOMPARE(result.variations.size(), 1);
         const KifLine& line = result.variations[0].line;
-        QCOMPARE(line.disp.size(), 2);
-        QCOMPARE(line.disp[0].ply, 2);
-        QCOMPARE(line.disp[0].comment, QStringLiteral("分岐コメント"));
-        QCOMPARE(line.disp[0].bookmark, QStringLiteral("分岐しおり"));
-        QCOMPARE(line.usiMoves, QStringList({QStringLiteral("8c8d"), QStringLiteral("2g2f")}));
+        QCOMPARE(line.displayItems().size(), 2);
+        QCOMPARE(line.displayItems()[0].ply, 2);
+        QCOMPARE(line.displayItems()[0].comment, QStringLiteral("分岐コメント"));
+        QCOMPARE(line.displayItems()[0].bookmark, QStringLiteral("分岐しおり"));
+        QCOMPARE(line.usiMoves(), QStringList({QStringLiteral("8c8d"), QStringLiteral("2g2f")}));
     }
 
     // 不正な変化の開始手数は読み飛ばして警告する

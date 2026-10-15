@@ -2,9 +2,7 @@
 /// @brief 局面解析コーディネータクラスの実装
 
 #include "analysiscoordinator.h"
-#include "analysisflowcontroller.h"
 #include "logcategories.h"
-#include "branchtreemanager.h"
 
 #include <limits>
 #include <utility>
@@ -21,11 +19,6 @@ AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
 void AnalysisCoordinator::setDeps(const Deps& d)
 {
     m_deps = d;
-}
-
-void AnalysisCoordinator::setBranchTreeManager(BranchTreeManager* manager)
-{
-    m_branchTreeManager = manager;
 }
 
 void AnalysisCoordinator::setOptions(const Options& opt)
@@ -157,9 +150,8 @@ void AnalysisCoordinator::sendAnalyzeForPly(int ply)
     }
     qCDebug(lcAnalysis).noquote() << "sendAnalyzeForPly: ply=" << ply << "posCmd=" << m_pendingPosCmd;
 
-    // 2) positionPreparedシグナルを発行（GUI更新用）
-    //    sendGoCommand()が呼ばれるまでgoコマンドは送信しない
     emit positionPrepared(ply, sfen);
+    sendGoCommand();
 }
 
 void AnalysisCoordinator::sendGoCommand()
@@ -169,17 +161,9 @@ void AnalysisCoordinator::sendGoCommand()
 
     qCDebug(lcAnalysis).noquote() << "sendGoCommand: sending position and go infinite commands";
 
-    // position と go infinite の送信を要求する
     const QString positionCommand = std::exchange(m_pendingPosCmd, QString());
-    emit requestSearch(positionCommand);
-
-    // 設定された思考時間後にstopを送信するタイマーを開始
     m_stopTimer.start(m_opt.movetimeMs);
-
-    // 分析進行に応じたツリーハイライトなどが必要ならここで
-    if (m_branchTreeManager && m_opt.centerTree) {
-        m_branchTreeManager->highlightBranchTreeAt(/*row=*/0, m_currentPly, /*centerOn=*/true);
-    }
+    emit requestSearch(positionCommand);
 }
 
 
@@ -204,7 +188,8 @@ void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
     // 定跡の場合は発行されていないので、空の結果を通知
     // （AnalysisFlowController側で定跡かどうかを判断できるようにする）
 
-    // "bestmove ..." を受けたら次へ
+    // 次の局面へ進む前に前局面の停止タイマーを解除する。
+    m_stopTimer.stop();
     nextPlyOrFinish();
 }
 

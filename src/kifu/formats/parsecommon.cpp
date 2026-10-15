@@ -1,9 +1,59 @@
 #include "parsecommon.h"
+#include "sfenpositiontracer.h"
+#include "kifmovetext.h"
 
 #include <QRegularExpression>
 #include <QStringView>
 
 namespace KifuParseCommon {
+
+bool KifLineDraft::resolve(KifLine& out, QString* error) const
+{
+    const auto replay = SfenPositionTracer::replay(baseSfen, usiMoves);
+    if (!replay.success()) {
+        if (error) *error += replay.failedPly > 0
+            ? QStringLiteral("Cannot restore move %1: %2\n").arg(startPly + replay.failedPly - 1).arg(replay.error)
+            : replay.error + QLatin1Char('\n');
+        return false;
+    }
+    KifLine result;
+    result.startPly = startPly;
+    result.baseSfen = replay.initialSfen;
+    int first = 0;
+    if (!disp.isEmpty() && disp.first().ply == 0) {
+        result.opening = disp.first();
+        first = 1;
+    }
+    if (disp.size() - first != usiMoves.size() + (endsWithTerminal ? 1 : 0)) {
+        if (error) *error += QStringLiteral("Move and display counts differ at ply %1\n").arg(startPly);
+        return false;
+    }
+    BoardSquare previousTo;
+    if (const auto previous = UsiMove::parse(previousUsi)) previousTo = previous->to;
+    for (qsizetype i = 0; i < replay.moves.size(); ++i) {
+        const auto& step = replay.moves.at(i);
+        const auto& item = disp.at(first + i);
+        const Turn mover = step.beforeSfen.contains(QStringLiteral(" w ")) ? Turn::White : Turn::Black;
+        const auto usi = step.move.toUsiMove();
+        const QString display = item.prettyMove.isEmpty()
+            ? KifMoveText::format(mover, step.move.movingPiece, usi, previousTo) : item.prettyMove;
+        RecordEntry record{step.move, display, step.sfen, RecordTime::fromText(item.timeText), TerminalType::None, mover};
+        result.entries.append({record, item.comment, item.bookmark});
+        previousTo = usi.to;
+    }
+    if (endsWithTerminal) {
+        const auto& item = disp.last();
+        const QString sfen = result.sfenAt(result.moveCount());
+        auto record = RecordEntry::imported({}, item.prettyMove, sfen, item.timeText);
+        if (!record.isTerminal()) {
+            if (error) *error += QStringLiteral("Unknown terminal record: %1\n").arg(item.prettyMove);
+            record.terminal = TerminalType::Error;
+        }
+        result.entries.append({record, item.comment, item.bookmark});
+    }
+    out = std::move(result);
+    return true;
+}
 
 namespace {
 
@@ -497,23 +547,24 @@ std::optional<VariationBase> findVariationBase(const KifLine& mainline,
         const KifVariation& var = variations.at(vi);
         if (var.startPly > branchPly) continue;
         const qsizetype idx = branchPly - (var.startPly - 1);
-        if (idx < 1 || idx >= var.line.sfenList.size()) continue;
-        return VariationBase{var.line.sfenList.at(idx), var.line.usiMoves.value(idx - 1), static_cast<int>(vi)};
+        if (idx < 1 || idx >= var.line.moveCount() + 1) continue;
+        return VariationBase{var.line.sfenAt(static_cast<int>(idx)), var.line.usiMoves().value(idx - 1), static_cast<int>(vi)};
     }
 
-    if (branchPly < mainline.sfenList.size()) {
-        return VariationBase{mainline.sfenList.at(branchPly),
-                             branchPly >= 1 ? mainline.usiMoves.value(branchPly - 1) : QString()};
+    if (branchPly < mainline.moveCount() + 1) {
+        return VariationBase{mainline.sfenAt(branchPly),
+                             branchPly >= 1 ? mainline.usiMoves().value(branchPly - 1) : QString()};
     }
     return std::nullopt;
 }
 
 void mergeOpeningIntoFirstMove(KifLine& line)
 {
-    if (line.disp.isEmpty() || line.disp.first().ply != 0) return;
-    const KifDisplayItem opening = line.disp.takeFirst();
-    if (line.disp.isEmpty()) return;
-    KifDisplayItem& first = line.disp.first();
+    if (!line.opening) return;
+    const auto opening = *line.opening;
+    line.opening.reset();
+    if (line.entries.isEmpty()) return;
+    auto& first = line.entries.first();
     QString comment = opening.comment;
     QString bookmark = opening.bookmark;
     if (!first.comment.isEmpty()) appendLine(comment, first.comment);

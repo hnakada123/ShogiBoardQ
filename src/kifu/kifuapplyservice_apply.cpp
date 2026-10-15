@@ -20,30 +20,6 @@
 
 #include <utility>
 
-namespace {
-const QStringList& terminalKeywords()
-{
-    static const QStringList keywords = {
-        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-        QStringLiteral("千日手"), QStringLiteral("切れ負け"),
-        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
-    };
-    return keywords;
-}
-
-bool isTerminalPretty(const QString& text)
-{
-    for (const auto& keyword : terminalKeywords()) {
-        if (text.contains(keyword)) {
-            return true;
-        }
-    }
-    return false;
-}
-} // namespace
-
 bool KifuApplyService::applyParsedResult(
     const QString& filePath,
     const QString& initialSfen,
@@ -62,9 +38,9 @@ bool KifuApplyService::applyParsedResult(
         stepTimer.restart();
     };
 
-    const QList<KifDisplayItem>& disp = res.mainline.disp;
-    const QStringList& usiMoves = res.mainline.usiMoves;
-    const bool hasTerminal = !disp.isEmpty() && isTerminalPretty(disp.back().prettyMove);
+    const QList<KifDisplayItem>& disp = res.mainline.displayItems();
+    const QStringList& usiMoves = res.mainline.usiMoves();
+    const bool hasTerminal = res.mainline.endsWithTerminal();
 
     // 局面編集から保存した棋譜は指し手が0手でも、有効な開始局面図を持つ。
     const bool hasPositionDiagram = teaiLabel == QStringLiteral("BOD") || teaiLabel == QStringLiteral("配置");
@@ -123,7 +99,7 @@ bool KifuApplyService::validateParsedResult(const QString& filePath, const QStri
 void KifuApplyService::applyToRecordView(const KifParseResult& res, const QString& filePath,
                                          const QString& teaiLabel, const QString& parseWarn)
 {
-    const QList<KifDisplayItem>& disp = res.mainline.disp;
+    const QList<KifDisplayItem>& disp = res.mainline.displayItems();
     KifuNavigationState* const navState = currentNavState();
 
     if (m_hooks.displayGameRecord) {
@@ -151,7 +127,7 @@ void KifuApplyService::applyToRecordView(const KifParseResult& res, const QStrin
         m_hooks.enableArrowButtons();
     }
 
-    KifuApplyLogger::logImportSummary(filePath, res.mainline.usiMoves, disp, teaiLabel, parseWarn, QString());
+    KifuApplyLogger::logImportSummary(filePath, res.mainline.usiMoves(), disp, teaiLabel, parseWarn, QString());
 }
 
 bool KifuApplyService::applyBranchTree(const KifParseResult& res, const QString& initialSfen)

@@ -7,6 +7,7 @@
 
 #include "recordline.h"
 #include <QObject>
+#include "recordline.h"
 #include <QString>
 #include <QStringList>
 #include <QList>
@@ -201,14 +202,12 @@ public:
      * @brief 棋譜解析ダイアログの依存情報
      */
     struct KifuAnalysisParams {
-        QStringList* sfenRecord = nullptr;
-        KifuRecordListModel* recordModel = nullptr;  // 棋譜モデル（指し手ラベル取得用）
+        RecordLine line;
         int lineIndex = 0;        // 解析対象の分岐ライン
         int activePly = 0;
         ShogiGameController* gameController = nullptr;  // 盤面情報取得用
         QString blackPlayerName;   // 先手対局者名
         QString whitePlayerName;   // 後手対局者名
-        QStringList* usiMoves = nullptr;  // USI形式の指し手リスト
         AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
         bool boardFlipped = false;  // GUI本体の盤面反転状態
     };
@@ -312,6 +311,7 @@ signals:
     /**
      * @brief 棋譜解析進捗を通知
      */
+    void analysisPositionPrepared(int ply);
     void analysisProgressReported(int ply, int scoreCp, const QString& mate = {});
 
     /**

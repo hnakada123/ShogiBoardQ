@@ -246,7 +246,7 @@ void CsaClient::reject(const QString& gameId)
     setConnectionState(ConnectionState::WaitingForGame);
 }
 
-void CsaClient::sendMove(const QString& move)
+bool CsaClient::sendMove(const QString& move)
 {
     qCDebug(lcNetwork) << "CsaClient::sendMove called with:" << move;
     qCDebug(lcNetwork) << "connectionState=" << static_cast<int>(m_connectionState)
@@ -256,19 +256,22 @@ void CsaClient::sendMove(const QString& move)
     if (m_connectionState != ConnectionState::InGame) {
         qCDebug(lcNetwork) << "Not in game, rejecting move";
         emit errorOccurred(tr("対局中ではありません"));
-        return;
+        return false;
     }
 
     // 手番外の送信は #ILLEGAL_ACTION で反則負けになる。サーバーの確認が届くまで次を送らない
     if (!ensureCanSendOnMyTurn(move)) {
-        return;
+        return false;
     }
 
     qCDebug(lcNetwork) << "Sending move to server:" << move;
     if (sendMessage(move)) {
         m_awaitingMoveConfirmation = true;
+        return true;
     }
+    return false;
 }
+
 
 void CsaClient::onSocketConnected()
 {

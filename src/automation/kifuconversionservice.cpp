@@ -81,19 +81,6 @@ Format KifuConversionService::detectFormatFromContent(const QString& content)
     return Format::Kif;
 }
 
-void KifuConversionService::completeLine(KifLine& line, const QString& baseSfen)
-{
-    const QString base = line.baseSfen.isEmpty() ? baseSfen : line.baseSfen;
-    if (line.baseSfen.isEmpty()) line.baseSfen = base;
-    if (line.usiMoves.isEmpty()) return;
-    if (line.sfenList.isEmpty()) {
-        line.sfenList = SfenPositionTracer::buildSfenRecord(base, line.usiMoves, line.endsWithTerminal);
-    }
-    if (line.gameMoves.isEmpty()) {
-        line.gameMoves = SfenPositionTracer::buildGameMoves(base, line.usiMoves);
-    }
-}
-
 bool KifuConversionService::parseText(const QString& content, Format format, Parsed& out, QString* error)
 {
     QString warn;
@@ -207,12 +194,6 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     result.warnings = parsed.warnings;
     result.gameInfo = parsed.gameInfo;
     result.hasBranches = !parsed.result.variations.isEmpty();
-
-    // CSA など一部の形式は各手後の SFEN と指し手データを埋めない。ツリー構築前に補完する
-    completeLine(parsed.result.mainline, parsed.initialSfen);
-    for (KifVariation& variation : parsed.result.variations) {
-        completeLine(variation.line, variation.line.baseSfen);
-    }
 
     // 一時的な分岐ツリーと棋譜モデルを組み立てて既存のエクスポータで出力する
     KifuBranchTree tree;

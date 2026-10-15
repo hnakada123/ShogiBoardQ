@@ -196,28 +196,28 @@ private slots:
         QString error;
         QVERIFY2(readJkf(json, result, &error), qPrintable(error));
         QCOMPARE(result.mainline.baseSfen, initial);
-        QCOMPARE(result.mainline.usiMoves, mainUsi);
-        QCOMPARE(result.mainline.sfenList.last(), mainNodes.last()->sfen());
+        QCOMPARE(result.mainline.usiMoves(), mainUsi);
+        QCOMPARE(result.mainline.sfenList().last(), mainNodes.last()->sfen());
         QStringList pretty;
-        for (const KifDisplayItem& item : std::as_const(result.mainline.disp)) pretty << item.prettyMove;
+        for (const KifDisplayItem& item : result.mainline.displayItems()) pretty << item.prettyMove;
         QCOMPARE(pretty.mid(1), QStringList({QStringLiteral("▲４三銀不成(44)"), QStringLiteral("△同　金(52)"),
                                             QStringLiteral("▲６八金右(58)"), QStringLiteral("△３三金打"),
                                             QStringLiteral("▲同　角成(88)"), QStringLiteral("△同　金(43)"),
                                             QStringLiteral("▲３四歩打"), QStringLiteral("△投了")}));
-        QVERIFY(result.mainline.endsWithTerminal);
+        QVERIFY(result.mainline.endsWithTerminal());
 
         QCOMPARE(result.variations.size(), 3);
         QCOMPARE(result.variations.at(0).startPly, 1);
-        QCOMPARE(result.variations.at(0).line.usiMoves, QStringList({"4d4c+", "5b4c"}));
-        QCOMPARE(result.variations.at(0).line.disp.at(0).prettyMove, QStringLiteral("▲４三銀成(44)"));
-        QCOMPARE(result.variations.at(0).line.disp.at(1).prettyMove, QStringLiteral("△同　金(52)"));
+        QCOMPARE(result.variations.at(0).line.usiMoves(), QStringList({"4d4c+", "5b4c"}));
+        QCOMPARE(result.variations.at(0).line.displayItems().at(0).prettyMove, QStringLiteral("▲４三銀成(44)"));
+        QCOMPARE(result.variations.at(0).line.displayItems().at(1).prettyMove, QStringLiteral("△同　金(52)"));
         QCOMPARE(result.variations.at(1).startPly, 2);
-        QCOMPARE(result.variations.at(1).line.usiMoves, QStringList({"5a6b"}));
+        QCOMPARE(result.variations.at(1).line.usiMoves(), QStringList({"5a6b"}));
         QCOMPARE(result.variations.at(1).line.baseSfen, silverPromotes->sfen());
-        QCOMPARE(result.variations.at(1).line.sfenList.last(), kingEscapes->sfen());
+        QCOMPARE(result.variations.at(1).line.sfenList().last(), kingEscapes->sfen());
         QCOMPARE(result.variations.at(2).startPly, 3);
-        QCOMPARE(result.variations.at(2).line.usiMoves, QStringList({"7h6h"}));
-        QCOMPARE(result.variations.at(2).line.disp.at(0).prettyMove, QStringLiteral("▲６八金左(78)"));
+        QCOMPARE(result.variations.at(2).line.usiMoves(), QStringList({"7h6h"}));
+        QCOMPARE(result.variations.at(2).line.displayItems().at(0).prettyMove, QStringLiteral("▲６八金左(78)"));
     }
 
     /// 終局は分岐ツリーの終局の種類から special にする（反則勝ちは手番で符号が決まる）
@@ -263,13 +263,13 @@ private slots:
         QVERIFY2(readJkf(json, result, &error), qPrintable(error));
         if (special.isEmpty()) {
             QCOMPARE(moves.size(), plies + 1);
-            QVERIFY(!result.mainline.endsWithTerminal);
+            QVERIFY(!result.mainline.endsWithTerminal());
             return;
         }
         QCOMPARE(moves.size(), plies + 2);
         QCOMPARE(moves.last().toObject().value(QStringLiteral("special")).toString(), special);
         // 読み込むと同じ種類の終局になる（反則勝ち・負けは手番の印も同じ）
-        const QString reread = result.mainline.disp.last().prettyMove;
+        const QString reread = result.mainline.displayItems().last().prettyMove;
         QCOMPARE(detectTerminalType(reread), detectTerminalType(label));
         QCOMPARE(reread.left(1), label.left(1));
     }

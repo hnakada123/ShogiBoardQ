@@ -288,6 +288,7 @@ bool convertMoveLine(const QString& moveText, QString& usi,
     if (dest->isSameAsPrev) { toF = prevToFile; toR = prevToRank; }
     if (!(toF >= 1 && toF <= 9 && toR >= 1 && toR <= 9)) return false;
 
+    if (pieceKanjiToUsiUpper(line).isNull()) return false;
     const bool isDrop = line.contains(QStringLiteral("打"));
 
     int fromF = 0, fromR = 0;

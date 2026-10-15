@@ -212,7 +212,13 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
     const PlayMode modeNow = playMode();
 
-    if (modeNow != PlayMode::CsaNetworkMode && m_match && !m_match->canAcceptMove()) return;
+    if (modeNow == PlayMode::CsaNetworkMode) {
+        // 通信対局は確認を受けてから確定する。入力側は盤面や履歴を変更しない。
+        Q_EMIT csaMoveRequested(from, to);
+        if (m_boardController) m_boardController->onMoveApplied(from, to, false);
+        return;
+    }
+    if (m_match && !m_match->canAcceptMove()) return;
     const auto update = m_gameController->positionUpdate();
 
     // validateAndMove は参照引数なのでローカルに退避
@@ -251,17 +257,6 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
             m_match->onHumanMove(hFrom, hTo, m_lastMove);
         }
         break;
-
-    case PlayMode::CsaNetworkMode: {
-        qCDebug(lcUi) << "CsaNetworkMode: emitting csaMoveRequested";
-        qCDebug(lcUi) << "BoardSetup: hFrom=" << hFrom << "hTo=" << hTo;
-        // 成り・不成は validateAndMove で決まった（選ばせた）ものを送る
-        const bool promote = m_gameController && m_gameController->lastMove().promote;
-        qCDebug(lcUi) << "BoardSetup: promote=" << promote;
-        Q_EMIT csaMoveRequested(hFrom, hTo, promote);
-        qCDebug(lcUi) << "BoardSetup: csaMoveRequested emitted";
-        break;
-    }
 
     default:
         qCDebug(lcUi) << "not a live play mode; skip post-handling";

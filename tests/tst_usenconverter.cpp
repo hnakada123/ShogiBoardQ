@@ -44,7 +44,7 @@ private slots:
         QString error;
         QVERIFY(!UsenToSfenConverter::parseWithVariations(file.fileName(), result, &error));
         QVERIFY(!error.isEmpty());
-        QVERIFY(result.mainline.usiMoves.isEmpty());
+        QVERIFY(result.mainline.usiMoves().isEmpty());
         QVERIFY(result.variations.isEmpty());
         QVERIFY(UsenToSfenConverter::convertFile(file.fileName()).isEmpty());
         QVERIFY(UsenToSfenConverter::extractMovesWithTimes(file.fileName()).isEmpty());
@@ -112,11 +112,11 @@ private slots:
                  QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
 
         // 11手の指し手 + 投了が含まれること
-        QCOMPARE(res.mainline.usiMoves.size(), 11);
+        QCOMPARE(res.mainline.usiMoves().size(), 11);
 
         // 先頭の指し手を確認（後手番から開始: △3二銀, ▲7六歩）
-        QCOMPARE(res.mainline.usiMoves.at(0), QStringLiteral("3a2b"));
-        QCOMPARE(res.mainline.usiMoves.at(1), QStringLiteral("7g7f"));
+        QCOMPARE(res.mainline.usiMoves().at(0), QStringLiteral("3a2b"));
+        QCOMPARE(res.mainline.usiMoves().at(1), QStringLiteral("7g7f"));
     }
 
     // ========================================
@@ -183,8 +183,7 @@ private slots:
     {
         // Characters outside base36 range
         QStringList decoded = UsenToSfenConverter::decodeUsenMoves(QStringLiteral("~0.!!!"));
-        // Should handle gracefully without crashing
-        Q_UNUSED(decoded);
+        QVERIFY(decoded.isEmpty());
     }
 
     // ========================================
@@ -195,8 +194,7 @@ private slots:
     {
         // Only 1 or 2 chars (incomplete 3-char move encoding)
         QStringList decoded = UsenToSfenConverter::decodeUsenMoves(QStringLiteral("~0.7k"));
-        // Should handle incomplete data gracefully
-        Q_UNUSED(decoded);
+        QVERIFY(decoded.isEmpty());
     }
 
     // ========================================
@@ -218,8 +216,7 @@ private slots:
     void terminalCodeToJapanese_unknown()
     {
         QString result = UsenToSfenConverter::terminalCodeToJapanese(QStringLiteral("xyz"));
-        // Unknown code: implementation may return code itself or empty
-        Q_UNUSED(result);
+        QCOMPARE(result, QStringLiteral("終了"));
     }
 
     // ========================================
@@ -288,8 +285,12 @@ private slots:
 
         // Must not crash regardless of input
         QStringList decoded = UsenToSfenConverter::decodeUsenMoves(usenInput);
-        Q_UNUSED(decoded);
-        QVERIFY(true);
+        QVERIFY(decoded.isEmpty());
+        const auto strict = UsenToSfenConverter::decodeUsenMovesStrict(usenInput);
+        if (usenInput != QStringLiteral("~0.")) {
+            QVERIFY(strict.invalidCount > 0);
+            QVERIFY(!strict.firstError.isEmpty());
+        }
     }
     // ========================================
     // Strict API: 正常入力
@@ -371,13 +372,13 @@ private slots:
         (void)UsenToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool success = UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
 
         (void)UsenToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
         (void)UsenToSfenConverter::extractGameInfo(tmp.fileName());
         (void)UsenToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
 
-        QVERIFY(true);
+        KifuTestHelper::verifyParsedRecord(success, result, error);
     }
 
     // ========================================
@@ -394,9 +395,10 @@ private slots:
         (void)UsenToSfenConverter::convertFile(tmp.fileName(), &error);
 
         KifParseResult result;
-        (void)UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY2(UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
 
-        QVERIFY(true);
+        QCOMPARE(result.mainline.moveCount(), 1500);
+        KifuTestHelper::verifyParsedRecord(true, result, error);
     }
 };
 

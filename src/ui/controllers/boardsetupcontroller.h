@@ -103,7 +103,7 @@ signals:
      * @param to 移動先
      * @param promote 成るかどうか
      */
-    void csaMoveRequested(const QPoint& from, const QPoint& to, bool promote);
+    void csaMoveRequested(const QPoint& from, const QPoint& to);
 
 private:
     void disconnectBoardInteractionController(BoardInteractionController* controller);

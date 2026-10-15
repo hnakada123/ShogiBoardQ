@@ -126,9 +126,9 @@ private slots:
         ShogiMove dummyMove;
 
         auto* current = tree.root();
-        for (int i = 0; i < result.mainline.usiMoves.size(); ++i) {
+        for (int i = 0; i < result.mainline.usiMoves().size(); ++i) {
             current = tree.addMove(current, dummyMove,
-                                   result.mainline.disp[i].prettyMove,
+                                   result.mainline.displayItems()[i].prettyMove,
                                    QStringLiteral("sfen_%1").arg(i));
         }
 

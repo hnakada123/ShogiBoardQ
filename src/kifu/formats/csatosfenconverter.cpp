@@ -176,7 +176,7 @@ namespace {
 
 // parse() のループ状態を束ねる構造体
 struct CsaParseState {
-    KifParseResult& out;
+    KifuParseCommon::KifLineDraft& line;
     ShogiBoard& board;
     Turn turn;
     QString* warn;
@@ -196,8 +196,8 @@ struct CsaParseState {
 static void ensureOpeningItemAdded(CsaParseState& st)
 {
     if (st.firstMoveFound) {
-        if (!st.pendingComments.isEmpty() && st.out.mainline.disp.size() > 1) {
-            QString& dst = st.out.mainline.disp.last().comment;
+        if (!st.pendingComments.isEmpty() && st.line.disp.size() > 1) {
+            QString& dst = st.line.disp.last().comment;
             if (!dst.isEmpty()) dst += QLatin1Char('\n');
             dst += st.pendingComments.join(QStringLiteral("\n"));
             st.pendingComments.clear();
@@ -208,7 +208,7 @@ static void ensureOpeningItemAdded(CsaParseState& st)
     st.openingItem.comment = st.pendingComments.isEmpty()
         ? QString()
         : st.pendingComments.join(QStringLiteral("\n"));
-    st.out.mainline.disp.append(st.openingItem);
+    st.line.disp.append(st.openingItem);
     st.pendingComments.clear();
 }
 
@@ -218,8 +218,8 @@ static void handleCsaComment(const QString& token, CsaParseState& st)
     if (norm.isNull()) return;
 
     if (st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
-        st.lastResultDispIndex < st.out.mainline.disp.size()) {
-        QString& dst = st.out.mainline.disp[st.lastResultDispIndex].comment;
+        st.lastResultDispIndex < st.line.disp.size()) {
+        QString& dst = st.line.disp[st.lastResultDispIndex].comment;
         if (!dst.isEmpty()) dst += QLatin1Char('\n');
         dst += norm;
     } else {
@@ -249,13 +249,13 @@ static void handleCsaResultCode(const QString& token, CsaParseState& st)
         label = QStringLiteral("反則勝ち");
     }
 
-    st.out.mainline.disp.append(
+    st.line.disp.append(
         KifuParseCommon::createMoveDisplayItem(st.moveCount + 1, sideMark + label));
 
     st.lastDispIsResult = true;
-    st.lastResultDispIndex = static_cast<int>(st.out.mainline.disp.size() - 1);
+    st.lastResultDispIndex = static_cast<int>(st.line.disp.size() - 1);
     st.lastResultSideIdx = (st.turn == Turn::Black) ? 0 : 1;
-    st.out.mainline.endsWithTerminal = true;
+    st.line.endsWithTerminal = true;
 }
 
 static void handleCsaTimeToken(const QString& token, CsaParseState& st)
@@ -268,17 +268,17 @@ static void handleCsaTimeToken(const QString& token, CsaParseState& st)
     const qint64 moveMs = *moveMsOpt;
 
     if (st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
-        st.lastResultDispIndex < st.out.mainline.disp.size()) {
+        st.lastResultDispIndex < st.line.disp.size()) {
         if (st.lastResultSideIdx >= 0) {
             st.cumMs[st.lastResultSideIdx] += moveMs;
-            st.out.mainline.disp[st.lastResultDispIndex].timeText =
+            st.line.disp[st.lastResultDispIndex].timeText =
                 CsaLexer::composeTimeText(moveMs, st.cumMs[st.lastResultSideIdx]);
         } else {
-            st.out.mainline.disp[st.lastResultDispIndex].timeText = CsaLexer::composeTimeText(moveMs, 0);
+            st.line.disp[st.lastResultDispIndex].timeText = CsaLexer::composeTimeText(moveMs, 0);
         }
-    } else if (!st.out.mainline.disp.isEmpty() && st.lastMover >= 0) {
+    } else if (!st.line.disp.isEmpty() && st.lastMover >= 0) {
         st.cumMs[st.lastMover] += moveMs;
-        st.out.mainline.disp.last().timeText = CsaLexer::composeTimeText(moveMs, st.cumMs[st.lastMover]);
+        st.line.disp.last().timeText = CsaLexer::composeTimeText(moveMs, st.cumMs[st.lastMover]);
     }
 }
 
@@ -299,19 +299,17 @@ bool CsaToSfenConverter::parseText(const QString& text, KifParseResult& out, QSt
 {
     const QStringList lines = splitStatements(text, warn);
 
-    out.mainline.baseSfen.clear();
-    out.mainline.usiMoves.clear();
-    out.mainline.disp.clear();
+    KifuParseCommon::KifLineDraft line;
     out.variations.clear();
 
     int idx = 0;
     ShogiBoard board;
-    if (!CsaLexer::parseStartPos(lines, idx, out.mainline.baseSfen, board)) {
+    if (!CsaLexer::parseStartPos(lines, idx, line.baseSfen, board)) {
         if (warn) *warn += QStringLiteral("Failed to parse start position.\n");
         return false;
     }
 
-    CsaParseState st{out, board, board.currentPlayer(), warn};
+    CsaParseState st{line, board, board.currentPlayer(), warn};
     st.openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
 
     for (qsizetype i = idx; i < lines.size(); ++i) {
@@ -344,9 +342,9 @@ bool CsaToSfenConverter::parseText(const QString& text, KifParseResult& out, QSt
 
                 ensureOpeningItemAdded(st);
 
-                st.out.mainline.usiMoves.append(usi);
+                st.line.usiMoves.append(usi);
                 ++st.moveCount;
-                st.out.mainline.disp.append(
+                st.line.disp.append(
                     KifuParseCommon::createMoveDisplayItem(st.moveCount, pretty));
 
                 st.lastMover = (mover == Turn::Black) ? 0 : 1;
@@ -361,15 +359,15 @@ bool CsaToSfenConverter::parseText(const QString& text, KifParseResult& out, QSt
     if (!st.firstMoveFound) {
         st.openingItem.comment = st.pendingComments.isEmpty()
             ? QString() : st.pendingComments.join(QStringLiteral("\n"));
-        st.out.mainline.disp.append(st.openingItem);
+        st.line.disp.append(st.openingItem);
         st.pendingComments.clear();
     }
 
-    if (!st.pendingComments.isEmpty() && !st.out.mainline.disp.isEmpty()) {
-        QString& dst = st.out.mainline.disp.last().comment;
+    if (!st.pendingComments.isEmpty() && !st.line.disp.isEmpty()) {
+        QString& dst = st.line.disp.last().comment;
         if (!dst.isEmpty()) dst += QLatin1Char('\n');
         dst += st.pendingComments.join(QStringLiteral("\n"));
     }
 
-    return true;
+    return line.resolve(out.mainline, warn);
 }

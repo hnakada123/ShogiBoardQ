@@ -77,15 +77,17 @@ public:
     bool validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, int moveNumber,
                          QStringList* sfenHistory, QList<ShogiMove>& gameMoves);
 
-    /**
-     * @brief 成り・不成まで決まったエンジンの指し手を、合法手か確かめてから指す
-     *
-     * 通信対局の手はここを通らない（相手の手は CsaMoveConverter::applyMoveToBoard、
-     * 自分のエンジンの手は CsaMoveProgressHandler が盤に直接指す）。
-     * @return 合法手で盤面更新できた場合 true。反則手は盤を変えずに false
-     */
+    /// 盤面を変更せず、クリック操作の合法性と成り・不成を確定する。
+    std::optional<UsiMove> prepareMove(const QPoint& from, const QPoint& to);
+
+    /// エンジンの指し手を合法手か確かめ、盤面・手番・履歴を一括更新する。
     bool applyMove(const UsiMove& move, QString& record, int moveNumber,
                    QStringList* sfenHistory, QList<ShogiMove>& gameMoves);
+
+    /// 検証済みの手、またはサーバーが裁定する手を同じ確定経路で記録する。
+    /// 合法性の裁定は呼び出し側が担い、盤面に適用できない手は変更せず false を返す。
+    bool applyRecordedMove(const UsiMove& move, QString& record, int moveNumber,
+                           QStringList* sfenHistory, QList<ShogiMove>& gameMoves);
 
     /// 直前に指した手（validateAndMove・applyMove が成功したときに更新する）
     const UsiMove& lastMove() const { return m_lastMove; }

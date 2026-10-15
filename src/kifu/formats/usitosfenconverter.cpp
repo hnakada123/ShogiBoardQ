@@ -226,17 +226,14 @@ QString UsiToSfenConverter::detectInitialSfenFromText(const QString& text, QStri
 
 QStringList UsiToSfenConverter::convertFile(const QString& usiPath, QString* errorMessage)
 {
-    QString baseSfen;
-    QStringList usiMoves;
-    QString terminalCode;
-    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) return QStringList();
-    return usiMoves;
+    KifParseResult result;
+    return parseWithVariations(usiPath, result, errorMessage) ? result.mainline.usiMoves() : QStringList();
 }
 
 QList<KifDisplayItem> UsiToSfenConverter::extractMovesWithTimes(const QString& usiPath, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(usiPath, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
+    return parseWithVariations(usiPath, result, errorMessage) ? result.mainline.displayItems() : QList<KifDisplayItem>();
 }
 
 bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
@@ -248,8 +245,7 @@ bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
     QStringList usiMoves;
     QString terminalCode;
     if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) return false;
-    buildResult(baseSfen, usiMoves, terminalCode, out);
-    return true;
+    return buildResult(baseSfen, usiMoves, terminalCode, out, errorMessage);
 }
 
 bool UsiToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
@@ -259,30 +255,31 @@ bool UsiToSfenConverter::parseText(const QString& text, KifParseResult& out, QSt
     QStringList usiMoves;
     QString terminalCode;
     if (!parseUsiText(text, baseSfen, usiMoves, &terminalCode, errorMessage)) return false;
-    buildResult(baseSfen, usiMoves, terminalCode, out);
-    return true;
+    return buildResult(baseSfen, usiMoves, terminalCode, out, errorMessage);
 }
 
-void UsiToSfenConverter::buildResult(const QString& baseSfen, const QStringList& usiMoves,
-                                     const QString& terminalCode, KifParseResult& out)
+bool UsiToSfenConverter::buildResult(const QString& baseSfen, const QStringList& usiMoves,
+                                     const QString& terminalCode, KifParseResult& out, QString* error)
 {
-    out.mainline.baseSfen = baseSfen;
-    out.mainline.startPly = 1;
-    out.mainline.usiMoves = usiMoves;
+    KifuParseCommon::KifLineDraft line;
+    line.baseSfen = baseSfen;
+    line.startPly = 1;
+    line.usiMoves = usiMoves;
 
     // 開始局面エントリ
-    out.mainline.disp.push_back(KifuParseCommon::createOpeningDisplayItem(QString(), QString()));
+    line.disp.push_back(KifuParseCommon::createOpeningDisplayItem(QString(), QString()));
 
-    // 共通パイプラインで指し手アイテムを構築
-    const int plyNumber = KifuParseCommon::buildUsiMoveDisplayItems(usiMoves, baseSfen, 1, out.mainline.disp);
+    for (qsizetype i = 0; i < usiMoves.size(); ++i)
+        line.disp.append(KifuParseCommon::createMoveDisplayItem(static_cast<int>(i) + 1, {}));
+    const int plyNumber = static_cast<int>(usiMoves.size());
 
     // 終局理由があれば追加
     if (!terminalCode.isEmpty()) {
-        out.mainline.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
+        line.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
             plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
-        out.mainline.endsWithTerminal = true;
+        line.endsWithTerminal = true;
     }
-    // USI形式では変化(分岐)は通常含まれないため、variationsは空のまま
+    return line.resolve(out.mainline, error);
 }
 
 QList<KifGameInfoItem> UsiToSfenConverter::extractGameInfo(const QString& filePath)
@@ -439,29 +436,4 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
     }
 
     return true;
-}
-
-void UsiToSfenConverter::buildKifLine(const QStringList& usiMoves,
-                                       const QString& baseSfen,
-                                       int startPly,
-                                       const QString& terminalCode,
-                                       KifLine& outLine,
-                                       QString* warn)
-{
-    Q_UNUSED(warn)
-
-    outLine.startPly = startPly;
-    outLine.usiMoves = usiMoves;
-    outLine.disp.clear();
-
-    // 共通パイプラインで指し手アイテムを構築
-    int plyNumber = KifuParseCommon::buildUsiMoveDisplayItems(
-        usiMoves, baseSfen, startPly, outLine.disp);
-
-    // 終局理由
-    if (!terminalCode.isEmpty()) {
-        outLine.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
-        outLine.endsWithTerminal = true;
-    }
 }

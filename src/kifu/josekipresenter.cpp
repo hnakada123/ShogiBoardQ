@@ -197,46 +197,28 @@ bool JosekiPresenter::buildMergeEntriesFromKifFile(const QString &kifFilePath,
 
     qCDebug(lcUi) << "buildMergeEntriesFromKifFile: parse succeeded";
     qCDebug(lcUi) << "  mainline.baseSfen:" << mainline.baseSfen;
-    qCDebug(lcUi) << "  mainline.usiMoves.size():" << mainline.usiMoves.size();
-    qCDebug(lcUi) << "  mainline.sfenList.size():" << mainline.sfenList.size();
+    qCDebug(lcUi) << "  mainline.usiMoves().size():" << mainline.usiMoves().size();
+    qCDebug(lcUi) << "  mainline.sfenList().size():" << mainline.sfenList().size();
 
-    if (mainline.usiMoves.isEmpty()) {
+    if (mainline.usiMoves().isEmpty()) {
         if (errorMessage) {
             *errorMessage = QString();  // 空 = 指し手がない
         }
         return false;
     }
 
-    // sfenListが空の場合はbaseSfenとusiMovesから生成
-    QStringList sfenList = mainline.sfenList;
-    if (sfenList.isEmpty() && !mainline.baseSfen.isEmpty()) {
-        sfenList = SfenPositionTracer::buildSfenRecord(mainline.baseSfen, mainline.usiMoves, false);
-    }
-
-    for (int i = 0; i < mainline.usiMoves.size(); ++i) {
-        if (i >= sfenList.size()) break;
-        if (mainline.usiMoves[i].isEmpty()) continue;
-
+    QString before = mainline.baseSfen;
+    for (const auto& imported : mainline.entries) {
+        const auto& record = imported.record;
+        if (record.isTerminal()) break;
         KifuMergeEntry entry;
-        entry.ply = i + 1;
-        entry.sfen = sfenList[i];
-        entry.usiMove = mainline.usiMoves[i];
-
-        // 日本語表記を取得
-        int dispIndex = i;
-        if (mainline.disp.size() > mainline.usiMoves.size()) {
-            dispIndex = i + 1;
-        }
-
-        if (dispIndex < mainline.disp.size() && !mainline.disp[dispIndex].prettyMove.isEmpty()) {
-            entry.japaneseMove = KifuPresentation::label(mainline.disp[dispIndex].prettyMove, mainline.sfenList.value(i), mainline.usiMoves.at(i));
-        } else {
-            entry.japaneseMove = mainline.usiMoves[i];
-        }
-
+        entry.ply = static_cast<int>(entries.size()) + 1;
+        entry.sfen = before;
+        entry.usiMove = record.move.toUsiMove().toString();
+        entry.japaneseMove = KifuPresentation::label(record.displayText, before, entry.usiMove);
         entry.isCurrentMove = false;
-
         entries.append(entry);
+        before = record.sfen;
     }
 
     return !entries.isEmpty();

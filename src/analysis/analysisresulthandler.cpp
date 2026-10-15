@@ -5,8 +5,6 @@
 
 #include "analysiscoordinator.h"
 #include "kifuanalysislistmodel.h"
-#include "kifurecordlistmodel.h"
-#include "kifudisplay.h"
 #include "kifuanalysisresultsdisplay.h"
 #include "sfenutils.h"
 
@@ -40,28 +38,17 @@ QString sanitizeUsiPv(const QString& rawPv, bool isBook)
 
 QString resolveMoveLabel(const AnalysisResultHandler::Refs& refs, int ply)
 {
-    if (refs.recordModel && ply >= 0 && refs.recordModel->rowCount() > ply) {
-        if (KifuDisplay* disp = refs.recordModel->item(ply)) {
-            const QString label = disp->currentMove();
-            if (!label.isEmpty()) {
-                return label;
-            }
-        }
+    if (ply == 0) return QObject::tr("=== 開始局面 ===");
+    if (refs.line && ply > 0 && ply <= refs.line->displayTexts.size()) {
+        const QString label = refs.line->displayTexts.at(ply - 1);
+        if (!label.isEmpty()) return label;
     }
     return QStringLiteral("ply %1").arg(ply);
 }
 
 QString resolveLastUsiMove(const AnalysisResultHandler::Refs& refs, int ply)
 {
-    if (refs.usiMoves && ply > 0 && ply <= refs.usiMoves->size()) {
-        return refs.usiMoves->at(ply - 1);
-    }
-    if (refs.recordModel && ply > 0 && ply < refs.recordModel->rowCount()) {
-        if (KifuDisplay* moveDisp = refs.recordModel->item(ply)) {
-            return moveDisp->usiMove;
-        }
-    }
-    return QString();
+    return refs.line ? refs.line->usiMove(ply).toString() : QString();
 }
 
 int evaluateForDisplay(bool isGoteTurn,
@@ -193,8 +180,8 @@ void AnalysisResultHandler::commitPendingResult()
 
     const QString moveLabel = resolveMoveLabel(m_refs, ply);
 
-    const QString position = m_refs.sfenHistory && ply < m_refs.sfenHistory->size()
-        ? SfenUtils::normalizePositionLikeSfen(m_refs.sfenHistory->at(ply)) : QString();
+    const QString position = m_refs.line && ply < m_refs.line->sfens.size()
+        ? SfenUtils::normalizePositionLikeSfen(m_refs.line->sfens.at(ply)) : QString();
     const bool isGoteTurn = position.isEmpty() ? ply % 2 == 1
         : position.section(QLatin1Char(' '), 1, 1) == QStringLiteral("w");
     QString evalStr;
@@ -231,12 +218,12 @@ void AnalysisResultHandler::commitPendingResult()
         );
 
     resultItem->setUsiPv(usiPv);
-    if (m_refs.sfenHistory && ply > 0 && ply <= m_refs.sfenHistory->size())
-        resultItem->beforeSfen = SfenUtils::normalizePositionLikeSfen(m_refs.sfenHistory->at(ply - 1));
+    if (m_refs.line && ply > 0 && ply <= m_refs.line->sfens.size())
+        resultItem->beforeSfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfens.at(ply - 1));
 
     // 局面SFENを設定
-    if (m_refs.sfenHistory && ply >= 0 && ply < m_refs.sfenHistory->size()) {
-        const QString sfen = SfenUtils::normalizePositionLikeSfen(m_refs.sfenHistory->at(ply));
+    if (m_refs.line && ply >= 0 && ply < m_refs.line->sfens.size()) {
+        const QString sfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfens.at(ply));
         resultItem->setSfen(sfen);
     }
 

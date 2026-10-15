@@ -67,7 +67,7 @@ QString Ki2ToSfenConverter::detectInitialSfenFromFile(const QString& ki2Path, QS
 
 namespace {
 bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startPly,
-                   BoardSquare previousTo, KifLine& line, QString* error)
+                   BoardSquare previousTo, KifLine& outLine, QString* error)
 {
     ShogiBoard board;
     if (!board.trySetSfen(baseSfen)) {
@@ -78,6 +78,7 @@ bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startP
     int ply = startPly - 1;
     bool firstMoveFound = false, gameEnded = false;
     QString openingComment, openingBookmark, comment;
+    KifuParseCommon::KifLineDraft line;
     line.baseSfen = baseSfen;
     line.startPly = startPly;
     for (const QString& raw : lines) {
@@ -121,22 +122,20 @@ bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startP
         }
     }
     KifuParseCommon::finalizeDisplayItems(comment, line.disp, openingComment, openingBookmark);
-    line.sfenList = SfenPositionTracer::buildSfenRecord(baseSfen, line.usiMoves, false);
-    line.gameMoves = SfenPositionTracer::buildGameMoves(baseSfen, line.usiMoves);
-    return true;
+    return line.resolve(outLine, error);
 }
 } // namespace
 
 QStringList Ki2ToSfenConverter::convertFile(const QString& path, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(path, result, errorMessage) ? result.mainline.usiMoves : QStringList();
+    return parseWithVariations(path, result, errorMessage) ? result.mainline.usiMoves() : QStringList();
 }
 
 QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& path, QString* errorMessage)
 {
     KifParseResult result;
-    return parseWithVariations(path, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
+    return parseWithVariations(path, result, errorMessage) ? result.mainline.displayItems() : QList<KifDisplayItem>();
 }
 
 bool Ki2ToSfenConverter::parseWithVariations(const QString& path, KifParseResult& out, QString* errorMessage)

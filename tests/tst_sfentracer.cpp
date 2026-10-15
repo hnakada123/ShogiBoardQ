@@ -14,6 +14,22 @@ class TestSfenTracer : public QObject
     Q_OBJECT
 
 private slots:
+    void replayReportsFailureWithoutInventingAPosition()
+    {
+        const QStringList moves{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("7g7e")};
+        const auto result = SfenPositionTracer::replay(SfenUtils::hirateSfen(), moves);
+        QVERIFY(!result.success());
+        QCOMPARE(result.failedPly, 3);
+        QCOMPARE(result.moves.size(), 2);
+        QVERIFY(result.error.contains(QStringLiteral("Source square is empty")));
+        QVERIFY(SfenPositionTracer::buildSfenRecord(SfenUtils::hirateSfen(), moves, false).isEmpty());
+        QVERIFY(SfenPositionTracer::buildGameMoves(SfenUtils::hirateSfen(), moves).isEmpty());
+        const auto invalidStart = SfenPositionTracer::replay(QStringLiteral("invalid"), {});
+        QCOMPARE(invalidStart.failedPly, 0);
+        QVERIFY(invalidStart.moves.isEmpty());
+        QVERIFY(!invalidStart.error.isEmpty());
+    }
+
     /// 持ち駒は標準の並び（先手の飛角金銀桂香歩、続いて後手）で書き、盤と同じ SFEN になる
     void handsUseStandardOrderLikeBoard()
     {

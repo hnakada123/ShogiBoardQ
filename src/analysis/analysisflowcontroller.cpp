@@ -6,11 +6,7 @@
 #include "analysiscoordinator.h"
 #include "analysisresulthandler.h"
 #include "analysisresultspresenter.h"
-#include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
-#include "kifurecordlistmodel.h"
-#include "usi.h"
-#include "usicommlogmodel.h"
 
 #include <QString>
 #include <QObject>
@@ -32,8 +28,6 @@ AnalysisFlowController::~AnalysisFlowController()
     if (m_running) {
         stop();
     }
-    // 注意：m_ownedLogModel, m_ownedThinkingModel, m_usi, m_coord は
-    //       すべて this を親として作成されているため、Qtの親子関係により自動破棄される
 }
 
 void AnalysisFlowController::emitAnalysisStoppedOnce()
@@ -45,306 +39,83 @@ void AnalysisFlowController::emitAnalysisStoppedOnce()
     Q_EMIT analysisStopped();
 }
 
-void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
+bool AnalysisFlowController::start(const Deps& d, AnalysisRequest request)
 {
-    m_lastStartSucceeded = false;
-    m_analysisStoppedEmitted = false;
-
-    if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
-        if (d.displayError) d.displayError(tr("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
-        return;
+    if (request.line.isEmpty() || request.line.sfens.size() != request.line.moves.size() + 1) {
+        if (d.displayError) d.displayError(tr("解析対象の棋譜データが不正です。"));
+        return false;
     }
     if (!d.analysisModel) {
         if (d.displayError) d.displayError(tr("内部エラー: 解析モデルが未準備です。"));
-        return;
+        return false;
     }
-    if (!d.usi) {
-        if (d.displayError) d.displayError(tr("内部エラー: Usi インスタンスが未初期化です。"));
-        return;
-    }
-    if (!dlg) return;
-
-    // Cache deps
-    // 解析中に表示する分岐を切り替えても、対象局面と指し手を変えない。
-    m_sfenSnapshot = *d.sfenRecord;
-    m_sfenHistory = &m_sfenSnapshot;
-    m_usiMovesSnapshot = d.usiMoves ? *d.usiMoves : QStringList();
-    m_recordSnapshot = std::make_unique<KifuRecordListModel>();
-    if (d.recordModel) {
-        for (int row = 0; row < d.recordModel->rowCount(); ++row) {
-            const auto* item = d.recordModel->item(row);
-            auto* snapshot = new KifuDisplay(item ? item->currentMove() : QString(), QString());
-            if (item) {
-                snapshot->beforeSfen = item->beforeSfen;
-                snapshot->usiMove = item->usiMove;
-            }
-            m_recordSnapshot->appendItem(snapshot);
-        }
-    }
-    m_recordModel = m_recordSnapshot.get();
-    m_analysisLineIndex = d.lineIndex;
+    const int last = request.line.moveCount();
+    request.options.startPly = qBound(0, request.options.startPly, last);
+    request.options.endPly = request.options.endPly < 0 ? last
+        : qBound(request.options.startPly, request.options.endPly, last);
+    stop();
+    m_resultHandler->setRefs({});
+    m_job.reset();
+    m_analysisStoppedEmitted = false;
+    m_stoppedByUser = false;
+    m_analysisLineIndex = request.lineIndex;
+    m_analysisStartPly = request.options.startPly;
     m_analysisModel = d.analysisModel;
-    m_usi           = d.usi;
-    m_logModel      = d.logModel;
-    m_blackPlayerName = d.blackPlayerName;
-    m_whitePlayerName = d.whitePlayerName;
-    m_usiMoves      = d.usiMoves ? &m_usiMovesSnapshot : nullptr;
-    m_boardFlipped  = d.boardFlipped;
-    m_err           = d.displayError;
+    m_err = d.displayError;
+    m_analysisModel->clearAllItems();
+    m_resultHandler->reset();
 
-    // 前回の解析結果をクリア
-    if (m_analysisModel) {
-        m_analysisModel->clearAllItems();
-    }
-
-    // sfenRecordとusiMovesの整合性をチェック（デバッグ用）
-    const qsizetype sfenSize = m_sfenHistory ? m_sfenHistory->size() : 0;
-    const qsizetype usiSize = m_usiMoves ? m_usiMoves->size() : 0;
-    qCDebug(lcAnalysis).noquote() << "sfenRecord.size=" << sfenSize
-                                  << "usiMoves.size=" << usiSize
-                                  << "(expected: sfenSize == usiSize + 1)";
-    if (m_usiMoves && sfenSize != usiSize + 1) {
-        qCWarning(lcAnalysis).noquote() << "sfenRecord and usiMoves size mismatch!"
-                                        << "Will use recordModel fallback for lastUsiMove extraction.";
-        // 注意: m_usiMovesをnullptrにしない。境界チェックで対応し、範囲外の場合は棋譜表記から抽出する
-    }
-
-    m_resultHandler->reset(); // 一時結果・確定結果・差分用前回値をリセット
-    m_stoppedByUser = false; // 中止フラグをリセット
-
-    // Coordinator（初回のみ作成、シグナル接続は毎回）
-    AnalysisCoordinator::Deps cd;
-    cd.sfenRecord = m_sfenHistory;
-    if (!m_coord) {
-        m_coord = new AnalysisCoordinator(cd, this);
-    } else {
-        // 2回目以降の解析では依存関係を更新（sfenRecordが変わっている可能性あり）
-        m_coord->setDeps(cd);
-    }
-
-    // (C) 進捗を結果モデルへ投入（毎回再接続）
-    if (m_connCoordAnalysisProgress) {
-        QObject::disconnect(m_connCoordAnalysisProgress);
-    }
-    m_connCoordAnalysisProgress = QObject::connect(
-        m_coord, &AnalysisCoordinator::analysisProgress,
-        this,    &AnalysisFlowController::onAnalysisProgress);
-
-    // (C-2) position準備時に盤面データを更新
-    if (m_connCoordPositionPrepared) {
-        QObject::disconnect(m_connCoordPositionPrepared);
-    }
-    m_connCoordPositionPrepared = QObject::connect(
-        m_coord, &AnalysisCoordinator::positionPrepared,
-        this,    &AnalysisFlowController::onPositionPrepared);
-
-    // (C-3) 解析完了時に最後の結果を発行
-    if (m_connCoordAnalysisFinished) {
-        QObject::disconnect(m_connCoordAnalysisFinished);
-    }
-    m_connCoordAnalysisFinished = QObject::connect(
-        m_coord, &AnalysisCoordinator::analysisFinished,
-        this,    &AnalysisFlowController::onAnalysisFinished);
-
-    // (A) AC の送信要求 → エンジンの型付き送信（毎回再接続）
-    for (QMetaObject::Connection* conn : {&m_connCoordRequestSetOption, &m_connCoordRequestSearch,
-                                          &m_connCoordRequestStop}) {
-        if (*conn) QObject::disconnect(*conn);
-    }
-    m_connCoordRequestSetOption = QObject::connect(
-        m_coord, &AnalysisCoordinator::requestSetOption,
-        m_usi,   &Usi::sendSetOptionCommand);
-    m_connCoordRequestSearch = QObject::connect(
-        m_coord, &AnalysisCoordinator::requestSearch,
-        m_usi,   &Usi::sendPositionAndGoInfinite);
-    m_connCoordRequestStop = QObject::connect(
-        m_coord, &AnalysisCoordinator::requestStop,
-        m_usi,   &Usi::sendStopCommand);
-
-    // (B-1) Usi::bestMoveReceived → AC へ直接通知
-    if (m_connUsiBestMove) {
-        QObject::disconnect(m_connUsiBestMove);
-    }
-    m_connUsiBestMove = QObject::connect(
-        m_usi, &Usi::bestMoveReceived,
-        this,  &AnalysisFlowController::onBestMoveReceived);
-
-    // (B-2) Usi::infoReceived → AC へ直接通知
-    if (m_connUsiInfo) {
-        QObject::disconnect(m_connUsiInfo);
-    }
-    m_connUsiInfo = QObject::connect(
-        m_usi, &Usi::infoReceived,
-        this,  &AnalysisFlowController::onInfoReceived);
-
-    // (B-3) Usi::thinkingInfoUpdated → 漢字PV取得用
-    if (m_connUsiThinkingInfo) {
-        QObject::disconnect(m_connUsiThinkingInfo);
-    }
-    m_connUsiThinkingInfo = QObject::connect(
-        m_usi, &Usi::thinkingInfoUpdated,
-        this,  &AnalysisFlowController::onThinkingInfoUpdated);
-
-    // (B-4) Usi::errorOccurred → エンジンクラッシュ時に解析を停止
-    if (m_connUsiError) {
-        QObject::disconnect(m_connUsiError);
-    }
-    m_connUsiError = QObject::connect(
-        m_usi, &Usi::errorOccurred,
-        this,  &AnalysisFlowController::onEngineError);
-
-    // 結果ビュー（Presenter）— 外部から渡された場合はそれを使用
     if (!m_presenter) {
-        if (d.presenter) {
-            m_presenter = d.presenter;
-        } else {
-            m_presenter = new AnalysisResultsPresenter(this);
-        }
-        // 中止ボタンのシグナルを接続
-        QObject::connect(
-            m_presenter, &AnalysisResultsPresenter::stopRequested,
-            this,        &AnalysisFlowController::stop,
-            Qt::UniqueConnection
-            );
-        // 行ダブルクリックのシグナルを接続（読み筋表示用）
-        QObject::connect(
-            m_presenter, &AnalysisResultsPresenter::rowDoubleClicked,
-            this,        &AnalysisFlowController::onResultRowDoubleClicked,
-            Qt::UniqueConnection
-            );
-        // 行選択のシグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
-        QObject::connect(
-            m_presenter, &AnalysisResultsPresenter::rowSelected,
-            this,        &AnalysisFlowController::onResultRowSelected,
-            Qt::UniqueConnection
-            );
+        m_presenter = d.presenter ? d.presenter : new AnalysisResultsPresenter(this);
+        connect(m_presenter, &AnalysisResultsPresenter::stopRequested, this, &AnalysisFlowController::stop);
+        connect(m_presenter, &AnalysisResultsPresenter::rowDoubleClicked, this, &AnalysisFlowController::onResultRowDoubleClicked);
+        connect(m_presenter, &AnalysisResultsPresenter::rowSelected, this, &AnalysisFlowController::onResultRowSelected);
     }
     m_presenter->showWithModel(m_analysisModel);
+    m_presenter->beginAnalysis(request.options.endPly - request.options.startPly + 1, request.engineName);
 
-    // ダイアログ設定を AC オプションへ反映
-    applyDialogOptions(dlg);
+    AnalysisJob::Dependencies deps{d.usi, d.logModel, d.thinkingModel, d.gameController};
+    m_job = std::make_unique<AnalysisJob>(request, deps);
+    connect(m_job.get(), &AnalysisJob::progress, this, &AnalysisFlowController::onAnalysisProgress);
+    connect(m_job.get(), &AnalysisJob::positionPrepared, this, &AnalysisFlowController::onPositionPrepared);
+    connect(m_job.get(), &AnalysisJob::resultReady, this, &AnalysisFlowController::onBestMoveReceived);
+    connect(m_job.get(), &AnalysisJob::thinkingInfoUpdated, this, &AnalysisFlowController::onThinkingInfoUpdated);
+    connect(m_job.get(), &AnalysisJob::errorOccurred, this, &AnalysisFlowController::onEngineError);
+    connect(m_job.get(), &AnalysisJob::finished, this, &AnalysisFlowController::onAnalysisFinished);
 
-    // エンジン起動
-    const int  engineIdx = dlg->engineNumber();
-    const auto engines   = dlg->engineList();
-    if (engineIdx < 0 || engineIdx >= engines.size()) {
-        m_presenter->setStopButtonEnabled(false);
-        if (m_err) m_err(tr("エンジン選択が不正です。"));
-        return;
-    }
-    const QString enginePath = engines.at(engineIdx).path;
-    const QString engineName = dlg->engineName();
-    emit analysisEngineNameChanged(engineName);
-    emit analysisStarted(m_analysisLineIndex);
+    AnalysisResultHandler::Refs refs;
+    refs.analysisModel = m_analysisModel;
+    refs.line = &m_job->line();
+    refs.coord = m_job->coordinator();
+    refs.presenter = m_presenter;
+    refs.blackPlayerName = d.blackPlayerName;
+    refs.whitePlayerName = d.whitePlayerName;
+    refs.boardFlipped = d.boardFlipped;
+    m_resultHandler->setRefs(refs);
 
-    // 思考タブのエンジン名を設定
-    if (m_logModel) {
-        m_logModel->setEngineName(engineName);
-    }
-
-    // USI通信ログのエンジン識別子を設定（"E?" ではなく "E1" と表示されるようにする）
-    m_usi->setLogIdentity(QStringLiteral("[E1]"), QString(), engineName);
-
-    if (!m_usi->startAndInitializeEngineAsync(enginePath, engineName)) { // usi→usiok/setoption/isready→readyok
-        if (m_presenter) {
-            m_presenter->setStopButtonEnabled(false);
-        }
-        if (m_err) {
-            m_err(tr("エンジン初期化に失敗しました。エンジン設定を確認してください。"));
-        }
-        return;
-    }
-
-    // 解析結果ハンドラの外部参照を更新
-    {
-        AnalysisResultHandler::Refs refs;
-        refs.analysisModel = m_analysisModel;
-        refs.sfenHistory = m_sfenHistory;
-        refs.recordModel = m_recordModel;
-        refs.usiMoves = m_usiMoves;
-        refs.coord = m_coord;
-        refs.presenter = m_presenter;
-        refs.blackPlayerName = m_blackPlayerName;
-        refs.whitePlayerName = m_whitePlayerName;
-        refs.boardFlipped = m_boardFlipped;
-        m_resultHandler->setRefs(refs);
-    }
-
-    // 解析開始
-    m_lastStartSucceeded = true;
+    emit analysisEngineNameChanged(request.engineName);
+    emit analysisStarted(request.lineIndex);
     m_running = true;
-    connect(m_usi, &Usi::engineInitialized, this, &AnalysisFlowController::onEngineInitialized, Qt::UniqueConnection);
-    if (!m_usi->isInitializing()) onEngineInitialized();
-}
-
-void AnalysisFlowController::onEngineInitialized()
-{
-    if (m_running && m_coord) m_coord->startAnalyzeRange();
+    if (!m_job->start()) {
+        m_running = false;
+        m_presenter->setStopButtonEnabled(false);
+        if (m_err && m_job->error().isEmpty()) m_err(tr("エンジン初期化に失敗しました。エンジン設定を確認してください。"));
+        emitAnalysisStoppedOnce();
+        return false;
+    }
+    return true;
 }
 
 void AnalysisFlowController::stop()
 {
-    qCDebug(lcAnalysis).noquote() << "stop called, m_running=" << m_running;
-
-    if (!m_running) {
-        return;
-    }
-
-    m_stoppedByUser = true;  // ユーザーによる中止を記録
-
-    if (m_coord) {
-        m_coord->stop();
-        if (!m_running) {
-            qCDebug(lcAnalysis).noquote() << "analysis stopped";
-            return;
-        }
-    }
-
-    // フォールバック: AnalysisCoordinator::analysisFinished が返らない場合
-    m_running = false;
-    if (m_usi) {
-        m_usi->sendQuitCommand();
-    }
-
-    if (m_presenter) {
-        m_presenter->setStopButtonEnabled(false);
-    }
-
-    emitAnalysisStoppedOnce();
-
-    qCDebug(lcAnalysis).noquote() << "analysis stopped";
+    if (!m_running) return;
+    m_stoppedByUser = true;
+    if (m_job) m_job->stop();
 }
-
-// ======================
-//  スロット実装（非ラムダ）
-// ======================
 
 void AnalysisFlowController::onBestMoveReceived()
 {
-    qCDebug(lcAnalysis).noquote() << "onBestMoveReceived";
-
-    // ThinkingInfoPresenterのバッファをフラッシュして、最新の漢字PVを取得
-    if (m_usi) {
-        m_usi->flushThinkingInfoBuffer();
-    }
-
-    // 一時保存した結果を確定
     m_resultHandler->commitPendingResult();
-
-    if (!m_coord) return;
-    m_coord->onEngineBestmoveReceived(QString());
-}
-
-void AnalysisFlowController::onInfoReceived(const UsiInfo& info)
-{
-    // info を受け取り、AnalysisCoordinatorに転送
-    // 漢字PV変換はThinkingInfoPresenterが行い、onThinkingInfoUpdatedで受け取る
-    if (!m_coord) {
-        qCDebug(lcAnalysis).noquote() << "onInfoReceived: m_coord is null!";
-        return;
-    }
-
-    m_coord->onEngineInfo(info);
 }
 
 void AnalysisFlowController::onThinkingInfoUpdated(const ThinkingInfoRow& row)
@@ -366,32 +137,20 @@ void AnalysisFlowController::onAnalysisProgress(int ply, const UsiInfo& info)
 }
 
 
-void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode*/)
+void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode mode)
 {
     qCDebug(lcAnalysis).noquote() << "analysis finished, m_stoppedByUser=" << m_stoppedByUser;
 
-    // 最後の結果をGUIに反映
-    if (m_resultHandler->lastCommittedPly() >= 0) {
-        qCDebug(lcAnalysis).noquote() << "emitting final analysisProgressReported: ply="
-                                      << m_resultHandler->lastCommittedPly() << "scoreCp=" << m_resultHandler->lastCommittedScoreCp();
-        Q_EMIT analysisProgressReported(m_resultHandler->lastCommittedPly(), m_resultHandler->lastCommittedScoreCp(),
-                                       m_resultHandler->lastCommittedMate());
-        m_resultHandler->resetLastCommitted();
-    }
+    publishCommittedEvaluation();
 
     m_running = false;
-
-    // エンジンプロセスを終了させる
-    if (m_usi) {
-        m_usi->sendQuitCommand();
-    }
 
     if (m_presenter) {
         m_presenter->setStopButtonEnabled(false);
     }
 
     // ユーザーによる中止でなければ（正常完了なら）完了メッセージを表示
-    if (!m_stoppedByUser && m_presenter && m_analysisModel) {
+    if (!m_stoppedByUser && mode == AnalysisCoordinator::RangePositions && m_presenter && m_analysisModel) {
         int totalMoves = m_analysisModel->rowCount();
         m_presenter->showAnalysisComplete(totalMoves);
     }
@@ -414,8 +173,6 @@ void AnalysisFlowController::onResultRowSelected(int row)
 
 void AnalysisFlowController::onEngineError(const QString& msg)
 {
-    if (!m_running) return;
-
     qCWarning(lcAnalysis).noquote() << "Engine error during analysis:" << msg;
 
     // エラーメッセージを表示
