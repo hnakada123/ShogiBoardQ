@@ -37,9 +37,9 @@
 
 **重点確認ポイント:**
 - 対局者の組 `MatchPlayers`（`MatchCoordinator::players()`）が人間同士（`blackIsEngine`・`whiteIsEngine` とも false）になっているか
-- 対局者の記録（`GameSession::startGame()` → `KifuDocument::beginMatch()`。`KifuDocument::players()`）と盤への表示（`PlayerInfoPresenter::showPlayers()`）と、`AppState::activity` が `DuringGame` になるか（`MatchCoordinator::start()`）
+- 対局者の記録（`GameSession::startGame()` → `beginMatchRecord()` → `KifuDocument::beginMatch()`。`KifuDocument::players()`）と盤への表示（`PlayerInfoPresenter::showPlayers()`）と、`AppState::activity` が `DuringGame` になるか（`MatchCoordinator::start()`）
 - `UiStatePolicyManager` の状態遷移（`Idle` → `DuringGame`）
-- 時計表示の初期化（持ち時間設定がある場合）
+- 時計表示の初期化（持ち時間設定がある場合。`TimeDisplayPresenter::showClock()`。以後は `ShogiClock::timeUpdated` を直接受けて更新）
 
 ### 1-B: 人間 vs エンジン
 
@@ -164,7 +164,7 @@
 **重点確認ポイント:**
 - `MatchCoordinator::endGame()` のフロー（時計の停止、エンジンへの通知、終局手の追記、動作状態を `Idle` に戻して `gameEnded`）
 - `MatchCoordinator::appendTerminalRecord()` による終局手追記（`MatchRecordSink::appendRecord` 経由）
-- `GameSession::onGameEnded` で `LiveGameSession::commit()` が呼ばれ（中断以外）、終局日時が記録されるか（`recordGameEndTime()`）
+- `GameSession::onGameEnded` の `finishMatchRecord()` で `LiveGameSession::commit()` が呼ばれ（中断以外）、終局日時が記録され（`KifuDocument::recordMatchEnd()`）、自動保存を設定していれば棋譜が保存されるか
 - `UiStatePolicyManager` の状態遷移（`DuringGame` → `Idle`）
 - `HumanTurnPolicy::isGameActivelyInProgress()` が `false` を返すか
 - `MatchCoordinator::gameOverState().isOver` の設定

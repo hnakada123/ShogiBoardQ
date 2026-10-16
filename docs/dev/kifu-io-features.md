@@ -100,7 +100,7 @@ USEN Files (*.usen)
 - **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`) — メニューからの保存の窓口
   - `saveKifuToFile()` — 名前を付けて保存（既定のファイル名は文書の対局者と日時から作る）。保存したら `KifuDocument::markSaved(path)` で今の内容を保存済みにし、保存形式を拡張子で決められるファイルなら上書き保存先（`KifuDocument::filePath()`）にする
   - `overwriteKifuFile()` — 上書き保存先へ、拡張子で決めた形式で書く。上書き保存先が無ければ名前を付けて保存する
-  - `autoSaveKifuToFile(saveDir)` / `autoSaveKifu(saveDir, extension)` — 対局の終局時の自動保存（`MatchCoordinator::autoSaveRequested` から。ダイアログなし。名前は対局者と日時から作り、同じ名前があれば連番を付ける）
+  - `autoSaveKifu(saveDir, extension)` — 対局の終局時の自動保存（ローカル対局・通信対局とも `GameSession::finishMatchRecord()` から。保存先と形式は `MatchAutoSave`。ダイアログなし。名前は対局者と日時から作り、同じ名前があれば連番を付ける）
   - `saveKifuToPath(filePath, errorText)` / `exportLines(format)` — 自動化 API 用（ダイアログを出さない）
 - **`KifuDocument`** (`src/kifu/kifudocument.h/.cpp`) — 開いている棋譜の文書。分岐ツリー・対局情報・対局の記録（対局者・持ち時間・開始と終了の日時）・上書き保存先を持つ
   - `isModified()` — 未保存かどうか。ツリーの revision・コメントとしおりの変更・対局情報が、最後に保存（または読み込み）した時点と違うか、貼り付けた棋譜などファイルにない内容を読み込んだかで求める（変更のたびに印を付けない）

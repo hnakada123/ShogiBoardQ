@@ -154,8 +154,9 @@
 先後それぞれの持ち時間・秒読み・加算は、1つの値（`TimeControl`）として扱う。対局ダイアログの値から作り、正規化（秒読みと加算の排他）を1か所で済ませてから時計に渡す。
 
 - 時計（`ShogiClock`）が時間の決まりと残り時間の両方を持つ。初手の加算も、時計が `setTimeControl()` で与える。
-- エンジンに送る時間は、エンジンにつないだ時計の決まりと残り時間から `UsiGoTimeCalculator` が求める。対局の種類（人間対エンジン、エンジン同士、CSA通信対局）によらず、この計算だけを使う。
-- CSA通信対局は、対局条件（`Game_Summary`）から作った決まりを盤の時計に渡し、着手ごとに `setRemainingTimes()` でサーバーの残り時間に合わせる。エンジンへの時間も同じ計算で求める。
+- エンジンに送る時間は、エンジンにつないだ時間の出どころ（`MatchTimeSource`。ローカル対局は対局時計を読む `ClockTimeSource`）の決まりと残り時間から `UsiGoTimeCalculator` が求める。対局の種類（人間対エンジン、エンジン同士、CSA通信対局）によらず、この計算だけを使う。
+- CSA通信対局は、対局条件（`Game_Summary`）から作った決まりを盤の時計に渡し、着手ごとに `setRemainingTimes()` でサーバーの残り時間に合わせる。盤の時計は表示用の写しで、エンジンへの時間は `CsaGameCoordinator`（`MatchTimeSource` の実装）がサーバーの残り時間（`CsaGameProgress::engineTiming()`）から同じ計算で求める。
+- 時計の表示は、ローカル対局・CSA通信対局とも `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて同じ時計から出す（司令塔は中継しない）。
 - 中断した対局の保存には、時計の状態（決まり・残り時間・履歴）をそのまま含める。
 
 時間の決まりを、司令塔・時計・エンジン応答の管理がそれぞれ写して持つことはしない（以前は3か所で `go` の時間を計算し、後の計算が前の結果を上書きしていた）。
@@ -203,10 +204,10 @@ CSA通信対局でエンジンが指すときも同じ形で送る。CSA の残�
 - [時計本体](../../src/core/shogiclock.cpp)：減算、秒読み、加算（初手の加算を含む）、時間切れ、累積表示の更新、時計と棋譜の消費時間の表記、「待った」用の履歴と巻き戻し、中断・再開用の状態の保存と復元。
 - [待った](../../src/game/matchcoordinator.cpp)（`MatchCoordinator::undoTwoPlies()`）：盤・棋譜を2手戻し、時計を戻して考慮時間を測り直す。
 - [表示の反映](../../src/ui/presenters/timedisplaypresenter.cpp)：時間無制限の「消費」付き累積表示と文字サイズの調整、警告色の段階の判定。
-- [USI時間計算](../../src/engine/usigotime.cpp)：残り時間（加算分を除く）・余裕の差し引きと `btime`/`binc`/`byoyomi` への配分。[エンジン応答管理](../../src/engine/usimatchhandler.cpp)：つないだ時計から計算の入力を作る（先読み中は自分の加算を差し引かない）。
-- [CSA対局のエンジン思考](../../src/network/csagamecoordinator_moves.cpp)・[残り時間の計算](../../src/network/csagameprogress.cpp)：CSA の残り時間から自分の加算分を差し引いて送る。盤の時計への対局条件の設定と、着手ごとの残り時間の同期。
+- [USI時間計算](../../src/engine/usigotime.cpp)：残り時間（加算分を除く）・余裕の差し引きと `btime`/`binc`/`byoyomi` への配分。[エンジン応答管理](../../src/engine/usimatchhandler.cpp)：つないだ時間の出どころから計算の入力を読む。[時間の出どころ](../../src/engine/matchtimesource.cpp)：対局時計から計算の入力を作る（`ClockTimeSource`。先読み中は自分の加算を差し引かない）。
+- [CSA対局のエンジン思考](../../src/network/csagamecoordinator_moves.cpp)・[時間の出どころ](../../src/network/csagamecoordinator.cpp)（`CsaGameCoordinator::snapshot()`・`elapsedThisTurn()`）・[残り時間の計算](../../src/network/csagameprogress.cpp)：CSA の残り時間から自分の加算分を差し引いて送る。盤の時計への対局条件の設定と、着手ごとの残り時間の同期。
 - [対局情報の持ち時間](../../src/kifu/kifuexportmetadata.cpp)：先後別の持ち時間の書式、駒落ちの対局者の見出し（下手・上手）。[対局情報の設定](../../src/kifu/kifudocument.cpp)（`KifuDocument::beginMatch()`・`recordMatchEnd()`）・[記録用の持ち時間と開始・終了日時](../../src/kifu/matchtimerecord.cpp)（`MatchTimeRecord`。棋譜の文書が持つ）。
 - [CSA形式の持ち時間](../../src/kifu/formats/csaformatter.cpp)・[CSA書き出し](../../src/kifu/formats/csaexporter.cpp)：`$TIME`・`$TIME+`・`$TIME-` への変換。
 - [KIF書き出し](../../src/kifu/formats/kifexporter.cpp)・[KI2書き出し](../../src/kifu/formats/ki2exporter.cpp)・[局面図](../../src/kifu/formats/bodtextgenerator.cpp)：駒落ちの局面図と終局行の下手・上手。対局で時間切れになったときの終局語「時間切れ」も終局として扱い、終局行に勝者を書く（USI の `timeout`、USEN の `t`、JKF の `TIME_UP` も同じ）。[局面図の読み込み](../../src/kifu/formats/kiflexer.cpp)・[局面図のコピー](../../src/ui/coordinators/kifufilecontroller.cpp)。
-- [終局の知らせ](../../src/game/matchcoordinator.cpp)・[入玉宣言の判定](../../src/game/nyugyokujudgement.cpp)：ダイアログの対局者の呼び名（CSA 通信対局の入玉宣言の確認は [DialogLauncher](../../src/ui/coordinators/dialoglauncher.cpp)）。下手・上手と呼ぶかは `MatchCoordinator::usesHandicapNames()` が棋譜の文書から読む（[棋譜の文書](../../src/kifu/kifudocument.cpp)の `KifuDocument::usesHandicapNames()` が、対局情報の表と開始局面から `KifuExportMetadataBuilder::usesHandicapNames` で決める）。
+- [終局の知らせ](../../src/game/matchcoordinator.cpp)・[入玉宣言の判定](../../src/game/nyugyokujudgement.cpp)：ダイアログの対局者の呼び名（入玉宣言の確認はローカル対局・CSA 通信対局とも [NyugyokuDeclarationHandler](../../src/ui/controllers/nyugyokudeclarationhandler.cpp) が `KifuDocument::usesHandicapNames()` で決める）。下手・上手と呼ぶかは `MatchCoordinator::usesHandicapNames()` が棋譜の文書から読む（[棋譜の文書](../../src/kifu/kifudocument.cpp)の `KifuDocument::usesHandicapNames()` が、対局情報の表と開始局面から `KifuExportMetadataBuilder::usesHandicapNames` で決める）。
 - [時計テスト](../../tests/tst_shogiclock.cpp)・[対局戦略テスト](../../tests/tst_gamestrategy.cpp)・[USI時間計算テスト](../../tests/tst_usigotime.cpp)・[USI対局テスト](../../tests/tst_usimatchhandler.cpp)・[対局ダイアログテスト](../../tests/tst_startgamedialog.cpp)・[時計表示テスト](../../tests/tst_board_turn_display.cpp)・[待ったのテスト](../../tests/tst_undo_flow.cpp)・[棋譜の持ち時間と駒落ちの見出しのテスト](../../tests/tst_kifudocument.cpp)・[対局情報のテスト](../../tests/tst_game_info_pane.cpp)・[連続対局と駒落ちの対局情報のGUIテスト](../../tests/gui/tst_start_game_flow.cpp)・[終局処理のテスト](../../tests/tst_match_end.cpp)・[入玉宣言の判定のテスト](../../tests/tst_nyugyoku_judgement.cpp)。
