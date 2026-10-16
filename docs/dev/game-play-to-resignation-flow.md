@@ -130,7 +130,7 @@ prepareMove() の成り・不成
     ├─ 不成だけ合法 → 成らない
     ├─ 両方合法
     │    └─ setPromotionChooser() で設定した関数で対局者に選ばせる
-    │         DialogLauncher::choosePromotion() → PromotionFlow::askPromote()
+    │         DialogLauncher::choosePromotion() → PromoteDialog::ask()
     └─ どちらも不合法 → nullopt
 ```
 

@@ -150,6 +150,9 @@ cmake --build build --target translations
   - `paramspec.cpp/.h` - 引数の表の部品 `ParamSpec`（名前・型・必須・範囲・既定値・選択肢・説明）と `OperationSpec`。JSON Schema の出力（`ParamSpecs::inputSchema()`）と検査（`validate()`）。CLI・自動化 API・MCP で共有する
   - `automationmethodspecs.cpp/.h` - 自動化 API の全メソッドの引数の表 `AutomationMethodSpecs`。メソッドは補われた値を読み、`AutomationParams` は範囲が画面の状態で決まる引数にだけ使う
   - `automationcommands_*.cpp` - app / position / kifu / ui の各メソッド、`automationactionpolicy` は QAction 許可リスト
+  - `automationinteractions.cpp/.h` - 応答の後に行う UI 操作の予約 `AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`。実行の直前に `check` で再検査し、結果（pending・running・done・failed と分類つきの error・cancelled）を記録して `ui.interaction` で返す（応答に `"queued": true` と `"interaction"` の番号）。UI を操作するメソッドはこれで予約し、`AutomationDeferredCall` を直接使うのは `app.quit` だけ。実行時の失敗は握りつぶさない。MCP サーバーは `AppClient.call_queued()` で実行を待つ
+  - `automationinput.cpp/.h` - 通常のマウス入力 `AutomationInput::sendClick()`・`sendDrag()`（盤・表のセル・分岐ツリー・ドックのタイトルバー）
+  - `automationwidgetadapters.cpp/.h` - 部品の型ごとの読み（`describe()`・`widget.text`）と書き（`writer()`・`widget.setValue`）の表 `AutomationWidgetAdapters`。型を足すときは表に1行足す
   - `kifuconversionservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と共有するサービス（局面の検証は `analysis/sfenvalidationservice`）
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
   - `clicommandspecs.cpp/.h` - 全コマンドの引数の表 `CliCommandSpecs`（オプション名は引数名の `_` を `-` にしたもの）。オプションの登録・使い方の文・コマンドラインから検査済みの JSON への変換（真偽値はフラグ、文字列の配列は空白区切り）をこの表から行う。各コマンドは `CliArgs::parse()` で読み、`resolvePosition(params)`・`resolveEngine(params)` で解決する
@@ -169,6 +172,9 @@ cmake --build build --target translations
   - `timecontroleditor` - 片方の対局者の持ち時間・秒読み・加算の欄 `TimeControlEditor`（`TimeControlSide` で読み書き。秒読みと加算は排他で、相手側の欄にも `byoyomiEntered`・`incrementEntered` で知らせる）
   - `settingsformbinding` - 入力欄と設定の宣言（`Setting<T>`）の対応の表 `SettingsFormBinding`（`add()` を1度書けば `load()`・`save()`・`reset()`（既定値に戻す）を同じ表で行う。対局開始・詰将棋生成のダイアログが使う）
 - **dialogs/**: Dialog implementations (with co-located .ui files)
+  - `promotedialog` - 成り・不成の確認。`PromoteDialog::ask(parent)` で尋ねる（主画面の `DialogLauncher::choosePromotion()` と詰将棋を解く画面で共通）
+  - `pvboarddialog`・`pvline` - 読み筋盤。読み筋1本の値 `PvLine`（各手数の局面 `positions()`・手の表記 `moveText(ply)`・`displayPv()`・直前の手のハイライト `highlight(ply)` が返す `PvLine::Highlight`）。表示する手数は `BoardViewerWidget` だけが持つ
+  - `tsumeplaydialog` - 詰将棋を解く画面。対局と正解手順の再生は `Mode { Playing, Reviewing }`、部品の有効・無効は `controlStates()` の表1か所で決める。挑戦・正答の記録は `analysis/tsumegamesession`（`TsumeGameSession`）が付ける
 - **models/**: Qt models for lists and data binding（`shogienginethinkingmodel`・`kifuanalysislistmodel`: 思考の表・棋譜解析の結果の表。行は `ShogiInfoRecord`・`KifuAnalysisRow`（`kifuanalysisrow.h`）の値で持つ、`usicommlogmodel`: エンジン1台の情報欄と通信ログの行の知らせ、`evaluationseries`: 評価値グラフの点。先手から見た値で持ち、向きの直しは `blackView()` だけ）
 - **services/**: Cross-cutting services (settings, time keeping)
   - `engineprofilestore.cpp/.h` - 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（ほかの部品は設定ファイルを開かずにこの関数を使う）

@@ -105,15 +105,17 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `click_branch_node` | 分岐ツリーのノードへ移動 | `target?`、`widget`、`id` | `branch.click` |
 | `get_clipboard` | クリップボードのテキストと画像の有無・サイズ | `max_chars` | `clipboard.get` |
 | `edit_table_cell` | 編集可能なテーブルセルに入力し、必要に応じて確定 | `target?`、`widget`、`row`、`column`、`text`、`commit?` | `widget.editCell` |
-| `widget.showDock` | `{widget}` | `{object_name, queued:true}`（ドック表示・前面化） | `-32602` 型違い、`-32002` 操作不可、`-32005` 対象なし |
-| `widget.click` | `{target?, widget}` | `{object_name, queued:true}`（ボタンクリック） | 同上 |
-| `widget.setValue` | `{target?, widget, value}` | `{object_name, queued:true}`（コンボ・整数スピン・チェック・タブ・プレーンテキスト入力） | 同上、範囲外・型違いは `-32602` |
-| `widget.clickCell` | `{target?, widget, row, column}` | `{object_name, queued:true}`（テーブルの通常マウス入力） | 同上 |
-| `widget.editCell` | `{target?, widget, row, column, text, commit?}` | `{object_name, queued:true}`（通常のセル入力欄を使用。`commit` の既定はtrue） | 同上。読み取り専用セルは `-32002` |
+| `widget.showDock` | `{widget}` | `{object_name, queued:true, interaction}`（ドック表示・前面化） | `-32602` 型違い、`-32002` 操作不可、`-32005` 対象なし |
+| `widget.click` | `{target?, widget}` | `{object_name, queued:true, interaction}`（ボタンクリック） | 同上 |
+| `widget.setValue` | `{target?, widget, value}` | `{object_name, queued:true, interaction}`（コンボ・整数スピン・チェック・タブ・プレーンテキスト入力） | 同上、範囲外・型違いは `-32602` |
+| `widget.clickCell` | `{target?, widget, row, column}` | `{object_name, queued:true, interaction}`（テーブルの通常マウス入力） | 同上 |
+| `widget.editCell` | `{target?, widget, row, column, text, commit?}` | `{object_name, queued:true, interaction}`（通常のセル入力欄を使用。`commit` の既定はtrue） | 同上。読み取り専用セルは `-32002` |
 
 `widget.text` はコンボ／タブの `current_index`、フォントの `font_point_size`、盤面の `arrows`
 （`from_file`, `from_rank`, `to_file`, `to_rank`, `priority`, `drop_piece`）も返す。
 UI操作は非表示・無効・モーダルで遮られた対象を拒否し、予約実行時にも再確認する。
+予約実行時の確認で止まった操作や実行中に失敗した操作は `ui.interaction` に `failed`（分類つきの `error`）として残り、
+MCP のツールはその分類の語のエラーを返す（4 章「応答の後に行う UI 操作」）。
 テキスト入力は読み取り専用欄を拒否する。パスワードは書き込みのみ可能で、表示状態に関係なく
 読み取りを伏せ、APIからの表示切り替えを拒否する。機密欄は `automationSensitive` プロパティで識別する。
 MCPの汎用GUI操作は `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` の明示指定が必要であり、
@@ -238,19 +240,35 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `kifu.get` | `{format?, line?: "current"\|"main", from_ply?, max_moves?, max_chars?}` | `{format, total_plies, line, moves:[{ply,text,usi,time,comment}], text?, truncated}`（`moves` は表示中の手順。`line="main"` で本譜） | - |
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
-| `action.trigger` | `{name}` | `{name, triggered:true}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
-| `board.click` | `{target?, file, rank, button?: "left"\|"right"}` | `{target, file, rank, queued:true}`（応答後に実行） | `-32602` 不正座標、`-32002` 操作不可、`-32005` 盤なし |
-| `dialog.clickButton` | `{target, widget? または text?, index?}` | `{object_name, text, queued:true}`（応答後に実行） | `-32602` 不正引数、`-32002` 操作不可、`-32005` ボタンなし |
+| `action.trigger` | `{name}` | `{name, triggered:true, queued:true, interaction}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
+| `board.click` | `{target?, file, rank, button?: "left"\|"right"}` | `{target, file, rank, queued:true, interaction}`（応答後に実行） | `-32602` 不正座標、`-32002` 操作不可、`-32005` 盤なし |
+| `dialog.clickButton` | `{target, widget? または text?, index?}` | `{object_name, text, queued:true, interaction}`（応答後に実行） | `-32602` 不正引数、`-32002` 操作不可、`-32005` ボタンなし |
 | `screenshot.capture` | `{target?: "main"\|objectName\|タイトル, output_dir?}` | `{path, width, height}` | `-32602` 相対の `output_dir`、`-32005` 対象なし |
 | `dialog.list` | - | `{windows:[{object_name,class,title,visible,modal,active,main,width,height}]}` | - |
-| `dialog.close` | `{target}` | `{closed:true, object_name, title}`（応答後に閉じる） | `-32005` 対象なし |
+| `dialog.close` | `{target}` | `{closed:true, object_name, title, queued:true, interaction}`（応答後に閉じる） | `-32005` 対象なし |
 | `widget.text` | `{target?, widget?, max_rows?, max_widgets?, include_children?}` | `{widgets:[{object_name,class,text?,items?,rows?}]}` | `-32005` 対象なし |
+| `ui.interaction` | `{id}` | `{interaction, state: "pending"\|"running"\|"done"\|"failed"\|"cancelled", error?:{code, message, data:{slug, hint?}}}`（予約した UI 操作の状態） | `-32005` 知らない番号・古くて消えた番号 |
 
 引数はメソッドごとの表 `AutomationMethodSpecs`（`src/automation/automationmethodspecs.{h,cpp}`）に宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で表と照らし、知らない引数・必須の欠け・型違い・範囲外・選択肢外を `-32602`（`error.data.hint` は `shogiboardq-cli describe` の案内）で返し、既定値を補った引数をメソッドに渡す。各メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列、コンボやスピンの値など）や操作によって必須になる引数（`dock.configure` の `area`・`relative_to`）にだけ使う。表は `shogiboardq-cli describe` の `methods` に JSON Schema として出る。
 
 `action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、Web サイトを開く動作は除外する。言語切替（システム・日本語・英語・簡体字・繁体字の `actionLanguage*`）とドックレイアウト保存・初期化は許可する。言語はアプリ再起動後に反映する。
 
-モーダルダイアログを開く動作（`action.trigger`）、ダイアログを閉じる `dialog.close`、`app.quit` は、応答を書いた後に `AutomationDeferredCall` で次のイベントループ反復に実行する。これにより `QDialog::exec()` の入れ子ループ中でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。読み込み失敗の通知も `UiNotificationService::ScopedCapture` でダイアログを出さずに記録し、`-32006`（`parse_error`）の理由として返す。ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず `-32002` を返し、処理中に切断したソケットはハンドラが戻ってから削除する。
+#### 応答の後に行う UI 操作
+
+UI を操作するメソッド（`board.click`・`dialog.clickButton`・`action.trigger`・`dialog.close`・`widget.showDock`・`widget.click`・`widget.setValue`・`widget.clickCell`・`widget.editCell`・`dock.configure`・`menu.select`・`branch.click`）は、応答を書いた後のイベントループで操作する。これによりモーダルダイアログを開く操作（`QDialog::exec()` の入れ子ループ）でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。
+
+- 予約は `AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`（`src/automation/automationinteractions.h`）1つで行う。受付の時点で検査したうえで、実行の直前に `check` でもう一度確かめる（応答の後に対象が隠れた・無効になった・別のダイアログに遮られた・メニューが閉じた、など）。
+- 応答には `"queued": true` と操作の番号 `"interaction"` が付く。`ui.interaction {id}` で状態を引ける: `pending`（未実行）、`running`（実行中。開いたモーダルダイアログが閉じるまで）、`done`、`failed`（`error` に `code`・`message`・`data.slug`。直前の検査や操作が投げた `AutomationError` の分類）、`cancelled`（実行前に対象が消えた。`invalid_state`）。
+- 実行時の失敗は握りつぶさずに記録する。記録は新しいものから `AutomationInteractions::kHistoryLimit`（256）件まで残し、それより古い番号は `-32005`（`not_found`）になる。
+- `app.quit` だけはこの仕組みを使わず、`AutomationDeferredCall` で応答の後に終了する。
+- マウス入力（盤・表のセル・分岐ツリーのクリック、ドックのタイトルバーのドラッグ）は `AutomationInput::sendClick()`・`sendDrag()`（`src/automation/automationinput.h`）で、通常の移動・押す・離すのイベントとして送る。
+- 部品の読み（`widget.text`）と書き（`widget.setValue`）は、型ごとのアダプタの表 `AutomationWidgetAdapters::describe()`・`writer()`（`src/automation/automationwidgetadapters.h`）で行う。表は上の行から当てはめる（派生クラスの行を基底クラスより先に置く）。`writer()` は型・値・範囲を受付の時点で確かめ、返した操作は実行時に書けなくなっていれば（読み取り専用になった・項目が隠れたなど）失敗する。型を足すときは表に1行足す。
+
+MCP サーバーは `AppClient.call_queued()` で操作の実行を待つ（5 章）。
+
+#### 未保存の変更・読み込みの失敗・入れ子の要求
+
+`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。読み込み失敗の通知も `UiNotificationService::ScopedCapture` でダイアログを出さずに記録し、`-32006`（`parse_error`）の理由として返す。ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず `-32002` を返し、処理中に切断したソケットはハンドラが戻ってから削除する。
 
 ### エラーの分類
 
@@ -288,6 +306,9 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（`AppState`・棋譜の文書 `KifuDocument`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのは dialogs 層のメニューウィンドウのお気に入りと終了要求だけ |
 | `AutomationCommands*` | `src/automation/automationcommands_{app,position,kifu,navigation,ui,widget,dock}.cpp` | 各メソッドの実装。既存の `KifuFileController` / `KifuNavigationController` / `UiStatePolicyManager` / `ScreenshotService` を呼ぶ。`kifu.get` の形式指定のテキストは `KifuExport::lines(*document, format)`、`moves` は分岐ツリーから作り、`app.state` の `kifu_file`・`engines`・`play_mode` は `KifuDocument::filePath()`・`players()` を読む |
 | `AutomationActionPolicy` | `src/automation/automationactionpolicy.{h,cpp}` | `QAction` の許可リスト |
+| `AutomationInteractions` / `QueuedInteraction` | `src/automation/automationinteractions.{h,cpp}` | 応答の後に行う UI 操作の予約（`queue()`）・実行の直前の再検査・結果の記録と `ui.interaction` の答え（`status()`） |
+| `AutomationInput` | `src/automation/automationinput.{h,cpp}` | 通常のマウス入力（`sendClick()`・`sendDrag()`） |
+| `AutomationWidgets` / `AutomationWidgetAdapters` | `src/automation/automationwidgets.{h,cpp}`・`automationwidgetadapters.{h,cpp}` | ウィンドウ・部品の検索と操作可否の検査（`requireInteractive()`）／部品の型ごとの読み（`describe()`）と書き（`writer()`）の表 |
 | `ScreenshotService` | `src/services/screenshotservice.{h,cpp}` | ウィンドウの PNG 保存。リリースビルドでも使える。F12 のショートカット（`DebugScreenshotShortcut`）はデバッグビルド専用 |
 
 MainWindow には `startAutomationServer(socketPath)` の委譲メソッドだけを追加し、生成と依存注入は `MainWindowComposer::startAutomationServer()`（`src/app/mainwindowcomposer_automation.cpp`）で行う（[composition-root.md](composition-root.md)）。`KifuFileController` には確認ダイアログを出さない非対話 API（`loadKifuFile`、`loadKifuText`、`applySfenPosition`、`saveKifuToPath`、`hasUnsavedChanges`）と `exportLines(format)` を置く。
@@ -318,6 +339,7 @@ mcp/
 - ツール定義は `annotations`（`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`）を付ける。
 - 引数は `inputSchema` で検証され（SDK）、追加で `paths.py` がパス方針を検査する。SDK はスキーマの既定値を補わないので、`server.with_defaults()` が呼び出し前に補い、ハンドラは既定値のリテラルを持たない。
 - 汎用GUI操作のツールは `tooldefs._tool(..., unrestricted=True)` で宣言し（`UNRESTRICTED_TOOLS` に入る）、`dispatch_tool` が `server.require_unrestricted_ui()` でまとめて検査する（`SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` でなければ `not_allowed`）。
+- UI を操作するツール（`trigger_action`・`click_board_square`・`click_dialog_button`・`close_dialog`・`show_dock`・`configure_dock`・`click_widget`・`set_widget_value`・`click_table_cell`・`edit_table_cell`・`select_menu_action`・`click_branch_node`）は `AppClient.call_queued(method, params)` で呼ぶ。応答の `interaction` の番号で `ui.interaction` を引き、操作が実行されるまで最大 `QUEUED_WAIT`（3 秒）待つ。`failed`・`cancelled` ならアプリの分類の語の `AppError` を投げ（実行時の失敗もツールのエラーになる）、`done` か `running`（開いたモーダルダイアログがまだ開いている）か待ち切れなければその `state` を結果に足して返す。出力スキーマに `queued` を持つツールには `tooldefs._tool()` が `interaction`・`state`（`QUEUED_OUTPUT`）と説明の注記（`QUEUED_NOTE`）を足す。
 - MCP のツールの引数で CLI のオプションや自動化 API の引数に渡すものは、型・選択肢・既定値・範囲を `shogiboardq-cli describe` の表と合わせる（`mcp/tests/test_param_specs.py` が検査する）。
 - 環境変数:
 
@@ -388,7 +410,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 | テスト | 種別 | 内容 |
 |---|---|---|
-| `tst_automation_dispatcher` | C++（Qt Test） | JSON-RPC の解析・エラーコードと `error.data.slug`・メソッド表 |
+| `tst_automation_dispatcher` | C++（Qt Test） | JSON-RPC の解析・エラーコードと `error.data.slug`・メソッド表、予約した UI 操作の結果の記録（実行・直前の検査での失敗・実行前の取り消し） |
 | `tst_param_specs` | C++ | 引数の表の検査（既定値の補完・知らない引数・範囲・型の拒否）、JSON Schema の出力、CLI のオプションの変換、登録した全メソッドに表があること、ディスパッチャが呼ぶ前に検査すること、エラーの分類の語が重ならず表の並びが `ErrorKind` と同じこと |
 | `tst_kifu_conversion_service` | C++ | fixtures の KIF/KI2/CSA/JKF/USI/USEN を相互変換し、手順・初期局面・SFEN 列を検証 |
 | `tst_sfen_validation_service` | C++ | 妥当／不正な SFEN、王手検出、合法手数 |
@@ -397,7 +419,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 | `mock_mate_engine` | 補助実行ファイル | `go mate <ms>` に Hayanagi の詰み探索で答える USI エンジン（生成・余詰検査・詰み探索の結合テスト用） |
 | `tst_mcp_python` | pytest（CTest から実行） | `mcp` SDK のクライアントで stdio サーバーを起動し、段階 1 ツール（CLI）と段階 2 ツール（`QT_QPA_PLATFORM=offscreen` で起動したアプリ）を呼ぶ。エンジンは `hayanagi`（解析）と `mock_mate_engine`（詰み）を一時設定ファイルに登録して使う |
 
-`tst_mcp_python` は Python3 と `mcp`・`pytest` が見つかるときだけ登録される。`mcp/tests/test_param_specs.py` は `shogiboardq-cli describe` の表と MCP のツールのスキーマ（そのまま渡すツールは引数名・必須・型・選択肢・既定値・範囲、名前や向きを変えて渡すツールは対応する引数ごと）を比べ、ハンドラが呼ぶメソッドとオプションが表にあることも確かめる。`mcp/tests/test_environment.py` は `shogiboardq-cli environment` の出力（場所・上限・語の重ならない分類の表）と、MCP サーバーの語が分類の表と一致すること、`AppError` が `data.slug`（なければコード）から語を決めることを確かめる。実エンジンでの確認は `SHOGIBOARDQ_TEST_KOMORING` があれば追加で行う。
+`tst_mcp_python` は Python3 と `mcp`・`pytest` が見つかるときだけ登録される。`mcp/tests/test_param_specs.py` は `shogiboardq-cli describe` の表と MCP のツールのスキーマ（そのまま渡すツールは引数名・必須・型・選択肢・既定値・範囲、名前や向きを変えて渡すツールは対応する引数ごと）を比べ、ハンドラが呼ぶメソッドとオプションが表にあることも確かめる。`mcp/tests/test_environment.py` は `shogiboardq-cli environment` の出力（場所・上限・語の重ならない分類の表）と、MCP サーバーの語が分類の表と一致すること、`AppError` が `data.slug`（なければコード）から語を決めることを確かめる。`mcp/tests/test_app_client.py` は `call_queued()` が操作の実行を待つこと、`running` を返すこと、`failed`・`cancelled` をアプリの語のエラーにすることを確かめる。実エンジンでの確認は `SHOGIBOARDQ_TEST_KOMORING` があれば追加で行う。
 
 `mcp/tests/test_csa_game.py` は実際の shogi-server を使い、接続ダイアログ・盤面・終局・棋譜保存を stdio MCP 経由で検証する。
 `SHOGIBOARDQ_TEST_CSA_SERVER` にサーバースクリプトを指定する。実エンジン対局は `SHOGIBOARDQ_TEST_USI_ENGINE`、

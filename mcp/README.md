@@ -77,13 +77,19 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 
 詰将棋対局では `click_board_square(target="tsumePlayDialog", file=3, rank=3)`、
 続けて `file=5, rank=3` と指定すると３三から５三へクリックします。座標は盤の回転に依存しません。
-成り選択は `click_dialog_button(target="成りの選択", text="成る")` で回答します。
+成り選択は主画面と同じ確認ダイアログ（`PromoteDialog`）で、`click_dialog_button(target="PromoteDialog", text="成る")`
+（成らないときは `text="成らない"`）で回答します。
 駒台は先手が `file=10`・`rank=1..8`（歩・香・桂・銀・金・角・飛・玉）、
 後手が `file=11`・`rank=9..2`（同順）です。`button="right"` は選択を取り消します。
 ボタンは `widget`（objectName）か `text`（表示文字列の完全一致）で指定し、
 同名の問題カードは `index`（0始まり）で選択できます。
-クリックは予約後に応答するため、着手の成否や探索完了は `get_widget_text` などで確認してください。
 非表示・無効な対象や、別のモーダルダイアログに遮られた対象は操作しません。
+UIを操作するツール（`click_board_square`・`click_dialog_button`・`close_dialog`・`trigger_action`・`show_dock`・
+`configure_dock`・`click_widget`・`set_widget_value`・`click_table_cell`・`edit_table_cell`・`select_menu_action`・
+`click_branch_node`）は、アプリが操作を実行するまで最大3秒待ってから返ります。受け付けた後に対象が隠れた・無効になった・
+別のダイアログに遮られたなど、実行時に操作できなかった場合はエラーを返します。結果の `state` は `done`（実行済み）、
+`running`（操作で開いたモーダルダイアログがまだ開いている）、`pending`（待つ間に実行されなかった）です。
+着手の成否や探索完了は `get_widget_text` などで確認してください。
 
 CSA待機画面の「通信ログ」を開いた後、次の操作でコマンドを送信できます。
 `submit=true` は単一行のテキスト入力欄だけに対応し、通常の Enter キー入力として処理します。
@@ -135,7 +141,7 @@ trigger_action(name="actionResetDockLayout")
 `operation="drag", x=..., y=...` はドッキング中の表示されたパネルのタイトルバーから、
 画面全体での論理座標へマウスイベントを送ります。OSが描画する浮動ウィンドウのタイトルバーは対象外です。
 それ以外の配置操作はQtのドックAPIを使います。移動はドック固定・許可エリアの制約を守り、
-モーダルダイアログ表示中は操作しません。処理は予約されるため、完了は `list_docks` で確認します。
+モーダルダイアログ表示中は操作しません。ツールは操作の実行を待って返るので、配置の結果は続けて `list_docks` で確認できます。
 `actionSaveDockLayout` で保存ダイアログも開けます。
 
 対局情報は `show_dock(widget="GameInfoDock")` で表示し、

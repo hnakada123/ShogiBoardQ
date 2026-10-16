@@ -18,7 +18,7 @@
 9. `tst_movevalidator`
 10. `tst_sfenreplay`
 11. `tst_usiposition`
-12. `tst_pvboardcontroller`
+12. `tst_pvline`
 13. `tst_shogiclock`
 14. `tst_kifreader`
 15. `tst_app_paths`

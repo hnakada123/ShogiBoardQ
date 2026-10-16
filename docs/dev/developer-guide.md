@@ -94,6 +94,7 @@
 | 2026-10-16 | エラーの分類を1つの表にしたのに合わせて §1.3・§1.5・§14.5.1・第18章を更新（分類 `ErrorKind` と語（slug）・JSON-RPC のコードの表 `ErrorKinds`（`errorkinds.h`）を CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` で共有し、JSON-RPC のエラーに `error.data.slug` を付ける。場所と上限・分類を出す `shogiboardq-cli environment`） |
 | 2026-10-16 | 設定の宣言の型（`BoundedSetting`・`StructSetting`・`ListSetting`・`StructListSetting`）と、使われていない API の削除（監査 3章・4章）に合わせて §1.5・§10・§11・§12.5・§17.5・第18章を更新（駒音・詰将棋・列幅・CSA の接続先の履歴の設定を宣言にし、`JishogiScoreDialogController` を `JishogiScoreDialog::showFor()` に、`ElideLabel` を省略表示だけに、`fitBoardToWidget()` の記述を `resizeEvent()` に直す） |
 | 2026-10-16 | 局面集ファイルの1行の規則 `PositionCollectionFile`・最近使ったファイルの `RecentFileList`／`RecentFilesMenu`（監査 3章）と、棋譜の書き出しの共有部品 `KifuNodeReplay`・`UsenCodec`・`UsiPosition::commandFor()`・`KifExporter::appendHeaderLines()` に合わせて §1.5・§2.5・§8.9・§8.11・第18章を更新（`UsenToSfenConverter::decodeUsenMoves()`・`decodeUsenMovesStrict()` は `UsenCodec::decodeMoves()` に移した） |
+| 2026-10-16 | 読み筋盤の値 `PvLine`、詰将棋を解く画面の状態の表と記録の移動、自動化 API の UI 操作の予約（監査 3章）に合わせて §1.5・§3.5・§6.1・§6.8・§10.5・§11.3・§14.5.1・第18章を更新（`PvBoardController` を削除し、読み筋の値 `PvLine`（`pvline.h`）と表示する手数を持つ `BoardViewerWidget` に。1関数だけの `PromotionFlow` を `PromoteDialog::ask()` にまとめて削除し、§6.8 を書き直し。`TsumePlayDialog` の `Mode` と `controlStates()` の表、挑戦・正答の記録は `TsumeGameSession`。応答の後の UI 操作は `AutomationInteractions::queue()` で予約して `ui.interaction` で結果を引き、マウス入力は `AutomationInput`、部品の読み書きは `AutomationWidgetAdapters` の表） |
 
 <!-- chapter-0-end -->
 
@@ -424,7 +425,7 @@ src/
 │   ├── tsumecollectionsession.cpp/.h #  開いている詰将棋の局面集（問題・挑戦状況・絞り込み・手数の判定）
 │   ├── tsumecollectionwriter.cpp/.h #  詰将棋局面の一覧の書き出し
 │   ├── tsumeprogressstore.cpp/.h   #   詰将棋問題集の解答状況の保存
-│   └── tsumegamesession.cpp/.h     #   詰将棋対局（応手は Hayanagi）
+│   └── tsumegamesession.cpp/.h     #   詰将棋対局（応手は Hayanagi。挑戦・正答の記録も付ける）
 │
 ├── network/                        # CSA通信対局
 │   ├── csaclient*.cpp/.h           #   CSAプロトコルクライアント（_parser が受信の解析、_commands が送信）
@@ -509,18 +510,19 @@ src/
 │   ├── csawaitingdialog.cpp/.h     #   CSA待機ダイアログ（ログ窓は widgets/csalogpanel）
 │   ├── engineregistrationdialog.cpp/.h/.ui # エンジン登録ダイアログ
 │   ├── changeenginesettingsdialog.cpp/.h/.ui # エンジン設定変更（登録エンジン1つを渡して作る。enginesettingsoptionhandler がオプションの部品を作る）
-│   ├── promotedialog.cpp/.h/.ui    #   成/不成選択ダイアログ
+│   ├── promotedialog.cpp/.h/.ui    #   成/不成選択ダイアログ（PromoteDialog::ask()。主画面の盤と詰将棋を解く画面で共通）
 │   ├── versiondialog.cpp/.h/.ui    #   バージョン情報ダイアログ
 │   ├── tsumeshogisearchdialog.cpp/.h/.ui # 詰み探索ダイアログ
 │   ├── tsumeshogigeneratordialog.cpp/.h # 詰将棋局面生成ダイアログ
 │   ├── tsumecollectiondialog.cpp/.h #  詰将棋問題集（一覧から選んで解く）
-│   ├── tsumeplaydialog.cpp/.h      #   詰将棋を解く画面
+│   ├── tsumeplaydialog.cpp/.h      #   詰将棋を解く画面（対局と正解手順の再生は Mode、部品の有効・無効は controlStates() の表）
 │   ├── boardcolordialog.cpp/.h     #   外観（駒・盤・背景・駒台・対局者情報。boardappearancepreview が見本）
 │   ├── fontsettingsdialog.cpp/.h   #   GUI 共通の書体
 │   ├── piecesoundsettingsdialog.cpp/.h # 駒音の設定
 │   ├── jishogiscoredialog.cpp/.h   #   持将棋の点数
 │   ├── sfencollectiondialog.cpp/.h #   SFEN局面集ビューア（1行の規則は analysis の PositionCollectionFile、履歴は RecentFileList・RecentFilesMenu）
-│   ├── pvboarddialog.cpp/.h        #   読み筋盤面ダイアログ（局面の進め方は pvboardcontroller）
+│   ├── pvboarddialog.cpp/.h        #   読み筋盤面ダイアログ（表示する手数は BoardViewerWidget だけが持つ）
+│   ├── pvline.cpp/.h               #   読み筋の値 PvLine（各手数の局面・手の表記・直前の手のハイライト）
 │   ├── kifupastedialog.cpp/.h      #   棋譜貼り付けダイアログ
 │   ├── menuwindow.cpp/.h           #   メニューウィンドウ
 │   ├── josekiwindow.cpp/.h         #   定跡ウィンドウ（画面のみ）
@@ -566,7 +568,6 @@ src/
 │       ├── kifufilecontroller.cpp/.h    # 棋譜の文書とファイル（開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー）
 │       ├── kifusavecoordinator.cpp/.h   # 棋譜の保存ダイアログ・未保存の確認
 │       ├── csagamesession.cpp/.h        # CSA通信対局の開始と進行の画面への反映（棋譜と自動保存は GameSession）
-│       ├── promotionflow.cpp/.h         # 成/不成の選択ダイアログ
 │       └── aboutcoordinator.cpp/.h      # バージョン情報
 │
 ├── services/                       # クロスカッティングサービス
@@ -613,7 +614,10 @@ src/
 │   ├── automationmethodspecs.cpp/.h #  自動化 API の全メソッドの引数の表 AutomationMethodSpecs
 │   ├── automationcommands_*.cpp    #   app・position・kifu・ui・dock・navigation・widget などのメソッド
 │   ├── automationactionpolicy.cpp/.h # 実行してよい QAction の許可リスト
-│   ├── automationwidgets.cpp/.h    #   ウィンドウ列挙・ウィジェット内容取得
+│   ├── automationwidgets.cpp/.h    #   ウィンドウ列挙・部品の検索・操作可否の検査・内容の列挙
+│   ├── automationwidgetadapters.cpp/.h # 部品の型ごとの読み（widget.text）と書き（widget.setValue）の表
+│   ├── automationinteractions.cpp/.h # 応答の後に行う UI 操作の予約・実行直前の再検査・結果の記録（ui.interaction）
+│   ├── automationinput.cpp/.h      #   通常のマウス入力（sendClick・sendDrag）
 │   ├── enginecatalog.cpp/.h        #   登録エンジンの名前解決
 │   ├── kifuconversionservice.cpp/.h #  棋譜の形式変換
 │   ├── boardimagerenderer.cpp/.h   #   SFEN から盤面画像を描画
@@ -1397,7 +1401,7 @@ sequenceDiagram
     BIC->>BIC: 駒の選択と合法な移動先の表示<br/>(EngineMoveValidator)
     BIC->>BMC: submit(from, to)<br/>(BoardInputRoute)
     BMC->>SGC: prepareMove()<br/>(DuringGame の場合)
-    SGC->>SGC: 合法手判定・成り/不成の選択<br/>(EngineMoveValidator・PromotionFlow)
+    SGC->>SGC: 合法手判定・成り/不成の選択<br/>(EngineMoveValidator・PromoteDialog)
     SGC-->>BMC: UsiMove
     BMC->>SGC: applyMove(UsiMove)<br/>(playUsiMove)
     SGC->>SB: applyUsiMove()
@@ -1420,7 +1424,7 @@ sequenceDiagram
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`clicked` シグナルで `BoardInteractionController` に盤の座標を通知する。駒をつまめるかは行き先（`BoardInputRoute::acceptsInput()`）に聞く。1回目のクリックで駒を選び、設定により `EngineMoveValidator` で合法な移動先を光らせる
 2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は棋譜の変化として `BranchTreeEditController::recordBoardMove()`、通信対局は `csaMoveRequested(UsiMove)`、ローカル対局は次のとおり
-3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `ShogiGameController::prepareMove()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする。成り・不成の両方が合法なら成りの選び方（`DialogLauncher::choosePromotion()` が `PromotionFlow` のダイアログで選ばせる）に従う。`BoardMoveController::playUsiMove()` が `ShogiGameController::applyMove()` で盤を更新し（`ShogiBoard::applyUsiMove()`）、結果は棋譜の1行（`RecordEntry`）で返る
+3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `ShogiGameController::prepareMove()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする。成り・不成の両方が合法なら成りの選び方（`DialogLauncher::choosePromotion()` が `PromoteDialog::ask()` で選ばせる）に従う。`BoardMoveController::playUsiMove()` が `ShogiGameController::applyMove()` で盤を更新し（`ShogiBoard::applyUsiMove()`）、結果は棋譜の1行（`RecordEntry`）で返る
 4. **一手の確定**: `BoardMoveController` が `MatchCoordinator::onHumanMove()` を呼ぶと、対局者の組ごとの Strategy を通して `completeMove()` が時計・考慮時間を確定し、行を `MatchRecordSink`（`GameSession::appendRecord()`）に書く。`GameSession` はライブ対局のセッション（`LiveGameSession`）経由で分岐ツリー（`KifuBranchTree`）に追記する
 5. **表示の同期**:
    - `ShogiView`: `ShogiBoard` の `dataChanged`／`standChanged`／`turnChanged` シグナルで、変わったマスと駒台、手番の表示を更新する。移動元・移動先のハイライトは `BoardInteractionController` が付ける
@@ -2643,7 +2647,7 @@ game 層
     ├── GameModeStrategy（HumanVsHuman / HumanVsEngine / EngineVsEngine）
     ├── MatchSessionState（開始の設定・対局者・終局状態）
     ├── EngineLifecycleManager（エンジンの枠 E1・E2。検討と共有）── Usi × 最大2
-    ├── ShogiGameController（盤・合法手・棋譜の表記）── PromotionFlow（成/不成の選択）
+    ├── ShogiGameController（盤・合法手・棋譜の表記）── 成/不成の選択（DialogLauncher::choosePromotion() → PromoteDialog::ask()）
     └── ShogiClock（対局時計）
   ConsecutiveGameSeries（連続対局）
 ```
@@ -2660,7 +2664,7 @@ game 層
 | **GameSession** | `app/gamesession.h/.cpp` | 対局の開始・終局・再開の手順と利用者の操作の受け口、棋譜の受け手。UI の部品を扱うので `app/` に置く |
 | **SessionResetCoordinator** | `app/sessionresetcoordinator.h/.cpp` | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す（UI の部品を扱うので `app/` に置く） |
 | **HumanTurnPolicy** | `ui/controllers/humanturnpolicy.h/.cpp` | 盤を人間が操作できる手番か・対局が進行中かの判定（`BoardMoveController` と定跡ウィンドウが使う。ui は app を include できないので `ui/controllers/` に置く） |
-| **PromotionFlow** | `ui/coordinators/promotionflow.h/.cpp` | 成り/不成の選択ダイアログ表示（ダイアログを出すので `ui/coordinators/` に置く） |
+| **PromoteDialog::ask()** | `dialogs/promotedialog.h/.cpp` | 成り/不成の選択ダイアログを出して答えを返す（主画面の盤は `DialogLauncher::choosePromotion()` から、詰将棋を解く画面は `TsumePlayDialog` から呼ぶ。ダイアログなので `dialogs/` に置く） |
 
 手番は独立したクラスでは持たず、盤（`ShogiBoard`）だけが持つ（6.7節）。
 
@@ -3101,23 +3105,23 @@ ShogiBoard::turnChanged(Turn)
 
 EvE ではエンジンの手を確定した後、`QTimer::singleShot(0, ...)` で次の手番の思考を依頼する。
 
-### 6.8 PromotionFlow — 成り/不成の選択
+### 6.8 PromoteDialog::ask() — 成り/不成の選択
 
-`PromotionFlow` は駒の成り/不成をユーザーに問い合わせるシンプルなユーティリティクラスである。
+成り/不成の問い合わせは `PromoteDialog::ask(parent)` 1つで行う。主画面の盤と詰将棋を解く画面（`TsumePlayDialog`）で共通である（関数1つだけだった `PromotionFlow` はこれにまとめて削除した）。
 
-**ソース**: `src/ui/coordinators/promotionflow.h`, `src/ui/coordinators/promotionflow.cpp`
+**ソース**: `src/dialogs/promotedialog.h`, `src/dialogs/promotedialog.cpp`
 
 ```cpp
-class PromotionFlow final {
+class PromoteDialog : public QDialog {
 public:
-    /// @return 成る: true / 不成: false
-    static bool askPromote(QWidget* parent);
+    /// 成るかを尋ねる（成る: true、成らない・閉じた: false）。主画面の盤と詰将棋を解く画面で共通
+    static bool ask(QWidget* parent);
 };
 ```
 
-実装は `PromoteDialog`（成り/不成選択ダイアログ）を表示し、ユーザーの選択結果を返す。`QDialog::Accepted`（OK/成る）なら `true`、それ以外（Cancel/不成）なら `false` を返す。
+`PromoteDialog`（「成る」「成らない」のボタン）を出し、`QDialog::Accepted`（成る）なら `true`、それ以外（成らない・閉じた）なら `false` を返す。
 
-このクラスは、`ShogiGameController::prepareMove()` が成り・不成の両方とも合法な手で、成りの選び方の関数（`setPromotionChooser()` で渡す `DialogLauncher::choosePromotion()`。合成ルートが設定する）を呼んだときに、`DialogLauncher::choosePromotion()` から呼ばれる（6.6 節）。以下の場合はダイアログを表示しない:
+主画面では、`ShogiGameController::prepareMove()` が成り・不成の両方とも合法な手で成りの選び方の関数（`setPromotionChooser()` で渡す `DialogLauncher::choosePromotion()`。合成ルートが設定する）を呼び、`DialogLauncher::choosePromotion()` が `PromoteDialog::ask()` を呼ぶ（6.6 節）。詰将棋を解く画面は、成る手と成らない手の両方が合法なときに `PromoteDialog::ask()` を直接呼ぶ。以下の場合はダイアログを表示しない:
 
 - **行き所のない駒**: 成りだけが合法な手（歩・香が1段目、桂が1〜2段目へ動く手。後手は逆）は成る
 - **成り・不成の決まった手**: 定跡ウィンドウの手は成り・不成まで決まった `UsiMove` なので、`BoardMoveController::playUsiMove()` が `prepareMove()` を通さずに指す
@@ -5855,13 +5859,12 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 
 | Coordinator | ソース | 役割 |
 |------------|--------|------|
-| `DialogLauncher` | `dialoglauncher.h` | メニューから開くダイアログ（エンジン設定・CSA通信対局・詰将棋・局面集・持将棋・駒音・盤の外観・文字の大きさなど）を、必要な部品を渡して開く。成り・不成の選択（`choosePromotion()`）も受け持つ |
+| `DialogLauncher` | `dialoglauncher.h` | メニューから開くダイアログ（エンジン設定・CSA通信対局・詰将棋・局面集・持将棋・駒音・盤の外観・文字の大きさなど）を、必要な部品を渡して開く。成り・不成の選択（`choosePromotion()`。`PromoteDialog::ask()` を呼ぶ）も受け持つ |
 | `KifuLoadCoordinator` | `kifuloadcoordinator.h` | 棋譜ファイル・貼り付けた棋譜・局面を読み、棋譜の文書（`KifuDocument`）を置き換える |
 | `KifuFileController` | `kifufilecontroller.h` | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー（第8章） |
 | `KifuSaveCoordinator` | `kifusavecoordinator.h` | 棋譜の保存ダイアログ・未保存の確認（名前空間の関数群） |
 | `CsaGameSession` | `csagamesession.h` | CSA 通信対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） |
 | `CommentCoordinator` | `commentcoordinator.h` | 棋譜コメントとしおりの表示・編集（14.5.3） |
-| `PromotionFlow` | `promotionflow.h` | 成り・不成の選択ダイアログ（6.8 節） |
 | `UiStatePolicyManager` | `uistatepolicymanager.h` | 動作状態（`AppActivityState`）ごとのメニュー・ボタンの有効・無効・非表示 |
 | `AboutCoordinator` | `aboutcoordinator.h` | バージョン情報ダイアログとプロジェクトWebサイトの表示 |
 | `DockRegistry` | `dockregistry.h` | ドックの表（`DockSpec`）から12個のドックを作り、規定の場所に置き、浮動・表示・位置を保存・復元する |
@@ -5880,7 +5883,7 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 | バージョン情報 | `displayVersionInformation()` | `AboutCoordinator` に委譲 |
 | Webサイト | `openProjectWebsite()` | プロジェクトのWebサイトを開く |
 | エンジン設定 | `displayEngineSettingsDialog()` | USIエンジンの設定ダイアログ |
-| 成り確認 | `choosePromotion()` | 駒を成るかどうかの選択 |
+| 成り確認 | `choosePromotion()` | 駒を成るかどうかの選択（`PromoteDialog::ask()`。6.8 節） |
 | 持将棋スコア | `displayJishogiScoreDialog()` | `JishogiScoreDialog::showFor(position, parent)`（`src/dialogs/jishogiscoredialog.h`）で、表示中の局面の点数を `JishogiCalculator::calculate()` で数え、先後の王手を `EngineMoveValidator::isInCheck()` で調べて、ダイアログをモーダルで開く。ダイアログは先手・後手の2列の表で、宣言点数（敵陣の駒＋持ち駒）・総点数（盤上の全駒＋持ち駒）・玉が敵陣にいるか・敵陣に玉以外の駒が10枚以上あるか（枚数つき）・王手がかかっていないか・24点法と27点法の判定を出す。A-/A+（`GameSettings::jishogiScoreFontSize`）と「結果をコピー」もある |
 | 詰将棋の生成・対局 | `displayTsumeshogiGeneratorDialog()`・`displayTsumePlayDialog()` | 詰将棋の生成と対局のダイアログ |
 | メニューウィンドウ | `displayMenuWindow()` | メニューウィンドウのドックを出す |
@@ -6275,9 +6278,9 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | CsaWaitingDialog | QDialog | なし | CSA通信対局の接続待機表示（状態遷移・ログ表示） |
 | EngineRegistrationDialog | QDialog | engineregistrationdialog.ui | USIエンジンの登録・削除・option自動取得 |
 | ChangeEngineSettingsDialog | QDialog | changeenginesettingsdialog.ui | USI engine options の編集（テキスト/スピン/チェック/コンボ/ファイル選択）。`ChangeEngineSettingsDialog(engine, parent)` で登録エンジン1つ（`EngineListSettings::EngineEntry`）を渡して作り、見出しにエンジン名と作者名を出す |
-| PromoteDialog | QDialog | promotedialog.ui | 成り/不成の選択確認 |
+| PromoteDialog | QDialog | promotedialog.ui | 成り/不成の選択確認（`ask(parent)` で出して答えを返す。主画面の盤と詰将棋を解く画面で共通） |
 | VersionDialog | QDialog | versiondialog.ui | バージョン情報表示 |
-| PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き） |
+| PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き）。読み筋の値は `PvLine`（`pvline.h`。各手数の局面 `positions()`・手の表記 `moveText(ply)`・読み筋全体の表記 `displayPv()`・直前の手のハイライト `highlight(ply)`）で、表示する手数は `BoardViewerWidget` だけが持つ |
 | KifuPasteDialog | QDialog | なし | クリップボードからの棋譜テキスト取り込み（形式自動判定） |
 | JosekiWindow | QWidget | なし | 定跡データベースの表示・編集・マージ（独立ウィンドウ） |
 | JosekiMoveDialog | QDialog | なし | 定跡手の追加・編集（やねうら王形式、USIプレビュー） |
@@ -7543,6 +7546,8 @@ MainWindow::MainWindow()
 メソッドの引数は `AutomationMethodSpecs`（`src/automation/automationmethodspecs.h`）の表に、名前・型・必須・範囲・既定値・選択肢を `ParamSpec`（`src/automation/paramspec.h`）で1行ずつ宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で引数を検査し（知らない引数・必須の欠け・型・範囲・選択肢の誤りは `-32602`）、既定値を補った引数をメソッドに渡す。メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列など）にだけ使う。CLI の引数も同じ部品の表 `CliCommandSpecs`（`src/cli/clicommandspecs.h`）で宣言し、`shogiboardq-cli describe` が両方の表を JSON Schema として出す。MCP サーバーのツールのスキーマがこの表と一致することは `mcp/tests/test_param_specs.py` が検査する。引数を足すときは表に1行足し、MCP のツール（`mcp/shogiboardq_mcp/tooldefs.py`）のスキーマも合わせる。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
 
 エラーの分類は `ErrorKind`（`src/automation/errorkinds.h`）の表1つで決める。メソッドは `AutomationError(ErrorKind, message, hint)` を投げ、`AutomationDispatcher::makeError()` が `error.code` に分類の JSON-RPC のコード（`ErrorKinds::rpcCode()`）、`error.data.slug` に分類の語（`ErrorKinds::slug()`）を入れる。CLI の失敗（`CliOutput::fail(ErrorKind, message)`・`failEvent()`）も同じ語を `code` に書くので、同じ失敗はどの経路でも同じ語になる（既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜が読めないときは `parse_error`）。`shogiboardq-cli environment` は既定のソケット（`AutomationServer::defaultSocketPath()`）・エンドポイントファイル（`endpointFilePath()`）・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）と分類の表（`ErrorKinds::toJson()`）を出し、MCP サーバーはこれを読んで値を写さない。分類の一覧は [MCP サーバーの設計](mcp-server.md#エラーの分類) を参照。
+
+応答の後に行う UI 操作（`board.click`・`dialog.clickButton`・`action.trigger`・`dialog.close`・`widget.showDock`・`widget.click`・`widget.setValue`・`widget.clickCell`・`widget.editCell`・`dock.configure`・`menu.select`・`branch.click`）は、`AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`（`src/automation/automationinteractions.h`）で予約する。モーダルダイアログを開く操作でも応答を返せるよう、操作は応答を書いた後のイベントループで行う。受付の時点の検査に加えて実行の直前に `check` でもう一度確かめ（対象が隠れた・無効になった・別のダイアログに遮られたなど）、`perform` が投げた `AutomationError` も含めて結果を記録する（実行時の失敗は握りつぶさない）。応答には `"queued": true` と操作の番号 `"interaction"` が付き、`ui.interaction {id}` で状態（`pending`・`running`（開いたモーダルダイアログが閉じるまで）・`done`・`failed`（`error` に `code`・`message`・`data.slug`）・`cancelled`（実行前に対象が消えた））を引ける。記録は新しいものから `kHistoryLimit`（256）件まで残す。`app.quit` だけはこの仕組みを使わず、`AutomationDeferredCall` で応答の後に終了する。マウス入力は `AutomationInput::sendClick()`・`sendDrag()`（`automationinput.h`）の2つで送り（盤・表のセル・分岐ツリー・ドックのタイトルバー）、部品の読み（`widget.text`）と書き（`widget.setValue`）は型ごとのアダプタの表 `AutomationWidgetAdapters::describe()`・`writer()`（`automationwidgetadapters.h`）で行う（型を足すときは表に1行足す）。MCP サーバーの `AppClient.call_queued()` はこの番号で操作の実行を待つ（[MCP サーバーの設計](mcp-server.md)）。
 
 #### 14.5.2 DockRegistry（ドックの作成）
 
@@ -9155,8 +9160,11 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | AutomationActionPolicy | NS | automation | 自動化 API が実行してよい QAction の許可リスト | 第14章 |
 | AutomationContext | S | automation | 自動化 API のメソッド実装に渡すアプリ側の状態と部品 | 第14章 |
 | AutomationDispatcher | C | automation | JSON-RPC 2.0 の解析とメソッド表（GUI 非依存）。呼ぶ前に引数を `AutomationMethodSpecs` で検査し既定値を補う | 第14章 |
+| AutomationInput | NS | automation | 自動化 API が送る通常のマウス入力（`sendClick()`・`sendDrag()`） | 第14章 |
+| AutomationInteractions | NS | automation | 応答の後に行う UI 操作の予約（`queue()`）・実行直前の再検査・結果の記録（`status()`。`ui.interaction`） | 第14章 |
 | AutomationMethodSpecs | NS | automation | 自動化 API の全メソッドの引数の表（`all()`・`find()`） | 第14章 |
 | AutomationServer | C | automation | 自動化 API のローカルソケットサーバー（改行区切り JSON-RPC 2.0） | 第4章, 第14章 |
+| AutomationWidgetAdapters | NS | automation | 部品の型ごとの読み（`describe()`。`widget.text`）と書き（`writer()`。`widget.setValue`）の表 | 第14章 |
 | BoardChromeWidget | C | views | 盤の周りの対局者カード（名前・時計・手番の札）と編集用ボタン | 第11章 |
 | BoardCoordinates | NS | core | 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応 | 第5章 |
 | BoardImageExporter | C | board | 盤面画像のクリップボードコピー・ファイル保存 | 第13章 |
@@ -9334,12 +9342,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | Position | C | core | 局面の値（盤・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用 | 第2章, 第5章 |
 | PositionCollectionFile | NS | analysis | 局面集ファイル（1行1局面）の規則。局面集ビューアと詰将棋問題一覧で共有 | 第9章, 第11章 |
 | PositionEditSession | C | board | 局面編集の開始・終了・編集メニュー・編集中の着手（編集中かは動作状態で決まる） | 第13章 |
-| PromoteDialog | C | dialogs | 成/不成確認ダイアログ | 第11章 |
-| PromotionFlow | C | ui/coordinators | 成/不成選択フロー | 第6章 |
+| PromoteDialog | C | dialogs | 成/不成確認ダイアログ（`ask()`。主画面の盤と詰将棋を解く画面で共通） | 第6章, 第11章 |
 | PvBoardDialog | C | dialogs | 読み筋盤面表示ダイアログ | 第11章 |
 | PvClickController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
+| PvLine | C | dialogs | 読み筋盤の読み筋1本の値（各手数の局面・手の表記・直前の手のハイライト `PvLine::Highlight`） | 第11章 |
 | PvNotationFormatter | C | engine | UsiInfo の読み筋・探索手を局面の上で漢字表記にする | 第7章 |
 | PvTableView | C | widgets | 読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方。思考の表と棋譜解析の結果の表で使う） | 第11章 |
+| QueuedInteraction | S | automation | 応答の後に行う UI 操作1つ（対象・実行直前の検査・操作） | 第14章 |
 | RecentFileList | C | common | 最近使ったファイルの一覧（新しい順・重複なし・上限つき） | 第11章 |
 | RecentFilesMenu | C | widgets | 「履歴」ボタンのメニュー（ファイル・履歴をクリア）を作り、選ばれた項目を知らせる | 第11章 |
 | RecordEntry | S | kifu | 棋譜の1行（指した手か終局） | 第8章 |
@@ -9611,7 +9620,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | uistatepolicymanager | 第10章, 第14章 | 動作状態ごとの UI の有効・無効 |
 | dockregistry | 第10章, 第14章 | ドックの表からの作成・規定の配置・状態の保存と復元 |
 | docklayoutmanager | 第10章 | 名前付きレイアウト・起動時のレイアウト・ドックの固定 |
-| promotionflow | 第6章 | 成/不成フロー |
 | aboutcoordinator | 第10章 | バージョン情報 |
 | commentcoordinator | 第14章 | コメント調整 |
 | kifuloadcoordinator | 第8章, 第15章 | 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す |
@@ -9679,10 +9687,11 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | csagamedialog | 第11章 | CSA対局 |
 | engineregistrationdialog | 第11章 | エンジン登録 |
 | changeenginesettingsdialog | 第11章 | エンジン設定変更 |
-| promotedialog | 第11章 | 成/不成確認 |
+| promotedialog | 第6章, 第11章 | 成/不成確認（`PromoteDialog::ask()`） |
 | versiondialog | 第11章 | バージョン情報 |
 | tsumeshogisearchdialog | 第11章 | 詰将棋探索 |
 | pvboarddialog | 第11章 | 読み筋盤面 |
+| pvline | 第11章 | 読み筋盤の読み筋の値 `PvLine` |
 | kifupastedialog | 第11章 | 棋譜ペースト |
 | csawaitingdialog | 第11章 | CSA待機 |
 | menuwindow | 第11章 | メニューウィンドウ |
@@ -9758,8 +9767,11 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | automationactionpolicy | 第14章 | 自動化 API が実行してよい QAction の許可リスト |
 | automationdispatcher | 第14章 | JSON-RPC 2.0 の解析とメソッド表（GUI 非依存） |
+| automationinput | 第14章 | 通常のマウス入力（クリック・ドラッグ）の送信 |
+| automationinteractions | 第14章 | 応答の後に行う UI 操作の予約と結果の記録（`ui.interaction`） |
 | automationmethodspecs | 第14章 | 自動化 API の全メソッドの引数の表 |
 | automationserver | 第4章, 第14章 | 自動化 API のローカルソケットサーバー（改行区切り JSON-RPC 2.0） |
+| automationwidgetadapters | 第14章 | 部品の型ごとの読み書きの表 |
 | boardimagerenderer | 第13章 | 盤面画像の描画（GUI を起動しない CLI・自動化 API と共有） |
 | engineanalysisrunner | 第7章 | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） |
 | errorkinds | 第14章 | エラーの分類 `ErrorKind` と語・JSON-RPC のコードの表（CLI・自動化 API・MCP で共有） |
