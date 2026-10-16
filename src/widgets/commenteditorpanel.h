@@ -8,6 +8,8 @@
 #include <QString>
 #include <QPoint>
 
+#include "fontsizehelper.h"
+
 class QWidget;
 class QTextEdit;
 class QToolButton;
@@ -58,8 +60,8 @@ protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private slots:
-    void onFontIncrease();
-    void onFontDecrease();
+    /// コメント欄の文字の大きさを変える（A-/A+）
+    void applyCommentFontSize(int size);
     void onUpdateCommentClicked();
     void onCommentTextChanged();
     void onCommentUndo();
@@ -71,7 +73,6 @@ private slots:
 
 private:
     void buildCommentToolbar(QWidget* parentWidget);
-    void updateCommentFontSize(int delta);
     void updateEditingIndicator();
     void fixPositionLabelSize();
     bool showsAppliedHtml(const QString& html) const;
@@ -92,7 +93,7 @@ private:
     QLabel* m_positionLabel = nullptr;
 
     // State
-    int m_currentFontSize = 10;
+    FontSizeHelper m_fontSize;   ///< コメント欄の文字の大きさ（変更のたびに保存する）
     int m_currentMoveIndex = -1;
     QString m_originalComment;
     bool m_isCommentDirty = false;

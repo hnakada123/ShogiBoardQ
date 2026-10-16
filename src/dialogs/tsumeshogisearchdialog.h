@@ -8,7 +8,6 @@
 #include <memory>
 
 #include "enginelistsettings.h"
-#include "fontsizehelper.h"
 
 namespace Ui {
 class TsumeShogiSearchDialog;
@@ -33,20 +32,16 @@ public slots:
     void done(int result) override;
 
 protected:
-    void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     void showEngineSettingsDialog();
     void updateEngineSelection();
-    void updateMinimumSize();
 
 private:
     std::unique_ptr<Ui::TsumeShogiSearchDialog> ui;
     QList<EngineListSettings::EngineEntry> m_engines;
-    FontSizeHelper m_fontHelper;
 
     bool hasValidEngine() const;
-    void applyFontSize();
 };
 
 #endif // TSUMESHOGISEARCHDIALOG_H

@@ -2,6 +2,7 @@
 /// @brief 定跡手入力ダイアログクラスの実装
 
 #include "josekimovedialog.h"
+#include "dialogfontscale.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
 #include "josekimoveinputwidget.h"
@@ -24,7 +25,6 @@
 
 JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     : QDialog(parent)
-    , m_fontHelper(JosekiSettings::josekiMoveDialogFontSize, 8, 18, 1)
 {
     setupUi(isEdit);
 
@@ -69,6 +69,10 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     ));
     m_editMoveLabel->setTextFormat(Qt::PlainText);
     m_editMoveLabel->setAlignment(Qt::AlignCenter);
+    QFont editFont = m_editMoveLabel->font();
+    editFont.setPointSize(editFont.pointSize() + 4);
+    editFont.setBold(true);
+    m_editMoveLabel->setFont(editFont);
     if (isEdit) {
         mainLayout->addWidget(m_editMoveLabel);
     } else {
@@ -135,18 +139,9 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     // === ボタン ===
     QHBoxLayout *buttonLayout = new QHBoxLayout();
 
-    m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
-    m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
-    m_fontDecreaseBtn->setFixedWidth(36);
-    m_fontDecreaseBtn->setAutoDefault(false);
-    m_fontDecreaseBtn->setStyleSheet(ButtonStyles::panelToolButton());
+    m_fontDecreaseBtn = new QPushButton(this);
     buttonLayout->addWidget(m_fontDecreaseBtn);
-
-    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
-    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
-    m_fontIncreaseBtn->setFixedWidth(36);
-    m_fontIncreaseBtn->setAutoDefault(false);
-    m_fontIncreaseBtn->setStyleSheet(ButtonStyles::panelToolButton());
+    m_fontIncreaseBtn = new QPushButton(this);
     buttonLayout->addWidget(m_fontIncreaseBtn);
 
     buttonLayout->addStretch();
@@ -163,13 +158,16 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     // シグナル・スロット接続
     connect(m_buttonBox, &QDialogButtonBox::accepted, this, &JosekiMoveDialog::validateInput);
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    connect(m_fontIncreaseBtn, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(m_fontDecreaseBtn, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &JosekiMoveDialog::applyFontSize);
 
     connect(m_moveInput, &JosekiMoveInputWidget::moveChanged, this, &JosekiMoveDialog::updateValidation);
     connect(m_nextMoveInput, &JosekiMoveInputWidget::moveChanged, this, &JosekiMoveDialog::updateValidation);
-    applyFontSize();
+
+    // 文字の大きさ（編集する定跡手は本文より 4pt 大きい太字のまま拡大・縮小する）
+    DialogFontScale::Options fontOptions;
+    fontOptions.maxSize = 18;
+    fontOptions.decrease = m_fontDecreaseBtn;
+    fontOptions.increase = m_fontIncreaseBtn;
+    DialogFontScale::install(this, JosekiSettings::josekiMoveDialogFontSize, fontOptions);
     updateValidation();
 }
 
@@ -300,21 +298,6 @@ QString JosekiMoveDialog::comment() const
 void JosekiMoveDialog::setComment(const QString &comment)
 {
     m_commentEdit->setText(comment);
-}
-
-void JosekiMoveDialog::applyFontSize()
-{
-    const QFont font = m_fontHelper.applyTo(this);
-    // 入力ウィジェットのプレビューラベルに拡大フォントを適用
-    m_moveInput->applyFont(font);
-    m_nextMoveInput->applyFont(font);
-    // 編集対象の定跡手ラベルも更新
-    if (m_editMoveLabel) {
-        QFont editFont = font;
-        editFont.setPointSize(m_fontHelper.fontSize() + 4);
-        editFont.setBold(true);
-        m_editMoveLabel->setFont(editFont);
-    }
 }
 
 void JosekiMoveDialog::setEditMoveDisplay(const QString &japaneseMove)

@@ -2,6 +2,8 @@
 /// @brief 詰将棋局面生成ダイアログの設定・生成制御
 
 #include "tsumeshogigeneratordialog.h"
+#include "dialogfontscale.h"
+#include "fontsizehelper.h"
 #include "tsumeshogisettings.h"
 #include "dialogutils.h"
 #include "enginelistsettings.h"
@@ -45,11 +47,15 @@
 TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     : QDialog(parent)
     , m_generator(new TsumeshogiGenerator(this))
-    , m_fontHelper(TsumeshogiSettings::tsumeshogiGeneratorFontSize, 8, 24, 1)
 {
     setWindowTitle(tr("詰将棋局面生成"));
     setupUi();
-    applyFontSize();
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = m_footerUi.fontDecrease;
+    fontOptions.increase = m_footerUi.fontIncrease;
+    auto* fontScale = DialogFontScale::install(this, TsumeshogiSettings::tsumeshogiGeneratorFontSize, fontOptions);
+    connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &TsumeshogiGeneratorDialog::fitToFont);
+    fitToFont();
     readEngineNameAndDir();
     loadSettings();
     DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
@@ -89,9 +95,6 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
     connect(m_resultsUi.copySelected, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopySelected);
     connect(m_resultsUi.copyAll, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopyAll);
     connect(m_footerUi.close, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::close);
-    connect(m_footerUi.fontIncrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(m_footerUi.fontDecrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &TsumeshogiGeneratorDialog::applyFontSize);
     connect(m_settingsUi.restoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
     connect(m_settingsUi.engineSettings, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
     connect(m_resultsUi.table, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
@@ -158,7 +161,6 @@ void TsumeshogiGeneratorDialog::loadSettings()
 void TsumeshogiGeneratorDialog::saveSettings()
 {
     DialogUtils::saveDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize);
-    TsumeshogiSettings::tsumeshogiGeneratorFontSize.set(m_fontHelper.fontSize());
     const int engineIndex = m_settingsUi.engine->currentIndex();
     if (engineIndex >= 0 && engineIndex < m_engineList.size()) {
         EngineListSettings::saveSelection(EngineListSettings::tsumeshogiGeneratorSelection(),
@@ -428,11 +430,11 @@ void TsumeshogiGeneratorDialog::showEngineSettingsDialog()
     dialog.exec();
 }
 
-void TsumeshogiGeneratorDialog::applyFontSize()
+void TsumeshogiGeneratorDialog::fitToFont()
 {
-    const QFont font = m_fontHelper.applyTo(this);
+    // 文字の大きさは DialogFontScale が変える。表は見た目をスタイルシートで決めるので文字の大きさを渡し直す
     applyTableHeaderStyle();
-    m_resultsUi.table->verticalHeader()->setDefaultSectionSize(QFontMetrics(font).height() + 10);
+    m_resultsUi.table->verticalHeader()->setDefaultSectionSize(QFontMetrics(font()).height() + 10);
     DialogUtils::fitWrappedLabels(this);
 }
 
@@ -440,7 +442,7 @@ void TsumeshogiGeneratorDialog::applyTableHeaderStyle()
 {
     if (!m_resultsUi.table) return;
 
-    m_resultsUi.table->setStyleSheet(TableStyles::thinking(m_fontHelper.fontSize()));
+    m_resultsUi.table->setStyleSheet(TableStyles::thinking(font().pointSize()));
 }
 
 void TsumeshogiGeneratorDialog::setRunningState(bool running)
@@ -758,14 +760,10 @@ void TsumeshogiGeneratorDialog::buildResultsSection(QVBoxLayout* mainLayout)
 
     auto* bottomLayout = new QHBoxLayout;
     m_footerUi.fontDecrease = new QToolButton(this);
-    m_footerUi.fontDecrease->setText(QStringLiteral("A-"));
-    m_footerUi.fontDecrease->setToolTip(tr("文字サイズを縮小"));
-    m_footerUi.fontDecrease->setStyleSheet(ButtonStyles::fontButton());
+    m_footerUi.fontDecrease->setObjectName(QStringLiteral("tsumeshogiGeneratorFontDecrease"));
     bottomLayout->addWidget(m_footerUi.fontDecrease);
     m_footerUi.fontIncrease = new QToolButton(this);
-    m_footerUi.fontIncrease->setText(QStringLiteral("A+"));
-    m_footerUi.fontIncrease->setToolTip(tr("文字サイズを拡大"));
-    m_footerUi.fontIncrease->setStyleSheet(ButtonStyles::fontButton());
+    m_footerUi.fontIncrease->setObjectName(QStringLiteral("tsumeshogiGeneratorFontIncrease"));
     bottomLayout->addWidget(m_footerUi.fontIncrease);
     bottomLayout->addStretch();
     m_footerUi.close = new QPushButton(tr("閉じる"), this);

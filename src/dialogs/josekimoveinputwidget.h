@@ -50,12 +50,6 @@ public:
      */
     static bool isValidUsiMove(const QString &move);
 
-    /**
-     * @brief フォントを適用する
-     * @param baseFont ベースフォント
-     */
-    void applyFont(const QFont &baseFont);
-
 signals:
     /**
      * @brief 指し手が変更された

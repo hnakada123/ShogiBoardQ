@@ -49,36 +49,13 @@ void applyFontToAllChildren(QWidget* widget, const QFont& font, const QList<QWid
     }
 }
 
-QFont applyFontSize(QWidget* dialog, int size, int minimum, int maximum, const QList<QWidget*>& excluded)
+QFont applyFontSize(QWidget* widget, int size, const QList<QWidget*>& excluded)
 {
-    standardizeDialog(dialog);
-    QFont font = dialog->font();
+    standardizeDialog(widget);
+    QFont font = widget->font();
     font.setPointSize(size);
-    applyFontToAllChildren(dialog, font, excluded);
-    updateFontButtons(dialog, size, minimum, maximum);
+    applyFontToAllChildren(widget, font, excluded);
     return font;
-}
-
-void updateFontButtons(QWidget* widget, int size, int minimum, int maximum)
-{
-    const auto buttons = widget->findChildren<QAbstractButton*>();
-    for (auto* button : buttons) {
-        if (button->window() != widget->window()) continue;
-        const QString text = button->text();
-        const bool decrease = text == QLatin1String("A-") || text == QStringLiteral("A−");
-        if (!decrease && text != QLatin1String("A+")) continue;
-        button->setStyleSheet(ButtonStyles::fontButton());
-        button->setToolTip(decrease
-            ? QCoreApplication::translate("DialogUtils", "文字を小さくする")
-            : QCoreApplication::translate("DialogUtils", "文字を大きくする"));
-        button->setAccessibleName(button->toolTip());
-        button->setFocusPolicy(Qt::StrongFocus);
-        if (auto* push = qobject_cast<QPushButton*>(button)) push->setAutoDefault(false);
-        const QFontMetrics metrics(button->font());
-        button->setFixedWidth(qMax(40, metrics.horizontalAdvance(button->text()) + 20));
-        button->setMinimumHeight(qMax(32, metrics.height() + 12));
-        button->setEnabled(decrease ? size > minimum : size < maximum);
-    }
 }
 
 void standardizeDialog(QWidget* dialog)

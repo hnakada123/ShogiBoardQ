@@ -2,6 +2,7 @@
 /// @brief 棋譜欄ペインクラスの実装
 
 #include "recordpane.h"
+#include "fontsizecontrol.h"
 #include "incrementaltableview.h"
 #include "tablemodelutils.h"
 #include "buttonstyles.h"
@@ -29,6 +30,7 @@
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
+    , m_fontSize(GameSettings::kifuPaneFontSize)
     , m_appearanceManager(GameSettings::kifuPaneFontSize())
 {
     buildUi();
@@ -66,13 +68,7 @@ void RecordPane::buildToolButtons()
     // --- 文字サイズ変更ボタン ---
     m_btnFontUp = new QPushButton(this);
     m_btnFontDown = new QPushButton(this);
-    m_btnFontUp->setText(QStringLiteral("A+"));
-    m_btnFontDown->setText(QStringLiteral("A-"));
-    m_btnFontUp->setToolTip(tr("文字を大きくする"));
-    m_btnFontDown->setToolTip(tr("文字を小さくする"));
-
-    m_btnFontUp->setStyleSheet(ButtonStyles::panelToolButton());
-    m_btnFontDown->setStyleSheet(ButtonStyles::panelToolButton());
+    new FontSizeControl(m_btnFontDown, m_btnFontUp, &m_fontSize);
     m_btnFontUp->setFixedSize(36, 24);
     m_btnFontDown->setFixedSize(36, 24);
     m_btnFontUp->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -255,8 +251,7 @@ void RecordPane::wireSignals()
     connect(m_branch, &QTableView::activated, this, &RecordPane::onBranchActivated);
 
     // 文字サイズ変更ボタンの接続
-    connect(m_btnFontUp, &QPushButton::clicked, this, &RecordPane::onFontIncrease);
-    connect(m_btnFontDown, &QPushButton::clicked, this, &RecordPane::onFontDecrease);
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &RecordPane::onFontSizeChanged);
 
     // しおり編集ボタンの接続
     connect(m_btnBookmarkEdit, &QPushButton::clicked, this, &RecordPane::bookmarkEditRequested);
@@ -445,20 +440,11 @@ void RecordPane::setupBranchViewSelectionAppearance()
     RecordPaneAppearanceManager::setupSelectionPalette(m_branch);
 }
 
-void RecordPane::onFontIncrease(bool /*checked*/)
+void RecordPane::onFontSizeChanged(int size)
 {
-    if (m_appearanceManager.tryIncreaseFontSize()) {
-        m_appearanceManager.applyFontToViews(m_kifu, m_branch);
-        updateBranchAppearance();
-    }
-}
-
-void RecordPane::onFontDecrease(bool /*checked*/)
-{
-    if (m_appearanceManager.tryDecreaseFontSize()) {
-        m_appearanceManager.applyFontToViews(m_kifu, m_branch);
-        updateBranchAppearance();
-    }
+    m_appearanceManager.setFontSize(size);
+    m_appearanceManager.applyFontToViews(m_kifu, m_branch);
+    updateBranchAppearance();
 }
 
 void RecordPane::onToggleTimeColumn(bool checked)

@@ -2,6 +2,7 @@
 /// @brief 成り確認ダイアログクラスの実装
 
 #include "promotedialog.h"
+#include "appsettings.h"
 #include "dialogfontscale.h"
 #include <QPushButton>
 
@@ -13,7 +14,7 @@ PromoteDialog::PromoteDialog(QWidget *parent) : QDialog(parent), ui(std::make_un
     ui->setupUi(this);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("成る"));
     ui->buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("成らない"));
-    DialogFontScale::install(this, QStringLiteral("promotion"), true);
+    DialogFontScale::install(this, AppSettings::promotionDialogFontSize, {&AppSettings::promotionDialogSize});
 }
 
 PromoteDialog::~PromoteDialog() = default;

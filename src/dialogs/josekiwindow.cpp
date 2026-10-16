@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウクラスの実装
 
 #include "josekiwindow.h"
+#include "fontsizecontrol.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
 #include "handicaps.h"
@@ -182,8 +183,11 @@ QWidget *JosekiWindow::buildToolbar()
 
     QHBoxLayout *displayGroupLayout = nullptr;
     QGroupBox *displayGroup = makeGroup(tr("表示"), this, &displayGroupLayout);
-    auto *fontDecrease = makeToolButton(tr("A-"), tr("フォントサイズを縮小"), ButtonStyles::panelToolButton(), this);
-    auto *fontIncrease = makeToolButton(tr("A+"), tr("フォントサイズを拡大"), ButtonStyles::panelToolButton(), this);
+    auto *fontDecrease = new QPushButton(this);
+    fontDecrease->setObjectName(QStringLiteral("josekiFontDecrease"));
+    auto *fontIncrease = new QPushButton(this);
+    fontIncrease->setObjectName(QStringLiteral("josekiFontIncrease"));
+    new FontSizeControl(fontDecrease, fontIncrease, &m_fontHelper);
     m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
     m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
     m_autoLoadCheckBox->setChecked(true);
@@ -220,8 +224,6 @@ QWidget *JosekiWindow::buildToolbar()
     connect(m_saveButton, &QPushButton::clicked, m_files, &JosekiFileController::save);
     connect(m_saveAsButton, &QPushButton::clicked, m_files, &JosekiFileController::saveAs);
     connect(m_addMoveButton, &QPushButton::clicked, this, &JosekiWindow::onAddMoveButtonClicked);
-    connect(fontIncrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(fontDecrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
     connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &JosekiWindow::applyFontSize);
     connect(m_autoLoadCheckBox, &QCheckBox::checkStateChanged, this, &JosekiWindow::onAutoLoadCheckBoxChanged);
     connect(m_stopButton, &QPushButton::clicked, this, &JosekiWindow::onStopButtonClicked);

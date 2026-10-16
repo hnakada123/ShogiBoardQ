@@ -13,8 +13,6 @@
 #include <QLabel>
 #include <QCloseEvent>
 
-#include "fontsizehelper.h"
-
 /**
  * @brief 棋譜貼り付けダイアログ
  *
@@ -52,10 +50,11 @@ private slots:
     void onClearClicked();
     void updateInputActions();
     void updateClipboardAction();
+    /// 入力欄とボタンの寸法・最小の大きさを今の文字に合わせる
+    void fitToFont();
 
 private:
     void setupUi();
-    void applyFontSize();
 
     QPlainTextEdit* m_textEdit = nullptr;
     QPushButton* m_btnImport = nullptr;
@@ -65,8 +64,6 @@ private:
     QPushButton* m_btnFontSizeDown = nullptr;
     QPushButton* m_btnFontSizeUp = nullptr;
     QLabel* m_fontSizeLabel = nullptr;
-
-    FontSizeHelper m_fontHelper;
 };
 
 #endif // KIFUPASTEDIALOG_H

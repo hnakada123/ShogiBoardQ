@@ -80,7 +80,7 @@ VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(std::make_un
     const int savedDocument = AppSettings::versionDialogDocument();
     if (savedDocument >= 0 && savedDocument < documents->count()) documents->setCurrentIndex(savedDocument);
     resize(AppSettings::versionDialogSize());
-    DialogFontScale::install(this, QStringLiteral("version"));
+    DialogFontScale::install(this, AppSettings::versionDialogFontSize);
 }
 
 VersionDialog::~VersionDialog()

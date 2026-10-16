@@ -23,26 +23,6 @@ RecordPaneAppearanceManager::RecordPaneAppearanceManager(int initialFontSize)
 // Font management
 // --------------------------------------------------------
 
-bool RecordPaneAppearanceManager::tryIncreaseFontSize()
-{
-    if (m_fontSize < 24) {
-        m_fontSize += 1;
-        GameSettings::kifuPaneFontSize.set(m_fontSize);
-        return true;
-    }
-    return false;
-}
-
-bool RecordPaneAppearanceManager::tryDecreaseFontSize()
-{
-    if (m_fontSize > 8) {
-        m_fontSize -= 1;
-        GameSettings::kifuPaneFontSize.set(m_fontSize);
-        return true;
-    }
-    return false;
-}
-
 void RecordPaneAppearanceManager::applyFontToViews(QTableView* kifu, QTableView* branch)
 {
     QFont font;

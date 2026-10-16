@@ -2,6 +2,7 @@
 /// @brief 棋譜コメント編集パネルクラスの実装
 
 #include "commenteditorpanel.h"
+#include "fontsizecontrol.h"
 #include "dialogutils.h"
 #include "buttonstyles.h"
 #include "gamesettings.h"
@@ -41,7 +42,9 @@ void relaxToolbarWidth(QWidget* toolbar)
 
 CommentEditorPanel::CommentEditorPanel(QObject* parent)
     : QObject(parent)
+    , m_fontSize(GameSettings::commentFontSize)
 {
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &CommentEditorPanel::applyCommentFontSize);
 }
 
 CommentEditorPanel::~CommentEditorPanel()
@@ -94,12 +97,7 @@ QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
         connect(shortcut, &QShortcut::activated, this, &CommentEditorPanel::onUpdateCommentClicked);
     }
 
-    m_currentFontSize = GameSettings::commentFontSize();
-    if (m_comment) {
-        QFont font = m_comment->font();
-        font.setPointSize(m_currentFontSize);
-        m_comment->setFont(font);
-    }
+    applyCommentFontSize(m_fontSize.fontSize());
 
     return commentContainer;
 }
@@ -293,14 +291,12 @@ bool CommentEditorPanel::eventFilter(QObject* obj, QEvent* ev)
 
 // ===================== Private slots =====================
 
-void CommentEditorPanel::onFontIncrease()
+void CommentEditorPanel::applyCommentFontSize(int size)
 {
-    updateCommentFontSize(1);
-}
-
-void CommentEditorPanel::onFontDecrease()
-{
-    updateCommentFontSize(-1);
+    if (!m_comment) return;
+    QFont font = m_comment->font();
+    font.setPointSize(size);
+    m_comment->setFont(font);
 }
 
 void CommentEditorPanel::onUpdateCommentClicked()
@@ -384,18 +380,10 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     toolbarLayout->setSpacing(4);
 
     m_btnFontDecrease = new QToolButton(m_commentToolbar);
-    m_btnFontDecrease->setText(QStringLiteral("A-"));
-    m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnFontDecrease->setFixedSize(28, 24);
-    m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnFontDecrease, &QToolButton::clicked, this, &CommentEditorPanel::onFontDecrease);
-
     m_btnFontIncrease = new QToolButton(m_commentToolbar);
-    m_btnFontIncrease->setText(QStringLiteral("A+"));
-    m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    new FontSizeControl(m_btnFontDecrease, m_btnFontIncrease, &m_fontSize);
+    m_btnFontDecrease->setFixedSize(28, 24);
     m_btnFontIncrease->setFixedSize(28, 24);
-    m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnFontIncrease, &QToolButton::clicked, this, &CommentEditorPanel::onFontIncrease);
 
     m_btnCommentUndo = new QToolButton(m_commentToolbar);
     m_btnCommentUndo->setIcon(QIcon(QStringLiteral(":/images/actions/editUndo.svg")));
@@ -465,21 +453,6 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
 
     m_commentToolbar->setLayout(toolbarLayout);
     relaxToolbarWidth(m_commentToolbar);
-}
-
-void CommentEditorPanel::updateCommentFontSize(int delta)
-{
-    m_currentFontSize += delta;
-    if (m_currentFontSize < 8) m_currentFontSize = 8;
-    if (m_currentFontSize > 24) m_currentFontSize = 24;
-
-    if (m_comment) {
-        QFont font = m_comment->font();
-        font.setPointSize(m_currentFontSize);
-        m_comment->setFont(font);
-    }
-
-    GameSettings::commentFontSize.set(m_currentFontSize);
 }
 
 void CommentEditorPanel::updateEditingIndicator()

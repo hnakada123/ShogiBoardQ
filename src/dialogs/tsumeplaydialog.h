@@ -6,7 +6,6 @@
 #include "boardinputroute.h"
 #include "tsumecollection.h"
 #include "tsumegamesession.h"
-#include "fontsizehelper.h"
 
 class ShogiGameController;
 class ShogiView;
@@ -77,7 +76,8 @@ private:
     void showSolution(int ply);
     void updateReplayControls();
     void cancelPendingOutcome();
-    void applyFontSize();
+    /// 案内文と状態表示の高さを今の文字に合わせる（盤を文字の大きさで動かさない）
+    void fitInfoToFont();
 
     /// 上段: 問題番号・前後の問題・判定時間・挑戦履歴
     struct ProblemBar {
@@ -115,7 +115,6 @@ private:
         QPushButton* returnToGame = nullptr;
     };
 
-    FontSizeHelper m_fontHelper;
     QTimer m_outcomeTimer;
     QString m_pendingOutcome;
     TsumeGameSession* m_session = nullptr;

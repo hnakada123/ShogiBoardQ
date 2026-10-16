@@ -56,7 +56,7 @@ FontSettingsDialog::FontSettingsDialog(QWidget* parent)
     connect(reset, &QPushButton::clicked, this, &FontSettingsDialog::restoreDefaults);
     connect(buttons, &QDialogButtonBox::accepted, this, &FontSettingsDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &FontSettingsDialog::reject);
-    DialogFontScale::install(this, QStringLiteral("fontSettings"));
+    DialogFontScale::install(this, AppSettings::fontSettingsDialogFontSize);
 }
 
 void FontSettingsDialog::updatePreview()

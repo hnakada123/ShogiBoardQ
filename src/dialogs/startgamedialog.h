@@ -10,7 +10,6 @@
 
 #include <memory>
 
-#include "fontsizehelper.h"
 #include "startgamedatabridge.h"
 
 namespace Ui {
@@ -126,9 +125,6 @@ private:
 
     static constexpr int MinFontSize = 7;               ///< 最小フォントサイズ
     static constexpr int MaxFontSize = 16;              ///< 最大フォントサイズ
-    FontSizeHelper m_fontHelper;                        ///< 文字サイズ（既定値は設定の宣言の表）
-
-    void applyFontSize();
 };
 
 #endif // STARTGAMEDIALOG_H

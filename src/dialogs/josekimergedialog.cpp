@@ -2,6 +2,8 @@
 /// @brief 定跡統合ダイアログクラスの実装
 
 #include "josekimergedialog.h"
+#include "dialogfontscale.h"
+#include "fontsizehelper.h"
 #include <QSet>
 #include "sfenutils.h"
 #include "kifumovedelegate.h"
@@ -21,7 +23,6 @@ constexpr QSize kMinimumSize{500, 400};
 
 JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     : QDialog(parent)
-    , m_fontHelper(JosekiSettings::josekiMergeDialogFontSize, 8, 20, 1)
 {
     setupUi();
 
@@ -48,8 +49,8 @@ void JosekiMergeDialog::setupUi()
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     
-    m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
-    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
+    m_fontDecreaseBtn = new QPushButton(this);
+    m_fontIncreaseBtn = new QPushButton(this);
     m_statusLabel = new QLabel(tr("登録する指し手がありません。"), this);
     m_statusLabel->setWordWrap(true);
 
@@ -119,13 +120,16 @@ void JosekiMergeDialog::setupUi()
     mainLayout->addLayout(buttonLayout);
     
     // === シグナル・スロット接続 ===
-    connect(m_fontIncreaseBtn, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(m_fontDecreaseBtn, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &JosekiMergeDialog::applyFontSize);
     connect(m_registerAllButton, &QPushButton::clicked, this, &JosekiMergeDialog::onRegisterAllButtonClicked);
     connect(m_closeButton, &QPushButton::clicked, this, &QDialog::accept);
-    
-    applyFontSize();
+
+    DialogFontScale::Options fontOptions;
+    fontOptions.maxSize = 20;
+    fontOptions.decrease = m_fontDecreaseBtn;
+    fontOptions.increase = m_fontIncreaseBtn;
+    const DialogFontScale* scale = DialogFontScale::install(this, JosekiSettings::josekiMergeDialogFontSize, fontOptions);
+    connect(scale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &JosekiMergeDialog::fitRowsToFont);
+    fitRowsToFont();
 }
 
 void JosekiMergeDialog::setKifuData(const QList<KifuMergeEntry> &entries)
@@ -259,11 +263,9 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
         tr("%1件の指し手を定跡に登録しました。").arg(pending.size()));
 }
 
-void JosekiMergeDialog::applyFontSize()
+void JosekiMergeDialog::fitRowsToFont()
 {
-    const QFont font = m_fontHelper.applyTo(this);
-    m_tableWidget->horizontalHeader()->setFont(font);
-    m_tableWidget->verticalHeader()->setDefaultSectionSize(QFontMetrics(font).height() + 16);
+    m_tableWidget->verticalHeader()->setDefaultSectionSize(QFontMetrics(m_tableWidget->font()).height() + 16);
     m_tableWidget->resizeRowsToContents();
     m_tableWidget->resizeColumnsToContents();
 }

@@ -6,8 +6,6 @@
 
 #include <QDialog>
 
-#include "fontsizehelper.h"
-
 class JosekiMoveInputWidget;
 class QDialogButtonBox;
 class QLabel;
@@ -121,7 +119,6 @@ private slots:
 
 private:
     void setupUi(bool isEdit);
-    void applyFontSize();
     QString inputError() const;
 
     // 指し手入力ウィジェット
@@ -140,7 +137,6 @@ private:
     // フォントサイズ
     QPushButton *m_fontIncreaseBtn = nullptr;
     QPushButton *m_fontDecreaseBtn = nullptr;
-    FontSizeHelper m_fontHelper;
 
     QLabel *m_moveErrorLabel = nullptr;
     QLabel *m_positionLabel = nullptr;

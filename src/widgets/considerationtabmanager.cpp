@@ -2,6 +2,7 @@
 /// @brief 検討タブ管理クラスの実装（状態管理・設定・イベント処理）
 
 #include "considerationtabmanager.h"
+#include "fontsizecontrol.h"
 #include "enginelistsettings.h"
 #include "engineinfowidget.h"
 #include "logcategories.h"
@@ -283,24 +284,12 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_considerationToolbar = new QWidget(parentWidget);
     m_considerationToolbar->setObjectName(QStringLiteral("considerationToolbar"));
 
-    // フォントサイズ減少ボタン（A-）
-    m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
-    m_btnConsiderationFontDecrease->setObjectName(QStringLiteral("considerationFontDecrease"));
-    m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
-    m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnConsiderationFontDecrease->setStyleSheet(ButtonStyles::panelToolButton());
-    connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
-            &m_considerationFontSize, &FontSizeHelper::decrease);
+    // 文字の大きさ（A-/A+。ボタンの寸法は applyFontSize が文字に合わせる）
+    const auto* fontButtons = FontSizeControl::createToolButtons(m_considerationToolbar, &m_considerationFontSize,
+        QStringLiteral("considerationFontDecrease"), QStringLiteral("considerationFontIncrease"));
+    m_btnConsiderationFontDecrease = qobject_cast<QToolButton*>(fontButtons->decreaseButton());
+    m_btnConsiderationFontIncrease = qobject_cast<QToolButton*>(fontButtons->increaseButton());
     connect(&m_considerationFontSize, &FontSizeHelper::fontSizeChanged, this, &ConsiderationTabManager::applyFontSize);
-
-    // フォントサイズ増加ボタン（A+）
-    m_btnConsiderationFontIncrease = new QToolButton(m_considerationToolbar);
-    m_btnConsiderationFontIncrease->setObjectName(QStringLiteral("considerationFontIncrease"));
-    m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
-    m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnConsiderationFontIncrease->setStyleSheet(ButtonStyles::panelToolButton());
-    connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
-            &m_considerationFontSize, &FontSizeHelper::increase);
 
     // エンジン選択コンボボックス
     m_engineComboBox = new QComboBox(m_considerationToolbar);

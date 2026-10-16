@@ -8,6 +8,7 @@
 #include "shogiview.h"
 #include "gamesettings.h"
 #include "dialogutils.h"
+#include "appsettings.h"
 #include "dialogfontscale.h"
 #include "sfenutils.h"
 
@@ -40,7 +41,7 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     DialogUtils::restoreDialogSize(this, GameSettings::sfenCollectionDialogSize());
 
     buildUi();
-    DialogFontScale::install(this, QStringLiteral("sfenCollection"));
+    DialogFontScale::install(this, AppSettings::sfenCollectionDialogFontSize);
 
     // 最近使ったファイルリストを読み込み
     m_recentFiles = GameSettings::sfenCollectionRecentFiles();

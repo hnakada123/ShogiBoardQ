@@ -1,7 +1,6 @@
 #ifndef TSUMECOLLECTIONDIALOG_H
 #define TSUMECOLLECTIONDIALOG_H
 
-#include "fontsizehelper.h"
 #include <QDialog>
 #include <QHash>
 #include <QPointer>
@@ -16,7 +15,6 @@ class QLabel;
 class QPushButton;
 class QGridLayout;
 class QScrollArea;
-class QToolButton;
 
 class TsumeCollectionDialog : public QDialog
 {
@@ -58,10 +56,6 @@ private:
     void arrangeCards();
     void updateCard(QPushButton* card);
     void savePreferences();
-    void applyFontSize();
-    FontSizeHelper m_fontHelper;
-    QToolButton* m_fontDecrease = nullptr;
-    QToolButton* m_fontIncrease = nullptr;
     QString lengthText(int index) const;
     /// 局面集・挑戦状況・手数の判定（QObject parent 所有）
     TsumeCollectionSession* m_session = nullptr;

@@ -2,6 +2,7 @@
 /// @brief CSA対局ダイアログクラスの実装
 
 #include "csagamedialog.h"
+#include "dialogfontscale.h"
 #include "ui_csagamedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "enginelistsettings.h"
@@ -27,16 +28,12 @@ const QRegularExpression& gameNamePattern()
 CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::CsaGameDialog>())
-    , m_fontHelper(NetworkSettings::csaGameDialogFontSize, 8, 24, 1)
 {
     ui->setupUi(this);
     // 機密性は表示モードから独立させる。GUIで表示しても自動化APIへは公開しない。
     ui->lineEditPassword->setProperty("automationSensitive", true);
     ui->checkBoxShowPassword->setProperty("automationSensitive", true);
     populateAutoSaveFormats();
-
-    // フォントサイズを適用
-    applyFontSize();
 
     // 設定ファイルからエンジン情報を読み込む
     loadEngineConfigurations();
@@ -57,6 +54,12 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
     // シグナル・スロットの接続を行う
     connectSignalsAndSlots();
     updateFormState();
+
+    // 文字の大きさ（A-/A+ は .ui に置いたボタン）
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = ui->toolButtonFontDecrease;
+    fontOptions.increase = ui->toolButtonFontIncrease;
+    DialogFontScale::install(this, NetworkSettings::csaGameDialogFontSize, fontOptions);
 
     // ウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, NetworkSettings::csaGameDialogSize());
@@ -110,13 +113,6 @@ void CsaGameDialog::connectSignalsAndSlots()
     // 自動保存先の参照
     connect(ui->pushButtonAutoSaveDir, &QPushButton::clicked,
             this, &CsaGameDialog::onAutoSaveDirBrowse);
-
-    // フォントサイズボタン
-    connect(ui->toolButtonFontIncrease, &QToolButton::clicked,
-            &m_fontHelper, &FontSizeHelper::increase);
-    connect(ui->toolButtonFontDecrease, &QToolButton::clicked,
-            &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &CsaGameDialog::applyFontSize);
 }
 
 void CsaGameDialog::refreshChoices()
@@ -364,12 +360,6 @@ CsaGameDialog::GameCountMode CsaGameDialog::gameCountMode() const
     if (ui->radioButtonGamesUnlimited->isChecked()) return GameCountMode::Unlimited;
     if (ui->radioButtonGamesCount->isChecked()) return GameCountMode::Count;
     return GameCountMode::Single;
-}
-
-// ダイアログ全体にフォントサイズを適用する
-void CsaGameDialog::applyFontSize()
-{
-    m_fontHelper.applyTo(this);
 }
 
 // ============================================================

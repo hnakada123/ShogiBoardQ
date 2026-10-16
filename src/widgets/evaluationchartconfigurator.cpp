@@ -2,6 +2,7 @@
 /// @brief 評価値グラフの表示設定と自動目盛り
 #include "evaluationchartconfigurator.h"
 #include "analysissettings.h"
+#include "appsettings.h"
 #include "dialogfontscale.h"
 
 #include <QComboBox>
@@ -219,7 +220,7 @@ void EvaluationChartConfigurator::showSettings()
     layout->addWidget(buttons);
     connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    DialogFontScale::install(&dialog, QStringLiteral("evaluationChart"));
+    DialogFontScale::install(&dialog, AppSettings::evaluationChartDialogFontSize);
     dialog.resize(AnalysisSettings::evalChartSettingsSize());
     if (dialog.exec() == QDialog::Accepted) {
         m_manualYLimit = yLimit->value();

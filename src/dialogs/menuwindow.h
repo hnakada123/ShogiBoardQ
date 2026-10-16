@@ -15,6 +15,8 @@
 #include <QStringList>
 #include <QPointer>
 
+#include "fontsizehelper.h"
+
 class MenuButtonWidget;
 class FlowLayout;
 class QLabel;
@@ -136,16 +138,6 @@ private slots:
      */
     void onButtonSizeDecrease();
 
-    /**
-     * @brief フォントサイズを拡大
-     */
-    void onFontSizeIncrease();
-
-    /**
-     * @brief フォントサイズを縮小
-     */
-    void onFontSizeDecrease();
-
 private:
     /**
      * @brief UIのセットアップ
@@ -225,7 +217,7 @@ private:
 
     // サイズ設定
     int m_buttonSize = 104;  // ボタンサイズ
-    int m_fontSize = 12;     // フォントサイズ
+    FontSizeHelper m_fontSize;  // ボタンの文字の大きさ（変更のたびに保存する）
     int m_iconSize = 24;     // アイコンサイズ
 
     // 定数

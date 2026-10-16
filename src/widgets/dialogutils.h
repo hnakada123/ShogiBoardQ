@@ -36,14 +36,10 @@ inline void saveDialogSize(const QWidget* dialog, const Setting<QSize>& setting)
 /// 盤面など自前で文字の大きさを決めるウィジェットは excluded に渡すと、その部分木ごと対象外にする。
 void applyFontToAllChildren(QWidget* widget, const QFont& font, const QList<QWidget*>& excluded = {});
 
-/// ダイアログの文字サイズを一括で適用する（A-/A+ の共通処理）。
-/// 余白・ボタンの標準化、全子ウィジェットへのフォント設定、A-/A+ ボタンの有効状態の更新を行い、
-/// 適用したフォントを返す。ダイアログ固有の調整（太字の見出しなど）は戻り値のフォントから作る。
-QFont applyFontSize(QWidget* dialog, int size, int minimum = 8, int maximum = 24,
-                    const QList<QWidget*>& excluded = {});
-
-/// 文字サイズボタンの寸法・説明・上下限を統一する（子の別ウィンドウは対象外）。
-void updateFontButtons(QWidget* widget, int size, int minimum = 8, int maximum = 24);
+/// ドックのウィンドウ（定跡ウィンドウなど）の文字サイズを一括で適用する。
+/// 余白・ボタンの標準化と全子ウィジェットへのフォント設定を行い、適用したフォントを返す。
+/// ダイアログは DialogFontScale（元の大きさからの差で拡大する）を使う。A-/A+ のボタンは FontSizeControl が受け持つ
+QFont applyFontSize(QWidget* widget, int size, const QList<QWidget*>& excluded = {});
 
 /// 余白、ボタンの最小高さ、主操作・補助操作の表現を統一する。
 void standardizeDialog(QWidget* dialog);

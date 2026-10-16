@@ -2,7 +2,7 @@
 /// @brief CSA通信ログパネルクラスの実装
 
 #include "csalogpanel.h"
-#include "buttonstyles.h"
+#include "fontsizecontrol.h"
 #include "applicationfonts.h"
 
 #include <QWidget>
@@ -89,21 +89,11 @@ void CsaLogPanel::buildToolbar()
     toolbarLayout->setSpacing(4);
 
     m_btnFontDecrease = new QToolButton(m_toolbar);
-    m_btnFontDecrease->setText(QStringLiteral("A-"));
-    m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnFontDecrease->setFixedSize(28, 24);
-    m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnFontDecrease, &QToolButton::clicked,
-            &m_fontSize, &FontSizeHelper::decrease);
-    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &CsaLogPanel::applyFontSize);
-
     m_btnFontIncrease = new QToolButton(m_toolbar);
-    m_btnFontIncrease->setText(QStringLiteral("A+"));
-    m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    new FontSizeControl(m_btnFontDecrease, m_btnFontIncrease, &m_fontSize);
+    m_btnFontDecrease->setFixedSize(28, 24);
     m_btnFontIncrease->setFixedSize(28, 24);
-    m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnFontIncrease, &QToolButton::clicked,
-            &m_fontSize, &FontSizeHelper::increase);
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &CsaLogPanel::applyFontSize);
 
     toolbarLayout->addWidget(m_btnFontDecrease);
     toolbarLayout->addWidget(m_btnFontIncrease);

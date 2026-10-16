@@ -2,6 +2,7 @@
 /// @brief USI通信ログパネルクラスの実装
 
 #include "usilogpanel.h"
+#include "fontsizecontrol.h"
 #include "buttonstyles.h"
 #include "applicationfonts.h"
 #include "elidelabel.h"
@@ -210,21 +211,11 @@ void UsiLogPanel::buildToolbar()
     m_toolbar->setStyleSheet(ButtonStyles::panelToolButton());
 
     m_btnFontDecrease = new QToolButton(m_toolbar);
-    m_btnFontDecrease->setText(QStringLiteral("A-"));
-    m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnFontDecrease->setFixedSize(28, 24);
-    m_btnFontDecrease->setAccessibleName(m_btnFontDecrease->toolTip());
-    connect(m_btnFontDecrease, &QToolButton::clicked,
-            &m_fontSize, &FontSizeHelper::decrease);
-    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &UsiLogPanel::applyFontSize);
-
     m_btnFontIncrease = new QToolButton(m_toolbar);
-    m_btnFontIncrease->setText(QStringLiteral("A+"));
-    m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    new FontSizeControl(m_btnFontDecrease, m_btnFontIncrease, &m_fontSize);
+    m_btnFontDecrease->setFixedSize(28, 24);
     m_btnFontIncrease->setFixedSize(28, 24);
-    m_btnFontIncrease->setAccessibleName(m_btnFontIncrease->toolTip());
-    connect(m_btnFontIncrease, &QToolButton::clicked,
-            &m_fontSize, &FontSizeHelper::increase);
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &UsiLogPanel::applyFontSize);
 
     m_engine1Label = new ElideLabel(m_toolbar);
     m_engine1Label->setFullText(QStringLiteral("E1: ---"));
@@ -328,8 +319,6 @@ void UsiLogPanel::applyFontSize()
     QFont font = m_commandInput->font();
     font.setPointSize(size);
     m_commandInput->setFont(font);
-    m_btnFontDecrease->setEnabled(size > 8);
-    m_btnFontIncrease->setEnabled(size < 24);
 }
 
 // ===================== イベント処理 =====================

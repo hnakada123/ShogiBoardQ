@@ -2,9 +2,9 @@
 /// @brief 思考ドックの中身の実装
 
 #include "thinkingpanel.h"
+#include "fontsizecontrol.h"
 
 #include "analysissettings.h"
-#include "buttonstyles.h"
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
 #include "thinkingtableview.h"
@@ -13,7 +13,6 @@
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QToolButton>
 #include <QVBoxLayout>
 
 ThinkingPanel::ThinkingPanel(QWidget* parent)
@@ -25,17 +24,10 @@ ThinkingPanel::ThinkingPanel(QWidget* parent)
     v->setSpacing(4);
 
     auto* controls = new QHBoxLayout;
-    auto* fontDecrease = new QToolButton(this);
-    fontDecrease->setObjectName(QStringLiteral("thinkingFontDecrease"));
-    fontDecrease->setText(QStringLiteral("A-"));
-    fontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    auto* fontIncrease = new QToolButton(this);
-    fontIncrease->setObjectName(QStringLiteral("thinkingFontIncrease"));
-    fontIncrease->setText(QStringLiteral("A+"));
-    fontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    for (auto* button : {fontDecrease, fontIncrease}) {
+    const auto* fontButtons = FontSizeControl::createToolButtons(
+        this, &m_fontSize, QStringLiteral("thinkingFontDecrease"), QStringLiteral("thinkingFontIncrease"));
+    for (auto* button : {fontButtons->decreaseButton(), fontButtons->increaseButton()}) {
         button->setFixedSize(36, 24);
-        button->setStyleSheet(ButtonStyles::panelToolButton());
         controls->addWidget(button);
     }
     m_matchArrows = new QCheckBox(tr("対局中の矢印表示"), this);
@@ -70,8 +62,6 @@ ThinkingPanel::ThinkingPanel(QWidget* parent)
 
     connect(m_view1, &ThinkingTableView::pvRowClicked, this, &ThinkingPanel::pvRowClicked);
     connect(m_view2, &ThinkingTableView::pvRowClicked, this, &ThinkingPanel::pvRowClicked);
-    connect(fontIncrease, &QToolButton::clicked, &m_fontSize, &FontSizeHelper::increase);
-    connect(fontDecrease, &QToolButton::clicked, &m_fontSize, &FontSizeHelper::decrease);
     connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &ThinkingPanel::applyFontSize);
     // 既定の大きさ（10）のときは表の既定の書体のままにする
     if (m_fontSize.fontSize() != 10) applyFontSize();

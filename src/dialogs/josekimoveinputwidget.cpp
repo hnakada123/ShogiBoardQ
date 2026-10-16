@@ -168,6 +168,11 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
     QLabel *previewTitleLabel = new QLabel(tr("プレビュー:"), this);
     m_previewLabel = new QLabel(this);
     m_previewLabel->setObjectName(QStringLiteral("movePreview"));
+    // プレビューは本文より 2pt 大きい太字（ダイアログの文字の大きさに合わせて拡大・縮小する）
+    QFont previewFont = m_previewLabel->font();
+    previewFont.setPointSize(previewFont.pointSize() + 2);
+    previewFont.setBold(true);
+    m_previewLabel->setFont(previewFont);
     const bool japaneseNotation = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
     const QList<QWidget*> japaneseWidgets{m_previewLabel, m_fromRankCombo, m_toRankCombo,
                                          m_dropToRankCombo, m_dropPieceCombo};
@@ -435,20 +440,4 @@ QString JosekiMoveInputWidget::usiToJapanese(const QString &usiMove)
     }
 
     return usiMove;
-}
-
-void JosekiMoveInputWidget::applyFont(const QFont &baseFont)
-{
-    // ベースフォントを全子ウィジェットに適用
-    setFont(baseFont);
-    const auto children = findChildren<QWidget *>();
-    for (auto *child : children) {
-        child->setFont(baseFont);
-    }
-
-    // プレビューラベルは少し大きめに
-    QFont previewFont = baseFont;
-    previewFont.setPointSize(baseFont.pointSize() + 2);
-    previewFont.setBold(true);
-    m_previewLabel->setFont(previewFont);
 }

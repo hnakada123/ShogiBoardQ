@@ -2,6 +2,7 @@
 /// @brief エンジン登録ダイアログクラスの実装
 
 #include "engineregistrationdialog.h"
+#include "dialogfontscale.h"
 #include "engineregistrationhandler.h"
 #include "enginedialogsettings.h"
 #include "dialogutils.h"
@@ -20,8 +21,7 @@
 EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     : QDialog(parent),
     ui(std::make_unique<Ui::EngineRegistrationDialog>()),
-    m_handler(std::make_unique<EngineRegistrationHandler>(this)),
-    m_fontHelper(EngineDialogSettings::engineRegistrationFontSize, 8, 20, 1)
+    m_handler(std::make_unique<EngineRegistrationHandler>(this))
 {
     // Qt Designerで作成されたUIをプログラムのウィンドウに読み込み、初期化する。
     ui->setupUi(this);
@@ -43,11 +43,13 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     ui->removeEngineButton->setStyleSheet(ButtonStyles::dialogSecondaryAction());
     ui->configureEngineButton->setStyleSheet(ButtonStyles::dialogSecondaryAction());
     ui->closeButton->setStyleSheet(ButtonStyles::secondaryNeutral());
-    ui->fontDecreaseButton->setStyleSheet(ButtonStyles::fontButton());
-    ui->fontIncreaseButton->setStyleSheet(ButtonStyles::fontButton());
 
-    // フォントサイズを適用
-    applyFontSize();
+    // 文字の大きさ（A-/A+ は .ui に置いたボタン）
+    DialogFontScale::Options fontOptions;
+    fontOptions.maxSize = 20;
+    fontOptions.decrease = ui->fontDecreaseButton;
+    fontOptions.increase = ui->fontIncreaseButton;
+    DialogFontScale::install(this, EngineDialogSettings::engineRegistrationFontSize, fontOptions);
 
     // 保存されているウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, EngineDialogSettings::engineRegistrationDialogSize());
@@ -95,11 +97,6 @@ void EngineRegistrationDialog::initializeSignals() const
 
     // 閉じるボタンが押されたときの処理を接続
     connect(ui->closeButton, &QPushButton::clicked, this, &QDialog::accept);
-
-    // フォントサイズ変更ボタンの接続
-    connect(ui->fontIncreaseButton, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(ui->fontDecreaseButton, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &EngineRegistrationDialog::applyFontSize);
 
     // ハンドラシグナルの接続
     connect(m_handler.get(), &EngineRegistrationHandler::engineRegistered, this, &EngineRegistrationDialog::onEngineRegistered);
@@ -252,8 +249,3 @@ void EngineRegistrationDialog::updateSelectionState()
             : tr("エンジンを選んで「設定」を押すと、思考設定を変更できます。ダブルクリックでも開けます。"));
 }
 
-// すべてのウィジェットにフォントサイズを適用する
-void EngineRegistrationDialog::applyFontSize()
-{
-    m_fontHelper.applyTo(this);
-}
