@@ -2,7 +2,7 @@
 
 ## 概要
 
-棋譜解析の形勢判断は `src/analysis/kifuanalysislistmodel.cpp` の `getJudgementString()` 関数で実装されている。評価値（先手視点、centipawn単位）の絶対値をもとに形勢を5段階で判定する。
+棋譜解析の形勢判断は `src/models/kifuanalysislistmodel.cpp` の `KifuAnalysisListModel::judgementText()` で実装されている。評価値（先手視点、centipawn単位）の絶対値をもとに形勢を5段階で判定する。
 
 ## 判断基準
 
@@ -31,5 +31,5 @@
 ## 実装箇所
 
 - **関数**: `KifuAnalysisListModel::judgementText()` (`src/models/kifuanalysislistmodel.cpp`)
-- **表示**: `KifuAnalysisListModel::data()` のカラム4（「形勢」列）で呼び出される
+- **表示**: `KifuAnalysisListModel::data()` の `JudgementColumn`（「形勢」列）で呼び出される
 - **テスト**: `tests/tst_analysis_results.cpp` の `mateJudgement`（符号の反転は `mateScoresKeepTheirSide`）

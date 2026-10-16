@@ -236,19 +236,18 @@ QPointer<Usi> m_engine;
 QPointer<ShogiBoard> m_board;  // 寿命は外部管理（QPointerで安全）
 ```
 
-## モデルが所有するアイテム
+## 表のモデルの行
 
-`AbstractListModel<T>`（`src/common/abstractlistmodel.h`）派生クラス（`ShogiEngineThinkingModel`、`KifuAnalysisListModel` 等）は、
-格納アイテムの所有権をモデルが持つ。アイテム削除時は手動 `delete` が必要。
+表のモデル（`ShogiEngineThinkingModel`、`KifuAnalysisListModel` 等）は、行を `QList` の値で持つ
+（`QList<ShogiInfoRecord>`・棋譜解析の結果は変えない構造体 `KifuAnalysisRow`）。行をポインタで持って
+`new` / `qDeleteAll` で寿命を管理しない。
 
 ```cpp
-// AbstractListModel<T>::removeLastItem()
-T* removed = list.takeLast();
-endRemoveRows();
-delete removed;  // 所有権がモデル側にある前提
+// ShogiEngineThinkingModel
+QList<ShogiInfoRecord> m_rows;
 ```
 
-このパターンでは `delete` の使用が許可される。コメントで所有権の前提を明記すること。
+`recordAt()`・`row()` が返すポインタは読み取り専用で、行を足す・消すまでの間だけ使う（保持しない）。
 
 ## 表示モデルの再設定
 

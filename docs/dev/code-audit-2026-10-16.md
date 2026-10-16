@@ -545,6 +545,11 @@
 
 **規模とテスト**: 約8ファイル（約1,200行）。テストは `tst_abstractlistmodel` ほか5本以上。
 
+**状態: 済（2764bf92）**。案から変えた点:
+- 思考の表の行は `ThinkingInfoRow` を持つ `ShogiInfoRecord` の値（表示の文字列を覚えるため）、棋譜解析の結果の表の行は `KifuAnalysisRow`（`src/models/kifuanalysisrow.h`）の値にした。`AbstractListModel` と `tst_abstractlistmodel` は削除した。
+- 共通の表は `ThinkingTableView` を一般化せず、基底の `PvTableView`（`src/widgets/pvtableview.h`）を作り、`ThinkingTableView` と棋譜解析の結果の表がそれを使う。列幅の決め方と保存（思考の表は表の組ごと、解析の結果は内容に合わせて広げる）はそれぞれに残した。
+- 指し手の書体は FontRole と `KifuMoveDelegate` の2経路のまま、決め方を `MoveFont`（`src/common/movefont.h`）の1か所にした。
+
 #### R9-6. 局面送り・編集ボタンが2組ある
 
 - **局面送り。** 6つのボタンが棋譜欄（`recordpane.cpp:128-183`）と評価値グラフ（`evaluationchartwidget.cpp:153-205`）に1組ずつある。12個のアクセサで外に出し、有効/無効は `arrowButtonsEnabledChanged` で中継して合わせている。
