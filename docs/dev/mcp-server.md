@@ -248,7 +248,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 
 引数はメソッドごとの表 `AutomationMethodSpecs`（`src/automation/automationmethodspecs.{h,cpp}`）に宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で表と照らし、知らない引数・必須の欠け・型違い・範囲外・選択肢外を `-32602`（`error.data.hint` は `shogiboardq-cli describe` の案内）で返し、既定値を補った引数をメソッドに渡す。各メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列、コンボやスピンの値など）や操作によって必須になる引数（`dock.configure` の `area`・`relative_to`）にだけ使う。表は `shogiboardq-cli describe` の `methods` に JSON Schema として出る。
 
-`action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、Web サイトを開く動作は除外する。言語切替とドックレイアウト保存・初期化は許可する。言語はアプリ再起動後に反映する。
+`action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、Web サイトを開く動作は除外する。言語切替（システム・日本語・英語・簡体字・繁体字の `actionLanguage*`）とドックレイアウト保存・初期化は許可する。言語はアプリ再起動後に反映する。
 
 モーダルダイアログを開く動作（`action.trigger`）、ダイアログを閉じる `dialog.close`、`app.quit` は、応答を書いた後に `AutomationDeferredCall` で次のイベントループ反復に実行する。これにより `QDialog::exec()` の入れ子ループ中でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。読み込み失敗の通知も `UiNotificationService::ScopedCapture` でダイアログを出さずに記録し、`-32006`（`parse_error`）の理由として返す。ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず `-32002` を返し、処理中に切断したソケットはハンドラが戻ってから削除する。
 

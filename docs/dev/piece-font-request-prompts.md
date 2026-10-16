@@ -153,7 +153,7 @@ HTMLとSVG：
 
 新規セットには重複しないIDを付け、追加セットのリソースは `:/pieces/<ID>/` に登録します。
 既存の設定値が別の駒や配色を指すことがないよう、既存IDとカタログの順序を保って追加します。
-分類を増やす場合は、`PieceStyleCatalog::Family` の `Count` の前に足し、`familyName()` に絞り込みの表示名を足します（`appearancePieceFilter()` と `setAppearancePieceFilter()` の保存範囲は `Family::Count` から決まります）。
+分類を増やす場合は、`PieceStyleCatalog::Family` の `Count` の前に足し、`familyName()` に絞り込みの表示名を足します（`AppSettings::appearancePieceFilter`（`BoundedSetting`）の範囲は `Family::Count` から決まります）。
 
 採用するSVGと再生成スクリプトはGit管理対象に置き、再生成が無視対象の `design/` に依存しないようにします。
 現在の `generate_alphabet_pieces.py` は端正・凛・墨の既存9セットを出力するものです。新書体の生成では、既存セットの出力を変えずに拡張するか、新しいスクリプトを用意します。

@@ -241,7 +241,7 @@ grep -c 'type="unfinished"' resources/translations/*.ts | \
 1. ドメイン別ヘッダーに `inline const Setting<T> name{"Group/key", 既定値};` を1行足す
 2. 読むときは `NS::name()`、書くときは `NS::name.set(value)`、既定値は `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は、宣言の既定値を空にして `NS::name.valueOr(tr("..."))` で読む
 3. ダイアログのコンストラクタで読み込み、デストラクタ・`done()`・`closeEvent` で保存する。ウィンドウサイズは `DialogUtils::restoreDialogSize` / `saveDialogSize`（または `DialogFontScale::Options::size`）、A-/A+ は `DialogFontScale::install(this, 宣言, options)` に宣言をそのまま渡す。ダイアログに `FontSizeHelper` のメンバや A-/A+ 用の connect・`applyFontSize()` は書かない。入力欄の値は `SettingsFormBinding`（`src/widgets/settingsformbinding.h`）に欄と宣言を `add()` すれば、読み込み・保存・既定値に戻すを1つの表で行える
-4. 値の範囲を絞る、複数のキーを構造体にまとめる、配列で保存する、といった処理が要る項目だけを関数として `.cpp` に書く。その場合も `SettingsCommon::openSettings()` を使う（設定ファイルを `QSettings` で直接開くのは、`beginReadArray` などでグループの状態を変える配列データだけ）
+4. 値の範囲を絞る項目は `BoundedSetting<T>{"Group/key", 既定値, 最小, 最大}`、構造体を項目ごとのキーに保存する項目は `StructSetting<T>{{SettingField<T>::of("Group/key", &T::member), ...}, 整える関数}`、配列で保存する項目は `ListSetting<T>{配列のキー, 要素のキー}`（配列のキーは実行時に作ってもよい）・`StructListSetting<T>{配列のキー, {項目...}}` で宣言する（いずれも `setting.h`。使い方は `Setting<T>` と同じ）。これらで表せない処理（以前の版の値の引き継ぎ、`AppSettings::boardVisuals` の駒台の木目の代替のような未保存の項目の代わり、`kifuAnalysisColumnWidths` の `QVariantList` のような独自の保存形式）が要る項目だけを関数として `.cpp` に書く。その場合も `SettingsCommon::openSettings()` を使う（設定ファイルを `QSettings` で直接開くのは、`beginReadArray` などでグループの状態を変えたまま読み書きを続ける配列データ（`EngineProfileStore`）だけ）
 
 **実装例:**
 ```cpp

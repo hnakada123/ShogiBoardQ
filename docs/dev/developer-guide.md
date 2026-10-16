@@ -92,6 +92,7 @@
 | 2026-10-16 | 駒のセットの表とドックの表（監査 R10-1・R10-2）に合わせて §1.5・§4.4・§9.8・§10.4・§10.5・§11.2・§12.5・§14.2・§14.5.2・§14.6・§14.7・§17.4・§18.3・§18.4 を更新（駒のセットの表 `PieceStyleCatalog`・外観の値 `AppearanceState` を足し、`AppSettings::availablePieceStyles()`・`BoardColorPresets::pieceStyleName()` を削除。ドックは `DockRegistry`（`ui/coordinators/dockregistry.h`）の表から作り・置き・状態を保存し、`DockCreationService`・`DockUiCoordinator`・`DockWidgets`・`DockLayoutManager::DockType`／`registerDock()` を削除。ドックの状態は全12個を `DockSettings::DockState` で保存。メニューウィンドウ・定跡ウィンドウはコントローラのコンストラクタで作る） |
 | 2026-10-16 | CLI・自動化 API・MCP の引数を1つの表から扱うようにしたのに合わせて §1.3・§1.5・§1.8・§14.5.1・第18章を更新（引数の表の部品 `ParamSpec`・`OperationSpec`（`paramspec.h`）、自動化 API の表 `AutomationMethodSpecs`（`AutomationDispatcher` が呼ぶ前に検査し既定値を補う）、CLI の表 `CliCommandSpecs`（オプションの登録・使い方の文・JSON への変換）、表を JSON Schema で出す `shogiboardq-cli describe`） |
 | 2026-10-16 | エラーの分類を1つの表にしたのに合わせて §1.3・§1.5・§14.5.1・第18章を更新（分類 `ErrorKind` と語（slug）・JSON-RPC のコードの表 `ErrorKinds`（`errorkinds.h`）を CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` で共有し、JSON-RPC のエラーに `error.data.slug` を付ける。場所と上限・分類を出す `shogiboardq-cli environment`） |
+| 2026-10-16 | 設定の宣言の型（`BoundedSetting`・`StructSetting`・`ListSetting`・`StructListSetting`）と、使われていない API の削除（監査 3章・4章）に合わせて §1.5・§10・§11・§12.5・§17.5・第18章を更新（駒音・詰将棋・列幅・CSA の接続先の履歴の設定を宣言にし、`JishogiScoreDialogController` を `JishogiScoreDialog::showFor()` に、`ElideLabel` を省略表示だけに、`fitBoardToWidget()` の記述を `resizeEvent()` に直す） |
 
 <!-- chapter-0-end -->
 
@@ -549,8 +550,7 @@ src/
 │   │   ├── usicommandcontroller.cpp/.h     # USIコマンドの送信
 │   │   ├── imageexportcontroller.cpp/.h    # 盤・評価値グラフの画像のコピー・保存
 │   │   ├── settingsresetcontroller.cpp/.h  # 設定の初期化
-│   │   ├── nyugyokudeclarationhandler.cpp/.h # 利用者の入玉宣言（確認・宣言・結果の表示。GameChannel 経由）
-│   │   └── jishogiscoredialogcontroller.cpp/.h # 持将棋の点数
+│   │   └── nyugyokudeclarationhandler.cpp/.h # 利用者の入玉宣言（確認・宣言・結果の表示。GameChannel 経由）
 │   └── coordinators/               #   複数の部品にまたがる UI の流れ
 │       ├── uistatepolicymanager.cpp/.h  # 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
 │       ├── dialoglauncher.cpp/.h        # メニューから開くダイアログの起動
@@ -565,9 +565,9 @@ src/
 │       └── aboutcoordinator.cpp/.h      # バージョン情報
 │
 ├── services/                       # クロスカッティングサービス
-│   ├── setting.h                   #   設定1項目の宣言（Setting<T>: キーと既定値）
+│   ├── setting.h                   #   設定1項目の宣言（Setting<T>: キーと既定値。範囲付き・構造体・配列の BoundedSetting・StructSetting・ListSetting・StructListSetting）
 │   ├── settingscommon.cpp/.h       #   設定ファイルのパスと共有QSettings
-│   ├── appsettings.cpp/.h, gamesettings.h, analysissettings.cpp/.h, networksettings.h, josekisettings.cpp/.h, tsumeshogisettings.cpp/.h, enginedialogsettings.h, docksettings.cpp/.h # ドメイン別の設定の宣言の表
+│   ├── appsettings.cpp/.h, gamesettings.h, analysissettings.cpp/.h, networksettings.h, josekisettings.h, tsumeshogisettings.cpp/.h, enginedialogsettings.h, docksettings.cpp/.h # ドメイン別の設定の宣言の表
 │   ├── settingsservice.h           #   ドメイン別ヘッダーをまとめて取り込むだけのヘッダー
 │   ├── settingskeys.h              #   処理が要る設定項目のキー文字列
 │   ├── enginesettingsconstants.h   #   エンジン設定のキー定数
@@ -5608,7 +5608,6 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | `PvClickController` | `pvclickcontroller.h` | 読み筋行クリック時のPV盤面ダイアログ表示 | `ShogiEngineThinkingModel`, `PvBoardDialog` |
 | `UsiCommandController` | `usicommandcontroller.h` | 手動USIコマンドの送信 | `EngineLifecycleManager`, `UsiLogPanel` |
 | `NyugyokuDeclarationHandler` | `nyugyokudeclarationhandler.h` | 利用者の入玉宣言（確認・宣言・結果の表示）をローカル対局・通信対局で同じ手順で行う | `GameChannel`, `KifuDocument` |
-| `JishogiScoreDialogController` | `jishogiscoredialogcontroller.h` | 持将棋スコアダイアログの表示 | `ShogiBoard` |
 | `JosekiWindowController` | `josekiwindowcontroller.h` | 定跡ウィンドウの生成・更新と、定跡手から着手への変換 | `JosekiWindow`, `KifuNavigationState`, `BoardMoveController` |
 | `MenuWindowController` | `menuwindowcontroller.h` | メニューバーの項目を集めてメニューウィンドウを作る | `MenuWindow`, `QMenuBar` |
 | `BranchTreeEditController` | `branchtreeeditcontroller.h` | 分岐ツリーの右クリックメニューからの分岐の編集と、対局外の盤上の着手の記録 | `KifuBranchTree`, `BranchTreeManager` |
@@ -5682,7 +5681,6 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
 | `LanguageController` | 言語メニュー（システム・日本語・英語・簡体字・繁体字）と棋譜表記のメニューを処理し、言語を変えたら再起動を案内する |
 | `UsiCommandController` | `UsiLogPanel` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineLifecycleManager` の E1・E2）のエンジンに送る。エンジン未起動時は通信ログにエラーを表示する |
 | `NyugyokuDeclarationHandler` | 利用者の入玉宣言を行う（`handleDeclaration(GameChannel*)`。`GameSession::declareNyugyoku()` が `activeChannel()` を渡す。コンストラクタは親ウィジェットと `const KifuDocument*`）。対局中でなければ警告、人間の手番でなければ案内を出す。窓口がこちらで判定する対局（`judgesDeclaration()`。ローカル対局）なら持将棋ルール（24点法・27点法）が選ばれているかを確かめる。確認（宣言する側は `KifuDocument::usesHandicapNames()` で下手・上手とも呼ぶ）の後で `GameChannel::declareNyugyoku()` で宣言し、判定結果が返れば（ローカル対局は `MatchCoordinator::declareNyugyoku(declarer, rule)` が盤面から判定して終局する）ダイアログで知らせる。通信対局はサーバーが判定して終局を知らせる |
-| `JishogiScoreDialogController` | 表示中の局面の点数を `JishogiCalculator::calculate()` で数え、先後の王手を `EngineMoveValidator::isInCheck()` で調べて、`JishogiScoreDialog`（`src/dialogs/`）をモーダルで開く。ダイアログは先手・後手の2列の表で、宣言点数（敵陣の駒＋持ち駒）・総点数（盤上の全駒＋持ち駒）・玉が敵陣にいるか・敵陣に玉以外の駒が10枚以上あるか（枚数つき）・王手がかかっていないか・24点法と27点法の判定（条件未達・点数不足・宣言時の結果と、足りない点数）を出す。点数の数え方と規則の説明、A-/A+（`GameSettings::jishogiScoreFontSize`）と「結果をコピー」もある |
 | `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せたかは `playUsiMove()` の戻り値で判定し、指せなければ定跡ウィンドウに失敗を知らせる。人間の手番かどうかは `HumanTurnPolicy`（合成ルートが `isHumanTurnNow` として渡す）に聞く。定跡へのマージには、表示中の手順（`RecordLine`）の局面・USI の指し手・表記を渡す |
 | `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作り（初回だけ）、押されたボタンの `QAction` を `actionTriggered` で知らせる |
 | `BranchTreeEditController` | 分岐ツリーの右クリックメニューで分岐を編集する（本譜にする・並べ替え・削除）。対局していないときの盤上の着手を、現在の手の次の手（変化）として記録する |
@@ -5868,7 +5866,7 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 | Webサイト | `openProjectWebsite()` | プロジェクトのWebサイトを開く |
 | エンジン設定 | `displayEngineSettingsDialog()` | USIエンジンの設定ダイアログ |
 | 成り確認 | `choosePromotion()` | 駒を成るかどうかの選択 |
-| 持将棋スコア | `displayJishogiScoreDialog()` | `JishogiScoreDialogController` に委譲 |
+| 持将棋スコア | `displayJishogiScoreDialog()` | `JishogiScoreDialog::showFor(position, parent)`（`src/dialogs/jishogiscoredialog.h`）で、表示中の局面の点数を `JishogiCalculator::calculate()` で数え、先後の王手を `EngineMoveValidator::isInCheck()` で調べて、ダイアログをモーダルで開く。ダイアログは先手・後手の2列の表で、宣言点数（敵陣の駒＋持ち駒）・総点数（盤上の全駒＋持ち駒）・玉が敵陣にいるか・敵陣に玉以外の駒が10枚以上あるか（枚数つき）・王手がかかっていないか・24点法と27点法の判定を出す。A-/A+（`GameSettings::jishogiScoreFontSize`）と「結果をコピー」もある |
 | 詰将棋の生成・対局 | `displayTsumeshogiGeneratorDialog()`・`displayTsumePlayDialog()` | 詰将棋の生成と対局のダイアログ |
 | メニューウィンドウ | `displayMenuWindow()` | メニューウィンドウのドックを出す |
 | CSA通信対局 | `displayCsaGameDialog()` | 接続ダイアログを出し、`CsaGameSession::startGame()` で始める |
@@ -6042,7 +6040,7 @@ ShogiView は QWidget を直接継承した **カスタムペイントウィジ�
 | 矢印 | Arrow 構造体によるエンジン最善手の可視化 |
 | ドラッグ&ドロップ | 駒のつまみ上げ・移動先判定 |
 | 対局者カードの配置 | 盤・駒台の位置を `BoardChromeWidget::setBoardLayout()` に渡す（`relayoutChrome()`） |
-| リサイズ | `fitBoardToWidget()` でウィジェットサイズに自動追従（計算は `ShogiViewLayout`） |
+| リサイズ | `resizeEvent()` で対局者カードの層を置き直す（`relayoutChrome()`）。マスの大きさは拡大・縮小（`enlargeBoard()`・Ctrl+ホイールなど）で変え、配置の計算は `ShogiViewLayout` |
 
 #### 11.1.2 レンダリングレイヤー順序
 
@@ -6103,7 +6101,7 @@ static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098（縦/�
 
 `src/views/boardchromewidget.h`
 
-対局者カード（先手・後手の QFrame）、名前（`ElideLabel`。`blackNameLabel()` / `whiteNameLabel()`）、時計（`QLabel`。`blackClockLabel()` / `whiteClockLabel()`）、手番の札（`turnBadge(bool black)`）、局面編集の「編集終了」ボタン（`setEditExitButtonVisible(bool)`。押すと `editExitRequested`。`ShogiView::setEditExitButtonVisible()` が中継し、`PositionEditSession` が出し入れする）、駒箱の先後切り替え（`placePieceBoxSelector()`・`setPieceBoxSide()`・`pieceBoxSideClicked`）は、`BoardChromeWidget` が持つ。
+対局者カード（先手・後手の QFrame）、名前（`ElideLabel`。`blackNameLabel()` / `whiteNameLabel()`）、時計（`QLabel`。`blackClockLabel()` / `whiteClockLabel()`。太さ DemiBold は作るときに付け、大きさは配置のたびに枠に合わせる）、手番の札（`turnBadge(bool black)`）、局面編集の「編集終了」ボタン（`setEditExitButtonVisible(bool)`。押すと `editExitRequested`。`ShogiView::setEditExitButtonVisible()` が中継し、`PositionEditSession` が出し入れする）、駒箱の先後切り替え（`placePieceBoxSelector()`・`setPieceBoxSide()`・`pieceBoxSideClicked`）は、`BoardChromeWidget` が持つ。
 
 - ShogiView の子として盤と同じ大きさで重ね、部品のある範囲だけをマスク（`setMask`）で残す。それ以外のクリック・描画は下の ShogiView に届くので、盤の入力はそのまま。
 - ShogiView は盤・駒台の位置（`BoardChromeWidget::BoardLayout`：マスの大きさ・駒台・盤の範囲・反転）を `setBoardLayout()` で渡すだけ。カードは駒台の外側に置き、駒箱はカード（`visibleCardRect()`）の下に置く。
@@ -6145,7 +6143,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | クラス名 | 基底クラス | 機能 |
 |---------|-----------|------|
 | CollapsibleGroupBox | QWidget | クリックで展開/折りたたみ可能なグループボックス |
-| ElideLabel | QLabel | テキスト省略表示ラベル（エリプシス＋ホバースクロール＋ドラッグパン） |
+| ElideLabel | QLabel | テキスト省略表示ラベル（幅に収まらない文字をエリプシスで省略） |
 | GlobalToolTip | QFrame | 軽量なカスタムツールチップポップアップ（XSS対策済み） |
 | AppToolTipFilter | QObject | Qt 標準ツールチップを GlobalToolTip に置き換えるイベントフィルタ |
 | FlowLayout | QLayout | 自動折り返しレイアウト（Qt サンプルコード準拠） |
@@ -6380,13 +6378,12 @@ src/widgets/collapsiblegroupbox.h / .cpp
 src/widgets/elidelabel.h / .cpp
 ```
 
-テキストがラベル幅に収まらない場合にエリプシス（...）を表示し、ホバー時に横スクロールで全文を閲覧可能にするカスタム QLabel。盤の対局者名（`BoardChromeWidget`。`ShogiView::blackNameLabel()` などで取り出せる）、USI通信ログのエンジン名、棋譜解析結果のエンジン名で使用される。
+テキストがラベル幅に収まらない場合にエリプシス（...）で省略して描くカスタム QLabel。全文はツールチップとプロパティ `fullText` に入る。盤の対局者名（`BoardChromeWidget`。`ShogiView::blackNameLabel()` などで取り出せる）、USI通信ログのエンジン名、棋譜解析結果のエンジン名で使用される。
 
 機能:
 - `setFullText()` でフルテキストを設定、幅超過時に自動省略
 - `setElideMode(Qt::TextElideMode)` で省略位置を変更（デフォルト: 中央。対局者名と USI通信ログのエンジン名は右端にしている）
-- `setSlideOnHover(true)` でマウスホバー時の自動横スクロールを有効化
-- `setManualPanEnabled(true)` でドラッグによる手動パンを有効化
+- `wordWrap` が有効なら2行に分け、収まらない最後の行だけを省略する
 
 #### 11.5.3 GlobalToolTip と AppToolTipFilter
 
@@ -6894,33 +6891,35 @@ AnalysisSettings::usiLogFontSize.remove();               // 保存値を消す
 1. 読み書きは `SettingsCommon::openSettings()` の共有 `QSettings` を通る。項目ごとの `.cpp` は要らない
 2. 未保存のときは宣言の既定値を返す。既定値が翻訳文や実行時の場所で決まる項目は、宣言の既定値を空にして `valueOr()` で読む（例: `GameSettings::StartGame::player1.humanName.valueOr(tr("You"))`）
 3. 同じ形の項目は `Setting<T>` をメンバに持つ構造体にまとめられる（対局開始ダイアログの `GameSettings::StartGame::Player` の `player1` / `player2`）
+4. 1行の `Setting<T>` で書けない項目も、`setting.h` の型で1つの宣言にする（読み書きは `Setting<T>` と同じ）
+
+| 型 | 保存の形 | 例 |
+|---|---|---|
+| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める | `AppSettings::pieceSoundVolume`（0〜100）、`AppSettings::appearancePieceFilter`、`AnalysisSettings::usiLogCommandTarget`（0〜2） |
+| `StructSetting<T>({SettingField<T>::of(キー, &T::メンバ), ...}, 整える関数)` | メンバごとに1つのキー。保存していない項目は `T{}` の既定値のまま | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped`）、`TsumeshogiSettings::playPreferences`・`collectionPreferences` |
+| `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、思考・検討の表の列幅 |
+| `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列 | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry`。最大 `kCsaServerHistoryLimit` = 10 件） |
+
+```cpp
+// src/services/appsettings.h
+inline const BoundedSetting<int> pieceSoundVolume{"Sound/pieceSoundVolume", 30, 0, 100};
+// 使う側（範囲外なら 0〜100 に収めて保存）
+AppSettings::pieceSoundVolume.set(percent);
+```
 
 #### 関数として書く項目
 
-値の範囲を絞る（`AppSettings::pieceSoundVolume` など）、複数のキーを構造体にまとめる（`AppSettings::boardColors`・`DockSettings::dockState` など）、古い保存値を引き継ぐ（`AppSettings::appearanceSection`）、リスト・配列で保存する（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・ドックレイアウトなど）。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）項目だけは、ドメイン別ヘッダーに関数を宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
+宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く。古い保存値を引き継ぐ（`AppSettings::appearanceSection`・`pieceStyle`）、未保存の項目をほかの項目で代える（`AppSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、独自の保存形式（`AppSettings::boardColors` の色の文字列、`AnalysisSettings::kifuAnalysisColumnWidths` の `QVariantList`、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`。中で `ListSetting<int>` を使う）、ドックレイアウトの名前の一覧などである。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
 
 ```cpp
-// src/services/analysissettings.cpp より
-QList<int> readWidths(const QString& key)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    QList<int> widths;
-    const int size = s.beginReadArray(key);
-    for (int i = 0; i < size; ++i) {
-        s.setArrayIndex(i);
-        widths.append(s.value(SettingsKeys::kArrayWidth, 0).toInt());
-    }
-    s.endArray();
-    return widths;
-}
-
+// src/services/analysissettings.cpp より（表の番号でキーを作り、読み書きは ListSetting に任せる）
 QList<int> engineInfoColumnWidths(ThinkingTable table)
 {
-    return readWidths(tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table));
+    return ListSetting<int>(tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table), SettingsKeys::kArrayWidth)();
 }
 ```
 
-設定ファイルを `QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat)` で直接開くのは、`beginReadArray` / `beginGroup` でグループを開いたまま読み書きを続ける配列データ（エンジン登録一覧、エンジンごとのオプション配列、CSA通信対局の接続履歴）だけ。共有の `QSettings` でグループを開いたままにすると、その間に読み書きするほかの項目のキーがずれるためである。
+設定ファイルを `QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat)` で直接開くのは、`beginReadArray` / `beginGroup` でグループを開いたまま読み書きを続ける配列データ（`EngineProfileStore` のエンジン登録一覧とエンジンごとのオプション配列）だけ。共有の `QSettings` でグループを開いたままにすると、その間に読み書きするほかの項目のキーがずれるためである。`ListSetting`・`StructListSetting` は共有の `QSettings` で配列を開き、同じ呼び出しの中で閉じる。
 
 #### 設定項目の追加方法
 
@@ -8787,10 +8786,10 @@ connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &KifuTagD
 | 項目 | 規約 |
 |------|------|
 | **置き場所** | 機能に合うドメイン別ヘッダー（`appsettings.h`・`gamesettings.h`・`analysissettings.h`・`networksettings.h`・`josekisettings.h`・`tsumeshogisettings.h`・`enginedialogsettings.h`・`docksettings.h`） |
-| **宣言** | `inline const Setting<T> name{"Group/key", 既定値};` を1行。ドキュメントコメントに既定値を書く |
+| **宣言** | `inline const Setting<T> name{"Group/key", 既定値};` を1行。ドキュメントコメントに既定値を書く。範囲付きは `BoundedSetting<T>`、構造体は `StructSetting<T>`、配列は `ListSetting<T>`・`StructListSetting<T>`（§12.5） |
 | **INIキー命名** | `グループ名/キー名` 形式（例: `FontSize/kifuTag`）。キーを変えると保存済みの値は読まれなくなる |
 | **読み書き** | `NS::name()` / `NS::name.set(v)` / `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は `NS::name.valueOr(...)` |
-| **関数にする項目** | 値の範囲を絞る、複数のキーを構造体にまとめる、配列で保存する、古い保存値を引き継ぐ、といった処理が要るものだけ。`SettingsCommon::openSettings()` を使い、キーは `settingskeys.h` に置く |
+| **関数にする項目** | 宣言の型で表せない処理（古い保存値の引き継ぎ、未保存の項目の代わり、独自の保存形式など）が要るものだけ。`SettingsCommon::openSettings()` を使い、キーは `settingskeys.h` に置く |
 | **QSettings の直接構築** | `beginReadArray` / `beginGroup` でグループを開いたまま読み書きする配列データだけ（`QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat)`） |
 | **永続化対象の判断** | ウィンドウサイズ、フォントサイズ、列幅、最後の選択状態など |
 
@@ -9229,8 +9228,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | InterruptedGameState | S | game | 中断したローカル対局の状態（アプリ起動中だけ保持する） | 第6章 |
 | ItemTextDelegate | C | widgets | 項目の文字を、配置を覚えて描くデリゲート | 第11章 |
 | JishogiCalculator | C | common | 持将棋の点数計算・判定 | 第12章 |
-| JishogiScoreDialog | C | dialogs | 持将棋の点数ダイアログ | 第10章 |
-| JishogiScoreDialogController | C | ui/controllers | 持将棋点数ダイアログの制御 | 第10章 |
+| JishogiScoreDialog | C | dialogs | 持将棋の点数ダイアログ（`showFor()` が局面から点数と王手を計算して開く） | 第10章 |
 | JkfExporter | C | kifu/formats | JKF形式の書き出し | 第8章 |
 | JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |
 | JosekiBookSession | C | kifu | 開いている定跡ファイル（データ・変更状態・読み書き） | 第8章, 第11章 |
@@ -9570,7 +9568,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | considerationuicontroller | 第9章, 第10章 | 検討タブの操作を検討のセッションへ伝える |
 | josekiwindowcontroller | 第10章 | 定跡ウィンドウ |
 | menuwindowcontroller | 第10章 | メニューウィンドウ |
-| jishogiscoredialogcontroller | 第10章 | 持将棋点数ダイアログ |
 | languagecontroller | 第10章, 第16章 | 言語切替 |
 | nyugyokudeclarationhandler | 第10章 | 利用者の入玉宣言（`GameChannel` 経由でローカル対局・通信対局に共通） |
 | pvclickcontroller | 第10章 | 読み筋クリック |
