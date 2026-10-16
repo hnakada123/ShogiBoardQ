@@ -4,7 +4,7 @@
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsoptionhandler.h"
 #include "enginedialogsettings.h"
-#include "enginepondersettings.h"
+#include "engineprofilestore.h"
 #include "dialogutils.h"
 #include "buttonstyles.h"
 #include "ui_changeenginesettingsdialog.h"
@@ -115,7 +115,7 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
 
 void ChangeEngineSettingsDialog::createPonderWidgets(QVBoxLayout* layout)
 {
-    const auto prefs = EnginePonderSettings::load(m_optionHandler->engineName());
+    const auto prefs = EngineProfileStore::loadPonder(m_optionHandler->engineName());
     m_defaultPonderEnabled = prefs.defaultEnabled;
     auto* group = new QGroupBox(tr("先読み"), this);
     auto* groupLayout = new QVBoxLayout(group);
@@ -136,8 +136,8 @@ void ChangeEngineSettingsDialog::createPonderWidgets(QVBoxLayout* layout)
 void ChangeEngineSettingsDialog::saveEngineSettings()
 {
     m_optionHandler->writeEngineOptions();
-    EnginePonderSettings::save(m_optionHandler->engineName(), m_ponderEnabled->isChecked(),
-                              m_sendUnreportedPonder->isChecked());
+    EngineProfileStore::savePonder(m_optionHandler->engineName(), m_ponderEnabled->isChecked(),
+                                   m_sendUnreportedPonder->isChecked());
     accept();
 }
 

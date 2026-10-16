@@ -123,6 +123,34 @@ private slots:
         QCOMPARE(handler.state(), UsiProtocolHandler::State::NotStarted);
     }
 
+    /// 送るオプションは外から渡す（設定ファイルを読まない）。報告されたオプションだけを送る
+    void launchOptionsAreSentAfterUsiOk()
+    {
+        EngineProcessManager process;
+        QVERIFY(startProcess(process));
+        UsiProtocolHandler handler(&process);
+        EngineProfileStore::LaunchOptions launch;
+        launch.options = {{QStringLiteral("Threads"), QStringLiteral("4"), false},
+                          {QStringLiteral("ClearHash"), QString(), true},
+                          {QStringLiteral("Unreported"), QStringLiteral("1"), false}};
+        launch.ponderEnabled = true;
+        launch.sendUnreportedPonder = false;
+        handler.setLaunchOptions(launch);
+        QVERIFY(handler.isPonderEnabled());
+        QSignalSpy commands(&process, &EngineProcessManager::commandSent);
+        handler.initializeEngineAsync();
+        handler.onDataReceived(QStringLiteral("option name Threads type spin default 1 min 1 max 16"));
+        handler.onDataReceived(QStringLiteral("option name ClearHash type button"));
+        handler.onDataReceived(QStringLiteral("usiok"));
+        QStringList sent;
+        for (const auto& args : std::as_const(commands)) sent.append(args.first().toString());
+        QVERIFY(sent.contains(QStringLiteral("setoption name Threads value 4")));
+        QVERIFY(sent.contains(QStringLiteral("setoption name ClearHash")));
+        QVERIFY(!sent.join(QLatin1Char('\n')).contains(QStringLiteral("Unreported")));
+        // 報告のない USI_Ponder は、送らない指定なら送らない
+        QVERIFY(!sent.join(QLatin1Char('\n')).contains(QStringLiteral("USI_Ponder")));
+    }
+
     // ================================================================
     // 探索と先読み
     // ================================================================

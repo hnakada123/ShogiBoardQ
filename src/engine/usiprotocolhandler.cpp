@@ -3,16 +3,12 @@
 
 #include "usiprotocolhandler.h"
 
-#include "enginepondersettings.h"
 #include "engineprocessmanager.h"
-#include "enginesettingsconstants.h"
 #include "logcategories.h"
-#include "settingscommon.h"
 #include "usilineparser.h"
 
 #include <QPointer>
 #include <QRegularExpression>
-#include <QSettings>
 
 UsiProtocolHandler::UsiProtocolHandler(EngineProcessManager* process, QObject* parent)
     : QObject(parent)
@@ -33,31 +29,6 @@ void UsiProtocolHandler::setState(State state)
 // ============================================================
 // 起動と初期化
 // ============================================================
-
-void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
-{
-    m_configuredOptions.clear();
-    const auto ponder = EnginePonderSettings::load(engineName);
-    m_isPonderEnabled = ponder.enabled;
-    m_sendUnreportedPonderOption = ponder.sendUnreportedOption;
-
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    const int count = settings.beginReadArray(EngineSettingsConstants::engineOptionsGroup(engineName));
-    for (int i = 0; i < count; ++i) {
-        settings.setArrayIndex(i);
-        const QString name = settings.value("name").toString();
-        // 先読みの可否は GUI の設定から送る
-        if (name == QLatin1String("USI_Ponder")) continue;
-        const QString value = settings.value("value").toString();
-        if (settings.value("type").toString() == QLatin1String("button")) {
-            // button 型は "on" のときだけ値なしで送る
-            if (value == QLatin1String("on")) m_configuredOptions.append({name, QString(), true});
-        } else {
-            m_configuredOptions.append({name, value, false});
-        }
-    }
-    settings.endArray();
-}
 
 void UsiProtocolHandler::beginStartup()
 {
@@ -89,7 +60,7 @@ void UsiProtocolHandler::markStopped()
 void UsiProtocolHandler::sendConfiguredOptions()
 {
     // 設定ファイルに保存されていても、エンジンが報告していないオプションは送らない
-    for (const ConfiguredOption& option : std::as_const(m_configuredOptions)) {
+    for (const EngineProfileStore::LaunchOptions::Option& option : std::as_const(m_launchOptions.options)) {
         if (!m_reportedOptions.contains(option.name)) {
             qCDebug(lcEngine) << "Skipping unsupported option:" << option.name;
             continue;
@@ -104,9 +75,9 @@ void UsiProtocolHandler::sendConfiguredOptions()
     }
 
     // USI_Ponder は報告を省略できる予約オプション。送るかどうかと GUI の先読みの許可は別
-    if (m_sendUnreportedPonderOption || m_reportedOptions.contains(QStringLiteral("USI_Ponder"))) {
-        sendSetOption(QStringLiteral("USI_Ponder"),
-                      m_isPonderEnabled ? QStringLiteral("true") : QStringLiteral("false"));
+    const QString ponder = QLatin1String(EngineProfileStore::kPonderOptionName);
+    if (m_launchOptions.sendUnreportedPonder || m_reportedOptions.contains(ponder)) {
+        sendSetOption(ponder, m_launchOptions.ponderEnabled ? QStringLiteral("true") : QStringLiteral("false"));
     }
 }
 

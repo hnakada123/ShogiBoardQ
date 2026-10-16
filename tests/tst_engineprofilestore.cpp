@@ -1,5 +1,5 @@
-/// @file tst_enginepondersettings.cpp
-/// @brief エンジン先読み設定の旧設定移行・UI・永続化の回帰テスト
+/// @file tst_engineprofilestore.cpp
+/// @brief 登録エンジンの設定（EngineProfileStore）の保存形式・先読みの設定・旧設定の移行・設定画面のテスト
 
 #include <QtTest>
 #include <QCheckBox>
@@ -10,14 +10,14 @@
 
 #include "changeenginesettingsdialog.h"
 #include "enginelistsettings.h"
-#include "enginepondersettings.h"
+#include "engineprofilestore.h"
 #include "enginesettingsconstants.h"
 #include "longlongspinbox.h"
 #include "settingscommon.h"
 
 using namespace EngineSettingsConstants;
 
-class TestEnginePonderSettings : public QObject
+class TestEngineProfileStore : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_config;
@@ -76,6 +76,44 @@ private slots:
         settings.clear();
     }
 
+    /// 起動時に送る設定: USI_Ponder は先読みの設定で送り、button 型は on のものだけを値なしで送る
+    void launchOptionsFollowStoredOptions()
+    {
+        saveLegacyOption(true, false);
+        QList<EngineOption> options = EngineProfileStore::loadOptions(m_engine);
+        options.append({QStringLiteral("ClearHash"), QStringLiteral("button"), {}, {}, {}, QStringLiteral("on"), {}});
+        options.append({QStringLiteral("Reset"), QStringLiteral("button"), {}, {}, {}, QString(), {}});
+        EngineProfileStore::saveOptions(m_engine, options);
+        EngineProfileStore::savePonder(m_engine, false, false);
+
+        const EngineProfileStore::LaunchOptions launch = EngineProfileStore::launchOptions(m_engine);
+        QCOMPARE(launch.options.size(), 2);
+        QCOMPARE(launch.options.at(0).name, QStringLiteral("Threads"));
+        QCOMPARE(launch.options.at(0).value, QStringLiteral("4"));
+        QVERIFY(!launch.options.at(0).button);
+        QCOMPARE(launch.options.at(1).name, QStringLiteral("ClearHash"));
+        QVERIFY(launch.options.at(1).button);
+        QVERIFY(!launch.ponderEnabled);
+        QVERIFY(!launch.sendUnreportedPonder);
+    }
+
+    /// オプションを書き直しても、短くなった配列の古い要素と GUI の設定は残らない・消えない
+    void savingOptionsReplacesTheArray()
+    {
+        saveLegacyOption(true, false);
+        EngineProfileStore::savePonder(m_engine, true, false);
+        EngineProfileStore::saveOptions(m_engine, {EngineProfileStore::loadOptions(m_engine).first()});
+        QCOMPARE(EngineProfileStore::loadOptions(m_engine).size(), 1);
+        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        QVERIFY(!settings.contains(engineOptionsGroup(m_engine) + QStringLiteral("/2/name")));
+        QVERIFY(!EngineProfileStore::loadPonder(m_engine).sendUnreportedOption);
+        // 空白区切りの以前の選択肢も読める
+        settings.setValue(engineOptionsGroup(m_engine) + QStringLiteral("/1/valueList"), QStringLiteral("Easy Normal"));
+        settings.sync();
+        QCOMPARE(EngineProfileStore::loadOptions(m_engine).first().valueList,
+                 (QStringList{QStringLiteral("Easy"), QStringLiteral("Normal")}));
+    }
+
     void legacySettingIsMigrated_data()
     {
         QTest::addColumn<bool>("enabled");
@@ -91,13 +129,13 @@ private slots:
         setup(dialog);
         auto* ponder = widget<QCheckBox>(dialog, "ponderEnabledCheckBox");
         QCOMPARE(ponder->isChecked(), enabled);
-        QCOMPARE(EnginePonderSettings::load(m_engine).defaultEnabled, !enabled);
+        QCOMPARE(EngineProfileStore::loadPonder(m_engine).defaultEnabled, !enabled);
         // エンジンオプションとGUI設定の二重表示を避ける。
         QVERIFY(!dialog.findChild<QCheckBox*>(QStringLiteral("USI_Ponder")));
         ponder->setChecked(!enabled);
         widget<LongLongSpinBox>(dialog, "Threads")->setSpinBoxValue(8);
         clickButton(dialog, QDialogButtonBox::Ok);
-        QCOMPARE(EnginePonderSettings::load(m_engine).enabled, !enabled);
+        QCOMPARE(EngineProfileStore::loadPonder(m_engine).enabled, !enabled);
 
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(settings.beginReadArray(engineOptionsGroup(m_engine)), 2);
@@ -131,8 +169,8 @@ private slots:
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(settings.beginReadArray(engineOptionsGroup(m_engine)), 0); // 偽のUSIオプションは追加しない
         settings.endArray();
-        QVERIFY(!EnginePonderSettings::load(QStringLiteral("AnotherEngine")).enabled);
-        QVERIFY(EnginePonderSettings::load(QStringLiteral("AnotherEngine")).sendUnreportedOption);
+        QVERIFY(!EngineProfileStore::loadPonder(QStringLiteral("AnotherEngine")).enabled);
+        QVERIFY(EngineProfileStore::loadPonder(QStringLiteral("AnotherEngine")).sendUnreportedOption);
     }
 
     void cancelDoesNotSave()
@@ -143,7 +181,7 @@ private slots:
         widget<QCheckBox>(dialog, "ponderEnabledCheckBox")->setChecked(true);
         widget<QCheckBox>(dialog, "sendUnreportedPonderCheckBox")->setChecked(false);
         clickButton(dialog, QDialogButtonBox::Cancel);
-        const auto prefs = EnginePonderSettings::load(m_engine);
+        const auto prefs = EngineProfileStore::loadPonder(m_engine);
         QVERIFY(!prefs.enabled);
         QVERIFY(prefs.sendUnreportedOption);
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
@@ -162,30 +200,30 @@ private slots:
     {
         QFETCH(bool, hasOption);
         if (hasOption) saveLegacyOption(false, true);
-        EnginePonderSettings::save(m_engine, !hasOption, false);
+        EngineProfileStore::savePonder(m_engine, !hasOption, false);
         ChangeEngineSettingsDialog dialog;
         setup(dialog);
         widget<QPushButton>(dialog, "restoreButton")->click();
         QCOMPARE(widget<QCheckBox>(dialog, "ponderEnabledCheckBox")->isChecked(), hasOption);
         QVERIFY(widget<QCheckBox>(dialog, "sendUnreportedPonderCheckBox")->isChecked());
         // 「既定値に戻す」だけでは保存しない。
-        QCOMPARE(EnginePonderSettings::load(m_engine).enabled, !hasOption);
+        QCOMPARE(EngineProfileStore::loadPonder(m_engine).enabled, !hasOption);
         clickButton(dialog, QDialogButtonBox::Ok);
-        QCOMPARE(EnginePonderSettings::load(m_engine).enabled, hasOption);
-        QVERIFY(EnginePonderSettings::load(m_engine).sendUnreportedOption);
+        QCOMPARE(EngineProfileStore::loadPonder(m_engine).enabled, hasOption);
+        QVERIFY(EngineProfileStore::loadPonder(m_engine).sendUnreportedOption);
     }
 
     void guiSettingOverridesStaleLegacyValue()
     {
-        EnginePonderSettings::save(m_engine, true, false);
+        EngineProfileStore::savePonder(m_engine, true, false);
         saveLegacyOption(false, false);
-        QVERIFY(EnginePonderSettings::load(m_engine).enabled);
+        QVERIFY(EngineProfileStore::loadPonder(m_engine).enabled);
         // 登録削除と同じグループ削除でGUI設定も消える。
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         settings.remove(engineOptionsGroup(m_engine));
         settings.sync();
-        QVERIFY(!EnginePonderSettings::load(m_engine).enabled);
-        QVERIFY(EnginePonderSettings::load(m_engine).sendUnreportedOption);
+        QVERIFY(!EngineProfileStore::loadPonder(m_engine).enabled);
+        QVERIFY(EngineProfileStore::loadPonder(m_engine).sendUnreportedOption);
     }
 
     /// エンジンの名前がほかの設定のグループ名と同じでも、"/" を含んでも、設定は EngineOptions の下に置く（B8）
@@ -208,14 +246,14 @@ private slots:
         settings.setValue(engine.section(QLatin1Char('/'), 0, 0) + QStringLiteral("/keep"), 42);
         settings.sync();
 
-        EnginePonderSettings::save(engine, true, false);
-        QVERIFY(EnginePonderSettings::load(engine).enabled);
+        EngineProfileStore::savePonder(engine, true, false);
+        QVERIFY(EngineProfileStore::loadPonder(engine).enabled);
         settings.sync();
         QVERIFY(settings.contains(group + QLatin1Char('/') + QLatin1String(EngineGuiPonderEnabledKey)));
         // エンジンの設定を消しても、同じ名前のグループのほかの設定は残る
         settings.remove(group);
         settings.sync();
-        QVERIFY(!EnginePonderSettings::load(engine).enabled);
+        QVERIFY(!EngineProfileStore::loadPonder(engine).enabled);
         QCOMPARE(settings.value(engine.section(QLatin1Char('/'), 0, 0) + QStringLiteral("/keep")).toInt(), 42);
     }
 
@@ -243,10 +281,10 @@ private slots:
         settings.setValue(QStringLiteral("General/language"), QStringLiteral("en"));
         settings.sync();
 
-        QCOMPARE(EngineListSettings::migrateLegacyOptionGroups(), 2);
+        QCOMPARE(EngineProfileStore::migrateLegacyOptionGroups(), 2);
         settings.sync();
         QVERIFY(!settings.contains(m_engine + QStringLiteral("/size")));
-        QVERIFY(EnginePonderSettings::load(m_engine).enabled);
+        QVERIFY(EngineProfileStore::loadPonder(m_engine).enabled);
         QCOMPARE(settings.beginReadArray(engineOptionsGroup(m_engine)), 1);
         settings.setArrayIndex(0);
         QCOMPARE(settings.value(EngineOptionValueKey).toString(), QStringLiteral("6"));
@@ -257,9 +295,9 @@ private slots:
         QCOMPARE(settings.beginReadArray(engineOptionsGroup(QStringLiteral("General"))), 1);
         settings.endArray();
         // 2回目は何も移さない
-        QCOMPARE(EngineListSettings::migrateLegacyOptionGroups(), 0);
+        QCOMPARE(EngineProfileStore::migrateLegacyOptionGroups(), 0);
     }
 };
 
-QTEST_MAIN(TestEnginePonderSettings)
-#include "tst_enginepondersettings.moc"
+QTEST_MAIN(TestEngineProfileStore)
+#include "tst_engineprofilestore.moc"

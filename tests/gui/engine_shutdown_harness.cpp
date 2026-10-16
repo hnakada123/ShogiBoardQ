@@ -18,7 +18,7 @@
 #include "applicationfonts.h"
 #include "startgamedialog.h"
 #include "settingscommon.h"
-#include "enginepondersettings.h"
+#include "engineprofilestore.h"
 #include "shogiview.h"
 #include "usicommlogmodel.h"
 #include "matchcoordinator.h"
@@ -282,7 +282,7 @@ int main(int argc, char** argv)
     settings.setValue("GameSettings/consecutiveGames", 1);
     settings.setValue("GameSettings/startingPositionNumber", 1);
     settings.sync();
-    EnginePonderSettings::save(name, qEnvironmentVariable("SHUTDOWN_SCENARIO").contains("ponder-"), true);
+    EngineProfileStore::savePonder(name, qEnvironmentVariable("SHUTDOWN_SCENARIO").contains("ponder-"), true);
     int result;
     {
         MainWindow window;

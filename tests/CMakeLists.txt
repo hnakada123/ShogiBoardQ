@@ -58,6 +58,7 @@ set(SETTINGS_SOURCES
     ${SRC}/services/appsettings.cpp
     ${SRC}/services/docksettings.cpp
     ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/engineprofilestore.cpp
     ${SRC}/services/josekisettings.cpp
     ${SRC}/services/tsumeshogisettings.cpp
 )
@@ -431,7 +432,7 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/enginelistsettings.cpp
-    ${SRC}/services/enginepondersettings.cpp
+    ${SRC}/services/engineprofilestore.cpp
     ${SRC}/services/settingscommon.cpp
 )
 set_target_properties(tst_startgamedialog PROPERTIES
@@ -439,8 +440,8 @@ set_target_properties(tst_startgamedialog PROPERTIES
     AUTOUIC_SEARCH_PATHS "${SRC}/dialogs"
 )
 
-add_shogi_test(tst_enginepondersettings
-    tst_enginepondersettings.cpp
+add_shogi_test(tst_engineprofilestore
+    tst_engineprofilestore.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.ui
     ${SRC}/dialogs/enginesettingsoptionhandler.cpp
@@ -451,10 +452,10 @@ add_shogi_test(tst_enginepondersettings
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/enginelistsettings.cpp
-    ${SRC}/services/enginepondersettings.cpp
+    ${SRC}/services/engineprofilestore.cpp
     ${SRC}/services/settingscommon.cpp
 )
-set_target_properties(tst_enginepondersettings PROPERTIES
+set_target_properties(tst_engineprofilestore PROPERTIES
     AUTOUIC ON
     AUTOUIC_SEARCH_PATHS "${SRC}/dialogs"
 )

@@ -2,7 +2,7 @@
 #define ENGINELISTSETTINGS_H
 
 /// @file enginelistsettings.h
-/// @brief 設定ファイルから登録エンジン一覧を読み込むユーティリティ
+/// @brief 登録エンジンの一覧の検索と、機能ごとに選んだエンジンの保存
 
 #include <QList>
 #include <QString>
@@ -15,6 +15,7 @@ struct EngineEntry {
     QString author;
 };
 
+/// 登録済みエンジンの一覧（保存形式は EngineProfileStore が知る）
 QList<EngineEntry> loadEngines();
 
 /// 名前（エンジンの id name）で探した位置。見つからなければ -1
@@ -52,16 +53,6 @@ int restoreSelection(const SelectionKeys& keys, const QList<EngineEntry>& engine
 
 /// 選んだエンジンの名前を保存する（以前の版の番号・パスは消す）
 void saveSelection(const SelectionKeys& keys, const QString& engineName);
-
-/**
- * @brief 以前の版がエンジン名の最上位グループに置いた設定を EngineOptions の下へ移す
- *
- * 起動時（GUI と CLI）に1回呼ぶ。登録済みエンジンごとに、USIオプションの配列（size と番号付きのキー）と
- * GUI の設定（gui/...）だけを移し、同じ名前のグループにあるほかの設定には触れない。
- * 新しいグループにすでに設定があるエンジンは移さない。
- * @return 移したエンジンの数
- */
-int migrateLegacyOptionGroups();
 
 } // namespace EngineListSettings
 

@@ -9,12 +9,9 @@
 /**
  * @brief エンジン設定の永続化に使用するINIファイルのキー名定数
  *
+ * 保存形式を読み書きするのは EngineProfileStore だけ。オプションの型の文字列は USI の受信行の解釈でも使う。
  */
 namespace EngineSettingsConstants {
-
-// --- 設定ファイル ---
-
-static constexpr auto SettingsFileName = "ShogiBoardQ.ini"; ///< アプリケーション設定ファイル名
 
 // --- エンジン登録 ---
 

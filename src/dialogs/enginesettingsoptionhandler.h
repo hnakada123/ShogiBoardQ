@@ -14,7 +14,7 @@
 #include <functional>
 
 #include "longlongspinbox.h"
-#include "engineoptions.h"
+#include "engineoption.h"
 #include "engineoptiondescriptions.h"
 #include "collapsiblegroupbox.h"
 
@@ -65,8 +65,6 @@ private:
     /// m_optionList と同じ並びの入力欄（GUI 共通の USI_Ponder は空）
     QList<OptionEditor> m_editors;
 
-    // 設定ファイルにエンジンのオプション設定を保存する
-    void saveOptionsToSettings();
 
     /// オプションの型に合った入力欄を作ってレイアウトに足す
     OptionEditor createEditor(const EngineOption& option, QVBoxLayout* layout);

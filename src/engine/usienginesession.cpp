@@ -7,6 +7,7 @@
 #include <QPointer>
 
 #include "engineprocessmanager.h"
+#include "engineprofilestore.h"
 #include "logcategories.h"
 #include "usiprotocolhandler.h"
 
@@ -43,7 +44,7 @@ bool UsiEngineSession::startAsync(const QString& enginePath, const QString& engi
 {
     quit();
     m_probeOnly = false;
-    m_handler->loadEngineOptions(engineName);
+    m_handler->setLaunchOptions(EngineProfileStore::launchOptions(engineName));
     return launch(enginePath, error);
 }
 
