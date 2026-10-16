@@ -6,6 +6,7 @@
 
 #include "enginelistsettings.h"
 #include <QDialog>
+#include "networksettings.h"
 #include <QList>
 
 #include <memory>
@@ -37,17 +38,6 @@ public:
      */
     /// 登録済みエンジン（名前・実行ファイル・作者）
     using Engine = EngineListSettings::EngineEntry;
-
-    /**
-     * @brief サーバー接続履歴を格納する構造体
-     */
-    struct ServerHistory
-    {
-        QString host;       ///< 接続先ホスト
-        bool useTls = false;
-        int port;           ///< ポート番号
-        QString id;         ///< ログインID
-    };
 
     /// 対局数の決め方
     enum class GameCountMode {
@@ -164,7 +154,7 @@ private:
      * @param history サーバー履歴
      * @return 表示用文字列（例: "172.17.0.2:4000 user_id"）
      */
-    QString formatServerHistoryDisplay(const ServerHistory& history) const;
+    QString formatServerHistoryDisplay(const NetworkSettings::CsaServerHistoryEntry& history) const;
 
     /**
      * @brief 選んだエンジンの設定ダイアログを表示する
@@ -174,7 +164,7 @@ private:
 private:
     std::unique_ptr<Ui::CsaGameDialog> ui; ///< UIオブジェクト
     EngineSelector* m_engineSelector = nullptr; ///< エンジンの選択（QObject parent 所有）
-    QList<ServerHistory> m_serverHistory; ///< サーバー接続履歴
+    QList<NetworkSettings::CsaServerHistoryEntry> m_serverHistory; ///< サーバー接続履歴
 
     // 設定値のキャッシュ
 

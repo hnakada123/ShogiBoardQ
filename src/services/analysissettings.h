@@ -61,8 +61,7 @@ inline const Setting<int> usiLogFontSize{"FontSize/usiLog", 10};
 
 inline const Setting<bool> usiLogWrapLines{"UsiLog/wrapLines", false};
 /// コマンド送信先（0=E1、1=E2、2=両方）
-int usiLogCommandTarget();
-void setUsiLogCommandTarget(int target);
+inline const BoundedSetting<int> usiLogCommandTarget{"UsiLog/commandTarget", 0, 0, 2};
 
 /// 思考タブのフォントサイズ（デフォルト: 10）
 inline const Setting<int> thinkingFontSize{"FontSize/thinking", 10};

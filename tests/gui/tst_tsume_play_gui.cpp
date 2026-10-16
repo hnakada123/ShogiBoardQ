@@ -140,7 +140,7 @@ private slots:
     void init()
     {
         trackBoardLayout = false;
-        TsumeshogiSettings::setPlayPreferences({});
+        TsumeshogiSettings::playPreferences.set({});
         TsumeshogiSettings::tsumePlayFontSize.set(10);
         lastNotice.clear();
         replyTimer.invalidate();
@@ -323,7 +323,7 @@ private slots:
         auto preferences = TsumeshogiSettings::playPreferences();
         preferences.size = windowSize;
         preferences.squareSize = squareSize;
-        TsumeshogiSettings::setPlayPreferences(preferences);
+        TsumeshogiSettings::playPreferences.set(preferences);
         TsumeshogiSettings::tsumePlayFontSize.set(fontSize);
         TsumePlayDialog window;
         dialog = &window;
@@ -364,7 +364,7 @@ private slots:
         auto preferences = TsumeshogiSettings::playPreferences();
         preferences.size = windowSize;
         preferences.squareSize = squareSize;
-        TsumeshogiSettings::setPlayPreferences(preferences);
+        TsumeshogiSettings::playPreferences.set(preferences);
         TsumeshogiSettings::tsumePlayFontSize.set(fontSize);
         TsumePlayDialog window;
         dialog = &window;

@@ -194,7 +194,7 @@ void TsumeCollectionDialog::savePreferences()
     preferences.page = m_page->value();
     preferences.filter = m_filter->currentIndex();
     preferences.timeoutSec = m_timeout->value();
-    TsumeshogiSettings::setCollectionPreferences(preferences);
+    TsumeshogiSettings::collectionPreferences.set(preferences);
     m_engineSelector->saveSelection();
 }
 

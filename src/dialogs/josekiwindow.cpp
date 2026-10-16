@@ -418,7 +418,7 @@ void JosekiWindow::saveSettings()
     JosekiSettings::josekiWindowRecentFiles.set(m_session->recentFiles());
     QList<int> widths;
     for (int i = 0; i < JosekiTableModel::ColumnCount; ++i) widths.append(m_tableView->columnWidth(i));
-    JosekiSettings::setJosekiWindowColumnWidths(widths);
+    JosekiSettings::josekiWindowColumnWidths.set(widths);
 }
 
 // ============================================================

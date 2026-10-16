@@ -11,12 +11,10 @@
 namespace SettingsKeys {
 
 // --- UI ---
-inline constexpr char kUsiLogCommandTarget[]             = "UsiLog/commandTarget";
 inline constexpr char kPieceStyle[]                      = "UI/pieceStyle";
 inline constexpr char kBoardWoodGrain[]                  = "BoardVisuals/woodGrain";
 inline constexpr char kStandWoodGrain[]                  = "BoardVisuals/standWoodGrain";
 inline constexpr char kAppearanceSection[]               = "UI/appearanceSection";
-inline constexpr char kAppearancePieceFilter[]           = "UI/appearancePieceFilter";
 inline constexpr char kBoardPieceShadow[]                = "BoardVisuals/pieceShadow";
 inline constexpr char kBoardPieceScale[]                 = "BoardVisuals/pieceScale";
 inline constexpr char kBoardBackgroundColor[]            = "BoardColors/background";
@@ -39,11 +37,6 @@ inline constexpr char kBoardClockWarningTextColor[] = "BoardColors/clockWarningT
 inline constexpr char kBoardClockCriticalTextColor[] = "BoardColors/clockCriticalText";
 
 // --- Sound ---
-inline constexpr char kPieceSoundVolume[]                = "Sound/pieceSoundVolume";
-inline constexpr char kPieceSoundPitch[]                 = "Sound/pieceSoundPitch";
-inline constexpr char kPieceSoundEqLow[]                 = "Sound/pieceSoundEqLow";
-inline constexpr char kPieceSoundEqMid[]                 = "Sound/pieceSoundEqMid";
-inline constexpr char kPieceSoundEqHigh[]                = "Sound/pieceSoundEqHigh";
 
 // --- EngineInfo (動的キー: QString(...).arg(idx) で使用) ---
 inline constexpr char kEngineInfoColumnWidthsFmt[]       = "EngineInfo/columnWidths%1";
@@ -61,7 +54,6 @@ inline constexpr char kKifuAnalysisEngineName[]          = "KifuAnalysis/engineN
 inline constexpr char kKifuAnalysisEngineIndex[]         = "KifuAnalysis/engineIndex";
 
 // --- JosekiWindow ---
-inline constexpr char kJosekiWindowColumnWidths[]        = "JosekiWindow/columnWidths";
 
 // --- Consideration ---
 inline constexpr char kConsiderationEngineName[]         = "Consideration/engineName";
@@ -82,22 +74,10 @@ inline constexpr char kCsaEngineNumber[]                 = "CsaGameSettings/engi
 inline constexpr char kCustomDockLayoutsGroup[]          = "CustomDockLayouts";
 
 // --- TsumeCollection / TsumePlay ---
-inline constexpr char kTsumeCollectionSize[] = "TsumeCollection/size";
-inline constexpr char kTsumeCollectionFile[] = "TsumeCollection/file";
 /// 判定エンジンの名前（内蔵エンジンなら空の文字列）
 inline constexpr char kTsumeCollectionEngineName[] = "TsumeCollection/engineName";
 /// 以前の版が保存していた判定エンジンのパス（内蔵なら "@hayanagi"。読むだけ）
 inline constexpr char kTsumeCollectionEngine[] = "TsumeCollection/engine";
-inline constexpr char kTsumeCollectionPageSize[] = "TsumeCollection/pageSize";
-inline constexpr char kTsumeCollectionPage[] = "TsumeCollection/page";
-inline constexpr char kTsumeCollectionFilter[] = "TsumeCollection/filter";
-inline constexpr char kTsumeCollectionTimeout[] = "TsumeCollection/timeout";
-inline constexpr char kTsumePlaySize[] = "TsumePlay/size";
-inline constexpr char kTsumePlayFile[] = "TsumePlay/file";
-inline constexpr char kTsumePlayIndex[] = "TsumePlay/index";
-inline constexpr char kTsumePlayTimeout[] = "TsumePlay/timeout";
-inline constexpr char kTsumePlaySquareSize[] = "TsumePlay/squareSize";
-inline constexpr char kTsumePlayBoardRotated[] = "TsumePlay/boardRotated";
 // --- TsumeshogiGenerator ---
 inline constexpr char kTsumeshogiGeneratorEngineName[]        = "TsumeshogiGenerator/engineName";
 /// 以前の版が保存していたエンジンの番号（読むだけ）

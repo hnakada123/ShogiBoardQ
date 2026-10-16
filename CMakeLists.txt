@@ -830,7 +830,6 @@ set(SRC_SERVICES
     src/services/engineprofilestore.h
     src/services/enginesettingsconstants.h
     src/services/gamesettings.h
-    src/services/josekisettings.cpp
     src/services/josekisettings.h
     src/services/networksettings.h
     src/services/pieceimageprovider.cpp

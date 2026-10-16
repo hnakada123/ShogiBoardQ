@@ -60,7 +60,6 @@ set(SETTINGS_SOURCES
     ${SRC}/services/docksettings.cpp
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/engineprofilestore.cpp
-    ${SRC}/services/josekisettings.cpp
     ${SRC}/services/tsumeshogisettings.cpp
 )
 

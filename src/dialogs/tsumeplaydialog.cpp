@@ -69,7 +69,7 @@ TsumePlayDialog::~TsumePlayDialog()
     preferences.timeoutSec = m_problemUi.timeout->value();
     preferences.squareSize = m_view->squareSize();
     preferences.boardRotated = m_boardRotated;
-    TsumeshogiSettings::setPlayPreferences(preferences);
+    TsumeshogiSettings::playPreferences.set(preferences);
     m_interaction->clearAllHighlights();
 }
 
