@@ -35,17 +35,17 @@
 <context>
     <name>AnalysisResultHandler</name>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="114"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="48"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="238"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="159"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="239"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="160"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
@@ -168,48 +168,48 @@
 <context>
     <name>AnalysisSession</name>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="138"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="223"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
         <source>詰み探索</source>
         <translation>搜尋詰棋</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="138"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
         <source>検討</source>
         <translation>研究</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="139"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="141"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎錯誤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="230"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="233"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>找到詰棋（%1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="233"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="236"/>
         <source>詰みなし</source>
         <translation>無詰</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="236"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="239"/>
         <source>（エンジン側）未実装</source>
         <translation>（引擎）尚未實現</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="239"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="242"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>未能在限定時間內判定詰棋</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="246"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="249"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>引擎沒有回應，已中止搜尋詰棋。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="251"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="254"/>
         <source>探索が完了しました</source>
         <translation>搜尋完成</translation>
     </message>
@@ -5583,12 +5583,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation>引擎選擇無效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="145"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="143"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>引擎初始化失敗。請檢查引擎設定。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="216"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="203"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎錯誤：%1</translation>
     </message>
@@ -8785,7 +8785,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>千日手評價值</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="43"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="21"/>
         <source>=== 開始局面 ===</source>
         <translation>=== 初始局面 ===</translation>
     </message>
@@ -10125,27 +10125,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeMateEngine</name>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="79"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="80"/>
         <source>最短手数を確認できるKomoringHeightsを選択してください。</source>
         <translation>請選擇支援驗證最短詰棋手數的 KomoringHeights 版本。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="121"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="118"/>
         <source>エンジンが判定を完了できませんでした。時間を増やして再判定できます。</source>
         <translation>引擎未能完成搜尋。請增加時間後重試。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="64"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="65"/>
         <source>判定エンジンを実行できません: %1</source>
         <translation>無法執行詰棋引擎：%1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="136"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="133"/>
         <source>判定エンジンが終了しました。実行ファイルを確認してください。</source>
         <translation>詰棋引擎已結束。請檢查其執行檔。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="141"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="138"/>
         <source>制限時間内に判定が完了しませんでした。不詰とは判定していません。</source>
         <translation>搜尋未在時限內完成。這並不代表無詰。</translation>
     </message>
@@ -10608,12 +10608,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="169"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="195"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>該引擎不支援詰棋搜尋。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="228"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="204"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>引擎無回應，已終止生成。</translation>
     </message>
@@ -11061,7 +11061,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>引擎意外結束。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="81"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="55"/>
         <location filename="../../src/engine/usienginesession.cpp" line="97"/>
         <source>Failed to start engine: %1</source>
         <translation>啟動引擎失敗：%1</translation>

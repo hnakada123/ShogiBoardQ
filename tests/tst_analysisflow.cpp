@@ -13,7 +13,6 @@
 #include <QWidget>
 #include <memory>
 
-#include "analysiscoordinator.h"
 #include "analysisjob.h"
 #include "analysissession.h"
 #include "appactivitystate.h"
@@ -151,14 +150,16 @@ private slots:
         request.engineName = QStringLiteral("HeadlessAnalysis");
         request.options.endPly = 2;
         AnalysisJob job(request, {h.usi});
-        QSignalSpy positions(&job, &AnalysisJob::positionPrepared);
-        QSignalSpy results(&job, &AnalysisJob::resultReady);
+        QSignalSpy positions(&job, &AnalysisJob::plyStarted);
+        QSignalSpy results(&job, &AnalysisJob::plyAnalyzed);
         QSignalSpy finished(&job, &AnalysisJob::finished);
         request.line = RecordLine{};
         QVERIFY(job.start());
         QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 5000);
         QCOMPARE(positions.size(), 3);
         QCOMPARE(results.size(), 3);
+        QVERIFY(finished.first().first().toBool());   // 範囲の全局面を解析した
+        QCOMPARE(results.last().first().value<PlyAnalysis>().ply, 2);
         QCOMPARE(job.line().sfens(), h.sfenRecord);
         QVERIFY(!job.isRunning());
         job.stop();
@@ -175,7 +176,7 @@ private slots:
         request.line = h.line();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         AnalysisJob job(request, {h.usi});
-        QSignalSpy positions(&job, &AnalysisJob::positionPrepared);
+        QSignalSpy positions(&job, &AnalysisJob::plyStarted);
         QSignalSpy finished(&job, &AnalysisJob::finished);
         QVERIFY(job.start());
         job.stop();
@@ -183,6 +184,7 @@ private slots:
         h.engineReplies(QStringLiteral("bestmove 7g7f"));
         QCOMPARE(positions.size(), 0);
         QCOMPARE(finished.size(), 1);
+        QVERIFY(!finished.first().first().toBool());
         QVERIFY(!job.isRunning());
     }
 

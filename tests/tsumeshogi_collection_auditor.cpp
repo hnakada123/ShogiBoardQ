@@ -3,7 +3,7 @@
 /// stdin: {"sfen":"...", "target":13, "timeout_ms":15000}
 /// stdout: status=minimal のときだけ、最短手数・余詰・全1枚除去の確認が完了している。
 #include "tsumecollection.h"
-#include "tsumeshogigenerator.h"
+#include "tsumecandidatejob.h"
 #include "tsumeshogipositiongenerator.h"
 #include "tsumeshogiverifier.h"
 
@@ -99,7 +99,7 @@ public:
             bool changed = false;
             bool unresolved = false;
             QJsonArray checks;
-            for (const auto& candidate : TsumeshogiGenerator::onePieceRemovedPositions(sfen)) {
+            for (const auto& candidate : TsumeCandidateJob::onePieceRemovedPositions(sfen)) {
                 QString reason;
                 if (TsumeshogiPositionGenerator::isDefenderKingInCheck(candidate)) {
                     reason = QStringLiteral("initial_check");

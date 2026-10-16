@@ -6,20 +6,20 @@
 
 #include <QElapsedTimer>
 #include <QObject>
-
-#include "usimessages.h"
 #include <QString>
 #include <QStringList>
-#include <QTimer>
+#include <memory>
 
 #include "tsumeshogiverifier.h"
 
-class UsiEngineSession;
+class MateOracle;
+class MateQueryLoop;
+class TsumeVerificationJob;
 
 /**
- * @brief `TsumeshogiVerifier` の問い合わせをエンジンの `go mate` で解決する
+ * @brief 1局面の唯一解の検査（TsumeVerificationJob）をエンジンの go mate で進める
  *
- * `TsumeshogiGenerator` の検査フェーズと同じ手順（1 問い合わせ 1 秒以内、総時間で打ち切り）で動く。
+ * 手順（1回の問い合わせは1秒まで、総時間で打ち切る）は詰将棋生成の検査と同じ部品で決まる。
  */
 class TsumeVerificationRunner : public QObject
 {
@@ -36,6 +36,7 @@ public:
     };
 
     explicit TsumeVerificationRunner(QObject* parent = nullptr);
+    ~TsumeVerificationRunner() override;
 
     [[nodiscard]] bool start(const Request& request, QString* error = nullptr);
     void abort();
@@ -48,23 +49,20 @@ signals:
     void errorOccurred(const QString& message);
 
 private slots:
-    void onSessionReady();
-    void step();
-    void onCheckmate(const UsiCheckmate& result);
+    void onReady();
+    void onQueryStarted();
+    void onFinished();
+    void onUnsupported();
     void onNoResponse();
-    void onSessionError(const QString& message);
+    void onEngineError(const QString& message);
 
 private:
-    void submit(TsumeshogiVerifier::Reply reply, const QStringList& pv = {});
-    void finish();
+    void fail(const QString& message);
 
-    UsiEngineSession* m_session = nullptr; ///< QObject parent 所有
-    TsumeshogiVerifier m_verifier;
-    Request m_request;
-    QTimer m_stepTimer;
+    MateOracle* m_oracle = nullptr;    ///< QObject parent 所有
+    MateQueryLoop* m_loop = nullptr;   ///< QObject parent 所有
+    std::unique_ptr<TsumeVerificationJob> m_job;
     QElapsedTimer m_elapsed;
-    int m_queries = 0;
-    bool m_awaiting = false;
     bool m_done = false;
 };
 

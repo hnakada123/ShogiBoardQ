@@ -6,25 +6,20 @@
 
 #include <QElapsedTimer>
 #include <QObject>
-
-#include "usiposition.h"
-#include "usimessages.h"
 #include <QString>
 #include <QStringList>
-#include <QTimer>
 
-class UsiEngineSession;
+#include "mateoracle.h"
+#include "usiposition.h"
 
 /**
- * @brief `position` → `go mate <ms>` → `checkmate ...` までを 1 回実行する
+ * @brief `position` → `go mate <ms>` → `checkmate ...` までを 1 回実行する（MateOracle の1回の問い合わせ）
  */
 class MateSearchRunner : public QObject
 {
     Q_OBJECT
 
 public:
-    enum class Status { Mate, NoMate, Unknown, NotImplemented };
-
     struct Request {
         QString enginePath;
         QString engineName;
@@ -35,30 +30,29 @@ public:
     explicit MateSearchRunner(QObject* parent = nullptr);
 
     [[nodiscard]] bool start(const Request& request, QString* error = nullptr);
-    /// 早期停止（応答を待って finished を発行する）
+    /// 早期停止（答えを待って finished を発行する。打ち切った探索の答えは unknown）
     void stop();
     qint64 elapsedMs() const { return m_elapsed.isValid() ? m_elapsed.elapsed() : 0; }
 
-    static QString statusName(Status status);
+    /// 答えの種類の名前（mate・nomate・unknown・notimplemented）
+    static QString kindName(MateAnswer::Kind kind);
 
 signals:
-    void finished(MateSearchRunner::Status status, const QStringList& pv);
+    void finished(const MateAnswer& answer);
     void errorOccurred(const QString& message);
 
 private slots:
-    void onSessionReady();
-    void onCheckmate(const UsiCheckmate& result);
+    void onReady();
+    void onAnswered(const MateAnswer& answer);
     void onNoResponse();
-    void onSessionError(const QString& message);
+    void onEngineError(const QString& message);
 
 private:
-    void finish(Status status, const QStringList& pv);
+    void finish(const MateAnswer& answer);
 
-    UsiEngineSession* m_session = nullptr; ///< QObject parent 所有
+    MateOracle* m_oracle = nullptr; ///< QObject parent 所有
     QElapsedTimer m_elapsed;
     bool m_done = false;
-    bool m_searchStarted = false;
-    Request m_request;
 };
 
 #endif // MATESEARCHRUNNER_H

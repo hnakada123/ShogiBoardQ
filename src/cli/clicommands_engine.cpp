@@ -77,12 +77,12 @@ public:
     int exitCode() const { return m_exitCode; }
 
 public slots:
-    void onFinished(MateSearchRunner::Status status, const QStringList& pv)
+    void onFinished(const MateAnswer& answer)
     {
         QJsonObject obj;
-        obj[QStringLiteral("status")] = MateSearchRunner::statusName(status);
-        obj[QStringLiteral("pv")] = QJsonArray::fromStringList(pv);
-        obj[QStringLiteral("plies")] = static_cast<int>(pv.size());
+        obj[QStringLiteral("status")] = MateSearchRunner::kindName(answer.kind);
+        obj[QStringLiteral("pv")] = QJsonArray::fromStringList(answer.pv);
+        obj[QStringLiteral("plies")] = static_cast<int>(answer.pv.size());
         obj[QStringLiteral("elapsed_ms")] = static_cast<double>(m_runner->elapsedMs());
         CliOutput::printEvent(QStringLiteral("result"), obj);
         m_loop->quit();

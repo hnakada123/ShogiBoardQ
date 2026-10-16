@@ -3,9 +3,13 @@
 #include <QProcess>
 #include <QPromise>
 
+#include "mateoracle.h"
+#include "matequeryloop.h"
+#include "tsumecandidatejob.h"
 #include "tsumeshogigenerator.h"
 #include "tsumeshogiverifier.h"
 #include "tsumeshogicandidatescreener.h"
+#include "tsumeverificationjob.h"
 #include "usienginesession.h"
 #include <position.h>
 #include <tsume.h>
@@ -98,47 +102,67 @@ Status runScripted(TsumeshogiVerifier& verifier)
 class TestTsumeshogiVerification : public QObject
 {
     Q_OBJECT
-    static void prepare(TsumeshogiGenerator& generator, const QString& sfen, int target = 1)
+    using Stage = TsumeCandidateJob::Stage;
+
+    /// 生成器を、エンジン（スタブ）が準備できて候補を待っている状態にする
+    static void prepare(TsumeshogiGenerator& generator, int target = 1)
     {
         generator.m_settings.targetMoves = target;
         generator.m_settings.maxPositionsToFind = 1;
         generator.m_settings.timeoutMs = 5000;
-        generator.m_phase = TsumeshogiGenerator::Phase::Searching;
-        generator.m_currentSfen = sfen;
-        generator.m_engine = new UsiEngineSession(&generator);
+        generator.m_running = true;
+        generator.createOracle();
+        const bool started = generator.m_oracle->start(QString(), QString());   // スタブはすぐに起動する
+        Q_ASSERT(started);
+        Q_UNUSED(started)
         generator.m_cancelFlag = makeCancelFlag();
         generator.m_elapsedTimer.start();
     }
 
-    static UsiCheckmate mate(const QStringList& pv, bool stopped = false)
+    static TsumeCandidateJob::Settings jobSettings(int target, bool allowFinal = true, int timeoutMs = 5000)
     {
-        UsiCheckmate result;
-        result.result = UsiCheckmate::Result::Mate;
-        result.pv = pv;
-        result.stopped = stopped;
-        return result;
-    }
-    static UsiCheckmate noMate(bool stopped = false)
-    {
-        UsiCheckmate result;
-        result.result = UsiCheckmate::Result::NoMate;
-        result.stopped = stopped;
-        return result;
-    }
-    static UsiCheckmate unknown()
-    {
-        return {};
+        return {target, timeoutMs, allowFinal};
     }
 
-    /// 検査中の問い合わせに一律の応答を返して検査を終える
-    static void answerVerification(TsumeshogiGenerator& generator, Reply reply)
+    static MateAnswer mate(const QStringList& pv) { return {MateAnswer::Kind::Mate, pv}; }
+    static MateAnswer noMate() { return {MateAnswer::Kind::NoMate, {}}; }
+    static MateAnswer unknown() { return {MateAnswer::Kind::Unknown, {}}; }
+    /// 代用エンジン（scripted）の答え
+    static MateAnswer scriptedAnswer(const QString& sfen)
     {
-        for (int i = 0; i < 1000 && generator.m_phase == TsumeshogiGenerator::Phase::Verifying; ++i) {
-            generator.continueVerification();
-            if (!generator.m_verificationAwaiting) continue;
-            if (reply == Reply::NoMate) generator.onCheckmate(noMate());
-            else generator.onCheckmate(unknown());
+        QStringList pv;
+        return scripted(sfen, pv) == Reply::Mate ? mate(pv) : noMate();
+    }
+
+    /// 検査中の問い合わせに一律の答えを返して検査を終える
+    static void answerVerification(TsumeCandidateJob& job, const MateAnswer& answer)
+    {
+        const auto verifying = [&job]() { return job.stage() == Stage::Verify || job.stage() == Stage::VerifyTrimmed; };
+        for (int i = 0; i < 1000 && verifying(); ++i) {
+            // 検査を終えると、同じ呼び出しで次の段階（除去）の問い合わせが返る。それには答えない
+            if (job.nextQuery() && verifying()) job.submit(answer, 0);
         }
+    }
+
+    /// 候補を代用エンジンの答えで最後まで進める。送った問い合わせの段階を stages に残す
+    static void driveScripted(TsumeCandidateJob& job, QList<Stage>* stages = nullptr)
+    {
+        for (int i = 0; i < 5000 && !job.isDone(); ++i) {
+            const std::optional<MateQuery> query = job.nextQuery();
+            if (!query) continue;
+            if (stages) stages->append(job.stage());
+            job.submit(scriptedAnswer(query->sfen), 0);
+        }
+    }
+
+    /// kUniqueDecorated の候補を、元局面の検査を通して除去の段階まで進める
+    static void toTrimming(TsumeCandidateJob& job)
+    {
+        QVERIFY(job.nextQuery());
+        job.submit(mate({QStringLiteral("N*2c")}), 0);
+        QCOMPARE(job.stage(), Stage::Verify);
+        answerVerification(job, noMate()); // 1二歩成などの別の王手を不詰として検査を通す
+        QCOMPARE(job.stage(), Stage::Trim);
     }
 
 private slots:
@@ -284,19 +308,23 @@ private slots:
     {
         QFETCH(int, exitPath);
         TsumeshogiGenerator generator;
+        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
         for (int cycle = 0; cycle < 10; ++cycle) {
-            prepare(generator, kUnique);
+            prepare(generator);
             const auto cancel = generator.m_cancelFlag;
             QPromise<TsumeshogiCandidateScreener::Batch> pending;
             pending.start();
             generator.m_batchWatcher.setFuture(pending.future());
-            QPointer<UsiEngineSession> engine = generator.m_engine;
+            QPointer<MateOracle> engine = generator.m_oracle;
             if (exitPath == 0) generator.stop();
             else if (exitPath == 1) {
-                generator.m_trimComplete = true;
-                generator.m_verifiedSfen = kUnique;
-                generator.m_verifiedPv = {QStringLiteral("N*2c")};
-                generator.processResult(true, generator.m_verifiedPv);
+                // 採択した候補で上限に届く
+                auto job = std::make_unique<TsumeCandidateJob>(kUnique, jobSettings(1));
+                driveScripted(*job);
+                QVERIFY(job->outcome());
+                generator.m_job = std::move(job);
+                generator.onCandidateFinished();
+                QCOMPARE(found.size(), cycle + 1);
             } else generator.onEngineError(QStringLiteral("test engine failure"));
             QVERIFY(!generator.isRunning());
             // ワーカーが保持する同じフラグを検査。QFuture::cancel だけでは探索は止まらない。
@@ -314,11 +342,12 @@ private slots:
     {
         TsumeshogiGenerator generator;
         QSignalSpy progress(&generator, &TsumeshogiGenerator::progressUpdated);
-        prepare(generator, kUnique, 3);
+        prepare(generator, 3);
         generator.m_settings.posGenSettings.maxAttackPieces = 4;
         generator.startBatchGeneration();
         QVERIFY(generator.m_batchWatcher.isRunning() || generator.m_batchWatcher.isFinished());
         generator.m_batchWatcher.waitForFinished();
+        generator.m_job = std::make_unique<TsumeCandidateJob>(kUnique, jobSettings(1));   // 調べている候補がある
         generator.onBatchReady();
         // 進捗には候補以外も含む生成局面数を通知し、キューには事前選別を通った局面だけを積む
         QVERIFY(generator.m_generatedCount >= 1);
@@ -345,28 +374,13 @@ private slots:
     void trimmingSkipsRemovalsRejectedByScreening()
     {
         // kFinalTwo は初手 3c3b+ の3手詰。香か成銀を除くと3手で詰まないので、除去候補はエンジンに送られない
-        TsumeshogiGenerator generator;
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kFinalTwo, 3);
-        generator.m_settings.allowFinalMoveAlternatives = true;
-        generator.m_settings.maxPositionsToFind = 0; // 出力後も探索を続け、エンジンとの接続を保持したまま確認する
-        generator.onCheckmate(mate({QStringLiteral("3c3b+"), QStringLiteral("2a1a"), QStringLiteral("3b2b")}));
-        int queries = 0;
-        for (int i = 0; i < 1000 && generator.m_phase == TsumeshogiGenerator::Phase::Verifying; ++i) {
-            generator.continueVerification();
-            if (!generator.m_verificationAwaiting) continue;
-            ++queries;
-            QStringList pv;
-            const QString query = generator.m_engine->handler()->positions.last().mid(QStringLiteral("position sfen ").size());
-            if (scripted(query, pv) == Reply::Mate) generator.onCheckmate(mate(pv));
-            else generator.onCheckmate(noMate());
-        }
-        // 香・成銀のどちらを除いても3手で詰まないので、除去局面は1つもエンジンに送られずに出力へ進む
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
-        QCOMPARE(static_cast<int>(generator.m_engine->handler()->positions.size()), queries);
-        QCOMPARE(found.size(), 1);
-        QCOMPARE(found[0][0].toString(), kFinalTwo);
-        generator.stop();
+        TsumeCandidateJob job(kFinalTwo, jobSettings(3, true));
+        QList<Stage> stages;
+        driveScripted(job, &stages);
+        QCOMPARE(job.stage(), Stage::Accepted);
+        QVERIFY(!stages.contains(Stage::Trim));
+        QCOMPARE(job.outcome()->sfen, kFinalTwo);
+        QCOMPARE(job.outcome()->pv.size(), 3);
     }
     void generatorPassesFinalMoveOption_data()
     {
@@ -377,34 +391,53 @@ private slots:
     void generatorPassesFinalMoveOption()
     {
         QFETCH(bool, allow);
-        TsumeshogiGenerator generator;
-        QSignalSpy stats(&generator, &TsumeshogiGenerator::verificationStatsUpdated);
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kFinalTwo, 3);
-        generator.m_settings.allowFinalMoveAlternatives = allow;
-        generator.onCheckmate(mate({QStringLiteral("3c3b+"), QStringLiteral("2a1a"), QStringLiteral("3b2b")}));
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Verifying);
-        for (int i = 0; i < 1000 && generator.m_phase == TsumeshogiGenerator::Phase::Verifying; ++i) {
-            generator.continueVerification();
-            if (!generator.m_verificationAwaiting) continue;
-            QStringList pv;
-            const QString query = generator.m_engine->handler()->positions.last().mid(QStringLiteral("position sfen ").size());
-            if (scripted(query, pv) == Reply::Mate) generator.onCheckmate(mate(pv));
-            else generator.onCheckmate(noMate());
-        }
+        TsumeCandidateJob job(kFinalTwo, jobSettings(3, allow));
+        driveScripted(job);
         if (allow) {
-            // 香・成銀の除去は内蔵探索で却下されるので、検査合格後にそのまま出力されて上限1で終了する
-            QVERIFY(!generator.isRunning());
-            QCOMPARE(found.size(), 1);
-            QCOMPARE(found[0][0].toString(), kFinalTwo);
-            QCOMPARE(stats.size(), 0);
+            // 香・成銀の除去は内蔵探索で却下されるので、検査合格後にそのまま採択する
+            QCOMPARE(job.stage(), Stage::Accepted);
+            QCOMPARE(job.outcome()->sfen, kFinalTwo);
+            QCOMPARE(job.rejectedCount(), 0);
         } else {
-            QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
-            QVERIFY(generator.m_verifiedSfen.isEmpty());
-            QCOMPARE(stats.size(), 1);
-            QCOMPARE(stats[0][0].toInt(), 1);
-            QCOMPARE(stats[0][1].toInt(), 0);
+            QCOMPARE(job.stage(), Stage::Rejected);
+            QVERIFY(!job.outcome());
+            QCOMPARE(job.rejectedCount(), 1);
+            QCOMPARE(job.inconclusiveCount(), 0);
         }
+    }
+    /// 生成器は候補の処理の段階を進捗として知らせ、棄却の数を集計する
+    void generatorRelaysCandidateProgress()
+    {
+        TsumeshogiGenerator generator;
+        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
+        QSignalSpy verification(&generator, &TsumeshogiGenerator::verificationProgress);
+        QSignalSpy phases(&generator, &TsumeshogiGenerator::searchPhaseStarted);
+        QSignalSpy stats(&generator, &TsumeshogiGenerator::verificationStatsUpdated);
+        prepare(generator, 3);
+        generator.m_settings.allowFinalMoveAlternatives = false;
+        generator.m_settings.maxPositionsToFind = 0;
+        generator.m_positionQueue = {kFinalTwo};
+        generator.m_batchWatcher.setFuture(QtFuture::makeReadyValueFuture(TsumeshogiCandidateScreener::Batch{}));
+        generator.startNextCandidate();
+        QVERIFY(generator.m_job);
+        auto* handler = generator.m_oracle->session()->handler();
+        // 最初の候補を終えて探索に戻るまで答える（終えると次のバッチの生成が始まる）
+        for (int i = 0; i < 1000 && phases.isEmpty(); ++i) {
+            QCoreApplication::processEvents();
+            if (!generator.m_oracle->isAsking()) continue;
+            const QString query = handler->positions.last().mid(QStringLiteral("position sfen ").size());
+            QStringList pv;
+            UsiCheckmate reply;
+            reply.result = scripted(query, pv) == Reply::Mate ? UsiCheckmate::Result::Mate : UsiCheckmate::Result::NoMate;
+            reply.pv = pv;
+            emit handler->checkmateReceived(reply);
+        }
+        QCOMPARE(found.size(), 0);
+        QVERIFY(!verification.isEmpty());
+        QCOMPARE(verification.first().first().toInt(), 1);
+        QCOMPARE(phases.size(), 1);   // 検査まで進んだ候補を終えて探索に戻った
+        QCOMPARE(stats.size(), 1);
+        QCOMPARE(stats[0][0].toInt(), 1);
         generator.stop();
     }
     void komoringIntegration()
@@ -502,131 +535,124 @@ private slots:
     }
     void stopBeforeVerificationDoesNotPublish()
     {
-        TsumeshogiGenerator generator;
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kUnique);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Verifying);
-        generator.stop();
-        generator.continueVerification();
-        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
-        QCOMPARE(found.size(), 0);
-        QVERIFY(!generator.isRunning());
+        TsumeCandidateJob job(kUnique, jobSettings(1));
+        QVERIFY(job.nextQuery());
+        job.submit(mate({QStringLiteral("N*2c")}), 0);
+        QCOMPARE(job.stage(), Stage::Verify);
+        job.abort();
+        QVERIFY(!job.nextQuery());
+        job.submit(mate({QStringLiteral("N*2c")}), 0);
+        QCOMPARE(job.stage(), Stage::Rejected);
+        QVERIFY(!job.outcome());
     }
     void trimmingStopDoesNotPublishIncompleteBase()
     {
-        TsumeshogiGenerator generator;
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kUniqueDecorated);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
-        answerVerification(generator, Reply::NoMate); // 1二歩成などの別の王手を不詰として検査を通す
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
+        TsumeCandidateJob job(kUniqueDecorated, jobSettings(1));
+        toTrimming(job);
         // 2一桂・2二桂の除去は内蔵探索で却下され、最初にエンジンへ送られるのは1二桂を除いた局面
-        const int verificationQueries = static_cast<int>(generator.m_engine->handler()->positions.size()) - 1;
-        QVERIFY(verificationQueries >= 1);
-        QVERIFY(generator.m_trimTestSfen != kUniqueDecorated);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")})); // 除去後の1手PVだけでは未検証
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Verifying);
-        generator.stop();
-        QCOMPARE(found.size(), 0);
+        const std::optional<MateQuery> trim = job.nextQuery();
+        QVERIFY(trim);
+        QVERIFY(trim->sfen != kUniqueDecorated);
+        job.submit(mate({QStringLiteral("N*2c")}), 0); // 除去後の1手PVだけでは未検証
+        QCOMPARE(job.stage(), Stage::VerifyTrimmed);
+        job.abort();
+        QVERIFY(!job.outcome());
     }
     void inconclusiveTrimRejectsEntireCandidate()
     {
-        TsumeshogiGenerator generator;
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kUniqueDecorated);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
-        answerVerification(generator, Reply::NoMate);
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")})); // 1二桂を除いた局面の候補PV
-        answerVerification(generator, Reply::Unknown);            // 除去後の検査は判定不能
-        // 「除去不能」と解釈せず、局面全体を採択から外して次の候補へ進む。
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
-        QCOMPARE(generator.m_verificationInconclusive, 1);
-        QVERIFY(!generator.m_trimComplete);
-        QCOMPARE(generator.m_trimBaseSfen, kUniqueDecorated);
-        QCOMPARE(generator.m_verifiedSfen, kUniqueDecorated);
-        QCOMPARE(found.size(), 0);
-        generator.stop();
-        QCOMPARE(found.size(), 0);
+        TsumeCandidateJob job(kUniqueDecorated, jobSettings(1));
+        toTrimming(job);
+        QVERIFY(job.nextQuery());
+        job.submit(mate({QStringLiteral("N*2c")}), 0); // 1二桂を除いた局面の候補PV
+        answerVerification(job, unknown());           // 除去後の検査は判定不能
+        // 「除去不能」と解釈せず、局面全体を採択から外す
+        QCOMPARE(job.stage(), Stage::Rejected);
+        QCOMPARE(job.inconclusiveCount(), 1);
+        QVERIFY(!job.outcome());
     }
     void timeoutAndLateResponseDoNotCertify()
     {
-        TsumeshogiGenerator generator;
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kSecond, 5);
-        generator.startVerification(kSecond, TsumeshogiGenerator::Phase::Searching);
-        generator.continueVerification();
-        QVERIFY(generator.m_verificationAwaiting);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")}, true)); // stop後の遅延応答を捨てる
-        QVERIFY(!generator.m_verificationAwaiting);
-        QVERIFY(generator.m_verifiedSfen.isEmpty());
-        generator.m_settings.timeoutMs = 0; // 検査の総予算終了
-        generator.continueVerification();
-        QCOMPARE(generator.m_verificationInconclusive, 1);
-        QCOMPARE(found.size(), 0);
-        generator.stop();
+        const QStringList pv{QStringLiteral("G*9g"), QStringLiteral("8g8h"), QStringLiteral("R*8g"),
+                             QStringLiteral("8h9i"), QStringLiteral("9g9h")};
+        TsumeCandidateJob job(kSecond, jobSettings(5, true, 1000));
+        QVERIFY(job.nextQuery());
+        job.submit(mate(pv), 0);
+        QCOMPARE(job.stage(), Stage::Verify);
+        QVERIFY(job.nextQuery());
+        // stop後の遅延応答は不明として扱う
+        UsiCheckmate late;
+        late.result = UsiCheckmate::Result::Mate;
+        late.pv = {QStringLiteral("N*2c")};
+        late.stopped = true;
+        QCOMPARE(MateAnswer::fromCheckmate(late).kind, MateAnswer::Kind::Unknown);
+        job.submit(MateAnswer::fromCheckmate(late), 1000); // 検査の総予算を使い切った
+        QVERIFY(!job.nextQuery());
+        QCOMPARE(job.stage(), Stage::Rejected);
+        QCOMPARE(job.inconclusiveCount(), 1);
+        QVERIFY(!job.outcome());
+    }
+    void verificationBudgetLimitsEachQuery()
+    {
+        TsumeVerificationJob job(kSecond, 5, {}, 2500);
+        const std::optional<MateQuery> first = job.nextQuery();
+        QVERIFY(first);
+        QCOMPARE(first->limitMs, TsumeVerificationJob::kQueryMaxMs);
+        job.submit(unknown(), 2000);
+        std::optional<MateQuery> second;
+        for (int i = 0; i < 100 && !second && !job.isDone(); ++i) second = job.nextQuery();
+        QVERIFY(second);
+        QCOMPARE(second->limitMs, 500);   // 残りの総予算まで
+        job.submit(unknown(), 500);
+        QVERIFY(!job.nextQuery());
+        QVERIFY(job.isDone());
+        QCOMPARE(job.result().status, Status::Unknown);
+        QCOMPARE(job.queries(), 2);
     }
     void untrimmedCertificateNeverPublishes()
     {
-        TsumeshogiGenerator generator;
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kUniqueDecorated);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
-        answerVerification(generator, Reply::NoMate);
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
-        QVERIFY(!generator.registerFoundPosition(kSecond, {QStringLiteral("N*2c")}));
-        QVERIFY(!generator.registerFoundPosition(kUniqueDecorated, {QStringLiteral("N*3c")}));
-        // 詰みの証明が同じでも、除去候補を全て確認する前は出力できない。
-        QVERIFY(!generator.registerFoundPosition(kUniqueDecorated, {QStringLiteral("N*2c")}));
-        generator.stop();
-        QCOMPARE(found.size(), 0);
+        TsumeCandidateJob job(kUniqueDecorated, jobSettings(1));
+        toTrimming(job);
+        // 詰みの証明が同じでも、除去候補を全て確認する前は採択しない
+        QVERIFY(!job.outcome());
+        QVERIFY(!job.isDone());
     }
     void allExitPathsRequireCertificate_data()
     {
         QTest::addColumn<int>("exitPath");
-        QTest::newRow("normal") << 0;
         QTest::newRow("stop") << 1;
         QTest::newRow("engine-error") << 2;
         QTest::newRow("unresponsive") << 3;
+        QTest::newRow("unsupported") << 4;
     }
     void allExitPathsRequireCertificate()
     {
         QFETCH(int, exitPath);
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kSecond, 5);
-        generator.m_phase = TsumeshogiGenerator::Phase::Trimming;
-        generator.m_trimBaseSfen = kSecond;
-        generator.m_trimBasePv = {QStringLiteral("G*9g"), QStringLiteral("8g8h"),
-                                 QStringLiteral("R*8g"), QStringLiteral("8h9i"), QStringLiteral("9g9h")};
-        // 別局面の合格結果や同局面の別PVでは出力できない。
-        generator.m_verifiedSfen = kUnique;
-        generator.m_verifiedPv = {QStringLiteral("N*2c")};
-        if (exitPath == 0) generator.finishTrimmingPhase();
+        QSignalSpy finished(&generator, &TsumeshogiGenerator::finished);
+        prepare(generator);
+        auto job = std::make_unique<TsumeCandidateJob>(kUniqueDecorated, jobSettings(1));
+        toTrimming(*job);
+        generator.m_job = std::move(job);
         if (exitPath == 1) generator.stop();
         if (exitPath == 2) generator.onEngineError(QStringLiteral("test error"));
-        if (exitPath == 3) {
-            generator.onNoResponse();
-        }
+        if (exitPath == 3) generator.onNoResponse();
+        if (exitPath == 4) generator.onUnsupported();
         QCOMPARE(found.size(), 0);
+        QCOMPARE(finished.size(), 1);
+        QVERIFY(!generator.m_job);
         generator.stop();
     }
     void provenMateCannotBeRejectedByContradictoryNoMate()
     {
-        TsumeshogiGenerator generator;
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kUniqueDecorated);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
-        answerVerification(generator, Reply::NoMate);
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
-        QVERIFY(generator.m_trimProvenInTarget);
-        generator.onCheckmate(noMate());
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
-        QCOMPARE(generator.m_verificationInconclusive, 1);
-        QCOMPARE(found.size(), 0);
-        QVERIFY(!generator.registerFoundPosition(kUniqueDecorated, {QStringLiteral("N*2c")}));
-        generator.stop();
+        TsumeCandidateJob job(kUniqueDecorated, jobSettings(1));
+        toTrimming(job);
+        // 1二桂を除いた局面は内蔵探索で1手詰と確かめてある。食い違う不詰の答えでは駒を残さない
+        QVERIFY(job.nextQuery());
+        job.submit(noMate(), 0);
+        QCOMPARE(job.stage(), Stage::Rejected);
+        QCOMPARE(job.inconclusiveCount(), 1);
+        QVERIFY(!job.outcome());
     }
     void unresolvedTrimmingNeverPublishes_data()
     {
@@ -634,30 +660,25 @@ private slots:
         QTest::newRow("timeout") << 0;
         QTest::newRow("different-pv-length") << 1;
         QTest::newRow("late-response") << 2;
-        QTest::newRow("engine-error") << 3;
-        QTest::newRow("stop") << 4;
+        QTest::newRow("stop") << 3;
     }
     void unresolvedTrimmingNeverPublishes()
     {
         QFETCH(int, failure);
-        TsumeshogiGenerator generator;
-        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
-        prepare(generator, kUniqueDecorated);
-        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
-        answerVerification(generator, Reply::NoMate);
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
-        QCOMPARE(generator.m_verifiedSfen, kUniqueDecorated);
-        if (failure == 0) generator.onCheckmate(unknown());
-        if (failure == 1) generator.onCheckmate(mate({QStringLiteral("N*2c"), QStringLiteral("1a1b"), QStringLiteral("2c1a+")}));
+        TsumeCandidateJob job(kUniqueDecorated, jobSettings(1));
+        toTrimming(job);
+        QVERIFY(job.nextQuery());
+        if (failure == 0) job.submit(unknown(), 0);
+        if (failure == 1) job.submit(mate({QStringLiteral("N*2c"), QStringLiteral("1a1b"), QStringLiteral("2c1a+")}), 0);
         if (failure == 2) {
-            generator.onCheckmate(noMate(true));
+            UsiCheckmate late;
+            late.result = UsiCheckmate::Result::NoMate;
+            late.stopped = true;
+            job.submit(MateAnswer::fromCheckmate(late), 0);
         }
-        if (failure == 3) generator.onEngineError(QStringLiteral("test error"));
-        if (failure == 4) generator.stop();
-        QCOMPARE(found.size(), 0);
-        QVERIFY(!generator.m_trimComplete);
-        generator.stop();
-        QCOMPARE(found.size(), 0);
+        if (failure == 3) job.abort();
+        QCOMPARE(job.stage(), Stage::Rejected);
+        QVERIFY(!job.outcome());
     }
     void problem703RemovalPreservesMateLine()
     {
@@ -665,10 +686,10 @@ private slots:
         const QString noKnight = QStringLiteral("9/9/9/9/9/9/9/8+R/5k1L1 b Gr2b3g4s4n3l18p 1");
         const QString noLance = QStringLiteral("9/9/5N3/9/9/9/9/8+R/5k3 b Gr2b3g4s3n4l18p 1");
         const QString neither = QStringLiteral("9/9/9/9/9/9/9/8+R/5k3 b Gr2b3g4s4n4l18p 1");
-        const auto removals = TsumeshogiGenerator::onePieceRemovedPositions(original);
+        const auto removals = TsumeCandidateJob::onePieceRemovedPositions(original);
         QVERIFY(removals.contains(noKnight));
         QVERIFY(removals.contains(noLance));
-        QVERIFY(TsumeshogiGenerator::onePieceRemovedPositions(noKnight).contains(neither));
+        QVERIFY(TsumeCandidateJob::onePieceRemovedPositions(noKnight).contains(neither));
         for (const auto& sfen : {original, noKnight, noLance, neither}) {
             shogi::Position position;
             QVERIFY(position.set_sfen(sfen.toStdString(), true));

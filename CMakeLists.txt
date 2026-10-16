@@ -422,8 +422,6 @@ set(SRC_KIFU
 )
 
 set(SRC_ANALYSIS
-    src/analysis/analysiscoordinator.cpp
-    src/analysis/analysiscoordinator.h
     src/analysis/analysisjob.cpp
     src/analysis/analysisjob.h
     src/analysis/analysisoptions.h
@@ -431,6 +429,8 @@ set(SRC_ANALYSIS
     src/analysis/analysissession.h
     src/analysis/sfenvalidationservice.cpp
     src/analysis/sfenvalidationservice.h
+    src/analysis/tsumecandidatejob.cpp
+    src/analysis/tsumecandidatejob.h
     src/analysis/tsumecollection.cpp
     src/analysis/tsumecollection.h
     src/analysis/tsumecollectionsession.cpp
@@ -453,6 +453,8 @@ set(SRC_ANALYSIS
     src/analysis/tsumeshogipositiongenerator.h
     src/analysis/tsumeshogiverifier.cpp
     src/analysis/tsumeshogiverifier.h
+    src/analysis/tsumeverificationjob.cpp
+    src/analysis/tsumeverificationjob.h
     src/analysis/tsumesolutionreplay.cpp
     src/analysis/tsumesolutionreplay.h
     src/analysis/tsumethreadbudget.h
@@ -475,6 +477,10 @@ set(SRC_ENGINE
     src/engine/thinkinginfoformatter.cpp
     src/engine/thinkinginfoformatter.h
     src/engine/thinkinginforow.h
+    src/engine/mateoracle.cpp
+    src/engine/mateoracle.h
+    src/engine/matequeryloop.cpp
+    src/engine/matequeryloop.h
     src/engine/tsumemateengine.cpp
     src/engine/tsumemateengine.h
     src/engine/usi.cpp

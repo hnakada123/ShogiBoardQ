@@ -1,24 +1,73 @@
 #ifndef ANALYSISJOB_H
 #define ANALYSISJOB_H
 
+/// @file analysisjob.h
+/// @brief 棋譜解析1回（エンジンの起動から範囲の全局面の解析まで）
+
+#include <QList>
+#include <QMetaType>
 #include <QObject>
 #include <QPointer>
-#include "analysiscoordinator.h"
-#include "usimessages.h"
+#include <QStringList>
+
 #include "recordline.h"
-#include "thinkinginforow.h"
+#include "usiinfo.h"
+#include "usimessages.h"
+#include "usiposition.h"
 
 class Usi;
 
+/// 棋譜解析の依頼
 struct AnalysisRequest {
+    struct Options {
+        int startPly = 0;       ///< 解析を始める手数（0以上）
+        int endPly = -1;        ///< 解析を終える手数（-1 は末尾まで）
+        int movetimeMs = 1000;  ///< 1局面の思考時間（ms）
+    };
     RecordLine line;
-    AnalysisCoordinator::Options options;
+    Options options;
     QString enginePath;
     QString engineName;
     int lineIndex = 0;
 };
 
-/// 1回の解析の入力・接続・エンジンの利用期間を管理する。画面の応答を待たずに進行する。
+/// 1局面の解析の結果（bestmove の時点で1回だけ作る）
+struct PlyAnalysis {
+    int ply = -1;
+    UsiScore score;       ///< 最善の読み筋（multipv 1）の最後の評価値（その局面の手番側から見た値。定跡は None）
+    QStringList usiPv;    ///< 最善の読み筋（局面に合った手まで。resign などの宣言は含まない）
+    QString pvKanji;      ///< 同じ読み筋の漢字表記（局面に合わなければエンジンの読み筋のまま）
+    bool book = false;    ///< info が1つも届かずに bestmove が届いた（定跡）
+};
+
+Q_DECLARE_METATYPE(PlyAnalysis)
+
+/**
+ * @brief 1局面の info を集めて、bestmove で結果（PlyAnalysis）にする（Qt のイベントループを知らない）
+ *
+ * 読み筋は最善の読み筋（multipv 1）の最後の行から、評価値は bestmove が持つ値（UsiBestMove::score）から取る。
+ * 読み筋の漢字表記は、探索した局面の上でここで作る（思考情報の表示の整形には頼らない）。
+ */
+class PlyAnalysisCollector
+{
+public:
+    void begin(int ply, const UsiPosition& position);
+    void addInfo(const UsiInfo& info);
+    PlyAnalysis finish(const UsiBestMove& bestMove) const;
+
+private:
+    int m_ply = -1;
+    UsiPosition m_position;
+    bool m_anyInfo = false;
+    QStringList m_bestPv;   ///< multipv 1 の最後の読み筋
+};
+
+/**
+ * @brief 棋譜解析1回の入力・進行・エンジンの利用期間を受け持つ
+ *
+ * 範囲の局面を1つずつ「position + go infinite → 思考時間で stop → bestmove」で解析し、
+ * 局面ごとに plyStarted と plyAnalyzed を1回ずつ出す。画面の応答を待たずに進む。
+ */
 class AnalysisJob : public QObject
 {
     Q_OBJECT
@@ -28,39 +77,43 @@ public:
     };
     AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* parent = nullptr);
     ~AnalysisJob() override;
+
     bool start();
+    /// 解析をやめる（finished(false) を出す）
     void stop();
     QString error() const { return m_error; }
     const RecordLine& line() const { return m_request.line; }
-    AnalysisCoordinator* coordinator() { return &m_coordinator; }
     Usi* engine() const;
     bool isRunning() const { return m_state == State::Initializing || m_state == State::Analyzing; }
 
 signals:
-    void positionPrepared(int ply, const QString& sfen);
-    void progress(int ply, const UsiInfo& info);
-    void thinkingInfoUpdated(const ThinkingInfoRow& row);
-    void resultReady();
-    void finished(AnalysisCoordinator::Mode mode);
+    /// 局面の解析を始めた
+    void plyStarted(int ply);
+    /// 局面の解析を終えた
+    void plyAnalyzed(const PlyAnalysis& result);
+    /// 解析を終えた（completed: 範囲の全局面を解析した）
+    void finished(bool completed);
     void errorOccurred(const QString& message);
 
 private slots:
     void onInitialized();
-    void onPositionPrepared(int ply, const QString& sfen);
-    void onSearchRequested(const UsiPosition& position, int thinkMs);
-    void onBestMove(const UsiBestMove& result);
     void onInfo(const UsiInfo& info);
-    void onThinkingInfo(const ThinkingInfoRow& row);
-    void onFinished(AnalysisCoordinator::Mode mode);
+    void onBestMove(const UsiBestMove& result);
     void onError(const QString& message);
 
 private:
     enum class State { Ready, Initializing, Analyzing, Finished };
+
+    void analyzePly(int ply);
+    void finish(bool completed);
+
     AnalysisRequest m_request;
-    AnalysisCoordinator m_coordinator;
+    QList<UsiPosition> m_positions;   ///< 手順の各局面（[0] が開始局面）
     QPointer<Usi> m_engine;
     State m_state = State::Ready;
     QString m_error;
+    int m_ply = -1;                   ///< 解析している手数
+    PlyAnalysisCollector m_collector;
 };
 
-#endif
+#endif // ANALYSISJOB_H

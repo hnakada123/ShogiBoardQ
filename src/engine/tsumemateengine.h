@@ -7,15 +7,15 @@
 #include "tsumeevaluation.h"
 #include <QObject>
 
-#include "usimessages.h"
 #include <QStringList>
 
-class UsiEngineSession;
+class MateOracle;
+struct MateAnswer;
 
 /**
  * @brief 攻方手番の go mate のみを実行する。中断時の不完全な最短探索結果は採用しない。
  *
- * エンジンとの接続は UsiEngineSession（ほかの機能と同じ USI の手順）で行い、登録済みエンジンの
+ * エンジンへの問い合わせは MateOracle（ほかの詰み探索と同じ部品）で行い、登録済みエンジンの
  * 保存済みの設定（スレッド数・ハッシュなど）を送る。最短手数の確認に必要なオプションだけは、
  * この接続に限って上書きする（登録済みの設定は変えない）。
  */
@@ -38,7 +38,7 @@ signals:
 private slots:
     void onReady();
     void onSessionError(const QString& message);
-    void onCheckmate(const UsiCheckmate& result);
+    void onAnswered(const MateAnswer& answer);
     void timedOut();
 
 private:
@@ -49,7 +49,7 @@ private:
 
     QString m_executable;
     QString m_sfen;
-    UsiEngineSession* m_session = nullptr;  ///< QObject parent 所有
+    MateOracle* m_oracle = nullptr;  ///< QObject parent 所有
     int m_milliseconds = 5000;
     Phase m_phase = Phase::Off;
 };

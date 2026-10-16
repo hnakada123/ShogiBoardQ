@@ -47,17 +47,17 @@
 <context>
     <name>AnalysisResultHandler</name>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="114"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="48"/>
         <source>（定跡）</source>
         <translation>(Book)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="238"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="159"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="239"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="160"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -200,48 +200,48 @@ Analyzed moves: %1</translation>
 <context>
     <name>AnalysisSession</name>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="138"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="223"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="138"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
         <source>検討</source>
         <translation>Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="139"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="141"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="230"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="233"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="233"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="236"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="236"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="239"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="239"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="242"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>Could not determine mate within the time limit</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="246"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="249"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>The mate search was stopped because the engine did not respond.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="251"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="254"/>
         <source>探索が完了しました</source>
         <translation>Search completed</translation>
     </message>
@@ -6533,12 +6533,12 @@ Do you want to save them?</translation>
         <translation>Invalid engine selection.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="145"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="143"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>Failed to initialize the engine. Check the engine settings.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="216"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="203"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -10758,7 +10758,7 @@ Do you want to continue?</translation>
         <translation>Repetition evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="43"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="21"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
@@ -12240,27 +12240,27 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumeMateEngine</name>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="79"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="80"/>
         <source>最短手数を確認できるKomoringHeightsを選択してください。</source>
         <translation>Select a KomoringHeights version that can verify the shortest mate length.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="121"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="118"/>
         <source>エンジンが判定を完了できませんでした。時間を増やして再判定できます。</source>
         <translation>The engine could not complete the search. Increase the time and retry.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="64"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="65"/>
         <source>判定エンジンを実行できません: %1</source>
         <translation>Could not run the mate solver: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="136"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="133"/>
         <source>判定エンジンが終了しました。実行ファイルを確認してください。</source>
         <translation>The mate solver exited. Check its executable file.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="141"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="138"/>
         <source>制限時間内に判定が完了しませんでした。不詰とは判定していません。</source>
         <translation>The search did not finish within the time limit. This does not mean there is no mate.</translation>
     </message>
@@ -12793,12 +12793,12 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="169"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="195"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>The engine does not support mate search.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="228"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="204"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>Generation was aborted because the engine is not responding.</translation>
     </message>
@@ -13274,7 +13274,7 @@ Check the settings and press Start.</translation>
         <translation>Engine exited unexpectedly.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="81"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="55"/>
         <location filename="../../src/engine/usienginesession.cpp" line="97"/>
         <source>Failed to start engine: %1</source>
         <translation>Failed to start engine: %1</translation>
