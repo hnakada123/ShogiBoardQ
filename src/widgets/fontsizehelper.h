@@ -13,8 +13,8 @@
 /**
  * @brief 文字の大きさの増減（範囲に収め、変えたら保存して知らせる）
  *
- * A-/A+ のボタンは decrease()/increase() に直接つなぎ、fontSizeChanged を表示を作り直す処理につなぐ。
- * ダイアログ全体への適用は applyTo()。自動で A-/A+ を付けるダイアログ（DialogFontScale）も同じ状態を使う。
+ * A-/A+ のボタンは FontSizeControl で結び、fontSizeChanged を表示を作り直す処理につなぐ。
+ * ダイアログは DialogFontScale がこの状態を持つ。ドックのウィンドウ全体への適用は applyTo()。
  */
 class FontSizeHelper : public QObject
 {
@@ -42,12 +42,14 @@ public:
     int fontSize() const;
     /// 大きさを決める（範囲に収める。変わったら保存して知らせる）
     void setFontSize(int size);
+    int minSize() const { return m_minSize; }
+    int maxSize() const { return m_maxSize; }
 
     /// ダイアログ全体に現在の文字サイズを適用し、適用したフォントを返す（DialogUtils::applyFontSize）。
     /// 盤面など自前で文字の大きさを決めるウィジェットは excluded に渡す。
     QFont applyTo(QWidget* dialog, const QList<QWidget*>& excluded = {}) const
     {
-        return DialogUtils::applyFontSize(dialog, m_fontSize, m_minSize, m_maxSize, excluded);
+        return DialogUtils::applyFontSize(dialog, m_fontSize, excluded);
     }
 
 public slots:

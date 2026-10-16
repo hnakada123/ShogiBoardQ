@@ -1,6 +1,6 @@
 #include "tsumecollectiondialog.h"
+#include "dialogfontscale.h"
 #include "dialogutils.h"
-#include "buttonstyles.h"
 #include "enginelistsettings.h"
 #include "tsumecollectionsession.h"
 #include "tsumeshogisettings.h"
@@ -27,14 +27,12 @@
 
 TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper(TsumeshogiSettings::tsumeCollectionFontSize, 8, 24, 1)
 {
     setObjectName(QStringLiteral("tsumeCollectionDialog"));
     setWindowTitle(tr("詰将棋問題一覧"));
     m_session = new TsumeCollectionSession(this);
     connect(m_session, &TsumeCollectionSession::evaluationChanged, this, &TsumeCollectionDialog::updateCards);
     buildUi();
-    applyFontSize();
     const auto preferences = TsumeshogiSettings::collectionPreferences();
     DialogUtils::restoreDialogSize(this, preferences.size);
     int engineIndex = m_engine->findData(preferences.enginePath);
@@ -146,21 +144,12 @@ void TsumeCollectionDialog::buildUi()
     layout->addWidget(m_scroll, 1);
 
     auto* navigation = new QHBoxLayout;
-    m_fontDecrease = new QToolButton(this);
-    m_fontDecrease->setObjectName(QStringLiteral("tsumeCollectionFontDecrease"));
-    m_fontDecrease->setText(QStringLiteral("A-"));
-    m_fontDecrease->setToolTip(tr("文字サイズを縮小"));
-    m_fontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    m_fontIncrease = new QToolButton(this);
-    m_fontIncrease->setObjectName(QStringLiteral("tsumeCollectionFontIncrease"));
-    m_fontIncrease->setText(QStringLiteral("A+"));
-    m_fontIncrease->setToolTip(tr("文字サイズを拡大"));
-    m_fontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_fontDecrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(m_fontIncrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &TsumeCollectionDialog::applyFontSize);
-    navigation->addWidget(m_fontDecrease);
-    navigation->addWidget(m_fontIncrease);
+    auto* fontDecrease = new QToolButton(this);
+    fontDecrease->setObjectName(QStringLiteral("tsumeCollectionFontDecrease"));
+    auto* fontIncrease = new QToolButton(this);
+    fontIncrease->setObjectName(QStringLiteral("tsumeCollectionFontIncrease"));
+    navigation->addWidget(fontDecrease);
+    navigation->addWidget(fontIncrease);
     m_first = new QPushButton(tr("最初"), this);
     m_previous = new QPushButton(tr("前ページ"), this);
     m_next = new QPushButton(tr("次ページ"), this);
@@ -183,6 +172,12 @@ void TsumeCollectionDialog::buildUi()
     connect(close, &QPushButton::clicked, this, &QDialog::reject);
     navigation->addWidget(close);
     layout->addLayout(navigation);
+
+    // 文字の大きさ（ページを替えて作り直す札はダイアログの文字を受け継ぐ）
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = fontDecrease;
+    fontOptions.increase = fontIncrease;
+    DialogFontScale::install(this, TsumeshogiSettings::tsumeCollectionFontSize, fontOptions);
 }
 
 void TsumeCollectionDialog::savePreferences()
@@ -196,11 +191,6 @@ void TsumeCollectionDialog::savePreferences()
     preferences.filter = m_filter->currentIndex();
     preferences.timeoutSec = m_timeout->value();
     TsumeshogiSettings::setCollectionPreferences(preferences);
-}
-
-void TsumeCollectionDialog::applyFontSize()
-{
-    m_fontHelper.applyTo(this);
 }
 
 // ============================================================

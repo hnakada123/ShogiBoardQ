@@ -123,7 +123,7 @@ private slots:
     {
         const int saved = QApplication::font().pointSize() - 1;
         if (saved < 8) QSKIP("既定の文字が最小の大きさのため確かめられない");
-        AppSettings::setDialogFontSize(QStringLiteral("messageBox"), saved);
+        AppSettings::messageBoxFontSize.set(saved);
         DialogFontScale::installForMessageBoxes(qApp);
         QAction automatic, japanese, western, origin, help;
         LanguageController::Deps deps;

@@ -2,6 +2,7 @@
 /// @brief 対局情報ドックの中身の実装
 
 #include "gameinfopane.h"
+#include "fontsizecontrol.h"
 
 #include "buttonstyles.h"
 #include "flowlayout.h"
@@ -334,10 +335,9 @@ void GameInfoPane::buildToolbar()
         return result;
     };
     auto* fonts = group();
-    m_btnFontDecrease = button(fonts, QStringLiteral("gameInfoFontDecrease"), QStringLiteral("A-"),
-        tr("フォントサイズを小さくする"), {});
-    m_btnFontIncrease = button(fonts, QStringLiteral("gameInfoFontIncrease"), QStringLiteral("A+"),
-        tr("フォントサイズを大きくする"), {});
+    m_btnFontDecrease = button(fonts, QStringLiteral("gameInfoFontDecrease"), {}, {}, {});
+    m_btnFontIncrease = button(fonts, QStringLiteral("gameInfoFontIncrease"), {}, {}, {});
+    new FontSizeControl(m_btnFontDecrease, m_btnFontIncrease, &m_fontSize);
     auto* history = group();
     m_btnUndo = button(history, QStringLiteral("gameInfoUndo"), {}, tr("元に戻す (Ctrl+Z)"),
         QStringLiteral("editUndo"));
@@ -354,8 +354,6 @@ void GameInfoPane::buildToolbar()
     m_btnAddRow = button(rows, QStringLiteral("gameInfoAddRow"), tr("行を追加"), tr("新しい行を追加する"), {});
     m_btnRemoveRow = button(rows, QStringLiteral("gameInfoRemoveRow"), tr("行を削除"),
         tr("選択行を削除する（元に戻す操作で復元できます）"), {});
-    connect(m_btnFontDecrease, &QToolButton::clicked, &m_fontSize, &FontSizeHelper::decrease);
-    connect(m_btnFontIncrease, &QToolButton::clicked, &m_fontSize, &FontSizeHelper::increase);
     connect(m_btnUndo, &QToolButton::clicked, this, &GameInfoPane::undo);
     connect(m_btnRedo, &QToolButton::clicked, this, &GameInfoPane::redo);
     connect(m_btnCut, &QToolButton::clicked, this, &GameInfoPane::cut);
@@ -422,8 +420,6 @@ void GameInfoPane::updateEditingIndicator()
     const auto* mime = QApplication::clipboard()->mimeData();
     m_btnPaste->setEnabled(editable && mime && mime->hasText());
     m_btnRemoveRow->setEnabled(selected);
-    m_btnFontDecrease->setEnabled(m_fontSize.fontSize() > 8);
-    m_btnFontIncrease->setEnabled(m_fontSize.fontSize() < 24);
     const bool dirty = isDirty();
     m_btnUpdate->setEnabled(dirty);
     m_editingLabel->setText(dirty ? tr("未反映の変更があります") : tr("内容をダブルクリックして編集"));

@@ -2,6 +2,8 @@
 /// @brief 持将棋点数・入玉宣言条件の比較表示
 
 #include "jishogiscoredialog.h"
+#include "dialogfontscale.h"
+#include "fontsizehelper.h"
 
 #include "buttonstyles.h"
 #include "dialogutils.h"
@@ -25,7 +27,6 @@ constexpr QSize kDefaultSize{660, 640};
 JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& result,
                                      bool senteInCheck, bool goteInCheck, QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper(GameSettings::jishogiScoreFontSize, kMinFontSize, kMaxFontSize, 1)
 {
     setObjectName(QStringLiteral("jishogiScoreDialog"));
     setWindowTitle(tr("持将棋の点数"));
@@ -92,7 +93,17 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
     scroll->setWidget(m_content);
     mainLayout->addWidget(scroll, 1);
     mainLayout->addLayout(createButtons());
-    applyFontSize();
+
+    // 文字の大きさ（点数の見出しは太字、宣言点数は 4pt 大きいまま拡大・縮小する）
+    DialogFontScale::Options fontOptions;
+    fontOptions.minSize = kMinFontSize;
+    fontOptions.maxSize = kMaxFontSize;
+    fontOptions.decrease = m_fontDecrease;
+    fontOptions.increase = m_fontIncrease;
+    fontOptions.sizeLabel = m_fontSizeLabel;
+    const DialogFontScale* scale = DialogFontScale::install(this, GameSettings::jishogiScoreFontSize, fontOptions);
+    connect(scale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &JishogiScoreDialog::fitValueCells);
+    fitValueCells();
 
     // 旧レイアウト用の小さい保存サイズは比較表の標準サイズへ移行する。
     const QSize savedSize = GameSettings::jishogiScoreDialogSize();
@@ -103,7 +114,6 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
 
 JishogiScoreDialog::~JishogiScoreDialog()
 {
-    GameSettings::jishogiScoreFontSize.set(m_fontHelper.fontSize());
     DialogUtils::saveDialogSize(this, GameSettings::jishogiScoreDialogSize);
 }
 
@@ -111,20 +121,12 @@ QHBoxLayout* JishogiScoreDialog::createButtons()
 {
     auto* buttons = new QHBoxLayout;
     buttons->setSpacing(8);
-    m_fontDecrease = new QPushButton(tr("A-"), this);
+    m_fontDecrease = new QPushButton(this);
     m_fontDecrease->setObjectName(QStringLiteral("fontDecrease"));
-    m_fontDecrease->setToolTip(tr("文字を小さくする"));
-    m_fontDecrease->setAccessibleName(m_fontDecrease->toolTip());
-    m_fontIncrease = new QPushButton(tr("A+"), this);
+    m_fontIncrease = new QPushButton(this);
     m_fontIncrease->setObjectName(QStringLiteral("fontIncrease"));
-    m_fontIncrease->setToolTip(tr("文字を大きくする"));
-    m_fontIncrease->setAccessibleName(m_fontIncrease->toolTip());
-    for (auto* button : {m_fontDecrease, m_fontIncrease}) {
-        button->setStyleSheet(ButtonStyles::fontButton());
-        button->setFixedWidth(40);
-        button->setAutoDefault(false);
-        buttons->addWidget(button);
-    }
+    buttons->addWidget(m_fontDecrease);
+    buttons->addWidget(m_fontIncrease);
     m_fontSizeLabel = new QLabel(this);
     buttons->addWidget(m_fontSizeLabel);
     buttons->addStretch();
@@ -138,9 +140,6 @@ QHBoxLayout* JishogiScoreDialog::createButtons()
     close->setStyleSheet(ButtonStyles::primaryAction());
     close->setDefault(true);
     buttons->addWidget(close);
-    connect(m_fontDecrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(m_fontIncrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &JishogiScoreDialog::applyFontSize);
     connect(copy, &QPushButton::clicked, this, &JishogiScoreDialog::copyReport);
     connect(close, &QPushButton::clicked, this, &QDialog::accept);
     return buttons;
@@ -164,6 +163,10 @@ void JishogiScoreDialog::addRow(QGridLayout* grid, const QString& title, const Q
         label->setProperty("emphasis", emphasis);
         label->setProperty("valueCell", column > 0);
         label->setProperty("score", name == QLatin1String("declarationPoints") && column > 0);
+        QFont labelFont = label->font();
+        labelFont.setBold(emphasis);
+        if (label->property("score").toBool()) labelFont.setPointSize(labelFont.pointSize() + 4);
+        label->setFont(labelFont);
         label->setStyleSheet(QStringLiteral("QLabel { background: palette(%1); border-bottom: 1px solid palette(mid); }")
                             .arg(emphasis ? QStringLiteral("alternate-base") : QStringLiteral("base")));
         grid->addWidget(label, row, column);
@@ -198,30 +201,18 @@ QString JishogiScoreDialog::ruleText(const JishogiCalculator::PlayerScore& score
     return text;
 }
 
-void JishogiScoreDialog::applyFontSize()
+void JishogiScoreDialog::fitValueCells()
 {
-    // 文字サイズを変えるのは点数表（m_content）だけ。ダイアログの操作部は標準の大きさのまま
-    DialogUtils::standardizeDialog(this);
-    QFont contentFont = font();
-    contentFont.setPointSize(m_fontHelper.fontSize());
-    DialogUtils::applyFontToAllChildren(m_content, contentFont);
+    // 拡大時も判定語・点数を途中で折り返さず、必要なら横スクロールする
     const auto labels = m_content->findChildren<QLabel*>();
     for (auto* label : labels) {
-        QFont labelFont = contentFont;
-        labelFont.setBold(label->property("emphasis").toBool());
-        if (label->property("score").toBool()) labelFont.setPointSize(contentFont.pointSize() + 4);
-        label->setFont(labelFont);
-        if (label->property("valueCell").toBool() || label->objectName() == QLatin1String("label_header")) {
-            // 拡大時も判定語・点数を途中で折り返さず、必要なら横スクロールする。
-            const QFontMetrics metrics(labelFont);
-            int textWidth = 0;
-            const auto lines = label->text().split(QLatin1Char('\n'));
-            for (const auto& line : lines) textWidth = qMax(textWidth, metrics.horizontalAdvance(line));
-            label->setMinimumWidth(textWidth + 2 * label->margin() + 2);
-        }
+        if (!label->property("valueCell").toBool() && label->objectName() != QLatin1String("label_header")) continue;
+        const QFontMetrics metrics(label->font());
+        int textWidth = 0;
+        const auto lines = label->text().split(QLatin1Char('\n'));
+        for (const auto& line : lines) textWidth = qMax(textWidth, metrics.horizontalAdvance(line));
+        label->setMinimumWidth(textWidth + 2 * label->margin() + 2);
     }
-    m_fontSizeLabel->setText(tr("%1 pt").arg(m_fontHelper.fontSize()));
-    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize(), kMinFontSize, kMaxFontSize);
 }
 
 void JishogiScoreDialog::copyReport()

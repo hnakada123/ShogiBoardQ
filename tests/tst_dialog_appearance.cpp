@@ -29,6 +29,7 @@
 #include "appsettings.h"
 #include "settingscommon.h"
 #include "dialogfontscale.h"
+#include "fontsizecontrol.h"
 #include "boardcolordialog.h"
 #include "changeenginesettingsdialog.h"
 #include "csagamedialog.h"
@@ -54,6 +55,13 @@
 #include "versiondialog.h"
 #include "evaluationchartconfigurator.h"
 #include "longlongspinbox.h"
+
+namespace {
+// テストで作る入力ダイアログの文字の大きさとウィンドウの大きさの保存先
+const Setting<int> kInputFontSize{"DialogAppearance/input/fontSize", 0};
+const Setting<int> kInputTestFontSize{"DialogAppearance/inputDialogTest/fontSize", 0};
+const Setting<QSize> kInputTestSize{"DialogAppearance/inputDialogTest/size", QSize()};
+} // namespace
 
 class TestDialogAppearance : public QObject
 {
@@ -119,7 +127,7 @@ class TestDialogAppearance : public QObject
         dialog->setLabelText(QStringLiteral("しおり名:"));
         dialog->setTextValue(QStringLiteral("重要な局面"));
         dialog->ensurePolished();
-        DialogFontScale::install(dialog.get(), QStringLiteral("input"), true);
+        DialogFontScale::install(dialog.get(), kInputFontSize);
         return dialog;
     }
 
@@ -129,8 +137,9 @@ class TestDialogAppearance : public QObject
         QAbstractButton* up = nullptr;
         for (auto* button : dialog->findChildren<QAbstractButton*>()) {
             if (button->window() != dialog) continue;
-            if (button->text() == QLatin1String("A-") || button->text() == QStringLiteral("A−")) down = button;
-            if (button->text() == QLatin1String("A+")) up = button;
+            const QString role = button->property(FontSizeControl::kRoleProperty).toString();
+            if (role == QLatin1String(FontSizeControl::kDecreaseRole)) down = button;
+            if (role == QLatin1String(FontSizeControl::kIncreaseRole)) up = button;
         }
         return {down, up};
     }
@@ -420,11 +429,13 @@ private slots:
     /// 表示時に文字サイズ操作を足す QInputDialog でも決定ボタンが隠れない（以前の版で保存した小さいサイズを含む）
     void inputDialogKeepsActionsVisible()
     {
-        AppSettings::setAuxiliaryDialogSize(QStringLiteral("inputDialogTest"), QSize(250, 130));
+        kInputTestSize.set(QSize(250, 130));
         QInputDialog dialog;
         dialog.setLabelText(QStringLiteral("レイアウト名:"));
         dialog.ensurePolished();
-        DialogFontScale::install(&dialog, QStringLiteral("inputDialogTest"), true);
+        DialogFontScale::Options options;
+        options.size = &kInputTestSize;
+        DialogFontScale::install(&dialog, kInputTestFontSize, options);
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         QVERIFY(dialog.findChild<QWidget*>(QStringLiteral("dialogFontScale")));
@@ -512,12 +523,12 @@ private slots:
             QTest::mouseClick(fontButtons(&dialog)[1], Qt::LeftButton);
             dialog.resize(540, 280);
             dialog.reject();
-            QCOMPARE(AppSettings::dialogFontSize(QStringLiteral("promotion"), 10), dialog.font().pointSize());
-            QCOMPARE(AppSettings::auxiliaryDialogSize(QStringLiteral("promotion")), dialog.size());
+            QCOMPARE(AppSettings::promotionDialogFontSize.valueOr(10), dialog.font().pointSize());
+            QCOMPARE(AppSettings::promotionDialogSize(), dialog.size());
         }
         PromoteDialog reopened;
         QCOMPARE(reopened.size(), QSize(540, 280));
-        QCOMPARE(reopened.font().pointSize(), AppSettings::dialogFontSize(QStringLiteral("promotion"), 10));
+        QCOMPARE(reopened.font().pointSize(), AppSettings::promotionDialogFontSize.valueOr(10));
     }
 
     /// 静的関数で出すメッセージボックスにも文字サイズ操作が付き、決定ボタンと同じ段に並ぶ
@@ -549,7 +560,7 @@ private slots:
         });
         QMessageBox::warning(nullptr, QStringLiteral("時間設定"), QStringLiteral("人間が選択されています。"));
         QVERIFY(inspected);
-        QCOMPARE(AppSettings::dialogFontSize(QStringLiteral("messageBox"), 0), enlarged);
+        QCOMPARE(AppSettings::messageBoxFontSize(), enlarged);
 
         // 文字サイズはメッセージボックス全体で共有する
         QMessageBox next(QMessageBox::Information, QStringLiteral("情報"), QStringLiteral("登録する指し手がありません。"));

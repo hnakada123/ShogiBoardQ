@@ -1,8 +1,9 @@
 #include "tsumeplaydialog.h"
 #include "appsettings.h"
 #include "boardinteractioncontroller.h"
-#include "buttonstyles.h"
+#include "dialogfontscale.h"
 #include "dialogutils.h"
+#include "fontsizehelper.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
 #include "shogigamecontroller.h"
@@ -32,7 +33,6 @@
 
 TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper(TsumeshogiSettings::tsumePlayFontSize, 8, 24, 1)
 {
     setObjectName(QStringLiteral("tsumePlayDialog"));
     setWindowTitle(tr("詰将棋対局"));
@@ -45,7 +45,6 @@ TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     QString initialSfen = SfenUtils::hirateSfen();
     m_game->newGame(initialSfen);
     buildUi();
-    applyFontSize();
     const auto preferences = TsumeshogiSettings::playPreferences();
     DialogUtils::restoreDialogSize(this, preferences.size);
     m_problemUi.timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
@@ -150,17 +149,8 @@ void TsumePlayDialog::buildUi()
     auto* buttons = new QHBoxLayout;
     auto* fontDecrease = new QToolButton(this);
     fontDecrease->setObjectName(QStringLiteral("tsumePlayFontDecrease"));
-    fontDecrease->setText(QStringLiteral("A-"));
-    fontDecrease->setToolTip(tr("文字サイズを縮小"));
-    fontDecrease->setStyleSheet(ButtonStyles::fontButton());
     auto* fontIncrease = new QToolButton(this);
     fontIncrease->setObjectName(QStringLiteral("tsumePlayFontIncrease"));
-    fontIncrease->setText(QStringLiteral("A+"));
-    fontIncrease->setToolTip(tr("文字サイズを拡大"));
-    fontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(fontDecrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(fontIncrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &TsumePlayDialog::applyFontSize);
     buttons->addWidget(fontDecrease);
     buttons->addWidget(fontIncrease);
     buttons->addStretch();
@@ -170,6 +160,15 @@ void TsumePlayDialog::buildUi()
     connect(close, &QPushButton::clicked, this, &QDialog::reject);
     buttons->addWidget(close);
     layout->addLayout(buttons);
+
+    // 文字の大きさ。盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整するので対象外にする
+    m_view->setProperty("dialogFontScaleExcluded", true);
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = fontDecrease;
+    fontOptions.increase = fontIncrease;
+    auto* fontScale = DialogFontScale::install(this, TsumeshogiSettings::tsumePlayFontSize, fontOptions);
+    connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &TsumePlayDialog::fitInfoToFont);
+    fitInfoToFont();
 }
 
 void TsumePlayDialog::setProblem(const TsumeProblem& problem, int number, const QString& enginePath,
@@ -251,10 +250,9 @@ void TsumePlayDialog::onFlipToggled(bool flipped)
     m_boardRotated = flipped != !m_session->attackerIsBlack();
 }
 
-void TsumePlayDialog::applyFontSize()
+void TsumePlayDialog::fitInfoToFont()
 {
-    // 盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整する。
-    const QFontMetrics metrics(m_fontHelper.applyTo(this, {m_view}));
+    const QFontMetrics metrics(font());
     // 案内文と棋譜は同じ領域で切り替える。棋譜の行数やモードで盤面を動かさない。
     m_infoUi.stack->setFixedHeight(std::max(70, metrics.lineSpacing() * 4 + 8));
     // 大きい文字でも案内の折返しで盤下の領域が伸縮しないように余裕を確保する。

@@ -2,6 +2,7 @@
 /// @brief エンジン設定変更ダイアログクラスの実装
 
 #include "changeenginesettingsdialog.h"
+#include "dialogfontscale.h"
 #include "enginesettingsoptionhandler.h"
 #include "enginedialogsettings.h"
 #include "engineprofilestore.h"
@@ -20,7 +21,6 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::ChangeEngineSettingsDialog>())
     , m_optionHandler(std::make_unique<EngineSettingsOptionHandler>(this, this))
-    , m_fontHelper(EngineDialogSettings::engineSettingsFontSize, 8, 20, 1)
 {
     ui->setupUi(this);
 }
@@ -95,16 +95,17 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
 
     // ボタンスタイルを適用
     ui->restoreButton->setStyleSheet(ButtonStyles::undoRedo());
-    ui->fontDecreaseButton->setStyleSheet(ButtonStyles::fontButton());
-    ui->fontIncreaseButton->setStyleSheet(ButtonStyles::fontButton());
 
-    // フォントサイズ変更ボタンの接続
-    connect(ui->fontIncreaseButton, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(ui->fontDecreaseButton, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &ChangeEngineSettingsDialog::applyFontSize);
-
-    // 保存されているフォントサイズを適用
-    applyFontSize();
+    // 文字の大きさ（作ったオプションの部品を含む。作り直したときは今の大きさを付け直す）
+    if (m_fontScale) {
+        m_fontScale->rescale();
+    } else {
+        DialogFontScale::Options fontOptions;
+        fontOptions.maxSize = 20;
+        fontOptions.decrease = ui->fontDecreaseButton;
+        fontOptions.increase = ui->fontIncreaseButton;
+        m_fontScale = DialogFontScale::install(this, EngineDialogSettings::engineSettingsFontSize, fontOptions);
+    }
 
     // ダイアログの最小サイズを設定（リサイズ可能にする）
     this->setMinimumSize(kMinimumSize);
@@ -146,10 +147,4 @@ void ChangeEngineSettingsDialog::restoreDefaultSettings()
     m_optionHandler->restoreDefaultOptions();
     m_ponderEnabled->setChecked(m_defaultPonderEnabled);
     m_sendUnreportedPonder->setChecked(true);
-}
-
-// すべてのウィジェットにフォントサイズを適用する。
-void ChangeEngineSettingsDialog::applyFontSize()
-{
-    m_fontHelper.applyTo(this);
 }

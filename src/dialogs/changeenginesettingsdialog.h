@@ -6,8 +6,8 @@
 
 #include <QDialog>
 #include <memory>
-#include "fontsizehelper.h"
 
+class DialogFontScale;
 class EngineSettingsOptionHandler;
 class QCheckBox;
 class QVBoxLayout;
@@ -44,8 +44,8 @@ private:
     // オプション管理ハンドラ
     std::unique_ptr<EngineSettingsOptionHandler> m_optionHandler;
 
-    // フォントサイズヘルパー
-    FontSizeHelper m_fontHelper;
+    // 文字の大きさ（A-/A+。オプションの部品を作ったときに付ける。QObject parent 所有）
+    DialogFontScale* m_fontScale = nullptr;
 
     QCheckBox* m_ponderEnabled = nullptr;
     QCheckBox* m_sendUnreportedPonder = nullptr;
@@ -55,9 +55,6 @@ private:
 
     // エンジンオプションに基づいてUIコンポーネントを作成して配置する。
     void createOptionWidgets();
-
-    // すべてのウィジェットにフォントサイズを適用する。
-    void applyFontSize();
 
 private slots:
     void saveEngineSettings();

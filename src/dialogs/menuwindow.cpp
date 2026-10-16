@@ -2,6 +2,7 @@
 /// @brief メニューウィンドウクラスの実装
 
 #include "menuwindow.h"
+#include "fontsizecontrol.h"
 #include "buttonstyles.h"
 #include "menubuttonwidget.h"
 #include "appsettings.h"
@@ -21,6 +22,7 @@
 
 MenuWindow::MenuWindow(QWidget* parent)
     : QWidget(parent, Qt::Window)
+    , m_fontSize(AppSettings::menuWindowFontSize, kMinFontSize, kMaxFontSize)
 {
     setupUi();
     loadSettings();
@@ -69,20 +71,12 @@ void MenuWindow::setupUi()
     separator1->setFrameShadow(QFrame::Sunken);
     headerLayout->addWidget(separator1);
 
-    // フォントサイズ調整（縮小）
+    // 文字の大きさ（A-/A+）
     m_fontSizeDecreaseBtn = new QToolButton(this);
-    m_fontSizeDecreaseBtn->setText(QStringLiteral("A-"));
-    m_fontSizeDecreaseBtn->setToolTip(tr("Decrease font size"));
-    m_fontSizeDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_fontSizeDecreaseBtn, &QToolButton::clicked, this, &MenuWindow::onFontSizeDecrease);
-    headerLayout->addWidget(m_fontSizeDecreaseBtn);
-
-    // フォントサイズ調整（拡大）
     m_fontSizeIncreaseBtn = new QToolButton(this);
-    m_fontSizeIncreaseBtn->setText(QStringLiteral("A+"));
-    m_fontSizeIncreaseBtn->setToolTip(tr("Increase font size"));
-    m_fontSizeIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_fontSizeIncreaseBtn, &QToolButton::clicked, this, &MenuWindow::onFontSizeIncrease);
+    new FontSizeControl(m_fontSizeDecreaseBtn, m_fontSizeIncreaseBtn, &m_fontSize);
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &MenuWindow::updateAllButtonSizes);
+    headerLayout->addWidget(m_fontSizeDecreaseBtn);
     headerLayout->addWidget(m_fontSizeIncreaseBtn);
 
     // セパレータ
@@ -285,7 +279,7 @@ void MenuWindow::populateButtons(FlowLayout* layout, const QList<QAction*>& acti
         if (!action || action->objectName().isEmpty() || action->isSeparator()) continue;
 
         auto* button = new MenuButtonWidget(action, layout->parentWidget());
-        button->updateSizes(m_buttonSize, m_fontSize, m_iconSize);
+        button->updateSizes(m_buttonSize, m_fontSize.fontSize(), m_iconSize);
         button->setCustomizeMode(m_customizeMode, isFavoriteTab, m_favoriteActionNames.contains(action->objectName()));
         connect(button, &MenuButtonWidget::actionTriggered, this, &MenuWindow::onActionTriggered);
         connect(button, &MenuButtonWidget::addToFavorites, this, &MenuWindow::onAddToFavorites);
@@ -411,36 +405,17 @@ void MenuWindow::onButtonSizeDecrease()
     }
 }
 
-void MenuWindow::onFontSizeIncrease()
-{
-    if (m_fontSize < kMaxFontSize) {
-        m_fontSize += 1;
-        updateAllButtonSizes();
-    }
-}
-
-void MenuWindow::onFontSizeDecrease()
-{
-    if (m_fontSize > kMinFontSize) {
-        m_fontSize -= 1;
-        updateAllButtonSizes();
-    }
-}
-
 void MenuWindow::updateAllButtonSizes()
 {
     for (MenuButtonWidget* btn : std::as_const(m_allButtons)) {
         if (btn) {
-            btn->updateSizes(m_buttonSize, m_fontSize, m_iconSize);
+            btn->updateSizes(m_buttonSize, m_fontSize.fontSize(), m_iconSize);
         }
     }
     equalizeButtonHeights();
     m_buttonSizeDecreaseBtn->setEnabled(m_buttonSize > kMinButtonSize);
     m_buttonSizeIncreaseBtn->setEnabled(m_buttonSize < kMaxButtonSize);
-    m_fontSizeDecreaseBtn->setEnabled(m_fontSize > kMinFontSize);
-    m_fontSizeIncreaseBtn->setEnabled(m_fontSize < kMaxFontSize);
     AppSettings::menuWindowButtonSize.set(m_buttonSize);
-    AppSettings::menuWindowFontSize.set(m_fontSize);
 }
 
 void MenuWindow::closeEvent(QCloseEvent* event)
@@ -453,7 +428,6 @@ void MenuWindow::loadSettings()
 {
     m_favoriteActionNames = AppSettings::menuWindowFavorites();
     m_buttonSize = qBound(kMinButtonSize, AppSettings::menuWindowButtonSize(), kMaxButtonSize);
-    m_fontSize = qBound(kMinFontSize, AppSettings::menuWindowFontSize(), kMaxFontSize);
     m_savedTabIndex = AppSettings::menuWindowCurrentTab();
     m_iconSize = m_buttonSize / 3;
     resize(AppSettings::menuWindowSize());
@@ -463,6 +437,5 @@ void MenuWindow::saveSettings()
 {
     AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
     AppSettings::menuWindowButtonSize.set(m_buttonSize);
-    AppSettings::menuWindowFontSize.set(m_fontSize);
     AppSettings::menuWindowSize.set(size());
 }

@@ -2,6 +2,7 @@
 /// @brief 棋譜解析ダイアログクラスの実装
 
 #include "kifuanalysisdialog.h"
+#include "dialogfontscale.h"
 #include "changeenginesettingsdialog.h"
 #include "ui_kifuanalysisdialog.h"
 #include "analysissettings.h"
@@ -14,24 +15,18 @@
 #include <QLabel>
 #include <QAbstractItemView>
 #include <QTextStream>
-#include <QTimer>
 #include <qmessagebox.h>
 
 // 棋譜解析ダイアログのUIを設定する。
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::KifuAnalysisDialog>())
-    , m_fontHelper({AnalysisSettings::kifuAnalysisFontSize() > 0
-                        ? AnalysisSettings::kifuAnalysisFontSize() : qMax(10, font().pointSize()), 8, 24, 1,
-                    [](int size) { AnalysisSettings::kifuAnalysisFontSize.set(size); }})
 {
     // UIをセットアップする。
     ui->setupUi(this);
 
     ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("解析開始"));
     ui->buttonBox->button(QDialogButtonBox::Ok)->setStyleSheet(ButtonStyles::primaryAction());
-    ui->btnFontDecrease->setStyleSheet(ButtonStyles::panelToolButton());
-    ui->btnFontIncrease->setStyleSheet(ButtonStyles::panelToolButton());
     applyRangeLabels();
     ui->spinBoxStartPly->setAccessibleName(tr("解析開始手数"));
     ui->spinBoxEndPly->setAccessibleName(tr("解析終了手数"));
@@ -42,8 +37,12 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     ui->analysisSummary->setStyleSheet(QStringLiteral(
         "background: #e7f0f8; color: #243b53; border-radius: 4px; padding: 10px;"));
 
-    // フォントサイズを適用
-    applyFontSize();
+    // セクション見出しは太字（文字の大きさは DialogFontScale が本文と一緒に変える）
+    for (QLabel* label : {ui->labelSectionEngine, ui->labelSectionRange, ui->labelSectionTime}) {
+        QFont bold = label->font();
+        bold.setBold(true);
+        label->setFont(bold);
+    }
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     readEngineNameAndDir();
@@ -90,11 +89,6 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     connect(ui->spinBoxEndPly, &QSpinBox::valueChanged, this, &KifuAnalysisDialog::updateSummary);
     connect(ui->byoyomiSec, &QSpinBox::valueChanged, this, &KifuAnalysisDialog::updateSummary);
     
-    // フォントサイズ調整ボタン
-    connect(ui->btnFontIncrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(ui->btnFontDecrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &KifuAnalysisDialog::applyFontSize);
-    
     // 範囲指定のスピンボックスの有効/無効を設定
     bool rangeEnabled = ui->radioButtonRangePosition->isChecked();
     ui->spinBoxStartPly->setEnabled(rangeEnabled);
@@ -106,6 +100,12 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     ui->engineHint->setVisible(!hasEngine);
     updateSummary();
 
+    // 文字の大きさ（A-/A+ は .ui に置いたボタン）。折り返す説明が欠けない大きさも DialogFontScale が保つ
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = ui->btnFontDecrease;
+    fontOptions.increase = ui->btnFontIncrease;
+    DialogFontScale::install(this, AnalysisSettings::kifuAnalysisFontSize, fontOptions);
+
     // ウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, AnalysisSettings::kifuAnalysisDialogSize());
 }
@@ -116,19 +116,6 @@ void KifuAnalysisDialog::done(int result)
 {
     DialogUtils::saveDialogSize(this, AnalysisSettings::kifuAnalysisDialogSize);
     QDialog::done(result);
-}
-
-void KifuAnalysisDialog::resizeEvent(QResizeEvent* event)
-{
-    QDialog::resizeEvent(event);
-    updateMinimumSize();
-}
-
-void KifuAnalysisDialog::updateMinimumSize()
-{
-    // 折り返す説明・所要時間も、文字拡大時に欠けない高さを確保する。
-    const int contentHeight = ui->mainLayout->totalHeightForWidth(width());
-    setMinimumHeight(qMax(280, contentHeight));
 }
 
 void KifuAnalysisDialog::updateSummary()
@@ -328,16 +315,4 @@ void KifuAnalysisDialog::applyRangeLabels()
     ui->labelTo->setText(pattern.mid(second + 2).trimmed());
     ui->labelRangePrefix->setVisible(!ui->labelRangePrefix->text().isEmpty());
     ui->labelTo->setVisible(!ui->labelTo->text().isEmpty());
-}
-
-// フォントサイズを適用
-void KifuAnalysisDialog::applyFontSize()
-{
-    // セクション見出しラベルを太字にする
-    QFont boldFont = m_fontHelper.applyTo(this);
-    boldFont.setBold(true);
-    for (QLabel* label : {ui->labelSectionEngine, ui->labelSectionRange, ui->labelSectionTime}) label->setFont(boldFont);
-    ui->mainLayout->invalidate();
-    QTimer::singleShot(0, this, &KifuAnalysisDialog::updateMinimumSize);
-    DialogUtils::fitWrappedLabels(this);
 }

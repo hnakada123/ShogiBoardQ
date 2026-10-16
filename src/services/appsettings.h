@@ -21,11 +21,24 @@ class QWidget;
 
 namespace AppSettings {
 
-/// 個別の設定項目を持たない補助ダイアログの表示設定。id は固定の識別子。
-int dialogFontSize(const QString& id, int defaultSize);
-void setDialogFontSize(const QString& id, int size);
-QSize auxiliaryDialogSize(const QString& id);
-void setAuxiliaryDialogSize(const QString& id, const QSize& size);
+// --- 補助ダイアログ（DialogFontScale）の文字の大きさと大きさ ---
+// 文字の大きさの既定値 0 は「ダイアログの元の大きさ」。大きさは保存するダイアログだけ持つ
+inline const Setting<int> messageBoxFontSize{"DialogAppearance/messageBox/fontSize", 0};
+inline const Setting<int> bookmarkDialogFontSize{"DialogAppearance/bookmark/fontSize", 0};
+inline const Setting<QSize> bookmarkDialogSize{"DialogAppearance/bookmark/size", QSize()};
+inline const Setting<int> dockLayoutNameDialogFontSize{"DialogAppearance/dockLayoutName/fontSize", 0};
+inline const Setting<QSize> dockLayoutNameDialogSize{"DialogAppearance/dockLayoutName/size", QSize()};
+inline const Setting<int> pieceSoundDialogFontSize{"DialogAppearance/pieceSound/fontSize", 0};
+inline const Setting<QSize> pieceSoundDialogSize{"DialogAppearance/pieceSound/size", QSize()};
+inline const Setting<int> promotionDialogFontSize{"DialogAppearance/promotion/fontSize", 0};
+inline const Setting<QSize> promotionDialogSize{"DialogAppearance/promotion/size", QSize()};
+inline const Setting<int> boardColorsDialogFontSize{"DialogAppearance/boardColors/fontSize", 0};
+inline const Setting<int> colorPickerDialogFontSize{"DialogAppearance/colorPicker/fontSize", 0};
+inline const Setting<int> pvBoardDialogFontSize{"DialogAppearance/pvBoard/fontSize", 0};
+inline const Setting<int> sfenCollectionDialogFontSize{"DialogAppearance/sfenCollection/fontSize", 0};
+inline const Setting<int> versionDialogFontSize{"DialogAppearance/version/fontSize", 0};
+inline const Setting<int> fontSettingsDialogFontSize{"DialogAppearance/fontSettings/fontSize", 0};
+inline const Setting<int> evaluationChartDialogFontSize{"DialogAppearance/evaluationChart/fontSize", 0};
 
 inline const Setting<QSize> versionDialogSize{"SizeRelated/versionDialogSize", QSize(680, 760)};
 inline const Setting<int> versionDialogDocument{"UI/versionDialogDocument", 0};

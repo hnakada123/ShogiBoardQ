@@ -2,6 +2,7 @@
 /// @brief 詰み探索専用の条件設定ダイアログの実装
 
 #include "tsumeshogisearchdialog.h"
+#include "dialogfontscale.h"
 #include "enginelistsettings.h"
 #include "ui_tsumeshogisearchdialog.h"
 #include "analysissettings.h"
@@ -10,15 +11,11 @@
 #include "dialogutils.h"
 
 #include <QAbstractItemView>
-#include <QTimer>
 
 TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::TsumeShogiSearchDialog>())
     , m_engines(EngineListSettings::loadEngines())
-    , m_fontHelper({AnalysisSettings::tsumeSearchFontSize() > 0
-                        ? AnalysisSettings::tsumeSearchFontSize() : qMax(10, font().pointSize()),
-                    8, 24, 1, [](int size) { AnalysisSettings::tsumeSearchFontSize.set(size); }})
 {
     ui->setupUi(this);
     auto* start = ui->buttonBox->button(QDialogButtonBox::Ok);
@@ -26,10 +23,6 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     start->setStyleSheet(ButtonStyles::primaryAction());
     start->setDefault(true);
     ui->engineSetting->setAutoDefault(false);
-    ui->toolButtonFontDecrease->setAutoDefault(false);
-    ui->toolButtonFontIncrease->setAutoDefault(false);
-    ui->toolButtonFontDecrease->setStyleSheet(ButtonStyles::panelToolButton());
-    ui->toolButtonFontIncrease->setStyleSheet(ButtonStyles::panelToolButton());
     ui->searchDescription->setStyleSheet(QStringLiteral(
         "background: #e7f0f8; color: #243b53; border-radius: 4px; padding: 10px;"));
     ui->comboBoxEngine1->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
@@ -56,14 +49,12 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
             ui->byoyomiSec, &QSpinBox::setEnabled);
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &TsumeShogiSearchDialog::accept);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &TsumeShogiSearchDialog::reject);
-    connect(ui->toolButtonFontIncrease, &QPushButton::clicked,
-            &m_fontHelper, &FontSizeHelper::increase);
-    connect(ui->toolButtonFontDecrease, &QPushButton::clicked,
-            &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &TsumeShogiSearchDialog::applyFontSize);
-
     updateEngineSelection();
-    applyFontSize();
+    // 文字の大きさ（A-/A+ は .ui に置いたボタン）。折り返す説明が欠けない大きさも DialogFontScale が保つ
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = ui->toolButtonFontDecrease;
+    fontOptions.increase = ui->toolButtonFontIncrease;
+    DialogFontScale::install(this, AnalysisSettings::tsumeSearchFontSize, fontOptions);
     DialogUtils::restoreDialogSize(this, AnalysisSettings::tsumeSearchDialogSize());
 }
 
@@ -131,27 +122,4 @@ void TsumeShogiSearchDialog::done(int result)
 {
     DialogUtils::saveDialogSize(this, AnalysisSettings::tsumeSearchDialogSize);
     QDialog::done(result);
-}
-
-void TsumeShogiSearchDialog::resizeEvent(QResizeEvent* event)
-{
-    QDialog::resizeEvent(event);
-    updateMinimumSize();
-}
-
-void TsumeShogiSearchDialog::applyFontSize()
-{
-    m_fontHelper.applyTo(this);
-    ui->mainLayout->invalidate();
-    QTimer::singleShot(0, this, &TsumeShogiSearchDialog::updateMinimumSize);
-}
-
-void TsumeShogiSearchDialog::updateMinimumSize()
-{
-    // 折り返す説明文も含め、文字拡大時に下部の操作ボタンを隠さない。
-    ui->mainLayout->activate();
-    const int width = qMax(this->width(), minimumSizeHint().width());
-    const int height = qMax(minimumSizeHint().height(), ui->mainLayout->totalHeightForWidth(width));
-    setMinimumHeight(height);
-    resize(width, qMax(this->height(), height));
 }

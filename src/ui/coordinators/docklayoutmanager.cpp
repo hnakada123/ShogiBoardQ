@@ -1,6 +1,7 @@
 /// @file docklayoutmanager.cpp
 /// @brief ドックレイアウト管理クラスの実装
 
+#include "appsettings.h"
 #include "dialogfontscale.h"
 #include "dialogutils.h"
 #include "docklayoutmanager.h"
@@ -133,7 +134,7 @@ void DockLayoutManager::saveLayoutAs()
     dialog.setLabelText(tr("レイアウト名:"));
     dialog.setInputMode(QInputDialog::TextInput);
     dialog.ensurePolished();
-    DialogFontScale::install(&dialog, QStringLiteral("dockLayoutName"), true);
+    DialogFontScale::install(&dialog, AppSettings::dockLayoutNameDialogFontSize, {&AppSettings::dockLayoutNameDialogSize});
     const int result = dialog.exec();
     QString name = dialog.textValue();
     if (result != QDialog::Accepted || name.trimmed().isEmpty()) {

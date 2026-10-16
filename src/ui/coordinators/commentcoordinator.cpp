@@ -3,6 +3,7 @@
 
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
+#include "appsettings.h"
 #include "dialogfontscale.h"
 #include "kifudocument.h"
 #include "kifubranchnode.h"
@@ -56,7 +57,7 @@ void CommentCoordinator::onBookmarkEditRequested()
     dialog.setLabelText(tr("しおり名（手数: %1）:").arg(node->ply()));
     dialog.setTextValue(node->bookmark());
     dialog.ensurePolished();
-    DialogFontScale::install(&dialog, QStringLiteral("bookmark"), true);
+    DialogFontScale::install(&dialog, AppSettings::bookmarkDialogFontSize, {&AppSettings::bookmarkDialogSize});
     if (dialog.exec() != QDialog::Accepted) return;
 
     const QString newBookmark = dialog.textValue();

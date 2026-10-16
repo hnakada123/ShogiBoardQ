@@ -83,8 +83,8 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
     rebuildPresets();
     refreshButtons();
     DialogUtils::restoreDialogSize(this, AppSettings::boardColorDialogSize());
-    DialogFontScale::install(this, QStringLiteral("boardColors"));
-    DialogFontScale::install(m_picker, QStringLiteral("colorPicker"));
+    DialogFontScale::install(this, AppSettings::boardColorsDialogFontSize);
+    DialogFontScale::install(m_picker, AppSettings::colorPickerDialogFontSize);
 }
 
 BoardColorDialog::~BoardColorDialog()

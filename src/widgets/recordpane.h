@@ -7,6 +7,7 @@
 
 #include <QWidget>
 #include <QPersistentModelIndex>
+#include "fontsizehelper.h"
 #include "recordpaneappearancemanager.h"
 
 class QTableView; class QPushButton; class QSplitter; class QToolButton;
@@ -74,10 +75,13 @@ private:
     QSplitter *m_lr=nullptr;
     QMetaObject::Connection m_connKifuCurrentRow;
 
+    FontSizeHelper m_fontSize;  ///< 棋譜と分岐候補の文字の大きさ（変更のたびに保存する）
     RecordPaneAppearanceManager m_appearanceManager{10};
 
 private slots:
     void onBranchToggled(bool expanded);
+    /// 文字の大きさが変わった（A-/A+）
+    void onFontSizeChanged(int size);
     void onKifuRowsInserted(const QModelIndex& parent, int first, int last);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
 
@@ -102,9 +106,6 @@ private:
     bool m_branchClickGuard = false;
 
 public slots:
-    // 文字サイズ変更スロット
-    void onFontIncrease(bool checked = false);
-    void onFontDecrease(bool checked = false);
 
     // 列表示トグルスロット
     void onToggleTimeColumn(bool checked);

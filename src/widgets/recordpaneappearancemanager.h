@@ -12,7 +12,7 @@ class QTableView;
  * @brief 棋譜欄の外観管理（フォントサイズ、列表示、スタイルシート）
  *
  * RecordPaneのUIロジックを分離:
- * - フォントサイズ管理（範囲制限 + 設定永続化）
+ * - 文字の大きさの反映
  * - 列表示トグル（設定永続化 + リサイズモード計算）
  * - スタイルシート生成
  * - 選択パレット設定
@@ -22,9 +22,8 @@ class RecordPaneAppearanceManager {
 public:
     explicit RecordPaneAppearanceManager(int initialFontSize);
 
-    // Font management - returns true if size changed
-    bool tryIncreaseFontSize();
-    bool tryDecreaseFontSize();
+    // 文字の大きさ（範囲と保存は RecordPane の FontSizeHelper が受け持つ）
+    void setFontSize(int size) { m_fontSize = size; }
     int fontSize() const { return m_fontSize; }
     void applyFontToViews(QTableView* kifu, QTableView* branch);
 

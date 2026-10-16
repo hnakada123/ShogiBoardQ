@@ -6,6 +6,8 @@
 #include "gamesettings.h"
 #include "dialogutils.h"
 #include "applicationfonts.h"
+#include "dialogfontscale.h"
+#include "fontsizehelper.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QFont>
@@ -23,10 +25,19 @@ constexpr int kMaximumFontSize = 20;
 
 KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper(GameSettings::kifuPasteDialogFontSize, kMinimumFontSize, kMaximumFontSize, 1)
 {
     setupUi();
-    applyFontSize();
+
+    // 文字の大きさ（A-/A+ は入力欄の操作の列に置く）
+    DialogFontScale::Options fontOptions;
+    fontOptions.minSize = kMinimumFontSize;
+    fontOptions.maxSize = kMaximumFontSize;
+    fontOptions.decrease = m_btnFontSizeDown;
+    fontOptions.increase = m_btnFontSizeUp;
+    fontOptions.sizeLabel = m_fontSizeLabel;
+    auto* fontScale = DialogFontScale::install(this, GameSettings::kifuPasteDialogFontSize, fontOptions);
+    connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &KifuPasteDialog::fitToFont);
+    fitToFont();
     updateInputActions();
     updateClipboardAction();
 
@@ -69,9 +80,9 @@ void KifuPasteDialog::setupUi()
     m_textEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_textEdit->document()->setDocumentMargin(10);
 
-    // 等幅フォントを設定
+    // 等幅フォントを設定（大きさはダイアログの文字に合わせ、A-/A+ で一緒に変わる）
     QFont monoFont = ApplicationFonts::monospaceFont();
-    monoFont.setPointSize(10);
+    monoFont.setPointSize(font().pointSize());
     m_textEdit->setFont(monoFont);
     ApplicationFonts::useJapaneseFont(m_textEdit);
 
@@ -90,16 +101,10 @@ void KifuPasteDialog::setupUi()
     toolLayout->addWidget(m_btnClear);
     toolLayout->addStretch();
 
-    m_btnFontSizeDown = new QPushButton(tr("A-"), this);
+    m_btnFontSizeDown = new QPushButton(this);
     m_btnFontSizeDown->setObjectName(QStringLiteral("fontDecrease"));
-    m_btnFontSizeDown->setStyleSheet(ButtonStyles::panelToolButton());
-    m_btnFontSizeDown->setToolTip(tr("文字を小さくする"));
-    m_btnFontSizeDown->setAccessibleName(m_btnFontSizeDown->toolTip());
-    m_btnFontSizeUp = new QPushButton(tr("A+"), this);
+    m_btnFontSizeUp = new QPushButton(this);
     m_btnFontSizeUp->setObjectName(QStringLiteral("fontIncrease"));
-    m_btnFontSizeUp->setStyleSheet(ButtonStyles::panelToolButton());
-    m_btnFontSizeUp->setToolTip(tr("文字を大きくする"));
-    m_btnFontSizeUp->setAccessibleName(m_btnFontSizeUp->toolTip());
     m_fontSizeLabel = new QLabel(this);
     m_fontSizeLabel->setAlignment(Qt::AlignCenter);
     m_fontSizeLabel->setToolTip(tr("文字サイズ"));
@@ -133,7 +138,7 @@ void KifuPasteDialog::setupUi()
 
     mainLayout->addLayout(buttonLayout);
 
-    for (auto* button : {m_btnPaste, m_btnClear, m_btnFontSizeDown, m_btnFontSizeUp, m_btnCancel}) {
+    for (auto* button : {m_btnPaste, m_btnClear, m_btnCancel}) {
         button->setAutoDefault(false);
     }
     setTabOrder(m_textEdit, m_btnImport);
@@ -153,11 +158,6 @@ void KifuPasteDialog::setupUi()
             this, &KifuPasteDialog::onPasteClicked);
     connect(m_btnClear, &QPushButton::clicked,
             this, &KifuPasteDialog::onClearClicked);
-    connect(m_btnFontSizeDown, &QPushButton::clicked,
-            &m_fontHelper, &FontSizeHelper::decrease);
-    connect(m_btnFontSizeUp, &QPushButton::clicked,
-            &m_fontHelper, &FontSizeHelper::increase);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &KifuPasteDialog::applyFontSize);
     connect(m_textEdit, &QPlainTextEdit::textChanged,
             this, &KifuPasteDialog::updateInputActions);
     connect(QApplication::clipboard(), &QClipboard::dataChanged,
@@ -222,17 +222,11 @@ void KifuPasteDialog::updateClipboardAction()
     m_btnPaste->setEnabled(!QApplication::clipboard()->text().trimmed().isEmpty());
 }
 
-void KifuPasteDialog::applyFontSize()
+void KifuPasteDialog::fitToFont()
 {
-    // テキストエディタには等幅フォントを維持
-    const int size = m_fontHelper.fontSize();
-    const QFont font = m_fontHelper.applyTo(this, {m_textEdit});
-    QFont monoFont = m_textEdit->font();
-    monoFont.setPointSize(size);
-    m_textEdit->setFont(monoFont);
-    m_textEdit->setMinimumHeight(qMax(120, QFontMetrics(monoFont).lineSpacing() * 4 + 20));
-    m_fontSizeLabel->setText(tr("%1 pt").arg(size));
-    const QFontMetrics metrics(font);
+    // 文字の大きさは DialogFontScale が変える（入力欄の等幅の文字も）。ここでは寸法を文字に合わせる
+    m_textEdit->setMinimumHeight(qMax(120, QFontMetrics(m_textEdit->font()).lineSpacing() * 4 + 20));
+    const QFontMetrics metrics(font());
     for (auto* button : {m_btnPaste, m_btnClear, m_btnImport, m_btnCancel}) {
         button->setMinimumHeight(qMax(32, metrics.height() + 12));
         button->setMinimumWidth(qMax(36, metrics.horizontalAdvance(button->text()) + 24));

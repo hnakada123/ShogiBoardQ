@@ -2,6 +2,7 @@
 /// @brief CSA接続待機ダイアログクラスの実装
 
 #include "csawaitingdialog.h"
+#include "dialogfontscale.h"
 #include "csalogpanel.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
@@ -23,11 +24,14 @@ constexpr QSize kLogWindowDefaultSize{550, 450};
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
     , m_coordinator(coordinator)
-    , m_fontHelper(NetworkSettings::csaWaitingDialogFontSize, 8, 24, 1)
 {
     qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();
-    applyFontSize();
+    // 文字の大きさ。状態の表示は本文より 2pt 大きいまま拡大・縮小する
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = m_btnFontDecrease;
+    fontOptions.increase = m_btnFontIncrease;
+    DialogFontScale::install(this, NetworkSettings::csaWaitingDialogFontSize, fontOptions);
     DialogUtils::restoreDialogSize(this, NetworkSettings::csaWaitingDialogSize());
 
     createLogWindow();
@@ -69,6 +73,7 @@ void CsaWaitingDialog::setupUi()
     m_statusLabel->setAlignment(Qt::AlignCenter);
     QFont statusFont = m_statusLabel->font();
     statusFont.setBold(true);
+    statusFont.setPointSize(statusFont.pointSize() + 2);
     m_statusLabel->setFont(statusFont);
     mainLayout->addWidget(m_statusLabel);
 
@@ -116,15 +121,8 @@ void CsaWaitingDialog::setupUi()
     fontLayout->addStretch();
 
     m_btnFontDecrease = new QToolButton(this);
-    m_btnFontDecrease->setText(QStringLiteral("A-"));
-    m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
     fontLayout->addWidget(m_btnFontDecrease);
-
     m_btnFontIncrease = new QToolButton(this);
-    m_btnFontIncrease->setText(QStringLiteral("A+"));
-    m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
     fontLayout->addWidget(m_btnFontIncrease);
 
     fontLayout->addStretch();
@@ -141,11 +139,6 @@ void CsaWaitingDialog::connectSignalsAndSlots()
             this, &CsaWaitingDialog::onCancelClicked);
     connect(m_showLogButton, &QPushButton::clicked,
             this, &CsaWaitingDialog::onShowLogClicked);
-    connect(m_btnFontIncrease, &QToolButton::clicked,
-            &m_fontHelper, &FontSizeHelper::increase);
-    connect(m_btnFontDecrease, &QToolButton::clicked,
-            &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &CsaWaitingDialog::applyFontSize);
 
     if (m_coordinator) {
         qCDebug(lcUi) << "Connecting to coordinator signals...";
@@ -279,12 +272,4 @@ void CsaWaitingDialog::onRawCommandRequested(const QString& command)
 void CsaWaitingDialog::updateCommandState()
 {
     m_logPanel->setConnected(m_coordinator && m_coordinator->isConnected());
-}
-
-void CsaWaitingDialog::applyFontSize()
-{
-    QFont statusFont = m_fontHelper.applyTo(this);
-    statusFont.setBold(true);
-    statusFont.setPointSize(m_fontHelper.fontSize() + 2);
-    if (m_statusLabel) m_statusLabel->setFont(statusFont);
 }

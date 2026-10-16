@@ -11,6 +11,7 @@
 #include "shogiviewhighlighting.h"
 #include "analysissettings.h"
 #include "dialogutils.h"
+#include "appsettings.h"
 #include "dialogfontscale.h"
 #include "logcategories.h"
 
@@ -38,7 +39,7 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     DialogUtils::restoreDialogSize(this, AnalysisSettings::pvBoardDialogSize());
 
     buildUi();
-    DialogFontScale::install(this, QStringLiteral("pvBoard"));
+    DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
 
     // 読み筋の各手数の局面を盤に渡す（0 が開始局面）
     QStringList positions;

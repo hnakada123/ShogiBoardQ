@@ -2,6 +2,7 @@
 /// @brief 対局開始ダイアログクラスの実装
 
 #include "startgamedialog.h"
+#include "dialogfontscale.h"
 #include "ui_startgamedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "gamesettings.h"
@@ -24,7 +25,6 @@
 StartGameDialog::StartGameDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::StartGameDialog>())
-    , m_fontHelper(GameSettings::startGameDialogFontSize, MinFontSize, MaxFontSize, 1)
 {
     ui->setupUi(this);
     // スクロール位置にかかわらず文字サイズを戻せるよう、操作を固定フッターへ移す。
@@ -47,8 +47,6 @@ StartGameDialog::StartGameDialog(QWidget *parent)
     ui->pushButtonSwapSides->setStyleSheet(ButtonStyles::secondaryNeutral());
     ui->pushButtonSaveSettingsOnly->setStyleSheet(ButtonStyles::secondaryNeutral());
     ui->pushButtonResetToDefault->setStyleSheet(ButtonStyles::dangerStop());
-    ui->pushButtonFontSizeDown->setStyleSheet(ButtonStyles::fontButton());
-    ui->pushButtonFontSizeUp->setStyleSheet(ButtonStyles::fontButton());
     ui->pushButtonSelectKifuDir->setStyleSheet(ButtonStyles::secondaryNeutral());
 
     // 補助操作でEnterの既定動作が変わらないよう、開始ボタンを明示する。
@@ -61,7 +59,14 @@ StartGameDialog::StartGameDialog(QWidget *parent)
     startButton->setDefault(true);
     startButton->setToolTip(tr("設定を保存して対局を開始します。"));
 
-    applyFontSize();
+    // 文字の大きさ（QScrollArea 配下を含めダイアログ内の全部品）
+    DialogFontScale::Options fontOptions;
+    fontOptions.minSize = MinFontSize;
+    fontOptions.maxSize = MaxFontSize;
+    fontOptions.decrease = ui->pushButtonFontSizeDown;
+    fontOptions.increase = ui->pushButtonFontSizeUp;
+    DialogFontScale::install(this, GameSettings::startGameDialogFontSize, fontOptions);
+
     loadEngineConfigurations();
     populatePlayerComboBoxes();
     loadGameSettings();
@@ -106,11 +111,6 @@ void StartGameDialog::connectSignalsAndSlots()
             this, &StartGameDialog::handleByoyomiSecChanged);
     connect(ui->addEachMoveSec2, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &StartGameDialog::handleAddEachMoveSecChanged);
-
-    // フォント拡大縮小
-    connect(ui->pushButtonFontSizeUp, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-    connect(ui->pushButtonFontSizeDown, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &StartGameDialog::applyFontSize);
 
     // 対局者種別（人間/エンジン）変更時にUIを切り替える
     connect(ui->comboBoxPlayer1, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -321,16 +321,6 @@ void StartGameDialog::onFirstPlayerSettingsClicked()
 void StartGameDialog::onSecondPlayerSettingsClicked()
 {
     showEngineSettingsDialog(2);
-}
-
-// ============================================================
-// フォント設定
-// ============================================================
-
-void StartGameDialog::applyFontSize()
-{
-    // QScrollArea 配下を含め、ダイアログ内の全ウィジェットへ明示適用する
-    m_fontHelper.applyTo(this);
 }
 
 // ============================================================

@@ -9,6 +9,8 @@
 #include <QWidget>
 #include <QTableView>
 #include <QHeaderView>
+
+#include "fontsizehelper.h"
 class QAbstractItemModel;
 class QTimer;
 class QPushButton;
@@ -85,13 +87,7 @@ private slots:
 
     /// 選択行変更時に通知を行う
     void onTableSelectionChanged(const QModelIndex& current, const QModelIndex& previous);
-    
-    /// フォントサイズを1段階拡大する
-    void increaseFontSize();
 
-    /// フォントサイズを1段階縮小する
-    void decreaseFontSize();
-    
     void saveColumnWidth(int column, int oldSize, int newSize);
 
 private:
@@ -104,9 +100,7 @@ private:
     /// モデル更新シグナルを接続する
     void connectModelSignals(KifuAnalysisListModel* model);
 
-    /// 保存済みフォントサイズを復元する
-    void restoreFontSize();
-
+    /// 表の文字の大きさを変える（A-/A+）
     void applyFontSize(int size);
     void updateProgress();
 
@@ -121,6 +115,7 @@ private:
     QPointer<ElideLabel> m_engineLabel;
     QPointer<QProgressBar> m_progressBar;
     QTimer* m_reflowTimer;              ///< 再レイアウト遅延実行タイマー（thisが所有）
+    FontSizeHelper m_fontSize;          ///< 表の文字の大きさ（変更のたびに保存する）
 
     QList<int> m_columnWidths;     ///< ユーザー指定の列幅（0は自動）
     bool m_reflowAllRows = true;   ///< 次の列幅合わせで全行を測り直す（リセット・書体の変更）

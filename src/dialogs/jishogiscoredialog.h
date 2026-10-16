@@ -4,7 +4,6 @@
 #include <QDialog>
 #include <QStringList>
 
-#include "fontsizehelper.h"
 #include "jishogicalculator.h"
 
 class QGridLayout;
@@ -24,12 +23,13 @@ public:
 
 private slots:
     void copyReport();
+    /// 文字の大きさに合わせて、値の欄を折り返さない幅にする
+    void fitValueCells();
 
 private:
     QHBoxLayout* createButtons();
     void addRow(QGridLayout* grid, const QString& title, const QString& sente,
                 const QString& gote, const QString& name, bool emphasis = false);
-    void applyFontSize();
     static QString conditionText(bool met);
     static QString ruleText(const JishogiCalculator::PlayerScore& score,
                             bool inCheck, bool isSente, bool rule24);
@@ -39,7 +39,6 @@ private:
     QPushButton* m_fontIncrease = nullptr;
     QLabel* m_fontSizeLabel = nullptr;
     QStringList m_report;
-    FontSizeHelper m_fontHelper;
 };
 
 #endif // JISHOGISCOREDIALOG_H

@@ -11,7 +11,6 @@
 #include <memory>
 
 #include "csagamecoordinator.h"
-#include "fontsizehelper.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class CsaGameDialog; }
@@ -187,16 +186,10 @@ private:
      */
     void showEngineSettingsDialog(QComboBox* comboBox);
 
-    /**
-     * @brief ダイアログ全体にフォントサイズを適用する
-     */
-    void applyFontSize();
-
 private:
     std::unique_ptr<Ui::CsaGameDialog> ui; ///< UIオブジェクト
     QList<Engine> m_engineList;         ///< エンジンリスト
     QList<ServerHistory> m_serverHistory; ///< サーバー接続履歴
-    FontSizeHelper m_fontHelper;          ///< フォントサイズヘルパー
 
     // 設定値のキャッシュ
 

@@ -4,11 +4,8 @@
 /// @file engineregistrationdialog.h
 /// @brief エンジン登録ダイアログクラスの定義
 
-
 #include <QDialog>
 #include <memory>
-
-#include "fontsizehelper.h"
 
 namespace Ui {
 class EngineRegistrationDialog;
@@ -56,14 +53,8 @@ private:
     std::unique_ptr<Ui::EngineRegistrationDialog> ui;
     std::unique_ptr<EngineRegistrationHandler> m_handler;
 
-    // フォントサイズ（A-/A+）
-    FontSizeHelper m_fontHelper;
-
     // シグナル・スロットの接続を行う。
     void initializeSignals() const;
-
-    // すべてのウィジェットにフォントサイズを適用する
-    void applyFontSize();
 };
 
 #endif // ENGINEREGISTRATIONDIALOG_H

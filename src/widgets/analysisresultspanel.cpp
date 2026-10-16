@@ -2,6 +2,7 @@
 /// @brief 棋譜解析の結果ドックの中身の実装
 
 #include "analysisresultspanel.h"
+#include "fontsizecontrol.h"
 #include "tableheaderview.h"
 #include "tablemodelutils.h"
 #include "kifumovedelegate.h"
@@ -27,7 +28,11 @@
 AnalysisResultsPanel::AnalysisResultsPanel(QObject* parent)
     : QObject(parent)
     , m_reflowTimer(new QTimer(this))
+    // 未保存なら 10pt から始める
+    , m_fontSize({AnalysisSettings::kifuAnalysisFontSize.valueOr(10), 8, 24, 1,
+                  [](int size) { AnalysisSettings::kifuAnalysisFontSize.set(size); }})
 {
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &AnalysisResultsPanel::applyFontSize);
     m_reflowTimer->setSingleShot(true);
     m_reflowTimer->setInterval(0);
     connect(m_reflowTimer, &QTimer::timeout, this, &AnalysisResultsPanel::reflowNow);
@@ -151,20 +156,15 @@ void AnalysisResultsPanel::buildUi(KifuAnalysisListModel* /*model*/)
     // 利用者が見出しの境目をドラッグしたときだけ保存する（内容に合わせた自動の幅は保存しない）
     connect(header, &TableHeaderView::sectionResizedByUser, this, &AnalysisResultsPanel::saveColumnWidth);
 
-    m_fontDecrease = new QPushButton(tr("A-"), m_container);
-    m_fontIncrease = new QPushButton(tr("A+"), m_container);
+    m_fontDecrease = new QPushButton(m_container);
+    m_fontIncrease = new QPushButton(m_container);
     m_fontDecrease->setObjectName(QStringLiteral("analysisFontDecrease"));
     m_fontIncrease->setObjectName(QStringLiteral("analysisFontIncrease"));
-    m_fontDecrease->setToolTip(tr("文字サイズを縮小"));
-    m_fontIncrease->setToolTip(tr("文字サイズを拡大"));
+    new FontSizeControl(m_fontDecrease, m_fontIncrease, &m_fontSize);
     for (auto* button : {m_fontDecrease.data(), m_fontIncrease.data()}) {
         button->setFixedWidth(40);
         button->setMinimumHeight(28);
-        button->setStyleSheet(ButtonStyles::panelToolButton());
-        button->setAccessibleName(button->toolTip());
     }
-    connect(m_fontDecrease, &QPushButton::clicked, this, &AnalysisResultsPanel::decreaseFontSize);
-    connect(m_fontIncrease, &QPushButton::clicked, this, &AnalysisResultsPanel::increaseFontSize);
 
     m_stopButton = new QPushButton(tr("解析中止"), m_container);
     m_stopButton->setObjectName(QStringLiteral("analysisStopButton"));
@@ -207,7 +207,7 @@ void AnalysisResultsPanel::buildUi(KifuAnalysisListModel* /*model*/)
     lay->addWidget(hint);
 
     // 保存されたフォントサイズを復元
-    restoreFontSize();
+    applyFontSize(m_fontSize.fontSize());
 }
 
 void AnalysisResultsPanel::connectModelSignals(KifuAnalysisListModel* model)
@@ -419,35 +419,13 @@ void AnalysisResultsPanel::applyFontSize(int size)
 {
     if (!m_view) return;
     QFont font = m_view->font();
-    font.setPointSize(qBound(8, size, 24));
+    font.setPointSize(size);
     m_view->setFont(font);
     m_view->setStyleSheet(TableStyles::thinking(font.pointSize()));
     m_view->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_view->verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(m_view->font()) + 10);
-    m_fontDecrease->setEnabled(font.pointSize() > 8);
-    m_fontIncrease->setEnabled(font.pointSize() < 24);
     m_reflowAllRows = true;
     m_reflowTimer->start();
 }
 
-void AnalysisResultsPanel::increaseFontSize()
-{
-    if (!m_view) return;
-    applyFontSize(m_view->font().pointSize() + 1);
-    AnalysisSettings::kifuAnalysisFontSize.set(m_view->font().pointSize());
-}
-
-void AnalysisResultsPanel::decreaseFontSize()
-{
-    if (!m_view) return;
-    applyFontSize(m_view->font().pointSize() - 1);
-    AnalysisSettings::kifuAnalysisFontSize.set(m_view->font().pointSize());
-}
-
-void AnalysisResultsPanel::restoreFontSize()
-{
-    int size = AnalysisSettings::kifuAnalysisFontSize();
-    if (size < 8 || size > 24) size = qMax(10, m_view->font().pointSize());
-    applyFontSize(size);
-}
 

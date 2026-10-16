@@ -9,7 +9,6 @@
 #include <QDialog>
 #include <QList>
 
-#include "fontsizehelper.h"
 #include "tsumeshogigenerator.h"
 
 class QCheckBox;
@@ -77,7 +76,8 @@ private:
     void readEngineNameAndDir();
     void loadSettings();
     void saveSettings();
-    void applyFontSize();
+    /// 表の行の高さ・見た目を今の文字に合わせる
+    void fitToFont();
     void applyTableHeaderStyle();
     void setRunningState(bool running);
     void setStatusText(const QString& status);
@@ -143,9 +143,6 @@ private:
     bool m_running = false;
     bool m_stopRequested = false;
     bool m_runFailed = false;
-
-    // フォントサイズヘルパー
-    FontSizeHelper m_fontHelper;
 };
 
 #endif // TSUMESHOGIGENERATORDIALOG_H

@@ -4,12 +4,9 @@
 /// @file kifuanalysisdialog.h
 /// @brief 棋譜解析ダイアログクラスの定義
 
-
 #include "enginelistsettings.h"
 #include <QDialog>
 #include <memory>
-
-#include "fontsizehelper.h"
 
 namespace Ui {
 class KifuAnalysisDialog;
@@ -55,7 +52,6 @@ public:
 
 protected:
     void done(int result) override;
-    void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     // エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
@@ -71,7 +67,6 @@ private slots:
     void onStartPlyChanged(int value);
 
     void updateSummary();
-    void updateMinimumSize();
     
     // フォントサイズ拡大
     
@@ -106,17 +101,12 @@ private:
     // 1手あたりの思考時間（秒数）
     int m_byoyomiSec = 0;
 
-    // フォントサイズヘルパー
-    FontSizeHelper m_fontHelper;
-
     // エンジンの名前とディレクトリを格納するリスト
     QList<Engine> m_engineList;
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     void readEngineNameAndDir();
     
-    // フォントサイズを適用
-    void applyFontSize();
 
     // 範囲指定の数値欄の前後に置く文字列を設定する
     void applyRangeLabels();

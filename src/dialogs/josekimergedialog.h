@@ -4,7 +4,6 @@
 /// @file josekimergedialog.h
 /// @brief 定跡統合ダイアログクラスの定義
 
-
 #include <QDialog>
 #include <QTableWidget>
 #include <QPushButton>
@@ -18,7 +17,6 @@
 #include <QCloseEvent>
 #include <functional>
 
-#include "fontsizehelper.h"
 #include "josekitypes.h"
 
 /**
@@ -89,7 +87,8 @@ private:
     /**
      * @brief フォントサイズを適用する
      */
-    void applyFontSize();
+    /// 文字の大きさに合わせて行の高さと列の幅を決め直す
+    void fitRowsToFont();
     /// 指し手を登録する（登録して保存できたら true）
     bool registerEntries(const QList<KifuMergeEntry> &entries);
     
@@ -119,7 +118,6 @@ private:
 
     QList<KifuMergeEntry> m_entries; ///< 棋譜エントリ
     QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
-    FontSizeHelper m_fontHelper;            ///< フォントサイズヘルパー
     Registrar m_registrar;
     QButtonGroup *m_registerButtons = nullptr;  ///< 行の「登録」ボタン（id が行）
 };

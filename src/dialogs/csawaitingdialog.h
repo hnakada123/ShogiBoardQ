@@ -6,7 +6,6 @@
 
 #include <QDialog>
 #include "csagamecoordinator.h"
-#include "fontsizehelper.h"
 
 QT_BEGIN_NAMESPACE
 class CsaLogPanel;
@@ -112,11 +111,6 @@ private:
      */
     void createLogWindow();
 
-    /**
-     * @brief ダイアログのフォントサイズを適用する
-     */
-    void applyFontSize();
-
 private:
     CsaGameCoordinator* m_coordinator = nullptr;  ///< CSA通信対局コーディネータ
     QLabel* m_statusLabel = nullptr;              ///< 状態表示ラベル
@@ -128,7 +122,6 @@ private:
     // フォントサイズ調整ボタン（ダイアログ本体）
     QToolButton* m_btnFontIncrease = nullptr;    ///< A+ボタン
     QToolButton* m_btnFontDecrease = nullptr;    ///< A-ボタン
-    FontSizeHelper m_fontHelper;                   ///< ダイアログのフォントサイズヘルパー
 
     // 通信ログウィンドウ（中身は CSA 通信ログのドックと同じ部品。ダイアログを作ったときから受信を記録する）
     QDialog* m_logWindow = nullptr;

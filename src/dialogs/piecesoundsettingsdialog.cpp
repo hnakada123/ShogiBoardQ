@@ -3,6 +3,7 @@
 
 #include "piecesoundsettingsdialog.h"
 #include "piecesoundplayer.h"
+#include "appsettings.h"
 #include "dialogfontscale.h"
 #include "countspinbox.h"
 #include <QSpinBox>
@@ -126,7 +127,7 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
         control.slider->setAccessibleName(control.title);
         connect(control.input, &QSpinBox::valueChanged, control.slider, &QSlider::setValue);
     }
-    DialogFontScale::install(this, QStringLiteral("pieceSound"), true);
+    DialogFontScale::install(this, AppSettings::pieceSoundDialogFontSize, {&AppSettings::pieceSoundDialogSize});
 
     // 初期値を反映してから接続する（初期化で試聴しないため）
     applySliders(m_initialVolume, m_initialTone);
