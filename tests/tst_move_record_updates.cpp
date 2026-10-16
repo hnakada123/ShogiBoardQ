@@ -164,8 +164,9 @@ private slots:
     {
         QWidget host;
         auto* layout = new QVBoxLayout(&host);
-        CommentEditorPanel panel;
-        layout->addWidget(panel.buildCommentUi(&host));
+        // パネルは host の子にする（host が消す）
+        CommentEditorPanel& panel = *new CommentEditorPanel(&host);
+        layout->addWidget(&panel);
         host.show();
         QVERIFY(QTest::qWaitForWindowExposed(&host));
         auto* label = host.findChild<QLabel*>(QStringLiteral("kifuCommentPosition"));
@@ -192,8 +193,9 @@ private slots:
     {
         QWidget host;
         auto* layout = new QVBoxLayout(&host);
-        CommentEditorPanel panel;
-        layout->addWidget(panel.buildCommentUi(&host));
+        // パネルは host の子にする（host が消す）
+        CommentEditorPanel& panel = *new CommentEditorPanel(&host);
+        layout->addWidget(&panel);
         host.resize(360, 200);
         host.show();
         QVERIFY(QTest::qWaitForWindowExposed(&host));

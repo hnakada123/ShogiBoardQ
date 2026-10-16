@@ -4,7 +4,7 @@
 /// @file branchtreemanager.h
 /// @brief 分岐ツリードックの描画・強調・クリック
 
-#include <QObject>
+#include <QWidget>
 
 #include "branchtreelayout.h"
 #include <QList>
@@ -32,7 +32,7 @@ class QPen;
 /**
  * @brief 分岐ツリーのグラフ構築・ハイライト・クリック検出を担うマネージャ
  *
- * 描く QGraphicsView は buildView() で作る（テストでは setView() で渡してもよい）。
+ * 分岐ツリードックの中身。描く QGraphicsView（view()）はコンストラクタで作る。
  *
  * 棋譜の分岐構造は KifuBranchTree を読むだけで、自分では手順や局面を持たない（読み取り専用の観察者）。
  * 各ノードの図形には KifuBranchNode の ID（ROLE_NODE_ID）を持たせ、手のつながり・表示内容・
@@ -42,12 +42,12 @@ class QPen;
  * 手は、その手を初めて含むライン（変化の先頭以降）の行に描く。
  * 画面上の段（lane）は描画用で、詰めて表示する場合は変化を親の手順のすぐ下の空いた段に置く。
  */
-class BranchTreeManager : public QObject
+class BranchTreeManager : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit BranchTreeManager(QObject* parent = nullptr);
+    explicit BranchTreeManager(QWidget* parent = nullptr);
     ~BranchTreeManager() override;
 
     // --- 定数 ---
@@ -65,10 +65,8 @@ public:
     static constexpr int kMinZoomPercent = 50;
     static constexpr int kMaxZoomPercent = 200;
 
-    // --- QGraphicsView 受け取り ---
-    void setView(QGraphicsView* view);
-    /// 分岐ツリードックの中身（ツリーを描く QGraphicsView）を作って受け取る
-    QGraphicsView* buildView(QWidget* parent);
+    /// ツリーを描く QGraphicsView
+    QGraphicsView* view() const { return m_branchTree; }
 
     // --- 公開API ---
     /**

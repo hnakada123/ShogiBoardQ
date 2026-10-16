@@ -8,7 +8,6 @@
 #include "kifumovedelegate.h"
 #include "logcategories.h"
 #include "buttonstyles.h"
-#include <QDockWidget>
 #include <QTableView>
 #include <QHeaderView>
 #include <QVBoxLayout>
@@ -25,8 +24,8 @@
 #include "numericrightaligncommadelegate.h"
 #include "kifuanalysislistmodel.h"
 
-AnalysisResultsPanel::AnalysisResultsPanel(QObject* parent)
-    : QObject(parent)
+AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
+    : QWidget(parent)
     , m_reflowTimer(new QTimer(this))
     // 未保存なら 10pt から始める
     , m_fontSize({AnalysisSettings::kifuAnalysisFontSize.valueOr(10), 8, 24, 1,
@@ -36,74 +35,8 @@ AnalysisResultsPanel::AnalysisResultsPanel(QObject* parent)
     m_reflowTimer->setSingleShot(true);
     m_reflowTimer->setInterval(0);
     connect(m_reflowTimer, &QTimer::timeout, this, &AnalysisResultsPanel::reflowNow);
-}
 
-void AnalysisResultsPanel::setDockWidget(QDockWidget* dock)
-{
-    m_dock = dock;
-}
-
-QWidget* AnalysisResultsPanel::containerWidget()
-{
-    if (!m_container) {
-        m_container = new QWidget;
-    }
-
-    if (!m_uiBuilt) {
-        buildUi(nullptr);
-        m_uiBuilt = true;
-    }
-
-    return m_container;
-}
-
-void AnalysisResultsPanel::showWithModel(KifuAnalysisListModel* model)
-{
-    if (!m_uiBuilt) {
-        buildUi(nullptr);
-        m_uiBuilt = true;
-    }
-
-    // モデルを設定（既存の接続を切断してから新しいモデルを設定）
-    if (m_view) {
-        // 古いモデルの接続を切断
-        QAbstractItemModel* oldModel = m_view->model();
-        if (oldModel) {
-            disconnect(oldModel, nullptr, this, nullptr);
-        }
-        // 古いselectionModelの接続も切断
-        if (m_view->selectionModel()) {
-            disconnect(m_view->selectionModel(), nullptr, this, nullptr);
-        }
-
-        // 新しいモデルを設定
-        if (model) {
-            TableModelUtils::setModel(m_view, model);
-            connectModelSignals(model);
-            setupHeaderConfiguration();
-
-            // selectionModelの接続（モデル設定後に行う必要がある）
-            connect(m_view->selectionModel(), &QItemSelectionModel::currentRowChanged,
-                    this, &AnalysisResultsPanel::onTableSelectionChanged);
-        }
-    }
-
-    if (m_dock) {
-        m_dock->setVisible(true);
-        m_dock->raise();
-    }
-
-    m_reflowAllRows = true;
-    m_reflowTimer->start();
-}
-
-void AnalysisResultsPanel::buildUi(KifuAnalysisListModel* /*model*/)
-{
-    if (!m_container) {
-        m_container = new QWidget;
-    }
-
-    m_view = new QTableView(m_container);
+    m_view = new QTableView(this);
     m_view->setObjectName(QStringLiteral("analysisResultsTable"));
 
     // ヘッダー表示用に空のモデルを作成（起動時からヘッダーを表示するため）
@@ -156,23 +89,23 @@ void AnalysisResultsPanel::buildUi(KifuAnalysisListModel* /*model*/)
     // 利用者が見出しの境目をドラッグしたときだけ保存する（内容に合わせた自動の幅は保存しない）
     connect(header, &TableHeaderView::sectionResizedByUser, this, &AnalysisResultsPanel::saveColumnWidth);
 
-    m_fontDecrease = new QPushButton(m_container);
-    m_fontIncrease = new QPushButton(m_container);
+    m_fontDecrease = new QPushButton(this);
+    m_fontIncrease = new QPushButton(this);
     m_fontDecrease->setObjectName(QStringLiteral("analysisFontDecrease"));
     m_fontIncrease->setObjectName(QStringLiteral("analysisFontIncrease"));
     new FontSizeControl(m_fontDecrease, m_fontIncrease, &m_fontSize);
-    for (auto* button : {m_fontDecrease.data(), m_fontIncrease.data()}) {
+    for (auto* button : {m_fontDecrease, m_fontIncrease}) {
         button->setFixedWidth(40);
         button->setMinimumHeight(28);
     }
 
-    m_stopButton = new QPushButton(tr("解析中止"), m_container);
+    m_stopButton = new QPushButton(tr("解析中止"), this);
     m_stopButton->setObjectName(QStringLiteral("analysisStopButton"));
     m_stopButton->setStyleSheet(ButtonStyles::dangerStop());
     m_stopButton->setEnabled(false);
     connect(m_stopButton, &QPushButton::clicked, this, &AnalysisResultsPanel::stopRequested);
 
-    m_engineLabel = new ElideLabel(m_container);
+    m_engineLabel = new ElideLabel(this);
     m_engineLabel->setObjectName(QStringLiteral("analysisEngineLabel"));
     m_engineLabel->setTextFormat(Qt::PlainText);
     auto* buttonLayout = new QHBoxLayout;
@@ -182,10 +115,10 @@ void AnalysisResultsPanel::buildUi(KifuAnalysisListModel* /*model*/)
     buttonLayout->addWidget(m_fontDecrease);
     buttonLayout->addWidget(m_fontIncrease);
 
-    m_statusLabel = new QLabel(tr("解析条件を設定して、棋譜解析を開始してください。"), m_container);
+    m_statusLabel = new QLabel(tr("解析条件を設定して、棋譜解析を開始してください。"), this);
     m_statusLabel->setObjectName(QStringLiteral("analysisStatusLabel"));
     m_statusLabel->setWordWrap(true);
-    m_progressBar = new QProgressBar(m_container);
+    m_progressBar = new QProgressBar(this);
     m_progressBar->setObjectName(QStringLiteral("analysisProgressBar"));
     m_progressBar->setAccessibleName(tr("解析の進捗"));
     m_progressBar->setRange(0, 1);
@@ -196,9 +129,9 @@ void AnalysisResultsPanel::buildUi(KifuAnalysisListModel* /*model*/)
     progressLayout->addWidget(m_statusLabel, 1);
     progressLayout->addWidget(m_progressBar);
 
-    auto* hint = new QLabel(tr("評価値は先手視点（＋: 先手有利／−: 後手有利）。行を選択すると局面へ移動し、「表示」で読み筋を確認できます。"), m_container);
+    auto* hint = new QLabel(tr("評価値は先手視点（＋: 先手有利／−: 後手有利）。行を選択すると局面へ移動し、「表示」で読み筋を確認できます。"), this);
     hint->setWordWrap(true);
-    auto* lay = new QVBoxLayout(m_container);
+    auto* lay = new QVBoxLayout(this);
     lay->setContentsMargins(8, 8, 8, 8);
     lay->setSpacing(8);
     lay->addLayout(buttonLayout);
@@ -208,6 +141,21 @@ void AnalysisResultsPanel::buildUi(KifuAnalysisListModel* /*model*/)
 
     // 保存されたフォントサイズを復元
     applyFontSize(m_fontSize.fontSize());
+}
+
+void AnalysisResultsPanel::setModel(KifuAnalysisListModel* model)
+{
+    if (!model || m_view->model() == model) return;
+    // 前のモデル（初めは見出しを出すための空のモデル）の通知を切ってから替える
+    disconnect(m_view->model(), nullptr, this, nullptr);
+    disconnect(m_view->selectionModel(), nullptr, this, nullptr);
+    TableModelUtils::setModel(m_view, model);
+    connectModelSignals(model);
+    setupHeaderConfiguration();
+    connect(m_view->selectionModel(), &QItemSelectionModel::currentRowChanged,
+            this, &AnalysisResultsPanel::onTableSelectionChanged);
+    m_reflowAllRows = true;
+    m_reflowTimer->start();
 }
 
 void AnalysisResultsPanel::connectModelSignals(KifuAnalysisListModel* model)
@@ -221,8 +169,6 @@ void AnalysisResultsPanel::connectModelSignals(KifuAnalysisListModel* model)
 
 void AnalysisResultsPanel::setupHeaderConfiguration()
 {
-    if (!m_header) return;
-
     m_header->setSectionResizeMode(QHeaderView::Interactive);
     m_header->setStretchLastSection(true);
     m_header->resizeSection(7, 320);
@@ -230,7 +176,6 @@ void AnalysisResultsPanel::setupHeaderConfiguration()
 
 void AnalysisResultsPanel::reflowNow()
 {
-    if (!m_view || !m_header) return;
     // ユーザーが調整した列幅を保ち、自動列だけを内容に合わせて広げる。
     static const int minWidths[] = {140, 120, 50, 85, 110, 85, 60};
     QAbstractItemModel* model = m_view->model();
@@ -281,29 +226,14 @@ void AnalysisResultsPanel::onRowsInserted(const QModelIndex&, int first, int)
 
     updateProgress();
 
-    // 解析中は最後に確定した行を強調する。
-    if (m_isAnalyzing && m_view) {
-        // 自動選択中はシグナル発行をスキップするためフラグを立てる
-        m_autoSelecting = true;
-
-        // 最後に追加された行を選択
-        QAbstractItemModel* model = m_view->model();
-        if (model) {
-            int lastRow = model->rowCount() - 1;
-            if (lastRow >= 0) {
-                // 一時的に選択モードをSingleSelectionに変更（setCurrentIndexを機能させるため）
-                m_view->setSelectionMode(QAbstractItemView::SingleSelection);
-
-                QModelIndex idx = model->index(lastRow, 0);
-                m_view->setCurrentIndex(idx);
-                m_view->scrollTo(idx);  // 最後の行が見えるようにスクロール
-
-                // 選択モードをNoSelectionに戻す（ユーザークリックを無効化）
-                m_view->setSelectionMode(QAbstractItemView::NoSelection);
-            }
+    // 解析中は最後に確定した行を選んで見せる（解析中の選択の通知は onTableSelectionChanged が無視する）
+    if (m_isAnalyzing) {
+        const int lastRow = m_view->model()->rowCount() - 1;
+        if (lastRow >= 0) {
+            const QModelIndex index = m_view->model()->index(lastRow, 0);
+            m_view->setCurrentIndex(index);
+            m_view->scrollTo(index);
         }
-
-        m_autoSelecting = false;
     }
 }
 
@@ -321,28 +251,15 @@ void AnalysisResultsPanel::onLayoutChanged()
 
 void AnalysisResultsPanel::setStopButtonEnabled(bool enabled)
 {
-    if (m_stopButton) {
-        m_stopButton->setEnabled(enabled);
-    }
+    m_stopButton->setEnabled(enabled);
 
     // 解析中フラグを更新（enabled=true: 解析中, enabled=false: 解析終了）
     const bool wasAnalyzing = m_isAnalyzing;
     m_isAnalyzing = enabled;
-    if (!enabled && wasAnalyzing && m_statusLabel) {
+    if (!enabled && wasAnalyzing) {
         m_progressBar->setValue(qMin(m_view->model()->rowCount(), m_totalPositions));
         m_statusLabel->setText(tr("解析中止 · %1 / %2局面を解析済み")
             .arg(m_view->model()->rowCount()).arg(m_totalPositions));
-    }
-
-    // 解析中はテーブルのクリック操作を無効化
-    if (m_view) {
-        if (enabled) {
-            // 解析中: 選択不可（ただし自動選択は可能）
-            m_view->setSelectionMode(QAbstractItemView::NoSelection);
-        } else {
-            // 解析終了: 選択可能に戻す
-            m_view->setSelectionMode(QAbstractItemView::SingleSelection);
-        }
     }
 }
 
@@ -368,13 +285,7 @@ void AnalysisResultsPanel::onTableSelectionChanged(const QModelIndex& current, c
 {
     if (!current.isValid()) return;
 
-    // 自動選択中（解析中の行追加時）はシグナル発行をスキップ
-    // （解析中は既にanalysisProgressReportedで盤面更新済みのため）
-    if (m_autoSelecting) {
-        return;
-    }
-
-    // 解析中は選択変更を無視（NoSelectionモードなので通常来ないが念のため）
+    // 解析中の選択（最後に確定した行を選んだとき）は知らせない。棋譜は解析の進み具合で移している
     if (m_isAnalyzing) {
         return;
     }
@@ -396,8 +307,7 @@ void AnalysisResultsPanel::beginAnalysis(int totalPositions, const QString& engi
 
 void AnalysisResultsPanel::updateProgress()
 {
-    if (!m_view || !m_statusLabel) return;
-    const int count = m_view->model() ? m_view->model()->rowCount() : 0;
+    const int count = m_view->model()->rowCount();
     m_progressBar->setValue(qMin(count, m_totalPositions));
     if (m_isAnalyzing) {
         m_statusLabel->setText(tr("解析中 · %1 / %2局面を解析済み").arg(count).arg(m_totalPositions));
@@ -417,7 +327,6 @@ void AnalysisResultsPanel::showAnalysisComplete(int totalMoves)
 
 void AnalysisResultsPanel::applyFontSize(int size)
 {
-    if (!m_view) return;
     QFont font = m_view->font();
     font.setPointSize(size);
     m_view->setFont(font);

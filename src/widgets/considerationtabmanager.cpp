@@ -26,10 +26,24 @@
 #include <QVBoxLayout>
 #include <initializer_list>
 
-ConsiderationTabManager::ConsiderationTabManager(QObject* parent)
-    : QObject(parent)
+ConsiderationTabManager::ConsiderationTabManager(QWidget* parent)
+    : QWidget(parent)
     , m_considerationFontSize(AnalysisSettings::considerationFontSize, 8, 24)
 {
+    auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(4, 4, 4, 4);
+    layout->setSpacing(4);
+    buildToolbarControls();
+    layoutToolbar();
+    loadEnginesAndSettings();
+    buildConsiderationView();
+
+    // 保存されている文字の大きさを適用
+    applyFontSize();
+
+    layout->addWidget(m_considerationToolbar);
+    layout->addWidget(m_considerationInfo);
+    layout->addWidget(m_considerationView, 1);
 }
 
 ConsiderationTabManager::~ConsiderationTabManager()
@@ -54,14 +68,12 @@ void ConsiderationTabManager::onControlChanged()
 {
     // 画面の値を読み直し、変わった条件を保存して知らせる
     ConsiderationSettings next = m_settings;
-    if (m_engineSelector) {
-        const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected();
-        next.engineName = engine ? engine->name : QString();
-    }
-    if (m_unlimitedTimeRadioButton) next.unlimitedTime = m_unlimitedTimeRadioButton->isChecked();
-    if (m_byoyomiSecSpinBox) next.byoyomiSec = m_byoyomiSecSpinBox->value();
-    if (m_multiPVComboBox) next.multiPV = m_multiPVComboBox->currentData().toInt();
-    if (m_showArrowsCheckBox) next.showArrows = m_showArrowsCheckBox->isChecked();
+    const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected();
+    next.engineName = engine ? engine->name : QString();
+    next.unlimitedTime = m_unlimitedTimeRadioButton->isChecked();
+    next.byoyomiSec = m_byoyomiSecSpinBox->value();
+    next.multiPV = m_multiPVComboBox->currentData().toInt();
+    next.showArrows = m_showArrowsCheckBox->isChecked();
     updateTimeControls();
     if (next == m_settings) return;
     m_settings = next;
@@ -77,12 +89,11 @@ void ConsiderationTabManager::showSettings()
     const QSignalBlocker secondsBlocker(m_byoyomiSecSpinBox);
     const QSignalBlocker multiPVBlocker(m_multiPVComboBox);
     const QSignalBlocker arrowsBlocker(m_showArrowsCheckBox);
-    if (m_engineSelector) m_engineSelector->select(m_settings.engineName);
-    if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton)
-        (m_settings.unlimitedTime ? m_unlimitedTimeRadioButton : m_considerationTimeRadioButton)->setChecked(true);
-    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setValue(m_settings.byoyomiSec);
-    if (m_multiPVComboBox) m_multiPVComboBox->setCurrentIndex(m_settings.multiPV - 1);
-    if (m_showArrowsCheckBox) m_showArrowsCheckBox->setChecked(m_settings.showArrows);
+    m_engineSelector->select(m_settings.engineName);
+    (m_settings.unlimitedTime ? m_unlimitedTimeRadioButton : m_considerationTimeRadioButton)->setChecked(true);
+    m_byoyomiSecSpinBox->setValue(m_settings.byoyomiSec);
+    m_multiPVComboBox->setCurrentIndex(m_settings.multiPV - 1);
+    m_showArrowsCheckBox->setChecked(m_settings.showArrows);
     updateTimeControls();
 }
 
@@ -126,7 +137,7 @@ void ConsiderationTabManager::loadEnginesAndSettings()
 
 void ConsiderationTabManager::setConsiderationEngineName(const QString& name)
 {
-    if (m_considerationInfo) m_considerationInfo->setDisplayNameFallback(name);
+    m_considerationInfo->setDisplayNameFallback(name);
 }
 
 // ===================== 実行の状態 =====================
@@ -142,10 +153,10 @@ void ConsiderationTabManager::setRunState(RunState state)
     case RunState::Running:
         // 局面ごと・候補手の数を変えるたびに数え直す
         resetElapsedTime();
-        if (m_elapsedTimer) m_elapsedTimer->start();
+        m_elapsedTimer->start();
         break;
     case RunState::Waiting:
-        if (m_elapsedTimer) m_elapsedTimer->stop();
+        m_elapsedTimer->stop();
         break;
     }
     // 時間設定は開始時にエンジンへ渡す。実行中に表示だけ変更されないよう固定する。
@@ -155,7 +166,6 @@ void ConsiderationTabManager::setRunState(RunState state)
 
 void ConsiderationTabManager::updateRunButton()
 {
-    if (!m_btnStopConsideration) return;
     const bool running = m_runState != RunState::Idle;
     m_btnStopConsideration->setText(running ? tr("検討中止") : tr("検討開始"));
     m_btnStopConsideration->setToolTip(running ? tr("検討を中止してエンジンを停止します") : tr("検討を開始します"));
@@ -179,9 +189,9 @@ void ConsiderationTabManager::setStartConsiderationEnabled(bool enabled)
 
 void ConsiderationTabManager::resetElapsedTime()
 {
-    if (m_elapsedTimer) m_elapsedTimer->stop();
+    m_elapsedTimer->stop();
     m_elapsedSeconds = 0;
-    if (m_elapsedTimeLabel) m_elapsedTimeLabel->setText(tr("経過: 0:00"));
+    m_elapsedTimeLabel->setText(tr("経過: 0:00"));
 }
 
 void ConsiderationTabManager::onElapsedTimerTick()
@@ -190,14 +200,12 @@ void ConsiderationTabManager::onElapsedTimerTick()
     // 時間を決めた検討は、その秒数で止める
     const int limit = m_settings.unlimitedTime ? 0 : m_settings.byoyomiSec;
     if (limit > 0 && m_elapsedSeconds >= limit) {
-        if (m_elapsedTimer) m_elapsedTimer->stop();
+        m_elapsedTimer->stop();
         m_elapsedSeconds = limit;
     }
-    if (m_elapsedTimeLabel) {
-        m_elapsedTimeLabel->setText(tr("経過: %1:%2")
-            .arg(m_elapsedSeconds / 60)
-            .arg(m_elapsedSeconds % 60, 2, 10, QLatin1Char('0')));
-    }
+    m_elapsedTimeLabel->setText(tr("経過: %1:%2")
+        .arg(m_elapsedSeconds / 60)
+        .arg(m_elapsedSeconds % 60, 2, 10, QLatin1Char('0')));
 }
 
 // ===================== 設定の操作 =====================
@@ -206,55 +214,26 @@ void ConsiderationTabManager::updateTimeControls()
 {
     const bool idle = m_runState == RunState::Idle;
     const bool unlimited = !m_unlimitedTimeRadioButton || m_unlimitedTimeRadioButton->isChecked();
-    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setEnabled(idle);
-    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setEnabled(idle);
+    m_unlimitedTimeRadioButton->setEnabled(idle);
+    m_considerationTimeRadioButton->setEnabled(idle);
     const bool enabled = idle && !unlimited;
-    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setEnabled(enabled);
-    if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setEnabled(enabled);
+    m_byoyomiSecSpinBox->setEnabled(enabled);
+    m_byoyomiSecUnitLabel->setEnabled(enabled);
 }
 
 // ============================================================
 // ConsiderationTabManager のUI構築・フォント管理
 // ============================================================
 
-QWidget* ConsiderationTabManager::buildUi(QWidget* parent)
-{
-    auto* page = new QWidget(parent);
-    auto* layout = new QVBoxLayout(page);
-    layout->setContentsMargins(4, 4, 4, 4);
-    layout->setSpacing(4);
-    buildConsiderationUi(page);
-    return page;
-}
-
 void ConsiderationTabManager::clearViewSelection(const ShogiEngineThinkingModel* model)
 {
-    if (m_considerationView && m_considerationView->thinkingModel() == model) m_considerationView->clearRowSelection();
+    if (m_considerationView->thinkingModel() == model) m_considerationView->clearRowSelection();
 }
 
-void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
-{
-    buildToolbarControls(parentWidget);
-    layoutToolbar();
-    loadEnginesAndSettings();
-    buildConsiderationView(parentWidget);
-
-    // 保存されている文字の大きさを適用
-    applyFontSize();
-
-    // parentWidget のレイアウトに追加
-    auto* layout = qobject_cast<QVBoxLayout*>(parentWidget->layout());
-    if (layout) {
-        layout->addWidget(m_considerationToolbar);
-        layout->addWidget(m_considerationInfo);
-        layout->addWidget(m_considerationView, 1);
-    }
-}
-
-void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
+void ConsiderationTabManager::buildToolbarControls()
 {
     // ツールバー（FlowLayout使用）
-    m_considerationToolbar = new QWidget(parentWidget);
+    m_considerationToolbar = new QWidget(this);
     m_considerationToolbar->setObjectName(QStringLiteral("considerationToolbar"));
 
     // 文字の大きさ（A-/A+。ボタンの寸法は applyFontSize が文字に合わせる）
@@ -356,15 +335,15 @@ void ConsiderationTabManager::layoutToolbar()
     addGroup({m_elapsedTimeLabel, m_btnStopConsideration});
 }
 
-void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
+void ConsiderationTabManager::buildConsiderationView()
 {
     // EngineInfoWidget（検討タブ用）
-    m_considerationInfo = new EngineInfoWidget(AnalysisSettings::ThinkingTable::Consideration, parentWidget, false);
+    m_considerationInfo = new EngineInfoWidget(AnalysisSettings::ThinkingTable::Consideration, this, false);
     m_considerationInfo->setObjectName(QStringLiteral("considerationInfo"));
     m_considerationInfo->setFontSize(m_considerationFontSize.fontSize());
 
     // 読み筋の表
-    m_considerationView = new ThinkingTableView(AnalysisSettings::ThinkingTable::Consideration, parentWidget);
+    m_considerationView = new ThinkingTableView(AnalysisSettings::ThinkingTable::Consideration, this);
     m_considerationView->setObjectName(QStringLiteral("considerationView"));
     connect(m_considerationView, &ThinkingTableView::pvRowClicked, this, &ConsiderationTabManager::pvRowClicked);
 
@@ -378,7 +357,7 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
 void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingModel* m)
 {
     m_considerationModel = m;
-    if (m_considerationView && m) m_considerationView->setThinkingModel(m);
+    if (m) m_considerationView->setThinkingModel(m);
 }
 
 // ===================== スロット（UI関連） =====================
@@ -395,42 +374,34 @@ void ConsiderationTabManager::applyFontSize()
         const QFontMetrics fm(font);
         const int btnW = qMax(36, fm.horizontalAdvance(QStringLiteral("A+")) + 8);
         const int btnH = qMax(24, fm.height() + 4);
-        if (m_btnConsiderationFontDecrease) {
-            m_btnConsiderationFontDecrease->setFont(font);
-            m_btnConsiderationFontDecrease->setFixedSize(btnW, btnH);
-        }
-        if (m_btnConsiderationFontIncrease) {
-            m_btnConsiderationFontIncrease->setFont(font);
-            m_btnConsiderationFontIncrease->setFixedSize(btnW, btnH);
-        }
+        m_btnConsiderationFontDecrease->setFont(font);
+        m_btnConsiderationFontDecrease->setFixedSize(btnW, btnH);
+        m_btnConsiderationFontIncrease->setFont(font);
+        m_btnConsiderationFontIncrease->setFixedSize(btnW, btnH);
     }
-    if (m_engineComboBox) m_engineComboBox->setFont(font);
-    if (m_btnEngineSettings) m_btnEngineSettings->setFont(font);
-    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setFont(font);
-    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setFont(font);
-    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setFont(font);
-    if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setFont(font);
-    if (m_elapsedTimeLabel) {
-        m_elapsedTimeLabel->setFont(font);
-        m_elapsedTimeLabel->setMinimumWidth(QFontMetrics(font).horizontalAdvance(tr("経過: 000:00")));
+    m_engineComboBox->setFont(font);
+    m_btnEngineSettings->setFont(font);
+    m_unlimitedTimeRadioButton->setFont(font);
+    m_considerationTimeRadioButton->setFont(font);
+    m_byoyomiSecSpinBox->setFont(font);
+    m_byoyomiSecUnitLabel->setFont(font);
+    m_elapsedTimeLabel->setFont(font);
+    m_elapsedTimeLabel->setMinimumWidth(QFontMetrics(font).horizontalAdvance(tr("経過: 000:00")));
+    m_multiPVLabel->setFont(font);
+    m_multiPVComboBox->setFont(font);
+    m_showArrowsCheckBox->setFont(font);
+    m_btnStopConsideration->setFont(font);
+    // 開始・中止で幅が変わるとツールバーの折り返しが変わり、下の表が上下に動くため、
+    // 長い方の表示に合わせる
+    const QString currentText = m_btnStopConsideration->text();
+    int width = 0;
+    for (const QString& text : {tr("検討開始"), tr("検討中止")}) {
+        m_btnStopConsideration->setText(text);
+        width = qMax(width, m_btnStopConsideration->sizeHint().width());
     }
-    if (m_multiPVLabel) m_multiPVLabel->setFont(font);
-    if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
-    if (m_showArrowsCheckBox) m_showArrowsCheckBox->setFont(font);
-    if (m_btnStopConsideration) {
-        m_btnStopConsideration->setFont(font);
-        // 開始・中止で幅が変わるとツールバーの折り返しが変わり、下の表が上下に動くため、
-        // 長い方の表示に合わせる
-        const QString currentText = m_btnStopConsideration->text();
-        int width = 0;
-        for (const QString& text : {tr("検討開始"), tr("検討中止")}) {
-            m_btnStopConsideration->setText(text);
-            width = qMax(width, m_btnStopConsideration->sizeHint().width());
-        }
-        m_btnStopConsideration->setText(currentText);
-        m_btnStopConsideration->setMinimumWidth(width);
-    }
+    m_btnStopConsideration->setText(currentText);
+    m_btnStopConsideration->setMinimumWidth(width);
 
-    if (m_considerationInfo) m_considerationInfo->setFontSize(size);
-    if (m_considerationView) m_considerationView->setFontPointSize(size);
+    m_considerationInfo->setFontSize(size);
+    m_considerationView->setFontPointSize(size);
 }

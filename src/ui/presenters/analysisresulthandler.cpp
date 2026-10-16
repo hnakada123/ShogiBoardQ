@@ -148,10 +148,7 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
         usiMoves = usiPvStr.split(QLatin1Char(' '), Qt::SkipEmptyParts);
     }
 
-    QWidget* parentWidget = nullptr;
-    if (m_refs.presenter && m_refs.presenter->container()) {
-        parentWidget = m_refs.presenter->container();
-    }
+    QWidget* parentWidget = m_refs.presenter;
 
     auto* dlg = new PvBoardDialog(baseSfen, usiMoves, parentWidget);
     dlg->setKanjiPv(kanjiPv);

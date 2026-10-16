@@ -52,12 +52,12 @@
         <translation>(Book)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="159"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="156"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="160"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="157"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -65,7 +65,7 @@
 <context>
     <name>AnalysisResultsPanel</name>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="126"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="59"/>
         <source>棋譜解析結果</source>
         <translation>Analysis Results</translation>
     </message>
@@ -86,38 +86,38 @@
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="169"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="102"/>
         <source>解析中止</source>
         <translation>Stop analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="185"/>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="405"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="118"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="315"/>
         <source>解析条件を設定して、棋譜解析を開始してください。</source>
         <translation>Choose analysis settings to start analyzing the game.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="190"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="123"/>
         <source>解析の進捗</source>
         <translation>Analysis progress</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="199"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="132"/>
         <source>評価値は先手視点（＋: 先手有利／−: 後手有利）。行を選択すると局面へ移動し、「表示」で読み筋を確認できます。</source>
         <translation>Scores are from Black’s perspective (+ favors Black / − favors White). Select a row to navigate; choose Show to view the continuation.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="333"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="261"/>
         <source>解析中止 · %1 / %2局面を解析済み</source>
         <translation>Stopped · %1 / %2 positions analyzed</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="403"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="313"/>
         <source>解析中 · %1 / %2局面を解析済み</source>
         <translation>Analyzing · %1 / %2 positions analyzed</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="414"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="324"/>
         <source>解析完了 · %1局面</source>
         <translation>Analysis complete · %1 positions</translation>
     </message>
@@ -1381,37 +1381,37 @@ This cannot be undone.</translation>
         <translation>Starting Position</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="470"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="452"/>
         <source>この変化を展開する</source>
         <translation>Expand this variation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="471"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="453"/>
         <source>この変化を折りたたむ</source>
         <translation>Collapse this variation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="475"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="457"/>
         <source>すべての変化を展開する</source>
         <translation>Expand all variations</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="477"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="459"/>
         <source>変化を詰めて表示する</source>
         <translation>Compact layout</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="481"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="463"/>
         <source>拡大</source>
         <translation>Zoom in</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="483"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="465"/>
         <source>縮小</source>
         <translation>Zoom out</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="485"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="467"/>
         <source>標準の大きさ（100%）</source>
         <translation>Actual size (100%)</translation>
     </message>
@@ -1575,42 +1575,42 @@ Author: %1</translation>
         <translation type="obsolete">View/Edit comments</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="69"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="59"/>
         <source>この局面のコメントを入力できます</source>
         <translation>Enter a comment for this position</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="70"/>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="451"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="60"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="430"/>
         <source>リンクは Ctrl+クリックで開きます</source>
         <translation>Ctrl+click to open links</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="161"/>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="178"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="151"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="167"/>
         <source>開始局面</source>
         <translation>Starting position</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="161"/>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="178"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="151"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="167"/>
         <source>%1手目</source>
         <translation>Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="201"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="189"/>
         <source>未保存のコメント</source>
         <translation>Unsaved Comment</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="202"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="190"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation>The comment has been edited but not updated yet.
 Discard the changes and move?</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="204"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="192"/>
         <source>破棄して移動</source>
         <translation>Discard and Move</translation>
     </message>
@@ -1623,42 +1623,42 @@ Discard the changes and move?</translation>
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="390"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="369"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>Undo (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="397"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="376"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>Redo (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="404"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="383"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>Cut (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="411"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="390"/>
         <source>コピー (Ctrl+C)</source>
         <translation>Copy (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="418"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="397"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="423"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="402"/>
         <source>修正中</source>
         <translation>Editing</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="427"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="406"/>
         <source>コメント更新</source>
         <translation>Update Comment</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="429"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="408"/>
         <source>編集したコメントを棋譜に反映する (Ctrl+Enter)</source>
         <translation>Apply the edited comment to the game record (Ctrl+Enter)</translation>
     </message>
@@ -1753,47 +1753,47 @@ Discard the changes and move?</translation>
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="270"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="249"/>
         <source>検討に使用するエンジンを選択します</source>
         <translation>Select the engine for analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="276"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="255"/>
         <source>エンジン設定</source>
         <translation>Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="278"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="257"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation>Configure the selected engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="283"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="262"/>
         <source>時間無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="285"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="264"/>
         <source>時間制限なしで検討します</source>
         <translation>Analyze without a time limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="288"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="267"/>
         <source>検討時間</source>
         <translation>Analysis Time</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="290"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="269"/>
         <source>指定した秒数まで検討します</source>
         <translation>Analyze for the specified number of seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="297"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="276"/>
         <source>検討時間（秒）を指定します</source>
         <translation>Set the analysis time in seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="300"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="279"/>
         <source>秒まで</source>
         <translation>seconds</translation>
     </message>
@@ -1802,67 +1802,67 @@ Discard the changes and move?</translation>
         <translation type="vanished">Show</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="415"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="389"/>
         <source>経過: 000:00</source>
         <translation>Elapsed: 000:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="184"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="303"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="194"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="282"/>
         <source>経過: 0:00</source>
         <translation>Elapsed: 0:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="305"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="284"/>
         <source>検討開始からの経過時間</source>
         <translation>Elapsed time since consideration started</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="314"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="293"/>
         <source>候補手の数</source>
         <translation>Candidate moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="318"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="297"/>
         <source>%1手</source>
         <translation>%1 moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="321"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="300"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation>Specify the number of candidate moves to display in order of evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="324"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="303"/>
         <source>矢印表示</source>
         <translation>Show Arrows</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="326"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="305"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation>Displays arrows for the best moves on the board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="160"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="332"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="426"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="170"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="311"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="398"/>
         <source>検討開始</source>
         <translation>Start Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="161"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="333"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="171"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="312"/>
         <source>検討を開始します</source>
         <translation>Start analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="160"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="426"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="170"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="398"/>
         <source>検討中止</source>
         <translation>Stop</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="161"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="171"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation>Stop analysis and terminate the engine</translation>
     </message>
@@ -1879,7 +1879,7 @@ Discard the changes and move?</translation>
         <translation type="vanished">No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="197"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="206"/>
         <source>経過: %1:%2</source>
         <translation>Elapsed: %1:%2</translation>
     </message>
@@ -3080,7 +3080,7 @@ Cause: %2</translation>
 <context>
     <name>CsaLogPanel</name>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="57"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="50"/>
         <source>CSAサーバーとの送受信内容がここに表示されます。</source>
         <translation>Messages exchanged with the CSA server appear here.</translation>
     </message>
@@ -3093,52 +3093,52 @@ Cause: %2</translation>
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="108"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="97"/>
         <source>コピー</source>
         <translation>Copy</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="109"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="98"/>
         <source>通信ログ全体をコピー</source>
         <translation>Copy the entire communication log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="115"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="104"/>
         <source>クリア</source>
         <translation>Clear</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="116"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="105"/>
         <source>表示中の通信ログを消去</source>
         <translation>Clear the displayed communication log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="133"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="122"/>
         <source>CSAコマンド</source>
         <translation>CSA command</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="136"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="125"/>
         <source>送信</source>
         <translation>Send</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="138"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="127"/>
         <source>CSAサーバーへコマンドを送信（Enter）</source>
         <translation>Send a command to the CSA server (Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="162"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="151"/>
         <source>接続済み</source>
         <translation>Connected</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="162"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="151"/>
         <source>未接続</source>
         <translation>Disconnected</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="166"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="154"/>
         <source>CSAサーバーに接続すると送信できます</source>
         <translation>Connect to a CSA server to send commands</translation>
     </message>
@@ -3147,7 +3147,7 @@ Cause: %2</translation>
         <translation type="obsolete">Send to CSA Server</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="165"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="153"/>
         <source>コマンドを入力してEnter</source>
         <translation>Enter a command and press Enter</translation>
     </message>
@@ -3490,49 +3490,49 @@ Cause: %2</translation>
     </message>
     <message>
         <location filename="../../src/app/dockcreationservice.cpp" line="180"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="182"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="181"/>
         <source>検討</source>
         <translation>Consideration</translation>
     </message>
     <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="184"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="185"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="187"/>
         <source>USI通信ログ</source>
         <translation>USI Log</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="190"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="192"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="188"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="189"/>
         <source>CSA通信ログ</source>
         <translation>CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="195"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="197"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="192"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="193"/>
         <source>棋譜コメント</source>
         <translation>Comments</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="200"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="202"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="196"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="197"/>
         <source>分岐ツリー</source>
         <translation>Branch Tree</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="229"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="240"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="224"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="235"/>
         <source>メニュー</source>
         <translation>Menu</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="264"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="279"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="259"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="274"/>
         <source>定跡</source>
         <translation>Joseki</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="296"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="309"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="291"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="302"/>
         <source>棋譜解析</source>
         <translation>Game Analysis</translation>
     </message>
@@ -6513,23 +6513,23 @@ Do you want to save them?</translation>
 <context>
     <name>KifuAnalysisController</name>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="48"/>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="91"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="49"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="92"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>The game record selected for analysis is invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="61"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="62"/>
         <source>エンジン選択が不正です。</source>
         <translation>Invalid engine selection.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="142"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="148"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>Failed to initialize the engine. Check the engine settings.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="202"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="208"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -13282,12 +13282,12 @@ Check the settings and press Start.</translation>
 <context>
     <name>UsiLogPanel</name>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="95"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="88"/>
         <source>USI通信ログ</source>
         <translation>USI communication log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="102"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="95"/>
         <source>エンジンとの通信ログを表示します（▶ 送信 / ◀ 受信）</source>
         <translation>Engine communication will appear here (▶ sent / ◀ received)</translation>
     </message>
@@ -13300,73 +13300,73 @@ Check the settings and press Start.</translation>
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="242"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="230"/>
         <source>折り返し</source>
         <translation>Wrap lines</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="244"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="232"/>
         <source>長い行をウィンドウ幅で折り返す</source>
         <translation>Wrap long lines to the window width</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="249"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="237"/>
         <source>最新へ</source>
         <translation>Latest</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="251"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="239"/>
         <source>最新のログへ移動（末尾では新着ログに自動追従）</source>
         <translation>Go to the latest log (new entries are followed at the bottom)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="254"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="242"/>
         <source>全てコピー</source>
         <translation>Copy all</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="256"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="244"/>
         <source>ログ全体をクリップボードへコピー</source>
         <translation>Copy the entire log to the clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="258"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="246"/>
         <source>消去</source>
         <translation>Clear</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="260"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="248"/>
         <source>表示中のログを消去</source>
         <translation>Clear the displayed log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="278"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="266"/>
         <source>コマンドの送信先を選択</source>
         <translation>Select the command destination</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="279"/>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="281"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="267"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="269"/>
         <source>送信先</source>
         <translation>Send to</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="286"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="274"/>
         <source>USIコマンド</source>
         <translation>USI command</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="287"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="275"/>
         <source>USIコマンドを入力してEnter</source>
         <translation>Enter a USI command and press Enter</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="291"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="279"/>
         <source>送信</source>
         <translation>Send</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="293"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="281"/>
         <source>選択した送信先へUSIコマンドを送信</source>
         <translation>Send the USI command to the selected destination</translation>
     </message>

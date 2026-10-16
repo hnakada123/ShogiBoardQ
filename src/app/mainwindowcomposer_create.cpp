@@ -504,6 +504,7 @@ void MainWindowComposer::createControllers()
     kd.activity = &m_state.activity;
     kd.analysisModel = m_c.analysis;
     kd.resultsPanel = m_c.analysisResults;
+    kd.resultsDock = m_c.docks.analysisResults;
     kd.engines = m_c.engines;
     kd.navState = m_c.navState;
     kd.recordModel = m_c.kifuRecord;

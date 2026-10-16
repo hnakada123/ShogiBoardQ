@@ -64,25 +64,18 @@ void relaxToolbarWidth(QWidget* toolbar)
 }
 } // namespace
 
-UsiLogPanel::UsiLogPanel(QObject* parent)
-    : QObject(parent)
+UsiLogPanel::UsiLogPanel(QWidget* parent)
+    : QWidget(parent)
     , m_fontSize(AnalysisSettings::usiLogFontSize, 8, 24)
 {
-}
-
-UsiLogPanel::~UsiLogPanel() = default;
-
-QWidget* UsiLogPanel::buildUi(QWidget* parent)
-{
-    m_container = new QWidget(parent);
-    auto* layout = new QVBoxLayout(m_container);
+    auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(4, 4, 4, 4);
     layout->setSpacing(4);
 
     buildToolbar();
     layout->addWidget(m_toolbar);
 
-    m_logView = new QPlainTextEdit(m_container);
+    m_logView = new QPlainTextEdit(this);
     {
         // QPlainTextEdit が自分で作る文書と同じ設定にして、行の配置だけを差し替える
         auto* document = new QTextDocument(m_logView);
@@ -109,12 +102,9 @@ QWidget* UsiLogPanel::buildUi(QWidget* parent)
 
     applyFontSize();
     updateLogActions();
-    // 先に渡されたモデルのエンジン名を出す
-    onEngine1NameChanged();
-    onEngine2NameChanged();
-
-    return m_container;
 }
+
+UsiLogPanel::~UsiLogPanel() = default;
 
 void UsiLogPanel::setModels(UsiCommLogModel* log1, UsiCommLogModel* log2)
 {
@@ -139,7 +129,7 @@ void UsiLogPanel::setModels(UsiCommLogModel* log1, UsiCommLogModel* log2)
 
 void UsiLogPanel::appendColoredLog(const QString& logLine, const QColor& lineColor)
 {
-    if (!m_logView || logLine.isEmpty()) return;
+    if (logLine.isEmpty()) return;
 
     // 表示用カーソルを動かさず追記する。過去ログの閲覧位置と選択範囲を保つ。
     auto* vertical = m_logView->verticalScrollBar();
@@ -196,9 +186,7 @@ void UsiLogPanel::appendStatus(const QString& message)
 
 void UsiLogPanel::clear()
 {
-    if (m_logView) {
-        m_logView->clear();
-    }
+    m_logView->clear();
 }
 
 // ===================== ツールバー構築 =====================
@@ -206,7 +194,7 @@ void UsiLogPanel::clear()
 void UsiLogPanel::buildToolbar()
 {
     // 幅が狭いドックでは標準の拡張メニューへ操作を退避する。
-    m_toolbar = new QToolBar(m_container);
+    m_toolbar = new QToolBar(this);
     m_toolbar->setObjectName(QStringLiteral("usiLogToolbar"));
     m_toolbar->setStyleSheet(ButtonStyles::panelToolButton());
 
@@ -264,7 +252,7 @@ void UsiLogPanel::buildToolbar()
 
 void UsiLogPanel::buildCommandBar()
 {
-    m_commandBar = new QWidget(m_container);
+    m_commandBar = new QWidget(this);
     auto* layout = new QHBoxLayout(m_commandBar);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(4);
@@ -325,8 +313,6 @@ void UsiLogPanel::applyFontSize()
 
 void UsiLogPanel::onCommandEntered()
 {
-    if (!m_commandInput || !m_targetCombo) return;
-
     QString command = m_commandInput->text().trimmed();
     if (command.isEmpty()) return;
 
@@ -339,7 +325,7 @@ void UsiLogPanel::onCommandEntered()
 
 void UsiLogPanel::onEngine1NameChanged()
 {
-    if (m_engine1Label && m_log1) {
+    if (m_log1) {
         QString name = m_log1->engineName();
         if (name.isEmpty()) name = QStringLiteral("---");
         m_engine1Label->setFullText(QStringLiteral("E1: %1").arg(name));
@@ -348,7 +334,7 @@ void UsiLogPanel::onEngine1NameChanged()
 
 void UsiLogPanel::onEngine2NameChanged()
 {
-    if (m_engine2Label && m_log2) {
+    if (m_log2) {
         QString name = m_log2->engineName();
         if (name.isEmpty()) name = QStringLiteral("---");
         m_engine2Label->setFullText(QStringLiteral("E2: %1").arg(name));
@@ -357,22 +343,20 @@ void UsiLogPanel::onEngine2NameChanged()
 
 void UsiLogPanel::onLog1Line(const QString& line)
 {
-    if (m_logView) appendColoredLog(line, QColor(0x20, 0x60, 0xa0));
+    appendColoredLog(line, QColor(0x20, 0x60, 0xa0));
 }
 
 void UsiLogPanel::onLog2Line(const QString& line)
 {
-    if (m_logView) appendColoredLog(line, QColor(0xa0, 0x20, 0x60));
+    appendColoredLog(line, QColor(0xa0, 0x20, 0x60));
 }
 
 void UsiLogPanel::onWrapToggled(bool checked)
 {
-    if (m_logView) {
-        auto* scroll = m_logView->verticalScrollBar();
-        const bool follow = scroll->value() == scroll->maximum() && !m_logView->textCursor().hasSelection();
-        m_logView->setLineWrapMode(checked ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
-        if (follow) scroll->setValue(scroll->maximum());
-    }
+    auto* scroll = m_logView->verticalScrollBar();
+    const bool follow = scroll->value() == scroll->maximum() && !m_logView->textCursor().hasSelection();
+    m_logView->setLineWrapMode(checked ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
+    if (follow) scroll->setValue(scroll->maximum());
     AnalysisSettings::usiLogWrapLines.set(checked);
 }
 

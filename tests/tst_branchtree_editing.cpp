@@ -303,9 +303,7 @@ private slots:
     void manager_compactLayoutPacksLanes()
     {
         Fixture f;
-        QGraphicsView view;
         BranchTreeManager manager;
-        manager.setView(&view);
         manager.setCompactLayout(true);
         manager.setBranchTree(&f.tree);
 
@@ -354,9 +352,7 @@ private slots:
     void manager_collapseHidesDescendants()
     {
         Fixture f;
-        QGraphicsView view;
         BranchTreeManager manager;
-        manager.setView(&view);
         manager.setCompactLayout(true);
         manager.setBranchTree(&f.tree);
 
@@ -382,9 +378,8 @@ private slots:
     void manager_keyboardNavigation()
     {
         Fixture f;
-        QGraphicsView view;
         BranchTreeManager manager;
-        manager.setView(&view);
+        QGraphicsView& view = *manager.view();
         manager.setCompactLayout(true);
         manager.setBranchTree(&f.tree);
         QSignalSpy activated(&manager, &BranchTreeManager::branchNodeActivated);
@@ -424,9 +419,7 @@ private slots:
     void manager_readsTreeDirectly()
     {
         Fixture f;
-        QGraphicsView view;
         BranchTreeManager manager;
-        manager.setView(&view);
         manager.setBranchTree(&f.tree);
 
         QCOMPARE(manager.nodeIdFor(0, 0), f.tree.root()->nodeId());
@@ -462,9 +455,7 @@ private slots:
 
     void manager_zoomIsClamped()
     {
-        QGraphicsView view;
         BranchTreeManager manager;
-        manager.setView(&view);
         manager.setZoomPercent(1000);
         QCOMPARE(manager.zoomPercent(), BranchTreeManager::kMaxZoomPercent);
         manager.setZoomPercent(1);

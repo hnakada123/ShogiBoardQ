@@ -40,29 +40,19 @@ void relaxToolbarWidth(QWidget* toolbar)
 }
 } // namespace
 
-CommentEditorPanel::CommentEditorPanel(QObject* parent)
-    : QObject(parent)
+CommentEditorPanel::CommentEditorPanel(QWidget* parent)
+    : QWidget(parent)
     , m_fontSize(GameSettings::commentFontSize)
 {
     connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &CommentEditorPanel::applyCommentFontSize);
-}
-
-CommentEditorPanel::~CommentEditorPanel()
-{
-    m_commentViewport = nullptr;
-}
-
-QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
-{
-    QWidget* commentContainer = new QWidget(parent);
-    QVBoxLayout* commentLayout = new QVBoxLayout(commentContainer);
+    QVBoxLayout* commentLayout = new QVBoxLayout(this);
     commentLayout->setContentsMargins(6, 4, 6, 6);
     commentLayout->setSpacing(4);
 
-    buildCommentToolbar(commentContainer);
+    buildCommentToolbar(this);
     commentLayout->addWidget(m_commentToolbar);
 
-    m_comment = new QTextEdit(commentContainer);
+    m_comment = new QTextEdit(this);
     m_comment->setObjectName(QStringLiteral("kifuCommentEdit"));
     m_comment->setReadOnly(false);
     m_comment->setAcceptRichText(false);
@@ -98,8 +88,11 @@ QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
     }
 
     applyCommentFontSize(m_fontSize.fontSize());
+}
 
-    return commentContainer;
+CommentEditorPanel::~CommentEditorPanel()
+{
+    m_commentViewport = nullptr;
 }
 
 void CommentEditorPanel::setCommentText(const QString& text)
@@ -109,32 +102,30 @@ void CommentEditorPanel::setCommentText(const QString& text)
 
 void CommentEditorPanel::setCommentHtml(const QString& html)
 {
-    if (m_comment) {
-        qCDebug(lcUi).noquote()
-            << "[CommentEditorPanel] setCommentHtml ENTER:"
-            << " html.len=" << html.size()
-            << " m_isCommentDirty(before)=" << m_isCommentDirty;
+    qCDebug(lcUi).noquote()
+        << "[CommentEditorPanel] setCommentHtml ENTER:"
+        << " html.len=" << html.size()
+        << " m_isCommentDirty(before)=" << m_isCommentDirty;
 
-        // 対局中や棋譜をたどるときは、手ごとに同じ（多くは空の）コメントを設定し直す。
-        // 前に表示したのと同じ文書を利用者が触っていなければ、作り直さない（HTML の解析を省く）
-        if (!showsAppliedHtml(html)) {
-            m_comment->setHtml(html);
-            m_appliedHtml = html;
-            m_appliedHtmlIntact = true;  // setHtml の中で届く textChanged の後に立てる
-        }
-        m_originalComment = m_comment->toPlainText();
-
-        qCDebug(lcUi).noquote()
-            << "[CommentEditorPanel] setCommentHtml:"
-            << " m_originalComment.len=" << m_originalComment.size();
-
-        m_isCommentDirty = false;
-        updateEditingIndicator();
-
-        qCDebug(lcUi).noquote()
-            << "[CommentEditorPanel] setCommentHtml LEAVE:"
-            << " m_isCommentDirty=" << m_isCommentDirty;
+    // 対局中や棋譜をたどるときは、手ごとに同じ（多くは空の）コメントを設定し直す。
+    // 前に表示したのと同じ文書を利用者が触っていなければ、作り直さない（HTML の解析を省く）
+    if (!showsAppliedHtml(html)) {
+        m_comment->setHtml(html);
+        m_appliedHtml = html;
+        m_appliedHtmlIntact = true;  // setHtml の中で届く textChanged の後に立てる
     }
+    m_originalComment = m_comment->toPlainText();
+
+    qCDebug(lcUi).noquote()
+        << "[CommentEditorPanel] setCommentHtml:"
+        << " m_originalComment.len=" << m_originalComment.size();
+
+    m_isCommentDirty = false;
+    updateEditingIndicator();
+
+    qCDebug(lcUi).noquote()
+        << "[CommentEditorPanel] setCommentHtml LEAVE:"
+        << " m_isCommentDirty=" << m_isCommentDirty;
 }
 
 // setHtml は文書を作り直し、取り消しの履歴を消し、カーソルを先頭に戻して先頭を表示する。
@@ -155,7 +146,6 @@ bool CommentEditorPanel::showsAppliedHtml(const QString& html) const
 // 大きさを最も長い表示に合わせて固定すると再計算を伝えなくなる。余った幅は後ろの伸縮が吸収する。
 void CommentEditorPanel::fixPositionLabelSize()
 {
-    if (!m_positionLabel) return;
     const QString current = m_positionLabel->text();
     QSize size;
     for (const QString& text : {tr("開始局面"), tr("%1手目").arg(9999)}) {
@@ -173,10 +163,8 @@ void CommentEditorPanel::setCurrentMoveIndex(int index)
         << " old=" << m_currentMoveIndex
         << " new=" << index;
     m_currentMoveIndex = index;
-    if (m_positionLabel) {
-        m_positionLabel->setText(index < 0 ? QString()
-            : index == 0 ? tr("開始局面") : tr("%1手目").arg(index));
-    }
+    m_positionLabel->setText(index < 0 ? QString()
+        : index == 0 ? tr("開始局面") : tr("%1手目").arg(index));
     updateEditingIndicator();
 }
 
@@ -218,9 +206,7 @@ bool CommentEditorPanel::confirmDiscardUnsavedComment()
 
 void CommentEditorPanel::clearCommentDirty()
 {
-    if (m_comment) {
-        m_originalComment = m_comment->toPlainText();
-    }
+    m_originalComment = m_comment->toPlainText();
     m_isCommentDirty = false;
     updateEditingIndicator();
 }
@@ -263,7 +249,7 @@ bool CommentEditorPanel::eventFilter(QObject* obj, QEvent* ev)
         fixPositionLabelSize();
     }
 
-    if (m_comment && obj == m_commentViewport && ev->type() == QEvent::MouseButtonPress) {
+    if (obj == m_commentViewport && ev->type() == QEvent::MouseButtonPress) {
         auto* me = static_cast<QMouseEvent*>(ev);
         m_pressedAnchor.clear();
         if (me->button() == Qt::LeftButton && me->modifiers().testFlag(Qt::ControlModifier)) {
@@ -271,12 +257,12 @@ bool CommentEditorPanel::eventFilter(QObject* obj, QEvent* ev)
             m_linkPressPosition = me->pos();
             if (!m_pressedAnchor.isEmpty()) return true;
         }
-    } else if (m_comment && obj == m_commentViewport && ev->type() == QEvent::MouseMove) {
+    } else if (obj == m_commentViewport && ev->type() == QEvent::MouseMove) {
         auto* me = static_cast<QMouseEvent*>(ev);
         if ((me->pos() - m_linkPressPosition).manhattanLength() >= QApplication::startDragDistance()) {
             m_pressedAnchor.clear();
         }
-    } else if (m_comment && obj == m_commentViewport && ev->type() == QEvent::MouseButtonRelease) {
+    } else if (obj == m_commentViewport && ev->type() == QEvent::MouseButtonRelease) {
         auto* me = static_cast<QMouseEvent*>(ev);
         const QString anchor = m_pressedAnchor;
         m_pressedAnchor.clear();
@@ -293,7 +279,6 @@ bool CommentEditorPanel::eventFilter(QObject* obj, QEvent* ev)
 
 void CommentEditorPanel::applyCommentFontSize(int size)
 {
-    if (!m_comment) return;
     QFont font = m_comment->font();
     font.setPointSize(size);
     m_comment->setFont(font);
@@ -301,7 +286,7 @@ void CommentEditorPanel::applyCommentFontSize(int size)
 
 void CommentEditorPanel::onUpdateCommentClicked()
 {
-    if (!m_comment || !m_isCommentDirty || m_currentMoveIndex < 0) return;
+    if (!m_isCommentDirty || m_currentMoveIndex < 0) return;
 
     QString newComment = m_comment->toPlainText();
 
@@ -314,7 +299,6 @@ void CommentEditorPanel::onUpdateCommentClicked()
 
 void CommentEditorPanel::onCommentTextChanged()
 {
-    if (!m_comment) return;
 
     m_appliedHtmlIntact = false;  // 次に同じコメントを設定するときは作り直す
     QString currentText = m_comment->toPlainText();
@@ -336,38 +320,33 @@ void CommentEditorPanel::onCommentTextChanged()
 
 void CommentEditorPanel::onCommentUndo()
 {
-    if (!m_comment) return;
     m_comment->undo();
 }
 
 void CommentEditorPanel::onCommentRedo()
 {
-    if (!m_comment) return;
     m_comment->redo();
 }
 
 void CommentEditorPanel::onCommentCut()
 {
-    if (!m_comment) return;
     m_comment->cut();
 }
 
 void CommentEditorPanel::onCommentCopy()
 {
-    if (!m_comment) return;
     m_comment->copy();
 }
 
 void CommentEditorPanel::onCommentPaste()
 {
-    if (!m_comment) return;
     m_comment->paste();
 }
 
 void CommentEditorPanel::updatePasteAvailability()
 {
-    const QMimeData* data = QApplication::clipboard()->mimeData();
-    m_btnCommentPaste->setEnabled(data && data->hasText());
+    const QMimeData* mime = QApplication::clipboard()->mimeData();
+    m_btnCommentPaste->setEnabled(mime && mime->hasText());
 }
 
 // ===================== Private helpers =====================
@@ -457,11 +436,7 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
 
 void CommentEditorPanel::updateEditingIndicator()
 {
-    if (m_btnUpdateComment) {
-        m_btnUpdateComment->setEnabled(m_isCommentDirty && m_currentMoveIndex >= 0);
-    }
-    if (m_editingLabel) {
-        m_editingLabel->setVisible(m_isCommentDirty);
-        qCDebug(lcUi).noquote() << "[CommentEditorPanel] updateEditingIndicator: visible=" << m_isCommentDirty;
-    }
+    m_btnUpdateComment->setEnabled(m_isCommentDirty && m_currentMoveIndex >= 0);
+    m_editingLabel->setVisible(m_isCommentDirty);
+    qCDebug(lcUi).noquote() << "[CommentEditorPanel] updateEditingIndicator: visible=" << m_isCommentDirty;
 }

@@ -4,29 +4,30 @@
 /// @file commenteditorpanel.h
 /// @brief 棋譜コメント編集パネルクラスの定義
 
-#include <QObject>
+#include <QWidget>
 #include <QString>
 #include <QPoint>
 
 #include "fontsizehelper.h"
 
-class QWidget;
 class QTextEdit;
 class QToolButton;
 class QPushButton;
 class QLabel;
 class QEvent;
 
-class CommentEditorPanel : public QObject
+/**
+ * @brief 棋譜コメントドックの中身（表示中の手のコメントの表示と編集）
+ *
+ * 部品はコンストラクタで作る。ツールバー（文字の大きさ・元に戻す・切り取り・コピー・貼り付け・更新）と編集欄を持つ。
+ */
+class CommentEditorPanel : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit CommentEditorPanel(QObject* parent = nullptr);
+    explicit CommentEditorPanel(QWidget* parent = nullptr);
     ~CommentEditorPanel() override;
-
-    /// コメント編集UIを構築し、コンテナウィジェットを返す
-    QWidget* buildCommentUi(QWidget* parent);
 
     /// プレーンテキストでコメントを設定（URLをリンクに変換）
     void setCommentText(const QString& text);
