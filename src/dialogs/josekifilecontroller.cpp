@@ -5,7 +5,6 @@
 
 #include "josekibooksession.h"
 
-#include <QAction>
 #include <QApplication>
 #include <QDir>
 #include <QFileDialog>
@@ -86,12 +85,9 @@ void JosekiFileController::saveAs()
     if (!filePath.isEmpty()) saveTo(filePath);
 }
 
-void JosekiFileController::openRecent()
+void JosekiFileController::openRecent(const QString &filePath)
 {
     if (isBusy()) return;
-    auto *action = qobject_cast<QAction *>(sender());
-    if (!action) return;
-    const QString filePath = action->data().toString();
     if (filePath.isEmpty() || !confirmDiscardChanges()) return;
     if (!QFileInfo::exists(filePath)) {
         QMessageBox::warning(m_deps.parentWidget, tr("エラー"), tr("ファイルが見つかりません: %1").arg(filePath));

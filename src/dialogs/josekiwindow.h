@@ -26,6 +26,7 @@ class QTableView;
 class QToolButton;
 class JosekiBookSession;
 class JosekiFileController;
+class RecentFilesMenu;
 class JosekiTableModel;
 
 /**
@@ -142,7 +143,7 @@ private:
     QPushButton  *m_saveButton = nullptr;
     QPushButton  *m_saveAsButton = nullptr;
     QPushButton  *m_recentButton = nullptr;
-    QMenu        *m_recentFilesMenu = nullptr;
+    RecentFilesMenu *m_recentFilesMenu = nullptr;
     QLabel       *m_filePathLabel = nullptr;
     QLabel       *m_fileStatusLabel = nullptr;
 

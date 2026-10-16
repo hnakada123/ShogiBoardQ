@@ -108,21 +108,19 @@ bool JosekiBookSession::removeMove(const QString &sfen, const QString &usiMove)
 
 void JosekiBookSession::setRecentFiles(const QStringList &files)
 {
-    m_recentFiles = files.mid(0, kMaxRecentFiles);
+    m_recentFiles.setFiles(files);
     emit recentFilesChanged();
 }
 
 void JosekiBookSession::addRecentFile(const QString &filePath)
 {
-    m_recentFiles.removeAll(filePath);
-    m_recentFiles.prepend(filePath);
-    while (m_recentFiles.size() > kMaxRecentFiles) m_recentFiles.removeLast();
+    m_recentFiles.add(filePath);
     emit recentFilesChanged();
 }
 
 void JosekiBookSession::removeRecentFile(const QString &filePath)
 {
-    if (m_recentFiles.removeAll(filePath) > 0) emit recentFilesChanged();
+    if (m_recentFiles.remove(filePath)) emit recentFilesChanged();
 }
 
 void JosekiBookSession::clearRecentFiles()
@@ -133,7 +131,7 @@ void JosekiBookSession::clearRecentFiles()
 
 QString JosekiBookSession::lastFilePathForSettings() const
 {
-    return m_recentFiles.contains(m_filePath) ? m_filePath : QString();
+    return m_recentFiles.files().contains(m_filePath) ? m_filePath : QString();
 }
 
 // ============================================================

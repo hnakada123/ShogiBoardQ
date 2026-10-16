@@ -44,7 +44,7 @@ public slots:
     void save();
     void saveAs();
     /// 最近使ったファイルのメニューの項目（項目の data がパス）
-    void openRecent();
+    void openRecent(const QString &filePath);
     void clearRecentFiles();
 
 signals:

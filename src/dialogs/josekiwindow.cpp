@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウクラスの実装
 
 #include "josekiwindow.h"
+#include "recentfilesmenu.h"
 #include "fontsizecontrol.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
@@ -107,6 +108,8 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     connect(m_session, &JosekiBookSession::loaded, this, &JosekiWindow::onBookLoaded);
     connect(m_files, &JosekiFileController::bookSwitching, this, &JosekiWindow::closeMergeDialogs);
     connect(m_files, &JosekiFileController::statusMessage, this, &JosekiWindow::showTransientStatus);
+    connect(m_recentFilesMenu, &RecentFilesMenu::fileTriggered, m_files, &JosekiFileController::openRecent);
+    connect(m_recentFilesMenu, &RecentFilesMenu::clearTriggered, m_files, &JosekiFileController::clearRecentFiles);
     loadSettings();
 }
 
@@ -173,10 +176,11 @@ QWidget *JosekiWindow::buildToolbar()
     m_saveAsButton = makeToolButton(tr("別名保存"), tr("別の名前で保存"), buttonStyle, this);
     m_saveAsButton->setIcon(QIcon(QStringLiteral(":/images/actions/actionSaveAs.svg")));
     m_recentButton = makeToolButton(tr("履歴"), tr("最近使ったファイルを開く"), buttonStyle, this);
-    m_recentFilesMenu = new QMenu(this);
-    m_recentFilesMenu->setObjectName(QStringLiteral("josekiRecentMenu"));
-    m_recentFilesMenu->setProperty("automationMenu", true);
-    m_recentButton->setMenu(m_recentFilesMenu);
+    auto *recentMenu = new QMenu(this);
+    recentMenu->setObjectName(QStringLiteral("josekiRecentMenu"));
+    recentMenu->setProperty("automationMenu", true);
+    m_recentButton->setMenu(recentMenu);
+    m_recentFilesMenu = new RecentFilesMenu(recentMenu);
     for (auto *button : {m_newButton, m_openButton, m_saveButton, m_saveAsButton, m_recentButton})
         fileGroupLayout->addWidget(button);
     toolbarLayout->addWidget(fileGroup, 0, Qt::AlignLeft);
@@ -469,21 +473,7 @@ void JosekiWindow::onModifiedChanged(bool modified)
 
 void JosekiWindow::updateRecentFilesMenu()
 {
-    m_recentFilesMenu->clear();
-    const QStringList &files = m_session->recentFiles();
-    if (files.isEmpty()) {
-        m_recentFilesMenu->addAction(tr("（履歴なし）"))->setEnabled(false);
-        return;
-    }
-    for (const QString &filePath : files) {
-        QAction *action = m_recentFilesMenu->addAction(QFileInfo(filePath).fileName());
-        action->setData(filePath);
-        action->setToolTip(filePath);
-        connect(action, &QAction::triggered, m_files, &JosekiFileController::openRecent);
-    }
-    m_recentFilesMenu->addSeparator();
-    connect(m_recentFilesMenu->addAction(tr("履歴をクリア")),
-            &QAction::triggered, m_files, &JosekiFileController::clearRecentFiles);
+    m_recentFilesMenu->setFiles(m_session->recentFiles());
 }
 
 // ============================================================

@@ -1247,6 +1247,9 @@ add_shogi_test(tst_automation_security tst_automation_security.cpp)
 target_link_libraries(tst_automation_security PRIVATE shogiboardq_static)
 
 # 引数の表（CLI・自動化 API・MCP で共有）
+add_shogi_test(tst_position_collection_file tst_position_collection_file.cpp)
+target_link_libraries(tst_position_collection_file PRIVATE shogiboardq_static)
+
 add_shogi_test(tst_param_specs tst_param_specs.cpp ${SRC}/cli/clicommandspecs.cpp)
 target_link_libraries(tst_param_specs PRIVATE shogiboardq_static)
 target_include_directories(tst_param_specs PRIVATE ${SRC}/cli)
