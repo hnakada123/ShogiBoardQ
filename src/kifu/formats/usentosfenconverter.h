@@ -11,13 +11,6 @@
 
 #include "kifparsetypes.h"
 
-/// @brief USEN デコード結果（エラー情報付き）
-struct UsenDecodeResult {
-    QStringList moves;       ///< デコードされた USI 手順
-    int invalidCount = 0;    ///< デコード失敗した手数
-    QString firstError;      ///< 最初のエラー内容（失敗がなければ空）
-};
-
 /**
  * @brief USEN (Url Safe sfen-Extended Notation) ファイルを解析し、GUIに必要なデータを取得するクラス
  *
@@ -26,7 +19,7 @@ struct UsenDecodeResult {
  *
  * USENの主な構造:
  * - ~0. で始まるバージョン指定（0 = 平手初期局面）
- * - base36でエンコードされた指し手列（3文字 = 1手）
+ * - base36でエンコードされた指し手列（3文字 = 1手。符号表は UsenCodec）
  * - 分岐は ~(startPly). で区切られる
  * - 末尾に終局理由 (.i=反則, .r=投了, .t=時間切れ, .p=中断, .j=持将棋)
  */
@@ -35,12 +28,6 @@ class UsenToSfenConverter
 public:
     /// 棋譜を読む。手合割の名前は平手なら「平手」、局面を書いていれば「局面指定」
     static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
-
-    // USEN文字列から指し手列をデコード
-    static QStringList decodeUsenMoves(const QString& usenStr, QString* terminalOut = nullptr);
-
-    // USEN文字列から指し手列をデコード（エラー情報付き厳密版）
-    static UsenDecodeResult decodeUsenMovesStrict(const QString& usenStr, QString* terminalOut = nullptr);
 
 private:
     /// "~" の前に書いた開始局面（なければ平手）
@@ -54,15 +41,6 @@ private:
                                 QList<QPair<int, QString>>& variations,  // (startPly, usenMoves)
                                 QString* terminalCode,
                                 QString* warn);
-
-    // base36でエンコードされた指し手をUSI形式に変換
-    static QString decodeBase36Move(const QString& base36str);
-
-    // base36文字から整数へ変換
-    static int base36CharToInt(QChar c);
-
-    // 3文字のbase36から指し手番号（0-46655の範囲）を取得
-    static int base36ToMoveIndex(const QString& threeChars);
 
 };
 

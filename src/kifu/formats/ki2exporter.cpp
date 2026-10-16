@@ -4,10 +4,9 @@
 #include "ki2exporter.h"
 #include "ki2movenotation.h"
 #include "kifexporter.h"
+#include "kifunodereplay.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
-#include "sfenutils.h"
-#include "shogiposition.h"
 #include "logcategories.h"
 #include "kifuexportcommon.h"
 
@@ -20,7 +19,6 @@
 using KifuExportCommon::appendKifBookmarks;
 using KifuExportCommon::appendKifComments;
 using KifuExportCommon::buildEndingLine;
-using KifuExportCommon::fwColonLine;
 
 // ヘルパ関数: 手順のノードを KI2 の指し手の文字列にする
 //
@@ -31,104 +29,83 @@ static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, const QStri
 {
     QStringList out;
     out.reserve(nodes.size());
-    Position board;
-    bool synced = board.assignSfen(startSfen) || (!nodes.isEmpty() && board.assignSfen(nodes.first()->sfen()));
-    Turn mover = board.sideToMove();
-    BoardSquare previousTo;
+    KifuNodeReplay replay(startSfen, nodes.isEmpty() ? QString() : nodes.first()->sfen());
     for (const KifuBranchNode* node : nodes) {
-        if (node->ply() == 0 || node->isTerminal()) {
+        if (!node->isActualMove()) {
             out << QString();
             continue;
         }
         const bool needsText = node->ply() >= fromPly;
-        const UsiMove move = node->move().move;
         QString text;
-        if (synced && move.isValid()) {
-            if (needsText) text = Ki2MoveNotation::format(board, mover, move, previousTo);
-            synced = board.applyAs(move, mover);
-        } else {
-            synced = false;
-        }
-        if (synced) {
-            mover = (mover == Turn::Black) ? Turn::White : Turn::Black;
-        } else {
+        if (needsText && replay.canWrite(node))
+            text = Ki2MoveNotation::format(replay.board(), replay.mover(), node->move().move, replay.previousTo());
+        if (!replay.advance(node) && needsText) {
             static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
-            if (needsText) text = node->displayText().trimmed().remove(fromPosPattern);
-            synced = board.assignSfen(node->sfen());
-            mover = board.sideToMove();
+            text = node->displayText().trimmed().remove(fromPosPattern);
         }
-        previousTo = move.isValid() ? move.to : BoardSquare{};
         out << text;
     }
     return out;
 }
 
 // ========================================
-// 分岐出力用ヘルパ
+// 指し手の行（本譜と変化で共通）
 // ========================================
 
-static void outputKi2VariationFromBranchLine(const BranchLine& line, const QString& startSfen, bool handicapNames,
-                                             QStringList& out)
+namespace {
+struct Ki2Written {
+    int lastMovePly = 0;                     ///< 書いた最後の指し手の手数
+    const KifuBranchNode* terminal = nullptr; ///< 手順の終局のノード
+};
+} // namespace
+
+// 手順の fromPly 手目以降を KI2 の行にする。しおり・コメントのない手は1行に並べ、ある手とその次の手は1行に1手。
+// 終局のノードは、inlineEnding なら「まで…」の行（としおり・コメント）として書き、そうでなければ書かずに返す
+static Ki2Written appendKi2Moves(const QList<KifuBranchNode*>& nodes, const QStringList& moveTexts, int fromPly,
+                                 bool inlineEnding, bool handicapNames, QStringList& out)
 {
-    // 本譜（lineIndex == 0）の場合は何もしない
-    if (line.lineIndex == 0) {
-        return;
-    }
-
-    // 変化ヘッダを出力（空行 + 変化：N手）
-    out << QString();
-    out << QStringLiteral("変化：%1手").arg(line.branchPly);
-
-    // 分岐点より前の手は局面を進めるだけ（「同」と修飾語は分岐点の局面で決まる）
-    const QStringList moveTexts = ki2MoveTexts(line.nodes, startSfen, line.branchPly);
-
-    // 変化の指し手を出力（branchPly以降のノード）
+    Ki2Written written;
     QStringList movesOnLine;
-    bool lastMoveHadComment = false;
+    bool lastMoveHadNote = false;
+    const auto flush = [&movesOnLine, &out]() {
+        if (movesOnLine.isEmpty()) return;
+        out << movesOnLine.join(QStringLiteral("    "));
+        movesOnLine.clear();
+    };
 
-    for (qsizetype i = 0; i < line.nodes.size(); ++i) {
-        const KifuBranchNode* node = line.nodes.at(i);
-        // 分岐点より前のノードはスキップ
-        if (node->ply() < line.branchPly) {
-            continue;
-        }
-
+    for (qsizetype i = 0; i < nodes.size(); ++i) {
+        const KifuBranchNode* node = nodes.at(i);
+        if (node->ply() < fromPly) continue;
         const bool isTerminal = node->isTerminal();
         const QString& ki2Move = moveTexts.at(i);
-
-        // 書ける指し手のないノードはスキップ
+        // 書ける指し手のないノードは飛ばす
         if (!isTerminal && ki2Move.isEmpty()) continue;
 
-        const QString cmt = node->comment().trimmed();
-        const QString bm = node->bookmark().trimmed();
-        const bool hasComment = !cmt.isEmpty();
-        const bool hasBookmark = !bm.isEmpty();
+        const QString comment = node->comment().trimmed();
+        const QString bookmark = node->bookmark().trimmed();
+        const bool hasNote = !comment.isEmpty() || !bookmark.isEmpty();
 
-        if (hasComment || hasBookmark || lastMoveHadComment || isTerminal) {
-            if (!movesOnLine.isEmpty()) {
-                out << movesOnLine.join(QStringLiteral("    "));
-                movesOnLine.clear();
-            }
-            // 終局手は本譜と同じく「まで…」の結果行で表す（KI2 では指し手として書かない）
-            out << (isTerminal ? buildEndingLine(node->ply() - 1, node->terminalType(),
-                                                 node->terminalSide(), handicapNames)
-                               : ki2Move);
-
-            appendKifBookmarks(bm, out);
-            if (hasComment) {
-                appendKifComments(cmt, out);
-            }
-            lastMoveHadComment = hasComment || hasBookmark;
+        if (isTerminal) {
+            written.terminal = node;
+            flush();
+            if (!inlineEnding) continue;
+            // 終局手は「まで…」の結果行で表す（KI2 では指し手として書かない）
+            out << buildEndingLine(node->ply() - 1, node->terminalType(), node->terminalSide(), handicapNames);
         } else {
-            movesOnLine.append(ki2Move);
-            lastMoveHadComment = false;
+            written.lastMovePly = node->ply();
+            if (!hasNote && !lastMoveHadNote) {
+                movesOnLine.append(ki2Move);
+                continue;
+            }
+            flush();
+            out << ki2Move;
         }
+        appendKifBookmarks(bookmark, out);
+        if (!comment.isEmpty()) appendKifComments(comment, out);
+        lastMoveHadNote = hasNote;
     }
-
-    // 残りの指し手を出力
-    if (!movesOnLine.isEmpty()) {
-        out << movesOnLine.join(QStringLiteral("    "));
-    }
+    flush();
+    return written;
 }
 
 // ========================================
@@ -139,129 +116,42 @@ QStringList Ki2Exporter::exportLines(const KifuBranchTree& recordTree, const Kif
 {
     QStringList out;
 
-    // 0) プログラムコメント・文字コード宣言
-    out << QStringLiteral("#KIF version=2.0 encoding=UTF-8");
-    out << QStringLiteral("# ---- Generated by ShogiBoardQ ----");
+    // 0〜1) 文字コード宣言・対局情報（消費時間は KI2 では省く）・平手でない開始局面の盤面図
+    KifExporter::HeaderOptions headerOptions;
+    headerOptions.consumedTime = false;
+    const bool handicapNames = KifExporter::appendHeaderLines(ctx, out, headerOptions);
 
-    // 1) ヘッダ
-    const QList<KifGameInfoItem> header = KifuExportMetadataBuilder::collect(ctx);
-    const bool handicapNames = KifuExportMetadataBuilder::usesHandicapNames(header, ctx.startSfen);
-    // 手合割の行が削除されていても、開始局面は盤面図で保持する。
-    bool isNonStandard = !ctx.startSfen.trimmed().isEmpty() && !SfenUtils::isHirateStart(ctx.startSfen);
-    for (const auto& it : std::as_const(header)) {
-        if (!it.key.trimmed().isEmpty()) {
-            // 消費時間は KI2 では省略
-            if (it.key.trimmed() == QStringLiteral("消費時間")) continue;
-            out << fwColonLine(it.key.trimmed(), it.value.trimmed());
-            if (it.key.trimmed() == QStringLiteral("手合割") && it.value.trimmed() == QStringLiteral("その他"))
-                isNonStandard = true;
-        }
-    }
-
-    // 1.5) 非標準局面の場合はBOD盤面を挿入
-    if (isNonStandard) {
-        const QStringList bodLines = KifExporter::sfenToBodLines(ctx.startSfen, handicapNames);
-        if (!bodLines.isEmpty())
-            out << bodLines;
-    }
-
-    // 2) 本譜の手順（分岐ツリーの各ノードの最初の子をたどる）
-    const KifuBranchTree* branchTree = &recordTree;
-    const QList<KifuBranchNode*> mainNodes =
-        (branchTree != nullptr) ? branchTree->mainLine() : QList<KifuBranchNode*>();
-
-    // 3) 開始局面のしおり・コメントを先に出力
-    qsizetype startIdx = 0;
+    // 2) 本譜の手順（分岐ツリーの各ノードの最初の子をたどる）。開始局面のしおり・コメントを先に書く
+    const QList<KifuBranchNode*> mainNodes = recordTree.mainLine();
     if (!mainNodes.isEmpty() && mainNodes.first()->ply() == 0) {
         appendKifBookmarks(mainNodes.first()->bookmark(), out);
         appendKifComments(mainNodes.first()->comment(), out);
-        startIdx = 1; // 実際の指し手は次から
     }
 
-    // 4) 指し手の文字列（修飾語・打・不成は局面と指し手から決める）
-    const QStringList moveTexts = ki2MoveTexts(mainNodes, ctx.startSfen, 1);
-
-    // 5) 各指し手を出力（KI2形式）
-    int moveNo = 1;
-    int lastActualMoveNo = 0;
-    const KifuBranchNode* terminalMove = nullptr;
-    QStringList movesOnLine;  // 現在の行に蓄積する指し手
-    bool lastMoveHadComment = false;
-
-    for (qsizetype i = startIdx; i < mainNodes.size(); ++i) {
-        const KifuBranchNode* node = mainNodes.at(i);
-        const bool isTerminal = node->isTerminal();
-        const QString& ki2Move = moveTexts.at(i);
-
-        // 書ける指し手のないノードはスキップ
-        if (!isTerminal && ki2Move.isEmpty()) continue;
-
-        const QString cmt = node->comment().trimmed();
-        const QString bm = node->bookmark().trimmed();
-        const bool hasComment = !cmt.isEmpty();
-        const bool hasBookmark = !bm.isEmpty();
-
-        if (isTerminal) {
-            // 終局手（投了など）は結果行で表すため、指し手としては出力しない
-            if (!movesOnLine.isEmpty()) {
-                out << movesOnLine.join(QStringLiteral("    "));
-                movesOnLine.clear();
-            }
-        } else if (hasComment || hasBookmark || lastMoveHadComment) {
-            // コメント/しおりがある場合は指し手を吐き出してから単独行で出力
-            if (!movesOnLine.isEmpty()) {
-                out << movesOnLine.join(QStringLiteral("    "));
-                movesOnLine.clear();
-            }
-            out << ki2Move;
-
-            // しおり・コメント出力
-            appendKifBookmarks(bm, out);
-            if (hasComment) {
-                appendKifComments(cmt, out);
-            }
-            lastMoveHadComment = hasComment || hasBookmark;
-        } else {
-            // コメント・しおりがない場合は指し手を蓄積
-            movesOnLine.append(ki2Move);
-            lastMoveHadComment = false;
-        }
-
-        if (isTerminal) {
-            terminalMove = node;
-        } else {
-            lastActualMoveNo = moveNo;
-        }
-        ++moveNo;
+    // 3) 指し手（修飾語・打・不成は局面と指し手から決める）と終了行
+    const Ki2Written written =
+        appendKi2Moves(mainNodes, ki2MoveTexts(mainNodes, ctx.startSfen, 1), 1, false, handicapNames, out);
+    const KifuBranchNode* terminal = written.terminal;
+    out << buildEndingLine(written.lastMovePly, terminal ? terminal->terminalType() : TerminalType::None,
+                           terminal ? terminal->terminalSide() : Turn::Black, handicapNames);
+    if (terminal) {
+        appendKifBookmarks(terminal->bookmark(), out);
+        appendKifComments(terminal->comment(), out);
     }
 
-    // 残りの指し手を出力
-    if (!movesOnLine.isEmpty()) {
-        out << movesOnLine.join(QStringLiteral("    "));
-    }
-
-    // 6) 終了行
-    out << buildEndingLine(lastActualMoveNo, terminalMove ? terminalMove->terminalType() : TerminalType::None,
-                           terminalMove ? terminalMove->terminalSide() : Turn::Black,
-                           handicapNames);
-    if (terminalMove) {
-        appendKifBookmarks(mainNodes.last()->bookmark(), out);
-        appendKifComments(mainNodes.last()->comment(), out);
-    }
-
-    // 7) 変化（分岐）を出力（KifuBranchTree から）
-    if (branchTree != nullptr && !branchTree->isEmpty()) {
-        QList<BranchLine> lines = branchTree->allLines();
-        // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
-        for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
+    // 4) 変化（lineIndex = 0 は本譜なので 1 から）。分岐点より前の手は局面を進めるだけ
+    if (!recordTree.isEmpty()) {
+        const QList<BranchLine> lines = recordTree.allLines();
+        for (qsizetype lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);
-            outputKi2VariationFromBranchLine(line, ctx.startSfen, handicapNames, out);
+            out << QString();
+            out << QStringLiteral("変化：%1手").arg(line.branchPly);
+            appendKi2Moves(line.nodes, ki2MoveTexts(line.nodes, ctx.startSfen, line.branchPly), line.branchPly,
+                           true, handicapNames, out);
         }
     }
 
-    qCDebug(lcKifu).noquote() << "toKi2Lines: generated"
-                              << out.size() << "lines,"
-                              << lastActualMoveNo << "moves";
-
+    qCDebug(lcKifu).noquote() << "toKi2Lines: generated" << out.size() << "lines," << written.lastMovePly
+                              << "moves";
     return out;
 }

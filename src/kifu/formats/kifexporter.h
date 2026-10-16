@@ -36,6 +36,17 @@ public:
      * KIF / KI2 の両方で非標準局面の表示に使用される。
      */
     static QStringList sfenToBodLines(const QString& sfen, bool handicapNames = false);
+
+    /// 先頭の行の書き方（KIF と KI2 の違い）
+    struct HeaderOptions {
+        bool consumedTime = true; ///< 対局情報の「消費時間」を書くか（KI2 は書かない）
+    };
+
+    /**
+     * @brief KIF・KI2 の先頭（文字コード宣言・対局情報・平手でない開始局面の盤面図）を out に足す
+     * @return 駒落ちの呼び方（下手・上手）で書くか（終局行・盤面図に使う）
+     */
+    static bool appendHeaderLines(const KifuExportMetadata& ctx, QStringList& out, HeaderOptions options);
 };
 
 #endif // KIFEXPORTER_H

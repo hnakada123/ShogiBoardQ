@@ -6,6 +6,7 @@
 #include "kiflinebuilder.h"
 #include "shogiposition.h"
 #include "sfenutils.h"
+#include "usencodec.h"
 
 #include <utility>
 #include "logcategories.h"
@@ -48,16 +49,7 @@ QString UsenToSfenConverter::initialSfenOf(const QString& content, QString* dete
         return SfenUtils::hirateSfen();
     }
 
-    // カスタム初期局面の場合: USEN形式からSFENに逆変換
-    // '_' → '/', '.' → ' ', 'z' → '+'
-    QString sfen = positionPart;
-    sfen.replace(QChar('_'), QChar('/'));
-    sfen.replace(QChar('.'), QChar(' '));
-    sfen.replace(QChar('z'), QChar('+'));
-
-    // 手数が省略されている場合は補完（盤の SFEN は4つの欄が必須）
-    if (sfen.split(QChar(' '), Qt::SkipEmptyParts).size() == 3) sfen += QStringLiteral(" 1");
-
+    const QString sfen = UsenCodec::decodePosition(positionPart);
     if (detectedLabel) *detectedLabel = QStringLiteral("局面指定");
     return sfen;
 }
@@ -90,7 +82,7 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
 
     // 本譜のデコード
     QString mainTerminal;
-    const auto decodedMain = decodeUsenMovesStrict(mainlineUsen, &mainTerminal);
+    const auto decodedMain = UsenCodec::decodeMoves(mainlineUsen, &mainTerminal);
     if (decodedMain.invalidCount > 0) {
         outcome.warning = decodedMain.firstError;
         return outcome;
@@ -110,7 +102,7 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
     for (const auto& var : std::as_const(variations)) {
         const int startPly = var.first;
         QString varTerminal;
-        const auto decodedVariation = decodeUsenMovesStrict(var.second, &varTerminal);
+        const auto decodedVariation = UsenCodec::decodeMoves(var.second, &varTerminal);
         if (decodedVariation.invalidCount > 0) {
             outcome.warning = decodedVariation.firstError;
             outcome.record = {};
@@ -142,55 +134,6 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
 // ============================================================
 // USEN形式棋譜コンバータ - デコード・パース処理
 // ============================================================
-
-namespace {
-
-// base36文字セット
-static constexpr QStringView kBase36Chars = u"0123456789abcdefghijklmnopqrstuvwxyz";
-
-// 段番号から行文字へ (1-9 -> 'a'-'i')
-inline QChar rankToChar(int r) {
-    return QChar('a' + r - 1);
-}
-
-// マス番号 (0-80) から筋・段を取得
-// USEN座標系: sq = (rank - 1) * 9 + (file - 1)
-// 例: 1一 = 0, 9九 = 80
-inline void squareToFileRank(int sq, int& file, int& rank) {
-    rank = sq / 9 + 1;  // 1-9
-    file = sq % 9 + 1;  // 1-9
-}
-
-// 駒種コード (駒打ち用)
-// スライド Image 4 より:
-// 歩=10, 香=11, 桂=12, 銀=13, 金=9, 角=14, 飛=15
-// と金=2, 成香=3, 成桂=4, 成銀=5, 馬=6, 竜=7, 玉=8
-// 駒打ちの from_sq = 81 + piece_type
-struct PieceDropInfo {
-    int typeCode;
-    char usiChar;
-};
-
-static const PieceDropInfo kDropPieces[] = {
-    {9,  'G'},  // 金
-    {10, 'P'},  // 歩
-    {11, 'L'},  // 香
-    {12, 'N'},  // 桂
-    {13, 'S'},  // 銀
-    {14, 'B'},  // 角
-    {15, 'R'},  // 飛
-};
-
-inline QChar dropTypeToUsiChar(int typeCode) {
-    for (const auto& p : kDropPieces) {
-        if (p.typeCode == typeCode) {
-            return QChar(p.usiChar);
-        }
-    }
-    return QChar('?');
-}
-
-} // namespace
 
 // ============================================================================
 // デコード・パースメソッド
@@ -283,145 +226,4 @@ bool UsenToSfenConverter::parseUsenString(const QString& usen,
     }
 
     return true;
-}
-
-UsenDecodeResult UsenToSfenConverter::decodeUsenMovesStrict(const QString& usenStr, QString* terminalOut)
-{
-    UsenDecodeResult result;
-
-    QString movesStr = usenStr;
-
-    // ~X. プレフィックスを除去
-    // 平手の場合: ~0. または ~.
-    if (movesStr.startsWith(QStringLiteral("~"))) {
-        const qsizetype dotPos = movesStr.indexOf(QChar('.'));
-        if (dotPos >= 0) {
-            movesStr = movesStr.mid(dotPos + 1);
-        }
-    }
-
-    // 終局コードを除去
-    if (terminalOut) terminalOut->clear();
-    const qsizetype lastDot = movesStr.lastIndexOf(QChar('.'));
-    if (lastDot >= 0) {
-        const QString possibleTerminal = movesStr.mid(lastDot + 1);
-        if (possibleTerminal.isEmpty() || TerminalCodes::isUsenCode(possibleTerminal)) {
-            if (terminalOut) *terminalOut = possibleTerminal;
-            movesStr = movesStr.left(lastDot);
-        }
-    }
-
-    // 3文字ずつデコード
-    // USENでは各指し手が3文字のbase36でエンコードされている
-    // code = (from_sq * 81 + to_sq) * 2 + promote
-
-    int i = 0;
-    int moveCount = 0;
-    while (i + 2 < movesStr.size()) {
-        const QString threeChars = movesStr.mid(i, 3);
-
-        const QString usi = decodeBase36Move(threeChars);
-        if (!usi.isEmpty()) {
-            result.moves.append(usi);
-        } else {
-            // 無効な指し手を下流へ渡さず、棋譜全体を失敗として扱う。
-            qCDebug(lcKifu) << "Move" << (moveCount + 1) << "'" << threeChars
-                     << "' could not be decoded";
-            ++result.invalidCount;
-            if (result.firstError.isEmpty()) {
-                result.firstError = QStringLiteral("Move %1 '%2' could not be decoded")
-                    .arg(moveCount + 1).arg(threeChars);
-            }
-        }
-
-        ++moveCount;
-        i += 3;
-    }
-
-    if (i != movesStr.size()) {
-        ++result.invalidCount;
-        if (result.firstError.isEmpty()) result.firstError = QStringLiteral("Incomplete USEN move at %1").arg(moveCount + 1);
-    }
-    if (result.invalidCount > 0) result.moves.clear();
-
-    qCDebug(lcKifu) << "Decoded" << result.moves.size() << "moves from USEN string"
-             << "(invalid:" << result.invalidCount << ")";
-    return result;
-}
-
-QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString* terminalOut)
-{
-    UsenDecodeResult result = decodeUsenMovesStrict(usenStr, terminalOut);
-    return result.moves;
-}
-
-int UsenToSfenConverter::base36CharToInt(QChar c)
-{
-    const qsizetype idx = kBase36Chars.indexOf(c.toLower());
-    return static_cast<int>(idx);  // 見つからなければ -1
-}
-
-int UsenToSfenConverter::base36ToMoveIndex(const QString& threeChars)
-{
-    if (threeChars.size() != 3) return -1;
-
-    const int v0 = base36CharToInt(threeChars.at(0));
-    const int v1 = base36CharToInt(threeChars.at(1));
-    const int v2 = base36CharToInt(threeChars.at(2));
-
-    if (v0 < 0 || v1 < 0 || v2 < 0) return -1;
-
-    return v0 * 36 * 36 + v1 * 36 + v2;  // 0-46655
-}
-
-QString UsenToSfenConverter::decodeBase36Move(const QString& base36str)
-{
-    if (base36str.size() != 3) return QString();
-
-    const int code = base36ToMoveIndex(base36str);
-    if (code < 0) return QString();
-
-    const bool isPromotion = (code % 2 == 1);
-    const int moveCode = code / 2;
-
-    const int from_sq = moveCode / 81;
-    const int to_sq = moveCode % 81;
-
-    // 移動先のマス座標を取得
-    int toFile, toRank;
-    squareToFileRank(to_sq, toFile, toRank);
-
-    // 駒打ちの場合 (from_sq >= 81)
-    if (from_sq >= 81) {
-        const int pieceType = from_sq - 81;
-        const QChar pieceChar = dropTypeToUsiChar(pieceType);
-
-        if (pieceChar == QChar('?')) {
-            qCWarning(lcKifu) << "Unknown drop piece type:" << pieceType;
-            return QString();
-        }
-
-        // 駒打ちはUSI形式: P*5e
-        return QStringLiteral("%1*%2%3")
-            .arg(pieceChar)
-            .arg(toFile)
-            .arg(rankToChar(toRank));
-    }
-
-    // 盤上移動の場合 (from_sq: 0-80)
-    int fromFile, fromRank;
-    squareToFileRank(from_sq, fromFile, fromRank);
-
-    // USI形式: 7g7f または 7g7f+ (成り)
-    QString usi = QStringLiteral("%1%2%3%4")
-        .arg(fromFile)
-        .arg(rankToChar(fromRank))
-        .arg(toFile)
-        .arg(rankToChar(toRank));
-
-    if (isPromotion) {
-        usi += QLatin1Char('+');
-    }
-
-    return usi;
 }

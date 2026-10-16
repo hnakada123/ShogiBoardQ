@@ -14,6 +14,17 @@ class TestUsiPosition : public QObject
     Q_OBJECT
 
 private slots:
+    /// 棋譜の USI 形式の書き出しと共有する position 文字列（開始局面の手数は書かれたまま）
+    void commandForKeepsWrittenStart()
+    {
+        QCOMPARE(UsiPosition::commandFor(QString(), {}), QStringLiteral("position startpos"));
+        QCOMPARE(UsiPosition::commandFor(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+                                         {QStringLiteral("7g7f")}),
+                 QStringLiteral("position startpos moves 7g7f"));
+        const QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 5");
+        QCOMPARE(UsiPosition::commandFor(sfen, {}), QStringLiteral("position sfen ") + sfen);
+    }
+
     void emptyPosition_sendsNothing()
     {
         const UsiPosition position;
