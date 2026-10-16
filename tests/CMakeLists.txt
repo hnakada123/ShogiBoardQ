@@ -1063,6 +1063,17 @@ target_link_libraries(tst_sfen_validation_service PRIVATE shogiboardq_static)
 
 add_shogi_test(tst_game_info_pane tst_game_info_pane.cpp)
 target_link_libraries(tst_game_info_pane PRIVATE shogiboardq_static)
+# 編集ボタンはアイコンだけを表示する（アイコンが無いと操作名の文字が出て幅が変わる）
+qt_add_resources(tst_game_info_pane game_info_edit_icons
+    PREFIX "/images/actions"
+    BASE "${CMAKE_SOURCE_DIR}/resources/images/actions"
+    FILES
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/editUndo.svg
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/editRedo.svg
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/editCut.svg
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/editCopy.svg
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/editPaste.svg
+)
 
 add_shogi_test(tst_kifu_conversion_service tst_kifu_conversion_service.cpp)
 target_link_libraries(tst_kifu_conversion_service PRIVATE shogiboardq_static)

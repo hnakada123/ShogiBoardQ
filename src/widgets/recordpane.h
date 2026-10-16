@@ -22,11 +22,11 @@ public:
     QTableView* kifuView() const;
     QTableView* branchView() const;
 
-    void setArrowButtonsEnabled(bool on);
+    /// 棋譜欄の行のクリックを有効・無効にする（局面送りのボタンは KifuNavigationController の QAction に従う）
     void setKifuViewEnabled(bool on);
-    void setNavigationEnabled(bool on);
     bool isNavigationDisabled() const { return m_navigationDisabled; }
 
+    // 局面送りのボタン（KifuNavigationController::bindButtons で QAction に結び付ける）
     QPushButton* firstButton()  const { return m_btn1; }
     QPushButton* back10Button() const { return m_btn2; }
     QPushButton* prevButton()   const { return m_btn3; }
@@ -48,8 +48,6 @@ signals:
     /// 分岐候補欄の右クリック（row は候補の行、行が無ければ -1）
     void branchContextMenuRequested(int row, const QPoint& globalPos);
     void bookmarkEditRequested();
-    /// 矢印ボタンの有効/無効を切り替えた（評価値グラフのナビゲーションボタンも合わせる）
-    void arrowButtonsEnabledChanged(bool on);
 
 private:
     void buildUi();

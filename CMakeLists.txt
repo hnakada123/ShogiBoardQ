@@ -667,6 +667,8 @@ set(SRC_WIDGETS
     src/widgets/flowlayout.h
     src/widgets/fontsizecontrol.cpp
     src/widgets/fontsizecontrol.h
+    src/widgets/editactions.cpp
+    src/widgets/editactions.h
     src/widgets/fontsizehelper.cpp
     src/widgets/fontsizehelper.h
     src/widgets/gameinfopane.cpp
