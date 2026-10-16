@@ -325,7 +325,7 @@ QWidget* findWidget(QWidget* root, const QString& nameOrSelector)
 
 QWidget* requireWidget(const AutomationContext& context, const QJsonObject& params, bool interactive)
 {
-    QWidget* window = requireWindow(context, AutomationParams::optionalString(params, QStringLiteral("target")));
+    QWidget* window = requireWindow(context, params.value(QStringLiteral("target")).toString());
     const QString name = AutomationParams::requireString(params, QStringLiteral("widget"));
     QWidget* widget = findWidget(window, name);
     if (!widget || (interactive && widget->window() != window))

@@ -2,6 +2,7 @@
 /// @brief 自動化 API の JSON-RPC 2.0 解析とメソッド表の実装
 
 #include "automationdispatcher.h"
+#include "automationmethodspecs.h"
 #include "logcategories.h"
 
 #include <QScopedValueRollback>
@@ -110,9 +111,22 @@ QJsonObject AutomationDispatcher::handleRequest(const QJsonObject& request) cons
 
     const QScopedValueRollback<int> activeGuard(m_activeHandlers, m_activeHandlers + 1);
 
+    // 表にあるメソッドは、呼ぶ前に引数を検査し（知らない引数は拒否する）、既定値を補う
+    QJsonObject params = paramsValue.toObject();
+    if (const OperationSpec* spec = AutomationMethodSpecs::find(method)) {
+        QString error;
+        const std::optional<QJsonObject> validated = ParamSpecs::validate(*spec, params, &error);
+        if (!validated) {
+            if (isNotification) return {};
+            return makeError(id, AutomationErrorCode::InvalidParams, error,
+                             QStringLiteral("Run shogiboardq-cli describe for the parameters of %1").arg(method));
+        }
+        params = *validated;
+    }
+
     QJsonObject response;
     try {
-        const QJsonValue result = it.value()(paramsValue.toObject());
+        const QJsonValue result = it.value()(params);
         response = makeResult(id, result);
     } catch (const AutomationError& error) {
         qCDebug(lcApp) << "automation" << method << "failed:" << error.code() << error.message();

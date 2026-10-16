@@ -43,7 +43,7 @@ class UI:
         return text
 
     async def widgets(self, target="main", root=None):
-        args = {"dialog": target, "max_rows": 200, "max_widgets": 1000}
+        args = {"target": target, "max_rows": 200, "max_widgets": 1000}
         if root:
             args.update(widget=root, include_children=True)
         return (await self.call("get_widget_text", **args))["widgets"]
@@ -55,7 +55,7 @@ class UI:
         return matches[0]
 
     async def read(self, widget, target="main"):
-        return (await self.call("get_widget_text", dialog=target, widget=widget))["widgets"][0]
+        return (await self.call("get_widget_text", target=target, widget=widget))["widgets"][0]
 
     async def click(self, text, target="main", root=None):
         widget = await self.find(target, root, text=text, enabled=True)
@@ -83,7 +83,7 @@ class UI:
         return await self.dialog(class_name)
 
     async def close(self, target):
-        await self.call("close_dialog", dialog=target)
+        await self.call("close_dialog", target=target)
         await asyncio.sleep(0.05)
 
     async def file(self, path):
@@ -299,7 +299,7 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
         merge = await ui.dialog("JosekiMergeDialog")
         await ui.click("全て登録", merge)
         complete = await ui.dialog("QMessageBox")
-        await ui.error("close_dialog", dialog=merge)
+        await ui.error("close_dialog", target=merge)
         await ui.close(complete)
         await ui.close(merge)
         await ui.call("goto_ply", ply=0)
@@ -388,7 +388,7 @@ async def test_collection_recent_menu(coverage_env, tmp_path):
         board = await ui.find(dialog, **{"class": "ShogiView"})
         assert board["board_sfen"] == record["sfens"][0].split()[0]
         button = await ui.find(dialog, text="閉じる")
-        await ui.call("click_dialog_button", dialog=dialog, widget=button["selector"])
+        await ui.call("click_dialog_button", target=dialog, widget=button["selector"])
 
 
 async def test_analysis_skips_terminal_row_of_loaded_kifu(coverage_env):

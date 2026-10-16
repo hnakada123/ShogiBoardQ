@@ -900,6 +900,8 @@ set(SRC_AUTOMATION
     src/automation/automationcontext.h
     src/automation/automationdispatcher.cpp
     src/automation/automationdispatcher.h
+    src/automation/automationmethodspecs.cpp
+    src/automation/automationmethodspecs.h
     src/automation/automationparams.h
     src/automation/automationserver.cpp
     src/automation/automationserver.h
@@ -915,6 +917,8 @@ set(SRC_AUTOMATION
     src/automation/kifuconversionservice.h
     src/automation/matesearchrunner.cpp
     src/automation/matesearchrunner.h
+    src/automation/paramspec.cpp
+    src/automation/paramspec.h
     src/automation/tsumeverificationrunner.cpp
     src/automation/tsumeverificationrunner.h
 )
@@ -923,6 +927,8 @@ set(SRC_AUTOMATION
 set(SRC_CLI
     src/cli/cliargs.cpp
     src/cli/cliargs.h
+    src/cli/clicommandspecs.cpp
+    src/cli/clicommandspecs.h
     src/cli/clicommands.h
     src/cli/clicommands_basic.cpp
     src/cli/clicommands_engine.cpp

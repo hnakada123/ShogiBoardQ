@@ -68,13 +68,13 @@ QJsonObject loadResult(const AutomationContext& context)
 void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {
     dispatcher.registerMethod(QStringLiteral("kifu.load"), [context](const QJsonObject& params) {
-        const QString path = AutomationParams::optionalString(params, QStringLiteral("path"));
-        const QString text = AutomationParams::optionalString(params, QStringLiteral("text"));
+        const QString path = params.value(QStringLiteral("path")).toString();
+        const QString text = params.value(QStringLiteral("text")).toString();
         if (path.isEmpty() == text.isEmpty()) {
             throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Pass exactly one of \"path\" or \"text\""));
         }
         KifuFileController* controller = requireFileController(context);
-        requireSavedOrDiscard(controller, AutomationParams::optionalBool(params, QStringLiteral("discard_unsaved")));
+        requireSavedOrDiscard(controller, params.value(QStringLiteral("discard_unsaved")).toBool());
         bool ok = false;
         // 読み込み失敗のダイアログは出さず、内容をエラー応答で返す
         const UiNotificationService::ScopedCapture capture;
@@ -102,8 +102,8 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
     });
 
     dispatcher.registerMethod(QStringLiteral("kifu.save"), [context](const QJsonObject& params) {
-        const QString path = AutomationParams::requireString(params, QStringLiteral("path"));
-        const bool overwrite = AutomationParams::optionalBool(params, QStringLiteral("overwrite"));
+        const QString path = params.value(QStringLiteral("path")).toString();
+        const bool overwrite = params.value(QStringLiteral("overwrite")).toBool();
         requireAbsolutePath(path);
         const QFileInfo info(path);
         if (info.exists() && !overwrite) {
@@ -130,9 +130,10 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
     });
 
     dispatcher.registerMethod(QStringLiteral("kifu.get"), [context](const QJsonObject& params) {
-        const QString format = AutomationParams::optionalString(params, QStringLiteral("format"), QStringLiteral("moves")).toLower();
-        const int fromPly = AutomationParams::optionalInt(params, QStringLiteral("from_ply"), 1, 1, 100000);
-        const int maxMoves = AutomationParams::optionalInt(params, QStringLiteral("max_moves"), 200, 1, 100000);
+        // 引数は AutomationMethodSpecs の表で検査済み（既定値も補ってある）
+        const QString format = params.value(QStringLiteral("format")).toString();
+        const int fromPly = params.value(QStringLiteral("from_ply")).toInt();
+        const int maxMoves = params.value(QStringLiteral("max_moves")).toInt();
         QJsonObject result;
         result[QStringLiteral("format")] = format;
         result[QStringLiteral("total_plies")] = totalPlies(context);
@@ -143,12 +144,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             bool truncated = false;
             if (tree) {
                 // 既定は表示中の手順（分岐を表示中なら分岐）。line="main" で本譜を返す。
-                const QString lineParam = AutomationParams::optionalString(
-                    params, QStringLiteral("line"), QStringLiteral("current")).toLower();
-                if (lineParam != QLatin1String("current") && lineParam != QLatin1String("main")) {
-                    throw AutomationError(AutomationErrorCode::InvalidParams,
-                                          QStringLiteral("line must be \"current\" or \"main\""));
-                }
+                const QString lineParam = params.value(QStringLiteral("line")).toString();
                 const int lineIndex = (lineParam == QLatin1String("main") || !context.navState)
                                           ? 0 : context.navState->currentLineIndex();
                 const QList<BranchLine> lines = !tree->isEmpty() ? tree->allLines() : QList<BranchLine>();
@@ -190,7 +186,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
     });
 
     dispatcher.registerMethod(QStringLiteral("kifu.goto"), [context](const QJsonObject& params) {
-        const int ply = AutomationParams::requireInt(params, QStringLiteral("ply"), 0, 100000);
+        const int ply = params.value(QStringLiteral("ply")).toInt();
         const int total = qMax(0, static_cast<int>(currentLinePositions(context).size()) - 1);
         if (ply > total) {
             throw AutomationError(AutomationErrorCode::InvalidParams,

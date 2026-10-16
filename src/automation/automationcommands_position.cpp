@@ -27,8 +27,8 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
     });
 
     dispatcher.registerMethod(QStringLiteral("position.set"), [context](const QJsonObject& params) {
-        const QString sfen = AutomationParams::requireString(params, QStringLiteral("sfen"));
-        const bool discard = AutomationParams::optionalBool(params, QStringLiteral("discard_unsaved"));
+        const QString sfen = params.value(QStringLiteral("sfen")).toString();
+        const bool discard = params.value(QStringLiteral("discard_unsaved")).toBool();
         const SfenValidation validation = SfenValidationService::validate(sfen);
         if (!validation.valid) {
             throw AutomationError(AutomationErrorCode::InvalidParams,

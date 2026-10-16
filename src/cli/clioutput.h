@@ -5,6 +5,7 @@
 /// @brief shogiboardq-cli の JSON 出力ヘルパ
 
 #include <QJsonObject>
+#include <QLatin1StringView>
 #include <QString>
 
 /**
@@ -13,6 +14,9 @@
  * 標準出力は機械可読な JSON 専用とし、ログは標準エラーに出す。
  */
 namespace CliOutput {
+
+/// 引数の誤り（範囲外・必須の欠け・知らないオプション）のエラーコード
+inline constexpr QLatin1StringView kInvalidArgument("invalid_argument");
 
 /// 1 行の JSON を書いてフラッシュする
 void printJson(const QJsonObject& object);
@@ -26,7 +30,7 @@ int fail(const QString& code, const QString& message);
 /// `{"event":"error","code","message"}` を書き、終了コード 1 を返す
 int failEvent(const QString& code, const QString& message);
 
-/// 使い方をテキストで標準出力に書く
+/// 使い方（CliCommandSpecs の表から作る）をテキストで標準出力に書く
 void printUsage();
 
 } // namespace CliOutput

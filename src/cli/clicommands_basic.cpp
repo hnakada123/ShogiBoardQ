@@ -6,6 +6,8 @@
 #include "applicationfonts.h"
 #include "applicationtranslations.h"
 #include "appsettings.h"
+#include "automationmethodspecs.h"
+#include "clicommandspecs.h"
 #include "boardimagerenderer.h"
 #include "cliargs.h"
 #include "clioutput.h"
@@ -14,30 +16,11 @@
 #include "kifusavefile.h"
 #include "sfenvalidationservice.h"
 
-#include <QCommandLineParser>
-#include <QLatin1StringView>
 #include <QCoreApplication>
 #include <QJsonArray>
 
 namespace {
 
-constexpr QLatin1StringView kInvalidArgument("invalid_argument");
-
-void configureParser(QCommandLineParser& parser, const QString& command)
-{
-    parser.setApplicationDescription(QStringLiteral("shogiboardq-cli ") + command);
-    parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
-}
-
-/// パース失敗時は使い方の誤りとして終了コードを返す
-bool parseOrFail(QCommandLineParser& parser, const QStringList& args, int& exitCode)
-{
-    if (!parser.parse(QStringList{QStringLiteral("shogiboardq-cli")} + args)) {
-        exitCode = CliOutput::fail(kInvalidArgument, parser.errorText());
-        return false;
-    }
-    return true;
-}
 
 QJsonArray gameInfoToJson(const QList<KifGameInfoItem>& items)
 {
@@ -73,7 +56,8 @@ QJsonArray movesToJson(const RecordLine& line)
 
 int CliCommands::version(const QStringList& args)
 {
-    Q_UNUSED(args)
+    int exitCode = 0;
+    if (!CliArgs::parse(QStringLiteral("version"), args, false, &exitCode)) return exitCode;
     QJsonObject obj;
     obj[QStringLiteral("ok")] = true;
     obj[QStringLiteral("version")] = QCoreApplication::applicationVersion();
@@ -82,9 +66,26 @@ int CliCommands::version(const QStringList& args)
     return 0;
 }
 
+int CliCommands::describe(const QStringList& args)
+{
+    int exitCode = 0;
+    if (!CliArgs::parse(QStringLiteral("describe"), args, false, &exitCode)) return exitCode;
+    QJsonArray commands;
+    for (const OperationSpec& command : CliCommandSpecs::all()) commands.append(ParamSpecs::toJson(command));
+    QJsonArray methods;
+    for (const OperationSpec& method : AutomationMethodSpecs::all()) methods.append(ParamSpecs::toJson(method));
+    QJsonObject obj;
+    obj[QStringLiteral("ok")] = true;
+    obj[QStringLiteral("commands")] = commands;
+    obj[QStringLiteral("methods")] = methods;
+    CliOutput::printJson(obj);
+    return 0;
+}
+
 int CliCommands::listEngines(const QStringList& args)
 {
-    Q_UNUSED(args)
+    int exitCode = 0;
+    if (!CliArgs::parse(QStringLiteral("list-engines"), args, false, &exitCode)) return exitCode;
     QJsonObject obj;
     obj[QStringLiteral("ok")] = true;
     obj[QStringLiteral("engines")] = EngineCatalog::toJson();
@@ -94,14 +95,11 @@ int CliCommands::listEngines(const QStringList& args)
 
 int CliCommands::validateSfen(const QStringList& args)
 {
-    QCommandLineParser parser;
-    configureParser(parser, QStringLiteral("validate-sfen"));
-    parser.addOption({QStringLiteral("sfen"), QStringLiteral("SFEN to validate."), QStringLiteral("sfen")});
     int exitCode = 0;
-    if (!parseOrFail(parser, args, exitCode)) return exitCode;
-    if (!parser.isSet(QStringLiteral("sfen"))) return CliOutput::fail(kInvalidArgument, QStringLiteral("--sfen is required"));
+    const auto params = CliArgs::parse(QStringLiteral("validate-sfen"), args, false, &exitCode);
+    if (!params) return exitCode;
 
-    QJsonObject obj = SfenValidationService::validate(parser.value(QStringLiteral("sfen"))).toJson();
+    QJsonObject obj = SfenValidationService::validate(params->value(QStringLiteral("sfen")).toString()).toJson();
     obj[QStringLiteral("ok")] = true;
     CliOutput::printJson(obj);
     return 0;
@@ -109,36 +107,22 @@ int CliCommands::validateSfen(const QStringList& args)
 
 int CliCommands::convertKifu(const QStringList& args)
 {
-    QCommandLineParser parser;
-    configureParser(parser, QStringLiteral("convert-kifu"));
-    parser.addOption({QStringLiteral("input"), QStringLiteral("Input kifu file."), QStringLiteral("path")});
-    parser.addOption({QStringLiteral("text"), QStringLiteral("Input kifu text."), QStringLiteral("text")});
-    parser.addOption({QStringLiteral("input-format"), QStringLiteral("auto|kif|ki2|csa|jkf|usi|usen"),
-                      QStringLiteral("format"), QStringLiteral("auto")});
-    parser.addOption({QStringLiteral("output-format"), QStringLiteral("kif|ki2|csa|jkf|usi|usen|sfen"),
-                      QStringLiteral("format")});
-    parser.addOption({QStringLiteral("output"), QStringLiteral("Write the result to this file."), QStringLiteral("path")});
-    parser.addOption({QStringLiteral("overwrite"), QStringLiteral("Allow replacing an existing output file.")});
     int exitCode = 0;
-    if (!parseOrFail(parser, args, exitCode)) return exitCode;
+    const auto params = CliArgs::parse(QStringLiteral("convert-kifu"), args, false, &exitCode);
+    if (!params) return exitCode;
 
+    // 形式の名前は表の選択肢で検査済み
     KifuConversionService::Request request;
-    request.inputPath = parser.value(QStringLiteral("input"));
-    request.text = parser.value(QStringLiteral("text"));
-    const QString inputName = parser.value(QStringLiteral("input-format"));
-    if (inputName.compare(QLatin1String("auto"), Qt::CaseInsensitive) != 0) {
-        request.inputFormat = KifuFormats::fromName(inputName);
-        if (!request.inputFormat) return CliOutput::fail(kInvalidArgument, QStringLiteral("Unknown --input-format"));
-    }
-    const auto outputFormat = KifuFormats::fromName(parser.value(QStringLiteral("output-format")));
-    if (!outputFormat || *outputFormat == KifuFormat::Bod) {
-        return CliOutput::fail(kInvalidArgument, QStringLiteral("--output-format must be one of kif, ki2, csa, jkf, usi, usen, sfen"));
-    }
-    request.outputFormat = *outputFormat;
+    request.inputPath = params->value(QStringLiteral("input")).toString();
+    request.text = params->value(QStringLiteral("text")).toString();
+    const QString inputName = params->value(QStringLiteral("input_format")).toString();
+    if (inputName != QLatin1String("auto")) request.inputFormat = KifuFormats::fromName(inputName);
+    request.outputFormat = *KifuFormats::fromName(params->value(QStringLiteral("output_format")).toString());
 
-    const QString outputPath = parser.value(QStringLiteral("output"));
+    const QString outputPath = params->value(QStringLiteral("output")).toString();
     QString error;
-    if (!outputPath.isEmpty() && !CliArgs::checkOutputPath(outputPath, parser.isSet(QStringLiteral("overwrite")), &error)) {
+    if (!outputPath.isEmpty()
+        && !CliArgs::checkOutputPath(outputPath, params->value(QStringLiteral("overwrite")).toBool(), &error)) {
         return CliOutput::fail(QStringLiteral("io_error"), error);
     }
 
@@ -173,35 +157,22 @@ int CliCommands::convertKifu(const QStringList& args)
 
 int CliCommands::renderBoard(const QStringList& args)
 {
-    QCommandLineParser parser;
-    configureParser(parser, QStringLiteral("render-board"));
-    parser.addOption({QStringLiteral("sfen"), QStringLiteral("Position to draw (SFEN or startpos)."), QStringLiteral("sfen"),
-                      QStringLiteral("startpos")});
-    parser.addOption({QStringLiteral("output"), QStringLiteral("Output image path (.png recommended)."), QStringLiteral("path")});
-    parser.addOption({QStringLiteral("square-size"), QStringLiteral("Square width in pixels (20-150)."), QStringLiteral("px"),
-                      QStringLiteral("50")});
-    parser.addOption({QStringLiteral("flip"), QStringLiteral("View from the white (gote) side.")});
-    parser.addOption({QStringLiteral("last-move"), QStringLiteral("USI move to highlight."), QStringLiteral("move")});
-    parser.addOption({QStringLiteral("black-name"), QStringLiteral("Name shown for black (sente)."), QStringLiteral("name")});
-    parser.addOption({QStringLiteral("white-name"), QStringLiteral("Name shown for white (gote)."), QStringLiteral("name")});
-    parser.addOption({QStringLiteral("overwrite"), QStringLiteral("Allow replacing an existing output file.")});
     int exitCode = 0;
-    if (!parseOrFail(parser, args, exitCode)) return exitCode;
+    const auto params = CliArgs::parse(QStringLiteral("render-board"), args, false, &exitCode);
+    if (!params) return exitCode;
 
     QString error;
-    const QString outputPath = parser.value(QStringLiteral("output"));
-    if (!CliArgs::checkOutputPath(outputPath, parser.isSet(QStringLiteral("overwrite")), &error)) {
+    const QString outputPath = params->value(QStringLiteral("output")).toString();
+    if (!CliArgs::checkOutputPath(outputPath, params->value(QStringLiteral("overwrite")).toBool(), &error)) {
         return CliOutput::fail(QStringLiteral("io_error"), error);
     }
-    const auto squareSize = CliArgs::intOption(parser, QStringLiteral("square-size"), 50, 20, 150, &error);
-    if (!squareSize) return CliOutput::fail(kInvalidArgument, error);
 
     BoardImageRenderer::Options options;
-    options.squareSize = *squareSize;
-    options.flip = parser.isSet(QStringLiteral("flip"));
-    options.lastMoveUsi = parser.value(QStringLiteral("last-move"));
-    options.blackName = parser.value(QStringLiteral("black-name"));
-    options.whiteName = parser.value(QStringLiteral("white-name"));
+    options.squareSize = params->value(QStringLiteral("square_size")).toInt();
+    options.flip = params->value(QStringLiteral("flip")).toBool();
+    options.lastMoveUsi = params->value(QStringLiteral("last_move")).toString();
+    options.blackName = params->value(QStringLiteral("black_name")).toString();
+    options.whiteName = params->value(QStringLiteral("white_name")).toString();
 
     // 「手番」などの表示・段の表記（一〜九／a〜i）・書体を、GUI と同じ表示言語と棋譜表記の設定に合わせる。
     // ほかのコマンドの出力（JSON・棋譜の形式）は言語に依存させないため、盤面描画のときだけ適用する。
@@ -209,7 +180,7 @@ int CliCommands::renderBoard(const QStringList& args)
     ApplicationFonts::initialize(AppSettings::uiFontFamily(), translations.language());
 
     QSize size;
-    if (!BoardImageRenderer::renderToFile(parser.value(QStringLiteral("sfen")), outputPath, options, &error, &size)) {
+    if (!BoardImageRenderer::renderToFile(params->value(QStringLiteral("sfen")).toString(), outputPath, options, &error, &size)) {
         return CliOutput::fail(QStringLiteral("render_error"), error);
     }
     QJsonObject obj;

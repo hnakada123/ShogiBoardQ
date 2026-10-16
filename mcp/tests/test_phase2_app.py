@@ -129,7 +129,7 @@ async def test_actions_dialogs_and_screenshots(app_env, tmp_path):
                 break
         assert any(w["object_name"] == "VersionDialog" for w in dialogs["windows"]), text
 
-        text, widgets, is_error = await _call(session, "get_widget_text", dialog="VersionDialog")
+        text, widgets, is_error = await _call(session, "get_widget_text", target="VersionDialog")
         assert not is_error, text
         assert any("Version" in (w.get("text") or "") for w in widgets["widgets"])
 
@@ -137,7 +137,7 @@ async def test_actions_dialogs_and_screenshots(app_env, tmp_path):
         assert not is_error, text
         assert Path(shot["path"]).exists() and shot["width"] > 0
 
-        text, data, is_error = await _call(session, "close_dialog", dialog="VersionDialog")
+        text, data, is_error = await _call(session, "close_dialog", target="VersionDialog")
         assert not is_error, text
         await asyncio.sleep(0.3)
         text, dialogs, _ = await _call(session, "list_dialogs")
@@ -175,22 +175,22 @@ async def test_tsume_board_clicks(app_env, tmp_path):
 
         async def wait_ready():
             for _ in range(100):
-                widgets = await call("get_widget_text", dialog="tsumePlayDialog", widget="tsumeStatus")
+                widgets = await call("get_widget_text", target="tsumePlayDialog", widget="tsumeStatus")
                 if "あなたの手番" in widgets["widgets"][0]["text"]:
                     return widgets["widgets"][0]["text"]
                 await asyncio.sleep(0.05)
             pytest.fail("Tsume dialog did not become ready")
 
         async def board():
-            data = await call("get_widget_text", dialog="tsumePlayDialog", widget="tsumeBoard")
+            data = await call("get_widget_text", target="tsumePlayDialog", widget="tsumeBoard")
             return data["widgets"][0]
 
         async def layout():
-            data = await call("get_widget_text", dialog="tsumePlayDialog")
+            data = await call("get_widget_text", target="tsumePlayDialog")
             return {widget["object_name"]: widget["geometry"] for widget in data["widgets"]}
 
         async def button(widget):
-            return await call("click_dialog_button", dialog="tsumePlayDialog", widget=widget)
+            return await call("click_dialog_button", target="tsumePlayDialog", widget=widget)
 
         async def square(file, rank, **kwargs):
             return await call("click_board_square", target="tsumePlayDialog", file=file, rank=rank, **kwargs)
@@ -207,7 +207,7 @@ async def test_tsume_board_clicks(app_env, tmp_path):
             assert error
 
         for index in (0, 1):
-            await call("click_dialog_button", dialog="tsumeCollectionDialog", widget="tsumeProblemCard", index=index)
+            await call("click_dialog_button", target="tsumeCollectionDialog", widget="tsumeProblemCard", index=index)
             await asyncio.sleep(0.1)
             await wait_ready()
             if index == 1:
@@ -230,7 +230,7 @@ async def test_tsume_board_clicks(app_env, tmp_path):
                 await asyncio.sleep(0.1)
                 text, _, error = await _call(session, "click_board_square", target="tsumePlayDialog", file=1, rank=1)
                 assert error and "blocked" in text
-                await call("click_dialog_button", dialog=await message_box(session, "成りますか"), text="成る")
+                await call("click_dialog_button", target=await message_box(session, "成りますか"), text="成る")
             await asyncio.sleep(0.1)
             assert "残り3手" in await wait_ready()
             moved = await board()
@@ -250,7 +250,7 @@ async def test_tsume_board_clicks(app_env, tmp_path):
             await asyncio.sleep(0.05)
             assert (await board())["board_sfen"] == solution["board_sfen"]
             # Hidden play buttons cannot be invoked while reviewing the solution.
-            _, _, error = await _call(session, "click_dialog_button", dialog="tsumePlayDialog", widget="tsumeRestart")
+            _, _, error = await _call(session, "click_dialog_button", target="tsumePlayDialog", widget="tsumeRestart")
             assert error
             await button("tsumeReturnToGame")
             assert (await board())["board_sfen"] == initial["board_sfen"]
@@ -266,6 +266,6 @@ async def test_tsume_board_clicks(app_env, tmp_path):
                     assert {name: current_layout[name] for name in fixed_names} == {
                         name: initial_layout[name] for name in fixed_names}
             assert (await board())["board_sfen"] == initial["board_sfen"]
-            await call("close_dialog", dialog="tsumePlayDialog")
+            await call("close_dialog", target="tsumePlayDialog")
             await asyncio.sleep(0.1)
-        await call("close_dialog", dialog="tsumeCollectionDialog")
+        await call("close_dialog", target="tsumeCollectionDialog")
