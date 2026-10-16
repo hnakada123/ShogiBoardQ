@@ -1,11 +1,15 @@
 #include <QtTest>
 #include <QCheckBox>
 #include <QTemporaryDir>
+#include "analysissession.h"
 #include "analysissettings.h"
+#include "appactivitystate.h"
+#include "enginelifecyclemanager.h"
 #include "candidatearrowpresenter.h"
 #include "thinkingpanel.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
+#include "shogiclock.h"
 #include "shogigamecontroller.h"
 #include "shogienginethinkingmodel.h"
 #include "thinkinginfoformatter.h"
@@ -105,8 +109,17 @@ private slots:
         board.setSfen(SfenUtils::hirateSfen());
         ShogiView view;
         view.setBoard(&board);
+        ShogiClock clock;
+        AppActivityState activity;
+        EngineLifecycleManager engines(&clock);
+        AnalysisSession session(AnalysisSession::Deps{&engines, &activity});
+        ShogiEngineThinkingModel model;
+        bool showArrows = true;
         CandidateArrowPresenter::Deps deps;
         deps.view = &view;
+        deps.analysis = &session;
+        deps.consideration = &model;
+        deps.showConsiderationArrows = [&showArrows]() { return showArrows; };
         CandidateArrowPresenter presenter(deps);
         auto* controller = &presenter;
         ThinkingPanel tab;
@@ -122,7 +135,6 @@ private slots:
         QVERIFY(ponder->isChecked());
         QVERIFY(AnalysisSettings::ponderArrowsVisible());
         master->setChecked(true);
-        ShogiEngineThinkingModel model;
         ThinkingInfoRow record;
         record.score = UsiScore::cp(30);
         record.pvKanji = QStringLiteral("▲７六歩");
@@ -130,7 +142,13 @@ private slots:
         record.baseSfen = SfenUtils::hirateSfen();
         record.multipv = 1;
         model.updateByMultipv(record, 3);
-        controller->setConsiderationState(true, true, &model);
+        // 検討中かは検討のセッションが決める（矢印は検討の表から作る）
+        AnalysisOptions options;
+        options.mode = AnalysisOptions::Mode::Consideration;
+        options.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        options.engineName = QStringLiteral("ArrowTest");
+        options.position = *UsiPosition::parse(QStringLiteral("position startpos"));
+        QVERIFY(session.start(options));
         QTRY_COMPARE(view.arrows().size(), 1);
         QVERIFY(!master->isEnabled());
         QVERIFY(!ponder->isEnabled());
@@ -147,15 +165,18 @@ private slots:
         QVERIFY(view.arrows().at(0).color.alpha() > view.arrows().at(1).color.alpha());
         model.trimToMaxRows(1);
         QTRY_COMPARE(view.arrows().size(), 1);
-        controller->setConsiderationState(true, false, &model);
+        // 検討タブの「矢印」の設定を切ると消え、戻すと出る（設定の変更で描き直す）
+        showArrows = false;
+        controller->scheduleRefresh();
         QTRY_VERIFY(view.arrows().isEmpty());
-        controller->setConsiderationState(true, true, &model);
+        showArrows = true;
+        controller->scheduleRefresh();
         QTRY_COMPARE(view.arrows().size(), 1);
         board.setSfen(SfenUtils::hirateSfen().replace(" b ", " w "));
         QTRY_VERIFY(view.arrows().isEmpty());
         board.setSfen(SfenUtils::hirateSfen());
         QTRY_COMPARE(view.arrows().size(), 1);
-        controller->setConsiderationState(false, true, &model);
+        session.stop();
         QTRY_VERIFY(view.arrows().isEmpty());
         QVERIFY(master->isEnabled());
         model.clearAllItems();

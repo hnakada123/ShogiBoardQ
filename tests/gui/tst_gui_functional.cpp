@@ -3188,6 +3188,8 @@ private slots:
             if (series->objectName() == "evalSeries1") scores = qobject_cast<QLineSeries*>(series);
         }
         QVERIFY(scores);
+        // グラフは届いた点をまとめて描く（モデルより少し遅れる）
+        QTRY_COMPARE(scores->count(), lastPly + 1);
         for (int ply = 0; ply <= lastPly; ++ply) {
             QCOMPARE(scores->at(ply).x(), double(ply));
             QCOMPARE(scores->at(ply).y(), results->model()->index(ply, 3).data().toDouble());
@@ -3248,6 +3250,7 @@ private slots:
         QCOMPARE(results->model()->rowCount(), 1);
         QTRY_COMPARE(graph->series()->count(0), 1);
         QCOMPARE(graph->series()->count(1), 0);
+        QTRY_COMPARE(scores->count(), 1);
         QCOMPARE(scores->at(0).x(), double(lastPly));
         QCOMPARE(recordView->currentIndex().row(), lastPly);
         QCOMPARE(graph->currentPly(), lastPly);
@@ -3888,16 +3891,20 @@ private slots:
         auto* toolbar = dock->findChild<QWidget*>("considerationToolbar");
         auto* increase = dock->findChild<QToolButton*>("considerationFontIncrease");
         QVERIFY(unlimited && timed && seconds && toolbar && increase);
-        manager->setConsiderationTimeLimit(true, 20);
+        ConsiderationSettings settings = manager->settings();
+        settings.unlimitedTime = true;
+        settings.byoyomiSec = 20;
+        manager->setSettings(settings);
         QVERIFY(!seconds->isEnabled());
         QTest::mouseClick(timed, Qt::LeftButton);
         QVERIFY(!unlimited->isChecked()); QVERIFY(seconds->isEnabled());
         QTest::mouseClick(unlimited, Qt::LeftButton);
         QVERIFY(!timed->isChecked()); QVERIFY(!seconds->isEnabled());
-        manager->setConsiderationTimeLimit(false, 20);
-        manager->setConsiderationRunning(true);
+        settings.unlimitedTime = false;
+        manager->setSettings(settings);
+        manager->setRunState(ConsiderationTabManager::RunState::Running);
         QVERIFY(!seconds->isEnabled()); QVERIFY(!timed->isEnabled());
-        manager->setConsiderationRunning(false);
+        manager->setRunState(ConsiderationTabManager::RunState::Idle);
         QVERIFY(seconds->isEnabled()); QVERIFY(timed->isEnabled());
 
         const QString pv = QStringLiteral("▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)▲２五歩(26)△８五歩(84)▲７七角(88)△３二金(41)");
@@ -3911,7 +3918,8 @@ private slots:
             row.multipv = rank;
             model->updateByMultipv(row, 6);
         }
-        manager->setConsiderationMultiPV(6);
+        settings.multiPV = 6;
+        manager->setSettings(settings);
         manager->setConsiderationEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
         auto* summary = new UsiCommLogModel(window.get());
         summary->setEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
@@ -3966,7 +3974,9 @@ private slots:
         restored.buildConsiderationUi(&restoredPanel);
         QCOMPARE(restored.considerationView()->columnWidth(2), 180);
         QCOMPARE(restored.considerationInfo()->columnWidths().at(0), 290);
-        restored.setConsiderationTimeLimit(true, 20);
+        ConsiderationSettings restoredSettings = restored.settings();
+        restoredSettings.unlimitedTime = true;
+        restored.setSettings(restoredSettings);
         QVERIFY(!restoredPanel.findChild<QSpinBox*>("considerationSeconds")->isEnabled());
     }
     void engineInfoLayout()

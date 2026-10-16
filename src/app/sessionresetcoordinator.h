@@ -8,25 +8,19 @@
 
 #include "startoptions.h"
 
-class ConsiderationTabManager;
-class CsaLogPanel;
-class ThinkingPanel;
-class UsiLogPanel;
+class EngineDisplayPresenter;
 class EvaluationGraphPresenter;
-class KifuAnalysisListModel;
 class KifuBranchNode;
 class KifuDocument;
 class KifuLoadCoordinator;
 class LiveGameSession;
-class ShogiEngineThinkingModel;
-class UsiCommLogModel;
 
 /**
  * @brief 棋譜（文書）とエンジン・解析の表示を作り直す処理を1か所にまとめる
  *
  * 棋譜の作り直しは文書の置き換え（KifuDocument::startNew）で、対局情報・対局の記録・上書き保存先も一緒に消える。
  * 棋譜欄・分岐・盤・コメントは、ツリーと表示中の手が変わると各部品が自分で合わせるので、ここでは触らない。
- * ここで消すのは、ツリーから作られない表示（通信ログ・思考情報・検討・解析結果・評価値グラフ）だけ。
+ * ここで消すのは、ツリーから作られない表示（評価値グラフと、EngineDisplayPresenter が持つエンジンの表示）だけ。
  */
 class SessionResetCoordinator
 {
@@ -36,16 +30,7 @@ public:
         LiveGameSession* liveSession = nullptr;
         KifuLoadCoordinator* kifuLoader = nullptr;
         EvaluationGraphPresenter* evalGraph = nullptr;
-        UsiCommLogModel* commLog1 = nullptr;
-        UsiCommLogModel* commLog2 = nullptr;
-        ShogiEngineThinkingModel* thinking1 = nullptr;
-        ShogiEngineThinkingModel* thinking2 = nullptr;
-        ShogiEngineThinkingModel* consideration = nullptr;
-        KifuAnalysisListModel* analysisModel = nullptr;
-        ThinkingPanel* thinkingPanel = nullptr;              ///< エンジン名の表示
-        ConsiderationTabManager* considerationTab = nullptr; ///< 検討のエンジン名・経過時間
-        UsiLogPanel* usiLog = nullptr;
-        CsaLogPanel* csaLog = nullptr;
+        EngineDisplayPresenter* engineDisplay = nullptr;   ///< 通信ログ・思考情報・検討・解析結果の表示
     };
 
     explicit SessionResetCoordinator(const Deps& deps) : m_deps(deps) {}
@@ -66,8 +51,6 @@ public:
     void clearBeforeKifuLoad();
 
 private:
-    void clearEngineDisplays();
-
     Deps m_deps;
 };
 

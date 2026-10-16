@@ -7,6 +7,7 @@
 #include "shogiview.h"
 #include <QPointer>
 #include <QTimer>
+#include <functional>
 #include <optional>
 #include <array>
 
@@ -28,11 +29,13 @@ public:
         MatchCoordinator* match = nullptr;             ///< 対局中のエンジンの読み
         EngineLifecycleManager* engines = nullptr;     ///< 読みを出すエンジンの枠
         AppActivityState* activity = nullptr;          ///< 対局中か・終局したか
-        AnalysisSession* analysis = nullptr;           ///< 検討が終わったら検討の矢印を消す
+        AnalysisSession* analysis = nullptr;           ///< 検討中か（正本はセッション）
+        ShogiEngineThinkingModel* consideration = nullptr; ///< 検討の読み筋（検討中の矢印の元）
+        /// 検討の候補手の矢印を出すか（検討タブの設定）。無ければ出す
+        std::function<bool()> showConsiderationArrows;
     };
 
     explicit CandidateArrowPresenter(const Deps& deps, QObject* parent = nullptr);
-    void setConsiderationState(bool active, bool show, ShogiEngineThinkingModel* model);
 
     static std::optional<ShogiView::Arrow> arrowForMove(const QString& move,
                                                       const QString& baseSfen, int priority);
@@ -49,16 +52,12 @@ signals:
 
 private slots:
     void bindEngines();
-    void endConsideration();
 
 private:
     void appendMatchArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen);
     QPointer<ShogiView> m_view;
     Deps m_sources;
     std::array<QPointer<Usi>, 2> m_engines;
-    QPointer<ShogiEngineThinkingModel> m_considerationModel;
-    bool m_considerationActive = false;
-    bool m_showConsideration = true;
     QString m_ponderDescription;
     QTimer m_refreshTimer;
 };

@@ -3,21 +3,14 @@
 
 #include "sessionresetcoordinator.h"
 
-#include "considerationtabmanager.h"
-#include "csalogpanel.h"
-#include "engineinfowidget.h"
+#include "enginedisplaypresenter.h"
 #include "evaluationgraphpresenter.h"
-#include "kifuanalysislistmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
 #include "kifuloadcoordinator.h"
 #include "livegamesession.h"
 #include "sfenutils.h"
-#include "shogienginethinkingmodel.h"
-#include "thinkingpanel.h"
-#include "usicommlogmodel.h"
-#include "usilogpanel.h"
 
 KifuBranchNode* SessionResetCoordinator::prepareGameStart(const GameStartPreparation& preparation)
 {
@@ -42,7 +35,7 @@ KifuBranchNode* SessionResetCoordinator::prepareGameStart(const GameStartPrepara
         node = tree->root();
     }
 
-    clearEngineDisplays();
+    if (m_deps.engineDisplay) m_deps.engineDisplay->clearAll();
     // 現在局面から続けるときは、それまでの評価値を残す
     if (fromCurrent) m_deps.evalGraph->trimToPly(node->ply());
     else m_deps.evalGraph->clear();
@@ -56,37 +49,12 @@ void SessionResetCoordinator::resetToNewRecord(const QString& sfen, bool keepHea
     // 読み込み途中の棋譜は捨てる（ツリーはここで作り直す）
     m_deps.kifuLoader->cancelLoad();
     m_deps.liveSession->discard();
+    // 評価値グラフの系列名は、対局者が消えたことを受けて EngineDisplayPresenter が消す
     m_deps.document->startNew(sfen, keepHeader);
-    m_deps.evalGraph->setEngine1Name({});
-    m_deps.evalGraph->setEngine2Name({});
 }
 
 void SessionResetCoordinator::clearBeforeKifuLoad()
 {
-    clearEngineDisplays();
+    if (m_deps.engineDisplay) m_deps.engineDisplay->clearAll();
     m_deps.evalGraph->clear();
-}
-
-void SessionResetCoordinator::clearEngineDisplays()
-{
-    for (UsiCommLogModel* log : {m_deps.commLog1, m_deps.commLog2}) {
-        if (log) log->clear();
-    }
-    for (ShogiEngineThinkingModel* thinking : {m_deps.thinking1, m_deps.thinking2, m_deps.consideration}) {
-        if (thinking) thinking->clearAllItems();
-    }
-    if (m_deps.analysisModel) m_deps.analysisModel->clearAllItems();
-
-    if (UsiLogPanel* log = m_deps.usiLog) log->clear();
-    if (CsaLogPanel* log = m_deps.csaLog) log->clear();
-    if (ThinkingPanel* panel = m_deps.thinkingPanel) {
-        panel->info1()->setDisplayNameFallback(QString());
-        panel->info2()->setDisplayNameFallback(QString());
-    }
-    if (ConsiderationTabManager* consideration = m_deps.considerationTab) {
-        if (consideration->considerationInfo()) consideration->considerationInfo()->setModel(nullptr);
-        consideration->setConsiderationEngineName(QString());
-        consideration->resetElapsedTimer();
-        consideration->setConsiderationRunning(false);
-    }
 }

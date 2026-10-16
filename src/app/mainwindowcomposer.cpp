@@ -6,6 +6,7 @@
 #include "ui_mainwindow.h"
 
 #include "appsettings.h"
+#include "considerationtabmanager.h"
 #include "docklayoutmanager.h"
 #include "enginelifecyclemanager.h"
 #include "humanturnpolicy.h"
@@ -67,6 +68,11 @@ void MainWindowComposer::finalizeUi()
 bool MainWindowComposer::isHumanTurnNow() const
 {
     return m_c.humanTurnPolicy && m_c.humanTurnPolicy->isHumanTurnNow();
+}
+
+bool MainWindowComposer::showConsiderationArrows() const
+{
+    return !m_c.considerationTab || m_c.considerationTab->settings().showArrows;
 }
 
 void MainWindowComposer::shutdown()

@@ -228,17 +228,6 @@ void MainWindowComposer::createMatchAndAnalysis()
     m_c.analysisSession = new AnalysisSession(sd, &m_window);
     m_c.consecutiveGames = new ConsecutiveGameSeries(&m_window);
 
-    // 枠のエンジンの思考情報・通信ログを思考・検討・USI通信ログの表示に出す
-    EngineDisplayPresenter::Deps ed;
-    ed.engines = m_c.engines;
-    ed.analysis = m_c.analysisSession;
-    ed.commLog1 = m_c.commLog1;
-    ed.commLog2 = m_c.commLog2;
-    ed.thinking1 = m_c.thinking1;
-    ed.thinking2 = m_c.thinking2;
-    ed.consideration = m_c.consideration;
-    m_c.engineDisplay = new EngineDisplayPresenter(ed, &m_window);
-
     CsaGameCoordinator::Deps cd;
     cd.gameController = m_c.gameController;
     cd.clock = m_c.clock;
@@ -286,23 +275,38 @@ void MainWindowComposer::createPresentersAndDocks()
 {
     m_c.evalGraph = new EvaluationGraphPresenter({m_c.evalChart, m_c.navState, m_c.liveGameSession}, &m_window);
 
+    // エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）
+    EngineDisplayPresenter::Deps ed;
+    ed.engines = m_c.engines;
+    ed.analysis = m_c.analysisSession;
+    ed.document = m_c.document;
+    ed.commLog1 = m_c.commLog1;
+    ed.commLog2 = m_c.commLog2;
+    ed.thinking1 = m_c.thinking1;
+    ed.thinking2 = m_c.thinking2;
+    ed.consideration = m_c.consideration;
+    ed.analysisModel = m_c.analysis;
+    ed.thinkingPanel = m_c.thinkingPanel;
+    ed.considerationTab = m_c.considerationTab;
+    ed.evalGraph = m_c.evalGraph;
+    ed.usiLog = m_c.usiLog;
+    ed.csaLog = m_c.csaLog;
+    m_c.engineDisplay = new EngineDisplayPresenter(ed, &m_window);
+
     CandidateArrowPresenter::Deps ad;
     ad.view = m_c.shogiView;
     ad.match = m_c.match;
     ad.engines = m_c.engines;
     ad.activity = &m_state.activity;
     ad.analysis = m_c.analysisSession;
+    ad.consideration = m_c.consideration;
+    ad.showConsiderationArrows = std::bind(&MainWindowComposer::showConsiderationArrows, this);
     m_c.arrows = new CandidateArrowPresenter(ad, &m_window);
 
     PlayerInfoPresenter::Deps pd;
     pd.document = m_c.document;
     pd.activity = &m_state.activity;
     pd.shogiView = m_c.shogiView;
-    pd.thinking = m_c.thinkingPanel;
-    pd.consideration = m_c.considerationTab;
-    pd.evalGraph = m_c.evalGraph;
-    pd.logModel1 = m_c.commLog1;
-    pd.logModel2 = m_c.commLog2;
     m_c.playerInfo = new PlayerInfoPresenter(pd, &m_window);
 
     m_c.menuWindowController = new MenuWindowController({&m_window, m_window.menuBar()}, &m_window);
@@ -412,16 +416,7 @@ void MainWindowComposer::createSessions()
     rd.liveSession = m_c.liveGameSession;
     rd.kifuLoader = m_c.kifuLoadCoordinator;
     rd.evalGraph = m_c.evalGraph;
-    rd.commLog1 = m_c.commLog1;
-    rd.commLog2 = m_c.commLog2;
-    rd.thinking1 = m_c.thinking1;
-    rd.thinking2 = m_c.thinking2;
-    rd.consideration = m_c.consideration;
-    rd.analysisModel = m_c.analysis;
-    rd.thinkingPanel = m_c.thinkingPanel;
-    rd.considerationTab = m_c.considerationTab;
-    rd.usiLog = m_c.usiLog;
-    rd.csaLog = m_c.csaLog;
+    rd.engineDisplay = m_c.engineDisplay;
     m_c.sessionReset = std::make_unique<SessionResetCoordinator>(rd);
 
     KifuFileController::Deps fd;
@@ -501,12 +496,8 @@ void MainWindowComposer::createControllers()
     ConsiderationUiController::Deps cw;
     cw.parentWidget = &m_window;
     cw.considerationTabManager = m_c.considerationTab;
-    cw.thinkingInfo1 = m_c.thinkingPanel->info1();
-    cw.arrows = m_c.arrows;
     cw.session = m_c.analysisSession;
     cw.navState = m_c.navState;
-    cw.considerationModel = m_c.consideration;
-    cw.commLogModel = m_c.commLog1;
     m_c.considerationUi = new ConsiderationUiController(cw, &m_window);
 
     // 棋譜解析・詰み探索（メニューから始める）

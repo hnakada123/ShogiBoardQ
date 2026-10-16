@@ -171,23 +171,14 @@ void MainWindowComposer::connectAnalysisAndUi()
     ThinkingPanel* thinking = m_c.thinkingPanel;
     AnalysisSession* analysis = m_c.analysisSession;
 
-    // 検討（検討ドックの開始・エンジンの選択と設定、読み直しの経過時間）
-    connect(consideration, &ConsiderationTabManager::startConsiderationRequested,
-            m_c.considerationUi, &ConsiderationUiController::startConsideration);
-    connect(consideration, &ConsiderationTabManager::engineSettingsRequested,
-            m_c.considerationUi, &ConsiderationUiController::onEngineSettingsRequested);
-    connect(consideration, &ConsiderationTabManager::considerationEngineChanged,
-            m_c.considerationUi, &ConsiderationUiController::onEngineChanged);
-    connect(analysis, &AnalysisSession::considerationSearchStarted,
-            consideration, &ConsiderationTabManager::startElapsedTimer);
-    connect(analysis, &AnalysisSession::engineNamesChanged,
-            m_c.playerInfo, &PlayerInfoPresenter::onAnalysisEngineNamesChanged);
+    // 検討タブの操作は ConsiderationUiController、表示は EngineDisplayPresenter が自分でつなぐ
     connect(analysis, &AnalysisSession::messageRequested,
             m_c.notificationService, &UiNotificationService::showInformation);
 
     // 候補手の矢印の表示状態を思考ドックの設定欄に出し、設定が変わったら描き直す
     connect(m_c.arrows, &CandidateArrowPresenter::displayStateChanged, thinking, &ThinkingPanel::setArrowDisplayState);
     connect(thinking, &ThinkingPanel::arrowSettingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
+    connect(consideration, &ConsiderationTabManager::settingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
 
     // 読み筋のクリック（思考の表と検討の表）。読み筋ダイアログを閉じたら、その表の選択を外す
     PvClickController* pv = m_c.pvClickController;

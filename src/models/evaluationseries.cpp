@@ -3,6 +3,8 @@
 
 #include "evaluationseries.h"
 
+#include <utility>
+
 EvaluationSeries::EvaluationSeries(QObject* parent)
     : QObject(parent)
 {
@@ -45,10 +47,7 @@ void EvaluationSeries::clear()
 
 void EvaluationSeries::trimToPly(int maxPly)
 {
-    for (auto& scores : m_scores) {
-        auto it = scores.upperBound(maxPly);
-        while (it != scores.end()) it = scores.erase(it);
-    }
+    for (auto& scores : m_scores) scores.erase(std::as_const(scores).upperBound(maxPly), scores.cend());
     emit scoresTrimmed(qMax(0, maxPly));
 }
 
