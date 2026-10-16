@@ -30,6 +30,7 @@ set(TEST_INCLUDES
     ${SRC}/board
     ${SRC}/navigation
     ${SRC}/common
+    ${SRC}/style
     ${SRC}/models
     ${SRC}/services
     ${SRC}/ui
@@ -83,14 +84,17 @@ target_include_directories(position_test PRIVATE ${TEST_INCLUDES})
 target_link_libraries(position_test PRIVATE Qt6::Core)
 
 add_library(kifupresentation_test STATIC
-    ${SRC}/common/kifupresentation.cpp
+    ${SRC}/kifu/kifupresentation.cpp
+    ${SRC}/kifu/formats/ki2movenotation.cpp
+    ${SRC}/services/notationstyle.cpp
+    ${EMV_SOURCES}
     ${SRC}/core/sfenreplay.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/terminaltype.cpp)
 target_include_directories(kifupresentation_test PRIVATE ${TEST_INCLUDES})
 target_link_libraries(kifupresentation_test PRIVATE Qt6::Core position_test)
 
-add_library(applicationfonts_test STATIC ${SRC}/common/applicationfonts.cpp)
+add_library(applicationfonts_test STATIC ${SRC}/style/applicationfonts.cpp)
 target_include_directories(applicationfonts_test PRIVATE ${TEST_INCLUDES})
 target_link_libraries(applicationfonts_test PRIVATE Qt6::Widgets)
 
@@ -794,7 +798,6 @@ target_link_libraries(tst_consideration_resolver PRIVATE shogiboardq_static)
 add_shogi_test(tst_tsume_search
     tst_tsume_search.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/common/tsumepositionutil.cpp
 )
 
 # ============================================================
@@ -879,18 +882,18 @@ add_shogi_test(tst_jishogi_calculator
     tst_jishogi_calculator.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/common/errorbus.cpp
-    ${SRC}/common/jishogicalculator.cpp
+    ${SRC}/core/jishogicalculator.cpp
 )
 
 add_shogi_test(tst_jishogi_score_dialog
     tst_jishogi_score_dialog.cpp
     ${SRC}/dialogs/jishogiscoredialog.cpp
-    ${SRC}/common/jishogicalculator.cpp
+    ${SRC}/core/jishogicalculator.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
-    ${SRC}/common/applicationfonts.cpp
+    ${SRC}/style/applicationfonts.cpp
     ${SRC}/services/settingscommon.cpp
 )
 # 局面から点数と王手を求める JishogiScoreDialog::showFor の依存（合法手生成）
@@ -1032,7 +1035,7 @@ target_link_libraries(tsumeshogi_diversity_sampler PRIVATE shogiboardq_static)
 # 漢字・仮名の実描画フォントと、等幅表示の地域別字形
 add_shogi_test(tst_applicationfonts
     tst_applicationfonts.cpp
-    ${SRC}/common/applicationfonts.cpp
+    ${SRC}/style/applicationfonts.cpp
 )
 
 add_shogi_test(tst_fontsettingsdialog tst_fontsettingsdialog.cpp)
@@ -1157,7 +1160,7 @@ add_shogi_test(tst_csalogpanel
     ${SRC}/widgets/csalogpanel.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
     ${SRC}/widgets/fontsizehelper.cpp
-    ${SRC}/common/applicationfonts.cpp
+    ${SRC}/style/applicationfonts.cpp
     ${SRC}/services/settingscommon.cpp
 )
 
@@ -1169,7 +1172,7 @@ add_shogi_test(tst_usilogpanel
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/elidelabel.cpp
     ${SRC}/models/usicommlogmodel.cpp
-    ${SRC}/common/applicationfonts.cpp
+    ${SRC}/style/applicationfonts.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/analysissettings.cpp
     ${SRC}/services/settingscommon.cpp

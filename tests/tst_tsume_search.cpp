@@ -4,6 +4,7 @@
 #include <QtTest>
 
 #include "tsumepositionutil.h"
+#include "usiposition.h"
 
 class TestTsumeSearch : public QObject
 {
@@ -90,14 +91,13 @@ void TestTsumeSearch::buildForMate_tsumePosition_correctFormat()
 
 void TestTsumeSearch::buildForMate_midGamePosition_withMoves()
 {
-    // 中盤局面: buildPositionWithMoves でmoves付きのpositionコマンドを生成
+    // 中盤局面: moves 付きの position コマンド（UsiPosition::commandFor）
     QStringList usiMoves = {
         QStringLiteral("7g7f"), QStringLiteral("3c3d"),
         QStringLiteral("2g2f"), QStringLiteral("8c8d")
     };
-    const QString startCmd = QStringLiteral("startpos");
-
-    const QString result = TsumePositionUtil::buildPositionWithMoves(&usiMoves, startCmd, 4);
+    
+    const QString result = UsiPosition::commandFor(QString(), usiMoves.mid(0, 4));
 
     QCOMPARE(result, QStringLiteral("position startpos moves 7g7f 3c3d 2g2f 8c8d"));
 }
@@ -123,9 +123,8 @@ void TestTsumeSearch::buildCheckmateSendCommand_fromStartpos()
 {
     // startpos からの局面構築 → "go mate infinite" を付加できる形式の確認
     QStringList usiMoves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
-    const QString startCmd = QStringLiteral("startpos");
-
-    const QString positionCmd = TsumePositionUtil::buildPositionWithMoves(&usiMoves, startCmd, 2);
+    
+    const QString positionCmd = UsiPosition::commandFor(QString(), usiMoves.mid(0, 2));
 
     // USI checkmate コマンド形式: position コマンド + "\ngo mate infinite"
     const QString checkmateCmd = positionCmd + QStringLiteral("\ngo mate infinite");

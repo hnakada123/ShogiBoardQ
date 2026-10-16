@@ -810,6 +810,8 @@ set(SRC_SERVICES
     src/services/analysissettings.cpp
     src/services/analysissettings.h
     src/services/applicationtranslations.cpp
+    src/services/notationstyle.cpp
+    src/services/notationstyle.h
     src/services/applicationtranslations.h
     src/services/apppaths.h
     src/services/appsettings.cpp
@@ -860,34 +862,33 @@ set(SRC_SERVICES
 
 set(SRC_COMMON
     src/common/appactivitystate.h
-    src/common/applicationfonts.cpp
-    src/common/applicationfonts.h
-    src/common/applicationrendering.cpp
-    src/common/applicationrendering.h
-    src/common/applicationstyle.cpp
-    src/common/applicationstyle.h
+    src/style/applicationfonts.cpp
+    src/style/applicationfonts.h
+    src/style/applicationrendering.cpp
+    src/style/applicationrendering.h
+    src/style/applicationstyle.cpp
+    src/style/applicationstyle.h
     src/common/appstate.h
     src/common/boardcolors.h
     src/common/boardvisuals.h
     src/common/branchtreeitemroles.h
-    src/common/buttonstyles.h
+    src/style/buttonstyles.h
     src/common/errorbus.cpp
     src/common/errorbus.h
-    src/common/jishogicalculator.cpp
-    src/common/jishogicalculator.h
+    src/core/jishogicalculator.cpp
+    src/core/jishogicalculator.h
     src/common/recentfilelist.cpp
     src/common/recentfilelist.h
-    src/common/kifupresentation.cpp
-    src/common/kifupresentation.h
+    src/kifu/kifupresentation.cpp
+    src/kifu/kifupresentation.h
     src/common/logcategories.cpp
     src/common/logcategories.h
-    src/common/movefont.h
-    src/common/tablemodelutils.h
-    src/common/tablestyles.h
+    src/style/movefont.h
+    src/widgets/tablemodelutils.h
+    src/style/tablestyles.h
     src/common/threadtypes.h
     src/common/tsumeevaluation.h
-    src/common/tsumepositionutil.cpp
-    src/common/tsumepositionutil.h
+    src/analysis/tsumepositionutil.h
 )
 
 # 自動化 API（--automation）と CLI が共有する GUI 非依存サービス
@@ -994,6 +995,7 @@ set(SBQ_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/models
     ${CMAKE_CURRENT_SOURCE_DIR}/src/services
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/style
 )
 
 set(SBQ_LINK_LIBS

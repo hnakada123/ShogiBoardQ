@@ -6724,77 +6724,77 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">错误</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="228"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="124"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="239"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="135"/>
         <source>対局日</source>
         <translation>对局日期</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="239"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="135"/>
         <source>開始日時</source>
         <translation>开始时间</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="240"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="136"/>
         <source>終了日時</source>
         <translation>结束时间</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="240"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="136"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="241"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="137"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="241"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="137"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="242"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="138"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="242"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="138"/>
         <source>手合割</source>
         <translation>让子</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="243"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="139"/>
         <source>持ち時間</source>
         <translation>用时规则</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="243"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="139"/>
         <source>棋戦</source>
         <translation>赛事</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="244"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
         <source>場所</source>
         <translation>地点</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="244"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
         <source>備考</source>
         <translation>备注</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="245"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
         <source>戦型</source>
         <translation>战型</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="245"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
         <source>表題</source>
         <translation>标题</translation>
     </message>
@@ -6854,7 +6854,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>去左五枚</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="257"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="153"/>
         <source>局面指定</source>
         <translation>指定局面</translation>
     </message>
@@ -6884,17 +6884,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation>去十枚</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="257"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="153"/>
         <source>その他</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="261"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="157"/>
         <source>無制限</source>
         <translation>不限时</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="273"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="169"/>
         <source>%1+%2秒加算</source>
         <translation>%1+每步加%2秒</translation>
     </message>
@@ -8872,21 +8872,21 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">%1：%2</translation>
     </message>
     <message>
-        <location filename="../../src/common/jishogicalculator.cpp" line="108"/>
-        <location filename="../../src/common/jishogicalculator.cpp" line="116"/>
-        <location filename="../../src/common/jishogicalculator.cpp" line="124"/>
-        <location filename="../../src/common/jishogicalculator.cpp" line="132"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="108"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="116"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="124"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="132"/>
         <source>負け</source>
         <translation>负</translation>
     </message>
     <message>
-        <location filename="../../src/common/jishogicalculator.cpp" line="112"/>
-        <location filename="../../src/common/jishogicalculator.cpp" line="130"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="112"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="130"/>
         <source>勝ち</source>
         <translation>胜</translation>
     </message>
     <message>
-        <location filename="../../src/common/jishogicalculator.cpp" line="114"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="114"/>
         <source>引き分け</source>
         <translation>和棋</translation>
     </message>

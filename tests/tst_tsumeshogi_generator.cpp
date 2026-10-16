@@ -132,13 +132,6 @@ private:
     }
 
 private slots:
-    // --- TsumePositionUtil::buildPositionWithMoves ---
-    void nullMoves_returnsStartpos();
-    void emptyMoves_returnsStartpos();
-    void zeroIndex_returnsStartpos();
-    void withMoves_returnsCorrectPositionCmd();
-    void sfenStart_returnsSfenPosition();
-    void indexBeyondMoves_clampsToSize();
 
     // --- TsumePositionUtil::buildPositionForMate ---
     void sfenRecord_returnsPositionWithForcedTurn();
@@ -165,53 +158,6 @@ private slots:
 };
 
 // ============================================================
-// TsumePositionUtil::buildPositionWithMoves テスト
-// ============================================================
-
-void TestTsumeshogiGenerator::nullMoves_returnsStartpos()
-{
-    const QString result = TsumePositionUtil::buildPositionWithMoves(nullptr, QString(), 0);
-    QCOMPARE(result, QStringLiteral("position startpos"));
-}
-
-void TestTsumeshogiGenerator::emptyMoves_returnsStartpos()
-{
-    QStringList empty;
-    const QString result = TsumePositionUtil::buildPositionWithMoves(&empty, QStringLiteral("startpos"), 1);
-    QCOMPARE(result, QStringLiteral("position startpos"));
-}
-
-void TestTsumeshogiGenerator::zeroIndex_returnsStartpos()
-{
-    QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
-    const QString result = TsumePositionUtil::buildPositionWithMoves(&moves, QStringLiteral("startpos"), 0);
-    QCOMPARE(result, QStringLiteral("position startpos"));
-}
-
-void TestTsumeshogiGenerator::withMoves_returnsCorrectPositionCmd()
-{
-    QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")};
-    const QString result = TsumePositionUtil::buildPositionWithMoves(&moves, QStringLiteral("startpos"), 2);
-    QCOMPARE(result, QStringLiteral("position startpos moves 7g7f 3c3d"));
-}
-
-void TestTsumeshogiGenerator::sfenStart_returnsSfenPosition()
-{
-    const QString sfenStr = QStringLiteral("sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    QStringList moves = {QStringLiteral("7g7f")};
-    const QString result = TsumePositionUtil::buildPositionWithMoves(&moves, sfenStr, 1);
-    QCOMPARE(result, QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f"));
-}
-
-void TestTsumeshogiGenerator::indexBeyondMoves_clampsToSize()
-{
-    QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
-    const QString result = TsumePositionUtil::buildPositionWithMoves(&moves, QStringLiteral("startpos"), 100);
-    // selectedIndex=100 but only 2 moves → clamped to 2
-    QCOMPARE(result, QStringLiteral("position startpos moves 7g7f 3c3d"));
-}
-
-// ============================================================
 // TsumePositionUtil::buildPositionForMate テスト
 // ============================================================
 
@@ -222,9 +168,11 @@ void TestTsumeshogiGenerator::sfenRecord_returnsPositionWithForcedTurn()
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
     };
     const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
-    QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
-    // 両玉あり → 元の手番維持 (b)
-    QVERIFY(result.contains(QLatin1String(" b ")));
+    // 両玉あり → 元の手番維持 (b)。平手の開始局面なので position の文字列は startpos（UsiPosition::commandFor）
+    QCOMPARE(result, QStringLiteral("position startpos"));
+    const QString whiteToMove = TsumePositionUtil::buildPositionForMate(
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 5"));
+    QCOMPARE(whiteToMove, QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
 }
 
 void TestTsumeshogiGenerator::onlyDefenderKing_turnIsWhite()
