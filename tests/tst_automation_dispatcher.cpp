@@ -13,6 +13,7 @@
 #include "automationdispatcher.h"
 #include "automationserver.h"
 #include "automationcommands.h"
+#include "automationinteractions.h"
 #include "automationparams.h"
 
 class TestAutomationDispatcher : public QObject
@@ -172,6 +173,57 @@ private slots:
         delete cancelledParent;
         QCoreApplication::processEvents();
         QVERIFY(!cancelledCalled);
+    }
+
+    /// 応答の後に行う操作の結果は握りつぶさず、番号で引ける（実行・失敗・実行前の取り消し）
+    void queuedInteractionsRecordTheirOutcome()
+    {
+        using AutomationInteractions::queue;
+        using AutomationInteractions::status;
+        auto* target = new QObject;
+        bool performed = false;
+        const QJsonObject done = queue({target, {}, [&performed]() { performed = true; }},
+                                       QJsonObject{{QStringLiteral("name"), QStringLiteral("x")}});
+        QCOMPARE(done.value(QStringLiteral("queued")).toBool(), true);
+        QCOMPARE(done.value(QStringLiteral("name")).toString(), QStringLiteral("x"));
+        const int doneId = done.value(QStringLiteral("interaction")).toInt();
+        QCOMPARE(status(doneId).value(QStringLiteral("state")).toString(), QStringLiteral("pending"));
+        QTRY_VERIFY(performed);
+        QCOMPARE(status(doneId).value(QStringLiteral("state")).toString(), QStringLiteral("done"));
+
+        // 実行の直前の検査で止まった操作は、分類つきの失敗として残る
+        bool notPerformed = true;
+        const int failedId = queue({target,
+                                    []() { throw AutomationError(ErrorKind::InvalidState, QStringLiteral("hidden")); },
+                                    [&notPerformed]() { notPerformed = false; }},
+                                   {}).value(QStringLiteral("interaction")).toInt();
+        QTRY_COMPARE(status(failedId).value(QStringLiteral("state")).toString(), QStringLiteral("failed"));
+        QVERIFY(notPerformed);
+        const QJsonObject error = status(failedId).value(QStringLiteral("error")).toObject();
+        QCOMPARE(error.value(QStringLiteral("message")).toString(), QStringLiteral("hidden"));
+        QCOMPARE(error.value(QStringLiteral("data")).toObject().value(QStringLiteral("slug")).toString(),
+                 ErrorKinds::slug(ErrorKind::InvalidState));
+
+        // 操作の中の失敗も残る
+        const int thrownId = queue({target, {}, []() { throw AutomationError(ErrorKind::NotFound, QStringLiteral("gone")); }},
+                                   {}).value(QStringLiteral("interaction")).toInt();
+        QTRY_COMPARE(status(thrownId).value(QStringLiteral("state")).toString(), QStringLiteral("failed"));
+
+        // 実行前に対象が消えたら取り消し
+        const int cancelledId = queue({target, {}, [&notPerformed]() { notPerformed = false; }}, {})
+                                    .value(QStringLiteral("interaction")).toInt();
+        delete target;
+        QCoreApplication::processEvents();
+        QCOMPARE(status(cancelledId).value(QStringLiteral("state")).toString(), QStringLiteral("cancelled"));
+        QVERIFY(notPerformed);
+
+        // 知らない番号は NotFound
+        try {
+            status(cancelledId + 1000);
+            QFAIL("unknown interaction must throw");
+        } catch (const AutomationError& unknown) {
+            QCOMPARE(unknown.kind(), ErrorKind::NotFound);
+        }
     }
 
     void resultAndParams()

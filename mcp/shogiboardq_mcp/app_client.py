@@ -23,6 +23,8 @@ from .errors import ToolError
 log = logging.getLogger(__name__)
 
 CALL_TIMEOUT = 30.0
+# How long call_queued waits for a queued UI operation to run before returning it as still pending.
+QUEUED_WAIT = 3.0
 LAUNCH_TIMEOUT = 30.0
 EXIT_TIMEOUT = 3.0
 
@@ -203,6 +205,33 @@ class AppClient:
                         "use list_dialogs / capture_screenshot to inspect it.",
                     ) from exc
                 raise ToolError("app_disconnected", f"Connection to ShogiBoardQ was lost during {method}: {exc}") from exc
+
+    async def call_queued(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Call a method that queues a UI operation, and wait until the operation has run.
+
+        The application answers before it performs the operation, so that operations which open a
+        modal dialog still answer. Its answer names the operation (``interaction``); poll
+        ``ui.interaction`` until the operation ran. A failure at run time (the target became hidden,
+        disabled or blocked by a dialog, or was closed) raises the application's error. An operation
+        that is still running, because it opened a modal dialog, is returned with ``state`` "running".
+        """
+        result = await self.call(method, params)
+        interaction = result.get("interaction") if isinstance(result, dict) else None
+        if interaction is None:
+            return result
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + QUEUED_WAIT
+        while True:
+            status = await self.call("ui.interaction", {"id": interaction})
+            state = status.get("state")
+            if state in ("failed", "cancelled"):
+                error = status.get("error") or {}
+                raise AppError(int(error.get("code", -32603)), str(error.get("message", "The operation failed")),
+                               error.get("data"))
+            if state in ("done", "running") or loop.time() >= deadline:
+                result["state"] = state
+                return result
+            await asyncio.sleep(0.01)
 
     async def _call_locked(self, method: str, params: dict[str, Any] | None) -> Any:
         assert self._reader is not None and self._writer is not None
