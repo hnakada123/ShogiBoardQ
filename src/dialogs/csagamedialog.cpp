@@ -5,7 +5,7 @@
 #include "dialogfontscale.h"
 #include "ui_csagamedialog.h"
 #include "changeenginesettingsdialog.h"
-#include "enginelistsettings.h"
+#include "engineselector.h"
 #include "networksettings.h"
 #include "dialogutils.h"
 #include <QDir>
@@ -35,11 +35,11 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
     ui->checkBoxShowPassword->setProperty("automationSensitive", true);
     populateAutoSaveFormats();
 
-    // 設定ファイルからエンジン情報を読み込む
-    loadEngineConfigurations();
-
-    // UIにエンジン設定を反映する
-    populateUIWithEngines();
+    // エンジンの一覧と前回選んだエンジン（名前で保存。以前の版の番号も読む）
+    EngineSelector::Options engineOptions;
+    engineOptions.keys = EngineListSettings::csaGameSelection();
+    m_engineSelector = new EngineSelector({ui->comboBoxEngine, ui->pushButtonEngineSettings, nullptr},
+                                          engineOptions, this);
 
     // 設定ファイルからサーバー接続履歴を読み込む
     loadServerHistory();
@@ -78,8 +78,7 @@ void CsaGameDialog::connectSignalsAndSlots()
 {
     connect(ui->radioButtonEngine, &QRadioButton::toggled,
             this, &CsaGameDialog::updateFormState);
-    connect(ui->comboBoxEngine, &QComboBox::currentIndexChanged,
-            this, &CsaGameDialog::updateFormState);
+    connect(m_engineSelector, &EngineSelector::selectionChanged, this, &CsaGameDialog::updateFormState);
     for (auto* input : {ui->lineEditHost, ui->lineEditId, ui->lineEditPassword,
                         ui->lineEditAutoSaveDir, ui->lineEditGameName}) {
         connect(input, &QLineEdit::textChanged, this, &CsaGameDialog::updateFormState);
@@ -99,8 +98,7 @@ void CsaGameDialog::connectSignalsAndSlots()
             this, &QDialog::reject);
 
     // エンジン設定ボタン
-    connect(ui->pushButtonEngineSettings, &QPushButton::clicked,
-            this, &CsaGameDialog::onEngineSettingsClicked);
+    connect(m_engineSelector, &EngineSelector::settingsRequested, this, &CsaGameDialog::showEngineSettingsDialog);
 
     // サーバー履歴選択
     connect(ui->comboBoxHistory, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -117,44 +115,15 @@ void CsaGameDialog::connectSignalsAndSlots()
 
 void CsaGameDialog::refreshChoices()
 {
-    const QString engineName = ui->comboBoxEngine->currentText();
     {
         // 履歴の再設定で入力欄を書き換えないよう、選択変更の通知を止める
-        const QSignalBlocker engineBlocker(ui->comboBoxEngine);
+        const QSignalBlocker engineBlocker(m_engineSelector);
         const QSignalBlocker historyBlocker(ui->comboBoxHistory);
-        loadEngineConfigurations();
-        populateUIWithEngines();
-        const int engineIndex = ui->comboBoxEngine->findText(engineName);
-        if (engineIndex >= 0) ui->comboBoxEngine->setCurrentIndex(engineIndex);
+        m_engineSelector->reload();
         loadServerHistory();
         populateUIWithServerHistory();
     }
     updateFormState();
-}
-
-// 設定ファイルからエンジン情報を読み込む
-void CsaGameDialog::loadEngineConfigurations()
-{
-    m_engineList.clear();
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    for (const auto& entry : engines) {
-        Engine engine;
-        engine.name = entry.name;
-        engine.path = entry.path;
-        m_engineList.append(engine);
-    }
-}
-
-// UIにエンジン設定を反映する
-void CsaGameDialog::populateUIWithEngines()
-{
-    // エンジンコンボボックスをクリアする
-    ui->comboBoxEngine->clear();
-
-    // エンジンリストからエンジン名をコンボボックスに追加する
-    for (const Engine& engine : std::as_const(m_engineList)) {
-        ui->comboBoxEngine->addItem(engine.name);
-    }
 }
 
 void CsaGameDialog::populateAutoSaveFormats()
@@ -170,7 +139,7 @@ void CsaGameDialog::populateAutoSaveFormats()
 
 QString CsaGameDialog::validationMessage() const
 {
-    if (ui->radioButtonEngine->isChecked() && ui->comboBoxEngine->currentIndex() < 0) {
+    if (ui->radioButtonEngine->isChecked() && !m_engineSelector->selected()) {
         return tr("「設定」→「エンジン設定」からエンジンを登録してください。");
     }
     const QString host = ui->lineEditHost->text().trimmed();
@@ -207,8 +176,7 @@ void CsaGameDialog::updateFormState()
 {
     ui->labelPlaintextWarning->setVisible(!useTls());
     const bool engine = ui->radioButtonEngine->isChecked();
-    ui->comboBoxEngine->setEnabled(engine && ui->comboBoxEngine->count() > 0);
-    ui->pushButtonEngineSettings->setEnabled(engine && ui->comboBoxEngine->currentIndex() >= 0);
+    m_engineSelector->setEnabled(engine);
     ui->spinBoxThinkingMargin->setEnabled(engine);
     ui->labelThinkingMargin->setEnabled(engine);
     ui->spinBoxKeepAliveInterval->setEnabled(ui->checkBoxKeepAlive->isChecked());
@@ -240,12 +208,6 @@ void CsaGameDialog::onAccepted()
 
     // ダイアログを受け入れて閉じる
     accept();
-}
-
-// エンジン設定ボタンが押された時の処理
-void CsaGameDialog::onEngineSettingsClicked()
-{
-    showEngineSettingsDialog(ui->comboBoxEngine);
 }
 
 // サーバー履歴が選択された時の処理
@@ -284,22 +246,10 @@ void CsaGameDialog::onAutoSaveDirBrowse()
 }
 
 // エンジン設定ダイアログを表示する
-void CsaGameDialog::showEngineSettingsDialog(QComboBox* comboBox)
+void CsaGameDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
 {
-    QString engineName = comboBox->currentText();
-
-    if (engineName.isEmpty()) {
-        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
-        return;
-    }
-
-    ChangeEngineSettingsDialog dialog(this);
-    dialog.setEngineName(engineName);
-    dialog.setupEngineOptionsDialog();
-
-    if (dialog.exec() == QDialog::Rejected) {
-        return;
-    }
+    ChangeEngineSettingsDialog dialog(engine, this);
+    dialog.exec();
 }
 
 // ========== 選んだ値 ==========
@@ -328,8 +278,9 @@ CsaGameDialog::Selection CsaGameDialog::selection() const
         start.playerType = CsaGameCoordinator::PlayerType::Human;
     } else {
         start.playerType = CsaGameCoordinator::PlayerType::Engine;
-        start.engineName = ui->comboBoxEngine->currentText();
-        start.enginePath = m_engineList.value(ui->comboBoxEngine->currentIndex()).path;
+        const std::optional<Engine> engine = m_engineSelector->selected();
+        start.engineName = engine ? engine->name : QString();
+        start.enginePath = engine ? engine->path : QString();
     }
     start.keepAliveEnabled = ui->checkBoxKeepAlive->isChecked();
     start.keepAliveIntervalMs = ui->spinBoxKeepAliveInterval->value() * 1000;
@@ -477,12 +428,6 @@ void CsaGameDialog::loadGameSettings()
     ui->radioButtonHuman->setChecked(isHuman);
     ui->radioButtonEngine->setChecked(!isHuman);
 
-    int engineIndex = ui->comboBoxEngine->findText(NetworkSettings::csaEngineName());
-    if (engineIndex < 0) engineIndex = NetworkSettings::csaEngineNumber();
-    if (engineIndex >= 0 && engineIndex < ui->comboBoxEngine->count()) {
-        ui->comboBoxEngine->setCurrentIndex(engineIndex);
-    }
-
     // サーバー設定
     ui->lineEditHost->setText(NetworkSettings::csaHost());
     ui->spinBoxPort->setValue(NetworkSettings::csaPort());
@@ -497,8 +442,7 @@ void CsaGameDialog::saveGameSettings()
 {
     // 対局者設定
     NetworkSettings::csaPlayerIsHuman.set(ui->radioButtonHuman->isChecked());
-    NetworkSettings::csaEngineName.set(ui->comboBoxEngine->currentText());
-    NetworkSettings::csaEngineNumber.set(ui->comboBoxEngine->currentIndex());
+    m_engineSelector->saveSelection();
 
     // サーバー設定
     NetworkSettings::csaHost.set(ui->lineEditHost->text().trimmed());

@@ -35,12 +35,6 @@ inline const Setting<QSize> csaWaitingDialogSize{"SizeRelated/csaWaitingDialogSi
 /// 対局者が人間か（false ならエンジン。デフォルト: true）
 inline const Setting<bool> csaPlayerIsHuman{"CsaGameSettings/isHuman", true};
 
-/// 対局に使うエンジン名（登録一覧から名前で選び直す）
-inline const Setting<QString> csaEngineName{"CsaGameSettings/engineName", QString()};
-
-/// 名前で見つからないときに使う登録一覧の番号（旧版の保存値）
-inline const Setting<int> csaEngineNumber{"CsaGameSettings/engineNumber", 0};
-
 /// 接続先のホスト名（デフォルト: 空）
 inline const Setting<QString> csaHost{"CsaGameSettings/host", QString()};
 

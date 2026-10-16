@@ -199,6 +199,7 @@ void StartGameDialog::loadEngineConfigurations()
         Engine engine;
         engine.name = entry.name;
         engine.path = entry.path;
+        engine.author = entry.author;
         m_engineList.append(engine);
     }
 }
@@ -298,19 +299,14 @@ void StartGameDialog::showEngineSettingsDialog(int playerNumber)
         return;
     }
 
-    QString engineName = comboBox->currentText();
-
-    if (engineName.isEmpty()) {
+    const int engineIndex = currentIndex - 1;
+    if (engineIndex < 0 || engineIndex >= m_engineList.size()) {
         QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
+        return;
     }
-    else {
-        ChangeEngineSettingsDialog dialog(this);
-        dialog.setEngineName(engineName);
-        dialog.setupEngineOptionsDialog();
-        if (dialog.exec() == QDialog::Rejected) {
-            return;
-        }
-    }
+    // 作者名も見出しに出す
+    ChangeEngineSettingsDialog dialog(m_engineList.at(engineIndex), this);
+    dialog.exec();
 }
 
 void StartGameDialog::onFirstPlayerSettingsClicked()

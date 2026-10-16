@@ -8,6 +8,7 @@
 #include <QString>
 
 #include "considerationsettings.h"
+#include "enginelistsettings.h"
 #include "fontsizehelper.h"
 #include "shogienginethinkingmodel.h"
 
@@ -23,6 +24,7 @@ class QCheckBox;
 class QModelIndex;
 
 class EngineInfoWidget;
+class EngineSelector;
 class ThinkingTableView;
 
 /**
@@ -91,7 +93,7 @@ signals:
     /// 開始/中止のボタンを押した（検討しているとき）
     void stopConsiderationRequested();
     // エンジン設定ボタンが押されたシグナル
-    void engineSettingsRequested(int engineNumber, const QString& engineName);
+    void engineSettingsRequested(const EngineListSettings::EngineEntry& engine);
 
     // 読み筋の行の「盤面」ボタンが押された
     void pvRowClicked(ShogiEngineThinkingModel* model, int row);
@@ -100,7 +102,6 @@ private slots:
     /// 画面の値から検討の条件を読み直す（利用者がどれかの設定を変えた）
     void onControlChanged();
     void onRunButtonClicked();
-    void onEngineSettingsClicked();
     void onElapsedTimerTick();
 
 private:
@@ -126,6 +127,8 @@ private:
     QToolButton* m_btnConsiderationFontIncrease = nullptr;
     QComboBox* m_engineComboBox = nullptr;
     QPushButton* m_btnEngineSettings = nullptr;
+    /// エンジンの選択（m_engineComboBox・m_btnEngineSettings に結ぶ。QObject parent 所有）
+    EngineSelector* m_engineSelector = nullptr;
     QRadioButton* m_unlimitedTimeRadioButton = nullptr;
     QRadioButton* m_considerationTimeRadioButton = nullptr;
     QSpinBox* m_byoyomiSecSpinBox = nullptr;

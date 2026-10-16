@@ -17,40 +17,24 @@ constexpr QSize kMinimumSize{400, 300};
 } // namespace
 
 // 将棋エンジンの設定を変更するダイアログ
-ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
+ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(const EngineListSettings::EngineEntry& engine,
+                                                       QWidget* parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::ChangeEngineSettingsDialog>())
     , m_optionHandler(std::make_unique<EngineSettingsOptionHandler>(this, this))
 {
     ui->setupUi(this);
+    m_optionHandler->setEngineName(engine.name);
+    m_optionHandler->setEngineAuthor(engine.author);
+    // 保存されているオプションを読み、設定する画面を作る
+    m_optionHandler->readEngineOptions();
+    createOptionWidgets();
 }
 
 ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog()
 {
     // ウィンドウサイズを保存
     DialogUtils::saveDialogSize(this, EngineDialogSettings::engineSettingsDialogSize);
-}
-
-// 将棋エンジン名のsetter
-void ChangeEngineSettingsDialog::setEngineName(const QString& engineName)
-{
-    m_optionHandler->setEngineName(engineName);
-}
-
-// 将棋エンジン作者名のsetter
-void ChangeEngineSettingsDialog::setEngineAuthor(const QString& engineAuthor)
-{
-    m_optionHandler->setEngineAuthor(engineAuthor);
-}
-
-// "エンジン設定"ダイアログを作成する。
-void ChangeEngineSettingsDialog::setupEngineOptionsDialog()
-{
-    // 設定ファイルから選択したエンジンのオプションを読み込む。
-    m_optionHandler->readEngineOptions();
-
-    // エンジンオプションを設定する画面を作成する。
-    createOptionWidgets();
 }
 
 // エンジンオプションに基づいてUIコンポーネントを作成して配置する。
@@ -96,16 +80,12 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     // ボタンスタイルを適用
     ui->restoreButton->setStyleSheet(ButtonStyles::undoRedo());
 
-    // 文字の大きさ（作ったオプションの部品を含む。作り直したときは今の大きさを付け直す）
-    if (m_fontScale) {
-        m_fontScale->rescale();
-    } else {
-        DialogFontScale::Options fontOptions;
-        fontOptions.maxSize = 20;
-        fontOptions.decrease = ui->fontDecreaseButton;
-        fontOptions.increase = ui->fontIncreaseButton;
-        m_fontScale = DialogFontScale::install(this, EngineDialogSettings::engineSettingsFontSize, fontOptions);
-    }
+    // 文字の大きさ（作ったオプションの部品を含む）
+    DialogFontScale::Options fontOptions;
+    fontOptions.maxSize = 20;
+    fontOptions.decrease = ui->fontDecreaseButton;
+    fontOptions.increase = ui->fontIncreaseButton;
+    DialogFontScale::install(this, EngineDialogSettings::engineSettingsFontSize, fontOptions);
 
     // ダイアログの最小サイズを設定（リサイズ可能にする）
     this->setMinimumSize(kMinimumSize);

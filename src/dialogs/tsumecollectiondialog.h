@@ -15,6 +15,7 @@ class QLabel;
 class QPushButton;
 class QGridLayout;
 class QScrollArea;
+class EngineSelector;
 
 class TsumeCollectionDialog : public QDialog
 {
@@ -66,6 +67,8 @@ private:
     int m_playPosition = -1;   // 対局中の問題の m_filtered 内での位置
     QList<int> m_played;       // 対局画面で出題した問題の添字（一覧へ戻ったときに再判定する）
     QComboBox* m_engine = nullptr;
+    /// 判定エンジンの選択（m_engine に結ぶ。QObject parent 所有）
+    EngineSelector* m_engineSelector = nullptr;
     QComboBox* m_pageSize = nullptr;
     QComboBox* m_filter = nullptr;
     QSpinBox* m_page = nullptr;

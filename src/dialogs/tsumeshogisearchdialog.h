@@ -6,8 +6,11 @@
 
 #include <QDialog>
 #include <memory>
+#include <optional>
 
 #include "enginelistsettings.h"
+
+class EngineSelector;
 
 namespace Ui {
 class TsumeShogiSearchDialog;
@@ -22,8 +25,8 @@ public:
     explicit TsumeShogiSearchDialog(QWidget *parent = nullptr);
     ~TsumeShogiSearchDialog() override;
 
-    const QList<EngineListSettings::EngineEntry>& engineList() const;
-    int engineNumber() const;
+    /// 選んでいるエンジン（未登録なら std::nullopt）
+    std::optional<EngineListSettings::EngineEntry> engine() const;
     int byoyomiSec() const;
     bool unlimitedTimeFlag() const;
 
@@ -31,15 +34,14 @@ public slots:
     void accept() override;
     void done(int result) override;
 
-protected:
-
 private slots:
-    void showEngineSettingsDialog();
+    void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
     void updateEngineSelection();
 
 private:
     std::unique_ptr<Ui::TsumeShogiSearchDialog> ui;
-    QList<EngineListSettings::EngineEntry> m_engines;
+    /// エンジンの選択（コンボ・設定ボタン。QObject parent 所有）
+    EngineSelector* m_engineSelector = nullptr;
 
     bool hasValidEngine() const;
 };

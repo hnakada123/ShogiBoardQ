@@ -187,23 +187,9 @@ void EngineRegistrationDialog::configureEngine()
      // 最初（唯一の）アイテムを取得する。
     QListWidgetItem* selectedItem = items.first();
 
-    // 選択されたアイテムのエンジン番号を取得する。
-    int engineNumber = ui->engineListWidget->row(selectedItem);
-
-    // 選択されたアイテムのエンジン名を取得する。
-    QString engineName = selectedItem->text();
-
-    // 選択されたエンジンの作者名を取得する。
-    QString engineAuthor = m_handler->engineAt(engineNumber).author;
-
-    // 選択されたエンジンの設定変更ダイアログを表示する。
-    ChangeEngineSettingsDialog dialog(this);
-
-    dialog.setEngineName(engineName);
-    dialog.setEngineAuthor(engineAuthor);
-    dialog.setupEngineOptionsDialog();
-
-    if (dialog.exec() == QDialog::Rejected) return;
+    // 選択されたエンジンの設定変更ダイアログを表示する（見出しに作者名も出す）
+    ChangeEngineSettingsDialog dialog(m_handler->engineAt(ui->engineListWidget->row(selectedItem)), this);
+    dialog.exec();
 }
 
 // エンジン登録完了時のスロット

@@ -655,6 +655,8 @@ set(SRC_WIDGETS
     src/widgets/elidelabel.h
     src/widgets/engineinfowidget.cpp
     src/widgets/engineinfowidget.h
+    src/widgets/engineselector.cpp
+    src/widgets/engineselector.h
     src/widgets/evaluationchartconfigurator.cpp
     src/widgets/evaluationchartconfigurator.h
     src/widgets/evaluationchartview.cpp

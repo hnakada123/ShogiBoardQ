@@ -16,6 +16,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class CsaGameDialog; }
 QT_END_NAMESPACE
 
+class EngineSelector;
 class QComboBox;
 
 /**
@@ -97,11 +98,6 @@ private slots:
     void onAccepted();
 
     /**
-     * @brief エンジン設定ボタンが押された時の処理
-     */
-    void onEngineSettingsClicked();
-
-    /**
      * @brief サーバー履歴が選択された時の処理
      * @param index 選択されたインデックス
      */
@@ -128,16 +124,6 @@ private:
      * @brief シグナル・スロットの接続を行う
      */
     void connectSignalsAndSlots();
-
-    /**
-     * @brief 設定ファイルからエンジン情報を読み込む
-     */
-    void loadEngineConfigurations();
-
-    /**
-     * @brief UIにエンジン設定を反映する
-     */
-    void populateUIWithEngines();
 
     /**
      * @brief 設定ファイルからサーバー接続履歴を読み込む
@@ -181,14 +167,13 @@ private:
     QString formatServerHistoryDisplay(const ServerHistory& history) const;
 
     /**
-     * @brief エンジン設定ダイアログを表示する
-     * @param comboBox エンジン選択コンボボックス
+     * @brief 選んだエンジンの設定ダイアログを表示する
      */
-    void showEngineSettingsDialog(QComboBox* comboBox);
+    void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
 
 private:
     std::unique_ptr<Ui::CsaGameDialog> ui; ///< UIオブジェクト
-    QList<Engine> m_engineList;         ///< エンジンリスト
+    EngineSelector* m_engineSelector = nullptr; ///< エンジンの選択（QObject parent 所有）
     QList<ServerHistory> m_serverHistory; ///< サーバー接続履歴
 
     // 設定値のキャッシュ

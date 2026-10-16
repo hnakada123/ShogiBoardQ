@@ -14,7 +14,6 @@ CollectionPreferences collectionPreferences()
     CollectionPreferences p;
     p.size = s.value(SettingsKeys::kTsumeCollectionSize, p.size).toSize();
     p.lastFile = s.value(SettingsKeys::kTsumeCollectionFile).toString();
-    p.enginePath = s.value(SettingsKeys::kTsumeCollectionEngine).toString();
     p.pageSize = s.value(SettingsKeys::kTsumeCollectionPageSize, 10).toInt();
     p.page = s.value(SettingsKeys::kTsumeCollectionPage, 1).toInt();
     p.filter = s.value(SettingsKeys::kTsumeCollectionFilter, 0).toInt();
@@ -27,11 +26,22 @@ void setCollectionPreferences(const CollectionPreferences& p)
     QSettings& s = SettingsCommon::openSettings();
     s.setValue(SettingsKeys::kTsumeCollectionSize, p.size);
     s.setValue(SettingsKeys::kTsumeCollectionFile, p.lastFile);
-    s.setValue(SettingsKeys::kTsumeCollectionEngine, p.enginePath);
     s.setValue(SettingsKeys::kTsumeCollectionPageSize, p.pageSize);
     s.setValue(SettingsKeys::kTsumeCollectionPage, p.page);
     s.setValue(SettingsKeys::kTsumeCollectionFilter, p.filter);
     s.setValue(SettingsKeys::kTsumeCollectionTimeout, p.timeoutSec);
+}
+
+void migrateCollectionEngineSelection()
+{
+    // 以前の版は判定エンジンをパスで保存し、内蔵エンジンは "@hayanagi" と書いていた。
+    // パスは選択の復元（EngineListSettings::restoreSelection）が読むので、内蔵の印だけを空の名前に直す
+    QSettings& s = SettingsCommon::openSettings();
+    if (s.contains(SettingsKeys::kTsumeCollectionEngineName)) return;
+    if (s.value(SettingsKeys::kTsumeCollectionEngine).toString() == QLatin1String("@hayanagi")) {
+        s.setValue(SettingsKeys::kTsumeCollectionEngineName, QString());
+        s.remove(SettingsKeys::kTsumeCollectionEngine);
+    }
 }
 
 PlayPreferences playPreferences()

@@ -8,6 +8,7 @@
 #include <QString>
 
 #include "considerationsettings.h"
+#include "enginelistsettings.h"
 
 class QWidget;
 class ConsiderationTabManager;
@@ -39,7 +40,7 @@ public slots:
     /// 検討タブの条件で、表示中の局面の検討を始める
     void startConsideration();
     /// 検討タブからのエンジン設定の要求
-    void onEngineSettingsRequested(int engineNumber, const QString& engineName);
+    void onEngineSettingsRequested(const EngineListSettings::EngineEntry& engine);
     /// 検討タブの条件が変わった（検討中ならエンジン・候補手の数の変更を反映する）
     void onSettingsChanged(const ConsiderationSettings& settings);
 

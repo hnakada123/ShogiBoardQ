@@ -43,15 +43,14 @@ void TsumeSearchController::showDialogAndStart()
     {
         TsumeShogiSearchDialog dialog(m_deps.parentWidget);
         if (dialog.exec() != QDialog::Accepted) return;
-        const auto& engines = dialog.engineList();
-        const int index = dialog.engineNumber();
-        if (index < 0 || index >= engines.size()) {
+        const std::optional<EngineListSettings::EngineEntry> engine = dialog.engine();
+        if (!engine) {
             ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, tr("詰み探索エンジンの選択が不正です。"));
             return;
         }
         options.mode = AnalysisOptions::Mode::Tsume;
-        options.enginePath = engines.at(index).path;
-        options.engineName = engines.at(index).name;
+        options.enginePath = engine->path;
+        options.engineName = engine->name;
         options.position = position;
         options.byoyomiMs = dialog.unlimitedTimeFlag() ? 0 : dialog.byoyomiSec() * 1000;   // 0 は無制限
     }

@@ -72,6 +72,23 @@ EngineListSettings::SelectionKeys EngineListSettings::tsumeshogiGeneratorSelecti
     return {SettingsKeys::kTsumeshogiGeneratorEngineName, SettingsKeys::kTsumeshogiGeneratorEngineIndex, nullptr};
 }
 
+EngineListSettings::SelectionKeys EngineListSettings::csaGameSelection()
+{
+    return {SettingsKeys::kCsaEngineName, SettingsKeys::kCsaEngineNumber, nullptr};
+}
+
+EngineListSettings::SelectionKeys EngineListSettings::tsumeCollectionSelection()
+{
+    return {SettingsKeys::kTsumeCollectionEngineName, nullptr, SettingsKeys::kTsumeCollectionEngine};
+}
+
+std::optional<QString> EngineListSettings::savedSelectionName(const SelectionKeys& keys)
+{
+    const QSettings& settings = SettingsCommon::openSettings();
+    if (!keys.name || !settings.contains(keys.name)) return std::nullopt;
+    return settings.value(keys.name).toString();
+}
+
 int EngineListSettings::restoreSelection(const SelectionKeys& keys, const QList<EngineEntry>& engines)
 {
     const QSettings& settings = SettingsCommon::openSettings();

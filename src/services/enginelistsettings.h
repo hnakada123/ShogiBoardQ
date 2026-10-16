@@ -7,6 +7,8 @@
 #include <QList>
 #include <QString>
 
+#include <optional>
+
 namespace EngineListSettings {
 
 struct EngineEntry {
@@ -42,11 +44,16 @@ struct SelectionKeys {
     const char* legacyPath = nullptr;   ///< 以前の版のパスのキー（無ければ nullptr）
 };
 
-/// 機能ごとの保存場所（検討・棋譜解析・詰み探索・詰将棋生成）
+/// 機能ごとの保存場所（検討・棋譜解析・詰み探索・詰将棋生成・通信対局・詰将棋問題一覧の判定）
 SelectionKeys considerationSelection();
 SelectionKeys kifuAnalysisSelection();
 SelectionKeys tsumeSearchSelection();
 SelectionKeys tsumeshogiGeneratorSelection();
+SelectionKeys csaGameSelection();
+SelectionKeys tsumeCollectionSelection();
+
+/// 保存した名前（保存していなければ std::nullopt。空の文字列は登録エンジン以外を選んだ印）
+std::optional<QString> savedSelectionName(const SelectionKeys& keys);
 
 /// 保存した選択を一覧の位置にする（名前を優先し、無ければ以前の番号・パス）。見つからなければ -1
 int restoreSelection(const SelectionKeys& keys, const QList<EngineEntry>& engines);

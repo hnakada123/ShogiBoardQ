@@ -123,8 +123,8 @@ private slots:
 
         registerEngines(true);
         TsumeShogiSearchDialog restored;
-        QCOMPARE(restored.engineNumber(), 0);
-        QCOMPARE(restored.engineList().at(restored.engineNumber()).path, QStringLiteral("/test/engine1"));
+        QVERIFY(restored.engine().has_value());
+        QCOMPARE(restored.engine()->path, QStringLiteral("/test/engine1"));
         QCOMPARE(restored.byoyomiSec(), 35);
         restored.findChild<QRadioButton*>(QStringLiteral("unlimitedTimeRadioButton"))->setChecked(true);
         restored.accept();

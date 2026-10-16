@@ -70,12 +70,10 @@ void ConsiderationUiController::startConsideration()
     m_session->start(opt);
 }
 
-void ConsiderationUiController::onEngineSettingsRequested(int engineNumber, const QString& engineName)
+void ConsiderationUiController::onEngineSettingsRequested(const EngineListSettings::EngineEntry& engine)
 {
-    qCDebug(lcUi) << "onEngineSettingsRequested engineNumber=" << engineNumber << " engineName=" << engineName;
-    ChangeEngineSettingsDialog dialog(m_parentWidget);
-    dialog.setEngineName(engineName);
-    dialog.setupEngineOptionsDialog();
+    qCDebug(lcUi) << "onEngineSettingsRequested engine=" << engine.name;
+    ChangeEngineSettingsDialog dialog(engine, m_parentWidget);
     dialog.exec();
 }
 
