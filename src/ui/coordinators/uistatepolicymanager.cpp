@@ -6,7 +6,7 @@
 #include "ui_mainwindow.h"
 #include "recordpane.h"
 #include "kifunavigationcontroller.h"
-#include "branchtreemanager.h"
+#include "branchtreeview.h"
 #include "considerationtabmanager.h"
 
 #include <QAction>
@@ -245,7 +245,7 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         if (m_deps.navigation) m_deps.navigation->setStepActionsEnabled(enabled);
         break;
     case UiElement::WidgetBranchTree:
-        if (m_deps.branchTree) m_deps.branchTree->setBranchTreeClickEnabled(enabled);
+        if (m_deps.branchTree) m_deps.branchTree->setClickEnabled(enabled);
         break;
     case UiElement::WidgetConsiderationStart:
         if (m_deps.consideration) m_deps.consideration->setStartConsiderationEnabled(enabled);

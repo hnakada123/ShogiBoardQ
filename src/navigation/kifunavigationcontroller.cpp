@@ -159,28 +159,24 @@ void KifuNavigationController::selectBranchCandidateRow(int row)
     m_state->setCurrentNode(candidate, end);
 }
 
-void KifuNavigationController::selectBranchTreeNode(int row, int ply)
+void KifuNavigationController::selectBranchTreeNode(int nodeId)
 {
-    const auto lines = m_state->tree()->allLines();
-    if (row < 0 || row >= lines.size()) return;
-    if (!confirmLeave()) return;
+    KifuBranchNode* node = m_state->tree()->nodeAt(nodeId);
+    if (!node || !confirmLeave()) return;
 
-    if (ply == 0) {
+    if (node->parent() == nullptr) {
         m_state->goToRoot();
         return;
     }
-    // 分岐前の共有ノードは親の行に描いてあるので、クリックした行と表示中の手順が違っても、
-    // 同じ手数のノードが同じなら表示中の手順のまま移る
-    const int currentLine = m_state->currentLineIndex();
-    if (row != currentLine && currentLine >= 0 && currentLine < lines.size()) {
-        const auto& clicked = lines.at(row).nodes;
-        const auto& current = lines.at(currentLine).nodes;
-        if (ply < clicked.size() && ply < current.size() && clicked.at(ply) == current.at(ply)) {
-            goToLine(currentLine, ply);
-            return;
-        }
+    // 分岐前の共有の手は親の手順の行に描いてあるので、表示中の手順にあればその手順のまま移る
+    const QList<KifuBranchNode*> path = m_state->selectedPath();
+    if (path.contains(node)) {
+        m_state->setCurrentNode(node, path.constLast());
+        return;
     }
-    goToLine(row, ply);
+    KifuBranchNode* lineEnd = node;
+    while (lineEnd->childCount() > 0) lineEnd = lineEnd->childAt(0);
+    m_state->setCurrentNode(node, lineEnd);
 }
 
 void KifuNavigationController::selectPly(int ply)

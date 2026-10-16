@@ -74,8 +74,13 @@ public slots:
     void selectRecordRow(int row);
     /// 分岐候補欄の行を選んだ（候補の後ろの行は「本譜へ戻る」）
     void selectBranchCandidateRow(int row);
-    /// 分岐ツリーのノードを選んだ（row は allLines() の添字）
-    void selectBranchTreeNode(int row, int ply);
+    /**
+     * @brief 分岐ツリーの手を選んだ
+     *
+     * 表示中の手順にある手なら、その手順のまま移る。ほかの手順の手なら、その手から先頭の子を
+     * たどった手順（図でその手を描いた行）に移る。開始局面なら分岐の選択を忘れて開始局面へ。
+     */
+    void selectBranchTreeNode(int nodeId);
     /// 評価値グラフの手数を選んだ
     void selectPly(int ply);
     void onFirstClicked();

@@ -5,6 +5,7 @@
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifubranchnode.h"
 #include "shogimove.h"
 
@@ -22,14 +23,14 @@ private:
         ShogiMove move;
         auto* current = tree.root();
         for (int i = 1; i <= 7; ++i) {
-            current = tree.addMove(current, move,
+            current = TestTree::addMove(tree, current, move,
                                    QStringLiteral("move%1").arg(i),
                                    QStringLiteral("sfen%1").arg(i));
         }
         // Branch at ply 3
-        auto* n2 = tree.findByPlyOnMainLine(2);
-        auto* b1 = tree.addMove(n2, move, QStringLiteral("branch1"), QStringLiteral("bsfen1"));
-        tree.addMove(b1, move, QStringLiteral("branch2"), QStringLiteral("bsfen2"));
+        auto* n2 = TestTree::findByPlyOnMainLine(tree, 2);
+        auto* b1 = TestTree::addMove(tree, n2, move, QStringLiteral("branch1"), QStringLiteral("bsfen1"));
+        TestTree::addMove(tree, b1, move, QStringLiteral("branch2"), QStringLiteral("bsfen2"));
     }
 
 private slots:
@@ -61,7 +62,7 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
         KifuNavigationState state(&tree);
-        state.setCurrentNode(tree.findByPlyOnMainLine(3));
+        state.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 3));
         const int oldId = state.currentNode()->nodeId();
         QVERIFY(tree.removeSubtree(state.currentNode()));
         // 表示中の手が消えたら開始局面へ移る（消えたノードの ID は使い回さない）
@@ -110,7 +111,7 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         const ShogiMove move(UsiMove::fromString(u"7g7f"), Piece::BlackPawn);
         const QString after = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2");
-        tree.addMove(tree.root(), move, QStringLiteral("７六歩"), after);
+        TestTree::addMove(tree, tree.root(), move, QStringLiteral("７六歩"), after);
         KifuNavigationState state(&tree);
         KifuNavigationController controller(&state);
         QSignalSpy changed(&state, &KifuNavigationState::changed);
@@ -127,7 +128,7 @@ private slots:
         controller.goToLast();
         QCOMPARE(changed.count(), 3);
         QCOMPARE(state.currentSfen(), after);
-        controller.selectBranchTreeNode(0, 0);
+        controller.selectBranchTreeNode(state.tree()->root()->nodeId());
         QCOMPARE(changed.count(), 4);
         QCOMPARE(state.currentSfen(), kHirateSfen);
     }
@@ -208,7 +209,7 @@ private slots:
         buildTestTree(tree);
         KifuNavigationState state(&tree);
         KifuNavigationController controller(&state);
-        state.setCurrentNode(tree.findByPlyOnMainLine(7));
+        state.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 7));
         QCOMPARE(state.nextNode(state.currentNode()), nullptr);
 
         QSignalSpy changed(&state, &KifuNavigationState::changed);
@@ -227,7 +228,7 @@ private slots:
         buildTestTree(tree);
 
         KifuNavigationState state(&tree);
-        state.setCurrentNode(tree.findByPlyOnMainLine(3));
+        state.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 3));
 
         QVERIFY(state.isOnMainLine());
     }
@@ -263,7 +264,7 @@ private slots:
         QCOMPARE(state.currentPly(), 0);
 
         // 2) syncCursorToPly で最終手に同期
-        KifuBranchNode* lastNode = tree.findByPlyOnMainLine(7);
+        KifuBranchNode* lastNode = TestTree::findByPlyOnMainLine(tree, 7);
         QVERIFY(lastNode != nullptr);
         state.setCurrentNode(lastNode);
         QCOMPARE(state.currentPly(), 7);
@@ -307,17 +308,17 @@ private slots:
         QVERIFY(root != nullptr);
 
         // 本譜: 1 -> 2 -> 3(main) -> 4(main) -> 5(main)
-        auto* main1 = tree.addMove(root, move, QStringLiteral("main1"), QStringLiteral("sfen1"));
-        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
-        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
-        auto* main4 = tree.addMove(main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
-        QVERIFY(tree.addMove(main4, move, QStringLiteral("main5"), QStringLiteral("sfen5")) != nullptr);
+        auto* main1 = TestTree::addMove(tree, root, move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = TestTree::addMove(tree, main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = TestTree::addMove(tree, main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        auto* main4 = TestTree::addMove(tree, main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
+        QVERIFY(TestTree::addMove(tree, main4, move, QStringLiteral("main5"), QStringLiteral("sfen5")) != nullptr);
 
         // 分岐: 2手目から分岐し、さらに5手目で入れ子分岐
-        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
-        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
-        QVERIFY(tree.addMove(branch4, move, QStringLiteral("branch5_main"), QStringLiteral("bsfen5m")) != nullptr);
-        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+        auto* branch3 = TestTree::addMove(tree, main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = TestTree::addMove(tree, branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        QVERIFY(TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_main"), QStringLiteral("bsfen5m")) != nullptr);
+        auto* branch5Nested = TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
         QVERIFY(branch5Nested != nullptr);
 
         KifuNavigationState state(&tree);
@@ -328,12 +329,12 @@ private slots:
         QVERIFY(nestedLineIndex.has_value() && *nestedLineIndex > 0);
 
         // まず入れ子分岐（5手目）を選択
-        controller.selectBranchTreeNode(*nestedLineIndex, 5);
+        controller.selectBranchTreeNode(branch5Nested->nodeId());
         QCOMPARE(state.currentNode(), branch5Nested);
         QCOMPARE(state.currentLineIndex(), *nestedLineIndex);
 
         // 次に本譜3手目をクリックしたとき、分岐3手目に吸われず本譜3手目へ遷移すること
-        controller.selectBranchTreeNode(/*row=*/0, /*ply=*/3);
+        controller.selectBranchTreeNode(main3->nodeId());
         QCOMPARE(state.currentNode(), main3);
         QCOMPARE(state.currentLineIndex(), 0);
         QVERIFY(state.isOnMainLine());
@@ -346,16 +347,16 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* main1 = tree.addMove(tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
-        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
-        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
-        auto* main4 = tree.addMove(main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
-        auto* main5 = tree.addMove(main4, move, QStringLiteral("main5"), QStringLiteral("sfen5"));
+        auto* main1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = TestTree::addMove(tree, main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = TestTree::addMove(tree, main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        auto* main4 = TestTree::addMove(tree, main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
+        auto* main5 = TestTree::addMove(tree, main4, move, QStringLiteral("main5"), QStringLiteral("sfen5"));
 
-        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
-        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
-        auto* branch5First = tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
-        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+        auto* branch3 = TestTree::addMove(tree, main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = TestTree::addMove(tree, branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        auto* branch5First = TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
+        auto* branch5Nested = TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
         QVERIFY(branch5Nested != nullptr);
 
         KifuNavigationState state(&tree);
@@ -364,13 +365,13 @@ private slots:
         const auto firstLineIndex = tree.findLineIndexForNode(branch5First);
         QVERIFY(firstLineIndex.has_value() && *firstLineIndex > 0);
 
-        controller.selectBranchTreeNode(*firstLineIndex, 5);
+        controller.selectBranchTreeNode(branch5First->nodeId());
         QCOMPARE(state.currentNode(), branch5First);
         QVERIFY(branch5First->isMainLine());     // ノード単位では親の最初の子
         QVERIFY(!state.isOnMainLine());          // 表示中ラインは分岐
 
         // 分岐点の子（2番目の子）でも当然 false
-        controller.selectBranchTreeNode(*firstLineIndex, 3);
+        controller.selectBranchTreeNode(branch3->nodeId());
         QCOMPARE(state.currentNode(), branch3);
         QVERIFY(!state.isOnMainLine());
 
@@ -390,16 +391,16 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* main1 = tree.addMove(tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
-        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
-        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
-        auto* main4 = tree.addMove(main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
-        QVERIFY(tree.addMove(main4, move, QStringLiteral("main5"), QStringLiteral("sfen5")) != nullptr);
+        auto* main1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = TestTree::addMove(tree, main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = TestTree::addMove(tree, main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        auto* main4 = TestTree::addMove(tree, main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
+        QVERIFY(TestTree::addMove(tree, main4, move, QStringLiteral("main5"), QStringLiteral("sfen5")) != nullptr);
 
-        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
-        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
-        auto* branch5First = tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
-        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+        auto* branch3 = TestTree::addMove(tree, main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = TestTree::addMove(tree, branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        auto* branch5First = TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
+        auto* branch5Nested = TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
 
         KifuNavigationState state(&tree);
         KifuNavigationController controller(&state);
@@ -410,27 +411,27 @@ private slots:
         QCOMPARE(line2, 2);
 
         // 入れ子分岐（ライン2）の5手目を表示中
-        controller.selectBranchTreeNode(line2, 5);
+        controller.selectBranchTreeNode(branch5Nested->nodeId());
         QCOMPARE(state.currentNode(), branch5Nested);
         QCOMPARE(state.currentLineIndex(), line2);
 
         // ライン1の行に描かれる共有ノード（3手目 branch3）をクリック → ライン2に留まる
-        controller.selectBranchTreeNode(line1, 3);
+        controller.selectBranchTreeNode(branch3->nodeId());
         QCOMPARE(state.currentNode(), branch3);
         QCOMPARE(state.currentLineIndex(), line2);
 
         // 本譜行の共有ノード（2手目 main2）をクリック → ライン2に留まる
-        controller.selectBranchTreeNode(0, 2);
+        controller.selectBranchTreeNode(main2->nodeId());
         QCOMPARE(state.currentNode(), main2);
         QCOMPARE(state.currentLineIndex(), line2);
 
         // ライン1だけにあるノード（5手目 branch5_first）をクリック → ライン1へ切り替わる
-        controller.selectBranchTreeNode(line1, 5);
+        controller.selectBranchTreeNode(branch5First->nodeId());
         QCOMPARE(state.currentNode(), branch5First);
         QCOMPARE(state.currentLineIndex(), line1);
 
         // 本譜だけにあるノード（3手目 main3）をクリック → 本譜へ切り替わる
-        controller.selectBranchTreeNode(0, 3);
+        controller.selectBranchTreeNode(main3->nodeId());
         QCOMPARE(state.currentNode(), main3);
         QCOMPARE(state.currentLineIndex(), 0);
     }
@@ -441,14 +442,14 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* main1 = tree.addMove(tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
-        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
-        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        auto* main1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = TestTree::addMove(tree, main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = TestTree::addMove(tree, main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
         QVERIFY(main3 != nullptr);
-        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
-        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
-        auto* branch5First = tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
-        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+        auto* branch3 = TestTree::addMove(tree, main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = TestTree::addMove(tree, branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        auto* branch5First = TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
+        auto* branch5Nested = TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
 
         KifuNavigationState state(&tree);
         QCOMPARE(state.nextNode(main2), main3);
@@ -473,14 +474,14 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* main1 = tree.addMove(tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
-        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
-        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        auto* main1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = TestTree::addMove(tree, main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = TestTree::addMove(tree, main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
 
-        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
-        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
-        QVERIFY(tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f")) != nullptr);
-        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+        auto* branch3 = TestTree::addMove(tree, main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = TestTree::addMove(tree, branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        QVERIFY(TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f")) != nullptr);
+        auto* branch5Nested = TestTree::addMove(tree, branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
         QVERIFY(branch5Nested != nullptr);
 
         KifuNavigationState state(&tree);
@@ -488,7 +489,7 @@ private slots:
 
         const auto nestedLineIndex = tree.findLineIndexForNode(branch5Nested);
         QVERIFY(nestedLineIndex.has_value() && *nestedLineIndex > 0);
-        controller.selectBranchTreeNode(*nestedLineIndex, 5);
+        controller.selectBranchTreeNode(branch5Nested->nodeId());
         QCOMPARE(state.currentNode(), branch5Nested);
         QVERIFY(state.offersBackToMainLine());   // 「本譜へ戻る」が表示される状況
         QVERIFY(!state.isOnMainLine());

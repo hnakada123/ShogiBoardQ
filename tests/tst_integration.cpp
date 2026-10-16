@@ -7,6 +7,7 @@
 #include "enginemovevalidator.h"
 #include "shogimove.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifubranchnode.h"
 #include "livegamesession.h"
 #include "kifunavigationstate.h"
@@ -122,7 +123,7 @@ private slots:
 
         auto* current = tree.root();
         for (int i = 0; i < result.mainline.usiMoves().size(); ++i) {
-            current = tree.addMove(current, dummyMove,
+            current = TestTree::addMove(tree, current, dummyMove,
                                    result.mainline.entries[i].displayText,
                                    QStringLiteral("sfen_%1").arg(i));
         }
@@ -232,7 +233,7 @@ private slots:
         ShogiMove dummyMove;
         auto* current = tree.root();
         for (int i = 0; i < moves.size(); ++i) {
-            current = tree.addMove(current, dummyMove,
+            current = TestTree::addMove(tree, current, dummyMove,
                                    QStringLiteral("move%1").arg(i + 1),
                                    sfens[i]);
         }

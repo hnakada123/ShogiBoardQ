@@ -12,6 +12,7 @@
 #include "kifudocument.h"
 #include "kifuexport.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 #include "notationutils.h"
@@ -68,7 +69,7 @@ private:
     {
         const QStringList positions = TestReplay::buildSfenRecord(parent->sfen(), {usi}, false);
         const QList<ShogiMove> moves = TestReplay::buildGameMoves(parent->sfen(), {usi});
-        return tree.addMove(parent, moves.value(0), pretty, positions.last(), time);
+        return TestTree::addMove(tree, parent, moves.value(0), pretty, positions.last(), time);
     }
 
     /// 7手の本譜（指し手は表記だけ）を作り、モデルに渡す
@@ -84,7 +85,7 @@ private:
             QStringLiteral("▲７八金")
         };
         for (qsizetype i = 0; i < moves.size(); ++i) {
-            current = tree.addMove(current, move, moves.at(i), QStringLiteral("sfen%1").arg(i + 1));
+            current = TestTree::addMove(tree, current, move, moves.at(i), QStringLiteral("sfen%1").arg(i + 1));
         }
     }
 
@@ -275,7 +276,7 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         auto* tip = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
         // 記号のない行は手番側（▲７六歩の次なので後手）
-        tree.addTerminalMove(tip, TerminalType::DeclarationWin,
+        TestTree::addTerminalMove(tree, tip, TerminalType::DeclarationWin,
                              terminal.startsWith(QStringLiteral("▲")) ? Turn::Black : Turn::White);
         KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
@@ -304,7 +305,7 @@ private slots:
         auto* tip = tree.root();
         if (moveCount >= 1) tip = addTestMove(tree, tip, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
         if (moveCount >= 2) tip = addTestMove(tree, tip, QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
-        tree.addTerminalMove(tip, TerminalType::Resign, moveCount % 2 == 0 ? Turn::White : Turn::Black);
+        TestTree::addTerminalMove(tree, tip, TerminalType::Resign, moveCount % 2 == 0 ? Turn::White : Turn::Black);
         addTestMove(tree, tree.root(), QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
         KifuExportMetadata ctx;
         ctx.startSfen = initial;
@@ -484,7 +485,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         auto* tip = addTestMove(tree, tree.root(), QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
-        tree.addTerminalMove(tip, TerminalType::Timeout, Turn::Black);
+        TestTree::addTerminalMove(tree, tip, TerminalType::Timeout, Turn::Black);
         KifuExportMetadata ctx;
         ctx.startSfen = initial;
         const QStringList kif = KifuExport::lines(tree, ctx, KifuFormat::Kif);
@@ -539,7 +540,7 @@ private slots:
         FileHarness files(&tree, &nav);
         files.document.replaceWithPosition(startSfen);
         addTestMove(tree, tree.root(), move, QStringLiteral("1手目"));
-        nav.setCurrentNode(tree.findByPlyOnMainLine(1));
+        nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 1));
         files.gc.board()->setSfen(nav.currentSfen());
         QVERIFY(files.controller->copyBodToClipboard());
         const QStringList bod = QApplication::clipboard()->text().split(QLatin1Char('\n'));
@@ -657,7 +658,7 @@ private slots:
         QCOMPARE(tree.mainRecordLine().usiMoves(), expected);
 
         // 現在手までのUSIコピーでは、本譜の先頭から指定手数に制限する。
-        nav.setCurrentNode(tree.findByPlyOnMainLine(1));
+        nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 1));
         QVERIFY(files.controller->copyUsiCurrentToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos moves 7g7f"));
     }
@@ -667,7 +668,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
-        tree.addTerminalMove(first, TerminalType::Resign, Turn::White);
+        TestTree::addTerminalMove(tree, first, TerminalType::Resign, Turn::White);
         QCOMPARE(tree.mainRecordLine().usiMoves(), QStringList({QStringLiteral("7g7f")}));
 
         // 開始局面だけの本譜を書き出す（対局用の一覧など、ほかの指し手の出どころは無い）。
@@ -1134,49 +1135,49 @@ private slots:
         ShogiMove move;
 
         // 本譜
-        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"),
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"),
                                 QStringLiteral("( 0:01/00:00:01)"));
-        auto* n2 = tree.addMove(n1, move, QStringLiteral("△３四歩(33)"), QStringLiteral("s2"),
+        auto* n2 = TestTree::addMove(tree, n1, move, QStringLiteral("△３四歩(33)"), QStringLiteral("s2"),
                                 QStringLiteral("( 0:02/00:00:02)"));
-        auto* n3 = tree.addMove(n2, move, QStringLiteral("▲２六歩(27)"), QStringLiteral("s3"),
+        auto* n3 = TestTree::addMove(tree, n2, move, QStringLiteral("▲２六歩(27)"), QStringLiteral("s3"),
                                 QStringLiteral("( 0:02/00:00:03)"));
-        auto* n4 = tree.addMove(n3, move, QStringLiteral("△８四歩(83)"), QStringLiteral("s4"),
+        auto* n4 = TestTree::addMove(tree, n3, move, QStringLiteral("△８四歩(83)"), QStringLiteral("s4"),
                                 QStringLiteral("( 0:01/00:00:03)"));
-        auto* n5 = tree.addMove(n4, move, QStringLiteral("▲２五歩(26)"), QStringLiteral("s5"),
+        auto* n5 = TestTree::addMove(tree, n4, move, QStringLiteral("▲２五歩(26)"), QStringLiteral("s5"),
                                 QStringLiteral("( 0:01/00:00:04)"));
-        tree.addTerminalMove(n5, TerminalType::Resign, Turn::White,
+        TestTree::addTerminalMove(tree, n5, TerminalType::Resign, Turn::White,
                              QStringLiteral("( 0:03/00:00:06)"));
 
         // 変化：5手（本譜の▲２五歩の兄弟）
-        auto* v5 = tree.addMove(n4, move, QStringLiteral("▲１六歩(17)"), QStringLiteral("v5"),
+        auto* v5 = TestTree::addMove(tree, n4, move, QStringLiteral("▲１六歩(17)"), QStringLiteral("v5"),
                                 QStringLiteral("( 0:05/00:00:08)"));
-        auto* v5b = tree.addMove(v5, move, QStringLiteral("△８五歩(84)"), QStringLiteral("v5b"),
+        auto* v5b = TestTree::addMove(tree, v5, move, QStringLiteral("△８五歩(84)"), QStringLiteral("v5b"),
                                  QStringLiteral("( 0:04/00:00:07)"));
-        tree.addTerminalMove(v5b, TerminalType::Resign, Turn::Black,
+        TestTree::addTerminalMove(tree, v5b, TerminalType::Resign, Turn::Black,
                              QStringLiteral("( 0:02/00:00:10)"));
 
         // 変化：3手（本譜の▲２六歩の兄弟1: ▲１六歩）
-        auto* v3a = tree.addMove(n2, move, QStringLiteral("▲１六歩(17)"), QStringLiteral("v3a"),
+        auto* v3a = TestTree::addMove(tree, n2, move, QStringLiteral("▲１六歩(17)"), QStringLiteral("v3a"),
                                  QStringLiteral("( 0:00/00:00:01)"));
-        auto* v3a4 = tree.addMove(v3a, move, QStringLiteral("△９四歩(93)"), QStringLiteral("v3a4"),
+        auto* v3a4 = TestTree::addMove(tree, v3a, move, QStringLiteral("△９四歩(93)"), QStringLiteral("v3a4"),
                                   QStringLiteral("( 0:00/00:00:02)"));
-        auto* v3a5 = tree.addMove(v3a4, move, QStringLiteral("▲４六歩(47)"), QStringLiteral("v3a5"),
+        auto* v3a5 = TestTree::addMove(tree, v3a4, move, QStringLiteral("▲４六歩(47)"), QStringLiteral("v3a5"),
                                   QStringLiteral("( 0:00/00:00:01)"));
-        tree.addMove(v3a5, move, QStringLiteral("△７四歩(73)"), QStringLiteral("v3a6"),
+        TestTree::addMove(tree, v3a5, move, QStringLiteral("△７四歩(73)"), QStringLiteral("v3a6"),
                      QStringLiteral("( 0:00/00:00:02)"));
 
         // 変化：5手（▲１六歩ラインの▲４六歩の兄弟: ▲５六歩）
-        auto* v3a5b = tree.addMove(v3a4, move, QStringLiteral("▲５六歩(57)"), QStringLiteral("v3a5b"),
+        auto* v3a5b = TestTree::addMove(tree, v3a4, move, QStringLiteral("▲５六歩(57)"), QStringLiteral("v3a5b"),
                                    QStringLiteral("( 0:00/00:00:01)"));
-        auto* v3a5b6 = tree.addMove(v3a5b, move, QStringLiteral("△５二金(61)"), QStringLiteral("v3a5b6"),
+        auto* v3a5b6 = TestTree::addMove(tree, v3a5b, move, QStringLiteral("△５二金(61)"), QStringLiteral("v3a5b6"),
                                     QStringLiteral("( 0:00/00:00:02)"));
-        tree.addMove(v3a5b6, move, QStringLiteral("▲５五歩(56)"), QStringLiteral("v3a5b7"),
+        TestTree::addMove(tree, v3a5b6, move, QStringLiteral("▲５五歩(56)"), QStringLiteral("v3a5b7"),
                      QStringLiteral("( 0:00/00:00:01)"));
 
         // 変化：3手（本譜の▲２六歩の兄弟2: ▲７七桂）
-        auto* v3b = tree.addMove(n2, move, QStringLiteral("▲７七桂(89)"), QStringLiteral("v3b"),
+        auto* v3b = TestTree::addMove(tree, n2, move, QStringLiteral("▲７七桂(89)"), QStringLiteral("v3b"),
                                  QStringLiteral("( 0:00/00:00:01)"));
-        tree.addMove(v3b, move, QStringLiteral("△９二香(91)"), QStringLiteral("v3b4"),
+        TestTree::addMove(tree, v3b, move, QStringLiteral("△９二香(91)"), QStringLiteral("v3b4"),
                      QStringLiteral("( 0:00/00:00:02)"));
 
         // モデルセットアップ
@@ -1295,9 +1296,9 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         auto* m1 = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
         auto* m2 = addTestMove(tree, m1, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
-        tree.addTerminalMove(m2, TerminalType::Checkmate, Turn::Black);
+        TestTree::addTerminalMove(tree, m2, TerminalType::Checkmate, Turn::Black);
         auto* v2 = addTestMove(tree, m1, QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
-        tree.addTerminalMove(v2, TerminalType::Timeout, Turn::Black);
+        TestTree::addTerminalMove(tree, v2, TerminalType::Timeout, Turn::Black);
         KifuExportMetadata ctx;
         ctx.gameInfoProvided = true;
         ctx.startSfen = kHirateSfen;

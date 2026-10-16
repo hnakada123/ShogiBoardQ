@@ -12,7 +12,7 @@
 #include "boardmovecontroller.h"
 #include "boardsyncpresenter.h"
 #include "branchtreeeditcontroller.h"
-#include "branchtreemanager.h"
+#include "branchtreeview.h"
 #include "candidatearrowpresenter.h"
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
@@ -162,7 +162,7 @@ void MainWindowComposer::createPanels()
     m_c.usiLog->setModels(m_c.commLog1, m_c.commLog2);
     m_c.csaLog = new CsaLogPanel(&m_window);
     m_c.commentEditor = new CommentEditorPanel(&m_window);
-    m_c.branchTreeView = new BranchTreeManager(&m_window);
+    m_c.branchTreeView = new BranchTreeView(&m_window);
 
     m_c.evalChart = new EvaluationChartWidget(&m_window);
     m_c.gameInfoPane = new GameInfoPane(&m_window);

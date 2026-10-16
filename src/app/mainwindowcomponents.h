@@ -35,7 +35,7 @@ class ShogiView;
 class TimeDisplayPresenter;
 
 // 画面部品
-class BranchTreeManager;
+class BranchTreeView;
 class CommentEditorPanel;
 class ConsiderationTabManager;
 class CsaLogPanel;
@@ -136,7 +136,7 @@ struct MainWindowComponents {
     UsiLogPanel* usiLog = nullptr;                      ///< USI通信ログドック
     CsaLogPanel* csaLog = nullptr;                      ///< CSA通信ログドック
     CommentEditorPanel* commentEditor = nullptr;        ///< 棋譜コメントドック
-    BranchTreeManager* branchTreeView = nullptr;        ///< 分岐ツリードック
+    BranchTreeView* branchTreeView = nullptr;           ///< 分岐ツリードック
     EvaluationChartWidget* evalChart = nullptr;
     GameInfoPane* gameInfoPane = nullptr;
     DockRegistry* dockRegistry = nullptr;  ///< ドック（表・作成・規定の配置・状態の保存）

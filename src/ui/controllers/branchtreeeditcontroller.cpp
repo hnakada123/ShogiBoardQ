@@ -2,7 +2,7 @@
 /// @brief 分岐ツリーの右クリックメニューから分岐を編集するコントローラの実装
 
 #include "branchtreeeditcontroller.h"
-#include "branchtreemanager.h"
+#include "branchtreeview.h"
 #include "dialogutils.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -36,15 +36,6 @@ bool BranchTreeEditController::canRecordBoardMove() const
     return !m_deps.liveSession->isActive();
 }
 
-KifuBranchNode* BranchTreeEditController::nodeAt(int row, int ply) const
-{
-    if (row < 0 || ply < 0) return nullptr;
-    const QList<BranchLine> lines = m_deps.tree->allLines();
-    if (row >= lines.size()) return nullptr;
-    const QList<KifuBranchNode*>& nodes = lines.at(row).nodes;
-    return ply < nodes.size() ? nodes.at(ply) : nullptr;
-}
-
 bool BranchTreeEditController::isApplicable(Operation operation, KifuBranchNode* node) const
 {
     if (node == nullptr || node->parent() == nullptr || !canEdit()) return false;
@@ -59,7 +50,7 @@ bool BranchTreeEditController::isApplicable(Operation operation, KifuBranchNode*
     case Operation::MoveDown: {
         KifuBranchNode* head = KifuBranchTree::variationHead(node);
         if (head == nullptr) return false;
-        const qsizetype index = head->parent()->children().indexOf(head);
+        const int index = head->parent()->indexOfChild(head);
         return operation == Operation::MoveUp ? index > 0 : index + 1 < head->parent()->childCount();
     }
     case Operation::DeleteFromHere:
@@ -68,11 +59,11 @@ bool BranchTreeEditController::isApplicable(Operation operation, KifuBranchNode*
     return false;
 }
 
-void BranchTreeEditController::onNodeContextMenuAboutToShow(int row, int ply, QMenu* menu)
+void BranchTreeEditController::onNodeContextMenuAboutToShow(int nodeId, QMenu* menu)
 {
     m_menuTargetNodeId = -1;
     if (menu == nullptr || !canEdit()) return;
-    addEditActions(menu, nodeAt(row, ply));
+    addEditActions(menu, m_deps.tree->nodeAt(nodeId));
 }
 
 void BranchTreeEditController::onCandidateContextMenuRequested(int row, const QPoint& globalPos)
@@ -173,7 +164,7 @@ bool BranchTreeEditController::apply(Operation operation, KifuBranchNode* node, 
     case Operation::MoveUp:
     case Operation::MoveDown: {
         KifuBranchNode* head = KifuBranchTree::variationHead(node);
-        const int index = static_cast<int>(head->parent()->children().indexOf(head));
+        const int index = head->parent()->indexOfChild(head);
         changed = tree->moveChild(head, operation == Operation::MoveUp ? index - 1 : index + 1);
         break;
     }

@@ -7,7 +7,7 @@
 
 #include "analysissession.h"
 #include "branchtreeeditcontroller.h"
-#include "branchtreemanager.h"
+#include "branchtreeview.h"
 #include "candidatearrowpresenter.h"
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
@@ -68,15 +68,15 @@ void MainWindowComposer::connectRecord()
                       chart->nextButton(), chart->fwd10Button(), chart->lastButton()});
     connect(pane, &RecordPane::mainRowChanged, nav, &KifuNavigationController::selectRecordRow);
     connect(pane, &RecordPane::branchRowActivated, nav, &KifuNavigationController::selectBranchCandidateRow);
-    BranchTreeManager* tree = m_c.branchTreeView;
-    connect(tree, &BranchTreeManager::branchNodeActivated, nav, &KifuNavigationController::selectBranchTreeNode);
+    BranchTreeView* tree = m_c.branchTreeView;
+    connect(tree, &BranchTreeView::nodeActivated, nav, &KifuNavigationController::selectBranchTreeNode);
     connect(chart, &EvaluationChartWidget::plyClicked, nav, &KifuNavigationController::selectPly);
     // 移るのをやめたら、クリックした行の強調を表示中の手に戻す（選択の変更の処理を抜けてから）
     connect(nav, &KifuNavigationController::navigationRejected,
             m_c.kifuDisplay, &KifuDisplayPresenter::refresh, Qt::QueuedConnection);
 
     // 分岐の編集（分岐ツリーと分岐候補欄の右クリック）
-    connect(tree, &BranchTreeManager::nodeContextMenuAboutToShow,
+    connect(tree, &BranchTreeView::nodeContextMenuAboutToShow,
             m_c.branchEdit, &BranchTreeEditController::onNodeContextMenuAboutToShow);
     connect(pane, &RecordPane::branchContextMenuRequested,
             m_c.branchEdit, &BranchTreeEditController::onCandidateContextMenuRequested);
@@ -88,6 +88,7 @@ void MainWindowComposer::connectRecord()
             m_c.commentCoordinator, &CommentCoordinator::onBookmarkEditRequested);
     KifuDocument* document = m_c.document;
     connect(document, &KifuDocument::commentChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
+    connect(document, &KifuDocument::commentChanged, tree, &BranchTreeView::refreshNode);
     connect(document, &KifuDocument::bookmarkChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
 
     // 対局情報（対局情報欄は文書の対局情報を編集する画面）

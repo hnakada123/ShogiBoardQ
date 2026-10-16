@@ -633,9 +633,10 @@ set(SRC_WIDGETS
     src/widgets/boardviewerwidget.h
     src/widgets/branchtreelayout.cpp
     src/widgets/branchtreelayout.h
-    src/widgets/branchtreemanager.cpp
-    src/widgets/branchtreemanager.h
-    src/widgets/branchtreemanager_draw.cpp
+    src/widgets/branchnodeitem.cpp
+    src/widgets/branchnodeitem.h
+    src/widgets/branchtreeview.cpp
+    src/widgets/branchtreeview.h
     src/widgets/collapsiblegroupbox.cpp
     src/widgets/collapsiblegroupbox.h
     src/widgets/commenteditorpanel.cpp

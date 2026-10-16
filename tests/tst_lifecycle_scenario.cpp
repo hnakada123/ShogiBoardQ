@@ -47,7 +47,7 @@ private slots:
             QVERIFY(parts.sessionReset->prepareGameStart({GameStartPreparation::Mode::NewGame, initial, -1}));
             QVERIFY(session->canAddMove());
             QSignalSpy inserted(rows, &QAbstractItemModel::rowsInserted);
-            QSignalSpy changed(tree, &KifuBranchTree::treeChanged);
+            QSignalSpy changed(tree, &KifuBranchTree::nodeAppended);
             for (int i = 0; i < 2; ++i) {
                 RecordEntry entry;
                 entry.move = moves.at(i);

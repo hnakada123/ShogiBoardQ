@@ -16,6 +16,7 @@
 #include "kifudocument.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifunavigationstate.h"
 #include "positioneditsession.h"
 #include "kifuanalysiscontroller.h"
@@ -66,8 +67,8 @@ private slots:
         KifuBranchTree* tree = parts.branchTree;
         QVERIFY(tree);
         tree->setRootSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-        KifuBranchNode* ply1 = tree->addMove(tree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"));
-        KifuBranchNode* ply2 = tree->addMove(ply1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"));
+        KifuBranchNode* ply1 = TestTree::addMove(*tree, tree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"));
+        KifuBranchNode* ply2 = TestTree::addMove(*tree, ply1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"));
         parts.navState->setCurrentNode(ply1);
         CommentCoordinator* coordinator = parts.commentCoordinator;
         QVERIFY(coordinator);

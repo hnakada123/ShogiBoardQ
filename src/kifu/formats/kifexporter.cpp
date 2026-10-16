@@ -64,9 +64,8 @@ static QString formatKifTime(const RecordTime& time)
 static bool hasNextSibling(KifuBranchNode* node)
 {
     if (node == nullptr || node->parent() == nullptr) return false;
-    const QList<KifuBranchNode*>& siblings = node->parent()->children();
-    const auto myIndex = siblings.indexOf(node);
-    return myIndex >= 0 && myIndex < siblings.size() - 1;
+    const int myIndex = node->parent()->indexOfChild(node);
+    return myIndex >= 0 && myIndex < node->parent()->childCount() - 1;
 }
 
 // ヘルパ関数: KIF形式の指し手行を生成

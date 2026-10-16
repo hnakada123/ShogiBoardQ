@@ -11,7 +11,7 @@
 class QAction;
 class RecordPane;
 class KifuNavigationController;
-class BranchTreeManager;
+class BranchTreeView;
 class ConsiderationTabManager;
 
 namespace Ui { class MainWindow; }
@@ -95,7 +95,7 @@ public:
         Ui::MainWindow* ui = nullptr;
         RecordPane* recordPane = nullptr;                     ///< 棋譜欄のクリック
         KifuNavigationController* navigation = nullptr;       ///< 局面送りの操作（棋譜欄と評価値グラフのボタン）
-        BranchTreeManager* branchTree = nullptr;              ///< 分岐ツリーのクリック
+        BranchTreeView* branchTree = nullptr;                 ///< 分岐ツリーのクリック
         ConsiderationTabManager* consideration = nullptr;     ///< 検討ドックの「検討開始」
         std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
         std::function<bool()> canResumeGame;      ///< 中断した対局を再開できるか（司令塔に問い合わせる）

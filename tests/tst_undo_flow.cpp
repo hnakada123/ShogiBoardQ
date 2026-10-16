@@ -12,6 +12,7 @@
 #include "recordline.h"
 #include "livegamesession.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
 #include "kifudisplaypresenter.h"
@@ -19,7 +20,7 @@
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
 #include "recordpane.h"
-#include "branchtreemanager.h"
+#include "branchtreeview.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
@@ -58,7 +59,7 @@ struct Harness : QObject {
     KifuRecordListModel record{&tree};
     KifuBranchListModel branches{&tree};
     RecordPane pane;
-    BranchTreeManager treeManager;
+    BranchTreeView treeManager;
     ShogiGameController gc;
     LiveGameSession session{&tree, &state};
     std::unique_ptr<KifuDisplayPresenter> display;
@@ -154,10 +155,7 @@ class TestUndoFlow : public QObject
         QCOMPARE(h.session.liveNode()->ply(), ply);
         QCOMPARE(h.state.currentSfen(), h.line().lastSfen());
         QCOMPARE(h.gc.board()->toSfen(), h.line().lastSfen());
-        QCOMPARE(h.treeManager.lastHighlightedPly(), ply);
-        // 分岐より前の共有の手は親の行に描くので、行ではなく強調したノードで比べる
-        QCOMPARE(h.treeManager.nodeIdFor(h.treeManager.lastHighlightedRow(), h.treeManager.lastHighlightedPly()),
-                 h.state.currentNode()->nodeId());
+        QCOMPARE(h.treeManager.currentNodeId(), h.state.currentNode()->nodeId());
         // 棋譜欄の各行は、表示中の手までの手順のノード
         const QList<KifuBranchNode*> path = h.tree.pathToNode(h.state.currentNode());
         for (int row = 0; row < h.record.rowCount(); ++row) QCOMPARE(h.record.nodeAt(row), path.at(row));
@@ -295,7 +293,7 @@ private slots:
         QCOMPARE(h.tree.lineCount(), 2);
         QCOMPARE(h.tree.nodeCount(), 9);
         QCOMPARE(h.tree.mainLine().last(), h.session.liveNode());
-        KifuBranchNode* branchPoint = h.tree.findByPlyOnMainLine(4);
+        KifuBranchNode* branchPoint = TestTree::findByPlyOnMainLine(h.tree, 4);
         QCOMPARE(branchPoint->childCount(), 2);
         QCOMPARE(branchPoint->childAt(1), undoneHead);
         QCOMPARE(h.tree.exportLine(1).entries.at(4).displayText, undoneText);
@@ -319,7 +317,7 @@ private slots:
         QVERIFY(h.play(QStringLiteral("6g6f")));
         QVERIFY(h.play(QStringLiteral("8c8d")));
         KifuBranchNode* secondHead = h.session.liveNode()->parent();
-        KifuBranchNode* branchPoint = h.tree.findByPlyOnMainLine(2);
+        KifuBranchNode* branchPoint = TestTree::findByPlyOnMainLine(h.tree, 2);
         QCOMPARE(branchPoint->childAt(0), secondHead);
         QCOMPARE(branchPoint->childAt(1), firstHead);
 
@@ -347,7 +345,7 @@ private slots:
         KifuBranchNode* end = h.session.commit();
         QVERIFY(end != nullptr && end->isTerminal());
         QCOMPARE(h.tree.mainLine().last(), end);
-        QCOMPARE(h.tree.findByPlyOnMainLine(2)->childAt(1), undoneHead);
+        QCOMPARE(TestTree::findByPlyOnMainLine(h.tree, 2)->childAt(1), undoneHead);
         QCOMPARE(h.tree.lineCount(), 2);
     }
 
@@ -369,7 +367,7 @@ private slots:
         for (int i = 0; i < 4; ++i) QVERIFY(h.play(opening.at(i)));
         auto* originalEnd = h.session.commit();
         QVERIFY(originalEnd != nullptr);
-        auto* anchor = h.tree.findByPlyOnMainLine(2);
+        auto* anchor = TestTree::findByPlyOnMainLine(h.tree, 2);
         // 以前の棋譜の2手目の局面から対局を始める
         RecordLine from = h.line().upTo(2);
         h.startFrom(from);

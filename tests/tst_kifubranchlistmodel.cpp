@@ -4,6 +4,7 @@
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "shogimove.h"
 
 static const QString kHirateSfen =
@@ -24,7 +25,7 @@ private slots:
         m_firstMoves.clear();
         for (const QString& text : {QStringLiteral("▲７六歩(77)"), QStringLiteral("▲２六歩(27)"),
                                     QStringLiteral("▲５六歩(57)")}) {
-            m_firstMoves.append(m_tree.addMove(m_tree.root(), ShogiMove(), text, QStringLiteral("after")));
+            m_firstMoves.append(TestTree::addMove(m_tree, m_tree.root(), ShogiMove(), text, QStringLiteral("after")));
         }
     }
 

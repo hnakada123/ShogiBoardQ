@@ -12,6 +12,7 @@
 #include "kifuloadparser.h"
 #include "kifubranchtreebuilder.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifudocument.h"
 #include "kifuexport.h"
 #include "appstate.h"
@@ -186,7 +187,7 @@ private slots:
         for (int i = 0; i < plies; ++i) {
             const QString japanese = KifuPresentation::move(history.at(i), usiMoves.at(i),
                 {KifuPresentation::Notation::Japanese, false});
-            node = tree.addMove(node, moves.at(i), japanese, history.at(i + 1));
+            node = TestTree::addMove(tree, node, moves.at(i), japanese, history.at(i + 1));
         }
         KifuNavigationState navigation(&tree);
         LiveGameSession session(&tree, &navigation);

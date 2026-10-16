@@ -6,7 +6,7 @@
 
 #include <QObject>
 
-class BranchTreeManager;
+class BranchTreeView;
 class KifuBranchListModel;
 class KifuNavigationState;
 class KifuRecordListModel;
@@ -18,6 +18,7 @@ class QTableView;
  *
  * 表示する手順は、対局中は対局の最新の手まで（その先にある以前の手順は出さない）、
  * それ以外は選んでいる手順の終わりまで。状態の写しは持たず、毎回 KifuNavigationState から作る。
+ * 分岐ツリーの図は、ツリーの変更を自分で受けて描き直す（ここでは表示中の手だけを伝える）。
  */
 class KifuDisplayPresenter : public QObject
 {
@@ -30,7 +31,7 @@ public:
         KifuRecordListModel* recordModel = nullptr;   ///< 棋譜欄（必須）
         KifuBranchListModel* branchModel = nullptr;   ///< 分岐候補欄（必須）
         QTableView* recordView = nullptr;             ///< 棋譜欄の表（選択と表示位置を合わせる）
-        BranchTreeManager* treeView = nullptr;        ///< 分岐ツリーの図
+        BranchTreeView* treeView = nullptr;           ///< 分岐ツリーの図
     };
 
     explicit KifuDisplayPresenter(const Deps& deps, QObject* parent = nullptr);
@@ -42,10 +43,11 @@ public slots:
     void refreshLabels();
 
 private:
+    /// 分岐が増えた・減った・並びが変わったので、棋譜欄の分岐の印（「+」）を描き直す
+    void refreshBranchMarks();
     void selectCurrentRow(int row);
 
     Deps m_deps;
-    quint64 m_markedRevision = 0;   ///< 棋譜欄の分岐の印を合わせたときの KifuBranchTree::revision()
 };
 
 #endif // KIFUDISPLAYPRESENTER_H

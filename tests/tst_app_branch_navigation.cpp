@@ -9,11 +9,12 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 
-#include "branchtreemanager.h"
+#include "branchtreeview.h"
 #include "kifudocument.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
@@ -56,12 +57,12 @@ class TestAppBranchNavigation : public QObject
     {
         if (!p.kifuFileController->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d 2g2f 8c8d 2f2e")))
             return nullptr;
-        KifuBranchNode* ply1 = p.branchTree->findByPlyOnMainLine(1);
+        KifuBranchNode* ply1 = TestTree::findByPlyOnMainLine(*p.branchTree, 1);
         const QStringList usi{QStringLiteral("8c8d"), QStringLiteral("2g2f")};
         const QStringList sfens = TestReplay::buildSfenRecord(ply1->sfen(), usi, false);
         const QList<ShogiMove> moves = TestReplay::buildGameMoves(ply1->sfen(), usi);
-        KifuBranchNode* branch2 = p.branchTree->addMove(ply1, moves.at(0), QStringLiteral("△８四歩(83)"), sfens.at(1));
-        p.branchTree->addMove(branch2, moves.at(1), QStringLiteral("▲２六歩(27)"), sfens.at(2));
+        KifuBranchNode* branch2 = TestTree::addMove(*p.branchTree, ply1, moves.at(0), QStringLiteral("△８四歩(83)"), sfens.at(1));
+        TestTree::addMove(*p.branchTree, branch2, moves.at(1), QStringLiteral("▲２六歩(27)"), sfens.at(2));
         p.document->markSaved(QString());
         p.kifuNavController->goToFirst();
         return branch2;
@@ -106,7 +107,7 @@ private slots:
         KifuBranchNode* branch2 = loadRecord(p);
         QVERIFY(branch2);
 
-        emit p.branchTreeView->branchNodeActivated(1, 2);
+        emit p.branchTreeView->nodeActivated(branch2->nodeId());
 
         QCOMPARE(p.navState->currentNode(), branch2);
         QCOMPARE(p.navState->currentLineIndex(), 1);
@@ -134,7 +135,7 @@ private slots:
         QVERIFY(p.kifuBranch->hasBackToMainRow());
 
         emit p.recordPane->branchRowActivated(2);
-        QCOMPARE(p.navState->currentNode(), p.branchTree->findByPlyOnMainLine(2));
+        QCOMPARE(p.navState->currentNode(), TestTree::findByPlyOnMainLine(*p.branchTree, 2));
         QVERIFY(p.navState->isOnMainLine());
         QCOMPARE(boardPosition(p), position(p.navState->currentSfen()));
     }

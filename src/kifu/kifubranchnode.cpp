@@ -3,54 +3,74 @@
 
 #include "kifubranchnode.h"
 
-// ============================================================
-// 初期化
-// ============================================================
+#include <algorithm>
 
 KifuBranchNode::KifuBranchNode() = default;
 
 KifuBranchNode::~KifuBranchNode()
 {
-    // 子ノードは所有しない（KifuBranchTreeが一括管理）
+    // 長い手順でも解放が深い再帰にならないよう、子孫を外してから1つずつ解放する
+    std::vector<std::unique_ptr<KifuBranchNode>> pending = std::move(m_children);
+    while (!pending.empty()) {
+        std::unique_ptr<KifuBranchNode> node = std::move(pending.back());
+        pending.pop_back();
+        for (auto& child : node->m_children) pending.push_back(std::move(child));
+        node->m_children.clear();
+    }
 }
 
 // ============================================================
-// ツリー構造操作
+// ツリー構造
 // ============================================================
 
-void KifuBranchNode::addChild(KifuBranchNode* child)
+QList<KifuBranchNode*> KifuBranchNode::children() const
 {
-    if (child && !m_children.contains(child)) {
-        m_children.append(child);
-        child->setParent(this);
-    }
-}
-
-void KifuBranchNode::removeChild(KifuBranchNode* child)
-{
-    if (m_children.removeOne(child)) {
-        child->setParent(nullptr);
-    }
-}
-
-bool KifuBranchNode::moveChild(KifuBranchNode* child, int index)
-{
-    const qsizetype from = m_children.indexOf(child);
-    if (from < 0 || index < 0 || index >= m_children.size()) {
-        return false;
-    }
-    if (from != index) {
-        m_children.move(from, index);
-    }
-    return true;
+    QList<KifuBranchNode*> result;
+    result.reserve(static_cast<qsizetype>(m_children.size()));
+    for (const auto& child : m_children) result.append(child.get());
+    return result;
 }
 
 KifuBranchNode* KifuBranchNode::childAt(int index) const
 {
-    if (index >= 0 && index < m_children.size()) {
-        return m_children.at(index);
-    }
-    return nullptr;
+    if (index < 0 || index >= childCount()) return nullptr;
+    return m_children.at(static_cast<std::size_t>(index)).get();
+}
+
+int KifuBranchNode::indexOfChild(const KifuBranchNode* child) const
+{
+    const auto it = std::find_if(m_children.cbegin(), m_children.cend(),
+                                 [child](const std::unique_ptr<KifuBranchNode>& c) { return c.get() == child; });
+    return it == m_children.cend() ? -1 : static_cast<int>(it - m_children.cbegin());
+}
+
+KifuBranchNode* KifuBranchNode::appendChild(std::unique_ptr<KifuBranchNode> child)
+{
+    child->m_parent = this;
+    child->m_ply = m_ply + 1;
+    m_children.push_back(std::move(child));
+    return m_children.back().get();
+}
+
+std::unique_ptr<KifuBranchNode> KifuBranchNode::takeChild(const KifuBranchNode* child)
+{
+    const int index = indexOfChild(child);
+    if (index < 0) return nullptr;
+    const auto it = m_children.begin() + index;
+    std::unique_ptr<KifuBranchNode> taken = std::move(*it);
+    m_children.erase(it);
+    taken->m_parent = nullptr;
+    return taken;
+}
+
+bool KifuBranchNode::moveChild(const KifuBranchNode* child, int index)
+{
+    const int from = indexOfChild(child);
+    if (from < 0 || index < 0 || index >= childCount()) return false;
+    const auto first = m_children.begin();
+    if (from < index) std::rotate(first + from, first + from + 1, first + index + 1);
+    else if (from > index) std::rotate(first + index, first + from, first + from + 1);
+    return true;
 }
 
 // ============================================================
@@ -59,54 +79,6 @@ KifuBranchNode* KifuBranchNode::childAt(int index) const
 
 bool KifuBranchNode::isMainLine() const
 {
-    if (m_parent == nullptr) {
-        return true;
-    }
     // 親の最初の子が自分なら本譜
-    const auto& siblings = m_parent->children();
-    return !siblings.isEmpty() && siblings.first() == this;
-}
-
-int KifuBranchNode::lineIndex() const
-{
-    // ルートから辿って、最初の分岐点での子インデックスを返す
-    // 本譜（常に最初の子）を辿っていれば0、分岐があれば1以降
-
-    QList<const KifuBranchNode*> path;
-    const KifuBranchNode* node = this;
-    while (node != nullptr) {
-        path.prepend(node);
-        node = node->parent();
-    }
-
-    for (int i = 0; i < path.size() - 1; ++i) {
-        const KifuBranchNode* current = path.at(i);
-        const KifuBranchNode* next = path.at(i + 1);
-
-        if (current->childCount() > 1) {
-            const auto& children = current->children();
-            for (int j = 0; j < children.size(); ++j) {
-                if (children.at(j) == next) {
-                    return j;
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
-QList<KifuBranchNode*> KifuBranchNode::siblings() const
-{
-    QList<KifuBranchNode*> result;
-    if (m_parent == nullptr) {
-        return result;
-    }
-
-    for (KifuBranchNode* child : std::as_const(m_parent->m_children)) {
-        if (child != this) {
-            result.append(child);
-        }
-    }
-    return result;
+    return m_parent == nullptr || m_parent->childAt(0) == this;
 }
