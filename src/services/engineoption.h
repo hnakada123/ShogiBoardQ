@@ -1,7 +1,7 @@
-#ifndef ENGINEOPTIONS_H
-#define ENGINEOPTIONS_H
+#ifndef ENGINEOPTION_H
+#define ENGINEOPTION_H
 
-/// @file engineoptions.h
+/// @file engineoption.h
 /// @brief USIエンジンオプション構造体の定義
 
 
@@ -25,4 +25,4 @@ struct EngineOption
     QStringList valueList;  ///< 選択肢リスト（combo型の場合）
 };
 
-#endif // ENGINEOPTIONS_H
+#endif // ENGINEOPTION_H

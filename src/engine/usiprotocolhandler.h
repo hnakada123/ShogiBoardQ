@@ -16,6 +16,7 @@
 
 #include "shogitypes.h"
 #include "usigotime.h"
+#include "engineprofilestore.h"
 #include "usiinfo.h"
 #include "usimessages.h"
 #include "usiposition.h"
@@ -74,8 +75,8 @@ public:
 
     // --- 起動と初期化（UsiEngineSession から使う） ---
 
-    /// 保存済みのオプションと先読みの設定を読む（初期化で送る）
-    void loadEngineOptions(const QString& engineName);
+    /// 初期化で送るオプションと先読みの設定（保存した設定は EngineProfileStore::launchOptions が読む）
+    void setLaunchOptions(const EngineProfileStore::LaunchOptions& options) { m_launchOptions = options; }
 
     /**
      * @brief この接続だけで送るオプションを設定する（保存済みの設定の後に送り、同名なら上書きする）
@@ -103,7 +104,7 @@ public:
     /// エンジンが報告したオプションの定義（報告がなければ nullopt）
     std::optional<UsiOptionDeclaration> reportedOption(const QString& name) const;
     /// GUI 側で先読みを許しているか（エンジンのオプションの報告とは別）
-    bool isPonderEnabled() const { return m_isPonderEnabled; }
+    bool isPonderEnabled() const { return m_launchOptions.ponderEnabled; }
 
     // --- 探索 ---
 
@@ -154,13 +155,6 @@ private slots:
     void onInitializationTimeout();
 
 private:
-    /// 保存済みの設定で送るオプション
-    struct ConfiguredOption {
-        QString name;
-        QString value;
-        bool button = false;  ///< button 型（値なしで送る）
-    };
-
     void sendCommand(const QString& command);
     void sendConfiguredOptions();
     void setState(State state);
@@ -198,10 +192,8 @@ private:
     quint64 m_activeSearchSeq = 0;    ///< 今の探索を始めたときの通番
 
     // --- 初期化で送るオプションとエンジンの報告 ---
-    QList<ConfiguredOption> m_configuredOptions;
+    EngineProfileStore::LaunchOptions m_launchOptions;   ///< 保存した設定で送るオプションと先読みの設定
     QList<QPair<QString, QString>> m_sessionOptions;
-    bool m_isPonderEnabled = false;
-    bool m_sendUnreportedPonderOption = true;  ///< 報告のない USI_Ponder にも先読みの可否を送る
     QHash<QString, UsiOptionDeclaration> m_reportedOptions;
     QStringList m_reportedOptionLines;
     QString m_reportedEngineName;

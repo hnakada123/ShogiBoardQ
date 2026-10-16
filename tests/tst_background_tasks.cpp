@@ -17,7 +17,7 @@
 #include "usi.h"
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
-#include "enginepondersettings.h"
+#include "engineprofilestore.h"
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
 #include "matchcoordinator.h"
@@ -95,7 +95,7 @@ private slots:
         qunsetenv("SBQ_MATCH_EXIT_ON_GO");
         qunsetenv("SBQ_MATCH_NO_USIOK");
         qunsetenv("SBQ_MATCH_IGNORE_TERMINATE");
-        EnginePonderSettings::save(engineName, false, true);
+        EngineProfileStore::savePonder(engineName, false, true);
     }
     void processShutdownReapsAfterOwnerIsDestroyed_data()
     {
@@ -284,7 +284,7 @@ private slots:
     {
         QFETCH(bool, hit);
         qputenv("SBQ_MATCH_STOP_DELAY_MS", "200");
-        EnginePonderSettings::save(engineName, true, true);
+        EngineProfileStore::savePonder(engineName, true, true);
         ShogiGameController game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
@@ -412,7 +412,7 @@ private slots:
     void gameOverCancelsLateMoveAndReapsBothEngines()
     {
         QFETCH(bool, loserIsBlack);
-        EnginePonderSettings::save(engineName, true, true);
+        EngineProfileStore::savePonder(engineName, true, true);
         ShogiGameController game;
         ShogiClock clock;
         game.newGame(SfenUtils::hirateSfen());

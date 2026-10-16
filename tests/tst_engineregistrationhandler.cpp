@@ -3,6 +3,7 @@
 
 // private メンバへは EngineRegistrationHandler の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "enginesettingsconstants.h"
+#include "engineprofilestore.h"
 #include "engineregistrationhandler.h"
 #include "engineregistrationdialog.h"
 #include <QSettings>
@@ -243,28 +244,32 @@ private slots:
         QCOMPARE(opt.currentValue, QStringLiteral("/tmp/max depth folder"));
     }
 
-    void concatenateComboOptionValues_jsonSerialization()
+    /// combo の選択肢は JSON の配列で保存し（空白を含められる）、読み戻すと同じになる
+    void comboOptionValues_roundTripAsJson()
     {
-        EngineRegistrationHandler handler;
-
         EngineOption opt;
         opt.name = QStringLiteral("Playing Style");
         opt.type = QStringLiteral("combo");
         opt.defaultValue = QStringLiteral("Normal");
         opt.currentValue = QStringLiteral("Normal");
         opt.valueList = {QStringLiteral("Ultra Aggressive"), QStringLiteral("Solid")};
-        handler.m_engineOptions.append(opt);
+        EngineProfileStore::saveOptions(QStringLiteral("ComboEngine"), {opt});
 
-        handler.concatenateComboOptionValues();
-
-        QCOMPARE(handler.m_concatenatedOptionValuesList.size(), 1);
-        const QByteArray raw = handler.m_concatenatedOptionValuesList.first().toUtf8();
-        const QJsonDocument json = QJsonDocument::fromJson(raw);
+        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        settings.beginReadArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("ComboEngine")));
+        settings.setArrayIndex(0);
+        const QJsonDocument json = QJsonDocument::fromJson(settings.value(QStringLiteral("valueList")).toString().toUtf8());
+        settings.endArray();
         QVERIFY(json.isArray());
         const QJsonArray arr = json.array();
         QCOMPARE(arr.size(), 2);
         QCOMPARE(arr.at(0).toString(), QStringLiteral("Ultra Aggressive"));
         QCOMPARE(arr.at(1).toString(), QStringLiteral("Solid"));
+
+        const QList<EngineOption> loaded = EngineProfileStore::loadOptions(QStringLiteral("ComboEngine"));
+        QCOMPARE(loaded.size(), 1);
+        QCOMPARE(loaded.first().valueList, opt.valueList);
+        QCOMPARE(loaded.first().currentValue, opt.currentValue);
     }
 
     void isDuplicatePath_canonicalizedPath_detectsDuplicate()

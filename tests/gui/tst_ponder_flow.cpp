@@ -25,7 +25,7 @@
 #include "shogiboard.h"
 #include "recordpane.h"
 #include "settingscommon.h"
-#include "enginepondersettings.h"
+#include "engineprofilestore.h"
 #include "csaenginecontroller.h"
 #include "enginelifecyclemanager.h"
 #include "shogiclock.h"
@@ -291,7 +291,7 @@ private slots:
         settings.setValue("path", QStringLiteral(AUDIT_DIR "/mock_usi.py"));
         settings.endArray();
         settings.sync();
-        EnginePonderSettings::save("Audit USI", true, true);
+        EngineProfileStore::savePonder("Audit USI", true, true);
     }
     void cleanup()
     {

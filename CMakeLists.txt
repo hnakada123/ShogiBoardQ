@@ -462,7 +462,6 @@ set(SRC_ANALYSIS
 set(SRC_ENGINE
     src/engine/engineoptiondescriptions.cpp
     src/engine/engineoptiondescriptions.h
-    src/engine/engineoptions.h
     src/engine/enginesearchstatus.h
     src/engine/engineprocessmanager.cpp
     src/engine/engineprocessmanager.h
@@ -813,8 +812,9 @@ set(SRC_SERVICES
     src/services/enginedialogsettings.h
     src/services/enginelistsettings.cpp
     src/services/enginelistsettings.h
-    src/services/enginepondersettings.cpp
-    src/services/enginepondersettings.h
+    src/services/engineoption.h
+    src/services/engineprofilestore.cpp
+    src/services/engineprofilestore.h
     src/services/enginesettingsconstants.h
     src/services/gamesettings.h
     src/services/josekisettings.cpp

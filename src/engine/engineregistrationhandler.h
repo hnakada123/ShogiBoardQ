@@ -5,8 +5,7 @@
 /// @brief エンジン登録ハンドラクラスの定義（ワーカースレッド管理・USI解析・設定永続化）
 
 #include <QObject>
-#include <QSettings>
-#include "engineoptions.h"
+#include "engineoption.h"
 #include "enginelistsettings.h"
 
 class UsiEngineSession;
@@ -83,17 +82,9 @@ private:
     void parseOptionLine(const QString& line);
     void addOption(const QString& name, const QString& type, const QString& defaultValue,
                    const QString& min, const QString& max, const QString& currentValue);
-    void concatenateComboOptionValues();
-
-    // 設定I/O
-    void saveEnginesToSettingsFile() const;
-    void saveEngineToSettings(QSettings& settings, const EngineListSettings::EngineEntry& engine) const;
 
     /// 登録名。同じ id name の登録があれば「名前 (2)」のように番号を付けて重複しない名前にする
     QString uniqueRegisteredName(const QString& idName) const;
-    void saveEngineOptionsToSettings() const;
-    void removeEnginesGroup() const;
-    void removeEngineNameGroup(const QString& removeEngineName) const;
 
     // エラー設定＋シグナル送出
     void setError(const QString& message);
@@ -110,7 +101,6 @@ private:
     QString m_engineIdAuthor;
     QList<EngineListSettings::EngineEntry> m_engineList;
     QList<EngineOption> m_engineOptions;
-    QStringList m_concatenatedOptionValuesList;
 };
 
 #endif // ENGINEREGISTRATIONHANDLER_H

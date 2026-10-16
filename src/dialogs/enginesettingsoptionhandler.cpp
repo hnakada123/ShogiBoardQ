@@ -4,12 +4,9 @@
 #include "enginesettingsoptionhandler.h"
 #include "enginesettingsconstants.h"
 #include "engineoptiondescriptions.h"
-#include "settingscommon.h"
+#include "engineprofilestore.h"
 #include "buttonstyles.h"
 #include <QApplication>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QSettings>
 #include <QPushButton>
 #include <QDir>
 #include <QFileDialog>
@@ -93,43 +90,10 @@ EngineSettingsOptionHandler::EngineSettingsOptionHandler(QWidget* parentWidget, 
 {
 }
 
-// 設定ファイルから選択したエンジンのオプションを読み込む。
+// 選択したエンジンの保存したオプションを読み込む。
 void EngineSettingsOptionHandler::readEngineOptions()
 {
-    m_optionList.clear();
-
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    int size = settings.beginReadArray(engineOptionsGroup(m_engineName));
-
-    for (int i = 0; i < size; i++) {
-        settings.setArrayIndex(i);
-
-        EngineOption option;
-        option.name = settings.value(EngineOptionNameKey).toString();
-        option.type = settings.value(EngineOptionTypeKey).toString();
-        option.defaultValue = settings.value(EngineOptionDefaultKey).toString();
-        option.min = settings.value(EngineOptionMinKey).toString();
-        option.max = settings.value(EngineOptionMaxKey).toString();
-        option.currentValue = settings.value(EngineOptionValueKey).toString();
-        QString valueListStr = settings.value(EngineOptionValueListKey).toString();
-
-        // valueList は JSON 配列を優先し、旧フォーマット（空白区切り）も後方互換で受ける。
-        option.valueList.clear();
-        const QJsonDocument json = QJsonDocument::fromJson(valueListStr.toUtf8());
-        if (json.isArray()) {
-            const QJsonArray arr = json.array();
-            option.valueList.reserve(arr.size());
-            for (const QJsonValue& v : arr) {
-                option.valueList.append(v.toString());
-            }
-        } else {
-            option.valueList = valueListStr.split(QStringLiteral(" "), Qt::SkipEmptyParts);
-        }
-
-        m_optionList.append(option);
-    }
-
-    settings.endArray();
+    m_optionList = EngineProfileStore::loadOptions(m_engineName);
 }
 
 // オプションウィジェットを生成してレイアウトに追加する。
@@ -141,7 +105,7 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
     // オプションをカテゴリ別に分類
     for (qsizetype i = 0; i < m_optionList.size(); ++i) {
         const auto& option = m_optionList.at(i);
-        if (option.name == QLatin1String("USI_Ponder")) continue; // GUI共通設定に統合
+        if (EngineProfileStore::isPonderOption(option.name)) continue; // GUI共通設定に統合
         EngineOptionCategory category = EngineOptionDescriptions::category(m_engineName, option.name);
         categoryOptionsMap[category].append(qMakePair(static_cast<int>(i), option));
     }
@@ -326,23 +290,6 @@ void EngineSettingsOptionHandler::restoreDefaultOptions()
     }
 }
 
-// 設定ファイルにエンジンのオプション設定を保存する。
-void EngineSettingsOptionHandler::saveOptionsToSettings()
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    settings.beginWriteArray(engineOptionsGroup(m_engineName));
-
-    int index = 0;
-    for (const auto& option : std::as_const(m_optionList)) {
-        settings.setArrayIndex(index);
-        settings.setValue("value", option.currentValue);
-        ++index;
-    }
-
-    settings.endArray();
-}
-
 // ウィジェットの現在値を読み取り設定ファイルに保存する。
 void EngineSettingsOptionHandler::writeEngineOptions()
 {
@@ -355,7 +302,8 @@ void EngineSettingsOptionHandler::writeEngineOptions()
     for (qsizetype i = 0; i < m_optionList.size(); ++i) {
         if (m_editors.at(i).value) m_optionList[i].currentValue = m_editors.at(i).value();
     }
-    saveOptionsToSettings();
+    // 名前・型・選択肢も含めて全体を書き戻す（読み込んだときの並びに頼らない）
+    EngineProfileStore::saveOptions(m_engineName, m_optionList);
 }
 
 // イベントフィルター（スピンボックス・コンボボックスのホイール操作抑止）

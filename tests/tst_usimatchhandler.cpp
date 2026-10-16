@@ -15,7 +15,7 @@
 #include "shogigamecontroller.h"
 #include "thinkinginfoformatter.h"
 #include "settingscommon.h"
-#include "enginepondersettings.h"
+#include "engineprofilestore.h"
 #include "usi.h"
 #include "sfenutils.h"
 #include <QTemporaryDir>
@@ -90,7 +90,7 @@ public:
     }
     bool initialize(const QString& path)
     {
-        protocol.loadEngineOptions(QStringLiteral("MatchTest"));
+        protocol.setLaunchOptions(EngineProfileStore::launchOptions(QStringLiteral("MatchTest")));
         QSignalSpy started(&process, &EngineProcessManager::processStarted);
         if (!process.startProcessAsync(path)) return false;
         if (started.isEmpty() && !started.wait(5000)) return false;
@@ -199,7 +199,7 @@ private slots:
             settings.setValue(QStringLiteral("value"), QStringLiteral("true"));
             settings.endArray();
         }
-        if (configured) EnginePonderSettings::save(QStringLiteral("MatchTest"), enabled, sendUnreported);
+        if (configured) EngineProfileStore::savePonder(QStringLiteral("MatchTest"), enabled, sendUnreported);
         MatchHarness h;
         QVERIFY(h.initialize(mockPath()));
         QCOMPARE(h.protocol.isPonderEnabled(), enabled);
@@ -269,7 +269,7 @@ private slots:
     }
     void incrementPonderExcludesNextIncrement()
     {
-        EnginePonderSettings::save(QStringLiteral("MatchTest"), true, true);
+        EngineProfileStore::savePonder(QStringLiteral("MatchTest"), true, true);
         MatchHarness h;
         QVERIFY(h.start(mockPath(), true));
         h.clock.stopClock();
@@ -292,7 +292,7 @@ private slots:
     }
     void guiSettingOverridesLegacyOption()
     {
-        EnginePonderSettings::save(QStringLiteral("MatchTest"), true, true);
+        EngineProfileStore::savePonder(QStringLiteral("MatchTest"), true, true);
         MatchHarness h;
         QVERIFY(h.start(mockPath(), false)); // 古いUSI_Ponder=falseよりGUI設定を優先
         QVERIFY(h.protocol.isPonderEnabled());
@@ -321,7 +321,7 @@ private slots:
         if (mode == QLatin1String("legacy")) {
             QVERIFY(h.start(mockPath()));
         } else {
-            EnginePonderSettings::save(QStringLiteral("MatchTest"), true, mode != QLatin1String("gui-only"));
+            EngineProfileStore::savePonder(QStringLiteral("MatchTest"), true, mode != QLatin1String("gui-only"));
             QVERIFY(h.initialize(mockPath()));
         }
         QCOMPARE(h.reply(), QPoint(8, 4));
@@ -397,7 +397,7 @@ private slots:
     }
     void committedPositionRecognizesPonderHit()
     {
-        EnginePonderSettings::save(QStringLiteral("MatchTest"), true, true);
+        EngineProfileStore::savePonder(QStringLiteral("MatchTest"), true, true);
         ShogiGameController game;
         QString sfen = SfenUtils::hirateSfen();
         game.newGame(sfen);
@@ -496,7 +496,7 @@ private slots:
             settings.setValue(QStringLiteral("value"), QStringLiteral("1"));
             settings.endArray();
         }
-        EnginePonderSettings::save(QStringLiteral("MatchTest"), true, sendUnreported);
+        EngineProfileStore::savePonder(QStringLiteral("MatchTest"), true, sendUnreported);
         MatchHarness h;
         h.byoyomi = 1000;
         QVERIFY(h.initialize(engine));

@@ -7,13 +7,10 @@
 #include "usienginesession.h"
 #include "usilineparser.h"
 #include "usiprotocolhandler.h"
-#include "enginelistsettings.h"
-#include "settingscommon.h"
+#include "engineprofilestore.h"
 #include "logcategories.h"
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonArray>
-#include <QJsonDocument>
 
 using namespace EngineSettingsConstants;
 
@@ -52,14 +49,7 @@ EngineRegistrationHandler::~EngineRegistrationHandler()
 void EngineRegistrationHandler::loadEnginesFromSettings()
 {
     m_engineList.clear();
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    for (const auto& entry : engines) {
-        EngineListSettings::EngineEntry engine;
-        engine.name = entry.name;
-        engine.path = entry.path;
-        engine.author = entry.author;
-        m_engineList.append(engine);
-    }
+    m_engineList = EngineProfileStore::loadEngines();
 }
 
 const QList<EngineListSettings::EngineEntry>& EngineRegistrationHandler::engineList() const
@@ -187,9 +177,8 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
         return;
     }
 
-    saveEnginesToSettingsFile();
-    concatenateComboOptionValues();
-    saveEngineOptionsToSettings();
+    EngineProfileStore::saveEngines(m_engineList);
+    EngineProfileStore::saveOptions(m_engineIdName, m_engineOptions);
 
     setRegistrationInProgress(false);
     emit engineRegistered(m_engineIdName);
@@ -221,10 +210,8 @@ void EngineRegistrationHandler::removeEngineAt(int index)
     QString removeEngineName = m_engineList.at(index).name;
     m_engineList.removeAt(index);
 
-    // [Engines]グループを削除して作り直す
-    removeEnginesGroup();
-    saveEnginesToSettingsFile();
-    removeEngineNameGroup(removeEngineName);
+    EngineProfileStore::saveEngines(m_engineList);
+    EngineProfileStore::removeEngine(removeEngineName);
 }
 
 // --- USIプロトコル解析 ---
@@ -251,7 +238,7 @@ void EngineRegistrationHandler::parseEngineOptionsFromUsiOutput()
     }
 
     // USI_Ponderは自動追加しない。先読み許可と未報告オプションへの通知方針は
-    // EnginePonderSettingsで管理し、エンジン設定画面の共通項目で変更する。
+    // EngineProfileStore の先読みの設定で管理し、エンジン設定画面の共通項目で変更する。
 }
 
 // 将棋エンジンから送信されたオプション行を解析し、エンジンオプションリストに追加する。
@@ -290,92 +277,6 @@ void EngineRegistrationHandler::addOption(const QString& name, const QString& ty
 {
     EngineOption option{name, type, defaultValue, min, max, currentValue, QStringList()};
     m_engineOptions.append(option);
-}
-
-// comboタイプのオプションの文字列を作成する。
-void EngineRegistrationHandler::concatenateComboOptionValues()
-{
-    m_concatenatedOptionValuesList.clear();
-
-    for (const auto& option : std::as_const(m_engineOptions)) {
-        QJsonArray values;
-        for (const QString& value : option.valueList) {
-            values.append(value);
-        }
-        const QString serialized = QString::fromUtf8(
-            QJsonDocument(values).toJson(QJsonDocument::Compact));
-        m_concatenatedOptionValuesList.append(serialized);
-    }
-}
-
-// --- 設定I/O ---
-
-// 設定ファイルにエンジン名と実行ファイルパスを書き込む。
-void EngineRegistrationHandler::saveEnginesToSettingsFile() const
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginWriteArray(EnginesGroupName);
-
-    for (qsizetype i = 0; i < m_engineList.size(); i++) {
-        settings.setArrayIndex(static_cast<int>(i));
-        saveEngineToSettings(settings, m_engineList.at(i));
-    }
-
-    settings.endArray();
-}
-
-// 指定されたエンジン情報を設定ファイルに保存する。
-void EngineRegistrationHandler::saveEngineToSettings(QSettings& settings, const EngineListSettings::EngineEntry& engine) const
-{
-    settings.setValue(EngineNameKey, engine.name);
-    settings.setValue(EnginePathKey, engine.path);
-    settings.setValue(EngineAuthorKey, engine.author);
-}
-
-// 設定ファイルに追加エンジンのオプションを書き込む。
-void EngineRegistrationHandler::saveEngineOptionsToSettings() const
-{
-    // 並列配列のサイズ整合性を確認
-    if (m_engineOptions.size() != m_concatenatedOptionValuesList.size()) {
-        qCWarning(lcUi) << "saveEngineOptionsToSettings: リストサイズ不一致 - "
-                   << "m_engineOptions:" << m_engineOptions.size()
-                   << "m_concatenatedOptionValuesList:" << m_concatenatedOptionValuesList.size();
-        return;
-    }
-
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginWriteArray(engineOptionsGroup(m_engineIdName));
-
-    for (qsizetype i = 0; i < m_engineOptions.size(); i++) {
-        settings.setArrayIndex(static_cast<int>(i));
-        settings.setValue(EngineOptionNameKey, m_engineOptions.at(i).name);
-        settings.setValue(EngineOptionTypeKey, m_engineOptions.at(i).type);
-        settings.setValue(EngineOptionDefaultKey, m_engineOptions.at(i).defaultValue);
-        settings.setValue(EngineOptionMinKey, m_engineOptions.at(i).min);
-        settings.setValue(EngineOptionMaxKey, m_engineOptions.at(i).max);
-        settings.setValue(EngineOptionValueKey, m_engineOptions.at(i).currentValue);
-        settings.setValue(EngineOptionValueListKey, m_concatenatedOptionValuesList.at(i));
-    }
-
-    settings.endArray();
-}
-
-// 設定ファイルから[Engines]グループを削除する。
-void EngineRegistrationHandler::removeEnginesGroup() const
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginGroup(EnginesGroupName);
-    settings.remove("");
-    settings.endGroup();
-}
-
-// 設定ファイルからエンジンごとの設定のグループ（EngineOptions の下）を削除する。
-void EngineRegistrationHandler::removeEngineNameGroup(const QString& removeEngineName) const
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginGroup(engineOptionsGroup(removeEngineName));
-    settings.remove("");
-    settings.endGroup();
 }
 
 // エラー設定＋シグナル送出

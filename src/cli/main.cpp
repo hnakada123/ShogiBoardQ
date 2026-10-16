@@ -6,7 +6,7 @@
 
 #include "clicommands.h"
 #include "clioutput.h"
-#include "enginelistsettings.h"
+#include "engineprofilestore.h"
 
 #include <QApplication>
 #include <QHash>
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
     app.setApplicationName(QStringLiteral("ShogiBoardQ"));
     app.setApplicationVersion(QStringLiteral(APP_VERSION));
     // 以前の版の設定ファイルにあるエンジンごとの設定を、今の保存先へ移す（GUI と同じ）
-    EngineListSettings::migrateLegacyOptionGroups();
+    EngineProfileStore::migrateLegacyOptionGroups();
 
     return CliCommands::run(app.arguments());
 }
