@@ -5,6 +5,7 @@
 /// @brief CSA通信対局コーディネータクラスの定義
 
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -16,6 +17,8 @@
 #include "csaclient.h"
 #include "csaenginecontroller.h"
 #include "csagameprogress.h"
+#include "matchautosave.h"
+#include "matchtimesource.h"
 #include "recordentry.h"
 #include "recordline.h"
 #include "shogimove.h"
@@ -46,12 +49,13 @@ class Usi;
  * - 棋譜行（RecordEntry）の組み立て。着手・終局ごとに recordEntryReady を1回発行する
  *
  * 1局ぶんの手数・持ち時間・指し手列は値型 CsaGameProgress（m_progress）が持ち、
- * 時間の計算や終局行の組み立てはその関数が値で返す。
+ * 時間の計算や終局行の組み立てはその関数が値で返す。自分のエンジンが読む持ち時間（MatchTimeSource）も
+ * この残り時間から返す（表示用の ShogiClock はその写しで、計算には使わない）。
  *
  * 解釈できない指し手行（不正な書式・盤面に適用できない手）は、サーバーが続けて送る
  * #ILLEGAL_MOVE などの裁定を待つ（仕様 3.4）。裁定が届かなければ中断として終局させる。
  */
-class CsaGameCoordinator : public QObject
+class CsaGameCoordinator : public QObject, public MatchTimeSource
 {
     Q_OBJECT
     friend class TestAppGameSession;  ///< 手番の状態はサーバーとのやり取りでしか変わらないため、テストで直接設定する
@@ -114,6 +118,7 @@ public:
         int thinkingMarginMs = 1000;        ///< エンジンに渡す持時間から差し引く通信の余裕
         int gameLimit = 1;                  ///< この接続で行う対局数（0 は無制限）
         bool reconnectAfterGame = false;    ///< 終局後にサーバーが切断したら再接続して次の対局を待つ
+        MatchAutoSave autoSave;             ///< 終局した棋譜の自動保存（棋譜の受け手が行う）
     };
 
     /// 依存が無ければ盤・時計を動かさない（通信の手順だけを試すテスト用）
@@ -153,6 +158,8 @@ public:
 
     void sendRawCommand(const QString& command);
     QString username() const { return m_options.username; }
+    /// 始めた対局の接続と進め方
+    const StartOptions& options() const { return m_options; }
     /// この対局の手順（開始局面と指した手）
     const RecordLine& record() const { return m_progress.record; }
 
@@ -180,6 +187,11 @@ public:
 
     /// 裁定が届かないときに中断とみなすまでの時間
     static constexpr int kVerdictTimeoutMs = 5000;
+
+    // --- MatchTimeSource（自分のエンジンの持ち時間。サーバーが示した残り時間・遅延・余裕） ---
+    MatchSearchTiming snapshot(Turn side, bool pondering) const override;
+    /// side の今の手番の考慮時間（サーバーが消費時間を知らせないときの投了の消費時間にも使う）
+    qint64 elapsedThisTurn(Turn side) const override;
 
 signals:
     void connectionStateChanged(bool connected);
@@ -277,8 +289,6 @@ private:
 
     GameState m_gameState = GameState::Idle;
     PlayerType m_playerType = PlayerType::Human;
-    bool m_initializingEngine = false;
-    bool m_engineNeedsRestart = false;   ///< 終局で gameover/quit を送ったので次局は起動し直す
     bool m_lastGameEndedByServer = false; ///< 直前の終局がサーバーの裁定によるもの（再接続の条件）
     int m_completedGames = 0;            ///< この接続（再接続を含む）で終えた対局数
     int m_thinkingMarginMs = 0;          ///< エンジンに渡す持時間から差し引く通信の余裕
@@ -289,6 +299,8 @@ private:
 
 
     QTimer* m_verdictTimer;              ///< 裁定待ちのタイムアウト
+    QElapsedTimer m_turnTimer;           ///< 今の手番が始まってからの時間
+    Turn m_turnSide = Turn::Black;       ///< 今の手番
     QString m_pendingFailureText;        ///< 裁定が届かなかったときの終局理由（空なら待ちなし）
 
     static constexpr int kReconnectDelayMs = 3000; ///< 終局後の再接続までの待ち時間

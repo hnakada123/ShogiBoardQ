@@ -9,6 +9,7 @@
 #include <array>
 #include <optional>
 
+#include "matchtimesource.h"
 #include "shogitypes.h"
 
 class Usi;
@@ -85,7 +86,7 @@ private:
     const Seat& seat(int slot) const { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
     void destroySeat(Seat& seat, bool clearThinking);
 
-    ShogiClock* m_clock = nullptr;
+    ClockTimeSource m_clockTime;   ///< 対局のエンジンが持ち時間を読む対局時計
     std::array<Seat, 2> m_seats;
     bool m_shutdownInProgress = false;
 };

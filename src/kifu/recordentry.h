@@ -63,6 +63,17 @@ struct RecordEntry {
         }
     }
 
+    /**
+     * @brief 連続王手の千日手の終局の行の種類
+     *
+     * 終局した局面の手番側の行にする。王手をかけていた側（loser）が手番なら反則負け、相手が手番なら反則勝ち。
+     * 対局と通信対局で同じ規則
+     */
+    static TerminalType perpetualCheckTerminal(Turn loser, Turn sideToMove)
+    {
+        return loser == sideToMove ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
+    }
+
     /// 終局の行。表記は終局語の表（TerminalTypes::label）から作る
     static RecordEntry ending(TerminalType type, Turn side, const RecordTime& time = {})
     {

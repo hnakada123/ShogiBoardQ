@@ -15,16 +15,6 @@
 namespace {
 
 /// 書かれた棋譜の行を数える受け手
-class CountingSink final : public MatchRecordSink {
-public:
-    bool canAppendRecord() const override { return true; }
-    void appendRecord(const RecordEntry&) override { ++appended; }
-    bool canUndoRecords(int) const override { return false; }
-    void undoRecords(int) override {}
-
-    int appended = 0;
-};
-
 } // namespace
 
 class TestCsaGameSession : public QObject
@@ -43,12 +33,10 @@ private slots:
     {
         CsaGameCoordinator coordinator;
         AppActivityState activity;
-        CountingSink sink;
         QStatusBar status;
         CsaGameSession::Deps deps;
         deps.coordinator = &coordinator;
         deps.activity = &activity;
-        deps.recordSink = &sink;
         deps.statusBar = &status;
         CsaGameSession session(deps);
         emit coordinator.logMessage(QStringLiteral("connected"), false);
@@ -60,13 +48,11 @@ private slots:
     {
         CsaGameCoordinator coordinator;
         AppActivityState activity;
-        CountingSink sink;
         BoardInteractionController board(nullptr, nullptr);
         UiNotificationService notifications({});
         CsaGameSession::Deps deps;
         deps.coordinator = &coordinator;
         deps.activity = &activity;
-        deps.recordSink = &sink;
         deps.boardController = &board;
         deps.notifications = &notifications;
         CsaGameSession session(deps);
@@ -80,34 +66,28 @@ private slots:
         QVERIFY(!QObject::disconnect(&coordinator, highlight, &board, QMetaMethod()));
     }
 
-    /// 対局が始まると棋譜を作り直してから通信対局中にし、UI もそれに従う。終局で待機に戻る
+    /// 対局が始まると通信対局中にし、UI もそれに従う。棋譜（行の追記）は GameSession が受け、ここでは受けない
     void startAndEndSwitchActivity()
     {
         CsaGameCoordinator coordinator;
         AppActivityState activity;
-        CountingSink sink;
         QStatusBar status;
-        int prepared = 0;
         CsaGameSession::Deps deps;
         deps.coordinator = &coordinator;
         deps.activity = &activity;
-        deps.recordSink = &sink;
         deps.statusBar = &status;
-        deps.prepareRecord = [&prepared, &activity](const QString&, const QString&, const QString&, const TimeControl&) {
-            QCOMPARE(activity.activity(), AppActivityState::Activity::Idle);
-            ++prepared;
-        };
         CsaGameSession session(deps);
         UiStatePolicyManager::Deps policyDeps;
         policyDeps.activity = &activity;
         UiStatePolicyManager policy(policyDeps);
 
+        const QMetaMethod record = QMetaMethod::fromSignal(&CsaGameCoordinator::recordEntryReady);
+        QVERIFY(!QObject::disconnect(&coordinator, record, &session, QMetaMethod()));
+
         emit coordinator.gameStarted(QStringLiteral("Black"), QStringLiteral("White"), {RecordEntry{}});
         QCOMPARE(activity.activity(), AppActivityState::Activity::DuringCsaGame);
         QVERIFY(session.isActive());
         QCOMPARE(policy.currentState(), UiStatePolicyManager::AppState::DuringCsaGame);
-        QCOMPARE(prepared, 1);
-        QCOMPARE(sink.appended, 1);  // 再開局面の既存手順
         QVERIFY(status.currentMessage().contains(QStringLiteral("Black")));
     }
 };

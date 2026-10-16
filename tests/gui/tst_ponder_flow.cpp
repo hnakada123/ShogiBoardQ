@@ -413,17 +413,21 @@ private slots:
         ShogiClock clock;
         EngineLifecycleManager engines(&clock);
         CsaEngineController controller(&engines);
+        // 通信対局の残り時間の代わりに、決まった残り時間を読ませる
+        UsiTimingParams timing;
+        timing.timeControl.black.mainMs = timing.timeControl.white.mainMs = 60000;
+        timing.btimeMs = timing.wtimeMs = 60000;
+        FixedTimeSource matchTime(timing);
         CsaEngineController::InitParams init;
         init.enginePath = QStringLiteral(AUDIT_DIR "/mock_usi.py");
         init.engineName = "Audit USI";
+        init.timeSource = &matchTime;
         controller.initialize(init);
-        QVERIFY(controller.isInitialized());
-        CsaEngineController::ThinkingParams params;
-        params.position = *UsiPosition::parse(u"position startpos");
-        params.timing.timeControl.black.mainMs = params.timing.timeControl.white.mainMs = 60000;
-        params.timing.btimeMs = params.timing.wtimeMs = 60000;
+        QVERIFY(controller.isStarting());
+        QTRY_VERIFY(controller.isReady());
+        UsiPosition position = *UsiPosition::parse(u"position startpos");
         QSignalSpy results(&controller, &CsaEngineController::thinkingFinished);
-        controller.thinkAsync(params);
+        controller.thinkAsync(position);
         QTRY_COMPARE(results.size(), 1);
         auto result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
         QVERIFY(result.valid);
@@ -431,8 +435,8 @@ private slots:
         QTRY_VERIFY(commands().join('\n').contains("go ponder "));
         const auto before = commands().size();
         const QString opponent = hit ? QStringLiteral("3c3d") : QStringLiteral("4c4d");
-        params.position = *UsiPosition::parse(QStringLiteral("position startpos moves 7g7f ") + opponent);
-        controller.thinkAsync(params);
+        position = *UsiPosition::parse(QStringLiteral("position startpos moves 7g7f ") + opponent);
+        controller.thinkAsync(position);
         QTRY_COMPARE(results.size(), 1);
         result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
         QVERIFY(result.valid);
@@ -444,14 +448,14 @@ private slots:
             QVERIFY(!sent.contains("stop"));
         } else {
             QCOMPARE(sent.first(), QStringLiteral("stop"));
-            QVERIFY(sent.contains(params.position.command()));
+            QVERIFY(sent.contains(position.command()));
         }
         // 再初期化では前局の予測を引き継がない。
         controller.cleanup();
         controller.initialize(init);
-        params.position = *UsiPosition::parse(u"position startpos");
+        position = *UsiPosition::parse(u"position startpos");
         const auto restart = commands().size();
-        controller.thinkAsync(params);
+        controller.thinkAsync(position);
         QTRY_COMPARE(results.size(), 1);
         QVERIFY(qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first()).valid);
         QVERIFY(!commands().mid(restart).contains("ponderhit"));

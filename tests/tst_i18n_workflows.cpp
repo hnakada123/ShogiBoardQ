@@ -15,7 +15,12 @@
 #include "kifudocument.h"
 #include "kifuexport.h"
 #include "appstate.h"
+#include "csagamecoordinator.h"
+#include "enginelifecyclemanager.h"
 #include "gamesession.h"
+#include "matchcoordinator.h"
+#include "shogiclock.h"
+#include "shogigamecontroller.h"
 #include "kifudisplaypresenter.h"
 #include "kifunavigationstate.h"
 #include "livegamesession.h"
@@ -195,11 +200,19 @@ private slots:
         KifuDisplayPresenter display(displayDeps);
         navigation.setCurrentNode(node);
         session.startFromNode(node);
-        // 棋譜の受け手（本体と同じ GameSession。追記に使う部品だけ渡す）
+        // 棋譜の受け手（本体と同じ GameSession。追記に使う部品と、作るときに要る対局の司令塔だけ渡す）
         AppState state;
         KifuDocument document(&tree);
+        ShogiGameController gc;
+        ShogiClock clock;
+        EngineLifecycleManager engines(&clock);
+        MatchCoordinator match({&gc, &clock, &state.activity, &engines, &document});
+        CsaGameCoordinator csa;
         GameSession::Deps deps;
         deps.state = &state;
+        deps.match = &match;
+        deps.clock = &clock;
+        deps.csaGame = &csa;
         deps.navState = &navigation;
         deps.liveSession = &session;
         deps.document = &document;

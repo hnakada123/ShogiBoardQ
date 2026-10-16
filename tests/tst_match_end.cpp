@@ -80,7 +80,6 @@ class Tst_MatchEnd : public QObject
 public:
     void recordEnded() { m_events.append(QStringLiteral("ended")); }
     void recordMessage() { m_events.append(QStringLiteral("dialog")); }
-    void recordSave() { m_events.append(QStringLiteral("save")); }
     void recordProcessed() { m_events.append(QStringLiteral("processed")); }
 
 private slots:
@@ -99,13 +98,9 @@ private slots:
         QFETCH(bool, blackLoses);
         const Turn side = blackLoses ? Turn::Black : Turn::White;
         MatchHarness h;
-        MatchCoordinator::StartOptions opt = humanVsHuman();
-        opt.autoSaveKifu = true;
-        opt.kifuSaveDir = QStringLiteral("/tmp/kifu");
-        h.start(opt);
+        h.start(humanVsHuman());
         QSignalSpy ended(h.mc.get(), &MatchCoordinator::gameEnded);
         QSignalSpy processed(h.mc.get(), &MatchCoordinator::gameEndProcessed);
-        QSignalSpy save(h.mc.get(), &MatchCoordinator::autoSaveRequested);
         h.mc->handlePlayerTimeOut(side);
         h.mc->handlePlayerTimeOut(side);
         h.mc->handleResign();
@@ -114,12 +109,10 @@ private slots:
         QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Timeout);
         QCOMPARE(h.mc->gameOverState().lastInfo.loser, side);
         QVERIFY(h.lastMessageText().contains(QStringLiteral("時間切れ")));
-        QCOMPARE(save.count(), 1);
-        QCOMPARE(save.first().first().toString(), QStringLiteral("/tmp/kifu"));
         QCOMPARE(h.sink.records.last().displayText, blackLoses ? QStringLiteral("▲時間切れ") : QStringLiteral("△時間切れ"));
     }
 
-    /// 最大手数: 一手 → 終局の行 → 終局 → 知らせ → 自動保存 → 後処理の完了、の順に1回ずつ
+    /// 最大手数: 一手 → 終局の行 → 終局 → 知らせ → 後処理の完了、の順に1回ずつ（自動保存は終局を受けた側）
     void maxMoves_notifiesAfterAppendingAndBeforeCompletion()
     {
         MatchHarness h;
@@ -127,16 +120,13 @@ private slots:
         h.mc->setRecordSink(&sink);
         connect(h.mc.get(), &MatchCoordinator::gameEnded, this, &Tst_MatchEnd::recordEnded);
         connect(h.mc.get(), &MatchCoordinator::gameOverMessage, this, &Tst_MatchEnd::recordMessage);
-        connect(h.mc.get(), &MatchCoordinator::autoSaveRequested, this, &Tst_MatchEnd::recordSave);
         connect(h.mc.get(), &MatchCoordinator::gameEndProcessed, this, &Tst_MatchEnd::recordProcessed);
         MatchCoordinator::StartOptions opt = humanVsHuman();
         opt.maxMoves = 1;
-        opt.autoSaveKifu = true;
-        opt.kifuSaveDir = QStringLiteral("/tmp/kifu");
         h.start(opt);
         QVERIFY(!playMoves(h, {QStringLiteral("7g7f")}));
         QCOMPARE(m_events, QStringList({QStringLiteral("append"), QStringLiteral("append"), QStringLiteral("ended"),
-                                         QStringLiteral("dialog"), QStringLiteral("save"), QStringLiteral("processed")}));
+                                         QStringLiteral("dialog"), QStringLiteral("processed")}));
         QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Jishogi);
         // 持将棋の行は終局した局面の手番（後手）の行
         QCOMPARE(sink.records.last().displayText, QStringLiteral("△持将棋"));

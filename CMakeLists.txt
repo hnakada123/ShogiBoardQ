@@ -288,11 +288,14 @@ set(SRC_GAME
     src/game/gamemodestrategy.h
     src/game/gamestartoptionsbuilder.cpp
     src/game/gamestartoptionsbuilder.h
+    src/game/gamechannel.cpp
+    src/game/gamechannel.h
     src/game/humanvsenginestrategy.cpp
     src/game/humanvsenginestrategy.h
     src/game/humanvshumanstrategy.cpp
     src/game/humanvshumanstrategy.h
     src/game/interruptedgamestate.h
+    src/game/matchautosave.h
     src/game/matchcoordinator.cpp
     src/game/matchcoordinator.h
     src/game/matchrecordsink.h
@@ -464,7 +467,8 @@ set(SRC_ENGINE
     src/engine/engineprocessmanager.h
     src/engine/engineregistrationhandler.cpp
     src/engine/engineregistrationhandler.h
-    src/engine/matchsearchsnapshot.h
+    src/engine/matchtimesource.cpp
+    src/engine/matchtimesource.h
     src/engine/pvnotationformatter.cpp
     src/engine/pvnotationformatter.h
     src/engine/thinkinginfoformatter.cpp
@@ -496,6 +500,8 @@ set(SRC_NETWORK
     src/network/csaclient_parser.cpp
     src/network/csaenginecontroller.cpp
     src/network/csaenginecontroller.h
+    src/network/csagamechannel.cpp
+    src/network/csagamechannel.h
     src/network/csagamecoordinator.cpp
     src/network/csagamecoordinator.h
     src/network/csagamecoordinator_moves.cpp

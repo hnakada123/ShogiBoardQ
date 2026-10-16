@@ -152,8 +152,9 @@ MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const QString& star
     if (dlg.engineNumber1 >= 0 && dlg.engineNumber1 < engines.size()) opt.enginePath1 = engines.at(dlg.engineNumber1).path;
     if (dlg.engineNumber2 >= 0 && dlg.engineNumber2 < engines.size()) opt.enginePath2 = engines.at(dlg.engineNumber2).path;
     opt.maxMoves = dlg.maxMoves;
-    opt.autoSaveKifu = dlg.autoSaveKifu;
-    opt.kifuSaveDir = dlg.kifuSaveDir;
+    opt.autoSave.enabled = dlg.autoSaveKifu;
+    opt.autoSave.dir = dlg.kifuSaveDir;
+    opt.autoSave.extension = QStringLiteral("kifu");   // ローカル対局は UTF-8 の KIF
     return opt;
 }
 

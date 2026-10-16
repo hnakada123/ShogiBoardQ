@@ -99,6 +99,7 @@ public:
         ConsiderationTabManager* consideration = nullptr;     ///< 検討ドックの「検討開始」
         BoardInteractionController* boardController = nullptr;
         std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
+        std::function<bool()> canResumeGame;      ///< 中断した対局を再開できるか（司令塔に問い合わせる）
         AppActivityState* activity = nullptr;
     };
 
@@ -116,7 +117,8 @@ public:
     static Policy tablePolicy(AppState state, UiElement element);
 
 public slots:
-    void setResumeAvailable(bool available);
+    /// 再開できるかが変わった（「再開」の有効・無効を問い合わせ直す）
+    void refreshResumeAvailability();
 
     /// ナビゲーションが許可されている場合のみ矢印ボタンを有効化する
     void enableNavigationIfAllowed();
@@ -136,7 +138,6 @@ private:
     AppActivityState m_defaultActivity;
     AppActivityState* m_activity = nullptr;
     void refreshActivity();
-    bool m_resumeAvailable = false;
 };
 
 #endif // UISTATEPOLICYMANAGER_H

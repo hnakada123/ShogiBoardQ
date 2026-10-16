@@ -13,6 +13,7 @@ struct InterruptedGameState {
     MatchStartOptions options;
     ShogiClock::Snapshot clock;
     RecordLine record;           ///< 中断までの対局の手順（「同」表記の基準もここから導く）
+    int terminalNodeId = -1;     ///< 棋譜（分岐ツリー）に書いた中断の行。再開でこの行を除く（書くまでは -1）
 };
 
 #endif

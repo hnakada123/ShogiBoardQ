@@ -4,11 +4,7 @@
 #include "usimatchhandler.h"
 
 #include "logcategories.h"
-#include "matchsearchsnapshot.h"
-#include "shogiclock.h"
 #include "usiprotocolhandler.h"
-
-#include <limits>
 
 UsiMatchHandler::UsiMatchHandler(UsiProtocolHandler* protocolHandler, QObject* parent)
     : QObject(parent)
@@ -26,11 +22,10 @@ void UsiMatchHandler::cancelAsync()
     m_pending = Pending::None;
 }
 
-void UsiMatchHandler::requestMove(const UsiPosition& position, const UsiTimingParams& timing)
+void UsiMatchHandler::requestMove(const UsiPosition& position)
 {
     cancelAsync();
     m_position = position;
-    m_timing = timing;
     if (searchTiming(m_position.sideToMove()).expired) return;
 
     using State = UsiProtocolHandler::State;
@@ -125,24 +120,12 @@ void UsiMatchHandler::startPondering(const UsiBestMove& result)
 
 bool UsiMatchHandler::finishTurn()
 {
-    if (!m_clock) return true;
-    m_clock->finishTurn();
-    return !m_clock->isGameOver();
+    return !m_timeSource || m_timeSource->finishTurn();
 }
 
 UsiMatchHandler::SearchTiming UsiMatchHandler::searchTiming(Turn side, bool pondering) const
 {
-    if (m_clock) return matchSearchSnapshot(m_clock, side, m_timing, pondering);
-    SearchTiming result;
-    result.input.timeControl = m_timing.timeControl;
-    result.input.btimeMs = m_timing.btimeMs;
-    result.input.wtimeMs = m_timing.wtimeMs;
-    result.input.extraMs = m_timing.extraMs;
-    result.input.marginMs = m_timing.marginMs;
-    result.input.sideToMove = side;
-    result.timeoutMs = static_cast<int>(qBound(qint64(1), UsiGoTimeCalculator::budgetMs(result.input),
-                                              qint64(std::numeric_limits<int>::max())));
-    return result;
+    return (m_timeSource ? static_cast<const MatchTimeSource&>(*m_timeSource) : m_noTime).snapshot(side, pondering);
 }
 
 void UsiMatchHandler::onSearchTimeout()

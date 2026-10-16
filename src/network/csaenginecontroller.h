@@ -11,9 +11,9 @@
 
 #include "usimove.h"
 #include "usimatchhandler.h"
-#include "usitimingparams.h"
 
 class EngineLifecycleManager;
+class MatchTimeSource;
 class Usi;
 
 /**
@@ -31,11 +31,8 @@ public:
     struct InitParams {
         QString enginePath;
         QString engineName;
-    };
-
-    struct ThinkingParams {
-        UsiPosition position;    ///< 探索する局面（対局の開始局面から今までの手順）
-        UsiTimingParams timing;  ///< 残り時間（USI の btime/wtime の意味）・決まり・遅延・余裕
+        /// 持ち時間を読む出どころ（非所有。サーバーが示した残り時間・決まり・遅延・余裕）
+        MatchTimeSource* timeSource = nullptr;
     };
 
     struct ThinkingResult {
@@ -49,15 +46,21 @@ public:
     ~CsaEngineController() override;
 
     void initialize(const InitParams& params);
-    void thinkAsync(const ThinkingParams& params);
+    /// position（対局の開始局面から今までの手順）の手番の手を考えさせる
+    void thinkAsync(const UsiPosition& position);
     /// 思考中なら stop を送り、その時点の最善手ですぐ指させる
     void stopThinking();
+    /// gameover を送ってエンジンを終える
     void sendGameOver(bool win);
+    /// エンジンを終える（引き分け・中断の終局）
     void sendQuit();
     void cleanup();
 
     Usi* engine() const;
-    bool isInitialized() const { return !m_engine.isNull(); }
+    /// エンジンを起動して初期化（usi〜readyok）している
+    bool isStarting() const;
+    /// readyok を受け、思考を頼める（終局の gameover・quit の後は false。次局は起動し直す）
+    bool isReady() const;
 
 signals:
     void initialized();

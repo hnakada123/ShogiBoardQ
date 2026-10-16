@@ -10,10 +10,10 @@
 #include "shogitypes.h"
 #include "usimatchhandler.h"
 #include "usiprotocolhandler.h"
-#include "usitimingparams.h"
+
 
 class EngineProcessManager;
-class ShogiClock;
+class MatchTimeSource;
 class ThinkingInfoFormatter;
 class UsiEngineSession;
 struct UsiSearchRequest;
@@ -64,9 +64,10 @@ public:
 
     // --- 対局 ---
 
-    void setMatchClock(ShogiClock* clock);
+    /// 対局で持ち時間を読む出どころ（非所有。ローカル対局は対局時計、通信対局はサーバーの残り時間）
+    void setMatchTimeSource(MatchTimeSource* source);
     /// 対局の手番の探索を頼む（先読みしていれば、その当たり・外れはこの部品が判断する）
-    void requestMatchMove(const UsiPosition& position, const UsiTimingParams& timing);
+    void requestMatchMove(const UsiPosition& position);
     /// 先読みの局面を捨てる（待った・中断で局面が戻ったとき）
     void forgetPonder();
     /// 対局中の「すぐ指させる」。準備中に頼まれた探索は残し、それを送った後で stop を送る

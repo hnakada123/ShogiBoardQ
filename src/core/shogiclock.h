@@ -90,6 +90,8 @@ public:
     void startClock();
     void stopClock();
     void updateClock();
+    /// 今の値で timeUpdated を出す（通知を止めてまとめて値を変えた後に表示を合わせる）
+    void notifyTimeUpdated() { emit timeUpdated(); }
     /// 応答受理時に精算し、次の手番への切替まで課金を止める。
     void finishTurn();
     /// 秒読みを除いた残り時間（未精算の経過時間を含めて計算）

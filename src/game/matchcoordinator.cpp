@@ -6,7 +6,6 @@
 #include "kifudocument.h"
 
 #include <QSignalBlocker>
-#include <limits>
 
 #include "appactivitystate.h"
 
@@ -44,7 +43,6 @@ MatchCoordinator::MatchCoordinator(const Deps& deps, QObject* parent)
     // 起動の失敗は対局開始の処理中に届くことがあるため、開始処理を終えてから中断する
     connect(m_engines, &EngineLifecycleManager::engineError,
             this, &MatchCoordinator::handleEngineError, Qt::QueuedConnection);
-    connect(m_clock, &ShogiClock::timeUpdated, this, &MatchCoordinator::emitTimeUpdate);
     connect(m_clock, &ShogiClock::playerTimeOut, this, &MatchCoordinator::handlePlayerTimeOut);
 }
 
@@ -177,7 +175,8 @@ bool MatchCoordinator::completeMove(RecordEntry played, std::optional<UsiScore> 
     // 棋譜に書くと表示中の手が最新の手になり、盤・ハイライト・手番の表示が合う
     m_record.entries.append(played);
     if (m_sink) m_sink->appendRecord(played);
-    pokeTimeUpdateNow();
+    // 時計の表示は時計を見る部品（TimeDisplayPresenter）が合わせる
+    m_clock->notifyTimeUpdated();
     if (engineScore) emit engineMovePlayed(mover, currentPly(), *engineScore);
     m_gc->notifyMoveCommitted(mover, currentPly());
 
@@ -193,7 +192,7 @@ void MatchCoordinator::requestEngineMove(Turn side)
 {
     Usi* engine = m_engines->engineFor(side);
     if (!engine) return;
-    engine->requestMatchMove(m_record.usiPosition(currentPly()), {});
+    engine->requestMatchMove(m_record.usiPosition(currentPly()));
 }
 
 void MatchCoordinator::forceImmediateMove()
@@ -211,21 +210,6 @@ void MatchCoordinator::disarmTurnTimer()
 // ============================================================
 // エンジン・時計
 // ============================================================
-
-void MatchCoordinator::pokeTimeUpdateNow()
-{
-    emitTimeUpdate();
-}
-
-void MatchCoordinator::emitTimeUpdate()
-{
-    const qint64 blackMs = m_clock->remainingMs(Turn::Black);
-    const qint64 whiteMs = m_clock->remainingMs(Turn::White);
-    const Turn side = m_gc->currentPlayer();
-    const bool enableUrgency = !m_clock->hasByoyomi(side) || m_clock->byoyomiApplied(side);
-    const qint64 activeMs = (side == Turn::Black) ? blackMs : whiteMs;
-    emit timeUpdated(blackMs, whiteMs, side, enableUrgency ? activeMs : std::numeric_limits<qint64>::max());
-}
 
 // ============================================================
 // ローカル対局の司令塔: 終局の判定・記録・知らせ
@@ -271,6 +255,14 @@ void MatchCoordinator::handleEngineWin(Turn side)
     handleNyugyokuDeclaration(side, result.success, result.isDraw);
     // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
     if (isGameOver()) emit gameOverMessage(NyugyokuJudgement::resultTitle(), result.message);
+}
+
+NyugyokuJudgement::Result MatchCoordinator::declareNyugyoku(Turn declarer, int rule)
+{
+    const NyugyokuJudgement::Result result =
+        NyugyokuJudgement::judge(m_gc->board()->position(), declarer == Turn::Black, rule, usesHandicapNames());
+    handleNyugyokuDeclaration(declarer, result.success, result.isDraw);
+    return result;
 }
 
 void MatchCoordinator::handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw)
@@ -368,11 +360,8 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
         emit gameOverMessage(tr("対局終了"), resultMessage(info));
         [[fallthrough]];
     case Notice::Declaration:
-        // 入玉宣言は宣言の結果ダイアログ（人間）か handleEngineWin（エンジン）で知らせる
-        if (m_session.options().autoSaveKifu && !m_session.options().kifuSaveDir.isEmpty()) {
-            qCInfo(lcGame) << "auto save: dir=" << m_session.options().kifuSaveDir;
-            emit autoSaveRequested(m_session.options().kifuSaveDir);
-        }
+        // 入玉宣言は宣言の結果ダイアログ（人間）か handleEngineWin（エンジン）で知らせる。
+        // 棋譜の自動保存は終局の受け手（gameEnded）が行う
         emit gameEndProcessed(info);
         break;
     case Notice::Interrupt:
@@ -390,10 +379,7 @@ void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
     case Cause::NyugyokuWin: terminal = TerminalType::DeclarationWin; break;
     case Cause::IllegalMove: terminal = TerminalType::IllegalLoss; break;
     case Cause::Sennichite: terminal = TerminalType::Repetition; break;
-    case Cause::OuteSennichite:
-        // 連続王手の千日手は終局した局面の手番側の行（王手をかけていた側の反則負け）
-        terminal = info.loser == sideToMove ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
-        break;
+    case Cause::OuteSennichite: terminal = RecordEntry::perpetualCheckTerminal(info.loser, sideToMove); break;
     case Cause::BreakOff: terminal = TerminalType::Interrupt; break;
     case Cause::Resignation: terminal = TerminalType::Resign; break;
     case Cause::Timeout: terminal = TerminalType::Timeout; break;
@@ -495,15 +481,26 @@ void MatchCoordinator::captureInterruptedGame()
     m_interruptedGame = std::move(state);
 }
 
+void MatchCoordinator::attachInterruptedRecord(int terminalNodeId)
+{
+    if (!m_interruptedGame) return;
+    m_interruptedGame->terminalNodeId = terminalNodeId;
+    emit resumeAvailabilityChanged();
+}
+
 void MatchCoordinator::discardInterruptedGame()
 {
+    if (!m_interruptedGame) return;
+    const bool couldResume = canResumeInterruptedGame();
     m_interruptedGame.reset();
+    if (couldResume) emit resumeAvailabilityChanged();
 }
 
 bool MatchCoordinator::resumeInterruptedGame()
 {
     if (!m_interruptedGame || !m_gc->board()) return false;
     const auto state = std::move(m_interruptedGame);
+    emit resumeAvailabilityChanged();
 
     clearGameOverState();
     m_session.begin(state->options);

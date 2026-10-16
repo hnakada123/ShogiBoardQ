@@ -9,7 +9,7 @@
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "usimatchhandler.h"
-#include "matchsearchsnapshot.h"
+#include "matchtimesource.h"
 #include "timecontrol_test_helper.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
@@ -25,6 +25,7 @@ class MatchHarness : public QObject
 {
 public:
     ShogiClock clock;
+    ClockTimeSource clockTime{&clock};
     ShogiGameController game;
     EngineProcessManager process;
     UsiProtocolHandler protocol{&process};
@@ -43,7 +44,7 @@ public:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        match.setClock(&clock);
+        match.setTimeSource(&clockTime);
         connect(&protocol, &UsiProtocolHandler::positionChanged, &formatter, &ThinkingInfoFormatter::setSearchPosition);
         connect(&match, &UsiMatchHandler::moveReady, this, &MatchHarness::acceptMove);
         connect(&match, &UsiMatchHandler::timedOut, this, &MatchHarness::onTimeout);
@@ -107,7 +108,7 @@ public:
         const int previous = completed;
         lastTo = QPoint(-1, -1);
         // 思考時間はつないだ時計から求める
-        match.requestMove(position, UsiTimingParams{});
+        match.requestMove(position);
         const bool finished = QTest::qWaitFor([&] {
             return completed > previous || errors > 0 || clock.isGameOver();
         }, byoyomi + 2000);
@@ -225,7 +226,7 @@ private slots:
         h.clock.setCurrentPlayer(Turn::Black);
         h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
-        h.match.requestMove(*UsiPosition::parse(u"position startpos"), UsiTimingParams{});
+        h.match.requestMove(*UsiPosition::parse(u"position startpos"));
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0 || h.clock.isGameOver(), 11000);
         QCOMPARE(h.errors, 0);
         QVERIFY(!h.clock.isGameOver());
@@ -256,7 +257,7 @@ private slots:
         h.clock.setCurrentPlayer(Turn::Black);
         h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
-        h.match.requestMove(*UsiPosition::parse(u"position startpos"), UsiTimingParams{});
+        h.match.requestMove(*UsiPosition::parse(u"position startpos"));
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
         QCOMPARE(h.errors, 0);
         const auto fields = goFields(h.commands, QStringLiteral("go "));
@@ -276,7 +277,7 @@ private slots:
         h.clock.setCurrentPlayer(Turn::Black);
         h.game.setCurrentPlayer(Turn::Black);
         h.clock.startClock();
-        h.match.requestMove(*UsiPosition::parse(u"position startpos"), UsiTimingParams{});
+        h.match.requestMove(*UsiPosition::parse(u"position startpos"));
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
         QCOMPARE(h.errors, 0);
         // 先読み開始時は自分の着手の加算前なので、自分の残り時間は加算を含まない。
@@ -406,19 +407,21 @@ private slots:
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(mockPath(), QStringLiteral("MatchTest")));
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
-        // 時計がないので、残り時間と秒読みを条件で渡す
+        // 時計がないので、残り時間と秒読みを決まった値で渡す
         UsiTimingParams timing;
         timing.timeControl.black.byoyomiMs = timing.timeControl.white.byoyomiMs = 5000;
         timing.btimeMs = 300000;
+        FixedTimeSource matchTime(timing);
+        engine.setMatchTimeSource(&matchTime);
         UsiPosition position = *UsiPosition::parse(u"position startpos moves 7g7f");
-        engine.requestMatchMove(position, timing);
+        engine.requestMatchMove(position);
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 1, 5000);
         QCOMPARE(moves.first().at(0).value<UsiMatchMove>().move.to, (BoardSquare{8, 4}));
         position = *position.withMove(moves.first().at(0).value<UsiMatchMove>().move);
         QCOMPARE(position.command(), QStringLiteral("position startpos moves 7g7f 8c8d"));
         // 先読みの予想（2g2f）どおりに指した局面は、先読みの局面と同じ値になる
         position = *position.withMove(*UsiMove::parse(u"2g2f"));
-        engine.requestMatchMove(position, timing);
+        engine.requestMatchMove(position);
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 2, 5000);
         QCOMPARE(moves.last().at(0).value<UsiMatchMove>().move.to, (BoardSquare{3, 4}));
         engine.quit();

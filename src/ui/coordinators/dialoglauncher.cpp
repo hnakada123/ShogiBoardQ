@@ -16,14 +16,9 @@
 #include "engineregistrationdialog.h"
 #include "promotionflow.h"
 #include "shogiview.h"
-#include "appactivitystate.h"
 #include "jishogiscoredialogcontroller.h"
-#include "nyugyokudeclarationhandler.h"
-#include "nyugyokujudgement.h"
 #include "csagamesession.h"
 #include "csagamedialog.h"
-#include "csagamecoordinator.h"
-#include "dialogutils.h"
 #include "sfencollectiondialog.h"
 #include "tsumeshogigeneratordialog.h"
 #include "tsumecollectiondialog.h"
@@ -70,43 +65,6 @@ void DialogLauncher::displayJishogiScoreDialog()
     auto* jc = m_deps.jishogiController;
     if (jc) {
         jc->showDialog(m_deps.parentWidget, sv->board());
-    }
-}
-
-void DialogLauncher::handleNyugyokuDeclaration()
-{
-    CsaGameCoordinator* csa = m_deps.csaGame;
-    if (m_deps.activity && m_deps.activity->is(AppActivityState::Activity::DuringCsaGame) && csa) {
-        // 成否はサーバーが判定する。誤操作で負けないよう、ローカル対局と同じく確認する
-        if (csa->isMyTurn()) {
-            // 駒落ちはローカル対局と同じく、対局情報の見出しに合わせて下手・上手と呼ぶ
-            const QString declarer = NyugyokuJudgement::declarerName(
-                csa->isBlackSide(), m_deps.usesHandicapNames && m_deps.usesHandicapNames());
-            if (!DialogUtils::confirmAction(
-                    m_deps.parentWidget,
-                    QCoreApplication::translate("NyugyokuDeclarationHandler", "入玉宣言確認"),
-                    QCoreApplication::translate("NyugyokuDeclarationHandler",
-                                                "%1が入玉宣言を行います。\n\n"
-                                                "宣言条件を満たさない場合は宣言側の負けとなります。\n"
-                                                "本当に宣言しますか？").arg(declarer),
-                    QCoreApplication::translate("NyugyokuDeclarationHandler", "宣言する"))) {
-                return;
-            }
-        }
-        csa->declareWin();
-        return;
-    }
-    auto* sv = m_deps.shogiView;
-    if (!sv || !sv->board()) {
-        QMessageBox::warning(m_deps.parentWidget,
-                             QCoreApplication::translate("MainWindow", "エラー"),
-                             QCoreApplication::translate("MainWindow", "盤面データがありません。"));
-        return;
-    }
-
-    if (auto* nh = m_deps.nyugyokuHandler) {
-        nh->handleDeclaration(m_deps.parentWidget, sv->board(),
-                              m_deps.activity && m_deps.activity->is(AppActivityState::Activity::DuringGame));
     }
 }
 

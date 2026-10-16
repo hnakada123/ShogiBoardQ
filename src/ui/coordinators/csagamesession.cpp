@@ -9,11 +9,9 @@
 #include "csagamedialog.h"
 #include "csawaitingdialog.h"
 #include "csalogpanel.h"
-#include "evaluationchartwidget.h"
-#include "kifufilecontroller.h"
+#include "evaluationgraphpresenter.h"
 #include "logcategories.h"
 #include "mainwindowappearancecontroller.h"
-#include "matchrecordsink.h"
 #include "shogiview.h"
 #include "uinotificationservice.h"
 
@@ -24,7 +22,7 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.coordinator && m_deps.activity && m_deps.recordSink);
+    Q_ASSERT(m_deps.coordinator && m_deps.activity);
     CsaGameCoordinator* const c = m_deps.coordinator;
 
     // 対局の開始・終局・手番・ログの反映
@@ -32,7 +30,6 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
     connect(c, &CsaGameCoordinator::gameEnded, this, &CsaGameSession::onGameEnded);
     connect(c, &CsaGameCoordinator::turnChanged, this, &CsaGameSession::onTurnChanged);
     connect(c, &CsaGameCoordinator::logMessage, this, &CsaGameSession::onLogMessage);
-    connect(c, &CsaGameCoordinator::recordEntryReady, this, &CsaGameSession::onRecordEntryReady);
     connect(c, &CsaGameCoordinator::engineScoreUpdated, this, &CsaGameSession::onEngineScoreUpdated);
 
     // 司令塔と画面の部品を直接つなぐ
@@ -61,9 +58,6 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
 bool CsaGameSession::startGame(const CsaGameDialog::Selection& selection)
 {
     const CsaGameCoordinator::StartOptions& options = selection.start;
-    m_autoSaveEnabled = selection.autoSaveEnabled;
-    m_autoSaveDir = selection.autoSaveDir;
-    m_autoSaveFormat = selection.autoSaveFormat;
     m_autoFlipBoard = selection.autoFlipBoard;
 
     CsaGameCoordinator* const c = m_deps.coordinator;
@@ -94,13 +88,7 @@ void CsaGameSession::onWaitingCancelled()
 // 司令塔からの通知
 // ============================================================
 
-void CsaGameSession::onRecordEntryReady(const RecordEntry& entry)
-{
-    m_deps.recordSink->appendRecord(entry);
-}
-
-void CsaGameSession::onGameStarted(const QString& blackName, const QString& whiteName,
-                                   const QList<RecordEntry>& initialRecords)
+void CsaGameSession::onGameStarted(const QString& blackName, const QString& whiteName)
 {
     qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
     CsaGameCoordinator* const c = m_deps.coordinator;
@@ -110,15 +98,7 @@ void CsaGameSession::onGameStarted(const QString& blackName, const QString& whit
         && m_deps.shogiView->flipMode() != !c->isBlackSide()) {
         m_deps.appearance->flipBoard();
     }
-    // 棋譜と対局情報を作り直す（持ち時間と開始日時はサーバーの対局条件）
-    if (m_deps.prepareRecord) m_deps.prepareRecord(c->startSfen(), blackName, whiteName, c->gameSummary().timeControl());
-    if (m_deps.shogiView) {
-        m_deps.shogiView->chrome()->setBlackPlayerName(QStringLiteral("▲") + blackName);
-        m_deps.shogiView->chrome()->setWhitePlayerName(QStringLiteral("▽") + whiteName);
-    }
-    // 再開局面の既存手順を棋譜へ入れる（以後の着手は司令塔の recordEntryReady が届く）
-    for (const RecordEntry& entry : initialRecords) m_deps.recordSink->appendRecord(entry);
-
+    // 棋譜・対局者の表示は GameSession が先に作っている（gameStarted を先に受ける）。
     // 時計・再開棋譜の準備が揃ってから通信対局中にする。同じ接続での次局もここを通る
     m_deps.activity->setActivity(AppActivityState::Activity::DuringCsaGame);
     showStatus(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
@@ -130,13 +110,7 @@ void CsaGameSession::onGameEnded(CsaClient::GameResult result, CsaClient::GameEn
     const QString causeText = CsaClient::gameEndCauseText(cause);
     qCDebug(lcUi) << "onGameEnded:" << resultText << "(" << causeText << ")" << "consumedTimeMs=" << consumedTimeMs;
 
-    // 終局行は司令塔が棋譜へ渡し済み。終局日時を入れてから、次の対局が始まる前に書き出す
-    if (m_deps.recordGameEnd) m_deps.recordGameEnd();
-    if (m_autoSaveEnabled && m_deps.kifuFiles) {
-        m_deps.kifuFiles->autoSaveKifu(m_autoSaveDir, m_autoSaveFormat.isEmpty() ? QStringLiteral("kif")
-                                                                                       : m_autoSaveFormat);
-    }
-
+    // 棋譜の確定・終了日時・自動保存は GameSession が先に済ませている（gameEnded を先に受ける）
     m_deps.activity->setActivity(AppActivityState::Activity::Idle);
     showGameEndDialog(tr("対局終了"), tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText));
     showStatus(tr("対局終了: %1 (%2)").arg(resultText, causeText), 5000);
@@ -157,10 +131,9 @@ void CsaGameSession::onLogMessage(const QString& message, bool isError)
 
 void CsaGameSession::onEngineScoreUpdated(const UsiScore& score, int ply)
 {
-    // 自分のエンジンの評価値を、自分の側の系列に先手から見た値で描く
-    if (!m_deps.evalChart) return;
-    if (m_deps.coordinator->isBlackSide()) m_deps.evalChart->appendScoreP1(ply, score);
-    else m_deps.evalChart->appendScoreP2(ply, score.negated());
+    // 自分のエンジンの評価値（自分から見た値）を、ローカル対局のエンジンの手と同じく自分の側の系列に描く
+    if (!m_deps.evalGraph) return;
+    m_deps.evalGraph->plotEngineScore(m_deps.coordinator->isBlackSide() ? Turn::Black : Turn::White, ply, score);
 }
 
 // ============================================================

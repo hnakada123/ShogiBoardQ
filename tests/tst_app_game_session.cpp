@@ -7,12 +7,19 @@
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QDir>
 #include <memory>
 // 通信対局の司令塔の手番の状態は、サーバーとのやり取りでしか変わらないため、テストでは直接設定する
 // （CsaGameCoordinator が TestAppGameSession を friend にしている）
 #include "appstate.h"
 #include "csagamecoordinator.h"
 #include "csagamesession.h"
+#include "boardchromewidget.h"
+#include "shogiview.h"
+#include "boardmovecontroller.h"
+#include "elidelabel.h"
+#include "gamechannel.h"
+#include "uistatepolicymanager.h"
 #include "livegamesession.h"
 #include "gamesession.h"
 #include "kifudocument.h"
@@ -231,6 +238,111 @@ private slots:
         QVERIFY(!p.liveGameSession->isActive());
         QVERIFY(p.document->timeRecord().endDateTime().isValid());
         QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
+        p.document->markSaved(QString());
+    }
+
+    /// 通信対局の開始もローカル対局と同じく対局者の表示を通す（サーバーが知らせた名前を盤と対局情報に出す）
+    void csaGameStartShowsPlayersLikeLocalGame()
+    {
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        p.csaGame->m_progress.summary.blackName = QStringLiteral("Sente");
+        p.csaGame->m_progress.summary.whiteName = QStringLiteral("Gote");
+        emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
+        QCOMPARE(p.shogiView->chrome()->blackNameLabel()->fullText(), QStringLiteral("▲Sente"));
+        QCOMPARE(p.shogiView->chrome()->whiteNameLabel()->fullText(), QStringLiteral("▽Gote"));
+        QCOMPARE(p.document->headerPlayerName(Turn::Black), QStringLiteral("Sente"));
+        QCOMPARE(p.document->players().name(Turn::White), QStringLiteral("Gote"));
+        emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
+        p.document->markSaved(QString());
+    }
+
+    /// 対局中の操作の送り先は、動作状態で決まる1つの窓口（対局していなければ無い）
+    void activeChannelFollowsActivity()
+    {
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        auto& activity = window.composer().state().activity;
+        QVERIFY(!p.gameSession->activeChannel());
+        startFromDialog(window);
+        GameChannel* local = p.gameSession->activeChannel();
+        QVERIFY(local);
+        QVERIFY(local->judgesDeclaration());
+        QVERIFY(local->isHumanToMove());
+        QCOMPARE(local->sideToMove(), Turn::Black);
+        activity.setActivity(AppActivityState::Activity::DuringCsaGame);
+        GameChannel* csa = p.gameSession->activeChannel();
+        QVERIFY(csa && csa != local);
+        QVERIFY(!csa->judgesDeclaration());
+        activity.setActivity(AppActivityState::Activity::DuringGame);
+        p.gameSession->breakOff();
+        p.document->markSaved(QString());
+    }
+
+    /// ローカル対局も通信対局も、終局した棋譜を GameSession が自動保存する（中断は保存しない）
+    void finishedGamesAreAutoSaved()
+    {
+        humanVsHumanSettings();
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        auto& settings = SettingsCommon::openSettings();
+        settings.setValue("GameSettings/isAutoSaveKifu", true);
+        settings.setValue("GameSettings/kifuSaveDir", dir.path());
+        settings.sync();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        const auto savedFiles = [&dir]() { return QDir(dir.path()).entryList(QDir::Files); };
+
+        startFromDialog(window);
+        p.gameSession->breakOff();
+        QVERIFY(savedFiles().isEmpty());
+        p.document->markSaved(QString());
+        startFromDialog(window);
+        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        p.gameSession->resign();
+        QCOMPARE(savedFiles().size(), 1);
+        QVERIFY(savedFiles().first().endsWith(QStringLiteral(".kifu")));
+
+        // 通信対局は接続ダイアログで選んだ形式
+        p.csaGame->m_options.autoSave = {true, dir.path(), QStringLiteral("csa")};
+        emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
+        emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
+        QCOMPARE(savedFiles().size(), 2);
+        QVERIFY(savedFiles().filter(QStringLiteral(".csa")).size() == 1);
+        settings.setValue("GameSettings/isAutoSaveKifu", false);
+        settings.sync();
+    }
+
+    /// 中断した対局の状態は司令塔だけが持ち、「再開」の有効・無効も司令塔に問い合わせる
+    void interruptedGameResumesFromCoordinatorState()
+    {
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        startFromDialog(window);
+        p.boardMoves->onMoveRequested(QPoint(7, 7), QPoint(7, 6));
+        QCOMPARE(p.match->record().moveCount(), 1);
+        p.gameSession->breakOff();
+        QVERIFY(p.match->canResumeInterruptedGame());
+        QVERIFY(p.uiStatePolicy->isEnabled(UiStatePolicyManager::UiElement::GameResume));
+        const int interruptNode = p.match->interruptedGame()->terminalNodeId;
+        QVERIFY(p.branchTree->nodeAt(interruptNode));
+
+        p.gameSession->resumeInterruptedGame();
+        QVERIFY(!p.match->canResumeInterruptedGame());
+        QVERIFY(!p.uiStatePolicy->isEnabled(UiStatePolicyManager::UiElement::GameResume));
+        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        QVERIFY(!p.branchTree->nodeAt(interruptNode));
+
+        // 中断の後に棋譜を変えたら再開できない
+        p.gameSession->breakOff();
+        QVERIFY(p.match->canResumeInterruptedGame());
+        p.branchTree->addMove(p.branchTree->root(), ShogiMove(), QStringLiteral("▲２六歩(27)"),
+                              QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/7P1/PPPPPPP1P/1B5R1/LNSGKGSNL w - 2"));
+        QVERIFY(!p.match->canResumeInterruptedGame());
+        QVERIFY(!p.uiStatePolicy->isEnabled(UiStatePolicyManager::UiElement::GameResume));
         p.document->markSaved(QString());
     }
 };
