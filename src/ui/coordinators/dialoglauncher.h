@@ -5,7 +5,6 @@
 /// @brief メニューから開くダイアログの起動
 
 #include <QObject>
-#include <functional>
 #include <QPointer>
 #include <utility>
 
@@ -13,11 +12,8 @@
 class QWidget;
 class QDockWidget;
 class ShogiView;
-class AppActivityState;
 class BoardColorDialog;
 class JishogiScoreDialogController;
-class NyugyokuDeclarationHandler;
-class CsaGameCoordinator;
 class CsaGameDialog;
 class CsaGameSession;
 class SfenCollectionDialog;
@@ -28,7 +24,7 @@ class KifuFileController;
  * @brief メニューから開くダイアログを、必要な部品を渡して開く
  *
  * 責務:
- * - バージョン情報、エンジン設定、成り確認、持将棋判定、入玉宣言、
+ * - バージョン情報、エンジン設定、成り確認、持将棋判定、
  *   詰将棋の対局・生成、メニューウィンドウ、CSA通信対局、
  *   局面集ビューア、駒音・盤の外観・文字の大きさの設定の各ダイアログ起動
  */
@@ -41,16 +37,11 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;
         KifuFileController* kifuFileController = nullptr;  ///< 未保存の棋譜の確認
-        const AppActivityState* activity = nullptr;              ///< 通信対局中か・対局中か
 
         ShogiView* shogiView = nullptr;
         JishogiScoreDialogController* jishogiController = nullptr;
-        NyugyokuDeclarationHandler* nyugyokuHandler = nullptr;
-        CsaGameCoordinator* csaGame = nullptr;             ///< 通信対局中の入玉宣言の送り先
         CsaGameSession* csaSession = nullptr;              ///< 通信対局を始める
         PieceSoundPlayer* pieceSoundPlayer = nullptr;
-        /// 対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
-        std::function<bool()> usesHandicapNames;
         QDockWidget* menuWindowDock = nullptr;
     };
 
@@ -66,7 +57,6 @@ public slots:
     void openProjectWebsite();
     void displayEngineSettingsDialog();
     void displayJishogiScoreDialog();
-    void handleNyugyokuDeclaration();
     void displayTsumeshogiGeneratorDialog();
     void displayTsumePlayDialog();
     void displayMenuWindow();

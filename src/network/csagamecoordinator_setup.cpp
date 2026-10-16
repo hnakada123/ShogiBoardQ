@@ -68,6 +68,8 @@ void CsaGameCoordinator::setupClock()
 {
     // 再開局面（仕様 3.2.3）: 初期局面と規定の持時間から、Game_Summary の指し手が既に完了した状態にする
     m_progress.startClockFromSummary();
+    m_turnSide = m_progress.summary.toMove;
+    m_turnTimer.start();
 
     if (!m_clock) {
         return;
@@ -104,9 +106,8 @@ void CsaGameCoordinator::startEngine()
     CsaEngineController::InitParams params;
     params.enginePath = m_options.enginePath;
     params.engineName = m_options.engineName;
+    params.timeSource = this;
     // USI初期化の待機中にもTCPのGame_Summaryが届く。readyokを待って合意する。
-    m_initializingEngine = true;
-    m_engineNeedsRestart = false;
     m_engineController->initialize(params);
 }
 
@@ -185,14 +186,16 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
         return;
     }
 
-    if (m_playerType == PlayerType::Engine
-        && (m_engineNeedsRestart || !m_engineController || !m_engineController->isInitialized())) {
-        // 前局の終局で quit したエンジンを起動し直す
+    if (m_playerType == PlayerType::Engine && (!m_engineController || !m_engineController->isReady())) {
+        // 初めての対局か、前局の終局で終えたエンジンを起動し直す
         startEngine();
+        // 起動に失敗したら対局条件は拒否済み
+        if (m_gameState != GameState::WaitingForAgree) return;
     }
 
     emit logMessage(tr("対局条件に同意します..."));
-    if (!m_initializingEngine) m_client->agree(summary.gameId);
+    // エンジンの初期化中は readyok を待って同意する（onEngineControllerInitialized）
+    if (!m_engineController || !m_engineController->isStarting()) m_client->agree(summary.gameId);
 }
 
 // ============================================================

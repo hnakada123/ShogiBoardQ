@@ -2012,7 +2012,7 @@
         <translation>エンジンパスが指定されていません</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaenginecontroller.cpp" line="61"/>
+        <location filename="../../src/network/csaenginecontroller.cpp" line="62"/>
         <source>エンジン %1 を起動しました</source>
         <translation>エンジン %1 を起動しました</translation>
     </message>
@@ -2025,14 +2025,14 @@
         <translation>対局中は新しい対局を開始できません</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="211"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="214"/>
         <source>サーバー %1:%2 に接続中...</source>
         <translation>サーバー %1:%2 に接続中...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="140"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="156"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="166"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="139"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="153"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="163"/>
         <source>相手の手番です</source>
         <translation>相手の手番です</translation>
     </message>
@@ -2041,157 +2041,157 @@
         <translation type="vanished">CSA指し手の生成に失敗しました。</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="171"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="168"/>
         <source>対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります</source>
         <translation>対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="187"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="184"/>
         <source>接続完了。ログイン中...</source>
         <translation>接続完了。ログイン中...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="201"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="198"/>
         <source>サーバーが切断しました。%1秒後に再接続します</source>
         <translation>サーバーが切断しました。%1秒後に再接続します</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="207"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="204"/>
         <source>サーバーから切断されました</source>
         <translation>サーバーから切断されました</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="219"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="216"/>
         <source>エラー: %1</source>
         <translation>エラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="243"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="240"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation>ログイン成功。対局待ち中...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="253"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="250"/>
         <source>ログイン失敗: %1</source>
         <translation>ログイン失敗: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="261"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="258"/>
         <source>ログアウト完了</source>
         <translation>ログアウト完了</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="118"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="119"/>
         <source>未対応の Format です: %1</source>
         <translation>未対応の Format です: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="122"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="123"/>
         <source>時間無制限の対局はエンジンでは行えません</source>
         <translation>時間無制限の対局はエンジンでは行えません</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="130"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="131"/>
         <source>持時間: 無制限</source>
         <translation>持時間: 無制限</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="139"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="140"/>
         <source>, 遅延: %1秒</source>
         <translation>, 遅延: %1秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="140"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="141"/>
         <source>, 最少消費: %1秒</source>
         <translation>, 最少消費: %1秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="142"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="143"/>
         <source>先手の</source>
         <translation>先手の</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="142"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="143"/>
         <source>後手の</source>
         <translation>後手の</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="148"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="149"/>
         <source>最大手数: %1手</source>
         <translation>最大手数: %1手</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="151"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="152"/>
         <source>入玉宣言ルール: %1</source>
         <translation>入玉宣言ルール: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="152"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="153"/>
         <source>入玉宣言ルール: なし</source>
         <translation>入玉宣言ルール: なし</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="154"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="155"/>
         <source>未知のプロトコルバージョンです: %1</source>
         <translation>未知のプロトコルバージョンです: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="157"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="158"/>
         <source>Protocol_Mode が Server ではありません: %1</source>
         <translation>Protocol_Mode が Server ではありません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="166"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="167"/>
         <source>対局条件を受信しました</source>
         <translation>対局条件を受信しました</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="167"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="168"/>
         <source>先手: %1, 後手: %2</source>
         <translation>先手: %1, 後手: %2</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="218"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="221"/>
         <source>予定の対局数（%1局）を終えたのでログアウトします</source>
         <translation>予定の対局数（%1局）を終えたのでログアウトします</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="223"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="226"/>
         <source>%1/%2局</source>
         <translation>%1/%2局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="224"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="227"/>
         <source>%1局目まで終了</source>
         <translation>%1局目まで終了</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="226"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="229"/>
         <source>次の対局条件を待ちます（%1）</source>
         <translation>次の対局条件を待ちます（%1）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="234"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="237"/>
         <source>次の対局のために再接続します（%1局目まで終了）</source>
         <translation>次の対局のために再接続します（%1局目まで終了）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="135"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="136"/>
         <source>持時間: %1秒, 秒読み: %2秒, 加算: %3秒</source>
         <translation>持時間: %1秒, 秒読み: %2秒, 加算: %3秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="173"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="174"/>
         <source>予定の対局数を終えているので、対局条件を拒否します</source>
         <translation>予定の対局数を終えているので、対局条件を拒否します</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="182"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="183"/>
         <source>対局条件を拒否します: %1</source>
         <translation>対局条件を拒否します: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="408"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="413"/>
         <source>エンジンが入玉宣言を選択しました</source>
         <translation>エンジンが入玉宣言を選択しました</translation>
     </message>
@@ -2200,42 +2200,42 @@
         <translation type="vanished">持時間: %1秒, 秒読み: %2秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="194"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="196"/>
         <source>対局条件に同意します...</source>
         <translation>対局条件に同意します...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="269"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="266"/>
         <source>対局開始！</source>
         <translation>対局開始！</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="293"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="290"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation>対局が拒否されました (ID: %1, 拒否者: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="337"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="333"/>
         <source>対局終了: %1 (%2)</source>
         <translation>対局終了: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="369"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="374"/>
         <source>対局が中断されました</source>
         <translation>対局が中断されました</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="374"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="379"/>
         <source>[RECV] %1</source>
         <translation>[RECV] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="380"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="385"/>
         <source>[SEND] %1</source>
         <translation>[SEND] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="399"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="404"/>
         <source>エンジンが投了を選択しました</source>
         <translation>エンジンが投了を選択しました</translation>
     </message>
@@ -2270,27 +2270,27 @@
         <translation>不正な座標の指し手を受信しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="172"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="175"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>相手の指し手: %1 (消費時間: %2ms)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="154"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="157"/>
         <source>サーバーからの指し手を解釈できません: %1</source>
         <translation>サーバーからの指し手を解釈できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="162"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="165"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>指し手の適用に失敗しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="163"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="166"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>サーバーからの指し手を盤面に適用できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="179"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="182"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>指し手確認: %1 (消費時間: %2ms)</translation>
     </message>
@@ -2307,7 +2307,7 @@
         <translation type="vanished">サーバーからの指し手確認を変換できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="197"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="196"/>
         <source>エンジンが思考中...</source>
         <translation>エンジンが思考中...</translation>
     </message>
@@ -2676,7 +2676,7 @@
         <translation>キャンセル</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="465"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="466"/>
         <source>新しい接続先</source>
         <translation>新しい接続先</translation>
     </message>
@@ -2783,22 +2783,22 @@
 <context>
     <name>CsaGameSession</name>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="90"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="84"/>
         <source>通信対局をキャンセルしました</source>
         <translation>通信対局をキャンセルしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="124"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="104"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA通信対局開始: %1 vs %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="141"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="115"/>
         <source>対局終了</source>
         <translation>対局終了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="141"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="115"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -2809,17 +2809,17 @@
 原因: %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="142"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="116"/>
         <source>対局終了: %1 (%2)</source>
         <translation>対局終了: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="148"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="122"/>
         <source>先手番</source>
         <translation>先手番</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="148"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="122"/>
         <source>後手番</source>
         <translation>後手番</translation>
     </message>
@@ -4462,12 +4462,12 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameSession</name>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="171"/>
+        <location filename="../../src/app/gamesession.cpp" line="191"/>
         <source>無制限</source>
         <translation>無制限</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="173"/>
+        <location filename="../../src/app/gamesession.cpp" line="193"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>対局：▲%1 △%2（%3 開始、持ち時間 %4）</translation>
     </message>
@@ -7710,14 +7710,12 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>局面編集終了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="65"/>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="102"/>
+        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="60"/>
         <source>エラー</source>
         <translation>エラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="66"/>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="103"/>
+        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="61"/>
         <source>盤面データがありません。</source>
         <translation>盤面データがありません。</translation>
     </message>
@@ -7804,72 +7802,72 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="338"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="330"/>
         <source>対局中断</source>
         <translation>対局中断</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="338"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="330"/>
         <source>エンジンエラー: %1</source>
         <translation>エンジンエラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="368"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="360"/>
         <source>対局終了</source>
         <translation>対局終了</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="413"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="399"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="413"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="399"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="414"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="400"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="414"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="400"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="420"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="406"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1の投了。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="422"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="408"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1の時間切れ。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="424"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="410"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>最大手数に達しました。持将棋です。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="426"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="412"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1の反則負け。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="428"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="414"/>
         <source>千日手が成立しました。</source>
         <translation>千日手が成立しました。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="430"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="416"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1の連続王手の千日手。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="435"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="421"/>
         <source>対局が終了しました。</source>
         <translation>対局が終了しました。</translation>
     </message>
@@ -8070,34 +8068,32 @@ OKを選択すると保存先が指定できます。</translation>
         <translation type="vanished">点数不足: 宣言失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="31"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="45"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="53"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="24"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="30"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="38"/>
         <source>入玉宣言</source>
         <translation>入玉宣言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="31"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="24"/>
         <source>対局中ではありません。</source>
         <translation>対局中ではありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="37"/>
         <source>エラー</source>
-        <translation>エラー</translation>
+        <translation type="vanished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="37"/>
         <source>盤面データがありません。</source>
-        <translation>盤面データがありません。</translation>
+        <translation type="vanished">盤面データがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="45"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="30"/>
         <source>入玉宣言は自分の手番で行います。</source>
         <translation>入玉宣言は自分の手番で行います。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="54"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="39"/>
         <source>持将棋ルールが「なし」に設定されています。
 対局ダイアログで「24点法」または「27点法」を選択してください。</source>
         <translation>持将棋ルールが「なし」に設定されています。
@@ -8112,14 +8108,12 @@ OKを選択すると保存先が指定できます。</translation>
         <translation type="vanished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="70"/>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="87"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="50"/>
         <source>入玉宣言確認</source>
         <translation>入玉宣言確認</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="71"/>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="88"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="51"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -8130,8 +8124,7 @@ OKを選択すると保存先が指定できます。</translation>
 本当に宣言しますか？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="74"/>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="92"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="54"/>
         <source>宣言する</source>
         <translation>宣言する</translation>
     </message>
@@ -10200,8 +10193,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TimeDisplayPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="74"/>
-        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="76"/>
+        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="81"/>
+        <location filename="../../src/ui/presenters/timedisplaypresenter.cpp" line="83"/>
         <source>消費 %1</source>
         <translation>消費 %1</translation>
     </message>
@@ -11607,7 +11600,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>UsiMatchHandler</name>
     <message>
-        <location filename="../../src/engine/usimatchhandler.cpp" line="94"/>
+        <location filename="../../src/engine/usimatchhandler.cpp" line="89"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>エンジンの指し手（bestmove）の形式が正しくありません: 「%1」</translation>
     </message>

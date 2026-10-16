@@ -346,9 +346,10 @@ CsaGameDialog::Selection CsaGameDialog::selection() const
     }
     start.reconnectAfterGame = ui->checkBoxReconnect->isChecked();
 
-    selection.autoSaveEnabled = ui->checkBoxAutoSave->isChecked();
-    selection.autoSaveDir = ui->lineEditAutoSaveDir->text().trimmed();
-    selection.autoSaveFormat = ui->comboBoxAutoSaveFormat->currentData().toString();
+    selection.start.autoSave.enabled = ui->checkBoxAutoSave->isChecked();
+    selection.start.autoSave.dir = ui->lineEditAutoSaveDir->text().trimmed();
+    const QString format = ui->comboBoxAutoSaveFormat->currentData().toString();
+    if (!format.isEmpty()) selection.start.autoSave.extension = format;
     selection.autoFlipBoard = ui->checkBoxAutoFlip->isChecked();
     return selection;
 }

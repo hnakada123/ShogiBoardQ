@@ -108,10 +108,7 @@ RecordEntry CsaGameProgress::endRecord(CsaClient::GameResult result, CsaClient::
     case Cause::TimeUp: type = TerminalType::Timeout; break;
     case Cause::IllegalMove:
     case Cause::IllegalAction: type = TerminalType::IllegalLoss; break;
-    case Cause::OuteSennichite:
-        // 連続王手の千日手は終局した局面の手番側の行。王手をかけていた側が反則負け
-        type = (loser == sideToMove) ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
-        break;
+    case Cause::OuteSennichite: type = RecordEntry::perpetualCheckTerminal(loser, sideToMove); break;
     case Cause::Sennichite: type = TerminalType::Repetition; break;
     // 入玉宣言は宣言した勝者の行。点数による引き分けは持将棋
     case Cause::Jishogi: type = isDraw ? TerminalType::Impasse : TerminalType::DeclarationWin; break;

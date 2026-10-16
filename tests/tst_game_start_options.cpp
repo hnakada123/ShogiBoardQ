@@ -84,8 +84,9 @@ private slots:
         h.mc->start(options);
         QVERIFY(h.mc->players().humanVsHuman());
         QCOMPARE(h.mc->options().maxMoves, 128);
-        QVERIFY(h.mc->options().autoSaveKifu);
-        QCOMPARE(h.mc->options().kifuSaveDir, m_config.path());
+        QVERIFY(h.mc->options().autoSave.isActive());
+        QCOMPARE(h.mc->options().autoSave.dir, m_config.path());
+        QCOMPARE(h.mc->options().autoSave.extension, QStringLiteral("kifu"));
         QCOMPARE(h.mc->players().blackHumanName, data.humanName1);
         QCOMPARE(h.mc->players().whiteHumanName, data.humanName2);
     }

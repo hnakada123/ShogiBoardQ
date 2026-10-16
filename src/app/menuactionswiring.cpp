@@ -76,7 +76,7 @@ void wireGameMenu(const Deps& d)
     QObject::connect(ui->actionStopTsumeSearch, &QAction::triggered, d.analysis, &AnalysisSession::stop);
     QObject::connect(ui->actionTsumeshogiGenerator, &QAction::triggered, dialogs, &DialogLauncher::displayTsumeshogiGeneratorDialog);
     QObject::connect(ui->actionJishogiScore, &QAction::triggered, dialogs, &DialogLauncher::displayJishogiScoreDialog);
-    QObject::connect(ui->actionNyugyokuDeclaration, &QAction::triggered, dialogs, &DialogLauncher::handleNyugyokuDeclaration);
+    QObject::connect(ui->actionNyugyokuDeclaration, &QAction::triggered, d.session, &GameSession::declareNyugyoku);
 }
 
 void wireDisplayMenu(const Deps& d)

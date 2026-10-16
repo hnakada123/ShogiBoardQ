@@ -147,14 +147,13 @@ void MainWindowComposer::connectGame()
     MatchCoordinator* match = m_c.match;
     GameSession* session = m_c.gameSession;
 
-    connect(match, &MatchCoordinator::timeUpdated, m_c.timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated);
     connect(match, &MatchCoordinator::engineMovePlayed, m_c.evalGraph, &EvaluationGraphPresenter::plotEngineScore);
     connect(match, &MatchCoordinator::movesUndone, m_c.evalGraph, &EvaluationGraphPresenter::trimToPly);
+    connect(match, &MatchCoordinator::resumeAvailabilityChanged,
+            m_c.uiStatePolicy, &UiStatePolicyManager::refreshResumeAvailability);
 
     connect(match, &MatchCoordinator::gameEnded, session, &GameSession::onGameEnded);
     connect(match, &MatchCoordinator::gameOverMessage, m_c.notificationService, &UiNotificationService::showInformation);
-    connect(match, &MatchCoordinator::autoSaveRequested,
-            m_c.kifuFileController, &KifuFileController::autoSaveKifuToFile);
     connect(match, &MatchCoordinator::gameEndProcessed, session, &GameSession::onGameEndProcessed);
     connect(match, &MatchCoordinator::gameInterrupted, session, &GameSession::onGameInterrupted);
 

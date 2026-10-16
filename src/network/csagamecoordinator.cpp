@@ -75,7 +75,6 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     cleanup();
     m_options = options;
     m_playerType = options.playerType;
-    m_engineNeedsRestart = false;
     m_completedGames = 0;
     m_thinkingMarginMs = qMax(0, options.thinkingMarginMs);
     m_client->setKeepAliveEnabled(options.keepAliveEnabled);
@@ -141,11 +140,9 @@ void CsaGameCoordinator::performResign()
         return;
     }
 
-    if (m_clock) {
-        m_clock->stopClock();
-        m_progress.resignConsumedMs = static_cast<int>(m_clock->considerationMs(m_progress.isBlackSide ? Turn::Black : Turn::White));
-        qCDebug(lcNetwork) << "Resign consumed time from clock:" << m_progress.resignConsumedMs << "ms";
-    }
+    if (m_clock) m_clock->stopClock();
+    m_progress.resignConsumedMs = static_cast<int>(elapsedThisTurn(m_progress.isBlackSide ? Turn::Black : Turn::White));
+    qCDebug(lcNetwork) << "Resign consumed time:" << m_progress.resignConsumedMs << "ms";
     m_client->resign();
 }
 
@@ -322,10 +319,9 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
             result == CsaClient::GameResult::Lose && m_progress.resignConsumedMs > 0) {
             actualConsumedTimeMs = m_progress.resignConsumedMs;
             qCDebug(lcNetwork).noquote() << "Using saved resign consumed time (my resign):" << actualConsumedTimeMs << "ms";
-        } else if (cause == CsaClient::GameEndCause::Resign &&
-                   result == CsaClient::GameResult::Win && m_clock) {
+        } else if (cause == CsaClient::GameEndCause::Resign && result == CsaClient::GameResult::Win) {
             // 相手の手番が始まってから投了までの時間（残り時間から逆算すると、加算・秒読みで狂う）
-            actualConsumedTimeMs = static_cast<int>(m_clock->considerationMs(isBlackSide ? Turn::White : Turn::Black));
+            actualConsumedTimeMs = static_cast<int>(elapsedThisTurn(isBlackSide ? Turn::White : Turn::Black));
 
             qCDebug(lcNetwork).noquote() << "Calculated opponent resign consumed time:" << actualConsumedTimeMs << "ms";
         }
@@ -340,8 +336,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     // 終局行を棋譜へ渡す（対局の手順は終局の行を含めない）
     emit recordEntryReady(m_progress.endRecord(result, cause, blackToMove, actualConsumedTimeMs));
 
-    // エンジンにgameoverとquitコマンドを送信
-    if (m_engineController && m_engineController->isInitialized()) {
+    // エンジンに gameover を送って終える（同じ接続で次の対局条件が来たら起動し直す）
+    if (m_engineController) {
         switch (result) {
         case CsaClient::GameResult::Win:
             m_engineController->sendGameOver(true);
@@ -354,14 +350,23 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
             m_engineController->sendQuit();
             break;
         }
-        // 同じ接続で次の対局条件が来たら、エンジンを起動し直す
-        m_engineNeedsRestart = true;
     }
     // 対局数を数えてログアウトの要否を先に決める。終局の通知を受ける側（結果の表示・自動保存）は
     // moreGamesWanted() で続行の有無を見られ、結果のダイアログが LOGOUT を遅らせない
     ++m_completedGames;
     handleGameCountAfterEnd();
     emit gameEnded(result, cause, actualConsumedTimeMs);
+}
+
+MatchSearchTiming CsaGameCoordinator::snapshot(Turn side, bool /*pondering*/) const
+{
+    // 先読みも自分の持ち時間を読む。残り時間は着手ごとにサーバーが示した値
+    return FixedTimeSource(m_progress.engineTiming(m_thinkingMarginMs)).snapshot(side, false);
+}
+
+qint64 CsaGameCoordinator::elapsedThisTurn(Turn side) const
+{
+    return side == m_turnSide && m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
 }
 
 void CsaGameCoordinator::onGameInterrupted()
@@ -412,13 +417,11 @@ void CsaGameCoordinator::onEngineControllerWinDeclaration()
 
 void CsaGameCoordinator::onEngineControllerInitialized()
 {
-    m_initializingEngine = false;
     if (m_gameState == GameState::WaitingForAgree) m_client->agree(m_progress.summary.gameId);
 }
 
 void CsaGameCoordinator::onEngineControllerError(const QString& message)
 {
-    m_initializingEngine = false;
     failGame(message);
 }
 

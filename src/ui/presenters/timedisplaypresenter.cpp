@@ -37,6 +37,13 @@ TimeDisplayPresenter::TimeDisplayPresenter(ShogiView* view, const ShogiClock* cl
     , m_view(view)
     , m_clock(clock)
 {
+    if (m_clock) connect(m_clock, &ShogiClock::timeUpdated, this, &TimeDisplayPresenter::showClock);
+}
+
+void TimeDisplayPresenter::showClock()
+{
+    if (!m_clock) return;
+    showTimes(m_clock->remainingMs(Turn::Black), m_clock->remainingMs(Turn::White), m_clock->currentPlayer());
 }
 
 inline QString TimeDisplayPresenter::fmt_hhmmss(qint64 ms)
@@ -51,7 +58,7 @@ inline QString TimeDisplayPresenter::fmt_hhmmss(qint64 ms)
     return QString::asprintf("%02d:%02d:%02d", h, m, s);
 }
 
-void TimeDisplayPresenter::onMatchTimeUpdated(qint64 blackMs, qint64 whiteMs, Turn sideToMove, qint64 /*urgencyMs*/)
+void TimeDisplayPresenter::showTimes(qint64 blackMs, qint64 whiteMs, Turn sideToMove)
 {
     // デバッグ: 前回値との差分を確認
     const qint64 diffBlack = m_lastBlackMs - blackMs;
@@ -82,7 +89,7 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64 blackMs, qint64 whiteMs, Tu
 void TimeDisplayPresenter::refresh()
 {
     if (!m_hasLastValues) return;
-    onMatchTimeUpdated(m_lastBlackMs, m_lastWhiteMs, m_lastSideToMove, 0);
+    showTimes(m_lastBlackMs, m_lastWhiteMs, m_lastSideToMove);
 }
 
 void TimeDisplayPresenter::updateUrgencyStyles(Turn sideToMove)

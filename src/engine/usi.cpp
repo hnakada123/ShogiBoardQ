@@ -106,14 +106,14 @@ void Usi::onMatchTimeout()
 // 対局
 // ============================================================
 
-void Usi::setMatchClock(ShogiClock* clock)
+void Usi::setMatchTimeSource(MatchTimeSource* source)
 {
-    m_matchHandler->setClock(clock);
+    m_matchHandler->setTimeSource(source);
 }
 
-void Usi::requestMatchMove(const UsiPosition& position, const UsiTimingParams& timing)
+void Usi::requestMatchMove(const UsiPosition& position)
 {
-    m_session->whenReady([this, position, timing]() { m_matchHandler->requestMove(position, timing); });
+    m_session->whenReady([this, position]() { m_matchHandler->requestMove(position); });
 }
 
 void Usi::forgetPonder()

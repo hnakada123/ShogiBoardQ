@@ -76,10 +76,8 @@ public:
 
     /// 画面で選んだ条件（接続・対局の進め方と、棋譜の自動保存・盤の向き）
     struct Selection {
-        CsaGameCoordinator::StartOptions start;  ///< 接続と対局の進め方（パスワード欄はゲーム名と手番の希望を含む）
-        bool autoSaveEnabled = false;
-        QString autoSaveDir;
-        QString autoSaveFormat;  ///< 自動保存の形式（拡張子: kif/kifu/ki2/csa/jkf/usi）
+        /// 接続と対局の進め方（パスワード欄はゲーム名と手番の希望を含む。終局した棋譜の自動保存も）
+        CsaGameCoordinator::StartOptions start;
         bool autoFlipBoard = false;
     };
     /// 画面の値から条件を作る

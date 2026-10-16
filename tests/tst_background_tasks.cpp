@@ -26,6 +26,7 @@
 #include "tsumecollection.h"
 #include "tsume.h"
 #include "kifunavigationstate.h"
+#include "matchtimesource.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
@@ -242,8 +243,9 @@ private slots:
         elapsed.start();
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("250"));
-        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"),
-                                TestTime::byoyomiTiming(5000, 300000, 0));
+        FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
+        engine.setMatchTimeSource(&matchTime);
+        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"));
         QVERIFY(elapsed.elapsed() < 200);
         QCOMPARE(ready.size(), 0);
         QCOMPARE(moves.size(), 0);
@@ -264,8 +266,9 @@ private slots:
         Usi engine;
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"),
-                                TestTime::byoyomiTiming(5000, 300000, 0));
+        FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
+        engine.setMatchTimeSource(&matchTime);
+        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"));
         QVERIFY(engine.isInitializing());
         engine.requestImmediateMove();
         QTRY_COMPARE(moves.size(), 1);
@@ -291,15 +294,16 @@ private slots:
         QSignalSpy resigns(&engine, &Usi::resigned);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 0);
+        FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
+        engine.setMatchTimeSource(&matchTime);
         const UsiPosition first = *UsiPosition::parse(u"position startpos moves 7g7f");
-        engine.requestMatchMove(first, timing);
+        engine.requestMatchMove(first);
         QTRY_COMPARE(moves.size(), 1);
         // 模擬エンジンは相手の手を 2g2f と予想して先読みする
         const UsiPosition played = *first.withMove(moves.first().at(0).value<UsiMatchMove>().move);
         const UsiPosition position = *played.withMove(*UsiMove::parse(hit ? u"2g2f" : u"6g6f"));
         const int ticks = m_ticks;
-        engine.requestMatchMove(position, timing);
+        engine.requestMatchMove(position);
         QCOMPARE(moves.size(), 1);
         QTRY_COMPARE(moves.size(), 2);
         QCOMPARE(moves.last().at(0).value<UsiMatchMove>().move.to, (BoardSquare{3, 4}));
@@ -319,8 +323,9 @@ private slots:
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         QTRY_COMPARE(ready.size(), 1);
         engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
-        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"),
-                                TestTime::byoyomiTiming(5000, 300000, 0));
+        FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
+        engine.setMatchTimeSource(&matchTime);
+        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"));
         engine.cancelCurrentOperation();
         QTest::qWait(400);
         QCOMPARE(moves.size(), 0);
@@ -351,7 +356,7 @@ private slots:
         ShogiClock clock;
         AppActivityState activity;
         EngineLifecycleManager engines(&clock);
-        MatchCoordinator match({&game, &clock, &activity, &engines});
+        MatchCoordinator match({&game, &clock, &activity, &engines, nullptr});
         MatchStartOptions opt;
         opt.sfenStart = SfenUtils::hirateSfen();
         match.start(opt);
@@ -371,11 +376,11 @@ private slots:
         }
         QTRY_COMPARE(ready1.size(), 1);
         if (engine2) QTRY_COMPARE(ready2->size(), 1);
-        const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 300000);
+        // 枠のエンジンは対局の時計から持ち時間を読む
         for (Usi* engine : {engine1, engine2}) {
             if (!engine) continue;
             engine->sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
-            engine->requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"), timing);
+            engine->requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"));
         }
         QTest::qWait(30);
 
@@ -428,14 +433,14 @@ private slots:
         engines.startEngine(pondering, QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
         QTRY_COMPARE(thinkingReady.size(), 1);
         QTRY_COMPARE(ponderingReady.size(), 1);
-        const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 300000);
+        // 枠のエンジンは対局の時計から持ち時間を読む
         const UsiPosition position = *UsiPosition::parse(u"position startpos moves 7g7f");
-        pondering->requestMatchMove(position, timing);
+        pondering->requestMatchMove(position);
         QTRY_COMPARE(ponderingMoves.size(), 1);
         QVERIFY(pondering->protocol()->isSearching());
         QCOMPARE(pondering->protocol()->searchKind(), UsiProtocolHandler::SearchKind::Ponder);
         thinking->sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
-        thinking->requestMatchMove(position, timing);
+        thinking->requestMatchMove(position);
         QTest::qWait(30);
         const auto existing = qApp->findChildren<QProcess*>();
         engines.notifyGameOver(loser);
@@ -503,8 +508,9 @@ private slots:
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"),
-                                TestTime::byoyomiTiming(5000, 300000, 0));
+        FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
+        engine.setMatchTimeSource(&matchTime);
+        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"));
         QTRY_COMPARE(errors.size(), 1);
         QCOMPARE(moves.size(), 0);
     }

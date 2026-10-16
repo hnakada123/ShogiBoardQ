@@ -395,6 +395,7 @@ void MainWindowComposer::createSessions()
     ud.localGameHasHuman = [this]() {
         return m_c.match->isHumanSide(Turn::Black) || m_c.match->isHumanSide(Turn::White);
     };
+    ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.match);
     ud.activity = &m_state.activity;
     m_c.uiStatePolicy = new UiStatePolicyManager(ud, &m_window);
     m_c.notificationService = new UiNotificationService({&m_window}, &m_window);
@@ -433,6 +434,7 @@ void MainWindowComposer::createSessions()
     m_c.kifuFileController = new KifuFileController(fd, &m_window);
 
     // 対局の利用者の操作と、対局の手順の書き先
+    m_c.nyugyokuHandler = new NyugyokuDeclarationHandler(&m_window, m_c.document, &m_window);
     GameSession::Deps gd;
     gd.state = &m_state;
     gd.match = m_c.match;
@@ -445,11 +447,11 @@ void MainWindowComposer::createSessions()
     gd.clock = m_c.clock;
     gd.timePresenter = m_c.timePresenter;
     gd.playerInfo = m_c.playerInfo;
-    gd.uiStatePolicy = m_c.uiStatePolicy;
     gd.kifuFileController = m_c.kifuFileController;
     gd.shogiView = m_c.shogiView;
     gd.appearance = m_c.appearance;
     gd.csaGame = m_c.csaGame;
+    gd.nyugyoku = m_c.nyugyokuHandler;
     m_c.gameSession = new GameSession(gd, &m_window);
     // 司令塔は手順の書き先（GameSession）より先に作るので、ここで渡す
     m_c.match->setRecordSink(m_c.gameSession);
@@ -457,21 +459,15 @@ void MainWindowComposer::createSessions()
     CsaGameSession::Deps cd;
     cd.coordinator = m_c.csaGame;
     cd.activity = &m_state.activity;
-    cd.recordSink = m_c.gameSession;
     cd.shogiView = m_c.shogiView;
     cd.boardController = m_c.boardController;
     cd.boardMoves = m_c.boardMoves;
     cd.csaLog = m_c.csaLog;
-    cd.evalChart = m_c.evalChart;
+    cd.evalGraph = m_c.evalGraph;
     cd.notifications = m_c.notificationService;
-    cd.kifuFiles = m_c.kifuFileController;
     cd.appearance = m_c.appearance;
     cd.statusBar = m_ui.statusbar;
     cd.parentWidget = &m_window;
-    cd.prepareRecord = std::bind(&GameSession::beginCsaGameRecord, m_c.gameSession,
-                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                                 std::placeholders::_4);
-    cd.recordGameEnd = std::bind(&GameSession::endCsaGameRecord, m_c.gameSession);
     m_c.csaSession = new CsaGameSession(cd, &m_window);
 }
 
@@ -541,18 +537,13 @@ void MainWindowComposer::createControllers()
 
     // メニューから開くダイアログ
     m_c.jishogiController = new JishogiScoreDialogController(&m_window);
-    m_c.nyugyokuHandler = new NyugyokuDeclarationHandler(m_c.gameController, m_c.match, &m_window);
     DialogLauncher::Deps dl;
     dl.parentWidget = &m_window;
     dl.kifuFileController = m_c.kifuFileController;
-    dl.activity = &m_state.activity;
     dl.shogiView = m_c.shogiView;
     dl.jishogiController = m_c.jishogiController;
-    dl.nyugyokuHandler = m_c.nyugyokuHandler;
-    dl.csaGame = m_c.csaGame;
     dl.csaSession = m_c.csaSession;
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
-    dl.usesHandicapNames = std::bind(&KifuDocument::usesHandicapNames, m_c.document);
     dl.menuWindowDock = m_c.docks.menuWindow;
     m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
     // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる

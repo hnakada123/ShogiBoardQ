@@ -13,6 +13,7 @@
 #include "interruptedgamestate.h"
 #include "matchsessionstate.h"
 #include "matchtypes.h"
+#include "nyugyokujudgement.h"
 #include "recordline.h"
 #include "startoptions.h"
 #include "usiscore.h"
@@ -82,11 +83,17 @@ public:
     /// 対局者（人間・エンジンの組と名前）
     const MatchPlayers& players() const { return m_session.players(); }
     bool isHumanSide(Turn side) const;
+    /// 手番（盤の手番）
+    Turn sideToMove() const override;
 
     /// 終局の知らせ・入玉宣言で対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
     bool usesHandicapNames() const;
 
     const InterruptedGameState* interruptedGame() const { return m_interruptedGame.get(); }
+    /// 中断の行を棋譜に書いた（そのノードを覚え、再開できるようにする）
+    void attachInterruptedRecord(int terminalNodeId);
+    /// 中断した対局を再開できるか（中断の行を棋譜に書いてある）
+    bool canResumeInterruptedGame() const { return m_interruptedGame && m_interruptedGame->terminalNodeId >= 0; }
     void discardInterruptedGame();
     /// 中断した対局を、中断した局面・時計から再開する（時計は呼び出し側が beginPlay で動かす）
     bool resumeInterruptedGame();
@@ -113,12 +120,12 @@ public:
     void handlePlayerTimeOut(Turn player);
     /// 入玉宣言の判定結果で終局する（宣言の結果は呼び出し側のダイアログで知らせる）
     void handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw);
+    /// 人間の入玉宣言を盤面から判定（rule は Rule24・Rule27）して終局し、判定結果を返す（知らせは呼び出し側）
+    NyugyokuJudgement::Result declareNyugyoku(Turn declarer, int rule);
 
     // --- 時計 ---
 
     ShogiClock* clock() const { return m_clock; }
-    /// いまの時計の値で timeUpdated を出す
-    void pokeTimeUpdateNow();
 
     /// Strategy から呼ぶ操作（テストから一手を確定するときにも使う）
     MatchStrategyHost& strategyHost() { return *this; }
@@ -130,29 +137,21 @@ signals:
     /// エンジンが指した（score は指した側から見た最善の読み筋の評価値。グラフの ply 手目に足す）
     void engineMovePlayed(Turn side, int ply, const UsiScore& score);
 
-    // --- 時計 ---
-    /**
-     * @brief 時計の値
-     * @param urgencyMs 盤の緊急カラー用ms（非緊急ならINT64_MAX）
-     */
-    void timeUpdated(qint64 blackMs, qint64 whiteMs, Turn sideToMove, qint64 urgencyMs);
-
     // --- 終局 ---
     /// 終局した（終局の行は棋譜に書き、動作状態を待機にした後）
     void gameEnded(const MatchCoordinator::GameEndInfo& info);
     /// 終局の知らせ（ダイアログ）を出す
     void gameOverMessage(const QString& title, const QString& message);
-    /// 棋譜の自動保存を頼む
-    void autoSaveRequested(const QString& saveDir);
-    /// 終局の後処理（知らせ・自動保存）を終えた（連続対局の次局はここから）
+    /// 終局の後処理（知らせ）を終えた（連続対局の次局はここから）
     void gameEndProcessed(const MatchCoordinator::GameEndInfo& info);
     /// 中断した（再開できる）
     void gameInterrupted();
+    /// 中断した対局を再開できるかが変わった（canResumeInterruptedGame）
+    void resumeAvailabilityChanged();
 
 private:
     // --- MatchStrategyHost ---
     EngineLifecycleManager& engines() override { return *m_engines; }
-    Turn sideToMove() const override;
     void requestEngineMove(Turn side) override;
     void setWaitingForEngines(bool waiting) override;
     void recordConsiderationTime(Turn mover, qint64 elapsedMs) override;
@@ -162,7 +161,6 @@ private:
     void createStrategy(const StartOptions& opt);
     /// 一手を確定する。engineScore はエンジンの手のとき（グラフに足す評価値）
     bool completeMove(RecordEntry played, std::optional<UsiScore> engineScore);
-    void emitTimeUpdate();
     void disarmTurnTimer();
 
     // --- 終局 ---
@@ -174,8 +172,8 @@ private:
     void handleMaxMovesJishogi();
     /// 終局の後の知らせ方
     enum class Notice {
-        Announce,     ///< 結果のダイアログを出し、自動保存して gameEndProcessed
-        Declaration,  ///< 入玉宣言（結果は宣言の判定で知らせる）。自動保存して gameEndProcessed
+        Announce,     ///< 結果のダイアログを出して gameEndProcessed
+        Declaration,  ///< 入玉宣言（結果は宣言の判定で知らせる）。gameEndProcessed
         Interrupt,    ///< 中断（再開できる）。gameInterrupted
     };
     /**

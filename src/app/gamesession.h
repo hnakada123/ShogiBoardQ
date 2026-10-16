@@ -6,32 +6,41 @@
 
 #include <QObject>
 #include <QString>
+#include <memory>
 
+#include "csaclient.h"
 #include "gamestartoptionsbuilder.h"
+#include "matchautosave.h"
 #include "matchcoordinator.h"
 #include "matchrecordsink.h"
 
 struct AppState;
 class AnalysisSession;
 class ConsecutiveGameSeries;
+class CsaGameChannel;
 class CsaGameCoordinator;
+class GameChannel;
 class KifuDocument;
 class KifuFileController;
 class KifuNavigationState;
 class LiveGameSession;
+class LocalGameChannel;
 class MainWindowAppearanceController;
+class NyugyokuDeclarationHandler;
 class PlayerInfoPresenter;
 class SessionResetCoordinator;
 class ShogiClock;
 class ShogiView;
 class TimeDisplayPresenter;
-class UiStatePolicyManager;
 
 /**
- * @brief 対局の利用者の操作を受け、対局の司令塔（MatchCoordinator）・通信対局へ頼む
+ * @brief 対局の利用者の操作を受け、対局の棋譜を開始から終局まで受け持つ
  *
- * 対局の開始はここで1つの関数として順に行う（棋譜を整える → 時計 → 対局者の表示 → 対局 → 初手）。
- * 対局の棋譜の受け手（MatchRecordSink）でもあり、確定した行はライブ対局（分岐ツリー）に書く。
+ * ローカル対局と通信対局の棋譜は同じ1本の流れで扱う。
+ * - 開始: 棋譜を整え、対局者・持ち時間・開始日時を文書に記録し、対局者を表示する（beginMatchRecord）
+ * - 着手: 対局の棋譜の受け手（MatchRecordSink）として、確定した行をライブ対局（分岐ツリー）に書く
+ * - 終局: ライブ対局を確定し、終了日時を記録して自動保存する（finishMatchRecord）
+ * 投了・中断・即指し・入玉宣言は対局相手の窓口（GameChannel）へ頼み、対局の種類で分岐しない。
  * 盤・棋譜欄・手番の表示は、ツリーと表示中の手が変わると各部品が自分で合わせる。
  */
 class GameSession : public QObject, public MatchRecordSink
@@ -51,14 +60,15 @@ public:
         ShogiClock* clock = nullptr;                        ///< 対局の時計
         TimeDisplayPresenter* timePresenter = nullptr;      ///< 時計の表示
         PlayerInfoPresenter* playerInfo = nullptr;          ///< 対局者の表示
-        UiStatePolicyManager* uiStatePolicy = nullptr;      ///< 「再開」を出すか
         KifuFileController* kifuFileController = nullptr;   ///< 未保存の棋譜の確認
         ShogiView* shogiView = nullptr;                     ///< 手前に表示している側
         MainWindowAppearanceController* appearance = nullptr; ///< 「人を手前に表示する」の盤の反転
-        CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局中の投了・中断・即指しの送り先（必須）
+        CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔（必須）
+        NyugyokuDeclarationHandler* nyugyoku = nullptr;     ///< 利用者の入玉宣言
     };
 
     explicit GameSession(const Deps& deps, QObject* parent = nullptr);
+    ~GameSession() override;
 
     // --- MatchRecordSink（対局・通信対局の棋譜の行） ---
     bool canAppendRecord() const override;
@@ -69,14 +79,8 @@ public:
     /// 計画どおりに対局を始める。beginSeries なら連続対局の1局目として局数を数え始める
     bool startGame(const GameStartPlan& plan, bool beginSeries);
 
-    // --- 通信対局 ---
-    /// 通信対局の棋譜を、サーバーの開始局面・対局者名・持ち時間で作り直してライブ記録を始める
-    void beginCsaGameRecord(const QString& startSfen, const QString& blackName, const QString& whiteName,
-                            const TimeControl& timeControl);
-    /// 通信対局が終わった（ライブ記録を確定し、終局時刻を記録する。ローカル対局の終局と同じ後始末）
-    void endCsaGameRecord();
-    /// 終局時刻を記録して対局情報に反映する
-    void recordGameEndTime();
+    /// 対局中の対局相手の窓口（対局していなければ nullptr）
+    GameChannel* activeChannel() const;
 
 public slots:
     // --- 利用者の操作 ---
@@ -85,6 +89,8 @@ public slots:
     void resign();
     void breakOff();
     void makeEngineMoveNow();
+    /// 手番の人間が入玉宣言する（確認してから宣言する）
+    void declareNyugyoku();
     void undoTwoMoves();
     void resumeInterruptedGame();
     /// 「新規」: 対局・検討・通信対局を止め、平手の開始局面だけの棋譜にする（未保存の確認は呼び出し側）
@@ -99,14 +105,27 @@ public slots:
     /// 連続対局の次局
     void startNextGame(const GameStartPlan& plan);
 
+private slots:
+    // --- 通信対局の司令塔から ---
+    /// 通信対局が始まった（サーバーの開始局面・対局者名・持ち時間で棋譜を作り直す）
+    void onCsaGameStarted(const QString& blackName, const QString& whiteName,
+                          const QList<RecordEntry>& initialRecords);
+    void onCsaRecordEntry(const RecordEntry& entry);
+    void onCsaGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
+
 private:
-    bool isCsaGameActive() const;
     QString recordStartSfen() const;
+    /// 対局者・持ち時間・開始日時を文書に記録し、対局者を表示する（ローカル対局・通信対局で共通）
+    void beginMatchRecord(const MatchPlayers& players, const TimeControl& timeControl, bool continuesRecord);
+    /// 終局した棋譜の後始末（commit ならライブ対局を確定し、終了日時を記録して自動保存する）
+    void finishMatchRecord(bool commit);
     /// 読み込んだ棋譜の途中から続けた対局の対局者・日時を、分岐の最初の手のメモにする
     void noteContinuedMatch(const MatchPlayers& players);
 
     Deps m_deps;
-    int m_interruptedNodeId = -1;
+    std::unique_ptr<LocalGameChannel> m_localChannel;
+    std::unique_ptr<CsaGameChannel> m_csaChannel;
+    MatchAutoSave m_autoSave;          ///< 進行中の対局の自動保存
 
 };
 

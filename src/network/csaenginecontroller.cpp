@@ -47,6 +47,7 @@ void CsaEngineController::initialize(const InitParams& params)
 
     m_engine = m_engines->createEngine(1, std::nullopt, params.engineName);
     m_engine->setLogIdentity(QStringLiteral("E1"), QStringLiteral("CSA"), params.engineName);
+    m_engine->setMatchTimeSource(params.timeSource);
 
     connect(m_engine, &Usi::matchMoveReady, this, &CsaEngineController::onMatchMoveReady);
     connect(m_engine, &Usi::engineInitialized, this, &CsaEngineController::onEngineInitialized);
@@ -69,10 +70,10 @@ void CsaEngineController::onEngineError(const QString& message)
     emit engineError(message);
 }
 
-void CsaEngineController::thinkAsync(const ThinkingParams& params)
+void CsaEngineController::thinkAsync(const UsiPosition& position)
 {
     if (!m_engine) return;
-    m_engine->requestMatchMove(params.position, params.timing);
+    m_engine->requestMatchMove(position);
 }
 
 void CsaEngineController::onMatchMoveReady(const UsiMatchMove& move)
@@ -90,16 +91,27 @@ void CsaEngineController::stopThinking()
     if (m_engine) m_engine->stop();
 }
 
+bool CsaEngineController::isStarting() const
+{
+    return m_engine && m_engine->isInitializing();
+}
+
+bool CsaEngineController::isReady() const
+{
+    return m_engine && m_engine->isRunning() && !m_engine->isInitializing();
+}
+
 void CsaEngineController::sendGameOver(bool win)
 {
     if (!m_engine) return;
     m_engine->sendGameOverCommand(win ? GameOverResult::Win : GameOverResult::Lose);
-    m_engine->quit();
+    // 枠を空けて quit する。次の対局は起動し直す
+    cleanup();
 }
 
 void CsaEngineController::sendQuit()
 {
-    if (m_engine) m_engine->quit();
+    cleanup();
 }
 
 void CsaEngineController::cleanup()

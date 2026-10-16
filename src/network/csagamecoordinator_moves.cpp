@@ -128,6 +128,9 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     CsaGameProgress& p = m_progress;
     const bool isBlackMove = played.mover == Turn::Black;
     p.recordMoveTime(isBlackMove, consumedTimeMs);
+    // 次の手番の考慮時間を数え始める
+    m_turnSide = (nowMyTurn == p.isBlackSide) ? Turn::Black : Turn::White;
+    m_turnTimer.start();
     syncClockAfterMove(nowMyTurn);
 
     RecordEntry entry = p.moveRecord(isBlackMove, played.displayText, consumedTimeMs);
@@ -186,19 +189,16 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 
 void CsaGameCoordinator::startEngineThinking()
 {
-    if (!m_engineController || !m_engineController->isInitialized() || m_playerType != PlayerType::Engine) {
+    if (!m_engineController || !m_engineController->isReady() || m_playerType != PlayerType::Engine) {
         return;
     }
-
-    CsaEngineController::ThinkingParams params;
-    params.position = m_progress.usiPosition();
-    params.timing = m_progress.engineTiming(m_thinkingMarginMs);
 
     emit logMessage(tr("エンジンが思考中..."), false);
 
     connect(m_engineController, &CsaEngineController::thinkingFinished,
             this, &CsaGameCoordinator::onEngineThinkingFinished, Qt::UniqueConnection);
-    m_engineController->thinkAsync(params);
+    // 持ち時間はこの司令塔（MatchTimeSource）がサーバーの残り時間から返す
+    m_engineController->thinkAsync(m_progress.usiPosition());
 }
 
 void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result)

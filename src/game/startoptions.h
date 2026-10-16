@@ -9,6 +9,7 @@
 
 #include <QString>
 
+#include "matchautosave.h"
 #include "matchplayers.h"
 #include "recordline.h"
 #include <QMetaType>
@@ -34,8 +35,7 @@ struct MatchStartOptions {
 
     int maxMoves = 0;                      ///< 最大手数（0=無制限）
 
-    bool autoSaveKifu = false;             ///< 棋譜自動保存フラグ
-    QString kifuSaveDir;                   ///< 棋譜保存ディレクトリ
+    MatchAutoSave autoSave;                ///< 終局した棋譜の自動保存
 
     bool resumeFromBreakOff = false;        ///< 中断した手の途中から再開する
 };

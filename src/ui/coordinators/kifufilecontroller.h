@@ -49,8 +49,6 @@ public:
     [[nodiscard]] bool confirmDiscardUnsaved();
 
 public slots:
-    /// 対局の終局時の自動保存（KIF 形式）
-    void autoSaveKifuToFile(const QString& saveDir) { autoSaveKifu(saveDir, QStringLiteral("kifu")); }
     /// 棋譜ファイルを選択して開く
     void chooseAndLoadKifuFile();
     /// 名前を付けて保存

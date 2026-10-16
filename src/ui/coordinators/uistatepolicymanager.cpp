@@ -187,7 +187,8 @@ UiStatePolicyManager::Policy UiStatePolicyManager::tablePolicy(AppState state, U
 
 UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement element) const
 {
-    if (element == UiElement::GameResume && !m_resumeAvailable) return Policy::Disabled;
+    if (element == UiElement::GameResume && !(m_deps.canResumeGame && m_deps.canResumeGame()))
+        return Policy::Disabled;
     // 待った・投了・入玉宣言はローカル対局では人間が参加する場合だけ。エンジン同士では行わない
     if (element == UiElement::GameUndo
         || ((element == UiElement::GameResign || element == UiElement::GameNyugyokuDeclaration)
@@ -215,9 +216,8 @@ void UiStatePolicyManager::refreshActivity()
 // 状態に左右されない条件
 // ======================================================================
 
-void UiStatePolicyManager::setResumeAvailable(bool available)
+void UiStatePolicyManager::refreshResumeAvailability()
 {
-    m_resumeAvailable = available;
     applyPolicy(UiElement::GameResume, effectivePolicy(UiElement::GameResume));
 }
 

@@ -17,7 +17,13 @@
 #include "csagameprogress.h"
 #include "appstate.h"
 #include "kifudocument.h"
+#include "evaluationchartwidget.h"
+#include "evaluationgraphpresenter.h"
 #include "gamesession.h"
+#include "kifuloadcoordinator.h"
+#include "matchcoordinator.h"
+#include "playerinfopresenter.h"
+#include "sessionresetcoordinator.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
@@ -177,6 +183,36 @@ private slots:
         QCOMPARE(h.moveCount(), 2);
         QCOMPARE(h.gc.board()->pieceCharacter(8, 4), Piece::WhitePawn);
         QCOMPARE(entryAt(records, 1).move.move.toString(), QStringLiteral("8c8d"));
+    }
+
+    /// 自分のエンジンはサーバーが示した残り時間から持ち時間を読み、終局でエンジンの枠を空ける（次局は起動し直す）
+    void engineReadsServerTimeAndIsReleasedAtGameEnd()
+    {
+        Harness h;
+        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
+        QVERIFY(h.start("-", {}, true));
+        QVERIFY(h.engines.engineInSlot(1));
+        // 時間の出どころは対局の残り時間（加算を含まない）・決まり
+        const MatchSearchTiming timing = h.coordinator.snapshot(Turn::White, false);
+        const UsiTimingParams expected = h.coordinator.progress().engineTiming(1000);
+        QCOMPARE(timing.input.wtimeMs, expected.wtimeMs);
+        QCOMPARE(timing.input.btimeMs, expected.btimeMs);
+        QCOMPARE(timing.input.timeControl.white.incrementMs, qint64(10000));
+        // 手番の考慮時間は手番の側だけが数える
+        h.server.send("+7776FU,T1");
+        QVERIFY(h.server.waitForLine(QStringLiteral("-8384FU")));
+        QCOMPARE(h.coordinator.elapsedThisTurn(Turn::Black), 0);
+        h.server.send("-8384FU,T2");
+        QTRY_COMPARE(records.size(), 2);
+        QTest::qWait(50);
+        QVERIFY(h.coordinator.elapsedThisTurn(Turn::Black) > 0);
+        QCOMPARE(h.coordinator.elapsedThisTurn(Turn::White), 0);
+
+        h.server.send("%TORYO,T3");
+        h.server.send("#RESIGN");
+        h.server.send("#WIN");
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        QVERIFY(!h.engines.engineInSlot(1));
     }
 
     void rejectedUnconfirmedMoveLeavesOriginalPosition()
@@ -453,22 +489,35 @@ private slots:
         tree.setRootSfen(SfenUtils::hirateSfen());
         KifuNavigationState nav(&tree);
         LiveGameSession live(&tree, &nav);
-        live.startFromRoot();
-        // 棋譜の受け手（本体と同じ GameSession。追記に使う部品だけ渡す）
+        // 棋譜の受け手（本体と同じ GameSession。通信対局の棋譜を作り直して書くのに使う部品を渡す）
         AppState state;
         KifuDocument document(&tree);
+        MatchCoordinator match({&h.gc, &h.clock, &state.activity, &h.engines, &document});
+        KifuLoadCoordinator loader(&document);
+        EvaluationChartWidget chart;
+        EvaluationGraphPresenter graph({&chart, &nav, &live});
+        SessionResetCoordinator::Deps rd;
+        rd.document = &document;
+        rd.liveSession = &live;
+        rd.kifuLoader = &loader;
+        rd.evalGraph = &graph;
+        SessionResetCoordinator reset(rd);
+        PlayerInfoPresenter playerInfo({&document, &state.activity});
         GameSession::Deps sd;
         sd.state = &state;
+        sd.match = &match;
+        sd.reset = &reset;
         sd.navState = &nav;
         sd.liveSession = &live;
         sd.document = &document;
+        sd.clock = &h.clock;
+        sd.playerInfo = &playerInfo;
+        sd.csaGame = &h.coordinator;
         GameSession recordService(sd);
 
-        AppActivityState activity;
         CsaGameSession::Deps cd;
         cd.coordinator = &h.coordinator;
-        cd.activity = &activity;
-        cd.recordSink = &recordService;
+        cd.activity = &state.activity;
         CsaGameSession session(cd);
         QSignalSpy sounds(&h.gc, &ShogiGameController::moveCommitted);
 
@@ -492,10 +541,18 @@ private slots:
         h.server.send("#RESIGN");
         h.server.send("#WIN");
         QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
-        QCOMPARE(live.moveCount(), 3);
-        QVERIFY(live.liveNode()->isTerminal());
-        QCOMPARE(live.liveNode()->displayText(), QStringLiteral("▲投了"));
+        // 終局でローカル対局と同じくライブ記録を確定し、終了日時を記録する
+        QVERIFY(!live.isActive());
+        const QList<KifuBranchNode*> line = tree.mainLine();
+        QCOMPARE(line.size(), 4);
+        QVERIFY(line.last()->isTerminal());
+        QCOMPARE(line.last()->displayText(), QStringLiteral("▲投了"));
         QCOMPARE(sounds.size(), 2);
+        // 対局者はサーバーが知らせた名前、持ち時間はサーバーの対局条件
+        QCOMPARE(document.headerPlayerName(Turn::Black), QStringLiteral("Sente"));
+        QCOMPARE(document.headerPlayerName(Turn::White), QStringLiteral("Gote"));
+        QCOMPARE(document.timeRecord().timeControl().black.mainMs, 600000);
+        QVERIFY(document.timeRecord().endDateTime().isValid());
     }
 };
 

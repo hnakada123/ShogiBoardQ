@@ -230,6 +230,13 @@
 - 対局の流れは6〜7ファイル約700行、時間の接口は約8ファイル。
 - テスト: `tst_app_game_session`・`tst_csagamesession`・`tst_csagamecoordinator`・`tst_game_start_flow`・`tst_match_end`・`tst_usimatchhandler`。通信対局の終局後の状態を確かめるテストは新しく要る。
 
+**状態: 済（R4COMMIT）**。案から変えた点:
+- 対局相手の窓口 `GameChannel`（`src/game/gamechannel.h`）の実装は、司令塔に直接持たせず、`LocalGameChannel`（`MatchCoordinator`）と `CsaGameChannel`（`src/network/csagamechannel.h`）の小さな包みにした。司令塔の `players()` などと名前がぶつからず、司令塔の公開の操作も増えない。窓口を選ぶのは `GameSession::activeChannel()` の1か所（動作状態で決まる）。
+- 入玉宣言は `NyugyokuDeclarationHandler::handleDeclaration(GameChannel*)` の1本にした。宣言できるのは手番の人間だけ（通信対局でエンジンが指しているときも、人間はエンジンの代わりに宣言しない）。成否をこちらで判定するかは窓口（`judgesDeclaration`）が答える。
+- 通信対局の棋譜は `GameSession` が司令塔の `gameStarted`・`recordEntryReady`・`gameEnded` を直接受けて作る（フック `prepareRecord`/`recordGameEnd` を廃止）。`CsaGameSession` は画面への反映だけにした。自動保存の指定は `MatchAutoSave`（`src/game/matchautosave.h`）で、ローカル対局は対局の開始条件、通信対局は `CsaGameCoordinator::StartOptions` に持たせ、終局の後始末（`finishMatchRecord`）で保存する。
+- 時間の出どころは `MatchTimeSource`（`src/engine/matchtimesource.h`）で、`snapshot`・`elapsedThisTurn` に加えて `finishTurn`（エンジンの応答で手番を精算し、時間切れかを返す）を持たせた。ローカル対局は `ClockTimeSource`、通信対局は `CsaGameCoordinator` 自身が実装する（投了の消費時間も表示用の時計ではなく自分の手番の経過時間から読む）。表示用の時計は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受ける（司令塔の中継を廃止）。
+- 通信対局のエンジンは、終局で gameover を送ったら枠を空ける（`CsaEngineController::sendGameOver`）。次局は `isReady()` が false なので起動し直し、初期化中（`isStarting()`）は readyok を待って同意する。
+
 ### R5. エンジンへの問い合わせの骨組み（詰み探索・詰将棋生成・棋譜解析）。U1・U3 の原因
 
 **問題**

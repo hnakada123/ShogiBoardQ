@@ -8,7 +8,7 @@
 
 EngineLifecycleManager::EngineLifecycleManager(ShogiClock* clock, QObject* parent)
     : QObject(parent)
-    , m_clock(clock)
+    , m_clockTime(clock)
 {
 }
 
@@ -29,8 +29,8 @@ Usi* EngineLifecycleManager::createEngine(int slot, std::optional<Turn> side, co
         : (*side == Turn::Black ? QStringLiteral("black") : QStringLiteral("white"));
     engine->setLogIdentity(slot == 2 ? QStringLiteral("E2") : QStringLiteral("E1"), sideTag, displayName);
     if (side) {
-        // 対局のエンジンは対局の時計から持ち時間を読む（通信対局のエンジンはサーバーの時間を自分で渡す）
-        engine->setMatchClock(m_clock);
+        // 対局のエンジンは対局の時計から持ち時間を読む（通信対局のエンジンはサーバーの残り時間を読む）
+        engine->setMatchTimeSource(&m_clockTime);
         // 対局のエンジンの投了・宣言勝ちと、起動の失敗や異常終了を知らせる（起動の失敗は startEngine の中で
         // 届くことがある）。検討・詰み探索のエンジンのエラーは、使う側（AnalysisSession）が直接受け取る
         connect(engine, &Usi::resigned, this, &EngineLifecycleManager::engineResigned);
