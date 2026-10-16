@@ -95,6 +95,7 @@
 | 2026-10-16 | 設定の宣言の型（`BoundedSetting`・`StructSetting`・`ListSetting`・`StructListSetting`）と、使われていない API の削除（監査 3章・4章）に合わせて §1.5・§10・§11・§12.5・§17.5・第18章を更新（駒音・詰将棋・列幅・CSA の接続先の履歴の設定を宣言にし、`JishogiScoreDialogController` を `JishogiScoreDialog::showFor()` に、`ElideLabel` を省略表示だけに、`fitBoardToWidget()` の記述を `resizeEvent()` に直す） |
 | 2026-10-16 | 局面集ファイルの1行の規則 `PositionCollectionFile`・最近使ったファイルの `RecentFileList`／`RecentFilesMenu`（監査 3章）と、棋譜の書き出しの共有部品 `KifuNodeReplay`・`UsenCodec`・`UsiPosition::commandFor()`・`KifExporter::appendHeaderLines()` に合わせて §1.5・§2.5・§8.9・§8.11・第18章を更新（`UsenToSfenConverter::decodeUsenMoves()`・`decodeUsenMovesStrict()` は `UsenCodec::decodeMoves()` に移した） |
 | 2026-10-16 | 読み筋盤の値 `PvLine`、詰将棋を解く画面の状態の表と記録の移動、自動化 API の UI 操作の予約（監査 3章）に合わせて §1.5・§3.5・§6.1・§6.8・§10.5・§11.3・§14.5.1・第18章を更新（`PvBoardController` を削除し、読み筋の値 `PvLine`（`pvline.h`）と表示する手数を持つ `BoardViewerWidget` に。1関数だけの `PromotionFlow` を `PromoteDialog::ask()` にまとめて削除し、§6.8 を書き直し。`TsumePlayDialog` の `Mode` と `controlStates()` の表、挑戦・正答の記録は `TsumeGameSession`。応答の後の UI 操作は `AutomationInteractions::queue()` で予約して `ui.interaction` で結果を引き、マウス入力は `AutomationInput`、部品の読み書きは `AutomationWidgetAdapters` の表） |
+| 2026-10-16 | `KifuPresentation` を kifu へ移し、`src/common` の見た目の部品を新しい層 `src/style` に分けたのに合わせて §1.5・§1.6・§3.1・§3.2・§11.2・§16.4・§17.1・第18章を更新（`KifuPresentation` は `src/kifu/kifupresentation.h`。日本語の指し手は `KifMoveText`、段の漢数字は `ShogiNotation`、英語表記で移動元を付けるかは KI2 と同じ判定（`Ki2MoveNotation::annotate()` の `sources`）。表示言語と表記の設定は services の `NotationStyle`（`notationstyle.h`）に置き、`ApplicationTranslations` が設定する。`applicationfonts`・`applicationstyle`・`applicationrendering`・`buttonstyles`・`tablestyles`・`movefont` は `src/style/`（analysis・network・navigation と models の間の層）、`tablemodelutils` は widgets、`jishogicalculator` は core、`tsumepositionutil.h` は analysis へ移動。`TsumePositionUtil::buildPositionWithMoves()` を削除） |
 
 <!-- chapter-0-end -->
 
@@ -315,6 +316,7 @@ src/
 │   ├── recordtime.h                #   棋譜の一手の消費時間と累計
 │   ├── matchplayers.h              #   対局者（先手・後手を人間とエンジンのどちらが指すかと、その名前）
 │   ├── handicaps.h                 #   手合割の表（名前・JKF の preset・開始局面）
+│   ├── jishogicalculator.cpp/.h    #   持将棋の点数計算・判定
 │   ├── sfenreplay.cpp/.h           #   局面に USI の1手を指す（applyLenient・positionAfter。合法手かは確かめない）
 │   ├── sfendiffutils.h             #   2つの局面（SFEN）の盤上の差分
 │   ├── terminaltype.cpp/.h         #   終局手の種類と、棋譜に書く終局語の対応
@@ -366,6 +368,7 @@ src/
 │   ├── shiftjiscodec.cpp/.h        #   Shift_JIS（CP932）の変換
 │   ├── kifuexport.cpp/.h           #   形式ごとの書き出しの表（KifuExport::lines。GUI と CLI で共通）
 │   ├── kifuexportmetadata.cpp/.h   #   棋譜出力のヘッダー（対局者・手合割など）
+│   ├── kifupresentation.cpp/.h     #   画面に出す棋譜の表記（指し手・読み筋・終局語。表示言語と表記の設定 NotationStyle に合わせる）
 │   ├── gameinfokeys.h              #   対局情報の項目のキー
 │   ├── considerationpositionresolver.cpp/.h # 検討する局面の決定
 │   ├── kifparsetypes.h             #   棋譜の読み込み結果の型（KifParseResult・KifuParseOutcome・ParseOptions）
@@ -420,6 +423,7 @@ src/
 │   ├── tsumeshogigenerator.cpp/.h  #   詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計。候補の生成・選別・検証・書き出しは tsumeshogi* に分ける）
 │   ├── tsumecandidatejob.cpp/.h    #   詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）
 │   ├── tsumeverificationjob.cpp/.h #   総予算つきの唯一解の検査（生成と CLI の余詰検査で共通）
+│   ├── tsumepositionutil.h         #   詰み探索の position の組み立て（buildPositionForMate。文字列は UsiPosition::commandFor）
 │   ├── positioncollectionfile.cpp/.h # 局面集ファイル（1行1局面）の規則（局面集ビューアと詰将棋問題一覧で共有）
 │   ├── tsumecollection.cpp/.h      #   詰将棋問題集のファイルの読み込みと検証（1行の規則は PositionCollectionFile）
 │   ├── tsumecollectionsession.cpp/.h #  開いている詰将棋の局面集（問題・挑戦状況・絞り込み・手数の判定）
@@ -437,6 +441,12 @@ src/
 │
 ├── navigation/                     # ナビゲーション
 │   └── kifunavigationcontroller.cpp/.h # 棋譜ナビゲーション（局面送りの6つの QAction・分岐）
+│
+├── style/                          # ウィジェットの書体と見た目（QWidget に依存する。navigation の上、models の下の層）
+│   ├── applicationfonts.cpp/.h     #   表示言語に応じた書体
+│   ├── applicationstyle.cpp/.h, applicationrendering.cpp/.h # アプリ全体のスタイルと描画の設定
+│   ├── movefont.h                  #   指し手・読み筋の書体の規則（表のモデルの FontRole と KifuMoveDelegate で共通）
+│   └── buttonstyles.h, tablestyles.h # ボタン・表のスタイルシート
 │
 ├── models/                         # Qtモデルと表示用データ
 │   ├── kifurecordlistmodel.cpp/.h  #   棋譜欄のモデル（行は分岐ツリーのノード）
@@ -478,6 +488,7 @@ src/
 │   ├── tableheaderview.cpp/.h      #   表の見出し。列幅は利用者がドラッグしたときだけ sectionResizedByUser で保存する
 │   ├── incrementaltableview.cpp/.h #   行の追加で表示領域全体を描き直さない表
 │   ├── tablebuttondelegate.cpp/.h  #   表のセルを控えめなボタンとして描くデリゲート
+│   ├── tablemodelutils.h           #   表へのモデルの付け替え（TableModelUtils::setModel。Qt が置き換えた選択モデルを解放する）
 │   ├── itemtext*.cpp/.h, kifumovedelegate, pvtextdelegate, recordhighlightdelegate # 表の文字・現在行の描画
 │   ├── dialogutils.cpp/.h          #   ダイアログの大きさの保存・復元など
 │   ├── fontsizehelper.cpp/.h       #   A-/A+ の文字の大きさ（範囲・保存・変更の通知）
@@ -582,6 +593,7 @@ src/
 │   ├── enginelistsettings.cpp/.h   #   登録エンジン一覧の検索と、機能ごとに選んだエンジンの保存
 │   ├── apppaths.h                  #   設定・データ・キャッシュの置き場所
 │   ├── applicationtranslations.cpp/.h # 起動時の言語と翻訳の読み込み
+│   ├── notationstyle.cpp/.h        #   表示言語と棋譜の表記の設定（NotationStyle。ApplicationTranslations が決め、KifuPresentation が読む）
 │   ├── boardappearance.cpp/.h      #   全盤面に共通する配色（boardappearancecatalog・boardcolorpresets が既定値）
 │   ├── boardappearancecatalog.cpp/.h #  盤・駒台・対局者情報・背景の見本と、おすすめの組み合わせ（Combination）
 │   ├── appearancestate.cpp/.h      #   外観（駒のセット・配色・見た目）をまとめた値 AppearanceState（current()・apply()）
@@ -592,19 +604,16 @@ src/
 │   ├── debugscreenshotshortcut.cpp/.h # F12 でスクリーンショットを撮る（デバッグビルド専用）
 │   └── uinotificationservice.cpp/.h #  エラー通知ダイアログ
 │
-├── common/                         # 共有ユーティリティ
+├── common/                         # 共有の土台（ログ・エラー通知・共有状態など）
 │   ├── appstate.h                  #   部品どうしで共有する状態（動作状態・対局者・上書き保存先）
 │   ├── appactivitystate.h          #   アプリがいま何をしているか（AppActivityState）
-│   ├── kifupresentation.cpp/.h     #   表示用の指し手・座標の表記（言語と表記の設定に合わせる）
-│   ├── applicationfonts.cpp/.h     #   表示言語に応じた書体
-│   ├── movefont.h                  #   指し手・読み筋の書体の規則（表のモデルの FontRole と KifuMoveDelegate で共通）
-│   ├── applicationstyle.cpp/.h, applicationrendering.cpp/.h # アプリ全体のスタイルと描画の設定
-│   ├── boardcolors.h, boardvisuals.h, buttonstyles.h, tablestyles.h # 配色とスタイルシート
+│   ├── boardcolors.h, boardvisuals.h #  盤の配色と質感の値
+│   ├── branchtreeitemroles.h       #   分岐ツリーの描画と自動化で共有する項目のキー
 │   ├── logcategories.cpp/.h        #   ログカテゴリ
 │   ├── errorbus.cpp/.h             #   エラー通知バス
 │   ├── recentfilelist.cpp/.h       #   最近使ったファイルの一覧（新しい順・重複なし・上限つき。定跡・局面集で共通）
-│   ├── jishogicalculator.cpp/.h    #   持将棋点数計算
-│   └── tsumepositionutil.cpp/.h    #   詰将棋局面ユーティリティ
+│   ├── threadtypes.h               #   スレッド間で使う共通型（ジョブの世代番号・キャンセルフラグ）
+│   └── tsumeevaluation.h           #   詰みの判定結果（詰み・不詰・不明と手数・読み筋）
 │
 ├── automation/                     # 自動化 API（--automation）と、CLI と共有する GUI 非依存のサービス
 │   ├── automationserver.cpp/.h     #   QLocalServer で改行区切りの JSON-RPC 2.0 を待ち受け
@@ -641,24 +650,25 @@ src/
 | ディレクトリ | ファイル数 | 行数 | 概要 |
 |-------------|-----------|------|------|
 | `app/` | 23 | 3,049 | メインウィンドウ、エントリーポイント、合成ルート、対局の流れ（`GameSession`） |
-| `core/` | 40 | 5,681 | 純粋ゲームロジック |
+| `core/` | 47 | 5,656 | 純粋ゲームロジック |
 | `game/` | 36 | 2,990 | 対局管理 |
-| `kifu/` | 41 | 4,991 | 棋譜管理（formatsを除く） |
+| `kifu/` | 46 | 5,423 | 棋譜管理（formatsを除く） |
 | `kifu/formats/` | 52 | 7,072 | フォーマット変換器 |
 | `engine/` | 30 | 4,104 | USIエンジン連携 |
-| `analysis/` | 34 | 4,325 | 解析機能 |
+| `analysis/` | 39 | 4,378 | 解析機能 |
 | `network/` | 14 | 3,430 | CSA通信対局 |
 | `navigation/` | 2 | 260 | ナビゲーション |
+| `style/` | 9 | 872 | ウィジェットの書体と見た目（スタイル・ボタンと表のスタイルシート） |
 | `board/` | 6 | 930 | 盤面操作 |
 | `ui/presenters/` | 18 | 1,798 | 表示への反映 |
 | `ui/controllers/` | 30 | 2,786 | 利用者操作の処理 |
 | `ui/coordinators/` | 26 | 3,083 | 複数の部品にまたがる UI の流れ（棋譜の読み書きを含む） |
 | `views/` | 16 | 3,471 | 将棋盤描画 |
-| `widgets/` | 79 | 12,575 | カスタムウィジェット |
+| `widgets/` | 97 | 12,691 | カスタムウィジェット |
 | `dialogs/` | 60 | 13,025 | ダイアログ |
 | `models/` | 16 | 1,718 | Qtモデル・表示用データ |
-| `services/` | 45 | 3,419 | 横断サービス・設定の宣言 |
-| `common/` | 27 | 2,026 | 共有ユーティリティ |
+| `services/` | 51 | 3,988 | 横断サービス・設定の宣言 |
+| `common/` | 13 | 407 | 共有の土台（ログ・エラー通知・共有状態） |
 | `automation/` | 30 | 3,429 | 自動化 API と、CLI と共有するサービス |
 | `cli/` | 11 | 1,208 | `shogiboardq-cli` |
 | **合計** | **636** | **約85,400** | |
@@ -1170,6 +1180,7 @@ graph BT
     ENGINE["engine/<br/>USIエンジン連携"]
     GAME["game/<br/>対局管理"]
     MID["analysis/ ・ network/ ・ navigation/<br/>解析・CSA通信対局・ナビゲーション"]
+    STYLE["style/<br/>ウィジェットの書体・見た目"]
     MODELS["models/<br/>Qtモデル・表示用データ"]
     VIEW["views/ ・ widgets/<br/>盤の描画・部品"]
     BOARD["board/<br/>盤面操作"]
@@ -1182,7 +1193,8 @@ graph BT
     ENGINE --> KIFU
     GAME --> ENGINE
     MID --> GAME
-    MODELS --> MID
+    STYLE --> MID
+    MODELS --> STYLE
     VIEW --> MODELS
     BOARD --> VIEW
     DLG --> BOARD
@@ -1190,7 +1202,7 @@ graph BT
     APP --> UI
 ```
 
-矢印は「上の層が下の層を使ってよい」向きを表す（下の層すべてを使える）。`automation/`（自動化 API と CLI 共有のサービス）と `cli/`（`shogiboardq-cli`）は外側の入口で、`automation/` は `app/`・`dialogs/`・`widgets/` を、`cli/` は GUI の層を参照しない。
+矢印は「上の層が下の層を使ってよい」向きを表す（下の層すべてを使える。ただし `style/` が使えるのは `core/`・`common/`・`services/`・`kifu/` だけで、`engine/`〜`navigation/` は参照しない）。`automation/`（自動化 API と CLI 共有のサービス）と `cli/`（`shogiboardq-cli`）は外側の入口で、`automation/` は `app/`・`dialogs/`・`widgets/` を、`cli/` は GUI の層を参照しない。
 
 #### 各レイヤーの責務
 
@@ -1199,6 +1211,7 @@ graph BT
 | **土台** | `core/`, `common/` | 将棋のルール・盤面・駒・指し手（Qt GUI非依存）と、ログ・エラー通知・共有状態（`AppState`・`AppActivityState`）などの共有部品 |
 | **サービス** | `services/` | 設定の宣言・駒画像・駒音・通知など、層を横断して使う機能 |
 | **ドメイン** | `kifu/`, `engine/`, `game/`, `analysis/`, `network/`, `navigation/` | 棋譜・エンジン通信・対局進行・解析・通信対局・ナビゲーションのロジック。`engine/` は `game/` を知らない（`Usi` は `ShogiGameController` を持たない） |
+| **見た目** | `style/` | QWidget に依存する書体・アプリ全体のスタイル・ボタンと表のスタイルシート（`ApplicationFonts`・`ApplicationStyle`・`ButtonStyles`・`TableStyles`・`MoveFont`） |
 | **表示部品** | `models/`, `views/`, `widgets/`, `board/`, `dialogs/` | Qt のモデル・盤の描画・ウィジェット・盤面操作・ダイアログ |
 | **UI の組み立て** | `ui/`, `app/` | 表示への反映（Presenter）・利用者操作の処理（Controller）・複数の部品にまたがる流れ（Coordinator）と、MainWindow・合成ルート・メニューの接続（`MenuActionsWiring`） |
 
@@ -1213,7 +1226,8 @@ graph BT
 | `kifu/` | `engine/` より上の全部 |
 | `engine/` | `game/` より上の全部 |
 | `game/` | `analysis/`・`network/`・`navigation/` より上の全部 |
-| `analysis/`・`network/`・`navigation/` | 互いと、`models/` より上の全部 |
+| `analysis/`・`network/`・`navigation/` | 互いと、`style/` より上の全部 |
+| `style/` | `engine/`・`game/`・`analysis/`・`network/`・`navigation/` と、`models/` より上の全部 |
 | `models/` | `views/`・`widgets/`・`board/` より上の全部 |
 | `views/`・`widgets/` | `board/`・`dialogs/`・`ui/`・`app/` |
 | `board/` | `dialogs/`・`ui/`・`app/` |
@@ -6259,7 +6273,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | ItemTextDelegate | QStyledItemDelegate | 見た目は QStyledItemDelegate と同じで、項目の文字を `ItemTextPainter` に描かせる（下の各デリゲートの基底） |
 | NumericRightAlignCommaDelegate | ItemTextDelegate | テーブル内の数値を3桁カンマ区切り＋右寄せ表示（思考・検討の表の列0〜3、解析結果の表） |
 | PvTextDelegate | ItemTextDelegate | 読み筋のように長い文字列の列を軽く描く |
-| KifuMoveDelegate | ItemTextDelegate | 指し手の列を、指し手用の字形を選んで描く（エンジン情報欄・定跡ウィンドウなど）。書体の規則は表のモデルの FontRole と同じ `MoveFont`（`src/common/movefont.h`） |
+| KifuMoveDelegate | ItemTextDelegate | 指し手の列を、指し手用の字形を選んで描く（エンジン情報欄・定跡ウィンドウなど）。書体の規則は表のモデルの FontRole と同じ `MoveFont`（`src/style/movefont.h`） |
 | RecordHighlightDelegate | ItemTextDelegate | 棋譜欄・分岐候補欄の現在行の目印とセルの大きさのキャッシュ |
 | TableButtonDelegate | QStyledItemDelegate | 読み筋の「表示」セルを角丸のボタン風に描く（思考・検討の表、解析結果、詰将棋の局面生成の結果） |
 
@@ -8225,7 +8239,7 @@ qt_add_resources(ShogiBoardQ qt_dialog_translations PREFIX "/translations/qt" ..
 │  AppSettings::language() で設定値を取得                     │
 │         │  "system" ならシステムの UI 言語の先頭を使う         │
 │         ▼                                                │
-│  KifuPresentation::resolveLanguage()                     │
+│  NotationStyle::resolveLanguage()                        │
 │         ├── 日本語 → "ja_JP"                               │
 │         ├── 中国語 → 繁体字なら "zh_TW"、それ以外は "zh_CN"   │
 │         └── それ以外 → "en"                                │
@@ -8234,7 +8248,7 @@ qt_add_resources(ShogiBoardQ qt_dialog_translations PREFIX "/translations/qt" ..
 │         │   （:/translations/qt/ → Qt の翻訳ディレクトリ）     │
 │         ├→ アプリ: ShogiBoardQ_<言語>.qm                    │
 │         │   （実行ファイルと同じディレクトリ）                  │
-│         └→ 棋譜表記の設定: KifuPresentation::configure()     │
+│         └→ 棋譜表記の設定: NotationStyle::configure()        │
 │                                                          │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -8252,7 +8266,7 @@ configureApplicationAppearance(a, translations.language());  // フォントも�
 
 ```cpp
 const QStringList systemLanguages = QLocale::system().uiLanguages();
-m_language = KifuPresentation::resolveLanguage(AppSettings::language(),
+m_language = NotationStyle::resolveLanguage(AppSettings::language(),
     systemLanguages.isEmpty() ? QLocale::system().name() : systemLanguages.first());
 
 // Qt 標準ダイアログの翻訳（日本語は "ja"）
@@ -8268,8 +8282,10 @@ else
     qCWarning(lcApp) << "Translation file not found:" << m_language;
 
 // 棋譜の表記（漢数字か英字か、など）は言語と表記の設定から決める
-KifuPresentation::configure(m_language, AppSettings::moveNotation(), AppSettings::notationOrigin());
+NotationStyle::configure(m_language, AppSettings::moveNotation(), AppSettings::notationOrigin());
 ```
+
+表示言語と表記の設定は services の `NotationStyle`（`src/services/notationstyle.h`）が持つ。`ApplicationTranslations` は kifu を参照しない。画面の表記を作る `KifuPresentation`（`src/kifu/kifupresentation.h`）は `NotationStyle::options()` を読み、`KifuPresentation::Notation`・`Options` は `NotationStyle` の型の別名、`configure()`・`options()`・`revision()`・`resolveLanguage()` は `NotationStyle` へ転送する。日本語表記の指し手は棋譜と同じ `KifMoveText`、段の漢数字は `ShogiNotation` で作る。英語表記で移動元を付けるかは KI2 の修飾語と同じ判定（`Ki2MoveNotation::annotate()` が返す `Annotation::sources`。合法手で決めるので、ピンされて動けない駒は数えない）で決める。
 
 言語は日本語・英語・簡体字・繁体字のいずれかに必ず決まる。日本語のときも `ShogiBoardQ_ja_JP.qm` を読み込む（訳は原文と同じ）。`QTranslator` は `ApplicationTranslations` のメンバなので、破棄するとアプリケーションへの登録も外れる。
 
@@ -8516,14 +8532,16 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 │
 ├─ 設定・永続化・横断サービス ──→ src/services/
 │
+├─ ウィジェットの書体・アプリのスタイル・スタイルシート ──→ src/style/
+│
 ├─ 自動化 API、CLI と共有する GUI 非依存のサービス ──→ src/automation/
 │
 ├─ CLI（shogiboardq-cli）のコマンド ──→ src/cli/
 │
-└─ 共通ユーティリティ ──→ src/common/
+└─ ログ・エラー通知・共有状態などの土台 ──→ src/common/
 ```
 
-置き場所は層の規則にも合わせる。下の層は上の層を `#include` しない。下から順に core・common → services → kifu → engine → game → analysis・network・navigation → models → views・widgets → board → dialogs → ui → app で、automation・cli は外側の入口である（analysis・network・navigation は互いを参照しない）。`tests/tst_layer_dependencies.cpp` が `#include` を調べて確かめる（§3.2）。たとえば game のクラスは ui の部品を知らないので、表示や棋譜への反映はシグナルか、上の層が実装するインターフェース（司令塔の棋譜の受け手 `MatchRecordSink` を app の `GameSession` が実装する、など）で知らせる。
+置き場所は層の規則にも合わせる。下の層は上の層を `#include` しない。下から順に core・common → services → kifu → engine → game → analysis・network・navigation → style → models → views・widgets → board → dialogs → ui → app で、automation・cli は外側の入口である（analysis・network・navigation は互いを参照しない）。`tests/tst_layer_dependencies.cpp` が `#include` を調べて確かめる（§3.2）。たとえば game のクラスは ui の部品を知らないので、表示や棋譜への反映はシグナルか、上の層が実装するインターフェース（司令塔の棋譜の受け手 `MatchRecordSink` を app の `GameSession` が実装する、など）で知らせる。
 
 #### 今回の例: 棋譜タグ機能
 
@@ -9250,7 +9268,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | HumanVsHumanStrategy | C | game | 人間対人間の Strategy | 第6章 |
 | InterruptedGameState | S | game | 中断したローカル対局の状態（アプリ起動中だけ保持する） | 第6章 |
 | ItemTextDelegate | C | widgets | 項目の文字を、配置を覚えて描くデリゲート | 第11章 |
-| JishogiCalculator | C | common | 持将棋の点数計算・判定 | 第12章 |
+| JishogiCalculator | C | core | 持将棋の点数計算・判定 | 第12章 |
 | JishogiScoreDialog | C | dialogs | 持将棋の点数ダイアログ（`showFor()` が局面から点数と王手を計算して開く） | 第10章 |
 | JkfExporter | C | kifu/formats | JKF形式の書き出し | 第8章 |
 | JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |
@@ -9293,6 +9311,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuNavigationState | C | kifu | 表示中のノードと手順。変わると `changed()` を出す | 第8章, 第13章 |
 | KifuParseOutcome | S | kifu | 形式ごとの `parse()` が返す1回の解析の結果（棋譜・開始局面・手合割・対局情報・警告） | 第8章 |
 | KifuPasteDialog | C | dialogs | 棋譜ペーストダイアログ | 第11章 |
+| KifuPresentation | NS | kifu | 画面に出す棋譜の表記（指し手・読み筋・終局語・対局情報の見出しと値）を表示言語と表記の設定（`NotationStyle`）に合わせて作る。日本語は `KifMoveText`、英語表記の移動元の要否は `Ki2MoveNotation::annotate()` の `sources` | 第11章, 第16章 |
 | KifuRecordListModel | C | models | 棋譜レコードリストモデル | 第11章 |
 | KifuSaveCoordinator | NS | ui/coordinators | 棋譜の保存で利用者に聞くこと（保存先・未保存の確認など） | 第8章 |
 | KifuSaveFile | NS | kifu | 棋譜の保存形式（拡張子）とファイルへの書き出し | 第8章 |
@@ -9325,7 +9344,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
 | MenuWindow | C | dialogs | メニュー項目をボタンで並べるウィンドウ | 第11章 |
 | MenuWindowController | C | ui/controllers | メニューウィンドウの表示と、押されたボタンの項目の通知 | 第10章 |
-| MoveFont | NS | common | 指し手・読み筋の書体の規則（表のモデルの FontRole と `KifuMoveDelegate` で共通。ヘッダーオンリー） | 第11章 |
+| MoveFont | NS | style | 指し手・読み筋の書体の規則（表のモデルの FontRole と `KifuMoveDelegate` で共通。ヘッダーオンリー） | 第11章 |
+| NotationStyle | NS | services | 表示言語と棋譜の表記の設定（`configure()`・`options()`・`revision()`・`resolveLanguage()`。`ApplicationTranslations` が決め、`KifuPresentation` が読む） | 第16章 |
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
 | NyugyokuDeclarationHandler | C | ui/controllers | 利用者の入玉宣言（確認・宣言・結果の表示。`GameChannel` 経由でローカル対局・通信対局に共通） | 第10章 |
 | OperationSpec | S | automation | 操作1つ（CLI のコマンド・自動化 API のメソッド）の名前・説明・引数の表 | 第14章 |
@@ -9389,7 +9409,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TimeDisplayPresenter | C | ui/presenters | 時計の表示の更新（`ShogiClock::timeUpdated` を直接受ける） | 第10章 |
 | TsumeCandidateJob | C | analysis | 詰将棋の候補1つを採択か棄却まで進める（手数の確認・唯一解の検査・要らない駒の除去） | 第9章 |
 | TsumeCollectionSession | C | analysis | 詰将棋集の進捗・解析待ちの管理 | 第9章 |
-| TsumePositionUtil | C | common | 詰将棋局面のユーティリティ | 第9章, 第12章 |
+| TsumePositionUtil | C | analysis | 詰み探索の position の組み立て（`buildPositionForMate()`。文字列は `UsiPosition::commandFor()` で作る。ヘッダーオンリー） | 第9章 |
 | TsumeSearchController | C | ui/controllers | 詰み探索（メニューの「詰み探索」: 条件ダイアログを出して表示中の局面を探索する） | 第9章 |
 | TsumeshogiGenerator | C | analysis | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） | 第9章 |
 | TsumeShogiSearchDialog | C | dialogs | 詰将棋探索ダイアログ | 第11章 |
@@ -9444,6 +9464,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | terminaltype | 第8章 | 終局手の種類と終局語の対応表 |
 | boardcoordinates | 第5章 | 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応 |
 | handicaps | 第8章 | 手合割（名前・JKF の preset・開始局面）の表 |
+| jishogicalculator | 第10章, 第12章 | 持将棋の点数計算・判定 |
 | timecontrol | 第5章, 第6章 | 持ち時間の決まり（持ち時間・秒読み・加算・遅延）の値型 |
 | usiscore | 第7章 | USI の評価値（score cp / score mate とその境界） |
 
@@ -9512,6 +9533,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifuloadparser | 第8章 | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） |
 | recordentry | 第8章 | 棋譜の1行（指した手か終局） |
 | shiftjiscodec | 第8章 | Shift_JIS（CP932）の変換（ICU のない Qt でも使える） |
+| kifupresentation | 第11章, 第16章 | 画面に出す棋譜の表記（表示言語と表記の設定に合わせる） |
 
 #### kifu/formats/（第8章）
 
@@ -9550,6 +9572,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | tsumeshogigenerator | 第9章 | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） |
 | tsumecandidatejob | 第9章 | 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去） |
 | tsumeverificationjob | 第9章 | 総予算つきの唯一解の検査（生成と CLI の余詰検査で共通） |
+| tsumepositionutil | 第9章 | 詰み探索の position の組み立て（`UsiPosition::commandFor()` で作る） |
 
 棋譜解析・検討・詰み探索の操作は `ui/controllers/`（`KifuAnalysisController`・`ConsiderationUiController`・`TsumeSearchController`）、解析結果の表示は `widgets/`（`AnalysisResultsPanel`）と `ui/presenters/`、解析結果のモデルは `models/` にある。
 
@@ -9569,6 +9592,16 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | kifunavigationcontroller | 第13章 | ナビゲーション制御 |
+
+#### style/（第11章, 第16章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| applicationfonts | 第16章 | 表示言語に応じた書体 |
+| applicationstyle / applicationrendering | 第11章 | アプリ全体のスタイルと描画の設定 |
+| movefont | 第11章 | 指し手・読み筋の書体の規則 |
+| buttonstyles | 第11章 | ボタンの役割ごとのスタイルシート（`docs/dev/button-color-scheme.md`） |
+| tablestyles | 第11章 | 表のスタイルシート |
 
 #### board/（第13章）
 
@@ -9675,6 +9708,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | thinkingtableview | 第11章 | 思考の表（`PvTableView` の派生。対局のエンジン2つと検討タブで共用。列幅） |
 | csalogpanel | 第11章, 第12章 | CSA通信ログドックの中身（通信ログ・接続状態・手入力のコマンド） |
 | itemtextdelegate | 第11章 | 項目の文字を、配置を覚えて描くデリゲート |
+| tablemodelutils | 第11章 | 表へのモデルの付け替え（Qt が置き換えた選択モデルを解放する） |
 | tablebuttondelegate | 第11章 | 表のセルを控えめなボタンとして描画する（読み筋の盤面・定跡手の着手と編集など） |
 | usilogpanel | 第7章, 第11章 | USI通信ログドックの中身 |
 
@@ -9727,6 +9761,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | settingsservice | 第12章 | ドメイン別設定ヘッダーをまとめて取り込むだけのヘッダー |
 | enginesettingsconstants | 第1章, 第7章 | エンジン設定の定数 |
 | applicationtranslations | 第16章 | 起動時の言語の決定と翻訳ファイルの読み込み |
+| notationstyle | 第16章 | 表示言語と棋譜の表記の設定（`NotationStyle`） |
 | apppaths | 第12章 | 設定・データ・キャッシュの置き場所（環境変数で別の場所へ切り替えられる） |
 | engineprofilestore | 第7章 | 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所 |
 | engineoption | 第7章 | USIオプション1つの値（`EngineOption`） |
@@ -9742,11 +9777,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | appstate | 第14章 | 部品どうしで共有する状態（`AppState`） |
 | appactivitystate | 第3章, 第14章 | アプリの動作状態（`AppActivityState`） |
-| movefont | 第11章 | 指し手・読み筋の書体の規則 |
 | errorbus | 第4章, 第12章 | エラー通知バス |
+| logcategories | 第4章 | ログカテゴリ |
 | recentfilelist | 第11章 | 最近使ったファイルの一覧 |
-| jishogicalculator | 第12章 | 持将棋点数計算 |
-| tsumepositionutil | 第9章, 第12章 | 詰将棋局面ユーティリティ |
+| boardcolors / boardvisuals | 第12章 | 盤の配色と質感の値 |
+| branchtreeitemroles | 第13章 | 分岐ツリーの描画と自動化で共有する項目のキー |
+| threadtypes | 第9章 | スレッド間で使う共通型（ジョブの世代番号・キャンセルフラグ） |
+| tsumeevaluation | 第9章 | 詰みの判定結果 |
 
 #### app/（第1章, 第3章, 第14章）
 
