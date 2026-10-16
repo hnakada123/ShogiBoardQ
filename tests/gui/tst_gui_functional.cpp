@@ -323,15 +323,17 @@ public slots:
                 QVERIFY(moveDialog);
                 auto* buttons = d->findChild<QDialogButtonBox*>();
                 QVERIFY(buttons);
+                JosekiMove entry = moveDialog->entry();
                 if (dialogMode == "joseki-add") {
                     QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());
-                    moveDialog->setMove(QStringLiteral("2g2f"));
+                    entry.move = QStringLiteral("2g2f");
                 } else {
-                    QCOMPARE(moveDialog->move(), QStringLiteral("7g7f"));
+                    QCOMPARE(entry.move, QStringLiteral("7g7f"));
                     auto* reply = d->findChild<JosekiMoveInputWidget*>("nextMoveInput");
                     QVERIFY(reply && reply->isVisible());
                 }
-                moveDialog->setNextMove(QStringLiteral("8c8d"));
+                entry.nextMove = QStringLiteral("8c8d");
+                moveDialog->setEntry(entry);
                 QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
                 QCoreApplication::processEvents();
                 QVERIFY(d->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/") + dialogMode + ".png"));

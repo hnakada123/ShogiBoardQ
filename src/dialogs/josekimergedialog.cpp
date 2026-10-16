@@ -2,10 +2,10 @@
 /// @brief 定跡統合ダイアログクラスの実装
 
 #include "josekimergedialog.h"
+#include "josekibook.h"
 #include "dialogfontscale.h"
 #include "fontsizehelper.h"
 #include <QSet>
-#include "sfenutils.h"
 #include "kifumovedelegate.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
@@ -142,7 +142,7 @@ void JosekiMergeDialog::setKifuData(const QList<KifuMergeEntry> &entries)
     updateTable();
 }
 
-void JosekiMergeDialog::setRegisteredMoves(const QSet<QString> &registeredMoves)
+void JosekiMergeDialog::setRegisteredMoves(const QSet<JosekiMoveKey> &registeredMoves)
 {
     m_registeredMoves = registeredMoves;
     updateTable();
@@ -233,7 +233,7 @@ bool JosekiMergeDialog::registerEntries(const QList<KifuMergeEntry> &entries)
 {
     if (!isEnabled() || !m_registrar || entries.isEmpty() || !m_registrar(entries)) return false;
     for (const KifuMergeEntry &entry : entries)
-        m_registeredMoves.insert(normalizeSfen(entry.sfen) + QLatin1Char(':') + entry.usiMove);
+        m_registeredMoves.insert(moveKey(entry));
     return true;
 }
 
@@ -246,9 +246,9 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
     if (!isEnabled()) return;
 
     QList<KifuMergeEntry> pending;
-    QSet<QString> pendingKeys;
+    QSet<JosekiMoveKey> pendingKeys;
     for (const KifuMergeEntry &entry : std::as_const(m_entries)) {
-        const QString key = normalizeSfen(entry.sfen) + QLatin1Char(':') + entry.usiMove;
+        const JosekiMoveKey key = moveKey(entry);
         if (isRegistered(entry.sfen, entry.usiMove) || pendingKeys.contains(key)) continue;
         pendingKeys.insert(key);
         pending.append(entry);
@@ -270,15 +270,12 @@ void JosekiMergeDialog::fitRowsToFont()
     m_tableWidget->resizeColumnsToContents();
 }
 
-QString JosekiMergeDialog::normalizeSfen(const QString &sfen) const
+JosekiMoveKey JosekiMergeDialog::moveKey(const KifuMergeEntry &entry)
 {
-    // 手数を除き、持ち駒の並びをそろえる（盤面 手番 持ち駒）
-    return SfenUtils::normalizeSfenKey(sfen);
+    return {JosekiBook::positionKey(entry.sfen), entry.usiMove};
 }
 
 bool JosekiMergeDialog::isRegistered(const QString &sfen, const QString &usiMove) const
 {
-    QString normalizedSfen = normalizeSfen(sfen);
-    QString key = normalizedSfen + QStringLiteral(":") + usiMove;
-    return m_registeredMoves.contains(key);
+    return m_registeredMoves.contains({JosekiBook::positionKey(sfen), usiMove});
 }

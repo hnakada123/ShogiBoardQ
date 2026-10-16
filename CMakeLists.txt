@@ -386,11 +386,10 @@ set(SRC_KIFU
     src/kifu/gameinfokeys.h
     src/kifu/josekibooksession.cpp
     src/kifu/josekibooksession.h
-    src/kifu/josekiioresult.h
+    src/kifu/josekibook.cpp
+    src/kifu/josekibook.h
     src/kifu/josekimergeentries.cpp
     src/kifu/josekimergeentries.h
-    src/kifu/josekirepository.cpp
-    src/kifu/josekirepository.h
     src/kifu/josekitypes.h
     src/kifu/kifparsetypes.h
     src/kifu/kifreader.cpp

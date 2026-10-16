@@ -1,5 +1,5 @@
-/// @file tst_joseki_repository.cpp
-/// @brief 定跡リポジトリ・プレゼンターテスト
+/// @file tst_joseki_book.cpp
+/// @brief 定跡のデータ（JosekiBook）とファイルの読み書き、定跡ウィンドウの表記のテスト
 
 #include <QtTest>
 #include <QTemporaryDir>
@@ -12,12 +12,12 @@
 #include <sys/resource.h>
 #endif
 
-#include "josekirepository.h"
+#include "josekibook.h"
 #include "josekibooksession.h"
 #include "josekitablemodel.h"
 #include "josekitypes.h"
 
-class TestJosekiRepository : public QObject
+class TestJosekiBook : public QObject
 {
     Q_OBJECT
 
@@ -44,17 +44,17 @@ private slots:
     void addMove_addsToPosition();
     void addMove_multipleMovesToSamePosition();
     void updateMove_changesValues();
-    void deleteMove_removesAtIndex();
-    void deleteMove_removesPositionWhenEmpty();
-    void removeMoveByUsi_removesMatching();
+    void removeMove_removesMatching();
+    void removeMove_removesPositionWhenEmpty();
+    void removeMove_byUsi();
     void clear_resetsAll();
-    void containsPosition_false_forUnknown();
-    void movesForPosition_returnsEmptyForUnknown();
+    void find_nullForUnknown();
+    void movesAt_returnsEmptyForUnknown();
 
     // --- File I/O ---
     void saveAndLoad_roundTrip();
-    void parseFromFile_invalidPath_failsGracefully();
-    void serializeToFile_writesExpectedFormat();
+    void load_invalidPath_failsGracefully();
+    void save_writesExpectedFormat();
     void saveAndLoad_emptyBook();
     void failedSave_preservesOriginal();
     void saveFailureChild();
@@ -65,7 +65,7 @@ private slots:
     // --- Merge ---
     void registerMergeMove_newEntry_addsWithFrequency1();
     void registerMergeMove_existing_incrementsFrequency();
-    void ensureSfenWithPly_registersOnce();
+    void putMove_keepsFirstRegisteredSfen();
 
     // --- 局面のキー・表記・重複（JosekiBookSession・JosekiTableModel） ---
     void normalizeSfen_removesPlyNumber();
@@ -75,35 +75,35 @@ private slots:
     void hasDuplicateMove_false();
 };
 
-const QString TestJosekiRepository::kHirateSfen =
+const QString TestJosekiBook::kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
 
-const QString TestJosekiRepository::kHirateSfenWithPly =
+const QString TestJosekiBook::kHirateSfenWithPly =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
 // =============================================================
 // CRUD テスト
 // =============================================================
 
-void TestJosekiRepository::initialState_isEmpty()
+void TestJosekiBook::initialState_isEmpty()
 {
-    JosekiRepository repo;
+    JosekiBook repo;
     QVERIFY(repo.isEmpty());
     QCOMPARE(repo.positionCount(), 0);
 }
 
-void TestJosekiRepository::addMove_addsToPosition()
+void TestJosekiBook::addMove_addsToPosition()
 {
-    JosekiRepository repo;
+    JosekiBook repo;
     JosekiMove m = makeMove(QStringLiteral("7g7f"), 30, 10, 5);
 
-    repo.addMove(kHirateSfen, m);
+    repo.putMove(kHirateSfen, m);
 
     QVERIFY(!repo.isEmpty());
     QCOMPARE(repo.positionCount(), 1);
-    QVERIFY(repo.containsPosition(kHirateSfen));
+    QVERIFY(repo.find(kHirateSfen));
 
-    const QList<JosekiMove> &moves = repo.movesForPosition(kHirateSfen);
+    const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves[0].move, QStringLiteral("7g7f"));
     QCOMPARE(moves[0].value, 30);
@@ -111,30 +111,30 @@ void TestJosekiRepository::addMove_addsToPosition()
     QCOMPARE(moves[0].frequency, 5);
 }
 
-void TestJosekiRepository::addMove_multipleMovesToSamePosition()
+void TestJosekiBook::addMove_multipleMovesToSamePosition()
 {
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("2g2f")));
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("5g5f")));
+    JosekiBook repo;
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f")));
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("5g5f")));
 
     QCOMPARE(repo.positionCount(), 1);
 
-    const QList<JosekiMove> &moves = repo.movesForPosition(kHirateSfen);
+    const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 3);
     QCOMPARE(moves[0].move, QStringLiteral("7g7f"));
     QCOMPARE(moves[1].move, QStringLiteral("2g2f"));
     QCOMPARE(moves[2].move, QStringLiteral("5g5f"));
 }
 
-void TestJosekiRepository::updateMove_changesValues()
+void TestJosekiBook::updateMove_changesValues()
 {
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 10, 5, 1, QStringLiteral("old")));
+    JosekiBook repo;
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 10, 5, 1, QStringLiteral("old")));
 
-    repo.updateMove(kHirateSfen, QStringLiteral("7g7f"), 100, 20, 50, QStringLiteral("new comment"));
+    QVERIFY(repo.updateMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 100, 20, 50, QStringLiteral("new comment"))));
 
-    const QList<JosekiMove> &moves = repo.movesForPosition(kHirateSfen);
+    const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves[0].value, 100);
     QCOMPARE(moves[0].depth, 20);
@@ -142,73 +142,71 @@ void TestJosekiRepository::updateMove_changesValues()
     QCOMPARE(moves[0].comment, QStringLiteral("new comment"));
 }
 
-void TestJosekiRepository::deleteMove_removesAtIndex()
+void TestJosekiBook::removeMove_removesMatching()
 {
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("2g2f")));
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("5g5f")));
+    JosekiBook repo;
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f")));
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("5g5f")));
 
-    repo.deleteMove(kHirateSfen, 1);  // 2g2f を削除
+    QVERIFY(repo.removeMove(kHirateSfen, QStringLiteral("2g2f")));
 
-    const QList<JosekiMove> &moves = repo.movesForPosition(kHirateSfen);
+    const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 2);
     QCOMPARE(moves[0].move, QStringLiteral("7g7f"));
     QCOMPARE(moves[1].move, QStringLiteral("5g5f"));
 }
 
-void TestJosekiRepository::deleteMove_removesPositionWhenEmpty()
+void TestJosekiBook::removeMove_removesPositionWhenEmpty()
 {
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
-    repo.ensureSfenWithPly(kHirateSfen, kHirateSfenWithPly);
+    JosekiBook repo;
+    repo.putMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f")));
 
-    repo.deleteMove(kHirateSfen, 0);
+    QVERIFY(repo.removeMove(kHirateSfen, QStringLiteral("7g7f")));
 
-    QVERIFY(!repo.containsPosition(kHirateSfen));
+    // 最後の定跡手を消すと局面（登録したときの SFEN も）も消える
+    QVERIFY(!repo.find(kHirateSfen));
     QVERIFY(repo.isEmpty());
-    // sfenWithPlyMap もクリアされている
-    QVERIFY(repo.sfenWithPly(kHirateSfen).isEmpty());
+    QVERIFY(!repo.removeMove(kHirateSfen, QStringLiteral("7g7f")));
 }
 
-void TestJosekiRepository::removeMoveByUsi_removesMatching()
+void TestJosekiBook::removeMove_byUsi()
 {
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("2g2f")));
+    JosekiBook repo;
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f")));
 
-    repo.removeMoveByUsi(kHirateSfen, QStringLiteral("7g7f"));
+    QVERIFY(repo.removeMove(kHirateSfen, QStringLiteral("7g7f")));
 
-    const QList<JosekiMove> &moves = repo.movesForPosition(kHirateSfen);
+    const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves[0].move, QStringLiteral("2g2f"));
 }
 
-void TestJosekiRepository::clear_resetsAll()
+void TestJosekiBook::clear_resetsAll()
 {
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
-    repo.ensureSfenWithPly(kHirateSfen, kHirateSfenWithPly);
-    repo.mergeRegisteredMoves().insert(QStringLiteral("test:key"));
+    JosekiBook repo;
+    repo.putMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f")));
+    repo.registerMergeMove(kHirateSfenWithPly, QStringLiteral("2g2f"));
 
     repo.clear();
 
     QVERIFY(repo.isEmpty());
     QCOMPARE(repo.positionCount(), 0);
-    QVERIFY(repo.sfenWithPly(kHirateSfen).isEmpty());
-    QVERIFY(repo.mergeRegisteredMoves().isEmpty());
+    QVERIFY(!repo.find(kHirateSfen));
+    QVERIFY(repo.mergeRegistered().isEmpty());
 }
 
-void TestJosekiRepository::containsPosition_false_forUnknown()
+void TestJosekiBook::find_nullForUnknown()
 {
-    JosekiRepository repo;
-    QVERIFY(!repo.containsPosition(QStringLiteral("unknown/sfen b -")));
+    JosekiBook repo;
+    QVERIFY(!repo.find(QStringLiteral("unknown/sfen b -")));
 }
 
-void TestJosekiRepository::movesForPosition_returnsEmptyForUnknown()
+void TestJosekiBook::movesAt_returnsEmptyForUnknown()
 {
-    JosekiRepository repo;
-    const QList<JosekiMove> &moves = repo.movesForPosition(QStringLiteral("unknown/sfen b -"));
+    JosekiBook repo;
+    const QList<JosekiMove> &moves = repo.movesAt(QStringLiteral("unknown/sfen b -"));
     QVERIFY(moves.isEmpty());
 }
 
@@ -216,38 +214,38 @@ void TestJosekiRepository::movesForPosition_returnsEmptyForUnknown()
 // ファイル I/O テスト
 // =============================================================
 
-void TestJosekiRepository::saveAndLoad_roundTrip()
+void TestJosekiBook::saveAndLoad_roundTrip()
 {
     QTemporaryDir tmpDir;
     QVERIFY(tmpDir.isValid());
     const QString filePath = tmpDir.path() + QStringLiteral("/test_joseki.db");
 
     // 保存用データを準備
-    JosekiRepository repoSave;
-    repoSave.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 100, QStringLiteral("角道")));
-    repoSave.addMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), -10, 8, 50));
-    repoSave.ensureSfenWithPly(kHirateSfen, kHirateSfenWithPly);
+    JosekiBook repoSave;
+    repoSave.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 100, QStringLiteral("角道")));
+    repoSave.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), -10, 8, 50));
 
     // 別の局面も追加
     const QString secondSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w -");
-    repoSave.addMove(secondSfen, makeMove(QStringLiteral("3c3d"), 0, 5, 20));
+    repoSave.putMove(secondSfen, makeMove(QStringLiteral("3c3d"), 0, 5, 20));
 
     // 保存
-    QString errorMsg;
-    QVERIFY(repoSave.saveToFile(filePath, &errorMsg));
-    QVERIFY(errorMsg.isEmpty());
+    const JosekiSaveResult saved = JosekiBookFile::save(filePath, repoSave);
+    QVERIFY(saved.success);
+    QVERIFY(saved.errorMessage.isEmpty());
 
     // 読み込み
-    JosekiRepository repoLoad;
-    QVERIFY(repoLoad.loadFromFile(filePath, &errorMsg));
-    QVERIFY(errorMsg.isEmpty());
+    const JosekiLoadResult loaded = JosekiBookFile::load(filePath);
+    QVERIFY(loaded.success);
+    const JosekiBook &repoLoad = loaded.book;
+    QCOMPARE(repoLoad.find(kHirateSfen)->sfen, kHirateSfen + QStringLiteral(" 1"));
 
     // 検証
     QCOMPARE(repoLoad.positionCount(), 2);
-    QVERIFY(repoLoad.containsPosition(kHirateSfen));
-    QVERIFY(repoLoad.containsPosition(secondSfen));
+    QVERIFY(repoLoad.find(kHirateSfen));
+    QVERIFY(repoLoad.find(secondSfen));
 
-    const QList<JosekiMove> &hirateMoves = repoLoad.movesForPosition(kHirateSfen);
+    const QList<JosekiMove> &hirateMoves = repoLoad.movesAt(kHirateSfen);
     QCOMPARE(hirateMoves.size(), 2);
     QCOMPARE(hirateMoves[0].move, QStringLiteral("7g7f"));
     QCOMPARE(hirateMoves[0].value, 30);
@@ -258,31 +256,28 @@ void TestJosekiRepository::saveAndLoad_roundTrip()
     QCOMPARE(hirateMoves[1].value, -10);
     QCOMPARE(hirateMoves[1].frequency, 50);
 
-    const QList<JosekiMove> &secondMoves = repoLoad.movesForPosition(secondSfen);
+    const QList<JosekiMove> &secondMoves = repoLoad.movesAt(secondSfen);
     QCOMPARE(secondMoves.size(), 1);
     QCOMPARE(secondMoves[0].move, QStringLiteral("3c3d"));
 }
 
-void TestJosekiRepository::parseFromFile_invalidPath_failsGracefully()
+void TestJosekiBook::load_invalidPath_failsGracefully()
 {
-    JosekiLoadResult result = JosekiRepository::parseFromFile(QStringLiteral("/nonexistent/path/joseki.db"));
+    JosekiLoadResult result = JosekiBookFile::load(QStringLiteral("/nonexistent/path/joseki.db"));
     QVERIFY(!result.success);
     QVERIFY(!result.errorMessage.isEmpty());
 }
 
-void TestJosekiRepository::serializeToFile_writesExpectedFormat()
+void TestJosekiBook::save_writesExpectedFormat()
 {
     QTemporaryDir tmpDir;
     QVERIFY(tmpDir.isValid());
     const QString filePath = tmpDir.path() + QStringLiteral("/format_test.db");
 
-    QMap<QString, QList<JosekiMove>> data;
-    data[kHirateSfen].append(makeMove(QStringLiteral("7g7f"), 30, 10, 100));
+    JosekiBook book;
+    book.putMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f"), 30, 10, 100));
 
-    QMap<QString, QString> sfenMap;
-    sfenMap[kHirateSfen] = kHirateSfenWithPly;
-
-    JosekiSaveResult result = JosekiRepository::serializeToFile(filePath, data, sfenMap);
+    JosekiSaveResult result = JosekiBookFile::save(filePath, book);
     QVERIFY(result.success);
     QCOMPARE(result.savedCount, 1);
 
@@ -304,68 +299,70 @@ void TestJosekiRepository::serializeToFile_writesExpectedFormat()
 // マージ操作テスト
 // =============================================================
 
-void TestJosekiRepository::registerMergeMove_newEntry_addsWithFrequency1()
+void TestJosekiBook::registerMergeMove_newEntry_addsWithFrequency1()
 {
-    JosekiRepository repo;
+    JosekiBook repo;
 
-    repo.registerMergeMove(kHirateSfen, kHirateSfenWithPly, QStringLiteral("7g7f"));
+    repo.registerMergeMove(kHirateSfenWithPly, QStringLiteral("7g7f"));
 
-    QVERIFY(repo.containsPosition(kHirateSfen));
-    const QList<JosekiMove> &moves = repo.movesForPosition(kHirateSfen);
+    QVERIFY(repo.find(kHirateSfen));
+    const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves[0].move, QStringLiteral("7g7f"));
     QCOMPARE(moves[0].frequency, 1);
     QCOMPARE(moves[0].nextMove, QStringLiteral("none"));
 
     // マージ登録済みセットに記録されている
-    QVERIFY(repo.mergeRegisteredMoves().contains(kHirateSfen + QStringLiteral(":7g7f")));
+    QVERIFY(repo.isMergeRegistered(kHirateSfenWithPly, QStringLiteral("7g7f")));
+    QVERIFY(repo.mergeRegistered().contains({kHirateSfen, QStringLiteral("7g7f")}));
 
-    // sfenWithPly が登録されている
-    QCOMPARE(repo.sfenWithPly(kHirateSfen), kHirateSfenWithPly);
+    // 局面は登録したときの手数付きの SFEN で覚える
+    QCOMPARE(repo.find(kHirateSfen)->sfen, kHirateSfenWithPly);
 }
 
-void TestJosekiRepository::registerMergeMove_existing_incrementsFrequency()
+void TestJosekiBook::registerMergeMove_existing_incrementsFrequency()
 {
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 5));
+    JosekiBook repo;
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 5));
 
-    repo.registerMergeMove(kHirateSfen, kHirateSfenWithPly, QStringLiteral("7g7f"));
+    repo.registerMergeMove(kHirateSfenWithPly, QStringLiteral("7g7f"));
 
-    const QList<JosekiMove> &moves = repo.movesForPosition(kHirateSfen);
+    const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves[0].frequency, 6);  // 5 + 1
 }
 
-void TestJosekiRepository::ensureSfenWithPly_registersOnce()
+void TestJosekiBook::putMove_keepsFirstRegisteredSfen()
 {
-    JosekiRepository repo;
+    JosekiBook repo;
     const QString ply1 = kHirateSfenWithPly;
     const QString ply2 = kHirateSfen + QStringLiteral(" 99");
 
-    repo.ensureSfenWithPly(kHirateSfen, ply1);
-    repo.ensureSfenWithPly(kHirateSfen, ply2);  // 二回目は無視される
+    repo.putMove(ply1, makeMove(QStringLiteral("7g7f")));
+    repo.putMove(ply2, makeMove(QStringLiteral("2g2f")));  // 局面の SFEN は最初に登録したもの
 
-    QCOMPARE(repo.sfenWithPly(kHirateSfen), ply1);
+    QCOMPARE(repo.find(kHirateSfen)->sfen, ply1);
+    QCOMPARE(repo.movesAt(ply2).size(), 2);
 }
 
 // =============================================================
 // 局面のキー・表記・重複のテスト
 // =============================================================
 
-void TestJosekiRepository::normalizeSfen_removesPlyNumber()
+void TestJosekiBook::normalizeSfen_removesPlyNumber()
 {
     const QString input = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     const QString expected = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
     QCOMPARE(JosekiBookSession::positionKey(input), expected);
 }
 
-void TestJosekiRepository::normalizeSfen_alreadyNormalized()
+void TestJosekiBook::normalizeSfen_alreadyNormalized()
 {
     const QString input = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
     QCOMPARE(JosekiBookSession::positionKey(input), input);
 }
 
-void TestJosekiRepository::usiMoveToJapanese_promotedPiecesUseRecordNames()
+void TestJosekiBook::usiMoveToJapanese_promotedPiecesUseRecordNames()
 {
     // 成香・成桂・成銀は棋譜欄と同じく2文字で書く
     QCOMPARE(JosekiTableModel::moveText(QStringLiteral("4f5e"), QStringLiteral("4k4/9/9/9/9/5+L3/9/9/4K4 b - 1")),
@@ -376,7 +373,7 @@ void TestJosekiRepository::usiMoveToJapanese_promotedPiecesUseRecordNames()
              QStringLiteral("▲６二銀成(73)"));
 }
 
-void TestJosekiRepository::hasDuplicateMove_true()
+void TestJosekiBook::hasDuplicateMove_true()
 {
     JosekiBookSession session;
     session.addMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f")));
@@ -384,7 +381,7 @@ void TestJosekiRepository::hasDuplicateMove_true()
     QVERIFY(session.isModified());
 }
 
-void TestJosekiRepository::hasDuplicateMove_false()
+void TestJosekiBook::hasDuplicateMove_false()
 {
     JosekiBookSession session;
     session.addMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f")));
@@ -393,37 +390,36 @@ void TestJosekiRepository::hasDuplicateMove_false()
     QVERIFY(!session.hasMove(QStringLiteral("unknown b -"), QStringLiteral("7g7f")));
 }
 
-void TestJosekiRepository::saveAndLoad_emptyBook()
+void TestJosekiBook::saveAndLoad_emptyBook()
 {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
-    JosekiRepository repo;
+    JosekiBook repo;
     const QString path = dir.filePath(QStringLiteral("empty.db"));
-    QVERIFY(repo.saveToFile(path));
-    QVERIFY(repo.loadFromFile(path));
-    QVERIFY(repo.isEmpty());
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
-    repo.deleteMove(kHirateSfen, 0);
-    QVERIFY(repo.saveToFile(path));
-    QVERIFY(repo.loadFromFile(path));
-    QVERIFY(repo.isEmpty());
+    QVERIFY(JosekiBookFile::save(path, repo).success);
+    QVERIFY(JosekiBookFile::load(path).success);
+    QVERIFY(JosekiBookFile::load(path).book.isEmpty());
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
+    QVERIFY(repo.removeMove(kHirateSfen, QStringLiteral("7g7f")));
+    QVERIFY(JosekiBookFile::save(path, repo).success);
+    QVERIFY(JosekiBookFile::load(path).book.isEmpty());
 
     QFile invalid(dir.filePath(QStringLiteral("invalid.db")));
     QVERIFY(invalid.open(QIODevice::WriteOnly));
     invalid.write("#YANEURAOU-DB2016 1.00\ninvalid data\n");
     invalid.close();
-    QVERIFY(!repo.loadFromFile(invalid.fileName()));
+    QVERIFY(!JosekiBookFile::load(invalid.fileName()).success);
 }
 
-void TestJosekiRepository::failedSave_preservesOriginal()
+void TestJosekiBook::failedSave_preservesOriginal()
 {
 #ifdef Q_OS_UNIX
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("book.db"));
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 5, QString(8192, QLatin1Char('a'))));
-    QVERIFY(repo.saveToFile(path));
+    JosekiBook repo;
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 5, QString(8192, QLatin1Char('a'))));
+    QVERIFY(JosekiBookFile::save(path, repo).success);
     QFile file(path);
     QVERIFY(file.open(QIODevice::ReadOnly));
     const QByteArray original = file.readAll();
@@ -444,7 +440,7 @@ void TestJosekiRepository::failedSave_preservesOriginal()
 #endif
 }
 
-void TestJosekiRepository::saveFailureChild()
+void TestJosekiBook::saveFailureChild()
 {
 #ifdef Q_OS_UNIX
     const QString path = qEnvironmentVariable("SHOGIBOARDQ_SAVE_FAILURE_PATH");
@@ -455,10 +451,11 @@ void TestJosekiRepository::saveFailureChild()
     limit.rlim_cur = 4096;
     const auto originalHandler = std::signal(SIGXFSZ, SIG_IGN);
     QVERIFY(setrlimit(RLIMIT_FSIZE, &limit) == 0);
-    JosekiRepository repo;
-    repo.addMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), 99, 32, 1, QString(8192, QLatin1Char('b'))));
-    QString error;
-    const bool saved = repo.saveToFile(path, &error);
+    JosekiBook repo;
+    repo.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), 99, 32, 1, QString(8192, QLatin1Char('b'))));
+    const JosekiSaveResult result = JosekiBookFile::save(path, repo);
+    const bool saved = result.success;
+    const QString error = result.errorMessage;
     const int restored = setrlimit(RLIMIT_FSIZE, &originalLimit);
     std::signal(SIGXFSZ, originalHandler);
     QCOMPARE(restored, 0);
@@ -469,7 +466,7 @@ void TestJosekiRepository::saveFailureChild()
 #endif
 }
 
-void TestJosekiRepository::mergeFailure_canRetryWithoutDoubleCounting()
+void TestJosekiBook::mergeFailure_canRetryWithoutDoubleCounting()
 {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
@@ -496,12 +493,12 @@ void TestJosekiRepository::mergeFailure_canRetryWithoutDoubleCounting()
     QVERIFY(session.registerMergeMoves({entry}));
     QCOMPARE(session.movesAt(kHirateSfen).first().frequency, 6);
     QVERIFY(!session.isModified());
-    JosekiRepository repo;
-    QVERIFY(repo.loadFromFile(path));
-    QCOMPARE(repo.movesForPosition(kHirateSfen).first().frequency, 6);
+    const JosekiLoadResult loaded = JosekiBookFile::load(path);
+    QVERIFY(loaded.success);
+    QCOMPARE(loaded.book.movesAt(kHirateSfen).first().frequency, 6);
 }
 
-void TestJosekiRepository::japaneseMove_usesPositionTurn()
+void TestJosekiBook::japaneseMove_usesPositionTurn()
 {
     const QString start = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
     QCOMPARE(JosekiTableModel::moveText(QStringLiteral("3c3d"), start), QStringLiteral("△３四歩(33)"));
@@ -510,12 +507,12 @@ void TestJosekiRepository::japaneseMove_usesPositionTurn()
     QCOMPARE(JosekiTableModel::moveText(QStringLiteral("7g7f"), next), QStringLiteral("▲７六歩(77)"));
 }
 
-void TestJosekiRepository::japaneseMove_noneReply()
+void TestJosekiBook::japaneseMove_noneReply()
 {
     const QString hirate = SfenUtils::hirateSfen();
     QCOMPARE(JosekiTableModel::moveText(QStringLiteral("none"), hirate), QStringLiteral("なし"));
     QVERIFY(JosekiTableModel::moveText(QString(), hirate).isEmpty());
 }
 
-QTEST_MAIN(TestJosekiRepository)
-#include "tst_joseki_repository.moc"
+QTEST_MAIN(TestJosekiBook)
+#include "tst_joseki_book.moc"

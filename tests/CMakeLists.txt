@@ -756,8 +756,8 @@ target_link_libraries(tst_lifecycle_runtime PRIVATE shogiboardq_static)
 # ============================================================
 # Unit: JosekiRepository + JosekiPresenter テスト
 # ============================================================
-add_shogi_test(tst_joseki_repository tst_joseki_repository.cpp)
-target_link_libraries(tst_joseki_repository PRIVATE shogiboardq_static)
+add_shogi_test(tst_joseki_book tst_joseki_book.cpp)
+target_link_libraries(tst_joseki_book PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: TsumeshogiPositionGenerator + TsumePositionUtil テスト

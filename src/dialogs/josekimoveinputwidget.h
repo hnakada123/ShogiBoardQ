@@ -6,16 +6,14 @@
 
 #include <QGroupBox>
 
-class QButtonGroup;
 class QComboBox;
 class QLabel;
-class QRadioButton;
 
 /**
  * @brief 定跡手入力ウィジェット
  *
- * 盤上移動・駒打ちをコンボボックスで入力し、USI形式の指し手を生成する。
- * 「指し手」と「予想応手」の両方に再利用可能。
+ * 局面の合法手を棋譜の表記（「▲７六歩(77)」）で並べ、その中から選ばせる（指せない手は入力できない）。
+ * 「指し手」と「予想応手」の両方に使う。予想応手には先頭に「なし」を置ける。
  */
 class JosekiMoveInputWidget : public QGroupBox
 {
@@ -23,78 +21,37 @@ class JosekiMoveInputWidget : public QGroupBox
 
 public:
     /**
-     * @brief コンストラクタ
+     * @param name オブジェクト名（指し手の一覧は "<name>Combo"）
      * @param title グループボックスのタイトル
-     * @param hasNoneOption 「なし」ラジオボタンを表示するか
-     * @param parent 親ウィジェット
+     * @param hasNoneOption 先頭に「なし」を置くか
      */
-    explicit JosekiMoveInputWidget(const QString &title, bool hasNoneOption, QWidget *parent = nullptr);
+    JosekiMoveInputWidget(const QString &name, const QString &title, bool hasNoneOption, QWidget *parent = nullptr);
 
-    /**
-     * @brief USI形式の指し手を取得
-     * @return USI形式の指し手（「なし」選択時は "none"）
-     */
+    /// 選んだ指し手（USI。「なし」は "none"、選んでいなければ空）
     QString usiMove() const;
 
-    /**
-     * @brief USI形式の指し手を設定
-     * @param usiMove USI形式の指し手（"none" で「なし」を選択）
-     */
+    /// usiMove を選ぶ（"none" は「なし」）。今の局面の合法手になければ、局面が変わったときに選び直す
     void setUsiMove(const QString &usiMove);
+
+    /// 合法手を並べる局面（空なら何も並べない）。選んでいた手が合法手にあれば選んだままにする
     void setCurrentSfen(const QString &sfen);
 
-    /**
-     * @brief USI形式の指し手が有効かどうかを検証
-     * @param move 指し手文字列
-     * @return 有効な場合true
-     */
-    static bool isValidUsiMove(const QString &move);
-
 signals:
-    /**
-     * @brief 指し手が変更された
-     */
+    /// 選んだ指し手が変わった
     void moveChanged();
 
 private slots:
-    void onInputModeChanged();
-    void onComboChanged();
+    void onCurrentIndexChanged();
 
 private:
-    void setupUi(bool hasNoneOption);
-    void updatePreview();
-    QString buildUsiMove() const;
-    void setComboFromUsi(const QString &usiMove);
+    void populate();
+    void selectRequested();
 
-    static QString usiToJapanese(const QString &usiMove);
-
-    // ラジオボタン
-    QRadioButton *m_boardRadio = nullptr;
-    QRadioButton *m_dropRadio = nullptr;
-    QRadioButton *m_noneRadio = nullptr;
-    QButtonGroup *m_typeGroup = nullptr;
-
-    // 盤上移動用コンボボックス
-    QComboBox *m_fromFileCombo = nullptr;
-    QComboBox *m_fromRankCombo = nullptr;
-    QComboBox *m_toFileCombo = nullptr;
-    QComboBox *m_toRankCombo = nullptr;
-    QComboBox *m_promoteCombo = nullptr;
-
-    // 駒打ち用コンボボックス
-    QComboBox *m_dropPieceCombo = nullptr;
-    QComboBox *m_dropToFileCombo = nullptr;
-    QComboBox *m_dropToRankCombo = nullptr;
-
-    // プレビュー
+    QComboBox *m_combo = nullptr;
     QLabel *m_previewLabel = nullptr;
-    QLabel *m_usiLabel = nullptr;
-
-    // 入力エリアウィジェット
-    QWidget *m_boardWidget = nullptr;
-    QWidget *m_dropWidget = nullptr;
-    QWidget *m_inputWidget = nullptr;
+    bool m_hasNoneOption = false;
     QString m_currentSfen;
+    QString m_requested; ///< 選びたい指し手（局面が変わっても合法手なら選び直す）
 };
 
 #endif // JOSEKIMOVEINPUTWIDGET_H

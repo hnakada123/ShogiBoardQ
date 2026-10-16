@@ -12,17 +12,14 @@
 #include <QSet>
 #include <QString>
 #include <QStringList>
-#include <memory>
 
-#include "josekiioresult.h"
+#include "josekibook.h"
 #include "josekitypes.h"
-
-class JosekiRepository;
 
 /**
  * @brief 定跡ウィンドウで開いている定跡ファイルの状態
  *
- * 定跡データ（JosekiRepository）を持ち、ファイルパス・未保存の変更・最近使ったファイル（最大5件）を管理する。
+ * 定跡データ（値型の JosekiBook）を持ち、ファイルパス・未保存の変更・最近使ったファイル（最大5件）を管理する。
  * 定跡データの読み取り・変更・保存はすべてここを通す（データは外に見せない）。局面は手数付きの SFEN の
  * ままで渡してよい（定跡の局面のキーにするのはここ）。
  *
@@ -49,16 +46,16 @@ public:
 
     /// 定跡の局面のキー（手数を除いた SFEN）
     static QString positionKey(const QString &sfen);
-    bool isEmpty() const;
-    int positionCount() const;
+    bool isEmpty() const { return m_book.isEmpty(); }
+    int positionCount() const { return m_book.positionCount(); }
     /// 局面の定跡手（無ければ空）
-    QList<JosekiMove> movesAt(const QString &sfen) const;
+    QList<JosekiMove> movesAt(const QString &sfen) const { return m_book.movesAt(sfen); }
     /// 局面を登録したときの手数付きの SFEN（無ければ空）
     QString registeredSfen(const QString &sfen) const;
-    bool hasPosition(const QString &sfen) const;
-    bool hasMove(const QString &sfen, const QString &usiMove) const;
-    /// 棋譜からマージで登録した指し手（「局面のキー:USI の指し手」）
-    QSet<QString> mergeRegisteredMoves() const;
+    bool hasPosition(const QString &sfen) const { return m_book.find(sfen) != nullptr; }
+    bool hasMove(const QString &sfen, const QString &usiMove) const { return m_book.hasMove(sfen, usiMove); }
+    /// 棋譜からマージで登録した指し手（局面のキーと指し手の組）
+    const QSet<JosekiMoveKey> &mergeRegisteredMoves() const { return m_book.mergeRegistered(); }
 
     // --- 定跡データの変更（変更ありにする） ---
 
@@ -121,7 +118,7 @@ private:
     /// filePath に保存できたことを記録する（変更なし・最近使ったファイルの先頭）
     void markSaved(const QString &filePath);
 
-    std::unique_ptr<JosekiRepository> m_repository;
+    JosekiBook m_book;
     QString m_filePath;
     bool m_modified = false;
     RecentFileList m_recentFiles{kMaxRecentFiles};
