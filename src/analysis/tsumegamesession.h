@@ -14,6 +14,8 @@ class TsumePositionAnalyzer;
 class TsumeProgressStore;
 
 /// Hayanagiで応手を生成し、内蔵探索または外部の詰み判定器で対局を進める。
+/// 挑戦と正答の記録（TsumeProgressStore）もここで付ける: 開始してから初めて攻め方の手番になったときに挑戦を1回、
+/// 詰ませたときに正答を1回（どちらも start() ごとに1回だけ）。
 class TsumeGameSession : public QObject
 {
     Q_OBJECT
@@ -31,6 +33,7 @@ public:
     void retry();
     void cancel();
     void setTimeLimit(int milliseconds);
+    /// 外部の詰み判定器と、解析の結果・挑戦の記録を残す先（どちらも省略可）
     void configureEngine(const QString& path, TsumeProgressStore* store = nullptr);
     QString detail() const { return m_detail; }
     State state() const { return m_state; }
@@ -66,6 +69,10 @@ private:
     bool m_initializing = false;
     TsumePositionAnalyzer* m_analyzer = nullptr;
     QString m_enginePath;
+    TsumeProgressStore* m_store = nullptr;
+    QString m_problemId;          ///< 記録に使う開始局面の識別子
+    bool m_attemptRecorded = false;
+    bool m_solvedRecorded = false;
     QString m_detail;
     std::vector<shogi::Move> m_defenses;
     std::size_t m_defenseIndex = 0;

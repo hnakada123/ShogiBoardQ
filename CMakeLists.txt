@@ -584,8 +584,6 @@ set(SRC_UI
     src/ui/coordinators/kifuloadcoordinator.h
     src/ui/coordinators/kifusavecoordinator.cpp
     src/ui/coordinators/kifusavecoordinator.h
-    src/ui/coordinators/promotionflow.cpp
-    src/ui/coordinators/promotionflow.h
     src/ui/coordinators/uistatepolicymanager.cpp
     src/ui/coordinators/uistatepolicymanager.h
     src/ui/presenters/analysisresulthandler.cpp

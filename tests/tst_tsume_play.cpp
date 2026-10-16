@@ -444,6 +444,12 @@ private slots:
         QTRY_COMPARE(session.state(), TsumeGameSession::State::Ready);
         QCOMPARE(session.remainingPlies(), 13);
         const auto id = parsed.positionIds.first();
+        // 挑戦の記録は対局（TsumeGameSession）が付ける。開始ごとに1回だけ
+        QCOMPARE(store.progress(id).attempts, 1);
+        QCOMPARE(store.progress(id).solves, 0);
+        QVERIFY(session.start(problem.sfen));
+        QTRY_COMPARE(session.state(), TsumeGameSession::State::Ready);
+        QCOMPARE(store.progress(id).attempts, 2);
         store.removeCached(id, analyzer.engineKey());
         QVERIFY(!store.validatedCached(id, analyzer.engineKey(), true));
         analyzer.evaluate(problem.sfen, 100, true);

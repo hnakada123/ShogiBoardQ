@@ -74,7 +74,10 @@ private:
     void buildBoardControls(QVBoxLayout* layout);
     void applyBoardOrientation();
     void showSolution(int ply);
-    void updateReplayControls();
+    /// 案内の欄（正解手順の表示と状態表示）を、今の動作と探索の状態に合わせる
+    void updateReplayInfo();
+    /// 部品の有効・無効と切り替える欄を、controlStates() の表に合わせる
+    void applyControlStates();
     void cancelPendingOutcome();
     /// 案内文と状態表示の高さを今の文字に合わせる（盤を文字の大きさで動かさない）
     void fitInfoToFont();
@@ -115,11 +118,28 @@ private:
         QPushButton* returnToGame = nullptr;
     };
 
+    /// 対局（自分で解く）と正解手順の再生
+    enum class Mode { Playing, Reviewing };
+
+    /// 動作状態ごとの部品の有効・無効の表（1か所で決める）
+    struct ControlStates {
+        bool restart = false;
+        bool undo = false;
+        bool stop = false;
+        bool retry = false;
+        bool showSolution = false;
+        bool solutionFirst = false;   ///< 「開始局面へ」「1手戻る」
+        bool solutionForward = false; ///< 「1手進む」「詰み局面へ」
+        bool returnToGame = false;
+    };
+    ControlStates controlStates() const;
+    bool reviewing() const { return m_mode == Mode::Reviewing; }
+
     QTimer m_outcomeTimer;
     QString m_pendingOutcome;
     TsumeGameSession* m_session = nullptr;
     TsumeSolutionReplay* m_solution = nullptr;
-    bool m_reviewing = false;
+    Mode m_mode = Mode::Playing;
     bool m_boardRotated = false;
     QString m_savedStatus;
     ShogiGameController* m_game = nullptr;
@@ -129,9 +149,7 @@ private:
     TsumeProblem m_problem;
     int m_number = 0;
     int m_totalPlies = 0;
-    TsumeProgressStore* m_store = nullptr;
-    bool m_attemptRecorded = false;
-    bool m_solvedRecorded = false;
+    TsumeProgressStore* m_store = nullptr;  ///< 挑戦履歴の表示に読む（記録は TsumeGameSession が付ける）
     ProblemBar m_problemUi;
     InfoPanel m_infoUi;
     ActionPanel m_actionUi;

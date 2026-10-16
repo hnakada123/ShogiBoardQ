@@ -18,3 +18,9 @@ PromoteDialog::PromoteDialog(QWidget *parent) : QDialog(parent), ui(std::make_un
 }
 
 PromoteDialog::~PromoteDialog() = default;
+
+bool PromoteDialog::ask(QWidget* parent)
+{
+    PromoteDialog dialog(parent);
+    return dialog.exec() == QDialog::Accepted;
+}

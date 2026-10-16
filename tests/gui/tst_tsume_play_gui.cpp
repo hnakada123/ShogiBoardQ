@@ -5,6 +5,8 @@
 #include <QComboBox>
 #include <QElapsedTimer>
 #include <QMessageBox>
+#include <QPushButton>
+#include "promotedialog.h"
 #include <QAbstractButton>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -158,15 +160,24 @@ private:
     }
     void dismissNotice()
     {
+        // 成りの確認は主画面と同じ PromoteDialog（「成る」「成らない」のボタン）
+        if (auto* promote = qobject_cast<PromoteDialog*>(QApplication::activeModalWidget())) {
+            lastNotice = QStringLiteral("成りますか？");
+            if (dialog && !promotionPreviewRect.isEmpty()) {
+                auto* view = dialog->findChild<ShogiView*>();
+                promotionPreview = view->grab(promotionPreviewRect).toImage();
+                promotionSfen = view->board()->position().boardSfen();
+                dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-promotion.png"));
+            }
+            for (auto* button : promote->findChildren<QPushButton*>()) {
+                if (button->text() == promotionChoice) { button->click(); return; }
+            }
+            promote->reject();
+            return;
+        }
         auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
         if (!box) return;
         lastNotice = box->text();
-        if (lastNotice == QStringLiteral("成りますか？") && dialog && !promotionPreviewRect.isEmpty()) {
-            auto* view = dialog->findChild<ShogiView*>();
-            promotionPreview = view->grab(promotionPreviewRect).toImage();
-            promotionSfen = view->board()->position().boardSfen();
-            dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-promotion.png"));
-        }
         if (lastNotice.contains(QStringLiteral("応手")) && dialog) {
             if (replyTimer.isValid()) noticeDelay = replyTimer.elapsed();
             dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-refutation.png"));

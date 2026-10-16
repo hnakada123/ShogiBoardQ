@@ -18,6 +18,7 @@
 #include <QFontMetrics>
 #include <QLabel>
 #include <QMessageBox>
+#include "promotedialog.h"
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSpinBox>
@@ -174,7 +175,7 @@ void TsumePlayDialog::buildUi()
 void TsumePlayDialog::setProblem(const TsumeProblem& problem, int number, const QString& enginePath,
                                 TsumeProgressStore* store, int timeoutSec)
 {
-    m_reviewing = false;
+    m_mode = Mode::Playing;
     m_solution->configure(problem.sfen, enginePath, store);
     m_session->cancel();
     m_problem = problem;
@@ -263,10 +264,8 @@ void TsumePlayDialog::selectProblem()
 {
     if (m_problem.sfen.isEmpty()) return;
     cancelPendingOutcome();
-    m_reviewing = false;
+    m_mode = Mode::Playing;
     m_solution->cancel();
-    m_attemptRecorded = false;
-    m_solvedRecorded = false;
     m_totalPlies = 0;
     m_problemUi.header->setText(tr("第%1問 — 詰み手数を確認しています…").arg(m_number));
     m_interaction->cancelPendingClick();
@@ -282,34 +281,23 @@ void TsumePlayDialog::selectProblem()
 bool TsumePlayDialog::acceptsInput() const
 {
     // 正解手順の再生中・エンジンの手番などは盤で指せない
-    return !m_reviewing && m_session->state() == TsumeGameSession::State::Ready;
+    return !reviewing() && m_session->state() == TsumeGameSession::State::Ready;
 }
 
 void TsumePlayDialog::submit(const QPoint& from, const QPoint& to)
 {
-    if (m_reviewing) {
+    if (reviewing()) {
         m_view->endDrag();
         return;
     }
-    // 通常対局と同様、成りの選択が終わるまでは移動先のドラッグ表示を保つ。
+    // 通常対局と同様、成りの選択が終わるまでは移動先のドラッグ表示を保つ。成りの確認は主画面と同じダイアログ
     const auto parsed = BoardCoordinates::usiMoveFromSquares(from, to, false);
     QString move = parsed ? parsed->toString() : QString();
     const auto legal = m_session->legalMoves();
     const QString promoted = move + QLatin1Char('+');
-    if (!move.isEmpty() && legal.contains(promoted)) {
-        if (!legal.contains(move)) move = promoted;
-        else {
-            QMessageBox box(QMessageBox::Question, tr("成りの選択"), tr("成りますか？"), QMessageBox::NoButton, this);
-            auto* promote = box.addButton(tr("成る"), QMessageBox::AcceptRole);
-            auto* plain = box.addButton(tr("成らない"), QMessageBox::RejectRole);
-            box.exec();
-            if (box.clickedButton() == promote) move = promoted;
-            else if (box.clickedButton() != plain) {
-                m_interaction->onMoveApplied(from, to, false);
-                return;
-            }
-        }
-    }
+    if (!move.isEmpty() && legal.contains(promoted)
+        && (!legal.contains(move) || PromoteDialog::ask(this)))
+        move = promoted;
     m_view->endDrag();
     const bool accepted = m_session->play(move);
     m_interaction->onMoveApplied(from, to, accepted);
@@ -348,19 +336,9 @@ void TsumePlayDialog::updateState()
     using State = TsumeGameSession::State;
     const auto state = m_session->state();
     if (!acceptsInput()) m_interaction->cancelPendingClick();
-    m_actionUi.restart->setEnabled(!m_reviewing && !m_problem.sfen.isEmpty());
-    m_actionUi.undo->setEnabled(!m_reviewing && m_session->canUndo());
-    m_actionUi.stop->setEnabled(m_reviewing ? m_solution->loading() : state == State::Thinking);
-    m_actionUi.retry->setEnabled(m_reviewing ? !m_solution->loading() && !m_solution->available() : state == State::Paused);
-    m_actionUi.stop->setVisible(m_actionUi.stop->isEnabled());
-    m_actionUi.retry->setVisible(m_actionUi.retry->isEnabled());
-    if (!m_reviewing && state == State::Ready) {
+    if (!reviewing() && state == State::Ready) {
         if (!m_totalPlies) m_totalPlies = m_session->remainingPlies();
         m_problemUi.header->setText(tr("第%1問 — %2手詰 ／ 玉方: Hayanagi").arg(m_number).arg(m_totalPlies));
-        if (!m_attemptRecorded) {
-            m_attemptRecorded = true;
-            if (m_store) m_store->recordAttempt(TsumeCollection::positionId(m_problem.sfen));
-        }
         m_infoUi.status->setText(tr("あなたの手番です。残り%1手以内で詰ませてください。").arg(m_session->remainingPlies()));
     }
     else if (state == State::Thinking) m_infoUi.status->setText(tr("詰みと玉方の応手を確認しています…"));
@@ -371,7 +349,8 @@ void TsumePlayDialog::updateState()
                                              : tr("未正答 ／ 挑戦%1回").arg(progress.attempts));
         if (!m_store->error().isEmpty()) m_problemUi.history->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
     }
-    updateReplayControls();
+    applyControlStates();
+    updateReplayInfo();
 }
 
 void TsumePlayDialog::showOutcome(TsumeGameSession::Outcome outcome, int remaining)
@@ -382,10 +361,6 @@ void TsumePlayDialog::showOutcome(TsumeGameSession::Outcome outcome, int remaini
     switch (outcome) {
     case Outcome::Solved:
         message = tr("正解です。玉方を詰ませました！");
-        if (!m_solvedRecorded) {
-            m_solvedRecorded = true;
-            if (m_store) m_store->recordSolved(TsumeCollection::positionId(m_problem.sfen));
-        }
         updateState();
         break;
     case Outcome::NoMate: message = tr("この応手で詰みを防がれました。王手を続けても詰みません。"); break;
@@ -500,8 +475,8 @@ void TsumePlayDialog::buildActionControls(QVBoxLayout* layout)
 void TsumePlayDialog::showSolution(int ply)
 {
     if (m_totalPlies <= 0 || m_session->state() == TsumeGameSession::State::Thinking) return;
-    if (!m_reviewing) m_savedStatus = m_infoUi.status->text();
-    m_reviewing = true;
+    if (!reviewing()) m_savedStatus = m_infoUi.status->text();
+    m_mode = Mode::Reviewing;
     cancelPendingOutcome();
     m_solution->seek(ply, m_problemUi.timeout->value() * 1000);
     updateState();
@@ -509,13 +484,13 @@ void TsumePlayDialog::showSolution(int ply)
 
 void TsumePlayDialog::solutionFirst() { showSolution(0); }
 void TsumePlayDialog::solutionPrevious() { showSolution(m_solution->currentPly() - 1); }
-void TsumePlayDialog::solutionNext() { showSolution(m_reviewing ? m_solution->currentPly() + 1 : 1); }
+void TsumePlayDialog::solutionNext() { showSolution(reviewing() ? m_solution->currentPly() + 1 : 1); }
 void TsumePlayDialog::solutionLast() { showSolution(std::numeric_limits<int>::max()); }
 
 void TsumePlayDialog::returnToGame()
 {
-    if (!m_reviewing) return;
-    m_reviewing = false;
+    if (!reviewing()) return;
+    m_mode = Mode::Playing;
     m_solution->cancel();
     updatePosition(m_session->sfen(), {});
     updateState();
@@ -524,35 +499,73 @@ void TsumePlayDialog::returnToGame()
 
 void TsumePlayDialog::stopSearch()
 {
-    if (m_reviewing) m_solution->cancel();
+    if (reviewing()) m_solution->cancel();
     else m_session->cancel();
 }
 
 void TsumePlayDialog::retrySearch()
 {
-    if (m_reviewing) showSolution(m_solution->requestedPly());
+    if (reviewing()) showSolution(m_solution->requestedPly());
     else m_session->retry();
 }
 
-void TsumePlayDialog::updateReplayControls()
+TsumePlayDialog::ControlStates TsumePlayDialog::controlStates() const
 {
-    const bool enabled = m_totalPlies > 0 && m_session->state() != TsumeGameSession::State::Thinking
-                         && !m_solution->loading();
-    const int ply = m_reviewing ? m_solution->currentPly() : 0;
-    const bool atEnd = m_reviewing && m_solution->available() && ply == m_solution->totalPlies();
-    m_replayUi.showSolution->setEnabled(enabled && !m_reviewing);
+    using State = TsumeGameSession::State;
+    const State state = m_session->state();
+    // 正解手順を出せるのは、詰み手数が分かり、探索も正解手順の取得もしていないとき
+    const bool replayable = m_totalPlies > 0 && state != State::Thinking && !m_solution->loading();
+    ControlStates controls;
+    switch (m_mode) {
+    case Mode::Playing:
+        controls.restart = !m_problem.sfen.isEmpty();
+        controls.undo = m_session->canUndo();
+        controls.stop = state == State::Thinking;
+        controls.retry = state == State::Paused;
+        controls.showSolution = replayable;
+        break;
+    case Mode::Reviewing: {
+        const bool available = replayable && m_solution->available();
+        const int ply = m_solution->currentPly();
+        controls.stop = m_solution->loading();
+        controls.retry = !m_solution->loading() && !m_solution->available();
+        controls.solutionFirst = available && ply > 0;
+        controls.solutionForward = available && ply < m_solution->totalPlies();
+        controls.returnToGame = true;
+        break;
+    }
+    }
+    return controls;
+}
+
+void TsumePlayDialog::applyControlStates()
+{
+    const ControlStates controls = controlStates();
+    m_actionUi.restart->setEnabled(controls.restart);
+    m_actionUi.undo->setEnabled(controls.undo);
+    m_actionUi.stop->setEnabled(controls.stop);
+    m_actionUi.retry->setEnabled(controls.retry);
+    m_actionUi.stop->setVisible(controls.stop);
+    m_actionUi.retry->setVisible(controls.retry);
+    m_replayUi.showSolution->setEnabled(controls.showSolution);
+    m_replayUi.first->setEnabled(controls.solutionFirst);
+    m_replayUi.previous->setEnabled(controls.solutionFirst);
+    m_replayUi.next->setEnabled(controls.solutionForward);
+    m_replayUi.last->setEnabled(controls.solutionForward);
+    m_replayUi.returnToGame->setEnabled(controls.returnToGame);
+
     // 非表示ページもサイズ計算に含め、切替前後で操作欄の幅と高さを共有する。
-    m_replayUi.modeButton->setCurrentWidget(m_reviewing ? m_replayUi.returnToGame : m_replayUi.showSolution);
-    m_infoUi.stack->setCurrentIndex(m_reviewing ? 1 : 0);
-    m_actionUi.stack->setCurrentWidget(m_reviewing ? m_replayUi.row : m_actionUi.game);
-    m_replayUi.first->setEnabled(enabled && m_reviewing && m_solution->available() && ply > 0);
-    m_replayUi.previous->setEnabled(enabled && m_reviewing && m_solution->available() && ply > 0);
-    m_replayUi.next->setEnabled(enabled && m_reviewing && m_solution->available() && !atEnd);
-    m_replayUi.last->setEnabled(enabled && m_reviewing && m_solution->available() && !atEnd);
-    m_replayUi.returnToGame->setEnabled(m_reviewing);
-    ApplicationFonts::useJapaneseFont(m_infoUi.solutionText, m_reviewing && m_solution->available()
+    m_replayUi.modeButton->setCurrentWidget(reviewing() ? m_replayUi.returnToGame : m_replayUi.showSolution);
+    m_infoUi.stack->setCurrentIndex(reviewing() ? 1 : 0);
+    m_actionUi.stack->setCurrentWidget(reviewing() ? m_replayUi.row : m_actionUi.game);
+}
+
+void TsumePlayDialog::updateReplayInfo()
+{
+    const int ply = reviewing() ? m_solution->currentPly() : 0;
+    ApplicationFonts::useJapaneseFont(m_infoUi.solutionText, reviewing() && m_solution->available()
         && !m_solution->loading() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese);
-    if (!m_reviewing) {
+    if (!reviewing()) {
         m_infoUi.solutionText->clear();
         m_infoUi.solutionStatus->setText(tr("正解手順:"));
     } else if (m_solution->loading()) {

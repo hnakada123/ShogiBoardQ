@@ -1,6 +1,8 @@
 #include "tsumegamesession.h"
 #include "tsumethreadbudget.h"
 #include "tsumepositionanalyzer.h"
+#include "tsumecollection.h"
+#include "tsumeprogressstore.h"
 #include <QtConcurrentRun>
 #include <algorithm>
 
@@ -28,12 +30,21 @@ void TsumeGameSession::configureEngine(const QString& path, TsumeProgressStore* 
 {
     stopWorker();
     m_enginePath = path;
+    m_store = store;
     m_analyzer->configure(path, store);
 }
 
 void TsumeGameSession::setState(State state)
 {
     m_state = state;
+    // 記録は知らせる前に付ける（受け手が履歴を読み直すため）
+    if (state == State::Ready && !m_attemptRecorded) {
+        m_attemptRecorded = true;
+        if (m_store) m_store->recordAttempt(m_problemId);
+    } else if (state == State::Solved && !m_solvedRecorded) {
+        m_solvedRecorded = true;
+        if (m_store) m_store->recordSolved(m_problemId);
+    }
     emit stateChanged();
 }
 
@@ -51,6 +62,9 @@ bool TsumeGameSession::start(const QString& sfenText)
     stopWorker();
     m_position = position;
     m_attacker = position.side_to_move();
+    m_problemId = TsumeCollection::positionId(sfenText);
+    m_attemptRecorded = false;
+    m_solvedRecorded = false;
     m_initializing = true;
     m_history.clear();
     m_remaining = 0;

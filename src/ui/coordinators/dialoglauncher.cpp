@@ -14,7 +14,7 @@
 #include "boardcolordialog.h"
 #include "fontsettingsdialog.h"
 #include "engineregistrationdialog.h"
-#include "promotionflow.h"
+#include "promotedialog.h"
 #include "shogiview.h"
 #include "jishogiscoredialog.h"
 #include "shogiboard.h"
@@ -50,7 +50,7 @@ void DialogLauncher::displayEngineSettingsDialog()
 
 bool DialogLauncher::choosePromotion()
 {
-    return PromotionFlow::askPromote(m_deps.parentWidget);
+    return PromoteDialog::ask(m_deps.parentWidget);
 }
 
 void DialogLauncher::displayJishogiScoreDialog()
