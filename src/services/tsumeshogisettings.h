@@ -27,7 +27,6 @@ void setPlayPreferences(const PlayPreferences& preferences);
 struct CollectionPreferences {
     QSize size{1100, 800};
     QString lastFile;
-    QString enginePath;
     int pageSize = 10;
     int page = 1;
     int filter = 0;
@@ -35,6 +34,8 @@ struct CollectionPreferences {
 };
 CollectionPreferences collectionPreferences();
 void setCollectionPreferences(const CollectionPreferences& preferences);
+/// 判定エンジンの選択（EngineListSettings::tsumeCollectionSelection）を以前の版の形から移す
+void migrateCollectionEngineSelection();
 
 /// 詰将棋対局・問題一覧の文字サイズ（それぞれ独立、デフォルト: 10）
 inline const Setting<int> tsumePlayFontSize{"FontSize/tsumePlay", 10};

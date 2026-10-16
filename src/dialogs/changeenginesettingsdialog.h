@@ -7,7 +7,8 @@
 #include <QDialog>
 #include <memory>
 
-class DialogFontScale;
+#include "enginelistsettings.h"
+
 class EngineSettingsOptionHandler;
 class QCheckBox;
 class QVBoxLayout;
@@ -22,20 +23,11 @@ class ChangeEngineSettingsDialog : public QDialog
     Q_OBJECT
 
 public:
-    // コンストラクタ
-    explicit ChangeEngineSettingsDialog(QWidget *parent = nullptr);
+    /// engine のオプションと先読みの設定を読み、変更する画面を作る（作者名は見出しに出す）
+    explicit ChangeEngineSettingsDialog(const EngineListSettings::EngineEntry& engine, QWidget* parent = nullptr);
 
     // デストラクタ
     ~ChangeEngineSettingsDialog() override;
-
-    // 将棋エンジン名のsetter
-    void setEngineName(const QString &engineName);
-
-    // 将棋エンジン作者名のsetter
-    void setEngineAuthor(const QString &engineAuthor);
-
-    // "エンジン設定"ダイアログを作成する。
-    void setupEngineOptionsDialog();
 
 private:
     // UIコンポーネントのポインタを保持するためのポインタ変数
@@ -43,9 +35,6 @@ private:
 
     // オプション管理ハンドラ
     std::unique_ptr<EngineSettingsOptionHandler> m_optionHandler;
-
-    // 文字の大きさ（A-/A+。オプションの部品を作ったときに付ける。QObject parent 所有）
-    DialogFontScale* m_fontScale = nullptr;
 
     QCheckBox* m_ponderEnabled = nullptr;
     QCheckBox* m_sendUnreportedPonder = nullptr;
@@ -59,10 +48,6 @@ private:
 private slots:
     void saveEngineSettings();
     void restoreDefaultSettings();
-
-    // フォントサイズを増加する。
-
-    // フォントサイズを減少する。
 };
 
 #endif // CHANGEENGINESETTINGSDIALOG_H

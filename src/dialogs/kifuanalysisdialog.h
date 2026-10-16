@@ -7,6 +7,9 @@
 #include "enginelistsettings.h"
 #include <QDialog>
 #include <memory>
+#include <optional>
+
+class EngineSelector;
 
 namespace Ui {
 class KifuAnalysisDialog;
@@ -22,12 +25,11 @@ public:
     explicit KifuAnalysisDialog(QWidget *parent = nullptr);
     ~KifuAnalysisDialog() override;
 
-    // エンジンの名前とディレクトリを格納する構造体
     /// 登録済みエンジン（名前・実行ファイル・作者）
     using Engine = EngineListSettings::EngineEntry;
 
-    // エンジンの名前とディレクトリを格納するリストを取得する。
-    QList<Engine> engineList() const;
+    /// 選んでいるエンジン（未登録なら std::nullopt）
+    std::optional<Engine> engine() const;
 
     // "開始局面から最終手まで"を選択したかどうかのフラグを取得する。
     bool initPosition() const;
@@ -44,18 +46,12 @@ public:
     // 1手あたりの思考時間（秒数）を取得する。
     int byoyomiSec() const;
 
-     // エンジン番号を取得する。
-    int engineNumber() const;
-
-    // エンジン名を取得する。
-    QString engineName() const;
-
 protected:
     void done(int result) override;
 
 private slots:
-    // エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
-    void showEngineSettingsDialog();
+    /// 選んだエンジンの設定ダイアログを開く
+    void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
 
     // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
     void processEngineSettings();
@@ -67,20 +63,13 @@ private slots:
     void onStartPlyChanged(int value);
 
     void updateSummary();
-    
-    // フォントサイズ拡大
-    
-    // フォントサイズ縮小
 
 private:
     // UI
     std::unique_ptr<Ui::KifuAnalysisDialog> ui;
 
-    // 選択したエンジン名
-    QString m_engineName;
-
-    // 選択したエンジン番号
-    int m_engineNumber = 0;
+    /// エンジンの選択（コンボ・設定ボタン・未登録の案内。QObject parent 所有）
+    EngineSelector* m_engineSelector = nullptr;
 
     // "開始局面から最終手まで"を選択した場合、true
     bool m_initPosition = true;
@@ -101,12 +90,6 @@ private:
     // 1手あたりの思考時間（秒数）
     int m_byoyomiSec = 0;
 
-    // エンジンの名前とディレクトリを格納するリスト
-    QList<Engine> m_engineList;
-
-    // 設定ファイルからエンジンの名前とディレクトリを読み込む。
-    void readEngineNameAndDir();
-    
 
     // 範囲指定の数値欄の前後に置く文字列を設定する
     void applyRangeLabels();

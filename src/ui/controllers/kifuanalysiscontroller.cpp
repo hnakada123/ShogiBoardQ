@@ -56,17 +56,16 @@ void KifuAnalysisController::showDialogAndStart()
 
 std::optional<AnalysisRequest> KifuAnalysisController::requestFromDialog(const KifuAnalysisDialog& dialog) const
 {
-    const auto engines = dialog.engineList();
-    const int index = dialog.engineNumber();
-    if (index < 0 || index >= engines.size()) {
+    const std::optional<KifuAnalysisDialog::Engine> engine = dialog.engine();
+    if (!engine) {
         showError(tr("エンジン選択が不正です。"));
         return std::nullopt;
     }
     AnalysisRequest request;
     request.line = displayedLine();
     request.lineIndex = m_deps.navState ? m_deps.navState->currentLineIndex() : 0;
-    request.enginePath = engines.at(index).path;
-    request.engineName = dialog.engineName();
+    request.enginePath = engine->path;
+    request.engineName = engine->name;
     const int last = request.line.moveCount();
     request.options.startPly = dialog.initPosition() ? 0 : qBound(0, dialog.startPly(), last);
     request.options.endPly = dialog.initPosition() ? last : qBound(request.options.startPly, dialog.endPly(), last);

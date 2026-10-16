@@ -6,7 +6,7 @@
 #include "fontsizehelper.h"
 #include "tsumeshogisettings.h"
 #include "dialogutils.h"
-#include "enginelistsettings.h"
+#include "engineselector.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -56,13 +56,18 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     auto* fontScale = DialogFontScale::install(this, TsumeshogiSettings::tsumeshogiGeneratorFontSize, fontOptions);
     connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &TsumeshogiGeneratorDialog::fitToFont);
     fitToFont();
-    readEngineNameAndDir();
+    // エンジンの一覧と前回選んだエンジン
+    EngineSelector::Options engineOptions;
+    engineOptions.keys = EngineListSettings::tsumeshogiGeneratorSelection();
+    m_engineSelector = new EngineSelector({m_settingsUi.engine, m_settingsUi.engineSettings, nullptr}, engineOptions, this);
+    connect(m_engineSelector, &EngineSelector::settingsRequested,
+            this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
     loadSettings();
     DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
 
     // 初期状態
     setRunningState(false);
-    setStatusText(m_engineList.isEmpty()
+    setStatusText(!m_engineSelector->hasEngines()
         ? tr("設定メニューで詰将棋エンジンを登録してください。") : tr("待機中"));
 }
 
@@ -96,7 +101,6 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
     connect(m_resultsUi.copyAll, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopyAll);
     connect(m_footerUi.close, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::close);
     connect(m_settingsUi.restoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
-    connect(m_settingsUi.engineSettings, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
     connect(m_resultsUi.table, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
     connect(m_resultsUi.table, &QTableWidget::activated, this, &TsumeshogiGeneratorDialog::onResultTableActivated);
     connect(m_resultsUi.table, &QTableWidget::itemSelectionChanged, this, &TsumeshogiGeneratorDialog::updateResultActions);
@@ -121,27 +125,8 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
             this, &TsumeshogiGeneratorDialog::onVerificationStatsUpdated);
 }
 
-void TsumeshogiGeneratorDialog::readEngineNameAndDir()
-{
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    for (const auto& entry : engines) {
-        Engine engine;
-        engine.name = entry.name;
-        engine.path = entry.path;
-        engine.author = entry.author;
-        m_settingsUi.engine->addItem(engine.name);
-        m_engineList.append(engine);
-    }
-}
-
 void TsumeshogiGeneratorDialog::loadSettings()
 {
-    const int engineIndex =
-        EngineListSettings::restoreSelection(EngineListSettings::tsumeshogiGeneratorSelection(), m_engineList);
-    if (engineIndex >= 0) {
-        m_settingsUi.engine->setCurrentIndex(engineIndex);
-    }
-
     // 旧バージョンで偶数が保存されていた場合に備えて奇数に補正する
     int targetMoves = TsumeshogiSettings::tsumeshogiGeneratorTargetMoves();
     if (targetMoves % 2 == 0) {
@@ -161,11 +146,7 @@ void TsumeshogiGeneratorDialog::loadSettings()
 void TsumeshogiGeneratorDialog::saveSettings()
 {
     DialogUtils::saveDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize);
-    const int engineIndex = m_settingsUi.engine->currentIndex();
-    if (engineIndex >= 0 && engineIndex < m_engineList.size()) {
-        EngineListSettings::saveSelection(EngineListSettings::tsumeshogiGeneratorSelection(),
-                                          m_engineList.at(engineIndex).name);
-    }
+    m_engineSelector->saveSelection();
     TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.set(m_settingsUi.targetMoves->value());
     TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.set(m_settingsUi.maxAttack->value());
     TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.set(m_settingsUi.maxDefend->value());
@@ -180,16 +161,16 @@ void TsumeshogiGeneratorDialog::saveSettings()
 void TsumeshogiGeneratorDialog::onStartClicked()
 {
     if (m_running) return;
-    const int engineIndex = m_settingsUi.engine->currentIndex();
-    if (engineIndex < 0 || engineIndex >= m_engineList.size()) {
+    const std::optional<Engine> engine = m_engineSelector->selected();
+    if (!engine) {
         QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
         return;
     }
 
     // 設定を構築
     TsumeshogiGenerator::Settings settings;
-    settings.enginePath = m_engineList.at(engineIndex).path;
-    settings.engineName = m_engineList.at(engineIndex).name;
+    settings.enginePath = engine->path;
+    settings.engineName = engine->name;
     settings.targetMoves = m_settingsUi.targetMoves->value();
     settings.timeoutMs = m_settingsUi.timeout->value() * 1000;
     settings.maxPositionsToFind = m_settingsUi.maxPositions->value();
@@ -415,18 +396,9 @@ void TsumeshogiGeneratorDialog::fitSettingsArea()
     resize(width(), newHeight);
 }
 
-void TsumeshogiGeneratorDialog::showEngineSettingsDialog()
+void TsumeshogiGeneratorDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
 {
-    const int engineIndex = m_settingsUi.engine->currentIndex();
-    if (engineIndex < 0 || engineIndex >= m_engineList.size()) {
-        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
-        return;
-    }
-
-    ChangeEngineSettingsDialog dialog(this);
-    dialog.setEngineName(m_engineList.at(engineIndex).name);
-    dialog.setEngineAuthor(m_engineList.at(engineIndex).author);
-    dialog.setupEngineOptionsDialog();
+    ChangeEngineSettingsDialog dialog(engine, this);
     dialog.exec();
 }
 
@@ -448,10 +420,9 @@ void TsumeshogiGeneratorDialog::applyTableHeaderStyle()
 void TsumeshogiGeneratorDialog::setRunningState(bool running)
 {
     m_running = running;
-    m_progressUi.start->setEnabled(!running && !m_engineList.isEmpty());
+    m_progressUi.start->setEnabled(!running && m_engineSelector->hasEngines());
     m_progressUi.stop->setEnabled(running);
-    m_settingsUi.engine->setEnabled(!running);
-    m_settingsUi.engineSettings->setEnabled(!running && !m_engineList.isEmpty());
+    m_engineSelector->setEnabled(!running);
     m_settingsUi.targetMoves->setEnabled(!running);
     m_settingsUi.maxAttack->setEnabled(!running);
     m_settingsUi.maxDefend->setEnabled(!running);

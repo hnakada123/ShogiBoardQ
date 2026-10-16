@@ -3,7 +3,7 @@
 
 #include "considerationtabmanager.h"
 #include "fontsizecontrol.h"
-#include "enginelistsettings.h"
+#include "engineselector.h"
 #include "engineinfowidget.h"
 #include "logcategories.h"
 #include "analysissettings.h"
@@ -11,7 +11,6 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QLabel>
-#include <QMessageBox>
 #include <QRadioButton>
 #include <QSignalBlocker>
 #include <QSpinBox>
@@ -55,7 +54,10 @@ void ConsiderationTabManager::onControlChanged()
 {
     // 画面の値を読み直し、変わった条件を保存して知らせる
     ConsiderationSettings next = m_settings;
-    if (m_engineComboBox) next.engineName = m_engineComboBox->currentText();
+    if (m_engineSelector) {
+        const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected();
+        next.engineName = engine ? engine->name : QString();
+    }
     if (m_unlimitedTimeRadioButton) next.unlimitedTime = m_unlimitedTimeRadioButton->isChecked();
     if (m_byoyomiSecSpinBox) next.byoyomiSec = m_byoyomiSecSpinBox->value();
     if (m_multiPVComboBox) next.multiPV = m_multiPVComboBox->currentData().toInt();
@@ -75,10 +77,7 @@ void ConsiderationTabManager::showSettings()
     const QSignalBlocker secondsBlocker(m_byoyomiSecSpinBox);
     const QSignalBlocker multiPVBlocker(m_multiPVComboBox);
     const QSignalBlocker arrowsBlocker(m_showArrowsCheckBox);
-    if (m_engineComboBox) {
-        const int index = m_engineComboBox->findText(m_settings.engineName);
-        if (index >= 0) m_engineComboBox->setCurrentIndex(index);
-    }
+    if (m_engineSelector) m_engineSelector->select(m_settings.engineName);
     if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton)
         (m_settings.unlimitedTime ? m_unlimitedTimeRadioButton : m_considerationTimeRadioButton)->setChecked(true);
     if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setValue(m_settings.byoyomiSec);
@@ -98,19 +97,14 @@ void ConsiderationTabManager::saveSettings() const
 
 void ConsiderationTabManager::loadEnginesAndSettings()
 {
-    // エンジンの一覧（登録順）。保存した選択を復元する
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    if (m_engineComboBox) {
-        const QSignalBlocker blocker(m_engineComboBox);
-        m_engineComboBox->clear();
-        for (qsizetype i = 0; i < engines.size(); ++i) {
-            m_engineComboBox->addItem(engines.at(i).name);
-            m_engineComboBox->setItemData(static_cast<int>(i), engines.at(i).name, Qt::ToolTipRole);
-        }
-    }
-    const int engineIndex = EngineListSettings::restoreSelection(EngineListSettings::considerationSelection(), engines);
-    if (engineIndex >= 0 && engineIndex < engines.size()) m_settings.engineName = engines.at(engineIndex).name;
-    else if (!engines.isEmpty()) m_settings.engineName = engines.first().name;
+    // エンジンの一覧（登録順）。保存した選択を復元し、無ければ先頭のエンジン
+    EngineSelector::Options engineOptions;
+    engineOptions.keys = EngineListSettings::considerationSelection();
+    m_engineSelector = new EngineSelector({m_engineComboBox, m_btnEngineSettings, nullptr}, engineOptions, this);
+    connect(m_engineSelector, &EngineSelector::settingsRequested,
+            this, &ConsiderationTabManager::engineSettingsRequested);
+    if (const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected())
+        m_settings.engineName = engine->name;
     m_settings.unlimitedTime = AnalysisSettings::considerationUnlimitedTime();
     const int seconds = AnalysisSettings::considerationByoyomiSec();
     m_settings.byoyomiSec = seconds > 0 ? seconds : 20;
@@ -118,8 +112,7 @@ void ConsiderationTabManager::loadEnginesAndSettings()
     showSettings();
 
     // 利用者がどれを変えても、画面の値から条件を読み直す
-    connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &ConsiderationTabManager::onControlChanged);
+    connect(m_engineSelector, &EngineSelector::selectionChanged, this, &ConsiderationTabManager::onControlChanged);
     connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled, this, &ConsiderationTabManager::onControlChanged);
     connect(m_considerationTimeRadioButton, &QRadioButton::toggled, this, &ConsiderationTabManager::onControlChanged);
     connect(m_byoyomiSecSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
@@ -209,26 +202,6 @@ void ConsiderationTabManager::onElapsedTimerTick()
 
 // ===================== 設定の操作 =====================
 
-void ConsiderationTabManager::onEngineSettingsClicked()
-{
-    if (!m_engineComboBox) return;
-
-    const int engineNumber = m_engineComboBox->currentIndex();
-    const QString engineName = m_engineComboBox->currentText();
-
-    if (engineName.isEmpty()) {
-        // parentWidget を探してメッセージボックスの親にする
-        QWidget* parentWidget = nullptr;
-        if (m_considerationToolbar) {
-            parentWidget = m_considerationToolbar->window();
-        }
-        QMessageBox::critical(parentWidget, tr("エラー"), tr("将棋エンジンが選択されていません。"));
-        return;
-    }
-
-    emit engineSettingsRequested(engineNumber, engineName);
-}
-
 void ConsiderationTabManager::updateTimeControls()
 {
     const bool idle = m_runState == RunState::Idle;
@@ -305,8 +278,6 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
     m_btnEngineSettings->setStyleSheet(ButtonStyles::panelToolButton()
         + QStringLiteral("QPushButton { padding: 2px 8px; }"));
-    connect(m_btnEngineSettings, &QPushButton::clicked,
-            this, &ConsiderationTabManager::onEngineSettingsClicked);
 
     // 時間無制限ラジオボタン
     m_unlimitedTimeRadioButton = new QRadioButton(tr("時間無制限"), m_considerationToolbar);

@@ -94,7 +94,7 @@ private slots:
         MainWindow window;
         m_seenDialog.clear();
         QTimer::singleShot(0, this, &TestWiringAnalysisTab::rejectModal);
-        emit window.composer().parts().considerationTab->engineSettingsRequested(0, QStringLiteral("TestEngine"));
+        emit window.composer().parts().considerationTab->engineSettingsRequested({QStringLiteral("TestEngine"), QString(), QString()});
         QCOMPARE(m_seenDialog, QStringLiteral("ChangeEngineSettingsDialog"));
     }
     void considerationSignalReportsMissingEngine()

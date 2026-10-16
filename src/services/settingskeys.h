@@ -73,12 +73,20 @@ inline constexpr char kTsumeSearchEngineName[]           = "TsumeSearch/engineNa
 /// 以前の版が保存していたエンジンのパス（読むだけ）
 inline constexpr char kTsumeSearchEnginePath[]           = "TsumeSearch/enginePath";
 
+// --- CsaGameSettings ---
+inline constexpr char kCsaEngineName[]                   = "CsaGameSettings/engineName";
+/// 以前の版が保存していたエンジンの番号（読むだけ）
+inline constexpr char kCsaEngineNumber[]                 = "CsaGameSettings/engineNumber";
+
 // --- CustomDockLayouts ---
 inline constexpr char kCustomDockLayoutsGroup[]          = "CustomDockLayouts";
 
 // --- TsumeCollection / TsumePlay ---
 inline constexpr char kTsumeCollectionSize[] = "TsumeCollection/size";
 inline constexpr char kTsumeCollectionFile[] = "TsumeCollection/file";
+/// 判定エンジンの名前（内蔵エンジンなら空の文字列）
+inline constexpr char kTsumeCollectionEngineName[] = "TsumeCollection/engineName";
+/// 以前の版が保存していた判定エンジンのパス（内蔵なら "@hayanagi"。読むだけ）
 inline constexpr char kTsumeCollectionEngine[] = "TsumeCollection/engine";
 inline constexpr char kTsumeCollectionPageSize[] = "TsumeCollection/pageSize";
 inline constexpr char kTsumeCollectionPage[] = "TsumeCollection/page";

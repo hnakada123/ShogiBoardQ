@@ -31,11 +31,7 @@ class TestEngineProfileStore : public QObject
         return result;
     }
 
-    void setup(ChangeEngineSettingsDialog& dialog)
-    {
-        dialog.setEngineName(m_engine);
-        dialog.setupEngineOptionsDialog();
-    }
+    EngineListSettings::EngineEntry engine() const { return {m_engine, QString(), QString()}; }
 
     static void clickButton(ChangeEngineSettingsDialog& dialog, QDialogButtonBox::StandardButton button)
     {
@@ -125,8 +121,7 @@ private slots:
     {
         QFETCH(bool, enabled);
         saveLegacyOption(enabled, !enabled);
-        ChangeEngineSettingsDialog dialog;
-        setup(dialog);
+        ChangeEngineSettingsDialog dialog(engine());
         auto* ponder = widget<QCheckBox>(dialog, "ponderEnabledCheckBox");
         QCOMPARE(ponder->isChecked(), enabled);
         QCOMPARE(EngineProfileStore::loadPonder(m_engine).defaultEnabled, !enabled);
@@ -145,15 +140,13 @@ private slots:
         QCOMPARE(settings.value(EngineOptionValueKey).toBool(), !enabled);
         settings.endArray();
 
-        ChangeEngineSettingsDialog reopened;
-        setup(reopened);
+        ChangeEngineSettingsDialog reopened(engine());
         QCOMPARE(widget<QCheckBox>(reopened, "ponderEnabledCheckBox")->isChecked(), !enabled);
     }
 
     void unreportedOptionCanBeEnabledAndSaved()
     {
-        ChangeEngineSettingsDialog dialog;
-        setup(dialog);
+        ChangeEngineSettingsDialog dialog(engine());
         auto* ponder = widget<QCheckBox>(dialog, "ponderEnabledCheckBox");
         auto* notify = widget<QCheckBox>(dialog, "sendUnreportedPonderCheckBox");
         QVERIFY(!ponder->isChecked());
@@ -162,8 +155,7 @@ private slots:
         notify->setChecked(false);
         clickButton(dialog, QDialogButtonBox::Ok);
 
-        ChangeEngineSettingsDialog reopened;
-        setup(reopened);
+        ChangeEngineSettingsDialog reopened(engine());
         QVERIFY(widget<QCheckBox>(reopened, "ponderEnabledCheckBox")->isChecked());
         QVERIFY(!widget<QCheckBox>(reopened, "sendUnreportedPonderCheckBox")->isChecked());
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
@@ -176,8 +168,7 @@ private slots:
     void cancelDoesNotSave()
     {
         saveLegacyOption(false, true);
-        ChangeEngineSettingsDialog dialog;
-        setup(dialog);
+        ChangeEngineSettingsDialog dialog(engine());
         widget<QCheckBox>(dialog, "ponderEnabledCheckBox")->setChecked(true);
         widget<QCheckBox>(dialog, "sendUnreportedPonderCheckBox")->setChecked(false);
         clickButton(dialog, QDialogButtonBox::Cancel);
@@ -201,8 +192,7 @@ private slots:
         QFETCH(bool, hasOption);
         if (hasOption) saveLegacyOption(false, true);
         EngineProfileStore::savePonder(m_engine, !hasOption, false);
-        ChangeEngineSettingsDialog dialog;
-        setup(dialog);
+        ChangeEngineSettingsDialog dialog(engine());
         widget<QPushButton>(dialog, "restoreButton")->click();
         QCOMPARE(widget<QCheckBox>(dialog, "ponderEnabledCheckBox")->isChecked(), hasOption);
         QVERIFY(widget<QCheckBox>(dialog, "sendUnreportedPonderCheckBox")->isChecked());

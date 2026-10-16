@@ -11,6 +11,7 @@
 
 #include "tsumeshogigenerator.h"
 
+class EngineSelector;
 class QCheckBox;
 class QComboBox;
 class QLabel;
@@ -61,7 +62,7 @@ private slots:
     void updateProgressBar();
     void toggleHelp(bool visible);
     void fitSettingsArea();
-    void showEngineSettingsDialog();
+    void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
 
 private:
     /// エンジン情報
@@ -73,7 +74,6 @@ private:
     void buildProgressSection(QVBoxLayout* mainLayout);
     void buildResultsSection(QVBoxLayout* mainLayout);
     void connectDialogSignals();
-    void readEngineNameAndDir();
     void loadSettings();
     void saveSettings();
     /// 表の行の高さ・見た目を今の文字に合わせる
@@ -132,7 +132,8 @@ private:
     FooterPanel m_footerUi;
 
     // エンジンリスト
-    QList<Engine> m_engineList;
+    /// エンジンの選択（コンボ・設定ボタン。QObject parent 所有）
+    EngineSelector* m_engineSelector = nullptr;
 
     // ジェネレータ（parent ownership。ダイアログと同寿命で、開始のたびに再利用する）
     TsumeshogiGenerator* m_generator = nullptr;

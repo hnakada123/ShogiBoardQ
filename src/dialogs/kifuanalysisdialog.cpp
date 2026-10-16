@@ -8,6 +8,7 @@
 #include "analysissettings.h"
 #include "dialogutils.h"
 #include "enginelistsettings.h"
+#include "engineselector.h"
 #include "buttonstyles.h"
 
 #include <QFile>
@@ -44,15 +45,11 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
         label->setFont(bold);
     }
 
-    // 設定ファイルからエンジンの名前とディレクトリを読み込む。
-    readEngineNameAndDir();
-    
-    // 設定から前回選択したエンジンを復元
-    const int savedEngineIndex =
-        EngineListSettings::restoreSelection(EngineListSettings::kifuAnalysisSelection(), m_engineList);
-    if (savedEngineIndex >= 0) {
-        ui->comboBoxEngine1->setCurrentIndex(savedEngineIndex);
-    }
+    // エンジンの一覧と前回選んだエンジン
+    EngineSelector::Options engineOptions;
+    engineOptions.keys = EngineListSettings::kifuAnalysisSelection();
+    m_engineSelector = new EngineSelector({ui->comboBoxEngine1, ui->engineSetting, ui->engineHint}, engineOptions, this);
+    connect(m_engineSelector, &EngineSelector::settingsRequested, this, &KifuAnalysisDialog::showEngineSettingsDialog);
     
     // 設定から前回の思考時間を復元
     int savedByoyomi = AnalysisSettings::kifuAnalysisByoyomiSec();
@@ -73,7 +70,6 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     m_savedEndPly = AnalysisSettings::kifuAnalysisEndPly();
 
     // エンジン設定ボタンが押されたときの処理
-    connect(ui->engineSetting, &QPushButton::clicked, this, &KifuAnalysisDialog::showEngineSettingsDialog);
 
     // 条件を検証・保存してからダイアログを閉じる。
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::processEngineSettings);
@@ -94,10 +90,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     ui->spinBoxStartPly->setEnabled(rangeEnabled);
     ui->spinBoxEndPly->setEnabled(rangeEnabled);
 
-    const bool hasEngine = !m_engineList.isEmpty();
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(hasEngine);
-    ui->engineSetting->setEnabled(hasEngine);
-    ui->engineHint->setVisible(!hasEngine);
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(m_engineSelector->hasEngines());
     updateSummary();
 
     // 文字の大きさ（A-/A+ は .ui に置いたボタン）。折り返す説明が欠けない大きさも DialogFontScale が保つ
@@ -174,50 +167,16 @@ void KifuAnalysisDialog::setMaxPly(int maxPly)
     updateSummary();
 }
 
-// エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
-void KifuAnalysisDialog::showEngineSettingsDialog()
+void KifuAnalysisDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
 {
-    // 選択したエンジン番号を取得する。
-    m_engineNumber = ui->comboBoxEngine1->currentIndex();
-
-    // 選択したエンジン名を取得する。
-    m_engineName = ui->comboBoxEngine1->currentText();
-
-    // エンジン名が空の場合
-    if (m_engineName.isEmpty()) {
-        // エラーメッセージを表示する。
-        const QString errorMessage = tr("将棋エンジンが選択されていません。");
-
-        // エラーメッセージを表示する。
-        QMessageBox::critical(this, tr("エラー"), errorMessage);
-
-        return;
-    }
-    // エンジン名が空でない場合
-    else {
-        // エンジン設定ダイアログを表示する。
-        ChangeEngineSettingsDialog dialog(this);
-
-        // エンジン名を設定する。
-        dialog.setEngineName(m_engineName);
-
-        // エンジン設定ダイアログを作成する。
-        dialog.setupEngineOptionsDialog();
-
-        // ダイアログがキャンセルされた場合、何もしない。
-        if (dialog.exec() == QDialog::Rejected) return;
-    }
+    ChangeEngineSettingsDialog dialog(engine, this);
+    dialog.exec();
 }
 
 // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
 void KifuAnalysisDialog::processEngineSettings()
 {
-    if (ui->comboBoxEngine1->currentIndex() < 0) return;
-    // 選択したエンジン名を取得する。
-    m_engineName = ui->comboBoxEngine1->currentText();
-
-    // 選択したエンジン番号を取得する。
-    m_engineNumber = ui->comboBoxEngine1->currentIndex();
+    if (!m_engineSelector->selected()) return;
 
     // "開始局面から最終手まで"にチェックが入っている場合
     if (ui->radioButtonInitPosition->isChecked()) {
@@ -236,9 +195,7 @@ void KifuAnalysisDialog::processEngineSettings()
     m_byoyomiSec = ui->byoyomiSec->value();
     
     // 設定を保存
-    if (m_engineNumber >= 0 && m_engineNumber < m_engineList.size()) {
-        EngineListSettings::saveSelection(EngineListSettings::kifuAnalysisSelection(), m_engineList.at(m_engineNumber).name);
-    }
+    m_engineSelector->saveSelection();
     AnalysisSettings::kifuAnalysisByoyomiSec.set(m_byoyomiSec);
     AnalysisSettings::kifuAnalysisFullRange.set(m_initPosition);
     AnalysisSettings::kifuAnalysisStartPly.set(ui->spinBoxStartPly->value());
@@ -246,22 +203,9 @@ void KifuAnalysisDialog::processEngineSettings()
     accept();
 }
 
-// エンジンの名前とディレクトリを格納するリストを取得する。
-QList<KifuAnalysisDialog::Engine> KifuAnalysisDialog::engineList() const
+std::optional<KifuAnalysisDialog::Engine> KifuAnalysisDialog::engine() const
 {
-    return m_engineList;
-}
-
-// エンジン名を取得する。
-QString KifuAnalysisDialog::engineName() const
-{
-    return m_engineName;
-}
-
-// エンジン番号を取得する。
-int KifuAnalysisDialog::engineNumber() const
-{
-    return m_engineNumber;
+    return m_engineSelector->selected();
 }
 
 // 1手あたりの思考時間（秒数）を取得する。
@@ -286,16 +230,6 @@ int KifuAnalysisDialog::startPly() const
 int KifuAnalysisDialog::endPly() const
 {
     return m_endPly;
-}
-
-// 設定ファイルからエンジンの名前とディレクトリを読み込む。
-void KifuAnalysisDialog::readEngineNameAndDir()
-{
-    m_engineList = EngineListSettings::loadEngines();
-    for (const auto& engine : std::as_const(m_engineList)) {
-        // 棋譜解析ダイアログのエンジン選択リストにエンジン名を追加する。
-        ui->comboBoxEngine1->addItem(engine.name);
-    }
 }
 
 // 範囲指定の数値欄の前後に置く文字列を設定する。

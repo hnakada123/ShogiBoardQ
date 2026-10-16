@@ -442,6 +442,13 @@ set_target_properties(tst_startgamedialog PROPERTIES
     AUTOUIC_SEARCH_PATHS "${SRC}/dialogs"
 )
 
+add_shogi_test(tst_engineselector
+    tst_engineselector.cpp
+    ${SRC}/widgets/engineselector.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SETTINGS_SOURCES}
+)
+
 add_shogi_test(tst_engineprofilestore
     tst_engineprofilestore.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.cpp

@@ -3,7 +3,7 @@
 
 #include "tsumeshogisearchdialog.h"
 #include "dialogfontscale.h"
-#include "enginelistsettings.h"
+#include "engineselector.h"
 #include "ui_tsumeshogisearchdialog.h"
 #include "analysissettings.h"
 #include "buttonstyles.h"
@@ -15,7 +15,6 @@
 TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::TsumeShogiSearchDialog>())
-    , m_engines(EngineListSettings::loadEngines())
 {
     ui->setupUi(this);
     auto* start = ui->buttonBox->button(QDialogButtonBox::Ok);
@@ -28,22 +27,18 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     ui->comboBoxEngine1->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     ui->comboBoxEngine1->setMinimumContentsLength(18);
 
-    for (const auto& engine : std::as_const(m_engines)) {
-        ui->comboBoxEngine1->addItem(engine.name, engine.path);
-        const int index = ui->comboBoxEngine1->count() - 1;
-        ui->comboBoxEngine1->setItemData(index, engine.name, Qt::ToolTipRole);
-    }
-    const int saved = EngineListSettings::restoreSelection(EngineListSettings::tsumeSearchSelection(), m_engines);
-    if (saved >= 0) ui->comboBoxEngine1->setCurrentIndex(saved);
+    // エンジンの一覧と前回選んだエンジン（案内文は選べるかで変えるのでこのダイアログが出す）
+    EngineSelector::Options engineOptions;
+    engineOptions.keys = EngineListSettings::tsumeSearchSelection();
+    m_engineSelector = new EngineSelector({ui->comboBoxEngine1, ui->engineSetting, nullptr}, engineOptions, this);
     ui->byoyomiSec->setValue(AnalysisSettings::tsumeSearchTimeLimitSec());
     const bool unlimited = AnalysisSettings::tsumeSearchUnlimitedTime();
     ui->unlimitedTimeRadioButton->setChecked(unlimited);
     ui->considerationTimeRadioButton->setChecked(!unlimited);
     ui->byoyomiSec->setEnabled(!unlimited);
 
-    connect(ui->comboBoxEngine1, &QComboBox::currentIndexChanged,
-            this, &TsumeShogiSearchDialog::updateEngineSelection);
-    connect(ui->engineSetting, &QPushButton::clicked,
+    connect(m_engineSelector, &EngineSelector::selectionChanged, this, &TsumeShogiSearchDialog::updateEngineSelection);
+    connect(m_engineSelector, &EngineSelector::settingsRequested,
             this, &TsumeShogiSearchDialog::showEngineSettingsDialog);
     connect(ui->considerationTimeRadioButton, &QRadioButton::toggled,
             ui->byoyomiSec, &QSpinBox::setEnabled);
@@ -60,14 +55,9 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
 
 TsumeShogiSearchDialog::~TsumeShogiSearchDialog() = default;
 
-const QList<EngineListSettings::EngineEntry>& TsumeShogiSearchDialog::engineList() const
+std::optional<EngineListSettings::EngineEntry> TsumeShogiSearchDialog::engine() const
 {
-    return m_engines;
-}
-
-int TsumeShogiSearchDialog::engineNumber() const
-{
-    return ui->comboBoxEngine1->currentIndex();
+    return m_engineSelector->selected();
 }
 
 int TsumeShogiSearchDialog::byoyomiSec() const
@@ -82,29 +72,22 @@ bool TsumeShogiSearchDialog::unlimitedTimeFlag() const
 
 bool TsumeShogiSearchDialog::hasValidEngine() const
 {
-    const int index = engineNumber();
-    return index >= 0 && index < m_engines.size()
-        && !m_engines.at(index).name.isEmpty() && !m_engines.at(index).path.isEmpty();
+    const std::optional<EngineListSettings::EngineEntry> selected = engine();
+    return selected && !selected->name.isEmpty() && !selected->path.isEmpty();
 }
 
 void TsumeShogiSearchDialog::updateEngineSelection()
 {
     const bool valid = hasValidEngine();
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(valid);
-    ui->engineSetting->setEnabled(valid);
-    ui->comboBoxEngine1->setEnabled(!m_engines.isEmpty());
-    ui->comboBoxEngine1->setToolTip(ui->comboBoxEngine1->currentText());
     ui->engineHint->setText(valid
         ? tr("詰み探索に対応したエンジンを選択してください。")
         : tr("使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。"));
 }
 
-void TsumeShogiSearchDialog::showEngineSettingsDialog()
+void TsumeShogiSearchDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
 {
-    if (!hasValidEngine()) return;
-    ChangeEngineSettingsDialog dialog(this);
-    dialog.setEngineName(m_engines.at(engineNumber()).name);
-    dialog.setupEngineOptionsDialog();
+    ChangeEngineSettingsDialog dialog(engine, this);
     dialog.exec();
 }
 
@@ -112,7 +95,7 @@ void TsumeShogiSearchDialog::accept()
 {
     if (!hasValidEngine()) return;
     ui->byoyomiSec->interpretText();
-    EngineListSettings::saveSelection(EngineListSettings::tsumeSearchSelection(), m_engines.at(engineNumber()).name);
+    m_engineSelector->saveSelection();
     AnalysisSettings::tsumeSearchUnlimitedTime.set(unlimitedTimeFlag());
     AnalysisSettings::tsumeSearchTimeLimitSec.set(byoyomiSec());
     QDialog::accept();

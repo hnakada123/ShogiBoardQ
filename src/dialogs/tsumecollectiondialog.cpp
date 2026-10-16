@@ -1,7 +1,7 @@
 #include "tsumecollectiondialog.h"
 #include "dialogfontscale.h"
 #include "dialogutils.h"
-#include "enginelistsettings.h"
+#include "engineselector.h"
 #include "tsumecollectionsession.h"
 #include "tsumeshogisettings.h"
 #include <QComboBox>
@@ -25,6 +25,14 @@
 #include <QScrollBar>
 #include <QSignalBlocker>
 
+namespace {
+/// 長手数の判定に使える登録エンジン（KomoringHeights）
+bool isMateEngine(const EngineListSettings::EngineEntry& engine)
+{
+    return engine.name.contains(QStringLiteral("KomoringHeights"), Qt::CaseInsensitive);
+}
+} // namespace
+
 TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     : QDialog(parent)
 {
@@ -35,18 +43,20 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     buildUi();
     const auto preferences = TsumeshogiSettings::collectionPreferences();
     DialogUtils::restoreDialogSize(this, preferences.size);
-    int engineIndex = m_engine->findData(preferences.enginePath);
-    if (preferences.enginePath.isEmpty()) engineIndex = m_engine->count() > 1 ? 1 : 0;
-    if (preferences.enginePath == QStringLiteral("@hayanagi")) engineIndex = 0;
-    if (engineIndex < 0) engineIndex = m_engine->count() > 1 ? 1 : 0;
-    m_engine->setCurrentIndex(engineIndex);
+    // 判定エンジン: 内蔵の Hayanagi か、登録した KomoringHeights（未保存なら登録したものを優先する）
+    TsumeshogiSettings::migrateCollectionEngineSelection();
+    EngineSelector::Options engineOptions;
+    engineOptions.keys = EngineListSettings::tsumeCollectionSelection();
+    engineOptions.builtinLabel = tr("Hayanagi（内蔵・31手まで）");
+    engineOptions.filter = &isMateEngine;
+    m_engineSelector = new EngineSelector({m_engine, nullptr, nullptr}, engineOptions, this);
     const int pageSizeIndex = m_pageSize->findData(preferences.pageSize);
     m_pageSize->setCurrentIndex(std::max(0, pageSizeIndex));
     m_filter->setCurrentIndex(std::clamp(preferences.filter, 0, 3));
     m_timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
     m_session->setTimeoutMs(m_timeout->value() * 1000);
     connect(m_timeout, &QSpinBox::valueChanged, this, &TsumeCollectionDialog::timeoutChanged);
-    connect(m_engine, &QComboBox::currentIndexChanged, this, &TsumeCollectionDialog::engineChanged);
+    connect(m_engineSelector, &EngineSelector::selectionChanged, this, &TsumeCollectionDialog::engineChanged);
     connect(m_pageSize, &QComboBox::currentIndexChanged, this, &TsumeCollectionDialog::filterChanged);
     connect(m_filter, &QComboBox::currentIndexChanged, this, &TsumeCollectionDialog::filterChanged);
     connect(m_page, &QSpinBox::valueChanged, this, &TsumeCollectionDialog::pageChanged);
@@ -95,11 +105,6 @@ void TsumeCollectionDialog::buildUi()
     engineRow->addWidget(new QLabel(tr("判定エンジン:"), this));
     m_engine = new QComboBox(this);
     m_engine->setObjectName(QStringLiteral("tsumeMateEngine"));
-    m_engine->addItem(tr("Hayanagi（内蔵・31手まで）"), QString());
-    const auto engines = EngineListSettings::loadEngines();
-    for (const auto& engine : engines) {
-        if (engine.name.contains(QStringLiteral("KomoringHeights"), Qt::CaseInsensitive)) m_engine->addItem(engine.name, engine.path);
-    }
     engineRow->addWidget(m_engine, 1);
     engineRow->addWidget(new QLabel(tr("判定時間:"), this));
     m_timeout = new QSpinBox(this);
@@ -185,12 +190,12 @@ void TsumeCollectionDialog::savePreferences()
     TsumeshogiSettings::CollectionPreferences preferences;
     preferences.size = size();
     preferences.lastFile = m_session->filePath();
-    preferences.enginePath = m_engine->currentIndex() == 0 ? QStringLiteral("@hayanagi") : m_engine->currentData().toString();
     preferences.pageSize = m_pageSize->currentData().toInt();
     preferences.page = m_page->value();
     preferences.filter = m_filter->currentIndex();
     preferences.timeoutSec = m_timeout->value();
     TsumeshogiSettings::setCollectionPreferences(preferences);
+    m_engineSelector->saveSelection();
 }
 
 // ============================================================
@@ -199,7 +204,8 @@ void TsumeCollectionDialog::savePreferences()
 
 void TsumeCollectionDialog::engineChanged()
 {
-    m_session->setEngine(m_engine->currentData().toString());
+    const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected();
+    m_session->setEngine(engine ? engine->path : QString());
     m_notice->setText(m_session->usesEngine()
         ? tr("玉方はHayanagi、詰み判定はKomoringHeightsです。参考手順の手数と、確認済みの詰み手数を区別して表示します。")
         : tr("内蔵判定は31手までです。長手数を解く場合はエンジン登録でKomoringHeightsを登録し、ここで選択してください。"));
