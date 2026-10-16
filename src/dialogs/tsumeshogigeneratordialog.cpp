@@ -10,6 +10,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QEvent>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
@@ -498,6 +499,8 @@ protected:
 
 /// 内容の高さを希望サイズにする。QScrollArea::sizeHint は内容の大きさを最初に一度だけ記録するため、
 /// 説明の開閉で設定欄の高さが変わらず、スクロールしないと設定が見えなくなる。
+/// 内容の部品の大きさが変わったとき（文字の大きさ・エンジンの一覧）も、ダイアログのレイアウトが
+/// 覚えている希望サイズを捨てさせる
 class FittingScrollArea : public QScrollArea
 {
 public:
@@ -508,6 +511,14 @@ public:
         if (!widget()) return QScrollArea::sizeHint();
         const int frame = 2 * frameWidth();
         return widget()->sizeHint() + QSize(frame, frame);
+    }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        // setWidget() が内容の部品にこのフィルタを付ける
+        if (watched == widget() && event->type() == QEvent::LayoutRequest) updateGeometry();
+        return QScrollArea::eventFilter(watched, event);
     }
 };
 } // namespace
