@@ -99,6 +99,7 @@
 | 2026-10-16 | 定跡のデータを値型 `JosekiBook` にし、定跡手を局面の合法手から選ぶようにしたのに合わせて §1.5・§11.3・第18章を更新（`JosekiRepository`・`josekiioresult.h` を削除。`JosekiBook`（`src/kifu/josekibook.h`）は局面のキー `JosekiBook::positionKey()` から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つで、最後の定跡手を消すと局面も消える。読み書きは `JosekiBookFile::load()`・`save()`、マージで登録した印は `JosekiMoveKey`（`QSet`）。`JosekiMoveInputWidget` は局面の合法手を棋譜の表記で並べた一覧、`JosekiMoveDialog` の受け渡しは `setEntry()`・`entry()`。テストは `tst_joseki_book`） |
 | 2026-10-16 | エンジンの起動の失敗を非同期だけで知らせ、枠のエンジンをリースで持つようにしたのに合わせて §3.4・§6.1・§6.2・§6.3・§6.9・§7.2・§7.5・§7.9・§9.3・§9.4・§9.6・§9.10・§12.3・§14.3・§15.4・第18章を更新（`UsiEngineSession::startAsync()`・`probeAsync()`・`Usi::startEngine()`・`MateOracle::start()` などは値を返さず、失敗は戻った後に `errorOccurred` で届く。`EngineLifecycleManager::createEngine()`・`destroyEngine()` を `acquire()` と move-only の `EngineLease` に置き換え、枠を取り上げた前の持ち主には `engineRevoked` で知らせる。`AnalysisSession::stop()` は自分のエンジンだけを手放し、「新規」は `GameSession::Deps::engines` の `destroyEngines(false)` で全部止める） |
 | 2026-10-16 | 分岐ツリーの変更の知らせを型付きにし、図を `BranchTreeView`・`BranchNodeItem` に作り直したのに合わせて §1.5・§1.8・§3.5・§4.4・§4.5・§6.9・§8.2・§8.3・§8.6・§8.7・§10.2〜§10.4・§11.1・§11.2・§11.5・§13.1・§13.3・§16.2・第18章を更新（`KifuBranchTree::treeChanged` を `nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset` に分け、一括更新は知らせを遅らせて順に出す。`*Quiet` の関数・`newestNode()` を削除し、`addMove`・`addTerminalMove`・`findByPlyOnMainLine`・`findBySfen` はテスト用の `TestTree`（`tests/branchtree_test_util.h`）に移した。ノードは子を `std::unique_ptr` で所有する。`BranchTreeManager` を削除し、図はツリーの知らせを自分で受けて、外とはノード ID でやり取りする（`KifuNavigationController::selectBranchTreeNode(nodeId)`・`BranchTreeEditController::onNodeContextMenuAboutToShow(nodeId, menu)`）） |
+| 2026-10-16 | 盤の位置を値の型 `BoardGeometry` に、対局者カードを `PlayerCard` にしたのに合わせて §1.5・§11.1・§11.5・§12.6・第18章を更新（`ShogiViewLayout`（`shogiviewlayout.h/.cpp`）を削除し、盤・マス・駒台のセル・座標の文字・カードの位置を `BoardGeometry::Params` から1度だけ計算してウィジェット座標で持つ。ShogiView は `boardGeometry()` で返し、`rebuildGeometry()` で作り直す。`calculateSquareRectangleBasedOnBoardState()`・`cachedFieldRect()`・マスの矩形のキャッシュ・`setFieldSize()`（`fieldSize` は読み出し専用）・`updateBoardSize()`・`setStandGapCols()` を削除。`BoardChromeWidget` は `setBoardLayout()` を `setBoardGeometry()` に置き換え、名前・時計・札の関数（`setBlackPlayerName()`・`setBlackClockText()`・`blackNameLabel()`・`turnBadge()`・`visibleCardRect()` など）を `card(Turn)` が返す `PlayerCard` の `setName()`・`setClockText()`・`nameLabel()`・`clockLabel()`・`turnBadge()` に移した） |
 
 <!-- chapter-0-end -->
 
@@ -464,9 +465,10 @@ src/
 │
 ├── views/                          # 盤の描画と入力
 │   ├── shogiview.cpp/.h            #   将棋盤描画ビュー（状態・入力・描画・クリック位置からマスへの変換）
-│   ├── boardchromewidget.cpp/.h    #   盤に重ねる対局者カード（名前・時計・手番の札）・編集終了ボタン・駒箱の先後切り替え
+│   ├── boardgeometry.cpp/.h        #   盤・マス・駒台のセル・座標の文字・対局者カードの位置（1度だけ計算する変えない値。ウィジェット座標）
+│   ├── boardchromewidget.cpp/.h    #   盤に重ねる対局者カード（先手・後手の PlayerCard）・編集終了ボタン・駒箱の先後切り替え
+│   ├── playercard.cpp/.h           #   対局者1人のカード（手番の札・名前・時計を子に持ち、place() で並べる）
 │   ├── boardstaticlayer.cpp/.h     #   局面によらない部分（背景・盤の木肌と縁・影・罫線・星・駒台の木肌）の画像
-│   ├── shogiviewlayout.cpp/.h      #   盤面のレイアウト計算（駒台の位置を含む）
 │   ├── shogiviewinteraction.cpp/.h #   ドラッグの状態
 │   ├── shogiviewhighlighting.cpp/.h #  ハイライト・矢印
 │   ├── piecepainter.cpp/.h         #   駒の描画（倍率と影、持駒の重ね描き）
@@ -6065,7 +6067,7 @@ BoardInputRoute::submit(from, to)
 
 `src/views/shogiview.h` / `shogiview.cpp`（状態・入力・マスの位置・描画）
 
-盤の大きさと位置の計算は `ShogiViewLayout`（`shogiviewlayout.h/.cpp`）、マウス操作とドラッグは `ShogiViewInteraction`（`shogiviewinteraction.h/.cpp`）、ハイライトと矢印は `ShogiViewHighlighting`（`shogiviewhighlighting.h/.cpp`）に分けている。駒の描画は `PiecePainter`、盤・駒台の木肌と縁は `BoardSurfacePainter`、局面によらない部分（背景・木肌・罫線・星・駒台）の画像は `BoardStaticLayer`（`boardstaticlayer.h/.cpp`）が受け持つ。
+盤・マス・駒台のセル・座標の文字・対局者カードの位置は値の型 `BoardGeometry`（`boardgeometry.h/.cpp`）、マウス操作とドラッグは `ShogiViewInteraction`（`shogiviewinteraction.h/.cpp`）、ハイライトと矢印は `ShogiViewHighlighting`（`shogiviewhighlighting.h/.cpp`）に分けている。駒の描画は `PiecePainter`、盤・駒台の木肌と縁は `BoardSurfacePainter`、局面によらない部分（背景・木肌・罫線・星・駒台）の画像は `BoardStaticLayer`（`boardstaticlayer.h/.cpp`）が受け持つ。
 
 #### 11.1.1 概要
 
@@ -6077,12 +6079,12 @@ ShogiView は QWidget を直接継承した **カスタムペイントウィジ�
 |------|------|
 | 盤面描画 | 9×9マス、星印、段筋ラベル、将棋盤の影・余白 |
 | 駒描画 | 駒アイコン（`Piece` 型 → QIcon。`piece(Piece)`）、反転表示対応 |
-| 駒台描画 | 先手・後手の持ち駒と枚数（疑似座標 file=10/11 を使用。セルの位置は `ShogiViewLayout::standCellRect()`・`standPieceAt()`・`standBaseCellOf()`） |
+| 駒台描画 | 先手・後手の持ち駒と枚数（疑似座標 file=10/11 を使用。セルの位置は `BoardGeometry::standCell(Piece)`（成駒は生駒のセル）、並ぶ駒は `BoardGeometry::standPieces(Turn)`） |
 | ハイライト | 層（`BoardHighlightLayer`）ごとのマスの色付け表示（直前の手・選択・合法な移動先） |
 | 矢印 | Arrow 構造体によるエンジン最善手の可視化 |
 | ドラッグ&ドロップ | 駒のつまみ上げ・移動先判定 |
-| 対局者カードの配置 | 盤・駒台の位置を `BoardChromeWidget::setBoardLayout()` に渡す（`relayoutChrome()`） |
-| リサイズ | `resizeEvent()` で対局者カードの層を置き直す（`relayoutChrome()`）。マスの大きさは拡大・縮小（`enlargeBoard()`・Ctrl+ホイールなど）で変え、配置の計算は `ShogiViewLayout` |
+| 対局者カードの配置 | 盤の位置（`BoardGeometry`）を `BoardChromeWidget::setBoardGeometry()` に渡す（`relayoutChrome()`） |
+| リサイズ | `resizeEvent()` で対局者カードの層を置き直す（`relayoutChrome()`）。マスの大きさは拡大・縮小（`enlargeBoard()`・Ctrl+ホイールなど）で変え、そのたびに `rebuildGeometry()` で `BoardGeometry` を作り直す |
 
 #### 11.1.2 レンダリングレイヤー順序
 
@@ -6112,11 +6114,26 @@ ShogiView は QWidget を直接継承した **カスタムペイントウィジ�
 1マスのアスペクト比は実物の将棋盤に基づく。
 
 ```cpp
-// src/views/shogiviewlayout.h
+// src/views/boardgeometry.h
 static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098（縦/横）
+static constexpr int kMinSquareSize = 20;
+static constexpr int kMaxSquareSize = 150;
 ```
 
-`ShogiViewLayout::m_squareSize` が横幅の基準ピクセルで、縦は `m_squareSize * kSquareAspectRatio` で算出される。反転表示（`ShogiViewLayout::m_flipMode`）時は盤の座標を `ShogiViewLayout` が入れ替えて扱う。クリック位置から盤・駒台（筋10・11）・駒箱（筋12）のマスを求めるのは `ShogiView::clickedSquare()`（盤は `ShogiViewLayout::squareAt()`、駒台はセルの矩形で判定する）。
+盤の位置は、変えない値の型 `BoardGeometry` に1度だけ計算して持つ。条件は `BoardGeometry::Params`（マスの幅 `squareSize`・盤と駒台の間 `standGapCols`・反転 `flipped`・筋と段の数・段の文字の幅を測る書体）で、マスの幅が横の基準ピクセル、縦は `squareSize * kSquareAspectRatio`（`fieldSize()`）。ShogiView は `m_geometry` を1つ持ち（`boardGeometry()`）、マスの大きさ・反転・盤が変わったときに `rebuildGeometry(squareSize, flipped)` で作り直す。描画・入力・ハイライト・対局者カードの配置はこの値を読むだけで、補いの計算やオフセットの足し上げはしない。
+
+| 関数 | 内容（すべてウィジェット座標） |
+|------|------|
+| `fieldSize()`・`viewSize()` | 1マスの大きさ（縦長）、ウィジェット全体の大きさ（盤・駒台・座標の帯・影・外側の余白） |
+| `board()`・`surface()` | 盤のマス目の範囲、盤の木肌（四辺の座標の帯を含む。反転しても位置は変わらない） |
+| `square(file, rank)`・`squareAt(pos)` | 盤のマス（反転を含む）、点がある盤のマス（盤の外なら `QPoint()`） |
+| `fileLabel(file)`・`rankLabel(rank)`・`coordinateBand()`・`labelPixelSize()` | 筋・段の文字の帯（反転すると上下・左右が替わる）、帯の幅、筋・段の文字の大きさ（1つだけ） |
+| `stand(Turn)`・`standCell(Piece)`・`standPieces(Turn)` | 駒台、駒（成駒は生駒）を置くセル、駒台に並ぶ8つの生駒 |
+| `standSurface(area)`・`standPieceArea(cell)` | 駒台・駒箱の木肌、セルの中で駒を描く範囲 |
+| `playerCard(Turn, cardHeight, areaHeight)`・`standGap()` | 対局者カード（駒台の外側）、駒台とカード・駒箱の間 |
+| `pieceBoxLabel(box)`・`pieceBoxSideSelector(box)`・`pieceBoxCell(box, rank)` | 駒箱の見出し・先後の切り替え・セル（static） |
+
+駒台は2列4段で、先手の駒台（反転していないとき）は左の列が上から飛・金・桂・歩、右の列が王・角・銀・香。後手の駒台と反転したときの駒台は、その並びを180度回したもの。クリック位置から盤・駒台（筋10・11）・駒箱（筋12）のマスを求めるのは `ShogiView::clickedSquare()`（盤は `BoardGeometry::squareAt()`、駒台は `standCell()` のセルで判定する）。
 
 #### 11.1.4 主要メソッド
 
@@ -6128,9 +6145,10 @@ static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098（縦/�
 | `setArrows() / clearArrows()` | 矢印（最善手表示）の設定・クリア |
 | `setFlipMode(bool)` | 反転表示の切り替え |
 | `setPositionEditMode(bool)` | 局面編集モードの ON/OFF |
-| `chrome()` | 対局者カード・時計・手番の札（`BoardChromeWidget`）。名前・時計・手番・時計の警告は `view->chrome()->setBlackPlayerName()`・`setActiveSide(Turn)`・`setUrgency()` などを直接呼ぶ |
+| `chrome()` | 対局者カード・時計・手番の札（`BoardChromeWidget`）。名前・時計は `view->chrome()->card(Turn::Black)->setName()`・`setClockText()`、手番・時計の警告は `view->chrome()->setActiveSide(Turn)`・`setUrgency()` を直接呼ぶ |
 | `clickedSquare(QPoint)` | ウィジェット座標からマス（盤・駒台・駒箱）を求める |
-| `enlargeBoard() / reduceBoard()` | 盤の拡大/縮小（±1px） |
+| `boardGeometry()` | 盤・駒台・座標の文字の位置（`BoardGeometry`。11.1.3） |
+| `enlargeBoard() / reduceBoard()` | 盤の拡大/縮小（±1px。`fieldSize` は読み出し専用のプロパティで、変わると `fieldSizeChanged`） |
 | `toImage(qreal)` | 現在の盤面を QImage として出力 |
 
 #### 11.1.5 ハイライトと矢印
@@ -6143,12 +6161,13 @@ static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098（縦/�
 
 `src/views/boardchromewidget.h`
 
-対局者カード（先手・後手の QFrame）、名前（`ElideLabel`。`blackNameLabel()` / `whiteNameLabel()`）、時計（`QLabel`。`blackClockLabel()` / `whiteClockLabel()`。太さ DemiBold は作るときに付け、大きさは配置のたびに枠に合わせる）、手番の札（`turnBadge(bool black)`）、局面編集の「編集終了」ボタン（`setEditExitButtonVisible(bool)`。押すと `editExitRequested`。`ShogiView::setEditExitButtonVisible()` が中継し、`PositionEditSession` が出し入れする）、駒箱の先後切り替え（`placePieceBoxSelector()`・`setPieceBoxSide()`・`pieceBoxSideClicked`）は、`BoardChromeWidget` が持つ。
+対局者カード（先手・後手の `PlayerCard`。`card(Turn)`）、局面編集の「編集終了」ボタン（`setEditExitButtonVisible(bool)`。押すと `editExitRequested`。`ShogiView::setEditExitButtonVisible()` が中継し、`PositionEditSession` が出し入れする）、駒箱の先後切り替え（`placePieceBoxSelector()`・`setPieceBoxSide()`・`pieceBoxSideClicked`）は、`BoardChromeWidget` が持つ。
 
 - ShogiView の子として盤と同じ大きさで重ね、部品のある範囲だけをマスク（`setMask`）で残す。それ以外のクリック・描画は下の ShogiView に届くので、盤の入力はそのまま。
-- ShogiView は盤・駒台の位置（`BoardChromeWidget::BoardLayout`：マスの大きさ・駒台・盤の範囲・反転）を `setBoardLayout()` で渡すだけ。カードは駒台の外側に置き、駒箱はカード（`visibleCardRect()`）の下に置く。
-- 手番（`setActiveSide(Turn)`。ShogiView は `ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide` に直接つなぐ）・時計の警告（`setUrgency()`）・配色の上書き・終局時の表示維持の状態もここにあり、`BoardAppearance::colorsChanged` を自分で受けて配色を合わせる。スタイルシートは色の組ごとに覚えて使い回す。
-- ShogiView には名前・時計・手番を転送する関数を持たせない。呼び出し側は `view->chrome()->…` を直接呼ぶ。部品は ShogiView の子孫なので `findChild` と `grab()`（盤面画像の書き出し）にも含まれる。
+- ShogiView は盤の位置（`BoardGeometry`）を `setBoardGeometry(std::optional<BoardGeometry>)` で渡すだけ（盤が無ければ `std::nullopt` で、カードを隠す）。カードの位置は `BoardGeometry::playerCard()`（駒台の外側）で決まり、ShogiView は駒箱をカードの下に置く。対局者名の大きさ（マスの高さに対する比）は `setNameFontScale()`。
+- `PlayerCard`（`src/views/playercard.h`。QFrame）は1側1枚で、上から手番の札（`turnBadge()`）・名前（`ElideLabel`、2行分。`nameLabel()`）・時計（`QLabel`。`clockLabel()`。太さ DemiBold は作るときに付け、大きさは配置のたびに枠に合わせる）を子に持つ。QLayout は使わず `place(rect, Metrics)` で並べるので、隠れている間も位置は同じ。手番でない側にも札の場所を取っておき、手番が替わっても名前と時計は動かない。名前は `setName()`（▲▼△▽ の印は外し、盤の向き `setFlipped()` に合わせて付け直す）、時計は `setClockText()`、配色は `applyColors(colors, active, clockColor, showBadge)`。スタイルシートは色の組ごとに覚えて使い回す。オブジェクト名（`blackPlayerCard`・`blackNameLabel`・`blackClockLabel`・`turnLabelBlack` など）は変えていない。
+- 手番（`setActiveSide(Turn)`。ShogiView は `ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide` に直接つなぐ）・時計の警告（`setUrgency()`）の状態は `BoardChromeWidget` にあり、`BoardAppearance::colorsChanged` を自分で受けて両方のカードの `applyColors()` を呼ぶ。手番の札は盤が置かれているときだけ出す。
+- ShogiView には名前・時計・手番を転送する関数を持たせない。呼び出し側は `view->chrome()->card(Turn)->…`・`view->chrome()->…` を直接呼ぶ。部品は ShogiView の子孫なので `findChild` と `grab()`（盤面画像の書き出し）にも含まれる。
 
 ```
 Urgency::Normal → 通常の時計の色
@@ -6421,7 +6440,7 @@ src/widgets/collapsiblegroupbox.h / .cpp
 src/widgets/elidelabel.h / .cpp
 ```
 
-テキストがラベル幅に収まらない場合にエリプシス（...）で省略して描くカスタム QLabel。全文はツールチップとプロパティ `fullText` に入る。盤の対局者名（`BoardChromeWidget`。`ShogiView::blackNameLabel()` などで取り出せる）、USI通信ログのエンジン名、棋譜解析結果のエンジン名で使用される。
+テキストがラベル幅に収まらない場合にエリプシス（...）で省略して描くカスタム QLabel。全文はツールチップとプロパティ `fullText` に入る。盤の対局者名（`PlayerCard`。`ShogiView::chrome()->card(Turn)->nameLabel()` で取り出せる）、USI通信ログのエンジン名、棋譜解析結果のエンジン名で使用される。
 
 機能:
 - `setFullText()` でフルテキストを設定、幅超過時に自動省略
@@ -7012,11 +7031,11 @@ MyDialog::~MyDialog()
 
 ### 12.6 手番・時計表示の同期
 
-**ソース**: `src/views/boardchromewidget.h/.cpp`, `src/ui/presenters/timedisplaypresenter.h/.cpp`, `src/game/matchcoordinator.h/.cpp`
+**ソース**: `src/views/boardchromewidget.h/.cpp`, `src/views/playercard.h/.cpp`, `src/ui/presenters/timedisplaypresenter.h/.cpp`, `src/game/matchcoordinator.h/.cpp`
 
 手番は `ShogiBoard` だけが持つ（`ShogiGameController::currentPlayer()` は盤の手番を返す）。盤の手番の札は、`ShogiView::setBoard()` が `ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide(Turn)` に直接つなぐことで合わせる。手番の側が替わると、時計の警告も消える。
 
-対局中の時計の値は、`TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて（`showClock()`）時計から読む。司令塔は中継しない。着手の確定では司令塔が時計の通知を止めてまとめて値を変え、その後で `ShogiClock::notifyTimeUpdated()` を呼ぶ。通信対局でも、サーバーの残り時間を写した同じ時計を同じ経路で表示する。`TimeDisplayPresenter` は時計の文字を `view->chrome()->setBlackClockText()` などで出し、残り時間に応じた警告（`BoardChromeWidget::Urgency` の `Warn10`・`Warn5`）を `setUrgency()` で反映する。盤を反転したときなどは `refresh()` で最後の値から描き直す。人間同士の対局の考慮時間の計測は、対局モード別の Strategy（`HumanVsHumanStrategy`）が持つ。
+対局中の時計の値は、`TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて（`showClock()`）時計から読む。司令塔は中継しない。着手の確定では司令塔が時計の通知を止めてまとめて値を変え、その後で `ShogiClock::notifyTimeUpdated()` を呼ぶ。通信対局でも、サーバーの残り時間を写した同じ時計を同じ経路で表示する。`TimeDisplayPresenter` は時計の文字を `view->chrome()->card(Turn)->setClockText()` で出し、残り時間に応じた警告（`BoardChromeWidget::Urgency` の `Warn10`・`Warn5`）を `setUrgency()` で反映する。盤を反転したときなどは `refresh()` で最後の値から描き直す。人間同士の対局の考慮時間の計測は、対局モード別の Strategy（`HumanVsHumanStrategy`）が持つ。
 
 ### 12.7 対局者名の表示（PlayerInfoPresenter・EngineDisplayPresenter）
 
@@ -9194,8 +9213,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | AutomationMethodSpecs | NS | automation | 自動化 API の全メソッドの引数の表（`all()`・`find()`） | 第14章 |
 | AutomationServer | C | automation | 自動化 API のローカルソケットサーバー（改行区切り JSON-RPC 2.0） | 第4章, 第14章 |
 | AutomationWidgetAdapters | NS | automation | 部品の型ごとの読み（`describe()`。`widget.text`）と書き（`writer()`。`widget.setValue`）の表 | 第14章 |
-| BoardChromeWidget | C | views | 盤の周りの対局者カード（名前・時計・手番の札）と編集用ボタン | 第11章 |
+| BoardChromeWidget | C | views | 盤に重ねる対局者カード（先手・後手の `PlayerCard`。`card(Turn)`）・編集用ボタン・駒箱の先後切り替え | 第11章 |
 | BoardCoordinates | NS | core | 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応 | 第5章 |
+| BoardGeometry | C | views | 盤・マス・駒台のセル・座標の文字・対局者カードの位置（マスの大きさ・反転・筋と段の数から1度だけ計算する変えない値。ウィジェット座標） | 第11章 |
 | BoardImageExporter | C | board | 盤面画像のクリップボードコピー・ファイル保存 | 第13章 |
 | BoardImageRenderer | C | automation | 盤面画像の描画（GUI を起動しない CLI・自動化 API と共有） | 第13章 |
 | BoardInputRoute | C | board | 盤で指した手の行き先のインターフェース（`acceptsInput()`・`isEditing()`・`submit()`） | 第13章 |
@@ -9369,6 +9389,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ParseReport | C | kifu | 読み込み中の警告と失敗の記録（`ParseOptions` に従って読めない手を扱う） | 第8章 |
 | PieceSoundPlayer | C | services | 駒音（駒を指したときの効果音）の再生 | 第10章 |
 | PieceStyleCatalog | C | services | 駒のセットの表（ID・分類 `Family`・表示名・画像の場所） | 第12章 |
+| PlayerCard | C | views | 対局者1人のカード（手番の札・名前・時計を子に持ち、`place()` で並べる。`setName()`・`setClockText()`・`applyColors()`） | 第11章, 第12章 |
 | PlayerInfoPresenter | C | ui/presenters | 盤の対局者名を出す | 第10章, 第12章 |
 | PlayerChoice | S | game | 対局開始ダイアログで選んだ対局者1人（人間かエンジンか・名前・エンジン・時間。`startgamedatabridge.h`） | 第6章 |
 | PlayerSetupWidget | C | widgets | 対局開始ダイアログの対局者1人の欄（「人間」と登録エンジンのコンボ・名前・「エンジン設定」。`EngineSelector` を使う） | 第11章 |
@@ -9408,7 +9429,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ShogiView | C | views | 将棋盤の描画とマウス入力（クリックは `clickedSquare()` でマスにして `clicked` で知らせる） | 第11章 |
 | ShogiViewHighlighting | C | views | 盤のハイライト（層 `BoardHighlightLayer` ごとのマス）と矢印 | 第11章 |
 | ShogiViewInteraction | C | views | 盤のドラッグの状態 | 第11章 |
-| ShogiViewLayout | C | views | 盤面のレイアウト計算（マス・駒台のセルの位置、位置からマスへの変換） | 第11章 |
 | StartGameDialog | C | dialogs | 対局開始設定ダイアログ（選んだ条件は `data()` で `StartGameDialogData` として返す） | 第11章 |
 | StartGameDialogData | S | game | 対局開始ダイアログで選んだ対局の条件（対局者2人・開始局面の手合割・最大手数・連続対局など） | 第6章 |
 | TableButtonDelegate | C | widgets | 表のセルを控えめなボタンとして描画する（読み筋の盤面・定跡手の着手と編集など） | 第11章 |
@@ -9681,8 +9701,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | shogiview | 第11章 | 将棋盤の描画とマウス入力 |
-| shogiviewlayout | 第11章 | 盤面・駒台のレイアウト計算 |
-| boardchromewidget | 第11章 | 対局者カード・時計・手番の札 |
+| boardgeometry | 第11章 | 盤・駒台・座標の文字・対局者カードの位置（ウィジェット座標の値） |
+| boardchromewidget | 第11章 | 盤に重ねる対局者カード・編集終了ボタン・駒箱の先後切り替え |
+| playercard | 第11章, 第12章 | 対局者1人のカード（手番の札・名前・時計） |
 | boardstaticlayer | 第11章 | 盤面のうち局面によらない部分（盤・マス・段筋の文字など）の画像 |
 | shogiviewhighlighting | 第11章 | 盤のハイライトと矢印 |
 | shogiviewinteraction | 第11章 | 盤のドラッグの状態 |
