@@ -61,8 +61,8 @@ class TestBoardTurnDisplay : public QObject
         }
         const auto* activeTurn = blackTurn ? blackLabel : whiteLabel;
         QCOMPARE(activeTurn->palette().color(QPalette::Window), view.boardColors().turnBackground);
-        QCOMPARE(view.chrome()->blackNameLabel()->palette().color(QPalette::WindowText),
-                 view.chrome()->whiteNameLabel()->palette().color(QPalette::WindowText));
+        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->palette().color(QPalette::WindowText),
+                 view.chrome()->card(Turn::White)->nameLabel()->palette().color(QPalette::WindowText));
     }
 
 private slots:
@@ -82,23 +82,23 @@ private slots:
         clock.setConsiderationTimeMs(Turn::Black, 1750);
         presenter.showTimes(0, 0, Turn::Black);
         // 無制限対局は累積消費時間なので、残り時間と区別できるよう「消費」を付ける。
-        QCOMPARE(view.chrome()->blackClockLabel()->text(), QStringLiteral("消費 00:00:01"));
-        QCOMPARE(view.chrome()->whiteClockLabel()->text(), QStringLiteral("消費 00:00:00"));
+        QCOMPARE(view.chrome()->card(Turn::Black)->clockLabel()->text(), QStringLiteral("消費 00:00:01"));
+        QCOMPARE(view.chrome()->card(Turn::White)->clockLabel()->text(), QStringLiteral("消費 00:00:00"));
         QCOMPARE(view.chrome()->urgency(), ShogiView::Urgency::Normal);
         clock.commitMove(Turn::Black);
         clock.setCurrentPlayer(Turn::White);
         clock.setMeasuredConsiderationTime(Turn::White, 2999);
         clock.commitMove(Turn::White);
         presenter.showTimes(0, 0, Turn::White);
-        QCOMPARE(view.chrome()->blackClockLabel()->text(),
+        QCOMPARE(view.chrome()->card(Turn::Black)->clockLabel()->text(),
                  QStringLiteral("消費 ") + clock.totalConsiderationTimeString(Turn::Black));
-        QCOMPARE(view.chrome()->whiteClockLabel()->text(),
+        QCOMPARE(view.chrome()->card(Turn::White)->clockLabel()->text(),
                  QStringLiteral("消費 ") + clock.totalConsiderationTimeString(Turn::White));
 
         clock.setTimeControl(TestTime::rules(10, 10, 0, 0, 0, 0));
         presenter.showTimes(9501, 10000, Turn::Black);
-        QCOMPARE(view.chrome()->blackClockLabel()->text(), QStringLiteral("00:00:10"));
-        QCOMPARE(view.chrome()->whiteClockLabel()->text(), QStringLiteral("00:00:10"));
+        QCOMPARE(view.chrome()->card(Turn::Black)->clockLabel()->text(), QStringLiteral("00:00:10"));
+        QCOMPARE(view.chrome()->card(Turn::White)->clockLabel()->text(), QStringLiteral("00:00:10"));
     }
 
     void clockUrgencyFollowsRemainingTime_data()
@@ -198,8 +198,8 @@ private slots:
         ShogiView view;
         view.setBoard(gc.board());
         view.resize(view.sizeHint());
-        view.chrome()->setBlackPlayerName(QStringLiteral("先手"));
-        view.chrome()->setWhitePlayerName(QStringLiteral("後手"));
+        view.chrome()->card(Turn::Black)->setName(QStringLiteral("先手"));
+        view.chrome()->card(Turn::White)->setName(QStringLiteral("後手"));
         view.show();
         BoardColors custom;
         custom.cardBackground = QColor("#dde6f0");
@@ -222,14 +222,14 @@ private slots:
             verifyTurn(view, gc, black);
             const auto* badge = view.findChild<QLabel*>(black ? "turnLabelBlack" : "turnLabelWhite");
             QCOMPARE(badge->palette().color(QPalette::WindowText), custom.turnText);
-            for (auto* label : {view.chrome()->blackNameLabel(), view.chrome()->whiteNameLabel()}) {
+            for (auto* label : {view.chrome()->card(Turn::Black)->nameLabel(), view.chrome()->card(Turn::White)->nameLabel()}) {
                 QCOMPARE(label->palette().color(QPalette::WindowText), custom.nameText);
                 const QImage image = label->grab().toImage();
                 QCOMPARE(image.pixelColor(0, image.height() / 2), custom.nameBorder);
                 QCOMPARE(image.pixelColor(image.width() - 3, 2), custom.nameBackground);
             }
-            auto* activeClock = black ? view.chrome()->blackClockLabel() : view.chrome()->whiteClockLabel();
-            auto* inactiveClock = black ? view.chrome()->whiteClockLabel() : view.chrome()->blackClockLabel();
+            auto* activeClock = black ? view.chrome()->card(Turn::Black)->clockLabel() : view.chrome()->card(Turn::White)->clockLabel();
+            auto* inactiveClock = black ? view.chrome()->card(Turn::White)->clockLabel() : view.chrome()->card(Turn::Black)->clockLabel();
             QCOMPARE(activeClock->palette().color(QPalette::WindowText), custom.clockText);
             const QImage clockImage = activeClock->grab().toImage();
             QCOMPARE(clockImage.pixelColor(0, clockImage.height() / 2), custom.clockBorder);
@@ -246,8 +246,8 @@ private slots:
         // 半透明の名前背景には、カードの色が一度だけ合成される。
         custom.nameBackground = QColor(255, 255, 255, 128);
         BoardAppearance::instance().setColors(custom);
-        const auto* name = view.chrome()->blackNameLabel();
-        const QColor blended = view.grab().toImage().pixelColor(name->x() + name->width() - 3, name->y() + 2);
+        const auto* name = view.chrome()->card(Turn::Black)->nameLabel();
+        const QColor blended = view.grab().toImage().pixelColor(name->mapTo(&view, QPoint(name->width() - 3, 2)));
         QVERIFY(qAbs(blended.red() - (255 + custom.cardBackground.red()) / 2) <= 1);
         QVERIFY(qAbs(blended.green() - (255 + custom.cardBackground.green()) / 2) <= 1);
         QVERIFY(qAbs(blended.blue() - (255 + custom.cardBackground.blue()) / 2) <= 1);
@@ -261,8 +261,8 @@ private slots:
         board.setSfen(SfenUtils::hirateSfen());
         ShogiView view;
         view.setBoard(&board);
-        view.chrome()->setBlackClockText(QStringLiteral("00:00:05"));
-        view.chrome()->setWhiteClockText(QStringLiteral("00:00:05"));
+        view.chrome()->card(Turn::Black)->setClockText(QStringLiteral("00:00:05"));
+        view.chrome()->card(Turn::White)->setClockText(QStringLiteral("00:00:05"));
         BoardColors custom;
         custom.clockText = QColor("#102030");
         custom.clockCriticalText = QColor("#c01020");
@@ -280,8 +280,8 @@ private slots:
             for (const bool black : {true, false}) {
                 board.setCurrentPlayer(black ? Turn::Black : Turn::White);
                 view.chrome()->setUrgency(ShogiView::Urgency::Warn5);
-                QLabel* activeClock = black ? view.chrome()->blackClockLabel() : view.chrome()->whiteClockLabel();
-                QLabel* inactiveClock = black ? view.chrome()->whiteClockLabel() : view.chrome()->blackClockLabel();
+                QLabel* activeClock = black ? view.chrome()->card(Turn::Black)->clockLabel() : view.chrome()->card(Turn::White)->clockLabel();
+                QLabel* inactiveClock = black ? view.chrome()->card(Turn::White)->clockLabel() : view.chrome()->card(Turn::Black)->clockLabel();
                 QCOMPARE(activeClock->palette().color(QPalette::WindowText), custom.clockCriticalText);
                 QCOMPARE(inactiveClock->palette().color(QPalette::WindowText), custom.clockText);
                 QCOMPARE(cardBorder(black), custom.activeCardBorder);
@@ -302,7 +302,7 @@ private slots:
             custom.clockText = QColor("#203040");
             BoardAppearance::instance().setColors(custom);
             QCOMPARE(cardBorder(true), custom.cardBorder);
-            QCOMPARE(view.chrome()->blackClockLabel()->palette().color(QPalette::WindowText), custom.clockText);
+            QCOMPARE(view.chrome()->card(Turn::Black)->clockLabel()->palette().color(QPalette::WindowText), custom.clockText);
         }
     }
 
@@ -348,16 +348,16 @@ private slots:
         gc.newGame(initialSfen);
         ShogiView view;
         view.setBoard(gc.board());
-        view.chrome()->setBlackPlayerName(QStringLiteral("YaneuraOu NNUE V8.30Git 64APPLEM1 TOURNAMENT"));
-        view.chrome()->setWhitePlayerName(QStringLiteral("YaneuraOu NNUE V8.30Git 64APPLEM1 TOURNAMENT"));
+        view.chrome()->card(Turn::Black)->setName(QStringLiteral("YaneuraOu NNUE V8.30Git 64APPLEM1 TOURNAMENT"));
+        view.chrome()->card(Turn::White)->setName(QStringLiteral("YaneuraOu NNUE V8.30Git 64APPLEM1 TOURNAMENT"));
         view.show();
 
-        for (ElideLabel* name : {view.chrome()->blackNameLabel(), view.chrome()->whiteNameLabel()}) {
+        for (ElideLabel* name : {view.chrome()->card(Turn::Black)->nameLabel(), view.chrome()->card(Turn::White)->nameLabel()}) {
             QVERIFY(name);
             QVERIFY(name->contentsRect().height() >= name->fontMetrics().height() * 2);
         }
-        QVERIFY(view.chrome()->blackNameLabel()->geometry().bottom() < view.chrome()->blackClockLabel()->geometry().top());
-        QVERIFY(view.chrome()->whiteNameLabel()->geometry().bottom() < view.chrome()->whiteClockLabel()->geometry().top());
+        QVERIFY(view.chrome()->card(Turn::Black)->nameLabel()->geometry().bottom() < view.chrome()->card(Turn::Black)->clockLabel()->geometry().top());
+        QVERIFY(view.chrome()->card(Turn::White)->nameLabel()->geometry().bottom() < view.chrome()->card(Turn::White)->clockLabel()->geometry().top());
     }
 };
 

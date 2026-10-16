@@ -46,7 +46,7 @@ public:
     // ──────────────── 描画 ────────────────
     /// dirty（再描画範囲）に掛からないマスは描かない。
     void drawHighlights(QPainter& painter, const QRegion& dirty);
-    void drawArrows(QPainter& painter, const ShogiViewLayout& layout);
+    void drawArrows(QPainter& painter);
     /// 矢印（線・矢じり・順位の丸印）が掛かる範囲。描き直す範囲を矢印の分だけに絞るために使う
     QRect arrowsPaintRect(const QList<ShogiView::Arrow>& arrows) const;
 

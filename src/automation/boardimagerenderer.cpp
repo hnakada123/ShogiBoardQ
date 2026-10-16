@@ -38,8 +38,8 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, Q
     ShogiView view;
     view.setFlipMode(options.flip);
     view.chrome()->setClockEnabled(false);
-    view.chrome()->setBlackPlayerName(options.blackName);
-    view.chrome()->setWhitePlayerName(options.whiteName);
+    view.chrome()->card(Turn::Black)->setName(options.blackName);
+    view.chrome()->card(Turn::White)->setName(options.whiteName);
     view.configureFixedSizing(options.squareSize);
     view.applyBoardAndRender(&board);
     view.resize(view.sizeHint());

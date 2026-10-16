@@ -78,9 +78,9 @@ void TimeDisplayPresenter::showTimes(qint64 blackMs, qint64 whiteMs, Turn sideTo
         // 無制限対局は残り時間ではなく累積消費時間なので、表示の意味を書き添える。
         // 文字数が変わるため、ラベルに収まる文字サイズへ合わせ直す。
         const bool unlimited = m_clock && m_clock->isUnlimited();
-        m_view->chrome()->setBlackClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(Turn::Black))
+        m_view->chrome()->card(Turn::Black)->setClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(Turn::Black))
                                             : fmt_hhmmss(blackMs));
-        m_view->chrome()->setWhiteClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(Turn::White))
+        m_view->chrome()->card(Turn::White)->setClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(Turn::White))
                                             : fmt_hhmmss(whiteMs));
     }
     updateUrgencyStyles(sideToMove);

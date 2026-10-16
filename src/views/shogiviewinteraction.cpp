@@ -3,7 +3,6 @@
 
 #include "shogiviewinteraction.h"
 #include "piecepainter.h"
-#include "shogiviewlayout.h"
 #include "shogiboard.h"
 #include "boardconstants.h"
 
@@ -72,32 +71,29 @@ void ShogiViewInteraction::setPieceBoxSide(Turn side)
 // 方針：paintEvent で開始済みの QPainter を使い回すため、ここで新たに QPainter を生成しない。
 // 前提：本関数は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さない。
 // 備考：ドラッグ位置 m_dragPos の中心に、1マス分でアイコンを描画する。
-void ShogiViewInteraction::drawDraggingPiece(QPainter& painter,
-                                              const ShogiViewLayout& layout,
+void ShogiViewInteraction::drawDraggingPiece(QPainter& painter, QSize field,
                                               const QIcon& icon, const BoardVisuals& visuals) const
 {
     // 【前提確認】ドラッグ中でなければ何もしない／駒種が空白・画像が無ければ描かない
     if (!m_dragging || m_dragPiece == Piece::None || icon.isNull()) return;
 
     // 【描画】既存の painter を用いて中央揃えでペイント（状態は汚さない）
-    PiecePainter::draw(painter, icon, draggingCellRect(layout), visuals);
+    PiecePainter::draw(painter, icon, draggingCellRect(field), visuals);
 }
 
-QRect ShogiViewInteraction::draggingPieceRect(const ShogiViewLayout& layout,
-                                              const BoardVisuals& visuals) const
+QRect ShogiViewInteraction::draggingPieceRect(QSize field, const BoardVisuals& visuals) const
 {
     if (!m_dragging || m_dragPiece == Piece::None) return {};
     // 端数の座標は外側へ丸め、さらに1ピクセル広げて描き残しを防ぐ。
-    return PiecePainter::paintedRect(draggingCellRect(layout), visuals)
+    return PiecePainter::paintedRect(draggingCellRect(field), visuals)
         .toAlignedRect().adjusted(-1, -1, 1, 1);
 }
 
 // ドラッグ座標を中心に据えた1マス分の矩形（縦長マス）
-QRect ShogiViewInteraction::draggingCellRect(const ShogiViewLayout& layout) const
+QRect ShogiViewInteraction::draggingCellRect(QSize field) const
 {
-    const QSize fs = layout.fieldSize();
-    return {m_dragPos.x() - fs.width() / 2, m_dragPos.y() - fs.height() / 2,
-            fs.width(), fs.height()};
+    return {m_dragPos.x() - field.width() / 2, m_dragPos.y() - field.height() / 2,
+            field.width(), field.height()};
 }
 
 // ─────────────────────────── ドラッグ位置更新 ───────────────────────

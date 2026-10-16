@@ -4,7 +4,7 @@
 #include "boardstaticlayer.h"
 
 #include "boardsurfacepainter.h"
-#include "shogiviewlayout.h"
+#include "boardgeometry.h"
 
 #include <QPaintDevice>
 #include <QPainter>
@@ -19,22 +19,22 @@ bool BoardStaticLayer::Key::operator==(const Key& other) const
 {
     const auto fields = [](const Key& k) {
         return std::tie(k.size, k.dpr, k.phase, k.surface, k.blackStand, k.whiteStand, k.fieldSize,
-                        k.offset, k.background, k.board, k.stand, k.grid, k.woodGrain, k.standWoodGrain);
+                        k.cells, k.background, k.board, k.stand, k.grid, k.woodGrain, k.standWoodGrain);
     };
     return fields(*this) == fields(other);
 }
 
-void BoardStaticLayer::draw(QPainter& painter, QSize widgetSize, const ShogiViewLayout& layout,
-                            int files, int ranks, const BoardColors& colors, const BoardVisuals& visuals)
+void BoardStaticLayer::draw(QPainter& painter, QSize widgetSize, const BoardGeometry& geometry,
+                            const BoardColors& colors, const BoardVisuals& visuals)
 {
     // 端数倍率（125% など）では盤の左上が物理画素の途中に来る。画像もその端数だけずらして描き、
     // 物理画素の境目に合わせて貼ることで、直接描いたときと同じ画素にする。
     const QTransform device = painter.deviceTransform();
     const qreal dpr = painter.device()->devicePixelRatioF();
     const QPointF phase(device.dx() - std::floor(device.dx()), device.dy() - std::floor(device.dy()));
-    const Key key{widgetSize, dpr, phase, layout.boardSurfaceRect(files, ranks),
-                  layout.blackStandBoundingRect(files, ranks), layout.whiteStandBoundingRect(files, ranks),
-                  layout.fieldSize(), QPoint(layout.offsetX(), layout.offsetY()),
+    const Key key{widgetSize, dpr, phase, geometry.surface(),
+                  geometry.stand(Turn::Black), geometry.stand(Turn::White),
+                  geometry.fieldSize(), geometry.board(),
                   colors.background, colors.board, colors.stand, colors.grid,
                   visuals.woodGrain, visuals.standWoodGrain};
     if (!m_image.isNull() && !(m_key == key)) {
@@ -52,7 +52,7 @@ void BoardStaticLayer::draw(QPainter& painter, QSize widgetSize, const ShogiView
         imagePainter.setRenderHint(QPainter::Antialiasing, false);
         imagePainter.setRenderHint(QPainter::TextAntialiasing, true);
         imagePainter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-        paint(imagePainter, key, layout, files, ranks);
+        paint(imagePainter, key, geometry);
         imagePainter.end();
         m_image = image;
         m_key = key;
@@ -63,15 +63,16 @@ void BoardStaticLayer::draw(QPainter& painter, QSize widgetSize, const ShogiView
     painter.restore();
 }
 
-void BoardStaticLayer::paint(QPainter& painter, const Key& key, const ShogiViewLayout& layout,
-                             int files, int ranks)
+void BoardStaticLayer::paint(QPainter& painter, const Key& key, const BoardGeometry& geometry)
 {
     const QSize fs = key.fieldSize;
+    const int files = geometry.files();
+    const int ranks = geometry.ranks();
     painter.fillRect(QRect(QPoint(), key.size), key.background);
     BoardSurfacePainter::draw(painter, key.surface, key.board, key.woodGrain, fs.width());
 
     // 罫線
-    const QRectF grid(key.offset, QSizeF(fs.width() * files, fs.height() * ranks));
+    const QRectF grid(key.cells);
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing);
     const qreal dpr = painter.device()->devicePixelRatioF();
@@ -94,7 +95,7 @@ void BoardStaticLayer::paint(QPainter& painter, const Key& key, const ShogiViewL
 
     // 駒台。持駒の配置・当たり判定はセルのまま、木肌は駒台全体を通して描く
     for (const QRect& stand : {key.blackStand, key.whiteStand}) {
-        BoardSurfacePainter::draw(painter, layout.standSurfaceRect(stand), key.stand, key.standWoodGrain,
+        BoardSurfacePainter::draw(painter, geometry.standSurface(stand), key.stand, key.standWoodGrain,
                                   fs.width());
     }
 
@@ -106,7 +107,7 @@ void BoardStaticLayer::paint(QPainter& painter, const Key& key, const ShogiViewL
     const qreal starRadius = qMax(1.5, fs.width() * 0.05);
     for (const int column : {3, 6}) {
         for (const int row : {3, 6}) {
-            painter.drawEllipse(QPointF(key.offset.x() + fs.width() * column, key.offset.y() + fs.height() * row),
+            painter.drawEllipse(QPointF(key.cells.left() + fs.width() * column, key.cells.top() + fs.height() * row),
                                 starRadius, starRadius);
         }
     }

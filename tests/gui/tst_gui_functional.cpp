@@ -57,7 +57,6 @@
 #include "mainwindowcomposer.h"
 #include "boardchromewidget.h"
 #include "shogiview.h"
-#include "shogiviewlayout.h"
 #include "shogiviewhighlighting.h"
 #include "boardinteractioncontroller.h"
 #include "elidelabel.h"
@@ -158,24 +157,13 @@ class GuiAudit : public QObject
         return {};
     }
     QAction* action(const QString& name) const { return window->findChild<QAction*>(name); }
-    ShogiViewLayout editLayout() const
-    {
-        ShogiViewLayout layout;
-        layout.setSquareSize(board()->squareSize());
-        layout.setStandGapCols(0.7);
-        layout.setFlipMode(board()->flipMode());
-        layout.recalcLayoutParams(board()->font());
-        return layout;
-    }
+    BoardGeometry editLayout() const { return board()->boardGeometry(); }
     QPoint editPoint(int file, int rank) const
     {
         const auto layout = editLayout();
         if (file == 12) return board()->pieceBoxCellRect(rank).center();
-        if (file <= 9)
-            return layout.calculateSquareRectangleBasedOnBoardState(file, rank, 9, 9)
-                .translated(layout.offsetX(), layout.offsetY()).center();
-        const QRect stand = file == 10 ? layout.blackStandBoundingRect(9, 9)
-                                      : layout.whiteStandBoundingRect(9, 9);
+        if (file <= 9) return layout.square(file, rank).center();
+        const QRect stand = layout.stand(file == 10 ? Turn::Black : Turn::White);
         const int type = file == 10 ? rank - 1 : 9 - rank;
         const bool top = (file == 10) == board()->flipMode();
         const int col = top ? 1 - type % 2 : type % 2;
@@ -505,7 +493,7 @@ private slots:
         if (!QFontDatabase::families().contains(chosen)) QSKIP("Noto Serif CJK JP is required.");
         sampleGame();
         const int recordSize = record()->kifuView()->font().pointSize();
-        const int clockSize = board()->chrome()->blackClockLabel()->font().pointSize();
+        const int clockSize = board()->chrome()->card(Turn::Black)->clockLabel()->font().pointSize();
         const auto* tree = branchTreeView();
         QVERIFY(tree);
         const int current = tree->currentNodeId();
@@ -521,8 +509,8 @@ private slots:
         QCOMPARE(window->menuBar()->font().family(), chosen);
         QCOMPARE(record()->kifuView()->font().family(), chosen);
         QCOMPARE(record()->kifuView()->font().pointSize(), recordSize);
-        QCOMPARE(board()->chrome()->blackClockLabel()->font().family(), chosen);
-        QCOMPARE(board()->chrome()->blackClockLabel()->font().pointSize(), clockSize);
+        QCOMPARE(board()->chrome()->card(Turn::Black)->clockLabel()->font().family(), chosen);
+        QCOMPARE(board()->chrome()->card(Turn::Black)->clockLabel()->font().pointSize(), clockSize);
         QCOMPARE(tree->currentNodeId(), current);
         auto* log = window->findChild<QPlainTextEdit*>(QStringLiteral("usiLogView"));
         QVERIFY(log);
@@ -1124,11 +1112,11 @@ private slots:
                 QCOMPARE(window->geometry(), windowRect);
                 QCOMPARE(QRect(board()->mapToGlobal(QPoint()), board()->size()), viewRect);
                 const auto layout = editLayout();
-                QCOMPARE(layout.boardSurfaceRect(9, 9), normalLayout.boardSurfaceRect(9, 9));
-                QCOMPARE(flipped ? layout.blackStandBoundingRect(9, 9) : layout.whiteStandBoundingRect(9, 9),
-                         normalLayout.whiteStandBoundingRect(9, 9));
-                QCOMPARE(flipped ? layout.whiteStandBoundingRect(9, 9) : layout.blackStandBoundingRect(9, 9),
-                         normalLayout.blackStandBoundingRect(9, 9));
+                QCOMPARE(layout.surface(), normalLayout.surface());
+                QCOMPARE(flipped ? layout.stand(Turn::Black) : layout.stand(Turn::White),
+                         normalLayout.stand(Turn::White));
+                QCOMPARE(flipped ? layout.stand(Turn::White) : layout.stand(Turn::Black),
+                         normalLayout.stand(Turn::Black));
                 for (qsizetype i = 0; i < blackInfo.size(); ++i) {
                     QCOMPARE(board()->findChild<QWidget*>(flipped ? blackInfo.at(i) : whiteInfo.at(i))->geometry(),
                              leftInfoRects.at(i));
@@ -1138,8 +1126,7 @@ private slots:
                 // 同じ画面座標が、反転後の対応するマスを指すことも確認する。
                 for (int file = 1; file <= 9; ++file) {
                     for (int rank = 1; rank <= 9; ++rank) {
-                        const QPoint point = normalLayout.calculateSquareRectangleBasedOnBoardState(file, rank, 9, 9)
-                            .translated(normalLayout.offsetX(), normalLayout.offsetY()).center();
+                        const QPoint point = normalLayout.square(file, rank).center();
                         QCOMPARE(board()->clickedSquare(point), flipped ? QPoint(10 - file, 10 - rank) : QPoint(file, rank));
                     }
                 }
@@ -1233,7 +1220,7 @@ private slots:
         const QStringList names = {"backgroundColorButton", "boardColorButton", "standColorButton", "gridColorButton"};
         const QList<QColor> values = {custom.background, custom.board, custom.stand, custom.grid};
         board()->chrome()->setUrgency(ShogiView::Urgency::Warn5);
-        const QString activeStyle = board()->chrome()->blackClockLabel()->styleSheet();
+        const QString activeStyle = board()->chrome()->card(Turn::Black)->clockLabel()->styleSheet();
         for (qsizetype i = 0; i < names.size(); ++i) {
             auto* button = dialog->findChild<QPushButton*>(names.at(i));
             QVERIFY(button);
@@ -1250,8 +1237,8 @@ private slots:
         QVERIFY(board()->boardColors() == custom);
         QVERIFY(secondary.boardColors() == custom);
         QVERIFY(AppSettings::boardColors() == custom);
-        QCOMPARE(board()->chrome()->blackClockLabel()->styleSheet(), activeStyle);
-        QCOMPARE(board()->chrome()->whiteClockLabel()->palette().color(QPalette::WindowText), BoardColors{}.clockText);
+        QCOMPARE(board()->chrome()->card(Turn::Black)->clockLabel()->styleSheet(), activeStyle);
+        QCOMPARE(board()->chrome()->card(Turn::White)->clockLabel()->palette().color(QPalette::WindowText), BoardColors{}.clockText);
         QCOMPARE(boardSfen(), initial);
         dialog->resize(580, 360);
         dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-colors-dialog.png"));
@@ -1361,11 +1348,11 @@ private slots:
             QVERIFY(secondary.boardColors() == expected);
             QCOMPARE(button->text(), choice.color.name().toUpper());
         }
-        QCOMPARE(board()->chrome()->blackNameLabel()->palette().color(QPalette::WindowText), expected.nameText);
-        QCOMPARE(board()->chrome()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockText);
+        QCOMPARE(board()->chrome()->card(Turn::Black)->nameLabel()->palette().color(QPalette::WindowText), expected.nameText);
+        QCOMPARE(board()->chrome()->card(Turn::Black)->clockLabel()->palette().color(QPalette::WindowText), expected.clockText);
         QCOMPARE(board()->findChild<QLabel*>("turnLabelBlack")->palette().color(QPalette::WindowText), expected.turnText);
         board()->chrome()->setUrgency(ShogiView::Urgency::Warn5);
-        QCOMPARE(board()->chrome()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
+        QCOMPARE(board()->chrome()->card(Turn::Black)->clockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
         snapshot("board-information-colors");
         dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-information-colors-dialog.png"));
 
@@ -1385,7 +1372,7 @@ private slots:
         expected.grid = preset.grid;
         QVERIFY(board()->boardColors() == expected);
         QCOMPARE(combo->currentIndex(), 0);
-        QCOMPARE(board()->chrome()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
+        QCOMPARE(board()->chrome()->card(Turn::Black)->clockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
 
         // 半透明の保存、キャンセル、プリセットの選択表示を確認する。
         tabs->setCurrentIndex(3);
@@ -1415,7 +1402,7 @@ private slots:
         window = std::make_unique<MainWindow>();
         window->show();
         QVERIFY(board()->boardColors() == expected);
-        QCOMPARE(board()->chrome()->whiteNameLabel()->palette().color(QPalette::WindowText), expected.nameText);
+        QCOMPARE(board()->chrome()->card(Turn::White)->nameLabel()->palette().color(QPalette::WindowText), expected.nameText);
         openAppearanceDetails();
         dialog = window->findChild<BoardColorDialog*>();
         QVERIFY(dialog);
@@ -1973,8 +1960,8 @@ private slots:
         auto* card = board()->findChild<QWidget*>(flipped ? "blackPlayerCard" : "whitePlayerCard");
         QVERIFY(card);
         QVERIFY(!box.intersects(card->geometry()));
-        QVERIFY(!box.intersects(editLayout().blackStandBoundingRect(9, 9)));
-        QVERIFY(!box.intersects(editLayout().whiteStandBoundingRect(9, 9)));
+        QVERIFY(!box.intersects(editLayout().stand(Turn::Black)));
+        QVERIFY(!box.intersects(editLayout().stand(Turn::White)));
         auto* black = board()->findChild<QToolButton*>("pieceBoxBlackButton");
         auto* white = board()->findChild<QToolButton*>("pieceBoxWhiteButton");
         QVERIFY(black && white);
@@ -2098,8 +2085,8 @@ private slots:
         click("actionReturnAllPiecesToStand");
         for (int side : {10, 11}) {
             const auto layout = editLayout();
-            const QRect stand = side == 10 ? layout.blackStandBoundingRect(9, 9)
-                                           : layout.whiteStandBoundingRect(9, 9);
+            const QRect stand = side == 10 ? layout.stand(Turn::Black)
+                                           : layout.stand(Turn::White);
             const QList<QPoint> outside = {
                 QPoint(stand.left() - 1, stand.center().y()),
                 QPoint(stand.right() + 1, stand.center().y()),
@@ -2610,8 +2597,8 @@ private slots:
         armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
         QVERIFY(action("actionUndoMove")->isEnabled());
         QVERIFY(action("actionResign")->isEnabled());
-        QVERIFY(board()->chrome()->blackNameLabel()->fullText().contains("Audit Black"));
-        QVERIFY(board()->chrome()->whiteNameLabel()->fullText().contains("Audit White"));
+        QVERIFY(board()->chrome()->card(Turn::Black)->nameLabel()->fullText().contains("Audit Black"));
+        QVERIFY(board()->chrome()->card(Turn::White)->nameLabel()->fullText().contains("Audit White"));
         QVERIFY(record()->isNavigationDisabled());
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 6));
@@ -2928,7 +2915,7 @@ private slots:
         armDialog("gameEngineWhite"); click("actionStartGame"); QVERIFY(record()->isNavigationDisabled());
         QVERIFY(action("actionUndoMove")->isEnabled());
         QVERIFY(action("actionResign")->isEnabled());
-        QVERIFY(board()->chrome()->whiteNameLabel()->fullText().contains("Audit USI"));
+        QVERIFY(board()->chrome()->card(Turn::White)->nameLabel()->fullText().contains("Audit USI"));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 6));
         QTRY_COMPARE_WITH_TIMEOUT(record()->kifuView()->model()->rowCount(), 3, 5000);
@@ -3653,8 +3640,8 @@ private slots:
         QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
         QVERIFY(table.text(8, 1).isEmpty());
         // 読み込んだ棋譜の対局者名を将棋盤に残さない
-        QVERIFY(board()->chrome()->blackNameLabel()->fullText().endsWith(QStringLiteral("先手")));
-        QVERIFY(board()->chrome()->whiteNameLabel()->fullText().endsWith(QStringLiteral("後手")));
+        QVERIFY(board()->chrome()->card(Turn::Black)->nameLabel()->fullText().endsWith(QStringLiteral("先手")));
+        QVERIFY(board()->chrome()->card(Turn::White)->nameLabel()->fullText().endsWith(QStringLiteral("後手")));
         QVERIFY(!controller->isDirty());
         paste(saved);
         dock->show(); dock->raise();
@@ -3872,8 +3859,8 @@ private slots:
         QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 1);
         const QString movedPosition = boardSfen();
         QVERIFY(movedPosition != originalPosition);
-        board()->chrome()->setBlackPlayerName(QStringLiteral("Hayanagi 1.5.0"));
-        board()->chrome()->setWhitePlayerName(QStringLiteral("将棋盤Q テスト対局者"));
+        board()->chrome()->card(Turn::Black)->setName(QStringLiteral("Hayanagi 1.5.0"));
+        board()->chrome()->card(Turn::White)->setName(QStringLiteral("将棋盤Q テスト対局者"));
         snapshot("branch-panel-collapsed");
         QTest::mouseClick(toggle, Qt::LeftButton);
         QVERIFY(record()->branchView()->isVisible());

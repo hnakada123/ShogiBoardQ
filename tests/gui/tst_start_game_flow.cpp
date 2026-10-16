@@ -168,16 +168,16 @@ private slots:
         QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(7, 6));
         QTRY_COMPARE(window->composer().parts().match->record().sfens().size(), 2);
         QTRY_VERIFY(!(view->chrome()->activeSide() == Turn::Black));
-        const QString blackText = view->chrome()->blackClockLabel()->text();
-        const QString whiteText = view->chrome()->whiteClockLabel()->text();
+        const QString blackText = view->chrome()->card(Turn::Black)->clockLabel()->text();
+        const QString whiteText = view->chrome()->card(Turn::White)->clockLabel()->text();
         QVERIFY(blackText.startsWith(QStringLiteral("00:0")) && blackText != QStringLiteral("00:00:00"));
         QVERIFY(whiteText != QStringLiteral("00:00:00"));
 
         child<QAction>(*window, "actionFlipBoard")->trigger();
 
         QVERIFY(view->flipMode());
-        QCOMPARE(view->chrome()->blackClockLabel()->text(), blackText);
-        QCOMPARE(view->chrome()->whiteClockLabel()->text(), whiteText);
+        QCOMPARE(view->chrome()->card(Turn::Black)->clockLabel()->text(), blackText);
+        QCOMPARE(view->chrome()->card(Turn::White)->clockLabel()->text(), whiteText);
         QVERIFY(!(view->chrome()->activeSide() == Turn::Black));
     }
     void resumeInterruptedGame_data() {
@@ -823,7 +823,7 @@ private slots:
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kBlackPlayer), QStringLiteral("Audit USI"));
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kWhitePlayer), QStringLiteral("Audit USI"));
         QVERIFY(!gameInfoValue(table, GameInfoKeys::kStartDateTime).isEmpty());
-        QVERIFY(window->findChild<ShogiView*>()->chrome()->blackNameLabel()->fullText().contains(QStringLiteral("Audit USI")));
+        QVERIFY(window->findChild<ShogiView*>()->chrome()->card(Turn::Black)->nameLabel()->fullText().contains(QStringLiteral("Audit USI")));
     }
     void handicapGameInfoUsesShitateUwate() {
         auto& settings = SettingsCommon::openSettings();

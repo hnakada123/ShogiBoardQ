@@ -36,8 +36,8 @@ void BoardAppearancePreview::setPosition(int index)
     if (index == 0) m_viewer->board()->setSfen(SfenUtils::hirateSfen());
     else m_viewer->board()->setSfen(QStringLiteral("4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
     m_viewer->view()->applyBoardAndRender(m_viewer->board());
-    m_viewer->view()->chrome()->setBlackClockText(QStringLiteral("09:58"));
-    m_viewer->view()->chrome()->setWhiteClockText(QStringLiteral("10:00"));
+    m_viewer->view()->chrome()->card(Turn::Black)->setClockText(QStringLiteral("09:58"));
+    m_viewer->view()->chrome()->card(Turn::White)->setClockText(QStringLiteral("10:00"));
     m_viewer->view()->resize(m_viewer->view()->sizeHint());
     refresh();
 }

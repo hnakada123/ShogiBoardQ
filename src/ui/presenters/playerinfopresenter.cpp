@@ -34,8 +34,8 @@ void PlayerInfoPresenter::showPlayers(const MatchPlayers& players)
 void PlayerInfoPresenter::setBoardNames(const QString& black, const QString& white)
 {
     if (!m_deps.shogiView) return;
-    m_deps.shogiView->chrome()->setBlackPlayerName(black.isEmpty() ? tr("先手") : black);
-    m_deps.shogiView->chrome()->setWhitePlayerName(white.isEmpty() ? tr("後手") : white);
+    m_deps.shogiView->chrome()->card(Turn::Black)->setName(black.isEmpty() ? tr("先手") : black);
+    m_deps.shogiView->chrome()->card(Turn::White)->setName(white.isEmpty() ? tr("後手") : white);
 }
 
 void PlayerInfoPresenter::syncBoardNamesWithGameInfo()

@@ -608,6 +608,10 @@ set(SRC_UI
 set(SRC_VIEWS
     src/views/boardchromewidget.cpp
     src/views/boardchromewidget.h
+    src/views/boardgeometry.cpp
+    src/views/boardgeometry.h
+    src/views/playercard.cpp
+    src/views/playercard.h
     src/views/boardstaticlayer.cpp
     src/views/boardstaticlayer.h
     src/views/boardsurfacepainter.cpp
@@ -620,8 +624,6 @@ set(SRC_VIEWS
     src/views/shogiviewhighlighting.h
     src/views/shogiviewinteraction.cpp
     src/views/shogiviewinteraction.h
-    src/views/shogiviewlayout.cpp
-    src/views/shogiviewlayout.h
 )
 
 set(SRC_WIDGETS
