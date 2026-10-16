@@ -257,11 +257,6 @@ public:
     bool hasBranch(KifuBranchNode* node) const;
 
     /**
-     * @brief 指定ラインの分岐あり手数集合を取得
-     */
-    QSet<int> branchablePlysOnLine(const BranchLine& line) const;
-
-    /**
      * @brief 指定ノードが属するラインインデックスを取得
      * @param node 対象ノード
      * @return ラインインデックス（見つからない場合はstd::nullopt）

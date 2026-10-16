@@ -20,14 +20,6 @@ struct JosekiMove {
 };
 
 /**
- * @brief 定跡エントリ（局面ごとの定跡データ）
- */
-struct JosekiEntry {
-    QString sfen;                   ///< 局面のSFEN文字列
-    QList<JosekiMove> moves;      ///< この局面での指し手リスト
-};
-
-/**
  * @brief 棋譜からの定跡マージ用エントリ
  */
 struct KifuMergeEntry {

@@ -17,8 +17,6 @@ ShogiViewLayout::ShogiViewLayout() = default;
 // ─────────────────────────── レイアウト再計算 ────────────────────────────
 void ShogiViewLayout::recalcLayoutParams(const QFont& baseFont)
 {
-    constexpr int tweak = 0;
-
     // マスサイズ（実際の将棋盤の縦横比率を反映）
     const int squareWidth  = m_squareSize;
     const int squareHeight = qRound(m_squareSize * kSquareAspectRatio);
@@ -28,7 +26,6 @@ void ShogiViewLayout::recalcLayoutParams(const QFont& baseFont)
     m_boardMarginPx = qMax(2, qRound(m_squareSize * 0.28));
 
     // ラベル関連
-    m_labelBandPx = std::max(10, int(m_squareSize * 0.68));
     m_labelFontPt = std::clamp(m_squareSize * 0.26, 5.0, 18.0);
     m_labelGapPx  = std::max(2,  int(m_squareSize * 0.12));
 
@@ -39,15 +36,10 @@ void ShogiViewLayout::recalcLayoutParams(const QFont& baseFont)
     const double effCols = double(effGapPx) / double(m_squareSize);
 
     // 水平オフセット
-    m_param1     = qRound((2.0 + effCols) * m_squareSize) - tweak;
-    m_param2     = qRound((9.0 + effCols) * m_squareSize) - tweak;
-    m_offsetX    = m_param1 + tweak;
+    m_param1     = qRound((2.0 + effCols) * m_squareSize);
+    m_param2     = qRound((9.0 + effCols) * m_squareSize);
+    m_offsetX    = m_param1;
     m_standGapPx = qRound(effCols * m_squareSize);
-}
-
-void ShogiViewLayout::fitBoardToWidget()
-{
-    // Fixed SizePolicy方式では使用しない
 }
 
 // ─────────────────────────── 座標計算 ────────────────────────────────────
@@ -77,22 +69,6 @@ QPoint ShogiViewLayout::squareAt(const QPoint& boardLocal, int boardFiles, int b
     if (column >= boardFiles || row >= boardRanks) return {};
     if (m_flipMode) return {column + 1, boardRanks - row};
     return {boardFiles - column, row + 1};
-}
-
-QRect ShogiViewLayout::calculateRectangleForRankOrFileLabel(
-    int file, int rank, int boardRanks) const
-{
-    const QSize fs = m_fieldSize;
-    int adjustedX = (file - 1) * fs.width();
-
-    int adjustedY;
-    if (m_flipMode) {
-        adjustedY = (boardRanks - rank) * fs.height();
-    } else {
-        adjustedY = (rank - 1) * fs.height();
-    }
-
-    return QRect(adjustedX, adjustedY, fs.width(), fs.height()).translated(30, 0);
 }
 
 QRect ShogiViewLayout::blackStandBoundingRect(int boardFiles, int boardRanks) const
@@ -262,13 +238,6 @@ int ShogiViewLayout::boardRightPx(int boardFiles) const
 {
     const QSize fs = m_fieldSize;
     return m_offsetX + fs.width() * boardFiles;
-}
-
-int ShogiViewLayout::standInnerEdgePx(bool rightSide, int boardFiles) const
-{
-    const int gap = m_standGapPx;
-    return rightSide ? (boardRightPx(boardFiles) + gap)
-                     : (boardLeftPx()            - gap);
 }
 
 int ShogiViewLayout::minGapForRankLabelsPx(const QFont& baseFont) const

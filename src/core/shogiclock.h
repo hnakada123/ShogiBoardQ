@@ -191,7 +191,6 @@ private:
     QList<HistoryEntry> m_history;             ///< 着手確定ごとの状態（「待った」用）
 
     qint64 m_resumedConsiderationMs[2] = {0, 0}; ///< 再開前に消費していた考慮時間
-    bool m_resumingTurn = false;
     bool m_gameOver = false;                   ///< 終局フラグ
 };
 

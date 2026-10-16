@@ -327,18 +327,6 @@ bool KifuBranchTree::hasBranch(KifuBranchNode* node) const
     return node->childCount() > 1;
 }
 
-QSet<int> KifuBranchTree::branchablePlysOnLine(const BranchLine& line) const
-{
-    QSet<int> result;
-    for (KifuBranchNode* node : std::as_const(line.nodes)) {
-        if (node->childCount() > 1) {
-            // このノードの子の手数を分岐点として記録
-            result.insert(node->ply() + 1);
-        }
-    }
-    return result;
-}
-
 std::optional<int> KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) const
 {
     if (node == nullptr) {

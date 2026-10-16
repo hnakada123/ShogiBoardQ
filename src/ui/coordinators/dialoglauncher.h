@@ -13,7 +13,6 @@ class QWidget;
 class QDockWidget;
 class ShogiView;
 class BoardColorDialog;
-class JishogiScoreDialogController;
 class CsaGameDialog;
 class CsaGameSession;
 class SfenCollectionDialog;
@@ -39,7 +38,6 @@ public:
         KifuFileController* kifuFileController = nullptr;  ///< 未保存の棋譜の確認
 
         ShogiView* shogiView = nullptr;
-        JishogiScoreDialogController* jishogiController = nullptr;
         CsaGameSession* csaSession = nullptr;              ///< 通信対局を始める
         PieceSoundPlayer* pieceSoundPlayer = nullptr;
         QDockWidget* menuWindowDock = nullptr;

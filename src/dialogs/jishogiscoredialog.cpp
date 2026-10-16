@@ -2,6 +2,8 @@
 /// @brief 持将棋点数・入玉宣言条件の比較表示
 
 #include "jishogiscoredialog.h"
+#include "enginemovevalidator.h"
+#include "shogiposition.h"
 #include "dialogfontscale.h"
 #include "fontsizehelper.h"
 
@@ -218,4 +220,13 @@ void JishogiScoreDialog::fitValueCells()
 void JishogiScoreDialog::copyReport()
 {
     QApplication::clipboard()->setText(m_report.join(QLatin1Char('\n')));
+}
+
+void JishogiScoreDialog::showFor(const Position& position, QWidget* parent)
+{
+    const auto result = JishogiCalculator::calculate(position);
+    const bool senteInCheck = EngineMoveValidator::isInCheck(position, Turn::Black);
+    const bool goteInCheck = EngineMoveValidator::isInCheck(position, Turn::White);
+    JishogiScoreDialog dialog(result, senteInCheck, goteInCheck, parent);
+    dialog.exec();
 }

@@ -134,7 +134,6 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const KifuBranch
     item->setData(ROLE_ROW, row);
     item->setData(ROLE_PLY, ply);
     item->setData(BR_ROLE_KIND, (row == 0) ? BNK_Main : BNK_Var);
-    if (row == 0) item->setData(BR_ROLE_PLY, ply);
 
     auto* textItem = m_scene->addSimpleText(labelText, LABEL_FONT);
     const QRectF br = textItem->boundingRect();
@@ -306,10 +305,6 @@ void BranchTreeManager::rebuildBranchTree()
             if (!prev) prev = m_nodeIndex.value(qMakePair(0, 0), nullptr);
 
             QGraphicsPathItem* item = addNode(r, ply, node);
-            if (row > 0) {
-                item->setData(BR_ROLE_STARTPLY, startPly);
-                item->setData(BR_ROLE_BUCKET, r - 1);
-            }
             addEdge(prev, item);
         }
     }
@@ -369,8 +364,6 @@ bool BranchTreeManager::appendNode(const KifuBranchNode* node)
     }
     QGraphicsPathItem* item = addNode(row, ply, node);
     if (row != 0) {
-        item->setData(BR_ROLE_STARTPLY, qMax(1, rv.startPly));
-        item->setData(BR_ROLE_BUCKET, row - 1);
     }
     addMoveNumberLabel(ply);
     addEdge(prev, item);
@@ -405,16 +398,6 @@ void BranchTreeManager::addMoveNumberLabel(int ply)
     const qreal x = kBaseX + kShiftX + ply * m_columnSpacing;
     noItem->setPos(x - nbr.width() / 2.0, kHeaderHeight - nbr.height() - 1.0);
     m_plyLabels.insert(ply, noItem);
-}
-
-void BranchTreeManager::removeMoveNumberLabel(int ply)
-{
-    QGraphicsSimpleTextItem* item = m_plyLabels.take(ply);
-    if (item && m_scene) {
-        // シーンから外した時点で所有権はこちらに移るので unique_ptr で解放する
-        m_scene->removeItem(item);
-        const std::unique_ptr<QGraphicsSimpleTextItem> owner(item);
-    }
 }
 
 void BranchTreeManager::updateSceneRect()

@@ -540,8 +540,6 @@ set(SRC_UI
     src/ui/controllers/humanturnpolicy.h
     src/ui/controllers/imageexportcontroller.cpp
     src/ui/controllers/imageexportcontroller.h
-    src/ui/controllers/jishogiscoredialogcontroller.cpp
-    src/ui/controllers/jishogiscoredialogcontroller.h
     src/ui/controllers/josekiwindowcontroller.cpp
     src/ui/controllers/josekiwindowcontroller.h
     src/ui/controllers/kifuanalysiscontroller.cpp

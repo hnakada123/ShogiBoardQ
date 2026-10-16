@@ -177,7 +177,7 @@ BoardChromeWidget::BoardChromeWidget(QWidget* parent)
         QFont clockFont = font();
         clockFont.setStyleName(QString());
         clockFont.setItalic(false);
-        clockFont.setBold(true);
+        clockFont.setWeight(QFont::DemiBold);  // 大きさは配置のたびに枠に合わせる（太さはこのまま）
         clockFont.setPointSizeF(qMax(8.0, 50 * 0.45));
         clock->setFont(clockFont);
         m_clockLabels[side] = clock;

@@ -16,7 +16,8 @@
 #include "engineregistrationdialog.h"
 #include "promotionflow.h"
 #include "shogiview.h"
-#include "jishogiscoredialogcontroller.h"
+#include "jishogiscoredialog.h"
+#include "shogiboard.h"
 #include "csagamesession.h"
 #include "csagamedialog.h"
 #include "sfencollectiondialog.h"
@@ -62,10 +63,7 @@ void DialogLauncher::displayJishogiScoreDialog()
         return;
     }
 
-    auto* jc = m_deps.jishogiController;
-    if (jc) {
-        jc->showDialog(m_deps.parentWidget, sv->board());
-    }
+    JishogiScoreDialog::showFor(sv->board()->position(), m_deps.parentWidget);
 }
 
 void DialogLauncher::displayTsumePlayDialog()

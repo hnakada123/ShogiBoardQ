@@ -66,6 +66,8 @@ const QStringList& AutomationActionPolicy::allowedActions()
         QStringLiteral("actionLanguageSystem"),
         QStringLiteral("actionLanguageJapanese"),
         QStringLiteral("actionLanguageEnglish"),
+        QStringLiteral("actionLanguageChineseSimplified"),
+        QStringLiteral("actionLanguageChineseTraditional"),
         QStringLiteral("actionVersionInfo"),
     };
     return actions;

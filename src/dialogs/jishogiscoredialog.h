@@ -12,6 +12,8 @@ class QLabel;
 class QPushButton;
 
 /// 表示局面の持将棋点数と入玉宣言条件を先後比較で表示する。
+struct Position;
+
 class JishogiScoreDialog : public QDialog
 {
     Q_OBJECT
@@ -20,6 +22,9 @@ public:
     explicit JishogiScoreDialog(const JishogiCalculator::JishogiResult& result,
                                bool senteInCheck, bool goteInCheck, QWidget* parent = nullptr);
     ~JishogiScoreDialog() override;
+
+    /// position の持将棋の点数と王手の有無を計算して、モーダルで表示する
+    static void showFor(const Position& position, QWidget* parent);
 
 private slots:
     void copyReport();
