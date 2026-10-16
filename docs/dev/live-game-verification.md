@@ -194,14 +194,14 @@ resign
 |---|---|---|
 | `[Match] Start HvE` | HumanVsEngineStrategy | 人間対エンジンの対局の開始（エンジンの側は `engineSide=`） |
 | `appendRecord: text=` | GameSession | 記録された手。人間手＋応手＋投了の数と一致すること |
-| `[BTM] rebuildBranchTree: rows=` | BranchTreeManager | 分岐ツリーの全再構築。対局中は新規ライン発生時のみ（同じ手順への追加は `appendNode` で描き足す） |
+| `[BranchTreeView] rebuild: rows=` | BranchTreeView | 分岐ツリーの全再構築。対局中は新規ライン発生時のみ（同じ手順の末尾への追加は `nodeAppended` を受けてその手だけを描き足す） |
 | `shogiboard.cpp` かつ `setSfen:` | ShogiBoard | 盤面の SFEN 再設定そのもの（表示中の手の局面が盤と違うとき `BoardSyncPresenter` が呼ぶ）。対局中は 0 |
 | `onGameEnded cause=` | GameSession | 終局の原因（`MatchCoordinator::Cause` の値）と負けた側 |
 | `[WARN]` | 全般 | 警告の総数 |
 
 ```bash
 echo "moves=$(grep -c 'appendRecord: text=' "$S/moves.log") \
-rebuild=$(grep -c 'rebuildBranchTree: rows=' "$S/moves.log") \
+rebuild=$(grep -c '\[BranchTreeView\] rebuild: rows=' "$S/moves.log") \
 setSfen=$(grep -c 'shogiboard.cpp.*setSfen:' "$S/moves.log") \
 warn=$(grep -c '\[WARN\]' "$S/moves.log")"
 grep -n '\[WARN\]' "$S/moves.log"

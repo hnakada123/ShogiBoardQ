@@ -1,5 +1,7 @@
 # 盤のドラッグ・クリック・着手と思考情報の表示の高速化（2026-10-11）
 
+> 2026-10-16 注記: 分岐ツリーの変更の知らせ `KifuBranchTree::treeChanged` は型付きのシグナル（`nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset`）に分け、`KifuBranchTree::addMove` はテスト用の `TestTree::addMove`（`tests/branchtree_test_util.h`）に移した。図の `BranchTreeManager` は `BranchTreeView`・`BranchNodeItem` に作り直し、手順の末尾に1手足しただけなら `nodeAppended` を受けてその手だけを描き足す。テスト `treeChangedAppendsMoveWithoutRebuild` は `treeChangeAppendsMoveWithoutRebuild` に名前を変えた。本文は当時の記録である。
+
 「駒をマウスでドラッグして指すときの描画速度は、起動直後と、エンジンと人間の対局中とで変わるか。高速化できる箇所があれば高速化する」という依頼から始め、続けてクリック・ドラッグ・解放（着手）の処理全体を見直した。最後に、エンジンの思考情報の表示（項目12）、読み筋ウィンドウ・局面集ビューア・詰将棋対局の盤（項目13）、将棋盤の拡大・縮小と盤面の回転（項目14）、残っていた課題のうち表の行の追加とエンジン情報の表の幅の計算（項目15）、Fusion のアイコンの読み込み（項目16）、スクロールバーの出入りでの表の描き直しと持駒をつまむときの駒の描画（項目17）、対局者の名前・時計の枠のスタイルと USI通信ログの追記（項目18）、表の見出しと項目の位置の計算（項目19）、ドックの中身の大きさの変化の伝わり方（項目20）、Qt の塗りのスレッド分け（項目21）、思考表の縦のスクロールバーの出入り（項目22）も高速化した。続けて、思考タブの読み筋の変換と描画を監査し、思考表の行数の上限での削除（項目23）、英語表記の読み筋の表示と棋譜解析の結果の表（項目24）、読み筋のセルの文字の描画（項目25）、読み筋の漢字への変換（項目26）を高速化した。さらに、残っていた課題を測り直し、読み筋以外の表の文字の描画（項目27）、エンジン情報の表の書体の比べ方（項目28）、評価値グラフの現在の手の移動（項目29）、コメント欄の設定し直し（項目30）を高速化した。問題点と改善内容を項目別にまとめる。
 
 計測は Linux（Arch）、Qt 6.11.2（項目19からは Qt 6.12.0）、Release ビルド、Xvfb 上で行った。実際の画面では絶対値が変わるが、変更前後の比は同じ傾向になる。
@@ -1070,8 +1072,8 @@ info 行ごとに作業用の盤へ写し（`ShogiBoard::copyPositionFrom`。盤
     - 棋譜欄の作り直しで行の追加が1回で済むこと
     - 手を進めても評価値グラフの横軸が縮まないこと
     - 修正前のコードでは、行の追加通知が121回出て、横軸が30手から20手に縮み、失敗することを確認した。
-  - `tst_ui_display_consistency` の `treeChangedAppendsMoveWithoutRebuild`
-    - 対局外の着手（`treeChanged`）で手順の末尾に1手足すと、分岐ツリーを作り直さずに描き足すこと
+  - `tst_ui_display_consistency` の `treeChangedAppendsMoveWithoutRebuild`（今は `treeChangeAppendsMoveWithoutRebuild`）
+    - 対局外の着手（`treeChanged`。今は `nodeAppended`）で手順の末尾に1手足すと、分岐ツリーを作り直さずに描き足すこと
     - 新しい変化ができたときは作り直すこと
     - 差分追加をやめると失敗することを確認した。
   - `tst_shogiboard` の `signal_standChanged`

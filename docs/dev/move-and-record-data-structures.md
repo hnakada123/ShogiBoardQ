@@ -153,10 +153,15 @@ class KifuBranchNode {
     int         m_ply = 0;      // 手数（0=開始局面、1以降=指し手。終局手は親の手数 + 1）
     RecordEntry m_record;       // この行（指した手か終局）とコメント・しおり（4.4）
 
-    KifuBranchNode*        m_parent = nullptr;  // 親ノード（nullptr=ルート）
-    QList<KifuBranchNode*> m_children;          // 子ノードリスト（KifuBranchTree が所有）
+    KifuBranchNode* m_parent = nullptr;                        // 親ノード（nullptr=ルート。非所有）
+    std::vector<std::unique_ptr<KifuBranchNode>> m_children;   // 子ノード（所有。先頭ほど本譜側）
 };
 ```
+
+ノードは子を所有し、ルートは `KifuBranchTree` が所有する。木の形（親子・並び・手数・ID）を変えられるのは
+`KifuBranchTree`（friend）だけで、ノードの公開の関数は読むだけである（`children()` は `QList` の写しを返す。
+`childCount()`・`childAt(index)`・`indexOfChild(child)` で写しを作らずに読める）。
+ノードのデストラクタは子孫を再帰せずに順に解放するので、長い手順でもスタックを使い切らない。
 
 表示テキスト（`displayText()`。例: `"▲７六歩(77)"`）・この局面の SFEN（`sfen()`）・指し手（`move()`。開始局面と終局手では無効）・
 コメント・しおり・消費時間（`time()`・`timeText()`）・終局手の種類（`terminalType()`）と終局を記録した側（`terminalSide()`）は、
@@ -170,7 +175,6 @@ class KifuBranchNode {
 | `isTerminal()` | 終局手かどうか（`terminalType() != None`） |
 | `isActualMove()` | 盤面を変化させる指し手か（終局手でなく ply>0） |
 | `hasBranch()` | 分岐があるか（子が2つ以上） |
-| `lineIndex()` | このノードが属するラインのインデックス（0=本譜） |
 
 ルートノードは `parent()` が `nullptr` のノードである。
 
@@ -208,15 +212,16 @@ enum class TerminalType {
 **ファイル**: `src/kifu/kifubranchtree.h`
 
 N 分木全体を管理するデータモデル。ルートノードからの木構造と、`nodeId → ノード` の逆引きハッシュを保持する。
+本体のコードが手を足すのは `addRecord(parent, RecordEntry)` だけである（棋譜の読み込み・対局・盤上の変化）。
 
 ```cpp
 class KifuBranchTree : public QObject {
-    KifuBranchNode*             m_root = nullptr;  // ルートノード
-    QHash<int, KifuBranchNode*> m_nodeById;        // nodeId → ノード の検索用
+    std::unique_ptr<KifuBranchNode> m_root;        // ルートノード（所有。子孫は各ノードが所有）
+    QHash<int, KifuBranchNode*> m_nodeById;        // nodeId → ノード の検索用（非所有）
     int                         m_nextNodeId = 1;  // 次に振るID（1始まり連番。クリアしても再利用しない）
 
-    int  m_batchDepth = 0;              // 一括更新（beginBatchUpdate/endBatchUpdate）の入れ子の深さ
-    bool m_treeChangedPending = false;  // 一括更新中に変更があったか
+    int           m_batchDepth = 0;     // 一括更新（beginBatchUpdate/endBatchUpdate）の入れ子の深さ
+    QList<Change> m_pendingChanges;     // 一括更新中に遅らせている構造の変更（古い順）
 
     // allLines() キャッシュ
     mutable QList<BranchLine> m_linesCache;              // DFS走査結果のキャッシュ
@@ -226,12 +231,24 @@ class KifuBranchTree : public QObject {
 ```
 
 **allLines() キャッシュ**: `allLines()` はツリー全体をDFS走査して全ラインを構築するが、
-結果をキャッシュし、ツリー構造が変更されるまで再利用する。キャッシュは、ノードの追加（`addRecord()`・`addMove()`・`addTerminalMove()`・`addMoveQuiet()`）、
-`clear()`、ノードの削除（`removeLeaf()`・`removeSubtree()`）、子の並べ替え（`moveChild()`・`moveChildQuiet()`・`promoteToMainLine()`）で無効化され、そのたびに `revision()` が増える。
+結果をキャッシュし、ツリー構造が変更されるまで再利用する。キャッシュは、ノードの追加（`addRecord()`）、
+`clear()`・`setRootSfen()`、ノードの削除（`removeLeaf()`・`removeSubtree()`）、子の並べ替え（`moveChild()`・`promoteToMainLine()`）で無効化され、そのたびに `revision()` が増える。
+`revision()` は、棋譜の文書（`KifuDocument`）が保存した時点と比べて未保存かを決めるのと、表示中の手（`KifuNavigationState`）が同じ構造をもう知らせたかを見るのに使う。
 コメント変更（`setComment()`）ではキャッシュは無効化されない（`BranchLine::nodes` はポインタを保持しており、ノードデータの変更はポインタ経由で自動的に反映される）。
 
-**変更の通知**: 構造の変更は `treeChanged` で知らせる。`beginBatchUpdate()`〜`endBatchUpdate()` の間の変更は、最も外側の `endBatchUpdate()` で1回にまとめる。
-`addMoveQuiet()`・`removeLeafQuiet()`・`moveChildQuiet()` は通知しない。終局手を追加すると、そのノードは親と同じ局面の SFEN と無効な指し手を持つ。
+**変更の通知**: 構造の変更は、変わった所をノード ID で示す型付きのシグナルで知らせる。知らせを出さない変更の関数は無い。
+
+| シグナル | 出す操作 |
+|---|---|
+| `nodeAppended(parentId, nodeId)` | `addRecord()`（手を親の子の末尾に足した） |
+| `childrenReordered(parentId)` | `moveChild()`・`promoteToMainLine()`（後者は並びを変えた親のうち最もルートに近いもの。その先の並びも変わり得る） |
+| `subtreeRemoved(parentId, nodeId)` | `removeSubtree()`・`removeLeaf()`（`removeLeaf()` は葉に限った `removeSubtree()`） |
+| `reset()` | `clear()`・`setRootSfen()` |
+
+`beginBatchUpdate()`〜`endBatchUpdate()` の間の変更は、最も外側の `endBatchUpdate()` まで遅らせて起きた順に出す。一括更新の中に作り直し（`clear()`・`setRootSfen()`）があれば、`reset()` を1回だけ出す（棋譜の読み込み）。
+手の表記・コメント・しおりの変更は構造の変更ではなく、棋譜の文書（`KifuDocument::commentChanged` など）が知らせる。終局手を追加すると、そのノードは親と同じ局面の SFEN と無効な指し手を持つ。
+
+テストで指し手を直接足す・本譜の N 手目や局面で手を探すときは、`tests/branchtree_test_util.h` の `TestTree::addMove()`・`addTerminalMove()`・`findByPlyOnMainLine()`・`findBySfen()` を使う（本体の `KifuBranchTree` には無い）。
 
 **本譜と分岐の規約**:
 - **本譜（mainline）**: 各ノードの `children[0]`（最初の子）を辿った経路
@@ -401,10 +418,10 @@ class KifuNavigationState : public QObject {
 行番号（ライン番号）は独立した状態として持たず、`selectedPath()` の終わりのノードから `KifuBranchTree::findLineIndexForNode()` で求める。
 選択はノード ID で持つので、兄弟を並べ替えても選んだ手順は変わらない。ノード ID は再利用しないので、削除したノードを指したままにもならない。
 
-**ツリーが変わったとき**: `KifuBranchTree::treeChanged` を受けた `onTreeChanged()` は、表示中のノードが消えていれば
+**ツリーが変わったとき**: `KifuBranchTree` の構造の変更の知らせ（`nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset` の4つ）を受けた `onTreeChanged()` は、表示中のノードが消えていれば
 （棋譜の読み込み・新規など、ツリーを作り直したとき）`goToRoot()` で開始局面へ戻る。
 ノードが残っていても構造の版（`KifuBranchTree::revision()`）が変わっていれば `changed()` を出す（分岐が増えると棋譜欄の印が変わるため）。
-手を足してから表示中の手を移した場合は、その版をもう知らせているので、後から届く `treeChanged` で同じ通知を繰り返さない。
+手を足してから表示中の手を移した場合は、その版をもう知らせているので、後から届くツリーの知らせで同じ通知を繰り返さない。
 
 ### 4.3 表示中の手を動かす所
 
@@ -492,7 +509,7 @@ struct RecordLine {
 |---|---|---|
 | 手順・局面・指し手・表記・コメント・しおり・消費時間 | `KifuBranchTree` のノード（`RecordEntry`） | 棋譜の正本 |
 | 表示中の手数・選んでいる分岐 | `KifuNavigationState` | 棋譜のカーソル |
-| 棋譜欄・分岐候補欄・分岐ツリー欄の表示 | 各モデル（`KifuRecordListModel` など）と `BranchTreeManager` | 行・図形はノード ID だけを持ち、表示のたびにノードを読む |
+| 棋譜欄・分岐候補欄・分岐ツリー欄の表示 | 各モデル（`KifuRecordListModel` など）と `BranchTreeView` | 行・図形はノード ID だけを持ち、表示のたびにノードを読む |
 | 対局の手順（`RecordLine`） | `MatchCoordinator`（`record()`） | 対局の作業用の手順。棋譜の読み込みでは書かず、対局開始時に表示中の手順から作る（6.5.4、8.2） |
 
 ---
@@ -579,7 +596,7 @@ USEN は本譜と各ライン（`allLines()`）のノードの指し手から書
 |---|---|---|---|
 | **棋譜欄** | `RecordPane` 内の `QTableView` | `KifuRecordListModel` | 表示中の手順。クリックで手に移動 |
 | **分岐候補欄** | `RecordPane` 内の `QTableView` | `KifuBranchListModel` | 表示中の手の分岐候補 |
-| **分岐ツリー欄** | `BranchTreeManager`（分岐ツリードックの中身の `QWidget`。描く `QGraphicsView`（`view()`）をコンストラクタで作る） | — (直接描画) | ツリーのグラフィカル表示 |
+| **分岐ツリー欄** | `BranchTreeView`（`QGraphicsView` の派生で、分岐ツリードックの中身そのもの。1手は `BranchNodeItem`） | — (直接描画。`setTree()` でツリーを読む) | ツリーのグラフィカル表示 |
 | **将棋盤** | `ShogiView` | `ShogiBoard`（`ShogiGameController` の盤） | 盤面表示 |
 
 ### 6.2 Signal/Slot 接続図
@@ -595,7 +612,7 @@ USEN は本譜と各ライン（`allLines()`）のノードの指し手から書
                                                         （bindButtons() が2組のボタンを同じ QAction に結ぶ）
   棋譜欄の行      RecordPane::mainRowChanged          → KifuNavigationController::selectRecordRow()
   分岐候補欄の行  RecordPane::branchRowActivated      → KifuNavigationController::selectBranchCandidateRow()
-  分岐ツリー      BranchTreeManager::branchNodeActivated → KifuNavigationController::selectBranchTreeNode()
+  分岐ツリー      BranchTreeView::nodeActivated       → KifuNavigationController::selectBranchTreeNode()
   評価値グラフ    EvaluationChartWidget::plyClicked   → KifuNavigationController::selectPly()
         │
         │  confirmLeave()（局面編集中、または未更新のコメントの破棄をやめたら移らない
@@ -613,8 +630,9 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 ```
 
 `KifuNavigationController` は表示を更新しない。プログラムからの移動（`goToNode()`・`goToLine()`・`goForward()` など）は確認を通さない。
-ツリーの変更も同じ経路で届く。`KifuBranchTree::treeChanged` を受けた `KifuNavigationState::onTreeChanged()` が、
+ツリーの変更も同じ経路で届く。`KifuBranchTree` の構造の変更の知らせを受けた `KifuNavigationState::onTreeChanged()` が、
 表示中のノードが消えていれば開始局面へ戻り、構造が変わっていれば `changed()` を出す（4.2）。
+分岐ツリー欄（`BranchTreeView`）と棋譜欄の分岐の印（`KifuDisplayPresenter::refreshBranchMarks()`）は、ツリーの知らせを直接受けて描き直す。
 
 ### 6.3 ナビゲーション操作の流れ
 
@@ -659,31 +677,30 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 
 #### 6.3.3 分岐ツリー欄のノードをクリック
 
-分岐ツリーは分岐ツリードックの `QGraphicsView` に `BranchTreeManager` が描画し、クリックは次の経路で処理される。
+分岐ツリーは分岐ツリードックの `BranchTreeView`（`QGraphicsView` の派生）が描画し、クリックは次の経路で処理される。
 
 ```
 1. ユーザーが分岐ツリーのノードをクリック
-2. BranchTreeManager::eventFilter が MouseButtonRelease を検出
-   a. クリック位置のノード（nodeItemAt()）を特定
-   b. ノードに埋め込まれた ROLE_ROW, ROLE_PLY を取得し、そのノードを強調
-   c. emit BranchTreeManager::branchNodeActivated(row, ply)
-      （キーボードでノードを移ったときも同じシグナルを出す）
-3. KifuNavigationController::selectBranchTreeNode(row, ply)
-   a. confirmLeave() でやめたら navigationRejected を出して終わる
-   b. ply == 0 なら、選択を忘れて開始局面へ（KifuNavigationState::goToRoot()）
-   c. クリックした行と表示中の手順で ply 手目のノードが同じ（分岐前の共有ノード）なら、
-      表示中の手順のまま移る（goToLine(現在のライン, ply)）
-   d. それ以外は goToLine(row, ply)
-      - allLines()[row] のノード列の ply 手目へ、その手順の終わりまでを選んで移る
-        （state->setCurrentNode(nodes[ply], nodes.last())）
+2. BranchTreeView::mouseReleaseEvent()（QGraphicsView のイベント関数の上書き）
+   a. クリック位置の手（nodeItemAt()。BranchNodeItem）を特定（選べない間（setClickEnabled(false)）は何もしない）
+   b. その手のノード ID（BranchNodeItem::nodeId()）で setCurrentNode() して強調
+   c. emit BranchTreeView::nodeActivated(nodeId)
+      （キーボードで手を移ったときも同じシグナルを出す）
+3. KifuNavigationController::selectBranchTreeNode(nodeId)
+   a. nodeAt(nodeId) が無ければ何もしない。confirmLeave() でやめたら navigationRejected を出して終わる
+   b. ルート（開始局面）なら、選択を忘れて開始局面へ（KifuNavigationState::goToRoot()）
+   c. 表示中の手順（selectedPath()）にある手（分岐前の共有の手など）なら、
+      表示中の手順のまま移る（state->setCurrentNode(node, 表示中の手順の終わり)）
+   d. それ以外は、その手から先頭の子をたどった手順の終わりまでを選んで移る
+      （state->setCurrentNode(node, 先頭の子をたどった終わり)。図でその手を描いた行の手順）
       - 以降は 6.3.1 の手順4と同じ
 ```
 
-> **共有ノードの判定**: 分岐ツリーでは、分岐前の共有ノードは親ライン（本譜または親の変化）の行に描かれる。
-> クリックした行と表示中の手順で同じ手数のノードが同一なら、手順を切り替えない。
-> 入れ子の分岐にも対応するため、手数ではなくノードが同一かで比べる。
+> **共有の手の判定**: 分岐ツリーでは、分岐前の共有の手は親ライン（本譜または親の変化）の行に描かれる。
+> クリックした手が表示中の手順にあれば、手順を切り替えない。
+> 図とはノード ID だけでやり取りするので、行（ライン番号）や手数を突き合わせない。
 
-> **分岐選択記憶の自動更新**: `goToLine()` は、ルートからその手順の終わりまでの経路上の全分岐点の選択を記憶する（4.2）。
+> **分岐選択記憶の自動更新**: `setCurrentNode(node, lineEnd)` は、ルートからその手順の終わりまでの経路上の全分岐点の選択を記憶する（4.2）。
 > これにより、分岐ツリーで深い分岐のノードをクリックした後に
 > 開始局面まで戻って再度進めると、同じ分岐の手順が自動的に辿られる。
 
@@ -726,20 +743,22 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 | `recordModel` | 棋譜欄モデル（必須） |
 | `branchModel` | 分岐候補欄モデル（必須） |
 | `recordView` | 棋譜欄の表（選択と表示位置を合わせる） |
-| `treeView` | 分岐ツリー欄（`BranchTreeManager`） |
+| `treeView` | 分岐ツリー欄（`BranchTreeView`。コンストラクタで1度だけ `setTree(tree)` でツリーを渡す） |
 
 **`refresh()` の処理**:
 
 1. 棋譜欄に出す手順を決める。対局中（`LiveGameSession::isActive()`）は開始局面から対局の最新の手（`liveNode()`）まで
    （`KifuBranchTree::pathToNode()`。その先にある以前の手順は出さない）、それ以外は `KifuNavigationState::selectedPath()`
-2. `KifuRecordListModel::setPath()` で行を合わせる（先頭が同じ行は残す）。ツリーの構造の版（`revision()`）が変わっていれば
-   全行を描き直す（分岐の印が変わるため）。表示中の手の行を強調して選択し、見える位置へスクロールする
+2. `KifuRecordListModel::setPath()` で行を合わせる（先頭が同じ行は残す）。表示中の手の行を強調して選択し、見える位置へスクロールする
 3. `KifuBranchListModel::setCandidates()` で分岐候補欄を作る
-4. `BranchTreeManager::syncWithTree()` で分岐ツリー欄をツリーに合わせ、`highlightBranchTreeAt(currentLineIndex(), currentPly())` で表示中の手を強調する
+4. 分岐ツリー欄に表示中の手を `BranchTreeView::setCurrentNode(nodeId)` で伝える（ツリーの構造に合わせる描き直しは図が自分で行う）
+
+ツリーの構造の変更（`nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset`）は `refreshBranchMarks()` にもつなぎ、
+棋譜欄の全行を描き直す（分岐が増える・減る・並びが変わると分岐の印が変わるため）。
 
 `refresh()` は `KifuNavigationState::changed()` と `LiveGameSession::activeChanged()`（対局の開始・終了）で呼ばれ、
 移るのをやめたとき（`KifuNavigationController::navigationRejected`）にも強調を戻すために呼ばれる。
-表記・言語を変えたときは `refreshLabels()` が全行と分岐ツリーを描き直す。
+表記・言語を変えたときは `refreshLabels()` が全行と分岐ツリーの手の表記（`BranchTreeView::refreshLabels()`）を描き直す。
 
 ### 6.5 データ一元管理の保証
 
@@ -767,11 +786,13 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
                   │      KifuNavigationState::branchCandidatesAtCurrent() の候補ノードを
                   │      KifuDisplayPresenter::refresh() が setCandidates() で渡す。
                   │
-                  ├──→ 分岐ツリー欄 (BranchTreeManager)
-                  │      KifuDisplayPresenter::refresh() が BranchTreeManager::syncWithTree() を呼ぶ。
-                  │      構造の版（revision()）が変わっていなければ何もせず、1つの手順の末尾に
-                  │      1手増えただけならその手だけを描き足す（appendNode()）。それ以外は allLines() から
-                  │      行の配置（BranchTreeLayout）を作り直して再描画する。
+                  ├──→ 分岐ツリー欄 (BranchTreeView)
+                  │      setTree(tree) で受けたツリーの構造の変更の知らせで描き直す。nodeAppended で
+                  │      1つの手順の末尾に1手増えただけならその手だけを描き足し、それ以外（新しい変化・
+                  │      並べ替え・削除・作り直し）は allLines() から行の配置（BranchTreeLayout）を作り直して
+                  │      再描画する。表示中の手は KifuDisplayPresenter::refresh() が setCurrentNode(nodeId) で
+                  │      伝え、まだ描いていない手なら描いた時点で強調する。コメントの印は
+                  │      KifuDocument::commentChanged → refreshNode(nodeId) で描き直す。
                   │
                   └──→ 将棋盤 (ShogiBoard)
                          BoardSyncPresenter::syncToCurrentNode() が、表示中のノードの sfen() が
@@ -945,14 +966,14 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
       ├─ for each variation:
       │    分岐元の手順の経路を startPly 手目の前までで切り、その末尾に変化の行を積む。
       │    同一SFENの別経路とは混同しない
-      └─ endBatchUpdate()  // treeChanged を1回だけ出す
+      └─ endBatchUpdate()  // 作り直しを含むので reset を1回だけ出す
    c. 文書の後始末（KifuDocument::finishReplacement()）: 対局情報を読んだものにし、前の対局者・持ち時間・
       上書き保存先を消し、今の内容を保存した時点とする
       → emit headerReset(header) → GameInfoPane::setGameInfo()（対局情報欄）・
         PlayerInfoPresenter::syncBoardNamesWithGameInfo()（盤の対局者名）
 
 4. 表示
-   treeChanged → KifuNavigationState::onTreeChanged()
+   reset → KifuNavigationState::onTreeChanged()（分岐ツリー欄・棋譜欄の分岐の印も reset を受けて作り直す）
      表示中のノードが消えたので goToRoot() → changed()
      → KifuDisplayPresenter（棋譜欄は本譜の行、分岐候補欄、分岐ツリー欄）
      → BoardSyncPresenter（開始局面の盤）・CommentCoordinator（開始局面のコメント）など
@@ -1038,7 +1059,7 @@ root → 1手目 → ... → 20手目 → 21手目(前回本譜) → ... → 80�
 2. 別の5手目を指す
    MatchRecordSink::appendRecord() → LiveGameSession::appendRecord(...)
    → 4手目のノードの子として新ノードを追加
-   → placeBeforeUndoneSiblings(): 取り消した5手目より前へ移す（moveChildQuiet）
+   → placeBeforeUndoneSiblings(): 取り消した5手目より前へ移す（一括更新の中の moveChild）
    → 実際に指した手順が本譜、取り消した手順が分岐になる
 
 3. 同じ5手目を指し直した場合
@@ -1062,16 +1083,18 @@ root → 1手目 → ... → 4手目 → 5手目(指し直し) → ... → 8手�
 
 ### 8.6 ツリーへの追加と通知
 
-| メソッド | treeChanged シグナル | 使用場面 |
+| メソッド | シグナル | 使用場面 |
 |---|---|---|
-| `addRecord()`（`addMove()`・`addTerminalMove()` も同じ） | 発火する（一括更新中は `endBatchUpdate()` で1回にまとめる） | 棋譜読み込み時のツリー構築（`KifuBranchTreeBuilder`）、ライブ対局（`LiveGameSession::appendRecord()`）、待機中に盤で指した変化（`BranchTreeEditController`） |
-| `addMoveQuiet()` | 発火しない | 本体のコードでは使っていない（テストが使う） |
+| `addRecord()` | `nodeAppended(parentId, nodeId)`（一括更新中は `endBatchUpdate()` まで遅らせる。作り直しを含む一括更新では `reset()` 1回にまとめる） | 棋譜読み込み時のツリー構築（`KifuBranchTreeBuilder`）、ライブ対局（`LiveGameSession::appendRecord()`）、待機中に盤で指した変化（`BranchTreeEditController`） |
 
-対局中の追加は、`LiveGameSession::appendRecord()` が `beginBatchUpdate()`〜`endBatchUpdate()` の間で行う。
+手を足す関数は `addRecord()` だけである（テストで指し手を直接足すときは `tests/branchtree_test_util.h` の `TestTree::addMove()`・`addTerminalMove()`）。
+
+対局中の追加は、`LiveGameSession::appendRecord()` が `beginBatchUpdate()`〜`endBatchUpdate()` の間で行う（待ったの後の並べ替え `moveChild()` も同じ一括更新の中）。
 ノードを足した後に表示中の手をそのノードへ移す（`KifuNavigationState::setCurrentNode()` が `changed()` を出す）ので、
-`endBatchUpdate()` で届く `treeChanged` では、`KifuNavigationState` は同じ構造をもう知らせているので `changed()` を繰り返さない（4.2）。
+`endBatchUpdate()` で届く `nodeAppended`（並べ替えたときは続けて `childrenReordered`）では、`KifuNavigationState` は同じ構造をもう知らせているので `changed()` を繰り返さない（4.2）。
 `changed()` を受けた `KifuDisplayPresenter::refresh()` は、棋譜欄に最新手までの手順を `setPath()` で渡し（増えた1行だけを足す）、
-分岐ツリー欄は `BranchTreeManager::syncWithTree()` が追加した1ノードだけを描き足す（`appendNode()`。できなければ全体を作り直す）。
+分岐ツリー欄に表示中の手を `setCurrentNode(nodeId)` で伝える。分岐ツリー欄（`BranchTreeView`）はこの時点ではまだその手を描いていないので、
+`nodeAppended` を受けて追加した1手だけを描き足した時点で強調する（新しい変化などで描き足せなければ全体を作り直す）。
 
 ---
 
