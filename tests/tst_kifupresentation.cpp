@@ -47,6 +47,13 @@ private slots:
         QCOMPARE(move(promoted, "P*7f", compact), QStringLiteral("▲P*7f"));
         const QString ambiguous = "4k4/9/9/9/9/9/9/9/3GKG3 b - 1";
         QCOMPARE(move(ambiguous, "6i5h", compact), QStringLiteral("▲G6i-5h"));
+        // 移動元の要否は KI2 の修飾語と同じく合法手で決める。ピンされて動けない金は数えない
+        const QString pinned = "4r3k/9/9/9/9/9/5G3/4G4/4K4 b - 1";
+        QCOMPARE(move(pinned, "4g4h", compact), QStringLiteral("▲G-4h"));
+        // 日本語表記は棋譜と同じ KifMoveText（手番の印は includeSide で付け外しする）
+        const Options japanese{Notation::Japanese, false};
+        QCOMPARE(move(SfenUtils::hirateSfen(), "7g7f", japanese), QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(move(SfenUtils::hirateSfen(), "7g7f", japanese, false), QStringLiteral("７六歩(77)"));
     }
 
     void handicapPvAndCanonicalPreservation()

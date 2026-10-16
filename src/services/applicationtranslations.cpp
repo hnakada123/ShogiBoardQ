@@ -3,7 +3,7 @@
 
 #include "applicationtranslations.h"
 #include "appsettings.h"
-#include "kifupresentation.h"
+#include "notationstyle.h"
 #include "logcategories.h"
 
 #include <QCoreApplication>
@@ -14,7 +14,7 @@
 ApplicationTranslations::ApplicationTranslations(const QString& translationsDirectory)
 {
     const QStringList systemLanguages = QLocale::system().uiLanguages();
-    m_language = KifuPresentation::resolveLanguage(AppSettings::language(),
+    m_language = NotationStyle::resolveLanguage(AppSettings::language(),
         systemLanguages.isEmpty() ? QLocale::system().name() : systemLanguages.first());
 
     const QString qtLanguage = m_language == QStringLiteral("ja_JP") ? QStringLiteral("ja") : m_language;
@@ -29,5 +29,5 @@ ApplicationTranslations::ApplicationTranslations(const QString& translationsDire
     else
         qCWarning(lcApp) << "Translation file not found:" << m_language;
 
-    KifuPresentation::configure(m_language, AppSettings::moveNotation(), AppSettings::notationOrigin());
+    NotationStyle::configure(m_language, AppSettings::moveNotation(), AppSettings::notationOrigin());
 }

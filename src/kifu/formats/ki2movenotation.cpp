@@ -160,6 +160,7 @@ Annotation annotate(const Position& board, Turn mover, const UsiMove& move)
         if (!move.isDrop() && candidate.from == move.from && candidate.promote) annotation.canPromote = true;
     }
 
+    annotation.sources = sources;
     if (move.isDrop()) {
         if (!sources.isEmpty()) annotation.modifiers = QStringLiteral("打");
     } else {

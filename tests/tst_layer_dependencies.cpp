@@ -24,8 +24,9 @@ private:
     };
 
     /// 下の層は上の層をインクルードしない。下から順に
-    /// common（ログ・エラー通知）・core → services → kifu・engine → game → analysis・network・navigation → models
-    /// → views・widgets・board → dialogs → ui → app。automation・cli は外側の入口
+    /// common（ログ・エラー通知）・core → services → kifu・engine → game → analysis・network・navigation
+    /// → style（ウィジェットの書体・見た目）→ models → views・widgets・board → dialogs → ui → app。
+    /// automation・cli は外側の入口
     static QList<LayerRule> layerRules()
     {
         const auto dirs = [](std::initializer_list<const char*> names) {
@@ -33,7 +34,7 @@ private:
             for (const char* name : names) list.append(QString::fromLatin1(name) + QLatin1Char('/'));
             return list;
         };
-        const QStringList gui = dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli"});
+        const QStringList gui = dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli", "style"});
         return {
             // ログの分類（logcategories）とエラーの通知（errorbus）は common の土台を使う
             {QStringLiteral("src/core"),
@@ -48,7 +49,9 @@ private:
             {QStringLiteral("src/analysis"), gui + dirs({"network", "navigation", "models"})},
             {QStringLiteral("src/network"), gui + dirs({"analysis", "navigation", "models"})},
             {QStringLiteral("src/navigation"), gui + dirs({"analysis", "network", "models"})},
-            {QStringLiteral("src/models"), gui},
+            {QStringLiteral("src/style"), dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli",
+                                                "engine", "game", "analysis", "network", "navigation", "models"})},
+            {QStringLiteral("src/models"), dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli"})},
             {QStringLiteral("src/views"), dirs({"app", "ui", "dialogs", "board", "automation", "cli"})},
             {QStringLiteral("src/widgets"), dirs({"app", "ui", "dialogs", "board", "automation", "cli"})},
             {QStringLiteral("src/board"), dirs({"app", "ui", "dialogs", "automation", "cli"})},

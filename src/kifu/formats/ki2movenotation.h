@@ -4,6 +4,7 @@
 /// @file ki2movenotation.h
 /// @brief KI2 の指し手の文字列と、局面の上の指し手（USI）との対応
 
+#include <QList>
 #include <QString>
 #include <optional>
 
@@ -40,6 +41,9 @@ namespace Ki2MoveNotation {
 struct Annotation {
     QString modifiers;        ///< 修飾語（右・左・直・上・引・寄。「左上」のように2字のこともある）。盤上の同じ駒も動ける駒打ちは「打」
     bool canPromote = false;  ///< 成ることもできる手（成らない手は「不成」と書く）
+    /// 同じ駒で同じマスへ動ける盤上の駒の位置（指した駒を含む。2つ以上なら移動元に紛れがある。
+    /// 画面の英語表記が移動元を付けるかもこれで決める）
+    QList<BoardSquare> sources;
 };
 
 /**

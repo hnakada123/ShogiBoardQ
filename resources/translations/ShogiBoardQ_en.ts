@@ -7777,77 +7777,77 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation type="vanished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="228"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="124"/>
         <source>（定跡）</source>
         <translation>(Book)</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="239"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="135"/>
         <source>対局日</source>
         <translation>Game Date</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="239"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="135"/>
         <source>開始日時</source>
         <translation>Start Time</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="240"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="136"/>
         <source>終了日時</source>
         <translation>End Time</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="240"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="136"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="241"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="137"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="241"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="137"/>
         <source>下手</source>
         <translation>Shitate</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="242"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="138"/>
         <source>上手</source>
         <translation>Uwate</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="242"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="138"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="243"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="139"/>
         <source>持ち時間</source>
         <translation>Time control</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="243"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="139"/>
         <source>棋戦</source>
         <translation>Event</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="244"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
         <source>場所</source>
         <translation>Site</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="244"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
         <source>備考</source>
         <translation>Notes</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="245"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
         <source>戦型</source>
         <translation>Opening</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="245"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
         <source>表題</source>
         <translation>Title</translation>
     </message>
@@ -7907,7 +7907,7 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation>Left Five-Piece Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="257"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="153"/>
         <source>局面指定</source>
         <translation>Custom position</translation>
     </message>
@@ -7937,17 +7937,17 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation>Ten-Piece Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="257"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="153"/>
         <source>その他</source>
         <translation>Other</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="261"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="157"/>
         <source>無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/common/kifupresentation.cpp" line="273"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="169"/>
         <source>%1+%2秒加算</source>
         <translation>%1 + %2 s increment</translation>
     </message>
@@ -10845,21 +10845,21 @@ Do you want to continue?</translation>
         <translation type="vanished">%1: %2</translation>
     </message>
     <message>
-        <location filename="../../src/common/jishogicalculator.cpp" line="108"/>
-        <location filename="../../src/common/jishogicalculator.cpp" line="116"/>
-        <location filename="../../src/common/jishogicalculator.cpp" line="124"/>
-        <location filename="../../src/common/jishogicalculator.cpp" line="132"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="108"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="116"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="124"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="132"/>
         <source>負け</source>
         <translation>Loss</translation>
     </message>
     <message>
-        <location filename="../../src/common/jishogicalculator.cpp" line="112"/>
-        <location filename="../../src/common/jishogicalculator.cpp" line="130"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="112"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="130"/>
         <source>勝ち</source>
         <translation>Win</translation>
     </message>
     <message>
-        <location filename="../../src/common/jishogicalculator.cpp" line="114"/>
+        <location filename="../../src/core/jishogicalculator.cpp" line="114"/>
         <source>引き分け</source>
         <translation>Draw</translation>
     </message>
