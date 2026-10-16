@@ -59,8 +59,9 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 | ドメイン別ヘッダー（下表） | 設定項目の宣言の表。処理が要る項目の関数宣言もここに置く |
 | `src/services/settingskeys.h` | 関数として書いた項目と、機能ごとのエンジン選択（`EngineListSettings`）が使うキー定数。宣言の表の項目はキーを宣言に直接書くので、新しい項目のためにここへ定数を足さない |
 | `src/services/settingsservice.h` | ドメイン別ヘッダーをまとめて include するだけのヘッダー（関数はなく、`.cpp` もない）。新しいコードはドメイン別ヘッダーを直接 include する |
-| `src/services/enginelistsettings.h/.cpp` | エンジン登録一覧の読み込みと、機能ごとに選んだエンジンの保存（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
-| `src/services/enginepondersettings.h/.cpp` | エンジンごとの GUI 先読み設定（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
+| `src/services/engineprofilestore.h/.cpp` | 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
+| `src/services/enginelistsettings.h/.cpp` | 登録エンジン一覧の検索（名前・パス）と、機能ごとに選んだエンジンの保存（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
+| `src/services/engineoption.h` | USIオプション1つの値 `EngineOption`（名前・型・既定値・範囲・現在値・選択肢） |
 
 ### ドメイン別ヘッダー
 
@@ -267,17 +268,14 @@ const int size = settings.beginReadArray(EnginesGroupName);
 settings.endArray();
 ```
 
-現在この形で開いているのは次の箇所だけ（12か所）。
+現在この形で開いているのは次の2ファイルだけ。
 
 | ファイル | 関数 | データ |
 |---|---|---|
-| `src/services/enginelistsettings.cpp` | `EngineListSettings::loadEngines()` | `[Engines]` 配列（登録エンジンの名前・パス・作者）の読み込み |
-| `src/engine/engineregistrationhandler.cpp` | `saveEnginesToSettingsFile()`・`saveEngineOptionsToSettings()`・`removeEnginesGroup()`・`removeEngineNameGroup()` | 登録一覧と、エンジンごとのグループ（`EngineOptions/<名前>`）のオプション配列の書き込み・削除 |
-| `src/dialogs/enginesettingsoptionhandler.cpp` | `readEngineOptions()`・`saveOptionsToSettings()` | エンジン設定ダイアログでのオプション配列の読み書き |
-| `src/engine/usiprotocolhandler.cpp` | `loadEngineOptions()` | エンジン起動時にオプション配列を読み、`setoption` を組み立てる |
-| `src/services/enginepondersettings.cpp` | `EnginePonderSettings::load()`・`save()` | エンジンごとのグループの GUI 先読み設定と `USI_Ponder` の保存値の同期 |
-| `src/services/enginelistsettings.cpp` | `EngineListSettings::migrateLegacyOptionGroups()` | 以前の版の、エンジン名の最上位グループからの移行（起動時） |
+| `src/services/engineprofilestore.cpp` | `EngineProfileStore::loadEngines()`・`saveEngines()`・`loadOptions()`・`saveOptions()`・`removeEngine()`・`loadPonder()`・`savePonder()` | 登録一覧の `[Engines]` 配列と、エンジンごとのグループ（`EngineOptions/<名前>`）のオプション配列・GUI 先読み設定（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
 | `src/dialogs/csagamedialog.cpp` | `loadServerHistory()`・`saveServerHistory()` | CSA通信対局の接続履歴 `CsaServerHistory` 配列（最大10件） |
+
+以前の版のエンジン名の最上位グループからの移行（`EngineProfileStore::migrateLegacyOptionGroups()`、起動時）は共有の `QSettings` を使う。
 
 列幅（`AnalysisSettings::engineInfoColumnWidths` など）とドックレイアウト名の一覧（`DockSettings::savedDockLayoutNames`）は、共有の `QSettings` で開いた配列・グループを同じ関数の中ですぐ閉じている。
 
@@ -288,6 +286,7 @@ settings.endArray();
 ## 7. エンジンの登録情報（EngineSettingsConstants）
 
 エンジンの登録情報（名前、パス、作者、オプション）は配列で保存するため、宣言の表ではなく [6章](#6-qsettings-を直接開く場合配列グループのデータ) の方法で読み書きする。
+この保存形式を知るのは `EngineProfileStore`（`src/services/engineprofilestore.h`）だけで、ほかの部品は設定ファイルを開かずにその関数を使う。
 INI キー名は `src/services/enginesettingsconstants.h` に定数として定義されている。
 
 ```
@@ -308,7 +307,6 @@ YaneuraOu\1\name=Threads
 
 ```
 1\name=Threads
-1\name=Threads
 1\type=spin
 1\default=...
 1\min=...
@@ -320,11 +318,22 @@ gui\ponderEnabled=true
 gui\sendUnreportedPonderOption=true
 ```
 
+| 関数 | 内容 |
+|---|---|
+| `loadEngines()` / `saveEngines()` | 登録一覧の読み込みと置き換え（保存は一覧全体を書き直す） |
+| `loadOptions()` / `saveOptions()` | オプション配列の読み込みと置き換え。保存は `valueList` を含む全行を書き、古い行は消し、`gui/...` は残す。`valueList` は JSON の配列で書き、読むときは以前の版の空白区切りも受け付ける |
+| `removeEngine()` | エンジンごとのグループ（オプションと GUI 設定）を消す |
+| `loadPonder()` / `savePonder()` | 先読みの GUI 設定（`PonderPreferences`: `enabled`・`sendUnreportedOption`・`defaultEnabled`）。下の「先読みのGUI設定」 |
+| `launchOptions(名前)` | 起動時に送る設定 `LaunchOptions`（`USI_Ponder` を除いたオプション。button 型は値が `on` のものだけ。と、先読みの可否・未報告の `USI_Ponder` を送るか） |
+| `migrateLegacyOptionGroups()` | 以前の版の最上位グループからの移行（下記） |
+
+予約オプションの名前は `kPonderOptionName`、判定は `isPonderOption()`。
+
 以前の版はエンジン名をそのまま最上位のグループ名にしていた。GUI と `shogiboardq-cli` は起動時に
-`EngineListSettings::migrateLegacyOptionGroups()` を呼び、登録済みエンジンの配列（`size` と番号付きのキー）と
+`EngineProfileStore::migrateLegacyOptionGroups()` を呼び、登録済みエンジンの配列（`size` と番号付きのキー）と
 `gui/...` の設定だけを `EngineOptions` の下へ移す（同じ名前のグループにあるほかの設定には触れない）。
 
-登録一覧を読むときは `EngineListSettings::loadEngines()` を使う。名前とパスの変換は `pathForName()` / `nameForPath()`。
+登録一覧を読むときは `EngineListSettings::loadEngines()`（`EngineProfileStore::loadEngines()` に任せる）を使う。名前とパスの変換は `pathForName()` / `nameForPath()`、一覧の中の位置は `indexOfName()` / `indexOfPath()`。
 
 ```cpp
 #include "enginelistsettings.h"
@@ -339,9 +348,9 @@ const QString path = index >= 0 ? engines.at(index).path : QString();
 | 用途 | ファイル |
 |---|---|
 | 登録一覧の読み込み（`loadEngines()`） | `startgamedialog.cpp`、`kifuanalysisdialog.cpp`、`csagamedialog.cpp`、`tsumeshogisearchdialog.cpp`、`tsumeshogigeneratordialog.cpp`、`tsumecollectiondialog.cpp`、`considerationtabmanager.cpp`、`considerationflowcontroller.cpp`、`engineregistrationhandler.cpp`、`automation/enginecatalog.cpp` |
-| 登録一覧とオプションの書き込み・削除 | `engineregistrationhandler.cpp`（エンジン登録ダイアログ） |
-| オプションの読み書き | `enginesettingsoptionhandler.cpp`（エンジン設定ダイアログ） |
-| 起動時のオプション送信 | `usiprotocolhandler.cpp`（`loadEngineOptions()`。`USI_Ponder` は除き、GUI の先読み設定から初期化時に一度だけ送る） |
+| 登録一覧とオプションの書き込み・削除 | `engineregistrationhandler.cpp`（エンジン登録ダイアログ。`EngineProfileStore::saveEngines()`・`saveOptions()`・`removeEngine()`） |
+| オプションの読み書き | `enginesettingsoptionhandler.cpp`（エンジン設定ダイアログ。`readEngineOptions()` が `loadOptions()`、`writeEngineOptions()` が一覧全体を `saveOptions()` で書く） |
+| 起動時のオプション送信 | `usienginesession.cpp` の `startAsync()` が `EngineProfileStore::launchOptions()` を `UsiProtocolHandler::setLaunchOptions()` に渡す。`UsiProtocolHandler` は設定ファイルを開かない（`USI_Ponder` は除き、GUI の先読み設定から初期化時に一度だけ送る） |
 
 ### 機能ごとに選んだエンジン
 
@@ -351,7 +360,7 @@ const QString path = index >= 0 ? engines.at(index).path : QString();
 
 ### 先読みのGUI設定
 
-先読みのGUI設定は `EnginePonderSettings` が管理し、エンジン名グループの下に次のキーを保存する。エンジン削除時は同じグループとともに削除される。
+先読みのGUI設定は `EngineProfileStore::loadPonder()` / `savePonder()` が読み書きし、エンジン名グループの下に次のキーを保存する。エンジン削除時は同じグループとともに削除される。
 
 | キー | 用途・既定値 |
 |---|---|
@@ -373,7 +382,7 @@ GUI設定を保存すると、既存の `USI_Ponder` オプションの保存値
 | `settingWritesDeclaredKeyAndRemoveRestoresDefault` | `set()` が宣言したキーへ書き、`remove()` で既定値へ戻ること |
 | `appSettings_*`・`analysisSettings_*`・`gameSettings_*` など | ドメインごとの往復。関数として書いた項目は範囲外の値・旧形式の値も確かめる |
 
-ほかのテストで設定ファイルを使うときは、設定に触れる前に `SHOGIBOARDQ_CONFIG_HOME` を一時ディレクトリに向ける（`tst_startgamedialog`・`tst_nyugyoku_judgement`・`tst_enginepondersettings` など）。
+ほかのテストで設定ファイルを使うときは、設定に触れる前に `SHOGIBOARDQ_CONFIG_HOME` を一時ディレクトリに向ける（`tst_startgamedialog`・`tst_nyugyoku_judgement`・`tst_engineprofilestore` など）。
 
 ---
 

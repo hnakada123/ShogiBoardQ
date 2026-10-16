@@ -50,7 +50,7 @@
 41. `tst_analysisflow`
 42. `tst_game_start_flow`
 43. `tst_startgamedialog`
-44. `tst_enginepondersettings`
+44. `tst_engineprofilestore`
 45. `tst_match_end`
 46. `tst_sennichite_detector`
 47. `tst_game_start_options`

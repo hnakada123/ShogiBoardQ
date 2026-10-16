@@ -36,7 +36,7 @@
 | B5 | 通信対局の終局でライブ記録が確定されない。終局後も `LiveGameSession` が有効のまま残り、次の3つが起きる。「新規」か次の対局で破棄されるまで続く。<br>・盤で変化の手を指せない（`HumanTurnPolicy::isHumanTurnNow` が false）<br>・分岐の編集メニューが無効（`BranchTreeEditController::canEdit()` が false）<br>・評価値グラフの縦線が棋譜の移動に付いてこない（`EvaluationGraphPresenter::showCurrentPly` が早く抜ける） | `LiveGameSession::commit()` を呼ぶのは `gamesession.cpp:279`（`GameSession::onGameEnded`、ローカル対局）だけ。通信対局の終局は `CsaGameSession::onGameEnded` → フック `recordGameEnd` → `GameSession::recordGameEndTime` で、終了時刻を書くだけで commit しない。`tst_csagamesession`・`tst_csagamecoordinator` は終局後のライブ記録の状態を確かめていない | コードの経路で確認（実行はしていない）。<br>**状態: 済（455ec224）**。通信対局の終局でも `GameSession::endCsaGameRecord()` がライブ記録を確定する（`tst_app_game_session::csaGameEndCommitsLiveRecord`） |
 | B6 | 時間のある対局の後に別の棋譜を読み込み、CSA で保存・コピーすると、前の対局の `$TIME` が書かれる。読み込んだ棋譜に開始日時がなければ、前の対局の `$START_TIME` も書かれる | `MatchTimeRecord` の持ち時間は `begin()` 以外で消えない。開始日時を消すのも `SessionResetCoordinator::prepareGameStart` の `clearStart()` だけ。棋譜の読み込み（`clearUiBeforeKifuLoad` ＝ `SessionResetCoordinator::clearBeforeKifuLoad`）は表示を消すだけ。CSA の書き出しは `ctx.timeControl` に持ち時間があると対局情報の持ち時間を捨て、`ctx` の値で `$TIME` を書く（`csaexporter.cpp:96-97, 122-134`） | コードの経路で確認（実行はしていない）。<br>**状態: 済（455ec224）**。棋譜を読み込むと `GameSession::forgetFinishedMatch()` が `MatchTimeRecord` を消す（`tst_app_kifu_load::loadedKifuForgetsPreviousMatch`） |
 | B7 | 棋譜を読み込んでも前の対局の対局者が残り、次の3か所に出る。<br>・「名前を付けて保存」の既定のファイル名（`kifuexportcontroller.cpp:105`）<br>・CSA の `N+`/`N-` の補い。読み込んだ棋譜に対局者名がないとき（`csaexporter.cpp:69-73`）<br>・読み筋ダイアログの対局者名（`pvclickcontroller.cpp:55`） | `AppState::players` を書くのは対局開始（`playerinfopresenter.cpp:173`、`gamesession.cpp:228`）だけで、消すのは「新規」（`gamesession.cpp:262`）だけ。読み込みでは消さない | コードの経路で確認（実行はしていない）。<br>**状態: 済（455ec224）**。B6 と同じく読み込みで消す |
-| B8 | エンジンの id name を、そのまま設定ファイルの最上位のグループ名に使っている。名前が `General`・`Engines`・`SizeRelated` などと同じなら他の設定と衝突し、エンジンを削除すると（`removeEngineNameGroup`）そのグループごと消える。`/` を含む名前は入れ子のグループになる | `engineregistrationhandler.cpp:347` の `settings.beginWriteArray(m_engineIdName)` と `:376` の `beginGroup(removeEngineName)` | コードで確認（実害は該当する名前のエンジンがあるときだけ）。<br>**状態: 済（455ec224）**。保存先を `EngineOptions/<エスケープした名前>`（`EngineSettingsConstants::engineOptionsGroup`）に移し、旧形式からは GUI と CLI の起動時に `EngineListSettings::migrateLegacyOptionGroups()` で移す |
+| B8 | エンジンの id name を、そのまま設定ファイルの最上位のグループ名に使っている。名前が `General`・`Engines`・`SizeRelated` などと同じなら他の設定と衝突し、エンジンを削除すると（`removeEngineNameGroup`）そのグループごと消える。`/` を含む名前は入れ子のグループになる | `engineregistrationhandler.cpp:347` の `settings.beginWriteArray(m_engineIdName)` と `:376` の `beginGroup(removeEngineName)` | コードで確認（実害は該当する名前のエンジンがあるときだけ）。<br>**状態: 済（455ec224）**。保存先を `EngineOptions/<エスケープした名前>`（`EngineSettingsConstants::engineOptionsGroup`）に移し、旧形式からは GUI と CLI の起動時に `EngineListSettings::migrateLegacyOptionGroups()` で移す（R8 で `EngineProfileStore` へ移した） |
 
 ### 1.2 疑い（コードから追った推定で、実行では確かめていない）
 
@@ -374,6 +374,12 @@
 - 入力の判定は6〜7ファイル約600行、局面編集は5ファイル約500行で、`Mode` の廃止と同時に行う。ハイライトは views の2ファイルと呼び出し側5ファイル。
 - テスト: `tst_legal_move_highlights`・`tst_board_drag_repaint`・`tst_lifecycle_runtime`・`tst_positionedit_gamestart`・`tst_service_initialization`・`tests/gui`。
 
+**状態: 済（f6f3fe36）**。案から変えた点:
+- 行き先は型を動作状態ごとに分けず、インターフェイス `BoardInputRoute`（`acceptsInput`・`isEditing`・`submit`。`src/board/boardinputroute.h`）にした。主画面では `BoardMoveController` が動作状態で処理を振り分け、詰将棋を解くダイアログは自分が行き先になる。`submit` は駒台・駒箱を含む局面編集の移動も渡すので、盤の座標（移動元・移動先）のままにした。クリックは行き先が1回だけ `UsiMove` にし（成りの選択もここ）、局面編集以外は `playUsiMove` で処理する。定跡手と通信対局へ渡す手も `UsiMove` のまま。
+- 受け付けるかは `HumanTurnPolicy::isHumanTurnNow`（局面編集中は常に）だけで決め、`UiStatePolicyManager` の盤面クリックの項目は廃止した。動作状態が変わったら、つまんでいた駒を戻す。`HumanTurnPolicy` は層の規則（ui は app を include しない）に合わせて `src/ui/controllers` へ移した。
+- 局面編集は `PositionEditSession`（`src/board/positioneditsession.h`）。開始・終了は表示中の局面・編集した局面を `editingStarted`/`editingFinished` で渡し、受け手（`MainWindowActions::resetRecordForEditedPosition`）はその局面で棋譜を作り直す。ビューの描き方（`setPositionEditMode`）は、このクラスが動作状態に合わせて切り替える。
+- ハイライトの色は、ユーザーが選ぶ配色（`BoardColors`）に加えず、層ごとの固定の色を `ShogiViewHighlighting` の表に置いた（今の表示色と同じ）。
+
 ### R8. エンジン設定の保存形式を5か所が直接読み書きしている（services・engine・dialogs）。B8 の原因
 
 2つの範囲の監査で別々に見つかった。
@@ -398,6 +404,12 @@
 - `UsiProtocolHandler` には、送るオプションの一覧を外から渡す。`EngineOption` 型は services の側へ下ろす。
 
 **規模とテスト**: 5〜7ファイル約250行。テストは `tst_engineregistrationhandler`・`tst_enginepondersettings`・`tst_settings_roundtrip`。
+
+**状態: 済（9d05747b）**。案から変えた点:
+- `EngineProfileStore`（`src/services/engineprofilestore.h`）は値型の `EngineProfile` を作らず、エンジン名で読み書きする関数の名前空間にした（一覧の `loadEngines`/`saveEngines`、オプションの `loadOptions`/`saveOptions`、先読みの `loadPonder`/`savePonder`、削除の `removeEngine`）。エンジン一覧の検索・選択（`EngineListSettings`）は残し、読み書きは店に任せる。
+- エンジンを起動するときに送るオプションは値 `EngineProfileStore::LaunchOptions` にまとめ、`UsiEngineSession` が店から作って `UsiProtocolHandler::setLaunchOptions` に渡す。プロトコルの処理は設定ファイルを開かない（`tst_usiprotocolhandler::launchOptionsAreSentAfterUsiOk`）。
+- `USI_Ponder` の名前と判定（`kPonderOptionName`・`isPonderOption`）は店に置き、ほかはそれを使う。`EngineOption` は `src/services/engineoption.h` へ下ろした。
+- `valueList` は JSON で書き、旧い空白区切りは読むときだけ解釈する。値は名前で突き合わせて書き戻す（`tst_engineprofilestore`）。旧形式の移行（B8）も `EngineProfileStore::migrateLegacyOptionGroups()` に移した。
 
 ### R9. 画面部品の共通化（dialogs・widgets）
 

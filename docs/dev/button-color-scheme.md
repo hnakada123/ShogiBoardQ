@@ -171,9 +171,9 @@
 
 ## 特殊なボタン
 
-### ShogiView 編集終了ボタン
+### 盤の「編集終了」ボタン
 
-盤面上に配置される特殊ボタン。高い視認性が必要なため `ButtonStyles` を使用せず、`shogiview.cpp` 内で直接赤色 (`#e53935`) のスタイルを定義している。
+局面編集の間だけ盤面上に出す特殊ボタン（`BoardChromeWidget::setEditExitButtonVisible()`。押すと `editExitRequested`）。`ButtonStyles` を使用せず、`boardchromewidget.cpp` 内で直接青系のグラデーション（`#2a86de`〜`#1a6fc6`。ダイアログの決定ボタンと同じ系統）のスタイルを定義している。
 
 ### フラットラベルボタン
 

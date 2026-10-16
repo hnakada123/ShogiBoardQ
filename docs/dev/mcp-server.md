@@ -195,7 +195,7 @@ shogiboardq-cli <command> [options]
 共通仕様:
 
 - エラーは `{"ok":false,"error":{"code":"invalid_argument"|"engine_not_found"|"engine_error"|"io_error"|"internal","message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `{"event":"error",...}` を出してから終了する。
-- エンジンは設定ファイル（`SettingsCommon::settingsFilePath()`）の `[Engines]` に登録済みの名前だけを受け付ける（`EngineListSettings::loadEngines()`）。任意パスは受け付けない。エンジンのオプションは GUI と同じく設定ファイルの値を適用する（`UsiEngineSession::startAsync()` が `UsiProtocolHandler::loadEngineOptions()` で読む）。
+- エンジンは設定ファイル（`SettingsCommon::settingsFilePath()`）の `[Engines]` に登録済みの名前だけを受け付ける（`EngineListSettings::loadEngines()`）。任意パスは受け付けない。エンジンのオプションは GUI と同じく設定ファイルの値を適用する（`UsiEngineSession::startAsync()` が `EngineProfileStore::launchOptions()` で読み、`UsiProtocolHandler::setLaunchOptions()` に渡す）。
 - 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition()` が `UsiPosition::fromMoves()` で探索させる局面（`CliPosition::position`）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
 - `--output` の既存ファイルは `--overwrite` が無ければ拒否する。ディレクトリ制限は MCP サーバー側で行う（CLI 単体では行わない）。
 - 長時間コマンドは `SIGTERM`/`SIGINT` でも停止処理（エンジンへの `quit`）を行って終了する（Windows は stdin の `stop` のみ）。

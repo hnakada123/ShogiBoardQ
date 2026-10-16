@@ -44,7 +44,7 @@ ShogiBoardQ プロジェクトにおけるデバッグ出力・ログの統一�
 | 毎手呼ばれるSFEN/盤面出力 | `"setSfen:"`, `"last sfen ="` |
 | 処理フロー分岐の確認 | `"HvE: forwarding to ..."`, `"not a live play mode"` |
 | 変数値・内部状態のダンプ | `"effective modeNow="`, `"recSize(before)="` |
-| UI操作イベントの詳細 | `"onMoveRequested from= to="` |
+| UI操作イベントの詳細 | `"playMove from= to="` |
 | タイマー遅延の診断 | `"updateClock elapsed=66ms"` |
 
 ### `qCInfo` にすべき具体パターン
