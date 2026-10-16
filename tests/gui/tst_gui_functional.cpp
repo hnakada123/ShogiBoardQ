@@ -2720,7 +2720,7 @@ private slots:
             row.pvKanji = QStringLiteral("▲７六歩(77)△３四歩(33)▲２二角成(88)");
             row.usiPv = QStringLiteral("7g7f 3c3d 8h2b+");
             row.baseSfen = initial + QStringLiteral(" b - 1");
-            thinking->appendItem(new ShogiInfoRecord(row));
+            thinking->appendRow(row);
         }
         QTest::qWait(100);
         snapshot(QStringLiteral("i18n-%1-%2").arg(language, notation));
@@ -3274,9 +3274,9 @@ private slots:
         auto* model = qobject_cast<KifuAnalysisListModel*>(results->model());
         QVERIFY(model);
         QCOMPARE(model->rowCount(), 2);
-        QCOMPARE(model->item(0)->sfen().section(QLatin1Char(' '), 0, 0), branchBoard);
+        QCOMPARE(model->row(0)->sfen.section(QLatin1Char(' '), 0, 0), branchBoard);
         QCOMPARE(model->index(0, 0).data().toString(), branchMove);
-        QCOMPARE(model->item(0)->lastUsiMove(), QStringLiteral("6g6f"));
+        QCOMPARE(model->row(0)->lastUsiMove, QStringLiteral("6g6f"));
         tree->branchNodeActivated(0, 4);
         QTest::qWait(50);
         results->setCurrentIndex(model->index(0, 0));
@@ -3416,10 +3416,13 @@ private slots:
         HeaderDrag::resizeSection(table->horizontalHeader(), 0, 200);
         const QString pv = QStringLiteral("▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)▲２五歩(26)△８五歩(84)▲７七角(88)");
         for (int row = 0; row < 24; ++row) {
-            auto* item = new KifuAnalysisResultsDisplay(
-                QStringLiteral("%1 ▲７六歩(77)").arg(row), UsiScore::cp(row * 25), 25, pv);
-            item->setCandidateMove(QStringLiteral("▲７六歩(77)"));
-            model.appendItem(item);
+            KifuAnalysisRow item;
+            item.move = QStringLiteral("%1 ▲７六歩(77)").arg(row);
+            item.evaluation = UsiScore::cp(row * 25);
+            item.evaluationDifference = 25;
+            item.pv = pv;
+            item.candidateMove = QStringLiteral("▲７六歩(77)");
+            model.appendRow(item);
         }
         QCOMPARE(progress->value(), 24);
         presenter.showAnalysisComplete(24);
@@ -3451,7 +3454,7 @@ private slots:
             QTest::qWait(50);
             QCOMPARE(restored.view()->columnWidth(0), 200);
         }
-        model.clearAllItems();
+        model.clear();
         QVERIFY(!progress->isVisible());
         QVERIFY(status->text().contains(QStringLiteral("開始してください")));
         delete container;

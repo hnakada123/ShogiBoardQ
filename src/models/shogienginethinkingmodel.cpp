@@ -2,17 +2,22 @@
 /// @brief エンジン思考結果の表示用リストモデルの実装
 
 #include "shogienginethinkingmodel.h"
+#include "movefont.h"
 #include "kifupresentation.h"
 #include "applicationfonts.h"
 #include <algorithm>
-#include <memory>
 
 // ============================================================
 // 初期化
 // ============================================================
 
-ShogiEngineThinkingModel::ShogiEngineThinkingModel(QObject *parent) : AbstractListModel<ShogiInfoRecord>(parent)
+ShogiEngineThinkingModel::ShogiEngineThinkingModel(QObject *parent) : QAbstractTableModel(parent)
 {
+}
+
+int ShogiEngineThinkingModel::rowCount(const QModelIndex &parent) const
+{
+    return parent.isValid() ? 0 : static_cast<int>(m_rows.size());
 }
 
 // ============================================================
@@ -29,17 +34,15 @@ int ShogiEngineThinkingModel::columnCount(const QModelIndex &parent) const
 
 QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= list.size()) {
+    if (!index.isValid() || index.row() < 0 || index.row() >= m_rows.size()) {
         return QVariant();
     }
 
     if (role == Qt::ToolTipRole && index.column() == PvColumn) {
-        return QStringLiteral("<qt>%1</qt>").arg(list[index.row()]->displayPv(true).toHtmlEscaped());
+        return QStringLiteral("<qt>%1</qt>").arg(m_rows.at(index.row()).displayPv(true).toHtmlEscaped());
     }
 
-    if (role == Qt::FontRole && index.column() == PvColumn
-        && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
-        return ApplicationFonts::japaneseFont(QFont());
+    if (role == Qt::FontRole && index.column() == PvColumn) return MoveFont::role();
 
     // 盤面列はボタン風の表示
     if (index.column() == BoardColumn) {
@@ -56,7 +59,7 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
         return QVariant();
     }
 
-    const ShogiInfoRecord* record = list.at(index.row());
+    const ShogiInfoRecord* record = &m_rows.at(index.row());
     switch (index.column()) {
     case TimeColumn:
         return record->timeMs() >= 0 ? QVariant(record->timeMs()) : QVariant();
@@ -132,17 +135,17 @@ QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orien
 
 const ShogiInfoRecord* ShogiEngineThinkingModel::recordAt(int row) const
 {
-    if (row < 0 || row >= list.size()) {
+    if (row < 0 || row >= m_rows.size()) {
         return nullptr;
     }
-    return list.at(row);
+    return &m_rows.at(row);
 }
 
 std::optional<int> ShogiEngineThinkingModel::findRowByMultipv(int multipv) const
 {
-    for (int i = 0; i < list.size(); ++i) {
-        if (list.at(i)->multipv() == multipv) {
-            return i;
+    for (qsizetype i = 0; i < m_rows.size(); ++i) {
+        if (m_rows.at(i).multipv() == multipv) {
+            return static_cast<int>(i);
         }
     }
     return std::nullopt;
@@ -154,8 +157,10 @@ std::optional<int> ShogiEngineThinkingModel::findRowByMultipv(int multipv) const
 
 void ShogiEngineThinkingModel::prependRow(const ThinkingInfoRow& row, int maxRows)
 {
-    if (!list.isEmpty() && list.first()->hasSameContent(row)) return;
-    prependItem(new ShogiInfoRecord(row));
+    if (!m_rows.isEmpty() && m_rows.first().hasSameContent(row)) return;
+    beginInsertRows(QModelIndex(), 0, 0);
+    m_rows.prepend(ShogiInfoRecord(row));
+    endInsertRows();
     trimToMaxRows(maxRows);
 }
 
@@ -166,13 +171,11 @@ void ShogiEngineThinkingModel::updateByMultipv(const ThinkingInfoRow& row, int m
 
     // 同じmultipv値を持つ既存の行を探す
     const auto existingRow = findRowByMultipv(multipv);
-    if (existingRow && list.at(*existingRow)->hasSameContent(row)) return;
-    auto newRecord = std::make_unique<ShogiInfoRecord>(row);
+    if (existingRow && m_rows.at(*existingRow).hasSameContent(row)) return;
 
     if (existingRow.has_value()) {
         // 既存の行を更新
-        std::unique_ptr<ShogiInfoRecord> oldRecord(list.at(*existingRow));
-        list[*existingRow] = newRecord.release();
+        m_rows[*existingRow] = ShogiInfoRecord(row);
 
         const QModelIndex topLeft = index(*existingRow, 0);
         const QModelIndex bottomRight = index(*existingRow, columnCount() - 1);
@@ -180,24 +183,19 @@ void ShogiEngineThinkingModel::updateByMultipv(const ThinkingInfoRow& row, int m
     } else {
         // multipv順に新しい行を挿入
         int insertPos = 0;
-        for (int i = 0; i < list.size(); ++i) {
-            if (list.at(i)->multipv() < multipv) {
-                insertPos = i + 1;
+        for (qsizetype i = 0; i < m_rows.size(); ++i) {
+            if (m_rows.at(i).multipv() < multipv) {
+                insertPos = static_cast<int>(i) + 1;
             }
         }
 
         beginInsertRows(QModelIndex(), insertPos, insertPos);
-        list.insert(insertPos, newRecord.release());
+        m_rows.insert(insertPos, ShogiInfoRecord(row));
         endInsertRows();
     }
 
     // maxMultiPVを超える行を末尾から削除
-    while (list.size() > maxMultiPV) {
-        const int lastIdx = static_cast<int>(list.size()) - 1;
-        beginRemoveRows(QModelIndex(), lastIdx, lastIdx);
-        std::unique_ptr<ShogiInfoRecord> removed(list.takeLast());
-        endRemoveRows();
-    }
+    trimToMaxRows(maxMultiPV);
 }
 
 void ShogiEngineThinkingModel::trimToMaxRows(int maxRows)
@@ -206,10 +204,23 @@ void ShogiEngineThinkingModel::trimToMaxRows(int maxRows)
         maxRows = 0;
     }
 
-    while (list.size() > maxRows) {
-        const int lastIdx = static_cast<int>(list.size()) - 1;
-        beginRemoveRows(QModelIndex(), lastIdx, lastIdx);
-        std::unique_ptr<ShogiInfoRecord> removed(list.takeLast());
-        endRemoveRows();
-    }
+    if (m_rows.size() <= maxRows) return;
+    beginRemoveRows(QModelIndex(), maxRows, static_cast<int>(m_rows.size()) - 1);
+    m_rows.remove(maxRows, m_rows.size() - maxRows);
+    endRemoveRows();
+}
+
+void ShogiEngineThinkingModel::appendRow(const ThinkingInfoRow& row)
+{
+    const int position = static_cast<int>(m_rows.size());
+    beginInsertRows(QModelIndex(), position, position);
+    m_rows.append(ShogiInfoRecord(row));
+    endInsertRows();
+}
+
+void ShogiEngineThinkingModel::clear()
+{
+    beginResetModel();
+    m_rows.clear();
+    endResetModel();
 }

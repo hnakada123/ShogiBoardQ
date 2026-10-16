@@ -49,8 +49,7 @@ private:
     mutable QString m_tooltipCache;
     mutable bool m_displayValid = false;
     mutable bool m_tooltipValid = false;
-    mutable int m_cacheNotation = -1;
-    mutable bool m_cacheAlwaysOrigin = false;
+    mutable int m_cacheRevision = -1;   ///< 覚えた文字列を作ったときの表記の設定（KifuPresentation::revision）
 };
 
 #endif // SHOGIINFORECORD_H

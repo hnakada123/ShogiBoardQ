@@ -179,7 +179,7 @@ private slots:
         session.stop();
         QTRY_VERIFY(view.arrows().isEmpty());
         QVERIFY(master->isEnabled());
-        model.clearAllItems();
+        model.clear();
         QCoreApplication::processEvents();
         QVERIFY(view.arrows().isEmpty());
     }

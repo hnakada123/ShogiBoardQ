@@ -103,7 +103,7 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     m_stoppedByUser = false;
     m_lineIndex = request.lineIndex;
     m_startPly = request.options.startPly;
-    m_deps.analysisModel->clearAllItems();
+    m_deps.analysisModel->clear();
 
     if (!m_resultsPanel) {
         if (!m_deps.resultsPanel) m_ownedResultsPanel = std::make_unique<AnalysisResultsPanel>();

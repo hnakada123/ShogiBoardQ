@@ -12,6 +12,8 @@
 namespace KifuPresentation {
 namespace {
 Options current;
+/// configure() の回数（表示用の文字列を覚えた側が作り直すかの判定に使う）
+int currentRevision = 0;
 QString translated(const char* source)
 {
     return QCoreApplication::translate("KifuPresentation", source);
@@ -143,9 +145,11 @@ void configure(const QString& language, const QString& notation, bool alwaysOrig
         (notation != QStringLiteral("japanese") && language == QStringLiteral("en"))
         ? Notation::Western : Notation::Japanese;
     current.alwaysOrigin = alwaysOrigin;
+    ++currentRevision;
 }
 
 Options options() { return current; }
+int revision() { return currentRevision; }
 QString rankLabel(int rank)
 {
     if (rank < 1 || rank > 9) return {};

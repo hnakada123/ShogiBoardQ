@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <limits>
 #include <QSignalSpy>
 #include <QDockWidget>
 #include <QFontMetrics>
@@ -31,7 +32,10 @@
 /// 思考情報が届くたびの表示の更新が、余計な描き直しやレイアウトの再計算を起こさないことを検証する。
 
 /// 思考の表の1行（時間・深さ・ノード数・評価値・読み筋）
-inline ShogiInfoRecord* thinkingRow(qint64 timeMs, int depth, qint64 nodes, const UsiScore& score, const QString& pv,
+/// 思考の表に足すときに、古い行を消さない
+inline constexpr int kUnlimitedRows = std::numeric_limits<int>::max();
+
+inline ThinkingInfoRow thinkingRow(qint64 timeMs, int depth, qint64 nodes, const UsiScore& score, const QString& pv,
                                     const QString& usiPv = {})
 {
     ThinkingInfoRow row;
@@ -41,7 +45,7 @@ inline ShogiInfoRecord* thinkingRow(qint64 timeMs, int depth, qint64 nodes, cons
     row.score = score;
     row.pvKanji = pv;
     row.usiPv = usiPv;
-    return new ShogiInfoRecord(row);
+    return row;
 }
 
 /// 情報欄の全部の項目がある探索状況
@@ -258,8 +262,8 @@ private slots:
     {
         ShogiEngineThinkingModel model;
         for (int row = 0; row < 12; ++row) {
-            model.prependItem(thinkingRow(row * 13, row, row * 12345, UsiScore::cp(row * 37 - 200),
-                                          longPv(2 + row * 3)));
+            model.prependRow(thinkingRow(row * 13, row, row * 12345, UsiScore::cp(row * 37 - 200),
+                                          longPv(2 + row * 3)), kUnlimitedRows);
         }
         for (const int pvWidth : {60, 180, 420, 900}) {
             QTableView plain;
@@ -290,7 +294,7 @@ private slots:
                                      QStringLiteral("△N-3c ▲R-2f △P*2e ▲R-2h △K-6b ")};
         for (int row = 0; row < 14; ++row) {
             const QString pv = row % 3 == 2 ? western.at(row % 2).repeated(1 + row % 4) : longPv(1 + row * 3);
-            model.prependItem(thinkingRow(row * 13, row, row * 12345, UsiScore::cp(row * 37 - 200), pv));
+            model.prependRow(thinkingRow(row * 13, row, row * 12345, UsiScore::cp(row * 37 - 200), pv), kUnlimitedRows);
         }
         enum State { Plain, Hover, Focus, Disabled, Active };
         for (const State state : {Plain, Hover, Focus, Disabled, Active}) {
@@ -346,7 +350,7 @@ private slots:
                 ShogiEngineThinkingModel thinking;
                 for (int row = 0; row < 12; ++row) {
                     const UsiScore score = row == 5 ? UsiScore::mate(15) : UsiScore::cp(row * 397 - 1800);
-                    thinking.prependItem(thinkingRow(row * 1370, row * 3, qint64(row) * 98765432, score, longPv(3)));
+                    thinking.prependRow(thinkingRow(row * 1370, row * 3, qint64(row) * 98765432, score, longPv(3)), kUnlimitedRows);
                 }
                 const auto renderThinking = [&](bool qtNumeric) {
                     QTableView view;

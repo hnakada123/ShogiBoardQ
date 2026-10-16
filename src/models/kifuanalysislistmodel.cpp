@@ -1,20 +1,69 @@
 /// @file kifuanalysislistmodel.cpp
-/// @brief 棋譜解析結果リストモデルクラスの実装
+/// @brief 棋譜解析の結果の表のモデルの実装
 
 #include "kifuanalysislistmodel.h"
+#include "movefont.h"
 #include "applicationfonts.h"
+#include "kifupresentation.h"
 #include <cmath>
 
-KifuAnalysisListModel::KifuAnalysisListModel(QObject *parent) : AbstractListModel<KifuAnalysisResultsDisplay>(parent)
+KifuAnalysisListModel::KifuAnalysisListModel(QObject *parent) : QAbstractTableModel(parent)
 {
+}
+
+int KifuAnalysisListModel::rowCount(const QModelIndex &parent) const
+{
+    return parent.isValid() ? 0 : static_cast<int>(m_rows.size());
 }
 
 int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
+    return ColumnCount;
+}
 
-    // 「指し手」「候補手」「一致」「評価値」「形勢」「差」「盤面」「読み筋」の8列を返す。
-    return 8;
+const KifuAnalysisRow* KifuAnalysisListModel::row(int row) const
+{
+    if (row < 0 || row >= m_rows.size()) return nullptr;
+    return &m_rows.at(row).row;
+}
+
+void KifuAnalysisListModel::appendRow(const KifuAnalysisRow& row)
+{
+    const int position = static_cast<int>(m_rows.size());
+    beginInsertRows(QModelIndex(), position, position);
+    m_rows.append(Entry{row, {}, -1});
+    endInsertRows();
+}
+
+void KifuAnalysisListModel::clear()
+{
+    beginResetModel();
+    m_rows.clear();
+    endResetModel();
+}
+
+// 表の描画と列幅の計算のたびに呼ばれる。表記の設定が前と同じなら、前に作った文字列を返す
+QString KifuAnalysisListModel::display(const Entry& entry, DisplayKind kind, bool full) const
+{
+    const int revision = KifuPresentation::revision();
+    if (entry.revision != revision) {
+        for (auto& texts : entry.texts) texts[0] = texts[1] = QString();
+        entry.revision = revision;
+    }
+    QString& text = entry.texts[kind][full ? 1 : 0];
+    if (text.isNull()) {
+        const KifuAnalysisRow& r = entry.row;
+        switch (kind) {
+        case MoveDisplay: text = KifuPresentation::label(r.move, r.beforeSfen, r.lastUsiMove, full); break;
+        case CandidateDisplay: text = KifuPresentation::label(r.candidateMove, r.candidateSfen, r.candidateUsi, full); break;
+        case PvDisplay: text = KifuPresentation::pv(r.sfen, r.usiPv, r.pv, full); break;
+        case DisplayKindCount: break;
+        }
+        // 空の表示も作ったことを覚える
+        if (text.isNull()) text = QLatin1String("");
+    }
+    return text;
 }
 
 // 先手から見た評価値の表示（定跡・未取得は「-」、詰みは "mate 3" など）
@@ -45,26 +94,26 @@ QString KifuAnalysisListModel::judgementText(const UsiScore& score)
 
 QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= list.size()
+    if (!index.isValid() || index.row() < 0 || index.row() >= m_rows.size()
         || index.column() < 0 || index.column() >= columnCount())
         return QVariant();
 
-    if (role == Qt::FontRole && (index.column() == 0 || index.column() == 1 || index.column() == 7)
-        && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
-        return ApplicationFonts::japaneseFont(QFont());
+    const int column = index.column();
+    const Entry& entry = m_rows.at(index.row());
+    if (role == Qt::FontRole && (column == MoveColumn || column == CandidateColumn || column == PvColumn))
+        return MoveFont::role();
 
     if (role == Qt::ToolTipRole || role == Qt::AccessibleTextRole) {
-        const auto* item = list.at(index.row());
-        const QString value = index.column() == 0 ? item->displayMove(true)
-            : index.column() == 1 ? item->displayCandidate(true)
-            : index.column() == 7 ? item->displayPv(true) : data(index, Qt::DisplayRole).toString();
-        if (index.column() == 6) return tr("この局面からの読み筋を盤面で表示します。");
+        const QString value = column == MoveColumn ? display(entry, MoveDisplay, true)
+            : column == CandidateColumn ? display(entry, CandidateDisplay, true)
+            : column == PvColumn ? display(entry, PvDisplay, true) : data(index, Qt::DisplayRole).toString();
+        if (column == BoardColumn) return tr("この局面からの読み筋を盤面で表示します。");
         const QString description = headerData(index.column(), Qt::Horizontal, Qt::ToolTipRole).toString();
         return description.isEmpty() ? value : value + QLatin1Char('\n') + description;
     }
 
-    // 盤面列（列6）は特別扱い：ボタン風の表示
-    if (index.column() == 6) {
+    // 盤面列はボタンの文字
+    if (column == BoardColumn) {
         if (role == Qt::DisplayRole) {
             return tr("表示");
         }
@@ -74,14 +123,12 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    // 右寄せ：評価値 / 差 列は右寄せ
+    // 評価値と差は右寄せ、一致は中央寄せ
     if (role == Qt::TextAlignmentRole) {
-        // 列3（評価値）と列5（差）を右寄せ
-        if (index.column() == 3 || index.column() == 5) {
+        if (column == EvaluationColumn || column == DifferenceColumn) {
             return QVariant::fromValue<int>(Qt::AlignRight | Qt::AlignVCenter);
         }
-        // 列2（一致）は中央寄せ
-        if (index.column() == 2) {
+        if (column == MatchColumn) {
             return QVariant::fromValue<int>(Qt::AlignHCenter | Qt::AlignVCenter);
         }
         return QVariant();
@@ -90,28 +137,22 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     if (role != Qt::DisplayRole)
         return QVariant();
 
-    KifuAnalysisResultsDisplay* item = list[index.row()];
-
-    switch (index.column()) {
-    case 0: // 指し手
-        return item->displayMove();
-    case 1: // 候補手
-        return item->displayCandidate();
-    case 2: // 一致
-        if (!item->lastUsiMove().isEmpty() && !item->candidateUsi.isEmpty()
-            && !item->beforeSfen.isEmpty() && item->lastUsiMove() == item->candidateUsi
-            && item->beforeSfen == item->candidateSfen) {
-            return QStringLiteral("◯");
-        }
-        return QString();
-    case 3: // 評価値
-        return evaluationText(item->evaluation());
-    case 4: // 形勢
-        return judgementText(item->evaluation());
-    case 5: // 差
-        return item->evaluationDifference() ? QVariant(*item->evaluationDifference()) : QVariant(QStringLiteral("-"));
-    case 7: // 読み筋
-        return item->displayPv();
+    const KifuAnalysisRow& r = entry.row;
+    switch (column) {
+    case MoveColumn:
+        return display(entry, MoveDisplay);
+    case CandidateColumn:
+        return display(entry, CandidateDisplay);
+    case MatchColumn:
+        return r.matchesCandidate() ? QStringLiteral("◯") : QString();
+    case EvaluationColumn:
+        return evaluationText(r.evaluation);
+    case JudgementColumn:
+        return judgementText(r.evaluation);
+    case DifferenceColumn:
+        return r.evaluationDifference ? QVariant(*r.evaluationDifference) : QVariant(QStringLiteral("-"));
+    case PvColumn:
+        return display(entry, PvDisplay);
     default:
         return QVariant();
     }
@@ -121,14 +162,14 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
 {
     if (orientation == Qt::Horizontal && role == Qt::ToolTipRole) {
         switch (section) {
-        case 0: return tr("棋譜で実際に指された手。この手を指した後の局面を評価します。");
-        case 1: return tr("直前の局面でエンジンが推奨した手。解析範囲の先頭では空欄になります。");
-        case 2: return tr("実際の指し手と候補手が一致すると◯を表示します。");
-        case 3: return tr("先手視点の評価値。正は先手有利、負は後手有利です。未取得は「-」で表示します。");
-        case 4: return tr("評価値から判定した形勢です。");
-        case 5: return tr("直前の解析局面からの評価値の増減（先手視点）。比較できない場合は「-」で表示します。");
-        case 6: return tr("クリックまたはEnterキーで読み筋を盤面に表示します。");
-        case 7: return tr("この手を指した後の局面からの読み筋です。");
+        case MoveColumn: return tr("棋譜で実際に指された手。この手を指した後の局面を評価します。");
+        case CandidateColumn: return tr("直前の局面でエンジンが推奨した手。解析範囲の先頭では空欄になります。");
+        case MatchColumn: return tr("実際の指し手と候補手が一致すると◯を表示します。");
+        case EvaluationColumn: return tr("先手視点の評価値。正は先手有利、負は後手有利です。未取得は「-」で表示します。");
+        case JudgementColumn: return tr("評価値から判定した形勢です。");
+        case DifferenceColumn: return tr("直前の解析局面からの評価値の増減（先手視点）。比較できない場合は「-」で表示します。");
+        case BoardColumn: return tr("クリックまたはEnterキーで読み筋を盤面に表示します。");
+        case PvColumn: return tr("この手を指した後の局面からの読み筋です。");
         default: return QVariant();
         }
     }
@@ -138,24 +179,15 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
 
     if (orientation == Qt::Horizontal) {
         switch (section) {
-        case 0:
-            return tr("指し手");
-        case 1:
-            return tr("候補手");
-        case 2:
-            return tr("一致");
-        case 3:
-            return tr("評価値");
-        case 4:
-            return tr("形勢");
-        case 5:
-            return tr("評価値差");
-        case 6:
-            return tr("盤面");
-        case 7:
-            return tr("読み筋");
-        default:
-            return QVariant();
+        case MoveColumn: return tr("指し手");
+        case CandidateColumn: return tr("候補手");
+        case MatchColumn: return tr("一致");
+        case EvaluationColumn: return tr("評価値");
+        case JudgementColumn: return tr("形勢");
+        case DifferenceColumn: return tr("評価値差");
+        case BoardColumn: return tr("盤面");
+        case PvColumn: return tr("読み筋");
+        default: return QVariant();
         }
     } else {
         return QVariant(section + 1);

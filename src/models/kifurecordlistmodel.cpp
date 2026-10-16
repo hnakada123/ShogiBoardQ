@@ -2,6 +2,7 @@
 /// @brief 棋譜欄のモデルの実装
 
 #include "kifurecordlistmodel.h"
+#include "movefont.h"
 #include "applicationfonts.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -72,10 +73,7 @@ QVariant KifuRecordListModel::data(const QModelIndex& index, int role) const
         }
         return QVariant();
     case Qt::FontRole:
-        if (col == MoveColumn && node->isActualMove()
-            && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
-            return ApplicationFonts::japaneseFont(QFont());
-        return QVariant();
+        return col == MoveColumn && node->isActualMove() ? MoveFont::role() : QVariant();
     case Qt::BackgroundRole: {
         // 現在行は淡い青、分岐がある手はオレンジ系、その他は白
         static const QBrush kCurrentBg(TableStyles::selectionBackground());

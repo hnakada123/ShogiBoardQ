@@ -23,11 +23,9 @@ bool ShogiInfoRecord::hasSameContent(const ThinkingInfoRow& row) const
 
 void ShogiInfoRecord::invalidateDisplayIfStyleChanged() const
 {
-    const auto style = KifuPresentation::options();
-    const int notation = static_cast<int>(style.notation);
-    if (m_cacheNotation == notation && m_cacheAlwaysOrigin == style.alwaysOrigin) return;
-    m_cacheNotation = notation;
-    m_cacheAlwaysOrigin = style.alwaysOrigin;
+    const int revision = KifuPresentation::revision();
+    if (m_cacheRevision == revision) return;
+    m_cacheRevision = revision;
     m_displayValid = m_tooltipValid = false;
 }
 

@@ -693,6 +693,8 @@ set(SRC_WIDGETS
     src/widgets/opaquebackground.h
     src/widgets/playersetupwidget.cpp
     src/widgets/playersetupwidget.h
+    src/widgets/pvtableview.cpp
+    src/widgets/pvtableview.h
     src/widgets/pvtextdelegate.h
     src/widgets/recordhighlightdelegate.cpp
     src/widgets/recordhighlightdelegate.h
@@ -785,8 +787,7 @@ set(SRC_MODELS
     src/models/gameinfoeditmodel.h
     src/models/kifuanalysislistmodel.cpp
     src/models/kifuanalysislistmodel.h
-    src/models/kifuanalysisresultsdisplay.cpp
-    src/models/kifuanalysisresultsdisplay.h
+    src/models/kifuanalysisrow.h
     src/models/kifubranchlistmodel.cpp
     src/models/kifubranchlistmodel.h
     src/models/kifurecordlistmodel.cpp
@@ -851,7 +852,6 @@ set(SRC_SERVICES
 )
 
 set(SRC_COMMON
-    src/common/abstractlistmodel.h
     src/common/appactivitystate.h
     src/common/applicationfonts.cpp
     src/common/applicationfonts.h
@@ -872,6 +872,7 @@ set(SRC_COMMON
     src/common/kifupresentation.h
     src/common/logcategories.cpp
     src/common/logcategories.h
+    src/common/movefont.h
     src/common/tablemodelutils.h
     src/common/tablestyles.h
     src/common/threadtypes.h

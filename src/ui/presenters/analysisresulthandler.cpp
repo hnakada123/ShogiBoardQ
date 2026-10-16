@@ -5,7 +5,8 @@
 #include "evaluationseries.h"
 
 #include "kifuanalysislistmodel.h"
-#include "kifuanalysisresultsdisplay.h"
+#include "kifuanalysisrow.h"
+#include "kifupresentation.h"
 #include "sfenutils.h"
 
 #include <QString>
@@ -65,45 +66,35 @@ UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
 
     qCDebug(lcAnalysis).noquote() << "append: ply=" << ply << "moveLabel=" << moveLabel << "pv=" << pv.left(30);
 
-    auto* resultItem = new KifuAnalysisResultsDisplay(moveLabel, blackScore, difference, pv);
-
-    resultItem->setUsiPv(usiPv);
+    KifuAnalysisRow resultRow;
+    resultRow.move = moveLabel;
+    resultRow.evaluation = blackScore;
+    resultRow.evaluationDifference = difference;
+    resultRow.pv = pv;
+    resultRow.usiPv = usiPv;
     if (m_refs.line && ply > 0 && ply <= m_refs.line->moveCount() + 1)
-        resultItem->beforeSfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply - 1));
+        resultRow.beforeSfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply - 1));
+    if (m_refs.line && ply >= 0 && ply <= m_refs.line->moveCount())
+        resultRow.sfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply));
+    resultRow.lastUsiMove = resolveLastUsiMove(m_refs, ply);
 
-    // 局面SFENを設定
-    if (m_refs.line && ply >= 0 && ply <= m_refs.line->moveCount()) {
-        const QString sfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply));
-        resultItem->setSfen(sfen);
-    }
-
-    const QString lastMove = resolveLastUsiMove(m_refs, ply);
-    if (!lastMove.isEmpty()) {
-        resultItem->setLastUsiMove(lastMove);
-        qCDebug(lcAnalysis).noquote() << "setLastUsiMove: ply=" << ply << "lastMove=" << lastMove;
-    }
-
-    // 候補手を設定（前の行の読み筋の最初の指し手）
-    int prevRow = m_refs.analysisModel->rowCount() - 1;  // 今追加しようとしている行の1つ前
-    if (prevRow >= 0) {
-        KifuAnalysisResultsDisplay* prevItem = m_refs.analysisModel->item(prevRow);
-        if (prevItem) {
-            if (!resultItem->beforeSfen.isEmpty() && resultItem->beforeSfen == prevItem->sfen()) {
-                resultItem->candidateUsi = prevItem->usiPv().simplified().section(QLatin1Char(' '), 0, 0);
-                resultItem->candidateSfen = prevItem->sfen();
-            }
-            if (!resultItem->candidateUsi.isEmpty()) {
-                QString candidate = KifuPresentation::move(resultItem->candidateSfen, resultItem->candidateUsi,
-                    {KifuPresentation::Notation::Japanese, false});
-                const QString previous = prevItem->lastUsiMove();
-                if (previous.size() >= 4 && previous.mid(2, 2) == resultItem->candidateUsi.mid(2, 2))
-                    candidate.replace(1, 2, QStringLiteral("同　"));
-                resultItem->setCandidateMove(candidate);
-            }
+    // 候補手（前の行の読み筋の最初の指し手）
+    if (const KifuAnalysisRow* previous = m_refs.analysisModel->row(m_refs.analysisModel->rowCount() - 1)) {
+        if (!resultRow.beforeSfen.isEmpty() && resultRow.beforeSfen == previous->sfen) {
+            resultRow.candidateUsi = previous->usiPv.simplified().section(QLatin1Char(' '), 0, 0);
+            resultRow.candidateSfen = previous->sfen;
+        }
+        if (!resultRow.candidateUsi.isEmpty()) {
+            QString candidate = KifuPresentation::move(resultRow.candidateSfen, resultRow.candidateUsi,
+                                                       {KifuPresentation::Notation::Japanese, false});
+            const QString& previousMove = previous->lastUsiMove;
+            if (previousMove.size() >= 4 && previousMove.mid(2, 2) == resultRow.candidateUsi.mid(2, 2))
+                candidate.replace(1, 2, QStringLiteral("同　"));
+            resultRow.candidateMove = candidate;
         }
     }
 
-    m_refs.analysisModel->appendItem(resultItem);
+    m_refs.analysisModel->appendRow(resultRow);
 
     return blackScore;
 }
@@ -126,24 +117,24 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
         return;
     }
 
-    KifuAnalysisResultsDisplay* item = m_refs.analysisModel->item(row);
+    const KifuAnalysisRow* item = m_refs.analysisModel->row(row);
     if (!item) {
         qCDebug(lcAnalysis).noquote() << "showPvBoardDialog: item is null";
         return;
     }
 
-    const QString kanjiPv = item->principalVariation();
+    const QString kanjiPv = item->pv;
     if (kanjiPv.isEmpty()) {
         qCDebug(lcAnalysis).noquote() << "showPvBoardDialog: kanjiPv is empty";
         return;
     }
 
-    QString baseSfen = item->sfen();
+    const QString baseSfen = item->sfen;
     // 各結果は対象局面を保持している。表示行番号を手数として再解釈しない。
     if (baseSfen.isEmpty()) return;
 
     QStringList usiMoves;
-    const QString usiPvStr = item->usiPv();
+    const QString usiPvStr = item->usiPv;
     if (!usiPvStr.isEmpty()) {
         usiMoves = usiPvStr.split(QLatin1Char(' '), Qt::SkipEmptyParts);
     }
@@ -158,7 +149,7 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
     dlg->setPlayerNames(blackName, whiteName);
     dlg->setFlipMode(m_refs.boardFlipped);
 
-    QString lastMove = item->lastUsiMove();
+    const QString lastMove = item->lastUsiMove;
     if (!lastMove.isEmpty()) {
         dlg->setLastMove(lastMove);
     }
