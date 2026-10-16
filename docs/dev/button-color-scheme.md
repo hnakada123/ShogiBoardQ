@@ -22,7 +22,7 @@
 | Pressed | `#90caf9` | — | — |
 | Disabled | `#f5f5f5` | `#9e9e9e` | `#e0e0e0` |
 
-**用途**: A+/A- ボタン、しおり編集ボタン
+**用途**: A+/A- ボタン（`FontSizeControl`（`src/widgets/fontsizecontrol.h`）だけが付ける。ダイアログ・パネルでは書かない）、しおり編集ボタン
 
 ### navigationButton — ナビゲーション（緑）
 

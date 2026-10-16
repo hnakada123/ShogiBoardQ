@@ -466,7 +466,9 @@ src/
 │   ├── itemtext*.cpp/.h, kifumovedelegate, pvtextdelegate, recordhighlightdelegate # 表の文字・現在行の描画
 │   ├── dialogutils.cpp/.h          #   ダイアログの大きさの保存・復元など
 │   ├── fontsizehelper.cpp/.h       #   A-/A+ の文字の大きさ（範囲・保存・変更の通知）
-│   ├── dialogfontscale.cpp/.h      #   ダイアログの文字の大きさ
+│   ├── fontsizecontrol.cpp/.h      #   A-/A+ のボタンの組（文字・見た目・説明・範囲の端での無効化）
+│   ├── dialogfontscale.cpp/.h      #   ダイアログの A-/A+ と保存（全ダイアログ共通）
+│   ├── engineselector.cpp/.h       #   登録エンジンを選ぶ部品（コンボ・「設定」ボタン・未登録の案内・選択の保存）
 │   ├── boardviewerwidget.cpp/.h    #   盤と縮小・拡大・回転・局面送り（読み筋・局面集・詰将棋・外観の見本で共通）
 │   ├── menubuttonwidget.cpp/.h     #   メニューボタン
 │   ├── collapsiblegroupbox.cpp/.h  #   折りたたみグループボックス
@@ -487,7 +489,7 @@ src/
 │   ├── csagamedialog.cpp/.h/.ui    #   CSA対局接続ダイアログ
 │   ├── csawaitingdialog.cpp/.h     #   CSA待機ダイアログ（ログ窓は widgets/csalogpanel）
 │   ├── engineregistrationdialog.cpp/.h/.ui # エンジン登録ダイアログ
-│   ├── changeenginesettingsdialog.cpp/.h/.ui # エンジン設定変更（enginesettingsoptionhandler がオプションの部品を作る）
+│   ├── changeenginesettingsdialog.cpp/.h/.ui # エンジン設定変更（登録エンジン1つを渡して作る。enginesettingsoptionhandler がオプションの部品を作る）
 │   ├── promotedialog.cpp/.h/.ui    #   成/不成選択ダイアログ
 │   ├── versiondialog.cpp/.h/.ui    #   バージョン情報ダイアログ
 │   ├── tsumeshogisearchdialog.cpp/.h/.ui # 詰み探索ダイアログ
@@ -5079,7 +5081,7 @@ CandidateArrowPresenter::refresh()
 showDialogAndStart()
   │
   ├── 1. KifuAnalysisDialog を表示（モーダル）
-  │     ├── エンジン選択
+  │     ├── エンジン選択（EngineSelector。選んだエンジンは dialog.engine()）
   │     ├── 解析範囲（開始手〜終了手。手数の上限は line.moveCount()）
   │     └── 1手あたりの思考時間
   │
@@ -5156,7 +5158,7 @@ showDialogAndStart()
   │           空なら ErrorBus で警告して return
   │
   ├── 2. TsumeShogiSearchDialog を表示（モーダル）
-  │     ├── エンジン選択
+  │     ├── エンジン選択（EngineSelector。選んだエンジンは dialog.engine()）
   │     └── 探索時間設定
   │
   └── 3. ダイアログを閉じてから、次のイベントループで AnalysisSession::start(AnalysisOptions)
@@ -5230,7 +5232,7 @@ QDockWidget
 
 #### フォントサイズの永続化
 
-A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。保存値が範囲外（宣言の既定値 0 を含む）のときは表の現在のフォントサイズ（10pt未満なら10pt）を使う。列幅は、見出しの `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて `AnalysisSettings::kifuAnalysisColumnWidths()` / `setKifuAnalysisColumnWidths()` で保存・復元する。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockSettings::kifuAnalysisResultsDockGeometry` などに保存し、起動時に `DockCreationService::restoreDockState()` が戻す。
+A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。大きさは `FontSizeHelper` が持ち、ボタンは `FontSizeControl` で結ぶ。未保存のときは 10pt から始め、範囲外の保存値は 8〜24 に収める。列幅は、見出しの `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて `AnalysisSettings::kifuAnalysisColumnWidths()` / `setKifuAnalysisColumnWidths()` で保存・復元する。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockSettings::kifuAnalysisResultsDockGeometry` などに保存し、起動時に `DockCreationService::restoreDockState()` が戻す。
 
 ### 9.9 KifuAnalysisListModel — 解析結果テーブルモデル
 
@@ -5740,7 +5742,8 @@ ConsiderationUiController のコンストラクタ
   ├── ConsiderationTabManager::startConsiderationRequested → startConsideration()
   │     └── 検討タブの設定（settings()）から AnalysisOptions を作り、AnalysisSession::start()
   ├── ConsiderationTabManager::stopConsiderationRequested → AnalysisSession::stop()
-  ├── ConsiderationTabManager::engineSettingsRequested → onEngineSettingsRequested()
+  ├── ConsiderationTabManager::engineSettingsRequested(engine) → onEngineSettingsRequested()
+  │     └── ChangeEngineSettingsDialog(engine, 親) を開く（検討タブは widgets にあり、dialogs を include できない）
   └── ConsiderationTabManager::settingsChanged → onSettingsChanged()
         （検討中なら、エンジンが変われば中止して始め直し、候補手の数が変われば updateMultiPV()）
 
@@ -6097,8 +6100,46 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | FlowLayout | QLayout | 自動折り返しレイアウト（Qt サンプルコード準拠） |
 | LongLongSpinBox | QAbstractSpinBox | 64bit 整数対応スピンボックス（Qt 標準 QSpinBox は int 範囲のみ） |
 | DialogUtils | （名前空間） | ダイアログの大きさの保存・復元（`restoreDialogSize`・`saveDialogSize`）など |
-| FontSizeHelper | （クラス） | A-/A+ のフォントサイズ調整。設定の宣言を渡すと初期値の読み込みと保存も行う |
-| DialogFontScale | QWidget | 補助ダイアログ・メッセージボックスに文字サイズの操作と保存を付ける |
+| FontSizeHelper | QObject | A-/A+ のフォントサイズ調整（範囲・保存・変更の通知）。設定の宣言を渡すと初期値の読み込みと保存も行う |
+| FontSizeControl | QObject | A-/A+ のボタン2つを `FontSizeHelper` に結ぶ。ボタンの文字・見た目（`ButtonStyles::fontButton()`）・ツールチップと読み上げ名（「文字を小さくする」「文字を大きくする」）と、範囲の端で押せなくする処理はここだけで決める。ボタンは呼び出し側が置き、objectName も呼び出し側が決める。ボタンには役割のプロパティ `FontSizeControl::kRoleProperty`（`"fontSizeControl"`。値は `"decrease"`・`"increase"`）を付け、テストは表示の文字ではなくこれで探す |
+| DialogFontScale | QWidget | 全ダイアログ・メッセージボックスに A-/A+ と保存を付ける（`install(dialog, 宣言, options)`）。各部品を元の大きさからの差で拡大・縮小する |
+| EngineSelector | QObject | 登録エンジンを選ぶ部品（下記） |
+
+#### EngineSelector — 登録エンジンを選ぶ部品
+
+**ソース**: `src/widgets/engineselector.h/.cpp`
+
+エンジンを選ぶ画面に共通の処理を1か所にまとめた部品である。
+部品は呼び出し側が置き（.ui の部品でもよい。objectName は変わらない）、`Widgets{combo, settingsButton, hint}` で結ぶ。コンボは必須で、ほかは無ければ `nullptr`。
+`Options` には選択の保存先 `keys`（`EngineListSettings::SelectionKeys`。設定の詳細は `settings-service.md` の7章）、内蔵エンジンの項目の表示名 `builtinLabel`（空なら置かない）、一覧に出す登録エンジンの絞り込み `filter` を渡す。
+
+| 操作 | 内容 |
+|---|---|
+| コンストラクタ | 登録エンジンの一覧を読み、保存した選択を名前で戻す（以前の版の番号・パスのキーも読む）。保存が無ければ先頭の登録エンジン |
+| `selected()` | 選んだ登録エンジン（`std::optional<EngineEntry>`。作者名も持つ）。内蔵の項目・未選択なら `std::nullopt` |
+| `isBuiltinSelected()` | 内蔵エンジンの項目を選んでいるか |
+| `saveSelection()` | 選んだエンジンの名前を保存する（内蔵の項目なら空の名前） |
+| `reload()` | 一覧を読み直す（選んでいたエンジンは保つ） |
+| `select(name)`・`setEnabled(bool)` | 名前で選ぶ。対局の実行中などにコンボと「設定」ボタンを止める |
+| `selectionChanged()` | 選んだエンジンが変わった |
+| `settingsRequested(engine)` | 「設定」が押された。設定ダイアログ（`ChangeEngineSettingsDialog`）は dialogs にあり widgets から include できないので、受け手が開く |
+
+「設定」ボタンは登録エンジンを選んでいるときだけ押せる。コンボは項目が1つも無いときに無効にする。案内（`hint`）は登録エンジンが無いときだけ出す（棋譜解析のダイアログが使う）。
+「設定」を押したときに登録エンジンを選んでいなければ、「将棋エンジンが選択されていません。」のエラーを出す。
+
+使う画面は次のとおり。対局開始ダイアログ（`StartGameDialog`）はまだ使っていない。
+
+| 画面 | 保存先（`EngineListSettings`） | 「設定」の受け手 |
+|---|---|---|
+| `KifuAnalysisDialog` | `kifuAnalysisSelection()` | ダイアログ自身 |
+| `TsumeShogiSearchDialog` | `tsumeSearchSelection()` | ダイアログ自身 |
+| `TsumeshogiGeneratorDialog` | `tsumeshogiGeneratorSelection()` | ダイアログ自身 |
+| `TsumeCollectionDialog` | `tsumeCollectionSelection()`（内蔵の項目「Hayanagi（内蔵・31手まで）」と、名前に KomoringHeights を含む登録エンジンだけ） | 「設定」ボタンなし |
+| `CsaGameDialog` | `csaGameSelection()` | ダイアログ自身 |
+| `ConsiderationTabManager`（検討タブ） | `considerationSelection()` | `engineSettingsRequested(engine)` を出し、`ConsiderationUiController::onEngineSettingsRequested()` が開く |
+
+`KifuAnalysisDialog`・`TsumeShogiSearchDialog` は選んだエンジンを `engine()`（`std::optional<EngineEntry>`）で返す。`KifuAnalysisController`・`TsumeSearchController` はそこからパスと名前を取る。
+テストは `tests/tst_engineselector.cpp`（名前での保存と復元、以前の版の番号、未登録、内蔵の項目と絞り込み、詰将棋問題一覧の以前の版の保存値、「設定」と読み直し）。
 
 #### デリゲート
 
@@ -6120,12 +6161,12 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | クラス名 | 基底クラス | .ui ファイル | 用途 |
 |---------|-----------|------------|------|
 | StartGameDialog | QDialog | startgamedialog.ui | 対局開始パラメータ収集（対局者・持ち時間・開始局面・連続対局設定） |
-| TsumeShogiSearchDialog | QDialog | tsumeshogisearchdialog.ui | 詰み探索の設定（エンジン選択・探索時間） |
-| KifuAnalysisDialog | QDialog | kifuanalysisdialog.ui | 棋譜解析パラメータ収集（解析範囲・エンジン・思考時間） |
-| CsaGameDialog | QDialog | csagamedialog.ui | CSA通信対局設定（サーバー接続情報・対局者選択） |
+| TsumeShogiSearchDialog | QDialog | tsumeshogisearchdialog.ui | 詰み探索の設定（エンジン選択・探索時間）。選んだエンジンは `engine()`（`std::optional<EngineEntry>`） |
+| KifuAnalysisDialog | QDialog | kifuanalysisdialog.ui | 棋譜解析パラメータ収集（解析範囲・エンジン・思考時間）。選んだエンジンは `engine()`（`std::optional<EngineEntry>`） |
+| CsaGameDialog | QDialog | csagamedialog.ui | CSA通信対局設定（サーバー接続情報・対局者選択。エンジンは `EngineSelector` で選ぶ） |
 | CsaWaitingDialog | QDialog | なし | CSA通信対局の接続待機表示（状態遷移・ログ表示） |
 | EngineRegistrationDialog | QDialog | engineregistrationdialog.ui | USIエンジンの登録・削除・option自動取得 |
-| ChangeEngineSettingsDialog | QDialog | changeenginesettingsdialog.ui | USI engine options の編集（テキスト/スピン/チェック/コンボ/ファイル選択） |
+| ChangeEngineSettingsDialog | QDialog | changeenginesettingsdialog.ui | USI engine options の編集（テキスト/スピン/チェック/コンボ/ファイル選択）。`ChangeEngineSettingsDialog(engine, parent)` で登録エンジン1つ（`EngineListSettings::EngineEntry`）を渡して作り、見出しにエンジン名と作者名を出す |
 | PromoteDialog | QDialog | promotedialog.ui | 成り/不成の選択確認 |
 | VersionDialog | QDialog | versiondialog.ui | バージョン情報表示 |
 | PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き） |
@@ -6290,7 +6331,12 @@ Qt の公式サンプルコードを参考にした自動折り返しレイア�
 
 **2. フォントサイズの永続化**
 
-ほぼすべてのウィジェットとダイアログにフォントサイズ増減（A+/A-）機能がある。サイズは設定の宣言の表の `Setting<int>`（例: `GameSettings::kifuPaneFontSize`）で保存・復元し、`applyFontSize()` で一括反映する。ダイアログでは `FontSizeHelper` に宣言をそのまま渡すと、初期値の読み込みと変更のたびの保存をまとめて任せられる（§12.5）。
+ほぼすべてのウィジェットとダイアログにフォントサイズ増減（A+/A-）機能がある。サイズは設定の宣言の表の `Setting<int>`（例: `GameSettings::kifuPaneFontSize`）で保存・復元する。仕組みは次の2つだけ。
+
+- **ダイアログ**: `DialogFontScale::install(this, 宣言, options)` を呼ぶ。初期値の読み込み、変更のたびの保存、全部品への反映をまとめて任せる。ダイアログに `FontSizeHelper` のメンバや A-/A+ 用の connect・`applyFontSize()` は書かない（§12.5）
+- **ドックのパネル**: `FontSizeHelper` を持ち、置いた A-/A+ のボタンを `FontSizeControl` で結ぶ。`fontSizeChanged` を表示の作り直しにつなぐ。ThinkingPanel・ConsiderationTabManager・UsiLogPanel・CsaLogPanel・GameInfoPane・RecordPane（`GameSettings::kifuPaneFontSize`。範囲と保存は RecordPane の `FontSizeHelper` が持つ）・CommentEditorPanel・AnalysisResultsPanel・JosekiWindow・MenuWindow（`AppSettings::menuWindowFontSize`）が使う
+
+A-/A+ のボタンの文字・見た目・説明と、範囲の端で押せなくする処理は、どちらも `FontSizeControl` が決める。
 
 **3. イベントフィルタの活用**
 
@@ -6756,7 +6802,7 @@ AnalysisSettings::usiLogFontSize.remove();               // 保存値を消す
 
 #### 関数として書く項目
 
-値の範囲を絞る（`AppSettings::pieceSoundVolume` など）、複数のキーを構造体にまとめる（`AppSettings::boardColors` など）、古い保存値を引き継ぐ（`AppSettings::appearanceSection`）、リスト・配列で保存する（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・ドックレイアウトなど）、id ごとにキーを作る（`AppSettings::dialogFontSize(id, ...)`）。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）項目だけは、ドメイン別ヘッダーに関数を宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く（id から組み立てる `DialogAppearance/<id>/...` だけは関数の中に書いている）。
+値の範囲を絞る（`AppSettings::pieceSoundVolume` など）、複数のキーを構造体にまとめる（`AppSettings::boardColors` など）、古い保存値を引き継ぐ（`AppSettings::appearanceSection`）、リスト・配列で保存する（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・ドックレイアウトなど）。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）項目だけは、ドメイン別ヘッダーに関数を宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
 
 ```cpp
 // src/services/analysissettings.cpp より
@@ -6801,8 +6847,15 @@ inline const Setting<int> myDialogFontSize{"FontSize/myDialog", 10};
 // mydialog.cpp
 MyDialog::MyDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper(GameSettings::myDialogFontSize, 8, 24, 1)  // 変更のたびに保存する
 {
+    setupUi();
+
+    // 文字の大きさ（初期値の読み込みと変更のたびの保存）。A-/A+ を渡さなければ決定ボタンの列に作る
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = ui->buttonFontDecrease;
+    fontOptions.increase = ui->buttonFontIncrease;
+    DialogFontScale::install(this, GameSettings::myDialogFontSize, fontOptions);
+
     DialogUtils::restoreDialogSize(this, GameSettings::myDialogSize);
 }
 
@@ -6812,7 +6865,7 @@ MyDialog::~MyDialog()
 }
 ```
 
-`FontSizeHelper`（`src/widgets/fontsizehelper.h`）は宣言から初期値を読み、A-/A+ で変わるたびに同じ宣言へ保存する。`DialogUtils::restoreDialogSize` / `saveDialogSize`（`src/widgets/dialogutils.h`）も宣言をそのまま受け取る。保存はデストラクタのほか、`done()` や `closeEvent` で行ってもよい。実際のコードでは `KifuPasteDialog` が同じ形になっている。
+`DialogFontScale`（`src/widgets/dialogfontscale.h`）は宣言から初期値を読み、A-/A+ で変わるたびに同じ宣言へ保存する。`Options` には範囲（`minSize`・`maxSize`。既定 8〜24）、ダイアログが置いたボタン（`decrease`・`increase`）と大きさの表示（`sizeLabel`）、ダイアログの大きさの宣言（`size`。渡すと開くときに戻し、閉じるときに保存する）を渡せる。`DialogUtils::restoreDialogSize` / `saveDialogSize`（`src/widgets/dialogutils.h`）も宣言をそのまま受け取る。保存はデストラクタのほか、`done()` や `closeEvent` で行ってもよい。実際のコードでは `KifuPasteDialog` が同じ形になっている。
 
 永続化すべき主な設定項目:
 - **ウィンドウサイズ**: ユーザーがリサイズ可能なダイアログ
@@ -7886,7 +7939,7 @@ sequenceDiagram
 
 | クラス | 責務 |
 |--------|------|
-| `CsaGameDialog` | CSA通信対局の接続設定UI（ホスト・ポート・ユーザー名・パスワード・エンジン選択） |
+| `CsaGameDialog` | CSA通信対局の接続設定UI（ホスト・ポート・ユーザー名・パスワード・エンジン選択（`EngineSelector`）） |
 | `CsaGameSession` | 通信対局の1回の接続を画面に反映する。接続ダイアログの値で `CsaGameCoordinator` に開始を頼み、対局の開始・手番・終局を盤の向き・評価値グラフ・ステータスバー・結果のダイアログへ映す（`src/ui/coordinators/`） |
 | `GameSession` | 通信対局の棋譜（作り直し・対局者・持ち時間・開始と終了の日時・着手の行・自動保存）をローカル対局と同じ流れで受け持つ。投了・中断・入玉宣言は `CsaGameChannel` 経由でサーバーへ送る（`src/app/`） |
 | `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る |
@@ -8600,36 +8653,41 @@ inline const Setting<QSize> kifuTagDialogSize{"SizeRelated/kifuTagDialogSize", Q
 KifuTagDialog::KifuTagDialog(KifuTagModel* model, QWidget* parent)
     : QDialog(parent)
     , m_model(model)
-    , m_fontHelper(GameSettings::kifuTagDialogFontSize, 8, 24, 1)  // 初期値を読み、変更のたびに保存する
 {
+    setupUi();
+
+    // 文字の大きさ（初期値を読み、変更のたびに保存する。A-/A+ は決定ボタンの列に作る）
+    DialogFontScale::install(this, GameSettings::kifuTagDialogFontSize);
+
     // 設定の読み込み
     DialogUtils::restoreDialogSize(this, GameSettings::kifuTagDialogSize);
-    applyFontSize();  // m_fontHelper.fontSize() を画面に反映する
 }
 
 void KifuTagDialog::closeEvent(QCloseEvent* event)
 {
-    // 設定の保存（フォントサイズは FontSizeHelper が保存済み）
+    // 設定の保存（フォントサイズは DialogFontScale が保存済み）
     DialogUtils::saveDialogSize(this, GameSettings::kifuTagDialogSize);
     QDialog::closeEvent(event);
 }
 ```
 
-A-/A+ ボタンは `FontSizeHelper::decrease` / `increase` スロットに直接つなぎ、`FontSizeHelper::fontSizeChanged` を `applyFontSize()` につなぐ（`KifuPasteDialog` と同じ形）。ダイアログ側に A-/A+ 用のスロットは書かない。
+ダイアログには `FontSizeHelper` のメンバ、A-/A+ 用の connect やスロット、`applyFontSize()` を書かない。`DialogFontScale` が A-/A+ を `FontSizeControl` で結び、変わるたびに全部品（コンボボックスの一覧・ダイアログのメニューを含む）へ反映する。
+
+- **ボタンの置き場所**: .ui などにダイアログ自身の A-/A+ を置くときは、`Options` の `decrease`・`increase`（大きさの表示があれば `sizeLabel`）に渡す。渡さなければ決定ボタンの列の横に作る
+- **大きさ**: `Options::size` に `Setting<QSize>` を渡すと、ダイアログの大きさも開くときに戻し、閉じるときに保存する（上の `restoreDialogSize` / `saveDialogSize` を書かなくてよい）
+- **相対の大きさ**: 各部品を元の大きさからの差で拡大・縮小するので、太字や大きめの見出しは作るときに1回だけ相対の大きさを決める。変わるたびに付け直さない
+- **追加の調整**: 行の高さなど大きさに合わせた処理は、`install()` が返す部品の `fontSize()`（`FontSizeHelper*`）の `fontSizeChanged` につなぐ（`KifuPasteDialog`・`JishogiScoreDialog` と同じ形）。内容を作り直して後から部品を足したときは `rescale()` を呼ぶ
+- **対象外**: 盤面など文字の大きさを自分で決める部品は、プロパティ `dialogFontScaleExcluded` を true にする（`TsumePlayDialog` の盤の `ShogiView` など）
+
+ダイアログ自身の A-/A+ を置き、行の高さも合わせるときは次のように書く。
 
 ```cpp
-connect(decreaseButton, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
-connect(increaseButton, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
-connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &KifuTagDialog::applyFontSize);
-```
-
-`applyFontSize()` の本体は `m_fontHelper.applyTo(this)` の1行を基本にする。`applyTo` は `DialogUtils::applyFontSize` を呼び、余白・ボタンの標準化、全子ウィジェット（コンボボックスの一覧・ダイアログのメニューを含む）へのフォント設定、A-/A+ ボタンの有効状態と寸法の更新をまとめて行い、適用したフォントを返す。盤面など文字の大きさを自分で決めるウィジェットは `applyTo(this, {m_view})` のように除外し、太字の見出しなどダイアログ固有の調整だけを戻り値のフォントから作る。
-
-```cpp
-void KifuTagDialog::applyFontSize()
-{
-    m_fontHelper.applyTo(this);
-}
+DialogFontScale::Options fontOptions;
+fontOptions.decrease = m_fontDecrease;
+fontOptions.increase = m_fontIncrease;
+fontOptions.sizeLabel = m_fontSizeLabel;
+auto* fontScale = DialogFontScale::install(this, GameSettings::kifuTagDialogFontSize, fontOptions);
+connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &KifuTagDialog::fitRowHeights);
 ```
 
 #### 設定項目を追加するときの規約
@@ -8839,7 +8897,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | # | 確認項目 | 参照 |
 |---|---------|------|
 | 11 | ダイアログのウィンドウサイズを保存しているか（`DialogUtils::restoreDialogSize` / `saveDialogSize`） | CLAUDE.md Settings Update Guidelines |
-| 12 | フォントサイズ調整機能がある場合、サイズを保存しているか（`FontSizeHelper` に宣言を渡す） | CLAUDE.md Settings Update Guidelines |
+| 12 | フォントサイズ調整機能がある場合、サイズを保存しているか（ダイアログは `DialogFontScale::install` に、パネルは `FontSizeHelper` に宣言を渡し、ボタンは `FontSizeControl` で結ぶ） | CLAUDE.md Settings Update Guidelines |
 | 13 | テーブル/リストの列幅を保存しているか（該当する場合） | CLAUDE.md Settings Update Guidelines |
 | 14 | コンボボックス等の選択状態を保存しているか（該当する場合） | CLAUDE.md Settings Update Guidelines |
 
@@ -8884,7 +8942,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
      │
 ⑤ 設定の宣言の表に設定項目を追加（§17.5）
    ├─ ドメイン別ヘッダーに Setting<T> を1行ずつ宣言
-   └─ ダイアログで読み込み / 保存（FontSizeHelper・DialogUtils に宣言を渡す）
+   └─ ダイアログで読み込み / 保存（DialogFontScale・DialogUtils に宣言を渡す）
      │
 ⑥ tr() で翻訳対応（§17.6）
    ├─ ユーザー向け文字列を tr() でラップ
@@ -9028,6 +9086,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CsaToSfenConverter | C | kifu/formats | CSA形式→SFEN変換器 | 第8章 |
 | CsaWaitingDialog | C | dialogs | CSA接続待機ダイアログ | 第11章 |
 | DialogLauncher | C | ui/coordinators | メニューから開くダイアログの起動 | 第10章 |
+| DialogFontScale | C | widgets | ダイアログの A-/A+ と保存（全ダイアログ共通。元の大きさからの差で拡大・縮小する） | 第11章, 第17章 |
 | DialogUtils | NS | widgets | ダイアログの大きさの保存・復元、文字の大きさの適用 | 第11章 |
 | DockCreationService | C | app | ドックウィジェット生成サービス | 第14章 |
 | DockLayoutManager | C | ui/coordinators | ドックレイアウト状態の管理 | 第10章 |
@@ -9047,6 +9106,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | EngineRegistrationDialog | C | dialogs | エンジン登録・設定ダイアログ | 第11章 |
 | EngineRegistrationHandler | C | engine | エンジン登録のワーカースレッド管理・USI解析・設定の永続化 | 第7章 |
 | EngineSearchStatus | S | engine | エンジンの探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値 | 第7章 |
+| EngineSelector | C | widgets | 登録エンジンを選ぶ部品（コンボ・「設定」ボタン・未登録の案内・選択の保存。設定ダイアログは `settingsRequested` で受け手に頼む） | 第11章 |
 | EngineSettingsConstants | NS | services | エンジン設定の定数定義 | 第7章 |
 | EngineSettingsOptionHandler | C | dialogs | エンジン設定オプションのウィジェット生成・データ管理 | 第11章 |
 | EngineVsEngineStrategy | C | game | エンジン対エンジンの Strategy | 第6章 |
@@ -9056,6 +9116,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | EvaluationSeries | C | models | 評価値グラフの点（先手から見た評価値の列が2本・系列名・解析した手順の番号） | 第10章 |
 | FixedTimeSource | C | engine | 決まった残り時間を返すエンジンの時間の出どころ（時計のない対局・テスト） | 第7章 |
 | FlowLayout | C | widgets | フロー（折り返し）レイアウトマネージャ | 第11章 |
+| FontSizeControl | C | widgets | A-/A+ のボタンの組（文字・見た目・説明・範囲の端での無効化） | 第11章 |
 | FontSizeHelper | C | widgets | 文字の大きさ（A-/A+）の状態・範囲・保存と変更の通知 | 第11章 |
 | GameChannel | C | game | 対局相手の窓口のインターフェース（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に。実装は `LocalGameChannel`・`CsaGameChannel`） | 第6章 |
 | GameInfoEditModel | C | models | 対局情報の表の中身・編集の履歴・未反映の判定 | 第11章 |
@@ -9463,6 +9524,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | numericrightaligncommadelegate | 第11章 | 数値デリゲート |
 | dialogutils | 第11章, 第17章 | ダイアログの大きさの保存・復元など |
 | fontsizehelper | 第11章, 第17章 | A-/A+ のフォントサイズ調整 |
+| fontsizecontrol | 第11章 | A-/A+ のボタンの組 |
+| dialogfontscale | 第11章, 第17章 | ダイアログの A-/A+ と保存 |
+| engineselector | 第11章 | 登録エンジンを選ぶ部品 |
 | analysisresultspanel | 第9章, 第11章 | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） |
 | considerationtabmanager | 第9章, 第11章 | 検討ドックの中身（ツールバー・エンジン情報・候補手の表。設定の正本と実行の状態） |
 | considerationsettings | 第9章 | 検討タブの設定の値（エンジン・時間・候補手の数・矢印） |

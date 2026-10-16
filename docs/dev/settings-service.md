@@ -176,7 +176,7 @@ CLAUDE.md の「Settings Update Guidelines」と同じ手順。
 
 1. ドメイン別ヘッダーに `inline const Setting<T> name{"Group/key", 既定値};` を1行足す
 2. 読むときは `NS::name()`、書くときは `NS::name.set(value)`、既定値は `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は、宣言の既定値を空にして `NS::name.valueOr(tr("..."))` で読む
-3. ダイアログのコンストラクタで読み込み、デストラクタ・`done()`・`closeEvent` で保存する。ウィンドウサイズは `DialogUtils::restoreDialogSize` / `saveDialogSize`、A-/A+ は `FontSizeHelper` に宣言をそのまま渡す
+3. ダイアログのコンストラクタで読み込み、デストラクタ・`done()`・`closeEvent` で保存する。ウィンドウサイズは `DialogUtils::restoreDialogSize` / `saveDialogSize`（または `DialogFontScale::Options::size`）、A-/A+ は `DialogFontScale::install(this, 宣言, options)` に宣言をそのまま渡す
 4. 値の範囲を絞る、複数のキーを構造体にまとめる、配列で保存する、といった処理が要る項目だけを関数として `.cpp` に書く（[5章](#5-関数として書く項目)）
 
 ### 実装例
@@ -191,8 +191,15 @@ inline const Setting<int> myDialogFontSize{"FontSize/myDialog", 10};
 // mydialog.cpp
 MyDialog::MyDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper(GameSettings::myDialogFontSize, 8, 24, 1)  // 変更のたびに保存する
 {
+    setupUi();
+
+    // 文字の大きさ（初期値の読み込みと変更のたびの保存）。A-/A+ を渡さなければ決定ボタンの列に作る
+    DialogFontScale::Options fontOptions;
+    fontOptions.decrease = ui->buttonFontDecrease;
+    fontOptions.increase = ui->buttonFontIncrease;
+    DialogFontScale::install(this, GameSettings::myDialogFontSize, fontOptions);
+
     DialogUtils::restoreDialogSize(this, GameSettings::myDialogSize);
 }
 
@@ -204,7 +211,8 @@ MyDialog::~MyDialog()
 
 実際のコードでは `KifuPasteDialog`（`src/dialogs/kifupastedialog.cpp`）が同じ形になっている。
 
-- `FontSizeHelper(const Setting<int>&, int min = 8, int max = 24, int step = 1)`（`src/widgets/fontsizehelper.h`）は、宣言から初期値を読んで範囲内に収め、`increase()` / `decrease()` で変わるたびに同じ宣言へ保存する。文字の反映は `applyTo(dialog)`（`DialogUtils::applyFontSize`）で、ダイアログ側の `applyFontSize()` には固有の調整だけを書く
+- `DialogFontScale::install(QDialog*, const Setting<int>&, const Options&)`（`src/widgets/dialogfontscale.h`）は、宣言から初期値を読んで `Options` の `minSize`〜`maxSize`（既定 8〜24）に収め、A-/A+ で変わるたびに同じ宣言へ保存する。`Options::size` を渡すと、ダイアログの大きさも開くときに戻し、閉じるときに保存する。文字の大きさの宣言の既定値が 0 なら、未保存のときはダイアログの元の大きさから始める。各部品は元の大きさからの差で拡大・縮小するので、見出しの相対の大きさは作るときに1回決めればよい。大きさに合わせた追加の調整は、返す部品の `fontSize()`（`FontSizeHelper*`）の `fontSizeChanged` につなぐ。ダイアログに `FontSizeHelper` のメンバや `applyFontSize()` は書かない
+- ドックのパネルは `FontSizeHelper(const Setting<int>&, int min = 8, int max = 24, int step = 1)`（`src/widgets/fontsizehelper.h`）を持ち、A-/A+ のボタンを `FontSizeControl`（`src/widgets/fontsizecontrol.h`）で結ぶ。A-/A+ の文字・見た目・説明と、範囲の端で押せなくする処理は `FontSizeControl` だけが決める。文字の反映は `fontSizeChanged` をパネルの表示の作り直しにつなぐ（定跡ウィンドウのようにウィンドウ全体に付けるときは `applyTo(window)`、つまり `DialogUtils::applyFontSize`）
 - `DialogUtils::restoreDialogSize(QWidget*, const Setting<QSize>&)` は、幅・高さとも 100 を超える保存値だけを適用する。`DialogUtils::saveDialogSize(const QWidget*, const Setting<QSize>&)` は現在のサイズを保存する（`src/widgets/dialogutils.h`）
 
 ### INI キーの命名
@@ -215,7 +223,7 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 | 用途 | 既存の例 |
 |---|---|
 | ウィンドウサイズ | `SizeRelated/kifuPasteDialogSize`、`JosekiWindow/size`、`EngineSettings/dialogSize` |
-| フォントサイズ | `FontSize/kifuPasteDialog`、`JosekiWindow/fontSize` |
+| フォントサイズ | `FontSize/kifuPasteDialog`、`JosekiWindow/fontSize`、`DialogAppearance/promotion/fontSize`（補助ダイアログ） |
 | 表示状態 | `RecordPane/timeColumnVisible`、`EvalChartDock/visible` |
 | 最後の選択 | `UI/lastSelectedTabIndex`、`MenuWindow/currentTab` |
 | 最後に使ったフォルダ | `General/lastKifuDirectory`、`SfenCollection/lastDirectory` |
@@ -228,13 +236,14 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 
 | 処理 | 関数 |
 |---|---|
-| 値の範囲を絞る | `AppSettings::pieceSoundVolume`（0〜100）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::appearancePieceFilter`（0〜7）、`AppSettings::dialogFontSize`（8〜24） |
+| 値の範囲を絞る | `AppSettings::pieceSoundVolume`（0〜100）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::appearancePieceFilter`（0〜7） |
 | 複数のキーを構造体にまとめる | `AppSettings::boardColors`、`AppSettings::boardVisuals`、`AppSettings::pieceSoundTone`、`TsumeshogiSettings::collectionPreferences` / `playPreferences` |
 | 古い保存値の引き継ぎ・不正値の補正 | `AppSettings::appearanceSection`（旧版の番号を名前に読み替える）、`AppSettings::pieceStyle`（一覧にない値・廃止したセットは `standard` に戻す） |
 | リスト・配列 | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths` / `kifuAnalysisColumnWidths`、`JosekiSettings::josekiWindowColumnWidths`、`DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
-| id ごとのキー | `AppSettings::dialogFontSize` / `auxiliaryDialogSize`（`DialogAppearance/<id>/fontSize`・`DialogAppearance/<id>/size`。個別の項目を持たない補助ダイアログ用） |
 
-関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く（id から組み立てる `DialogAppearance/<id>/...` だけは関数の中に書いている）。
+関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く。
+
+補助ダイアログ（成り・しおり・駒音・メッセージボックスなど）の文字の大きさと大きさも、関数ではなく `appsettings.h` の宣言の表に1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など）。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）で、以前の版と同じ。既定値 0 は「未保存ならダイアログの元の大きさから始める」の意味。
 
 ```cpp
 // src/services/appsettings.cpp
@@ -347,16 +356,39 @@ const QString path = index >= 0 ? engines.at(index).path : QString();
 
 | 用途 | ファイル |
 |---|---|
-| 登録一覧の読み込み（`loadEngines()`） | `startgamedialog.cpp`、`kifuanalysisdialog.cpp`、`csagamedialog.cpp`、`tsumeshogisearchdialog.cpp`、`tsumeshogigeneratordialog.cpp`、`tsumecollectiondialog.cpp`、`considerationtabmanager.cpp`、`considerationflowcontroller.cpp`、`engineregistrationhandler.cpp`、`automation/enginecatalog.cpp` |
+| 登録一覧の読み込み（`loadEngines()`） | `widgets/engineselector.cpp`（下の「機能ごとに選んだエンジン」）、`startgamedialog.cpp`、`considerationuicontroller.cpp`、`engineregistrationhandler.cpp`、`automation/enginecatalog.cpp` |
 | 登録一覧とオプションの書き込み・削除 | `engineregistrationhandler.cpp`（エンジン登録ダイアログ。`EngineProfileStore::saveEngines()`・`saveOptions()`・`removeEngine()`） |
 | オプションの読み書き | `enginesettingsoptionhandler.cpp`（エンジン設定ダイアログ。`readEngineOptions()` が `loadOptions()`、`writeEngineOptions()` が一覧全体を `saveOptions()` で書く） |
 | 起動時のオプション送信 | `usienginesession.cpp` の `startAsync()` が `EngineProfileStore::launchOptions()` を `UsiProtocolHandler::setLaunchOptions()` に渡す。`UsiProtocolHandler` は設定ファイルを開かない（`USI_Ponder` は除き、GUI の先読み設定から初期化時に一度だけ送る） |
 
 ### 機能ごとに選んだエンジン
 
-検討・棋譜解析・詰み探索・詰将棋生成で選んだエンジンは、`EngineListSettings::saveSelection()` で名前（id name）を保存し、`restoreSelection()` で一覧の位置に戻す。
-保存場所は `considerationSelection()`・`kifuAnalysisSelection()`・`tsumeSearchSelection()`・`tsumeshogiGeneratorSelection()` が返す（`Consideration/engineName` など）。
-以前の版が保存した番号（`*/engineIndex`）やパス（`TsumeSearch/enginePath`）は、名前で見つからないときだけ読み、保存時に消す。
+機能ごとに選んだエンジンは、`EngineListSettings::saveSelection()` で名前（id name）を保存し、`restoreSelection()` で一覧の位置に戻す。
+保存場所は機能ごとの関数が `SelectionKeys`（名前のキーと、以前の版の番号・パスのキー）で返す。
+
+| 機能 | 関数 | 名前のキー | 以前の版のキー（読むだけ） |
+|---|---|---|---|
+| 検討 | `considerationSelection()` | `Consideration/engineName` | `Consideration/engineIndex` |
+| 棋譜解析 | `kifuAnalysisSelection()` | `KifuAnalysis/engineName` | `KifuAnalysis/engineIndex` |
+| 詰み探索 | `tsumeSearchSelection()` | `TsumeSearch/engineName` | `TsumeSearch/enginePath`（パス） |
+| 詰将棋生成 | `tsumeshogiGeneratorSelection()` | `TsumeshogiGenerator/engineName` | `TsumeshogiGenerator/engineIndex` |
+| CSA通信対局 | `csaGameSelection()` | `CsaGameSettings/engineName` | `CsaGameSettings/engineNumber` |
+| 詰将棋問題一覧の判定 | `tsumeCollectionSelection()` | `TsumeCollection/engineName`（内蔵の Hayanagi なら空の文字列） | `TsumeCollection/engine`（パス） |
+
+キーは `settingskeys.h` の定数（`kCsaEngineName`・`kCsaEngineNumber`・`kTsumeCollectionEngineName` など）に置く。
+CSA通信対局のキーは以前の版と同じで、`NetworkSettings` には宣言しない。
+以前の版のキーは、名前で見つからないときだけ読み、保存時に消す。
+`savedSelectionName(keys)` は保存した名前を返す（保存していなければ `std::nullopt`。空の文字列は登録エンジン以外の項目を選んだ印）。
+
+これらの機能の画面は、コンボ・「設定」ボタン・未登録の案内を `EngineSelector`（`src/widgets/engineselector.h`）に結び、`Options::keys` に上の関数の値を渡す。
+`EngineSelector` は作るときに保存した選択を戻し（保存が無ければ先頭の登録エンジン）、`saveSelection()` で保存する。
+検討タブだけは、設定の正本 `ConsiderationSettings` を保存するときに `saveSelection(considerationSelection(), 名前)` を自分で呼ぶ。
+対局開始ダイアログ（`StartGameDialog`）は `EngineSelector` をまだ使っていない。
+
+詰将棋問題一覧の判定エンジンは、内蔵の Hayanagi の項目（`Options::builtinLabel`）と、名前に KomoringHeights を含む登録エンジンだけを出す。
+以前の版は `TsumeCollection/engine` にパスを保存し、内蔵の Hayanagi は `"@hayanagi"` と書いていた。
+ダイアログを開くときに `TsumeshogiSettings::migrateCollectionEngineSelection()` が `"@hayanagi"` を空の名前に直す。
+パスは以前の版のパスのキーとして `restoreSelection()` が読む。
 
 ### 先読みのGUI設定
 
@@ -382,7 +414,8 @@ GUI設定を保存すると、既存の `USI_Ponder` オプションの保存値
 | `settingWritesDeclaredKeyAndRemoveRestoresDefault` | `set()` が宣言したキーへ書き、`remove()` で既定値へ戻ること |
 | `appSettings_*`・`analysisSettings_*`・`gameSettings_*` など | ドメインごとの往復。関数として書いた項目は範囲外の値・旧形式の値も確かめる |
 
-ほかのテストで設定ファイルを使うときは、設定に触れる前に `SHOGIBOARDQ_CONFIG_HOME` を一時ディレクトリに向ける（`tst_startgamedialog`・`tst_nyugyoku_judgement`・`tst_engineprofilestore` など）。
+ほかのテストで設定ファイルを使うときは、設定に触れる前に `SHOGIBOARDQ_CONFIG_HOME` を一時ディレクトリに向ける（`tst_startgamedialog`・`tst_nyugyoku_judgement`・`tst_engineprofilestore`・`tst_engineselector` など）。
+`tst_engineselector` は、機能ごとに選んだエンジンの保存・復元（名前・以前の版の番号・詰将棋問題一覧の `"@hayanagi"` とパス）を確かめる。
 
 ---
 
