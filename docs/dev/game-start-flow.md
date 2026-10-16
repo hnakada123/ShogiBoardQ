@@ -48,7 +48,7 @@ Strategy は `MatchStrategyHost`（`src/game/gamemodestrategy.h`。司令塔が 
 
 ### 中断と再開
 
-中断（`MatchCoordinator::handleBreakOff()`）は、`captureInterruptedGame()` で開始の設定・対局の手順・時計のスナップショットを `InterruptedGameState` に保存してから終局を記録し、`gameInterrupted` を出す。`GameSession::onGameInterrupted()` は中断の行のノードを `MatchCoordinator::attachInterruptedRecord()` で `InterruptedGameState::terminalNodeId` に覚えさせ、「対局再開」を使えるようにする（司令塔の `resumeAvailabilityChanged` を受けた `UiStatePolicyManager::refreshResumeAvailability()` が `canResumeInterruptedGame()` に問い合わせる）。棋譜を変えたとき（`KifuBranchTree::treeChanged`）、別の対局を始めたとき、局面編集を始めたとき（`MainWindowActions::beginPositionEditing()`）、「新規」にしたときは、中断した対局を捨てる。
+中断（`MatchCoordinator::handleBreakOff()`）は、`captureInterruptedGame()` で開始の設定・対局の手順・時計のスナップショットを `InterruptedGameState` に保存してから終局を記録し、`gameInterrupted` を出す。`GameSession::onGameInterrupted()` は中断の行のノードを `MatchCoordinator::attachInterruptedRecord()` で `InterruptedGameState::terminalNodeId` に覚えさせ、「対局再開」を使えるようにする（司令塔の `resumeAvailabilityChanged` を受けた `UiStatePolicyManager::refreshResumeAvailability()` が `canResumeInterruptedGame()` に問い合わせる）。棋譜を変えたとき（`KifuBranchTree` の構造の変更の知らせ `nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset`）、別の対局を始めたとき、局面編集を始めたとき（`MainWindowActions::beginPositionEditing()`）、「新規」にしたときは、中断した対局を捨てる。
 
 再開（`GameSession::resumeInterruptedGame()`）は、中断の行の親ノードへ表示中の手を戻し（`KifuNavigationState::resetToNode()`）、ライブ対局のセッションを破棄して中断の行を除いてから、そのノードでセッションを開始し直す。終了日時を消したあと、`MatchCoordinator::resumeInterruptedGame()` が手順・盤・時計を復元して Strategy を作り直し（「同」表記の基準は復元した手順の最後の手から導く）、続く `MatchCoordinator::beginPlay()` が時計の始動と初手の要求を行う。以前の `position` 文字列の履歴は保持しない。先読みの局面はエンジンの `UsiMatchHandler` だけが持ち、Strategy の `start()` がエンジンを作り直すので残らない。復元した確定手順から新しい探索を始める。時計は保存時の値（時間の決まりと時間切れの扱いを含む）を復元し、通常開始の設定適用は通さない。
 

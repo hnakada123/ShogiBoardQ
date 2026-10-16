@@ -131,7 +131,7 @@ CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::
   再開は中断した対局を再開できるときだけ有効（`Deps::canResumeGame`。合成ルートが `MatchCoordinator::canResumeInterruptedGame()` を渡す。中断した対局の状態は司令塔の `InterruptedGameState` だけが持つ）
 - 「ナビゲーションボタン」と「棋譜欄クリック」は同じ UI 要素（`WidgetNavigation`）で、局面送りの QAction を `KifuNavigationController::setStepActionsEnabled()`（`Deps::navigation`）、棋譜欄の行のクリックを `RecordPane::setKifuViewEnabled()`（`Deps::recordPane`）で切り替える。
   棋譜欄と評価値グラフのボタンは `KifuNavigationController::bindButtons()` で同じ QAction に結ばれ、有効・無効も QAction に従う
-- 「分岐ツリークリック」は `BranchTreeManager::setBranchTreeClickEnabled()` で制御
+- 「分岐ツリークリック」は `BranchTreeView::setClickEnabled()`（`Deps::branchTree`）で制御（クリックとキー操作での移動）
 - 盤面クリック（指し手入力）は表に含めない。駒をつまめるかは盤で指した手の行き先（`BoardInputRoute`。主画面は `BoardMoveController`）が決める（局面編集中は常に可、それ以外は `HumanTurnPolicy::isHumanTurnNow()`。解析中・詰み探索中・検討中は受け付けない）
 - 「検討開始」ボタンは `ConsiderationTabManager::setStartConsiderationEnabled()` で制御（検討中は同ボタンが「検討中止」として動作するため有効のまま）
 - 「表示メニュー」は全状態で常に有効のため省略

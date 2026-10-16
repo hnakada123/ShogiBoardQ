@@ -98,6 +98,7 @@
 | 2026-10-16 | `KifuPresentation` を kifu へ移し、`src/common` の見た目の部品を新しい層 `src/style` に分けたのに合わせて §1.5・§1.6・§3.1・§3.2・§11.2・§16.4・§17.1・第18章を更新（`KifuPresentation` は `src/kifu/kifupresentation.h`。日本語の指し手は `KifMoveText`、段の漢数字は `ShogiNotation`、英語表記で移動元を付けるかは KI2 と同じ判定（`Ki2MoveNotation::annotate()` の `sources`）。表示言語と表記の設定は services の `NotationStyle`（`notationstyle.h`）に置き、`ApplicationTranslations` が設定する。`applicationfonts`・`applicationstyle`・`applicationrendering`・`buttonstyles`・`tablestyles`・`movefont` は `src/style/`（analysis・network・navigation と models の間の層）、`tablemodelutils` は widgets、`jishogicalculator` は core、`tsumepositionutil.h` は analysis へ移動。`TsumePositionUtil::buildPositionWithMoves()` を削除） |
 | 2026-10-16 | 定跡のデータを値型 `JosekiBook` にし、定跡手を局面の合法手から選ぶようにしたのに合わせて §1.5・§11.3・第18章を更新（`JosekiRepository`・`josekiioresult.h` を削除。`JosekiBook`（`src/kifu/josekibook.h`）は局面のキー `JosekiBook::positionKey()` から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つで、最後の定跡手を消すと局面も消える。読み書きは `JosekiBookFile::load()`・`save()`、マージで登録した印は `JosekiMoveKey`（`QSet`）。`JosekiMoveInputWidget` は局面の合法手を棋譜の表記で並べた一覧、`JosekiMoveDialog` の受け渡しは `setEntry()`・`entry()`。テストは `tst_joseki_book`） |
 | 2026-10-16 | エンジンの起動の失敗を非同期だけで知らせ、枠のエンジンをリースで持つようにしたのに合わせて §3.4・§6.1・§6.2・§6.3・§6.9・§7.2・§7.5・§7.9・§9.3・§9.4・§9.6・§9.10・§12.3・§14.3・§15.4・第18章を更新（`UsiEngineSession::startAsync()`・`probeAsync()`・`Usi::startEngine()`・`MateOracle::start()` などは値を返さず、失敗は戻った後に `errorOccurred` で届く。`EngineLifecycleManager::createEngine()`・`destroyEngine()` を `acquire()` と move-only の `EngineLease` に置き換え、枠を取り上げた前の持ち主には `engineRevoked` で知らせる。`AnalysisSession::stop()` は自分のエンジンだけを手放し、「新規」は `GameSession::Deps::engines` の `destroyEngines(false)` で全部止める） |
+| 2026-10-16 | 分岐ツリーの変更の知らせを型付きにし、図を `BranchTreeView`・`BranchNodeItem` に作り直したのに合わせて §1.5・§1.8・§3.5・§4.4・§4.5・§6.9・§8.2・§8.3・§8.6・§8.7・§10.2〜§10.4・§11.1・§11.2・§11.5・§13.1・§13.3・§16.2・第18章を更新（`KifuBranchTree::treeChanged` を `nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset` に分け、一括更新は知らせを遅らせて順に出す。`*Quiet` の関数・`newestNode()` を削除し、`addMove`・`addTerminalMove`・`findByPlyOnMainLine`・`findBySfen` はテスト用の `TestTree`（`tests/branchtree_test_util.h`）に移した。ノードは子を `std::unique_ptr` で所有する。`BranchTreeManager` を削除し、図はツリーの知らせを自分で受けて、外とはノード ID でやり取りする（`KifuNavigationController::selectBranchTreeNode(nodeId)`・`BranchTreeEditController::onNodeContextMenuAboutToShow(nodeId, menu)`）） |
 
 <!-- chapter-0-end -->
 
@@ -284,7 +285,7 @@ ShogiBoardQ/
 #### ソースコード（`src/`）
 
 ヘッダファイル（`.h`）は対応するソースファイル（`.cpp`）と同じディレクトリに配置される。`foo.cpp/.h` は `foo.cpp` と `foo.h`、`foo*.cpp` は `foo.cpp` と `foo_*.cpp` に分割したファイルを表す。
-1つのクラスは原則1つの `.cpp` に書く。複数のファイルに分けているのは、段階ごとに分けた合成ルート（`mainwindowcomposer_*.cpp`）、コマンド群ごとに分けた `automationcommands_*.cpp`・`clicommands_*.cpp`、`csaclient_parser.cpp`/`_commands.cpp`、`csagamecoordinator_moves.cpp`/`_setup.cpp`、描画を分けた `branchtreemanager_draw.cpp` である。
+1つのクラスは原則1つの `.cpp` に書く。複数のファイルに分けているのは、段階ごとに分けた合成ルート（`mainwindowcomposer_*.cpp`）、コマンド群ごとに分けた `automationcommands_*.cpp`・`clicommands_*.cpp`、`csaclient_parser.cpp`/`_commands.cpp`、`csagamecoordinator_moves.cpp`/`_setup.cpp` である。
 ディレクトリの並びは層の順（[3.1節](#31-レイヤー構造)）で、下の層は上の層をインクルードしない。
 
 ```
@@ -482,7 +483,8 @@ src/
 │   ├── considerationsettings.h     #   検討タブの設定の値（エンジン・時間・候補手の数・矢印）
 │   ├── analysisresultspanel.cpp/.h #   棋譜解析の結果ドックの中身
 │   ├── gameinfopane.cpp/.h         #   対局情報ドックの中身（ツールバー＋表。中身は models/gameinfoeditmodel）
-│   ├── branchtreemanager.cpp/.h    #   分岐ツリーの表示（KifuBranchTree を読むだけの観察者。描画は branchtreemanager_draw.cpp）
+│   ├── branchtreeview.cpp/.h       #   分岐ツリーの図（QGraphicsView の派生でドックの中身。KifuBranchTree の変更の知らせを受けて描き直す。外とはノード ID でやり取りする）
+│   ├── branchnodeitem.cpp/.h       #   分岐ツリーの図の1手（開始局面を含む）の図形
 │   ├── branchtreelayout.cpp/.h     #   分岐ツリーの行の折りたたみと段の割り当て
 │   ├── evaluationchartwidget.cpp/.h #  評価値グラフ（EvaluationSeries を描くだけ。evaluationchartview・evaluationchartconfigurator と組）
 │   ├── usilogpanel.cpp/.h          #   USI通信ログドックの中身（CSA は csalogpanel）
@@ -708,7 +710,7 @@ tests/
 ├── mock_usi_match.cpp              # 本体のUSI通信経路で使うテスト用エンジン
 ├── tst_layer_dependencies.cpp      # 層の依存規則の検査（3.2節）
 ├── tst_structural_kpi.cpp          # ファイルの行数の上限などの構造の検査
-├── kifu_test_helper.h ほか          # テスト共通の補助（test_replay.h は手順から局面列・指し手列を作る TestReplay）
+├── kifu_test_helper.h ほか          # テスト共通の補助（test_replay.h は手順から局面列・指し手列を作る TestReplay、branchtree_test_util.h は分岐ツリーに手を足す・探す TestTree）
 ├── mock_*.cpp                      # テスト用の偽エンジン（USI・詰み探索）
 ├── test_*.py                       # scripts/ の Python スクリプトのテスト
 ├── fixtures/                       # テスト用の棋譜（KIF・KI2・CSA・JKF・USEN・USI）と局面集
@@ -1466,7 +1468,7 @@ sequenceDiagram
     KLP-->>KLC: KifuLoadResult<br/>(初期局面 + 本譜・変化 + 対局情報)
     KLC->>TREE: KifuDocument::replaceWithRecord()<br/>→ KifuBranchTreeBuilder::<br/>buildFromKifParseResult()
     KLC-->>KFC: loadFinished(success)
-    TREE-->>NAV: treeChanged
+    TREE-->>NAV: reset
     NAV-->>VIEW: changed()<br/>(開始局面へ戻る)
 ```
 
@@ -1830,7 +1832,7 @@ void wireGameMenu(const Deps& d)
 // src/app/mainwindowcomposer_wire.cpp（connectRecord、抜粋）
 connect(pane, &RecordPane::mainRowChanged, nav, &KifuNavigationController::selectRecordRow);
 connect(pane, &RecordPane::branchRowActivated, nav, &KifuNavigationController::selectBranchCandidateRow);
-connect(tree, &BranchTreeManager::branchNodeActivated, nav, &KifuNavigationController::selectBranchTreeNode);
+connect(tree, &BranchTreeView::nodeActivated, nav, &KifuNavigationController::selectBranchTreeNode);
 connect(chart, &EvaluationChartWidget::plyClicked, nav, &KifuNavigationController::selectPly);
 ```
 
@@ -1897,7 +1899,7 @@ public:
         KifuRecordListModel* recordModel = nullptr;   ///< 棋譜欄（必須）
         KifuBranchListModel* branchModel = nullptr;   ///< 分岐候補欄（必須）
         QTableView* recordView = nullptr;             ///< 棋譜欄の表（選択と表示位置を合わせる）
-        BranchTreeManager* treeView = nullptr;        ///< 分岐ツリーの図
+        BranchTreeView* treeView = nullptr;           ///< 分岐ツリーの図
     };
 
     explicit KifuDisplayPresenter(const Deps& deps, QObject* parent = nullptr);
@@ -3203,7 +3205,7 @@ MatchCoordinator::gameInterrupted
 
 #### 中断と再開
 
-中断は司令塔の `handleBreakOff()` が `captureInterruptedGame()` で手順・時計を `InterruptedGameState` に保存してから終局として記録し、`gameInterrupted` を出す。`GameSession::onGameInterrupted()` は中断の行のノードを `MatchCoordinator::attachInterruptedRecord(nodeId)` で `InterruptedGameState::terminalNodeId` に覚えさせる。中断した対局の状態はこの1か所にあり、「対局再開」の有効・無効は `UiStatePolicyManager` が `Deps::canResumeGame`（`MatchCoordinator::canResumeInterruptedGame()`）で問い合わせる（`resumeAvailabilityChanged` → `refreshResumeAvailability()`）。棋譜を変えたとき（`KifuBranchTree::treeChanged`）、別の対局を始めたとき（`startGame()`）、「新規」にしたときは `discardInterruptedGame()` で捨てる。
+中断は司令塔の `handleBreakOff()` が `captureInterruptedGame()` で手順・時計を `InterruptedGameState` に保存してから終局として記録し、`gameInterrupted` を出す。`GameSession::onGameInterrupted()` は中断の行のノードを `MatchCoordinator::attachInterruptedRecord(nodeId)` で `InterruptedGameState::terminalNodeId` に覚えさせる。中断した対局の状態はこの1か所にあり、「対局再開」の有効・無効は `UiStatePolicyManager` が `Deps::canResumeGame`（`MatchCoordinator::canResumeInterruptedGame()`）で問い合わせる（`resumeAvailabilityChanged` → `refreshResumeAvailability()`）。棋譜を変えたとき（`KifuBranchTree` の `nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset`）、別の対局を始めたとき（`startGame()`）、「新規」にしたときは `discardInterruptedGame()` で捨てる。
 
 `GameSession::resumeInterruptedGame()` は、中断の行の親ノードへ表示中の手を戻し（`KifuNavigationState::resetToNode()`）、ライブ対局のセッションを破棄して中断の行を除いてから、そのノードでセッションを開始し直す。終局時刻を消したあと（`KifuDocument::clearMatchEnd()`）、`MatchCoordinator::resumeInterruptedGame()` が手順・盤・時計を復元して（「同」表記の基準は手順の最後の手から導く） Strategy を作り直し、続く `MatchCoordinator::beginPlay()` が時計の始動と初手の要求を行う。
 
@@ -4102,7 +4104,7 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 | `m_ply` | `int` | 手数（0=開始局面、1以降=指し手） |
 | `m_record` | `RecordEntry` | この行（指した手か終局）。表示テキスト・この手の後の局面SFEN・`ShogiMove`・消費時間（`RecordTime`）・終局の種類と側・コメント・しおりを持つ |
 | `m_parent` | `KifuBranchNode*` | 親ノードへのポインタ（非所有） |
-| `m_children` | `QList<KifuBranchNode*>` | 子ノードリスト（非所有、ツリーが所有） |
+| `m_children` | `std::vector<std::unique_ptr<KifuBranchNode>>` | 子ノード（所有。先頭ほど本譜側）。外からは `children()`（`QList` の写し）・`childCount()`・`childAt(index)`・`indexOfChild(child)` で読む |
 
 `displayText()`・`sfen()`・`move()`・`comment()`・`bookmark()`・`timeText()`・`terminalType()`・`terminalSide()` などのアクセサは `m_record` を読む。項目ごとの setter は持たず、変えるときは `record()`（const でない版）の値を直接変える（例: `node->record().comment = text`）。
 `RecordEntry`（`src/kifu/recordentry.h`）は棋譜の1行の値で、対局（`MatchCoordinator`）・通信対局・棋譜の読み込みから分岐ツリーへ渡す共通の形である。
@@ -4110,7 +4112,9 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 
 #### 所有権モデル
 
-`KifuBranchTree` が全ノードを `m_nodeById`（`QHash<int, KifuBranchNode*>`）で所有する。ノード間の `parent` / `children` ポインタは非所有の参照であり、ツリーのデストラクタで全ノードが一括解放される。
+`KifuBranchTree` がルートを `std::unique_ptr<KifuBranchNode>` で所有し、各ノードが子を `std::unique_ptr` で所有する。`parent` は非所有の参照、`m_nodeById`（`QHash<int, KifuBranchNode*>`）は ID から引くための非所有の索引である。ノードのデストラクタは子孫を再帰せずに順に解放するので、長い手順でもスタックを使い切らない。
+
+木の形（親子・兄弟の並び・手数・ID）を変えられるのは `KifuBranchTree`（`KifuBranchNode` の friend。`appendChild`・`takeChild`・`moveChild`）だけで、ノードは形を変える公開の関数を持たない。行の中身（コメントなど）は `record()` を直接変える。
 
 #### ツリー構造図
 
@@ -4253,16 +4257,11 @@ struct RecordLine {
 
 | カテゴリ | メソッド | 説明 |
 |---------|---------|------|
-| 構築 | `setRootSfen(sfen)` | ルートノードを作成 |
-| 構築 | `addRecord(parent, entry)` | 棋譜の1行（指した手か終局）のノードを追加（`treeChanged` 発火）。取り込み・対局が使う入口 |
-| 構築 | `addMove(parent, move, text, sfen, time)` | 指し手ノードを追加（`treeChanged` 発火） |
-| 構築 | `addMoveQuiet(...)` | 指し手追加（`treeChanged` を発火しない） |
-| 構築 | `removeLeaf(node)` / `removeLeafQuiet(node)` | 葉ノードの削除（後者は `treeChanged` を発火しない） |
-| 構築 | `addTerminalMove(parent, type, side, time)` | 終局手ノードを追加（表記は終局語の表から作る） |
-| 構築 | `beginBatchUpdate()` / `endBatchUpdate()` | 一括更新の間は `treeChanged` を最後の1回にまとめる |
+| 構築 | `clear()` / `setRootSfen(sfen)` | ツリーを空にする／開始局面だけのツリーに作り直す（`reset`） |
+| 構築 | `addRecord(parent, entry)` | 棋譜の1行（指した手か終局）のノードを parent の子の末尾に追加（`nodeAppended`）。本体のコードが手を足す唯一の入口（取り込み・対局・盤上の変化） |
+| 構築 | `removeLeaf(node)` | 葉ノードの削除（葉に限った `removeSubtree()`。`subtreeRemoved`） |
+| 構築 | `beginBatchUpdate()` / `endBatchUpdate()` | 一括更新の間は変更の知らせを遅らせ、最も外側の `endBatchUpdate()` で順に出す（作り直しを含めば `reset` 1回） |
 | 検索 | `nodeAt(nodeId)` | IDで O(1) 検索 |
-| 検索 | `findByPlyOnMainLine(ply)` | 本譜のN手目を取得 |
-| 検索 | `findBySfen(sfen, ply)` | SFEN一致検索 |
 | 検索 | `findMatchingChild(parent, entry)` | 同じ手の子ノード（指し直しで再利用する） |
 | ライン | `mainLine()` | 本譜のノード列を取得 |
 | ライン | `pathToNode(node)` | ルートから指定ノードまでの経路 |
@@ -4271,17 +4270,24 @@ struct RecordLine {
 | ライン | `toRecordLine(nodes, currentPly)` | ノード列を `RecordLine` にする（static） |
 | ライン | `exportLine(lineIndex)` | ラインを `RecordLine` にする（終局行と開始局面のコメント・しおりを含む） |
 | 分岐 | `hasBranch(node)` | 分岐の有無判定 |
-| 分岐の編集 | `moveChild(child, index)` / `promoteToMainLine(node)` / `removeSubtree(node)` | 分岐の並べ替え・本譜にする・削除（利用者の操作） |
+| 分岐の編集 | `moveChild(child, index)` / `promoteToMainLine(node)` / `removeSubtree(node)` | 分岐の並べ替え・本譜にする・削除（`childrenReordered`・`subtreeRemoved`。利用者の操作と、待ったの後の並べ替え（`LiveGameSession`）） |
 | コメント | `setComment(nodeId, comment)` | コメント設定 |
-| 変更の版 | `revision()` | 構造変更のたびに増える値（quiet 版の変更も数える）。表示側が差分更新できるかの判断に使う |
+| 変更の版 | `revision()` | 構造変更のたびに増える値。棋譜の文書（`KifuDocument`）が保存した時点と比べて未保存かを決め、表示中の手（`KifuNavigationState`）が同じ構造をもう知らせたかを見るのに使う |
 
 #### シグナル
 
 | シグナル | 発火タイミング |
 |---------|--------------|
-| `treeChanged()` | ツリー構造が変更された時（`addRecord`・`addMove`・分岐の編集など。一括更新中は最後に1回） |
+| `nodeAppended(int parentId, int nodeId)` | 手 nodeId を parentId の子の末尾に足した（`addRecord`） |
+| `childrenReordered(int parentId)` | parentId の子の並びを変えた（`moveChild`。`promoteToMainLine` では並びを変えた親のうち最もルートに近いもの。ライン番号が変わる） |
+| `subtreeRemoved(int parentId, int nodeId)` | parentId の子 nodeId とその子孫を消した（`removeSubtree`・`removeLeaf`） |
+| `reset()` | ツリーを作り直した（`clear`・`setRootSfen`、作り直しを含む一括更新） |
 
-`*Quiet` の付くメソッド（`addMoveQuiet`・`removeLeafQuiet`・`moveChildQuiet`）は `treeChanged` を出さない。表示中の手（`KifuNavigationState`）は `treeChanged` を受けて、手が消えていれば開始局面へ戻り、`changed()` を出す。
+構造の変更はどれも、変わった所をノード ID で知らせる（ノード ID は同じツリーの寿命中は使い回さない）。知らせを出さない変更の関数は無い。一括更新の中の変更は `endBatchUpdate()` まで遅らせて起きた順に出し、作り直しを含むときは `reset()` を1回だけ出す。手の表記・コメント・しおりの変更は構造の変更ではなく、棋譜の文書（`KifuDocument::commentChanged` など）が知らせる。
+
+受け手は必要なシグナルだけをつなぐ。表示中の手（`KifuNavigationState`）は4つすべてを受けて、手が消えていれば開始局面へ戻り、`changed()` を出す。分岐ツリーの図（`BranchTreeView`）は、`nodeAppended` で手順の末尾に1手足しただけならその手だけを描き足し、ほか（新しい変化・並べ替え・削除・作り直し）は作り直す。棋譜欄の分岐の印は `KifuDisplayPresenter` が4つを受けて描き直す。`LiveGameSession` は `subtreeRemoved`・`reset` だけを受けて、対局を始めた手が消えたら記録をやめる。`GameSession` は4つを受けて、中断した対局を再開できなくする。
+
+テストで指し手を直接足す・本譜の N 手目や局面で手を探すときは、`tests/branchtree_test_util.h` の `TestTree::addMove()`・`addTerminalMove()`・`findByPlyOnMainLine()`・`findBySfen()` を使う（本体の `KifuBranchTree` には無い）。
 
 ### 8.3 KifuBranchTreeBuilder — ツリー構築
 
@@ -4305,7 +4311,7 @@ buildFromKifParseResult(tree, result, startSfen)
   │     ├── 分岐元の手順（本譜か先に追加した変化）の経路の先頭 startPly 個を取る
   │     │     （最後のノードが分岐点）
   │     └── addKifLineToTree(tree, variation.line, 経路)
-  └── tree->endBatchUpdate()            … treeChanged を1回だけ発火
+  └── tree->endBatchUpdate()            … 作り直しを含むので reset を1回だけ発火
 ```
 
 変化の親子関係はパース時に `KifVariation::parentVariation`（-1 は本譜、それ以外は先に定義された変化の番号）として持つため、ビルダーは手数や局面から分岐点を探し直さない。
@@ -4510,7 +4516,7 @@ KifuDocument::setComment(node, comment)
 #### 待った（undoMoves）
 
 `undoMoves(count)` はセッションの履歴と現在位置（`m_liveParent`）を巻き戻すだけで、ツリーのノードは削除しない。取り消した手順は分岐として残る。
-このセッションで追加した手順を取り消した場合は、その先頭ノードを `m_undoneNodeIds` に記録する。次に指した手（新規ノード・既存ノードの再利用・終局手のいずれも）が記録済みの兄弟より後ろにあれば、`KifuBranchTree::moveChildQuiet()` で前へ移す。
+このセッションで追加した手順を取り消した場合は、その先頭ノードを `m_undoneNodeIds` に記録する。次に指した手（新規ノード・既存ノードの再利用・終局手のいずれも）が記録済みの兄弟より後ろにあれば、`appendRecord()` の一括更新の中で `KifuBranchTree::moveChild()` で前へ移す（`childrenReordered` は一括更新の終わりに届く）。
 これにより、実際に指した手順が本譜側、取り消した手順が分岐側に並ぶ。以前の棋譜から再利用した手を取り消した場合は記録せず、以前の本譜の並びを保つ。
 `canUndoMoves()` は対局開始位置（分岐起点・ルート）より前へは戻さない。
 
@@ -4524,7 +4530,7 @@ KifuDocument::setComment(node, comment)
 |---------|--------------|
 | `activeChanged()` | 対局を始めた・終えた時 |
 
-手の追加は、ツリーの `treeChanged()` と、表示中の手の `KifuNavigationState::changed()` で表示に伝わる。
+手の追加は、ツリーの `nodeAppended`（待ったの後の並べ替えでは `childrenReordered` も）と、表示中の手の `KifuNavigationState::changed()` で表示に伝わる。セッション自身は `subtreeRemoved`・`reset` だけを受け、対局を始めた手（`m_anchorNodeId`）がツリーから消えたら `discard()` する。
 
 ### 8.7 KifuLoadCoordinator — 棋譜読み込みフロー
 
@@ -4559,7 +4565,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
         ├── 指し手も局面図も無ければ errorOccurred
         └── KifuDocument::replaceWithRecord(record, initialSfen, gameInfo)
               ├── KifuBranchTreeBuilder::buildFromKifParseResult() でツリーを作り直す（変化の親子を先に検証）
-              │     （beginBatchUpdate()/endBatchUpdate() で treeChanged を1回にまとめる）
+              │     （beginBatchUpdate()/endBatchUpdate() で囲み、作り直しを含むので reset を1回だけ出す）
               └── 対局情報を読んだものにし、前の対局者・持ち時間・上書き保存先を消す（headerReset）
 ```
 
@@ -4573,7 +4579,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 #### 分岐マーカー表示
 
-棋譜欄の `KifuRecordListModel`（分岐ツリーのノードを行とするモデル。行は `setPath()` で表示中の手順のノード列に合わせる）が、行のノードに兄弟があるかで分岐の印を出す（`isBranchRow()`）。更新は `KifuDisplayPresenter` が `KifuNavigationState::changed()` を受けて行う。
+棋譜欄の `KifuRecordListModel`（分岐ツリーのノードを行とするモデル。行は `setPath()` で表示中の手順のノード列に合わせる）が、行のノードに兄弟があるかで分岐の印を出す（`isBranchRow()`）。手順の行は `KifuDisplayPresenter` が `KifuNavigationState::changed()` を受けて合わせ、分岐の印はツリーの構造の変更（`nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset`）を受けて描き直す（`refreshBranchMarks()`）。
 
 ### 8.8 KifuSaveCoordinator / KifuSaveFile / KifuIoService — 保存
 
@@ -5528,12 +5534,12 @@ KifuNavigationState::changed
 
 **ソース**: `src/ui/presenters/kifudisplaypresenter.h`, `src/ui/presenters/kifudisplaypresenter.cpp`
 
-棋譜欄（`KifuRecordListModel`）・分岐候補欄（`KifuBranchListModel`）・分岐ツリー（`BranchTreeManager`）を、表示中の手（`KifuNavigationState`）に合わせるプレゼンターである。状態の写しは持たず、毎回 `KifuNavigationState` から作る。`KifuNavigationState::changed` と `LiveGameSession::activeChanged` を `refresh()` につなぐ。
+棋譜欄（`KifuRecordListModel`）・分岐候補欄（`KifuBranchListModel`）・分岐ツリーの図（`BranchTreeView`）を、表示中の手（`KifuNavigationState`）に合わせるプレゼンターである。状態の写しは持たず、毎回 `KifuNavigationState` から作る。`KifuNavigationState::changed` と `LiveGameSession::activeChanged` を `refresh()` につなぐ。分岐ツリーの図にはコンストラクタで1度だけ `setTree(tree)` でツリーを渡し、図はツリーの変更を自分で受けて描き直す（このクラスは表示中の手を伝えるだけ）。ツリーの構造の変更は棋譜欄の分岐の印（`refreshBranchMarks()`）にもつなぐ。
 
 | メソッド | 説明 |
 |---------|------|
-| `refresh()` | 棋譜欄の手順（対局中は対局の最新の手まで、それ以外は選んでいる手順の終わりまで）、分岐候補欄の候補と選択、分岐ツリーの強調を合わせる。分岐の印は `KifuBranchTree::revision()` が変わったときだけ描き直す |
-| `refreshLabels()` | 表記や言語が変わったときに、モデルの文字列と分岐ツリーを描き直す |
+| `refresh()` | 棋譜欄の手順（対局中は対局の最新の手まで、それ以外は選んでいる手順の終わりまで）、分岐候補欄の候補と選択を合わせ、分岐ツリーの図に表示中の手を `setCurrentNode(nodeId)` で伝える |
+| `refreshLabels()` | 表記や言語が変わったときに、モデルの文字列と分岐ツリーの図の手の表記（`BranchTreeView::refreshLabels()`）を描き直す |
 
 ```
 選択変更のデータフロー:
@@ -5647,7 +5653,7 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | `NyugyokuDeclarationHandler` | `nyugyokudeclarationhandler.h` | 利用者の入玉宣言（確認・宣言・結果の表示）をローカル対局・通信対局で同じ手順で行う | `GameChannel`, `KifuDocument` |
 | `JosekiWindowController` | `josekiwindowcontroller.h` | 定跡ウィンドウの生成・更新と、定跡手から着手への変換 | `JosekiWindow`, `KifuNavigationState`, `BoardMoveController` |
 | `MenuWindowController` | `menuwindowcontroller.h` | メニューバーの項目を集めてメニューウィンドウを作る | `MenuWindow`, `QMenuBar` |
-| `BranchTreeEditController` | `branchtreeeditcontroller.h` | 分岐ツリーの右クリックメニューからの分岐の編集と、対局外の盤上の着手の記録 | `KifuBranchTree`, `BranchTreeManager` |
+| `BranchTreeEditController` | `branchtreeeditcontroller.h` | 分岐ツリーの右クリックメニューからの分岐の編集と、対局外の盤上の着手の記録 | `KifuBranchTree`, `BranchTreeView` |
 | `ImageExportController` | `imageexportcontroller.h` | 盤と評価値グラフの画像のコピー・保存 | `ShogiView`, `EvaluationChartWidget` |
 | `MainWindowAppearanceController` | `mainwindowappearancecontroller.h` | 盤の拡大・縮小・反転、ツールバー、ウィンドウの外観 | `ShogiView`, `TimeDisplayPresenter` |
 | `SettingsResetController` | `settingsresetcontroller.h` | 全設定の初期化と終了確認 | `SettingsCommon` |
@@ -5862,8 +5868,8 @@ CsaGameSession のコンストラクタ
 
 | 接続 | 説明 |
 |------|------|
-| 棋譜をたどる操作 | `connectRecord()` が、棋譜欄・評価値グラフのナビゲーションボタン、`RecordPane::mainRowChanged`・`branchRowActivated`、`BranchTreeManager::branchNodeActivated`、`EvaluationChartWidget::plyClicked` を `KifuNavigationController` の `select*()` へつなぐ。表示の更新は `KifuNavigationState::changed` を受けた `KifuDisplayPresenter`・`BoardSyncPresenter`・`CommentCoordinator` などが各自で行う |
-| 分岐の編集 | 分岐ツリーと分岐候補欄の右クリックを `BranchTreeEditController` へつなぐ |
+| 棋譜をたどる操作 | `connectRecord()` が、棋譜欄・評価値グラフのナビゲーションボタン、`RecordPane::mainRowChanged`・`branchRowActivated`、`BranchTreeView::nodeActivated`、`EvaluationChartWidget::plyClicked` を `KifuNavigationController` の `select*()` へつなぐ。表示の更新は `KifuNavigationState::changed` を受けた `KifuDisplayPresenter`・`BoardSyncPresenter`・`CommentCoordinator` などが各自で行う |
+| 分岐の編集 | 分岐ツリー（`BranchTreeView::nodeContextMenuAboutToShow(nodeId, menu)`）と分岐候補欄の右クリックを `BranchTreeEditController` へつなぐ。棋譜の文書の `commentChanged` を `BranchTreeView::refreshNode` へつなぎ、図のコメントの印と説明を合わせる |
 | 読み筋のクリック | `ThinkingPanel`・`ConsiderationTabManager` の `pvRowClicked` を `PvClickController::onPvRowClicked` へ、`pvDialogClosed` を各表の選択解除へつなぐ |
 | 時計・評価値 | 時計は `TimeDisplayPresenter` がコンストラクタで `ShogiClock::timeUpdated` を自分でつなぐ。`connectGame()` が `MatchCoordinator::engineMovePlayed`・`movesUndone` を `EvaluationGraphPresenter` へつなぐ |
 
@@ -6063,7 +6069,7 @@ BoardInputRoute::submit(from, to)
 
 #### 11.1.1 概要
 
-ShogiView は QWidget を直接継承した **カスタムペイントウィジェット** であり、盤面・駒・駒台・ハイライト・矢印・段筋ラベルをすべて `paintEvent()` 内の QPainter で描画する。対局者カード（名前・時計・手番の札）と「編集終了」ボタン・駒箱の先後切り替えは描かず、子として重ねた `BoardChromeWidget` が持つ（11.1.6）。QGraphicsView は使用しない（分岐ツリーの `BranchTreeManager` は QGraphicsView に描く）。
+ShogiView は QWidget を直接継承した **カスタムペイントウィジェット** であり、盤面・駒・駒台・ハイライト・矢印・段筋ラベルをすべて `paintEvent()` 内の QPainter で描画する。対局者カード（名前・時計・手番の札）と「編集終了」ボタン・駒箱の先後切り替えは描かず、子として重ねた `BoardChromeWidget` が持つ（11.1.6）。QGraphicsView は使用しない（分岐ツリーの図 `BranchTreeView` は QGraphicsView の派生）。
 
 主な責務は以下のとおり。
 
@@ -6164,7 +6170,8 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | ThinkingTableView | PvTableView | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅（保存と復元）を受け持つ。「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で知らせる |
 | ConsiderationTabManager | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
 | UsiLogPanel / CsaLogPanel / CommentEditorPanel | QWidget | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にもそのまま入れる |
-| BranchTreeManager | QWidget | 分岐ツリーのドック | 分岐ツリーを自分の持つ QGraphicsView（`view()`。objectName は `branchTreeView`）に描く（`KifuBranchTree` を読むだけの観察者）。構築・入力は `branchtreemanager.cpp`、描画は `branchtreemanager_draw.cpp`。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
+| BranchTreeView | QGraphicsView | 分岐ツリーのドック（ドックの中身そのもの。objectName は `branchTreeView`） | 分岐ツリーの図（`KifuBranchTree` を読むだけの観察者）。`setTree(tree)` でツリーの型付きの知らせを自分で受け、`nodeAppended` で手順の末尾に1手足しただけならその手だけを描き足し、それ以外（新しい変化・並べ替え・削除・作り直し）は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId, center)`・`currentNodeId()`、シグナル `nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`、スロット `refreshNode(nodeId)`）。描く前に届いた表示中の手は、描いた時点で目立たせる。キー・マウス・ホイール・右クリックは `QGraphicsView` のイベント関数の上書きで受ける（イベントフィルタは使わない）。折りたたみもノード ID で指定する（`setCollapsed`・`isCollapsed`・`isCollapsible`・`expandAll`）。選べるかは `setClickEnabled()`（`UiStatePolicyManager` が決める）。テスト・自動化用に `isDrawn(nodeId)`・`laneOf(nodeId)`・`rebuildCount()` を持つ。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
+| BranchNodeItem | QGraphicsPathItem | BranchTreeView の中 | 図の1手（開始局面も同じクラスで、少し大きく太い枠で描く）。ノード ID・行・手数を型付きのメンバで持ち、`setCurrent()`・`setComment()`・`setCollapsedBadge()` で見た目を変える。`BranchTreeItemRoles`（`src/common/branchtreeitemroles.h`）の項目は自動化 API が読むためだけに付ける |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ |
 | EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は保存する |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加・反映など）＋ QTableView。中身・編集の履歴・未反映の判定は `GameInfoEditModel`（`src/models/`）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
@@ -6172,7 +6179,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
 | MenuButtonWidget | QWidget | MenuWindow 内 | QAction をアイコン＋テキストで表示するカスタムボタン、D&D対応 |
 
-ドックのパネル（RecordPane・ThinkingPanel・GameInfoPane・ConsiderationTabManager・UsiLogPanel・CsaLogPanel・CommentEditorPanel・AnalysisResultsPanel・BranchTreeManager）は、どれも `QWidget` の派生で、部品をコンストラクタで作りきる。外から後で中身を作らせる公開の関数（以前の `buildUi()` など）や、中身を返す関数（以前の `containerWidget()` など）は持たない。`DockRegistry::createAll()` はパネルそのものをドックに入れる。
+ドックのパネル（RecordPane・ThinkingPanel・GameInfoPane・ConsiderationTabManager・UsiLogPanel・CsaLogPanel・CommentEditorPanel・AnalysisResultsPanel・BranchTreeView）は、どれも `QWidget` の派生で、部品をコンストラクタで作りきる。外から後で中身を作らせる公開の関数（以前の `buildUi()` など）や、中身を返す関数（以前の `containerWidget()` など）は持たない。`DockRegistry::createAll()` はパネルそのものをドックに入れる。
 
 #### 汎用部品
 
@@ -6468,7 +6475,7 @@ A-/A+ のボタンの文字・見た目・説明と、範囲の端で押せな�
 
 **3. イベントフィルタの活用**
 
-`eventFilter()` をオーバーライドし、子ウィジェットのイベントを横取りするパターンが多い。BranchTreeManager では分岐ツリーのビューのクリック・キー操作・大きさの変化の検出、AppToolTipFilter ではツールチップの差し替えに使用される。ShogiView の Ctrl+ホイールでの拡大縮小は `wheelEvent()` の上書きで行う。
+`eventFilter()` をオーバーライドし、子ウィジェットのイベントを横取りするパターンが多い。AppToolTipFilter ではツールチップの差し替えに使用される。自分のイベントは、横取りせずイベント関数を上書きして受ける（分岐ツリーの図 `BranchTreeView` は `QGraphicsView` の `keyPressEvent()`・`mouseReleaseEvent()`・`contextMenuEvent()`・`wheelEvent()`・`resizeEvent()` などを上書きする）。ShogiView の Ctrl+ホイールでの拡大縮小は `wheelEvent()` の上書きで行う。
 
 **4. デリゲートによる描画カスタマイズ**
 
@@ -7115,18 +7122,18 @@ ShogiClock::setCurrentPlayer(firstPlayer)
 | 移動 | `goToMainLineAtCurrentPly()` | 本譜の同じ手数へ戻る（選択を忘れる） |
 | 操作 | `selectRecordRow(int row)` | 棋譜欄の行を選んだ |
 | 操作 | `selectBranchCandidateRow(int row)` | 分岐候補欄の行を選んだ（候補の後ろの行は「本譜へ戻る」） |
-| 操作 | `selectBranchTreeNode(int row, int ply)` | 分岐ツリーのノードを選んだ |
+| 操作 | `selectBranchTreeNode(int nodeId)` | 分岐ツリーの手を選んだ（`BranchTreeView::nodeActivated` から） |
 | 操作 | `selectPly(int ply)` | 評価値グラフの手数を選んだ |
 
 #### selectBranchTreeNode() — 分岐ツリークリック処理
 
 ```
-selectBranchTreeNode(row, ply):
-  1. row が範囲外なら何もしない。confirmLeave() でやめたら終了
-  2. ply == 0 → KifuNavigationState::goToRoot() で開始局面へ移動して終了
-  3. 分岐前の共有ノードかチェック
-     → クリックした行と表示中の手順で、その手数のノードが同じなら表示中の手順のまま移る
-  4. goToLine(row, ply)
+selectBranchTreeNode(nodeId):
+  1. nodeAt(nodeId) が無ければ何もしない。confirmLeave() でやめたら終了
+  2. ルート（開始局面）→ KifuNavigationState::goToRoot() で分岐の選択を忘れて開始局面へ移動して終了
+  3. 表示中の手順（selectedPath()）にある手なら、その手順のまま移る
+     （分岐前の共有の手は親の手順の行に描いてあるため）
+  4. それ以外は、その手から先頭の子をたどった手順（図でその手を描いた行）の終わりまでを選んで移る
 ```
 
 #### 変更の通知
@@ -7173,7 +7180,7 @@ selectBranchTreeNode(row, ply):
 
 | クラス | 受け取るもの | 合わせるもの |
 |--------|------------|-------------|
-| `KifuDisplayPresenter` | `KifuNavigationState::changed()`、`LiveGameSession::activeChanged` | 棋譜欄（`KifuRecordListModel`。対局中は最新の手まで）・分岐候補欄（`KifuBranchListModel`）・分岐ツリー（`BranchTreeManager`）。選択の変更は `QSignalBlocker` で止め、表示に合わせた変更を利用者の操作として扱わない |
+| `KifuDisplayPresenter` | `KifuNavigationState::changed()`、`LiveGameSession::activeChanged` | 棋譜欄（`KifuRecordListModel`。対局中は最新の手まで）・分岐候補欄（`KifuBranchListModel`）・分岐ツリーの図（`BranchTreeView`。表示中の手を `setCurrentNode()` で伝える。構造の変更は図が自分で受ける）。選択の変更は `QSignalBlocker` で止め、表示に合わせた変更を利用者の操作として扱わない |
 | `BoardSyncPresenter` | `KifuNavigationState::changed()` | 盤を表示中の手の局面に合わせ（違うときだけ入れ替える）、ノードの指し手から直前手のハイライト（`BoardInteractionController::showMoveHighlights()`）を作る。手番の表示は盤のビューが盤の手番から作る |
 | `EvaluationGraphPresenter` | 同上 | 評価値グラフの縦線（`showCurrentPly`） |
 | `CommentCoordinator` | 同上 | 棋譜コメント欄（`showCurrentComment`） |
@@ -7571,7 +7578,7 @@ MainWindow::MainWindow()
 
 **ファイル**: `src/ui/coordinators/dockregistry.h/.cpp`、`src/app/mainwindowcomposer_create.cpp`（`createDocks()`）
 
-12 個のドック（棋譜、対局情報、思考、検討、USI 通信ログ、CSA 通信ログ、棋譜コメント、分岐ツリー、評価値グラフ、メニュー、定跡、棋譜解析）の名前・規定の配置・状態の保存は `DockRegistry` の表で決まる（表の中身は 10.5 節の「DockRegistry — ドックの表」）。ドックの中身（`RecordPane`・`ThinkingPanel`・`ConsiderationTabManager`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeManager`・`AnalysisResultsPanel` など）は、どれもコンストラクタで部品を作りきる `QWidget` で、合成ルートが先に作る。メニューウィンドウと定跡ウィンドウも、`MenuWindowController`・`JosekiWindowController` がコンストラクタで作る。`DockRegistry::createAll()` はパネルそのものをドックに入れるだけである。棋譜解析の結果のドックを解析の開始時に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
+12 個のドック（棋譜、対局情報、思考、検討、USI 通信ログ、CSA 通信ログ、棋譜コメント、分岐ツリー、評価値グラフ、メニュー、定跡、棋譜解析）の名前・規定の配置・状態の保存は `DockRegistry` の表で決まる（表の中身は 10.5 節の「DockRegistry — ドックの表」）。ドックの中身（`RecordPane`・`ThinkingPanel`・`ConsiderationTabManager`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeView`・`AnalysisResultsPanel` など）は、どれもコンストラクタで部品を作りきる `QWidget` で、合成ルートが先に作る。メニューウィンドウと定跡ウィンドウも、`MenuWindowController`・`JosekiWindowController` がコンストラクタで作る。`DockRegistry::createAll()` はパネルそのものをドックに入れるだけである。棋譜解析の結果のドックを解析の開始時に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
 
 `MainWindowComposer::createPresentersAndDocks()` の最後に呼ぶ `createDocks()` は、中身の部品を `DockId` の順に `DockRegistry::Contents` に詰めて渡すだけである。
 
@@ -8164,7 +8171,7 @@ ShogiBoardQは日本語・英語・簡体字中国語・繁体字中国語の4�
     ...
   </context>
   <context>
-    <name>BranchTreeManager</name>
+    <name>BranchTreeView</name>
     ...
   </context>
 </TS>
@@ -9197,9 +9204,10 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | BoardSquare | S | core | 盤のマス（筋・段）の値型 | 第5章 |
 | BoardStaticLayer | C | views | 盤面のうち局面によらない部分（盤・マス・段筋の文字など）の画像 | 第11章 |
 | BoardSyncPresenter | C | ui/presenters | 表示中の手の局面に盤を合わせ、指し手のハイライトと手番を示す | 第10章 |
+| BranchNodeItem | C | widgets | 分岐ツリーの図の1手（開始局面を含む）の図形 | 第11章 |
 | BranchTreeEditController | C | ui/controllers | 分岐ツリーの右クリックメニューからの分岐の編集と、盤上の変化の記録 | 第10章 |
 | BranchTreeLayout | S | widgets | 分岐ツリーの行（変化）の折りたたみと段の割り当て（描画に依存しない値型） | 第11章 |
-| BranchTreeManager | C | widgets | 分岐ツリーの表示（構築・ハイライト・クリック検出） | 第11章, 第13章 |
+| BranchTreeView | C | widgets | 分岐ツリーの図（ツリーの変更を受けて描き直す・表示中の手の強調・クリックとキー操作。外とはノード ID でやり取りする） | 第11章, 第13章 |
 | CandidateArrowPresenter | C | ui/presenters | 検討と対局のエンジンの読みを盤上の矢印にする | 第9章, 第10章 |
 | ChangeEngineSettingsDialog | C | dialogs | エンジン設定変更ダイアログ | 第11章 |
 | CliCommandSpecs | NS | cli | `shogiboardq-cli` の全コマンドの引数の表（オプション名は引数名の `_` を `-` にしたもの。`parse()`・`usage()`） | 第14章 |
@@ -9684,7 +9692,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | recordpane | 第11章 | 棋譜ペイン |
-| branchtreemanager | 第11章, 第13章 | 分岐ツリーの表示（branchtreemanager.cpp と描画の branchtreemanager_draw.cpp） |
+| branchtreeview | 第11章, 第13章 | 分岐ツリーの図（`BranchTreeView`。ドックの中身の `QGraphicsView`） |
+| branchnodeitem | 第11章 | 分岐ツリーの図の1手の図形（`BranchNodeItem`） |
 | branchtreelayout | 第11章 | 分岐ツリーの行の折りたたみと段の割り当て |
 | evaluationchartwidget | 第11章 | 評価値チャート（`EvaluationSeries` を描くだけ） |
 | engineinfowidget | 第11章 | エンジン情報（探索状況の書式を決める。列幅を自分で保存） |

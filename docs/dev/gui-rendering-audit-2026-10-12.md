@@ -2,6 +2,8 @@
 
 > 2026-10-15 注記: レジストリ層（`MainWindowServiceRegistry` など）は `MainWindowComposer` に置き換えた（[composition-root.md](composition-root.md)）。本文は当時の記録である。
 
+> 2026-10-16 注記: 分岐ツリーの図 `BranchTreeManager` は `BranchTreeView`（`src/widgets/branchtreeview.*`）と1手の図形 `BranchNodeItem` に作り直した。項目4の差分の強調は `BranchTreeView::highlightPathTo` に引き継いでいる。
+
 「GUI 描画処理に関するコードで高速化できる箇所はあるか」という依頼で、`board-input-performance-2026-10-11.md` の項目1〜30の後に残っていた箇所を監査し、優先度の高いものから順に修正した。盤（ShogiView）本体は既存の項目でほぼ出し切られており、残っていた大物は駒画像のキャッシュの溢れだった。ほかは周辺のウィジェットの「1手ごとの作り直し」と「隠れている間も更新する」型が中心だった。
 
 計測は Linux（Arch）、Qt 6.12.0、Release ビルド、`QT_QPA_PLATFORM=offscreen` で `QWidget::render` を使う単体ベンチ（静的ライブラリ `libshogiboardq_static.a` と qrc のオブジェクトにリンク）で行った。

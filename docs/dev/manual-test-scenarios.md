@@ -137,7 +137,7 @@
 - 本譜に戻ると棋譜欄が本譜表示に復帰する
 
 **重点確認ポイント:**
-- `BranchTreeManager::branchNodeActivated` → `KifuNavigationController::selectBranchTreeNode()` → `goToLine()` のフロー（分岐前の共有ノードは表示中の手順のまま移る）
+- `BranchTreeView::nodeActivated(nodeId)` → `KifuNavigationController::selectBranchTreeNode(nodeId)` → `KifuNavigationState::setCurrentNode(node, lineEnd)` のフロー（表示中の手順にある手（分岐前の共有の手）はその手順のまま移り、ほかの手順の手はその手から先頭の子をたどった手順に移る）
 - 分岐候補欄からの移動（`RecordPane::branchRowActivated` → `KifuNavigationController::selectBranchCandidateRow()`。「本譜へ戻る」は `goToMainLineAtCurrentPly()`）
 - `BoardSyncPresenter::syncToCurrentNode()` による盤面 + ハイライト更新
 - `KifuNavigationState::setCurrentNode(node, lineEnd)` が選んだ手順を覚え、以降の「進む」がその分岐をたどるか
