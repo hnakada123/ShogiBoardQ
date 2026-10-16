@@ -766,8 +766,8 @@ set(SRC_DIALOGS
     src/dialogs/piecesoundsettingsdialog.h
     src/dialogs/promotedialog.cpp
     src/dialogs/promotedialog.h
-    src/dialogs/pvboardcontroller.cpp
-    src/dialogs/pvboardcontroller.h
+    src/dialogs/pvline.cpp
+    src/dialogs/pvline.h
     src/dialogs/pvboarddialog.cpp
     src/dialogs/pvboarddialog.h
     src/dialogs/sfencollectiondialog.cpp

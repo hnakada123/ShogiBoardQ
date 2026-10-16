@@ -8542,17 +8542,17 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PvBoardDialog</name>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="35"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="34"/>
         <source>読み筋表示</source>
         <translation>主要变化显示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="72"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="66"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="73"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="67"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
@@ -8573,27 +8573,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">翻转棋盘</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
         <source>最初の局面に戻る</source>
         <translation>跳到初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
         <source>1手戻る</source>
         <translation>后退一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
         <source>1手進む</source>
         <translation>前进一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
         <source>最後の局面まで進む</source>
         <translation>跳到最终局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="120"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>閉じる</source>
         <translation>关闭</translation>
     </message>

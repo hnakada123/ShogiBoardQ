@@ -5,7 +5,7 @@
 #include "applicationfonts.h"
 #include "boardviewerwidget.h"
 #include "kifupresentation.h"
-#include "pvboardcontroller.h"
+#include "pvline.h"
 #include "buttonstyles.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
@@ -13,7 +13,6 @@
 #include "dialogutils.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
-#include "logcategories.h"
 
 #include <QCloseEvent>
 #include <QHBoxLayout>
@@ -30,7 +29,7 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
                              const QStringList& pvMoves,
                              QWidget* parent)
     : QDialog(parent)
-    , m_controller(std::make_unique<PvBoardController>(baseSfen, pvMoves))
+    , m_line(std::make_unique<PvLine>(baseSfen, pvMoves))
 {
     setWindowTitle(tr("読み筋表示"));
     setMinimumSize(kMinimumSize);
@@ -41,13 +40,8 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     buildUi();
     DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
 
-    // 読み筋の各手数の局面を盤に渡す（0 が開始局面）
-    QStringList positions;
-    m_controller->goFirst();
-    positions.append(m_controller->currentSfen());
-    while (m_controller->goForward()) positions.append(m_controller->currentSfen());
-    m_controller->goFirst();
-    m_viewer->setSfenList(positions);
+    // 読み筋の各手数の局面を盤に渡す（0 が開始局面）。表示する手数はビューアの番号だけで持つ
+    m_viewer->setSfenList(m_line->positions());
 
     // ShogiViewの初期サイズを確定し、時計を隠す
     m_viewer->fitToBoard();
@@ -61,9 +55,9 @@ PvBoardDialog::~PvBoardDialog() = default;
 
 void PvBoardDialog::setKanjiPv(const QString& kanjiPv)
 {
-    m_controller->setKanjiPv(kanjiPv);
-    m_pvLabel->setText(m_controller->displayPv());
-    m_pvLabel->setToolTip(m_controller->displayPv(true));
+    m_kanjiPv = kanjiPv;
+    m_pvLabel->setText(m_line->displayPv(m_kanjiPv));
+    m_pvLabel->setToolTip(m_line->displayPv(m_kanjiPv, true));
     updatePlyDisplay();
 }
 
@@ -75,16 +69,16 @@ void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whit
 
 void PvBoardDialog::setLastMove(const QString& lastMove)
 {
-    m_controller->setLastMove(lastMove);
-    qCDebug(lcUi) << "setLastMove: lastMove=" << lastMove << " currentPly=" << m_controller->currentPly();
-    if (m_controller->currentPly() == 0) updateMoveHighlights();
+    m_lastMove = lastMove;
+    m_line->setArrival(m_lastMove, m_prevSfen);
+    updatePlyDisplay();
 }
 
 void PvBoardDialog::setPrevSfenForHighlight(const QString& prevSfen)
 {
-    m_controller->setPrevSfen(prevSfen);
-    qCDebug(lcUi) << "setPrevSfenForHighlight: prevSfen=" << prevSfen.left(60);
-    if (m_controller->currentPly() == 0) updateMoveHighlights();
+    m_prevSfen = prevSfen;
+    m_line->setArrival(m_lastMove, m_prevSfen);
+    updatePlyDisplay();
 }
 
 void PvBoardDialog::setFlipMode(bool flipped)
@@ -127,37 +121,31 @@ void PvBoardDialog::buildUi()
     mainLayout->addLayout(closeBtnLayout);
 }
 
-void PvBoardDialog::onPlyChanged(int ply)
+void PvBoardDialog::onPlyChanged(int)
 {
-    m_controller->goFirst();
-    for (int i = 0; i < ply && m_controller->goForward(); ++i) {}
     updatePlyDisplay();
 }
 
 void PvBoardDialog::updatePlyDisplay()
 {
-    updateMoveHighlights();
-    const int ply = m_controller->currentPly();
-    QString plyText = tr("手数: %1 / %2").arg(ply).arg(m_controller->totalMoves());
+    const int ply = qMax(0, m_viewer->currentIndex());
+
+    // 直前の手のハイライト（開始局面では、その局面に至った手）
+    const PvLine::Highlight highlight = m_line->highlight(ply);
+    ShogiViewHighlighting* highlighting = m_viewer->view()->highlighting();
+    highlighting->setHighlights(BoardHighlightLayer::LastMoveFrom,
+                                highlight.from ? QList<QPoint>{*highlight.from} : QList<QPoint>{});
+    highlighting->setHighlights(BoardHighlightLayer::LastMoveTo,
+                                highlight.to ? QList<QPoint>{*highlight.to} : QList<QPoint>{});
+
+    QString plyText = tr("手数: %1 / %2").arg(ply).arg(m_line->moveCount());
     if (ply == 0) {
         plyText += tr(" (開始局面)");
     } else {
-        const QString moveText = m_controller->currentMoveText();
+        const QString moveText = m_line->moveText(ply);
         if (!moveText.isEmpty()) plyText += QStringLiteral(" [%1]").arg(moveText);
     }
     m_viewer->setPositionText(plyText);
-}
-
-void PvBoardDialog::updateMoveHighlights()
-{
-    ShogiViewHighlighting* highlighting = m_viewer->view()->highlighting();
-    const PvHighlightCoords coords = m_controller->computeHighlightCoords();
-    const bool from = coords.valid && coords.hasFrom;
-    const bool to = coords.valid && coords.hasTo;
-    highlighting->setHighlights(BoardHighlightLayer::LastMoveFrom,
-                                from ? QList<QPoint>{QPoint(coords.fromFile, coords.fromRank)} : QList<QPoint>{});
-    highlighting->setHighlights(BoardHighlightLayer::LastMoveTo,
-                                to ? QList<QPoint>{QPoint(coords.toFile, coords.toRank)} : QList<QPoint>{});
 }
 
 void PvBoardDialog::closeEvent(QCloseEvent* event)
