@@ -253,7 +253,8 @@ void DialogFontScale::applySize(int size)
                                 inherited ? parent->property("dialogFontBaseSize").toInt() : font.pointSize());
         }
         const int baseSize = widget->property("dialogFontBaseSize").toInt();
-        font.setPointSize(qMax(8, baseSize + size - m_baseSize));
+        // 見出しなどの小さい文字も 8pt（範囲の下限がそれより小さければ下限）より小さくしない
+        font.setPointSize(qMax(qMin(8, m_fontSize->minSize()), baseSize + size - m_baseSize));
         widget->setFont(font);
         if (auto* combo = qobject_cast<QComboBox*>(widget)) combo->view()->setFont(font);
     }
