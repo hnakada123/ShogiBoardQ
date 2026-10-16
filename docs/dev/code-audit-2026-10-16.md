@@ -185,7 +185,7 @@
 - テスト: `tst_game_info_pane`・`tst_gamerecordmodel`・`tst_app_kifu_load`・`tst_kifusavecoordinator`・`tst_kifu_format_compliance`・`tst_jkfexporter`。
 - これを済ませると、R4 と R6 で必要な「作り直しで何を消すか」の多くがなくなる。
 
-**状態: 済（R3COMMIT）**。案から変えた点:
+**状態: 済（3953517c）**。案から変えた点:
 - `KifuDocument`（`src/kifu/kifudocument.h`）は分岐ツリーを持たずに指す（ツリーは合成ルートが作り、表示中の手・ライブ対局と共有する）。読み込み・新規・対局の開始は文書の中身を置き換える操作で、対局者・持ち時間・上書き保存先を消す。B6・B7 の `GameSession::forgetFinishedMatch()` はこの置き換えに吸収した。
 - 未保存は「ツリーの revision・コメントとしおりの変更回数・対局情報が保存した時点と違う」か「ファイルにない内容を読み込んだ」で求める。指し手のない棋譜の対局情報だけの変更（対局の前に棋戦・場所を書いた）は数えない。
 - 対局情報の欄（`GameInfoPane`）は文書の対局情報を編集する画面になり、入力中のセルの確定は文書の Hooks（`flushPendingHeaderEdits`）だけが呼ぶ。対局者名の取り出しは `KifuExportMetadataBuilder::playerName` の1か所、下手・上手と呼ぶかは `KifuDocument::usesHandicapNames` の1か所。
